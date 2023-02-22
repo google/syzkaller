@@ -131,6 +131,7 @@ func (e *engine) Run(ctx *RunContext, buildContext *build.Context, f *ast.File) 
 }
 
 // engineState is a shared state inside the engine.
+// Its access is synchronized, unlike the RunnerState which should be thread-local.
 type engineState struct {
 	env *quasigo.Env
 

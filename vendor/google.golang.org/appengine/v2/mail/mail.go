@@ -7,6 +7,7 @@ Package mail provides the means of sending email from an
 App Engine application.
 
 Example:
+
 	msg := &mail.Message{
 		Sender:  "romeo@montague.com",
 		To:      []string{"Juliet <juliet@capulet.org>"},

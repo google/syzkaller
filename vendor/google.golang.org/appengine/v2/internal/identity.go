@@ -167,5 +167,5 @@ func fullyQualifiedAppID(_ netcontext.Context) string {
 }
 
 func IsDevAppServer() bool {
-	return os.Getenv("RUN_WITH_DEVAPPSERVER") != ""
+	return os.Getenv("RUN_WITH_DEVAPPSERVER") != "" || os.Getenv("GAE_ENV") == "localdev"
 }

@@ -7,6 +7,11 @@ import (
 
 	gcicfg "github.com/daixiang0/gci/pkg/config"
 	"github.com/daixiang0/gci/pkg/gci"
+	"github.com/daixiang0/gci/pkg/io"
+	"github.com/daixiang0/gci/pkg/log"
+	"github.com/hexops/gotextdiff"
+	"github.com/hexops/gotextdiff/myers"
+	"github.com/hexops/gotextdiff/span"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/analysis"
 
@@ -32,6 +37,7 @@ func NewGci(settings *config.GciSettings) *goanalysis.Linter {
 		rawCfg := gcicfg.YamlConfig{
 			Cfg: gcicfg.BoolConfig{
 				SkipGenerated: settings.SkipGenerated,
+				CustomOrder:   settings.CustomOrder,
 			},
 			SectionStrings: settings.Sections,
 		}
@@ -41,7 +47,11 @@ func NewGci(settings *config.GciSettings) *goanalysis.Linter {
 			rawCfg.SectionStrings = prefix
 		}
 
-		cfg, _ = rawCfg.Parse()
+		var err error
+		cfg, err = rawCfg.Parse()
+		if err != nil {
+			linterLogger.Fatalf("gci: configuration parsing: %v", err)
+		}
 	}
 
 	var lock sync.Mutex
@@ -74,14 +84,10 @@ func NewGci(settings *config.GciSettings) *goanalysis.Linter {
 }
 
 func runGci(pass *analysis.Pass, lintCtx *linter.Context, cfg *gcicfg.Config, lock *sync.Mutex) ([]goanalysis.Issue, error) {
-	var fileNames []string
-	for _, f := range pass.Files {
-		pos := pass.Fset.PositionFor(f.Pos(), false)
-		fileNames = append(fileNames, pos.Filename)
-	}
+	fileNames := getFileNames(pass)
 
 	var diffs []string
-	err := gci.DiffFormattedFilesToArray(fileNames, *cfg, &diffs, lock)
+	err := diffFormattedFilesToArray(fileNames, *cfg, &diffs, lock)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +112,25 @@ func runGci(pass *analysis.Pass, lintCtx *linter.Context, cfg *gcicfg.Config, lo
 	return issues, nil
 }
 
+// diffFormattedFilesToArray is a copy of gci.DiffFormattedFilesToArray without io.StdInGenerator.
+// gci.DiffFormattedFilesToArray uses gci.processStdInAndGoFilesInPaths that uses io.StdInGenerator but stdin is not active on CI.
+// https://github.com/daixiang0/gci/blob/6f5cb16718ba07f0342a58de9b830ec5a6d58790/pkg/gci/gci.go#L63-L75
+// https://github.com/daixiang0/gci/blob/6f5cb16718ba07f0342a58de9b830ec5a6d58790/pkg/gci/gci.go#L80
+func diffFormattedFilesToArray(paths []string, cfg gcicfg.Config, diffs *[]string, lock *sync.Mutex) error {
+	log.InitLogger()
+	defer func() { _ = log.L().Sync() }()
+
+	return gci.ProcessFiles(io.GoFilesInPathsGenerator(paths), cfg, func(filePath string, unmodifiedFile, formattedFile []byte) error {
+		fileURI := span.URIFromPath(filePath)
+		edits := myers.ComputeEdits(fileURI, string(unmodifiedFile), string(formattedFile))
+		unifiedEdits := gotextdiff.ToUnified(filePath, filePath, string(unmodifiedFile), edits)
+		lock.Lock()
+		*diffs = append(*diffs, fmt.Sprint(unifiedEdits))
+		lock.Unlock()
+		return nil
+	})
+}
+
 func getErrorTextForGci(settings config.GciSettings) string {
 	text := "File is not `gci`-ed"
 
@@ -117,7 +142,7 @@ func getErrorTextForGci(settings config.GciSettings) string {
 	text += " with"
 
 	if settings.SkipGenerated {
-		text += " -skip-generated"
+		text += " --skip-generated"
 	}
 
 	if len(settings.Sections) > 0 {

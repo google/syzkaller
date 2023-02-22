@@ -28,12 +28,12 @@ func (*UnconditionalRecursionRule) Name() string {
 }
 
 type funcDesc struct {
-	reciverID *ast.Ident
-	id        *ast.Ident
+	receiverID *ast.Ident
+	id         *ast.Ident
 }
 
 func (fd *funcDesc) equal(other *funcDesc) bool {
-	receiversAreEqual := (fd.reciverID == nil && other.reciverID == nil) || fd.reciverID != nil && other.reciverID != nil && fd.reciverID.Name == other.reciverID.Name
+	receiversAreEqual := (fd.receiverID == nil && other.receiverID == nil) || fd.receiverID != nil && other.receiverID != nil && fd.receiverID.Name == other.receiverID.Name
 	idsAreEqual := (fd.id == nil && other.id == nil) || fd.id.Name == other.id.Name
 
 	return receiversAreEqual && idsAreEqual

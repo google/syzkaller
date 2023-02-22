@@ -19,6 +19,9 @@ import (
 	"sync"
 )
 
+// ErrReceiveDraining indicates the scheduler has shutdown and is draining.
+var ErrReceiveDraining error = errors.New("pubsub: receive scheduler draining")
+
 // ReceiveScheduler is a scheduler which is designed for Pub/Sub's Receive flow.
 //
 // Each item is added with a given key. Items added to the empty string key are
@@ -70,10 +73,9 @@ func NewReceiveScheduler(workers int) *ReceiveScheduler {
 func (s *ReceiveScheduler) Add(key string, item interface{}, handle func(item interface{})) error {
 	select {
 	case <-s.done:
-		return errors.New("draining")
+		return ErrReceiveDraining
 	default:
 	}
-
 	if key == "" {
 		// Spawn a worker.
 		s.workers <- struct{}{}

@@ -14,6 +14,9 @@ func verbOrder(verbs []verb, numArgs int) [][]verb {
 		if v.index != -1 {
 			i = v.index - 1
 		}
+		if i >= len(orderedVerbs) {
+			continue
+		}
 		orderedVerbs[i] = append(orderedVerbs[i], v)
 		verbs = verbs[1:]
 		i++

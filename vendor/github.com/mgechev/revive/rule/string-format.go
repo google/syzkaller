@@ -68,6 +68,7 @@ type stringFormatSubrule struct {
 	parent       *lintStringFormatRule
 	scope        stringFormatSubruleScope
 	regexp       *regexp.Regexp
+	negated      bool
 	errorMessage string
 }
 
@@ -89,17 +90,18 @@ var parseStringFormatScope = regexp.MustCompile(
 
 func (w *lintStringFormatRule) parseArguments(arguments lint.Arguments) {
 	for i, argument := range arguments {
-		scope, regex, errorMessage := w.parseArgument(argument, i)
+		scope, regex, negated, errorMessage := w.parseArgument(argument, i)
 		w.rules = append(w.rules, stringFormatSubrule{
 			parent:       w,
 			scope:        scope,
 			regexp:       regex,
+			negated:      negated,
 			errorMessage: errorMessage,
 		})
 	}
 }
 
-func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, errorMessage string) {
+func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, negated bool, errorMessage string) {
 	g, ok := argument.([]interface{}) // Cast to generic slice first
 	if !ok {
 		w.configError("argument is not a slice", ruleNum, 0)
@@ -146,7 +148,12 @@ func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (
 	}
 
 	// Strip / characters from the beginning and end of rule[1] before compiling
-	regex, err := regexp.Compile(rule[1][1 : len(rule[1])-1])
+	negated = rule[1][0] == '!'
+	offset := 1
+	if negated {
+		offset++
+	}
+	regex, err := regexp.Compile(rule[1][offset : len(rule[1])-1])
 	if err != nil {
 		w.parseError(fmt.Sprintf("unable to compile %s as regexp", rule[1]), ruleNum, 1)
 	}
@@ -155,7 +162,7 @@ func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (
 	if len(rule) == 3 {
 		errorMessage = rule[2]
 	}
-	return scope, regex, errorMessage
+	return scope, regex, negated, errorMessage
 }
 
 // Report an invalid config, this is specifically the user's fault
@@ -261,7 +268,26 @@ func (r *stringFormatSubrule) Apply(call *ast.CallExpr) {
 }
 
 func (r *stringFormatSubrule) lintMessage(s string, node ast.Node) {
-	// Fail if the string doesn't match the user's regex
+	if r.negated {
+		if !r.regexp.MatchString(s) {
+			return
+		}
+		// Fail if the string does match the user's regex
+		var failure string
+		if len(r.errorMessage) > 0 {
+			failure = r.errorMessage
+		} else {
+			failure = fmt.Sprintf("string literal matches user defined regex /%s/", r.regexp.String())
+		}
+		r.parent.onFailure(lint.Failure{
+			Confidence: 1,
+			Failure:    failure,
+			Node:       node,
+		})
+		return
+	}
+
+	// Fail if the string does NOT match the user's regex
 	if r.regexp.MatchString(s) {
 		return
 	}
