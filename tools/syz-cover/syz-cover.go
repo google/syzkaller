@@ -12,6 +12,7 @@
 // or from syz-execprog with -coverfile flag.
 //
 // Usage:
+//
 //	syz-cover [-os=OS -arch=ARCH -kernel_src=. -kernel_obj=.] rawcover.file*
 package main
 

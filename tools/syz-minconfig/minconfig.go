@@ -3,9 +3,10 @@
 
 // syz-minconfig is a tool for manual checking of config minimization functionality in pkg/kconfig/minimize.go.
 // Example use:
-// $ go run tools/syz-minconfig/minconfig.go -sourcedir /src/linux -configs CAIF_NETDEV,CAIF_USB \
-//	-base dashboard/config/linux/upstream-kasan-base.config \
-//	-full dashboard/config/linux/upstream-kasan.config \
+//
+//	$ go run tools/syz-minconfig/minconfig.go -sourcedir /src/linux -configs CAIF_NETDEV,CAIF_USB \
+//		-base dashboard/config/linux/upstream-kasan-base.config \
+//		-full dashboard/config/linux/upstream-kasan.config \
 package main
 
 import (
