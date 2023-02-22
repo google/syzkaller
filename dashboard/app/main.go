@@ -155,10 +155,11 @@ type uiSubsystemPage struct {
 }
 
 type uiSubsystemsPage struct {
-	Header   *uiHeader
-	List     []*uiSubsystem
-	NonEmpty bool
-	EmptyURL string
+	Header       *uiHeader
+	List         []*uiSubsystem
+	Unclassified *uiSubsystem
+	NonEmpty     bool
+	EmptyURL     string
 }
 
 type uiSubsystem struct {
@@ -867,23 +868,24 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		}
 		list = append(list, record)
 	}
-	list = append(list, &uiSubsystem{
+	unclassified := &uiSubsystem{
 		Name: "",
 		Open: uiSubsystemStats{
 			Count: cached.NoSubsystem.Open,
 			Link:  html.AmendURL("/"+hdr.Namespace, "no_subsystem", "true"),
 		},
 		Fixed: uiSubsystemStats{
-			Count: cached.NoSubsystem.Open,
+			Count: cached.NoSubsystem.Fixed,
 			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
 		},
-	})
+	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
-		Header:   hdr,
-		List:     list,
-		NonEmpty: nonEmpty,
-		EmptyURL: html.AmendURL(getCurrentURL(c), "all", "true"),
+		Header:       hdr,
+		List:         list,
+		Unclassified: unclassified,
+		NonEmpty:     nonEmpty,
+		EmptyURL:     html.AmendURL(getCurrentURL(c), "all", "true"),
 	})
 }
 
