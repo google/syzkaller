@@ -208,6 +208,11 @@ func TestSubsystemsList(t *testing.T) {
 	reply, err := c.AuthGET(AccessAdmin, "/test1/subsystems")
 	c.expectOK(err)
 	assert.Contains(t, string(reply), "subsystemA")
+	assert.NotContains(t, string(reply), "subsystemB")
+
+	reply, err = c.AuthGET(AccessAdmin, "/test1/subsystems?all=true")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), "subsystemA")
 	assert.Contains(t, string(reply), "subsystemB")
 }
 
