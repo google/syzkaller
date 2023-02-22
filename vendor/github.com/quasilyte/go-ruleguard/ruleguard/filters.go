@@ -23,9 +23,16 @@ func filterFailure(reason string) matchFilterResult {
 	return matchFilterResult(reason)
 }
 
-func exprListFilterApply(src string, list gogrep.ExprSlice, fn func(ast.Expr) bool) matchFilterResult {
-	for i := 0; i < list.Len(); i++ {
-		if !fn(list.At(i).(ast.Expr)) {
+func asExprSlice(x ast.Node) *gogrep.NodeSlice {
+	if x, ok := x.(*gogrep.NodeSlice); ok && x.Kind == gogrep.ExprNodeSlice {
+		return x
+	}
+	return nil
+}
+
+func exprListFilterApply(src string, list []ast.Expr, fn func(ast.Expr) bool) matchFilterResult {
+	for _, e := range list {
+		if !fn(e) {
 			return filterFailure(src)
 		}
 	}
@@ -99,12 +106,11 @@ func makeFileNameMatchesFilter(src string, re textmatch.Pattern) filterFunc {
 
 func makePureFilter(src, varname string) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return isPure(params.ctx.Types, x)
 			})
 		}
-
 		n := params.subExpr(varname)
 		if isPure(params.ctx.Types, n) {
 			return filterSuccess
@@ -115,8 +121,8 @@ func makePureFilter(src, varname string) filterFunc {
 
 func makeConstFilter(src, varname string) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return isConstant(params.ctx.Types, x)
 			})
 		}
@@ -131,8 +137,8 @@ func makeConstFilter(src, varname string) filterFunc {
 
 func makeConstSliceFilter(src, varname string) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return isConstantSlice(params.ctx.Types, x)
 			})
 		}
@@ -147,8 +153,8 @@ func makeConstSliceFilter(src, varname string) filterFunc {
 
 func makeAddressableFilter(src, varname string) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return isAddressable(params.ctx.Types, x)
 			})
 		}
@@ -163,8 +169,8 @@ func makeAddressableFilter(src, varname string) filterFunc {
 
 func makeComparableFilter(src, varname string) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return types.Comparable(params.typeofNode(x))
 			})
 		}
@@ -212,8 +218,8 @@ func makeCustomVarFilter(src, varname string, fn *quasigo.Func) filterFunc {
 
 func makeTypeImplementsFilter(src, varname string, iface *types.Interface) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return xtypes.Implements(params.typeofNode(x), iface)
 			})
 		}
@@ -322,8 +328,8 @@ func makeRootSinkTypeIsFilter(src string, pat *typematch.Pattern) filterFunc {
 func makeTypeIsFilter(src, varname string, underlying bool, pat *typematch.Pattern) filterFunc {
 	if underlying {
 		return func(params *filterParams) matchFilterResult {
-			if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-				return exprListFilterApply(src, list, func(x ast.Expr) bool {
+			if list := asExprSlice(params.subNode(varname)); list != nil {
+				return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 					return pat.MatchIdentical(params.typematchState, params.typeofNode(x).Underlying())
 				})
 			}
@@ -336,8 +342,8 @@ func makeTypeIsFilter(src, varname string, underlying bool, pat *typematch.Patte
 	}
 
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return pat.MatchIdentical(params.typematchState, params.typeofNode(x))
 			})
 		}
@@ -351,8 +357,8 @@ func makeTypeIsFilter(src, varname string, underlying bool, pat *typematch.Patte
 
 func makeTypeConvertibleToFilter(src, varname string, dstType types.Type) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return types.ConvertibleTo(params.typeofNode(x), dstType)
 			})
 		}
@@ -367,8 +373,8 @@ func makeTypeConvertibleToFilter(src, varname string, dstType types.Type) filter
 
 func makeTypeAssignableToFilter(src, varname string, dstType types.Type) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				return types.AssignableTo(params.typeofNode(x), dstType)
 			})
 		}
@@ -392,6 +398,28 @@ func makeLineFilter(src, varname string, op token.Token, rhsVarname string) filt
 			return filterSuccess
 		}
 		return filterFailure(src)
+	}
+}
+
+func makeObjectIsVariadicParamFilter(src, varname string) filterFunc {
+	return func(params *filterParams) matchFilterResult {
+		if params.currentFunc == nil {
+			return filterFailure(src)
+		}
+		funcObj, ok := params.ctx.Types.ObjectOf(params.currentFunc.Name).(*types.Func)
+		if !ok {
+			return filterFailure(src)
+		}
+		funcSig := funcObj.Type().(*types.Signature)
+		if !funcSig.Variadic() {
+			return filterFailure(src)
+		}
+		paramObj := funcSig.Params().At(funcSig.Params().Len() - 1)
+		obj := params.ctx.Types.ObjectOf(identOf(params.subExpr(varname)))
+		if paramObj != obj {
+			return filterFailure(src)
+		}
+		return filterSuccess
 	}
 }
 
@@ -433,15 +461,21 @@ func makeLineConstFilter(src, varname string, op token.Token, rhsValue constant.
 
 func makeTypeSizeConstFilter(src, varname string, op token.Token, rhsValue constant.Value) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				typ := params.typeofNode(x)
+				if isTypeParam(typ) {
+					return false
+				}
 				lhsValue := constant.MakeInt64(params.ctx.Sizes.Sizeof(typ))
 				return constant.Compare(lhsValue, op, rhsValue)
 			})
 		}
 
 		typ := params.typeofNode(params.subExpr(varname))
+		if isTypeParam(typ) {
+			return filterFailure(src)
+		}
 		lhsValue := constant.MakeInt64(params.ctx.Sizes.Sizeof(typ))
 		if constant.Compare(lhsValue, op, rhsValue) {
 			return filterSuccess
@@ -453,8 +487,11 @@ func makeTypeSizeConstFilter(src, varname string, op token.Token, rhsValue const
 func makeTypeSizeFilter(src, varname string, op token.Token, rhsVarname string) filterFunc {
 	return func(params *filterParams) matchFilterResult {
 		lhsTyp := params.typeofNode(params.subExpr(varname))
-		lhsValue := constant.MakeInt64(params.ctx.Sizes.Sizeof(lhsTyp))
 		rhsTyp := params.typeofNode(params.subExpr(rhsVarname))
+		if isTypeParam(lhsTyp) || isTypeParam(rhsTyp) {
+			return filterFailure(src)
+		}
+		lhsValue := constant.MakeInt64(params.ctx.Sizes.Sizeof(lhsTyp))
 		rhsValue := constant.MakeInt64(params.ctx.Sizes.Sizeof(rhsTyp))
 		if constant.Compare(lhsValue, op, rhsValue) {
 			return filterSuccess
@@ -465,8 +502,8 @@ func makeTypeSizeFilter(src, varname string, op token.Token, rhsVarname string) 
 
 func makeValueIntConstFilter(src, varname string, op token.Token, rhsValue constant.Value) filterFunc {
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				lhsValue := intValueOf(params.ctx.Types, x)
 				return lhsValue != nil && constant.Compare(lhsValue, op, rhsValue)
 			})
@@ -606,8 +643,8 @@ func makeObjectIsFilter(src, varname, objectName string) filterFunc {
 	}
 
 	return func(params *filterParams) matchFilterResult {
-		if list, ok := params.subNode(varname).(gogrep.ExprSlice); ok {
-			return exprListFilterApply(src, list, func(x ast.Expr) bool {
+		if list := asExprSlice(params.subNode(varname)); list != nil {
+			return exprListFilterApply(src, list.GetExprSlice(), func(x ast.Expr) bool {
 				ident := identOf(x)
 				return ident != nil && predicate(params.ctx.Types.ObjectOf(ident))
 			})

@@ -484,10 +484,10 @@ func (p *Parser) newPCRE(source string) (*RegexpPCRE, error) {
 	j += delimLen
 
 	pcre := &RegexpPCRE{
-		Pattern:   source[1:j],
+		Pattern:   source[delimLen:j],
 		Source:    source,
 		Delim:     [2]byte{delim, endDelim},
-		Modifiers: source[j+1:],
+		Modifiers: source[j+delimLen:],
 	}
 	return pcre, nil
 }

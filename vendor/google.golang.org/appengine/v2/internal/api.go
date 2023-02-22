@@ -17,8 +17,6 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -28,8 +26,7 @@ import (
 )
 
 const (
-	apiPath             = "/rpc_http"
-	defaultTicketSuffix = "/default.20150612t184001.0"
+	apiPath = "/rpc_http"
 )
 
 var (
@@ -62,22 +59,23 @@ var (
 		},
 	}
 
-	defaultTicketOnce     sync.Once
-	defaultTicket         string
-	backgroundContextOnce sync.Once
-	backgroundContext     netcontext.Context
-
-	logStream io.Writer        = os.Stdout // For test hooks.
+	logStream io.Writer        = os.Stderr // For test hooks.
 	timeNow   func() time.Time = time.Now  // For test hooks.
 )
 
-func apiURL() *url.URL {
+func apiURL(ctx netcontext.Context) *url.URL {
 	host, port := "appengine.googleapis.internal", "10001"
 	if h := os.Getenv("API_HOST"); h != "" {
 		host = h
 	}
+	if hostOverride := ctx.Value(apiHostOverrideKey); hostOverride != nil {
+		host = hostOverride.(string)
+	}
 	if p := os.Getenv("API_PORT"); p != "" {
 		port = p
+	}
+	if portOverride := ctx.Value(apiPortOverrideKey); portOverride != nil {
+		port = portOverride.(string)
 	}
 	return &url.URL{
 		Scheme: "http",
@@ -90,7 +88,6 @@ func handleHTTP(w http.ResponseWriter, r *http.Request) {
 	c := &context{
 		req:       r,
 		outHeader: w.Header(),
-		apiURL:    apiURL(),
 	}
 	r = r.WithContext(withContext(r.Context(), c))
 	c.req = r
@@ -183,8 +180,6 @@ type context struct {
 	outCode   int
 	outHeader http.Header
 	outBody   []byte
-
-	apiURL *url.URL
 }
 
 var contextKey = "holds a *context"
@@ -252,56 +247,20 @@ func WithContext(parent netcontext.Context, req *http.Request) netcontext.Contex
 	}
 }
 
-// DefaultTicket returns a ticket used for background context or dev_appserver.
-func DefaultTicket() string {
-	defaultTicketOnce.Do(func() {
-		if IsDevAppServer() {
-			defaultTicket = "testapp" + defaultTicketSuffix
-			return
-		}
-		appID := partitionlessAppID()
-		escAppID := strings.Replace(strings.Replace(appID, ":", "_", -1), ".", "_", -1)
-		majVersion := VersionID(nil)
-		if i := strings.Index(majVersion, "."); i > 0 {
-			majVersion = majVersion[:i]
-		}
-		defaultTicket = fmt.Sprintf("%s/%s.%s.%s", escAppID, ModuleName(nil), majVersion, InstanceID())
-	})
-	return defaultTicket
-}
-
-func BackgroundContext() netcontext.Context {
-	backgroundContextOnce.Do(func() {
-		// Compute background security ticket.
-		ticket := DefaultTicket()
-
-		c := &context{
-			req: &http.Request{
-				Header: http.Header{
-					ticketHeader: []string{ticket},
-				},
-			},
-			apiURL: apiURL(),
-		}
-		backgroundContext = toContext(c)
-	})
-
-	return backgroundContext
-}
-
 // RegisterTestRequest registers the HTTP request req for testing, such that
 // any API calls are sent to the provided URL. It returns a closure to delete
 // the registration.
 // It should only be used by aetest package.
-func RegisterTestRequest(req *http.Request, apiURL *url.URL, decorate func(netcontext.Context) netcontext.Context) (*http.Request, func()) {
-	c := &context{
-		req:    req,
-		apiURL: apiURL,
-	}
-	ctx := withContext(decorate(req.Context()), c)
-	req = req.WithContext(ctx)
-	c.req = req
-	return req, func() {}
+func RegisterTestRequest(req *http.Request, apiURL *url.URL, appID string) *http.Request {
+	ctx := req.Context()
+	ctx = withAPIHostOverride(ctx, apiURL.Hostname())
+	ctx = withAPIPortOverride(ctx, apiURL.Port())
+	ctx = WithAppIDOverride(ctx, appID)
+
+	// use the unregistered request as a placeholder so that withContext can read the headers
+	c := &context{req: req}
+	c.req = req.WithContext(withContext(ctx, c))
+	return c.req
 }
 
 var errTimeout = &CallError{
@@ -346,10 +305,11 @@ func (c *context) WriteHeader(code int) {
 	c.outCode = code
 }
 
-func (c *context) post(body []byte, timeout time.Duration) (b []byte, err error) {
+func post(ctx netcontext.Context, body []byte, timeout time.Duration) (b []byte, err error) {
+	apiURL := apiURL(ctx)
 	hreq := &http.Request{
 		Method: "POST",
-		URL:    c.apiURL,
+		URL:    apiURL,
 		Header: http.Header{
 			apiEndpointHeader: apiEndpointHeaderValue,
 			apiMethodHeader:   apiMethodHeaderValue,
@@ -358,13 +318,16 @@ func (c *context) post(body []byte, timeout time.Duration) (b []byte, err error)
 		},
 		Body:          ioutil.NopCloser(bytes.NewReader(body)),
 		ContentLength: int64(len(body)),
-		Host:          c.apiURL.Host,
+		Host:          apiURL.Host,
 	}
-	if info := c.req.Header.Get(dapperHeader); info != "" {
-		hreq.Header.Set(dapperHeader, info)
-	}
-	if info := c.req.Header.Get(traceHeader); info != "" {
-		hreq.Header.Set(traceHeader, info)
+	c := fromContext(ctx)
+	if c != nil {
+		if info := c.req.Header.Get(dapperHeader); info != "" {
+			hreq.Header.Set(dapperHeader, info)
+		}
+		if info := c.req.Header.Get(traceHeader); info != "" {
+			hreq.Header.Set(traceHeader, info)
+		}
 	}
 
 	tr := apiHTTPClient.Transport.(*http.Transport)
@@ -425,10 +388,6 @@ func Call(ctx netcontext.Context, service, method string, in, out proto.Message)
 	}
 
 	c := fromContext(ctx)
-	if c == nil {
-		// Give a good error message rather than a panic lower down.
-		return errNotAppEngineContext
-	}
 
 	// Apply transaction modifications if we're in a transaction.
 	if t := transactionFromContext(ctx); t != nil {
@@ -449,19 +408,12 @@ func Call(ctx netcontext.Context, service, method string, in, out proto.Message)
 		return err
 	}
 
-	ticket := c.req.Header.Get(ticketHeader)
-	// Use a test ticket under test environment.
-	if ticket == "" {
-		if appid := ctx.Value(&appIDOverrideKey); appid != nil {
-			ticket = appid.(string) + defaultTicketSuffix
+	ticket := ""
+	if c != nil {
+		ticket = c.req.Header.Get(ticketHeader)
+		if dri := c.req.Header.Get(devRequestIdHeader); IsDevAppServer() && dri != "" {
+			ticket = dri
 		}
-	}
-	// Fall back to use background ticket when the request ticket is not available in Flex or dev_appserver.
-	if ticket == "" {
-		ticket = DefaultTicket()
-	}
-	if dri := c.req.Header.Get(devRequestIdHeader); IsDevAppServer() && dri != "" {
-		ticket = dri
 	}
 	req := &remotepb.Request{
 		ServiceName: &service,
@@ -474,7 +426,7 @@ func Call(ctx netcontext.Context, service, method string, in, out proto.Message)
 		return err
 	}
 
-	hrespBody, err := c.post(hreqBody, timeout)
+	hrespBody, err := post(ctx, hreqBody, timeout)
 	if err != nil {
 		return err
 	}

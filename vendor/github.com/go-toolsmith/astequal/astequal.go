@@ -109,6 +109,10 @@ func astExprEq(x, y ast.Expr) bool {
 		y, ok := y.(*ast.IndexExpr)
 		return ok && astIndexExprEq(x, y)
 
+	case *typeparams.IndexListExpr:
+		y, ok := y.(*typeparams.IndexListExpr)
+		return ok && astIndexListExprEq(x, y)
+
 	case *ast.SliceExpr:
 		y, ok := y.(*ast.SliceExpr)
 		return ok && astSliceExprEq(x, y)
@@ -372,6 +376,13 @@ func astIndexExprEq(x, y *ast.IndexExpr) bool {
 		return x == y
 	}
 	return astExprEq(x.X, y.X) && astExprEq(x.Index, y.Index)
+}
+
+func astIndexListExprEq(x, y *typeparams.IndexListExpr) bool {
+	if x == nil || y == nil {
+		return x == y
+	}
+	return astExprEq(x.X, y.X) && astExprSliceEq(x.Indices, y.Indices)
 }
 
 func astSliceExprEq(x, y *ast.SliceExpr) bool {

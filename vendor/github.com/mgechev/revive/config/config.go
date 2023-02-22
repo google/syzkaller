@@ -86,6 +86,7 @@ var allRules = append([]lint.Rule{
 	&rule.OptimizeOperandsOrderRule{},
 	&rule.UseAnyRule{},
 	&rule.DataRaceRule{},
+	&rule.CommentSpacingsRule{},
 }, defaultRules...)
 
 var allFormatters = []lint.Formatter{

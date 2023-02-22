@@ -25,7 +25,7 @@ import (
 
 const reviveName = "revive"
 
-var reviveDebugf = logutils.Debug("revive")
+var reviveDebugf = logutils.Debug(logutils.DebugKeyRevive)
 
 // jsonObject defines a JSON object of a failure
 type jsonObject struct {
@@ -74,11 +74,7 @@ func NewRevive(settings *config.ReviveSettings) *goanalysis.Linter {
 }
 
 func runRevive(lintCtx *linter.Context, pass *analysis.Pass, settings *config.ReviveSettings) ([]goanalysis.Issue, error) {
-	var files []string
-	for _, file := range pass.Files {
-		files = append(files, pass.Fset.PositionFor(file.Pos(), false).Filename)
-	}
-	packages := [][]string{files}
+	packages := [][]string{getFileNames(pass)}
 
 	conf, err := getReviveConfig(settings)
 	if err != nil {
@@ -325,6 +321,7 @@ var allRules = append([]lint.Rule{
 	&rule.TimeEqualRule{},
 	&rule.BannedCharsRule{},
 	&rule.OptimizeOperandsOrderRule{},
+	&rule.DataRaceRule{},
 }, defaultRules...)
 
 const defaultConfidence = 0.8

@@ -1,5 +1,12 @@
 # Changes
 
+## [0.3.1](https://github.com/googleapis/google-cloud-go/compare/profiler/v0.3.0...profiler/v0.3.1) (2022-12-02)
+
+
+### Bug Fixes
+
+* **profiler:** downgrade some dependencies ([7540152](https://github.com/googleapis/google-cloud-go/commit/754015236d5af7c82a75da218b71a87b9ead6eb5))
+
 ## [0.3.0](https://github.com/googleapis/google-cloud-go/compare/profiler/v0.2.0...profiler/v0.3.0) (2022-05-19)
 
 

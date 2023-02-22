@@ -1,6 +1,26 @@
 Releases
 ========
 
+v1.9.0 (2022-12-12)
+===================
+
+-   Add `AppendFunc` that allow passsing functions to similar to
+    `AppendInvoke`.
+
+-   Bump up yaml.v3 dependency to 3.0.1.
+
+v1.8.0 (2022-02-28)
+===================
+
+-   `Combine`: perform zero allocations when there are no errors.
+
+
+v1.7.0 (2021-05-06)
+===================
+
+-   Add `AppendInvoke` to append into errors from `defer` blocks.
+
+
 v1.6.0 (2020-09-14)
 ===================
 
