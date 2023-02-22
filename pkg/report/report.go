@@ -839,6 +839,8 @@ var commonOopses = []*oops{
 				noStackTrace: true,
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			compile("ALSA"),
+		},
 	},
 }
