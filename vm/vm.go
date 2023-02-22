@@ -14,6 +14,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -65,6 +66,14 @@ type BootErrorer interface {
 	BootError() (string, []byte)
 }
 
+// vmType splits the VM type from any suffix (separated by ":"). This is mostly
+// useful for the "proxyapp" type, where pkg/build needs to specify/handle
+// sub-types.
+func vmType(fullName string) string {
+	name, _, _ := strings.Cut(fullName, ":")
+	return name
+}
+
 // AllowsOvercommit returns if the instance type allows overcommit of instances
 // (i.e. creation of instances out-of-thin-air). Overcommit is used during image
 // and patch testing in syz-ci when it just asks for more than specified in config
@@ -74,12 +83,12 @@ type BootErrorer interface {
 // override resource limits specified in config (e.g. can OOM). But it works and
 // makes lots of things much simpler.
 func AllowsOvercommit(typ string) bool {
-	return vmimpl.Types[typ].Overcommit
+	return vmimpl.Types[vmType(typ)].Overcommit
 }
 
 // Create creates a VM pool that can be used to create individual VMs.
 func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
-	typ, ok := vmimpl.Types[cfg.Type]
+	typ, ok := vmimpl.Types[vmType(cfg.Type)]
 	if !ok {
 		return nil, fmt.Errorf("unknown instance type '%v'", cfg.Type)
 	}
