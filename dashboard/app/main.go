@@ -155,8 +155,10 @@ type uiSubsystemPage struct {
 }
 
 type uiSubsystemsPage struct {
-	Header *uiHeader
-	List   []*uiSubsystem
+	Header   *uiHeader
+	List     []*uiSubsystem
+	NonEmpty bool
+	EmptyURL string
 }
 
 type uiSubsystem struct {
@@ -851,14 +853,21 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 	if service == nil {
 		return fmt.Errorf("the namespace does not have subsystems")
 	}
+	nonEmpty := r.FormValue("all") != "true"
 	list := []*uiSubsystem{}
 	for _, item := range service.List() {
-		list = append(list, createUISubsystem(hdr.Namespace, item, cached))
+		record := createUISubsystem(hdr.Namespace, item, cached)
+		if nonEmpty && (record.Open.Count+record.Fixed.Count) == 0 {
+			continue
+		}
+		list = append(list, record)
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
-		Header: hdr,
-		List:   list,
+		Header:   hdr,
+		List:     list,
+		NonEmpty: nonEmpty,
+		EmptyURL: html.AmendURL(getCurrentURL(c), "all", "true"),
 	})
 }
 
