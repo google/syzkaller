@@ -2,7 +2,9 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // syz-crush replays crash log on multiple VMs. Usage:
-//   syz-crush -config=config.file execution.log
+//
+//	syz-crush -config=config.file execution.log
+//
 // Intended for reproduction of particularly elusive crashes.
 package main
 

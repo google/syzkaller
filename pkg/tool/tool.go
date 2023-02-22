@@ -11,9 +11,10 @@ import (
 )
 
 // Init handles common tasks for command line tools:
-//  - invokes flag.Parse
-//  - adds support for optional flags (see OptionalFlags)
-//  - adds support for cpu/mem profiling (-cpuprofile/memprofile flags)
+//   - invokes flag.Parse
+//   - adds support for optional flags (see OptionalFlags)
+//   - adds support for cpu/mem profiling (-cpuprofile/memprofile flags)
+//
 // Use as defer tool.Init()().
 func Init() func() {
 	flagCPUProfile := flag.String("cpuprofile", "", "write CPU profile to this file")

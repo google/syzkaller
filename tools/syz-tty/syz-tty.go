@@ -2,7 +2,9 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // syz-tty is utility for testing of usb console reading code. Usage:
-//   $ syz-tty /dev/ttyUSBx
+//
+//	$ syz-tty /dev/ttyUSBx
+//
 // This should dump device console output.
 package main
 

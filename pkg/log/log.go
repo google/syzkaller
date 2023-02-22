@@ -2,10 +2,10 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Package log provides functionality similar to standard log package with some extensions:
-//  - verbosity levels
-//  - global verbosity setting that can be used by multiple packages
-//  - ability to disable all output
-//  - ability to cache recent output in memory
+//   - verbosity levels
+//   - global verbosity setting that can be used by multiple packages
+//   - ability to disable all output
+//   - ability to cache recent output in memory
 package log
 
 import (

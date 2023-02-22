@@ -12,8 +12,8 @@
 // -kernel_commit. HEAD is used if commits are not specified.
 //
 // The crash dir should contain the following files:
-//  - repro.cprog or repro.prog: reproducer for the crash
-//  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...}) (optional)
+//   - repro.cprog or repro.prog: reproducer for the crash
+//   - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...}) (optional)
 //
 // The tool stores bisection result into cause.commit or fix.commit.
 package main
