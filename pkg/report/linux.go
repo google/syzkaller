@@ -115,8 +115,6 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		[]byte("FAULT_FLAG_ALLOW_RETRY missing"),
 	}
 	suppressions := []string{
-		"fatal error: runtime: out of memory",
-		"fatal error: runtime: cannot allocate memory",
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
 		"panic: failed to create temp dir",

@@ -1,0 +1,15 @@
+TITLE: fatal error: out of memory
+SUPPRESSED: Y
+
+runtime: out of memory: cannot allocate 1073741824-byte block (6446022656 in use)
+fatal error: out of memory
+
+goroutine 1 [running]:
+runtime.throw({0x4772bc?, 0x20000?})
+	runtime/panic.go:1047 +0x5d fp=0xc000184e38 sp=0xc000184e08 pc=0x42ea1d
+runtime.(*mcache).allocLarge(0xc0000b0a00?, 0x40000000, 0x1)
+	runtime/mcache.go:236 +0x178 fp=0xc000184e80 sp=0xc000184e38 pc=0x411318
+runtime.mallocgc(0x40000000, 0x46a9c0, 0x1)
+	runtime/malloc.go:1053 +0x4f7 fp=0xc000184ee8 sp=0xc000184e80 pc=0x40b157
+
+

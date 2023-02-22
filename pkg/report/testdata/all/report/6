@@ -1,0 +1,10 @@
+TITLE: panic: cannot allocate memory
+SUPPRESSED: Y
+
+panic: cannot allocate memory
+
+goroutine 14 [running]:
+github.com/google/syzkaller/pkg/image.mustDecompress({0xc005ab4c00, 0x583, 0x600})
+syzkaller/pkg/image/compression_optimized.go:65 +0x5cb
+github.com/google/syzkaller/pkg/image.MustDecompress({0xc005ab4c00, 0xc00746d400, 0x0})
+syzkaller/pkg/image/compression.go:36 +0x3b
