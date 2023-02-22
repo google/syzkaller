@@ -137,8 +137,9 @@ func TestCtor_FailedStartProxyApp(t *testing.T) {
 }
 
 // TODO: reuse proxyAppServerFixture() code: func could be called here once Mock.Unset() error
-//  fixed https://github.com/stretchr/testify/issues/1236
-//  nolint: dupl
+//
+//	fixed https://github.com/stretchr/testify/issues/1236
+//	nolint: dupl
 func TestCtor_FailedConstructPool(t *testing.T) {
 	mProxyAppServer, stdin, stdout, stderr :=
 		makeMockProxyAppProcess(t)
@@ -197,7 +198,8 @@ func initProxyAppServerFixture(mProxyAppServer *mockProxyAppInterface) *mockProx
 }
 
 // TODO: to remove duplicate see TestCtor_FailedConstructPool() comment
-//  nolint: dupl
+//
+//	nolint: dupl
 func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, *proxyAppParams) {
 	mProxyAppServer, stdin, stdout, stderr :=
 		makeMockProxyAppProcess(t)

@@ -159,8 +159,8 @@ line1
 #syz fix  bar  	 baz
 line 2
 `,
-		cmd: CmdFix,
-		str: "fix",
+		cmd:  CmdFix,
+		str:  "fix",
 		args: "bar  	 baz",
 	},
 	{
