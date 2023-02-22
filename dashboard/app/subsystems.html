@@ -13,8 +13,11 @@ The list of polled trees.
 </head>
 <body>
 	{{template "header" .Header}}
-        <h2>The list of subsystems</h2><br>
-        <i>(*) Note that the numbers below do not represent the latest data. They are updated once an hour.</i><br>
+	<h2>The list of subsystems</h2><br>
+	<i>(*) Note that the numbers below do not represent the latest data. They are updated once an hour.</i><br>
+	{{if .NonEmpty}}
+		Empty subsystems have been hidden from the list. {{link .EmptyURL "Show all"}}. <br />
+	{{end}}
 	<table class="list_table">
 		<caption>Subsystems list</caption>
 		<tr>
