@@ -106,17 +106,6 @@ var gvisorOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("fatal error:"),
-		[]oopsFormat{
-			{
-				title:        compile("fatal error:(.*)"),
-				fmt:          "fatal error:%[1]v",
-				noStackTrace: true,
-			},
-		},
-		[]*regexp.Regexp{},
-	},
-	{
 		[]byte("SIGSEGV:"),
 		[]oopsFormat{
 			{
