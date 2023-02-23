@@ -21,7 +21,7 @@ func CreateGlob(glob string) *template.Template {
 }
 
 func CreateTextGlob(glob string) *texttemplate.Template {
-	return texttemplate.Must(texttemplate.New("").Funcs(texttemplate.FuncMap(Funcs)).ParseGlob(glob))
+	return texttemplate.Must(texttemplate.New("").Funcs(Funcs).ParseGlob(glob))
 }
 
 var Funcs = template.FuncMap{
