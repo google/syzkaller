@@ -5,7 +5,6 @@ package mgrconfig
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -123,7 +122,7 @@ func Complete(cfg *Config) error {
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	if cfg.WorkdirTemplate != "" {
 		cfg.WorkdirTemplate = osutil.Abs(cfg.WorkdirTemplate)
-		if _, err := ioutil.ReadDir(cfg.WorkdirTemplate); err != nil {
+		if _, err := os.ReadDir(cfg.WorkdirTemplate); err != nil {
 			return fmt.Errorf("failed to read workdir_template: %v", err)
 		}
 	}

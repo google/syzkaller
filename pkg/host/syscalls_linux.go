@@ -6,7 +6,6 @@ package host
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"runtime"
@@ -58,7 +57,7 @@ func isSupportedSyscall(c *prog.Syscall, target *prog.Target) (bool, string) {
 	// Kallsyms seems to be the most reliable and fast. That's what we use first.
 	// If kallsyms is not present, we fallback to execution of syscalls.
 	kallsymsOnce.Do(func() {
-		kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
+		kallsyms, _ := os.ReadFile("/proc/kallsyms")
 		if len(kallsyms) == 0 {
 			return
 		}
@@ -390,7 +389,7 @@ func isSupportedSyzOpenDev(sandbox string, c *prog.Syscall) (bool, string) {
 
 func isSupportedLSM(c *prog.Syscall) string {
 	lsmOnce.Do(func() {
-		data, err := ioutil.ReadFile("/sys/kernel/security/lsm")
+		data, err := os.ReadFile("/sys/kernel/security/lsm")
 		if err != nil {
 			// securityfs may not be mounted, but it does not mean
 			// that no LSMs are enabled.
@@ -522,7 +521,7 @@ func isSupportedMount(c *prog.Syscall, sandbox string) (bool, string) {
 
 func isSupportedFilesystem(fstype string) (bool, string) {
 	filesystemsOnce.Do(func() {
-		filesystems, _ = ioutil.ReadFile("/proc/filesystems")
+		filesystems, _ = os.ReadFile("/proc/filesystems")
 	})
 	if !bytes.Contains(filesystems, []byte("\t"+fstype+"\n")) {
 		return false, fmt.Sprintf("/proc/filesystems does not contain %v", fstype)

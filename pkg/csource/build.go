@@ -6,7 +6,6 @@ package csource
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -68,7 +67,7 @@ func build(target *prog.Target, src []byte, file string, cflags ...string) (stri
 	if err != nil {
 		os.Remove(bin)
 		if file != "" {
-			src, _ = ioutil.ReadFile(file)
+			src, _ = os.ReadFile(file)
 		}
 		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v",
 			src, out, compiler, flags)

@@ -10,7 +10,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -258,7 +257,7 @@ func (mgr *Manager) Poll(a *rpctype.RunTestPollReq, r *rpctype.RunTestPollRes) e
 	mgr.lastReq[a.Name] = mgr.reqSeq
 	mgr.reqMu.Unlock()
 	if req.Bin != "" {
-		data, err := ioutil.ReadFile(req.Bin)
+		data, err := os.ReadFile(req.Bin)
 		if err != nil {
 			log.Fatalf("failed to read bin file: %v", err)
 		}

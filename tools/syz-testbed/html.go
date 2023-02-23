@@ -8,7 +8,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -93,7 +92,7 @@ func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: move syz-benchcmp functionality to pkg/ and just import it?
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		http.Error(w, "failed to create temp folder", http.StatusInternalServerError)
 		return
@@ -119,7 +118,7 @@ func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		http.Error(w, "failed to read the temporary file", http.StatusInternalServerError)
 		return

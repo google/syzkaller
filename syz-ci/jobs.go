@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -460,7 +459,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	// Read possible baseline for config minimization.
 	if mgr.mgrcfg.KernelBaselineConfig != "" {
 		var err error
-		baseline, err = ioutil.ReadFile(mgr.mgrcfg.KernelBaselineConfig)
+		baseline, err = os.ReadFile(mgr.mgrcfg.KernelBaselineConfig)
 		if err != nil {
 			return fmt.Errorf("failed to read baseline config: %v", err)
 		}
@@ -646,7 +645,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		return err
 	}
 	if kernelConfig != "" {
-		resp.Build.KernelConfig, err = ioutil.ReadFile(kernelConfig)
+		resp.Build.KernelConfig, err = os.ReadFile(kernelConfig)
 		if err != nil {
 			return fmt.Errorf("failed to read config file: %v", err)
 		}

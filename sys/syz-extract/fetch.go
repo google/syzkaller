@@ -8,7 +8,7 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -176,7 +176,7 @@ func extractFromELF(binFile string, targetEndian binary.ByteOrder) ([]uint64, er
 		if sec.Name != "syz_extract_data" {
 			continue
 		}
-		data, err := ioutil.ReadAll(sec.Open())
+		data, err := io.ReadAll(sec.Open())
 		if err != nil {
 			return nil, err
 		}

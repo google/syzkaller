@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -80,7 +79,7 @@ func validateGzip(res *uploadedFile, expected []byte) error {
 		return fmt.Errorf("gzip.NewReader failed: %w", err)
 	}
 	defer reader.Close()
-	body, err := ioutil.ReadAll(reader)
+	body, err := io.ReadAll(reader)
 	if err != nil {
 		return fmt.Errorf("read of ungzipped content failed: %w", err)
 	}
@@ -102,7 +101,7 @@ func validateXz(res *uploadedFile, expected []byte) error {
 	if err != nil {
 		return fmt.Errorf("xz reader failed: %w", err)
 	}
-	out, err := ioutil.ReadAll(xzReader)
+	out, err := io.ReadAll(xzReader)
 	if err != nil {
 		return fmt.Errorf("xz decompression failed: %w", err)
 	}

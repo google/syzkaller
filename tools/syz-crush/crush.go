@@ -9,7 +9,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -182,7 +181,7 @@ func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 		res, err = inst.RunSyzProgFile(file, timeout, opts)
 	} else {
 		var src []byte
-		src, err = ioutil.ReadFile(file)
+		src, err = os.ReadFile(file)
 		if err != nil {
 			log.Fatalf("error reading source file from '%s'", file)
 		}

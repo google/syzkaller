@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -187,7 +186,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 	for _, archStr := range archArray {
 		buildDir := ""
 		if *flagBuild {
-			dir, err := ioutil.TempDir("", "syzkaller-kernel-build")
+			dir, err := os.MkdirTemp("", "syzkaller-kernel-build")
 			if err != nil {
 				return nil, 0, fmt.Errorf("failed to create temp dir: %v", err)
 			}

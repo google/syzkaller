@@ -9,7 +9,6 @@ package osutil
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -54,7 +53,7 @@ func ProcessTempDir(where string) (string, error) {
 }
 
 func cleanupTempDir(path, pidfile string) bool {
-	data, err := ioutil.ReadFile(pidfile)
+	data, err := os.ReadFile(pidfile)
 	if err == nil && len(data) > 0 {
 		pid, err := strconv.Atoi(string(data))
 		if err == nil && pid > 1 {

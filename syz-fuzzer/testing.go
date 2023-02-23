@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"time"
 
@@ -211,7 +211,7 @@ func checkRevisions(args *checkArgs) error {
 	executorArgs := strings.Split(args.ipcConfig.Executor, " ")
 	executorArgs = append(executorArgs, "version")
 	cmd := osutil.Command(executorArgs[0], executorArgs[1:]...)
-	cmd.Stderr = ioutil.Discard
+	cmd.Stderr = io.Discard
 	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
 		return err
 	}

@@ -6,9 +6,9 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -119,7 +119,7 @@ func loadRepros(target *prog.Target, reproGlob string) [][]byte {
 	var repros [][]byte
 	dedup := make(map[string]bool)
 	for _, file := range files {
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		if err != nil {
 			log.Fatal(err)
 		}

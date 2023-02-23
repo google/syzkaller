@@ -6,7 +6,7 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
+	"os"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/kcidb"
@@ -37,7 +37,7 @@ func main() {
 		tool.Fail(err)
 	}
 
-	cred, err := ioutil.ReadFile(*flagCred)
+	cred, err := os.ReadFile(*flagCred)
 	if err != nil {
 		tool.Fail(err)
 	}

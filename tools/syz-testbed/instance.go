@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -206,7 +205,7 @@ func (inst *SyzReproInstance) FetchResult() (RunResult, error) {
 		CReproFound: osutil.IsExist(inst.CReproFile),
 		Duration:    inst.Uptime(),
 	}
-	outTitle, _ := ioutil.ReadFile(inst.TitleFile)
+	outTitle, _ := os.ReadFile(inst.TitleFile)
 	if outTitle != nil {
 		result.ReproTitle = strings.TrimSpace(string(outTitle))
 		if result.ReproTitle != inst.Input.origTitle {

@@ -7,7 +7,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -36,7 +35,7 @@ func main() {
 		fmt.Printf("not running under root, image build may fail\n")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
-	kernelConfig, err := ioutil.ReadFile(*flagKernelConfig)
+	kernelConfig, err := os.ReadFile(*flagKernelConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
