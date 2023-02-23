@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/stretchr/testify/assert"
 )
@@ -157,6 +158,53 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
 	expectSubsystems(t, client, extID, "first")
+}
+
+func TestUserSubsystemsRefresh(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	ns := "access-public-email"
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Create a bug with subsystemA.
+	crash := testCrash(build, 1)
+	crash.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(crash)
+	c.incomingEmail(c.pollEmailBug().Sender, "#syz upstream\n")
+
+	sender := c.pollEmailBug().Sender
+	_, extID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	// Make sure we've set the right subsystem.
+	expectSubsystems(t, client, extID, "subsystemA")
+
+	// Manually set another subsystem.
+	c.incomingEmail(sender, "#syz set subsystems: subsystemB\n",
+		EmailOptFrom("test@requester.com"))
+	c.pollEmailBug()
+	expectSubsystems(t, client, extID, "subsystemB")
+
+	// Refresh subsystems.
+	c.advanceTime(openBugsUpdateTime + time.Hour)
+	_, err = c.AuthGET(AccessUser, "/cron/refresh_subsystems")
+	c.expectOK(err)
+
+	// The subsystem must stay the same.
+	expectSubsystems(t, client, extID, "subsystemB")
+
+	// Bump the subsystem revision and refresh subsystems.
+	c.setSubsystems(ns, testSubsystems, 2)
+	c.advanceTime(time.Hour)
+	_, err = c.AuthGET(AccessUser, "/cron/refresh_subsystems")
+	c.expectOK(err)
+
+	// The subsystem must still stay the same.
+	expectSubsystems(t, client, extID, "subsystemB")
 }
 
 func expectSubsystems(t *testing.T, client *apiClient, extID string, subsystems ...string) {

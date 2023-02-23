@@ -27,11 +27,18 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 	log.Infof(c, "updating subsystems for %d bugs in %#v", len(keys), ns)
 	rev := getSubsystemRevision(c, ns)
 	for i, bugKey := range keys {
-		list, err := inferSubsystems(c, bugs[i], bugKey)
-		if err != nil {
-			return fmt.Errorf("failed to infer subsystems: %w", err)
+		if bugs[i].hasUserSubsystems() {
+			// If we don't set the latst revision, we'll have to update this
+			// bug over and over again.
+			err = updateBugSubsystems(c, bugKey, nil, updateRevision(rev))
+		} else {
+			var list []*subsystem.Subsystem
+			list, err = inferSubsystems(c, bugs[i], bugKey)
+			if err != nil {
+				return fmt.Errorf("failed to infer subsystems: %w", err)
+			}
+			err = updateBugSubsystems(c, bugKey, list, autoInference(rev))
 		}
-		err = updateBugSubsystems(c, bugKey, list, autoInference(rev))
 		if err != nil {
 			return fmt.Errorf("failed to save subsystems: %w", err)
 		}
@@ -80,6 +87,7 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 type (
 	autoInference  int
 	userAssignment string
+	updateRevision int
 )
 
 func updateBugSubsystems(c context.Context, bugKey *db.Key,
@@ -95,6 +103,9 @@ func updateBugSubsystems(c context.Context, bugKey *db.Key,
 			bug.SetAutoSubsystems(list, now, int(v))
 		case userAssignment:
 			bug.SetUserSubsystems(list, now, string(v))
+		case updateRevision:
+			bug.SubsystemsRev = int(v)
+			bug.SubsystemsTime = now
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)

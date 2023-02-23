@@ -158,6 +158,15 @@ func (bug *Bug) SetSubsystems(list []BugSubsystem, now time.Time) {
 	bug.SubsystemsTime = now
 }
 
+func (bug *Bug) hasUserSubsystems() bool {
+	for _, item := range bug.Tags.Subsystems {
+		if item.SetBy != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (bug *Bug) hasSubsystem(name string) bool {
 	for _, item := range bug.Tags.Subsystems {
 		if item.Name == name {
