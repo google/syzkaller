@@ -317,7 +317,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
 	title := ""
 	for i := len(rep.Subsystems) - 1; i >= 0; i-- {
-		title = fmt.Sprintf("[%s?] %s", rep.Subsystems[i].Name, title)
+		question := ""
+		if rep.Subsystems[i].SetBy == "" {
+			// Include the question mark for automatically created tags.
+			question = "?"
+		}
+		title = fmt.Sprintf("[%s%s] %s", rep.Subsystems[i].Name, question, title)
 	}
 	return title + rep.Title
 }
