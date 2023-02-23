@@ -31,12 +31,13 @@ func TestEmailToName(t *testing.T) {
 }
 
 type subsystemTestInput struct {
+	inName  string
 	email   string
 	outName string
 }
 
 func (sti subsystemTestInput) ToSubsystem() *subsystem.Subsystem {
-	s := &subsystem.Subsystem{}
+	s := &subsystem.Subsystem{Name: sti.inName}
 	if sti.email != "" {
 		s.Lists = append(s.Lists, sti.email)
 	}
@@ -86,6 +87,35 @@ func TestSetSubsystemNames(t *testing.T) {
 				{
 					email:   "",
 					outName: "",
+				},
+			},
+			mustFail: true,
+		},
+		{
+			name: "has existing names",
+			inputs: []subsystemTestInput{
+				{
+					inName:  "some",
+					email:   "some-list@list.com",
+					outName: "some",
+				},
+				{
+					email:   "ntfs@lists.sourceforge.net",
+					outName: "ntfs",
+				},
+			},
+		},
+		{
+			name: "collision with an existing name",
+			inputs: []subsystemTestInput{
+				{
+					inName:  "ntfs",
+					email:   "ntfs3@lists.sourceforge.net",
+					outName: "ntfs",
+				},
+				{
+					email:   "ntfs@lists.sourceforge.net",
+					outName: "ntfs",
 				},
 			},
 			mustFail: true,

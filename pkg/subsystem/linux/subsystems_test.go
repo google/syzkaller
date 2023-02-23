@@ -63,6 +63,17 @@ func TestCustomCallRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	for _, s := range subsystems {
+		// The regexps used for matching rules may change later, so let's not compare them here.
+		s.PathRules = nil
+		// It complicates the test, so let's skip it here.
+		s.Parents = nil
+	}
+	// Ensure that the subsystem from the custom rule is present.
+	assert.Contains(t, subsystems, &subsystem.Subsystem{
+		Name:        "udf",
+		Maintainers: []string{"email_udf@email.com"},
+	})
 	expectCalls := map[string][]string{
 		"ext4":  {"syz_mount_image$ext4"},
 		"tmpfs": {"syz_mount_image$tmpfs"},
@@ -175,6 +186,9 @@ func prepareTestLinuxRepo(t *testing.T, maintainers []byte) fs.FS {
 		`fs/freevxfs/vxfs_olt.c`:   {},
 		`fs/freevxfs/vxfs_olt.h`:   {},
 		`fs/freevxfs/file.c`:       {},
+		`fs/udf/file.c`:            {},
+		`fs/udf/file2.c`:           {},
+		`fs/udf/file3.c`:           {},
 		`fs/file.c`:                {},
 		`fs/internal.h`:            {},
 		`include/linux/fs.h`:       {},
@@ -194,6 +208,9 @@ var (
 			"ext4":  {"syz_mount_image$ext4"},
 			"vxfs":  {"syz_mount_image$vxfs"},
 			"tmpfs": {"syz_mount_image$tmpfs"},
+		},
+		extraSubsystems: map[string][]string{
+			"udf": {"UDF FILESYSTEM"},
 		},
 	}
 	testMaintainers = `
@@ -255,6 +272,12 @@ L:	tmpfs@kvack.org
 S:	Maintained
 F:	include/linux/shmem_fs.h
 F:	mm/shmem*
+
+UDF FILESYSTEM
+M:	email_udf <email_udf@email.com>
+S:	Maintained
+F:	Documentation/filesystems/udf.rst
+F:	fs/udf/
 
 THE REST
 M:	Developer <email_rest@email.com>

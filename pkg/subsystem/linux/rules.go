@@ -9,6 +9,9 @@ type customRules struct {
 	// These emails do not represent separate subsystems, even though they seem to
 	// per all criteria we have.
 	notSubsystemEmails map[string]struct{}
+	// These subsystems need to be extracted even without mailing lists.
+	// Key is the subsystem name, value is the list of raw names in MAINTAINERS.
+	extraSubsystems map[string][]string
 }
 
 var (
@@ -64,5 +67,6 @@ var (
 			"coreteam@netfilter.org":           {},
 			"SHA-cyfmac-dev-list@infineon.com": {},
 		},
+		extraSubsystems: map[string][]string{},
 	}
 )
