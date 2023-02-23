@@ -28,6 +28,9 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 	rev := getSubsystemRevision(c, ns)
 	for i, bugKey := range keys {
 		if bugs[i].hasUserSubsystems() {
+			// It might be that the user-set subsystem no longer exists.
+			// For now let's just log an error in this case.
+			checkOutdatedSubsystems(c, service, bugs[i])
 			// If we don't set the latst revision, we'll have to update this
 			// bug over and over again.
 			err = updateBugSubsystems(c, bugKey, nil, updateRevision(rev))
@@ -82,6 +85,14 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 		count -= len(tmpKeys)
 	}
 	return bugs, keys, nil
+}
+
+func checkOutdatedSubsystems(c context.Context, service *subsystem.Service, bug *Bug) {
+	for _, item := range bug.Tags.Subsystems {
+		if service.ByName(item.Name) == nil {
+			log.Errorf(c, "ns=%s bug=%s subsystem %s no longer exists", bug.Namespace, bug.Title, item.Name)
+		}
+	}
 }
 
 type (
