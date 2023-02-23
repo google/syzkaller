@@ -39,3 +39,18 @@ func TestSubsystemEmails(t *testing.T) {
 		"a@list.com", "b@list.com", "c@list.com", "d@list.com", "d@person.com",
 	})
 }
+
+func TestFilterList(t *testing.T) {
+	parentParent := &Subsystem{}
+	parentA := &Subsystem{Parents: []*Subsystem{parentParent}}
+	parentB := &Subsystem{Parents: []*Subsystem{parentParent}}
+	entity := &Subsystem{Parents: []*Subsystem{parentA, parentB}}
+
+	newList := FilterList([]*Subsystem{parentA, parentB, parentParent, entity},
+		func(s *Subsystem) bool {
+			return s != parentB
+		},
+	)
+	assert.Len(t, newList, 3)
+	assert.ElementsMatch(t, entity.Parents, []*Subsystem{parentA})
+}
