@@ -15,7 +15,6 @@ func TestEmailToName(t *testing.T) {
 		"linux-nilfs@vger.kernel.org":           "nilfs",
 		"tomoyo-dev-en@lists.osdn.me":           "tomoyo",
 		"tipc-discussion@lists.sourceforge.net": "tipc",
-		"v9fs-developer@lists.sourceforge.net":  "v9fs",
 		"zd1211-devs@lists.sourceforge.net":     "zd1211",
 		"chrome-platform@lists.linux.dev":       "chrome",
 		"b.a.t.m.a.n@lists.open-mesh.org":       "batman",

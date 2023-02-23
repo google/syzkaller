@@ -109,6 +109,7 @@ var (
 		"linux-unionfs@vger.kernel.org":             "overlayfs", // the name has changed
 		"rust-for-linux@vger.kernel.org":            "rust",
 		"industrypack-devel@lists.sourceforge.net":  "ipack",
+		"v9fs-developer@lists.sourceforge.net":      "9p",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
