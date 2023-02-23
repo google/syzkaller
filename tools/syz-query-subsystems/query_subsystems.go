@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/subsystem/linux"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -25,6 +26,8 @@ var (
 	flagKernelRepo    = flag.String("kernel", "", "path to the OS kernel source directory")
 	flagSyzkallerRepo = flag.String("syzkaller", "", "path to the syzkaller repo")
 	flagName          = flag.String("name", "", "the name under which the list should be saved")
+	flagFilter        = flag.String("filter", "", "comma-separated list of subsystems to keep")
+	flagEmails        = flag.Bool("emails", true, "save lists and maintainer fields")
 )
 
 var nameRe = regexp.MustCompile(`^[a-z]\w*$`)
@@ -49,6 +52,7 @@ func main() {
 	if err != nil {
 		tool.Failf("failed to query subsystems: %v", err)
 	}
+	list = postProcessList(list)
 	// Save the list.
 	folder := filepath.Join(*flagSyzkallerRepo, "pkg", "subsystem", "lists")
 	if err = osutil.MkdirAll(folder); err != nil {
@@ -62,6 +66,32 @@ func main() {
 	err = osutil.WriteFile(filepath.Join(folder, *flagName+".go"), code)
 	if err != nil {
 		tool.Failf("failed to save the code: %s", err)
+	}
+}
+
+func postProcessList(list []*subsystem.Subsystem) []*subsystem.Subsystem {
+	if *flagFilter != "" {
+		list = subsystem.FilterList(list, prepareFilter())
+	}
+	if !*flagEmails {
+		for _, item := range list {
+			item.Lists = nil
+			item.Maintainers = nil
+		}
+	}
+	return list
+}
+
+func prepareFilter() func(*subsystem.Subsystem) bool {
+	keep := map[string]bool{}
+	for _, name := range strings.Split(*flagFilter, ",") {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			keep[name] = true
+		}
+	}
+	return func(s *subsystem.Subsystem) bool {
+		return keep[s.Name]
 	}
 }
 

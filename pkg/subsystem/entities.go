@@ -44,6 +44,28 @@ func (subsystem *Subsystem) Emails() []string {
 	return ret
 }
 
+func FilterList(list []*Subsystem, filter func(*Subsystem) bool) []*Subsystem {
+	keep := map[*Subsystem]bool{}
+	for _, item := range list {
+		keep[item] = filter(item)
+	}
+	newList := []*Subsystem{}
+	for _, item := range list {
+		if !keep[item] {
+			continue
+		}
+		newParents := []*Subsystem{}
+		for _, p := range item.Parents {
+			if keep[p] {
+				newParents = append(newParents, p)
+			}
+		}
+		item.Parents = newParents
+		newList = append(newList, item)
+	}
+	return newList
+}
+
 // PathRule describes the part of the directory tree belonging to a single subsystem.
 type PathRule struct {
 	IncludeRegexp string
