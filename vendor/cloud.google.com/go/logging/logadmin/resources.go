@@ -18,9 +18,9 @@ import (
 	"context"
 
 	vkit "cloud.google.com/go/logging/apiv2"
+	logpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"google.golang.org/api/iterator"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
-	logpb "google.golang.org/genproto/googleapis/logging/v2"
 )
 
 // ResourceDescriptors returns a ResourceDescriptorIterator

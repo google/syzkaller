@@ -25,10 +25,10 @@ import (
 	reflect "reflect"
 	sync "sync"
 
+	v1 "cloud.google.com/go/iam/apiv1/iampb"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
-	v1 "google.golang.org/genproto/googleapis/iam/v1"
 	date "google.golang.org/genproto/googleapis/type/date"
 	field_mask "google.golang.org/genproto/protobuf/field_mask"
 	grpc "google.golang.org/grpc"

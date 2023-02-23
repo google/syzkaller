@@ -29,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/internal/optional"
 	"cloud.google.com/go/internal/trace"
 	"golang.org/x/oauth2/google"
@@ -39,7 +40,6 @@ import (
 	raw "google.golang.org/api/storage/v1"
 	"google.golang.org/api/transport"
 	htransport "google.golang.org/api/transport/http"
-	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )
 
 // httpStorageClient is the HTTP-JSON API implementation of the transport-agnostic

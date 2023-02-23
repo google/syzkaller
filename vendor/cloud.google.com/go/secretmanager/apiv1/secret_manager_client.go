@@ -23,13 +23,13 @@ import (
 	"net/url"
 	"time"
 
+	"cloud.google.com/go/iam/apiv1/iampb"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	gtransport "google.golang.org/api/transport/grpc"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
-	iampb "google.golang.org/genproto/googleapis/iam/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -125,14 +125,14 @@ type internalClient interface {
 // Client is a client for interacting with Secret Manager API.
 // Methods, except Close, may be called concurrently. However, fields must not be modified concurrently with method calls.
 //
-// Secret Manager Service
+// # Secret Manager Service
 //
 // Manages secrets and operations using those secrets. Implements a REST
 // model with the following objects:
 //
-//   Secret
+//	Secret
 //
-//   SecretVersion
+//	SecretVersion
 type Client struct {
 	// The internal transport-dependent client.
 	internalClient internalClient
@@ -290,14 +290,14 @@ type gRPCClient struct {
 // NewClient creates a new secret manager service client based on gRPC.
 // The returned client must be Closed when it is done being used to clean up its underlying connections.
 //
-// Secret Manager Service
+// # Secret Manager Service
 //
 // Manages secrets and operations using those secrets. Implements a REST
 // model with the following objects:
 //
-//   Secret
+//	Secret
 //
-//   SecretVersion
+//	SecretVersion
 func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error) {
 	clientOpts := defaultGRPCClientOptions()
 	if newClientHook != nil {

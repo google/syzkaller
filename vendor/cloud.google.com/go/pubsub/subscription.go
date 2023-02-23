@@ -25,12 +25,12 @@ import (
 
 	"cloud.google.com/go/iam"
 	"cloud.google.com/go/internal/optional"
+	pb "cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"cloud.google.com/go/pubsub/internal/scheduler"
 	"github.com/golang/protobuf/ptypes"
 	durpb "github.com/golang/protobuf/ptypes/duration"
 	gax "github.com/googleapis/gax-go/v2"
 	"golang.org/x/sync/errgroup"
-	pb "google.golang.org/genproto/googleapis/pubsub/v1"
 	fmpb "google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -757,9 +757,9 @@ var errReceiveInProgress = errors.New("pubsub: Receive already in progress for t
 //
 // The standard way to terminate a Receive is to cancel its context:
 //
-//   cctx, cancel := context.WithCancel(ctx)
-//   err := sub.Receive(cctx, callback)
-//   // Call cancel from callback, or another goroutine.
+//	cctx, cancel := context.WithCancel(ctx)
+//	err := sub.Receive(cctx, callback)
+//	// Call cancel from callback, or another goroutine.
 //
 // If the service returns a non-retryable error, Receive returns that error after
 // all of the outstanding calls to f have returned. If ctx is done, Receive

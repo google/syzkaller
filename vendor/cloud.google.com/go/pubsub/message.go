@@ -17,8 +17,8 @@ package pubsub
 import (
 	"time"
 
+	pb "cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"github.com/golang/protobuf/ptypes"
-	pb "google.golang.org/genproto/googleapis/pubsub/v1"
 )
 
 // Message represents a Pub/Sub message.
