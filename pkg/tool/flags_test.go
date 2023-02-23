@@ -6,7 +6,7 @@ package tool
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 
@@ -33,7 +33,7 @@ func TestParseFlags(t *testing.T) {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			vals := new(Values)
 			flags := flag.NewFlagSet("", flag.ContinueOnError)
-			flags.SetOutput(ioutil.Discard)
+			flags.SetOutput(io.Discard)
 			flags.BoolVar(&vals.Foo, "foo", false, "")
 			flags.IntVar(&vals.Bar, "bar", 1, "")
 			flags.StringVar(&vals.Baz, "baz", "baz", "")

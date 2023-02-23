@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/mail"
 	"regexp"
@@ -465,7 +465,7 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 
 func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Errorf(c, "email bounced: failed to read body: %v", err)
 		return

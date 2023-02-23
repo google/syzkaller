@@ -14,7 +14,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -175,7 +174,7 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 }
 
 func progFileList(dir, filter string) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", dir, err)
 	}
@@ -275,7 +274,7 @@ nextSandbox:
 }
 
 func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
-	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
+	data, err := os.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
 	}
@@ -680,7 +679,7 @@ func RunTest(req *RunRequest, executor string) {
 }
 
 func runTestC(req *RunRequest) {
-	tmpDir, err := ioutil.TempDir("", "syz-runtest")
+	tmpDir, err := os.MkdirTemp("", "syz-runtest")
 	if err != nil {
 		req.Err = fmt.Errorf("failed to create temp dir: %v", err)
 		return

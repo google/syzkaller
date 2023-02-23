@@ -5,7 +5,6 @@ package state
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -73,7 +72,7 @@ func Make(dir string) (*State, error) {
 
 	managersDir := filepath.Join(st.dir, "manager")
 	osutil.MkdirAll(managersDir)
-	managers, err := ioutil.ReadDir(managersDir)
+	managers, err := os.ReadDir(managersDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v dir: %v", managersDir, err)
 	}
@@ -159,7 +158,7 @@ func (st *State) createManager(name string) (*Manager, error) {
 	if st.reproSeq < mgr.reproSeq {
 		st.reproSeq = mgr.reproSeq
 	}
-	domainData, _ := ioutil.ReadFile(mgr.domainFile)
+	domainData, _ := os.ReadFile(mgr.domainFile)
 	mgr.Domain = string(domainData)
 	corpus, _, err := loadDB(mgr.corpusFile, name, false)
 	if err != nil {
@@ -451,7 +450,7 @@ func saveSeqFile(filename string, seq uint64) {
 }
 
 func loadSeqFile(filename string) uint64 {
-	str, _ := ioutil.ReadFile(filename)
+	str, _ := os.ReadFile(filename)
 	seq, _ := strconv.ParseUint(string(str), 10, 64)
 	return seq
 }

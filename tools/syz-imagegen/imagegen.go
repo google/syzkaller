@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"hash/crc32"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -602,7 +601,7 @@ func main() {
 		return
 	}
 	// Create a single template dir for file systems that need the root dir at creation time.
-	templateDir, err := ioutil.TempDir("", "syz-imagegen")
+	templateDir, err := os.MkdirTemp("", "syz-imagegen")
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -810,7 +809,7 @@ func (img *Image) generateSize() error {
 			return fmt.Errorf("image population failed: %v\n%s", err, out)
 		}
 	}
-	data, err := ioutil.ReadFile(img.disk)
+	data, err := os.ReadFile(img.disk)
 	if err != nil {
 		return err
 	}
@@ -843,7 +842,7 @@ func populate(disk, fs string) error {
 	loop := strings.TrimSpace(string(output))
 	defer runCmd("losetup", "-d", loop)
 
-	dir, err := ioutil.TempDir("", "syz-imagegen")
+	dir, err := os.MkdirTemp("", "syz-imagegen")
 	if err != nil {
 		return err
 	}
@@ -866,23 +865,23 @@ func populateDir(dir string) error {
 	if err := os.Mkdir(filepath.Join(dir, "file0"), 0777); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(filepath.Join(dir, "file0", "file0"), nonzeros(1050), 0777); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "file0", "file0"), nonzeros(1050), 0777); err != nil {
 		return err
 	}
 	os.Symlink(filepath.Join(dir, "file0", "file0"), filepath.Join(dir, "file0", "file1"))
-	if err := ioutil.WriteFile(filepath.Join(dir, "file1"), nonzeros(10), 0777); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "file1"), nonzeros(10), 0777); err != nil {
 		return err
 	}
 	// Note: some errors are not checked because some file systems don't have support for links/attrs.
 	// TODO: does it make sense to create other attribute types (system./trusted./security./btrfs.)?
 	syscall.Setxattr(filepath.Join(dir, "file1"), "user.xattr1", []byte("xattr1"), 0)
 	syscall.Setxattr(filepath.Join(dir, "file1"), "user.xattr2", []byte("xattr2"), 0)
-	if err := ioutil.WriteFile(filepath.Join(dir, "file2"), zeros(9000), 0777); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "file2"), zeros(9000), 0777); err != nil {
 		return err
 	}
 	os.Link(filepath.Join(dir, "file2"), filepath.Join(dir, "file3"))
 	// f2fs considers .cold extension specially.
-	if err := ioutil.WriteFile(filepath.Join(dir, "file.cold"), nonzeros(100), 0777); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "file.cold"), nonzeros(100), 0777); err != nil {
 		return err
 	}
 	return nil

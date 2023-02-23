@@ -6,7 +6,7 @@ package ast
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,7 +62,7 @@ func ParseGlob(glob string, errorHandler ErrorHandler) *Description {
 	}
 	desc := &Description{}
 	for _, f := range files {
-		data, err := ioutil.ReadFile(f)
+		data, err := os.ReadFile(f)
 		if err != nil {
 			errorHandler(Pos{}, fmt.Sprintf("failed to read input file: %v", err))
 			return nil

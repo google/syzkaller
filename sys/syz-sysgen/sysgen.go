@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -340,7 +339,7 @@ func writeExecutorSyscalls(data *ExecutorData) {
 }
 
 func writeSource(file string, data []byte) {
-	if oldSrc, err := ioutil.ReadFile(file); err == nil && bytes.Equal(data, oldSrc) {
+	if oldSrc, err := os.ReadFile(file); err == nil && bytes.Equal(data, oldSrc) {
 		return
 	}
 	writeFile(file, data)

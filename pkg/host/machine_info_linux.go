@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -86,7 +85,7 @@ func allEqual(slice []string) bool {
 }
 
 func readKVMInfo(buffer *bytes.Buffer) error {
-	files, err := ioutil.ReadDir("/sys/module/")
+	files, err := os.ReadDir("/sys/module/")
 	if err != nil {
 		return err
 	}
@@ -98,7 +97,7 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 		}
 
 		paramPath := filepath.Join("/sys", "module", name, "parameters")
-		params, err := ioutil.ReadDir(paramPath)
+		params, err := os.ReadDir(paramPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue
@@ -113,7 +112,7 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 		fmt.Fprintf(buffer, "/sys/module/%s:\n", name)
 		for _, key := range params {
 			keyName := key.Name()
-			data, err := ioutil.ReadFile(filepath.Join(paramPath, keyName))
+			data, err := os.ReadFile(filepath.Join(paramPath, keyName))
 			if err != nil {
 				return err
 			}
@@ -127,7 +126,7 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 
 func getModulesInfo() ([]KernelModule, error) {
 	var modules []KernelModule
-	modulesText, _ := ioutil.ReadFile("/proc/modules")
+	modulesText, _ := os.ReadFile("/proc/modules")
 	re := regexp.MustCompile(`(\w+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	for _, m := range re.FindAllSubmatch(modulesText, -1) {
 		addr, err := strconv.ParseUint(string(m[2]), 0, 64)

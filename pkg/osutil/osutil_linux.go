@@ -5,7 +5,6 @@ package osutil
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,7 +19,7 @@ import (
 
 // RemoveAll is similar to os.RemoveAll, but can handle more cases.
 func RemoveAll(dir string) error {
-	files, _ := ioutil.ReadDir(dir)
+	files, _ := os.ReadDir(dir)
 	for _, f := range files {
 		name := filepath.Join(dir, f.Name())
 		if f.IsDir() {

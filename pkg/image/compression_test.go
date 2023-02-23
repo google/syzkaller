@@ -6,8 +6,8 @@ package image_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -51,7 +51,7 @@ func TestEncode(t *testing.T) {
 
 func BenchmarkDecompress(b *testing.B) {
 	// Extract the largest image seed.
-	data, err := ioutil.ReadFile(filepath.FromSlash("../../sys/linux/test/syz_mount_image_gfs2_0"))
+	data, err := os.ReadFile(filepath.FromSlash("../../sys/linux/test/syz_mount_image_gfs2_0"))
 	if err != nil {
 		b.Fatal(err)
 	}

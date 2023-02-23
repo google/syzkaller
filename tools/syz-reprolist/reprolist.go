@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -103,7 +102,7 @@ func writeRepros(bugchan chan *dashapi.BugReport) {
 		if len(bug.ReproSyz) == 0 {
 			log.Printf("%v: %v: no repro", bug.ID, bug.BugStatus)
 			file := filepath.Join(*flagOutputDir, bug.ID+".norepro")
-			if err := ioutil.WriteFile(file, nil, 0644); err != nil {
+			if err := os.WriteFile(file, nil, 0644); err != nil {
 				log.Fatalf("failed to write file: %v", err)
 			}
 			continue
@@ -114,7 +113,7 @@ func writeRepros(bugchan chan *dashapi.BugReport) {
 				log.Print(err)
 				errText := []byte(err.Error())
 				file := filepath.Join(*flagOutputDir, bug.ID+".error")
-				if err := ioutil.WriteFile(file, errText, 0644); err != nil {
+				if err := os.WriteFile(file, errText, 0644); err != nil {
 					log.Fatalf("failed to write file: %v", err)
 				}
 				continue
@@ -129,7 +128,7 @@ func writeRepros(bugchan chan *dashapi.BugReport) {
 			bug.Title, *flagDashboard, bug.ID, bug.BugStatus, arch))
 		repro = append(repro, bug.ReproC...)
 		file := filepath.Join(*flagOutputDir, bug.ID+".c")
-		if err := ioutil.WriteFile(file, repro, 0644); err != nil {
+		if err := os.WriteFile(file, repro, 0644); err != nil {
 			log.Fatalf("failed to write file: %v", err)
 		}
 	}
@@ -141,7 +140,7 @@ func createCRepro(bug *dashapi.BugReport) error {
 		return fmt.Errorf("failed to deserialize opts: %v", err)
 	}
 	file := filepath.Join(*flagOutputDir, bug.ID+".syz")
-	if err := ioutil.WriteFile(file, bug.ReproSyz, 0644); err != nil {
+	if err := os.WriteFile(file, bug.ReproSyz, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %v", err)
 	}
 	repo := vcs.NewSyzkallerRepo(*flagSyzkallerDir, vcs.OptPrecious)

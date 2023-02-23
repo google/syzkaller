@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -570,12 +569,12 @@ func (mgr *Manager) preloadCorpus() {
 	mgr.corpusDB = corpusDB
 
 	if seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, "test"); osutil.IsExist(seedDir) {
-		seeds, err := ioutil.ReadDir(seedDir)
+		seeds, err := os.ReadDir(seedDir)
 		if err != nil {
 			log.Fatalf("failed to read seeds dir: %v", err)
 		}
 		for _, seed := range seeds {
-			data, err := ioutil.ReadFile(filepath.Join(seedDir, seed.Name()))
+			data, err := os.ReadFile(filepath.Join(seedDir, seed.Name()))
 			if err != nil {
 				log.Fatalf("failed to read seed %v: %v", seed.Name(), err)
 			}

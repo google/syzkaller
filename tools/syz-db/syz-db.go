@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -83,13 +82,13 @@ func usage() {
 }
 
 func pack(dir, file string, target *prog.Target, version uint64) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		tool.Failf("failed to read dir: %v", err)
 	}
 	var records []db.Record
 	for _, file := range files {
-		data, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
+		data, err := os.ReadFile(filepath.Join(dir, file.Name()))
 		if err != nil {
 			tool.Failf("failed to read file %v: %v", file.Name(), err)
 		}
@@ -154,7 +153,7 @@ func merge(file string, adds []string, target *prog.Target) {
 		} else if target == nil {
 			tool.Failf("failed to open db %v: %v", add, err)
 		}
-		data, err := ioutil.ReadFile(add)
+		data, err := os.ReadFile(add)
 		if err != nil {
 			tool.Fail(err)
 		}

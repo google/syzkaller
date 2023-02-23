@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -187,7 +186,7 @@ func (inst *instance) ssh(command string) error {
 	}()
 	if err := cmd.Wait(); err != nil {
 		close(done)
-		out, _ := ioutil.ReadAll(rpipe)
+		out, _ := io.ReadAll(rpipe)
 		if inst.debug {
 			log.Logf(0, "ssh failed: %v\n%s", err, out)
 		}
@@ -224,11 +223,11 @@ func (inst *instance) repair() error {
 		if len(inst.cfg.USBDevNums) > 0 {
 			log.Logf(2, "isolated: trying to reboot by USB authorization")
 			usbAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", inst.cfg.USBDevNums[inst.index], "/authorized")
-			if err := ioutil.WriteFile(usbAuth, []byte("0"), 0); err != nil {
+			if err := os.WriteFile(usbAuth, []byte("0"), 0); err != nil {
 				log.Logf(2, "isolated: failed to turn off the device")
 				return err
 			}
-			if err := ioutil.WriteFile(usbAuth, []byte("1"), 0); err != nil {
+			if err := os.WriteFile(usbAuth, []byte("1"), 0); err != nil {
 				log.Logf(2, "isolated: failed to turn on the device")
 				return err
 			}
@@ -243,7 +242,7 @@ func (inst *instance) repair() error {
 	if inst.cfg.StartupScript != "" {
 		log.Logf(2, "isolated: executing startup_script")
 		// Execute the contents of the StartupScript on the DUT.
-		contents, err := ioutil.ReadFile(inst.cfg.StartupScript)
+		contents, err := os.ReadFile(inst.cfg.StartupScript)
 		if err != nil {
 			return fmt.Errorf("unable to read startup_script: %v", err)
 		}

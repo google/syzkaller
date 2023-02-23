@@ -15,7 +15,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -140,7 +139,7 @@ func readCrash(workdir, dir string) *UICrashType {
 		return nil
 	}
 	defer descFile.Close()
-	descBytes, err := ioutil.ReadAll(descFile)
+	descBytes, err := io.ReadAll(descFile)
 	if err != nil || len(descBytes) == 0 {
 		return nil
 	}
@@ -168,7 +167,7 @@ func readCrash(workdir, dir string) *UICrashType {
 		}
 
 		if strings.HasPrefix(f, "tag") {
-			tag, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			tag, err := os.ReadFile(filepath.Join(crashdir, dir, f))
 			if err == nil {
 				reproducers[string(tag)] = string(tag)
 			}
@@ -179,19 +178,19 @@ func readCrash(workdir, dir string) *UICrashType {
 		}
 
 		if f == "cause.commit" {
-			commits, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			commits, err := os.ReadFile(filepath.Join(crashdir, dir, f))
 			if err == nil {
 				causingCommits = strings.Split(string(commits), "\n")
 			}
 		}
 		if f == "fix.commit" {
-			commits, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			commits, err := os.ReadFile(filepath.Join(crashdir, dir, f))
 			if err == nil {
 				fixingCommits = strings.Split(string(commits), "\n")
 			}
 		}
 		if f == kconfig.CauseConfigFile {
-			configs, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			configs, err := os.ReadFile(filepath.Join(crashdir, dir, f))
 			if err == nil {
 				configsList := strings.Split(string(configs), "\n")
 				// Ignore configuration list longer than 10

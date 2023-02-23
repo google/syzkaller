@@ -5,7 +5,7 @@ package ast
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -21,7 +21,7 @@ func TestParseAll(t *testing.T) {
 	}
 	files = append(files, filepath.FromSlash("testdata/all.txt"))
 	for _, file := range files {
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatalf("failed to read file: %v", err)
 		}
@@ -124,7 +124,7 @@ var parseTests = []struct {
 }
 
 func TestErrors(t *testing.T) {
-	files, err := ioutil.ReadDir("testdata")
+	files, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)
 	}

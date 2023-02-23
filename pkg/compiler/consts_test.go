@@ -4,7 +4,7 @@
 package compiler
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -15,7 +15,7 @@ import (
 )
 
 func TestExtractConsts(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join("testdata", "consts.txt"))
+	data, err := os.ReadFile(filepath.Join("testdata", "consts.txt"))
 	if err != nil {
 		t.Fatalf("failed to read input file: %v", err)
 	}

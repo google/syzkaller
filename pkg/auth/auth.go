@@ -29,7 +29,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -81,7 +81,7 @@ func (auth *Endpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("verification failed %v", resp.StatusCode)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

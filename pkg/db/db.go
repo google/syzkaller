@@ -15,7 +15,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/google/syzkaller/pkg/hash"
@@ -265,7 +264,7 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 	}
 	if valLen != 0 {
 		fr := flate.NewReader(&io.LimitedReader{R: r, N: int64(valLen)})
-		if val, err = ioutil.ReadAll(fr); err != nil {
+		if val, err = io.ReadAll(fr); err != nil {
 			return
 		}
 		fr.Close()

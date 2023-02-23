@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -86,7 +85,7 @@ func main() {
 		os.Exit(1)
 	}
 	if mgrcfg.Workdir == "" {
-		mgrcfg.Workdir, err = ioutil.TempDir("", "syz-bisect")
+		mgrcfg.Workdir, err = os.MkdirTemp("", "syz-bisect")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create temp dir: %v\n", err)
 			os.Exit(1)
@@ -150,7 +149,7 @@ func loadFile(path, file string, dst *[]byte, mandatory bool) {
 	if !mandatory && !osutil.IsExist(filename) {
 		return
 	}
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

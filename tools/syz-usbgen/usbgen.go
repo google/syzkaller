@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -23,7 +22,7 @@ func main() {
 		usage()
 	}
 
-	syslog, err := ioutil.ReadFile(args[0])
+	syslog, err := os.ReadFile(args[0])
 	if err != nil {
 		tool.Failf("failed to read file %v: %v", args[0], err)
 	}

@@ -7,7 +7,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,7 +58,7 @@ func (c cuttlefish) readCompiler(archivePath string) (string, error) {
 	h, err := tr.Next()
 	for ; err == nil; h, err = tr.Next() {
 		if filepath.Base(h.Name) == "compile.h" {
-			bytes, err := ioutil.ReadAll(tr)
+			bytes, err := io.ReadAll(tr)
 			if err != nil {
 				return "", err
 			}

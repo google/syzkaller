@@ -7,7 +7,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,7 +35,7 @@ func main() {
 			os.Exit(1)
 		}
 		if st.IsDir() {
-			files, err := ioutil.ReadDir(arg)
+			files, err := os.ReadDir(arg)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to read dir %v: %v\n", arg, err)
 				os.Exit(1)
@@ -45,7 +44,7 @@ func main() {
 				if !strings.HasSuffix(file.Name(), ".txt") {
 					continue
 				}
-				processFile(filepath.Join(arg, file.Name()), file.Mode())
+				processFile(filepath.Join(arg, file.Name()), file.Type())
 			}
 		} else {
 			processFile(arg, st.Mode())
@@ -54,7 +53,7 @@ func main() {
 }
 
 func processFile(file string, mode os.FileMode) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read file %v: %v\n", file, err)
 		os.Exit(1)
@@ -72,7 +71,7 @@ func processFile(file string, mode os.FileMode) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-	if err := ioutil.WriteFile(file, formatted, mode); err != nil {
+	if err := os.WriteFile(file, formatted, mode); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

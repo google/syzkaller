@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -251,7 +250,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 				<-done
 				tty.Close()
 			}()
-			*out, _ = ioutil.ReadAll(tty)
+			*out, _ = io.ReadAll(tty)
 			errors <- nil
 		}(con)
 	}
@@ -409,7 +408,7 @@ func (inst *instance) repair() error {
 func (inst *instance) runScript(script string) error {
 	log.Logf(2, "adb: executing %s", script)
 	// Execute the contents of the script.
-	contents, err := ioutil.ReadFile(script)
+	contents, err := os.ReadFile(script)
 	if err != nil {
 		return fmt.Errorf("unable to read %s: %v", script, err)
 	}

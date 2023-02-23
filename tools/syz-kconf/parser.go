@@ -6,7 +6,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -89,7 +89,7 @@ type rawFile struct {
 }
 
 func parseMainSpec(file string) ([]*Instance, []string, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read config file: %v", err)
 	}
@@ -159,7 +159,7 @@ func parseInstance(name, configDir string, features []string, includes []map[str
 }
 
 func parseFile(file string) (*rawFile, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", file, err)
 	}

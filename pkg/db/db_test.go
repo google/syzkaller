@@ -5,7 +5,6 @@ package db
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"reflect"
@@ -120,7 +119,7 @@ func TestLarge(t *testing.T) {
 }
 
 func TestOpenInvalid(t *testing.T) {
-	f, err := ioutil.TempFile("", "syz-db-test")
+	f, err := os.CreateTemp("", "syz-db-test")
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,7 +140,7 @@ func TestOpenInaccessible(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("opening inaccessible file won't fail under root")
 	}
-	f, err := ioutil.TempFile("", "syz-db-test")
+	f, err := os.CreateTemp("", "syz-db-test")
 	if err != nil {
 		t.Error(err)
 	}
@@ -171,7 +170,7 @@ func TestOpenCorrupted(t *testing.T) {
 	if err := db.Flush(); err != nil {
 		t.Fatalf("failed to flush db: %v", err)
 	}
-	data, err := ioutil.ReadFile(fn)
+	data, err := os.ReadFile(fn)
 	if err != nil {
 		t.Fatalf("failed to read db: %v", err)
 	}

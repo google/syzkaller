@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -173,7 +172,7 @@ type SyzReproInput struct {
 }
 
 func (inp *SyzReproInput) QueryTitle(checkout *Checkout, dupsMap map[string]int) error {
-	data, err := ioutil.ReadFile(inp.Path)
+	data, err := os.ReadFile(inp.Path)
 	if err != nil {
 		return fmt.Errorf("failed to read: %s", err)
 	}
