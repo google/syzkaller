@@ -6,7 +6,7 @@ package lists
 import . "github.com/google/syzkaller/pkg/subsystem"
 
 func init() {
-	RegisterList("linux", subsystems)
+	RegisterList("linux", subsystems_linux())
 }
 
 // The subsystem list:
@@ -76,6 +76,7 @@ func init() {
 //   - efi
 //   - fpga
 //   - fs
+//     - 9p
 //     - afs
 //     - autofs
 //     - bfs
@@ -88,10 +89,12 @@ func init() {
 //     - erofs
 //     - ext4
 //     - f2fs
+//     - fat
 //     - fscrypt
 //     - fsverity
 //     - fuse
 //     - hfs
+//     - isofs
 //     - jfs
 //     - karma
 //     - kernfs
@@ -105,7 +108,6 @@ func init() {
 //     - reiserfs
 //     - squashfs
 //     - udf
-//     - v9fs
 //     - xfs
 //   - fsi
 //   - gpio
@@ -244,4312 +246,4337 @@ func init() {
 //   - xen
 //   - xtensa
 
-var subsystems = []*Subsystem{
-	ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, atm, audit, autofs, axis, b43, batman, bcache, bfs, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, can, ceph, cgroups, chrome, cifs, cirrus, clk, cluster, coda, coresight, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, fuse, geode, gpio, greybus, hams, hardening, hexagon, hfs, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, ipack, isdn4linux, jfs, karma, kasan, kernel, kernfs, kexec, keyrings, kgdb, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, netfilter, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rust, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, udf, um, unisoc, usb, usbstorage, v9fs, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211,
-}
-
-// Subsystem info.
-
-var ac100 = &Subsystem{
-	Name:        "ac100",
-	Lists:       []string{"ac100@lists.launchpad.net"},
-	Maintainers: []string{"marvin24@gmx.de"},
-	Parents:     []*Subsystem{staging, tegra},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/staging/nvec/"},
-	},
-}
-
-var accelerators = &Subsystem{
-	Name:        "accelerators",
-	Lists:       []string{"linux-accelerators@lists.ozlabs.org"},
-	Maintainers: []string{"wangzhou1@hisilicon.com", "zhangfei.gao@linaro.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/misc/uacce/|^include/linux/uacce\\.h$|^include/uapi/misc/uacce/"},
-	},
-}
-
-var acpi = &Subsystem{
-	Name:    "acpi",
-	Lists:   []string{"linux-acpi@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/acpi/[^/]*thermal[^/]*$"},
-		{IncludeRegexp: "^drivers/acpi/acpica/|^include/acpi/"},
-		{IncludeRegexp: "^drivers/acpi/apei/"},
-		{IncludeRegexp: "^drivers/acpi/arm64$"},
-		{IncludeRegexp: "^drivers/acpi/pmic/"},
-		{IncludeRegexp: "^drivers/acpi/viot\\.c$|^include/linux/acpi_viot\\.h$"},
-		{IncludeRegexp: "^drivers/acpi/|^drivers/pci/[^/]*/[^/]*acpi[^/]*$|^drivers/pci/[^/]*acpi[^/]*$|^drivers/pnp/pnpacpi/|^include/acpi/|^include/linux/acpi\\.h$|^include/linux/fwnode\\.h$"},
-		{IncludeRegexp: "^drivers/base/property\\.c$|^drivers/base/swnode\\.c$|^include/linux/fwnode\\.h$|^include/linux/property\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpiolib-acpi\\.c$|^drivers/gpio/gpiolib-acpi\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/i2c-core-acpi\\.c$"},
-		{IncludeRegexp: "^drivers/mailbox/pcc\\.c$"},
-		{IncludeRegexp: "^drivers/pnp/|^include/linux/pnp\\.h$"},
-	},
-}
-
-var acpi4asus = &Subsystem{
-	Name:        "acpi4asus",
-	Lists:       []string{"acpi4asus-user@lists.sourceforge.net"},
-	Maintainers: []string{"corentin.chary@gmail.com"},
-	Parents:     []*Subsystem{x86drivers},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/platform/x86/asus[^/]*\\.c$|^drivers/platform/x86/eeepc[^/]*\\.c$"},
-	},
-}
-
-var acpica = &Subsystem{
-	Name:        "acpica",
-	Lists:       []string{"acpica-devel@lists.linuxfoundation.org"},
-	Maintainers: []string{"rafael.j.wysocki@intel.com", "robert.moore@intel.com"},
-	Parents:     []*Subsystem{acpi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/acpi/acpica/|^include/acpi/"},
-	},
-}
-
-var acrn = &Subsystem{
-	Name:        "acrn",
-	Lists:       []string{"acrn-dev@lists.projectacrn.org"},
-	Maintainers: []string{"fei1.li@intel.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/virt/acrn/|^include/uapi/linux/acrn\\.h$"},
-	},
-}
-
-var actions = &Subsystem{
-	Name:    "actions",
-	Lists:   []string{"linux-actions@lists.infradead.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/owl-[^/]*$|^arch/arm/mach-actions/|^arch/arm64/boot/dts/actions/|^drivers/clk/actions/|^drivers/clocksource/timer-owl[^/]*$|^drivers/dma/owl-dma\\.c$|^drivers/i2c/busses/i2c-owl\\.c$|^drivers/irqchip/irq-owl-sirq\\.c$|^drivers/mmc/host/owl-mmc\\.c$|^drivers/net/ethernet/actions/|^drivers/pinctrl/actions/|^drivers/soc/actions/|^include/dt-bindings/power/owl-[^/]*$|^include/dt-bindings/reset/actions,[^/]*$|^include/linux/soc/actions/|owl"},
-		{IncludeRegexp: "^drivers/input/misc/atc260x-onkey\\.c$|^drivers/mfd/atc260[^/]*$|^drivers/power/reset/atc260x-poweroff\\.c$|^drivers/regulator/atc260x-regulator\\.c$|^include/linux/mfd/atc260x/"},
-	},
-}
-
-var afs = &Subsystem{
-	Name:    "afs",
-	Lists:   []string{"linux-afs@lists.infradead.org"},
-	Parents: []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/afs/|^include/trace/events/afs\\.h$"},
-		{IncludeRegexp: "^include/keys/rxrpc-type\\.h$|^include/net/af_rxrpc\\.h$|^include/trace/events/rxrpc\\.h$|^include/uapi/linux/rxrpc\\.h$|^net/rxrpc/"},
-	},
-}
-
-var alpha = &Subsystem{
-	Name:        "alpha",
-	Lists:       []string{"linux-alpha@vger.kernel.org"},
-	Maintainers: []string{"ink@jurassic.park.msu.ru", "mattst88@gmail.com", "richard.henderson@linaro.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/alpha/"},
-	},
-}
-
-var alsa = &Subsystem{
-	Name:    "alsa",
-	Lists:   []string{"alsa-devel@alsa-project.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpio/gpio-madera[^/]*$|^drivers/irqchip/irq-madera[^/]*$|^drivers/mfd/cs47l[^/]*$|^drivers/mfd/madera[^/]*$|^drivers/pinctrl/cirrus/|^include/dt-bindings/sound/madera[^/]*$|^include/linux/irqchip/irq-madera[^/]*$|^include/linux/mfd/madera/|^include/sound/madera[^/]*$|^sound/soc/codecs/cs47l[^/]*$|^sound/soc/codecs/madera[^/]*$"},
-		{IncludeRegexp: "^drivers/slimbus/|^include/linux/slimbus\\.h$"},
-		{IncludeRegexp: "^drivers/soc/qcom/apr\\.c$|^include/dt-bindings/sound/qcom,wcd9335\\.h$|^sound/soc/codecs/lpass-rx-macro\\.[^/]*$|^sound/soc/codecs/lpass-tx-macro\\.[^/]*$|^sound/soc/codecs/lpass-va-macro\\.c$|^sound/soc/codecs/lpass-wsa-macro\\.[^/]*$|^sound/soc/codecs/msm8916-wcd-analog\\.c$|^sound/soc/codecs/msm8916-wcd-digital\\.c$|^sound/soc/codecs/wcd9335\\.[^/]*$|^sound/soc/codecs/wcd934x\\.c$|^sound/soc/codecs/wcd-clsh-v2\\.[^/]*$|^sound/soc/codecs/wcd-mbhc-v2\\.[^/]*$|^sound/soc/codecs/wsa881x\\.c$|^sound/soc/codecs/wsa883x\\.c$|^sound/soc/qcom/"},
-		{IncludeRegexp: "^drivers/soundwire/|^include/linux/soundwire/"},
-		{IncludeRegexp: "^include/dt-bindings/sound/cs[^/]*$|^sound/pci/hda/cs[^/]*$|^sound/pci/hda/hda_cs_dsp_ctl\\.[^/]*$|^sound/soc/codecs/cs[^/]*$"},
-		{IncludeRegexp: "^include/dt-bindings/sound/|^include/sound/soc[^/]*$|^sound/soc/"},
-		{IncludeRegexp: "^include/sound/compress_driver\\.h$|^include/uapi/sound/compress_[^/]*$|^sound/core/compress_offload\\.c$|^sound/soc/soc-compress\\.c$"},
-		{IncludeRegexp: "^include/sound/|^include/uapi/sound/|^sound/"},
-		{IncludeRegexp: "^include/uapi/linux/virtio_snd\\.h$|^sound/virtio/"},
-		{IncludeRegexp: "^include/uapi/sound/firewire\\.h$|^sound/firewire/"},
-		{IncludeRegexp: "^sound/aoa/"},
-		{IncludeRegexp: "^sound/drivers/opl4/"},
-		{IncludeRegexp: "^sound/pci/bt87x\\.c$"},
-		{IncludeRegexp: "^sound/pci/oxygen/"},
-		{IncludeRegexp: "^sound/soc/apple/|^sound/soc/codecs/cs42l83-i2c\\.c$"},
-		{IncludeRegexp: "^sound/soc/atmel$"},
-		{IncludeRegexp: "^sound/soc/atmel/tse850-pcm5142\\.c$"},
-		{IncludeRegexp: "^sound/soc/codecs/ad1[^/]*$|^sound/soc/codecs/ad7[^/]*$|^sound/soc/codecs/adau[^/]*$|^sound/soc/codecs/adav[^/]*$|^sound/soc/codecs/sigmadsp\\.[^/]*$|^sound/soc/codecs/ssm[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/isabelle[^/]*$|^sound/soc/codecs/lm49453[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/max9860\\.[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/pcm3060[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/sgtl5000[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/tas571x[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/tfa9879[^/]*$"},
-		{IncludeRegexp: "^sound/soc/codecs/tfa989x\\.c$"},
-		{IncludeRegexp: "^sound/soc/codecs/twl4030[^/]*$"},
-		{IncludeRegexp: "^sound/soc/fsl/fsl[^/]*$|^sound/soc/fsl/imx[^/]*$|^sound/soc/fsl/mpc8610_hpcd\\.c$"},
-		{IncludeRegexp: "^sound/soc/intel/"},
-		{IncludeRegexp: "^sound/soc/meson/"},
-		{IncludeRegexp: "^sound/soc/samsung/"},
-		{IncludeRegexp: "^sound/soc/sti/"},
-		{IncludeRegexp: "^sound/soc/stm/"},
-		{IncludeRegexp: "^sound/soc/sunxi/sun50i-dmic\\.c$"},
-		{IncludeRegexp: "^sound/soc/ti/"},
-		{IncludeRegexp: "^sound/soc/ti/n810\\.c$|^sound/soc/ti/omap[^/]*$|^sound/soc/ti/rx51\\.c$|^sound/soc/ti/sdma-pcm\\.[^/]*$"},
-		{IncludeRegexp: "^sound/soc/uniphier/"},
-		{IncludeRegexp: "^sound/usb/caiaq/"},
-		{IncludeRegexp: "^sound/usb/midi\\.[^/]*$"},
-		{IncludeRegexp: "^sound/usb/misc/ua101\\.c$"},
-		{IncludeRegexp: "^sound/usb/mixer_scarlett_gen2\\.c$"},
-		{IncludeRegexp: "^sound/xen/"},
-	},
-}
-
-var amdgfx = &Subsystem{
-	Name:    "amd-gfx",
-	Lists:   []string{"amd-gfx@lists.freedesktop.org"},
-	Parents: []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd[^/]*\\.\\[ch\\]$|^drivers/gpu/drm/amd/amdkfd/|^drivers/gpu/drm/amd/include/cik_structs\\.h$|^drivers/gpu/drm/amd/include/kgd_kfd_interface\\.h$|^drivers/gpu/drm/amd/include/v9_structs\\.h$|^drivers/gpu/drm/amd/include/vi_structs\\.h$|^include/uapi/linux/kfd_ioctl\\.h$|^include/uapi/linux/kfd_sysfs\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/amd/display/"},
-		{IncludeRegexp: "^drivers/gpu/drm/amd/pm/"},
-		{IncludeRegexp: "^drivers/gpu/drm/amd/|^drivers/gpu/drm/radeon/|^include/uapi/drm/amdgpu_drm\\.h$|^include/uapi/drm/radeon_drm\\.h$"},
-	},
-}
-
-var amlogic = &Subsystem{
-	Name:    "amlogic",
-	Lists:   []string{"linux-amlogic@lists.infradead.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/meson[^/]*$|^arch/arm/mach-meson/|^arch/arm64/boot/dts/amlogic/|^drivers/mmc/host/meson[^/]*$|^drivers/pinctrl/meson/|^drivers/rtc/rtc-meson[^/]*$|^drivers/soc/amlogic/|meson"},
-		{IncludeRegexp: "^drivers/clk/meson/|^include/dt-bindings/clock/gxbb[^/]*$|^include/dt-bindings/clock/meson[^/]*$"},
-		{IncludeRegexp: "^drivers/crypto/amlogic/"},
-		{IncludeRegexp: "^drivers/gpu/drm/meson/"},
-		{IncludeRegexp: "^drivers/media/cec/platform/meson/ao-cec-g12a\\.c$|^drivers/media/cec/platform/meson/ao-cec\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/amlogic/meson-ge2d/"},
-		{IncludeRegexp: "^drivers/mfd/khadas-mcu\\.c$|^include/linux/mfd/khadas-mcu\\.h$|^drivers/thermal/khadas_mcu_fan\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pci-meson\\.c$"},
-		{IncludeRegexp: "^drivers/perf/amlogic/|^include/soc/amlogic/"},
-		{IncludeRegexp: "^drivers/staging/media/meson/vdec/"},
-		{IncludeRegexp: "^drivers/thermal/amlogic_thermal\\.c$"},
-	},
-}
-
-var apparmor = &Subsystem{
-	Name:        "apparmor",
-	Lists:       []string{"apparmor@lists.ubuntu.com"},
-	Maintainers: []string{"john.johansen@canonical.com", "john@apparmor.net"},
-	Parents:     []*Subsystem{lsm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^security/apparmor/"},
-	},
-}
-
-var arch = &Subsystem{
-	Name:    "arch",
-	Lists:   []string{"linux-arch@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/tlb\\.h$|^include/asm-generic/tlb\\.h$|^mm/mmu_gather\\.c$"},
-		{IncludeRegexp: "^include/asm-generic/|^include/uapi/asm-generic/"},
-	},
-}
-
-var arm = &Subsystem{
-	Name:    "arm",
-	Lists:   []string{"linux-arm-kernel@lists.infradead.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^[^/]*/[^/]*/[^/]*/vexpress[^/]*$|^[^/]*/[^/]*/vexpress[^/]*$|^arch/arm/boot/dts/vexpress[^/]*$|^arch/arm/mach-vexpress/|^arch/arm64/boot/dts/arm/|^drivers/clk/versatile/clk-vexpress-osc\\.c$|^drivers/clocksource/timer-versatile\\.c$|mps2"},
-		{"^arch/arm/", "^arch/arm/boot/dts/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/alpine[^/]*$|^arch/arm/mach-alpine/|^arch/arm64/boot/dts/amazon/|^drivers/[^/]*/[^/]*alpine[^/]*$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/arm-realview-[^/]*$|^arch/arm/boot/dts/integrator[^/]*$|^arch/arm/boot/dts/versatile[^/]*$|^arch/arm/mach-versatile/|^drivers/bus/arm-integrator-lm\\.c$|^drivers/clk/versatile/|^drivers/i2c/busses/i2c-versatile\\.c$|^drivers/irqchip/irq-versatile-fpga\\.c$|^drivers/mtd/maps/physmap-versatile\\.[^/]*$|^drivers/power/reset/arm-versatile-reboot\\.c$|^drivers/soc/versatile/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/armada[^/]*$|^arch/arm/boot/dts/kirkwood[^/]*$|^arch/arm/configs/mvebu_[^/]*_defconfig$|^arch/arm/mach-mvebu/|^arch/arm64/boot/dts/marvell/armada[^/]*$|^arch/arm64/boot/dts/marvell/cn913[^/]*$|^drivers/cpufreq/armada-37xx-cpufreq\\.c$|^drivers/cpufreq/armada-8k-cpufreq\\.c$|^drivers/cpufreq/mvebu-cpufreq\\.c$|^drivers/irqchip/irq-armada-370-xp\\.c$|^drivers/irqchip/irq-mvebu-[^/]*$|^drivers/pinctrl/mvebu/|^drivers/rtc/rtc-armada38x\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/aspeed-[^/]*$|^arch/arm/mach-aspeed/|aspeed"},
-		{IncludeRegexp: "^arch/arm/boot/dts/at91-linea\\.dtsi$|^arch/arm/boot/dts/at91-natte\\.dtsi$|^arch/arm/boot/dts/at91-nattis-2-natte-2\\.dts$|^arch/arm/boot/dts/at91-tse850-3\\.dts$"},
-		{"^arch/arm/boot/dts/at91[^/]*\\.dts$|^arch/arm/boot/dts/at91[^/]*\\.dtsi$|^arch/arm/boot/dts/sama[^/]*\\.dts$|^arch/arm/boot/dts/sama[^/]*\\.dtsi$|^arch/arm/include/debug/at91\\.S$|^arch/arm/mach-at91/|^drivers/memory/atmel[^/]*$|^drivers/watchdog/sama5d4_wdt\\.c$|^include/soc/at91/|at91|atmel", "^drivers/input/touchscreen/atmel_mxt_ts\\.c$|^drivers/net/wireless/atmel/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/bcm470[^/]*$|^arch/arm/boot/dts/bcm5301[^/]*$|^arch/arm/boot/dts/bcm953012[^/]*$|^arch/arm/mach-bcm/bcm_5301x\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/bcm47189[^/]*$|^arch/arm/boot/dts/bcm53573[^/]*$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/bcm7[^/]*\\.dts[^/]*$|^arch/arm/include/asm/hardware/cache-b15-rac\\.h$|^arch/arm/mach-bcm/[^/]*brcmstb[^/]*$|^arch/arm/mm/cache-b15-rac\\.c$|^drivers/bus/brcmstb_gisb\\.c$|^drivers/pci/controller/pcie-brcmstb\\.c$|brcmstb|bcm7038|bcm7120"},
-		{IncludeRegexp: "^arch/arm/boot/dts/berlin[^/]*$|^arch/arm/mach-berlin/|^arch/arm64/boot/dts/synaptics/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/cx92755[^/]*$|digicolor"},
-		{IncludeRegexp: "^arch/arm/boot/dts/da850[^/]*$|^arch/arm/mach-davinci/|^drivers/i2c/busses/i2c-davinci\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/dove[^/]*$|^arch/arm/boot/dts/orion5x[^/]*$|^arch/arm/mach-dove/|^arch/arm/mach-mv78xx0/|^arch/arm/mach-orion5x/|^arch/arm/plat-orion/|^drivers/soc/dove/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/ecx-[^/]*\\.dts[^/]*$|^arch/arm/boot/dts/highbank\\.dts$|^arch/arm/mach-highbank/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/exynos[^/]*$|^arch/arm/boot/dts/s3c[^/]*$|^arch/arm/boot/dts/s5p[^/]*$|^arch/arm/mach-exynos[^/]*/|^arch/arm/mach-s3c/|^arch/arm/mach-s5p[^/]*/|^arch/arm64/boot/dts/exynos/|^drivers/[^/]*/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c64xx[^/]*$|^drivers/[^/]*/[^/]*s5pv210[^/]*$|^drivers/clocksource/samsung_pwm_timer\\.c$|^drivers/memory/samsung/|^drivers/pwm/pwm-samsung\\.c$|^drivers/soc/samsung/|^drivers/tty/serial/samsung[^/]*$|^include/clocksource/samsung_pwm\\.h$|^include/linux/platform_data/[^/]*s3c[^/]*$|^include/linux/serial_s3c\\.h$|^include/linux/soc/samsung/|exynos|s3c2410|s3c64xx|s5pv210"},
-		{IncludeRegexp: "^arch/arm/boot/dts/gemini[^/]*$|^arch/arm/mach-gemini/|^drivers/crypto/gemini/|^drivers/net/ethernet/cortina/|^drivers/pinctrl/pinctrl-gemini\\.c$|^drivers/rtc/rtc-ftrtc010\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/hi3[^/]*$|^arch/arm/boot/dts/hip[^/]*$|^arch/arm/boot/dts/hisi[^/]*$|^arch/arm/mach-hisi/|^arch/arm64/boot/dts/hisilicon/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/intel-ixp[^/]*$|^arch/arm/mach-ixp4xx/|^drivers/bus/intel-ixp4xx-eb\\.c$|^drivers/clocksource/timer-ixp4xx\\.c$|^drivers/crypto/ixp4xx_crypto\\.c$|^drivers/gpio/gpio-ixp4xx\\.c$|^drivers/irqchip/irq-ixp4xx\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/keystone-[^/]*$|^arch/arm/mach-keystone/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/lpc32[^/]*$|^arch/arm/mach-lpc32xx/|^drivers/i2c/busses/i2c-pnx\\.c$|^drivers/net/ethernet/nxp/lpc_eth\\.c$|^drivers/usb/host/ohci-nxp\\.c$|^drivers/watchdog/pnx4008_wdt\\.c$|lpc32xx"},
-		{IncludeRegexp: "^arch/arm/boot/dts/lpc43[^/]*$|^drivers/i2c/busses/i2c-lpc2k\\.c$|^drivers/memory/pl172\\.c$|^drivers/mtd/spi-nor/controllers/nxp-spifi\\.c$|^drivers/rtc/rtc-lpc24xx\\.c$|lpc18xx"},
-		{IncludeRegexp: "^arch/arm/boot/dts/ls1021a[^/]*$|^arch/arm64/boot/dts/freescale/fsl-[^/]*$|^arch/arm64/boot/dts/freescale/qoriq-[^/]*$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/meson[^/]*$|^arch/arm/mach-meson/|^arch/arm64/boot/dts/amlogic/|^drivers/mmc/host/meson[^/]*$|^drivers/pinctrl/meson/|^drivers/rtc/rtc-meson[^/]*$|^drivers/soc/amlogic/|meson"},
-		{IncludeRegexp: "^arch/arm/boot/dts/milbeaut[^/]*$|^arch/arm/mach-milbeaut/|milbeaut"},
-		{IncludeRegexp: "^arch/arm/boot/dts/mmp[^/]*$|^arch/arm/mach-mmp/|^include/linux/soc/mmp/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/mstar-[^/]*$|^arch/arm/mach-mstar/|^drivers/clk/mstar/|^drivers/clocksource/timer-msc313e\\.c$|^drivers/gpio/gpio-msc313\\.c$|^drivers/rtc/rtc-msc313\\.c$|^drivers/watchdog/msc313e_wdt\\.c$|^include/dt-bindings/clock/mstar-[^/]*$|^include/dt-bindings/gpio/msc313-gpio\\.h$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/mt2[^/]*$|^arch/arm/boot/dts/mt6[^/]*$|^arch/arm/boot/dts/mt7[^/]*$|^arch/arm/boot/dts/mt8[^/]*$|^arch/arm/mach-mediatek/|^arch/arm64/boot/dts/mediatek/|^drivers/soc/mediatek/|mtk|mt[2678]"},
-		{IncludeRegexp: "^arch/arm/boot/dts/omap3-igep[^/]*$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/owl-[^/]*$|^arch/arm/mach-actions/|^arch/arm64/boot/dts/actions/|^drivers/clk/actions/|^drivers/clocksource/timer-owl[^/]*$|^drivers/dma/owl-dma\\.c$|^drivers/i2c/busses/i2c-owl\\.c$|^drivers/irqchip/irq-owl-sirq\\.c$|^drivers/mmc/host/owl-mmc\\.c$|^drivers/net/ethernet/actions/|^drivers/pinctrl/actions/|^drivers/soc/actions/|^include/dt-bindings/power/owl-[^/]*$|^include/dt-bindings/reset/actions,[^/]*$|^include/linux/soc/actions/|owl"},
-		{IncludeRegexp: "^arch/arm/boot/dts/ox8[^/]*\\.dts[^/]*$|^arch/arm/mach-oxnas/|^drivers/power/reset/oxnas-restart\\.c$|oxnas"},
-		{IncludeRegexp: "^arch/arm/boot/dts/pxa[^/]*$|^arch/arm/mach-pxa/|^drivers/dma/pxa[^/]*$|^drivers/pcmcia/pxa2xx[^/]*$|^drivers/pinctrl/pxa/|^drivers/spi/spi-pxa2xx[^/]*$|^drivers/usb/gadget/udc/pxa2[^/]*$|^include/sound/pxa2xx-lib\\.h$|^sound/arm/pxa[^/]*$|^sound/soc/pxa/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/rda8810pl-[^/]*$|^drivers/clocksource/timer-rda\\.c$|^drivers/gpio/gpio-rda\\.c$|^drivers/irqchip/irq-rda-intc\\.c$|^drivers/tty/serial/rda-uart\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/rk3[^/]*$|^arch/arm/boot/dts/rv1108[^/]*$|^arch/arm/mach-rockchip/|^drivers/[^/]*/[^/]*/[^/]*rockchip[^/]*$|^drivers/[^/]*/[^/]*rockchip[^/]*$|^drivers/clk/rockchip/|^drivers/i2c/busses/i2c-rk3x\\.c$|^sound/soc/rockchip/|rockchip"},
-		{IncludeRegexp: "^arch/arm/boot/dts/rtd[^/]*$|^arch/arm/mach-realtek/|^arch/arm64/boot/dts/realtek/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/spear[^/]*$|^arch/arm/mach-spear/|^drivers/clk/spear/|^drivers/pinctrl/spear/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/ste-[^/]*$|^arch/arm/mach-nomadik/|^arch/arm/mach-ux500/|^drivers/clk/clk-nomadik\\.c$|^drivers/clocksource/clksrc-dbx500-prcmu\\.c$|^drivers/dma/ste_dma40[^/]*$|^drivers/hwspinlock/u8500_hsem\\.c$|^drivers/i2c/busses/i2c-nomadik\\.c$|^drivers/iio/adc/ab8500-gpadc\\.c$|^drivers/mfd/ab8500[^/]*$|^drivers/mfd/abx500[^/]*$|^drivers/mfd/db8500[^/]*$|^drivers/pinctrl/nomadik/|^drivers/rtc/rtc-ab8500\\.c$|^drivers/rtc/rtc-pl031\\.c$|^drivers/soc/ux500/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/sti[^/]*$|^arch/arm/mach-sti/|^drivers/ata/ahci_st\\.c$|^drivers/char/hw_random/st-rng\\.c$|^drivers/clocksource/arm_global_timer\\.c$|^drivers/clocksource/clksrc_st_lpc\\.c$|^drivers/cpufreq/sti-cpufreq\\.c$|^drivers/dma/st_fdma[^/]*$|^drivers/i2c/busses/i2c-st\\.c$|^drivers/media/platform/st/sti/c8sectpfe/|^drivers/media/rc/st_rc\\.c$|^drivers/mmc/host/sdhci-st\\.c$|^drivers/phy/st/phy-miphy28lp\\.c$|^drivers/phy/st/phy-stih407-usb\\.c$|^drivers/pinctrl/pinctrl-st\\.c$|^drivers/remoteproc/st_remoteproc\\.c$|^drivers/remoteproc/st_slim_rproc\\.c$|^drivers/reset/sti/|^drivers/rtc/rtc-st-lpc\\.c$|^drivers/tty/serial/st-asc\\.c$|^drivers/usb/dwc3/dwc3-st\\.c$|^drivers/usb/host/ehci-st\\.c$|^drivers/usb/host/ohci-st\\.c$|^drivers/watchdog/st_lpc_wdt\\.c$|^include/linux/remoteproc/st_slim_rproc\\.h$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/stm32[^/]*$|^arch/arm/mach-stm32/|^drivers/clocksource/armv7m_systick\\.c$|stm32|stm"},
-		{IncludeRegexp: "^arch/arm/boot/dts/sunplus-sp7021[^/]*\\.dts[^/]*$|^arch/arm/configs/sp7021_[^/]*defconfig$|^arch/arm/mach-sunplus/|^drivers/irqchip/irq-sp7021-intc\\.c$|^drivers/reset/reset-sunplus\\.c$|^include/dt-bindings/clock/sunplus,sp7021-clkc\\.h$|^include/dt-bindings/reset/sunplus,sp7021-reset\\.h$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/uniphier[^/]*$|^arch/arm/include/asm/hardware/cache-uniphier\\.h$|^arch/arm/mach-uniphier/|^arch/arm/mm/cache-uniphier\\.c$|^arch/arm64/boot/dts/socionext/uniphier[^/]*$|^drivers/bus/uniphier-system-bus\\.c$|^drivers/clk/uniphier/|^drivers/dma/uniphier-mdmac\\.c$|^drivers/gpio/gpio-uniphier\\.c$|^drivers/i2c/busses/i2c-uniphier[^/]*$|^drivers/irqchip/irq-uniphier-aidet\\.c$|^drivers/mmc/host/uniphier-sd\\.c$|^drivers/pinctrl/uniphier/|^drivers/reset/reset-uniphier\\.c$|^drivers/tty/serial/8250/8250_uniphier\\.c$|uniphier"},
-		{IncludeRegexp: "^arch/arm/boot/dts/vf[^/]*$|^arch/arm/mach-imx/[^/]*vf610[^/]*$"},
-		{IncludeRegexp: "^arch/arm/include/asm/arch_timer\\.h$|^arch/arm64/include/asm/arch_timer\\.h$|^drivers/clocksource/arm_arch_timer\\.c$"},
-		{IncludeRegexp: "^arch/arm/include/asm/hardware/dec21285\\.h$|^arch/arm/mach-footbridge/"},
-		{IncludeRegexp: "^arch/arm/include/asm/hardware/ioc\\.h$|^arch/arm/include/asm/hardware/iomd\\.h$|^arch/arm/include/asm/hardware/memc\\.h$|^arch/arm/mach-rpc/|^drivers/net/ethernet/8390/etherh\\.c$|^drivers/net/ethernet/i825xx/ether1[^/]*$|^drivers/net/ethernet/seeq/ether3[^/]*$|^drivers/scsi/arm/"},
-		{IncludeRegexp: "^arch/arm/mach-[^/]*/|^arch/arm/plat-[^/]*/"},
-		{IncludeRegexp: "^arch/arm/mach-ep93xx/ts72xx\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-ep93xx/|^arch/arm/mach-ep93xx/include/mach/"},
-		{IncludeRegexp: "^arch/arm/mach-orion5x/ts78xx-[^/]*$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/colibri-pxa270-income\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/ezx\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/hx4700\\.c$|^arch/arm/mach-pxa/include/mach/hx4700\\.h$|^sound/soc/pxa/hx4700\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/include/mach/palmld\\.h$|^arch/arm/mach-pxa/include/mach/palmtc\\.h$|^arch/arm/mach-pxa/include/mach/palmtx\\.h$|^arch/arm/mach-pxa/palmld\\.c$|^arch/arm/mach-pxa/palmt5\\.[^/]*$|^arch/arm/mach-pxa/palmtc\\.c$|^arch/arm/mach-pxa/palmte2\\.[^/]*$|^arch/arm/mach-pxa/palmtx\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/include/mach/vpac270\\.h$|^arch/arm/mach-pxa/vpac270\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/include/mach/z2\\.h$|^arch/arm/mach-pxa/z2\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/mioa701\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/palmtreo\\.[^/]*$"},
-		{IncludeRegexp: "^arch/arm/mach-pxa/palmz72\\.[^/]*$"},
-		{IncludeRegexp: "^arch/arm/mach-sunxi/|^arch/arm64/boot/dts/allwinner/|^drivers/clk/sunxi-ng/|^drivers/pinctrl/sunxi/|^drivers/soc/sunxi/|allwinner|sun[x456789]i|sun50i"},
-		{IncludeRegexp: "^arch/arm/mach-vt8500/|^drivers/clocksource/timer-vt8500\\.c$|^drivers/i2c/busses/i2c-wmt\\.c$|^drivers/mmc/host/wmt-sdmmc\\.c$|^drivers/pwm/pwm-vt8500\\.c$|^drivers/rtc/rtc-vt8500\\.c$|^drivers/tty/serial/vt8500_serial\\.c$|^drivers/usb/host/ehci-platform\\.c$|^drivers/usb/host/uhci-platform\\.c$|^drivers/video/fbdev/vt8500lcdfb\\.[^/]*$|^drivers/video/fbdev/wm8505fb[^/]*$|^drivers/video/fbdev/wmt_ge_rops\\.[^/]*$"},
-		{IncludeRegexp: "^arch/arm/mach-zynq/|^drivers/clocksource/timer-cadence-ttc\\.c$|^drivers/cpuidle/cpuidle-zynq\\.c$|^drivers/edac/synopsys_edac\\.c$|^drivers/i2c/busses/i2c-cadence\\.c$|^drivers/i2c/busses/i2c-xiic\\.c$|^drivers/mmc/host/sdhci-of-arasan\\.c$|zynq|xilinx"},
-		{IncludeRegexp: "^arch/arm/mm/[^/]*-fa[^/]*$"},
-		{IncludeRegexp: "^arch/arm/vfp/"},
-		{"^arch/arm64/", "^arch/arm64/boot/dts/"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/apple/|^drivers/bluetooth/hci_bcm4377\\.c$|^drivers/clk/clk-apple-nco\\.c$|^drivers/cpufreq/apple-soc-cpufreq\\.c$|^drivers/dma/apple-admac\\.c$|^drivers/i2c/busses/i2c-pasemi-core\\.c$|^drivers/i2c/busses/i2c-pasemi-platform\\.c$|^drivers/iommu/apple-dart\\.c$|^drivers/iommu/io-pgtable-dart\\.c$|^drivers/irqchip/irq-apple-aic\\.c$|^drivers/mailbox/apple-mailbox\\.c$|^drivers/nvme/host/apple\\.c$|^drivers/nvmem/apple-efuses\\.c$|^drivers/pinctrl/pinctrl-apple-gpio\\.c$|^drivers/soc/apple/|^drivers/watchdog/apple_wdt\\.c$|^include/dt-bindings/interrupt-controller/apple-aic\\.h$|^include/dt-bindings/pinctrl/apple\\.h$|^include/linux/apple-mailbox\\.h$|^include/linux/soc/apple/"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/bitmain/|^drivers/clk/clk-bm1880\\.c$|^drivers/pinctrl/pinctrl-bm1880\\.c$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/broadcom/bcmbca/|bcmbca|bcm[9]?47622|bcm[9]?4912|bcm[9]?63138|bcm[9]?63146|bcm[9]?63148|bcm[9]?63158|bcm[9]?63178|bcm[9]?6756|bcm[9]?6813|bcm[9]?6846|bcm[9]?6855|bcm[9]?6856|bcm[9]?6858|bcm[9]?6878"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/broadcom/northstar2/|^arch/arm64/boot/dts/broadcom/stingray/|^drivers/clk/bcm/clk-ns[^/]*$|^drivers/clk/bcm/clk-sr[^/]*$|^drivers/pinctrl/bcm/pinctrl-ns[^/]*$|^include/dt-bindings/clock/bcm-sr[^/]*$|iproc|cygnus|bcm[-_]nsp|bcm9113*|bcm9583*|bcm9585*|bcm9586*|bcm988312|bcm113*|bcm583*|bcm585*|bcm586*|bcm88312|hr2|stingray"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/cavium/thunder2-99xx[^/]*$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/freescale/s32g[^/]*\\.dts[^/]*$"},
-		{"^arch/arm64/boot/dts/freescale/|imx|mxs", "^drivers/media/i2c/|^arch/arm64/boot/dts/freescale/fsl-[^/]*$|^arch/arm64/boot/dts/freescale/qoriq-[^/]*$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/lg/"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/marvell/armada-8040-mcbin\\.dts$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/microchip/|^drivers/net/ethernet/microchip/vcap/|^drivers/pinctrl/pinctrl-microchip-sgpio\\.c$|sparx5"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/tesla[^/]*$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/ti/k3-[^/]*$|^include/dt-bindings/pinctrl/k3\\.h$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/toshiba/|^drivers/clk/visconti/|^drivers/net/ethernet/stmicro/stmmac/dwmac-visconti\\.c$|^drivers/gpio/gpio-visconti\\.c$|^drivers/pci/controller/dwc/pcie-visconti\\.c$|^drivers/pinctrl/visconti/|^drivers/watchdog/visconti_wdt\\.c$|visconti"},
-		{IncludeRegexp: "^arch/arm64/include/asm/kvm[^/]*$|^arch/arm64/include/uapi/asm/kvm[^/]*$|^arch/arm64/kvm/|^include/kvm/arm_[^/]*$"},
-		{IncludeRegexp: "^arch/arm[^/]*/include/asm/hw_breakpoint\\.h$|^arch/arm[^/]*/include/asm/perf_event\\.h$|^arch/arm[^/]*/kernel/hw_breakpoint\\.c$|^arch/arm[^/]*/kernel/perf_[^/]*$|^drivers/perf/|^include/linux/perf/arm_pmu\\.h$"},
-		{IncludeRegexp: "^drivers/acpi/arm64$"},
-		{IncludeRegexp: "^drivers/clk/clk-sc\\[mp\\]i\\.c$|^drivers/cpufreq/sc\\[mp\\]i-cpufreq\\.c$|^drivers/firmware/arm_scmi/|^drivers/firmware/arm_scpi\\.c$|^drivers/powercap/arm_scmi_powercap\\.c$|^drivers/regulator/scmi-regulator\\.c$|^drivers/reset/reset-scmi\\.c$|^include/linux/sc\\[mp\\]i_protocol\\.h$|^include/trace/events/scmi\\.h$|^include/uapi/linux/virtio_scmi\\.h$"},
-		{IncludeRegexp: "^drivers/clk/clkdev\\.c$"},
-		{IncludeRegexp: "^drivers/clk/keystone/sci-clk\\.c$|^drivers/firmware/ti_sci[^/]*$|^drivers/irqchip/irq-ti-sci-inta\\.c$|^drivers/irqchip/irq-ti-sci-intr\\.c$|^drivers/reset/reset-ti-sci\\.c$|^drivers/soc/ti/ti_sci_inta_msi\\.c$|^drivers/soc/ti/ti_sci_pm_domains\\.c$|^include/dt-bindings/soc/ti,sci_pm_domain\\.h$|^include/linux/soc/ti/ti_sci_inta_msi\\.h$|^include/linux/soc/ti/ti_sci_protocol\\.h$"},
-		{IncludeRegexp: "^drivers/clk/ux500/"},
-		{IncludeRegexp: "^drivers/clocksource/timer-keystone\\.c$"},
-		{IncludeRegexp: "^drivers/counter/microchip-tcb-capture\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-big_little\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.h$|^drivers/cpuidle/cpuidle-psci-domain\\.c$"},
-		{IncludeRegexp: "^drivers/dma/at_hdmac\\.c$|^drivers/dma/at_xdmac\\.c$|^include/dt-bindings/dma/at91\\.h$"},
-		{IncludeRegexp: "^drivers/dma/mediatek/"},
-		{IncludeRegexp: "^drivers/dma/qcom/hidma[^/]*$"},
-		{IncludeRegexp: "^drivers/firmware/arm_ffa/|^include/linux/arm_ffa\\.h$"},
-		{IncludeRegexp: "^drivers/firmware/arm_sdei\\.c$|^include/linux/arm_sdei\\.h$|^include/uapi/linux/arm_sdei\\.h$"},
-		{IncludeRegexp: "^drivers/firmware/psci/|^include/linux/psci\\.h$|^include/uapi/linux/psci\\.h$"},
-		{IncludeRegexp: "^drivers/firmware/smccc/|^include/linux/arm-smccc\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-sama5d2-piobu\\.c$|^drivers/pinctrl/pinctrl-at91[^/]*$"},
-		{IncludeRegexp: "^drivers/hwtracing/coresight/|^include/dt-bindings/arm/coresight-cti-dt\\.h$|^include/linux/coresight[^/]*$"},
-		{IncludeRegexp: "^drivers/iommu/arm/|^drivers/iommu/io-pgtable-arm[^/]*$"},
-		{IncludeRegexp: "^drivers/irqchip/irq-mchp-eic\\.c$"},
-		{IncludeRegexp: "^drivers/irqchip/irq-vic\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s5p-g2d/"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s5p-jpeg/"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s5p-mfc/"},
-		{IncludeRegexp: "^drivers/memory/brcmstb_dpfe\\.c$"},
-		{IncludeRegexp: "^drivers/memory/pl353-smc\\.c$"},
-		{IncludeRegexp: "^drivers/misc/atmel-ssc\\.c$|^include/linux/atmel-ssc\\.h$"},
-		{IncludeRegexp: "^drivers/mmc/host/s3cmci\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/cavium/thunder/"},
-		{IncludeRegexp: "^drivers/nvmem/microchip-otpc\\.c$|^include/dt-bindings/nvmem/microchip,sama7g5-otpc\\.h$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*mvebu[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/cadence/pci-j721e\\.c$|^drivers/pci/controller/dwc/pci-dra7xx\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*imx6[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*layerscape[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pci-exynos\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-armada8k\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/mobiveil/pcie-layerscape-gen4\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-aardvark\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-host-common\\.c$|^drivers/pci/controller/pci-host-generic\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-thunder-[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-versatile\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-xgene-msi\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-xgene\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-brcmstb\\.c$|^drivers/staging/vc04_services$|bcm2711|bcm283*|raspberrypi"},
-		{IncludeRegexp: "^drivers/perf/fsl_imx8_ddr_perf\\.c$"},
-		{IncludeRegexp: "^drivers/phy/marvell/phy-mmp3-usb\\.c$|^drivers/phy/marvell/phy-pxa-usb\\.c$"},
-		{IncludeRegexp: "^drivers/phy/mediatek/"},
-		{IncludeRegexp: "^drivers/pinctrl/pinctrl-single\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/samsung/|^include/dt-bindings/pinctrl/samsung\\.h$"},
-		{IncludeRegexp: "^drivers/pinctrl/sunplus/|^include/dt-bindings/pinctrl/sppctl[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/pwm/pwm-atmel\\.c$"},
-		{IncludeRegexp: "^drivers/regulator/mcp16502\\.c$"},
-		{IncludeRegexp: "^drivers/rtc/rtc-mt2712\\.c$|^drivers/rtc/rtc-mt6397\\.c$|^drivers/rtc/rtc-mt7622\\.c$"},
-		{IncludeRegexp: "^drivers/soc/fsl/|^include/linux/fsl/|^include/soc/fsl/"},
-		{IncludeRegexp: "^drivers/soc/ti/"},
-		{IncludeRegexp: "^drivers/spi/spi-pl022\\.c$"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/atmel_usba_udc\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/xhci-mtk[^/]*$|^drivers/usb/mtu3/"},
-		{IncludeRegexp: "^drivers/video/fbdev/cyber2000fb\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/video/fbdev/imxfb\\.c$"},
-		{IncludeRegexp: "clps711x"},
-	},
-}
-
-var armmsm = &Subsystem{
-	Name:    "arm-msm",
-	Lists:   []string{"linux-arm-msm@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/qcom-[^/]*\\.dts$|^arch/arm/boot/dts/qcom-[^/]*\\.dtsi$|^arch/arm/configs/qcom_defconfig$|^arch/arm/mach-qcom/|^arch/arm64/boot/dts/qcom/|^drivers/[^/]*/[^/]*/qcom[^/]*$|^drivers/[^/]*/[^/]*/qcom/|^drivers/[^/]*/pm8...-[^/]*$|^drivers/[^/]*/qcom[^/]*$|^drivers/[^/]*/qcom/|^drivers/bluetooth/btqcomsmd\\.c$|^drivers/clocksource/timer-qcom\\.c$|^drivers/cpuidle/cpuidle-qcom-spm\\.c$|^drivers/extcon/extcon-qcom[^/]*$|^drivers/i2c/busses/i2c-qcom-geni\\.c$|^drivers/i2c/busses/i2c-qup\\.c$|^drivers/iommu/msm[^/]*$|^drivers/mfd/ssbi\\.c$|^drivers/mmc/host/mmci_qcom[^/]*$|^drivers/mmc/host/sdhci-msm\\.c$|^drivers/pci/controller/dwc/pcie-qcom\\.c$|^drivers/phy/qualcomm/|^drivers/power/[^/]*/msm[^/]*$|^drivers/reset/reset-qcom-[^/]*$|^drivers/ufs/host/ufs-qcom[^/]*$|^drivers/spi/spi-geni-qcom\\.c$|^drivers/spi/spi-qcom-qspi\\.c$|^drivers/spi/spi-qup\\.c$|^drivers/tty/serial/msm_serial\\.c$|^drivers/usb/dwc3/dwc3-qcom\\.c$|^include/dt-bindings/[^/]*/qcom[^/]*$|^include/linux/[^/]*/qcom[^/]*$|^include/linux/soc/qcom/"},
-		{IncludeRegexp: "^drivers/bus/mhi/|^include/linux/mhi\\.h$"},
-		{IncludeRegexp: "^drivers/clk/qcom/|^include/dt-bindings/clock/qcom,[^/]*$"},
-		{IncludeRegexp: "^drivers/crypto/qce/"},
-		{IncludeRegexp: "^drivers/dma/qcom/hidma[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/qcom_edac\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/msm/|^include/uapi/drm/msm_drm\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-qcom-cci\\.c$"},
-		{IncludeRegexp: "^drivers/iommu/arm/arm-smmu/qcom_iommu\\.c$"},
-		{IncludeRegexp: "^drivers/mailbox/qcom-ipcc\\.c$|^include/dt-bindings/mailbox/qcom-ipcc\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/qcom/venus/"},
-		{IncludeRegexp: "^drivers/misc/fastrpc\\.c$|^include/uapi/misc/fastrpc\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/qcom_nandc\\.c$"},
-		{IncludeRegexp: "^drivers/net/wwan/qcom_bam_dmux\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom-ep\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom\\.c$"},
-		{IncludeRegexp: "^drivers/phy/qualcomm/phy-qcom-ipq4019-usb\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/qcom/"},
-		{IncludeRegexp: "^drivers/regulator/vqmmc-ipq4019-regulator\\.c$"},
-		{IncludeRegexp: "^drivers/soc/qcom/cpr\\.c$"},
-		{IncludeRegexp: "^drivers/soc/qcom/icc-bwmon\\.c$"},
-		{IncludeRegexp: "^drivers/thermal/qcom/"},
-		{IncludeRegexp: "^drivers/usb/misc/qcom_eud\\.c$"},
-		{IncludeRegexp: "^include/trace/events/qrtr\\.h$|^include/uapi/linux/qrtr\\.h$|^net/qrtr/"},
-	},
-}
-
-var asahi = &Subsystem{
-	Name:    "asahi",
-	Lists:   []string{"asahi@lists.linux.dev"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm64/boot/dts/apple/|^drivers/bluetooth/hci_bcm4377\\.c$|^drivers/clk/clk-apple-nco\\.c$|^drivers/cpufreq/apple-soc-cpufreq\\.c$|^drivers/dma/apple-admac\\.c$|^drivers/i2c/busses/i2c-pasemi-core\\.c$|^drivers/i2c/busses/i2c-pasemi-platform\\.c$|^drivers/iommu/apple-dart\\.c$|^drivers/iommu/io-pgtable-dart\\.c$|^drivers/irqchip/irq-apple-aic\\.c$|^drivers/mailbox/apple-mailbox\\.c$|^drivers/nvme/host/apple\\.c$|^drivers/nvmem/apple-efuses\\.c$|^drivers/pinctrl/pinctrl-apple-gpio\\.c$|^drivers/soc/apple/|^drivers/watchdog/apple_wdt\\.c$|^include/dt-bindings/interrupt-controller/apple-aic\\.h$|^include/dt-bindings/pinctrl/apple\\.h$|^include/linux/apple-mailbox\\.h$|^include/linux/soc/apple/"},
-		{IncludeRegexp: "^sound/soc/apple/|^sound/soc/codecs/cs42l83-i2c\\.c$"},
-	},
-}
-
-var aspeed = &Subsystem{
-	Name:    "aspeed",
-	Lists:   []string{"linux-aspeed@lists.ozlabs.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/aspeed-[^/]*$|^arch/arm/mach-aspeed/|aspeed"},
-		{IncludeRegexp: "^drivers/crypto/aspeed/"},
-		{IncludeRegexp: "^drivers/gpu/drm/aspeed/"},
-		{IncludeRegexp: "^drivers/irqchip/irq-aspeed-scu-ic\\.c$|^include/dt-bindings/interrupt-controller/aspeed-scu-ic\\.h$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-of-aspeed[^/]*$"},
-		{IncludeRegexp: "^drivers/peci/controller/peci-aspeed\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/aspeed/"},
-		{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/aspeed_udc\\.c$"},
-	},
-}
-
-var ath10k = &Subsystem{
-	Name:        "ath10k",
-	Lists:       []string{"ath10k@lists.infradead.org"},
-	Maintainers: []string{"kvalo@kernel.org"},
-	Parents:     []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/ath/ath10k/"},
-	},
-}
-
-var ath11k = &Subsystem{
-	Name:        "ath11k",
-	Lists:       []string{"ath11k@lists.infradead.org"},
-	Maintainers: []string{"kvalo@kernel.org"},
-	Parents:     []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/ath/ath11k/"},
-	},
-}
-
-var atm = &Subsystem{
-	Name:        "atm",
-	Lists:       []string{"linux-atm-general@lists.sourceforge.net"},
-	Maintainers: []string{"3chas3@gmail.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/atm/|^include/linux/atm[^/]*$|^include/uapi/linux/atm[^/]*$"},
-	},
-}
-
-var audit = &Subsystem{
-	Name:        "audit",
-	Lists:       []string{"linux-audit@redhat.com"},
-	Maintainers: []string{"eparis@redhat.com", "paul@paul-moore.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/asm-generic/audit_[^/]*\\.h$|^include/linux/audit\\.h$|^include/linux/audit_arch\\.h$|^include/uapi/linux/audit\\.h$|^kernel/audit[^/]*$|^lib/[^/]*audit\\.c$"},
-	},
-}
-
-var autofs = &Subsystem{
-	Name:        "autofs",
-	Lists:       []string{"autofs@vger.kernel.org"},
-	Maintainers: []string{"raven@themaw.net"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/autofs/"},
-	},
-}
-
-var axis = &Subsystem{
-	Name:    "axis",
-	Lists:   []string{"linux-arm-kernel@axis.com"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/artpec6[^/]*$|^arch/arm/mach-artpec$|^drivers/clk/axis$|^drivers/crypto/axis$|^drivers/mmc/host/usdhi6rol0\\.c$|^drivers/pinctrl/pinctrl-artpec[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*artpec[^/]*$"},
-	},
-}
-
-var b43 = &Subsystem{
-	Name:    "b43",
-	Lists:   []string{"b43-dev@lists.infradead.org"},
-	Parents: []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/b43/"},
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/b43legacy/"},
-	},
-}
-
-var batman = &Subsystem{
-	Name:        "batman",
-	Lists:       []string{"b.a.t.m.a.n@lists.open-mesh.org"},
-	Maintainers: []string{"a@unstable.cc", "mareklindner@neomailbox.ch", "sven@narfation.org", "sw@simonwunderlich.de"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/uapi/linux/batadv_packet\\.h$|^include/uapi/linux/batman_adv\\.h$|^net/batman-adv/"},
-	},
-}
-
-var bcache = &Subsystem{
-	Name:        "bcache",
-	Lists:       []string{"linux-bcache@vger.kernel.org"},
-	Maintainers: []string{"colyli@suse.de", "kent.overstreet@gmail.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/md/bcache/"},
-	},
-}
-
-var bfs = &Subsystem{
-	Name:        "bfs",
-	Syscalls:    []string{"syz_mount_image$bfs"},
-	Maintainers: []string{"aivazian.tigran@gmail.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/bfs/|^include/uapi/linux/bfs_fs\\.h$"},
-	},
-}
-
-var block = &Subsystem{
-	Name:    "block",
-	Lists:   []string{"linux-block@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^block/bfq-[^/]*$"},
-		{IncludeRegexp: "^block/bfq-cgroup\\.c$|^block/blk-cgroup\\.c$|^block/blk-iocost\\.c$|^block/blk-iolatency\\.c$|^block/blk-throttle\\.c$|^include/linux/blk-cgroup\\.h$"},
-		{IncludeRegexp: "^block/opal_proto\\.h$|^block/sed[^/]*$|^include/linux/sed[^/]*$|^include/uapi/linux/sed[^/]*$"},
-		{IncludeRegexp: "^block/|^drivers/block/|^include/linux/bio\\.h$|^include/linux/blk[^/]*$|^kernel/trace/blktrace\\.c$|^lib/sbitmap\\.c$"},
-		{IncludeRegexp: "^drivers/block/floppy\\.c$"},
-		{IncludeRegexp: "^drivers/block/nbd\\.c$|^include/trace/events/nbd\\.h$|^include/uapi/linux/nbd\\.h$"},
-		{IncludeRegexp: "^drivers/block/rnbd/"},
-		{IncludeRegexp: "^drivers/block/ublk_drv\\.c$|^include/uapi/linux/ublk_cmd\\.h$"},
-	},
-}
-
-var bluetooth = &Subsystem{
-	Name:     "bluetooth",
-	Syscalls: []string{"syz_emit_vhci"},
-	Lists:    []string{"linux-bluetooth@vger.kernel.org"},
-	Parents:  []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/bluetooth/"},
-		{IncludeRegexp: "^drivers/bluetooth/btmtkuart\\.c$"},
-		{IncludeRegexp: "^include/net/6lowpan\\.h$|^net/6lowpan/"},
-		{IncludeRegexp: "^include/net/bluetooth/|^net/bluetooth/"},
-	},
-}
-
-var bpf = &Subsystem{
-	Name:    "bpf",
-	Lists:   []string{"bpf@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/net/|^include/linux/bpf[^/]*$|^include/linux/btf[^/]*$|^include/linux/filter\\.h$|^include/trace/events/xdp\\.h$|^include/uapi/linux/bpf[^/]*$|^include/uapi/linux/btf[^/]*$|^include/uapi/linux/filter\\.h$|^kernel/bpf/|^kernel/trace/bpf_trace\\.c$|^lib/test_bpf\\.c$|^net/bpf/|^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
-		{IncludeRegexp: "^arch/arm/net/"},
-		{IncludeRegexp: "^arch/arm64/net/"},
-		{IncludeRegexp: "^arch/mips/net/"},
-		{IncludeRegexp: "^arch/powerpc/net/"},
-		{"^arch/riscv/net/", "^arch/riscv/net/bpf_jit_comp32\\.c$"},
-		{"^arch/riscv/net/", "^arch/riscv/net/bpf_jit_comp64\\.c$"},
-		{"^arch/s390/net/", "^arch/s390/net/pnet\\.c$"},
-		{IncludeRegexp: "^arch/sparc/net/"},
-		{"^arch/x86/net/", "^arch/x86/net/bpf_jit_comp32\\.c$"},
-		{IncludeRegexp: "^arch/x86/net/bpf_jit_comp32\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/netronome/nfp/bpf/"},
-		{IncludeRegexp: "^include/linux/bpf_lsm\\.h$|^kernel/bpf/bpf_lsm\\.c$|^security/bpf/"},
-		{IncludeRegexp: "^include/linux/skmsg\\.h$|^net/core/skmsg\\.c$|^net/core/sock_map\\.c$|^net/ipv4/tcp_bpf\\.c$|^net/ipv4/udp_bpf\\.c$|^net/unix/unix_bpf\\.c$"},
-		{IncludeRegexp: "^include/net/xdp\\.h$|^include/net/xdp_priv\\.h$|^include/trace/events/xdp\\.h$|^kernel/bpf/cpumap\\.c$|^kernel/bpf/devmap\\.c$|^net/core/xdp\\.c$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*/[^/]*/[^/]*xdp[^/]*$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*xdp[^/]*$"},
-		{IncludeRegexp: "^include/net/xdp_sock[^/]*$|^include/net/xsk_buff_pool\\.h$|^include/uapi/linux/if_xdp\\.h$|^include/uapi/linux/xdp_diag\\.h$|^include/net/netns/xdp\\.h$|^net/xdp/"},
-		{IncludeRegexp: "^kernel/bpf/[^/]*iter\\.c$"},
-		{IncludeRegexp: "^kernel/bpf/bpf_struct[^/]*$"},
-		{IncludeRegexp: "^kernel/bpf/btf\\.c$|^include/linux/btf[^/]*$"},
-		{IncludeRegexp: "^kernel/bpf/cgroup\\.c$|^kernel/bpf/[^/]*storage\\.c$|^kernel/bpf/bpf_lru[^/]*$"},
-		{IncludeRegexp: "^kernel/bpf/disasm\\.[^/]*$"},
-		{IncludeRegexp: "^kernel/bpf/ringbuf\\.c$"},
-		{IncludeRegexp: "^kernel/bpf/verifier\\.c$|^kernel/bpf/tnum\\.c$|^kernel/bpf/core\\.c$|^kernel/bpf/syscall\\.c$|^kernel/bpf/dispatcher\\.c$|^kernel/bpf/trampoline\\.c$|^include/linux/bpf[^/]*$|^include/linux/filter\\.h$|^include/linux/tnum\\.h$"},
-		{IncludeRegexp: "^kernel/trace/bpf_trace\\.c$|^kernel/bpf/stackmap\\.c$"},
-		{IncludeRegexp: "^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
-	},
-}
-
-var brcm80211 = &Subsystem{
-	Name:        "brcm80211",
-	Lists:       []string{"brcm80211-dev-list.pdl@broadcom.com"},
-	Maintainers: []string{"aspriel@gmail.com", "franky.lin@broadcom.com", "hante.meuleman@broadcom.com"},
-	Parents:     []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/brcm80211/"},
-	},
-}
-
-var bridge = &Subsystem{
-	Name:        "bridge",
-	Lists:       []string{"bridge@lists.linux-foundation.org"},
-	Maintainers: []string{"razor@blackwall.org", "roopa@nvidia.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/netfilter_bridge/|^net/bridge/"},
-	},
-}
-
-var btrfs = &Subsystem{
-	Name:        "btrfs",
-	Syscalls:    []string{"syz_mount_image$btrfs"},
-	Lists:       []string{"linux-btrfs@vger.kernel.org"},
-	Maintainers: []string{"clm@fb.com", "dsterba@suse.com", "josef@toxicpanda.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/btrfs/|^include/linux/btrfs[^/]*$|^include/trace/events/btrfs\\.h$|^include/uapi/linux/btrfs[^/]*$"},
-	},
-}
-
-var cachefs = &Subsystem{
-	Name:    "cachefs",
-	Lists:   []string{"linux-cachefs@redhat.com"},
-	Parents: []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/cachefiles/"},
-		{IncludeRegexp: "^fs/fscache/|^include/linux/fscache[^/]*\\.h$"},
-	},
-}
-
-var can = &Subsystem{
-	Name:    "can",
-	Lists:   []string{"linux-can@vger.kernel.org"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/can/can327\\.c$"},
-		{IncludeRegexp: "^drivers/net/can/ctucanfd/"},
-		{IncludeRegexp: "^drivers/net/can/m_can/m_can\\.c$|^drivers/net/can/m_can/m_can\\.h$|^drivers/net/can/m_can/m_can_platform\\.c$"},
-		{IncludeRegexp: "^drivers/net/can/slcan/"},
-		{IncludeRegexp: "^drivers/net/can/spi/mcp251xfd/"},
-		{IncludeRegexp: "^drivers/net/can/usb/esd_usb\\.c$"},
-		{IncludeRegexp: "^drivers/net/can/usb/etas_es58x/"},
-		{IncludeRegexp: "^drivers/net/can/usb/mcba_usb\\.c$"},
-		{IncludeRegexp: "^drivers/net/can/xilinx_can\\.c$"},
-		{IncludeRegexp: "^drivers/net/can/|^drivers/phy/phy-can-transceiver\\.c$|^include/linux/can/bittiming\\.h$|^include/linux/can/dev\\.h$|^include/linux/can/length\\.h$|^include/linux/can/platform/|^include/linux/can/rx-offload\\.h$|^include/uapi/linux/can/error\\.h$|^include/uapi/linux/can/netlink\\.h$|^include/uapi/linux/can/vxcan\\.h$"},
-		{IncludeRegexp: "^include/linux/can/can-ml\\.h$|^include/linux/can/core\\.h$|^include/linux/can/skb\\.h$|^include/net/netns/can\\.h$|^include/uapi/linux/can\\.h$|^include/uapi/linux/can/bcm\\.h$|^include/uapi/linux/can/gw\\.h$|^include/uapi/linux/can/isotp\\.h$|^include/uapi/linux/can/raw\\.h$|^net/can/"},
-		{IncludeRegexp: "^include/uapi/linux/can/j1939\\.h$|^net/can/j1939/"},
-	},
-}
-
-var ceph = &Subsystem{
-	Name:    "ceph",
-	Lists:   []string{"ceph-devel@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/block/rbd\\.c$|^drivers/block/rbd_types\\.h$"},
-		{IncludeRegexp: "^fs/ceph/"},
-		{IncludeRegexp: "^include/linux/ceph/|^include/linux/crush/|^net/ceph/"},
-	},
-}
-
-var cgroups = &Subsystem{
-	Name:    "cgroups",
-	Lists:   []string{"cgroups@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^block/bfq-cgroup\\.c$|^block/blk-cgroup\\.c$|^block/blk-iocost\\.c$|^block/blk-iolatency\\.c$|^block/blk-throttle\\.c$|^include/linux/blk-cgroup\\.h$"},
-		{IncludeRegexp: "^include/linux/cgroup[^/]*$|^kernel/cgroup/"},
-		{IncludeRegexp: "^include/linux/cpuset\\.h$|^kernel/cgroup/cpuset\\.c$"},
-		{IncludeRegexp: "^mm/memcontrol\\.c$|^mm/swap_cgroup\\.c$"},
-	},
-}
-
-var chrome = &Subsystem{
-	Name:    "chrome",
-	Lists:   []string{"chrome-platform@lists.linux.dev"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/platform/chrome/"},
-		{IncludeRegexp: "^drivers/platform/chrome/cros_ec_typec\\.c$|^drivers/platform/chrome/cros_typec_switch\\.c$"},
-		{IncludeRegexp: "^drivers/platform/chrome/cros_usbpd_notify\\.c$|^include/linux/platform_data/cros_usbpd_notify\\.h$"},
-		{IncludeRegexp: "^drivers/power/supply/cros_usbpd-charger\\.c$|cros_ec|cros-ec"},
-		{IncludeRegexp: "^sound/soc/codecs/cros_ec_codec\\.[^/]*$"},
-	},
-}
-
-var cifs = &Subsystem{
-	Name:    "cifs",
-	Lists:   []string{"linux-cifs@vger.kernel.org"},
-	Parents: []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/cifs/|^fs/smbfs_common/|^include/uapi/linux/cifs$"},
-		{IncludeRegexp: "^fs/ksmbd/|^fs/smbfs_common/"},
-	},
-}
-
-var cirrus = &Subsystem{
-	Name:    "cirrus",
-	Lists:   []string{"patches@opensource.cirrus.com"},
-	Parents: []*Subsystem{alsa},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/mach-s3c/mach-crag6410[^/]*$|^drivers/clk/clk-wm83[^/]*\\.c$|^drivers/gpio/gpio-[^/]*wm[^/]*\\.c$|^drivers/gpio/gpio-arizona\\.c$|^drivers/hwmon/wm83..-hwmon\\.c$|^drivers/input/misc/wm831x-on\\.c$|^drivers/input/touchscreen/wm831x-ts\\.c$|^drivers/input/touchscreen/wm97[^/]*\\.c$|^drivers/leds/leds-wm83[^/]*\\.c$|^drivers/mfd/arizona[^/]*$|^drivers/mfd/cs47l24[^/]*$|^drivers/mfd/wm[^/]*\\.c$|^drivers/power/supply/wm83[^/]*\\.c$|^drivers/regulator/arizona[^/]*$|^drivers/regulator/wm8[^/]*\\.c$|^drivers/rtc/rtc-wm83[^/]*\\.c$|^drivers/video/backlight/wm83[^/]*_bl\\.c$|^drivers/watchdog/wm83[^/]*_wdt\\.c$|^include/linux/mfd/arizona/|^include/linux/mfd/wm831x/|^include/linux/mfd/wm8350/|^include/linux/mfd/wm8400[^/]*$|^include/linux/regulator/arizona[^/]*$|^include/linux/wm97xx\\.h$|^include/sound/wm....\\.h$|^sound/soc/codecs/arizona[^/]*$|^sound/soc/codecs/cs47l24[^/]*$|^sound/soc/codecs/wm[^/]*$"},
-		{IncludeRegexp: "^drivers/clk/clk-lochnagar\\.c$|^drivers/hwmon/lochnagar-hwmon\\.c$|^drivers/mfd/lochnagar-i2c\\.c$|^drivers/pinctrl/cirrus/pinctrl-lochnagar\\.c$|^drivers/regulator/lochnagar-regulator\\.c$|^include/dt-bindings/clock/lochnagar\\.h$|^include/dt-bindings/pinctrl/lochnagar\\.h$|^include/linux/mfd/lochnagar[^/]*$|^sound/soc/codecs/lochnagar-sc\\.c$"},
-		{IncludeRegexp: "^drivers/firmware/cirrus/|^include/linux/firmware/cirrus/"},
-		{IncludeRegexp: "^drivers/gpio/gpio-madera[^/]*$|^drivers/irqchip/irq-madera[^/]*$|^drivers/mfd/cs47l[^/]*$|^drivers/mfd/madera[^/]*$|^drivers/pinctrl/cirrus/|^include/dt-bindings/sound/madera[^/]*$|^include/linux/irqchip/irq-madera[^/]*$|^include/linux/mfd/madera/|^include/sound/madera[^/]*$|^sound/soc/codecs/cs47l[^/]*$|^sound/soc/codecs/madera[^/]*$"},
-		{IncludeRegexp: "^include/dt-bindings/sound/cs[^/]*$|^sound/pci/hda/cs[^/]*$|^sound/pci/hda/hda_cs_dsp_ctl\\.[^/]*$|^sound/soc/codecs/cs[^/]*$"},
-	},
-}
-
-var clk = &Subsystem{
-	Name:    "clk",
-	Lists:   []string{"linux-clk@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/clk/imx/|^include/dt-bindings/clock/imx[^/]*$"},
-		{IncludeRegexp: "^drivers/clk/ux500/"},
-		{"^drivers/clk/|^include/dt-bindings/clock/|^include/linux/clk-pr[^/]*$|^include/linux/clk/|^include/linux/of_clk\\.h$", "^drivers/clk/clkdev\\.c$"},
-		{IncludeRegexp: "^include/linux/clk\\.h$"},
-	},
-}
-
-var cluster = &Subsystem{
-	Name:    "cluster",
-	Lists:   []string{"cluster-devel@redhat.com"},
-	Parents: []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/dlm/"},
-		{IncludeRegexp: "^fs/gfs2/|^include/uapi/linux/gfs2_ondisk\\.h$"},
-	},
-}
-
-var coda = &Subsystem{
-	Name:        "coda",
-	Lists:       []string{"codalist@coda.cs.cmu.edu"},
-	Maintainers: []string{"coda@cs.cmu.edu", "jaharkes@cs.cmu.edu"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/coda/|^include/linux/coda[^/]*\\.h$|^include/uapi/linux/coda[^/]*\\.h$"},
-	},
-}
-
-var coresight = &Subsystem{
-	Name:        "coresight",
-	Lists:       []string{"coresight@lists.linaro.org"},
-	Maintainers: []string{"mathieu.poirier@linaro.org", "suzuki.poulose@arm.com"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/hwtracing/coresight/|^include/dt-bindings/arm/coresight-cti-dt\\.h$|^include/linux/coresight[^/]*$"},
-	},
-}
-
-var crypto = &Subsystem{
-	Name:    "crypto",
-	Lists:   []string{"linux-crypto@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/crypto/|^crypto/|^drivers/crypto/|^include/crypto/|^include/linux/crypto[^/]*$|^lib/crypto/"},
-		{IncludeRegexp: "^crypto/ansi_cprng\\.c$|^crypto/rng\\.c$"},
-		{IncludeRegexp: "^crypto/pcrypt\\.c$|^include/crypto/pcrypt\\.h$"},
-		{IncludeRegexp: "^drivers/char/hw_random/cctrng\\.c$|^drivers/char/hw_random/cctrng\\.h$"},
-		{IncludeRegexp: "^drivers/char/hw_random/|^include/linux/hw_random\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/allwinner/"},
-		{IncludeRegexp: "^drivers/crypto/amlogic/"},
-		{IncludeRegexp: "^drivers/crypto/atmel-ecc\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/crypto/caam/"},
-		{IncludeRegexp: "^drivers/crypto/cavium/cpt/"},
-		{IncludeRegexp: "^drivers/crypto/ccp/sev[^/]*$|^include/uapi/linux/psp-sev\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/ccp/|^include/linux/ccp\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/ccree/"},
-		{IncludeRegexp: "^drivers/crypto/chelsio$"},
-		{IncludeRegexp: "^drivers/crypto/exynos-rng\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/gemini/"},
-		{IncludeRegexp: "^drivers/crypto/hisilicon/Kconfig$|^drivers/crypto/hisilicon/qm\\.c$|^drivers/crypto/hisilicon/sgl\\.c$|^include/linux/hisi_acc_qm\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/hisilicon/hpre/hpre\\.h$|^drivers/crypto/hisilicon/hpre/hpre_crypto\\.c$|^drivers/crypto/hisilicon/hpre/hpre_main\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/hisilicon/sec2/sec\\.h$|^drivers/crypto/hisilicon/sec2/sec_crypto\\.c$|^drivers/crypto/hisilicon/sec2/sec_crypto\\.h$|^drivers/crypto/hisilicon/sec2/sec_main\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/hisilicon/zip/"},
-		{IncludeRegexp: "^drivers/crypto/inside-secure/"},
-		{IncludeRegexp: "^drivers/crypto/ixp4xx_crypto\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/marvell/|^include/linux/soc/marvell/octeontx2/"},
-		{IncludeRegexp: "^drivers/crypto/nx/Kconfig$|^drivers/crypto/nx/nx-aes[^/]*$|^drivers/crypto/nx/nx-sha[^/]*$|^drivers/crypto/nx/nx\\.[^/]*$|^drivers/crypto/nx/nx_csbcpb\\.h$|^drivers/crypto/nx/nx_debugfs\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/qce/"},
-		{IncludeRegexp: "^drivers/crypto/rockchip/"},
-		{IncludeRegexp: "^drivers/crypto/s5p-sss\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/virtio/|^include/uapi/linux/virtio_crypto\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/vmx/Kconfig$|^drivers/crypto/vmx/aes[^/]*$|^drivers/crypto/vmx/ghash[^/]*$|^drivers/crypto/vmx/ppc-xlate\\.pl$|^drivers/crypto/vmx/vmx\\.c$"},
-		{IncludeRegexp: "^include/linux/padata\\.h$|^kernel/padata\\.c$"},
-	},
-}
-
-var csky = &Subsystem{
-	Name:        "csky",
-	Lists:       []string{"linux-csky@vger.kernel.org"},
-	Maintainers: []string{"guoren@kernel.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/csky/|^drivers/clocksource/timer-gx6605s\\.c$|^drivers/clocksource/timer-mp-csky\\.c$|^drivers/irqchip/irq-csky-[^/]*$|csky"},
-	},
-}
-
-var cxl = &Subsystem{
-	Name:        "cxl",
-	Lists:       []string{"linux-cxl@vger.kernel.org"},
-	Maintainers: []string{"alison.schofield@intel.com", "bwidawsk@kernel.org", "dan.j.williams@intel.com", "ira.weiny@intel.com", "vishal.l.verma@intel.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/cxl/|^include/uapi/linux/cxl_mem\\.h$"},
-	},
-}
-
-var damon = &Subsystem{
-	Name:        "damon",
-	Lists:       []string{"damon@lists.linux.dev"},
-	Maintainers: []string{"sj@kernel.org"},
-	Parents:     []*Subsystem{mm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/damon\\.h$|^include/trace/events/damon\\.h$|^mm/damon/"},
-	},
-}
-
-var dccp = &Subsystem{
-	Name:    "dccp",
-	Lists:   []string{"dccp@vger.kernel.org"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/dccp\\.h$|^include/linux/tfrc\\.h$|^include/uapi/linux/dccp\\.h$|^net/dccp/"},
-	},
-}
-
-var dell = &Subsystem{
-	Name:    "dell",
-	Lists:   []string{"Dell.Client.Kernel@dell.com"},
-	Parents: []*Subsystem{x86drivers},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/platform/x86/dell/alienware-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-smm\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-descriptor\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-privacy\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-sysman/"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/wmi/thunderbolt\\.c$"},
-	},
-}
-
-var devicetree = &Subsystem{
-	Name:    "devicetree",
-	Lists:   []string{"devicetree@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/boot/dts/|^include/dt-bindings/"},
-		{IncludeRegexp: "^arch/arm/boot/dts/[^/]*am3[^/]*$|^arch/arm/boot/dts/[^/]*am4[^/]*$|^arch/arm/boot/dts/[^/]*am5[^/]*$|^arch/arm/boot/dts/[^/]*dra7[^/]*$|^arch/arm/boot/dts/[^/]*omap[^/]*$|^arch/arm/boot/dts/logicpd-som-lv[^/]*$|^arch/arm/boot/dts/logicpd-torpedo[^/]*$"},
-		{IncludeRegexp: "^drivers/of/|^include/linux/of[^/]*\\.h$"},
-	},
-}
-
-var dm = &Subsystem{
-	Name:        "dm",
-	Lists:       []string{"dm-devel@redhat.com"},
-	Maintainers: []string{"agk@redhat.com", "dm-devel@redhat.com", "snitzer@kernel.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/md/Kconfig$|^drivers/md/dm[^/]*$|^drivers/md/persistent-data/|^include/linux/device-mapper\\.h$|^include/linux/dm-[^/]*\\.h$|^include/uapi/linux/dm-[^/]*\\.h$"},
-	},
-}
-
-var dmaengine = &Subsystem{
-	Name:    "dmaengine",
-	Lists:   []string{"dmaengine@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/dma/altera-msgdma\\.c$"},
-		{IncludeRegexp: "^drivers/dma/at_hdmac\\.c$|^drivers/dma/at_xdmac\\.c$|^include/dt-bindings/dma/at91\\.h$"},
-		{IncludeRegexp: "^drivers/dma/dw-edma/|^include/linux/dma/edma\\.h$"},
-		{IncludeRegexp: "^drivers/dma/hisi_dma\\.c$"},
-		{IncludeRegexp: "^drivers/dma/idxd/|^include/uapi/linux/idxd\\.h$"},
-		{IncludeRegexp: "^drivers/dma/ioat[^/]*$"},
-		{IncludeRegexp: "^drivers/dma/mediatek/"},
-		{IncludeRegexp: "^drivers/dma/ptdma/"},
-		{IncludeRegexp: "^drivers/dma/qcom/hidma[^/]*$"},
-		{"^drivers/dma/ti/|^include/linux/dma/k3-udma-glue\\.h$|^include/linux/dma/ti-cppi5\\.h$|^include/linux/dma/k3-psil\\.h$", "^drivers/dma/ti/cppi41\\.c$"},
-		{IncludeRegexp: "^drivers/dma/xilinx/xilinx_dpdma\\.c$|^include/dt-bindings/dma/xlnx-zynqmp-dpdma\\.h$"},
-		{IncludeRegexp: "^drivers/dma/|^include/dt-bindings/dma/|^include/linux/dma/|^include/linux/dmaengine\\.h$|^include/linux/of_dma\\.h$"},
-	},
-}
-
-var drbd = &Subsystem{
-	Name:        "drbd",
-	Lists:       []string{"drbd-dev@lists.linbit.com"},
-	Maintainers: []string{"christoph.boehmwalder@linbit.com", "lars.ellenberg@linbit.com", "philipp.reisner@linbit.com"},
-	Parents:     []*Subsystem{block},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/block/drbd/|^lib/lru_cache\\.c$"},
-	},
-}
-
-var dri = &Subsystem{
-	Name:    "dri",
-	Lists:   []string{"dri-devel@lists.freedesktop.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/accel/"},
-		{IncludeRegexp: "^drivers/base/component\\.c$|^include/linux/component\\.h$"},
-		{IncludeRegexp: "^drivers/char/agp/|^include/linux/agp[^/]*$|^include/uapi/linux/agp[^/]*$"},
-		{IncludeRegexp: "^drivers/dma-buf/dma-fence[^/]*$|^drivers/dma-buf/sw_sync\\.c$|^drivers/dma-buf/sync_[^/]*$|^include/linux/sync_file\\.h$|^include/uapi/linux/sync_file\\.h$"},
-		{IncludeRegexp: "^drivers/dma-buf/dma-heap\\.c$|^drivers/dma-buf/heaps/|^include/linux/dma-heap\\.h$|^include/uapi/linux/dma-heap\\.h$"},
-		{IncludeRegexp: "^drivers/dma-buf/udmabuf\\.c$|^include/uapi/linux/udmabuf\\.h$"},
-		{IncludeRegexp: "^drivers/dma-buf/|^include/linux/[^/]*fence\\.h$|^include/linux/dma-buf\\.h$|^include/linux/dma-resv\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/ast/"},
-		{IncludeRegexp: "^drivers/gpu/drm/atmel-hlcdc/"},
-		{IncludeRegexp: "^drivers/gpu/drm/bridge/imx/"},
-		{IncludeRegexp: "^drivers/gpu/drm/drm_aperture\\.c$|^drivers/gpu/drm/tiny/ofdrm\\.c$|^drivers/gpu/drm/tiny/simpledrm\\.c$|^drivers/video/aperture\\.c$|^drivers/video/nomodeset\\.c$|^include/drm/drm_aperture\\.h$|^include/linux/aperture\\.h$|^include/video/nomodeset\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/drm_panel\\.c$|^drivers/gpu/drm/panel/|^include/drm/drm_panel\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/drm_privacy_screen[^/]*$|^include/drm/drm_privacy_screen[^/]*$"},
-		{IncludeRegexp: "^drivers/gpu/drm/etnaviv/|^include/uapi/drm/etnaviv_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/exynos/exynos_dp[^/]*$"},
-		{IncludeRegexp: "^drivers/gpu/drm/exynos/|^include/uapi/drm/exynos_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/fsl-dcu/"},
-		{IncludeRegexp: "^drivers/gpu/drm/gma500/"},
-		{IncludeRegexp: "^drivers/gpu/drm/hisilicon/"},
-		{IncludeRegexp: "^drivers/gpu/drm/hyperv$"},
-		{IncludeRegexp: "^drivers/gpu/drm/imx/dcss/"},
-		{IncludeRegexp: "^drivers/gpu/drm/imx/|^drivers/gpu/ipu-v3/"},
-		{IncludeRegexp: "^drivers/gpu/drm/lima/|^include/uapi/drm/lima_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/mediatek/|^drivers/phy/mediatek/phy-mtk-dp\\.c$|^drivers/phy/mediatek/phy-mtk-hdmi[^/]*$|^drivers/phy/mediatek/phy-mtk-mipi[^/]*$"},
-		{IncludeRegexp: "^drivers/gpu/drm/meson/"},
-		{IncludeRegexp: "^drivers/gpu/drm/mgag200/"},
-		{IncludeRegexp: "^drivers/gpu/drm/msm/|^include/uapi/drm/msm_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/mxsfb/"},
-		{IncludeRegexp: "^drivers/gpu/drm/nouveau/|^include/uapi/drm/nouveau_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/omapdrm/"},
-		{IncludeRegexp: "^drivers/gpu/drm/panel/panel-lvds\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/panfrost/|^include/uapi/drm/panfrost_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/rcar-du/|^drivers/gpu/drm/shmobile/|^include/linux/platform_data/shmob_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/rockchip/"},
-		{IncludeRegexp: "^drivers/gpu/drm/scheduler/|^include/drm/gpu_scheduler\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/sti$"},
-		{IncludeRegexp: "^drivers/gpu/drm/stm$"},
-		{IncludeRegexp: "^drivers/gpu/drm/sun4i/"},
-		{IncludeRegexp: "^drivers/gpu/drm/sun4i/sun8i[^/]*$"},
-		{IncludeRegexp: "^drivers/gpu/drm/tegra/|^drivers/gpu/host1x/|^include/linux/host1x\\.h$|^include/uapi/drm/tegra_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/tidss/"},
-		{IncludeRegexp: "^drivers/gpu/drm/tilcdc/"},
-		{IncludeRegexp: "^drivers/gpu/drm/ttm/|^include/drm/ttm/"},
-		{IncludeRegexp: "^drivers/gpu/drm/udl/"},
-		{IncludeRegexp: "^drivers/gpu/drm/vboxvideo/"},
-		{IncludeRegexp: "^drivers/gpu/drm/virtio/|^include/uapi/linux/virtio_gpu\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/vkms/"},
-		{IncludeRegexp: "^drivers/gpu/drm/vmwgfx/|^include/uapi/drm/vmwgfx_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/xen/"},
-		{IncludeRegexp: "^drivers/gpu/drm/xlnx/"},
-		{IncludeRegexp: "^drivers/gpu/|^include/drm/|^include/linux/vga[^/]*$|^include/uapi/drm/"},
-		{IncludeRegexp: "^drivers/staging/fbtft/"},
-		{IncludeRegexp: "^drivers/video/backlight/|^include/linux/backlight\\.h$|^include/linux/pwm_backlight\\.h$"},
-		{IncludeRegexp: "^drivers/video/|^include/linux/fb\\.h$|^include/uapi/linux/fb\\.h$|^include/uapi/video/|^include/video/"},
-		{IncludeRegexp: "^include/linux/iosys-map\\.h$"},
-	},
-}
-
-var ecryptfs = &Subsystem{
-	Name:        "ecryptfs",
-	Lists:       []string{"ecryptfs@vger.kernel.org"},
-	Maintainers: []string{"code@tyhicks.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/ecryptfs/"},
-	},
-}
-
-var edac = &Subsystem{
-	Name:    "edac",
-	Lists:   []string{"linux-edac@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/kernel/cpu/mce/"},
-		{IncludeRegexp: "^drivers/edac/amd64_edac[^/]*$|^drivers/edac/mce_amd[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/armada_xp_[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/dmc520_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/e752x_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/e7xxx_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/fsl_ddr_edac\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/ghes_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/highbank[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/i10nm_base\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i3000_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i5000_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i5400_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i7300_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i7core_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i82443bxgx_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/i82975x_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/ie31200_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/igen6_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/mpc85xx_edac\\.\\[ch\\]$"},
-		{IncludeRegexp: "^drivers/edac/octeon_edac[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/pasemi_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/pnd2_edac\\.\\[ch\\]$"},
-		{IncludeRegexp: "^drivers/edac/qcom_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/r82600_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/sb_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/skx_[^/]*\\.\\[ch\\]$"},
-		{IncludeRegexp: "^drivers/edac/thunderx_edac[^/]*$"},
-		{IncludeRegexp: "^drivers/edac/ti_edac\\.c$"},
-		{IncludeRegexp: "^drivers/edac/|^include/linux/edac\\.h$"},
-		{IncludeRegexp: "^drivers/ras/|^include/linux/ras\\.h$|^include/ras/ras_event\\.h$"},
-	},
-}
-
-var efi = &Subsystem{
-	Name:    "efi",
-	Lists:   []string{"linux-efi@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/efi\\.h$|^arch/[^/]*/kernel/efi\\.c$|^arch/arm/boot/compressed/efi-header\\.S$|^arch/x86/platform/efi/|^drivers/firmware/efi/|^include/linux/efi[^/]*\\.h$"},
-		{IncludeRegexp: "^block/partitions/efi\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/firmware/efi/test/"},
-		{IncludeRegexp: "^fs/efivarfs/"},
-	},
-}
-
-var erofs = &Subsystem{
-	Name:        "erofs",
-	Syscalls:    []string{"syz_mount_image$erofs"},
-	Lists:       []string{"linux-erofs@lists.ozlabs.org"},
-	Maintainers: []string{"chao@kernel.org", "xiang@kernel.org"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/erofs/|^include/trace/events/erofs\\.h$"},
-	},
-}
-
-var etnaviv = &Subsystem{
-	Name:        "etnaviv",
-	Lists:       []string{"etnaviv@lists.freedesktop.org"},
-	Maintainers: []string{"l.stach@pengutronix.de"},
-	Parents:     []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/etnaviv/|^include/uapi/drm/etnaviv_drm\\.h$"},
-	},
-}
-
-var ext4 = &Subsystem{
-	Name:     "ext4",
-	Syscalls: []string{"syz_mount_image$ext4"},
-	Lists:    []string{"linux-ext4@vger.kernel.org"},
-	Parents:  []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/ext2/|^include/linux/ext2[^/]*$"},
-		{IncludeRegexp: "^fs/ext4/|^include/trace/events/ext4\\.h$"},
-		{IncludeRegexp: "^fs/jbd2/|^include/linux/jbd2\\.h$"},
-	},
-}
-
-var f2fs = &Subsystem{
-	Name:        "f2fs",
-	Syscalls:    []string{"syz_mount_image$f2fs"},
-	Lists:       []string{"linux-f2fs-devel@lists.sourceforge.net"},
-	Maintainers: []string{"chao@kernel.org", "jaegeuk@kernel.org"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/f2fs/|^include/linux/f2fs_fs\\.h$|^include/trace/events/f2fs\\.h$|^include/uapi/linux/f2fs\\.h$"},
-	},
-}
-
-var fbdev = &Subsystem{
-	Name:    "fbdev",
-	Lists:   []string{"linux-fbdev@vger.kernel.org"},
-	Parents: []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/staging/fbtft/"},
-		{IncludeRegexp: "^drivers/staging/fbtft/fb_seps525\\.c$"},
-		{IncludeRegexp: "^drivers/staging/sm750fb/"},
-		{IncludeRegexp: "^drivers/video/fbdev/atmel_lcdfb\\.c$|^include/video/atmel_lcdc\\.h$"},
-		{IncludeRegexp: "^drivers/video/fbdev/aty/aty128fb\\.c$"},
-		{IncludeRegexp: "^drivers/video/fbdev/aty/radeon[^/]*$|^include/uapi/linux/radeonfb\\.h$"},
-		{IncludeRegexp: "^drivers/video/fbdev/efifb\\.c$"},
-		{IncludeRegexp: "^drivers/video/fbdev/fsl-diu-fb\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/video/fbdev/i810/"},
-		{IncludeRegexp: "^drivers/video/fbdev/imsttfb\\.c$"},
-		{IncludeRegexp: "^drivers/video/fbdev/imxfb\\.c$"},
-		{IncludeRegexp: "^drivers/video/fbdev/intelfb/"},
-		{IncludeRegexp: "^drivers/video/fbdev/matrox/matroxfb_[^/]*$|^include/uapi/linux/matroxfb\\.h$"},
-		{IncludeRegexp: "^drivers/video/fbdev/nvidia/|^drivers/video/fbdev/riva/"},
-		{IncludeRegexp: "^drivers/video/fbdev/omap/"},
-		{IncludeRegexp: "^drivers/video/fbdev/omap2/"},
-		{IncludeRegexp: "^drivers/video/fbdev/s3c-fb\\.c$"},
-		{IncludeRegexp: "^drivers/video/fbdev/savage/"},
-		{IncludeRegexp: "^drivers/video/fbdev/simplefb\\.c$|^include/linux/platform_data/simplefb\\.h$"},
-		{IncludeRegexp: "^drivers/video/fbdev/sm712[^/]*$"},
-		{IncludeRegexp: "^drivers/video/fbdev/smscufx\\.c$"},
-		{IncludeRegexp: "^drivers/video/fbdev/udlfb\\.c$|^include/video/udlfb\\.h$"},
-		{IncludeRegexp: "^drivers/video/fbdev/uvesafb\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/video/fbdev/via/|^include/linux/via-core\\.h$|^include/linux/via-gpio\\.h$|^include/linux/via_i2c\\.h$"},
-		{IncludeRegexp: "^drivers/video/|^include/linux/fb\\.h$|^include/uapi/linux/fb\\.h$|^include/uapi/video/|^include/video/"},
-	},
-}
-
-var fpga = &Subsystem{
-	Name:    "fpga",
-	Lists:   []string{"linux-fpga@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/fpga/dfl[^/]*$|^drivers/uio/uio_dfl\\.c$|^include/linux/dfl\\.h$|^include/uapi/linux/fpga-dfl\\.h$"},
-		{IncludeRegexp: "^drivers/fpga/intel-m10-bmc-sec-update\\.c$"},
-		{IncludeRegexp: "^drivers/fpga/microchip-spi\\.c$"},
-		{IncludeRegexp: "^drivers/fpga/|^include/linux/fpga/"},
-	},
-}
-
-var freedreno = &Subsystem{
-	Name:        "freedreno",
-	Lists:       []string{"freedreno@lists.freedesktop.org"},
-	Maintainers: []string{"dmitry.baryshkov@linaro.org", "quic_abhinavk@quicinc.com", "robdclark@gmail.com"},
-	Parents:     []*Subsystem{armmsm, dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/msm/|^include/uapi/drm/msm_drm\\.h$"},
-	},
-}
-
-var fs = &Subsystem{
-	Name:    "fs",
-	Lists:   []string{"linux-fsdevel@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/affs/"},
-		{IncludeRegexp: "^fs/dax\\.c$|^include/linux/dax\\.h$|^include/trace/events/fs_dax\\.h$"},
-		{IncludeRegexp: "^fs/exfat/"},
-		{IncludeRegexp: "^fs/fcntl\\.c$|^fs/locks\\.c$|^include/linux/fcntl\\.h$|^include/uapi/linux/fcntl\\.h$"},
-		{IncludeRegexp: "^fs/fuse/virtio_fs\\.c$|^include/uapi/linux/virtio_fs\\.h$"},
-		{IncludeRegexp: "^fs/fuse/|^include/uapi/linux/fuse\\.h$"},
-		{IncludeRegexp: "^fs/hfs/"},
-		{IncludeRegexp: "^fs/hfsplus/"},
-		{IncludeRegexp: "^fs/iomap/|^include/linux/iomap\\.h$"},
-		{IncludeRegexp: "^fs/isofs/"},
-		{IncludeRegexp: "^fs/notify/dnotify/|^include/linux/dnotify\\.h$"},
-		{IncludeRegexp: "^fs/notify/fanotify/|^include/linux/fanotify\\.h$|^include/uapi/linux/fanotify\\.h$"},
-		{IncludeRegexp: "^fs/notify/inotify/|^include/linux/inotify\\.h$|^include/uapi/linux/inotify\\.h$"},
-		{IncludeRegexp: "^fs/notify/|^include/linux/fsnotify[^/]*\\.h$"},
-		{IncludeRegexp: "^fs/proc/proc_sysctl\\.c$|^include/linux/sysctl\\.h$|^kernel/sysctl-test\\.c$|^kernel/sysctl\\.c$"},
-		{IncludeRegexp: "^fs/proc/|^include/linux/proc_fs\\.h$"},
-		{IncludeRegexp: "^fs/unicode/"},
-		{IncludeRegexp: "^fs/vboxsf/"},
-		{IncludeRegexp: "^fs/zonefs/"},
-		{IncludeRegexp: "^fs/|^include/linux/fs\\.h$|^include/linux/fs_types\\.h$|^include/uapi/linux/fs\\.h$|^include/uapi/linux/openat2\\.h$"},
-		{IncludeRegexp: "^include/linux/idr\\.h$|^include/linux/xarray\\.h$|^lib/idr\\.c$|^lib/xarray\\.c$"},
-		{IncludeRegexp: "^include/linux/mnt_idmapping\\.h$"},
-		{IncludeRegexp: "^include/linux/pagemap\\.h$|^mm/filemap\\.c$|^mm/page-writeback\\.c$|^mm/readahead\\.c$|^mm/truncate\\.c$"},
-	},
-}
-
-var fscrypt = &Subsystem{
-	Name:        "fscrypt",
-	Lists:       []string{"linux-fscrypt@vger.kernel.org"},
-	Maintainers: []string{"ebiggers@kernel.org", "jaegeuk@kernel.org", "tytso@mit.edu"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/crypto/|^include/linux/fscrypt\\.h$|^include/uapi/linux/fscrypt\\.h$"},
-	},
-}
-
-var fsi = &Subsystem{
-	Name:        "fsi",
-	Lists:       []string{"linux-fsi@lists.ozlabs.org"},
-	Maintainers: []string{"jk@ozlabs.org", "joel@jms.id.au"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/fsi/|^include/linux/fsi[^/]*\\.h$|^include/trace/events/fsi[^/]*\\.h$"},
-	},
-}
-
-var fsverity = &Subsystem{
-	Name:        "fsverity",
-	Lists:       []string{"fsverity@lists.linux.dev"},
-	Maintainers: []string{"ebiggers@kernel.org", "tytso@mit.edu"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/verity/|^include/linux/fsverity\\.h$|^include/uapi/linux/fsverity\\.h$"},
-	},
-}
-
-var fuse = &Subsystem{
-	Name:        "fuse",
-	Syscalls:    []string{"syz_fuse_handle_req"},
-	Lists:       []string{"linux-fsdevel@vger.kernel.org"},
-	Maintainers: []string{"miklos@szeredi.hu"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/fuse/|^include/uapi/linux/fuse\\.h$"},
-	},
-}
-
-var geode = &Subsystem{
-	Name:    "geode",
-	Lists:   []string{"linux-geode@lists.infradead.org"},
-	Parents: []*Subsystem{fbdev},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/include/asm/geode\\.h$|^drivers/char/hw_random/geode-rng\\.c$|^drivers/crypto/geode[^/]*$|^drivers/video/fbdev/geode/"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/amd5536udc\\.[^/]*$"},
-	},
-}
-
-var gpio = &Subsystem{
-	Name:    "gpio",
-	Lists:   []string{"linux-gpio@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpio/gpio-104-dio-48e\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-104-idi-48\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-104-idio-16\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-aggregator\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-altera\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-amd-fch\\.c$|^include/linux/platform_data/gpio/gpio-amd-fch\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-davinci\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-dwapb\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-gpio-mm\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-hisi\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-i8255\\.c$|^drivers/gpio/gpio-i8255\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-ich\\.c$|^drivers/gpio/gpio-merrifield\\.c$|^drivers/gpio/gpio-ml-ioh\\.c$|^drivers/gpio/gpio-pch\\.c$|^drivers/gpio/gpio-sch\\.c$|^drivers/gpio/gpio-sodaville\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-idio-16\\.c$|^drivers/gpio/gpio-idio-16\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-mockup\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-pci-idio-16\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-pcie-idio-24\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-pxa\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-sama5d2-piobu\\.c$|^drivers/pinctrl/pinctrl-at91[^/]*$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-virtio\\.c$|^include/uapi/linux/virtio_gpio\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-wcove\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-ws16c48\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-xra1403\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpiolib-acpi\\.c$|^drivers/gpio/gpiolib-acpi\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/|^include/asm-generic/gpio\\.h$|^include/dt-bindings/gpio/|^include/linux/gpio\\.h$|^include/linux/gpio/|^include/linux/of_gpio\\.h$|^include/uapi/linux/gpio\\.h$"},
-		{IncludeRegexp: "^drivers/misc/mchp_pci1xxxx/mchp_pci1xxxx_gp\\.c$|^drivers/misc/mchp_pci1xxxx/mchp_pci1xxxx_gp\\.h$|^drivers/misc/mchp_pci1xxxx/mchp_pci1xxxx_gpio\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/aspeed/"},
-		{IncludeRegexp: "^drivers/pinctrl/bcm/pinctrl-bcm4908\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/freescale/"},
-		{IncludeRegexp: "^drivers/pinctrl/pinctrl-cy8c95x0\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/pinctrl-k210\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/pinctrl-loongson2\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/starfive/|^include/dt-bindings/pinctrl/pinctrl-starfive-jh7100\\.h$"},
-		{IncludeRegexp: "^drivers/pinctrl/|^include/dt-bindings/pinctrl/|^include/linux/pinctrl/"},
-	},
-}
-
-var greybus = &Subsystem{
-	Name:        "greybus",
-	Lists:       []string{"greybus-dev@lists.linaro.org"},
-	Maintainers: []string{"elder@kernel.org", "gregkh@linuxfoundation.org", "johan@kernel.org"},
-	Parents:     []*Subsystem{staging},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/greybus/|^drivers/staging/greybus/|^include/linux/greybus\\.h$|^include/linux/greybus/"},
-	},
-}
-
-var hams = &Subsystem{
-	Name:    "hams",
-	Lists:   []string{"linux-hams@vger.kernel.org"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/hamradio/6pack\\.c$"},
-		{IncludeRegexp: "^drivers/net/hamradio/[^/]*scc\\.c$|^drivers/net/hamradio/z8530\\.h$"},
-		{IncludeRegexp: "^drivers/net/hamradio/baycom[^/]*$"},
-		{IncludeRegexp: "^drivers/net/hamradio/scc\\.c$"},
-		{IncludeRegexp: "^drivers/net/hamradio/yam[^/]*$|^include/linux/yam\\.h$"},
-		{IncludeRegexp: "^include/net/ax25\\.h$|^include/uapi/linux/ax25\\.h$|^net/ax25/"},
-		{IncludeRegexp: "^include/net/netrom\\.h$|^include/uapi/linux/netrom\\.h$|^net/netrom/"},
-		{IncludeRegexp: "^include/net/rose\\.h$|^include/uapi/linux/rose\\.h$|^net/rose/"},
-		{IncludeRegexp: "^net/ax25/af_ax25\\.c$|^net/ax25/ax25_dev\\.c$|^net/ax25/ax25_ds_[^/]*$|^net/ax25/ax25_in\\.c$|^net/ax25/ax25_out\\.c$|^net/ax25/ax25_timer\\.c$|^net/ax25/sysctl_net_ax25\\.c$"},
-	},
-}
-
-var hardening = &Subsystem{
-	Name:    "hardening",
-	Lists:   []string{"linux-hardening@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/acpi/apei/erst\\.c$|^drivers/firmware/efi/efi-pstore\\.c$|^fs/pstore/|^include/linux/pstore[^/]*$"},
-		{IncludeRegexp: "^include/linux/fortify-string\\.h$|^lib/fortify_kunit\\.c$|^lib/memcpy_kunit\\.c$|^lib/strscpy_kunit\\.c$|^lib/test_fortify/"},
-		{IncludeRegexp: "^include/linux/overflow\\.h$|^include/linux/randomize_kstack\\.h$|^mm/usercopy\\.c$"},
-	},
-}
-
-var hexagon = &Subsystem{
-	Name:        "hexagon",
-	Lists:       []string{"linux-hexagon@vger.kernel.org"},
-	Maintainers: []string{"bcain@quicinc.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/hexagon/"},
-	},
-}
-
-var hfs = &Subsystem{
-	Name:     "hfs",
-	Syscalls: []string{"syz_mount_image$hfs", "syz_mount_image$hfsplus"},
-	Lists:    []string{"linux-fsdevel@vger.kernel.org"},
-	Parents:  []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/hfs/"},
-		{IncludeRegexp: "^fs/hfsplus/"},
-	},
-}
-
-var hippi = &Subsystem{
-	Name:        "hippi",
-	Lists:       []string{"linux-hippi@sunsite.dk"},
-	Maintainers: []string{"jes@trained-monkey.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/hippi/|^include/linux/hippidevice\\.h$|^include/uapi/linux/if_hippi\\.h$|^net/802/hippi\\.c$"},
-	},
-}
-
-var hwmon = &Subsystem{
-	Name:    "hwmon",
-	Lists:   []string{"linux-hwmon@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/hwmon/abituguru3\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/abituguru\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/adm1025\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/adm1029\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/adm1177\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/adt7475\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/applesmc\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/aquacomputer_d5next\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/asc7621\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/asus-ec-sensors\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/asus_atk0110\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/asus_wmi_sensors\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/axi-fan-control\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/coretemp\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/corsair-cpro\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/corsair-psu\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/dme1737\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/emc2103\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/f71805f\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/f75375s\\.c$|^include/linux/f75375s\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/fam15h_power\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/ina209\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/ina2xx\\.c$|^include/linux/platform_data/ina2xx\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/it87\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/jc42\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/k10temp\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/k8temp\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/lm73\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/lm78\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/lm83\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/lm90\\.c$|^include/dt-bindings/thermal/lm90\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/lm95234\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/ltc2947-core\\.c$|^drivers/hwmon/ltc2947-i2c\\.c$|^drivers/hwmon/ltc2947-spi\\.c$|^drivers/hwmon/ltc2947\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/ltc4261\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/max16065\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/max6650\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/max6697\\.c$|^include/linux/platform_data/max6697\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/nct6775-core\\.c$|^drivers/hwmon/nct6775-platform\\.c$|^drivers/hwmon/nct6775\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/nct6775-i2c\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/nzxt-kraken2\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/nzxt-smart2\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/oxp-sensors\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pc87360\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pc87427\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/peci/"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/delta-ahe50dc-fan\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/dps920ab\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/max15301\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/pm6764tr\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/stpddc60\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/tps546d24\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/pmbus/|^include/linux/pmbus\\.h$"},
-		{IncludeRegexp: "^drivers/hwmon/sch5627\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/smm665\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/smsc47b397\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/tmp401\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/tmp464\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/tmp513\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/tps23861\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/vt1211\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/vt8231\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/w83791d\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/w83793\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/w83795\\.c$"},
-		{IncludeRegexp: "^drivers/hwmon/|^include/linux/hwmon[^/]*\\.h$|^include/trace/events/hwmon[^/]*\\.h$"},
-	},
-}
-
-var hyperv = &Subsystem{
-	Name:    "hyperv",
-	Lists:   []string{"linux-hyperv@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm64/hyperv$|^arch/arm64/include/asm/hyperv-tlfs\\.h$|^arch/arm64/include/asm/mshyperv\\.h$|^arch/x86/hyperv$|^arch/x86/include/asm/hyperv-tlfs\\.h$|^arch/x86/include/asm/mshyperv\\.h$|^arch/x86/include/asm/trace/hyperv\\.h$|^arch/x86/kernel/cpu/mshyperv\\.c$|^drivers/clocksource/hyperv_timer\\.c$|^drivers/hid/hid-hyperv\\.c$|^drivers/hv/|^drivers/input/serio/hyperv-keyboard\\.c$|^drivers/iommu/hyperv-iommu\\.c$|^drivers/net/ethernet/microsoft/|^drivers/net/hyperv/|^drivers/pci/controller/pci-hyperv-intf\\.c$|^drivers/pci/controller/pci-hyperv\\.c$|^drivers/scsi/storvsc_drv\\.c$|^drivers/uio/uio_hv_generic\\.c$|^drivers/video/fbdev/hyperv_fb\\.c$|^include/asm-generic/hyperv-tlfs\\.h$|^include/asm-generic/mshyperv\\.h$|^include/clocksource/hyperv_timer\\.h$|^include/linux/hyperv\\.h$|^include/net/mana$|^include/uapi/linux/hyperv\\.h$|^net/vmw_vsock/hyperv_transport\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/hyperv$"},
-	},
-}
-
-var i2c = &Subsystem{
-	Name:    "i2c",
-	Lists:   []string{"linux-i2c@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/hid/hid-ft260\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-mcp2221\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/algos/|^drivers/i2c/busses/|^include/dt-bindings/i2c/"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-ali1535\\.c$|^drivers/i2c/busses/i2c-ali1563\\.c$|^drivers/i2c/busses/i2c-ali15x3\\.c$|^drivers/i2c/busses/i2c-amd756-s4882\\.c$|^drivers/i2c/busses/i2c-amd756\\.c$|^drivers/i2c/busses/i2c-amd8111\\.c$|^drivers/i2c/busses/i2c-i801\\.c$|^drivers/i2c/busses/i2c-isch\\.c$|^drivers/i2c/busses/i2c-nforce2-s4985\\.c$|^drivers/i2c/busses/i2c-nforce2\\.c$|^drivers/i2c/busses/i2c-piix4\\.c$|^drivers/i2c/busses/i2c-sis5595\\.c$|^drivers/i2c/busses/i2c-sis630\\.c$|^drivers/i2c/busses/i2c-sis96x\\.c$|^drivers/i2c/busses/i2c-via\\.c$|^drivers/i2c/busses/i2c-viapro\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-ali1563\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-amd-mp2[^/]*$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-aspeed\\.c$|^drivers/irqchip/irq-aspeed-i2c-ic\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-at91-[^/]*\\.c$|^drivers/i2c/busses/i2c-at91\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-axxia\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-brcmstb\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-cht-wc\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-cpm\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-designware-[^/]*$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-diolan-u2c\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-fsi\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-hisi\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-icy\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-imx-lpi2c\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-imx\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-ismt\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mchp-pci1xxxx\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mlxbf\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mlxcpld\\.c$|^drivers/i2c/muxes/i2c-mux-mlxcpld\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mpc\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mt65xx\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mt7621\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-mv64xxx\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-nvidia-gpu\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-ocores\\.c$|^include/linux/platform_data/i2c-ocores\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-omap\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-parport\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-qcom-cci\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-stm32[^/]*$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-synquacer\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-taos-evm\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-tiny-usb\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-virtio\\.c$|^include/uapi/linux/virtio_i2c\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-xlp9xx\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/i2c-core-acpi\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/i2c-mux\\.c$|^drivers/i2c/muxes/|^include/linux/i2c-mux\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/i2c-stub\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/muxes/i2c-mux-gpio\\.c$|^include/linux/platform_data/i2c-mux-gpio\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/muxes/i2c-mux-ltc4306\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/muxes/i2c-mux-pca9541\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/|^include/dt-bindings/i2c/i2c\\.h$|^include/linux/i2c-dev\\.h$|^include/linux/i2c-smbus\\.h$|^include/linux/i2c\\.h$|^include/uapi/linux/i2c-[^/]*\\.h$|^include/uapi/linux/i2c\\.h$"},
-		{IncludeRegexp: "^drivers/misc/eeprom/at24\\.c$"},
-	},
-}
-
-var i3c = &Subsystem{
-	Name:    "i3c",
-	Lists:   []string{"linux-i3c@lists.infradead.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/i3c/master/svc-i3c-master\\.c$"},
-		{IncludeRegexp: "^drivers/i3c/|^include/linux/i3c/"},
-	},
-}
-
-var ia64 = &Subsystem{
-	Name:    "ia64",
-	Lists:   []string{"linux-ia64@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/ia64/"},
-	},
-}
-
-var ide = &Subsystem{
-	Name:    "ide",
-	Lists:   []string{"linux-ide@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/ata/ahci_dwc\\.c$"},
-		{IncludeRegexp: "^drivers/ata/ahci_platform\\.c$|^drivers/ata/libahci_platform\\.c$|^include/linux/ahci_platform\\.h$"},
-		{IncludeRegexp: "^drivers/ata/ata_[^/]*\\.c$|^drivers/ata/pata_[^/]*\\.c$"},
-		{IncludeRegexp: "^drivers/ata/pata_arasan_cf\\.c$|^include/linux/pata_arasan_cf_data\\.h$"},
-		{IncludeRegexp: "^drivers/ata/pata_ftide010\\.c$|^drivers/ata/sata_gemini\\.c$|^drivers/ata/sata_gemini\\.h$"},
-		{IncludeRegexp: "^drivers/ata/sata_promise\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/ata/sata_rcar\\.c$"},
-		{IncludeRegexp: "^drivers/ata/|^include/linux/ata\\.h$|^include/linux/libata\\.h$"},
-	},
-}
-
-var iio = &Subsystem{
-	Name:    "iio",
-	Lists:   []string{"linux-iio@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/counter/104-quad-8\\.c$"},
-		{IncludeRegexp: "^drivers/counter/ftm-quaddec\\.c$"},
-		{IncludeRegexp: "^drivers/counter/intel-qep\\.c$"},
-		{IncludeRegexp: "^drivers/counter/interrupt-cnt\\.c$"},
-		{IncludeRegexp: "^drivers/counter/microchip-tcb-capture\\.c$"},
-		{IncludeRegexp: "^drivers/counter/ti-ecap-capture\\.c$"},
-		{IncludeRegexp: "^drivers/counter/ti-eqep\\.c$"},
-		{IncludeRegexp: "^drivers/counter/|^include/linux/counter\\.h$|^include/uapi/linux/counter\\.h$"},
-		{IncludeRegexp: "^drivers/hid/hid-sensor-[^/]*$|^drivers/iio/[^/]*/hid-[^/]*$|^include/linux/hid-sensor-[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/accel/adxl355\\.h$|^drivers/iio/accel/adxl355_core\\.c$|^drivers/iio/accel/adxl355_i2c\\.c$|^drivers/iio/accel/adxl355_spi\\.c$"},
-		{IncludeRegexp: "^drivers/iio/accel/adxl367[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/accel/bma400[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/accel/kionix-kx022a[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/accel/msa311\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/ad4130\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/ad7192\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/ad7292\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/ad7768-1\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/ad7780\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/at91-sama5d2_adc\\.c$|^include/dt-bindings/iio/adc/at91-sama5d2_adc\\.h$"},
-		{IncludeRegexp: "^drivers/iio/adc/envelope-detector\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/hx711\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/imx7d_adc\\.c$|^drivers/iio/adc/vf610_adc\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/imx8qxp-adc\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/max11205\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/mcp3911\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/rcar-gyroadc\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/rzg2l_adc\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/ti-tsc2046\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/xilinx-ams\\.c$"},
-		{IncludeRegexp: "^drivers/iio/addac/ad74115\\.c$"},
-		{IncludeRegexp: "^drivers/iio/addac/ad74413r\\.c$|^include/dt-bindings/iio/addac/adi,ad74413r\\.h$"},
-		{IncludeRegexp: "^drivers/iio/addac/stx104\\.c$"},
-		{IncludeRegexp: "^drivers/iio/afe/iio-rescale\\.c$"},
-		{IncludeRegexp: "^drivers/iio/amplifiers/ada4250\\.c$"},
-		{IncludeRegexp: "^drivers/iio/common/scmi_sensors/scmi_iio\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/ad3552r\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/ad7293\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/cio-dac\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/dpot-dac\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/ltc1660\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/ltc2688\\.c$"},
-		{IncludeRegexp: "^drivers/iio/dac/ti-dac7612\\.c$"},
-		{IncludeRegexp: "^drivers/iio/filter/admv8818\\.c$"},
-		{IncludeRegexp: "^drivers/iio/frequency/adf4377\\.c$"},
-		{IncludeRegexp: "^drivers/iio/frequency/admv1013\\.c$"},
-		{IncludeRegexp: "^drivers/iio/frequency/admv1014\\.c$"},
-		{IncludeRegexp: "^drivers/iio/frequency/adrf6780\\.c$"},
-		{IncludeRegexp: "^drivers/iio/gyro/adxrs290\\.c$"},
-		{IncludeRegexp: "^drivers/iio/gyro/fxas21002c\\.h$|^drivers/iio/gyro/fxas21002c_core\\.c$|^drivers/iio/gyro/fxas21002c_i2c\\.c$|^drivers/iio/gyro/fxas21002c_spi\\.c$"},
-		{IncludeRegexp: "^drivers/iio/gyro/mpu3050[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/humidity/hts221[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/imu/adis16460\\.c$"},
-		{IncludeRegexp: "^drivers/iio/imu/adis16475\\.c$"},
-		{IncludeRegexp: "^drivers/iio/imu/adis\\.c$|^drivers/iio/imu/adis_buffer\\.c$|^drivers/iio/imu/adis_trigger\\.c$|^include/linux/iio/imu/adis\\.h$"},
-		{IncludeRegexp: "^drivers/iio/imu/inv_icm42600/"},
-		{IncludeRegexp: "^drivers/iio/imu/st_lsm6dsx/"},
-		{IncludeRegexp: "^drivers/iio/light/as73211\\.c$"},
-		{IncludeRegexp: "^drivers/iio/light/gp2ap002\\.c$"},
-		{IncludeRegexp: "^drivers/iio/magnetometer/ak8974\\.c$"},
-		{IncludeRegexp: "^drivers/iio/magnetometer/rm3100[^/]*$"},
-		{IncludeRegexp: "^drivers/iio/multiplexer/iio-mux\\.c$"},
-		{IncludeRegexp: "^drivers/iio/potentiometer/ad5110\\.c$"},
-		{IncludeRegexp: "^drivers/iio/potentiometer/mcp4018\\.c$|^drivers/iio/potentiometer/mcp4531\\.c$"},
-		{IncludeRegexp: "^drivers/iio/pressure/dps310\\.c$"},
-		{IncludeRegexp: "^drivers/iio/proximity/mb1232\\.c$"},
-		{IncludeRegexp: "^drivers/iio/proximity/ping\\.c$"},
-		{IncludeRegexp: "^drivers/iio/proximity/srf[^/]*\\.c$"},
-		{IncludeRegexp: "^drivers/iio/proximity/vl53l0x-i2c\\.c$"},
-		{IncludeRegexp: "^drivers/iio/temperature/ltc2983\\.c$"},
-		{IncludeRegexp: "^drivers/iio/temperature/max30208\\.c$"},
-		{IncludeRegexp: "^drivers/iio/temperature/mlx90614\\.c$"},
-		{IncludeRegexp: "^drivers/iio/temperature/mlx90632\\.c$"},
-		{IncludeRegexp: "^drivers/iio/temperature/tmp117\\.c$"},
-		{IncludeRegexp: "^drivers/iio/|^drivers/staging/iio/|^include/dt-bindings/iio/|^include/linux/iio/"},
-		{IncludeRegexp: "^drivers/staging/iio/"},
-	},
-}
-
-var imx = &Subsystem{
-	Name:    "imx",
-	Lists:   []string{"linux-imx@nxp.com"},
-	Parents: []*Subsystem{arm, clk},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/clk/imx/|^include/dt-bindings/clock/imx[^/]*$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-imx-lpi2c\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/imx7d_adc\\.c$|^drivers/iio/adc/vf610_adc\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/imx8qxp-adc\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-esdhc-imx\\.c$"},
-	},
-}
-
-var input = &Subsystem{
-	Name:    "input",
-	Lists:   []string{"linux-input@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/hid/amd-sfh-hid/"},
-		{IncludeRegexp: "^drivers/hid/hid-creative-sb0540\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-ft260\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-letsketch\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-lg-g15\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-logitech-[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/hid-mcp2221\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-nintendo[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/hid-picolcd[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/hid-playstation\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-pxrc\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-sensor-[^/]*$|^drivers/iio/[^/]*/hid-[^/]*$|^include/linux/hid-sensor-[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/hid-udraw-ps3\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-vrc2\\.c$"},
-		{IncludeRegexp: "^drivers/hid/hid-wiimote[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/intel-ish-hid/"},
-		{IncludeRegexp: "^drivers/hid/surface-hid/"},
-		{IncludeRegexp: "^drivers/hid/uhid\\.c$|^include/uapi/linux/uhid\\.h$"},
-		{IncludeRegexp: "^drivers/hid/wacom\\.h$|^drivers/hid/wacom_[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/|^include/linux/hid[^/]*$|^include/uapi/linux/hid[^/]*$"},
-		{IncludeRegexp: "^drivers/input/input-mt\\.c$"},
-		{IncludeRegexp: "^drivers/input/joystick/fsia6b\\.c$"},
-		{IncludeRegexp: "^drivers/input/joystick/pxrc\\.c$"},
-		{IncludeRegexp: "^drivers/input/keyboard/cypress-sf\\.c$"},
-		{IncludeRegexp: "^drivers/input/keyboard/dlink-dir685-touchkeys\\.c$"},
-		{IncludeRegexp: "^drivers/input/keyboard/sun4i-lradc-keys\\.c$"},
-		{IncludeRegexp: "^drivers/input/misc/ibm-panel\\.c$"},
-		{IncludeRegexp: "^drivers/input/misc/ideapad_slidebar\\.c$"},
-		{IncludeRegexp: "^drivers/input/mouse/bcm5974\\.c$"},
-		{IncludeRegexp: "^drivers/input/mouse/vmmouse\\.c$|^drivers/input/mouse/vmmouse\\.h$"},
-		{IncludeRegexp: "^drivers/input/tablet/wacom_serial4\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/chipone_icn8318\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/chipone_icn8505\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/cy8ctma140\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/cyttsp[^/]*$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/goodix[^/]*$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/himax_hx83112b\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/htcpen\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/hycon-hy46xx\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/resistive-adc-touch\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/silead\\.c$|^drivers/platform/x86/touchscreen_dmi\\.c$"},
-		{IncludeRegexp: "^drivers/input/touchscreen/sis_i2c\\.c$"},
-		{IncludeRegexp: "^drivers/input/|^include/dt-bindings/input/|^include/linux/input\\.h$|^include/linux/input/|^include/uapi/linux/input-event-codes\\.h$|^include/uapi/linux/input\\.h$"},
-	},
-}
-
-var integrity = &Subsystem{
-	Name:    "integrity",
-	Lists:   []string{"linux-integrity@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/char/tpm/"},
-		{IncludeRegexp: "^include/keys/encrypted-type\\.h$|^security/keys/encrypted-keys/"},
-		{IncludeRegexp: "^include/keys/trusted-type\\.h$|^include/keys/trusted_tpm\\.h$|^security/keys/trusted-keys/"},
-		{IncludeRegexp: "^include/keys/trusted_caam\\.h$|^security/keys/trusted-keys/trusted_caam\\.c$"},
-		{IncludeRegexp: "^include/keys/trusted_tee\\.h$|^security/keys/trusted-keys/trusted_tee\\.c$"},
-		{IncludeRegexp: "^security/integrity/evm/|^security/integrity/"},
-		{IncludeRegexp: "^security/integrity/ima/|^security/integrity/"},
-		{IncludeRegexp: "^security/integrity/platform_certs$"},
-	},
-}
-
-var intelgfx = &Subsystem{
-	Name:    "intel-gfx",
-	Lists:   []string{"intel-gfx@lists.freedesktop.org"},
-	Parents: []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/i915/gvt/"},
-		{IncludeRegexp: "^drivers/gpu/drm/i915/|^include/drm/i915[^/]*$|^include/uapi/drm/i915_drm\\.h$"},
-	},
-}
-
-var intelgvt = &Subsystem{
-	Name:        "intel-gvt",
-	Lists:       []string{"intel-gvt-dev@lists.freedesktop.org"},
-	Maintainers: []string{"zhenyuw@linux.intel.com", "zhi.a.wang@intel.com"},
-	Parents:     []*Subsystem{intelgfx},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/i915/gvt/"},
-	},
-}
-
-var intelwiredlan = &Subsystem{
-	Name:        "intel-wired-lan",
-	Lists:       []string{"intel-wired-lan@lists.osuosl.org"},
-	Maintainers: []string{"anthony.l.nguyen@intel.com", "jesse.brandeburg@intel.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ethernet/intel/|^drivers/net/ethernet/intel/[^/]*/|^include/linux/avf/virtchnl\\.h$|^include/linux/net/intel/iidc\\.h$"},
-	},
-}
-
-var iouring = &Subsystem{
-	Name:        "io-uring",
-	Syscalls:    []string{"syz_io_uring_setup", "syz_io_uring_submit", "syz_io_uring_complete"},
-	Lists:       []string{"io-uring@vger.kernel.org"},
-	Maintainers: []string{"axboe@kernel.dk"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^io_uring/|^include/linux/io_uring\\.h$|^include/linux/io_uring_types\\.h$|^include/trace/events/io_uring\\.h$|^include/uapi/linux/io_uring\\.h$"},
-	},
-}
-
-var iommu = &Subsystem{
-	Name:    "iommu",
-	Lists:   []string{"iommu@lists.linux.dev"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/xen/swiotlb-xen\\.h$|^drivers/xen/swiotlb-xen\\.c$|^include/xen/arm/swiotlb-xen\\.h$|^include/xen/swiotlb-xen\\.h$"},
-		{IncludeRegexp: "^drivers/acpi/viot\\.c$|^include/linux/acpi_viot\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/amd/|^include/linux/amd-iommu\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/arm/arm-smmu/qcom_iommu\\.c$"},
-		{IncludeRegexp: "^drivers/iommu/dma-iommu\\.c$|^drivers/iommu/dma-iommu\\.h$|^drivers/iommu/iova\\.c$|^include/linux/iova\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/exynos-iommu\\.c$"},
-		{IncludeRegexp: "^drivers/iommu/intel/|^include/linux/intel-svm\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/iommufd/|^include/linux/iommufd\\.h$|^include/uapi/linux/iommufd\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/mtk_iommu[^/]*$|^include/dt-bindings/memory/mt[^/]*-port\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/|^include/linux/iommu\\.h$|^include/linux/iova\\.h$|^include/linux/of_iommu\\.h$|^include/uapi/linux/iommu\\.h$"},
-		{IncludeRegexp: "^include/asm-generic/dma-mapping\\.h$|^include/linux/dma-direct\\.h$|^include/linux/dma-mapping\\.h$|^include/linux/dma-map-ops\\.h$|^include/linux/swiotlb\\.h$|^kernel/dma/"},
-		{IncludeRegexp: "^kernel/dma/map_benchmark\\.c$"},
-	},
-}
-
-var ipack = &Subsystem{
-	Name:        "ipack",
-	Lists:       []string{"industrypack-devel@lists.sourceforge.net"},
-	Maintainers: []string{"gregkh@linuxfoundation.org", "jens.taprogge@taprogge.org", "siglesias@igalia.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/ipack/"},
-	},
-}
-
-var isdn4linux = &Subsystem{
-	Name:    "isdn4linux",
-	Lists:   []string{"isdn4linux@listserv.isdn4linux.de"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/isdn/Kconfig$|^drivers/isdn/hardware/|^drivers/isdn/mISDN/"},
-		{IncludeRegexp: "^drivers/isdn/capi/|^include/linux/isdn/|^include/uapi/linux/isdn/|^net/bluetooth/cmtp/"},
-	},
-}
-
-var jfs = &Subsystem{
-	Name:        "jfs",
-	Syscalls:    []string{"syz_mount_image$jfs"},
-	Lists:       []string{"jfs-discussion@lists.sourceforge.net"},
-	Maintainers: []string{"shaggy@kernel.org"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/jfs/"},
-	},
-}
-
-var karma = &Subsystem{
-	Name:        "karma",
-	Lists:       []string{"linux-karma-devel@lists.sourceforge.net"},
-	Maintainers: []string{"me@bobcopeland.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/omfs/"},
-	},
-}
-
-var kasan = &Subsystem{
-	Name:    "kasan",
-	Lists:   []string{"kasan-dev@googlegroups.com"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/[^/]*kasan\\.h$|^arch/[^/]*/mm/kasan_init[^/]*$|^include/linux/kasan[^/]*\\.h$|^lib/Kconfig\\.kasan$|^mm/kasan/"},
-		{IncludeRegexp: "^arch/[^/]*/include/asm/kfence\\.h$|^include/linux/kfence\\.h$|^lib/Kconfig\\.kfence$|^mm/kfence/"},
-		{IncludeRegexp: "^arch/[^/]*/include/asm/kmsan\\.h$|^arch/[^/]*/mm/kmsan_[^/]*$|^include/linux/kmsan[^/]*\\.h$|^lib/Kconfig\\.kmsan$|^mm/kmsan/"},
-		{IncludeRegexp: "^include/linux/kcov\\.h$|^include/uapi/linux/kcov\\.h$|^kernel/kcov\\.c$"},
-		{IncludeRegexp: "^include/linux/kcsan[^/]*\\.h$|^kernel/kcsan/|^lib/Kconfig\\.kcsan$"},
-	},
-}
-
-var kernel = &Subsystem{
-	Name:  "kernel",
-	Lists: []string{"linux-kernel@vger.kernel.org"},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^[^/]*$|^[^/]*/"},
-		{IncludeRegexp: "^arch/[^/]*/events/|^arch/[^/]*/events/[^/]*/|^arch/[^/]*/include/asm/perf_event\\.h$|^arch/[^/]*/kernel/[^/]*/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/perf_callchain\\.c$|^arch/[^/]*/kernel/perf_event[^/]*\\.c$|^include/linux/perf_event\\.h$|^include/uapi/linux/perf_event\\.h$|^kernel/events/"},
-		{IncludeRegexp: "^arch/[^/]*/include/asm/atomic[^/]*\\.h$|^include/[^/]*/atomic[^/]*\\.h$|^include/linux/refcount\\.h$"},
-		{"^arch/[^/]*/include/asm/spinlock[^/]*\\.h$|^include/linux/lockdep\\.h$|^include/linux/mutex[^/]*\\.h$|^include/linux/rwlock[^/]*\\.h$|^include/linux/rwsem[^/]*\\.h$|^include/linux/seqlock\\.h$|^include/linux/spinlock[^/]*\\.h$|^kernel/locking/|^lib/locking[^/]*\\.\\[ch\\]$", "^kernel/locking/locktorture\\.c$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/mt2[^/]*$|^arch/arm/boot/dts/mt6[^/]*$|^arch/arm/boot/dts/mt7[^/]*$|^arch/arm/boot/dts/mt8[^/]*$|^arch/arm/mach-mediatek/|^arch/arm64/boot/dts/mediatek/|^drivers/soc/mediatek/|mtk|mt[2678]"},
-		{IncludeRegexp: "^arch/powerpc/include/asm/membarrier\\.h$|^include/uapi/linux/membarrier\\.h$|^kernel/sched/membarrier\\.c$"},
-		{IncludeRegexp: "^arch/x86/"},
-		{IncludeRegexp: "^arch/x86/entry/"},
-		{IncludeRegexp: "^arch/x86/entry/vdso/"},
-		{IncludeRegexp: "^arch/x86/include/asm/intel-family\\.h$"},
-		{IncludeRegexp: "^arch/x86/include/asm/resctrl\\.h$|^arch/x86/kernel/cpu/resctrl/"},
-		{IncludeRegexp: "^arch/x86/kernel/cpu/hygon\\.c$"},
-		{IncludeRegexp: "^arch/x86/kernel/cpu/zhaoxin\\.c$"},
-		{IncludeRegexp: "^arch/x86/mm/"},
-		{IncludeRegexp: "^arch/x86/mm/kmmio\\.c$|^arch/x86/mm/mmio-mod\\.c$|^arch/x86/mm/testmmiotrace\\.c$|^include/linux/mmiotrace\\.h$|^kernel/trace/trace_mmiotrace\\.c$"},
-		{IncludeRegexp: "^drivers/[^/]*/[^/]*max77843\\.c$|^drivers/[^/]*/max14577[^/]*\\.c$|^drivers/[^/]*/max77686[^/]*\\.c$|^drivers/[^/]*/max77693[^/]*\\.c$|^drivers/clk/clk-max77686\\.c$|^drivers/extcon/extcon-max14577\\.c$|^drivers/extcon/extcon-max77693\\.c$|^drivers/rtc/rtc-max77686\\.c$|^include/linux/mfd/max14577[^/]*\\.h$|^include/linux/mfd/max77686[^/]*\\.h$|^include/linux/mfd/max77693[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/android/"},
-		{IncludeRegexp: "^drivers/base/arch_topology\\.c$|^include/linux/arch_topology\\.h$"},
-		{IncludeRegexp: "^drivers/base/devcoredump\\.c$|^include/linux/devcoredump\\.h$"},
-		{IncludeRegexp: "^drivers/base/firmware_loader/|^include/linux/firmware\\.h$"},
-		{IncludeRegexp: "^drivers/base/regmap/|^include/linux/regmap\\.h$"},
-		{IncludeRegexp: "^drivers/block/zram/"},
-		{IncludeRegexp: "^drivers/bus/fsl-mc/|^include/uapi/linux/fsl_mc\\.h$"},
-		{IncludeRegexp: "^drivers/char/xillybus/"},
-		{IncludeRegexp: "^drivers/clk/clk-s2mps11\\.c$|^drivers/mfd/sec[^/]*\\.c$|^drivers/regulator/s2m[^/]*\\.c$|^drivers/regulator/s5m[^/]*\\.c$|^drivers/rtc/rtc-s5m\\.c$|^include/linux/mfd/samsung/"},
-		{IncludeRegexp: "^drivers/clk/keystone/"},
-		{IncludeRegexp: "^drivers/clocksource/"},
-		{IncludeRegexp: "^drivers/clocksource/timer-keystone\\.c$"},
-		{IncludeRegexp: "^drivers/extcon/extcon-ptn5150\\.c$"},
-		{IncludeRegexp: "^drivers/extcon/|^include/linux/extcon\\.h$|^include/linux/extcon/"},
-		{IncludeRegexp: "^drivers/firmware/stratix10-rsu\\.c$|^drivers/firmware/stratix10-svc\\.c$|^include/linux/firmware/intel/stratix10-smc\\.h$|^include/linux/firmware/intel/stratix10-svc-client\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-bd9571mwv\\.c$|^drivers/mfd/bd9571mwv\\.c$|^drivers/regulator/bd9571mwv-regulator\\.c$|^include/linux/mfd/bd9571mwv\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-max77650\\.c$|^drivers/input/misc/max77650-onkey\\.c$|^drivers/leds/leds-max77650\\.c$|^drivers/mfd/max77650\\.c$|^drivers/power/supply/max77650-charger\\.c$|^drivers/regulator/max77650-regulator\\.c$|^include/linux/mfd/max77650\\.h$"},
-		{IncludeRegexp: "^drivers/hwtracing/ptt/"},
-		{IncludeRegexp: "^drivers/irqchip/"},
-		{IncludeRegexp: "^drivers/mailbox/arm_mhuv2\\.c$|^include/linux/mailbox/arm_mhuv2_message\\.h$"},
-		{IncludeRegexp: "^drivers/mailbox/|^include/linux/mailbox_client\\.h$|^include/linux/mailbox_controller\\.h$|^include/dt-bindings/mailbox/"},
-		{IncludeRegexp: "^drivers/memory/[^/]*emif[^/]*$"},
-		{IncludeRegexp: "^drivers/memory/|^include/dt-bindings/memory/|^include/memory/"},
-		{IncludeRegexp: "^drivers/mfd/at91-usart\\.c$|^include/dt-bindings/mfd/at91-usart\\.h$"},
-		{IncludeRegexp: "^drivers/mfd/hi6421-spmi-pmic\\.c$"},
-		{IncludeRegexp: "^drivers/misc/hisi_hikey_usb\\.c$"},
-		{IncludeRegexp: "^drivers/misc/mei/|^drivers/watchdog/mei_wdt\\.c$|^include/linux/mei_aux\\.h$|^include/linux/mei_cl_bus\\.h$|^include/uapi/linux/mei\\.h$"},
-		{IncludeRegexp: "^drivers/misc/uacce/|^include/linux/uacce\\.h$|^include/uapi/misc/uacce/"},
-		{IncludeRegexp: "^drivers/misc/vmw_balloon\\.c$"},
-		{IncludeRegexp: "^drivers/misc/vmw_vmci/|^include/linux/vmw_vmci[^/]*$"},
-		{IncludeRegexp: "^drivers/net/dsa/sja1105$|^drivers/net/pcs/pcs-xpcs-nxp\\.c$"},
-		{IncludeRegexp: "^drivers/phy/broadcom/phy-brcm-usb[^/]*$"},
-		{IncludeRegexp: "^drivers/phy/samsung/phy-exynos4210-usb2\\.c$|^drivers/phy/samsung/phy-exynos4x12-usb2\\.c$|^drivers/phy/samsung/phy-exynos5250-usb2\\.c$|^drivers/phy/samsung/phy-s5pv210-usb2\\.c$|^drivers/phy/samsung/phy-samsung-usb2\\.c$|^drivers/phy/samsung/phy-samsung-usb2\\.h$"},
-		{IncludeRegexp: "^drivers/phy/xilinx/phy-zynqmp\\.c$"},
-		{IncludeRegexp: "^drivers/power/reset/keystone-reset\\.c$"},
-		{IncludeRegexp: "^drivers/regulator/max20086-regulator\\.c$"},
-		{IncludeRegexp: "^drivers/regulator/max77802-regulator\\.c$|^include/dt-bindings/[^/]*/[^/]*max77802\\.h$"},
-		{IncludeRegexp: "^drivers/regulator/|^include/dt-bindings/regulator/|^include/linux/regulator/"},
-		{IncludeRegexp: "^drivers/reset/reset-k210\\.c$"},
-		{IncludeRegexp: "^drivers/soc/fsl/dpio$"},
-		{IncludeRegexp: "^drivers/soc/ti/"},
-		{IncludeRegexp: "^drivers/spmi/hisi-spmi-controller\\.c$"},
-		{IncludeRegexp: "^drivers/spmi/|^include/dt-bindings/spmi/spmi\\.h$|^include/linux/spmi\\.h$|^include/trace/events/spmi\\.h$"},
-		{IncludeRegexp: "^drivers/staging/vme_user/"},
-		{IncludeRegexp: "^drivers/virt/nitro_enclaves/|^include/linux/nitro_enclaves\\.h$|^include/uapi/linux/nitro_enclaves\\.h$"},
-		{IncludeRegexp: "^fs/proc/bootconfig\\.c$|^include/linux/bootconfig\\.h$|^lib/bootconfig-data\\.S$|^lib/bootconfig\\.c$"},
-		{IncludeRegexp: "^fs/proc/proc_sysctl\\.c$|^include/linux/sysctl\\.h$|^kernel/sysctl-test\\.c$|^kernel/sysctl\\.c$"},
-		{IncludeRegexp: "^fs/proc/|^include/linux/proc_fs\\.h$"},
-		{IncludeRegexp: "^fs/timerfd\\.c$|^include/linux/time_namespace\\.h$|^include/linux/timer[^/]*$|^kernel/time/[^/]*timer[^/]*$|^kernel/time/namespace\\.c$"},
-		{IncludeRegexp: "^fs/tracefs/|^include/linux/trace[^/]*\\.h$|^include/trace/|^kernel/trace/"},
-		{IncludeRegexp: "^include/asm-generic/futex\\.h$|^include/linux/futex\\.h$|^include/uapi/linux/futex\\.h$|^kernel/futex/"},
-		{IncludeRegexp: "^include/asm-generic/kprobes\\.h$|^include/linux/kprobes\\.h$|^kernel/kprobes\\.c$|^lib/test_kprobes\\.c$"},
-		{IncludeRegexp: "^include/asm-generic/vdso/vsyscall\\.h$|^include/vdso/|^kernel/time/vsyscall\\.c$|^lib/vdso/"},
-		{IncludeRegexp: "^include/linux/clockchips\\.h$|^include/linux/hrtimer\\.h$|^kernel/time/clockevents\\.c$|^kernel/time/hrtimer\\.c$|^kernel/time/timer_[^/]*\\.c$"},
-		{IncludeRegexp: "^include/linux/clocksource\\.h$|^include/linux/time\\.h$|^include/linux/timex\\.h$|^include/uapi/linux/time\\.h$|^include/uapi/linux/timex\\.h$|^kernel/time/alarmtimer\\.c$|^kernel/time/clocksource\\.c$|^kernel/time/ntp\\.c$|^kernel/time/time[^/]*\\.c$"},
-		{IncludeRegexp: "^include/linux/entry-common\\.h$|^include/linux/entry-kvm\\.h$|^kernel/entry/"},
-		{IncludeRegexp: "^include/linux/frontswap\\.h$|^mm/frontswap\\.c$"},
-		{IncludeRegexp: "^include/linux/kmod\\.h$|^kernel/kmod\\.c$|^lib/test_kmod\\.c$"},
-		{IncludeRegexp: "^include/linux/module\\.h$|^kernel/module/"},
-		{IncludeRegexp: "^include/linux/padata\\.h$|^kernel/padata\\.c$"},
-		{IncludeRegexp: "^include/linux/preempt\\.h$|^include/linux/sched\\.h$|^include/linux/wait\\.h$|^include/uapi/linux/sched\\.h$|^kernel/sched/"},
-		{IncludeRegexp: "^include/linux/sched/nohz\\.h$|^include/linux/tick\\.h$|^kernel/time/tick[^/]*\\.[^/]*$"},
-		{IncludeRegexp: "^include/linux/umh\\.h$|^kernel/umh\\.c$"},
-		{IncludeRegexp: "^include/linux/uuid\\.h$|^include/uapi/linux/uuid\\.h$|^lib/test_uuid\\.c$|^lib/uuid\\.c$"},
-		{IncludeRegexp: "^include/trace/events/rseq\\.h$|^include/uapi/linux/rseq\\.h$|^kernel/rseq\\.c$"},
-		{IncludeRegexp: "^kernel/irq/"},
-		{IncludeRegexp: "^kernel/locking/locktorture\\.c$|^kernel/rcu/rcuscale\\.c$|^kernel/rcu/rcutorture\\.c$|^kernel/rcu/refscale\\.c$|^kernel/torture\\.c$"},
-		{IncludeRegexp: "^kernel/trace/ftrace[^/]*$|^kernel/trace/fgraph\\.c$|^arch/[^/]*/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^arch/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^include/[^/]*/ftrace\\.h$"},
-		{IncludeRegexp: "^net/vmw_vsock/vmci_transport[^/]*$"},
-		{IncludeRegexp: "axp[128]"},
-	},
-}
-
-var kernfs = &Subsystem{
-	Name:        "kernfs",
-	Maintainers: []string{"gregkh@linuxfoundation.org", "tj@kernel.org"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/kernfs/|^include/linux/kernfs\\.h$"},
-	},
-}
-
-var kexec = &Subsystem{
-	Name:    "kexec",
-	Lists:   []string{"kexec@lists.infradead.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/proc/vmcore\\.c$|^include/linux/crash_core\\.h$|^include/linux/crash_dump\\.h$|^include/uapi/linux/vmcore\\.h$|^kernel/crash_[^/]*\\.c$"},
-		{IncludeRegexp: "^include/linux/kexec\\.h$|^include/uapi/linux/kexec\\.h$|^kernel/kexec[^/]*$"},
-	},
-}
-
-var keyrings = &Subsystem{
-	Name:    "keyrings",
-	Lists:   []string{"keyrings@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^certs/"},
-		{IncludeRegexp: "^crypto/asymmetric_keys/|^include/crypto/pkcs7\\.h$|^include/crypto/public_key\\.h$|^include/linux/verification\\.h$"},
-		{IncludeRegexp: "^include/keys/encrypted-type\\.h$|^security/keys/encrypted-keys/"},
-		{IncludeRegexp: "^include/keys/trusted-type\\.h$|^include/keys/trusted_tpm\\.h$|^security/keys/trusted-keys/"},
-		{IncludeRegexp: "^include/keys/trusted_caam\\.h$|^security/keys/trusted-keys/trusted_caam\\.c$"},
-		{IncludeRegexp: "^include/keys/trusted_tee\\.h$|^security/keys/trusted-keys/trusted_tee\\.c$"},
-		{IncludeRegexp: "^include/keys/|^include/linux/key-type\\.h$|^include/linux/key\\.h$|^include/linux/keyctl\\.h$|^include/uapi/linux/keyctl\\.h$|^security/keys/"},
-		{IncludeRegexp: "^security/integrity/platform_certs$"},
-	},
-}
-
-var kgdb = &Subsystem{
-	Name:        "kgdb",
-	Lists:       []string{"kgdb-bugreport@lists.sourceforge.net"},
-	Maintainers: []string{"daniel.thompson@linaro.org", "jason.wessel@windriver.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/misc/kgdbts\\.c$|^drivers/tty/serial/kgdboc\\.c$|^include/linux/kdb\\.h$|^include/linux/kgdb\\.h$|^kernel/debug/|^kernel/module/kdb\\.c$"},
-	},
-}
-
-var kunit = &Subsystem{
-	Name:    "kunit",
-	Lists:   []string{"kunit-dev@googlegroups.com"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/kunit/|^lib/kunit/"},
-		{IncludeRegexp: "^lib/list-test\\.c$"},
-	},
-}
-
-var kvm = &Subsystem{
-	Name:     "kvm",
-	Syscalls: []string{"syz_kvm_setup_cpu"},
-	Lists:    []string{"kvm@vger.kernel.org"},
-	Parents:  []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/mips/include/asm/kvm[^/]*$|^arch/mips/include/uapi/asm/kvm[^/]*$|^arch/mips/kvm/"},
-		{IncludeRegexp: "^arch/riscv/include/asm/kvm[^/]*$|^arch/riscv/include/uapi/asm/kvm[^/]*$|^arch/riscv/kvm/"},
-		{IncludeRegexp: "^arch/s390/include/asm/gmap\\.h$|^arch/s390/include/asm/kvm[^/]*$|^arch/s390/include/uapi/asm/kvm[^/]*$|^arch/s390/include/uapi/asm/uvdevice\\.h$|^arch/s390/kernel/uv\\.c$|^arch/s390/kvm/|^arch/s390/mm/gmap\\.c$|^drivers/s390/char/uvdevice\\.c$"},
-		{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
-		{IncludeRegexp: "^arch/s390/kvm/pci[^/]*$|^drivers/vfio/pci/vfio_pci_zdev\\.c$|^include/uapi/linux/vfio_zdev\\.h$"},
-		{IncludeRegexp: "^arch/x86/include/asm/kvm[^/]*$|^arch/x86/include/asm/svm\\.h$|^arch/x86/include/asm/vmx[^/]*\\.h$|^arch/x86/include/uapi/asm/kvm[^/]*$|^arch/x86/include/uapi/asm/svm\\.h$|^arch/x86/include/uapi/asm/vmx\\.h$|^arch/x86/kvm/|^arch/x86/kvm/[^/]*/"},
-		{IncludeRegexp: "^arch/x86/kernel/kvm\\.c$|^arch/x86/kernel/kvmclock\\.c$|^arch/x86/include/asm/pvclock-abi\\.h$|^include/linux/kvm_para\\.h$|^include/uapi/linux/kvm_para\\.h$|^include/uapi/asm-generic/kvm_para\\.h$|^include/asm-generic/kvm_para\\.h$|^arch/um/include/asm/kvm_para\\.h$|^arch/x86/include/asm/kvm_para\\.h$|^arch/x86/include/uapi/asm/kvm_para\\.h$"},
-		{IncludeRegexp: "^arch/x86/kvm/hyperv\\.[^/]*$|^arch/x86/kvm/kvm_onhyperv\\.[^/]*$|^arch/x86/kvm/svm/hyperv\\.[^/]*$|^arch/x86/kvm/svm/svm_onhyperv\\.[^/]*$|^arch/x86/kvm/vmx/hyperv\\.[^/]*$"},
-		{IncludeRegexp: "^arch/x86/kvm/xen\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/s390/cio/vfio_ccw[^/]*$|^include/uapi/linux/vfio_ccw\\.h$"},
-		{IncludeRegexp: "^drivers/uio/uio_pci_generic\\.c$"},
-		{IncludeRegexp: "^drivers/vfio/fsl-mc/"},
-		{IncludeRegexp: "^drivers/vfio/mdev/|^include/linux/mdev\\.h$"},
-		{IncludeRegexp: "^drivers/vfio/pci/[^/]*/"},
-		{IncludeRegexp: "^drivers/vfio/pci/hisilicon/"},
-		{IncludeRegexp: "^drivers/vfio/pci/mlx5/"},
-		{IncludeRegexp: "^drivers/vfio/platform/"},
-		{IncludeRegexp: "^drivers/vfio/|^include/linux/vfio\\.h$|^include/linux/vfio_pci_core\\.h$|^include/uapi/linux/vfio\\.h$"},
-		{IncludeRegexp: "^drivers/vhost/vsock\\.c$|^include/linux/virtio_vsock\\.h$|^include/uapi/linux/virtio_vsock\\.h$|^net/vmw_vsock/virtio_transport\\.c$|^net/vmw_vsock/virtio_transport_common\\.c$"},
-		{IncludeRegexp: "^drivers/vhost/|^include/linux/vhost_iotlb\\.h$|^include/uapi/linux/vhost\\.h$"},
-		{IncludeRegexp: "^include/asm-generic/kvm[^/]*$|^include/kvm/iodev\\.h$|^include/linux/kvm[^/]*$|^include/trace/events/kvm\\.h$|^include/uapi/asm-generic/kvm[^/]*$|^include/uapi/linux/kvm[^/]*$|^virt/kvm/"},
-		{IncludeRegexp: "^virt/lib/"},
-	},
-}
-
-var kvmriscv = &Subsystem{
-	Name:        "kvm-riscv",
-	Lists:       []string{"kvm-riscv@lists.infradead.org"},
-	Maintainers: []string{"anup@brainfault.org"},
-	Parents:     []*Subsystem{kvm, riscv},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/riscv/include/asm/kvm[^/]*$|^arch/riscv/include/uapi/asm/kvm[^/]*$|^arch/riscv/kvm/"},
-	},
-}
-
-var kvmarm = &Subsystem{
-	Name:        "kvmarm",
-	Lists:       []string{"kvmarm@lists.cs.columbia.edu"},
-	Maintainers: []string{"maz@kernel.org"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm64/include/asm/kvm[^/]*$|^arch/arm64/include/uapi/asm/kvm[^/]*$|^arch/arm64/kvm/|^include/kvm/arm_[^/]*$"},
-	},
-}
-
-var leds = &Subsystem{
-	Name:    "leds",
-	Lists:   []string{"linux-leds@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/leds/flash/leds-as3645a\\.c$"},
-		{IncludeRegexp: "^drivers/leds/leds-mlxcpld\\.c$|^drivers/leds/leds-mlxreg\\.c$"},
-		{IncludeRegexp: "^drivers/leds/|^include/dt-bindings/leds/|^include/linux/leds\\.h$"},
-	},
-}
-
-var libertas = &Subsystem{
-	Name:    "libertas",
-	Lists:   []string{"libertas-dev@lists.infradead.org"},
-	Parents: []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/marvell/libertas/"},
-	},
-}
-
-var lima = &Subsystem{
-	Name:        "lima",
-	Lists:       []string{"lima@lists.freedesktop.org"},
-	Maintainers: []string{"yuq825@gmail.com"},
-	Parents:     []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/lima/|^include/uapi/drm/lima_drm\\.h$"},
-	},
-}
-
-var linux1394 = &Subsystem{
-	Name:    "linux1394",
-	Lists:   []string{"linux1394-devel@lists.sourceforge.net"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/firewire/|^include/linux/firewire\\.h$|^include/uapi/linux/firewire[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/media/firewire/"},
-		{IncludeRegexp: "^drivers/target/sbp/"},
-	},
-}
-
-var linuxppc = &Subsystem{
-	Name:    "linuxppc",
-	Lists:   []string{"linuxppc-dev@lists.ozlabs.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/powerpc/boot/ps3[^/]*$|^arch/powerpc/include/asm/lv1call\\.h$|^arch/powerpc/include/asm/ps3[^/]*\\.h$|^arch/powerpc/platforms/ps3/|^drivers/[^/]*/ps3[^/]*$|^drivers/ps3/|^drivers/rtc/rtc-ps3\\.c$|^drivers/usb/host/[^/]*ps3\\.c$|^sound/ppc/snd_ps3[^/]*$"},
-		{IncludeRegexp: "^arch/powerpc/include/[^/]*/eeh[^/]*\\.h$|^arch/powerpc/kernel/eeh[^/]*\\.c$|^arch/powerpc/platforms/[^/]*/eeh[^/]*\\.c$|^drivers/pci/pcie/aer\\.c$|^drivers/pci/pcie/dpc\\.c$|^drivers/pci/pcie/err\\.c$"},
-		{IncludeRegexp: "^arch/powerpc/include/asm/cell[^/]*\\.h$|^arch/powerpc/include/asm/spu[^/]*\\.h$|^arch/powerpc/include/uapi/asm/spu[^/]*\\.h$|^arch/powerpc/platforms/cell/"},
-		{IncludeRegexp: "^arch/powerpc/include/asm/kvm[^/]*$|^arch/powerpc/include/uapi/asm/kvm[^/]*$|^arch/powerpc/kernel/kvm[^/]*$|^arch/powerpc/kvm/"},
-		{IncludeRegexp: "^arch/powerpc/include/asm/pnv-ocxl\\.h$|^arch/powerpc/platforms/powernv/ocxl\\.c$|^drivers/misc/ocxl/|^include/misc/ocxl[^/]*$|^include/uapi/misc/ocxl\\.h$"},
-		{IncludeRegexp: "^arch/powerpc/include/asm/vas\\.h$|^arch/powerpc/platforms/powernv/copy-paste\\.h$|^arch/powerpc/platforms/powernv/vas[^/]*$"},
-		{IncludeRegexp: "^arch/powerpc/platforms/40x/|^arch/powerpc/platforms/44x/"},
-		{IncludeRegexp: "^arch/powerpc/platforms/512x/|^arch/powerpc/platforms/52xx/"},
-		{IncludeRegexp: "^arch/powerpc/platforms/83xx/|^arch/powerpc/platforms/85xx/"},
-		{IncludeRegexp: "^arch/powerpc/platforms/8xx/"},
-		{IncludeRegexp: "^arch/powerpc/platforms/cell/spufs/"},
-		{IncludeRegexp: "^arch/powerpc/platforms/powermac/|^drivers/macintosh/"},
-		{IncludeRegexp: "^arch/powerpc/platforms/powernv/pci-cxl\\.c$|^drivers/misc/cxl/|^include/misc/cxl[^/]*$|^include/uapi/misc/cxl\\.h$"},
-		{IncludeRegexp: "^arch/powerpc/|^drivers/[^/]*/[^/]*/[^/]*pasemi[^/]*$|^drivers/[^/]*/[^/]*pasemi[^/]*$|^drivers/char/tpm/tpm_ibmvtpm[^/]*$|^drivers/crypto/nx/|^drivers/crypto/vmx/|^drivers/i2c/busses/i2c-opal\\.c$|^drivers/net/ethernet/ibm/ibmveth\\.[^/]*$|^drivers/net/ethernet/ibm/ibmvnic\\.[^/]*$|^drivers/pci/hotplug/pnv_php\\.c$|^drivers/pci/hotplug/rpa[^/]*$|^drivers/rtc/rtc-opal\\.c$|^drivers/scsi/ibmvscsi/|^drivers/tty/hvc/hvc_opal\\.c$|^drivers/watchdog/wdrtas\\.c$|/pmac|powermac|powernv|[^a-z0-9]ps3|pseries"},
-		{IncludeRegexp: "^drivers/block/ps3vram\\.c$"},
-		{IncludeRegexp: "^drivers/char/powernv-op-panel\\.c$"},
-		{IncludeRegexp: "^drivers/dma/fsldma\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-cpm\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/fs_enet/|^include/linux/fs_enet_pd\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/ucc_geth[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/toshiba/ps3_gelic_net\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/toshiba/spider_net[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wan/fsl_ucc_hdlc[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*layerscape[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/rpadlpar[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/rpaphp[^/]*$"},
-		{IncludeRegexp: "^drivers/soc/fsl/qe/|^include/soc/fsl/qe/"},
-		{IncludeRegexp: "^drivers/soc/fsl/|^include/linux/fsl/|^include/soc/fsl/"},
-		{IncludeRegexp: "^drivers/tty/ehv_bytechan\\.c$"},
-		{IncludeRegexp: "^drivers/tty/hvc/"},
-		{IncludeRegexp: "^drivers/tty/serial/ucc_uart\\.c$"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/fsl[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/phy/phy-fsl-usb[^/]*$"},
-		{IncludeRegexp: "^sound/aoa/"},
-		{IncludeRegexp: "^sound/soc/fsl/fsl[^/]*$|^sound/soc/fsl/imx[^/]*$|^sound/soc/fsl/mpc8610_hpcd\\.c$"},
-	},
-}
-
-var linuxpps = &Subsystem{
-	Name:        "linuxpps",
-	Lists:       []string{"linuxpps@ml.enneenne.com"},
-	Maintainers: []string{"giometti@enneenne.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/pps/|^include/linux/pps[^/]*\\.h$|^include/uapi/linux/pps\\.h$"},
-	},
-}
-
-var livepatching = &Subsystem{
-	Name:        "live-patching",
-	Lists:       []string{"live-patching@vger.kernel.org"},
-	Maintainers: []string{"jikos@kernel.org", "jpoimboe@kernel.org", "mbenes@suse.cz", "pmladek@suse.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/powerpc/include/asm/livepatch\\.h$|^include/linux/livepatch\\.h$|^kernel/livepatch/|^kernel/module/livepatch\\.c$|^lib/livepatch/"},
-	},
-}
-
-var llvm = &Subsystem{
-	Name:    "llvm",
-	Lists:   []string{"llvm@lists.linux.dev"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/cfi\\.h$|^kernel/cfi\\.c$"},
-		{IncludeRegexp: "^include/linux/compiler-clang\\.h$"},
-	},
-}
-
-var loongarch = &Subsystem{
-	Name:    "loongarch",
-	Lists:   []string{"loongarch@lists.linux.dev"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/loongarch/|^drivers/[^/]*/[^/]*loongarch[^/]*$"},
-		{IncludeRegexp: "^drivers/soc/loongson/loongson2_guts\\.c$"},
-	},
-}
-
-var lsm = &Subsystem{
-	Name:    "lsm",
-	Lists:   []string{"linux-security-module@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/capability\\.h$|^include/uapi/linux/capability\\.h$|^kernel/capability\\.c$|^security/commoncap\\.c$"},
-		{IncludeRegexp: "^include/net/calipso\\.h$|^include/net/cipso_ipv4\\.h$|^include/net/netlabel\\.h$|^include/uapi/linux/netfilter/xt_CONNSECMARK\\.h$|^include/uapi/linux/netfilter/xt_SECMARK\\.h$|^net/ipv4/cipso_ipv4\\.c$|^net/ipv6/calipso\\.c$|^net/netfilter/xt_CONNSECMARK\\.c$|^net/netfilter/xt_SECMARK\\.c$|^net/netlabel/"},
-		{IncludeRegexp: "^include/uapi/linux/landlock\\.h$|^security/landlock/"},
-		{"^security/", "^security/selinux/"},
-		{IncludeRegexp: "^security/smack/"},
-	},
-}
-
-var lvs = &Subsystem{
-	Name:        "lvs",
-	Lists:       []string{"lvs-devel@vger.kernel.org"},
-	Maintainers: []string{"horms@verge.net.au", "ja@ssi.bg"},
-	Parents:     []*Subsystem{netfilter},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/net/ip_vs\\.h$|^include/uapi/linux/ip_vs\\.h$|^net/netfilter/ipvs/"},
-	},
-}
-
-var m68k = &Subsystem{
-	Name:    "m68k",
-	Lists:   []string{"linux-m68k@lists.linux-m68k.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/nubus\\.h$|^drivers/nubus/|^include/linux/nubus\\.h$|^include/uapi/linux/nubus\\.h$"},
-		{IncludeRegexp: "^arch/m68k/[^/]*/[^/]*_no\\.[^/]*$|^arch/m68k/68[^/]*/|^arch/m68k/coldfire/|^arch/m68k/include/asm/[^/]*_no\\.[^/]*$"},
-		{IncludeRegexp: "^arch/m68k/mac/|^drivers/macintosh/adb-iop\\.c$|^drivers/macintosh/via-macii\\.c$"},
-		{IncludeRegexp: "^arch/m68k/|^drivers/zorro/"},
-	},
-}
-
-var malidp = &Subsystem{
-	Name:    "malidp",
-	Lists:   []string{"malidp@foss.arm.com"},
-	Parents: []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/arm/"},
-		{IncludeRegexp: "^drivers/gpu/drm/arm/display/include/|^drivers/gpu/drm/arm/display/komeda/"},
-	},
-}
-
-var media = &Subsystem{
-	Name:    "media",
-	Lists:   []string{"linux-media@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/dma-buf/dma-fence[^/]*$|^drivers/dma-buf/sw_sync\\.c$|^drivers/dma-buf/sync_[^/]*$|^include/linux/sync_file\\.h$|^include/uapi/linux/sync_file\\.h$"},
-		{IncludeRegexp: "^drivers/dma-buf/dma-heap\\.c$|^drivers/dma-buf/heaps/|^include/linux/dma-heap\\.h$|^include/uapi/linux/dma-heap\\.h$"},
-		{IncludeRegexp: "^drivers/dma-buf/|^include/linux/[^/]*fence\\.h$|^include/linux/dma-buf\\.h$|^include/linux/dma-resv\\.h$"},
-		{IncludeRegexp: "^drivers/media/cec/i2c/ch7322\\.c$"},
-		{IncludeRegexp: "^drivers/media/cec/platform/cec-gpio/"},
-		{IncludeRegexp: "^drivers/media/cec/platform/meson/ao-cec-g12a\\.c$|^drivers/media/cec/platform/meson/ao-cec\\.c$"},
-		{IncludeRegexp: "^drivers/media/cec/platform/s5p/"},
-		{IncludeRegexp: "^drivers/media/cec/platform/tegra/"},
-		{IncludeRegexp: "^drivers/media/cec/usb/pulse8/"},
-		{IncludeRegexp: "^drivers/media/cec/usb/rainshadow/"},
-		{IncludeRegexp: "^drivers/media/cec/|^drivers/media/rc/keymaps/rc-cec\\.c$|^include/media/cec-notifier\\.h$|^include/media/cec\\.h$|^include/uapi/linux/cec-funcs\\.h$|^include/uapi/linux/cec\\.h$"},
-		{IncludeRegexp: "^drivers/media/common/cx2341x[^/]*$|^include/media/drv-intf/cx2341x\\.h$"},
-		{IncludeRegexp: "^drivers/media/common/cypress_firmware[^/]*$"},
-		{IncludeRegexp: "^drivers/media/common/siano/|^drivers/media/mmc/siano/|^drivers/media/usb/siano/|^drivers/media/usb/siano/"},
-		{IncludeRegexp: "^drivers/media/common/videobuf2/|^include/media/videobuf2-[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/a8293[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/af9013[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/af9033[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/ascot2e[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/cx24120[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2099[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2820r[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2841er[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2880/|^drivers/media/spi/cxd2880[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/ec100[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/helene[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/horus3a[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/ix2505v[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/lg2160\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/lgdt3305\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/lnbh25[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/m88ds3103[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/m88rs2000[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/mn88472[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/mn88473[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/mxl5xx[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/rtl2830[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/rtl2832[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/rtl2832_sdr[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/si2165[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/si2168[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/sp2[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/stv0910[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/stv6111[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/tc90522[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/tda10071[^/]*$"},
-		{IncludeRegexp: "^drivers/media/dvb-frontends/zd1301_demod[^/]*$"},
-		{IncludeRegexp: "^drivers/media/firewire/"},
-		{IncludeRegexp: "^drivers/media/i2c/ad5820\\.c$|^drivers/media/i2c/et8ek8$"},
-		{IncludeRegexp: "^drivers/media/i2c/ad9389b[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/adp1653\\.c$|^include/media/i2c/adp1653\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/adv7180\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/adv748x/"},
-		{IncludeRegexp: "^drivers/media/i2c/adv7511[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/adv7604[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/adv7842[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/ak7375\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/aptina-pll\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/ar0521\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ccs-pll\\.c$|^drivers/media/i2c/ccs-pll\\.h$|^drivers/media/i2c/ccs/|^include/uapi/linux/ccs\\.h$|^include/uapi/linux/smiapp\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/cs3308\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/dw9714\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/dw9768\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/dw9807-vcm\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/hi556\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/hi846\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/hi847\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx208\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx214\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx219\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx258\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx274\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx290\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx319\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx334\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx335\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx355\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/imx412\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/isl7998x\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/m5mols/|^include/media/i2c/m5mols\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/max2175[^/]*$|^include/uapi/linux/max2175\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/max9271\\.c$|^drivers/media/i2c/max9271\\.h$|^drivers/media/i2c/rdacm20\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/max9271\\.c$|^drivers/media/i2c/max9271\\.h$|^drivers/media/i2c/rdacm21\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/max9286\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/mt9m032\\.c$|^include/media/i2c/mt9m032\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/mt9p031\\.c$|^include/media/i2c/mt9p031\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/mt9t001\\.c$|^include/media/i2c/mt9t001\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/mt9t112\\.c$|^include/media/i2c/mt9t112\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/mt9v032\\.c$|^include/media/i2c/mt9v032\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/mt9v111\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/og01a1b\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov02a10\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov08d10\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov08x40\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov13858\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov13b10\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov2659\\.c$|^include/media/i2c/ov2659\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov2680\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov2685\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov2740\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5640\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5647\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5647\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5670\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5675\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5693\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov5695\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov7670\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov772x\\.c$|^include/media/i2c/ov772x\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov7740\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov8856\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov9282\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov9640\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov9650\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/ov9734\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/rj54n1cb0c\\.c$|^include/media/i2c/rj54n1cb0c\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/s5c73m3/"},
-		{IncludeRegexp: "^drivers/media/i2c/s5k5baf\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/saa6588[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/st-mipid02\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/st-vgxy61\\.c$"},
-		{IncludeRegexp: "^drivers/media/i2c/tc358743[^/]*$|^include/media/i2c/tc358743\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/tda1997x\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/tda9840[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/tea6415c[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/tea6420[^/]*$"},
-		{IncludeRegexp: "^drivers/media/i2c/tw9910\\.c$|^include/media/i2c/tw9910\\.h$"},
-		{IncludeRegexp: "^drivers/media/i2c/video-i2c\\.c$"},
-		{IncludeRegexp: "^drivers/media/mc/|^include/media/media-[^/]*\\.h$|^include/uapi/linux/media\\.h$"},
-		{IncludeRegexp: "^drivers/media/pci/bt8xx/bttv[^/]*$"},
-		{IncludeRegexp: "^drivers/media/pci/cobalt/"},
-		{IncludeRegexp: "^drivers/media/pci/cx18/|^include/uapi/linux/ivtv[^/]*$"},
-		{IncludeRegexp: "^drivers/media/pci/cx88/"},
-		{IncludeRegexp: "^drivers/media/pci/ddbridge/"},
-		{IncludeRegexp: "^drivers/media/pci/dt3155/"},
-		{IncludeRegexp: "^drivers/media/pci/intel/ipu3/"},
-		{IncludeRegexp: "^drivers/media/pci/ivtv/|^include/uapi/linux/ivtv[^/]*$"},
-		{IncludeRegexp: "^drivers/media/pci/netup_unidvb/"},
-		{IncludeRegexp: "^drivers/media/pci/pt1/"},
-		{IncludeRegexp: "^drivers/media/pci/pt3/"},
-		{IncludeRegexp: "^drivers/media/pci/saa7134/"},
-		{IncludeRegexp: "^drivers/media/pci/solo6x10/"},
-		{IncludeRegexp: "^drivers/media/pci/tw5864/"},
-		{IncludeRegexp: "^drivers/media/pci/tw68/"},
-		{IncludeRegexp: "^drivers/media/pci/tw686x/"},
-		{IncludeRegexp: "^drivers/media/pci/zoran/"},
-		{IncludeRegexp: "^drivers/media/platform/allegro-dvt/"},
-		{IncludeRegexp: "^drivers/media/platform/amlogic/meson-ge2d/"},
-		{IncludeRegexp: "^drivers/media/platform/amphion/"},
-		{IncludeRegexp: "^drivers/media/platform/aspeed/"},
-		{IncludeRegexp: "^drivers/media/platform/atmel/atmel-isi\\.c$|^drivers/media/platform/atmel/atmel-isi\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/cadence/cdns-csi2[^/]*$"},
-		{IncludeRegexp: "^drivers/media/platform/chips-media/"},
-		{IncludeRegexp: "^drivers/media/platform/marvell/"},
-		{IncludeRegexp: "^drivers/media/platform/microchip/microchip-csi2dc\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/nvidia/tegra-vde/"},
-		{IncludeRegexp: "^drivers/media/platform/nxp/dw100/|^include/uapi/linux/dw100\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/nxp/imx-jpeg$"},
-		{IncludeRegexp: "^drivers/media/platform/nxp/imx-mipi-csis\\.c$|^drivers/media/platform/nxp/imx7-media-csi\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/nxp/imx-pxp\\.\\[ch\\]$"},
-		{IncludeRegexp: "^drivers/media/platform/qcom/camss/"},
-		{IncludeRegexp: "^drivers/media/platform/qcom/venus/"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar-fcp\\.c$|^include/media/rcar-fcp\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar-isp\\.c$|^drivers/media/platform/renesas/rcar-vin/"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar_drif\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar_fdp1\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar_jpu\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/renesas-ceu\\.c$|^include/media/drv-intf/renesas-ceu\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/sh_vou\\.c$|^include/media/drv-intf/sh_vou\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/vsp1/"},
-		{IncludeRegexp: "^drivers/media/platform/rockchip/rga/"},
-		{IncludeRegexp: "^drivers/media/platform/rockchip/rkisp1$|^include/uapi/linux/rkisp1-config\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/exynos4-is/"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s3c-camif/|^include/media/drv-intf/s3c_camif\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s5p-g2d/"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s5p-jpeg/"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s5p-mfc/"},
-		{IncludeRegexp: "^drivers/media/platform/st/sti/bdisp$"},
-		{IncludeRegexp: "^drivers/media/platform/st/sti/delta$"},
-		{IncludeRegexp: "^drivers/media/platform/st/sti/hva$"},
-		{IncludeRegexp: "^drivers/media/platform/st/stm32/stm32-dcmi\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/sunxi/sun4i-csi/"},
-		{IncludeRegexp: "^drivers/media/platform/sunxi/sun6i-csi/"},
-		{IncludeRegexp: "^drivers/media/platform/sunxi/sun6i-mipi-csi2/"},
-		{IncludeRegexp: "^drivers/media/platform/sunxi/sun8i-di/"},
-		{IncludeRegexp: "^drivers/media/platform/sunxi/sun8i-rotate/"},
-		{IncludeRegexp: "^drivers/media/platform/ti/am437x/"},
-		{IncludeRegexp: "^drivers/media/platform/ti/cal/|^drivers/media/platform/ti/vpe/"},
-		{IncludeRegexp: "^drivers/media/platform/ti/davinci/|^drivers/staging/media/deprecated/vpfe_capture/|^include/media/davinci/"},
-		{IncludeRegexp: "^drivers/media/platform/ti/omap3isp/|^drivers/staging/media/omap4iss/"},
-		{IncludeRegexp: "^drivers/media/platform/verisilicon/"},
-		{IncludeRegexp: "^drivers/media/platform/video-mux\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/xilinx/|^include/uapi/linux/xilinx-v4l2-controls\\.h$"},
-		{IncludeRegexp: "^drivers/media/radio/dsbr100\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-aimslab[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-aztech[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-cadet[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-gemtek[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-isa[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-keene[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-ma901\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-maxiradio[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-miropcm20[^/]*$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-mr800\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-raremono\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-shark2\\.c$|^drivers/media/radio/radio-tea5777\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/radio-shark\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/si470x/radio-si470x-common\\.c$|^drivers/media/radio/si470x/radio-si470x-usb\\.c$|^drivers/media/radio/si470x/radio-si470x\\.h$"},
-		{IncludeRegexp: "^drivers/media/radio/si470x/radio-si470x-i2c\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/si4713/radio-platform-si4713\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/si4713/radio-usb-si4713\\.c$"},
-		{IncludeRegexp: "^drivers/media/radio/si4713/si4713\\..$"},
-		{IncludeRegexp: "^drivers/media/rc/gpio-ir-tx\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/igorplugusb\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/iguanair\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/imon\\.c$|^drivers/media/rc/imon_raw\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/pwm-ir-tx\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/serial_ir\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/ttusbir\\.c$"},
-		{IncludeRegexp: "^drivers/media/rc/|^include/media/rc-map\\.h$|^include/media/rc-core\\.h$|^include/uapi/linux/lirc\\.h$"},
-		{IncludeRegexp: "^drivers/media/spi/gs1662\\.c$"},
-		{IncludeRegexp: "^drivers/media/test-drivers/vicodec/"},
-		{IncludeRegexp: "^drivers/media/test-drivers/vidtv/"},
-		{IncludeRegexp: "^drivers/media/test-drivers/vimc/"},
-		{IncludeRegexp: "^drivers/media/test-drivers/visl$"},
-		{IncludeRegexp: "^drivers/media/test-drivers/vivid/"},
-		{IncludeRegexp: "^drivers/media/tuners/e4000[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/fc0011\\.c$|^drivers/media/tuners/fc0011\\.h$"},
-		{IncludeRegexp: "^drivers/media/tuners/fc2580[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/it913x[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/msi001[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/mxl301rf[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/mxl5007t\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/qm1d1b0004[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/qm1d1c0042[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/qt1010[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/si2157[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tda18212[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tda18218[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tda18250[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tda18271[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tda8290\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tda8290\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tea5761\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tea5767\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/tua9001[^/]*$"},
-		{IncludeRegexp: "^drivers/media/tuners/xc2028\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/airspy/"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/af9015[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/af9035[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/anysee[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/au6610[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/az6007\\.c$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/ce6230[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/dvb_usb[^/]*$|^drivers/media/usb/dvb-usb-v2/usb_urb\\.c$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/ec168[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/gl861[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/lmedm04[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/mxl111sf[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/rtl28xxu[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/zd1301[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/dvb-usb/cxusb[^/]*$"},
-		{IncludeRegexp: "^drivers/media/usb/em28xx/"},
-		{IncludeRegexp: "^drivers/media/usb/go7007/"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/finepix\\.c$"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/gl860/"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/m5602/"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/pac207\\.c$"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/sn9c20x\\.c$"},
-		{IncludeRegexp: "^drivers/media/usb/gspca/t613\\.c$"},
-		{IncludeRegexp: "^drivers/media/usb/hackrf/"},
-		{IncludeRegexp: "^drivers/media/usb/hdpvr/"},
-		{IncludeRegexp: "^drivers/media/usb/msi2500/"},
-		{IncludeRegexp: "^drivers/media/usb/pvrusb2/"},
-		{IncludeRegexp: "^drivers/media/usb/pwc/|^include/trace/events/pwc\\.h$"},
-		{IncludeRegexp: "^drivers/media/usb/stk1160/"},
-		{IncludeRegexp: "^drivers/media/usb/uvc/|^include/uapi/linux/uvcvideo\\.h$"},
-		{IncludeRegexp: "^drivers/media/|^drivers/staging/media/|^include/dt-bindings/media/|^include/linux/platform_data/media/|^include/media/|^include/uapi/linux/dvb/|^include/uapi/linux/ivtv[^/]*$|^include/uapi/linux/media\\.h$|^include/uapi/linux/meye\\.h$|^include/uapi/linux/uvcvideo\\.h$|^include/uapi/linux/v4l2-[^/]*$|^include/uapi/linux/videodev2\\.h$"},
-		{IncludeRegexp: "^drivers/staging/media/atomisp/"},
-		{IncludeRegexp: "^drivers/staging/media/deprecated/atmel/atmel-isc[^/]*$|^drivers/staging/media/deprecated/atmel/atmel-sama[^/]*-isc[^/]*$|^drivers/media/platform/microchip/microchip-isc[^/]*$|^drivers/media/platform/microchip/microchip-sama[^/]*-isc[^/]*$|^include/linux/atmel-isc-media\\.h$"},
-		{IncludeRegexp: "^drivers/staging/media/deprecated/saa7146/"},
-		{IncludeRegexp: "^drivers/staging/media/deprecated/tm6000/"},
-		{IncludeRegexp: "^drivers/staging/media/deprecated/zr364xx/"},
-		{IncludeRegexp: "^drivers/staging/media/imx/|^include/linux/imx-media\\.h$|^include/media/imx\\.h$"},
-		{IncludeRegexp: "^drivers/staging/media/ipu3/"},
-		{IncludeRegexp: "^drivers/staging/media/max96712/max96712\\.c$"},
-		{IncludeRegexp: "^drivers/staging/media/meson/vdec/"},
-		{IncludeRegexp: "^drivers/staging/media/rkvdec/"},
-		{IncludeRegexp: "^drivers/staging/media/sunxi/cedrus/"},
-		{IncludeRegexp: "^drivers/staging/media/sunxi/sun6i-isp/|^drivers/staging/media/sunxi/sun6i-isp/uapi/sun6i-isp-config\\.h$"},
-		{IncludeRegexp: "^drivers/staging/media/tegra-video/"},
-	},
-}
-
-var mediatek = &Subsystem{
-	Name:    "mediatek",
-	Lists:   []string{"linux-mediatek@lists.infradead.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/mt2[^/]*$|^arch/arm/boot/dts/mt6[^/]*$|^arch/arm/boot/dts/mt7[^/]*$|^arch/arm/boot/dts/mt8[^/]*$|^arch/arm/mach-mediatek/|^arch/arm64/boot/dts/mediatek/|^drivers/soc/mediatek/|mtk|mt[2678]"},
-		{IncludeRegexp: "^drivers/bluetooth/btmtkuart\\.c$"},
-		{IncludeRegexp: "^drivers/dma/mediatek/"},
-		{IncludeRegexp: "^drivers/gpu/drm/mediatek/|^drivers/phy/mediatek/phy-mtk-dp\\.c$|^drivers/phy/mediatek/phy-mtk-hdmi[^/]*$|^drivers/phy/mediatek/phy-mtk-mipi[^/]*$"},
-		{IncludeRegexp: "^drivers/iommu/mtk_iommu[^/]*$|^include/dt-bindings/memory/mt[^/]*-port\\.h$"},
-		{IncludeRegexp: "^drivers/memory/mtk-smi\\.c$|^include/soc/mediatek/smi\\.h$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*mediatek[^/]*$"},
-		{IncludeRegexp: "^drivers/phy/mediatek/"},
-		{IncludeRegexp: "^drivers/pinctrl/mediatek/"},
-		{IncludeRegexp: "^drivers/rtc/rtc-mt2712\\.c$|^drivers/rtc/rtc-mt6397\\.c$|^drivers/rtc/rtc-mt7622\\.c$"},
-		{IncludeRegexp: "^drivers/ufs/host/ufs-mediatek[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/xhci-mtk[^/]*$|^drivers/usb/mtu3/"},
-	},
-}
-
-var megaraid = &Subsystem{
-	Name:        "megaraid",
-	Lists:       []string{"megaraidlinux.pdl@broadcom.com"},
-	Maintainers: []string{"kashyap.desai@broadcom.com", "shivasharan.srikanteshwara@broadcom.com", "sumit.saxena@broadcom.com"},
-	Parents:     []*Subsystem{scsi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/scsi/megaraid\\.[^/]*$|^drivers/scsi/megaraid/"},
-	},
-}
-
-var mhi = &Subsystem{
-	Name:        "mhi",
-	Lists:       []string{"mhi@lists.linux.dev"},
-	Maintainers: []string{"manivannan.sadhasivam@linaro.org"},
-	Parents:     []*Subsystem{armmsm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/bus/mhi/|^include/linux/mhi\\.h$"},
-	},
-}
-
-var mips = &Subsystem{
-	Name:    "mips",
-	Lists:   []string{"linux-mips@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/mips/bcm47xx/|^arch/mips/include/asm/mach-bcm47xx/"},
-		{IncludeRegexp: "^arch/mips/bmips/|^arch/mips/boot/dts/brcm/bcm[^/]*\\.dts[^/]*$|^arch/mips/include/asm/mach-bmips/|^arch/mips/kernel/[^/]*bmips[^/]*$|^drivers/soc/bcm/bcm63xx$|^drivers/irqchip/irq-bcm63[^/]*$|^drivers/irqchip/irq-bcm7[^/]*$|^drivers/irqchip/irq-brcmstb[^/]*$|^include/linux/bcm963xx_nvram\\.h$|^include/linux/bcm963xx_tag\\.h$"},
-		{IncludeRegexp: "^arch/mips/boot/dts/img/boston\\.dts$|^arch/mips/configs/generic/board-boston\\.config$|^drivers/clk/imgtec/clk-boston\\.c$|^include/dt-bindings/clock/boston-clock\\.h$"},
-		{IncludeRegexp: "^arch/mips/boot/dts/img/pistachio[^/]*$"},
-		{IncludeRegexp: "^arch/mips/boot/dts/ingenic/|^arch/mips/generic/board-ingenic\\.c$|^arch/mips/include/asm/mach-ingenic/|^arch/mips/ingenic/Kconfig$|^drivers/clk/ingenic/|^drivers/dma/dma-jz4780\\.c$|^drivers/gpu/drm/ingenic/|^drivers/i2c/busses/i2c-jz4780\\.c$|^drivers/iio/adc/ingenic-adc\\.c$|^drivers/irqchip/irq-ingenic\\.c$|^drivers/memory/jz4780-nemc\\.c$|^drivers/mmc/host/jz4740_mmc\\.c$|^drivers/mtd/nand/raw/ingenic/|^drivers/pinctrl/pinctrl-ingenic\\.c$|^drivers/power/supply/ingenic-battery\\.c$|^drivers/pwm/pwm-jz4740\\.c$|^drivers/remoteproc/ingenic_rproc\\.c$|^drivers/rtc/rtc-jz4740\\.c$|^drivers/tty/serial/8250/8250_ingenic\\.c$|^drivers/usb/musb/jz4740\\.c$|^drivers/watchdog/jz4740_wdt\\.c$|^include/dt-bindings/iio/adc/ingenic,adc\\.h$|^include/linux/mfd/ingenic-tcu\\.h$|^sound/soc/codecs/jz47[^/]*$|^sound/soc/jz4740/"},
-		{IncludeRegexp: "^arch/mips/boot/dts/mscc/|^arch/mips/configs/generic/board-ocelot\\.config$|^arch/mips/generic/board-ocelot\\.c$"},
-		{IncludeRegexp: "^arch/mips/boot/dts/ralink/mt7621[^/]*$"},
-		{IncludeRegexp: "^arch/mips/boot/dts/ralink/omega2p\\.dts$"},
-		{IncludeRegexp: "^arch/mips/boot/dts/ralink/vocore2\\.dts$"},
-		{IncludeRegexp: "^arch/mips/configs/generic/board-ranchu\\.config$|^arch/mips/generic/board-ranchu\\.c$"},
-		{IncludeRegexp: "^arch/mips/dec/|^arch/mips/include/asm/dec/|^arch/mips/include/asm/mach-dec/"},
-		{IncludeRegexp: "^arch/mips/generic/|^arch/mips/tools/generic-board-config\\.sh$"},
-		{IncludeRegexp: "^arch/mips/include/asm/kvm[^/]*$|^arch/mips/include/uapi/asm/kvm[^/]*$|^arch/mips/kvm/"},
-		{IncludeRegexp: "^arch/mips/include/asm/mach-loongson2ef/|^arch/mips/loongson2ef/|^drivers/cpufreq/loongson2_cpufreq\\.c$"},
-		{IncludeRegexp: "^arch/mips/include/asm/mach-loongson32/|^arch/mips/loongson32/|^drivers/[^/]*/[^/]*/[^/]*loongson1[^/]*$|^drivers/[^/]*/[^/]*loongson1[^/]*$"},
-		{IncludeRegexp: "^arch/mips/include/asm/mach-loongson64/|^arch/mips/loongson64/|^drivers/irqchip/irq-loongson[^/]*$|^drivers/platform/mips/cpu_hwmon\\.c$"},
-		{IncludeRegexp: "^arch/mips/lantiq$|^drivers/soc/lantiq$"},
-		{IncludeRegexp: "^arch/mips/math-emu/dp_rint\\.c$|^arch/mips/math-emu/sp_rint\\.c$"},
-		{IncludeRegexp: "^arch/mips/ralink$"},
-		{IncludeRegexp: "^arch/mips/|^drivers/platform/mips/|^include/dt-bindings/mips/"},
-		{IncludeRegexp: "^drivers/bus/mips_cdmm\\.c$|^drivers/clocksource/mips-gic-timer\\.c$|^drivers/cpuidle/cpuidle-cps\\.c$|^drivers/irqchip/irq-mips-cpu\\.c$|^drivers/irqchip/irq-mips-gic\\.c$"},
-		{IncludeRegexp: "^drivers/edac/octeon_edac[^/]*$"},
-		{IncludeRegexp: "^drivers/firmware/broadcom/"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/ingenic/"},
-		{IncludeRegexp: "^drivers/net/ethernet/sgi/ioc3-eth\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/ralink/"},
-		{IncludeRegexp: "^drivers/tc/|^include/linux/tc\\.h$"},
-	},
-}
-
-var mjpeg = &Subsystem{
-	Name:        "mjpeg",
-	Lists:       []string{"mjpeg-users@lists.sourceforge.net"},
-	Maintainers: []string{"clabbe@baylibre.com"},
-	Parents:     []*Subsystem{media},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/media/pci/zoran/"},
-	},
-}
-
-var mm = &Subsystem{
-	Name:    "mm",
-	Lists:   []string{"linux-mm@kvack.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/percpu\\.h$|^include/linux/percpu[^/]*\\.h$|^lib/percpu[^/]*\\.c$|^mm/percpu[^/]*\\.c$"},
-		{IncludeRegexp: "^arch/[^/]*/include/asm/tlb\\.h$|^include/asm-generic/tlb\\.h$|^mm/mmu_gather\\.c$"},
-		{IncludeRegexp: "^drivers/base/memory\\.c$|^include/linux/memory_hotplug\\.h$|^mm/memory_hotplug\\.c$"},
-		{IncludeRegexp: "^fs/[^/]*binfmt_[^/]*\\.c$|^fs/exec\\.c$|^include/linux/binfmts\\.h$|^include/linux/elf\\.h$|^include/uapi/linux/binfmts\\.h$|^include/uapi/linux/elf\\.h$|asm/elf.h|binfmt"},
-		{IncludeRegexp: "^fs/hugetlbfs/|^include/linux/hugetlb\\.h$|^mm/hugetlb\\.c$|^mm/hugetlb_vmemmap\\.c$|^mm/hugetlb_vmemmap\\.h$"},
-		{IncludeRegexp: "^include/linux/damon\\.h$|^include/trace/events/damon\\.h$|^mm/damon/"},
-		{IncludeRegexp: "^include/linux/gfp\\.h$|^include/linux/gfp_types\\.h$|^include/linux/memory_hotplug\\.h$|^include/linux/mm\\.h$|^include/linux/mmzone\\.h$|^include/linux/pagewalk\\.h$|^mm/"},
-		{IncludeRegexp: "^include/linux/hmm[^/]*$|^lib/test_hmm[^/]*$|^mm/hmm[^/]*$"},
-		{IncludeRegexp: "^include/linux/maple_tree\\.h$|^include/trace/events/maple_tree\\.h$|^lib/maple_tree\\.c$|^lib/test_maple_tree\\.c$"},
-		{IncludeRegexp: "^include/linux/memblock\\.h$|^mm/memblock\\.c$"},
-		{IncludeRegexp: "^include/linux/page_table_check\\.h$|^mm/page_table_check\\.c$"},
-		{IncludeRegexp: "^include/linux/shmem_fs\\.h$|^mm/shmem\\.c$"},
-		{IncludeRegexp: "^include/linux/sl.b[^/]*\\.h$|^mm/sl.b[^/]*$"},
-		{IncludeRegexp: "^include/linux/vmalloc\\.h$|^mm/vmalloc\\.c$"},
-		{IncludeRegexp: "^include/linux/zpool\\.h$|^mm/zpool\\.c$"},
-		{IncludeRegexp: "^include/linux/zsmalloc\\.h$|^mm/zsmalloc\\.c$"},
-		{IncludeRegexp: "^mm/hwpoison-inject\\.c$|^mm/memory-failure\\.c$"},
-		{IncludeRegexp: "^mm/memcontrol\\.c$|^mm/swap_cgroup\\.c$"},
-		{IncludeRegexp: "^mm/z3fold\\.c$"},
-		{IncludeRegexp: "^mm/zbud\\.c$"},
-		{IncludeRegexp: "^mm/zswap\\.c$"},
-	},
-}
-
-var mmc = &Subsystem{
-	Name:    "mmc",
-	Lists:   []string{"linux-mmc@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/memstick/|^include/linux/memstick\\.h$"},
-		{IncludeRegexp: "^drivers/mmc/host/cqhci[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/dw_mmc[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/omap_hsmmc\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/renesas_sdhi[^/]*$|^drivers/mmc/host/tmio_mmc[^/]*$|^include/linux/mfd/tmio\\.h$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-brcmstb[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-esdhc-imx\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-esdhc-mcf\\.c$|^include/linux/platform_data/mmc-esdhc-mcf\\.h$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-of-aspeed[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-of-at91\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-omap\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-pci-dwc-mshc\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-s3c[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-spear\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-xenon[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci[^/]*$"},
-		{IncludeRegexp: "^drivers/mmc/host/vub300\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/|^include/linux/mmc/|^include/uapi/linux/mmc/"},
-	},
-}
-
-var modules = &Subsystem{
-	Name:    "modules",
-	Lists:   []string{"linux-modules@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/kmod\\.h$|^kernel/kmod\\.c$|^lib/test_kmod\\.c$"},
-		{IncludeRegexp: "^include/linux/module\\.h$|^kernel/module/"},
-	},
-}
-
-var mpi3 = &Subsystem{
-	Name:        "mpi3",
-	Lists:       []string{"mpi3mr-linuxdrv.pdl@broadcom.com"},
-	Maintainers: []string{"kashyap.desai@broadcom.com", "sathya.prakash@broadcom.com", "sreekanth.reddy@broadcom.com", "sumit.saxena@broadcom.com"},
-	Parents:     []*Subsystem{scsi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/scsi/mpi3mr/"},
-	},
-}
-
-var mptfusion = &Subsystem{
-	Name:        "mpt-fusion",
-	Lists:       []string{"MPT-FusionLinux.pdl@broadcom.com"},
-	Maintainers: []string{"sathya.prakash@broadcom.com", "sreekanth.reddy@broadcom.com", "suganath-prabu.subramani@broadcom.com"},
-	Parents:     []*Subsystem{scsi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/message/fusion/|^drivers/scsi/mpt3sas/"},
-	},
-}
-
-var mptcp = &Subsystem{
-	Name:        "mptcp",
-	Lists:       []string{"mptcp@lists.linux.dev"},
-	Maintainers: []string{"matthieu.baerts@tessares.net"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/net/mptcp\\.h$|^include/trace/events/mptcp\\.h$|^include/uapi/linux/mptcp\\.h$|^net/mptcp/"},
-	},
-}
-
-var mtd = &Subsystem{
-	Name:    "mtd",
-	Lists:   []string{"linux-mtd@lists.infradead.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/mtd/devices/block2mtd\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/devices/docg3[^/]*$"},
-		{IncludeRegexp: "^drivers/mtd/devices/phram\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/hyperbus/|^include/linux/mtd/hyperbus\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/nand/onenand/|^include/linux/mtd/onenand[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/arasan-nand-controller\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/atmel/"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/brcmnand/|^include/linux/platform_data/brcmnand\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/cadence-nand-controller\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/denali[^/]*$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/gpmi-nand/"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/ingenic/"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/marvell_nand\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/meson_[^/]*$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/mtk_[^/]*$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/pl35x-nand-controller\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/qcom_nandc\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/renesas-nand-controller\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/vf610_nfc\\.c$"},
-		{IncludeRegexp: "^drivers/mtd/nand/|^include/linux/mtd/[^/]*nand[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/spi-nor/|^include/linux/mtd/spi-nor\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/ubi/|^include/linux/mtd/ubi\\.h$|^include/uapi/mtd/ubi-user\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/|^include/linux/mtd/|^include/uapi/mtd/"},
-		{IncludeRegexp: "^fs/jffs2/|^include/uapi/linux/jffs2\\.h$"},
-		{IncludeRegexp: "^fs/ubifs/"},
-	},
-}
-
-var nbd = &Subsystem{
-	Name:        "nbd",
-	Lists:       []string{"nbd@other.debian.org"},
-	Maintainers: []string{"josef@toxicpanda.com"},
-	Parents:     []*Subsystem{block},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/block/nbd\\.c$|^include/trace/events/nbd\\.h$|^include/uapi/linux/nbd\\.h$"},
-	},
-}
-
-var net = &Subsystem{
-	Name:    "net",
-	Lists:   []string{"netdev@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm64/boot/dts/amd/amd-seattle-xgbe[^/]*\\.dtsi$|^drivers/net/ethernet/amd/xgbe/"},
-		{IncludeRegexp: "^arch/x86/net/|^include/linux/ip\\.h$|^include/linux/ipv6[^/]*$|^include/net/fib[^/]*$|^include/net/ip[^/]*$|^include/net/route\\.h$|^net/ipv4/|^net/ipv6/"},
-		{IncludeRegexp: "^drivers/atm/|^include/linux/atm[^/]*$|^include/uapi/linux/atm[^/]*$"},
-		{IncludeRegexp: "^drivers/connector/|^drivers/net/|^include/dt-bindings/net/|^include/linux/etherdevice\\.h$|^include/linux/fcdevice\\.h$|^include/linux/fddidevice\\.h$|^include/linux/hippidevice\\.h$|^include/linux/if_[^/]*$|^include/linux/inetdevice\\.h$|^include/linux/netdevice\\.h$|^include/uapi/linux/if_[^/]*$|^include/uapi/linux/netdevice\\.h$"},
-		{IncludeRegexp: "^drivers/firmware/broadcom/tee_bnxt_fw\\.c$|^drivers/net/ethernet/broadcom/bnxt/|^include/linux/firmware/broadcom/tee_bnxt_fw\\.h$"},
-		{IncludeRegexp: "^drivers/isdn/Kconfig$|^drivers/isdn/hardware/|^drivers/isdn/mISDN/"},
-		{IncludeRegexp: "^drivers/isdn/capi/|^include/linux/isdn/|^include/uapi/linux/isdn/|^net/bluetooth/cmtp/"},
-		{IncludeRegexp: "^drivers/net/amt\\.c$"},
-		{IncludeRegexp: "^drivers/net/appletalk/|^include/linux/atalk\\.h$|^include/uapi/linux/atalk\\.h$|^net/appletalk/"},
-		{IncludeRegexp: "^drivers/net/arcnet/|^include/uapi/linux/if_arcnet\\.h$"},
-		{IncludeRegexp: "^drivers/net/bonding/|^include/net/bond[^/]*$|^include/uapi/linux/if_bonding\\.h$"},
-		{IncludeRegexp: "^drivers/net/caif/|^include/net/caif/|^include/uapi/linux/caif/|^net/caif/"},
-		{IncludeRegexp: "^drivers/net/dsa/b53/|^drivers/net/dsa/bcm_sf2[^/]*$|^include/linux/dsa/brcm\\.h$|^include/linux/platform_data/b53\\.h$"},
-		{IncludeRegexp: "^drivers/net/dsa/hirschmann/|^include/linux/platform_data/hirschmann-hellcreek\\.h$|^net/dsa/tag_hellcreek\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/lantiq_gswip\\.c$|^drivers/net/dsa/lantiq_pce\\.h$|^drivers/net/ethernet/lantiq_xrx200\\.c$|^net/dsa/tag_gswip\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/microchip/|^include/linux/platform_data/microchip-ksz\\.h$|^net/dsa/tag_ksz\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/mt7530\\.[^/]*$|^net/dsa/tag_mtk\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/mv88e6xxx/|^include/linux/dsa/mv88e6xxx\\.h$|^include/linux/platform_data/mv88e6xxx\\.h$"},
-		{IncludeRegexp: "^drivers/net/dsa/ocelot/|^drivers/net/ethernet/mscc/|^include/soc/mscc/ocelot[^/]*$|^net/dsa/tag_ocelot\\.c$|^net/dsa/tag_ocelot_8021q\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/rzn1_a5psw[^/]*$|^drivers/net/pcs/pcs-rzn1-miic\\.c$|^include/dt-bindings/net/pcs-rzn1-miic\\.h$|^include/linux/pcs-rzn1-miic\\.h$|^net/dsa/tag_rzn1_a5psw\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/xrs700x/|^net/dsa/tag_xrs700x\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/3com/3c59x\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/3com/typhoon[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/8390/"},
-		{IncludeRegexp: "^drivers/net/ethernet/aeroflex/"},
-		{IncludeRegexp: "^drivers/net/ethernet/altera/"},
-		{IncludeRegexp: "^drivers/net/ethernet/amazon/"},
-		{IncludeRegexp: "^drivers/net/ethernet/amd/pcnet32\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/aquantia/atlantic/"},
-		{IncludeRegexp: "^drivers/net/ethernet/aquantia/atlantic/aq_ptp[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/atheros/"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/b44\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/bcm4908_enet\\.[^/]*$|^drivers/net/ethernet/broadcom/unimac\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/bcmsysport\\.[^/]*$|^drivers/net/ethernet/broadcom/unimac\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/bgmac[^/]*$|^drivers/net/ethernet/broadcom/unimac\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/bnx2\\.[^/]*$|^drivers/net/ethernet/broadcom/bnx2_[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/bnx2x/"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/genet/|^drivers/net/ethernet/broadcom/unimac\\.h$|^drivers/net/mdio/mdio-bcm-unimac\\.c$|^include/linux/platform_data/bcmgenet\\.h$|^include/linux/platform_data/mdio-bcm-unimac\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/broadcom/tg3\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/brocade/bna/"},
-		{IncludeRegexp: "^drivers/net/ethernet/cavium/liquidio/"},
-		{IncludeRegexp: "^drivers/net/ethernet/chelsio/cxgb3/"},
-		{IncludeRegexp: "^drivers/net/ethernet/chelsio/cxgb4/"},
-		{IncludeRegexp: "^drivers/net/ethernet/chelsio/cxgb4vf/"},
-		{IncludeRegexp: "^drivers/net/ethernet/chelsio/inline_crypto/"},
-		{IncludeRegexp: "^drivers/net/ethernet/cirrus/ep93xx_eth\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/"},
-		{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/dmfe\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/dlink/sundance\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/ec_bhf\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/emulex/benet/"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa2/Kconfig$|^drivers/net/ethernet/freescale/dpaa2/dpaa2-eth[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpaa2-mac[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpaa2-xsk[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpkg\\.h$|^drivers/net/ethernet/freescale/dpaa2/dpmac[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpni[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa2/dpaa2-ptp[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dprtc[^/]*$|^drivers/net/ethernet/freescale/enetc/enetc_ptp\\.c$|^drivers/ptp/ptp_qoriq\\.c$|^drivers/ptp/ptp_qoriq_debugfs\\.c$|^include/linux/fsl/ptp_qoriq\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa2/dpaa2-switch[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpsw[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/enetc/"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/fec\\.h$|^drivers/net/ethernet/freescale/fec_main\\.c$|^drivers/net/ethernet/freescale/fec_ptp\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/fman$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/fs_enet/|^include/linux/fs_enet_pd\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/gianfar[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/freescale/ucc_geth[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/fungible/"},
-		{IncludeRegexp: "^drivers/net/ethernet/google$"},
-		{IncludeRegexp: "^drivers/net/ethernet/hisilicon/"},
-		{IncludeRegexp: "^drivers/net/ethernet/hisilicon/hns3/"},
-		{IncludeRegexp: "^drivers/net/ethernet/huawei/hinic/"},
-		{IncludeRegexp: "^drivers/net/ethernet/ibm/ehea/"},
-		{IncludeRegexp: "^drivers/net/ethernet/ibm/ibmveth\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/ibm/ibmvnic\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/jme\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/mv643xx_eth\\.[^/]*$|^include/linux/mv643xx\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/mvneta\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/mvpp2/"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/octeon_ep$"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/octeontx2/af/"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/octeontx2/nic/|^include/linux/soc/marvell/octeontx2/"},
-		{IncludeRegexp: "^drivers/net/ethernet/marvell/sk[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/mediatek/"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx4/en_[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx4/|^include/linux/mlx4/"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/en_[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/en_accel/|^drivers/net/ethernet/mellanox/mlx5/core/fpga/|^include/linux/mlx5/mlx5_ifc_fpga\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/|^include/linux/mlx5/"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlxfw/"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlxsw/"},
-		{IncludeRegexp: "^drivers/net/ethernet/microchip/lan743x_[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/microchip/lan966x/"},
-		{IncludeRegexp: "^drivers/net/ethernet/myricom/myri10ge/"},
-		{IncludeRegexp: "^drivers/net/ethernet/natsemi/sonic\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/neterion/"},
-		{IncludeRegexp: "^drivers/net/ethernet/nvidia/"},
-		{IncludeRegexp: "^drivers/net/ethernet/pensando/"},
-		{IncludeRegexp: "^drivers/net/ethernet/qlogic/netxen/"},
-		{IncludeRegexp: "^drivers/net/ethernet/qlogic/qed/|^drivers/net/ethernet/qlogic/qede/|^include/linux/qed/"},
-		{IncludeRegexp: "^drivers/net/ethernet/qlogic/qla3xxx\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/qlogic/qlcnic/"},
-		{IncludeRegexp: "^drivers/net/ethernet/qualcomm/emac/"},
-		{IncludeRegexp: "^drivers/net/ethernet/qualcomm/rmnet/|^include/linux/if_rmnet\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/rdc/r6040\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/realtek/r8169[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/renesas/|^include/linux/sh_eth\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/rocker/"},
-		{IncludeRegexp: "^drivers/net/ethernet/samsung/sxgbe/"},
-		{IncludeRegexp: "^drivers/net/ethernet/sfc/"},
-		{IncludeRegexp: "^drivers/net/ethernet/sis/sis190\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/sis/sis900\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/smsc/smsc911x\\.[^/]*$|^include/linux/smsc911x\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/smsc/smsc9420\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/socionext/netsec\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/socionext/sni_ave\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/stmicro/stmmac/"},
-		{IncludeRegexp: "^drivers/net/ethernet/stmicro/stmmac/dwmac-qcom-ethqos\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/sunplus/"},
-		{IncludeRegexp: "^drivers/net/ethernet/synopsys/"},
-		{IncludeRegexp: "^drivers/net/ethernet/tehuti/"},
-		{IncludeRegexp: "^drivers/net/ethernet/ti/cpmac\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/ti/cpsw[^/]*$|^drivers/net/ethernet/ti/davinci[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/toshiba/ps3_gelic_net\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/toshiba/spider_net[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/via/via-velocity\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/ethernet/wangxun/"},
-		{IncludeRegexp: "^drivers/net/ipa/"},
-		{IncludeRegexp: "^drivers/net/mctp/|^include/net/mctp\\.h$|^include/net/mctpdevice\\.h$|^include/net/netns/mctp\\.h$|^net/mctp/"},
-		{IncludeRegexp: "^drivers/net/mdio/mdio-mvusb\\.c$"},
-		{IncludeRegexp: "^drivers/net/mdio/|^drivers/net/mdio/acpi_mdio\\.c$|^drivers/net/mdio/fwnode_mdio\\.c$|^drivers/net/mdio/of_mdio\\.c$|^drivers/net/pcs/|^drivers/net/phy/|^include/dt-bindings/net/qca-ar803x\\.h$|^include/linux/linkmode\\.h$|^include/linux/[^/]*mdio[^/]*\\.h$|^include/linux/mdio/[^/]*\\.h$|^include/linux/mii\\.h$|^include/linux/of_net\\.h$|^include/linux/phy\\.h$|^include/linux/phy_fixed\\.h$|^include/linux/platform_data/mdio-bcm-unimac\\.h$|^include/linux/platform_data/mdio-gpio\\.h$|^include/trace/events/mdio\\.h$|^include/uapi/linux/mdio\\.h$|^include/uapi/linux/mii\\.h$|^net/core/of_net\\.c$"},
-		{IncludeRegexp: "^drivers/net/net_failover\\.c$|^include/net/net_failover\\.h$"},
-		{IncludeRegexp: "^drivers/net/pcs/pcs-altera-tse\\.c$|^include/linux/pcs-altera-tse\\.h$"},
-		{IncludeRegexp: "^drivers/net/pcs/pcs-lynx\\.c$|^include/linux/pcs-lynx\\.h$"},
-		{IncludeRegexp: "^drivers/net/pcs/pcs-xpcs\\.c$|^drivers/net/pcs/pcs-xpcs\\.h$|^include/linux/pcs/pcs-xpcs\\.h$"},
-		{IncludeRegexp: "^drivers/net/phy/adin\\.c$"},
-		{IncludeRegexp: "^drivers/net/phy/bcm[^/]*\\.\\[ch\\]$|^drivers/net/phy/broadcom\\.c$|^include/linux/brcmphy\\.h$"},
-		{IncludeRegexp: "^drivers/net/phy/dp83640[^/]*$|^drivers/ptp/|^include/linux/ptp_cl[^/]*$"},
-		{IncludeRegexp: "^drivers/net/phy/marvell10g\\.c$"},
-		{IncludeRegexp: "^drivers/net/phy/microchip_t1\\.c$"},
-		{IncludeRegexp: "^drivers/net/phy/motorcomm\\.c$"},
-		{IncludeRegexp: "^drivers/net/phy/mxl-gpy\\.c$"},
-		{IncludeRegexp: "^drivers/net/phy/nxp-c45-tja11xx\\.c$"},
-		{IncludeRegexp: "^drivers/net/phy/phylink\\.c$|^drivers/net/phy/sfp[^/]*$|^include/linux/mdio/mdio-i2c\\.h$|^include/linux/phylink\\.h$|^include/linux/sfp\\.h$"},
-		{IncludeRegexp: "^drivers/net/ppp/pptp\\.c$"},
-		{IncludeRegexp: "^drivers/net/team/|^include/linux/if_team\\.h$|^include/uapi/linux/if_team\\.h$"},
-		{IncludeRegexp: "^drivers/net/thunderbolt\\.c$"},
-		{IncludeRegexp: "^drivers/net/usb/dm9601\\.c$"},
-		{IncludeRegexp: "^drivers/net/usb/lan78xx\\.[^/]*$|^include/dt-bindings/net/microchip-lan78xx\\.h$"},
-		{IncludeRegexp: "^drivers/net/usb/pegasus\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/usb/qmi_wwan\\.c$"},
-		{IncludeRegexp: "^drivers/net/usb/rtl8150\\.c$"},
-		{IncludeRegexp: "^drivers/net/usb/smsc75xx\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/usb/smsc95xx\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/usb/usbnet\\.c$|^include/linux/usb/usbnet\\.h$"},
-		{IncludeRegexp: "^drivers/net/vmxnet3/"},
-		{IncludeRegexp: "^drivers/net/vrf\\.c$"},
-		{IncludeRegexp: "^drivers/net/vsockmon\\.c$|^include/net/af_vsock\\.h$|^include/uapi/linux/vm_sockets\\.h$|^include/uapi/linux/vm_sockets_diag\\.h$|^include/uapi/linux/vsockmon\\.h$|^net/vmw_vsock/"},
-		{IncludeRegexp: "^drivers/net/wan/fsl_ucc_hdlc[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wireguard/"},
-		{IncludeRegexp: "^drivers/net/wwan/iosm/"},
-		{IncludeRegexp: "^drivers/net/wwan/qcom_bam_dmux\\.c$"},
-		{IncludeRegexp: "^drivers/net/wwan/rpmsg_wwan_ctrl\\.c$"},
-		{IncludeRegexp: "^drivers/net/wwan/t7xx/"},
-		{IncludeRegexp: "^drivers/net/wwan/|^include/linux/wwan\\.h$|^include/uapi/linux/wwan\\.h$"},
-		{IncludeRegexp: "^drivers/net/xen-netback/"},
-		{IncludeRegexp: "^drivers/nfc/virtual_ncidev\\.c$"},
-		{IncludeRegexp: "^drivers/nfc/|^include/linux/platform_data/nfcmrvl\\.h$|^include/net/nfc/|^include/uapi/linux/nfc\\.h$|^net/nfc/"},
-		{IncludeRegexp: "^drivers/phy/freescale/phy-fsl-lynx-28g\\.c$"},
-		{IncludeRegexp: "^drivers/ptp/ptp_ocp\\.c$"},
-		{IncludeRegexp: "^drivers/ptp/ptp_vclock\\.c$|^net/ethtool/phc_vclocks\\.c$"},
-		{IncludeRegexp: "^drivers/ptp/ptp_vmw\\.c$"},
-		{IncludeRegexp: "^drivers/s390/net/"},
-		{IncludeRegexp: "^drivers/s390/net/[^/]*iucv[^/]*$|^include/net/iucv/|^net/iucv/"},
-		{IncludeRegexp: "^drivers/staging/qlge/"},
-		{IncludeRegexp: "^drivers/vhost/vsock\\.c$|^include/linux/virtio_vsock\\.h$|^include/uapi/linux/virtio_vsock\\.h$|^net/vmw_vsock/virtio_transport\\.c$|^net/vmw_vsock/virtio_transport_common\\.c$"},
-		{IncludeRegexp: "^drivers/vhost/|^include/linux/vhost_iotlb\\.h$|^include/uapi/linux/vhost\\.h$"},
-		{IncludeRegexp: "^include/linux/in\\.h$|^include/linux/net\\.h$|^include/linux/netdevice\\.h$|^include/net/|^include/uapi/linux/in\\.h$|^include/uapi/linux/net\\.h$|^include/uapi/linux/net_namespace\\.h$|^include/uapi/linux/netdevice\\.h$|^lib/net_utils\\.c$|^lib/random32\\.c$|^net/"},
-		{IncludeRegexp: "^include/linux/llc\\.h$|^include/net/llc[^/]*$|^include/uapi/linux/llc\\.h$|^net/llc/"},
-		{IncludeRegexp: "^include/linux/netfilter_bridge/|^net/bridge/"},
-		{IncludeRegexp: "^include/linux/objagg\\.h$|^lib/objagg\\.c$|^lib/test_objagg\\.c$"},
-		{IncludeRegexp: "^include/linux/packing\\.h$|^lib/packing\\.c$"},
-		{IncludeRegexp: "^include/linux/parman\\.h$|^lib/parman\\.c$|^lib/test_parman\\.c$"},
-		{IncludeRegexp: "^include/linux/rhashtable-types\\.h$|^include/linux/rhashtable\\.h$|^lib/rhashtable\\.c$|^lib/test_rhashtable\\.c$"},
-		{IncludeRegexp: "^include/linux/skmsg\\.h$|^net/core/skmsg\\.c$|^net/core/sock_map\\.c$|^net/ipv4/tcp_bpf\\.c$|^net/ipv4/udp_bpf\\.c$|^net/unix/unix_bpf\\.c$"},
-		{IncludeRegexp: "^include/linux/tcp\\.h$|^include/net/tcp\\.h$|^include/trace/events/tcp\\.h$|^include/uapi/linux/tcp\\.h$|^net/ipv4/syncookies\\.c$|^net/ipv4/tcp[^/]*\\.c$|^net/ipv6/syncookies\\.c$|^net/ipv6/tcp[^/]*\\.c$"},
-		{IncludeRegexp: "^include/net/calipso\\.h$|^include/net/cipso_ipv4\\.h$|^include/net/netlabel\\.h$|^include/uapi/linux/netfilter/xt_CONNSECMARK\\.h$|^include/uapi/linux/netfilter/xt_SECMARK\\.h$|^net/ipv4/cipso_ipv4\\.c$|^net/ipv6/calipso\\.c$|^net/netfilter/xt_CONNSECMARK\\.c$|^net/netfilter/xt_SECMARK\\.c$|^net/netlabel/"},
-		{IncludeRegexp: "^include/net/devlink\\.h$|^include/uapi/linux/devlink\\.h$|^net/core/devlink\\.c$"},
-		{IncludeRegexp: "^include/net/failover\\.h$|^net/core/failover\\.c$"},
-		{IncludeRegexp: "^include/net/gre\\.h$|^net/ipv4/gre_demux\\.c$|^net/ipv4/gre_offload\\.c$"},
-		{IncludeRegexp: "^include/net/ip_vs\\.h$|^include/uapi/linux/ip_vs\\.h$|^net/netfilter/ipvs/"},
-		{IncludeRegexp: "^include/net/l3mdev\\.h$|^net/l3mdev$"},
-		{IncludeRegexp: "^include/net/mptcp\\.h$|^include/trace/events/mptcp\\.h$|^include/uapi/linux/mptcp\\.h$|^net/mptcp/"},
-		{IncludeRegexp: "^include/net/netns/nexthop\\.h$|^include/net/nexthop\\.h$|^include/uapi/linux/nexthop\\.h$|^net/ipv4/nexthop\\.c$"},
-		{IncludeRegexp: "^include/net/page_pool\\.h$|^include/trace/events/page_pool\\.h$|^net/core/page_pool\\.c$"},
-		{IncludeRegexp: "^include/net/pkt_cls\\.h$|^include/net/pkt_sched\\.h$|^include/net/tc_act/|^include/uapi/linux/pkt_cls\\.h$|^include/uapi/linux/pkt_sched\\.h$|^include/uapi/linux/tc_act/|^include/uapi/linux/tc_ematch/|^net/sched/"},
-		{IncludeRegexp: "^include/net/switchdev\\.h$|^net/switchdev/"},
-		{IncludeRegexp: "^include/net/tls\\.h$|^include/uapi/linux/tls\\.h$|^net/tls/"},
-		{IncludeRegexp: "^include/net/xdp\\.h$|^include/net/xdp_priv\\.h$|^include/trace/events/xdp\\.h$|^kernel/bpf/cpumap\\.c$|^kernel/bpf/devmap\\.c$|^net/core/xdp\\.c$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*/[^/]*/[^/]*xdp[^/]*$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*xdp[^/]*$"},
-		{IncludeRegexp: "^include/net/xdp_sock[^/]*$|^include/net/xsk_buff_pool\\.h$|^include/uapi/linux/if_xdp\\.h$|^include/uapi/linux/xdp_diag\\.h$|^include/net/netns/xdp\\.h$|^net/xdp/"},
-		{IncludeRegexp: "^include/net/xfrm\\.h$|^include/uapi/linux/xfrm\\.h$|^net/ipv4/ah4\\.c$|^net/ipv4/esp4[^/]*$|^net/ipv4/ip_vti\\.c$|^net/ipv4/ipcomp\\.c$|^net/ipv4/xfrm[^/]*$|^net/ipv6/ah6\\.c$|^net/ipv6/esp6[^/]*$|^net/ipv6/ip6_vti\\.c$|^net/ipv6/ipcomp6\\.c$|^net/ipv6/xfrm[^/]*$|^net/key/|^net/xfrm/"},
-		{IncludeRegexp: "^include/uapi/linux/net_dropmon\\.h$|^net/core/drop_monitor\\.c$"},
-		{IncludeRegexp: "^include/uapi/linux/openvswitch\\.h$|^net/openvswitch/"},
-		{IncludeRegexp: "^include/uapi/linux/tipc[^/]*\\.h$|^net/tipc/"},
-		{IncludeRegexp: "^kernel/bpf/bpf_struct[^/]*$"},
-		{IncludeRegexp: "^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
-		{IncludeRegexp: "^net/hsr/"},
-		{IncludeRegexp: "^net/rds/"},
-		{IncludeRegexp: "^net/sched/sch_cbs\\.c$|^net/sched/sch_etf\\.c$|^net/sched/sch_taprio\\.c$"},
-		{IncludeRegexp: "^net/sched/sch_netem\\.c$"},
-	},
-}
-
-var netfilter = &Subsystem{
-	Name:        "netfilter",
-	Lists:       []string{"netfilter-devel@vger.kernel.org"},
-	Maintainers: []string{"fw@strlen.de", "kadlec@netfilter.org", "pablo@netfilter.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/netfilter[^/]*$|^include/linux/netfilter/|^include/net/netfilter/|^include/uapi/linux/netfilter[^/]*$|^include/uapi/linux/netfilter/|^net/[^/]*/netfilter\\.c$|^net/[^/]*/netfilter/|^net/bridge/br_netfilter[^/]*\\.c$|^net/netfilter/"},
-	},
-}
-
-var nfc = &Subsystem{
-	Name:    "nfc",
-	Lists:   []string{"linux-nfc@lists.01.org"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/nfc/nxp-nci$"},
-		{IncludeRegexp: "^drivers/nfc/s3fwrn5$"},
-		{IncludeRegexp: "^drivers/nfc/trf7970a\\.c$"},
-		{IncludeRegexp: "^drivers/nfc/virtual_ncidev\\.c$"},
-		{IncludeRegexp: "^drivers/nfc/|^include/linux/platform_data/nfcmrvl\\.h$|^include/net/nfc/|^include/uapi/linux/nfc\\.h$|^net/nfc/"},
-	},
-}
-
-var nfs = &Subsystem{
-	Name:    "nfs",
-	Lists:   []string{"linux-nfs@vger.kernel.org"},
-	Parents: []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/exportfs/|^fs/lockd/|^fs/nfs_common/|^fs/nfsd/|^include/linux/lockd/|^include/linux/sunrpc/|^include/trace/events/rpcgss\\.h$|^include/trace/events/rpcrdma\\.h$|^include/trace/events/sunrpc\\.h$|^include/trace/misc/fs\\.h$|^include/trace/misc/nfs\\.h$|^include/trace/misc/sunrpc\\.h$|^include/uapi/linux/nfsd/|^include/uapi/linux/sunrpc/|^net/sunrpc/"},
-		{IncludeRegexp: "^fs/lockd/|^fs/nfs/|^fs/nfs_common/|^include/linux/lockd/|^include/linux/nfs[^/]*$|^include/linux/sunrpc/|^include/uapi/linux/nfs[^/]*$|^include/uapi/linux/sunrpc/|^net/sunrpc/"},
-	},
-}
-
-var nilfs = &Subsystem{
-	Name:        "nilfs",
-	Lists:       []string{"linux-nilfs@vger.kernel.org"},
-	Maintainers: []string{"konishi.ryusuke@gmail.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/nilfs2/|^include/trace/events/nilfs2\\.h$|^include/uapi/linux/nilfs2_api\\.h$|^include/uapi/linux/nilfs2_ondisk\\.h$"},
-	},
-}
-
-var nitro = &Subsystem{
-	Name:        "nitro",
-	Lists:       []string{"aws-nitro-enclaves-devel@amazon.com"},
-	Maintainers: []string{"alcioa@amazon.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/virt/nitro_enclaves/|^include/linux/nitro_enclaves\\.h$|^include/uapi/linux/nitro_enclaves\\.h$"},
-	},
-}
-
-var nouveau = &Subsystem{
-	Name:    "nouveau",
-	Lists:   []string{"nouveau@lists.freedesktop.org"},
-	Parents: []*Subsystem{dri},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/mm/kmmio\\.c$|^arch/x86/mm/mmio-mod\\.c$|^arch/x86/mm/testmmiotrace\\.c$|^include/linux/mmiotrace\\.h$|^kernel/trace/trace_mmiotrace\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/nouveau/|^include/uapi/drm/nouveau_drm\\.h$"},
-	},
-}
-
-var ntb = &Subsystem{
-	Name:    "ntb",
-	Lists:   []string{"ntb@lists.linux.dev"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ntb_netdev\\.c$|^drivers/ntb/|^drivers/pci/endpoint/functions/pci-epf-[^/]*ntb\\.c$|^include/linux/ntb\\.h$|^include/linux/ntb_transport\\.h$"},
-		{IncludeRegexp: "^drivers/ntb/hw/amd/"},
-		{IncludeRegexp: "^drivers/ntb/hw/idt/"},
-		{IncludeRegexp: "^drivers/ntb/hw/intel/"},
-	},
-}
-
-var ntfs = &Subsystem{
-	Name:     "ntfs",
-	Syscalls: []string{"syz_mount_image$ntfs"},
-	Lists:    []string{"linux-ntfs-dev@lists.sourceforge.net"},
-	Parents:  []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^block/partitions/ldm\\.[^/]*$"},
-		{IncludeRegexp: "^fs/ntfs/"},
-	},
-}
-
-var ntfs3 = &Subsystem{
-	Name:        "ntfs3",
-	Syscalls:    []string{"syz_mount_image$ntfs3"},
-	Lists:       []string{"ntfs3@lists.linux.dev"},
-	Maintainers: []string{"almaz.alexandrovich@paragon-software.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/ntfs3/"},
-	},
-}
-
-var nvdimm = &Subsystem{
-	Name:    "nvdimm",
-	Lists:   []string{"nvdimm@lists.linux.dev"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/acpi/nfit/|^drivers/nvdimm/|^include/linux/libnvdimm\\.h$|^include/linux/nd\\.h$|^include/uapi/linux/ndctl\\.h$"},
-		{IncludeRegexp: "^drivers/dax/"},
-		{IncludeRegexp: "^drivers/nvdimm/btt[^/]*$"},
-		{IncludeRegexp: "^drivers/nvdimm/of_pmem\\.c$"},
-		{IncludeRegexp: "^drivers/nvdimm/pmem[^/]*$"},
-		{IncludeRegexp: "^fs/dax\\.c$|^include/linux/dax\\.h$|^include/trace/events/fs_dax\\.h$"},
-	},
-}
-
-var nvme = &Subsystem{
-	Name:    "nvme",
-	Lists:   []string{"linux-nvme@lists.infradead.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/nvme/host/auth\\.c$|^drivers/nvme/target/auth\\.c$|^drivers/nvme/target/fabrics-cmd-auth\\.c$|^include/linux/nvme-auth\\.h$"},
-		{IncludeRegexp: "^drivers/nvme/host/fc\\.c$|^drivers/nvme/target/fc\\.c$|^drivers/nvme/target/fcloop\\.c$|^include/linux/nvme-fc-driver\\.h$|^include/linux/nvme-fc\\.h$"},
-		{IncludeRegexp: "^drivers/nvme/host/hwmon\\.c$"},
-		{IncludeRegexp: "^drivers/nvme/host/|^drivers/nvme/common/|^include/linux/nvme\\.h$|^include/linux/nvme-[^/]*\\.h$|^include/uapi/linux/nvme_ioctl\\.h$"},
-		{IncludeRegexp: "^drivers/nvme/target/"},
-	},
-}
-
-var ocfs2 = &Subsystem{
-	Name:        "ocfs2",
-	Syscalls:    []string{"syz_mount_image$ocfs2"},
-	Lists:       []string{"ocfs2-devel@oss.oracle.com"},
-	Maintainers: []string{"jlbec@evilplan.org", "joseph.qi@linux.alibaba.com", "mark@fasheh.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/ocfs2/"},
-	},
-}
-
-var omap = &Subsystem{
-	Name:    "omap",
-	Lists:   []string{"linux-omap@vger.kernel.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/[^/]*clock[^/]*$"},
-		{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/[^/]*pm[^/]*$|^drivers/cpufreq/omap-cpufreq\\.c$"},
-		{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/usb[^/]*$|^drivers/usb/[^/]*/[^/]*omap[^/]*$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/[^/]*am3[^/]*$|^arch/arm/boot/dts/[^/]*am4[^/]*$|^arch/arm/boot/dts/[^/]*am5[^/]*$|^arch/arm/boot/dts/[^/]*dra7[^/]*$|^arch/arm/boot/dts/[^/]*omap[^/]*$|^arch/arm/boot/dts/logicpd-som-lv[^/]*$|^arch/arm/boot/dts/logicpd-torpedo[^/]*$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/am335x-nano\\.dts$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/omap3-igep[^/]*$"},
-		{IncludeRegexp: "^arch/arm/configs/omap1_defconfig$|^arch/arm/mach-omap1/|^arch/arm/plat-omap/|^drivers/i2c/busses/i2c-omap\\.c$|^include/linux/platform_data/ams-delta-fiq\\.h$|^include/linux/platform_data/i2c-omap\\.h$"},
-		{IncludeRegexp: "^arch/arm/configs/omap2plus_defconfig$|^arch/arm/mach-omap2/|^arch/arm/plat-omap/|^drivers/bus/ti-sysc\\.c$|^drivers/i2c/busses/i2c-omap\\.c$|^drivers/irqchip/irq-omap-intc\\.c$|^drivers/mfd/[^/]*omap[^/]*\\.c$|^drivers/mfd/menelaus\\.c$|^drivers/mfd/palmas\\.c$|^drivers/mfd/tps65217\\.c$|^drivers/mfd/tps65218\\.c$|^drivers/mfd/tps65219\\.c$|^drivers/mfd/tps65910\\.c$|^drivers/mfd/twl-core\\.\\[ch\\]$|^drivers/mfd/twl4030[^/]*\\.c$|^drivers/mfd/twl6030[^/]*\\.c$|^drivers/mfd/twl6040[^/]*\\.c$|^drivers/regulator/palmas-regulator[^/]*\\.c$|^drivers/regulator/pbias-regulator\\.c$|^drivers/regulator/tps65217-regulator\\.c$|^drivers/regulator/tps65218-regulator\\.c$|^drivers/regulator/tps65219-regulator\\.c$|^drivers/regulator/tps65910-regulator\\.c$|^drivers/regulator/twl-regulator\\.c$|^drivers/regulator/twl6030-regulator\\.c$|^include/linux/platform_data/i2c-omap\\.h$|^include/linux/platform_data/ti-sysc\\.h$"},
-		{IncludeRegexp: "^arch/arm/mach-omap2/[^/]*gpmc[^/]*$|^drivers/memory/omap-gpmc\\.c$"},
-		{IncludeRegexp: "^arch/arm/mach-omap2/omap_hwmod[^/]*data[^/]*$"},
-		{IncludeRegexp: "^arch/arm/mach-omap2/omap_hwmod\\.[^/]*$"},
-		{IncludeRegexp: "^arch/arm/mach-omap2/prm[^/]*$"},
-		{IncludeRegexp: "^drivers/clk/ti/|^include/linux/clk/ti\\.h$"},
-		{IncludeRegexp: "^drivers/counter/ti-ecap-capture\\.c$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-omap\\.c$"},
-		{IncludeRegexp: "^drivers/hwspinlock/omap_hwspinlock\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-omap\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/omap\\.c$"},
-		{IncludeRegexp: "^drivers/mmc/host/omap_hsmmc\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/ti/cpsw[^/]*$|^drivers/net/ethernet/ti/davinci[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/cadence/pci-j721e\\.c$|^drivers/pci/controller/dwc/pci-dra7xx\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/pinctrl-single\\.c$"},
-		{IncludeRegexp: "^drivers/thermal/ti-soc-thermal/"},
-		{IncludeRegexp: "^drivers/video/fbdev/omap/"},
-		{IncludeRegexp: "^drivers/video/fbdev/omap2/"},
-		{IncludeRegexp: "^sound/soc/ti/n810\\.c$|^sound/soc/ti/omap[^/]*$|^sound/soc/ti/rx51\\.c$|^sound/soc/ti/sdma-pcm\\.[^/]*$"},
-	},
-}
-
-var optee = &Subsystem{
-	Name:    "op-tee",
-	Lists:   []string{"op-tee@lists.trustedfirmware.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/char/hw_random/optee-rng\\.c$"},
-		{IncludeRegexp: "^drivers/tee/optee/"},
-		{IncludeRegexp: "^drivers/tee/|^include/linux/tee_drv\\.h$|^include/uapi/linux/tee\\.h$"},
-	},
-}
-
-var openiscsi = &Subsystem{
-	Name:        "open-iscsi",
-	Lists:       []string{"open-iscsi@googlegroups.com"},
-	Maintainers: []string{"cleech@redhat.com", "lduncan@suse.com", "michael.christie@oracle.com"},
-	Parents:     []*Subsystem{scsi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/scsi/[^/]*iscsi[^/]*$|^include/scsi/[^/]*iscsi[^/]*$"},
-	},
-}
-
-var openbmc = &Subsystem{
-	Name:    "openbmc",
-	Lists:   []string{"openbmc@lists.ozlabs.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/nuvoton-npcm[^/]*$|^arch/arm/mach-npcm/|^arch/arm64/boot/dts/nuvoton/|^drivers/[^/]*/[^/]*npcm[^/]*$|^drivers/[^/]*/[^/]*/[^/]*npcm[^/]*$|^drivers/rtc/rtc-nct3018y\\.c$|^include/dt-bindings/clock/nuvoton,npcm7xx-clock\\.h$|^include/dt-bindings/clock/nuvoton,npcm845-clk\\.h$"},
-		{IncludeRegexp: "^arch/arm/boot/dts/nuvoton-wpcm450[^/]*$|^arch/arm/mach-npcm/wpcm450\\.c$|^drivers/[^/]*/[^/]*/[^/]*wpcm[^/]*$|^drivers/[^/]*/[^/]*wpcm[^/]*$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-aspeed\\.c$|^drivers/irqchip/irq-aspeed-i2c-ic\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-fsi\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/aspeed/"},
-		{IncludeRegexp: "^drivers/mmc/host/sdhci-of-aspeed[^/]*$"},
-		{IncludeRegexp: "^drivers/peci/controller/peci-aspeed\\.c$"},
-		{IncludeRegexp: "^drivers/peci/|^include/linux/peci-cpu\\.h$|^include/linux/peci\\.h$"},
-		{IncludeRegexp: "^drivers/pinctrl/aspeed/"},
-		{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
-	},
-}
-
-var openipmi = &Subsystem{
-	Name:        "openipmi",
-	Lists:       []string{"openipmi-developer@lists.sourceforge.net"},
-	Maintainers: []string{"minyard@acm.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/char/ipmi/|^include/linux/ipmi[^/]*$|^include/uapi/linux/ipmi[^/]*$"},
-	},
-}
-
-var openrisc = &Subsystem{
-	Name:        "openrisc",
-	Lists:       []string{"linux-openrisc@vger.kernel.org"},
-	Maintainers: []string{"jonas@southpole.se", "shorne@gmail.com", "stefan.kristiansson@saunalahti.fi"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/openrisc/|^drivers/irqchip/irq-ompic\\.c$|^drivers/irqchip/irq-or1k-[^/]*$"},
-	},
-}
-
-var openvswitch = &Subsystem{
-	Name:        "openvswitch",
-	Lists:       []string{"dev@openvswitch.org"},
-	Maintainers: []string{"pshelar@ovn.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/uapi/linux/openvswitch\\.h$|^net/openvswitch/"},
-	},
-}
-
-var openwrt = &Subsystem{
-	Name:    "openwrt",
-	Lists:   []string{"openwrt-devel@lists.openwrt.org"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/dsa/b53/|^drivers/net/dsa/bcm_sf2[^/]*$|^include/linux/dsa/brcm\\.h$|^include/linux/platform_data/b53\\.h$"},
-		{IncludeRegexp: "^drivers/vlynq/vlynq\\.c$|^include/linux/vlynq\\.h$"},
-	},
-}
-
-var orangefs = &Subsystem{
-	Name:        "orangefs",
-	Lists:       []string{"devel@lists.orangefs.org"},
-	Maintainers: []string{"hubcap@omnibond.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/orangefs/"},
-	},
-}
-
-var ossdrivers = &Subsystem{
-	Name:        "oss-drivers",
-	Lists:       []string{"oss-drivers@corigine.com"},
-	Maintainers: []string{"simon.horman@corigine.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ethernet/netronome/"},
-	},
-}
-
-var overlayfs = &Subsystem{
-	Name:        "overlayfs",
-	Lists:       []string{"linux-unionfs@vger.kernel.org"},
-	Maintainers: []string{"miklos@szeredi.hu"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/overlayfs/"},
-	},
-}
-
-var oxnas = &Subsystem{
-	Name:        "oxnas",
-	Lists:       []string{"linux-oxnas@groups.io"},
-	Maintainers: []string{"neil.armstrong@linaro.org"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/ox8[^/]*\\.dts[^/]*$|^arch/arm/mach-oxnas/|^drivers/power/reset/oxnas-restart\\.c$|oxnas"},
-	},
-}
-
-var parisc = &Subsystem{
-	Name:    "parisc",
-	Lists:   []string{"linux-parisc@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/parisc/|^drivers/char/agp/parisc-agp\\.c$|^drivers/input/misc/hp_sdc_rtc\\.c$|^drivers/input/serio/gscps2\\.c$|^drivers/input/serio/hp_sdc[^/]*$|^drivers/parisc/|^drivers/parport/parport_gsc\\.[^/]*$|^drivers/tty/serial/8250/8250_parisc\\.c$|^drivers/video/console/sti[^/]*$|^drivers/video/fbdev/sti[^/]*$|^drivers/video/logo/logo_parisc[^/]*$|^include/linux/hp_sdc\\.h$"},
-		{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/"},
-		{IncludeRegexp: "^sound/parisc/harmony\\.[^/]*$"},
-		{IncludeRegexp: "^sound/pci/ad1889\\.[^/]*$"},
-	},
-}
-
-var parport = &Subsystem{
-	Name:    "parport",
-	Lists:   []string{"linux-parport@lists.infradead.org"},
-	Parents: []*Subsystem{block},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/block/paride/"},
-		{IncludeRegexp: "^drivers/char/ppdev\\.c$|^drivers/parport/|^include/linux/parport[^/]*\\.h$|^include/uapi/linux/ppdev\\.h$"},
-	},
-}
-
-var pci = &Subsystem{
-	Name:    "pci",
-	Lists:   []string{"linux-pci@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/kernel/early-quirks\\.c$|^arch/x86/kernel/quirks\\.c$|^arch/x86/pci/|^drivers/acpi/pci[^/]*$|^drivers/pci/|^include/asm-generic/pci[^/]*$|^include/linux/of_pci\\.h$|^include/linux/pci[^/]*$|^include/uapi/linux/pci[^/]*$|^lib/pci[^/]*$"},
-		{IncludeRegexp: "^drivers/misc/dw-xdata-pcie\\.c$"},
-		{IncludeRegexp: "^drivers/misc/pci_endpoint_test\\.c$|^drivers/pci/endpoint/"},
-		{IncludeRegexp: "^drivers/ntb/hw/mscc/|^drivers/pci/switch/switchtec[^/]*$|^include/linux/switchtec\\.h$|^include/uapi/linux/switchtec_ioctl\\.h$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*mediatek[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*microchip[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*mvebu[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*rcar[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/cadence/"},
-		{IncludeRegexp: "^drivers/pci/controller/cadence/pci-j721e\\.c$|^drivers/pci/controller/dwc/pci-dra7xx\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*artpec[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*designware[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*imx6[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*layerscape[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*spear[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pci-exynos\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pci-meson\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-al\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-armada8k\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-fu740\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-hisi\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-histb\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-intel-gw\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-keembay\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-kirin\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom-ep\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-uniphier[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/mobiveil/pcie-layerscape-gen4\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/mobiveil/pcie-mobiveil[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-aardvark\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-host-common\\.c$|^drivers/pci/controller/pci-host-generic\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-tegra\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-thunder-[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-v3-semi\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-versatile\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-xgene-msi\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-xgene\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-altera-msi\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-altera\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-apple\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-brcmstb\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-rockchip[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-xilinx-cpm\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/vmd\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/|^drivers/pci/pci-bridge-emul\\.c$|^drivers/pci/pci-bridge-emul\\.h$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/cpci_hotplug[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/cpcihp_generic\\.c$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/cpcihp_zt5550\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/rpadlpar[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/hotplug/rpaphp[^/]*$"},
-		{IncludeRegexp: "^drivers/pci/p2pdma\\.c$|^include/linux/pci-p2pdma\\.h$"},
-	},
-}
-
-var perf = &Subsystem{
-	Name:        "perf",
-	Lists:       []string{"linux-perf-users@vger.kernel.org"},
-	Maintainers: []string{"acme@kernel.org", "mingo@redhat.com", "peterz@infradead.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/events/|^arch/[^/]*/events/[^/]*/|^arch/[^/]*/include/asm/perf_event\\.h$|^arch/[^/]*/kernel/[^/]*/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/perf_callchain\\.c$|^arch/[^/]*/kernel/perf_event[^/]*\\.c$|^include/linux/perf_event\\.h$|^include/uapi/linux/perf_event\\.h$|^kernel/events/"},
-	},
-}
-
-var phy = &Subsystem{
-	Name:        "phy",
-	Lists:       []string{"linux-phy@lists.infradead.org"},
-	Maintainers: []string{"kishon@kernel.org", "vkoul@kernel.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/phy/|^include/dt-bindings/phy/|^include/linux/phy/"},
-	},
-}
-
-var pm = &Subsystem{
-	Name:    "pm",
-	Lists:   []string{"linux-pm@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/suspend[^/]*\\.h$|^arch/x86/power/|^drivers/base/power/|^include/linux/freezer\\.h$|^include/linux/pm\\.h$|^include/linux/suspend\\.h$|^kernel/power/"},
-		{IncludeRegexp: "^arch/arm/mach-exynos/pm\\.c$|^drivers/cpuidle/cpuidle-exynos\\.c$|^include/linux/platform_data/cpuidle-exynos\\.h$"},
-		{IncludeRegexp: "^arch/x86/kernel/acpi/|^drivers/base/power/|^include/linux/freezer\\.h$|^include/linux/pm\\.h$|^include/linux/suspend\\.h$|^kernel/power/"},
-		{IncludeRegexp: "^drivers/base/power/domain[^/]*\\.c$|^include/linux/pm_domain\\.h$"},
-		{IncludeRegexp: "^drivers/base/power/|^drivers/powercap/|^include/linux/intel_rapl\\.h$|^include/linux/pm\\.h$|^include/linux/pm_[^/]*$|^include/linux/powercap\\.h$|^kernel/configs/nopm\\.config$"},
-		{IncludeRegexp: "^drivers/cpufreq/amd-pstate[^/]*$|^include/linux/amd-pstate\\.h$"},
-		{IncludeRegexp: "^drivers/cpufreq/bmips-cpufreq\\.c$"},
-		{IncludeRegexp: "^drivers/cpufreq/brcmstb[^/]*$"},
-		{IncludeRegexp: "^drivers/cpufreq/intel_pstate\\.c$"},
-		{IncludeRegexp: "^drivers/cpufreq/qcom-cpufreq-nvmem\\.c$"},
-		{IncludeRegexp: "^drivers/cpufreq/sun50i-cpufreq-nvmem\\.c$"},
-		{IncludeRegexp: "^drivers/cpufreq/vexpress-spc-cpufreq\\.c$"},
-		{IncludeRegexp: "^drivers/cpufreq/|^include/linux/cpufreq\\.h$|^include/linux/sched/cpufreq\\.h$|^kernel/sched/cpufreq[^/]*\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-big_little\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.h$|^drivers/cpuidle/cpuidle-psci-domain\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-riscv-sbi\\.c$"},
-		{IncludeRegexp: "^drivers/cpuidle/dt_idle_genpd\\.c$|^drivers/cpuidle/dt_idle_genpd\\.h$"},
-		{IncludeRegexp: "^drivers/cpuidle/|^include/linux/cpuidle\\.h$"},
-		{IncludeRegexp: "^drivers/devfreq/devfreq-event\\.c$|^drivers/devfreq/event/|^include/dt-bindings/pmu/exynos_ppmu\\.h$|^include/linux/devfreq-event\\.h$"},
-		{IncludeRegexp: "^drivers/devfreq/exynos-bus\\.c$"},
-		{IncludeRegexp: "^drivers/devfreq/tegra30-devfreq\\.c$"},
-		{IncludeRegexp: "^drivers/devfreq/|^include/linux/devfreq\\.h$|^include/trace/events/devfreq\\.h$"},
-		{IncludeRegexp: "^drivers/idle/intel_idle\\.c$"},
-		{IncludeRegexp: "^drivers/interconnect/samsung/"},
-		{IncludeRegexp: "^drivers/interconnect/|^include/dt-bindings/interconnect/|^include/linux/interconnect-provider\\.h$|^include/linux/interconnect\\.h$"},
-		{IncludeRegexp: "^drivers/memory/samsung/exynos5422-dmc\\.c$"},
-		{IncludeRegexp: "^drivers/opp/|^include/linux/pm_opp\\.h$"},
-		{IncludeRegexp: "^drivers/power/reset/"},
-		{IncludeRegexp: "^drivers/power/reset/mt6323-poweroff\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/adp5061\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/max14577_charger\\.c$|^drivers/power/supply/max77693_charger\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/max17040_battery\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/max17042_battery\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/surface_battery\\.c$|^drivers/power/supply/surface_charger\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/|^include/linux/power/|^include/linux/power_supply\\.h$"},
-		{IncludeRegexp: "^drivers/powercap/dtpm[^/]*$|^include/linux/dtpm\\.h$"},
-		{IncludeRegexp: "^drivers/soc/bcm/bcm63xx/bcm-pmb\\.c$|^include/dt-bindings/soc/bcm-pmb\\.h$"},
-		{IncludeRegexp: "^drivers/soc/qcom/cpr\\.c$"},
-		{IncludeRegexp: "^drivers/soc/ti/smartreflex\\.c$|^include/linux/power/smartreflex\\.h$"},
-		{IncludeRegexp: "^drivers/thermal/amlogic_thermal\\.c$"},
-		{IncludeRegexp: "^drivers/thermal/broadcom/brcmstb[^/]*$"},
-		{IncludeRegexp: "^drivers/thermal/cpufreq_cooling\\.c$|^drivers/thermal/cpuidle_cooling\\.c$|^include/linux/cpu_cooling\\.h$"},
-		{IncludeRegexp: "^drivers/thermal/gov_power_allocator\\.c$|^include/trace/events/thermal_power_allocator\\.h$"},
-		{IncludeRegexp: "^drivers/thermal/intel/intel_menlow\\.c$"},
-		{IncludeRegexp: "^drivers/thermal/qcom/"},
-		{IncludeRegexp: "^drivers/thermal/samsung/"},
-		{IncludeRegexp: "^drivers/thermal/sun8i_thermal\\.c$"},
-		{IncludeRegexp: "^drivers/thermal/ti-soc-thermal/"},
-		{IncludeRegexp: "^drivers/thermal/|^include/dt-bindings/thermal/|^include/linux/cpu_cooling\\.h$|^include/linux/thermal\\.h$|^include/uapi/linux/thermal\\.h$"},
-		{IncludeRegexp: "^include/linux/freezer\\.h$|^kernel/freezer\\.c$"},
-	},
-}
-
-var ppp = &Subsystem{
-	Name:        "ppp",
-	Lists:       []string{"linux-ppp@vger.kernel.org"},
-	Maintainers: []string{"paulus@samba.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ppp/ppp_[^/]*$"},
-	},
-}
-
-var pvrusb2 = &Subsystem{
-	Name:        "pvrusb2",
-	Lists:       []string{"pvrusb2@isely.net"},
-	Maintainers: []string{"isely@pobox.com"},
-	Parents:     []*Subsystem{media},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/media/usb/pvrusb2/"},
-	},
-}
-
-var pwm = &Subsystem{
-	Name:    "pwm",
-	Lists:   []string{"linux-pwm@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpio/gpio-mvebu\\.c$|^drivers/pwm/|^drivers/video/backlight/pwm_bl\\.c$|^include/dt-bindings/pwm/|^include/linux/pwm\\.h$|^include/linux/pwm_backlight\\.h$"},
-		{IncludeRegexp: "^drivers/pwm/pwm-atmel\\.c$"},
-	},
-}
-
-var qat = &Subsystem{
-	Name:        "qat",
-	Lists:       []string{"qat-linux@intel.com"},
-	Maintainers: []string{"giovanni.cabiddu@intel.com"},
-	Parents:     []*Subsystem{crypto},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/crypto/qat/"},
-	},
-}
-
-var raid = &Subsystem{
-	Name:        "raid",
-	Lists:       []string{"linux-raid@vger.kernel.org"},
-	Maintainers: []string{"song@kernel.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/md/Kconfig$|^drivers/md/md[^/]*$|^drivers/md/raid[^/]*$|^include/linux/raid/|^include/uapi/linux/raid/"},
-	},
-}
-
-var rcu = &Subsystem{
-	Name:    "rcu",
-	Lists:   []string{"rcu@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{"^include/linux/rcu[^/]*$|^kernel/rcu/", "^include/linux/srcu[^/]*\\.h$|^kernel/rcu/srcu[^/]*\\.c$"},
-		{IncludeRegexp: "^include/linux/srcu[^/]*\\.h$|^kernel/rcu/srcu[^/]*\\.c$"},
-	},
-}
-
-var rdma = &Subsystem{
-	Name:    "rdma",
-	Lists:   []string{"linux-rdma@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/infiniband/hw/bnxt_re/|^include/uapi/rdma/bnxt_re-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/cxgb4/|^include/uapi/rdma/cxgb4-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/efa/|^include/uapi/rdma/efa-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/erdma$|^include/uapi/rdma/erdma-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/hfi1$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/hns/"},
-		{IncludeRegexp: "^drivers/infiniband/hw/irdma/|^include/uapi/rdma/irdma-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/mana/|^include/net/mana$|^include/uapi/rdma/mana-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/mlx4/|^include/linux/mlx4/|^include/uapi/rdma/mlx4-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/mlx5/|^include/linux/mlx5/|^include/uapi/rdma/mlx5-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/ocrdma/|^include/uapi/rdma/ocrdma-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/qedr/|^include/uapi/rdma/qedr-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/hw/qib/"},
-		{IncludeRegexp: "^drivers/infiniband/hw/vmw_pvrdma/"},
-		{IncludeRegexp: "^drivers/infiniband/sw/rdmavt$"},
-		{IncludeRegexp: "^drivers/infiniband/sw/rxe/|^include/uapi/rdma/rdma_user_rxe\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/sw/siw/|^include/uapi/rdma/siw-abi\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/iser/"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/isert$"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/opa_vnic$"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/rtrs/"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/srp/|^include/scsi/srp\\.h$"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/srpt/"},
-		{IncludeRegexp: "^drivers/infiniband/|^include/rdma/|^include/trace/events/ib_mad\\.h$|^include/trace/events/ib_umad\\.h$|^include/trace/misc/rdma\\.h$|^include/uapi/linux/if_infiniband\\.h$|^include/uapi/rdma/"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx4/|^include/linux/mlx4/"},
-		{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/|^include/linux/mlx5/"},
-		{IncludeRegexp: "^net/rds/"},
-	},
-}
-
-var rds = &Subsystem{
-	Name:        "rds",
-	Lists:       []string{"rds-devel@oss.oracle.com"},
-	Maintainers: []string{"santosh.shilimkar@oracle.com"},
-	Parents:     []*Subsystem{net, rdma},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^net/rds/"},
-	},
-}
-
-var reiserfs = &Subsystem{
-	Name:     "reiserfs",
-	Syscalls: []string{"syz_mount_image$reiserfs"},
-	Lists:    []string{"reiserfs-devel@vger.kernel.org"},
-	Parents:  []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/reiserfs/"},
-	},
-}
-
-var remoteproc = &Subsystem{
-	Name:    "remoteproc",
-	Lists:   []string{"linux-remoteproc@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/hwspinlock/|^include/linux/hwspinlock\\.h$"},
-		{IncludeRegexp: "^drivers/net/wwan/rpmsg_wwan_ctrl\\.c$"},
-		{IncludeRegexp: "^drivers/remoteproc/|^include/linux/remoteproc\\.h$|^include/linux/remoteproc/"},
-		{IncludeRegexp: "^drivers/rpmsg/|^include/linux/rpmsg\\.h$|^include/linux/rpmsg/|^include/uapi/linux/rpmsg\\.h$"},
-		{IncludeRegexp: "^drivers/tty/rpmsg_tty\\.c$"},
-	},
-}
-
-var renesassoc = &Subsystem{
-	Name:    "renesas-soc",
-	Lists:   []string{"linux-renesas-soc@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/emev2[^/]*$|^arch/arm/boot/dts/gr-peach[^/]*$|^arch/arm/boot/dts/iwg20d-q7[^/]*$|^arch/arm/boot/dts/r7s[^/]*$|^arch/arm/boot/dts/r8a[^/]*$|^arch/arm/boot/dts/r9a[^/]*$|^arch/arm/boot/dts/sh[^/]*$|^arch/arm/configs/shmobile_defconfig$|^arch/arm/include/debug/renesas-scif\\.S$|^arch/arm/mach-shmobile/|^arch/arm64/boot/dts/renesas/|^arch/riscv/boot/dts/renesas/|^drivers/soc/renesas/|^include/linux/soc/renesas/"},
-		{IncludeRegexp: "^drivers/ata/sata_rcar\\.c$"},
-		{IncludeRegexp: "^drivers/clk/renesas/"},
-		{IncludeRegexp: "^drivers/gpio/gpio-bd9571mwv\\.c$|^drivers/mfd/bd9571mwv\\.c$|^drivers/regulator/bd9571mwv-regulator\\.c$|^include/linux/mfd/bd9571mwv\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/rcar-du/|^drivers/gpu/drm/shmobile/|^include/linux/platform_data/shmob_drm\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-emev2\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-rcar\\.c$|^drivers/i2c/busses/i2c-sh_mobile\\.c$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-riic\\.c$"},
-		{IncludeRegexp: "^drivers/iio/adc/rzg2l_adc\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar-fcp\\.c$|^include/media/rcar-fcp\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar-isp\\.c$|^drivers/media/platform/renesas/rcar-vin/"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar_drif\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar_fdp1\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/rcar_jpu\\.c$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/renesas-ceu\\.c$|^include/media/drv-intf/renesas-ceu\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/renesas/vsp1/"},
-		{IncludeRegexp: "^drivers/mmc/host/renesas_sdhi[^/]*$|^drivers/mmc/host/tmio_mmc[^/]*$|^include/linux/mfd/tmio\\.h$"},
-		{IncludeRegexp: "^drivers/mtd/nand/raw/renesas-nand-controller\\.c$"},
-		{IncludeRegexp: "^drivers/net/dsa/rzn1_a5psw[^/]*$|^drivers/net/pcs/pcs-rzn1-miic\\.c$|^include/dt-bindings/net/pcs-rzn1-miic\\.h$|^include/linux/pcs-rzn1-miic\\.h$|^net/dsa/tag_rzn1_a5psw\\.c$"},
-		{IncludeRegexp: "^drivers/net/ethernet/renesas/|^include/linux/sh_eth\\.h$"},
-		{IncludeRegexp: "^drivers/pci/controller/[^/]*rcar[^/]*$"},
-		{IncludeRegexp: "^drivers/phy/renesas/phy-rcar-gen3-usb[^/]*\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/renesas/"},
-		{IncludeRegexp: "^drivers/rtc/rtc-rzn1\\.c$"},
-		{IncludeRegexp: "^drivers/thermal/rcar_gen3_thermal\\.c$|^drivers/thermal/rcar_thermal\\.c$"},
-		{IncludeRegexp: "^drivers/ufs/host/ufs-renesas\\.c$"},
-	},
-}
-
-var riscv = &Subsystem{
-	Name:    "riscv",
-	Lists:   []string{"linux-riscv@lists.infradead.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/riscv/boot/dts/"},
-		{IncludeRegexp: "^arch/riscv/boot/dts/microchip/|^drivers/char/hw_random/mpfs-rng\\.c$|^drivers/clk/microchip/clk-mpfs\\.c$|^drivers/i2c/busses/i2c-microchip-corei2c\\.c$|^drivers/mailbox/mailbox-mpfs\\.c$|^drivers/pci/controller/pcie-microchip-host\\.c$|^drivers/reset/reset-mpfs\\.c$|^drivers/rtc/rtc-mpfs\\.c$|^drivers/soc/microchip/mpfs-sys-controller\\.c$|^drivers/spi/spi-microchip-core-qspi\\.c$|^drivers/spi/spi-microchip-core\\.c$|^drivers/usb/musb/mpfs\\.c$|^include/soc/microchip/mpfs\\.h$"},
-		{IncludeRegexp: "^arch/riscv/include/asm/kvm[^/]*$|^arch/riscv/include/uapi/asm/kvm[^/]*$|^arch/riscv/kvm/"},
-		{IncludeRegexp: "^arch/riscv/|riscv"},
-		{IncludeRegexp: "^drivers/cpuidle/cpuidle-riscv-sbi\\.c$"},
-		{IncludeRegexp: "^drivers/perf/riscv_pmu\\.c$|^drivers/perf/riscv_pmu_legacy\\.c$|^drivers/perf/riscv_pmu_sbi\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/pinctrl-k210\\.c$"},
-		{IncludeRegexp: "^drivers/reset/reset-k210\\.c$"},
-		{IncludeRegexp: "^drivers/soc/canaan/|^include/soc/canaan/"},
-		{IncludeRegexp: "^drivers/soc/sifive/"},
-		{IncludeRegexp: "fu540"},
-		{IncludeRegexp: "sifive"},
-	},
-}
-
-var rockchip = &Subsystem{
-	Name:    "rockchip",
-	Lists:   []string{"linux-rockchip@lists.infradead.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/rk3[^/]*$|^arch/arm/boot/dts/rv1108[^/]*$|^arch/arm/mach-rockchip/|^drivers/[^/]*/[^/]*/[^/]*rockchip[^/]*$|^drivers/[^/]*/[^/]*rockchip[^/]*$|^drivers/clk/rockchip/|^drivers/i2c/busses/i2c-rk3x\\.c$|^sound/soc/rockchip/|rockchip"},
-		{IncludeRegexp: "^drivers/media/platform/rockchip/rga/"},
-		{IncludeRegexp: "^drivers/media/platform/rockchip/rkisp1$|^include/uapi/linux/rkisp1-config\\.h$"},
-		{IncludeRegexp: "^drivers/media/platform/verisilicon/"},
-		{IncludeRegexp: "^drivers/pci/controller/pcie-rockchip[^/]*$"},
-		{IncludeRegexp: "^drivers/staging/media/rkvdec/"},
-		{IncludeRegexp: "^sound/soc/rockchip/rockchip_i2s_tdm\\.[^/]*$"},
-	},
-}
-
-var rpi = &Subsystem{
-	Name:        "rpi",
-	Lists:       []string{"linux-rpi-kernel@lists.infradead.org"},
-	Maintainers: []string{"f.fainelli@gmail.com"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/pci/controller/pcie-brcmstb\\.c$|^drivers/staging/vc04_services$|bcm2711|bcm283*|raspberrypi"},
-	},
-}
-
-var rttools = &Subsystem{
-	Name:    "rt-tools",
-	Lists:   []string{"linux-trace-devel@vger.kernel.org"},
-	Parents: []*Subsystem{trace},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/rv\\.h$|^include/rv/|^kernel/trace/rv/"},
-	},
-}
-
-var rtc = &Subsystem{
-	Name:    "rtc",
-	Lists:   []string{"linux-rtc@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/rtc/rtc-optee\\.c$"},
-		{IncludeRegexp: "^drivers/rtc/rtc-rzn1\\.c$"},
-		{IncludeRegexp: "^drivers/rtc/rtc-sd3078\\.c$"},
-		{IncludeRegexp: "^drivers/rtc/rtc-sunplus\\.c$"},
-		{IncludeRegexp: "^drivers/rtc/|^include/linux/platform_data/rtc-[^/]*$|^include/linux/rtc\\.h$|^include/linux/rtc/|^include/uapi/linux/rtc\\.h$"},
-	},
-}
-
-var rust = &Subsystem{
-	Name:        "rust",
-	Lists:       []string{"rust-for-linux@vger.kernel.org"},
-	Maintainers: []string{"alex.gaynor@gmail.com", "ojeda@kernel.org", "wedsonaf@gmail.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^rust/"},
-	},
-}
-
-var s390 = &Subsystem{
-	Name:    "s390",
-	Lists:   []string{"linux-s390@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/s390/include/asm/pgtable\\.h$|^arch/s390/mm$"},
-		{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
-		{IncludeRegexp: "^arch/s390/kvm/pci[^/]*$|^drivers/vfio/pci/vfio_pci_zdev\\.c$|^include/uapi/linux/vfio_zdev\\.h$"},
-		{IncludeRegexp: "^arch/s390/pci/|^drivers/pci/hotplug/s390_pci_hpc\\.c$"},
-		{IncludeRegexp: "^arch/s390/|^drivers/s390/"},
-		{IncludeRegexp: "^block/partitions/ibm\\.c$|^drivers/s390/block/dasd[^/]*$|^include/linux/dasd_mod\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/s390-iommu\\.c$"},
-		{IncludeRegexp: "^drivers/s390/cio/"},
-		{IncludeRegexp: "^drivers/s390/cio/vfio_ccw[^/]*$|^include/uapi/linux/vfio_ccw\\.h$"},
-		{IncludeRegexp: "^drivers/s390/crypto/"},
-		{IncludeRegexp: "^drivers/s390/crypto/vfio_ap[^/]*$"},
-		{IncludeRegexp: "^drivers/s390/net/"},
-		{IncludeRegexp: "^drivers/s390/net/[^/]*iucv[^/]*$|^include/net/iucv/|^net/iucv/"},
-		{IncludeRegexp: "^drivers/s390/scsi/zfcp_[^/]*$"},
-		{IncludeRegexp: "^net/smc/"},
-	},
-}
-
-var samsungsoc = &Subsystem{
-	Name:    "samsung-soc",
-	Lists:   []string{"linux-samsung-soc@vger.kernel.org"},
-	Parents: []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/exynos[^/]*$|^arch/arm/boot/dts/s3c[^/]*$|^arch/arm/boot/dts/s5p[^/]*$|^arch/arm/mach-exynos[^/]*/|^arch/arm/mach-s3c/|^arch/arm/mach-s5p[^/]*/|^arch/arm64/boot/dts/exynos/|^drivers/[^/]*/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c64xx[^/]*$|^drivers/[^/]*/[^/]*s5pv210[^/]*$|^drivers/clocksource/samsung_pwm_timer\\.c$|^drivers/memory/samsung/|^drivers/pwm/pwm-samsung\\.c$|^drivers/soc/samsung/|^drivers/tty/serial/samsung[^/]*$|^include/clocksource/samsung_pwm\\.h$|^include/linux/platform_data/[^/]*s3c[^/]*$|^include/linux/serial_s3c\\.h$|^include/linux/soc/samsung/|exynos|s3c2410|s3c64xx|s5pv210"},
-		{IncludeRegexp: "^arch/arm/mach-exynos/pm\\.c$|^drivers/cpuidle/cpuidle-exynos\\.c$|^include/linux/platform_data/cpuidle-exynos\\.h$"},
-		{IncludeRegexp: "^arch/arm64/boot/dts/tesla[^/]*$"},
-		{IncludeRegexp: "^drivers/char/hw_random/exynos-trng\\.c$"},
-		{IncludeRegexp: "^drivers/clk/clk-s2mps11\\.c$|^drivers/mfd/sec[^/]*\\.c$|^drivers/regulator/s2m[^/]*\\.c$|^drivers/regulator/s5m[^/]*\\.c$|^drivers/rtc/rtc-s5m\\.c$|^include/linux/mfd/samsung/"},
-		{IncludeRegexp: "^drivers/clk/samsung/|^include/dt-bindings/clock/exynos[^/]*\\.h$|^include/dt-bindings/clock/s3c[^/]*\\.h$|^include/dt-bindings/clock/s5p[^/]*\\.h$|^include/dt-bindings/clock/samsung,[^/]*\\.h$|^include/linux/clk/samsung\\.h$|^include/linux/platform_data/clk-s3c2410\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/exynos-rng\\.c$"},
-		{IncludeRegexp: "^drivers/crypto/s5p-sss\\.c$"},
-		{IncludeRegexp: "^drivers/devfreq/exynos-bus\\.c$"},
-		{IncludeRegexp: "^drivers/interconnect/samsung/"},
-		{IncludeRegexp: "^drivers/media/cec/platform/s5p/"},
-		{IncludeRegexp: "^drivers/media/platform/samsung/s3c-camif/|^include/media/drv-intf/s3c_camif\\.h$"},
-		{IncludeRegexp: "^drivers/memory/samsung/exynos5422-dmc\\.c$"},
-		{IncludeRegexp: "^drivers/pci/controller/dwc/pci-exynos\\.c$"},
-		{IncludeRegexp: "^drivers/pinctrl/samsung/|^include/dt-bindings/pinctrl/samsung\\.h$"},
-		{IncludeRegexp: "^drivers/power/supply/s3c_adc_battery\\.c$|^include/linux/s3c_adc_battery\\.h$"},
-		{IncludeRegexp: "^drivers/spi/spi-s3c[^/]*$|^include/linux/platform_data/spi-s3c64xx\\.h$|^include/linux/spi/s3c24xx-fiq\\.h$"},
-		{IncludeRegexp: "^drivers/thermal/samsung/"},
-	},
-}
-
-var scsi = &Subsystem{
-	Name:    "scsi",
-	Lists:   []string{"linux-scsi@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^block/bsg\\.c$|^include/linux/bsg\\.h$|^include/uapi/linux/bsg\\.h$"},
-		{IncludeRegexp: "^drivers/message/fusion/|^drivers/scsi/mpt3sas/"},
-		{IncludeRegexp: "^drivers/scsi/3w-[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/53c700[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/53c700[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/BusLogic\\.[^/]*$|^drivers/scsi/FlashPoint\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/NCR5380\\.[^/]*$|^drivers/scsi/arm/cumana_1\\.c$|^drivers/scsi/arm/oak\\.c$|^drivers/scsi/atari_scsi\\.[^/]*$|^drivers/scsi/dmx3191d\\.c$|^drivers/scsi/g_NCR5380\\.[^/]*$|^drivers/scsi/mac_scsi\\.[^/]*$|^drivers/scsi/sun3_scsi\\.[^/]*$|^drivers/scsi/sun3_scsi_vme\\.c$"},
-		{IncludeRegexp: "^drivers/scsi/[^/]*iscsi[^/]*$|^include/scsi/[^/]*iscsi[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/aacraid/"},
-		{IncludeRegexp: "^drivers/scsi/advansys\\.c$"},
-		{IncludeRegexp: "^drivers/scsi/aha152x[^/]*$|^drivers/scsi/pcmcia/aha152x[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/aic7xxx/"},
-		{IncludeRegexp: "^drivers/scsi/am53c974\\.c$"},
-		{IncludeRegexp: "^drivers/scsi/be2iscsi/"},
-		{IncludeRegexp: "^drivers/scsi/bfa/"},
-		{IncludeRegexp: "^drivers/scsi/bnx2fc/"},
-		{IncludeRegexp: "^drivers/scsi/bnx2i/"},
-		{IncludeRegexp: "^drivers/scsi/cxgbi/cxgb3i$"},
-		{IncludeRegexp: "^drivers/scsi/cxgbi/cxgb4i$"},
-		{IncludeRegexp: "^drivers/scsi/cxlflash/|^include/uapi/scsi/cxlflash_ioctl\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/elx/"},
-		{IncludeRegexp: "^drivers/scsi/esas2r$"},
-		{IncludeRegexp: "^drivers/scsi/fcoe/|^drivers/scsi/libfc/|^include/scsi/fc/|^include/scsi/libfc\\.h$|^include/scsi/libfcoe\\.h$|^include/uapi/scsi/fc/"},
-		{IncludeRegexp: "^drivers/scsi/fnic/"},
-		{IncludeRegexp: "^drivers/scsi/hpsa[^/]*\\.\\[ch\\]$|^include/linux/cciss[^/]*\\.h$|^include/uapi/linux/cciss[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/ibmvscsi/ibmvfc[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/ibmvscsi/ibmvscsi[^/]*$|^include/scsi/viosrp\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/ibmvscsi_tgt/"},
-		{IncludeRegexp: "^drivers/scsi/ips[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/isci/"},
-		{IncludeRegexp: "^drivers/scsi/lpfc/"},
-		{IncludeRegexp: "^drivers/scsi/megaraid\\.[^/]*$|^drivers/scsi/megaraid/"},
-		{IncludeRegexp: "^drivers/scsi/mpi3mr/"},
-		{IncludeRegexp: "^drivers/scsi/myrb\\.[^/]*$|^drivers/scsi/myrs\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/pm8001/"},
-		{IncludeRegexp: "^drivers/scsi/pmcraid\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/scsi/qedf/"},
-		{IncludeRegexp: "^drivers/scsi/qedi/"},
-		{IncludeRegexp: "^drivers/scsi/qla1280\\.\\[ch\\]$"},
-		{IncludeRegexp: "^drivers/scsi/qla2xxx/"},
-		{IncludeRegexp: "^drivers/scsi/qla4xxx/"},
-		{IncludeRegexp: "^drivers/scsi/sg\\.c$|^include/scsi/sg\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/smartpqi/Kconfig$|^drivers/scsi/smartpqi/smartpqi[^/]*\\.\\[ch\\]$|^include/linux/cciss[^/]*\\.h$|^include/uapi/linux/cciss[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/snic/"},
-		{IncludeRegexp: "^drivers/scsi/st\\.[^/]*$|^drivers/scsi/st_[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/sym53c8xx_2/"},
-		{IncludeRegexp: "^drivers/scsi/vmw_pvscsi\\.c$|^drivers/scsi/vmw_pvscsi\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/xen-scsifront\\.c$|^drivers/xen/xen-scsiback\\.c$|^include/xen/interface/io/vscsiif\\.h$"},
-		{IncludeRegexp: "^drivers/scsi/|^drivers/ufs/|^include/scsi/"},
-		{IncludeRegexp: "^drivers/target/sbp/"},
-		{IncludeRegexp: "^drivers/target/target_core_user\\.c$|^include/uapi/linux/target_core_user\\.h$"},
-		{IncludeRegexp: "^drivers/target/|^include/target/"},
-		{IncludeRegexp: "^drivers/ufs/core/"},
-		{IncludeRegexp: "^drivers/ufs/host/[^/]*dwc[^/]*$"},
-		{IncludeRegexp: "^drivers/ufs/host/ufs-mediatek[^/]*$"},
-		{IncludeRegexp: "^drivers/ufs/host/ufs-renesas\\.c$"},
-		{IncludeRegexp: "^drivers/usb/storage/uas\\.c$"},
-	},
-}
-
-var sctp = &Subsystem{
-	Name:        "sctp",
-	Lists:       []string{"linux-sctp@vger.kernel.org"},
-	Maintainers: []string{"lucien.xin@gmail.com", "marcelo.leitner@gmail.com", "nhorman@tuxdriver.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/sctp\\.h$|^include/net/sctp/|^include/uapi/linux/sctp\\.h$|^net/sctp/"},
-	},
-}
-
-var selinux = &Subsystem{
-	Name:        "selinux",
-	Lists:       []string{"selinux@vger.kernel.org"},
-	Maintainers: []string{"eparis@parisplace.org", "paul@paul-moore.com", "stephen.smalley.work@gmail.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/trace/events/avc\\.h$|^include/uapi/linux/selinux_netlink\\.h$|^security/selinux/"},
-	},
-}
-
-var serial = &Subsystem{
-	Name:    "serial",
-	Lists:   []string{"linux-serial@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/tty/serdev/|^include/linux/serdev\\.h$"},
-		{IncludeRegexp: "^drivers/tty/serial/"},
-		{IncludeRegexp: "^drivers/tty/serial/8250/8250_bcm7271\\.c$"},
-		{IncludeRegexp: "^drivers/tty/serial/8250[^/]*$|^include/linux/serial_8250\\.h$"},
-		{IncludeRegexp: "^drivers/tty/serial/altera_jtaguart\\.c$|^drivers/tty/serial/altera_uart\\.c$|^include/linux/altera_jtaguart\\.h$|^include/linux/altera_uart\\.h$"},
-		{IncludeRegexp: "^drivers/tty/serial/jsm/"},
-		{IncludeRegexp: "^drivers/tty/serial/rp2\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/tty/serial/uartlite\\.c$"},
-	},
-}
-
-var sgx = &Subsystem{
-	Name:        "sgx",
-	Lists:       []string{"linux-sgx@vger.kernel.org"},
-	Maintainers: []string{"jarkko@kernel.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/entry/vdso/vsgx\\.S$|^arch/x86/include/asm/sgx\\.h$|^arch/x86/include/uapi/asm/sgx\\.h$|^arch/x86/kernel/cpu/sgx/"},
-	},
-}
-
-var sh = &Subsystem{
-	Name:        "sh",
-	Lists:       []string{"linux-sh@vger.kernel.org"},
-	Maintainers: []string{"dalias@libc.org", "glaubitz@physik.fu-berlin.de", "ysato@users.sourceforge.jp"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/sh/|^drivers/sh/"},
-	},
-}
-
-var snpsarc = &Subsystem{
-	Name:        "snps-arc",
-	Lists:       []string{"linux-snps-arc@lists.infradead.org"},
-	Maintainers: []string{"vgupta@kernel.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arc/|^drivers/clocksource/arc_timer\\.c$|^drivers/tty/serial/arc_uart\\.c$"},
-	},
-}
-
-var sof = &Subsystem{
-	Name:        "sof",
-	Lists:       []string{"sound-open-firmware@alsa-project.org"},
-	Maintainers: []string{"daniel.baluta@nxp.com", "lgirdwood@gmail.com", "peter.ujfalusi@linux.intel.com", "pierre-louis.bossart@linux.intel.com", "ranjani.sridharan@linux.intel.com", "yung-chuan.liao@linux.intel.com"},
-	Parents:     []*Subsystem{alsa},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^sound/soc/sof/"},
-	},
-}
-
-var sparclinux = &Subsystem{
-	Name:    "sparclinux",
-	Lists:   []string{"sparclinux@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/sparc/|^drivers/sbus/"},
-		{IncludeRegexp: "^drivers/tty/serial/suncore\\.c$|^drivers/tty/serial/sunhv\\.c$|^drivers/tty/serial/sunsab\\.c$|^drivers/tty/serial/sunsab\\.h$|^drivers/tty/serial/sunsu\\.c$|^drivers/tty/serial/sunzilog\\.c$|^drivers/tty/serial/sunzilog\\.h$|^drivers/tty/vcc\\.c$|^include/linux/sunserialcore\\.h$"},
-	},
-}
-
-var speakup = &Subsystem{
-	Name:        "speakup",
-	Lists:       []string{"speakup@linux-speakup.org"},
-	Maintainers: []string{"chris@the-brannons.com", "kirk@reisers.ca", "samuel.thibault@ens-lyon.org", "w.d.hubbs@gmail.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/accessibility/speakup/"},
-	},
-}
-
-var spi = &Subsystem{
-	Name:    "spi",
-	Lists:   []string{"linux-spi@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-at91-usart\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-dw[^/]*$"},
-		{IncludeRegexp: "^drivers/spi/spi-fsi\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-fsl-dspi\\.c$|^include/linux/spi/spi-fsl-dspi\\.h$"},
-		{IncludeRegexp: "^drivers/spi/spi-fsl-qspi\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-hisi-kunpeng\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-nxp-fspi\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-s3c[^/]*$|^include/linux/platform_data/spi-s3c64xx\\.h$|^include/linux/spi/s3c24xx-fiq\\.h$"},
-		{IncludeRegexp: "^drivers/spi/spi-stm32\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-sunplus-sp7021\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-synquacer\\.c$"},
-		{IncludeRegexp: "^drivers/spi/|^include/linux/spi/|^include/uapi/linux/spi/"},
-	},
-}
-
-var spice = &Subsystem{
-	Name:        "spice",
-	Lists:       []string{"spice-devel@lists.freedesktop.org"},
-	Maintainers: []string{"airlied@redhat.com", "kraxel@redhat.com"},
-	Parents:     []*Subsystem{dri, virt},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/gpu/drm/qxl/|^include/uapi/drm/qxl_drm\\.h$"},
-	},
-}
-
-var squashfs = &Subsystem{
-	Name:        "squashfs",
-	Syscalls:    []string{"syz_mount_image$squashfs"},
-	Lists:       []string{"squashfs-devel@lists.sourceforge.net"},
-	Maintainers: []string{"phillip@squashfs.org.uk"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/squashfs/"},
-	},
-}
-
-var staging = &Subsystem{
-	Name:        "staging",
-	Lists:       []string{"linux-staging@lists.linux.dev"},
-	Maintainers: []string{"gregkh@linuxfoundation.org"},
-	Parents:     []*Subsystem{media},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/staging/"},
-	},
-}
-
-var stm32 = &Subsystem{
-	Name:        "stm32",
-	Lists:       []string{"linux-stm32@st-md-mailman.stormreply.com"},
-	Maintainers: []string{"alexandre.torgue@foss.st.com", "mcoquelin.stm32@gmail.com"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/stm32[^/]*$|^arch/arm/mach-stm32/|^drivers/clocksource/armv7m_systick\\.c$|stm32|stm"},
-	},
-}
-
-var sunxi = &Subsystem{
-	Name:        "sunxi",
-	Lists:       []string{"linux-sunxi@lists.linux.dev"},
-	Maintainers: []string{"jernej.skrabec@gmail.com", "samuel@sholland.org", "wens@csie.org"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/mach-sunxi/|^arch/arm64/boot/dts/allwinner/|^drivers/clk/sunxi-ng/|^drivers/pinctrl/sunxi/|^drivers/soc/sunxi/|allwinner|sun[x456789]i|sun50i"},
-	},
-}
-
-var target = &Subsystem{
-	Name:    "target",
-	Lists:   []string{"target-devel@vger.kernel.org"},
-	Parents: []*Subsystem{scsi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/infiniband/ulp/isert$"},
-		{IncludeRegexp: "^drivers/infiniband/ulp/srpt/"},
-		{IncludeRegexp: "^drivers/scsi/elx/"},
-		{IncludeRegexp: "^drivers/scsi/ibmvscsi_tgt/"},
-		{IncludeRegexp: "^drivers/target/sbp/"},
-		{IncludeRegexp: "^drivers/target/target_core_user\\.c$|^include/uapi/linux/target_core_user\\.h$"},
-		{IncludeRegexp: "^drivers/target/|^include/target/"},
-	},
-}
-
-var tegra = &Subsystem{
-	Name:    "tegra",
-	Lists:   []string{"linux-tegra@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "[^a-z]tegra"},
-		{IncludeRegexp: "^drivers/devfreq/tegra30-devfreq\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/tegra/|^drivers/gpu/host1x/|^include/linux/host1x\\.h$|^include/uapi/drm/tegra_drm\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/arm/arm-smmu/arm-smmu-nvidia\\.c$|^drivers/iommu/tegra[^/]*$"},
-		{IncludeRegexp: "^drivers/media/cec/platform/tegra/"},
-		{IncludeRegexp: "^drivers/media/platform/nvidia/tegra-vde/"},
-		{IncludeRegexp: "^drivers/pci/controller/pci-tegra\\.c$"},
-		{IncludeRegexp: "^drivers/spi/spi-tegra210-quad\\.c$"},
-		{IncludeRegexp: "^drivers/staging/media/tegra-video/"},
-		{IncludeRegexp: "^drivers/staging/nvec/"},
-	},
-}
-
-var tipc = &Subsystem{
-	Name:        "tipc",
-	Lists:       []string{"tipc-discussion@lists.sourceforge.net"},
-	Maintainers: []string{"jmaloy@redhat.com", "ying.xue@windriver.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/uapi/linux/tipc[^/]*\\.h$|^net/tipc/"},
-	},
-}
-
-var tomoyo = &Subsystem{
-	Name:        "tomoyo",
-	Lists:       []string{"tomoyo-dev-en@lists.osdn.me"},
-	Maintainers: []string{"penguin-kernel@I-love.SAKURA.ne.jp", "takedakn@nttdata.co.jp"},
-	Parents:     []*Subsystem{lsm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^security/tomoyo/"},
-	},
-}
-
-var trace = &Subsystem{
-	Name:    "trace",
-	Lists:   []string{"linux-trace-kernel@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/proc/bootconfig\\.c$|^include/linux/bootconfig\\.h$|^lib/bootconfig-data\\.S$|^lib/bootconfig\\.c$"},
-		{IncludeRegexp: "^fs/tracefs/|^include/linux/trace[^/]*\\.h$|^include/trace/|^kernel/trace/"},
-		{IncludeRegexp: "^include/asm-generic/kprobes\\.h$|^include/linux/kprobes\\.h$|^kernel/kprobes\\.c$|^lib/test_kprobes\\.c$"},
-		{IncludeRegexp: "^kernel/trace/ftrace[^/]*$|^kernel/trace/fgraph\\.c$|^arch/[^/]*/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^arch/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^include/[^/]*/ftrace\\.h$"},
-	},
-}
-
-var uclinux = &Subsystem{
-	Name:        "uclinux",
-	Lists:       []string{"uclinux-dev@uclinux.org"},
-	Maintainers: []string{"gerg@linux-m68k.org"},
-	Parents:     []*Subsystem{m68k},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/m68k/[^/]*/[^/]*_no\\.[^/]*$|^arch/m68k/68[^/]*/|^arch/m68k/coldfire/|^arch/m68k/include/asm/[^/]*_no\\.[^/]*$"},
-	},
-}
-
-var udf = &Subsystem{
-	Name:        "udf",
-	Syscalls:    []string{"syz_mount_image$udf"},
-	Maintainers: []string{"jack@suse.com"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/udf/"},
-	},
-}
-
-var um = &Subsystem{
-	Name:        "um",
-	Lists:       []string{"linux-um@lists.infradead.org"},
-	Maintainers: []string{"anton.ivanov@cambridgegreys.com", "johannes@sipsolutions.net", "richard@nod.at"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/um/|^arch/x86/um/|^fs/hostfs/"},
-	},
-}
-
-var unisoc = &Subsystem{
-	Name:        "unisoc",
-	Lists:       []string{"linux-unisoc@lists.infradead.org"},
-	Maintainers: []string{"manivannan.sadhasivam@linaro.org"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/rda8810pl-[^/]*$|^drivers/clocksource/timer-rda\\.c$|^drivers/gpio/gpio-rda\\.c$|^drivers/irqchip/irq-rda-intc\\.c$|^drivers/tty/serial/rda-uart\\.c$"},
-	},
-}
-
-var usb = &Subsystem{
-	Name:    "usb",
-	Lists:   []string{"linux-usb@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/usb[^/]*$|^drivers/usb/[^/]*/[^/]*omap[^/]*$"},
-		{IncludeRegexp: "^drivers/hid/usbhid/"},
-		{IncludeRegexp: "^drivers/net/usb/"},
-		{IncludeRegexp: "^drivers/net/usb/cdc_[^/]*\\.c$|^include/uapi/linux/usb/cdc\\.h$"},
-		{IncludeRegexp: "^drivers/net/usb/hso\\.c$"},
-		{IncludeRegexp: "^drivers/net/usb/pegasus\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/usb/rtl8150\\.c$"},
-		{IncludeRegexp: "^drivers/phy/hisilicon/phy-hi3660-usb3\\.c$"},
-		{IncludeRegexp: "^drivers/phy/hisilicon/phy-hi3670-usb3\\.c$"},
-		{IncludeRegexp: "^drivers/phy/sunplus/Kconfig$|^drivers/phy/sunplus/phy-sunplus-usb2\\.c$"},
-		{IncludeRegexp: "^drivers/staging/media/deprecated/zr364xx/"},
-		{IncludeRegexp: "^drivers/thunderbolt/dma_test\\.c$"},
-		{IncludeRegexp: "^drivers/thunderbolt/|^include/linux/thunderbolt\\.h$"},
-		{IncludeRegexp: "^drivers/usb/atm/speedtch\\.c$|^drivers/usb/atm/usbatm\\.c$"},
-		{IncludeRegexp: "^drivers/usb/c67x00/"},
-		{"^drivers/usb/cdns3/", "^drivers/usb/cdns3/cdns3[^/]*$"},
-		{"^drivers/usb/cdns3/", "^drivers/usb/cdns3/cdnsp[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/chipidea/"},
-		{IncludeRegexp: "^drivers/usb/class/cdc-acm\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/class/usblp\\.c$"},
-		{IncludeRegexp: "^drivers/usb/common/ulpi\\.c$|^include/linux/ulpi/"},
-		{IncludeRegexp: "^drivers/usb/common/usb-otg-fsm\\.c$"},
-		{IncludeRegexp: "^drivers/usb/dwc2/"},
-		{IncludeRegexp: "^drivers/usb/dwc3/"},
-		{IncludeRegexp: "^drivers/usb/fotg210/"},
-		{IncludeRegexp: "^drivers/usb/gadget/function/[^/]*uvc[^/]*$|^drivers/usb/gadget/legacy/webcam\\.c$|^include/uapi/linux/usb/g_uvc\\.h$"},
-		{IncludeRegexp: "^drivers/usb/gadget/legacy/raw_gadget\\.c$|^include/uapi/linux/usb/raw_gadget\\.h$"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/bcm63xx_udc\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/bdc/"},
-		{IncludeRegexp: "^drivers/usb/gadget/udc/fsl[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/ehci-brcm\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/ehci[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/isp116x[^/]*$|^include/linux/usb/isp116x\\.h$"},
-		{IncludeRegexp: "^drivers/usb/host/ohci[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/pci-quirks[^/]*$|^drivers/usb/host/xhci[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/uhci[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/host/xen[^/]*$|^include/xen/interface/io/usbif\\.h$"},
-		{IncludeRegexp: "^drivers/usb/host/xhci-mtk[^/]*$|^drivers/usb/mtu3/"},
-		{IncludeRegexp: "^drivers/usb/isp1760/"},
-		{IncludeRegexp: "^drivers/usb/misc/apple-mfi-fastcharge\\.c$"},
-		{IncludeRegexp: "^drivers/usb/misc/brcmstb-usb-pinmap\\.c$"},
-		{IncludeRegexp: "^drivers/usb/misc/chaoskey\\.c$"},
-		{IncludeRegexp: "^drivers/usb/misc/onboard_usb_hub\\.c$"},
-		{IncludeRegexp: "^drivers/usb/misc/usb251xb\\.c$"},
-		{IncludeRegexp: "^drivers/usb/musb/"},
-		{IncludeRegexp: "^drivers/usb/phy/phy-fsl-usb[^/]*$"},
-		{IncludeRegexp: "^drivers/usb/roles/intel-xhci-usb-role-switch\\.c$"},
-		{IncludeRegexp: "^drivers/usb/serial/|^include/linux/usb/serial\\.h$"},
-		{IncludeRegexp: "^drivers/usb/storage/"},
-		{IncludeRegexp: "^drivers/usb/storage/uas\\.c$"},
-		{IncludeRegexp: "^drivers/usb/typec/altmodes/|^include/linux/usb/typec_altmode\\.h$"},
-		{IncludeRegexp: "^drivers/usb/typec/mux/intel_pmc_mux\\.c$"},
-		{IncludeRegexp: "^drivers/usb/typec/mux/pi3usb30532\\.c$"},
-		{IncludeRegexp: "^drivers/usb/typec/tcpm/"},
-		{IncludeRegexp: "^drivers/usb/typec/|^include/linux/usb/typec\\.h$"},
-		{IncludeRegexp: "^drivers/usb/usbip/"},
-		{IncludeRegexp: "^drivers/usb/|^include/dt-bindings/usb/|^include/linux/usb\\.h$|^include/linux/usb/"},
-	},
-}
-
-var usbstorage = &Subsystem{
-	Name:        "usb-storage",
-	Lists:       []string{"usb-storage@lists.one-eyed-alien.net"},
-	Maintainers: []string{"stern@rowland.harvard.edu"},
-	Parents:     []*Subsystem{usb},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/usb/storage/"},
-	},
-}
-
-var v9fs = &Subsystem{
-	Name:        "v9fs",
-	Lists:       []string{"v9fs-developer@lists.sourceforge.net"},
-	Maintainers: []string{"asmadeus@codewreck.org", "ericvh@gmail.com", "lucho@ionkov.net"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/9p/|^include/net/9p/|^include/trace/events/9p\\.h$|^include/uapi/linux/virtio_9p\\.h$|^net/9p/"},
-	},
-}
-
-var video = &Subsystem{
-	Name:        "video",
-	Lists:       []string{"linux-video@atrey.karlin.mff.cuni.cz"},
-	Maintainers: []string{"mj@ucw.cz"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/boot/video[^/]*$"},
-	},
-}
-
-var virt = &Subsystem{
-	Name:    "virt",
-	Lists:   []string{"virtualization@lists.linux-foundation.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/paravirt[^/]*\\.h$|^arch/[^/]*/kernel/paravirt[^/]*$|^include/linux/hypervisor\\.h$"},
-		{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
-		{IncludeRegexp: "^arch/x86/include/asm/vmware\\.h$|^arch/x86/kernel/cpu/vmware\\.c$"},
-		{IncludeRegexp: "^drivers/block/virtio_blk\\.c$|^drivers/crypto/virtio/|^drivers/net/virtio_net\\.c$|^drivers/vdpa/|^drivers/virtio/|^include/linux/vdpa\\.h$|^include/linux/virtio[^/]*\\.h$|^include/uapi/linux/virtio_[^/]*\\.h$"},
-		{IncludeRegexp: "^drivers/block/virtio_blk\\.c$|^drivers/scsi/virtio_scsi\\.c$|^drivers/vhost/scsi\\.c$|^include/uapi/linux/virtio_blk\\.h$|^include/uapi/linux/virtio_scsi\\.h$"},
-		{IncludeRegexp: "^drivers/char/virtio_console\\.c$|^include/linux/virtio_console\\.h$|^include/uapi/linux/virtio_console\\.h$"},
-		{IncludeRegexp: "^drivers/crypto/virtio/|^include/uapi/linux/virtio_crypto\\.h$"},
-		{IncludeRegexp: "^drivers/gpio/gpio-virtio\\.c$|^include/uapi/linux/virtio_gpio\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/qxl/|^include/uapi/drm/qxl_drm\\.h$"},
-		{IncludeRegexp: "^drivers/gpu/drm/tiny/bochs\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/tiny/cirrus\\.c$"},
-		{IncludeRegexp: "^drivers/gpu/drm/virtio/|^include/uapi/linux/virtio_gpu\\.h$"},
-		{IncludeRegexp: "^drivers/i2c/busses/i2c-virtio\\.c$|^include/uapi/linux/virtio_i2c\\.h$"},
-		{IncludeRegexp: "^drivers/iommu/virtio-iommu\\.c$|^include/uapi/linux/virtio_iommu\\.h$"},
-		{IncludeRegexp: "^drivers/net/vsockmon\\.c$|^include/net/af_vsock\\.h$|^include/uapi/linux/vm_sockets\\.h$|^include/uapi/linux/vm_sockets_diag\\.h$|^include/uapi/linux/vsockmon\\.h$|^net/vmw_vsock/"},
-		{IncludeRegexp: "^drivers/nvdimm/virtio_pmem\\.c$|^drivers/nvdimm/nd_virtio\\.c$"},
-		{IncludeRegexp: "^drivers/vhost/vsock\\.c$|^include/linux/virtio_vsock\\.h$|^include/uapi/linux/virtio_vsock\\.h$|^net/vmw_vsock/virtio_transport\\.c$|^net/vmw_vsock/virtio_transport_common\\.c$"},
-		{IncludeRegexp: "^drivers/vhost/|^include/linux/vhost_iotlb\\.h$|^include/uapi/linux/vhost\\.h$"},
-		{IncludeRegexp: "^drivers/virtio/virtio_balloon\\.c$|^include/uapi/linux/virtio_balloon\\.h$|^include/linux/balloon_compaction\\.h$|^mm/balloon_compaction\\.c$"},
-		{IncludeRegexp: "^drivers/virtio/virtio_mem\\.c$|^include/uapi/linux/virtio_mem\\.h$"},
-		{IncludeRegexp: "^fs/fuse/virtio_fs\\.c$|^include/uapi/linux/virtio_fs\\.h$"},
-		{IncludeRegexp: "^include/uapi/linux/virtio_snd\\.h$|^sound/virtio/"},
-	},
-}
-
-var watchdog = &Subsystem{
-	Name:    "watchdog",
-	Lists:   []string{"linux-watchdog@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/watchdog/ebc-c384_wdt\\.c$"},
-		{IncludeRegexp: "^drivers/watchdog/mena21_wdt\\.c$"},
-		{IncludeRegexp: "^drivers/watchdog/menz69_wdt\\.c$"},
-		{IncludeRegexp: "^drivers/watchdog/realtek_otto_wdt\\.c$"},
-		{IncludeRegexp: "^drivers/watchdog/sunplus_wdt\\.c$"},
-		{IncludeRegexp: "^drivers/watchdog/|^include/linux/watchdog\\.h$|^include/uapi/linux/watchdog\\.h$|^include/trace/events/watchdog\\.h$"},
-	},
-}
-
-var wcn36xx = &Subsystem{
-	Name:        "wcn36xx",
-	Lists:       []string{"wcn36xx@lists.infradead.org"},
-	Maintainers: []string{"loic.poulain@linaro.org"},
-	Parents:     []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/ath/wcn36xx/"},
-	},
-}
-
-var wireguard = &Subsystem{
-	Name:        "wireguard",
-	Lists:       []string{"wireguard@lists.zx2c4.com"},
-	Maintainers: []string{"Jason@zx2c4.com"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireguard/"},
-	},
-}
-
-var wireless = &Subsystem{
-	Name:     "wireless",
-	Syscalls: []string{"syz_80211_join_ibss", "syz_80211_inject_frame"},
-	Lists:    []string{"linux-wireless@vger.kernel.org"},
-	Parents:  []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/bcma/|^include/linux/bcma/"},
-		{IncludeRegexp: "^drivers/net/wireless/"},
-		{IncludeRegexp: "^drivers/net/wireless/admtek/adm8211\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/ar5523/"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/ath5k/"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/ath6kl/"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/ath9k/"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/carl9170/"},
-		{IncludeRegexp: "^drivers/net/wireless/ath/wil6210/"},
-		{IncludeRegexp: "^drivers/net/wireless/atmel/atmel[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/b43/"},
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/b43legacy/"},
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/brcm80211/"},
-		{IncludeRegexp: "^drivers/net/wireless/intel/ipw2x00/"},
-		{IncludeRegexp: "^drivers/net/wireless/intel/iwlegacy/"},
-		{IncludeRegexp: "^drivers/net/wireless/intel/iwlwifi/"},
-		{IncludeRegexp: "^drivers/net/wireless/intersil/hostap/"},
-		{IncludeRegexp: "^drivers/net/wireless/intersil/orinoco/"},
-		{IncludeRegexp: "^drivers/net/wireless/intersil/p54/"},
-		{IncludeRegexp: "^drivers/net/wireless/mac80211_hwsim\\.\\[ch\\]$|^include/net/mac80211\\.h$|^net/mac80211/"},
-		{IncludeRegexp: "^drivers/net/wireless/marvell/mwifiex/"},
-		{IncludeRegexp: "^drivers/net/wireless/marvell/mwl8k\\.c$"},
-		{IncludeRegexp: "^drivers/net/wireless/mediatek/mt76/"},
-		{IncludeRegexp: "^drivers/net/wireless/mediatek/mt7601u/"},
-		{IncludeRegexp: "^drivers/net/wireless/microchip/wilc1000/"},
-		{IncludeRegexp: "^drivers/net/wireless/purelifi/plfxlc/"},
-		{IncludeRegexp: "^drivers/net/wireless/quantenna$"},
-		{IncludeRegexp: "^drivers/net/wireless/ralink/rt2x00/"},
-		{IncludeRegexp: "^drivers/net/wireless/ray[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wireless/realtek/rtl818x/rtl8180/"},
-		{IncludeRegexp: "^drivers/net/wireless/realtek/rtl818x/rtl8187/"},
-		{IncludeRegexp: "^drivers/net/wireless/realtek/rtl8xxxu/"},
-		{IncludeRegexp: "^drivers/net/wireless/realtek/rtlwifi/"},
-		{IncludeRegexp: "^drivers/net/wireless/realtek/rtw88/"},
-		{IncludeRegexp: "^drivers/net/wireless/realtek/rtw89/"},
-		{IncludeRegexp: "^drivers/net/wireless/rndis_wlan\\.c$"},
-		{IncludeRegexp: "^drivers/net/wireless/rsi/"},
-		{IncludeRegexp: "^drivers/net/wireless/ti/"},
-		{IncludeRegexp: "^drivers/net/wireless/wl3501[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wireless/zydas/zd1201\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/net/wireless/zydas/zd1211rw/"},
-		{IncludeRegexp: "^drivers/nfc/trf7970a\\.c$"},
-		{IncludeRegexp: "^drivers/ssb/|^include/linux/ssb/"},
-		{IncludeRegexp: "^include/linux/ieee80211\\.h$|^include/net/cfg80211\\.h$|^include/net/ieee80211_radiotap\\.h$|^include/net/iw_handler\\.h$|^include/net/wext\\.h$|^include/uapi/linux/nl80211\\.h$|^include/uapi/linux/wireless\\.h$|^net/wireless/"},
-		{IncludeRegexp: "^include/linux/rfkill\\.h$|^include/uapi/linux/rfkill\\.h$|^net/rfkill/"},
-	},
-}
-
-var wpan = &Subsystem{
-	Name:    "wpan",
-	Lists:   []string{"linux-wpan@vger.kernel.org"},
-	Parents: []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ieee802154/adf7242\\.c$"},
-		{IncludeRegexp: "^drivers/net/ieee802154/at86rf230\\.h$|^drivers/net/ieee802154/atusb\\.c$|^drivers/net/ieee802154/atusb\\.h$"},
-		{IncludeRegexp: "^drivers/net/ieee802154/ca8210\\.c$"},
-		{IncludeRegexp: "^drivers/net/ieee802154/cc2520\\.c$|^include/linux/spi/cc2520\\.h$"},
-		{IncludeRegexp: "^drivers/net/ieee802154/mcr20a\\.c$|^drivers/net/ieee802154/mcr20a\\.h$"},
-		{IncludeRegexp: "^drivers/net/ieee802154/mrf24j40\\.c$"},
-		{IncludeRegexp: "^drivers/net/ieee802154/|^include/linux/ieee802154\\.h$|^include/linux/nl802154\\.h$|^include/net/af_ieee802154\\.h$|^include/net/cfg802154\\.h$|^include/net/ieee802154_netdev\\.h$|^include/net/mac802154\\.h$|^include/net/nl802154\\.h$|^net/ieee802154/|^net/mac802154/"},
-		{IncludeRegexp: "^include/net/6lowpan\\.h$|^net/6lowpan/"},
-	},
-}
-
-var x25 = &Subsystem{
-	Name:        "x25",
-	Lists:       []string{"linux-x25@vger.kernel.org"},
-	Maintainers: []string{"ms@dev.tdt.de"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wan/hdlc_x25\\.c$|^drivers/net/wan/lapbether\\.c$|^include/[^/]*/lapb\\.h$|^include/net/x25[^/]*$|^include/uapi/linux/x25\\.h$|^net/lapb/|^net/x25/"},
-	},
-}
-
-var x86 = &Subsystem{
-	Name:    "x86",
-	Lists:   []string{"x86@kernel.org"},
-	Parents: []*Subsystem{virt},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/paravirt[^/]*\\.h$|^arch/[^/]*/kernel/paravirt[^/]*$|^include/linux/hypervisor\\.h$"},
-		{IncludeRegexp: "^arch/x86/include/asm/vmware\\.h$|^arch/x86/kernel/cpu/vmware\\.c$"},
-		{IncludeRegexp: "^arch/x86/platform$"},
-	},
-}
-
-var x86drivers = &Subsystem{
-	Name:    "x86-drivers",
-	Lists:   []string{"platform-driver-x86@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/include/asm/amd_hsmp\\.h$|^arch/x86/include/uapi/asm/amd_hsmp\\.h$|^drivers/platform/x86/amd/hsmp\\.c$"},
-		{IncludeRegexp: "^arch/x86/include/asm/intel_punit_ipc\\.h$|^drivers/platform/x86/intel/punit_ipc\\.c$"},
-		{IncludeRegexp: "^arch/x86/include/asm/intel_telemetry\\.h$|^drivers/platform/x86/intel/telemetry/"},
-		{IncludeRegexp: "^arch/x86/platform$"},
-		{IncludeRegexp: "^drivers/char/sonypi\\.c$|^drivers/platform/x86/sony-laptop\\.c$|^include/linux/sony-laptop\\.h$"},
-		{IncludeRegexp: "^drivers/hid/surface-hid/"},
-		{IncludeRegexp: "^drivers/input/touchscreen/silead\\.c$|^drivers/platform/x86/touchscreen_dmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/mellanox/|^include/linux/platform_data/mlxreg\\.h$"},
-		{IncludeRegexp: "^drivers/platform/olpc/|^drivers/platform/x86/"},
-		{IncludeRegexp: "^drivers/platform/surface/"},
-		{IncludeRegexp: "^drivers/platform/surface/aggregator/|^drivers/platform/surface/surface_acpi_notify\\.c$|^drivers/platform/surface/surface_aggregator_cdev\\.c$|^drivers/platform/surface/surface_aggregator_registry\\.c$|^include/linux/surface_acpi_notify\\.h$|^include/linux/surface_aggregator/|^include/uapi/linux/surface_aggregator/"},
-		{IncludeRegexp: "^drivers/platform/surface/surface_aggregator_hub\\.c$"},
-		{IncludeRegexp: "^drivers/platform/surface/surface_aggregator_tabletsw\\.c$"},
-		{IncludeRegexp: "^drivers/platform/surface/surface_dtx\\.c$|^include/uapi/linux/surface_aggregator/dtx\\.h$"},
-		{IncludeRegexp: "^drivers/platform/surface/surface_gpe\\.c$"},
-		{IncludeRegexp: "^drivers/platform/surface/surface_hotplug\\.c$"},
-		{IncludeRegexp: "^drivers/platform/surface/surface_platform_profile\\.c$"},
-		{IncludeRegexp: "^drivers/platform/surface/surfacepro3_button\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/acer-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/acerhdf\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/adv_swbutton\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/amd/pmc\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/amd/pmf/"},
-		{IncludeRegexp: "^drivers/platform/x86/asus-tf103c-dock\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/asus-wireless\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/asus[^/]*\\.c$|^drivers/platform/x86/eeepc[^/]*\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/classmate-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/compal-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dcdbas\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-smm\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios\\.[^/]*$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-privacy\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-sysman/"},
-		{IncludeRegexp: "^drivers/platform/x86/dell/dell_rbu\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/fujitsu-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/fujitsu-tablet\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/gigabyte-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/gpd-pocket-fan\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/hdaps\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/hp/tc1100-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/ideapad-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/atomisp2/led\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/atomisp2/pm\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/hid\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/int1092/"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/ishtp_eclite\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/pmc/"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/speed_select_if/|^include/uapi/linux/isst_if\\.h$"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/uncore-frequency/"},
-		{IncludeRegexp: "^drivers/platform/x86/intel/vbtn\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/lg-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/mlx-platform\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/msi-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/msi-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/nvidia-wmi-ec-backlight\\.c$|^include/linux/platform_data/x86/nvidia-wmi-ec-backlight\\.h$"},
-		{IncludeRegexp: "^drivers/platform/x86/panasonic-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/peaq-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/samsung-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/serial-multi-instantiate\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/system76_acpi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/think-lmi\\..$"},
-		{IncludeRegexp: "^drivers/platform/x86/thinkpad_acpi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/topstar-laptop\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/toshiba-wmi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/toshiba_acpi\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/toshiba_bluetooth\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/toshiba_haps\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/uv_sysfs\\.c$"},
-		{IncludeRegexp: "^drivers/platform/x86/wmi\\.c$|^include/uapi/linux/wmi\\.h$"},
-		{IncludeRegexp: "^drivers/platform/x86/x86-android-tablets\\.c$"},
-		{IncludeRegexp: "^drivers/power/supply/surface_battery\\.c$|^drivers/power/supply/surface_charger\\.c$"},
-	},
-}
-
-var xen = &Subsystem{
-	Name:    "xen",
-	Lists:   []string{"xen-devel@lists.xenproject.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/[^/]*/include/asm/xen/swiotlb-xen\\.h$|^drivers/xen/swiotlb-xen\\.c$|^include/xen/arm/swiotlb-xen\\.h$|^include/xen/swiotlb-xen\\.h$"},
-		{IncludeRegexp: "^arch/arm/include/asm/xen/|^arch/arm/xen/"},
-		{IncludeRegexp: "^arch/arm64/include/asm/xen/|^arch/arm64/xen/"},
-		{IncludeRegexp: "^arch/x86/configs/xen\\.config$|^arch/x86/include/asm/pvclock-abi\\.h$|^arch/x86/include/asm/xen/|^arch/x86/platform/pvh/|^arch/x86/xen/"},
-		{IncludeRegexp: "^arch/x86/pci/[^/]*xen[^/]*$|^drivers/pci/[^/]*xen[^/]*$"},
-		{IncludeRegexp: "^drivers/[^/]*/xen-[^/]*front\\.c$|^drivers/xen/|^include/uapi/xen/|^include/xen/|^kernel/configs/xen\\.config$"},
-		{IncludeRegexp: "^drivers/block/xen[^/]*$|^drivers/block/xen-blkback/"},
-		{IncludeRegexp: "^drivers/gpu/drm/xen/"},
-		{IncludeRegexp: "^drivers/net/xen-netback/"},
-		{IncludeRegexp: "^drivers/scsi/xen-scsifront\\.c$|^drivers/xen/xen-scsiback\\.c$|^include/xen/interface/io/vscsiif\\.h$"},
-		{IncludeRegexp: "^drivers/usb/host/xen[^/]*$|^include/xen/interface/io/usbif\\.h$"},
-		{IncludeRegexp: "^sound/xen/"},
-	},
-}
-
-var xfs = &Subsystem{
-	Name:     "xfs",
-	Syscalls: []string{"syz_mount_image$xfs"},
-	Lists:    []string{"linux-xfs@vger.kernel.org"},
-	Parents:  []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/iomap/|^include/linux/iomap\\.h$"},
-		{IncludeRegexp: "^fs/xfs/|^include/uapi/linux/dqblk_xfs\\.h$|^include/uapi/linux/fsmap\\.h$"},
-	},
-}
-
-var xtensa = &Subsystem{
-	Name:    "xtensa",
-	Lists:   []string{"linux-xtensa@linux-xtensa.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/xtensa/|^drivers/irqchip/irq-xtensa-[^/]*$"},
-		{IncludeRegexp: "^drivers/spi/spi-xtensa-xtfpga\\.c$|^sound/soc/xtensa/xtfpga-i2s\\.c$"},
-	},
-}
-
-var zd1211 = &Subsystem{
-	Name:        "zd1211",
-	Lists:       []string{"zd1211-devs@lists.sourceforge.net"},
-	Maintainers: []string{"kune@deine-taler.de"},
-	Parents:     []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/zydas/zd1211rw/"},
-	},
+func subsystems_linux() []*Subsystem {
+	var _9p, ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, atm, audit, autofs, axis, b43, batman, bcache, bfs, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, can, ceph, cgroups, chrome, cifs, cirrus, clk, cluster, coda, coresight, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fat, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, fuse, geode, gpio, greybus, hams, hardening, hexagon, hfs, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, ipack, isdn4linux, isofs, jfs, karma, kasan, kernel, kernfs, kexec, keyrings, kgdb, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, netfilter, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rust, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, udf, um, unisoc, usb, usbstorage, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211 Subsystem
+
+	_9p = Subsystem{
+		Name:        "9p",
+		Lists:       []string{"v9fs-developer@lists.sourceforge.net"},
+		Maintainers: []string{"asmadeus@codewreck.org", "ericvh@gmail.com", "lucho@ionkov.net"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/9p/|^include/net/9p/|^include/trace/events/9p\\.h$|^include/uapi/linux/virtio_9p\\.h$|^net/9p/"},
+		},
+	}
+
+	ac100 = Subsystem{
+		Name:        "ac100",
+		Lists:       []string{"ac100@lists.launchpad.net"},
+		Maintainers: []string{"marvin24@gmx.de"},
+		Parents:     []*Subsystem{&staging, &tegra},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/staging/nvec/"},
+		},
+	}
+
+	accelerators = Subsystem{
+		Name:        "accelerators",
+		Lists:       []string{"linux-accelerators@lists.ozlabs.org"},
+		Maintainers: []string{"wangzhou1@hisilicon.com", "zhangfei.gao@linaro.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/misc/uacce/|^include/linux/uacce\\.h$|^include/uapi/misc/uacce/"},
+		},
+	}
+
+	acpi = Subsystem{
+		Name:    "acpi",
+		Lists:   []string{"linux-acpi@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/acpi/[^/]*thermal[^/]*$"},
+			{IncludeRegexp: "^drivers/acpi/acpica/|^include/acpi/"},
+			{IncludeRegexp: "^drivers/acpi/apei/"},
+			{IncludeRegexp: "^drivers/acpi/arm64$"},
+			{IncludeRegexp: "^drivers/acpi/pmic/"},
+			{IncludeRegexp: "^drivers/acpi/viot\\.c$|^include/linux/acpi_viot\\.h$"},
+			{IncludeRegexp: "^drivers/acpi/|^drivers/pci/[^/]*/[^/]*acpi[^/]*$|^drivers/pci/[^/]*acpi[^/]*$|^drivers/pnp/pnpacpi/|^include/acpi/|^include/linux/acpi\\.h$|^include/linux/fwnode\\.h$"},
+			{IncludeRegexp: "^drivers/base/property\\.c$|^drivers/base/swnode\\.c$|^include/linux/fwnode\\.h$|^include/linux/property\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpiolib-acpi\\.c$|^drivers/gpio/gpiolib-acpi\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/i2c-core-acpi\\.c$"},
+			{IncludeRegexp: "^drivers/mailbox/pcc\\.c$"},
+			{IncludeRegexp: "^drivers/pnp/|^include/linux/pnp\\.h$"},
+		},
+	}
+
+	acpi4asus = Subsystem{
+		Name:        "acpi4asus",
+		Lists:       []string{"acpi4asus-user@lists.sourceforge.net"},
+		Maintainers: []string{"corentin.chary@gmail.com"},
+		Parents:     []*Subsystem{&x86drivers},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/platform/x86/asus[^/]*\\.c$|^drivers/platform/x86/eeepc[^/]*\\.c$"},
+		},
+	}
+
+	acpica = Subsystem{
+		Name:        "acpica",
+		Lists:       []string{"acpica-devel@lists.linuxfoundation.org"},
+		Maintainers: []string{"rafael.j.wysocki@intel.com", "robert.moore@intel.com"},
+		Parents:     []*Subsystem{&acpi},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/acpi/acpica/|^include/acpi/"},
+		},
+	}
+
+	acrn = Subsystem{
+		Name:        "acrn",
+		Lists:       []string{"acrn-dev@lists.projectacrn.org"},
+		Maintainers: []string{"fei1.li@intel.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/virt/acrn/|^include/uapi/linux/acrn\\.h$"},
+		},
+	}
+
+	actions = Subsystem{
+		Name:    "actions",
+		Lists:   []string{"linux-actions@lists.infradead.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/owl-[^/]*$|^arch/arm/mach-actions/|^arch/arm64/boot/dts/actions/|^drivers/clk/actions/|^drivers/clocksource/timer-owl[^/]*$|^drivers/dma/owl-dma\\.c$|^drivers/i2c/busses/i2c-owl\\.c$|^drivers/irqchip/irq-owl-sirq\\.c$|^drivers/mmc/host/owl-mmc\\.c$|^drivers/net/ethernet/actions/|^drivers/pinctrl/actions/|^drivers/soc/actions/|^include/dt-bindings/power/owl-[^/]*$|^include/dt-bindings/reset/actions,[^/]*$|^include/linux/soc/actions/|owl"},
+			{IncludeRegexp: "^drivers/input/misc/atc260x-onkey\\.c$|^drivers/mfd/atc260[^/]*$|^drivers/power/reset/atc260x-poweroff\\.c$|^drivers/regulator/atc260x-regulator\\.c$|^include/linux/mfd/atc260x/"},
+		},
+	}
+
+	afs = Subsystem{
+		Name:    "afs",
+		Lists:   []string{"linux-afs@lists.infradead.org"},
+		Parents: []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/afs/|^include/trace/events/afs\\.h$"},
+			{IncludeRegexp: "^include/keys/rxrpc-type\\.h$|^include/net/af_rxrpc\\.h$|^include/trace/events/rxrpc\\.h$|^include/uapi/linux/rxrpc\\.h$|^net/rxrpc/"},
+		},
+	}
+
+	alpha = Subsystem{
+		Name:        "alpha",
+		Lists:       []string{"linux-alpha@vger.kernel.org"},
+		Maintainers: []string{"ink@jurassic.park.msu.ru", "mattst88@gmail.com", "richard.henderson@linaro.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/alpha/"},
+		},
+	}
+
+	alsa = Subsystem{
+		Name:    "alsa",
+		Lists:   []string{"alsa-devel@alsa-project.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpio/gpio-madera[^/]*$|^drivers/irqchip/irq-madera[^/]*$|^drivers/mfd/cs47l[^/]*$|^drivers/mfd/madera[^/]*$|^drivers/pinctrl/cirrus/|^include/dt-bindings/sound/madera[^/]*$|^include/linux/irqchip/irq-madera[^/]*$|^include/linux/mfd/madera/|^include/sound/madera[^/]*$|^sound/soc/codecs/cs47l[^/]*$|^sound/soc/codecs/madera[^/]*$"},
+			{IncludeRegexp: "^drivers/slimbus/|^include/linux/slimbus\\.h$"},
+			{IncludeRegexp: "^drivers/soc/qcom/apr\\.c$|^include/dt-bindings/sound/qcom,wcd9335\\.h$|^sound/soc/codecs/lpass-rx-macro\\.[^/]*$|^sound/soc/codecs/lpass-tx-macro\\.[^/]*$|^sound/soc/codecs/lpass-va-macro\\.c$|^sound/soc/codecs/lpass-wsa-macro\\.[^/]*$|^sound/soc/codecs/msm8916-wcd-analog\\.c$|^sound/soc/codecs/msm8916-wcd-digital\\.c$|^sound/soc/codecs/wcd9335\\.[^/]*$|^sound/soc/codecs/wcd934x\\.c$|^sound/soc/codecs/wcd-clsh-v2\\.[^/]*$|^sound/soc/codecs/wcd-mbhc-v2\\.[^/]*$|^sound/soc/codecs/wsa881x\\.c$|^sound/soc/codecs/wsa883x\\.c$|^sound/soc/qcom/"},
+			{IncludeRegexp: "^drivers/soundwire/|^include/linux/soundwire/"},
+			{IncludeRegexp: "^include/dt-bindings/sound/cs[^/]*$|^sound/pci/hda/cs[^/]*$|^sound/pci/hda/hda_cs_dsp_ctl\\.[^/]*$|^sound/soc/codecs/cs[^/]*$"},
+			{IncludeRegexp: "^include/dt-bindings/sound/|^include/sound/soc[^/]*$|^sound/soc/"},
+			{IncludeRegexp: "^include/sound/compress_driver\\.h$|^include/uapi/sound/compress_[^/]*$|^sound/core/compress_offload\\.c$|^sound/soc/soc-compress\\.c$"},
+			{IncludeRegexp: "^include/sound/|^include/uapi/sound/|^sound/"},
+			{IncludeRegexp: "^include/uapi/linux/virtio_snd\\.h$|^sound/virtio/"},
+			{IncludeRegexp: "^include/uapi/sound/firewire\\.h$|^sound/firewire/"},
+			{IncludeRegexp: "^sound/aoa/"},
+			{IncludeRegexp: "^sound/drivers/opl4/"},
+			{IncludeRegexp: "^sound/pci/bt87x\\.c$"},
+			{IncludeRegexp: "^sound/pci/oxygen/"},
+			{IncludeRegexp: "^sound/soc/apple/|^sound/soc/codecs/cs42l83-i2c\\.c$"},
+			{IncludeRegexp: "^sound/soc/atmel$"},
+			{IncludeRegexp: "^sound/soc/atmel/tse850-pcm5142\\.c$"},
+			{IncludeRegexp: "^sound/soc/codecs/ad1[^/]*$|^sound/soc/codecs/ad7[^/]*$|^sound/soc/codecs/adau[^/]*$|^sound/soc/codecs/adav[^/]*$|^sound/soc/codecs/sigmadsp\\.[^/]*$|^sound/soc/codecs/ssm[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/isabelle[^/]*$|^sound/soc/codecs/lm49453[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/max9860\\.[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/pcm3060[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/sgtl5000[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/tas571x[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/tfa9879[^/]*$"},
+			{IncludeRegexp: "^sound/soc/codecs/tfa989x\\.c$"},
+			{IncludeRegexp: "^sound/soc/codecs/twl4030[^/]*$"},
+			{IncludeRegexp: "^sound/soc/fsl/fsl[^/]*$|^sound/soc/fsl/imx[^/]*$|^sound/soc/fsl/mpc8610_hpcd\\.c$"},
+			{IncludeRegexp: "^sound/soc/intel/"},
+			{IncludeRegexp: "^sound/soc/meson/"},
+			{IncludeRegexp: "^sound/soc/samsung/"},
+			{IncludeRegexp: "^sound/soc/sti/"},
+			{IncludeRegexp: "^sound/soc/stm/"},
+			{IncludeRegexp: "^sound/soc/sunxi/sun50i-dmic\\.c$"},
+			{IncludeRegexp: "^sound/soc/ti/"},
+			{IncludeRegexp: "^sound/soc/ti/n810\\.c$|^sound/soc/ti/omap[^/]*$|^sound/soc/ti/rx51\\.c$|^sound/soc/ti/sdma-pcm\\.[^/]*$"},
+			{IncludeRegexp: "^sound/soc/uniphier/"},
+			{IncludeRegexp: "^sound/usb/caiaq/"},
+			{IncludeRegexp: "^sound/usb/midi\\.[^/]*$"},
+			{IncludeRegexp: "^sound/usb/misc/ua101\\.c$"},
+			{IncludeRegexp: "^sound/usb/mixer_scarlett_gen2\\.c$"},
+			{IncludeRegexp: "^sound/xen/"},
+		},
+	}
+
+	amdgfx = Subsystem{
+		Name:    "amd-gfx",
+		Lists:   []string{"amd-gfx@lists.freedesktop.org"},
+		Parents: []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd[^/]*\\.\\[ch\\]$|^drivers/gpu/drm/amd/amdkfd/|^drivers/gpu/drm/amd/include/cik_structs\\.h$|^drivers/gpu/drm/amd/include/kgd_kfd_interface\\.h$|^drivers/gpu/drm/amd/include/v9_structs\\.h$|^drivers/gpu/drm/amd/include/vi_structs\\.h$|^include/uapi/linux/kfd_ioctl\\.h$|^include/uapi/linux/kfd_sysfs\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/amd/display/"},
+			{IncludeRegexp: "^drivers/gpu/drm/amd/pm/"},
+			{IncludeRegexp: "^drivers/gpu/drm/amd/|^drivers/gpu/drm/radeon/|^include/uapi/drm/amdgpu_drm\\.h$|^include/uapi/drm/radeon_drm\\.h$"},
+		},
+	}
+
+	amlogic = Subsystem{
+		Name:    "amlogic",
+		Lists:   []string{"linux-amlogic@lists.infradead.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/meson[^/]*$|^arch/arm/mach-meson/|^arch/arm64/boot/dts/amlogic/|^drivers/mmc/host/meson[^/]*$|^drivers/pinctrl/meson/|^drivers/rtc/rtc-meson[^/]*$|^drivers/soc/amlogic/|meson"},
+			{IncludeRegexp: "^drivers/clk/meson/|^include/dt-bindings/clock/gxbb[^/]*$|^include/dt-bindings/clock/meson[^/]*$"},
+			{IncludeRegexp: "^drivers/crypto/amlogic/"},
+			{IncludeRegexp: "^drivers/gpu/drm/meson/"},
+			{IncludeRegexp: "^drivers/media/cec/platform/meson/ao-cec-g12a\\.c$|^drivers/media/cec/platform/meson/ao-cec\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/amlogic/meson-ge2d/"},
+			{IncludeRegexp: "^drivers/mfd/khadas-mcu\\.c$|^include/linux/mfd/khadas-mcu\\.h$|^drivers/thermal/khadas_mcu_fan\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pci-meson\\.c$"},
+			{IncludeRegexp: "^drivers/perf/amlogic/|^include/soc/amlogic/"},
+			{IncludeRegexp: "^drivers/staging/media/meson/vdec/"},
+			{IncludeRegexp: "^drivers/thermal/amlogic_thermal\\.c$"},
+		},
+	}
+
+	apparmor = Subsystem{
+		Name:        "apparmor",
+		Lists:       []string{"apparmor@lists.ubuntu.com"},
+		Maintainers: []string{"john.johansen@canonical.com", "john@apparmor.net"},
+		Parents:     []*Subsystem{&lsm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^security/apparmor/"},
+		},
+	}
+
+	arch = Subsystem{
+		Name:    "arch",
+		Lists:   []string{"linux-arch@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/tlb\\.h$|^include/asm-generic/tlb\\.h$|^mm/mmu_gather\\.c$"},
+			{IncludeRegexp: "^include/asm-generic/|^include/uapi/asm-generic/"},
+		},
+	}
+
+	arm = Subsystem{
+		Name:    "arm",
+		Lists:   []string{"linux-arm-kernel@lists.infradead.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^[^/]*/[^/]*/[^/]*/vexpress[^/]*$|^[^/]*/[^/]*/vexpress[^/]*$|^arch/arm/boot/dts/vexpress[^/]*$|^arch/arm/mach-vexpress/|^arch/arm64/boot/dts/arm/|^drivers/clk/versatile/clk-vexpress-osc\\.c$|^drivers/clocksource/timer-versatile\\.c$|mps2"},
+			{"^arch/arm/", "^arch/arm/boot/dts/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/alpine[^/]*$|^arch/arm/mach-alpine/|^arch/arm64/boot/dts/amazon/|^drivers/[^/]*/[^/]*alpine[^/]*$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/arm-realview-[^/]*$|^arch/arm/boot/dts/integrator[^/]*$|^arch/arm/boot/dts/versatile[^/]*$|^arch/arm/mach-versatile/|^drivers/bus/arm-integrator-lm\\.c$|^drivers/clk/versatile/|^drivers/i2c/busses/i2c-versatile\\.c$|^drivers/irqchip/irq-versatile-fpga\\.c$|^drivers/mtd/maps/physmap-versatile\\.[^/]*$|^drivers/power/reset/arm-versatile-reboot\\.c$|^drivers/soc/versatile/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/armada[^/]*$|^arch/arm/boot/dts/kirkwood[^/]*$|^arch/arm/configs/mvebu_[^/]*_defconfig$|^arch/arm/mach-mvebu/|^arch/arm64/boot/dts/marvell/armada[^/]*$|^arch/arm64/boot/dts/marvell/cn913[^/]*$|^drivers/cpufreq/armada-37xx-cpufreq\\.c$|^drivers/cpufreq/armada-8k-cpufreq\\.c$|^drivers/cpufreq/mvebu-cpufreq\\.c$|^drivers/irqchip/irq-armada-370-xp\\.c$|^drivers/irqchip/irq-mvebu-[^/]*$|^drivers/pinctrl/mvebu/|^drivers/rtc/rtc-armada38x\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/aspeed-[^/]*$|^arch/arm/mach-aspeed/|aspeed"},
+			{IncludeRegexp: "^arch/arm/boot/dts/at91-linea\\.dtsi$|^arch/arm/boot/dts/at91-natte\\.dtsi$|^arch/arm/boot/dts/at91-nattis-2-natte-2\\.dts$|^arch/arm/boot/dts/at91-tse850-3\\.dts$"},
+			{"^arch/arm/boot/dts/at91[^/]*\\.dts$|^arch/arm/boot/dts/at91[^/]*\\.dtsi$|^arch/arm/boot/dts/sama[^/]*\\.dts$|^arch/arm/boot/dts/sama[^/]*\\.dtsi$|^arch/arm/include/debug/at91\\.S$|^arch/arm/mach-at91/|^drivers/memory/atmel[^/]*$|^drivers/watchdog/sama5d4_wdt\\.c$|^include/soc/at91/|at91|atmel", "^drivers/input/touchscreen/atmel_mxt_ts\\.c$|^drivers/net/wireless/atmel/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/bcm470[^/]*$|^arch/arm/boot/dts/bcm5301[^/]*$|^arch/arm/boot/dts/bcm953012[^/]*$|^arch/arm/mach-bcm/bcm_5301x\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/bcm47189[^/]*$|^arch/arm/boot/dts/bcm53573[^/]*$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/bcm7[^/]*\\.dts[^/]*$|^arch/arm/include/asm/hardware/cache-b15-rac\\.h$|^arch/arm/mach-bcm/[^/]*brcmstb[^/]*$|^arch/arm/mm/cache-b15-rac\\.c$|^drivers/bus/brcmstb_gisb\\.c$|^drivers/pci/controller/pcie-brcmstb\\.c$|brcmstb|bcm7038|bcm7120"},
+			{IncludeRegexp: "^arch/arm/boot/dts/berlin[^/]*$|^arch/arm/mach-berlin/|^arch/arm64/boot/dts/synaptics/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/cx92755[^/]*$|digicolor"},
+			{IncludeRegexp: "^arch/arm/boot/dts/da850[^/]*$|^arch/arm/mach-davinci/|^drivers/i2c/busses/i2c-davinci\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/dove[^/]*$|^arch/arm/boot/dts/orion5x[^/]*$|^arch/arm/mach-dove/|^arch/arm/mach-mv78xx0/|^arch/arm/mach-orion5x/|^arch/arm/plat-orion/|^drivers/soc/dove/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/ecx-[^/]*\\.dts[^/]*$|^arch/arm/boot/dts/highbank\\.dts$|^arch/arm/mach-highbank/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/exynos[^/]*$|^arch/arm/boot/dts/s3c[^/]*$|^arch/arm/boot/dts/s5p[^/]*$|^arch/arm/mach-exynos[^/]*/|^arch/arm/mach-s3c/|^arch/arm/mach-s5p[^/]*/|^arch/arm64/boot/dts/exynos/|^drivers/[^/]*/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c64xx[^/]*$|^drivers/[^/]*/[^/]*s5pv210[^/]*$|^drivers/clocksource/samsung_pwm_timer\\.c$|^drivers/memory/samsung/|^drivers/pwm/pwm-samsung\\.c$|^drivers/soc/samsung/|^drivers/tty/serial/samsung[^/]*$|^include/clocksource/samsung_pwm\\.h$|^include/linux/platform_data/[^/]*s3c[^/]*$|^include/linux/serial_s3c\\.h$|^include/linux/soc/samsung/|exynos|s3c2410|s3c64xx|s5pv210"},
+			{IncludeRegexp: "^arch/arm/boot/dts/gemini[^/]*$|^arch/arm/mach-gemini/|^drivers/crypto/gemini/|^drivers/net/ethernet/cortina/|^drivers/pinctrl/pinctrl-gemini\\.c$|^drivers/rtc/rtc-ftrtc010\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/hi3[^/]*$|^arch/arm/boot/dts/hip[^/]*$|^arch/arm/boot/dts/hisi[^/]*$|^arch/arm/mach-hisi/|^arch/arm64/boot/dts/hisilicon/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/intel-ixp[^/]*$|^arch/arm/mach-ixp4xx/|^drivers/bus/intel-ixp4xx-eb\\.c$|^drivers/clocksource/timer-ixp4xx\\.c$|^drivers/crypto/ixp4xx_crypto\\.c$|^drivers/gpio/gpio-ixp4xx\\.c$|^drivers/irqchip/irq-ixp4xx\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/keystone-[^/]*$|^arch/arm/mach-keystone/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/lpc32[^/]*$|^arch/arm/mach-lpc32xx/|^drivers/i2c/busses/i2c-pnx\\.c$|^drivers/net/ethernet/nxp/lpc_eth\\.c$|^drivers/usb/host/ohci-nxp\\.c$|^drivers/watchdog/pnx4008_wdt\\.c$|lpc32xx"},
+			{IncludeRegexp: "^arch/arm/boot/dts/lpc43[^/]*$|^drivers/i2c/busses/i2c-lpc2k\\.c$|^drivers/memory/pl172\\.c$|^drivers/mtd/spi-nor/controllers/nxp-spifi\\.c$|^drivers/rtc/rtc-lpc24xx\\.c$|lpc18xx"},
+			{IncludeRegexp: "^arch/arm/boot/dts/ls1021a[^/]*$|^arch/arm64/boot/dts/freescale/fsl-[^/]*$|^arch/arm64/boot/dts/freescale/qoriq-[^/]*$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/meson[^/]*$|^arch/arm/mach-meson/|^arch/arm64/boot/dts/amlogic/|^drivers/mmc/host/meson[^/]*$|^drivers/pinctrl/meson/|^drivers/rtc/rtc-meson[^/]*$|^drivers/soc/amlogic/|meson"},
+			{IncludeRegexp: "^arch/arm/boot/dts/milbeaut[^/]*$|^arch/arm/mach-milbeaut/|milbeaut"},
+			{IncludeRegexp: "^arch/arm/boot/dts/mmp[^/]*$|^arch/arm/mach-mmp/|^include/linux/soc/mmp/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/mstar-[^/]*$|^arch/arm/mach-mstar/|^drivers/clk/mstar/|^drivers/clocksource/timer-msc313e\\.c$|^drivers/gpio/gpio-msc313\\.c$|^drivers/rtc/rtc-msc313\\.c$|^drivers/watchdog/msc313e_wdt\\.c$|^include/dt-bindings/clock/mstar-[^/]*$|^include/dt-bindings/gpio/msc313-gpio\\.h$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/mt2[^/]*$|^arch/arm/boot/dts/mt6[^/]*$|^arch/arm/boot/dts/mt7[^/]*$|^arch/arm/boot/dts/mt8[^/]*$|^arch/arm/mach-mediatek/|^arch/arm64/boot/dts/mediatek/|^drivers/soc/mediatek/|mtk|mt[2678]"},
+			{IncludeRegexp: "^arch/arm/boot/dts/omap3-igep[^/]*$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/owl-[^/]*$|^arch/arm/mach-actions/|^arch/arm64/boot/dts/actions/|^drivers/clk/actions/|^drivers/clocksource/timer-owl[^/]*$|^drivers/dma/owl-dma\\.c$|^drivers/i2c/busses/i2c-owl\\.c$|^drivers/irqchip/irq-owl-sirq\\.c$|^drivers/mmc/host/owl-mmc\\.c$|^drivers/net/ethernet/actions/|^drivers/pinctrl/actions/|^drivers/soc/actions/|^include/dt-bindings/power/owl-[^/]*$|^include/dt-bindings/reset/actions,[^/]*$|^include/linux/soc/actions/|owl"},
+			{IncludeRegexp: "^arch/arm/boot/dts/ox8[^/]*\\.dts[^/]*$|^arch/arm/mach-oxnas/|^drivers/power/reset/oxnas-restart\\.c$|oxnas"},
+			{IncludeRegexp: "^arch/arm/boot/dts/pxa[^/]*$|^arch/arm/mach-pxa/|^drivers/dma/pxa[^/]*$|^drivers/pcmcia/pxa2xx[^/]*$|^drivers/pinctrl/pxa/|^drivers/spi/spi-pxa2xx[^/]*$|^drivers/usb/gadget/udc/pxa2[^/]*$|^include/sound/pxa2xx-lib\\.h$|^sound/arm/pxa[^/]*$|^sound/soc/pxa/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/rda8810pl-[^/]*$|^drivers/clocksource/timer-rda\\.c$|^drivers/gpio/gpio-rda\\.c$|^drivers/irqchip/irq-rda-intc\\.c$|^drivers/tty/serial/rda-uart\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/rk3[^/]*$|^arch/arm/boot/dts/rv1108[^/]*$|^arch/arm/mach-rockchip/|^drivers/[^/]*/[^/]*/[^/]*rockchip[^/]*$|^drivers/[^/]*/[^/]*rockchip[^/]*$|^drivers/clk/rockchip/|^drivers/i2c/busses/i2c-rk3x\\.c$|^sound/soc/rockchip/|rockchip"},
+			{IncludeRegexp: "^arch/arm/boot/dts/rtd[^/]*$|^arch/arm/mach-realtek/|^arch/arm64/boot/dts/realtek/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/spear[^/]*$|^arch/arm/mach-spear/|^drivers/clk/spear/|^drivers/pinctrl/spear/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/ste-[^/]*$|^arch/arm/mach-nomadik/|^arch/arm/mach-ux500/|^drivers/clk/clk-nomadik\\.c$|^drivers/clocksource/clksrc-dbx500-prcmu\\.c$|^drivers/dma/ste_dma40[^/]*$|^drivers/hwspinlock/u8500_hsem\\.c$|^drivers/i2c/busses/i2c-nomadik\\.c$|^drivers/iio/adc/ab8500-gpadc\\.c$|^drivers/mfd/ab8500[^/]*$|^drivers/mfd/abx500[^/]*$|^drivers/mfd/db8500[^/]*$|^drivers/pinctrl/nomadik/|^drivers/rtc/rtc-ab8500\\.c$|^drivers/rtc/rtc-pl031\\.c$|^drivers/soc/ux500/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/sti[^/]*$|^arch/arm/mach-sti/|^drivers/ata/ahci_st\\.c$|^drivers/char/hw_random/st-rng\\.c$|^drivers/clocksource/arm_global_timer\\.c$|^drivers/clocksource/clksrc_st_lpc\\.c$|^drivers/cpufreq/sti-cpufreq\\.c$|^drivers/dma/st_fdma[^/]*$|^drivers/i2c/busses/i2c-st\\.c$|^drivers/media/platform/st/sti/c8sectpfe/|^drivers/media/rc/st_rc\\.c$|^drivers/mmc/host/sdhci-st\\.c$|^drivers/phy/st/phy-miphy28lp\\.c$|^drivers/phy/st/phy-stih407-usb\\.c$|^drivers/pinctrl/pinctrl-st\\.c$|^drivers/remoteproc/st_remoteproc\\.c$|^drivers/remoteproc/st_slim_rproc\\.c$|^drivers/reset/sti/|^drivers/rtc/rtc-st-lpc\\.c$|^drivers/tty/serial/st-asc\\.c$|^drivers/usb/dwc3/dwc3-st\\.c$|^drivers/usb/host/ehci-st\\.c$|^drivers/usb/host/ohci-st\\.c$|^drivers/watchdog/st_lpc_wdt\\.c$|^include/linux/remoteproc/st_slim_rproc\\.h$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/stm32[^/]*$|^arch/arm/mach-stm32/|^drivers/clocksource/armv7m_systick\\.c$|stm32|stm"},
+			{IncludeRegexp: "^arch/arm/boot/dts/sunplus-sp7021[^/]*\\.dts[^/]*$|^arch/arm/configs/sp7021_[^/]*defconfig$|^arch/arm/mach-sunplus/|^drivers/irqchip/irq-sp7021-intc\\.c$|^drivers/reset/reset-sunplus\\.c$|^include/dt-bindings/clock/sunplus,sp7021-clkc\\.h$|^include/dt-bindings/reset/sunplus,sp7021-reset\\.h$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/uniphier[^/]*$|^arch/arm/include/asm/hardware/cache-uniphier\\.h$|^arch/arm/mach-uniphier/|^arch/arm/mm/cache-uniphier\\.c$|^arch/arm64/boot/dts/socionext/uniphier[^/]*$|^drivers/bus/uniphier-system-bus\\.c$|^drivers/clk/uniphier/|^drivers/dma/uniphier-mdmac\\.c$|^drivers/gpio/gpio-uniphier\\.c$|^drivers/i2c/busses/i2c-uniphier[^/]*$|^drivers/irqchip/irq-uniphier-aidet\\.c$|^drivers/mmc/host/uniphier-sd\\.c$|^drivers/pinctrl/uniphier/|^drivers/reset/reset-uniphier\\.c$|^drivers/tty/serial/8250/8250_uniphier\\.c$|uniphier"},
+			{IncludeRegexp: "^arch/arm/boot/dts/vf[^/]*$|^arch/arm/mach-imx/[^/]*vf610[^/]*$"},
+			{IncludeRegexp: "^arch/arm/include/asm/arch_timer\\.h$|^arch/arm64/include/asm/arch_timer\\.h$|^drivers/clocksource/arm_arch_timer\\.c$"},
+			{IncludeRegexp: "^arch/arm/include/asm/hardware/dec21285\\.h$|^arch/arm/mach-footbridge/"},
+			{IncludeRegexp: "^arch/arm/include/asm/hardware/ioc\\.h$|^arch/arm/include/asm/hardware/iomd\\.h$|^arch/arm/include/asm/hardware/memc\\.h$|^arch/arm/mach-rpc/|^drivers/net/ethernet/8390/etherh\\.c$|^drivers/net/ethernet/i825xx/ether1[^/]*$|^drivers/net/ethernet/seeq/ether3[^/]*$|^drivers/scsi/arm/"},
+			{IncludeRegexp: "^arch/arm/mach-[^/]*/|^arch/arm/plat-[^/]*/"},
+			{IncludeRegexp: "^arch/arm/mach-ep93xx/ts72xx\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-ep93xx/|^arch/arm/mach-ep93xx/include/mach/"},
+			{IncludeRegexp: "^arch/arm/mach-orion5x/ts78xx-[^/]*$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/colibri-pxa270-income\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/ezx\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/hx4700\\.c$|^arch/arm/mach-pxa/include/mach/hx4700\\.h$|^sound/soc/pxa/hx4700\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/include/mach/palmld\\.h$|^arch/arm/mach-pxa/include/mach/palmtc\\.h$|^arch/arm/mach-pxa/include/mach/palmtx\\.h$|^arch/arm/mach-pxa/palmld\\.c$|^arch/arm/mach-pxa/palmt5\\.[^/]*$|^arch/arm/mach-pxa/palmtc\\.c$|^arch/arm/mach-pxa/palmte2\\.[^/]*$|^arch/arm/mach-pxa/palmtx\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/include/mach/vpac270\\.h$|^arch/arm/mach-pxa/vpac270\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/include/mach/z2\\.h$|^arch/arm/mach-pxa/z2\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/mioa701\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/palmtreo\\.[^/]*$"},
+			{IncludeRegexp: "^arch/arm/mach-pxa/palmz72\\.[^/]*$"},
+			{IncludeRegexp: "^arch/arm/mach-sunxi/|^arch/arm64/boot/dts/allwinner/|^drivers/clk/sunxi-ng/|^drivers/pinctrl/sunxi/|^drivers/soc/sunxi/|allwinner|sun[x456789]i|sun50i"},
+			{IncludeRegexp: "^arch/arm/mach-vt8500/|^drivers/clocksource/timer-vt8500\\.c$|^drivers/i2c/busses/i2c-wmt\\.c$|^drivers/mmc/host/wmt-sdmmc\\.c$|^drivers/pwm/pwm-vt8500\\.c$|^drivers/rtc/rtc-vt8500\\.c$|^drivers/tty/serial/vt8500_serial\\.c$|^drivers/usb/host/ehci-platform\\.c$|^drivers/usb/host/uhci-platform\\.c$|^drivers/video/fbdev/vt8500lcdfb\\.[^/]*$|^drivers/video/fbdev/wm8505fb[^/]*$|^drivers/video/fbdev/wmt_ge_rops\\.[^/]*$"},
+			{IncludeRegexp: "^arch/arm/mach-zynq/|^drivers/clocksource/timer-cadence-ttc\\.c$|^drivers/cpuidle/cpuidle-zynq\\.c$|^drivers/edac/synopsys_edac\\.c$|^drivers/i2c/busses/i2c-cadence\\.c$|^drivers/i2c/busses/i2c-xiic\\.c$|^drivers/mmc/host/sdhci-of-arasan\\.c$|zynq|xilinx"},
+			{IncludeRegexp: "^arch/arm/mm/[^/]*-fa[^/]*$"},
+			{IncludeRegexp: "^arch/arm/vfp/"},
+			{"^arch/arm64/", "^arch/arm64/boot/dts/"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/apple/|^drivers/bluetooth/hci_bcm4377\\.c$|^drivers/clk/clk-apple-nco\\.c$|^drivers/cpufreq/apple-soc-cpufreq\\.c$|^drivers/dma/apple-admac\\.c$|^drivers/i2c/busses/i2c-pasemi-core\\.c$|^drivers/i2c/busses/i2c-pasemi-platform\\.c$|^drivers/iommu/apple-dart\\.c$|^drivers/iommu/io-pgtable-dart\\.c$|^drivers/irqchip/irq-apple-aic\\.c$|^drivers/mailbox/apple-mailbox\\.c$|^drivers/nvme/host/apple\\.c$|^drivers/nvmem/apple-efuses\\.c$|^drivers/pinctrl/pinctrl-apple-gpio\\.c$|^drivers/soc/apple/|^drivers/watchdog/apple_wdt\\.c$|^include/dt-bindings/interrupt-controller/apple-aic\\.h$|^include/dt-bindings/pinctrl/apple\\.h$|^include/linux/apple-mailbox\\.h$|^include/linux/soc/apple/"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/bitmain/|^drivers/clk/clk-bm1880\\.c$|^drivers/pinctrl/pinctrl-bm1880\\.c$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/broadcom/bcmbca/|bcmbca|bcm[9]?47622|bcm[9]?4912|bcm[9]?63138|bcm[9]?63146|bcm[9]?63148|bcm[9]?63158|bcm[9]?63178|bcm[9]?6756|bcm[9]?6813|bcm[9]?6846|bcm[9]?6855|bcm[9]?6856|bcm[9]?6858|bcm[9]?6878"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/broadcom/northstar2/|^arch/arm64/boot/dts/broadcom/stingray/|^drivers/clk/bcm/clk-ns[^/]*$|^drivers/clk/bcm/clk-sr[^/]*$|^drivers/pinctrl/bcm/pinctrl-ns[^/]*$|^include/dt-bindings/clock/bcm-sr[^/]*$|iproc|cygnus|bcm[-_]nsp|bcm9113*|bcm9583*|bcm9585*|bcm9586*|bcm988312|bcm113*|bcm583*|bcm585*|bcm586*|bcm88312|hr2|stingray"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/cavium/thunder2-99xx[^/]*$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/freescale/s32g[^/]*\\.dts[^/]*$"},
+			{"^arch/arm64/boot/dts/freescale/|imx|mxs", "^drivers/media/i2c/|^arch/arm64/boot/dts/freescale/fsl-[^/]*$|^arch/arm64/boot/dts/freescale/qoriq-[^/]*$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/lg/"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/marvell/armada-8040-mcbin\\.dts$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/microchip/|^drivers/net/ethernet/microchip/vcap/|^drivers/pinctrl/pinctrl-microchip-sgpio\\.c$|sparx5"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/tesla[^/]*$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/ti/k3-[^/]*$|^include/dt-bindings/pinctrl/k3\\.h$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/toshiba/|^drivers/clk/visconti/|^drivers/net/ethernet/stmicro/stmmac/dwmac-visconti\\.c$|^drivers/gpio/gpio-visconti\\.c$|^drivers/pci/controller/dwc/pcie-visconti\\.c$|^drivers/pinctrl/visconti/|^drivers/watchdog/visconti_wdt\\.c$|visconti"},
+			{IncludeRegexp: "^arch/arm64/include/asm/kvm[^/]*$|^arch/arm64/include/uapi/asm/kvm[^/]*$|^arch/arm64/kvm/|^include/kvm/arm_[^/]*$"},
+			{IncludeRegexp: "^arch/arm[^/]*/include/asm/hw_breakpoint\\.h$|^arch/arm[^/]*/include/asm/perf_event\\.h$|^arch/arm[^/]*/kernel/hw_breakpoint\\.c$|^arch/arm[^/]*/kernel/perf_[^/]*$|^drivers/perf/|^include/linux/perf/arm_pmu\\.h$"},
+			{IncludeRegexp: "^drivers/acpi/arm64$"},
+			{IncludeRegexp: "^drivers/clk/clk-sc\\[mp\\]i\\.c$|^drivers/cpufreq/sc\\[mp\\]i-cpufreq\\.c$|^drivers/firmware/arm_scmi/|^drivers/firmware/arm_scpi\\.c$|^drivers/powercap/arm_scmi_powercap\\.c$|^drivers/regulator/scmi-regulator\\.c$|^drivers/reset/reset-scmi\\.c$|^include/linux/sc\\[mp\\]i_protocol\\.h$|^include/trace/events/scmi\\.h$|^include/uapi/linux/virtio_scmi\\.h$"},
+			{IncludeRegexp: "^drivers/clk/clkdev\\.c$"},
+			{IncludeRegexp: "^drivers/clk/keystone/sci-clk\\.c$|^drivers/firmware/ti_sci[^/]*$|^drivers/irqchip/irq-ti-sci-inta\\.c$|^drivers/irqchip/irq-ti-sci-intr\\.c$|^drivers/reset/reset-ti-sci\\.c$|^drivers/soc/ti/ti_sci_inta_msi\\.c$|^drivers/soc/ti/ti_sci_pm_domains\\.c$|^include/dt-bindings/soc/ti,sci_pm_domain\\.h$|^include/linux/soc/ti/ti_sci_inta_msi\\.h$|^include/linux/soc/ti/ti_sci_protocol\\.h$"},
+			{IncludeRegexp: "^drivers/clk/ux500/"},
+			{IncludeRegexp: "^drivers/clocksource/timer-keystone\\.c$"},
+			{IncludeRegexp: "^drivers/counter/microchip-tcb-capture\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-big_little\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.h$|^drivers/cpuidle/cpuidle-psci-domain\\.c$"},
+			{IncludeRegexp: "^drivers/dma/at_hdmac\\.c$|^drivers/dma/at_xdmac\\.c$|^include/dt-bindings/dma/at91\\.h$"},
+			{IncludeRegexp: "^drivers/dma/mediatek/"},
+			{IncludeRegexp: "^drivers/dma/qcom/hidma[^/]*$"},
+			{IncludeRegexp: "^drivers/firmware/arm_ffa/|^include/linux/arm_ffa\\.h$"},
+			{IncludeRegexp: "^drivers/firmware/arm_sdei\\.c$|^include/linux/arm_sdei\\.h$|^include/uapi/linux/arm_sdei\\.h$"},
+			{IncludeRegexp: "^drivers/firmware/psci/|^include/linux/psci\\.h$|^include/uapi/linux/psci\\.h$"},
+			{IncludeRegexp: "^drivers/firmware/smccc/|^include/linux/arm-smccc\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-sama5d2-piobu\\.c$|^drivers/pinctrl/pinctrl-at91[^/]*$"},
+			{IncludeRegexp: "^drivers/hwtracing/coresight/|^include/dt-bindings/arm/coresight-cti-dt\\.h$|^include/linux/coresight[^/]*$"},
+			{IncludeRegexp: "^drivers/iommu/arm/|^drivers/iommu/io-pgtable-arm[^/]*$"},
+			{IncludeRegexp: "^drivers/irqchip/irq-mchp-eic\\.c$"},
+			{IncludeRegexp: "^drivers/irqchip/irq-vic\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s5p-g2d/"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s5p-jpeg/"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s5p-mfc/"},
+			{IncludeRegexp: "^drivers/memory/brcmstb_dpfe\\.c$"},
+			{IncludeRegexp: "^drivers/memory/pl353-smc\\.c$"},
+			{IncludeRegexp: "^drivers/misc/atmel-ssc\\.c$|^include/linux/atmel-ssc\\.h$"},
+			{IncludeRegexp: "^drivers/mmc/host/s3cmci\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/cavium/thunder/"},
+			{IncludeRegexp: "^drivers/nvmem/microchip-otpc\\.c$|^include/dt-bindings/nvmem/microchip,sama7g5-otpc\\.h$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*mvebu[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/cadence/pci-j721e\\.c$|^drivers/pci/controller/dwc/pci-dra7xx\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*imx6[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*layerscape[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pci-exynos\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-armada8k\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/mobiveil/pcie-layerscape-gen4\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-aardvark\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-host-common\\.c$|^drivers/pci/controller/pci-host-generic\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-thunder-[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-versatile\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-xgene-msi\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-xgene\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-brcmstb\\.c$|^drivers/staging/vc04_services$|bcm2711|bcm283*|raspberrypi"},
+			{IncludeRegexp: "^drivers/perf/fsl_imx8_ddr_perf\\.c$"},
+			{IncludeRegexp: "^drivers/phy/marvell/phy-mmp3-usb\\.c$|^drivers/phy/marvell/phy-pxa-usb\\.c$"},
+			{IncludeRegexp: "^drivers/phy/mediatek/"},
+			{IncludeRegexp: "^drivers/pinctrl/pinctrl-single\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/samsung/|^include/dt-bindings/pinctrl/samsung\\.h$"},
+			{IncludeRegexp: "^drivers/pinctrl/sunplus/|^include/dt-bindings/pinctrl/sppctl[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/pwm/pwm-atmel\\.c$"},
+			{IncludeRegexp: "^drivers/regulator/mcp16502\\.c$"},
+			{IncludeRegexp: "^drivers/rtc/rtc-mt2712\\.c$|^drivers/rtc/rtc-mt6397\\.c$|^drivers/rtc/rtc-mt7622\\.c$"},
+			{IncludeRegexp: "^drivers/soc/fsl/|^include/linux/fsl/|^include/soc/fsl/"},
+			{IncludeRegexp: "^drivers/soc/ti/"},
+			{IncludeRegexp: "^drivers/spi/spi-pl022\\.c$"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/atmel_usba_udc\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/xhci-mtk[^/]*$|^drivers/usb/mtu3/"},
+			{IncludeRegexp: "^drivers/video/fbdev/cyber2000fb\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/video/fbdev/imxfb\\.c$"},
+			{IncludeRegexp: "clps711x"},
+		},
+	}
+
+	armmsm = Subsystem{
+		Name:    "arm-msm",
+		Lists:   []string{"linux-arm-msm@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/qcom-[^/]*\\.dts$|^arch/arm/boot/dts/qcom-[^/]*\\.dtsi$|^arch/arm/configs/qcom_defconfig$|^arch/arm/mach-qcom/|^arch/arm64/boot/dts/qcom/|^drivers/[^/]*/[^/]*/qcom[^/]*$|^drivers/[^/]*/[^/]*/qcom/|^drivers/[^/]*/pm8...-[^/]*$|^drivers/[^/]*/qcom[^/]*$|^drivers/[^/]*/qcom/|^drivers/bluetooth/btqcomsmd\\.c$|^drivers/clocksource/timer-qcom\\.c$|^drivers/cpuidle/cpuidle-qcom-spm\\.c$|^drivers/extcon/extcon-qcom[^/]*$|^drivers/i2c/busses/i2c-qcom-geni\\.c$|^drivers/i2c/busses/i2c-qup\\.c$|^drivers/iommu/msm[^/]*$|^drivers/mfd/ssbi\\.c$|^drivers/mmc/host/mmci_qcom[^/]*$|^drivers/mmc/host/sdhci-msm\\.c$|^drivers/pci/controller/dwc/pcie-qcom\\.c$|^drivers/phy/qualcomm/|^drivers/power/[^/]*/msm[^/]*$|^drivers/reset/reset-qcom-[^/]*$|^drivers/ufs/host/ufs-qcom[^/]*$|^drivers/spi/spi-geni-qcom\\.c$|^drivers/spi/spi-qcom-qspi\\.c$|^drivers/spi/spi-qup\\.c$|^drivers/tty/serial/msm_serial\\.c$|^drivers/usb/dwc3/dwc3-qcom\\.c$|^include/dt-bindings/[^/]*/qcom[^/]*$|^include/linux/[^/]*/qcom[^/]*$|^include/linux/soc/qcom/"},
+			{IncludeRegexp: "^drivers/bus/mhi/|^include/linux/mhi\\.h$"},
+			{IncludeRegexp: "^drivers/clk/qcom/|^include/dt-bindings/clock/qcom,[^/]*$"},
+			{IncludeRegexp: "^drivers/crypto/qce/"},
+			{IncludeRegexp: "^drivers/dma/qcom/hidma[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/qcom_edac\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/msm/|^include/uapi/drm/msm_drm\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-qcom-cci\\.c$"},
+			{IncludeRegexp: "^drivers/iommu/arm/arm-smmu/qcom_iommu\\.c$"},
+			{IncludeRegexp: "^drivers/mailbox/qcom-ipcc\\.c$|^include/dt-bindings/mailbox/qcom-ipcc\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/qcom/venus/"},
+			{IncludeRegexp: "^drivers/misc/fastrpc\\.c$|^include/uapi/misc/fastrpc\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/qcom_nandc\\.c$"},
+			{IncludeRegexp: "^drivers/net/wwan/qcom_bam_dmux\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom-ep\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom\\.c$"},
+			{IncludeRegexp: "^drivers/phy/qualcomm/phy-qcom-ipq4019-usb\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/qcom/"},
+			{IncludeRegexp: "^drivers/regulator/vqmmc-ipq4019-regulator\\.c$"},
+			{IncludeRegexp: "^drivers/soc/qcom/cpr\\.c$"},
+			{IncludeRegexp: "^drivers/soc/qcom/icc-bwmon\\.c$"},
+			{IncludeRegexp: "^drivers/thermal/qcom/"},
+			{IncludeRegexp: "^drivers/usb/misc/qcom_eud\\.c$"},
+			{IncludeRegexp: "^include/trace/events/qrtr\\.h$|^include/uapi/linux/qrtr\\.h$|^net/qrtr/"},
+		},
+	}
+
+	asahi = Subsystem{
+		Name:    "asahi",
+		Lists:   []string{"asahi@lists.linux.dev"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm64/boot/dts/apple/|^drivers/bluetooth/hci_bcm4377\\.c$|^drivers/clk/clk-apple-nco\\.c$|^drivers/cpufreq/apple-soc-cpufreq\\.c$|^drivers/dma/apple-admac\\.c$|^drivers/i2c/busses/i2c-pasemi-core\\.c$|^drivers/i2c/busses/i2c-pasemi-platform\\.c$|^drivers/iommu/apple-dart\\.c$|^drivers/iommu/io-pgtable-dart\\.c$|^drivers/irqchip/irq-apple-aic\\.c$|^drivers/mailbox/apple-mailbox\\.c$|^drivers/nvme/host/apple\\.c$|^drivers/nvmem/apple-efuses\\.c$|^drivers/pinctrl/pinctrl-apple-gpio\\.c$|^drivers/soc/apple/|^drivers/watchdog/apple_wdt\\.c$|^include/dt-bindings/interrupt-controller/apple-aic\\.h$|^include/dt-bindings/pinctrl/apple\\.h$|^include/linux/apple-mailbox\\.h$|^include/linux/soc/apple/"},
+			{IncludeRegexp: "^sound/soc/apple/|^sound/soc/codecs/cs42l83-i2c\\.c$"},
+		},
+	}
+
+	aspeed = Subsystem{
+		Name:    "aspeed",
+		Lists:   []string{"linux-aspeed@lists.ozlabs.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/aspeed-[^/]*$|^arch/arm/mach-aspeed/|aspeed"},
+			{IncludeRegexp: "^drivers/crypto/aspeed/"},
+			{IncludeRegexp: "^drivers/gpu/drm/aspeed/"},
+			{IncludeRegexp: "^drivers/irqchip/irq-aspeed-scu-ic\\.c$|^include/dt-bindings/interrupt-controller/aspeed-scu-ic\\.h$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-of-aspeed[^/]*$"},
+			{IncludeRegexp: "^drivers/peci/controller/peci-aspeed\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/aspeed/"},
+			{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/aspeed_udc\\.c$"},
+		},
+	}
+
+	ath10k = Subsystem{
+		Name:        "ath10k",
+		Lists:       []string{"ath10k@lists.infradead.org"},
+		Maintainers: []string{"kvalo@kernel.org"},
+		Parents:     []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/ath/ath10k/"},
+		},
+	}
+
+	ath11k = Subsystem{
+		Name:        "ath11k",
+		Lists:       []string{"ath11k@lists.infradead.org"},
+		Maintainers: []string{"kvalo@kernel.org"},
+		Parents:     []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/ath/ath11k/"},
+		},
+	}
+
+	atm = Subsystem{
+		Name:        "atm",
+		Lists:       []string{"linux-atm-general@lists.sourceforge.net"},
+		Maintainers: []string{"3chas3@gmail.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/atm/|^include/linux/atm[^/]*$|^include/uapi/linux/atm[^/]*$"},
+		},
+	}
+
+	audit = Subsystem{
+		Name:        "audit",
+		Lists:       []string{"linux-audit@redhat.com"},
+		Maintainers: []string{"eparis@redhat.com", "paul@paul-moore.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/asm-generic/audit_[^/]*\\.h$|^include/linux/audit\\.h$|^include/linux/audit_arch\\.h$|^include/uapi/linux/audit\\.h$|^kernel/audit[^/]*$|^lib/[^/]*audit\\.c$"},
+		},
+	}
+
+	autofs = Subsystem{
+		Name:        "autofs",
+		Lists:       []string{"autofs@vger.kernel.org"},
+		Maintainers: []string{"raven@themaw.net"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/autofs/"},
+		},
+	}
+
+	axis = Subsystem{
+		Name:    "axis",
+		Lists:   []string{"linux-arm-kernel@axis.com"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/artpec6[^/]*$|^arch/arm/mach-artpec$|^drivers/clk/axis$|^drivers/crypto/axis$|^drivers/mmc/host/usdhi6rol0\\.c$|^drivers/pinctrl/pinctrl-artpec[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*artpec[^/]*$"},
+		},
+	}
+
+	b43 = Subsystem{
+		Name:    "b43",
+		Lists:   []string{"b43-dev@lists.infradead.org"},
+		Parents: []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/broadcom/b43/"},
+			{IncludeRegexp: "^drivers/net/wireless/broadcom/b43legacy/"},
+		},
+	}
+
+	batman = Subsystem{
+		Name:        "batman",
+		Lists:       []string{"b.a.t.m.a.n@lists.open-mesh.org"},
+		Maintainers: []string{"a@unstable.cc", "mareklindner@neomailbox.ch", "sven@narfation.org", "sw@simonwunderlich.de"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/uapi/linux/batadv_packet\\.h$|^include/uapi/linux/batman_adv\\.h$|^net/batman-adv/"},
+		},
+	}
+
+	bcache = Subsystem{
+		Name:        "bcache",
+		Lists:       []string{"linux-bcache@vger.kernel.org"},
+		Maintainers: []string{"colyli@suse.de", "kent.overstreet@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/md/bcache/"},
+		},
+	}
+
+	bfs = Subsystem{
+		Name:        "bfs",
+		Syscalls:    []string{"syz_mount_image$bfs"},
+		Maintainers: []string{"aivazian.tigran@gmail.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/bfs/|^include/uapi/linux/bfs_fs\\.h$"},
+		},
+	}
+
+	block = Subsystem{
+		Name:    "block",
+		Lists:   []string{"linux-block@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^block/bfq-[^/]*$"},
+			{IncludeRegexp: "^block/bfq-cgroup\\.c$|^block/blk-cgroup\\.c$|^block/blk-iocost\\.c$|^block/blk-iolatency\\.c$|^block/blk-throttle\\.c$|^include/linux/blk-cgroup\\.h$"},
+			{IncludeRegexp: "^block/opal_proto\\.h$|^block/sed[^/]*$|^include/linux/sed[^/]*$|^include/uapi/linux/sed[^/]*$"},
+			{IncludeRegexp: "^block/|^drivers/block/|^include/linux/bio\\.h$|^include/linux/blk[^/]*$|^kernel/trace/blktrace\\.c$|^lib/sbitmap\\.c$"},
+			{IncludeRegexp: "^drivers/block/floppy\\.c$"},
+			{IncludeRegexp: "^drivers/block/nbd\\.c$|^include/trace/events/nbd\\.h$|^include/uapi/linux/nbd\\.h$"},
+			{IncludeRegexp: "^drivers/block/rnbd/"},
+			{IncludeRegexp: "^drivers/block/ublk_drv\\.c$|^include/uapi/linux/ublk_cmd\\.h$"},
+		},
+	}
+
+	bluetooth = Subsystem{
+		Name:     "bluetooth",
+		Syscalls: []string{"syz_emit_vhci"},
+		Lists:    []string{"linux-bluetooth@vger.kernel.org"},
+		Parents:  []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/bluetooth/"},
+			{IncludeRegexp: "^drivers/bluetooth/btmtkuart\\.c$"},
+			{IncludeRegexp: "^include/net/6lowpan\\.h$|^net/6lowpan/"},
+			{IncludeRegexp: "^include/net/bluetooth/|^net/bluetooth/"},
+		},
+	}
+
+	bpf = Subsystem{
+		Name:    "bpf",
+		Lists:   []string{"bpf@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/net/|^include/linux/bpf[^/]*$|^include/linux/btf[^/]*$|^include/linux/filter\\.h$|^include/trace/events/xdp\\.h$|^include/uapi/linux/bpf[^/]*$|^include/uapi/linux/btf[^/]*$|^include/uapi/linux/filter\\.h$|^kernel/bpf/|^kernel/trace/bpf_trace\\.c$|^lib/test_bpf\\.c$|^net/bpf/|^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
+			{IncludeRegexp: "^arch/arm/net/"},
+			{IncludeRegexp: "^arch/arm64/net/"},
+			{IncludeRegexp: "^arch/mips/net/"},
+			{IncludeRegexp: "^arch/powerpc/net/"},
+			{"^arch/riscv/net/", "^arch/riscv/net/bpf_jit_comp32\\.c$"},
+			{"^arch/riscv/net/", "^arch/riscv/net/bpf_jit_comp64\\.c$"},
+			{"^arch/s390/net/", "^arch/s390/net/pnet\\.c$"},
+			{IncludeRegexp: "^arch/sparc/net/"},
+			{"^arch/x86/net/", "^arch/x86/net/bpf_jit_comp32\\.c$"},
+			{IncludeRegexp: "^arch/x86/net/bpf_jit_comp32\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/netronome/nfp/bpf/"},
+			{IncludeRegexp: "^include/linux/bpf_lsm\\.h$|^kernel/bpf/bpf_lsm\\.c$|^security/bpf/"},
+			{IncludeRegexp: "^include/linux/skmsg\\.h$|^net/core/skmsg\\.c$|^net/core/sock_map\\.c$|^net/ipv4/tcp_bpf\\.c$|^net/ipv4/udp_bpf\\.c$|^net/unix/unix_bpf\\.c$"},
+			{IncludeRegexp: "^include/net/xdp\\.h$|^include/net/xdp_priv\\.h$|^include/trace/events/xdp\\.h$|^kernel/bpf/cpumap\\.c$|^kernel/bpf/devmap\\.c$|^net/core/xdp\\.c$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*/[^/]*/[^/]*xdp[^/]*$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*xdp[^/]*$"},
+			{IncludeRegexp: "^include/net/xdp_sock[^/]*$|^include/net/xsk_buff_pool\\.h$|^include/uapi/linux/if_xdp\\.h$|^include/uapi/linux/xdp_diag\\.h$|^include/net/netns/xdp\\.h$|^net/xdp/"},
+			{IncludeRegexp: "^kernel/bpf/[^/]*iter\\.c$"},
+			{IncludeRegexp: "^kernel/bpf/bpf_struct[^/]*$"},
+			{IncludeRegexp: "^kernel/bpf/btf\\.c$|^include/linux/btf[^/]*$"},
+			{IncludeRegexp: "^kernel/bpf/cgroup\\.c$|^kernel/bpf/[^/]*storage\\.c$|^kernel/bpf/bpf_lru[^/]*$"},
+			{IncludeRegexp: "^kernel/bpf/disasm\\.[^/]*$"},
+			{IncludeRegexp: "^kernel/bpf/ringbuf\\.c$"},
+			{IncludeRegexp: "^kernel/bpf/verifier\\.c$|^kernel/bpf/tnum\\.c$|^kernel/bpf/core\\.c$|^kernel/bpf/syscall\\.c$|^kernel/bpf/dispatcher\\.c$|^kernel/bpf/trampoline\\.c$|^include/linux/bpf[^/]*$|^include/linux/filter\\.h$|^include/linux/tnum\\.h$"},
+			{IncludeRegexp: "^kernel/trace/bpf_trace\\.c$|^kernel/bpf/stackmap\\.c$"},
+			{IncludeRegexp: "^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
+		},
+	}
+
+	brcm80211 = Subsystem{
+		Name:        "brcm80211",
+		Lists:       []string{"brcm80211-dev-list.pdl@broadcom.com"},
+		Maintainers: []string{"aspriel@gmail.com", "franky.lin@broadcom.com", "hante.meuleman@broadcom.com"},
+		Parents:     []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/broadcom/brcm80211/"},
+		},
+	}
+
+	bridge = Subsystem{
+		Name:        "bridge",
+		Lists:       []string{"bridge@lists.linux-foundation.org"},
+		Maintainers: []string{"razor@blackwall.org", "roopa@nvidia.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/netfilter_bridge/|^net/bridge/"},
+		},
+	}
+
+	btrfs = Subsystem{
+		Name:        "btrfs",
+		Syscalls:    []string{"syz_mount_image$btrfs"},
+		Lists:       []string{"linux-btrfs@vger.kernel.org"},
+		Maintainers: []string{"clm@fb.com", "dsterba@suse.com", "josef@toxicpanda.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/btrfs/|^include/linux/btrfs[^/]*$|^include/trace/events/btrfs\\.h$|^include/uapi/linux/btrfs[^/]*$"},
+		},
+	}
+
+	cachefs = Subsystem{
+		Name:    "cachefs",
+		Lists:   []string{"linux-cachefs@redhat.com"},
+		Parents: []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/cachefiles/"},
+			{IncludeRegexp: "^fs/fscache/|^include/linux/fscache[^/]*\\.h$"},
+		},
+	}
+
+	can = Subsystem{
+		Name:    "can",
+		Lists:   []string{"linux-can@vger.kernel.org"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/can/can327\\.c$"},
+			{IncludeRegexp: "^drivers/net/can/ctucanfd/"},
+			{IncludeRegexp: "^drivers/net/can/m_can/m_can\\.c$|^drivers/net/can/m_can/m_can\\.h$|^drivers/net/can/m_can/m_can_platform\\.c$"},
+			{IncludeRegexp: "^drivers/net/can/slcan/"},
+			{IncludeRegexp: "^drivers/net/can/spi/mcp251xfd/"},
+			{IncludeRegexp: "^drivers/net/can/usb/esd_usb\\.c$"},
+			{IncludeRegexp: "^drivers/net/can/usb/etas_es58x/"},
+			{IncludeRegexp: "^drivers/net/can/usb/mcba_usb\\.c$"},
+			{IncludeRegexp: "^drivers/net/can/xilinx_can\\.c$"},
+			{IncludeRegexp: "^drivers/net/can/|^drivers/phy/phy-can-transceiver\\.c$|^include/linux/can/bittiming\\.h$|^include/linux/can/dev\\.h$|^include/linux/can/length\\.h$|^include/linux/can/platform/|^include/linux/can/rx-offload\\.h$|^include/uapi/linux/can/error\\.h$|^include/uapi/linux/can/netlink\\.h$|^include/uapi/linux/can/vxcan\\.h$"},
+			{IncludeRegexp: "^include/linux/can/can-ml\\.h$|^include/linux/can/core\\.h$|^include/linux/can/skb\\.h$|^include/net/netns/can\\.h$|^include/uapi/linux/can\\.h$|^include/uapi/linux/can/bcm\\.h$|^include/uapi/linux/can/gw\\.h$|^include/uapi/linux/can/isotp\\.h$|^include/uapi/linux/can/raw\\.h$|^net/can/"},
+			{IncludeRegexp: "^include/uapi/linux/can/j1939\\.h$|^net/can/j1939/"},
+		},
+	}
+
+	ceph = Subsystem{
+		Name:    "ceph",
+		Lists:   []string{"ceph-devel@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/block/rbd\\.c$|^drivers/block/rbd_types\\.h$"},
+			{IncludeRegexp: "^fs/ceph/"},
+			{IncludeRegexp: "^include/linux/ceph/|^include/linux/crush/|^net/ceph/"},
+		},
+	}
+
+	cgroups = Subsystem{
+		Name:    "cgroups",
+		Lists:   []string{"cgroups@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^block/bfq-cgroup\\.c$|^block/blk-cgroup\\.c$|^block/blk-iocost\\.c$|^block/blk-iolatency\\.c$|^block/blk-throttle\\.c$|^include/linux/blk-cgroup\\.h$"},
+			{IncludeRegexp: "^include/linux/cgroup[^/]*$|^kernel/cgroup/"},
+			{IncludeRegexp: "^include/linux/cpuset\\.h$|^kernel/cgroup/cpuset\\.c$"},
+			{IncludeRegexp: "^mm/memcontrol\\.c$|^mm/swap_cgroup\\.c$"},
+		},
+	}
+
+	chrome = Subsystem{
+		Name:    "chrome",
+		Lists:   []string{"chrome-platform@lists.linux.dev"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/platform/chrome/"},
+			{IncludeRegexp: "^drivers/platform/chrome/cros_ec_typec\\.c$|^drivers/platform/chrome/cros_typec_switch\\.c$"},
+			{IncludeRegexp: "^drivers/platform/chrome/cros_usbpd_notify\\.c$|^include/linux/platform_data/cros_usbpd_notify\\.h$"},
+			{IncludeRegexp: "^drivers/power/supply/cros_usbpd-charger\\.c$|cros_ec|cros-ec"},
+			{IncludeRegexp: "^sound/soc/codecs/cros_ec_codec\\.[^/]*$"},
+		},
+	}
+
+	cifs = Subsystem{
+		Name:    "cifs",
+		Lists:   []string{"linux-cifs@vger.kernel.org"},
+		Parents: []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/cifs/|^fs/smbfs_common/|^include/uapi/linux/cifs$"},
+			{IncludeRegexp: "^fs/ksmbd/|^fs/smbfs_common/"},
+		},
+	}
+
+	cirrus = Subsystem{
+		Name:    "cirrus",
+		Lists:   []string{"patches@opensource.cirrus.com"},
+		Parents: []*Subsystem{&alsa},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/mach-s3c/mach-crag6410[^/]*$|^drivers/clk/clk-wm83[^/]*\\.c$|^drivers/gpio/gpio-[^/]*wm[^/]*\\.c$|^drivers/gpio/gpio-arizona\\.c$|^drivers/hwmon/wm83..-hwmon\\.c$|^drivers/input/misc/wm831x-on\\.c$|^drivers/input/touchscreen/wm831x-ts\\.c$|^drivers/input/touchscreen/wm97[^/]*\\.c$|^drivers/leds/leds-wm83[^/]*\\.c$|^drivers/mfd/arizona[^/]*$|^drivers/mfd/cs47l24[^/]*$|^drivers/mfd/wm[^/]*\\.c$|^drivers/power/supply/wm83[^/]*\\.c$|^drivers/regulator/arizona[^/]*$|^drivers/regulator/wm8[^/]*\\.c$|^drivers/rtc/rtc-wm83[^/]*\\.c$|^drivers/video/backlight/wm83[^/]*_bl\\.c$|^drivers/watchdog/wm83[^/]*_wdt\\.c$|^include/linux/mfd/arizona/|^include/linux/mfd/wm831x/|^include/linux/mfd/wm8350/|^include/linux/mfd/wm8400[^/]*$|^include/linux/regulator/arizona[^/]*$|^include/linux/wm97xx\\.h$|^include/sound/wm....\\.h$|^sound/soc/codecs/arizona[^/]*$|^sound/soc/codecs/cs47l24[^/]*$|^sound/soc/codecs/wm[^/]*$"},
+			{IncludeRegexp: "^drivers/clk/clk-lochnagar\\.c$|^drivers/hwmon/lochnagar-hwmon\\.c$|^drivers/mfd/lochnagar-i2c\\.c$|^drivers/pinctrl/cirrus/pinctrl-lochnagar\\.c$|^drivers/regulator/lochnagar-regulator\\.c$|^include/dt-bindings/clock/lochnagar\\.h$|^include/dt-bindings/pinctrl/lochnagar\\.h$|^include/linux/mfd/lochnagar[^/]*$|^sound/soc/codecs/lochnagar-sc\\.c$"},
+			{IncludeRegexp: "^drivers/firmware/cirrus/|^include/linux/firmware/cirrus/"},
+			{IncludeRegexp: "^drivers/gpio/gpio-madera[^/]*$|^drivers/irqchip/irq-madera[^/]*$|^drivers/mfd/cs47l[^/]*$|^drivers/mfd/madera[^/]*$|^drivers/pinctrl/cirrus/|^include/dt-bindings/sound/madera[^/]*$|^include/linux/irqchip/irq-madera[^/]*$|^include/linux/mfd/madera/|^include/sound/madera[^/]*$|^sound/soc/codecs/cs47l[^/]*$|^sound/soc/codecs/madera[^/]*$"},
+			{IncludeRegexp: "^include/dt-bindings/sound/cs[^/]*$|^sound/pci/hda/cs[^/]*$|^sound/pci/hda/hda_cs_dsp_ctl\\.[^/]*$|^sound/soc/codecs/cs[^/]*$"},
+		},
+	}
+
+	clk = Subsystem{
+		Name:    "clk",
+		Lists:   []string{"linux-clk@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/clk/imx/|^include/dt-bindings/clock/imx[^/]*$"},
+			{IncludeRegexp: "^drivers/clk/ux500/"},
+			{"^drivers/clk/|^include/dt-bindings/clock/|^include/linux/clk-pr[^/]*$|^include/linux/clk/|^include/linux/of_clk\\.h$", "^drivers/clk/clkdev\\.c$"},
+			{IncludeRegexp: "^include/linux/clk\\.h$"},
+		},
+	}
+
+	cluster = Subsystem{
+		Name:    "cluster",
+		Lists:   []string{"cluster-devel@redhat.com"},
+		Parents: []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/dlm/"},
+			{IncludeRegexp: "^fs/gfs2/|^include/uapi/linux/gfs2_ondisk\\.h$"},
+		},
+	}
+
+	coda = Subsystem{
+		Name:        "coda",
+		Lists:       []string{"codalist@coda.cs.cmu.edu"},
+		Maintainers: []string{"coda@cs.cmu.edu", "jaharkes@cs.cmu.edu"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/coda/|^include/linux/coda[^/]*\\.h$|^include/uapi/linux/coda[^/]*\\.h$"},
+		},
+	}
+
+	coresight = Subsystem{
+		Name:        "coresight",
+		Lists:       []string{"coresight@lists.linaro.org"},
+		Maintainers: []string{"mathieu.poirier@linaro.org", "suzuki.poulose@arm.com"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/hwtracing/coresight/|^include/dt-bindings/arm/coresight-cti-dt\\.h$|^include/linux/coresight[^/]*$"},
+		},
+	}
+
+	crypto = Subsystem{
+		Name:    "crypto",
+		Lists:   []string{"linux-crypto@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/crypto/|^crypto/|^drivers/crypto/|^include/crypto/|^include/linux/crypto[^/]*$|^lib/crypto/"},
+			{IncludeRegexp: "^crypto/ansi_cprng\\.c$|^crypto/rng\\.c$"},
+			{IncludeRegexp: "^crypto/pcrypt\\.c$|^include/crypto/pcrypt\\.h$"},
+			{IncludeRegexp: "^drivers/char/hw_random/cctrng\\.c$|^drivers/char/hw_random/cctrng\\.h$"},
+			{IncludeRegexp: "^drivers/char/hw_random/|^include/linux/hw_random\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/allwinner/"},
+			{IncludeRegexp: "^drivers/crypto/amlogic/"},
+			{IncludeRegexp: "^drivers/crypto/atmel-ecc\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/crypto/caam/"},
+			{IncludeRegexp: "^drivers/crypto/cavium/cpt/"},
+			{IncludeRegexp: "^drivers/crypto/ccp/sev[^/]*$|^include/uapi/linux/psp-sev\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/ccp/|^include/linux/ccp\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/ccree/"},
+			{IncludeRegexp: "^drivers/crypto/chelsio$"},
+			{IncludeRegexp: "^drivers/crypto/exynos-rng\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/gemini/"},
+			{IncludeRegexp: "^drivers/crypto/hisilicon/Kconfig$|^drivers/crypto/hisilicon/qm\\.c$|^drivers/crypto/hisilicon/sgl\\.c$|^include/linux/hisi_acc_qm\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/hisilicon/hpre/hpre\\.h$|^drivers/crypto/hisilicon/hpre/hpre_crypto\\.c$|^drivers/crypto/hisilicon/hpre/hpre_main\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/hisilicon/sec2/sec\\.h$|^drivers/crypto/hisilicon/sec2/sec_crypto\\.c$|^drivers/crypto/hisilicon/sec2/sec_crypto\\.h$|^drivers/crypto/hisilicon/sec2/sec_main\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/hisilicon/zip/"},
+			{IncludeRegexp: "^drivers/crypto/inside-secure/"},
+			{IncludeRegexp: "^drivers/crypto/ixp4xx_crypto\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/marvell/|^include/linux/soc/marvell/octeontx2/"},
+			{IncludeRegexp: "^drivers/crypto/nx/Kconfig$|^drivers/crypto/nx/nx-aes[^/]*$|^drivers/crypto/nx/nx-sha[^/]*$|^drivers/crypto/nx/nx\\.[^/]*$|^drivers/crypto/nx/nx_csbcpb\\.h$|^drivers/crypto/nx/nx_debugfs\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/qce/"},
+			{IncludeRegexp: "^drivers/crypto/rockchip/"},
+			{IncludeRegexp: "^drivers/crypto/s5p-sss\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/virtio/|^include/uapi/linux/virtio_crypto\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/vmx/Kconfig$|^drivers/crypto/vmx/aes[^/]*$|^drivers/crypto/vmx/ghash[^/]*$|^drivers/crypto/vmx/ppc-xlate\\.pl$|^drivers/crypto/vmx/vmx\\.c$"},
+			{IncludeRegexp: "^include/linux/padata\\.h$|^kernel/padata\\.c$"},
+		},
+	}
+
+	csky = Subsystem{
+		Name:        "csky",
+		Lists:       []string{"linux-csky@vger.kernel.org"},
+		Maintainers: []string{"guoren@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/csky/|^drivers/clocksource/timer-gx6605s\\.c$|^drivers/clocksource/timer-mp-csky\\.c$|^drivers/irqchip/irq-csky-[^/]*$|csky"},
+		},
+	}
+
+	cxl = Subsystem{
+		Name:        "cxl",
+		Lists:       []string{"linux-cxl@vger.kernel.org"},
+		Maintainers: []string{"alison.schofield@intel.com", "bwidawsk@kernel.org", "dan.j.williams@intel.com", "ira.weiny@intel.com", "vishal.l.verma@intel.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/cxl/|^include/uapi/linux/cxl_mem\\.h$"},
+		},
+	}
+
+	damon = Subsystem{
+		Name:        "damon",
+		Lists:       []string{"damon@lists.linux.dev"},
+		Maintainers: []string{"sj@kernel.org"},
+		Parents:     []*Subsystem{&mm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/damon\\.h$|^include/trace/events/damon\\.h$|^mm/damon/"},
+		},
+	}
+
+	dccp = Subsystem{
+		Name:    "dccp",
+		Lists:   []string{"dccp@vger.kernel.org"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/dccp\\.h$|^include/linux/tfrc\\.h$|^include/uapi/linux/dccp\\.h$|^net/dccp/"},
+		},
+	}
+
+	dell = Subsystem{
+		Name:    "dell",
+		Lists:   []string{"Dell.Client.Kernel@dell.com"},
+		Parents: []*Subsystem{&x86drivers},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/platform/x86/dell/alienware-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-smm\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-descriptor\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-privacy\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-sysman/"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/wmi/thunderbolt\\.c$"},
+		},
+	}
+
+	devicetree = Subsystem{
+		Name:    "devicetree",
+		Lists:   []string{"devicetree@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/boot/dts/|^include/dt-bindings/"},
+			{IncludeRegexp: "^arch/arm/boot/dts/[^/]*am3[^/]*$|^arch/arm/boot/dts/[^/]*am4[^/]*$|^arch/arm/boot/dts/[^/]*am5[^/]*$|^arch/arm/boot/dts/[^/]*dra7[^/]*$|^arch/arm/boot/dts/[^/]*omap[^/]*$|^arch/arm/boot/dts/logicpd-som-lv[^/]*$|^arch/arm/boot/dts/logicpd-torpedo[^/]*$"},
+			{IncludeRegexp: "^drivers/of/|^include/linux/of[^/]*\\.h$"},
+		},
+	}
+
+	dm = Subsystem{
+		Name:        "dm",
+		Lists:       []string{"dm-devel@redhat.com"},
+		Maintainers: []string{"agk@redhat.com", "dm-devel@redhat.com", "snitzer@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/md/Kconfig$|^drivers/md/dm[^/]*$|^drivers/md/persistent-data/|^include/linux/device-mapper\\.h$|^include/linux/dm-[^/]*\\.h$|^include/uapi/linux/dm-[^/]*\\.h$"},
+		},
+	}
+
+	dmaengine = Subsystem{
+		Name:    "dmaengine",
+		Lists:   []string{"dmaengine@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/dma/altera-msgdma\\.c$"},
+			{IncludeRegexp: "^drivers/dma/at_hdmac\\.c$|^drivers/dma/at_xdmac\\.c$|^include/dt-bindings/dma/at91\\.h$"},
+			{IncludeRegexp: "^drivers/dma/dw-edma/|^include/linux/dma/edma\\.h$"},
+			{IncludeRegexp: "^drivers/dma/hisi_dma\\.c$"},
+			{IncludeRegexp: "^drivers/dma/idxd/|^include/uapi/linux/idxd\\.h$"},
+			{IncludeRegexp: "^drivers/dma/ioat[^/]*$"},
+			{IncludeRegexp: "^drivers/dma/mediatek/"},
+			{IncludeRegexp: "^drivers/dma/ptdma/"},
+			{IncludeRegexp: "^drivers/dma/qcom/hidma[^/]*$"},
+			{"^drivers/dma/ti/|^include/linux/dma/k3-udma-glue\\.h$|^include/linux/dma/ti-cppi5\\.h$|^include/linux/dma/k3-psil\\.h$", "^drivers/dma/ti/cppi41\\.c$"},
+			{IncludeRegexp: "^drivers/dma/xilinx/xilinx_dpdma\\.c$|^include/dt-bindings/dma/xlnx-zynqmp-dpdma\\.h$"},
+			{IncludeRegexp: "^drivers/dma/|^include/dt-bindings/dma/|^include/linux/dma/|^include/linux/dmaengine\\.h$|^include/linux/of_dma\\.h$"},
+		},
+	}
+
+	drbd = Subsystem{
+		Name:        "drbd",
+		Lists:       []string{"drbd-dev@lists.linbit.com"},
+		Maintainers: []string{"christoph.boehmwalder@linbit.com", "lars.ellenberg@linbit.com", "philipp.reisner@linbit.com"},
+		Parents:     []*Subsystem{&block},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/block/drbd/|^lib/lru_cache\\.c$"},
+		},
+	}
+
+	dri = Subsystem{
+		Name:    "dri",
+		Lists:   []string{"dri-devel@lists.freedesktop.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/accel/"},
+			{IncludeRegexp: "^drivers/base/component\\.c$|^include/linux/component\\.h$"},
+			{IncludeRegexp: "^drivers/char/agp/|^include/linux/agp[^/]*$|^include/uapi/linux/agp[^/]*$"},
+			{IncludeRegexp: "^drivers/dma-buf/dma-fence[^/]*$|^drivers/dma-buf/sw_sync\\.c$|^drivers/dma-buf/sync_[^/]*$|^include/linux/sync_file\\.h$|^include/uapi/linux/sync_file\\.h$"},
+			{IncludeRegexp: "^drivers/dma-buf/dma-heap\\.c$|^drivers/dma-buf/heaps/|^include/linux/dma-heap\\.h$|^include/uapi/linux/dma-heap\\.h$"},
+			{IncludeRegexp: "^drivers/dma-buf/udmabuf\\.c$|^include/uapi/linux/udmabuf\\.h$"},
+			{IncludeRegexp: "^drivers/dma-buf/|^include/linux/[^/]*fence\\.h$|^include/linux/dma-buf\\.h$|^include/linux/dma-resv\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/ast/"},
+			{IncludeRegexp: "^drivers/gpu/drm/atmel-hlcdc/"},
+			{IncludeRegexp: "^drivers/gpu/drm/bridge/imx/"},
+			{IncludeRegexp: "^drivers/gpu/drm/drm_aperture\\.c$|^drivers/gpu/drm/tiny/ofdrm\\.c$|^drivers/gpu/drm/tiny/simpledrm\\.c$|^drivers/video/aperture\\.c$|^drivers/video/nomodeset\\.c$|^include/drm/drm_aperture\\.h$|^include/linux/aperture\\.h$|^include/video/nomodeset\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/drm_panel\\.c$|^drivers/gpu/drm/panel/|^include/drm/drm_panel\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/drm_privacy_screen[^/]*$|^include/drm/drm_privacy_screen[^/]*$"},
+			{IncludeRegexp: "^drivers/gpu/drm/etnaviv/|^include/uapi/drm/etnaviv_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/exynos/exynos_dp[^/]*$"},
+			{IncludeRegexp: "^drivers/gpu/drm/exynos/|^include/uapi/drm/exynos_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/fsl-dcu/"},
+			{IncludeRegexp: "^drivers/gpu/drm/gma500/"},
+			{IncludeRegexp: "^drivers/gpu/drm/hisilicon/"},
+			{IncludeRegexp: "^drivers/gpu/drm/hyperv$"},
+			{IncludeRegexp: "^drivers/gpu/drm/imx/dcss/"},
+			{IncludeRegexp: "^drivers/gpu/drm/imx/|^drivers/gpu/ipu-v3/"},
+			{IncludeRegexp: "^drivers/gpu/drm/lima/|^include/uapi/drm/lima_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/mediatek/|^drivers/phy/mediatek/phy-mtk-dp\\.c$|^drivers/phy/mediatek/phy-mtk-hdmi[^/]*$|^drivers/phy/mediatek/phy-mtk-mipi[^/]*$"},
+			{IncludeRegexp: "^drivers/gpu/drm/meson/"},
+			{IncludeRegexp: "^drivers/gpu/drm/mgag200/"},
+			{IncludeRegexp: "^drivers/gpu/drm/msm/|^include/uapi/drm/msm_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/mxsfb/"},
+			{IncludeRegexp: "^drivers/gpu/drm/nouveau/|^include/uapi/drm/nouveau_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/omapdrm/"},
+			{IncludeRegexp: "^drivers/gpu/drm/panel/panel-lvds\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/panfrost/|^include/uapi/drm/panfrost_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/rcar-du/|^drivers/gpu/drm/shmobile/|^include/linux/platform_data/shmob_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/rockchip/"},
+			{IncludeRegexp: "^drivers/gpu/drm/scheduler/|^include/drm/gpu_scheduler\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/sti$"},
+			{IncludeRegexp: "^drivers/gpu/drm/stm$"},
+			{IncludeRegexp: "^drivers/gpu/drm/sun4i/"},
+			{IncludeRegexp: "^drivers/gpu/drm/sun4i/sun8i[^/]*$"},
+			{IncludeRegexp: "^drivers/gpu/drm/tegra/|^drivers/gpu/host1x/|^include/linux/host1x\\.h$|^include/uapi/drm/tegra_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/tidss/"},
+			{IncludeRegexp: "^drivers/gpu/drm/tilcdc/"},
+			{IncludeRegexp: "^drivers/gpu/drm/ttm/|^include/drm/ttm/"},
+			{IncludeRegexp: "^drivers/gpu/drm/udl/"},
+			{IncludeRegexp: "^drivers/gpu/drm/vboxvideo/"},
+			{IncludeRegexp: "^drivers/gpu/drm/virtio/|^include/uapi/linux/virtio_gpu\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/vkms/"},
+			{IncludeRegexp: "^drivers/gpu/drm/vmwgfx/|^include/uapi/drm/vmwgfx_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/xen/"},
+			{IncludeRegexp: "^drivers/gpu/drm/xlnx/"},
+			{IncludeRegexp: "^drivers/gpu/|^include/drm/|^include/linux/vga[^/]*$|^include/uapi/drm/"},
+			{IncludeRegexp: "^drivers/staging/fbtft/"},
+			{IncludeRegexp: "^drivers/video/backlight/|^include/linux/backlight\\.h$|^include/linux/pwm_backlight\\.h$"},
+			{IncludeRegexp: "^drivers/video/|^include/linux/fb\\.h$|^include/uapi/linux/fb\\.h$|^include/uapi/video/|^include/video/"},
+			{IncludeRegexp: "^include/linux/iosys-map\\.h$"},
+		},
+	}
+
+	ecryptfs = Subsystem{
+		Name:        "ecryptfs",
+		Lists:       []string{"ecryptfs@vger.kernel.org"},
+		Maintainers: []string{"code@tyhicks.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/ecryptfs/"},
+		},
+	}
+
+	edac = Subsystem{
+		Name:    "edac",
+		Lists:   []string{"linux-edac@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/kernel/cpu/mce/"},
+			{IncludeRegexp: "^drivers/edac/amd64_edac[^/]*$|^drivers/edac/mce_amd[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/armada_xp_[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/dmc520_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/e752x_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/e7xxx_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/fsl_ddr_edac\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/ghes_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/highbank[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/i10nm_base\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i3000_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i5000_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i5400_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i7300_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i7core_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i82443bxgx_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/i82975x_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/ie31200_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/igen6_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/mpc85xx_edac\\.\\[ch\\]$"},
+			{IncludeRegexp: "^drivers/edac/octeon_edac[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/pasemi_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/pnd2_edac\\.\\[ch\\]$"},
+			{IncludeRegexp: "^drivers/edac/qcom_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/r82600_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/sb_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/skx_[^/]*\\.\\[ch\\]$"},
+			{IncludeRegexp: "^drivers/edac/thunderx_edac[^/]*$"},
+			{IncludeRegexp: "^drivers/edac/ti_edac\\.c$"},
+			{IncludeRegexp: "^drivers/edac/|^include/linux/edac\\.h$"},
+			{IncludeRegexp: "^drivers/ras/|^include/linux/ras\\.h$|^include/ras/ras_event\\.h$"},
+		},
+	}
+
+	efi = Subsystem{
+		Name:    "efi",
+		Lists:   []string{"linux-efi@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/efi\\.h$|^arch/[^/]*/kernel/efi\\.c$|^arch/arm/boot/compressed/efi-header\\.S$|^arch/x86/platform/efi/|^drivers/firmware/efi/|^include/linux/efi[^/]*\\.h$"},
+			{IncludeRegexp: "^block/partitions/efi\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/firmware/efi/test/"},
+			{IncludeRegexp: "^fs/efivarfs/"},
+		},
+	}
+
+	erofs = Subsystem{
+		Name:        "erofs",
+		Syscalls:    []string{"syz_mount_image$erofs"},
+		Lists:       []string{"linux-erofs@lists.ozlabs.org"},
+		Maintainers: []string{"chao@kernel.org", "xiang@kernel.org"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/erofs/|^include/trace/events/erofs\\.h$"},
+		},
+	}
+
+	etnaviv = Subsystem{
+		Name:        "etnaviv",
+		Lists:       []string{"etnaviv@lists.freedesktop.org"},
+		Maintainers: []string{"l.stach@pengutronix.de"},
+		Parents:     []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/etnaviv/|^include/uapi/drm/etnaviv_drm\\.h$"},
+		},
+	}
+
+	ext4 = Subsystem{
+		Name:     "ext4",
+		Syscalls: []string{"syz_mount_image$ext4"},
+		Lists:    []string{"linux-ext4@vger.kernel.org"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/ext2/|^include/linux/ext2[^/]*$"},
+			{IncludeRegexp: "^fs/ext4/|^include/trace/events/ext4\\.h$"},
+			{IncludeRegexp: "^fs/jbd2/|^include/linux/jbd2\\.h$"},
+		},
+	}
+
+	f2fs = Subsystem{
+		Name:        "f2fs",
+		Syscalls:    []string{"syz_mount_image$f2fs"},
+		Lists:       []string{"linux-f2fs-devel@lists.sourceforge.net"},
+		Maintainers: []string{"chao@kernel.org", "jaegeuk@kernel.org"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/f2fs/|^include/linux/f2fs_fs\\.h$|^include/trace/events/f2fs\\.h$|^include/uapi/linux/f2fs\\.h$"},
+		},
+	}
+
+	fat = Subsystem{
+		Name:     "fat",
+		Syscalls: []string{"syz_mount_image$msdos", "syz_mount_image$vfat", "syz_mount_image$exfat"},
+		Lists:    []string{"linux-fsdevel@vger.kernel.org"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/exfat/"},
+			{IncludeRegexp: "^fs/fat/"},
+		},
+	}
+
+	fbdev = Subsystem{
+		Name:    "fbdev",
+		Lists:   []string{"linux-fbdev@vger.kernel.org"},
+		Parents: []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/staging/fbtft/"},
+			{IncludeRegexp: "^drivers/staging/fbtft/fb_seps525\\.c$"},
+			{IncludeRegexp: "^drivers/staging/sm750fb/"},
+			{IncludeRegexp: "^drivers/video/fbdev/atmel_lcdfb\\.c$|^include/video/atmel_lcdc\\.h$"},
+			{IncludeRegexp: "^drivers/video/fbdev/aty/aty128fb\\.c$"},
+			{IncludeRegexp: "^drivers/video/fbdev/aty/radeon[^/]*$|^include/uapi/linux/radeonfb\\.h$"},
+			{IncludeRegexp: "^drivers/video/fbdev/efifb\\.c$"},
+			{IncludeRegexp: "^drivers/video/fbdev/fsl-diu-fb\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/video/fbdev/i810/"},
+			{IncludeRegexp: "^drivers/video/fbdev/imsttfb\\.c$"},
+			{IncludeRegexp: "^drivers/video/fbdev/imxfb\\.c$"},
+			{IncludeRegexp: "^drivers/video/fbdev/intelfb/"},
+			{IncludeRegexp: "^drivers/video/fbdev/matrox/matroxfb_[^/]*$|^include/uapi/linux/matroxfb\\.h$"},
+			{IncludeRegexp: "^drivers/video/fbdev/nvidia/|^drivers/video/fbdev/riva/"},
+			{IncludeRegexp: "^drivers/video/fbdev/omap/"},
+			{IncludeRegexp: "^drivers/video/fbdev/omap2/"},
+			{IncludeRegexp: "^drivers/video/fbdev/s3c-fb\\.c$"},
+			{IncludeRegexp: "^drivers/video/fbdev/savage/"},
+			{IncludeRegexp: "^drivers/video/fbdev/simplefb\\.c$|^include/linux/platform_data/simplefb\\.h$"},
+			{IncludeRegexp: "^drivers/video/fbdev/sm712[^/]*$"},
+			{IncludeRegexp: "^drivers/video/fbdev/smscufx\\.c$"},
+			{IncludeRegexp: "^drivers/video/fbdev/udlfb\\.c$|^include/video/udlfb\\.h$"},
+			{IncludeRegexp: "^drivers/video/fbdev/uvesafb\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/video/fbdev/via/|^include/linux/via-core\\.h$|^include/linux/via-gpio\\.h$|^include/linux/via_i2c\\.h$"},
+			{IncludeRegexp: "^drivers/video/|^include/linux/fb\\.h$|^include/uapi/linux/fb\\.h$|^include/uapi/video/|^include/video/"},
+		},
+	}
+
+	fpga = Subsystem{
+		Name:    "fpga",
+		Lists:   []string{"linux-fpga@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/fpga/dfl[^/]*$|^drivers/uio/uio_dfl\\.c$|^include/linux/dfl\\.h$|^include/uapi/linux/fpga-dfl\\.h$"},
+			{IncludeRegexp: "^drivers/fpga/intel-m10-bmc-sec-update\\.c$"},
+			{IncludeRegexp: "^drivers/fpga/microchip-spi\\.c$"},
+			{IncludeRegexp: "^drivers/fpga/|^include/linux/fpga/"},
+		},
+	}
+
+	freedreno = Subsystem{
+		Name:        "freedreno",
+		Lists:       []string{"freedreno@lists.freedesktop.org"},
+		Maintainers: []string{"dmitry.baryshkov@linaro.org", "quic_abhinavk@quicinc.com", "robdclark@gmail.com"},
+		Parents:     []*Subsystem{&armmsm, &dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/msm/|^include/uapi/drm/msm_drm\\.h$"},
+		},
+	}
+
+	fs = Subsystem{
+		Name:    "fs",
+		Lists:   []string{"linux-fsdevel@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/affs/"},
+			{IncludeRegexp: "^fs/dax\\.c$|^include/linux/dax\\.h$|^include/trace/events/fs_dax\\.h$"},
+			{IncludeRegexp: "^fs/exfat/"},
+			{IncludeRegexp: "^fs/fcntl\\.c$|^fs/locks\\.c$|^include/linux/fcntl\\.h$|^include/uapi/linux/fcntl\\.h$"},
+			{IncludeRegexp: "^fs/fuse/virtio_fs\\.c$|^include/uapi/linux/virtio_fs\\.h$"},
+			{IncludeRegexp: "^fs/fuse/|^include/uapi/linux/fuse\\.h$"},
+			{IncludeRegexp: "^fs/hfs/"},
+			{IncludeRegexp: "^fs/hfsplus/"},
+			{IncludeRegexp: "^fs/iomap/|^include/linux/iomap\\.h$"},
+			{IncludeRegexp: "^fs/isofs/"},
+			{IncludeRegexp: "^fs/notify/dnotify/|^include/linux/dnotify\\.h$"},
+			{IncludeRegexp: "^fs/notify/fanotify/|^include/linux/fanotify\\.h$|^include/uapi/linux/fanotify\\.h$"},
+			{IncludeRegexp: "^fs/notify/inotify/|^include/linux/inotify\\.h$|^include/uapi/linux/inotify\\.h$"},
+			{IncludeRegexp: "^fs/notify/|^include/linux/fsnotify[^/]*\\.h$"},
+			{IncludeRegexp: "^fs/proc/proc_sysctl\\.c$|^include/linux/sysctl\\.h$|^kernel/sysctl-test\\.c$|^kernel/sysctl\\.c$"},
+			{IncludeRegexp: "^fs/proc/|^include/linux/proc_fs\\.h$"},
+			{IncludeRegexp: "^fs/unicode/"},
+			{IncludeRegexp: "^fs/vboxsf/"},
+			{IncludeRegexp: "^fs/zonefs/"},
+			{IncludeRegexp: "^fs/|^include/linux/fs\\.h$|^include/linux/fs_types\\.h$|^include/uapi/linux/fs\\.h$|^include/uapi/linux/openat2\\.h$"},
+			{IncludeRegexp: "^include/linux/idr\\.h$|^include/linux/xarray\\.h$|^lib/idr\\.c$|^lib/xarray\\.c$"},
+			{IncludeRegexp: "^include/linux/mnt_idmapping\\.h$"},
+			{IncludeRegexp: "^include/linux/pagemap\\.h$|^mm/filemap\\.c$|^mm/page-writeback\\.c$|^mm/readahead\\.c$|^mm/truncate\\.c$"},
+		},
+	}
+
+	fscrypt = Subsystem{
+		Name:        "fscrypt",
+		Lists:       []string{"linux-fscrypt@vger.kernel.org"},
+		Maintainers: []string{"ebiggers@kernel.org", "jaegeuk@kernel.org", "tytso@mit.edu"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/crypto/|^include/linux/fscrypt\\.h$|^include/uapi/linux/fscrypt\\.h$"},
+		},
+	}
+
+	fsi = Subsystem{
+		Name:        "fsi",
+		Lists:       []string{"linux-fsi@lists.ozlabs.org"},
+		Maintainers: []string{"jk@ozlabs.org", "joel@jms.id.au"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/fsi/|^include/linux/fsi[^/]*\\.h$|^include/trace/events/fsi[^/]*\\.h$"},
+		},
+	}
+
+	fsverity = Subsystem{
+		Name:        "fsverity",
+		Lists:       []string{"fsverity@lists.linux.dev"},
+		Maintainers: []string{"ebiggers@kernel.org", "tytso@mit.edu"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/verity/|^include/linux/fsverity\\.h$|^include/uapi/linux/fsverity\\.h$"},
+		},
+	}
+
+	fuse = Subsystem{
+		Name:        "fuse",
+		Syscalls:    []string{"syz_fuse_handle_req"},
+		Lists:       []string{"linux-fsdevel@vger.kernel.org"},
+		Maintainers: []string{"miklos@szeredi.hu"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/fuse/|^include/uapi/linux/fuse\\.h$"},
+		},
+	}
+
+	geode = Subsystem{
+		Name:    "geode",
+		Lists:   []string{"linux-geode@lists.infradead.org"},
+		Parents: []*Subsystem{&fbdev},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/include/asm/geode\\.h$|^drivers/char/hw_random/geode-rng\\.c$|^drivers/crypto/geode[^/]*$|^drivers/video/fbdev/geode/"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/amd5536udc\\.[^/]*$"},
+		},
+	}
+
+	gpio = Subsystem{
+		Name:    "gpio",
+		Lists:   []string{"linux-gpio@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpio/gpio-104-dio-48e\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-104-idi-48\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-104-idio-16\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-aggregator\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-altera\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-amd-fch\\.c$|^include/linux/platform_data/gpio/gpio-amd-fch\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-davinci\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-dwapb\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-gpio-mm\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-hisi\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-i8255\\.c$|^drivers/gpio/gpio-i8255\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-ich\\.c$|^drivers/gpio/gpio-merrifield\\.c$|^drivers/gpio/gpio-ml-ioh\\.c$|^drivers/gpio/gpio-pch\\.c$|^drivers/gpio/gpio-sch\\.c$|^drivers/gpio/gpio-sodaville\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-idio-16\\.c$|^drivers/gpio/gpio-idio-16\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-mockup\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-pci-idio-16\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-pcie-idio-24\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-pxa\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-sama5d2-piobu\\.c$|^drivers/pinctrl/pinctrl-at91[^/]*$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-virtio\\.c$|^include/uapi/linux/virtio_gpio\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-wcove\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-ws16c48\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-xra1403\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpiolib-acpi\\.c$|^drivers/gpio/gpiolib-acpi\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/|^include/asm-generic/gpio\\.h$|^include/dt-bindings/gpio/|^include/linux/gpio\\.h$|^include/linux/gpio/|^include/linux/of_gpio\\.h$|^include/uapi/linux/gpio\\.h$"},
+			{IncludeRegexp: "^drivers/misc/mchp_pci1xxxx/mchp_pci1xxxx_gp\\.c$|^drivers/misc/mchp_pci1xxxx/mchp_pci1xxxx_gp\\.h$|^drivers/misc/mchp_pci1xxxx/mchp_pci1xxxx_gpio\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/aspeed/"},
+			{IncludeRegexp: "^drivers/pinctrl/bcm/pinctrl-bcm4908\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/freescale/"},
+			{IncludeRegexp: "^drivers/pinctrl/pinctrl-cy8c95x0\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/pinctrl-k210\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/pinctrl-loongson2\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/starfive/|^include/dt-bindings/pinctrl/pinctrl-starfive-jh7100\\.h$"},
+			{IncludeRegexp: "^drivers/pinctrl/|^include/dt-bindings/pinctrl/|^include/linux/pinctrl/"},
+		},
+	}
+
+	greybus = Subsystem{
+		Name:        "greybus",
+		Lists:       []string{"greybus-dev@lists.linaro.org"},
+		Maintainers: []string{"elder@kernel.org", "gregkh@linuxfoundation.org", "johan@kernel.org"},
+		Parents:     []*Subsystem{&staging},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/greybus/|^drivers/staging/greybus/|^include/linux/greybus\\.h$|^include/linux/greybus/"},
+		},
+	}
+
+	hams = Subsystem{
+		Name:    "hams",
+		Lists:   []string{"linux-hams@vger.kernel.org"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/hamradio/6pack\\.c$"},
+			{IncludeRegexp: "^drivers/net/hamradio/[^/]*scc\\.c$|^drivers/net/hamradio/z8530\\.h$"},
+			{IncludeRegexp: "^drivers/net/hamradio/baycom[^/]*$"},
+			{IncludeRegexp: "^drivers/net/hamradio/scc\\.c$"},
+			{IncludeRegexp: "^drivers/net/hamradio/yam[^/]*$|^include/linux/yam\\.h$"},
+			{IncludeRegexp: "^include/net/ax25\\.h$|^include/uapi/linux/ax25\\.h$|^net/ax25/"},
+			{IncludeRegexp: "^include/net/netrom\\.h$|^include/uapi/linux/netrom\\.h$|^net/netrom/"},
+			{IncludeRegexp: "^include/net/rose\\.h$|^include/uapi/linux/rose\\.h$|^net/rose/"},
+			{IncludeRegexp: "^net/ax25/af_ax25\\.c$|^net/ax25/ax25_dev\\.c$|^net/ax25/ax25_ds_[^/]*$|^net/ax25/ax25_in\\.c$|^net/ax25/ax25_out\\.c$|^net/ax25/ax25_timer\\.c$|^net/ax25/sysctl_net_ax25\\.c$"},
+		},
+	}
+
+	hardening = Subsystem{
+		Name:    "hardening",
+		Lists:   []string{"linux-hardening@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/acpi/apei/erst\\.c$|^drivers/firmware/efi/efi-pstore\\.c$|^fs/pstore/|^include/linux/pstore[^/]*$"},
+			{IncludeRegexp: "^include/linux/fortify-string\\.h$|^lib/fortify_kunit\\.c$|^lib/memcpy_kunit\\.c$|^lib/strscpy_kunit\\.c$|^lib/test_fortify/"},
+			{IncludeRegexp: "^include/linux/overflow\\.h$|^include/linux/randomize_kstack\\.h$|^mm/usercopy\\.c$"},
+		},
+	}
+
+	hexagon = Subsystem{
+		Name:        "hexagon",
+		Lists:       []string{"linux-hexagon@vger.kernel.org"},
+		Maintainers: []string{"bcain@quicinc.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/hexagon/"},
+		},
+	}
+
+	hfs = Subsystem{
+		Name:     "hfs",
+		Syscalls: []string{"syz_mount_image$hfs", "syz_mount_image$hfsplus"},
+		Lists:    []string{"linux-fsdevel@vger.kernel.org"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/hfs/"},
+			{IncludeRegexp: "^fs/hfsplus/"},
+		},
+	}
+
+	hippi = Subsystem{
+		Name:        "hippi",
+		Lists:       []string{"linux-hippi@sunsite.dk"},
+		Maintainers: []string{"jes@trained-monkey.org"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/hippi/|^include/linux/hippidevice\\.h$|^include/uapi/linux/if_hippi\\.h$|^net/802/hippi\\.c$"},
+		},
+	}
+
+	hwmon = Subsystem{
+		Name:    "hwmon",
+		Lists:   []string{"linux-hwmon@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/hwmon/abituguru3\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/abituguru\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/adm1025\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/adm1029\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/adm1177\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/adt7475\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/applesmc\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/aquacomputer_d5next\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/asc7621\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/asus-ec-sensors\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/asus_atk0110\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/asus_wmi_sensors\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/axi-fan-control\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/coretemp\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/corsair-cpro\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/corsair-psu\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/dme1737\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/emc2103\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/f71805f\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/f75375s\\.c$|^include/linux/f75375s\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/fam15h_power\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/ina209\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/ina2xx\\.c$|^include/linux/platform_data/ina2xx\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/it87\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/jc42\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/k10temp\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/k8temp\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/lm73\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/lm78\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/lm83\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/lm90\\.c$|^include/dt-bindings/thermal/lm90\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/lm95234\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/ltc2947-core\\.c$|^drivers/hwmon/ltc2947-i2c\\.c$|^drivers/hwmon/ltc2947-spi\\.c$|^drivers/hwmon/ltc2947\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/ltc4261\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/max16065\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/max6650\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/max6697\\.c$|^include/linux/platform_data/max6697\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/nct6775-core\\.c$|^drivers/hwmon/nct6775-platform\\.c$|^drivers/hwmon/nct6775\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/nct6775-i2c\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/nzxt-kraken2\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/nzxt-smart2\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/oxp-sensors\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pc87360\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pc87427\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/peci/"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/delta-ahe50dc-fan\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/dps920ab\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/max15301\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/pm6764tr\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/stpddc60\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/tps546d24\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/pmbus/|^include/linux/pmbus\\.h$"},
+			{IncludeRegexp: "^drivers/hwmon/sch5627\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/smm665\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/smsc47b397\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/tmp401\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/tmp464\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/tmp513\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/tps23861\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/vt1211\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/vt8231\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/w83791d\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/w83793\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/w83795\\.c$"},
+			{IncludeRegexp: "^drivers/hwmon/|^include/linux/hwmon[^/]*\\.h$|^include/trace/events/hwmon[^/]*\\.h$"},
+		},
+	}
+
+	hyperv = Subsystem{
+		Name:    "hyperv",
+		Lists:   []string{"linux-hyperv@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm64/hyperv$|^arch/arm64/include/asm/hyperv-tlfs\\.h$|^arch/arm64/include/asm/mshyperv\\.h$|^arch/x86/hyperv$|^arch/x86/include/asm/hyperv-tlfs\\.h$|^arch/x86/include/asm/mshyperv\\.h$|^arch/x86/include/asm/trace/hyperv\\.h$|^arch/x86/kernel/cpu/mshyperv\\.c$|^drivers/clocksource/hyperv_timer\\.c$|^drivers/hid/hid-hyperv\\.c$|^drivers/hv/|^drivers/input/serio/hyperv-keyboard\\.c$|^drivers/iommu/hyperv-iommu\\.c$|^drivers/net/ethernet/microsoft/|^drivers/net/hyperv/|^drivers/pci/controller/pci-hyperv-intf\\.c$|^drivers/pci/controller/pci-hyperv\\.c$|^drivers/scsi/storvsc_drv\\.c$|^drivers/uio/uio_hv_generic\\.c$|^drivers/video/fbdev/hyperv_fb\\.c$|^include/asm-generic/hyperv-tlfs\\.h$|^include/asm-generic/mshyperv\\.h$|^include/clocksource/hyperv_timer\\.h$|^include/linux/hyperv\\.h$|^include/net/mana$|^include/uapi/linux/hyperv\\.h$|^net/vmw_vsock/hyperv_transport\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/hyperv$"},
+		},
+	}
+
+	i2c = Subsystem{
+		Name:    "i2c",
+		Lists:   []string{"linux-i2c@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/hid/hid-ft260\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-mcp2221\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/algos/|^drivers/i2c/busses/|^include/dt-bindings/i2c/"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-ali1535\\.c$|^drivers/i2c/busses/i2c-ali1563\\.c$|^drivers/i2c/busses/i2c-ali15x3\\.c$|^drivers/i2c/busses/i2c-amd756-s4882\\.c$|^drivers/i2c/busses/i2c-amd756\\.c$|^drivers/i2c/busses/i2c-amd8111\\.c$|^drivers/i2c/busses/i2c-i801\\.c$|^drivers/i2c/busses/i2c-isch\\.c$|^drivers/i2c/busses/i2c-nforce2-s4985\\.c$|^drivers/i2c/busses/i2c-nforce2\\.c$|^drivers/i2c/busses/i2c-piix4\\.c$|^drivers/i2c/busses/i2c-sis5595\\.c$|^drivers/i2c/busses/i2c-sis630\\.c$|^drivers/i2c/busses/i2c-sis96x\\.c$|^drivers/i2c/busses/i2c-via\\.c$|^drivers/i2c/busses/i2c-viapro\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-ali1563\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-amd-mp2[^/]*$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-aspeed\\.c$|^drivers/irqchip/irq-aspeed-i2c-ic\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-at91-[^/]*\\.c$|^drivers/i2c/busses/i2c-at91\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-axxia\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-brcmstb\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-cht-wc\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-cpm\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-designware-[^/]*$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-diolan-u2c\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-fsi\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-hisi\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-icy\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-imx-lpi2c\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-imx\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-ismt\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mchp-pci1xxxx\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mlxbf\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mlxcpld\\.c$|^drivers/i2c/muxes/i2c-mux-mlxcpld\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mpc\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mt65xx\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mt7621\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-mv64xxx\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-nvidia-gpu\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-ocores\\.c$|^include/linux/platform_data/i2c-ocores\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-omap\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-parport\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-qcom-cci\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-stm32[^/]*$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-synquacer\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-taos-evm\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-tiny-usb\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-virtio\\.c$|^include/uapi/linux/virtio_i2c\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-xlp9xx\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/i2c-core-acpi\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/i2c-mux\\.c$|^drivers/i2c/muxes/|^include/linux/i2c-mux\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/i2c-stub\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/muxes/i2c-mux-gpio\\.c$|^include/linux/platform_data/i2c-mux-gpio\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/muxes/i2c-mux-ltc4306\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/muxes/i2c-mux-pca9541\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/|^include/dt-bindings/i2c/i2c\\.h$|^include/linux/i2c-dev\\.h$|^include/linux/i2c-smbus\\.h$|^include/linux/i2c\\.h$|^include/uapi/linux/i2c-[^/]*\\.h$|^include/uapi/linux/i2c\\.h$"},
+			{IncludeRegexp: "^drivers/misc/eeprom/at24\\.c$"},
+		},
+	}
+
+	i3c = Subsystem{
+		Name:    "i3c",
+		Lists:   []string{"linux-i3c@lists.infradead.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/i3c/master/svc-i3c-master\\.c$"},
+			{IncludeRegexp: "^drivers/i3c/|^include/linux/i3c/"},
+		},
+	}
+
+	ia64 = Subsystem{
+		Name:    "ia64",
+		Lists:   []string{"linux-ia64@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/ia64/"},
+		},
+	}
+
+	ide = Subsystem{
+		Name:    "ide",
+		Lists:   []string{"linux-ide@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/ata/ahci_dwc\\.c$"},
+			{IncludeRegexp: "^drivers/ata/ahci_platform\\.c$|^drivers/ata/libahci_platform\\.c$|^include/linux/ahci_platform\\.h$"},
+			{IncludeRegexp: "^drivers/ata/ata_[^/]*\\.c$|^drivers/ata/pata_[^/]*\\.c$"},
+			{IncludeRegexp: "^drivers/ata/pata_arasan_cf\\.c$|^include/linux/pata_arasan_cf_data\\.h$"},
+			{IncludeRegexp: "^drivers/ata/pata_ftide010\\.c$|^drivers/ata/sata_gemini\\.c$|^drivers/ata/sata_gemini\\.h$"},
+			{IncludeRegexp: "^drivers/ata/sata_promise\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/ata/sata_rcar\\.c$"},
+			{IncludeRegexp: "^drivers/ata/|^include/linux/ata\\.h$|^include/linux/libata\\.h$"},
+		},
+	}
+
+	iio = Subsystem{
+		Name:    "iio",
+		Lists:   []string{"linux-iio@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/counter/104-quad-8\\.c$"},
+			{IncludeRegexp: "^drivers/counter/ftm-quaddec\\.c$"},
+			{IncludeRegexp: "^drivers/counter/intel-qep\\.c$"},
+			{IncludeRegexp: "^drivers/counter/interrupt-cnt\\.c$"},
+			{IncludeRegexp: "^drivers/counter/microchip-tcb-capture\\.c$"},
+			{IncludeRegexp: "^drivers/counter/ti-ecap-capture\\.c$"},
+			{IncludeRegexp: "^drivers/counter/ti-eqep\\.c$"},
+			{IncludeRegexp: "^drivers/counter/|^include/linux/counter\\.h$|^include/uapi/linux/counter\\.h$"},
+			{IncludeRegexp: "^drivers/hid/hid-sensor-[^/]*$|^drivers/iio/[^/]*/hid-[^/]*$|^include/linux/hid-sensor-[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/accel/adxl355\\.h$|^drivers/iio/accel/adxl355_core\\.c$|^drivers/iio/accel/adxl355_i2c\\.c$|^drivers/iio/accel/adxl355_spi\\.c$"},
+			{IncludeRegexp: "^drivers/iio/accel/adxl367[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/accel/bma400[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/accel/kionix-kx022a[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/accel/msa311\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/ad4130\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/ad7192\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/ad7292\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/ad7768-1\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/ad7780\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/at91-sama5d2_adc\\.c$|^include/dt-bindings/iio/adc/at91-sama5d2_adc\\.h$"},
+			{IncludeRegexp: "^drivers/iio/adc/envelope-detector\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/hx711\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/imx7d_adc\\.c$|^drivers/iio/adc/vf610_adc\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/imx8qxp-adc\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/max11205\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/mcp3911\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/rcar-gyroadc\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/rzg2l_adc\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/ti-tsc2046\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/xilinx-ams\\.c$"},
+			{IncludeRegexp: "^drivers/iio/addac/ad74115\\.c$"},
+			{IncludeRegexp: "^drivers/iio/addac/ad74413r\\.c$|^include/dt-bindings/iio/addac/adi,ad74413r\\.h$"},
+			{IncludeRegexp: "^drivers/iio/addac/stx104\\.c$"},
+			{IncludeRegexp: "^drivers/iio/afe/iio-rescale\\.c$"},
+			{IncludeRegexp: "^drivers/iio/amplifiers/ada4250\\.c$"},
+			{IncludeRegexp: "^drivers/iio/common/scmi_sensors/scmi_iio\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/ad3552r\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/ad7293\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/cio-dac\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/dpot-dac\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/ltc1660\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/ltc2688\\.c$"},
+			{IncludeRegexp: "^drivers/iio/dac/ti-dac7612\\.c$"},
+			{IncludeRegexp: "^drivers/iio/filter/admv8818\\.c$"},
+			{IncludeRegexp: "^drivers/iio/frequency/adf4377\\.c$"},
+			{IncludeRegexp: "^drivers/iio/frequency/admv1013\\.c$"},
+			{IncludeRegexp: "^drivers/iio/frequency/admv1014\\.c$"},
+			{IncludeRegexp: "^drivers/iio/frequency/adrf6780\\.c$"},
+			{IncludeRegexp: "^drivers/iio/gyro/adxrs290\\.c$"},
+			{IncludeRegexp: "^drivers/iio/gyro/fxas21002c\\.h$|^drivers/iio/gyro/fxas21002c_core\\.c$|^drivers/iio/gyro/fxas21002c_i2c\\.c$|^drivers/iio/gyro/fxas21002c_spi\\.c$"},
+			{IncludeRegexp: "^drivers/iio/gyro/mpu3050[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/humidity/hts221[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/imu/adis16460\\.c$"},
+			{IncludeRegexp: "^drivers/iio/imu/adis16475\\.c$"},
+			{IncludeRegexp: "^drivers/iio/imu/adis\\.c$|^drivers/iio/imu/adis_buffer\\.c$|^drivers/iio/imu/adis_trigger\\.c$|^include/linux/iio/imu/adis\\.h$"},
+			{IncludeRegexp: "^drivers/iio/imu/inv_icm42600/"},
+			{IncludeRegexp: "^drivers/iio/imu/st_lsm6dsx/"},
+			{IncludeRegexp: "^drivers/iio/light/as73211\\.c$"},
+			{IncludeRegexp: "^drivers/iio/light/gp2ap002\\.c$"},
+			{IncludeRegexp: "^drivers/iio/magnetometer/ak8974\\.c$"},
+			{IncludeRegexp: "^drivers/iio/magnetometer/rm3100[^/]*$"},
+			{IncludeRegexp: "^drivers/iio/multiplexer/iio-mux\\.c$"},
+			{IncludeRegexp: "^drivers/iio/potentiometer/ad5110\\.c$"},
+			{IncludeRegexp: "^drivers/iio/potentiometer/mcp4018\\.c$|^drivers/iio/potentiometer/mcp4531\\.c$"},
+			{IncludeRegexp: "^drivers/iio/pressure/dps310\\.c$"},
+			{IncludeRegexp: "^drivers/iio/proximity/mb1232\\.c$"},
+			{IncludeRegexp: "^drivers/iio/proximity/ping\\.c$"},
+			{IncludeRegexp: "^drivers/iio/proximity/srf[^/]*\\.c$"},
+			{IncludeRegexp: "^drivers/iio/proximity/vl53l0x-i2c\\.c$"},
+			{IncludeRegexp: "^drivers/iio/temperature/ltc2983\\.c$"},
+			{IncludeRegexp: "^drivers/iio/temperature/max30208\\.c$"},
+			{IncludeRegexp: "^drivers/iio/temperature/mlx90614\\.c$"},
+			{IncludeRegexp: "^drivers/iio/temperature/mlx90632\\.c$"},
+			{IncludeRegexp: "^drivers/iio/temperature/tmp117\\.c$"},
+			{IncludeRegexp: "^drivers/iio/|^drivers/staging/iio/|^include/dt-bindings/iio/|^include/linux/iio/"},
+			{IncludeRegexp: "^drivers/staging/iio/"},
+		},
+	}
+
+	imx = Subsystem{
+		Name:    "imx",
+		Lists:   []string{"linux-imx@nxp.com"},
+		Parents: []*Subsystem{&arm, &clk},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/clk/imx/|^include/dt-bindings/clock/imx[^/]*$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-imx-lpi2c\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/imx7d_adc\\.c$|^drivers/iio/adc/vf610_adc\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/imx8qxp-adc\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-esdhc-imx\\.c$"},
+		},
+	}
+
+	input = Subsystem{
+		Name:    "input",
+		Lists:   []string{"linux-input@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/hid/amd-sfh-hid/"},
+			{IncludeRegexp: "^drivers/hid/hid-creative-sb0540\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-ft260\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-letsketch\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-lg-g15\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-logitech-[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/hid-mcp2221\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-nintendo[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/hid-picolcd[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/hid-playstation\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-pxrc\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-sensor-[^/]*$|^drivers/iio/[^/]*/hid-[^/]*$|^include/linux/hid-sensor-[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/hid-udraw-ps3\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-vrc2\\.c$"},
+			{IncludeRegexp: "^drivers/hid/hid-wiimote[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/intel-ish-hid/"},
+			{IncludeRegexp: "^drivers/hid/surface-hid/"},
+			{IncludeRegexp: "^drivers/hid/uhid\\.c$|^include/uapi/linux/uhid\\.h$"},
+			{IncludeRegexp: "^drivers/hid/wacom\\.h$|^drivers/hid/wacom_[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/|^include/linux/hid[^/]*$|^include/uapi/linux/hid[^/]*$"},
+			{IncludeRegexp: "^drivers/input/input-mt\\.c$"},
+			{IncludeRegexp: "^drivers/input/joystick/fsia6b\\.c$"},
+			{IncludeRegexp: "^drivers/input/joystick/pxrc\\.c$"},
+			{IncludeRegexp: "^drivers/input/keyboard/cypress-sf\\.c$"},
+			{IncludeRegexp: "^drivers/input/keyboard/dlink-dir685-touchkeys\\.c$"},
+			{IncludeRegexp: "^drivers/input/keyboard/sun4i-lradc-keys\\.c$"},
+			{IncludeRegexp: "^drivers/input/misc/ibm-panel\\.c$"},
+			{IncludeRegexp: "^drivers/input/misc/ideapad_slidebar\\.c$"},
+			{IncludeRegexp: "^drivers/input/mouse/bcm5974\\.c$"},
+			{IncludeRegexp: "^drivers/input/mouse/vmmouse\\.c$|^drivers/input/mouse/vmmouse\\.h$"},
+			{IncludeRegexp: "^drivers/input/tablet/wacom_serial4\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/chipone_icn8318\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/chipone_icn8505\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/cy8ctma140\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/cyttsp[^/]*$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/goodix[^/]*$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/himax_hx83112b\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/htcpen\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/hycon-hy46xx\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/resistive-adc-touch\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/silead\\.c$|^drivers/platform/x86/touchscreen_dmi\\.c$"},
+			{IncludeRegexp: "^drivers/input/touchscreen/sis_i2c\\.c$"},
+			{IncludeRegexp: "^drivers/input/|^include/dt-bindings/input/|^include/linux/input\\.h$|^include/linux/input/|^include/uapi/linux/input-event-codes\\.h$|^include/uapi/linux/input\\.h$"},
+		},
+	}
+
+	integrity = Subsystem{
+		Name:    "integrity",
+		Lists:   []string{"linux-integrity@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/char/tpm/"},
+			{IncludeRegexp: "^include/keys/encrypted-type\\.h$|^security/keys/encrypted-keys/"},
+			{IncludeRegexp: "^include/keys/trusted-type\\.h$|^include/keys/trusted_tpm\\.h$|^security/keys/trusted-keys/"},
+			{IncludeRegexp: "^include/keys/trusted_caam\\.h$|^security/keys/trusted-keys/trusted_caam\\.c$"},
+			{IncludeRegexp: "^include/keys/trusted_tee\\.h$|^security/keys/trusted-keys/trusted_tee\\.c$"},
+			{IncludeRegexp: "^security/integrity/evm/|^security/integrity/"},
+			{IncludeRegexp: "^security/integrity/ima/|^security/integrity/"},
+			{IncludeRegexp: "^security/integrity/platform_certs$"},
+		},
+	}
+
+	intelgfx = Subsystem{
+		Name:    "intel-gfx",
+		Lists:   []string{"intel-gfx@lists.freedesktop.org"},
+		Parents: []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/i915/gvt/"},
+			{IncludeRegexp: "^drivers/gpu/drm/i915/|^include/drm/i915[^/]*$|^include/uapi/drm/i915_drm\\.h$"},
+		},
+	}
+
+	intelgvt = Subsystem{
+		Name:        "intel-gvt",
+		Lists:       []string{"intel-gvt-dev@lists.freedesktop.org"},
+		Maintainers: []string{"zhenyuw@linux.intel.com", "zhi.a.wang@intel.com"},
+		Parents:     []*Subsystem{&intelgfx},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/i915/gvt/"},
+		},
+	}
+
+	intelwiredlan = Subsystem{
+		Name:        "intel-wired-lan",
+		Lists:       []string{"intel-wired-lan@lists.osuosl.org"},
+		Maintainers: []string{"anthony.l.nguyen@intel.com", "jesse.brandeburg@intel.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/ethernet/intel/|^drivers/net/ethernet/intel/[^/]*/|^include/linux/avf/virtchnl\\.h$|^include/linux/net/intel/iidc\\.h$"},
+		},
+	}
+
+	iouring = Subsystem{
+		Name:        "io-uring",
+		Syscalls:    []string{"syz_io_uring_setup"},
+		Lists:       []string{"io-uring@vger.kernel.org"},
+		Maintainers: []string{"axboe@kernel.dk"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^io_uring/|^include/linux/io_uring\\.h$|^include/linux/io_uring_types\\.h$|^include/trace/events/io_uring\\.h$|^include/uapi/linux/io_uring\\.h$"},
+		},
+	}
+
+	iommu = Subsystem{
+		Name:    "iommu",
+		Lists:   []string{"iommu@lists.linux.dev"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/xen/swiotlb-xen\\.h$|^drivers/xen/swiotlb-xen\\.c$|^include/xen/arm/swiotlb-xen\\.h$|^include/xen/swiotlb-xen\\.h$"},
+			{IncludeRegexp: "^drivers/acpi/viot\\.c$|^include/linux/acpi_viot\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/amd/|^include/linux/amd-iommu\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/arm/arm-smmu/qcom_iommu\\.c$"},
+			{IncludeRegexp: "^drivers/iommu/dma-iommu\\.c$|^drivers/iommu/dma-iommu\\.h$|^drivers/iommu/iova\\.c$|^include/linux/iova\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/exynos-iommu\\.c$"},
+			{IncludeRegexp: "^drivers/iommu/intel/|^include/linux/intel-svm\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/iommufd/|^include/linux/iommufd\\.h$|^include/uapi/linux/iommufd\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/mtk_iommu[^/]*$|^include/dt-bindings/memory/mt[^/]*-port\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/|^include/linux/iommu\\.h$|^include/linux/iova\\.h$|^include/linux/of_iommu\\.h$|^include/uapi/linux/iommu\\.h$"},
+			{IncludeRegexp: "^include/asm-generic/dma-mapping\\.h$|^include/linux/dma-direct\\.h$|^include/linux/dma-mapping\\.h$|^include/linux/dma-map-ops\\.h$|^include/linux/swiotlb\\.h$|^kernel/dma/"},
+			{IncludeRegexp: "^kernel/dma/map_benchmark\\.c$"},
+		},
+	}
+
+	ipack = Subsystem{
+		Name:        "ipack",
+		Lists:       []string{"industrypack-devel@lists.sourceforge.net"},
+		Maintainers: []string{"gregkh@linuxfoundation.org", "jens.taprogge@taprogge.org", "siglesias@igalia.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/ipack/"},
+		},
+	}
+
+	isdn4linux = Subsystem{
+		Name:    "isdn4linux",
+		Lists:   []string{"isdn4linux@listserv.isdn4linux.de"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/isdn/Kconfig$|^drivers/isdn/hardware/|^drivers/isdn/mISDN/"},
+			{IncludeRegexp: "^drivers/isdn/capi/|^include/linux/isdn/|^include/uapi/linux/isdn/|^net/bluetooth/cmtp/"},
+		},
+	}
+
+	isofs = Subsystem{
+		Name:        "isofs",
+		Syscalls:    []string{"syz_mount_image$iso9660"},
+		Lists:       []string{"linux-fsdevel@vger.kernel.org"},
+		Maintainers: []string{"jack@suse.cz"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/isofs/"},
+		},
+	}
+
+	jfs = Subsystem{
+		Name:        "jfs",
+		Syscalls:    []string{"syz_mount_image$jfs"},
+		Lists:       []string{"jfs-discussion@lists.sourceforge.net"},
+		Maintainers: []string{"shaggy@kernel.org"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/jfs/"},
+		},
+	}
+
+	karma = Subsystem{
+		Name:        "karma",
+		Lists:       []string{"linux-karma-devel@lists.sourceforge.net"},
+		Maintainers: []string{"me@bobcopeland.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/omfs/"},
+		},
+	}
+
+	kasan = Subsystem{
+		Name:    "kasan",
+		Lists:   []string{"kasan-dev@googlegroups.com"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/[^/]*kasan\\.h$|^arch/[^/]*/mm/kasan_init[^/]*$|^include/linux/kasan[^/]*\\.h$|^lib/Kconfig\\.kasan$|^mm/kasan/"},
+			{IncludeRegexp: "^arch/[^/]*/include/asm/kfence\\.h$|^include/linux/kfence\\.h$|^lib/Kconfig\\.kfence$|^mm/kfence/"},
+			{IncludeRegexp: "^arch/[^/]*/include/asm/kmsan\\.h$|^arch/[^/]*/mm/kmsan_[^/]*$|^include/linux/kmsan[^/]*\\.h$|^lib/Kconfig\\.kmsan$|^mm/kmsan/"},
+			{IncludeRegexp: "^include/linux/kcov\\.h$|^include/uapi/linux/kcov\\.h$|^kernel/kcov\\.c$"},
+			{IncludeRegexp: "^include/linux/kcsan[^/]*\\.h$|^kernel/kcsan/|^lib/Kconfig\\.kcsan$"},
+		},
+	}
+
+	kernel = Subsystem{
+		Name:  "kernel",
+		Lists: []string{"linux-kernel@vger.kernel.org"},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^[^/]*$|^[^/]*/"},
+			{IncludeRegexp: "^arch/[^/]*/events/|^arch/[^/]*/events/[^/]*/|^arch/[^/]*/include/asm/perf_event\\.h$|^arch/[^/]*/kernel/[^/]*/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/perf_callchain\\.c$|^arch/[^/]*/kernel/perf_event[^/]*\\.c$|^include/linux/perf_event\\.h$|^include/uapi/linux/perf_event\\.h$|^kernel/events/"},
+			{IncludeRegexp: "^arch/[^/]*/include/asm/atomic[^/]*\\.h$|^include/[^/]*/atomic[^/]*\\.h$|^include/linux/refcount\\.h$"},
+			{"^arch/[^/]*/include/asm/spinlock[^/]*\\.h$|^include/linux/lockdep\\.h$|^include/linux/mutex[^/]*\\.h$|^include/linux/rwlock[^/]*\\.h$|^include/linux/rwsem[^/]*\\.h$|^include/linux/seqlock\\.h$|^include/linux/spinlock[^/]*\\.h$|^kernel/locking/|^lib/locking[^/]*\\.\\[ch\\]$", "^kernel/locking/locktorture\\.c$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/mt2[^/]*$|^arch/arm/boot/dts/mt6[^/]*$|^arch/arm/boot/dts/mt7[^/]*$|^arch/arm/boot/dts/mt8[^/]*$|^arch/arm/mach-mediatek/|^arch/arm64/boot/dts/mediatek/|^drivers/soc/mediatek/|mtk|mt[2678]"},
+			{IncludeRegexp: "^arch/powerpc/include/asm/membarrier\\.h$|^include/uapi/linux/membarrier\\.h$|^kernel/sched/membarrier\\.c$"},
+			{IncludeRegexp: "^arch/x86/"},
+			{IncludeRegexp: "^arch/x86/entry/"},
+			{IncludeRegexp: "^arch/x86/entry/vdso/"},
+			{IncludeRegexp: "^arch/x86/include/asm/intel-family\\.h$"},
+			{IncludeRegexp: "^arch/x86/include/asm/resctrl\\.h$|^arch/x86/kernel/cpu/resctrl/"},
+			{IncludeRegexp: "^arch/x86/kernel/cpu/hygon\\.c$"},
+			{IncludeRegexp: "^arch/x86/kernel/cpu/zhaoxin\\.c$"},
+			{IncludeRegexp: "^arch/x86/mm/"},
+			{IncludeRegexp: "^arch/x86/mm/kmmio\\.c$|^arch/x86/mm/mmio-mod\\.c$|^arch/x86/mm/testmmiotrace\\.c$|^include/linux/mmiotrace\\.h$|^kernel/trace/trace_mmiotrace\\.c$"},
+			{IncludeRegexp: "^drivers/[^/]*/[^/]*max77843\\.c$|^drivers/[^/]*/max14577[^/]*\\.c$|^drivers/[^/]*/max77686[^/]*\\.c$|^drivers/[^/]*/max77693[^/]*\\.c$|^drivers/clk/clk-max77686\\.c$|^drivers/extcon/extcon-max14577\\.c$|^drivers/extcon/extcon-max77693\\.c$|^drivers/rtc/rtc-max77686\\.c$|^include/linux/mfd/max14577[^/]*\\.h$|^include/linux/mfd/max77686[^/]*\\.h$|^include/linux/mfd/max77693[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/android/"},
+			{IncludeRegexp: "^drivers/base/arch_topology\\.c$|^include/linux/arch_topology\\.h$"},
+			{IncludeRegexp: "^drivers/base/devcoredump\\.c$|^include/linux/devcoredump\\.h$"},
+			{IncludeRegexp: "^drivers/base/firmware_loader/|^include/linux/firmware\\.h$"},
+			{IncludeRegexp: "^drivers/base/regmap/|^include/linux/regmap\\.h$"},
+			{IncludeRegexp: "^drivers/block/zram/"},
+			{IncludeRegexp: "^drivers/bus/fsl-mc/|^include/uapi/linux/fsl_mc\\.h$"},
+			{IncludeRegexp: "^drivers/char/xillybus/"},
+			{IncludeRegexp: "^drivers/clk/clk-s2mps11\\.c$|^drivers/mfd/sec[^/]*\\.c$|^drivers/regulator/s2m[^/]*\\.c$|^drivers/regulator/s5m[^/]*\\.c$|^drivers/rtc/rtc-s5m\\.c$|^include/linux/mfd/samsung/"},
+			{IncludeRegexp: "^drivers/clk/keystone/"},
+			{IncludeRegexp: "^drivers/clocksource/"},
+			{IncludeRegexp: "^drivers/clocksource/timer-keystone\\.c$"},
+			{IncludeRegexp: "^drivers/extcon/extcon-ptn5150\\.c$"},
+			{IncludeRegexp: "^drivers/extcon/|^include/linux/extcon\\.h$|^include/linux/extcon/"},
+			{IncludeRegexp: "^drivers/firmware/stratix10-rsu\\.c$|^drivers/firmware/stratix10-svc\\.c$|^include/linux/firmware/intel/stratix10-smc\\.h$|^include/linux/firmware/intel/stratix10-svc-client\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-bd9571mwv\\.c$|^drivers/mfd/bd9571mwv\\.c$|^drivers/regulator/bd9571mwv-regulator\\.c$|^include/linux/mfd/bd9571mwv\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-max77650\\.c$|^drivers/input/misc/max77650-onkey\\.c$|^drivers/leds/leds-max77650\\.c$|^drivers/mfd/max77650\\.c$|^drivers/power/supply/max77650-charger\\.c$|^drivers/regulator/max77650-regulator\\.c$|^include/linux/mfd/max77650\\.h$"},
+			{IncludeRegexp: "^drivers/hwtracing/ptt/"},
+			{IncludeRegexp: "^drivers/irqchip/"},
+			{IncludeRegexp: "^drivers/mailbox/arm_mhuv2\\.c$|^include/linux/mailbox/arm_mhuv2_message\\.h$"},
+			{IncludeRegexp: "^drivers/mailbox/|^include/linux/mailbox_client\\.h$|^include/linux/mailbox_controller\\.h$|^include/dt-bindings/mailbox/"},
+			{IncludeRegexp: "^drivers/memory/[^/]*emif[^/]*$"},
+			{IncludeRegexp: "^drivers/memory/|^include/dt-bindings/memory/|^include/memory/"},
+			{IncludeRegexp: "^drivers/mfd/at91-usart\\.c$|^include/dt-bindings/mfd/at91-usart\\.h$"},
+			{IncludeRegexp: "^drivers/mfd/hi6421-spmi-pmic\\.c$"},
+			{IncludeRegexp: "^drivers/misc/hisi_hikey_usb\\.c$"},
+			{IncludeRegexp: "^drivers/misc/mei/|^drivers/watchdog/mei_wdt\\.c$|^include/linux/mei_aux\\.h$|^include/linux/mei_cl_bus\\.h$|^include/uapi/linux/mei\\.h$"},
+			{IncludeRegexp: "^drivers/misc/uacce/|^include/linux/uacce\\.h$|^include/uapi/misc/uacce/"},
+			{IncludeRegexp: "^drivers/misc/vmw_balloon\\.c$"},
+			{IncludeRegexp: "^drivers/misc/vmw_vmci/|^include/linux/vmw_vmci[^/]*$"},
+			{IncludeRegexp: "^drivers/net/dsa/sja1105$|^drivers/net/pcs/pcs-xpcs-nxp\\.c$"},
+			{IncludeRegexp: "^drivers/phy/broadcom/phy-brcm-usb[^/]*$"},
+			{IncludeRegexp: "^drivers/phy/samsung/phy-exynos4210-usb2\\.c$|^drivers/phy/samsung/phy-exynos4x12-usb2\\.c$|^drivers/phy/samsung/phy-exynos5250-usb2\\.c$|^drivers/phy/samsung/phy-s5pv210-usb2\\.c$|^drivers/phy/samsung/phy-samsung-usb2\\.c$|^drivers/phy/samsung/phy-samsung-usb2\\.h$"},
+			{IncludeRegexp: "^drivers/phy/xilinx/phy-zynqmp\\.c$"},
+			{IncludeRegexp: "^drivers/power/reset/keystone-reset\\.c$"},
+			{IncludeRegexp: "^drivers/regulator/max20086-regulator\\.c$"},
+			{IncludeRegexp: "^drivers/regulator/max77802-regulator\\.c$|^include/dt-bindings/[^/]*/[^/]*max77802\\.h$"},
+			{IncludeRegexp: "^drivers/regulator/|^include/dt-bindings/regulator/|^include/linux/regulator/"},
+			{IncludeRegexp: "^drivers/reset/reset-k210\\.c$"},
+			{IncludeRegexp: "^drivers/soc/fsl/dpio$"},
+			{IncludeRegexp: "^drivers/soc/ti/"},
+			{IncludeRegexp: "^drivers/spmi/hisi-spmi-controller\\.c$"},
+			{IncludeRegexp: "^drivers/spmi/|^include/dt-bindings/spmi/spmi\\.h$|^include/linux/spmi\\.h$|^include/trace/events/spmi\\.h$"},
+			{IncludeRegexp: "^drivers/staging/vme_user/"},
+			{IncludeRegexp: "^drivers/virt/nitro_enclaves/|^include/linux/nitro_enclaves\\.h$|^include/uapi/linux/nitro_enclaves\\.h$"},
+			{IncludeRegexp: "^fs/proc/bootconfig\\.c$|^include/linux/bootconfig\\.h$|^lib/bootconfig-data\\.S$|^lib/bootconfig\\.c$"},
+			{IncludeRegexp: "^fs/proc/proc_sysctl\\.c$|^include/linux/sysctl\\.h$|^kernel/sysctl-test\\.c$|^kernel/sysctl\\.c$"},
+			{IncludeRegexp: "^fs/proc/|^include/linux/proc_fs\\.h$"},
+			{IncludeRegexp: "^fs/timerfd\\.c$|^include/linux/time_namespace\\.h$|^include/linux/timer[^/]*$|^kernel/time/[^/]*timer[^/]*$|^kernel/time/namespace\\.c$"},
+			{IncludeRegexp: "^fs/tracefs/|^include/linux/trace[^/]*\\.h$|^include/trace/|^kernel/trace/"},
+			{IncludeRegexp: "^include/asm-generic/futex\\.h$|^include/linux/futex\\.h$|^include/uapi/linux/futex\\.h$|^kernel/futex/"},
+			{IncludeRegexp: "^include/asm-generic/kprobes\\.h$|^include/linux/kprobes\\.h$|^kernel/kprobes\\.c$|^lib/test_kprobes\\.c$"},
+			{IncludeRegexp: "^include/asm-generic/vdso/vsyscall\\.h$|^include/vdso/|^kernel/time/vsyscall\\.c$|^lib/vdso/"},
+			{IncludeRegexp: "^include/linux/clockchips\\.h$|^include/linux/hrtimer\\.h$|^kernel/time/clockevents\\.c$|^kernel/time/hrtimer\\.c$|^kernel/time/timer_[^/]*\\.c$"},
+			{IncludeRegexp: "^include/linux/clocksource\\.h$|^include/linux/time\\.h$|^include/linux/timex\\.h$|^include/uapi/linux/time\\.h$|^include/uapi/linux/timex\\.h$|^kernel/time/alarmtimer\\.c$|^kernel/time/clocksource\\.c$|^kernel/time/ntp\\.c$|^kernel/time/time[^/]*\\.c$"},
+			{IncludeRegexp: "^include/linux/entry-common\\.h$|^include/linux/entry-kvm\\.h$|^kernel/entry/"},
+			{IncludeRegexp: "^include/linux/frontswap\\.h$|^mm/frontswap\\.c$"},
+			{IncludeRegexp: "^include/linux/kmod\\.h$|^kernel/kmod\\.c$|^lib/test_kmod\\.c$"},
+			{IncludeRegexp: "^include/linux/module\\.h$|^kernel/module/"},
+			{IncludeRegexp: "^include/linux/padata\\.h$|^kernel/padata\\.c$"},
+			{IncludeRegexp: "^include/linux/preempt\\.h$|^include/linux/sched\\.h$|^include/linux/wait\\.h$|^include/uapi/linux/sched\\.h$|^kernel/sched/"},
+			{IncludeRegexp: "^include/linux/sched/nohz\\.h$|^include/linux/tick\\.h$|^kernel/time/tick[^/]*\\.[^/]*$"},
+			{IncludeRegexp: "^include/linux/umh\\.h$|^kernel/umh\\.c$"},
+			{IncludeRegexp: "^include/linux/uuid\\.h$|^include/uapi/linux/uuid\\.h$|^lib/test_uuid\\.c$|^lib/uuid\\.c$"},
+			{IncludeRegexp: "^include/trace/events/rseq\\.h$|^include/uapi/linux/rseq\\.h$|^kernel/rseq\\.c$"},
+			{IncludeRegexp: "^kernel/irq/"},
+			{IncludeRegexp: "^kernel/locking/locktorture\\.c$|^kernel/rcu/rcuscale\\.c$|^kernel/rcu/rcutorture\\.c$|^kernel/rcu/refscale\\.c$|^kernel/torture\\.c$"},
+			{IncludeRegexp: "^kernel/trace/ftrace[^/]*$|^kernel/trace/fgraph\\.c$|^arch/[^/]*/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^arch/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^include/[^/]*/ftrace\\.h$"},
+			{IncludeRegexp: "^net/vmw_vsock/vmci_transport[^/]*$"},
+			{IncludeRegexp: "axp[128]"},
+		},
+	}
+
+	kernfs = Subsystem{
+		Name:        "kernfs",
+		Maintainers: []string{"gregkh@linuxfoundation.org", "tj@kernel.org"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/kernfs/|^include/linux/kernfs\\.h$"},
+		},
+	}
+
+	kexec = Subsystem{
+		Name:    "kexec",
+		Lists:   []string{"kexec@lists.infradead.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/proc/vmcore\\.c$|^include/linux/crash_core\\.h$|^include/linux/crash_dump\\.h$|^include/uapi/linux/vmcore\\.h$|^kernel/crash_[^/]*\\.c$"},
+			{IncludeRegexp: "^include/linux/kexec\\.h$|^include/uapi/linux/kexec\\.h$|^kernel/kexec[^/]*$"},
+		},
+	}
+
+	keyrings = Subsystem{
+		Name:    "keyrings",
+		Lists:   []string{"keyrings@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^certs/"},
+			{IncludeRegexp: "^crypto/asymmetric_keys/|^include/crypto/pkcs7\\.h$|^include/crypto/public_key\\.h$|^include/linux/verification\\.h$"},
+			{IncludeRegexp: "^include/keys/encrypted-type\\.h$|^security/keys/encrypted-keys/"},
+			{IncludeRegexp: "^include/keys/trusted-type\\.h$|^include/keys/trusted_tpm\\.h$|^security/keys/trusted-keys/"},
+			{IncludeRegexp: "^include/keys/trusted_caam\\.h$|^security/keys/trusted-keys/trusted_caam\\.c$"},
+			{IncludeRegexp: "^include/keys/trusted_tee\\.h$|^security/keys/trusted-keys/trusted_tee\\.c$"},
+			{IncludeRegexp: "^include/keys/|^include/linux/key-type\\.h$|^include/linux/key\\.h$|^include/linux/keyctl\\.h$|^include/uapi/linux/keyctl\\.h$|^security/keys/"},
+			{IncludeRegexp: "^security/integrity/platform_certs$"},
+		},
+	}
+
+	kgdb = Subsystem{
+		Name:        "kgdb",
+		Lists:       []string{"kgdb-bugreport@lists.sourceforge.net"},
+		Maintainers: []string{"daniel.thompson@linaro.org", "jason.wessel@windriver.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/misc/kgdbts\\.c$|^drivers/tty/serial/kgdboc\\.c$|^include/linux/kdb\\.h$|^include/linux/kgdb\\.h$|^kernel/debug/|^kernel/module/kdb\\.c$"},
+		},
+	}
+
+	kunit = Subsystem{
+		Name:    "kunit",
+		Lists:   []string{"kunit-dev@googlegroups.com"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/kunit/|^lib/kunit/"},
+			{IncludeRegexp: "^lib/list-test\\.c$"},
+		},
+	}
+
+	kvm = Subsystem{
+		Name:     "kvm",
+		Syscalls: []string{"syz_kvm_setup_cpu"},
+		Lists:    []string{"kvm@vger.kernel.org"},
+		Parents:  []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/mips/include/asm/kvm[^/]*$|^arch/mips/include/uapi/asm/kvm[^/]*$|^arch/mips/kvm/"},
+			{IncludeRegexp: "^arch/riscv/include/asm/kvm[^/]*$|^arch/riscv/include/uapi/asm/kvm[^/]*$|^arch/riscv/kvm/"},
+			{IncludeRegexp: "^arch/s390/include/asm/gmap\\.h$|^arch/s390/include/asm/kvm[^/]*$|^arch/s390/include/uapi/asm/kvm[^/]*$|^arch/s390/include/uapi/asm/uvdevice\\.h$|^arch/s390/kernel/uv\\.c$|^arch/s390/kvm/|^arch/s390/mm/gmap\\.c$|^drivers/s390/char/uvdevice\\.c$"},
+			{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
+			{IncludeRegexp: "^arch/s390/kvm/pci[^/]*$|^drivers/vfio/pci/vfio_pci_zdev\\.c$|^include/uapi/linux/vfio_zdev\\.h$"},
+			{IncludeRegexp: "^arch/x86/include/asm/kvm[^/]*$|^arch/x86/include/asm/svm\\.h$|^arch/x86/include/asm/vmx[^/]*\\.h$|^arch/x86/include/uapi/asm/kvm[^/]*$|^arch/x86/include/uapi/asm/svm\\.h$|^arch/x86/include/uapi/asm/vmx\\.h$|^arch/x86/kvm/|^arch/x86/kvm/[^/]*/"},
+			{IncludeRegexp: "^arch/x86/kernel/kvm\\.c$|^arch/x86/kernel/kvmclock\\.c$|^arch/x86/include/asm/pvclock-abi\\.h$|^include/linux/kvm_para\\.h$|^include/uapi/linux/kvm_para\\.h$|^include/uapi/asm-generic/kvm_para\\.h$|^include/asm-generic/kvm_para\\.h$|^arch/um/include/asm/kvm_para\\.h$|^arch/x86/include/asm/kvm_para\\.h$|^arch/x86/include/uapi/asm/kvm_para\\.h$"},
+			{IncludeRegexp: "^arch/x86/kvm/hyperv\\.[^/]*$|^arch/x86/kvm/kvm_onhyperv\\.[^/]*$|^arch/x86/kvm/svm/hyperv\\.[^/]*$|^arch/x86/kvm/svm/svm_onhyperv\\.[^/]*$|^arch/x86/kvm/vmx/hyperv\\.[^/]*$"},
+			{IncludeRegexp: "^arch/x86/kvm/xen\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/s390/cio/vfio_ccw[^/]*$|^include/uapi/linux/vfio_ccw\\.h$"},
+			{IncludeRegexp: "^drivers/uio/uio_pci_generic\\.c$"},
+			{IncludeRegexp: "^drivers/vfio/fsl-mc/"},
+			{IncludeRegexp: "^drivers/vfio/mdev/|^include/linux/mdev\\.h$"},
+			{IncludeRegexp: "^drivers/vfio/pci/[^/]*/"},
+			{IncludeRegexp: "^drivers/vfio/pci/hisilicon/"},
+			{IncludeRegexp: "^drivers/vfio/pci/mlx5/"},
+			{IncludeRegexp: "^drivers/vfio/platform/"},
+			{IncludeRegexp: "^drivers/vfio/|^include/linux/vfio\\.h$|^include/linux/vfio_pci_core\\.h$|^include/uapi/linux/vfio\\.h$"},
+			{IncludeRegexp: "^drivers/vhost/vsock\\.c$|^include/linux/virtio_vsock\\.h$|^include/uapi/linux/virtio_vsock\\.h$|^net/vmw_vsock/virtio_transport\\.c$|^net/vmw_vsock/virtio_transport_common\\.c$"},
+			{IncludeRegexp: "^drivers/vhost/|^include/linux/vhost_iotlb\\.h$|^include/uapi/linux/vhost\\.h$"},
+			{IncludeRegexp: "^include/asm-generic/kvm[^/]*$|^include/kvm/iodev\\.h$|^include/linux/kvm[^/]*$|^include/trace/events/kvm\\.h$|^include/uapi/asm-generic/kvm[^/]*$|^include/uapi/linux/kvm[^/]*$|^virt/kvm/"},
+			{IncludeRegexp: "^virt/lib/"},
+		},
+	}
+
+	kvmriscv = Subsystem{
+		Name:        "kvm-riscv",
+		Lists:       []string{"kvm-riscv@lists.infradead.org"},
+		Maintainers: []string{"anup@brainfault.org"},
+		Parents:     []*Subsystem{&kvm, &riscv},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/riscv/include/asm/kvm[^/]*$|^arch/riscv/include/uapi/asm/kvm[^/]*$|^arch/riscv/kvm/"},
+		},
+	}
+
+	kvmarm = Subsystem{
+		Name:        "kvmarm",
+		Lists:       []string{"kvmarm@lists.cs.columbia.edu"},
+		Maintainers: []string{"maz@kernel.org"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm64/include/asm/kvm[^/]*$|^arch/arm64/include/uapi/asm/kvm[^/]*$|^arch/arm64/kvm/|^include/kvm/arm_[^/]*$"},
+		},
+	}
+
+	leds = Subsystem{
+		Name:    "leds",
+		Lists:   []string{"linux-leds@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/leds/flash/leds-as3645a\\.c$"},
+			{IncludeRegexp: "^drivers/leds/leds-mlxcpld\\.c$|^drivers/leds/leds-mlxreg\\.c$"},
+			{IncludeRegexp: "^drivers/leds/|^include/dt-bindings/leds/|^include/linux/leds\\.h$"},
+		},
+	}
+
+	libertas = Subsystem{
+		Name:    "libertas",
+		Lists:   []string{"libertas-dev@lists.infradead.org"},
+		Parents: []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/marvell/libertas/"},
+		},
+	}
+
+	lima = Subsystem{
+		Name:        "lima",
+		Lists:       []string{"lima@lists.freedesktop.org"},
+		Maintainers: []string{"yuq825@gmail.com"},
+		Parents:     []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/lima/|^include/uapi/drm/lima_drm\\.h$"},
+		},
+	}
+
+	linux1394 = Subsystem{
+		Name:    "linux1394",
+		Lists:   []string{"linux1394-devel@lists.sourceforge.net"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/firewire/|^include/linux/firewire\\.h$|^include/uapi/linux/firewire[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/media/firewire/"},
+			{IncludeRegexp: "^drivers/target/sbp/"},
+		},
+	}
+
+	linuxppc = Subsystem{
+		Name:    "linuxppc",
+		Lists:   []string{"linuxppc-dev@lists.ozlabs.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/powerpc/boot/ps3[^/]*$|^arch/powerpc/include/asm/lv1call\\.h$|^arch/powerpc/include/asm/ps3[^/]*\\.h$|^arch/powerpc/platforms/ps3/|^drivers/[^/]*/ps3[^/]*$|^drivers/ps3/|^drivers/rtc/rtc-ps3\\.c$|^drivers/usb/host/[^/]*ps3\\.c$|^sound/ppc/snd_ps3[^/]*$"},
+			{IncludeRegexp: "^arch/powerpc/include/[^/]*/eeh[^/]*\\.h$|^arch/powerpc/kernel/eeh[^/]*\\.c$|^arch/powerpc/platforms/[^/]*/eeh[^/]*\\.c$|^drivers/pci/pcie/aer\\.c$|^drivers/pci/pcie/dpc\\.c$|^drivers/pci/pcie/err\\.c$"},
+			{IncludeRegexp: "^arch/powerpc/include/asm/cell[^/]*\\.h$|^arch/powerpc/include/asm/spu[^/]*\\.h$|^arch/powerpc/include/uapi/asm/spu[^/]*\\.h$|^arch/powerpc/platforms/cell/"},
+			{IncludeRegexp: "^arch/powerpc/include/asm/kvm[^/]*$|^arch/powerpc/include/uapi/asm/kvm[^/]*$|^arch/powerpc/kernel/kvm[^/]*$|^arch/powerpc/kvm/"},
+			{IncludeRegexp: "^arch/powerpc/include/asm/pnv-ocxl\\.h$|^arch/powerpc/platforms/powernv/ocxl\\.c$|^drivers/misc/ocxl/|^include/misc/ocxl[^/]*$|^include/uapi/misc/ocxl\\.h$"},
+			{IncludeRegexp: "^arch/powerpc/include/asm/vas\\.h$|^arch/powerpc/platforms/powernv/copy-paste\\.h$|^arch/powerpc/platforms/powernv/vas[^/]*$"},
+			{IncludeRegexp: "^arch/powerpc/platforms/40x/|^arch/powerpc/platforms/44x/"},
+			{IncludeRegexp: "^arch/powerpc/platforms/512x/|^arch/powerpc/platforms/52xx/"},
+			{IncludeRegexp: "^arch/powerpc/platforms/83xx/|^arch/powerpc/platforms/85xx/"},
+			{IncludeRegexp: "^arch/powerpc/platforms/8xx/"},
+			{IncludeRegexp: "^arch/powerpc/platforms/cell/spufs/"},
+			{IncludeRegexp: "^arch/powerpc/platforms/powermac/|^drivers/macintosh/"},
+			{IncludeRegexp: "^arch/powerpc/platforms/powernv/pci-cxl\\.c$|^drivers/misc/cxl/|^include/misc/cxl[^/]*$|^include/uapi/misc/cxl\\.h$"},
+			{IncludeRegexp: "^arch/powerpc/|^drivers/[^/]*/[^/]*/[^/]*pasemi[^/]*$|^drivers/[^/]*/[^/]*pasemi[^/]*$|^drivers/char/tpm/tpm_ibmvtpm[^/]*$|^drivers/crypto/nx/|^drivers/crypto/vmx/|^drivers/i2c/busses/i2c-opal\\.c$|^drivers/net/ethernet/ibm/ibmveth\\.[^/]*$|^drivers/net/ethernet/ibm/ibmvnic\\.[^/]*$|^drivers/pci/hotplug/pnv_php\\.c$|^drivers/pci/hotplug/rpa[^/]*$|^drivers/rtc/rtc-opal\\.c$|^drivers/scsi/ibmvscsi/|^drivers/tty/hvc/hvc_opal\\.c$|^drivers/watchdog/wdrtas\\.c$|/pmac|powermac|powernv|[^a-z0-9]ps3|pseries"},
+			{IncludeRegexp: "^drivers/block/ps3vram\\.c$"},
+			{IncludeRegexp: "^drivers/char/powernv-op-panel\\.c$"},
+			{IncludeRegexp: "^drivers/dma/fsldma\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-cpm\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/fs_enet/|^include/linux/fs_enet_pd\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/ucc_geth[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/toshiba/ps3_gelic_net\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/toshiba/spider_net[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wan/fsl_ucc_hdlc[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*layerscape[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/rpadlpar[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/rpaphp[^/]*$"},
+			{IncludeRegexp: "^drivers/soc/fsl/qe/|^include/soc/fsl/qe/"},
+			{IncludeRegexp: "^drivers/soc/fsl/|^include/linux/fsl/|^include/soc/fsl/"},
+			{IncludeRegexp: "^drivers/tty/ehv_bytechan\\.c$"},
+			{IncludeRegexp: "^drivers/tty/hvc/"},
+			{IncludeRegexp: "^drivers/tty/serial/ucc_uart\\.c$"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/fsl[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/phy/phy-fsl-usb[^/]*$"},
+			{IncludeRegexp: "^sound/aoa/"},
+			{IncludeRegexp: "^sound/soc/fsl/fsl[^/]*$|^sound/soc/fsl/imx[^/]*$|^sound/soc/fsl/mpc8610_hpcd\\.c$"},
+		},
+	}
+
+	linuxpps = Subsystem{
+		Name:        "linuxpps",
+		Lists:       []string{"linuxpps@ml.enneenne.com"},
+		Maintainers: []string{"giometti@enneenne.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/pps/|^include/linux/pps[^/]*\\.h$|^include/uapi/linux/pps\\.h$"},
+		},
+	}
+
+	livepatching = Subsystem{
+		Name:        "live-patching",
+		Lists:       []string{"live-patching@vger.kernel.org"},
+		Maintainers: []string{"jikos@kernel.org", "jpoimboe@kernel.org", "mbenes@suse.cz", "pmladek@suse.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/powerpc/include/asm/livepatch\\.h$|^include/linux/livepatch\\.h$|^kernel/livepatch/|^kernel/module/livepatch\\.c$|^lib/livepatch/"},
+		},
+	}
+
+	llvm = Subsystem{
+		Name:    "llvm",
+		Lists:   []string{"llvm@lists.linux.dev"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/cfi\\.h$|^kernel/cfi\\.c$"},
+			{IncludeRegexp: "^include/linux/compiler-clang\\.h$"},
+		},
+	}
+
+	loongarch = Subsystem{
+		Name:    "loongarch",
+		Lists:   []string{"loongarch@lists.linux.dev"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/loongarch/|^drivers/[^/]*/[^/]*loongarch[^/]*$"},
+			{IncludeRegexp: "^drivers/soc/loongson/loongson2_guts\\.c$"},
+		},
+	}
+
+	lsm = Subsystem{
+		Name:    "lsm",
+		Lists:   []string{"linux-security-module@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/capability\\.h$|^include/uapi/linux/capability\\.h$|^kernel/capability\\.c$|^security/commoncap\\.c$"},
+			{IncludeRegexp: "^include/net/calipso\\.h$|^include/net/cipso_ipv4\\.h$|^include/net/netlabel\\.h$|^include/uapi/linux/netfilter/xt_CONNSECMARK\\.h$|^include/uapi/linux/netfilter/xt_SECMARK\\.h$|^net/ipv4/cipso_ipv4\\.c$|^net/ipv6/calipso\\.c$|^net/netfilter/xt_CONNSECMARK\\.c$|^net/netfilter/xt_SECMARK\\.c$|^net/netlabel/"},
+			{IncludeRegexp: "^include/uapi/linux/landlock\\.h$|^security/landlock/"},
+			{"^security/", "^security/selinux/"},
+			{IncludeRegexp: "^security/smack/"},
+		},
+	}
+
+	lvs = Subsystem{
+		Name:        "lvs",
+		Lists:       []string{"lvs-devel@vger.kernel.org"},
+		Maintainers: []string{"horms@verge.net.au", "ja@ssi.bg"},
+		Parents:     []*Subsystem{&netfilter},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/net/ip_vs\\.h$|^include/uapi/linux/ip_vs\\.h$|^net/netfilter/ipvs/"},
+		},
+	}
+
+	m68k = Subsystem{
+		Name:    "m68k",
+		Lists:   []string{"linux-m68k@lists.linux-m68k.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/nubus\\.h$|^drivers/nubus/|^include/linux/nubus\\.h$|^include/uapi/linux/nubus\\.h$"},
+			{IncludeRegexp: "^arch/m68k/[^/]*/[^/]*_no\\.[^/]*$|^arch/m68k/68[^/]*/|^arch/m68k/coldfire/|^arch/m68k/include/asm/[^/]*_no\\.[^/]*$"},
+			{IncludeRegexp: "^arch/m68k/mac/|^drivers/macintosh/adb-iop\\.c$|^drivers/macintosh/via-macii\\.c$"},
+			{IncludeRegexp: "^arch/m68k/|^drivers/zorro/"},
+		},
+	}
+
+	malidp = Subsystem{
+		Name:    "malidp",
+		Lists:   []string{"malidp@foss.arm.com"},
+		Parents: []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/arm/"},
+			{IncludeRegexp: "^drivers/gpu/drm/arm/display/include/|^drivers/gpu/drm/arm/display/komeda/"},
+		},
+	}
+
+	media = Subsystem{
+		Name:    "media",
+		Lists:   []string{"linux-media@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/dma-buf/dma-fence[^/]*$|^drivers/dma-buf/sw_sync\\.c$|^drivers/dma-buf/sync_[^/]*$|^include/linux/sync_file\\.h$|^include/uapi/linux/sync_file\\.h$"},
+			{IncludeRegexp: "^drivers/dma-buf/dma-heap\\.c$|^drivers/dma-buf/heaps/|^include/linux/dma-heap\\.h$|^include/uapi/linux/dma-heap\\.h$"},
+			{IncludeRegexp: "^drivers/dma-buf/|^include/linux/[^/]*fence\\.h$|^include/linux/dma-buf\\.h$|^include/linux/dma-resv\\.h$"},
+			{IncludeRegexp: "^drivers/media/cec/i2c/ch7322\\.c$"},
+			{IncludeRegexp: "^drivers/media/cec/platform/cec-gpio/"},
+			{IncludeRegexp: "^drivers/media/cec/platform/meson/ao-cec-g12a\\.c$|^drivers/media/cec/platform/meson/ao-cec\\.c$"},
+			{IncludeRegexp: "^drivers/media/cec/platform/s5p/"},
+			{IncludeRegexp: "^drivers/media/cec/platform/tegra/"},
+			{IncludeRegexp: "^drivers/media/cec/usb/pulse8/"},
+			{IncludeRegexp: "^drivers/media/cec/usb/rainshadow/"},
+			{IncludeRegexp: "^drivers/media/cec/|^drivers/media/rc/keymaps/rc-cec\\.c$|^include/media/cec-notifier\\.h$|^include/media/cec\\.h$|^include/uapi/linux/cec-funcs\\.h$|^include/uapi/linux/cec\\.h$"},
+			{IncludeRegexp: "^drivers/media/common/cx2341x[^/]*$|^include/media/drv-intf/cx2341x\\.h$"},
+			{IncludeRegexp: "^drivers/media/common/cypress_firmware[^/]*$"},
+			{IncludeRegexp: "^drivers/media/common/siano/|^drivers/media/mmc/siano/|^drivers/media/usb/siano/|^drivers/media/usb/siano/"},
+			{IncludeRegexp: "^drivers/media/common/videobuf2/|^include/media/videobuf2-[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/a8293[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/af9013[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/af9033[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/ascot2e[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/cx24120[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2099[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2820r[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2841er[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/cxd2880/|^drivers/media/spi/cxd2880[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/ec100[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/helene[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/horus3a[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/ix2505v[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/lg2160\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/lgdt3305\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/lnbh25[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/m88ds3103[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/m88rs2000[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/mn88472[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/mn88473[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/mxl5xx[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/rtl2830[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/rtl2832[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/rtl2832_sdr[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/si2165[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/si2168[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/sp2[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/stv0910[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/stv6111[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/tc90522[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/tda10071[^/]*$"},
+			{IncludeRegexp: "^drivers/media/dvb-frontends/zd1301_demod[^/]*$"},
+			{IncludeRegexp: "^drivers/media/firewire/"},
+			{IncludeRegexp: "^drivers/media/i2c/ad5820\\.c$|^drivers/media/i2c/et8ek8$"},
+			{IncludeRegexp: "^drivers/media/i2c/ad9389b[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/adp1653\\.c$|^include/media/i2c/adp1653\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/adv7180\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/adv748x/"},
+			{IncludeRegexp: "^drivers/media/i2c/adv7511[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/adv7604[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/adv7842[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/ak7375\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/aptina-pll\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/ar0521\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ccs-pll\\.c$|^drivers/media/i2c/ccs-pll\\.h$|^drivers/media/i2c/ccs/|^include/uapi/linux/ccs\\.h$|^include/uapi/linux/smiapp\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/cs3308\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/dw9714\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/dw9768\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/dw9807-vcm\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/hi556\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/hi846\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/hi847\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx208\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx214\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx219\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx258\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx274\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx290\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx319\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx334\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx335\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx355\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/imx412\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/isl7998x\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/m5mols/|^include/media/i2c/m5mols\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/max2175[^/]*$|^include/uapi/linux/max2175\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/max9271\\.c$|^drivers/media/i2c/max9271\\.h$|^drivers/media/i2c/rdacm20\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/max9271\\.c$|^drivers/media/i2c/max9271\\.h$|^drivers/media/i2c/rdacm21\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/max9286\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/mt9m032\\.c$|^include/media/i2c/mt9m032\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/mt9p031\\.c$|^include/media/i2c/mt9p031\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/mt9t001\\.c$|^include/media/i2c/mt9t001\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/mt9t112\\.c$|^include/media/i2c/mt9t112\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/mt9v032\\.c$|^include/media/i2c/mt9v032\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/mt9v111\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/og01a1b\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov02a10\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov08d10\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov08x40\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov13858\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov13b10\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov2659\\.c$|^include/media/i2c/ov2659\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov2680\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov2685\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov2740\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5640\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5647\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5647\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5670\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5675\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5693\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov5695\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov7670\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov772x\\.c$|^include/media/i2c/ov772x\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov7740\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov8856\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov9282\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov9640\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov9650\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/ov9734\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/rj54n1cb0c\\.c$|^include/media/i2c/rj54n1cb0c\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/s5c73m3/"},
+			{IncludeRegexp: "^drivers/media/i2c/s5k5baf\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/saa6588[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/st-mipid02\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/st-vgxy61\\.c$"},
+			{IncludeRegexp: "^drivers/media/i2c/tc358743[^/]*$|^include/media/i2c/tc358743\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/tda1997x\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/tda9840[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/tea6415c[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/tea6420[^/]*$"},
+			{IncludeRegexp: "^drivers/media/i2c/tw9910\\.c$|^include/media/i2c/tw9910\\.h$"},
+			{IncludeRegexp: "^drivers/media/i2c/video-i2c\\.c$"},
+			{IncludeRegexp: "^drivers/media/mc/|^include/media/media-[^/]*\\.h$|^include/uapi/linux/media\\.h$"},
+			{IncludeRegexp: "^drivers/media/pci/bt8xx/bttv[^/]*$"},
+			{IncludeRegexp: "^drivers/media/pci/cobalt/"},
+			{IncludeRegexp: "^drivers/media/pci/cx18/|^include/uapi/linux/ivtv[^/]*$"},
+			{IncludeRegexp: "^drivers/media/pci/cx88/"},
+			{IncludeRegexp: "^drivers/media/pci/ddbridge/"},
+			{IncludeRegexp: "^drivers/media/pci/dt3155/"},
+			{IncludeRegexp: "^drivers/media/pci/intel/ipu3/"},
+			{IncludeRegexp: "^drivers/media/pci/ivtv/|^include/uapi/linux/ivtv[^/]*$"},
+			{IncludeRegexp: "^drivers/media/pci/netup_unidvb/"},
+			{IncludeRegexp: "^drivers/media/pci/pt1/"},
+			{IncludeRegexp: "^drivers/media/pci/pt3/"},
+			{IncludeRegexp: "^drivers/media/pci/saa7134/"},
+			{IncludeRegexp: "^drivers/media/pci/solo6x10/"},
+			{IncludeRegexp: "^drivers/media/pci/tw5864/"},
+			{IncludeRegexp: "^drivers/media/pci/tw68/"},
+			{IncludeRegexp: "^drivers/media/pci/tw686x/"},
+			{IncludeRegexp: "^drivers/media/pci/zoran/"},
+			{IncludeRegexp: "^drivers/media/platform/allegro-dvt/"},
+			{IncludeRegexp: "^drivers/media/platform/amlogic/meson-ge2d/"},
+			{IncludeRegexp: "^drivers/media/platform/amphion/"},
+			{IncludeRegexp: "^drivers/media/platform/aspeed/"},
+			{IncludeRegexp: "^drivers/media/platform/atmel/atmel-isi\\.c$|^drivers/media/platform/atmel/atmel-isi\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/cadence/cdns-csi2[^/]*$"},
+			{IncludeRegexp: "^drivers/media/platform/chips-media/"},
+			{IncludeRegexp: "^drivers/media/platform/marvell/"},
+			{IncludeRegexp: "^drivers/media/platform/microchip/microchip-csi2dc\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/nvidia/tegra-vde/"},
+			{IncludeRegexp: "^drivers/media/platform/nxp/dw100/|^include/uapi/linux/dw100\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/nxp/imx-jpeg$"},
+			{IncludeRegexp: "^drivers/media/platform/nxp/imx-mipi-csis\\.c$|^drivers/media/platform/nxp/imx7-media-csi\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/nxp/imx-pxp\\.\\[ch\\]$"},
+			{IncludeRegexp: "^drivers/media/platform/qcom/camss/"},
+			{IncludeRegexp: "^drivers/media/platform/qcom/venus/"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar-fcp\\.c$|^include/media/rcar-fcp\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar-isp\\.c$|^drivers/media/platform/renesas/rcar-vin/"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar_drif\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar_fdp1\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar_jpu\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/renesas-ceu\\.c$|^include/media/drv-intf/renesas-ceu\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/sh_vou\\.c$|^include/media/drv-intf/sh_vou\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/vsp1/"},
+			{IncludeRegexp: "^drivers/media/platform/rockchip/rga/"},
+			{IncludeRegexp: "^drivers/media/platform/rockchip/rkisp1$|^include/uapi/linux/rkisp1-config\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/exynos4-is/"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s3c-camif/|^include/media/drv-intf/s3c_camif\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s5p-g2d/"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s5p-jpeg/"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s5p-mfc/"},
+			{IncludeRegexp: "^drivers/media/platform/st/sti/bdisp$"},
+			{IncludeRegexp: "^drivers/media/platform/st/sti/delta$"},
+			{IncludeRegexp: "^drivers/media/platform/st/sti/hva$"},
+			{IncludeRegexp: "^drivers/media/platform/st/stm32/stm32-dcmi\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/sunxi/sun4i-csi/"},
+			{IncludeRegexp: "^drivers/media/platform/sunxi/sun6i-csi/"},
+			{IncludeRegexp: "^drivers/media/platform/sunxi/sun6i-mipi-csi2/"},
+			{IncludeRegexp: "^drivers/media/platform/sunxi/sun8i-di/"},
+			{IncludeRegexp: "^drivers/media/platform/sunxi/sun8i-rotate/"},
+			{IncludeRegexp: "^drivers/media/platform/ti/am437x/"},
+			{IncludeRegexp: "^drivers/media/platform/ti/cal/|^drivers/media/platform/ti/vpe/"},
+			{IncludeRegexp: "^drivers/media/platform/ti/davinci/|^drivers/staging/media/deprecated/vpfe_capture/|^include/media/davinci/"},
+			{IncludeRegexp: "^drivers/media/platform/ti/omap3isp/|^drivers/staging/media/omap4iss/"},
+			{IncludeRegexp: "^drivers/media/platform/verisilicon/"},
+			{IncludeRegexp: "^drivers/media/platform/video-mux\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/xilinx/|^include/uapi/linux/xilinx-v4l2-controls\\.h$"},
+			{IncludeRegexp: "^drivers/media/radio/dsbr100\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-aimslab[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-aztech[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-cadet[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-gemtek[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-isa[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-keene[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-ma901\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-maxiradio[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-miropcm20[^/]*$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-mr800\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-raremono\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-shark2\\.c$|^drivers/media/radio/radio-tea5777\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/radio-shark\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/si470x/radio-si470x-common\\.c$|^drivers/media/radio/si470x/radio-si470x-usb\\.c$|^drivers/media/radio/si470x/radio-si470x\\.h$"},
+			{IncludeRegexp: "^drivers/media/radio/si470x/radio-si470x-i2c\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/si4713/radio-platform-si4713\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/si4713/radio-usb-si4713\\.c$"},
+			{IncludeRegexp: "^drivers/media/radio/si4713/si4713\\..$"},
+			{IncludeRegexp: "^drivers/media/rc/gpio-ir-tx\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/igorplugusb\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/iguanair\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/imon\\.c$|^drivers/media/rc/imon_raw\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/pwm-ir-tx\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/serial_ir\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/ttusbir\\.c$"},
+			{IncludeRegexp: "^drivers/media/rc/|^include/media/rc-map\\.h$|^include/media/rc-core\\.h$|^include/uapi/linux/lirc\\.h$"},
+			{IncludeRegexp: "^drivers/media/spi/gs1662\\.c$"},
+			{IncludeRegexp: "^drivers/media/test-drivers/vicodec/"},
+			{IncludeRegexp: "^drivers/media/test-drivers/vidtv/"},
+			{IncludeRegexp: "^drivers/media/test-drivers/vimc/"},
+			{IncludeRegexp: "^drivers/media/test-drivers/visl$"},
+			{IncludeRegexp: "^drivers/media/test-drivers/vivid/"},
+			{IncludeRegexp: "^drivers/media/tuners/e4000[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/fc0011\\.c$|^drivers/media/tuners/fc0011\\.h$"},
+			{IncludeRegexp: "^drivers/media/tuners/fc2580[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/it913x[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/msi001[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/mxl301rf[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/mxl5007t\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/qm1d1b0004[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/qm1d1c0042[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/qt1010[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/si2157[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tda18212[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tda18218[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tda18250[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tda18271[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tda8290\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tda8290\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tea5761\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tea5767\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/tua9001[^/]*$"},
+			{IncludeRegexp: "^drivers/media/tuners/xc2028\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/airspy/"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/af9015[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/af9035[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/anysee[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/au6610[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/az6007\\.c$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/ce6230[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/dvb_usb[^/]*$|^drivers/media/usb/dvb-usb-v2/usb_urb\\.c$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/ec168[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/gl861[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/lmedm04[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/mxl111sf[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/rtl28xxu[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb-v2/zd1301[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/dvb-usb/cxusb[^/]*$"},
+			{IncludeRegexp: "^drivers/media/usb/em28xx/"},
+			{IncludeRegexp: "^drivers/media/usb/go7007/"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/finepix\\.c$"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/gl860/"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/m5602/"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/pac207\\.c$"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/sn9c20x\\.c$"},
+			{IncludeRegexp: "^drivers/media/usb/gspca/t613\\.c$"},
+			{IncludeRegexp: "^drivers/media/usb/hackrf/"},
+			{IncludeRegexp: "^drivers/media/usb/hdpvr/"},
+			{IncludeRegexp: "^drivers/media/usb/msi2500/"},
+			{IncludeRegexp: "^drivers/media/usb/pvrusb2/"},
+			{IncludeRegexp: "^drivers/media/usb/pwc/|^include/trace/events/pwc\\.h$"},
+			{IncludeRegexp: "^drivers/media/usb/stk1160/"},
+			{IncludeRegexp: "^drivers/media/usb/uvc/|^include/uapi/linux/uvcvideo\\.h$"},
+			{IncludeRegexp: "^drivers/media/|^drivers/staging/media/|^include/dt-bindings/media/|^include/linux/platform_data/media/|^include/media/|^include/uapi/linux/dvb/|^include/uapi/linux/ivtv[^/]*$|^include/uapi/linux/media\\.h$|^include/uapi/linux/meye\\.h$|^include/uapi/linux/uvcvideo\\.h$|^include/uapi/linux/v4l2-[^/]*$|^include/uapi/linux/videodev2\\.h$"},
+			{IncludeRegexp: "^drivers/staging/media/atomisp/"},
+			{IncludeRegexp: "^drivers/staging/media/deprecated/atmel/atmel-isc[^/]*$|^drivers/staging/media/deprecated/atmel/atmel-sama[^/]*-isc[^/]*$|^drivers/media/platform/microchip/microchip-isc[^/]*$|^drivers/media/platform/microchip/microchip-sama[^/]*-isc[^/]*$|^include/linux/atmel-isc-media\\.h$"},
+			{IncludeRegexp: "^drivers/staging/media/deprecated/saa7146/"},
+			{IncludeRegexp: "^drivers/staging/media/deprecated/tm6000/"},
+			{IncludeRegexp: "^drivers/staging/media/deprecated/zr364xx/"},
+			{IncludeRegexp: "^drivers/staging/media/imx/|^include/linux/imx-media\\.h$|^include/media/imx\\.h$"},
+			{IncludeRegexp: "^drivers/staging/media/ipu3/"},
+			{IncludeRegexp: "^drivers/staging/media/max96712/max96712\\.c$"},
+			{IncludeRegexp: "^drivers/staging/media/meson/vdec/"},
+			{IncludeRegexp: "^drivers/staging/media/rkvdec/"},
+			{IncludeRegexp: "^drivers/staging/media/sunxi/cedrus/"},
+			{IncludeRegexp: "^drivers/staging/media/sunxi/sun6i-isp/|^drivers/staging/media/sunxi/sun6i-isp/uapi/sun6i-isp-config\\.h$"},
+			{IncludeRegexp: "^drivers/staging/media/tegra-video/"},
+		},
+	}
+
+	mediatek = Subsystem{
+		Name:    "mediatek",
+		Lists:   []string{"linux-mediatek@lists.infradead.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/mt2[^/]*$|^arch/arm/boot/dts/mt6[^/]*$|^arch/arm/boot/dts/mt7[^/]*$|^arch/arm/boot/dts/mt8[^/]*$|^arch/arm/mach-mediatek/|^arch/arm64/boot/dts/mediatek/|^drivers/soc/mediatek/|mtk|mt[2678]"},
+			{IncludeRegexp: "^drivers/bluetooth/btmtkuart\\.c$"},
+			{IncludeRegexp: "^drivers/dma/mediatek/"},
+			{IncludeRegexp: "^drivers/gpu/drm/mediatek/|^drivers/phy/mediatek/phy-mtk-dp\\.c$|^drivers/phy/mediatek/phy-mtk-hdmi[^/]*$|^drivers/phy/mediatek/phy-mtk-mipi[^/]*$"},
+			{IncludeRegexp: "^drivers/iommu/mtk_iommu[^/]*$|^include/dt-bindings/memory/mt[^/]*-port\\.h$"},
+			{IncludeRegexp: "^drivers/memory/mtk-smi\\.c$|^include/soc/mediatek/smi\\.h$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*mediatek[^/]*$"},
+			{IncludeRegexp: "^drivers/phy/mediatek/"},
+			{IncludeRegexp: "^drivers/pinctrl/mediatek/"},
+			{IncludeRegexp: "^drivers/rtc/rtc-mt2712\\.c$|^drivers/rtc/rtc-mt6397\\.c$|^drivers/rtc/rtc-mt7622\\.c$"},
+			{IncludeRegexp: "^drivers/ufs/host/ufs-mediatek[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/xhci-mtk[^/]*$|^drivers/usb/mtu3/"},
+		},
+	}
+
+	megaraid = Subsystem{
+		Name:        "megaraid",
+		Lists:       []string{"megaraidlinux.pdl@broadcom.com"},
+		Maintainers: []string{"kashyap.desai@broadcom.com", "shivasharan.srikanteshwara@broadcom.com", "sumit.saxena@broadcom.com"},
+		Parents:     []*Subsystem{&scsi},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/scsi/megaraid\\.[^/]*$|^drivers/scsi/megaraid/"},
+		},
+	}
+
+	mhi = Subsystem{
+		Name:        "mhi",
+		Lists:       []string{"mhi@lists.linux.dev"},
+		Maintainers: []string{"manivannan.sadhasivam@linaro.org"},
+		Parents:     []*Subsystem{&armmsm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/bus/mhi/|^include/linux/mhi\\.h$"},
+		},
+	}
+
+	mips = Subsystem{
+		Name:    "mips",
+		Lists:   []string{"linux-mips@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/mips/bcm47xx/|^arch/mips/include/asm/mach-bcm47xx/"},
+			{IncludeRegexp: "^arch/mips/bmips/|^arch/mips/boot/dts/brcm/bcm[^/]*\\.dts[^/]*$|^arch/mips/include/asm/mach-bmips/|^arch/mips/kernel/[^/]*bmips[^/]*$|^drivers/soc/bcm/bcm63xx$|^drivers/irqchip/irq-bcm63[^/]*$|^drivers/irqchip/irq-bcm7[^/]*$|^drivers/irqchip/irq-brcmstb[^/]*$|^include/linux/bcm963xx_nvram\\.h$|^include/linux/bcm963xx_tag\\.h$"},
+			{IncludeRegexp: "^arch/mips/boot/dts/img/boston\\.dts$|^arch/mips/configs/generic/board-boston\\.config$|^drivers/clk/imgtec/clk-boston\\.c$|^include/dt-bindings/clock/boston-clock\\.h$"},
+			{IncludeRegexp: "^arch/mips/boot/dts/img/pistachio[^/]*$"},
+			{IncludeRegexp: "^arch/mips/boot/dts/ingenic/|^arch/mips/generic/board-ingenic\\.c$|^arch/mips/include/asm/mach-ingenic/|^arch/mips/ingenic/Kconfig$|^drivers/clk/ingenic/|^drivers/dma/dma-jz4780\\.c$|^drivers/gpu/drm/ingenic/|^drivers/i2c/busses/i2c-jz4780\\.c$|^drivers/iio/adc/ingenic-adc\\.c$|^drivers/irqchip/irq-ingenic\\.c$|^drivers/memory/jz4780-nemc\\.c$|^drivers/mmc/host/jz4740_mmc\\.c$|^drivers/mtd/nand/raw/ingenic/|^drivers/pinctrl/pinctrl-ingenic\\.c$|^drivers/power/supply/ingenic-battery\\.c$|^drivers/pwm/pwm-jz4740\\.c$|^drivers/remoteproc/ingenic_rproc\\.c$|^drivers/rtc/rtc-jz4740\\.c$|^drivers/tty/serial/8250/8250_ingenic\\.c$|^drivers/usb/musb/jz4740\\.c$|^drivers/watchdog/jz4740_wdt\\.c$|^include/dt-bindings/iio/adc/ingenic,adc\\.h$|^include/linux/mfd/ingenic-tcu\\.h$|^sound/soc/codecs/jz47[^/]*$|^sound/soc/jz4740/"},
+			{IncludeRegexp: "^arch/mips/boot/dts/mscc/|^arch/mips/configs/generic/board-ocelot\\.config$|^arch/mips/generic/board-ocelot\\.c$"},
+			{IncludeRegexp: "^arch/mips/boot/dts/ralink/mt7621[^/]*$"},
+			{IncludeRegexp: "^arch/mips/boot/dts/ralink/omega2p\\.dts$"},
+			{IncludeRegexp: "^arch/mips/boot/dts/ralink/vocore2\\.dts$"},
+			{IncludeRegexp: "^arch/mips/configs/generic/board-ranchu\\.config$|^arch/mips/generic/board-ranchu\\.c$"},
+			{IncludeRegexp: "^arch/mips/dec/|^arch/mips/include/asm/dec/|^arch/mips/include/asm/mach-dec/"},
+			{IncludeRegexp: "^arch/mips/generic/|^arch/mips/tools/generic-board-config\\.sh$"},
+			{IncludeRegexp: "^arch/mips/include/asm/kvm[^/]*$|^arch/mips/include/uapi/asm/kvm[^/]*$|^arch/mips/kvm/"},
+			{IncludeRegexp: "^arch/mips/include/asm/mach-loongson2ef/|^arch/mips/loongson2ef/|^drivers/cpufreq/loongson2_cpufreq\\.c$"},
+			{IncludeRegexp: "^arch/mips/include/asm/mach-loongson32/|^arch/mips/loongson32/|^drivers/[^/]*/[^/]*/[^/]*loongson1[^/]*$|^drivers/[^/]*/[^/]*loongson1[^/]*$"},
+			{IncludeRegexp: "^arch/mips/include/asm/mach-loongson64/|^arch/mips/loongson64/|^drivers/irqchip/irq-loongson[^/]*$|^drivers/platform/mips/cpu_hwmon\\.c$"},
+			{IncludeRegexp: "^arch/mips/lantiq$|^drivers/soc/lantiq$"},
+			{IncludeRegexp: "^arch/mips/math-emu/dp_rint\\.c$|^arch/mips/math-emu/sp_rint\\.c$"},
+			{IncludeRegexp: "^arch/mips/ralink$"},
+			{IncludeRegexp: "^arch/mips/|^drivers/platform/mips/|^include/dt-bindings/mips/"},
+			{IncludeRegexp: "^drivers/bus/mips_cdmm\\.c$|^drivers/clocksource/mips-gic-timer\\.c$|^drivers/cpuidle/cpuidle-cps\\.c$|^drivers/irqchip/irq-mips-cpu\\.c$|^drivers/irqchip/irq-mips-gic\\.c$"},
+			{IncludeRegexp: "^drivers/edac/octeon_edac[^/]*$"},
+			{IncludeRegexp: "^drivers/firmware/broadcom/"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/ingenic/"},
+			{IncludeRegexp: "^drivers/net/ethernet/sgi/ioc3-eth\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/ralink/"},
+			{IncludeRegexp: "^drivers/tc/|^include/linux/tc\\.h$"},
+		},
+	}
+
+	mjpeg = Subsystem{
+		Name:        "mjpeg",
+		Lists:       []string{"mjpeg-users@lists.sourceforge.net"},
+		Maintainers: []string{"clabbe@baylibre.com"},
+		Parents:     []*Subsystem{&media},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/media/pci/zoran/"},
+		},
+	}
+
+	mm = Subsystem{
+		Name:    "mm",
+		Lists:   []string{"linux-mm@kvack.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/percpu\\.h$|^include/linux/percpu[^/]*\\.h$|^lib/percpu[^/]*\\.c$|^mm/percpu[^/]*\\.c$"},
+			{IncludeRegexp: "^arch/[^/]*/include/asm/tlb\\.h$|^include/asm-generic/tlb\\.h$|^mm/mmu_gather\\.c$"},
+			{IncludeRegexp: "^drivers/base/memory\\.c$|^include/linux/memory_hotplug\\.h$|^mm/memory_hotplug\\.c$"},
+			{IncludeRegexp: "^fs/[^/]*binfmt_[^/]*\\.c$|^fs/exec\\.c$|^include/linux/binfmts\\.h$|^include/linux/elf\\.h$|^include/uapi/linux/binfmts\\.h$|^include/uapi/linux/elf\\.h$|asm/elf.h|binfmt"},
+			{IncludeRegexp: "^fs/hugetlbfs/|^include/linux/hugetlb\\.h$|^mm/hugetlb\\.c$|^mm/hugetlb_vmemmap\\.c$|^mm/hugetlb_vmemmap\\.h$"},
+			{IncludeRegexp: "^include/linux/damon\\.h$|^include/trace/events/damon\\.h$|^mm/damon/"},
+			{IncludeRegexp: "^include/linux/gfp\\.h$|^include/linux/gfp_types\\.h$|^include/linux/memory_hotplug\\.h$|^include/linux/mm\\.h$|^include/linux/mmzone\\.h$|^include/linux/pagewalk\\.h$|^mm/"},
+			{IncludeRegexp: "^include/linux/hmm[^/]*$|^lib/test_hmm[^/]*$|^mm/hmm[^/]*$"},
+			{IncludeRegexp: "^include/linux/maple_tree\\.h$|^include/trace/events/maple_tree\\.h$|^lib/maple_tree\\.c$|^lib/test_maple_tree\\.c$"},
+			{IncludeRegexp: "^include/linux/memblock\\.h$|^mm/memblock\\.c$"},
+			{IncludeRegexp: "^include/linux/page_table_check\\.h$|^mm/page_table_check\\.c$"},
+			{IncludeRegexp: "^include/linux/shmem_fs\\.h$|^mm/shmem\\.c$"},
+			{IncludeRegexp: "^include/linux/sl.b[^/]*\\.h$|^mm/sl.b[^/]*$"},
+			{IncludeRegexp: "^include/linux/vmalloc\\.h$|^mm/vmalloc\\.c$"},
+			{IncludeRegexp: "^include/linux/zpool\\.h$|^mm/zpool\\.c$"},
+			{IncludeRegexp: "^include/linux/zsmalloc\\.h$|^mm/zsmalloc\\.c$"},
+			{IncludeRegexp: "^mm/hwpoison-inject\\.c$|^mm/memory-failure\\.c$"},
+			{IncludeRegexp: "^mm/memcontrol\\.c$|^mm/swap_cgroup\\.c$"},
+			{IncludeRegexp: "^mm/z3fold\\.c$"},
+			{IncludeRegexp: "^mm/zbud\\.c$"},
+			{IncludeRegexp: "^mm/zswap\\.c$"},
+		},
+	}
+
+	mmc = Subsystem{
+		Name:    "mmc",
+		Lists:   []string{"linux-mmc@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/memstick/|^include/linux/memstick\\.h$"},
+			{IncludeRegexp: "^drivers/mmc/host/cqhci[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/dw_mmc[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/omap_hsmmc\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/renesas_sdhi[^/]*$|^drivers/mmc/host/tmio_mmc[^/]*$|^include/linux/mfd/tmio\\.h$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-brcmstb[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-esdhc-imx\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-esdhc-mcf\\.c$|^include/linux/platform_data/mmc-esdhc-mcf\\.h$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-of-aspeed[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-of-at91\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-omap\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-pci-dwc-mshc\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-s3c[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-spear\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-xenon[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci[^/]*$"},
+			{IncludeRegexp: "^drivers/mmc/host/vub300\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/|^include/linux/mmc/|^include/uapi/linux/mmc/"},
+		},
+	}
+
+	modules = Subsystem{
+		Name:    "modules",
+		Lists:   []string{"linux-modules@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/kmod\\.h$|^kernel/kmod\\.c$|^lib/test_kmod\\.c$"},
+			{IncludeRegexp: "^include/linux/module\\.h$|^kernel/module/"},
+		},
+	}
+
+	mpi3 = Subsystem{
+		Name:        "mpi3",
+		Lists:       []string{"mpi3mr-linuxdrv.pdl@broadcom.com"},
+		Maintainers: []string{"kashyap.desai@broadcom.com", "sathya.prakash@broadcom.com", "sreekanth.reddy@broadcom.com", "sumit.saxena@broadcom.com"},
+		Parents:     []*Subsystem{&scsi},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/scsi/mpi3mr/"},
+		},
+	}
+
+	mptfusion = Subsystem{
+		Name:        "mpt-fusion",
+		Lists:       []string{"MPT-FusionLinux.pdl@broadcom.com"},
+		Maintainers: []string{"sathya.prakash@broadcom.com", "sreekanth.reddy@broadcom.com", "suganath-prabu.subramani@broadcom.com"},
+		Parents:     []*Subsystem{&scsi},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/message/fusion/|^drivers/scsi/mpt3sas/"},
+		},
+	}
+
+	mptcp = Subsystem{
+		Name:        "mptcp",
+		Lists:       []string{"mptcp@lists.linux.dev"},
+		Maintainers: []string{"matthieu.baerts@tessares.net"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/net/mptcp\\.h$|^include/trace/events/mptcp\\.h$|^include/uapi/linux/mptcp\\.h$|^net/mptcp/"},
+		},
+	}
+
+	mtd = Subsystem{
+		Name:    "mtd",
+		Lists:   []string{"linux-mtd@lists.infradead.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/mtd/devices/block2mtd\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/devices/docg3[^/]*$"},
+			{IncludeRegexp: "^drivers/mtd/devices/phram\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/hyperbus/|^include/linux/mtd/hyperbus\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/nand/onenand/|^include/linux/mtd/onenand[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/arasan-nand-controller\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/atmel/"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/brcmnand/|^include/linux/platform_data/brcmnand\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/cadence-nand-controller\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/denali[^/]*$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/gpmi-nand/"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/ingenic/"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/marvell_nand\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/meson_[^/]*$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/mtk_[^/]*$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/pl35x-nand-controller\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/qcom_nandc\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/renesas-nand-controller\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/vf610_nfc\\.c$"},
+			{IncludeRegexp: "^drivers/mtd/nand/|^include/linux/mtd/[^/]*nand[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/spi-nor/|^include/linux/mtd/spi-nor\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/ubi/|^include/linux/mtd/ubi\\.h$|^include/uapi/mtd/ubi-user\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/|^include/linux/mtd/|^include/uapi/mtd/"},
+			{IncludeRegexp: "^fs/jffs2/|^include/uapi/linux/jffs2\\.h$"},
+			{IncludeRegexp: "^fs/ubifs/"},
+		},
+	}
+
+	nbd = Subsystem{
+		Name:        "nbd",
+		Lists:       []string{"nbd@other.debian.org"},
+		Maintainers: []string{"josef@toxicpanda.com"},
+		Parents:     []*Subsystem{&block},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/block/nbd\\.c$|^include/trace/events/nbd\\.h$|^include/uapi/linux/nbd\\.h$"},
+		},
+	}
+
+	net = Subsystem{
+		Name:    "net",
+		Lists:   []string{"netdev@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm64/boot/dts/amd/amd-seattle-xgbe[^/]*\\.dtsi$|^drivers/net/ethernet/amd/xgbe/"},
+			{IncludeRegexp: "^arch/x86/net/|^include/linux/ip\\.h$|^include/linux/ipv6[^/]*$|^include/net/fib[^/]*$|^include/net/ip[^/]*$|^include/net/route\\.h$|^net/ipv4/|^net/ipv6/"},
+			{IncludeRegexp: "^drivers/atm/|^include/linux/atm[^/]*$|^include/uapi/linux/atm[^/]*$"},
+			{IncludeRegexp: "^drivers/connector/|^drivers/net/|^include/dt-bindings/net/|^include/linux/etherdevice\\.h$|^include/linux/fcdevice\\.h$|^include/linux/fddidevice\\.h$|^include/linux/hippidevice\\.h$|^include/linux/if_[^/]*$|^include/linux/inetdevice\\.h$|^include/linux/netdevice\\.h$|^include/uapi/linux/if_[^/]*$|^include/uapi/linux/netdevice\\.h$"},
+			{IncludeRegexp: "^drivers/firmware/broadcom/tee_bnxt_fw\\.c$|^drivers/net/ethernet/broadcom/bnxt/|^include/linux/firmware/broadcom/tee_bnxt_fw\\.h$"},
+			{IncludeRegexp: "^drivers/isdn/Kconfig$|^drivers/isdn/hardware/|^drivers/isdn/mISDN/"},
+			{IncludeRegexp: "^drivers/isdn/capi/|^include/linux/isdn/|^include/uapi/linux/isdn/|^net/bluetooth/cmtp/"},
+			{IncludeRegexp: "^drivers/net/amt\\.c$"},
+			{IncludeRegexp: "^drivers/net/appletalk/|^include/linux/atalk\\.h$|^include/uapi/linux/atalk\\.h$|^net/appletalk/"},
+			{IncludeRegexp: "^drivers/net/arcnet/|^include/uapi/linux/if_arcnet\\.h$"},
+			{IncludeRegexp: "^drivers/net/bonding/|^include/net/bond[^/]*$|^include/uapi/linux/if_bonding\\.h$"},
+			{IncludeRegexp: "^drivers/net/caif/|^include/net/caif/|^include/uapi/linux/caif/|^net/caif/"},
+			{IncludeRegexp: "^drivers/net/dsa/b53/|^drivers/net/dsa/bcm_sf2[^/]*$|^include/linux/dsa/brcm\\.h$|^include/linux/platform_data/b53\\.h$"},
+			{IncludeRegexp: "^drivers/net/dsa/hirschmann/|^include/linux/platform_data/hirschmann-hellcreek\\.h$|^net/dsa/tag_hellcreek\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/lantiq_gswip\\.c$|^drivers/net/dsa/lantiq_pce\\.h$|^drivers/net/ethernet/lantiq_xrx200\\.c$|^net/dsa/tag_gswip\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/microchip/|^include/linux/platform_data/microchip-ksz\\.h$|^net/dsa/tag_ksz\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/mt7530\\.[^/]*$|^net/dsa/tag_mtk\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/mv88e6xxx/|^include/linux/dsa/mv88e6xxx\\.h$|^include/linux/platform_data/mv88e6xxx\\.h$"},
+			{IncludeRegexp: "^drivers/net/dsa/ocelot/|^drivers/net/ethernet/mscc/|^include/soc/mscc/ocelot[^/]*$|^net/dsa/tag_ocelot\\.c$|^net/dsa/tag_ocelot_8021q\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/rzn1_a5psw[^/]*$|^drivers/net/pcs/pcs-rzn1-miic\\.c$|^include/dt-bindings/net/pcs-rzn1-miic\\.h$|^include/linux/pcs-rzn1-miic\\.h$|^net/dsa/tag_rzn1_a5psw\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/xrs700x/|^net/dsa/tag_xrs700x\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/3com/3c59x\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/3com/typhoon[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/8390/"},
+			{IncludeRegexp: "^drivers/net/ethernet/aeroflex/"},
+			{IncludeRegexp: "^drivers/net/ethernet/altera/"},
+			{IncludeRegexp: "^drivers/net/ethernet/amazon/"},
+			{IncludeRegexp: "^drivers/net/ethernet/amd/pcnet32\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/aquantia/atlantic/"},
+			{IncludeRegexp: "^drivers/net/ethernet/aquantia/atlantic/aq_ptp[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/atheros/"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/b44\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/bcm4908_enet\\.[^/]*$|^drivers/net/ethernet/broadcom/unimac\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/bcmsysport\\.[^/]*$|^drivers/net/ethernet/broadcom/unimac\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/bgmac[^/]*$|^drivers/net/ethernet/broadcom/unimac\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/bnx2\\.[^/]*$|^drivers/net/ethernet/broadcom/bnx2_[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/bnx2x/"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/genet/|^drivers/net/ethernet/broadcom/unimac\\.h$|^drivers/net/mdio/mdio-bcm-unimac\\.c$|^include/linux/platform_data/bcmgenet\\.h$|^include/linux/platform_data/mdio-bcm-unimac\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/broadcom/tg3\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/brocade/bna/"},
+			{IncludeRegexp: "^drivers/net/ethernet/cavium/liquidio/"},
+			{IncludeRegexp: "^drivers/net/ethernet/chelsio/cxgb3/"},
+			{IncludeRegexp: "^drivers/net/ethernet/chelsio/cxgb4/"},
+			{IncludeRegexp: "^drivers/net/ethernet/chelsio/cxgb4vf/"},
+			{IncludeRegexp: "^drivers/net/ethernet/chelsio/inline_crypto/"},
+			{IncludeRegexp: "^drivers/net/ethernet/cirrus/ep93xx_eth\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/"},
+			{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/dmfe\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/dlink/sundance\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/ec_bhf\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/emulex/benet/"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa2/Kconfig$|^drivers/net/ethernet/freescale/dpaa2/dpaa2-eth[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpaa2-mac[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpaa2-xsk[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpkg\\.h$|^drivers/net/ethernet/freescale/dpaa2/dpmac[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpni[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa2/dpaa2-ptp[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dprtc[^/]*$|^drivers/net/ethernet/freescale/enetc/enetc_ptp\\.c$|^drivers/ptp/ptp_qoriq\\.c$|^drivers/ptp/ptp_qoriq_debugfs\\.c$|^include/linux/fsl/ptp_qoriq\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/dpaa2/dpaa2-switch[^/]*$|^drivers/net/ethernet/freescale/dpaa2/dpsw[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/enetc/"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/fec\\.h$|^drivers/net/ethernet/freescale/fec_main\\.c$|^drivers/net/ethernet/freescale/fec_ptp\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/fman$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/fs_enet/|^include/linux/fs_enet_pd\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/gianfar[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/freescale/ucc_geth[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/fungible/"},
+			{IncludeRegexp: "^drivers/net/ethernet/google$"},
+			{IncludeRegexp: "^drivers/net/ethernet/hisilicon/"},
+			{IncludeRegexp: "^drivers/net/ethernet/hisilicon/hns3/"},
+			{IncludeRegexp: "^drivers/net/ethernet/huawei/hinic/"},
+			{IncludeRegexp: "^drivers/net/ethernet/ibm/ehea/"},
+			{IncludeRegexp: "^drivers/net/ethernet/ibm/ibmveth\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/ibm/ibmvnic\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/jme\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/mv643xx_eth\\.[^/]*$|^include/linux/mv643xx\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/mvneta\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/mvpp2/"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/octeon_ep$"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/octeontx2/af/"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/octeontx2/nic/|^include/linux/soc/marvell/octeontx2/"},
+			{IncludeRegexp: "^drivers/net/ethernet/marvell/sk[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/mediatek/"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx4/en_[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx4/|^include/linux/mlx4/"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/en_[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/en_accel/|^drivers/net/ethernet/mellanox/mlx5/core/fpga/|^include/linux/mlx5/mlx5_ifc_fpga\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/|^include/linux/mlx5/"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlxfw/"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlxsw/"},
+			{IncludeRegexp: "^drivers/net/ethernet/microchip/lan743x_[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/microchip/lan966x/"},
+			{IncludeRegexp: "^drivers/net/ethernet/myricom/myri10ge/"},
+			{IncludeRegexp: "^drivers/net/ethernet/natsemi/sonic\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/neterion/"},
+			{IncludeRegexp: "^drivers/net/ethernet/nvidia/"},
+			{IncludeRegexp: "^drivers/net/ethernet/pensando/"},
+			{IncludeRegexp: "^drivers/net/ethernet/qlogic/netxen/"},
+			{IncludeRegexp: "^drivers/net/ethernet/qlogic/qed/|^drivers/net/ethernet/qlogic/qede/|^include/linux/qed/"},
+			{IncludeRegexp: "^drivers/net/ethernet/qlogic/qla3xxx\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/qlogic/qlcnic/"},
+			{IncludeRegexp: "^drivers/net/ethernet/qualcomm/emac/"},
+			{IncludeRegexp: "^drivers/net/ethernet/qualcomm/rmnet/|^include/linux/if_rmnet\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/rdc/r6040\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/realtek/r8169[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/renesas/|^include/linux/sh_eth\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/rocker/"},
+			{IncludeRegexp: "^drivers/net/ethernet/samsung/sxgbe/"},
+			{IncludeRegexp: "^drivers/net/ethernet/sfc/"},
+			{IncludeRegexp: "^drivers/net/ethernet/sis/sis190\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/sis/sis900\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/smsc/smsc911x\\.[^/]*$|^include/linux/smsc911x\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/smsc/smsc9420\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/socionext/netsec\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/socionext/sni_ave\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/stmicro/stmmac/"},
+			{IncludeRegexp: "^drivers/net/ethernet/stmicro/stmmac/dwmac-qcom-ethqos\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/sunplus/"},
+			{IncludeRegexp: "^drivers/net/ethernet/synopsys/"},
+			{IncludeRegexp: "^drivers/net/ethernet/tehuti/"},
+			{IncludeRegexp: "^drivers/net/ethernet/ti/cpmac\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/ti/cpsw[^/]*$|^drivers/net/ethernet/ti/davinci[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/toshiba/ps3_gelic_net\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/toshiba/spider_net[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/via/via-velocity\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/ethernet/wangxun/"},
+			{IncludeRegexp: "^drivers/net/ipa/"},
+			{IncludeRegexp: "^drivers/net/mctp/|^include/net/mctp\\.h$|^include/net/mctpdevice\\.h$|^include/net/netns/mctp\\.h$|^net/mctp/"},
+			{IncludeRegexp: "^drivers/net/mdio/mdio-mvusb\\.c$"},
+			{IncludeRegexp: "^drivers/net/mdio/|^drivers/net/mdio/acpi_mdio\\.c$|^drivers/net/mdio/fwnode_mdio\\.c$|^drivers/net/mdio/of_mdio\\.c$|^drivers/net/pcs/|^drivers/net/phy/|^include/dt-bindings/net/qca-ar803x\\.h$|^include/linux/linkmode\\.h$|^include/linux/[^/]*mdio[^/]*\\.h$|^include/linux/mdio/[^/]*\\.h$|^include/linux/mii\\.h$|^include/linux/of_net\\.h$|^include/linux/phy\\.h$|^include/linux/phy_fixed\\.h$|^include/linux/platform_data/mdio-bcm-unimac\\.h$|^include/linux/platform_data/mdio-gpio\\.h$|^include/trace/events/mdio\\.h$|^include/uapi/linux/mdio\\.h$|^include/uapi/linux/mii\\.h$|^net/core/of_net\\.c$"},
+			{IncludeRegexp: "^drivers/net/net_failover\\.c$|^include/net/net_failover\\.h$"},
+			{IncludeRegexp: "^drivers/net/pcs/pcs-altera-tse\\.c$|^include/linux/pcs-altera-tse\\.h$"},
+			{IncludeRegexp: "^drivers/net/pcs/pcs-lynx\\.c$|^include/linux/pcs-lynx\\.h$"},
+			{IncludeRegexp: "^drivers/net/pcs/pcs-xpcs\\.c$|^drivers/net/pcs/pcs-xpcs\\.h$|^include/linux/pcs/pcs-xpcs\\.h$"},
+			{IncludeRegexp: "^drivers/net/phy/adin\\.c$"},
+			{IncludeRegexp: "^drivers/net/phy/bcm[^/]*\\.\\[ch\\]$|^drivers/net/phy/broadcom\\.c$|^include/linux/brcmphy\\.h$"},
+			{IncludeRegexp: "^drivers/net/phy/dp83640[^/]*$|^drivers/ptp/|^include/linux/ptp_cl[^/]*$"},
+			{IncludeRegexp: "^drivers/net/phy/marvell10g\\.c$"},
+			{IncludeRegexp: "^drivers/net/phy/microchip_t1\\.c$"},
+			{IncludeRegexp: "^drivers/net/phy/motorcomm\\.c$"},
+			{IncludeRegexp: "^drivers/net/phy/mxl-gpy\\.c$"},
+			{IncludeRegexp: "^drivers/net/phy/nxp-c45-tja11xx\\.c$"},
+			{IncludeRegexp: "^drivers/net/phy/phylink\\.c$|^drivers/net/phy/sfp[^/]*$|^include/linux/mdio/mdio-i2c\\.h$|^include/linux/phylink\\.h$|^include/linux/sfp\\.h$"},
+			{IncludeRegexp: "^drivers/net/ppp/pptp\\.c$"},
+			{IncludeRegexp: "^drivers/net/team/|^include/linux/if_team\\.h$|^include/uapi/linux/if_team\\.h$"},
+			{IncludeRegexp: "^drivers/net/thunderbolt\\.c$"},
+			{IncludeRegexp: "^drivers/net/usb/dm9601\\.c$"},
+			{IncludeRegexp: "^drivers/net/usb/lan78xx\\.[^/]*$|^include/dt-bindings/net/microchip-lan78xx\\.h$"},
+			{IncludeRegexp: "^drivers/net/usb/pegasus\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/usb/qmi_wwan\\.c$"},
+			{IncludeRegexp: "^drivers/net/usb/rtl8150\\.c$"},
+			{IncludeRegexp: "^drivers/net/usb/smsc75xx\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/usb/smsc95xx\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/usb/usbnet\\.c$|^include/linux/usb/usbnet\\.h$"},
+			{IncludeRegexp: "^drivers/net/vmxnet3/"},
+			{IncludeRegexp: "^drivers/net/vrf\\.c$"},
+			{IncludeRegexp: "^drivers/net/vsockmon\\.c$|^include/net/af_vsock\\.h$|^include/uapi/linux/vm_sockets\\.h$|^include/uapi/linux/vm_sockets_diag\\.h$|^include/uapi/linux/vsockmon\\.h$|^net/vmw_vsock/"},
+			{IncludeRegexp: "^drivers/net/wan/fsl_ucc_hdlc[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wireguard/"},
+			{IncludeRegexp: "^drivers/net/wwan/iosm/"},
+			{IncludeRegexp: "^drivers/net/wwan/qcom_bam_dmux\\.c$"},
+			{IncludeRegexp: "^drivers/net/wwan/rpmsg_wwan_ctrl\\.c$"},
+			{IncludeRegexp: "^drivers/net/wwan/t7xx/"},
+			{IncludeRegexp: "^drivers/net/wwan/|^include/linux/wwan\\.h$|^include/uapi/linux/wwan\\.h$"},
+			{IncludeRegexp: "^drivers/net/xen-netback/"},
+			{IncludeRegexp: "^drivers/nfc/virtual_ncidev\\.c$"},
+			{IncludeRegexp: "^drivers/nfc/|^include/linux/platform_data/nfcmrvl\\.h$|^include/net/nfc/|^include/uapi/linux/nfc\\.h$|^net/nfc/"},
+			{IncludeRegexp: "^drivers/phy/freescale/phy-fsl-lynx-28g\\.c$"},
+			{IncludeRegexp: "^drivers/ptp/ptp_ocp\\.c$"},
+			{IncludeRegexp: "^drivers/ptp/ptp_vclock\\.c$|^net/ethtool/phc_vclocks\\.c$"},
+			{IncludeRegexp: "^drivers/ptp/ptp_vmw\\.c$"},
+			{IncludeRegexp: "^drivers/s390/net/"},
+			{IncludeRegexp: "^drivers/s390/net/[^/]*iucv[^/]*$|^include/net/iucv/|^net/iucv/"},
+			{IncludeRegexp: "^drivers/staging/qlge/"},
+			{IncludeRegexp: "^drivers/vhost/vsock\\.c$|^include/linux/virtio_vsock\\.h$|^include/uapi/linux/virtio_vsock\\.h$|^net/vmw_vsock/virtio_transport\\.c$|^net/vmw_vsock/virtio_transport_common\\.c$"},
+			{IncludeRegexp: "^drivers/vhost/|^include/linux/vhost_iotlb\\.h$|^include/uapi/linux/vhost\\.h$"},
+			{IncludeRegexp: "^include/linux/in\\.h$|^include/linux/net\\.h$|^include/linux/netdevice\\.h$|^include/net/|^include/uapi/linux/in\\.h$|^include/uapi/linux/net\\.h$|^include/uapi/linux/net_namespace\\.h$|^include/uapi/linux/netdevice\\.h$|^lib/net_utils\\.c$|^lib/random32\\.c$|^net/"},
+			{IncludeRegexp: "^include/linux/llc\\.h$|^include/net/llc[^/]*$|^include/uapi/linux/llc\\.h$|^net/llc/"},
+			{IncludeRegexp: "^include/linux/netfilter_bridge/|^net/bridge/"},
+			{IncludeRegexp: "^include/linux/objagg\\.h$|^lib/objagg\\.c$|^lib/test_objagg\\.c$"},
+			{IncludeRegexp: "^include/linux/packing\\.h$|^lib/packing\\.c$"},
+			{IncludeRegexp: "^include/linux/parman\\.h$|^lib/parman\\.c$|^lib/test_parman\\.c$"},
+			{IncludeRegexp: "^include/linux/rhashtable-types\\.h$|^include/linux/rhashtable\\.h$|^lib/rhashtable\\.c$|^lib/test_rhashtable\\.c$"},
+			{IncludeRegexp: "^include/linux/skmsg\\.h$|^net/core/skmsg\\.c$|^net/core/sock_map\\.c$|^net/ipv4/tcp_bpf\\.c$|^net/ipv4/udp_bpf\\.c$|^net/unix/unix_bpf\\.c$"},
+			{IncludeRegexp: "^include/linux/tcp\\.h$|^include/net/tcp\\.h$|^include/trace/events/tcp\\.h$|^include/uapi/linux/tcp\\.h$|^net/ipv4/syncookies\\.c$|^net/ipv4/tcp[^/]*\\.c$|^net/ipv6/syncookies\\.c$|^net/ipv6/tcp[^/]*\\.c$"},
+			{IncludeRegexp: "^include/net/calipso\\.h$|^include/net/cipso_ipv4\\.h$|^include/net/netlabel\\.h$|^include/uapi/linux/netfilter/xt_CONNSECMARK\\.h$|^include/uapi/linux/netfilter/xt_SECMARK\\.h$|^net/ipv4/cipso_ipv4\\.c$|^net/ipv6/calipso\\.c$|^net/netfilter/xt_CONNSECMARK\\.c$|^net/netfilter/xt_SECMARK\\.c$|^net/netlabel/"},
+			{IncludeRegexp: "^include/net/devlink\\.h$|^include/uapi/linux/devlink\\.h$|^net/core/devlink\\.c$"},
+			{IncludeRegexp: "^include/net/failover\\.h$|^net/core/failover\\.c$"},
+			{IncludeRegexp: "^include/net/gre\\.h$|^net/ipv4/gre_demux\\.c$|^net/ipv4/gre_offload\\.c$"},
+			{IncludeRegexp: "^include/net/ip_vs\\.h$|^include/uapi/linux/ip_vs\\.h$|^net/netfilter/ipvs/"},
+			{IncludeRegexp: "^include/net/l3mdev\\.h$|^net/l3mdev$"},
+			{IncludeRegexp: "^include/net/mptcp\\.h$|^include/trace/events/mptcp\\.h$|^include/uapi/linux/mptcp\\.h$|^net/mptcp/"},
+			{IncludeRegexp: "^include/net/netns/nexthop\\.h$|^include/net/nexthop\\.h$|^include/uapi/linux/nexthop\\.h$|^net/ipv4/nexthop\\.c$"},
+			{IncludeRegexp: "^include/net/page_pool\\.h$|^include/trace/events/page_pool\\.h$|^net/core/page_pool\\.c$"},
+			{IncludeRegexp: "^include/net/pkt_cls\\.h$|^include/net/pkt_sched\\.h$|^include/net/tc_act/|^include/uapi/linux/pkt_cls\\.h$|^include/uapi/linux/pkt_sched\\.h$|^include/uapi/linux/tc_act/|^include/uapi/linux/tc_ematch/|^net/sched/"},
+			{IncludeRegexp: "^include/net/switchdev\\.h$|^net/switchdev/"},
+			{IncludeRegexp: "^include/net/tls\\.h$|^include/uapi/linux/tls\\.h$|^net/tls/"},
+			{IncludeRegexp: "^include/net/xdp\\.h$|^include/net/xdp_priv\\.h$|^include/trace/events/xdp\\.h$|^kernel/bpf/cpumap\\.c$|^kernel/bpf/devmap\\.c$|^net/core/xdp\\.c$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*/[^/]*/[^/]*xdp[^/]*$|^drivers/net/ethernet/[^/]*/[^/]*/[^/]*xdp[^/]*$"},
+			{IncludeRegexp: "^include/net/xdp_sock[^/]*$|^include/net/xsk_buff_pool\\.h$|^include/uapi/linux/if_xdp\\.h$|^include/uapi/linux/xdp_diag\\.h$|^include/net/netns/xdp\\.h$|^net/xdp/"},
+			{IncludeRegexp: "^include/net/xfrm\\.h$|^include/uapi/linux/xfrm\\.h$|^net/ipv4/ah4\\.c$|^net/ipv4/esp4[^/]*$|^net/ipv4/ip_vti\\.c$|^net/ipv4/ipcomp\\.c$|^net/ipv4/xfrm[^/]*$|^net/ipv6/ah6\\.c$|^net/ipv6/esp6[^/]*$|^net/ipv6/ip6_vti\\.c$|^net/ipv6/ipcomp6\\.c$|^net/ipv6/xfrm[^/]*$|^net/key/|^net/xfrm/"},
+			{IncludeRegexp: "^include/uapi/linux/net_dropmon\\.h$|^net/core/drop_monitor\\.c$"},
+			{IncludeRegexp: "^include/uapi/linux/openvswitch\\.h$|^net/openvswitch/"},
+			{IncludeRegexp: "^include/uapi/linux/tipc[^/]*\\.h$|^net/tipc/"},
+			{IncludeRegexp: "^kernel/bpf/bpf_struct[^/]*$"},
+			{IncludeRegexp: "^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
+			{IncludeRegexp: "^net/hsr/"},
+			{IncludeRegexp: "^net/rds/"},
+			{IncludeRegexp: "^net/sched/sch_cbs\\.c$|^net/sched/sch_etf\\.c$|^net/sched/sch_taprio\\.c$"},
+			{IncludeRegexp: "^net/sched/sch_netem\\.c$"},
+		},
+	}
+
+	netfilter = Subsystem{
+		Name:        "netfilter",
+		Lists:       []string{"netfilter-devel@vger.kernel.org"},
+		Maintainers: []string{"fw@strlen.de", "kadlec@netfilter.org", "pablo@netfilter.org"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/netfilter[^/]*$|^include/linux/netfilter/|^include/net/netfilter/|^include/uapi/linux/netfilter[^/]*$|^include/uapi/linux/netfilter/|^net/[^/]*/netfilter\\.c$|^net/[^/]*/netfilter/|^net/bridge/br_netfilter[^/]*\\.c$|^net/netfilter/"},
+		},
+	}
+
+	nfc = Subsystem{
+		Name:    "nfc",
+		Lists:   []string{"linux-nfc@lists.01.org"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/nfc/nxp-nci$"},
+			{IncludeRegexp: "^drivers/nfc/s3fwrn5$"},
+			{IncludeRegexp: "^drivers/nfc/trf7970a\\.c$"},
+			{IncludeRegexp: "^drivers/nfc/virtual_ncidev\\.c$"},
+			{IncludeRegexp: "^drivers/nfc/|^include/linux/platform_data/nfcmrvl\\.h$|^include/net/nfc/|^include/uapi/linux/nfc\\.h$|^net/nfc/"},
+		},
+	}
+
+	nfs = Subsystem{
+		Name:    "nfs",
+		Lists:   []string{"linux-nfs@vger.kernel.org"},
+		Parents: []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/exportfs/|^fs/lockd/|^fs/nfs_common/|^fs/nfsd/|^include/linux/lockd/|^include/linux/sunrpc/|^include/trace/events/rpcgss\\.h$|^include/trace/events/rpcrdma\\.h$|^include/trace/events/sunrpc\\.h$|^include/trace/misc/fs\\.h$|^include/trace/misc/nfs\\.h$|^include/trace/misc/sunrpc\\.h$|^include/uapi/linux/nfsd/|^include/uapi/linux/sunrpc/|^net/sunrpc/"},
+			{IncludeRegexp: "^fs/lockd/|^fs/nfs/|^fs/nfs_common/|^include/linux/lockd/|^include/linux/nfs[^/]*$|^include/linux/sunrpc/|^include/uapi/linux/nfs[^/]*$|^include/uapi/linux/sunrpc/|^net/sunrpc/"},
+		},
+	}
+
+	nilfs = Subsystem{
+		Name:        "nilfs",
+		Lists:       []string{"linux-nilfs@vger.kernel.org"},
+		Maintainers: []string{"konishi.ryusuke@gmail.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/nilfs2/|^include/trace/events/nilfs2\\.h$|^include/uapi/linux/nilfs2_api\\.h$|^include/uapi/linux/nilfs2_ondisk\\.h$"},
+		},
+	}
+
+	nitro = Subsystem{
+		Name:        "nitro",
+		Lists:       []string{"aws-nitro-enclaves-devel@amazon.com"},
+		Maintainers: []string{"alcioa@amazon.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/virt/nitro_enclaves/|^include/linux/nitro_enclaves\\.h$|^include/uapi/linux/nitro_enclaves\\.h$"},
+		},
+	}
+
+	nouveau = Subsystem{
+		Name:    "nouveau",
+		Lists:   []string{"nouveau@lists.freedesktop.org"},
+		Parents: []*Subsystem{&dri},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/mm/kmmio\\.c$|^arch/x86/mm/mmio-mod\\.c$|^arch/x86/mm/testmmiotrace\\.c$|^include/linux/mmiotrace\\.h$|^kernel/trace/trace_mmiotrace\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/nouveau/|^include/uapi/drm/nouveau_drm\\.h$"},
+		},
+	}
+
+	ntb = Subsystem{
+		Name:    "ntb",
+		Lists:   []string{"ntb@lists.linux.dev"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/ntb_netdev\\.c$|^drivers/ntb/|^drivers/pci/endpoint/functions/pci-epf-[^/]*ntb\\.c$|^include/linux/ntb\\.h$|^include/linux/ntb_transport\\.h$"},
+			{IncludeRegexp: "^drivers/ntb/hw/amd/"},
+			{IncludeRegexp: "^drivers/ntb/hw/idt/"},
+			{IncludeRegexp: "^drivers/ntb/hw/intel/"},
+		},
+	}
+
+	ntfs = Subsystem{
+		Name:     "ntfs",
+		Syscalls: []string{"syz_mount_image$ntfs"},
+		Lists:    []string{"linux-ntfs-dev@lists.sourceforge.net"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^block/partitions/ldm\\.[^/]*$"},
+			{IncludeRegexp: "^fs/ntfs/"},
+		},
+	}
+
+	ntfs3 = Subsystem{
+		Name:        "ntfs3",
+		Syscalls:    []string{"syz_mount_image$ntfs3"},
+		Lists:       []string{"ntfs3@lists.linux.dev"},
+		Maintainers: []string{"almaz.alexandrovich@paragon-software.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/ntfs3/"},
+		},
+	}
+
+	nvdimm = Subsystem{
+		Name:    "nvdimm",
+		Lists:   []string{"nvdimm@lists.linux.dev"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/acpi/nfit/|^drivers/nvdimm/|^include/linux/libnvdimm\\.h$|^include/linux/nd\\.h$|^include/uapi/linux/ndctl\\.h$"},
+			{IncludeRegexp: "^drivers/dax/"},
+			{IncludeRegexp: "^drivers/nvdimm/btt[^/]*$"},
+			{IncludeRegexp: "^drivers/nvdimm/of_pmem\\.c$"},
+			{IncludeRegexp: "^drivers/nvdimm/pmem[^/]*$"},
+			{IncludeRegexp: "^fs/dax\\.c$|^include/linux/dax\\.h$|^include/trace/events/fs_dax\\.h$"},
+		},
+	}
+
+	nvme = Subsystem{
+		Name:    "nvme",
+		Lists:   []string{"linux-nvme@lists.infradead.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/nvme/host/auth\\.c$|^drivers/nvme/target/auth\\.c$|^drivers/nvme/target/fabrics-cmd-auth\\.c$|^include/linux/nvme-auth\\.h$"},
+			{IncludeRegexp: "^drivers/nvme/host/fc\\.c$|^drivers/nvme/target/fc\\.c$|^drivers/nvme/target/fcloop\\.c$|^include/linux/nvme-fc-driver\\.h$|^include/linux/nvme-fc\\.h$"},
+			{IncludeRegexp: "^drivers/nvme/host/hwmon\\.c$"},
+			{IncludeRegexp: "^drivers/nvme/host/|^drivers/nvme/common/|^include/linux/nvme\\.h$|^include/linux/nvme-[^/]*\\.h$|^include/uapi/linux/nvme_ioctl\\.h$"},
+			{IncludeRegexp: "^drivers/nvme/target/"},
+		},
+	}
+
+	ocfs2 = Subsystem{
+		Name:        "ocfs2",
+		Syscalls:    []string{"syz_mount_image$ocfs2"},
+		Lists:       []string{"ocfs2-devel@oss.oracle.com"},
+		Maintainers: []string{"jlbec@evilplan.org", "joseph.qi@linux.alibaba.com", "mark@fasheh.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/ocfs2/"},
+		},
+	}
+
+	omap = Subsystem{
+		Name:    "omap",
+		Lists:   []string{"linux-omap@vger.kernel.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/[^/]*clock[^/]*$"},
+			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/[^/]*pm[^/]*$|^drivers/cpufreq/omap-cpufreq\\.c$"},
+			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/usb[^/]*$|^drivers/usb/[^/]*/[^/]*omap[^/]*$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/[^/]*am3[^/]*$|^arch/arm/boot/dts/[^/]*am4[^/]*$|^arch/arm/boot/dts/[^/]*am5[^/]*$|^arch/arm/boot/dts/[^/]*dra7[^/]*$|^arch/arm/boot/dts/[^/]*omap[^/]*$|^arch/arm/boot/dts/logicpd-som-lv[^/]*$|^arch/arm/boot/dts/logicpd-torpedo[^/]*$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/am335x-nano\\.dts$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/omap3-igep[^/]*$"},
+			{IncludeRegexp: "^arch/arm/configs/omap1_defconfig$|^arch/arm/mach-omap1/|^arch/arm/plat-omap/|^drivers/i2c/busses/i2c-omap\\.c$|^include/linux/platform_data/ams-delta-fiq\\.h$|^include/linux/platform_data/i2c-omap\\.h$"},
+			{IncludeRegexp: "^arch/arm/configs/omap2plus_defconfig$|^arch/arm/mach-omap2/|^arch/arm/plat-omap/|^drivers/bus/ti-sysc\\.c$|^drivers/i2c/busses/i2c-omap\\.c$|^drivers/irqchip/irq-omap-intc\\.c$|^drivers/mfd/[^/]*omap[^/]*\\.c$|^drivers/mfd/menelaus\\.c$|^drivers/mfd/palmas\\.c$|^drivers/mfd/tps65217\\.c$|^drivers/mfd/tps65218\\.c$|^drivers/mfd/tps65219\\.c$|^drivers/mfd/tps65910\\.c$|^drivers/mfd/twl-core\\.\\[ch\\]$|^drivers/mfd/twl4030[^/]*\\.c$|^drivers/mfd/twl6030[^/]*\\.c$|^drivers/mfd/twl6040[^/]*\\.c$|^drivers/regulator/palmas-regulator[^/]*\\.c$|^drivers/regulator/pbias-regulator\\.c$|^drivers/regulator/tps65217-regulator\\.c$|^drivers/regulator/tps65218-regulator\\.c$|^drivers/regulator/tps65219-regulator\\.c$|^drivers/regulator/tps65910-regulator\\.c$|^drivers/regulator/twl-regulator\\.c$|^drivers/regulator/twl6030-regulator\\.c$|^include/linux/platform_data/i2c-omap\\.h$|^include/linux/platform_data/ti-sysc\\.h$"},
+			{IncludeRegexp: "^arch/arm/mach-omap2/[^/]*gpmc[^/]*$|^drivers/memory/omap-gpmc\\.c$"},
+			{IncludeRegexp: "^arch/arm/mach-omap2/omap_hwmod[^/]*data[^/]*$"},
+			{IncludeRegexp: "^arch/arm/mach-omap2/omap_hwmod\\.[^/]*$"},
+			{IncludeRegexp: "^arch/arm/mach-omap2/prm[^/]*$"},
+			{IncludeRegexp: "^drivers/clk/ti/|^include/linux/clk/ti\\.h$"},
+			{IncludeRegexp: "^drivers/counter/ti-ecap-capture\\.c$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-omap\\.c$"},
+			{IncludeRegexp: "^drivers/hwspinlock/omap_hwspinlock\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-omap\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/omap\\.c$"},
+			{IncludeRegexp: "^drivers/mmc/host/omap_hsmmc\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/ti/cpsw[^/]*$|^drivers/net/ethernet/ti/davinci[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/cadence/pci-j721e\\.c$|^drivers/pci/controller/dwc/pci-dra7xx\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/pinctrl-single\\.c$"},
+			{IncludeRegexp: "^drivers/thermal/ti-soc-thermal/"},
+			{IncludeRegexp: "^drivers/video/fbdev/omap/"},
+			{IncludeRegexp: "^drivers/video/fbdev/omap2/"},
+			{IncludeRegexp: "^sound/soc/ti/n810\\.c$|^sound/soc/ti/omap[^/]*$|^sound/soc/ti/rx51\\.c$|^sound/soc/ti/sdma-pcm\\.[^/]*$"},
+		},
+	}
+
+	optee = Subsystem{
+		Name:    "op-tee",
+		Lists:   []string{"op-tee@lists.trustedfirmware.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/char/hw_random/optee-rng\\.c$"},
+			{IncludeRegexp: "^drivers/tee/optee/"},
+			{IncludeRegexp: "^drivers/tee/|^include/linux/tee_drv\\.h$|^include/uapi/linux/tee\\.h$"},
+		},
+	}
+
+	openiscsi = Subsystem{
+		Name:        "open-iscsi",
+		Lists:       []string{"open-iscsi@googlegroups.com"},
+		Maintainers: []string{"cleech@redhat.com", "lduncan@suse.com", "michael.christie@oracle.com"},
+		Parents:     []*Subsystem{&scsi},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/scsi/[^/]*iscsi[^/]*$|^include/scsi/[^/]*iscsi[^/]*$"},
+		},
+	}
+
+	openbmc = Subsystem{
+		Name:    "openbmc",
+		Lists:   []string{"openbmc@lists.ozlabs.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/nuvoton-npcm[^/]*$|^arch/arm/mach-npcm/|^arch/arm64/boot/dts/nuvoton/|^drivers/[^/]*/[^/]*npcm[^/]*$|^drivers/[^/]*/[^/]*/[^/]*npcm[^/]*$|^drivers/rtc/rtc-nct3018y\\.c$|^include/dt-bindings/clock/nuvoton,npcm7xx-clock\\.h$|^include/dt-bindings/clock/nuvoton,npcm845-clk\\.h$"},
+			{IncludeRegexp: "^arch/arm/boot/dts/nuvoton-wpcm450[^/]*$|^arch/arm/mach-npcm/wpcm450\\.c$|^drivers/[^/]*/[^/]*/[^/]*wpcm[^/]*$|^drivers/[^/]*/[^/]*wpcm[^/]*$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-aspeed\\.c$|^drivers/irqchip/irq-aspeed-i2c-ic\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-fsi\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/aspeed/"},
+			{IncludeRegexp: "^drivers/mmc/host/sdhci-of-aspeed[^/]*$"},
+			{IncludeRegexp: "^drivers/peci/controller/peci-aspeed\\.c$"},
+			{IncludeRegexp: "^drivers/peci/|^include/linux/peci-cpu\\.h$|^include/linux/peci\\.h$"},
+			{IncludeRegexp: "^drivers/pinctrl/aspeed/"},
+			{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
+		},
+	}
+
+	openipmi = Subsystem{
+		Name:        "openipmi",
+		Lists:       []string{"openipmi-developer@lists.sourceforge.net"},
+		Maintainers: []string{"minyard@acm.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/char/ipmi/|^include/linux/ipmi[^/]*$|^include/uapi/linux/ipmi[^/]*$"},
+		},
+	}
+
+	openrisc = Subsystem{
+		Name:        "openrisc",
+		Lists:       []string{"linux-openrisc@vger.kernel.org"},
+		Maintainers: []string{"jonas@southpole.se", "shorne@gmail.com", "stefan.kristiansson@saunalahti.fi"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/openrisc/|^drivers/irqchip/irq-ompic\\.c$|^drivers/irqchip/irq-or1k-[^/]*$"},
+		},
+	}
+
+	openvswitch = Subsystem{
+		Name:        "openvswitch",
+		Lists:       []string{"dev@openvswitch.org"},
+		Maintainers: []string{"pshelar@ovn.org"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/uapi/linux/openvswitch\\.h$|^net/openvswitch/"},
+		},
+	}
+
+	openwrt = Subsystem{
+		Name:    "openwrt",
+		Lists:   []string{"openwrt-devel@lists.openwrt.org"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/dsa/b53/|^drivers/net/dsa/bcm_sf2[^/]*$|^include/linux/dsa/brcm\\.h$|^include/linux/platform_data/b53\\.h$"},
+			{IncludeRegexp: "^drivers/vlynq/vlynq\\.c$|^include/linux/vlynq\\.h$"},
+		},
+	}
+
+	orangefs = Subsystem{
+		Name:        "orangefs",
+		Lists:       []string{"devel@lists.orangefs.org"},
+		Maintainers: []string{"hubcap@omnibond.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/orangefs/"},
+		},
+	}
+
+	ossdrivers = Subsystem{
+		Name:        "oss-drivers",
+		Lists:       []string{"oss-drivers@corigine.com"},
+		Maintainers: []string{"simon.horman@corigine.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/ethernet/netronome/"},
+		},
+	}
+
+	overlayfs = Subsystem{
+		Name:        "overlayfs",
+		Lists:       []string{"linux-unionfs@vger.kernel.org"},
+		Maintainers: []string{"miklos@szeredi.hu"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/overlayfs/"},
+		},
+	}
+
+	oxnas = Subsystem{
+		Name:        "oxnas",
+		Lists:       []string{"linux-oxnas@groups.io"},
+		Maintainers: []string{"neil.armstrong@linaro.org"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/ox8[^/]*\\.dts[^/]*$|^arch/arm/mach-oxnas/|^drivers/power/reset/oxnas-restart\\.c$|oxnas"},
+		},
+	}
+
+	parisc = Subsystem{
+		Name:    "parisc",
+		Lists:   []string{"linux-parisc@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/parisc/|^drivers/char/agp/parisc-agp\\.c$|^drivers/input/misc/hp_sdc_rtc\\.c$|^drivers/input/serio/gscps2\\.c$|^drivers/input/serio/hp_sdc[^/]*$|^drivers/parisc/|^drivers/parport/parport_gsc\\.[^/]*$|^drivers/tty/serial/8250/8250_parisc\\.c$|^drivers/video/console/sti[^/]*$|^drivers/video/fbdev/sti[^/]*$|^drivers/video/logo/logo_parisc[^/]*$|^include/linux/hp_sdc\\.h$"},
+			{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/"},
+			{IncludeRegexp: "^sound/parisc/harmony\\.[^/]*$"},
+			{IncludeRegexp: "^sound/pci/ad1889\\.[^/]*$"},
+		},
+	}
+
+	parport = Subsystem{
+		Name:    "parport",
+		Lists:   []string{"linux-parport@lists.infradead.org"},
+		Parents: []*Subsystem{&block},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/block/paride/"},
+			{IncludeRegexp: "^drivers/char/ppdev\\.c$|^drivers/parport/|^include/linux/parport[^/]*\\.h$|^include/uapi/linux/ppdev\\.h$"},
+		},
+	}
+
+	pci = Subsystem{
+		Name:    "pci",
+		Lists:   []string{"linux-pci@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/kernel/early-quirks\\.c$|^arch/x86/kernel/quirks\\.c$|^arch/x86/pci/|^drivers/acpi/pci[^/]*$|^drivers/pci/|^include/asm-generic/pci[^/]*$|^include/linux/of_pci\\.h$|^include/linux/pci[^/]*$|^include/uapi/linux/pci[^/]*$|^lib/pci[^/]*$"},
+			{IncludeRegexp: "^drivers/misc/dw-xdata-pcie\\.c$"},
+			{IncludeRegexp: "^drivers/misc/pci_endpoint_test\\.c$|^drivers/pci/endpoint/"},
+			{IncludeRegexp: "^drivers/ntb/hw/mscc/|^drivers/pci/switch/switchtec[^/]*$|^include/linux/switchtec\\.h$|^include/uapi/linux/switchtec_ioctl\\.h$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*mediatek[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*microchip[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*mvebu[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*rcar[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/cadence/"},
+			{IncludeRegexp: "^drivers/pci/controller/cadence/pci-j721e\\.c$|^drivers/pci/controller/dwc/pci-dra7xx\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*artpec[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*designware[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*imx6[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*layerscape[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/[^/]*spear[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pci-exynos\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pci-meson\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-al\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-armada8k\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-fu740\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-hisi\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-histb\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-intel-gw\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-keembay\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-kirin\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom-ep\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-qcom\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pcie-uniphier[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/mobiveil/pcie-layerscape-gen4\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/mobiveil/pcie-mobiveil[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-aardvark\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-host-common\\.c$|^drivers/pci/controller/pci-host-generic\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-tegra\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-thunder-[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-v3-semi\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-versatile\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-xgene-msi\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-xgene\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-altera-msi\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-altera\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-apple\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-brcmstb\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-rockchip[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-xilinx-cpm\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/vmd\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/|^drivers/pci/pci-bridge-emul\\.c$|^drivers/pci/pci-bridge-emul\\.h$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/cpci_hotplug[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/cpcihp_generic\\.c$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/cpcihp_zt5550\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/rpadlpar[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/hotplug/rpaphp[^/]*$"},
+			{IncludeRegexp: "^drivers/pci/p2pdma\\.c$|^include/linux/pci-p2pdma\\.h$"},
+		},
+	}
+
+	perf = Subsystem{
+		Name:        "perf",
+		Lists:       []string{"linux-perf-users@vger.kernel.org"},
+		Maintainers: []string{"acme@kernel.org", "mingo@redhat.com", "peterz@infradead.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/events/|^arch/[^/]*/events/[^/]*/|^arch/[^/]*/include/asm/perf_event\\.h$|^arch/[^/]*/kernel/[^/]*/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/[^/]*/perf_event[^/]*\\.c$|^arch/[^/]*/kernel/perf_callchain\\.c$|^arch/[^/]*/kernel/perf_event[^/]*\\.c$|^include/linux/perf_event\\.h$|^include/uapi/linux/perf_event\\.h$|^kernel/events/"},
+		},
+	}
+
+	phy = Subsystem{
+		Name:        "phy",
+		Lists:       []string{"linux-phy@lists.infradead.org"},
+		Maintainers: []string{"kishon@kernel.org", "vkoul@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/phy/|^include/dt-bindings/phy/|^include/linux/phy/"},
+		},
+	}
+
+	pm = Subsystem{
+		Name:    "pm",
+		Lists:   []string{"linux-pm@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/suspend[^/]*\\.h$|^arch/x86/power/|^drivers/base/power/|^include/linux/freezer\\.h$|^include/linux/pm\\.h$|^include/linux/suspend\\.h$|^kernel/power/"},
+			{IncludeRegexp: "^arch/arm/mach-exynos/pm\\.c$|^drivers/cpuidle/cpuidle-exynos\\.c$|^include/linux/platform_data/cpuidle-exynos\\.h$"},
+			{IncludeRegexp: "^arch/x86/kernel/acpi/|^drivers/base/power/|^include/linux/freezer\\.h$|^include/linux/pm\\.h$|^include/linux/suspend\\.h$|^kernel/power/"},
+			{IncludeRegexp: "^drivers/base/power/domain[^/]*\\.c$|^include/linux/pm_domain\\.h$"},
+			{IncludeRegexp: "^drivers/base/power/|^drivers/powercap/|^include/linux/intel_rapl\\.h$|^include/linux/pm\\.h$|^include/linux/pm_[^/]*$|^include/linux/powercap\\.h$|^kernel/configs/nopm\\.config$"},
+			{IncludeRegexp: "^drivers/cpufreq/amd-pstate[^/]*$|^include/linux/amd-pstate\\.h$"},
+			{IncludeRegexp: "^drivers/cpufreq/bmips-cpufreq\\.c$"},
+			{IncludeRegexp: "^drivers/cpufreq/brcmstb[^/]*$"},
+			{IncludeRegexp: "^drivers/cpufreq/intel_pstate\\.c$"},
+			{IncludeRegexp: "^drivers/cpufreq/qcom-cpufreq-nvmem\\.c$"},
+			{IncludeRegexp: "^drivers/cpufreq/sun50i-cpufreq-nvmem\\.c$"},
+			{IncludeRegexp: "^drivers/cpufreq/vexpress-spc-cpufreq\\.c$"},
+			{IncludeRegexp: "^drivers/cpufreq/|^include/linux/cpufreq\\.h$|^include/linux/sched/cpufreq\\.h$|^kernel/sched/cpufreq[^/]*\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-big_little\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-psci\\.h$|^drivers/cpuidle/cpuidle-psci-domain\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-riscv-sbi\\.c$"},
+			{IncludeRegexp: "^drivers/cpuidle/dt_idle_genpd\\.c$|^drivers/cpuidle/dt_idle_genpd\\.h$"},
+			{IncludeRegexp: "^drivers/cpuidle/|^include/linux/cpuidle\\.h$"},
+			{IncludeRegexp: "^drivers/devfreq/devfreq-event\\.c$|^drivers/devfreq/event/|^include/dt-bindings/pmu/exynos_ppmu\\.h$|^include/linux/devfreq-event\\.h$"},
+			{IncludeRegexp: "^drivers/devfreq/exynos-bus\\.c$"},
+			{IncludeRegexp: "^drivers/devfreq/tegra30-devfreq\\.c$"},
+			{IncludeRegexp: "^drivers/devfreq/|^include/linux/devfreq\\.h$|^include/trace/events/devfreq\\.h$"},
+			{IncludeRegexp: "^drivers/idle/intel_idle\\.c$"},
+			{IncludeRegexp: "^drivers/interconnect/samsung/"},
+			{IncludeRegexp: "^drivers/interconnect/|^include/dt-bindings/interconnect/|^include/linux/interconnect-provider\\.h$|^include/linux/interconnect\\.h$"},
+			{IncludeRegexp: "^drivers/memory/samsung/exynos5422-dmc\\.c$"},
+			{IncludeRegexp: "^drivers/opp/|^include/linux/pm_opp\\.h$"},
+			{IncludeRegexp: "^drivers/power/reset/"},
+			{IncludeRegexp: "^drivers/power/reset/mt6323-poweroff\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/adp5061\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/max14577_charger\\.c$|^drivers/power/supply/max77693_charger\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/max17040_battery\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/max17042_battery\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/surface_battery\\.c$|^drivers/power/supply/surface_charger\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/|^include/linux/power/|^include/linux/power_supply\\.h$"},
+			{IncludeRegexp: "^drivers/powercap/dtpm[^/]*$|^include/linux/dtpm\\.h$"},
+			{IncludeRegexp: "^drivers/soc/bcm/bcm63xx/bcm-pmb\\.c$|^include/dt-bindings/soc/bcm-pmb\\.h$"},
+			{IncludeRegexp: "^drivers/soc/qcom/cpr\\.c$"},
+			{IncludeRegexp: "^drivers/soc/ti/smartreflex\\.c$|^include/linux/power/smartreflex\\.h$"},
+			{IncludeRegexp: "^drivers/thermal/amlogic_thermal\\.c$"},
+			{IncludeRegexp: "^drivers/thermal/broadcom/brcmstb[^/]*$"},
+			{IncludeRegexp: "^drivers/thermal/cpufreq_cooling\\.c$|^drivers/thermal/cpuidle_cooling\\.c$|^include/linux/cpu_cooling\\.h$"},
+			{IncludeRegexp: "^drivers/thermal/gov_power_allocator\\.c$|^include/trace/events/thermal_power_allocator\\.h$"},
+			{IncludeRegexp: "^drivers/thermal/intel/intel_menlow\\.c$"},
+			{IncludeRegexp: "^drivers/thermal/qcom/"},
+			{IncludeRegexp: "^drivers/thermal/samsung/"},
+			{IncludeRegexp: "^drivers/thermal/sun8i_thermal\\.c$"},
+			{IncludeRegexp: "^drivers/thermal/ti-soc-thermal/"},
+			{IncludeRegexp: "^drivers/thermal/|^include/dt-bindings/thermal/|^include/linux/cpu_cooling\\.h$|^include/linux/thermal\\.h$|^include/uapi/linux/thermal\\.h$"},
+			{IncludeRegexp: "^include/linux/freezer\\.h$|^kernel/freezer\\.c$"},
+		},
+	}
+
+	ppp = Subsystem{
+		Name:        "ppp",
+		Lists:       []string{"linux-ppp@vger.kernel.org"},
+		Maintainers: []string{"paulus@samba.org"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/ppp/ppp_[^/]*$"},
+		},
+	}
+
+	pvrusb2 = Subsystem{
+		Name:        "pvrusb2",
+		Lists:       []string{"pvrusb2@isely.net"},
+		Maintainers: []string{"isely@pobox.com"},
+		Parents:     []*Subsystem{&media},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/media/usb/pvrusb2/"},
+		},
+	}
+
+	pwm = Subsystem{
+		Name:    "pwm",
+		Lists:   []string{"linux-pwm@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpio/gpio-mvebu\\.c$|^drivers/pwm/|^drivers/video/backlight/pwm_bl\\.c$|^include/dt-bindings/pwm/|^include/linux/pwm\\.h$|^include/linux/pwm_backlight\\.h$"},
+			{IncludeRegexp: "^drivers/pwm/pwm-atmel\\.c$"},
+		},
+	}
+
+	qat = Subsystem{
+		Name:        "qat",
+		Lists:       []string{"qat-linux@intel.com"},
+		Maintainers: []string{"giovanni.cabiddu@intel.com"},
+		Parents:     []*Subsystem{&crypto},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/crypto/qat/"},
+		},
+	}
+
+	raid = Subsystem{
+		Name:        "raid",
+		Lists:       []string{"linux-raid@vger.kernel.org"},
+		Maintainers: []string{"song@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/md/Kconfig$|^drivers/md/md[^/]*$|^drivers/md/raid[^/]*$|^include/linux/raid/|^include/uapi/linux/raid/"},
+		},
+	}
+
+	rcu = Subsystem{
+		Name:    "rcu",
+		Lists:   []string{"rcu@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{"^include/linux/rcu[^/]*$|^kernel/rcu/", "^include/linux/srcu[^/]*\\.h$|^kernel/rcu/srcu[^/]*\\.c$"},
+			{IncludeRegexp: "^include/linux/srcu[^/]*\\.h$|^kernel/rcu/srcu[^/]*\\.c$"},
+		},
+	}
+
+	rdma = Subsystem{
+		Name:    "rdma",
+		Lists:   []string{"linux-rdma@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/infiniband/hw/bnxt_re/|^include/uapi/rdma/bnxt_re-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/cxgb4/|^include/uapi/rdma/cxgb4-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/efa/|^include/uapi/rdma/efa-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/erdma$|^include/uapi/rdma/erdma-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/hfi1$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/hns/"},
+			{IncludeRegexp: "^drivers/infiniband/hw/irdma/|^include/uapi/rdma/irdma-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/mana/|^include/net/mana$|^include/uapi/rdma/mana-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/mlx4/|^include/linux/mlx4/|^include/uapi/rdma/mlx4-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/mlx5/|^include/linux/mlx5/|^include/uapi/rdma/mlx5-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/ocrdma/|^include/uapi/rdma/ocrdma-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/qedr/|^include/uapi/rdma/qedr-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/hw/qib/"},
+			{IncludeRegexp: "^drivers/infiniband/hw/vmw_pvrdma/"},
+			{IncludeRegexp: "^drivers/infiniband/sw/rdmavt$"},
+			{IncludeRegexp: "^drivers/infiniband/sw/rxe/|^include/uapi/rdma/rdma_user_rxe\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/sw/siw/|^include/uapi/rdma/siw-abi\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/iser/"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/isert$"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/opa_vnic$"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/rtrs/"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/srp/|^include/scsi/srp\\.h$"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/srpt/"},
+			{IncludeRegexp: "^drivers/infiniband/|^include/rdma/|^include/trace/events/ib_mad\\.h$|^include/trace/events/ib_umad\\.h$|^include/trace/misc/rdma\\.h$|^include/uapi/linux/if_infiniband\\.h$|^include/uapi/rdma/"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx4/|^include/linux/mlx4/"},
+			{IncludeRegexp: "^drivers/net/ethernet/mellanox/mlx5/core/|^include/linux/mlx5/"},
+			{IncludeRegexp: "^net/rds/"},
+		},
+	}
+
+	rds = Subsystem{
+		Name:        "rds",
+		Lists:       []string{"rds-devel@oss.oracle.com"},
+		Maintainers: []string{"santosh.shilimkar@oracle.com"},
+		Parents:     []*Subsystem{&net, &rdma},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^net/rds/"},
+		},
+	}
+
+	reiserfs = Subsystem{
+		Name:     "reiserfs",
+		Syscalls: []string{"syz_mount_image$reiserfs"},
+		Lists:    []string{"reiserfs-devel@vger.kernel.org"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/reiserfs/"},
+		},
+	}
+
+	remoteproc = Subsystem{
+		Name:    "remoteproc",
+		Lists:   []string{"linux-remoteproc@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/hwspinlock/|^include/linux/hwspinlock\\.h$"},
+			{IncludeRegexp: "^drivers/net/wwan/rpmsg_wwan_ctrl\\.c$"},
+			{IncludeRegexp: "^drivers/remoteproc/|^include/linux/remoteproc\\.h$|^include/linux/remoteproc/"},
+			{IncludeRegexp: "^drivers/rpmsg/|^include/linux/rpmsg\\.h$|^include/linux/rpmsg/|^include/uapi/linux/rpmsg\\.h$"},
+			{IncludeRegexp: "^drivers/tty/rpmsg_tty\\.c$"},
+		},
+	}
+
+	renesassoc = Subsystem{
+		Name:    "renesas-soc",
+		Lists:   []string{"linux-renesas-soc@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/emev2[^/]*$|^arch/arm/boot/dts/gr-peach[^/]*$|^arch/arm/boot/dts/iwg20d-q7[^/]*$|^arch/arm/boot/dts/r7s[^/]*$|^arch/arm/boot/dts/r8a[^/]*$|^arch/arm/boot/dts/r9a[^/]*$|^arch/arm/boot/dts/sh[^/]*$|^arch/arm/configs/shmobile_defconfig$|^arch/arm/include/debug/renesas-scif\\.S$|^arch/arm/mach-shmobile/|^arch/arm64/boot/dts/renesas/|^arch/riscv/boot/dts/renesas/|^drivers/soc/renesas/|^include/linux/soc/renesas/"},
+			{IncludeRegexp: "^drivers/ata/sata_rcar\\.c$"},
+			{IncludeRegexp: "^drivers/clk/renesas/"},
+			{IncludeRegexp: "^drivers/gpio/gpio-bd9571mwv\\.c$|^drivers/mfd/bd9571mwv\\.c$|^drivers/regulator/bd9571mwv-regulator\\.c$|^include/linux/mfd/bd9571mwv\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/rcar-du/|^drivers/gpu/drm/shmobile/|^include/linux/platform_data/shmob_drm\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-emev2\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-rcar\\.c$|^drivers/i2c/busses/i2c-sh_mobile\\.c$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-riic\\.c$"},
+			{IncludeRegexp: "^drivers/iio/adc/rzg2l_adc\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar-fcp\\.c$|^include/media/rcar-fcp\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar-isp\\.c$|^drivers/media/platform/renesas/rcar-vin/"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar_drif\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar_fdp1\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/rcar_jpu\\.c$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/renesas-ceu\\.c$|^include/media/drv-intf/renesas-ceu\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/renesas/vsp1/"},
+			{IncludeRegexp: "^drivers/mmc/host/renesas_sdhi[^/]*$|^drivers/mmc/host/tmio_mmc[^/]*$|^include/linux/mfd/tmio\\.h$"},
+			{IncludeRegexp: "^drivers/mtd/nand/raw/renesas-nand-controller\\.c$"},
+			{IncludeRegexp: "^drivers/net/dsa/rzn1_a5psw[^/]*$|^drivers/net/pcs/pcs-rzn1-miic\\.c$|^include/dt-bindings/net/pcs-rzn1-miic\\.h$|^include/linux/pcs-rzn1-miic\\.h$|^net/dsa/tag_rzn1_a5psw\\.c$"},
+			{IncludeRegexp: "^drivers/net/ethernet/renesas/|^include/linux/sh_eth\\.h$"},
+			{IncludeRegexp: "^drivers/pci/controller/[^/]*rcar[^/]*$"},
+			{IncludeRegexp: "^drivers/phy/renesas/phy-rcar-gen3-usb[^/]*\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/renesas/"},
+			{IncludeRegexp: "^drivers/rtc/rtc-rzn1\\.c$"},
+			{IncludeRegexp: "^drivers/thermal/rcar_gen3_thermal\\.c$|^drivers/thermal/rcar_thermal\\.c$"},
+			{IncludeRegexp: "^drivers/ufs/host/ufs-renesas\\.c$"},
+		},
+	}
+
+	riscv = Subsystem{
+		Name:    "riscv",
+		Lists:   []string{"linux-riscv@lists.infradead.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/riscv/boot/dts/"},
+			{IncludeRegexp: "^arch/riscv/boot/dts/microchip/|^drivers/char/hw_random/mpfs-rng\\.c$|^drivers/clk/microchip/clk-mpfs\\.c$|^drivers/i2c/busses/i2c-microchip-corei2c\\.c$|^drivers/mailbox/mailbox-mpfs\\.c$|^drivers/pci/controller/pcie-microchip-host\\.c$|^drivers/reset/reset-mpfs\\.c$|^drivers/rtc/rtc-mpfs\\.c$|^drivers/soc/microchip/mpfs-sys-controller\\.c$|^drivers/spi/spi-microchip-core-qspi\\.c$|^drivers/spi/spi-microchip-core\\.c$|^drivers/usb/musb/mpfs\\.c$|^include/soc/microchip/mpfs\\.h$"},
+			{IncludeRegexp: "^arch/riscv/include/asm/kvm[^/]*$|^arch/riscv/include/uapi/asm/kvm[^/]*$|^arch/riscv/kvm/"},
+			{IncludeRegexp: "^arch/riscv/|riscv"},
+			{IncludeRegexp: "^drivers/cpuidle/cpuidle-riscv-sbi\\.c$"},
+			{IncludeRegexp: "^drivers/perf/riscv_pmu\\.c$|^drivers/perf/riscv_pmu_legacy\\.c$|^drivers/perf/riscv_pmu_sbi\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/pinctrl-k210\\.c$"},
+			{IncludeRegexp: "^drivers/reset/reset-k210\\.c$"},
+			{IncludeRegexp: "^drivers/soc/canaan/|^include/soc/canaan/"},
+			{IncludeRegexp: "^drivers/soc/sifive/"},
+			{IncludeRegexp: "fu540"},
+			{IncludeRegexp: "sifive"},
+		},
+	}
+
+	rockchip = Subsystem{
+		Name:    "rockchip",
+		Lists:   []string{"linux-rockchip@lists.infradead.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/rk3[^/]*$|^arch/arm/boot/dts/rv1108[^/]*$|^arch/arm/mach-rockchip/|^drivers/[^/]*/[^/]*/[^/]*rockchip[^/]*$|^drivers/[^/]*/[^/]*rockchip[^/]*$|^drivers/clk/rockchip/|^drivers/i2c/busses/i2c-rk3x\\.c$|^sound/soc/rockchip/|rockchip"},
+			{IncludeRegexp: "^drivers/media/platform/rockchip/rga/"},
+			{IncludeRegexp: "^drivers/media/platform/rockchip/rkisp1$|^include/uapi/linux/rkisp1-config\\.h$"},
+			{IncludeRegexp: "^drivers/media/platform/verisilicon/"},
+			{IncludeRegexp: "^drivers/pci/controller/pcie-rockchip[^/]*$"},
+			{IncludeRegexp: "^drivers/staging/media/rkvdec/"},
+			{IncludeRegexp: "^sound/soc/rockchip/rockchip_i2s_tdm\\.[^/]*$"},
+		},
+	}
+
+	rpi = Subsystem{
+		Name:        "rpi",
+		Lists:       []string{"linux-rpi-kernel@lists.infradead.org"},
+		Maintainers: []string{"f.fainelli@gmail.com"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/pci/controller/pcie-brcmstb\\.c$|^drivers/staging/vc04_services$|bcm2711|bcm283*|raspberrypi"},
+		},
+	}
+
+	rttools = Subsystem{
+		Name:    "rt-tools",
+		Lists:   []string{"linux-trace-devel@vger.kernel.org"},
+		Parents: []*Subsystem{&trace},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/rv\\.h$|^include/rv/|^kernel/trace/rv/"},
+		},
+	}
+
+	rtc = Subsystem{
+		Name:    "rtc",
+		Lists:   []string{"linux-rtc@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/rtc/rtc-optee\\.c$"},
+			{IncludeRegexp: "^drivers/rtc/rtc-rzn1\\.c$"},
+			{IncludeRegexp: "^drivers/rtc/rtc-sd3078\\.c$"},
+			{IncludeRegexp: "^drivers/rtc/rtc-sunplus\\.c$"},
+			{IncludeRegexp: "^drivers/rtc/|^include/linux/platform_data/rtc-[^/]*$|^include/linux/rtc\\.h$|^include/linux/rtc/|^include/uapi/linux/rtc\\.h$"},
+		},
+	}
+
+	rust = Subsystem{
+		Name:        "rust",
+		Lists:       []string{"rust-for-linux@vger.kernel.org"},
+		Maintainers: []string{"alex.gaynor@gmail.com", "ojeda@kernel.org", "wedsonaf@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^rust/"},
+		},
+	}
+
+	s390 = Subsystem{
+		Name:    "s390",
+		Lists:   []string{"linux-s390@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/s390/include/asm/pgtable\\.h$|^arch/s390/mm$"},
+			{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
+			{IncludeRegexp: "^arch/s390/kvm/pci[^/]*$|^drivers/vfio/pci/vfio_pci_zdev\\.c$|^include/uapi/linux/vfio_zdev\\.h$"},
+			{IncludeRegexp: "^arch/s390/pci/|^drivers/pci/hotplug/s390_pci_hpc\\.c$"},
+			{IncludeRegexp: "^arch/s390/|^drivers/s390/"},
+			{IncludeRegexp: "^block/partitions/ibm\\.c$|^drivers/s390/block/dasd[^/]*$|^include/linux/dasd_mod\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/s390-iommu\\.c$"},
+			{IncludeRegexp: "^drivers/s390/cio/"},
+			{IncludeRegexp: "^drivers/s390/cio/vfio_ccw[^/]*$|^include/uapi/linux/vfio_ccw\\.h$"},
+			{IncludeRegexp: "^drivers/s390/crypto/"},
+			{IncludeRegexp: "^drivers/s390/crypto/vfio_ap[^/]*$"},
+			{IncludeRegexp: "^drivers/s390/net/"},
+			{IncludeRegexp: "^drivers/s390/net/[^/]*iucv[^/]*$|^include/net/iucv/|^net/iucv/"},
+			{IncludeRegexp: "^drivers/s390/scsi/zfcp_[^/]*$"},
+			{IncludeRegexp: "^net/smc/"},
+		},
+	}
+
+	samsungsoc = Subsystem{
+		Name:    "samsung-soc",
+		Lists:   []string{"linux-samsung-soc@vger.kernel.org"},
+		Parents: []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/exynos[^/]*$|^arch/arm/boot/dts/s3c[^/]*$|^arch/arm/boot/dts/s5p[^/]*$|^arch/arm/mach-exynos[^/]*/|^arch/arm/mach-s3c/|^arch/arm/mach-s5p[^/]*/|^arch/arm64/boot/dts/exynos/|^drivers/[^/]*/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c24[^/]*$|^drivers/[^/]*/[^/]*s3c64xx[^/]*$|^drivers/[^/]*/[^/]*s5pv210[^/]*$|^drivers/clocksource/samsung_pwm_timer\\.c$|^drivers/memory/samsung/|^drivers/pwm/pwm-samsung\\.c$|^drivers/soc/samsung/|^drivers/tty/serial/samsung[^/]*$|^include/clocksource/samsung_pwm\\.h$|^include/linux/platform_data/[^/]*s3c[^/]*$|^include/linux/serial_s3c\\.h$|^include/linux/soc/samsung/|exynos|s3c2410|s3c64xx|s5pv210"},
+			{IncludeRegexp: "^arch/arm/mach-exynos/pm\\.c$|^drivers/cpuidle/cpuidle-exynos\\.c$|^include/linux/platform_data/cpuidle-exynos\\.h$"},
+			{IncludeRegexp: "^arch/arm64/boot/dts/tesla[^/]*$"},
+			{IncludeRegexp: "^drivers/char/hw_random/exynos-trng\\.c$"},
+			{IncludeRegexp: "^drivers/clk/clk-s2mps11\\.c$|^drivers/mfd/sec[^/]*\\.c$|^drivers/regulator/s2m[^/]*\\.c$|^drivers/regulator/s5m[^/]*\\.c$|^drivers/rtc/rtc-s5m\\.c$|^include/linux/mfd/samsung/"},
+			{IncludeRegexp: "^drivers/clk/samsung/|^include/dt-bindings/clock/exynos[^/]*\\.h$|^include/dt-bindings/clock/s3c[^/]*\\.h$|^include/dt-bindings/clock/s5p[^/]*\\.h$|^include/dt-bindings/clock/samsung,[^/]*\\.h$|^include/linux/clk/samsung\\.h$|^include/linux/platform_data/clk-s3c2410\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/exynos-rng\\.c$"},
+			{IncludeRegexp: "^drivers/crypto/s5p-sss\\.c$"},
+			{IncludeRegexp: "^drivers/devfreq/exynos-bus\\.c$"},
+			{IncludeRegexp: "^drivers/interconnect/samsung/"},
+			{IncludeRegexp: "^drivers/media/cec/platform/s5p/"},
+			{IncludeRegexp: "^drivers/media/platform/samsung/s3c-camif/|^include/media/drv-intf/s3c_camif\\.h$"},
+			{IncludeRegexp: "^drivers/memory/samsung/exynos5422-dmc\\.c$"},
+			{IncludeRegexp: "^drivers/pci/controller/dwc/pci-exynos\\.c$"},
+			{IncludeRegexp: "^drivers/pinctrl/samsung/|^include/dt-bindings/pinctrl/samsung\\.h$"},
+			{IncludeRegexp: "^drivers/power/supply/s3c_adc_battery\\.c$|^include/linux/s3c_adc_battery\\.h$"},
+			{IncludeRegexp: "^drivers/spi/spi-s3c[^/]*$|^include/linux/platform_data/spi-s3c64xx\\.h$|^include/linux/spi/s3c24xx-fiq\\.h$"},
+			{IncludeRegexp: "^drivers/thermal/samsung/"},
+		},
+	}
+
+	scsi = Subsystem{
+		Name:    "scsi",
+		Lists:   []string{"linux-scsi@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^block/bsg\\.c$|^include/linux/bsg\\.h$|^include/uapi/linux/bsg\\.h$"},
+			{IncludeRegexp: "^drivers/message/fusion/|^drivers/scsi/mpt3sas/"},
+			{IncludeRegexp: "^drivers/scsi/3w-[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/53c700[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/53c700[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/BusLogic\\.[^/]*$|^drivers/scsi/FlashPoint\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/NCR5380\\.[^/]*$|^drivers/scsi/arm/cumana_1\\.c$|^drivers/scsi/arm/oak\\.c$|^drivers/scsi/atari_scsi\\.[^/]*$|^drivers/scsi/dmx3191d\\.c$|^drivers/scsi/g_NCR5380\\.[^/]*$|^drivers/scsi/mac_scsi\\.[^/]*$|^drivers/scsi/sun3_scsi\\.[^/]*$|^drivers/scsi/sun3_scsi_vme\\.c$"},
+			{IncludeRegexp: "^drivers/scsi/[^/]*iscsi[^/]*$|^include/scsi/[^/]*iscsi[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/aacraid/"},
+			{IncludeRegexp: "^drivers/scsi/advansys\\.c$"},
+			{IncludeRegexp: "^drivers/scsi/aha152x[^/]*$|^drivers/scsi/pcmcia/aha152x[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/aic7xxx/"},
+			{IncludeRegexp: "^drivers/scsi/am53c974\\.c$"},
+			{IncludeRegexp: "^drivers/scsi/be2iscsi/"},
+			{IncludeRegexp: "^drivers/scsi/bfa/"},
+			{IncludeRegexp: "^drivers/scsi/bnx2fc/"},
+			{IncludeRegexp: "^drivers/scsi/bnx2i/"},
+			{IncludeRegexp: "^drivers/scsi/cxgbi/cxgb3i$"},
+			{IncludeRegexp: "^drivers/scsi/cxgbi/cxgb4i$"},
+			{IncludeRegexp: "^drivers/scsi/cxlflash/|^include/uapi/scsi/cxlflash_ioctl\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/elx/"},
+			{IncludeRegexp: "^drivers/scsi/esas2r$"},
+			{IncludeRegexp: "^drivers/scsi/fcoe/|^drivers/scsi/libfc/|^include/scsi/fc/|^include/scsi/libfc\\.h$|^include/scsi/libfcoe\\.h$|^include/uapi/scsi/fc/"},
+			{IncludeRegexp: "^drivers/scsi/fnic/"},
+			{IncludeRegexp: "^drivers/scsi/hpsa[^/]*\\.\\[ch\\]$|^include/linux/cciss[^/]*\\.h$|^include/uapi/linux/cciss[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/ibmvscsi/ibmvfc[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/ibmvscsi/ibmvscsi[^/]*$|^include/scsi/viosrp\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/ibmvscsi_tgt/"},
+			{IncludeRegexp: "^drivers/scsi/ips[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/isci/"},
+			{IncludeRegexp: "^drivers/scsi/lpfc/"},
+			{IncludeRegexp: "^drivers/scsi/megaraid\\.[^/]*$|^drivers/scsi/megaraid/"},
+			{IncludeRegexp: "^drivers/scsi/mpi3mr/"},
+			{IncludeRegexp: "^drivers/scsi/myrb\\.[^/]*$|^drivers/scsi/myrs\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/pm8001/"},
+			{IncludeRegexp: "^drivers/scsi/pmcraid\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/scsi/qedf/"},
+			{IncludeRegexp: "^drivers/scsi/qedi/"},
+			{IncludeRegexp: "^drivers/scsi/qla1280\\.\\[ch\\]$"},
+			{IncludeRegexp: "^drivers/scsi/qla2xxx/"},
+			{IncludeRegexp: "^drivers/scsi/qla4xxx/"},
+			{IncludeRegexp: "^drivers/scsi/sg\\.c$|^include/scsi/sg\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/smartpqi/Kconfig$|^drivers/scsi/smartpqi/smartpqi[^/]*\\.\\[ch\\]$|^include/linux/cciss[^/]*\\.h$|^include/uapi/linux/cciss[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/snic/"},
+			{IncludeRegexp: "^drivers/scsi/st\\.[^/]*$|^drivers/scsi/st_[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/sym53c8xx_2/"},
+			{IncludeRegexp: "^drivers/scsi/vmw_pvscsi\\.c$|^drivers/scsi/vmw_pvscsi\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/xen-scsifront\\.c$|^drivers/xen/xen-scsiback\\.c$|^include/xen/interface/io/vscsiif\\.h$"},
+			{IncludeRegexp: "^drivers/scsi/|^drivers/ufs/|^include/scsi/"},
+			{IncludeRegexp: "^drivers/target/sbp/"},
+			{IncludeRegexp: "^drivers/target/target_core_user\\.c$|^include/uapi/linux/target_core_user\\.h$"},
+			{IncludeRegexp: "^drivers/target/|^include/target/"},
+			{IncludeRegexp: "^drivers/ufs/core/"},
+			{IncludeRegexp: "^drivers/ufs/host/[^/]*dwc[^/]*$"},
+			{IncludeRegexp: "^drivers/ufs/host/ufs-mediatek[^/]*$"},
+			{IncludeRegexp: "^drivers/ufs/host/ufs-renesas\\.c$"},
+			{IncludeRegexp: "^drivers/usb/storage/uas\\.c$"},
+		},
+	}
+
+	sctp = Subsystem{
+		Name:        "sctp",
+		Lists:       []string{"linux-sctp@vger.kernel.org"},
+		Maintainers: []string{"lucien.xin@gmail.com", "marcelo.leitner@gmail.com", "nhorman@tuxdriver.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/linux/sctp\\.h$|^include/net/sctp/|^include/uapi/linux/sctp\\.h$|^net/sctp/"},
+		},
+	}
+
+	selinux = Subsystem{
+		Name:        "selinux",
+		Lists:       []string{"selinux@vger.kernel.org"},
+		Maintainers: []string{"eparis@parisplace.org", "paul@paul-moore.com", "stephen.smalley.work@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/trace/events/avc\\.h$|^include/uapi/linux/selinux_netlink\\.h$|^security/selinux/"},
+		},
+	}
+
+	serial = Subsystem{
+		Name:    "serial",
+		Lists:   []string{"linux-serial@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/tty/serdev/|^include/linux/serdev\\.h$"},
+			{IncludeRegexp: "^drivers/tty/serial/"},
+			{IncludeRegexp: "^drivers/tty/serial/8250/8250_bcm7271\\.c$"},
+			{IncludeRegexp: "^drivers/tty/serial/8250[^/]*$|^include/linux/serial_8250\\.h$"},
+			{IncludeRegexp: "^drivers/tty/serial/altera_jtaguart\\.c$|^drivers/tty/serial/altera_uart\\.c$|^include/linux/altera_jtaguart\\.h$|^include/linux/altera_uart\\.h$"},
+			{IncludeRegexp: "^drivers/tty/serial/jsm/"},
+			{IncludeRegexp: "^drivers/tty/serial/rp2\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/tty/serial/uartlite\\.c$"},
+		},
+	}
+
+	sgx = Subsystem{
+		Name:        "sgx",
+		Lists:       []string{"linux-sgx@vger.kernel.org"},
+		Maintainers: []string{"jarkko@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/entry/vdso/vsgx\\.S$|^arch/x86/include/asm/sgx\\.h$|^arch/x86/include/uapi/asm/sgx\\.h$|^arch/x86/kernel/cpu/sgx/"},
+		},
+	}
+
+	sh = Subsystem{
+		Name:        "sh",
+		Lists:       []string{"linux-sh@vger.kernel.org"},
+		Maintainers: []string{"dalias@libc.org", "glaubitz@physik.fu-berlin.de", "ysato@users.sourceforge.jp"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/sh/|^drivers/sh/"},
+		},
+	}
+
+	snpsarc = Subsystem{
+		Name:        "snps-arc",
+		Lists:       []string{"linux-snps-arc@lists.infradead.org"},
+		Maintainers: []string{"vgupta@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arc/|^drivers/clocksource/arc_timer\\.c$|^drivers/tty/serial/arc_uart\\.c$"},
+		},
+	}
+
+	sof = Subsystem{
+		Name:        "sof",
+		Lists:       []string{"sound-open-firmware@alsa-project.org"},
+		Maintainers: []string{"daniel.baluta@nxp.com", "lgirdwood@gmail.com", "peter.ujfalusi@linux.intel.com", "pierre-louis.bossart@linux.intel.com", "ranjani.sridharan@linux.intel.com", "yung-chuan.liao@linux.intel.com"},
+		Parents:     []*Subsystem{&alsa},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^sound/soc/sof/"},
+		},
+	}
+
+	sparclinux = Subsystem{
+		Name:    "sparclinux",
+		Lists:   []string{"sparclinux@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/sparc/|^drivers/sbus/"},
+			{IncludeRegexp: "^drivers/tty/serial/suncore\\.c$|^drivers/tty/serial/sunhv\\.c$|^drivers/tty/serial/sunsab\\.c$|^drivers/tty/serial/sunsab\\.h$|^drivers/tty/serial/sunsu\\.c$|^drivers/tty/serial/sunzilog\\.c$|^drivers/tty/serial/sunzilog\\.h$|^drivers/tty/vcc\\.c$|^include/linux/sunserialcore\\.h$"},
+		},
+	}
+
+	speakup = Subsystem{
+		Name:        "speakup",
+		Lists:       []string{"speakup@linux-speakup.org"},
+		Maintainers: []string{"chris@the-brannons.com", "kirk@reisers.ca", "samuel.thibault@ens-lyon.org", "w.d.hubbs@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/accessibility/speakup/"},
+		},
+	}
+
+	spi = Subsystem{
+		Name:    "spi",
+		Lists:   []string{"linux-spi@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-at91-usart\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-dw[^/]*$"},
+			{IncludeRegexp: "^drivers/spi/spi-fsi\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-fsl-dspi\\.c$|^include/linux/spi/spi-fsl-dspi\\.h$"},
+			{IncludeRegexp: "^drivers/spi/spi-fsl-qspi\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-hisi-kunpeng\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-nxp-fspi\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-s3c[^/]*$|^include/linux/platform_data/spi-s3c64xx\\.h$|^include/linux/spi/s3c24xx-fiq\\.h$"},
+			{IncludeRegexp: "^drivers/spi/spi-stm32\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-sunplus-sp7021\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-synquacer\\.c$"},
+			{IncludeRegexp: "^drivers/spi/|^include/linux/spi/|^include/uapi/linux/spi/"},
+		},
+	}
+
+	spice = Subsystem{
+		Name:        "spice",
+		Lists:       []string{"spice-devel@lists.freedesktop.org"},
+		Maintainers: []string{"airlied@redhat.com", "kraxel@redhat.com"},
+		Parents:     []*Subsystem{&dri, &virt},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/gpu/drm/qxl/|^include/uapi/drm/qxl_drm\\.h$"},
+		},
+	}
+
+	squashfs = Subsystem{
+		Name:        "squashfs",
+		Syscalls:    []string{"syz_mount_image$squashfs"},
+		Lists:       []string{"squashfs-devel@lists.sourceforge.net"},
+		Maintainers: []string{"phillip@squashfs.org.uk"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/squashfs/"},
+		},
+	}
+
+	staging = Subsystem{
+		Name:        "staging",
+		Lists:       []string{"linux-staging@lists.linux.dev"},
+		Maintainers: []string{"gregkh@linuxfoundation.org"},
+		Parents:     []*Subsystem{&media},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/staging/"},
+		},
+	}
+
+	stm32 = Subsystem{
+		Name:        "stm32",
+		Lists:       []string{"linux-stm32@st-md-mailman.stormreply.com"},
+		Maintainers: []string{"alexandre.torgue@foss.st.com", "mcoquelin.stm32@gmail.com"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/stm32[^/]*$|^arch/arm/mach-stm32/|^drivers/clocksource/armv7m_systick\\.c$|stm32|stm"},
+		},
+	}
+
+	sunxi = Subsystem{
+		Name:        "sunxi",
+		Lists:       []string{"linux-sunxi@lists.linux.dev"},
+		Maintainers: []string{"jernej.skrabec@gmail.com", "samuel@sholland.org", "wens@csie.org"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/mach-sunxi/|^arch/arm64/boot/dts/allwinner/|^drivers/clk/sunxi-ng/|^drivers/pinctrl/sunxi/|^drivers/soc/sunxi/|allwinner|sun[x456789]i|sun50i"},
+		},
+	}
+
+	target = Subsystem{
+		Name:    "target",
+		Lists:   []string{"target-devel@vger.kernel.org"},
+		Parents: []*Subsystem{&scsi},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/infiniband/ulp/isert$"},
+			{IncludeRegexp: "^drivers/infiniband/ulp/srpt/"},
+			{IncludeRegexp: "^drivers/scsi/elx/"},
+			{IncludeRegexp: "^drivers/scsi/ibmvscsi_tgt/"},
+			{IncludeRegexp: "^drivers/target/sbp/"},
+			{IncludeRegexp: "^drivers/target/target_core_user\\.c$|^include/uapi/linux/target_core_user\\.h$"},
+			{IncludeRegexp: "^drivers/target/|^include/target/"},
+		},
+	}
+
+	tegra = Subsystem{
+		Name:    "tegra",
+		Lists:   []string{"linux-tegra@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "[^a-z]tegra"},
+			{IncludeRegexp: "^drivers/devfreq/tegra30-devfreq\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/tegra/|^drivers/gpu/host1x/|^include/linux/host1x\\.h$|^include/uapi/drm/tegra_drm\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/arm/arm-smmu/arm-smmu-nvidia\\.c$|^drivers/iommu/tegra[^/]*$"},
+			{IncludeRegexp: "^drivers/media/cec/platform/tegra/"},
+			{IncludeRegexp: "^drivers/media/platform/nvidia/tegra-vde/"},
+			{IncludeRegexp: "^drivers/pci/controller/pci-tegra\\.c$"},
+			{IncludeRegexp: "^drivers/spi/spi-tegra210-quad\\.c$"},
+			{IncludeRegexp: "^drivers/staging/media/tegra-video/"},
+			{IncludeRegexp: "^drivers/staging/nvec/"},
+		},
+	}
+
+	tipc = Subsystem{
+		Name:        "tipc",
+		Lists:       []string{"tipc-discussion@lists.sourceforge.net"},
+		Maintainers: []string{"jmaloy@redhat.com", "ying.xue@windriver.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^include/uapi/linux/tipc[^/]*\\.h$|^net/tipc/"},
+		},
+	}
+
+	tomoyo = Subsystem{
+		Name:        "tomoyo",
+		Lists:       []string{"tomoyo-dev-en@lists.osdn.me"},
+		Maintainers: []string{"penguin-kernel@I-love.SAKURA.ne.jp", "takedakn@nttdata.co.jp"},
+		Parents:     []*Subsystem{&lsm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^security/tomoyo/"},
+		},
+	}
+
+	trace = Subsystem{
+		Name:    "trace",
+		Lists:   []string{"linux-trace-kernel@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/proc/bootconfig\\.c$|^include/linux/bootconfig\\.h$|^lib/bootconfig-data\\.S$|^lib/bootconfig\\.c$"},
+			{IncludeRegexp: "^fs/tracefs/|^include/linux/trace[^/]*\\.h$|^include/trace/|^kernel/trace/"},
+			{IncludeRegexp: "^include/asm-generic/kprobes\\.h$|^include/linux/kprobes\\.h$|^kernel/kprobes\\.c$|^lib/test_kprobes\\.c$"},
+			{IncludeRegexp: "^kernel/trace/ftrace[^/]*$|^kernel/trace/fgraph\\.c$|^arch/[^/]*/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^arch/[^/]*/[^/]*/[^/]*ftrace[^/]*$|^include/[^/]*/ftrace\\.h$"},
+		},
+	}
+
+	uclinux = Subsystem{
+		Name:        "uclinux",
+		Lists:       []string{"uclinux-dev@uclinux.org"},
+		Maintainers: []string{"gerg@linux-m68k.org"},
+		Parents:     []*Subsystem{&m68k},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/m68k/[^/]*/[^/]*_no\\.[^/]*$|^arch/m68k/68[^/]*/|^arch/m68k/coldfire/|^arch/m68k/include/asm/[^/]*_no\\.[^/]*$"},
+		},
+	}
+
+	udf = Subsystem{
+		Name:        "udf",
+		Syscalls:    []string{"syz_mount_image$udf"},
+		Maintainers: []string{"jack@suse.com"},
+		Parents:     []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/udf/"},
+		},
+	}
+
+	um = Subsystem{
+		Name:        "um",
+		Lists:       []string{"linux-um@lists.infradead.org"},
+		Maintainers: []string{"anton.ivanov@cambridgegreys.com", "johannes@sipsolutions.net", "richard@nod.at"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/um/|^arch/x86/um/|^fs/hostfs/"},
+		},
+	}
+
+	unisoc = Subsystem{
+		Name:        "unisoc",
+		Lists:       []string{"linux-unisoc@lists.infradead.org"},
+		Maintainers: []string{"manivannan.sadhasivam@linaro.org"},
+		Parents:     []*Subsystem{&arm},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/boot/dts/rda8810pl-[^/]*$|^drivers/clocksource/timer-rda\\.c$|^drivers/gpio/gpio-rda\\.c$|^drivers/irqchip/irq-rda-intc\\.c$|^drivers/tty/serial/rda-uart\\.c$"},
+		},
+	}
+
+	usb = Subsystem{
+		Name:    "usb",
+		Lists:   []string{"linux-usb@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/usb[^/]*$|^drivers/usb/[^/]*/[^/]*omap[^/]*$"},
+			{IncludeRegexp: "^drivers/hid/usbhid/"},
+			{IncludeRegexp: "^drivers/net/usb/"},
+			{IncludeRegexp: "^drivers/net/usb/cdc_[^/]*\\.c$|^include/uapi/linux/usb/cdc\\.h$"},
+			{IncludeRegexp: "^drivers/net/usb/hso\\.c$"},
+			{IncludeRegexp: "^drivers/net/usb/pegasus\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/usb/rtl8150\\.c$"},
+			{IncludeRegexp: "^drivers/phy/hisilicon/phy-hi3660-usb3\\.c$"},
+			{IncludeRegexp: "^drivers/phy/hisilicon/phy-hi3670-usb3\\.c$"},
+			{IncludeRegexp: "^drivers/phy/sunplus/Kconfig$|^drivers/phy/sunplus/phy-sunplus-usb2\\.c$"},
+			{IncludeRegexp: "^drivers/staging/media/deprecated/zr364xx/"},
+			{IncludeRegexp: "^drivers/thunderbolt/dma_test\\.c$"},
+			{IncludeRegexp: "^drivers/thunderbolt/|^include/linux/thunderbolt\\.h$"},
+			{IncludeRegexp: "^drivers/usb/atm/speedtch\\.c$|^drivers/usb/atm/usbatm\\.c$"},
+			{IncludeRegexp: "^drivers/usb/c67x00/"},
+			{"^drivers/usb/cdns3/", "^drivers/usb/cdns3/cdns3[^/]*$"},
+			{"^drivers/usb/cdns3/", "^drivers/usb/cdns3/cdnsp[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/chipidea/"},
+			{IncludeRegexp: "^drivers/usb/class/cdc-acm\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/class/usblp\\.c$"},
+			{IncludeRegexp: "^drivers/usb/common/ulpi\\.c$|^include/linux/ulpi/"},
+			{IncludeRegexp: "^drivers/usb/common/usb-otg-fsm\\.c$"},
+			{IncludeRegexp: "^drivers/usb/dwc2/"},
+			{IncludeRegexp: "^drivers/usb/dwc3/"},
+			{IncludeRegexp: "^drivers/usb/fotg210/"},
+			{IncludeRegexp: "^drivers/usb/gadget/function/[^/]*uvc[^/]*$|^drivers/usb/gadget/legacy/webcam\\.c$|^include/uapi/linux/usb/g_uvc\\.h$"},
+			{IncludeRegexp: "^drivers/usb/gadget/legacy/raw_gadget\\.c$|^include/uapi/linux/usb/raw_gadget\\.h$"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/bcm63xx_udc\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/bdc/"},
+			{IncludeRegexp: "^drivers/usb/gadget/udc/fsl[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/ehci-brcm\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/ehci[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/isp116x[^/]*$|^include/linux/usb/isp116x\\.h$"},
+			{IncludeRegexp: "^drivers/usb/host/ohci[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/pci-quirks[^/]*$|^drivers/usb/host/xhci[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/uhci[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/host/xen[^/]*$|^include/xen/interface/io/usbif\\.h$"},
+			{IncludeRegexp: "^drivers/usb/host/xhci-mtk[^/]*$|^drivers/usb/mtu3/"},
+			{IncludeRegexp: "^drivers/usb/isp1760/"},
+			{IncludeRegexp: "^drivers/usb/misc/apple-mfi-fastcharge\\.c$"},
+			{IncludeRegexp: "^drivers/usb/misc/brcmstb-usb-pinmap\\.c$"},
+			{IncludeRegexp: "^drivers/usb/misc/chaoskey\\.c$"},
+			{IncludeRegexp: "^drivers/usb/misc/onboard_usb_hub\\.c$"},
+			{IncludeRegexp: "^drivers/usb/misc/usb251xb\\.c$"},
+			{IncludeRegexp: "^drivers/usb/musb/"},
+			{IncludeRegexp: "^drivers/usb/phy/phy-fsl-usb[^/]*$"},
+			{IncludeRegexp: "^drivers/usb/roles/intel-xhci-usb-role-switch\\.c$"},
+			{IncludeRegexp: "^drivers/usb/serial/|^include/linux/usb/serial\\.h$"},
+			{IncludeRegexp: "^drivers/usb/storage/"},
+			{IncludeRegexp: "^drivers/usb/storage/uas\\.c$"},
+			{IncludeRegexp: "^drivers/usb/typec/altmodes/|^include/linux/usb/typec_altmode\\.h$"},
+			{IncludeRegexp: "^drivers/usb/typec/mux/intel_pmc_mux\\.c$"},
+			{IncludeRegexp: "^drivers/usb/typec/mux/pi3usb30532\\.c$"},
+			{IncludeRegexp: "^drivers/usb/typec/tcpm/"},
+			{IncludeRegexp: "^drivers/usb/typec/|^include/linux/usb/typec\\.h$"},
+			{IncludeRegexp: "^drivers/usb/usbip/"},
+			{IncludeRegexp: "^drivers/usb/|^include/dt-bindings/usb/|^include/linux/usb\\.h$|^include/linux/usb/"},
+		},
+	}
+
+	usbstorage = Subsystem{
+		Name:        "usb-storage",
+		Lists:       []string{"usb-storage@lists.one-eyed-alien.net"},
+		Maintainers: []string{"stern@rowland.harvard.edu"},
+		Parents:     []*Subsystem{&usb},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/usb/storage/"},
+		},
+	}
+
+	video = Subsystem{
+		Name:        "video",
+		Lists:       []string{"linux-video@atrey.karlin.mff.cuni.cz"},
+		Maintainers: []string{"mj@ucw.cz"},
+		Parents:     []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/boot/video[^/]*$"},
+		},
+	}
+
+	virt = Subsystem{
+		Name:    "virt",
+		Lists:   []string{"virtualization@lists.linux-foundation.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/paravirt[^/]*\\.h$|^arch/[^/]*/kernel/paravirt[^/]*$|^include/linux/hypervisor\\.h$"},
+			{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
+			{IncludeRegexp: "^arch/x86/include/asm/vmware\\.h$|^arch/x86/kernel/cpu/vmware\\.c$"},
+			{IncludeRegexp: "^drivers/block/virtio_blk\\.c$|^drivers/crypto/virtio/|^drivers/net/virtio_net\\.c$|^drivers/vdpa/|^drivers/virtio/|^include/linux/vdpa\\.h$|^include/linux/virtio[^/]*\\.h$|^include/uapi/linux/virtio_[^/]*\\.h$"},
+			{IncludeRegexp: "^drivers/block/virtio_blk\\.c$|^drivers/scsi/virtio_scsi\\.c$|^drivers/vhost/scsi\\.c$|^include/uapi/linux/virtio_blk\\.h$|^include/uapi/linux/virtio_scsi\\.h$"},
+			{IncludeRegexp: "^drivers/char/virtio_console\\.c$|^include/linux/virtio_console\\.h$|^include/uapi/linux/virtio_console\\.h$"},
+			{IncludeRegexp: "^drivers/crypto/virtio/|^include/uapi/linux/virtio_crypto\\.h$"},
+			{IncludeRegexp: "^drivers/gpio/gpio-virtio\\.c$|^include/uapi/linux/virtio_gpio\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/qxl/|^include/uapi/drm/qxl_drm\\.h$"},
+			{IncludeRegexp: "^drivers/gpu/drm/tiny/bochs\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/tiny/cirrus\\.c$"},
+			{IncludeRegexp: "^drivers/gpu/drm/virtio/|^include/uapi/linux/virtio_gpu\\.h$"},
+			{IncludeRegexp: "^drivers/i2c/busses/i2c-virtio\\.c$|^include/uapi/linux/virtio_i2c\\.h$"},
+			{IncludeRegexp: "^drivers/iommu/virtio-iommu\\.c$|^include/uapi/linux/virtio_iommu\\.h$"},
+			{IncludeRegexp: "^drivers/net/vsockmon\\.c$|^include/net/af_vsock\\.h$|^include/uapi/linux/vm_sockets\\.h$|^include/uapi/linux/vm_sockets_diag\\.h$|^include/uapi/linux/vsockmon\\.h$|^net/vmw_vsock/"},
+			{IncludeRegexp: "^drivers/nvdimm/virtio_pmem\\.c$|^drivers/nvdimm/nd_virtio\\.c$"},
+			{IncludeRegexp: "^drivers/vhost/vsock\\.c$|^include/linux/virtio_vsock\\.h$|^include/uapi/linux/virtio_vsock\\.h$|^net/vmw_vsock/virtio_transport\\.c$|^net/vmw_vsock/virtio_transport_common\\.c$"},
+			{IncludeRegexp: "^drivers/vhost/|^include/linux/vhost_iotlb\\.h$|^include/uapi/linux/vhost\\.h$"},
+			{IncludeRegexp: "^drivers/virtio/virtio_balloon\\.c$|^include/uapi/linux/virtio_balloon\\.h$|^include/linux/balloon_compaction\\.h$|^mm/balloon_compaction\\.c$"},
+			{IncludeRegexp: "^drivers/virtio/virtio_mem\\.c$|^include/uapi/linux/virtio_mem\\.h$"},
+			{IncludeRegexp: "^fs/fuse/virtio_fs\\.c$|^include/uapi/linux/virtio_fs\\.h$"},
+			{IncludeRegexp: "^include/uapi/linux/virtio_snd\\.h$|^sound/virtio/"},
+		},
+	}
+
+	watchdog = Subsystem{
+		Name:    "watchdog",
+		Lists:   []string{"linux-watchdog@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/watchdog/ebc-c384_wdt\\.c$"},
+			{IncludeRegexp: "^drivers/watchdog/mena21_wdt\\.c$"},
+			{IncludeRegexp: "^drivers/watchdog/menz69_wdt\\.c$"},
+			{IncludeRegexp: "^drivers/watchdog/realtek_otto_wdt\\.c$"},
+			{IncludeRegexp: "^drivers/watchdog/sunplus_wdt\\.c$"},
+			{IncludeRegexp: "^drivers/watchdog/|^include/linux/watchdog\\.h$|^include/uapi/linux/watchdog\\.h$|^include/trace/events/watchdog\\.h$"},
+		},
+	}
+
+	wcn36xx = Subsystem{
+		Name:        "wcn36xx",
+		Lists:       []string{"wcn36xx@lists.infradead.org"},
+		Maintainers: []string{"loic.poulain@linaro.org"},
+		Parents:     []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/ath/wcn36xx/"},
+		},
+	}
+
+	wireguard = Subsystem{
+		Name:        "wireguard",
+		Lists:       []string{"wireguard@lists.zx2c4.com"},
+		Maintainers: []string{"Jason@zx2c4.com"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireguard/"},
+		},
+	}
+
+	wireless = Subsystem{
+		Name:     "wireless",
+		Syscalls: []string{"syz_80211_join_ibss", "syz_80211_inject_frame"},
+		Lists:    []string{"linux-wireless@vger.kernel.org"},
+		Parents:  []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/bcma/|^include/linux/bcma/"},
+			{IncludeRegexp: "^drivers/net/wireless/"},
+			{IncludeRegexp: "^drivers/net/wireless/admtek/adm8211\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/ar5523/"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/ath5k/"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/ath6kl/"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/ath9k/"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/carl9170/"},
+			{IncludeRegexp: "^drivers/net/wireless/ath/wil6210/"},
+			{IncludeRegexp: "^drivers/net/wireless/atmel/atmel[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wireless/broadcom/b43/"},
+			{IncludeRegexp: "^drivers/net/wireless/broadcom/b43legacy/"},
+			{IncludeRegexp: "^drivers/net/wireless/broadcom/brcm80211/"},
+			{IncludeRegexp: "^drivers/net/wireless/intel/ipw2x00/"},
+			{IncludeRegexp: "^drivers/net/wireless/intel/iwlegacy/"},
+			{IncludeRegexp: "^drivers/net/wireless/intel/iwlwifi/"},
+			{IncludeRegexp: "^drivers/net/wireless/intersil/hostap/"},
+			{IncludeRegexp: "^drivers/net/wireless/intersil/orinoco/"},
+			{IncludeRegexp: "^drivers/net/wireless/intersil/p54/"},
+			{IncludeRegexp: "^drivers/net/wireless/mac80211_hwsim\\.\\[ch\\]$|^include/net/mac80211\\.h$|^net/mac80211/"},
+			{IncludeRegexp: "^drivers/net/wireless/marvell/mwifiex/"},
+			{IncludeRegexp: "^drivers/net/wireless/marvell/mwl8k\\.c$"},
+			{IncludeRegexp: "^drivers/net/wireless/mediatek/mt76/"},
+			{IncludeRegexp: "^drivers/net/wireless/mediatek/mt7601u/"},
+			{IncludeRegexp: "^drivers/net/wireless/microchip/wilc1000/"},
+			{IncludeRegexp: "^drivers/net/wireless/purelifi/plfxlc/"},
+			{IncludeRegexp: "^drivers/net/wireless/quantenna$"},
+			{IncludeRegexp: "^drivers/net/wireless/ralink/rt2x00/"},
+			{IncludeRegexp: "^drivers/net/wireless/ray[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wireless/realtek/rtl818x/rtl8180/"},
+			{IncludeRegexp: "^drivers/net/wireless/realtek/rtl818x/rtl8187/"},
+			{IncludeRegexp: "^drivers/net/wireless/realtek/rtl8xxxu/"},
+			{IncludeRegexp: "^drivers/net/wireless/realtek/rtlwifi/"},
+			{IncludeRegexp: "^drivers/net/wireless/realtek/rtw88/"},
+			{IncludeRegexp: "^drivers/net/wireless/realtek/rtw89/"},
+			{IncludeRegexp: "^drivers/net/wireless/rndis_wlan\\.c$"},
+			{IncludeRegexp: "^drivers/net/wireless/rsi/"},
+			{IncludeRegexp: "^drivers/net/wireless/ti/"},
+			{IncludeRegexp: "^drivers/net/wireless/wl3501[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wireless/zydas/zd1201\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/net/wireless/zydas/zd1211rw/"},
+			{IncludeRegexp: "^drivers/nfc/trf7970a\\.c$"},
+			{IncludeRegexp: "^drivers/ssb/|^include/linux/ssb/"},
+			{IncludeRegexp: "^include/linux/ieee80211\\.h$|^include/net/cfg80211\\.h$|^include/net/ieee80211_radiotap\\.h$|^include/net/iw_handler\\.h$|^include/net/wext\\.h$|^include/uapi/linux/nl80211\\.h$|^include/uapi/linux/wireless\\.h$|^net/wireless/"},
+			{IncludeRegexp: "^include/linux/rfkill\\.h$|^include/uapi/linux/rfkill\\.h$|^net/rfkill/"},
+		},
+	}
+
+	wpan = Subsystem{
+		Name:    "wpan",
+		Lists:   []string{"linux-wpan@vger.kernel.org"},
+		Parents: []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/ieee802154/adf7242\\.c$"},
+			{IncludeRegexp: "^drivers/net/ieee802154/at86rf230\\.h$|^drivers/net/ieee802154/atusb\\.c$|^drivers/net/ieee802154/atusb\\.h$"},
+			{IncludeRegexp: "^drivers/net/ieee802154/ca8210\\.c$"},
+			{IncludeRegexp: "^drivers/net/ieee802154/cc2520\\.c$|^include/linux/spi/cc2520\\.h$"},
+			{IncludeRegexp: "^drivers/net/ieee802154/mcr20a\\.c$|^drivers/net/ieee802154/mcr20a\\.h$"},
+			{IncludeRegexp: "^drivers/net/ieee802154/mrf24j40\\.c$"},
+			{IncludeRegexp: "^drivers/net/ieee802154/|^include/linux/ieee802154\\.h$|^include/linux/nl802154\\.h$|^include/net/af_ieee802154\\.h$|^include/net/cfg802154\\.h$|^include/net/ieee802154_netdev\\.h$|^include/net/mac802154\\.h$|^include/net/nl802154\\.h$|^net/ieee802154/|^net/mac802154/"},
+			{IncludeRegexp: "^include/net/6lowpan\\.h$|^net/6lowpan/"},
+		},
+	}
+
+	x25 = Subsystem{
+		Name:        "x25",
+		Lists:       []string{"linux-x25@vger.kernel.org"},
+		Maintainers: []string{"ms@dev.tdt.de"},
+		Parents:     []*Subsystem{&net},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wan/hdlc_x25\\.c$|^drivers/net/wan/lapbether\\.c$|^include/[^/]*/lapb\\.h$|^include/net/x25[^/]*$|^include/uapi/linux/x25\\.h$|^net/lapb/|^net/x25/"},
+		},
+	}
+
+	x86 = Subsystem{
+		Name:    "x86",
+		Lists:   []string{"x86@kernel.org"},
+		Parents: []*Subsystem{&virt},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/paravirt[^/]*\\.h$|^arch/[^/]*/kernel/paravirt[^/]*$|^include/linux/hypervisor\\.h$"},
+			{IncludeRegexp: "^arch/x86/include/asm/vmware\\.h$|^arch/x86/kernel/cpu/vmware\\.c$"},
+			{IncludeRegexp: "^arch/x86/platform$"},
+		},
+	}
+
+	x86drivers = Subsystem{
+		Name:    "x86-drivers",
+		Lists:   []string{"platform-driver-x86@vger.kernel.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/x86/include/asm/amd_hsmp\\.h$|^arch/x86/include/uapi/asm/amd_hsmp\\.h$|^drivers/platform/x86/amd/hsmp\\.c$"},
+			{IncludeRegexp: "^arch/x86/include/asm/intel_punit_ipc\\.h$|^drivers/platform/x86/intel/punit_ipc\\.c$"},
+			{IncludeRegexp: "^arch/x86/include/asm/intel_telemetry\\.h$|^drivers/platform/x86/intel/telemetry/"},
+			{IncludeRegexp: "^arch/x86/platform$"},
+			{IncludeRegexp: "^drivers/char/sonypi\\.c$|^drivers/platform/x86/sony-laptop\\.c$|^include/linux/sony-laptop\\.h$"},
+			{IncludeRegexp: "^drivers/hid/surface-hid/"},
+			{IncludeRegexp: "^drivers/input/touchscreen/silead\\.c$|^drivers/platform/x86/touchscreen_dmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/mellanox/|^include/linux/platform_data/mlxreg\\.h$"},
+			{IncludeRegexp: "^drivers/platform/olpc/|^drivers/platform/x86/"},
+			{IncludeRegexp: "^drivers/platform/surface/"},
+			{IncludeRegexp: "^drivers/platform/surface/aggregator/|^drivers/platform/surface/surface_acpi_notify\\.c$|^drivers/platform/surface/surface_aggregator_cdev\\.c$|^drivers/platform/surface/surface_aggregator_registry\\.c$|^include/linux/surface_acpi_notify\\.h$|^include/linux/surface_aggregator/|^include/uapi/linux/surface_aggregator/"},
+			{IncludeRegexp: "^drivers/platform/surface/surface_aggregator_hub\\.c$"},
+			{IncludeRegexp: "^drivers/platform/surface/surface_aggregator_tabletsw\\.c$"},
+			{IncludeRegexp: "^drivers/platform/surface/surface_dtx\\.c$|^include/uapi/linux/surface_aggregator/dtx\\.h$"},
+			{IncludeRegexp: "^drivers/platform/surface/surface_gpe\\.c$"},
+			{IncludeRegexp: "^drivers/platform/surface/surface_hotplug\\.c$"},
+			{IncludeRegexp: "^drivers/platform/surface/surface_platform_profile\\.c$"},
+			{IncludeRegexp: "^drivers/platform/surface/surfacepro3_button\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/acer-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/acerhdf\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/adv_swbutton\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/amd/pmc\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/amd/pmf/"},
+			{IncludeRegexp: "^drivers/platform/x86/asus-tf103c-dock\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/asus-wireless\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/asus[^/]*\\.c$|^drivers/platform/x86/eeepc[^/]*\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/classmate-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/compal-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dcdbas\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-smm\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-smbios\\.[^/]*$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-privacy\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell-wmi-sysman/"},
+			{IncludeRegexp: "^drivers/platform/x86/dell/dell_rbu\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/fujitsu-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/fujitsu-tablet\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/gigabyte-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/gpd-pocket-fan\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/hdaps\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/hp/tc1100-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/ideapad-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/atomisp2/led\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/atomisp2/pm\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/hid\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/int1092/"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/ishtp_eclite\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/pmc/"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/speed_select_if/|^include/uapi/linux/isst_if\\.h$"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/uncore-frequency/"},
+			{IncludeRegexp: "^drivers/platform/x86/intel/vbtn\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/lg-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/mlx-platform\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/msi-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/msi-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/nvidia-wmi-ec-backlight\\.c$|^include/linux/platform_data/x86/nvidia-wmi-ec-backlight\\.h$"},
+			{IncludeRegexp: "^drivers/platform/x86/panasonic-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/peaq-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/samsung-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/serial-multi-instantiate\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/system76_acpi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/think-lmi\\..$"},
+			{IncludeRegexp: "^drivers/platform/x86/thinkpad_acpi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/topstar-laptop\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/toshiba-wmi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/toshiba_acpi\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/toshiba_bluetooth\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/toshiba_haps\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/uv_sysfs\\.c$"},
+			{IncludeRegexp: "^drivers/platform/x86/wmi\\.c$|^include/uapi/linux/wmi\\.h$"},
+			{IncludeRegexp: "^drivers/platform/x86/x86-android-tablets\\.c$"},
+			{IncludeRegexp: "^drivers/power/supply/surface_battery\\.c$|^drivers/power/supply/surface_charger\\.c$"},
+		},
+	}
+
+	xen = Subsystem{
+		Name:    "xen",
+		Lists:   []string{"xen-devel@lists.xenproject.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/[^/]*/include/asm/xen/swiotlb-xen\\.h$|^drivers/xen/swiotlb-xen\\.c$|^include/xen/arm/swiotlb-xen\\.h$|^include/xen/swiotlb-xen\\.h$"},
+			{IncludeRegexp: "^arch/arm/include/asm/xen/|^arch/arm/xen/"},
+			{IncludeRegexp: "^arch/arm64/include/asm/xen/|^arch/arm64/xen/"},
+			{IncludeRegexp: "^arch/x86/configs/xen\\.config$|^arch/x86/include/asm/pvclock-abi\\.h$|^arch/x86/include/asm/xen/|^arch/x86/platform/pvh/|^arch/x86/xen/"},
+			{IncludeRegexp: "^arch/x86/pci/[^/]*xen[^/]*$|^drivers/pci/[^/]*xen[^/]*$"},
+			{IncludeRegexp: "^drivers/[^/]*/xen-[^/]*front\\.c$|^drivers/xen/|^include/uapi/xen/|^include/xen/|^kernel/configs/xen\\.config$"},
+			{IncludeRegexp: "^drivers/block/xen[^/]*$|^drivers/block/xen-blkback/"},
+			{IncludeRegexp: "^drivers/gpu/drm/xen/"},
+			{IncludeRegexp: "^drivers/net/xen-netback/"},
+			{IncludeRegexp: "^drivers/scsi/xen-scsifront\\.c$|^drivers/xen/xen-scsiback\\.c$|^include/xen/interface/io/vscsiif\\.h$"},
+			{IncludeRegexp: "^drivers/usb/host/xen[^/]*$|^include/xen/interface/io/usbif\\.h$"},
+			{IncludeRegexp: "^sound/xen/"},
+		},
+	}
+
+	xfs = Subsystem{
+		Name:     "xfs",
+		Syscalls: []string{"syz_mount_image$xfs"},
+		Lists:    []string{"linux-xfs@vger.kernel.org"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/iomap/|^include/linux/iomap\\.h$"},
+			{IncludeRegexp: "^fs/xfs/|^include/uapi/linux/dqblk_xfs\\.h$|^include/uapi/linux/fsmap\\.h$"},
+		},
+	}
+
+	xtensa = Subsystem{
+		Name:    "xtensa",
+		Lists:   []string{"linux-xtensa@linux-xtensa.org"},
+		Parents: []*Subsystem{&kernel},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^arch/xtensa/|^drivers/irqchip/irq-xtensa-[^/]*$"},
+			{IncludeRegexp: "^drivers/spi/spi-xtensa-xtfpga\\.c$|^sound/soc/xtensa/xtfpga-i2s\\.c$"},
+		},
+	}
+
+	zd1211 = Subsystem{
+		Name:        "zd1211",
+		Lists:       []string{"zd1211-devs@lists.sourceforge.net"},
+		Maintainers: []string{"kune@deine-taler.de"},
+		Parents:     []*Subsystem{&wireless},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^drivers/net/wireless/zydas/zd1211rw/"},
+		},
+	}
+
+	return []*Subsystem{
+		&_9p, &ac100, &accelerators, &acpi, &acpi4asus, &acpica, &acrn, &actions, &afs, &alpha, &alsa, &amdgfx, &amlogic, &apparmor, &arch, &arm, &armmsm, &asahi, &aspeed, &ath10k, &ath11k, &atm, &audit, &autofs, &axis, &b43, &batman, &bcache, &bfs, &block, &bluetooth, &bpf, &brcm80211, &bridge, &btrfs, &cachefs, &can, &ceph, &cgroups, &chrome, &cifs, &cirrus, &clk, &cluster, &coda, &coresight, &crypto, &csky, &cxl, &damon, &dccp, &dell, &devicetree, &dm, &dmaengine, &drbd, &dri, &ecryptfs, &edac, &efi, &erofs, &etnaviv, &ext4, &f2fs, &fat, &fbdev, &fpga, &freedreno, &fs, &fscrypt, &fsi, &fsverity, &fuse, &geode, &gpio, &greybus, &hams, &hardening, &hexagon, &hfs, &hippi, &hwmon, &hyperv, &i2c, &i3c, &ia64, &ide, &iio, &imx, &input, &integrity, &intelgfx, &intelgvt, &intelwiredlan, &iouring, &iommu, &ipack, &isdn4linux, &isofs, &jfs, &karma, &kasan, &kernel, &kernfs, &kexec, &keyrings, &kgdb, &kunit, &kvm, &kvmriscv, &kvmarm, &leds, &libertas, &lima, &linux1394, &linuxppc, &linuxpps, &livepatching, &llvm, &loongarch, &lsm, &lvs, &m68k, &malidp, &media, &mediatek, &megaraid, &mhi, &mips, &mjpeg, &mm, &mmc, &modules, &mpi3, &mptfusion, &mptcp, &mtd, &nbd, &net, &netfilter, &nfc, &nfs, &nilfs, &nitro, &nouveau, &ntb, &ntfs, &ntfs3, &nvdimm, &nvme, &ocfs2, &omap, &optee, &openiscsi, &openbmc, &openipmi, &openrisc, &openvswitch, &openwrt, &orangefs, &ossdrivers, &overlayfs, &oxnas, &parisc, &parport, &pci, &perf, &phy, &pm, &ppp, &pvrusb2, &pwm, &qat, &raid, &rcu, &rdma, &rds, &reiserfs, &remoteproc, &renesassoc, &riscv, &rockchip, &rpi, &rttools, &rtc, &rust, &s390, &samsungsoc, &scsi, &sctp, &selinux, &serial, &sgx, &sh, &snpsarc, &sof, &sparclinux, &speakup, &spi, &spice, &squashfs, &staging, &stm32, &sunxi, &target, &tegra, &tipc, &tomoyo, &trace, &uclinux, &udf, &um, &unisoc, &usb, &usbstorage, &video, &virt, &watchdog, &wcn36xx, &wireguard, &wireless, &wpan, &x25, &x86, &x86drivers, &xen, &xfs, &xtensa, &zd1211,
+	}
+
 }
