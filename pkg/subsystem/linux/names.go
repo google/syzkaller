@@ -16,6 +16,19 @@ import (
 func setSubsystemNames(list []*subsystem.Subsystem) error {
 	dups := map[string]bool{}
 	for _, item := range list {
+		if item.Name == "" {
+			continue
+		}
+		if dups[item.Name] {
+			return fmt.Errorf("duplicate name: %s", item.Name)
+		}
+		dups[item.Name] = true
+	}
+
+	for _, item := range list {
+		if item.Name != "" {
+			continue
+		}
 		// For now, we can only infer name from the list email.
 		if len(item.Lists) == 0 {
 			return fmt.Errorf("no lists for %#v", item)
