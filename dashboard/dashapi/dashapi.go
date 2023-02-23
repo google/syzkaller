@@ -419,8 +419,9 @@ type ReportElements struct {
 }
 
 type BugSubsystem struct {
-	Name string
-	Link string
+	Name  string
+	Link  string
+	SetBy string
 }
 
 type Asset struct {
