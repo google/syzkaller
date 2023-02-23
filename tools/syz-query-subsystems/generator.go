@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -20,7 +21,7 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commitInfo
 	// Set names first -- we'll need them for filling in the Parents array.
 	objToName := map[*subsystem.Subsystem]string{}
 	for _, entry := range list {
-		varName := makeVarRegexp.ReplaceAllString(strings.ToLower(entry.Name), "")
+		varName := getVarName(entry)
 		if varName == "" {
 			return nil, fmt.Errorf("failed to get a var name for %#v", entry.Name)
 		}
@@ -73,6 +74,17 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commitInfo
 	return format.Source(b.Bytes())
 }
 
+func getVarName(entry *subsystem.Subsystem) string {
+	varName := makeVarRegexp.ReplaceAllString(strings.ToLower(entry.Name), "")
+	if varName == "" {
+		return ""
+	}
+	if unicode.IsDigit(rune(varName[0])) {
+		return "_" + varName
+	}
+	return varName
+}
+
 func hierarchyList(list []*subsystem.Subsystem) []string {
 	children := map[*subsystem.Subsystem][]*subsystem.Subsystem{}
 	for _, entry := range list {
@@ -96,7 +108,7 @@ func hierarchyList(list []*subsystem.Subsystem) []string {
 	return ret
 }
 
-var makeVarRegexp = regexp.MustCompile(`[^\w]|^([^a-z]+)`)
+var makeVarRegexp = regexp.MustCompile(`[^\w]|^([^a-z0-9]+)`)
 
 type templateSubsystem struct {
 	VarName     string
@@ -125,7 +137,7 @@ package lists
 import . "github.com/google/syzkaller/pkg/subsystem"
 
 func init() {
-  RegisterList("{{.Name}}", subsystems)
+  RegisterList("{{.Name}}", subsystems_{{.Name}}())
 }
 
 // The subsystem list:
@@ -133,13 +145,14 @@ func init() {
 // {{.}}
 {{- end}}
 
-var subsystems = []*Subsystem{
-{{range .List}} {{.VarName}}, {{- end}}
-}
+func subsystems_{{.Name}}() []*Subsystem{
+var {{range $i, $item := .List}}
+{{- if gt $i 0}}, {{end}}
+{{- .VarName}}
+{{- end}} Subsystem
 
-// Subsystem info.
 {{range .List}}
-var {{.VarName}} = &Subsystem{
+{{.VarName}} = Subsystem{
  Name: {{.Name}},
 {{- if .Syscalls}}
  Syscalls: {{.Syscalls}},
@@ -151,9 +164,15 @@ var {{.VarName}} = &Subsystem{
  Maintainers: {{.Maintainers}},
 {{- end}}
 {{- if .Parents}}
- Parents: []*Subsystem{ {{range .Parents}} {{.}}, {{end}} },
+ Parents: []*Subsystem{ {{range .Parents}} &{{.}}, {{end}} },
 {{- end}}
  PathRules: {{.PathRules}},
 }
 {{end}}
+
+return  []*Subsystem{
+{{range .List}} &{{.VarName}}, {{- end}}
+}
+
+}
 `
