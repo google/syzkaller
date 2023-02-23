@@ -30,9 +30,9 @@ var (
 			"ext4":      {"syz_mount_image$ext4"},
 			"f2fs":      {"syz_mount_image$f2fs"},
 			"fat":       {"syz_mount_image$msdos", "syz_mount_image$vfat"},
+			"fuse":      {"syz_fuse_handle_req"},
 			"gfs2":      {"syz_mount_image$gfs2", "syz_mount_image$gfs2meta"},
-			"hfs":       {"syz_mount_image$hfs"},
-			"hfsplus":   {"syz_mount_image$hfsplus"},
+			"hfs":       {"syz_mount_image$hfs", "syz_mount_image$hfsplus"},
 			"hpfs":      {"syz_mount_image$hpfs"},
 			"io-uring":  {"syz_io_uring_setup"},
 			"iso9660":   {"syz_mount_image$iso9660"},
@@ -67,6 +67,12 @@ var (
 			"coreteam@netfilter.org":           {},
 			"SHA-cyfmac-dev-list@infineon.com": {},
 		},
-		extraSubsystems: map[string][]string{},
+		extraSubsystems: map[string][]string{
+			"bfs":    {"BFS FILE SYSTEM"},
+			"fuse":   {"FUSE: FILESYSTEM IN USERSPACE"},
+			"hfs":    {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
+			"kernfs": {"KERNFS"},
+			"udf":    {"UDF FILESYSTEM"},
+		},
 	}
 )
