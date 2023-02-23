@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/vm/proxyapp/mocks"
 	"github.com/google/syzkaller/vm/proxyapp/proxyrpc"
+	"github.com/stretchr/testify/mock"
 )
 
 var (
@@ -49,7 +50,12 @@ type mockProxyAppInterface struct {
 	OnLogsReceived chan bool
 }
 
-func makeMockProxyAppInterface(t mocks.NewProxyAppInterfaceT) *mockProxyAppInterface {
+type tNewProxyAppInterface interface {
+	mock.TestingT
+	Cleanup(func())
+}
+
+func makeMockProxyAppInterface(t tNewProxyAppInterface) *mockProxyAppInterface {
 	return &mockProxyAppInterface{
 		ProxyAppInterface: mocks.NewProxyAppInterface(t),
 		OnLogsReceived:    make(chan bool, 1), // 1 is enough as we read it just once
