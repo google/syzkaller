@@ -109,6 +109,31 @@ the supplied patch.
 
 **Note**: see [below](#usb-bugs) for `USB` bugs testing.
 
+## Subsystems
+
+For all its bugs, `syzbot` automatically assigns kernel subsystems tags. For Linux,
+the predefined list of kernel subsystems can be found at
+https://syzkaller.appspot.com/upstream/subsystems.
+
+By clicking on a name in the subsystem list or by following a tag after a bug's
+title, you can get the full list of bugs belonging to the subsystem. For example,
+all `nfc` bugs are listed here: https://syzkaller.appspot.com/upstream/s/nfc.
+
+`syzbot` includes subsystem tags into email subject as well, with `?` indicating
+that it's an automatic guess: `[syzbot] [ntfs?] kernel BUG in ntfs_iget`.
+
+Over time, as we improve the classification rules or as syzbot obtains more
+information about the bug (e.g. finds a reproducer), `syzbot` will update tags.
+
+You can also manually override the automatic guess by replying to the `syzbot` email:
+
+```
+#syz set subsystems: net, mm
+```
+
+Names of subsystems must be taken from the subsystem list page on the syzbot web
+dashboard.
+
 <div id="amend"/>
 <div id="linux-next"/>
 
