@@ -3,7 +3,8 @@
 
 package stats
 
-import "golang.org/x/perf/benchstat"
+// TODO: I didn't find the substitution as of Feb 2023. Let's keep it as is while it works.
+import "golang.org/x/perf/benchstat" // nolint:all
 
 // Mann-Whitney U test.
 func UTest(old, new *Sample) (pval float64, err error) {
