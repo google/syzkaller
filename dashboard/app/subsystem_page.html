@@ -21,6 +21,13 @@ The list of polled trees.
 		<b>Maintainer(s):</b> {{.Info.Maintainers}}<br>
 	{{end}}
 	<b>Fixed bugs:</b> {{link .Info.Fixed.Link (printf "%d" .Info.Fixed.Count)}}<br>
+	{{if .Parents}}
+	<b>Parent subsystem(s):</b>
+		{{range .Parents}}
+			{{link .Open.Link .Name}} ({{.Open.Count}})
+		{{end}}
+		<br>
+	{{end}}
 	{{if .Children}}
 	<b>Child subsystems:</b>
 		{{range .Children}}
