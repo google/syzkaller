@@ -32,7 +32,7 @@ func handlerWrapper(fn contextHandler) http.Handler {
 func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
-		c = context.WithValue(c, currentURLKey, r.URL.RequestURI())
+		c = context.WithValue(c, &currentURLKey, r.URL.RequestURI())
 		if err := fn(c, w, r); err != nil {
 			hdr := commonHeaderRaw(c, r)
 			data := &struct {
@@ -74,10 +74,10 @@ func handleContext(fn contextHandler) http.Handler {
 	})
 }
 
-const currentURLKey = "current_url"
+var currentURLKey = "the URL of the HTTP request in context"
 
 func getCurrentURL(c context.Context) string {
-	val, ok := c.Value(currentURLKey).(string)
+	val, ok := c.Value(&currentURLKey).(string)
 	if ok {
 		return val
 	}
