@@ -20,7 +20,7 @@ Page with details about a single bug.
 		Subsystems: {{range .Subsystems}}
 			<span class="subsystem">{{link .Link .Name}}</span>
 		{{- end}}
-		<br>
+		<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#subsystems">(incorrect?)</a><br>
 	{{- end}}
 	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{if .Bug.Commits}}
