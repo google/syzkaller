@@ -151,6 +151,7 @@ type uiSubsystemPage struct {
 	Header   *uiHeader
 	Info     *uiSubsystem
 	Children []*uiSubsystem
+	Parents  []*uiSubsystem
 	Groups   []*uiBugGroup
 }
 
@@ -482,13 +483,22 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	}
 	children := []*uiSubsystem{}
 	for _, item := range service.Children(subsystem) {
-		children = append(children, createUISubsystem(hdr.Namespace, item, cached))
+		uiChild := createUISubsystem(hdr.Namespace, item, cached)
+		if uiChild.Open.Count+uiChild.Fixed.Count == 0 {
+			continue
+		}
+		children = append(children, uiChild)
+	}
+	parents := []*uiSubsystem{}
+	for _, item := range subsystem.Parents {
+		parents = append(parents, createUISubsystem(hdr.Namespace, item, cached))
 	}
 	sort.Slice(children, func(i, j int) bool { return children[i].Name < children[j].Name })
 	return serveTemplate(w, "subsystem_page.html", &uiSubsystemPage{
 		Header:   hdr,
 		Info:     createUISubsystem(hdr.Namespace, subsystem, cached),
 		Children: children,
+		Parents:  parents,
 		Groups:   groups,
 	})
 }
