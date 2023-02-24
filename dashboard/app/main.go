@@ -158,8 +158,8 @@ type uiSubsystemsPage struct {
 	Header       *uiHeader
 	List         []*uiSubsystem
 	Unclassified *uiSubsystem
-	NonEmpty     bool
-	EmptyURL     string
+	SomeHidden   bool
+	ShowAllURL   string
 }
 
 type uiSubsystem struct {
@@ -861,9 +861,11 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	nonEmpty := r.FormValue("all") != "true"
 	list := []*uiSubsystem{}
+	someHidden := false
 	for _, item := range service.List() {
 		record := createUISubsystem(hdr.Namespace, item, cached)
 		if nonEmpty && (record.Open.Count+record.Fixed.Count) == 0 {
+			someHidden = true
 			continue
 		}
 		list = append(list, record)
@@ -884,8 +886,8 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		Header:       hdr,
 		List:         list,
 		Unclassified: unclassified,
-		NonEmpty:     nonEmpty,
-		EmptyURL:     html.AmendURL(getCurrentURL(c), "all", "true"),
+		SomeHidden:   someHidden,
+		ShowAllURL:   html.AmendURL(getCurrentURL(c), "all", "true"),
 	})
 }
 
