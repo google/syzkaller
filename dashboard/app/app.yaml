@@ -1,7 +1,7 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-runtime: go116
+runtime: go119
 app_engine_apis: true
 
 # With the default f1 setting, the app episodically crashes with:
