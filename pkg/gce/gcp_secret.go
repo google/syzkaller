@@ -7,7 +7,7 @@ import (
 	"context"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 )
 
 // GcpSecret returns the GCP Secret Manager blob as a []byte data.

@@ -9,6 +9,8 @@ import (
 	"regexp/syntax"
 	"strconv"
 	"strings"
+
+	"golang.org/x/exp/typeparams"
 )
 
 var invalidType = types.Typ[types.Invalid]
@@ -294,4 +296,9 @@ func identOf(e ast.Expr) *ast.Ident {
 	default:
 		return nil
 	}
+}
+
+func isTypeParam(typ types.Type) bool {
+	_, ok := typ.(*typeparams.TypeParam)
+	return ok
 }

@@ -3,6 +3,7 @@
 
 // syz-check does best-effort static correctness checking of the syscall descriptions in sys/os/*.txt.
 // Use:
+//
 //	$ go install ./tools/syz-check
 //	$ syz-check -obj-amd64 /linux_amd64/vmlinux -obj-arm64 /linux_arm64/vmlinux \
 //		-obj-386 /linux_386/vmlinux -obj-arm /linux_arm/vmlinux

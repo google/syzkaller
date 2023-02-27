@@ -558,8 +558,9 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	rep.NoRepro = build.Type == BuildFailed
 	for _, item := range bug.Tags.Subsystems {
 		rep.Subsystems = append(rep.Subsystems, dashapi.BugSubsystem{
-			Name: item.Name,
-			Link: fmt.Sprintf("%v/%s/s/%s", appURL(c), bug.Namespace, item.Name),
+			Name:  item.Name,
+			SetBy: item.SetBy,
+			Link:  fmt.Sprintf("%v/%s/s/%s", appURL(c), bug.Namespace, item.Name),
 		})
 		rep.Maintainers = email.MergeEmailLists(rep.Maintainers,
 			subsystemMaintainers(c, rep.Namespace, item.Name))

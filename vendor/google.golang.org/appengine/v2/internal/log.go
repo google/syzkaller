@@ -108,7 +108,7 @@ func chunkLog(msg string) []string {
 }
 
 func traceAndSpan(c *context) (string, string) {
-	headers := c.req.Header["Cloud-Trace-Context"]
+	headers := c.req.Header["X-Cloud-Trace-Context"]
 	if len(headers) < 1 {
 		return "", ""
 	}

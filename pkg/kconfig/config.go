@@ -36,7 +36,7 @@ const (
 	prefix = "CONFIG_"
 )
 
-//  Value returns config value, or No if it's not present at all.
+// Value returns config value, or No if it's not present at all.
 func (cf *ConfigFile) Value(name string) string {
 	cfg := cf.Map[name]
 	if cfg == nil {

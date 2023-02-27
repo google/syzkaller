@@ -7,8 +7,10 @@
 // syz-trace2syz converts strace traces to syzkaller programs.
 //
 // Simple usage:
+//
 //	strace -o trace -a 1 -s 65500 -v -xx -f -Xraw ./a.out
 //	syz-trace2syz -file trace
+//
 // Intended for seed selection or debugging
 package main
 

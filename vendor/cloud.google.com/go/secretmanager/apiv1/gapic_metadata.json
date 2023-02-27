@@ -86,6 +86,86 @@
               ]
             }
           }
+        },
+        "rest": {
+          "libraryClient": "Client",
+          "rpcs": {
+            "AccessSecretVersion": {
+              "methods": [
+                "AccessSecretVersion"
+              ]
+            },
+            "AddSecretVersion": {
+              "methods": [
+                "AddSecretVersion"
+              ]
+            },
+            "CreateSecret": {
+              "methods": [
+                "CreateSecret"
+              ]
+            },
+            "DeleteSecret": {
+              "methods": [
+                "DeleteSecret"
+              ]
+            },
+            "DestroySecretVersion": {
+              "methods": [
+                "DestroySecretVersion"
+              ]
+            },
+            "DisableSecretVersion": {
+              "methods": [
+                "DisableSecretVersion"
+              ]
+            },
+            "EnableSecretVersion": {
+              "methods": [
+                "EnableSecretVersion"
+              ]
+            },
+            "GetIamPolicy": {
+              "methods": [
+                "GetIamPolicy"
+              ]
+            },
+            "GetSecret": {
+              "methods": [
+                "GetSecret"
+              ]
+            },
+            "GetSecretVersion": {
+              "methods": [
+                "GetSecretVersion"
+              ]
+            },
+            "ListSecretVersions": {
+              "methods": [
+                "ListSecretVersions"
+              ]
+            },
+            "ListSecrets": {
+              "methods": [
+                "ListSecrets"
+              ]
+            },
+            "SetIamPolicy": {
+              "methods": [
+                "SetIamPolicy"
+              ]
+            },
+            "TestIamPermissions": {
+              "methods": [
+                "TestIamPermissions"
+              ]
+            },
+            "UpdateSecret": {
+              "methods": [
+                "UpdateSecret"
+              ]
+            }
+          }
         }
       }
     }

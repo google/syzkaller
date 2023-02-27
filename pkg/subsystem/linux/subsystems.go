@@ -30,6 +30,11 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, 
 		extraRules: rules,
 	}
 	list := ctx.groupByList()
+	extraList, err := ctx.groupByRules()
+	if err != nil {
+		return nil, err
+	}
+	list = append(list, extraList...)
 	matrix, err := BuildCoincidenceMatrix(root, list, dropPatterns)
 	if err != nil {
 		return nil, err
@@ -86,13 +91,37 @@ func (ctx *linuxCtx) groupByList() []*subsystem.Subsystem {
 		if _, skip := exclude[email]; skip {
 			continue
 		}
-		s := mergeRawRecords(email, list)
+		s := mergeRawRecords(list, email)
 		// Skip empty subsystems.
 		if len(s.PathRules) > 0 {
 			ret = append(ret, s)
 		}
 	}
 	return ret
+}
+
+func (ctx *linuxCtx) groupByRules() ([]*subsystem.Subsystem, error) {
+	if ctx.extraRules == nil {
+		return nil, nil
+	}
+	perName := map[string]*maintainersRecord{}
+	for _, item := range ctx.rawRecords {
+		perName[item.name] = item
+	}
+	ret := []*subsystem.Subsystem{}
+	for name, recordNames := range ctx.extraRules.extraSubsystems {
+		matching := []*maintainersRecord{}
+		for _, recordName := range recordNames {
+			if perName[recordName] == nil {
+				return nil, fmt.Errorf("MAINTAINERS record not found: %#v", recordName)
+			}
+			matching = append(matching, perName[recordName])
+		}
+		s := mergeRawRecords(matching, "")
+		s.Name = name
+		ret = append(ret, s)
+	}
+	return ret, nil
 }
 
 func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) {
@@ -104,7 +133,7 @@ func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) {
 	}
 }
 
-func mergeRawRecords(email string, records []*maintainersRecord) *subsystem.Subsystem {
+func mergeRawRecords(records []*maintainersRecord, email string) *subsystem.Subsystem {
 	unique := func(list []string) []string {
 		m := make(map[string]struct{})
 		for _, s := range list {
@@ -117,14 +146,20 @@ func mergeRawRecords(email string, records []*maintainersRecord) *subsystem.Subs
 		sort.Strings(ret)
 		return ret
 	}
-	var maintainers []string
-	subsystem := &subsystem.Subsystem{Lists: []string{email}}
+	var lists, maintainers []string
+	subsystem := &subsystem.Subsystem{}
 	for _, record := range records {
 		rule := record.ToPathRule()
 		if !rule.IsEmpty() {
 			subsystem.PathRules = append(subsystem.PathRules, rule)
 		}
+		lists = append(lists, record.lists...)
 		maintainers = append(maintainers, record.maintainers...)
+	}
+	if email != "" {
+		subsystem.Lists = []string{email}
+	} else if len(lists) > 0 {
+		subsystem.Lists = unique(lists)
 	}
 	// There's a risk that we collect too many unrelated maintainers, so
 	// let's only merge them if there are no lists.

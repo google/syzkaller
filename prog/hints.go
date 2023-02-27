@@ -29,10 +29,11 @@ import (
 
 // Example: for comparisons {(op1, op2), (op1, op3), (op1, op4), (op2, op1)}
 // this map will store the following:
-// m = {
-//		op1: {map[op2]: true, map[op3]: true, map[op4]: true},
-//		op2: {map[op1]: true}
-// }.
+//
+//	m = {
+//			op1: {map[op2]: true, map[op3]: true, map[op4]: true},
+//			op2: {map[op1]: true}
+//	}.
 type CompMap map[uint64]map[uint64]bool
 
 const (
@@ -186,10 +187,12 @@ func checkCompressedArg(arg *DataArg, compMap CompMap, exec func()) {
 // are casted to narrower (and wider) integer types.
 //
 // Motivation for shrink:
-// void f(u16 x) {
-//		u8 y = (u8)x;
-//		if (y == 0xab) {...}
-// }
+//
+//	void f(u16 x) {
+//			u8 y = (u8)x;
+//			if (y == 0xab) {...}
+//	}
+//
 // If we call f(0x1234), then we'll see a comparison 0x34 vs 0xab and we'll
 // be unable to match the argument 0x1234 with any of the comparison operands.
 // Thus we shrink 0x1234 to 0x34 and try to match 0x34.
@@ -202,10 +205,12 @@ func checkCompressedArg(arg *DataArg, compMap CompMap, exec func()) {
 // we check the sizes with leastSize().
 //
 // Motivation for expand:
-// void f(i8 x) {
-//		i16 y = (i16)x;
-//		if (y == -2) {...}
-// }
+//
+//	void f(i8 x) {
+//			i16 y = (i16)x;
+//			if (y == -2) {...}
+//	}
+//
 // Suppose we call f(-1), then we'll see a comparison 0xffff vs 0xfffe and be
 // unable to match input vs any operands. Thus we sign extend the input and
 // check the extension.

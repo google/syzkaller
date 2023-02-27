@@ -155,8 +155,7 @@ func TestBugObsoleting(t *testing.T) {
 	const day = 24 * time.Hour
 	days := func(n int) time.Time {
 		t := time.Date(2000, 0, 0, 0, 0, 0, 0, time.UTC)
-		t.Add(time.Duration(n+1) * day)
-		return t
+		return t.Add(time.Duration(n+1) * day)
 	}
 	tests := []struct {
 		bug    *Bug

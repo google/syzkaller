@@ -134,10 +134,12 @@ type Client struct {
 
 // NewClient returns a new logging client associated with the provided parent.
 // A parent can take any of the following forms:
-//    projects/PROJECT_ID
-//    folders/FOLDER_ID
-//    billingAccounts/ACCOUNT_ID
-//    organizations/ORG_ID
+//
+//	projects/PROJECT_ID
+//	folders/FOLDER_ID
+//	billingAccounts/ACCOUNT_ID
+//	organizations/ORG_ID
+//
 // for backwards compatibility, a string with no '/' is also allowed and is interpreted
 // as a project ID.
 //
@@ -229,7 +231,7 @@ func (c *Client) extractErrorInfo() error {
 	var err error
 	c.mu.Lock()
 	if c.lastErr != nil {
-		err = fmt.Errorf("saw %d errors; last: %v", c.nErrs, c.lastErr)
+		err = fmt.Errorf("saw %d errors; last: %w", c.nErrs, c.lastErr)
 		c.nErrs = 0
 		c.lastErr = nil
 	}
@@ -582,13 +584,13 @@ func toProtoStruct(v interface{}) (*structpb.Struct, error) {
 	} else {
 		jb, err = json.Marshal(v)
 		if err != nil {
-			return nil, fmt.Errorf("logging: json.Marshal: %v", err)
+			return nil, fmt.Errorf("logging: json.Marshal: %w", err)
 		}
 	}
 	var m map[string]interface{}
 	err = json.Unmarshal(jb, &m)
 	if err != nil {
-		return nil, fmt.Errorf("logging: json.Unmarshal: %v", err)
+		return nil, fmt.Errorf("logging: json.Unmarshal: %w", err)
 	}
 	return jsonMapToProtoStruct(m), nil
 }
@@ -804,10 +806,12 @@ func deconstructXCloudTraceContext(s string) (traceID, spanID string, traceSampl
 
 // ToLogEntry takes an Entry structure and converts it to the LogEntry proto.
 // A parent can take any of the following forms:
-//    projects/PROJECT_ID
-//    folders/FOLDER_ID
-//    billingAccounts/ACCOUNT_ID
-//    organizations/ORG_ID
+//
+//	projects/PROJECT_ID
+//	folders/FOLDER_ID
+//	billingAccounts/ACCOUNT_ID
+//	organizations/ORG_ID
+//
 // for backwards compatibility, a string with no '/' is also allowed and is interpreted
 // as a project ID.
 //
@@ -914,6 +918,41 @@ type structuredLogEntry struct {
 	SpanID         string                        `json:"logging.googleapis.com/spanId,omitempty"`
 	Trace          string                        `json:"logging.googleapis.com/trace,omitempty"`
 	TraceSampled   bool                          `json:"logging.googleapis.com/trace_sampled,omitempty"`
+}
+
+func convertSnakeToMixedCase(snakeStr string) string {
+	words := strings.Split(snakeStr, "_")
+	mixedStr := words[0]
+	for _, word := range words[1:] {
+		mixedStr += strings.Title(word)
+	}
+	return mixedStr
+}
+
+func (s structuredLogEntry) MarshalJSON() ([]byte, error) {
+	// extract structuredLogEntry into json map
+	type Alias structuredLogEntry
+	var mapData map[string]interface{}
+	data, err := json.Marshal(Alias(s))
+	if err == nil {
+		err = json.Unmarshal(data, &mapData)
+	}
+	if err == nil {
+		// ensure all inner dicts use mixed case instead of snake case
+		innerDicts := [3]string{"httpRequest", "logging.googleapis.com/operation", "logging.googleapis.com/sourceLocation"}
+		for _, field := range innerDicts {
+			if fieldData, ok := mapData[field]; ok {
+				formattedFieldData := make(map[string]interface{})
+				for k, v := range fieldData.(map[string]interface{}) {
+					formattedFieldData[convertSnakeToMixedCase(k)] = v
+				}
+				mapData[field] = formattedFieldData
+			}
+		}
+		// serialize json map into raw bytes
+		return json.Marshal(mapData)
+	}
+	return data, err
 }
 
 func serializeEntryToWriter(entry *logpb.LogEntry, w io.Writer) error {

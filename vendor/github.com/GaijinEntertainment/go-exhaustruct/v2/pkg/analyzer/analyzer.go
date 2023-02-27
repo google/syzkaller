@@ -21,10 +21,10 @@ type analyzer struct {
 	include PatternsList
 	exclude PatternsList
 
-	typesProcessCache   map[string]bool
+	typesProcessCache   map[types.Type]bool
 	typesProcessCacheMu sync.RWMutex
 
-	structFieldsCache   map[string]*StructFields
+	structFieldsCache   map[types.Type]*StructFields
 	structFieldsCacheMu sync.RWMutex
 }
 
@@ -33,9 +33,9 @@ type analyzer struct {
 //   -e arguments adds exclude patterns
 func NewAnalyzer(include []string, exclude []string) (*analysis.Analyzer, error) {
 	a := analyzer{ //nolint:exhaustruct
-		typesProcessCache: map[string]bool{},
+		typesProcessCache: map[types.Type]bool{},
 
-		structFieldsCache: map[string]*StructFields{},
+		structFieldsCache: map[types.Type]*StructFields{},
 	}
 
 	var err error
@@ -123,7 +123,7 @@ func (a *analyzer) newVisitor(pass *analysis.Pass) func(node ast.Node) {
 			return
 		}
 
-		if !a.shouldProcessType(typ.String()) {
+		if !a.shouldProcessType(typ) {
 			return
 		}
 
@@ -138,7 +138,7 @@ func (a *analyzer) newVisitor(pass *analysis.Pass) func(node ast.Node) {
 			}
 		}
 
-		missingFields := a.structMissingFields(lit, strct, typ.String(), pass.Pkg.Path())
+		missingFields := a.structMissingFields(lit, strct, strings.HasPrefix(typ.String(), pass.Pkg.Path()+"."))
 
 		if len(missingFields) == 1 {
 			pass.Reportf(node.Pos(), "%s is missing in %s", missingFields[0], strctName)
@@ -148,7 +148,7 @@ func (a *analyzer) newVisitor(pass *analysis.Pass) func(node ast.Node) {
 	}
 }
 
-func (a *analyzer) shouldProcessType(typ string) bool {
+func (a *analyzer) shouldProcessType(typ types.Type) bool {
 	if len(a.include) == 0 && len(a.exclude) == 0 {
 		// skip whole part with cache, since we have no restrictions and have to check everything
 		return true
@@ -163,12 +163,13 @@ func (a *analyzer) shouldProcessType(typ string) bool {
 		defer a.typesProcessCacheMu.Unlock()
 
 		v = true
+		typStr := typ.String()
 
-		if len(a.include) > 0 && !a.include.MatchesAny(typ) {
+		if len(a.include) > 0 && !a.include.MatchesAny(typStr) {
 			v = false
 		}
 
-		if v && a.exclude.MatchesAny(typ) {
+		if v && a.exclude.MatchesAny(typStr) {
 			v = false
 		}
 
@@ -178,32 +179,28 @@ func (a *analyzer) shouldProcessType(typ string) bool {
 	return v
 }
 
-func (a *analyzer) structMissingFields(
-	lit *ast.CompositeLit,
-	strct *types.Struct,
-	typ string,
-	pkgPath string,
-) []string {
+func (a *analyzer) structMissingFields(lit *ast.CompositeLit, strct *types.Struct, private bool) []string {
 	keys, unnamed := literalKeys(lit)
-	fields := a.structFields(typ, strct)
-
-	var fieldNames []string
-
-	if strings.HasPrefix(typ, pkgPath+".") {
-		// we're in same package and should match private fields
-		fieldNames = fields.All
-	} else {
-		fieldNames = fields.Public
-	}
+	fields := a.structFields(strct)
 
 	if unnamed {
-		return fieldNames[len(keys):]
+		if private {
+			return fields.All[len(keys):]
+		}
+
+		return fields.Public[len(keys):]
 	}
 
-	return difference(fieldNames, keys)
+	if private {
+		return difference(fields.AllRequired, keys)
+	}
+
+	return difference(fields.PublicRequired, keys)
 }
 
-func (a *analyzer) structFields(typ string, strct *types.Struct) *StructFields {
+func (a *analyzer) structFields(strct *types.Struct) *StructFields {
+	typ := strct.Underlying()
+
 	a.structFieldsCacheMu.RLock()
 	fields, ok := a.structFieldsCache[typ]
 	a.structFieldsCacheMu.RUnlock()

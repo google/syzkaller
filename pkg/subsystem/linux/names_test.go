@@ -15,7 +15,6 @@ func TestEmailToName(t *testing.T) {
 		"linux-nilfs@vger.kernel.org":           "nilfs",
 		"tomoyo-dev-en@lists.osdn.me":           "tomoyo",
 		"tipc-discussion@lists.sourceforge.net": "tipc",
-		"v9fs-developer@lists.sourceforge.net":  "v9fs",
 		"zd1211-devs@lists.sourceforge.net":     "zd1211",
 		"chrome-platform@lists.linux.dev":       "chrome",
 		"b.a.t.m.a.n@lists.open-mesh.org":       "batman",
@@ -31,12 +30,13 @@ func TestEmailToName(t *testing.T) {
 }
 
 type subsystemTestInput struct {
+	inName  string
 	email   string
 	outName string
 }
 
 func (sti subsystemTestInput) ToSubsystem() *subsystem.Subsystem {
-	s := &subsystem.Subsystem{}
+	s := &subsystem.Subsystem{Name: sti.inName}
 	if sti.email != "" {
 		s.Lists = append(s.Lists, sti.email)
 	}
@@ -86,6 +86,35 @@ func TestSetSubsystemNames(t *testing.T) {
 				{
 					email:   "",
 					outName: "",
+				},
+			},
+			mustFail: true,
+		},
+		{
+			name: "has existing names",
+			inputs: []subsystemTestInput{
+				{
+					inName:  "some",
+					email:   "some-list@list.com",
+					outName: "some",
+				},
+				{
+					email:   "ntfs@lists.sourceforge.net",
+					outName: "ntfs",
+				},
+			},
+		},
+		{
+			name: "collision with an existing name",
+			inputs: []subsystemTestInput{
+				{
+					inName:  "ntfs",
+					email:   "ntfs3@lists.sourceforge.net",
+					outName: "ntfs",
+				},
+				{
+					email:   "ntfs@lists.sourceforge.net",
+					outName: "ntfs",
 				},
 			},
 			mustFail: true,

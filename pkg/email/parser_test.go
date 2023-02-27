@@ -159,8 +159,8 @@ line1
 #syz fix  bar  	 baz
 line 2
 `,
-		cmd: CmdFix,
-		str: "fix",
+		cmd:  CmdFix,
+		str:  "fix",
 		args: "bar  	 baz",
 	},
 	{
@@ -326,6 +326,14 @@ baz
 `,
 		cmd: CmdUnknown,
 		str: "foo",
+	},
+	{
+		body: `
+#syz set subsystems: net, fs
+`,
+		cmd:  CmdSet,
+		str:  "set",
+		args: "subsystems: net, fs",
 	},
 }
 

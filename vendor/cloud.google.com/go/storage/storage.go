@@ -33,6 +33,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -51,6 +52,7 @@ import (
 	htransport "google.golang.org/api/transport/http"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -186,22 +188,22 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 	// htransport selects the correct endpoint among WithEndpoint (user override), WithDefaultEndpoint, and WithDefaultMTLSEndpoint.
 	hc, ep, err := htransport.NewClient(ctx, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("dialing: %v", err)
+		return nil, fmt.Errorf("dialing: %w", err)
 	}
 	// RawService should be created with the chosen endpoint to take account of user override.
 	rawService, err := raw.NewService(ctx, option.WithEndpoint(ep), option.WithHTTPClient(hc))
 	if err != nil {
-		return nil, fmt.Errorf("storage client: %v", err)
+		return nil, fmt.Errorf("storage client: %w", err)
 	}
 	// Update readHost and scheme with the chosen endpoint.
 	u, err := url.Parse(ep)
 	if err != nil {
-		return nil, fmt.Errorf("supplied endpoint %q is not valid: %v", ep, err)
+		return nil, fmt.Errorf("supplied endpoint %q is not valid: %w", ep, err)
 	}
 
 	tc, err := newHTTPStorageClient(ctx, withClientOptions(opts...))
 	if err != nil {
-		return nil, fmt.Errorf("storage: %v", err)
+		return nil, fmt.Errorf("storage: %w", err)
 	}
 
 	return &Client{
@@ -1088,11 +1090,6 @@ func (o *ObjectAttrs) toRawObject(bucket string) *raw.Object {
 
 // toProtoObject copies the editable attributes from o to the proto library's Object type.
 func (o *ObjectAttrs) toProtoObject(b string) *storagepb.Object {
-	checksums := &storagepb.ObjectChecksums{Md5Hash: o.MD5}
-	if o.CRC32C > 0 {
-		checksums.Crc32C = proto.Uint32(o.CRC32C)
-	}
-
 	// For now, there are only globally unique buckets, and "_" is the alias
 	// project ID for such buckets. If the bucket is not provided, like in the
 	// destination ObjectAttrs of a Copy, do not attempt to format it.
@@ -1121,7 +1118,6 @@ func (o *ObjectAttrs) toProtoObject(b string) *storagepb.Object {
 		KmsKey:              o.KMSKeyName,
 		Generation:          o.Generation,
 		Size:                o.Size,
-		Checksums:           checksums,
 	}
 }
 
@@ -1319,6 +1315,11 @@ type ObjectAttrs struct {
 	// later value but not to an earlier one. For more information see
 	// https://cloud.google.com/storage/docs/metadata#custom-time .
 	CustomTime time.Time
+
+	// ComponentCount is the number of objects contained within a composite object.
+	// For non-composite objects, the value will be zero.
+	// This field is read-only.
+	ComponentCount int64
 }
 
 // convertTime converts a time in RFC3339 format to time.Time.
@@ -1389,6 +1390,7 @@ func newObject(o *raw.Object) *ObjectAttrs {
 		Updated:                 convertTime(o.Updated),
 		Etag:                    o.Etag,
 		CustomTime:              convertTime(o.CustomTime),
+		ComponentCount:          o.ComponentCount,
 	}
 }
 
@@ -1416,12 +1418,14 @@ func newObjectFromProto(o *storagepb.Object) *ObjectAttrs {
 		Generation:              o.Generation,
 		Metageneration:          o.Metageneration,
 		StorageClass:            o.StorageClass,
-		CustomerKeySHA256:       string(o.GetCustomerEncryption().GetKeySha256Bytes()),
-		KMSKeyName:              o.GetKmsKey(),
-		Created:                 convertProtoTime(o.GetCreateTime()),
-		Deleted:                 convertProtoTime(o.GetDeleteTime()),
-		Updated:                 convertProtoTime(o.GetUpdateTime()),
-		CustomTime:              convertProtoTime(o.GetCustomTime()),
+		// CustomerKeySHA256 needs to be presented as base64 encoded, but the response from gRPC is not.
+		CustomerKeySHA256: base64.StdEncoding.EncodeToString(o.GetCustomerEncryption().GetKeySha256Bytes()),
+		KMSKeyName:        o.GetKmsKey(),
+		Created:           convertProtoTime(o.GetCreateTime()),
+		Deleted:           convertProtoTime(o.GetDeleteTime()),
+		Updated:           convertProtoTime(o.GetUpdateTime()),
+		CustomTime:        convertProtoTime(o.GetCustomTime()),
+		ComponentCount:    int64(o.ComponentCount),
 	}
 }
 
@@ -1488,10 +1492,11 @@ type Query struct {
 	// object will be included in the results.
 	Versions bool
 
-	// fieldSelection is used to select only specific fields to be returned by
-	// the query. It's used internally and is populated for the user by
-	// calling Query.SetAttrSelection
-	fieldSelection string
+	// attrSelection is used to select only specific fields to be returned by
+	// the query. It is set by the user calling calling SetAttrSelection. These
+	// are used by toFieldMask and toFieldSelection for gRPC and HTTP/JSON
+	// clients repsectively.
+	attrSelection []string
 
 	// StartOffset is used to filter results to objects whose names are
 	// lexicographically equal to or after startOffset. If endOffset is also set,
@@ -1549,6 +1554,41 @@ var attrToFieldMap = map[string]string{
 	"Updated":                 "updated",
 	"Etag":                    "etag",
 	"CustomTime":              "customTime",
+	"ComponentCount":          "componentCount",
+}
+
+// attrToProtoFieldMap maps the field names of ObjectAttrs to the underlying field
+// names in the protobuf Object message.
+var attrToProtoFieldMap = map[string]string{
+	"Name":                    "name",
+	"Bucket":                  "bucket",
+	"Etag":                    "etag",
+	"Generation":              "generation",
+	"Metageneration":          "metageneration",
+	"StorageClass":            "storage_class",
+	"Size":                    "size",
+	"ContentEncoding":         "content_encoding",
+	"ContentDisposition":      "content_disposition",
+	"CacheControl":            "cache_control",
+	"ACL":                     "acl",
+	"ContentLanguage":         "content_language",
+	"Deleted":                 "delete_time",
+	"ContentType":             "content_type",
+	"Created":                 "create_time",
+	"CRC32C":                  "checksums.crc32c",
+	"MD5":                     "checksums.md5_hash",
+	"Updated":                 "update_time",
+	"KMSKeyName":              "kms_key",
+	"TemporaryHold":           "temporary_hold",
+	"RetentionExpirationTime": "retention_expire_time",
+	"Metadata":                "metadata",
+	"EventBasedHold":          "event_based_hold",
+	"Owner":                   "owner",
+	"CustomerKeySHA256":       "customer_encryption",
+	"CustomTime":              "custom_time",
+	"ComponentCount":          "component_count",
+	// MediaLink was explicitly excluded from the proto as it is an HTTP-ism.
+	// "MediaLink":               "mediaLink",
 }
 
 // SetAttrSelection makes the query populate only specific attributes of
@@ -1559,16 +1599,42 @@ var attrToFieldMap = map[string]string{
 // optimization; for more information, see
 // https://cloud.google.com/storage/docs/json_api/v1/how-tos/performance
 func (q *Query) SetAttrSelection(attrs []string) error {
+	// Validate selections.
+	for _, attr := range attrs {
+		// If the attr is acceptable for one of the two sets, then it is OK.
+		// If it is not acceptable for either, then return an error.
+		// The respective masking implementations ignore unknown attrs which
+		// makes switching between transports a little easier.
+		_, okJSON := attrToFieldMap[attr]
+		_, okGRPC := attrToProtoFieldMap[attr]
+
+		if !okJSON && !okGRPC {
+			return fmt.Errorf("storage: attr %v is not valid", attr)
+		}
+	}
+
+	q.attrSelection = attrs
+
+	return nil
+}
+
+func (q *Query) toFieldSelection() string {
+	if q == nil || len(q.attrSelection) == 0 {
+		return ""
+	}
 	fieldSet := make(map[string]bool)
 
-	for _, attr := range attrs {
+	for _, attr := range q.attrSelection {
 		field, ok := attrToFieldMap[attr]
 		if !ok {
-			return fmt.Errorf("storage: attr %v is not valid", attr)
+			// Future proofing, skip unknown fields, let SetAttrSelection handle
+			// error modes.
+			continue
 		}
 		fieldSet[field] = true
 	}
 
+	var s string
 	if len(fieldSet) > 0 {
 		var b bytes.Buffer
 		b.WriteString("prefixes,items(")
@@ -1581,9 +1647,50 @@ func (q *Query) SetAttrSelection(attrs []string) error {
 			b.WriteString(field)
 		}
 		b.WriteString(")")
-		q.fieldSelection = b.String()
+		s = b.String()
 	}
-	return nil
+	return s
+}
+
+func (q *Query) toFieldMask() *fieldmaskpb.FieldMask {
+	// The default behavior with no Query is ProjectionDefault (i.e. ProjectionFull).
+	if q == nil {
+		return &fieldmaskpb.FieldMask{Paths: []string{"*"}}
+	}
+
+	// User selected attributes via q.SetAttrSeleciton. This takes precedence
+	// over the Projection.
+	if numSelected := len(q.attrSelection); numSelected > 0 {
+		protoFieldPaths := make([]string, 0, numSelected)
+
+		for _, attr := range q.attrSelection {
+			pf, ok := attrToProtoFieldMap[attr]
+			if !ok {
+				// Future proofing, skip unknown fields, let SetAttrSelection
+				// handle error modes.
+				continue
+			}
+			protoFieldPaths = append(protoFieldPaths, pf)
+		}
+
+		return &fieldmaskpb.FieldMask{Paths: protoFieldPaths}
+	}
+
+	// ProjectDefault == ProjectionFull which means all fields.
+	fm := &fieldmaskpb.FieldMask{Paths: []string{"*"}}
+	if q.Projection == ProjectionNoACL {
+		paths := make([]string, 0, len(attrToProtoFieldMap)-2) // omitting two fields
+		for _, f := range attrToProtoFieldMap {
+			// Skip the acl and owner fields for "NoACL".
+			if f == "acl" || f == "owner" {
+				continue
+			}
+			paths = append(paths, f)
+		}
+		fm.Paths = paths
+	}
+
+	return fm
 }
 
 // Conditions constrain methods to act on specific generations of
@@ -1981,6 +2088,25 @@ func toProtoCommonObjectRequestParams(key []byte) *storagepb.CommonObjectRequest
 	}
 }
 
+func toProtoChecksums(sendCRC32C bool, attrs *ObjectAttrs) *storagepb.ObjectChecksums {
+	var checksums *storagepb.ObjectChecksums
+	if sendCRC32C {
+		checksums = &storagepb.ObjectChecksums{
+			Crc32C: proto.Uint32(attrs.CRC32C),
+		}
+	}
+	if len(attrs.MD5) != 0 {
+		if checksums == nil {
+			checksums = &storagepb.ObjectChecksums{
+				Md5Hash: attrs.MD5,
+			}
+		} else {
+			checksums.Md5Hash = attrs.MD5
+		}
+	}
+	return checksums
+}
+
 // ServiceAccount fetches the email address of the given project's Google Cloud Storage service account.
 func (c *Client) ServiceAccount(ctx context.Context, projectID string) (string, error) {
 	o := makeStorageOpts(true, c.retry, "")
@@ -2000,6 +2126,24 @@ func bucketResourceName(p, b string) string {
 func parseBucketName(b string) string {
 	sep := strings.LastIndex(b, "/")
 	return b[sep+1:]
+}
+
+// parseProjectNumber consume the given resource name and parses out the project
+// number if one is present i.e. it is not a project ID.
+func parseProjectNumber(r string) uint64 {
+	projectID := regexp.MustCompile(`projects\/([0-9]+)\/?`)
+	if matches := projectID.FindStringSubmatch(r); len(matches) > 0 {
+		// Capture group follows the matched segment. For example:
+		// input: projects/123/bars/456
+		// output: [projects/123/, 123]
+		number, err := strconv.ParseUint(matches[1], 10, 64)
+		if err != nil {
+			return 0
+		}
+		return number
+	}
+
+	return 0
 }
 
 // toProjectResource accepts a project ID and formats it as a Project resource

@@ -81,8 +81,8 @@ func (l *reviveRunLog) AddResult(failure lint.Failure) {
 	}
 	position := failure.Position
 	filename := position.Start.Filename
-	line := positiveOrZero(position.Start.Line - 1)     // https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#def_line
-	column := positiveOrZero(position.Start.Column - 1) // https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#def_column
+	line := positiveOrZero(position.Start.Line)     // https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#def_line
+	column := positiveOrZero(position.Start.Column) // https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#def_column
 
 	result := garif.NewResult(garif.NewMessageFromText(failure.Failure))
 	location := garif.NewLocation().WithURI(filename).WithLineColumn(line, column)

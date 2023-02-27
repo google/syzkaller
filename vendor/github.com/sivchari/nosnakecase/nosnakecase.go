@@ -50,6 +50,12 @@ func report(pass *analysis.Pass, pos token.Pos, name string) {
 		return
 	}
 
+	// If prefix is Test or Benchmark, Fuzz, skip
+	// FYI https://go.dev/blog/examples
+	if strings.HasPrefix(name, "Test") || strings.HasPrefix(name, "Benchmark") || strings.HasPrefix(name, "Fuzz") {
+		return
+	}
+
 	if strings.Contains(name, "_") {
 		pass.Reportf(pos, "%s contains underscore. You should use mixedCap or MixedCap.", name)
 		return

@@ -40,6 +40,7 @@ var (
 	flagLibFuzzer = flag.Bool("libfuzzer", false, "output static archive for use with libFuzzer")
 	flagBuildX    = flag.Bool("x", false, "print the commands if build fails")
 	flagPreserve  = flag.String("preserve", "", "a comma-separated list of import paths not to instrument")
+	flagGoCmd     = flag.String("go", "go", `path to "go" command`)
 )
 
 func makeTags() string {
@@ -229,7 +230,7 @@ func (c *Context) getEnv() {
 			continue
 		}
 		// TODO: make a single call ("go env GOROOT GOPATH") instead
-		out, err := exec.Command("go", "env", k).CombinedOutput()
+		out, err := exec.Command(*flagGoCmd, "env", k).CombinedOutput()
 		if err != nil || len(out) == 0 {
 			c.failf("%s is not set and failed to locate it: 'go env %s' returned '%s' (%v)", k, k, out, err)
 		}
@@ -238,7 +239,7 @@ func (c *Context) getEnv() {
 	c.GOROOT = env["GOROOT"]
 	c.GOPATH = env["GOPATH"]
 
-	out, err := exec.Command("go", "list", "-f", "'{{context.ReleaseTags}}'", "runtime").CombinedOutput()
+	out, err := exec.Command(*flagGoCmd, "list", "-f", "'{{context.ReleaseTags}}'", "runtime").CombinedOutput()
 	if err != nil || len(out) == 0 {
 		c.failf("go list -f '{{context.ReleaseTags}}' runtime returned '%s' (%v)", out, err)
 	}
@@ -477,6 +478,11 @@ func (c *Context) populateWorkdir() {
 		// Cross-compilation is not implemented.
 		c.copyDir(filepath.Join(c.GOROOT, "pkg", runtime.GOOS+"_"+runtime.GOARCH), filepath.Join(c.workdir, "goroot", "pkg", runtime.GOOS+"_"+runtime.GOARCH))
 	}
+	// go1.17 added abi_amd64.h
+	if _, err := os.Stat(filepath.Join(c.GOROOT, "src", "runtime", "cgo", "abi_amd64.h")); err == nil {
+		c.mkdirAll(filepath.Join(c.workdir, "goroot", "src", "runtime", "cgo"))
+		c.copyFile(filepath.Join(c.GOROOT, "src", "runtime", "cgo", "abi_amd64.h"), filepath.Join(c.workdir, "goroot", "src", "runtime", "cgo", "abi_amd64.h"))
+	}
 
 	// Clone our package, go-fuzz-deps, and all dependencies.
 	// TODO: we might not need to do this for all packages.
@@ -526,7 +532,7 @@ func (c *Context) buildInstrumentedBinary(blocks *[]CoverBlock, sonar *[]CoverBl
 		args = append(args, "-trimpath")
 	}
 	args = append(args, "-o", outf, mainPkg)
-	cmd := exec.Command("go", args...)
+	cmd := exec.Command(*flagGoCmd, args...)
 
 	// We are constructing a GOPATH environment, so while building
 	// we force GOPATH mode here via GO111MODULE=off.
@@ -644,6 +650,22 @@ func (c *Context) clonePackage(p *packages.Package) {
 	newDir := filepath.Join(c.workdir, root, "src", p.PkgPath)
 	c.mkdirAll(newDir)
 
+	// examine "go:embed" directives, collect embedded filenames, use later
+	for i, fullName := range p.CompiledGoFiles {
+		if strings.HasSuffix(fullName, ".go") {
+			for _, commentGroup := range trimComments(p.Syntax[i], p.Fset) {
+				for _, comment := range commentGroup.List {
+					if strings.HasPrefix(comment.Text, "//go:embed") {
+						filename := comment.Text[len("//go:embed "):]
+						dirname := filepath.Dir(fullName)
+						fullname := fmt.Sprintf("%s/%s", dirname, filename)
+						p.OtherFiles = append(p.OtherFiles, fullname)
+					}
+				}
+			}
+		}
+	}
+
 	if p.PkgPath == "unsafe" {
 		// Write a dummy file. go/packages explicitly returns an empty GoFiles for it,
 		// for reasons that are unclear, but cmd/go wants there to be a Go file in the package.
@@ -737,19 +759,19 @@ func (c *Context) instrumentPackages(blocks *[]CoverBlock, sonar *[]CoverBlock) 
 }
 
 func (c *Context) copyDir(dir, newDir string) {
-	c.mkdirAll(newDir)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		c.failf("failed to scan dir '%v': %v", dir, err)
 	}
+	c.mkdirAll(newDir)
 	for _, f := range files {
-		if f.IsDir() {
-			c.copyDir(filepath.Join(dir, f.Name()), filepath.Join(newDir, f.Name()))
-			continue
-		}
 		src := filepath.Join(dir, f.Name())
 		dst := filepath.Join(newDir, f.Name())
-		c.copyFile(src, dst)
+		if f.IsDir() {
+			c.copyDir(src, dst)
+		} else {
+			c.copyFile(src, dst)
+		}
 	}
 }
 

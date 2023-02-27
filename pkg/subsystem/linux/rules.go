@@ -9,30 +9,39 @@ type customRules struct {
 	// These emails do not represent separate subsystems, even though they seem to
 	// per all criteria we have.
 	notSubsystemEmails map[string]struct{}
+	// These subsystems need to be extracted even without mailing lists.
+	// Key is the subsystem name, value is the list of raw names in MAINTAINERS.
+	extraSubsystems map[string][]string
 }
 
 var (
 	linuxSubsystemRules = &customRules{
 		subsystemCalls: map[string][]string{
-			"adfs":     {"syz_mount_image$adfs"},
-			"affs":     {"syz_mount_image$affs"},
-			"befs":     {"syz_mount_image$befs"},
-			"bfs":      {"syz_mount_image$bfs"},
-			"btrfs":    {"syz_mount_image$btrfs"},
-			"cramfs":   {"syz_mount_image$cramfs"},
-			"efs":      {"syz_mount_image$efs"},
-			"erofs":    {"syz_mount_image$erofs"},
-			"exfat":    {"syz_mount_image$exfat"},
-			"ext4":     {"syz_mount_image$ext4"},
-			"f2fs":     {"syz_mount_image$f2fs"},
-			"fat":      {"syz_mount_image$msdos", "syz_mount_image$vfat"},
+			"adfs":      {"syz_mount_image$adfs"},
+			"affs":      {"syz_mount_image$affs"},
+			"befs":      {"syz_mount_image$befs"},
+			"bfs":       {"syz_mount_image$bfs"},
+			"bluetooth": {"syz_emit_vhci"},
+			"btrfs":     {"syz_mount_image$btrfs"},
+			"cramfs":    {"syz_mount_image$cramfs"},
+			"efs":       {"syz_mount_image$efs"},
+			"erofs":     {"syz_mount_image$erofs"},
+			"ext4":      {"syz_mount_image$ext4"},
+			"f2fs":      {"syz_mount_image$f2fs"},
+			"fat": {
+				"syz_mount_image$msdos",
+				"syz_mount_image$vfat",
+				"syz_mount_image$exfat",
+			},
+			"fuse":     {"syz_fuse_handle_req"},
 			"gfs2":     {"syz_mount_image$gfs2", "syz_mount_image$gfs2meta"},
-			"hfs":      {"syz_mount_image$hfs"},
-			"hfsplus":  {"syz_mount_image$hfsplus"},
+			"hfs":      {"syz_mount_image$hfs", "syz_mount_image$hfsplus"},
 			"hpfs":     {"syz_mount_image$hpfs"},
-			"iso9660":  {"syz_mount_image$iso9660"},
+			"io-uring": {"syz_io_uring_setup"},
+			"isofs":    {"syz_mount_image$iso9660"},
 			"jffs2":    {"syz_mount_image$jffs2"},
 			"jfs":      {"syz_mount_image$jfs"},
+			"kvm":      {"syz_kvm_setup_cpu"},
 			"minix":    {"syz_mount_image$minix"},
 			"nilfs2":   {"syz_mount_image$nilfs2"},
 			"ntfs":     {"syz_mount_image$ntfs"},
@@ -50,6 +59,7 @@ var (
 			"udf":      {"syz_mount_image$udf"},
 			"ufs":      {"syz_mount_image$ufs"},
 			"vxfs":     {"syz_mount_image$vxfs"},
+			"wireless": {"syz_80211_join_ibss", "syz_80211_inject_frame"},
 			"xfs":      {"syz_mount_image$xfs"},
 			"zonefs":   {"syz_mount_image$zonefs"},
 		},
@@ -59,6 +69,15 @@ var (
 			"storagedev@microchip.com":         {},
 			"coreteam@netfilter.org":           {},
 			"SHA-cyfmac-dev-list@infineon.com": {},
+		},
+		extraSubsystems: map[string][]string{
+			"bfs":    {"BFS FILE SYSTEM"},
+			"fat":    {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
+			"fuse":   {"FUSE: FILESYSTEM IN USERSPACE"},
+			"hfs":    {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
+			"isofs":  {"ISOFS FILESYSTEM"},
+			"kernfs": {"KERNFS"},
+			"udf":    {"UDF FILESYSTEM"},
 		},
 	}
 )

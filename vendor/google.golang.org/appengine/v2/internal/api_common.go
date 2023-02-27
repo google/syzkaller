@@ -12,6 +12,12 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+type ctxKey string
+
+func (c ctxKey) String() string {
+	return "appengine context key: " + string(c)
+}
+
 var errNotAppEngineContext = errors.New("not an App Engine context")
 
 type CallOverrideFunc func(ctx netcontext.Context, service, method string, in, out proto.Message) error
@@ -53,6 +59,18 @@ var appIDOverrideKey = "holds a string, being the full app ID"
 
 func WithAppIDOverride(ctx netcontext.Context, appID string) netcontext.Context {
 	return netcontext.WithValue(ctx, &appIDOverrideKey, appID)
+}
+
+var apiHostOverrideKey = ctxKey("holds a string, being the alternate API_HOST")
+
+func withAPIHostOverride(ctx netcontext.Context, apiHost string) netcontext.Context {
+	return netcontext.WithValue(ctx, apiHostOverrideKey, apiHost)
+}
+
+var apiPortOverrideKey = ctxKey("holds a string, being the alternate API_PORT")
+
+func withAPIPortOverride(ctx netcontext.Context, apiPort string) netcontext.Context {
+	return netcontext.WithValue(ctx, apiPortOverrideKey, apiPort)
 }
 
 var namespaceKey = "holds the namespace string"
