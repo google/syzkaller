@@ -258,6 +258,10 @@ func checkDevlinkPCI() string {
 	if err := osutil.IsAccessible("/sys/bus/pci/devices/0000:00:10.0/"); err != nil {
 		return "PCI device 0000:00:10.0 is not available"
 	}
+	if err := osutil.IsAccessible("/proc/self/ns/net"); err != nil {
+		// Initialize_devlink_pci in executor fails w/o this.
+		return "/proc/self/ns/net does not exist"
+	}
 	return ""
 }
 
