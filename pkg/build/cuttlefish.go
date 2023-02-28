@@ -86,6 +86,10 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 
 	var config string
 	var err error
+	// Clean output directory if it exists.
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
+		return details, fmt.Errorf("failed to clean before kernel build: %v", err)
+	}
 	// Default to build.sh if compiler is not specified.
 	if params.Compiler == "bazel" {
 		if err := c.runBazel(params.KernelDir); err != nil {
