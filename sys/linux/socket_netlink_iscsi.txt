@@ -1,0 +1,65 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/netlink.h>
+include <include/scsi/iscsi_if.h>
+include <include/linux/net.h>
+
+resource sock_nl_iscsi[sock]
+resource session_id[int32]
+
+syz_init_net_socket$nl_iscsi(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_ISCSI]) sock_nl_iscsi
+sendmsg$iscsi_create_session(fd sock_nl_iscsi, msg ptr[inout, msghdr_iscsi[netlink_msg_create_session]], f flags[send_flags])
+sendmsg$iscsi_destroy_session(fd sock_nl_iscsi, msg ptr[in, msghdr_iscsi[netlink_msg_destroy_session]], f flags[send_flags])
+
+type iovec_iscsi[DIR, MSG] {
+        iov_base        ptr[DIR, MSG]
+        iov_len         len[iov_base, int64]
+}
+
+type msghdr_iscsi[MSG] {
+        addr    ptr[in, sockaddr_nl_kern]
+        addrlen len[addr, int64]
+        vec     ptr[in, iovec_iscsi[inout, MSG]]
+        vlen    const[1, int64]
+        ctrl    const[0, int64]
+        ctrllen const[0, int64]
+        f       flags[send_flags, int64]
+}
+
+#transport_handle is valid when nokaslr was set 
+#it is got by cat /sys/class/iscsi_transport/iser/handle
+iscsi_uevent_head {
+        type                    int32
+        iferror                 int32
+        transport_handle        const[18446744071655159040, int64]
+}
+
+type nlmsghdr_iscsi[MSG, TYPE] {
+        len     len[MSG, int32]
+        type    const[TYPE, int16]
+        flags   flags[netlink_msg_flags, int16]
+        seq     netlink_seq
+        pid     netlink_port_id
+}
+
+netlink_msg_create_session {
+        nlmsghdr        nlmsghdr_iscsi[netlink_msg_create_session, ISCSI_UEVENT_CREATE_SESSION]
+        u               iscsi_uevent_head
+        initial_cmdsn   int32
+        cmds_max        int16
+        queue_depth     int16
+        pad_u           array[const[0, int8], 16]
+        sid             session_id      (out)
+        host_no         int32
+        pad_r           array[const[0, int8], 8]
+}
+
+netlink_msg_destroy_session {
+        nlmsghdr        nlmsghdr_iscsi[netlink_msg_destroy_session, ISCSI_UEVENT_DESTROY_SESSION]
+        u               iscsi_uevent_head
+        sid             session_id      (in)
+        pad_u           array[const[0, int8], 20]
+        pad_r           array[const[0, int8], 16]
+}
+
