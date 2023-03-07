@@ -82,6 +82,12 @@ var testConfig = &GlobalConfig{
 						Maintainers: []string{"maintainers@repo10.org", "bugs@repo10.org"},
 					},
 				},
+				{
+					URL:      "git://github.com/google/syzkaller",
+					Branch:   "old_master",
+					Alias:    "repo10alias",
+					Obsolete: true,
+				},
 			},
 			Managers: map[string]ConfigManager{
 				"special-obsoleting": {
