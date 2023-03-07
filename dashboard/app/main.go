@@ -578,27 +578,46 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	memcacheStats, err := memcache.Stats(c)
-	if err != nil {
+	var (
+		memcacheStats *memcache.Statistics
+		managers      []*uiManager
+		errorLog      []byte
+		recentJobs    []*uiJob
+		pendingJobs   []*uiJob
+		runningJobs   []*uiJob
+	)
+	g, _ := errgroup.WithContext(context.Background())
+	g.Go(func() error {
+		var err error
+		memcacheStats, err = memcache.Stats(c)
 		return err
-	}
-	managers, err := loadManagers(c, accessLevel, "", nil)
-	if err != nil {
+	})
+	g.Go(func() error {
+		var err error
+		managers, err = loadManagers(c, accessLevel, "", nil)
 		return err
-	}
-	errorLog, err := fetchErrorLogs(c)
-	if err != nil {
+	})
+	g.Go(func() error {
+		var err error
+		errorLog, err = fetchErrorLogs(c)
 		return err
-	}
-	recentJobs, err := loadRecentJobs(c)
-	if err != nil {
+	})
+	g.Go(func() error {
+		var err error
+		recentJobs, err = loadRecentJobs(c)
 		return err
-	}
-	pendingJobs, err := loadPendingJobs(c)
-	if err != nil {
+	})
+	g.Go(func() error {
+		var err error
+		pendingJobs, err = loadPendingJobs(c)
 		return err
-	}
-	runningJobs, err := loadRunningJobs(c)
+	})
+	g.Go(func() error {
+		var err error
+		runningJobs, err = loadRunningJobs(c)
+		return err
+	})
+	err = g.Wait()
 	if err != nil {
 		return err
 	}
