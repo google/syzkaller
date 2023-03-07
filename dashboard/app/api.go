@@ -231,6 +231,9 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 		ReportEmail: reportEmail(c, ns),
 	}
 	for _, repo := range config.Namespaces[ns].Repos {
+		if repo.Obsolete {
+			continue
+		}
 		resp.Repos = append(resp.Repos, dashapi.Repo{
 			URL:    repo.URL,
 			Branch: repo.Branch,
