@@ -18,7 +18,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	qemu-user \
 	apt-transport-https curl gnupg python-is-python3 \
 	# Needed for building Cuttlefish images.
-	rsync libarchive-tools
+	rsync libarchive-tools \
+	# Needed for buiding gVisor.
+	crossbuild-essential-amd64 crossbuild-essential-arm64
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
         DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	  libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
