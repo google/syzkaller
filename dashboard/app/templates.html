@@ -305,7 +305,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: failed</b>
 		{{end}}
-		<b>({{link .LogLink "bisect log"}})</b><br>
+		<b>({{link .ErrorLink "error log"}}{{if .LogLink}}, {{link .LogLink "bisect log"}}{{end}})</b><br>
 	{{else if .Commit}}
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: introduced by</b>
