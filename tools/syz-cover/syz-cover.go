@@ -42,6 +42,7 @@ func main() {
 		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
 		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
+		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
 		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
 	)
 	defer tool.Init()()
@@ -83,6 +84,15 @@ func main() {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExportCSV, buf.Bytes()); err != nil {
+			tool.Fail(err)
+		}
+		return
+	}
+	if *flagExportLineJSON != "" {
+		if err := rg.DoLineJSON(buf, progs, nil); err != nil {
+			tool.Fail(err)
+		}
+		if err := osutil.WriteFile(*flagExportLineJSON, buf.Bytes()); err != nil {
 			tool.Fail(err)
 		}
 		return
