@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -116,6 +117,66 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 
 	processDir(d.Root)
 	return coverTemplate.Execute(w, d)
+}
+
+type lineCoverExport struct {
+	Module    string `json:",omitempty"`
+	Filename  string
+	Covered   []int `json:",omitempty"`
+	Uncovered []int `json:",omitempty"`
+	Both      []int `json:",omitempty"`
+}
+
+func (rg *ReportGenerator) DoLineJSON(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
+	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+	files, err := rg.prepareFileMap(progs)
+	if err != nil {
+		return err
+	}
+	var entries []lineCoverExport
+	for _, file := range files {
+		lines, err := parseFile(file.filename)
+		if err != nil {
+			// Ignore and continue onto the next file.
+			continue
+		}
+		entries = append(entries, fileLineContents(file, lines))
+	}
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "\t")
+	if err := encoder.Encode(entries); err != nil {
+		return fmt.Errorf("encoding [%v] entries failed: %v", len(entries), err)
+	}
+	return nil
+}
+
+func fileLineContents(file *file, lines [][]byte) lineCoverExport {
+	lce := lineCoverExport{
+		Module:   file.module,
+		Filename: file.filename,
+	}
+	lineCover := perLineCoverage(file.covered, file.uncovered)
+	for i, ln := range lines {
+		start := 0
+		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
+		for _, cov := range cover {
+			end := cov.End - 1
+			if end > len(ln) {
+				end = len(ln)
+			}
+			if end == start {
+				continue
+			}
+			if cov.Covered && cov.Uncovered {
+				lce.Both = append(lce.Both, i+1)
+			} else if cov.Covered {
+				lce.Covered = append(lce.Covered, i+1)
+			} else if cov.Uncovered {
+				lce.Uncovered = append(lce.Uncovered, i+1)
+			}
+		}
+	}
+	return lce
 }
 
 func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, coverFilter map[uint32]uint32) error {
