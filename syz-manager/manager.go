@@ -288,6 +288,7 @@ func (mgr *Manager) initBench() {
 			vals["corpus"] = uint64(len(mgr.corpus))
 			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
+			vals["candidates"] = uint64(len(mgr.candidates))
 			mgr.mu.Unlock()
 
 			data, err := json.MarshalIndent(vals, "", "  ")
