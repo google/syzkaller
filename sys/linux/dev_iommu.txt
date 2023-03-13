@@ -196,6 +196,8 @@ resource access_pages_handle[int32]
 
 ioctl$IOMMU_TEST_OP_ADD_RESERVED(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$add_reserved])
 ioctl$IOMMU_TEST_OP_MOCK_DOMAIN(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain])
+ioctl$IOMMU_TEST_OP_MD_CHECK_MAP(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$md_check_map])
+ioctl$IOMMU_TEST_OP_MD_CHECK_REFS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$md_check_refs])
 ioctl$IOMMU_TEST_OP_CREATE_ACCESS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$create_access])
 ioctl$IOMMU_TEST_OP_DESTROY_ACCESS_PAGES(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$destroy_access_pages])
 ioctl$IOMMU_TEST_OP_ACCESS_PAGES(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_pages])
@@ -223,6 +225,26 @@ iommu_test_cmd$mock_domain {
 	__reserved	const[0x0, int32]
 	out_device_id	device_handle	(out)
 	out_hwpt_id	hwpt_handle	(out)
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$md_check_map {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_MD_CHECK_MAP, int32]
+	id		fd_access
+	__reserved	const[0x0, int32]
+	iova		int64
+	length		len[uptr, int64]
+	uptr		ptr64[in, array[int8]]
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$md_check_refs {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_MD_CHECK_REFS, int32]
+	id		fd_access
+	__reserved	const[0x0, int32]
+	uptr		ptr64[in, array[int8]]
+	length		len[uptr, int64]
+	refs		int32
 } [size[IOMMU_TEST_CMD_SIZE]]
 
 iommu_test_cmd$create_access {
