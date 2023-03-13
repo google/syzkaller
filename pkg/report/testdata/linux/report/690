@@ -1,0 +1,57 @@
+TITLE: KMSAN: kernel-infoleak in __skb_datagram_iter
+ALT: KMSAN origin in pfkey_add
+ALT: bad-access in __skb_datagram_iter
+
+[ 2104.495854][ T4311] =====================================================
+[ 2104.503364][ T4311] BUG: KMSAN: kernel-infoleak in _copy_to_iter+0x870/0x1fd0
+[ 2104.510842][ T4311]  _copy_to_iter+0x870/0x1fd0
+[ 2104.515960][ T4311]  simple_copy_to_iter+0x68/0xa0
+[ 2104.521106][ T4311]  __skb_datagram_iter+0x123/0xdc0
+[ 2104.526609][ T4311]  skb_copy_datagram_iter+0x5c/0x200
+[ 2104.532277][ T4311]  netlink_recvmsg+0x4f4/0x15f0
+[ 2104.537305][ T4311]  sock_read_iter+0x4bc/0x560
+[ 2104.542540][ T4311]  vfs_read+0x8cd/0xf40
+[ 2104.546902][ T4311]  ksys_read+0x21f/0x4f0
+[ 2104.551296][ T4311]  __x64_sys_read+0x93/0xd0
+[ 2104.556196][ T4311]  do_syscall_64+0x41/0xc0
+[ 2104.560798][ T4311]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 2104.567073][ T4311] 
+[ 2104.569484][ T4311] Uninit was stored to memory at:
+[ 2104.575402][ T4311]  nla_put+0x1c6/0x230
+[ 2104.579662][ T4311]  copy_to_user_state_extra+0x1175/0x1ac0
+[ 2104.585823][ T4311]  dump_one_state+0x2cc/0x7c0
+[ 2104.590666][ T4311]  xfrm_state_walk+0x721/0x1300
+[ 2104.596046][ T4311]  xfrm_dump_sa+0x1ea/0x6b0
+[ 2104.600710][ T4311]  netlink_dump+0xb1a/0x1560
+[ 2104.605903][ T4311]  __netlink_dump_start+0xa75/0xc40
+[ 2104.611269][ T4311]  xfrm_user_rcv_msg+0x82c/0xf80
+[ 2104.616561][ T4311]  netlink_rcv_skb+0x3f8/0x750
+[ 2104.621497][ T4311]  xfrm_netlink_rcv+0x76/0xb0
+[ 2104.626443][ T4311]  netlink_unicast+0xf41/0x1270
+[ 2104.631479][ T4311]  netlink_sendmsg+0x127d/0x1430
+[ 2104.637403][ T4311]  ____sys_sendmsg+0xa8f/0xe70
+[ 2104.642497][ T4311]  ___sys_sendmsg+0x2a1/0x3f0
+[ 2104.647337][ T4311]  __x64_sys_sendmsg+0x36b/0x540
+[ 2104.652629][ T4311]  do_syscall_64+0x41/0xc0
+[ 2104.657235][ T4311]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 2104.663697][ T4311] 
+[ 2104.666104][ T4311] Uninit was created at:
+[ 2104.670568][ T4311]  slab_post_alloc_hook+0x12d/0xb60
+[ 2104.676173][ T4311]  __kmem_cache_alloc_node+0x518/0x920
+[ 2104.681954][ T4311]  kmalloc_trace+0x51/0x200
+[ 2104.686639][ T4311]  pfkey_add+0x31ce/0x3bf0
+[ 2104.691262][ T4311]  pfkey_sendmsg+0x16b8/0x1bb0
+[ 2104.696474][ T4311]  ____sys_sendmsg+0xa8f/0xe70
+[ 2104.701405][ T4311]  ___sys_sendmsg+0x2a1/0x3f0
+[ 2104.706454][ T4311]  __sys_sendmmsg+0x411/0xa50
+[ 2104.711292][ T4311]  __x64_sys_sendmmsg+0xbc/0x120
+[ 2104.716574][ T4311]  do_syscall_64+0x41/0xc0
+[ 2104.721167][ T4311]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 2104.727680][ T4311] 
+[ 2104.730083][ T4311] Bytes 252-311 of 2224 are uninitialized
+[ 2104.736215][ T4311] Memory access of size 2224 starts at ffff888123c76000
+[ 2104.743432][ T4311] Data copied to user address 0000000020000300
+[ 2104.749761][ T4311] 
+[ 2104.752467][ T4311] CPU: 1 PID: 4311 Comm: syz-executor.2 Tainted: G        W          6.2.0-syzkaller-81157-g944070199c5e #0
+[ 2104.764247][ T4311] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 03/02/2023
+[ 2104.774669][ T4311] =====================================================

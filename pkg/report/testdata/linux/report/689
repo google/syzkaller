@@ -1,0 +1,63 @@
+TITLE: KMSAN: kernel-infoleak in kernfs_fop_read_iter
+ALT: KMSAN origin in dev_set_name
+ALT: bad-access in kernfs_fop_read_iter
+
+[  160.663319][ T5029] =====================================================
+[  160.670618][ T5029] BUG: KMSAN: kernel-infoleak in _copy_to_iter+0x870/0x1fd0
+[  160.678278][ T5029]  _copy_to_iter+0x870/0x1fd0
+[  160.682701][   T32] usb 1-1: unable to get BOS descriptor or descriptor too short
+[  160.683265][ T5029]  kernfs_fop_read_iter+0x578/0x970
+[  160.690903][   T32] usb 1-1: device firmware changed
+[  160.696118][ T5029]  vfs_read+0x8cd/0xf40
+[  160.696221][ T5029]  ksys_read+0x21f/0x4f0
+[  160.696315][ T5029]  __x64_sys_read+0x93/0xd0
+[  160.696417][ T5029]  do_syscall_64+0x41/0xc0
+[  160.719921][ T5029]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  160.726372][ T5029] 
+[  160.728798][ T5029] Uninit was stored to memory at:
+[  160.734266][ T5029]  read_descriptors+0x331/0x560
+[  160.739329][ T5029]  sysfs_kf_bin_read+0x33d/0x400
+[  160.744738][ T5029]  kernfs_fop_read_iter+0x45b/0x970
+[  160.746849][   T32] usb 1-1: USB disconnect, device number 2
+[  160.750121][ T5029]  vfs_read+0x8cd/0xf40
+[  160.750229][ T5029]  ksys_read+0x21f/0x4f0
+[  160.750329][ T5029]  __x64_sys_read+0x93/0xd0
+[  160.769625][ T5029]  do_syscall_64+0x41/0xc0
+[  160.774450][ T5029]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  160.780587][ T5029] 
+[  160.783161][ T5029] Uninit was created at:
+[  160.787624][ T5029]  slab_post_alloc_hook+0x12d/0xb60
+[  160.793178][ T5029]  __kmem_cache_alloc_node+0x518/0x920
+[  160.798870][ T5029]  __kmalloc_node_track_caller+0x118/0x3c0
+[  160.805163][ T5029]  kvasprintf+0xce/0x220
+[  160.809609][ T5029]  kvasprintf_const+0xe1/0x2b0
+[  160.814803][ T5029]  kobject_set_name_vargs+0x8e/0x2c0
+[  160.820307][ T5029]  dev_set_name+0x1b2/0x200
+[  160.825198][ T5029]  usb_create_ep_devs+0x1c1/0x460
+[  160.830421][ T5029]  usb_set_configuration+0x3392/0x37b0
+[  160.836302][ T5029]  usb_generic_driver_probe+0x109/0x2a0
+[  160.842183][ T5029]  usb_probe_device+0x290/0x4a0
+[  160.847250][ T5029]  really_probe+0x507/0xf40
+[  160.852106][ T5029]  __driver_probe_device+0x300/0x3e0
+[  160.857633][ T5029]  driver_probe_device+0x72/0x7b0
+[  160.863211][ T5029]  __device_attach_driver+0x55a/0x8f0
+[  160.868781][ T5029]  bus_for_each_drv+0x433/0x680
+[  160.874040][ T5029]  __device_attach+0x406/0x660
+[  160.879009][ T5029]  device_initial_probe+0x32/0x40
+[  160.884372][ T5029]  bus_probe_device+0x3d8/0x5a0
+[  160.889422][ T5029]  device_add+0x1cb0/0x25e0
+[  160.894307][ T5029]  usb_new_device+0x163b/0x2340
+[  160.899353][ T5029]  hub_event+0x5777/0x7890
+[  160.904145][ T5029]  process_one_work+0xb0d/0x1410
+[  160.909266][ T5029]  worker_thread+0x107e/0x1d60
+[  160.914380][ T5029]  kthread+0x31f/0x430
+[  160.918673][ T5029]  ret_from_fork+0x1f/0x30
+[  160.923429][ T5029] 
+[  160.925847][ T5029] Byte 115 of 4096 is uninitialized
+[  160.931167][ T5029] Memory access of size 4096 starts at ffff888119891000
+[  160.938401][ T5029] Data copied to user address 00007fff7db6a207
+[  160.940053][ T1739] usb 2-1: device descriptor read/64, error -71
+[  160.944743][ T5029] 
+[  160.944765][ T5029] CPU: 1 PID: 5029 Comm: udevd Not tainted 6.3.0-rc1-syzkaller-ge61893130d87 #0
+[  160.944872][ T5029] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 03/02/2023
+[  160.944930][ T5029] =====================================================
