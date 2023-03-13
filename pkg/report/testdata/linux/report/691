@@ -1,0 +1,7 @@
+
+[   56.037524][ T5250] fuseblk: Unknown parameter '                                                                Decompressing Linux... Parsing ELF... done.                                                                                     Booting the kernel.                                                                                                                                                                                                                                                             Decompressing Linux... Parsing ELF... done.                                                                                     Booting the kernel.                                                                                                                                                                                                                                                                                                                                              
+[   56.053354][ T5253] fuseblk: Bad value for 'fd'
+[  284.407339][ T6873] loop2: detected capacity change from 0 to 4096
+[  284.434887][ T6873] ntfs3: Unknown parameter 'Decompressing Linux... Parsing ELF... done.                                                                                     Booting the kernel.                                                                             '
+[  284.473552][ T6832] BTRFS info (device loop0): using xxhash64 (xxhash64-generic) checksum algorithm
+
