@@ -724,7 +724,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	for _, entry := range bug.Tags.Subsystems {
 		data.Subsystems = append(data.Subsystems, &uiBugSubsystem{
 			Name: entry.Name,
-			Link: html.AmendURL("/"+bug.Namespace, "subsystem", entry.Name),
+			Link: fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Name),
 		})
 	}
 	// bug.BisectFix is set to BisectNot in two cases :
