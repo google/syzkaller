@@ -193,7 +193,7 @@ static uint64 current_time_ms(void)
 static void use_temporary_dir(void)
 {
 #if SYZ_SANDBOX_ANDROID
-	char tmpdir_template[] = "/data/data/syzkaller/syzkaller.XXXXXX";
+	char tmpdir_template[] = "/data/local/tmp/syzkaller.XXXXXX";
 #elif GOOS_fuchsia
 	char tmpdir_template[] = "/tmp/syzkaller.XXXXXX";
 #else
