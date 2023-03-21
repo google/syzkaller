@@ -22,7 +22,9 @@ Page with details about a single bug.
 		{{- end}}
 		<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#subsystems">(incorrect?)</a><br>
 	{{- end}}
+	{{if .Bug.CreditEmail}}
 	Reported-by: {{.Bug.CreditEmail}}<br>
+	{{- end}}
 	{{if .Bug.Commits}}
 		<b>Fix commit:</b> {{template "fix_commits" .Bug.Commits}}<br>
 		{{if .Bug.ClosedTime.IsZero}}
