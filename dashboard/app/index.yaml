@@ -146,6 +146,11 @@ indexes:
 
 - kind: Build
   properties:
+  - name: Assets.Type
+  - name: Assets.CreateDate
+
+- kind: Build
+  properties:
   - name: Namespace
   - name: AssetsLastCheck
 

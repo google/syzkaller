@@ -473,9 +473,11 @@ func queryLatestManagerAssets(c context.Context, ns string, assetType dashapi.As
 	period time.Duration) (map[string]Asset, error) {
 	var builds []*Build
 	startTime := timeNow(c).Add(-period)
-	_, err := db.NewQuery("Build").
-		Filter("Namespace=", ns).
-		Filter("Assets.Type=", assetType).
+	query := db.NewQuery("Build")
+	if ns != "" {
+		query = query.Filter("Namespace=", ns)
+	}
+	_, err := query.Filter("Assets.Type=", assetType).
 		Filter("Assets.CreateDate>", startTime).
 		Order("Assets.CreateDate").
 		GetAll(c, &builds)
