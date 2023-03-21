@@ -1345,9 +1345,14 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 			}
 		}
 	}
-	creditEmail, err := email.AddAddrContext(ownEmail(c), bug.Reporting[reportingIdx].ID)
-	if err != nil {
-		log.Errorf(c, "failed to generate credit email: %v", err)
+	creditEmail := ""
+	if bug.Reporting[reportingIdx].ID != "" {
+		// If the bug was never reported to the public, sanitizeReporting() would clear IDs
+		// for non-authorized users. In such case, don't show CreditEmail at all.
+		creditEmail, err = email.AddAddrContext(ownEmail(c), bug.Reporting[reportingIdx].ID)
+		if err != nil {
+			log.Errorf(c, "failed to generate credit email: %v", err)
+		}
 	}
 	id := bug.keyHash()
 	uiBug := &uiBug{
