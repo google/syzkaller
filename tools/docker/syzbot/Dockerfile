@@ -55,6 +55,12 @@ RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2
 # Download the official bazel binary. The APT repository isn't used because there is not packages for arm64.
 RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/5.3.2/release/bazel-5.3.2-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
 
+# Update pahole from 1.20 to 1.22 to avoid this build error seen on 5.10 based kernels:
+# [43990] INT DW_ATE_unsigned_24 Error emitting BTF type
+RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' >> /etc/apt/sources.list
+RUN apt update
+RUN apt install -y -q dwarves/bullseye-backports
+
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller
 RUN echo "export PS1='\n\W🤖 '" >> /root/.bashrc
