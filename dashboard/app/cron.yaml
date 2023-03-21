@@ -14,6 +14,8 @@ cron:
   schedule: every 1 hours
 - url: /cron/refresh_subsystems
   schedule: every 5 minutes
+- url: /cron/subsystem_reports
+  schedule: every 8 hours
 - url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller-backups&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
   schedule: every monday 00:00
   target: ah-builtin-python-bundle
