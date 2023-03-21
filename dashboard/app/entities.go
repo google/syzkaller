@@ -340,6 +340,69 @@ type ReportingStateEntry struct {
 	Date int // YYYYMMDD
 }
 
+// Subsystem holds the history of grouped per-subsystem open bug reminders.
+type Subsystem struct {
+	Namespace string
+	Name      string
+	// ListsQueried is the last time bug lists were queried for the subsystem.
+	ListsQueried time.Time
+}
+
+// SubsystemReport holds a single report about open bugs in a subsystem.
+// There'll be one record for moderation (if it's needed) and one for actual reporting.
+type SubsystemReport struct {
+	Created     time.Time
+	BugKeys     []string `datastore:",noindex"`
+	TotalStats  SubsystemReportStats
+	PeriodStats SubsystemReportStats
+	Stages      []SubsystemReportStage
+}
+
+func (r *SubsystemReport) getBugKeys() ([]*db.Key, error) {
+	ret := []*db.Key{}
+	for _, encoded := range r.BugKeys {
+		key, err := db.DecodeKey(encoded)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %#v: %w", encoded, err)
+		}
+		ret = append(ret, key)
+	}
+	return ret, nil
+}
+
+func (r *SubsystemReport) findStage(id string) *SubsystemReportStage {
+	for j := range r.Stages {
+		stage := &r.Stages[j]
+		if stage.ID == id {
+			return stage
+		}
+	}
+	return nil
+}
+
+type SubsystemReportStats struct {
+	Reported int
+	Fixed    int
+}
+
+func (s *SubsystemReportStats) toDashapi() dashapi.BugListReportStats {
+	return dashapi.BugListReportStats{
+		Reported: s.Reported,
+		Fixed:    s.Fixed,
+	}
+}
+
+// There can be at most two stages.
+// One has Moderation=true, the other one has Moderation=false.
+type SubsystemReportStage struct {
+	ID         string
+	ExtID      string
+	Link       string
+	Reported   time.Time
+	Closed     time.Time
+	Moderation bool
+}
+
 // Job represent a single patch testing or bisection job for syz-ci.
 // Later we may want to extend this to other types of jobs:
 //   - test of a committed fix
