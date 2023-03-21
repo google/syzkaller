@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -117,7 +118,22 @@ func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if err := emailPollBugLists(c); err != nil {
+		log.Errorf(c, "bug list poll failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Write([]byte("OK"))
+}
+
+func emailPollBugLists(c context.Context) error {
+	reports := reportingPollBugLists(c, emailType)
+	for _, rep := range reports {
+		if err := emailSendBugListReport(c, rep); err != nil {
+			log.Errorf(c, "emailPollBugLists: %v", err)
+		}
+	}
+	return nil
 }
 
 func emailPollBugs(c context.Context) error {
@@ -152,6 +168,26 @@ func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
 	ok, reason, err := incomingCommand(c, cmd)
 	if !ok || err != nil {
 		return fmt.Errorf("failed to update reported bug: ok=%v reason=%v err=%v", ok, reason, err)
+	}
+	return nil
+}
+
+func emailSendBugListReport(c context.Context, rep *dashapi.BugListReport) error {
+	cfg := new(EmailConfig)
+	if err := json.Unmarshal(rep.Config, cfg); err != nil {
+		return fmt.Errorf("failed to unmarshal email config: %v", err)
+	}
+	err := emailListReport(c, rep, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to send the bug list message: %w", err)
+	}
+	upd := &dashapi.BugListUpdate{
+		ID:      rep.ID,
+		Command: dashapi.BugListSentCmd,
+	}
+	_, err = reportingBugListCommand(c, upd)
+	if err != nil {
+		return fmt.Errorf("failed to update the bug list: %w", err)
 	}
 	return nil
 }
@@ -280,40 +316,95 @@ func emailPollJobs(c context.Context) error {
 }
 
 func emailReport(c context.Context, rep *dashapi.BugReport) error {
-	templ, public := "", false
-	switch rep.Type {
-	case dashapi.ReportNew, dashapi.ReportRepro:
-		templ = "mail_bug.txt"
-		public = true
-	case dashapi.ReportTestPatch:
-		templ = "mail_test_result.txt"
-	case dashapi.ReportBisectCause, dashapi.ReportBisectFix:
-		templ = "mail_bisect_result.txt"
-		public = true
-	default:
-		return fmt.Errorf("unknown report type %v", rep.Type)
-	}
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
 	}
-	to := email.MergeEmailLists([]string{cfg.Email}, rep.CC)
-	if cfg.MailMaintainers && public {
-		to = email.MergeEmailLists(to, rep.Maintainers, cfg.DefaultMaintainers)
+	templ := ""
+	switch rep.Type {
+	case dashapi.ReportNew, dashapi.ReportRepro:
+		templ = "mail_bug.txt"
+	case dashapi.ReportTestPatch:
+		templ = "mail_test_result.txt"
+		cfg.MailMaintainers = false
+	case dashapi.ReportBisectCause, dashapi.ReportBisectFix:
+		templ = "mail_bisect_result.txt"
+	default:
+		return fmt.Errorf("unknown report type %v", rep.Type)
 	}
-	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
+	return sendMailTemplate(c, &mailSendParams{
+		templateName: templ,
+		templateArg:  rep,
+		cfg:          cfg,
+		title:        generateEmailBugTitle(rep, cfg),
+		reportID:     rep.ID,
+		replyTo:      rep.ExtID,
+		cc:           rep.CC,
+		maintainers:  rep.Maintainers,
+	})
+}
+
+func emailListReport(c context.Context, rep *dashapi.BugListReport, cfg *EmailConfig) error {
+	if rep.Moderation {
+		cfg.MailMaintainers = false
+	}
+	args := struct {
+		*dashapi.BugListReport
+		Table string
+	}{BugListReport: rep}
+
+	var b bytes.Buffer
+	w := tabwriter.NewWriter(&b, 0, 0, 1, ' ', 0)
+	fmt.Fprintln(w, "Crashes\tRepro\tTitle")
+	for _, bug := range rep.Bugs {
+		repro := "No"
+		if bug.ReproLevel > dashapi.ReproLevelNone {
+			repro = "Yes"
+		}
+		fmt.Fprintf(w, "%d\t%s\t%s\n", bug.Hits, repro, bug.Title)
+		fmt.Fprintf(w, "\t\t%s\n", bug.Link)
+	}
+	w.Flush()
+	args.Table = b.String()
+
+	return sendMailTemplate(c, &mailSendParams{
+		templateName: "mail_subsystem.txt",
+		templateArg:  args,
+		cfg:          cfg,
+		title:        fmt.Sprintf("[%s] Monthly Report", rep.Subsystem),
+		reportID:     rep.ID,
+		maintainers:  rep.Maintainers,
+	})
+}
+
+type mailSendParams struct {
+	templateName string
+	templateArg  any
+	cfg          *EmailConfig
+	title        string
+	reportID     string
+	replyTo      string
+	cc           []string
+	maintainers  []string
+}
+
+func sendMailTemplate(c context.Context, params *mailSendParams) error {
+	cfg := params.cfg
+	to := email.MergeEmailLists([]string{cfg.Email}, params.cc)
+	if cfg.MailMaintainers {
+		to = email.MergeEmailLists(to, params.maintainers, cfg.DefaultMaintainers)
+	}
+	from, err := email.AddAddrContext(fromAddr(c), params.reportID)
 	if err != nil {
 		return err
 	}
 	body := new(bytes.Buffer)
-	if err := mailTemplates.ExecuteTemplate(body, templ, rep); err != nil {
-		return fmt.Errorf("failed to execute %v template: %v", templ, err)
+	if err := mailTemplates.ExecuteTemplate(body, params.templateName, params.templateArg); err != nil {
+		return fmt.Errorf("failed to execute %v template: %v", params.templateName, err)
 	}
-	title := generateEmailBugTitle(rep, cfg)
-	log.Infof(c, "sending email %q to %q", title, to)
-	return sendMailText(c, cfg, title, from, to, rep.ExtID, body.String())
+	log.Infof(c, "sending email %q to %q", params.title, to)
+	return sendMailText(c, params.cfg, params.title, from, to, params.replyTo, body.String())
 }
-
 func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
 	title := ""
 	for i := len(rep.Subsystems) - 1; i >= 0; i-- {
@@ -356,7 +447,11 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
 		msg.Command, msg.CommandArgs = email.CmdNone, ""
 	}
-	bugInfo := loadBugInfo(c, msg)
+	bugInfo, bugListInfo := identifyEmail(c, msg)
+	if bugListInfo != nil {
+		incomingBugListEmail(c, bugListInfo, msg)
+		return nil
+	}
 	if bugInfo == nil {
 		return nil // error was already logged
 	}
@@ -548,8 +643,63 @@ func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
 	log.Infof(c, "%s", body)
 }
 
+func incomingBugListEmail(c context.Context, bugListInfo *bugListInfoResult, msg *email.Email) {
+	upd := &dashapi.BugListUpdate{
+		ID:    bugListInfo.id,
+		ExtID: msg.MessageID,
+		Link:  msg.Link,
+	}
+	if msg.Command == email.CmdUpstream {
+		upd.Command = dashapi.BugListUpstreamCmd
+	} else {
+		upd.Command = dashapi.BugListUpdateCmd
+	}
+	log.Infof(c, "bug list update: id=%s, cmd=%v", upd.ID, upd.Command)
+	reply, err := reportingBugListCommand(c, upd)
+	if err != nil {
+		log.Errorf(c, "bug list command failed: %s", err)
+		return
+	}
+	if reply != "" {
+		if err := replyTo(c, msg, bugListInfo.id, reply); err != nil {
+			log.Errorf(c, "failed to send email reply: %v", err)
+		}
+	}
+}
+
 // These are just stale emails in MAINTAINERS.
 var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5\.1\.0 Address rejected`)
+
+type bugListInfoResult struct {
+	id     string
+	config *EmailConfig
+}
+
+func identifyEmail(c context.Context, msg *email.Email) (*bugInfoResult, *bugListInfoResult) {
+	if isBugListHash(msg.BugID) {
+		subsystem, _, stage, err := findSubsystemReportByID(c, msg.BugID)
+		if err != nil {
+			log.Errorf(c, "findBugListByID failed: %s", err)
+			return nil, nil
+		}
+		if subsystem == nil {
+			log.Errorf(c, "no bug list with the %v ID found", msg.BugID)
+			return nil, nil
+		}
+		reminderConfig := config.Namespaces[subsystem.Namespace].Subsystems.Reminder
+		if reminderConfig == nil {
+			log.Errorf(c, "reminder configuration is empty")
+			return nil, nil
+		}
+		emailConfig, ok := bugListReportingConfig(subsystem.Namespace, stage).(*EmailConfig)
+		if !ok {
+			log.Errorf(c, "bug list's reporting config is not EmailConfig (id=%v)", msg.BugID)
+			return nil, nil
+		}
+		return nil, &bugListInfoResult{id: msg.BugID, config: emailConfig}
+	}
+	return loadBugInfo(c, msg), nil
+}
 
 type bugInfoResult struct {
 	bug          *Bug

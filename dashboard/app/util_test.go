@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/aetest"
@@ -363,6 +364,16 @@ func (c *Ctx) pollEmailBug() *aemail.Message {
 		c.t.Fatal("got no emails")
 	}
 	return <-c.emailSink
+}
+
+func (c *Ctx) pollEmailExtID() string {
+	c.t.Helper()
+	msg := c.pollEmailBug()
+	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
+	if err != nil {
+		c.t.Fatalf("failed to remove addr context: %v", err)
+	}
+	return extBugID
 }
 
 func (c *Ctx) expectNoEmail() {

@@ -113,6 +113,27 @@ type SubsystemsConfig struct {
 	Service *subsystem.Service
 	// If all existing subsystem labels must be recalculated, increase this integer.
 	Revision int
+	// Periodic per-subsystem reminders about open bugs.
+	Reminder *BugListReportingConfig
+}
+
+// BugListReportingConfig describes how aggregated reminders about open bugs should be processed.
+type BugListReportingConfig struct {
+	// Reports are sent every PeriodDays days (30 by default).
+	PeriodDays int
+	// Reports will include details about BugsInReport bugs (10 by default).
+	BugsInReport int
+	// Bugs that were first discovered less than MinBugAge ago, will not be included.
+	// The default value is 2 weeks.
+	MinBugAge time.Duration
+	// SourceReporting is the name of the reporting stage from which bugs should be taken.
+	SourceReporting string
+	// If ModerationConfig is set, bug lists will be first sent there for human confirmation.
+	// For now, only EmailConfig is supported.
+	ModerationConfig ReportingType
+	// Config specifies how exactly such notifications should be delivered.
+	// For now, only EmailConfig is supported.
+	Config ReportingType
 }
 
 // ObsoletingConfig describes how bugs without reproducer should be obsoleted.
@@ -357,6 +378,45 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	}
 	checkKernelRepos(ns, cfg)
 	checkNamespaceReporting(ns, cfg)
+	checkSubsystems(ns, cfg)
+}
+
+func checkSubsystems(ns string, cfg *Config) {
+	if cfg.Subsystems.Reminder == nil {
+		// Nothing to validate.
+		return
+	}
+	if cfg.Subsystems.Service == nil {
+		panic(fmt.Sprintf("%v: Subsystems.Reminder is set while Subsystems.Service is nil", ns))
+	}
+	reminder := cfg.Subsystems.Reminder
+	if reminder.SourceReporting == "" {
+		panic(fmt.Sprintf("%v: Reminder.SourceReporting must be set", ns))
+	}
+	if reminder.Config == nil {
+		panic(fmt.Sprintf("%v: Reminder.Config must be set", ns))
+	}
+	reporting := cfg.ReportingByName(reminder.SourceReporting)
+	if reporting == nil {
+		panic(fmt.Sprintf("%v: Reminder.SourceReporting %v points to a non-existent reporting",
+			ns, reminder.SourceReporting))
+	}
+	if reporting.AccessLevel != AccessPublic {
+		panic(fmt.Sprintf("%v: Reminder.SourceReporting must point to a public reporting", ns))
+	}
+	if reminder.PeriodDays == 0 {
+		reminder.PeriodDays = 30
+	} else if reminder.PeriodDays < 0 {
+		panic(fmt.Sprintf("%v: Reminder.PeriodDays must be > 0", ns))
+	}
+	if reminder.BugsInReport == 0 {
+		reminder.BugsInReport = 10
+	} else if reminder.BugsInReport < 0 {
+		panic(fmt.Sprintf("%v: Reminder.BugsInReport must be > 0", ns))
+	}
+	if reminder.MinBugAge == 0 {
+		reminder.MinBugAge = 24 * time.Hour * 14
+	}
 }
 
 func checkKernelRepos(ns string, cfg *Config) {

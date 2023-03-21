@@ -452,6 +452,48 @@ type BisectResult struct {
 	Fix             bool
 }
 
+type BugListReport struct {
+	ID          string
+	Config      []byte
+	Bugs        []BugListItem
+	TotalStats  BugListReportStats
+	PeriodStats BugListReportStats
+	PeriodDays  int
+	Link        string
+	Subsystem   string
+	Maintainers []string
+	Moderation  bool
+}
+
+type BugListReportStats struct {
+	Reported int
+	Fixed    int
+}
+
+// BugListItem represents a single bug from the BugListReport entity.
+type BugListItem struct {
+	ID         string
+	Title      string
+	Link       string
+	ReproLevel ReproLevel
+	Hits       int64
+}
+
+type BugListUpdate struct {
+	ID      string // copied from BugListReport
+	ExtID   string
+	Link    string
+	Command BugListUpdateCommand
+}
+
+type BugListUpdateCommand string
+
+const (
+	BugListSentCmd     BugListUpdateCommand = "sent"
+	BugListUpdateCmd   BugListUpdateCommand = "update"
+	BugListUpstreamCmd BugListUpdateCommand = "upstream"
+)
+
 type BugUpdate struct {
 	ID              string // copied from BugReport
 	JobID           string // copied from BugReport
