@@ -61,6 +61,7 @@ var testConfig = &GlobalConfig{
 			Key:                   "test1keytest1keytest1key",
 			FixBisectionAutoClose: true,
 			SimilarityDomain:      testDomain,
+			LtsNamespace:          "subsystem-reminders",
 			Clients: map[string]string{
 				client1: password1,
 				"oauth": auth.OauthMagic + "111111122222222",

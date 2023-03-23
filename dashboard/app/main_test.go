@@ -247,3 +247,58 @@ func TestSubsystemPage(t *testing.T) {
 	assert.Contains(t, string(reply), crash1.Title)
 	assert.NotContains(t, string(reply), crash2.Title)
 }
+
+func TestLtsBugs(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// test1 (client) is a normal namespace
+	// let's treat subsystem-reminders as an lts namespace
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash1 := testCrash(build, 1)
+	crash1.Title = "lts bug 1"
+	client.ReportCrash(crash1)
+	client.pollBug()
+
+	crash2 := testCrash(build, 2)
+	crash2.Title = "lts bug 2"
+	client.ReportCrash(crash2)
+	client.pollBug()
+
+	crash3 := testCrash(build, 3)
+	crash3.Title = "non lts bug"
+	client.ReportCrash(crash3)
+	client.pollBug()
+
+	ltsClient := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
+	ltsBuild := testBuild(2)
+	ltsClient.UploadBuild(ltsBuild)
+
+	crash4 := testCrash(ltsBuild, 1)
+	crash4.Title = crash1.Title
+	ltsClient.ReportCrash(crash4)
+	ltsClient.pollEmailBug()
+
+	crash5 := testCrash(ltsBuild, 2)
+	crash5.Title = crash2.Title
+	ltsClient.ReportCrash(crash5)
+	ltsClient.pollEmailBug()
+
+	crash6 := testCrash(ltsBuild, 3)
+	crash6.Title = "lts bug 3"
+	ltsClient.ReportCrash(crash6)
+	ltsClient.pollEmailBug()
+
+	_, err := c.AuthGET(AccessAdmin, "/cron/refresh_lts")
+	c.expectOK(err)
+
+	reply, err := c.AuthGET(AccessAdmin, "/test1?lts=true")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), crash1.Title)
+	assert.Contains(t, string(reply), crash2.Title)
+	assert.NotContains(t, string(reply), crash3.Title)
+}

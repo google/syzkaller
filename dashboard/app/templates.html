@@ -105,6 +105,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{if .Filter.NoSubsystem}}
 		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem") "drop"}})
 	{{end}}
+	{{if .Filter.Lts}}
+		Lts={{.Filter.Lts}} ({{link (call .DropURL "lts") "drop"}})
+	{{end}}
 	<br>
 {{end}}
 {{end}}
@@ -157,6 +160,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
 			<td class="title">
 				<a href="{{$b.Link}}">{{$b.Title}}</a>
+				{{if $b.Lts}}<span class="lts">{{link .LtsLink "lts"}}</span> {{end}}
 				{{- range $b.Subsystems}}
 					<span class="subsystem">{{link .Link .Name}}</span>
 				{{- end}}

@@ -1578,3 +1578,82 @@ func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+func handleRefreshLts(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	ltsNamespaces := map[string]bool{}
+	for _, cfg := range config.Namespaces {
+		if cfg.LtsNamespace != "" {
+			ltsNamespaces[cfg.LtsNamespace] = true
+		}
+	}
+	ltsTitles := map[string]map[string]struct{}{}
+	for ns := range ltsNamespaces {
+		titlesMap, err := loadLtsTitles(c, ns)
+		if err != nil {
+			log.Errorf(c, "failed to load ns(=%s) bugs: %v", ns, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		ltsTitles[ns] = titlesMap
+	}
+	for ns, cfg := range config.Namespaces {
+		if cfg.LtsNamespace != "" {
+			err := assignLtsLabels(c, ns, ltsTitles[cfg.LtsNamespace])
+			if err != nil {
+				log.Errorf(c, "failed to assign lts labels for %s: %v", ns, err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+}
+
+func loadLtsTitles(c context.Context, ns string) (map[string]struct{}, error) {
+	bugs, _, err := loadNamespaceBugs(c, ns)
+	if err != nil {
+		return nil, err
+	}
+	ret := map[string]struct{}{}
+	for _, bug := range bugs {
+		for _, title := range bug.AltTitles {
+			ret[title] = struct{}{}
+		}
+	}
+	return ret, nil
+}
+
+func assignLtsLabels(c context.Context, ns string, ltsTitles map[string]struct{}) error {
+	bugs, _, err := loadNamespaceBugs(c, ns)
+	if err != nil {
+		return fmt.Errorf("failed to load bugs: %s", err)
+	}
+	for _, bug := range bugs {
+		ltsLabel := false
+		for _, title := range bug.AltTitles {
+			if _, ok := ltsTitles[title]; ok {
+				ltsLabel = true
+				break
+			}
+		}
+		if ltsLabel == bug.Tags.Lts {
+			continue
+		}
+		tx := func(c context.Context) error {
+			dbBug := new(Bug)
+			if err := db.Get(c, bug.key(c), dbBug); err != nil {
+				return fmt.Errorf("failed to get bug: %v", err)
+			}
+			dbBug.Tags.Lts = ltsLabel
+			if _, err = db.Put(c, bug.key(c), dbBug); err != nil {
+				return fmt.Errorf("failed to put bug: %v", err)
+			}
+			return nil
+		}
+		err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

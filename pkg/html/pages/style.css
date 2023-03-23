@@ -214,6 +214,20 @@ table td, table th {
 	color: black;
 }
 
+.lts {
+        background: black;
+        display: inline-block;
+        padding-left: 2pt;
+        padding-right: 2pt;
+        margin-left: 4pt;
+        font-size: small;
+}
+
+.lts a {
+        text-decoration: none;
+        color: white;
+}
+
 .bad {
 	color: #f00;
 	font-weight: bold;

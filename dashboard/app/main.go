@@ -69,6 +69,7 @@ func initHTTPHandlers() {
 	http.HandleFunc("/cron/retest_repros", handleRetestRepros)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
+	http.HandleFunc("/cron/refresh_lts", handleRefreshLts)
 }
 
 type uiMainPage struct {
@@ -287,6 +288,8 @@ type uiBug struct {
 	NumManagers    int
 	LastActivity   time.Time
 	Subsystems     []*uiBugSubsystem
+	Lts            bool
+	LtsLink        string
 }
 
 type uiBugSubsystem struct {
@@ -355,6 +358,7 @@ type userBugFilter struct {
 	OnlyManager string // show bugs that happened ONLY on the manager
 	Subsystem   string // only show bugs belonging to the subsystem
 	NoSubsystem bool
+	Lts         bool
 }
 
 func MakeBugFilter(r *http.Request) *userBugFilter {
@@ -363,6 +367,7 @@ func MakeBugFilter(r *http.Request) *userBugFilter {
 		NoSubsystem: r.FormValue("no_subsystem") != "",
 		Manager:     r.FormValue("manager"),
 		OnlyManager: r.FormValue("only_manager"),
+		Lts:         r.FormValue("lts") != "",
 	}
 }
 
@@ -397,6 +402,9 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 	if filter.Subsystem != "" && !bug.hasSubsystem(filter.Subsystem) {
 		return false
 	}
+	if filter.Lts && !bug.Tags.Lts {
+		return false
+	}
 	return true
 }
 
@@ -404,7 +412,8 @@ func (filter *userBugFilter) Any() bool {
 	if filter == nil {
 		return false
 	}
-	return filter.Subsystem != "" || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
+	return filter.Subsystem != "" || filter.OnlyManager != "" || filter.Manager != "" ||
+		filter.NoSubsystem || filter.Lts
 }
 
 // handleMain serves main page.
@@ -1374,6 +1383,8 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
 		LastActivity:   bug.LastActivity,
+		Lts:            bug.Tags.Lts,
+		LtsLink:        html.AmendURL(getCurrentURL(c), "lts", "true"),
 	}
 	for _, entry := range bug.Tags.Subsystems {
 		uiBug.Subsystems = append(uiBug.Subsystems, &uiBugSubsystem{

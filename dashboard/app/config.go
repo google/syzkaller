@@ -105,6 +105,8 @@ type Config struct {
 	Kcidb *KcidbConfig
 	// Subsystems config.
 	Subsystems SubsystemsConfig
+	// If there's a bug in the LtsNamespace with the same title, syzbot will tag such bug as "lts".
+	LtsNamespace string
 }
 
 // SubsystemsConfig describes where to take the list of subsystems and how to infer them.
@@ -313,8 +315,14 @@ func checkConfig(cfg *GlobalConfig) {
 	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
 		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
 	}
-	for ns, cfg := range cfg.Namespaces {
-		checkNamespace(ns, cfg, namespaces, clientNames)
+	for ns, nsCfg := range cfg.Namespaces {
+		checkNamespace(ns, nsCfg, namespaces, clientNames)
+		if nsCfg.LtsNamespace != "" {
+			if cfg.Namespaces[nsCfg.LtsNamespace] == nil {
+				panic(fmt.Sprintf("%v: lts namespace %s is not found",
+					ns, nsCfg.LtsNamespace))
+			}
+		}
 	}
 }
 

@@ -122,6 +122,7 @@ type Bug struct {
 
 type BugTags struct {
 	Subsystems []BugSubsystem
+	Lts        bool
 }
 
 type BugSubsystem struct {
