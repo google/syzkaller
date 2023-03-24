@@ -292,7 +292,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
 
-This is a 30-day syzbot report for subsystemA subsystem.
+This is a 30-day syzbot report for the subsystemA subsystem.
 All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
@@ -323,7 +323,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemB maintainers/developers,
 
-This is a 30-day syzbot report for subsystemB subsystem.
+This is a 30-day syzbot report for the subsystemB subsystem.
 All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemB
 
@@ -403,7 +403,7 @@ func TestSubsystemRemindersModeration(t *testing.T) {
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
 
-This is a 30-day syzbot report for subsystemA subsystem.
+This is a 30-day syzbot report for the subsystemA subsystem.
 All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
@@ -515,7 +515,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
 
-This is a 30-day syzbot report for subsystemA subsystem.
+This is a 30-day syzbot report for the subsystemA subsystem.
 All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
