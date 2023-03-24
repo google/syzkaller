@@ -447,15 +447,10 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
 		msg.Command, msg.CommandArgs = email.CmdNone, ""
 	}
-	bugInfo, bugListInfo := identifyEmail(c, msg)
-	if bugListInfo != nil {
-		incomingBugListEmail(c, bugListInfo, msg)
-		return nil
-	}
-	if bugInfo == nil {
+	bugInfo, bugListInfo, emailConfig := identifyEmail(c, msg)
+	if bugInfo == nil && bugListInfo == nil {
 		return nil // error was already logged
 	}
-	emailConfig := bugInfo.reporting.Config.(*EmailConfig)
 	// A mailing list can send us a duplicate email, to not process/reply
 	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	fromMailingList := msg.MailingList != ""
@@ -469,6 +464,10 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// There's also a chance that the user mentioned syzbot directly, but without BugID.
 		// We don't need to worry about this case, as we won't recognize the bug anyway.
 		log.Infof(c, "duplicate email from mailing list, ignoring")
+		return nil
+	}
+	if bugListInfo != nil {
+		incomingBugListEmail(c, bugListInfo, msg)
 		return nil
 	}
 	if msg.Command == email.CmdTest {
@@ -675,30 +674,35 @@ type bugListInfoResult struct {
 	config *EmailConfig
 }
 
-func identifyEmail(c context.Context, msg *email.Email) (*bugInfoResult, *bugListInfoResult) {
+func identifyEmail(c context.Context, msg *email.Email) (
+	*bugInfoResult, *bugListInfoResult, *EmailConfig) {
 	if isBugListHash(msg.BugID) {
 		subsystem, _, stage, err := findSubsystemReportByID(c, msg.BugID)
 		if err != nil {
 			log.Errorf(c, "findBugListByID failed: %s", err)
-			return nil, nil
+			return nil, nil, nil
 		}
 		if subsystem == nil {
 			log.Errorf(c, "no bug list with the %v ID found", msg.BugID)
-			return nil, nil
+			return nil, nil, nil
 		}
 		reminderConfig := config.Namespaces[subsystem.Namespace].Subsystems.Reminder
 		if reminderConfig == nil {
 			log.Errorf(c, "reminder configuration is empty")
-			return nil, nil
+			return nil, nil, nil
 		}
 		emailConfig, ok := bugListReportingConfig(subsystem.Namespace, stage).(*EmailConfig)
 		if !ok {
 			log.Errorf(c, "bug list's reporting config is not EmailConfig (id=%v)", msg.BugID)
-			return nil, nil
+			return nil, nil, nil
 		}
-		return nil, &bugListInfoResult{id: msg.BugID, config: emailConfig}
+		return nil, &bugListInfoResult{id: msg.BugID, config: emailConfig}, emailConfig
 	}
-	return loadBugInfo(c, msg), nil
+	bugInfo := loadBugInfo(c, msg)
+	if bugInfo == nil {
+		return nil, nil, nil
+	}
+	return bugInfo, nil, bugInfo.reporting.Config.(*EmailConfig)
 }
 
 type bugInfoResult struct {
@@ -776,15 +780,29 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 }
 
 func ownMailingLists() []string {
-	ret := []string{}
+	configs := []ReportingType{}
 	for _, ns := range config.Namespaces {
 		for _, rep := range ns.Reporting {
-			emailConfig, ok := rep.Config.(*EmailConfig)
-			if !ok {
-				continue
-			}
-			ret = append(ret, emailConfig.Email)
+			configs = append(configs, rep.Config)
 		}
+		if ns.Subsystems.Reminder == nil {
+			continue
+		}
+		reminderConfig := ns.Subsystems.Reminder
+		if reminderConfig.ModerationConfig != nil {
+			configs = append(configs, reminderConfig.ModerationConfig)
+		}
+		if reminderConfig.Config != nil {
+			configs = append(configs, reminderConfig.Config)
+		}
+	}
+	ret := []string{}
+	for _, config := range configs {
+		emailConfig, ok := config.(*EmailConfig)
+		if !ok {
+			continue
+		}
+		ret = append(ret, emailConfig.Email)
 	}
 	return ret
 }
