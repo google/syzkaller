@@ -129,7 +129,7 @@ func reportingBugListCommand(c context.Context, cmd *dashapi.BugListUpdate) (str
 		reportKey := subsystemReportKey(c, subsystemKey(c, subsystem), rawReport)
 		report := new(SubsystemReport)
 		if err := db.Get(c, reportKey, report); err != nil {
-			return err
+			return fmt.Errorf("failed to query SubsystemReport (%v): %w", reportKey, err)
 		}
 		stage := report.findStage(cmd.ID)
 		if stage.ExtID == "" {
@@ -443,7 +443,7 @@ func subsystemKey(c context.Context, s *Subsystem) *db.Key {
 }
 
 func subsystemReportKey(c context.Context, subsystemKey *db.Key, r *SubsystemReport) *db.Key {
-	return db.NewKey(c, "SubsystemReport", fmt.Sprintf("%v", r.Created), 0, subsystemKey)
+	return db.NewKey(c, "SubsystemReport", r.Created.UTC().Format(time.RFC822), 0, subsystemKey)
 }
 
 type subsystemsRegistry struct {
