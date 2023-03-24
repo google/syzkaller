@@ -416,8 +416,6 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 				Hits:       bug.NumCrashes,
 			})
 		}
-
-		log.Errorf(c, "Raw dashapi: %#v; config=%s\n", ret, ret.Config)
 		return ret, nil
 	}
 	return nil, nil
