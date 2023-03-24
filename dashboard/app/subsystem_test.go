@@ -297,7 +297,7 @@ All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
 During the period, 3 new issues were detected and 0 were fixed.
-In total, 3 issues have been reported so far.
+In total, 3 issues are still open.
 
 Some of the still happening issues:
 
@@ -328,7 +328,7 @@ All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemB
 
 During the period, 2 new issues were detected and 0 were fixed.
-In total, 2 issues have been reported so far.
+In total, 2 issues are still open.
 
 Some of the still happening issues:
 
@@ -404,7 +404,7 @@ All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
 During the period, 2 new issues were detected and 0 were fixed.
-In total, 2 issues have been reported so far.
+In total, 2 issues are still open.
 
 Some of the still happening issues:
 
@@ -516,7 +516,7 @@ All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
 During the period, 9 new issues were detected and 1 were fixed.
-In total, 10 issues have been reported and 1 fixed so far.
+In total, 10 issues are still open and 1 has been fixed so far.
 
 Some of the still happening issues:
 
