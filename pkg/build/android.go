@@ -12,12 +12,45 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type android struct{}
 
+type BuildParams struct {
+	DefconfigFragment string `json:"defconfig_fragment"`
+	BuildTarget       string `json:"build_target"`
+	BuildScript       string `json:"build_script"`
+	VendorBootImage   string `json:"vendor_boot_image"`
+}
+
 var ccCompilerRegexp = regexp.MustCompile(`#define\s+CONFIG_CC_VERSION_TEXT\s+"(.*)"`)
+
+func parseConfig(conf []byte) (*BuildParams, error) {
+	buildCfg := new(BuildParams)
+	if err := config.LoadData(conf, buildCfg); err != nil {
+		return nil, fmt.Errorf("failed to parse build config: %w", err)
+	}
+
+	if buildCfg.DefconfigFragment == "" {
+		return nil, fmt.Errorf("defconfig fragment not specified for Android build")
+	}
+
+	if buildCfg.BuildTarget == "" {
+		return nil, fmt.Errorf("build target not specified for Android build")
+	}
+
+	if buildCfg.BuildScript == "" {
+		return nil, fmt.Errorf("build script not specified for Android build")
+	}
+
+	if buildCfg.VendorBootImage == "" {
+		return nil, fmt.Errorf("vendor boot image not specified for Android build")
+	}
+
+	return buildCfg, nil
+}
 
 func (a android) readCompiler(kernelDir string) (string, error) {
 	bytes, err := os.ReadFile(filepath.Join(kernelDir, "out", "mixed", "device-kernel", "private",
@@ -41,14 +74,16 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("sysctl file is not supported for android images")
 	}
 
+	buildCfg, err := parseConfig(params.Build)
+	if err != nil {
+		return details, fmt.Errorf("error parsing android configs: %w", err)
+	}
+
 	// Build kernel.
-	cmd := osutil.Command("./build_cloudripper.sh")
+	cmd := osutil.Command(fmt.Sprintf("./%v", buildCfg.BuildScript))
 	cmd.Dir = params.KernelDir
-	// No cloudripper kasan config; currently only slider has a kasan config.
-	defconfigFragment := filepath.Join("private", "gs-google", "build.config.slider.kasan")
-	buildTarget := "cloudripper_gki_kasan"
 	cmd.Env = append(cmd.Env, "OUT_DIR=out", "DIST_DIR=dist", fmt.Sprintf("GKI_DEFCONFIG_FRAGMENT=%v",
-		defconfigFragment), fmt.Sprintf("BUILD_TARGET=%v", buildTarget))
+		buildCfg.DefconfigFragment), fmt.Sprintf("BUILD_TARGET=%v", buildCfg.BuildTarget))
 
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return details, fmt.Errorf("failed to build kernel: %s", err)
@@ -59,7 +94,6 @@ func (a android) build(params Params) (ImageDetails, error) {
 	vmlinux := filepath.Join(buildDistDir, "vmlinux")
 	config := filepath.Join(params.KernelDir, "out", "mixed", "device-kernel", "private", "gs-google", ".config")
 
-	var err error
 	details.CompilerID, err = a.readCompiler(params.KernelDir)
 	if err != nil {
 		return details, fmt.Errorf("failed to read compiler: %v", err)
@@ -78,7 +112,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 	defer imageFile.Close()
 
-	if err := a.embedImages(imageFile, buildDistDir, "boot.img", "dtbo.img", "vendor_kernel_boot.img",
+	if err := a.embedImages(imageFile, buildDistDir, "boot.img", "dtbo.img", buildCfg.VendorBootImage,
 		"vendor_dlkm.img"); err != nil {
 		return details, fmt.Errorf("failed to embed images: %v", err)
 	}
