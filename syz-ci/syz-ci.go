@@ -165,6 +165,9 @@ type ManagerConfig struct {
 	Ccache       string `json:"ccache"`
 	Userspace    string `json:"userspace"`
 	KernelConfig string `json:"kernel_config"`
+	// Build-type-specific parameters.
+	// Parameters for concrete types are in Config type in pkg/build/TYPE.go, e.g. pkg/build/android.go.
+	Build json.RawMessage `json:"build"`
 	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
 	// File with kernel cmdline values (optional).
