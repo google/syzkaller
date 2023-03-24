@@ -391,6 +391,10 @@ func TestSubsystemRemindersModeration(t *testing.T) {
 	// Moderate the subsystemA list.
 	c.advanceTime(time.Hour)
 	c.incomingEmail(replyA.Sender, "#syz upstream\n")
+	// Also emulate the second email that would come from the mailing list.
+	// The email should be silently ignored.
+	c.incomingEmail(replyA.Sender, "#syz upstream\n",
+		EmailOptFrom("moderation@syzkaller.com"), EmailOptOrigFrom("user@user.com"))
 
 	// Expect the normal report.
 	reply := client.pollEmailBug()
