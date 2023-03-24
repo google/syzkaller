@@ -1,6 +1,6 @@
 Hello {{.Subsystem}} maintainers/developers,
 
-This is a {{.PeriodDays}}-day syzbot report for {{.Subsystem}} subsystem.
+This is a {{.PeriodDays}}-day syzbot report for the {{.Subsystem}} subsystem.
 All related reports/information can be found at:
 {{.Link}}
 
