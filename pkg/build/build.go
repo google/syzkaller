@@ -6,6 +6,7 @@ package build
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -35,6 +36,7 @@ type Params struct {
 	SysctlFile   string
 	Config       []byte
 	Tracer       debugtracer.DebugTracer
+	Build        json.RawMessage
 }
 
 // Information that is returned from the Image function.
