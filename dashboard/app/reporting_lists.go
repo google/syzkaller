@@ -247,7 +247,7 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 		}
 	}
 	// Let's reduce noise and don't remind about just one bug.
-	if len(noRepro)+len(withRepro) < 2 {
+	if len(noRepro)+len(withRepro) < config.MinBugsCount {
 		return nil, nil
 	}
 	// Even if we have enough bugs with a reproducer, there might still be bugs

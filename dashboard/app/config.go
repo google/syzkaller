@@ -126,6 +126,9 @@ type BugListReportingConfig struct {
 	// Bugs that were first discovered less than MinBugAge ago, will not be included.
 	// The default value is 2 weeks.
 	MinBugAge time.Duration
+	// Reports will only be sent if there are at least MinBugsCount bugs to notify about.
+	// The default value is 2.
+	MinBugsCount int
 	// SourceReporting is the name of the reporting stage from which bugs should be taken.
 	SourceReporting string
 	// If ModerationConfig is set, bug lists will be first sent there for human confirmation.
@@ -416,6 +419,11 @@ func checkSubsystems(ns string, cfg *Config) {
 	}
 	if reminder.MinBugAge == 0 {
 		reminder.MinBugAge = 24 * time.Hour * 14
+	}
+	if reminder.MinBugsCount == 0 {
+		reminder.MinBugsCount = 2
+	} else if reminder.MinBugsCount < 0 {
+		panic(fmt.Sprintf("%v: Reminder.MinBugsCount must be > 0", ns))
 	}
 }
 
