@@ -5,8 +5,8 @@ All related reports/information can be found at:
 {{.Link}}
 
 During the period, {{.PeriodStats.Reported}} new issues were detected and {{.PeriodStats.Fixed}} were fixed.
-In total, {{.TotalStats.Reported}} issues have been reported
-{{- if .TotalStats.Fixed}} and {{.TotalStats.Fixed}} fixed{{end}} so far.
+In total, {{.TotalStats.Reported}} issues are still open
+{{- if .TotalStats.Fixed}} and {{.TotalStats.Fixed}} ha{{if eq .TotalStats.Fixed 1}}s{{else}}ve{{end}} been fixed so far{{end}}.
 
 Some of the still happening issues:
 
