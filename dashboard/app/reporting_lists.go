@@ -93,6 +93,7 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 			if timeNow(c).Before(subsystem.ListsQueried.Add(minPeriod)) {
 				continue
 			}
+			updateLimit--
 			if err := registry.updatePoll(c, subsystem); err != nil {
 				log.Errorf(c, "failed to update subsystem: %v", err)
 				return
