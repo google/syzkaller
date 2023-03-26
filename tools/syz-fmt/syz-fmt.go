@@ -44,7 +44,8 @@ func main() {
 				if !strings.HasSuffix(file.Name(), ".txt") {
 					continue
 				}
-				processFile(filepath.Join(arg, file.Name()), file.Type())
+				info, _ := file.Info()
+				processFile(filepath.Join(arg, file.Name()), info.Mode())
 			}
 		} else {
 			processFile(arg, st.Mode())
