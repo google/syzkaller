@@ -67,7 +67,7 @@ func reportingPollBugLists(c context.Context, typ string) []*dashapi.BugListRepo
 	return ret
 }
 
-const maxListQueriesPerPoll = 5
+const maxNewListsPerNs = 5
 
 // handleSubsystemReports is periodically invoked to construct fresh SubsystemReport objects.
 func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +77,6 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "failed to load subsystems: %v", err)
 		return
 	}
-	updateLimit := maxListQueriesPerPoll
 	for ns, nsConfig := range config.Namespaces {
 		rConfig := nsConfig.Subsystems.Reminder
 		if rConfig == nil {
@@ -85,27 +84,35 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 		}
 		minPeriod := 24 * time.Hour * time.Duration(rConfig.PeriodDays)
 		reporting := nsConfig.ReportingByName(rConfig.SourceReporting)
+		var subsystems []*Subsystem
 		for _, entry := range nsConfig.Subsystems.Service.List() {
+			subsystems = append(subsystems, registry.get(ns, entry.Name))
+		}
+		// Poll subsystems in a round-robin manner.
+		sort.Slice(subsystems, func(i, j int) bool {
+			return subsystems[i].ListsQueried.Before(subsystems[j].ListsQueried)
+		})
+		updateLimit := maxNewListsPerNs
+		for _, subsystem := range subsystems {
 			if updateLimit == 0 {
 				break
 			}
-			subsystem := registry.get(ns, entry.Name)
-			if timeNow(c).Before(subsystem.ListsQueried.Add(minPeriod)) {
+			if timeNow(c).Before(subsystem.LastBugList.Add(minPeriod)) {
 				continue
-			}
-			updateLimit--
-			if err := registry.updatePoll(c, subsystem); err != nil {
-				log.Errorf(c, "failed to update subsystem: %v", err)
-				return
 			}
 			report, err := querySubsystemReport(c, subsystem, reporting, rConfig)
 			if err != nil {
 				log.Errorf(c, "failed to query bug lists: %v", err)
 				return
 			}
+			if err := registry.updatePoll(c, subsystem, report != nil); err != nil {
+				log.Errorf(c, "failed to update subsystem: %v", err)
+				return
+			}
 			if report == nil {
 				continue
 			}
+			updateLimit--
 			if err := storeSubsystemReport(c, subsystem, report); err != nil {
 				log.Errorf(c, "failed to save subsystem: %v", err)
 				return
@@ -477,7 +484,7 @@ func (sr *subsystemsRegistry) store(item *Subsystem) {
 	sr.entities[item.Namespace][item.Name] = item
 }
 
-func (sr *subsystemsRegistry) updatePoll(c context.Context, s *Subsystem) error {
+func (sr *subsystemsRegistry) updatePoll(c context.Context, s *Subsystem, success bool) error {
 	key := subsystemKey(c, s)
 	return db.RunInTransaction(c, func(c context.Context) error {
 		dbSubsystem := new(Subsystem)
@@ -488,6 +495,9 @@ func (sr *subsystemsRegistry) updatePoll(c context.Context, s *Subsystem) error 
 			return fmt.Errorf("failed to get Subsystem '%v': %w", key, err)
 		}
 		dbSubsystem.ListsQueried = timeNow(c)
+		if success {
+			dbSubsystem.LastBugList = timeNow(c)
+		}
 		if _, err := db.Put(c, key, dbSubsystem); err != nil {
 			return fmt.Errorf("failed to save Subsystem: %w", err)
 		}

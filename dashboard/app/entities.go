@@ -346,6 +346,8 @@ type Subsystem struct {
 	Name      string
 	// ListsQueried is the last time bug lists were queried for the subsystem.
 	ListsQueried time.Time
+	// LastBugList is the last time we have actually managed to generate a bug list.
+	LastBugList time.Time
 }
 
 // SubsystemReport holds a single report about open bugs in a subsystem.
