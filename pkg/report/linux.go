@@ -906,7 +906,8 @@ func linuxHangTaskFrameExtractor(frames []string) string {
 		}
 	}
 	skip := []string{"sched", "_lock", "_slowlock", "down", "rwsem", "completion", "kthread",
-		"wait", "synchronize", "context_switch", "__switch_to", "cancel_delayed_work"}
+		"wait", "synchronize", "context_switch", "__switch_to", "cancel_delayed_work",
+		"rcu_barrier"}
 nextFrame:
 	for _, frame := range frames {
 		for _, ignore := range skip {
