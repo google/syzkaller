@@ -287,7 +287,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 
 	// Expect the reminder for subsystemA.
 	reply := client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[moderation] [subsystemA] Monthly Report")
+	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemA report")
 	c.expectEQ(reply.To, []string{"moderation@syzkaller.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
@@ -318,7 +318,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 	// Expect the reminder for subsystemB.
 	reply = client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[moderation] [subsystemB] Monthly Report")
+	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemB report")
 	c.expectEQ(reply.To, []string{"moderation@syzkaller.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemB maintainers/developers,
@@ -386,7 +386,7 @@ func TestSubsystemRemindersModeration(t *testing.T) {
 
 	// Expect the reminder for subsystemA.
 	replyA := client.pollEmailBug()
-	c.expectEQ(replyA.Subject, "[moderation] [subsystemA] Monthly Report")
+	c.expectEQ(replyA.Subject, "[moderation] Monthly subsystemA report")
 
 	// Moderate the subsystemA list.
 	c.advanceTime(time.Hour)
@@ -398,7 +398,7 @@ func TestSubsystemRemindersModeration(t *testing.T) {
 
 	// Expect the normal report.
 	reply := client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[syzbot] [subsystemA] Monthly Report")
+	c.expectEQ(reply.Subject, "[syzbot] Monthly subsystemA report")
 	c.expectEQ(reply.To, []string{"bugs@syzkaller.com", "subsystemA@list.com", "subsystemA@person.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
@@ -510,7 +510,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 	c.expectOK(err)
 
 	reply := client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[moderation] [subsystemA] Monthly Report")
+	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemA report")
 	c.expectEQ(reply.To, []string{"moderation@syzkaller.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
