@@ -46,6 +46,7 @@ const (
 	CmdInvalid
 	CmdUnCC
 	CmdSet
+	CmdRegenerate
 
 	cmdTest5
 )
@@ -311,6 +312,8 @@ func strToCmd(str string) Command {
 		return CmdUnCC
 	case "set", "set:":
 		return CmdSet
+	case "regenerate":
+		return CmdRegenerate
 	case "test_5_arg_cmd":
 		return cmdTest5
 	}
