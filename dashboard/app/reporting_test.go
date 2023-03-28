@@ -988,8 +988,27 @@ func TestFullBugInfo(t *testing.T) {
 
 	otherCrash := testCrash(otherBuild, 1)
 	otherCrash.Title = crashTitle
+	otherCrash.ReproOpts = []byte("repro opts")
+	otherCrash.ReproSyz = []byte("repro syz")
 	c.client2.ReportCrash(otherCrash)
 	otherPollMsg := c.client2.pollEmailBug()
+
+	_, err := c.POST("/_ah/mail/", fmt.Sprintf(`Sender: syzkaller@googlegroups.com
+Date: Tue, 15 Aug 2017 14:59:00 -0700
+Message-ID: <1234>
+Subject: crash1
+From: %v
+To: foo@bar.com
+Content-Type: text/plain
+
+This email is only needed to capture the link
+--
+To post to this group, send email to syzkaller@googlegroups.com.
+To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/1234@google.com.
+For more options, visit https://groups.google.com/d/optout.
+`, otherPollMsg.Sender))
+	c.expectOK(err)
+
 	_, otherExtBugID, _ := email.RemoveAddrContext(otherPollMsg.Sender)
 
 	// Query the full bug info.
@@ -1002,10 +1021,12 @@ func TestFullBugInfo(t *testing.T) {
 		t.Fatalf("info.BisectCause.BisectCause is empty")
 	}
 	c.expectEQ(info.SimilarBugs, []*dashapi.SimilarBugInfo{{
-		Title:     crashTitle,
-		Namespace: "test2",
-		Status:    dashapi.BugStatusOpen,
-		Link:      "https://testapp.appspot.com/bug?extid=" + otherExtBugID,
+		Title:      crashTitle,
+		Namespace:  "test2",
+		Status:     dashapi.BugStatusOpen,
+		ReproLevel: dashapi.ReproLevelSyz,
+		Link:       "https://testapp.appspot.com/bug?extid=" + otherExtBugID,
+		ReportLink: "https://groups.google.com/d/msgid/syzkaller/1234@google.com",
 	}})
 
 	// There must be 3 crashes.
