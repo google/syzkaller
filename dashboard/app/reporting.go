@@ -1324,11 +1324,13 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 			return nil, err
 		}
 		ret.SimilarBugs = append(ret.SimilarBugs, &dashapi.SimilarBugInfo{
-			Title:     similarBug.displayTitle(),
-			Status:    status,
-			Namespace: similarBug.Namespace,
-			Link:      fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
-			Closed:    similarBug.Closed,
+			Title:      similarBug.displayTitle(),
+			Status:     status,
+			Namespace:  similarBug.Namespace,
+			ReproLevel: similarBug.ReproLevel,
+			Link:       fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
+			ReportLink: bugReporting.Link,
+			Closed:     similarBug.Closed,
 		})
 	}
 	// Query crashes.

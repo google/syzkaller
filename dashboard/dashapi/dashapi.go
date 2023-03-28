@@ -716,11 +716,13 @@ type FullBugInfo struct {
 }
 
 type SimilarBugInfo struct {
-	Title     string
-	Status    BugStatus
-	Namespace string
-	Link      string
-	Closed    time.Time
+	Title      string
+	Status     BugStatus
+	Namespace  string
+	Link       string
+	ReportLink string
+	Closed     time.Time
+	ReproLevel ReproLevel
 }
 
 func (dash *Dashboard) LoadFullBug(req *LoadFullBugReq) (*FullBugInfo, error) {
