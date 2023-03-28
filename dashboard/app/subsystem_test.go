@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -462,6 +463,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 	allCrashes := []*dashapi.Crash{}
 
 	// Report 4 crashes with a reproducer.
+	var biggestReproCrash *dashapi.Crash
 	for i := 2; i <= 5; i++ {
 		crash := testCrash(build, 1)
 		crash.Title = fmt.Sprintf(`WARNING: has repro %d`, i+1)
@@ -481,6 +483,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 			c.advanceTime(time.Hour)
 		}
 		allCrashes = append(allCrashes, crash)
+		biggestReproCrash = crash
 	}
 
 	// Report 5 crashes without a reproducer.
@@ -553,4 +556,19 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 		bugToExtID["WARNING: has repro 4"],
 		bugToExtID["WARNING: has repro 3"],
 	))
+
+	// Add one more crash and regenerate.
+	client.ReportCrash(biggestReproCrash)
+	c.advanceTime(time.Hour)
+
+	c.incomingEmail(reply.Sender, "#syz regenerate\n")
+	c.advanceTime(time.Hour)
+
+	_, err = c.GET("/cron/subsystem_reports")
+	c.expectOK(err)
+
+	secondReply := client.pollEmailBug()
+	c.expectEQ(secondReply.Subject, "[moderation] Monthly subsystemA report")
+	c.expectNE(reply.Sender, secondReply.Sender)
+	c.expectTrue(strings.Contains(secondReply.Body, `7       Yes   WARNING: has repro 6`))
 }

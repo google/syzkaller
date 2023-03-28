@@ -489,9 +489,10 @@ type BugListUpdate struct {
 type BugListUpdateCommand string
 
 const (
-	BugListSentCmd     BugListUpdateCommand = "sent"
-	BugListUpdateCmd   BugListUpdateCommand = "update"
-	BugListUpstreamCmd BugListUpdateCommand = "upstream"
+	BugListSentCmd       BugListUpdateCommand = "sent"
+	BugListUpdateCmd     BugListUpdateCommand = "update"
+	BugListUpstreamCmd   BugListUpdateCommand = "upstream"
+	BugListRegenerateCmd BugListUpdateCommand = "regenerate"
 )
 
 type BugUpdate struct {
