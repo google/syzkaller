@@ -36,10 +36,10 @@ ls $GCC/bin/
 
 Command:
 ``` bash
-git clone --branch v5.14 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
+git clone --branch v6.2 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
 ```
 
->We recommend to start with the latest stable version. v5.14 is an example here.
+>We recommend to start with the latest stable version. v6.2 is an example here.
 
 ### Generate default configs
 
@@ -69,7 +69,7 @@ It's not required to enable all of them, but at the very least you need:
 CONFIG_KCOV=y
 
 # Debug info for symbolization.
-CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_INFO_DWARF4=y
 
 # Memory bug detector
 CONFIG_KASAN=y
