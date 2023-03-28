@@ -59,6 +59,25 @@ symlinkat(&(0x7f00000004c0)='./file0aaaaaaaaaa/file0\x00', 0xffffffffffffff9c, &
 			},
 			expect: []string{"ntfs3"},
 		},
+		{
+			name: `a bug with page cache in guilty path`,
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `mm/filemap.c`,
+				},
+				{
+					GuiltyPath: `mm/filemap.c`,
+					SyzRepro: []byte(`# https://syzkaller.appspot.com/bug?id=cdaf5ed409125df023889aefe50b4cc4a41c0973
+# See https://goo.gl/kgGztJ for information about syzkaller reproducers.
+#{"threaded":true,"repeat":true,"procs":6,"slowdown":1,"sandbox":"","sandbox_arg":0,"close_fds":false,"ieee802154":true,"sysctl":true,"tmpdir":true,"segv":true}
+syz_mount_image$ntfs3(&(0x7f000001f740), &(0x7f000001f780)='./file0\x00', 0x0, &(0x7f0000000200)=ANY=[@ANYBLOB="64697363==")
+mkdirat(0xffffffffffffff9c, &(0x7f0000000600)='./file0aaaaaaaaaaaaaaaaa\x00', 0x0)
+symlinkat(&(0x7f00000004c0)='./file0aaaaaaaaaa/file0\x00', 0xffffffffffffff9c, &(0x7f0000000280)='./file0aaaaaa/file0\x00')
+`),
+				},
+			},
+			expect: []string{"ntfs3"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

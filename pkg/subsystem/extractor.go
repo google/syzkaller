@@ -39,16 +39,35 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	}
 
 	// If all reproducers hint at the same subsystem, take it as well.
-	reproSubsystems := map[*Subsystem]int{}
+	reproCounts := map[*Subsystem]int{}
+	fromRepro := []*Subsystem{}
 	for _, crash := range crashes {
 		if len(crash.SyzRepro) == 0 {
 			continue
 		}
 		for _, subsystem := range e.raw.FromProg(crash.SyzRepro) {
-			reproSubsystems[subsystem]++
-			if reproSubsystems[subsystem] == reproCount {
-				subsystems = append(subsystems, subsystem)
+			reproCounts[subsystem]++
+			if reproCounts[subsystem] == reproCount {
+				fromRepro = append(fromRepro, subsystem)
 			}
+		}
+	}
+
+	// It can be the case that guilty paths point to several subsystems, but the reproducer
+	// can clearly point to one of them.
+	if len(fromRepro) > 0 {
+		newSubsystems := []*Subsystem{}
+		for _, reproSubsystem := range fromRepro {
+			parents := reproSubsystem.ReachableParents()
+			for _, subsystem := range subsystems {
+				if _, ok := parents[subsystem]; ok {
+					newSubsystems = append(newSubsystems, reproSubsystem)
+					break
+				}
+			}
+		}
+		if len(newSubsystems) > 0 {
+			subsystems = newSubsystems
 		}
 	}
 

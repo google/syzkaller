@@ -12,11 +12,13 @@ import (
 
 func TestExtractor(t *testing.T) {
 	// Objects used in tests.
-	fsPath := "fs/"
+	fsPath, mmFsPath := "fs/", "mm/fs.c"
 	extProg, nfsProg, extNfsProg := []byte("ext"), []byte("nfs"), []byte("ext nfs")
-	fs := &Subsystem{Name: "fs"}
+	all := &Subsystem{Name: "fs"}
+	fs := &Subsystem{Name: "fs", Parents: []*Subsystem{all}}
 	ext := &Subsystem{Name: "ext", Parents: []*Subsystem{fs}}
 	nfs := &Subsystem{Name: "nfs", Parents: []*Subsystem{fs}}
+	mm := &Subsystem{Name: "mm", Parents: []*Subsystem{all}}
 	// Tests themselves.
 	tests := []struct {
 		name    string
@@ -79,11 +81,33 @@ func TestExtractor(t *testing.T) {
 			},
 			want: []*Subsystem{ext},
 		},
+		{
+			name: `Reproducer supporting one of guilty paths`,
+			crashes: []*Crash{
+				// The guilty paths correspond both to mm and fs.
+				{
+					GuiltyPath: mmFsPath,
+				},
+				{
+					GuiltyPath: mmFsPath,
+				},
+				{
+					GuiltyPath: mmFsPath,
+				},
+				{
+					// But one reproducer points clearly to fs.
+					GuiltyPath: mmFsPath,
+					SyzRepro:   extProg,
+				},
+			},
+			want: []*Subsystem{ext},
+		},
 	}
 	extractor := &Extractor{
 		raw: &testRawExtractor{
 			perPath: map[string][]*Subsystem{
-				fsPath: {fs},
+				fsPath:   {fs},
+				mmFsPath: {mm, fs},
 			},
 			perProg: []progSubsystems{
 				{extProg, []*Subsystem{ext}},
