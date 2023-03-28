@@ -650,6 +650,8 @@ func incomingBugListEmail(c context.Context, bugListInfo *bugListInfoResult, msg
 	}
 	if msg.Command == email.CmdUpstream {
 		upd.Command = dashapi.BugListUpstreamCmd
+	} else if msg.Command == email.CmdRegenerate {
+		upd.Command = dashapi.BugListRegenerateCmd
 	} else {
 		upd.Command = dashapi.BugListUpdateCmd
 	}

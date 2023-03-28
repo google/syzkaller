@@ -133,7 +133,8 @@ func reportingBugListCommand(c context.Context, cmd *dashapi.BugListUpdate) (str
 	}
 	reply := ""
 	tx := func(c context.Context) error {
-		reportKey := subsystemReportKey(c, subsystemKey(c, subsystem), rawReport)
+		subsystemKey := subsystemKey(c, subsystem)
+		reportKey := subsystemReportKey(c, subsystemKey, rawReport)
 		report := new(SubsystemReport)
 		if err := db.Get(c, reportKey, report); err != nil {
 			return fmt.Errorf("failed to query SubsystemReport (%v): %w", reportKey, err)
@@ -149,7 +150,7 @@ func reportingBugListCommand(c context.Context, cmd *dashapi.BugListUpdate) (str
 		// Make sure all skipped stages have non-nil Closed.
 		for i := range report.Stages {
 			item := &report.Stages[i]
-			if item == stage {
+			if cmd.Command != dashapi.BugListRegenerateCmd && item == stage {
 				break
 			}
 			item.Closed = timeNow(c)
@@ -183,6 +184,17 @@ Please visit the new discussion thread.`
 				return nil
 			}
 			stage.Closed = timeNow(c)
+		case dashapi.BugListRegenerateCmd:
+			dbSubsystem := new(Subsystem)
+			err := db.Get(c, subsystemKey, dbSubsystem)
+			if err != nil {
+				return fmt.Errorf("failed to get subsystem: %s", err)
+			}
+			dbSubsystem.LastBugList = time.Time{}
+			_, err = db.Put(c, subsystemKey, dbSubsystem)
+			if err != nil {
+				return fmt.Errorf("failed to save subsystem: %s", err)
+			}
 		}
 		_, err = db.Put(c, reportKey, report)
 		if err != nil {
