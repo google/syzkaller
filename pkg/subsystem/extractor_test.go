@@ -13,7 +13,7 @@ import (
 func TestExtractor(t *testing.T) {
 	// Objects used in tests.
 	fsPath := "fs/"
-	extProg, nfsProg := []byte("ext prog"), []byte("nfs prog")
+	extProg, nfsProg, extNfsProg := []byte("ext"), []byte("nfs"), []byte("ext nfs")
 	fs := &Subsystem{Name: "fs"}
 	ext := &Subsystem{Name: "ext", Parents: []*Subsystem{fs}}
 	nfs := &Subsystem{Name: "nfs", Parents: []*Subsystem{fs}}
@@ -46,7 +46,7 @@ func TestExtractor(t *testing.T) {
 			want: []*Subsystem{ext},
 		},
 		{
-			name: `Two equally present children`,
+			name: `Reproducers hint at different subsystems`,
 			crashes: []*Crash{
 				{
 					GuiltyPath: fsPath,
@@ -60,10 +60,10 @@ func TestExtractor(t *testing.T) {
 					SyzRepro:   nfsProg,
 				},
 			},
-			want: []*Subsystem{nfs, ext},
+			want: []*Subsystem{fs},
 		},
 		{
-			name: `One child is more present than another`,
+			name: `One subsystem from reproducers is irrelevant`,
 			crashes: []*Crash{
 				{
 					GuiltyPath: fsPath,
@@ -74,11 +74,7 @@ func TestExtractor(t *testing.T) {
 				},
 				{
 					GuiltyPath: fsPath,
-					SyzRepro:   nfsProg,
-				},
-				{
-					GuiltyPath: fsPath,
-					SyzRepro:   extProg,
+					SyzRepro:   extNfsProg,
 				},
 			},
 			want: []*Subsystem{ext},
@@ -92,6 +88,7 @@ func TestExtractor(t *testing.T) {
 			perProg: []progSubsystems{
 				{extProg, []*Subsystem{ext}},
 				{nfsProg, []*Subsystem{nfs}},
+				{extNfsProg, []*Subsystem{ext, nfs}},
 			},
 		},
 	}

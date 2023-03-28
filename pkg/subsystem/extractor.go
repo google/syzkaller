@@ -28,12 +28,27 @@ func MakeExtractor(list []*Subsystem) *Extractor {
 func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	// First put all subsystems to the same list.
 	subsystems := []*Subsystem{}
+	reproCount := 0
 	for _, crash := range crashes {
 		if crash.GuiltyPath != "" {
 			subsystems = append(subsystems, e.raw.FromPath(crash.GuiltyPath)...)
 		}
-		if len(crash.SyzRepro) > 0 {
-			subsystems = append(subsystems, e.raw.FromProg(crash.SyzRepro)...)
+		if len(crash.SyzRepro) != 0 {
+			reproCount++
+		}
+	}
+
+	// If all reproducers hint at the same subsystem, take it as well.
+	reproSubsystems := map[*Subsystem]int{}
+	for _, crash := range crashes {
+		if len(crash.SyzRepro) == 0 {
+			continue
+		}
+		for _, subsystem := range e.raw.FromProg(crash.SyzRepro) {
+			reproSubsystems[subsystem]++
+			if reproSubsystems[subsystem] == reproCount {
+				subsystems = append(subsystems, subsystem)
+			}
 		}
 	}
 
