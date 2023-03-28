@@ -128,7 +128,7 @@ func updateBugSubsystems(c context.Context, bugKey *db.Key,
 
 const (
 	// We load the top crashesForInference crashes to determine the bug subsystem(s).
-	crashesForInference = 5
+	crashesForInference = 7
 	// How often we update open bugs.
 	openBugsUpdateTime = time.Hour * 24 * 30
 )
