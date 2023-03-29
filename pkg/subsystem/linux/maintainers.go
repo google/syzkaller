@@ -24,6 +24,7 @@ type maintainersRecord struct {
 	regexps         []string
 	lists           []string
 	maintainers     []string
+	trees           []string
 }
 
 func parseLinuxMaintainers(content io.Reader) ([]*maintainersRecord, error) {
@@ -128,6 +129,8 @@ func applyProperty(record *maintainersRecord, property *recordProperty) error {
 			return err
 		}
 		record.lists = append(record.lists, value)
+	case "T":
+		record.trees = append(record.trees, property.value)
 	}
 	return nil
 }
