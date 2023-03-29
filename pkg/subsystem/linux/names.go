@@ -110,6 +110,7 @@ var (
 		"rust-for-linux@vger.kernel.org":            "rust",
 		"industrypack-devel@lists.sourceforge.net":  "ipack",
 		"v9fs-developer@lists.sourceforge.net":      "9p",
+		"cluster-devel@redhat.com":                  "gfs2",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{

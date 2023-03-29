@@ -82,7 +82,6 @@ func init() {
 //     - btrfs
 //     - cachefs
 //     - cifs
-//     - cluster
 //     - coda
 //     - ecryptfs
 //     - erofs
@@ -92,6 +91,7 @@ func init() {
 //     - fscrypt
 //     - fsverity
 //     - fuse
+//     - gfs2
 //     - hfs
 //     - isofs
 //     - jfs
@@ -248,7 +248,7 @@ func init() {
 //   - xtensa
 
 func subsystems_linux() []*Subsystem {
-	var _9p, ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, ath12k, atm, audit, autofs, axis, b43, batman, bcache, bfs, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, can, ceph, cgroups, chrome, cifs, cirrus, clk, cluster, coda, coresight, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fat, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, fuse, geode, gpio, greybus, hams, hardening, hexagon, hfs, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, ipack, isdn4linux, isofs, jfs, karma, kasan, kernel, kernfs, kexec, keyrings, kgdb, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, netfilter, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rust, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, udf, um, unisoc, usb, usbstorage, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211 Subsystem
+	var _9p, ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, ath12k, atm, audit, autofs, axis, b43, batman, bcache, bfs, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, can, ceph, cgroups, chrome, cifs, cirrus, clk, coda, coresight, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fat, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, fuse, geode, gfs2, gpio, greybus, hams, hardening, hexagon, hfs, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, ipack, isdn4linux, isofs, jfs, karma, kasan, kernel, kernfs, kexec, keyrings, kgdb, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, netfilter, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rust, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, udf, um, unisoc, usb, usbstorage, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211 Subsystem
 
 	_9p = Subsystem{
 		Name:        "9p",
@@ -968,16 +968,6 @@ func subsystems_linux() []*Subsystem {
 		},
 	}
 
-	cluster = Subsystem{
-		Name:    "cluster",
-		Lists:   []string{"cluster-devel@redhat.com"},
-		Parents: []*Subsystem{&fs},
-		PathRules: []PathRule{
-			{IncludeRegexp: "^fs/dlm/"},
-			{IncludeRegexp: "^fs/gfs2/|^include/uapi/linux/gfs2_ondisk\\.h$"},
-		},
-	}
-
 	coda = Subsystem{
 		Name:        "coda",
 		Lists:       []string{"codalist@coda.cs.cmu.edu"},
@@ -1458,6 +1448,17 @@ func subsystems_linux() []*Subsystem {
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/x86/include/asm/geode\\.h$|^drivers/char/hw_random/geode-rng\\.c$|^drivers/crypto/geode[^/]*$|^drivers/video/fbdev/geode/"},
 			{IncludeRegexp: "^drivers/usb/gadget/udc/amd5536udc\\.[^/]*$"},
+		},
+	}
+
+	gfs2 = Subsystem{
+		Name:     "gfs2",
+		Syscalls: []string{"syz_mount_image$gfs2", "syz_mount_image$gfs2meta"},
+		Lists:    []string{"cluster-devel@redhat.com"},
+		Parents:  []*Subsystem{&fs},
+		PathRules: []PathRule{
+			{IncludeRegexp: "^fs/dlm/"},
+			{IncludeRegexp: "^fs/gfs2/|^include/uapi/linux/gfs2_ondisk\\.h$"},
 		},
 	}
 
@@ -4598,7 +4599,7 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	return []*Subsystem{
-		&_9p, &ac100, &accelerators, &acpi, &acpi4asus, &acpica, &acrn, &actions, &afs, &alpha, &alsa, &amdgfx, &amlogic, &apparmor, &arch, &arm, &armmsm, &asahi, &aspeed, &ath10k, &ath11k, &ath12k, &atm, &audit, &autofs, &axis, &b43, &batman, &bcache, &bfs, &block, &bluetooth, &bpf, &brcm80211, &bridge, &btrfs, &cachefs, &can, &ceph, &cgroups, &chrome, &cifs, &cirrus, &clk, &cluster, &coda, &coresight, &crypto, &csky, &cxl, &damon, &dccp, &dell, &devicetree, &dm, &dmaengine, &drbd, &dri, &ecryptfs, &edac, &efi, &erofs, &etnaviv, &ext4, &f2fs, &fat, &fbdev, &fpga, &freedreno, &fs, &fscrypt, &fsi, &fsverity, &fuse, &geode, &gpio, &greybus, &hams, &hardening, &hexagon, &hfs, &hippi, &hwmon, &hyperv, &i2c, &i3c, &ia64, &ide, &iio, &imx, &input, &integrity, &intelgfx, &intelgvt, &intelwiredlan, &iouring, &iommu, &ipack, &isdn4linux, &isofs, &jfs, &karma, &kasan, &kernel, &kernfs, &kexec, &keyrings, &kgdb, &kunit, &kvm, &kvmriscv, &kvmarm, &leds, &libertas, &lima, &linux1394, &linuxppc, &linuxpps, &livepatching, &llvm, &loongarch, &lsm, &lvs, &m68k, &malidp, &media, &mediatek, &megaraid, &mhi, &mips, &mjpeg, &mm, &mmc, &modules, &mpi3, &mptfusion, &mptcp, &mtd, &nbd, &net, &netfilter, &nfc, &nfs, &nilfs, &nitro, &nouveau, &ntb, &ntfs, &ntfs3, &nvdimm, &nvme, &ocfs2, &omap, &optee, &openiscsi, &openbmc, &openipmi, &openrisc, &openvswitch, &openwrt, &orangefs, &ossdrivers, &overlayfs, &oxnas, &parisc, &parport, &pci, &perf, &phy, &pm, &ppp, &pvrusb2, &pwm, &qat, &raid, &rcu, &rdma, &rds, &reiserfs, &remoteproc, &renesassoc, &riscv, &rockchip, &rpi, &rttools, &rtc, &rust, &s390, &samsungsoc, &scsi, &sctp, &selinux, &serial, &sgx, &sh, &snpsarc, &sof, &sparclinux, &speakup, &spi, &spice, &squashfs, &staging, &stm32, &sunxi, &target, &tegra, &tipc, &tomoyo, &trace, &uclinux, &udf, &um, &unisoc, &usb, &usbstorage, &video, &virt, &watchdog, &wcn36xx, &wireguard, &wireless, &wpan, &x25, &x86, &x86drivers, &xen, &xfs, &xtensa, &zd1211,
+		&_9p, &ac100, &accelerators, &acpi, &acpi4asus, &acpica, &acrn, &actions, &afs, &alpha, &alsa, &amdgfx, &amlogic, &apparmor, &arch, &arm, &armmsm, &asahi, &aspeed, &ath10k, &ath11k, &ath12k, &atm, &audit, &autofs, &axis, &b43, &batman, &bcache, &bfs, &block, &bluetooth, &bpf, &brcm80211, &bridge, &btrfs, &cachefs, &can, &ceph, &cgroups, &chrome, &cifs, &cirrus, &clk, &coda, &coresight, &crypto, &csky, &cxl, &damon, &dccp, &dell, &devicetree, &dm, &dmaengine, &drbd, &dri, &ecryptfs, &edac, &efi, &erofs, &etnaviv, &ext4, &f2fs, &fat, &fbdev, &fpga, &freedreno, &fs, &fscrypt, &fsi, &fsverity, &fuse, &geode, &gfs2, &gpio, &greybus, &hams, &hardening, &hexagon, &hfs, &hippi, &hwmon, &hyperv, &i2c, &i3c, &ia64, &ide, &iio, &imx, &input, &integrity, &intelgfx, &intelgvt, &intelwiredlan, &iouring, &iommu, &ipack, &isdn4linux, &isofs, &jfs, &karma, &kasan, &kernel, &kernfs, &kexec, &keyrings, &kgdb, &kunit, &kvm, &kvmriscv, &kvmarm, &leds, &libertas, &lima, &linux1394, &linuxppc, &linuxpps, &livepatching, &llvm, &loongarch, &lsm, &lvs, &m68k, &malidp, &media, &mediatek, &megaraid, &mhi, &mips, &mjpeg, &mm, &mmc, &modules, &mpi3, &mptfusion, &mptcp, &mtd, &nbd, &net, &netfilter, &nfc, &nfs, &nilfs, &nitro, &nouveau, &ntb, &ntfs, &ntfs3, &nvdimm, &nvme, &ocfs2, &omap, &optee, &openiscsi, &openbmc, &openipmi, &openrisc, &openvswitch, &openwrt, &orangefs, &ossdrivers, &overlayfs, &oxnas, &parisc, &parport, &pci, &perf, &phy, &pm, &ppp, &pvrusb2, &pwm, &qat, &raid, &rcu, &rdma, &rds, &reiserfs, &remoteproc, &renesassoc, &riscv, &rockchip, &rpi, &rttools, &rtc, &rust, &s390, &samsungsoc, &scsi, &sctp, &selinux, &serial, &sgx, &sh, &snpsarc, &sof, &sparclinux, &speakup, &spi, &spice, &squashfs, &staging, &stm32, &sunxi, &target, &tegra, &tipc, &tomoyo, &trace, &uclinux, &udf, &um, &unisoc, &usb, &usbstorage, &video, &virt, &watchdog, &wcn36xx, &wireguard, &wireless, &wpan, &x25, &x86, &x86drivers, &xen, &xfs, &xtensa, &zd1211,
 	}
 
 }
