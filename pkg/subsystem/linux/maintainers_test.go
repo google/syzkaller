@@ -188,6 +188,7 @@ func TestLinuxMaintainers(t *testing.T) {
 				"linux-media@vger.kernel.org",
 			},
 			maintainers: []string{"email2@kernel.org"},
+			trees:       []string{"git git://linuxtv.org/media_tree.git"},
 		},
 		{
 			name:            "RISC-V ARCHITECTURE",
@@ -199,12 +200,14 @@ func TestLinuxMaintainers(t *testing.T) {
 				"email4@kernel.org",
 				"email5@kernel.org",
 			},
+			trees: []string{"git git://git.kernel.org/pub/scm/linux/kernel/git/riscv/linux.git"},
 		},
 		{
 			name:            "THE REST",
 			includePatterns: []string{"*", "*/"},
 			lists:           []string{"linux-kernel@vger.kernel.org"},
 			maintainers:     []string{"email6@kernel.org"},
+			trees:           []string{"git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"},
 		},
 	}
 	if diff := cmp.Diff(targetResult, result,

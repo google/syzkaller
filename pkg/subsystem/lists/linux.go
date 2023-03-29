@@ -637,9 +637,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	asahi = Subsystem{
-		Name:    "asahi",
-		Lists:   []string{"asahi@lists.linux.dev"},
-		Parents: []*Subsystem{&arm},
+		Name:        "asahi",
+		Lists:       []string{"asahi@lists.linux.dev"},
+		Maintainers: []string{"marcan@marcan.st", "sven@svenpeter.dev"},
+		Parents:     []*Subsystem{&arm},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/arm64/boot/dts/apple/|^drivers/bluetooth/hci_bcm4377\\.c$|^drivers/clk/clk-apple-nco\\.c$|^drivers/cpufreq/apple-soc-cpufreq\\.c$|^drivers/dma/apple-admac\\.c$|^drivers/i2c/busses/i2c-pasemi-core\\.c$|^drivers/i2c/busses/i2c-pasemi-platform\\.c$|^drivers/iommu/apple-dart\\.c$|^drivers/iommu/io-pgtable-dart\\.c$|^drivers/irqchip/irq-apple-aic\\.c$|^drivers/mailbox/apple-mailbox\\.c$|^drivers/nvme/host/apple\\.c$|^drivers/nvmem/apple-efuses\\.c$|^drivers/pinctrl/pinctrl-apple-gpio\\.c$|^drivers/soc/apple/|^drivers/watchdog/apple_wdt\\.c$|^include/dt-bindings/interrupt-controller/apple-aic\\.h$|^include/dt-bindings/pinctrl/apple\\.h$|^include/linux/apple-mailbox\\.h$|^include/linux/soc/apple/"},
 			{IncludeRegexp: "^sound/soc/apple/|^sound/soc/codecs/cs42l83-i2c\\.c$"},
@@ -790,10 +791,11 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	bluetooth = Subsystem{
-		Name:     "bluetooth",
-		Syscalls: []string{"syz_emit_vhci"},
-		Lists:    []string{"linux-bluetooth@vger.kernel.org"},
-		Parents:  []*Subsystem{&net},
+		Name:        "bluetooth",
+		Syscalls:    []string{"syz_emit_vhci"},
+		Lists:       []string{"linux-bluetooth@vger.kernel.org"},
+		Maintainers: []string{"johan.hedberg@gmail.com", "luiz.dentz@gmail.com", "marcel@holtmann.org"},
+		Parents:     []*Subsystem{&net},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/bluetooth/"},
 			{IncludeRegexp: "^drivers/bluetooth/btmtkuart\\.c$"},
@@ -803,9 +805,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	bpf = Subsystem{
-		Name:    "bpf",
-		Lists:   []string{"bpf@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "bpf",
+		Lists:       []string{"bpf@vger.kernel.org"},
+		Maintainers: []string{"andrii@kernel.org", "ast@kernel.org", "daniel@iogearbox.net"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/[^/]*/net/|^include/linux/bpf[^/]*$|^include/linux/btf[^/]*$|^include/linux/filter\\.h$|^include/trace/events/xdp\\.h$|^include/uapi/linux/bpf[^/]*$|^include/uapi/linux/btf[^/]*$|^include/uapi/linux/filter\\.h$|^kernel/bpf/|^kernel/trace/bpf_trace\\.c$|^lib/test_bpf\\.c$|^net/bpf/|^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
 			{IncludeRegexp: "^arch/arm/net/"},
@@ -877,9 +880,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	can = Subsystem{
-		Name:    "can",
-		Lists:   []string{"linux-can@vger.kernel.org"},
-		Parents: []*Subsystem{&net},
+		Name:        "can",
+		Lists:       []string{"linux-can@vger.kernel.org"},
+		Maintainers: []string{"mkl@pengutronix.de"},
+		Parents:     []*Subsystem{&net},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/net/can/can327\\.c$"},
 			{IncludeRegexp: "^drivers/net/can/ctucanfd/"},
@@ -897,9 +901,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	ceph = Subsystem{
-		Name:    "ceph",
-		Lists:   []string{"ceph-devel@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "ceph",
+		Lists:       []string{"ceph-devel@vger.kernel.org"},
+		Maintainers: []string{"idryomov@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/block/rbd\\.c$|^drivers/block/rbd_types\\.h$"},
 			{IncludeRegexp: "^fs/ceph/"},
@@ -920,9 +925,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	chrome = Subsystem{
-		Name:    "chrome",
-		Lists:   []string{"chrome-platform@lists.linux.dev"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "chrome",
+		Lists:       []string{"chrome-platform@lists.linux.dev"},
+		Maintainers: []string{"bleung@chromium.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/platform/chrome/"},
 			{IncludeRegexp: "^drivers/platform/chrome/cros_ec_typec\\.[^/]*$|^drivers/platform/chrome/cros_typec_switch\\.c$|^drivers/platform/chrome/cros_typec_vdm\\.[^/]*$"},
@@ -989,9 +995,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	crypto = Subsystem{
-		Name:    "crypto",
-		Lists:   []string{"linux-crypto@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "crypto",
+		Lists:       []string{"linux-crypto@vger.kernel.org"},
+		Maintainers: []string{"davem@davemloft.net", "herbert@gondor.apana.org.au"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/[^/]*/crypto/|^crypto/|^drivers/crypto/|^include/crypto/|^include/linux/crypto[^/]*$|^lib/crypto/"},
 			{IncludeRegexp: "^crypto/ansi_cprng\\.c$|^crypto/rng\\.c$"},
@@ -1082,9 +1089,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	devicetree = Subsystem{
-		Name:    "devicetree",
-		Lists:   []string{"devicetree@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "devicetree",
+		Lists:       []string{"devicetree@vger.kernel.org"},
+		Maintainers: []string{"robh+dt@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/[^/]*/boot/dts/|^include/dt-bindings/"},
 			{IncludeRegexp: "^arch/arm/boot/dts/[^/]*am3[^/]*$|^arch/arm/boot/dts/[^/]*am4[^/]*$|^arch/arm/boot/dts/[^/]*am5[^/]*$|^arch/arm/boot/dts/[^/]*dra7[^/]*$|^arch/arm/boot/dts/[^/]*omap[^/]*$|^arch/arm/boot/dts/logicpd-som-lv[^/]*$|^arch/arm/boot/dts/logicpd-torpedo[^/]*$"},
@@ -1103,9 +1111,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	dmaengine = Subsystem{
-		Name:    "dmaengine",
-		Lists:   []string{"dmaengine@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "dmaengine",
+		Lists:       []string{"dmaengine@vger.kernel.org"},
+		Maintainers: []string{"vkoul@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/dma/altera-msgdma\\.c$"},
 			{IncludeRegexp: "^drivers/dma/at_hdmac\\.c$|^drivers/dma/at_xdmac\\.c$|^include/dt-bindings/dma/at91\\.h$"},
@@ -1209,9 +1218,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	edac = Subsystem{
-		Name:    "edac",
-		Lists:   []string{"linux-edac@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "edac",
+		Lists:       []string{"linux-edac@vger.kernel.org"},
+		Maintainers: []string{"bp@alien8.de", "tony.luck@intel.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/x86/kernel/cpu/mce/"},
 			{IncludeRegexp: "^drivers/edac/amd64_edac[^/]*$|^drivers/edac/mce_amd[^/]*$"},
@@ -1248,9 +1258,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	efi = Subsystem{
-		Name:    "efi",
-		Lists:   []string{"linux-efi@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "efi",
+		Lists:       []string{"linux-efi@vger.kernel.org"},
+		Maintainers: []string{"ardb@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/[^/]*/include/asm/efi\\.h$|^arch/[^/]*/kernel/efi\\.c$|^arch/arm/boot/compressed/efi-header\\.S$|^arch/x86/platform/efi/|^drivers/firmware/efi/|^include/linux/efi[^/]*\\.h$"},
 			{IncludeRegexp: "^block/partitions/efi\\.[^/]*$"},
@@ -1281,10 +1292,11 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	ext4 = Subsystem{
-		Name:     "ext4",
-		Syscalls: []string{"syz_mount_image$ext4"},
-		Lists:    []string{"linux-ext4@vger.kernel.org"},
-		Parents:  []*Subsystem{&fs},
+		Name:        "ext4",
+		Syscalls:    []string{"syz_mount_image$ext4"},
+		Lists:       []string{"linux-ext4@vger.kernel.org"},
+		Maintainers: []string{"adilger.kernel@dilger.ca", "tytso@mit.edu"},
+		Parents:     []*Subsystem{&fs},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^fs/ext2/|^include/linux/ext2[^/]*$"},
 			{IncludeRegexp: "^fs/ext4/|^include/trace/events/ext4\\.h$"},
@@ -1304,10 +1316,11 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	fat = Subsystem{
-		Name:     "fat",
-		Syscalls: []string{"syz_mount_image$msdos", "syz_mount_image$vfat", "syz_mount_image$exfat"},
-		Lists:    []string{"linux-fsdevel@vger.kernel.org"},
-		Parents:  []*Subsystem{&fs},
+		Name:        "fat",
+		Syscalls:    []string{"syz_mount_image$msdos", "syz_mount_image$vfat", "syz_mount_image$exfat"},
+		Lists:       []string{"linux-fsdevel@vger.kernel.org"},
+		Maintainers: []string{"linkinjeon@kernel.org", "sj1557.seo@samsung.com"},
+		Parents:     []*Subsystem{&fs},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^fs/exfat/"},
 			{IncludeRegexp: "^fs/fat/"},
@@ -1315,9 +1328,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	fbdev = Subsystem{
-		Name:    "fbdev",
-		Lists:   []string{"linux-fbdev@vger.kernel.org"},
-		Parents: []*Subsystem{&dri},
+		Name:        "fbdev",
+		Lists:       []string{"linux-fbdev@vger.kernel.org"},
+		Maintainers: []string{"deller@gmx.de"},
+		Parents:     []*Subsystem{&dri},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/staging/fbtft/"},
 			{IncludeRegexp: "^drivers/staging/fbtft/fb_seps525\\.c$"},
@@ -1348,9 +1362,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	fpga = Subsystem{
-		Name:    "fpga",
-		Lists:   []string{"linux-fpga@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "fpga",
+		Lists:       []string{"linux-fpga@vger.kernel.org"},
+		Maintainers: []string{"hao.wu@intel.com", "mdf@kernel.org", "yilun.xu@intel.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/fpga/dfl[^/]*$|^drivers/uio/uio_dfl\\.c$|^include/linux/dfl\\.h$|^include/uapi/linux/fpga-dfl\\.h$"},
 			{IncludeRegexp: "^drivers/fpga/intel-m10-bmc-sec-update\\.c$"},
@@ -1573,9 +1588,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	hwmon = Subsystem{
-		Name:    "hwmon",
-		Lists:   []string{"linux-hwmon@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "hwmon",
+		Lists:       []string{"linux-hwmon@vger.kernel.org"},
+		Maintainers: []string{"linux@roeck-us.net"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/hwmon/abituguru3\\.c$"},
 			{IncludeRegexp: "^drivers/hwmon/abituguru\\.c$"},
@@ -1711,9 +1727,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	i3c = Subsystem{
-		Name:    "i3c",
-		Lists:   []string{"linux-i3c@lists.infradead.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "i3c",
+		Lists:       []string{"linux-i3c@lists.infradead.org"},
+		Maintainers: []string{"alexandre.belloni@bootlin.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/i3c/master/svc-i3c-master\\.c$"},
 			{IncludeRegexp: "^drivers/i3c/|^include/linux/i3c/"},
@@ -1833,9 +1850,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	imx = Subsystem{
-		Name:    "imx",
-		Lists:   []string{"linux-imx@nxp.com"},
-		Parents: []*Subsystem{&arm, &clk},
+		Name:        "imx",
+		Lists:       []string{"linux-imx@nxp.com"},
+		Maintainers: []string{"abelvesa@kernel.org"},
+		Parents:     []*Subsystem{&arm, &clk},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/clk/imx/|^include/dt-bindings/clock/imx[^/]*$"},
 			{IncludeRegexp: "^drivers/i2c/busses/i2c-imx-lpi2c\\.c$"},
@@ -2239,9 +2257,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	leds = Subsystem{
-		Name:    "leds",
-		Lists:   []string{"linux-leds@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "leds",
+		Lists:       []string{"linux-leds@vger.kernel.org"},
+		Maintainers: []string{"lee@kernel.org", "pavel@ucw.cz"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/leds/flash/leds-as3645a\\.c$"},
 			{IncludeRegexp: "^drivers/leds/leds-mlxcpld\\.c$|^drivers/leds/leds-mlxreg\\.c$"},
@@ -2342,9 +2361,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	llvm = Subsystem{
-		Name:    "llvm",
-		Lists:   []string{"llvm@lists.linux.dev"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "llvm",
+		Lists:       []string{"llvm@lists.linux.dev"},
+		Maintainers: []string{"keescook@chromium.org", "samitolvanen@google.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^include/linux/cfi\\.h$|^kernel/cfi\\.c$"},
 			{IncludeRegexp: "^include/linux/compiler-clang\\.h$"},
@@ -2352,9 +2372,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	loongarch = Subsystem{
-		Name:    "loongarch",
-		Lists:   []string{"loongarch@lists.linux.dev"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "loongarch",
+		Lists:       []string{"loongarch@lists.linux.dev"},
+		Maintainers: []string{"chenhuacai@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/loongarch/|^drivers/[^/]*/[^/]*loongarch[^/]*$"},
 			{IncludeRegexp: "^drivers/soc/loongson/loongson2_guts\\.c$"},
@@ -2397,9 +2418,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	malidp = Subsystem{
-		Name:    "malidp",
-		Lists:   []string{"malidp@foss.arm.com"},
-		Parents: []*Subsystem{&dri},
+		Name:        "malidp",
+		Lists:       []string{"malidp@foss.arm.com"},
+		Maintainers: []string{"liviu.dudau@arm.com"},
+		Parents:     []*Subsystem{&dri},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/gpu/drm/arm/"},
 			{IncludeRegexp: "^drivers/gpu/drm/arm/display/include/|^drivers/gpu/drm/arm/display/komeda/"},
@@ -2822,9 +2844,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	mmc = Subsystem{
-		Name:    "mmc",
-		Lists:   []string{"linux-mmc@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "mmc",
+		Lists:       []string{"linux-mmc@vger.kernel.org"},
+		Maintainers: []string{"ulf.hansson@linaro.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/memstick/|^include/linux/memstick\\.h$"},
 			{IncludeRegexp: "^drivers/mmc/host/cqhci[^/]*$"},
@@ -2848,9 +2871,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	modules = Subsystem{
-		Name:    "modules",
-		Lists:   []string{"linux-modules@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "modules",
+		Lists:       []string{"linux-modules@vger.kernel.org"},
+		Maintainers: []string{"mcgrof@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^include/linux/kmod\\.h$|^kernel/kmod\\.c$|^lib/test_kmod\\.c$"},
 			{IncludeRegexp: "^include/linux/module\\.h$|^kernel/module/"},
@@ -3198,9 +3222,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	nouveau = Subsystem{
-		Name:    "nouveau",
-		Lists:   []string{"nouveau@lists.freedesktop.org"},
-		Parents: []*Subsystem{&dri},
+		Name:        "nouveau",
+		Lists:       []string{"nouveau@lists.freedesktop.org"},
+		Maintainers: []string{"bskeggs@redhat.com", "kherbst@redhat.com", "lyude@redhat.com"},
+		Parents:     []*Subsystem{&dri},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/x86/mm/kmmio\\.c$|^arch/x86/mm/mmio-mod\\.c$|^arch/x86/mm/testmmiotrace\\.c$|^include/linux/mmiotrace\\.h$|^kernel/trace/trace_mmiotrace\\.c$"},
 			{IncludeRegexp: "^drivers/gpu/drm/nouveau/|^include/uapi/drm/nouveau_drm\\.h$"},
@@ -3220,10 +3245,11 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	ntfs = Subsystem{
-		Name:     "ntfs",
-		Syscalls: []string{"syz_mount_image$ntfs"},
-		Lists:    []string{"linux-ntfs-dev@lists.sourceforge.net"},
-		Parents:  []*Subsystem{&fs},
+		Name:        "ntfs",
+		Syscalls:    []string{"syz_mount_image$ntfs"},
+		Lists:       []string{"linux-ntfs-dev@lists.sourceforge.net"},
+		Maintainers: []string{"anton@tuxera.com"},
+		Parents:     []*Subsystem{&fs},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^block/partitions/ldm\\.[^/]*$"},
 			{IncludeRegexp: "^fs/ntfs/"},
@@ -3242,9 +3268,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	nvdimm = Subsystem{
-		Name:    "nvdimm",
-		Lists:   []string{"nvdimm@lists.linux.dev"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "nvdimm",
+		Lists:       []string{"nvdimm@lists.linux.dev"},
+		Maintainers: []string{"dan.j.williams@intel.com", "dave.jiang@intel.com", "ira.weiny@intel.com", "vishal.l.verma@intel.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/acpi/nfit/|^drivers/nvdimm/|^include/linux/libnvdimm\\.h$|^include/linux/nd\\.h$|^include/uapi/linux/ndctl\\.h$"},
 			{IncludeRegexp: "^drivers/dax/"},
@@ -3256,9 +3283,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	nvme = Subsystem{
-		Name:    "nvme",
-		Lists:   []string{"linux-nvme@lists.infradead.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "nvme",
+		Lists:       []string{"linux-nvme@lists.infradead.org"},
+		Maintainers: []string{"hch@lst.de", "sagi@grimberg.me"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/nvme/common/|^drivers/nvme/host/|^include/linux/nvme-[^/]*\\.h$|^include/linux/nvme\\.h$|^include/uapi/linux/nvme_ioctl\\.h$"},
 			{IncludeRegexp: "^drivers/nvme/host/auth\\.c$|^drivers/nvme/target/auth\\.c$|^drivers/nvme/target/fabrics-cmd-auth\\.c$|^include/linux/nvme-auth\\.h$"},
@@ -3280,9 +3308,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	omap = Subsystem{
-		Name:    "omap",
-		Lists:   []string{"linux-omap@vger.kernel.org"},
-		Parents: []*Subsystem{&arm},
+		Name:        "omap",
+		Lists:       []string{"linux-omap@vger.kernel.org"},
+		Maintainers: []string{"tony@atomide.com"},
+		Parents:     []*Subsystem{&arm},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/[^/]*clock[^/]*$"},
 			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/[^/]*pm[^/]*$|^drivers/cpufreq/omap-cpufreq\\.c$"},
@@ -3433,9 +3462,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	parisc = Subsystem{
-		Name:    "parisc",
-		Lists:   []string{"linux-parisc@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "parisc",
+		Lists:       []string{"linux-parisc@vger.kernel.org"},
+		Maintainers: []string{"James.Bottomley@HansenPartnership.com", "deller@gmx.de"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/parisc/|^drivers/char/agp/parisc-agp\\.c$|^drivers/input/misc/hp_sdc_rtc\\.c$|^drivers/input/serio/gscps2\\.c$|^drivers/input/serio/hp_sdc[^/]*$|^drivers/parisc/|^drivers/parport/parport_gsc\\.[^/]*$|^drivers/tty/serial/8250/8250_parisc\\.c$|^drivers/video/console/sti[^/]*$|^drivers/video/fbdev/sti[^/]*$|^drivers/video/logo/logo_parisc[^/]*$|^include/linux/hp_sdc\\.h$"},
 			{IncludeRegexp: "^drivers/net/ethernet/dec/tulip/"},
@@ -3614,9 +3644,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	pwm = Subsystem{
-		Name:    "pwm",
-		Lists:   []string{"linux-pwm@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "pwm",
+		Lists:       []string{"linux-pwm@vger.kernel.org"},
+		Maintainers: []string{"thierry.reding@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/gpio/gpio-mvebu\\.c$|^drivers/pwm/|^drivers/video/backlight/pwm_bl\\.c$|^include/dt-bindings/pwm/|^include/linux/pwm\\.h$|^include/linux/pwm_backlight\\.h$"},
 			{IncludeRegexp: "^drivers/pwm/pwm-atmel\\.c$"},
@@ -3644,9 +3675,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	rcu = Subsystem{
-		Name:    "rcu",
-		Lists:   []string{"rcu@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "rcu",
+		Lists:       []string{"rcu@vger.kernel.org"},
+		Maintainers: []string{"josh@joshtriplett.org", "paulmck@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{"^include/linux/rcu[^/]*$|^kernel/rcu/", "^include/linux/srcu[^/]*\\.h$|^kernel/rcu/srcu[^/]*\\.c$"},
 			{IncludeRegexp: "^include/linux/srcu[^/]*\\.h$|^kernel/rcu/srcu[^/]*\\.c$"},
@@ -3777,9 +3809,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	rockchip = Subsystem{
-		Name:    "rockchip",
-		Lists:   []string{"linux-rockchip@lists.infradead.org"},
-		Parents: []*Subsystem{&arm},
+		Name:        "rockchip",
+		Lists:       []string{"linux-rockchip@lists.infradead.org"},
+		Maintainers: []string{"heiko@sntech.de"},
+		Parents:     []*Subsystem{&arm},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/arm/boot/dts/rk3[^/]*$|^arch/arm/boot/dts/rv11[^/]*$|^arch/arm/mach-rockchip/|^drivers/[^/]*/[^/]*/[^/]*rockchip[^/]*$|^drivers/[^/]*/[^/]*rockchip[^/]*$|^drivers/clk/rockchip/|^drivers/i2c/busses/i2c-rk3x\\.c$|^sound/soc/rockchip/|rockchip"},
 			{IncludeRegexp: "^drivers/media/platform/rockchip/rga/"},
@@ -3811,9 +3844,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	rtc = Subsystem{
-		Name:    "rtc",
-		Lists:   []string{"linux-rtc@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "rtc",
+		Lists:       []string{"linux-rtc@vger.kernel.org"},
+		Maintainers: []string{"a.zummo@towertech.it", "alexandre.belloni@bootlin.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/rtc/rtc-optee\\.c$"},
 			{IncludeRegexp: "^drivers/rtc/rtc-rzn1\\.c$"},
@@ -3834,9 +3868,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	s390 = Subsystem{
-		Name:    "s390",
-		Lists:   []string{"linux-s390@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "s390",
+		Lists:       []string{"linux-s390@vger.kernel.org"},
+		Maintainers: []string{"agordeev@linux.ibm.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/s390/include/asm/pgtable\\.h$|^arch/s390/mm$"},
 			{IncludeRegexp: "^arch/s390/include/uapi/asm/virtio-ccw\\.h$|^drivers/s390/virtio/"},
@@ -3970,9 +4005,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	serial = Subsystem{
-		Name:    "serial",
-		Lists:   []string{"linux-serial@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "serial",
+		Lists:       []string{"linux-serial@vger.kernel.org"},
+		Maintainers: []string{"gregkh@linuxfoundation.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/tty/serdev/|^include/linux/serdev\\.h$"},
 			{IncludeRegexp: "^drivers/tty/serial/"},
@@ -4027,9 +4063,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	sparclinux = Subsystem{
-		Name:    "sparclinux",
-		Lists:   []string{"sparclinux@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "sparclinux",
+		Lists:       []string{"sparclinux@vger.kernel.org"},
+		Maintainers: []string{"davem@davemloft.net"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/sparc/|^drivers/sbus/"},
 			{IncludeRegexp: "^drivers/tty/serial/suncore\\.c$|^drivers/tty/serial/sunhv\\.c$|^drivers/tty/serial/sunsab\\.c$|^drivers/tty/serial/sunsab\\.h$|^drivers/tty/serial/sunsu\\.c$|^drivers/tty/serial/sunzilog\\.c$|^drivers/tty/serial/sunzilog\\.h$|^drivers/tty/vcc\\.c$|^include/linux/sunserialcore\\.h$"},
@@ -4047,9 +4084,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	spi = Subsystem{
-		Name:    "spi",
-		Lists:   []string{"linux-spi@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "spi",
+		Lists:       []string{"linux-spi@vger.kernel.org"},
+		Maintainers: []string{"broonie@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/spi/spi-aspeed-smc\\.c$"},
 			{IncludeRegexp: "^drivers/spi/spi-at91-usart\\.c$"},
@@ -4173,9 +4211,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	trace = Subsystem{
-		Name:    "trace",
-		Lists:   []string{"linux-trace-kernel@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "trace",
+		Lists:       []string{"linux-trace-kernel@vger.kernel.org"},
+		Maintainers: []string{"mhiramat@kernel.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^fs/proc/bootconfig\\.c$|^include/linux/bootconfig\\.h$|^lib/bootconfig-data\\.S$|^lib/bootconfig\\.c$"},
 			{IncludeRegexp: "^fs/tracefs/|^include/linux/trace[^/]*\\.h$|^include/trace/|^kernel/trace/"},
@@ -4340,9 +4379,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	watchdog = Subsystem{
-		Name:    "watchdog",
-		Lists:   []string{"linux-watchdog@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "watchdog",
+		Lists:       []string{"linux-watchdog@vger.kernel.org"},
+		Maintainers: []string{"linux@roeck-us.net", "wim@linux-watchdog.org"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/watchdog/ebc-c384_wdt\\.c$"},
 			{IncludeRegexp: "^drivers/watchdog/mena21_wdt\\.c$"},
@@ -4429,9 +4469,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	wpan = Subsystem{
-		Name:    "wpan",
-		Lists:   []string{"linux-wpan@vger.kernel.org"},
-		Parents: []*Subsystem{&net},
+		Name:        "wpan",
+		Lists:       []string{"linux-wpan@vger.kernel.org"},
+		Maintainers: []string{"alex.aring@gmail.com", "miquel.raynal@bootlin.com", "stefan@datenfreihafen.org"},
+		Parents:     []*Subsystem{&net},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/net/ieee802154/adf7242\\.c$"},
 			{IncludeRegexp: "^drivers/net/ieee802154/at86rf230\\.h$|^drivers/net/ieee802154/atusb\\.c$|^drivers/net/ieee802154/atusb\\.h$"},
@@ -4568,10 +4609,11 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	xfs = Subsystem{
-		Name:     "xfs",
-		Syscalls: []string{"syz_mount_image$xfs"},
-		Lists:    []string{"linux-xfs@vger.kernel.org"},
-		Parents:  []*Subsystem{&fs},
+		Name:        "xfs",
+		Syscalls:    []string{"syz_mount_image$xfs"},
+		Lists:       []string{"linux-xfs@vger.kernel.org"},
+		Maintainers: []string{"djwong@kernel.org"},
+		Parents:     []*Subsystem{&fs},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^fs/iomap/|^include/linux/iomap\\.h$"},
 			{IncludeRegexp: "^fs/xfs/|^include/uapi/linux/dqblk_xfs\\.h$|^include/uapi/linux/fsmap\\.h$"},
@@ -4579,9 +4621,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	xtensa = Subsystem{
-		Name:    "xtensa",
-		Lists:   []string{"linux-xtensa@linux-xtensa.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:        "xtensa",
+		Lists:       []string{"linux-xtensa@linux-xtensa.org"},
+		Maintainers: []string{"chris@zankel.net", "jcmvbkbc@gmail.com"},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/xtensa/|^drivers/irqchip/irq-xtensa-[^/]*$"},
 			{IncludeRegexp: "^drivers/spi/spi-xtensa-xtfpga\\.c$|^sound/soc/xtensa/xtfpga-i2s\\.c$"},

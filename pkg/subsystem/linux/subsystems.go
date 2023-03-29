@@ -134,19 +134,7 @@ func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) {
 }
 
 func mergeRawRecords(records []*maintainersRecord, email string) *subsystem.Subsystem {
-	unique := func(list []string) []string {
-		m := make(map[string]struct{})
-		for _, s := range list {
-			m[s] = struct{}{}
-		}
-		ret := []string{}
-		for s := range m {
-			ret = append(ret, s)
-		}
-		sort.Strings(ret)
-		return ret
-	}
-	var lists, maintainers []string
+	var lists []string
 	subsystem := &subsystem.Subsystem{}
 	for _, record := range records {
 		rule := record.ToPathRule()
@@ -154,19 +142,69 @@ func mergeRawRecords(records []*maintainersRecord, email string) *subsystem.Subs
 			subsystem.PathRules = append(subsystem.PathRules, rule)
 		}
 		lists = append(lists, record.lists...)
-		maintainers = append(maintainers, record.maintainers...)
 	}
 	if email != "" {
 		subsystem.Lists = []string{email}
 	} else if len(lists) > 0 {
 		subsystem.Lists = unique(lists)
 	}
-	// There's a risk that we collect too many unrelated maintainers, so
-	// let's only merge them if there are no lists.
-	if len(records) <= 1 {
-		subsystem.Maintainers = unique(maintainers)
-	}
+	subsystem.Maintainers = maintainersFromRecords(records)
 	return subsystem
+}
+
+func unique(list []string) []string {
+	m := make(map[string]struct{})
+	for _, s := range list {
+		m[s] = struct{}{}
+	}
+	ret := []string{}
+	for s := range m {
+		ret = append(ret, s)
+	}
+	sort.Strings(ret)
+	return ret
+}
+
+func maintainersFromRecords(records []*maintainersRecord) []string {
+	// Generally we avoid merging maintainers from too many MAINTAINERS records,
+	// as we may end up pinging too many unrelated people.
+	// But in some cases we can still reliably collect the information.
+	if len(records) <= 1 {
+		// First of all, we're fine if there was just on record.
+		return unique(records[0].maintainers)
+	}
+	// Also let's take a look at the entries that have tree information.
+	// They seem to be present only in the most important entries.
+	perTrees := map[string][][]string{}
+	for _, record := range records {
+		if len(record.trees) == 0 {
+			continue
+		}
+		sort.Strings(record.trees)
+		key := fmt.Sprintf("%v", record.trees)
+		perTrees[key] = append(perTrees[key], record.maintainers)
+	}
+	if len(perTrees) > 1 {
+		// There are several sets of trees, no way to determine the most important.
+		return nil
+	}
+	var maintainerLists [][]string
+	for _, value := range perTrees {
+		maintainerLists = value
+	}
+	// Now let's take the intersection of lists.
+	counts := map[string]int{}
+	var retList []string
+	for _, list := range maintainerLists {
+		list = unique(list)
+		for _, email := range list {
+			counts[email]++
+			if counts[email] == len(maintainerLists) {
+				retList = append(retList, email)
+			}
+		}
+	}
+	return retList
 }
 
 func getMaintainers(root fs.FS) ([]*maintainersRecord, error) {
