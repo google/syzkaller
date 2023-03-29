@@ -54,13 +54,21 @@ elif [ "$(basename -- "$0")" == "syz-old-env" ]; then
         IMAGE="old-env"
 fi
 
+# If we're running rootless docker, files owned by the host user appear within the
+# container as being owned by root.
+#
+# If we're running regular rootful docker, we need to specify --user, as otherwise
+# processes within the container will create files with the wrong ownership.
+if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; then
+	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
+fi
+
 # Update docker image
 docker pull -q gcr.io/syzkaller/${IMAGE}
 
 # Run everything as the host user, this is important for created/modified files.
 docker run \
 	--rm \
-	--user $(id -u ${USER}):$(id -g ${USER}) \
 	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
 	--volume "$HOME/.cache:/syzkaller/.cache:z" \
 	--volume "/var/run/docker.sock":"/var/run/docker.sock" \
