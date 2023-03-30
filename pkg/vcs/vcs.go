@@ -61,6 +61,12 @@ type Repo interface {
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
 	// (e.g. do CheckoutBranch before).
 	Contains(commit string) (bool, error)
+
+	// ListCommitHashes lists all commit hashes reachable from baseCommit.
+	ListCommitHashes(baseCommit string) ([]string, error)
+
+	// Object returns the contents of a git repository object at the particular moment in history.
+	Object(name, commit string) ([]byte, error)
 }
 
 // Bisecter may be optionally implemented by Repo.
@@ -200,6 +206,10 @@ func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 func NewSyzkallerRepo(dir string, opts ...RepoOpt) Repo {
 	git := newGit(dir, nil, append(opts, OptDontSandbox))
 	return git
+}
+
+func NewLKMLRepo(dir string) Repo {
+	return newGit(dir, nil, []RepoOpt{OptDontSandbox})
 }
 
 func Patch(dir string, patch []byte) error {

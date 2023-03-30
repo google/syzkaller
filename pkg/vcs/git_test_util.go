@@ -28,6 +28,7 @@ type TestRepo struct {
 }
 
 func (repo *TestRepo) Git(args ...string) {
+	repo.t.Helper()
 	cmd := osutil.Command("git", args...)
 	cmd.Dir = repo.Dir
 	cmd.Env = filterEnv()
