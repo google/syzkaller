@@ -95,3 +95,11 @@ func (ctx *fuchsia) ReleaseTag(commit string) (string, error) {
 func (ctx *fuchsia) Contains(commit string) (bool, error) {
 	return false, fmt.Errorf("not implemented for fuchsia")
 }
+
+func (ctx *fuchsia) ListCommitHashes(base string) ([]string, error) {
+	return ctx.repo.ListCommitHashes(base)
+}
+
+func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {
+	return ctx.repo.Object(name, commit)
+}

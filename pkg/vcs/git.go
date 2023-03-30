@@ -358,6 +358,14 @@ func (git *git) ListRecentCommits(baseCommit string) ([]string, error) {
 	return strings.Split(string(output), "\n"), nil
 }
 
+func (git *git) ListCommitHashes(baseCommit string) ([]string, error) {
+	output, err := git.git("log", "--pretty=format:%h", baseCommit)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(string(output), "\n"), nil
+}
+
 func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	user, domain, err := splitEmail(email)
 	if err != nil {
@@ -575,4 +583,8 @@ func (git *git) IsRelease(commit string) (bool, error) {
 		return false, err
 	}
 	return len(tags1) != len(tags2), nil
+}
+
+func (git *git) Object(name, commit string) ([]byte, error) {
+	return git.git("show", fmt.Sprintf("%s:%s", commit, name))
 }

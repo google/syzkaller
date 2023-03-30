@@ -4,6 +4,7 @@
 package vcs
 
 import (
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -234,5 +235,83 @@ func TestContains(t *testing.T) {
 	repo.Git("checkout", "branch-a")
 	if contained, _ := repo.repo.Contains(commitB.Hash); contained {
 		t.Fatalf("contains found commit that is not in current branch")
+	}
+}
+
+func TestCommitHashes(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+
+	repo.Git("checkout", "-b", "branch-a")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	repo.Git("checkout", "-b", "branch-b")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	got, err := repo.repo.ListCommitHashes("HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 commits")
+	}
+	for i, commit := range got {
+		if contained, _ := repo.repo.Contains(commit); !contained {
+			t.Fatalf("commit %d is not contained", i)
+		}
+	}
+
+	// Now change HEAD.
+	repo.Git("checkout", "branch-a")
+	got, err = repo.repo.ListCommitHashes("HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 commit, got %d", len(got))
+	}
+	if contained, _ := repo.repo.Contains(got[0]); !contained {
+		t.Fatalf("commit in branch-b is not contained")
+	}
+}
+
+func TestObject(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+	firstRev := []byte("First revision")
+	secondRev := []byte("Second revision")
+
+	if err := os.WriteFile(baseDir+"/object.txt", firstRev, 0644); err != nil {
+		t.Fatal(err)
+	}
+	repo.Git("add", "object.txt")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+
+	if err := os.WriteFile(baseDir+"/object.txt", secondRev, 0644); err != nil {
+		t.Fatal(err)
+	}
+	repo.Git("add", "object.txt")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+
+	commits, err := repo.repo.ListCommitHashes("HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commits) != 2 {
+		t.Fatalf("expected 2 commits, got %d", len(commits))
+	}
+	// Verify file's contents at the first revision.
+	data, err := repo.repo.Object("object.txt", commits[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(data, firstRev); diff != "" {
+		t.Fatal(diff)
+	}
+	// And at the second one.
+	data, err = repo.repo.Object("object.txt", commits[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(data, secondRev); diff != "" {
+		t.Fatal(diff)
 	}
 }
