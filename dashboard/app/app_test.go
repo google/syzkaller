@@ -54,6 +54,9 @@ var testConfig = &GlobalConfig{
 		NonFinalMaxPeriod: 60 * 24 * time.Hour,
 		ReproRetestPeriod: 100 * 24 * time.Hour,
 	},
+	DiscussionEmails: []DiscussionEmailConfig{
+		{"lore@email.com", dashapi.DiscussionLore},
+	},
 	DefaultNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {

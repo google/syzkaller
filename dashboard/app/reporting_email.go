@@ -421,13 +421,22 @@ func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) str
 // handleIncomingMail is the entry point for incoming emails.
 func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	if err := incomingMail(c, r); err != nil {
-		log.Errorf(c, "handleIncomingMail: %v", err)
+	url := r.URL.RequestURI()
+	myEmail := ""
+	if index := strings.LastIndex(url, "/"); index >= 0 {
+		myEmail = url[index+1:]
+	} else {
+		log.Errorf(c, "invalid email handler URL: %s", url)
+		return
 	}
-}
-
-// nolint: gocyclo
-func incomingMail(c context.Context, r *http.Request) error {
+	source := dashapi.NoDiscussion
+	for _, item := range config.DiscussionEmails {
+		if item.ReceiveAddress != myEmail {
+			continue
+		}
+		source = item.Source
+		break
+	}
 	msg, err := email.Parse(r.Body, ownEmails(c), ownMailingLists(), []string{
 		appURL(c),
 	})
@@ -436,8 +445,21 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// But we have not seen errors parsing legit emails.
 		// These errors are annoying. Warn and ignore them.
 		log.Warningf(c, "failed to parse email: %v", err)
-		return nil
+		return
 	}
+	log.Infof(c, "received email at %q, source %q", myEmail, source)
+	if source == dashapi.NoDiscussion {
+		err = processIncomingEmail(c, msg)
+	} else {
+		err = processDiscussionEmail(c, msg, source)
+	}
+	if err != nil {
+		log.Errorf(c, "email processing failed: %s", err)
+	}
+}
+
+// nolint: gocyclo
+func processIncomingEmail(c context.Context, msg *email.Email) error {
 	// Ignore any incoming emails from syzbot itself.
 	if ownEmail(c) == msg.Author {
 		// But we still want to remember the id of our own message, so just neutralize the command.
@@ -518,6 +540,47 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	if !mailingListInCC && msg.Command != email.CmdNone && msg.Command != email.CmdUnCC {
 		warnMailingListInCC(c, msg, bugID, mailingList)
+	}
+	return nil
+}
+
+func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.DiscussionSource) error {
+	if len(msg.BugIDs) == 0 {
+		return nil
+	}
+	const limitIDs = 10
+	if len(msg.BugIDs) > limitIDs {
+		msg.BugIDs = msg.BugIDs[:limitIDs]
+	}
+	log.Infof(c, "saving to discussions for %q", msg.BugIDs)
+	// This is very crude, but should work for now.
+	dType := dashapi.DiscussionReport
+	if strings.Contains(msg.Subject, "PATCH") {
+		dType = dashapi.DiscussionPatch
+	}
+	extIDs := []string{}
+	for _, id := range msg.BugIDs {
+		_, _, err := findBugByReportingID(c, id)
+		if err == nil {
+			extIDs = append(extIDs, id)
+		}
+	}
+	if len(extIDs) == 0 {
+		log.Infof(c, "filtered all extIDs out")
+		return nil
+	}
+	err := saveDiscussionMessage(c, &newDiscussionMessage{
+		id:        msg.MessageID,
+		subject:   msg.Subject,
+		msgSource: source,
+		msgType:   dType,
+		bugIDs:    extIDs,
+		inReplyTo: msg.InReplyTo,
+		external:  ownEmail(c) != msg.Author,
+		time:      msg.Date,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to save in discussions: %v", err)
 	}
 	return nil
 }

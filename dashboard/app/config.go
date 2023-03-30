@@ -57,6 +57,9 @@ type GlobalConfig struct {
 	AppURL string
 	// The email address to display on all web pages.
 	ContactEmail string
+	// Emails received via the addresses below will be attributed to the corresponding
+	// kind of Discussion.
+	DiscussionEmails []DiscussionEmailConfig
 }
 
 // Per-namespace config.
@@ -105,6 +108,14 @@ type Config struct {
 	Kcidb *KcidbConfig
 	// Subsystems config.
 	Subsystems SubsystemsConfig
+}
+
+// DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
+type DiscussionEmailConfig struct {
+	// The address at which syzbot has received the message.
+	ReceiveAddress string
+	// The associated DiscussionSource.
+	Source dashapi.DiscussionSource
 }
 
 // SubsystemsConfig describes where to take the list of subsystems and how to infer them.
@@ -315,6 +326,18 @@ func checkConfig(cfg *GlobalConfig) {
 	}
 	for ns, cfg := range cfg.Namespaces {
 		checkNamespace(ns, cfg, namespaces, clientNames)
+	}
+	checkDiscussionEmails(cfg.DiscussionEmails)
+}
+
+func checkDiscussionEmails(list []DiscussionEmailConfig) {
+	dup := map[string]struct{}{}
+	for _, item := range list {
+		email := item.ReceiveAddress
+		if _, ok := dup[email]; ok {
+			panic(fmt.Sprintf("duplicate %s in DiscussionEmails", email))
+		}
+		dup[email] = struct{}{}
 	}
 }
 

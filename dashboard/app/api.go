@@ -47,6 +47,7 @@ var apiHandlers = map[string]APIHandler{
 	"new_test_job":          apiNewTestJob,
 	"needed_assets":         apiNeededAssetsList,
 	"load_full_bug":         apiLoadFullBug,
+	"save_discussion":       apiSaveDiscussion,
 }
 
 var apiNamespaceHandlers = map[string]APINamespaceHandler{
@@ -1577,4 +1578,19 @@ func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(c, "failed to update subsystems for %s: %v", ns, err)
 		}
 	}
+}
+
+func apiSaveDiscussion(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.SaveDiscussionReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	d := req.Discussion
+	for _, id := range d.BugIDs {
+		_, _, err := findBugByReportingID(c, id)
+		if err != nil {
+			return nil, fmt.Errorf("did not find the bug %s: %v", id, err)
+		}
+	}
+	return nil, mergeDiscussion(c, d)
 }
