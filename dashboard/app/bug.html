@@ -36,6 +36,7 @@ Page with details about a single bug.
 	{{template "bisect_results" .BisectCause}}
 	{{template "bisect_results" .BisectFix}}
 
+	{{template "discussions_list" .Discussions}}
 	{{template "bug_list" .DupOf}}
 	{{template "bug_list" .Dups}}
 	{{template "bug_list" .Similar}}

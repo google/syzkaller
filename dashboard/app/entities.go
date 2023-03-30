@@ -115,9 +115,10 @@ type Bug struct {
 	// Kcidb publishing status bitmask:
 	// bit 0 - the bug is published
 	// bit 1 - don't want to publish it (syzkaller build/test errors)
-	KcidbStatus int64
-	DailyStats  []BugDailyStats
-	Tags        BugTags
+	KcidbStatus    int64
+	DailyStats     []BugDailyStats
+	Tags           BugTags
+	DiscussionInfo []BugDiscussionInfo
 }
 
 type BugTags struct {
@@ -211,6 +212,18 @@ type Commit struct {
 	AuthorName string
 	CC         string `datastore:",noindex"` // (|-delimited list)
 	Date       time.Time
+}
+
+type BugDiscussionInfo struct {
+	Source  string
+	Summary DiscussionSummary
+}
+
+type DiscussionSummary struct {
+	AllMessages      int
+	ExternalMessages int
+	LastMessage      time.Time
+	LastPatchMessage time.Time
 }
 
 type BugReporting struct {
@@ -325,6 +338,36 @@ func (crash *Crash) Load(ps []db.Property) error {
 
 func (crash *Crash) Save() ([]db.Property, error) {
 	return db.SaveStruct(crash)
+}
+
+type Discussion struct {
+	ID      string // the base message ID
+	Source  string
+	Type    string
+	Subject string
+	BugKeys []string
+	// Message contains last N messages.
+	// N is supposed to be big enough, so that in almost all cases
+	// AllMessages == len(Messages) holds true.
+	Messages []DiscussionMessage
+	// Since Messages could be trimmed, we have to keep aggregate stats.
+	Summary DiscussionSummary
+}
+
+func discussionKey(c context.Context, source, id string) *db.Key {
+	return db.NewKey(c, "Discussion", fmt.Sprintf("%v-%v", source, id), 0, nil)
+}
+
+func (d *Discussion) key(c context.Context) *db.Key {
+	return discussionKey(c, d.Source, d.ID)
+}
+
+type DiscussionMessage struct {
+	ID string
+	// External is true if the message is not from the bot itself.
+	// Let's use a shorter name to save space.
+	External bool      `datastore:"e"`
+	Time     time.Time `datastore:",noindex"`
 }
 
 // ReportingState holds dynamic info associated with reporting.

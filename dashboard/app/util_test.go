@@ -552,7 +552,7 @@ Content-Type: text/plain
 %v
 `, sender, id, subject, from, strings.Join(cc, ","), to, origFrom, body)
 	log.Infof(c.ctx, "sending %s", email)
-	_, err := c.POST("/_ah/mail/", email)
+	_, err := c.POST("/_ah/mail/email@server.com", email)
 	c.expectOK(err)
 }
 

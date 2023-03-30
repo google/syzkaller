@@ -504,3 +504,28 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</div>
 	</div>
 {{end}}
+
+{{/* List of discussions, invoked with []*uiBugDiscussion */}}
+{{define "discussions_list"}}
+{{if .}}
+<table class="list_table">
+	<caption id="managers">Discussions:</caption>
+	<thead>
+	<tr>
+		<th>Title</th>
+		<th>Replies (including bot)</th>
+		<th>Last reply</th>
+	</tr>
+	</thead>
+	<tbody>
+	{{range $item := .}}
+		<tr>
+			<td>{{link $item.Link $item.Subject}}</td>
+			<td class="stat">{{$item.External}} ({{$item.Total}})</td>
+			<td class="stat">{{formatTime $item.Last}}</td>
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}
