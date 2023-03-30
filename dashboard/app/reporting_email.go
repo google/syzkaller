@@ -428,7 +428,9 @@ func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 
 // nolint: gocyclo
 func incomingMail(c context.Context, r *http.Request) error {
-	msg, err := email.Parse(r.Body, ownEmails(c), ownMailingLists())
+	msg, err := email.Parse(r.Body, ownEmails(c), ownMailingLists(), []string{
+		appURL(c),
+	})
 	if err != nil {
 		// Malformed emails constantly appear from spammers.
 		// But we have not seen errors parsing legit emails.
@@ -441,8 +443,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// But we still want to remember the id of our own message, so just neutralize the command.
 		msg.Command, msg.CommandArgs = email.CmdNone, ""
 	}
-	log.Infof(c, "received email: subject %q, author %q, cc %q, msg %q, bug %q, cmd %q, link %q, list %q",
-		msg.Subject, msg.Author, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link, msg.MailingList)
+	log.Infof(c, "received email: subject %q, author %q, cc %q, msg %q, bug %v, cmd %q, link %q, list %q",
+		msg.Subject, msg.Author, msg.Cc, msg.MessageID, msg.BugIDs, msg.Command, msg.Link, msg.MailingList)
 	if msg.Command == email.CmdFix && msg.CommandArgs == "exact-commit-title" {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
 		msg.Command, msg.CommandArgs = email.CmdNone, ""
@@ -457,7 +459,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 	mailingList := email.CanonicalEmail(emailConfig.Email)
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
-	if fromMailingList && msg.BugID != "" && msg.Command != email.CmdNone {
+	if fromMailingList && len(msg.BugIDs) > 0 && msg.Command != email.CmdNone {
 		// Note that if syzbot was not directly mentioned in To or Cc, this is not really
 		// a duplicate message, so it must be processed. We detect it by looking at BugID.
 
@@ -678,14 +680,19 @@ type bugListInfoResult struct {
 
 func identifyEmail(c context.Context, msg *email.Email) (
 	*bugInfoResult, *bugListInfoResult, *EmailConfig) {
-	if isBugListHash(msg.BugID) {
-		subsystem, _, stage, err := findSubsystemReportByID(c, msg.BugID)
+	bugID := ""
+	if len(msg.BugIDs) > 0 {
+		// For now let's only consider one of them.
+		bugID = msg.BugIDs[0]
+	}
+	if isBugListHash(bugID) {
+		subsystem, _, stage, err := findSubsystemReportByID(c, bugID)
 		if err != nil {
 			log.Errorf(c, "findBugListByID failed: %s", err)
 			return nil, nil, nil
 		}
 		if subsystem == nil {
-			log.Errorf(c, "no bug list with the %v ID found", msg.BugID)
+			log.Errorf(c, "no bug list with the %v ID found", bugID)
 			return nil, nil, nil
 		}
 		reminderConfig := config.Namespaces[subsystem.Namespace].Subsystems.Reminder
@@ -695,10 +702,10 @@ func identifyEmail(c context.Context, msg *email.Email) (
 		}
 		emailConfig, ok := bugListReportingConfig(subsystem.Namespace, stage).(*EmailConfig)
 		if !ok {
-			log.Errorf(c, "bug list's reporting config is not EmailConfig (id=%v)", msg.BugID)
+			log.Errorf(c, "bug list's reporting config is not EmailConfig (id=%v)", bugID)
 			return nil, nil, nil
 		}
-		return nil, &bugListInfoResult{id: msg.BugID, config: emailConfig}, emailConfig
+		return nil, &bugListInfoResult{id: bugID, config: emailConfig}, emailConfig
 	}
 	bugInfo := loadBugInfo(c, msg)
 	if bugInfo == nil {
@@ -715,7 +722,12 @@ type bugInfoResult struct {
 }
 
 func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
-	if msg.BugID == "" {
+	bugID := ""
+	if len(msg.BugIDs) > 0 {
+		// For now let's only consider one of them.
+		bugID = msg.BugIDs[0]
+	}
+	if bugID == "" {
 		var matchingErr error
 		// Give it one more try -- maybe we can determine the bug from the subject + mailing list.
 		if msg.MailingList != "" {
@@ -746,7 +758,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 		}
 		return nil
 	}
-	bug, bugKey, err := findBugByReportingID(c, msg.BugID)
+	bug, bugKey, err := findBugByReportingID(c, bugID)
 	if err != nil {
 		log.Errorf(c, "can't find bug: %v", err)
 		from, err := email.AddAddrContext(ownEmail(c), "HASH")
@@ -759,7 +771,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 		}
 		return nil
 	}
-	bugReporting, _ := bugReportingByID(bug, msg.BugID)
+	bugReporting, _ := bugReportingByID(bug, bugID)
 	if bugReporting == nil {
 		log.Errorf(c, "can't find bug reporting: %v", err)
 		if err := replyTo(c, msg, "", "Can't find the corresponding bug."); err != nil {
