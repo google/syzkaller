@@ -570,6 +570,44 @@ type PollClosedResponse struct {
 	IDs []string
 }
 
+type DiscussionSource string
+
+const (
+	NoDiscussion   DiscussionSource = ""
+	DiscussionLore DiscussionSource = "lore"
+)
+
+type DiscussionType string
+
+const (
+	DiscussionReport DiscussionType = "report"
+	DiscussionPatch  DiscussionType = "patch"
+)
+
+type Discussion struct {
+	ID       string
+	Source   DiscussionSource
+	Type     DiscussionType
+	Subject  string
+	BugIDs   []string
+	Messages []DiscussionMessage
+}
+
+type DiscussionMessage struct {
+	ID       string
+	External bool // true if the message is not from the bot itself
+	Time     time.Time
+}
+
+type SaveDiscussionReq struct {
+	// If the discussion already exists, Messages and BugIDs will be appended to it.
+	Discussion *Discussion
+}
+
+func (dash *Dashboard) SaveDiscussion(req *SaveDiscussionReq) error {
+	return dash.Query("save_discussion", req, nil)
+}
+
 type TestPatchRequest struct {
 	BugID  string
 	Link   string

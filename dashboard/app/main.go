@@ -228,6 +228,14 @@ type uiCommit struct {
 	Date   time.Time
 }
 
+type uiBugDiscussion struct {
+	Subject  string
+	Link     string
+	Total    int
+	External int
+	Last     time.Time
+}
+
 type uiBugPage struct {
 	Header        *uiHeader
 	Now           time.Time
@@ -242,6 +250,7 @@ type uiBugPage struct {
 	FixBisections *uiCrashTable
 	TestPatchJobs *uiJobList
 	Subsystems    []*uiBugSubsystem
+	Discussions   []*uiBugDiscussion
 }
 
 type uiBugGroup struct {
@@ -705,6 +714,10 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	discussions, err := getBugDiscussionsUI(c, bug)
+	if err != nil {
+		return err
+	}
 	data := &uiBugPage{
 		Header:       hdr,
 		Now:          timeNow(c),
@@ -721,6 +734,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			PerBug: true,
 			Jobs:   testPatchJobs,
 		},
+		Discussions: discussions,
 	}
 	for _, entry := range bug.Tags.Subsystems {
 		data.Subsystems = append(data.Subsystems, makeBugSubsystemUI(c, bug, entry))
@@ -762,6 +776,28 @@ func makeBugSubsystemUI(c context.Context, bug *Bug, entry BugSubsystem) *uiBugS
 		Name: entry.Name,
 		Link: link,
 	}
+}
+
+func getBugDiscussionsUI(c context.Context, bug *Bug) ([]*uiBugDiscussion, error) {
+	// TODO: also include dup bug discussions.
+	var list []*uiBugDiscussion
+	discussions, err := discussionsForBug(c, bug.key(c))
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range discussions {
+		list = append(list, &uiBugDiscussion{
+			Subject:  d.Subject,
+			Link:     d.link(),
+			Total:    d.Summary.AllMessages,
+			External: d.Summary.ExternalMessages,
+			Last:     d.Summary.LastMessage,
+		})
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		return list[i].Last.After(list[j].Last)
+	})
+	return list, nil
 }
 
 func handleBugStats(c context.Context, w http.ResponseWriter, r *http.Request) error {
