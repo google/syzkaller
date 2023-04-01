@@ -5,11 +5,10 @@ BreakBeforeBraces: Linux
 IndentCaseLabels: false
 DerivePointerAlignment: false
 PointerAlignment: Left
-AlignTrailingComments: true
+AlignTrailingComments: false
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 ColumnLimit: 0
-AlignTrailingComments: false
 
