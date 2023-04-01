@@ -191,8 +191,7 @@ table td, table th {
 }
 
 .list_table .assets {
-	max-width: 120pt;
-	white-space: normal;
+	white-space: nowrap;
 }
 
 .list_table .assets .no-break {
