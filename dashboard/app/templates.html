@@ -359,7 +359,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<caption>{{.Caption}}:</caption>
 		<thead>
 		<tr>
-			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
 			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
 			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
 			<th><a onclick="return sortTable(this, 'Commit', textSort)" href="#">Commit</a></th>
@@ -371,13 +370,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
 			<th><a onclick="return sortTable(this, 'VM info', textSort)" href="#">VM info</a></th>
 			<th><a onclick="return sortTable(this, 'Assets', textSort)" href="#">Assets</a></th>
+			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
 			<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
 		</tr>
 		</thead>
 		<tbody>
 		{{range $b := .Crashes}}
 		<tr>
-			<td class="manager">{{$b.Manager}}</td>
 			<td class="time">{{formatTime $b.Time}}</td>
 			<td class="kernel" title="{{$b.KernelAlias}}">{{$b.KernelAlias}}</td>
 			<td class="tag" title="{{$b.KernelCommit}}
@@ -392,6 +391,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="assets">{{range $i, $asset := .Assets}}
 				<span class="no-break">[<a href="{{$asset.DownloadURL}}">{{$asset.Title}}</a>]</span>
 			{{end}}</td>
+			<td class="manager">{{$b.Manager}}</td>
 			<td class="manager">{{$b.Title}}</td>
 		</tr>
 		{{end}}
