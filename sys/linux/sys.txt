@@ -188,6 +188,7 @@ move_pages(pid pid, nr len[pages], pages ptr[in, array[vma]], nodes ptr[in, arra
 migrate_pages(pid pid, maxnode intptr, old ptr[in, int64], new ptr[in, int64])
 set_mempolicy(mode flags[mbind_mode], nodemask ptr[in, int64], maxnode intptr)
 get_mempolicy(mode ptr[out, int32], nodemask ptr[out, int64], maxnode intptr, addr vma, flags flags[mempolicy_flags])
+set_mempolicy_home_node(addr vma, len len[addr], home_node intptr[0:3], flags const[0])
 mincore(addr vma, size len[addr], vec buffer[out])
 mlock(addr vma, size len[addr])
 mlock2(addr vma, size len[addr], flags flags[mlock_flags])
