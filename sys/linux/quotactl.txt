@@ -13,6 +13,16 @@ quotactl$Q_GETQUOTA(cmd flags[quota_cmd_getquota], special ptr[in, blockdev_file
 quotactl$Q_SETQUOTA(cmd flags[quota_cmd_setquota], special ptr[in, blockdev_filename], id uid, addr ptr[in, if_dqblk])
 quotactl$Q_GETNEXTQUOTA(cmd flags[quota_cmd_getnextquota], special ptr[in, blockdev_filename], id uid, addr ptr[out, if_nextdqblk])
 
+quotactl_fd$Q_SYNC(fd fd, cmd flags[quota_cmd_sync], id const[0], addr const[0])
+quotactl_fd$Q_QUOTAON(fd fd, cmd flags[quota_cmd_quota_on], id uid, addr ptr[in, filename])
+quotactl_fd$Q_QUOTAOFF(fd fd, cmd flags[quota_cmd_quota_off], id uid, addr const[0])
+quotactl_fd$Q_GETFMT(fd fd, cmd flags[quota_cmd_getfmt], id uid, addr ptr[out, int32])
+quotactl_fd$Q_GETINFO(fd fd, cmd flags[quota_cmd_getinfo], id uid, addr ptr[out, if_dqinfo])
+quotactl_fd$Q_SETINFO(fd fd, cmd flags[quota_cmd_setinfo], id uid, addr ptr[in, if_dqinfo])
+quotactl_fd$Q_GETQUOTA(fd fd, cmd flags[quota_cmd_getquota], id uid, addr ptr[out, if_dqblk])
+quotactl_fd$Q_SETQUOTA(fd fd, cmd flags[quota_cmd_setquota], id uid, addr ptr[in, if_dqblk])
+quotactl_fd$Q_GETNEXTQUOTA(fd fd, cmd flags[quota_cmd_getnextquota], id uid, addr ptr[out, if_nextdqblk])
+
 if_dqinfo {
 	dqi_bgrace	int64
 	dqi_igrace	int64
