@@ -37,6 +37,7 @@ var (
 			"gfs2":     {"syz_mount_image$gfs2", "syz_mount_image$gfs2meta"},
 			"hfs":      {"syz_mount_image$hfs", "syz_mount_image$hfsplus"},
 			"hpfs":     {"syz_mount_image$hpfs"},
+			"input":    {"syz_usb_connect$hid"},
 			"io-uring": {"syz_io_uring_setup"},
 			"isofs":    {"syz_mount_image$iso9660"},
 			"jffs2":    {"syz_mount_image$jffs2"},
