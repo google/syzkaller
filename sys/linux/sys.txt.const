@@ -747,7 +747,6 @@ __NR_ptrace = 26, amd64:101, arm64:riscv64:117, mips64le:5099
 __NR_pwrite64 = 181, amd64:18, arm64:riscv64:68, mips64le:5017, ppc64le:180
 __NR_pwritev = 70, 386:334, amd64:296, arm:362, mips64le:5290, ppc64le:321, s390x:329
 __NR_pwritev2 = 287, 386:379, amd64:328, arm:393, mips64le:5322, ppc64le:381, s390x:377
-__NR_quotactl = 131, amd64:179, arm64:riscv64:60, mips64le:5172
 __NR_read = 3, amd64:0, arm64:riscv64:63, mips64le:5000
 __NR_readahead = 213, 386:arm:225, amd64:187, mips64le:5179, ppc64le:191, s390x:222
 __NR_readlink = 85, amd64:89, arm64:riscv64:???, mips64le:5087
