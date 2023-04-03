@@ -4,6 +4,7 @@
 # AF_INET and AF_INET6: SCTP support
 
 include <linux/sctp.h>
+include <linux/net.h>
 include <asm/ioctls.h>
 
 resource sock_sctp[sock_in]
