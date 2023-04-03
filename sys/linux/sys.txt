@@ -394,7 +394,6 @@ chroot(dir ptr[in, filename])
 getcwd(buf buffer[out], size len[buf])
 chdir(dir ptr[in, filename])
 fchdir(fd fd)
-quotactl(cmd intptr, special ptr[in, filename], id uid, addr ptr[in, array[int8]])
 pivot_root(new_root ptr[in, filename], put_old ptr[in, filename])
 
 sysfs$1(option const[1], fsname ptr[in, string])
