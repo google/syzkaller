@@ -139,7 +139,8 @@ config:
  - PRINTK_TIME
  # Some kernel oops'es are large. Largest observed for a stack overflow is ~42KB.
  # There are 2 such buffers per CPU (safe and nmi), so this adds 128KB per CPU.
- - PRINTK_SAFE_LOG_BUF_SHIFT: 16
+ # The config was removed in "Remove orphaned CONFIG_PRINTK_SAFE_LOG_BUF_SHIFT".
+ - PRINTK_SAFE_LOG_BUF_SHIFT: [16, -linux-next]
 
  # Fault injection.
  - FAULT_INJECTION
