@@ -3203,6 +3203,7 @@ func subsystems_linux() []*Subsystem {
 
 	nilfs = Subsystem{
 		Name:        "nilfs",
+		Syscalls:    []string{"syz_mount_image$nilfs2"},
 		Lists:       []string{"linux-nilfs@vger.kernel.org"},
 		Maintainers: []string{"konishi.ryusuke@gmail.com"},
 		Parents:     []*Subsystem{&fs},
