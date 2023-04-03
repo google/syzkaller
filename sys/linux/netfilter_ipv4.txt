@@ -204,6 +204,8 @@ ipt_targets [
 	unspec		xt_unspec_targets
 	inet		xt_inet_targets
 	SET		xt_target_t["SET", xt_set_info_target_v0, 0]
+# TODO: remove CLUSTERIP once removed from relevant LTS.
+# Removed from kernel in 9db5d918e2c07fa09.
 	CLUSTERIP	xt_target_t["CLUSTERIP", ipt_clusterip_tgt_info, 0]
 ] [varlen]
 

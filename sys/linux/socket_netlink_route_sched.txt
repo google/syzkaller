@@ -656,6 +656,16 @@ tc_htb_opt {
 }
 
 # ------------------------------ tc filter ------------------------------
+
+# TODO: remove the following filters that were removed from the kernel
+# once they are removed from relevant LTS kernels:
+#
+# 265b4da82dbf5 net/sched: Retire rsvp classifier
+# 8c710f75256bb net/sched: Retire tcindex classifier
+# bbe77c14ee618 net/sched: Retire dsmark qdisc
+# fb38306ceb9e7 net/sched: Retire ATM qdisc
+# 051d442098421 net/sched: Retire CBQ qdisc
+
 filter_kind_options [
 	f_basic		tca_kind_options_t["basic", array[basic_policy]]
 	f_bpf		tca_kind_options_t["bpf", array[bpf_policy]]
