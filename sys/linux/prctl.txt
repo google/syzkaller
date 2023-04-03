@@ -183,6 +183,10 @@ arch_prctl$ARCH_SHSTK_LOCK(cmd const[ARCH_SHSTK_LOCK], features flags[shadow_sta
 arch_prctl$ARCH_SHSTK_UNLOCK(cmd const[ARCH_SHSTK_UNLOCK], features flags[shadow_stack_features])
 arch_prctl$ARCH_SHSTK_ENABLE(cmd const[ARCH_SHSTK_ENABLE], features flags[shadow_stack_features])
 arch_prctl$ARCH_SHSTK_DISABLE(cmd const[ARCH_SHSTK_DISABLE], features flags[shadow_stack_features])
+arch_prctl$ARCH_GET_UNTAG_MASK(cmd const[ARCH_GET_UNTAG_MASK], arg ptr[out, intptr])
+arch_prctl$ARCH_GET_MAX_TAG_BITS(cmd const[ARCH_GET_MAX_TAG_BITS], arg ptr[out, intptr])
+arch_prctl$ARCH_ENABLE_TAGGED_ADDR(cmd const[ARCH_ENABLE_TAGGED_ADDR], arg intptr[1:6])
+arch_prctl$ARCH_FORCE_TAGGED_SVA(cmd const[ARCH_FORCE_TAGGED_SVA])
 
 _ = ARCH_SET_FS
 shadow_stack_features = ARCH_SHSTK_SHSTK, ARCH_SHSTK_WRSS

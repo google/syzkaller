@@ -281,6 +281,10 @@ ptrace$ARCH_SHSTK_LOCK(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[sha
 ptrace$ARCH_SHSTK_UNLOCK(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_UNLOCK]) (breaks_returns)
 ptrace$ARCH_SHSTK_ENABLE(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_ENABLE]) (breaks_returns)
 ptrace$ARCH_SHSTK_DISABLE(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_DISABLE]) (breaks_returns)
+ptrace$ARCH_GET_UNTAG_MASK(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], cmd const[ARCH_GET_UNTAG_MASK]) (breaks_returns)
+ptrace$ARCH_GET_MAX_TAG_BITS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], cmd const[ARCH_GET_MAX_TAG_BITS]) (breaks_returns)
+ptrace$ARCH_ENABLE_TAGGED_ADDR(req const[PTRACE_ARCH_PRCTL], pid pid, arg intptr[1:6], cmd const[ARCH_ENABLE_TAGGED_ADDR]) (breaks_returns)
+ptrace$ARCH_FORCE_TAGGED_SVA(req const[PTRACE_ARCH_PRCTL], pid pid, arg const[0], cmd const[ARCH_FORCE_TAGGED_SVA]) (breaks_returns)
 
 map_shadow_stack(addr vma, size bytesize[addr], flags boolptr)
 
