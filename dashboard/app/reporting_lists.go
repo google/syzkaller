@@ -236,16 +236,14 @@ func findSubsystemReportByID(c context.Context, ID string) (*Subsystem,
 // querySubsystemReport queries the open bugs and constructs a new SubsystemReport object.
 func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Reporting,
 	config *BugListReportingConfig) (*SubsystemReport, error) {
-	rawOpenBugs, fixedBugs, err := queryMatchingBugs(c, subsystem.Namespace, subsystem.Name)
+	rawOpenBugs, fixedBugs, err := queryMatchingBugs(c, subsystem.Namespace,
+		subsystem.Name, reporting.AccessLevel)
 	if err != nil {
 		return nil, err
 	}
 	withRepro, noRepro := []*Bug{}, []*Bug{}
 	for _, bug := range rawOpenBugs {
-		currReporting, _, _, _, err := currentReporting(c, bug)
-		if err != nil {
-			return nil, fmt.Errorf("failed to query current reporting: %w", err)
-		}
+		currReporting, _, _, _, _ := currentReporting(c, bug)
 		if reporting.Name != currReporting.Name {
 			// The big is not at the expected reporting stage.
 			continue
@@ -325,7 +323,7 @@ func makeSubsystemReportStats(c context.Context, open, fixed []*Bug, days int) S
 	}
 }
 
-func queryMatchingBugs(c context.Context, ns, name string) ([]*Bug, []*Bug, error) {
+func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLevel) ([]*Bug, []*Bug, error) {
 	allOpenBugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
@@ -347,6 +345,13 @@ func queryMatchingBugs(c context.Context, ns, name string) ([]*Bug, []*Bug, erro
 		if len(bug.Commits) != 0 || bug.Status == BugStatusFixed {
 			// This bug is no longer really open.
 			fixed = append(fixed, bug)
+			continue
+		}
+		currReporting, _, _, _, err := currentReporting(c, bug)
+		if err != nil {
+			continue
+		}
+		if currReporting.AccessLevel > accessLevel {
 			continue
 		}
 		open = append(open, bug)
