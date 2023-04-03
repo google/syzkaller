@@ -156,7 +156,7 @@ config:
  - ATM_LANE
  - ATM_MPOA
  - ATM_BR2684
- - NET_SCH_ATM
+ - NET_SCH_ATM: [-v6.3]
  - ATM_TCP
  - USB_ATM
 
