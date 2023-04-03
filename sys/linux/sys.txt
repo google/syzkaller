@@ -60,6 +60,8 @@ include <uapi/linux/close_range.h>
 include <uapi/linux/netfilter/xt_cgroup.h>
 include <fs/cifs/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
+include <uapi/linux/prctl.h>
+include <asm/prctl.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
@@ -264,6 +266,19 @@ ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[o
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_FILTER(req const[PTRACE_SECCOMP_GET_FILTER], pid pid, addr intptr, data ptr[out, array[int8]]) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_METADATA(req const[PTRACE_SECCOMP_GET_METADATA], pid pid, addr len[data], data ptr[in, seccomp_metadata]) (breaks_returns)
+ptrace$ARCH_GET_FS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], code const[ARCH_GET_FS]) (breaks_returns)
+ptrace$ARCH_GET_GS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], code const[ARCH_GET_GS]) (breaks_returns)
+ptrace$ARCH_SET_GS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], code const[ARCH_SET_GS]) (breaks_returns)
+ptrace$ARCH_GET_CPUID(req const[PTRACE_ARCH_PRCTL], pid pid, arg const[0], code const[ARCH_GET_CPUID]) (breaks_returns)
+ptrace$ARCH_SET_CPUID(req const[PTRACE_ARCH_PRCTL], pid pid, arg boolptr, code const[ARCH_SET_CPUID]) (breaks_returns)
+ptrace$ARCH_MAP_VDSO_X32(req const[PTRACE_ARCH_PRCTL], pid pid, arg intptr, code const[ARCH_MAP_VDSO_X32]) (breaks_returns)
+ptrace$ARCH_MAP_VDSO_32(req const[PTRACE_ARCH_PRCTL], pid pid, arg intptr, code const[ARCH_MAP_VDSO_32]) (breaks_returns)
+ptrace$ARCH_MAP_VDSO_64(req const[PTRACE_ARCH_PRCTL], pid pid, arg intptr, code const[ARCH_MAP_VDSO_64]) (breaks_returns)
+ptrace$ARCH_SHSTK_STATUS(req const[PTRACE_ARCH_PRCTL], pid pid, res ptr[out, intptr], cmd const[ARCH_SHSTK_STATUS]) (breaks_returns)
+ptrace$ARCH_SHSTK_LOCK(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_LOCK]) (breaks_returns)
+ptrace$ARCH_SHSTK_UNLOCK(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_UNLOCK]) (breaks_returns)
+ptrace$ARCH_SHSTK_ENABLE(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_ENABLE]) (breaks_returns)
+ptrace$ARCH_SHSTK_DISABLE(req const[PTRACE_ARCH_PRCTL], pid pid, features flags[shadow_stack_features], cmd const[ARCH_SHSTK_DISABLE]) (breaks_returns)
 
 map_shadow_stack(addr vma, size bytesize[addr], flags boolptr)
 
