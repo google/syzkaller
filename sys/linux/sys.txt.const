@@ -782,6 +782,7 @@ __NR_select = 82, amd64:23, arm:arm64:mips64le:riscv64:???, s390x:142
 __NR_sendfile = 187, amd64:40, arm64:riscv64:71, mips64le:5039, ppc64le:186
 __NR_sendfile64 = 239, amd64:arm64:mips64le:ppc64le:riscv64:s390x:???
 __NR_set_mempolicy = 237, 386:276, amd64:238, arm:321, mips64le:5229, ppc64le:261, s390x:270
+__NR_set_mempolicy_home_node = 450, mips64le:5450
 __NR_set_thread_area = 386:243, amd64:205, arm:arm64:ppc64le:riscv64:s390x:???, mips64le:5242
 __NR_set_tid_address = 96, 386:258, amd64:218, arm:256, mips64le:5212, ppc64le:232, s390x:252
 __NR_setfsgid = 139, amd64:123, arm64:riscv64:152, mips64le:5121, s390x:216
