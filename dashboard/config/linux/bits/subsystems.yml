@@ -26,6 +26,8 @@ config:
  - NUMA_EMU: [x86_64]
  - NUMA_BALANCING: [-arm]
  - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
+ - ADDRESS_MASKING: [x86_64, linux-next]
+ - X86_USER_SHADOW_STACK: [x86_64, linux-next]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable this.
  - X86_X2APIC: [x86_64, -kmsan]
  - CGROUPS
