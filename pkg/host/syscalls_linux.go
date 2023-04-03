@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/sys/unix"
 )
 
 func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
@@ -36,6 +37,9 @@ func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, st
 	}
 	if strings.HasPrefix(c.Name, "mount$") {
 		return isSupportedMount(c, sandbox)
+	}
+	if c.CallName == "pkey_alloc" {
+		return isSyzPkeySetSupported(c, target, sandbox)
 	}
 	if c.Name == "ioctl$EXT4_IOC_SHUTDOWN" && sandbox == "none" {
 		// Don't shutdown root filesystem.
@@ -317,6 +321,7 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_usbip_server_init":       isSyzUsbIPSupported,
 	"syz_clone":                   alwaysSupported,
 	"syz_clone3":                  alwaysSupported,
+	"syz_pkey_set":                isSyzPkeySetSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
@@ -543,4 +548,19 @@ func extractStringConst(typ prog.Type) (string, bool) {
 		v = v[:len(v)-1] // string terminating \x00
 	}
 	return v, true
+}
+
+func isSyzPkeySetSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	if target.Arch != targets.AMD64 && target.Arch != targets.I386 {
+		return false, "unsupported arch"
+	}
+	key, _, err := syscall.Syscall6(unix.SYS_PKEY_ALLOC, 0, 0, 0, 0, 0, 0)
+	if err != 0 {
+		return false, fmt.Sprintf("pkey_alloc failed: %v", err)
+	}
+	_, _, err = syscall.Syscall6(unix.SYS_PKEY_FREE, key, 0, 0, 0, 0, 0)
+	if err != 0 {
+		return false, fmt.Sprintf("pkey_free failed: %v", err)
+	}
+	return true, ""
 }

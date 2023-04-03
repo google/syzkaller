@@ -11378,6 +11378,25 @@ static long syz_clone3(volatile long a0, volatile long a1)
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_pkey_set
+static long syz_pkey_set(volatile long pkey, volatile long val)
+{
+#if GOARCH_amd64 || GOARCH_386
+	uint32 eax = 0;
+	uint32 ecx = 0;
+	asm volatile("rdpkru"
+		     : "=a"(eax)
+		     : "c"(ecx)
+		     : "edx");
+	eax &= ~(3 << ((pkey % 16) * 2));
+	eax |= (val & 3) << ((pkey % 16) * 2);
+	uint32 edx = 0;
+	asm volatile("wrpkru" ::"a"(eax), "c"(ecx), "d"(edx));
+#endif
+	return 0;
+}
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>

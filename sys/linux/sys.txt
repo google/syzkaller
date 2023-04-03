@@ -212,6 +212,8 @@ resource pkey[int32]: -1
 pkey_alloc(flags const[0], val flags[pkey_flags]) pkey
 pkey_free(key pkey)
 pkey_mprotect(addr vma, len len[addr], prot flags[mmap_prot], key pkey)
+syz_pkey_set(key pkey, val flags[pkey_flags])
+
 pkey_flags = PKEY_DISABLE_ACCESS, PKEY_DISABLE_WRITE
 
 restart_syscall()
