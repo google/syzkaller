@@ -265,6 +265,8 @@ ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr) (b
 ptrace$PTRACE_SECCOMP_GET_FILTER(req const[PTRACE_SECCOMP_GET_FILTER], pid pid, addr intptr, data ptr[out, array[int8]]) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_METADATA(req const[PTRACE_SECCOMP_GET_METADATA], pid pid, addr len[data], data ptr[in, seccomp_metadata]) (breaks_returns)
 
+map_shadow_stack(addr vma, size bytesize[addr], flags boolptr)
+
 seccomp_metadata {
 	filter_off	int64
 	flags		const[0, int64]
