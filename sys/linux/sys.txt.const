@@ -685,6 +685,7 @@ __NR_lseek = 19, amd64:8, arm64:riscv64:62, mips64le:5008
 __NR_lstat = 107, amd64:6, arm64:riscv64:???, mips64le:5006
 __NR_lstat64 = 196, amd64:arm64:mips64le:ppc64le:riscv64:s390x:???
 __NR_madvise = 219, amd64:28, arm:220, arm64:riscv64:233, mips64le:5027, ppc64le:205
+__NR_map_shadow_stack = 386:arm:arm64:mips64le:ppc64le:riscv64:s390x:???, amd64:451
 __NR_mbind = 235, 386:274, amd64:237, arm:319, mips64le:5227, ppc64le:259, s390x:268
 __NR_membarrier = 283, 386:375, amd64:324, arm:389, mips64le:5318, ppc64le:365, s390x:356
 __NR_memfd_create = 279, 386:356, amd64:319, arm:385, mips64le:5314, ppc64le:360, s390x:350

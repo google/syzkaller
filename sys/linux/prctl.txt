@@ -173,5 +173,11 @@ arch_prctl$ARCH_SET_CPUID(code const[ARCH_SET_CPUID], arg boolptr)
 arch_prctl$ARCH_MAP_VDSO_X32(code const[ARCH_MAP_VDSO_X32], arg intptr)
 arch_prctl$ARCH_MAP_VDSO_32(code const[ARCH_MAP_VDSO_32], arg intptr)
 arch_prctl$ARCH_MAP_VDSO_64(code const[ARCH_MAP_VDSO_64], arg intptr)
+arch_prctl$ARCH_SHSTK_STATUS(cmd const[ARCH_SHSTK_STATUS], res ptr[out, intptr])
+arch_prctl$ARCH_SHSTK_LOCK(cmd const[ARCH_SHSTK_LOCK], features flags[shadow_stack_features])
+arch_prctl$ARCH_SHSTK_UNLOCK(cmd const[ARCH_SHSTK_UNLOCK], features flags[shadow_stack_features])
+arch_prctl$ARCH_SHSTK_ENABLE(cmd const[ARCH_SHSTK_ENABLE], features flags[shadow_stack_features])
+arch_prctl$ARCH_SHSTK_DISABLE(cmd const[ARCH_SHSTK_DISABLE], features flags[shadow_stack_features])
 
 _ = ARCH_SET_FS
+shadow_stack_features = ARCH_SHSTK_SHSTK, ARCH_SHSTK_WRSS
