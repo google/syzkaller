@@ -266,6 +266,8 @@ ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[o
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_FILTER(req const[PTRACE_SECCOMP_GET_FILTER], pid pid, addr intptr, data ptr[out, array[int8]]) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_METADATA(req const[PTRACE_SECCOMP_GET_METADATA], pid pid, addr len[data], data ptr[in, seccomp_metadata]) (breaks_returns)
+ptrace$PTRACE_SETSIGMASK(req const[PTRACE_SETSIGMASK], pid pid, size bytesize[data], data ptr[in, sigset_t]) (breaks_returns)
+ptrace$PTRACE_GETSIGMASK(req const[PTRACE_GETSIGMASK], pid pid, size bytesize[data], data ptr[out, sigset_t]) (breaks_returns)
 ptrace$ARCH_GET_FS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], code const[ARCH_GET_FS]) (breaks_returns)
 ptrace$ARCH_GET_GS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], code const[ARCH_GET_GS]) (breaks_returns)
 ptrace$ARCH_SET_GS(req const[PTRACE_ARCH_PRCTL], pid pid, arg ptr[out, intptr], code const[ARCH_SET_GS]) (breaks_returns)
