@@ -4265,9 +4265,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	usb = Subsystem{
-		Name:    "usb",
-		Lists:   []string{"linux-usb@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:     "usb",
+		Syscalls: []string{"syz_usb_connect", "syz_usb_connect$hid", "syz_usb_connect$printer", "syz_usb_connect$cdc_ecm", "syz_usb_connect$cdc_ncm", "syz_usb_connect$uac1"},
+		Lists:    []string{"linux-usb@vger.kernel.org"},
+		Parents:  []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/arm/[^/]*omap[^/]*/usb[^/]*$|^drivers/usb/[^/]*/[^/]*omap[^/]*$"},
 			{IncludeRegexp: "^drivers/hid/usbhid/"},
