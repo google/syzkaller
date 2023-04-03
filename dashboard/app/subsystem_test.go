@@ -297,8 +297,8 @@ This is a 30-day syzbot report for the subsystemA subsystem.
 All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
-During the period, 3 new issues were detected and 0 were fixed.
-In total, 3 issues are still open.
+During the period, 2 new issues were detected and 0 were fixed.
+In total, 2 issues are still open.
 
 Some of the still happening issues:
 
