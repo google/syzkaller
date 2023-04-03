@@ -1864,9 +1864,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	input = Subsystem{
-		Name:    "input",
-		Lists:   []string{"linux-input@vger.kernel.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:     "input",
+		Syscalls: []string{"syz_usb_connect$hid"},
+		Lists:    []string{"linux-input@vger.kernel.org"},
+		Parents:  []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/hid/amd-sfh-hid/"},
 			{IncludeRegexp: "^drivers/hid/hid-creative-sb0540\\.c$"},
