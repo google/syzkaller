@@ -1,0 +1,175 @@
+FILE: net/netfilter/x_tables.c
+
+
+rcu: INFO: rcu_preempt self-detected stall on CPU
+rcu: 	0-...!: (1 GPs behind) idle=4e3c/1/0x4000000000000000 softirq=104586/104587 fqs=0
+rcu: 	(t=10500 jiffies g=177421 q=68 ncpus=2)
+rcu: rcu_preempt kthread timer wakeup didn't happen for 10499 jiffies! g177421 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x402
+rcu: 	Possible timer handling issue on cpu=1 timer-softirq=90406
+rcu: rcu_preempt kthread starved for 10500 jiffies! g177421 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x402 ->cpu=1
+rcu: 	Unless rcu_preempt kthread gets sufficient CPU time, OOM is now expected behavior.
+rcu: RCU grace-period kthread stack dump:
+task:rcu_preempt     state:I stack:27576 pid:16    ppid:2      flags:0x00004000
+Call Trace:
+ <TASK>
+ context_switch kernel/sched/core.c:5304 [inline]
+ __schedule+0xc91/0x5770 kernel/sched/core.c:6622
+ schedule+0xde/0x1a0 kernel/sched/core.c:6698
+ schedule_timeout+0x14e/0x2b0 kernel/time/timer.c:2167
+ rcu_gp_fqs_loop+0x190/0x910 kernel/rcu/tree.c:1608
+ rcu_gp_kthread+0x23a/0x360 kernel/rcu/tree.c:1807
+ kthread+0x2e8/0x3a0 kernel/kthread.c:376
+ ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:308
+ </TASK>
+rcu: Stack dump where RCU GP kthread last ran:
+Sending NMI from CPU 0 to CPUs 1:
+NMI backtrace for cpu 1
+CPU: 1 PID: 4166 Comm: syz-executor.5 Not tainted 6.3.0-rc3-syzkaller-00826-g163c2c705917 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 03/17/2023
+RIP: 0010:kvm_wait+0xa8/0x110 arch/x86/kernel/kvm.c:1064
+Code: fa 83 e2 07 38 d0 7f 04 84 c0 75 66 0f b6 07 40 38 c6 74 1b 48 83 c4 10 c3 c3 e8 b3 5a 51 00 66 90 0f 00 2d aa 6f 11 09 fb f4 <48> 83 c4 10 c3 66 90 0f 00 2d 9a 6f 11 09 f4 48 83 c4 10 c3 89 74
+RSP: 0018:ffffc90005bb6a88 EFLAGS: 00000242
+RAX: 000000000000b1a4 RBX: 0000000000000000 RCX: 1ffffffff22a5e2e
+RDX: 0000000000000000 RSI: 0000000000000201 RDI: 0000000000000000
+RBP: ffff8880490d4008 R08: 0000000000000001 R09: ffffffff914e3c4f
+R10: 0000000000000001 R11: 0000000000000000 R12: 0000000000000000
+R13: ffffed100921a801 R14: 0000000000000001 R15: ffff8880b993d100
+FS:  00007ff2e557b700(0000) GS:ffff8880b9900000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000555556d24848 CR3: 00000000230da000 CR4: 00000000003506e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <TASK>
+ pv_wait arch/x86/include/asm/paravirt.h:605 [inline]
+ pv_wait_head_or_lock kernel/locking/qspinlock_paravirt.h:470 [inline]
+ __pv_queued_spin_lock_slowpath+0x8cb/0xb50 kernel/locking/qspinlock.c:511
+ pv_queued_spin_lock_slowpath arch/x86/include/asm/paravirt.h:593 [inline]
+ queued_spin_lock_slowpath arch/x86/include/asm/qspinlock.h:51 [inline]
+ queued_spin_lock include/asm-generic/qspinlock.h:114 [inline]
+ do_raw_spin_lock+0x204/0x2b0 kernel/locking/spinlock_debug.c:115
+ spin_lock_bh include/linux/spinlock.h:355 [inline]
+ nf_conntrack_sctp_packet+0x744/0x2710 net/netfilter/nf_conntrack_proto_sctp.c:386
+ nf_conntrack_handle_packet net/netfilter/nf_conntrack_core.c:1948 [inline]
+ nf_conntrack_in+0xb77/0x17d0 net/netfilter/nf_conntrack_core.c:2020
+ nf_hook_entry_hookfn include/linux/netfilter.h:142 [inline]
+ nf_hook_slow+0xc9/0x1f0 net/netfilter/core.c:614
+ nf_hook+0x431/0x730 include/linux/netfilter.h:257
+ NF_HOOK include/linux/netfilter.h:300 [inline]
+ ip6_xmit+0xdcb/0x1c60 net/ipv6/ip6_output.c:343
+ sctp_v6_xmit+0xccc/0x1170 net/sctp/ipv6.c:250
+ sctp_packet_transmit+0x231c/0x3100 net/sctp/output.c:653
+ sctp_outq_flush_transports+0x3fa/0x810 net/sctp/outqueue.c:1173
+ sctp_outq_flush net/sctp/outqueue.c:1221 [inline]
+ sctp_outq_uncork+0x189/0x200 net/sctp/outqueue.c:764
+ sctp_cmd_interpreter net/sctp/sm_sideeffect.c:1708 [inline]
+ sctp_side_effects net/sctp/sm_sideeffect.c:1199 [inline]
+ sctp_do_sm+0xb9e/0x5310 net/sctp/sm_sideeffect.c:1170
+ sctp_assoc_bh_rcv+0x38a/0x6c0 net/sctp/associola.c:1051
+ sctp_inq_push+0x1d6/0x270 net/sctp/inqueue.c:80
+ sctp_backlog_rcv+0x19a/0x5b0 net/sctp/input.c:331
+ sk_backlog_rcv include/net/sock.h:1113 [inline]
+ __release_sock+0x133/0x3b0 net/core/sock.c:2922
+ release_sock+0x58/0x1b0 net/core/sock.c:3489
+ sctp_sendmsg+0x8f7/0x1d90 net/sctp/socket.c:2031
+ inet_sendmsg+0x9d/0xe0 net/ipv4/af_inet.c:825
+ sock_sendmsg_nosec net/socket.c:724 [inline]
+ sock_sendmsg+0xde/0x190 net/socket.c:747
+ __sys_sendto+0x23a/0x340 net/socket.c:2142
+ __do_sys_sendto net/socket.c:2154 [inline]
+ __se_sys_sendto net/socket.c:2150 [inline]
+ __x64_sys_sendto+0xe1/0x1b0 net/socket.c:2150
+ do_syscall_x64 arch/x86/entry/common.c:50 [inline]
+ do_syscall_64+0x39/0xb0 arch/x86/entry/common.c:80
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7ff2e488c0f9
+Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 19 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ff2e557b168 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+RAX: ffffffffffffffda RBX: 00007ff2e49ac050 RCX: 00007ff2e488c0f9
+RDX: 0000000000034000 RSI: 0000000020847fff RDI: 0000000000000003
+RBP: 00007ff2e48e7b39 R08: 000000002005ffe4 R09: 000000000000001c
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007ffd530f1a4f R14: 00007ff2e557b300 R15: 0000000000022000
+ </TASK>
+CPU: 0 PID: 5128 Comm: syz-executor.3 Not tainted 6.3.0-rc3-syzkaller-00826-g163c2c705917 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 03/17/2023
+RIP: 0010:nf_conntrack_sctp_packet+0x924/0x2710 net/netfilter/nf_conntrack_proto_sctp.c:487
+Code: 06 38 f9 4c 89 e8 48 c1 e8 03 0f b6 04 18 84 c0 74 08 3c 03 0f 8e 7d 19 00 00 4c 8b 34 24 89 ee 44 89 e7 41 89 ae f8 00 00 00 <e8> 17 02 38 f9 41 39 ec 0f 84 4b 01 00 00 e8 39 06 38 f9 4d 8d b6
+RSP: 0018:ffffc90000007748 EFLAGS: 00000246
+RAX: 0000000000000000 RBX: dffffc0000000000 RCX: 0000000000000100
+RDX: ffff88802643d7c0 RSI: 0000000000000001 RDI: 0000000000000001
+RBP: 0000000000000001 R08: 0000000000000001 R09: 0000000000000001
+R10: 00000000000000ff R11: 0000000000000001 R12: 0000000000000001
+R13: ffff8880490d40f8 R14: ffff8880490d4000 R15: ffffc90000007800
+FS:  00005555569b4400(0000) GS:ffff8880b9800000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f310dd842d8 CR3: 000000004c914000 CR4: 00000000003506f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ <IRQ>
+ nf_conntrack_handle_packet net/netfilter/nf_conntrack_core.c:1948 [inline]
+ nf_conntrack_in+0xb77/0x17d0 net/netfilter/nf_conntrack_core.c:2020
+ nf_hook_entry_hookfn include/linux/netfilter.h:142 [inline]
+ nf_hook_slow+0xc9/0x1f0 net/netfilter/core.c:614
+ nf_hook.constprop.0+0x408/0x710 include/linux/netfilter.h:257
+ NF_HOOK include/linux/netfilter.h:300 [inline]
+ ipv6_rcv+0xa2/0x380 net/ipv6/ip6_input.c:309
+ __netif_receive_skb_one_core+0x114/0x180 net/core/dev.c:5479
+ __netif_receive_skb+0x1f/0x1c0 net/core/dev.c:5593
+ process_backlog+0x239/0x800 net/core/dev.c:5921
+ __napi_poll+0xb7/0x6f0 net/core/dev.c:6482
+ napi_poll net/core/dev.c:6549 [inline]
+ net_rx_action+0x9c2/0xd80 net/core/dev.c:6659
+ __do_softirq+0x1d4/0x905 kernel/softirq.c:571
+ invoke_softirq kernel/softirq.c:445 [inline]
+ __irq_exit_rcu+0x114/0x190 kernel/softirq.c:650
+ irq_exit_rcu+0x9/0x20 kernel/softirq.c:662
+ sysvec_apic_timer_interrupt+0x97/0xc0 arch/x86/kernel/apic/apic.c:1107
+ </IRQ>
+ <TASK>
+ asm_sysvec_apic_timer_interrupt+0x1a/0x20 arch/x86/include/asm/idtentry.h:645
+RIP: 0010:unwind_next_frame+0x4cb/0x1ef0 arch/x86/kernel/unwind_orc.c:490
+Code: 40 38 f2 7f 08 84 d2 0f 85 83 13 00 00 41 88 45 35 45 0f b6 70 04 41 83 e6 0f 41 80 fe 06 0f 84 11 0b 00 00 0f 87 1a 03 00 00 <41> 80 fe 04 0f 84 c1 0c 00 00 41 80 fe 05 0f 85 b9 01 00 00 48 b8
+RSP: 0018:ffffc9000443f5b8 EFLAGS: 00000293
+RAX: 0000000000000000 RBX: 0000000000000001 RCX: ffffffff8f8bb1eb
+RDX: 0000000000000000 RSI: 0000000000000005 RDI: ffffffff8ee569c4
+RBP: ffffc9000443f670 R08: ffffffff8f8bb1e6 R09: ffffc9000443f65c
+R10: 0000000000000001 R11: 0000000000094001 R12: ffffc9000443f678
+R13: ffffc9000443f628 R14: 0000000000000004 R15: ffffffff8f8bb1ea
+ arch_stack_walk+0x81/0xf0 arch/x86/kernel/stacktrace.c:25
+ stack_trace_save+0x90/0xc0 kernel/stacktrace.c:122
+ kasan_save_stack+0x22/0x40 mm/kasan/common.c:45
+ kasan_set_track+0x25/0x30 mm/kasan/common.c:52
+ ____kasan_kmalloc mm/kasan/common.c:374 [inline]
+ ____kasan_kmalloc mm/kasan/common.c:333 [inline]
+ __kasan_kmalloc+0xa2/0xb0 mm/kasan/common.c:383
+ kasan_kmalloc include/linux/kasan.h:196 [inline]
+ __do_kmalloc_node mm/slab_common.c:967 [inline]
+ __kmalloc_node+0x61/0x1a0 mm/slab_common.c:974
+ kmalloc_node include/linux/slab.h:610 [inline]
+ kvmalloc_node+0xa2/0x1a0 mm/util.c:603
+ xt_jumpstack_alloc net/netfilter/x_tables.c:1354 [inline]
+ xt_replace_table+0x4fd/0x950 net/netfilter/x_tables.c:1393
+ __do_replace+0x1c3/0x9b0 net/ipv4/netfilter/arp_tables.c:912
+ do_replace net/ipv6/netfilter/ip6_tables.c:1154 [inline]
+ do_ip6t_set_ctl+0x8a9/0xb30 net/ipv6/netfilter/ip6_tables.c:1636
+ nf_setsockopt+0x87/0xe0 net/netfilter/nf_sockopt.c:101
+ ipv6_setsockopt+0x12b/0x190 net/ipv6/ipv6_sockglue.c:1016
+ tcp_setsockopt+0x9f/0x100 net/ipv4/tcp.c:3805
+ __sys_setsockopt+0x2c6/0x5b0 net/socket.c:2271
+ __do_sys_setsockopt net/socket.c:2282 [inline]
+ __se_sys_setsockopt net/socket.c:2279 [inline]
+ __x64_sys_setsockopt+0xbe/0x160 net/socket.c:2279
+ do_syscall_x64 arch/x86/entry/common.c:50 [inline]
+ do_syscall_64+0x39/0xb0 arch/x86/entry/common.c:80
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7f310dc8d74a
+Code: 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 49 89 ca b8 36 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fff58d27c58 EFLAGS: 00000202 ORIG_RAX: 0000000000000036
+RAX: ffffffffffffffda RBX: 0000000000000029 RCX: 00007f310dc8d74a
+RDX: 0000000000000040 RSI: 0000000000000029 RDI: 0000000000000003
+RBP: 00007fff58d27c80 R08: 0000000000000558 R09: feff646b666d606c
+R10: 00007f310dd84940 R11: 0000000000000202 R12: 00007fff58d27ce0
+R13: 0000000000000003 R14: 00007fff58d27c7c R15: 00007f310dd848e0
+ </TASK>
