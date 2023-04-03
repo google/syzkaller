@@ -723,10 +723,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		},
 	}
 	for _, entry := range bug.Tags.Subsystems {
-		data.Subsystems = append(data.Subsystems, &uiBugSubsystem{
-			Name: entry.Name,
-			Link: fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Name),
-		})
+		data.Subsystems = append(data.Subsystems, makeBugSubsystemUI(c, bug, entry))
 	}
 	// bug.BisectFix is set to BisectNot in two cases :
 	// - no fix bisections have been performed on the bug
@@ -750,6 +747,21 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func makeBugSubsystemUI(c context.Context, bug *Bug, entry BugSubsystem) *uiBugSubsystem {
+	url := getCurrentURL(c)
+	// By default let's point to the subsystem's page.
+	link := fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Name)
+	if strings.HasPrefix(url, "/"+bug.Namespace) &&
+		!strings.Contains(url, "/s/") {
+		// If we're on a main or terminal page, let's amend the bug filter instead.
+		link = html.AmendURL(url, "subsystem", entry.Name)
+	}
+	return &uiBugSubsystem{
+		Name: entry.Name,
+		Link: link,
+	}
 }
 
 func handleBugStats(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -1376,10 +1388,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		LastActivity:   bug.LastActivity,
 	}
 	for _, entry := range bug.Tags.Subsystems {
-		uiBug.Subsystems = append(uiBug.Subsystems, &uiBugSubsystem{
-			Name: entry.Name,
-			Link: html.AmendURL(getCurrentURL(c), "subsystem", entry.Name),
-		})
+		uiBug.Subsystems = append(uiBug.Subsystems, makeBugSubsystemUI(c, bug, entry))
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
