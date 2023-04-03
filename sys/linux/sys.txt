@@ -44,6 +44,7 @@ include <linux/kcmp.h>
 include <linux/nfs.h>
 include <linux/syslog.h>
 include <linux/exportfs.h>
+include <linux/splice.h>
 include <fs/overlayfs/overlayfs.h>
 include <uapi/linux/memfd.h>
 include <uapi/linux/module.h>
