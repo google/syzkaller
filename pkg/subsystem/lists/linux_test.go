@@ -76,7 +76,26 @@ symlinkat(&(0x7f00000004c0)='./file0aaaaaaaaaa/file0\x00', 0xffffffffffffff9c, &
 `),
 				},
 			},
+			// There should be no mm in the subsystems.
 			expect: []string{"ntfs3"},
+		},
+		{
+			name: "dri bug with usb call",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `drivers/gpu/drm/udl/udl_drv.c`,
+				},
+				{
+					GuiltyPath: `drivers/gpu/drm/udl/udl_drv.c`,
+					SyzRepro: []byte(`
+# https://syzkaller.appspot.com/bug?id=56e9aec9bc3b5378c9b231a3f4b3329cf9f80990
+# See https://goo.gl/kgGztJ for information about syzkaller reproducers.
+#{"procs":1,"slowdown":1,"sandbox":"none","sandbox_arg":0,"tun":true,"netdev":true,"close_fds":true}
+syz_usb_connect(0x0, 0x24, &(0x7f0000000140)=ANY=[@ANYBLOB="12010000abbe6740e9174e8b089c000000010902120001000000000904000800ff"], 0x0)
+`),
+				},
+			},
+			expect: []string{"dri"},
 		},
 	}
 	for _, test := range tests {
