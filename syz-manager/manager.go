@@ -1309,6 +1309,9 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 		if err != nil {
 			log.Fatalf("failed to create coverage filter: %v", err)
 		}
+		if len(modules) > 0 && mgr.coverFilterBitmap != nil {
+			log.Fatalf("coverage filtering is not supported with modules")
+		}
 		mgr.modulesInitialized = true
 	}
 	return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
