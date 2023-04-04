@@ -56,10 +56,13 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	// It can be the case that guilty paths point to several subsystems, but the reproducer
 	// can clearly point to one of them.
 	if len(fromRepro) > 0 {
+		// If we do not exclude parents, there'll always be a root subsystem in there
+		// and, as a result, subsystems reproducers will always replace all other ones.
+		withoutParents := removeParents(subsystems)
 		newSubsystems := []*Subsystem{}
 		for _, reproSubsystem := range fromRepro {
 			parents := reproSubsystem.ReachableParents()
-			for _, subsystem := range subsystems {
+			for _, subsystem := range withoutParents {
 				if _, ok := parents[subsystem]; ok {
 					newSubsystems = append(newSubsystems, reproSubsystem)
 					break
@@ -71,21 +74,10 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 		}
 	}
 
-	// If there are both parents and children, remove parents.
-	ignore := make(map[*Subsystem]struct{})
-	for _, entry := range subsystems {
-		for p := range entry.ReachableParents() {
-			ignore[p] = struct{}{}
-		}
-	}
-
 	// And calculate counts.
 	counts := make(map[*Subsystem]int)
 	maxCount := 0
-	for _, entry := range subsystems {
-		if _, ok := ignore[entry]; ok {
-			continue
-		}
+	for _, entry := range removeParents(append(subsystems, fromRepro...)) {
 		counts[entry]++
 		if counts[entry] > maxCount {
 			maxCount = counts[entry]
@@ -96,6 +88,24 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	ret := []*Subsystem{}
 	for entry, count := range counts {
 		if count < maxCount {
+			continue
+		}
+		ret = append(ret, entry)
+	}
+	return ret
+}
+
+func removeParents(subsystems []*Subsystem) []*Subsystem {
+	// If there are both parents and children, remove parents.
+	ignore := make(map[*Subsystem]struct{})
+	for _, entry := range subsystems {
+		for p := range entry.ReachableParents() {
+			ignore[p] = struct{}{}
+		}
+	}
+	var ret []*Subsystem
+	for _, entry := range subsystems {
+		if _, ok := ignore[entry]; ok {
 			continue
 		}
 		ret = append(ret, entry)
