@@ -113,8 +113,8 @@ func updateBugSubsystems(c context.Context, bugKey *db.Key,
 		}
 		switch v := info.(type) {
 		case autoInference:
-			bug.SetAutoSubsystems(list, now, int(v))
 			logSubsystemChange(c, bug, list)
+			bug.SetAutoSubsystems(list, now, int(v))
 		case userAssignment:
 			bug.SetUserSubsystems(list, now, string(v))
 		case updateRevision:
