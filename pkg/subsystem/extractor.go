@@ -3,6 +3,8 @@
 
 package subsystem
 
+import "math"
+
 // Extractor deduces the subsystems from the list of crashes.
 type Extractor struct {
 	raw rawExtractorInterface
@@ -37,6 +39,11 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 			reproCount++
 		}
 	}
+	subsystems = removeParents(subsystems)
+	counts := make(map[*Subsystem]int)
+	for _, entry := range subsystems {
+		counts[entry]++
+	}
 
 	// If all reproducers hint at the same subsystem, take it as well.
 	reproCounts := map[*Subsystem]int{}
@@ -54,15 +61,14 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	}
 	// It can be the case that guilty paths point to several subsystems, but the reproducer
 	// can clearly point to one of them.
+	// Let's consider it to be the strongest singal.
 	if len(fromRepro) > 0 {
-		// If we do not exclude parents, there'll always be a root subsystem in there
-		// and, as a result, subsystems reproducers will always replace all other ones.
-		withoutParents := removeParents(subsystems)
+		fromRepro = removeParents(fromRepro)
 		newSubsystems := []*Subsystem{}
 		for _, reproSubsystem := range fromRepro {
 			parents := reproSubsystem.ReachableParents()
 			parents[reproSubsystem] = struct{}{} // also include the subsystem itself
-			for _, subsystem := range withoutParents {
+			for _, subsystem := range subsystems {
 				if _, ok := parents[subsystem]; ok {
 					newSubsystems = append(newSubsystems, reproSubsystem)
 					break
@@ -70,24 +76,38 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 			}
 		}
 		if len(newSubsystems) > 0 {
-			subsystems = newSubsystems
+			// Just pick those subsystems.
+			return newSubsystems
+		}
+
+		// If there are sufficiently many reproducers that point to subsystems other than
+		// those from guilty paths, there's a chance we just didn't parse report correctly.
+		const cutOff = 3
+		if reproCount >= cutOff {
+			// But if the guilty paths are non-controversial, also take the leading candidate.
+			return append(fromRepro, mostVoted(counts, 0.66)...)
 		}
 	}
 
-	// And calculate counts.
-	counts := make(map[*Subsystem]int)
-	maxCount := 0
-	for _, entry := range removeParents(append(subsystems, fromRepro...)) {
-		counts[entry]++
-		if counts[entry] > maxCount {
-			maxCount = counts[entry]
-		}
+	// Take subsystems from reproducers into account.
+	for _, entry := range fromRepro {
+		counts[entry] += reproCount
 	}
 
-	// Pick the most prevalent ones.
+	// Let's pick all subsystems that received >= 33% of votes (thus no more than 3).
+	return removeParents(mostVoted(counts, 0.33))
+}
+
+// mostVoted picks subsystems that have received >= share votes.
+func mostVoted(counts map[*Subsystem]int, share float64) []*Subsystem {
+	total := 0
+	for _, count := range counts {
+		total += count
+	}
+	cutOff := int(math.Ceil(share * float64(total)))
 	ret := []*Subsystem{}
 	for entry, count := range counts {
-		if count < maxCount {
+		if count < cutOff {
 			continue
 		}
 		ret = append(ret, entry)
