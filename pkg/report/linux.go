@@ -67,6 +67,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		regexp.MustCompile(`^kernel/kcov.c`),
 		regexp.MustCompile(`^mm/sl.b.c`),
 		regexp.MustCompile(`^mm/filemap.c`),
+		regexp.MustCompile(`^mm/folio-compat.c`),
 		regexp.MustCompile(`^mm/truncate.c`),
 		regexp.MustCompile(`^mm/memory.c`),
 		regexp.MustCompile(`^mm/percpu.*`),
@@ -1236,6 +1237,7 @@ var linuxStackParams = &stackParams{
 		"print_hex_dump",
 		"^klist_",
 		"(trace|lockdep)_(hard|soft)irq",
+		"^(un)?lock_page",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
