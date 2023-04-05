@@ -52,7 +52,6 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 			}
 		}
 	}
-
 	// It can be the case that guilty paths point to several subsystems, but the reproducer
 	// can clearly point to one of them.
 	if len(fromRepro) > 0 {
@@ -62,6 +61,7 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 		newSubsystems := []*Subsystem{}
 		for _, reproSubsystem := range fromRepro {
 			parents := reproSubsystem.ReachableParents()
+			parents[reproSubsystem] = struct{}{} // also include the subsystem itself
 			for _, subsystem := range withoutParents {
 				if _, ok := parents[subsystem]; ok {
 					newSubsystems = append(newSubsystems, reproSubsystem)
