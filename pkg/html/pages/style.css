@@ -330,3 +330,15 @@ aside {
 .input-group button {
 	width: 20pt;
 }
+
+.bug-bisection-info {
+	float:left;
+	margin-right: 15px;
+	margin-bottom: 5px;
+	padding: 5px;
+}
+
+.bug-bisection-stop {
+	clear: both;
+	margin-bottom: 10px;
+}
