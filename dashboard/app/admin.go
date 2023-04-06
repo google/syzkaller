@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
+	aemail "google.golang.org/appengine/v2/mail"
 )
 
 // dropNamespace drops all entities related to a single namespace.
@@ -286,6 +287,19 @@ func setMissingBugFields(c context.Context, w http.ResponseWriter, r *http.Reque
 	return updateBugBatch(c, keys, func(bug *Bug) {})
 }
 
+// adminSendEmail can be used to send an arbitrary message from the bot.
+func adminSendEmail(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	msg := &aemail.Message{
+		Sender: r.FormValue("from"),
+		To:     []string{r.FormValue("to")},
+		Body:   r.FormValue("body"),
+	}
+	return sendEmail(c, msg)
+}
+
 func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug)) error {
 	for len(keys) != 0 {
 		batchSize := 20
@@ -321,4 +335,5 @@ var (
 	_ = updateBugTitles
 	_ = restartFailedBisections
 	_ = setMissingBugFields
+	_ = adminSendEmail
 )
