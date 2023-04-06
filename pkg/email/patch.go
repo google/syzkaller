@@ -39,14 +39,15 @@ func ParsePatch(message []byte) (diff string) {
 	return
 }
 
+var diffRegexps = []*regexp.Regexp{
+	regexp.MustCompile(`^(---|\+\+\+) [^\s]`),
+	regexp.MustCompile(`^diff --git`),
+	regexp.MustCompile(`^index [0-9a-f]+\.\.[0-9a-f]+`),
+	regexp.MustCompile(`^new file mode [0-9]+`),
+	regexp.MustCompile(`^Index: [^\s]`),
+}
+
 func lineMatchesDiffStart(ln string) bool {
-	diffRegexps := []*regexp.Regexp{
-		regexp.MustCompile(`^(---|\+\+\+) [^\s]`),
-		regexp.MustCompile(`^diff --git`),
-		regexp.MustCompile(`^index [0-9a-f]+\.\.[0-9a-f]+`),
-		regexp.MustCompile(`^new file mode [0-9]+`),
-		regexp.MustCompile(`^Index: [^\s]`),
-	}
 	for _, re := range diffRegexps {
 		if re.MatchString(ln) {
 			return true
