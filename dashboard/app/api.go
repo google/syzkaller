@@ -1586,11 +1586,16 @@ func apiSaveDiscussion(c context.Context, r *http.Request, payload []byte) (inte
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	d := req.Discussion
+	newBugIDs := []string{}
 	for _, id := range d.BugIDs {
 		_, _, err := findBugByReportingID(c, id)
-		if err != nil {
-			return nil, fmt.Errorf("did not find the bug %s: %v", id, err)
+		if err == nil {
+			newBugIDs = append(newBugIDs, id)
 		}
+	}
+	d.BugIDs = newBugIDs
+	if len(d.BugIDs) == 0 {
+		return nil, nil
 	}
 	return nil, mergeDiscussion(c, d)
 }
