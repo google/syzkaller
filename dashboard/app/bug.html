@@ -33,8 +33,11 @@ Page with details about a single bug.
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
 
-	{{template "bisect_results" .BisectCause}}
-	{{template "bisect_results" .BisectFix}}
+	<div>
+		{{if .BisectCause}}<div class="bug-bisection-info">{{template "bisect_results" .BisectCause}}</div>{{end}}
+		{{if .BisectFix}}<div class="bug-bisection-info">{{template "bisect_results" .BisectFix}}</div>{{end}}
+		<div class="bug-bisection-stop"></div>
+	</div>
 
 	{{template "discussions_list" .Discussions}}
 	{{template "bug_list" .DupOf}}
