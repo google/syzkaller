@@ -545,6 +545,7 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 }
 
 func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.DiscussionSource) error {
+	log.Debugf(c, "processDiscussionEmail: %#v, source %v", msg, source)
 	if len(msg.BugIDs) == 0 {
 		return nil
 	}
