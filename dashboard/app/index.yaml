@@ -197,6 +197,11 @@ indexes:
   - name: Time
     direction: desc
 
+- kind: Discussion
+  properties:
+  - name: Source
+  - name: Messages.ID
+
 - kind: Job
   properties:
   - name: Finished
