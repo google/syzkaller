@@ -39,19 +39,25 @@ Page with details about a single bug.
 		<div class="bug-bisection-stop"></div>
 	</div>
 
-	{{template "discussions_list" .Discussions}}
-	{{template "bug_list" .DupOf}}
-	{{template "bug_list" .Dups}}
-	{{template "bug_list" .Similar}}
-	{{template "job_list" .TestPatchJobs}}
+	{{range $item := .Sections}}
+	<div class="collapsible {{if $item.Show}}collapsible-show{{else}}collapsible-hide{{end}}">
+		<div class="head">
+			<span class="show-icon">&#9654;</span>
+			<span class="hide-icon">&#9650;</span>
+			<span>{{$item.Title}}</span>
+		</div>
+		<div class="content">
+			{{if eq $item.Type "bug_list"}}{{template "bug_list" $item.Value}}{{end}}
+			{{if eq $item.Type "job_list"}}{{template "job_list" $item.Value}}{{end}}
+			{{if eq $item.Type "crash_list"}}{{template "crash_list" $item.Value}}{{end}}
+			{{if eq $item.Type "discussion_list"}}{{template "discussion_list" $item.Value}}{{end}}
+                </div>
+	</div>
+	{{end}}
 
 	{{if .SampleReport}}
 	<br><b>Sample crash report:</b><br>
 	<div id="crash_div"><pre>{{.SampleReport}}</pre></div><br>
-	{{end}}
-
-	{{if .FixBisections}}
-		{{template "crash_list" .FixBisections}}
 	{{end}}
 
 	{{template "crash_list" .Crashes}}

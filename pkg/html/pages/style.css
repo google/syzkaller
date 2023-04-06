@@ -342,3 +342,32 @@ aside {
 	clear: both;
 	margin-bottom: 10px;
 }
+
+.collapsible {
+	border: 1px solid lightgrey;
+	margin-bottom: 15px;
+}
+
+.collapsible .content {
+	overflow-x: auto;
+}
+
+.collapsible .head {
+	max-width: 100%;
+	background-color: lightgrey;
+	padding: 5pt;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+.collapsible-hide .content {
+	display: none;
+}
+
+.collapsible-hide .hide-icon {
+	display: none;
+}
+
+.collapsible-show .show-icon {
+	display: none;
+}
