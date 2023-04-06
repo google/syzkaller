@@ -242,15 +242,25 @@ type uiBugPage struct {
 	Bug           *uiBug
 	BisectCause   *uiJob
 	BisectFix     *uiJob
-	DupOf         *uiBugGroup
-	Dups          *uiBugGroup
-	Similar       *uiBugGroup
+	Sections      []*uiCollapsible
 	SampleReport  template.HTML
 	Crashes       *uiCrashTable
-	FixBisections *uiCrashTable
 	TestPatchJobs *uiJobList
 	Subsystems    []*uiBugSubsystem
-	Discussions   []*uiBugDiscussion
+}
+
+const (
+	sectionBugList        = "bug_list"
+	sectionJobList        = "job_list"
+	sectionCrashList      = "crash_list"
+	sectionDiscussionList = "discussion_list"
+)
+
+type uiCollapsible struct {
+	Title string
+	Show  bool   // By default it's collapsed.
+	Type  string // Template system understands it.
+	Value interface{}
 }
 
 type uiBugGroup struct {
@@ -644,6 +654,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
+// nolint: funlen, gocyclo
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
@@ -665,18 +676,22 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	var dupOf *uiBugGroup
+	sections := []*uiCollapsible{}
 	if bug.DupOf != "" {
 		dup := new(Bug)
 		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
 			return err
 		}
 		if accessLevel >= dup.sanitizeAccess(accessLevel) {
-			dupOf = &uiBugGroup{
-				Now:     timeNow(c),
-				Caption: "Duplicate of",
-				Bugs:    []*uiBug{createUIBug(c, dup, state, managers)},
-			}
+			sections = append(sections, &uiCollapsible{
+				Title: "Duplicate of",
+				Show:  true,
+				Type:  sectionBugList,
+				Value: &uiBugGroup{
+					Now:  timeNow(c),
+					Bugs: []*uiBug{createUIBug(c, dup, state, managers)},
+				},
+			})
 		}
 	}
 	uiBug := createUIBug(c, bug, state, managers)
@@ -692,10 +707,25 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	if len(dups.Bugs) > 0 {
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Duplicate bugs (%d)", len(dups.Bugs)),
+			Type:  sectionBugList,
+			Value: dups,
+		})
+	}
 	similar, err := loadSimilarBugsUI(c, r, bug, state)
 	if err != nil {
 		return err
 	}
+	if len(similar.Bugs) > 0 {
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
+			Type:  sectionBugList,
+			Value: similar,
+		})
+	}
+
 	var bisectCause *uiJob
 	if bug.BisectCause > BisectPending {
 		bisectCause, err = getUIJob(c, bug, JobBisectCause)
@@ -710,13 +740,31 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 	}
+	discussions, err := getBugDiscussionsUI(c, bug)
+	if err != nil {
+		return err
+	}
+	if len(discussions) > 0 {
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Discussions (%d)", len(discussions)),
+			Show:  true,
+			Type:  sectionDiscussionList,
+			Value: discussions,
+		})
+	}
 	testPatchJobs, err := loadTestPatchJobs(c, bug)
 	if err != nil {
 		return err
 	}
-	discussions, err := getBugDiscussionsUI(c, bug)
-	if err != nil {
-		return err
+	if len(testPatchJobs) > 0 {
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Last patch testing requests (%d)", len(testPatchJobs)),
+			Type:  sectionJobList,
+			Value: &uiJobList{
+				PerBug: true,
+				Jobs:   testPatchJobs,
+			},
+		})
 	}
 	data := &uiBugPage{
 		Header:       hdr,
@@ -724,17 +772,9 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Bug:          uiBug,
 		BisectCause:  bisectCause,
 		BisectFix:    bisectFix,
-		DupOf:        dupOf,
-		Dups:         dups,
-		Similar:      similar,
+		Sections:     sections,
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
-		TestPatchJobs: &uiJobList{
-			Title:  "Last patch testing requests:",
-			PerBug: true,
-			Jobs:   testPatchJobs,
-		},
-		Discussions: discussions,
 	}
 	for _, entry := range bug.Tags.Subsystems {
 		data.Subsystems = append(data.Subsystems, makeBugSubsystemUI(c, bug, entry))
@@ -748,10 +788,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 		if len(fixBisections) != 0 {
-			data.FixBisections = &uiCrashTable{
-				Crashes: fixBisections,
-				Caption: "Fix bisection attempts",
-			}
+			data.Sections = append(data.Sections, &uiCollapsible{
+				Title: fmt.Sprintf("Fix bisection attempts (%d)", len(fixBisections)),
+				Type:  sectionCrashList,
+				Value: &uiCrashTable{Crashes: fixBisections},
+			})
 		}
 	}
 
@@ -1331,7 +1372,6 @@ func loadSimilarBugsUI(c context.Context, r *http.Request, bug *Bug, state *Repo
 	}
 	group := &uiBugGroup{
 		Now:           timeNow(c),
-		Caption:       "similar bugs",
 		ShowNamespace: true,
 		ShowPatched:   true,
 		ShowStatus:    true,
