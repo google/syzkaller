@@ -68,6 +68,7 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 	}
 	// First update the discussion itself.
 	d := new(Discussion)
+	var diff DiscussionSummary
 	tx := func(c context.Context) error {
 		err := db.Get(c, discussionKey(c, string(update.Source), update.ID), d)
 		if err != nil && err != db.ErrNoSuchEntity {
@@ -79,7 +80,7 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 			d.Subject = update.Subject
 		}
 		d.BugKeys = unique(append(d.BugKeys, newBugKeys...))
-		diff := d.addMessages(update.Messages)
+		diff = d.addMessages(update.Messages)
 		if d.Type == string(dashapi.DiscussionPatch) {
 			diff.LastPatchMessage = diff.LastMessage
 		}
@@ -88,16 +89,24 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 		if err != nil {
 			return fmt.Errorf("failed to put Discussion: %w", err)
 		}
-		// Update individual bug statistics.
-		for _, key := range d.BugKeys {
-			err := mergeDiscussionSummary(c, key, d.Source, diff)
-			if err != nil {
-				return fmt.Errorf("failed to put update summary for %s: %w", key, err)
-			}
-		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 15, XG: true})
+	err = db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 15, XG: true})
+	if err != nil {
+		return err
+	}
+	// Update individual bug statistics.
+	// We have to do it outside of the main transaction, as we might hit the "operating on
+	// too many entity groups in a single transaction." error.
+	for _, key := range d.BugKeys {
+		err := db.RunInTransaction(c, func(c context.Context) error {
+			return mergeDiscussionSummary(c, key, d.Source, diff)
+		}, &db.TransactionOptions{Attempts: 15})
+		if err != nil {
+			return fmt.Errorf("failed to put update summary for %s: %w", key, err)
+		}
+	}
+	return nil
 }
 
 func mergeDiscussionSummary(c context.Context, key, source string, diff DiscussionSummary) error {
