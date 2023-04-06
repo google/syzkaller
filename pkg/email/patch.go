@@ -33,7 +33,14 @@ func ParsePatch(message []byte) (diff string) {
 			}
 		}
 	}
-	if err := s.Err(); err != nil {
+	err := s.Err()
+	if err == bufio.ErrTooLong {
+		// It's a problem of the incoming patch, rather than anything else.
+		// Anyway, if a patch contains too long lines, we're probably not
+		// interested in it, so let's pretent we didn't see it.
+		diff = ""
+		return
+	} else if err != nil {
 		panic("error while scanning from memory: " + err.Error())
 	}
 	return
