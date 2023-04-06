@@ -99,3 +99,17 @@ function addInputGroup(node) {
 	values.insertBefore(newGroup, lastGroup.nextSibling)
 	return false
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+	document.addEventListener('click', function(event) {
+		const collapsible = event.target.closest('.collapsible')
+		if (!collapsible) {
+			return
+		}
+		const toggle = event.target.closest('.collapsible .head');
+		if (toggle) {
+			collapsible.classList.toggle("collapsible-hide");
+			collapsible.classList.toggle("collapsible-show");
+		}
+	})
+})

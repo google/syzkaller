@@ -356,7 +356,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "crash_list"}}
 {{if .}}
 <table class="list_table">
-	<caption>{{.Caption}}:</caption>
+	{{if .Caption}}<caption>{{.Caption}}:</caption>{{end}}
 		<thead>
 		<tr>
 			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
@@ -506,10 +506,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{end}}
 
 {{/* List of discussions, invoked with []*uiBugDiscussion */}}
-{{define "discussions_list"}}
+{{define "discussion_list"}}
 {{if .}}
 <table class="list_table">
-	<caption id="managers">Discussions:</caption>
 	<thead>
 	<tr>
 		<th>Title</th>
