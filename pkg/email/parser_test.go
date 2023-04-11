@@ -406,6 +406,7 @@ last line`,
 			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
 			Subject:   "test subject",
 			Author:    "foo@bar.com",
+			OwnEmail:  true,
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 last line`,

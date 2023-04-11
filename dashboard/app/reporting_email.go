@@ -577,7 +577,7 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 		msgType:   dType,
 		bugIDs:    extIDs,
 		inReplyTo: msg.InReplyTo,
-		external:  ownEmail(c) != msg.Author,
+		external:  !msg.OwnEmail,
 		time:      msg.Date,
 	})
 	if err != nil {
