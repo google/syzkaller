@@ -45,10 +45,11 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commitInfo
 		}
 		sort.Strings(parents)
 		subsystem := &templateSubsystem{
-			VarName:   varName,
-			Name:      serializer.WriteString(entry.Name),
-			PathRules: serializer.WriteString(entry.PathRules),
-			Parents:   parents,
+			VarName:     varName,
+			Name:        serializer.WriteString(entry.Name),
+			PathRules:   serializer.WriteString(entry.PathRules),
+			Parents:     parents,
+			NoReminders: entry.NoReminders,
 		}
 		// Some of the records are mostly empty.
 		if len(entry.Maintainers) > 0 {
@@ -118,6 +119,7 @@ type templateSubsystem struct {
 	Lists       string
 	Maintainers string
 	Parents     []string
+	NoReminders bool
 }
 
 type templateVars struct {
@@ -167,6 +169,9 @@ var {{range $i, $item := .List}}
  Parents: []*Subsystem{ {{range .Parents}} &{{.}}, {{end}} },
 {{- end}}
  PathRules: {{.PathRules}},
+{{- if .NoReminders}}
+ NoReminders: true,
+{{- end}}
 }
 {{end}}
 
