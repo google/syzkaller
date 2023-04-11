@@ -720,6 +720,18 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: dups,
 		})
 	}
+	discussions, err := getBugDiscussionsUI(c, bug)
+	if err != nil {
+		return err
+	}
+	if len(discussions) > 0 {
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Discussions (%d)", len(discussions)),
+			Show:  true,
+			Type:  sectionDiscussionList,
+			Value: discussions,
+		})
+	}
 	similar, err := loadSimilarBugsUI(c, r, bug, state)
 	if err != nil {
 		return err
@@ -745,18 +757,6 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		if err != nil {
 			return err
 		}
-	}
-	discussions, err := getBugDiscussionsUI(c, bug)
-	if err != nil {
-		return err
-	}
-	if len(discussions) > 0 {
-		sections = append(sections, &uiCollapsible{
-			Title: fmt.Sprintf("Discussions (%d)", len(discussions)),
-			Show:  true,
-			Type:  sectionDiscussionList,
-			Value: discussions,
-		})
 	}
 	testPatchJobs, err := loadTestPatchJobs(c, bug)
 	if err != nil {
