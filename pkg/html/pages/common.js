@@ -6,8 +6,13 @@ function sortTable(item, colName, conv, desc = false) {
 	rows = table.rows;
 	col = findColumnByName(rows[0].getElementsByTagName("th"), colName);
 	values = [];
-	for (i = 1; i < rows.length; i++)
-		values.push([conv(rows[i].getElementsByTagName("td")[col].textContent), rows[i]]);
+	for (i = 1; i < rows.length; i++) {
+		const td = rows[i].getElementsByTagName("td")[col]
+		let value = td.textContent
+		if (td.getAttribute("sort-value") != null)
+			value = td.getAttribute("sort-value")
+		values.push([conv(value), rows[i]]);
+	}
 	if (desc)
 		desc = !isSorted(values.slice().reverse())
 	else
