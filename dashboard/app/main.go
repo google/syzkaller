@@ -739,6 +739,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if len(similar.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
+			Show:  config.Namespaces[hdr.Namespace].AccessLevel != AccessPublic,
 			Type:  sectionBugList,
 			Value: similar,
 		})
