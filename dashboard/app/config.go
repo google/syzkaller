@@ -108,6 +108,8 @@ type Config struct {
 	Kcidb *KcidbConfig
 	// Subsystems config.
 	Subsystems SubsystemsConfig
+	// Instead of Last acitivity, display Discussions on the main page.
+	DisplayDiscussions bool
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.

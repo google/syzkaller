@@ -139,6 +139,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{if $.DispLastAct}}
 		<th><a onclick="return sortTable(this, 'Last activity', timeSort, desc=true)" href="#">Last activity</a></th>
 		{{end}}
+		{{if $.DispDiscuss}}
+		<th><a onclick="return sortTable(this, 'Discussions', timeSort, desc=true)" href="#">Discussions</a></th>
+		{{end}}
 		{{if $.ShowPatched}}
 			<th><a onclick="return sortTable(this, 'Patched', patchedSort)" href="#">Patched</a></th>
 		{{end}}
@@ -174,7 +177,17 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				{{end}}
 			</td>
 			{{if $.DispLastAct}}
-			<td class="stat">{{formatLateness $.Now $b.LastActivity}}</td>
+				<td class="stat">{{formatLateness $.Now $b.LastActivity}}</td>
+			{{end}}
+			{{if $.DispDiscuss}}
+			{{$d := $b.Discussions}}
+			<td class="discussions" sort-value="{{formatLateness $.Now $d.LastMessage}}">
+			{{- if $d.LastPatchMessage.IsZero -}}
+				<span class="icon">&#128172;</span> {{$d.ExternalMessages}} [{{formatLateness $.Now $d.LastMessage}}]
+			{{else}}
+				<b>PATCH</b> [{{formatLateness $.Now $d.LastPatchMessage}}]
+			{{- end -}}
+			</td>
 			{{end}}
 			{{if $.ShowPatched}}
 				<td class="patched" {{if $b.Commits}}title="{{with $com := index $b.Commits 0}}{{$com.Title}}{{end}}"{{end}}>{{len $b.PatchedOn}}/{{$b.NumManagers}}</td>
