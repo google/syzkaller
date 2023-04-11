@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [GREBE: Unveiling Exploitation Potential for Linux Kernel Bugs](https://zplin.me/papers/GREBE.pdf)
 * [Precise Detection of Kernel Data Races with Probabilistic Lockset Analysis](https://www.cs.columbia.edu/~gabe/files/oakland2023_pla.pdf)
 * [Linux Kernel Enriched Corpus](https://github.com/cmu-pasta/linux-kernel-enriched-corpus) : [corpus.db](https://github.com/cmu-pasta/linux-kernel-enriched-corpus/raw/main/corpus.db)
 * [HotBPF - An On-demand and On-the-fly Memory Protection](https://www.youtube.com/watch?v=1KSLTsgxaSU)
