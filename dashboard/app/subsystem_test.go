@@ -572,3 +572,37 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 	c.expectNE(reply.Sender, secondReply.Sender)
 	c.expectTrue(strings.Contains(secondReply.Body, `7       Yes   WARNING: has repro 6`))
 }
+
+func TestSubsystemRemindersNoReport(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	cFirst := testCrash(build, 1)
+	cFirst.Title = `WARNING: c first`
+	cFirst.GuiltyFiles = []string{"c.c"}
+	client.ReportCrash(cFirst)
+	client.pollEmailBug()
+	c.advanceTime(time.Hour)
+
+	cSecond := testCrash(build, 1)
+	cSecond.Title = `WARNING: c second`
+	cSecond.GuiltyFiles = []string{"c.c"}
+	client.ReportCrash(cSecond)
+	client.pollEmailBug()
+	c.advanceTime(time.Hour)
+
+	// Report them again.
+	c.advanceTime(time.Hour * 24 * 14)
+	client.ReportCrash(cFirst)
+	client.ReportCrash(cSecond)
+
+	_, err := c.GET("/cron/subsystem_reports")
+	c.expectOK(err)
+
+	// Expect no reminders for subsystemC.
+	client.expectNoEmail()
+}

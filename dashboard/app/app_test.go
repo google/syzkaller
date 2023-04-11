@@ -524,6 +524,13 @@ var testSubsystems = []*subsystem.Subsystem{
 		Lists:       []string{"subsystemB@list.com"},
 		Maintainers: []string{"subsystemB@person.com"},
 	},
+	{
+		Name:        "subsystemC",
+		PathRules:   []subsystem.PathRule{{IncludeRegexp: `c\.c`}},
+		Lists:       []string{"subsystemC@list.com"},
+		Maintainers: []string{"subsystemC@person.com"},
+		NoReminders: true,
+	},
 }
 
 const (

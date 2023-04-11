@@ -48,6 +48,9 @@ func reportingPollBugLists(c context.Context, typ string) []*dashapi.BugListRepo
 			return rawSubsystems[i].Name < rawSubsystems[j].Name
 		})
 		for _, entry := range rawSubsystems {
+			if entry.NoReminders {
+				continue
+			}
 			for _, dbReport := range registry.get(ns, entry.Name) {
 				if stateEntry.Sent >= reporting.DailyLimit {
 					break
@@ -86,6 +89,9 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 		reporting := nsConfig.ReportingByName(rConfig.SourceReporting)
 		var subsystems []*Subsystem
 		for _, entry := range nsConfig.Subsystems.Service.List() {
+			if entry.NoReminders {
+				continue
+			}
 			subsystems = append(subsystems, registry.get(ns, entry.Name))
 		}
 		// Poll subsystems in a round-robin manner.
