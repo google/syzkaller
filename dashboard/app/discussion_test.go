@@ -323,3 +323,40 @@ Link: https://testapp.appspot.com/bug?extid=%v
 	client.expectEQ(got[0].Link, "https://lore.kernel.org/all/2345/T/")
 	client.expectEQ(got[0].Subject, "[PATCH v3] A lot of fixes")
 }
+
+func TestIgnoreBotReplies(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.publicClient
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	msg := client.pollEmailBug()
+	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
+	c.expectOK(err)
+
+	incoming1 := fmt.Sprintf(`Date: Tue, 15 Aug 2017 14:59:00 -0700
+Message-ID: <2345>
+Subject: Re: Patch testing request
+From: %v
+To: lore@email.com
+In-Reply-To: <1234>
+Content-Type: text/plain
+
+Hello!
+`, msg.Sender)
+	_, err = c.POST("/_ah/mail/lore@email.com", incoming1)
+	c.expectOK(err)
+
+	bug, _, err := findBugByReportingID(c.ctx, extBugID)
+	c.expectOK(err)
+
+	// We have not seen the start of the discussion, but it should not go ignored.
+	got, err := getBugDiscussionsUI(c.ctx, bug)
+	c.expectOK(err)
+	client.expectEQ(len(got), 0)
+}
