@@ -27,6 +27,7 @@ type Email struct {
 	Subject     string
 	MailingList string
 	Author      string
+	OwnEmail    bool
 	Cc          []string
 	Body        string  // text/plain part
 	Patch       string  // attached patch, if any
@@ -173,6 +174,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		Date:        date,
 		Link:        link,
 		Author:      author,
+		OwnEmail:    fromMe,
 		MailingList: mailingList,
 		Subject:     subject,
 		Cc:          ccList,

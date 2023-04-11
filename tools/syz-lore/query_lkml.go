@@ -52,7 +52,7 @@ func main() {
 		for _, m := range thread.Messages {
 			messages = append(messages, dashapi.DiscussionMessage{
 				ID:       m.MessageID,
-				External: !emailInList(emails, m.Author),
+				External: !m.OwnEmail,
 				Time:     m.Date,
 			})
 		}
@@ -150,13 +150,4 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 	}
 	log.Printf("%d threads are related to syzbot", len(ret))
 	return ret
-}
-
-func emailInList(list []string, email string) bool {
-	for _, str := range list {
-		if str == email {
-			return true
-		}
-	}
-	return false
 }
