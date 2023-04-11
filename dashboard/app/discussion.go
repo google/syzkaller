@@ -38,6 +38,10 @@ func saveDiscussionMessage(c context.Context, msg *newDiscussionMessage) error {
 		if err == nil {
 			discUpdate.ID = d.ID
 			discUpdate.Type = dashapi.DiscussionType(d.Type)
+		} else if !msg.external {
+			// Most likely it's a public bot's reply to a non-public
+			// patch testing request. Ignore it.
+			return nil
 		}
 		// If the original discussion is not in the DB, it means we
 		// were likely only mentioned in some further discussion.
