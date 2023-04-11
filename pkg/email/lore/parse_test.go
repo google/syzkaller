@@ -83,6 +83,28 @@ Content-Type: text/plain
 
 
 Patch`,
+		// An orphaned reply from a human.
+		`Date: Sun, 7 May 2017 19:57:00 -0700
+Subject: [syzbot] Some bug 2
+In-Reply-To: <Unknown>
+Message-ID: <Sub-Discussion>
+From: person@email.com
+Cc: syzbot <syzbot+4564456@bar.com>
+Content-Type: text/plain
+
+
+Bug report`,
+		// An orphaned reply from a bot.
+		`Date: Sun, 7 May 2017 19:57:00 -0700
+Subject: Re: [syzbot] Some bug 3
+In-Reply-To: <Unknown>
+Message-ID: <Sub-Discussion-Bot>
+From: syzbot+4564456@bar.com
+To: all@email.com
+Content-Type: text/plain
+
+
+Bug report`,
 	}
 
 	zone := time.FixedZone("", -7*60*60)
@@ -130,6 +152,7 @@ Patch`,
 					Subject:   "[syzbot] Some bug",
 					Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
 					Author:    "syzbot@bar.com",
+					OwnEmail:  true,
 					Command:   email.CmdNone,
 				},
 				{
@@ -139,6 +162,16 @@ Patch`,
 					Date:      time.Date(2017, time.May, 7, 19, 58, 0, 0, zone),
 					Author:    "c@user.com",
 					Cc:        []string{"c@user.com"},
+					InReplyTo: "<Bug>",
+					Command:   email.CmdNone,
+				},
+				{
+					MessageID: "<Bug-Reply2>",
+					BugIDs:    []string{"4564456"},
+					Subject:   "Re: [syzbot] Some bug",
+					Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
+					Author:    "d@user.com",
+					Cc:        []string{"d@user.com"},
 					InReplyTo: "<Bug>",
 					Command:   email.CmdNone,
 				},
@@ -160,6 +193,24 @@ Patch`,
 				},
 			},
 		},
+		"<Sub-Discussion>": {
+			Subject:   "[syzbot] Some bug 2",
+			MessageID: "<Sub-Discussion>",
+			BugIDs:    []string{"4564456"},
+			Messages: []*email.Email{
+				{
+					MessageID: "<Sub-Discussion>",
+					InReplyTo: "<Unknown>",
+					Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
+					BugIDs:    []string{"4564456"},
+					Cc:        []string{"person@email.com"},
+					Subject:   "[syzbot] Some bug 2",
+					Author:    "person@email.com",
+					Command:   email.CmdNone,
+				},
+			},
+		},
+		"<Sub-Discussion-Bot>": nil,
 	}
 
 	emails := []*email.Email{}
@@ -174,16 +225,22 @@ Patch`,
 	}
 
 	threads := Threads(emails)
+	got := map[string]*Thread{}
+
 	for _, d := range threads {
 		sort.Slice(d.Messages, func(i, j int) bool {
 			return d.Messages[i].Date.Before(d.Messages[j].Date)
 		})
-		if diff := cmp.Diff(expected[d.MessageID], d); diff != "" {
-			t.Fatalf("%s: %s", d.MessageID, diff)
+		got[d.MessageID] = d
+	}
+
+	for key, val := range expected {
+		if diff := cmp.Diff(val, got[key]); diff != "" {
+			t.Fatalf("%s: %s", key, diff)
 		}
 	}
 
-	if len(threads) != len(expected) {
+	if len(threads) > len(expected) {
 		t.Fatalf("Expected %d threads, got %d", len(expected), len(threads))
 	}
 }
