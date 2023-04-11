@@ -580,8 +580,9 @@ const (
 type DiscussionType string
 
 const (
-	DiscussionReport DiscussionType = "report"
-	DiscussionPatch  DiscussionType = "patch"
+	DiscussionReport   DiscussionType = "report"
+	DiscussionPatch    DiscussionType = "patch"
+	DiscussionReminder DiscussionType = "reminder"
 )
 
 type Discussion struct {
