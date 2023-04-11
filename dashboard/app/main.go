@@ -827,6 +827,8 @@ func makeBugSubsystemUI(c context.Context, bug *Bug, entry BugSubsystem) *uiBugS
 
 func getBugDiscussionsUI(c context.Context, bug *Bug) ([]*uiBugDiscussion, error) {
 	// TODO: also include dup bug discussions.
+	// TODO: limit the number of DiscussionReminder type entries, e.g. all with
+	// external replies + one latest.
 	var list []*uiBugDiscussion
 	discussions, err := discussionsForBug(c, bug.key(c))
 	if err != nil {
