@@ -32,7 +32,7 @@ _ = __NR_mmap2
 drm_msm_gem_new {
 	size	int64
 	flags	flags[msm_gem_new_flags, int32]
-	handle	drm_gem_handle
+	handle	drm_gem_handle	(out)
 }
 
 drm_msm_gem_info {
