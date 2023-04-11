@@ -910,4 +910,32 @@ Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `,
 		Command: CmdNone,
 	}},
+	{`Sender: syzkaller-bugs@googlegroups.com
+Subject: Some discussion
+To: <someone@foo.com>
+From: bar <bar@foo.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <000000000000f1a9d205f909f327@google.com>
+ <000000000000ee3a3005f909f30a@google.com>
+Precedence: bulk
+List-ID: <linux-kernel.vger.kernel.org>
+X-Mailing-List: linux-kernel@vger.kernel.org
+
+Some text
+`, Email{
+		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		// The first one should be picked up.
+		InReplyTo: "<000000000000f1a9d205f909f327@google.com>",
+		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Subject:   "Some discussion",
+		Author:    "bar@foo.com",
+		Cc:        []string{"bar@foo.com", "someone@foo.com"},
+		Body:      "Some text\n",
+		Command:   CmdNone,
+	}},
 }
