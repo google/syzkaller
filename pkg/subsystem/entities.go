@@ -10,6 +10,8 @@ type Subsystem struct {
 	Lists       []string
 	Maintainers []string
 	Parents     []*Subsystem
+	// If NoReminders is set to true, there should be no monthly reports for the subsystem.
+	NoReminders bool
 }
 
 // ReachableParents returns the set of subsystems reachable from the current one.

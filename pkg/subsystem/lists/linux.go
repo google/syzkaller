@@ -2149,6 +2149,7 @@ func subsystems_linux() []*Subsystem {
 			{IncludeRegexp: "^net/vmw_vsock/vmci_transport[^/]*$"},
 			{IncludeRegexp: "axp[128]"},
 		},
+		NoReminders: true,
 	}
 
 	kernfs = Subsystem{

@@ -12,6 +12,8 @@ type customRules struct {
 	// These subsystems need to be extracted even without mailing lists.
 	// Key is the subsystem name, value is the list of raw names in MAINTAINERS.
 	extraSubsystems map[string][]string
+	// For these subsystems we do not generate monthly reminders.
+	noReminders map[string]struct{}
 }
 
 var (
@@ -87,6 +89,11 @@ var (
 			"isofs":  {"ISOFS FILESYSTEM"},
 			"kernfs": {"KERNFS"},
 			"udf":    {"UDF FILESYSTEM"},
+		},
+		noReminders: map[string]struct{}{
+			// Many misclassified bugs end up in `kernel`, so there's no sense
+			// in generating monthly reports for it.
+			"kernel": {},
 		},
 	}
 )

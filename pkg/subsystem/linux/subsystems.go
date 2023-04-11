@@ -130,6 +130,7 @@ func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) {
 	}
 	for _, entry := range list {
 		entry.Syscalls = ctx.extraRules.subsystemCalls[entry.Name]
+		_, entry.NoReminders = ctx.extraRules.noReminders[entry.Name]
 	}
 }
 
