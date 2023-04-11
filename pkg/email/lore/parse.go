@@ -36,22 +36,33 @@ func (c *parseCtx) record(msg *email.Email) {
 func (c *parseCtx) threads() []*Thread {
 	threads := map[string]*Thread{}
 	threadsList := []*Thread{}
+
+	newThread := func(msg *email.Email) {
+		thread := &Thread{
+			MessageID: msg.MessageID,
+			Subject:   msg.Subject,
+		}
+		threads[msg.MessageID] = thread
+		threadsList = append(threadsList, thread)
+	}
+
 	// Detect threads, i.e. messages without In-Reply-To.
 	for _, msg := range c.messages {
 		if msg.InReplyTo == "" {
-			thread := &Thread{
-				MessageID: msg.MessageID,
-				Subject:   msg.Subject,
-			}
-			threads[msg.MessageID] = thread
-			threadsList = append(threadsList, thread)
+			newThread(msg)
 		}
 	}
 	// Assign messages to threads.
 	for _, msg := range c.messages {
 		base := c.first(msg)
 		if base == nil {
-			continue
+			if msg.OwnEmail {
+				// Likely bot's reply to a non-public command. Ignore.
+				continue
+			}
+			// Pretend it's a separate discussion.
+			newThread(msg)
+			base = msg
 		}
 		thread := threads[base.MessageID]
 		thread.BugIDs = append(thread.BugIDs, msg.BugIDs...)
