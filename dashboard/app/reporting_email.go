@@ -561,6 +561,10 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 	}
 	extIDs := []string{}
 	for _, id := range msg.BugIDs {
+		if isBugListHash(id) {
+			dType = dashapi.DiscussionReminder
+			continue
+		}
 		_, _, err := findBugByReportingID(c, id)
 		if err == nil {
 			extIDs = append(extIDs, id)

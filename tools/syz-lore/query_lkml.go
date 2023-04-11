@@ -59,6 +59,8 @@ func main() {
 		discType := dashapi.DiscussionReport
 		if strings.Contains(thread.Subject, "PATCH") {
 			discType = dashapi.DiscussionPatch
+		} else if strings.Contains(thread.Subject, "Monthly") {
+			discType = dashapi.DiscussionReminder
 		}
 		log.Printf("saving %d/%d", i+1, len(threads))
 		err := dash.SaveDiscussion(&dashapi.SaveDiscussionReq{
