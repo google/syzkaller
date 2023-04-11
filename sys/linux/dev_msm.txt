@@ -7,11 +7,6 @@ include <drm/msm_drm.h>
 
 resource fd_msm[fd]
 
-# This either comes from a MSM_GEM_SUBMIT ioctl described below or from a kms
-# ioctl creating an OUT_FENCE_PTR (see drivers/gpu/drm/drm_atomic_uapi.c and
-# https://www.kernel.org/doc/html/latest/gpu/drm-kms.html for more details)
-# Once fences are described this should be updated to an fd_drm_fence.
-
 openat$msm(fd const[AT_FDCWD], file ptr[in, string["/dev/msm"]], flags flags[open_flags], mode const[0]) fd_msm
 
 ioctl$DRM_IOCTL_MSM_GET_PARAM(fd fd_msm, cmd const[DRM_IOCTL_MSM_GET_PARAM], arg ptr[inout, drm_msm_param])
