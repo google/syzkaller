@@ -275,6 +275,7 @@ type uiBugGroup struct {
 	ShowIndex     int
 	Bugs          []*uiBug
 	DispLastAct   bool
+	DispDiscuss   bool
 }
 
 type uiJobList struct {
@@ -306,6 +307,7 @@ type uiBug struct {
 	NumManagers    int
 	LastActivity   time.Time
 	Subsystems     []*uiBugSubsystem
+	Discussions    DiscussionSummary
 }
 
 type uiBugSubsystem struct {
@@ -443,7 +445,11 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	for _, group := range groups {
-		group.DispLastAct = true
+		if config.Namespaces[hdr.Namespace].DisplayDiscussions {
+			group.DispDiscuss = true
+		} else {
+			group.DispLastAct = true
+		}
 	}
 	data := &uiMainPage{
 		Header:         hdr,
@@ -1462,6 +1468,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
 		LastActivity:   bug.LastActivity,
+		Discussions:    bug.discussionSummary(),
 	}
 	for _, entry := range bug.Tags.Subsystems {
 		uiBug.Subsystems = append(uiBug.Subsystems, makeBugSubsystemUI(c, bug, entry))

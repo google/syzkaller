@@ -160,6 +160,11 @@ table td, table th {
 	text-align: right;
 }
 
+.list_table .discussions {
+	font-family: monospace;
+	text-align: left;
+}
+
 .list_table .bisect_status {
 	width: 75pt;
 	max-width: 75pt;
@@ -196,6 +201,10 @@ table td, table th {
 
 .list_table .assets .no-break {
 	display: inline-block;
+}
+
+.list_table .icon {
+	font-size: 75%;
 }
 
 .subsystem {
