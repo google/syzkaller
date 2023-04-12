@@ -571,10 +571,6 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 		}
 	}
 	msg.BugIDs = extIDs
-	if len(extIDs) == 0 {
-		log.Infof(c, "filtered all extIDs out")
-		return nil
-	}
 	err := saveDiscussionMessage(c, msg, source, dType)
 	if err != nil {
 		return fmt.Errorf("failed to save in discussions: %v", err)
