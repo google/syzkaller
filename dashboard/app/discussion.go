@@ -174,11 +174,17 @@ func (d *Discussion) addMessages(messages []dashapi.DiscussionMessage) Discussio
 			Time:     m.Time,
 		})
 	}
+	if len(d.Messages) == 0 {
+		return diff
+	}
 	sort.Slice(d.Messages, func(i, j int) bool {
 		return d.Messages[i].Time.Before(d.Messages[j].Time)
 	})
+	// Always keep the oldest message.
+	first := d.Messages[0]
 	if len(d.Messages) > maxMessagesInDiscussion {
-		d.Messages = d.Messages[len(d.Messages)-maxMessagesInDiscussion:]
+		d.Messages = append([]DiscussionMessage{first},
+			d.Messages[len(d.Messages)-maxMessagesInDiscussion+1:]...)
 	}
 	return diff
 }

@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -359,4 +360,40 @@ Hello!
 	got, err := getBugDiscussionsUI(c.ctx, bug)
 	c.expectOK(err)
 	client.expectEQ(len(got), 0)
+}
+
+func TestMessageOverflow(t *testing.T) {
+	date := time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC)
+	d := &Discussion{}
+	first, last := dashapi.DiscussionMessage{
+		ID:   date.String(),
+		Time: date,
+	}, dashapi.DiscussionMessage{}
+	d.addMessages([]dashapi.DiscussionMessage{first})
+
+	const blockSize = 100
+	for i := 0; i < 2*maxMessagesInDiscussion; i += blockSize {
+		block := []dashapi.DiscussionMessage{}
+		for j := 0; j < blockSize; j++ {
+			date = date.Add(time.Minute)
+			last = dashapi.DiscussionMessage{
+				ID:   date.String(),
+				Time: date,
+			}
+			block = append(block, last)
+		}
+		// Make sure that the first message always remains in place and the last one
+		// is the latest one.
+		d.addMessages(block)
+		if !reflect.DeepEqual(first.ID, d.Messages[0].ID) {
+			t.Fatalf("unexpected first messages")
+		}
+		if !reflect.DeepEqual(last.ID, d.Messages[len(d.Messages)-1].ID) {
+			t.Fatalf("unexpected last messages")
+		}
+	}
+	if len(d.Messages) != maxMessagesInDiscussion {
+		t.Fatalf("expected len to be equal to %d, got %d",
+			maxMessagesInDiscussion, len(d.Messages))
+	}
 }
