@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 )
 
@@ -112,6 +113,7 @@ Bug report`,
 		"<A-Base>": {
 			Subject:   "Thread A",
 			MessageID: "<A-Base>",
+			Type:      dashapi.DiscussionReport,
 			Messages: []*email.Email{
 				{
 					MessageID: "<A-Base>",
@@ -144,6 +146,7 @@ Bug report`,
 		"<Bug>": {
 			Subject:   "[syzbot] Some bug",
 			MessageID: "<Bug>",
+			Type:      dashapi.DiscussionReport,
 			BugIDs:    []string{"4564456"},
 			Messages: []*email.Email{
 				{
@@ -180,6 +183,7 @@ Bug report`,
 		"<Patch>": {
 			Subject:   "[PATCH] Some bug fixed",
 			MessageID: "<Patch>",
+			Type:      dashapi.DiscussionPatch,
 			BugIDs:    []string{"12345"},
 			Messages: []*email.Email{
 				{
@@ -196,6 +200,7 @@ Bug report`,
 		"<Sub-Discussion>": {
 			Subject:   "[syzbot] Some bug 2",
 			MessageID: "<Sub-Discussion>",
+			Type:      dashapi.DiscussionReport,
 			BugIDs:    []string{"4564456"},
 			Messages: []*email.Email{
 				{
@@ -242,5 +247,37 @@ Bug report`,
 
 	if len(threads) > len(expected) {
 		t.Fatalf("Expected %d threads, got %d", len(expected), len(threads))
+	}
+}
+
+func TestDiscussionType(t *testing.T) {
+	tests := []struct {
+		msg *email.Email
+		ret dashapi.DiscussionType
+	}{
+		{
+			msg: &email.Email{
+				Subject: "[PATCH] Bla-bla",
+			},
+			ret: dashapi.DiscussionPatch,
+		},
+		{
+			msg: &email.Email{
+				Subject: "[syzbot] Monthly ext4 report",
+			},
+			ret: dashapi.DiscussionReminder,
+		},
+		{
+			msg: &email.Email{
+				Subject: "[syzbot] WARNING in abcd",
+			},
+			ret: dashapi.DiscussionReport,
+		},
+	}
+	for _, test := range tests {
+		got := DiscussionType(test.msg)
+		if got != test.ret {
+			t.Fatalf("expected %v got %v for %v", test.ret, got, test.msg)
+		}
 	}
 }

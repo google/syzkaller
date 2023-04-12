@@ -7,55 +7,47 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
-type newDiscussionMessage struct {
-	id        string
-	subject   string
-	msgSource dashapi.DiscussionSource
-	msgType   dashapi.DiscussionType
-	bugIDs    []string
-	inReplyTo string
-	external  bool
-	time      time.Time
-}
-
 // saveDiscussionMessage is meant to be called after each received E-mail message,
 // for which we know the BugID.
-func saveDiscussionMessage(c context.Context, msg *newDiscussionMessage) error {
+func saveDiscussionMessage(c context.Context, msg *email.Email,
+	msgSource dashapi.DiscussionSource, msgType dashapi.DiscussionType) error {
 	discUpdate := &dashapi.Discussion{
-		Source: msg.msgSource,
-		Type:   msg.msgType,
-		BugIDs: msg.bugIDs,
+		Source: msgSource,
+		Type:   msgType,
+		BugIDs: msg.BugIDs,
 	}
-	if msg.inReplyTo != "" {
-		d, err := discussionByMessageID(c, msg.msgSource, msg.inReplyTo)
-		if err == nil {
-			discUpdate.ID = d.ID
-			discUpdate.Type = dashapi.DiscussionType(d.Type)
-		} else if !msg.external {
-			// Most likely it's a public bot's reply to a non-public
-			// patch testing request. Ignore it.
-			return nil
+	var parent *Discussion
+	var oldThreadInfo *email.OldThreadInfo
+	if msg.InReplyTo != "" {
+		parent, _ = discussionByMessageID(c, msgSource, msg.InReplyTo)
+		if parent != nil {
+			oldThreadInfo = &email.OldThreadInfo{
+				ThreadType: dashapi.DiscussionType(parent.Type),
+			}
 		}
-		// If the original discussion is not in the DB, it means we
-		// were likely only mentioned in some further discussion.
-		// Remember then only the sub-thread visible to us.
 	}
-	if discUpdate.ID == "" {
+	switch email.NewMessageAction(msg, msgType, oldThreadInfo) {
+	case email.ActionIgnore:
+		return nil
+	case email.ActionAppend:
+		discUpdate.ID = parent.ID
+		discUpdate.Type = oldThreadInfo.ThreadType
+	case email.ActionNewThread:
 		// Use the current message as the discussion's head.
-		discUpdate.ID = msg.id
-		discUpdate.Subject = msg.subject
+		discUpdate.ID = msg.MessageID
+		discUpdate.Subject = msg.Subject
 	}
 	discUpdate.Messages = append(discUpdate.Messages, dashapi.DiscussionMessage{
-		ID:       msg.id,
-		Time:     msg.time,
-		External: msg.external,
+		ID:       msg.MessageID,
+		Time:     msg.Date,
+		External: !msg.OwnEmail,
 	})
 	return mergeDiscussion(c, discUpdate)
 }

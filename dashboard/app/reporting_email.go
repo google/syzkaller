@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"golang.org/x/net/context"
@@ -554,10 +555,9 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 		msg.BugIDs = msg.BugIDs[:limitIDs]
 	}
 	log.Infof(c, "saving to discussions for %q", msg.BugIDs)
-	// This is very crude, but should work for now.
 	dType := dashapi.DiscussionReport
-	if strings.Contains(msg.Subject, "PATCH") {
-		dType = dashapi.DiscussionPatch
+	if source == dashapi.DiscussionLore {
+		dType = lore.DiscussionType(msg)
 	}
 	extIDs := []string{}
 	for _, id := range msg.BugIDs {
@@ -570,20 +570,12 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 			extIDs = append(extIDs, id)
 		}
 	}
+	msg.BugIDs = extIDs
 	if len(extIDs) == 0 {
 		log.Infof(c, "filtered all extIDs out")
 		return nil
 	}
-	err := saveDiscussionMessage(c, &newDiscussionMessage{
-		id:        msg.MessageID,
-		subject:   msg.Subject,
-		msgSource: source,
-		msgType:   dType,
-		bugIDs:    extIDs,
-		inReplyTo: msg.InReplyTo,
-		external:  !msg.OwnEmail,
-		time:      msg.Date,
-	})
+	err := saveDiscussionMessage(c, msg, source, dType)
 	if err != nil {
 		return fmt.Errorf("failed to save in discussions: %v", err)
 	}
