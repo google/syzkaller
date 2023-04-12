@@ -39,7 +39,7 @@ func DiscussionType(msg *email.Email) dashapi.DiscussionType {
 		discType = dashapi.DiscussionReport
 	}
 	// This is very crude, but should work for now.
-	if strings.Contains(msg.Subject, "PATCH") {
+	if strings.Contains(strings.ToLower(msg.Subject), "[patch") {
 		discType = dashapi.DiscussionPatch
 	} else if strings.Contains(msg.Subject, "Monthly") {
 		discType = dashapi.DiscussionReminder
