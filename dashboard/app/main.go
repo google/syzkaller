@@ -503,6 +503,9 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
+	for _, group := range groups {
+		group.DispDiscuss = config.Namespaces[hdr.Namespace].DisplayDiscussions
+	}
 	cached, err := CacheGet(c, r, hdr.Namespace)
 	if err != nil {
 		return err
