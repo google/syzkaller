@@ -4,12 +4,17 @@
 package lore
 
 import (
+	"sort"
+	"strings"
+
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 )
 
 type Thread struct {
 	Subject   string
 	MessageID string
+	Type      dashapi.DiscussionType
 	BugIDs    []string
 	Messages  []*email.Email
 }
@@ -18,90 +23,92 @@ type Thread struct {
 func Threads(emails []*email.Email) []*Thread {
 	ctx := &parseCtx{
 		messages: map[string]*email.Email{},
+		next:     map[*email.Email][]*email.Email{},
 	}
 	for _, email := range emails {
 		ctx.record(email)
 	}
-	return ctx.threads()
+	ctx.process()
+	return ctx.threads
+}
+
+// DiscussionType extracts the specific discussion type from an email.
+func DiscussionType(msg *email.Email) dashapi.DiscussionType {
+	discType := dashapi.DiscussionReport
+	// This is very crude, but should work for now.
+	if strings.Contains(msg.Subject, "PATCH") {
+		discType = dashapi.DiscussionPatch
+	} else if strings.Contains(msg.Subject, "Monthly") {
+		discType = dashapi.DiscussionReminder
+	}
+	return discType
 }
 
 type parseCtx struct {
+	threads  []*Thread
 	messages map[string]*email.Email
+	next     map[*email.Email][]*email.Email
 }
 
 func (c *parseCtx) record(msg *email.Email) {
 	c.messages[msg.MessageID] = msg
 }
 
-func (c *parseCtx) threads() []*Thread {
-	threads := map[string]*Thread{}
-	threadsList := []*Thread{}
-
-	newThread := func(msg *email.Email) {
-		thread := &Thread{
-			MessageID: msg.MessageID,
-			Subject:   msg.Subject,
-		}
-		threads[msg.MessageID] = thread
-		threadsList = append(threadsList, thread)
-	}
-
-	// Detect threads, i.e. messages without In-Reply-To.
+func (c *parseCtx) process() {
+	// List messages for which we dont't have ancestors.
+	nodes := []*email.Email{}
 	for _, msg := range c.messages {
-		if msg.InReplyTo == "" {
-			newThread(msg)
+		if msg.InReplyTo == "" || c.messages[msg.InReplyTo] == nil {
+			nodes = append(nodes, msg)
+		} else {
+			parent := c.messages[msg.InReplyTo]
+			c.next[parent] = append(c.next[parent], msg)
 		}
 	}
-	// Assign messages to threads.
-	for _, msg := range c.messages {
-		base := c.first(msg)
-		if base == nil {
-			if msg.OwnEmail {
-				// Likely bot's reply to a non-public command. Ignore.
-				continue
-			}
-			// Pretend it's a separate discussion.
-			newThread(msg)
-			base = msg
-		}
-		thread := threads[base.MessageID]
-		thread.BugIDs = append(thread.BugIDs, msg.BugIDs...)
-		thread.Messages = append(threads[base.MessageID].Messages, msg)
+	// Iterate starting from these tree nodes.
+	for _, node := range nodes {
+		c.visit(node, nil)
 	}
-	// Deduplicate BugIDs lists.
-	for _, thread := range threads {
-		if len(thread.BugIDs) == 0 {
-			continue
-		}
+	// Collect BugIDs.
+	for _, thread := range c.threads {
 		unique := map[string]struct{}{}
-		newList := []string{}
-		for _, id := range thread.BugIDs {
-			if _, ok := unique[id]; !ok {
-				newList = append(newList, id)
+		for _, msg := range thread.Messages {
+			for _, id := range msg.BugIDs {
+				unique[id] = struct{}{}
 			}
-			unique[id] = struct{}{}
 		}
-		thread.BugIDs = newList
+		var ids []string
+		for id := range unique {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		thread.BugIDs = ids
 	}
-	return threadsList
 }
 
-// first finds the firt message of an email thread.
-func (c *parseCtx) first(msg *email.Email) *email.Email {
-	visited := map[*email.Email]struct{}{}
-	for {
-		// There have been a few cases when we'd otherwise get an infinite loop.
-		if _, ok := visited[msg]; ok {
-			return nil
+func (c *parseCtx) visit(msg *email.Email, thread *Thread) {
+	var oldInfo *email.OldThreadInfo
+	if thread != nil {
+		oldInfo = &email.OldThreadInfo{
+			ThreadType: thread.Type,
 		}
-		visited[msg] = struct{}{}
-		if msg.InReplyTo == "" {
-			return msg
+	}
+	msgType := DiscussionType(msg)
+	switch email.NewMessageAction(msg, msgType, oldInfo) {
+	case email.ActionIgnore:
+		thread = nil
+	case email.ActionAppend:
+		thread.Messages = append(thread.Messages, msg)
+	case email.ActionNewThread:
+		thread = &Thread{
+			MessageID: msg.MessageID,
+			Subject:   msg.Subject,
+			Type:      msgType,
+			Messages:  []*email.Email{msg},
 		}
-		msg = c.messages[msg.InReplyTo]
-		if msg == nil {
-			// Probably we just didn't load the message.
-			return nil
-		}
+		c.threads = append(c.threads, thread)
+	}
+	for _, nextMsg := range c.next[msg] {
+		c.visit(nextMsg, thread)
 	}
 }
