@@ -34,7 +34,10 @@ func Threads(emails []*email.Email) []*Thread {
 
 // DiscussionType extracts the specific discussion type from an email.
 func DiscussionType(msg *email.Email) dashapi.DiscussionType {
-	discType := dashapi.DiscussionReport
+	discType := dashapi.DiscussionMention
+	if msg.OwnEmail {
+		discType = dashapi.DiscussionReport
+	}
 	// This is very crude, but should work for now.
 	if strings.Contains(msg.Subject, "PATCH") {
 		discType = dashapi.DiscussionPatch

@@ -86,7 +86,7 @@ Content-Type: text/plain
 Patch`,
 		// An orphaned reply from a human.
 		`Date: Sun, 7 May 2017 19:57:00 -0700
-Subject: [syzbot] Some bug 2
+Subject: Another bug discussion
 In-Reply-To: <Unknown>
 Message-ID: <Sub-Discussion>
 From: person@email.com
@@ -113,7 +113,7 @@ Bug report`,
 		"<A-Base>": {
 			Subject:   "Thread A",
 			MessageID: "<A-Base>",
-			Type:      dashapi.DiscussionReport,
+			Type:      dashapi.DiscussionMention,
 			Messages: []*email.Email{
 				{
 					MessageID: "<A-Base>",
@@ -198,9 +198,9 @@ Bug report`,
 			},
 		},
 		"<Sub-Discussion>": {
-			Subject:   "[syzbot] Some bug 2",
+			Subject:   "Another bug discussion",
 			MessageID: "<Sub-Discussion>",
-			Type:      dashapi.DiscussionReport,
+			Type:      dashapi.DiscussionMention,
 			BugIDs:    []string{"4564456"},
 			Messages: []*email.Email{
 				{
@@ -209,7 +209,7 @@ Bug report`,
 					Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
 					BugIDs:    []string{"4564456"},
 					Cc:        []string{"person@email.com"},
-					Subject:   "[syzbot] Some bug 2",
+					Subject:   "Another bug discussion",
 					Author:    "person@email.com",
 					Command:   email.CmdNone,
 				},
@@ -263,15 +263,23 @@ func TestDiscussionType(t *testing.T) {
 		},
 		{
 			msg: &email.Email{
-				Subject: "[syzbot] Monthly ext4 report",
+				Subject:  "[syzbot] Monthly ext4 report",
+				OwnEmail: true,
 			},
 			ret: dashapi.DiscussionReminder,
 		},
 		{
 			msg: &email.Email{
-				Subject: "[syzbot] WARNING in abcd",
+				Subject:  "[syzbot] WARNING in abcd",
+				OwnEmail: true,
 			},
 			ret: dashapi.DiscussionReport,
+		},
+		{
+			msg: &email.Email{
+				Subject: "Some human-reported bug",
+			},
+			ret: dashapi.DiscussionMention,
 		},
 	}
 	for _, test := range tests {

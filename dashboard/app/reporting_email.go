@@ -555,7 +555,7 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 		msg.BugIDs = msg.BugIDs[:limitIDs]
 	}
 	log.Infof(c, "saving to discussions for %q", msg.BugIDs)
-	dType := dashapi.DiscussionReport
+	dType := dashapi.DiscussionMention
 	if source == dashapi.DiscussionLore {
 		dType = lore.DiscussionType(msg)
 	}
