@@ -65,6 +65,17 @@ func TestMessageActions(t *testing.T) {
 			oldThread: nil,
 			result:    ActionNewThread,
 		},
+		{
+			name: "patch reply to report",
+			msg: &Email{
+				InReplyTo: "<abcd>",
+			},
+			msgType: dashapi.DiscussionPatch,
+			oldThread: &OldThreadInfo{
+				ThreadType: dashapi.DiscussionReport,
+			},
+			result: ActionNewThread,
+		},
 	}
 	for _, _test := range tests {
 		test := _test

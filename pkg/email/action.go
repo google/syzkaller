@@ -23,6 +23,12 @@ func NewMessageAction(msg *Email, msgType dashapi.DiscussionType, oldThread *Old
 		return ActionNewThread
 	}
 	if oldThread != nil {
+		// Sometimes patches are sent as replies to the bug report.
+		// In this case, we'd better report it as a new discussion.
+		if msgType == dashapi.DiscussionPatch &&
+			msgType != oldThread.ThreadType {
+			return ActionNewThread
+		}
 		// Otherwise just append the message.
 		return ActionAppend
 	}
