@@ -92,7 +92,7 @@ kvm_asm64_cpl3:
 	movq $SEL_CS64_CPL3, 4(%rsp)
 	movq $ADDR_STACK0, 8(%rsp)
 	movq $SEL_DS64_CPL3, 12(%rsp)
-	lret
+	lretl
 kvm_asm64_cpl3_end:
 	nop
 
