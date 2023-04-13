@@ -4,10 +4,10 @@
 # See https://source.android.com/setup/build/building-kernels
 # for details on how to checkout and build Android kernel.
 
-# Following branch: android12-5.10-lts
+# Following branch: android13-5.10-lts
 kernel:
  repo: https://android.googlesource.com/kernel/common
- tag: 8d21bcc704ea1
+ tag: android13-5.10.177_r00
 
 shell:
  - make gki_defconfig
