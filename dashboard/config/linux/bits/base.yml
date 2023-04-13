@@ -93,7 +93,7 @@ config:
  - DEBUG_PI_LIST: [-v5.2]
 
  # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
- - REFCOUNT_FULL: [v4.16, -v5.5]
+ - REFCOUNT_FULL: [v4.16, -v5.5, -android-5.4]
  # Added in 919067cc845f ("net: add CONFIG_PCPU_DEV_REFCNT") and should appear in v5.13.
  - PCPU_DEV_REFCNT: [n, v5.13]
 
