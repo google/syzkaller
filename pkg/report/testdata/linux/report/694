@@ -1,0 +1,131 @@
+TITLE: KASAN: out-of-bounds Write in nsim_dev_trap_report_work
+ALT: bad-access in nsim_dev_trap_report_work
+
+[  771.741335][T15335] ==================================================================
+[  771.746713][T15335] BUG: KASAN: out-of-bounds in stack_trace_consume_entry+0x141/0x160
+[  771.751900][T15335] Write of size 8 at addr ffffc90002f7f910 by task kworker/0:1/15335
+[  771.755252][ T5218] Kernel panic - not syncing: corrupted stack end detected inside scheduler
+[  771.755295][ T5218] CPU: 1 PID: 5218 Comm: kworker/u16:3 Not tainted 6.3.0-rc6-syzkaller-00173-g7a934f4bd7d6 #0
+[  771.755319][ T5218] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.14.0-2 04/01/2014
+[  771.755331][ T5218] Workqueue:  0x0 (bat_events)
+[  771.755402][ T5218] Call Trace:
+[  771.755442][ T5218]  <TASK>
+[  771.755450][ T5218]  dump_stack_lvl+0xd9/0x150
+[  771.755538][ T5218]  panic+0x688/0x730
+[  771.755577][ T5218]  ? panic_smp_self_stop+0x90/0x90
+[  771.755601][ T5218]  ? kasan_report+0x36/0x130
+[  771.755639][ T5218]  ? lock_release+0x670/0x670
+[  771.755668][ T5218]  ? __schedule+0x5309/0x5770
+[  771.755715][ T5218]  __schedule+0x5301/0x5770
+[  771.755735][ T5218]  ? put_pwq+0x87/0x1b0
+[  771.755758][ T5218]  ? process_one_work+0xc7f/0x15c0
+[  771.755781][ T5218]  ? find_held_lock+0x2d/0x110
+[  771.755812][ T5218]  ? io_schedule_timeout+0x150/0x150
+[  771.755833][ T5218]  ? worker_thread+0x15b/0x1090
+[  771.755855][ T5218]  ? lock_downgrade+0x690/0x690
+[  771.755875][ T5218]  ? spin_bug+0x1c0/0x1c0
+[  771.755895][ T5218]  schedule+0xde/0x1a0
+[  771.755914][ T5218]  worker_thread+0x160/0x1090
+[  771.755939][ T5218]  ? process_one_work+0x15c0/0x15c0
+[  771.755962][ T5218]  kthread+0x2e8/0x3a0
+[  771.755981][ T5218]  ? kthread_complete_and_exit+0x40/0x40
+[  771.756002][ T5218]  ret_from_fork+0x1f/0x30
+[  771.756032][ T5218]  </TASK>
+[  771.757247][T15335] 
+[  771.766620][T15335] CPU: 0 PID: 15335 Comm: kworker/0:1 Not tainted 6.3.0-rc6-syzkaller-00173-g7a934f4bd7d6 #0
+[  771.773731][T15335] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.14.0-2 04/01/2014
+[  771.780070][T15335] Workqueue: events nsim_dev_trap_report_work
+[  771.786122][T15335] Call Trace:
+[  771.788163][T15335]  <TASK>
+[  771.791926][T15335]  dump_stack_lvl+0xd9/0x150
+[  771.794831][T15335]  print_address_description.constprop.0+0x2c/0x3c0
+[  771.798433][T15335]  ? stack_trace_consume_entry+0x141/0x160
+[  771.801729][T15335]  kasan_report+0x11c/0x130
+[  771.804978][T15335]  ? unwind_next_frame+0xdfe/0x1ef0
+[  771.808345][T15335]  ? stack_trace_consume_entry+0x141/0x160
+[  771.812087][T15335]  stack_trace_consume_entry+0x141/0x160
+[  771.815014][T15335]  ? __queue_delayed_work+0x1c8/0x270
+[  771.818547][T15335]  ? write_profile+0x450/0x450
+[  771.821918][T15335]  arch_stack_walk+0x71/0xf0
+[  771.825713][T15335]  ? __queue_delayed_work+0x1c8/0x270
+[  771.829100][T15335]  stack_trace_save+0x90/0xc0
+[  771.832642][T15335]  ? filter_irq_stacks+0x90/0x90
+[  771.835883][T15335]  ? print_usage_bug.part.0+0x660/0x660
+[  771.838668][T15335]  ? lockdep_hardirqs_on_prepare+0x410/0x410
+[  771.842065][T15335]  kasan_save_stack+0x22/0x40
+[  771.846085][T15335]  ? kasan_save_stack+0x22/0x40
+[  771.848936][T15335]  ? __kasan_record_aux_stack+0x7b/0x90
+[  771.852757][T15335]  ? insert_work+0x48/0x350
+[  771.855995][T15335]  ? __queue_work+0x625/0x1120
+[  771.858222][T15335]  ? find_held_lock+0x2d/0x110
+[  771.859912][T15335]  ? debug_object_activate+0x28b/0x3e0
+[  771.866899][T15335]  ? lock_downgrade+0x690/0x690
+[  771.873075][T15335]  ? do_raw_spin_unlock+0x175/0x230
+[  771.877105][T15335]  ? _raw_spin_unlock_irqrestore+0x41/0x70
+[  771.879983][T15335]  ? debug_object_activate+0x28b/0x3e0
+[  771.882443][T15335]  ? lock_release+0x670/0x670
+[  771.886052][T15335]  ? debug_object_assert_init+0x2e0/0x2e0
+[  771.890762][T15335]  ? __virt_addr_valid+0x61/0x2e0
+[  771.895323][T15335]  ? __phys_addr+0xc8/0x140
+[  771.898660][T15335]  __kasan_record_aux_stack+0x7b/0x90
+[  771.902334][T15335]  insert_work+0x48/0x350
+[  771.907321][T15335]  __queue_work+0x625/0x1120
+[  771.911888][T15335]  __queue_delayed_work+0x1c8/0x270
+[  771.916104][T15335]  queue_delayed_work_on+0x109/0x120
+[  771.920013][T15335]  nsim_dev_trap_report_work+0x9d1/0xc80
+[  771.924172][T15335]  ? lock_downgrade+0x690/0x690
+[  771.928244][T15335]  ? do_raw_spin_lock+0x124/0x2b0
+[  771.931898][T15335]  ? _raw_spin_unlock_irq+0x23/0x50
+[  771.935911][T15335]  process_one_work+0x991/0x15c0
+[  771.941183][T15335]  ? pwq_dec_nr_in_flight+0x2a0/0x2a0
+[  771.945582][T15335]  ? spin_bug+0x1c0/0x1c0
+[  771.948985][T15335]  ? _raw_spin_lock_irq+0x45/0x50
+[  771.953304][T15335]  worker_thread+0x669/0x1090
+[  771.958357][T15335]  ? __kthread_parkme+0x163/0x220
+[  771.962116][T15335]  ? process_one_work+0x15c0/0x15c0
+[  771.965501][T15335]  kthread+0x2e8/0x3a0
+[  771.968939][T15335]  ? kthread_complete_and_exit+0x40/0x40
+[  771.972884][T15335]  ret_from_fork+0x1f/0x30
+[  771.976582][T15335]  </TASK>
+[  771.980477][T15335] 
+[  771.985575][T15335] The buggy address belongs to stack of task kworker/0:1/15335
+[  771.989628][T15335]  and is located at offset 176 in frame:
+[  771.992870][T15335]  stack_trace_save+0x0/0xc0
+[  771.996856][T15335] 
+[  772.000358][T15335] This frame has 1 object:
+[  772.003452][T15335]  [32, 56) 'c'
+[  772.007150][T15335] 
+[  772.010026][T15335] The buggy address belongs to the virtual mapping at
+[  772.010026][T15335]  [ffffc90002f78000, ffffc90002f81000) created by:
+[  772.010026][T15335]  kernel_clone+0xeb/0x890
+[  772.013109][T15335] 
+[  772.016557][T15335] The buggy address belongs to the physical page:
+[  772.020137][T15335] page:ffffea0001bd22c0 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x6f48b
+[  772.023986][T15335] flags: 0x4fff00000000000(node=1|zone=1|lastcpupid=0x7ff)
+[  772.027442][T15335] raw: 04fff00000000000 0000000000000000 dead000000000122 0000000000000000
+[  772.030849][T15335] raw: 0000000000000000 0000000000000000 00000001ffffffff 0000000000000000
+[  772.034349][T15335] page dumped because: kasan: bad access detected
+[  772.037864][T15335] page_owner tracks the page as allocated
+[  772.041521][T15335] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x2dc2(GFP_KERNEL|__GFP_HIGHMEM|__GFP_NOWARN|__GFP_ZERO), pid 4593, tgid 4593 (udevd), ts 268694820916, free_ts 0
+[  772.044557][T15335]  get_page_from_freelist+0x1190/0x2e20
+[  772.047956][T15335]  __alloc_pages+0x1cb/0x4a0
+[  772.051042][T15335]  alloc_pages+0x1aa/0x270
+[  772.054510][T15335]  __vmalloc_node_range+0xb1c/0x14a0
+[  772.058057][T15335]  copy_process+0x1320/0x7590
+[  772.060894][T15335]  kernel_clone+0xeb/0x890
+[  772.064688][T15335]  __do_sys_clone+0xba/0x100
+[  772.067736][T15335]  do_syscall_64+0x39/0xb0
+[  772.069908][T15335]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  772.071560][T15335] page_owner free stack trace missing
+[  772.076584][T15335] 
+[  772.080468][T15335] Memory state around the buggy address:
+[  772.083806][T15335]  ffffc90002f7f800: 00 00 00 00 00 00 00 00 00 00 00 00 f1 f1 f1 f1
+[  772.085973][T15335]  ffffc90002f7f880: 00 00 00 f3 f3 f3 f3 f3 00 00 00 00 00 00 00 00
+[  772.089907][T15335] >ffffc90002f7f900: 00 00 04 00 72 00 00 00 00 00 00 00 00 00 00 00
+[  772.093112][T15335]                          ^
+[  772.095009][T15335]  ffffc90002f7f980: 48 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  772.107674][T15335]  ffffc90002f7fa00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  772.109622][T15335] ==================================================================
+[  772.115239][T15335] Disabling lock debugging due to kernel taint
+[  772.123988][ T5218] Kernel Offset: disabled
+[  772.241696][ T5218] Rebooting in 86400 seconds..
