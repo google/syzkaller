@@ -87,13 +87,13 @@ func TestJob(t *testing.T) {
 	// This submits actual test request.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
-		EmailOptCC([]string{"somebody@else.com"}))
+		EmailOptCC([]string{"somebody@else.com", "test@syzkaller.com"}))
 	c.expectNoEmail()
 
 	// A dup of the same request with the same Message-ID.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
-		EmailOptCC([]string{"somebody@else.com"}))
+		EmailOptCC([]string{"somebody@else.com", "test@syzkaller.com"}))
 	c.expectNoEmail()
 
 	pollResp = client.pollJobs("foobar")

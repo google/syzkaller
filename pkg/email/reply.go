@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-func FormReply(email, reply string) string {
-	s := bufio.NewScanner(strings.NewReader(email))
+func FormReply(email *Email, reply string) string {
+	s := bufio.NewScanner(strings.NewReader(email.Body))
 	out := new(bytes.Buffer)
 	replied := false
 	for s.Scan() {
@@ -21,7 +21,12 @@ func FormReply(email, reply string) string {
 		}
 		out.Write(ln)
 		out.WriteByte('\n')
-		if !replied && bytes.HasPrefix(ln, []byte(commandPrefix)) {
+		if len(email.Commands) > 1 {
+			// If there are several commands, we cannot precisely attribute replies.
+			// TODO: that's possible, but such a refactoring does not seem to be worth it
+			// at the time.
+			continue
+		} else if !replied && bytes.HasPrefix(ln, []byte(commandPrefix)) {
 			replied = true
 			writeReply(out, reply)
 		}

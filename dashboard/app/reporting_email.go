@@ -465,14 +465,11 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 	// Ignore any incoming emails from syzbot itself.
 	if ownEmail(c) == msg.Author {
 		// But we still want to remember the id of our own message, so just neutralize the command.
-		msg.Command, msg.CommandArgs = email.CmdNone, ""
+		msg.Commands = nil
 	}
-	log.Infof(c, "received email: subject %q, author %q, cc %q, msg %q, bug %v, cmd %q, link %q, list %q",
-		msg.Subject, msg.Author, msg.Cc, msg.MessageID, msg.BugIDs, msg.Command, msg.Link, msg.MailingList)
-	if msg.Command == email.CmdFix && msg.CommandArgs == "exact-commit-title" {
-		// Sometimes it happens that somebody sends us our own text back, ignore it.
-		msg.Command, msg.CommandArgs = email.CmdNone, ""
-	}
+	log.Infof(c, "received email: subject %q, author %q, cc %q, msg %q, bug %v, %d cmds, link %q, list %q",
+		msg.Subject, msg.Author, msg.Cc, msg.MessageID, msg.BugIDs, len(msg.Commands), msg.Link, msg.MailingList)
+	excludeSampleCommands(msg)
 	bugInfo, bugListInfo, emailConfig := identifyEmail(c, msg)
 	if bugInfo == nil && bugListInfo == nil {
 		return nil // error was already logged
@@ -483,7 +480,7 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 	mailingList := email.CanonicalEmail(emailConfig.Email)
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
-	if fromMailingList && len(msg.BugIDs) > 0 && msg.Command != email.CmdNone {
+	if fromMailingList && len(msg.BugIDs) > 0 && len(msg.Commands) > 0 {
 		// Note that if syzbot was not directly mentioned in To or Cc, this is not really
 		// a duplicate message, so it must be processed. We detect it by looking at BugID.
 
@@ -492,58 +489,134 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 		log.Infof(c, "duplicate email from mailing list, ignoring")
 		return nil
 	}
+
+	var replies []string
 	if bugListInfo != nil {
-		incomingBugListEmail(c, bugListInfo, msg)
-		return nil
+		const maxCommands = 10
+		if len(msg.Commands) > maxCommands {
+			return replyTo(c, msg, bugListInfo.id,
+				fmt.Sprintf("Too many commands (%d > %d)", len(msg.Commands), maxCommands))
+		}
+		for _, command := range msg.Commands {
+			replies = append(replies, handleBugListCommand(c, bugListInfo, msg, command))
+		}
+		if reply := groupEmailReplies(replies); reply != "" {
+			return replyTo(c, msg, bugListInfo.id, reply)
+		}
+	} else {
+		const maxCommands = 3
+		if len(msg.Commands) > maxCommands {
+			return replyTo(c, msg, bugInfo.bugReporting.ID,
+				fmt.Sprintf("Too many commands (%d > %d)", len(msg.Commands), maxCommands))
+		}
+		unCc := false
+		for _, command := range msg.Commands {
+			if command.Command == email.CmdUnCC {
+				unCc = true
+			}
+			replies = append(replies, handleBugCommand(c, bugInfo, msg, command))
+		}
+		if len(msg.Commands) == 0 {
+			// Even if there are 0 commands we'd still like to just ping the bug.
+			replies = append(replies, handleBugCommand(c, bugInfo, msg, nil))
+		}
+		reply := groupEmailReplies(replies)
+		if reply == "" && len(msg.Commands) > 0 && !mailingListInCC && !unCc {
+			reply = warnMailingListInCC(c, msg, mailingList)
+		}
+		if reply != "" {
+			return replyTo(c, msg, bugInfo.bugReporting.ID, reply)
+		}
 	}
-	if msg.Command == email.CmdTest {
-		return handleTestCommand(c, bugInfo, msg)
-	} else if msg.Command == email.CmdSet {
-		return handleSetCommand(c, bugInfo, msg)
+	return nil
+}
+
+func excludeSampleCommands(msg *email.Email) {
+	// Sometimes it happens that somebody sends us our own text back, ignore it.
+	var newCommands []*email.SingleCommand
+	for _, cmd := range msg.Commands {
+		ok := true
+		switch cmd.Command {
+		case email.CmdFix:
+			ok = cmd.Args != "exact-commit-title"
+		}
+		if ok {
+			newCommands = append(newCommands, cmd)
+		}
+	}
+	msg.Commands = newCommands
+}
+
+func groupEmailReplies(replies []string) string {
+	// If there's just one reply, return it.
+	if len(replies) == 1 {
+		return replies[0]
+	}
+	var totalReply strings.Builder
+	for i, reply := range replies {
+		if reply == "" {
+			continue
+		}
+		if totalReply.Len() > 0 {
+			totalReply.WriteString("\n\n")
+		}
+		totalReply.WriteString(fmt.Sprintf("Command #%d:\n", i+1))
+		totalReply.WriteString(reply)
+	}
+	return totalReply.String()
+}
+
+func handleBugCommand(c context.Context, bugInfo *bugInfoResult, msg *email.Email,
+	command *email.SingleCommand) string {
+	status := dashapi.BugStatusUpdate
+	if command != nil {
+		status = emailCmdToStatus[command.Command]
 	}
 	cmd := &dashapi.BugUpdate{
-		Status: emailCmdToStatus[msg.Command],
+		Status: status,
 		ID:     bugInfo.bugReporting.ID,
 		ExtID:  msg.MessageID,
 		Link:   msg.Link,
 		CC:     msg.Cc,
 	}
-	bugID := bugInfo.bugReporting.ID
-	switch msg.Command {
-	case email.CmdNone, email.CmdUpstream, email.CmdInvalid, email.CmdUnDup:
-	case email.CmdFix:
-		if msg.CommandArgs == "" {
-			return replyTo(c, msg, bugID, "no commit title")
+	if command != nil {
+		switch command.Command {
+		case email.CmdTest:
+			return handleTestCommand(c, bugInfo, msg, command)
+		case email.CmdSet:
+			return handleSetCommand(c, bugInfo, msg, command)
+		case email.CmdUpstream, email.CmdInvalid, email.CmdUnDup:
+		case email.CmdFix:
+			if command.Args == "" {
+				return "no commit title"
+			}
+			cmd.FixCommits = []string{command.Args}
+		case email.CmdUnFix:
+			cmd.ResetFixCommits = true
+		case email.CmdDup:
+			if command.Args == "" {
+				return "no dup title"
+			}
+			cmd.DupOf = command.Args
+			cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, replySubjectPrefix))
+			cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, bugInfo.reporting.Config.(*EmailConfig).SubjectPrefix))
+		case email.CmdUnCC:
+			cmd.CC = []string{msg.Author}
+		default:
+			if command.Command != email.CmdUnknown {
+				log.Errorf(c, "unknown email command %v %q", command.Command, command.Str)
+			}
+			return fmt.Sprintf("unknown command %q", command.Str)
 		}
-		cmd.FixCommits = []string{msg.CommandArgs}
-	case email.CmdUnFix:
-		cmd.ResetFixCommits = true
-	case email.CmdDup:
-		if msg.CommandArgs == "" {
-			return replyTo(c, msg, bugID, "no dup title")
-		}
-		cmd.DupOf = msg.CommandArgs
-		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, replySubjectPrefix))
-		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, emailConfig.SubjectPrefix))
-	case email.CmdUnCC:
-		cmd.CC = []string{msg.Author}
-	default:
-		if msg.Command != email.CmdUnknown {
-			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandStr)
-		}
-		return replyTo(c, msg, bugID, fmt.Sprintf("unknown command %q", msg.CommandStr))
 	}
 	ok, reply, err := incomingCommand(c, cmd)
 	if err != nil {
-		return nil // the error was already logged
+		return "" // the error was already logged
 	}
 	if !ok && reply != "" {
-		return replyTo(c, msg, bugID, reply)
+		return reply
 	}
-	if !mailingListInCC && msg.Command != email.CmdNone && msg.Command != email.CmdUnCC {
-		warnMailingListInCC(c, msg, bugID, mailingList)
-	}
-	return nil
+	return ""
 }
 
 func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.DiscussionSource) error {
@@ -580,7 +653,6 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 }
 
 var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
-	email.CmdNone:     dashapi.BugStatusUpdate,
 	email.CmdUpstream: dashapi.BugStatusUpstream,
 	email.CmdInvalid:  dashapi.BugStatusInvalid,
 	email.CmdUnDup:    dashapi.BugStatusOpen,
@@ -590,15 +662,15 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 	email.CmdUnCC:     dashapi.BugStatusUnCC,
 }
 
-func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email) error {
-	args := strings.Split(msg.CommandArgs, " ")
+func handleTestCommand(c context.Context, info *bugInfoResult,
+	msg *email.Email, command *email.SingleCommand) string {
+	args := strings.Split(command.Args, " ")
 	if len(args) != 2 {
-		return replyTo(c, msg, info.bugReporting.ID,
-			fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
+		return fmt.Sprintf("want 2 args (repo, branch), got %v", len(args))
 	}
 	if info.bug.sanitizeAccess(AccessPublic) != AccessPublic {
 		log.Warningf(c, "%v: bug is not AccessPublic, patch testing request is denied", info.bug.Title)
-		return nil
+		return ""
 	}
 	reply := ""
 	err := handleTestRequest(c, &testReqArgs{
@@ -619,10 +691,7 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 			log.Errorf(c, "handleTestRequest error: %v", e)
 		}
 	}
-	if reply != "" {
-		return replyTo(c, msg, info.bugReporting.ID, reply)
-	}
-	return nil
+	return reply
 }
 
 var (
@@ -643,34 +712,31 @@ If you believe that the subsystem list should be changed, please contact the bot
 The list of available subsystems can be found at %s`
 )
 
-func handleSetCommand(c context.Context, info *bugInfoResult, msg *email.Email) error {
+func handleSetCommand(c context.Context, info *bugInfoResult,
+	msg *email.Email, command *email.SingleCommand) string {
 	subsystemsURL := fmt.Sprintf("%v/%v/subsystems?all=true", appURL(c), info.bug.Namespace)
-	match := setCmdRe.FindStringSubmatch(msg.CommandArgs)
+	match := setCmdRe.FindStringSubmatch(command.Args)
 	if len(match) != 3 {
-		return replyTo(c, msg, info.bugReporting.ID,
-			fmt.Sprintf(cmdParseFailureFmt, subsystemsURL))
+		return fmt.Sprintf(cmdParseFailureFmt, subsystemsURL)
 	}
 	cmd, args := match[1], match[2]
 	// Now we only support setting bug's subsystems.
 	// Also let's tolerate both subsystem spellings.
 	if cmd != "subsystem" && cmd != "subsystems" {
-		return replyTo(c, msg, info.bugReporting.ID,
-			fmt.Sprintf(cmdParseFailureFmt, subsystemsURL))
+		return fmt.Sprintf(cmdParseFailureFmt, subsystemsURL)
 	}
 	service := getSubsystemService(c, info.bug.Namespace)
 	if service == nil {
-		return replyTo(c, msg, info.bugReporting.ID, cmdNoSubsystems)
+		return cmdNoSubsystems
 	}
 	if args == "" {
-		return replyTo(c, msg, info.bugReporting.ID,
-			fmt.Sprintf(cmdNoSubsystemsSetFmt, subsystemsURL))
+		return fmt.Sprintf(cmdNoSubsystemsSetFmt, subsystemsURL)
 	}
 	subsystems := []*subsystem.Subsystem{}
 	for _, name := range setCmdArgSplitRe.Split(args, -1) {
 		item := service.ByName(name)
 		if item == nil {
-			return replyTo(c, msg, info.bugReporting.ID,
-				fmt.Sprintf(cmdUnknownSubsystemFmt, subsystemsURL))
+			return fmt.Sprintf(cmdUnknownSubsystemFmt, subsystemsURL)
 		}
 		subsystems = append(subsystems, item)
 	}
@@ -679,11 +745,9 @@ func handleSetCommand(c context.Context, info *bugInfoResult, msg *email.Email) 
 	err := updateBugSubsystems(c, info.bugKey, subsystems, userAssignment(msg.Author))
 	if err != nil {
 		log.Errorf(c, "failed to assign bug's subsystems: %s", err)
-		return replyTo(c, msg, info.bugReporting.ID,
-			"I've failed to update subsystems due to an internal error.\n")
+		return "I've failed to update subsystems due to an internal error.\n"
 	}
-	return replyTo(c, msg, info.bugReporting.ID,
-		"Thank you!\n\nI've successfully updated the bug's subsystems.")
+	return "Thank you!\n\nI've successfully updated the bug's subsystems."
 }
 
 func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
@@ -701,15 +765,16 @@ func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
 	log.Infof(c, "%s", body)
 }
 
-func incomingBugListEmail(c context.Context, bugListInfo *bugListInfoResult, msg *email.Email) {
+func handleBugListCommand(c context.Context, bugListInfo *bugListInfoResult,
+	msg *email.Email, command *email.SingleCommand) string {
 	upd := &dashapi.BugListUpdate{
 		ID:    bugListInfo.id,
 		ExtID: msg.MessageID,
 		Link:  msg.Link,
 	}
-	if msg.Command == email.CmdUpstream {
+	if command.Command == email.CmdUpstream {
 		upd.Command = dashapi.BugListUpstreamCmd
-	} else if msg.Command == email.CmdRegenerate {
+	} else if command.Command == email.CmdRegenerate {
 		upd.Command = dashapi.BugListRegenerateCmd
 	} else {
 		upd.Command = dashapi.BugListUpdateCmd
@@ -718,13 +783,9 @@ func incomingBugListEmail(c context.Context, bugListInfo *bugListInfoResult, msg
 	reply, err := reportingBugListCommand(c, upd)
 	if err != nil {
 		log.Errorf(c, "bug list command failed: %s", err)
-		return
+		return ""
 	}
-	if reply != "" {
-		if err := replyTo(c, msg, bugListInfo.id, reply); err != nil {
-			log.Errorf(c, "failed to send email reply: %v", err)
-		}
-	}
+	return reply
 }
 
 // These are just stale emails in MAINTAINERS.
@@ -735,8 +796,7 @@ type bugListInfoResult struct {
 	config *EmailConfig
 }
 
-func identifyEmail(c context.Context, msg *email.Email) (
-	*bugInfoResult, *bugListInfoResult, *EmailConfig) {
+func identifyEmail(c context.Context, msg *email.Email) (*bugInfoResult, *bugListInfoResult, *EmailConfig) {
 	bugID := ""
 	if len(msg.BugIDs) > 0 {
 		// For now let's only consider one of them.
@@ -795,7 +855,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 			}
 			log.Infof(c, "mailing list matching failed: %s", matchingErr)
 		}
-		if msg.Command == email.CmdNone {
+		if len(msg.Commands) == 0 {
 			// This happens when people CC syzbot on unrelated emails.
 			log.Infof(c, "no bug ID (%q)", msg.Subject)
 		} else {
@@ -998,14 +1058,10 @@ func checkMailingListInCC(c context.Context, msg *email.Email, mailingList strin
 	return false
 }
 
-func warnMailingListInCC(c context.Context, msg *email.Email, bugID, mailingList string) {
-	reply := fmt.Sprintf("Your '%v' command is accepted, but please keep %v mailing list"+
+func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string) string {
+	return fmt.Sprintf("Your commands are accepted, but please keep %v mailing list"+
 		" in CC next time. It serves as a history of what happened with each bug report."+
-		" Thank you.",
-		msg.CommandStr, mailingList)
-	if err := replyTo(c, msg, bugID, reply); err != nil {
-		log.Errorf(c, "failed to send email reply: %v", err)
-	}
+		" Thank you.", mailingList)
 }
 
 func sendMailText(c context.Context, cfg *EmailConfig, subject, from string, to []string, replyTo, body string) error {
@@ -1038,7 +1094,7 @@ func replyTo(c context.Context, msg *email.Email, bugID, reply string) error {
 		To:      []string{msg.Author},
 		Cc:      msg.Cc,
 		Subject: replySubject(msg.Subject),
-		Body:    email.FormReply(msg.Body, reply),
+		Body:    email.FormReply(msg, reply),
 		Headers: mail.Header{"In-Reply-To": []string{msg.MessageID}},
 	}
 	return sendEmail(c, replyMsg)
