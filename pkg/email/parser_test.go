@@ -5,7 +5,6 @@ package email
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -16,17 +15,13 @@ import (
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			cmd, str, args := extractCommand(test.body)
-			if cmd != test.cmd || str != test.str || !reflect.DeepEqual(args, test.args) {
-				t.Logf("expect: %v %q %q", test.cmd, test.str, test.args)
-				t.Logf("got   : %v %q %q", cmd, str, args)
-				t.Fail()
+			cmd, _ := extractCommand(test.body)
+			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
+				t.Fatal(diff)
 			}
-			cmd, str, args = extractCommand(strings.Replace(test.body, "\n", "\r\n", -1))
-			if cmd != test.cmd || str != test.str || !reflect.DeepEqual(args, test.args) {
-				t.Logf("expect: %v %q %q", test.cmd, test.str, test.args)
-				t.Logf("got   : %v %q %q", cmd, str, args)
-				t.Fail()
+			cmd, _ = extractCommand(strings.Replace(test.body, "\n", "\r\n", -1))
+			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}
@@ -143,18 +138,18 @@ func TestParse(t *testing.T) {
 
 var extractCommandTests = []struct {
 	body string
-	cmd  Command
-	str  string
-	args string
+	cmd  *SingleCommand
 }{
 	{
 		body: `Hello,
 
 line1
 #syz  fix:  bar baz 	`,
-		cmd:  CmdFix,
-		str:  "fix:",
-		args: "bar baz",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix:",
+			Args:    "bar baz",
+		},
 	},
 	{
 		body: `Hello,
@@ -163,9 +158,11 @@ line1
 #syz fix  bar  	 baz
 line 2
 `,
-		cmd:  CmdFix,
-		str:  "fix",
-		args: "bar  	 baz",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix",
+			Args:    "bar  	 baz",
+		},
 	},
 	{
 		body: `
@@ -173,26 +170,31 @@ line1
 > #syz fix: bar   baz
 line 2
 `,
-		cmd:  CmdNone,
-		args: "",
+		cmd: nil,
 	},
 	{
 		body: `#syz-fix: bar   baz`,
-		cmd:  CmdFix,
-		str:  "fix:",
-		args: "bar   baz",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix:",
+			Args:    "bar   baz",
+		},
 	},
 	{
 		body: `#syz-fix bar   baz`,
-		cmd:  CmdFix,
-		str:  "fix",
-		args: "bar   baz",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix",
+			Args:    "bar   baz",
+		},
 	},
 	{
 		body: `#syz: fix: bar   baz`,
-		cmd:  CmdFix,
-		str:  "fix:",
-		args: "bar   baz",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix:",
+			Args:    "bar   baz",
+		},
 	},
 	// This is unfortunate case when a command is split by email client
 	// due to 80-column limitation.
@@ -201,18 +203,22 @@ line 2
 #syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
 locking/core
 `,
-		cmd:  CmdTest,
-		str:  "test:",
-		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test:",
+			Args:    "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+		},
 	},
 	{
 		body: `
 #syz test
 git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core
 `,
-		cmd:  CmdTest,
-		str:  "test",
-		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test",
+			Args:    "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+		},
 	},
 	{
 		body: `
@@ -221,21 +227,27 @@ git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
 locking/core
 locking/core
 `,
-		cmd:  CmdTest,
-		str:  "test:",
-		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test:",
+			Args:    "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+		},
 	},
 	{
 		body: `#syz test: repo 	commit`,
-		cmd:  CmdTest,
-		str:  "test:",
-		args: "repo commit",
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test:",
+			Args:    "repo commit",
+		},
 	},
 	{
 		body: `#syz	test:	repo	commit`,
-		cmd:  CmdTest,
-		str:  "test:",
-		args: "repo commit",
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test:",
+			Args:    "repo commit",
+		},
 	},
 	{
 		body: `
@@ -246,32 +258,40 @@ locking/core
 arg4
 arg5
 `,
-		cmd:  cmdTest5,
-		str:  "test_5_arg_cmd",
-		args: "arg1 arg2 arg3 arg4 arg5",
+		cmd: &SingleCommand{
+			Command: cmdTest5,
+			Str:     "test_5_arg_cmd",
+			Args:    "arg1 arg2 arg3 arg4 arg5",
+		},
 	},
 	{
 		body: `#syz test_5_arg_cmd 	arg1	 arg2 	arg3	arg4	 arg5`,
-		cmd:  cmdTest5,
-		str:  "test_5_arg_cmd",
-		args: "arg1 arg2 arg3 arg4 arg5",
+		cmd: &SingleCommand{
+			Command: cmdTest5,
+			Str:     "test_5_arg_cmd",
+			Args:    "arg1 arg2 arg3 arg4 arg5",
+		},
 	},
 	{
 		body: `
 #syz test_5_arg_cmd arg1
 arg2`,
-		cmd:  cmdTest5,
-		str:  "test_5_arg_cmd",
-		args: "arg1 arg2",
+		cmd: &SingleCommand{
+			Command: cmdTest5,
+			Str:     "test_5_arg_cmd",
+			Args:    "arg1 arg2",
+		},
 	},
 	{
 		body: `
 #syz test_5_arg_cmd arg1
 arg2
 `,
-		cmd:  cmdTest5,
-		str:  "test_5_arg_cmd",
-		args: "arg1 arg2",
+		cmd: &SingleCommand{
+			Command: cmdTest5,
+			Str:     "test_5_arg_cmd",
+			Args:    "arg1 arg2",
+		},
 	},
 	{
 		body: `
@@ -280,9 +300,11 @@ arg2
 
  
 `,
-		cmd:  cmdTest5,
-		str:  "test_5_arg_cmd",
-		args: "arg1 arg2",
+		cmd: &SingleCommand{
+			Command: cmdTest5,
+			Str:     "test_5_arg_cmd",
+			Args:    "arg1 arg2",
+		},
 	},
 	{
 		body: `
@@ -291,27 +313,33 @@ arg1 arg2 arg3
 arg4 arg5
  
 `,
-		cmd:  CmdFix,
-		str:  "fix:",
-		args: "arg1 arg2 arg3",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix:",
+			Args:    "arg1 arg2 arg3",
+		},
 	},
 	{
 		body: `
 #syz  fix: arg1 arg2 arg3
 arg4 arg5 
 `,
-		cmd:  CmdFix,
-		str:  "fix:",
-		args: "arg1 arg2 arg3",
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix:",
+			Args:    "arg1 arg2 arg3",
+		},
 	},
 	{
 		body: `
 #syz dup: title goes here
 baz
 `,
-		cmd:  CmdDup,
-		str:  "dup:",
-		args: "title goes here",
+		cmd: &SingleCommand{
+			Command: CmdDup,
+			Str:     "dup:",
+			Args:    "title goes here",
+		},
 	},
 	{
 		body: `
@@ -319,25 +347,43 @@ baz
 title on the next line goes here  
 but not this one
 `,
-		cmd:  CmdDup,
-		str:  "dup",
-		args: "title on the next line goes here",
+		cmd: &SingleCommand{
+			Command: CmdDup,
+			Str:     "dup",
+			Args:    "title on the next line goes here",
+		},
 	},
 	{
 		body: `
 #syz foo bar
 baz
 `,
-		cmd: CmdUnknown,
-		str: "foo",
+		cmd: &SingleCommand{
+			Command: CmdUnknown,
+			Str:     "foo",
+		},
 	},
 	{
 		body: `
 #syz set subsystems: net, fs
 `,
-		cmd:  CmdSet,
-		str:  "set",
-		args: "subsystems: net, fs",
+		cmd: &SingleCommand{
+			Command: CmdSet,
+			Str:     "set",
+			Args:    "subsystems: net, fs",
+		},
+	},
+	{
+		body: `
+#syz fix: abcd
+#syz fix: xyz
+`,
+		// Should only extract the first one.
+		cmd: &SingleCommand{
+			Command: CmdFix,
+			Str:     "fix:",
+			Args:    "abcd",
+		},
 	},
 }
 
@@ -385,10 +431,14 @@ To unsubscribe from this group and stop receiving emails from it, send an email 
 To post to this group, send email to syzkaller@googlegroups.com.
 To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/abcdef@google.com.
 For more options, visit https://groups.google.com/d/optout.`,
-			Patch:       "",
-			Command:     CmdFix,
-			CommandStr:  "fix:",
-			CommandArgs: "arg1 arg2 arg3",
+			Patch: "",
+			Commands: []*SingleCommand{
+				{
+					Command: CmdFix,
+					Str:     "fix:",
+					Args:    "arg1 arg2 arg3",
+				},
+			},
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -410,8 +460,7 @@ last line`,
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 last line`,
-			Patch:   "",
-			Command: CmdNone,
+			Patch: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -434,10 +483,14 @@ last line`,
 text body
 second line
 last line`,
-			Patch:       "",
-			Command:     CmdInvalid,
-			CommandStr:  "invalid",
-			CommandArgs: "",
+			Patch: "",
+			Commands: []*SingleCommand{
+				{
+					Command: CmdInvalid,
+					Str:     "invalid",
+					Args:    "",
+				},
+			},
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -461,9 +514,13 @@ last line
 second line
 last line
 #syz command`,
-			Patch:      "",
-			Command:    CmdUnknown,
-			CommandStr: "command",
+			Patch: "",
+			Commands: []*SingleCommand{
+				{
+					Command: CmdUnknown,
+					Str:     "command",
+				},
+			},
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -514,8 +571,6 @@ index 85e5546cd791..949ea4574412 100644
  		spin_unlock(&kcov->lock);
  		return;
 `,
-			Command:     CmdNone,
-			CommandArgs: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -627,9 +682,13 @@ index 3d85747bd86e..a257b872a53d 100644
   error = vfs_statx(dfd, filename, flags, &stat, mask);
   if (error)
 `,
-			Command:     CmdTest,
-			CommandStr:  "test",
-			CommandArgs: "commit 59372bbf3abd5b24a7f6f676a3968685c280f955",
+			Commands: []*SingleCommand{
+				{
+					Command: CmdTest,
+					Str:     "test",
+					Args:    "commit 59372bbf3abd5b24a7f6f676a3968685c280f955",
+				},
+			},
 		}},
 
 	{`Sender: syzkaller-bugs@googlegroups.com
@@ -677,9 +736,13 @@ d
 
 #syz dup: BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
-		Command:     CmdDup,
-		CommandStr:  "dup:",
-		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
+		Commands: []*SingleCommand{
+			{
+				Command: CmdDup,
+				Str:     "dup:",
+				Args:    "BUG: unable to handle kernel NULL pointer dereference in corrupted",
+			},
+		},
 	}},
 
 	{`Sender: syzkaller-bugs@googlegroups.com
@@ -694,9 +757,13 @@ BUG: unable to handle kernel NULL pointer dereference in corrupted
 		Body: `#syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
-		Command:     CmdDup,
-		CommandStr:  "dup:",
-		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
+		Commands: []*SingleCommand{
+			{
+				Command: CmdDup,
+				Str:     "dup:",
+				Args:    "BUG: unable to handle kernel NULL pointer dereference in corrupted",
+			},
+		},
 	}},
 
 	{`Sender: syzkaller-bugs@googlegroups.com
@@ -711,9 +778,13 @@ When freeing a lockf struct that already is part of a linked list, make sure to
 		Body: `#syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `,
-		Command:     CmdFix,
-		CommandStr:  "fix:",
-		CommandArgs: "When freeing a lockf struct that already is part of a linked list, make sure to",
+		Commands: []*SingleCommand{
+			{
+				Command: CmdFix,
+				Str:     "fix:",
+				Args:    "When freeing a lockf struct that already is part of a linked list, make sure to",
+			},
+		},
 	}},
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>
@@ -723,16 +794,20 @@ To: syzbot <foo+4564456@bar.com>
 
 nothing to see here`,
 		Email{
-			BugIDs:      []string{"4564456"},
-			MessageID:   "<123>",
-			Date:        time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
-			Subject:     "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
-			Author:      "bob@example.com",
-			Cc:          []string{"bob@example.com"},
-			Body:        `nothing to see here`,
-			Command:     CmdTest,
-			CommandStr:  "test:",
-			CommandArgs: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+			BugIDs:    []string{"4564456"},
+			MessageID: "<123>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Subject:   "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+			Author:    "bob@example.com",
+			Cc:        []string{"bob@example.com"},
+			Body:      `nothing to see here`,
+			Commands: []*SingleCommand{
+				{
+					Command: CmdTest,
+					Str:     "test:",
+					Args:    "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+				},
+			},
 		}},
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>
@@ -750,7 +825,6 @@ nothing to see here`,
 			MailingList: "list@googlegroups.com",
 			Cc:          []string{"list@googlegroups.com", "user@mail.com"},
 			Body:        `nothing to see here`,
-			Command:     CmdNone,
 		}},
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>
@@ -768,7 +842,6 @@ nothing to see here`,
 			MailingList: "list@googlegroups.com",
 			Cc:          []string{"list@googlegroups.com", "user2@mail.com", "user@mail.com"},
 			Body:        `nothing to see here`,
-			Command:     CmdNone,
 		}},
 	// A faulty case, just check we handle it normally.
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -786,7 +859,6 @@ nothing to see here`,
 			MailingList: "list@googlegroups.com",
 			Cc:          []string{"list@googlegroups.com", "user2@mail.com"},
 			Body:        `nothing to see here`,
-			Command:     CmdNone,
 		}},
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
@@ -812,9 +884,13 @@ f950fddb9ea6bdb5e39
 		Body: `#syz 
 test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39
 `,
-		Command:     CmdTest,
-		CommandStr:  "test:",
-		CommandArgs: "https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39",
+		Commands: []*SingleCommand{
+			{
+				Command: CmdTest,
+				Str:     "test:",
+				Args:    "https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39",
+			},
+		},
 	}},
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: [PATCH] Some patch
@@ -837,7 +913,6 @@ Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `,
-		Command: CmdNone,
 	}},
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: [PATCH] Some patch
@@ -859,7 +934,6 @@ Link: https://bar.com/bug?extid=223c7461c58c58a4cb10@bar.com
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
 		Body: `Link: https://bar.com/bug?extid=223c7461c58c58a4cb10@bar.com
 `,
-		Command: CmdNone,
 	}},
 
 	{`Sender: syzkaller-bugs@googlegroups.com
@@ -885,7 +959,6 @@ Reported-by: syzbot <foo+9909090909090909@bar.com>
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 Reported-by: syzbot <foo+9909090909090909@bar.com>
 `,
-		Command: CmdNone,
 	}},
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: [PATCH] Some patch
@@ -909,7 +982,6 @@ Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
 		Body: `Reported-by: syzbot <foo+223c7461c58c58a4cb10@bar.com>
 `,
-		Command: CmdNone,
 	}},
 	{`Sender: syzkaller-bugs@googlegroups.com
 Subject: Some discussion
@@ -937,6 +1009,41 @@ Some text
 		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "someone@foo.com"},
 		Body:      "Some text\n",
-		Command:   CmdNone,
+	}},
+	{`Sender: syzkaller-bugs@googlegroups.com
+Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
+ sock_poll
+To: syzbot <syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com>
+From: bar <bar@foo.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+
+#syz test: aaa bbb
+#syz test: ccc ddd
+`, Email{
+		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		Author:    "bar@foo.com",
+		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Body: `#syz test: aaa bbb
+#syz test: ccc ddd
+`,
+		Commands: []*SingleCommand{
+			{
+				Command: CmdTest,
+				Str:     "test:",
+				Args:    "aaa bbb",
+			},
+			{
+				Command: CmdTest,
+				Str:     "test:",
+				Args:    "ccc ddd",
+			},
+		},
 	}},
 }

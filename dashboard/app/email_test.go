@@ -339,7 +339,7 @@ unknown command "bad-command"
 	// nolint: lll
 	c.expectEQ(reply, `> #syz fix: some: commit title
 
-Your 'fix:' command is accepted, but please keep bugs@syzkaller.com mailing list in CC next time. It serves as a history of what happened with each bug report. Thank you.
+Your commands are accepted, but please keep bugs@syzkaller.com mailing list in CC next time. It serves as a history of what happened with each bug report. Thank you.
 
 `)
 

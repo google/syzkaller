@@ -29,18 +29,21 @@ type Email struct {
 	Author      string
 	OwnEmail    bool
 	Cc          []string
-	Body        string  // text/plain part
-	Patch       string  // attached patch, if any
-	Command     Command // command to bot
-	CommandStr  string  // string representation of the command
-	CommandArgs string  // arguments for the command
+	Body        string // text/plain part
+	Patch       string // attached patch, if any
+	Commands    []*SingleCommand
+}
+
+type SingleCommand struct {
+	Command Command
+	Str     string // string representation
+	Args    string // arguments for the command
 }
 
 type Command int
 
 const (
 	CmdUnknown Command = iota
-	CmdNone
 	CmdUpstream
 	CmdFix
 	CmdUnFix
@@ -130,8 +133,8 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	}
 	bodyStr := string(body)
 	subject := msg.Header.Get("Subject")
-	cmd := CmdNone
-	patch, cmdStr, cmdArgs := "", "", ""
+	var cmds []*SingleCommand
+	var patch string
 	if !fromMe {
 		for _, a := range attachments {
 			patch = ParsePatch(a)
@@ -142,7 +145,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		if patch == "" {
 			patch = ParsePatch(body)
 		}
-		cmd, cmdStr, cmdArgs = extractCommand(subject + "\n" + bodyStr)
+		cmds = extractCommands(subject + "\n" + bodyStr)
 	}
 	bugIDs = append(bugIDs, extractBodyBugIDs(bodyStr, ownAddrs, domains)...)
 
@@ -180,9 +183,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		Cc:          ccList,
 		Body:        bodyStr,
 		Patch:       patch,
-		Command:     cmd,
-		CommandStr:  cmdStr,
-		CommandArgs: cmdArgs,
+		Commands:    cmds,
 	}
 	return email, nil
 }
@@ -241,25 +242,35 @@ func CanonicalEmail(email string) string {
 	return strings.ToLower(addr.Address)
 }
 
+func extractCommands(body string) []*SingleCommand {
+	var ret []*SingleCommand
+	for body != "" {
+		cmd, end := extractCommand(body)
+		if cmd == nil {
+			break
+		}
+		ret = append(ret, cmd)
+		body = body[end:]
+	}
+	return ret
+}
+
 const commandPrefix = "#syz"
+
+var commandStartRe = regexp.MustCompile(`(?:^|\n)(` + regexp.QuoteMeta(commandPrefix) + `[ \t-:])`)
 
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
 // ^#syz cmd args...
-func extractCommand(body string) (cmd Command, str, args string) {
-	nbody := "\n" + body
-	cmdPos := -1
-	for _, delim := range []string{" ", "\t", "-", ":"} {
-		cmdPos = strings.Index(nbody, "\n"+commandPrefix+delim)
-		if cmdPos != -1 {
-			break
-		}
+func extractCommand(body string) (*SingleCommand, int) {
+	var cmd Command
+	var str, args string
+
+	match := commandStartRe.FindStringSubmatchIndex(body)
+	if match == nil {
+		return nil, 0
 	}
-	if cmdPos == -1 {
-		cmd = CmdNone
-		return
-	}
-	cmdPos += len(commandPrefix) + 1
+	cmdPos := match[2] + len(commandPrefix) + 1
 	for cmdPos < len(body) && unicode.IsSpace(rune(body[cmdPos])) {
 		cmdPos++
 	}
@@ -292,15 +303,17 @@ func extractCommand(body string) (cmd Command, str, args string) {
 	case CmdFix, CmdDup:
 		args = extractArgsLine(body[cmdPos+cmdEnd:])
 	}
-	return
+	return &SingleCommand{
+		Command: cmd,
+		Str:     str,
+		Args:    args,
+	}, cmdPos + cmdEnd
 }
 
 func strToCmd(str string) Command {
 	switch str {
 	default:
 		return CmdUnknown
-	case "":
-		return CmdNone
 	case "upstream":
 		return CmdUpstream
 	case "fix", "fix:":

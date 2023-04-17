@@ -22,16 +22,17 @@ func TestFormReply(t *testing.T) {
 }
 
 var formReplyTests = []struct {
-	email  string
+	email  *Email
 	reply  string
 	result string
 }{
 	{
-		email: `line1
+		email: &Email{
+			Body: `line1
 line2
 #syz foo
 line3
-`,
+`},
 		reply: "this is reply",
 		result: `> line1
 > line2
@@ -43,10 +44,11 @@ this is reply
 `,
 	},
 	{
-		email: `
+		email: &Email{
+			Body: `
 #syz-fix
 line2
-`,
+`},
 		reply: "this is reply",
 		result: `>
 > #syz-fix
@@ -57,10 +59,11 @@ this is reply
 `,
 	},
 	{
-		email: `
+		email: &Email{
+			Body: `
 #syz: fix
 line2
-`,
+`},
 		reply: "this is reply",
 		result: `>
 > #syz: fix
@@ -71,11 +74,12 @@ this is reply
 `,
 	},
 	{
-		email: `> line1
+		email: &Email{
+			Body: `> line1
 > line2
 #syz foo
 line3
-`,
+`},
 		reply: "this is reply\n",
 		result: `>> line1
 >> line2
@@ -87,9 +91,10 @@ this is reply
 `,
 	},
 	{
-		email: `line1
+		email: &Email{
+			Body: `line1
 line2
-#syz foo`,
+#syz foo`},
 		reply: "this is reply 1\nthis is reply 2",
 		result: `> line1
 > line2
@@ -101,14 +106,37 @@ this is reply 2
 `,
 	},
 	{
-		email: `line1
+		email: &Email{
+			Body: `line1
 line2
-`,
+`},
 		reply: "this is reply",
 		result: `> line1
 > line2
 
 this is reply
+
+`,
+	},
+	{
+		email: &Email{
+			Body: `line1
+#syz foo
+line2
+#syz bar`,
+			Commands: []*SingleCommand{
+				{},
+				{},
+			},
+		},
+		reply: "this is reply 1\nthis is reply 2",
+		result: `> line1
+> #syz foo
+> line2
+> #syz bar
+
+this is reply 1
+this is reply 2
 
 `,
 	},
