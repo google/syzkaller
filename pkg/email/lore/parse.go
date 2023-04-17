@@ -4,6 +4,7 @@
 package lore
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -39,13 +40,15 @@ func DiscussionType(msg *email.Email) dashapi.DiscussionType {
 		discType = dashapi.DiscussionReport
 	}
 	// This is very crude, but should work for now.
-	if strings.Contains(strings.ToLower(msg.Subject), "[patch") {
+	if patchSubjectRe.MatchString(strings.ToLower(msg.Subject)) {
 		discType = dashapi.DiscussionPatch
 	} else if strings.Contains(msg.Subject, "Monthly") {
 		discType = dashapi.DiscussionReminder
 	}
 	return discType
 }
+
+var patchSubjectRe = regexp.MustCompile(`\[(?:(?:rfc|resend)\s+)*patch`)
 
 type parseCtx struct {
 	threads  []*Thread
