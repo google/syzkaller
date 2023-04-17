@@ -1064,7 +1064,7 @@ var linuxStackParams = &stackParams{
 		"print_usage_bug",
 		"do_error",
 		"invalid_op",
-		"_trap",
+		`_trap$|do_trap`,
 		"show_stack",
 		"dump_stack",
 		"walk_stack",
@@ -1238,6 +1238,12 @@ var linuxStackParams = &stackParams{
 		"^klist_",
 		"(trace|lockdep)_(hard|soft)irq",
 		"^(un)?lock_page",
+		"stack_trace_consume_entry",
+		"arch_stack_walk",
+		"stack_trace_save",
+		"insert_work",
+		"__queue_delayed_work",
+		"queue_delayed_work_on",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
