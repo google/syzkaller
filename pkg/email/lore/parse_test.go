@@ -269,6 +269,18 @@ func TestDiscussionType(t *testing.T) {
 		},
 		{
 			msg: &email.Email{
+				Subject: "[RFC PATCH] Bla-bla",
+			},
+			ret: dashapi.DiscussionPatch,
+		},
+		{
+			msg: &email.Email{
+				Subject: "[RESEND PATCH] Bla-bla",
+			},
+			ret: dashapi.DiscussionPatch,
+		},
+		{
+			msg: &email.Email{
 				Subject:  "[syzbot] Monthly ext4 report",
 				OwnEmail: true,
 			},
