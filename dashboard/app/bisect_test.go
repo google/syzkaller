@@ -91,6 +91,7 @@ func TestBisectCause(t *testing.T) {
 
 	// BisectCause #2
 	pollResp2 := pollResp
+	c.advanceTime(time.Minute)
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, pollResp2.ID)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
@@ -248,6 +249,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 		"bugs2@syzkaller.com",
 		"default2@maintainers.com",
 	})
+	c.advanceTime(time.Minute)
 	pollResp = c.client2.pollJobs(build.Manager)
 
 	// Bisection succeeded.
@@ -307,6 +309,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	}
 
 	// BisectFix #2
+	c.advanceTime(time.Minute)
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
@@ -320,6 +323,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	c.expectOK(c.client2.JobDone(done))
 
 	// BisectFix #3
+	c.advanceTime(time.Minute)
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
@@ -332,6 +336,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	c.expectOK(c.client2.JobDone(done))
 
 	// BisectFix #4
+	c.advanceTime(time.Minute)
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
