@@ -34,6 +34,7 @@ type Manager struct {
 	FailedSyzBuildBug string
 	LastAlive         time.Time
 	CurrentUpTime     time.Duration
+	LastGeneratedJob  time.Time
 }
 
 // ManagerStats holds per-day manager runtime stats.
