@@ -238,6 +238,13 @@ func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Jo
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
+	// Each syz-ci polls dashboard every 10 seconds. At the times when there are no
+	// matching jobs, it just doesn't make much sense to execute heavy algorithms that
+	// try to generate them too often.
+	// Note that it won't affect user-created jobs as they are not auto-generated.
+	if err := throttleJobGeneration(c, managers); err != nil {
+		return nil, nil, err
+	}
 	// We need both C and syz repros, but the crazy datastore query restrictions
 	// do not allow to use ReproLevel>ReproLevelNone in the query. So we do 2 separate queries.
 	// C repros tend to be of higher reliability so maybe it's not bad.
@@ -246,6 +253,53 @@ func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Jo
 		return job, jobKey, err
 	}
 	return createBisectJob(c, managers, ReproLevelSyz)
+}
+
+const jobGenerationPeriod = time.Minute
+
+func throttleJobGeneration(c context.Context, managers map[string]dashapi.ManagerJobs) error {
+	drop := map[string]struct{}{}
+	for name := range managers {
+		// Technically the key is Namespace+Manager, so it's not guaranteed
+		// that there'll be only one.
+		// But for throttling purposes any single entity will do.
+		// Also note that we do the query outside of the transaction as
+		// datastore prohibits non-ancestor queries.
+		keys, err := db.NewQuery("Manager").
+			Filter("Name=", name).
+			Limit(1).
+			KeysOnly().
+			GetAll(c, nil)
+		if err != nil {
+			return err
+		}
+		if len(keys) == 0 {
+			drop[name] = struct{}{}
+			continue
+		}
+		tx := func(c context.Context) error {
+			manager := new(Manager)
+			if err := db.Get(c, keys[0], manager); err != nil {
+				return fmt.Errorf("failed to get %v", keys[0])
+			}
+			if timeNow(c).Sub(manager.LastGeneratedJob) < jobGenerationPeriod {
+				drop[name] = struct{}{}
+				return nil
+			}
+			manager.LastGeneratedJob = timeNow(c)
+			if _, err = db.Put(c, keys[0], manager); err != nil {
+				return fmt.Errorf("failed to put Manager: %v", err)
+			}
+			return nil
+		}
+		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{}); err != nil {
+			return fmt.Errorf("failed to throttle: %v", err)
+		}
+	}
+	for name := range drop {
+		delete(managers, name)
+	}
+	return nil
 }
 
 // Ensure that for each manager there's one pending retest repro job.
