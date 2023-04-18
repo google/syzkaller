@@ -443,7 +443,7 @@ func (git *git) git(args ...string) ([]byte, error) {
 			return nil, err
 		}
 	}
-	return osutil.Run(time.Hour, cmd)
+	return osutil.Run(3*time.Hour, cmd)
 }
 
 func splitEmail(email string) (user, domain string, err error) {
