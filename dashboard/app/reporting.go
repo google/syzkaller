@@ -943,7 +943,11 @@ func incomingCommandUpdate(c context.Context, now time.Time, cmd *dashapi.BugUpd
 	if cmd.Status != dashapi.BugStatusOpen || !cmd.OnHold {
 		bugReporting.OnHold = time.Time{}
 	}
-	bug.LastActivity = now
+	if cmd.Status != dashapi.BugStatusUpdate || cmd.ExtID != "" {
+		// Update LastActivity only on important events.
+		// Otherwise it impedes bug obsoletion.
+		bug.LastActivity = now
+	}
 	return true, "", nil
 }
 
