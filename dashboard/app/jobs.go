@@ -386,6 +386,10 @@ func decommissionedInto(jobMgr string) []string {
 	return ret
 }
 
+// There are bugs with dozens of reproducer.
+// Let's spread the load more evenly by limiting the number of jobs created at a time.
+const maxRetestJobsAtOnce = 5
+
 func handleRetestForBug(c context.Context, bug *Bug, bugKey *db.Key,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes())
@@ -395,6 +399,7 @@ func handleRetestForBug(c context.Context, bug *Bug, bugKey *db.Key,
 	var job *Job
 	var jobKey *db.Key
 	now := timeNow(c)
+	jobsLeft := maxRetestJobsAtOnce
 	for crashID, crash := range crashes {
 		if crash.ReproSyz == 0 && crash.ReproC == 0 {
 			continue
@@ -411,6 +416,10 @@ func handleRetestForBug(c context.Context, bug *Bug, bugKey *db.Key,
 		if manager == "" || !managers[manager].TestPatches {
 			continue
 		}
+		if jobsLeft == 0 {
+			break
+		}
+		jobsLeft--
 		// Take the last successful build -- the build on which this crash happened
 		// might contain already obsolete repro and branch values.
 		build, err := lastManagerBuild(c, bug.Namespace, manager)
