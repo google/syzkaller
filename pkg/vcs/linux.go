@@ -64,12 +64,16 @@ func (ctx *linux) PreviousReleaseTags(commit, compilerType string) ([]string, er
 		//
 		// We used to use 4.1 as the oldest tested release (it works in general).
 		// However, there is correlation between how far back we go and probability
-		// of getting correct result (see #1532). So we now stop at 4.6.
+		// of getting correct result (see #1532). So we then stopped at 4.6.
 		// 4.6 is somewhat arbitrary, we've seen lots of wrong results in 4.5..4.6 range,
 		// but there is definitive reason for 4.6. Most likely later we want to bump it
 		// even more (as new releases are produced). Next good candidate may be 4.11
 		// because then we won't need gcc 5.5.
-		cutoff = "v4.5"
+		//
+		// TODO: The buildroot images deployed after #2820 can only boot v4.19+ kernels.
+		// This has caused lots of bad bisection results, see #3224. We either need a new
+		// universal image or a kernel version dependant image selection.
+		cutoff = "v4.18"
 	} else if compilerType == "clang" {
 		// v5.3 was the first release with solid clang support, however I was able to
 		// compile v5.1..v5.3 using a newer defconfig + make oldconfig. Everything older
