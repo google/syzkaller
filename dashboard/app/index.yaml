@@ -41,9 +41,9 @@ indexes:
 
 - kind: Bug
   properties:
-  - name: Namespace
   - name: Status
-  - name: LastTime
+  - name: HappenedOn
+  - name: HeadReproLevel
 
 - kind: Bug
   properties:

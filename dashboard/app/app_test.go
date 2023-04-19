@@ -190,7 +190,6 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
-			RetestRepros: true,
 		},
 		// Namespaces for access level testing.
 		"access-admin": {
@@ -304,6 +303,7 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
+			RetestRepros: true,
 			Subsystems: SubsystemsConfig{
 				Service: subsystem.MustMakeService(testSubsystems),
 			},

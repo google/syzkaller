@@ -386,11 +386,6 @@ func (c *Ctx) expectNoEmail() {
 	}
 }
 
-func (c *Ctx) updRetestReproJobs() {
-	_, err := c.GET("/cron/retest_repros")
-	c.expectOK(err)
-}
-
 type apiClient struct {
 	*Ctx
 	*dashapi.Dashboard
