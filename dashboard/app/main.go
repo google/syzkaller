@@ -66,7 +66,6 @@ func initHTTPHandlers() {
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
-	http.HandleFunc("/cron/retest_repros", handleRetestRepros)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
 }

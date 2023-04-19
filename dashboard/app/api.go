@@ -1556,19 +1556,6 @@ func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string)
 	return "", ErrAccess
 }
 
-func handleRetestRepros(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-	for ns, cfg := range config.Namespaces {
-		if !cfg.RetestRepros {
-			continue
-		}
-		err := updateRetestReproJobs(c, ns)
-		if err != nil {
-			log.Errorf(c, "failed to update retest repro jobs for %s: %v", ns, err)
-		}
-	}
-}
-
 func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	const updateBugsCount = 25

@@ -396,15 +396,16 @@ func TestReproRetestJob(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	client := c.publicClient
 	oldBuild := testBuild(1)
 	oldBuild.KernelRepo = "git://mygit.com/git.git"
 	oldBuild.KernelBranch = "main"
-	c.client2.UploadBuild(oldBuild)
+	client.UploadBuild(oldBuild)
 
 	crash := testCrash(oldBuild, 1)
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
-	c.client2.ReportCrash(crash)
+	client.ReportCrash(crash)
 	sender := c.pollEmailBug().Sender
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
@@ -413,7 +414,8 @@ func TestReproRetestJob(t *testing.T) {
 	crash2.ReproOpts = []byte("repro opts")
 	crash2.ReproSyz = []byte("repro syz")
 	crash2.ReproC = []byte("repro C")
-	c.client2.ReportCrash(crash2)
+	client.ReportCrash(crash2)
+	c.pollEmailBug()
 
 	// Upload a newer build.
 	c.advanceTime(time.Minute)
@@ -422,20 +424,16 @@ func TestReproRetestJob(t *testing.T) {
 	build.KernelRepo = "git://mygit.com/new-git.git"
 	build.KernelBranch = "new-main"
 	build.KernelConfig = []byte{0xAB, 0xCD, 0xEF}
-	c.client2.UploadBuild(build)
+	client.UploadBuild(build)
 
-	// Wait until the bug is upstreamed.
-	c.advanceTime(15 * 24 * time.Hour)
-	c.pollEmailBug()
-	c.pollEmailBug()
+	c.advanceTime(time.Hour)
 	bug, _, _ := c.loadBug(extBugID)
 	c.expectEQ(bug.ReproLevel, ReproLevelC)
 
 	// Let's say that the C repro testing has failed.
 	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
 	for i := 0; i < 2; i++ {
-		c.updRetestReproJobs()
-		resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+		resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 		c.expectEQ(resp.Type, dashapi.JobTestPatch)
 		c.expectEQ(resp.KernelRepo, build.KernelRepo)
 		c.expectEQ(resp.KernelBranch, build.KernelBranch)
@@ -456,7 +454,7 @@ func TestReproRetestJob(t *testing.T) {
 				ID: resp.ID,
 			}
 		}
-		c.client2.expectOK(c.client2.JobDone(done))
+		client.expectOK(client.JobDone(done))
 	}
 	// Expect that the repro level is no longer ReproLevelC.
 	c.expectNoEmail()
@@ -464,8 +462,8 @@ func TestReproRetestJob(t *testing.T) {
 	c.expectEQ(bug.HeadReproLevel, ReproLevelSyz)
 	// Let's also deprecate the syz repro.
 	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
-	c.updRetestReproJobs()
-	resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+
+	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 	c.expectEQ(resp.Type, dashapi.JobTestPatch)
 	c.expectEQ(resp.KernelBranch, build.KernelBranch)
 	c.expectEQ(resp.ReproC, []uint8(nil))
@@ -473,7 +471,7 @@ func TestReproRetestJob(t *testing.T) {
 	done := &dashapi.JobDoneReq{
 		ID: resp.ID,
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	client.expectOK(client.JobDone(done))
 	// Expect that the repro level is no longer ReproLevelC.
 	bug, _, _ = c.loadBug(extBugID)
 	c.expectEQ(bug.HeadReproLevel, ReproLevelNone)
@@ -534,7 +532,6 @@ func TestDelegatedManagerReproRetest(t *testing.T) {
 
 	// Let's say that the C repro testing has failed.
 	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
-	c.updRetestReproJobs()
 
 	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 	c.expectEQ(resp.Type, dashapi.JobTestPatch)
