@@ -187,7 +187,7 @@ using `#syz fix: commit-title` commands.
 can reproduce the bug and then goes back release-by-release to find the first
 release where kernel does not crash. Once such release is found, `syzbot` starts
 bisection on that range. `syzbot` has limitation of how far back in time it can
-go (currently `v4.1`), going back in time is [very hard](/pkg/vcs/linux.go)
+go (currently `v4.19`), going back in time is [very hard](/pkg/vcs/linux.go)
 because of incompatible compiler/linker/asm/perl/make/libc/etc, kernel
 build/boot breakages and large amounts of bugs.
 
