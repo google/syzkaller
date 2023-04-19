@@ -11,3 +11,5 @@ config:
  - CMDLINE: [append, "cgroup_disable=pressure cgroup.memory=nokmem"]
  # Disable -Werror for -Wframe-larger-than' warning
  - KVM_WERROR: n
+ # The default value of 2048 is not always big enough.
+ - FRAME_WARN: 4096
