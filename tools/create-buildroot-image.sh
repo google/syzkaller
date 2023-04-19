@@ -58,7 +58,7 @@ BR2_PACKAGE_OPENSSH=y
 
 BR2_TARGET_ROOTFS_EXT2_SIZE="1G"
 # Slightly more interesting and realistic options.
-BR2_TARGET_ROOTFS_EXT2_MKFS_OPTIONS="-O 64bit,ext_attr,encrypt,verity,extents,huge_file,flex_bg,dir_nlink,sparse_super,resize_inode,has_journal"
+BR2_TARGET_ROOTFS_EXT2_MKFS_OPTIONS="-O 64bit,ext_attr,encrypt,extents,huge_file,flex_bg,dir_nlink,sparse_super,resize_inode,has_journal"
 
 # Install firmware for USB devices we can connect during fuzzing.
 BR2_PACKAGE_LINUX_FIRMWARE=y
