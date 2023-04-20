@@ -315,3 +315,59 @@ func TestObject(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestMergeBase(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+
+	// Create base branch.
+	repo.Git("checkout", "-b", "base")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	baseCommit, _ := repo.repo.HeadCommit()
+
+	// Fork off another branch.
+	repo.Git("checkout", "-b", "fork")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	forkCommit, _ := repo.repo.HeadCommit()
+
+	// Ensure that merge base points to the base commit.
+	mergeCommits, err := repo.repo.MergeBases(baseCommit.Hash, forkCommit.Hash)
+	if err != nil {
+		t.Fatal(err)
+	} else if len(mergeCommits) != 1 || mergeCommits[0].Hash != baseCommit.Hash {
+		t.Fatalf("expected base commit, got %v", mergeCommits)
+	}
+
+	// Let branches diverge.
+	repo.Git("checkout", "base")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "newBase")
+	newBaseCommit, _ := repo.repo.HeadCommit()
+
+	repo.Git("checkout", "fork")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "newFork")
+	newForkCommit, _ := repo.repo.HeadCommit()
+
+	// The merge base should remain the same.
+	mergeCommits, err = repo.repo.MergeBases(newBaseCommit.Hash, newForkCommit.Hash)
+	if err != nil {
+		t.Fatal(err)
+	} else if len(mergeCommits) != 1 || mergeCommits[0].Hash != baseCommit.Hash {
+		t.Fatalf("expected base commit (%s), got %d other commits",
+			baseCommit.Hash, len(mergeCommits))
+	}
+
+	// Now do the merge.
+	repo.Git("merge", "base")
+
+	// And advance the fork branch.
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	newNewForkCommit, _ := repo.repo.HeadCommit()
+
+	// The merge base should point to the last commit in `base`.
+	mergeCommits, err = repo.repo.MergeBases(newBaseCommit.Hash, newNewForkCommit.Hash)
+	if err != nil {
+		t.Fatal(err)
+	} else if len(mergeCommits) != 1 || mergeCommits[0].Hash != newBaseCommit.Hash {
+		t.Fatalf("expected base commit, got %v", mergeCommits)
+	}
+}

@@ -588,3 +588,19 @@ func (git *git) IsRelease(commit string) (bool, error) {
 func (git *git) Object(name, commit string) ([]byte, error) {
 	return git.git("show", fmt.Sprintf("%s:%s", commit, name))
 }
+
+func (git *git) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) {
+	output, err := git.git("merge-base", firstCommit, secondCommit)
+	if err != nil {
+		return nil, err
+	}
+	ret := []*Commit{}
+	for _, hash := range strings.Fields(string(output)) {
+		commit, err := git.getCommit(hash)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, commit)
+	}
+	return ret, nil
+}
