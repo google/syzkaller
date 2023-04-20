@@ -971,13 +971,13 @@ func removeCrashReference(c context.Context, crashID int64, bugKey *db.Key,
 	return nil
 }
 
-func kernelRepoInfo(build *Build) KernelRepo {
-	return kernelRepoInfoRaw(build.Namespace, build.KernelRepo, build.KernelBranch)
+func kernelRepoInfo(c context.Context, build *Build) KernelRepo {
+	return kernelRepoInfoRaw(c, build.Namespace, build.KernelRepo, build.KernelBranch)
 }
 
-func kernelRepoInfoRaw(ns, url, branch string) KernelRepo {
+func kernelRepoInfoRaw(c context.Context, ns, url, branch string) KernelRepo {
 	var info KernelRepo
-	for _, repo := range config.Namespaces[ns].Repos {
+	for _, repo := range getKernelRepos(c, ns) {
 		if repo.URL == url && repo.Branch == branch {
 			info = repo
 			break
