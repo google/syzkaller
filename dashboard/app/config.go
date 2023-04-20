@@ -408,7 +408,7 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	if cfg.Kcidb != nil {
 		checkKcidb(ns, cfg.Kcidb)
 	}
-	checkKernelRepos(ns, cfg)
+	checkKernelRepos(ns, cfg.Repos)
 	checkNamespaceReporting(ns, cfg)
 	checkSubsystems(ns, cfg)
 }
@@ -459,11 +459,12 @@ func checkSubsystems(ns string, cfg *Config) {
 	}
 }
 
-func checkKernelRepos(ns string, cfg *Config) {
-	if len(cfg.Repos) == 0 {
+func checkKernelRepos(ns string, repos []KernelRepo) {
+	if len(repos) == 0 {
 		panic(fmt.Sprintf("no repos in namespace %q", ns))
 	}
-	for _, repo := range cfg.Repos {
+	aliasMap := map[string]bool{}
+	for _, repo := range repos {
 		if !vcs.CheckRepoAddress(repo.URL) {
 			panic(fmt.Sprintf("%v: bad repo URL %q", ns, repo.URL))
 		}
@@ -473,6 +474,10 @@ func checkKernelRepos(ns string, cfg *Config) {
 		if repo.Alias == "" {
 			panic(fmt.Sprintf("%v: empty repo alias for %q", ns, repo.Alias))
 		}
+		if aliasMap[repo.Alias] {
+			panic(fmt.Sprintf("%v: duplicate alias for %q", ns, repo.Alias))
+		}
+		aliasMap[repo.Alias] = true
 		if prio := repo.ReportingPriority; prio < 0 || prio > 9 {
 			panic(fmt.Sprintf("%v: bad kernel repo reporting priority %v for %q", ns, prio, repo.Alias))
 		}
