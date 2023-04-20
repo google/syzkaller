@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
+	"golang.org/x/net/context"
 )
 
 // There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
@@ -603,4 +604,17 @@ func (cfg *Config) lastActiveReporting() int {
 		last--
 	}
 	return last
+}
+
+var kernelReposKey = "Custom list of kernel repositories"
+
+func contextWithRepos(c context.Context, list []KernelRepo) context.Context {
+	return context.WithValue(c, &kernelReposKey, list)
+}
+
+func getKernelRepos(c context.Context, ns string) []KernelRepo {
+	if val, ok := c.Value(&kernelReposKey).([]KernelRepo); ok {
+		return val
+	}
+	return config.Namespaces[ns].Repos
 }
