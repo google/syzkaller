@@ -311,7 +311,7 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 	if err != nil {
 		return nil, err
 	}
-	kernelRepo := kernelRepoInfo(build)
+	kernelRepo := kernelRepoInfo(c, build)
 	notif := &dashapi.BugNotification{
 		Type:      typ,
 		Namespace: bug.Namespace,
@@ -458,7 +458,7 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 		typ = dashapi.ReportRepro
 	}
 	assetList := createAssetList(build, crash)
-	kernelRepo := kernelRepoInfo(build)
+	kernelRepo := kernelRepoInfo(c, build)
 	rep := &dashapi.BugReport{
 		Type:            typ,
 		Config:          reportingConfig,
@@ -547,7 +547,7 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	rep.BuildTime = build.Time
 	rep.CompilerID = build.CompilerID
 	rep.KernelRepo = build.KernelRepo
-	rep.KernelRepoAlias = kernelRepoInfo(build).Alias
+	rep.KernelRepoAlias = kernelRepoInfo(c, build).Alias
 	rep.KernelBranch = build.KernelBranch
 	rep.KernelCommit = build.KernelCommit
 	rep.KernelCommitTitle = build.KernelCommitTitle
@@ -610,7 +610,7 @@ func managersToRepos(c context.Context, ns string, managers []string) []string {
 			log.Errorf(c, "failed to get manager %q build: %v", manager, err)
 			continue
 		}
-		repo := kernelRepoInfo(build).Alias
+		repo := kernelRepoInfo(c, build).Alias
 		if dedup[repo] {
 			continue
 		}

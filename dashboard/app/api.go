@@ -231,7 +231,7 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 	resp := &dashapi.CommitPollResp{
 		ReportEmail: reportEmail(c, ns),
 	}
-	for _, repo := range config.Namespaces[ns].Repos {
+	for _, repo := range getKernelRepos(c, ns) {
 		if repo.NoPoll {
 			continue
 		}
@@ -835,8 +835,8 @@ func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
 	return assets, nil
 }
 
-func (crash *Crash) UpdateReportingPriority(build *Build, bug *Bug) {
-	prio := int64(kernelRepoInfo(build).ReportingPriority) * 1e6
+func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug *Bug) {
+	prio := int64(kernelRepoInfo(c, build).ReportingPriority) * 1e6
 	divReproPrio := int64(1)
 	if crash.ReproIsRevoked {
 		divReproPrio = 10
@@ -888,7 +888,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, true); err != nil {
 		return err
 	}
-	crash.UpdateReportingPriority(build, bug)
+	crash.UpdateReportingPriority(c, build, bug)
 	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
 	if _, err = db.Put(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put crash: %v", err)

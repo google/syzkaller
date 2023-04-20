@@ -735,7 +735,7 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 			crash.ReproIsRevoked = len(req.Commits) > 0
 		}
 	}
-	crash.UpdateReportingPriority(lastBuild, bug)
+	crash.UpdateReportingPriority(c, lastBuild, bug)
 	if _, err := db.Put(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put crash: %v", err)
 	}
@@ -1046,7 +1046,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	if bugReporting == nil {
 		return nil, fmt.Errorf("job bug has no reporting %q", job.Reporting)
 	}
-	kernelRepo := kernelRepoInfo(build)
+	kernelRepo := kernelRepoInfo(c, build)
 	rep := &dashapi.BugReport{
 		Type:            job.Type.toDashapiReportType(),
 		Config:          reportingConfig,

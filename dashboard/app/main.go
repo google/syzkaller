@@ -997,7 +997,7 @@ func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeUIJob(job, jobKey, bug, crash, build), nil
+	return makeUIJob(c, job, jobKey, bug, crash, build), nil
 }
 
 func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -1579,7 +1579,7 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, template.HTML, 
 			}
 			builds[crash.BuildID] = build
 		}
-		results = append(results, makeUICrash(crash, build))
+		results = append(results, makeUICrash(c, crash, build))
 	}
 	sampleReport, _, err := getText(c, textCrashReport, crashes[0].Report)
 	if err != nil {
@@ -1621,12 +1621,13 @@ func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiJob, error) {
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, makeUIJob(job, jobKeys[i], bug, crash, build))
+
+		results = append(results, makeUIJob(c, job, jobKeys[i], bug, crash, build))
 	}
 	return results, nil
 }
 
-func makeUICrash(crash *Crash, build *Build) *uiCrash {
+func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
 	uiAssets := []*uiAsset{}
 	for _, asset := range createAssetList(build, crash) {
 		uiAssets = append(uiAssets, &uiAsset{
@@ -1649,18 +1650,18 @@ func makeUICrash(crash *Crash, build *Build) *uiCrash {
 		Assets:          uiAssets,
 	}
 	if build != nil {
-		ui.uiBuild = makeUIBuild(build)
+		ui.uiBuild = makeUIBuild(c, build)
 	}
 	return ui
 }
 
-func makeUIBuild(build *Build) *uiBuild {
+func makeUIBuild(c context.Context, build *Build) *uiBuild {
 	return &uiBuild{
 		Time:                build.Time,
 		SyzkallerCommit:     build.SyzkallerCommit,
 		SyzkallerCommitLink: vcs.LogLink(vcs.SyzkallerRepo, build.SyzkallerCommit),
 		SyzkallerCommitDate: build.SyzkallerCommitDate,
-		KernelAlias:         kernelRepoInfo(build).Alias,
+		KernelAlias:         kernelRepoInfo(c, build).Alias,
 		KernelCommit:        build.KernelCommit,
 		KernelCommitLink:    vcs.LogLink(build.KernelRepo, build.KernelCommit),
 		KernelCommitTitle:   build.KernelCommitTitle,
@@ -1751,7 +1752,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter 
 	}
 	uiBuilds := make(map[string]*uiBuild)
 	for _, build := range builds {
-		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(build)
+		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(c, build)
 	}
 	var fullStats []*ManagerStats
 	for _, mgr := range managers {
@@ -1844,7 +1845,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getUIJobs(keys, jobs), nil
+	return getUIJobs(c, keys, jobs), nil
 }
 
 func loadPendingJobs(c context.Context) ([]*uiJob, error) {
@@ -1856,7 +1857,7 @@ func loadPendingJobs(c context.Context) ([]*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getUIJobs(keys, jobs), nil
+	return getUIJobs(c, keys, jobs), nil
 }
 
 func loadRunningJobs(c context.Context) ([]*uiJob, error) {
@@ -1868,13 +1869,13 @@ func loadRunningJobs(c context.Context) ([]*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getUIJobs(keys, jobs), nil
+	return getUIJobs(c, keys, jobs), nil
 }
 
-func getUIJobs(keys []*db.Key, jobs []*Job) []*uiJob {
+func getUIJobs(c context.Context, keys []*db.Key, jobs []*Job) []*uiJob {
 	var results []*uiJob
 	for i, job := range jobs {
-		results = append(results, makeUIJob(job, keys[i], nil, nil, nil))
+		results = append(results, makeUIJob(c, job, keys[i], nil, nil, nil))
 	}
 	return results
 }
@@ -1908,12 +1909,12 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 				return nil, err
 			}
 		}
-		results = append(results, makeUIJob(job, keys[i], nil, nil, build))
+		results = append(results, makeUIJob(c, job, keys[i], nil, nil, build))
 	}
 	return results, nil
 }
 
-func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
+func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	kernelRepo, kernelCommit := job.KernelRepo, job.KernelBranch
 	if build != nil {
 		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
@@ -1929,7 +1930,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 		Namespace:        job.Namespace,
 		Manager:          job.Manager,
 		BugTitle:         job.BugTitle,
-		KernelAlias:      kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
+		KernelAlias:      kernelRepoInfoRaw(c, job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
 		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
 		PatchLink:        textLink(textPatch, job.Patch),
 		Attempts:         job.Attempts,
@@ -1967,7 +1968,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 		ui.Commits = nil
 	}
 	if crash != nil {
-		ui.Crash = makeUICrash(crash, build)
+		ui.Crash = makeUICrash(c, crash, build)
 	}
 	return ui
 }
