@@ -103,3 +103,7 @@ func (ctx *fuchsia) ListCommitHashes(base string) ([]string, error) {
 func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {
 	return ctx.repo.Object(name, commit)
 }
+
+func (ctx *fuchsia) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) {
+	return ctx.repo.MergeBases(firstCommit, secondCommit)
+}
