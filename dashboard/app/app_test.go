@@ -80,7 +80,7 @@ var testConfig = &GlobalConfig{
 				{
 					URL:    "git://github.com/google/syzkaller",
 					Branch: "master",
-					Alias:  "repo10alias",
+					Alias:  "repo10alias1",
 					CC: CCConfig{
 						Maintainers: []string{"maintainers@repo10.org", "bugs@repo10.org"},
 					},
@@ -88,7 +88,7 @@ var testConfig = &GlobalConfig{
 				{
 					URL:    "git://github.com/google/syzkaller",
 					Branch: "old_master",
-					Alias:  "repo10alias",
+					Alias:  "repo10alias2",
 					NoPoll: true,
 				},
 			},
