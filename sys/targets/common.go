@@ -91,7 +91,7 @@ func (arch *UnixNeutralizer) Neutralize(c *prog.Call, fixStructure bool) error {
 		}
 		// Add MAP_FIXED flag, otherwise it produces non-deterministic results.
 		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED
-	case "mknod", "mknodat":
+	case "mknod", "mknodat", "compat_50_mknod":
 		pos := 1
 		if c.Meta.CallName == "mknodat" {
 			pos = 2
