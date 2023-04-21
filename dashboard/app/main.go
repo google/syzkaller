@@ -251,7 +251,6 @@ type uiBugPage struct {
 const (
 	sectionBugList        = "bug_list"
 	sectionJobList        = "job_list"
-	sectionCrashList      = "crash_list"
 	sectionDiscussionList = "discussion_list"
 )
 
@@ -799,8 +798,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		if len(fixBisections) != 0 {
 			data.Sections = append(data.Sections, &uiCollapsible{
 				Title: fmt.Sprintf("Fix bisection attempts (%d)", len(fixBisections)),
-				Type:  sectionCrashList,
-				Value: &uiCrashTable{Crashes: fixBisections},
+				Type:  sectionJobList,
+				Value: &uiJobList{
+					PerBug: true,
+					Jobs:   fixBisections,
+				},
 			})
 		}
 	}
@@ -1577,14 +1579,14 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 
 var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
 
-func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
+func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiJob, error) {
 	bugKey := bug.key(c)
-	jobs, _, err := queryJobsForBug(c, bugKey, JobBisectFix)
+	jobs, jobKeys, err := queryJobsForBug(c, bugKey, JobBisectFix)
 	if err != nil {
 		return nil, err
 	}
-	var results []*uiCrash
-	for _, job := range jobs {
+	var results []*uiJob
+	for i, job := range jobs {
 		crash, err := queryCrashForJob(c, job, bugKey)
 		if err != nil {
 			return nil, err
@@ -1596,7 +1598,7 @@ func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, makeUICrash(crash, build))
+		results = append(results, makeUIJob(job, jobKeys[i], bug, crash, build))
 	}
 	return results, nil
 }
