@@ -86,10 +86,10 @@ var testConfig = &GlobalConfig{
 					},
 				},
 				{
-					URL:      "git://github.com/google/syzkaller",
-					Branch:   "old_master",
-					Alias:    "repo10alias",
-					Obsolete: true,
+					URL:    "git://github.com/google/syzkaller",
+					Branch: "old_master",
+					Alias:  "repo10alias",
+					NoPoll: true,
 				},
 			},
 			Managers: map[string]ConfigManager{
