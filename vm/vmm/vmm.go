@@ -21,6 +21,9 @@ import (
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
+// Locates the VM id which is used for VM address.
+var vmctlStatusRegex = regexp.MustCompile(`^\s+([0-9]+)\b.*\brunning`)
+
 func init() {
 	vmimpl.Register("vmm", ctor, true)
 }
@@ -51,8 +54,6 @@ type instance struct {
 	vmm      *exec.Cmd
 	consolew io.WriteCloser
 }
-
-var ipRegex = regexp.MustCompile(`bound to (([0-9]+\.){3}3)`)
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
@@ -116,12 +117,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	// This is racy even with -w flag, start periodically fails with:
 	// vmctl: start vm command failed: Operation already in progress
 	// So also sleep for a bit.
-	inst.vmctl("stop", inst.vmName, "-f", "-w")
+	inst.vmctl("stop", "-f", "-w", inst.vmName)
 	time.Sleep(3 * time.Second)
 
 	createArgs := []string{
-		"create", inst.image,
+		"create",
 		"-b", pool.env.Image,
+		inst.image,
 	}
 	if _, err := inst.vmctl(createArgs...); err != nil {
 		return nil, err
@@ -148,7 +150,7 @@ func (inst *instance) Boot() error {
 		return err
 	}
 	startArgs := []string{
-		"start", inst.vmName,
+		"start",
 		"-b", inst.cfg.Kernel,
 		"-d", inst.image,
 		"-m", fmt.Sprintf("%vM", inst.cfg.Mem),
@@ -158,6 +160,7 @@ func (inst *instance) Boot() error {
 	if inst.cfg.Template != "" {
 		startArgs = append(startArgs, "-t", inst.cfg.Template)
 	}
+	startArgs = append(startArgs, inst.vmName)
 	if inst.debug {
 		log.Logf(0, "running command: vmctl %#v", startArgs)
 	}
@@ -178,55 +181,37 @@ func (inst *instance) Boot() error {
 	inr.Close()
 	inst.merger.Add("console", outr)
 
-	var bootOutput []byte
-	bootOutputStop := make(chan bool)
-	ipch := make(chan string, 1)
-	go func() {
-		gotip := false
-		for {
-			select {
-			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
-			case <-bootOutputStop:
-				bootOutputStop <- true
-				return
-			}
-			if gotip {
-				continue
-			}
-			if ip := parseIP(bootOutput); ip != "" {
-				ipch <- ip
-				gotip = true
-			}
-		}
-	}()
-
-	select {
-	case ip := <-ipch:
-		inst.sshhost = ip
-	case <-inst.merger.Err:
-		bootOutputStop <- true
-		<-bootOutputStop
-		return vmimpl.BootError{Title: "vmm exited", Output: bootOutput}
-	case <-time.After(10 * time.Minute):
-		bootOutputStop <- true
-		<-bootOutputStop
-		return vmimpl.BootError{Title: "no IP found", Output: bootOutput}
+	inst.sshhost, err = inst.lookupSSHAddress()
+	if err != nil {
+		return err
 	}
 
 	if err := vmimpl.WaitForSSH(inst.debug, 20*time.Minute, inst.sshhost,
 		inst.sshkey, inst.sshuser, inst.os, inst.sshport, nil); err != nil {
-		bootOutputStop <- true
-		<-bootOutputStop
-		return vmimpl.BootError{Title: err.Error(), Output: bootOutput}
+		out := <-inst.merger.Output
+		return vmimpl.BootError{Title: err.Error(), Output: out}
 	}
-	bootOutputStop <- true
-	<-bootOutputStop
 	return nil
 }
 
+func (inst *instance) lookupSSHAddress() (string, error) {
+	out, err := inst.vmctl("status", inst.vmName)
+	if err != nil {
+		return "", err
+	}
+	lines := strings.Split(out, "\n")
+	if len(lines) < 2 {
+		return "", vmimpl.BootError{Title: "Unexpected vmctl status output", Output: []byte(out)}
+	}
+	matches := vmctlStatusRegex.FindStringSubmatch(lines[1])
+	if len(matches) < 2 {
+		return "", vmimpl.BootError{Title: "Unexpected vmctl status output", Output: []byte(out)}
+	}
+	return fmt.Sprintf("100.64.%s.3", matches[1]), nil
+}
+
 func (inst *instance) Close() {
-	inst.vmctl("stop", inst.vmName, "-f")
+	inst.vmctl("stop", "-f", inst.vmName)
 	if inst.consolew != nil {
 		inst.consolew.Close()
 	}
@@ -331,12 +316,4 @@ func (inst *instance) vmctl(args ...string) (string, error) {
 		log.Logf(0, "vmctl output: %v", string(out))
 	}
 	return string(out), nil
-}
-
-func parseIP(output []byte) string {
-	matches := ipRegex.FindSubmatch(output)
-	if len(matches) < 2 {
-		return ""
-	}
-	return string(matches[1])
 }
