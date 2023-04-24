@@ -338,30 +338,30 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
 	if !ok {
 		callName = call.Meta.CallName
 	}
+	argsStrs := []string{}
+	funcName := ""
 	if native {
-		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
+		funcName = "syscall"
+		argsStrs = append(argsStrs, ctx.sysTarget.SyscallPrefix+callName)
 	} else if strings.HasPrefix(callName, "syz_") {
-		fmt.Fprintf(w, "%v(", callName)
+		funcName = callName
 	} else {
 		args := strings.Repeat(",intptr_t", len(call.Args)+call.Meta.MissingArgs)
 		if args != "" {
 			args = args[1:]
 		}
-		fmt.Fprintf(w, "((intptr_t(*)(%v))CAST(%v))(", args, callName)
+		funcName = fmt.Sprintf("((intptr_t(*)(%v))CAST(%v))", args, callName)
 	}
-	for ai, arg := range call.Args {
-		if native || ai > 0 {
-			fmt.Fprintf(w, ", ")
-		}
+	for _, arg := range call.Args {
 		switch arg := arg.(type) {
 		case prog.ExecArgConst:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
-				panic("sring format in syscall argument")
+				panic("string format in syscall argument")
 			}
-			fmt.Fprintf(w, "%v", ctx.constArgToStr(arg, true, native))
+			argsStrs = append(argsStrs, ctx.constArgToStr(arg, true, native))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
-				panic("sring format in syscall argument")
+				panic("string format in syscall argument")
 			}
 			val := ctx.resultArgToStr(arg)
 			if native && ctx.target.PtrSize == 4 {
@@ -369,18 +369,15 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
 				// and take 2 slots without the cast, which would be wrong.
 				val = "(intptr_t)" + val
 			}
-			fmt.Fprintf(w, "%v", val)
+			argsStrs = append(argsStrs, val)
 		default:
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
 	}
 	for i := 0; i < call.Meta.MissingArgs; i++ {
-		if native || len(call.Args) != 0 {
-			fmt.Fprintf(w, ", ")
-		}
-		fmt.Fprintf(w, "0")
+		argsStrs = append(argsStrs, "0")
 	}
-	fmt.Fprintf(w, ")")
+	fmt.Fprintf(w, "%v(%v)", funcName, strings.Join(argsStrs, ", "))
 }
 
 func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.ExecArgCsum, csumSeq int) {
