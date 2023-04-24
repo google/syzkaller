@@ -110,7 +110,7 @@ func TestSubsystemFilterMain(t *testing.T) {
 		}
 	}
 	// Check that filtering on the main page works.
-	reply, err = c.AuthGET(AccessAdmin, "/test1?subsystem="+subsystemA)
+	reply, err = c.AuthGET(AccessAdmin, "/test1?label=subsystems:"+subsystemA)
 	c.expectOK(err)
 	for _, title := range []string{crash2.Title} {
 		if bytes.Contains(reply, []byte(title)) {
@@ -147,7 +147,7 @@ func TestSubsystemFilterTerminal(t *testing.T) {
 	}
 
 	// Verify that the filtering works on the invalid bugs page.
-	reply, err := c.AuthGET(AccessAdmin, "/test1/invalid?subsystem="+subsystemB)
+	reply, err := c.AuthGET(AccessAdmin, "/test1/invalid?label=subsystems:"+subsystemB)
 	c.expectOK(err)
 	for _, title := range []string{crash1.Title} {
 		if bytes.Contains(reply, []byte(title)) {
@@ -179,7 +179,7 @@ func TestMainBugFilters(t *testing.T) {
 	assert.Contains(t, string(reply), build1.Manager)
 	assert.NotContains(t, string(reply), "Applied filters")
 
-	reply, err = c.AuthGET(AccessAdmin, "/test1?subsystem=abcd")
+	reply, err = c.AuthGET(AccessAdmin, "/test1?label=subsystems:abcd")
 	c.expectOK(err)
 	assert.NotContains(t, string(reply), build1.Manager) // managers are hidden
 	assert.Contains(t, string(reply), "Applied filters") // we're seeing a prompt to disable the filter

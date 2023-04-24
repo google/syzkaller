@@ -556,14 +556,14 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	rep.KernelConfigLink = externalLink(c, textKernelConfig, build.KernelConfig)
 	rep.SyzkallerCommit = build.SyzkallerCommit
 	rep.NoRepro = build.Type == BuildFailed
-	for _, item := range bug.Tags.Subsystems {
+	for _, item := range bug.LabelValues(SubsystemLabel) {
 		rep.Subsystems = append(rep.Subsystems, dashapi.BugSubsystem{
-			Name:  item.Name,
+			Name:  item.Value,
 			SetBy: item.SetBy,
-			Link:  fmt.Sprintf("%v/%s/s/%s", appURL(c), bug.Namespace, item.Name),
+			Link:  fmt.Sprintf("%v/%s/s/%s", appURL(c), bug.Namespace, item.Value),
 		})
 		rep.Maintainers = email.MergeEmailLists(rep.Maintainers,
-			subsystemMaintainers(c, rep.Namespace, item.Name))
+			subsystemMaintainers(c, rep.Namespace, item.Value))
 	}
 	for _, addr := range bug.UNCC {
 		rep.CC = email.RemoveFromEmailList(rep.CC, addr)

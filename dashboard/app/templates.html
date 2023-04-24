@@ -99,11 +99,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{if .Filter.OnlyManager}}
 		Only Manager={{.Filter.OnlyManager}} ({{link (call .DropURL "only_manager") "drop"}})
 	{{end}}
-	{{if .Filter.Subsystem}}
-		Subsystem={{.Filter.Subsystem}} ({{link (call .DropURL "subsystem") "drop"}})
-	{{end}}
 	{{if .Filter.NoSubsystem}}
 		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem") "drop"}})
+	{{end}}
+	{{if .Filter.Label}}
+		Label={{.Filter.Label}} ({{link (call .DropURL "label") "drop"}})
 	{{end}}
 	<br>
 {{end}}
@@ -160,8 +160,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
 			<td class="title">
 				<a href="{{$b.Link}}">{{$b.Title}}</a>
-				{{- range $b.Subsystems}}
-					<span class="subsystem">{{link .Link .Name}}</span>
+				{{- range $b.Labels}}
+					<span class="bug-label">{{link .Link .Name}}</span>
 				{{- end}}
 			</td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>

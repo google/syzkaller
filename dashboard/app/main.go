@@ -245,7 +245,7 @@ type uiBugPage struct {
 	SampleReport  template.HTML
 	Crashes       *uiCrashTable
 	TestPatchJobs *uiJobList
-	Subsystems    []*uiBugSubsystem
+	Labels        []*uiBugLabel
 }
 
 const (
@@ -304,11 +304,11 @@ type uiBug struct {
 	MissingOn      []string
 	NumManagers    int
 	LastActivity   time.Time
-	Subsystems     []*uiBugSubsystem
+	Labels         []*uiBugLabel
 	Discussions    DiscussionSummary
 }
 
-type uiBugSubsystem struct {
+type uiBugLabel struct {
 	Name string
 	Link string
 }
@@ -373,15 +373,16 @@ type userBugFilter struct {
 	Manager     string // show bugs that happened on the manager
 	OnlyManager string // show bugs that happened ONLY on the manager
 	Subsystem   string // only show bugs belonging to the subsystem
+	Label       string // TODO: support multiple.
 	NoSubsystem bool
 }
 
 func MakeBugFilter(r *http.Request) *userBugFilter {
 	return &userBugFilter{
-		Subsystem:   r.FormValue("subsystem"),
 		NoSubsystem: r.FormValue("no_subsystem") != "",
 		Manager:     r.FormValue("manager"),
 		OnlyManager: r.FormValue("only_manager"),
+		Label:       r.FormValue("label"),
 	}
 }
 
@@ -410,20 +411,26 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 	if filter.Manager != "" && !stringInList(bug.HappenedOn, filter.Manager) {
 		return false
 	}
-	if filter.NoSubsystem && len(bug.Tags.Subsystems) > 0 {
+	if filter.NoSubsystem && len(bug.LabelValues(SubsystemLabel)) > 0 {
 		return false
 	}
-	if filter.Subsystem != "" && !bug.hasSubsystem(filter.Subsystem) {
-		return false
+	if filter.Label != "" {
+		label, value := splitLabel(filter.Label)
+		return bug.HasLabel(label, value)
 	}
 	return true
+}
+
+func splitLabel(rawLabel string) (BugLabelType, string) {
+	label, value, _ := strings.Cut(rawLabel, ":")
+	return BugLabelType(label), value
 }
 
 func (filter *userBugFilter) Any() bool {
 	if filter == nil {
 		return false
 	}
-	return filter.Subsystem != "" || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
+	return filter.Label != "" || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
 }
 
 // handleMain serves main page.
@@ -784,8 +791,8 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
 	}
-	for _, entry := range bug.Tags.Subsystems {
-		data.Subsystems = append(data.Subsystems, makeBugSubsystemUI(c, bug, entry))
+	for _, entry := range bug.Labels {
+		data.Labels = append(data.Labels, makeBugLabelUI(c, bug, entry))
 	}
 	// bug.BisectFix is set to BisectNot in two cases :
 	// - no fix bisections have been performed on the bug
@@ -815,19 +822,30 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	return serveTemplate(w, "bug.html", data)
 }
 
-func makeBugSubsystemUI(c context.Context, bug *Bug, entry BugSubsystem) *uiBugSubsystem {
+func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
 	url := getCurrentURL(c)
-	// By default let's point to the subsystem's page.
-	link := fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Name)
-	if strings.HasPrefix(url, "/"+bug.Namespace) &&
-		!strings.Contains(url, "/s/") {
-		// If we're on a main or terminal page, let's amend the bug filter instead.
-		link = html.AmendURL(url, "subsystem", entry.Name)
+	filterValue := string(entry.Label) + ":" + entry.Value
+
+	// If we're on a main/terminal/subsystem page, let's stay there.
+	link := url
+	if !strings.HasPrefix(url, "/"+bug.Namespace) {
+		link = fmt.Sprintf("/%s", bug.Namespace)
 	}
-	return &uiBugSubsystem{
-		Name: entry.Name,
+	link = html.AmendURL(link, "label", filterValue)
+
+	ret := &uiBugLabel{
+		Name: entry.String(),
 		Link: link,
 	}
+	// Patch depending on the specific label type.
+	switch entry.Label {
+	case SubsystemLabel:
+		// Prefer link to the per-subsystem page.
+		if !strings.HasPrefix(url, "/"+bug.Namespace) || strings.Contains(url, "/s/") {
+			ret.Link = fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Value)
+		}
+	}
+	return ret
 }
 
 func getBugDiscussionsUI(c context.Context, bug *Bug) ([]*uiBugDiscussion, error) {
@@ -1323,10 +1341,11 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 }
 
 func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
-	manager, subsystem := filter.ManagerName(), filter.Subsystem
-	if subsystem != "" {
-		// Subsystem filter is more granular, so give it priority.
-		query = query.Filter("Tags.Subsystems.Name=", subsystem)
+	manager := filter.ManagerName()
+	label, value := splitLabel(filter.Label)
+	if label != EmptyLabel {
+		query = query.Filter("Labels.Label=", string(label))
+		query = query.Filter("Labels.Value=", value)
 	} else if manager != "" {
 		query = query.Filter("HappenedOn=", manager)
 	}
@@ -1477,8 +1496,8 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		LastActivity:   bug.LastActivity,
 		Discussions:    bug.discussionSummary(),
 	}
-	for _, entry := range bug.Tags.Subsystems {
-		uiBug.Subsystems = append(uiBug.Subsystems, makeBugSubsystemUI(c, bug, entry))
+	for _, entry := range bug.Labels {
+		uiBug.Labels = append(uiBug.Labels, makeBugLabelUI(c, bug, entry))
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
