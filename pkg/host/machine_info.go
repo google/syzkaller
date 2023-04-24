@@ -57,5 +57,4 @@ type machineInfoFunc struct {
 type KernelModule struct {
 	Name string
 	Addr uint64
-	Size uint64
 }

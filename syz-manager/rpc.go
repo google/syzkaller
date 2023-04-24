@@ -28,7 +28,6 @@ type RPCServer struct {
 	coverFilter           map[uint32]uint32
 	stats                 *Stats
 	batchSize             int
-	canonicalModules      *cover.Canonicalizer
 
 	mu            sync.Mutex
 	fuzzers       map[string]*Fuzzer
@@ -48,7 +47,6 @@ type Fuzzer struct {
 	newMaxSignal  signal.Signal
 	rotatedSignal signal.Signal
 	machineInfo   []byte
-	instModules   *cover.CanonicalizerInstance
 }
 
 type BugFrames struct {
@@ -99,17 +97,12 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.coverFilter = coverFilter
 	serv.modules = a.Modules
 
-	if serv.canonicalModules == nil {
-		serv.canonicalModules = cover.NewCanonicalizer(a.Modules)
-	}
-
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
 	f := &Fuzzer{
 		name:        a.Name,
 		machineInfo: a.MachineInfo,
-		instModules: serv.canonicalModules.NewInstance(a.Modules),
 	}
 	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
@@ -267,7 +260,6 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	defer serv.mu.Unlock()
 
 	f := serv.fuzzers[a.Name]
-	f.instModules.Canonicalize(a.Input.Cover)
 	// Note: f may be nil if we called shutdownInstance,
 	// but this request is already in-flight.
 	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
@@ -373,9 +365,6 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		if len(f.inputs) == 0 {
 			f.inputs = nil
 		}
-	}
-	for _, inp := range r.NewInputs {
-		f.instModules.Decanonicalize(inp.Cover)
 	}
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
