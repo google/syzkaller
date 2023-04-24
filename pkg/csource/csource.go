@@ -288,10 +288,13 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 	return calls, p.Vars
 }
 
+func isNative(sysTarget *targets.Target, callName string) bool {
+	_, trampoline := sysTarget.SyscallTrampolines[callName]
+	return sysTarget.SyscallNumbers && !strings.HasPrefix(callName, "syz_") && !trampoline
+}
+
 func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCopyout, trace bool) {
-	callName := call.Meta.CallName
-	_, trampoline := ctx.sysTarget.SyscallTrampolines[callName]
-	native := ctx.sysTarget.SyscallNumbers && !strings.HasPrefix(callName, "syz_") && !trampoline
+	native := isNative(ctx.sysTarget, call.Meta.CallName)
 	fmt.Fprintf(w, "\t")
 	if !native {
 		// This mimics the same as executor does for execute_syscall,
@@ -308,11 +311,11 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	if haveCopyout || trace {
 		fmt.Fprintf(w, "res = ")
 	}
-	ctx.emitCallBody(w, call, native)
+	ctx.emitCallBody(w, call)
 	if !native {
 		fmt.Fprintf(w, ")") // close NONFAILING macro
 	}
-	fmt.Fprintf(w, ");")
+	fmt.Fprintf(w, ";")
 	comment := ctx.target.AnnotateCall(call)
 	if comment != "" {
 		fmt.Fprintf(w, " /* %s */", comment)
@@ -320,7 +323,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	fmt.Fprintf(w, "\n")
 	if trace {
 		cast := ""
-		if !native && !strings.HasPrefix(callName, "syz_") {
+		if !native && !strings.HasPrefix(call.Meta.CallName, "syz_") {
 			// Potentially we casted a function returning int to a function returning intptr_t.
 			// So instead of intptr_t -1 we can get 0x00000000ffffffff. Sign extend it to intptr_t.
 			cast = "(intptr_t)(int)"
@@ -329,7 +332,8 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	}
 }
 
-func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall, native bool) {
+func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
+	native := isNative(ctx.sysTarget, call.Meta.CallName)
 	callName, ok := ctx.sysTarget.SyscallTrampolines[call.Meta.CallName]
 	if !ok {
 		callName = call.Meta.CallName
@@ -376,6 +380,7 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall, native boo
 		}
 		fmt.Fprintf(w, "0")
 	}
+	fmt.Fprintf(w, ")")
 }
 
 func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.ExecArgCsum, csumSeq int) {
