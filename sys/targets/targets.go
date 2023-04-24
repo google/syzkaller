@@ -46,6 +46,10 @@ type Target struct {
 	timeouts Timeouts
 }
 
+func (target *Target) HasCallNumber(callName string) bool {
+	return target.SyscallNumbers && !strings.HasPrefix(callName, "syz_")
+}
+
 type osCommon struct {
 	// What OS can build native binaries for this OS.
 	// If not set, defaults to itself (i.e. native build).

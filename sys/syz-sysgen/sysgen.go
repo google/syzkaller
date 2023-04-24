@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
-	"strings"
 	"sync"
 	"text/template"
 
@@ -287,8 +286,7 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 		data.Calls = append(data.Calls, newSyscallData(target, c, attrVals[:last+1]))
 		// Some syscalls might not be present on the compiling machine, so we
 		// generate definitions for them.
-		if target.SyscallNumbers && !strings.HasPrefix(c.CallName, "syz_") &&
-			target.NeedSyscallDefine(c.NR) {
+		if target.HasCallNumber(c.CallName) && target.NeedSyscallDefine(c.NR) {
 			defines[target.SyscallPrefix+c.CallName] = fmt.Sprintf("%d", c.NR)
 		}
 	}
@@ -316,7 +314,7 @@ func newSyscallData(target *targets.Target, sc *prog.Syscall, attrs []uint64) Sy
 		Name:     sc.Name,
 		CallName: callName,
 		NR:       int32(sc.NR),
-		NeedCall: (!target.SyscallNumbers || strings.HasPrefix(sc.CallName, "syz_") || patchCallName) && !sc.Attrs.Disabled,
+		NeedCall: (!target.HasCallNumber(sc.CallName) || patchCallName) && !sc.Attrs.Disabled,
 		Attrs:    attrs,
 	}
 }
