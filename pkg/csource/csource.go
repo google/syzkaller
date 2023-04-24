@@ -311,7 +311,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	if haveCopyout || trace {
 		fmt.Fprintf(w, "res = ")
 	}
-	ctx.emitCallBody(w, call)
+	w.WriteString(ctx.fmtCallBody(call))
 	if !native {
 		fmt.Fprintf(w, ")") // close NONFAILING macro
 	}
@@ -332,7 +332,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	}
 }
 
-func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
+func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 	native := isNative(ctx.sysTarget, call.Meta.CallName)
 	callName, ok := ctx.sysTarget.SyscallTrampolines[call.Meta.CallName]
 	if !ok {
@@ -358,7 +358,8 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
 			}
-			argsStrs = append(argsStrs, ctx.constArgToStr(arg, true, native))
+			suf := ctx.literalSuffix(arg, native)
+			argsStrs = append(argsStrs, handleBigEndian(arg, ctx.constArgToStr(arg, suf)))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
@@ -377,7 +378,7 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
 	for i := 0; i < call.Meta.MissingArgs; i++ {
 		argsStrs = append(argsStrs, "0")
 	}
-	fmt.Fprintf(w, "%v(%v)", funcName, strings.Join(argsStrs, ", "))
+	return fmt.Sprintf("%v(%v)", funcName, strings.Join(argsStrs, ", "))
 }
 
 func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.ExecArgCsum, csumSeq int) {
@@ -405,7 +406,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 	switch arg := copyin.Arg.(type) {
 	case prog.ExecArgConst:
 		if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
-			ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.constArgToStr(arg, true, false), arg.Format)
+			ctx.copyinVal(w, copyin.Addr, arg.Size, handleBigEndian(arg, ctx.constArgToStr(arg, "")), arg.Format)
 		} else {
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("bitfield+string format")
@@ -419,7 +420,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 				bitfieldOffset = arg.Size*8 - arg.BitfieldOffset - arg.BitfieldLength
 			}
 			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",
-				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, false, false),
+				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, ""),
 				bitfieldOffset, arg.BitfieldLength)
 		}
 	case prog.ExecArgResult:
@@ -499,15 +500,24 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	}
 }
 
-func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian, native bool) string {
+func (ctx *context) constArgToStr(arg prog.ExecArgConst, suffix string) string {
 	mask := (uint64(1) << (arg.Size * 8)) - 1
 	v := arg.Value & mask
-	val := fmt.Sprintf("%v", v)
+	val := ""
 	if v == ^uint64(0)&mask {
 		val = "-1"
 	} else if v >= 10 {
-		val = fmt.Sprintf("0x%x", v)
+		val = fmt.Sprintf("0x%x%s", v, suffix)
+	} else {
+		val = fmt.Sprintf("%d%s", v, suffix)
 	}
+	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
+		val += fmt.Sprintf(" + procid*%v", arg.PidStride)
+	}
+	return val
+}
+
+func (ctx *context) literalSuffix(arg prog.ExecArgConst, native bool) string {
 	if native && arg.Size == 8 {
 		// syscall() is variadic, so constant arguments must be explicitly
 		// promoted. Otherwise the compiler is free to leave garbage in the
@@ -525,16 +535,17 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian, native
 		// this should be fine: arguments are passed in 64-bit registers or
 		// at 64 bit-aligned addresses on the stack.
 		if ctx.target.PtrSize == 4 {
-			val += "ull"
+			return "ull"
 		} else {
-			val += "ul"
+			return "ul"
 		}
 	}
-	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
-		val += fmt.Sprintf(" + procid*%v", arg.PidStride)
-	}
-	if handleBigEndian && arg.Format == prog.FormatBigEndian {
-		val = fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)
+	return ""
+}
+
+func handleBigEndian(arg prog.ExecArgConst, val string) string {
+	if arg.Format == prog.FormatBigEndian {
+		return fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)
 	}
 	return val
 }
