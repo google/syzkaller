@@ -312,7 +312,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	if !native {
 		fmt.Fprintf(w, ")") // close NONFAILING macro
 	}
-	fmt.Fprintf(w, ");")
+	fmt.Fprintf(w, ";")
 	comment := ctx.target.AnnotateCall(call)
 	if comment != "" {
 		fmt.Fprintf(w, " /* %s */", comment)
@@ -375,6 +375,7 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
 		}
 		fmt.Fprintf(w, "0")
 	}
+	fmt.Fprintf(w, ")")
 }
 
 func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.ExecArgCsum, csumSeq int) {
