@@ -356,14 +356,14 @@ func emailListReport(c context.Context, rep *dashapi.BugListReport, cfg *EmailCo
 
 	var b bytes.Buffer
 	w := tabwriter.NewWriter(&b, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "Crashes\tRepro\tTitle")
-	for _, bug := range rep.Bugs {
+	fmt.Fprintln(w, "Ref\tCrashes\tRepro\tTitle")
+	for i, bug := range rep.Bugs {
 		repro := "No"
 		if bug.ReproLevel > dashapi.ReproLevelNone {
 			repro = "Yes"
 		}
-		fmt.Fprintf(w, "%d\t%s\t%s\n", bug.Hits, repro, bug.Title)
-		fmt.Fprintf(w, "\t\t%s\n", bug.Link)
+		fmt.Fprintf(w, "<%d>\t%d\t%s\t%s\n", i+1, bug.Hits, repro, bug.Title)
+		fmt.Fprintf(w, "\t\t\t%s\n", bug.Link)
 	}
 	w.Flush()
 	args.Table = b.String()
