@@ -308,7 +308,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	if haveCopyout || trace {
 		fmt.Fprintf(w, "res = ")
 	}
-	ctx.emitCallBody(w, call, native)
+	ctx.emitCallBody(w, call)
 	if !native {
 		fmt.Fprintf(w, ")") // close NONFAILING macro
 	}
@@ -329,21 +329,20 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	}
 }
 
-func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall, native bool) {
-	callName, ok := ctx.sysTarget.SyscallTrampolines[call.Meta.CallName]
-	if !ok {
-		callName = call.Meta.CallName
-	}
-	if native {
-		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
-	} else if strings.HasPrefix(callName, "syz_") {
-		fmt.Fprintf(w, "%v(", callName)
-	} else {
+func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall) {
+	callName := call.Meta.CallName
+	native := false
+	if override, ok := ctx.sysTarget.SyscallTrampolines[callName]; !ctx.sysTarget.SyscallNumbers || ok {
 		args := strings.Repeat(",intptr_t", len(call.Args)+call.Meta.MissingArgs)
 		if args != "" {
 			args = args[1:]
 		}
-		fmt.Fprintf(w, "((intptr_t(*)(%v))CAST(%v))(", args, callName)
+		fmt.Fprintf(w, "((intptr_t(*)(%v))CAST(%v))(", args, override)
+	} else if strings.HasPrefix(callName, "syz_") {
+		fmt.Fprintf(w, "%v(", callName)
+	} else {
+		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
+		native = true
 	}
 	for ai, arg := range call.Args {
 		if native || ai > 0 {
@@ -352,12 +351,12 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall, native boo
 		switch arg := arg.(type) {
 		case prog.ExecArgConst:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
-				panic("sring format in syscall argument")
+				panic("string format in syscall argument")
 			}
 			fmt.Fprintf(w, "%v", ctx.constArgToStr(arg, true, native))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
-				panic("sring format in syscall argument")
+				panic("string format in syscall argument")
 			}
 			val := ctx.resultArgToStr(arg)
 			if native && ctx.target.PtrSize == 4 {
