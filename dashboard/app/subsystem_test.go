@@ -51,7 +51,7 @@ func TestPeriodicSubsystemRefresh(t *testing.T) {
 	extID := rep.ID
 
 	// Initially there should be no subsystems.
-	expectSubsystems(t, client, extID)
+	expectLabels(t, client, extID)
 
 	// Update subsystems.
 	item := &subsystem.Subsystem{
@@ -65,14 +65,14 @@ func TestPeriodicSubsystemRefresh(t *testing.T) {
 	c.advanceTime(time.Hour)
 	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
-	expectSubsystems(t, client, extID) // Not enough time has passed yet.
+	expectLabels(t, client, extID) // Not enough time has passed yet.
 
 	// Wait until the refresh period is over.
 	c.advanceTime(openBugsUpdateTime)
 
 	_, err = c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
-	expectSubsystems(t, client, extID, "first")
+	expectLabels(t, client, extID, "subsystems:first")
 }
 
 func TestOpenBugRevRefresh(t *testing.T) {
@@ -94,7 +94,7 @@ func TestOpenBugRevRefresh(t *testing.T) {
 	extID := rep.ID
 
 	// Initially there should be no subsystems.
-	expectSubsystems(t, client, extID)
+	expectLabels(t, client, extID)
 
 	// Update subsystems.
 	c.advanceTime(time.Hour)
@@ -108,7 +108,7 @@ func TestOpenBugRevRefresh(t *testing.T) {
 	// Refresh subsystems.
 	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
-	expectSubsystems(t, client, extID, "first")
+	expectLabels(t, client, extID, "subsystems:first")
 }
 
 func TestClosedBugSubsystemRefresh(t *testing.T) {
@@ -145,7 +145,7 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	c.expectEQ(bug.Status, BugStatusFixed)
 
 	// Initially there should be no subsystems.
-	expectSubsystems(t, client, extID)
+	expectLabels(t, client, extID)
 
 	// Update subsystems.
 	c.advanceTime(time.Hour)
@@ -159,7 +159,7 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	c.advanceTime(time.Hour)
 	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
-	expectSubsystems(t, client, extID, "first")
+	expectLabels(t, client, extID, "subsystems:first")
 }
 
 func TestUserSubsystemsRefresh(t *testing.T) {
@@ -183,21 +183,20 @@ func TestUserSubsystemsRefresh(t *testing.T) {
 	c.expectOK(err)
 
 	// Make sure we've set the right subsystem.
-	expectSubsystems(t, client, extID, "subsystemA")
+	expectLabels(t, client, extID, "subsystems:subsystemA")
 
 	// Manually set another subsystem.
 	c.incomingEmail(sender, "#syz set subsystems: subsystemB\n",
 		EmailOptFrom("test@requester.com"))
-	c.pollEmailBug()
-	expectSubsystems(t, client, extID, "subsystemB")
+	expectLabels(t, client, extID, "subsystems:subsystemB")
 
 	// Refresh subsystems.
 	c.advanceTime(openBugsUpdateTime + time.Hour)
 	_, err = c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
 
-	// The subsystem must stay the same.
-	expectSubsystems(t, client, extID, "subsystemB")
+	// The subsystems must stay the same.
+	expectLabels(t, client, extID, "subsystems:subsystemB")
 
 	// Bump the subsystem revision and refresh subsystems.
 	c.setSubsystems(ns, testSubsystems, 2)
@@ -206,17 +205,7 @@ func TestUserSubsystemsRefresh(t *testing.T) {
 	c.expectOK(err)
 
 	// The subsystem must still stay the same.
-	expectSubsystems(t, client, extID, "subsystemB")
-}
-
-func expectSubsystems(t *testing.T, client *apiClient, extID string, subsystems ...string) {
-	t.Helper()
-	bug, _, _ := client.Ctx.loadBug(extID)
-	names := []string{}
-	for _, item := range bug.Tags.Subsystems {
-		names = append(names, item.Name)
-	}
-	assert.ElementsMatch(t, names, subsystems)
+	expectLabels(t, client, extID, "subsystems:subsystemB")
 }
 
 // nolint: goconst
@@ -684,11 +673,11 @@ In total, 3 issues are still open.
 
 Some of the still happening issues:
 
-Crashes Repro Title
-2       No    WARNING: a first
-              https://testapp.appspot.com/bug?extid=%[1]v
-2       No    WARNING: a third
-              https://testapp.appspot.com/bug?extid=%[2]v
+Ref Crashes Repro Title
+<1> 2       No    WARNING: a first
+                  https://testapp.appspot.com/bug?extid=%[1]v
+<2> 2       No    WARNING: a third
+                  https://testapp.appspot.com/bug?extid=%[2]v
 
 The report will be sent to: [subsystemA@list.com subsystemA@person.com].
 If the report looks fine to you, please send the "syz upstream" command.

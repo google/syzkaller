@@ -340,7 +340,8 @@ func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLev
 	allOpenBugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
-			Filter("Tags.Subsystems.Name=", name)
+			Filter("Labels.Label=", SubsystemLabel).
+			Filter("Labels.Value=", name)
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query open bugs for subsystem: %w", err)
@@ -348,7 +349,8 @@ func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLev
 	allFixedBugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status=", BugStatusFixed).
-			Filter("Tags.Subsystems.Name=", name)
+			Filter("Labels.Label=", SubsystemLabel).
+			Filter("Labels.Value=", name)
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query fixed bugs for subsystem: %w", err)

@@ -207,7 +207,7 @@ table td, table th {
 	font-size: 75%;
 }
 
-.subsystem {
+.bug-label {
 	background: white;
 	border: 1pt solid black;
 	display: inline-block;
@@ -217,7 +217,7 @@ table td, table th {
 	font-size: small;
 }
 
-.subsystem a {
+.bug-label a {
 	text-decoration: none;
 	color: black;
 }
