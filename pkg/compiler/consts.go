@@ -69,7 +69,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 			info.defines[name] = v
 			comp.addConst(infos, pos, name)
 		case *ast.Call:
-			if comp.target.SyscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
+			if comp.target.HasCallNumber(n.CallName) {
 				comp.addConst(infos, pos, comp.target.SyscallPrefix+n.CallName)
 			}
 			for _, attr := range n.Attrs {
