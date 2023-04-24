@@ -375,6 +375,16 @@ baz
 	},
 	{
 		body: `
+#syz unset some tag
+`,
+		cmd: &SingleCommand{
+			Command: CmdUnset,
+			Str:     "unset",
+			Args:    "some tag",
+		},
+	},
+	{
+		body: `
 #syz fix: abcd
 #syz fix: xyz
 `,

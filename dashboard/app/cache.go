@@ -72,12 +72,13 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, ns string, accessLevel 
 			continue
 		}
 		v.Total.Record(bug)
-		for _, subsystem := range bug.Tags.Subsystems {
-			stats := v.Subsystems[subsystem.Name]
+		subsystems := bug.LabelValues(SubsystemLabel)
+		for _, label := range subsystems {
+			stats := v.Subsystems[label.Value]
 			stats.Record(bug)
-			v.Subsystems[subsystem.Name] = stats
+			v.Subsystems[label.Value] = stats
 		}
-		if len(bug.Tags.Subsystems) == 0 {
+		if len(subsystems) == 0 {
 			v.NoSubsystem.Record(bug)
 		}
 	}
