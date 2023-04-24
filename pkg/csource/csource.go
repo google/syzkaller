@@ -214,8 +214,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 func (ctx *context) generateSyscallDefines() string {
 	var calls []string
 	for name, nr := range ctx.calls {
-		if !ctx.sysTarget.SyscallNumbers ||
-			strings.HasPrefix(name, "syz_") || !ctx.sysTarget.NeedSyscallDefine(nr) {
+		if !ctx.sysTarget.HasCallNumber(name) || !ctx.sysTarget.NeedSyscallDefine(nr) {
 			continue
 		}
 		calls = append(calls, name)
@@ -290,7 +289,7 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 
 func isNative(sysTarget *targets.Target, callName string) bool {
 	_, trampoline := sysTarget.SyscallTrampolines[callName]
-	return sysTarget.SyscallNumbers && !strings.HasPrefix(callName, "syz_") && !trampoline
+	return sysTarget.HasCallNumber(callName) && !trampoline
 }
 
 func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCopyout, trace bool) {
