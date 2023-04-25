@@ -264,6 +264,13 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 			// Don't take bugs which are too new -- they're still fresh in memory.
 			continue
 		}
+		discussions := bug.discussionSummary()
+		if discussions.ExternalMessages > 0 &&
+			discussions.LastMessage.After(timeNow(c).Add(-config.UserReplyFrist)) {
+			// Don't take bugs with recent user replies.
+			// As we don't keep exactly the date of the last user message, approximate it.
+			continue
+		}
 		if bug.ReproLevel == dashapi.ReproLevelNone {
 			noRepro = append(noRepro, bug)
 		} else {
