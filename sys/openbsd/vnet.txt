@@ -149,7 +149,7 @@ arp_packet [
 # https://tools.ietf.org/html/rfc791#section-3.1
 # https://en.wikipedia.org/wiki/IPv4#Header
 
-# This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common_bsd.h
+# This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common_openbsd.h
 ipv4_addr_local {
 	a0	const[0xac, int8]
 	a1	const[0x14, int8]
@@ -157,7 +157,7 @@ ipv4_addr_local {
 	a3	const[0xaa, int8]
 } [packed]
 
-# This corresponds to LOCAL_IPV4 ("172.20.%d.187" % pid) in executor/common_bsd.h
+# This corresponds to LOCAL_IPV4 ("172.20.%d.187" % pid) in executor/common_openbsd.h
 ipv4_addr_remote {
 	a0	const[0xac, int8]
 	a1	const[0x14, int8]
@@ -490,7 +490,7 @@ ipv6_addr_empty {
 	a0	array[const[0x0, int8], 16]
 }
 
-# This corresponds to LOCAL_IPV6 ("fe80::%02hxaa" % pid) in executor/common_bsd.h
+# This corresponds to LOCAL_IPV6 ("fe80::%02hxaa" % pid) in executor/common_openbsd.h
 ipv6_addr_local {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]
@@ -499,7 +499,7 @@ ipv6_addr_local {
 	a4	const[0xaa, int8]
 } [packed]
 
-# This corresponds to REMOTE_IPV6 ("fe80::%02hxbb" % pid) in executor/common_bsd.h
+# This corresponds to REMOTE_IPV6 ("fe80::%02hxbb" % pid) in executor/common_openbsd.h
 ipv6_addr_remote {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]

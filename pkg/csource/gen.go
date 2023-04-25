@@ -30,6 +30,7 @@ func main() {
 		"common_linux.h",
 		"common_akaros.h",
 		"common_bsd.h",
+		"common_openbsd.h",
 		"common_fuchsia.h",
 		"common_windows.h",
 		"common_test.h",
