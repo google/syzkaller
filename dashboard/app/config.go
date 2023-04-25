@@ -137,8 +137,12 @@ type BugListReportingConfig struct {
 	// Reports will include details about BugsInReport bugs (10 by default).
 	BugsInReport int
 	// Bugs that were first discovered less than MinBugAge ago, will not be included.
-	// The default value is 2 weeks.
+	// The default value is 1 weeks.
 	MinBugAge time.Duration
+	// Don't include a bug in the report if there has been a human reply to one of the
+	// discussions involving the bug during the last UserReplyFrist units of time.
+	// The default value is 2 weeks.
+	UserReplyFrist time.Duration
 	// Reports will only be sent if there are at least MinBugsCount bugs to notify about.
 	// The default value is 2.
 	MinBugsCount int
@@ -443,7 +447,10 @@ func checkSubsystems(ns string, cfg *Config) {
 		panic(fmt.Sprintf("%v: Reminder.BugsInReport must be > 0", ns))
 	}
 	if reminder.MinBugAge == 0 {
-		reminder.MinBugAge = 24 * time.Hour * 14
+		reminder.MinBugAge = 24 * time.Hour * 7
+	}
+	if reminder.UserReplyFrist == 0 {
+		reminder.UserReplyFrist = 24 * time.Hour * 7 * 2
 	}
 	if reminder.MinBugsCount == 0 {
 		reminder.MinBugsCount = 2
