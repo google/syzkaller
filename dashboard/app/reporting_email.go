@@ -372,9 +372,10 @@ func emailListReport(c context.Context, rep *dashapi.BugListReport, cfg *EmailCo
 		templateName: "mail_subsystem.txt",
 		templateArg:  args,
 		cfg:          cfg,
-		title:        fmt.Sprintf("Monthly %s report", rep.Subsystem),
-		reportID:     rep.ID,
-		maintainers:  rep.Maintainers,
+		title: fmt.Sprintf("Monthly %s report (%s)",
+			rep.Subsystem, rep.Created.Format("Jan 2006")),
+		reportID:    rep.ID,
+		maintainers: rep.Maintainers,
 	})
 }
 

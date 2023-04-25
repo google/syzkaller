@@ -418,6 +418,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 		}
 		ret := &dashapi.BugListReport{
 			ID:          stage.ID,
+			Created:     subsystemReport.Created,
 			Config:      configJSON,
 			Link:        fmt.Sprintf("%v/%s/s/%s", appURL(c), ns, name),
 			Subsystem:   name,
