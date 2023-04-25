@@ -490,23 +490,6 @@ void child()
 #include <string.h>
 #include <sys/syscall.h>
 
-#if GOOS_openbsd
-#include <dirent.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/event.h>
-#include <sys/ioctl.h>
-#include <sys/ktrace.h>
-#include <sys/mman.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/sysctl.h>
-#include <sys/syslog.h>
-#endif
-
 #if GOOS_netbsd
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
@@ -1698,27 +1681,8 @@ static int fault_injected(int fd)
 
 #endif
 
-#if GOOS_openbsd
-#define CAST
-#endif
 #if GOOS_darwin
 #define __syscall syscall
-#endif
-
-#if GOOS_openbsd && (SYZ_EXECUTOR || __NR_syz_open_pts)
-#include <termios.h>
-#include <util.h>
-
-static uintptr_t syz_open_pts(void)
-{
-	int master, slave;
-
-	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
-		return -1;
-	if (dup2(master, master + 100) != -1)
-		close(master);
-	return slave;
-}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
@@ -1735,8 +1699,6 @@ static int tunfd = -1;
 #define MAX_TUN 64
 #elif GOOS_freebsd
 #define MAX_TUN 256
-#elif GOOS_openbsd
-#define MAX_TUN 8
 #else
 #define MAX_TUN 4
 #endif
@@ -1840,9 +1802,7 @@ static void initialize_tun(int tun_id)
 
 	char local_mac[sizeof(LOCAL_MAC)];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
-#if GOOS_openbsd
-	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
-#elif GOOS_netbsd
+#if GOOS_netbsd
 	execute_command(1, "ifconfig %s link %s", tun_iface, local_mac);
 #else
 	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
