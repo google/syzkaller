@@ -11,24 +11,6 @@
 #include <string.h>
 #include <sys/syscall.h>
 
-#if GOOS_openbsd
-// Needed syscall libc stubs.
-#include <dirent.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/event.h>
-#include <sys/ioctl.h>
-#include <sys/ktrace.h>
-#include <sys/mman.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/sysctl.h>
-#include <sys/syslog.h>
-#endif // GOOS_openbsd
-
 #if GOOS_netbsd
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
@@ -109,30 +91,9 @@ static int fault_injected(int fd)
 
 #endif
 
-#if GOOS_openbsd
-#define CAST
-#endif // GOOS_openbsd
 #if GOOS_darwin
 #define __syscall syscall
 #endif //  GOOS_darwin
-
-#if GOOS_openbsd && (SYZ_EXECUTOR || __NR_syz_open_pts)
-#include <termios.h>
-#include <util.h>
-
-static uintptr_t syz_open_pts(void)
-{
-	int master, slave;
-
-	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
-		return -1;
-	// Move the master fd up in order to reduce the chances of the fuzzer
-	// generating a call to close(2) with the same fd.
-	if (dup2(master, master + 100) != -1)
-		close(master);
-	return slave;
-}
-#endif // GOOS_openbsd && (SYZ_EXECUTOR || __NR_syz_open_pts)
 
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
 
@@ -155,8 +116,6 @@ static int tunfd = -1;
 // The maximum number of tun devices is limited by the way IP addresses
 // are assigned. Based on this, the limit is 256.
 #define MAX_TUN 256
-#elif GOOS_openbsd
-#define MAX_TUN 8
 #else
 // Maximum number of tun devices in the default install.
 #define MAX_TUN 4
@@ -274,9 +233,7 @@ static void initialize_tun(int tun_id)
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
 
 	// Set the MAC address of the interface to LOCAL_MAC
-#if GOOS_openbsd
-	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
-#elif GOOS_netbsd
+#if GOOS_netbsd
 	execute_command(1, "ifconfig %s link %s", tun_iface, local_mac);
 #else
 	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
@@ -437,9 +394,6 @@ static void sandbox_common()
 	// Some minimal sandboxing.
 	struct rlimit rlim;
 #ifdef GOOS_freebsd
-	// Documented bug in OpenBSD.
-	// This causes frequent random aborts. Reason unknown.
-
 	// This also causes ENOMEM on NetBSD during early init.
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
