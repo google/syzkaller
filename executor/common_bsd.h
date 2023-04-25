@@ -11,6 +11,24 @@
 #include <string.h>
 #include <sys/syscall.h>
 
+#if GOOS_openbsd
+// Needed syscall libc stubs.
+#include <dirent.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/event.h>
+#include <sys/ioctl.h>
+#include <sys/ktrace.h>
+#include <sys/mman.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/syslog.h>
+#endif // GOOS_openbsd
+
 #if GOOS_netbsd
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
@@ -91,9 +109,12 @@ static int fault_injected(int fd)
 
 #endif
 
-#if GOOS_openbsd || GOOS_darwin
+#if GOOS_openbsd
+#define CAST
+#endif // GOOS_openbsd
+#if GOOS_darwin
 #define __syscall syscall
-#endif // GOOS_openbsd || GOOS_darwin
+#endif //  GOOS_darwin
 
 #if GOOS_openbsd && (SYZ_EXECUTOR || __NR_syz_open_pts)
 #include <termios.h>
