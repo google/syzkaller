@@ -540,7 +540,7 @@ var oses = map[string]osCommon{
 		KernelObject:           "netbsd.gdb",
 	},
 	OpenBSD: {
-		SyscallNumbers:         true,
+		SyscallNumbers:         false,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
