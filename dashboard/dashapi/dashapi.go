@@ -454,6 +454,7 @@ type BisectResult struct {
 
 type BugListReport struct {
 	ID          string
+	Created     time.Time
 	Config      []byte
 	Bugs        []BugListItem
 	TotalStats  BugListReportStats

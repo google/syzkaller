@@ -288,7 +288,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 
 	// Expect the reminder for subsystemA.
 	reply := client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemA report")
+	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemA report (Jan 2000)")
 	c.expectEQ(reply.To, []string{"moderation@syzkaller.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
@@ -319,7 +319,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 	// Expect the reminder for subsystemB.
 	reply = client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemB report")
+	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemB report (Jan 2000)")
 	c.expectEQ(reply.To, []string{"moderation@syzkaller.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemB maintainers/developers,
@@ -387,7 +387,7 @@ func TestSubsystemRemindersModeration(t *testing.T) {
 
 	// Expect the reminder for subsystemA.
 	replyA := client.pollEmailBug()
-	c.expectEQ(replyA.Subject, "[moderation] Monthly subsystemA report")
+	c.expectEQ(replyA.Subject, "[moderation] Monthly subsystemA report (Jan 2000)")
 
 	// Moderate the subsystemA list.
 	c.advanceTime(time.Hour)
@@ -399,7 +399,7 @@ func TestSubsystemRemindersModeration(t *testing.T) {
 
 	// Expect the normal report.
 	reply := client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[syzbot] Monthly subsystemA report")
+	c.expectEQ(reply.Subject, "[syzbot] Monthly subsystemA report (Jan 2000)")
 	c.expectEQ(reply.To, []string{"bugs@syzkaller.com", "subsystemA@list.com", "subsystemA@person.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
@@ -513,7 +513,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 	c.expectOK(err)
 
 	reply := client.pollEmailBug()
-	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemA report")
+	c.expectEQ(reply.Subject, "[moderation] Monthly subsystemA report (Feb 2000)")
 	c.expectEQ(reply.To, []string{"moderation@syzkaller.com"})
 	c.expectEQ(reply.Cc, []string(nil))
 	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
@@ -568,7 +568,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 	c.expectOK(err)
 
 	secondReply := client.pollEmailBug()
-	c.expectEQ(secondReply.Subject, "[moderation] Monthly subsystemA report")
+	c.expectEQ(secondReply.Subject, "[moderation] Monthly subsystemA report (Feb 2000)")
 	c.expectNE(reply.Sender, secondReply.Sender)
 	c.expectTrue(strings.Contains(secondReply.Body, `7       Yes   WARNING: has repro 6`))
 }
