@@ -271,6 +271,10 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 			// As we don't keep exactly the date of the last user message, approximate it.
 			continue
 		}
+		if bug.HasLabel(NoRemindersLabel, "") {
+			// The bug was intentionally excluded from monthly reminders.
+			continue
+		}
 		if bug.ReproLevel == dashapi.ReproLevelNone {
 			noRepro = append(noRepro, bug)
 		} else {
