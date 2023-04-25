@@ -538,6 +538,14 @@ func excludeSampleCommands(msg *email.Email) {
 		switch cmd.Command {
 		case email.CmdFix:
 			ok = cmd.Args != "exact-commit-title"
+		case email.CmdTest:
+			ok = cmd.Args != "git://repo/address.git branch-or-commit-hash"
+		case email.CmdSet:
+			ok = cmd.Args != "subsystems: new-subsystem"
+		case email.CmdUnset:
+			ok = cmd.Args != "some-label"
+		case email.CmdDup:
+			ok = cmd.Args != "exact-subject-of-another-report"
 		}
 		if ok {
 			newCommands = append(newCommands, cmd)
