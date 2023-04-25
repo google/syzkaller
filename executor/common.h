@@ -493,8 +493,10 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 
 #if GOOS_akaros
 #include "common_akaros.h"
-#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd
+#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd
 #include "common_bsd.h"
+#elif GOOS_openbsd
+#include "common_openbsd.h"
 #elif GOOS_fuchsia
 #include "common_fuchsia.h"
 #elif GOOS_linux

@@ -480,7 +480,7 @@ void child()
 }
 #endif
 
-#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd
+#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd
 
 #include <unistd.h>
 
@@ -2020,6 +2020,350 @@ static int do_sandbox_none(void)
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+static void loop();
+
+static int wait_for_loop(int pid)
+{
+	if (pid < 0)
+		fail("sandbox fork failed");
+	debug("spawned loop pid %d\n", pid);
+	int status = 0;
+	while (waitpid(-1, &status, WUNTRACED) != pid) {
+	}
+	return WEXITSTATUS(status);
+}
+
+#define SYZ_HAVE_SANDBOX_SETUID 1
+static int do_sandbox_setuid(void)
+{
+	int pid = fork();
+	if (pid != 0)
+		return wait_for_loop(pid);
+
+	sandbox_common();
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
+	initialize_tun(procid);
+#endif
+
+	char pwbuf[1024];
+	struct passwd *pw, pwres;
+	if (getpwnam_r("nobody", &pwres, pwbuf, sizeof(pwbuf), &pw) != 0 || !pw)
+		fail("getpwnam_r(\"nobody\") failed");
+
+	if (setgroups(0, NULL))
+		fail("failed to setgroups");
+	if (setgid(pw->pw_gid))
+		fail("failed to setgid");
+	if (setuid(pw->pw_uid))
+		fail("failed to setuid");
+
+	loop();
+	doexit(1);
+}
+#endif
+
+#elif GOOS_openbsd
+
+#include <unistd.h>
+
+#include <pwd.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <string.h>
+#include <sys/syscall.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/event.h>
+#include <sys/ioctl.h>
+#include <sys/ktrace.h>
+#include <sys/mman.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/syslog.h>
+
+#define CAST
+
+#if (SYZ_EXECUTOR || __NR_syz_open_pts)
+#include <termios.h>
+#include <util.h>
+
+static uintptr_t syz_open_pts(void)
+{
+	int master, slave;
+
+	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
+		return -1;
+	if (dup2(master, master + 100) != -1)
+		close(master);
+	return slave;
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
+
+#include <net/if_tun.h>
+#include <sys/types.h>
+
+static int tunfd = -1;
+
+#define MAX_TUN 8
+#define TUN_IFACE "tap%d"
+#define MAX_TUN_IFACE_SIZE sizeof("tap2147483647")
+#define TUN_DEVICE "/dev/tap%d"
+#define MAX_TUN_DEVICE_SIZE sizeof("/dev/tap2147483647")
+
+#define LOCAL_MAC "aa:aa:aa:aa:aa:aa"
+#define REMOTE_MAC "aa:aa:aa:aa:aa:bb"
+#define LOCAL_IPV4 "172.20.%d.170"
+#define MAX_LOCAL_IPV4_SIZE sizeof("172.20.255.170")
+#define REMOTE_IPV4 "172.20.%d.187"
+#define MAX_REMOTE_IPV4_SIZE sizeof("172.20.255.187")
+#define LOCAL_IPV6 "fe80::%02xaa"
+#define MAX_LOCAL_IPV6_SIZE sizeof("fe80::ffaa")
+#define REMOTE_IPV6 "fe80::%02xbb"
+#define MAX_REMOTE_IPV6_SIZE sizeof("fe80::ffbb")
+
+static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
+{
+	int rv = vsnprintf(str, size, format, args);
+	if (rv < 0)
+		fail("vsnprintf failed");
+	if ((size_t)rv >= size)
+		failmsg("vsnprintf: string doesn't fit into buffer", "string='%s'", str);
+}
+
+static void snprintf_check(char* str, size_t size, const char* format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf_check(str, size, format, args);
+	va_end(args);
+}
+
+#define COMMAND_MAX_LEN 128
+#define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
+#define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
+
+static void execute_command(bool panic, const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
+	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
+	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
+	va_end(args);
+	int rv = system(command);
+	if (rv) {
+		if (panic)
+			failmsg("command failed", "command=%s: %d", &command[0], rv);
+		debug("command '%s': %d\n", &command[0], rv);
+	}
+}
+
+static void initialize_tun(int tun_id)
+{
+#if SYZ_EXECUTOR
+	if (!flag_net_injection)
+		return;
+#endif
+
+	if (tun_id < 0 || tun_id >= MAX_TUN)
+		failmsg("tun_id out of range", "tun_id=%d", tun_id);
+
+	char tun_device[MAX_TUN_DEVICE_SIZE];
+	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+
+	char tun_iface[MAX_TUN_IFACE_SIZE];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+	execute_command(0, "ifconfig %s destroy", tun_iface);
+
+	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
+	if (tunfd == -1) {
+#if SYZ_EXECUTOR
+		failmsg("tun: can't open device", "device=%s", tun_device);
+#else
+		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
+		return;
+#endif
+	}
+	const int kTunFd = 200;
+	if (dup2(tunfd, kTunFd) < 0)
+		fail("dup2(tunfd, kTunFd) failed");
+	close(tunfd);
+	tunfd = kTunFd;
+
+	char local_mac[sizeof(LOCAL_MAC)];
+	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
+	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
+	char local_ipv4[MAX_LOCAL_IPV4_SIZE];
+	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
+	execute_command(1, "ifconfig %s inet %s netmask 255.255.255.0", tun_iface, local_ipv4);
+	char remote_mac[sizeof(REMOTE_MAC)];
+	char remote_ipv4[MAX_REMOTE_IPV4_SIZE];
+	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC);
+	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, tun_id);
+	execute_command(0, "arp -s %s %s", remote_ipv4, remote_mac);
+	char local_ipv6[MAX_LOCAL_IPV6_SIZE];
+	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
+	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
+	char remote_ipv6[MAX_REMOTE_IPV6_SIZE];
+	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, tun_id);
+	execute_command(0, "ndp -s %s%%%s %s", remote_ipv6, tun_iface, remote_mac);
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_NET_INJECTION
+#include <sys/uio.h>
+
+static long syz_emit_ethernet(volatile long a0, volatile long a1)
+{
+	if (tunfd < 0)
+		return (uintptr_t)-1;
+
+	size_t length = a0;
+	const char* data = (char*)a1;
+	debug_dump_data(data, length);
+
+	return write(tunfd, data, length);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
+#include <errno.h>
+
+static int read_tun(char* data, int size)
+{
+	if (tunfd < 0)
+		return -1;
+
+	int rv = read(tunfd, data, size);
+	if (rv < 0) {
+		if (errno == EAGAIN)
+			return -1;
+		fail("tun: read failed");
+	}
+	return rv;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_NET_INJECTION
+
+struct tcp_resources {
+	uint32 seq;
+	uint32 ack;
+};
+
+#include <net/ethertypes.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
+#include <netinet/if_ether.h>
+
+static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile long a2)
+{
+
+	if (tunfd < 0)
+		return (uintptr_t)-1;
+	char data[1000];
+	int rv = read_tun(&data[0], sizeof(data));
+	if (rv == -1)
+		return (uintptr_t)-1;
+	size_t length = rv;
+	debug_dump_data(data, length);
+
+	if (length < sizeof(struct ether_header))
+		return (uintptr_t)-1;
+	struct ether_header* ethhdr = (struct ether_header*)&data[0];
+
+	struct tcphdr* tcphdr = 0;
+	if (ethhdr->ether_type == htons(ETHERTYPE_IP)) {
+		if (length < sizeof(struct ether_header) + sizeof(struct ip))
+			return (uintptr_t)-1;
+		struct ip* iphdr = (struct ip*)&data[sizeof(struct ether_header)];
+		if (iphdr->ip_p != IPPROTO_TCP)
+			return (uintptr_t)-1;
+		if (length < sizeof(struct ether_header) + iphdr->ip_hl * 4 + sizeof(struct tcphdr))
+			return (uintptr_t)-1;
+		tcphdr = (struct tcphdr*)&data[sizeof(struct ether_header) + iphdr->ip_hl * 4];
+	} else {
+		if (length < sizeof(struct ether_header) + sizeof(struct ip6_hdr))
+			return (uintptr_t)-1;
+		struct ip6_hdr* ipv6hdr = (struct ip6_hdr*)&data[sizeof(struct ether_header)];
+		if (ipv6hdr->ip6_nxt != IPPROTO_TCP)
+			return (uintptr_t)-1;
+		if (length < sizeof(struct ether_header) + sizeof(struct ip6_hdr) + sizeof(struct tcphdr))
+			return (uintptr_t)-1;
+		tcphdr = (struct tcphdr*)&data[sizeof(struct ether_header) + sizeof(struct ip6_hdr)];
+	}
+
+	struct tcp_resources* res = (struct tcp_resources*)a0;
+	res->seq = htonl(ntohl(tcphdr->th_seq) + (uint32)a1);
+	res->ack = htonl(ntohl(tcphdr->th_ack) + (uint32)a2);
+
+	debug("extracted seq: %08x\n", res->seq);
+	debug("extracted ack: %08x\n", res->ack);
+
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
+
+#include <sys/resource.h>
+
+static void sandbox_common()
+{
+#if !SYZ_THREADED
+#if SYZ_EXECUTOR
+	if (!flag_threaded)
+#endif
+		if (setsid() == -1)
+			fail("setsid failed");
+#endif
+	struct rlimit rlim;
+	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
+	setrlimit(RLIMIT_MEMLOCK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_FSIZE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_STACK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 0;
+	setrlimit(RLIMIT_CORE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 256;
+	setrlimit(RLIMIT_NOFILE, &rlim);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+
+static void loop();
+
+static int do_sandbox_none(void)
+{
+	sandbox_common();
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
+	initialize_tun(procid);
+#endif
+	loop();
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID
+
+#include <sys/wait.h>
 
 static void loop();
 
