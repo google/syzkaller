@@ -149,6 +149,68 @@ You can also manually override the automatic guess by replying to the `syzbot` e
 Names of subsystems must be taken from the subsystem list page on the syzbot web
 dashboard.
 
+<div id="labels"/>
+
+## Bug labels
+
+It is possible to assign labels to syzkaller-reported bugs. These labels
+are displayed near bug titles on the bug lists and on individual bug pages.
+
+To assign a label, send a `#syz set` command as a reply to the bug report.
+
+```
+#syz set label: value
+```
+
+As of now, the following labels are supported.
+
+**A)** Bug priority
+
+```
+#syz set prio: low
+#syz set prio: normal
+#syz set prio: high
+
+```
+
+**B)** Exclude the bug from monthly reports.
+
+```
+#syz set no-reminders
+```
+
+**C)** Set a subsystem (see also the section above).
+
+```
+#syz set subsystems: net
+```
+
+To **remove** a label, send a `#syz unset` command:
+
+```
+#syz unset prio
+```
+
+It is also possible to set and unset labels for individual bugs from a monthly
+subsystem report. Let's consider an example.
+
+```
+Some of the still happening issues:
+
+Ref Crashes Repro Title
+<1> 10      No    WARNING in __brelse (2)
+                  https://syzkaller.appspot.com/bug?id=cd9cb7a620dcfbf46a5eaf201031acaf3aeda28e
+<2> 3       No    WARNING in kernfs_get (4)
+                  https://syzkaller.appspot.com/bug?id=b4278401038872458a20f08210e46f3ab519b786
+```
+
+One can send the following email:
+
+```
+#syz set <1> no-reminders
+#syz set <2> subsystems: kernfs
+```
+
 <div id="amend"/>
 <div id="linux-next"/>
 
