@@ -81,7 +81,24 @@ func TestCompareResults(t *testing.T) {
 				makeExecResultCrashed(1),
 				makeExecResultCrashed(4),
 			},
-			wantReport: nil,
+			wantReport: &ResultReport{
+				Prog: p,
+				Reports: []*CallReport{
+					{Call: "breaks_returns", States: map[int]ReturnState{
+						1: crashedReturnState(),
+						4: crashedReturnState()},
+					},
+					{Call: "minimize$0", States: map[int]ReturnState{
+						1: crashedReturnState(),
+						4: crashedReturnState()},
+					},
+					{Call: "test$res0", States: map[int]ReturnState{
+						1: crashedReturnState(),
+						4: crashedReturnState()},
+					},
+				},
+				Mismatch: false,
+			},
 		},
 		{
 			name: "mismatches because results and crashes",
@@ -117,7 +134,15 @@ func TestCompareResults(t *testing.T) {
 			res: []*ExecResult{
 				makeExecResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
 				makeExecResult(4, []int{11, 33, 22}, []int{1, 3, 3}...)},
-			wantReport: nil,
+			wantReport: &ResultReport{
+				Prog: p,
+				Reports: []*CallReport{
+					{Call: "breaks_returns", States: map[int]ReturnState{2: {Errno: 11, Flags: 1}, 4: {Errno: 11, Flags: 1}}},
+					{Call: "minimize$0", States: map[int]ReturnState{2: {Errno: 33, Flags: 3}, 4: {Errno: 33, Flags: 3}}},
+					{Call: "test$res0", States: map[int]ReturnState{2: {Errno: 22, Flags: 3}, 4: {Errno: 22, Flags: 3}}},
+				},
+				Mismatch: false,
+			},
 		},
 		{
 			name: "mismatches found in results",
@@ -137,6 +162,7 @@ func TestCompareResults(t *testing.T) {
 		}}
 
 	for _, test := range tests {
+		test := test // TODO: remove for gover >= 1.22
 		t.Run(test.name, func(t *testing.T) {
 			target := prog.InitTargetTest(t, "test", "64")
 			prog, err := target.Deserialize([]byte(p), prog.Strict)
