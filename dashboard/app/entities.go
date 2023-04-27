@@ -521,6 +521,11 @@ type Job struct {
 	IsRunning   bool      // the job might have been started, but never finished
 	LastStarted time.Time `datastore:"Started"`
 	Finished    time.Time // if set, job is finished
+	TreeOrigin  bool      // whether the job is related to tree origin detection
+
+	// If patch test should be done on the merge base between two branches.
+	MergeBaseRepo   string
+	MergeBaseBranch string
 
 	// Result of execution:
 	CrashTitle  string // if empty, we did not hit crash during testing

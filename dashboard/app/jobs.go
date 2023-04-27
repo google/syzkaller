@@ -21,16 +21,18 @@ import (
 )
 
 type testReqArgs struct {
-	bug          *Bug
-	bugKey       *db.Key
-	bugReporting *BugReporting
-	user         string
-	extID        string
-	link         string
-	patch        []byte
-	repo         string
-	branch       string
-	jobCC        []string
+	bug             *Bug
+	bugKey          *db.Key
+	bugReporting    *BugReporting
+	user            string
+	extID           string
+	link            string
+	patch           []byte
+	repo            string
+	branch          string
+	jobCC           []string
+	mergeBaseRepo   string
+	mergeBaseBranch string
 }
 
 // handleTestRequest added new job to db.
@@ -84,9 +86,11 @@ func handleTestRequest(c context.Context, args *testReqArgs) error {
 }
 
 type testJobArgs struct {
-	crash     *Crash
-	crashKey  *db.Key
-	configRef int64
+	crash         *Crash
+	crashKey      *db.Key
+	configRef     int64
+	treeOrigin    bool
+	inTransaction bool
 	testReqArgs
 }
 
@@ -110,21 +114,24 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		reportingName = args.bugReporting.Name
 	}
 	job := &Job{
-		Type:         JobTestPatch,
-		Created:      now,
-		User:         args.user,
-		CC:           args.jobCC,
-		Reporting:    reportingName,
-		ExtID:        args.extID,
-		Link:         args.link,
-		Namespace:    args.bug.Namespace,
-		Manager:      manager,
-		BugTitle:     args.bug.displayTitle(),
-		CrashID:      args.crashKey.IntID(),
-		KernelRepo:   args.repo,
-		KernelBranch: args.branch,
-		Patch:        patchID,
-		KernelConfig: args.configRef,
+		Type:            JobTestPatch,
+		Created:         now,
+		User:            args.user,
+		CC:              args.jobCC,
+		Reporting:       reportingName,
+		ExtID:           args.extID,
+		Link:            args.link,
+		Namespace:       args.bug.Namespace,
+		Manager:         manager,
+		BugTitle:        args.bug.displayTitle(),
+		CrashID:         args.crashKey.IntID(),
+		KernelRepo:      args.repo,
+		KernelBranch:    args.branch,
+		MergeBaseRepo:   args.mergeBaseRepo,
+		MergeBaseBranch: args.mergeBaseBranch,
+		Patch:           patchID,
+		KernelConfig:    args.configRef,
+		TreeOrigin:      args.treeOrigin,
 	}
 
 	var jobKey *db.Key
@@ -166,8 +173,12 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		return addCrashReference(c, job.CrashID, args.bugKey,
 			CrashReference{CrashReferenceJob, extJobID(jobKey), now})
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
-	if patchID != 0 && deletePatch || err != nil {
+	if args.inTransaction {
+		err = tx(c)
+	} else {
+		err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
+	}
+	if patchID != 0 && (deletePatch || err != nil) {
 		if err := db.Delete(c, db.NewKey(c, textPatch, "", patchID, nil)); err != nil {
 			log.Errorf(c, "failed to delete patch for dup job: %v", err)
 		}
@@ -677,6 +688,8 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 		Manager:           job.Manager,
 		KernelRepo:        job.KernelRepo,
 		KernelBranch:      job.KernelBranch,
+		MergeBaseRepo:     job.MergeBaseRepo,
+		MergeBaseBranch:   job.MergeBaseBranch,
 		KernelCommit:      build.KernelCommit,
 		KernelCommitTitle: build.KernelCommitTitle,
 		KernelCommitDate:  build.KernelCommitDate,
@@ -839,7 +852,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	}
 	now := timeNow(c)
 	tx := func(c context.Context) error {
-		job := new(Job)
+		job = new(Job)
 		if err := db.Get(c, jobKey, job); err != nil {
 			return fmt.Errorf("job %v: failed to get job: %v", jobID, err)
 		}
@@ -896,13 +909,23 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 				return err
 			}
 		}
-		if _, err := db.Put(c, jobKey, job); err != nil {
+		if jobKey, err = db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
 		}
 		log.Infof(c, "DONE JOB %v: reported=%v reporting=%v", jobID, job.Reported, job.Reporting)
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
+	err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
+	if err != nil {
+		return err
+	}
+	if job.TreeOrigin {
+		err = treeOriginJobDone(c, jobKey, job)
+		if err != nil {
+			return fmt.Errorf("job %v: failed to execute tree origin handlers: %s", jobID, err)
+		}
+	}
+	return nil
 }
 
 func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq, now time.Time) error {

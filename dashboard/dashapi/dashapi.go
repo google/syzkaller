@@ -176,6 +176,8 @@ type JobPollResp struct {
 	Manager           string
 	KernelRepo        string
 	KernelBranch      string
+	MergeBaseRepo     string
+	MergeBaseBranch   string
 	KernelCommit      string
 	KernelCommitTitle string
 	KernelCommitDate  time.Time
