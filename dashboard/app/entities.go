@@ -136,7 +136,7 @@ type BugLabel struct {
 	Link string
 }
 
-func (label *BugLabel) String() string {
+func (label BugLabel) String() string {
 	if label.Value == "" {
 		return string(label.Label)
 	}
