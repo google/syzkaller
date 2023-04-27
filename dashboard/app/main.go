@@ -372,7 +372,6 @@ type uiJob struct {
 type userBugFilter struct {
 	Manager     string // show bugs that happened on the manager
 	OnlyManager string // show bugs that happened ONLY on the manager
-	Subsystem   string // only show bugs belonging to the subsystem
 	Label       string // TODO: support multiple.
 	NoSubsystem bool
 }
@@ -503,7 +502,10 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	}
 	groups, err := fetchNamespaceBugs(c, accessLevel(c, r),
 		hdr.Namespace, &userBugFilter{
-			Subsystem: subsystem.Name,
+			Label: BugLabel{
+				Label: SubsystemLabel,
+				Value: subsystem.Name,
+			}.String(),
 		})
 	if err != nil {
 		return err
