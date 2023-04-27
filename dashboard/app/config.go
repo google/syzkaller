@@ -91,6 +91,8 @@ type Config struct {
 	FixBisectionAutoClose bool
 	// If set, dashboard will periodically request repros and revoke no longer working ones.
 	RetestRepros bool
+	// If set, dashboard will create patch testing jobs to determine bug origin trees.
+	FindBugOriginTrees bool
 	// Managers contains some special additional info about syz-manager instances.
 	Managers map[string]ConfigManager
 	// Reporting config.
@@ -238,6 +240,24 @@ type KernelRepo struct {
 	CC CCConfig
 	// This repository should not be polled for commits, e.g. because it's no longer active.
 	NoPoll bool
+	// LabelIntroduced is assigned to a bug if it was supposedly introduced
+	// in this particular tree (i.e. no other tree from CommitInflow has it).
+	LabelIntroduced string
+	// LabelReached is assiged to a bug if it's the latest tree so far to which
+	// the bug has spread (i.e. no other tree to which commits flow from this one
+	// has this bug).
+	LabelReached string
+	// CommitInflow are the descriptions of commit sources of this tree.
+	CommitInflow []KernelRepoLink
+	// Enable the missing backport tracking feature for this tree.
+	DetectMissingBackports bool
+}
+
+type KernelRepoLink struct {
+	// Alias of the repository from which commits flow into the current one.
+	Alias string
+	// Whether commits from the other repository merged or cherry-picked.
+	Merge bool
 }
 
 type CCConfig struct {
@@ -408,7 +428,7 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	if cfg.Kcidb != nil {
 		checkKcidb(ns, cfg.Kcidb)
 	}
-	checkKernelRepos(ns, cfg.Repos)
+	checkKernelRepos(ns, cfg, cfg.Repos)
 	checkNamespaceReporting(ns, cfg)
 	checkSubsystems(ns, cfg)
 }
@@ -459,11 +479,13 @@ func checkSubsystems(ns string, cfg *Config) {
 	}
 }
 
-func checkKernelRepos(ns string, repos []KernelRepo) {
+func checkKernelRepos(ns string, config *Config, repos []KernelRepo) {
 	if len(repos) == 0 {
 		panic(fmt.Sprintf("no repos in namespace %q", ns))
 	}
 	aliasMap := map[string]bool{}
+	labelMap := map[string]bool{}
+	canBeLabels := false
 	for _, repo := range repos {
 		if !vcs.CheckRepoAddress(repo.URL) {
 			panic(fmt.Sprintf("%v: bad repo URL %q", ns, repo.URL))
@@ -482,6 +504,30 @@ func checkKernelRepos(ns string, repos []KernelRepo) {
 			panic(fmt.Sprintf("%v: bad kernel repo reporting priority %v for %q", ns, prio, repo.Alias))
 		}
 		checkCC(&repo.CC)
+		for _, label := range []string{repo.LabelIntroduced, repo.LabelReached} {
+			if label == "" {
+				continue
+			}
+			if labelMap[label] {
+				panic(fmt.Sprintf("%v: duplicate label  %q", ns, label))
+			}
+			labelMap[label] = true
+		}
+		canBeLabels = canBeLabels || repo.DetectMissingBackports
+	}
+	if len(labelMap) > 0 {
+		canBeLabels = true
+	}
+	if canBeLabels && !config.FindBugOriginTrees {
+		panic(fmt.Sprintf("%v: repo labels are set, but FindBugOriginTrees is disabled", ns))
+	}
+	if !canBeLabels && config.FindBugOriginTrees {
+		panic(fmt.Sprintf("%v: FindBugOriginTrees is enabled, but all repo labels are disabled", ns))
+	}
+	// And finally test links.
+	_, err := makeRepoGraph(repos)
+	if err != nil {
+		panic(fmt.Sprintf("%v: %s", ns, err))
 	}
 }
 
