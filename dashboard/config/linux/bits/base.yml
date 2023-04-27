@@ -140,7 +140,7 @@ config:
  # Some kernel oops'es are large. Largest observed for a stack overflow is ~42KB.
  # There are 2 such buffers per CPU (safe and nmi), so this adds 128KB per CPU.
  # The config was removed in "Remove orphaned CONFIG_PRINTK_SAFE_LOG_BUF_SHIFT".
- - PRINTK_SAFE_LOG_BUF_SHIFT: [16, -linux-next]
+ - PRINTK_SAFE_LOG_BUF_SHIFT: [16, -v6.3]
 
  # Fault injection.
  - FAULT_INJECTION
@@ -150,6 +150,7 @@ config:
  - FAIL_IO_TIMEOUT
  - FAIL_FUTEX
  - FAULT_INJECTION_DEBUG_FS
+ - FAULT_INJECTION_CONFIGFS: [v6.3]
  - FAULT_INJECTION_USERCOPY: [v5.10]
 
  # Options enabled to boot Debian Wheezy.
