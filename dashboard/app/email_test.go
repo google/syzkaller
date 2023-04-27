@@ -187,6 +187,11 @@ IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 
 report1
+
+---
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
 `, extBugID0, reproSyzLink, crashLogLink, kernelConfigLink))
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
@@ -250,7 +255,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 If the bug is already fixed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want syzbot to run reproducer on another tree, reply with:
+If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
@@ -327,6 +332,11 @@ IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 
 report1
+
+---
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
 `, extBugID1, reproCLink, reproSyzLink, crashLogLink, kernelConfigLink))
 		c.checkURLContents(reproCLink, cRepro)
 		c.checkURLContents(reproSyzLink, syzRepro)

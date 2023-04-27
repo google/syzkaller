@@ -238,7 +238,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 If the bug is already fixed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want syzbot to run reproducer on another tree, reply with:
+If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
@@ -557,7 +557,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 If the bug is already fixed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want syzbot to run reproducer on another tree, reply with:
+If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
@@ -838,7 +838,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 If the bug is already fixed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want syzbot to run reproducer on another tree, reply with:
+If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
