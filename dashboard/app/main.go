@@ -367,6 +367,7 @@ type uiJob struct {
 	Commits          []*uiCommit // for inconclusive bisection
 	Crash            *uiCrash
 	Reported         bool
+	TreeOrigin       bool
 }
 
 type userBugFilter struct {
@@ -1942,6 +1943,7 @@ func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Cra
 		LogLink:          textLink(textLog, job.Log),
 		ErrorLink:        textLink(textError, job.Error),
 		Reported:         job.Reported,
+		TreeOrigin:       job.TreeOrigin,
 	}
 	if !job.Finished.IsZero() {
 		ui.Duration = job.Finished.Sub(job.LastStarted)
