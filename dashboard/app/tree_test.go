@@ -126,11 +126,11 @@ var downstreamUpstreamRepos = []KernelRepo{
 		LabelIntroduced: `downstream`,
 		CommitInflow: []KernelRepoLink{
 			{
-				Alias: `lts`,
-				Merge: true,
+				Alias: `upstream`,
 			},
 			{
-				Alias: `upstream`,
+				Alias: `lts`,
+				Merge: true,
 			},
 		},
 	},
@@ -791,6 +791,61 @@ func TestRepoGraph(t *testing.T) {
 		downstream: false,
 		lts:        false,
 	}, upstream.reachable(false)); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestRepoGraphMergeFirst(t *testing.T) {
+	// Test whether we prioritize merge links.
+	g, err := makeRepoGraph([]KernelRepo{
+		{
+			URL:    `https://downstream.repo/repo`,
+			Branch: `master`,
+			Alias:  `downstream`,
+			CommitInflow: []KernelRepoLink{
+				{
+					Alias: `upstream`,
+					Merge: false,
+				},
+				{
+					Alias: `lts`,
+					Merge: true,
+				},
+			},
+		},
+		{
+			URL:    `https://lts.repo/repo`,
+			Branch: `lts-master`,
+			Alias:  `lts`,
+			CommitInflow: []KernelRepoLink{
+				{
+					Alias: `upstream`,
+					Merge: true,
+				},
+			},
+		},
+		{
+			URL:    `https://upstream.repo/repo`,
+			Branch: `upstream-master`,
+			Alias:  `upstream`,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	downstream := g.nodeByAlias(`downstream`)
+	lts := g.nodeByAlias(`lts`)
+	upstream := g.nodeByAlias(`upstream`)
+
+	// Test the downstream node.
+	if diff := cmp.Diff(map[*repoNode]bool{
+		lts:      true,
+		upstream: true,
+	}, downstream.reachable(true)); diff != "" {
+		t.Fatal(diff)
+	}
+	if diff := cmp.Diff(map[*repoNode]bool{}, downstream.reachable(false)); diff != "" {
 		t.Fatal(diff)
 	}
 }
