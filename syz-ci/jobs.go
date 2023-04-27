@@ -591,47 +591,9 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %v", err)
 	}
-	var kernelCommit *vcs.Commit
-	if req.MergeBaseRepo != "" {
-		jp.Logf(1, "checking out the base kernel...")
-		firstCommit, err := checkoutKernelOrCommit(repo, req.KernelRepo, req.KernelBranch)
-		if err != nil {
-			return fmt.Errorf("failed to checkout first kernel repo %v on %v: %v",
-				req.KernelRepo, req.KernelBranch, err)
-		}
-		secondCommit, err := checkoutKernelOrCommit(repo, req.MergeBaseRepo, req.MergeBaseBranch)
-		if err != nil {
-			return fmt.Errorf("failed to checkout second kernel repo %v on %v: %v",
-				req.MergeBaseRepo, req.MergeBaseBranch, err)
-		}
-		bases, err := repo.MergeBases(firstCommit.Hash, secondCommit.Hash)
-		if err != nil {
-			return fmt.Errorf("failed to calculate merge bases between %v and %v: %v",
-				firstCommit.Hash, secondCommit.Hash, err)
-		}
-		if len(bases) != 1 {
-			return fmt.Errorf("expected one merge base between %v and %v, got %d",
-				firstCommit.Hash, secondCommit.Hash, len(bases))
-		}
-		kernelCommit, err = repo.CheckoutCommit(req.KernelRepo, bases[0].Hash)
-		if err != nil {
-			return fmt.Errorf("failed to checkout kernel repo %v on merge base commit %v: %v",
-				req.KernelRepo, bases[0].Hash, err)
-		}
-		resp.Build.KernelBranch = ""
-	} else if vcs.CheckCommitHash(req.KernelBranch) {
-		kernelCommit, err = repo.CheckoutCommit(req.KernelRepo, req.KernelBranch)
-		if err != nil {
-			return fmt.Errorf("failed to checkout kernel repo %v on commit %v: %v",
-				req.KernelRepo, req.KernelBranch, err)
-		}
-		resp.Build.KernelBranch = ""
-	} else {
-		kernelCommit, err = repo.CheckoutBranch(req.KernelRepo, req.KernelBranch)
-		if err != nil {
-			return fmt.Errorf("failed to checkout kernel repo %v/%v: %v",
-				req.KernelRepo, req.KernelBranch, err)
-		}
+	kernelCommit, err := jp.checkoutJobCommit(job, repo)
+	if err != nil {
+		return err
 	}
 	resp.Build.KernelCommit = kernelCommit.Hash
 	resp.Build.KernelCommitTitle = kernelCommit.Title
@@ -694,6 +656,55 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	resp.CrashLog = ret.rawOutput
 	return nil
+}
+
+func (jp *JobProcessor) checkoutJobCommit(job *Job, repo vcs.Repo) (*vcs.Commit, error) {
+	req, resp := job.req, job.resp
+	var kernelCommit *vcs.Commit
+	if req.MergeBaseRepo != "" {
+		jp.Logf(1, "checking out the base kernel...")
+		firstCommit, err := checkoutKernelOrCommit(repo, req.KernelRepo, req.KernelBranch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to checkout first kernel repo %v on %v: %v",
+				req.KernelRepo, req.KernelBranch, err)
+		}
+		secondCommit, err := checkoutKernelOrCommit(repo, req.MergeBaseRepo, req.MergeBaseBranch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to checkout second kernel repo %v on %v: %v",
+				req.MergeBaseRepo, req.MergeBaseBranch, err)
+		}
+		bases, err := repo.MergeBases(firstCommit.Hash, secondCommit.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate merge bases between %v and %v: %v",
+				firstCommit.Hash, secondCommit.Hash, err)
+		}
+		if len(bases) != 1 {
+			return nil, fmt.Errorf("expected one merge base between %v and %v, got %d",
+				firstCommit.Hash, secondCommit.Hash, len(bases))
+		}
+		kernelCommit, err = repo.CheckoutCommit(req.KernelRepo, bases[0].Hash)
+		if err != nil {
+			return nil, fmt.Errorf("failed to checkout kernel repo %v on merge base %v: %v",
+				req.KernelRepo, bases[0].Hash, err)
+		}
+		resp.Build.KernelBranch = ""
+	} else if vcs.CheckCommitHash(req.KernelBranch) {
+		var err error
+		kernelCommit, err = repo.CheckoutCommit(req.KernelRepo, req.KernelBranch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to checkout kernel repo %v on commit %v: %v",
+				req.KernelRepo, req.KernelBranch, err)
+		}
+		resp.Build.KernelBranch = ""
+	} else {
+		var err error
+		kernelCommit, err = repo.CheckoutBranch(req.KernelRepo, req.KernelBranch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to checkout kernel repo %v/%v: %v",
+				req.KernelRepo, req.KernelBranch, err)
+		}
+	}
+	return kernelCommit, nil
 }
 
 func checkoutKernelOrCommit(repo vcs.Repo, url, branch string) (*vcs.Commit, error) {
