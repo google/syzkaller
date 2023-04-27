@@ -253,9 +253,10 @@ var testConfig = &GlobalConfig{
 			},
 			Repos: []KernelRepo{
 				{
-					URL:    "git://syzkaller.org/access-public.git",
-					Branch: "access-public",
-					Alias:  "access-public",
+					URL:                    "git://syzkaller.org/access-public.git",
+					Branch:                 "access-public",
+					Alias:                  "access-public",
+					DetectMissingBackports: true,
 				},
 			},
 			Reporting: []Reporting{
@@ -271,6 +272,7 @@ var testConfig = &GlobalConfig{
 					Config:     &TestConfig{Index: 2},
 				},
 			},
+			FindBugOriginTrees: true,
 		},
 		"access-public-email": {
 			AccessLevel: AccessPublic,
