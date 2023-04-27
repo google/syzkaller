@@ -443,7 +443,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</td>
 				<td>
 					{{if eq $job.Type 0}}
-						{{if $job.User}}{{$job.User}}{{else}}retest repro{{end}}
+						{{if $job.User}}{{$job.User}}
+						{{- else if $job.TreeOrigin}}tree origin
+						{{- else}}retest repro{{end}}
 					{{else if eq $job.Type 1}}
 						bisect
 					{{else if eq $job.Type 2}}
