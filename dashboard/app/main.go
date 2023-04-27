@@ -824,7 +824,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 
 func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
 	url := getCurrentURL(c)
-	filterValue := string(entry.Label) + ":" + entry.Value
+	filterValue := entry.String()
 
 	// If we're on a main/terminal/subsystem page, let's stay there.
 	link := url
@@ -834,12 +834,14 @@ func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
 	link = html.AmendURL(link, "label", filterValue)
 
 	ret := &uiBugLabel{
-		Name: entry.String(),
+		Name: filterValue,
 		Link: link,
 	}
 	// Patch depending on the specific label type.
 	switch entry.Label {
 	case SubsystemLabel:
+		// Use just the subsystem name.
+		ret.Name = entry.Value
 		// Prefer link to the per-subsystem page.
 		if !strings.HasPrefix(url, "/"+bug.Namespace) || strings.Contains(url, "/s/") {
 			ret.Link = fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Value)
