@@ -694,10 +694,17 @@ func (g *repoGraph) nodeByAlias(alias string) *repoNode {
 // reachable returns a map *repoNode -> bool (whether commits are merged).
 func (n *repoNode) reachable(in bool) map[*repoNode]bool {
 	ret := map[*repoNode]bool{}
+	// First collect nodes only reachable via merge=true links.
+	n.reachableMerged(in, true, ret)
+	n.reachableMerged(in, false, ret)
+	return ret
+}
+
+func (n *repoNode) reachableMerged(in, onlyMerge bool, ret map[*repoNode]bool) {
 	var dfs func(*repoNode, bool)
 	dfs = func(node *repoNode, merge bool) {
 		for _, edge := range node.edges {
-			if edge.in != in {
+			if edge.in != in || onlyMerge && !edge.merge {
 				continue
 			}
 			if _, ok := ret[edge.other]; ok {
@@ -708,7 +715,6 @@ func (n *repoNode) reachable(in bool) map[*repoNode]bool {
 		}
 	}
 	dfs(n, true)
-	return ret
 }
 
 func (n *repoNode) allReachable() map[*repoNode]bool {
