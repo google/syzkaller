@@ -346,9 +346,57 @@ func createPatchTestingJobs(c context.Context, managers map[string]dashapi.Manag
 			bugs[i], bugs[j] = bugs[j], bugs[i]
 			bugKeys[i], bugKeys[j] = bugKeys[j], bugKeys[i]
 		})
-		job, jobKey, err := createPatchRetestingJobs(c, bugs, bugKeys, managers)
-		if job != nil || err != nil {
-			return job, jobKey, err
+		// Also shuffle the creator functions.
+		funcs := []func(context.Context, []*Bug, []*db.Key,
+			map[string]dashapi.ManagerJobs) (*Job, *db.Key, error){
+			createPatchRetestingJobs,
+			createTreeTestJobs,
+		}
+		r.Shuffle(len(funcs), func(i, j int) { funcs[i], funcs[j] = funcs[j], funcs[i] })
+		for _, f := range funcs {
+			job, jobKey, err := f(c, bugs, bugKeys, managers)
+			if job != nil || err != nil {
+				return job, jobKey, err
+			}
+		}
+	}
+	return nil, nil, nil
+}
+
+func createTreeTestJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
+	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
+	takeBugs := 5
+	prio, next := []int{}, []int{}
+	for i, bug := range bugs {
+		if !config.Namespaces[bug.Namespace].FindBugOriginTrees {
+			continue
+		}
+		if len(bug.Commits) > 0 {
+			// Let's save resources -- there's no point in doing analysis for bugs
+			// for which we were already given fixing commits.
+			continue
+		}
+		if timeNow(c).Before(bug.TreeTests.NextPoll) {
+			continue
+		}
+		if bug.TreeTests.NeedPoll {
+			prio = append(prio, i)
+		} else {
+			next = append(next, i)
+		}
+		if len(prio) >= takeBugs {
+			prio = prio[:takeBugs]
+			break
+		} else if len(prio)+len(next) > takeBugs {
+			next = next[:takeBugs-len(prio)]
+		}
+	}
+	for _, i := range append(prio, next...) {
+		job, jobKey, err := generateTreeOriginJobs(c, bugKeys[i], managers)
+		if err != nil {
+			return nil, nil, fmt.Errorf("bug %v job creation failed: %w", bugKeys[i], err)
+		} else if job != nil {
+			return job, jobKey, nil
 		}
 	}
 	return nil, nil, nil
@@ -1311,4 +1359,16 @@ func jobID2Key(c context.Context, id string) (*db.Key, error) {
 	bugKey := db.NewKey(c, "Bug", keyStr[0], 0, nil)
 	jobKey := db.NewKey(c, "Job", "", jobKeyID, bugKey)
 	return jobKey, nil
+}
+
+func fetchJob(c context.Context, key string) (*Job, error) {
+	jobKey, err := db.DecodeKey(key)
+	if err != nil {
+		return nil, err
+	}
+	job := new(Job)
+	if err := db.Get(c, jobKey, job); err != nil {
+		return nil, fmt.Errorf("failed to get job: %v", err)
+	}
+	return job, nil
 }

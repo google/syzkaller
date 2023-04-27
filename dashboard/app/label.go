@@ -12,10 +12,12 @@ import (
 )
 
 const (
-	EmptyLabel       BugLabelType = ""
-	SubsystemLabel   BugLabelType = "subsystems"
-	PriorityLabel    BugLabelType = "prio"
-	NoRemindersLabel BugLabelType = "no-reminders"
+	EmptyLabel           BugLabelType = ""
+	SubsystemLabel       BugLabelType = "subsystems"
+	PriorityLabel        BugLabelType = "prio"
+	NoRemindersLabel     BugLabelType = "no-reminders"
+	OriginLabel          BugLabelType = "origin"
+	MissingBackportLabel BugLabelType = "missing-backport"
 )
 
 type oneOf []string
@@ -24,8 +26,9 @@ type trueFalse struct{}
 
 func makeLabelSet(c context.Context, ns string) *labelSet {
 	ret := map[BugLabelType]interface{}{
-		PriorityLabel:    oneOf([]string{"low", "normal", "high"}),
-		NoRemindersLabel: trueFalse{},
+		PriorityLabel:        oneOf([]string{"low", "normal", "high"}),
+		NoRemindersLabel:     trueFalse{},
+		MissingBackportLabel: trueFalse{},
 	}
 	service := getSubsystemService(c, ns)
 	if service != nil {
@@ -35,6 +38,21 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 		}
 		ret[SubsystemLabel] = subsetOf(names)
 	}
+
+	originLabels := []string{}
+	for _, repo := range getKernelRepos(c, ns) {
+		if repo.LabelIntroduced != "" {
+			originLabels = append(originLabels, repo.LabelIntroduced)
+		}
+		if repo.LabelReached != "" {
+			originLabels = append(originLabels, repo.LabelReached)
+		}
+	}
+
+	if len(originLabels) > 0 {
+		ret[OriginLabel] = subsetOf(originLabels)
+	}
+
 	return &labelSet{
 		c:      c,
 		ns:     ns,
@@ -195,4 +213,13 @@ func (bug *Bug) UnsetLabels(labels ...BugLabelType) map[BugLabelType]struct{} {
 	}
 	bug.Labels = newList
 	return notFound
+}
+
+func (bug *Bug) HasUserLabel(label BugLabelType) bool {
+	for _, item := range bug.Labels {
+		if item.Label == label && item.SetBy != "" {
+			return true
+		}
+	}
+	return false
 }

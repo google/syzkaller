@@ -217,6 +217,12 @@ func (c *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 	}
 }
 
+func (c *Ctx) setKernelRepos(list []KernelRepo) {
+	c.transformContext = func(c context.Context) context.Context {
+		return contextWithRepos(c, list)
+	}
+}
+
 // GET sends admin-authorized HTTP GET request to the app.
 func (c *Ctx) GET(url string) ([]byte, error) {
 	return c.AuthGET(AccessAdmin, url)

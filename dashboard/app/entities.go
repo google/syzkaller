@@ -121,6 +121,32 @@ type Bug struct {
 	DailyStats     []BugDailyStats
 	Labels         []BugLabel
 	DiscussionInfo []BugDiscussionInfo
+	TreeTests      BugTreeTestInfo
+}
+
+type BugTreeTestInfo struct {
+	// NeedPoll is set to true if this bug needs to be considered ASAP.
+	NeedPoll bool
+	// NextPoll can be used to delay the next inspection of the bug.
+	NextPoll time.Time
+	// List contains latest data about cross-tree patch tests.
+	List []BugTreeTest
+}
+
+type BugTreeTest struct {
+	CrashID int64
+	Repo    string
+	Branch  string // May be also equal to a commit.
+	// If the values below are set, the testing was done on a merge base.
+	MergeBaseRepo   string
+	MergeBaseBranch string
+	// Below are job keys.
+	First      string // The first job that finished successfully.
+	FirstOK    string
+	FirstCrash string
+	Last       string
+	Error      string // If some job succeeds afterwards, it should be cleared.
+	Pending    string
 }
 
 type BugLabelType string
@@ -172,12 +198,7 @@ func updateSingleBug(c context.Context, bugKey *db.Key, transform func(*Bug) err
 }
 
 func (bug *Bug) hasUserSubsystems() bool {
-	for _, item := range bug.LabelValues(SubsystemLabel) {
-		if item.SetBy != "" {
-			return true
-		}
-	}
-	return false
+	return bug.HasUserLabel(SubsystemLabel)
 }
 
 // Initially, subsystem labels were stored as Tags.Subsystems, but over time
@@ -778,21 +799,14 @@ func loadBuild(c context.Context, ns, id string) (*Build, error) {
 }
 
 func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
-	var builds []*Build
-	_, err := db.NewQuery("Build").
-		Filter("Namespace=", ns).
-		Filter("Manager=", manager).
-		Filter("Type=", BuildNormal).
-		Order("-Time").
-		Limit(1).
-		GetAll(c, &builds)
+	mgr, err := loadManager(c, ns, manager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch manager build: %v", err)
+		return nil, err
 	}
-	if len(builds) == 0 {
+	if mgr.CurrentBuild == "" {
 		return nil, fmt.Errorf("failed to fetch manager build: no builds")
 	}
-	return builds[0], nil
+	return loadBuild(c, ns, mgr.CurrentBuild)
 }
 
 func (bug *Bug) displayTitle() string {
