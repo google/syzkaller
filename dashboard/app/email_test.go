@@ -80,9 +80,6 @@ If you want to change bug's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If you want to unassign a label, reply with:
-#syz unset some-label
-
 If the bug is a duplicate of another bug, reply with:
 #syz dup: exact-subject-of-another-report
 
@@ -260,9 +257,6 @@ If you attach or paste a git patch, syzbot will apply it before testing.
 If you want to change bug's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
-
-If you want to unassign a label, reply with:
-#syz unset some-label
 
 If the bug is a duplicate of another bug, reply with:
 #syz dup: exact-subject-of-another-report
@@ -703,9 +697,6 @@ If you want to change bug's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If you want to unassign a label, reply with:
-#syz unset some-label
-
 If the bug is a duplicate of another bug, reply with:
 #syz dup: exact-subject-of-another-report
 
@@ -875,9 +866,6 @@ If the bug is already fixed, let syzbot know by replying with:
 If you want to change bug's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
-
-If you want to unassign a label, reply with:
-#syz unset some-label
 
 If the bug is a duplicate of another bug, reply with:
 #syz dup: exact-subject-of-another-report
