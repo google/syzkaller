@@ -20,6 +20,7 @@ import (
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -236,16 +237,17 @@ type uiBugDiscussion struct {
 }
 
 type uiBugPage struct {
-	Header        *uiHeader
-	Now           time.Time
-	Bug           *uiBug
-	BisectCause   *uiJob
-	BisectFix     *uiJob
-	Sections      []*uiCollapsible
-	SampleReport  template.HTML
-	Crashes       *uiCrashTable
-	TestPatchJobs *uiJobList
-	Labels        []*uiBugLabel
+	Header          *uiHeader
+	Now             time.Time
+	Bug             *uiBug
+	BisectCause     *uiJob
+	BisectFix       *uiJob
+	Sections        []*uiCollapsible
+	SampleReport    template.HTML
+	Crashes         *uiCrashTable
+	TestPatchJobs   *uiJobList
+	Labels          []*uiBugLabel
+	DebugSubsystems string
 }
 
 const (
@@ -681,6 +683,9 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
 		return err
 	}
+	if r.FormValue("debug_subsystems") != "" && accessLevel == AccessAdmin {
+		return debugBugSubsystems(c, w, bug)
+	}
 	hdr, err := commonHeader(c, r, w, bug.Namespace)
 	if err != nil {
 		return err
@@ -797,6 +802,9 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	for _, entry := range bug.Labels {
 		data.Labels = append(data.Labels, makeBugLabelUI(c, bug, entry))
 	}
+	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
+		data.DebugSubsystems = html.AmendURL(data.Bug.Link, "debug_subsystems", "1")
+	}
 	// bug.BisectFix is set to BisectNot in two cases :
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
@@ -823,6 +831,21 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func debugBugSubsystems(c context.Context, w http.ResponseWriter, bug *Bug) error {
+	service := getSubsystemService(c, bug.Namespace)
+	if service == nil {
+		w.Write([]byte("Subsystem service was not found."))
+		return nil
+	}
+	_, err := inferSubsystems(c, bug, bug.key(c), &debugtracer.GenericTracer{
+		TraceWriter: w,
+	})
+	if err != nil {
+		w.Write([]byte(fmt.Sprintf("%s", err)))
+	}
+	return nil
 }
 
 func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {

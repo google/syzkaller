@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -773,7 +774,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	calculateSubsystems := save && (bug.NumCrashes == 0 ||
 		bug.ReproLevel == ReproLevelNone && reproLevel != ReproLevelNone)
 	if calculateSubsystems {
-		newSubsystems, err = inferSubsystems(c, bug, bugKey)
+		newSubsystems, err = inferSubsystems(c, bug, bugKey, &debugtracer.NullTracer{})
 		if err != nil {
 			log.Errorf(c, "%q: failed to extract subsystems: %s", bug.Title, err)
 			return nil, err

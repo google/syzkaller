@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
@@ -38,7 +39,7 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 			err = updateBugSubsystems(c, bugKey, nil, updateRevision(rev))
 		} else {
 			var list []*subsystem.Subsystem
-			list, err = inferSubsystems(c, bugs[i], bugKey)
+			list, err = inferSubsystems(c, bugs[i], bugKey, &debugtracer.NullTracer{})
 			if err != nil {
 				return fmt.Errorf("failed to infer subsystems: %w", err)
 			}
@@ -142,7 +143,8 @@ const (
 )
 
 // inferSubsystems determines the best yet possible estimate of the bug's subsystems.
-func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key) ([]*subsystem.Subsystem, error) {
+func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key,
+	tracer debugtracer.DebugTracer) ([]*subsystem.Subsystem, error) {
 	service := getSubsystemService(c, bug.Namespace)
 	if service == nil {
 		// There's nothing we can do.
@@ -168,7 +170,7 @@ func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key) ([]*subsystem.
 		}
 		crashes = append(crashes, crash)
 	}
-	return service.Extract(crashes), nil
+	return service.TracedExtract(crashes, tracer), nil
 }
 
 // subsystemMaintainers queries the list of emails to send the bug to.

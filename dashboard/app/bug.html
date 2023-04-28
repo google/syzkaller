@@ -22,6 +22,9 @@ Page with details about a single bug.
 		{{- end}}
 		<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#labels">(incorrect?)</a><br>
 	{{- end}}
+	{{if .DebugSubsystems}}
+	{{link .DebugSubsystems "[Debug subsystem assignment]"}}<br>
+	{{- end}}
 	{{if .Bug.CreditEmail}}
 	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{- end}}
