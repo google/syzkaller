@@ -483,8 +483,8 @@ func checkKernelRepos(ns string, config *Config, repos []KernelRepo) {
 	if len(repos) == 0 {
 		panic(fmt.Sprintf("no repos in namespace %q", ns))
 	}
+	introduced, reached := map[string]bool{}, map[string]bool{}
 	aliasMap := map[string]bool{}
-	labelMap := map[string]bool{}
 	canBeLabels := false
 	for _, repo := range repos {
 		if !vcs.CheckRepoAddress(repo.URL) {
@@ -504,18 +504,21 @@ func checkKernelRepos(ns string, config *Config, repos []KernelRepo) {
 			panic(fmt.Sprintf("%v: bad kernel repo reporting priority %v for %q", ns, prio, repo.Alias))
 		}
 		checkCC(&repo.CC)
-		for _, label := range []string{repo.LabelIntroduced, repo.LabelReached} {
-			if label == "" {
-				continue
+		if repo.LabelIntroduced != "" {
+			introduced[repo.LabelIntroduced] = true
+			if reached[repo.LabelIntroduced] {
+				panic(fmt.Sprintf("%v: label %s is used for both introduced and reached", ns, repo.LabelIntroduced))
 			}
-			if labelMap[label] {
-				panic(fmt.Sprintf("%v: duplicate label  %q", ns, label))
+		}
+		if repo.LabelReached != "" {
+			reached[repo.LabelReached] = true
+			if introduced[repo.LabelReached] {
+				panic(fmt.Sprintf("%v: label %s is used for both introduced and reached", ns, repo.LabelReached))
 			}
-			labelMap[label] = true
 		}
 		canBeLabels = canBeLabels || repo.DetectMissingBackports
 	}
-	if len(labelMap) > 0 {
+	if len(introduced)+len(reached) > 0 {
 		canBeLabels = true
 	}
 	if canBeLabels && !config.FindBugOriginTrees {
