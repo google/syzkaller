@@ -1394,6 +1394,20 @@ func (mgr *Manager) candidateBatch(size int) []rpctype.Candidate {
 	return res
 }
 
+func (mgr *Manager) hubIsUnreachable() {
+	var dash *dashapi.Dashboard
+	mgr.mu.Lock()
+	if mgr.phase == phaseTriagedCorpus {
+		dash = mgr.dash
+		mgr.phase = phaseTriagedHub
+		log.Logf(0, "did not manage to connect to syz-hub; moving forward")
+	}
+	mgr.mu.Unlock()
+	if dash != nil {
+		mgr.dash.LogError(mgr.cfg.Name, "did not manage to connect to syz-hub")
+	}
+}
+
 func (mgr *Manager) rotateCorpus() bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
