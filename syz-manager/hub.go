@@ -73,25 +73,36 @@ type HubConnector struct {
 type HubManagerView interface {
 	getMinimizedCorpus() (corpus, repros [][]byte)
 	addNewCandidates(candidates []rpctype.Candidate)
+	hubIsUnreachable()
 }
 
 func (hc *HubConnector) loop() {
 	var hub *rpctype.RPCClient
-	for ; ; time.Sleep(10 * time.Minute) {
+	var doneOnce bool
+	for query := 0; ; time.Sleep(10 * time.Minute) {
 		corpus, repros := hc.mgr.getMinimizedCorpus()
 		hc.newRepros = append(hc.newRepros, repros...)
 		if hub == nil {
 			var err error
 			if hub, err = hc.connect(corpus); err != nil {
 				log.Logf(0, "failed to connect to hub at %v: %v", hc.cfg.HubAddr, err)
-				continue
+			} else {
+				log.Logf(0, "connected to hub at %v, corpus %v", hc.cfg.HubAddr, len(corpus))
 			}
-			log.Logf(0, "connected to hub at %v, corpus %v", hc.cfg.HubAddr, len(corpus))
 		}
-		if err := hc.sync(hub, corpus); err != nil {
-			log.Logf(0, "hub sync failed: %v", err)
-			hub.Close()
-			hub = nil
+		if hub != nil {
+			if err := hc.sync(hub, corpus); err != nil {
+				log.Logf(0, "hub sync failed: %v", err)
+				hub.Close()
+				hub = nil
+			} else {
+				doneOnce = true
+			}
+		}
+		query++
+		const maxAttempts = 3
+		if hub == nil && query >= maxAttempts && !doneOnce {
+			hc.mgr.hubIsUnreachable()
 		}
 	}
 }
