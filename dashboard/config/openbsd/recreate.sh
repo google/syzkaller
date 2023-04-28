@@ -72,7 +72,6 @@ mv  ~/.ssh/known_hosts{.new,}
 
 ssh syzkaller@"${INSTANCE}" mkdir -p /syzkaller/userspace
 ssh syzkaller@"${INSTANCE}" ln -sf /syzkaller/{gopath/src/github.com/google/syzkaller/dashboard/,}config
-scp "${SYZ_DIR}"/dashboard/config/openbsd/config.ci "${INSTANCE}":/syzkaller/config-openbsd.ci
 scp worker_key syzkaller@"${INSTANCE}":/syzkaller/userspace/key
 scp -C worker_disk.raw syzkaller@"${INSTANCE}":/syzkaller/userspace/image
 ssh syzkaller@"${INSTANCE}" 'D=/syzkaller/userspace-multicore && mkdir -p $D && ln -sf ../userspace/{image,key} $D && ln -sf ../config/openbsd/overlays/ci-openbsd-multicore $D/overlay'
