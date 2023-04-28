@@ -1,9 +1,18 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// TODO: on the bug page, add a [debug subsystem assignment] link.
+// Only show it for admins.
+// The link runs subsystem assignment for the bug and returns the output.
+
 package subsystem
 
-import "math"
+import (
+	"math"
+	"strings"
+
+	"github.com/google/syzkaller/pkg/debugtracer"
+)
 
 // Extractor deduces the subsystems from the list of crashes.
 type Extractor struct {
@@ -28,12 +37,19 @@ func MakeExtractor(list []*Subsystem) *Extractor {
 }
 
 func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
+	return e.TracedExtract(crashes, &debugtracer.NullTracer{})
+}
+
+func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTracer) []*Subsystem {
 	// First put all subsystems to the same list.
 	subsystems := []*Subsystem{}
 	reproCount := 0
-	for _, crash := range crashes {
+	for i, crash := range crashes {
 		if crash.GuiltyPath != "" {
-			subsystems = append(subsystems, e.raw.FromPath(crash.GuiltyPath)...)
+			extracted := e.raw.FromPath(crash.GuiltyPath)
+			tracer.Log("Crash #%d: guilty=%s subsystems=%s", i+1,
+				crash.GuiltyPath, e.readableSubsystems(extracted))
+			subsystems = append(subsystems, extracted...)
 		}
 		if len(crash.SyzRepro) != 0 {
 			reproCount++
@@ -48,17 +64,21 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	// If all reproducers hint at the same subsystem, take it as well.
 	reproCounts := map[*Subsystem]int{}
 	fromRepro := []*Subsystem{}
-	for _, crash := range crashes {
+	for i, crash := range crashes {
 		if len(crash.SyzRepro) == 0 {
 			continue
 		}
-		for _, subsystem := range e.raw.FromProg(crash.SyzRepro) {
+		reproSubsystems := e.raw.FromProg(crash.SyzRepro)
+		tracer.Log("Crash #%d: repro subsystems=%s", i+1, e.readableSubsystems(reproSubsystems))
+		for _, subsystem := range reproSubsystems {
 			reproCounts[subsystem]++
 			if reproCounts[subsystem] == reproCount {
+				tracer.Log("Subsystem %s exists in all reproducers", subsystem.Name)
 				fromRepro = append(fromRepro, subsystem)
 			}
 		}
 	}
+
 	// It can be the case that guilty paths point to several subsystems, but the reproducer
 	// can clearly point to one of them.
 	// Let's consider it to be the strongest singal.
@@ -70,6 +90,8 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 			parents[reproSubsystem] = struct{}{} // also include the subsystem itself
 			for _, subsystem := range subsystems {
 				if _, ok := parents[subsystem]; ok {
+					tracer.Log("Picking %s because %s is one of its parents",
+						reproSubsystem.Name, subsystem.Name)
 					newSubsystems = append(newSubsystems, reproSubsystem)
 					break
 				}
@@ -77,6 +99,8 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 		}
 		if len(newSubsystems) > 0 {
 			// Just pick those subsystems.
+			tracer.Log("Set %s because they appear both in repros and stack tracex",
+				e.readableSubsystems(newSubsystems))
 			return newSubsystems
 		}
 
@@ -85,7 +109,10 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 		const cutOff = 3
 		if reproCount >= cutOff {
 			// But if the guilty paths are non-controversial, also take the leading candidate.
-			return append(fromRepro, mostVoted(counts, 0.66)...)
+			fromStacks := mostVoted(counts, 0.66)
+			tracer.Log("There are %d reproducers, so take %s from them and %s from stack traces",
+				reproCount, e.readableSubsystems(fromRepro), e.readableSubsystems(fromStacks))
+			return append(fromRepro, fromStacks...)
 		}
 	}
 
@@ -95,7 +122,17 @@ func (e *Extractor) Extract(crashes []*Crash) []*Subsystem {
 	}
 
 	// Let's pick all subsystems that received >= 33% of votes (thus no more than 3).
-	return removeParents(mostVoted(counts, 0.33))
+	afterVoting := mostVoted(counts, 0.33)
+	tracer.Log("Take %s from voting results", e.readableSubsystems(afterVoting))
+	return removeParents(afterVoting)
+}
+
+func (e *Extractor) readableSubsystems(list []*Subsystem) string {
+	var names []string
+	for _, item := range list {
+		names = append(names, item.Name)
+	}
+	return strings.Join(names, ", ")
 }
 
 // mostVoted picks subsystems that have received >= share votes.
