@@ -64,15 +64,19 @@ EOF2
   mount /syzkaller
   su -l syzkaller <<EOF2
     cd /syzkaller
+    export HOME=/syzkaller
     set -eux
     ulimit -d 8000000
     mkdir -p /syzkaller/go-cache
-    GOCACHE=/syzkaller/go-cache
-    export GOCACHE
-    test -x syz-ci || (
-         go get github.com/google/syzkaller/syz-ci &&
-         go build github.com/google/syzkaller/syz-ci)
-    ./syz-ci -config ./config-openbsd.ci 2>&1 | tee syz-ci.log &
+    export GOCACHE=/syzkaller/go-cache
+    test -d /syzkaller/gopath/src/github.com/google/syzkaller || (
+	mkdir -p /syzkaller/gopath/src/github.com/google && \
+	git clone https://github.com/google/syzkaller.git && \
+	mv syzkaller /syzkaller/gopath/src/github.com/google)
+    (cd /syzkaller/gopath/src/github.com/google/syzkaller && \
+        gmake ci && \
+	install bin/syz-ci /syzkaller)
+    ./syz-ci -config /syzkaller/gopath/src/github.com/google/syzkaller/dashboard/config/openbsd/config.ci 2>&1 | tee /syzkaller/syz-ci.log &
 EOF2
 )
 EOF
