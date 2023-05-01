@@ -35,6 +35,9 @@ func (c cuttlefish) runBuild(kernelDir, buildConfig string) error {
 
 func (c cuttlefish) runBazel(kernelDir string) error {
 	cmd := osutil.Command("tools/bazel", "run", "--kasan", bazelTarget, "--", "--dist_dir=dist")
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return err
+	}
 	cmd.Dir = kernelDir
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
