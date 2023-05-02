@@ -55,5 +55,5 @@ config:
  # For context see: https://groups.google.com/g/syzkaller/c/SoydtBd-dYs/m/ns67L4ApAwAJ
  - VIRT_CPU_ACCOUNTING_GEN
  - CONTEXT_TRACKING_FORCE: [-v6.1]
- - PAGE_TABLE_CHECK: [v5.17, -s390, -arm, -timeouts_emu]
- - PAGE_TABLE_CHECK_ENFORCED: [v5.17, -s390, -arm, -timeouts_emu]
+ - PAGE_TABLE_CHECK: [v5.17, -s390, -arm]
+ - PAGE_TABLE_CHECK_ENFORCED: [v5.17, -s390, -arm]
