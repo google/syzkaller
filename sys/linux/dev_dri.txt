@@ -286,7 +286,7 @@ drm_mode_fb_cmd2 {
 	height		int32
 	pixel_format	int32
 	flags		flags[drm_mode_fb_flags, int32]
-	handles		array[int32, 4]
+	handles		array[drm_gem_handle, 4]
 	pitches		array[int32, 4]
 	offsets		array[int32, 4]
 	modifier	array[int64, 4]
