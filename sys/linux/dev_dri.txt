@@ -169,12 +169,14 @@ drm_mode_get_encoder {
 
 ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[inout, drm_mode_get_connector])
 
+resource drm_prop_id[int32]
+
 drm_mode_get_connector {
 # Everything except for connector_id are outputs.
 	encoders_ptr		ptr64[out, array[drm_encoder_id]]
 	modes_ptr		ptr64[out, array[drm_mode_modeinfo]]
-	props_ptr		ptr64[out, array[int32]]
-	prop_values_ptr		ptr64[out, array[int32]]
+	props_ptr		ptr64[out, array[drm_prop_id]]
+	prop_values_ptr		ptr64[out, array[int64]]
 	count_modes		len[modes_ptr, int32]
 	count_props		len[props_ptr, int32]
 	count_encoders		len[encoders_ptr, int32]
@@ -190,7 +192,7 @@ drm_mode_get_connector {
 	pad			const[0, int32]
 }
 
-ioctl$DRM_IOCTL_MODE_GETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPERTY], arg ptr[in, drm_mode_get_property])
+ioctl$DRM_IOCTL_MODE_GETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPERTY], arg ptr[inout, drm_mode_get_property])
 ioctl$DRM_IOCTL_MODE_SETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPROPERTY], arg ptr[in, drm_mode_connector_set_property])
 ioctl$DRM_IOCTL_MODE_GETPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPBLOB], arg ptr[in, drm_mode_get_blob])
 ioctl$DRM_IOCTL_MODE_OBJ_GETPROPERTIES(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_GETPROPERTIES], arg ptr[in, drm_mode_obj_get_properties])
@@ -201,8 +203,7 @@ ioctl$DRM_IOCTL_MODE_DESTROYPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROY
 drm_mode_get_property {
 	values_ptr		ptr64[out, array[int64]]
 	enum_blob_ptr		ptr64[out, array[drm_mode_property_enum]]
-# TODO: where does one get these?
-	prop_id			int32
+	prop_id			drm_prop_id	(in)
 	flags			const[0, int32]
 	name			array[const[0, int8], DRM_PROP_NAME_LEN]
 	count_values		len[values_ptr, int32]
@@ -216,13 +217,13 @@ drm_mode_property_enum {
 
 drm_mode_connector_set_property {
 	value		int64
-	prop_id		int32
+	prop_id		drm_prop_id
 	connector_id	int32
 }
 
 drm_mode_obj_set_property {
 	value		int64
-	prop_id		int32
+	prop_id		drm_prop_id
 	obj_id		int32
 	obj_type	flags[drm_obj_type, int32]
 }
@@ -352,8 +353,8 @@ drm_mode_atomic {
 	objs_ptr	ptr64[in, array[int32]]
 # NEED: this array is probably parallel to objs_ptr.
 	count_props_ptr	ptr64[in, array[int32]]
-	props_ptr	ptr64[in, array[int32]]
-	prop_values_ptr	ptr64[in, array[int32]]
+	props_ptr	ptr64[in, array[drm_prop_id]]
+	prop_values_ptr	ptr64[in, array[int64]]
 	reserved	const[0, int64]
 	user_data	int64
 }
