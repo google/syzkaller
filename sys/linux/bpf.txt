@@ -198,6 +198,7 @@ bpf_batch_flags = BPF_F_LOCK
 
 define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
 define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
+define BPF_CORE_RELO_SIZE	sizeof(struct bpf_core_relo)
 
 type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	type			TYPE
@@ -221,8 +222,10 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	line_info_cnt		len[line_info, int32]
 	attach_btf_id		BTF_ID
 	attach_prog_fd		PROG_FD
-	pad			const[0, int32]
+	core_relo_cnt		len[core_relos, int32]
 	fd_array		ptr64[in, array[fd_bpf_map], opt]
+	core_relos		ptr64[in, array[bpf_core_relo], opt]
+	core_relo_rec_size	const[BPF_CORE_RELO_SIZE, int32]
 }
 
 type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
@@ -242,6 +245,14 @@ bpf_line_info {
 	file_name_off	btf_opt_name_off
 	line_off	int32
 	line_col	int32
+}
+
+bpf_core_relo {
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:5]
+	type_id		btf_type_id
+	access_str_off	btf_opt_name_off
+	kind		flags[bpf_core_relo_kind, int32]
 }
 
 bpf_instructions [
@@ -872,3 +883,4 @@ bpf_prog_test_run_flags = BPF_F_TEST_RUN_ON_CPU, BPF_F_TEST_XDP_LIVE_FRAMES
 bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_CGROUP_SYSCTL, BPF_FLOW_DISSECTOR, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_CGROUP_INET_SOCK_RELEASE, BPF_SK_LOOKUP, BPF_LSM_CGROUP, BPF_SK_MSG_VERDICT, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_SK_SKB_VERDICT
 bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY
 bpf_stat_types = BPF_STATS_RUN_TIME
+bpf_core_relo_kind = BPF_CORE_FIELD_BYTE_OFFSET, BPF_CORE_FIELD_BYTE_SIZE, BPF_CORE_FIELD_EXISTS, BPF_CORE_FIELD_SIGNED, BPF_CORE_FIELD_LSHIFT_U64, BPF_CORE_FIELD_RSHIFT_U64, BPF_CORE_TYPE_ID_LOCAL, BPF_CORE_TYPE_ID_TARGET, BPF_CORE_TYPE_EXISTS, BPF_CORE_TYPE_SIZE, BPF_CORE_ENUMVAL_EXISTS, BPF_CORE_ENUMVAL_VALUE, BPF_CORE_TYPE_MATCHES
