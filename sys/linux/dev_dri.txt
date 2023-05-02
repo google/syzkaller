@@ -154,11 +154,12 @@ drm_mode_crtc_lut {
 	blue		ptr64[in, array[int16]]
 }
 
-ioctl$DRM_IOCTL_MODE_GETENCODER(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETENCODER], arg ptr[in, drm_mode_get_encoder])
+ioctl$DRM_IOCTL_MODE_GETENCODER(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETENCODER], arg ptr[inout, drm_mode_get_encoder])
+
+resource drm_encoder_id[int32]
 
 drm_mode_get_encoder {
-# TODO: where does one get these?
-	encoder_id	int32
+	encoder_id	drm_encoder_id	(in)
 # Outputs:
 	encoder_type	const[0, int32]
 	crtc_id		drm_crtc_id	(out)
@@ -166,20 +167,20 @@ drm_mode_get_encoder {
 	possible_clones	const[0, int32]
 }
 
-ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[in, drm_mode_get_connector])
+ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[inout, drm_mode_get_connector])
 
 drm_mode_get_connector {
 # Everything except for connector_id are outputs.
-	encoders_ptr		ptr64[out, array[int32]]
+	encoders_ptr		ptr64[out, array[drm_encoder_id]]
 	modes_ptr		ptr64[out, array[drm_mode_modeinfo]]
 	props_ptr		ptr64[out, array[int32]]
 	prop_values_ptr		ptr64[out, array[int32]]
 	count_modes		len[modes_ptr, int32]
 	count_props		len[props_ptr, int32]
 	count_encoders		len[encoders_ptr, int32]
-	encoder_id		const[0, int32]
+	encoder_id		drm_encoder_id	(out)
 # TODO: where does one get these?
-	connector_id		int32
+	connector_id		int32	(in)
 	connector_type		const[0, int32]
 	connector_type_id	const[0, int32]
 	connection		const[0, int32]
@@ -704,7 +705,7 @@ drm_mode_card_res {
 	fbid	ptr64[out, array[int32]]
 	crtcid	ptr64[out, array[drm_crtc_id]]
 	connid	ptr64[out, array[int32]]
-	encid	ptr64[out, array[int32]]
+	encid	ptr64[out, array[drm_encoder_id]]
 	nfbid	len[fbid, int32]
 	ncrtcid	len[crtcid, int32]
 	nconnid	len[connid, int32]
