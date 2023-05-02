@@ -26,7 +26,7 @@ openat$drirender128(fd const[AT_FDCWD], file ptr[in, string["/dev/dri/renderD128
 ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[inout, drm_version])
 ioctl$DRM_IOCTL_GET_UNIQUE(fd fd_dri, cmd const[DRM_IOCTL_GET_UNIQUE], arg ptr[in, drm_unique$out])
 ioctl$DRM_IOCTL_GET_MAGIC(fd fd_dri, cmd const[DRM_IOCTL_GET_MAGIC], arg ptr[in, int32])
-ioctl$DRM_IOCTL_IRQ_BUSID(fd fd_dri, cmd const[DRM_IOCTL_IRQ_BUSID], arg ptr[in, drm_irq_busid])
+ioctl$DRM_IOCTL_IRQ_BUSID(fd fd_dri, cmd const[DRM_IOCTL_IRQ_BUSID], arg ptr[inout, drm_irq_busid])
 ioctl$DRM_IOCTL_GET_MAP(fd fd_dri, cmd const[DRM_IOCTL_GET_MAP], arg ptr[inout, drm_map$DRM_IOCTL_GET_MAP])
 ioctl$DRM_IOCTL_GET_CLIENT(fd fd_dri, cmd const[DRM_IOCTL_GET_CLIENT], arg ptr[inout, drm_client])
 ioctl$DRM_IOCTL_GET_STATS(fd fd_dri, cmd const[DRM_IOCTL_GET_STATS], arg buffer[out])
@@ -534,10 +534,10 @@ drm_unique$out {
 }
 
 drm_irq_busid {
-	irq	int32
-	bus	int32
-	dev	int32
-	func	int32
+	irq	int32	(out)
+	bus	int32	(in)
+	dev	int32	(in)
+	func	int32	(in)
 }
 
 drm_map$DRM_IOCTL_GET_MAP {
