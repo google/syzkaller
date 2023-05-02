@@ -14,6 +14,7 @@ resource drm_agp_handle[intptr]
 resource drm_gem_handle[int32]
 resource drm_gem_name[int32]
 resource drm_crtc_id[int32]
+resource drm_connector_id[int32]
 
 # TODO: these seems to be pretty important things, where does one get these?
 type drm_fb_id int32
@@ -71,7 +72,7 @@ ioctl$DRM_IOCTL_MODESET_CTL(fd fd_dri, cmd const[DRM_IOCTL_MODESET_CTL], arg ptr
 ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[inout, drm_gem_open])
 ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])
 ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[inout, drm_gem_flink])
-ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[in, drm_mode_card_res])
+ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[inout, drm_mode_card_res])
 ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_HANDLE_TO_FD])
 ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE])
 ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[in, drm_mode_get_plane_res])
@@ -181,8 +182,7 @@ drm_mode_get_connector {
 	count_props		len[props_ptr, int32]
 	count_encoders		len[encoders_ptr, int32]
 	encoder_id		drm_encoder_id	(out)
-# TODO: where does one get these?
-	connector_id		int32	(in)
+	connector_id		drm_connector_id	(in)
 	connector_type		const[0, int32]
 	connector_type_id	const[0, int32]
 	connection		const[0, int32]
@@ -218,7 +218,7 @@ drm_mode_property_enum {
 drm_mode_connector_set_property {
 	value		int64
 	prop_id		drm_prop_id
-	connector_id	int32
+	connector_id	drm_connector_id
 }
 
 drm_mode_obj_set_property {
@@ -705,7 +705,7 @@ drm_gem_flink {
 drm_mode_card_res {
 	fbid	ptr64[out, array[int32]]
 	crtcid	ptr64[out, array[drm_crtc_id]]
-	connid	ptr64[out, array[int32]]
+	connid	ptr64[out, array[drm_connector_id]]
 	encid	ptr64[out, array[drm_encoder_id]]
 	nfbid	len[fbid, int32]
 	ncrtcid	len[crtcid, int32]
@@ -730,7 +730,7 @@ drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE {
 }
 
 drm_mode_crtc {
-	set_connectors_ptr	ptr64[in, array[int32]]
+	set_connectors_ptr	ptr64[in, array[drm_connector_id]]
 	count_connectors	len[set_connectors_ptr, int32]
 	crtc_id			drm_crtc_id
 	fb_id			drm_fb_id
