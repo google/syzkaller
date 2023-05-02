@@ -75,8 +75,8 @@ ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURC
 ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_HANDLE_TO_FD])
 ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE])
 ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[in, drm_mode_get_plane_res])
-ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[in, drm_mode_crtc])
-ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
+ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[inout, drm_mode_crtc$DRM_IOCTL_MODE_GETCRTC])
+ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc$DRM_IOCTL_MODE_SETCRTC])
 
 ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[inout, drm_mode_get_plane])
 ioctl$DRM_IOCTL_MODE_SETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPLANE], arg ptr[in, drm_mode_set_plane])
@@ -736,7 +736,19 @@ drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE {
 	fd	fd_dri	(in)
 }
 
-drm_mode_crtc {
+drm_mode_crtc$DRM_IOCTL_MODE_GETCRTC {
+	set_connectors_ptr	ptr64[in, array[const[0, int32]]]
+	count_connectors	len[set_connectors_ptr, int32]
+	crtc_id			drm_crtc_id	(in)
+	fb_id			drm_fb_id	(out)
+	x			int32	(out)
+	y			int32	(out)
+	gamma_size		int32	(out)
+	mode_valid		int32	(out)
+	mode			drm_mode_modeinfo	(out)
+}
+
+drm_mode_crtc$DRM_IOCTL_MODE_SETCRTC {
 	set_connectors_ptr	ptr64[in, array[drm_connector_id]]
 	count_connectors	len[set_connectors_ptr, int32]
 	crtc_id			drm_crtc_id
