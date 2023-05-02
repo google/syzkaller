@@ -15,9 +15,7 @@ resource drm_gem_handle[int32]
 resource drm_gem_name[int32]
 resource drm_crtc_id[int32]
 resource drm_connector_id[int32]
-
-# TODO: these seems to be pretty important things, where does one get these?
-type drm_fb_id int32
+resource drm_fb_id[int32]
 
 syz_open_dev$dri(dev ptr[in, string["/dev/dri/card#"]], id intptr, flags flags[open_flags]) fd_dri
 syz_open_dev$dricontrol(dev ptr[in, string["/dev/dri/controlD#"]], id intptr, flags flags[open_flags]) fd_dri
@@ -93,7 +91,7 @@ drm_mode_get_plane {
 	plane_id		drm_plane_id	(in)
 # These are outputs:
 	crtc_id			drm_crtc_id
-	fb_id			const[0, int32]
+	fb_id			drm_fb_id
 	possible_crtcs		const[0, int32]
 	gamma_size		const[0, int32]
 	count_format_types	len[format_type_ptr, int32]
@@ -258,11 +256,21 @@ drm_mode_destroy_blob {
 	blob_id	drm_blob_id
 }
 
-ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[in, drm_mode_fb_cmd])
-ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[in, drm_mode_fb_cmd])
+ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[inout, drm_mode_fb_cmd$DRM_IOCTL_MODE_GETFB])
+ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[in, drm_mode_fb_cmd$DRM_IOCTL_MODE_ADDFB])
 ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[in, drm_mode_fb_cmd2])
 
-drm_mode_fb_cmd {
+drm_mode_fb_cmd$DRM_IOCTL_MODE_GETFB {
+	fb_id	drm_fb_id	(in)
+	width	int32	(out)
+	height	int32	(out)
+	pitch	int32	(out)
+	bpp	int32	(out)
+	depth	int32	(out)
+	handle	int32	(out)
+}
+
+drm_mode_fb_cmd$DRM_IOCTL_MODE_ADDFB {
 	fb_id	drm_fb_id
 	width	int32
 	height	int32
@@ -703,7 +711,7 @@ drm_gem_flink {
 }
 
 drm_mode_card_res {
-	fbid	ptr64[out, array[int32]]
+	fbid	ptr64[out, array[drm_fb_id]]
 	crtcid	ptr64[out, array[drm_crtc_id]]
 	connid	ptr64[out, array[drm_connector_id]]
 	encid	ptr64[out, array[drm_encoder_id]]
