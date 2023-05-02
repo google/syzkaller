@@ -171,7 +171,7 @@ ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECT
 drm_mode_get_connector {
 # Everything except for connector_id are outputs.
 	encoders_ptr		ptr64[out, array[int32]]
-	modes_ptr		ptr64[out, array[int32]]
+	modes_ptr		ptr64[out, array[drm_mode_modeinfo]]
 	props_ptr		ptr64[out, array[int32]]
 	prop_values_ptr		ptr64[out, array[int32]]
 	count_modes		len[modes_ptr, int32]
