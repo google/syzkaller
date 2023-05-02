@@ -1011,9 +1011,12 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		bool prev_filter = true;
 		for (uint32 i = 0; i < cov->size; i++) {
 			cover_data_t pc = cover_data[i] + cov->pc_offset;
-			uint32 sig = pc;
-			if (use_cover_edges(pc))
-				sig ^= hash(prev_pc);
+			uint32 sig = pc & 0xFFFFF000;
+			if (use_cover_edges(pc)) {
+				// Only hash the lower 12 bits so the hash is
+				// independent of any module offsets.
+				sig |= (pc & 0xFFF) ^ (hash(prev_pc & 0xFFF) & 0xFFF);
+			}
 			bool filter = coverage_filter(pc);
 			// Ignore the edge only if both current and previous PCs are filtered out
 			// to capture all incoming and outcoming edges into the interesting code.

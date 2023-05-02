@@ -100,7 +100,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.modules = a.Modules
 
 	if serv.canonicalModules == nil {
-		serv.canonicalModules = cover.NewCanonicalizer(a.Modules)
+		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
 	}
 
 	serv.mu.Lock()
@@ -268,7 +268,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 
 	f := serv.fuzzers[a.Name]
 	if f != nil {
-		f.instModules.Canonicalize(a.Cover)
+		f.instModules.Canonicalize(a.Cover, a.Signal)
 	}
 	// Note: f may be nil if we called shutdownInstance,
 	// but this request is already in-flight.
@@ -377,7 +377,7 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		}
 	}
 	for _, inp := range r.NewInputs {
-		f.instModules.Decanonicalize(inp.Cover)
+		f.instModules.Decanonicalize(inp.Cover, inp.Signal)
 	}
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
