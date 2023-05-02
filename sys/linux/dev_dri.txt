@@ -258,7 +258,8 @@ drm_mode_destroy_blob {
 
 ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[inout, drm_mode_fb_cmd$DRM_IOCTL_MODE_GETFB])
 ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[in, drm_mode_fb_cmd$DRM_IOCTL_MODE_ADDFB])
-ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[in, drm_mode_fb_cmd2])
+ioctl$DRM_IOCTL_MODE_GETFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB2], arg ptr[inout, drm_mode_fb_cmd2$DRM_IOCTL_MODE_GETFB2])
+ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[in, drm_mode_fb_cmd2$DRM_IOCTL_MODE_ADDFB2])
 
 drm_mode_fb_cmd$DRM_IOCTL_MODE_GETFB {
 	fb_id	drm_fb_id	(in)
@@ -280,7 +281,19 @@ drm_mode_fb_cmd$DRM_IOCTL_MODE_ADDFB {
 	handle	int32
 }
 
-drm_mode_fb_cmd2 {
+drm_mode_fb_cmd2$DRM_IOCTL_MODE_GETFB2 {
+	fb_id		drm_fb_id	(in)
+	width		int32
+	height		int32
+	pixel_format	int32
+	flags		flags[drm_mode_fb_flags, int32]
+	handles		array[drm_gem_handle, 4]	(out)
+	pitches		array[int32, 4]
+	offsets		array[int32, 4]
+	modifier	array[int64, 4]
+}
+
+drm_mode_fb_cmd2$DRM_IOCTL_MODE_ADDFB2 {
 	fb_id		drm_fb_id
 	width		int32
 	height		int32
