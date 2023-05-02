@@ -13,9 +13,9 @@ resource drmctx[int32]
 resource drm_agp_handle[intptr]
 resource drm_gem_handle[int32]
 resource drm_gem_name[int32]
+resource drm_crtc_id[int32]
 
 # TODO: these seems to be pretty important things, where does one get these?
-type drm_crtc_id int32
 type drm_fb_id int32
 
 syz_open_dev$dri(dev ptr[in, string["/dev/dri/card#"]], id intptr, flags flags[open_flags]) fd_dri
@@ -78,7 +78,7 @@ ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPL
 ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[in, drm_mode_crtc])
 ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
 
-ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[in, drm_mode_get_plane])
+ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[inout, drm_mode_get_plane])
 ioctl$DRM_IOCTL_MODE_SETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPLANE], arg ptr[in, drm_mode_set_plane])
 
 resource drm_plane_id[int32]
@@ -89,9 +89,9 @@ drm_mode_get_plane_res {
 }
 
 drm_mode_get_plane {
-	plane_id		drm_plane_id
+	plane_id		drm_plane_id	(in)
 # These are outputs:
-	crtc_id			const[0, int32]
+	crtc_id			drm_crtc_id
 	fb_id			const[0, int32]
 	possible_crtcs		const[0, int32]
 	gamma_size		const[0, int32]
@@ -161,7 +161,7 @@ drm_mode_get_encoder {
 	encoder_id	int32
 # Outputs:
 	encoder_type	const[0, int32]
-	crtc_id		const[0, int32]
+	crtc_id		drm_crtc_id	(out)
 	possible_crtcs	const[0, int32]
 	possible_clones	const[0, int32]
 }
@@ -702,7 +702,7 @@ drm_gem_flink {
 
 drm_mode_card_res {
 	fbid	ptr64[out, array[int32]]
-	crtcid	ptr64[out, array[int32]]
+	crtcid	ptr64[out, array[drm_crtc_id]]
 	connid	ptr64[out, array[int32]]
 	encid	ptr64[out, array[int32]]
 	nfbid	len[fbid, int32]
