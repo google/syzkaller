@@ -74,7 +74,7 @@ ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[ino
 ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[inout, drm_mode_card_res])
 ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_HANDLE_TO_FD])
 ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE])
-ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[in, drm_mode_get_plane_res])
+ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[inout, drm_mode_get_plane_res])
 ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[inout, drm_mode_crtc$DRM_IOCTL_MODE_GETCRTC])
 ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc$DRM_IOCTL_MODE_SETCRTC])
 
