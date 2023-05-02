@@ -176,7 +176,7 @@ drm_mode_get_connector {
 	prop_values_ptr		ptr64[out, array[int32]]
 	count_modes		len[modes_ptr, int32]
 	count_props		len[props_ptr, int32]
-	count_encoders		len[count_modes, int32]
+	count_encoders		len[encoders_ptr, int32]
 	encoder_id		const[0, int32]
 # TODO: where does one get these?
 	connector_id		int32
