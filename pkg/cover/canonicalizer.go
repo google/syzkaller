@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/signal"
 )
 
 type Canonicalizer struct {
@@ -21,12 +22,15 @@ type Canonicalizer struct {
 type CanonicalizerInstance struct {
 	canonical Canonicalizer
 
-	// Contains a sorted list of the instance's module addresses.
-	moduleKeys []uint32
+	// Contains the canonicalize and decanonicalize conversion maps.
+	canonicalize   *Convert
+	decanonicalize *Convert
+}
 
-	// Contains a map of the uint32 address to the necessary offset.
-	instToCanonicalMap map[uint32]*canonicalizerModule
-	canonicalToInstMap map[uint32]*canonicalizerModule
+// Contains the current conversion maps used.
+type Convert struct {
+	conversionHash map[uint32]*canonicalizerModule
+	moduleKeys     []uint32
 }
 
 // Contains the offset and final address of each module.
@@ -35,7 +39,11 @@ type canonicalizerModule struct {
 	endAddr uint32
 }
 
-func NewCanonicalizer(modules []host.KernelModule) *Canonicalizer {
+func NewCanonicalizer(modules []host.KernelModule, flagSignal bool) *Canonicalizer {
+	// Return if not using canonicalization.
+	if len(modules) == 0 || !flagSignal {
+		return &Canonicalizer{}
+	}
 	// Create a map of canonical module offsets by name.
 	canonicalModules := make(map[string]host.KernelModule)
 	for _, module := range modules {
@@ -52,6 +60,9 @@ func NewCanonicalizer(modules []host.KernelModule) *Canonicalizer {
 }
 
 func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *CanonicalizerInstance {
+	if can.moduleKeys == nil {
+		return &CanonicalizerInstance{}
+	}
 	// Save sorted list of module offsets.
 	moduleKeys := make([]uint32, len(modules))
 	setModuleKeys(moduleKeys, modules)
@@ -80,19 +91,30 @@ func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *Canonicalize
 	}
 
 	return &CanonicalizerInstance{
-		canonical:          *can,
-		moduleKeys:         moduleKeys,
-		instToCanonicalMap: instToCanonicalMap,
-		canonicalToInstMap: canonicalToInstMap,
+		canonical: *can,
+		canonicalize: &Convert{
+			conversionHash: instToCanonicalMap,
+			moduleKeys:     moduleKeys,
+		},
+		decanonicalize: &Convert{
+			conversionHash: canonicalToInstMap,
+			moduleKeys:     can.moduleKeys,
+		},
 	}
 }
 
-func (ci *CanonicalizerInstance) Canonicalize(cov []uint32) {
-	convertModulePCs(ci.moduleKeys, ci.instToCanonicalMap, cov)
+func (ci *CanonicalizerInstance) Canonicalize(cov []uint32, sign signal.Serial) {
+	if ci.canonical.moduleKeys == nil {
+		return
+	}
+	ci.canonicalize.convertPCs(cov, sign)
 }
 
-func (ci *CanonicalizerInstance) Decanonicalize(cov []uint32) {
-	convertModulePCs(ci.canonical.moduleKeys, ci.canonicalToInstMap, cov)
+func (ci *CanonicalizerInstance) Decanonicalize(cov []uint32, sign signal.Serial) {
+	if ci.canonical.moduleKeys == nil {
+		return
+	}
+	ci.decanonicalize.convertPCs(cov, sign)
 }
 
 // Store sorted list of addresses. Used to binary search when converting PCs.
@@ -107,28 +129,37 @@ func setModuleKeys(moduleKeys []uint32, modules []host.KernelModule) {
 	sort.Slice(moduleKeys, func(i, j int) bool { return moduleKeys[i] < moduleKeys[j] })
 }
 
-func convertModulePCs(moduleKeys []uint32, conversionHash map[uint32]*canonicalizerModule, cov []uint32) {
-	// Skip conversion if modules are not used.
-	if len(moduleKeys) == 0 {
-		return
-	}
+func findModule(pc uint32, moduleKeys []uint32) (moduleIdx int) {
+	moduleIdx, _ = sort.Find(len(moduleKeys), func(moduleIdx int) int {
+		if pc < moduleKeys[moduleIdx] {
+			return -1
+		}
+		return +1
+	})
+	// Sort.Find returns the index above the correct module.
+	return moduleIdx - 1
+}
+
+func (convert *Convert) convertPCs(cov []uint32, sign signal.Serial) {
+	// Convert coverage.
 	for idx, pc := range cov {
-		// Determine which module each pc belongs to.
-		moduleIdx, _ := sort.Find(len(moduleKeys), func(i int) int {
-			if pc < moduleKeys[i] {
-				return -1
-			}
-			return +1
-		})
-		// Sort.Find returns the index above the correct module.
-		moduleIdx -= 1
-		// Check if address is above the first module address.
-		if moduleIdx >= 0 {
-			module := conversionHash[moduleKeys[moduleIdx]]
-			// If the address is within the found module add the offset.
-			if pc < module.endAddr {
-				cov[idx] = uint32(int(pc) + module.offset)
-			}
+		cov[idx] = convert.convertPC(pc)
+	}
+	// Convert signals.
+	for idx, elem := range sign.Elems {
+		sign.UpdateElem(idx, convert.convertPC(uint32(elem)))
+	}
+}
+
+func (convert *Convert) convertPC(pc uint32) uint32 {
+	moduleIdx := findModule(pc, convert.moduleKeys)
+	// Check if address is above the first module offset.
+	if moduleIdx >= 0 {
+		module := convert.conversionHash[convert.moduleKeys[moduleIdx]]
+		// If the address is within the found module add the offset.
+		if pc < module.endAddr {
+			pc = uint32(int(pc) + module.offset)
 		}
 	}
+	return pc
 }

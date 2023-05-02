@@ -79,6 +79,10 @@ func (s Signal) Serialize() Serial {
 	return res
 }
 
+func (ser Serial) UpdateElem(idx int, newElem uint32) {
+	ser.Elems[idx] = elemType(newElem)
+}
+
 func (ser Serial) Deserialize() Signal {
 	if len(ser.Elems) != len(ser.Prios) {
 		panic("corrupted Serial")
