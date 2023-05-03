@@ -81,6 +81,7 @@ struct usb_raw_eps_info {
 #define USB_RAW_IOCTL_EP_CLEAR_HALT _IOW('U', 14, __u32)
 #define USB_RAW_IOCTL_EP_SET_WEDGE _IOW('U', 15, __u32)
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int usb_raw_open()
 {
 	return open("/dev/raw-gadget", O_RDWR);
@@ -99,21 +100,7 @@ static int usb_raw_run(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_RUN, 0);
 }
-
-static int usb_raw_event_fetch(int fd, struct usb_raw_event* event)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
-}
-
-static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
-}
-
-static int usb_raw_ep0_read(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
-}
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 #if SYZ_EXECUTOR || __NR_syz_usb_ep_write
 static int usb_raw_ep_write(int fd, struct usb_raw_ep_io* io)
@@ -129,15 +116,7 @@ static int usb_raw_ep_read(int fd, struct usb_raw_ep_io* io)
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_ep_read
 
-static int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
-}
-
-static int usb_raw_ep_disable(int fd, int ep)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
-}
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 static int usb_raw_configure(int fd)
 {
@@ -149,10 +128,39 @@ static int usb_raw_vbus_draw(int fd, uint32 power)
 	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
 }
 
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
+}
+
+static int usb_raw_ep0_read(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
+}
+
+static int usb_raw_event_fetch(int fd, struct usb_raw_event* event)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
+}
+
+static int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
+}
+
+static int usb_raw_ep_disable(int fd, int ep)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
+}
+
 static int usb_raw_ep0_stall(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_EP0_STALL, 0);
 }
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
 
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
 static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
@@ -186,6 +194,20 @@ static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_ep_write || __NR_syz_usb_ep_read
 
+#define USB_MAX_PACKET_SIZE 4096
+
+struct usb_raw_control_event {
+	struct usb_raw_event inner;
+	struct usb_ctrlrequest ctrl;
+	char data[USB_MAX_PACKET_SIZE];
+};
+
+struct usb_raw_ep_io_data {
+	struct usb_raw_ep_io inner;
+	char data[USB_MAX_PACKET_SIZE];
+};
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -219,7 +241,9 @@ static void set_interface(int fd, int n)
 		index->iface_cur = n;
 	}
 }
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int configure_device(int fd)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -240,19 +264,6 @@ static int configure_device(int fd)
 	set_interface(fd, 0);
 	return 0;
 }
-
-#define USB_MAX_PACKET_SIZE 4096
-
-struct usb_raw_control_event {
-	struct usb_raw_event inner;
-	struct usb_ctrlrequest ctrl;
-	char data[USB_MAX_PACKET_SIZE];
-};
-
-struct usb_raw_ep_io_data {
-	struct usb_raw_ep_io inner;
-	char data[USB_MAX_PACKET_SIZE];
-};
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const char* dev,
 					  const struct vusb_connect_descriptors* descs,
@@ -391,6 +402,8 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 
 	return fd;
 }
+
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)

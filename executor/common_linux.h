@@ -111,6 +111,7 @@ static bool write_file(const char* file, const char* what, ...)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
     __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss || SYZ_NIC_VF
 #include <arpa/inet.h>
+#include <errno.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -2364,7 +2365,9 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 #define MAX_FDS 30
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||       \
+    __NR_syz_usb_ep_write || __NR_syz_usb_ep_read || __NR_syz_usb_control_io || \
+    __NR_syz_usb_disconnect
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/usb/ch9.h>
@@ -2889,6 +2892,7 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/loop.h>
+#include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -5314,6 +5318,7 @@ static volatile long syz_fuse_handle_req(volatile long a0, // /dev/fuse fd.
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_80211_inject_frame
+#include <errno.h>
 #include <linux/genetlink.h>
 #include <linux/if_ether.h>
 #include <linux/nl80211.h>

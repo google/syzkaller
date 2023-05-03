@@ -13,7 +13,7 @@
 
 #if GOOS_netbsd
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_disconnect
 #include "common_usb_netbsd.h"
 #endif
 #if SYZ_EXECUTOR || SYZ_USB
