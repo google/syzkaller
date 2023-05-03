@@ -593,7 +593,23 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 	}
 	r := newRand(target, rs)
 	s := newState(target, target.DefaultChoiceTable(), nil)
+	for _, meta := range target.PseudoSyscalls() {
+		calls := r.generateParticularCall(s, meta)
+		for _, c := range calls {
+			s.analyze(c)
+			p.Calls = append(p.Calls, c)
+		}
+	}
+	if err := p.validate(); err != nil {
+		panic(err)
+	}
+	return p
+}
+
+// PseudoSyscalls selects one *Syscall for each pseudosyscall.
+func (target *Target) PseudoSyscalls() []*Syscall {
 	handled := make(map[string]bool)
+	var ret []*Syscall
 	for _, meta := range target.Syscalls {
 		if !strings.HasPrefix(meta.CallName, "syz_") ||
 			handled[meta.CallName] ||
@@ -601,12 +617,22 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 			meta.Attrs.NoGenerate {
 			continue
 		}
+		ret = append(ret, meta)
 		handled[meta.CallName] = true
-		calls := r.generateParticularCall(s, meta)
-		for _, c := range calls {
-			s.analyze(c)
-			p.Calls = append(p.Calls, c)
-		}
+	}
+	return ret
+}
+
+// GenSampleProg generates a single sample program for the call.
+func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source) *Prog {
+	r := newRand(target, rs)
+	s := newState(target, target.DefaultChoiceTable(), nil)
+	p := &Prog{
+		Target: target,
+	}
+	for _, c := range r.generateParticularCall(s, meta) {
+		s.analyze(c)
+		p.Calls = append(p.Calls, c)
 	}
 	if err := p.validate(); err != nil {
 		panic(err)

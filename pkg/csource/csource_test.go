@@ -53,6 +53,23 @@ func TestGenerate(t *testing.T) {
 			checked[target.OS] = true
 			t.Parallel()
 			testTarget(t, target, full)
+			testPseudoSyscalls(t, target)
+		})
+	}
+}
+
+func testPseudoSyscalls(t *testing.T, target *prog.Target) {
+	// Use options that are as minimal as possible.
+	// We want to ensure that the code can always be compiled.
+	opts := Options{
+		Slowdown: 1,
+	}
+	rs := testutil.RandSource(t)
+	for _, meta := range target.PseudoSyscalls() {
+		p := target.GenSampleProg(meta, rs)
+		t.Run(fmt.Sprintf("single_%s", meta.CallName), func(t *testing.T) {
+			t.Parallel()
+			testOne(t, p, opts)
 		})
 	}
 }
