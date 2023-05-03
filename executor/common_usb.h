@@ -47,7 +47,21 @@ struct usb_info {
 	struct usb_device_index index;
 };
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || \
+    __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write
 static struct usb_info usb_devices[USB_MAX_FDS];
+
+static struct usb_device_index* lookup_usb_index(int fd)
+{
+	for (int i = 0; i < USB_MAX_FDS; i++) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
+			return &usb_devices[i].index;
+	}
+	return NULL;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int usb_devices_num;
 
 static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_device_index* index)
@@ -114,14 +128,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	return &usb_devices[i].index;
 }
 
-static struct usb_device_index* lookup_usb_index(int fd)
-{
-	for (int i = 0; i < USB_MAX_FDS; i++) {
-		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
-			return &usb_devices[i].index;
-	}
-	return NULL;
-}
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 #if USB_DEBUG
 
@@ -560,6 +567,8 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+
 static const char default_string[] = {
     8, USB_DT_STRING,
     's', 0, 'y', 0, 'z', 0 // UTF16-encoded "syz"
@@ -652,6 +661,8 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 	debug("lookup_connect_response_in: unknown request");
 	return false;
 }
+
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 // lookup_connect_response_out() functions process a USB OUT request and return in *done
 // whether this is the last request that must be handled by syz_usb_connect* pseudo-syscalls.

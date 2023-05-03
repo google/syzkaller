@@ -59,9 +59,9 @@ NORETURN void doexit_thread(int status)
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
-    SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
-    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||                  \
+#if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||                      \
+    SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table ||              \
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usbip_server_init || \
     (GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
 static unsigned long long procid;
 #endif
@@ -165,7 +165,9 @@ static void kill_and_wait(int pid, int* status)
 
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
-    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_sleep_ms
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_sleep_ms ||     \
+    __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write ||    \
+    __NR_syz_usb_disconnect
 static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
@@ -492,7 +494,7 @@ void child()
 
 #if GOOS_netbsd
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_disconnect
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -636,6 +638,8 @@ struct usb_qualifier_descriptor {
 #define USB_REQ_GET_VDM 23
 #define USB_REQ_SEND_VDM 24
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
+
 #define USB_MAX_IFACE_NUM 4
 #define USB_MAX_EP_NUM 32
 #define USB_MAX_FDS 6
@@ -670,7 +674,21 @@ struct usb_info {
 	struct usb_device_index index;
 };
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || \
+    __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write
 static struct usb_info usb_devices[USB_MAX_FDS];
+
+static struct usb_device_index* lookup_usb_index(int fd)
+{
+	for (int i = 0; i < USB_MAX_FDS; i++) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
+			return &usb_devices[i].index;
+	}
+	return NULL;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int usb_devices_num;
 
 static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_device_index* index)
@@ -734,14 +752,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	return &usb_devices[i].index;
 }
 
-static struct usb_device_index* lookup_usb_index(int fd)
-{
-	for (int i = 0; i < USB_MAX_FDS; i++) {
-		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
-			return &usb_devices[i].index;
-	}
-	return NULL;
-}
+#endif
 
 #if USB_DEBUG
 
@@ -1168,6 +1179,8 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+
 static const char default_string[] = {
     8, USB_DT_STRING,
     's', 0, 'y', 0, 'z', 0
@@ -1254,6 +1267,8 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 	debug("lookup_connect_response_in: unknown request");
 	return false;
 }
+
+#endif
 
 typedef bool (*lookup_connect_out_response_t)(int fd, const struct vusb_connect_descriptors* descs,
 					      const struct usb_ctrlrequest* ctrl, bool* done);
@@ -1565,7 +1580,6 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	return fd;
 }
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 				     volatile long a2, volatile long a3)
 {
@@ -2748,6 +2762,7 @@ static bool write_file(const char* file, const char* what, ...)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
     __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss || SYZ_NIC_VF
 #include <arpa/inet.h>
+#include <errno.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <stdbool.h>
@@ -4788,7 +4803,9 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 #define MAX_FDS 30
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||       \
+    __NR_syz_usb_ep_write || __NR_syz_usb_ep_read || __NR_syz_usb_control_io || \
+    __NR_syz_usb_disconnect
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/usb/ch9.h>
@@ -4834,7 +4851,21 @@ struct usb_info {
 	struct usb_device_index index;
 };
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || \
+    __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write
 static struct usb_info usb_devices[USB_MAX_FDS];
+
+static struct usb_device_index* lookup_usb_index(int fd)
+{
+	for (int i = 0; i < USB_MAX_FDS; i++) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
+			return &usb_devices[i].index;
+	}
+	return NULL;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int usb_devices_num;
 
 static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_device_index* index)
@@ -4898,14 +4929,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	return &usb_devices[i].index;
 }
 
-static struct usb_device_index* lookup_usb_index(int fd)
-{
-	for (int i = 0; i < USB_MAX_FDS; i++) {
-		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
-			return &usb_devices[i].index;
-	}
-	return NULL;
-}
+#endif
 
 #if USB_DEBUG
 
@@ -5332,6 +5356,8 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+
 static const char default_string[] = {
     8, USB_DT_STRING,
     's', 0, 'y', 0, 'z', 0
@@ -5418,6 +5444,8 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 	debug("lookup_connect_response_in: unknown request");
 	return false;
 }
+
+#endif
 
 typedef bool (*lookup_connect_out_response_t)(int fd, const struct vusb_connect_descriptors* descs,
 					      const struct usb_ctrlrequest* ctrl, bool* done);
@@ -5647,6 +5675,7 @@ struct usb_raw_eps_info {
 #define USB_RAW_IOCTL_EP_CLEAR_HALT _IOW('U', 14, __u32)
 #define USB_RAW_IOCTL_EP_SET_WEDGE _IOW('U', 15, __u32)
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int usb_raw_open()
 {
 	return open("/dev/raw-gadget", O_RDWR);
@@ -5665,21 +5694,7 @@ static int usb_raw_run(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_RUN, 0);
 }
-
-static int usb_raw_event_fetch(int fd, struct usb_raw_event* event)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
-}
-
-static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
-}
-
-static int usb_raw_ep0_read(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
-}
+#endif
 
 #if SYZ_EXECUTOR || __NR_syz_usb_ep_write
 static int usb_raw_ep_write(int fd, struct usb_raw_ep_io* io)
@@ -5695,15 +5710,7 @@ static int usb_raw_ep_read(int fd, struct usb_raw_ep_io* io)
 }
 #endif
 
-static int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
-}
-
-static int usb_raw_ep_disable(int fd, int ep)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
-}
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 static int usb_raw_configure(int fd)
 {
@@ -5715,10 +5722,39 @@ static int usb_raw_vbus_draw(int fd, uint32 power)
 	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
 }
 
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
+}
+
+static int usb_raw_ep0_read(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
+}
+
+static int usb_raw_event_fetch(int fd, struct usb_raw_event* event)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
+}
+
+static int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
+}
+
+static int usb_raw_ep_disable(int fd, int ep)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
+}
+
 static int usb_raw_ep0_stall(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_EP0_STALL, 0);
 }
+#endif
 
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
 static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
@@ -5752,6 +5788,20 @@ static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 }
 #endif
 
+#define USB_MAX_PACKET_SIZE 4096
+
+struct usb_raw_control_event {
+	struct usb_raw_event inner;
+	struct usb_ctrlrequest ctrl;
+	char data[USB_MAX_PACKET_SIZE];
+};
+
+struct usb_raw_ep_io_data {
+	struct usb_raw_ep_io inner;
+	char data[USB_MAX_PACKET_SIZE];
+};
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -5785,7 +5835,9 @@ static void set_interface(int fd, int n)
 		index->iface_cur = n;
 	}
 }
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static int configure_device(int fd)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -5806,19 +5858,6 @@ static int configure_device(int fd)
 	set_interface(fd, 0);
 	return 0;
 }
-
-#define USB_MAX_PACKET_SIZE 4096
-
-struct usb_raw_control_event {
-	struct usb_raw_event inner;
-	struct usb_ctrlrequest ctrl;
-	char data[USB_MAX_PACKET_SIZE];
-};
-
-struct usb_raw_ep_io_data {
-	struct usb_raw_ep_io inner;
-	char data[USB_MAX_PACKET_SIZE];
-};
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const char* dev,
 					  const struct vusb_connect_descriptors* descs,
@@ -5954,6 +5993,8 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 
 	return fd;
 }
+
+#endif
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
@@ -6990,6 +7031,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/loop.h>
+#include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -11498,6 +11540,7 @@ static volatile long syz_fuse_handle_req(volatile long a0,
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_80211_inject_frame
+#include <errno.h>
 #include <linux/genetlink.h>
 #include <linux/if_ether.h>
 #include <linux/nl80211.h>

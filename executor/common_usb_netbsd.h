@@ -149,6 +149,7 @@ struct usb_qualifier_descriptor {
 #define USB_REQ_GET_VDM 23
 #define USB_REQ_SEND_VDM 24
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
 #include "common_usb.h"
 
 static int vhci_open(void)
@@ -307,7 +308,6 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	return fd;
 }
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 				     volatile long a2, volatile long a3)
 {
