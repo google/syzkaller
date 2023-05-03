@@ -615,10 +615,9 @@ func fuchsiaCFlags(arch, clangArch string) []string {
 	return []string{
 		"-Wno-deprecated",
 		"-target", clangArch + "-fuchsia",
-		"-ldriver",
 		"-lfdio",
 		"-lzircon",
-		"--sysroot", out + "/zircon_toolchain/obj/zircon/public/sysroot/sysroot",
+		"--sysroot", out + "/sysroot",
 		"-I", sourceDirVar + "/sdk/lib/fdio/include",
 		"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
 		"-I", sourceDirVar + "/src/lib/ddk/include",
