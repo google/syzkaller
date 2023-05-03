@@ -9,7 +9,7 @@ LABEL homepage="https://github.com/google/syzkaller"
 
 RUN apt-get update --allow-releaseinfo-change
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-	sudo make python nano git curl ca-certificates binutils g++ \
+	sudo make python nano unzip git curl ca-certificates binutils g++ \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
