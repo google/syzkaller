@@ -9,7 +9,7 @@ LABEL homepage="https://github.com/google/syzkaller"
 
 RUN apt-get update --allow-releaseinfo-change
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-	sudo make python nano unzip git curl ca-certificates binutils g++ \
+	sudo make python nano unzip curl ca-certificates binutils g++ \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
@@ -46,6 +46,11 @@ RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 10
 RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 100
 RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-15 100
 RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15 100
+
+# The default git is too old, install a newer one.
+RUN echo "deb http://deb.debian.org/debian bullseye-backports main" > /etc/apt/sources.list.d/backports.list
+RUN apt-get update --allow-releaseinfo-change
+RUN apt-get install -y -q --no-install-recommends git/bullseye-backports
 
 # The default Docker prompt is too ugly and takes the whole line:
 # I have no name!@0f3331d2fb54:~/gopath/src/github.com/google/syzkaller$
