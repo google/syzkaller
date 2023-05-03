@@ -683,6 +683,18 @@ func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug
 	}
 }
 
+func filterBugs(bugs []*Bug, keys []*db.Key, filter func(*Bug) bool) ([]*Bug, []*db.Key) {
+	var retBugs []*Bug
+	var retKeys []*db.Key
+	for i, bug := range bugs {
+		if filter(bug) {
+			retBugs = append(retBugs, bugs[i])
+			retKeys = append(retKeys, keys[i])
+		}
+	}
+	return retBugs, retKeys
+}
+
 // reportingPollClosed is called by backends to get list of closed bugs.
 func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 	idMap := make(map[string]bool, len(ids))

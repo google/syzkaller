@@ -342,6 +342,14 @@ func createPatchTestingJobs(c context.Context, managers map[string]dashapi.Manag
 		if err != nil {
 			return nil, nil, err
 		}
+		bugs, bugKeys = filterBugs(bugs, bugKeys, func(bug *Bug) bool {
+			if len(bug.Commits) > 0 {
+				// Let's save resources -- there's no point in doing analysis for bugs
+				// for which we were already given fixing commits.
+				return false
+			}
+			return true
+		})
 		r.Shuffle(len(bugs), func(i, j int) {
 			bugs[i], bugs[j] = bugs[j], bugs[i]
 			bugKeys[i], bugKeys[j] = bugKeys[j], bugKeys[i]
@@ -369,11 +377,6 @@ func createTreeTestJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	prio, next := []int{}, []int{}
 	for i, bug := range bugs {
 		if !config.Namespaces[bug.Namespace].FindBugOriginTrees {
-			continue
-		}
-		if len(bug.Commits) > 0 {
-			// Let's save resources -- there's no point in doing analysis for bugs
-			// for which we were already given fixing commits.
 			continue
 		}
 		if timeNow(c).Before(bug.TreeTests.NextPoll) {
@@ -408,11 +411,6 @@ func createPatchRetestingJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	for i, bug := range bugs {
 		if !config.Namespaces[bug.Namespace].RetestRepros {
 			// Repro retesting is disabled for the namespace.
-			continue
-		}
-		if len(bug.Commits) > 0 {
-			// Let's save resources -- there's no point in retesting repros for bugs
-			// for which we were already given fixing commits.
 			continue
 		}
 		if timeNow(c).Sub(bug.LastTime) < config.Obsoleting.ReproRetestPeriod {
