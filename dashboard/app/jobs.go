@@ -348,6 +348,9 @@ func createPatchTestingJobs(c context.Context, managers map[string]dashapi.Manag
 				// for which we were already given fixing commits.
 				return false
 			}
+			if config.Namespaces[bug.Namespace].Decommissioned {
+				return false
+			}
 			return true
 		})
 		r.Shuffle(len(bugs), func(i, j int) {
@@ -581,6 +584,9 @@ func findBugsForBisection(c context.Context, managers map[string]bool,
 
 func shouldBisectBug(bug *Bug, managers map[string]bool) bool {
 	if len(bug.Commits) != 0 {
+		return false
+	}
+	if config.Namespaces[bug.Namespace].Decommissioned {
 		return false
 	}
 	for _, mgr := range bug.HappenedOn {
