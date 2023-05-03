@@ -7085,6 +7085,7 @@ error_clear_loop:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_mount_image
+#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include <sys/mount.h>
