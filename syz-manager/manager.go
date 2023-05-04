@@ -153,6 +153,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	log.SetName(cfg.Name)
 	RunManager(cfg)
 }
 

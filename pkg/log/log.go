@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	golog "log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -24,6 +25,7 @@ var (
 	cacheMaxMem  int
 	cachePos     int
 	cacheEntries []string
+	instanceName string
 	prependTime  = true // for testing
 )
 
@@ -59,6 +61,11 @@ func CachedLogOutput() string {
 	return buf.String()
 }
 
+// If the name is set, it will be displayed for all logs.
+func SetName(name string) {
+	instanceName = name
+}
+
 // V reports whether verbosity at the call site is at least the requested level.
 // See https://pkg.go.dev/github.com/golang/glog#V for details.
 func V(level int) bool {
@@ -66,17 +73,44 @@ func V(level int) bool {
 }
 
 func Logf(v int, msg string, args ...interface{}) {
+	writeMessage(v, "", msg, args...)
+}
+
+func Errorf(msg string, args ...interface{}) {
+	writeMessage(0, "ERROR", msg, args...)
+}
+
+func Fatal(err error) {
+	golog.Fatal("SYZFATAL: ", err)
+}
+
+func Fatalf(msg string, args ...interface{}) {
+	golog.Fatalf("SYZFATAL: "+msg, args...)
+}
+
+func writeMessage(v int, severity, msg string, args ...interface{}) {
+	var sb strings.Builder
+	if prependTime {
+		sb.WriteString(time.Now().Format("2006/01/02 15:04:05 "))
+	}
+	if severity != "" {
+		fmt.Fprintf(&sb, "[%s] ", severity)
+	}
+	if instanceName != "" {
+		fmt.Fprintf(&sb, "%s: ", instanceName)
+	}
+	fmt.Fprintf(&sb, msg, args...)
+	writeRawMessage(v, sb.String())
+}
+
+func writeRawMessage(v int, msg string) {
 	mu.Lock()
 	if cacheEntries != nil && v <= 1 {
 		cacheMem -= len(cacheEntries[cachePos])
 		if cacheMem < 0 {
 			panic("log cache size underflow")
 		}
-		timeStr := ""
-		if prependTime {
-			timeStr = time.Now().Format("2006/01/02 15:04:05 ")
-		}
-		cacheEntries[cachePos] = fmt.Sprintf(timeStr+msg, args...)
+		cacheEntries[cachePos] = msg
 		cacheMem += len(cacheEntries[cachePos])
 		cachePos++
 		if cachePos == len(cacheEntries) {
@@ -94,16 +128,8 @@ func Logf(v int, msg string, args ...interface{}) {
 	mu.Unlock()
 
 	if V(v) {
-		golog.Printf(msg, args...)
+		golog.Print(msg)
 	}
-}
-
-func Fatal(err error) {
-	golog.Fatal("SYZFATAL: ", err)
-}
-
-func Fatalf(msg string, args ...interface{}) {
-	golog.Fatalf("SYZFATAL: "+msg, args...)
 }
 
 type VerboseWriter int
