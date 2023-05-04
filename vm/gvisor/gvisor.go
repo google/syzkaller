@@ -237,6 +237,10 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	cmd.Env = []string{
 		"GOTRACEBACK=all",
 		"GORACE=halt_on_error=1",
+		// New glibc-s enable rseq by default but ptrace and systrap
+		// platforms don't work in this case. runsc is linked with libc
+		// only when the race detector is enabled.
+		"GLIBC_TUNABLES=glibc.pthread.rseq=0",
 	}
 	return cmd
 }
