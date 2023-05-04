@@ -153,7 +153,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	log.SetName(cfg.Name)
+	if cfg.DashboardAddr != "" {
+		// This lets better distinguish logs of individual syz-manager instances.
+		log.SetName(cfg.Name)
+	}
 	RunManager(cfg)
 }
 
@@ -433,7 +436,7 @@ func (mgr *Manager) vmLoop() {
 			log.Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
 				res.instances, res.report0.Title, res.repro != nil, crepro, title)
 			if res.err != nil {
-				log.Logf(0, "repro failed: %v", res.err)
+				log.Errorf("repro failed: %v", res.err)
 			}
 			delete(reproducing, res.report0.Title)
 			if res.repro == nil {
@@ -566,7 +569,7 @@ func (mgr *Manager) preloadCorpus() {
 		if corpusDB == nil {
 			log.Fatalf("failed to open corpus database: %v", err)
 		}
-		log.Logf(0, "read %v inputs from corpus and got error: %v", len(corpusDB.Records), err)
+		log.Errorf("read %v inputs from corpus and got error: %v", len(corpusDB.Records), err)
 	}
 	mgr.corpusDB = corpusDB
 
@@ -833,7 +836,7 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
-		log.Logf(0, "failed to symbolize report: %v", err)
+		log.Errorf("failed to symbolize report: %v", err)
 	}
 	if crash.Type == report.MemoryLeak {
 		mgr.mu.Lock()
@@ -1363,7 +1366,7 @@ func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 		}
 		mgr.corpusDB.Save(sig, inp.Prog, 0)
 		if err := mgr.corpusDB.Flush(); err != nil {
-			log.Logf(0, "failed to save corpus database: %v", err)
+			log.Errorf("failed to save corpus database: %v", err)
 		}
 	}
 	return true
@@ -1401,7 +1404,7 @@ func (mgr *Manager) hubIsUnreachable() {
 	if mgr.phase == phaseTriagedCorpus {
 		dash = mgr.dash
 		mgr.phase = phaseTriagedHub
-		log.Logf(0, "did not manage to connect to syz-hub; moving forward")
+		log.Errorf("did not manage to connect to syz-hub; moving forward")
 	}
 	mgr.mu.Unlock()
 	if dash != nil {
