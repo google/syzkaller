@@ -90,9 +90,6 @@ func Fatalf(msg string, args ...interface{}) {
 
 func writeMessage(v int, severity, msg string, args ...interface{}) {
 	var sb strings.Builder
-	if prependTime {
-		sb.WriteString(time.Now().Format("2006/01/02 15:04:05 "))
-	}
 	if severity != "" {
 		fmt.Fprintf(&sb, "[%s] ", severity)
 	}
@@ -110,7 +107,11 @@ func writeRawMessage(v int, msg string) {
 		if cacheMem < 0 {
 			panic("log cache size underflow")
 		}
-		cacheEntries[cachePos] = msg
+		timeStr := ""
+		if prependTime {
+			timeStr = time.Now().Format("2006/01/02 15:04:05 ")
+		}
+		cacheEntries[cachePos] = timeStr + msg
 		cacheMem += len(cacheEntries[cachePos])
 		cachePos++
 		if cachePos == len(cacheEntries) {
