@@ -43,7 +43,7 @@ func TestGCCVersion(t *testing.T) {
 	assert.Equal(t, actual, expected, "unexpected gcc path")
 
 	// Recent tag case.
-	tags["v5.9"] = true
+	tags["v5.16"] = true
 	actual = linuxGCCPath(tags, binDir, defaultCompiler)
 	expected = defaultCompiler
 	assert.Equal(t, actual, expected, "unexpected gcc path")
