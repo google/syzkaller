@@ -13,20 +13,20 @@ resource drmctx[int32]
 resource drm_agp_handle[intptr]
 resource drm_gem_handle[int32]
 resource drm_gem_name[int32]
-
-# TODO: these seems to be pretty important things, where does one get these?
-type drm_crtc_id int32
-type drm_fb_id int32
+resource drm_obj_id[int32]
+resource drm_crtc_id[drm_obj_id]
+resource drm_connector_id[drm_obj_id]
+resource drm_fb_id[drm_obj_id]
 
 syz_open_dev$dri(dev ptr[in, string["/dev/dri/card#"]], id intptr, flags flags[open_flags]) fd_dri
 syz_open_dev$dricontrol(dev ptr[in, string["/dev/dri/controlD#"]], id intptr, flags flags[open_flags]) fd_dri
 syz_open_dev$drirender(dev ptr[in, string["/dev/dri/renderD#"]], id intptr, flags flags[open_flags]) fd_dri
 openat$drirender128(fd const[AT_FDCWD], file ptr[in, string["/dev/dri/renderD128"]], flags flags[open_flags], mode const[0]) fd_dri
 
-ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[in, drm_version])
+ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[inout, drm_version])
 ioctl$DRM_IOCTL_GET_UNIQUE(fd fd_dri, cmd const[DRM_IOCTL_GET_UNIQUE], arg ptr[in, drm_unique$out])
 ioctl$DRM_IOCTL_GET_MAGIC(fd fd_dri, cmd const[DRM_IOCTL_GET_MAGIC], arg ptr[in, int32])
-ioctl$DRM_IOCTL_IRQ_BUSID(fd fd_dri, cmd const[DRM_IOCTL_IRQ_BUSID], arg ptr[in, drm_irq_busid])
+ioctl$DRM_IOCTL_IRQ_BUSID(fd fd_dri, cmd const[DRM_IOCTL_IRQ_BUSID], arg ptr[inout, drm_irq_busid])
 ioctl$DRM_IOCTL_GET_MAP(fd fd_dri, cmd const[DRM_IOCTL_GET_MAP], arg ptr[inout, drm_map$DRM_IOCTL_GET_MAP])
 ioctl$DRM_IOCTL_GET_CLIENT(fd fd_dri, cmd const[DRM_IOCTL_GET_CLIENT], arg ptr[inout, drm_client])
 ioctl$DRM_IOCTL_GET_STATS(fd fd_dri, cmd const[DRM_IOCTL_GET_STATS], arg buffer[out])
@@ -71,17 +71,17 @@ ioctl$DRM_IOCTL_MODESET_CTL(fd fd_dri, cmd const[DRM_IOCTL_MODESET_CTL], arg ptr
 ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[inout, drm_gem_open])
 ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])
 ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[inout, drm_gem_flink])
-ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[in, drm_mode_card_res])
+ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[inout, drm_mode_card_res])
 ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_HANDLE_TO_FD])
 ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE])
-ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[in, drm_mode_get_plane_res])
-ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[in, drm_mode_crtc])
-ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
+ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[inout, drm_mode_get_plane_res])
+ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[inout, drm_mode_crtc$DRM_IOCTL_MODE_GETCRTC])
+ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc$DRM_IOCTL_MODE_SETCRTC])
 
-ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[in, drm_mode_get_plane])
+ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[inout, drm_mode_get_plane])
 ioctl$DRM_IOCTL_MODE_SETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPLANE], arg ptr[in, drm_mode_set_plane])
 
-resource drm_plane_id[int32]
+resource drm_plane_id[drm_obj_id]
 
 drm_mode_get_plane_res {
 	ids	ptr64[out, array[drm_plane_id]]
@@ -89,10 +89,10 @@ drm_mode_get_plane_res {
 }
 
 drm_mode_get_plane {
-	plane_id		drm_plane_id
+	plane_id		drm_plane_id	(in)
 # These are outputs:
-	crtc_id			const[0, int32]
-	fb_id			const[0, int32]
+	crtc_id			drm_crtc_id
+	fb_id			drm_fb_id
 	possible_crtcs		const[0, int32]
 	gamma_size		const[0, int32]
 	count_format_types	len[format_type_ptr, int32]
@@ -154,32 +154,34 @@ drm_mode_crtc_lut {
 	blue		ptr64[in, array[int16]]
 }
 
-ioctl$DRM_IOCTL_MODE_GETENCODER(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETENCODER], arg ptr[in, drm_mode_get_encoder])
+ioctl$DRM_IOCTL_MODE_GETENCODER(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETENCODER], arg ptr[inout, drm_mode_get_encoder])
+
+resource drm_encoder_id[drm_obj_id]
 
 drm_mode_get_encoder {
-# TODO: where does one get these?
-	encoder_id	int32
+	encoder_id	drm_encoder_id	(in)
 # Outputs:
 	encoder_type	const[0, int32]
-	crtc_id		const[0, int32]
+	crtc_id		drm_crtc_id	(out)
 	possible_crtcs	const[0, int32]
 	possible_clones	const[0, int32]
 }
 
-ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[in, drm_mode_get_connector])
+ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[inout, drm_mode_get_connector])
+
+resource drm_prop_id[drm_obj_id]
 
 drm_mode_get_connector {
 # Everything except for connector_id are outputs.
-	encoders_ptr		ptr64[out, array[int32]]
-	modes_ptr		ptr64[out, array[int32]]
-	props_ptr		ptr64[out, array[int32]]
-	prop_values_ptr		ptr64[out, array[int32]]
+	encoders_ptr		ptr64[out, array[drm_encoder_id]]
+	modes_ptr		ptr64[out, array[drm_mode_modeinfo]]
+	props_ptr		ptr64[out, array[drm_prop_id]]
+	prop_values_ptr		ptr64[out, array[int64]]
 	count_modes		len[modes_ptr, int32]
 	count_props		len[props_ptr, int32]
-	count_encoders		len[count_modes, int32]
-	encoder_id		const[0, int32]
-# TODO: where does one get these?
-	connector_id		int32
+	count_encoders		len[encoders_ptr, int32]
+	encoder_id		drm_encoder_id	(out)
+	connector_id		drm_connector_id	(in)
 	connector_type		const[0, int32]
 	connector_type_id	const[0, int32]
 	connection		const[0, int32]
@@ -189,10 +191,10 @@ drm_mode_get_connector {
 	pad			const[0, int32]
 }
 
-ioctl$DRM_IOCTL_MODE_GETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPERTY], arg ptr[in, drm_mode_get_property])
+ioctl$DRM_IOCTL_MODE_GETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPERTY], arg ptr[inout, drm_mode_get_property])
 ioctl$DRM_IOCTL_MODE_SETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPROPERTY], arg ptr[in, drm_mode_connector_set_property])
 ioctl$DRM_IOCTL_MODE_GETPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPBLOB], arg ptr[in, drm_mode_get_blob])
-ioctl$DRM_IOCTL_MODE_OBJ_GETPROPERTIES(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_GETPROPERTIES], arg ptr[in, drm_mode_obj_get_properties])
+ioctl$DRM_IOCTL_MODE_OBJ_GETPROPERTIES(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_GETPROPERTIES], arg ptr[inout, drm_mode_obj_get_properties])
 ioctl$DRM_IOCTL_MODE_OBJ_SETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_SETPROPERTY], arg ptr[in, drm_mode_obj_set_property])
 ioctl$DRM_IOCTL_MODE_CREATEPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATEPROPBLOB], arg ptr[inout, drm_mode_create_blob])
 ioctl$DRM_IOCTL_MODE_DESTROYPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROYPROPBLOB], arg ptr[in, drm_mode_destroy_blob])
@@ -200,8 +202,7 @@ ioctl$DRM_IOCTL_MODE_DESTROYPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROY
 drm_mode_get_property {
 	values_ptr		ptr64[out, array[int64]]
 	enum_blob_ptr		ptr64[out, array[drm_mode_property_enum]]
-# TODO: where does one get these?
-	prop_id			int32
+	prop_id			drm_prop_id	(in)
 	flags			const[0, int32]
 	name			array[const[0, int8], DRM_PROP_NAME_LEN]
 	count_values		len[values_ptr, int32]
@@ -215,30 +216,29 @@ drm_mode_property_enum {
 
 drm_mode_connector_set_property {
 	value		int64
-	prop_id		int32
-	connector_id	int32
+	prop_id		drm_prop_id
+	connector_id	drm_connector_id
 }
 
 drm_mode_obj_set_property {
 	value		int64
-	prop_id		int32
-	obj_id		int32
+	prop_id		drm_prop_id
+	obj_id		drm_obj_id
 	obj_type	flags[drm_obj_type, int32]
 }
 
 drm_obj_type = DRM_MODE_OBJECT_CRTC, DRM_MODE_OBJECT_CONNECTOR, DRM_MODE_OBJECT_ENCODER, DRM_MODE_OBJECT_MODE, DRM_MODE_OBJECT_PROPERTY, DRM_MODE_OBJECT_FB, DRM_MODE_OBJECT_BLOB, DRM_MODE_OBJECT_PLANE, DRM_MODE_OBJECT_ANY
 
 drm_mode_obj_get_properties {
-	props_ptr	ptr64[in, array[int32]]
+	props_ptr	ptr64[out, array[drm_prop_id]]
 # NEED: this should be the same size as props_ptr.
 	prop_values_ptr	ptr64[out, array[int64]]
 	count_props	len[props_ptr, int32]
-	obj_id		int32
+	obj_id		drm_obj_id	(in)
 	obj_type	flags[drm_obj_type, int32]
 }
 
-# TODO: are there pre-existing blobs? what ids do they have?
-resource drm_blob_id[int32]: 0, 1, 2
+resource drm_blob_id[drm_obj_id]
 
 drm_mode_get_blob {
 	blob_id	drm_blob_id
@@ -256,11 +256,22 @@ drm_mode_destroy_blob {
 	blob_id	drm_blob_id
 }
 
-ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[in, drm_mode_fb_cmd])
-ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[in, drm_mode_fb_cmd])
-ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[in, drm_mode_fb_cmd2])
+ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[inout, drm_mode_fb_cmd$DRM_IOCTL_MODE_GETFB])
+ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[in, drm_mode_fb_cmd$DRM_IOCTL_MODE_ADDFB])
+ioctl$DRM_IOCTL_MODE_GETFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB2], arg ptr[inout, drm_mode_fb_cmd2$DRM_IOCTL_MODE_GETFB2])
+ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[in, drm_mode_fb_cmd2$DRM_IOCTL_MODE_ADDFB2])
 
-drm_mode_fb_cmd {
+drm_mode_fb_cmd$DRM_IOCTL_MODE_GETFB {
+	fb_id	drm_fb_id	(in)
+	width	int32	(out)
+	height	int32	(out)
+	pitch	int32	(out)
+	bpp	int32	(out)
+	depth	int32	(out)
+	handle	int32	(out)
+}
+
+drm_mode_fb_cmd$DRM_IOCTL_MODE_ADDFB {
 	fb_id	drm_fb_id
 	width	int32
 	height	int32
@@ -270,13 +281,25 @@ drm_mode_fb_cmd {
 	handle	int32
 }
 
-drm_mode_fb_cmd2 {
+drm_mode_fb_cmd2$DRM_IOCTL_MODE_GETFB2 {
+	fb_id		drm_fb_id	(in)
+	width		int32
+	height		int32
+	pixel_format	int32
+	flags		flags[drm_mode_fb_flags, int32]
+	handles		array[drm_gem_handle, 4]	(out)
+	pitches		array[int32, 4]
+	offsets		array[int32, 4]
+	modifier	array[int64, 4]
+}
+
+drm_mode_fb_cmd2$DRM_IOCTL_MODE_ADDFB2 {
 	fb_id		drm_fb_id
 	width		int32
 	height		int32
 	pixel_format	int32
 	flags		flags[drm_mode_fb_flags, int32]
-	handles		array[int32, 4]
+	handles		array[drm_gem_handle, 4]
 	pitches		array[int32, 4]
 	offsets		array[int32, 4]
 	modifier	array[int64, 4]
@@ -348,11 +371,11 @@ ioctl$DRM_IOCTL_MODE_ATOMIC(fd fd_dri, cmd const[DRM_IOCTL_MODE_ATOMIC], arg ptr
 drm_mode_atomic {
 	flags		flags[drm_mode_atomic_flags, int32]
 	count_objs	len[objs_ptr, int32]
-	objs_ptr	ptr64[in, array[int32]]
+	objs_ptr	ptr64[in, array[drm_obj_id]]
 # NEED: this array is probably parallel to objs_ptr.
 	count_props_ptr	ptr64[in, array[int32]]
-	props_ptr	ptr64[in, array[int32]]
-	prop_values_ptr	ptr64[in, array[int32]]
+	props_ptr	ptr64[in, array[drm_prop_id]]
+	prop_values_ptr	ptr64[in, array[int64]]
 	reserved	const[0, int64]
 	user_data	int64
 }
@@ -470,14 +493,13 @@ drm_syncobj_timeline_array {
 
 ioctl$DRM_IOCTL_MODE_CREATE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_LEASE], arg ptr[inout, drm_mode_create_lease])
 ioctl$DRM_IOCTL_MODE_LIST_LESSEES(fd fd_dri, cmd const[DRM_IOCTL_MODE_LIST_LESSEES], arg ptr[in, drm_mode_list_lessees])
-ioctl$DRM_IOCTL_MODE_GET_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GET_LEASE], arg ptr[in, drm_mode_get_lease])
+ioctl$DRM_IOCTL_MODE_GET_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GET_LEASE], arg ptr[inout, drm_mode_get_lease])
 ioctl$DRM_IOCTL_MODE_REVOKE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_REVOKE_LEASE], arg ptr[in, drm_mode_revoke_lease])
 
 resource drm_lessee_id[int32]
 
 drm_mode_create_lease {
-# TODO: what are these "object ids"? where does one get these?
-	object_ids	ptr64[in, array[int32]]	(in)
+	object_ids	ptr64[in, array[drm_obj_id]]	(in)
 	object_count	len[object_ids, int32]	(in)
 	flags		flags[drm_mode_create_lease_flag, int32]	(in)
 	lessee_id	drm_lessee_id	(out)
@@ -495,7 +517,7 @@ drm_mode_list_lessees {
 drm_mode_get_lease {
 	count_objects	len[objects_ptr, int32]
 	pad		const[0, int32]
-	objects_ptr	ptr64[out, array[int32]]
+	objects_ptr	ptr64[out, array[drm_obj_id]]
 }
 
 drm_mode_revoke_lease {
@@ -525,10 +547,10 @@ drm_unique$out {
 }
 
 drm_irq_busid {
-	irq	int32
-	bus	int32
-	dev	int32
-	func	int32
+	irq	int32	(out)
+	bus	int32	(in)
+	dev	int32	(in)
+	func	int32	(in)
 }
 
 drm_map$DRM_IOCTL_GET_MAP {
@@ -701,10 +723,10 @@ drm_gem_flink {
 }
 
 drm_mode_card_res {
-	fbid	ptr64[out, array[int32]]
-	crtcid	ptr64[out, array[int32]]
-	connid	ptr64[out, array[int32]]
-	encid	ptr64[out, array[int32]]
+	fbid	ptr64[out, array[drm_fb_id]]
+	crtcid	ptr64[out, array[drm_crtc_id]]
+	connid	ptr64[out, array[drm_connector_id]]
+	encid	ptr64[out, array[drm_encoder_id]]
 	nfbid	len[fbid, int32]
 	ncrtcid	len[crtcid, int32]
 	nconnid	len[connid, int32]
@@ -727,8 +749,20 @@ drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE {
 	fd	fd_dri	(in)
 }
 
-drm_mode_crtc {
-	set_connectors_ptr	ptr64[in, array[int32]]
+drm_mode_crtc$DRM_IOCTL_MODE_GETCRTC {
+	set_connectors_ptr	ptr64[in, array[const[0, int32]]]
+	count_connectors	len[set_connectors_ptr, int32]
+	crtc_id			drm_crtc_id	(in)
+	fb_id			drm_fb_id	(out)
+	x			int32	(out)
+	y			int32	(out)
+	gamma_size		int32	(out)
+	mode_valid		int32	(out)
+	mode			drm_mode_modeinfo	(out)
+}
+
+drm_mode_crtc$DRM_IOCTL_MODE_SETCRTC {
+	set_connectors_ptr	ptr64[in, array[drm_connector_id]]
 	count_connectors	len[set_connectors_ptr, int32]
 	crtc_id			drm_crtc_id
 	fb_id			drm_fb_id
