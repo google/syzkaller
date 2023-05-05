@@ -1250,11 +1250,11 @@ func findCrashForBug(c context.Context, bug *Bug) (*Crash, *db.Key, error) {
 		return nil, nil, fmt.Errorf("no crashes")
 	}
 	crash, key := crashes[0], keys[0]
-	if bug.ReproLevel == ReproLevelC {
+	if bug.HeadReproLevel == ReproLevelC {
 		if crash.ReproC == 0 {
 			log.Errorf(c, "bug '%v': has C repro, but crash without C repro", bug.Title)
 		}
-	} else if bug.ReproLevel == ReproLevelSyz {
+	} else if bug.HeadReproLevel == ReproLevelSyz {
 		if crash.ReproSyz == 0 {
 			log.Errorf(c, "bug '%v': has syz repro, but crash without syz repro", bug.Title)
 		}
