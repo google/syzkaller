@@ -93,7 +93,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		}
 		caps += "\"" + c + "\""
 	}
-	vmConfig := fmt.Sprintf(configTempl, imageDir, caps)
+	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
+	vmConfig := fmt.Sprintf(configTempl, imageDir, caps, name)
 	if err := osutil.WriteFile(filepath.Join(bundleDir, "config.json"), []byte(vmConfig)); err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		debug:    pool.env.Debug,
 		rootDir:  rootDir,
 		imageDir: imageDir,
-		name:     fmt.Sprintf("%v-%v", pool.env.Name, index),
+		name:     name,
 		merger:   merger,
 	}
 
@@ -403,6 +404,14 @@ const configTempl = `
 	"root": {
 		"path": "%[1]v",
 		"readonly": true
+	},
+	"linux": {
+	  "cgroupsPath": "%[3]v",
+	  "resources": {
+		  "cpu": {
+			"shares": 1024
+		  }
+	  }
 	},
 	"process":{
                 "args": ["/init"],
