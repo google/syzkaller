@@ -203,9 +203,11 @@ func linuxClangPath(tags map[string]bool, binDir, defaultCompiler string) string
 func linuxGCCPath(tags map[string]bool, binDir, defaultCompiler string) string {
 	version := ""
 	switch {
-	case tags["v5.9"]:
-		// Verified to work with 10.1.0.
+	case tags["v5.16"]:
+		// Verified to work with 15.0.7.
 		return defaultCompiler
+	case tags["v5.9"]:
+		version = "10.1.0"
 	case tags["v4.12"]:
 		version = "8.1.0"
 	case tags["v4.11"]:
