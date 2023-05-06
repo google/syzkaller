@@ -226,6 +226,7 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	fd_array		ptr64[in, array[fd_bpf_map], opt]
 	core_relos		ptr64[in, array[bpf_core_relo], opt]
 	core_relo_rec_size	const[BPF_CORE_RELO_SIZE, int32]
+	log_true_size		int32
 }
 
 type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
@@ -554,7 +555,7 @@ bpf_test_prog_arg {
 	inctx		ptr64[in, array[int8]]
 	outctx		ptr64[in, array[int8]]
 	flags		flags[bpf_prog_test_run_flags, int32]
-	cpu		int32
+	cpu		const[0, int32]
 }
 
 bpf_prog_get_next_id_arg {
