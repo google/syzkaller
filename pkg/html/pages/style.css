@@ -151,7 +151,7 @@ table td, table th {
 
 .list_table .result {
 	width: 60pt;
-	max-width: 60pt;
+	max-width: 200pt;
 }
 
 .list_table .stat {

@@ -18,6 +18,7 @@ import (
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
+	"google.golang.org/appengine/v2/user"
 )
 
 type testReqArgs struct {
@@ -223,6 +224,48 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 		return "This bug is already upstreamed. Please test upstream."
 	}
 	return ""
+}
+
+// Mark bisection job as invalid and reset bisection state of the related bug.
+func invalidateBisection(c context.Context, jobKey *db.Key) error {
+	u := user.Current(c)
+	tx := func(c context.Context) error {
+		job := new(Job)
+		if err := db.Get(c, jobKey, job); err != nil {
+			return fmt.Errorf("failed to get job: %v", err)
+		}
+
+		if job.Type != JobBisectCause && job.Type != JobBisectFix {
+			return fmt.Errorf("can only invalidate bisection jobs")
+		}
+
+		// Update the job.
+		job.InvalidatedBy = u.Email
+		if _, err := db.Put(c, jobKey, job); err != nil {
+			return fmt.Errorf("failed to put job: %v", err)
+		}
+
+		// Update the bug.
+		bug := new(Bug)
+		bugKey := jobKey.Parent()
+		if err := db.Get(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug: %v", err)
+		}
+		if job.Type == JobBisectCause {
+			bug.BisectCause = BisectNot
+		} else if job.Type == JobBisectFix {
+			bug.BisectFix = BisectNot
+		}
+		if _, err := db.Put(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
+		}
+		return nil
+	}
+	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
+		return fmt.Errorf("update failed: %v", err)
+	}
+
+	return nil
 }
 
 type BadTestRequestError struct {
@@ -584,7 +627,7 @@ func findBugsForBisection(c context.Context, managers map[string]bool,
 		return nil, nil, fmt.Errorf("failed to query bugs: %v", err)
 	}
 	for bi, bug := range bugs {
-		if !shouldBisectBug(bug, managers) {
+		if !shouldBisectBug(c, bug, managers, jobType) {
 			continue
 		}
 		crash, crashKey, err := bisectCrashForBug(c, bug, keys[bi], managers, jobType)
@@ -594,26 +637,33 @@ func findBugsForBisection(c context.Context, managers map[string]bool,
 		if crash == nil {
 			continue
 		}
-		const fixJobRepeat = 24 * 30 * time.Hour
-		if jobType == JobBisectFix && timeSince(c, bug.LastTime) < fixJobRepeat {
-			continue
-		}
-		const causeJobRepeat = 24 * 7 * time.Hour
-		if jobType == JobBisectCause && timeSince(c, bug.LastCauseBisect) < causeJobRepeat {
-			continue
-		}
 		return createBisectJobForBug(c, bug, crash, keys[bi], crashKey, jobType)
 	}
 	return nil, nil, nil
 }
 
-func shouldBisectBug(bug *Bug, managers map[string]bool) bool {
+func shouldBisectBug(c context.Context, bug *Bug, managers map[string]bool, jobType JobType) bool {
+	// We already have a fixing commit, no need to bisect.
 	if len(bug.Commits) != 0 {
 		return false
 	}
+
 	if config.Namespaces[bug.Namespace].Decommissioned {
 		return false
 	}
+
+	// There likely is no fix yet, as the bug recently reproduced.
+	const fixJobRepeat = 24 * 30 * time.Hour
+	if jobType == JobBisectFix && timeSince(c, bug.LastTime) < fixJobRepeat {
+		return false
+	}
+	// Likely to find the same (invalid) result without admin intervention, don't try too often.
+	const causeJobRepeat = 24 * 7 * time.Hour
+	if jobType == JobBisectCause && timeSince(c, bug.LastCauseBisect) < causeJobRepeat {
+		return false
+	}
+
+	// Ensure one of the managers the bug reproduced on is taking bisection jobs.
 	for _, mgr := range bug.HappenedOn {
 		if managers[mgr] {
 			return true
@@ -1427,6 +1477,7 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
 	}
 	info := &dashapi.JobInfo{
+		JobKey:           jobKey.Encode(),
 		Type:             dashapi.JobType(job.Type),
 		Flags:            job.Flags,
 		Created:          job.Created,
@@ -1450,6 +1501,7 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 		LogLink:          externalLink(c, textLog, job.Log),
 		ErrorLink:        externalLink(c, textError, job.Error),
 		Reported:         job.Reported,
+		InvalidatedBy:    job.InvalidatedBy,
 		TreeOrigin:       job.TreeOrigin,
 		OnMergeBase:      job.MergeBaseRepo != "",
 	}
