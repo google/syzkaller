@@ -73,6 +73,7 @@ bpf$PROG_BIND_MAP(cmd const[BPF_PROG_BIND_MAP], arg ptr[in, bpf_prog_bind_map_ar
 resource fd_bpf_prog_xdp[fd_bpf_prog]
 bpf$PROG_LOAD_XDP(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog_xdp], size len[arg]) fd_bpf_prog_xdp
 bpf$BPF_LINK_CREATE_XDP(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_xdp], size len[arg]) fd_bpf_link
+bpf$BPF_PROG_TEST_RUN_LIVE(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_prog_live_arg], size len[arg])
 type bpf_prog_xdp bpf_prog_t[const[BPF_PROG_TYPE_XDP, int32], const[BPF_XDP, int32], const[0, int32], const[0, int32]]
 type bpf_link_create_xdp bpf_link_create_arg_t[fd_bpf_prog_xdp, ifindex, const[BPF_XDP, int32], flags[xdp_flags, int32]]
 xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST, XDP_FLAGS_SKB_MODE, XDP_FLAGS_DRV_MODE, XDP_FLAGS_HW_MODE, XDP_FLAGS_REPLACE
@@ -556,6 +557,25 @@ bpf_test_prog_arg {
 	outctx		ptr64[in, array[int8]]
 	flags		flags[bpf_prog_test_run_flags, int32]
 	cpu		const[0, int32]
+	batch_size	int32
+}
+
+bpf_test_prog_live_arg {
+	prog		fd_bpf_prog_xdp
+	retval		const[0, int32]
+	insizedata	len[indata, int32]
+	outsizedata	const[0, int32]
+	indata		ptr64[in, array[int8]]
+	outdata		const[0, int64]
+	repeat		int32
+	dur		const[0, int32]
+	insizectx	len[inctx, int32]
+	outsizectx	const[0, int32]
+	inctx		ptr64[in, array[int8]]
+	outctx		const[0, int64]
+	flags		const[BPF_F_TEST_XDP_LIVE_FRAMES, int32]
+	cpu		const[0, int32]
+	batch_size	int32
 }
 
 bpf_prog_get_next_id_arg {
