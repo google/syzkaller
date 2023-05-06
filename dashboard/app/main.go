@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -32,6 +33,7 @@ import (
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/memcache"
+	"google.golang.org/appengine/v2/user"
 	proto "google.golang.org/genproto/googleapis/appengine/logging/v1"
 	ltype "google.golang.org/genproto/googleapis/logging/type"
 )
@@ -355,7 +357,8 @@ type uiCrashTable struct {
 
 type uiJob struct {
 	*dashapi.JobInfo
-	Crash *uiCrash
+	Crash             *uiCrash
+	InvalidateJobLink string
 }
 
 type userBugFilter struct {
@@ -609,6 +612,8 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		if err := memcache.Flush(c); err != nil {
 			return fmt.Errorf("failed to flush memcache: %v", err)
 		}
+	case "invalidate_bisection":
+		return handleInvalidateBisection(c, w, r)
 	default:
 		return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 	}
@@ -1979,12 +1984,28 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 
 func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
-		JobInfo: makeJobInfo(c, job, jobKey, bug, build, crash),
+		JobInfo:           makeJobInfo(c, job, jobKey, bug, build, crash),
+		InvalidateJobLink: invalidateJobLink(c, job, jobKey),
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(c, crash, build)
 	}
 	return ui
+}
+
+func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key) string {
+	if !user.IsAdmin(c) {
+		return ""
+	}
+
+	if job.Type != JobBisectCause && job.Type != JobBisectFix {
+		return ""
+	}
+
+	params := url.Values{}
+	params.Add("action", "invalidate_bisection")
+	params.Add("key", jobKey.Encode())
+	return "/admin?" + params.Encode()
 }
 
 func formatLogLine(line string) string {

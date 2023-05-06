@@ -866,6 +866,7 @@ const (
 )
 
 type JobInfo struct {
+	JobKey           string
 	Type             JobType
 	Flags            JobDoneFlags
 	Created          time.Time
@@ -895,6 +896,7 @@ type JobInfo struct {
 	Commit           *Commit   // for conclusive bisection
 	Commits          []*Commit // for inconclusive bisection
 	Reported         bool
+	InvalidatedBy    string
 	TreeOrigin       bool
 	OnMergeBase      bool
 }

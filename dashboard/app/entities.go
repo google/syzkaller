@@ -569,7 +569,8 @@ type Job struct {
 	Error       int64 // reference to Error text entity, if set job failed
 	Flags       dashapi.JobDoneFlags
 
-	Reported bool // have we reported result back to user?
+	Reported      bool   // have we reported result back to user?
+	InvalidatedBy string // user who marked this bug as invalid, empty by default
 }
 
 func (job *Job) IsFinished() bool {

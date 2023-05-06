@@ -357,6 +357,24 @@ func (c *Ctx) loadManager(ns, name string) (*Manager, *Build) {
 	return mgr, build
 }
 
+func (c *Ctx) loadSingleBug() (*Bug, *db.Key) {
+	var bugs []*Bug
+	keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(bugs), 1)
+
+	return bugs[0], keys[0]
+}
+
+func (c *Ctx) loadSingleJob() (*Job, *db.Key) {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").GetAll(c.ctx, &jobs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(jobs), 1)
+
+	return jobs[0], keys[0]
+}
+
 func (c *Ctx) checkURLContents(url string, want []byte) {
 	c.t.Helper()
 	got, err := c.AuthGET(AccessAdmin, url)

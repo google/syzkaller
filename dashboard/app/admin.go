@@ -15,6 +15,26 @@ import (
 	aemail "google.golang.org/appengine/v2/mail"
 )
 
+func handleInvalidateBisection(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	encodedKey := r.FormValue("key")
+	if encodedKey == "" {
+		return fmt.Errorf("mandatory parameter key is missing")
+	}
+	jobKey, err := db.DecodeKey(encodedKey)
+	if err != nil {
+		return fmt.Errorf("failed to decode job key %v: %w", encodedKey, err)
+	}
+
+	err = invalidateBisection(c, jobKey)
+	if err != nil {
+		return fmt.Errorf("failed to invalidate job %v: %w", jobKey, err)
+	}
+
+	// Sending back to bug page after successful invalidation.
+	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
+	return nil
+}
+
 // dropNamespace drops all entities related to a single namespace.
 // Use with care. There is no undo.
 // This functionality is intentionally not connected to any handler.
@@ -162,40 +182,9 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 		return nil
 	}
 	for idx, jobKey := range toReset {
-		tx := func(c context.Context) error {
-			// Reset the job.
-			job := new(Job)
-			if err := db.Get(c, jobKey, job); err != nil {
-				return fmt.Errorf("job %v: failed to get in tx: %v", idx, err)
-			}
-			job.LastStarted = time.Time{}
-			job.Finished = time.Time{}
-			job.Log = 0
-			job.Error = 0
-			job.CrashLog = 0
-			job.Flags = 0
-			if _, err := db.Put(c, jobKey, job); err != nil {
-				return fmt.Errorf("job %v: failed to put: %v", idx, err)
-			}
-			// Update the bug.
-			bug := new(Bug)
-			bugKey := jobKey.Parent()
-			if err := db.Get(c, bugKey, bug); err != nil {
-				return fmt.Errorf("job %v: failed to get bug: %v", idx, err)
-			}
-			if job.Type == JobBisectCause {
-				bug.BisectCause = BisectNot
-			} else if job.Type == JobBisectFix {
-				bug.BisectFix = BisectNot
-			}
-			if _, err := db.Put(c, bugKey, bug); err != nil {
-				return fmt.Errorf("job %v: failed to put the bug: %v", idx, err)
-			}
-			return nil
-		}
-		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
-			fmt.Fprintf(w, "update failed: %s", err)
-			return nil
+		err = invalidateBisection(c, jobKey)
+		if err != nil {
+			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
 		}
 	}
 

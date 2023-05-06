@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -1040,96 +1041,14 @@ func TestBugBisectionResults(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report.
-	build := testBuild(1)
-	c.client2.UploadBuild(build)
-	crash := testCrashWithRepro(build, 1)
-	c.client2.ReportCrash(crash)
-	c.client2.pollEmailBug()
+	build, _ := addBuildAndCrash(c)
+	_, bugKey := c.loadSingleBug()
 
-	// Receive the JobBisectCause and send cause information.
-	resp := c.client2.pollJobs(build.Manager)
-	c.client2.expectNE(resp.ID, "")
-	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
-	jobID := resp.ID
-	done := &dashapi.JobDoneReq{
-		ID:          jobID,
-		Build:       *build,
-		Log:         []byte("bisectfix log 4"),
-		CrashTitle:  "bisectfix crash title 4",
-		CrashLog:    []byte("bisectfix crash log 4"),
-		CrashReport: []byte("bisectfix crash report 4"),
-		Commits: []dashapi.Commit{
-			{
-				Hash:       "36e65cb4a0448942ec316b24d60446bbd5cc7827",
-				Title:      "kernel: add a bug",
-				Author:     "author@kernel.org",
-				AuthorName: "Author Kernelov",
-				CC: []string{
-					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
-					// These must be filtered out:
-					"syzbot@testapp.appspotmail.com",
-					"syzbot+1234@testapp.appspotmail.com",
-					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
-				},
-				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
-			},
-		},
-	}
-	c.expectOK(c.client2.JobDone(done))
-
-	// Advance time by 30 days and read out any notification emails.
-	{
-		c.advanceTime(30 * 24 * time.Hour)
-		msg := c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
-		msg = c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
-		msg = c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
-	}
-
-	// Receive a JobBisectfix and send fix information.
-	resp = c.client2.pollJobs(build.Manager)
-	c.client2.expectNE(resp.ID, "")
-	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
-	jobID = resp.ID
-	done = &dashapi.JobDoneReq{
-		ID:          jobID,
-		Build:       *build,
-		Log:         []byte("bisectfix log 4"),
-		CrashTitle:  "bisectfix crash title 4",
-		CrashLog:    []byte("bisectfix crash log 4"),
-		CrashReport: []byte("bisectfix crash report 4"),
-		Commits: []dashapi.Commit{
-			{
-				Hash:       "46e65cb4a0448942ec316b24d60446bbd5cc7827",
-				Title:      "kernel: add a fix",
-				Author:     "author@kernel.org",
-				AuthorName: "Author Kernelov",
-				CC: []string{
-					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
-					// These must be filtered out:
-					"syzbot@testapp.appspotmail.com",
-					"syzbot+1234@testapp.appspotmail.com",
-					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
-				},
-				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
-			},
-		},
-	}
-	c.expectOK(c.client2.JobDone(done))
-	msg := c.client2.pollEmailBug()
-	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
-
-	// Fetch bug details.
-	var bugs []*Bug
-	keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
-	c.expectEQ(err, nil)
-	c.expectEQ(len(bugs), 1)
+	addBisectCauseJob(c, build)
+	addBisectFixJob(c, build)
 
 	// Ensure expected results show up on web UI
-	url := fmt.Sprintf("/bug?id=%v", keys[0].StringID())
+	url := fmt.Sprintf("/bug?id=%v", bugKey.StringID())
 	content, err := c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("Cause bisection: introduced by")))
@@ -1144,13 +1063,91 @@ func TestBugBisectionStatus(t *testing.T) {
 	defer c.Close()
 
 	// Upload a crash report.
+	build, _ := addBuildAndCrash(c)
+
+	addBisectCauseJob(c, build)
+
+	// Fetch bug, namespace details.
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(bugs), 1)
+	url := fmt.Sprintf("/%v", bugs[0].Namespace)
+	content, err := c.GET(url)
+	c.expectEQ(err, nil)
+	c.expectTrue(bytes.Contains(content, []byte("done")))
+
+	addBisectFixJob(c, build)
+
+	content, err = c.GET(url)
+	c.expectEQ(err, nil)
+	c.expectTrue(bytes.Contains(content, []byte("done")))
+}
+
+// Test that invalidated bisections are not shown in the UI and marked as invalid.
+func TestBugBisectionInvalidation(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build, _ := addBuildAndCrash(c)
+	// Receive the JobBisectCause and send cause information.
+	addBisectCauseJob(c, build)
+
+	// Ensure expected results show up on web UI
+	bug, bugKey := c.loadSingleBug()
+	job, jobKey := c.loadSingleJob()
+	bugURL := fmt.Sprintf("/bug?id=%v", bugKey.StringID())
+	content, err := c.GET(bugURL)
+	c.expectEQ(err, nil)
+	c.expectEQ(bug.BisectCause, BisectYes)
+	c.expectTrue(bytes.Contains(content, []byte("Cause bisection: introduced by")))
+	c.expectTrue(bytes.Contains(content, []byte("kernel: add a bug")))
+	c.expectEQ(job.InvalidatedBy, "")
+
+	// Mark bisection as invalid.
+	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode())
+	httpErr, ok := err.(HTTPError)
+	c.expectTrue(ok)
+	c.expectEQ(httpErr.Code, http.StatusFound)
+
+	// The invalidated bisection should have vanished from the web UI
+	bug, _ = c.loadSingleBug()
+	job, _ = c.loadSingleJob()
+	content, err = c.GET(bugURL)
+	c.expectEQ(err, nil)
+	c.expectEQ(bug.BisectCause, BisectNot)
+	c.expectTrue(!bytes.Contains(content, []byte("Cause bisection: introduced by")))
+	c.expectTrue(!bytes.Contains(content, []byte("kernel: add a bug")))
+	c.expectEQ(job.InvalidatedBy, "user@syzkaller.com")
+
+	// Confirm we wait 7 days before retrying cause bisections.
+	resp := c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.advanceTime(24 * 7 * time.Hour)
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
+}
+
+// Upload a build, a crash report and poll bug emails.
+func addBuildAndCrash(c *Ctx) (*dashapi.Build, *dashapi.Crash) {
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client2.ReportCrash(crash)
 	c.client2.pollEmailBug()
 
-	// Receive the JobBisectCause and send cause information.
+	c.advanceTime(30 * 24 * time.Hour)
+	msg := c.client2.pollEmailBug()
+	c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
+	msg = c.client2.pollEmailBug()
+	c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
+
+	return build, crash
+}
+
+// Poll a JobBisectCause and send cause information.
+func addBisectCauseJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dashapi.JobDoneReq, string) {
 	resp := c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
@@ -1181,33 +1178,20 @@ func TestBugBisectionStatus(t *testing.T) {
 	}
 	c.expectOK(c.client2.JobDone(done))
 
-	// Fetch bug, namespace details.
-	var bugs []*Bug
-	_, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
-	c.expectEQ(err, nil)
-	c.expectEQ(len(bugs), 1)
-	url := fmt.Sprintf("/%v", bugs[0].Namespace)
-	content, err := c.GET(url)
-	c.expectEQ(err, nil)
-	c.expectTrue(bytes.Contains(content, []byte("done")))
+	c.advanceTime(24 * time.Hour)
+	msg := c.client2.pollEmailBug()
+	c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
 
-	// Advance time by 30 days and read out any notification emails.
-	{
-		c.advanceTime(30 * 24 * time.Hour)
-		msg := c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
-		msg = c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
-		msg = c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
-	}
+	return resp, done, jobID
+}
 
-	// Receive a JobBisectfix and send fix information.
-	resp = c.client2.pollJobs(build.Manager)
+// Poll a JobBisectfix and send fix information.
+func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dashapi.JobDoneReq, string) {
+	resp := c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
-	jobID = resp.ID
-	done = &dashapi.JobDoneReq{
+	jobID := resp.ID
+	done := &dashapi.JobDoneReq{
 		ID:          jobID,
 		Build:       *build,
 		Log:         []byte("bisectfix log 4"),
@@ -1232,10 +1216,7 @@ func TestBugBisectionStatus(t *testing.T) {
 		},
 	}
 	c.expectOK(c.client2.JobDone(done))
-	content, err = c.GET(url)
-	c.expectEQ(err, nil)
-	c.expectTrue(bytes.Contains(content, []byte("done")))
-
 	msg := c.client2.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
+	return resp, done, jobID
 }
