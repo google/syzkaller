@@ -57,13 +57,18 @@ type Instance struct {
 }
 
 var (
-	Shutdown               = vmimpl.Shutdown
-	ErrTimeout             = vmimpl.ErrTimeout
-	_          BootErrorer = vmimpl.BootError{}
+	Shutdown                = vmimpl.Shutdown
+	ErrTimeout              = vmimpl.ErrTimeout
+	_          BootErrorer  = vmimpl.BootError{}
+	_          InfraErrorer = vmimpl.InfraError{}
 )
 
 type BootErrorer interface {
 	BootError() (string, []byte)
+}
+
+type InfraErrorer interface {
+	InfraError() (string, []byte)
 }
 
 // vmType splits the VM type from any suffix (separated by ":"). This is mostly
