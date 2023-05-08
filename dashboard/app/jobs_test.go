@@ -1165,3 +1165,74 @@ func TestParallelJobs(t *testing.T) {
 	emptyPollResp = client.pollJobs(build.Manager)
 	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
 }
+
+// Test that JobBisectCause jobs are re-tried if there were infra problems.
+func TestJobCauseRetry(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client2
+	// Upload a crash report.
+	build := testBuild(1)
+	client.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	client.ReportCrash(crash)
+	client.pollEmailBug()
+
+	// Release the report to the second stage.
+	c.advanceTime(15 * 24 * time.Hour)
+	client.pollEmailBug() // "Sending report to the next stage" email.
+	client.pollEmailBug() // New report.
+
+	// Emulate an infra failure.
+	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		BisectCause: true,
+	})
+	client.expectNE(resp.ID, "")
+	client.expectEQ(resp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("infra problem"),
+		Flags: dashapi.BisectResultInfraError,
+	}
+	client.expectOK(client.JobDone(done))
+	c.expectNoEmail()
+
+	// Ensure we don't recreate the job right away.
+	c.advanceTime(24 * time.Hour)
+	resp = client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		BisectCause: true,
+	})
+	client.expectEQ(resp.ID, "")
+
+	// Wait the end of the freeze period.
+	c.advanceTime(7 * 24 * time.Hour)
+	resp = client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		BisectCause: true,
+	})
+	client.expectNE(resp.ID, "")
+	client.expectEQ(resp.Type, dashapi.JobBisectCause)
+
+	done = &dashapi.JobDoneReq{
+		ID:          resp.ID,
+		Build:       *testBuild(2),
+		Log:         []byte("bisect log"),
+		CrashTitle:  "bisect crash title",
+		CrashLog:    []byte("bisect crash log"),
+		CrashReport: []byte("bisect crash report"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:   "36e65cb4a0448942ec316b24d60446bbd5cc7827",
+				Title:  "kernel: add a bug",
+				Author: "author@kernel.org",
+				CC:     []string{"user@domain.com"},
+				Date:   time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	done.Build.ID = resp.ID
+	c.expectOK(client.JobDone(done))
+
+	msg := c.pollEmailBug()
+	c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
+}
