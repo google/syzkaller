@@ -207,6 +207,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
+	log.SetName(cfg.Name)
 
 	shutdownPending := make(chan struct{})
 	osutil.HandleInterrupts(shutdownPending)
@@ -235,7 +236,7 @@ func main() {
 	for _, mgrcfg := range cfg.Managers {
 		mgr, err := createManager(cfg, mgrcfg, stop, *flagDebug)
 		if err != nil {
-			log.Logf(0, "failed to create manager %v: %v", mgrcfg.Name, err)
+			log.Errorf("failed to create manager %v: %v", mgrcfg.Name, err)
 			continue
 		}
 		managers = append(managers, mgr)
@@ -302,8 +303,7 @@ func deprecateAssets(cfg *Config, stop chan struct{}, wg *sync.WaitGroup) {
 	}
 	storage, err := asset.StorageFromConfig(cfg.AssetStorage, dash)
 	if err != nil {
-		dash.LogError("syz-ci",
-			"failed to create asset storage during asset deprecation: %v", err)
+		log.Errorf("failed to create asset storage during asset deprecation: %v", err)
 		return
 	}
 loop:
@@ -317,7 +317,7 @@ loop:
 		log.Logf(0, "deprecating assets")
 		err := storage.DeprecateAssets()
 		if err != nil {
-			dash.LogError("syz-ci", "asset deprecation failed: %v", err)
+			log.Errorf("asset deprecation failed: %v", err)
 		}
 	}
 }

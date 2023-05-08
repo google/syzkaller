@@ -767,7 +767,7 @@ func (jp *JobProcessor) Logf(level int, msg string, args ...interface{}) {
 
 // Errorf logs non-fatal error and sends it to dashboard.
 func (jp *JobProcessor) Errorf(msg string, args ...interface{}) {
-	log.Logf(0, "job: "+msg, args...)
+	log.Errorf("job: "+msg, args...)
 	if jp.dash != nil {
 		jp.dash.LogError(jp.name, msg, args...)
 	}
