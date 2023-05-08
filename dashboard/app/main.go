@@ -501,7 +501,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 		subsystem = service.ByName(r.URL.Path[pos+3:])
 	}
 	if subsystem == nil {
-		return fmt.Errorf("the subsystem is not found")
+		return fmt.Errorf("the subsystem is not found in the path %v: %w", r.URL.Path, ErrClientBadRequest)
 	}
 	groups, err := fetchNamespaceBugs(c, accessLevel(c, r),
 		hdr.Namespace, &userBugFilter{
