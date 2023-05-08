@@ -263,6 +263,17 @@ type uiCollapsible struct {
 	Value interface{}
 }
 
+func makeCollapsibleBugJobs(title string, jobs []*uiJob) *uiCollapsible {
+	return &uiCollapsible{
+		Title: fmt.Sprintf("%s (%d)", title, len(jobs)),
+		Type:  sectionJobList,
+		Value: &uiJobList{
+			PerBug: true,
+			Jobs:   jobs,
+		},
+	}
+}
+
 type uiBugGroup struct {
 	Now           time.Time
 	Caption       string
@@ -805,26 +816,31 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = html.AmendURL(data.Bug.Link, "debug_subsystems", "1")
 	}
-	// bug.BisectFix is set to BisectNot in two cases :
+	// bug.BisectFix is set to BisectNot in three cases :
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
+	// - there have been infrastructure problems during the job execution
 	if bug.BisectFix == BisectNot {
-		fixBisections, err := loadFixBisectionsForBug(c, bug)
+		fixBisections, err := loadBisectionsForBug(c, bug, JobBisectFix)
 		if err != nil {
 			return err
 		}
 		if len(fixBisections) != 0 {
-			data.Sections = append(data.Sections, &uiCollapsible{
-				Title: fmt.Sprintf("Fix bisection attempts (%d)", len(fixBisections)),
-				Type:  sectionJobList,
-				Value: &uiJobList{
-					PerBug: true,
-					Jobs:   fixBisections,
-				},
-			})
+			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+				"Fix bisection attempts", fixBisections))
 		}
 	}
-
+	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
+	if bug.BisectCause == BisectNot {
+		causeBisections, err := loadBisectionsForBug(c, bug, JobBisectCause)
+		if err != nil {
+			return err
+		}
+		if len(causeBisections) != 0 {
+			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+				"Cause bisection attempts", causeBisections))
+		}
+	}
 	if isJSONRequested(r) {
 		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)
@@ -1626,9 +1642,9 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 
 var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
 
-func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiJob, error) {
+func loadBisectionsForBug(c context.Context, bug *Bug, jobType JobType) ([]*uiJob, error) {
 	bugKey := bug.key(c)
-	jobs, jobKeys, err := queryJobsForBug(c, bugKey, JobBisectFix)
+	jobs, jobKeys, err := queryJobsForBug(c, bugKey, jobType)
 	if err != nil {
 		return nil, err
 	}
