@@ -111,6 +111,14 @@ type Result struct {
 	IsRelease  bool
 }
 
+type InfraError struct {
+	Title string
+}
+
+func (e InfraError) Error() string {
+	return e.Title
+}
+
 // Run does the bisection and returns either the Result,
 // or, if the crash is not reproduced on the start commit, an error.
 func Run(cfg *Config) (*Result, error) {
@@ -577,33 +585,39 @@ func (env *env) test() (*testResult, error) {
 	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
 	env.testTime += time.Since(testStart)
 	if err != nil {
-		res.rep = &report.Report{
-			Title: fmt.Sprintf("failed testing reproducer on %v: %v", current.Hash, err),
-		}
-		env.log(res.rep.Title)
-		return res, nil
+		problem := fmt.Sprintf("repro testing failure: %v", err)
+		env.log(problem)
+		return res, &InfraError{Title: problem}
 	}
-	bad, good, rep := env.processResults(current, results)
+	bad, good, infra, rep := env.processResults(current, results)
 	res.rep = rep
 	res.verdict = vcs.BisectSkip
+	if infra > len(results)/2 {
+		// More than 1/2 of runs failed with infrastructure error,
+		// no sense in continuing the bisection at the moment.
+		return res, &InfraError{Title: "more than 50% of runs failed with an infra error"}
+	}
 	if bad != 0 {
 		res.verdict = vcs.BisectBad
 		if !env.flaky && bad < good {
 			env.log("reproducer seems to be flaky")
 			env.flaky = true
 		}
-	} else if len(results)-good-bad > len(results)/3*2 {
-		// More than 2/3 of instances failed with infrastructure error,
-		// can't reliably tell that the commit is good.
-		res.verdict = vcs.BisectSkip
 	} else if good != 0 {
 		res.verdict = vcs.BisectGood
+	} else {
+		res.rep = &report.Report{
+			Title: fmt.Sprintf("failed testing reproducer on %v", current.Hash),
+		}
 	}
+	// If all runs failed with a boot/test error, we just end up with BisectSkip.
+	// TODO: when we start supporting boot/test error bisection, we need to make
+	// processResults treat that verdit as "good".
 	return res, nil
 }
 
 func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestResult) (
-	bad, good int, rep *report.Report) {
+	bad, good, infra int, rep *report.Report) {
 	var verdicts []string
 	for i, res := range results {
 		if res.Error == nil {
@@ -613,7 +627,10 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 		}
 		switch err := res.Error.(type) {
 		case *instance.TestError:
-			if err.Boot {
+			if err.Infra {
+				infra++
+				verdicts = append(verdicts, fmt.Sprintf("infra problem: %v", err))
+			} else if err.Boot {
 				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))
 			} else {
 				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", err))
@@ -633,6 +650,7 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 			}
 			env.saveDebugFile(current.Hash, i, output)
 		default:
+			infra++
 			verdicts = append(verdicts, fmt.Sprintf("failed: %v", err))
 		}
 	}

@@ -4,6 +4,7 @@
 package bisect
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -51,7 +52,33 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 	commit := env.headCommit()
 	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||
 		env.config == "baseline-skip" {
-		return nil, fmt.Errorf("broken build")
+		var ret []instance.EnvTestResult
+		for i := 0; i < numVMs; i++ {
+			ret = append(ret, instance.EnvTestResult{
+				Error: &instance.TestError{
+					Boot:  true,
+					Title: "kernel doesn't boot",
+				},
+			})
+		}
+		return ret, nil
+	}
+	if commit >= env.test.infraErrStart && commit <= env.test.infraErrEnd {
+		var ret []instance.EnvTestResult
+		for i := 0; i < numVMs; i++ {
+			var err error
+			// More than 50% failures.
+			if i*2 <= numVMs {
+				err = &instance.TestError{
+					Infra: true,
+					Title: "failed to create a VM",
+				}
+			}
+			ret = append(ret, instance.EnvTestResult{
+				Error: err,
+			})
+		}
+		return ret, nil
 	}
 	var ret []instance.EnvTestResult
 	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
@@ -147,6 +174,9 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 		if test.expectErr != (err != nil) {
 			t.Fatalf("expected error %v, got %v", test.expectErr, err)
 		}
+		if test.expectErrType != nil && !errors.As(err, &test.expectErrType) {
+			t.Fatalf("expected %#v error, got %#v", test.expectErrType, err)
+		}
 		if err != nil {
 			if res != nil {
 				t.Fatalf("got both result and error: '%v' %+v", err, *res)
@@ -194,16 +224,19 @@ func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
 
 type BisectionTest struct {
 	// input environment
-	name        string
-	fix         bool
-	startCommit int
-	brokenStart int
-	brokenEnd   int
+	name          string
+	fix           bool
+	startCommit   int
+	brokenStart   int
+	brokenEnd     int
+	infraErrStart int
+	infraErrEnd   int
 	// Range of commits that result in the same kernel binary signature.
 	sameBinaryStart int
 	sameBinaryEnd   int
 	// expected output
-	expectErr bool
+	expectErr     bool
+	expectErrType any
 	// Expect res.Report != nil.
 	expectRep  bool
 	noopChange bool
@@ -492,6 +525,16 @@ var bisectionTests = []BisectionTest{
 		sameBinaryEnd:   650,
 		noopChange:      true,
 	},
+	{
+		name:          "cause-infra-problems",
+		startCommit:   905,
+		expectRep:     false,
+		expectErr:     true,
+		expectErrType: &InfraError{},
+		infraErrStart: 600,
+		infraErrEnd:   800,
+		culprit:       602,
+	},
 }
 
 func TestBisectionResults(t *testing.T) {
@@ -525,7 +568,6 @@ func checkTest(t *testing.T, test BisectionTest) {
 		(test.commitLen != 0 ||
 			test.expectRep ||
 			test.oldestLatest != 0 ||
-			test.culprit != 0 ||
 			test.resultingConfig != "") {
 		t.Fatalf("expecting non-default values on error")
 	}
