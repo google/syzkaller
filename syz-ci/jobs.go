@@ -521,6 +521,9 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	res, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
+		if _, ok := err.(*bisect.InfraError); ok {
+			resp.Flags |= dashapi.BisectResultInfraError
+		}
 		return err
 	}
 	for _, com := range res.Commits {
