@@ -93,27 +93,28 @@ type Bug struct {
 	NumRepro     int64
 	// ReproLevel is the best ever found repro level for this bug.
 	// HeadReproLevel is best known repro level that still works on the HEAD commit.
-	ReproLevel     dashapi.ReproLevel
-	HeadReproLevel dashapi.ReproLevel `datastore:"HeadReproLevel"`
-	BisectCause    BisectStatus
-	BisectFix      BisectStatus
-	HasReport      bool
-	NeedCommitInfo bool
-	FirstTime      time.Time
-	LastTime       time.Time
-	LastSavedCrash time.Time
-	LastReproTime  time.Time
-	FixTime        time.Time // when we become aware of the fixing commit
-	LastActivity   time.Time // last time we observed any activity related to the bug
-	Closed         time.Time
-	SubsystemsTime time.Time // when we have updated subsystems last time
-	SubsystemsRev  int
-	Reporting      []BugReporting
-	Commits        []string // titles of fixing commmits
-	CommitInfo     []Commit // additional info for commits (for historical reasons parallel array to Commits)
-	HappenedOn     []string // list of managers
-	PatchedOn      []string `datastore:",noindex"` // list of managers
-	UNCC           []string // don't CC these emails on this bug
+	ReproLevel      dashapi.ReproLevel
+	HeadReproLevel  dashapi.ReproLevel `datastore:"HeadReproLevel"`
+	BisectCause     BisectStatus
+	BisectFix       BisectStatus
+	HasReport       bool
+	NeedCommitInfo  bool
+	FirstTime       time.Time
+	LastTime        time.Time
+	LastSavedCrash  time.Time
+	LastReproTime   time.Time
+	LastCauseBisect time.Time
+	FixTime         time.Time // when we become aware of the fixing commit
+	LastActivity    time.Time // last time we observed any activity related to the bug
+	Closed          time.Time
+	SubsystemsTime  time.Time // when we have updated subsystems last time
+	SubsystemsRev   int
+	Reporting       []BugReporting
+	Commits         []string // titles of fixing commmits
+	CommitInfo      []Commit // additional info for commits (for historical reasons parallel array to Commits)
+	HappenedOn      []string // list of managers
+	PatchedOn       []string `datastore:",noindex"` // list of managers
+	UNCC            []string // don't CC these emails on this bug
 	// Kcidb publishing status bitmask:
 	// bit 0 - the bug is published
 	// bit 1 - don't want to publish it (syzkaller build/test errors)

@@ -574,7 +574,12 @@ func findBugsForBisection(c context.Context, managers map[string]bool,
 		if crash == nil {
 			continue
 		}
-		if jobType == JobBisectFix && timeSince(c, bug.LastTime) < 24*30*time.Hour {
+		const fixJobRepeat = 24 * 30 * time.Hour
+		if jobType == JobBisectFix && timeSince(c, bug.LastTime) < fixJobRepeat {
+			continue
+		}
+		const causeJobRepeat = 24 * 7 * time.Hour
+		if jobType == JobBisectCause && timeSince(c, bug.LastCauseBisect) < causeJobRepeat {
 			continue
 		}
 		return createBisectJobForBug(c, bug, crash, keys[bi], crashKey, jobType)
@@ -998,14 +1003,24 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	}
 	if job.Type == JobBisectCause {
 		bug.BisectCause = result
+		bug.LastCauseBisect = now
 	} else {
 		bug.BisectFix = result
 	}
+	infraError := (req.Flags & dashapi.BisectResultInfraError) == dashapi.BisectResultInfraError
+	if infraError {
+		log.Errorf(c, "bisection of %q failed due to infra errors", job.BugTitle)
+	}
 	// If the crash still occurs on HEAD, update the bug's LastTime so that it will be
 	// retried after 30 days.
-	if job.Type == JobBisectFix && req.Error == nil && len(req.Commits) == 0 && len(req.CrashLog) != 0 {
+	if job.Type == JobBisectFix && (result != BisectError || infraError) &&
+		len(req.Commits) == 0 && len(req.CrashLog) != 0 {
 		bug.BisectFix = BisectNot
 		bug.LastTime = now
+	}
+	// If the cause bisection failed due to infrastructure problems, also repeat it.
+	if job.Type == JobBisectCause && infraError {
+		bug.BisectCause = BisectNot
 	}
 	if _, err := db.Put(c, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to put bug: %v", err)
