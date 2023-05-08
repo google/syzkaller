@@ -201,11 +201,17 @@ func (inst *instance) lookupSSHAddress() (string, error) {
 	}
 	lines := strings.Split(out, "\n")
 	if len(lines) < 2 {
-		return "", vmimpl.BootError{Title: "Unexpected vmctl status output", Output: []byte(out)}
+		return "", vmimpl.InfraError{
+			Title:  "unexpected vmctl status output",
+			Output: []byte(out),
+		}
 	}
 	matches := vmctlStatusRegex.FindStringSubmatch(lines[1])
 	if len(matches) < 2 {
-		return "", vmimpl.BootError{Title: "Unexpected vmctl status output", Output: []byte(out)}
+		return "", vmimpl.InfraError{
+			Title:  "unexpected vmctl status output",
+			Output: []byte(out),
+		}
 	}
 	return fmt.Sprintf("100.64.%s.3", matches[1]), nil
 }

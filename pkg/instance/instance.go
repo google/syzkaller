@@ -216,6 +216,7 @@ func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 
 type TestError struct {
 	Boot   bool // says if the error happened during booting or during instance testing
+	Infra  bool // whether the problem is related to some infrastructure problems
 	Title  string
 	Output []byte
 	Report *report.Report
@@ -323,6 +324,12 @@ func (inst *inst) test() EnvTestResult {
 			}
 			testErr.Report = rep
 			testErr.Title = rep.Title
+		} else {
+			testErr.Infra = true
+			if infraErr, ok := err.(vm.InfraErrorer); ok {
+				// In case there's more info available.
+				testErr.Title, testErr.Output = infraErr.InfraError()
+			}
 		}
 		return ret
 	}
