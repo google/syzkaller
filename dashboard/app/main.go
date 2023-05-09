@@ -501,7 +501,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 		subsystem = service.ByName(r.URL.Path[pos+3:])
 	}
 	if subsystem == nil {
-		return fmt.Errorf("the subsystem is not found in the path %v: %w", r.URL.Path, ErrClientBadRequest)
+		return fmt.Errorf("%w: the subsystem is not found in the path %v", ErrClientBadRequest, r.URL.Path)
 	}
 	groups, err := fetchNamespaceBugs(c, accessLevel(c, r),
 		hdr.Namespace, &userBugFilter{
@@ -677,7 +677,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
-		return fmt.Errorf("%v, %w", err, ErrClientNotFound)
+		return fmt.Errorf("%w: %v", ErrClientNotFound, err)
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -1092,14 +1092,14 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	if x := r.FormValue("x"); x != "" {
 		xid, err := strconv.ParseUint(x, 16, 64)
 		if err != nil || xid == 0 {
-			return fmt.Errorf("failed to parse text id: %v: %w", err, ErrClientBadRequest)
+			return fmt.Errorf("%w: failed to parse text id: %v", ErrClientBadRequest, err)
 		}
 		id = int64(xid)
 	} else {
 		// Old link support, don't remove.
 		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 		if err != nil || xid == 0 {
-			return fmt.Errorf("failed to parse text id: %v: %w", err, ErrClientBadRequest)
+			return fmt.Errorf("%w: failed to parse text id: %v", ErrClientBadRequest, err)
 		}
 		id = xid
 	}
@@ -1110,7 +1110,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	data, ns, err := getText(c, tag, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "datastore: no such entity") {
-			err = fmt.Errorf("%v: %w", err, ErrClientBadRequest)
+			err = fmt.Errorf("%w: %v", ErrClientBadRequest, err)
 		}
 		return err
 	}
