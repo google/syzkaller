@@ -247,3 +247,51 @@ func TestSubsystemPage(t *testing.T) {
 	assert.Contains(t, string(reply), crash1.Title)
 	assert.NotContains(t, string(reply), crash2.Title)
 }
+
+func TestMultiLabelFilter(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+
+	build1 := testBuild(1)
+	build1.Manager = "manager-name-123"
+	client.UploadBuild(build1)
+
+	crash1 := testCrash(build1, 1)
+	crash1.GuiltyFiles = []string{"a.c"}
+	crash1.Title = "crash-with-subsystem-A"
+	client.ReportCrash(crash1)
+	c.pollEmailBug()
+
+	crash2 := testCrash(build1, 2)
+	crash2.GuiltyFiles = []string{"a.c"}
+	crash2.Title = "prio-crash-subsystem-A"
+	client.ReportCrash(crash2)
+
+	c.incomingEmail(c.pollEmailBug().Sender, "#syz set prio: low\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+
+	// The normal main page.
+	reply, err := c.AuthGET(AccessAdmin, "/access-public-email")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), build1.Manager)
+	assert.NotContains(t, string(reply), "Applied filters")
+
+	reply, err = c.AuthGET(AccessAdmin, "/access-public-email?label=subsystems:subsystemA")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), "Applied filters") // we're seeing a prompt to disable the filter
+	assert.Contains(t, string(reply), crash1.Title)
+	assert.Contains(t, string(reply), crash2.Title)
+
+	// Test filters together.
+	reply, err = c.AuthGET(AccessAdmin, "/access-public-email?label=subsystems:subsystemA&&label=prio:low")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), crash1.Title)
+	assert.Contains(t, string(reply), crash2.Title)
+
+	// Ensure we provide links that drop labels.
+	assert.NotContains(t, string(reply), "/access-public-email?label=subsystems:subsystemA\"")
+	assert.NotContains(t, string(reply), "/access-public-email?label=prop:low\"")
+}

@@ -82,15 +82,15 @@ type uiMainPage struct {
 
 type uiBugFilter struct {
 	Filter  *userBugFilter
-	DropURL func(string) string
+	DropURL func(string, string) string
 }
 
 func makeUIBugFilter(c context.Context, filter *userBugFilter) *uiBugFilter {
 	url := getCurrentURL(c)
 	return &uiBugFilter{
 		Filter: filter,
-		DropURL: func(name string) string {
-			return html.AmendURL(url, name, "")
+		DropURL: func(name, value string) string {
+			return html.DropParam(url, name, value)
 		},
 	}
 }
@@ -386,17 +386,20 @@ type uiJob struct {
 type userBugFilter struct {
 	Manager     string // show bugs that happened on the manager
 	OnlyManager string // show bugs that happened ONLY on the manager
-	Label       string // TODO: support multiple.
+	Labels      []string
 	NoSubsystem bool
 }
 
-func MakeBugFilter(r *http.Request) *userBugFilter {
+func MakeBugFilter(r *http.Request) (*userBugFilter, error) {
+	if err := r.ParseForm(); err != nil {
+		return nil, err
+	}
 	return &userBugFilter{
 		NoSubsystem: r.FormValue("no_subsystem") != "",
 		Manager:     r.FormValue("manager"),
 		OnlyManager: r.FormValue("only_manager"),
-		Label:       r.FormValue("label"),
-	}
+		Labels:      r.Form["label"],
+	}, nil
 }
 
 func (filter *userBugFilter) MatchManagerName(name string) bool {
@@ -427,9 +430,11 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 	if filter.NoSubsystem && len(bug.LabelValues(SubsystemLabel)) > 0 {
 		return false
 	}
-	if filter.Label != "" {
-		label, value := splitLabel(filter.Label)
-		return bug.HasLabel(label, value)
+	for _, rawLabel := range filter.Labels {
+		label, value := splitLabel(rawLabel)
+		if !bug.HasLabel(label, value) {
+			return false
+		}
 	}
 	return true
 }
@@ -443,7 +448,7 @@ func (filter *userBugFilter) Any() bool {
 	if filter == nil {
 		return false
 	}
-	return filter.Label != "" || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
+	return len(filter.Labels) > 0 || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
 }
 
 // handleMain serves main page.
@@ -453,7 +458,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	accessLevel := accessLevel(c, r)
-	filter := MakeBugFilter(r)
+	filter, err := MakeBugFilter(r)
+	if err != nil {
+		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+	}
 	managers, err := loadManagers(c, accessLevel, hdr.Namespace, filter)
 	if err != nil {
 		return err
@@ -516,10 +524,12 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	}
 	groups, err := fetchNamespaceBugs(c, accessLevel(c, r),
 		hdr.Namespace, &userBugFilter{
-			Label: BugLabel{
-				Label: SubsystemLabel,
-				Value: subsystem.Name,
-			}.String(),
+			Labels: []string{
+				BugLabel{
+					Label: SubsystemLabel,
+					Value: subsystem.Name,
+				}.String(),
+			},
 		})
 	if err != nil {
 		return err
@@ -584,7 +594,10 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 		return err
 	}
 	hdr.Subpage = typ.Subpage
-	typ.Filter = MakeBugFilter(r)
+	typ.Filter, err = MakeBugFilter(r)
+	if err != nil {
+		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+	}
 	extraBugs := []*Bug{}
 	if typ.Status == BugStatusFixed {
 		// Mix in bugs that have pending fixes.
@@ -873,8 +886,9 @@ func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
 	if !strings.HasPrefix(url, "/"+bug.Namespace) {
 		link = fmt.Sprintf("/%s", bug.Namespace)
 	}
-	link = html.AmendURL(link, "label", filterValue)
-
+	link = html.TransformURL(link, "label", func(oldLabels []string) []string {
+		return mergeLabelSet(oldLabels, entry.String())
+	})
 	ret := &uiBugLabel{
 		Name: filterValue,
 		Link: link,
@@ -888,6 +902,23 @@ func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
 		if !strings.HasPrefix(url, "/"+bug.Namespace) || strings.Contains(url, "/s/") {
 			ret.Link = fmt.Sprintf("/%s/s/%s", bug.Namespace, entry.Value)
 		}
+	}
+	return ret
+}
+
+func mergeLabelSet(oldLabels []string, newLabel string) []string {
+	// Leave only one label for each type.
+	labelsMap := map[BugLabelType]string{}
+	for _, rawLabel := range append(oldLabels, newLabel) {
+		label, value := splitLabel(rawLabel)
+		labelsMap[label] = value
+	}
+	var ret []string
+	for label, value := range labelsMap {
+		ret = append(ret, BugLabel{
+			Label: label,
+			Value: value,
+		}.String())
 	}
 	return ret
 }
@@ -1386,8 +1417,9 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 
 func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
 	manager := filter.ManagerName()
-	label, value := splitLabel(filter.Label)
-	if label != EmptyLabel {
+	if len(filter.Labels) > 0 {
+		// Take just the first one.
+		label, value := splitLabel(filter.Labels[0])
 		query = query.Filter("Labels.Label=", string(label))
 		query = query.Filter("Labels.Value=", value)
 	} else if manager != "" {
