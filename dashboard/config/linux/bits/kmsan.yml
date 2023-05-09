@@ -5,7 +5,7 @@ compiler: /usr/bin/clang
 
 kernel:
  repo: https://github.com/google/kmsan.git
- tag: kmsan-v6.2-rc7
+ tag: kmsan-v6.4-rc1
 
 config:
  - KMSAN
@@ -25,6 +25,10 @@ config:
  - SND_HDA_INTEL: [n, weak]
  - HARDENED_USERCOPY: [n, weak]
  - HARDENED_USERCOPY_FALLBACK: [n, weak]
+
+ # Stack protector is broken in Clang before version 17.
+ # See https://github.com/ClangBuiltLinux/linux/issues/1815 for details.
+ - STACKPROTECTOR: n
 
  # KMSAN doesn't support ORC unwinder (https://github.com/google/kmsan/issues/48).
  - UNWINDER_FRAME_POINTER
