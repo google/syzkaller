@@ -83,7 +83,9 @@ type Config struct {
 	Name string `json:"name"`
 	HTTP string `json:"http"`
 	// If manager http address is not specified, give it an address starting from this port. Optional.
-	ManagerPort     int    `json:"manager_port_start"`
+	ManagerPort int `json:"manager_port_start"`
+	// If manager rpc address is not specified, give it addresses starting from this port. By default 30000.
+	RPCPort         int    `json:"rpc_port_start"`
 	DashboardAddr   string `json:"dashboard_addr"`   // Optional.
 	DashboardClient string `json:"dashboard_client"` // Optional.
 	DashboardKey    string `json:"dashboard_key"`    // Optional.
@@ -339,6 +341,7 @@ func loadConfig(filename string) (*Config, error) {
 		SyzkallerRepo:    "https://github.com/google/syzkaller.git",
 		SyzkallerBranch:  "master",
 		ManagerPort:      10000,
+		RPCPort:          30000,
 		Goroot:           os.Getenv("GOROOT"),
 		JobPollPeriod:    10,
 		CommitPollPeriod: 3600,
@@ -418,6 +421,10 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	if managercfg.HTTP == "" {
 		managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
 		cfg.ManagerPort++
+	}
+	if managercfg.RPC == "" {
+		managercfg.RPC = fmt.Sprintf(":%v", cfg.RPCPort)
+		cfg.RPCPort++
 	}
 	// Note: we don't change Compiler/Ccache because it may be just "gcc" referring
 	// to the system binary, or pkg/build/netbsd.go uses "g++" and "clang++" as special marks.
