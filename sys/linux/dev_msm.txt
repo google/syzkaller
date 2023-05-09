@@ -7,6 +7,7 @@ include <drm/msm_drm.h>
 
 resource fd_msm[fd]
 resource msm_submitqueue_id[int32]
+resource msm_fence_id[int32]
 
 openat$msm(fd const[AT_FDCWD], file ptr[in, string["/dev/msm"]], flags flags[open_flags], mode const[0]) fd_msm
 
@@ -92,7 +93,7 @@ drm_msm_gem_submit_syncobj {
 
 drm_msm_gem_submit {
 	flags		flags[msm_gem_submit_flags, int32]
-	fence		int32
+	fence		msm_fence_id	(out)
 	nr_bos		len[bos, int32]
 	nr_cmds		len[cmds, int32]
 	bos		ptr64[in, array[drm_msm_gem_submit_bo]]
@@ -108,9 +109,9 @@ drm_msm_gem_submit {
 }
 
 drm_msm_wait_fence {
-	fence	int32
+	fence	msm_fence_id
 	pad	const[0, int32]
-	timeout	drm_msm_timespec	(in)
+	timeout	drm_msm_timespec
 	queueid	msm_submitqueue_id
 }
 
