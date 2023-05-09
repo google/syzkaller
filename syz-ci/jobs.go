@@ -484,11 +484,9 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		// - 4026 finished under 10h (98.8%)
 		// - 4032 finished under 12h (98.9%)
 		// Significant increase in errors starts after ~12h.
-		// The current timeout also take into account that bisection jobs
-		// compete with patch testing jobs (it's bad delaying patch testing).
-		// When/if bisection jobs don't compete with patch testing,
-		// it makes sense to increase this to 12-24h.
-		Timeout:         8 * time.Hour,
+		// Bisection jobs are now executed in parallel to patch testing, so it doesn't destroy user experience.
+		// Let's set the timeout to 12h.
+		Timeout:         12 * time.Hour,
 		Fix:             req.Type == dashapi.JobBisectFix,
 		DefaultCompiler: mgr.mgrcfg.Compiler,
 		CompilerType:    mgr.mgrcfg.CompilerType,
