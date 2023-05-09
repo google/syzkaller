@@ -194,6 +194,30 @@ func commitLink(repo, commit string) string {
 }
 
 func AmendURL(baseURL, key, value string) string {
+	return TransformURL(baseURL, key, func(_ []string) []string {
+		if value == "" {
+			return nil
+		}
+		return []string{value}
+	})
+}
+
+func DropParam(baseURL, key, value string) string {
+	return TransformURL(baseURL, key, func(oldValues []string) []string {
+		if value == "" {
+			return nil
+		}
+		var newValues []string
+		for _, iterVal := range oldValues {
+			if iterVal != value {
+				newValues = append(newValues, iterVal)
+			}
+		}
+		return newValues
+	})
+}
+
+func TransformURL(baseURL, key string, f func([]string) []string) string {
 	if baseURL == "" {
 		return ""
 	}
@@ -202,10 +226,11 @@ func AmendURL(baseURL, key, value string) string {
 		return ""
 	}
 	values := parsed.Query()
-	if value == "" {
+	ret := f(values[key])
+	if len(ret) == 0 {
 		values.Del(key)
 	} else {
-		values.Set(key, value)
+		values[key] = ret
 	}
 	parsed.RawQuery = values.Encode()
 	return parsed.String()

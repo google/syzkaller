@@ -94,16 +94,17 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{if .Filter.Any}}
 	<b>Applied filters: </b>
 	{{if .Filter.Manager}}
-		Manager={{.Filter.Manager}} ({{link (call .DropURL "manager") "drop"}})
+		Manager={{.Filter.Manager}} ({{link (call .DropURL "manager" "") "drop"}})
 	{{end}}
 	{{if .Filter.OnlyManager}}
-		Only Manager={{.Filter.OnlyManager}} ({{link (call .DropURL "only_manager") "drop"}})
+		Only Manager={{.Filter.OnlyManager}} ({{link (call .DropURL "only_manager" "") "drop"}})
 	{{end}}
 	{{if .Filter.NoSubsystem}}
-		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem") "drop"}})
+		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem" "") "drop"}})
 	{{end}}
-	{{if .Filter.Label}}
-		Label={{.Filter.Label}} ({{link (call .DropURL "label") "drop"}})
+	{{$drop := .DropURL}}
+	{{range .Filter.Labels}}
+		Label={{.}} ({{link (call $drop "label" .) "drop"}})
 	{{end}}
 	<br>
 {{end}}
