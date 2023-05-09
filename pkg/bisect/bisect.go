@@ -135,7 +135,7 @@ func Run(cfg *Config) (*Result, error) {
 		return nil, err
 	}
 	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
-		return nil, err
+		return nil, &InfraError{Title: fmt.Sprintf("%v", err)}
 	}
 	return runImpl(cfg, repo, inst)
 }
