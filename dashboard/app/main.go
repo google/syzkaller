@@ -611,7 +611,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 			return fmt.Errorf("failed to flush memcache: %v", err)
 		}
 	default:
-		return fmt.Errorf("unknown action %q", action)
+		return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
