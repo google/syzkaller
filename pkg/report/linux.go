@@ -1244,6 +1244,11 @@ var linuxStackParams = &stackParams{
 		"insert_work",
 		"__queue_delayed_work",
 		"queue_delayed_work_on",
+		// arm64 translation exception handling path.
+		"do_(kernel|translation)_fault",
+		"do_mem_abort",
+		"el1_abort",
+		"el1h_64_sync(?:_handler)?",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
