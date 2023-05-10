@@ -254,6 +254,7 @@ const (
 	sectionBugList        = "bug_list"
 	sectionJobList        = "job_list"
 	sectionDiscussionList = "discussion_list"
+	sectionTestResults    = "test_results"
 )
 
 type uiCollapsible struct {
@@ -746,6 +747,18 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: discussions,
 		})
 	}
+	treeTestJobs, err := treeTestJobs(c, bug)
+	if err != nil {
+		return err
+	}
+	if len(treeTestJobs) > 0 {
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Bug presence on other trees (%d)", len(treeTestJobs)),
+			Show:  true,
+			Type:  sectionTestResults,
+			Value: treeTestJobs,
+		})
+	}
 	similar, err := loadSimilarBugsUI(c, r, bug, state)
 	if err != nil {
 		return err
@@ -758,7 +771,6 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: similar,
 		})
 	}
-
 	var bisectCause *uiJob
 	if bug.BisectCause > BisectPending {
 		bisectCause, err = getUIJob(c, bug, JobBisectCause)

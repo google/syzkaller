@@ -207,6 +207,18 @@ table td, table th {
 	font-size: 75%;
 }
 
+.list_table .status-crashed {
+  background-color: #FF8674;
+}
+
+.list_table .status-ok {
+  background-color: lightgreen;
+}
+
+.list_table .status-error {
+  background-color: lightgray;
+}
+
 .bug-label {
 	background: white;
 	border: 1pt solid black;

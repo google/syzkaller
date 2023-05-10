@@ -53,7 +53,8 @@ Page with details about a single bug.
 			{{if eq $item.Type "bug_list"}}{{template "bug_list" $item.Value}}{{end}}
 			{{if eq $item.Type "job_list"}}{{template "job_list" $item.Value}}{{end}}
 			{{if eq $item.Type "discussion_list"}}{{template "discussion_list" $item.Value}}{{end}}
-                </div>
+			{{if eq $item.Type "test_results"}}{{template "test_results" $item.Value}}{{end}}
+		</div>
 	</div>
 	{{end}}
 
