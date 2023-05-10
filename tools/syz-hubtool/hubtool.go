@@ -22,16 +22,17 @@ import (
 
 func main() {
 	var (
-		flagOS         = flag.String("os", runtime.GOOS, "target OS")
-		flagArch       = flag.String("arch", runtime.GOARCH, "target Arch")
-		flagHubAddress = flag.String("addr", "", "hub address")
-		flagHubClient  = flag.String("client", "", "hub API client")
-		flagHubKey     = flag.String("key", "", "hub API key")
-		flagHubManager = flag.String("manager", "", "manager name to upload on behalf of")
-		flagRepro      = flag.String("repro", "", "reproducer glob pattern to upload")
-		flagCorpus     = flag.String("corpus", "", "coprpus file to upload")
-		flagWorkdir    = flag.String("workdir", "", "workdir to upload coprpus and reproducers")
-		flagDrain      = flag.Bool("drain", false, "drain hub corpus and reproducers for the given manager")
+		flagOS          = flag.String("os", runtime.GOOS, "target OS")
+		flagArch        = flag.String("arch", runtime.GOARCH, "target Arch")
+		flagHubAddress  = flag.String("addr", "", "hub address")
+		flagHubClient   = flag.String("client", "", "hub API client")
+		flagHubKey      = flag.String("key", "", "hub API key")
+		flagHubManager  = flag.String("manager", "", "manager name to upload on behalf of")
+		flagRepro       = flag.String("repro", "", "reproducer glob pattern to upload")
+		flagCorpus      = flag.String("corpus", "", "coprpus file to upload")
+		flagCorpusProgs = flag.String("corpus_progs", "", "a glob pattern of progs to add to corpus")
+		flagWorkdir     = flag.String("workdir", "", "workdir to upload coprpus and reproducers")
+		flagDrain       = flag.Bool("drain", false, "drain hub corpus and reproducers for the given manager")
 	)
 	flag.Parse()
 	target, err := prog.GetTarget(*flagOS, *flagArch)
@@ -44,10 +45,12 @@ func main() {
 	}
 	var repros, corpus [][]byte
 	if *flagRepro != "" {
-		repros = loadRepros(target, *flagRepro)
+		repros = loadProgs(target, *flagRepro)
 	}
 	if *flagCorpus != "" {
 		corpus = loadCorpus(target, *flagCorpus)
+	} else if *flagCorpusProgs != "" {
+		corpus = loadProgs(target, *flagCorpusProgs)
 	}
 	log.Printf("loaded %v reproducers, %v corpus programs", len(repros), len(corpus))
 	if len(repros)+len(corpus) == 0 && !*flagDrain {
@@ -111,7 +114,7 @@ func main() {
 	}
 }
 
-func loadRepros(target *prog.Target, reproGlob string) [][]byte {
+func loadProgs(target *prog.Target, reproGlob string) [][]byte {
 	files, err := filepath.Glob(reproGlob)
 	if err != nil {
 		log.Fatal(err)
