@@ -848,7 +848,7 @@ func uploadFileGCS(URL string, file io.Reader) error {
 	if err := gcsWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close gcs writer: %v", err)
 	}
-	return GCS.Publish(URL)
+	return nil
 }
 
 func uploadFileHTTPPut(URL string, file io.Reader) error {
