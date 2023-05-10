@@ -43,6 +43,9 @@ func TestTreeOriginDownstream(t *testing.T) {
 	c.expectEQ(ctx.entries[0].jobsDone, 1)
 	c.expectEQ(ctx.entries[1].jobsDone, 1)
 	c.expectEQ(ctx.entries[2].jobsDone, 1)
+	// Test that we can render the bug page.
+	_, err := c.GET(ctx.bugLink())
+	c.expectEQ(err, nil)
 }
 
 func TestTreeOriginLts(t *testing.T) {
@@ -728,6 +731,10 @@ func (ctx *treeTestCtx) ensureLabels(labels ...string) {
 	sort.Strings(bugLabels)
 	sort.Strings(labels)
 	ctx.ctx.expectEQ(labels, bugLabels)
+}
+
+func (ctx *treeTestCtx) bugLink() string {
+	return fmt.Sprintf("/bug?id=%v", ctx.bug.key(ctx.ctx.ctx).StringID())
 }
 
 type treeTestEntry struct {

@@ -544,3 +544,44 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 </table>
 {{end}}
 {{end}}
+
+{{/* List of test results, invoked with []*dashapi.JobInfo */}}
+{{define "test_results"}}
+{{if .}}
+<table class="list_table">
+	<thead>
+	<tr>
+		<th>Date</th>
+		<th>Name</th>
+		<th>Commit</th>
+		<th>Repro</th>
+		<th>Result</th>
+	</tr>
+	</thead>
+	<tbody>
+	{{range $item := .}}
+		<tr>
+			<td>{{formatDate $item.Finished}}</td>
+			<td>{{$item.KernelAlias}} {{if $item.OnMergeBase}}(merge base){{else}}(ToT){{end}}</td>
+			<td class="stat">{{link $item.KernelCommitLink (formatTagHash $item.KernelCommit)}}</td>
+			<td>
+				{{if $item.ReproCLink}}<a href="{{$item.ReproCLink}}">C</a>
+				{{else if $item.ReproSyzLink}}<a href="{{$item.ReproSyzLink}}">C</a>{{end}}
+			</td>
+			{{if ne $item.CrashTitle ""}}
+			<td class="status-crashed">
+				{{link $item.CrashReportLink "[report]"}} <i>{{$item.CrashTitle}}</i>
+			</td>
+			{{else if ne $item.ErrorLink ""}}
+			<td class="status-error">
+				Failed due to {{link $item.ErrorLink "an error"}}; will retry later
+			</td>
+			{{else}}
+			<td class="status-ok">Didn't crash</td>
+                        {{end}}
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}

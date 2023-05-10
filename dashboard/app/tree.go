@@ -10,10 +10,13 @@ package main
 
 import (
 	"fmt"
+	"sort"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 )
@@ -447,7 +450,7 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 }
 
 func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string, period time.Duration) pollTreeJobResult {
-	job, err := fetchJob(ctx.c, jobKey)
+	job, _, err := fetchJob(ctx.c, jobKey)
 	if err != nil {
 		return pollResultError(err)
 	}
@@ -479,7 +482,7 @@ func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, ru
 		if key == "" {
 			continue
 		}
-		job, err := fetchJob(ctx.c, key)
+		job, _, err := fetchJob(ctx.c, key)
 		if err != nil {
 			return pollResultError(err)
 		}
@@ -605,7 +608,7 @@ func (test *BugTreeTest) applyPending(c context.Context) error {
 	if test.Pending == "" {
 		return nil
 	}
-	job, err := fetchJob(c, test.Pending)
+	job, _, err := fetchJob(c, test.Pending)
 	if err != nil {
 		return err
 	}
@@ -629,6 +632,67 @@ func (test *BugTreeTest) applyPending(c context.Context) error {
 		test.FirstCrash = pendingKey
 	}
 	return nil
+}
+
+// treeTestJobs fetches relevant tree testing results.
+func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
+	g, _ := errgroup.WithContext(context.Background())
+	jobIDs := make(chan string)
+
+	var ret []*dashapi.JobInfo
+	var mu sync.Mutex
+
+	// The underlying code makes a number of queries, so let's do it in parallel to speed up processing.
+	const threads = 3
+	for i := 0; i < threads; i++ {
+		g.Go(func() error {
+			for id := range jobIDs {
+				job, jobKey, err := fetchJob(c, id)
+				if err != nil {
+					return err
+				}
+				build, err := loadBuild(c, job.Namespace, job.BuildID)
+				if err != nil {
+					return err
+				}
+				crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
+				crash := new(Crash)
+				if err := db.Get(c, crashKey, crash); err != nil {
+					return fmt.Errorf("failed to get crash: %v", err)
+				}
+				info := makeJobInfo(c, job, jobKey, bug, build, crash)
+				mu.Lock()
+				ret = append(ret, info)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	for _, info := range bug.TreeTests.List {
+		if info.FirstOK != "" {
+			jobIDs <- info.FirstOK
+		}
+		if info.FirstCrash != "" {
+			jobIDs <- info.FirstCrash
+		}
+		if info.Error != "" {
+			jobIDs <- info.Error
+		}
+	}
+	// Wait until we have all information.
+	close(jobIDs)
+	err := g.Wait()
+	if err != nil {
+		return nil, err
+	}
+	// Sort structures to keep output consistent.
+	sort.Slice(ret, func(i, j int) bool {
+		if ret[i].KernelAlias != ret[j].KernelAlias {
+			return ret[i].KernelAlias < ret[j].KernelAlias
+		}
+		return ret[i].Finished.Before(ret[j].Finished)
+	})
+	return ret, nil
 }
 
 type repoNode struct {
