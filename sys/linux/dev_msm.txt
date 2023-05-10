@@ -133,7 +133,7 @@ drm_msm_gem_submit {
 
 drm_msm_wait_fence {
 	fence	msm_fence_id
-	pad	const[0, int32]
+	flags	flags[msm_wait_fence_flags, int32]
 	timeout	drm_msm_timespec
 	queueid	msm_submitqueue_id
 }
@@ -171,3 +171,4 @@ msm_gem_submit_cmd_flags = MSM_SUBMIT_CMD_BUF, MSM_SUBMIT_CMD_IB_TARGET_BUF, MSM
 msm_gem_madvise_flags = MSM_MADV_WILLNEED, MSM_MADV_DONTNEED, __MSM_MADV_PURGED
 msm_submitqueue_flags = MSM_SUBMITQUEUE_FLAGS
 msm_submitqueue_query_flags = MSM_SUBMITQUEUE_PARAM_FAULTS
+msm_wait_fence_flags = MSM_WAIT_FENCE_BOOST
