@@ -353,34 +353,8 @@ type uiCrashTable struct {
 }
 
 type uiJob struct {
-	Type             JobType
-	Flags            JobFlags
-	Created          time.Time
-	BugLink          string
-	ExternalLink     string
-	User             string
-	Reporting        string
-	Namespace        string
-	Manager          string
-	BugTitle         string
-	BugID            string
-	KernelAlias      string
-	KernelCommitLink string
-	PatchLink        string
-	Attempts         int
-	Started          time.Time
-	Finished         time.Time
-	Duration         time.Duration
-	CrashTitle       string
-	CrashLogLink     string
-	CrashReportLink  string
-	LogLink          string
-	ErrorLink        string
-	Commit           *uiCommit   // for conclusive bisection
-	Commits          []*uiCommit // for inconclusive bisection
-	Crash            *uiCrash
-	Reported         bool
-	TreeOrigin       bool
+	*dashapi.JobInfo
+	Crash *uiCrash
 }
 
 type userBugFilter struct {
@@ -1986,58 +1960,8 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 }
 
 func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
-	kernelRepo, kernelCommit := job.KernelRepo, job.KernelBranch
-	if build != nil {
-		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
-	}
 	ui := &uiJob{
-		Type:             job.Type,
-		Flags:            job.Flags,
-		Created:          job.Created,
-		BugLink:          bugLink(jobKey.Parent().StringID()),
-		ExternalLink:     job.Link,
-		User:             job.User,
-		Reporting:        job.Reporting,
-		Namespace:        job.Namespace,
-		Manager:          job.Manager,
-		BugTitle:         job.BugTitle,
-		KernelAlias:      kernelRepoInfoRaw(c, job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
-		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
-		PatchLink:        textLink(textPatch, job.Patch),
-		Attempts:         job.Attempts,
-		Started:          job.LastStarted,
-		Finished:         job.Finished,
-		CrashTitle:       job.CrashTitle,
-		CrashLogLink:     textLink(textCrashLog, job.CrashLog),
-		CrashReportLink:  textLink(textCrashReport, job.CrashReport),
-		LogLink:          textLink(textLog, job.Log),
-		ErrorLink:        textLink(textError, job.Error),
-		Reported:         job.Reported,
-		TreeOrigin:       job.TreeOrigin,
-	}
-	if !job.Finished.IsZero() {
-		ui.Duration = job.Finished.Sub(job.LastStarted)
-	}
-	if job.Type == JobBisectCause || job.Type == JobBisectFix {
-		// We don't report these yet (or at all), see pollCompletedJobs.
-		if len(job.Commits) != 1 ||
-			bug != nil && (len(bug.Commits) != 0 || bug.Status != BugStatusOpen) {
-			ui.Reported = true
-		}
-	}
-	for _, com := range job.Commits {
-		ui.Commits = append(ui.Commits, &uiCommit{
-			Hash:   com.Hash,
-			Title:  com.Title,
-			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
-			CC:     strings.Split(com.CC, "|"),
-			Date:   com.Date,
-			Link:   vcs.CommitLink(kernelRepo, com.Hash),
-		})
-	}
-	if len(ui.Commits) == 1 {
-		ui.Commit = ui.Commits[0]
-		ui.Commits = nil
+		JobInfo: makeJobInfo(c, job, jobKey, bug, build, crash),
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(c, crash, build)

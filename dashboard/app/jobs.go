@@ -1391,3 +1391,66 @@ func fetchJob(c context.Context, key string) (*Job, error) {
 	}
 	return job, nil
 }
+
+func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *Build,
+	crash *Crash) *dashapi.JobInfo {
+	kernelRepo, kernelCommit := job.KernelRepo, job.KernelBranch
+	if build != nil {
+		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
+	}
+	info := &dashapi.JobInfo{
+		Type:             dashapi.JobType(job.Type),
+		Flags:            dashapi.JobDoneFlags(job.Flags),
+		Created:          job.Created,
+		BugLink:          bugLink(jobKey.Parent().StringID()),
+		ExternalLink:     job.Link,
+		User:             job.User,
+		Reporting:        job.Reporting,
+		Namespace:        job.Namespace,
+		Manager:          job.Manager,
+		BugTitle:         job.BugTitle,
+		KernelAlias:      kernelRepoInfoRaw(c, job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
+		KernelCommit:     kernelCommit,
+		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
+		PatchLink:        textLink(textPatch, job.Patch),
+		Attempts:         job.Attempts,
+		Started:          job.LastStarted,
+		Finished:         job.Finished,
+		CrashTitle:       job.CrashTitle,
+		CrashLogLink:     textLink(textCrashLog, job.CrashLog),
+		CrashReportLink:  textLink(textCrashReport, job.CrashReport),
+		LogLink:          textLink(textLog, job.Log),
+		ErrorLink:        textLink(textError, job.Error),
+		Reported:         job.Reported,
+		TreeOrigin:       job.TreeOrigin,
+	}
+	if !job.Finished.IsZero() {
+		info.Duration = job.Finished.Sub(job.LastStarted)
+	}
+	if job.Type == JobBisectCause || job.Type == JobBisectFix {
+		// We don't report these yet (or at all), see pollCompletedJobs.
+		if len(job.Commits) != 1 ||
+			bug != nil && (len(bug.Commits) != 0 || bug.Status != BugStatusOpen) {
+			info.Reported = true
+		}
+	}
+	for _, com := range job.Commits {
+		info.Commits = append(info.Commits, &dashapi.Commit{
+			Hash:   com.Hash,
+			Title:  com.Title,
+			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
+			CC:     strings.Split(com.CC, "|"),
+			Date:   com.Date,
+			Link:   vcs.CommitLink(kernelRepo, com.Hash),
+		})
+	}
+	if len(info.Commits) == 1 {
+		info.Commit = info.Commits[0]
+		info.Commits = nil
+	}
+	if crash != nil {
+		info.ReproCLink = externalLink(c, textReproC, crash.ReproC)
+		info.ReproSyzLink = externalLink(c, textReproSyz, crash.ReproSyz)
+	}
+	return info
+}
