@@ -865,6 +865,7 @@ type JobInfo struct {
 	Commits          []*Commit // for inconclusive bisection
 	Reported         bool
 	TreeOrigin       bool
+	OnMergeBase      bool
 }
 
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {

@@ -1380,16 +1380,16 @@ func jobID2Key(c context.Context, id string) (*db.Key, error) {
 	return jobKey, nil
 }
 
-func fetchJob(c context.Context, key string) (*Job, error) {
+func fetchJob(c context.Context, key string) (*Job, *db.Key, error) {
 	jobKey, err := db.DecodeKey(key)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	job := new(Job)
 	if err := db.Get(c, jobKey, job); err != nil {
-		return nil, fmt.Errorf("failed to get job: %v", err)
+		return nil, nil, fmt.Errorf("failed to get job: %v", err)
 	}
-	return job, nil
+	return job, jobKey, nil
 }
 
 func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *Build,
@@ -1423,6 +1423,7 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 		ErrorLink:        textLink(textError, job.Error),
 		Reported:         job.Reported,
 		TreeOrigin:       job.TreeOrigin,
+		OnMergeBase:      job.MergeBaseRepo != "",
 	}
 	if !job.Finished.IsZero() {
 		info.Duration = job.Finished.Sub(job.LastStarted)
