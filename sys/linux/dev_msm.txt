@@ -96,7 +96,7 @@ drm_msm_gem_submit_cmd {
 	type		flags[msm_gem_submit_cmd_flags, int32]
 	submit_idx	int32
 	submit_offset	int32
-	size		int32
+	size		int32[0:0x7fffffff, 4]
 	pad		const[0, int32]
 	nr_relocs	len[relocs, int32]
 	relocs		ptr64[in, array[drm_msm_gem_submit_reloc]]
