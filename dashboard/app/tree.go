@@ -409,14 +409,16 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 	}
 
 	if bugTreeTest.Error != "" {
-		result := ctx.ensureRepeatPeriod(bugTreeTest.Error)
+		const errorRetryTime = 24 * time.Hour * 14
+		result := ctx.ensureRepeatPeriod(bugTreeTest.Error, errorRetryTime)
 		if _, ok := result.(pollResultSkip); !ok {
 			return result
 		}
 		bugTreeTest.Error = ""
 	}
 	if bugTreeTest.Last != "" {
-		result := ctx.ensureRepeatPeriod(bugTreeTest.Last)
+		const fixRetryTime = 24 * time.Hour * 45
+		result := ctx.ensureRepeatPeriod(bugTreeTest.Last, fixRetryTime)
 		if _, ok := result.(pollResultSkip); !ok {
 			return result
 		}
@@ -444,15 +446,14 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 	return pollResultPending{}
 }
 
-func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string) pollTreeJobResult {
-	const retryTime = 24 * time.Hour * 30
+func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string, period time.Duration) pollTreeJobResult {
 	job, err := fetchJob(ctx.c, jobKey)
 	if err != nil {
 		return pollResultError(err)
 	}
 	timePassed := timeNow(ctx.c).Sub(job.Finished)
-	if timePassed < retryTime {
-		return pollResultWait(job.Finished.Add(retryTime))
+	if timePassed < period {
+		return pollResultWait(job.Finished.Add(period))
 	}
 	return pollResultSkip{}
 }
