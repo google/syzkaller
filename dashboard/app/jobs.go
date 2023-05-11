@@ -1025,7 +1025,7 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	if _, err := db.Put(c, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to put bug: %v", err)
 	}
-	_, bugReporting, _, _, _ := currentReporting(c, bug)
+	_, bugReporting, _, _, _ := currentReporting(bug)
 	// The bug is either already closed or not yet reported in the current reporting,
 	// either way we don't need to report it. If it wasn't reported, it will be reported
 	// with the bisection results.
