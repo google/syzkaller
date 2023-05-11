@@ -146,15 +146,15 @@ drm_msm_gem_madvise {
 
 drm_msm_submitqueue {
 	flags	flags[msm_submitqueue_flags, int32]
-	prio	int32
+	prio	int32[0:3]
 	id	msm_submitqueue_id	(out)
 }
 
 drm_msm_submitqueue_query {
-	data	int64
-	id	msm_submitqueue_id
-	param	flags[msm_submitqueue_query_flags, int32]
-	len	int32
+	data	ptr64[out, int8]
+	id	msm_submitqueue_id	(in)
+	param	flags[msm_submitqueue_query_flags, int32]	(in)
+	len	len[data, int32]
 	pad	const[0, int32]
 }
 
