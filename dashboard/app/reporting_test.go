@@ -524,7 +524,7 @@ func TestMachineInfo(t *testing.T) {
 	// and the content is correct.
 	indexPage, err := c.AuthGET(AccessAdmin, "/test1")
 	c.expectOK(err)
-	bugLinkRegex := regexp.MustCompile(`<a href="(/bug\?id=[^"]+)">title1</a>`)
+	bugLinkRegex := regexp.MustCompile(`<a href="(/bug\?extid=[^"]+)">title1</a>`)
 	bugLinkSubmatch := bugLinkRegex.FindSubmatch(indexPage)
 	c.expectEQ(len(bugLinkSubmatch), 2)
 	bugURL := html.UnescapeString(string(bugLinkSubmatch[1]))
