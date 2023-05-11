@@ -1551,7 +1551,6 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 			log.Errorf(c, "failed to generate credit email: %v", err)
 		}
 	}
-	id := bug.keyHash()
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
@@ -1565,7 +1564,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		ReproLevel:     bug.ReproLevel,
 		ReportingIndex: reportingIdx,
 		Status:         status,
-		Link:           bugLink(id),
+		Link:           bugExtLink(bug),
 		ExternalLink:   link,
 		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
@@ -2126,6 +2125,17 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// bugExtLink should be preferred to bugLink since it provides a URL that's more consistent with
+// links from email addresses.
+func bugExtLink(bug *Bug) string {
+	_, bugReporting, _, _, _ := currentReporting(bug)
+	if bugReporting == nil || bugReporting.ID == "" {
+		return bugLink(bug.keyHash())
+	}
+	return "/bug?extid=" + bugReporting.ID
+}
+
+// bugLink should only be used when it's too inconvenient to actually load the bug from the DB.
 func bugLink(id string) string {
 	if id == "" {
 		return ""
