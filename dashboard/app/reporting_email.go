@@ -1090,7 +1090,7 @@ func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult
 			log.Infof(c, "access denied")
 			continue
 		}
-		reporting, bugReporting, _, _, err := currentReporting(c, bug)
+		reporting, bugReporting, _, _, err := currentReporting(bug)
 		if err != nil || reporting == nil {
 			log.Infof(c, "could not query reporting: %s", err)
 			continue

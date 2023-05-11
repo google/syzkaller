@@ -249,7 +249,7 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 	}
 	withRepro, noRepro := []*Bug{}, []*Bug{}
 	for _, bug := range rawOpenBugs {
-		currReporting, _, _, _, _ := currentReporting(c, bug)
+		currReporting, _, _, _, _ := currentReporting(bug)
 		if reporting.Name != currReporting.Name {
 			// The big is not at the expected reporting stage.
 			continue
@@ -366,7 +366,7 @@ func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLev
 			fixed = append(fixed, bug)
 			continue
 		}
-		currReporting, _, _, _, err := currentReporting(c, bug)
+		currReporting, _, _, _, err := currentReporting(bug)
 		if err != nil {
 			continue
 		}
