@@ -747,12 +747,10 @@ func handleSetCommand(c context.Context, bug *Bug, msg *email.Email,
 		return fmt.Sprintf(setBugCmdFormat, labelSet.Help())
 	}
 	label, values := BugLabelType(match[1]), match[2]
-	log.Infof(c, "label=%s values=%s", label, values)
+	log.Infof(c, "bug=%q label=%s values=%s", bug.displayTitle(), label, values)
 	if !labelSet.FindLabel(label) {
 		return fmt.Sprintf(setCmdUnknownLabel, label, labelSet.Help())
 	}
-
-	log.Infof(c, "setting %#v values for %q (label %q)", values, bug.displayTitle(), label)
 	var labels []BugLabel
 	for _, value := range unique(setCmdArgSplitRe.Split(values, -1)) {
 		labels = append(labels, BugLabel{
