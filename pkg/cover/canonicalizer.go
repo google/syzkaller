@@ -7,11 +7,12 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/log"
 )
 
 type Canonicalizer struct {
-	// Map of modules stored as module name:kernel offset.
-	modules map[string]uint32
+	// Map of modules stored as module name:kernel module.
+	modules map[string]host.KernelModule
 
 	// Contains a sorted list of the canonical module addresses.
 	moduleKeys []uint32
@@ -36,9 +37,9 @@ type canonicalizerModule struct {
 
 func NewCanonicalizer(modules []host.KernelModule) *Canonicalizer {
 	// Create a map of canonical module offsets by name.
-	canonicalModules := make(map[string]uint32)
+	canonicalModules := make(map[string]host.KernelModule)
 	for _, module := range modules {
-		canonicalModules[module.Name] = uint32(module.Addr)
+		canonicalModules[module.Name] = module
 	}
 
 	// Store sorted canonical address keys.
@@ -59,20 +60,23 @@ func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *Canonicalize
 	instToCanonicalMap := make(map[uint32]*canonicalizerModule)
 	canonicalToInstMap := make(map[uint32]*canonicalizerModule)
 	for _, module := range modules {
-		canonicalAddr := can.modules[module.Name]
-		instAddr := uint32(module.Addr)
+		canonicalModule, found := can.modules[module.Name]
+		if !found || canonicalModule.Size != module.Size {
+			log.Fatalf("kernel build has changed; instance module %v differs from canonical", module.Name)
+		}
 
-		canonicalModule := &canonicalizerModule{
+		instAddr := uint32(module.Addr)
+		canonicalAddr := uint32(canonicalModule.Addr)
+
+		canonicalToInstMap[canonicalAddr] = &canonicalizerModule{
 			offset:  int(instAddr) - int(canonicalAddr),
 			endAddr: uint32(module.Size) + canonicalAddr,
 		}
-		canonicalToInstMap[canonicalAddr] = canonicalModule
 
-		instModule := &canonicalizerModule{
+		instToCanonicalMap[instAddr] = &canonicalizerModule{
 			offset:  int(canonicalAddr) - int(instAddr),
 			endAddr: uint32(module.Size) + instAddr,
 		}
-		instToCanonicalMap[instAddr] = instModule
 	}
 
 	return &CanonicalizerInstance{
