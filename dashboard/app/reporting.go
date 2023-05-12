@@ -1044,13 +1044,13 @@ func checkBugStatus(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugRepo
 				// This happens when people discuss old bugs.
 				log.Infof(c, "Dup bug is already closed")
 			} else {
-				log.Errorf(c, "Dup bug is already closed")
+				log.Warningf(c, "incoming command %v: dup bug is already closed", cmd.ID)
 			}
 			return false, "", nil
 		}
 	case BugStatusFixed, BugStatusInvalid:
 		if cmd.Status != dashapi.BugStatusUpdate {
-			log.Errorf(c, "This bug is already closed")
+			log.Errorf(c, "incoming command %v: bug is already closed", cmd.ID)
 		}
 		return false, "", nil
 	default:
@@ -1058,7 +1058,7 @@ func checkBugStatus(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugRepo
 	}
 	if !bugReporting.Closed.IsZero() {
 		if cmd.Status != dashapi.BugStatusUpdate {
-			log.Errorf(c, "This bug reporting is already closed")
+			log.Errorf(c, "incoming command %v: bug reporting is already closed", cmd.ID)
 		}
 		return false, "", nil
 	}
