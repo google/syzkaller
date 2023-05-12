@@ -488,7 +488,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	}
 	service := getSubsystemService(c, hdr.Namespace)
 	if service == nil {
-		return fmt.Errorf("the namespace does not have subsystems")
+		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
 	}
 	var subsystem *subsystem.Subsystem
 	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
@@ -1068,7 +1068,7 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	service := getSubsystemService(c, hdr.Namespace)
 	if service == nil {
-		return fmt.Errorf("the namespace does not have subsystems")
+		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
 	}
 	nonEmpty := r.FormValue("all") != "true"
 	list := []*uiSubsystem{}
