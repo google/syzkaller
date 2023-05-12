@@ -105,6 +105,8 @@ type Config struct {
 	// Path to upload corpus.db from managers (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
 	CorpusUploadPath string `json:"corpus_upload_path"`
+	// Make files uploaded via CoverUploadPath and CorpusUploadPath public.
+	PublishGCS bool `json:"publish_gcs"`
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.
