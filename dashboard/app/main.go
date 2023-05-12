@@ -943,7 +943,7 @@ func handleBugStats(c context.Context, w http.ResponseWriter, r *http.Request) e
 	}
 	inputs, err := allBugInputs(c, hdr.Namespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query bugs: %w", err)
 	}
 
 	const days = 100
