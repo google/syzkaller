@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -85,16 +86,21 @@ func (csb *cloudStorageBackend) downloadURL(path string, publicURL bool) (string
 	return csb.client.GetDownloadURL(fmt.Sprintf("%s/%s", csb.bucket, path), publicURL), nil
 }
 
+var allowedDomainsRe = regexp.MustCompile(`^storage\.googleapis\.com|storage\.cloud\.google\.com$`)
+
 func (csb *cloudStorageBackend) getPath(downloadURL string) (string, error) {
 	u, err := url.Parse(downloadURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse the URL: %w", err)
 	}
-	parts := strings.SplitN(u.Path, csb.bucket+"/", 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("%s/ is not present in the path %s", csb.bucket, u.Path)
+	if !allowedDomainsRe.MatchString(u.Host) {
+		return "", fmt.Errorf("not allowed host: %s", u.Host)
 	}
-	return parts[1], nil
+	prefix := "/" + csb.bucket + "/"
+	if !strings.HasPrefix(u.Path, prefix) {
+		return "", ErrUnknownBucket
+	}
+	return u.Path[len(prefix):], nil
 }
 
 func (csb *cloudStorageBackend) list() ([]storedObject, error) {
