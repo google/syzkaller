@@ -629,7 +629,7 @@ func handleBugCommand(c context.Context, bugInfo *bugInfoResult, msg *email.Emai
 }
 
 func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.DiscussionSource) error {
-	log.Debugf(c, "processDiscussionEmail: %#v, source %v", msg, source)
+	log.Debugf(c, "processDiscussionEmail %s from source %v", msg.MessageID, source)
 	if len(msg.BugIDs) == 0 {
 		return nil
 	}
@@ -637,7 +637,7 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 	if len(msg.BugIDs) > limitIDs {
 		msg.BugIDs = msg.BugIDs[:limitIDs]
 	}
-	log.Infof(c, "saving to discussions for %q", msg.BugIDs)
+	log.Debugf(c, "saving to discussions for %q", msg.BugIDs)
 	dType := dashapi.DiscussionMention
 	if source == dashapi.DiscussionLore {
 		dType = lore.DiscussionType(msg)
