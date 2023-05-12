@@ -791,7 +791,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	defer resp.Body.Close()
 	if directUpload {
-		return uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body)
+		return mgr.uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body)
 	}
 	// Upload via the asset storage.
 	newAsset, err := mgr.storage.UploadBuildAsset(resp.Body, mgr.name+".html",
@@ -812,10 +812,10 @@ func (mgr *Manager) uploadCorpus() error {
 		return err
 	}
 	defer f.Close()
-	return uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f)
+	return mgr.uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f)
 }
 
-func uploadFile(dstPath, name string, file io.Reader) error {
+func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader) error {
 	URL, err := url.Parse(dstPath)
 	if err != nil {
 		return fmt.Errorf("failed to parse upload path: %v", err)
@@ -824,17 +824,17 @@ func uploadFile(dstPath, name string, file io.Reader) error {
 	URLStr := URL.String()
 	log.Logf(0, "uploading %v to %v", name, URLStr)
 	if strings.HasPrefix(URLStr, "gs://") {
-		return uploadFileGCS(strings.TrimPrefix(URLStr, "gs://"), file)
+		return uploadFileGCS(strings.TrimPrefix(URLStr, "gs://"), file, mgr.cfg.PublishGCS)
 	}
 	if strings.HasPrefix(URLStr, "http://") ||
 		strings.HasPrefix(URLStr, "https://") {
 		return uploadFileHTTPPut(URLStr, file)
 	}
 	// Use GCS as default to maintain backwards compatibility.
-	return uploadFileGCS(URLStr, file)
+	return uploadFileGCS(URLStr, file, mgr.cfg.PublishGCS)
 }
 
-func uploadFileGCS(URL string, file io.Reader) error {
+func uploadFileGCS(URL string, file io.Reader, publish bool) error {
 	GCS, err := gcs.NewClient()
 	if err != nil {
 		return fmt.Errorf("failed to create GCS client: %v", err)
@@ -850,6 +850,9 @@ func uploadFileGCS(URL string, file io.Reader) error {
 	}
 	if err := gcsWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close gcs writer: %v", err)
+	}
+	if publish {
+		return GCS.Publish(URL)
 	}
 	return nil
 }
