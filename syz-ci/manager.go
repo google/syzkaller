@@ -500,6 +500,9 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 			Report:     rep.Report,
 		},
 	}
+	if rep.GuiltyFile != "" {
+		req.Crash.GuiltyFiles = []string{rep.GuiltyFile}
+	}
 	if err := mgr.dash.ReportBuildError(req); err != nil {
 		return err
 	}
