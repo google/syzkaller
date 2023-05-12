@@ -157,7 +157,7 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 		if err := getAllMulti(c, crashKeys, func(i, j int) interface{} {
 			return crashes[i:j]
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch crashes: %w", err)
 		}
 		for i, crash := range crashes {
 			if crash == nil {
@@ -177,7 +177,7 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 		if err := getAllMulti(c, buildKeys, func(i, j int) interface{} {
 			return builds[i:j]
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch builds: %w", err)
 		}
 		for i, build := range builds {
 			if build != nil {
