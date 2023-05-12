@@ -60,7 +60,13 @@ func (be *dummyStorageBackend) downloadURL(path string, publicURL bool) (string,
 }
 
 func (be *dummyStorageBackend) getPath(url string) (string, error) {
-	return strings.TrimPrefix(url, "http://download/"), nil
+	if strings.HasPrefix(url, "http://unknown-bucket/") {
+		return "", ErrUnknownBucket
+	}
+	if strings.HasPrefix(url, "http://download/") {
+		return strings.TrimPrefix(url, "http://download/"), nil
+	}
+	return "", fmt.Errorf("unknown URL format")
 }
 
 func (be *dummyStorageBackend) list() ([]storedObject, error) {

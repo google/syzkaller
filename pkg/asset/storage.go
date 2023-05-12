@@ -205,6 +205,8 @@ func (e *FileExistsError) Error() string {
 	return fmt.Sprintf("asset exists: %s", e.Path)
 }
 
+var ErrUnknownBucket = errors.New("the asset is not in the currently managed bucket")
+
 const deletionEmbargo = time.Hour * 24 * 7
 
 // Best way: convert download URLs to paths.
@@ -217,7 +219,10 @@ func (storage *Storage) DeprecateAssets() error {
 	needed := map[string]bool{}
 	for _, url := range resp.DownloadURLs {
 		path, err := storage.backend.getPath(url)
-		if err != nil {
+		if err == ErrUnknownBucket {
+			// The asset is not managed by the particular instance.
+			continue
+		} else if err != nil {
 			// If we failed to parse just one URL, let's stop the entire process.
 			// Otherwise we'll start deleting still needed files we couldn't recognize.
 			return fmt.Errorf("failed to parse '%s': %w", url, err)

@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/stretchr/testify/assert"
 	"github.com/ulikunitz/xz"
 )
 
@@ -184,7 +185,7 @@ func TestUploadBuildAsset(t *testing.T) {
 		t.Fatalf("invalid dashMock state: expected 3 assets, got %d", len(allUrls))
 	}
 	// First try to remove two assets.
-	dashMock.downloadURLs = map[string]bool{allUrls[2]: true, "http://non-related-asset.com/abcd": true}
+	dashMock.downloadURLs = map[string]bool{allUrls[2]: true, "http://download/unrelated.txt": true}
 
 	// Pretend there's an asset deletion error.
 	be.objectRemove = func(string) error { return fmt.Errorf("not now") }
@@ -350,4 +351,54 @@ func TestUploadSameContent(t *testing.T) {
 		t.Fatalf("assets were expected to have same download URL, got %#v %#v",
 			asset.DownloadURL, assetTwo.DownloadURL)
 	}
+}
+
+// Test that we adequately handle the case when several syz-cis with separate buckets
+// are connected to a single dashboard.
+// nolint: dupl
+func TestTwoBucketDeprecation(t *testing.T) {
+	dash := newDashMock()
+	storage, dummy := makeStorage(t, dash.getDashapi())
+
+	// "Upload" an asset from this instance.
+	resp, _ := dummy.upload(&uploadRequest{
+		savePath: `folder/file.txt`,
+	})
+	url, _ := dummy.downloadURL(resp.path, true)
+
+	// Dashboard returns two asset URLs.
+	dash.downloadURLs = map[string]bool{
+		"http://unknown-bucket/other-folder/other-file.txt": true, // will cause ErrUnknownBucket
+		url: true,
+	}
+	dummy.objectRemove = func(url string) error {
+		t.Fatalf("Unexpected removal")
+		return nil
+	}
+	err := storage.DeprecateAssets()
+	assert.NoError(t, err)
+}
+
+// nolint: dupl
+func TestInvalidAssetURLs(t *testing.T) {
+	dash := newDashMock()
+	storage, dummy := makeStorage(t, dash.getDashapi())
+
+	// "Upload" an asset from this instance.
+	resp, _ := dummy.upload(&uploadRequest{
+		savePath: `folder/file.txt`,
+	})
+	url, _ := dummy.downloadURL(resp.path, true)
+
+	// Dashboard returns two asset URLs.
+	dash.downloadURLs = map[string]bool{
+		"http://totally-unknown-bucket/other-folder/other-file.txt": true,
+		url: true,
+	}
+	dummy.objectRemove = func(url string) error {
+		t.Fatalf("Unexpected removal")
+		return nil
+	}
+	err := storage.DeprecateAssets()
+	assert.Error(t, err)
 }
