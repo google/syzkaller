@@ -217,7 +217,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshKey, 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
+	args := append(vmimpl.SCPArgs(true, inst.sshKey, 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
 	if err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
