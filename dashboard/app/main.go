@@ -1960,6 +1960,9 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 			}
 			autoJobsLeft--
 		}
+		if job.TreeOrigin && !job.Finished.IsZero() {
+			continue
+		}
 		var build *Build
 		if job.BuildID != "" {
 			if build, err = loadBuild(c, bug.Namespace, job.BuildID); err != nil {
