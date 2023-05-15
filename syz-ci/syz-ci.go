@@ -424,7 +424,7 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 		managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
 		cfg.ManagerPort++
 	}
-	if managercfg.RPC == "" {
+	if managercfg.RPC == ":0" {
 		managercfg.RPC = fmt.Sprintf(":%v", cfg.RPCPort)
 		cfg.RPCPort++
 	}
