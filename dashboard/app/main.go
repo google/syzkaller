@@ -753,7 +753,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	if len(treeTestJobs) > 0 {
 		sections = append(sections, &uiCollapsible{
-			Title: fmt.Sprintf("Bug presence on other trees (%d)", len(treeTestJobs)),
+			Title: fmt.Sprintf("Bug presence (%d)", len(treeTestJobs)),
 			Show:  true,
 			Type:  sectionTestResults,
 			Value: treeTestJobs,
