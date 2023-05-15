@@ -99,7 +99,7 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 			return details, fmt.Errorf("failed to build kernel: %s", err)
 		}
 		// Find the .config file; it is placed in a temporary output directory during the build.
-		cmd := osutil.Command("find", ".", "-wholename", "*virtual_device_x86_64_config/out_dir/.config")
+		cmd := osutil.Command("find", ".", "-regex", ".*virtual_device_x86_64_config.*/\\.config")
 		cmd.Dir = params.KernelDir
 		configBytes, err := osutil.Run(time.Minute, cmd)
 		if err != nil {
