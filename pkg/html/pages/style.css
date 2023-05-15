@@ -208,15 +208,27 @@ table td, table th {
 }
 
 .list_table .status-crashed {
-  background-color: #FF8674;
+	background-color: #FF8674;
+}
+
+.list_table tr:hover .status-crashed {
+	background-color: #ffa397;
 }
 
 .list_table .status-ok {
-  background-color: lightgreen;
+	background-color: lightgreen;
+}
+
+.list_table tr:hover .status-ok {
+	background-color: palegreen;
 }
 
 .list_table .status-error {
-  background-color: lightgray;
+	background-color: lightgray;
+}
+
+.list_table tr:hover .status-error {
+	background-color: gainsboro;
 }
 
 .bug-label {
