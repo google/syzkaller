@@ -59,7 +59,7 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	fuzzerConnect([]host.KernelModule) (
-		[]rpctype.Input, BugFrames, map[uint32]uint32, []byte, error)
+		[]rpctype.Input, BugFrames, map[uint32]uint32, map[uint32]uint32, error)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.Input, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.Candidate
@@ -92,16 +92,15 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
-	corpus, bugFrames, coverFilter, coverBitmap, err := serv.mgr.fuzzerConnect(a.Modules)
+	if serv.canonicalModules == nil {
+		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
+		serv.modules = a.Modules
+	}
+	corpus, bugFrames, coverFilter, execCoverFilter, err := serv.mgr.fuzzerConnect(serv.modules)
 	if err != nil {
 		return err
 	}
 	serv.coverFilter = coverFilter
-	serv.modules = a.Modules
-
-	if serv.canonicalModules == nil {
-		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
-	}
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -114,7 +113,9 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
-	r.CoverFilterBitmap = coverBitmap
+
+	instCoverFilter := f.instModules.DecanonicalizeFilter(execCoverFilter)
+	r.CoverFilterBitmap = createCoverageBitmap(serv.cfg.SysTarget, instCoverFilter)
 	r.EnabledCalls = serv.cfg.Syscalls
 	r.NoMutateCalls = serv.cfg.NoMutateCalls
 	r.GitRevision = prog.GitRevision

@@ -117,6 +117,18 @@ func (ci *CanonicalizerInstance) Decanonicalize(cov []uint32, sign signal.Serial
 	ci.decanonicalize.convertPCs(cov, sign)
 }
 
+func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) map[uint32]uint32 {
+	// Skip conversion if modules or filter are not used.
+	if ci.canonical.moduleKeys == nil || len(bitmap) == 0 {
+		return bitmap
+	}
+	instBitmap := make(map[uint32]uint32)
+	for pc, val := range bitmap {
+		instBitmap[ci.decanonicalize.convertPC(pc)] = val
+	}
+	return instBitmap
+}
+
 // Store sorted list of addresses. Used to binary search when converting PCs.
 func setModuleKeys(moduleKeys []uint32, modules []host.KernelModule) {
 	for idx, module := range modules {
