@@ -163,12 +163,12 @@ func main() {
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.SyzFatalf("%v", err)
 	}
 
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
-		log.Fatalf("failed to create default ipc config: %v", err)
+		log.SyzFatalf("failed to create default ipc config: %v", err)
 	}
 	if *flagRawCover {
 		execOpts.Flags &^= ipc.FlagDedupCover
@@ -202,7 +202,7 @@ func main() {
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
 	if err != nil {
-		log.Fatalf("failed to create an RPC client: %v ", err)
+		log.SyzFatalf("failed to create an RPC client: %v ", err)
 	}
 
 	log.Logf(1, "connecting to manager...")
@@ -213,15 +213,15 @@ func main() {
 	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
-		log.Fatalf("failed to call Manager.Connect(): %v ", err)
+		log.SyzFatalf("failed to call Manager.Connect(): %v ", err)
 	}
 	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
 	if err != nil {
-		log.Fatal(err)
+		log.SyzFatalf("%v", err)
 	}
 	if r.CoverFilterBitmap != nil {
 		if err := osutil.WriteFile("syz-cover-bitmap", r.CoverFilterBitmap); err != nil {
-			log.Fatalf("failed to write syz-cover-bitmap: %v", err)
+			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
 		}
 	}
 	if r.CheckResult == nil {
@@ -239,15 +239,15 @@ func main() {
 		}
 		r.CheckResult.Name = *flagName
 		if err := manager.Call("Manager.Check", r.CheckResult, nil); err != nil {
-			log.Fatalf("Manager.Check call failed: %v", err)
+			log.SyzFatalf("Manager.Check call failed: %v", err)
 		}
 		if r.CheckResult.Error != "" {
-			log.Fatalf("%v", r.CheckResult.Error)
+			log.SyzFatalf("%v", r.CheckResult.Error)
 		}
 	} else {
 		target.UpdateGlobs(r.CheckResult.GlobFiles)
 		if err = host.Setup(target, r.CheckResult.Features, featureFlags, config.Executor); err != nil {
-			log.Fatal(err)
+			log.SyzFatalf("%v", err)
 		}
 	}
 	log.Logf(0, "syscalls: %v", len(r.CheckResult.EnabledCalls[sandbox]))
@@ -304,7 +304,7 @@ func main() {
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzer, pid)
 		if err != nil {
-			log.Fatalf("failed to create proc: %v", err)
+			log.SyzFatalf("failed to create proc: %v", err)
 		}
 		fuzzer.procs = append(fuzzer.procs, proc)
 		go proc.loop()
@@ -316,11 +316,11 @@ func main() {
 func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
 	machineInfo, err := host.CollectMachineInfo()
 	if err != nil {
-		log.Fatalf("failed to collect machine information: %v", err)
+		log.SyzFatalf("failed to collect machine information: %v", err)
 	}
 	modules, err := host.CollectModulesInfo()
 	if err != nil {
-		log.Fatalf("failed to collect modules info: %v", err)
+		log.SyzFatalf("failed to collect modules info: %v", err)
 	}
 	return machineInfo, modules
 }
@@ -370,7 +370,7 @@ func (fuzzer *Fuzzer) filterDataRaceFrames(frames []string) {
 	timeout := time.Minute * fuzzer.timeouts.Scale
 	output, err := osutil.RunCmd(timeout, "", fuzzer.config.Executor, args...)
 	if err != nil {
-		log.Fatalf("failed to set KCSAN filterlist: %v", err)
+		log.SyzFatalf("failed to set KCSAN filterlist: %v", err)
 	}
 	log.Logf(0, "%s", output)
 }
@@ -423,7 +423,7 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 	}
 	r := &rpctype.PollRes{}
 	if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
-		log.Fatalf("Manager.Poll call failed: %v", err)
+		log.SyzFatalf("Manager.Poll call failed: %v", err)
 	}
 	maxSignal := r.MaxSignal.Deserialize()
 	log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
@@ -447,7 +447,7 @@ func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.Input) {
 		Input: inp,
 	}
 	if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
-		log.Fatalf("Manager.NewInput call failed: %v", err)
+		log.SyzFatalf("Manager.NewInput call failed: %v", err)
 	}
 }
 
@@ -482,7 +482,7 @@ func (fuzzer *Fuzzer) addCandidateInput(candidate rpctype.Candidate) {
 func (fuzzer *Fuzzer) deserializeInput(inp []byte) *prog.Prog {
 	p, err := fuzzer.target.Deserialize(inp, prog.NonStrict)
 	if err != nil {
-		log.Fatalf("failed to deserialize prog: %v\n%s", err, inp)
+		log.SyzFatalf("failed to deserialize prog: %v\n%s", err, inp)
 	}
 	// We build choice table only after we received the initial corpus,
 	// so we don't check the initial corpus here, we check it later in BuildChoiceTable.
@@ -626,7 +626,7 @@ func parseOutputType(str string) OutputType {
 	case "file":
 		return OutputFile
 	default:
-		log.Fatalf("-output flag must be one of none/stdout/dmesg/file")
+		log.SyzFatalf("-output flag must be one of none/stdout/dmesg/file")
 		return OutputNone
 	}
 }
