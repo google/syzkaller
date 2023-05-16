@@ -1215,7 +1215,7 @@ var linuxStackParams = &stackParams{
 		"usb_submit_urb",
 		"^complete$",
 		"wait_for_completion",
-		"^kfree$",
+		"^kv?free$",
 		"kfree_skb",
 		"readb$",
 		"readw$",
