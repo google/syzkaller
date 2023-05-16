@@ -26,6 +26,8 @@ type Fuzzer struct {
 	instModules *cover.CanonicalizerInstance
 	cov         []uint32
 	goalCov     []uint32
+	bitmap      map[uint32]uint32
+	goalBitmap  map[uint32]uint32
 	sign        signal.Serial
 	goalSign    signal.Serial
 }
@@ -54,6 +56,31 @@ func TestNilModules(t *testing.T) {
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f2"].sign = signal.FromRaw(serv.fuzzers["f2"].cov, 0).Serialize()
 	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
+
+	serv.fuzzers["f1"].bitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
+	serv.fuzzers["f1"].goalBitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
+	serv.fuzzers["f2"].bitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
+	serv.fuzzers["f2"].goalBitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
 
 	if err := serv.runTest(Canonicalize); err != "" {
 		t.Fatalf("failed in canonicalization: %v", err)
@@ -137,6 +164,31 @@ func TestModules(t *testing.T) {
 	serv.fuzzers["f2"].sign = signal.FromRaw(serv.fuzzers["f2"].cov, 0).Serialize()
 	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
 
+	serv.fuzzers["f1"].bitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
+	serv.fuzzers["f1"].goalBitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
+	serv.fuzzers["f2"].bitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00020FFF: 2,
+		0x00030000: 3,
+		0x00040000: 4,
+	}
+	serv.fuzzers["f2"].goalBitmap = map[uint32]uint32{
+		0x00010011: 1,
+		0x00040FFF: 2,
+		0x00045000: 3,
+		0x00020000: 4,
+	}
+
 	if err := serv.runTest(Canonicalize); err != "" {
 		t.Fatalf("failed in canonicalization: %v", err)
 	}
@@ -158,6 +210,11 @@ func (serv *RPCServer) runTest(val canonicalizeValue) string {
 			fuzzer.instModules.Canonicalize(fuzzer.cov, fuzzer.sign)
 		} else {
 			fuzzer.instModules.Decanonicalize(fuzzer.cov, fuzzer.sign)
+			instBitmap := fuzzer.instModules.DecanonicalizeFilter(fuzzer.bitmap)
+			if !reflect.DeepEqual(instBitmap, fuzzer.goalBitmap) {
+				return fmt.Sprintf("failed in bitmap conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
+					name, fuzzer.goalBitmap, instBitmap)
+			}
 		}
 		if !reflect.DeepEqual(fuzzer.cov, fuzzer.goalCov) {
 			return fmt.Sprintf("failed in coverage conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",

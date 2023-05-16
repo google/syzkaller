@@ -92,7 +92,7 @@ type Manager struct {
 
 	modules            []host.KernelModule
 	coverFilter        map[uint32]uint32
-	coverFilterBitmap  []byte
+	execCoverFilter    map[uint32]uint32
 	modulesInitialized bool
 
 	assetStorage *asset.Storage
@@ -1313,7 +1313,7 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 }
 
 func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
-	[]rpctype.Input, BugFrames, map[uint32]uint32, []byte, error) {
+	[]rpctype.Input, BugFrames, map[uint32]uint32, map[uint32]uint32, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1335,16 +1335,13 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	if !mgr.modulesInitialized {
 		var err error
 		mgr.modules = modules
-		mgr.coverFilterBitmap, mgr.coverFilter, err = mgr.createCoverageFilter()
+		mgr.execCoverFilter, mgr.coverFilter, err = mgr.createCoverageFilter()
 		if err != nil {
 			log.Fatalf("failed to create coverage filter: %v", err)
 		}
-		if len(modules) > 0 && mgr.coverFilterBitmap != nil {
-			log.Fatalf("coverage filtering is not supported with modules")
-		}
 		mgr.modulesInitialized = true
 	}
-	return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
+	return corpus, frames, mgr.coverFilter, mgr.execCoverFilter, nil
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
