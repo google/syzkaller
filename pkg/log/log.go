@@ -73,22 +73,27 @@ func V(level int) bool {
 }
 
 func Logf(v int, msg string, args ...interface{}) {
-	writeMessage(v, "", msg, args...)
+	writeMessage(v, message("", msg, args...))
 }
 
 func Errorf(msg string, args ...interface{}) {
-	writeMessage(0, "ERROR", msg, args...)
+	writeMessage(0, message("ERROR", msg, args...))
 }
 
 func Fatal(err error) {
-	golog.Fatal("SYZFATAL: ", err)
+	Fatalf("%v", err)
 }
 
 func Fatalf(msg string, args ...interface{}) {
+	golog.Fatalf(message("FATAL", msg, args...))
+}
+
+// SyzFatalf-reported errors are parsed by syzkaller as if they were kernel bugs.
+func SyzFatalf(msg string, args ...interface{}) {
 	golog.Fatalf("SYZFATAL: "+msg, args...)
 }
 
-func writeMessage(v int, severity, msg string, args ...interface{}) {
+func message(severity, msg string, args ...interface{}) string {
 	var sb strings.Builder
 	if severity != "" {
 		fmt.Fprintf(&sb, "[%s] ", severity)
@@ -97,10 +102,10 @@ func writeMessage(v int, severity, msg string, args ...interface{}) {
 		fmt.Fprintf(&sb, "%s: ", instanceName)
 	}
 	fmt.Fprintf(&sb, msg, args...)
-	writeRawMessage(v, sb.String())
+	return sb.String()
 }
 
-func writeRawMessage(v int, msg string) {
+func writeMessage(v int, msg string) {
 	mu.Lock()
 	if cacheEntries != nil && v <= 1 {
 		cacheMem -= len(cacheEntries[cachePos])
