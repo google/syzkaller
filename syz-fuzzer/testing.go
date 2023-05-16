@@ -35,11 +35,11 @@ func testImage(hostAddr string, args *checkArgs) {
 	log.Logf(0, "connecting to host at %v", hostAddr)
 	conn, err := rpctype.Dial(hostAddr, args.ipcConfig.Timeouts.Scale)
 	if err != nil {
-		log.Fatalf("BUG: failed to connect to host: %v", err)
+		log.SyzFatalf("BUG: failed to connect to host: %v", err)
 	}
 	conn.Close()
 	if _, err := checkMachine(args); err != nil {
-		log.Fatalf("BUG: %v", err)
+		log.SyzFatalf("BUG: %v", err)
 	}
 }
 
@@ -48,7 +48,7 @@ func runTest(target *prog.Target, manager *rpctype.RPCClient, name, executor str
 	for {
 		req := new(rpctype.RunTestPollRes)
 		if err := manager.Call("Manager.Poll", pollReq, req); err != nil {
-			log.Fatalf("Manager.Poll call failed: %v", err)
+			log.SyzFatalf("Manager.Poll call failed: %v", err)
 		}
 		if len(req.Bin) == 0 && len(req.Prog) == 0 {
 			return
@@ -67,7 +67,7 @@ func runTest(target *prog.Target, manager *rpctype.RPCClient, name, executor str
 			reply.Error = test.Err.Error()
 		}
 		if err := manager.Call("Manager.Done", reply, nil); err != nil {
-			log.Fatalf("Manager.Done call failed: %v", err)
+			log.SyzFatalf("Manager.Done call failed: %v", err)
 		}
 	}
 }

@@ -77,7 +77,7 @@ func (proc *Proc) loop() {
 			case *WorkSmash:
 				proc.smashInput(item)
 			default:
-				log.Fatalf("unknown work type: %#v", item)
+				log.SyzFatalf("unknown work type: %#v", item)
 			}
 			continue
 		}
@@ -335,7 +335,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 				return nil
 			}
 			if try > 10 {
-				log.Fatalf("executor %v failed %v times: %v", proc.pid, try, err)
+				log.SyzFatalf("executor %v failed %v times: %v", proc.pid, try, err)
 			}
 			log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
 			debug.FreeOSMemory()
@@ -380,6 +380,6 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 			f.Close()
 		}
 	default:
-		log.Fatalf("unknown output type: %v", proc.fuzzer.outputType)
+		log.SyzFatalf("unknown output type: %v", proc.fuzzer.outputType)
 	}
 }
