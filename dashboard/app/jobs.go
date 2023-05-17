@@ -781,16 +781,18 @@ func isRetestReproJob(job *Job, build *Build) bool {
 }
 
 func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.Key,
-	lastBuild *Build, req *dashapi.JobDoneReq) error {
+	bug *Bug, lastBuild *Build, req *dashapi.JobDoneReq) (*Bug, error) {
 	bugKey := jobKey.Parent()
+	if bug == nil {
+		bug = new(Bug)
+		if err := db.Get(c, bugKey, bug); err != nil {
+			return nil, fmt.Errorf("failed to get bug: %v", bugKey)
+		}
+	}
 	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
 	crash := new(Crash)
 	if err := db.Get(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to get crash: %v", crashKey)
-	}
-	bug := new(Bug)
-	if err := db.Get(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to get bug: %v", bugKey)
+		return nil, fmt.Errorf("failed to get crash: %v", crashKey)
 	}
 	allTitles := gatherCrashTitles(req)
 	// Update the crash.
@@ -807,11 +809,11 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 	}
 	crash.UpdateReportingPriority(c, lastBuild, bug)
 	if _, err := db.Put(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to put crash: %v", err)
+		return nil, fmt.Errorf("failed to put crash: %v", err)
 	}
 	reproCrashes, crashKeys, err := queryCrashesForBug(c, bugKey, 2)
 	if err != nil {
-		return fmt.Errorf("failed to fetch crashes with repro: %v", err)
+		return nil, fmt.Errorf("failed to fetch crashes with repro: %v", err)
 	}
 	// Now we can update the bug.
 	bug.HeadReproLevel = ReproLevelNone
@@ -834,10 +836,7 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 		// really relates to the existing bug.
 		bug.LastTime = now
 	}
-	if _, err := db.Put(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to put bug: %v", err)
-	}
-	return nil
+	return bug, nil
 }
 
 func gatherCrashTitles(req *dashapi.JobDoneReq) []string {
@@ -891,6 +890,7 @@ func resetJobs(c context.Context, req *dashapi.JobResetReq) error {
 }
 
 // doneJob is called by syz-ci to mark completion of a job.
+// nolint: gocyclo
 func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	jobID := req.ID
 	jobKey, err := jobID2Key(c, req.ID)
@@ -916,8 +916,10 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		if !job.Finished.IsZero() {
 			return fmt.Errorf("job %v: already finished", jobID)
 		}
+		var bug *Bug
 		if isRetestReproJob(job, lastBuild) {
-			err := handleRetestedRepro(c, now, job, jobKey, lastBuild, req)
+			var err error
+			bug, err = handleRetestedRepro(c, now, job, jobKey, bug, lastBuild, req)
 			if err != nil {
 				return fmt.Errorf("job %v: failed to handle retested repro, %w", jobID, err)
 			}
@@ -962,12 +964,19 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		job.Flags = JobFlags(req.Flags)
 		if job.Type == JobBisectCause || job.Type == JobBisectFix {
 			// Update bug.BisectCause/Fix status and also remember current bug reporting to send results.
-			if err := updateBugBisection(c, job, jobKey, req, now); err != nil {
+			var err error
+			bug, err = updateBugBisection(c, job, jobKey, req, bug, now)
+			if err != nil {
 				return err
 			}
 		}
 		if jobKey, err = db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
+		}
+		if bug != nil {
+			if _, err := db.Put(c, jobKey.Parent(), bug); err != nil {
+				return fmt.Errorf("failed to put bug: %v", err)
+			}
 		}
 		log.Infof(c, "DONE JOB %v: reported=%v reporting=%v", jobID, job.Reported, job.Reporting)
 		return nil
@@ -985,11 +994,13 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	return nil
 }
 
-func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq, now time.Time) error {
-	bug := new(Bug)
-	bugKey := jobKey.Parent()
-	if err := db.Get(c, bugKey, bug); err != nil {
-		return fmt.Errorf("job %v: failed to get bug: %v", req.ID, err)
+func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq,
+	bug *Bug, now time.Time) (*Bug, error) {
+	if bug == nil {
+		bug = new(Bug)
+		if err := db.Get(c, jobKey.Parent(), bug); err != nil {
+			return nil, fmt.Errorf("failed to get bug: %v", jobKey.Parent())
+		}
 	}
 	result := BisectYes
 	if len(req.Error) != 0 {
@@ -1022,9 +1033,6 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	if job.Type == JobBisectCause && infraError {
 		bug.BisectCause = BisectNot
 	}
-	if _, err := db.Put(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to put bug: %v", err)
-	}
 	_, bugReporting, _, _, _ := currentReporting(bug)
 	// The bug is either already closed or not yet reported in the current reporting,
 	// either way we don't need to report it. If it wasn't reported, it will be reported
@@ -1038,7 +1046,7 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	} else {
 		job.Reporting = bugReporting.Name
 	}
-	return nil
+	return bug, nil
 }
 
 // TODO: this is temporal for gradual bisection rollout.
