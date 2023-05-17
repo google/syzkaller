@@ -212,7 +212,7 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
 	}
 	if len(bug.Commits) == 0 &&
-		bug.canBeObsoleted() &&
+		bug.canBeObsoleted(c) &&
 		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
 		timeSince(c, bug.LastTime) > bug.obsoletePeriod() {
 		log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
@@ -237,13 +237,26 @@ func bugObsoletionReason(bug *Bug) dashapi.BugStatusReason {
 	return dashapi.InvalidatedByNoActivity
 }
 
+var noObsoletionsKey = "Temporarily disable bug obsoletions"
+
+func contextWithNoObsoletions(c context.Context) context.Context {
+	return context.WithValue(c, &noObsoletionsKey, struct{}{})
+}
+
+func getNoObsoletions(c context.Context) bool {
+	return c.Value(&noObsoletionsKey) != nil
+}
+
 // TODO: this is what we would like to do, but we need to figure out
 // KMSAN story: we don't do fix bisection on it (rebased),
 // do we want to close all old KMSAN bugs with repros?
 // For now we only enable this in tests.
 var obsoleteWhatWontBeFixBisected = false
 
-func (bug *Bug) canBeObsoleted() bool {
+func (bug *Bug) canBeObsoleted(c context.Context) bool {
+	if getNoObsoletions(c) {
+		return false
+	}
 	if bug.HeadReproLevel == ReproLevelNone {
 		return true
 	}
