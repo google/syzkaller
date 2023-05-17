@@ -224,7 +224,12 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 			body += "Crashes did not happen for a while, no reproducer and no activity."
 		}
 		status = dashapi.BugStatusInvalid
-
+	case dashapi.BugNotifLabel:
+		bodyBuf := new(bytes.Buffer)
+		if err := mailTemplates.ExecuteTemplate(bodyBuf, "mail_label_notif.txt", notif); err != nil {
+			return fmt.Errorf("failed to execute mail_label_notif.txt: %v", err)
+		}
+		body = bodyBuf.String()
 	default:
 		return fmt.Errorf("bad notification type %v", notif.Type)
 	}
@@ -248,6 +253,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 		ID:           notif.ID,
 		Status:       status,
 		StatusReason: statusReason,
+		Label:        notif.Label,
 		Notification: true,
 	}
 	ok, reason, err := incomingCommand(c, cmd)

@@ -185,6 +185,7 @@ func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNot
 	return notifs
 }
 
+// nolint: gocyclo
 func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNotification, error) {
 	reporting, bugReporting, _, _, err := currentReporting(bug)
 	if err != nil || reporting == nil {
@@ -227,7 +228,41 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 		commits := strings.Join(bug.Commits, "\n")
 		return createNotification(c, dashapi.BugNotifBadCommit, true, commits, bug, reporting, bugReporting)
 	}
+	for _, label := range bug.Labels {
+		if label.SetBy != "" {
+			continue
+		}
+		str := label.String()
+		if reporting.Labels[str] == "" {
+			continue
+		}
+		if stringInList(bugReporting.GetLabels(), str) {
+			continue
+		}
+		return createLabelNotification(c, label, bug, reporting, bugReporting)
+	}
 	return nil, nil
+}
+
+func createLabelNotification(c context.Context, label BugLabel, bug *Bug, reporting *Reporting,
+	bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+	labelStr := label.String()
+	notif, err := createNotification(c, dashapi.BugNotifLabel, true, reporting.Labels[labelStr],
+		bug, reporting, bugReporting)
+	if err != nil {
+		return nil, err
+	}
+	notif.Label = labelStr
+	// For some labels also attach job results.
+	if label.Label == OriginLabel {
+		var err error
+		notif.TreeJobs, err = treeTestJobs(c, bug)
+		if err != nil {
+			log.Errorf(c, "failed to extract jobs for %s: %v", bug.keyHash(), err)
+			return nil, fmt.Errorf("failed to fetch jobs: %w", err)
+		}
+	}
+	return notif, nil
 }
 
 func bugObsoletionReason(bug *Bug) dashapi.BugStatusReason {
@@ -1035,6 +1070,9 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 	}
 	if cmd.StatusReason != "" {
 		bug.StatusReason = cmd.StatusReason
+	}
+	if cmd.Label != "" {
+		bugReporting.AddLabel(cmd.Label)
 	}
 	return true, "", nil
 }

@@ -216,7 +216,10 @@ type Reporting struct {
 	// The app has one built-in type, EmailConfig, which reports bugs by email.
 	// And ExternalConfig which can be used to attach any external reporting system (e.g. Bugzilla).
 	Config ReportingType
-
+	// List of labels to notify about (keys are strings of form "label:value").
+	// The value is the string that will be included in the notification message.
+	// Notifications will only be sent for automatically assigned labels.
+	Labels map[string]string
 	// Set for all but last reporting stages.
 	moderation bool
 }

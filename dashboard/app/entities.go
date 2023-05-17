@@ -304,9 +304,19 @@ type BugReporting struct {
 	// it never actually was.
 	Dummy      bool
 	ReproLevel dashapi.ReproLevel // may be less then bug.ReproLevel if repro arrived but we didn't report it yet
+	Labels     string             // a comma-separated string of already reported labels
 	OnHold     time.Time          // if set, the bug must not be upstreamed
 	Reported   time.Time
 	Closed     time.Time
+}
+
+func (r *BugReporting) GetLabels() []string {
+	return strings.Split(r.Labels, ",")
+}
+
+func (r *BugReporting) AddLabel(label string) {
+	newList := unique(append(r.GetLabels(), label))
+	r.Labels = strings.Join(newList, ",")
 }
 
 type Crash struct {

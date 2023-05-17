@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	db "google.golang.org/appengine/v2/datastore"
+	aemail "google.golang.org/appengine/v2/mail"
 )
 
 func TestTreeOriginDownstream(t *testing.T) {
@@ -46,6 +48,27 @@ func TestTreeOriginDownstream(t *testing.T) {
 	// Test that we can render the bug page.
 	_, err := c.GET(ctx.bugLink())
 	c.expectEQ(err, nil)
+	// Test that we receive a notification.
+	ctx.reportToEmail()
+	msg := ctx.emailWithoutURLs()
+	c.expectEQ(msg.Body, `Bug presence analysis results: the bug reproduces only on the downstream tree.
+
+syzbot has run the reproducer on other relevant kernel trees and got
+the following results:
+
+downstream (commit 947548860) on 2000/01/11:
+crash title
+Report: %URL%
+
+lts (commit 947548860) on 2000/01/11:
+Didn't crash.
+
+upstream (commit 947548860) on 2000/01/11:
+Didn't crash.
+
+More details can be found at:
+%URL%
+`)
 }
 
 func TestTreeOriginLts(t *testing.T) {
@@ -75,6 +98,9 @@ func TestTreeOriginLts(t *testing.T) {
 	c.expectEQ(ctx.entries[0].jobsDone, 0)
 	c.expectEQ(ctx.entries[1].jobsDone, 1)
 	c.expectEQ(ctx.entries[2].jobsDone, 1)
+	// Test that we don't receive any notification.
+	ctx.reportToEmail()
+	ctx.ctx.expectNoEmail()
 }
 
 func TestTreeOriginErrors(t *testing.T) {
@@ -560,7 +586,7 @@ var downstreamUpstreamBackports = []KernelRepo{
 func setUpTreeTest(ctx *Ctx, repos []KernelRepo) *treeTestCtx {
 	ret := &treeTestCtx{
 		ctx:     ctx,
-		client:  ctx.makeClient(clientPublic, keyPublic, true),
+		client:  ctx.makeClient(clientTreeTests, keyTreeTests, true),
 		manager: "test-manager",
 	}
 	ret.updateRepos(repos)
@@ -571,6 +597,7 @@ type treeTestCtx struct {
 	ctx         *Ctx
 	client      *apiClient
 	bug         *Bug
+	bugReport   *dashapi.BugReport
 	start       time.Time
 	entries     []treeTestEntry
 	perAlias    map[string]KernelRepo
@@ -584,7 +611,7 @@ func (ctx *treeTestCtx) now() time.Time {
 }
 
 func (ctx *treeTestCtx) updateRepos(repos []KernelRepo) {
-	checkKernelRepos("access-public", config.Namespaces["access-public"], repos)
+	checkKernelRepos("tree-tests", config.Namespaces["tree-tests"], repos)
 	ctx.perAlias = map[string]KernelRepo{}
 	for _, repo := range repos {
 		ctx.perAlias[repo.Alias] = repo
@@ -613,9 +640,9 @@ func (ctx *treeTestCtx) uploadBuildCrash(build *dashapi.Build, lvl dashapi.Repro
 	}
 	ctx.client.ReportCrash(crash)
 	if ctx.bug == nil || ctx.bug.ReproLevel < lvl {
-		rep := ctx.client.pollBug()
+		ctx.bugReport = ctx.client.pollBug()
 		if ctx.bug == nil {
-			bug, _, err := findBugByReportingID(ctx.ctx.ctx, rep.ID)
+			bug, _, err := findBugByReportingID(ctx.ctx.ctx, ctx.bugReport.ID)
 			ctx.ctx.expectOK(err)
 			ctx.bug = bug
 		}
@@ -735,6 +762,19 @@ func (ctx *treeTestCtx) ensureLabels(labels ...string) {
 
 func (ctx *treeTestCtx) bugLink() string {
 	return fmt.Sprintf("/bug?id=%v", ctx.bug.key(ctx.ctx.ctx).StringID())
+}
+
+func (ctx *treeTestCtx) reportToEmail() {
+	ctx.client.updateBug(ctx.bugReport.ID, dashapi.BugStatusUpstream, "")
+	ctx.ctx.pollEmailBug() // skip the report
+}
+
+var urlRe = regexp.MustCompile(`(https?://[\w\./\?\=&]+)`)
+
+func (ctx *treeTestCtx) emailWithoutURLs() *aemail.Message {
+	msg := ctx.ctx.pollEmailBug()
+	msg.Body = urlRe.ReplaceAllString(msg.Body, "%URL%")
+	return msg
 }
 
 type treeTestEntry struct {

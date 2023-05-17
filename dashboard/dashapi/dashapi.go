@@ -530,6 +530,7 @@ type BugUpdate struct {
 	Link            string
 	Status          BugStatus
 	StatusReason    BugStatusReason
+	Label           string // the reported label, if BugNotifLabel
 	ReproLevel      ReproLevel
 	DupOf           string
 	OnHold          bool     // If set for open bugs, don't upstream this bug.
@@ -571,10 +572,12 @@ type BugNotification struct {
 	ExtID       string // arbitrary reporting ID forwarded from BugUpdate.ExtID
 	Title       string
 	Text        string   // meaning depends on Type
+	Label       string   // for BugNotifLabel Type specifies the exact label
 	CC          []string // deprecated in favor of Recipients
 	Maintainers []string // deprecated in favor of Recipients
 	Link        string
 	Recipients  Recipients
+	TreeJobs    []*JobInfo // set for some BugNotifLabel
 	// Public is what we want all involved people to see (e.g. if we notify about a wrong commit title,
 	// people need to see it and provide the right title). Not public is what we want to send only
 	// to a minimal set of recipients (our mailing list) (e.g. notification about an obsoleted bug
@@ -841,6 +844,9 @@ const (
 	BugNotifObsoleted
 	// Bug fixing commit can't be discovered (wrong commit title).
 	BugNotifBadCommit
+	// New bug label has been assigned (only if enabled).
+	// Text contains the custome message that needs to be delivered to the user.
+	BugNotifLabel
 )
 
 const (
