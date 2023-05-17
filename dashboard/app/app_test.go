@@ -510,6 +510,45 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
+		"tree-tests": {
+			AccessLevel: AccessPublic,
+			Key:         "treeteststreeteststreeteststreeteststreeteststreetests",
+			Clients: map[string]string{
+				clientTreeTests: keyTreeTests,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:                    "git://syzkaller.org/test.git",
+					Branch:                 "main",
+					Alias:                  "main",
+					DetectMissingBackports: true,
+				},
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessUser,
+					Name:        "non-public",
+					DailyLimit:  1000,
+					Filter: func(bug *Bug) FilterResult {
+						return FilterReport
+					},
+					Config: &TestConfig{Index: 1},
+				},
+				{
+					AccessLevel: AccessPublic,
+					Name:        "public",
+					DailyLimit:  1000,
+					Config: &EmailConfig{
+						Email:         "bugs@syzkaller.com",
+						SubjectPrefix: "[syzbot]",
+					},
+					Labels: map[string]string{
+						"origin:downstream": "Bug presence analysis results: the bug reproduces only on the downstream tree.",
+					},
+				},
+			},
+			FindBugOriginTrees: true,
+		},
 	},
 }
 
@@ -558,6 +597,8 @@ const (
 	keyMgrDecommission    = "keyMgrDecommissionkeyMgrDecommission"
 	clientSubsystemRemind = "client-subystem-reminders"
 	keySubsystemRemind    = "keySubsystemRemindkeySubsystemRemind"
+	clientTreeTests       = "clientTreeTestsclientTreeTests"
+	keyTreeTests          = "keyTreeTestskeyTreeTestskeyTreeTests"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
