@@ -1,0 +1,18 @@
+{{.Text}}
+
+{{- if .TreeJobs}}
+
+syzbot has run the reproducer on other relevant kernel trees and got
+the following results:
+{{range .TreeJobs}}
+{{.KernelAlias}} (commit {{.KernelCommit}}) on {{formatDate .Finished}}:
+{{if eq .CrashTitle "" -}}
+Didn't crash.
+{{- else -}}
+{{.CrashTitle}}
+Report: {{.CrashReportLink}}
+{{- end}}
+{{end}}
+More details can be found at:
+{{.Link}}
+{{- end}}
