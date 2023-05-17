@@ -796,6 +796,8 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		}
 		if bug.ReproLevel < reproLevel {
 			bug.ReproLevel = reproLevel
+		}
+		if bug.HeadReproLevel < reproLevel {
 			bug.HeadReproLevel = reproLevel
 		}
 		if len(req.Report) != 0 {
