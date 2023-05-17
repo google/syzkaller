@@ -227,3 +227,11 @@ indexes:
   - name: Type
   - name: Finished
     direction: desc
+
+- kind: Bug
+  properties:
+  - name: Reporting.Closed
+  - name: DupOf
+  - name: Namespace
+  - name: Reporting.ID
+  - name: Status

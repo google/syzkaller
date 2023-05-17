@@ -702,7 +702,9 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 		idMap[id] = true
 	}
 	var closed []string
-	err := foreachBug(c, nil, func(bug *Bug, _ *db.Key) error {
+	err := foreachBug(c, func(query *db.Query) *db.Query {
+		return query.Project("Reporting.ID", "Status", "Reporting.Closed", "Namespace", "DupOf")
+	}, func(bug *Bug, _ *db.Key) error {
 		for i := range bug.Reporting {
 			bugReporting := &bug.Reporting[i]
 			if !idMap[bugReporting.ID] {
