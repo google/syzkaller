@@ -223,6 +223,12 @@ func (c *Ctx) setKernelRepos(list []KernelRepo) {
 	}
 }
 
+func (c *Ctx) setNoObsoletions() {
+	c.transformContext = func(c context.Context) context.Context {
+		return contextWithNoObsoletions(c)
+	}
+}
+
 // GET sends admin-authorized HTTP GET request to the app.
 func (c *Ctx) GET(url string) ([]byte, error) {
 	return c.AuthGET(AccessAdmin, url)
