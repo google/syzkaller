@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -300,6 +301,54 @@ func adminSendEmail(c context.Context, w http.ResponseWriter, r *http.Request) e
 	return sendEmail(c, msg)
 }
 
+func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	var keys []*db.Key
+	newLevels := map[string]dashapi.ReproLevel{}
+	if err := foreachBug(c, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen)
+	}, func(bug *Bug, key *db.Key) error {
+		if len(bug.Commits) > 0 {
+			return nil
+		}
+		actual := ReproLevelNone
+		reproCrashes, _, err := queryCrashesForBug(c, key, 2)
+		if err != nil {
+			return fmt.Errorf("failed to fetch crashes with repro: %v", err)
+		}
+		for _, crash := range reproCrashes {
+			if crash.ReproIsRevoked {
+				continue
+			}
+			if crash.ReproC > 0 {
+				actual = ReproLevelC
+				break
+			}
+			if crash.ReproSyz > 0 {
+				actual = ReproLevelSyz
+			}
+		}
+		if actual != bug.HeadReproLevel {
+			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n", bugLink(bug.keyHash()), actual, bug.HeadReproLevel)
+			newLevels[bug.keyHash()] = actual
+			keys = append(keys, key)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return updateBugBatch(c, keys, func(bug *Bug) {
+		newLevel, ok := newLevels[bug.keyHash()]
+		if !ok {
+			panic("fetched unknown bug")
+		}
+		bug.HeadReproLevel = newLevel
+	})
+}
+
 func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug)) error {
 	for len(keys) != 0 {
 		batchSize := 20
@@ -336,4 +385,5 @@ var (
 	_ = restartFailedBisections
 	_ = setMissingBugFields
 	_ = adminSendEmail
+	_ = updateHeadReproLevel
 )
