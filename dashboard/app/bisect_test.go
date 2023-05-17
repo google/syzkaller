@@ -629,6 +629,9 @@ func TestBisectWrong(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	// Otherwise "Bug obsoleted" emails mix in at random times.
+	c.setNoObsoletions()
+
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	for i := 0; i < 6; i++ {
@@ -948,6 +951,7 @@ func TestBisectFixExternal(t *testing.T) {
 		// because the namespace has FixBisectionAutoClose set.
 		dbBug, _, _ := c.loadBug(rep.ID)
 		c.expectEQ(dbBug.Commits, []string{"kernel: add a fix"})
+		c.expectEQ(dbBug.HeadReproLevel, ReproLevelNone)
 	}
 }
 
