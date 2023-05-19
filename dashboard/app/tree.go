@@ -581,8 +581,8 @@ func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, error) {
 	if crash.ReproIsRevoked {
 		// No sense in running the reproducer.
 		return false, nil
-	} else if crash.ReproC == 0 {
-		// Let's wait for the C repro.
+	} else if crash.ReproC == 0 && crash.ReproSyz == 0 {
+		// Let's wait for the repro.
 		return false, nil
 	}
 	newManager, _ := activeManager(crash.Manager, ctx.bug.Namespace)
