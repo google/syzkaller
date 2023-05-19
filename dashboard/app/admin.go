@@ -173,7 +173,7 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 			job.Log = 0
 			job.Error = 0
 			job.CrashLog = 0
-			job.Flags = JobFlags(0)
+			job.Flags = 0
 			if _, err := db.Put(c, jobKey, job); err != nil {
 				return fmt.Errorf("job %v: failed to put: %v", idx, err)
 			}
