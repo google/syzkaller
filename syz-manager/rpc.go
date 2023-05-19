@@ -66,6 +66,8 @@ type RPCManagerView interface {
 	rotateCorpus() bool
 }
 
+const bindRetryTimeout = 30 * time.Second
+
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
 		mgr:     mgr,
@@ -78,7 +80,18 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	if serv.batchSize < mgr.cfg.Procs {
 		serv.batchSize = mgr.cfg.Procs
 	}
-	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
+	var err error
+	var s *rpctype.RPCServer
+	for try := 3; try > 0; try-- {
+		s, err = rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
+		if err == nil || !rpctype.IsAddrInUse(err) {
+			break
+		}
+		if try > 1 {
+			log.Logf(0, "%v; retrying in %s seconds", err, bindRetryTimeout)
+			time.Sleep(bindRetryTimeout)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}

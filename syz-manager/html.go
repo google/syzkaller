@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
@@ -60,9 +61,25 @@ func (mgr *Manager) initHTTP() {
 
 	log.Logf(0, "serving http on http://%v", mgr.cfg.HTTP)
 	go func() {
-		err := http.ListenAndServe(mgr.cfg.HTTP, nil)
+		var err error
+		for try := 3; try > 0; try-- {
+			err = http.ListenAndServe(mgr.cfg.HTTP, nil)
+			if err == nil {
+				break
+			}
+			err = fmt.Errorf("failed to listen on %v: %w", mgr.cfg.HTTP, err)
+			if !rpctype.IsAddrInUse(err) {
+				// There happen some transient port in use errors.
+				// Just try more a few times.
+				break
+			}
+			if try > 1 {
+				log.Logf(0, "%v; retrying in %s seconds", err, bindRetryTimeout)
+				time.Sleep(bindRetryTimeout)
+			}
+		}
 		if err != nil {
-			log.Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
+			log.Fatalf("error persists: %v", err)
 		}
 	}()
 }

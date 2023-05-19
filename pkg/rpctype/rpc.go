@@ -5,11 +5,13 @@ package rpctype
 
 import (
 	"compress/flate"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/rpc"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -159,4 +161,12 @@ func (fc *flateConn) Close() error {
 		err0 = err
 	}
 	return err0
+}
+
+func IsAddrInUse(err error) bool {
+	var syscallErr *os.SyscallError
+	if !errors.As(err, &syscallErr) {
+		return false
+	}
+	return syscallErr.Err == syscall.EADDRINUSE
 }
