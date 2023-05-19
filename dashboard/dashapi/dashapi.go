@@ -227,6 +227,29 @@ const (
 	BisectResultInfraError                          // the bisect failed due to an infrastructure problem
 )
 
+func (flags JobDoneFlags) String() string {
+	if flags&BisectResultInfraError != 0 {
+		return "[infra failure]"
+	}
+	res := ""
+	if flags&BisectResultMerge != 0 {
+		res += "merge "
+	}
+	if flags&BisectResultNoop != 0 {
+		res += "no-op "
+	}
+	if flags&BisectResultRelease != 0 {
+		res += "release "
+	}
+	if flags&BisectResultIgnore != 0 {
+		res += "ignored "
+	}
+	if res == "" {
+		return res
+	}
+	return "[" + res + "commit]"
+}
+
 func (dash *Dashboard) JobPoll(req *JobPollReq) (*JobPollResp, error) {
 	resp := new(JobPollResp)
 	err := dash.Query("job_poll", req, resp)
