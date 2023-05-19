@@ -961,7 +961,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		job.CrashTitle = req.CrashTitle
 		job.Finished = now
 		job.IsRunning = false
-		job.Flags = JobFlags(req.Flags)
+		job.Flags = req.Flags
 		if job.Type == JobBisectCause || job.Type == JobBisectFix {
 			// Update bug.BisectCause/Fix status and also remember current bug reporting to send results.
 			var err error
@@ -1408,7 +1408,7 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 	}
 	info := &dashapi.JobInfo{
 		Type:             dashapi.JobType(job.Type),
-		Flags:            dashapi.JobDoneFlags(job.Flags),
+		Flags:            job.Flags,
 		Created:          job.Created,
 		BugLink:          bugLink(jobKey.Parent().StringID()),
 		ExternalLink:     job.Link,
