@@ -516,12 +516,14 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 
 func (ctx *context) testWithInstance(callback func(execInterface) (rep *instance.RunResult,
 	err error)) (bool, error) {
-	inst := <-ctx.instances
-	if inst == nil {
-		return false, fmt.Errorf("all VMs failed to boot")
+	result, err := ctx.runOnInstance(callback)
+	if err != nil {
+		// It's hard to classify all kinds of errors into the one worth repeating
+		// and not. So let's just retry run for all errors.
+		// If the problem is transient, it will likely go away.
+		// If the problem is permanent, it will just be the same.
+		result, err = ctx.runOnInstance(callback)
 	}
-	defer ctx.returnInstance(inst)
-	result, err := callback(inst.execProg)
 	if err != nil {
 		return false, err
 	}
@@ -539,6 +541,17 @@ func (ctx *context) testWithInstance(callback func(execInterface) (rep *instance
 	}
 	ctx.report = rep
 	return true, nil
+}
+
+// A helper method for testWithInstance.
+func (ctx *context) runOnInstance(callback func(execInterface) (rep *instance.RunResult,
+	err error)) (*instance.RunResult, error) {
+	inst := <-ctx.instances
+	if inst == nil {
+		return nil, fmt.Errorf("all VMs failed to boot")
+	}
+	defer ctx.returnInstance(inst)
+	return callback(inst.execProg)
 }
 
 func encodeEntries(entries []*prog.LogEntry) []byte {
