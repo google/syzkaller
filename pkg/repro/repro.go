@@ -43,7 +43,7 @@ type Stats struct {
 
 type reproInstance struct {
 	index    int
-	execProg *instance.ExecProgInstance
+	execProg execInterface
 }
 
 type context struct {
@@ -60,6 +60,13 @@ type context struct {
 	stats        *Stats
 	report       *report.Report
 	timeouts     targets.Timeouts
+}
+
+// execInterface describes what's needed from a VM by a pkg/repro.
+type execInterface interface {
+	Close()
+	RunCProg(p *prog.Prog, duration time.Duration, opts csource.Options) (*instance.RunResult, error)
+	RunSyzProg(syzProg []byte, duration time.Duration, opts csource.Options) (*instance.RunResult, error)
 }
 
 var ErrNoPrograms = errors.New("crash log does not contain any programs")
@@ -131,7 +138,7 @@ func (ctx *context) run() (*Result, *Stats, error) {
 	defer func() {
 		close(ctx.bootRequests)
 		for inst := range ctx.instances {
-			inst.execProg.VMInstance.Close()
+			inst.execProg.Close()
 		}
 	}()
 
@@ -504,7 +511,7 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts)
 }
 
-func (ctx *context) testWithInstance(callback func(inst *instance.ExecProgInstance) (rep *instance.RunResult,
+func (ctx *context) testWithInstance(callback func(execInterface) (rep *instance.RunResult,
 	err error)) (bool, error) {
 	inst := <-ctx.instances
 	if inst == nil {
@@ -558,20 +565,20 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 	}
 	ctx.reproLogf(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	ctx.reproLogf(3, "detailed listing:\n%s", pstr)
-	return ctx.testWithInstance(func(inst *instance.ExecProgInstance) (*instance.RunResult, error) {
-		return inst.RunSyzProg(pstr, duration, opts)
+	return ctx.testWithInstance(func(exec execInterface) (*instance.RunResult, error) {
+		return exec.RunSyzProg(pstr, duration, opts)
 	})
 }
 
 func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
-	return ctx.testWithInstance(func(inst *instance.ExecProgInstance) (*instance.RunResult, error) {
-		return inst.RunCProg(p, duration, opts)
+	return ctx.testWithInstance(func(exec execInterface) (*instance.RunResult, error) {
+		return exec.RunCProg(p, duration, opts)
 	})
 }
 
 func (ctx *context) returnInstance(inst *reproInstance) {
 	ctx.bootRequests <- inst.index
-	inst.execProg.VMInstance.Close()
+	inst.execProg.Close()
 }
 
 func (ctx *context) reproLogf(level int, format string, args ...interface{}) {

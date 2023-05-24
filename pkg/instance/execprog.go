@@ -183,3 +183,7 @@ func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, duration time.Duration,
 	defer os.Remove(progFile)
 	return inst.RunSyzProgFile(progFile, duration, opts)
 }
+
+func (inst *ExecProgInstance) Close() {
+	inst.VMInstance.Close()
+}
