@@ -5,6 +5,7 @@ package repro
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -59,6 +60,8 @@ type context struct {
 	timeouts     targets.Timeouts
 }
 
+var ErrNoPrograms = errors.New("crash log does not contain any programs")
+
 func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
 	vmPool *vm.Pool, vmIndexes []int) (*Result, *Stats, error) {
 	if len(vmIndexes) == 0 {
@@ -66,7 +69,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 	}
 	entries := cfg.Target.ParseLog(crashLog)
 	if len(entries) == 0 {
-		return nil, nil, fmt.Errorf("crash log does not contain any programs")
+		return nil, nil, ErrNoPrograms
 	}
 	crashStart := len(crashLog)
 	crashTitle, crashType := "", report.Unknown

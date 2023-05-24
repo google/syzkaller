@@ -437,7 +437,7 @@ func (mgr *Manager) vmLoop() {
 			log.Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
 				res.instances, res.report0.Title, res.repro != nil, crepro, title)
 			if res.err != nil {
-				log.Errorf("repro failed: %v", res.err)
+				reportReproError(res.err)
 			}
 			delete(reproducing, res.report0.Title)
 			if res.repro == nil {
@@ -465,6 +465,17 @@ func (mgr *Manager) vmLoop() {
 			reply <- repros
 			goto wait
 		}
+	}
+}
+
+func reportReproError(err error) {
+	switch err {
+	case repro.ErrNoPrograms:
+		// This is not extraordinary as programs are collected via SSH.
+		log.Logf(0, "repro failed: %v", err)
+	default:
+		// Report everything else as errors.
+		log.Errorf("repro failed: %v", err)
 	}
 }
 
