@@ -328,7 +328,7 @@ type ReproResult struct {
 func (mgr *Manager) vmLoop() {
 	log.Logf(0, "booting test machines...")
 	log.Logf(0, "wait for the connection from test machine...")
-	instancesPerRepro := 4
+	instancesPerRepro := 3
 	vmCount := mgr.vmPool.Count()
 	maxReproVMs := vmCount - mgr.cfg.FuzzingVMs
 	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
