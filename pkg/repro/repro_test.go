@@ -4,6 +4,7 @@
 package repro
 
 import (
+	"fmt"
 	"math/rand"
 	"regexp"
 	"sync"
@@ -178,24 +179,53 @@ alarm(0xa)
 getpid()
 `
 
+// Only crash if `pause()` is followed by `alarm(0xa)`.
+var testCrashCondition = regexp.MustCompile(`(?s)pause\(\).*alarm\(0xa\)`)
+
+func testExecRunner(log []byte) (*instance.RunResult, error) {
+	crash := testCrashCondition.Match(log)
+	if crash {
+		ret := &instance.RunResult{}
+		ret.Report = &report.Report{
+			Title: `some crash`,
+		}
+		return ret, nil
+	}
+	return &instance.RunResult{}, nil
+}
+
 // Just a pkg/repro smoke test: check that we can extract a two-call reproducer.
 // No focus on error handling and minor corner cases.
 func TestPlainRepro(t *testing.T) {
 	ctx := prepareTestCtx(t, testReproLog)
-	// Only crash if `pause()` is followed by `alarm(0xa)`.
-	var match = regexp.MustCompile(`(?s)pause\(\).*alarm\(0xa\)`)
+	go generateTestInstances(ctx, 3, &testExecInterface{
+		t:   t,
+		run: testExecRunner,
+	})
+	result, _, err := ctx.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(`pause()
+alarm(0xa)
+`, string(result.Prog.Serialize())); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+// There happen to be transient errors like ssh/scp connection failures.
+// Ensure that the code just retries.
+func TestVMErrorResilience(t *testing.T) {
+	ctx := prepareTestCtx(t, testReproLog)
+	fail := false
 	go generateTestInstances(ctx, 3, &testExecInterface{
 		t: t,
 		run: func(log []byte) (*instance.RunResult, error) {
-			crash := match.Match(log)
-			if crash {
-				ret := &instance.RunResult{}
-				ret.Report = &report.Report{
-					Title: `some crash`,
-				}
-				return ret, nil
+			fail = !fail
+			if fail {
+				return nil, fmt.Errorf("some random error")
 			}
-			return &instance.RunResult{}, nil
+			return testExecRunner(log)
 		},
 	})
 	result, _, err := ctx.run()
@@ -206,5 +236,24 @@ func TestPlainRepro(t *testing.T) {
 alarm(0xa)
 `, string(result.Prog.Serialize())); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestTooManyErrors(t *testing.T) {
+	ctx := prepareTestCtx(t, testReproLog)
+	counter := 0
+	go generateTestInstances(ctx, 3, &testExecInterface{
+		t: t,
+		run: func(log []byte) (*instance.RunResult, error) {
+			counter++
+			if counter%3 != 0 {
+				return nil, fmt.Errorf("some random error")
+			}
+			return testExecRunner(log)
+		},
+	})
+	_, _, err := ctx.run()
+	if err == nil {
+		t.Fatalf("expected an error")
 	}
 }
