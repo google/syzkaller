@@ -536,11 +536,12 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 		if err != nil && err != db.ErrNoSuchEntity {
 			return fmt.Errorf("failed to get crash: %v", err)
 		} else if err == nil {
-			ok, err := ctx.isCrashRelevant(crash)
+			ok, build, err := ctx.isCrashRelevant(crash)
 			if err != nil {
 				return err
 			}
 			if ok {
+				ctx.build = build
 				ctx.crash = crash
 				ctx.crashKey = crashKey
 			}
@@ -552,10 +553,11 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 		if err != nil {
 			return err
 		}
-		ok, err := ctx.isCrashRelevant(crash)
+		ok, build, err := ctx.isCrashRelevant(crash)
 		if err != nil {
 			return err
 		} else if ok {
+			ctx.build = build
 			ctx.crash = crash
 			ctx.crashKey = crashKey
 		}
@@ -564,10 +566,6 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 	if ctx.crash != nil {
 		var err error
 		ns := ctx.bug.Namespace
-		ctx.build, err = loadBuild(ctx.c, ns, ctx.crash.BuildID)
-		if err != nil {
-			return err
-		}
 		repoGraph, err := makeRepoGraph(getKernelRepos(ctx.c, ns))
 		if err != nil {
 			return err
@@ -577,31 +575,32 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 	return nil
 }
 
-func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, error) {
+func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, *Build, error) {
 	if crash.ReproIsRevoked {
 		// No sense in running the reproducer.
-		return false, nil
+		return false, nil, nil
 	} else if crash.ReproC == 0 && crash.ReproSyz == 0 {
 		// Let's wait for the repro.
-		return false, nil
+		return false, nil, nil
 	}
 	newManager, _ := activeManager(crash.Manager, ctx.bug.Namespace)
 	if newManager != crash.Manager {
 		// The manager was deprecated since the crash.
 		// Let's just ignore such bugs for now.
-		return false, nil
+		return false, nil, nil
 	}
 	build, err := loadBuild(ctx.c, ctx.bug.Namespace, crash.BuildID)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 	mgrBuild, err := lastManagerBuild(ctx.c, build.Namespace, newManager)
 	if err != nil {
-		return false, err
+		return false, build, err
 	}
 	// It does happen that we sometimes update the tested tree.
 	// It's not frequent at all, but it will make all results very confusing.
-	return build.KernelRepo == mgrBuild.KernelRepo && build.KernelBranch == mgrBuild.KernelBranch, nil
+	return build.KernelRepo == mgrBuild.KernelRepo &&
+		build.KernelBranch == mgrBuild.KernelBranch, build, nil
 }
 
 func (test *BugTreeTest) applyPending(c context.Context) error {
