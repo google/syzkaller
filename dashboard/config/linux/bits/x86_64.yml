@@ -3,7 +3,7 @@
 
 shell:
  - make x86_64_defconfig: [-nodefconfig]
- - make kvm_guest.config
+ - make kvm_guest.config: [-cuttlefish]
 
 config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
@@ -44,7 +44,8 @@ config:
  # TODO: should we switch to virtio instead?
  - ETHERNET
  - NET_VENDOR_INTEL
- - E1000
+ # Module in cuttlefish.
+ - E1000: [-cuttlefish]
 
  - X86_ACPI_CPUFREQ
  - CPU_IDLE_GOV_HALTPOLL: [v4.16]

@@ -51,7 +51,8 @@ config:
 
  # Speeds up randomness initialization.
  - HW_RANDOM
- - HW_RANDOM_VIRTIO
+ # Included as a module in Cuttlefish.
+ - HW_RANDOM_VIRTIO: [-cuttlefish]
  - HW_RANDOM_INTEL: n
  - HW_RANDOM_AMD: n
  - HW_RANDOM_VIA: n
@@ -126,7 +127,8 @@ config:
  # (!ARCH_WANTS_NO_INSTR [=y] || STACK_VALIDATION [=n] || GCC_VERSION [=110200]>=120000 || CLANG_VERSION [=0]>=130000)
  - KCOV: [-arm, -s390, -nokcov]
  - KCOV_INSTRUMENT_ALL: [-arm, -s390, -nokcov]
- - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov]
+ # Doesn't boot with KCOV_ENABLE_COMPARISONS on Cuttlefish.
+ - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov, -cuttlefish]
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
