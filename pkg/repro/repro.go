@@ -51,6 +51,8 @@ type context struct {
 	reporter     *report.Reporter
 	crashTitle   string
 	crashType    report.Type
+	crashStart   int
+	entries      []*prog.LogEntry
 	instances    chan *reproInstance
 	bootRequests chan int
 	testTimeouts []time.Duration
@@ -64,12 +66,22 @@ var ErrNoPrograms = errors.New("crash log does not contain any programs")
 
 func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
 	vmPool *vm.Pool, vmIndexes []int) (*Result, *Stats, error) {
+	ctx, err := prepareCtx(crashLog, cfg, features, reporter, vmIndexes)
+	if err != nil {
+		return nil, nil, err
+	}
+	go ctx.createInstances(cfg, vmPool, vmIndexes)
+	return ctx.run()
+}
+
+func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
+	vmIndexes []int) (*context, error) {
 	if len(vmIndexes) == 0 {
-		return nil, nil, fmt.Errorf("no VMs provided")
+		return nil, fmt.Errorf("no VMs provided")
 	}
 	entries := cfg.Target.ParseLog(crashLog)
 	if len(entries) == 0 {
-		return nil, nil, ErrNoPrograms
+		return nil, ErrNoPrograms
 	}
 	crashStart := len(crashLog)
 	crashTitle, crashType := "", report.Unknown
@@ -102,6 +114,8 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		reporter:     reporter,
 		crashTitle:   crashTitle,
 		crashType:    crashType,
+		crashStart:   crashStart,
+		entries:      entries,
 		instances:    make(chan *reproInstance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
 		testTimeouts: testTimeouts,
@@ -110,43 +124,10 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		timeouts:     cfg.Timeouts,
 	}
 	ctx.reproLogf(0, "%v programs, %v VMs, timeouts %v", len(entries), len(vmIndexes), testTimeouts)
-	var wg sync.WaitGroup
-	wg.Add(len(vmIndexes))
-	for _, vmIndex := range vmIndexes {
-		ctx.bootRequests <- vmIndex
-		go func() {
-			defer wg.Done()
-			for vmIndex := range ctx.bootRequests {
-				var inst *instance.ExecProgInstance
-				maxTry := 3
-				for try := 0; try < maxTry; try++ {
-					select {
-					case <-vm.Shutdown:
-						try = maxTry
-						continue
-					default:
-					}
-					var err error
-					inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
-						reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
-					if err != nil {
-						ctx.reproLogf(0, "failed to init instance: %v", err)
-						time.Sleep(10 * time.Second)
-						continue
-					}
-					break
-				}
-				if inst == nil {
-					break
-				}
-				ctx.instances <- &reproInstance{execProg: inst, index: vmIndex}
-			}
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(ctx.instances)
-	}()
+	return ctx, nil
+}
+
+func (ctx *context) run() (*Result, *Stats, error) {
 	defer func() {
 		close(ctx.bootRequests)
 		for inst := range ctx.instances {
@@ -154,7 +135,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		}
 	}()
 
-	res, err := ctx.repro(entries, crashStart)
+	res, err := ctx.repro()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -214,11 +195,11 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 	return opts
 }
 
-func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
+func (ctx *context) repro() (*Result, error) {
 	// Cut programs that were executed after crash.
-	for i, ent := range entries {
-		if ent.Start > crashStart {
-			entries = entries[:i]
+	for i, ent := range ctx.entries {
+		if ent.Start > ctx.crashStart {
+			ctx.entries = ctx.entries[:i]
 			break
 		}
 	}
@@ -228,7 +209,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		ctx.reproLogf(3, "reproducing took %s", time.Since(reproStart))
 	}()
 
-	res, err := ctx.extractProg(entries)
+	res, err := ctx.extractProg(ctx.entries)
 	if err != nil {
 		return nil, err
 	}
@@ -714,6 +695,44 @@ func chunksToStr(chunks [][]*prog.LogEntry) string {
 	}
 	log += "]"
 	return log
+}
+
+func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) {
+	var wg sync.WaitGroup
+	wg.Add(len(vmIndexes))
+	for _, vmIndex := range vmIndexes {
+		ctx.bootRequests <- vmIndex
+		go func() {
+			defer wg.Done()
+			for vmIndex := range ctx.bootRequests {
+				var inst *instance.ExecProgInstance
+				maxTry := 3
+				for try := 0; try < maxTry; try++ {
+					select {
+					case <-vm.Shutdown:
+						try = maxTry
+						continue
+					default:
+					}
+					var err error
+					inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
+						ctx.reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
+					if err != nil {
+						ctx.reproLogf(0, "failed to init instance: %v", err)
+						time.Sleep(10 * time.Second)
+						continue
+					}
+					break
+				}
+				if inst == nil {
+					break
+				}
+				ctx.instances <- &reproInstance{execProg: inst, index: vmIndex}
+			}
+		}()
+	}
+	wg.Wait()
+	close(ctx.instances)
 }
 
 type Simplify func(opts *csource.Options) bool
