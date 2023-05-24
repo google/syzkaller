@@ -77,7 +77,14 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 	if err != nil {
 		return nil, nil, err
 	}
-	go ctx.createInstances(cfg, vmPool, vmIndexes)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ctx.createInstances(cfg, vmPool, vmIndexes)
+	}()
+	// Wait until all VMs are really released.
+	defer wg.Wait()
 	return ctx.run()
 }
 
@@ -135,12 +142,8 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features,
 }
 
 func (ctx *context) run() (*Result, *Stats, error) {
-	defer func() {
-		close(ctx.bootRequests)
-		for inst := range ctx.instances {
-			inst.execProg.Close()
-		}
-	}()
+	// Indicate that we no longer need VMs.
+	defer close(ctx.bootRequests)
 
 	res, err := ctx.repro()
 	if err != nil {
@@ -739,7 +742,11 @@ func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIn
 		}()
 	}
 	wg.Wait()
+	// Clean up.
 	close(ctx.instances)
+	for inst := range ctx.instances {
+		inst.execProg.Close()
+	}
 }
 
 type Simplify func(opts *csource.Options) bool
