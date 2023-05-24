@@ -73,7 +73,7 @@ var ErrNoPrograms = errors.New("crash log does not contain any programs")
 
 func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
 	vmPool *vm.Pool, vmIndexes []int) (*Result, *Stats, error) {
-	ctx, err := prepareCtx(crashLog, cfg, features, reporter, vmIndexes)
+	ctx, err := prepareCtx(crashLog, cfg, features, reporter, len(vmIndexes))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,8 +82,8 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 }
 
 func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
-	vmIndexes []int) (*context, error) {
-	if len(vmIndexes) == 0 {
+	VMs int) (*context, error) {
+	if VMs == 0 {
 		return nil, fmt.Errorf("no VMs provided")
 	}
 	entries := cfg.Target.ParseLog(crashLog)
@@ -123,14 +123,14 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features,
 		crashType:    crashType,
 		crashStart:   crashStart,
 		entries:      entries,
-		instances:    make(chan *reproInstance, len(vmIndexes)),
-		bootRequests: make(chan int, len(vmIndexes)),
+		instances:    make(chan *reproInstance, VMs),
+		bootRequests: make(chan int, VMs),
 		testTimeouts: testTimeouts,
 		startOpts:    createStartOptions(cfg, features, crashType),
 		stats:        new(Stats),
 		timeouts:     cfg.Timeouts,
 	}
-	ctx.reproLogf(0, "%v programs, %v VMs, timeouts %v", len(entries), len(vmIndexes), testTimeouts)
+	ctx.reproLogf(0, "%v programs, %v VMs, timeouts %v", len(entries), VMs, testTimeouts)
 	return ctx, nil
 }
 
