@@ -119,7 +119,6 @@ func generateTestInstances(ctx *context, count int, execInterface execInterface)
 		}
 	}()
 	wg.Wait()
-	close(ctx.instances)
 }
 
 type testExecInterface struct {
