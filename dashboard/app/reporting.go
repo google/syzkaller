@@ -185,7 +185,6 @@ func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNot
 	return notifs
 }
 
-// nolint: gocyclo
 func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNotification, error) {
 	reporting, bugReporting, _, _, err := currentReporting(bug)
 	if err != nil || reporting == nil {
@@ -197,51 +196,86 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 	if bug.Status != BugStatusOpen || bugReporting.Reported.IsZero() {
 		return nil, nil
 	}
-	if reporting.moderation &&
-		reporting.Embargo != 0 &&
-		len(bug.Commits) == 0 &&
-		bugReporting.OnHold.IsZero() &&
-		timeSince(c, bugReporting.Reported) > reporting.Embargo {
-		log.Infof(c, "%v: upstreaming (embargo): %v", bug.Namespace, bug.Title)
-		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
-	}
-	if reporting.moderation &&
-		len(bug.Commits) == 0 &&
-		bugReporting.OnHold.IsZero() &&
-		reporting.Filter(bug) == FilterSkip {
-		log.Infof(c, "%v: upstreaming (skip): %v", bug.Namespace, bug.Title)
-		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
-	}
-	if len(bug.Commits) == 0 &&
-		bug.canBeObsoleted(c) &&
-		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
-		timeSince(c, bug.LastTime) > bug.obsoletePeriod() {
-		log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
-		why := bugObsoletionReason(bug)
-		return createNotification(c, dashapi.BugNotifObsoleted, false, string(why), bug, reporting, bugReporting)
-	}
-	if len(bug.Commits) > 0 &&
-		len(bug.PatchedOn) == 0 &&
-		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
-		timeSince(c, bug.FixTime) > notifyAboutBadCommitPeriod {
-		log.Infof(c, "%v: bad fix commit: %v", bug.Namespace, bug.Title)
-		commits := strings.Join(bug.Commits, "\n")
-		return createNotification(c, dashapi.BugNotifBadCommit, true, commits, bug, reporting, bugReporting)
-	}
-	for _, label := range bug.Labels {
-		if label.SetBy != "" {
-			continue
+	for _, f := range notificationGenerators {
+		notif, err := f(c, bug, reporting, bugReporting)
+		if notif != nil || err != nil {
+			return notif, err
 		}
-		str := label.String()
-		if reporting.Labels[str] == "" {
-			continue
-		}
-		if stringInList(bugReporting.GetLabels(), str) {
-			continue
-		}
-		return createLabelNotification(c, label, bug, reporting, bugReporting)
 	}
 	return nil, nil
+}
+
+var notificationGenerators = []func(context.Context, *Bug, *Reporting,
+	*BugReporting) (*dashapi.BugNotification, error){
+	// Embargo upstreaming.
+	func(c context.Context, bug *Bug, reporting *Reporting,
+		bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+		if reporting.moderation &&
+			reporting.Embargo != 0 &&
+			len(bug.Commits) == 0 &&
+			bugReporting.OnHold.IsZero() &&
+			timeSince(c, bugReporting.Reported) > reporting.Embargo {
+			log.Infof(c, "%v: upstreaming (embargo): %v", bug.Namespace, bug.Title)
+			return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
+		}
+		return nil, nil
+	},
+	// Upstreaming.
+	func(c context.Context, bug *Bug, reporting *Reporting,
+		bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+		if reporting.moderation &&
+			len(bug.Commits) == 0 &&
+			bugReporting.OnHold.IsZero() &&
+			reporting.Filter(bug) == FilterSkip {
+			log.Infof(c, "%v: upstreaming (skip): %v", bug.Namespace, bug.Title)
+			return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
+		}
+		return nil, nil
+	},
+	// Obsoleting.
+	func(c context.Context, bug *Bug, reporting *Reporting,
+		bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+		if len(bug.Commits) == 0 &&
+			bug.canBeObsoleted(c) &&
+			timeSince(c, bug.LastActivity) > notifyResendPeriod &&
+			timeSince(c, bug.LastTime) > bug.obsoletePeriod() {
+			log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
+			why := bugObsoletionReason(bug)
+			return createNotification(c, dashapi.BugNotifObsoleted, false, string(why), bug, reporting, bugReporting)
+		}
+		return nil, nil
+	},
+	// Bad commit.
+	func(c context.Context, bug *Bug, reporting *Reporting,
+		bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+		if len(bug.Commits) > 0 &&
+			len(bug.PatchedOn) == 0 &&
+			timeSince(c, bug.LastActivity) > notifyResendPeriod &&
+			timeSince(c, bug.FixTime) > notifyAboutBadCommitPeriod {
+			log.Infof(c, "%v: bad fix commit: %v", bug.Namespace, bug.Title)
+			commits := strings.Join(bug.Commits, "\n")
+			return createNotification(c, dashapi.BugNotifBadCommit, true, commits, bug, reporting, bugReporting)
+		}
+		return nil, nil
+	},
+	// Label notifications.
+	func(c context.Context, bug *Bug, reporting *Reporting,
+		bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+		for _, label := range bug.Labels {
+			if label.SetBy != "" {
+				continue
+			}
+			str := label.String()
+			if reporting.Labels[str] == "" {
+				continue
+			}
+			if stringInList(bugReporting.GetLabels(), str) {
+				continue
+			}
+			return createLabelNotification(c, label, bug, reporting, bugReporting)
+		}
+		return nil, nil
+	},
 }
 
 func createLabelNotification(c context.Context, label BugLabel, bug *Bug, reporting *Reporting,
