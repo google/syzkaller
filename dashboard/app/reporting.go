@@ -547,6 +547,16 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 			rep.Maintainers = append(rep.Maintainers, mgr.CC.BuildMaintainers...)
 		}
 	}
+	for _, label := range bug.Labels {
+		text, ok := reporting.Labels[label.String()]
+		if !ok {
+			continue
+		}
+		if rep.LabelMessages == nil {
+			rep.LabelMessages = map[string]string{}
+		}
+		rep.LabelMessages[label.String()] = text
+	}
 	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {
 		return nil, err
 	}
@@ -1071,8 +1081,8 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 	if cmd.StatusReason != "" {
 		bug.StatusReason = cmd.StatusReason
 	}
-	if cmd.Label != "" {
-		bugReporting.AddLabel(cmd.Label)
+	for _, label := range cmd.Labels {
+		bugReporting.AddLabel(label)
 	}
 	return true, "", nil
 }
