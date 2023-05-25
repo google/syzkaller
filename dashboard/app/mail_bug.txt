@@ -40,6 +40,10 @@ bisection log:  {{.BisectCause.LogLink}}
 Reported-by: {{.CreditEmail}}
 {{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
 {{end}}{{end}}
+{{- range $label, $text := .LabelMessages}}
+{{$text}}
+
+{{end}}
 {{printf "%s" .Report}}
 
 ---

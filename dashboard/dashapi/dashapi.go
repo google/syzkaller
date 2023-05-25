@@ -439,6 +439,7 @@ type BugReport struct {
 	Assets         []Asset
 	Subsystems     []BugSubsystem
 	ReportElements *ReportElements
+	LabelMessages  map[string]string // notification messages for bug labels
 }
 
 type ReportElements struct {
@@ -530,7 +531,7 @@ type BugUpdate struct {
 	Link            string
 	Status          BugStatus
 	StatusReason    BugStatusReason
-	Label           string // the reported label, if BugNotifLabel
+	Labels          []string // the reported labels
 	ReproLevel      ReproLevel
 	DupOf           string
 	OnHold          bool     // If set for open bugs, don't upstream this bug.

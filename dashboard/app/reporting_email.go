@@ -165,6 +165,9 @@ func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
 	} else if len(rep.ReproSyz) != 0 {
 		cmd.ReproLevel = dashapi.ReproLevelSyz
 	}
+	for label := range rep.LabelMessages {
+		cmd.Labels = append(cmd.Labels, label)
+	}
 	ok, reason, err := incomingCommand(c, cmd)
 	if !ok || err != nil {
 		return fmt.Errorf("failed to update reported bug: ok=%v reason=%v err=%v", ok, reason, err)
@@ -253,8 +256,10 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 		ID:           notif.ID,
 		Status:       status,
 		StatusReason: statusReason,
-		Label:        notif.Label,
 		Notification: true,
+	}
+	if notif.Label != "" {
+		cmd.Labels = []string{notif.Label}
 	}
 	ok, reason, err := incomingCommand(c, cmd)
 	if !ok || err != nil {
