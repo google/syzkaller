@@ -1109,7 +1109,8 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
 	}
 	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader) {
-		if err := osutil.WriteGzipStream(name+".gz", r); err != nil {
+		fileName := filepath.Join(dir, name+".gz")
+		if err := osutil.WriteGzipStream(fileName, r); err != nil {
 			log.Logf(0, "failed to write crash asset: type %d, write error %v", typ, err)
 		}
 	})
