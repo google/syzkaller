@@ -785,6 +785,7 @@ type FullBugInfo struct {
 	BisectCause *BugReport
 	BisectFix   *BugReport
 	Crashes     []*BugReport
+	TreeJobs    []*JobInfo
 }
 
 type SimilarBugInfo struct {

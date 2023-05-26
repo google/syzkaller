@@ -1456,6 +1456,11 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 		}
 		ret.Crashes = append(ret.Crashes, rep)
 	}
+	// Query tree testing jobs.
+	ret.TreeJobs, err = treeTestJobs(c, bug)
+	if err != nil {
+		return nil, err
+	}
 	return ret, nil
 }
 
