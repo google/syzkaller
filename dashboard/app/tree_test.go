@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,14 +58,14 @@ func TestTreeOriginDownstream(t *testing.T) {
 syzbot has run the reproducer on other relevant kernel trees and got
 the following results:
 
-downstream (commit 947548860) on 2000/01/11:
+downstream (commit ffffffffffff) on 2000/01/11:
 crash title
 Report: %URL%
 
-lts (commit 947548860) on 2000/01/11:
+lts (commit ffffffffffff) on 2000/01/11:
 Didn't crash.
 
-upstream (commit 947548860) on 2000/01/11:
+upstream (commit ffffffffffff) on 2000/01/11:
 Didn't crash.
 
 More details can be found at:
@@ -757,7 +758,7 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 	build := testBuild(1)
 	build.KernelRepo = resp.KernelRepo
 	build.KernelBranch = resp.KernelBranch
-	build.KernelCommit = fmt.Sprintf("%d", ctx.now().Unix())
+	build.KernelCommit = strings.Repeat("f", 40)[:40]
 	// Figure out what should the result be.
 	result := treeTestOK
 	for _, item := range found.results {
