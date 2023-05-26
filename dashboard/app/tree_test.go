@@ -71,6 +71,15 @@ Didn't crash.
 More details can be found at:
 %URL%
 `)
+	// Test that these results are also in the full bug info.
+	info := ctx.fullBugInfo()
+	c.expectEQ(len(info.TreeJobs), 3)
+	c.expectEQ(info.TreeJobs[0].KernelAlias, `downstream`)
+	c.expectNE(info.TreeJobs[0].CrashTitle, ``)
+	c.expectEQ(info.TreeJobs[1].KernelAlias, `lts`)
+	c.expectEQ(info.TreeJobs[1].CrashTitle, ``)
+	c.expectEQ(info.TreeJobs[2].KernelAlias, `upstream`)
+	c.expectEQ(info.TreeJobs[2].CrashTitle, ``)
 }
 
 func TestTreeOriginDownstreamEmail(t *testing.T) {
@@ -808,6 +817,14 @@ func (ctx *treeTestCtx) bugLink() string {
 func (ctx *treeTestCtx) reportToEmail() *aemail.Message {
 	ctx.client.updateBug(ctx.bugReport.ID, dashapi.BugStatusUpstream, "")
 	return ctx.ctx.pollEmailBug()
+}
+
+func (ctx *treeTestCtx) fullBugInfo() *dashapi.FullBugInfo {
+	info, err := ctx.client.LoadFullBug(&dashapi.LoadFullBugReq{
+		BugID: ctx.bugReport.ID,
+	})
+	ctx.ctx.expectOK(err)
+	return info
 }
 
 var urlRe = regexp.MustCompile(`(https?://[\w\./\?\=&]+)`)
