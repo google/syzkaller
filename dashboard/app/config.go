@@ -254,6 +254,8 @@ type KernelRepo struct {
 	CommitInflow []KernelRepoLink
 	// Enable the missing backport tracking feature for this tree.
 	DetectMissingBackports bool
+	// Append this string to the config file before running reproducers on this tree.
+	AppendConfig string
 }
 
 type KernelRepoLink struct {
