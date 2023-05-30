@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [KIT: Testing OS-Level Virtualization for Functional Interference Bugs](https://doi.org/10.1145/3575693.3575731)
 * [SyzDescribe: Principled, Automated, Static Generation of Syscall Descriptions for Kernel Drivers](https://github.com/seclab-ucr/SyzDescribe)
 * [GREBE: Unveiling Exploitation Potential for Linux Kernel Bugs](https://zplin.me/papers/GREBE.pdf)
 * [Precise Detection of Kernel Data Races with Probabilistic Lockset Analysis](https://www.cs.columbia.edu/~gabe/files/oakland2023_pla.pdf)
