@@ -89,6 +89,7 @@ type testJobArgs struct {
 	crash         *Crash
 	crashKey      *db.Key
 	configRef     int64
+	configAppend  string
 	treeOrigin    bool
 	inTransaction bool
 	testReqArgs
@@ -108,6 +109,18 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	patchID, err := putText(c, args.bug.Namespace, textPatch, args.patch, false)
 	if err != nil {
 		return nil, nil, err
+	}
+	configRef := args.configRef
+	if args.configAppend != "" {
+		kernelConfig, _, err := getText(c, textKernelConfig, configRef)
+		if err != nil {
+			return nil, nil, err
+		}
+		configRef, err = putText(c, args.bug.Namespace, textKernelConfig,
+			append(kernelConfig, []byte(args.configAppend)...), true)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	reportingName := ""
 	if args.bugReporting != nil {
@@ -130,7 +143,7 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		MergeBaseRepo:   args.mergeBaseRepo,
 		MergeBaseBranch: args.mergeBaseBranch,
 		Patch:           patchID,
-		KernelConfig:    args.configRef,
+		KernelConfig:    configRef,
 		TreeOrigin:      args.treeOrigin,
 	}
 

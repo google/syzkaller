@@ -431,6 +431,7 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 		crash:         ctx.crash,
 		crashKey:      ctx.crashKey,
 		configRef:     ctx.build.KernelConfig,
+		configAppend:  repo.AppendConfig,
 		inTransaction: true,
 		treeOrigin:    true,
 		testReqArgs: testReqArgs{

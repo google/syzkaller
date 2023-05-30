@@ -633,6 +633,55 @@ var downstreamUpstreamBackports = []KernelRepo{
 	},
 }
 
+func TestTreeConfigAppend(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	ctx := setUpTreeTest(c, []KernelRepo{
+		{
+			URL:    `https://downstream.repo/repo`,
+			Branch: `master`,
+			Alias:  `downstream`,
+			CommitInflow: []KernelRepoLink{
+				{
+					Alias: `lts`,
+					Merge: true,
+				},
+			},
+			LabelIntroduced: `downstream`,
+		},
+		{
+			URL:             `https://lts.repo/repo`,
+			Branch:          `lts-master`,
+			Alias:           `lts`,
+			LabelIntroduced: `lts`,
+			AppendConfig:    "\nCONFIG_TEST=y",
+		},
+	})
+	ctx.uploadBug(`https://downstream.repo/repo`, `master`, dashapi.ReproLevelC)
+	ctx.entries = []treeTestEntry{
+		{
+			alias:   `downstream`,
+			results: []treeTestEntryPeriod{{fromDay: 0, result: treeTestCrash}},
+		},
+		{
+			alias:      `lts`,
+			mergeAlias: `downstream`,
+			results:    []treeTestEntryPeriod{{fromDay: 0, result: treeTestCrash}},
+		},
+	}
+	ctx.jobTestDays = []int{10}
+	tested := false
+	ctx.validateJob = func(resp *dashapi.JobPollResp) {
+		if resp.KernelBranch == "lts-master" {
+			tested = true
+			assert.Contains(t, string(resp.KernelConfig), "\nCONFIG_TEST=y")
+		}
+	}
+	ctx.moveToDay(10)
+	assert.True(t, tested)
+}
+
 func setUpTreeTest(ctx *Ctx, repos []KernelRepo) *treeTestCtx {
 	ret := &treeTestCtx{
 		ctx:     ctx,
@@ -653,6 +702,7 @@ type treeTestCtx struct {
 	perAlias    map[string]KernelRepo
 	jobTestDays []int
 	manager     string
+	validateJob func(*dashapi.JobPollResp)
 }
 
 func (ctx *treeTestCtx) now() time.Time {
@@ -727,6 +777,9 @@ func (ctx *treeTestCtx) moveToDay(tillDay int) {
 			})
 			if pollResp.ID == "" {
 				break
+			}
+			if ctx.validateJob != nil {
+				ctx.validateJob(pollResp)
 			}
 			ctx.ctx.advanceTime(time.Minute)
 			ctx.doJob(pollResp, seqDay)
