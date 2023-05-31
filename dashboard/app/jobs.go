@@ -345,7 +345,9 @@ func createPatchTestingJobs(c context.Context, managers map[string]dashapi.Manag
 		managersList = append(managersList, decommissionedInto(name)...)
 	}
 	managersList = unique(managersList)
-	r := rand.New(rand.NewSource(timeNow(c).UnixNano()))
+
+	var allBugs []*Bug
+	var allBugKeys []*db.Key
 	for _, mgrName := range managersList {
 		bugs, bugKeys, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 			return query.Filter("Status=", BugStatusOpen).
@@ -366,22 +368,27 @@ func createPatchTestingJobs(c context.Context, managers map[string]dashapi.Manag
 			}
 			return true
 		})
-		r.Shuffle(len(bugs), func(i, j int) {
-			bugs[i], bugs[j] = bugs[j], bugs[i]
-			bugKeys[i], bugKeys[j] = bugKeys[j], bugKeys[i]
-		})
-		// Also shuffle the creator functions.
-		funcs := []func(context.Context, []*Bug, []*db.Key,
-			map[string]dashapi.ManagerJobs) (*Job, *db.Key, error){
-			createPatchRetestingJobs,
-			createTreeTestJobs,
-		}
-		r.Shuffle(len(funcs), func(i, j int) { funcs[i], funcs[j] = funcs[j], funcs[i] })
-		for _, f := range funcs {
-			job, jobKey, err := f(c, bugs, bugKeys, managers)
-			if job != nil || err != nil {
-				return job, jobKey, err
-			}
+		allBugs = append(allBugs, bugs...)
+		allBugKeys = append(allBugKeys, bugKeys...)
+	}
+	r := rand.New(rand.NewSource(timeNow(c).UnixNano()))
+	// Bugs often happen on multiple instances, so let's filter out duplicates.
+	allBugs, allBugKeys = uniqueBugs(allBugs, allBugKeys)
+	r.Shuffle(len(allBugs), func(i, j int) {
+		allBugs[i], allBugs[j] = allBugs[j], allBugs[i]
+		allBugKeys[i], allBugKeys[j] = allBugKeys[j], allBugKeys[i]
+	})
+	// Also shuffle the creator functions.
+	funcs := []func(context.Context, []*Bug, []*db.Key,
+		map[string]dashapi.ManagerJobs) (*Job, *db.Key, error){
+		createPatchRetestingJobs,
+		createTreeTestJobs,
+	}
+	r.Shuffle(len(funcs), func(i, j int) { funcs[i], funcs[j] = funcs[j], funcs[i] })
+	for _, f := range funcs {
+		job, jobKey, err := f(c, allBugs, allBugKeys, managers)
+		if job != nil || err != nil {
+			return job, jobKey, err
 		}
 	}
 	return nil, nil, nil
@@ -1475,4 +1482,21 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 		info.ReproSyzLink = externalLink(c, textReproSyz, crash.ReproSyz)
 	}
 	return info
+}
+
+func uniqueBugs(inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*db.Key) {
+	var bugs []*Bug
+	var keys []*db.Key
+
+	dups := map[string]bool{}
+	for i, bug := range inBugs {
+		hash := bug.keyHash()
+		if dups[hash] {
+			continue
+		}
+		dups[hash] = true
+		bugs = append(bugs, bug)
+		keys = append(keys, inKeys[i])
+	}
+	return bugs, keys
 }
