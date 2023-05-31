@@ -9,7 +9,7 @@ config:
  - PKGLIST
  - PKGLIST_USE_CONFIGFS
  - ESD_FS
- - INCREMENTAL_FS: [-chromeos-5.15] #incrementalfs absent in 5.15
+ - INCREMENTAL_FS: [-chromeos-5.15, -chromeos-6.1] #incrementalfs absent in 5.15
  - VIRTIO_FS
  - VIRTIO_WL
  - USB_CONFIGFS: [override]
