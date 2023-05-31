@@ -1114,7 +1114,10 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 		},
 		Fixed: uiSubsystemStats{
 			Count: stats.Fixed,
-			Link:  html.AmendURL("/"+ns+"/fixed", "subsystem", item.Name),
+			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{
+				Label: SubsystemLabel,
+				Value: item.Name,
+			}.String()),
 		},
 	}
 }
