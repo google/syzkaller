@@ -22,7 +22,7 @@ import (
 )
 
 // generateTreeOriginJobs generates new jobs for bug origin tree determination.
-func generateTreeOriginJobs(c context.Context, bugKey *db.Key,
+func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	var job *Job
 	var jobKey *db.Key
@@ -32,9 +32,10 @@ func generateTreeOriginJobs(c context.Context, bugKey *db.Key,
 			return fmt.Errorf("failed to get bug: %v", err)
 		}
 		ctx := &bugTreeContext{
-			c:      c,
-			bug:    bug,
-			bugKey: bug.key(c),
+			c:       c,
+			cGlobal: cGlobal,
+			bug:     bug,
+			bugKey:  bug.key(c),
 		}
 		ret := ctx.pollBugTreeJobs(managers)
 		switch ret.(type) {
@@ -53,7 +54,8 @@ func generateTreeOriginJobs(c context.Context, bugKey *db.Key,
 		job, jobKey = ctx.job, ctx.jobKey
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
+	if err := db.RunInTransaction(cGlobal, tx,
+		&db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
 		return nil, nil, err
 	}
 	return job, jobKey, nil
@@ -61,7 +63,7 @@ func generateTreeOriginJobs(c context.Context, bugKey *db.Key,
 
 // treeOriginJobDone is supposed to be called when tree origin job is done.
 // It keeps the cached info in Bug up to date and assigns bug tree origin labels.
-func treeOriginJobDone(c context.Context, jobKey *db.Key, job *Job) error {
+func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error {
 	bugKey := jobKey.Parent()
 	tx := func(c context.Context) error {
 		bug := new(Bug)
@@ -70,6 +72,7 @@ func treeOriginJobDone(c context.Context, jobKey *db.Key, job *Job) error {
 		}
 		ctx := &bugTreeContext{
 			c:         c,
+			cGlobal:   cGlobal,
 			bug:       bug,
 			bugKey:    bug.key(c),
 			noNewJobs: true,
@@ -89,7 +92,7 @@ func treeOriginJobDone(c context.Context, jobKey *db.Key, job *Job) error {
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10})
+	return db.RunInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true, Attempts: 10})
 }
 
 type pollTreeJobResult interface{}
@@ -112,7 +115,11 @@ type pollResultDone struct {
 }
 
 type bugTreeContext struct {
-	c         context.Context
+	c context.Context
+	// Datastore puts limits on how often a single entity can be accessed by transactions.
+	// And we actually don't always need a consistent view of the DB, we just want to query
+	// a single entity. So, when possible, let's make queries outside of a transaction.
+	cGlobal   context.Context
 	crash     *Crash
 	crashKey  *db.Key
 	bugKey    *db.Key
@@ -590,11 +597,11 @@ func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, *Build, error) {
 		// Let's just ignore such bugs for now.
 		return false, nil, nil
 	}
-	build, err := loadBuild(ctx.c, ctx.bug.Namespace, crash.BuildID)
+	build, err := loadBuild(ctx.cGlobal, ctx.bug.Namespace, crash.BuildID)
 	if err != nil {
 		return false, nil, err
 	}
-	mgrBuild, err := lastManagerBuild(ctx.c, build.Namespace, newManager)
+	mgrBuild, err := lastManagerBuild(ctx.cGlobal, build.Namespace, newManager)
 	if err != nil {
 		return false, build, err
 	}
