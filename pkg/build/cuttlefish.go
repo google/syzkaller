@@ -6,6 +6,7 @@ package build
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,13 +35,46 @@ func (c cuttlefish) runBuild(kernelDir, buildConfig string) error {
 }
 
 func (c cuttlefish) runBazel(kernelDir string) error {
-	cmd := osutil.Command("tools/bazel", "run", "--kasan", bazelTarget, "--", "--dist_dir=dist")
+	cmd := osutil.Command("tools/bazel", "run", bazelTarget, "--", "--dist_dir=dist")
 	if err := osutil.Sandbox(cmd, true, false); err != nil {
-		return err
+		return fmt.Errorf("failed to sandbox build command: %w", err)
 	}
 	cmd.Dir = kernelDir
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
+}
+
+func (c cuttlefish) createDefconfig(commonDir string, config []byte) error {
+	configFile := filepath.Join(commonDir, ".config")
+	if err := osutil.WriteFile(configFile, config); err != nil {
+		return fmt.Errorf("writing config failed: %w", err)
+	}
+	if err := osutil.SandboxChown(configFile); err != nil {
+		return fmt.Errorf("error changing config owner: %w", err)
+	}
+
+	// Create a 'defconfig' file from full '.config'.
+	cmd := osutil.Command("make", "savedefconfig")
+	cmd.Dir = commonDir
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return fmt.Errorf("failed to sandbox defconfig creation: %w", err)
+	}
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
+		return fmt.Errorf("failed to create defconfig: %w", err)
+	}
+
+	// Copy defconfig to expected config directory.
+	defconfigFile := filepath.Join(commonDir, "arch", "x86", "configs", "gki_defconfig")
+	if err := os.Rename(filepath.Join(commonDir, "defconfig"), defconfigFile); err != nil {
+		return fmt.Errorf("writing config failed: %w", err)
+	}
+	if err := osutil.SandboxChown(defconfigFile); err != nil {
+		return fmt.Errorf("error changing defconfig owner: %w", err)
+	}
+	if err := os.Remove(configFile); err != nil {
+		return fmt.Errorf("failure removing temp config: %w", err)
+	}
+	return nil
 }
 
 func (c cuttlefish) readCompiler(archivePath string) (string, error) {
@@ -95,6 +129,12 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	}
 	// Default to build.sh if compiler is not specified.
 	if params.Compiler == "bazel" {
+		if params.Config == nil {
+			return details, errors.New("kernel config was not provided for build")
+		}
+		if err := c.createDefconfig(filepath.Join(params.KernelDir, "common"), params.Config); err != nil {
+			return details, fmt.Errorf("failed to create defconfig file: %v", err)
+		}
 		if err := c.runBazel(params.KernelDir); err != nil {
 			return details, fmt.Errorf("failed to build kernel: %s", err)
 		}
