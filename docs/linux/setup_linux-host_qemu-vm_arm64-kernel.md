@@ -44,7 +44,7 @@ If you're expreriencing a very slow sshd start up time with arm64 qemu running o
 
 You will require an ARM64 kernel with gcc plugin support.
 If not, obtain the ARM64 toolchain from Linaro.
-Get `gcc-linaro-6.1.1-2016.08-x86_64_aarch64-linux-gnu.tar.xz` from [here](https://releases.linaro.org/components/toolchain/binaries/latest/aarch64-linux-gnu/).
+Get `gcc-linaro-6.1.1-2016.08-x86_64_aarch64-linux-gnu.tar.xz` from [here](https://releases.linaro.org/components/toolchain/binaries/6.1-2016.08/aarch64-linux-gnu/).
 Extract and add its `bin/` to your `PATH`.
 If you have another ARM64 toolchain on your machine, ensure that this newly downloaded toolchain takes precedence.
 
