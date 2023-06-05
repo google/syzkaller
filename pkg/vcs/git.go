@@ -114,10 +114,16 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := git.git("checkout", "FETCH_HEAD"); err != nil {
+	if _, err := git.git("checkout", "FETCH_HEAD", "--force"); err != nil {
 		return nil, err
 	}
 	if _, err := git.git("submodule", "update", "--init"); err != nil {
+		return nil, err
+	}
+	// If the branch checkout had to be "forced" the directory may
+	// contain remaining untracked files.
+	// Clean again to ensure the new branch is in a clean state.
+	if err := git.repair(); err != nil {
 		return nil, err
 	}
 	return git.HeadCommit()
@@ -177,8 +183,8 @@ func (git *git) reset() error {
 		return nil
 	}
 	git.git("reset", "--hard", "--recurse-submodules")
-	git.git("clean", "-fdx")
-	git.git("submodule", "foreach", "--recursive", "git", "clean", "-fdx")
+	git.git("clean", "-xfdf")
+	git.git("submodule", "foreach", "--recursive", "git", "clean", "-xfdf")
 	git.git("bisect", "reset")
 	_, err := git.git("reset", "--hard", "--recurse-submodules")
 	return err
