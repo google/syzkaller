@@ -32,13 +32,13 @@ If you click on percentage number of any listed source file you will get cover p
 
 ### Covered: black (#000000)
 
-All PC values associated to that line are covered. There is number on the left side indicating how many programs have triggered executing the PC values assocaciated to this line. You can click on that number and it will open last executed program. Example below shows how single line which is fully covered is shown.
+All PC values associated to that line are covered. There is number on the left side indicating how many programs have triggered executing the PC values associated to this line. You can click on that number and it will open last executed program. Example below shows how single line which is fully covered is shown.
 
 ![Code line is fully covered](coverage_covered.png?raw=true)
 
 ### Both: orange (#c86400)
 
-There are several PC values associated to the line and not all of these are executed. Again there is number left to the source code line that can clicked to open last program triggering associated PC values. Example below shows single line which has both excuted and non-executed PC values associated to it.
+There are several PC values associated to the line and not all of these are executed. Again there is number left to the source code line that can clicked to open last program triggering associated PC values. Example below shows single line which has both executed and non-executed PC values associated to it.
 
 ![Code line has executed and not executed PC values](coverage_both.png?raw=true)
 
@@ -46,7 +46,7 @@ There are several PC values associated to the line and not all of these are exec
 
 Function (symbol) this line is in doesn't have any coverage. I.e. the function is not executed at all. Please note that if compiler have optimized certain symbol out and made the code inline instead symbol associated with this line is the one where the code is compiled into. This makes it sometimes real hard to figure out meaning of coloring. Example below shows how single line which is uncovered and PC values associated to it are in function(s) that are not executed either is shown.
 
-![PC values associated to the line are not exexuted and these PC values are in functions that are not executed either](coverage_weak-uncovered.png?raw=true)
+![PC values associated to the line are not executed and these PC values are in functions that are not executed either](coverage_weak-uncovered.png?raw=true)
 
 ### Uncovered: red (#ff0000)
 

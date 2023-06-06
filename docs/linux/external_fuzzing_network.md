@@ -12,10 +12,10 @@ See `initialize_tun()` in [executor/common_linux.h](/executor/common_linux.h) fo
 The template descriptions can be found in [sys/linux/vnet.txt](/sys/linux/vnet.txt).
 At this moment there are 2 fake syscalls: `syz_emit_ethernet` and `syz_extract_tcp_res`.
 The first one externally sends a packet through the virtual interface.
-The second one tries to externally receive a packet back and parse TCP sequence numbers from it for use in subseqent packets.
+The second one tries to externally receive a packet back and parse TCP sequence numbers from it for use in subsequent packets.
 There are many protocols or protocol extensions that are not described yet, so the additions are welcome!
 
-Since fuzzing may be done in mutiple executor proccesses within the same VM instance, we need a way to isolate the virtual networks for different executors.
+Since fuzzing may be done in multiple executor processes within the same VM instance, we need a way to isolate the virtual networks for different executors.
 Right now this is done by creating one virtual interface per executor and assigning different MAC, IPv4 and IPv6 addresses to each of these interfaces.
 Then the template descriptions make use of the `proc` type to generate proper addresses for each executor.
 
