@@ -15,7 +15,7 @@ This doc assumes that you:
 - ran `gcloud auth login` to run authenticated gcloud commands
 - read [go/syzbot-setup](https://goto.google.com/syzbot-setup) if you are a Googler
 
-While most syzkaller bits happily run on various operating systems, the syzbot dashboard does not. The dashboard is a Google App Engine or GAE project. GAE allows developers to develop web applications without needing to worry about the underlying servers. Instead developers just push their code and GAE takes care of web servers, load balancers and more. Hence this document is more Google Cloud focussed than the rest of our documentation.
+While most syzkaller bits happily run on various operating systems, the syzbot dashboard does not. The dashboard is a Google App Engine or GAE project. GAE allows developers to develop web applications without needing to worry about the underlying servers. Instead developers just push their code and GAE takes care of web servers, load balancers and more. Hence this document is more Google Cloud focused than the rest of our documentation.
 
 We will also deploy a syz-ci instance. syz-ci keeps track of the syzkaller and kernel repositories and continuously rebuilds the kernel under test, itself and other syzkaller components when new commits land in the upstream repositories. syz-ci also takes care of (re)starting syz-manager instances, which in turn (re)start VMs fuzzing the target kernel. For simplicity we will run everything in this doc on GCP even though syz-ci could run elsewhere.
 
@@ -223,7 +223,7 @@ gcloud services enable cloudscheduler.googleapis.com --project $PROJECT
 gcloud app deploy ./dashboard/app/cron.yaml --project $PROJECT --quiet
 
 # Create required Datastore indexes. Requires a few minutes to
-# generate before they (and hence syzbot) become useable
+# generate before they (and hence syzbot) become usable
 gcloud datastore indexes create ./dashboard/app/index.yaml --project $PROJECT --quiet
 
 cat <<EOF > ./dashboard/app/config_not_prod.go

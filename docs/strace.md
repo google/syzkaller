@@ -31,7 +31,7 @@ The resulting binary can be found at `src/strace`.
 
 It's possible to instruct `syz-crush` to run the attached repro under strace. In
 order to do so, make sure `strace_bin` is specified in the syz-manager config
-file and pass an extra `-strace` arugment to the command arguments.
+file and pass an extra `-strace` argument to the command arguments.
 
 ## syz-repro
 
