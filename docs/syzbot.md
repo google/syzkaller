@@ -432,7 +432,7 @@ propagation of uninitialized values through memory and registers and only flags
 actual eventual uses of uninitialized values. For example, `KMSAN` will detect
 a branch on or a `copy_to_user()` of values that transitively come from
 uninitialized memory created by heap/stack allocations. This ensures
-/theoretical/ absense of both false positives and false negatives (with some
+/theoretical/ absence of both false positives and false negatives (with some
 implementation limitations of course). Note that `KMSAN` requires `clang` compiler.
 
 `KMSAN` is not upstream yet, though, we want to upstream it later. For now,
@@ -450,7 +450,7 @@ and attach/inline your test patch in the same email.
 Report explanation. The first call trace points to the `use` of the uninit value
 (which is usually a branching or copying it to userspace). Then there are 0 or
 more "Uninit was stored to memory at:" stacks which denote how the unint value
-travelled through memory. Finally there is a "Uninit was created at:"
+traveled through memory. Finally there is a "Uninit was created at:"
 section which points either to a heap allocation or a stack variable which
 is the original source of uninitialized-ness.
 
@@ -516,11 +516,11 @@ There are several reasons for this:
 - custom patches may not apply tomorrow
 - custom patches may not apply to all of the tested git trees
 - it's hard to communicate exact state of the code with bug reports (not just hash anymore)
-- line numbers won't match in reports (which always brings suspecion as to the quality of reports)
+- line numbers won't match in reports (which always brings suspicion as to the quality of reports)
 - custom patches can also introduce bugs, and even if they don't a developer may (rightfully)
   question validity of and may not want to spend time on reports obtained
   with a number of out-of-tree patches
-- order of patch application generatelly matters, and at some point patches
+- order of patch application generally matters, and at some point patches
   need to be removed, there is nobody to manage this
 
 We've experimented with application of custom patches in the past and it lead

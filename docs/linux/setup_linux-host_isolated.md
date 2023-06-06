@@ -94,7 +94,7 @@ Don't forget to update:
  - `workdir` (path to the workdir)
  - `kernel_obj` (path to kernel build directory)
  - `sshkey` You can setup an sshkey (optional)
- - `vm.targets` List of hosts to use for fufzzing
+ - `vm.targets` List of hosts to use for fuzzing
  - `vm.target_dir` Working directory on the target host
  - `vm.target_reboot` Reboot the machine if remote process hang (useful for wide fuzzing, false by default)
 
