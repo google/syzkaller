@@ -51,7 +51,7 @@ Assuming you want to create the new VM in `$VMPATH`, complete the wizard as foll
 * Virtual Disk Type: IDE
 * Disk: select "Use an existing virtual disk"
 * Existing Disk File: enter the path of `disk.vmdk` created above
-* Select "Cusomize Hardware..." and remove the "Printer" device if you have one. Add a new "Serial Port" device. For the serial port connection choose "Use socket (named pipe)" and enter "serial" for the socket path. At the end it should look like this:
+* Select "Customize Hardware..." and remove the "Printer" device if you have one. Add a new "Serial Port" device. For the serial port connection choose "Use socket (named pipe)" and enter "serial" for the socket path. At the end it should look like this:
 
 ![Virtual Machine Settings](vmw-settings.png?raw=true)
 

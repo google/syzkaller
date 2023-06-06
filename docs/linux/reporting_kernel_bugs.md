@@ -14,18 +14,18 @@ If there are stalls or hangs, only report them if they are frequent enough or ha
 
 Overall, bugs without reproducers are way less likely to be triaged and fixed.
 If the bug is reproducible, include the reproducer (C source if possible, otherwise a syzkaller program) and the `.config` you used for your kernel.
-If the reprocucer is available only in the form of a syzkaller program, please link [the instructions on how to execute them](/docs/executing_syzkaller_programs.md) in your report.
+If the reproducer is available only in the form of a syzkaller program, please link [the instructions on how to execute them](/docs/executing_syzkaller_programs.md) in your report.
 Check that the reproducer works if you run it manually.
 Syzkaller tries to simplify the reproducer, but the result might not be ideal.
 You can try to simplify or annotate the reproducer manually, that greatly helps kernel developers to figure out why the bug occurs.
 
-If you want to get extra credit, you can try to undestand the bug and develop a fix yourself.
+If you want to get extra credit, you can try to understand the bug and develop a fix yourself.
 If you can't figure out the right fix, but have some understanding of the bug, please add your thoughts and conclusions to the report, that will save some time for kernel developers.
 
 ## Reporting security bugs
 
 If you believe that a found bug poses potential security threat, consider following the instructions below.
-Note, that these instructions are a work-in-progress and based on my current undestanding of the disclosure proccess.
+Note, that these instructions are a work-in-progress and based on my current understanding of the disclosure process.
 This instruction is now being discussed [here](http://seclists.org/oss-sec/2017/q3/242).
 
 If you don't want to deal with this complex disclosure process you can either:
