@@ -111,6 +111,7 @@ var (
 		"industrypack-devel@lists.sourceforge.net":  "ipack",
 		"v9fs-developer@lists.sourceforge.net":      "9p",
 		"cluster-devel@redhat.com":                  "gfs2",
+		"kernel-tls-handshake@lists.linux.dev":      "tls",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
