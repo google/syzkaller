@@ -469,14 +469,26 @@ func (mgr *Manager) vmLoop() {
 }
 
 func reportReproError(err error) {
+	shutdown := false
+	select {
+	case <-vm.Shutdown:
+		shutdown = true
+	default:
+	}
+
 	switch err {
 	case repro.ErrNoPrograms:
 		// This is not extraordinary as programs are collected via SSH.
 		log.Logf(0, "repro failed: %v", err)
-	default:
-		// Report everything else as errors.
-		log.Errorf("repro failed: %v", err)
+		return
+	case repro.ErrNoVMs:
+		// This error is to be expected if we're shutting down.
+		if shutdown {
+			return
+		}
 	}
+	// Report everything else as errors.
+	log.Errorf("repro failed: %v", err)
 }
 
 func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(...int)) *ReproResult {

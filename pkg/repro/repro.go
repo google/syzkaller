@@ -543,12 +543,14 @@ func (ctx *context) testWithInstance(callback func(execInterface) (rep *instance
 	return true, nil
 }
 
+var ErrNoVMs = errors.New("all VMs failed to boot")
+
 // A helper method for testWithInstance.
 func (ctx *context) runOnInstance(callback func(execInterface) (rep *instance.RunResult,
 	err error)) (*instance.RunResult, error) {
 	inst := <-ctx.instances
 	if inst == nil {
-		return nil, fmt.Errorf("all VMs failed to boot")
+		return nil, ErrNoVMs
 	}
 	defer ctx.returnInstance(inst)
 	return callback(inst.execProg)
