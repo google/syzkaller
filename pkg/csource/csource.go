@@ -351,25 +351,27 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 		}
 		funcName = fmt.Sprintf("((intptr_t(*)(%v))CAST(%v))", args, callName)
 	}
-	for _, arg := range call.Args {
+	for i, arg := range call.Args {
 		switch arg := arg.(type) {
 		case prog.ExecArgConst:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
 			}
+			com := ctx.argComment(call.Meta.Args[i], arg)
 			suf := ctx.literalSuffix(arg, native)
-			argsStrs = append(argsStrs, handleBigEndian(arg, ctx.constArgToStr(arg, suf)))
+			argsStrs = append(argsStrs, com+handleBigEndian(arg, ctx.constArgToStr(arg, suf)))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
 			}
+			com := ctx.argComment(call.Meta.Args[i], arg)
 			val := ctx.resultArgToStr(arg)
 			if native && ctx.target.PtrSize == 4 {
 				// syscall accepts args as ellipsis, resources are uint64
 				// and take 2 slots without the cast, which would be wrong.
 				val = "(intptr_t)" + val
 			}
-			argsStrs = append(argsStrs, val)
+			argsStrs = append(argsStrs, com+val)
 		default:
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
@@ -497,6 +499,10 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	if copyoutMultiple {
 		fmt.Fprintf(w, "\t}\n")
 	}
+}
+
+func (ctx *context) argComment(field prog.Field, arg prog.ExecArg) string {
+	return "/*" + field.Name + "=" + "*/"
 }
 
 func (ctx *context) constArgToStr(arg prog.ExecArgConst, suffix string) string {

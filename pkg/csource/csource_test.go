@@ -191,10 +191,10 @@ r0 = csource0(0x1)
 csource1(r0)
 `,
 			output: `
-res = syscall(SYS_csource0, 1);
+res = syscall(SYS_csource0, /*num=*/1);
 if (res != -1)
 	r[0] = res;
-syscall(SYS_csource1, r[0]);
+syscall(SYS_csource1, /*fd=*/r[0]);
 `,
 		},
 		{
@@ -207,15 +207,15 @@ csource6(&AUTO)
 `,
 			output: fmt.Sprintf(`
 NONFAILING(memcpy((void*)0x%x, "\x12\x34\x56\x78", 4));
-syscall(SYS_csource2, 0x%xul);
+syscall(SYS_csource2, /*buf=*/0x%xul);
 NONFAILING(memset((void*)0x%x, 0, 10));
-syscall(SYS_csource3, 0x%xul);
+syscall(SYS_csource3, /*buf=*/0x%xul);
 NONFAILING(memset((void*)0x%x, 48, 10));
-syscall(SYS_csource4, 0x%xul);
+syscall(SYS_csource4, /*buf=*/0x%xul);
 NONFAILING(memcpy((void*)0x%x, "0101010101", 10));
-syscall(SYS_csource5, 0x%xul);
+syscall(SYS_csource5, /*buf=*/0x%xul);
 NONFAILING(memcpy((void*)0x%x, "101010101010", 12));
-syscall(SYS_csource6, 0x%xul);
+syscall(SYS_csource6, /*buf=*/0x%xul);
 `,
 				target.DataOffset+0x40, target.DataOffset+0x40,
 				target.DataOffset+0x80, target.DataOffset+0x80,
