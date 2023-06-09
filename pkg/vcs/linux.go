@@ -6,6 +6,7 @@ package vcs
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"net/mail"
 	"path/filepath"
 	"regexp"
@@ -406,7 +407,8 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte,
 		res, err := pred(serialize(candidate))
 		return res == BisectBad, err
 	}
-	minConfig, err := kconf.Minimize(baselineConfig, originalConfig, kconfPred, dt)
+	r := rand.New(rand.New(rand.NewSource(time.Now().UnixNano())))
+	minConfig, err := kconf.Reduce(baselineConfig, originalConfig, kconfPred, 5, r, dt)
 	if err != nil {
 		return nil, err
 	}
