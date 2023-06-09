@@ -68,6 +68,7 @@ type Config struct {
 
 	KernelConfig         string `json:"kernel_config"`
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
+	DropSanitizers       bool   `json:"drop_sanitizers"`
 
 	FromMergeBase bool `json:"from_merge_base"`
 
@@ -108,15 +109,16 @@ func main() {
 		BinDir:          mycfg.BinDir,
 		Ccache:          mycfg.Ccache,
 		Kernel: bisect.KernelConfig{
-			Repo:          mycfg.KernelRepo,
-			Branch:        mycfg.KernelBranch,
-			Commit:        *flagKernelCommit,
-			CommitTitle:   *flagKernelCommitTitle,
-			CommitRepo:    mycfg.KernelCommitRepo,
-			FromMergeBase: mycfg.FromMergeBase,
-			Userspace:     mycfg.Userspace,
-			Sysctl:        mycfg.Sysctl,
-			Cmdline:       mycfg.Cmdline,
+			Repo:           mycfg.KernelRepo,
+			Branch:         mycfg.KernelBranch,
+			Commit:         *flagKernelCommit,
+			CommitTitle:    *flagKernelCommitTitle,
+			CommitRepo:     mycfg.KernelCommitRepo,
+			FromMergeBase:  mycfg.FromMergeBase,
+			Userspace:      mycfg.Userspace,
+			Sysctl:         mycfg.Sysctl,
+			Cmdline:        mycfg.Cmdline,
+			DropSanitizers: mycfg.DropSanitizers,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   mycfg.SyzkallerRepo,

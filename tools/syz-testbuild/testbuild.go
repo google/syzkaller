@@ -30,6 +30,7 @@ import (
 	"runtime"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -125,7 +126,8 @@ func main() {
 
 func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instance.Env, com *vcs.Commit) {
 	compiler, compilerType, linker, ccache := "gcc", "gcc", "ld", ""
-	bisectEnv, err := bisecter.EnvForCommit(compiler, compilerType, *flagBisectBin, com.Hash, kernelConfig)
+	bisectEnv, err := bisecter.EnvForCommit(compiler, compilerType, *flagBisectBin,
+		com.Hash, kernelConfig, &debugtracer.NullTracer{})
 	if err != nil {
 		tool.Fail(err)
 	}

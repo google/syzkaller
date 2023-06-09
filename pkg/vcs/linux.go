@@ -138,7 +138,8 @@ func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 }
 
 func (ctx *linux) EnvForCommit(
-	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+	defaultCompiler, compilerType, binDir, commit string,
+	kernelConfig []byte, dt debugtracer.DebugTracer,
 ) (*BisectEnv, error) {
 	tagList, err := ctx.previousReleaseTags(commit, true, false, false)
 	if err != nil {
@@ -152,7 +153,7 @@ func (ctx *linux) EnvForCommit(
 	if err != nil {
 		return nil, err
 	}
-	linuxAlterConfigs(cf, tags)
+	linuxAlterConfigs(cf, tags, dt)
 
 	compiler := ""
 	if compilerType == "gcc" {
@@ -219,7 +220,7 @@ func linuxGCCPath(tags map[string]bool, binDir, defaultCompiler string) string {
 	return filepath.Join(binDir, "gcc-"+version, "bin", "gcc")
 }
 
-func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
+func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool, dt debugtracer.DebugTracer) {
 	const disableAlways = "disable-always"
 	// If tags is nil, disable only configs marked as disableAlways.
 	checkTag := func(tag string) bool {
@@ -383,8 +384,10 @@ func ParseMaintainersLinux(text []byte) Recipients {
 
 const configBisectTag = "# Minimized by syzkaller"
 
-func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte,
-	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
+func (ctx *linux) Minimize(target *targets.Target, original []byte, dt debugtracer.DebugTracer,
+	pred func(test []byte) (BisectResult, error),
+	how ...interface{},
+) ([]byte, error) {
 	if bytes.HasPrefix(original, []byte(configBisectTag)) {
 		dt.Log("# configuration already minimized\n")
 		return original, nil
@@ -393,26 +396,48 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte,
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Kconfig: %v", err)
 	}
-	originalConfig, err := kconfig.ParseConfigData(original, "original")
+	config, err := kconfig.ParseConfigData(original, "original")
 	if err != nil {
 		return nil, err
 	}
-	baselineConfig, err := kconfig.ParseConfigData(baseline, "baseline")
-	if err != nil {
-		return nil, err
-	}
-	linuxAlterConfigs(originalConfig, nil)
-	linuxAlterConfigs(baselineConfig, nil)
+	linuxAlterConfigs(config, nil, dt)
+	var dropSanitizersTitle string
 	kconfPred := func(candidate *kconfig.ConfigFile) (bool, error) {
 		res, err := pred(serialize(candidate))
 		return res == BisectBad, err
 	}
-	r := rand.New(rand.New(rand.NewSource(time.Now().UnixNano())))
-	minConfig, err := kconf.Reduce(baselineConfig, originalConfig, kconfPred, 5, r, dt)
-	if err != nil {
-		return nil, err
+	for _, step := range how {
+		switch t := step.(type) {
+		case *DropSanitizers:
+			dt.Log("dropping unnecessary sanitizers..")
+			newConfig := config.Clone()
+			adjustLinuxSanitizers(newConfig, t.CrashTitle, dt)
+			res, err := kconfPred(newConfig)
+			if err != nil {
+				return nil, err
+			}
+			if res {
+				dt.Log("sanitizers have been successfully minimized")
+				dropSanitizersTitle = t.CrashTitle
+				config = newConfig
+			}
+		case *AgainstBaseline:
+			baselineConfig, err := kconfig.ParseConfigData(t.Baseline, "baseline")
+			if err != nil {
+				return nil, err
+			}
+			linuxAlterConfigs(baselineConfig, nil, dt)
+			if dropSanitizersTitle != "" {
+				adjustLinuxSanitizers(baselineConfig, dropSanitizersTitle, dt)
+			}
+			r := rand.New(rand.New(rand.NewSource(time.Now().UnixNano())))
+			config, err = kconf.Reduce(baselineConfig, config, kconfPred, 5, r, dt)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
-	return serialize(minConfig), nil
+	return serialize(config), nil
 }
 
 func serialize(cf *kconfig.ConfigFile) []byte {

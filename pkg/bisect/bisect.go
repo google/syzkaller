@@ -55,6 +55,9 @@ type KernelConfig struct {
 	// reproduces with the generated configuration original configuation is replaced with
 	// this minimized one.
 	BaselineConfig []byte
+	// If DropSanitizers is set, syzkaller will attempt to unset unnecessary sanitizers
+	// depending on the crash title.
+	DropSanitizers bool
 	Userspace      string
 }
 
@@ -84,6 +87,7 @@ type env struct {
 	buildTime    time.Duration
 	testTime     time.Duration
 	flaky        bool
+	crashTitle   string
 }
 
 const MaxNumTests = 20 // number of tests we do per commit
@@ -156,7 +160,7 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		return nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
 	}
 	minimizer, ok := repo.(vcs.ConfigMinimizer)
-	if !ok && len(cfg.Kernel.BaselineConfig) != 0 {
+	if !ok && (cfg.Kernel.DropSanitizers || len(cfg.Kernel.BaselineConfig) != 0) {
 		return nil, fmt.Errorf("config minimization is not implemented for %v", cfg.Manager.TargetOS)
 	}
 	env := &env{
@@ -261,8 +265,9 @@ func (env *env) bisect() (*Result, error) {
 	} else if testRes.verdict != vcs.BisectBad {
 		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
+	env.crashTitle = testRes.rep.Title
 
-	if len(cfg.Kernel.BaselineConfig) != 0 {
+	if env.minimizer != nil {
 		testRes1, err := env.minimizeConfig()
 		if err != nil {
 			return nil, err
@@ -366,6 +371,13 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 }
 
 func (env *env) minimizeConfig() (*testResult, error) {
+	var tasks []interface{}
+	if env.cfg.Kernel.DropSanitizers && env.crashTitle != "" {
+		tasks = append(tasks, &vcs.DropSanitizers{CrashTitle: env.crashTitle})
+	}
+	if env.cfg.Kernel.BaselineConfig != nil {
+		tasks = append(tasks, &vcs.AgainstBaseline{Baseline: env.cfg.Kernel.BaselineConfig})
+	}
 	// Find minimal configuration based on baseline to reproduce the crash.
 	testResults := make(map[hash.Sig]*testResult)
 	predMinimize := func(test []byte) (vcs.BisectResult, error) {
@@ -378,7 +390,7 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		return testRes.verdict, err
 	}
 	minConfig, err := env.minimizer.Minimize(env.cfg.Manager.SysTarget, env.cfg.Kernel.Config,
-		env.cfg.Kernel.BaselineConfig, env.cfg.Trace, predMinimize)
+		env.cfg.Trace, predMinimize, tasks...)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +547,8 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	}
 
 	bisectEnv, err := env.bisecter.EnvForCommit(
-		env.cfg.DefaultCompiler, env.cfg.CompilerType, env.cfg.BinDir, current.Hash, env.kernelConfig)
+		env.cfg.DefaultCompiler, env.cfg.CompilerType, env.cfg.BinDir,
+		current.Hash, env.kernelConfig, env.cfg.Trace)
 	if err != nil {
 		return current, "", err
 	}

@@ -20,7 +20,7 @@ func (kconf *KConfig) Reduce(base, full *ConfigFile, pred func(*ConfigFile) (boo
 	dt.Log("kconfig reduce: base=%v full=%v diff=%v", len(base.Configs), len(full.Configs), len(diff))
 
 	take := 0.75 // at first, aim at taking 3/4 of diffs
-	current := full.clone()
+	current := full.Clone()
 	// TODO: prioritize the deletion of leaf configs (i.e. those that don't affect anything else)?
 	// Presumably they should have the least effect, yet there's a lot of them.
 	for step := 1; step <= steps; step++ {
@@ -47,7 +47,7 @@ func (kconf *KConfig) Reduce(base, full *ConfigFile, pred func(*ConfigFile) (boo
 				break
 			}
 		}
-		candidate := base.clone()
+		candidate := base.Clone()
 		for _, cfg := range other {
 			candidate.Set(cfg.Name, cfg.Value)
 		}

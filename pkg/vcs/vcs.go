@@ -95,12 +95,23 @@ type Bisecter interface {
 
 	IsRelease(commit string) (bool, error)
 
-	EnvForCommit(defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
+	EnvForCommit(defaultCompiler, compilerType, binDir, commit string,
+		kernelConfig []byte, dt debugtracer.DebugTracer) (*BisectEnv, error)
+}
+
+type DropSanitizers struct {
+	CrashTitle string
+}
+
+type AgainstBaseline struct {
+	Baseline []byte
 }
 
 type ConfigMinimizer interface {
-	Minimize(target *targets.Target, original, baseline []byte, dt debugtracer.DebugTracer,
-		pred func(test []byte) (BisectResult, error)) ([]byte, error)
+	Minimize(target *targets.Target, original []byte, dt debugtracer.DebugTracer,
+		pred func(test []byte) (BisectResult, error),
+		how ...interface{},
+	) ([]byte, error)
 }
 
 type Commit struct {

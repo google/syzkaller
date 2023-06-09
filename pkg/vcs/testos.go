@@ -14,7 +14,10 @@ type testos struct {
 	*git
 }
 
-var _ ConfigMinimizer = new(testos)
+var (
+	_ Bisecter        = new(testos)
+	_ ConfigMinimizer = new(testos)
+)
 
 func newTestos(dir string, opts []RepoOpt) *testos {
 	return &testos{
@@ -27,28 +30,38 @@ func (ctx *testos) PreviousReleaseTags(commit, compilerType string) ([]string, e
 }
 
 func (ctx *testos) EnvForCommit(
-	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+	defaultCompiler, compilerType, binDir, commit string,
+	kernelConfig []byte, dt debugtracer.DebugTracer,
 ) (*BisectEnv, error) {
 	return &BisectEnv{KernelConfig: kernelConfig}, nil
 }
 
-func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte,
-	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
-	if res, err := pred(baseline); err != nil {
-		return nil, err
-	} else if res == BisectBad {
-		return baseline, nil
+func (ctx *testos) Minimize(target *targets.Target, original []byte, dt debugtracer.DebugTracer,
+	pred func(test []byte) (BisectResult, error),
+	how ...interface{},
+) ([]byte, error) {
+	for _, task := range how {
+		baseline, ok := task.(*AgainstBaseline)
+		if !ok {
+			continue
+		}
+		if res, err := pred(baseline.Baseline); err != nil {
+			return nil, err
+		} else if res == BisectBad {
+			return baseline.Baseline, nil
+		}
+		switch string(baseline.Baseline) {
+		case "minimize-fails":
+			return nil, fmt.Errorf("minimization failure")
+		case "minimize-succeeds":
+			config := []byte("new-minimized-config")
+			pred(config)
+			return config, nil
+		default:
+			return original, nil
+		}
 	}
-	switch string(baseline) {
-	case "minimize-fails":
-		return nil, fmt.Errorf("minimization failure")
-	case "minimize-succeeds":
-		config := []byte("new-minimized-config")
-		pred(config)
-		return config, nil
-	default:
-		return original, nil
-	}
+	return original, nil
 }
 
 func (ctx *testos) PrepareBisect() error {
