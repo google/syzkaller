@@ -107,3 +107,7 @@ func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {
 func (ctx *fuchsia) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) {
 	return ctx.repo.MergeBases(firstCommit, secondCommit)
 }
+
+func (ctx *fuchsia) FetchRemote(repo string) error {
+	return ctx.repo.FetchRemote(repo)
+}

@@ -68,8 +68,11 @@ type Repo interface {
 	// Object returns the contents of a git repository object at the particular moment in history.
 	Object(name, commit string) ([]byte, error)
 
-	// MergeBases returns good common ancestors of the two commits.
+	// MergeBases returns best common ancestors of the two commits.
 	MergeBases(firstCommit, secondCommit string) ([]*Commit, error)
+
+	// FetchRemote fetches all commits/branches from a remote repository.
+	FetchRemote(repo string) error
 }
 
 // Bisecter may be optionally implemented by Repo.

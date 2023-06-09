@@ -40,9 +40,14 @@ type KernelConfig struct {
 	Branch      string
 	Commit      string
 	CommitTitle string
-	Cmdline     string
-	Sysctl      string
-	Config      []byte
+	// If the commit is not on the Repo/Branch, use CommitRepo to fetch that other repo.
+	CommitRepo string
+	// If Fix=true and Commit is not reachable from Repo/Branch, set FromMergeBase=true
+	// and a fix bisection will start from MergeBase(Branch, Commit).
+	FromMergeBase bool
+	Cmdline       string
+	Sysctl        string
+	Config        []byte
 	// Baseline configuration is used in commit bisection. If the crash doesn't reproduce
 	// with baseline configuratopm config bisection is run. When triggering configuration
 	// option is found provided baseline configuration is modified according the bisection
@@ -136,6 +141,11 @@ func Run(cfg *Config) (*Result, error) {
 	}
 	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
 		return nil, &InfraError{Title: fmt.Sprintf("%v", err)}
+	}
+	if cfg.Kernel.CommitRepo != "" {
+		if err = repo.FetchRemote(cfg.Kernel.CommitRepo); err != nil {
+			return nil, &InfraError{Title: fmt.Sprintf("%v", err)}
+		}
 	}
 	return runImpl(cfg, repo, inst)
 }
@@ -317,6 +327,10 @@ func (env *env) bisect() (*Result, error) {
 
 func (env *env) identifyRewrittenCommit() (string, error) {
 	cfg := env.cfg
+	if cfg.Kernel.Commit != "" && cfg.Kernel.CommitRepo != "" {
+		// If the failing commit is on another tree, just take it as is.
+		return cfg.Kernel.Commit, nil
+	}
 	_, err := env.repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch)
 	if err != nil {
 		return cfg.Kernel.Commit, err
@@ -417,6 +431,21 @@ func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result,
 }
 
 func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
+	startCommit := env.commit
+	if env.cfg.Kernel.FromMergeBase {
+		env.log("determining the merge base between %v and %v",
+			env.commit.Hash, env.head.Hash)
+		bases, err := env.repo.MergeBases(env.commit.Hash, env.head.Hash)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if len(bases) != 1 {
+			env.log("got %d merge bases, needed 1", len(bases))
+			return nil, nil, nil, fmt.Errorf("expected 1 merge base")
+		}
+		env.log("%s is a merge base", bases[0].Hash)
+		startCommit = bases[0]
+	}
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
 		return nil, nil, nil, err
@@ -428,7 +457,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 	if res.verdict != vcs.BisectGood {
 		return env.head, nil, []*testResult{res}, nil
 	}
-	return env.head, env.commit, []*testResult{res}, nil
+	return env.head, startCommit, []*testResult{res}, nil
 }
 
 func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, error) {

@@ -50,11 +50,12 @@ type Config struct {
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.
-	BinDir        string `json:"bin_dir"`
-	Ccache        string `json:"ccache"`
-	KernelRepo    string `json:"kernel_repo"`
-	KernelBranch  string `json:"kernel_branch"`
-	SyzkallerRepo string `json:"syzkaller_repo"`
+	BinDir           string `json:"bin_dir"`
+	Ccache           string `json:"ccache"`
+	KernelRepo       string `json:"kernel_repo"`
+	KernelBranch     string `json:"kernel_branch"`
+	KernelCommitRepo string `json:"kernel_commit_repo"`
+	SyzkallerRepo    string `json:"syzkaller_repo"`
 	// Directory with user-space system for building kernel images
 	// (for linux that's the input to tools/create-gce-image.sh).
 	Userspace string `json:"userspace"`
@@ -66,6 +67,8 @@ type Config struct {
 
 	KernelConfig         string `json:"kernel_config"`
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
+
+	FromMergeBase bool `json:"from_merge_base"`
 
 	// Manager config that was used to obtain the crash.
 	Manager json.RawMessage `json:"manager"`
@@ -103,13 +106,15 @@ func main() {
 		BinDir:          mycfg.BinDir,
 		Ccache:          mycfg.Ccache,
 		Kernel: bisect.KernelConfig{
-			Repo:        mycfg.KernelRepo,
-			Branch:      mycfg.KernelBranch,
-			Commit:      *flagKernelCommit,
-			CommitTitle: *flagKernelCommitTitle,
-			Userspace:   mycfg.Userspace,
-			Sysctl:      mycfg.Sysctl,
-			Cmdline:     mycfg.Cmdline,
+			Repo:          mycfg.KernelRepo,
+			Branch:        mycfg.KernelBranch,
+			Commit:        *flagKernelCommit,
+			CommitTitle:   *flagKernelCommitTitle,
+			CommitRepo:    mycfg.KernelCommitRepo,
+			FromMergeBase: mycfg.FromMergeBase,
+			Userspace:     mycfg.Userspace,
+			Sysctl:        mycfg.Sysctl,
+			Cmdline:       mycfg.Cmdline,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   mycfg.SyzkallerRepo,

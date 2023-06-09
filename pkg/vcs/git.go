@@ -127,13 +127,13 @@ func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
 	if err := git.repair(); err != nil {
 		return nil, err
 	}
-	if err := git.fetchRemote(repo); err != nil {
+	if err := git.FetchRemote(repo); err != nil {
 		return nil, err
 	}
 	return git.SwitchCommit(commit)
 }
 
-func (git *git) fetchRemote(repo string) error {
+func (git *git) FetchRemote(repo string) error {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
 	git.git("remote", "add", repoHash, repo)
