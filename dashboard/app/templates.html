@@ -33,6 +33,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</td>
 				<td class="namespace_td">
 					<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
+						{{if .Admin}}
+							<option value="admin" {{if eq $.Namespace "admin"}}selected="1"{{end}}>Admin</option>
+						{{end}}
 						{{- range $ns := .Namespaces}}
 							<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
 								{{- $ns.Caption -}}
