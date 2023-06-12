@@ -50,6 +50,7 @@ type Config struct {
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.
+	Linker           string `json:"linker"`
 	BinDir           string `json:"bin_dir"`
 	Ccache           string `json:"ccache"`
 	KernelRepo       string `json:"kernel_repo"`
@@ -103,6 +104,7 @@ func main() {
 		Fix:             *flagFix,
 		DefaultCompiler: mycfg.Compiler,
 		CompilerType:    mycfg.CompilerType,
+		Linker:          mycfg.Linker,
 		BinDir:          mycfg.BinDir,
 		Ccache:          mycfg.Ccache,
 		Kernel: bisect.KernelConfig{
