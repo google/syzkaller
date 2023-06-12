@@ -257,10 +257,12 @@ func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool, dt debugtra
 		// UBSAN is broken in multiple ways before v5.3, see:
 		// https://github.com/google/syzkaller/issues/1523#issuecomment-696514105
 		"UBSAN": "v5.3",
-		// First, we disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
+		// First, we want to disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
 		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV
 		// (why?), which is build broken for hundreds of revisions.
-		"KCOV": disableAlways,
+		// Still, let's keep it enabled for newer Linux versions -- it keeps the kernel as close to the one
+		// where we triggered the crash and thus makes crashes that depends on timings less flaky.
+		"KCOV": "v5.0",
 		// This helps to produce stable binaries in presence of kernel tag changes.
 		"LOCALVERSION_AUTO": disableAlways,
 		// BTF fails lots of builds with:
