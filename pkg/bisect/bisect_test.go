@@ -90,6 +90,12 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 			ret = crashErrors(numVMs, 0, "crash occurs")
 		}
 		return ret, nil
+	} else if len(env.test.goodCrashes) > 0 {
+		ret := make([]instance.EnvTestResult, numVMs-len(env.test.goodCrashes))
+		for _, title := range env.test.goodCrashes {
+			ret = append(ret, crashErrors(1, 0, title)...)
+		}
+		return ret, nil
 	}
 	return make([]instance.EnvTestResult, numVMs), nil
 }
@@ -242,6 +248,8 @@ type BisectionTest struct {
 	noopChange bool
 	isRelease  bool
 	flaky      bool
+	// If non-empty, the kernel will have these crashes on otherwise good revisions.
+	goodCrashes []string
 	// Expected number of returned commits for inconclusive bisection.
 	commitLen int
 	// For cause bisection: Oldest commit returned by bisection.
@@ -378,6 +386,16 @@ var bisectionTests = []BisectionTest{
 		name:        "fix-finds-fix",
 		fix:         true,
 		startCommit: 400,
+		commitLen:   1,
+		culprit:     500,
+		isRelease:   true,
+	},
+	// Tests that bisection returns the correct fix commit despite SYZFATAL.
+	{
+		name:        "fix-finds-fix",
+		fix:         true,
+		startCommit: 400,
+		goodCrashes: []string{"SYZFATAL: abcd"},
 		commitLen:   1,
 		culprit:     500,
 		isRelease:   true,
@@ -590,7 +608,7 @@ func crashErrors(crashing, nonCrashing int, title string) []instance.EnvTestResu
 		ret = append(ret, instance.EnvTestResult{
 			Error: &instance.CrashError{
 				Report: &report.Report{
-					Title: fmt.Sprintf("crashes at %v", title),
+					Title: title,
 				},
 			},
 		})

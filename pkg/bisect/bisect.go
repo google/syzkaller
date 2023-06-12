@@ -6,6 +6,7 @@ package bisect
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -683,14 +684,18 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 			}
 			env.saveDebugFile(current.Hash, i, output)
 		case *instance.CrashError:
-			bad++
-			rep = err.Report
-			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
 			output := err.Report.Report
 			if len(output) == 0 {
 				output = err.Report.Output
 			}
 			env.saveDebugFile(current.Hash, i, output)
+			if env.isTransientError(err.Report) {
+				verdicts = append(verdicts, fmt.Sprintf("ignore: %v", err))
+				break
+			}
+			bad++
+			rep = err.Report
+			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
 		default:
 			infra++
 			verdicts = append(verdicts, fmt.Sprintf("failed: %v", err))
@@ -708,6 +713,13 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 		}
 	}
 	return
+}
+
+func (env *env) isTransientError(rep *report.Report) bool {
+	// If we're not chasing a SYZFATAL error, ignore them.
+	// Otherwise it rather indicates some transient problem with the kernel revision.
+	return !strings.HasPrefix(env.crashTitle, "SYZFATAL:") &&
+		strings.HasPrefix(rep.Title, "SYZFATAL:")
 }
 
 func (env *env) saveDebugFile(hash string, idx int, data []byte) {
