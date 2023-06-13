@@ -1240,6 +1240,9 @@ void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
 	current_thread = th;
+
+	setaltstack();
+
 	if (cover_collection_required())
 		cover_enable(&th->cov, flag_comparisons, false);
 	for (;;) {
