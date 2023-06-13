@@ -1249,6 +1249,7 @@ var linuxStackParams = &stackParams{
 		"do_mem_abort",
 		"el1_abort",
 		"el1h_64_sync(?:_handler)?",
+		"print_tainted",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
