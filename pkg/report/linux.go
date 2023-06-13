@@ -1228,6 +1228,7 @@ var linuxStackParams = &stackParams{
 		"logic_in",
 		"logic_out",
 		"^crc\\d+",
+		"crc_itu_t",
 		"__might_resched",
 		"assertfail",
 		"^iput$",
