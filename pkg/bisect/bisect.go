@@ -603,14 +603,17 @@ func (env *env) test() (*testResult, error) {
 			env.log("reproducer seems to be flaky")
 			env.flaky = true
 		}
-	} else if good != 0 {
+	} else if 2*good > len(results) {
+		// Require at least 50% of successful runs to say it's a good commit.
+		// Otherwise we just have too little data to come to any conclusion.
 		res.verdict = vcs.BisectGood
+		env.log("too many neither good nor bad results, skipping this commit")
 	} else {
 		res.rep = &report.Report{
 			Title: fmt.Sprintf("failed testing reproducer on %v", current.Hash),
 		}
 	}
-	// If all runs failed with a boot/test error, we just end up with BisectSkip.
+	// If most runs failed with a boot/test error, we end up with BisectSkip.
 	// TODO: when we start supporting boot/test error bisection, we need to make
 	// processResults treat that verdit as "good".
 	return res, nil
