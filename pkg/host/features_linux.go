@@ -5,6 +5,7 @@ package host
 
 import (
 	"fmt"
+	"os/exec"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -37,6 +38,7 @@ func init() {
 	checkFeature[FeatureVhciInjection] = checkVhciInjection
 	checkFeature[FeatureWifiEmulation] = checkWifiEmulation
 	checkFeature[Feature802154Emulation] = check802154Emulation
+	checkFeature[FeatureSwap] = checkSwap
 }
 
 func checkCoverage() string {
@@ -283,6 +285,16 @@ func checkWifiEmulation() string {
 func check802154Emulation() string {
 	if err := osutil.IsAccessible("/sys/bus/platform/devices/mac802154_hwsim"); err != nil {
 		return err.Error()
+	}
+	return ""
+}
+
+func checkSwap() string {
+	if err := osutil.IsAccessible("/proc/swaps"); err != nil {
+		return err.Error()
+	}
+	if _, err := exec.LookPath("mkswap"); err != nil {
+		return "mkswap is not available"
 	}
 	return ""
 }

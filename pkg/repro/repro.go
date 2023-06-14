@@ -201,6 +201,9 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 		if !features[host.Feature802154Emulation].Enabled {
 			opts.IEEE802154 = false
 		}
+		if !features[host.FeatureSwap].Enabled {
+			opts.Swap = false
+		}
 	}
 	return opts
 }
@@ -817,6 +820,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.USB = false
 		opts.VhciInjection = false
 		opts.Wifi = false
+		opts.Swap = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -924,6 +928,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.Sysctl = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.Swap {
+			return false
+		}
+		opts.Swap = false
 		return true
 	},
 }...)
