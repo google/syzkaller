@@ -1638,13 +1638,13 @@ void setup_features(char** enable, int n)
 	// This does any one-time setup for the requested features on the machine.
 	// Note: this can be called multiple times and must be idempotent.
 	flag_debug = true;
-#if SYZ_HAVE_SETUP_EXT
-	// This can be defined in common_ext.h.
-	setup_ext();
-#endif
 #if SYZ_HAVE_FEATURES
 	setup_sysctl();
 	setup_cgroups();
+#endif
+#if SYZ_HAVE_SETUP_EXT
+	// This can be defined in common_ext.h.
+	setup_ext();
 #endif
 	for (int i = 0; i < n; i++) {
 		bool found = false;
