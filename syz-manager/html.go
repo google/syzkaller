@@ -55,6 +55,7 @@ func (mgr *Manager) initHTTP() {
 	handle("/filecover", mgr.httpFileCover)
 	handle("/input", mgr.httpInput)
 	handle("/debuginput", mgr.httpDebugInput)
+	handle("/modules", mgr.modulesInfo)
 	// Browsers like to request this, without special handler this goes to / handler.
 	handle("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -505,6 +506,21 @@ func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	executeTemplate(w, rawCoverTemplate, data)
+}
+
+func (mgr *Manager) modulesInfo(w http.ResponseWriter, r *http.Request) {
+	if mgr.serv.canonicalModules == nil {
+		fmt.Fprintf(w, "module information not retrieved yet, please retry after fuzzing starts\n")
+		return
+	}
+	// NewCanonicalizer() is initialized with serv.modules.
+	modules, err := json.MarshalIndent(mgr.serv.modules, "", "\t")
+	if err != nil {
+		fmt.Fprintf(w, "unable to create JSON modules info: %v", err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(modules)
 }
 
 func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {

@@ -55,7 +55,7 @@ type machineInfoFunc struct {
 }
 
 type KernelModule struct {
-	Name string
-	Addr uint64
-	Size uint64
+	Name string `json:"Name"`
+	Addr uint64 `json:"Addr"`
+	Size uint64 `json:"Size"`
 }
