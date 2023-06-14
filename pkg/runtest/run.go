@@ -467,6 +467,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		HandleSegv:  true,
 		Cgroups:     p.Target.OS == targets.Linux && sandbox != "",
 		Trace:       true,
+		Swap:        ctx.Features[host.FeatureSwap].Enabled,
 	}
 	if sandbox != "" {
 		if ctx.Features[host.FeatureNetInjection].Enabled {

@@ -43,6 +43,7 @@ type Options struct {
 	Wifi          bool `json:"wifi,omitempty"`
 	IEEE802154    bool `json:"ieee802154,omitempty"`
 	Sysctl        bool `json:"sysctl,omitempty"`
+	Swap          bool `json:"swap,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -150,6 +151,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		"Fault":         &opts.Fault,
 		"Leak":          &opts.Leak,
 		"Sysctl":        &opts.Sysctl,
+		"Swap":          &opts.Swap,
 	} {
 		if *opt {
 			return fmt.Errorf("option %v is not supported on %v", name, OS)
@@ -183,6 +185,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.Wifi = true
 		opts.IEEE802154 = true
 		opts.Sysctl = true
+		opts.Swap = true
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.NetReset = false
@@ -316,6 +319,7 @@ func defaultFeatures(value bool) Features {
 		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
 		"ieee802154":  {"setup and use mac802154_hwsim for emulation", value},
 		"sysctl":      {"setup sysctl's for fuzzing", value},
+		"swap":        {"setup and use a swap file", value},
 	}
 }
 

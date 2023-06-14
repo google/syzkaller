@@ -34,6 +34,7 @@ const (
 	FeatureVhciInjection
 	FeatureWifiEmulation
 	Feature802154Emulation
+	FeatureSwap
 	numFeatures
 )
 
@@ -77,6 +78,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
 		FeatureWifiEmulation:    {Name: "wifi device emulation", Reason: unsupported},
 		Feature802154Emulation:  {Name: "802.15.4 emulation", Reason: unsupported},
+		FeatureSwap:             {Name: "swap file", Reason: unsupported},
 	}
 	if noHostChecks(target) {
 		return res, nil
@@ -124,6 +126,9 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	}
 	if featureFlags["ieee802154"].Enabled && features[Feature802154Emulation].Enabled {
 		args = append(args, "802154")
+	}
+	if features[FeatureSwap].Enabled {
+		args = append(args, "swap")
 	}
 	output, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
 	log.Logf(1, "executor %v\n%s", args, output)
