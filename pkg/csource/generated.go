@@ -9071,9 +9071,9 @@ static void mount_cgroups2(const char** controllers, int count)
 
 static void setup_cgroups()
 {
-	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids"};
+	const char* unified_controllers[] = {"+cpu", "+io", "+pids"};
 	const char* net_controllers[] = {"net", "net_prio", "devices", "blkio", "freezer"};
-	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit"};
+	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit", "memory"};
 	if (mkdir("/syzcgroup", 0777)) {
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
 		return;
@@ -9101,12 +9101,6 @@ static void setup_cgroups_loop()
 	}
 	snprintf(file, sizeof(file), "%s/pids.max", cgroupdir);
 	write_file(file, "32");
-	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
-	write_file(file, "%d", 298 << 20);
-	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
-	write_file(file, "%d", 299 << 20);
-	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
-	write_file(file, "%d", 300 << 20);
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
 	write_file(file, "%d", pid);
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
@@ -9115,6 +9109,10 @@ static void setup_cgroups_loop()
 	}
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
 	write_file(file, "%d", pid);
+	snprintf(file, sizeof(file), "%s/memory.soft_limit_in_bytes", cgroupdir);
+	write_file(file, "%d", 299 << 20);
+	snprintf(file, sizeof(file), "%s/memory.limit_in_bytes", cgroupdir);
+	write_file(file, "%d", 300 << 20);
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
