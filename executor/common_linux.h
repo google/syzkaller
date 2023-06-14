@@ -1153,6 +1153,18 @@ static void initialize_wifi_devices(void)
 }
 #endif
 
+#if SYZ_EXECUTOR || (SYZ_NET_DEVICES && SYZ_NIC_VF) || SYZ_SWAP
+static int runcmdline(char* cmdline)
+{
+	debug("%s\n", cmdline);
+	int ret = system(cmdline);
+	if (ret) {
+		debug("FAIL: %s\n", cmdline);
+	}
+	return ret;
+}
+#endif
+
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 #include <arpa/inet.h>
 #include <errno.h>
@@ -1428,15 +1440,6 @@ error:
 }
 
 #if SYZ_EXECUTOR || SYZ_NIC_VF
-static int runcmdline(char* cmdline)
-{
-	debug("%s\n", cmdline);
-	int ret = system(cmdline);
-	if (ret) {
-		debug("FAIL: %s\n", cmdline);
-	}
-	return ret;
-}
 
 static void netlink_nicvf_setup(void)
 {
@@ -5573,4 +5576,44 @@ static long syz_pkey_set(volatile long pkey, volatile long val)
 #endif
 	return 0;
 }
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SWAP
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/swap.h>
+#include <sys/types.h>
+
+#define SWAP_FILE "./swap-file"
+#define SWAP_FILE_SIZE (128 * 1000 * 1000) // 128 MB.
+
+static void setup_swap()
+{
+	// The call must be idempotent, so first disable swap and remove the swap file.
+	swapoff(SWAP_FILE);
+	unlink(SWAP_FILE);
+	// Zero-fill the file.
+	int fd = open(SWAP_FILE, O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
+	if (fd == -1) {
+		failmsg("swap file open failed", "file: %s", SWAP_FILE);
+		return;
+	}
+	// We cannot do ftruncate -- swapon complains about this. Do fallocate instead.
+	fallocate(fd, FALLOC_FL_ZERO_RANGE, 0, SWAP_FILE_SIZE);
+	close(fd);
+	// Set up the swap file.
+	char cmdline[64];
+	sprintf(cmdline, "mkswap %s", SWAP_FILE);
+	if (runcmdline(cmdline)) {
+		fail("mkswap failed");
+		return;
+	}
+	if (swapon(SWAP_FILE, SWAP_FLAG_PREFER) == 1) {
+		failmsg("swapon failed", "file: %s", SWAP_FILE);
+		return;
+	}
+}
+
 #endif
