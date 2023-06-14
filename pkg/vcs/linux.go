@@ -172,11 +172,12 @@ func (ctx *linux) EnvForCommit(
 	// arch/x86/entry/thunk_64.o: warning: objtool: missing symbol table
 	// We don't bisect that far back with neither clang nor gcc, so this should be fine:
 	fix := "1d489151e9f9d1647110277ff77282fe4d96d09b"
-	contained, err := ctx.git.Contains(fix)
+	fixTitle := "objtool: Don't fail on missing symbol table"
+	searchResult, err := ctx.git.GetCommitByTitle(fixTitle)
 	if err != nil {
 		return nil, err
 	}
-	if !contained {
+	if searchResult == nil {
 		_, err := ctx.git.git("cherry-pick", "--no-commit", fix)
 		if err != nil {
 			return nil, err
