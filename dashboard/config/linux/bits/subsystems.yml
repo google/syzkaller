@@ -583,6 +583,7 @@ config:
  - DAMON_PADDR: [v5.16]
  - DAMON_DBGFS: [v5.15]
  - DAMON_RECLAIM: [v5.17]
+ - ZSWAP_DEFAULT_ON: [v5.7]
 
  # Multi-gen LRU is the new better LRU implementation
  # that is supposed to be the default in future,
