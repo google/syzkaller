@@ -27,7 +27,7 @@ func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (b
 		return base, nil
 	}
 	// Since base does not crash, full config is our best bet for now.
-	current := full.clone()
+	current := full.Clone()
 	var suspects []string
 	// Take half of the diff between base and full, apply to base and test.
 	// If this candidate config crashes, we commit it as new full and repeat the process.
@@ -47,7 +47,7 @@ top:
 		for _, part := range [][]string{diff[:half], diff[half:]} {
 			dt.Log("trying half: %v", part)
 			closure := kconf.addDependencies(base, full, part)
-			candidate := base.clone()
+			candidate := base.Clone()
 			// Always move all non-tristate configs from full to base as we don't minimize them.
 			for _, cfg := range other {
 				candidate.Set(cfg.Name, cfg.Value)
