@@ -408,7 +408,7 @@ static void event_set(event_t* ev)
 {
 	pthread_mutex_lock(&ev->mu);
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	ev->state = 1;
 	pthread_mutex_unlock(&ev->mu);
 	pthread_cond_broadcast(&ev->cv);

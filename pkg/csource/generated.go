@@ -364,7 +364,7 @@ static void event_set(event_t* ev)
 {
 	pthread_mutex_lock(&ev->mu);
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	ev->state = 1;
 	pthread_mutex_unlock(&ev->mu);
 	pthread_cond_broadcast(&ev->cv);
@@ -2538,7 +2538,7 @@ static void event_reset(event_t* ev)
 static void event_set(event_t* ev)
 {
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
 }
 
@@ -2686,7 +2686,7 @@ static void event_reset(event_t* ev)
 static void event_set(event_t* ev)
 {
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
 	syscall(SYS_futex, &ev->state, FUTEX_WAKE | FUTEX_PRIVATE_FLAG, 1000000);
 }
@@ -12286,7 +12286,7 @@ static void event_set(event_t* ev)
 {
 	EnterCriticalSection(&ev->cs);
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	ev->state = 1;
 	LeaveCriticalSection(&ev->cs);
 	WakeAllConditionVariable(&ev->cv);

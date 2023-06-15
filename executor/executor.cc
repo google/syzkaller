@@ -980,8 +980,8 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 		exitf("out of threads");
 	thread_t* th = &threads[i];
 	if (event_isset(&th->ready) || !event_isset(&th->done) || th->executing)
-		failmsg("bad thread state in schedule", "ready=%d done=%d executing=%d",
-			event_isset(&th->ready), event_isset(&th->done), th->executing);
+		exitf("bad thread state in schedule: ready=%d done=%d executing=%d",
+		      event_isset(&th->ready), event_isset(&th->done), th->executing);
 	last_scheduled = th;
 	th->copyout_pos = pos;
 	th->copyout_index = copyout_index;
@@ -1054,8 +1054,8 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 void handle_completion(thread_t* th)
 {
 	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->executing)
-		failmsg("bad thread state in completion", "ready=%d done=%d executing=%d",
-			event_isset(&th->ready), event_isset(&th->done), th->executing);
+		exitf("bad thread state in completion: ready=%d done=%d executing=%d",
+		      event_isset(&th->ready), event_isset(&th->done), th->executing);
 	if (th->res != (intptr_t)-1)
 		copyout_call_results(th);
 
