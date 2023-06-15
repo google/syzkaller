@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in prepare_task_switch
-ALT: bad-access in prepare_task_switch
 ALT: KMSAN origin in step_into
+ALT: bad-access in prepare_task_switch
 
 [  567.476354][    T1] =====================================================
 [  567.483452][    T1] BUG: KMSAN: uninit-value in prepare_task_switch+0x284/0xd00

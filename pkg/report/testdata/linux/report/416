@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Write in video_unregister_device
 ALT: bad-access in video_unregister_device
+TYPE: KASAN
 
 [ 1527.943923][T23697] ==================================================================
 [ 1527.952472][T23697] BUG: KASAN: use-after-free in kobject_del+0x12e/0x170

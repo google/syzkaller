@@ -1,4 +1,5 @@
 TITLE: kernel BUG in corrupted
+TYPE: BUG
 CORRUPTED: Y
 
 [ 1722.511384] ------------[ cut here ]------------

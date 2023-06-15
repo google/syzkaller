@@ -1,5 +1,6 @@
 TITLE: KASAN: stack-out-of-bounds Read in iov_iter_advance
 ALT: bad-access in iov_iter_advance
+TYPE: KASAN
 
 [   81.174109] ==================================================================
 [   81.174125] BUG: KASAN: stack-out-of-bounds in iov_iter_advance+0x4c0/0x4f0 at addr ffff8801ca657d38

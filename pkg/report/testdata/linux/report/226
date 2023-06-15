@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in rdma_listen
 ALT: bad-access in rdma_listen
+TYPE: KASAN
 
 [  353.728146] ==================================================================
 [  353.735888] BUG: KASAN: use-after-free in __list_add_valid+0xc6/0xd0

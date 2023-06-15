@@ -1,5 +1,6 @@
 TITLE: UBSAN: array-index-out-of-bounds in arch_uprobe_analyze_insn
 ALT: bad-access in arch_uprobe_analyze_insn
+TYPE: UBSAN
 
 [  175.967267][T13309] ================================================================================
 [  175.968362][T13309] UBSAN: array-index-out-of-bounds in /usr/local/google/home/dvyukov/src/linux2/arch/x86/kernel/uprobes.c:263:56

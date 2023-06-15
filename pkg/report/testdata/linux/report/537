@@ -1,4 +1,5 @@
 TITLE: BUG: rwlock bad magic in tipc_mon_reinit_self
+TYPE: LOCKDEP
 
 [ 1830.201558][T18158] BUG: rwlock bad magic on CPU#0, kworker/0:18/18158, 00000000859f2a8d
 [ 1830.209851][T18158] CPU: 0 PID: 18158 Comm: kworker/0:18 Not tainted 5.10.0-rc4-syzkaller #0

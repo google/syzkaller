@@ -1,4 +1,5 @@
 TITLE: WARNING in nfc_llcp_unregister_device
+TYPE: WARNING
 
 ------------[ cut here ]------------
 Ignoring spurious kernel translation fault at virtual address dead000000000110

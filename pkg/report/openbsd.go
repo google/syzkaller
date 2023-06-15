@@ -36,6 +36,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("panic:"),
@@ -90,6 +91,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("lock order reversal:"),
@@ -104,6 +106,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("witness:"),
@@ -122,6 +125,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("uvm_fault("),
@@ -143,6 +147,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("kernel:"),
@@ -159,5 +164,6 @@ var openbsdOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile("reorder_kernel"),
 		},
+		UnknownType,
 	},
 }, commonOopses...)

@@ -1,4 +1,5 @@
 TITLE: BUG: sleeping function called from invalid context in line6_pcm_acquire
+TYPE: ATOMIC_SLEEP
 
 [   76.428565][    C0] BUG: sleeping function called from invalid context at kernel/locking/mutex.c:908
 [   76.432834][    C0] in_atomic(): 1, irqs_disabled(): 0, pid: 464, name: kworker/0:2

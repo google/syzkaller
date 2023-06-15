@@ -1,4 +1,5 @@
 TITLE: possible deadlock in serial8250_console_write
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [  131.449768] ======================================================

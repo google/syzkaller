@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in io_dismantle_req
+TYPE: LOCKDEP
 
 [   32.237087][    C0] ================================
 [   32.242183][    C0] WARNING: inconsistent lock state

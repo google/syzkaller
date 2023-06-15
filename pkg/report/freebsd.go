@@ -92,6 +92,7 @@ var freebsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("panic:"),
@@ -139,5 +140,6 @@ var freebsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 }, commonOopses...)

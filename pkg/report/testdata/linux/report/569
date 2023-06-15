@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in enqueue_timer
 ALT: bad-access in enqueue_timer
+TYPE: KASAN
 
 [ 1039.654796][    C0] ==================================================================
 [ 1039.655950][    C0] BUG: KASAN: invalid-access in enqueue_timer+0x18/0xc0

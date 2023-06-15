@@ -1,4 +1,5 @@
 TITLE: KASAN: use-after-free in do_con_write.part.NUM at addr ADDR
+TYPE: KASAN
 CORRUPTED: Y
 
 [  374.860710] BUG: KASAN: use-after-free in do_con_write.part.23+0x1c50/0x1cb0 at addr ffff88000012c43a

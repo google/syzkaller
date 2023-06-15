@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Read in sg_remove_request
 ALT: bad-access in sg_remove_request
+TYPE: KASAN
 
 [  190.154802] ==================================================================
 [  190.154802] BUG: KASAN: slab-out-of-bounds in __lock_acquire+0x2eff/0x3640 at addr ffff8801a751e6f8

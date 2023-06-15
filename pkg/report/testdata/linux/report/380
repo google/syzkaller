@@ -1,4 +1,5 @@
 TITLE: WARNING in assert_slb_presence
+TYPE: WARNING
 
 [   38.771258] WARNING: CPU: 1 PID: 4057 at arch/powerpc/mm/slb.c:79 assert_slb_presence+0x2c/0x70
 [   38.772382] Kernel panic - not syncing: panic_on_warn set ...

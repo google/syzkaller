@@ -1,4 +1,5 @@
 TITLE: KASAN: null-ptr-deref Read
+TYPE: KASAN
 CORRUPTED: Y
 
 [23818.431954] BUG: KASAN: null-ptr-deref on address           (null)

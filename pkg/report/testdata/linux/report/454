@@ -1,4 +1,5 @@
 TITLE: UBSAN: undefined-behaviour in precalculate_color
+TYPE: UBSAN
 
 [  272.036692][T20797] ================================================================================
 [  272.038351][T20797] UBSAN: Undefined behaviour in drivers/media/common/v4l2-tpg/v4l2-tpg-core.c:942:56

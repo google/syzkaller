@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in sched_core_balance
+TYPE: LOCKDEP
 
 [  124.804344][ T3879] ================================
 [  124.809430][ T3879] WARNING: inconsistent lock state

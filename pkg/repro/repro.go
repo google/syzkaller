@@ -98,7 +98,7 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features,
 		return nil, ErrNoPrograms
 	}
 	crashStart := len(crashLog)
-	crashTitle, crashType := "", report.Unknown
+	crashTitle, crashType := "", report.UnknownType
 	if rep := reporter.Parse(crashLog); rep != nil {
 		crashStart = rep.StartPos
 		crashTitle = rep.Title

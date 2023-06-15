@@ -1,4 +1,5 @@
 TITLE: KASAN: slab-out-of-bounds in native_queued_spin_lock_slowpath at addr ADDR
+TYPE: KASAN
 CORRUPTED: Y
 
 [   46.284905] ==================================================================

@@ -1,4 +1,5 @@
 TITLE: possible deadlock in rtnl_lock
+TYPE: LOCKDEP
 
 [  577.935684] ============================================
 [  577.936463] WARNING: possible recursive locking detected

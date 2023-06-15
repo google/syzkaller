@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage
+TYPE: WARNING
 CORRUPTED: Y
 
 [  104.476079] =============================

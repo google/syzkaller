@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage in tipc_bearer_find
+TYPE: LOCKDEP
 
 [   91.193205] =============================
 [   91.193207] WARNING: suspicious RCU usage

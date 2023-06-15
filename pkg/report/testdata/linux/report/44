@@ -1,4 +1,5 @@
 TITLE: kernel BUG in pte_list_remove
+TYPE: BUG
 
 [   34.517718] ------------[ cut here ]------------
 [   34.522456] kernel BUG at arch/x86/kvm/mmu.c:1284!

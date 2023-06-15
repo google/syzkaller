@@ -1,4 +1,5 @@
 TITLE: WARNING in kvm_wait
+TYPE: WARNING
 
 [   60.014572][ T4392] ------------[ cut here ]------------
 [   60.020342][ T4392] raw_local_irq_restore() called with IRQs enabled

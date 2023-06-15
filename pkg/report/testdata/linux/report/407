@@ -1,4 +1,5 @@
 TITLE: WARNING: kobject bug in netdev_register_kobject
+TYPE: WARNING
 
 [   24.413160] ------------[ cut here ]------------
 [   24.417920] WARNING: CPU: 0 PID: 1928 at lib/kobject.c:244 kobject_add_internal.cold.13+0xc8/0xe2

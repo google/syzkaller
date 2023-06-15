@@ -1,5 +1,6 @@
 TITLE: KASAN: user-memory-access Read in skb_unref
 ALT: bad-access in skb_unref
+TYPE: KASAN
 
 [   33.956644][ T2205] ==================================================================
 [   33.964872][ T2205] BUG: KASAN: user-memory-access in atomic_read+0x16/0x46

@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in pn533_send_complete
 ALT: bad-access in pn533_send_complete
+TYPE: KASAN
 
 [   50.500958][    C1] ==================================================================
 [   50.509230][    C1] BUG: KASAN: use-after-free in pn533_send_complete.cold+0x47/0x6c

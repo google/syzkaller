@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage in bpf_prog_array_copy_info
+TYPE: LOCKDEP
 
 [   24.271604] =============================
 [   24.275791] WARNING: suspicious RCU usage

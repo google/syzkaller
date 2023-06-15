@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage in gc_worker
+TYPE: LOCKDEP
 
 [  388.069210][  T178] =============================
 [  388.070602][  T178] WARNING: suspicious RCU usage

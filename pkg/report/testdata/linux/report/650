@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Write in napi_hash_del
 ALT: bad-access in napi_hash_del
+TYPE: KASAN
 
 [   34.680402][ T2373] ==================================================================
 [   34.688750][ T2373] BUG: KASAN: slab-out-of-bounds in test_and_clear_bit+0x1a/0x25
