@@ -5,6 +5,8 @@ package report
 
 import (
 	"regexp"
+
+	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 func ctorDarwin(cfg *config) (reporterImpl, []string, error) {
@@ -43,7 +45,7 @@ var darwinOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("Debugger: Unexpected kernel trap number:"),
@@ -54,6 +56,6 @@ var darwinOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 }, commonOopses...)

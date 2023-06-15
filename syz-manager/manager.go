@@ -31,6 +31,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	crash_pkg "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
@@ -862,12 +863,12 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
 		log.Errorf("failed to symbolize report: %v", err)
 	}
-	if crash.Type == report.MemoryLeak {
+	if crash.Type == crash_pkg.MemoryLeak {
 		mgr.mu.Lock()
 		mgr.memoryLeakFrames[crash.Frame] = true
 		mgr.mu.Unlock()
 	}
-	if crash.Type == report.DataRace {
+	if crash.Type == crash_pkg.DataRace {
 		mgr.mu.Lock()
 		mgr.dataRaceFrames[crash.Frame] = true
 		mgr.mu.Unlock()
@@ -897,7 +898,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	mgr.mu.Unlock()
 
 	if mgr.dash != nil {
-		if crash.Type == report.MemoryLeak {
+		if crash.Type == crash_pkg.MemoryLeak {
 			return true
 		}
 		dc := &dashapi.Crash{
@@ -988,7 +989,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 		return true
 	}
 	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
-		crash.Type != report.MemoryLeak) {
+		crash.Type != crash_pkg.MemoryLeak) {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
 	}
@@ -1000,7 +1001,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 		Title:        crash.Title,
 		Corrupted:    crash.Corrupted,
 		Suppressed:   crash.Suppressed,
-		MayBeMissing: crash.Type == report.MemoryLeak, // we did not send the original crash w/o repro
+		MayBeMissing: crash.Type == crash_pkg.MemoryLeak, // we did not send the original crash w/o repro
 	}
 	needRepro, err := mgr.dash.NeedRepro(cid)
 	if err != nil {
@@ -1011,7 +1012,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 
 func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 	if mgr.dash != nil {
-		if rep.Type == report.MemoryLeak {
+		if rep.Type == crash_pkg.MemoryLeak {
 			// Don't send failed leak repro attempts to dashboard
 			// as we did not send the crash itself.
 			return
@@ -1021,7 +1022,7 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 			Title:        rep.Title,
 			Corrupted:    rep.Corrupted,
 			Suppressed:   rep.Suppressed,
-			MayBeMissing: rep.Type == report.MemoryLeak,
+			MayBeMissing: rep.Type == crash_pkg.MemoryLeak,
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard: %v", err)

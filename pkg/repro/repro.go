@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
@@ -50,7 +51,7 @@ type context struct {
 	target       *targets.Target
 	reporter     *report.Reporter
 	crashTitle   string
-	crashType    report.Type
+	crashType    crash.Type
 	crashStart   int
 	entries      []*prog.LogEntry
 	instances    chan *reproInstance
@@ -98,7 +99,7 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features,
 		return nil, ErrNoPrograms
 	}
 	crashStart := len(crashLog)
-	crashTitle, crashType := "", report.UnknownType
+	crashTitle, crashType := "", crash.UnknownType
 	if rep := reporter.Parse(crashLog); rep != nil {
 		crashStart = rep.StartPos
 		crashTitle = rep.Title
@@ -117,10 +118,10 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features,
 		// No output can only be reproduced with the max timeout.
 		// As a compromise we use the smallest and the largest timeouts.
 		testTimeouts = []time.Duration{testTimeouts[0], testTimeouts[2]}
-	case crashType == report.MemoryLeak:
+	case crashType == crash.MemoryLeak:
 		// Memory leaks can't be detected quickly because of expensive setup and scanning.
 		testTimeouts = testTimeouts[1:]
-	case crashType == report.Hang:
+	case crashType == crash.Hang:
 		testTimeouts = testTimeouts[2:]
 	}
 	ctx := &context{
@@ -171,9 +172,10 @@ func (ctx *context) run() (*Result, *Stats, error) {
 	return res, ctx.stats, nil
 }
 
-func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashType report.Type) csource.Options {
+func createStartOptions(cfg *mgrconfig.Config, features *host.Features,
+	crashType crash.Type) csource.Options {
 	opts := csource.DefaultOpts(cfg)
-	if crashType == report.MemoryLeak {
+	if crashType == crash.MemoryLeak {
 		opts.Leak = true
 	}
 	if features != nil {
@@ -538,7 +540,7 @@ func (ctx *context) testWithInstance(callback func(execInterface) (rep *instance
 		ctx.reproLogf(2, "suppressed program crash: %v", rep.Title)
 		return false, nil
 	}
-	if ctx.crashType == report.MemoryLeak && rep.Type != report.MemoryLeak {
+	if ctx.crashType == crash.MemoryLeak && rep.Type != crash.MemoryLeak {
 		ctx.reproLogf(2, "not a leak crash: %v", rep.Title)
 		return false, nil
 	}

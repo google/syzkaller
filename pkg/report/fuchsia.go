@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/ianlancetaylor/demangle"
 )
@@ -253,7 +254,7 @@ var zirconOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("recursion in interrupt handler"),
@@ -274,7 +275,7 @@ var zirconOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	// We should detect just "stopping other cpus" as some kernel crash rather then as "lost connection",
 	// but if we add oops for "stopping other cpus", then it will interfere with other formats,
@@ -289,11 +290,11 @@ var zirconOopses = append([]*oops{
 				title:        compile("welcome to Zircon"),
 				fmt:          "unexpected kernel reboot",
 				noStackTrace: true,
-				reportType:   UnexpectedReboot,
+				reportType:   crash.UnexpectedReboot,
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("KVM internal error"),
@@ -305,7 +306,7 @@ var zirconOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("<== fatal exception"),
@@ -320,6 +321,6 @@ var zirconOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile("<== fatal exception: process .+?syz.+?\\["),
 		},
-		UnknownType,
+		crash.UnknownType,
 	},
 }, commonOopses...)
