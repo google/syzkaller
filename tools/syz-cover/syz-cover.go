@@ -19,6 +19,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -28,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
@@ -41,6 +43,7 @@ func main() {
 		flagKernelSrc      = flag.String("kernel_src", "", "path to kernel sources")
 		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
+		flagModules        = flag.String("modules", "", "modules info obtained from /modules (optional)")
 		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
 		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
 		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
@@ -72,8 +75,16 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
+	var modules []host.KernelModule
+	if *flagModules != "" {
+		m, err := loadModules(*flagModules)
+		if err != nil {
+			tool.Fail(err)
+		}
+		modules = m
+	}
 	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj,
-		*flagKernelSrc, *flagKernelBuildSrc, nil, nil, nil, false)
+		*flagKernelSrc, *flagKernelBuildSrc, nil, nil, modules, false)
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -139,4 +150,16 @@ func readPCs(files []string) ([]uint64, error) {
 		}
 	}
 	return pcs, nil
+}
+
+func loadModules(fname string) ([]host.KernelModule, error) {
+	data, err := os.ReadFile(fname)
+	if err != nil {
+		return nil, err
+	}
+	var modules []host.KernelModule
+	if err := json.Unmarshal(data, &modules); err != nil {
+		return nil, err
+	}
+	return modules, nil
 }
