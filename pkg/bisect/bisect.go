@@ -6,6 +6,7 @@ package bisect
 import (
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -83,6 +85,7 @@ type env struct {
 	buildTime    time.Duration
 	testTime     time.Duration
 	flaky        bool
+	reportTypes  []crash.Type
 }
 
 const MaxNumTests = 20 // number of tests we do per commit
@@ -255,6 +258,7 @@ func (env *env) bisect() (*Result, error) {
 	} else if testRes.verdict != vcs.BisectBad {
 		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
+	env.reportTypes = testRes.types
 
 	if len(cfg.Kernel.BaselineConfig) != 0 {
 		testRes1, err := env.minimizeConfig()
@@ -519,6 +523,7 @@ type testResult struct {
 	verdict    vcs.BisectResult
 	com        *vcs.Commit
 	rep        *report.Report
+	types      []crash.Type
 	kernelSign string
 }
 
@@ -612,7 +617,7 @@ func (env *env) test() (*testResult, error) {
 		env.log(problem)
 		return res, &InfraError{Title: problem}
 	}
-	bad, good, infra, rep := env.processResults(current, results)
+	bad, good, infra, rep, types := env.processResults(current, results)
 	res.verdict, err = env.bisectionDecision(len(results), bad, good, infra)
 	if err != nil {
 		return nil, err
@@ -626,8 +631,10 @@ func (env *env) test() (*testResult, error) {
 			Title: fmt.Sprintf("failed testing reproducer on %v", current.Hash),
 		}
 	} else {
+		// Pick the most relevant as the main one.
 		res.rep = rep
 	}
+	res.types = types
 	// TODO: when we start supporting boot/test error bisection, we need to make
 	// processResults treat that verdit as "good".
 	return res, nil
@@ -663,8 +670,9 @@ func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult
 }
 
 func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestResult) (
-	bad, good, infra int, rep *report.Report) {
+	bad, good, infra int, rep *report.Report, types []crash.Type) {
 	var verdicts []string
+	var reports []*report.Report
 	for i, res := range results {
 		if res.Error == nil {
 			good++
@@ -688,7 +696,7 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 			env.saveDebugFile(current.Hash, i, output)
 		case *instance.CrashError:
 			bad++
-			rep = err.Report
+			reports = append(reports, err.Report)
 			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
 			output := err.Report.Report
 			if len(output) == 0 {
@@ -711,7 +719,73 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 			env.log("run #%v: %v", i, verdict)
 		}
 	}
+	var others bool
+	rep, types, others = mostFrequentReports(reports)
+	if rep != nil || others {
+		// TODO: set flaky=true or in some other way indicate that the bug
+		// triggers multiple different crashes?
+		env.log("representative crash: %v, types: %v", rep.Title, types)
+	}
 	return
+}
+
+// mostFrequentReports() processes the list of run results and determines:
+// 1) The most representative crash types.
+// 2) The most representative crash report.
+// The algorithm is described in code comments.
+func mostFrequentReports(reports []*report.Report) (*report.Report, []crash.Type, bool) {
+	// First find most frequent report types.
+	type info struct {
+		t      crash.Type
+		count  int
+		report *report.Report
+	}
+	crashes := 0
+	perType := []*info{}
+	perTypeMap := map[crash.Type]*info{}
+	for _, rep := range reports {
+		if rep.Title == "" {
+			continue
+		}
+		crashes++
+		if perTypeMap[rep.Type] == nil {
+			obj := &info{
+				t:      rep.Type,
+				report: rep,
+			}
+			perType = append(perType, obj)
+			perTypeMap[rep.Type] = obj
+		}
+		perTypeMap[rep.Type].count++
+	}
+	sort.Slice(perType, func(i, j int) bool {
+		return perType[i].count > perType[j].count
+	})
+	// Then pick those that are representative enough.
+	var bestTypes []crash.Type
+	var bestReport *report.Report
+	taken := 0
+	for _, info := range perType {
+		if info.t == crash.Hang && info.count*2 < crashes && len(perType) > 1 {
+			// To pick a Hang as a representative one, require >= 50%
+			// of all crashes to be of this type.
+			// Hang crashes can appear in various parts of the kernel, so
+			// we only want to take them into account only if we are actually
+			// bisecting this kind of a bug.
+			continue
+		}
+		// Take further crash types until we have considered 2/3 of all crashes, but
+		// no more than 3.
+		needTaken := (crashes + 2) * 2 / 3
+		if taken < needTaken && len(bestTypes) < 3 {
+			if bestReport == nil {
+				bestReport = info.report
+			}
+			bestTypes = append(bestTypes, info.t)
+			taken += info.count
+		}
+	}
+	return bestReport, bestTypes, len(bestTypes) != len(perType)
 }
 
 func (env *env) saveDebugFile(hash string, idx int, data []byte) {

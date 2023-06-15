@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
@@ -736,6 +737,88 @@ func TestBisectVerdict(t *testing.T) {
 			if !test.abort {
 				assert.Equal(t, test.verdict, ret)
 			}
+		})
+	}
+}
+
+// nolint: dupl
+func TestMostFrequentReport(t *testing.T) {
+	tests := []struct {
+		name    string
+		reports []*report.Report
+		report  string
+		types   []crash.Type
+		other   bool
+	}{
+		{
+			name: "one infrequent",
+			reports: []*report.Report{
+				{Title: "A", Type: crash.KASAN},
+				{Title: "B", Type: crash.KASAN},
+				{Title: "C", Type: crash.Bug},
+				{Title: "D", Type: crash.KASAN},
+				{Title: "E", Type: crash.Bug},
+				{Title: "F", Type: crash.KASAN},
+				{Title: "G", Type: crash.LockdepBug},
+			},
+			// LockdepBug was too infrequent.
+			types:  []crash.Type{crash.KASAN, crash.Bug},
+			report: "A",
+			other:  true,
+		},
+		{
+			name: "ignore hangs",
+			reports: []*report.Report{
+				{Title: "A", Type: crash.KASAN},
+				{Title: "B", Type: crash.KASAN},
+				{Title: "C", Type: crash.Hang},
+				{Title: "D", Type: crash.KASAN},
+				{Title: "E", Type: crash.Hang},
+				{Title: "F", Type: crash.Hang},
+				{Title: "G", Type: crash.Warning},
+			},
+			// Hang is not a preferred report type.
+			types:  []crash.Type{crash.KASAN, crash.Warning},
+			report: "A",
+			other:  true,
+		},
+		{
+			name: "take hangs",
+			reports: []*report.Report{
+				{Title: "A", Type: crash.KASAN},
+				{Title: "B", Type: crash.KASAN},
+				{Title: "C", Type: crash.Hang},
+				{Title: "D", Type: crash.Hang},
+				{Title: "E", Type: crash.Hang},
+				{Title: "F", Type: crash.Hang},
+			},
+			// There are so many Hangs that we can't ignore it.
+			types:  []crash.Type{crash.Hang, crash.KASAN},
+			report: "C",
+		},
+		{
+			name: "take unknown",
+			reports: []*report.Report{
+				{Title: "A", Type: crash.UnknownType},
+				{Title: "B", Type: crash.UnknownType},
+				{Title: "C", Type: crash.Hang},
+				{Title: "D", Type: crash.UnknownType},
+				{Title: "E", Type: crash.Hang},
+				{Title: "F", Type: crash.UnknownType},
+			},
+			// UnknownType is also a type.
+			types:  []crash.Type{crash.UnknownType},
+			report: "A",
+			other:  true,
+		},
+	}
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			rep, types, other := mostFrequentReports(test.reports)
+			assert.ElementsMatch(t, types, test.types)
+			assert.Equal(t, rep.Title, test.report)
+			assert.Equal(t, other, test.other)
 		})
 	}
 }
