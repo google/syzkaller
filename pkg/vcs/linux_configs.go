@@ -3,7 +3,13 @@
 
 package vcs
 
-import "github.com/google/syzkaller/pkg/kconfig"
+import (
+	"strings"
+
+	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/kconfig"
+	"github.com/google/syzkaller/pkg/report/crash"
+)
 
 // setLinuxTagConfigs() disables Linux kernel configurations depending on the Linux kernel version,
 // which is determined by the git tags reachable from HEAD.
@@ -84,5 +90,51 @@ func setLinuxTagConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
 			cf.Unset(a.From)
 			cf.Set(a.To, kconfig.Yes)
 		}
+	}
+}
+
+// setLinuxSanitizerConfigs() removes Linux kernel sanitizers that are not necessary
+// to trigger the specified crash types.
+func setLinuxSanitizerConfigs(cf *kconfig.ConfigFile, types []crash.Type, dt debugtracer.DebugTracer) {
+	keep := map[crash.Type]func(){
+		crash.Hang: func() {
+			cf.Unset("RCU_STALL_COMMON")
+			cf.Unset("LOCKUP_DETECTOR")
+			cf.Unset("SOFTLOCKUP_DETECTOR")
+			cf.Unset("HARDLOCKUP_DETECTOR")
+			cf.Unset("DETECT_HUNG_TASK")
+			// It looks like it's the only reliable way to completely disable hung errors.
+			val := cf.Value("CMDLINE")
+			pos := strings.LastIndexByte(val, '"')
+			if pos >= 0 {
+				cf.Set("CMDLINE",
+					val[:pos]+" rcupdate.rcu_cpu_stall_suppress=1"+val[pos:])
+			}
+		},
+		crash.MemoryLeak:  func() { cf.Unset("DEBUG_KMEMLEAK") },
+		crash.UBSAN:       func() { cf.Unset("UBSAN") },
+		crash.Bug:         func() { cf.Unset("BUG") },
+		crash.KASAN:       func() { cf.Unset("KASAN") },
+		crash.LockdepBug:  func() { cf.Unset("LOCKDEP") },
+		crash.AtomicSleep: func() { cf.Unset("DEBUG_ATOMIC_SLEEP") },
+	}
+	need := map[crash.Type]bool{}
+	for _, typ := range types {
+		if typ == crash.Warning {
+			// These are disabled together.
+			typ = crash.Bug
+		}
+		need[typ] = true
+	}
+	var disabled []string
+	for typ, f := range keep {
+		if need[typ] {
+			continue
+		}
+		f()
+		disabled = append(disabled, string(typ))
+	}
+	if len(disabled) > 0 {
+		dt.Log("disabling configs for %v, they are not needed", disabled)
 	}
 }
