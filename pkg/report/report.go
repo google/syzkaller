@@ -75,31 +75,18 @@ func (r Report) String() string {
 	return fmt.Sprintf("crash: %v\n%s", r.Title, r.Report)
 }
 
-type Type int
+type Type string
 
 const (
-	Unknown Type = iota
-	Hang
-	MemoryLeak
-	DataRace
-	UnexpectedReboot
+	Unknown          = Type("")
+	Hang             = Type("HANG")
+	MemoryLeak       = Type("LEAK")
+	DataRace         = Type("DATARACE")
+	UnexpectedReboot = Type("REBOOT")
 )
 
 func (t Type) String() string {
-	switch t {
-	case Unknown:
-		return "UNKNOWN"
-	case Hang:
-		return "HANG"
-	case MemoryLeak:
-		return "LEAK"
-	case DataRace:
-		return "DATARACE"
-	case UnexpectedReboot:
-		return "REBOOT"
-	default:
-		panic("unknown report type")
-	}
+	return string(t)
 }
 
 // NewReporter creates reporter for the specified OS/Type.
