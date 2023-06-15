@@ -1,5 +1,6 @@
 TITLE: KASAN: stack-out-of-bounds Read in xfrm_selector_match
 ALT: bad-access in xfrm_selector_match
+TYPE: KASAN
 
 [  396.956335] ==================================================================
 [  396.963769] BUG: KASAN: stack-out-of-bounds in memcmp+0xe3/0x160

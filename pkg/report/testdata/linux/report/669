@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in fs_reclaim_acquire
+TYPE: LOCKDEP
 
 [  860.112634][    C1] ================================
 [  860.117823][    C1] WARNING: inconsistent lock state

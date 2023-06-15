@@ -1,4 +1,5 @@
 TITLE: possible deadlock in audit_receive
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [   48.981019] =============================================

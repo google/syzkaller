@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage in rds_loop_conn_alloc
+TYPE: LOCKDEP
 
 [   40.467154] =============================
 [   40.471339] WARNING: suspicious RCU usage

@@ -1,5 +1,6 @@
 TITLE: KASAN: stack-out-of-bounds Read in ntfs_fill_super
 ALT: bad-access in ntfs_fill_super
+TYPE: KASAN
 
 [  474.455813][T13922] ==================================================================
 [  474.463900][T13922] BUG: KASAN: stack-out-of-bounds in lock_acquire+0x1c3/0x3c0

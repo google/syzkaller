@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in udf_sync_fs
 ALT: bad-access in udf_sync_fs
+TYPE: KASAN
 
 [   54.508689][ T4991] ==================================================================
 [   54.516895][ T4991] BUG: KASAN: use-after-free in crc_itu_t+0x1d5/0x2a0

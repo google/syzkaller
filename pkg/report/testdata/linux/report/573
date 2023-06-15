@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in firmware_fallback_sysfs
 ALT: bad-access in firmware_fallback_sysfs
+TYPE: KASAN
 
 [ 4452.860624][T17139] ==================================================================
 [ 4452.861782][T17139] BUG: KASAN: invalid-access in __list_add_valid+0x14/0x90

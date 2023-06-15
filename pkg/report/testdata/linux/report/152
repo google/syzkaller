@@ -1,4 +1,5 @@
 TITLE: WARNING: possible circular locking dependency detected
+TYPE: WARNING
 CORRUPTED: Y
 
 [....] Starting enhanced syslogd: rsyslogd[   12.037795] audit: type=1400 audit(1515564630.515:5): avc:  denied  { syslog } for  pid=3348 comm="rsyslogd" capability=34  scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=capability2 permissive=1

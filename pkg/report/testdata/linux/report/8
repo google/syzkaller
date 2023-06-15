@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in snd_seq_queue_alloc
 ALT: bad-access in snd_seq_queue_alloc
+TYPE: KASAN
 CORRUPTED: Y
 
 [   94.864848] line 0

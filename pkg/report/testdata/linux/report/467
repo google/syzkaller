@@ -1,4 +1,5 @@
 TITLE: possible deadlock in peer_remove_after_dead
+TYPE: LOCKDEP
 
 [ 1319.864586][   T43] ======================================================
 [ 1319.865875][   T43] WARNING: possible circular locking dependency detected

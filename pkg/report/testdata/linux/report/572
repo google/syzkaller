@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in l2cap_sock_teardown_cb
 ALT: bad-access in l2cap_sock_teardown_cb
+TYPE: KASAN
 
 [ 5825.407853][ T9802] ==================================================================
 [ 5825.409134][ T9802] BUG: KASAN: invalid-access in _raw_spin_lock_bh+0x2c/0x70

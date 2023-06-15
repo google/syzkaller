@@ -1,4 +1,5 @@
 TITLE: WARNING in corrupted
+TYPE: WARNING
 CORRUPTED: Y
 
 [   95.884027] WARNING: CPU: 1 PID: 18244 at ./arch/x86/include/asm/fpu/internal.h:340 __switch_to+0x10bd/0x13c0

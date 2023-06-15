@@ -1,4 +1,5 @@
 TITLE: WARNING: locking bug in kernel_wait4
+TYPE: LOCKDEP
 
 [  483.562491][ T4115] =============================
 [  483.563138][ T4115] [ BUG: Invalid wait context ]

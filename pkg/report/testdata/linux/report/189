@@ -1,5 +1,5 @@
-# Note: 189-190 have the same root cause.
 TITLE: possible deadlock in vcs_read
+TYPE: LOCKDEP
 
 [   75.037355] ======================================================
 [   75.037357] WARNING: possible circular locking dependency detected

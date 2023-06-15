@@ -1,4 +1,5 @@
 TITLE: kernel BUG in sg_scsi_ioctl
+TYPE: BUG
 
 [ 1889.439688][T11163] ------------[ cut here ]------------
 [ 1889.445218][T11163] kernel BUG at mm/slab.c:4339!

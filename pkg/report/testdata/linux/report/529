@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage in sys_rt_sigreturn
+TYPE: LOCKDEP
 
 [  581.924125][ T4410] =============================
 [  581.925315][ T4410] WARNING: suspicious RCU usage

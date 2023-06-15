@@ -1,4 +1,5 @@
 TITLE: WARNING: held lock freed in nr_release
+TYPE: LOCKDEP
 
 [   68.540703][ T8559] =========================
 [   68.545204][ T8559] WARNING: held lock freed!

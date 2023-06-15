@@ -1,4 +1,5 @@
 TITLE: WARNING: kmalloc bug in kvm_vm_ioctl
+TYPE: WARNING
 
 [  232.358467] ------------[ cut here ]------------
 [  232.358478] WARNING: CPU: 1 PID: 36348 at mm/slab_common.c:903 kmalloc_slab+0x89/0xa0()

@@ -1,4 +1,5 @@
 TITLE: WARNING: zero-size vmalloc in bpf_check
+TYPE: WARNING
 
 
 ------------[ cut here ]------------

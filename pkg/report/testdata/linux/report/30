@@ -1,4 +1,5 @@
 TITLE: possible deadlock in tun_device_event
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [  121.451623] ======================================================

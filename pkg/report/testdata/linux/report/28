@@ -1,4 +1,5 @@
 TITLE: possible deadlock in tty_buffer_flush
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [ 1722.511384] WARNING: possible circular locking dependency detected

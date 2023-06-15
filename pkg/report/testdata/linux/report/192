@@ -1,5 +1,5 @@
-# Note: 191-194 have the same root cause.
 TITLE: possible deadlock in perf_event_init_task
+TYPE: LOCKDEP
 
 [   49.707025] ======================================================
 [   49.713322] WARNING: possible circular locking dependency detected

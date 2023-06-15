@@ -1,4 +1,5 @@
 TITLE: BUG: sleeping function called from invalid context in console_lock
+TYPE: ATOMIC_SLEEP
 
 [   74.488762][ T6529] BUG: sleeping function called from invalid context at kernel/printk/printk.c:2525
 [   74.498327][ T6529] in_atomic(): 1, irqs_disabled(): 1, non_block: 0, pid: 6529, name: syz-executor925

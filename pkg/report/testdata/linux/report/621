@@ -1,4 +1,5 @@
 TITLE: WARNING in ovl_create_real
+TYPE: WARNING
 SUPPRESSED: Y
 
 [  147.467058][T10579] syz-executor846[10579]: segfault at 4cb420 ip 00000000004cb420 sp 00007f27fd37a250 error 15 in syz-executor846382544[4c9000+3000]

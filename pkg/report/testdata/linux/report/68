@@ -1,4 +1,5 @@
 TITLE: BUG: spinlock recursion in wake_up_new_task
+TYPE: LOCKDEP
 
 [  213.269287] BUG: spinlock recursion on CPU#0, syz-executor7/5032
 [  213.281506]  lock: 0xffff88006c122d00, .magic: dead4ead, .owner: syz-executor7/5032, .owner_cpu: -1

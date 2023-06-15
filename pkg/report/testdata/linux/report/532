@@ -1,4 +1,5 @@
 TITLE: WARNING: still has locks held in count_memcg_event_mm
+TYPE: LOCKDEP
 
 [  826.523990][ T4398] ====================================
 [  826.525201][ T4398] WARNING: syz-fuzzer/4398 still has locks held!

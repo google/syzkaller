@@ -277,7 +277,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		// On a leak instance we override repro type to leak,
 		// because otherwise repro package won't even enable leak detection
 		// and we won't reproduce leaks from other instances.
-		typ := report.Unknown
+		typ := report.UnknownType
 		if hc.leak {
 			typ = report.MemoryLeak
 		}

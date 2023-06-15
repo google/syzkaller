@@ -1,5 +1,6 @@
 TITLE: BUG: corrupted list in tipc_nametbl_unsubscribe
 ALT: bad-access in tipc_nametbl_unsubscribe
+TYPE: BUG
 
 [  440.811510] list_del corruption. prev->next should be 00000000bc6553ca, but was 0000000038fa8131
 [  440.811620] ------------[ cut here ]------------

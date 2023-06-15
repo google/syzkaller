@@ -1,4 +1,5 @@
 TITLE: WARNING: bad unlock balance in restore_fpsimd_context
+TYPE: LOCKDEP
 
 [  753.902734][ T4405] =====================================
 [  753.903682][ T4405] WARNING: bad unlock balance detected!

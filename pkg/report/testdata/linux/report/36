@@ -1,4 +1,5 @@
 TITLE: BUG: still has locks held in pipe_lock
+TYPE: LOCKDEP
 
 [   80.586804] =====================================
 [  734.270366] [ BUG: syz-executor/31761 still has locks held! ]

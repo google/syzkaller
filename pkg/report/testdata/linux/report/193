@@ -1,5 +1,5 @@
-# Note: 191-194 have the same root cause.
 TITLE: possible deadlock in perf_event_for_each_child
+TYPE: LOCKDEP
 
 [   68.155096] ======================================================
 [   68.161400] WARNING: possible circular locking dependency detected

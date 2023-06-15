@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Write in __unwind_start
 ALT: bad-access in __unwind_start
+TYPE: KASAN
 CORRUPTED: Y
 
 [   80.262156] ==================================================================

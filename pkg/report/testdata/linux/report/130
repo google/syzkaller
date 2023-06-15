@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in aead_recvmsg
 ALT: bad-access in aead_recvmsg
+TYPE: KASAN
 START: [   53.730124] BUG: KASAN: use-after-free in aead_recvmsg+0x1758/0x1bc0
 
 2017/11/27 07:13:57 executing program 2:

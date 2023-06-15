@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Write in iowarrior_disconnect
 ALT: bad-access in iowarrior_disconnect
+TYPE: KASAN
 
 [   72.512165][   T17] ==================================================================
 [   72.520532][   T17] BUG: KASAN: use-after-free in usb_kill_urb+0x18f/0x2c0

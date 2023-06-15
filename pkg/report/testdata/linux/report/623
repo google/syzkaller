@@ -1,4 +1,5 @@
 TITLE: WARNING: refcount bug in sys_memfd_secret
+TYPE: WARNING
 
 [   90.146573][ T6540] ------------[ cut here ]------------
 [   90.172091][ T6540] refcount_t: addition on 0; use-after-free.

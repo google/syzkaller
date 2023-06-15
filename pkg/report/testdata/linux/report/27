@@ -1,4 +1,5 @@
 TITLE: possible deadlock in flush_workqueue
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [ 1722.511384] =======================================================

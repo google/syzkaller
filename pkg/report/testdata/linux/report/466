@@ -1,4 +1,5 @@
 TITLE: possible deadlock in wg_set_device
+TYPE: LOCKDEP
 
 [ 2718.379077][ T3699] ======================================================
 [ 2718.380180][ T3699] WARNING: possible circular locking dependency detected

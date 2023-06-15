@@ -165,6 +165,7 @@ var akarosOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("kernel warning"),
@@ -187,5 +188,6 @@ var akarosOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 }, commonOopses...)

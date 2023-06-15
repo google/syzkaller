@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in bond_ipsec_del_sa
 ALT: bad-access in bond_ipsec_del_sa
+TYPE: KASAN
 
 [  678.660041][ T2885] ==================================================================
 [  678.660727][ T2885] BUG: KASAN: invalid-access in bond_ipsec_del_sa+0x4/0x70

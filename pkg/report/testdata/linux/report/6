@@ -1,5 +1,5 @@
-# Raw 'dmesg -r' and /proc/kmsg output.
 TITLE: WARNING: foo
+TYPE: WARNING
 
 <6>[   85.501187] WARNING: foo
 <6>[   85.501187] nouveau  [     DRM] suspending kernel object tree...

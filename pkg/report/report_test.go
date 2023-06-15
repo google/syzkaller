@@ -111,18 +111,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 	case strings.HasPrefix(ln, altTitlePrefix):
 		test.AltTitles = append(test.AltTitles, ln[len(altTitlePrefix):])
 	case strings.HasPrefix(ln, typePrefix):
-		switch v := ln[len(typePrefix):]; v {
-		case Hang.String():
-			test.Type = Hang
-		case MemoryLeak.String():
-			test.Type = MemoryLeak
-		case DataRace.String():
-			test.Type = DataRace
-		case UnexpectedReboot.String():
-			test.Type = UnexpectedReboot
-		default:
-			t.Fatalf("unknown TYPE value %q", v)
-		}
+		test.Type = Type(ln[len(typePrefix):])
 	case strings.HasPrefix(ln, framePrefix):
 		test.Frame = ln[len(framePrefix):]
 	case strings.HasPrefix(ln, startPrefix):
@@ -165,7 +154,10 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
 	}
-	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, Unknown, ""
+	if rep != nil && rep.Type == unspecifiedType {
+		t.Fatalf("unspecifiedType leaked outside")
+	}
+	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, UnknownType, ""
 	var altTitles []string
 	if rep != nil {
 		title = rep.Title
@@ -253,7 +245,7 @@ func updateReportTest(t *testing.T, test *ParseTest, title string, altTitles []s
 	for _, t := range altTitles {
 		fmt.Fprintf(buf, "ALT: %v\n", t)
 	}
-	if typ != Unknown {
+	if typ != UnknownType {
 		fmt.Fprintf(buf, "TYPE: %v\n", typ)
 	}
 	if test.Frame != "" {

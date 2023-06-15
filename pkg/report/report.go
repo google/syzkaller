@@ -78,11 +78,20 @@ func (r Report) String() string {
 type Type string
 
 const (
-	Unknown          = Type("")
+	UnknownType      = Type("")
 	Hang             = Type("HANG")
 	MemoryLeak       = Type("LEAK")
 	DataRace         = Type("DATARACE")
 	UnexpectedReboot = Type("REBOOT")
+	UBSAN            = Type("UBSAN")
+	Bug              = Type("BUG")
+	Warning          = Type("WARNING")
+	KASAN            = Type("KASAN")
+	LockdepBug       = Type("LOCKDEP")
+	AtomicSleep      = Type("ATOMIC_SLEEP")
+	KMSAN            = Type("KMSAN")
+	// unspecifiedType can be used to cancel oops.reportType from oopsFormat.reportType.
+	unspecifiedType = Type("UNSPECIFIED")
 )
 
 func (t Type) String() string {
@@ -143,10 +152,7 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 }
 
 const (
-	unexpectedKernelReboot = "unexpected kernel reboot"
-	memoryLeakPrefix       = "memory leak in "
-	dataRacePrefix         = "KCSAN: data-race"
-	corruptedNoFrames      = "extracted no frames"
+	corruptedNoFrames = "extracted no frames"
 )
 
 var ctors = map[string]fn{
@@ -205,7 +211,6 @@ func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
 	if bytes.Contains(rep.Output, gceConsoleHangup) {
 		rep.Corrupted = true
 	}
-	rep.Type = extractReportType(rep)
 	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
 		rep.Frame = match[1]
 	}
@@ -237,6 +242,16 @@ func (reporter *Reporter) Symbolize(rep *Report) error {
 		rep.Suppressed = true
 	}
 	return nil
+}
+
+func setReportType(rep *Report, oops *oops, format oopsFormat) {
+	if format.reportType == unspecifiedType {
+		rep.Type = UnknownType
+	} else if format.reportType != UnknownType {
+		rep.Type = format.reportType
+	} else if oops.reportType != UnknownType {
+		rep.Type = oops.reportType
+	}
 }
 
 func (reporter *Reporter) isInteresting(rep *Report) bool {
@@ -272,28 +287,6 @@ func (reporter *Reporter) ReportToGuiltyFile(title string, report []byte) string
 		return ""
 	}
 	return ii.extractGuiltyFileRaw(title, report)
-}
-
-func extractReportType(rep *Report) Type {
-	// Type/frame extraction logic should be integrated with oops types.
-	// But for now we do this more ad-hoc analysis here to at least isolate
-	// the rest of the code base from report parsing.
-	if rep.Title == unexpectedKernelReboot {
-		return UnexpectedReboot
-	}
-	if strings.HasPrefix(rep.Title, memoryLeakPrefix) {
-		return MemoryLeak
-	}
-	if strings.HasPrefix(rep.Title, dataRacePrefix) {
-		return DataRace
-	}
-	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") ||
-		strings.HasPrefix(rep.Title, "INFO: task hung") ||
-		strings.HasPrefix(rep.Title, "BUG: soft lockup") ||
-		strings.HasPrefix(rep.Title, "INFO: task can't die") {
-		return Hang
-	}
-	return Unknown
 }
 
 func IsSuppressed(reporter *Reporter, output []byte) bool {
@@ -417,6 +410,8 @@ type oops struct {
 	header       []byte
 	formats      []oopsFormat
 	suppressions []*regexp.Regexp
+	// This reportType will be used if oopsFormat's reportType is empty.
+	reportType Type
 }
 
 type oopsFormat struct {
@@ -437,6 +432,8 @@ type oopsFormat struct {
 	// present, but this format does not comply with that.
 	noStackTrace bool
 	corrupted    bool
+	// If not empty, report will have this type.
+	reportType Type
 }
 
 type stackFmt struct {
@@ -721,12 +718,14 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	if oops == nil {
 		return nil
 	}
-	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
+	title, corrupted, altTitles, format := extractDescription(output[rep.StartPos:], oops, params)
 	rep.Title = title
 	rep.AltTitles = altTitles
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
+	setReportType(rep, oops, format)
+
 	return rep
 }
 
@@ -783,6 +782,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		// Errors produced by log.Fatal functions.
@@ -796,6 +796,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("panic:"),
@@ -820,6 +821,7 @@ var commonOopses = []*oops{
 			compile(`ddb\.onpanic:`),
 			compile(`evtlog_status:`),
 		},
+		UnknownType,
 	},
 	{
 		[]byte("fatal error:"),
@@ -833,5 +835,6 @@ var commonOopses = []*oops{
 		[]*regexp.Regexp{
 			compile("ALSA"),
 		},
+		UnknownType,
 	},
 }

@@ -1,4 +1,5 @@
 TITLE: KASAN: slab-out-of-bounds in gup_huge_pmd at addr ADDR
+TYPE: KASAN
 CORRUPTED: Y
 
 [   59.534220] ==================================================================

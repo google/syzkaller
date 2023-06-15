@@ -1,4 +1,5 @@
 TITLE: kernel BUG in btree_readpage_end_io_hook
+TYPE: BUG
 
 [   61.075073][   T26] ------------[ cut here ]------------
 [   61.081689][   T26] kernel BUG at lib/string.c:1129!

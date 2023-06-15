@@ -43,6 +43,7 @@ var darwinOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("Debugger: Unexpected kernel trap number:"),
@@ -53,5 +54,6 @@ var darwinOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 }, commonOopses...)

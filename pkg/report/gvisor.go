@@ -104,6 +104,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("SIGSEGV:"),
@@ -115,6 +116,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("SIGBUS:"),
@@ -126,6 +128,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("FATAL ERROR:"),
@@ -137,6 +140,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("WARNING: DATA RACE"),
@@ -149,6 +153,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("Invalid request partialResult"),
@@ -161,5 +166,6 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 }, commonOopses...)

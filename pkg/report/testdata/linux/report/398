@@ -1,4 +1,5 @@
 TITLE: BUG: bad usercopy in sg_io
+TYPE: BUG
 
 [ 1211.293569] usercopy: Kernel memory overwrite attempt detected to kernel text (offset 22791744, size 7)!
 [ 1211.303669] ------------[ cut here ]------------

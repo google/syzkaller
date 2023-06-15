@@ -31,6 +31,7 @@ var netbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 	{
 		[]byte("panic: "),
@@ -64,6 +65,7 @@ var netbsdOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile(`ddb\.onpanic:`),
 		},
+		UnknownType,
 	},
 	{
 		[]byte("UBSan:"),
@@ -74,5 +76,6 @@ var netbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		UnknownType,
 	},
 }, commonOopses...)
