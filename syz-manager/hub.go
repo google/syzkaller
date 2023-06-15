@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
@@ -277,9 +278,9 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		// On a leak instance we override repro type to leak,
 		// because otherwise repro package won't even enable leak detection
 		// and we won't reproduce leaks from other instances.
-		typ := report.UnknownType
+		typ := crash.UnknownType
 		if hc.leak {
-			typ = report.MemoryLeak
+			typ = crash.MemoryLeak
 		}
 		hc.hubReproQueue <- &Crash{
 			vmIndex: -1,

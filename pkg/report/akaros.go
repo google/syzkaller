@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
@@ -165,7 +166,7 @@ var akarosOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("kernel warning"),
@@ -188,6 +189,6 @@ var akarosOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 }, commonOopses...)

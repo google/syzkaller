@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
@@ -308,7 +309,7 @@ func (inst *inst) test() EnvTestResult {
 			testErr.Title, testErr.Output = bootErr.BootError()
 			ret.RawOutput = testErr.Output
 			rep := inst.reporter.Parse(testErr.Output)
-			if rep != nil && rep.Type == report.UnexpectedReboot {
+			if rep != nil && rep.Type == crash.UnexpectedReboot {
 				// Avoid detecting any boot crash as "unexpected kernel reboot".
 				rep = inst.reporter.ParseFrom(testErr.Output, rep.SkipPos)
 			}

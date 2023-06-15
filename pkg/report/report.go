@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -43,7 +44,7 @@ type Report struct {
 	// If two crashes have a non-empty intersection of Title/AltTitles, they are considered the same bug.
 	AltTitles []string
 	// Bug type (e.g. hang, memory leak, etc).
-	Type Type
+	Type crash.Type
 	// The indicative function name.
 	Frame string
 	// Report contains whole oops text.
@@ -75,28 +76,8 @@ func (r Report) String() string {
 	return fmt.Sprintf("crash: %v\n%s", r.Title, r.Report)
 }
 
-type Type string
-
-const (
-	UnknownType      = Type("")
-	Hang             = Type("HANG")
-	MemoryLeak       = Type("LEAK")
-	DataRace         = Type("DATARACE")
-	UnexpectedReboot = Type("REBOOT")
-	UBSAN            = Type("UBSAN")
-	Bug              = Type("BUG")
-	Warning          = Type("WARNING")
-	KASAN            = Type("KASAN")
-	LockdepBug       = Type("LOCKDEP")
-	AtomicSleep      = Type("ATOMIC_SLEEP")
-	KMSAN            = Type("KMSAN")
-	// unspecifiedType can be used to cancel oops.reportType from oopsFormat.reportType.
-	unspecifiedType = Type("UNSPECIFIED")
-)
-
-func (t Type) String() string {
-	return string(t)
-}
+// unspecifiedType can be used to cancel oops.reportType from oopsFormat.reportType.
+const unspecifiedType = crash.Type("UNSPECIFIED")
 
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
@@ -246,10 +227,10 @@ func (reporter *Reporter) Symbolize(rep *Report) error {
 
 func setReportType(rep *Report, oops *oops, format oopsFormat) {
 	if format.reportType == unspecifiedType {
-		rep.Type = UnknownType
-	} else if format.reportType != UnknownType {
+		rep.Type = crash.UnknownType
+	} else if format.reportType != crash.UnknownType {
 		rep.Type = format.reportType
-	} else if oops.reportType != UnknownType {
+	} else if oops.reportType != crash.UnknownType {
 		rep.Type = oops.reportType
 	}
 }
@@ -411,7 +392,7 @@ type oops struct {
 	formats      []oopsFormat
 	suppressions []*regexp.Regexp
 	// This reportType will be used if oopsFormat's reportType is empty.
-	reportType Type
+	reportType crash.Type
 }
 
 type oopsFormat struct {
@@ -433,7 +414,7 @@ type oopsFormat struct {
 	noStackTrace bool
 	corrupted    bool
 	// If not empty, report will have this type.
-	reportType Type
+	reportType crash.Type
 }
 
 type stackFmt struct {
@@ -782,7 +763,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		// Errors produced by log.Fatal functions.
@@ -796,7 +777,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("panic:"),
@@ -821,7 +802,7 @@ var commonOopses = []*oops{
 			compile(`ddb\.onpanic:`),
 			compile(`evtlog_status:`),
 		},
-		UnknownType,
+		crash.UnknownType,
 	},
 	{
 		[]byte("fatal error:"),
@@ -835,6 +816,6 @@ var commonOopses = []*oops{
 		[]*regexp.Regexp{
 			compile("ALSA"),
 		},
-		UnknownType,
+		crash.UnknownType,
 	},
 }

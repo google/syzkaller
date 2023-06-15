@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -33,7 +34,7 @@ type ParseTest struct {
 	Log        []byte
 	Title      string
 	AltTitles  []string
-	Type       Type
+	Type       crash.Type
 	Frame      string
 	StartLine  string
 	EndLine    string
@@ -111,7 +112,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 	case strings.HasPrefix(ln, altTitlePrefix):
 		test.AltTitles = append(test.AltTitles, ln[len(altTitlePrefix):])
 	case strings.HasPrefix(ln, typePrefix):
-		test.Type = Type(ln[len(typePrefix):])
+		test.Type = crash.Type(ln[len(typePrefix):])
 	case strings.HasPrefix(ln, framePrefix):
 		test.Frame = ln[len(framePrefix):]
 	case strings.HasPrefix(ln, startPrefix):
@@ -157,7 +158,7 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	if rep != nil && rep.Type == unspecifiedType {
 		t.Fatalf("unspecifiedType leaked outside")
 	}
-	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, UnknownType, ""
+	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, crash.UnknownType, ""
 	var altTitles []string
 	if rep != nil {
 		title = rep.Title
@@ -239,13 +240,13 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 }
 
 func updateReportTest(t *testing.T, test *ParseTest, title string, altTitles []string, corrupted, suppressed bool,
-	typ Type, frame string) {
+	typ crash.Type, frame string) {
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "TITLE: %v\n", title)
 	for _, t := range altTitles {
 		fmt.Fprintf(buf, "ALT: %v\n", t)
 	}
-	if typ != UnknownType {
+	if typ != crash.UnknownType {
 		fmt.Fprintf(buf, "TYPE: %v\n", typ)
 	}
 	if test.Frame != "" {
