@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -304,7 +305,12 @@ func ParseMaintainersLinux(text []byte) Recipients {
 
 const configBisectTag = "# Minimized by syzkaller"
 
-func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte,
+// Minimize() attempts to drop Linux kernel configs that are unnecessary(*) for bug reproduction.
+// 1. Remove sanitizers that are not needed to trigger the target class of bugs.
+// 2. Disable unrelated kernel subsystems. This is done by bisecting config changes between
+// `original` and `baseline`.
+// (*) After an unnecessary config is deleted, we still have pred() == BisectBad.
+func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, types []crash.Type,
 	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if bytes.HasPrefix(original, []byte(configBisectTag)) {
 		dt.Log("# configuration already minimized\n")
@@ -314,27 +320,100 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte,
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Kconfig: %v", err)
 	}
-	originalConfig, err := kconfig.ParseConfigData(original, "original")
+	config, err := kconfig.ParseConfigData(original, "original")
 	if err != nil {
 		return nil, err
 	}
-	baselineConfig, err := kconfig.ParseConfigData(baseline, "baseline")
-	if err != nil {
-		return nil, err
+	minimizeCtx := &minimizeLinuxCtx{
+		kconf:  kconf,
+		config: config,
+		pred: func(cfg *kconfig.ConfigFile) (bool, error) {
+			res, err := pred(serialize(cfg))
+			return res == BisectBad, err
+		},
+		transform: func(cfg *kconfig.ConfigFile) {
+			setLinuxTagConfigs(cfg, nil)
+		},
+		DebugTracer: dt,
 	}
-	setLinuxTagConfigs(originalConfig, nil)
-	setLinuxTagConfigs(baselineConfig, nil)
-	kconfPred := func(candidate *kconfig.ConfigFile) (bool, error) {
-		res, err := pred(serialize(candidate))
-		return res == BisectBad, err
+	if len(types) > 0 {
+		// Technically, as almost all sanitizers are Yes/No config options, we could have
+		// achieved this minimization simply by disabling them all in the baseline config.
+		// However, we are now trying to make the most out of the few config minimization
+		// iterations we're ready to make do during the bisection process.
+		// Since it's possible to quite reliably determine the needed and unneeded sanitizers
+		// just by looking at crash reports, let's prefer a more complicated logic over worse
+		// bisection results.
+		// Once we start doing proper config minimizations for every reproducer, we can delete
+		// most of the related code.
+		err := minimizeCtx.dropInstrumentation(types)
+		if err != nil {
+			return nil, err
+		}
 	}
-	minConfig, err := kconf.Minimize(baselineConfig, originalConfig, kconfPred, dt)
-	if err != nil {
-		return nil, err
+	if len(baseline) > 0 {
+		baselineConfig, err := kconfig.ParseConfigData(baseline, "baseline")
+		if err != nil {
+			return nil, err
+		}
+		err = minimizeCtx.minimizeAgainst(baselineConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return serialize(minConfig), nil
+	return minimizeCtx.getConfig(), nil
 }
 
 func serialize(cf *kconfig.ConfigFile) []byte {
 	return []byte(fmt.Sprintf("%v, rev: %v\n%s", configBisectTag, prog.GitRevision, cf.Serialize()))
+}
+
+type minimizeLinuxCtx struct {
+	kconf     *kconfig.KConfig
+	config    *kconfig.ConfigFile
+	pred      func(*kconfig.ConfigFile) (bool, error)
+	transform func(*kconfig.ConfigFile)
+	debugtracer.DebugTracer
+}
+
+func (ctx *minimizeLinuxCtx) minimizeAgainst(base *kconfig.ConfigFile) error {
+	base = base.Clone()
+	ctx.transform(base)
+	minConfig, err := ctx.kconf.Minimize(base, ctx.config, ctx.pred, ctx)
+	if err != nil {
+		return err
+	}
+	ctx.config = minConfig
+	return nil
+}
+
+func (ctx *minimizeLinuxCtx) dropInstrumentation(types []crash.Type) error {
+	ctx.Log("check whether we can drop unnecessary instrumentation")
+	oldTransform := ctx.transform
+	transform := func(c *kconfig.ConfigFile) {
+		oldTransform(c)
+		setLinuxSanitizerConfigs(c, types, ctx)
+	}
+	newConfig := ctx.config.Clone()
+	transform(newConfig)
+	if bytes.Equal(ctx.config.Serialize(), newConfig.Serialize()) {
+		ctx.Log("there was nothing we could disable; skip")
+		return nil
+	}
+	ctx.SaveFile("no-instrumentation.config", newConfig.Serialize())
+	ok, err := ctx.pred(newConfig)
+	if err != nil {
+		return err
+	}
+	if ok {
+		ctx.Log("the bug reproduces without the instrumentation")
+		ctx.transform = transform
+		ctx.config = newConfig
+	}
+	return nil
+}
+
+func (ctx *minimizeLinuxCtx) getConfig() []byte {
+	ctx.transform(ctx.config)
+	return serialize(ctx.config)
 }
