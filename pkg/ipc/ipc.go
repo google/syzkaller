@@ -816,22 +816,27 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 	}
 	c.cmd.Process.Kill()
 	output = <-c.readDone
-	if err := c.wait(); <-hang {
+	err := c.wait()
+	if err != nil {
+		output = append(output, err.Error()...)
+		output = append(output, '\n')
+	}
+	if <-hang {
 		hanged = true
-		if err != nil {
-			output = append(output, err.Error()...)
-			output = append(output, '\n')
-		}
 		return
 	}
 	if exitStatus == -1 {
-		exitStatus = osutil.ProcessExitStatus(c.cmd.ProcessState)
+		if c.cmd.ProcessState == nil {
+			exitStatus = statusFail
+		} else {
+			exitStatus = osutil.ProcessExitStatus(c.cmd.ProcessState)
+		}
 	}
 	// Ignore all other errors.
 	// Without fork server executor can legitimately exit (program contains exit_group),
 	// with fork server the top process can exit with statusFail if it wants special handling.
 	if exitStatus == statusFail {
-		err0 = fmt.Errorf("executor %v: exit status %d\n%s", c.pid, exitStatus, output)
+		err0 = fmt.Errorf("executor %v: exit status %d err %s\n%s", c.pid, exitStatus, err, output)
 	}
 	return
 }
