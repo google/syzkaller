@@ -123,7 +123,7 @@ func ParseConfigData(data []byte, file string) (*ConfigFile, error) {
 	return cf, nil
 }
 
-func (cf *ConfigFile) clone() *ConfigFile {
+func (cf *ConfigFile) Clone() *ConfigFile {
 	cf1 := &ConfigFile{
 		Map:      make(map[string]*Config),
 		comments: cf.comments,
