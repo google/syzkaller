@@ -260,14 +260,14 @@ func (env *env) bisect() (*Result, error) {
 	}
 	env.reportTypes = testRes.types
 
-	if len(cfg.Kernel.BaselineConfig) != 0 {
-		testRes1, err := env.minimizeConfig()
-		if err != nil {
-			return nil, err
-		}
-		if testRes1 != nil {
-			testRes = testRes1
-		}
+	testRes1, err := env.minimizeConfig()
+	if err != nil {
+		return nil, fmt.Errorf("config minimization failed: %w", err)
+	}
+	if testRes1 != nil {
+		// If config minimization even partially succeeds, minimizeConfig()
+		// would return a non-nil value of a new report.
+		testRes = testRes1
 	}
 
 	bad, good, results1, fatalResult, err := env.commitRange()
@@ -372,11 +372,14 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		if err != nil {
 			return 0, err
 		}
-		testResults[hash.Hash(test)] = testRes
+		if testRes.verdict == vcs.BisectBad {
+			// Only remember crashes.
+			testResults[hash.Hash(test)] = testRes
+		}
 		return testRes.verdict, err
 	}
 	minConfig, err := env.minimizer.Minimize(env.cfg.Manager.SysTarget, env.cfg.Kernel.Config,
-		env.cfg.Kernel.BaselineConfig, env.cfg.Trace, predMinimize)
+		env.cfg.Kernel.BaselineConfig, env.reportTypes, env.cfg.Trace, predMinimize)
 	if err != nil {
 		return nil, err
 	}
