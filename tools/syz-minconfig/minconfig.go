@@ -54,7 +54,7 @@ func main() {
 	gt := &debugtracer.GenericTracer{
 		TraceWriter: os.Stdout,
 	}
-	res, err := kconf.Minimize(base, full, pred, gt)
+	res, err := kconf.Minimize(base, full, pred, 0, gt)
 	if err != nil {
 		tool.Fail(err)
 	}

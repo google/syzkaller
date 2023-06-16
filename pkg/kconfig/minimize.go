@@ -4,10 +4,11 @@
 package kconfig
 
 import (
+	"fmt"
 	"sort"
 
+	"github.com/google/syzkaller/pkg/bisect/minimize"
 	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/osutil"
 )
 
 // Minimize finds an equivalent with respect to the provided predicate, but smaller config.
@@ -15,68 +16,52 @@ import (
 // It is also assumed that base and full are not just two completely arbitrary configs, but full it produced from base
 // mostly by adding more configs. The minimization procedure thus consists of figuring out what set of configs that
 // are present in full and are not present in base affect the predicate.
+// If maxPredRuns is non-zero, minimization will stop after the specified number of runs.
 func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (bool, error),
-	dt debugtracer.DebugTracer) (*ConfigFile, error) {
-	diff, other := kconf.missingConfigs(base, full)
-	dt.Log("kconfig minimization: base=%v full=%v diff=%v", len(base.Configs), len(full.Configs), len(diff))
-	// First, check the base config as is, it is the smallest we can possibly get.
-	if res, err := pred(base); err != nil {
-		return nil, err
-	} else if res {
-		dt.Log("base config crashes")
-		return base, nil
-	}
-	// Since base does not crash, full config is our best bet for now.
-	current := full.Clone()
-	var suspects []string
-	// Take half of the diff between base and full, apply to base and test.
-	// If this candidate config crashes, we commit it as new full and repeat the process.
-	// If it does not crash, try another half.
-	// If the crash is caused by a single config, this algorithm is guaranteed to find it.
-	// If the crash is caused by multiple configs, this algorithm will most likely find them (along with some
-	// additional unrelated configs that happened to be in the same half). However, amount of unrelated configs
-	// can be quite large if we are unlucky. Also note that we sort configs so that related configs are most
-	// likely situated together.
-	// Numerous improvements are possible for this simple algorithm.
-	// 1. We could split the config onto 4 parts and try all pairs, this should find all pairs of configs reliably.
-	// 2. We could continue trying to reduce a part even if removing the whole part fails. I.e. we try to remove
-	//    a half and it fails, we can try to remove half of the half, maybe that will succeed.
-top:
-	for len(diff) >= 2 {
-		half := len(diff) / 2
-		for _, part := range [][]string{diff[:half], diff[half:]} {
-			dt.Log("trying half: %v", part)
-			closure := kconf.addDependencies(base, full, part)
-			candidate := base.Clone()
-			// Always move all non-tristate configs from full to base as we don't minimize them.
-			for _, cfg := range other {
-				candidate.Set(cfg.Name, cfg.Value)
-			}
-			for _, cfg := range closure {
-				candidate.Set(cfg, Yes)
-			}
-			res, err := pred(candidate)
-			if err != nil {
-				return nil, err
-			}
-			if res {
-				dt.Log("half crashed")
-				diff = part
-				current = candidate
-				suspects = closure
-				continue top
-			}
+	maxSteps int, dt debugtracer.DebugTracer) (*ConfigFile, error) {
+	diff, other := kconf.missingLeafConfigs(base, full)
+	dt.Log("kconfig minimization: base=%v full=%v leaves diff=%v", len(base.Configs), len(full.Configs), len(diff))
+
+	diffToConfig := func(part []string) (*ConfigFile, []string) {
+		if len(part) == 0 {
+			// We're testing the baseline config only.
+			return base, nil
 		}
-		dt.Log("both halves did not crash")
-		break
+		suspects := kconf.addDependencies(base, full, part)
+		candidate := base.Clone()
+		// Always move all non-tristate configs from full to base as we don't minimize them.
+		for _, cfg := range other {
+			candidate.Set(cfg.Name, cfg.Value)
+		}
+		for _, cfg := range suspects {
+			candidate.Set(cfg, Yes)
+		}
+		return candidate, suspects
 	}
+	var step int
+	minimizePred := func(diffs []string) (bool, error) {
+		step++
+		config, _ := diffToConfig(diffs)
+		dt.SaveFile(fmt.Sprintf("step_%d.config", step), config.Serialize())
+		return pred(config)
+	}
+	result, err := minimize.Slice(
+		minimize.Config[string]{
+			Pred:     minimizePred,
+			MaxSteps: maxSteps,
+			Logf:     dt.Log,
+		},
+		diff,
+	)
+	if err != nil {
+		return nil, err
+	}
+	config, suspects := diffToConfig(result)
 	if suspects != nil {
-		dt.Log("resulting configs: %v", suspects)
+		dt.Log("minimized to %d configs; suspects: %v", len(result), suspects)
 		kconf.writeSuspects(dt, suspects)
-	} else {
-		dt.Log("only full config crashes")
 	}
-	return current, nil
+	return config, nil
 }
 
 func (kconf *KConfig) missingConfigs(base, full *ConfigFile) (tristate []string, other []*Config) {
@@ -89,6 +74,26 @@ func (kconf *KConfig) missingConfigs(base, full *ConfigFile) (tristate []string,
 	}
 	sort.Strings(tristate)
 	return
+}
+
+// missingLeafConfigs returns the set of configs no other config depends upon.
+func (kconf *KConfig) missingLeafConfigs(base, full *ConfigFile) ([]string, []*Config) {
+	diff, other := kconf.missingConfigs(base, full)
+	needed := map[string]bool{}
+	for _, config := range diff {
+		for _, needs := range kconf.addDependencies(base, full, []string{config}) {
+			if needs != config {
+				needed[needs] = true
+			}
+		}
+	}
+	var leaves []string
+	for _, key := range diff {
+		if !needed[key] {
+			leaves = append(leaves, key)
+		}
+	}
+	return leaves, other
 }
 
 func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) []string {
@@ -117,9 +122,8 @@ func (kconf *KConfig) writeSuspects(dt debugtracer.DebugTracer, suspects []strin
 	cf := &ConfigFile{
 		Map: make(map[string]*Config),
 	}
-
 	for _, cfg := range suspects {
 		cf.Set(cfg, Yes)
 	}
-	osutil.WriteFile(CauseConfigFile, cf.Serialize())
+	dt.SaveFile(CauseConfigFile, cf.Serialize())
 }
