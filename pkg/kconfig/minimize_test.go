@@ -5,10 +5,12 @@ package kconfig
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMinimize(t *testing.T) {
@@ -91,6 +93,19 @@ CONFIG_HAMRADIO=y
 CONFIG_ROSE=y
 `,
 		},
+		{
+			// Check if it works fine with several diffs.
+			pred: func(cf *ConfigFile) (bool, error) {
+				return cf.Value("D") != No && cf.Value("C") != No, nil
+			},
+			result: `
+CONFIG_A=y
+CONFIG_I=42
+CONFIG_S="foo"
+CONFIG_C=y
+CONFIG_D=y
+`,
+		},
 	}
 	kconf, err := ParseData(targets.Get("linux", "amd64"), []byte(kconfig), "kconf")
 	if err != nil {
@@ -106,14 +121,14 @@ CONFIG_ROSE=y
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			res, err := kconf.Minimize(base, full, test.pred, &debugtracer.TestTracer{T: t})
+			res, err := kconf.Minimize(base, full, test.pred, 0, &debugtracer.TestTracer{T: t})
 			if err != nil {
 				t.Fatal(err)
 			}
 			result := string(res.Serialize())
-			if result != test.result {
-				t.Fatalf("got:\n%v\n\nwant:\n%s", result, test.result)
-			}
+			assert.ElementsMatch(t,
+				strings.Split(result, "\n"),
+				strings.Split(test.result, "\n"))
 		})
 	}
 }

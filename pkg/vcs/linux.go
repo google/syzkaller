@@ -379,7 +379,13 @@ type minimizeLinuxCtx struct {
 func (ctx *minimizeLinuxCtx) minimizeAgainst(base *kconfig.ConfigFile) error {
 	base = base.Clone()
 	ctx.transform(base)
-	minConfig, err := ctx.kconf.Minimize(base, ctx.config, ctx.pred, ctx)
+	// Don't do too many minimization runs, it will make bug bisections too long.
+	// The purpose is only to reduce the number of build/boot/test errors due to bugs
+	// in unrelated parts of the kernel.
+	// Bisection is not getting much faster with smaller configs, only more reliable,
+	// so there's a trade-off. Try to do best in 5 iterations, that's about 1.5 hours.
+	const minimizeRuns = 5
+	minConfig, err := ctx.kconf.Minimize(base, ctx.config, ctx.pred, minimizeRuns, ctx)
 	if err != nil {
 		return err
 	}
