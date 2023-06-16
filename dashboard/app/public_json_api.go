@@ -52,11 +52,44 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 	}
 }
 
+type publicAPIBugGroup struct {
+	Version int `json:"version"`
+	Bugs    []publicAPIBug
+}
+
+type publicAPIBug struct {
+	Title       string `json:"title,omitempty"`
+	Link        string `json:"link"`
+	LastUpdated string `json:"last-updated,omitempty"`
+}
+
+func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *publicAPIBugGroup {
+	return &publicAPIBugGroup{
+		Version: 1,
+		Bugs: func() []publicAPIBug {
+			var res []publicAPIBug
+			for _, group := range bugGroups {
+				for _, bug := range group.Bugs {
+					res = append(res, publicAPIBug{
+						Title: bug.Title,
+						Link:  bug.Link,
+					})
+				}
+			}
+			return res
+		}(),
+	}
+}
+
 func GetJSONDescrFor(page interface{}) ([]byte, error) {
 	var res interface{}
 	switch i := page.(type) {
 	case *uiBugPage:
 		res = getExtAPIDescrForBugPage(i)
+	case *uiTerminalPage:
+		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
+	case *uiMainPage:
+		res = getExtAPIDescrForBugGroups(i.Groups)
 	default:
 		return nil, ErrClientNotFound
 	}

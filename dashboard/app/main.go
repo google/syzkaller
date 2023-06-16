@@ -462,6 +462,12 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		Managers:       makeManagerList(managers, hdr.Namespace),
 		BugFilter:      makeUIBugFilter(c, filter),
 	}
+
+	if isJSONRequested(r) {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, data)
+	}
+
 	return serveTemplate(w, "main.html", data)
 }
 
@@ -597,6 +603,12 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 		Stats:     stats,
 		BugFilter: makeUIBugFilter(c, typ.Filter),
 	}
+
+	if isJSONRequested(r) {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, data)
+	}
+
 	return serveTemplate(w, "terminal.html", data)
 }
 
