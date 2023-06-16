@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/syzkaller/pkg/bisect/minimize"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/instance"
@@ -48,6 +49,7 @@ type reproInstance struct {
 }
 
 type context struct {
+	logf         func(string, ...interface{})
 	target       *targets.Target
 	reporter     *report.Reporter
 	crashTitle   string
@@ -605,6 +607,9 @@ func (ctx *context) returnInstance(inst *reproInstance) {
 }
 
 func (ctx *context) reproLogf(level int, format string, args ...interface{}) {
+	if ctx.logf != nil {
+		ctx.logf(format, args...)
+	}
 	prefix := fmt.Sprintf("reproducing crash '%v': ", ctx.crashTitle)
 	log.Logf(level, prefix+format, args...)
 	ctx.stats.Log = append(ctx.stats.Log, []byte(fmt.Sprintf(format, args...)+"\n")...)
@@ -612,119 +617,29 @@ func (ctx *context) reproLogf(level int, format string, args ...interface{}) {
 
 func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEntry) (bool, error)) (
 	[]*prog.LogEntry, error) {
+	// Set up progs bisection.
 	ctx.reproLogf(3, "bisect: bisecting %d programs", len(progs))
-
-	ctx.reproLogf(3, "bisect: executing all %d programs", len(progs))
-	crashed, err := pred(progs)
-	if err != nil {
-		return nil, err
+	minimizePred := func(progs []*prog.LogEntry) (bool, error) {
+		// Don't waste time testing empty crash log.
+		if len(progs) == 0 {
+			return false, nil
+		}
+		return pred(progs)
 	}
-	if !crashed {
-		ctx.reproLogf(3, "bisect: didn't crash")
-		return nil, nil
-	}
-
-	guilty := [][]*prog.LogEntry{progs}
-again:
-	if len(guilty) > 8 {
-		// This is usually the case for flaky crashes. Continuing bisection at this
-		// point would just take a lot of time and likely produce no result.
+	ret, err := minimize.Slice(minimize.Config[*prog.LogEntry]{
+		Pred: minimizePred,
+		// For flaky crashes we usually end up with too many chunks.
+		// Continuing bisection would just take a lot of time and likely produce no result.
+		MaxChunks: 8,
+		Logf: func(msg string, args ...interface{}) {
+			ctx.reproLogf(3, "bisect: "+msg, args...)
+		},
+	}, progs)
+	if err == minimize.ErrTooManyChunks {
 		ctx.reproLogf(3, "bisect: too many guilty chunks, aborting")
 		return nil, nil
 	}
-	ctx.reproLogf(3, "bisect: guilty chunks: %v", chunksToStr(guilty))
-	for i, chunk := range guilty {
-		if len(chunk) == 1 {
-			continue
-		}
-
-		guilty1 := guilty[:i]
-		guilty2 := guilty[i+1:]
-		ctx.reproLogf(3, "bisect: guilty chunks split: %v, <%v>, %v",
-			chunksToStr(guilty1), len(chunk), chunksToStr(guilty2))
-
-		chunk1 := chunk[0 : len(chunk)/2]
-		chunk2 := chunk[len(chunk)/2:]
-		ctx.reproLogf(3, "bisect: chunk split: <%v> => <%v>, <%v>",
-			len(chunk), len(chunk1), len(chunk2))
-
-		ctx.reproLogf(3, "bisect: triggering crash without chunk #1")
-		progs = flatenChunks(guilty1, guilty2, chunk2)
-		crashed, err := pred(progs)
-		if err != nil {
-			return nil, err
-		}
-
-		if crashed {
-			guilty = nil
-			guilty = append(guilty, guilty1...)
-			guilty = append(guilty, chunk2)
-			guilty = append(guilty, guilty2...)
-			ctx.reproLogf(3, "bisect: crashed, chunk #1 evicted")
-			goto again
-		}
-
-		ctx.reproLogf(3, "bisect: triggering crash without chunk #2")
-		progs = flatenChunks(guilty1, guilty2, chunk1)
-		crashed, err = pred(progs)
-		if err != nil {
-			return nil, err
-		}
-
-		if crashed {
-			guilty = nil
-			guilty = append(guilty, guilty1...)
-			guilty = append(guilty, chunk1)
-			guilty = append(guilty, guilty2...)
-			ctx.reproLogf(3, "bisect: crashed, chunk #2 evicted")
-			goto again
-		}
-
-		guilty = nil
-		guilty = append(guilty, guilty1...)
-		guilty = append(guilty, chunk1)
-		guilty = append(guilty, chunk2)
-		guilty = append(guilty, guilty2...)
-
-		ctx.reproLogf(3, "bisect: not crashed, both chunks required")
-
-		goto again
-	}
-
-	progs = nil
-	for _, chunk := range guilty {
-		if len(chunk) != 1 {
-			return nil, fmt.Errorf("bad bisect result: %v", guilty)
-		}
-		progs = append(progs, chunk[0])
-	}
-
-	ctx.reproLogf(3, "bisect: success, %d programs left", len(progs))
-	return progs, nil
-}
-
-func flatenChunks(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {
-	var progs []*prog.LogEntry
-	for _, c := range guilty1 {
-		progs = append(progs, c...)
-	}
-	progs = append(progs, chunk...)
-	for _, c := range guilty2 {
-		progs = append(progs, c...)
-	}
-	return progs
-}
-
-func chunksToStr(chunks [][]*prog.LogEntry) string {
-	log := "["
-	for i, chunk := range chunks {
-		log += fmt.Sprintf("<%d>", len(chunk))
-		if i != len(chunks)-1 {
-			log += ", "
-		}
-	}
-	log += "]"
-	return log
+	return ret, err
 }
 
 func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) {

@@ -32,6 +32,7 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 func TestBisect(t *testing.T) {
 	ctx := &context{
 		stats: new(Stats),
+		logf:  t.Logf,
 	}
 
 	rd, iters := initTest(t)
