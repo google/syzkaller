@@ -39,6 +39,25 @@ func TestJSONAPIIntegration(t *testing.T) {
 }`,
 	)
 
+	sampleOpenBugGroupDescr := []byte(`{
+	"version": 1,
+	"Bugs": [
+		{
+			"title": "title1",
+			"link": "/bug?extid=decf42d66dced481afc1"
+		},
+		{
+			"title": "title2",
+			"link": "/bug?extid=0267d1c87b9ed4eb5def"
+		}
+	]
+}`)
+
+	sampleFixedBugGroupDescr := []byte(`{
+	"version": 1,
+	"Bugs": null
+}`)
+
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -56,11 +75,22 @@ func TestJSONAPIIntegration(t *testing.T) {
 	c.client.ReportCrash(crash2)
 	bugReport2 := c.client.pollBug()
 	checkBugPageJSONIs(c, bugReport2.ID, sampleCrashWithReproDescr)
+
+	checkBugGroupPageJSONIs(c, "/test1?json=1", sampleOpenBugGroupDescr)
+	checkBugGroupPageJSONIs(c, "/test1/fixed?json=1", sampleFixedBugGroupDescr)
 }
 
 func checkBugPageJSONIs(c *Ctx, ID string, expectedContent []byte) {
 	url := fmt.Sprintf("/bug?extid=%v&json=1", ID)
 
+	contentType, _ := c.client.ContentType(url)
+	c.expectEQ(contentType, "application/json")
+
+	actualContent, _ := c.client.GET(url)
+	c.expectEQ(string(actualContent), string(expectedContent))
+}
+
+func checkBugGroupPageJSONIs(c *Ctx, url string, expectedContent []byte) {
 	contentType, _ := c.client.ContentType(url)
 	c.expectEQ(contentType, "application/json")
 
