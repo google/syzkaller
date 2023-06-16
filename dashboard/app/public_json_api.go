@@ -3,17 +3,19 @@
 
 package main
 
+import "encoding/json"
+
 // publicApiBugDescription is used to serve the /bug HTTP requests
 // and provide JSON description of the BUG. Backward compatible.
-type PublicAPIBugDescription struct {
+type publicAPIBugDescription struct {
 	Version int    `json:"version"`
 	Title   string `json:"title,omitempty"`
 	// links to the discussions
 	Discussions []string                    `json:"discussions,omitempty"`
-	Crashes     []PublicAPICrashDescription `json:"crashes,omitempty"`
+	Crashes     []publicAPICrashDescription `json:"crashes,omitempty"`
 }
 
-type PublicAPICrashDescription struct {
+type publicAPICrashDescription struct {
 	SyzReproducer       string `json:"syz-reproducer,omitempty"`
 	CReproducer         string `json:"c-reproducer,omitempty"`
 	KernelConfig        string `json:"kernel-config,omitempty"`
@@ -25,9 +27,9 @@ type PublicAPICrashDescription struct {
 	Architecture        string `json:"architecture,omitempty"`
 }
 
-func GetExtAPIDescrForBugPage(bugPage *uiBugPage) *PublicAPIBugDescription {
+func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 	crash := bugPage.Crashes.Crashes[0]
-	return &PublicAPIBugDescription{
+	return &publicAPIBugDescription{
 		Version: 1,
 		Title:   bugPage.Bug.Title,
 		Discussions: func() []string {
@@ -36,7 +38,7 @@ func GetExtAPIDescrForBugPage(bugPage *uiBugPage) *PublicAPIBugDescription {
 			}
 			return []string{bugPage.Bug.ExternalLink}
 		}(),
-		Crashes: []PublicAPICrashDescription{{
+		Crashes: []publicAPICrashDescription{{
 			SyzReproducer:      crash.ReproSyzLink,
 			CReproducer:        crash.ReproCLink,
 			KernelConfig:       crash.KernelConfigLink,
@@ -48,4 +50,15 @@ func GetExtAPIDescrForBugPage(bugPage *uiBugPage) *PublicAPIBugDescription {
 			// TODO: add the Architecture
 		}},
 	}
+}
+
+func GetJSONDescrFor(page interface{}) ([]byte, error) {
+	var res interface{}
+	switch i := page.(type) {
+	case *uiBugPage:
+		res = getExtAPIDescrForBugPage(i)
+	default:
+		return nil, ErrClientNotFound
+	}
+	return json.MarshalIndent(res, "", "\t")
 }

@@ -5,7 +5,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -1024,11 +1023,8 @@ func isJSONRequested(request *http.Request) bool {
 	return request.FormValue("json") == "1"
 }
 
-func writeJSONVersionOf(writer http.ResponseWriter, bugPage *uiBugPage) error {
-	data, err := json.MarshalIndent(
-		GetExtAPIDescrForBugPage(bugPage),
-		"",
-		"\t")
+func writeJSONVersionOf(writer http.ResponseWriter, page interface{}) error {
+	data, err := GetJSONDescrFor(page)
 	if err != nil {
 		return err
 	}
