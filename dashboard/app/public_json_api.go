@@ -6,9 +6,11 @@ package main
 // publicApiBugDescription is used to serve the /bug HTTP requests
 // and provide JSON description of the BUG. Backward compatible.
 type PublicAPIBugDescription struct {
-	Version int                         `json:"version"`
-	Title   string                      `json:"title,omitempty"`
-	Crashes []PublicAPICrashDescription `json:"crashes,omitempty"`
+	Version int    `json:"version"`
+	Title   string `json:"title,omitempty"`
+	// links to the discussions
+	Discussions []string                    `json:"discussions,omitempty"`
+	Crashes     []PublicAPICrashDescription `json:"crashes,omitempty"`
 }
 
 type PublicAPICrashDescription struct {
@@ -28,6 +30,12 @@ func GetExtAPIDescrForBugPage(bugPage *uiBugPage) *PublicAPIBugDescription {
 	return &PublicAPIBugDescription{
 		Version: 1,
 		Title:   bugPage.Bug.Title,
+		Discussions: func() []string {
+			if bugPage.Bug.ExternalLink == "" {
+				return nil
+			}
+			return []string{bugPage.Bug.ExternalLink}
+		}(),
 		Crashes: []PublicAPICrashDescription{{
 			SyzReproducer:      crash.ReproSyzLink,
 			CReproducer:        crash.ReproCLink,
