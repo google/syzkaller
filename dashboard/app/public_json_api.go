@@ -8,11 +8,18 @@ import "encoding/json"
 // publicApiBugDescription is used to serve the /bug HTTP requests
 // and provide JSON description of the BUG. Backward compatible.
 type publicAPIBugDescription struct {
-	Version int    `json:"version"`
-	Title   string `json:"title,omitempty"`
+	Version    int         `json:"version"`
+	Title      string      `json:"title,omitempty"`
+	FixCommits []fixCommit `json:"fix-commits,omitempty"`
 	// links to the discussions
 	Discussions []string                    `json:"discussions,omitempty"`
 	Crashes     []publicAPICrashDescription `json:"crashes,omitempty"`
+}
+
+type fixCommit struct {
+	Title string `json:"title"`
+	Link  string `json:"link,omitempty"`
+	Hash  string `json:"hash,omitempty"`
 }
 
 type publicAPICrashDescription struct {
@@ -37,6 +44,20 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 				return nil
 			}
 			return []string{bugPage.Bug.ExternalLink}
+		}(),
+		FixCommits: func() []fixCommit {
+			if len(bugPage.Bug.Commits) == 0 {
+				return nil
+			}
+			var res []fixCommit
+			for _, commit := range bugPage.Bug.Commits {
+				res = append(res, fixCommit{
+					Title: commit.Title,
+					Hash:  commit.Hash,
+					Link:  commit.Link,
+				})
+			}
+			return res
 		}(),
 		Crashes: []publicAPICrashDescription{{
 			SyzReproducer:      crash.ReproSyzLink,
