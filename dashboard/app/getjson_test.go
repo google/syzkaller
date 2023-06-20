@@ -6,6 +6,8 @@ package main
 import (
 	"fmt"
 	"testing"
+
+	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
 func TestJSONAPIIntegration(t *testing.T) {
@@ -96,4 +98,52 @@ func checkBugGroupPageJSONIs(c *Ctx, url string, expectedContent []byte) {
 
 	actualContent, _ := c.client.GET(url)
 	c.expectEQ(string(actualContent), string(expectedContent))
+}
+
+func TestJSONAPIFixCommits(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	c.client.UploadBuild(build1)
+
+	crash1 := testCrash(build1, 1)
+	c.client.ReportCrash(crash1)
+	rep1 := c.client.pollBug()
+
+	// Specify fixing commit for the bug.
+	c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:         rep1.ID,
+		Status:     dashapi.BugStatusOpen,
+		FixCommits: []string{"foo: fix1", "foo: fix2"},
+	})
+
+	c.client.UploadCommits([]dashapi.Commit{
+		{Hash: "hash1", Title: "foo: fix1"},
+	})
+
+	c.client.CommitPoll()
+
+	want := []byte(`{
+	"version": 1,
+	"title": "title1",
+	"fix-commits": [
+		{
+			"title": "foo: fix1",
+			"hash": "hash1"
+		},
+		{
+			"title": "foo: fix2"
+		}
+	],
+	"crashes": [
+		{
+			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+			"kernel-source-commit": "1111111111111111111111111111111111111111",
+			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
+			"syzkaller-commit": "syzkaller_commit1"
+		}
+	]
+}`)
+	checkBugGroupPageJSONIs(c, "/bug?extid=decf42d66dced481afc1&json=1", want)
 }
