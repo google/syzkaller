@@ -5580,6 +5580,7 @@ static long syz_pkey_set(volatile long pkey, volatile long val)
 
 #if SYZ_EXECUTOR || SYZ_SWAP
 #include <fcntl.h>
+#include <linux/falloc.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
