@@ -147,3 +147,36 @@ func TestJSONAPIFixCommits(t *testing.T) {
 }`)
 	checkBugGroupPageJSONIs(c, "/bug?extid=decf42d66dced481afc1&json=1", want)
 }
+
+func TestJSONAPICauseBisection(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build, _ := addBuildAndCrash(c)
+	_, bugKey := c.loadSingleBug()
+
+	addBisectCauseJob(c, build)
+	addBisectFixJob(c, build)
+
+	url := fmt.Sprintf("/bug?id=%v&json=1", bugKey.StringID())
+	content, err := c.GET(url)
+	c.expectEQ(err, nil)
+	c.expectEQ(string(content), string(`{
+	"version": 1,
+	"title": "title1",
+	"cause-commit": {
+		"title": "kernel: add a bug",
+		"hash": "36e65cb4a0448942ec316b24d60446bbd5cc7827"
+	},
+	"crashes": [
+		{
+			"syz-reproducer": "/text?tag=ReproSyz\u0026x=16000000000000",
+			"c-reproducer": "/text?tag=ReproC\u0026x=11000000000000",
+			"kernel-config": "/text?tag=KernelConfig\u0026x=4d11162a90e18f28",
+			"kernel-source-commit": "1111111111111111111111111111111111111111",
+			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
+			"syzkaller-commit": "syzkaller_commit1"
+		}
+	]
+}`))
+}
