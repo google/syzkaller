@@ -10,13 +10,13 @@ import "encoding/json"
 type publicAPIBugDescription struct {
 	Version    int         `json:"version"`
 	Title      string      `json:"title,omitempty"`
-	FixCommits []fixCommit `json:"fix-commits,omitempty"`
+	FixCommits []vcsCommit `json:"fix-commits,omitempty"`
 	// links to the discussions
 	Discussions []string                    `json:"discussions,omitempty"`
 	Crashes     []publicAPICrashDescription `json:"crashes,omitempty"`
 }
 
-type fixCommit struct {
+type vcsCommit struct {
 	Title string `json:"title"`
 	Link  string `json:"link,omitempty"`
 	Hash  string `json:"hash,omitempty"`
@@ -45,13 +45,13 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			}
 			return []string{bugPage.Bug.ExternalLink}
 		}(),
-		FixCommits: func() []fixCommit {
+		FixCommits: func() []vcsCommit {
 			if len(bugPage.Bug.Commits) == 0 {
 				return nil
 			}
-			var res []fixCommit
+			var res []vcsCommit
 			for _, commit := range bugPage.Bug.Commits {
-				res = append(res, fixCommit{
+				res = append(res, vcsCommit{
 					Title: commit.Title,
 					Hash:  commit.Hash,
 					Link:  commit.Link,
