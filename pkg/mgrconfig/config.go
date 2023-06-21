@@ -41,9 +41,8 @@ type Config struct {
 	// Directory with kernel object files (e.g. `vmlinux` for linux)
 	// (used for report symbolization, coverage reports and in tree modules finding, optional).
 	KernelObj string `json:"kernel_obj"`
-	// Directories with out-of-free kernel module object files (optional).
+	// Directories with out-of-tree kernel module object files for coverage report generation (optional).
 	// KernelObj is also scanned for in-tree kernel modules and does not need to be duplicated here.
-	// Note: KASLR needs to be disabled and modules need to be pre-loaded at fixed addressses by init process.
 	// Note: the modules need to be unstripped and contain debug info.
 	ModuleObj []string `json:"module_obj,omitempty"`
 	// Kernel source directory (if not set defaults to KernelObj).
