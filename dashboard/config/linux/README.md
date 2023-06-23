@@ -72,7 +72,7 @@ config:
  - CONFIG_ONLY_FOR_UPSTREAM: [upstream]
  - CONFIG_STABLE_AND_ARM64: [stable, arm64]
  - CONFIG_NOT_CLANG: [-clang]
- - CONFIG_DISABLED_FOR_GCC: [n, -gcc]
+ - CONFIG_DISABLED_FOR_GCC: [n, gcc]
  - CONFIG_STRING_FOO: ["value", foo]
 ```
 
