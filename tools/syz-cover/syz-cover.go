@@ -13,7 +13,7 @@
 //
 // Usage:
 //
-//	syz-cover [-os=OS -arch=ARCH -kernel_src=. -kernel_obj=.] rawcover.file*
+//	syz-cover -config config_file rawcover.file*
 package main
 
 import (
@@ -24,25 +24,19 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 func main() {
 	var (
-		flagOS             = flag.String("os", runtime.GOOS, "target os")
-		flagArch           = flag.String("arch", runtime.GOARCH, "target arch")
-		flagVM             = flag.String("vm", "", "VM type")
-		flagKernelSrc      = flag.String("kernel_src", "", "path to kernel sources")
-		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
-		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
+		flagConfig         = flag.String("config", "", "configuration file")
 		flagModules        = flag.String("modules", "", "modules info obtained from /modules (optional)")
 		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
 		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
@@ -55,21 +49,9 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if *flagKernelSrc == "" {
-		*flagKernelSrc = "."
-	}
-	*flagKernelSrc = osutil.Abs(*flagKernelSrc)
-	if *flagKernelObj == "" {
-		*flagKernelObj = *flagKernelSrc
-	}
-	*flagKernelObj = osutil.Abs(*flagKernelObj)
-	if *flagKernelBuildSrc == "" {
-		*flagKernelBuildSrc = *flagKernelSrc
-	}
-	*flagKernelBuildSrc = osutil.Abs(*flagKernelBuildSrc)
-	target := targets.Get(*flagOS, *flagArch)
-	if target == nil {
-		tool.Failf("unknown target %v/%v", *flagOS, *flagArch)
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
+	if err != nil {
+		tool.Fail(err)
 	}
 	pcs, err := readPCs(flag.Args())
 	if err != nil {
@@ -83,8 +65,8 @@ func main() {
 		}
 		modules = m
 	}
-	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj,
-		*flagKernelSrc, *flagKernelBuildSrc, nil, nil, modules, false)
+	rg, err := cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj,
+		cfg.KernelSrc, cfg.KernelBuildSrc, nil, nil, modules, false)
 	if err != nil {
 		tool.Fail(err)
 	}
