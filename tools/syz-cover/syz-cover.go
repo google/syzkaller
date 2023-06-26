@@ -65,8 +65,7 @@ func main() {
 		}
 		modules = m
 	}
-	rg, err := cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj,
-		cfg.KernelSrc, cfg.KernelBuildSrc, nil, nil, modules, false)
+	rg, err := cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, false)
 	if err != nil {
 		tool.Fail(err)
 	}

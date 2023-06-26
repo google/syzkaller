@@ -30,9 +30,10 @@ type Prog struct {
 
 var RestorePC = backend.RestorePC
 
-func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string, subsystem []mgrconfig.Subsystem,
-	moduleObj []string, modules []host.KernelModule, rawCover bool) (*ReportGenerator, error) {
-	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules)
+func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
+	modules []host.KernelModule, rawCover bool) (*ReportGenerator, error) {
+	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
+		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.ModuleObj, modules)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +42,9 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 		Paths: []string{""},
 	})
 	rg := &ReportGenerator{
-		target:          target,
-		srcDir:          srcDir,
-		buildDir:        buildDir,
+		target:          cfg.SysTarget,
+		srcDir:          cfg.KernelSrc,
+		buildDir:        cfg.KernelBuildSrc,
 		subsystem:       subsystem,
 		rawCoverEnabled: rawCover,
 		Impl:            impl,
