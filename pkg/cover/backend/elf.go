@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -24,12 +25,11 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		// so there is 0x18 bytes offset from module load address for .text section
 		// we need to remove the 0x18 bytes offset in order to correct module symbol address
 		// TODO: obtain these values from the binary instead of hardcoding.
-		file, err := elf.Open(filepath.Join(objDir, target.KernelObject))
+		exists, err := pltSectionExists(objDir, target.KernelObject)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to check for plt section: %v", err)
 		}
-		defer file.Close()
-		if file.Section(".plt") != nil {
+		if exists {
 			pcFixUpStart = 0x8000000000000000
 			pcFixUpEnd = 0xffffffd010000000
 			pcFixUpOffset = 0x18
@@ -50,6 +50,31 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		readModuleCoverPoints: elfReadModuleCoverPoints,
 		readTextRanges:        elfReadTextRanges,
 	})
+}
+
+func pltSectionExists(objDir, tkObject string) (bool, error) {
+	var pltExists bool
+	err := filepath.Walk(objDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || (filepath.Ext(path) != ".ko" && filepath.Base(path) != tkObject) {
+			return err
+		}
+		if pltExists {
+			return nil
+		}
+		file, err := elf.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		if file.Section(".plt") != nil {
+			pltExists = true
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return pltExists, nil
 }
 
 func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
