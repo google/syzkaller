@@ -457,14 +457,15 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 
 func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
 	filename := ""
+	absPath := osutil.Abs(path)
 	switch {
-	case strings.HasPrefix(path, objDir):
+	case strings.HasPrefix(absPath, objDir):
 		// Assume the file was built there.
-		path = strings.TrimPrefix(path, objDir)
+		path = strings.TrimPrefix(absPath, objDir)
 		filename = filepath.Join(objDir, path)
-	case strings.HasPrefix(path, buildDir):
+	case strings.HasPrefix(absPath, buildDir):
 		// Assume the file was moved from buildDir to srcDir.
-		path = strings.TrimPrefix(path, buildDir)
+		path = strings.TrimPrefix(absPath, buildDir)
 		filename = filepath.Join(srcDir, path)
 	default:
 		// Assume this is relative path.
