@@ -39,8 +39,9 @@ import (
 
 func main() {
 	var (
-		flagConfig         = flag.String("config", "", "configuration file")
-		flagModules        = flag.String("modules", "", "modules info obtained from /modules (optional)")
+		flagConfig  = flag.String("config", "", "configuration file")
+		flagModules = flag.String("modules", "",
+			"modules info obtained from /modules or file from /proc/modules (optional)")
 		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
 		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
 		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
@@ -145,7 +146,7 @@ func loadModules(fname string) ([]host.KernelModule, error) {
 	}
 	var modules []host.KernelModule
 	if err := json.Unmarshal(data, &modules); err != nil {
-		return nil, err
+		return host.ParseModulesText(data)
 	}
 	return modules, nil
 }
