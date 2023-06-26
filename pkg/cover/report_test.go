@@ -260,6 +260,15 @@ func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string
 func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []byte, error) {
 	dir := t.TempDir()
 	bin := buildTestBinary(t, target, test, dir)
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			SysTarget: target,
+		},
+		KernelObj:      dir,
+		KernelSrc:      dir,
+		KernelBuildSrc: dir,
+		Type:           "",
+	}
 	subsystem := []mgrconfig.Subsystem{
 		{
 			Name: "sound",
@@ -277,7 +286,7 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: append([]uint64{}, p.PCs...)})
 	}
 
-	rg, err := MakeReportGenerator(target, "", dir, dir, dir, subsystem, nil, nil, false)
+	rg, err := MakeReportGenerator(cfg, subsystem, nil, false)
 	if err != nil {
 		return nil, nil, err
 	}

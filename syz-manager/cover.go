@@ -20,8 +20,7 @@ var getReportGenerator = func() func(cfg *mgrconfig.Config,
 	return func(cfg *mgrconfig.Config, modules []host.KernelModule) (*cover.ReportGenerator, error) {
 		once.Do(func() {
 			log.Logf(0, "initializing coverage information...")
-			rg, err = cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc,
-				cfg.KernelBuildSrc, cfg.KernelSubsystem, cfg.ModuleObj, modules, cfg.RawCover)
+			rg, err = cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, cfg.RawCover)
 		})
 		return rg, err
 	}
