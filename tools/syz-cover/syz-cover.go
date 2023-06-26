@@ -14,6 +14,10 @@
 // Usage:
 //
 //	syz-cover -config config_file rawcover.file*
+//
+// or use all pcs in rg.Symbols
+//
+//	syz-cover -config config_file
 package main
 
 import (
@@ -21,7 +25,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -44,16 +47,7 @@ func main() {
 	)
 	defer tool.Init()()
 
-	if len(flag.Args()) == 0 {
-		fmt.Fprintf(os.Stderr, "usage: syz-cover [flags] rawcover.file\n")
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
-	if err != nil {
-		tool.Fail(err)
-	}
-	pcs, err := readPCs(flag.Args())
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -68,6 +62,17 @@ func main() {
 	rg, err := cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, false)
 	if err != nil {
 		tool.Fail(err)
+	}
+	var pcs []uint64
+	if len(flag.Args()) == 0 {
+		for _, s := range rg.Symbols {
+			pcs = append(pcs, s.PCs...)
+		}
+	} else {
+		pcs, err = readPCs(flag.Args())
+		if err != nil {
+			tool.Fail(err)
+		}
 	}
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
