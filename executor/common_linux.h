@@ -5601,8 +5601,15 @@ static void setup_swap()
 		failmsg("swap file open failed", "file: %s", SWAP_FILE);
 		return;
 	}
-	// We cannot do ftruncate -- swapon complains about this. Do fallocate instead.
-	fallocate(fd, FALLOC_FL_ZERO_RANGE, 0, SWAP_FILE_SIZE);
+	// fallocate is not available on arm32, so let's just write zeroes to the file.
+	char buffer[8192];
+	memset(buffer, 0, sizeof(buffer));
+	for (int i = 0; i < SWAP_FILE_SIZE; i += sizeof(buffer)) {
+		if (write(fd, buffer, sizeof(buffer)) < 0) {
+			fail("swap file write failed");
+			return;
+		}
+	}
 	close(fd);
 	// Set up the swap file.
 	char cmdline[64];

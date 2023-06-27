@@ -11786,7 +11786,14 @@ static void setup_swap()
 		failmsg("swap file open failed", "file: %s", SWAP_FILE);
 		return;
 	}
-	fallocate(fd, FALLOC_FL_ZERO_RANGE, 0, SWAP_FILE_SIZE);
+	char buffer[8192];
+	memset(buffer, 0, sizeof(buffer));
+	for (int i = 0; i < SWAP_FILE_SIZE; i += sizeof(buffer)) {
+		if (write(fd, buffer, sizeof(buffer)) < 0) {
+			fail("swap file write failed");
+			return;
+		}
+	}
 	close(fd);
 	char cmdline[64];
 	sprintf(cmdline, "mkswap %s", SWAP_FILE);
