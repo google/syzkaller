@@ -147,7 +147,7 @@ var archConfigs = map[string]*archConfig{
 	},
 	"linux/arm64": {
 		Qemu:     "qemu-system-aarch64",
-		QemuArgs: "-machine virt,virtualization=on -cpu cortex-a57",
+		QemuArgs: "-machine virt,virtualization=on -cpu cortex-a57 -accel tcg,thread=multi",
 		NetDev:   "virtio-net-pci",
 		RngDev:   "virtio-rng-pci",
 		CmdLine: []string{
@@ -157,7 +157,7 @@ var archConfigs = map[string]*archConfig{
 	},
 	"linux/arm": {
 		Qemu:                   "qemu-system-arm",
-		QemuArgs:               "-machine vexpress-a15 -cpu max",
+		QemuArgs:               "-machine vexpress-a15 -cpu max -accel tcg,thread=multi",
 		NetDev:                 "virtio-net-device",
 		RngDev:                 "virtio-rng-device",
 		UseNewQemuImageOptions: true,
