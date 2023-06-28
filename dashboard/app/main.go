@@ -220,15 +220,6 @@ type uiBuild struct {
 	KernelConfigLink    string
 }
 
-type uiCommit struct {
-	Hash   string
-	Title  string
-	Link   string
-	Author string
-	CC     []string
-	Date   time.Time
-}
-
 type uiBugDiscussion struct {
 	Subject  string
 	Link     string
@@ -314,7 +305,7 @@ type uiBug struct {
 	Link           string
 	ExternalLink   string
 	CreditEmail    string
-	Commits        []*uiCommit
+	Commits        []*dashapi.Commit
 	PatchedOn      []string
 	MissingOn      []string
 	NumManagers    int
@@ -1581,7 +1572,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		for i, com := range bug.Commits {
 			cfg := config.Namespaces[bug.Namespace]
 			info := bug.getCommitInfo(i)
-			uiBug.Commits = append(uiBug.Commits, &uiCommit{
+			uiBug.Commits = append(uiBug.Commits, &dashapi.Commit{
 				Hash:  info.Hash,
 				Title: com,
 				Link:  vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
