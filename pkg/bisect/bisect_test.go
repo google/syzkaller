@@ -131,6 +131,12 @@ func createTestRepo(t *testing.T) string {
 			}
 		}
 	}
+	// Emulate another tree, that's needed for cross-tree tests.
+	repo.Git("checkout", "v8.0")
+	repo.Git("checkout", "-b", "v8-branch")
+	repo.CommitFileChange("850", "v8-branch")
+	repo.CommitChange("851")
+	repo.CommitChange("852")
 	return baseDir
 }
 
@@ -139,11 +145,19 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.SwitchCommit("master")
+	if test.startCommitBranch != "" {
+		r.SwitchCommit(test.startCommitBranch)
+	} else {
+		r.SwitchCommit("master")
+	}
 	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit))
 	if err != nil {
 		t.Fatal(err)
 	}
+	if sc == nil {
+		t.Fatalf("start commit %v is not found", test.startCommit)
+	}
+	r.SwitchCommit("master")
 	cfg := &Config{
 		Fix:   test.fix,
 		Trace: &debugtracer.TestTracer{T: t},
@@ -163,6 +177,7 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 			Config:         []byte("original config"),
 			BaselineConfig: []byte(test.baselineConfig),
 		},
+		CrossTree: test.crossTree,
 	}
 	inst := &testEnv{
 		t:    t,
@@ -188,10 +203,12 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 
 	res, err := runImpl(cfg, r, inst)
 	checkBisectionError(test, res, err)
-	// Should be mitigated via GetCommitByTitle during bisection.
-	cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
-	res, err = runImpl(cfg, r, inst)
-	checkBisectionError(test, res, err)
+	if !test.crossTree {
+		// Should be mitigated via GetCommitByTitle during bisection.
+		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
+		res, err = runImpl(cfg, r, inst)
+		checkBisectionError(test, res, err)
+	}
 }
 
 func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
@@ -224,13 +241,15 @@ func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
 
 type BisectionTest struct {
 	// input environment
-	name          string
-	fix           bool
-	startCommit   int
-	brokenStart   int
-	brokenEnd     int
-	infraErrStart int
-	infraErrEnd   int
+	name string
+	fix  bool
+	// By default it's set to "master".
+	startCommitBranch string
+	startCommit       int
+	brokenStart       int
+	brokenEnd         int
+	infraErrStart     int
+	infraErrEnd       int
 	// Range of commits that result in the same kernel binary signature.
 	sameBinaryStart int
 	sameBinaryEnd   int
@@ -252,6 +271,7 @@ type BisectionTest struct {
 	culprit         int
 	baselineConfig  string
 	resultingConfig string
+	crossTree       bool
 }
 
 var bisectionTests = []BisectionTest{
@@ -534,6 +554,15 @@ var bisectionTests = []BisectionTest{
 		infraErrStart: 600,
 		infraErrEnd:   800,
 		culprit:       602,
+	},
+	{
+		name:              "fix-cross-tree",
+		fix:               true,
+		startCommit:       851,
+		startCommitBranch: "v8-branch",
+		commitLen:         1,
+		crossTree:         true,
+		culprit:           903,
 	},
 }
 
