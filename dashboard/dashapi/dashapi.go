@@ -878,6 +878,8 @@ type JobInfo struct {
 	Manager          string
 	BugTitle         string
 	BugID            string
+	KernelRepo       string
+	KernelBranch     string
 	KernelAlias      string
 	KernelCommit     string
 	KernelCommitLink string

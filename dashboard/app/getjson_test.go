@@ -166,7 +166,9 @@ func TestJSONAPICauseBisection(t *testing.T) {
 	"title": "title1",
 	"cause-commit": {
 		"title": "kernel: add a bug",
-		"hash": "36e65cb4a0448942ec316b24d60446bbd5cc7827"
+		"hash": "36e65cb4a0448942ec316b24d60446bbd5cc7827",
+		"repo": "repo1",
+		"branch": "branch1"
 	},
 	"crashes": [
 		{
