@@ -33,6 +33,10 @@ type Config struct {
 	Manager         *mgrconfig.Config
 	BuildSemaphore  *instance.Semaphore
 	TestSemaphore   *instance.Semaphore
+	// CrossTree specifies whether a cross tree bisection is to take place, i.e.
+	// Kernel.Commit is not reachable from Kernel.Branch.
+	// In this case, bisection starts from their merge base.
+	CrossTree bool
 }
 
 type KernelConfig struct {
@@ -317,6 +321,10 @@ func (env *env) bisect() (*Result, error) {
 
 func (env *env) identifyRewrittenCommit() (string, error) {
 	cfg := env.cfg
+	if cfg.Kernel.Commit != "" && cfg.CrossTree {
+		// If the failing commit is on another tree, just take it as is.
+		return cfg.Kernel.Commit, nil
+	}
 	_, err := env.repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch)
 	if err != nil {
 		return cfg.Kernel.Commit, err
@@ -417,6 +425,21 @@ func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result,
 }
 
 func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
+	startCommit := env.commit
+	if env.cfg.CrossTree {
+		env.log("determining the merge base between %v and %v",
+			env.commit.Hash, env.head.Hash)
+		bases, err := env.repo.MergeBases(env.commit.Hash, env.head.Hash)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if len(bases) != 1 {
+			env.log("expected 1 merge base, got %d", len(bases))
+			return nil, nil, nil, fmt.Errorf("expected 1 merge base, got %d", len(bases))
+		}
+		env.log("%s/%s is a merge base", bases[0].Hash, bases[0].Title)
+		startCommit = bases[0]
+	}
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
 		return nil, nil, nil, err
@@ -428,7 +451,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 	if res.verdict != vcs.BisectGood {
 		return env.head, nil, []*testResult{res}, nil
 	}
-	return env.head, env.commit, []*testResult{res}, nil
+	return env.head, startCommit, []*testResult{res}, nil
 }
 
 func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
