@@ -1488,6 +1488,8 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 		Namespace:        job.Namespace,
 		Manager:          job.Manager,
 		BugTitle:         job.BugTitle,
+		KernelRepo:       job.KernelRepo,
+		KernelBranch:     job.KernelBranch,
 		KernelAlias:      kernelRepoInfoRaw(c, job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
 		KernelCommit:     kernelCommit,
 		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),

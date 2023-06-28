@@ -212,6 +212,8 @@ type uiBuild struct {
 	SyzkallerCommit     string
 	SyzkallerCommitLink string
 	SyzkallerCommitDate time.Time
+	KernelRepo          string
+	KernelBranch        string
 	KernelAlias         string
 	KernelCommit        string
 	KernelCommitLink    string
@@ -1725,6 +1727,8 @@ func makeUIBuild(c context.Context, build *Build) *uiBuild {
 		SyzkallerCommit:     build.SyzkallerCommit,
 		SyzkallerCommitLink: vcs.LogLink(vcs.SyzkallerRepo, build.SyzkallerCommit),
 		SyzkallerCommitDate: build.SyzkallerCommitDate,
+		KernelRepo:          build.KernelRepo,
+		KernelBranch:        build.KernelBranch,
 		KernelAlias:         kernelRepoInfo(c, build).Alias,
 		KernelCommit:        build.KernelCommit,
 		KernelCommitLink:    vcs.LogLink(build.KernelRepo, build.KernelCommit),
