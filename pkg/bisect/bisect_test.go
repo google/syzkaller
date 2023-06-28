@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 // testEnv will implement instance.BuilderTester. This allows us to
@@ -628,4 +629,113 @@ func crashErrors(crashing, nonCrashing int, title string) []instance.EnvTestResu
 		ret = append(ret, instance.EnvTestResult{})
 	}
 	return ret
+}
+
+func TestBisectVerdict(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		flaky   bool
+		total   int
+		good    int
+		bad     int
+		infra   int
+		skip    int
+		verdict vcs.BisectResult
+		abort   bool
+	}{
+		{
+			name:  "bad-but-many-infra",
+			total: 10,
+			bad:   1,
+			infra: 8,
+			skip:  1,
+			abort: true,
+		},
+		{
+			name:    "many-good-and-infra",
+			total:   10,
+			good:    5,
+			infra:   3,
+			skip:    2,
+			verdict: vcs.BisectGood,
+		},
+		{
+			name:    "many-total-and-infra",
+			total:   10,
+			good:    5,
+			bad:     1,
+			infra:   2,
+			skip:    2,
+			verdict: vcs.BisectBad,
+		},
+		{
+			name:    "too-many-skips",
+			total:   10,
+			good:    2,
+			bad:     2,
+			infra:   3,
+			skip:    3,
+			verdict: vcs.BisectSkip,
+		},
+		{
+			name:  "flaky-need-more-good",
+			flaky: true,
+			total: 20,
+			// For flaky bisections, we'd want 15.
+			good:    10,
+			infra:   3,
+			skip:    7,
+			verdict: vcs.BisectSkip,
+		},
+		{
+			name:    "flaky-enough-good",
+			flaky:   true,
+			total:   20,
+			good:    15,
+			infra:   3,
+			skip:    2,
+			verdict: vcs.BisectGood,
+		},
+		{
+			name:  "flaky-too-many-skips",
+			flaky: true,
+			total: 20,
+			// We want (good+bad) take at least 50%.
+			good:    6,
+			bad:     1,
+			infra:   0,
+			skip:    13,
+			verdict: vcs.BisectSkip,
+		},
+		{
+			name:    "flaky-many-skips",
+			flaky:   true,
+			total:   20,
+			good:    9,
+			bad:     1,
+			infra:   0,
+			skip:    10,
+			verdict: vcs.BisectBad,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			sum := test.good + test.bad + test.infra + test.skip
+			assert.Equal(t, test.total, sum)
+			env := &env{
+				cfg: &Config{
+					Trace: &debugtracer.NullTracer{},
+				},
+				flaky: test.flaky,
+			}
+			ret, err := env.bisectionDecision(test.total, test.bad, test.good, test.infra)
+			assert.Equal(t, test.abort, err != nil)
+			if !test.abort {
+				assert.Equal(t, test.verdict, ret)
+			}
+		})
+	}
 }

@@ -613,33 +613,53 @@ func (env *env) test() (*testResult, error) {
 		return res, &InfraError{Title: problem}
 	}
 	bad, good, infra, rep := env.processResults(current, results)
-	res.rep = rep
-	res.verdict = vcs.BisectSkip
-	if infra > len(results)/2 {
-		// More than 1/2 of runs failed with infrastructure error,
-		// no sense in continuing the bisection at the moment.
-		return res, &InfraError{Title: "more than 50% of runs failed with an infra error"}
+	res.verdict, err = env.bisectionDecision(len(results), bad, good, infra)
+	if err != nil {
+		return nil, err
 	}
-	if bad != 0 {
-		res.verdict = vcs.BisectBad
-		if !env.flaky && bad < good {
-			env.log("reproducer seems to be flaky")
-			env.flaky = true
-		}
-	} else if 2*good > len(results) {
-		// Require at least 50% of successful runs to say it's a good commit.
-		// Otherwise we just have too little data to come to any conclusion.
-		res.verdict = vcs.BisectGood
-		env.log("too many neither good nor bad results, skipping this commit")
-	} else {
+	if !env.flaky && bad > 0 && bad < good {
+		env.log("reproducer seems to be flaky")
+		env.flaky = true
+	}
+	if res.verdict == vcs.BisectSkip {
 		res.rep = &report.Report{
 			Title: fmt.Sprintf("failed testing reproducer on %v", current.Hash),
 		}
+	} else {
+		res.rep = rep
 	}
-	// If most runs failed with a boot/test error, we end up with BisectSkip.
 	// TODO: when we start supporting boot/test error bisection, we need to make
 	// processResults treat that verdit as "good".
 	return res, nil
+}
+
+func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult, error) {
+	// Boot errors, image test errors, skipped crashes.
+	skip := total - bad - good - infra
+
+	wantGoodRuns := total / 2
+	wantTotalRuns := total / 2
+	if env.flaky {
+		// The reproducer works less than 50% of time, so we need really many good results.
+		wantGoodRuns = total * 3 / 4
+	}
+	if bad == 0 && good >= wantGoodRuns {
+		// We need a big enough number of good results, otherwise the chance of a false
+		// positive is too high.
+		return vcs.BisectGood, nil
+	} else if bad > 0 && (good+bad) >= wantTotalRuns {
+		// We need enough (good+bad) results to conclude that the kernel revision itself
+		// is not too broken.
+		return vcs.BisectBad, nil
+	} else if infra > skip {
+		// We have been unable to determine a verdict mostly because of infra errors.
+		// Abort the bisection.
+		return vcs.BisectSkip,
+			&InfraError{Title: "unable to determine the verdict because of infra errors"}
+	}
+	env.log("unable to determine the verdict: %d good runs (wanted %d), for bad wanted %d in total, got %d",
+		good, wantGoodRuns, wantTotalRuns, good+bad)
+	return vcs.BisectSkip, nil
 }
 
 func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestResult) (
