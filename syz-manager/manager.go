@@ -365,6 +365,7 @@ func (mgr *Manager) vmLoop() {
 			len(pendingRepro), len(reproducing), len(reproQueue))
 
 		canRepro := func() bool {
+			return false
 			return phase >= phaseTriagedHub && len(reproQueue) != 0 &&
 				(int(atomic.LoadUint32(&mgr.numReproducing))+1)*instancesPerRepro <= maxReproVMs
 		}

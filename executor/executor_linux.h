@@ -10,6 +10,7 @@
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <linux/bpf.h>
 
 const unsigned long KCOV_TRACE_PC = 0;
 const unsigned long KCOV_TRACE_CMP = 1;
@@ -71,9 +72,33 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 {
+	int ret;
+
+	// Fill map fds
+	union bpf_attr *prog_attr = (union bpf_attr *)a[1];
+	if (a[0] == 5) {
+		for (__u32 i = 0; i < prog_attr->insn_cnt; i++) {
+			struct bpf_insn *insns = (struct bpf_insn *)prog_attr->insns;
+			int map_idx = insns[i].imm;
+			/* TAO TODO:
+				1. add other map load insns
+				2. no out-of-bound access of results
+			*/
+			if (insns[i].src_reg == 1 && map_idx >= 0) {
+				insns[i].imm = call_results[map_idx];
+			}
+		}
+	}
+
 	if (c->call)
-		return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
-	return syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5]);
+		ret = c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
+	ret = syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5]);
+
+	// Print the log
+	if (a[0] == 5) {
+		debug("eBPF verifier log:\n%s\n", (char *)prog_attr->log_buf);
+	}
+	return ret;
 }
 
 static void cover_open(cover_t* cov, bool extra)

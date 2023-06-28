@@ -288,6 +288,7 @@ struct res_t {
 };
 
 static res_t results[kMaxCommands];
+static long long int	call_results[kMaxCommands];
 
 const uint64 kInMagic = 0xbadc0ffeebadface;
 const uint32 kOutMagic = 0xbadf00d;
@@ -1053,6 +1054,9 @@ void handle_completion(thread_t* th)
 	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->executing)
 		failmsg("bad thread state in completion", "ready=%d done=%d executing=%d",
 			event_isset(&th->ready), event_isset(&th->done), th->executing);
+
+	call_results[th->call_index] = th->res;
+
 	if (th->res != (intptr_t)-1)
 		copyout_call_results(th);
 

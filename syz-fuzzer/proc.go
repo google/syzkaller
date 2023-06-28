@@ -75,7 +75,7 @@ func (proc *Proc) loop() {
 			case *WorkCandidate:
 				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
 			case *WorkSmash:
-				proc.smashInput(item)
+				// proc.smashInput(item)
 			default:
 				log.SyzFatalf("unknown work type: %#v", item)
 			}
@@ -84,12 +84,14 @@ func (proc *Proc) loop() {
 
 		ct := proc.fuzzer.choiceTable
 		fuzzerSnapshot := proc.fuzzer.snapshot()
-		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 {
+		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 || true {
 			// Generate a new prog.
-			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
+			p := proc.fuzzer.target.BPFGenerate(proc.rnd, prog.RecommendedCalls, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
-			proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatGenerate)
+			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+			//proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
+			continue
 			// Mutate an existing prog.
 			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, proc.fuzzer.noMutate, fuzzerSnapshot.corpus)
@@ -145,7 +147,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		}
 		inputCover.Merge(thisCover)
 	}
-	if item.flags&ProgMinimized == 0 {
+	if false {
+	//if item.flags&ProgMinimized == 0 {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {

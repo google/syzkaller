@@ -31,10 +31,12 @@ type btf_opt_name_off int32[0:16]
 type map_fd_id int32[0:16]
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
+bpf$MAP_CREATE2(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_xattr], size len[arg]) fd_bpf_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
 bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
 bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
+bpf$PROG_LOAD2(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_load_xattr], size len[arg]) fd_bpf_prog
 bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd_bpf_prog
 bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[arg])
 bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
@@ -199,6 +201,46 @@ bpf_batch_flags = BPF_F_LOCK
 define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
 define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
 
+bpf_load_xattr {
+	# type            TYPE
+    # ninsn           bytesize8[insns, int32]
+	part1			array[int8, 8]
+
+    insns           ptr64[in, array[int8, 128]]
+	license			ptr64[in, array[int8]]
+	#license         ptr64[in, string[bpf_licenses]]
+
+	loglev          const[2, int32]
+    logsize         len[log, int32]
+    log         ptr64[out, array[int8, 1000000]]
+
+    # kern_version        flags[bpf_kern_version, int32]
+    # flags           flags[bpf_prog_load_flags, int32]
+    # prog_name       array[const[0, int8], BPF_OBJ_NAME_LEN]
+    # prog_ifindex        ifindex[opt]
+    # expected_attach_type    ATTACH_TYPE
+    # btf_fd          fd_btf[opt]
+    # func_info_rec_size  const[BPF_FUNC_INFO_SIZE, int32]
+	part2			array[int8, 40]
+
+    func_info       ptr64[in, array[int8]]
+    func_info_cnt       len[func_info, int32]
+    line_info_rec_size  const[BPF_LINE_INFO_SIZE, int32]
+
+    line_info       ptr64[in, array[int8]]
+    line_info_cnt       len[line_info, int32]
+
+    # attach_btf_id       BTF_ID
+    # attach_prog_fd      PROG_FD
+    # pad         const[0, int32]
+    # fd_array        ptr64[in, array[fd_bpf_map], opt]
+	part3			array[int8, 20]
+}
+
+bpf_map_xattr {
+	part1			array[int8]
+}
+
 type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	type			TYPE
 	ninsn			bytesize8[insns, int32]
@@ -206,7 +248,7 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	license			ptr64[in, string[bpf_licenses]]
 	loglev			int32
 	logsize			len[log, int32]
-	log			ptr64[out, array[int8], opt]
+	log			ptr64[out, array[int8]]
 	kern_version		flags[bpf_kern_version, int32]
 	flags			flags[bpf_prog_load_flags, int32]
 	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
@@ -227,7 +269,7 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 
 type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
 
-bpf_licenses = "GPL", "syzkaller"
+bpf_licenses = "Dual BSD/GPL"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100
 
 bpf_func_info {

@@ -3,6 +3,16 @@
 
 package main
 
+/*
+#include <stdlib.h>
+#include <time.h>
+void randInit() {
+	time_t t;
+    srand((unsigned) time(&t));
+}
+*/
+import "C"
+
 import (
 	"flag"
 	"fmt"
@@ -145,6 +155,8 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 // nolint: funlen
 func main() {
 	debug.SetGCPercent(50)
+
+	C.randInit()
 
 	var (
 		flagName     = flag.String("name", "test", "unique name for manager")
