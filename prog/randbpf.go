@@ -171,13 +171,10 @@ func (r *randGen) generateBPFArgs(s *state, fields []Field, dir Dir, argData [][
 func (r *randGen) generateBPFArg(s *state, typ Type, dir Dir, argData [][][]byte, i int, j int) (arg Arg, calls []*Call) {
 
 	if typ1, ok := typ.(*PtrType); ok {
-		log.Logf(0, "argData ptr: %v, %v", typ1, argData)
 		arg, calls = typ1.generatePtrType(r, s, dir, argData, i, j)
 	} else if typ1, ok := typ.(*BufferType); ok {
-		log.Logf(0, "argData buffer: %v, %v", typ1, argData)
 		arg, calls = typ1.generateBufferType(r, s, dir, argData, i, j)
 	} else {
-		log.Logf(0, "argData other: %v", typ)
 		arg, calls = typ.generate(r, s, dir)
 		if arg == nil {
 			panic(fmt.Sprintf("generated arg is nil for field '%v'", typ.Name()))

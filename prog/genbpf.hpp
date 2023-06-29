@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 //#include <bpf/bpf.h>
 //#include <bpf/libbpf.h>
 #include <linux/bpf.h>
@@ -9,7 +10,7 @@
 #include <fstream>
 #include <jsoncpp/json/json.h>
 
-#include "bpf_insn.h"
+#include "bpf_complete_insn.h"
 
 #define NINSNS 10
 #define NINSNSALL (NINSNS+3)
@@ -18,21 +19,11 @@
 #define Bit64 0b01
 #define Bit32 0b10
 
-#define    ALU64_REG 0b111
-#define    ALU32_REG 0b101
-#define    ALU64_IMM 0b110
-#define    ALU32_IMM 0b100
-#define    MOV64_REG 0b011
-#define    MOV32_REG 0b001
-#define    MOV64_IMM 0b010
-#define    MOV32_IMM 0b000
-
 enum operations{
     ALUOP,
     LSOP,
     JMPOP,
-    HELPER,
-    SUBFUNC,
+    CALLOP,
 };
 
 enum bpf_reg_type {
@@ -74,23 +65,10 @@ char licenseString[] = "Dual BSD/GPL";
 void genALUOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt);
 void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt, int maxMaps);
 void genJMPOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt);
+void genCallOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt);
 void printInsn(const char *insn, u_int8_t op, u_int8_t dst, u_int8_t src, int32_t imm, short int off) {
     fprintf(stderr, "%s_%d(dst %d, src %d, imm %d, off %d)\n", insn, op, dst, src, imm, off);
 }
-
-/*
-    #define     BPF_ADD     0x00
-    #define     BPF_SUB     0x10
-    #define     BPF_MUL     0x20
-    #define     BPF_DIV     0x30
-    #define     BPF_OR      0x40
-    #define     BPF_AND     0x50
-    #define     BPF_LSH     0x60
-    #define     BPF_RSH     0x70
-    #define     BPF_NEG     0x80
-    #define     BPF_MOD     0x90
-    #define     BPF_XOR     0xa0
-*/
 
 __u8 aluops[] = {
     BPF_ADD,
@@ -101,7 +79,7 @@ __u8 aluops[] = {
     BPF_AND,
     BPF_LSH,
     BPF_RSH,
-    BPF_NEG,
+    // BPF_NEG,
     BPF_MOD,
     BPF_XOR,
 };
@@ -120,8 +98,6 @@ __u8 jmpops[] = {
     BPF_JSLT,
     BPF_JSLE,
 };
-
-#define BPF_JA_INSN(OFF) BPF_RAW_INSN(BPF_JA, 0, 0, OFF, 0)
 
 __u8 regs[] = {
     BPF_REG_0,
@@ -165,43 +141,6 @@ __u8 atomicOps[] = {
 struct regState regStates[sizeof(regs)];
 
 #define stateTransit(dst, src) (dst.type = src.type)
-
-// BPF_PSEUDO_MAP_[IDX_]VALUE
-// BPF_PSEUDO_BTF_ID
-// BPF_PSEUDO_MAP_[FD|IDX]
-/*
-184:#define BPF_PSEUDO_MAP_IDX	5
-1195:#define BPF_PSEUDO_MAP_IDX_VALUE	6
-302:#define BPF_PSEUDO_MAP_FD	1
-#define BPF_PSEUDO_MAP_IDX_VALUE	6
-*/
-
-// the packet length (BPF_LEN)
-#define BPF_LD_LEN(SIZE, IMM)                   \
-    ((struct bpf_insn) {                    \
-        .code  = BPF_LD | BPF_SIZE(SIZE) | BPF_LEN, \
-        .dst_reg = 0,                   \
-        .src_reg = 0,                   \
-        .off   = 0,                 \
-        .imm   = IMM })
-
-// packet data at a variable offset (BPF_IND)
-#define BPF_LD_IND(SIZE, IMM)                   \
-    ((struct bpf_insn) {                    \
-        .code  = BPF_LD | BPF_SIZE(SIZE) | BPF_IND, \
-        .dst_reg = 0,                   \
-        .src_reg = 0,                   \
-        .off   = 0,                 \
-        .imm   = IMM })
-
-// loading the IP header length
-#define BPF_LD_MSH(SIZE, IMM)                   \
-    ((struct bpf_insn) {                    \
-        .code  = BPF_LD | BPF_SIZE(SIZE) | BPF_MSH, \
-        .dst_reg = 0,                   \
-        .src_reg = 0,                   \
-        .off   = 0,                 \
-        .imm   = IMM })
 
 inline int32_t randNum32() {
     int32_t num = rand();
@@ -248,8 +187,8 @@ void PrintLogbuf(char *bpfAttrArg){
 	fprintf(stderr, "log_buf:%s\n", (char *)bpfAttr->log_buf);
 }
 
-bool updateByteCode(bool genNewInsn, struct bpf_insn *bpfBytecode, int *cnt, struct bpf_insn insn) {
-    if (genNewInsn && *cnt < NINSNS) {
+bool updateByteCode(struct bpf_insn *bpfBytecode, int *cnt, struct bpf_insn insn) {
+    if (*cnt < NINSNS) {
         bpfBytecode[*cnt] = insn;
         *cnt += 1;
         return true;
@@ -277,7 +216,7 @@ bool initRegScalar(u_int8_t reg, u_int8_t regBit, struct regState *regStates, st
             break;
     }
 
-    bool ret = updateByteCode(true, bpfBytecode, cnt, insn);
+    bool ret = updateByteCode(bpfBytecode, cnt, insn);
     if (ret) regStates[reg].type = SCALAR_VALUE;
 
     return true;
@@ -288,12 +227,14 @@ bool initRegPtr(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struc
     if (regStates[reg].type == PTR_TO_CTX && regStates[reg].type == PTR_TO_STACK) return true;
 
     struct bpf_insn insn;
+    // TAO TODO: randomly select one suitable register instead of in specific order
     for (int i = 0; i < sizeof(regs); i++) {
         switch(regStates[i].type) {
             case PTR_TO_CTX:
             case PTR_TO_STACK:
                 insn = BPF_MOV64_REG(reg, i);
-                updateByteCode(true, bpfBytecode, cnt, insn);
+                printInsn("BPF_MOV64_REG", 0, reg, i, 0, 0);
+                updateByteCode(bpfBytecode, cnt, insn);
                 return true;
         }
     }

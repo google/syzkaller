@@ -11,6 +11,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <linux/bpf.h>
+#include "../prog/bpf_complete_insn.h"
 
 const unsigned long KCOV_TRACE_PC = 0;
 const unsigned long KCOV_TRACE_CMP = 1;
@@ -76,20 +77,31 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 
 	// Fill map fds
 	union bpf_attr *prog_attr = (union bpf_attr *)a[1];
+	struct bpf_insn *insns = (struct bpf_insn *)prog_attr->insns;
 	if (a[0] == 5) {
 		for (__u32 i = 0; i < prog_attr->insn_cnt; i++) {
-			struct bpf_insn *insns = (struct bpf_insn *)prog_attr->insns;
 			int map_idx = insns[i].imm;
-			/* TAO TODO:
-				1. add other map load insns
-				2. no out-of-bound access of results
-			*/
-			if (insns[i].src_reg == 1 && map_idx >= 0) {
+			if (insns[i].code == (BPF_LD | BPF_DW | BPF_IMM) &&
+				(insns[i].src_reg == BPF_PSEUDO_MAP_FD ||
+				 insns[i].src_reg == BPF_PSEUDO_MAP_VALUE ||
+				 insns[i].src_reg == BPF_PSEUDO_MAP_IDX_VALUE ||
+				 insns[i].src_reg == BPF_PSEUDO_MAP_IDX
+				) &&
+				insns[i].off == 0			&&
+				i + 1 < prog_attr->insn_cnt &&
+				insns[i+1].code == 0		&&
+				insns[i+1].src_reg == 0		&&
+				insns[i+1].dst_reg == 0		&&
+				insns[i+1].off == 0			&&
+				map_idx >= 0
+			)  {
 				insns[i].imm = call_results[map_idx];
 			}
+			// TAO TODO:
+			//	1. add other map load insns
+			//	2. no out-of-bound access of results
 		}
 	}
-
 	if (c->call)
 		ret = c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 	ret = syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5]);
