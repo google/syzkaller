@@ -7,7 +7,7 @@
 # Following branch: android12-5.4-lts
 kernel:
  repo: https://android.googlesource.com/kernel/common
- tag: android12-5.4.242_r00
+ tag: a685e2b8849a9
 
 shell:
  - make gki_defconfig
