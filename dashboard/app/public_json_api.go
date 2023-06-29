@@ -52,7 +52,6 @@ type publicAPICrashDescription struct {
 }
 
 func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
-	crash := bugPage.Crashes.Crashes[0]
 	return &publicAPIBugDescription{
 		Version: 1,
 		Title:   bugPage.Bug.Title,
@@ -82,17 +81,23 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 				bugPage.BisectCause.KernelRepo,
 				bugPage.BisectCause.KernelBranch)
 		}(),
-		Crashes: []publicAPICrashDescription{{
-			SyzReproducer:      crash.ReproSyzLink,
-			CReproducer:        crash.ReproCLink,
-			KernelConfig:       crash.KernelConfigLink,
-			KernelSourceGit:    crash.KernelCommitLink,
-			KernelSourceCommit: crash.KernelCommit,
-			SyzkallerGit:       crash.SyzkallerCommitLink,
-			SyzkallerCommit:    crash.SyzkallerCommit,
-			// TODO: add the CompilerDescription
-			// TODO: add the Architecture
-		}},
+		Crashes: func() []publicAPICrashDescription {
+			var res []publicAPICrashDescription
+			for _, crash := range bugPage.Crashes.Crashes {
+				res = append(res, publicAPICrashDescription{
+					SyzReproducer:      crash.ReproSyzLink,
+					CReproducer:        crash.ReproCLink,
+					KernelConfig:       crash.KernelConfigLink,
+					KernelSourceGit:    crash.KernelCommitLink,
+					KernelSourceCommit: crash.KernelCommit,
+					SyzkallerGit:       crash.SyzkallerCommitLink,
+					SyzkallerCommit:    crash.SyzkallerCommit,
+					// TODO: add the CompilerDescription
+					// TODO: add the Architecture
+				})
+			}
+			return res
+		}(),
 	}
 }
 
