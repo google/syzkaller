@@ -162,11 +162,6 @@ loop:
 		}
 		select {
 		case <-jp.jobTicker:
-			if buildSem.Available() == 0 {
-				// If normal kernel build is in progress (usually on start), don't query jobs.
-				// Otherwise we claim a job, but can't start it for a while.
-				continue loop
-			}
 			jp.pollJobs()
 		case <-jp.commitTicker:
 			jp.pollCommits()
