@@ -3,3 +3,5 @@
 
 config:
  - SLAB
+ # SLAB allocator is being deprecated (currently in -next).
+ - SLAB_DEPRECATED: [v6.4]
