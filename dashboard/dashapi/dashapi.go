@@ -114,6 +114,8 @@ type Commit struct {
 	BugIDs     []string // ID's extracted from Reported-by tags
 	Date       time.Time
 	Link       string // set if the commit is a part of a reply
+	Repo       string
+	Branch     string
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {

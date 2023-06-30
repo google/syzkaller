@@ -68,9 +68,9 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			}
 			var res []vcsCommit
 			for _, commit := range bugPage.Bug.Commits {
-				// TODO: add repoName and branchName to CommitInfo and
-				//   forward it here as commit.Repo + commit.Branch.
-				res = append(res, *makeVCSCommit(commit, "", ""))
+				res = append(res, *makeVCSCommit(commit,
+					commit.Repo,
+					commit.Branch))
 			}
 			return res
 		}(),

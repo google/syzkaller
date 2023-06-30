@@ -1575,9 +1575,11 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 			cfg := config.Namespaces[bug.Namespace]
 			info := bug.getCommitInfo(i)
 			uiBug.Commits = append(uiBug.Commits, &dashapi.Commit{
-				Hash:  info.Hash,
-				Title: com,
-				Link:  vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
+				Hash:   info.Hash,
+				Repo:   info.Repo,
+				Branch: info.Branch,
+				Title:  com,
+				Link:   vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
 			})
 		}
 		for _, mgr := range managers {

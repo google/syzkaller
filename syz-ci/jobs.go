@@ -256,6 +256,13 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 	return mgr.dash.UploadCommits(results)
 }
 
+func setCommitsRepoBranch(commits []*vcs.Commit, repo, branch string) {
+	for _, c := range commits {
+		c.Repo = repo
+		c.Branch = branch
+	}
+}
+
 func (jp *JobProcessor) pollRepo(mgr *Manager, URL, branch, reportEmail string) ([]*vcs.Commit, error) {
 	dir := filepath.Join(jp.baseDir, mgr.managercfg.TargetOS, "kernel")
 	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir)
@@ -265,7 +272,10 @@ func (jp *JobProcessor) pollRepo(mgr *Manager, URL, branch, reportEmail string) 
 	if _, err = repo.CheckoutBranch(URL, branch); err != nil {
 		return nil, fmt.Errorf("failed to checkout kernel repo %v/%v: %v", URL, branch, err)
 	}
-	return repo.ExtractFixTagsFromCommits("HEAD", reportEmail)
+	var commits []*vcs.Commit
+	commits, err = repo.ExtractFixTagsFromCommits("HEAD", reportEmail)
+	setCommitsRepoBranch(commits, URL, branch)
+	return commits, err
 }
 
 func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits []string) ([]*vcs.Commit, error) {
@@ -284,6 +294,7 @@ func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits 
 	for _, title := range missing {
 		jp.Logf(0, "did not find commit %q in kernel repo %v/%v", title, URL, branch)
 	}
+	setCommitsRepoBranch(results, URL, branch)
 	return results, nil
 }
 

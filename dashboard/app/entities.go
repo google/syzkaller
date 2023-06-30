@@ -277,6 +277,8 @@ type Commit struct {
 	AuthorName string
 	CC         string `datastore:",noindex"` // (|-delimited list)
 	Date       time.Time
+	Repo       string
+	Branch     string
 }
 
 type BugDiscussionInfo struct {

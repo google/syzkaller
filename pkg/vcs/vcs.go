@@ -110,6 +110,8 @@ type Commit struct {
 	Parents    []string
 	Date       time.Time
 	CommitDate time.Time
+	Repo       string
+	Branch     string
 }
 
 type RecipientType int
