@@ -40,6 +40,7 @@ func makeVCSCommit(commit *dashapi.Commit, repo, branch string) *vcsCommit {
 }
 
 type publicAPICrashDescription struct {
+	Title               string `json:"title"`
 	SyzReproducer       string `json:"syz-reproducer,omitempty"`
 	CReproducer         string `json:"c-reproducer,omitempty"`
 	KernelConfig        string `json:"kernel-config,omitempty"`
@@ -85,6 +86,7 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			var res []publicAPICrashDescription
 			for _, crash := range bugPage.Crashes.Crashes {
 				res = append(res, publicAPICrashDescription{
+					Title:              crash.Title,
 					SyzReproducer:      crash.ReproSyzLink,
 					CReproducer:        crash.ReproCLink,
 					KernelConfig:       crash.KernelConfigLink,
