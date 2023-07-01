@@ -18,6 +18,22 @@
         .off   = 0,                 \
         .imm   = 0 })
 
+#define BPF_ENDBE_REG(DST, IMM)             \
+    ((struct bpf_insn) {                    \
+        .code  = BPF_ALU | BPF_TO_BE | BPF_END,    \
+        .dst_reg = DST,                 \
+        .src_reg = 0,                 \
+        .off   = 0,                 \
+        .imm   = IMM })
+
+#define BPF_ENDLE_REG(DST, IMM)             \
+    ((struct bpf_insn) {                    \
+        .code  = BPF_ALU | BPF_TO_LE | BPF_END,    \
+        .dst_reg = DST,                 \
+        .src_reg = 0,                 \
+        .off   = 0,                 \
+        .imm   = IMM }) // imm = 16, 32, 64
+
 /**************************** Load/Store ***************************/
 
 /*

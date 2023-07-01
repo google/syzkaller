@@ -1,5 +1,6 @@
 #include "genbpf.hpp"
 #include "genmap.hpp"
+#include "bpf_insn_constraint.hpp"
 #include "genbpfimport.hpp"
 
 /* TODO:
@@ -98,67 +99,42 @@ void genALUOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt
         BPF_MOV32_IMM(DST, IMM)
     */
 
-    // __u8 AluMov = (rand() % 2) << 2;
-    // __u8 Bit6432 = (rand() % 2) << 1;
-    // __u8 RegImm = (rand() % 2);
-
     __u8 op = aluops[rand() % sizeof(aluops)];
     u_int8_t dst = regs[rand() % (sizeof(regs)-1)], src = regs[rand() % sizeof(regs)];
     int32_t imm32 = randNum32(), imm64 = randNum32();
     struct bpf_insn insn;
 
-    // switch(AluMov | Bit6432 | RegImm) {
-    switch (rand() % 10) {
+    switch (rand() % 12) {
         case 0:
-            if (BPF_ALU64_REG_Constraint(op, dst, src, 0, 0)) {
-                initRegScalar(src, Bit64, regStates, bpfBytecode, cnt);
-                initRegScalar(dst, Bit64, regStates, bpfBytecode, cnt);
-                insn = BPF_ALU64_REG(op, dst, src);
-                regStates[dst].type = regStates[src].type;
-                printInsn("BPF_ALU64_REG", op, dst, src, 0, 0);
-            }
+            insn = BPF_ALU64_REG(op, dst, src);
+            printInsn("BPF_ALU64_REG", op, dst, src, 0, 0);
             break;
         case 1:
-            if (BPF_ALU32_REG_Constraint(op, dst, src, 0, 0)) {
-                initRegScalar(src, Bit32, regStates, bpfBytecode, cnt);
-                initRegScalar(dst, Bit32, regStates, bpfBytecode, cnt);
-                insn = BPF_ALU32_REG(op, dst, src);
-                regStates[dst].type = regStates[src].type;
-                printInsn("BPF_ALU32_REG", op, dst, src, 0, 0);
-            }
+            insn = BPF_ALU32_REG(op, dst, src);
+            printInsn("BPF_ALU32_REG", op, dst, src, 0, 0);
             break;
         case 2:
-            initRegScalar(dst, Bit64, regStates, bpfBytecode, cnt);
             insn = BPF_ALU64_IMM(op, dst, imm64);
-            regStates[dst].type = SCALAR_VALUE;
             printInsn("BPF_ALU64_IMM", op, dst, 0, imm64, 0);
             break;
         case 3:
-            initRegScalar(dst, Bit32, regStates, bpfBytecode, cnt);
             insn = BPF_ALU32_IMM(op, dst, imm32);
-            regStates[dst].type = SCALAR_VALUE;
             printInsn("BPF_ALU32_IMM", op, dst, 0, imm32, 0);
             break;
         case 4:
-            initRegScalar(src, Bit64, regStates, bpfBytecode, cnt);
             insn = BPF_MOV64_REG(dst, src);
-            regStates[dst].type = regStates[src].type;
             printInsn("BPF_MOV64_REG", 0, dst, src, 0, 0);
             break;
         case 5:
-            initRegScalar(src, Bit32, regStates, bpfBytecode, cnt);
             insn = BPF_MOV32_REG(dst, src);
-            regStates[dst].type = regStates[src].type;
             printInsn("BPF_MOV32_REG", 0, dst, src, 0, 0);
             break;
         case 6:
             insn = BPF_MOV64_IMM(dst, imm64);
-            regStates[dst].type = SCALAR_VALUE;
             printInsn("BPF_MOV64_IMM", 0, dst, 0, imm64, 0);
             break;
         case 7:
             insn = BPF_MOV32_IMM(dst, imm32);
-            regStates[dst].type = SCALAR_VALUE;
             printInsn("BPF_MOV32_IMM", 0, dst, 0, imm32, 0);
             break;
         case 8:
@@ -169,8 +145,19 @@ void genALUOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt
             insn = BPF_NEG32_REG(dst);
             printInsn("BPF_NEG32_REG", 0, dst, 0, 0, 0);
             break;
+        case 10:
+            imm32 = ENDIMMs[rand() % sizeof(ENDIMMs)];
+            insn = BPF_ENDBE_REG(dst, imm32);
+            printInsn("BPF_ENDBE_REG", 0, dst, 0, 0, 0);
+            break;
+        case 11:
+            imm32 = ENDIMMs[rand() % sizeof(ENDIMMs)];
+            insn = BPF_ENDLE_REG(dst, imm32);
+            printInsn("BPF_ENDLE_REG", 0, dst, 0, 0, 0);
+            break;
     }
 
+    if (!commonALUCons(&insn, regStates, bpfBytecode, cnt)) return;
     updateByteCode(bpfBytecode, cnt, insn);
 }
 

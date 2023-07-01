@@ -16,8 +16,10 @@
 #define NINSNSALL (NINSNS+3)
 #define SMAX 
 
-#define Bit64 0b01
-#define Bit32 0b10
+#define Bit64 0b00
+#define Bit32 0b01
+#define Bit64Value 0b10
+#define Bit32Value 0b11
 
 enum operations{
     ALUOP,
@@ -82,6 +84,8 @@ __u8 aluops[] = {
     // BPF_NEG,
     BPF_MOD,
     BPF_XOR,
+    // BPF_TO_LE | BPF_END,
+    // BPF_TO_BE | BPF_END,
 };
 
 __u8 jmpops[] = {
@@ -138,6 +142,12 @@ __u8 atomicOps[] = {
     BPF_CMPXCHG,
 };
 
+__u8 ENDIMMs[] = {
+    16,
+    32,
+    64
+};
+
 struct regState regStates[sizeof(regs)];
 
 #define stateTransit(dst, src) (dst.type = src.type)
@@ -151,6 +161,11 @@ inline int64_t randNum64() {
     int64_t num = rand();
     return num % 2 == 1 ? num : num - RAND_MAX;
 }
+
+inline int64_t randRange(int begin, int end) {
+    return begin + int64_t(rand() % (end-begin+1));
+}
+
 
 inline Json::Value readJsonFile(char *fname) {
     Json::Value jsonData;
@@ -196,32 +211,6 @@ bool updateByteCode(struct bpf_insn *bpfBytecode, int *cnt, struct bpf_insn insn
     return false;
 }
 
-bool initRegScalar(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
-    
-    // The reg has already been initilized
-    if (regStates[reg].type != NOT_INIT) return true;
-
-    struct bpf_insn insn;
-    int32_t imm32, imm64;
-    switch (regBit) {
-        case Bit32:
-            imm32 = randNum32();
-            insn = BPF_MOV32_IMM(reg, imm32);
-            printInsn("BPF_MOV32_IMM", 0, reg, 0, imm32, 0);
-            break;
-        case Bit64:
-            imm64 = randNum64();
-            insn = BPF_MOV64_IMM(reg, imm64);
-            printInsn("BPF_MOV64_IMM", 0, reg, 0, imm64, 0);
-            break;
-    }
-
-    bool ret = updateByteCode(bpfBytecode, cnt, insn);
-    if (ret) regStates[reg].type = SCALAR_VALUE;
-
-    return true;
-}
-
 bool initRegPtr(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
     
     if (regStates[reg].type == PTR_TO_CTX && regStates[reg].type == PTR_TO_STACK) return true;
@@ -246,13 +235,13 @@ bool initRegPtr(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struc
 
 bool BPF_ALU64_REG_Constraint(u_int8_t op, u_int8_t dst, u_int8_t src, int32_t imm, short int off) {
     
-    if (op == BPF_NEG && src != 0) return false;
+    // if (op == BPF_NEG && src != 0) return false;
     return true;
 }
 
 bool BPF_ALU32_REG_Constraint(u_int8_t op, u_int8_t dst, u_int8_t src, int32_t imm, short int off) {
     
-    if (op == BPF_NEG && src != 0) return false;
+    // if (op == BPF_NEG && src != 0) return false;
     return true;
 }
 
