@@ -122,7 +122,7 @@
 
 /**************************** JMP ***************************/
 
-#define BPF_JA_INSN(OFF) BPF_RAW_INSN(BPF_JA, 0, 0, OFF, 0)
+#define BPF_JA_INSN(OFF) BPF_RAW_INSN(BPF_JMP | BPF_JA, 0, 0, OFF, 0)
 
 
 /**************************** Call ***************************/

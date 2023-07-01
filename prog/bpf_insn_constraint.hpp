@@ -119,3 +119,74 @@ bool commonALUCons(struct bpf_insn *insn, struct regState *regStates, struct bpf
 
     return true;
 }
+
+
+/* ALU instruction constraits:
+    1. Initialized registers as any types.
+    2. Offset: unsolved "unreachable insn" due to JA instruction.
+*/
+
+bool CommonInit(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
+    
+    if (regStates[reg].type != NOT_INIT) return true;
+
+    struct bpf_insn insn;
+    int32_t imm32;
+    int64_t imm64;
+    u_int8_t srcReg;
+
+    // Randomly select one initialized register.
+    int i = 0;
+    while(true){
+        if (regStates[i].type != NOT_INIT && (rand() % 100 > 50)){
+            srcReg = i;
+            break;
+        }
+        i = (i + 1) % sizeof(regs);
+    }
+
+    switch((rand() % 2 << 2) | regBit) {
+        // Reg
+        case Bit32:
+            insn = BPF_MOV32_REG(reg, srcReg);
+            regStates[reg].type = regStates[srcReg].type;
+        case Bit64:
+            insn = BPF_MOV64_REG(reg, srcReg);
+            regStates[reg].type = regStates[srcReg].type;
+        // Immediate
+        case 1<<2 | Bit32:
+            imm32 = randNum32();
+            insn = BPF_MOV32_IMM(reg, imm32);
+            regStates[reg].type = SCALAR_VALUE;
+        case 1<<2 | Bit64:
+            imm64 = randNum64();
+            insn = BPF_MOV64_IMM(reg, imm64);
+            regStates[reg].type = SCALAR_VALUE;
+    }
+
+    return updateByteCode(bpfBytecode, cnt, insn);
+}
+
+
+bool commonJMPCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
+
+    u_int8_t bit = 0;
+    bit = insn->code & BPF_JMP ? Bit64 : Bit32;
+
+    // JMP instruction doesn't require any constraints or initializations.
+    if (insn->code == BPF_JA) return true;
+
+    switch (insn->code & BPF_X) {
+        case BPF_X:
+            if(!CommonInit(insn->dst_reg, bit, regStates, bpfBytecode, cnt)) return false;
+            if(!CommonInit(insn->src_reg, bit, regStates, bpfBytecode, cnt)) return false;
+            break;
+        default:
+            if(!CommonInit(insn->dst_reg, bit, regStates, bpfBytecode, cnt)) return false;
+            break;
+    }
+    
+    insn->off = randRange(-*cnt, (NINSNS-*cnt-2));
+
+    return true;
+}

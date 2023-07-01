@@ -58,13 +58,13 @@ int GenBPFProg(char *bpfProgAttr, char *bpfMapAttr, int MaxMapAttrSize) {
                 genALUOP(regStates, bpfBytecode, &cnt);                
                 break;
             case LSOP:
-                genLSOP(regStates, bpfBytecode, &cnt, maxMaps);
+                // genLSOP(regStates, bpfBytecode, &cnt, maxMaps);
                 break;
             case JMPOP:
                 genJMPOP(regStates, bpfBytecode, &cnt);
                 break;            
             case CALLOP:
-                genCallOP(regStates, bpfBytecode, &cnt);
+                // genCallOP(regStates, bpfBytecode, &cnt);
                 break;
         }
     }
@@ -274,21 +274,12 @@ void genJMPOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt
              src = regs[rand() % sizeof(regs)],
              op = jmpops[rand() % sizeof(jmpops)];
 
-    short int off = 0;
+    short int off = randRange(-32768, 32767);
     int32_t imm32 = randNum32();
     int32_t imm64 = randNum64();
     struct bpf_insn insn;
 
-    /*
-    if (op == BPF_JA) {
-        dst = 0;
-        src = 0;
-        imm32 = 0;
-        imm64 = 0;
-    }
-    */
-
-    switch(rand() % 4) {
+    switch(rand() % 5) {
         case 0:
             insn = BPF_JMP_REG(op, dst, src, off);
             printInsn("BPF_JMP_REG", op, dst, src, 0, off);
@@ -311,6 +302,7 @@ void genJMPOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt
             break;
     }
 
+    if(!commonJMPCons(&insn, regStates, bpfBytecode, cnt)) return;
     updateByteCode(bpfBytecode, cnt, insn);
 }
 
