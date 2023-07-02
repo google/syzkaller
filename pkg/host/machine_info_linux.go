@@ -21,6 +21,7 @@ func init() {
 	}
 	machineModulesInfo = getModulesInfo
 	machineGlobsInfo = getGlobsInfo
+	machineParseModules = parseModules
 }
 
 func readCPUInfo(buffer *bytes.Buffer) error {
@@ -125,8 +126,12 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 }
 
 func getModulesInfo() ([]KernelModule, error) {
-	var modules []KernelModule
 	modulesText, _ := os.ReadFile("/proc/modules")
+	return parseModules(modulesText)
+}
+
+func parseModules(modulesText []byte) ([]KernelModule, error) {
+	var modules []KernelModule
 	re := regexp.MustCompile(`(\w+) ([0-9]+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	for _, m := range re.FindAllSubmatch(modulesText, -1) {
 		addr, err := strconv.ParseUint(string(m[3]), 0, 64)
