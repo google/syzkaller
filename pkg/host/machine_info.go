@@ -45,9 +45,17 @@ func CollectGlobsInfo(globs map[string]bool) (map[string][]string, error) {
 	return machineGlobsInfo(globs)
 }
 
+func ParseModulesText(modulesText []byte) ([]KernelModule, error) {
+	if machineParseModules == nil {
+		return nil, nil
+	}
+	return machineParseModules(modulesText)
+}
+
 var machineInfoFuncs []machineInfoFunc
 var machineModulesInfo func() ([]KernelModule, error)
 var machineGlobsInfo func(map[string]bool) (map[string][]string, error)
+var machineParseModules func([]byte) ([]KernelModule, error)
 
 type machineInfoFunc struct {
 	name string
