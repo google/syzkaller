@@ -132,10 +132,14 @@ func TestJSONAPIFixCommits(t *testing.T) {
 	"fix-commits": [
 		{
 			"title": "foo: fix1",
-			"hash": "hash1"
+			"hash": "hash1",
+			"repo": "git://syzkaller.org",
+			"branch": "branch10"
 		},
 		{
-			"title": "foo: fix2"
+			"title": "foo: fix2",
+			"repo": "git://syzkaller.org",
+			"branch": "branch10"
 		}
 	],
 	"crashes": [

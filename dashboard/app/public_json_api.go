@@ -5,8 +5,6 @@ package main
 
 import (
 	"encoding/json"
-
-	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
 // publicApiBugDescription is used to serve the /bug HTTP requests
@@ -27,16 +25,6 @@ type vcsCommit struct {
 	Hash   string `json:"hash,omitempty"`
 	Repo   string `json:"repo,omitempty"`
 	Branch string `json:"branch,omitempty"`
-}
-
-func makeVCSCommit(commit *dashapi.Commit, repo, branch string) *vcsCommit {
-	return &vcsCommit{
-		Title:  commit.Title,
-		Link:   commit.Link,
-		Hash:   commit.Hash,
-		Repo:   repo,
-		Branch: branch,
-	}
 }
 
 type publicAPICrashDescription struct {
@@ -68,9 +56,13 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			}
 			var res []vcsCommit
 			for _, commit := range bugPage.Bug.Commits {
-				// TODO: add repoName and branchName to CommitInfo and
-				//   forward it here as commit.Repo + commit.Branch.
-				res = append(res, *makeVCSCommit(commit, "", ""))
+				res = append(res, vcsCommit{
+					Title:  commit.Title,
+					Link:   commit.Link,
+					Hash:   commit.Hash,
+					Repo:   commit.Repo,
+					Branch: commit.Branch,
+				})
 			}
 			return res
 		}(),
@@ -78,9 +70,13 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			if bugPage.BisectCause == nil || bugPage.BisectCause.Commit == nil {
 				return nil
 			}
-			return makeVCSCommit(bugPage.BisectCause.Commit,
-				bugPage.BisectCause.KernelRepo,
-				bugPage.BisectCause.KernelBranch)
+			bisectCause := bugPage.BisectCause
+			return &vcsCommit{
+				Title:  bisectCause.Commit.Title,
+				Link:   bisectCause.Commit.Link,
+				Hash:   bisectCause.Commit.Hash,
+				Repo:   bisectCause.KernelRepo,
+				Branch: bisectCause.KernelBranch}
 		}(),
 		Crashes: func() []publicAPICrashDescription {
 			var res []publicAPICrashDescription
