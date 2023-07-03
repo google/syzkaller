@@ -19,3 +19,10 @@ const (
 	AtomicSleep      = Type("ATOMIC_SLEEP")
 	KMSAN            = Type("KMSAN")
 )
+
+func (t Type) String() string {
+	if t == UnknownType {
+		return "UNKNOWN"
+	}
+	return string(t)
+}
