@@ -290,6 +290,17 @@ type uiJobList struct {
 	Jobs   []*uiJob
 }
 
+type uiCommit struct {
+	Hash   string
+	Repo   string
+	Branch string
+	Title  string
+	Link   string
+	Author string
+	CC     []string
+	Date   time.Time
+}
+
 type uiBug struct {
 	Namespace      string
 	Title          string
@@ -307,7 +318,7 @@ type uiBug struct {
 	Link           string
 	ExternalLink   string
 	CreditEmail    string
-	Commits        []*dashapi.Commit
+	Commits        []*uiCommit
 	PatchedOn      []string
 	MissingOn      []string
 	NumManagers    int
@@ -1574,7 +1585,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		for i, com := range bug.Commits {
 			cfg := config.Namespaces[bug.Namespace]
 			info := bug.getCommitInfo(i)
-			uiBug.Commits = append(uiBug.Commits, &dashapi.Commit{
+			uiBug.Commits = append(uiBug.Commits, &uiCommit{
 				Hash:  info.Hash,
 				Title: com,
 				Link:  vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
