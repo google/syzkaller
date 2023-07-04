@@ -1259,6 +1259,9 @@ var linuxStackParams = &stackParams{
 		"el1_abort",
 		"el1h_64_sync(?:_handler)?",
 		"print_tainted",
+		"xas_(?:start|load|find)",
+		"find_lock_entries",
+		"truncate_inode_pages_range",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
