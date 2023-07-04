@@ -112,10 +112,8 @@ func parseMainSpec(file string) ([]*Instance, []string, error) {
 				return nil, nil, fmt.Errorf("%v: %v", name, err)
 			}
 			instances = append(instances, inst)
-			if constraintsInclude(features, featBaseline) {
-				continue
-			}
-			inst, err = parseInstance(name+"-base", filepath.Dir(file), append(features, featBaseline), raw.Includes)
+			inst, err = parseInstance(name+"-base", filepath.Dir(file),
+				append(features, featBaseline, featBaseConfig), raw.Includes)
 			if err != nil {
 				return nil, nil, err
 			}
