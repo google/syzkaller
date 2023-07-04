@@ -223,6 +223,24 @@ syscall(SYS_csource6, /*buf=*/0x%xul);
 				target.DataOffset+0x100, target.DataOffset+0x100,
 				target.DataOffset+0x140, target.DataOffset+0x140),
 		},
+		{
+			input: `
+csource7(0x0)
+csource7(0x1)
+csource7(0x2)
+csource7(0x3)
+csource7(0x4)
+csource7(0x5)
+`,
+			output: `
+syscall(SYS_csource7, /*flag=*/0ul);
+syscall(SYS_csource7, /*flag=BIT_0*/1ul);
+syscall(SYS_csource7, /*flag=BIT_1*/2ul);
+syscall(SYS_csource7, /*flag=BIT_0_AND_1*/3ul);
+syscall(SYS_csource7, /*flag=*/4ul);
+syscall(SYS_csource7, /*flag=BIT_0|0x4*/5ul);
+`,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -231,6 +249,7 @@ syscall(SYS_csource6, /*buf=*/0x%xul);
 				t.Fatal(err)
 			}
 			ctx := &context{
+				p:         p,
 				target:    target,
 				sysTarget: targets.Get(target.OS, target.Arch),
 			}
