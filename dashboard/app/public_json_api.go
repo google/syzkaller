@@ -12,6 +12,7 @@ import (
 type publicAPIBugDescription struct {
 	Version     int         `json:"version"`
 	Title       string      `json:"title,omitempty"`
+	ID          string      `json:"id"`
 	FixCommits  []vcsCommit `json:"fix-commits,omitempty"`
 	CauseCommit *vcsCommit  `json:"cause-commit,omitempty"`
 	// links to the discussions
@@ -44,6 +45,7 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 	return &publicAPIBugDescription{
 		Version: 1,
 		Title:   bugPage.Bug.Title,
+		ID:      bugPage.Bug.ID,
 		Discussions: func() []string {
 			if bugPage.Bug.ExternalLink == "" {
 				return nil
