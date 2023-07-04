@@ -325,6 +325,7 @@ type uiBug struct {
 	LastActivity   time.Time
 	Labels         []*uiBugLabel
 	Discussions    DiscussionSummary
+	ID             string
 }
 
 type uiBugLabel struct {
@@ -1576,6 +1577,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		NumManagers:    len(managers),
 		LastActivity:   bug.LastActivity,
 		Discussions:    bug.discussionSummary(),
+		ID:             bug.keyHash(),
 	}
 	for _, entry := range bug.Labels {
 		uiBug.Labels = append(uiBug.Labels, makeBugLabelUI(c, bug, entry))

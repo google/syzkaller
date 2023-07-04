@@ -14,6 +14,7 @@ func TestJSONAPIIntegration(t *testing.T) {
 	sampleCrashDescr := []byte(`{
 	"version": 1,
 	"title": "title1",
+	"id": "cb1dbe55dc6daa7e739a0d09a0ae4d5e3e5a10c8",
 	"crashes": [
 		{
 			"title": "title1",
@@ -29,6 +30,7 @@ func TestJSONAPIIntegration(t *testing.T) {
 	sampleCrashWithReproDescr := []byte(`{
 	"version": 1,
 	"title": "title2",
+	"id": "fc00fbc0cddd9a4ef2ae33e40cd21636081466ce",
 	"crashes": [
 		{
 			"title": "title2",
@@ -129,6 +131,7 @@ func TestJSONAPIFixCommits(t *testing.T) {
 	want := []byte(`{
 	"version": 1,
 	"title": "title1",
+	"id": "cb1dbe55dc6daa7e739a0d09a0ae4d5e3e5a10c8",
 	"fix-commits": [
 		{
 			"title": "foo: fix1",
@@ -168,9 +171,10 @@ func TestJSONAPICauseBisection(t *testing.T) {
 	url := fmt.Sprintf("/bug?id=%v&json=1", bugKey.StringID())
 	content, err := c.GET(url)
 	c.expectEQ(err, nil)
-	c.expectEQ(string(content), string(`{
+	c.expectEQ(string(content), `{
 	"version": 1,
 	"title": "title1",
+	"id": "70ce63ecb151d563976728208edccc6879191f9f",
 	"cause-commit": {
 		"title": "kernel: add a bug",
 		"hash": "36e65cb4a0448942ec316b24d60446bbd5cc7827",
@@ -188,5 +192,5 @@ func TestJSONAPICauseBisection(t *testing.T) {
 			"syzkaller-commit": "syzkaller_commit1"
 		}
 	]
-}`))
+}`)
 }
