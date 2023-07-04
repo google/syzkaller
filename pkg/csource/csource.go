@@ -26,6 +26,7 @@ package csource
 import (
 	"bytes"
 	"fmt"
+	"math/bits"
 	"regexp"
 	"sort"
 	"strconv"
@@ -501,8 +502,57 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	}
 }
 
+func (ctx *context) factorizeAsFlags(value uint64, flags []string, attemptsLeft *int) ([]string, uint64) {
+	if len(flags) == 0 || value == 0 || *attemptsLeft == 0 {
+		return nil, value
+	}
+
+	*attemptsLeft -= 1
+	currentFlag := flags[0]
+	subset, remainder := ctx.factorizeAsFlags(value, flags[1:], attemptsLeft)
+
+	if flagMask, ok := ctx.p.Target.ConstMap[currentFlag]; ok && (value&flagMask == flagMask) {
+		subsetIfTaken, remainderIfTaken := ctx.factorizeAsFlags(value & ^flagMask, flags[1:], attemptsLeft)
+		subsetIfTaken = append(subsetIfTaken, currentFlag)
+
+		bits, bitsIfTaken := bits.OnesCount64(remainder), bits.OnesCount64(remainderIfTaken)
+		if (bitsIfTaken < bits) || (bits == bitsIfTaken && len(subsetIfTaken) < len(subset)) {
+			return subsetIfTaken, remainderIfTaken
+		}
+	}
+
+	return subset, remainder
+}
+
+func (ctx *context) prettyPrintValue(field prog.Field, arg prog.ExecArgConst) string {
+	mask := (uint64(1) << (arg.Size * 8)) - 1
+	v := arg.Value & mask
+
+	f := ctx.p.Target.FlagsMap[field.Type.Name()]
+	if len(f) == 0 {
+		return ""
+	}
+
+	maxFactorizationAttempts := 256
+	flags, remainder := ctx.factorizeAsFlags(v, f, &maxFactorizationAttempts)
+	if len(flags) == 0 {
+		return ""
+	}
+	if remainder != 0 {
+		flags = append(flags, fmt.Sprintf("0x%x", remainder))
+	}
+
+	return strings.Join(flags, "|")
+}
+
 func (ctx *context) argComment(field prog.Field, arg prog.ExecArg) string {
-	return "/*" + field.Name + "=" + "*/"
+	val := ""
+	constArg, isConstArg := arg.(prog.ExecArgConst)
+	if isConstArg {
+		val = ctx.prettyPrintValue(field, constArg)
+	}
+
+	return "/*" + field.Name + "=" + val + "*/"
 }
 
 func (ctx *context) constArgToStr(arg prog.ExecArgConst, suffix string) string {
