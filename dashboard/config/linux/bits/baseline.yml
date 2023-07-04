@@ -1,0 +1,44 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Baseline is defconfig by default, but even that is bigger than we actually need.
+# baseline.yml disables more configs for Linux baseline configs.
+# This list is far from being complete.
+
+config:
+  - DRM: n
+  - DNS_RESOLVER: [n, weak]
+  - EVM: [n, weak]
+  - EVM_ADD_XATTRS: [n, weak]
+  - EVM_ATTR_FSUUID: [n, weak]
+  - EVM_EXTRA_SMACK_XATTRS: [n, weak]
+  - IMA: [n, weak]
+  - IMA_DEFAULT_HASH_SHA256: [n, weak]
+  - IMA_READ_POLICY: [n, weak]
+  - IMA_WRITE_POLICY: [n, weak]
+  - IMA_APPRAISE: [n, weak]
+  - IMA_APPRAISE_MODSIG: [n, weak]
+  - INTEGRITY: [n, weak]
+  - INTEGRITY_SIGNATURE: [n, weak]
+  - INTEGRITY_ASYMMETRIC_KEYS: [n, weak]
+  - INTEGRITY_TRUSTED_KEYRING: [n, weak]
+  - INPUT_JOYSTICK: n
+  - INPUT_LEDS: [n, weak]
+  - INPUT_MOUSE: [n, weak]
+  - INPUT_TABLET: [n, weak]
+  - INPUT_TOUCHSCREEN: [n, weak]
+  - KCOV: [n, weak]
+  - KCOV_INSTRUMENT_ALL: [n, weak]
+  - KCOV_ENABLE_COMPARISONS: [n, weak]
+  - MAC_EMUMOUSEBTN: n
+  - MACINTOSH_DRIVERS: n
+  - MOUSE_PS2: n
+  - NETLABEL: [n, weak]
+  - PCCARD: [n, weak]
+  - PREEMPT_VOLUNTARY: n
+  - RFKILL: n
+  - SOUND: n
+  - TCG_TPM: n
+  - WIRELESS: n
+  - WIRELESS_EXT: [n, weak]
+  - WLAN: [n, weak]

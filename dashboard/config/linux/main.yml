@@ -80,6 +80,7 @@ includes:
  - kcsan.yml: [kcsan]
  - kmsan.yml: [kmsan]
  - kfence.yml: [kfence]
+ - baseline.yml: [base-config]
  - linux-upstream.yml: [upstream]
  - linux-next.yml: [linux-next]
  - stable-5.4.yml: [stable-5.4]
