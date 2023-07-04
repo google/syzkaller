@@ -97,10 +97,11 @@ Some features/constraints are defined by `syz-kconf` itself or have special mean
    a config removed in that kernel release)
 
 `syz-kconf` generates 2 kernel config files for each instance: one `normal` (or full) and one `baseline`.
-The `baseline` config has `-base` suffix and has `baseline` feature added. The `baseline` config is meant to not
-contain majority of subsystem configs enabled (should just boot and have debugging configs enabled), however,
-that is fully controlled by config fragments based on the presence of the `baseline` feature. `baseline` configs
-are used in config minization procedure.
+The `baseline` config has `-base` suffix and has `baseline` and `base-config` features added. The `baseline`
+config is meant to not contain majority of subsystem configs enabled (should just boot and have debugging
+configs enabled), however, that is fully controlled by config fragments based on the presence of the `baseline`
+feature. In order to facilitate even smaller `-base.config` files, the `base-config` feature is automatically
+set for them. Such configs are intended to be used by the config minization procedure.
 
 The only exception to the declarative nature of the process is USB configs. They are added procedurally, see
 `addUSBConfigs` function for details.

@@ -25,16 +25,17 @@ import (
 )
 
 const (
-	featOverride = "override"
-	featOptional = "optional"
-	featAppend   = "append"
-	featWeak     = "weak"
-	featBaseline = "baseline"
-	featModules  = "modules"
-	featReduced  = "reduced"
-	featClang    = "clang"
-	featAndroid  = "android"
-	featChromeos = "chromeos"
+	featOverride   = "override"
+	featOptional   = "optional"
+	featAppend     = "append"
+	featWeak       = "weak"
+	featBaseline   = "baseline"    // disables extra configs
+	featBaseConfig = "base-config" // only set for `-base.config` files
+	featModules    = "modules"
+	featReduced    = "reduced"
+	featClang      = "clang"
+	featAndroid    = "android"
+	featChromeos   = "chromeos"
 )
 
 func main() {
