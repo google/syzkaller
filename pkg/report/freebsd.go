@@ -4,7 +4,6 @@
 package report
 
 import (
-	"bytes"
 	"regexp"
 
 	"github.com/google/syzkaller/pkg/report/crash"
@@ -26,44 +25,7 @@ func (ctx *freebsd) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *freebsd) Parse(output []byte) *Report {
-	rep := &Report{
-		Output: output,
-	}
-	var oops *oops
-	for pos := 0; pos < len(output); {
-		next := bytes.IndexByte(output[pos:], '\n')
-		if next != -1 {
-			next += pos
-		} else {
-			next = len(output)
-		}
-		for _, oops1 := range freebsdOopses {
-			if !matchOops(output[pos:next], oops1, ctx.ignores) {
-				continue
-			}
-			if oops == nil {
-				oops = oops1
-				rep.StartPos = pos
-			}
-			rep.EndPos = next
-		}
-		// Console output is indistinguishable from fuzzer output,
-		// so we just collect everything after the oops.
-		if oops != nil {
-			rep.Report = append(rep.Report, output[pos:next]...)
-			rep.Report = append(rep.Report, '\n')
-		}
-		pos = next + 1
-	}
-	if oops == nil {
-		return nil
-	}
-	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, freebsdStackParams)
-	rep.Title = title
-	rep.AltTitles = altTitles
-	rep.Corrupted = corrupted != ""
-	rep.CorruptedReason = corrupted
-	return rep
+	return simpleLineParser(output, freebsdOopses, freebsdStackParams, ctx.ignores)
 }
 
 func (ctx *freebsd) Symbolize(rep *Report) error {
