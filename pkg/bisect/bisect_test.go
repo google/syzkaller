@@ -93,7 +93,20 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 		}
 		return ret, nil
 	}
-	return make([]instance.EnvTestResult, numVMs), nil
+	ret = make([]instance.EnvTestResult, numVMs-1)
+	if env.test.injectSyzFailure {
+		ret = append(ret, instance.EnvTestResult{
+			Error: &instance.TestError{
+				Report: &report.Report{
+					Title: "SYZFATAL: test",
+					Type:  crash.SyzFailure,
+				},
+			},
+		})
+	} else {
+		ret = append(ret, instance.EnvTestResult{})
+	}
+	return ret, nil
 }
 
 func (env *testEnv) headCommit() int {
@@ -259,10 +272,11 @@ type BisectionTest struct {
 	expectErr     bool
 	expectErrType any
 	// Expect res.Report != nil.
-	expectRep  bool
-	noopChange bool
-	isRelease  bool
-	flaky      bool
+	expectRep        bool
+	noopChange       bool
+	isRelease        bool
+	flaky            bool
+	injectSyzFailure bool
 	// Expected number of returned commits for inconclusive bisection.
 	commitLen int
 	// For cause bisection: Oldest commit returned by bisection.
@@ -403,6 +417,16 @@ var bisectionTests = []BisectionTest{
 		commitLen:   1,
 		culprit:     500,
 		isRelease:   true,
+	},
+	// Tests that bisection returns the correct fix commit despite SYZFATAL.
+	{
+		name:             "fix-finds-fix-despite-syzfatal",
+		fix:              true,
+		startCommit:      400,
+		injectSyzFailure: true,
+		commitLen:        1,
+		culprit:          500,
+		isRelease:        true,
 	},
 	// Tests that fix bisection returns error when crash does not reproduce
 	// on the original commit.
