@@ -398,12 +398,18 @@ func (c *Ctx) pollEmailBug() *aemail.Message {
 
 func (c *Ctx) pollEmailExtID() string {
 	c.t.Helper()
+	_, extBugID := c.pollEmailAndExtID()
+	return extBugID
+}
+
+func (c *Ctx) pollEmailAndExtID() (string, string) {
+	c.t.Helper()
 	msg := c.pollEmailBug()
 	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	if err != nil {
 		c.t.Fatalf("failed to remove addr context: %v", err)
 	}
-	return extBugID
+	return msg.Sender, extBugID
 }
 
 func (c *Ctx) expectNoEmail() {
