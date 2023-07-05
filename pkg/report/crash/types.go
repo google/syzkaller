@@ -18,6 +18,7 @@ const (
 	LockdepBug       = Type("LOCKDEP")
 	AtomicSleep      = Type("ATOMIC_SLEEP")
 	KMSAN            = Type("KMSAN")
+	SyzFailure       = Type("SYZ_FAILURE")
 )
 
 func (t Type) String() string {

@@ -1,4 +1,5 @@
 TITLE: SYZFAIL: negative running
+TYPE: SYZ_FAILURE
 
 2021/02/21 12:37:19 executor 5 failed 11 times:
 executor 5: exit status 67
