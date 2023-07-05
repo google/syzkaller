@@ -20,13 +20,25 @@ const (
 	MissingBackportLabel BugLabelType = "missing-backport"
 )
 
+type BugPrio string
+
+const (
+	LowPrioBug    BugPrio = "low"
+	NormalPrioBug BugPrio = "normal"
+	HighPrioBug   BugPrio = "high"
+)
+
 type oneOf []string
 type subsetOf []string
 type trueFalse struct{}
 
 func makeLabelSet(c context.Context, ns string) *labelSet {
 	ret := map[BugLabelType]interface{}{
-		PriorityLabel:        oneOf([]string{"low", "normal", "high"}),
+		PriorityLabel: oneOf([]string{
+			string(LowPrioBug),
+			string(NormalPrioBug),
+			string(HighPrioBug),
+		}),
 		NoRemindersLabel:     trueFalse{},
 		MissingBackportLabel: trueFalse{},
 	}
@@ -222,4 +234,21 @@ func (bug *Bug) HasUserLabel(label BugLabelType) bool {
 		}
 	}
 	return false
+}
+
+func (bug *Bug) prio() BugPrio {
+	for _, label := range bug.LabelValues(PriorityLabel) {
+		return BugPrio(label.Value)
+	}
+	return NormalPrioBug
+}
+
+var bugPrioOrder = map[BugPrio]int{
+	LowPrioBug:    1,
+	NormalPrioBug: 2,
+	HighPrioBug:   3,
+}
+
+func (bp BugPrio) LessThan(other BugPrio) bool {
+	return bugPrioOrder[bp] < bugPrioOrder[other]
 }

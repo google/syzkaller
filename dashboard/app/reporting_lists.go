@@ -300,6 +300,10 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 	})
 	takeBugs := append(withRepro, noRepro[:takeNoRepro]...)
 	sort.Slice(takeBugs, func(i, j int) bool {
+		firstPrio, secondPrio := takeBugs[i].prio(), takeBugs[j].prio()
+		if firstPrio != secondPrio {
+			return !firstPrio.LessThan(secondPrio)
+		}
 		if takeBugs[i].NumCrashes != takeBugs[j].NumCrashes {
 			return takeBugs[i].NumCrashes > takeBugs[j].NumCrashes
 		}
