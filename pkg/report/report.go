@@ -763,7 +763,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
+		crash.SyzFailure,
 	},
 	{
 		// Errors produced by log.Fatal functions.
@@ -777,7 +777,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
+		crash.SyzFailure,
 	},
 	{
 		[]byte("panic:"),
