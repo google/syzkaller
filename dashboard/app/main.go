@@ -55,6 +55,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
 	for ns := range config.Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
+		http.Handle("/"+ns+"/dbtest", handlerWrapper(handleDBTest))
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
 		http.Handle("/"+ns+"/graph/bugs", handlerWrapper(handleKernelHealthGraph))
@@ -433,8 +434,14 @@ func (filter *userBugFilter) Any() bool {
 	return len(filter.Labels) > 0 || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
 }
 
-// handleMain serves main page.
-func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
+func pushString(w http.ResponseWriter, s string) {
+	w.Write([]byte(s))
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func handleDBTest(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -444,14 +451,87 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
 	}
+
+	test := func(name string, n int, f func() int) {
+		var timeSpend []int64
+		var totalTimeSpend int64
+		var itemsCount int
+		for i := 0; i < n; i++ {
+			start := time.Now()
+			itemsCount = f()
+			funcCallTime := time.Since(start).Milliseconds()
+			timeSpend = append(timeSpend, funcCallTime)
+			totalTimeSpend += funcCallTime
+		}
+		avgFuncCallTime := totalTimeSpend / int64(n)
+
+		pushString(w, fmt.Sprintf(name+" returned %v items in avg %v ms (%v runs)\n", itemsCount, avgFuncCallTime, n))
+		pushString(w, "details: (")
+		for i, t := range timeSpend {
+			pushString(w, strconv.FormatInt(t, 10))
+			if i != len(timeSpend)-1 {
+				pushString(w, ", ")
+			}
+		}
+		pushString(w, ")\n\n")
+	}
+
+	test("loadManagers()", 1, func() int {
+		managers, _ := loadManagers(c, accessLevel, hdr.Namespace, filter)
+		return len(managers)
+	})
+
+	test("fetchNamespaceBugs()", 10, func() int {
+		groups, _, _ := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, filter)
+		return len(groups)
+	})
+
+	test("loadAllBugKeysAtOnce()", 10, func() int {
+		keys, _ := loadAllBugKeysAtOnce(c, nil)
+		return len(keys)
+	})
+
+	test("loadAllBugKeys()", 10, func() int {
+		keys, _ := loadAllBugKeys(c, nil)
+		return len(keys)
+	})
+
+	test("loadVisibleBugs()", 10, func() int {
+		bugs, _ := loadVisibleBugs(c, accessLevel, hdr.Namespace, filter)
+		return len(bugs)
+	})
+
+	test("loadAllBugs()", 3, func() int {
+		_, keys, _ := loadAllBugs(c, nil)
+		return len(keys)
+	})
+
+	return nil
+}
+
+// handleMain serves main page.
+func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	start := time.Now()
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	accessLevel := accessLevel(c, r)
+	filter, err := MakeBugFilter(r)
+	if err != nil {
+		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+	}
+	time1 := time.Since(start)
 	managers, err := loadManagers(c, accessLevel, hdr.Namespace, filter)
 	if err != nil {
 		return err
 	}
-	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, filter)
+	time2 := time.Since(start)
+	groups, err, fetchTimings := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, filter)
 	if err != nil {
 		return err
 	}
+	time3 := time.Since(start)
 	for _, group := range groups {
 		if config.Namespaces[hdr.Namespace].DisplayDiscussions {
 			group.DispDiscuss = true
@@ -467,13 +547,30 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		Managers:       makeManagerList(managers, hdr.Namespace),
 		BugFilter:      makeUIBugFilter(c, filter),
 	}
+	time4 := time.Since(start)
 
 	if isJSONRequested(r) {
 		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)
 	}
 
-	return serveTemplate(w, "main.html", data)
+	res := serveTemplate(w, "main.html", data)
+	time5 := time.Since(start)
+	pushString(w, fmt.Sprintf("\ntimings: %v, %v, %v, %v, %v\n",
+		time1.Milliseconds(),
+		time2.Milliseconds(),
+		time3.Milliseconds(),
+		time4.Milliseconds(),
+		time5.Milliseconds(),
+	))
+	pushString(w, "fetchtimings: ")
+	for i, t := range fetchTimings {
+		pushString(w, strconv.FormatInt(t.Milliseconds(), 10))
+		if i != len(fetchTimings)-1 {
+			pushString(w, ", ")
+		}
+	}
+	return res
 }
 
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -510,7 +607,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	if subsystem == nil {
 		return fmt.Errorf("%w: the subsystem is not found in the path %v", ErrClientBadRequest, r.URL.Path)
 	}
-	groups, err := fetchNamespaceBugs(c, accessLevel(c, r),
+	groups, err, _ := fetchNamespaceBugs(c, accessLevel(c, r),
 		hdr.Namespace, &userBugFilter{
 			Labels: []string{
 				BugLabel{
@@ -1253,19 +1350,24 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 }
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
-	filter *userBugFilter) ([]*uiBugGroup, error) {
+	filter *userBugFilter) ([]*uiBugGroup, error, []time.Duration) {
+	start := time.Now()
+	var timings []time.Duration
 	bugs, err := loadVisibleBugs(c, accessLevel, ns, filter)
 	if err != nil {
-		return nil, err
+		return nil, err, timings
 	}
+	timings = append(timings, time.Since(start))
 	state, err := loadReportingState(c)
 	if err != nil {
-		return nil, err
+		return nil, err, timings
 	}
+	timings = append(timings, time.Since(start))
 	managers, err := managerList(c, ns)
 	if err != nil {
-		return nil, err
+		return nil, err, timings
 	}
+	timings = append(timings, time.Since(start))
 	groups := make(map[int][]*uiBug)
 	bugMap := make(map[string]*uiBug)
 	var dups []*Bug
@@ -1289,6 +1391,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		id := uiBug.ReportingIndex
 		groups[id] = append(groups[id], uiBug)
 	}
+	timings = append(timings, time.Since(start))
 	for _, dup := range dups {
 		bug := bugMap[dup.DupOf]
 		if bug == nil {
@@ -1296,6 +1399,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		}
 		mergeUIBug(c, bug, dup)
 	}
+	timings = append(timings, time.Since(start))
 	cfg := config.Namespaces[ns]
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
@@ -1327,10 +1431,11 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 			Bugs:      bugs,
 		})
 	}
+	timings = append(timings, time.Since(start))
 	sort.Slice(uiGroups, func(i, j int) bool {
 		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
 	})
-	return uiGroups, nil
+	return uiGroups, nil, timings
 }
 
 func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns string,

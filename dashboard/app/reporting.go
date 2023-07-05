@@ -727,6 +727,30 @@ func loadAllBugs(c context.Context, filter func(*db.Query) *db.Query) ([]*Bug, [
 	return bugs, keys, nil
 }
 
+func loadAllBugKeys(c context.Context, filter func(*db.Query) *db.Query) ([]*db.Key, error) {
+	var keys []*db.Key
+	err := foreachBugKey(c, filter, func(key *db.Key) error {
+		keys = append(keys, key)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return keys, nil
+}
+
+func loadAllBugKeysAtOnce(c context.Context, filter func(*db.Query) *db.Query) ([]*db.Key, error) {
+	var keys []*db.Key
+	err := foreachBugKeyAtOnce(c, filter, func(key *db.Key) error {
+		keys = append(keys, key)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return keys, nil
+}
+
 func loadNamespaceBugs(c context.Context, ns string) ([]*Bug, []*db.Key, error) {
 	return loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns)
@@ -764,6 +788,76 @@ func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug
 				return fmt.Errorf("failed to fetch bugs: %v", err)
 			}
 			if err := fn(bug, key); err != nil {
+				return err
+			}
+		}
+		cur, err := iter.Cursor()
+		if err != nil {
+			return fmt.Errorf("cursor failed while fetching bugs: %v", err)
+		}
+		cursor = &cur
+	}
+}
+
+func foreachBugKey(c context.Context, filter func(*db.Query) *db.Query, fn func(key *db.Key) error) error {
+	const batchSize = 1000
+	var cursor *db.Cursor
+	for {
+		query := db.NewQuery("Bug").Limit(batchSize).KeysOnly()
+		if filter != nil {
+			query = filter(query)
+		}
+		if cursor != nil {
+			query = query.Start(*cursor)
+		}
+		iter := query.Run(c)
+		for i := 0; ; i++ {
+			key, err := iter.Next(nil)
+			if err == db.Done {
+				if i < batchSize {
+					return nil
+				}
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("failed to fetch bugs: %v", err)
+			}
+			if err := fn(key); err != nil {
+				return err
+			}
+		}
+		cur, err := iter.Cursor()
+		if err != nil {
+			return fmt.Errorf("cursor failed while fetching bugs: %v", err)
+		}
+		cursor = &cur
+	}
+}
+
+func foreachBugKeyAtOnce(c context.Context, filter func(*db.Query) *db.Query, fn func(key *db.Key) error) error {
+	const batchSize = 100000
+	var cursor *db.Cursor
+	for {
+		query := db.NewQuery("Bug").Limit(batchSize).KeysOnly()
+		if filter != nil {
+			query = filter(query)
+		}
+		if cursor != nil {
+			query = query.Start(*cursor)
+		}
+		iter := query.Run(c)
+		for i := 0; ; i++ {
+			key, err := iter.Next(nil)
+			if err == db.Done {
+				if i < batchSize {
+					return nil
+				}
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("failed to fetch bugs: %v", err)
+			}
+			if err := fn(key); err != nil {
 				return err
 			}
 		}
