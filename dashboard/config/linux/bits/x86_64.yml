@@ -56,3 +56,6 @@ config:
 
  - TRACE_EVENT_INJECT: [v5.5]
  - PM_TRACE_RTC: [optional]
+
+ # Allows to boot kernel via qemu directly from a vmlinux file.
+ - PVH: [-kmsan]
