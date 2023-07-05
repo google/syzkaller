@@ -241,6 +241,11 @@ func (t *TypeCommon) Alignment() uint64 {
 	return t.TypeAlign
 }
 
+type FlagDesc struct {
+	Name   string
+	Values []string
+}
+
 type ResourceDesc struct {
 	Name   string
 	Kind   []string
