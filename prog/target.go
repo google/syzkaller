@@ -26,6 +26,7 @@ type Target struct {
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc
 	Consts    []ConstValue
+	Flags     []FlagDesc
 
 	// MakeDataMmap creates calls that mmaps target data memory range.
 	MakeDataMmap func() []*Call
@@ -63,6 +64,7 @@ type Target struct {
 	// Filled by prog package:
 	SyscallMap map[string]*Syscall
 	ConstMap   map[string]uint64
+	FlagsMap   map[string][]string
 
 	init        sync.Once
 	initArch    func(target *Target)
@@ -165,6 +167,11 @@ func (target *Target) initTarget() {
 	for i, c := range target.Syscalls {
 		c.ID = i
 		target.SyscallMap[c.Name] = c
+	}
+
+	target.FlagsMap = make(map[string][]string)
+	for _, c := range target.Flags {
+		target.FlagsMap[c.Name] = c.Values
 	}
 
 	target.populateResourceCtors()
