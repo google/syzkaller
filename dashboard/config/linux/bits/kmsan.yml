@@ -33,8 +33,6 @@ config:
  # KMSAN doesn't support ORC unwinder (https://github.com/google/kmsan/issues/48).
  - UNWINDER_FRAME_POINTER
 
- - HYPERVISOR_GUEST: n
- - PARAVIRT: n
  - PARAVIRT_SPINLOCKS: [n, weak]
  - PARAVIRT_DEBUG: [n, weak]
  - CPU_IDLE_GOV_HALTPOLL: [n, weak]
