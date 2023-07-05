@@ -148,7 +148,6 @@ func (target *Target) lazyInit() {
 		}
 	}
 	// These are used only during lazyInit.
-	target.ConstMap = nil
 	target.types = nil
 }
 
@@ -176,9 +175,6 @@ func (target *Target) initTarget() {
 }
 
 func (target *Target) GetConst(name string) uint64 {
-	if target.ConstMap == nil {
-		panic("GetConst can only be used during target initialization")
-	}
 	v, ok := target.ConstMap[name]
 	if !ok {
 		panic(fmt.Sprintf("const %v is not defined for %v/%v", name, target.OS, target.Arch))
