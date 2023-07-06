@@ -770,9 +770,12 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	}
 
 	newSubsystems := []*subsystem.Subsystem{}
-	// Recalculate subsystems on the first saved crash and on the first saved repro.
-	calculateSubsystems := save && (bug.NumCrashes == 0 ||
-		bug.ReproLevel == ReproLevelNone && reproLevel != ReproLevelNone)
+	// Recalculate subsystems on the first saved crash and on the first saved repro,
+	// unless a user has already manually specified them.
+	calculateSubsystems := save &&
+		!bug.hasUserSubsystems() &&
+		(bug.NumCrashes == 0 ||
+			bug.ReproLevel == ReproLevelNone && reproLevel != ReproLevelNone)
 	if calculateSubsystems {
 		newSubsystems, err = inferSubsystems(c, bug, bugKey, &debugtracer.NullTracer{})
 		if err != nil {
