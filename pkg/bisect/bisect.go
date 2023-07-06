@@ -803,7 +803,8 @@ func (env *env) isTransientError(rep *report.Report) bool {
 	for _, t := range env.reportTypes {
 		hadSyzFailure = hadSyzFailure || t == crash.SyzFailure
 	}
-	return rep.Type == crash.SyzFailure && !hadSyzFailure
+	return rep.Type == crash.SyzFailure &&
+		len(env.reportTypes) > 0 && !hadSyzFailure
 }
 
 func (env *env) saveDebugFile(hash string, idx int, data []byte) {
