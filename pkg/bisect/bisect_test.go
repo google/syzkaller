@@ -87,9 +87,9 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
 			commit < env.test.culprit) {
 		if env.test.flaky {
-			ret = crashErrors(1, numVMs-1, "crash occurs")
+			ret = crashErrors(1, numVMs-1, "crash occurs", env.test.reportType)
 		} else {
-			ret = crashErrors(numVMs, 0, "crash occurs")
+			ret = crashErrors(numVMs, 0, "crash occurs", env.test.reportType)
 		}
 		return ret, nil
 	}
@@ -265,6 +265,7 @@ type BisectionTest struct {
 	brokenEnd         int
 	infraErrStart     int
 	infraErrEnd       int
+	reportType        crash.Type
 	// Range of commits that result in the same kernel binary signature.
 	sameBinaryStart int
 	sameBinaryEnd   int
@@ -427,6 +428,16 @@ var bisectionTests = []BisectionTest{
 		commitLen:        1,
 		culprit:          500,
 		isRelease:        true,
+	},
+	// Tests that bisection returns the correct fix commit in case of SYZFATAL.
+	{
+		name:        "fix-finds-fix-for-syzfatal",
+		fix:         true,
+		startCommit: 400,
+		reportType:  crash.SyzFailure,
+		commitLen:   1,
+		culprit:     500,
+		isRelease:   true,
 	},
 	// Tests that fix bisection returns error when crash does not reproduce
 	// on the original commit.
@@ -639,13 +650,14 @@ func checkTest(t *testing.T, test BisectionTest) {
 	}
 }
 
-func crashErrors(crashing, nonCrashing int, title string) []instance.EnvTestResult {
+func crashErrors(crashing, nonCrashing int, title string, typ crash.Type) []instance.EnvTestResult {
 	var ret []instance.EnvTestResult
 	for i := 0; i < crashing; i++ {
 		ret = append(ret, instance.EnvTestResult{
 			Error: &instance.CrashError{
 				Report: &report.Report{
 					Title: fmt.Sprintf("crashes at %v", title),
+					Type:  typ,
 				},
 			},
 		})
