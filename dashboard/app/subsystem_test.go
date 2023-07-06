@@ -208,6 +208,41 @@ func TestUserSubsystemsRefresh(t *testing.T) {
 	expectLabels(t, client, extID, "subsystems:subsystemB")
 }
 
+func TestNoUserSubsystemOverwrite(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Create a bug without subsystems.
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	c.incomingEmail(c.pollEmailBug().Sender, "#syz upstream\n")
+
+	sender := c.pollEmailBug().Sender
+	_, extID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	// Manually set subsystemA.
+	c.incomingEmail(sender, "#syz set subsystems: subsystemA\n",
+		EmailOptFrom("test@requester.com"))
+	expectLabels(t, client, extID, "subsystems:subsystemA")
+
+	// Now we find a reproducer that indicates it's subsystemB.
+
+	crash.GuiltyFiles = []string{"b.c"}
+	crash.ReproOpts = []byte("some opts")
+	crash.ReproSyz = []byte("getpid()")
+	client.ReportCrash(crash)
+	c.pollEmailBug()
+
+	// Make sure subsystem stayed unchanged.
+	expectLabels(t, client, extID, "subsystems:subsystemA")
+}
+
 // nolint: goconst
 func TestPeriodicSubsystemReminders(t *testing.T) {
 	c := NewCtx(t)
