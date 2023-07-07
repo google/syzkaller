@@ -318,7 +318,7 @@ config:
  - NET_SCH_ETS: [v5.5]
  - NET_SCH_DEFAULT
  - NET_CLS_BASIC
- - NET_CLS_TCINDEX: [-v6.3]
+ - NET_CLS_TCINDEX: [-v6.3, -stable-5.10]
  - NET_CLS_ROUTE4
  - NET_CLS_FW
  - NET_CLS_U32
