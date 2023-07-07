@@ -8,7 +8,7 @@ shell:
 config:
  - CMDLINE: [append, "root=/dev/vda console=ttyAMA0"]
  # Was dropped in "arm64: Drop support for CMDLINE_EXTEND".
- - CMDLINE_EXTEND: [-v5.12]
+ - CMDLINE_EXTEND: [-v5.10]
 
  - ARM64_TAGGED_ADDR_ABI
  - ARM64_PMEM
