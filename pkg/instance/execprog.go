@@ -122,7 +122,7 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 		inst.Logf(2, "program did not crash")
 	} else {
 		if err := inst.reporter.Symbolize(result.Report); err != nil {
-			return nil, fmt.Errorf("failed to symbolize report: %v", err)
+			inst.Logf(0, "failed to symbolize report: %v", err)
 		}
 		inst.Logf(2, "program crashed: %v", result.Report.Title)
 	}
