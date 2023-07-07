@@ -565,6 +565,7 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 		CrashTime:       crash.Time,
 		NumCrashes:      bug.NumCrashes,
 		HappenedOn:      managersToRepos(c, bug.Namespace, bug.HappenedOn),
+		Manager:         crash.Manager,
 		Assets:          assetList,
 		ReportElements:  &dashapi.ReportElements{GuiltyFiles: crash.ReportElements.GuiltyFiles},
 	}
