@@ -424,6 +424,7 @@ type BugReport struct {
 	ReproOpts         []byte
 	MachineInfo       []byte
 	MachineInfoLink   string
+	Manager           string
 	CrashID           int64 // returned back in BugUpdate
 	CrashTime         time.Time
 	NumCrashes        int64
