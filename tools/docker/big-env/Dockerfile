@@ -34,10 +34,7 @@ RUN dpkg --add-architecture i386 && \
 	apt-get update --allow-releaseinfo-change && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# required to build root images.
-	debootstrap ssh-tools qemu-user-static \
-	# required for gcloud sdk.
-	python2 \
-	&& \
+	debootstrap ssh-tools qemu-user-static && \
 	apt-get -y autoremove && \
 	apt-get clean autoclean && \
 	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
@@ -47,13 +44,22 @@ RUN curl https://dl.google.com/go/go1.19.6.linux-amd64.tar.gz | tar -C /usr/loca
 
 RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz
-RUN curl https://storage.googleapis.com/syzkaller/akaros-toolchain.tar.gz | tar -C /syzkaller -xz
 ENV SOURCEDIR_FUCHSIA /syzkaller/fuchsia
 ENV SOURCEDIR_NETBSD /syzkaller/netbsd
-ENV SOURCEDIR_AKAROS /syzkaller/akaros
+
+# Build Python 2.7 from source.
+RUN apt-get install -y -q libsqlite3-dev
+RUN wget -O /tmp/Python-2.7.18.tgz 'https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz'
+RUN cd /tmp/ && tar -zxf Python-2.7.18.tgz
+RUN cd /tmp/Python-2.7.18 && ./configure
+RUN cd /tmp/Python-2.7.18 && make -j2 && make altinstall
+RUN ln -s /usr/local/bin/python2.7 /usr/bin/python2
 
 # Install gcloud sdk for dashboard/app tests.
-RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-360.0.0-linux-x86_64.tar.gz | tar -C /usr/local -xz
+# The newest version (as of 07/10/23) is 437, however, it seems to expect to be run with python3
+# (but still requires python2). But Go's aetest package still runs dev_appserver.py with python2.7.
+# So let's use an older, but working sdk.
+RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-linux-x86_64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/google-cloud-sdk/bin:$PATH
 RUN gcloud components install --quiet app-engine-python app-engine-go app-engine-python-extras cloud-datastore-emulator
 RUN chmod 0777 /usr/local/google-cloud-sdk
