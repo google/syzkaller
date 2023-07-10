@@ -61,6 +61,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -173,6 +174,8 @@ type ManagerConfig struct {
 	// Parameters for concrete types are in Config type in pkg/build/TYPE.go, e.g. pkg/build/android.go.
 	Build json.RawMessage `json:"build"`
 	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.
+	// If not specified, syz-ci generates a `-base.config` path counterpart for `kernel_config` and,
+	// if it exists, uses it as default.
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
 	// File with kernel cmdline values (optional).
 	KernelCmdline string `json:"kernel_cmdline"`
@@ -435,5 +438,21 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
 	mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
 	mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
+
+	if mgr.KernelConfig != "" && mgr.KernelBaselineConfig == "" {
+		mgr.KernelBaselineConfig = inferBaselineConfig(mgr.KernelConfig)
+	}
 	return nil
+}
+
+func inferBaselineConfig(kernelConfig string) string {
+	suffixPos := strings.LastIndex(kernelConfig, ".config")
+	if suffixPos < 0 {
+		return ""
+	}
+	candidate := kernelConfig[:suffixPos] + "-base.config"
+	if !osutil.IsExist(candidate) {
+		return ""
+	}
+	return candidate
 }
