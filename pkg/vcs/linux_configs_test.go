@@ -47,7 +47,7 @@ func TestDropLinuxSanitizerConfigs(t *testing.T) {
 			name:  "lockdep",
 			types: []crash.Type{crash.LockdepBug},
 			test: func(t *testing.T, cf *kconfig.ConfigFile) {
-				assertConfigs(t, cf, "LOCKDEP")
+				assertConfigs(t, cf, "LOCKDEP", "PROVE_LOCKING")
 			},
 		},
 		{
@@ -68,6 +68,7 @@ CONFIG_LOCKDEP=y
 CONFIG_RCU_STALL_COMMON=y
 CONFIG_UBSAN=y
 CONFIG_DEBUG_ATOMIC_SLEEP=y
+CONFIG_PROVE_LOCKING=y
 `
 	for _, test := range tests {
 		test := test

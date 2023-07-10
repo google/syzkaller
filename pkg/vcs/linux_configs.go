@@ -114,11 +114,14 @@ func setLinuxSanitizerConfigs(cf *kconfig.ConfigFile, types []crash.Type, dt deb
 					val[:pos]+" rcupdate.rcu_cpu_stall_suppress=1"+val[pos:])
 			}
 		},
-		crash.MemoryLeak:  func() { cf.Unset("DEBUG_KMEMLEAK") },
-		crash.UBSAN:       func() { cf.Unset("UBSAN") },
-		crash.Bug:         func() { cf.Unset("BUG") },
-		crash.KASAN:       func() { cf.Unset("KASAN") },
-		crash.LockdepBug:  func() { cf.Unset("LOCKDEP") },
+		crash.MemoryLeak: func() { cf.Unset("DEBUG_KMEMLEAK") },
+		crash.UBSAN:      func() { cf.Unset("UBSAN") },
+		crash.Bug:        func() { cf.Unset("BUG") },
+		crash.KASAN:      func() { cf.Unset("KASAN") },
+		crash.LockdepBug: func() {
+			cf.Unset("LOCKDEP")
+			cf.Unset("PROVE_LOCKING") // it selects LOCKDEP
+		},
 		crash.AtomicSleep: func() { cf.Unset("DEBUG_ATOMIC_SLEEP") },
 	}
 	need := map[crash.Type]bool{}
