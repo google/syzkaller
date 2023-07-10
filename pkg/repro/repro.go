@@ -84,8 +84,12 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ctx.createInstances(cfg, vmPool, vmIndexes)
+		ctx.createInstances(cfg, vmPool)
 	}()
+	// Prepare VMs in advance.
+	for _, idx := range vmIndexes {
+		ctx.bootRequests <- idx
+	}
 	// Wait until all VMs are really released.
 	defer wg.Wait()
 	return ctx.run()
@@ -642,36 +646,34 @@ func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEnt
 	return ret, err
 }
 
-func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) {
+func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool) {
 	var wg sync.WaitGroup
-	wg.Add(len(vmIndexes))
-	for _, vmIndex := range vmIndexes {
-		ctx.bootRequests <- vmIndex
+	for vmIndex := range ctx.bootRequests {
+		wg.Add(1)
+		vmIndex := vmIndex
 		go func() {
 			defer wg.Done()
-			for vmIndex := range ctx.bootRequests {
-				var inst *instance.ExecProgInstance
-				maxTry := 3
-				for try := 0; try < maxTry; try++ {
-					select {
-					case <-vm.Shutdown:
-						try = maxTry
-						continue
-					default:
-					}
-					var err error
-					inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
-						ctx.reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
-					if err != nil {
-						ctx.reproLogf(0, "failed to init instance: %v", err)
-						time.Sleep(10 * time.Second)
-						continue
-					}
-					break
+
+			var inst *instance.ExecProgInstance
+			maxTry := 3
+			for try := 0; try < maxTry; try++ {
+				select {
+				case <-vm.Shutdown:
+					try = maxTry
+					continue
+				default:
 				}
-				if inst == nil {
-					break
+				var err error
+				inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
+					ctx.reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
+				if err != nil {
+					ctx.reproLogf(0, "failed to init instance: %v", err)
+					time.Sleep(10 * time.Second)
+					continue
 				}
+				break
+			}
+			if inst != nil {
 				ctx.instances <- &reproInstance{execProg: inst, index: vmIndex}
 			}
 		}()
