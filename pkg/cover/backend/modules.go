@@ -50,10 +50,9 @@ func discoverModulesLinux(dirs []string, hostModules []host.KernelModule,
 			continue
 		}
 		log.Logf(0, "module %v -> %v", mod.Name, path)
-		offset := getModuleOffset(path)
 		modules = append(modules, &Module{
 			Name: mod.Name,
-			Addr: mod.Addr + offset,
+			Addr: mod.Addr,
 			Path: path,
 		})
 	}
