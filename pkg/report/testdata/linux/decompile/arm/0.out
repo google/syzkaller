@@ -112,4 +112,4 @@ Code disassembly (best guess):
    4:	e2853020 	add	r3, r5, #32
    8:	e1a02000 	mov	r2, r0
    c:	e2422008 	sub	r2, r2, #8
-* 10:	e5034020 	str	r4, [r3, #-32]	; 0xffffffe0 <-- trapping instruction
+* 10:	e5034020 	str	r4, [r3, #-32]	@ 0xffffffe0 <-- trapping instruction
