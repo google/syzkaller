@@ -63,13 +63,13 @@ Code disassembly (best guess):
   11:	80 3c 02 00          	cmpb   $0x0,(%rdx,%rax,1)
   15:	74 08                	je     0x1f
   17:	4c 89 e7             	mov    %r12,%rdi
-  1a:	e8 f0 8e 14 fe       	callq  0xfe148f0f
+  1a:	e8 f0 8e 14 fe       	call   0xfe148f0f
   1f:	48 8b 83 18 02 00 00 	mov    0x218(%rbx),%rax
   26:	89 ed                	mov    %ebp,%ebp
   28:	31 d2                	xor    %edx,%edx
 * 2a:	48 f7 f5             	div    %rbp <-- trapping instruction
   2d:	48 89 83 18 02 00 00 	mov    %rax,0x218(%rbx)
   34:	45 31 ed             	xor    %r13d,%r13d
-  37:	e8 7f b5 f2 fd       	callq  0xfdf2b5bb
+  37:	e8 7f b5 f2 fd       	call   0xfdf2b5bb
   3c:	44 89 e8             	mov    %r13d,%eax
   3f:	5b                   	pop    %rbx
