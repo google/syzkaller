@@ -125,9 +125,37 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 	return nil
 }
 
+func getModuleTextAddr(moduleName string) (uint64, error) {
+	addrPath := filepath.Join("/sys", "module", moduleName, "sections", ".text")
+	addrContent, err := os.ReadFile(addrPath)
+	if err != nil {
+		return 0, fmt.Errorf("could not read module .text address file: %v", err)
+	}
+	addrString := strings.TrimSpace(string(addrContent))
+	addr, err := strconv.ParseUint(addrString, 0, 64)
+	if err != nil {
+		return 0, fmt.Errorf("address parsing error in %v: %v", moduleName, err)
+	}
+	return addr, nil
+}
+
 func getModulesInfo() ([]KernelModule, error) {
 	modulesText, _ := os.ReadFile("/proc/modules")
-	return parseModules(modulesText)
+	modules, err := parseModules(modulesText)
+	if err != nil {
+		return modules, err
+	}
+	// Fix up module addresses to use .text addresses
+	for i, module := range modules {
+		addr, err := getModuleTextAddr(module.Name)
+		if err != nil {
+			modules[i].Addr = addr
+		} else {
+			// Keep using the address from /proc/modules, which may NOT be the .text
+			// address.
+		}
+	}
+	return modules, nil
 }
 
 func parseModules(modulesText []byte) ([]KernelModule, error) {
