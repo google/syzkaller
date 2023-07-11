@@ -135,6 +135,10 @@ func covFilterAddRawPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
 }
 
 func createCoverageBitmap(target *targets.Target, pcs map[uint32]uint32) []byte {
+	// Return nil if filtering is not used.
+	if len(pcs) == 0 {
+		return nil
+	}
 	start, size := coverageFilterRegion(pcs)
 	log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+size, size, len(pcs))
 	// The file starts with two uint32: covFilterStart and covFilterSize,
