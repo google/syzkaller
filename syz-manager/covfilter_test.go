@@ -50,4 +50,7 @@ func TestCreateBitmap(t *testing.T) {
 		0x81000102: 1,
 	}
 	createCoverageBitmap(target, pcs)
+	// Test nil bitmap.
+	pcs = nil
+	createCoverageBitmap(target, pcs)
 }
