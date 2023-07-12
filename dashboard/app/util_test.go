@@ -49,7 +49,7 @@ type Ctx struct {
 var skipDevAppserverTests = func() bool {
 	_, err := exec.LookPath("dev_appserver.py")
 	// Don't silently skip tests on CI, we should have gcloud sdk installed there.
-	return err != nil && os.Getenv("SYZ_BIG_ENV") == ""
+	return err != nil && os.Getenv("SYZ_ENV") == ""
 }()
 
 func NewCtx(t *testing.T) *Ctx {

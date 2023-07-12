@@ -3,11 +3,10 @@
 We provide a set of Docker images that provide dev environment suitable for syzkaller development/testing.
 These images are used by CI, but can also be used for [local development](/docs/contributing.md#using-syz-env).
 
-- [env](/tools/docker/env/Dockerfile) includes Go toolchain, C/C++ cross-compilers, make, git and other essential tools.
-- [big-env](/tools/docker/big-env/Dockerfile) includes akaros/fuchsia/netbsd toolchains and gcloud sdk on top of `env` image.
+- [env](/tools/docker/env/Dockerfile) includes Go/fuchsia/netbsd toolchains, gcloud sdk, C/C++ cross-compilers, make, git and other essential tools.
 - [old-env](/tools/docker/old-env/Dockerfile) provides essential tools but based on an older disto (ubuntu:16.04).
 
-These images are available as `gcr.io/syzkaller/{env,big-env,old-env}`, respectively.
+These images are available as `gcr.io/syzkaller/{env,old-env}`, respectively.
 
 To download and run locally:
 ```

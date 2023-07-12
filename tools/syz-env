@@ -48,9 +48,7 @@ fi
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 IMAGE="env"
-if [ "$(basename -- "$0")" == "syz-big-env" ]; then
-	IMAGE="big-env"
-elif [ "$(basename -- "$0")" == "syz-old-env" ]; then
+if [ "$(basename -- "$0")" == "syz-old-env" ]; then
         IMAGE="old-env"
 fi
 

@@ -365,10 +365,10 @@ presubmit_arch_executor: descriptions
 	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
 presubmit_big: descriptions
-	# This target runs on CI in syz-big-env,
-	# so we test packages that need GCloud SDK or OS toolchains.
+	# This target runs on CI in syz-env,
+	# so we can test packages that need GCloud SDK or OS toolchains.
 	# Run tests with clang on Linux.
-	# big-env also contains toolchains for NetBSD/Fuchsia/Akaros,
+	# syz-env also contains toolchains for NetBSD/Fuchsia/Akaros,
 	# but these OSes use fixed toolchains and are not affected by SYZ_CLANG=yes.
 	# This way we get maximum coverage: smoke run tests Linux/gcc,
 	# while this run tests Linux/clang + the additional OSes.
