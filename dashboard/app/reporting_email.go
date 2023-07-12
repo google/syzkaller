@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
@@ -330,6 +331,10 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
+	}
+	if rep.UserSpaceArch == targets.AMD64 {
+		// This is default, so don't include the info.
+		rep.UserSpaceArch = ""
 	}
 	templ := ""
 	switch rep.Type {
