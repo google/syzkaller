@@ -67,7 +67,7 @@ RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/b
 # ./build.sh -j72 -m amd64 -U -T ../tools -D ../dest distribution
 #
 # To build root image run:
-#	docker run -it --rm --privileged --device /dev/loop0 gcr.io/syzkaller/big-env
+#	docker run -it --rm --privileged --device /dev/loop0 gcr.io/syzkaller/env
 #	mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 #	create-image.sh -a s390x -d buster
 
