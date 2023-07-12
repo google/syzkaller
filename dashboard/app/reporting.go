@@ -1569,8 +1569,6 @@ func kernelArch(arch string) string {
 	switch arch {
 	case targets.I386:
 		return "i386"
-	case targets.AMD64:
-		return "" // this is kinda the default, so we don't notify about it
 	default:
 		return arch
 	}
