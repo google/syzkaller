@@ -69,7 +69,7 @@ jobs:
         path: .cache
         key: cache
     - name: run
-      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env timeout --signal=SIGINT 15m make presubmit_big
+      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env timeout --signal=SIGINT 15m make presubmit_dashboard
     - name: codecov
       uses: codecov/codecov-action@2a829b95deaeea2d11d127cc0358005714ff35ea # v3
       with:

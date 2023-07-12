@@ -116,7 +116,7 @@ endif
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang \
 	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
-	presubmit_arch_executor presubmit_big presubmit_race presubmit_old
+	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_old
 
 all: host target
 host: manager runtest repro mutate prog2c db upgrade
@@ -316,7 +316,7 @@ presubmit_build: descriptions
 	# This does not check build of test files, but running go test takes too long (even for building).
 	$(GO) build ./...
 	$(MAKE) lint
-	$(MAKE) test
+	SYZ_SKIP_DASHBOARD=1 $(MAKE) test
 
 presubmit_arch_linux: descriptions
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
@@ -364,15 +364,8 @@ presubmit_arch_executor: descriptions
 	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
 	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
-presubmit_big: descriptions
-	# This target runs on CI in syz-env,
-	# so we can test packages that need GCloud SDK or OS toolchains.
-	# Run tests with clang on Linux.
-	# syz-env also contains toolchains for NetBSD/Fuchsia/Akaros,
-	# but these OSes use fixed toolchains and are not affected by SYZ_CLANG=yes.
-	# This way we get maximum coverage: smoke run tests Linux/gcc,
-	# while this run tests Linux/clang + the additional OSes.
-	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
+presubmit_dashboard: descriptions
+	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app
 
 presubmit_race: descriptions
 	# -race requires cgo
