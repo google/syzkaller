@@ -5,6 +5,7 @@ package bisect
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"time"
@@ -84,8 +85,16 @@ type env struct {
 	startTime    time.Time
 	buildTime    time.Duration
 	testTime     time.Duration
-	flaky        bool
 	reportTypes  []crash.Type
+	// The current estimate of the reproducer's kernel crashing probability.
+	reproChance float64
+	// The product of our confidence in every bisection step result.
+	confidence float64
+	// Whether we should do 2x more execution runs for every test step.
+	// We could have inferred this data from reproChance, but we want to be
+	// able to react faster to sudden drops of reproducibility than an estimate
+	// can allows us to.
+	flaky bool
 }
 
 const MaxNumTests = 20 // number of tests we do per commit
@@ -116,6 +125,7 @@ type Result struct {
 	Config     []byte
 	NoopChange bool
 	IsRelease  bool
+	Confidence float64
 }
 
 type InfraError struct {
@@ -157,12 +167,13 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		return nil, fmt.Errorf("config minimization is not implemented for %v", cfg.Manager.TargetOS)
 	}
 	env := &env{
-		cfg:       cfg,
-		repo:      repo,
-		bisecter:  bisecter,
-		minimizer: minimizer,
-		inst:      inst,
-		startTime: time.Now(),
+		cfg:        cfg,
+		repo:       repo,
+		bisecter:   bisecter,
+		minimizer:  minimizer,
+		inst:       inst,
+		startTime:  time.Now(),
+		confidence: 1.0,
 	}
 	head, err := repo.HeadCommit()
 	if err != nil {
@@ -183,7 +194,7 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	start := time.Now()
 	res, err := env.bisect()
 	if env.flaky {
-		env.log("Reproducer flagged being flaky")
+		env.log("reproducer is flaky (%.2f repro chance estimate)", env.reproChance)
 	}
 	env.log("revisions tested: %v, total time: %v (build: %v, test: %v)",
 		env.numTests, time.Since(start), env.buildTime, env.testTime)
@@ -259,6 +270,7 @@ func (env *env) bisect() (*Result, error) {
 		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
 	env.reportTypes = testRes.types
+	env.reproChance = testRes.badRatio
 
 	testRes1, err := env.minimizeConfig()
 	if err != nil {
@@ -268,6 +280,8 @@ func (env *env) bisect() (*Result, error) {
 		// If config minimization even partially succeeds, minimizeConfig()
 		// would return a non-nil value of a new report.
 		testRes = testRes1
+		// Overwrite bug's reproducibility - it may be different after config minimization.
+		env.reproChance = testRes.badRatio
 	}
 
 	bad, good, results1, fatalResult, err := env.commitRange()
@@ -284,6 +298,7 @@ func (env *env) bisect() (*Result, error) {
 		if err != nil {
 			return 0, err
 		}
+		env.postTestResult(testRes1)
 		if cfg.Fix {
 			if testRes1.verdict == vcs.BisectBad {
 				testRes1.verdict = vcs.BisectGood
@@ -298,9 +313,11 @@ func (env *env) bisect() (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	env.log("accumulated error probability: %0.2f", 1.0-env.confidence)
 	res := &Result{
-		Commits: commits,
-		Config:  env.kernelConfig,
+		Commits:    commits,
+		Config:     env.kernelConfig,
+		Confidence: env.confidence,
 	}
 	if len(commits) == 1 {
 		com := commits[0]
@@ -371,6 +388,14 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		testRes, err := env.test()
 		if err != nil {
 			return 0, err
+		}
+		// We want either a > 33% repro probability or at least it should not be
+		// worse than for the non-minimized config.
+		const badRatioThreshold = 1.0 / 3.0
+		if testRes.verdict == vcs.BisectBad &&
+			testRes.badRatio < badRatioThreshold &&
+			testRes.badRatio < env.reproChance {
+			return vcs.BisectSkip, nil
 		}
 		if testRes.verdict == vcs.BisectBad {
 			// Only remember crashes.
@@ -528,6 +553,10 @@ type testResult struct {
 	rep        *report.Report
 	types      []crash.Type
 	kernelSign string
+	// The ratio of bad/(good+bad) results.
+	badRatio float64
+	// An estimate how much we can trust the result.
+	confidence float64
 }
 
 func (env *env) build() (*vcs.Commit, string, error) {
@@ -580,6 +609,7 @@ func (env *env) test() (*testResult, error) {
 		verdict:    vcs.BisectSkip,
 		com:        current,
 		kernelSign: kernelSign,
+		confidence: 1.0,
 	}
 	if current == nil {
 		// This is not recoverable, as the caller must know which commit to skip.
@@ -625,9 +655,13 @@ func (env *env) test() (*testResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !env.flaky && bad > 0 && bad < good {
-		env.log("reproducer seems to be flaky")
-		env.flaky = true
+	if bad+good > 0 {
+		res.badRatio = float64(bad) / float64(bad+good)
+	}
+	if res.verdict == vcs.BisectGood {
+		// The result could be a false negative.
+		res.confidence = 1.0 - math.Pow(1.0-env.reproChance, float64(good))
+		env.log("false negative chance: %.3f", 1.0-res.confidence)
 	}
 	if res.verdict == vcs.BisectSkip {
 		res.rep = &report.Report{
@@ -638,6 +672,7 @@ func (env *env) test() (*testResult, error) {
 		res.rep = rep
 	}
 	res.types = types
+	env.updateFlaky(res)
 	// TODO: when we start supporting boot/test error bisection, we need to make
 	// processResults treat that verdit as "good".
 	return res, nil
@@ -735,6 +770,33 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 		env.log("representative crash: %v, types: %v", rep.Title, types)
 	}
 	return
+}
+
+// postTestResult() is to be run after we have got the results of a test() call for a revision.
+// It updates the estimates of reproducibility and the overall result confidence.
+func (env *env) postTestResult(res *testResult) {
+	env.confidence *= res.confidence
+	if res.verdict == vcs.BisectBad {
+		// Let's be conservative and only decrease our reproduction likelihood estimate.
+		// As the estimate of each test() can also be flaky, only partially update the result.
+		avg := (env.reproChance + res.badRatio) / 2.0
+		if env.reproChance > avg {
+			env.reproChance = avg
+		}
+	}
+}
+
+// updateFlaky() updates the current flakiness estimate.
+func (env *env) updateFlaky(res *testResult) {
+	// We require at least 5 good+bad runs for a verdict, so
+	// with a 50% reproducility there's a ~3% chance of a false negative result.
+	// If there are 10 "good" results, that's a ~36% accumulated error probability.
+	// That's already noticeable, so let's do 2x more runs from there.
+	const flakyThreshold = 0.5
+	if res.verdict == vcs.BisectBad && res.badRatio < flakyThreshold {
+		// Once flaky => always treat as flaky.
+		env.flaky = true
+	}
 }
 
 // mostFrequentReports() processes the list of run results and determines:

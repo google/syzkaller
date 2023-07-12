@@ -541,6 +541,10 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if res.IsRelease {
 			resp.Flags |= dashapi.BisectResultRelease
 		}
+		const confidenceCutOff = 0.5
+		if res.Confidence < confidenceCutOff {
+			resp.Flags |= dashapi.BisectResultIgnore
+		}
 		ignoredCommits := []string{
 			// Commit "usb: gadget: add raw-gadget interface" adds a kernel interface for
 			// triggering USB bugs, which ends up being the guilty commit during bisection

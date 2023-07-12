@@ -214,6 +214,9 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 		} else {
 			checkBisectionResult(t, test, res)
 		}
+		if test.extraTest != nil {
+			test.extraTest(t, res)
+		}
 	}
 
 	res, err := runImpl(cfg, r, inst)
@@ -289,6 +292,8 @@ type BisectionTest struct {
 	baselineConfig  string
 	resultingConfig string
 	crossTree       bool
+
+	extraTest func(t *testing.T, res *Result)
 }
 
 var bisectionTests = []BisectionTest{
@@ -299,14 +304,23 @@ var bisectionTests = []BisectionTest{
 		commitLen:   1,
 		expectRep:   true,
 		culprit:     602,
+		extraTest: func(t *testing.T, res *Result) {
+			assert.Greater(t, res.Confidence, 0.99)
+		},
 	},
 	{
-		name:        "cause-finds-cause",
+		name:        "cause-finds-cause-flaky",
 		startCommit: 905,
 		commitLen:   1,
 		expectRep:   true,
 		flaky:       true,
-		culprit:     602,
+		culprit:     605,
+		extraTest: func(t *testing.T, res *Result) {
+			// False negative probability of each run is ~35%.
+			// We get two "good" results, so our accumulated confidence is ~42%.
+			assert.Less(t, res.Confidence, 0.5)
+			assert.Greater(t, res.Confidence, 0.4)
+		},
 	},
 	// Test bisection returns correct cause with different baseline/config combinations.
 	{
