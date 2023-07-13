@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/http/pprof"
 	"net/url"
 	"os"
 	"regexp"
@@ -70,6 +71,12 @@ func initHTTPHandlers() {
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
+
+	http.HandleFunc("/debug/pprof/", pprof.Index)
+	http.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	http.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	http.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	http.HandleFunc("/debug/pprof/trace", pprof.Trace)
 }
 
 type uiMainPage struct {
@@ -1254,7 +1261,9 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	filter *userBugFilter) ([]*uiBugGroup, error) {
+	log.Infof(c, "before loadVisibleBugs")
 	bugs, err := loadVisibleBugs(c, accessLevel, ns, filter)
+	log.Infof(c, "after loadVisibleBugs")
 	if err != nil {
 		return nil, err
 	}
