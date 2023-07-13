@@ -51,6 +51,7 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 			// sync/atomic.AddInt32), which will not work.
 			exclusions = append(exclusions, []string{
 				"//pkg/sleep:sleep",
+				"//pkg/sync:sync",
 				"//pkg/syncevent:syncevent",
 			}...)
 		}
