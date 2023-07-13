@@ -792,16 +792,24 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: similar,
 		})
 	}
+	causeBisections, err := queryBugJobs(c, bug, JobBisectCause)
+	if err != nil {
+		return fmt.Errorf("failed to load cause bisections: %w", err)
+	}
 	var bisectCause *uiJob
 	if bug.BisectCause > BisectPending {
-		bisectCause, err = getUIJob(c, bug, JobBisectCause)
+		bisectCause, err = causeBisections.uiBestBisection(c)
 		if err != nil {
 			return err
 		}
 	}
+	fixBisections, err := queryBugJobs(c, bug, JobBisectFix)
+	if err != nil {
+		return fmt.Errorf("failed to load cause bisections: %w", err)
+	}
 	var bisectFix *uiJob
 	if bug.BisectFix > BisectPending {
-		bisectFix, err = getUIJob(c, bug, JobBisectFix)
+		bisectFix, err = fixBisections.uiBestBisection(c)
 		if err != nil {
 			return err
 		}
@@ -840,25 +848,25 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
 	// - there have been infrastructure problems during the job execution
-	if bug.BisectFix == BisectNot {
-		fixBisections, err := loadBisectionsForBug(c, bug, JobBisectFix)
+	if len(fixBisections.all()) > 1 || len(fixBisections.all()) > 0 && bisectFix == nil {
+		uiList, err := fixBisections.uiAll(c)
 		if err != nil {
 			return err
 		}
-		if len(fixBisections) != 0 {
+		if len(uiList) != 0 {
 			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
-				"Fix bisection attempts", fixBisections))
+				"Fix bisection attempts", uiList))
 		}
 	}
 	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
-	if bug.BisectCause == BisectNot {
-		causeBisections, err := loadBisectionsForBug(c, bug, JobBisectCause)
+	if len(causeBisections.all()) > 1 || len(causeBisections.all()) > 0 && bisectCause == nil {
+		uiList, err := causeBisections.uiAll(c)
 		if err != nil {
 			return err
 		}
-		if len(causeBisections) != 0 {
+		if len(uiList) != 0 {
 			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
-				"Cause bisection attempts", causeBisections))
+				"Cause bisection attempts", uiList))
 		}
 	}
 	if isJSONRequested(r) {
@@ -1061,18 +1069,6 @@ func findBugByID(c context.Context, r *http.Request) (*Bug, error) {
 		return bug, err
 	}
 	return nil, fmt.Errorf("mandatory parameter id/extid is missing")
-}
-
-func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
-	job, crash, jobKey, _, err := loadBisectJob(c, bug, jobType)
-	if err != nil {
-		return nil, err
-	}
-	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
-	if err != nil {
-		return nil, err
-	}
-	return makeUIJob(c, job, jobKey, bug, crash, build), nil
 }
 
 func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -1683,31 +1679,6 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 
 var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
 
-func loadBisectionsForBug(c context.Context, bug *Bug, jobType JobType) ([]*uiJob, error) {
-	bugKey := bug.key(c)
-	jobs, jobKeys, err := queryJobsForBug(c, bugKey, jobType)
-	if err != nil {
-		return nil, err
-	}
-	var results []*uiJob
-	for i, job := range jobs {
-		crash, err := queryCrashForJob(c, job, bugKey)
-		if err != nil {
-			return nil, err
-		}
-		if crash == nil {
-			continue
-		}
-		build, err := loadBuild(c, bug.Namespace, job.BuildID)
-		if err != nil {
-			return nil, err
-		}
-
-		results = append(results, makeUIJob(c, job, jobKeys[i], bug, crash, build))
-	}
-	return results, nil
-}
-
 func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
 	uiAssets := []*uiAsset{}
 	for _, asset := range createAssetList(build, crash) {
@@ -2104,6 +2075,34 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		buf.WriteString(lines[i])
 	}
 	return buf.Bytes(), nil
+}
+
+func (j *bugJob) ui(c context.Context) (*uiJob, error) {
+	err := j.load(c)
+	if err != nil {
+		return nil, err
+	}
+	return makeUIJob(c, j.job, j.key, j.bug, j.crash, j.build), nil
+}
+
+func (b *bugJobs) uiAll(c context.Context) ([]*uiJob, error) {
+	var ret []*uiJob
+	for _, j := range b.all() {
+		obj, err := j.ui(c)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, obj)
+	}
+	return ret, nil
+}
+
+func (b *bugJobs) uiBestBisection(c context.Context) (*uiJob, error) {
+	j := b.bestBisection()
+	if j == nil {
+		return nil, nil
+	}
+	return j.ui(c)
 }
 
 // bugExtLink should be preferred to bugLink since it provides a URL that's more consistent with
