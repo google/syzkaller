@@ -72,7 +72,8 @@ func load(target *targets.Target, bin string, text bool) ([]elf.Symbol, error) {
 		}
 		sect := file.Sections[symb.Section]
 		isText := sect.Type == elf.SHT_PROGBITS &&
-			sect.Flags&(elf.SHF_WRITE|elf.SHF_ALLOC|elf.SHF_EXECINSTR) == (elf.SHF_ALLOC|elf.SHF_EXECINSTR)
+			sect.Flags&elf.SHF_ALLOC != 0 &&
+			sect.Flags&elf.SHF_EXECINSTR != 0
 		// Note: x86_64 vmlinux .rodata is marked as writable and according to flags it looks like .data,
 		// so we look at the name.
 		if text && !isText || !text && sect.Name != ".rodata" {
