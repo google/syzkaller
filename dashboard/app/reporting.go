@@ -473,19 +473,25 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	var job *Job
 	if bug.BisectCause == BisectYes || bug.BisectCause == BisectInconclusive || bug.BisectCause == BisectHorizont {
 		// If we have bisection results, report the crash/repro used for bisection.
-		job1, crash1, _, crashKey1, err := loadBisectJob(c, bug, JobBisectCause)
+		causeBisect, err := queryBestBisection(c, bug, JobBisectCause)
 		if err != nil {
 			return nil, err
+		}
+		if causeBisect != nil {
+			err := causeBisect.loadCrash(c)
+			if err != nil {
+				return nil, err
+			}
 		}
 		// If we didn't check whether the bisect is unreliable, even though it would not be
 		// reported anyway, we could still eventually Cc people from those commits later
 		// (e.g. when we did bisected with a syz repro and then notified about a C repro).
-		if !job1.isUnreliableBisect() {
-			job = job1
-			if crash1.ReproC != 0 || crash.ReproC == 0 {
+		if causeBisect != nil && !causeBisect.job.isUnreliableBisect() {
+			job = causeBisect.job
+			if causeBisect.crash.ReproC != 0 || crash.ReproC == 0 {
 				// Don't override the crash in this case,
 				// otherwise we will always think that we haven't reported the C repro.
-				crash, crashKey = crash1, crashKey1
+				crash, crashKey = causeBisect.crash, causeBisect.crashKey
 			}
 		}
 	}
@@ -665,35 +671,6 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	return nil
 }
 
-func loadBisectJob(c context.Context, bug *Bug, jobType JobType) (*Job, *Crash, *db.Key, *db.Key, error) {
-	bugKey := bug.key(c)
-	var jobs []*Job
-	keys, err := db.NewQuery("Job").
-		Ancestor(bugKey).
-		Filter("Type=", jobType).
-		Filter("Finished>", time.Time{}).
-		Order("-Finished").
-		Limit(1).
-		GetAll(c, &jobs)
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to query jobs: %v", err)
-	}
-	if len(jobs) == 0 {
-		jobStr := map[JobType]string{
-			JobBisectCause: "bisect cause",
-			JobBisectFix:   "bisect fix",
-		}
-		return nil, nil, nil, nil, fmt.Errorf("can't find %s job for bug", jobStr[jobType])
-	}
-	job := jobs[0]
-	crash := new(Crash)
-	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
-	if err := db.Get(c, crashKey, crash); err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to get crash: %v", err)
-	}
-	return job, crash, keys[0], crashKey, nil
-}
-
 func managersToRepos(c context.Context, ns string, managers []string) []string {
 	var repos []string
 	dedup := make(map[string]bool)
@@ -712,6 +689,21 @@ func managersToRepos(c context.Context, ns string, managers []string) []string {
 	}
 	sort.Strings(repos)
 	return repos
+}
+
+func queryCrashesForBug(c context.Context, bugKey *db.Key, limit int) (
+	[]*Crash, []*db.Key, error) {
+	var crashes []*Crash
+	keys, err := db.NewQuery("Crash").
+		Ancestor(bugKey).
+		Order("-ReportLen").
+		Order("-Time").
+		Limit(limit).
+		GetAll(c, &crashes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch crashes: %w", err)
+	}
+	return crashes, keys, nil
 }
 
 func loadAllBugs(c context.Context, filter func(*db.Query) *db.Query) ([]*Bug, []*db.Key, error) {
@@ -1281,61 +1273,6 @@ func (bug *Bug) updateReportings(cfg *Config, now time.Time) error {
 	return nil
 }
 
-func queryCrashesForBug(c context.Context, bugKey *db.Key, limit int) (
-	[]*Crash, []*db.Key, error) {
-	var crashes []*Crash
-	keys, err := db.NewQuery("Crash").
-		Ancestor(bugKey).
-		Order("-ReportLen").
-		Order("-Time").
-		Limit(limit).
-		GetAll(c, &crashes)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to fetch crashes: %v", err)
-	}
-	return crashes, keys, nil
-}
-
-func queryJobsForBug(c context.Context, bugKey *db.Key, jobType JobType) (
-	[]*Job, []*db.Key, error) {
-	var jobs []*Job
-	keys, err := db.NewQuery("Job").
-		Ancestor(bugKey).
-		Filter("Type=", jobType).
-		Filter("Finished>", time.Time{}).
-		Order("-Finished").
-		GetAll(c, &jobs)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to fetch fix bisections: %v", err)
-	}
-	return jobs, keys, nil
-}
-
-func queryCrashForJob(c context.Context, job *Job, bugKey *db.Key) (*Crash, error) {
-	// If there was no crash corresponding to the Job, return.
-	if job.CrashTitle == "" {
-		return nil, nil
-	}
-	// First, fetch the crash who's repro was used to start the bisection
-	// job.
-	crash := new(Crash)
-	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
-	if err := db.Get(c, crashKey, crash); err != nil {
-		return nil, err
-	}
-	// Now, create a crash object with the crash details from the job.
-	ret := &Crash{
-		Manager:   crash.Manager,
-		Time:      job.Finished,
-		Log:       job.Log,
-		Report:    job.CrashReport,
-		ReproOpts: crash.ReproOpts,
-		ReproSyz:  crash.ReproSyz,
-		ReproC:    crash.ReproC,
-	}
-	return ret, nil
-}
-
 func findCrashForBug(c context.Context, bug *Bug) (*Crash, *db.Key, error) {
 	bugKey := bug.key(c)
 	crashes, keys, err := queryCrashesForBug(c, bugKey, 1)
@@ -1467,10 +1404,11 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 
 func prepareBisectionReport(c context.Context, bug *Bug, jobType JobType,
 	reporting *Reporting) (*dashapi.BugReport, error) {
-	job, _, jobKey, _, err := loadBisectJob(c, bug, jobType)
-	if err != nil {
+	bisectionJob, err := queryBestBisection(c, bug, jobType)
+	if bisectionJob == nil || err != nil {
 		return nil, err
 	}
+	job, jobKey := bisectionJob.job, bisectionJob.key
 	if job.Reporting != "" {
 		ret, err := createBugReportForJob(c, job, jobKey, reporting.Config)
 		if err != nil {

@@ -1554,3 +1554,105 @@ func uniqueBugs(inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*db.Key) {
 	}
 	return bugs, keys
 }
+
+type bugJobs struct {
+	list []*bugJob
+}
+
+type bugJob struct {
+	bug      *Bug
+	job      *Job
+	key      *db.Key
+	crash    *Crash
+	crashKey *db.Key
+	build    *Build
+}
+
+func queryBugJobs(c context.Context, bug *Bug, jobType JobType) (*bugJobs, error) {
+	// Just in case.
+	const limitJobs = 25
+	var jobs []*Job
+	jobKeys, err := db.NewQuery("Job").
+		Ancestor(bug.key(c)).
+		Filter("Type=", jobType).
+		Order("-Finished").
+		Limit(limitJobs).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch bug jobs: %w", err)
+	}
+	bugKey := bug.key(c)
+	ret := &bugJobs{}
+	for i := range jobs {
+		job := jobs[i]
+		var crashKey *db.Key
+		if job.CrashID != 0 {
+			crashKey = db.NewKey(c, "Crash", "", job.CrashID, bugKey)
+		}
+		ret.list = append(ret.list, &bugJob{
+			bug:      bug,
+			job:      job,
+			key:      jobKeys[i],
+			crashKey: crashKey,
+		})
+	}
+	return ret, nil
+}
+
+func queryBestBisection(c context.Context, bug *Bug, jobType JobType) (*bugJob, error) {
+	jobs, err := queryBugJobs(c, bug, jobType)
+	if err != nil {
+		return nil, err
+	}
+	return jobs.bestBisection(), nil
+}
+
+// Find the most representative bisection result.
+func (b *bugJobs) bestBisection() *bugJob {
+	// Let's take the most recent finished one.
+	for _, j := range b.list {
+		if !j.job.IsFinished() {
+			continue
+		}
+		if j.job.InvalidatedBy != "" {
+			continue
+		}
+		return j
+	}
+	return nil
+}
+
+func (b *bugJobs) all() []*bugJob {
+	return b.list
+}
+
+func (j *bugJob) load(c context.Context) error {
+	err := j.loadCrash(c)
+	if err != nil {
+		return fmt.Errorf("failed to load crash: %w", err)
+	}
+	return j.loadBuild(c)
+}
+
+func (j *bugJob) loadCrash(c context.Context) error {
+	if j.crash != nil {
+		return nil
+	}
+	j.crash = new(Crash)
+	return db.Get(c, j.crashKey, j.crash)
+}
+
+func (j *bugJob) loadBuild(c context.Context) error {
+	if j.build != nil {
+		return nil
+	}
+	err := j.loadCrash(c)
+	if err != nil {
+		return fmt.Errorf("failed to load crash: %w", err)
+	}
+	j.build, err = loadBuild(c, j.bug.Namespace, j.crash.BuildID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
