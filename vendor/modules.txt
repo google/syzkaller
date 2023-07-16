@@ -899,6 +899,15 @@ golang.org/x/tools/txtar
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
+# gonum.org/v1/gonum v0.12.0
+## explicit; go 1.18
+gonum.org/v1/gonum/graph/formats/dot
+gonum.org/v1/gonum/graph/formats/dot/ast
+gonum.org/v1/gonum/graph/formats/dot/internal/astx
+gonum.org/v1/gonum/graph/formats/dot/internal/errors
+gonum.org/v1/gonum/graph/formats/dot/internal/lexer
+gonum.org/v1/gonum/graph/formats/dot/internal/parser
+gonum.org/v1/gonum/graph/formats/dot/internal/token
 # google.golang.org/api v0.110.0
 ## explicit; go 1.19
 google.golang.org/api/compute/v1
