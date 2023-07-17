@@ -29,6 +29,7 @@ var (
 	flagHintCall = flag.Int("hint-call", -1, "mutate the specified call with hints in hint-src/cmp flags")
 	flagHintSrc  = flag.Uint64("hint-src", 0, "compared value in the program")
 	flagHintCmp  = flag.Uint64("hint-cmp", 0, "compare operand in the kernel")
+	flagStrict   = flag.Bool("strict", true, "parse input program in strict mode")
 )
 
 func main() {
@@ -76,7 +77,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 			os.Exit(1)
 		}
-		p, err = target.Deserialize(data, prog.Strict)
+		mode := prog.Strict
+		if !*flagStrict {
+			mode = prog.NonStrict
+		}
+		p, err = target.Deserialize(data, mode)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 			os.Exit(1)
