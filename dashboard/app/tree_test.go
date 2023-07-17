@@ -817,17 +817,21 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 	if found == nil {
 		ctx.ctx.t.Fatalf("unknown job request: %#v", resp)
 	}
-	build := testBuild(1)
-	build.KernelRepo = resp.KernelRepo
-	build.KernelBranch = resp.KernelBranch
-	build.KernelCommit = strings.Repeat("f", 40)[:40]
 	// Figure out what should the result be.
 	result := treeTestOK
+	build := testBuild(1)
 	for _, item := range found.results {
 		if day >= item.fromDay {
 			result = item.result
+			build.KernelCommit = item.commit
 		}
 	}
+	if build.KernelCommit == "" {
+		build.KernelCommit = strings.Repeat("f", 40)[:40]
+	}
+	build.KernelRepo = resp.KernelRepo
+	build.KernelBranch = resp.KernelBranch
+	build.ID = fmt.Sprintf("%s_%s_%s_%d", resp.KernelRepo, resp.KernelBranch, resp.KernelCommit, day)
 	jobDoneReq := &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Build: *build,
@@ -847,20 +851,23 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 
 func (ctx *treeTestCtx) ensureLabels(labels ...string) {
 	ctx.ctx.t.Helper()
+	bug := ctx.loadBug()
+	var bugLabels []string
+	for _, item := range bug.Labels {
+		bugLabels = append(bugLabels, item.String())
+	}
+	assert.ElementsMatch(ctx.ctx.t, labels, bugLabels)
+}
+
+func (ctx *treeTestCtx) loadBug() *Bug {
+	ctx.ctx.t.Helper()
 	if ctx.bug == nil {
 		ctx.ctx.t.Fatalf("no bug has been created so far")
 	}
 	bug := new(Bug)
 	ctx.ctx.expectOK(db.Get(ctx.ctx.ctx, ctx.bug.key(ctx.ctx.ctx), bug))
 	ctx.bug = bug
-
-	var bugLabels []string
-	for _, item := range bug.Labels {
-		bugLabels = append(bugLabels, item.String())
-	}
-	sort.Strings(bugLabels)
-	sort.Strings(labels)
-	ctx.ctx.expectEQ(labels, bugLabels)
+	return bug
 }
 
 func (ctx *treeTestCtx) bugLink() string {
@@ -906,6 +913,7 @@ const (
 type treeTestEntryPeriod struct {
 	fromDay int
 	result  treeTestResult
+	commit  string
 }
 
 func TestRepoGraph(t *testing.T) {
