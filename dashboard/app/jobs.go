@@ -322,9 +322,9 @@ func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Jo
 	var handlers []func(context.Context, map[string]dashapi.ManagerJobs) (*Job, *db.Key, error)
 	// Let's alternate handlers, so that neither patch tests nor bisections overrun one another.
 	if timeNow(c).UnixMilli()%2 == 0 {
-		handlers = append(handlers, createPatchTestingJobs, createBisectJob)
+		handlers = append(handlers, jobFromBugSample, createBisectJob)
 	} else {
-		handlers = append(handlers, createBisectJob, createPatchTestingJobs)
+		handlers = append(handlers, createBisectJob, jobFromBugSample)
 	}
 	for _, f := range handlers {
 		job, jobKey, err := f(c, managers)
@@ -382,11 +382,15 @@ func throttleJobGeneration(c context.Context, managers map[string]dashapi.Manage
 	return nil
 }
 
-func createPatchTestingJobs(c context.Context, managers map[string]dashapi.ManagerJobs) (*Job,
+// Randomly sample a subset of open bugs with reproducers and try to generate
+// a job for them.
+// Suitable for cases when we must look deeper than just into Bug fields.
+// Sampling allows to evenly spread the load over time.
+func jobFromBugSample(c context.Context, managers map[string]dashapi.ManagerJobs) (*Job,
 	*db.Key, error) {
 	var managersList []string
 	for name, jobs := range managers {
-		if !jobs.TestPatches {
+		if !jobs.Any() {
 			continue
 		}
 		managersList = append(managersList, name)
