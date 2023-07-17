@@ -463,7 +463,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<td class="result">
 					{{if $job.ErrorLink}}
 						{{link $job.ErrorLink "error"}}
-					{{else if $job.LogLink}}
+					{{end}}
+					{{if $job.LogLink}}
 						{{link $job.LogLink "job log"}}
 						({{if $job.Commit}}1{{else}}{{len $job.Commits}}{{end}})
 					{{else if $job.CrashTitle}}
