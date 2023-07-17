@@ -179,13 +179,8 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 			}
 			return nil
 		}
-		// Create a new job.
-		jobKey = db.NewIncompleteKey(c, "Job", args.bugKey)
-		if jobKey, err = db.Put(c, jobKey, job); err != nil {
-			return fmt.Errorf("failed to put job: %w", err)
-		}
-		return addCrashReference(c, job.CrashID, args.bugKey,
-			CrashReference{CrashReferenceJob, extJobID(jobKey), now})
+		jobKey, err = saveJob(c, job, args.bugKey)
+		return err
 	}
 	if args.inTransaction {
 		err = tx(c)
@@ -201,6 +196,16 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		return nil, nil, fmt.Errorf("job tx failed: %w", err)
 	}
 	return job, jobKey, nil
+}
+
+func saveJob(c context.Context, job *Job, bugKey *db.Key) (*db.Key, error) {
+	jobKey := db.NewIncompleteKey(c, "Job", bugKey)
+	var err error
+	if jobKey, err = db.Put(c, jobKey, job); err != nil {
+		return nil, fmt.Errorf("failed to put job: %w", err)
+	}
+	return jobKey, addCrashReference(c, job.CrashID, bugKey,
+		CrashReference{CrashReferenceJob, extJobID(jobKey), timeNow(c)})
 }
 
 func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash *Crash,
@@ -726,17 +731,11 @@ func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, c
 		} else {
 			bug.BisectFix = BisectPending
 		}
-		// Create a new job.
-		var err error
-		jobKey = db.NewIncompleteKey(c, "Job", bugKey)
-		if jobKey, err = db.Put(c, jobKey, job); err != nil {
-			return fmt.Errorf("failed to put job: %w", err)
-		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
-		return addCrashReference(c, job.CrashID, bugKey,
-			CrashReference{CrashReferenceJob, extJobID(jobKey), now})
+		jobKey, err = saveJob(c, job, bugKey)
+		return err
 	}
 	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
 		// We're accessing two different kinds in addCrashReference.
