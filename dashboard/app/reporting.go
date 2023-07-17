@@ -733,7 +733,7 @@ func loadOpenBugs(c context.Context) ([]*Bug, []*db.Key, error) {
 }
 
 func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug *Bug, key *db.Key) error) error {
-	const batchSize = 1000
+	const batchSize = 2000
 	var cursor *db.Cursor
 	for {
 		query := db.NewQuery("Bug").Limit(batchSize)
