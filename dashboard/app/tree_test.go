@@ -153,6 +153,117 @@ func TestTreeOriginLts(t *testing.T) {
 	ctx.ctx.expectNoEmail()
 }
 
+func TestTreeOriginLtsBisection(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	ctx := setUpTreeTest(c, downstreamUpstreamRepos)
+	ctx.uploadBug(`https://downstream.repo/repo`, `master`, dashapi.ReproLevelC)
+	ctx.entries = []treeTestEntry{
+		{
+			alias:   `downstream`,
+			results: []treeTestEntryPeriod{{fromDay: 0, result: treeTestCrash}},
+		},
+		{
+			alias:      `lts`,
+			mergeAlias: `downstream`,
+			results: []treeTestEntryPeriod{
+				{
+					fromDay: 0,
+					result:  treeTestCrash,
+					commit:  "badc0ffee",
+				},
+			},
+		},
+		{
+			alias:   `upstream`,
+			results: []treeTestEntryPeriod{{fromDay: 0, result: treeTestOK}},
+		},
+	}
+	ctx.jobTestDays = []int{10}
+	ctx.moveToDay(10)
+	ctx.ensureLabels(`origin:lts`)
+	ctx.reportToEmail()
+	ctx.ctx.advanceTime(time.Hour)
+
+	// Expect a cross tree bisection request.
+	job := ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, dashapi.JobBisectFix, job.Type)
+	assert.Equal(t, "https://upstream.repo/repo", job.KernelRepo)
+	assert.Equal(t, "upstream-master", job.KernelBranch)
+	assert.Equal(t, "https://lts.repo/repo", job.MergeBaseRepo)
+	assert.Equal(t, "lts-master", job.MergeBaseBranch)
+	assert.Equal(t, "badc0ffee", job.KernelCommit)
+	ctx.ctx.advanceTime(time.Hour)
+
+	// Make sure we don't create the same job twice.
+	job2 := ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, "", job2.ID)
+	ctx.ctx.advanceTime(time.Hour)
+
+	// Let the bisection fail.
+	done := &dashapi.JobDoneReq{
+		ID:    job.ID,
+		Log:   []byte("bisect log"),
+		Error: []byte("bisect error"),
+	}
+	c.expectOK(ctx.client.JobDone(done))
+	ctx.ctx.advanceTime(time.Hour)
+
+	// Ensure there are no new bisection requests.
+	job = ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, job.ID, "")
+
+	// Wait for the cooldown and request the job once more.
+	ctx.ctx.advanceTime(15 * 24 * time.Hour)
+	ctx.uploadBug(`https://downstream.repo/repo`, `master`, dashapi.ReproLevelC)
+	ctx.ctx.advanceTime(15 * 24 * time.Hour)
+	job = ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, job.KernelRepo, "https://upstream.repo/repo")
+	assert.Equal(t, job.KernelCommit, "badc0ffee")
+
+	// This time pretend we have found the commit.
+	build := testBuild(2)
+	build.KernelRepo = job.KernelRepo
+	build.KernelBranch = job.KernelBranch
+	build.KernelCommit = "deadf00d"
+	done = &dashapi.JobDoneReq{
+		ID:          job.ID,
+		Build:       *build,
+		Log:         []byte("bisect log 2"),
+		CrashTitle:  "bisect crash title",
+		CrashLog:    []byte("bisect crash log"),
+		CrashReport: []byte("bisect crash report"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:  "deadf00d",
+				Title: "kernel: fix a bug",
+			},
+		},
+	}
+	done.Build.ID = job.ID
+	ctx.ctx.advanceTime(time.Hour)
+	c.expectOK(ctx.client.JobDone(done))
+
+	// Ensure the job is no longer created.
+	ctx.ctx.advanceTime(time.Hour)
+	job = ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, job.ID, "")
+
+	// No emails are to be sent (for now).
+	ctx.ctx.expectNoEmail()
+
+	info := ctx.fullBugInfo()
+	assert.NotNil(t, info.FixCandidate)
+	fix := info.FixCandidate
+	assert.Equal(t, "upstream", fix.KernelRepoAlias)
+	assert.NotNil(t, fix.BisectFix)
+	assert.NotNil(t, fix.BisectFix.Commit)
+	commit := fix.BisectFix.Commit
+	assert.Equal(t, "deadf00d", commit.Hash)
+	assert.Equal(t, "kernel: fix a bug", commit.Title)
+}
+
 func TestTreeOriginErrors(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -220,8 +331,9 @@ var downstreamUpstreamRepos = []KernelRepo{
 		LabelIntroduced: `lts`,
 		CommitInflow: []KernelRepoLink{
 			{
-				Alias: `upstream`,
-				Merge: false,
+				Alias:       `upstream`,
+				Merge:       false,
+				BisectFixes: true,
 			},
 		},
 	},

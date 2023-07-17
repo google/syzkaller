@@ -1358,6 +1358,13 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 			return nil, err
 		}
 	}
+	// Query the fix candidate.
+	if bug.FixCandidateJob != "" {
+		ret.FixCandidate, err = prepareFixCandidateReport(c, bug, reporting)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// Query similar bugs.
 	similar, err := loadSimilarBugs(c, bug)
 	if err != nil {
@@ -1398,6 +1405,18 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 	ret.TreeJobs, err = treeTestJobs(c, bug)
 	if err != nil {
 		return nil, err
+	}
+	return ret, nil
+}
+
+func prepareFixCandidateReport(c context.Context, bug *Bug, reporting *Reporting) (*dashapi.BugReport, error) {
+	job, jobKey, err := fetchJob(c, bug.FixCandidateJob)
+	if err != nil {
+		return nil, err
+	}
+	ret, err := createBugReportForJob(c, job, jobKey, reporting.Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create the job bug report: %w", err)
 	}
 	return ret, nil
 }
