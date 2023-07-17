@@ -5784,7 +5784,7 @@ static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 	if (index->iface_cur < 0)
 		return -1;
 
-	for (int ep = 0; index->ifaces[index->iface_cur].eps_num; ep++)
+	for (int ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++)
 		if (index->ifaces[index->iface_cur].eps[ep].desc.bEndpointAddress == bEndpointAddress)
 			return index->ifaces[index->iface_cur].eps[ep].handle;
 	return -1;
