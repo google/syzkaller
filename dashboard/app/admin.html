@@ -47,8 +47,13 @@ Main page.
 	{{end}}
 
 	{{template "manager_list" $.Managers}}
+	&nbsp;&nbsp;
+	{{if $.FixBisectionsLink}}<a href="{{$.FixBisectionsLink}}">[Fix Bisections]</a>{{end}}
+	{{if $.CauseBisectionsLink}}<a href="{{$.CauseBisectionsLink}}">[Cause Bisections]</a>{{end}}
+	{{if $.JobOverviewLink}}<a href="{{$.JobOverviewLink}}">[Jobs Overview]</a>{{end}}
 	{{template "job_list" $.RunningJobs}}
 	{{template "job_list" $.PendingJobs}}
 	{{template "job_list" $.RecentJobs}}
+	{{template "job_list" $.TypeJobs}}
 </body>
 </html>

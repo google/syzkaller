@@ -179,13 +179,17 @@ type uiSubsystemStats struct {
 }
 
 type uiAdminPage struct {
-	Header        *uiHeader
-	Log           []byte
-	Managers      *uiManagerList
-	RecentJobs    *uiJobList
-	PendingJobs   *uiJobList
-	RunningJobs   *uiJobList
-	MemcacheStats *memcache.Statistics
+	Header              *uiHeader
+	Log                 []byte
+	Managers            *uiManagerList
+	RecentJobs          *uiJobList
+	PendingJobs         *uiJobList
+	RunningJobs         *uiJobList
+	TypeJobs            *uiJobList
+	FixBisectionsLink   string
+	CauseBisectionsLink string
+	JobOverviewLink     string
+	MemcacheStats       *memcache.Statistics
 }
 
 type uiManager struct {
@@ -644,6 +648,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		recentJobs    []*uiJob
 		pendingJobs   []*uiJob
 		runningJobs   []*uiJob
+		typeJobs      []*uiJob
 	)
 	g, _ := errgroup.WithContext(context.Background())
 	g.Go(func() error {
@@ -661,21 +666,33 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		errorLog, err = fetchErrorLogs(c)
 		return err
 	})
-	g.Go(func() error {
-		var err error
-		recentJobs, err = loadRecentJobs(c)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		pendingJobs, err = loadPendingJobs(c)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		runningJobs, err = loadRunningJobs(c)
-		return err
-	})
+	if r.FormValue("job_type") != "" {
+		value, err := strconv.Atoi(r.FormValue("job_type"))
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrClientBadRequest, err)
+		}
+		g.Go(func() error {
+			var err error
+			typeJobs, err = loadJobsOfType(c, JobType(value))
+			return err
+		})
+	} else {
+		g.Go(func() error {
+			var err error
+			recentJobs, err = loadRecentJobs(c)
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			pendingJobs, err = loadPendingJobs(c)
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			runningJobs, err = loadRunningJobs(c)
+			return err
+		})
+	}
 	err = g.Wait()
 	if err != nil {
 		return err
@@ -684,10 +701,17 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		Header:        hdr,
 		Log:           errorLog,
 		Managers:      makeManagerList(managers, hdr.Namespace),
-		RecentJobs:    &uiJobList{Title: "Recent jobs:", Jobs: recentJobs},
-		RunningJobs:   &uiJobList{Title: "Running jobs:", Jobs: runningJobs},
-		PendingJobs:   &uiJobList{Title: "Pending jobs:", Jobs: pendingJobs},
 		MemcacheStats: memcacheStats,
+	}
+	if r.FormValue("job_type") != "" {
+		data.TypeJobs = &uiJobList{Title: "Last jobs:", Jobs: typeJobs}
+		data.JobOverviewLink = "/admin"
+	} else {
+		data.RecentJobs = &uiJobList{Title: "Recent jobs:", Jobs: recentJobs}
+		data.RunningJobs = &uiJobList{Title: "Running jobs:", Jobs: runningJobs}
+		data.PendingJobs = &uiJobList{Title: "Pending jobs:", Jobs: pendingJobs}
+		data.FixBisectionsLink = html.AmendURL("/admin", "job_type", fmt.Sprintf("%d", JobBisectFix))
+		data.CauseBisectionsLink = html.AmendURL("/admin", "job_type", fmt.Sprintf("%d", JobBisectCause))
 	}
 	return serveTemplate(w, "admin.html", data)
 }
@@ -1918,6 +1942,19 @@ func loadRunningJobs(c context.Context) ([]*uiJob, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Filter("IsRunning=", true).
+		Limit(50).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, err
+	}
+	return getUIJobs(c, keys, jobs), nil
+}
+
+func loadJobsOfType(c context.Context, t JobType) ([]*uiJob, error) {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").
+		Filter("Type=", t).
+		Order("-Finished").
 		Limit(50).
 		GetAll(c, &jobs)
 	if err != nil {
