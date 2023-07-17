@@ -423,7 +423,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 {{/* List of jobs, invoked with *uiJobList */}}
 {{define "job_list"}}
-{{if $.Jobs}}
+{{if and $ $.Jobs}}
 	<table class="list_table">
 		<caption id="jobs"><a class="plain" href="#jobs">{{$.Title}}</a></caption>
 		<thead>
