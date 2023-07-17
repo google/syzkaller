@@ -182,7 +182,10 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 		var result pollTreeJobResult
 		if merge {
 			// Merge base gives a much better result quality, so use it whenever possible.
-			result = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{})
+			result = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{
+				Repo:   ctx.build.KernelRepo,
+				Branch: ctx.build.KernelBranch,
+			})
 		} else {
 			result = ctx.runRepro(node.repo, wantFirstAny{}, runOnHEAD{})
 		}
@@ -295,12 +298,15 @@ func (ctx *bugTreeContext) missingBackports() pollTreeJobResult {
 		}
 		var resultCrash pollTreeJobResult
 		if merge {
-			resultCrash = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{})
+			resultCrash = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{
+				Repo:   ctx.build.KernelRepo,
+				Branch: ctx.build.KernelBranch,
+			})
 		} else {
 			// We already know that the reproducer doesn't crash the tree.
 			// There'd be no sense to call runRepro in the hope of getting a crash,
 			// so let's just look into the past tree testing results.
-			resultCrash = ctx.findResult(node.repo, wantFirstCrash{}, runOnAny{})
+			resultCrash, _ = ctx.bug.findResult(ctx.c, node.repo, wantFirstCrash{}, runOnAny{})
 		}
 		doneCrash, ok := resultCrash.(pollResultDone)
 		if !ok {
@@ -379,7 +385,10 @@ type runReproOn interface{}
 // runReproOn subtypes.
 type runOnAny struct{} // attempts to find any result, if unsuccessful, runs on HEAD
 type runOnHEAD struct{}
-type runOnMergeBase struct{}
+type runOnMergeBase struct {
+	Repo   string
+	Branch string
+}
 
 func (ctx *bugTreeContext) runRepro(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
 	ret := ctx.doRunRepro(repo, result, runOn)
@@ -388,7 +397,7 @@ func (ctx *bugTreeContext) runRepro(repo KernelRepo, result expectedResult, runO
 }
 
 func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
-	existingResult := ctx.findResult(repo, result, runOn)
+	existingResult, _ := ctx.bug.findResult(ctx.c, repo, result, runOn)
 	if _, ok := existingResult.(pollResultSkip); !ok {
 		return existingResult
 	}
@@ -400,7 +409,7 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 	if _, ok := runOn.(runOnAny); ok {
 		runOn = runOnHEAD{}
 	}
-	candidates := ctx.bug.matchingTreeTests(ctx.build, repo, runOn)
+	candidates := ctx.bug.matchingTreeTests(repo, runOn)
 	var bugTreeTest *BugTreeTest
 	if len(candidates) > 0 {
 		bugTreeTest = &ctx.bug.TreeTests.List[candidates[0]]
@@ -410,9 +419,9 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 			Repo:    repo.URL,
 			Branch:  repo.Branch,
 		}
-		if _, ok := runOn.(runOnMergeBase); ok {
-			item.MergeBaseRepo = ctx.build.KernelRepo
-			item.MergeBaseBranch = ctx.build.KernelBranch
+		if v, ok := runOn.(runOnMergeBase); ok {
+			item.MergeBaseRepo = v.Repo
+			item.MergeBaseBranch = v.Branch
 		}
 		ctx.bug.TreeTests.List = append(ctx.bug.TreeTests.List, item)
 		bugTreeTest = &ctx.bug.TreeTests.List[len(ctx.bug.TreeTests.List)-1]
@@ -469,10 +478,11 @@ func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string, period time.Duratio
 	return pollResultSkip{}
 }
 
-func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
+func (bug *Bug) findResult(c context.Context,
+	repo KernelRepo, result expectedResult, runOn runReproOn) (pollTreeJobResult, *Job) {
 	anyPending := false
-	for _, i := range ctx.bug.matchingTreeTests(ctx.build, repo, runOn) {
-		info := &ctx.bug.TreeTests.List[i]
+	for _, i := range bug.matchingTreeTests(repo, runOn) {
+		info := &bug.TreeTests.List[i]
 		anyPending = anyPending || info.Pending != ""
 		key := ""
 		switch result.(type) {
@@ -485,14 +495,14 @@ func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, ru
 		case wantNewAny:
 			key = info.Last
 		default:
-			return pollResultError(fmt.Errorf("unexpected expected result: %T", result))
+			return pollResultError(fmt.Errorf("unexpected expected result: %T", result)), nil
 		}
 		if key == "" {
 			continue
 		}
-		job, _, err := fetchJob(ctx.c, key)
+		job, _, err := fetchJob(c, key)
 		if err != nil {
-			return pollResultError(err)
+			return pollResultError(err), nil
 		}
 		if date, ok := result.(wantNewAny); ok {
 			if job.Finished.Before(time.Time(date)) {
@@ -502,29 +512,30 @@ func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, ru
 		return pollResultDone{
 			Crashed:  job.CrashTitle != "",
 			Finished: job.Finished,
-		}
+		}, job
 	}
 	if anyPending {
-		return pollResultPending{}
+		return pollResultPending{}, nil
 	} else {
-		return pollResultSkip{}
+		return pollResultSkip{}, nil
 	}
 }
 
-func (bug *Bug) matchingTreeTests(build *Build, repo KernelRepo, runOn runReproOn) []int {
+func (bug *Bug) matchingTreeTests(repo KernelRepo, runOn runReproOn) []int {
 	ret := []int{}
 	for i, item := range bug.TreeTests.List {
 		if item.Repo != repo.URL {
 			continue
 		}
 		ok := true
-		switch runOn.(type) {
+		switch v := runOn.(type) {
 		case runOnHEAD:
+			// TODO: should we check for an empty merge base here?
 			ok = item.Branch == repo.Branch
 		case runOnMergeBase:
 			ok = item.Branch == repo.Branch &&
-				item.MergeBaseRepo == build.KernelRepo &&
-				item.MergeBaseBranch == build.KernelBranch
+				item.MergeBaseRepo == v.Repo &&
+				item.MergeBaseBranch == v.Branch
 		}
 		if ok {
 			ret = append(ret, i)
