@@ -123,6 +123,8 @@ type Bug struct {
 	Labels         []BugLabel
 	DiscussionInfo []BugDiscussionInfo
 	TreeTests      BugTreeTestInfo
+	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
+	FixCandidateJob string
 }
 
 type BugTreeTestInfo struct {
@@ -559,6 +561,10 @@ type Job struct {
 	MergeBaseRepo   string
 	MergeBaseBranch string
 
+	// By default, bisection starts from the revision of the associated crash.
+	// The BisectFrom field can override this.
+	BisectFrom string
+
 	// Result of execution:
 	CrashTitle  string // if empty, we did not hit crash during testing
 	CrashLog    int64  // reference to CrashLog text entity
@@ -571,6 +577,10 @@ type Job struct {
 
 	Reported      bool   // have we reported result back to user?
 	InvalidatedBy string // user who marked this bug as invalid, empty by default
+}
+
+func (job *Job) IsBisection() bool {
+	return job.Type == JobBisectCause || job.Type == JobBisectFix
 }
 
 func (job *Job) IsFinished() bool {
@@ -608,6 +618,10 @@ func (job *Job) isUnreliableBisect() bool {
 		job.Flags&dashapi.BisectResultNoop != 0 ||
 		job.Flags&dashapi.BisectResultRelease != 0 ||
 		job.Flags&dashapi.BisectResultIgnore != 0
+}
+
+func (job *Job) IsCrossTree() bool {
+	return job.MergeBaseRepo != "" && job.IsBisection()
 }
 
 // Text holds text blobs (crash logs, reports, reproducers, etc).

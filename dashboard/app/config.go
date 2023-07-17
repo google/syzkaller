@@ -263,6 +263,8 @@ type KernelRepoLink struct {
 	Alias string
 	// Whether commits from the other repository merged or cherry-picked.
 	Merge bool
+	// Whether syzbot should try to fix bisect the bug in the Alias tree.
+	BisectFixes bool
 }
 
 type CCConfig struct {

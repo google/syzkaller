@@ -435,12 +435,42 @@ func jobFromBugSample(c context.Context, managers map[string]dashapi.ManagerJobs
 		map[string]dashapi.ManagerJobs) (*Job, *db.Key, error){
 		createPatchRetestingJobs,
 		createTreeTestJobs,
+		createTreeBisectionJobs,
 	}
 	r.Shuffle(len(funcs), func(i, j int) { funcs[i], funcs[j] = funcs[j], funcs[i] })
 	for _, f := range funcs {
 		job, jobKey, err := f(c, allBugs, allBugKeys, managers)
 		if job != nil || err != nil {
 			return job, jobKey, err
+		}
+	}
+	return nil, nil, nil
+}
+
+func createTreeBisectionJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
+	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
+	log.Infof(c, "createTreeBisectionJobs is called for %d bugs", len(bugs))
+	const maxProcess = 3
+	processed := 0
+	for _, bug := range bugs {
+		if bug.FixCandidateJob != "" {
+			continue
+		}
+		if processed >= maxProcess {
+			break
+		}
+		any := false
+		for _, mgr := range bug.HappenedOn {
+			newMgr, _ := activeManager(mgr, bug.Namespace)
+			any = any || managers[newMgr].BisectFix
+		}
+		if !any {
+			continue
+		}
+		processed++
+		job, key, err := crossTreeBisection(c, bug, managers)
+		if job != nil || err != nil {
+			return job, key, err
 		}
 	}
 	return nil, nil, nil
@@ -814,20 +844,23 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 		return nil, true, nil
 	}
 	resp := &dashapi.JobPollResp{
-		ID:                jobID,
-		Manager:           job.Manager,
-		KernelRepo:        job.KernelRepo,
-		KernelBranch:      job.KernelBranch,
-		MergeBaseRepo:     job.MergeBaseRepo,
-		MergeBaseBranch:   job.MergeBaseBranch,
-		KernelCommit:      build.KernelCommit,
-		KernelCommitTitle: build.KernelCommitTitle,
-		KernelConfig:      kernelConfig,
-		SyzkallerCommit:   build.SyzkallerCommit,
-		Patch:             patch,
-		ReproOpts:         crash.ReproOpts,
-		ReproSyz:          reproSyz,
-		ReproC:            reproC,
+		ID:              jobID,
+		Manager:         job.Manager,
+		KernelRepo:      job.KernelRepo,
+		KernelBranch:    job.KernelBranch,
+		MergeBaseRepo:   job.MergeBaseRepo,
+		MergeBaseBranch: job.MergeBaseBranch,
+		KernelCommit:    job.BisectFrom,
+		KernelConfig:    kernelConfig,
+		SyzkallerCommit: build.SyzkallerCommit,
+		Patch:           patch,
+		ReproOpts:       crash.ReproOpts,
+		ReproSyz:        reproSyz,
+		ReproC:          reproC,
+	}
+	if resp.KernelCommit == "" {
+		resp.KernelCommit = build.KernelCommit
+		resp.KernelCommitTitle = build.KernelCommitTitle
 	}
 	switch job.Type {
 	case JobTestPatch:
@@ -1057,11 +1090,19 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	if err != nil {
 		return err
 	}
+	return postJob(c, jobKey, job)
+}
+
+func postJob(c context.Context, jobKey *db.Key, job *Job) error {
 	if job.TreeOrigin {
-		err = treeOriginJobDone(c, jobKey, job)
+		err := treeOriginJobDone(c, jobKey, job)
 		if err != nil {
-			return fmt.Errorf("job %v: failed to execute tree origin handlers: %w", jobID, err)
+			return fmt.Errorf("job %v: failed to execute tree origin handlers: %w", jobKey, err)
 		}
+	}
+	err := doneCrossTreeBisection(c, jobKey, job)
+	if err != nil {
+		return fmt.Errorf("job %s: cross tree bisection handlers failed: %w", jobKey, err)
 	}
 	return nil
 }
@@ -1153,6 +1194,11 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 		}
 		// If BisectFix results in a crash on HEAD, no notification is sent out.
 		if job.Type == JobBisectFix && len(job.Commits) != 1 {
+			continue
+		}
+		// Don't report cross-tree bisection results for now as we need to first understand
+		// how reliable their results are.
+		if job.IsCrossTree() {
 			continue
 		}
 		// If the bug is already known to be fixed, invalid or duplicate, do not report the bisection results.
@@ -1617,6 +1663,10 @@ func (b *bugJobs) bestBisection() *bugJob {
 			continue
 		}
 		if j.job.InvalidatedBy != "" {
+			continue
+		}
+		if j.job.MergeBaseRepo != "" {
+			// It was a cross-tree bisection.
 			continue
 		}
 		return j

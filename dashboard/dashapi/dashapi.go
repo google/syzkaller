@@ -176,13 +176,16 @@ func (m ManagerJobs) Any() bool {
 }
 
 type JobPollResp struct {
-	ID                string
-	Type              JobType
-	Manager           string
-	KernelRepo        string
-	KernelBranch      string
-	MergeBaseRepo     string
-	MergeBaseBranch   string
+	ID         string
+	Type       JobType
+	Manager    string
+	KernelRepo string
+	// KernelBranch is used for patch testing and serves as the current HEAD
+	// for bisections.
+	KernelBranch    string
+	MergeBaseRepo   string
+	MergeBaseBranch string
+	// Bisection starts from KernelCommit.
 	KernelCommit      string
 	KernelCommitTitle string
 	KernelConfig      []byte
@@ -785,11 +788,12 @@ type LoadFullBugReq struct {
 }
 
 type FullBugInfo struct {
-	SimilarBugs []*SimilarBugInfo
-	BisectCause *BugReport
-	BisectFix   *BugReport
-	Crashes     []*BugReport
-	TreeJobs    []*JobInfo
+	SimilarBugs  []*SimilarBugInfo
+	BisectCause  *BugReport
+	BisectFix    *BugReport
+	Crashes      []*BugReport
+	TreeJobs     []*JobInfo
+	FixCandidate *BugReport
 }
 
 type SimilarBugInfo struct {

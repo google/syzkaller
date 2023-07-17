@@ -713,6 +713,128 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 	return ret, nil
 }
 
+// Create a cross-tree bisection job (if needed).
+func crossTreeBisection(c context.Context, bug *Bug,
+	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
+	repoGraph, err := makeRepoGraph(getKernelRepos(c, bug.Namespace))
+	if err != nil {
+		return nil, nil, err
+	}
+	bugJobs := &lazyJobList{
+		c:       c,
+		bug:     bug,
+		jobType: JobBisectFix,
+	}
+	var job *Job
+	var jobKey *db.Key
+	err = repoGraph.forEachEdge(func(from, to *repoNode, info KernelRepoLink) error {
+		if jobKey != nil {
+			return nil
+		}
+		if !info.BisectFixes {
+			return nil
+		}
+		log.Infof(c, "%s: considering cross-tree bisection %s/%s",
+			bug.displayTitle(), from.repo.Alias, to.repo.Alias)
+		_, crashJob := bug.findResult(c, to.repo, wantNewAny{}, runOnHEAD{})
+		if crashJob.CrashTitle == "" {
+			// The bug is already fixed on the target tree.
+			return nil
+		}
+		crashBuild, err := loadBuild(c, bug.Namespace, crashJob.BuildID)
+		if err != nil {
+			return err
+		}
+		manager, _ := activeManager(crashJob.Manager, crashJob.Namespace)
+		if !managers[manager].BisectFix {
+			return nil
+		}
+		_, successJob := bug.findResult(c, from.repo, wantNewAny{}, runOnHEAD{})
+		if successJob.CrashTitle != "" {
+			// The kernel tree is still crashed by the repro.
+			return nil
+		}
+		newJob := &Job{
+			Type:            JobBisectFix,
+			Created:         timeNow(c),
+			Namespace:       bug.Namespace,
+			Manager:         crashJob.Manager,
+			BisectFrom:      crashBuild.KernelCommit,
+			KernelRepo:      from.repo.URL,
+			KernelBranch:    from.repo.Branch,
+			MergeBaseRepo:   to.repo.URL,
+			MergeBaseBranch: to.repo.Branch,
+			BugTitle:        bug.displayTitle(),
+			CrashID:         crashJob.CrashID,
+		}
+		// It's expected that crossTreeBisection is not concurrently called with the same
+		// manager list.
+		prevJob, err := bugJobs.lastMatch(newJob)
+		if err != nil {
+			return err
+		}
+		const repeatPeriod = time.Hour * 24 * 30
+		if prevJob != nil && (prevJob.Error == 0 ||
+			prevJob.Finished.After(timeNow(c).Add(-repeatPeriod))) {
+			// The job is already pending or failed recently. Skip.
+			return nil
+		}
+		job = newJob
+		jobKey, err = saveJob(c, newJob, bug.key(c))
+		return err
+	})
+	return job, jobKey, err
+}
+
+type lazyJobList struct {
+	c       context.Context
+	bug     *Bug
+	jobType JobType
+	jobs    *bugJobs
+}
+
+func (list *lazyJobList) lastMatch(job *Job) (*Job, error) {
+	if list.jobs == nil {
+		var err error
+		list.jobs, err = queryBugJobs(list.c, list.bug, list.jobType)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var best *Job
+	for _, item := range list.jobs.all() {
+		otherJob := item.job
+		same := otherJob.Manager == job.Manager &&
+			otherJob.KernelRepo == job.KernelRepo &&
+			otherJob.KernelBranch == job.KernelBranch &&
+			otherJob.CrashID == job.CrashID &&
+			otherJob.MergeBaseRepo == job.MergeBaseRepo &&
+			otherJob.MergeBaseBranch == job.MergeBaseBranch
+		if !same {
+			continue
+		}
+		if best == nil || best.Created.Before(otherJob.Created) {
+			best = otherJob
+		}
+	}
+	return best, nil
+}
+
+func doneCrossTreeBisection(c context.Context, jobKey *db.Key, job *Job) error {
+	if job.Type != JobBisectFix || job.MergeBaseRepo == "" {
+		// Not a cross tree bisection.
+		return nil
+	}
+	if job.Error != 0 || job.isUnreliableBisect() || len(job.Commits) != 1 {
+		// The result is not interesting.
+		return nil
+	}
+	return updateSingleBug(c, jobKey.Parent(), func(bug *Bug) error {
+		bug.FixCandidateJob = jobKey.Encode()
+		return nil
+	})
+}
+
 type repoNode struct {
 	repo  KernelRepo
 	edges []repoEdge
@@ -720,7 +842,7 @@ type repoNode struct {
 
 type repoEdge struct {
 	in    bool
-	merge bool
+	info  KernelRepoLink
 	other *repoNode
 }
 
@@ -743,8 +865,8 @@ func makeRepoGraph(repos []KernelRepo) (*repoGraph, error) {
 			if g.nodes[link.Alias] == nil {
 				return nil, fmt.Errorf("no repo with alias %q", link.Alias)
 			}
-			g.nodes[repo.Alias].addEdge(true, link.Merge, g.nodes[link.Alias])
-			g.nodes[link.Alias].addEdge(false, link.Merge, g.nodes[repo.Alias])
+			g.nodes[repo.Alias].addEdge(true, link, g.nodes[link.Alias])
+			g.nodes[link.Alias].addEdge(false, link, g.nodes[repo.Alias])
 		}
 	}
 	for alias, node := range g.nodes {
@@ -774,6 +896,21 @@ func (g *repoGraph) nodeByAlias(alias string) *repoNode {
 	return nil
 }
 
+func (g *repoGraph) forEachEdge(cb func(from, to *repoNode, info KernelRepoLink) error) error {
+	for _, node := range g.nodes {
+		for _, e := range node.edges {
+			if !e.in {
+				continue
+			}
+			err := cb(e.other, node, e.info)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // reachable returns a map *repoNode -> bool (whether commits are merged).
 func (n *repoNode) reachable(in bool) map[*repoNode]bool {
 	ret := map[*repoNode]bool{}
@@ -787,14 +924,14 @@ func (n *repoNode) reachableMerged(in, onlyMerge bool, ret map[*repoNode]bool) {
 	var dfs func(*repoNode, bool)
 	dfs = func(node *repoNode, merge bool) {
 		for _, edge := range node.edges {
-			if edge.in != in || onlyMerge && !edge.merge {
+			if edge.in != in || onlyMerge && !edge.info.Merge {
 				continue
 			}
 			if _, ok := ret[edge.other]; ok {
 				continue
 			}
-			ret[edge.other] = merge && edge.merge
-			dfs(edge.other, merge && edge.merge)
+			ret[edge.other] = merge && edge.info.Merge
+			dfs(edge.other, merge && edge.info.Merge)
 		}
 	}
 	dfs(n, true)
@@ -808,10 +945,10 @@ func (n *repoNode) allReachable() map[*repoNode]bool {
 	return ret
 }
 
-func (n *repoNode) addEdge(in, merge bool, other *repoNode) {
+func (n *repoNode) addEdge(in bool, info KernelRepoLink, other *repoNode) {
 	n.edges = append(n.edges, repoEdge{
 		in:    in,
-		merge: merge,
+		info:  info,
 		other: other,
 	})
 }
