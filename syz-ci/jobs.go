@@ -297,7 +297,7 @@ func (jp *JobProcessor) pollJobs() {
 			BisectCause: jobs.BisectCause,
 			BisectFix:   jobs.BisectFix,
 		}
-		if apiJobs.TestPatches || apiJobs.BisectCause || apiJobs.BisectFix {
+		if apiJobs.Any() {
 			poll.Managers[mgr.name] = apiJobs
 		}
 	}

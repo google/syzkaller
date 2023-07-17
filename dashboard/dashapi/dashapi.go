@@ -171,6 +171,10 @@ type ManagerJobs struct {
 	BisectFix   bool
 }
 
+func (m ManagerJobs) Any() bool {
+	return m.TestPatches || m.BisectCause || m.BisectFix
+}
+
 type JobPollResp struct {
 	ID                string
 	Type              JobType
