@@ -1108,14 +1108,62 @@ icmp_address_reply_packet {
 	mask	int32be
 } [packed]
 
-icmp_types = ICMP_ECHOREPLY, ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH, ICMP_REDIRECT, ICMP_ECHO, ICMP_TIME_EXCEEDED, ICMP_PARAMETERPROB, ICMP_TIMESTAMP, ICMP_TIMESTAMPREPLY, ICMP_INFO_REQUEST, ICMP_INFO_REPLY, ICMP_ADDRESS, ICMP_ADDRESSREPLY
+icmp_ext_echo_packet {
+	type		const[ICMP_EXT_ECHO, int8]
+	code		const[0, int8]
+	csum		csum[parent, inet, int16be]
+	id		int16be
+	seq_num		int16be
+	icmp_ext_hdr	icmp_ext_hdr
+	iio		icmp_ext_echo_iio
+	data		array[int8]
+} [packed]
+
+icmp_ext_hdr {
+	version_reserved1	const[0, int8]
+	reserved2		const[0, int8]
+	checksum		csum[parent, inet, int16be]
+} [packed]
+
+icmp_extobj_hdr {
+	length		int16
+	class_num	int8
+	class_type	flags[icmp_ext_class_types, int8]
+} [packed]
+
+icmp_ext_echo_iio {
+	extobj_hdr	icmp_extobj_hdr
+	ident		icmp_ext_echo_iio_ident
+} [packed]
+
+icmp_ext_echo_iio_ident {
+	name		array[int8, 16]
+	ipv4_addr	int32
+	ipv6_addr	array[int8, 16]
+} [packed]
+
+icmp_ext_echo_reply_packet {
+	type		const[ICMP_EXT_ECHOREPLY, int8]
+	code		const[0, int8]
+	csum		csum[parent, inet, int16be]
+	id		int16be
+	seq_num		int16be
+	icmp_ext_hdr	icmp_ext_hdr
+	iio		icmp_ext_echo_iio
+	data		array[int8]
+} [packed]
+
+icmp_ext_class_types = ICMP_EXT_ECHO_CTYPE_NAME, ICMP_EXT_ECHO_CTYPE_INDEX, ICMP_EXT_ECHO_CTYPE_ADDR
+icmp_types = ICMP_ECHOREPLY, ICMP_EXT_ECHO, ICMP_EXT_ECHOREPLY, ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH, ICMP_REDIRECT, ICMP_ECHO, ICMP_TIME_EXCEEDED, ICMP_PARAMETERPROB, ICMP_TIMESTAMP, ICMP_TIMESTAMPREPLY, ICMP_INFO_REQUEST, ICMP_INFO_REPLY, ICMP_ADDRESS, ICMP_ADDRESSREPLY
 
 icmp_packet [
 	echo_reply	icmp_echo_reply_packet
+	ext_echo_reply	icmp_ext_echo_reply_packet
 	dest_unreach	icmp_dest_unreach_packet
 	source_quench	icmp_source_quench_packet
 	redirect	icmp_redirect_packet
 	echo		icmp_echo_packet
+	ext_echo	icmp_ext_echo_packet
 	time_exceeded	icmp_time_exceeded_packet
 	parameter_prob	icmp_parameter_prob_packet
 	timestamp	icmp_timestamp_packet
