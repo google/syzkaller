@@ -465,7 +465,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	}
 	data := &uiMainPage{
 		Header:         hdr,
-		Decommissioned: config.Namespaces[hdr.Namespace].Decommissioned,
+		Decommissioned: isDecommissioned(c, hdr.Namespace),
 		Now:            timeNow(c),
 		Groups:         groups,
 		Managers:       makeManagerList(managers, hdr.Namespace),

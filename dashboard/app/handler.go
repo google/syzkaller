@@ -180,7 +180,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		if ns1 == ns {
 			found = true
 		}
-		if cfg.Decommissioned {
+		if isDecommissioned(c, ns1) {
 			continue
 		}
 		h.Namespaces = append(h.Namespaces, uiNamespace{

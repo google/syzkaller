@@ -166,7 +166,7 @@ func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNot
 	log.Infof(c, "fetched %v bugs", len(bugs))
 	var notifs []*dashapi.BugNotification
 	for _, bug := range bugs {
-		if config.Namespaces[bug.Namespace].Decommissioned {
+		if isDecommissioned(c, bug.Namespace) {
 			continue
 		}
 		notif, err := handleReportNotif(c, typ, bug)
@@ -800,7 +800,7 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 				break
 			}
 			if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() ||
-				config.Namespaces[bug.Namespace].Decommissioned {
+				isDecommissioned(c, bug.Namespace) {
 				closed = append(closed, bugReporting.ID)
 			}
 			break

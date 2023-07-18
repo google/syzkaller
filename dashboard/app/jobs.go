@@ -406,7 +406,7 @@ func createPatchTestingJobs(c context.Context, managers map[string]dashapi.Manag
 				// for which we were already given fixing commits.
 				return false
 			}
-			if config.Namespaces[bug.Namespace].Decommissioned {
+			if isDecommissioned(c, bug.Namespace) {
 				return false
 			}
 			return true
@@ -648,7 +648,7 @@ func shouldBisectBug(c context.Context, bug *Bug, managers map[string]bool, jobT
 		return false
 	}
 
-	if config.Namespaces[bug.Namespace].Decommissioned {
+	if isDecommissioned(c, bug.Namespace) {
 		return false
 	}
 
