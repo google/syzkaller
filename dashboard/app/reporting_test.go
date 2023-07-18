@@ -1099,8 +1099,7 @@ func TestReportDecommissionedBugs(t *testing.T) {
 	c.expectEQ(len(closed), 0)
 
 	// And now let's decommission the namespace.
-	config.Namespaces[rep.Namespace].Decommissioned = true
-	defer func() { config.Namespaces[rep.Namespace].Decommissioned = false }()
+	c.decommission(rep.Namespace)
 
 	closed, _ = client.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 1)

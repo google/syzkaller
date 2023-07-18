@@ -677,3 +677,22 @@ func getKernelRepos(c context.Context, ns string) []KernelRepo {
 	}
 	return config.Namespaces[ns].Repos
 }
+
+var decommKey = "Custom decommissioned status"
+
+func contextWithDecommission(c context.Context, ns string, value bool) context.Context {
+	mm, _ := c.Value(&decommKey).(map[string]bool)
+	if mm == nil {
+		mm = map[string]bool{}
+	}
+	mm[ns] = value
+	return context.WithValue(c, &decommKey, mm)
+}
+
+func isDecommissioned(c context.Context, ns string) bool {
+	mm, _ := c.Value(&decommKey).(map[string]bool)
+	if val, set := mm[ns]; set {
+		return val
+	}
+	return config.Namespaces[ns].Decommissioned
+}

@@ -230,6 +230,12 @@ func (c *Ctx) setNoObsoletions() {
 	}
 }
 
+func (c *Ctx) decommission(ns string) {
+	c.transformContext = func(c context.Context) context.Context {
+		return contextWithDecommission(c, ns, true)
+	}
+}
+
 // GET sends admin-authorized HTTP GET request to the app.
 func (c *Ctx) GET(url string) ([]byte, error) {
 	return c.AuthGET(AccessAdmin, url)
