@@ -71,6 +71,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var (
@@ -182,6 +183,8 @@ type ManagerConfig struct {
 	// File with sysctl values (e.g. output of sysctl -a, optional).
 	KernelSysctl string      `json:"kernel_sysctl"`
 	Jobs         ManagerJobs `json:"jobs"`
+	// Extra commits to cherry pick to older kernel revisions.
+	BisectBackports []vcs.BackportCommit `json:"bisect_backports"`
 
 	ManagerConfig json.RawMessage `json:"manager_config"`
 	managercfg    *mgrconfig.Config

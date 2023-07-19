@@ -139,6 +139,7 @@ func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 
 func (ctx *linux) EnvForCommit(
 	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+	backports []BackportCommit,
 ) (*BisectEnv, error) {
 	tagList, err := ctx.previousReleaseTags(commit, true, false, false)
 	if err != nil {
@@ -167,7 +168,7 @@ func (ctx *linux) EnvForCommit(
 		Compiler:     compiler,
 		KernelConfig: cf.Serialize(),
 	}
-	err = linuxFixBackports(ctx.git)
+	err = linuxFixBackports(ctx.git, backports...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cherry pick fixes: %w", err)
 	}

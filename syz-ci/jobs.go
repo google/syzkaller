@@ -498,6 +498,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Config:         req.KernelConfig,
 			BaselineConfig: baseline,
 			Userspace:      mgr.mgrcfg.Userspace,
+			Backports:      mgr.mgrcfg.BisectBackports,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   jp.cfg.SyzkallerRepo,

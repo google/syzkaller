@@ -62,9 +62,10 @@ type Config struct {
 	// Sysctl/cmdline files used to build the image which was used to crash the kernel, e.g. see:
 	// dashboard/config/upstream.sysctl
 	// dashboard/config/upstream-selinux.cmdline
-	Sysctl    string `json:"sysctl"`
-	Cmdline   string `json:"cmdline"`
-	CrossTree bool   `json:"cross_tree"`
+	Sysctl    string               `json:"sysctl"`
+	Cmdline   string               `json:"cmdline"`
+	CrossTree bool                 `json:"cross_tree"`
+	Backports []vcs.BackportCommit `json:"backports"`
 
 	KernelConfig         string `json:"kernel_config"`
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
@@ -114,6 +115,7 @@ func main() {
 			Userspace:   mycfg.Userspace,
 			Sysctl:      mycfg.Sysctl,
 			Cmdline:     mycfg.Cmdline,
+			Backports:   mycfg.Backports,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   mycfg.SyzkallerRepo,

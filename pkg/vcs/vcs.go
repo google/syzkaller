@@ -93,7 +93,8 @@ type Bisecter interface {
 
 	IsRelease(commit string) (bool, error)
 
-	EnvForCommit(defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
+	EnvForCommit(defaultCompiler, compilerType, binDir, commit string,
+		kernelConfig []byte, backports []BackportCommit) (*BisectEnv, error)
 }
 
 type ConfigMinimizer interface {

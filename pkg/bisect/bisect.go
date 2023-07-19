@@ -58,6 +58,8 @@ type KernelConfig struct {
 	// this minimized one.
 	BaselineConfig []byte
 	Userspace      string
+	// Extra commits to cherry pick to older kernel revisions.
+	Backports []vcs.BackportCommit
 }
 
 type SyzkallerConfig struct {
@@ -566,7 +568,10 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	}
 
 	bisectEnv, err := env.bisecter.EnvForCommit(
-		env.cfg.DefaultCompiler, env.cfg.CompilerType, env.cfg.BinDir, current.Hash, env.kernelConfig)
+		env.cfg.DefaultCompiler, env.cfg.CompilerType,
+		env.cfg.BinDir, current.Hash, env.kernelConfig,
+		env.cfg.Kernel.Backports,
+	)
 	if err != nil {
 		return current, "", err
 	}
