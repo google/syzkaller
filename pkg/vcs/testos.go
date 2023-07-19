@@ -29,6 +29,7 @@ func (ctx *testos) PreviousReleaseTags(commit, compilerType string) ([]string, e
 
 func (ctx *testos) EnvForCommit(
 	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+	backports []BackportCommit,
 ) (*BisectEnv, error) {
 	return &BisectEnv{KernelConfig: kernelConfig}, nil
 }
