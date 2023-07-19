@@ -323,4 +323,5 @@ var zirconOopses = append([]*oops{
 		},
 		crash.UnknownType,
 	},
+	&groupGoRuntimeErrors,
 }, commonOopses...)

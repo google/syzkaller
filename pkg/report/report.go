@@ -804,18 +804,19 @@ var commonOopses = []*oops{
 		},
 		crash.UnknownType,
 	},
-	{
-		[]byte("fatal error:"),
-		[]oopsFormat{
-			{
-				title:        compile("fatal error:(.*)"),
-				fmt:          "fatal error:%[1]v",
-				noStackTrace: true,
-			},
+}
+
+var groupGoRuntimeErrors = oops{
+	[]byte("fatal error:"),
+	[]oopsFormat{
+		{
+			title:        compile("fatal error:"),
+			fmt:          "go runtime error",
+			noStackTrace: true,
 		},
-		[]*regexp.Regexp{
-			compile("ALSA"),
-		},
-		crash.UnknownType,
 	},
+	[]*regexp.Regexp{
+		compile("ALSA"),
+	},
+	crash.UnknownType,
 }
