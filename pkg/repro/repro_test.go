@@ -247,7 +247,7 @@ func TestTooManyErrors(t *testing.T) {
 		t: t,
 		run: func(log []byte) (*instance.RunResult, error) {
 			counter++
-			if counter%3 != 0 {
+			if counter%4 != 0 {
 				return nil, fmt.Errorf("some random error")
 			}
 			return testExecRunner(log)
