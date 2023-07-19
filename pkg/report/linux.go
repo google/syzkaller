@@ -2457,4 +2457,5 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{},
 		crash.UnknownType,
 	},
+	&groupGoRuntimeErrors,
 }, commonOopses...)

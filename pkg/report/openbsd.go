@@ -168,4 +168,5 @@ var openbsdOopses = append([]*oops{
 		},
 		crash.UnknownType,
 	},
+	&groupGoRuntimeErrors,
 }, commonOopses...)
