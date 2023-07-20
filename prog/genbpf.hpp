@@ -59,6 +59,8 @@ enum bpf_reg_type {
 
 struct regState {
 	int type;
+    __s32 off;
+    struct tnum var_off;
 };
 
 char logbuf[1024 * 1024];

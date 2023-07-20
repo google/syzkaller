@@ -4,6 +4,7 @@
     3. The number of shift bit should be less than 32/64
     4. Frame pointer is read only
 */
+#define BPF_BASE_TYPE_MASK	GENMASK(BPF_BASE_TYPE_BITS - 1, 0)
 
 bool initRegScalar(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt, int64_t value) {
     
@@ -238,6 +239,27 @@ bool isValidAtomicOp(struct bpf_insn *insn) {
     }
 }
 
+bool check_mem_access(struct bpf_insn *insn, enum bpf_access_type t) {
+    return false;
+}
+
+inline int base_type(int type)
+{
+	return type & BPF_BASE_TYPE_MASK;
+}
+
+bool isValidLdImmSrc(struct bpf_insn *insn) {
+    switch(insn->src_reg) {
+        case BPF_PSEUDO_MAP_VALUE:
+        case BPF_PSEUDO_MAP_IDX_VALUE:
+        case BPF_PSEUDO_MAP_FD:
+        case BPF_PSEUDO_MAP_IDX:
+            return true;
+        default:
+            return false;
+    }
+}
+
 bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
 
     switch(insn->code & ~BPF_SIZE(0xffffffff)) {
@@ -245,8 +267,7 @@ bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_
         // *(size *) (dst + offset) = imm32
         case BPF_ST | BPF_MEM:
             if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
-            if (insn->src_reg != 0) return false;
-            // if (!initRegScalar(insn->dst_reg, Bit64Value, regStates, bpfBytecode, cnt, 0)) return false;
+            if (insn->src_reg != BPF_REG_0) return false;
             break;
         //case BPF_STX_MEM: BPF_STX | BPF_SIZE(SIZE) | BPF_MEM
         // *(size *) (dst + offset) = src
@@ -279,16 +300,29 @@ bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_
             if (BPF_SIZE(insn->code) != BPF_DW) return false;
             if (insn->off != 0) return false;
             if (insn->dst_reg == BPF_REG_10) return false;
+            if (insn->src_reg == BPF_PSEUDO_BTF_ID) {
+                struct regState dst = regStates[insn->dst_reg];
+                if (base_type(dst.type) != PTR_TO_MEM && base_type(dst.type) != PTR_TO_BTF_ID)
+                    return false;
+            }
+            if (!isValidLdImmSrc(insn)) return false;
             break;
         // case BPF_LD_ABS: BPF_LD | BPF_SIZE(SIZE) | BPF_ABS
         // case BPF_LD_IND: BPF_LD | BPF_SIZE(SIZE) | BPF_IND
         // R0 = *(uint *) (skb->data + imm32)
         case BPF_LD | BPF_ABS:
             if (insn->src_reg != BPF_REG_0) return false;
+            if (insn->dst_reg != BPF_REG_0) return false;
+            if (insn->off != 0) return false;
+            if (BPF_SIZE(insn->code) == BPF_DW) return false;
+            if (regStates[BPF_REG_6].type != PTR_TO_CTX) return false;
+            break;
         case BPF_LD | BPF_IND:
             if (insn->dst_reg != BPF_REG_0) return false;
             if (insn->off != 0) return false;
             if (BPF_SIZE(insn->code) == BPF_DW) return false;
+            if (regStates[BPF_REG_6].type != PTR_TO_CTX) return false;
+            if (regStates[insn->src_reg].type != NOT_INIT) return false;
             // r1 = ctx;
             break;
     }
