@@ -216,6 +216,28 @@ bool initRegPtr(u_int8_t reg, struct regState *regStates, struct bpf_insn *bpfBy
     2. Offset:
 */
 
+inline bool isValidReg(int regno) {
+    return regno < MAX_BPF_REG;	
+}
+
+bool isValidAtomicOp(struct bpf_insn *insn) {
+    switch(insn->imm) {
+        case BPF_ADD:
+	    case BPF_ADD | BPF_FETCH:
+	    case BPF_AND:
+	    case BPF_AND | BPF_FETCH:
+	    case BPF_OR:
+	    case BPF_OR | BPF_FETCH:
+	    case BPF_XOR:
+	    case BPF_XOR | BPF_FETCH:
+	    case BPF_XCHG:
+	    case BPF_CMPXCHG:
+            return true;
+        default:
+            return false;
+    }
+}
+
 bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
 
     switch(insn->code & ~BPF_SIZE(0xffffffff)) {
@@ -223,12 +245,21 @@ bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_
         // *(size *) (dst + offset) = imm32
         case BPF_ST | BPF_MEM:
             if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
+            if (insn->src_reg != 0) return false;
+            // if (!initRegScalar(insn->dst_reg, Bit64Value, regStates, bpfBytecode, cnt, 0)) return false;
             break;
         //case BPF_STX_MEM: BPF_STX | BPF_SIZE(SIZE) | BPF_MEM
         // *(size *) (dst + offset) = src
+        case BPF_STX | BPF_MEM:
+            if (!insn->imm != 0) return false;
+            if (!(isValidReg(insn->src_reg) && isValidReg(insn->dst_reg))) return false;
+            if (!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;
+            // if (!initRegScalar(insn->dst_reg, Bit64Value, regStates, bpfBytecode, cnt, 0)) return false;
+            break;
         //case BPF_ATOMIC_OP: BPF_STX | BPF_SIZE(SIZE) | BPF_ATOMIC
         // *(u32 *)(dst + offset) += src
         case BPF_STX | BPF_ATOMIC:
+            if (!isValidAtomicOp(insn)) return false;
             if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
             // TODO BIT
             if (!CommonInit(insn->src_reg, Bit64, regStates, bpfBytecode, cnt)) return false;
@@ -236,19 +267,28 @@ bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_
         // case BPF_LDX_MEM: BPF_LDX | BPF_SIZE(SIZE) | BPF_MEM
         // dst = *(size *) (src + offset)
         case BPF_LDX | BPF_MEM:
+            if (!(isValidReg(insn->src_reg) && isValidReg(insn->dst_reg))) return false;
             if (!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;
+            if (insn->dst_reg == BPF_REG_10) return false;
             break;
         // case BPF_LD_IMM64: BPF_LD | BPF_DW | BPF_IMM + src = 0
         // case BPF_LD_MAP_FD: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_MAP_FD
         // case BPF_LD_FD_MAPVALUE: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_MAP_VALUE
         // case BPF_LD_PSEUDO_FUNC: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_FUNC
         case BPF_LD | BPF_IMM:
+            if (BPF_SIZE(insn->code) != BPF_DW) return false;
+            if (insn->off != 0) return false;
+            if (insn->dst_reg == BPF_REG_10) return false;
             break;
         // case BPF_LD_ABS: BPF_LD | BPF_SIZE(SIZE) | BPF_ABS
         // case BPF_LD_IND: BPF_LD | BPF_SIZE(SIZE) | BPF_IND
         // R0 = *(uint *) (skb->data + imm32)
         case BPF_LD | BPF_ABS:
+            if (insn->src_reg != BPF_REG_0) return false;
         case BPF_LD | BPF_IND:
+            if (insn->dst_reg != BPF_REG_0) return false;
+            if (insn->off != 0) return false;
+            if (BPF_SIZE(insn->code) == BPF_DW) return false;
             // r1 = ctx;
             break;
     }
