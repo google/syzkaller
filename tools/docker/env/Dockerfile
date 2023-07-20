@@ -80,8 +80,6 @@ RUN dpkg --add-architecture i386 && \
 	apt-get clean autoclean && \
 	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
-RUN rm -rf /usr/local/go
-RUN curl https://dl.google.com/go/go1.19.6.linux-amd64.tar.gz | tar -C /usr/local -xz
 
 RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz
