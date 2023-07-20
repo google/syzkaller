@@ -44,7 +44,7 @@ const (
 	enforceComment = "//exhaustive:enforce"
 )
 
-func hasComment(comments []*ast.CommentGroup, comment string) bool {
+func hasCommentPrefix(comments []*ast.CommentGroup, comment string) bool {
 	for _, c := range comments {
 		for _, cc := range c.List {
 			if strings.HasPrefix(cc.Text, comment) {

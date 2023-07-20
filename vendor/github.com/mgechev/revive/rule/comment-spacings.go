@@ -23,6 +23,7 @@ func (r *CommentSpacingsRule) configure(arguments lint.Arguments) {
 		r.allowList = []string{
 			"//go:",
 			"//revive:",
+			"//nolint:",
 		}
 
 		for _, arg := range arguments {
@@ -47,7 +48,13 @@ func (r *CommentSpacingsRule) Apply(file *lint.File, args lint.Arguments) []lint
 				continue // nothing to do
 			}
 
-			isOK := commentLine[2] == ' '
+			isMultiLineComment := commentLine[1] == '*'
+			isOK := commentLine[2] == '\n'
+			if isMultiLineComment && isOK {
+				continue
+			}
+
+			isOK = (commentLine[2] == ' ') || (commentLine[2] == '\t')
 			if isOK {
 				continue
 			}

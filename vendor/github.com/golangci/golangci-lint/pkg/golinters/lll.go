@@ -19,6 +19,8 @@ import (
 
 const lllName = "lll"
 
+const goCommentDirectivePrefix = "//go:"
+
 //nolint:dupl
 func NewLLL(settings *config.LllSettings) *goanalysis.Linter {
 	var mu sync.Mutex
@@ -27,7 +29,7 @@ func NewLLL(settings *config.LllSettings) *goanalysis.Linter {
 	analyzer := &analysis.Analyzer{
 		Name: lllName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
+		Run: func(pass *analysis.Pass) (any, error) {
 			issues, err := runLll(pass, settings)
 			if err != nil {
 				return nil, err
@@ -93,6 +95,10 @@ func getLLLIssuesForFile(filename string, maxLineLen int, tabSpaces string) ([]r
 
 		line := scanner.Text()
 		line = strings.ReplaceAll(line, "\t", tabSpaces)
+
+		if strings.HasPrefix(line, goCommentDirectivePrefix) {
+			continue
+		}
 
 		if strings.HasPrefix(line, "import") {
 			multiImportEnabled = strings.HasSuffix(line, "(")

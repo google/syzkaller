@@ -1,10 +1,10 @@
 package golinters
 
 import (
+	"fmt"
 	"sync"
 
 	goimportsAPI "github.com/golangci/gofmt/goimports"
-	"github.com/pkg/errors"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/imports"
 
@@ -34,7 +34,7 @@ func NewGoimports(settings *config.GoImportsSettings) *goanalysis.Linter {
 	).WithContextSetter(func(lintCtx *linter.Context) {
 		imports.LocalPrefix = settings.LocalPrefixes
 
-		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
+		analyzer.Run = func(pass *analysis.Pass) (any, error) {
 			issues, err := runGoImports(lintCtx, pass)
 			if err != nil {
 				return nil, err
@@ -71,7 +71,7 @@ func runGoImports(lintCtx *linter.Context, pass *analysis.Pass) ([]goanalysis.Is
 
 		is, err := extractIssuesFromPatch(string(diff), lintCtx, goimportsName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "can't extract issues from gofmt diff output %q", string(diff))
+			return nil, fmt.Errorf("can't extract issues from gofmt diff output %q: %w", string(diff), err)
 		}
 
 		for i := range is {

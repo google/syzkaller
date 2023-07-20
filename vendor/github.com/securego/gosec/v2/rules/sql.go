@@ -20,10 +20,11 @@ import (
 	"regexp"
 
 	"github.com/securego/gosec/v2"
+	"github.com/securego/gosec/v2/issue"
 )
 
 type sqlStatement struct {
-	gosec.MetaData
+	issue.MetaData
 	gosec.CallList
 
 	// Contains a list of patterns which must all match for the rule to match.
@@ -113,7 +114,7 @@ func (s *sqlStrConcat) checkObject(n *ast.Ident, c *gosec.Context) bool {
 }
 
 // checkQuery verifies if the query parameters is a string concatenation
-func (s *sqlStrConcat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*gosec.Issue, error) {
+func (s *sqlStrConcat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*issue.Issue, error) {
 	query, err := findQueryArg(call, ctx)
 	if err != nil {
 		return nil, err
@@ -134,7 +135,7 @@ func (s *sqlStrConcat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*gose
 				if op, ok := op.(*ast.Ident); ok && s.checkObject(op, ctx) {
 					continue
 				}
-				return gosec.NewIssue(ctx, be, s.ID(), s.What, s.Severity, s.Confidence), nil
+				return ctx.NewIssue(be, s.ID(), s.What, s.Severity, s.Confidence), nil
 			}
 		}
 	}
@@ -143,7 +144,7 @@ func (s *sqlStrConcat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*gose
 }
 
 // Checks SQL query concatenation issues such as "SELECT * FROM table WHERE " + " ' OR 1=1"
-func (s *sqlStrConcat) Match(n ast.Node, ctx *gosec.Context) (*gosec.Issue, error) {
+func (s *sqlStrConcat) Match(n ast.Node, ctx *gosec.Context) (*issue.Issue, error) {
 	switch stmt := n.(type) {
 	case *ast.AssignStmt:
 		for _, expr := range stmt.Rhs {
@@ -160,16 +161,16 @@ func (s *sqlStrConcat) Match(n ast.Node, ctx *gosec.Context) (*gosec.Issue, erro
 }
 
 // NewSQLStrConcat looks for cases where we are building SQL strings via concatenation
-func NewSQLStrConcat(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
+func NewSQLStrConcat(id string, _ gosec.Config) (gosec.Rule, []ast.Node) {
 	rule := &sqlStrConcat{
 		sqlStatement: sqlStatement{
 			patterns: []*regexp.Regexp{
 				regexp.MustCompile(`(?i)(SELECT|DELETE|INSERT|UPDATE|INTO|FROM|WHERE) `),
 			},
-			MetaData: gosec.MetaData{
+			MetaData: issue.MetaData{
 				ID:         id,
-				Severity:   gosec.Medium,
-				Confidence: gosec.High,
+				Severity:   issue.Medium,
+				Confidence: issue.High,
 				What:       "SQL string concatenation",
 			},
 			CallList: gosec.NewCallList(),
@@ -212,7 +213,7 @@ func (s *sqlStrFormat) constObject(e ast.Expr, c *gosec.Context) bool {
 	return false
 }
 
-func (s *sqlStrFormat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*gosec.Issue, error) {
+func (s *sqlStrFormat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*issue.Issue, error) {
 	query, err := findQueryArg(call, ctx)
 	if err != nil {
 		return nil, err
@@ -233,7 +234,7 @@ func (s *sqlStrFormat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*gose
 	return nil, nil
 }
 
-func (s *sqlStrFormat) checkFormatting(n ast.Node, ctx *gosec.Context) *gosec.Issue {
+func (s *sqlStrFormat) checkFormatting(n ast.Node, ctx *gosec.Context) *issue.Issue {
 	// argIndex changes the function argument which gets matched to the regex
 	argIndex := 0
 	if node := s.fmtCalls.ContainsPkgCallExpr(n, ctx, false); node != nil {
@@ -286,14 +287,14 @@ func (s *sqlStrFormat) checkFormatting(n ast.Node, ctx *gosec.Context) *gosec.Is
 			}
 		}
 		if s.MatchPatterns(formatter) {
-			return gosec.NewIssue(ctx, n, s.ID(), s.What, s.Severity, s.Confidence)
+			return ctx.NewIssue(n, s.ID(), s.What, s.Severity, s.Confidence)
 		}
 	}
 	return nil
 }
 
 // Check SQL query formatting issues such as "fmt.Sprintf("SELECT * FROM foo where '%s', userInput)"
-func (s *sqlStrFormat) Match(n ast.Node, ctx *gosec.Context) (*gosec.Issue, error) {
+func (s *sqlStrFormat) Match(n ast.Node, ctx *gosec.Context) (*issue.Issue, error) {
 	switch stmt := n.(type) {
 	case *ast.AssignStmt:
 		for _, expr := range stmt.Rhs {
@@ -323,7 +324,7 @@ func (s *sqlStrFormat) Match(n ast.Node, ctx *gosec.Context) (*gosec.Issue, erro
 }
 
 // NewSQLStrFormat looks for cases where we're building SQL query strings using format strings
-func NewSQLStrFormat(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
+func NewSQLStrFormat(id string, _ gosec.Config) (gosec.Rule, []ast.Node) {
 	rule := &sqlStrFormat{
 		CallList:      gosec.NewCallList(),
 		fmtCalls:      gosec.NewCallList(),
@@ -334,10 +335,10 @@ func NewSQLStrFormat(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
 				regexp.MustCompile("(?i)(SELECT|DELETE|INSERT|UPDATE|INTO|FROM|WHERE)( |\n|\r|\t)"),
 				regexp.MustCompile("%[^bdoxXfFp]"),
 			},
-			MetaData: gosec.MetaData{
+			MetaData: issue.MetaData{
 				ID:         id,
-				Severity:   gosec.Medium,
-				Confidence: gosec.High,
+				Severity:   issue.Medium,
+				Confidence: issue.High,
 				What:       "SQL string formatting",
 			},
 		},
