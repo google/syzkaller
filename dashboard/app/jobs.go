@@ -822,7 +822,6 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 		MergeBaseBranch:   job.MergeBaseBranch,
 		KernelCommit:      build.KernelCommit,
 		KernelCommitTitle: build.KernelCommitTitle,
-		KernelCommitDate:  build.KernelCommitDate,
 		KernelConfig:      kernelConfig,
 		SyzkallerCommit:   build.SyzkallerCommit,
 		Patch:             patch,
