@@ -382,20 +382,15 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		},
 	}
 	job.resp = resp
+	resp.Build.KernelRepo = req.KernelRepo
+	resp.Build.KernelBranch = req.KernelBranch
+	resp.Build.KernelCommit = "[unknown]"
+	resp.Build.KernelConfig = req.KernelConfig
 	switch req.Type {
 	case dashapi.JobTestPatch:
 		mgrcfg.Name += "-test" + jp.instanceSuffix
-		resp.Build.KernelRepo = req.KernelRepo
-		resp.Build.KernelBranch = req.KernelBranch
-		resp.Build.KernelCommit = "[unknown]"
 	case dashapi.JobBisectCause, dashapi.JobBisectFix:
 		mgrcfg.Name += "-bisect" + jp.instanceSuffix
-		resp.Build.KernelRepo = mgr.mgrcfg.Repo
-		resp.Build.KernelBranch = mgr.mgrcfg.Branch
-		resp.Build.KernelCommit = req.KernelCommit
-		resp.Build.KernelCommitTitle = req.KernelCommitTitle
-		resp.Build.KernelCommitDate = req.KernelCommitDate
-		resp.Build.KernelConfig = req.KernelConfig
 	default:
 		err := fmt.Errorf("bad job type %v", req.Type)
 		job.resp.Error = []byte(err.Error())

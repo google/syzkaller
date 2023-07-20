@@ -185,7 +185,6 @@ type JobPollResp struct {
 	MergeBaseBranch   string
 	KernelCommit      string
 	KernelCommitTitle string
-	KernelCommitDate  time.Time
 	KernelConfig      []byte
 	SyzkallerCommit   string
 	Patch             []byte
