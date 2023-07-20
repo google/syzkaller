@@ -52,6 +52,13 @@ func Apply(src string, edits []Edit) (string, error) {
 	return string(out), nil
 }
 
+// ApplyBytes is like Apply, but it accepts a byte slice.
+// The result is always a new array.
+func ApplyBytes(src []byte, edits []Edit) ([]byte, error) {
+	res, err := Apply(string(src), edits)
+	return []byte(res), err
+}
+
 // validate checks that edits are consistent with src,
 // and returns the size of the patched output.
 // It may return a different slice.
@@ -108,8 +115,8 @@ func lineEdits(src string, edits []Edit) ([]Edit, error) {
 	}
 
 	// Do all edits begin and end at the start of a line?
-	// TODO(adonovan): opt: is this fast path necessary?
-	// (Also, it complicates the result ownership.)
+	// TODO(adonovan, pjw): why does omitting this 'optimization'
+	// cause tests to fail? (TestDiff/insert-line,extra_newline)
 	for _, edit := range edits {
 		if edit.Start >= len(src) || // insertion at EOF
 			edit.Start > 0 && src[edit.Start-1] != '\n' || // not at line start

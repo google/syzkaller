@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/mgechev/revive/lint"
 )
+
+var anyCapsRE = regexp.MustCompile(`[A-Z]`)
 
 // VarNamingRule lints given else constructs.
 type VarNamingRule struct {
@@ -55,6 +58,14 @@ func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.
 	if strings.Contains(walker.fileAst.Name.Name, "_") && !strings.HasSuffix(walker.fileAst.Name.Name, "_test") {
 		walker.onFailure(lint.Failure{
 			Failure:    "don't use an underscore in package name",
+			Confidence: 1,
+			Node:       walker.fileAst.Name,
+			Category:   "naming",
+		})
+	}
+	if anyCapsRE.MatchString(walker.fileAst.Name.Name) {
+		walker.onFailure(lint.Failure{
+			Failure:    fmt.Sprintf("don't use MixedCaps in package name; %s should be %s", walker.fileAst.Name.Name, strings.ToLower(walker.fileAst.Name.Name)),
 			Confidence: 1,
 			Node:       walker.fileAst.Name,
 			Category:   "naming",

@@ -50,6 +50,11 @@ type Config struct {
 	Deprecation *Deprecation
 }
 
+func (lc *Config) WithEnabledByDefault() *Config {
+	lc.EnabledByDefault = true
+	return lc
+}
+
 func (lc *Config) ConsiderSlow() *Config {
 	lc.IsSlow = true
 	return lc
@@ -127,7 +132,7 @@ func (lc *Config) WithNoopFallback(cfg *config.Config) *Config {
 		lc.Linter = &Noop{
 			name: lc.Linter.Name(),
 			desc: lc.Linter.Desc(),
-			run: func(pass *analysis.Pass) (interface{}, error) {
+			run: func(pass *analysis.Pass) (any, error) {
 				return nil, nil
 			},
 		}

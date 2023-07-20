@@ -68,7 +68,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
@@ -98,7 +98,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
@@ -157,7 +157,6 @@ directory you can supply `./...` as the input argument.
 - G304: File path provided as taint input
 - G305: File traversal when extracting zip/tar archive
 - G306: Poor file permissions used when writing to a new file
-- G307: Deferring a method which returns an error
 - G401: Detect the usage of DES, RC4, MD5 or SHA1
 - G402: Look for bad TLS connection settings
 - G403: Ensure minimum RSA key length of 2048 bits
@@ -172,6 +171,7 @@ directory you can supply `./...` as the input argument.
 ### Retired rules
 
 - G105: Audit the use of math/big.Int.Exp - [CVE is fixed](https://github.com/golang/go/issues/15184)
+- G307: Deferring a method which returns an error - causing more inconvenience than fixing a security issue, despite the details from this [blog post](https://www.joeshaw.org/dont-defer-close-on-writable-files/)
 
 ### Selecting rules
 
@@ -188,7 +188,7 @@ $ gosec -exclude=G303 ./...
 
 ### CWE Mapping
 
-Every issue detected by `gosec` is mapped to a [CWE (Common Weakness Enumeration)](http://cwe.mitre.org/data/index.html) which describes in more generic terms the vulnerability. The exact mapping can be found  [here](https://github.com/securego/gosec/blob/master/issue.go#L50).
+Every issue detected by `gosec` is mapped to a [CWE (Common Weakness Enumeration)](http://cwe.mitre.org/data/index.html) which describes in more generic terms the vulnerability. The exact mapping can be found  [here](https://github.com/securego/gosec/blob/master/issue/issue.go#L50).
 
 ### Configuration
 

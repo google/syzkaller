@@ -146,7 +146,7 @@ func LoadFormatGoFile(file io.FileObj, cfg config.Config) (src, dist []byte, err
 	// order by section list
 	for _, s := range cfg.Sections {
 		if len(result[s.String()]) > 0 {
-			if body != nil && len(body) > 0 {
+			if len(body) > 0 {
 				body = append(body, utils.Linebreak)
 			}
 			for _, d := range result[s.String()] {
@@ -161,7 +161,6 @@ func LoadFormatGoFile(file io.FileObj, cfg config.Config) (src, dist []byte, err
 	tail := make([]byte, len(src)-tailStart)
 	copy(tail, src[tailStart:])
 
-	head = append(head, utils.Linebreak)
 	// ensure C
 	if cStart != 0 {
 		head = append(head, src[cStart:cEnd]...)

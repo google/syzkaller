@@ -36,7 +36,7 @@ type Program struct {
 	bounds        map[boundsKey]*Function    // bounds for curried x.Method closures
 	thunks        map[selectionKey]*Function // thunks for T.Method expressions
 	instances     map[*Function]*instanceSet // instances of generic functions
-	parameterized tpWalker                   // determines whether a type is parameterized.
+	parameterized tpWalker                   // determines whether a type reaches a type parameter.
 }
 
 // A Package is a single analyzed Go package containing Members for
@@ -865,7 +865,7 @@ type Slice struct {
 type FieldAddr struct {
 	register
 	X     Value // *struct
-	Field int   // field is typeparams.CoreType(X.Type().Underlying().(*types.Pointer).Elem()).(*types.Struct).Field(Field)
+	Field int   // index into CoreType(CoreType(X.Type()).(*types.Pointer).Elem()).(*types.Struct).Fields
 }
 
 // The Field instruction yields the Field of struct X.
@@ -884,7 +884,7 @@ type FieldAddr struct {
 type Field struct {
 	register
 	X     Value // struct
-	Field int   // index into typeparams.CoreType(X.Type()).(*types.Struct).Fields
+	Field int   // index into CoreType(X.Type()).(*types.Struct).Fields
 }
 
 // The IndexAddr instruction yields the address of the element at
@@ -1535,12 +1535,25 @@ func (fn *Function) TypeParams() *typeparams.TypeParamList {
 // from fn.Origin().
 func (fn *Function) TypeArgs() []types.Type { return fn.typeargs }
 
-// Origin is the function fn is an instantiation of. Returns nil if fn is not
-// an instantiation.
+// Origin returns the generic function from which fn was instantiated,
+// or nil if fn is not an instantiation.
 func (fn *Function) Origin() *Function {
 	if fn.parent != nil && len(fn.typeargs) > 0 {
-		// Nested functions are BUILT at a different time than there instances.
-		return fn.parent.Origin().AnonFuncs[fn.anonIdx]
+		// Nested functions are BUILT at a different time than their instances.
+		// Build declared package if not yet BUILT. This is not an expected use
+		// case, but is simple and robust.
+		fn.declaredPackage().Build()
+	}
+	return origin(fn)
+}
+
+// origin is the function that fn is an instantiation of. Returns nil if fn is
+// not an instantiation.
+//
+// Precondition: fn and the origin function are done building.
+func origin(fn *Function) *Function {
+	if fn.parent != nil && len(fn.typeargs) > 0 {
+		return origin(fn.parent).AnonFuncs[fn.anonIdx]
 	}
 	return fn.topLevelOrigin
 }
