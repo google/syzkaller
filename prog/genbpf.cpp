@@ -55,13 +55,13 @@ int GenBPFProg(char *bpfProgAttr, char *bpfMapAttr, int MaxMapAttrSize) {
     for(cnt = 0; cnt < NINSNS; ){
         switch(rand() % 4){
             case ALUOP:
-                genALUOP(regStates, bpfBytecode, &cnt);                
+                // genALUOP(regStates, bpfBytecode, &cnt);                
                 break;
             case LSOP:
-                // genLSOP(regStates, bpfBytecode, &cnt, maxMaps);
+                genLSOP(regStates, bpfBytecode, &cnt, maxMaps);
                 break;
             case JMPOP:
-                genJMPOP(regStates, bpfBytecode, &cnt);
+                // genJMPOP(regStates, bpfBytecode, &cnt);
                 break;            
             case CALLOP:
                 // genCallOP(regStates, bpfBytecode, &cnt);
@@ -169,7 +169,6 @@ void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt,
         BPF_ST_MEM(SIZE, DST, OFF, IMM)            *(uint *) (dst_reg + off16) = imm32
         BPF_ATOMIC_OP(SIZE, OP, DST, SRC, OFF)     
         BPF_LD_IMM64(DST, IMM) 2 insns
-
         BPF_LD_ABS(SIZE, IMM)                      R0 = *(uint *) (skb->data + imm32)
         BPF_LD_MAP_FD(DST, MAP_FD) 2 insns
     */
@@ -179,30 +178,23 @@ void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt,
     short int off = 0;
     int32_t imm32 = randNum32(), imm64 = randNum64(), fdIdx;
     struct bpf_insn insn = {0};
-    bool newInsn = true;
+    struct bpf_insn insns[2];
+    bool isDoubleInsns = false;
 
     switch(rand() % 12) {
         case 0:
-            if (!initRegPtr(src, Bit64, regStates, bpfBytecode, cnt)) return;
             insn = BPF_LDX_MEM(size, dst, src, off);
             printInsn("BPF_LDX_MEM", insn.code, dst, src, 0, off);
             break;
         case 1:
-            // if (!initRegScalar(src, Bit64, regStates, bpfBytecode, cnt)) break;
-            if (!initRegPtr(dst, Bit64, regStates, bpfBytecode, cnt)) return;
             insn = BPF_STX_MEM(size, dst, src, off);
             printInsn("BPF_STX_MEM", insn.code, dst, src, 0, off);
             break;
         case 2:
-            if (!initRegPtr(dst, Bit64, regStates, bpfBytecode, cnt)) return;
             insn = BPF_ST_MEM(size, dst, off, imm32);
             printInsn("BPF_ST_MEM", insn.code, dst, 0, imm32, off);
             break;
         case 3:
-            // TODO
-            // if (!initRegScalar(src, Bit64, regStates, bpfBytecode, cnt)) break;
-            if (!initRegPtr(dst, Bit64, regStates, bpfBytecode, cnt)) return;
-            if (!BPF_ATOMIC_OP_Constrait(size, op, dst, src, off)) return;
             op = atomicOps[rand() % sizeof(atomicOps)];
             insn = BPF_ATOMIC_OP(size, op, dst, src, off);
             printInsn("BPF_ATOMIC_OP", insn.code, dst, src, 0, off);
@@ -211,8 +203,8 @@ void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt,
             struct bpf_insn insns1[2] = {
                 BPF_LD_IMM64(dst, imm64),
             };
-            updateByteCode(bpfBytecode, cnt, insns1[0]);
-            insn = insns1[1];
+            memcpy(insns, insns1, sizeof(struct bpf_insn)*2);
+            isDoubleInsns = true;
             printInsn("BPF_LD_IMM64", insn.code, dst, 0, imm64, 0);
             break;
         } case 5:{
@@ -220,8 +212,10 @@ void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt,
             struct bpf_insn insns2[2] = {
                 BPF_LD_MAP_FD(dst, fdIdx),
             };
-            updateByteCode(bpfBytecode, cnt, insns2[0]);
-            insn = insns2[1];
+            memcpy(insns, insns2, sizeof(struct bpf_insn)*2);
+            isDoubleInsns = true;
+            // updateByteCode(bpfBytecode, cnt, insns2[0]);
+            // insn = insns2[1];
             printInsn("BPF_LD_MAP_FD", insn.code, dst, 0, fdIdx, 0);
             break;
         } case 6:{
@@ -233,8 +227,10 @@ void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt,
             struct bpf_insn insns4[2] = {
                 BPF_LD_FD_MAPVALUE(dst, fdIdx, off),
             };
-            updateByteCode(bpfBytecode, cnt, insns4[0]);
-            insn = insns4[1];
+            memcpy(insns, insns4, sizeof(struct bpf_insn)*2);
+            isDoubleInsns = true;
+            // updateByteCode(bpfBytecode, cnt, insns4[0]);
+            // insn = insns4[1];
             printInsn("BPF_LD_FD_MAPVALUE", insn.code, dst, 0, fdIdx, off);
             break;
         } case 8: {
@@ -258,7 +254,14 @@ void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt,
             break;
     }
     
-    updateByteCode(bpfBytecode, cnt, insn);
+    if (!commonLSCons(&insn, regStates, bpfBytecode, cnt)) return;
+    
+    if (isDoubleInsns) {
+        updateByteCode(bpfBytecode, cnt, insns[0]);
+        updateByteCode(bpfBytecode, cnt, insns[1]);
+    } else {
+        updateByteCode(bpfBytecode, cnt, insn);
+    }
 }
 
 void genJMPOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {

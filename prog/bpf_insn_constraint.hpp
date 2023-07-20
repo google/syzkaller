@@ -121,7 +121,7 @@ bool commonALUCons(struct bpf_insn *insn, struct regState *regStates, struct bpf
 }
 
 
-/* ALU instruction constraits:
+/* JMP instruction constraits:
     1. Initialized registers as any types.
     2. Offset: unsolved "unreachable insn" due to JA instruction.
 */
@@ -170,8 +170,7 @@ bool CommonInit(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struc
 
 bool commonJMPCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
 
-    u_int8_t bit = 0;
-    bit = insn->code & BPF_JMP ? Bit64 : Bit32;
+    u_int8_t bit = insn->code & BPF_JMP ? Bit64 : Bit32;
 
     // JMP instruction doesn't require any constraints or initializations.
     if (insn->code == BPF_JA) return true;
@@ -187,6 +186,72 @@ bool commonJMPCons(struct bpf_insn *insn, struct regState *regStates, struct bpf
     }
     
     insn->off = randRange(-*cnt, (NINSNS-*cnt-2));
+
+    return true;
+}
+
+bool initRegPtr(u_int8_t reg, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
+    
+    if (regStates[reg].type != NOT_INIT && regStates[reg].type != SCALAR_VALUE) return true;
+
+    // Randomly select one initialized ptr register.
+    int i = 0, loopTimes = 0;
+    struct bpf_insn insn;
+    while(loopTimes < 30){
+        if (regStates[i].type != NOT_INIT && regStates[i].type != SCALAR_VALUE && (rand() % 100 > 50)){
+            insn = BPF_MOV64_REG(reg, i);
+            printInsn("BPF_MOV64_REG", 0, reg, i, 0, 0);
+            updateByteCode(bpfBytecode, cnt, insn);
+            return true;
+        }
+        i = (i + 1) % sizeof(regs);
+        loopTimes ++;
+    }
+
+    return false;
+}
+
+/* Load/Store instruction constraits:
+    1. Initialized some registers as pointer, such as stack, map, context.
+    2. Offset:
+*/
+
+bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
+
+    switch(insn->code & ~BPF_SIZE(0xffffffff)) {
+        // case BPF_ST_MEM: BPF_ST | BPF_SIZE(SIZE) | BPF_MEM
+        // *(size *) (dst + offset) = imm32
+        case BPF_ST | BPF_MEM:
+            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
+            break;
+        //case BPF_STX_MEM: BPF_STX | BPF_SIZE(SIZE) | BPF_MEM
+        // *(size *) (dst + offset) = src
+        //case BPF_ATOMIC_OP: BPF_STX | BPF_SIZE(SIZE) | BPF_ATOMIC
+        // *(u32 *)(dst + offset) += src
+        case BPF_STX | BPF_ATOMIC:
+            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
+            // TODO BIT
+            if (!CommonInit(insn->src_reg, Bit64, regStates, bpfBytecode, cnt)) return false;
+            break;
+        // case BPF_LDX_MEM: BPF_LDX | BPF_SIZE(SIZE) | BPF_MEM
+        // dst = *(size *) (src + offset)
+        case BPF_LDX | BPF_MEM:
+            if (!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;
+            break;
+        // case BPF_LD_IMM64: BPF_LD | BPF_DW | BPF_IMM + src = 0
+        // case BPF_LD_MAP_FD: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_MAP_FD
+        // case BPF_LD_FD_MAPVALUE: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_MAP_VALUE
+        // case BPF_LD_PSEUDO_FUNC: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_FUNC
+        case BPF_LD | BPF_IMM:
+            break;
+        // case BPF_LD_ABS: BPF_LD | BPF_SIZE(SIZE) | BPF_ABS
+        // case BPF_LD_IND: BPF_LD | BPF_SIZE(SIZE) | BPF_IND
+        // R0 = *(uint *) (skb->data + imm32)
+        case BPF_LD | BPF_ABS:
+        case BPF_LD | BPF_IND:
+            // r1 = ctx;
+            break;
+    }
 
     return true;
 }

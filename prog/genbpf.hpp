@@ -12,7 +12,7 @@
 
 #include "bpf_complete_insn.h"
 
-#define NINSNS 10
+#define NINSNS 20
 #define NINSNSALL (NINSNS+3)
 #define SMAX 
 
@@ -208,28 +208,6 @@ bool updateByteCode(struct bpf_insn *bpfBytecode, int *cnt, struct bpf_insn insn
         *cnt += 1;
         return true;
     }
-    return false;
-}
-
-bool initRegPtr(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
-    
-    if (regStates[reg].type == PTR_TO_CTX && regStates[reg].type == PTR_TO_STACK) return true;
-
-    struct bpf_insn insn;
-    // TAO TODO: randomly select one suitable register instead of in specific order
-    for (int i = 0; i < sizeof(regs); i++) {
-        switch(regStates[i].type) {
-            case PTR_TO_CTX:
-            case PTR_TO_STACK:
-                insn = BPF_MOV64_REG(reg, i);
-                printInsn("BPF_MOV64_REG", 0, reg, i, 0, 0);
-                updateByteCode(bpfBytecode, cnt, insn);
-                return true;
-        }
-    }
-
-    // TODO
-
     return false;
 }
 
