@@ -107,7 +107,7 @@ func (c *Ctx) expectFailureStatus(err error, code int) {
 	if err == nil {
 		c.t.Fatalf("expected to fail as %d, but it does not", code)
 	}
-	httpErr, ok := err.(HTTPError)
+	httpErr, ok := err.(*HTTPError)
 	if !ok || httpErr.Code != code {
 		c.t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
 	}
@@ -294,7 +294,7 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httpte
 	http.DefaultServeMux.ServeHTTP(w, r)
 	c.t.Logf("REPLY: %v", w.Code)
 	if w.Code != http.StatusOK {
-		return nil, HTTPError{w.Code, w.Body.String(), w.Result().Header}
+		return nil, &HTTPError{w.Code, w.Body.String(), w.Result().Header}
 	}
 	return w, nil
 }
@@ -305,7 +305,7 @@ type HTTPError struct {
 	Headers http.Header
 }
 
-func (err HTTPError) Error() string {
+func (err *HTTPError) Error() string {
 	return fmt.Sprintf("%v: %v", err.Code, err.Body)
 }
 

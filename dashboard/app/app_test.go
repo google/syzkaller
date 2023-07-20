@@ -820,7 +820,7 @@ func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
 func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int) {
 	_, err := c.AuthGET(accessLevel, from)
 	c.expectNE(err, nil)
-	httpErr, ok := err.(HTTPError)
+	httpErr, ok := err.(*HTTPError)
 	c.expectTrue(ok)
 	c.expectEQ(httpErr.Code, status)
 	c.expectEQ(httpErr.Headers["Location"], []string{to})
@@ -829,7 +829,7 @@ func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int)
 func checkResponseStatusCode(c *Ctx, accessLevel AccessLevel, url string, status int) {
 	_, err := c.AuthGET(accessLevel, url)
 	c.expectNE(err, nil)
-	httpErr, ok := err.(HTTPError)
+	httpErr, ok := err.(*HTTPError)
 	c.expectTrue(ok)
 	c.expectEQ(httpErr.Code, status)
 }

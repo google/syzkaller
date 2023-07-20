@@ -1106,7 +1106,7 @@ func TestBugBisectionInvalidation(t *testing.T) {
 
 	// Mark bisection as invalid.
 	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode())
-	httpErr, ok := err.(HTTPError)
+	httpErr, ok := err.(*HTTPError)
 	c.expectTrue(ok)
 	c.expectEQ(httpErr.Code, http.StatusFound)
 
