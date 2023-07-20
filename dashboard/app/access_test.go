@@ -387,7 +387,7 @@ func TestAccess(t *testing.T) {
 				t.Fatal(err1)
 			}
 			c.expectNE(err, nil)
-			httpErr, ok := err.(HTTPError)
+			httpErr, ok := err.(*HTTPError)
 			c.expectTrue(ok)
 			c.expectEQ(httpErr.Code, http.StatusTemporaryRedirect)
 			c.expectEQ(httpErr.Headers["Location"], []string{loginURL})
