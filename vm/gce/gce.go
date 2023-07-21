@@ -83,7 +83,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		DisplayDevice: true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse gce vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse gce vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 1000 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
@@ -107,7 +107,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 
 	GCE, err := gce.NewContext(cfg.ZoneID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init gce: %v", err)
+		return nil, fmt.Errorf("failed to init gce: %w", err)
 	}
 	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
@@ -121,10 +121,10 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		}
 		log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
 		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
-			return nil, fmt.Errorf("failed to delete GCE image: %v", err)
+			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
 		}
 		if err := GCE.CreateImage(cfg.GCEImage, gcsImage); err != nil {
-			return nil, fmt.Errorf("failed to create GCE image: %v", err)
+			return nil, fmt.Errorf("failed to create GCE image: %w", err)
 		}
 	}
 	pool := &Pool{
@@ -146,11 +146,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	gceKey := filepath.Join(workdir, "key")
 	keygen := osutil.Command("ssh-keygen", "-t", "ed25519", "-N", "", "-C", "syzkaller", "-f", gceKey)
 	if out, err := keygen.CombinedOutput(); err != nil {
-		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
+		return nil, fmt.Errorf("failed to execute ssh-keygen: %w\n%s", err, out)
 	}
 	gceKeyPub, err := os.ReadFile(gceKey + ".pub")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %v", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	log.Logf(0, "deleting instance: %v", name)
@@ -258,7 +258,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if err := con.Start(); err != nil {
 		conRpipe.Close()
 		conWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to connect to console server: %v", err)
+		return nil, nil, fmt.Errorf("failed to connect to console server: %w", err)
 	}
 	conWpipe.Close()
 
@@ -292,7 +292,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		merger.Wait()
 		sshRpipe.Close()
 		sshWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to connect to instance: %v", err)
+		return nil, nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
 	sshWpipe.Close()
 	merger.Add("ssh", sshRpipe)
@@ -428,7 +428,7 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 		return nil, err
 	}
 	if err := con.Start(); err != nil {
-		return nil, fmt.Errorf("failed to connect to console server: %v", err)
+		return nil, fmt.Errorf("failed to connect to console server: %w", err)
 	}
 	conWpipe.Close()
 	done := make(chan bool)
@@ -458,23 +458,23 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 func uploadImageToGCS(localImage, gcsImage string) error {
 	GCS, err := gcs.NewClient()
 	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %v", err)
+		return fmt.Errorf("failed to create GCS client: %w", err)
 	}
 	defer GCS.Close()
 
 	localReader, err := os.Open(localImage)
 	if err != nil {
-		return fmt.Errorf("failed to open image file: %v", err)
+		return fmt.Errorf("failed to open image file: %w", err)
 	}
 	defer localReader.Close()
 	localStat, err := localReader.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to stat image file: %v", err)
+		return fmt.Errorf("failed to stat image file: %w", err)
 	}
 
 	gcsWriter, err := GCS.FileWriter(gcsImage)
 	if err != nil {
-		return fmt.Errorf("failed to upload image: %v", err)
+		return fmt.Errorf("failed to upload image: %w", err)
 	}
 	defer gcsWriter.Close()
 
@@ -491,19 +491,19 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 	}
 	setGNUFormat(tarHeader)
 	if err := tarWriter.WriteHeader(tarHeader); err != nil {
-		return fmt.Errorf("failed to write image tar header: %v", err)
+		return fmt.Errorf("failed to write image tar header: %w", err)
 	}
 	if _, err := io.Copy(tarWriter, localReader); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	if err := tarWriter.Close(); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	if err := gzipWriter.Close(); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	if err := gcsWriter.Close(); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	return nil
 }

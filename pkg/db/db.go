@@ -186,7 +186,7 @@ func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, 
 	records = make(map[string]Record)
 	ver, err := deserializeHeader(r)
 	if err != nil {
-		err0 = fmt.Errorf("failed to deserialize database header: %v", err)
+		err0 = fmt.Errorf("failed to deserialize database header: %w", err)
 		return
 	}
 	version = ver
@@ -196,7 +196,7 @@ func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, 
 			return
 		}
 		if err != nil {
-			err0 = fmt.Errorf("failed to deserialize database record: %v", err)
+			err0 = fmt.Errorf("failed to deserialize database record: %w", err)
 			return
 		}
 		uncompacted++
@@ -277,16 +277,16 @@ func Create(filename string, version uint64, records []Record) error {
 	os.Remove(filename)
 	db, err := Open(filename, true)
 	if err != nil {
-		return fmt.Errorf("failed to open database file: %v", err)
+		return fmt.Errorf("failed to open database file: %w", err)
 	}
 	if err := db.BumpVersion(version); err != nil {
-		return fmt.Errorf("failed to bump database version: %v", err)
+		return fmt.Errorf("failed to bump database version: %w", err)
 	}
 	for _, rec := range records {
 		db.Save(hash.String(rec.Val), rec.Val, rec.Seq)
 	}
 	if err := db.Flush(); err != nil {
-		return fmt.Errorf("failed to save database file: %v", err)
+		return fmt.Errorf("failed to save database file: %w", err)
 	}
 	return nil
 }
@@ -297,12 +297,12 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	}
 	db, err := Open(filename, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database file: %v", err)
+		return nil, fmt.Errorf("failed to open database file: %w", err)
 	}
 	for _, rec := range db.Records {
 		p, err := target.Deserialize(rec.Val, prog.NonStrict)
 		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize corpus program: %v", err)
+			return nil, fmt.Errorf("failed to deserialize corpus program: %w", err)
 		}
 		progs = append(progs, p)
 	}

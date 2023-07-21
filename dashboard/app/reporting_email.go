@@ -85,11 +85,11 @@ func (cfg *EmailConfig) Type() string {
 
 func (cfg *EmailConfig) Validate() error {
 	if _, err := mail.ParseAddress(cfg.Email); err != nil {
-		return fmt.Errorf("bad email address %q: %v", cfg.Email, err)
+		return fmt.Errorf("bad email address %q: %w", cfg.Email, err)
 	}
 	for _, email := range cfg.DefaultMaintainers {
 		if _, err := mail.ParseAddress(email); err != nil {
-			return fmt.Errorf("bad email address %q: %v", email, err)
+			return fmt.Errorf("bad email address %q: %w", email, err)
 		}
 	}
 	if cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0 {
@@ -150,10 +150,10 @@ func emailPollBugs(c context.Context) error {
 func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
-		return fmt.Errorf("failed to unmarshal email config: %v", err)
+		return fmt.Errorf("failed to unmarshal email config: %w", err)
 	}
 	if err := emailReport(c, rep); err != nil {
-		return fmt.Errorf("failed to report bug: %v", err)
+		return fmt.Errorf("failed to report bug: %w", err)
 	}
 	cmd := &dashapi.BugUpdate{
 		ID:         rep.ID,
@@ -171,7 +171,7 @@ func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
 	}
 	ok, reason, err := incomingCommand(c, cmd)
 	if !ok || err != nil {
-		return fmt.Errorf("failed to update reported bug: ok=%v reason=%v err=%v", ok, reason, err)
+		return fmt.Errorf("failed to update reported bug: ok=%v reason=%v err=%w", ok, reason, err)
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
 func emailSendBugListReport(c context.Context, rep *dashapi.BugListReport) error {
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
-		return fmt.Errorf("failed to unmarshal email config: %v", err)
+		return fmt.Errorf("failed to unmarshal email config: %w", err)
 	}
 	err := emailListReport(c, rep, cfg)
 	if err != nil {
@@ -231,7 +231,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 	case dashapi.BugNotifLabel:
 		bodyBuf := new(bytes.Buffer)
 		if err := mailTemplates.ExecuteTemplate(bodyBuf, "mail_label_notif.txt", notif); err != nil {
-			return fmt.Errorf("failed to execute mail_label_notif.txt: %v", err)
+			return fmt.Errorf("failed to execute mail_label_notif.txt: %w", err)
 		}
 		body = bodyBuf.String()
 	default:
@@ -239,7 +239,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 	}
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(notif.Config, cfg); err != nil {
-		return fmt.Errorf("failed to unmarshal email config: %v", err)
+		return fmt.Errorf("failed to unmarshal email config: %w", err)
 	}
 	to := email.MergeEmailLists([]string{cfg.Email}, notif.CC)
 	if cfg.MailMaintainers && notif.Public {
@@ -264,7 +264,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 	}
 	ok, reason, err := incomingCommand(c, cmd)
 	if !ok || err != nil {
-		return fmt.Errorf("notif update failed: ok=%v reason=%v err=%v", ok, reason, err)
+		return fmt.Errorf("notif update failed: ok=%v reason=%v err=%w", ok, reason, err)
 	}
 	return nil
 }
@@ -330,7 +330,7 @@ func emailPollJobs(c context.Context) error {
 func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
-		return fmt.Errorf("failed to unmarshal email config: %v", err)
+		return fmt.Errorf("failed to unmarshal email config: %w", err)
 	}
 	if rep.UserSpaceArch == targets.AMD64 {
 		// This is default, so don't include the info.
@@ -417,7 +417,7 @@ func sendMailTemplate(c context.Context, params *mailSendParams) error {
 	}
 	body := new(bytes.Buffer)
 	if err := mailTemplates.ExecuteTemplate(body, params.templateName, params.templateArg); err != nil {
-		return fmt.Errorf("failed to execute %v template: %v", params.templateName, err)
+		return fmt.Errorf("failed to execute %v template: %w", params.templateName, err)
 	}
 	log.Infof(c, "sending email %q to %q", params.title, to)
 	return sendMailText(c, params.cfg, params.title, from, to, params.replyTo, body.String())
@@ -672,7 +672,7 @@ func processDiscussionEmail(c context.Context, msg *email.Email, source dashapi.
 	msg.BugIDs = extIDs
 	err := saveDiscussionMessage(c, msg, source, dType)
 	if err != nil {
-		return fmt.Errorf("failed to save in discussions: %v", err)
+		return fmt.Errorf("failed to save in discussions: %w", err)
 	}
 	return nil
 }
@@ -1088,7 +1088,7 @@ func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult
 		Filter("Title=", title).
 		GetAll(c, &bugs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch bugs: %v", err)
+		return nil, fmt.Errorf("failed to fetch bugs: %w", err)
 	}
 	// Filter the bugs by the email.
 	candidates := []*bugInfoResult{}
@@ -1237,7 +1237,7 @@ func replyTo(c context.Context, msg *email.Email, bugID, reply string) error {
 // Sends email, can be stubbed for testing.
 var sendEmail = func(c context.Context, msg *aemail.Message) error {
 	if err := aemail.Send(c, msg); err != nil {
-		return fmt.Errorf("failed to send email: %v", err)
+		return fmt.Errorf("failed to send email: %w", err)
 	}
 	return nil
 }

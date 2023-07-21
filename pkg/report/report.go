@@ -165,7 +165,7 @@ func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 	for i, str := range list {
 		re, err := regexp.Compile(str)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile %q: %v", str, err)
+			return nil, fmt.Errorf("failed to compile %q: %w", str, err)
 		}
 		compiled[i] = re
 	}

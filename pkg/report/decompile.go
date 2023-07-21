@@ -56,13 +56,13 @@ func DecompileOpcodes(rawOpcodes []byte, flags DecompilerFlagMask, target *targe
 func objdumpExecutor(rawOpcodes []byte, args []string, target *targets.Target) ([]byte, error) {
 	fileName, err := osutil.TempFile("syz-opcode-decompiler")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp file: %v", err)
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 	defer os.Remove(fileName)
 
 	err = osutil.WriteFile(fileName, rawOpcodes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write to temp file: %v", err)
+		return nil, fmt.Errorf("failed to write to temp file: %w", err)
 	}
 
 	return osutil.RunCmd(objdumpCallTimeout, "", target.Objdump, append(args, fileName)...)

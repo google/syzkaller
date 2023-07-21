@@ -145,7 +145,7 @@ func (rg *ReportGenerator) DoLineJSON(w io.Writer, progs []Prog, coverFilter map
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "\t")
 	if err := encoder.Encode(entries); err != nil {
-		return fmt.Errorf("encoding [%v] entries failed: %v", len(entries), err)
+		return fmt.Errorf("encoding [%v] entries failed: %w", len(entries), err)
 	}
 	return nil
 }

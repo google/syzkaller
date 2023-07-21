@@ -55,12 +55,12 @@ func WriteTempFile(data []byte) (string, error) {
 	// Note: pkg/report knows about "syzkaller" prefix as it appears in crashes as process name.
 	f, err := os.CreateTemp("", "syzkaller")
 	if err != nil {
-		return "", fmt.Errorf("failed to create a temp file: %v", err)
+		return "", fmt.Errorf("failed to create a temp file: %w", err)
 	}
 	if _, err := f.Write(data); err != nil {
 		f.Close()
 		os.Remove(f.Name())
-		return "", fmt.Errorf("failed to write a temp file: %v", err)
+		return "", fmt.Errorf("failed to write a temp file: %w", err)
 	}
 	f.Close()
 	return f.Name(), nil

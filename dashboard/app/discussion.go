@@ -109,7 +109,7 @@ func mergeDiscussionSummary(c context.Context, key, source string, diff Discussi
 	bug := new(Bug)
 	bugKey := db.NewKey(c, "Bug", key, 0, nil)
 	if err := db.Get(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to get bug: %v", err)
+		return fmt.Errorf("failed to get bug: %w", err)
 	}
 	var record *BugDiscussionInfo
 	for i, item := range bug.DiscussionInfo {
@@ -125,7 +125,7 @@ func mergeDiscussionSummary(c context.Context, key, source string, diff Discussi
 	}
 	record.Summary.merge(diff)
 	if _, err := db.Put(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to put bug: %v", err)
+		return fmt.Errorf("failed to put bug: %w", err)
 	}
 	return nil
 }

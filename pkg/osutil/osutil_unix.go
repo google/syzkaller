@@ -89,7 +89,7 @@ func HandleInterrupts(shutdown chan struct{}) {
 func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 	r, w, err := os.Pipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, nil, fmt.Errorf("failed to create pipe: %w", err)
 	}
 	prolongPipe(r, w)
 	return r, w, err
@@ -108,14 +108,14 @@ func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
 		return
 	}
 	if err = f.Truncate(int64(size)); err != nil {
-		err = fmt.Errorf("failed to truncate shared mem file: %v", err)
+		err = fmt.Errorf("failed to truncate shared mem file: %w", err)
 		CloseSharedMemFile(f)
 		return
 	}
 
 	mem, err = syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
-		err = fmt.Errorf("failed to mmap shm file: %v", err)
+		err = fmt.Errorf("failed to mmap shm file: %w", err)
 		CloseSharedMemFile(f)
 	}
 	return

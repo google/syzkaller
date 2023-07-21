@@ -313,10 +313,10 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	// We first form the whole image in tmp dir and then rename it to latest.
 	tmpDir := mgr.latestDir + ".tmp"
 	if err := os.RemoveAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to remove tmp dir: %v", err)
+		return fmt.Errorf("failed to remove tmp dir: %w", err)
 	}
 	if err := osutil.MkdirAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %v", err)
+		return fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 	params := build.Params{
 		TargetOS:     mgr.managercfg.TargetOS,
@@ -353,11 +353,11 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
-		return fmt.Errorf("kernel build failed: %v", err)
+		return fmt.Errorf("kernel build failed: %w", err)
 	}
 
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
-		return fmt.Errorf("failed to write tag file: %v", err)
+		return fmt.Errorf("failed to write tag file: %w", err)
 	}
 
 	if err := mgr.testImage(tmpDir, info); err != nil {
@@ -366,7 +366,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 
 	// Now try to replace latest with our tmp dir as atomically as we can get on Linux.
 	if err := os.RemoveAll(mgr.latestDir); err != nil {
-		return fmt.Errorf("failed to remove latest dir: %v", err)
+		return fmt.Errorf("failed to remove latest dir: %w", err)
 	}
 	return osutil.Rename(tmpDir, mgr.latestDir)
 }
@@ -412,7 +412,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	log.Logf(0, "%v: testing image...", mgr.name)
 	mgrcfg, err := mgr.createTestConfig(imageDir, info)
 	if err != nil {
-		return fmt.Errorf("failed to create manager config: %v", err)
+		return fmt.Errorf("failed to create manager config: %w", err)
 	}
 	defer os.RemoveAll(mgrcfg.Workdir)
 	if !vm.AllowsOvercommit(mgrcfg.Type) {
@@ -455,9 +455,9 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 				}
 			}
 			if err.Boot {
-				failureErr = fmt.Errorf("VM boot failed with: %v", err)
+				failureErr = fmt.Errorf("VM boot failed with: %w", err)
 			} else {
-				failureErr = fmt.Errorf("VM testing failed with: %v", err)
+				failureErr = fmt.Errorf("VM testing failed with: %w", err)
 			}
 		default:
 			failureErr = res.Error
@@ -520,7 +520,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	}
 	mgrcfg.KernelSrc = mgr.kernelDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
-		return nil, fmt.Errorf("bad manager config: %v", err)
+		return nil, fmt.Errorf("bad manager config: %w", err)
 	}
 	return mgrcfg, nil
 }
@@ -557,7 +557,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.KernelSrc = mgr.kernelDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
-		return "", fmt.Errorf("bad manager config: %v", err)
+		return "", fmt.Errorf("bad manager config: %w", err)
 	}
 	configFile := filepath.Join(mgr.currentDir, "manager.cfg")
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {
@@ -611,7 +611,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 	if kernelConfigFile := filepath.Join(imageDir, "kernel.config"); osutil.IsExist(kernelConfigFile) {
 		var err error
 		if kernelConfig, err = os.ReadFile(kernelConfigFile); err != nil {
-			return nil, fmt.Errorf("failed to read kernel.config: %v", err)
+			return nil, fmt.Errorf("failed to read kernel.config: %w", err)
 		}
 	}
 	// Resulting build depends on both kernel build tag and syzkaller commmit.
@@ -787,7 +787,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	resp, err := client.Get(fmt.Sprintf("http://%v/cover", addr))
 	if err != nil {
-		return fmt.Errorf("failed to get report: %v", err)
+		return fmt.Errorf("failed to get report: %w", err)
 	}
 	defer resp.Body.Close()
 	if directUpload {
@@ -818,7 +818,7 @@ func (mgr *Manager) uploadCorpus() error {
 func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader) error {
 	URL, err := url.Parse(dstPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse upload path: %v", err)
+		return fmt.Errorf("failed to parse upload path: %w", err)
 	}
 	URL.Path = path.Join(URL.Path, name)
 	URLStr := URL.String()
@@ -837,19 +837,19 @@ func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader) error {
 func uploadFileGCS(URL string, file io.Reader, publish bool) error {
 	GCS, err := gcs.NewClient()
 	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %v", err)
+		return fmt.Errorf("failed to create GCS client: %w", err)
 	}
 	defer GCS.Close()
 	gcsWriter, err := GCS.FileWriter(URL)
 	if err != nil {
-		return fmt.Errorf("failed to create GCS writer: %v", err)
+		return fmt.Errorf("failed to create GCS writer: %w", err)
 	}
 	if _, err := io.Copy(gcsWriter, file); err != nil {
 		gcsWriter.Close()
-		return fmt.Errorf("failed to copy report: %v", err)
+		return fmt.Errorf("failed to copy report: %w", err)
 	}
 	if err := gcsWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close gcs writer: %v", err)
+		return fmt.Errorf("failed to close gcs writer: %w", err)
 	}
 	if publish {
 		return GCS.Publish(URL)
@@ -860,12 +860,12 @@ func uploadFileGCS(URL string, file io.Reader, publish bool) error {
 func uploadFileHTTPPut(URL string, file io.Reader) error {
 	req, err := http.NewRequest(http.MethodPut, URL, file)
 	if err != nil {
-		return fmt.Errorf("failed to create HTTP PUT request: %v", err)
+		return fmt.Errorf("failed to create HTTP PUT request: %w", err)
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform HTTP PUT request: %v", err)
+		return fmt.Errorf("failed to perform HTTP PUT request: %w", err)
 	}
 	defer resp.Body.Close()
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {

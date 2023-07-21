@@ -45,7 +45,7 @@ func (ctx openbsd) build(params Params) (ImageDetails, error) {
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %w", fullSrc, fullDst, err)
 		}
 	}
 	if params.VMType == "gce" {

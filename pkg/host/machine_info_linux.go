@@ -136,11 +136,11 @@ func parseModules(modulesText []byte) ([]KernelModule, error) {
 	for _, m := range re.FindAllSubmatch(modulesText, -1) {
 		addr, err := strconv.ParseUint(string(m[3]), 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("address parsing error in /proc/modules: %v", err)
+			return nil, fmt.Errorf("address parsing error in /proc/modules: %w", err)
 		}
 		size, err := strconv.ParseUint(string(m[2]), 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("module size parsing error in /proc/modules: %v", err)
+			return nil, fmt.Errorf("module size parsing error in /proc/modules: %w", err)
 		}
 		modules = append(modules, KernelModule{
 			Name: string(m[1]),

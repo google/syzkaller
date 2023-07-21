@@ -227,7 +227,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	if upd.descriptions != "" {
 		files, err := os.ReadDir(upd.descriptions)
 		if err != nil {
-			return fmt.Errorf("failed to read descriptions dir: %v", err)
+			return fmt.Errorf("failed to read descriptions dir: %w", err)
 		}
 		for _, f := range files {
 			src := filepath.Join(upd.descriptions, f.Name())
@@ -286,10 +286,10 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
-		return fmt.Errorf("failed to write tag file: %v", err)
+		return fmt.Errorf("failed to write tag file: %w", err)
 	}
 	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, upd.syzFiles); err != nil {
-		return fmt.Errorf("failed to copy syzkaller: %v", err)
+		return fmt.Errorf("failed to copy syzkaller: %w", err)
 	}
 	return nil
 }

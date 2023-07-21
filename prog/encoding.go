@@ -465,7 +465,7 @@ func (p *parser) parseArgInt(typ Type, dir Dir) (Arg, error) {
 	val := p.Ident()
 	v, err := strconv.ParseUint(val, 0, 64)
 	if err != nil {
-		return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
+		return nil, fmt.Errorf("wrong arg value '%v': %w", val, err)
 	}
 	switch typ.(type) {
 	case *ConstType, *IntType, *FlagsType, *ProcType, *CsumType:
@@ -985,7 +985,7 @@ func (p *parser) deserializeData() ([]byte, bool, error) {
 			p.Parse('"')
 			decoded, err := image.DecodeB64(rawData)
 			if err != nil {
-				return nil, false, fmt.Errorf("data arg is corrupt: %v", err)
+				return nil, false, fmt.Errorf("data arg is corrupt: %w", err)
 			}
 			return decoded, true, nil
 		}

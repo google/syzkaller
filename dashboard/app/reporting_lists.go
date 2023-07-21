@@ -194,12 +194,12 @@ Please visit the new discussion thread.`
 			dbSubsystem := new(Subsystem)
 			err := db.Get(c, subsystemKey, dbSubsystem)
 			if err != nil {
-				return fmt.Errorf("failed to get subsystem: %s", err)
+				return fmt.Errorf("failed to get subsystem: %w", err)
 			}
 			dbSubsystem.LastBugList = time.Time{}
 			_, err = db.Put(c, subsystemKey, dbSubsystem)
 			if err != nil {
-				return fmt.Errorf("failed to save subsystem: %s", err)
+				return fmt.Errorf("failed to save subsystem: %w", err)
 			}
 		}
 		_, err = db.Put(c, reportKey, report)

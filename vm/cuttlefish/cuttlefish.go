@@ -47,7 +47,7 @@ type instance struct {
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	gcePool, err := gce.Ctor(env, consoleReadCmd)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create underlying GCE pool: %s", err)
+		return nil, fmt.Errorf("failed to create underlying GCE pool: %w", err)
 	}
 
 	pool := &Pool{
@@ -65,7 +65,7 @@ func (pool *Pool) Count() int {
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	gceInst, err := pool.gcePool.Create(workdir, index)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create underlying gce instance: %s", err)
+		return nil, fmt.Errorf("failed to create underlying gce instance: %w", err)
 	}
 
 	inst := &instance{
@@ -80,15 +80,15 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err := inst.runOnHost(10*time.Minute,
 		fmt.Sprintf("./bin/launch_cvd -daemon -kernel_path=./bzImage -initramfs_path=./initramfs.img"+
 			" --noenable_sandbox -report_anonymous_usage_stats=n --memory_mb=8192")); err != nil {
-		return nil, fmt.Errorf("failed to start cuttlefish: %s", err)
+		return nil, fmt.Errorf("failed to start cuttlefish: %w", err)
 	}
 
 	if err := inst.runOnHost(10*time.Minute, "adb wait-for-device"); err != nil {
-		return nil, fmt.Errorf("failed while waiting for device: %s", err)
+		return nil, fmt.Errorf("failed while waiting for device: %w", err)
 	}
 
 	if err := inst.runOnHost(5*time.Minute, "adb root"); err != nil {
-		return nil, fmt.Errorf("failed to get root access to device: %s", err)
+		return nil, fmt.Errorf("failed to get root access to device: %w", err)
 	}
 
 	if err := inst.runOnHost(5*time.Minute, fmt.Sprintf("adb shell '"+
@@ -97,7 +97,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		"chmod 0755 /sys/kernel/debug;"+
 		"mkdir %s;"+
 		"'", deviceRoot)); err != nil {
-		return nil, fmt.Errorf("failed to mount debugfs to /sys/kernel/debug: %s", err)
+		return nil, fmt.Errorf("failed to mount debugfs to /sys/kernel/debug: %w", err)
 	}
 
 	return inst, nil
@@ -120,14 +120,14 @@ func (inst *instance) runOnHost(timeout time.Duration, command string) error {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	gceDst, err := inst.gceInst.Copy(hostSrc)
 	if err != nil {
-		return "", fmt.Errorf("error copying to worker instance: %s", err)
+		return "", fmt.Errorf("error copying to worker instance: %w", err)
 	}
 
 	deviceDst := filepath.Join(deviceRoot, filepath.Base(hostSrc))
 	pushCmd := fmt.Sprintf("adb push %s %s", gceDst, deviceDst)
 
 	if err := inst.runOnHost(5*time.Minute, pushCmd); err != nil {
-		return "", fmt.Errorf("error pushing to device: %s", err)
+		return "", fmt.Errorf("error pushing to device: %w", err)
 	}
 
 	return deviceDst, nil
@@ -136,7 +136,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 func (inst *instance) Forward(port int) (string, error) {
 	hostForward, err := inst.gceInst.Forward(port)
 	if err != nil {
-		return "", fmt.Errorf("failed to get IP/port from GCE instance: %s", err)
+		return "", fmt.Errorf("failed to get IP/port from GCE instance: %w", err)
 	}
 
 	// Run socat in the background. This hangs when run from runOnHost().
@@ -145,7 +145,7 @@ func (inst *instance) Forward(port int) (string, error) {
 	cmd := exec.Command("ssh", cmdArgs...)
 	cmd.Dir = "/root"
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("unable to forward port on host: %s", err)
+		return "", fmt.Errorf("unable to forward port on host: %w", err)
 	}
 
 	for i := 0; i < 100; i++ {
@@ -157,7 +157,7 @@ func (inst *instance) Forward(port int) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("unable to forward port on device: %s", err)
+	return "", fmt.Errorf("unable to forward port on device: %w", err)
 }
 
 func (inst *instance) Close() {

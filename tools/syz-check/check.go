@@ -446,7 +446,7 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 		binary := make([]byte, symb.Size)
 		addr := symb.Addr - rodata.Addr
 		if _, err := rodata.ReadAt(binary, int64(addr)); err != nil {
-			return nil, fmt.Errorf("failed to read policy %v (%v) at %v: %v",
+			return nil, fmt.Errorf("failed to read policy %v (%v) at %v: %w",
 				kernelName, name, symb.Addr, err)
 		}
 		policy := (*[1e6]nlaPolicy)(unsafe.Pointer(&binary[0]))[:symb.Size/int(unsafe.Sizeof(nlaPolicy{}))]

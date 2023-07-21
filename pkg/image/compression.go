@@ -45,11 +45,11 @@ func decompressWriter(w io.Writer, compressed []byte) error {
 	}
 	zlibReader, err := zlib.NewReader(bytes.NewReader(compressed))
 	if err != nil {
-		return fmt.Errorf("could not initialise zlib: %v", err)
+		return fmt.Errorf("could not initialise zlib: %w", err)
 	}
 
 	if _, err := io.Copy(w, zlibReader); err != nil {
-		return fmt.Errorf("could not read data with zlib: %v", err)
+		return fmt.Errorf("could not read data with zlib: %w", err)
 	}
 
 	return zlibReader.Close()
@@ -59,7 +59,7 @@ func DecodeB64(b64Data []byte) ([]byte, error) {
 	decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(b64Data))
 	rawData, err := io.ReadAll(decoder)
 	if err != nil {
-		return nil, fmt.Errorf("could not decode Base64: %v", err)
+		return nil, fmt.Errorf("could not decode Base64: %w", err)
 	}
 	return rawData, nil
 }

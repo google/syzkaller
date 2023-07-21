@@ -211,7 +211,7 @@ func initNetworkRPCClient(cfg *Config) (*rpc.Client, error) {
 		var err error
 		conn, err = net.Dial("tcp", cfg.RPCServerURI)
 		if err != nil {
-			return nil, fmt.Errorf("dial: %v", err)
+			return nil, fmt.Errorf("dial: %w", err)
 		}
 	case "tls":
 		var certPool *x509.CertPool
@@ -220,17 +220,17 @@ func initNetworkRPCClient(cfg *Config) (*rpc.Client, error) {
 			certPool = x509.NewCertPool()
 			b, err := os.ReadFile(cfg.ServerTLSCert)
 			if err != nil {
-				return nil, fmt.Errorf("read server certificate: %v", err)
+				return nil, fmt.Errorf("read server certificate: %w", err)
 			}
 			if !certPool.AppendCertsFromPEM(b) {
-				return nil, fmt.Errorf("append server certificate to empty pool: %v", err)
+				return nil, fmt.Errorf("append server certificate to empty pool: %w", err)
 			}
 		}
 
 		var err error
 		conn, err = tls.Dial("tcp", cfg.RPCServerURI, &tls.Config{RootCAs: certPool})
 		if err != nil {
-			return nil, fmt.Errorf("dial with tls: %v", err)
+			return nil, fmt.Errorf("dial with tls: %w", err)
 		}
 	case "mtls":
 		return nil, fmt.Errorf("mutual TLS not implemented")
@@ -353,7 +353,7 @@ func (proxy *ProxyApp) CreatePool(config *Config, image string, debug bool) (int
 	if config.TransferFileContent {
 		imageData, err := os.ReadFile(image)
 		if err != nil {
-			return 0, fmt.Errorf("read image on host: %v", err)
+			return 0, fmt.Errorf("read image on host: %w", err)
 		}
 
 		params.ImageData = imageData
@@ -391,7 +391,7 @@ func (proxy *ProxyApp) CreateInstance(workdir, image string, index int) (vmimpl.
 
 			data, err := os.ReadFile(path)
 			if err != nil {
-				return fmt.Errorf("read file on host: %s", err)
+				return fmt.Errorf("read file on host: %w", err)
 			}
 
 			workdirData[name] = data
@@ -400,7 +400,7 @@ func (proxy *ProxyApp) CreateInstance(workdir, image string, index int) (vmimpl.
 		})
 
 		if err != nil {
-			return nil, fmt.Errorf("failed to walk workdir: %v", err)
+			return nil, fmt.Errorf("failed to walk workdir: %w", err)
 		}
 
 		params.WorkdirData = workdirData
@@ -434,7 +434,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if inst.ProxyApp.transferFileContent {
 		data, err := os.ReadFile(hostSrc)
 		if err != nil {
-			return "", fmt.Errorf("read file on host: %s", err)
+			return "", fmt.Errorf("read file on host: %w", err)
 		}
 
 		params.Data = data

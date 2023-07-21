@@ -78,7 +78,7 @@ func loadDevice(data []byte) (*Device, error) {
 	err1 := config.LoadData(data, devObj)
 	err2 := config.LoadData(data, &devStr)
 	if err1 != nil && err2 != nil {
-		return nil, fmt.Errorf("failed to parse adb vm config: %v %v", err1, err2)
+		return nil, fmt.Errorf("failed to parse adb vm config: %w %w", err1, err2)
 	}
 	if err2 == nil {
 		devObj.Serial = devStr
@@ -93,7 +93,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		TargetReboot: true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse adb vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse adb vm config: %w", err)
 	}
 	if _, err := exec.LookPath(cfg.Adb); err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 	// Search all consoles, as described in 'findConsole'
 	consoles, err := filepath.Glob("/dev/ttyUSB*")
 	if err != nil {
-		return "", fmt.Errorf("failed to list /dev/ttyUSB devices: %v", err)
+		return "", fmt.Errorf("failed to list /dev/ttyUSB devices: %w", err)
 	}
 	output := make(map[string]*[]byte)
 	errors := make(chan error, len(consoles))
@@ -262,7 +262,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 	unique := fmt.Sprintf(">>>%v<<<", dev)
 	cmd := osutil.Command(adb, "-s", dev, "shell", "echo", "\"<1>", unique, "\"", ">", "/dev/kmsg")
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("failed to run adb shell: %v\n%s", err, out)
+		return "", fmt.Errorf("failed to run adb shell: %w\n%s", err, out)
 	}
 	time.Sleep(500 * time.Millisecond)
 	close(done)
@@ -411,12 +411,12 @@ func (inst *instance) runScript(script string) error {
 	// Execute the contents of the script.
 	contents, err := os.ReadFile(script)
 	if err != nil {
-		return fmt.Errorf("unable to read %s: %v", script, err)
+		return fmt.Errorf("unable to read %s: %w", script, err)
 	}
 	c := string(contents)
 	output, err := osutil.RunCmd(5*time.Minute, "", "sh", "-c", c)
 	if err != nil {
-		return fmt.Errorf("failed to execute %s: %v", script, err)
+		return fmt.Errorf("failed to execute %s: %w", script, err)
 	}
 	log.Logf(2, "adb: execute %s output\n%s", script, output)
 	log.Logf(2, "adb: done executing %s", script)
@@ -429,7 +429,7 @@ func (inst *instance) waitForSSH() error {
 	}
 
 	if _, err := inst.adbWithTimeout(10*time.Minute, "wait-for-device"); err != nil {
-		return fmt.Errorf("instance is dead and unrepairable: %v", err)
+		return fmt.Errorf("instance is dead and unrepairable: %w", err)
 	}
 
 	return nil
@@ -540,7 +540,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		tty.Close()
 		adbRpipe.Close()
 		adbWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to start adb: %v", err)
+		return nil, nil, fmt.Errorf("failed to start adb: %w", err)
 	}
 	adbWpipe.Close()
 

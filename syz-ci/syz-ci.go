@@ -391,7 +391,7 @@ func loadConfig(filename string) (*Config, error) {
 func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
 	if err != nil {
-		return fmt.Errorf("manager config: %v", err)
+		return fmt.Errorf("manager config: %w", err)
 	}
 	if managercfg.Name != "" && mgr.Name != "" {
 		return fmt.Errorf("both managercfg.Name=%q and mgr.Name=%q are specified", managercfg.Name, mgr.Name)

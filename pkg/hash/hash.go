@@ -44,7 +44,7 @@ func (sig *Sig) Truncate64() int64 {
 func FromString(str string) (Sig, error) {
 	bin, err := hex.DecodeString(str)
 	if err != nil {
-		return Sig{}, fmt.Errorf("failed to decode sig '%v': %v", str, err)
+		return Sig{}, fmt.Errorf("failed to decode sig '%v': %w", str, err)
 	}
 	if len(bin) != len(Sig{}) {
 		return Sig{}, fmt.Errorf("failed to decode sig '%v': bad len", str)

@@ -91,13 +91,13 @@ type rawFile struct {
 func parseMainSpec(file string) ([]*Instance, []string, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read config file: %v", err)
+		return nil, nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	raw := new(rawMain)
 	if err := dec.Decode(raw); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse %v: %v", file, err)
+		return nil, nil, fmt.Errorf("failed to parse %v: %w", file, err)
 	}
 	var unusedFeatures []string
 	var instances []*Instance
@@ -109,7 +109,7 @@ func parseMainSpec(file string) ([]*Instance, []string, error) {
 			}
 			inst, err := parseInstance(name, filepath.Dir(file), features, raw.Includes)
 			if err != nil {
-				return nil, nil, fmt.Errorf("%v: %v", name, err)
+				return nil, nil, fmt.Errorf("%v: %w", name, err)
 			}
 			instances = append(instances, inst)
 			inst, err = parseInstance(name+"-base", filepath.Dir(file),
@@ -159,13 +159,13 @@ func parseInstance(name, configDir string, features []string, includes []map[str
 func parseFile(file string) (*rawFile, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v: %v", file, err)
+		return nil, fmt.Errorf("failed to read %v: %w", file, err)
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	raw := new(rawFile)
 	if err := dec.Decode(raw); err != nil {
-		return nil, fmt.Errorf("failed to parse %v: %v", file, err)
+		return nil, fmt.Errorf("failed to parse %v: %w", file, err)
 	}
 	return raw, nil
 }

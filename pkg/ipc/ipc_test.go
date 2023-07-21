@@ -151,7 +151,7 @@ func TestParallel(t *testing.T) {
 		go func() {
 			env, err := MakeEnv(cfg, p)
 			if err != nil {
-				errs <- fmt.Errorf("failed to create env: %v", err)
+				errs <- fmt.Errorf("failed to create env: %w", err)
 				return
 			}
 			defer func() {
@@ -162,7 +162,7 @@ func TestParallel(t *testing.T) {
 			opts := &ExecOpts{}
 			output, info, hanged, err := env.Exec(opts, p)
 			if err != nil {
-				err = fmt.Errorf("failed to run executor: %v", err)
+				err = fmt.Errorf("failed to run executor: %w", err)
 				return
 			}
 			if hanged {

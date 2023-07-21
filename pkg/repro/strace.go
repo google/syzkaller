@@ -34,7 +34,7 @@ func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
 			BeforeContextLen: straceOutputLogSize,
 		})
 	if err != nil {
-		return straceFailed(fmt.Errorf("failed to set up instance: %v", err))
+		return straceFailed(fmt.Errorf("failed to set up instance: %w", err))
 	}
 	defer inst.VMInstance.Close()
 
@@ -47,7 +47,7 @@ func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
 		runRes, err = inst.RunSyzProg(result.Prog.Serialize(), result.Duration, result.Opts)
 	}
 	if err != nil {
-		return straceFailed(fmt.Errorf("failed to generate strace log: %v", err))
+		return straceFailed(fmt.Errorf("failed to generate strace log: %w", err))
 	}
 	return &StraceResult{
 		Report: runRes.Report,

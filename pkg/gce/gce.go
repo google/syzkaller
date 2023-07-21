@@ -55,7 +55,7 @@ func NewContext(customZoneID string) (*Context, error) {
 	background := context.Background()
 	tokenSource, err := google.DefaultTokenSource(background, compute.CloudPlatformScope)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get a token source: %v", err)
+		return nil, fmt.Errorf("failed to get a token source: %w", err)
 	}
 	httpClient := oauth2.NewClient(background, tokenSource)
 	// nolint
@@ -67,11 +67,11 @@ func NewContext(customZoneID string) (*Context, error) {
 	// Obtain project name, zone and current instance IP address.
 	ctx.ProjectID, err = ctx.getMeta("project/project-id")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query gce project-id: %v", err)
+		return nil, fmt.Errorf("failed to query gce project-id: %w", err)
 	}
 	myZoneID, err := ctx.getMeta("instance/zone")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query gce zone: %v", err)
+		return nil, fmt.Errorf("failed to query gce zone: %w", err)
 	}
 	if i := strings.LastIndexByte(myZoneID, '/'); i != -1 {
 		myZoneID = myZoneID[i+1:] // the query returns some nonsense prefix
@@ -83,11 +83,11 @@ func NewContext(customZoneID string) (*Context, error) {
 	}
 	ctx.Instance, err = ctx.getMeta("instance/name")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query gce instance name: %v", err)
+		return nil, fmt.Errorf("failed to query gce instance name: %w", err)
 	}
 	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, myZoneID, ctx.Instance).Do()
 	if err != nil {
-		return nil, fmt.Errorf("error getting instance info: %v", err)
+		return nil, fmt.Errorf("error getting instance info: %w", err)
 	}
 	for _, iface := range inst.NetworkInterfaces {
 		if strings.HasPrefix(iface.NetworkIP, "10.") {
@@ -167,7 +167,7 @@ retry:
 		return
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to create instance: %v", err)
+		return "", fmt.Errorf("failed to create instance: %w", err)
 	}
 	if err := ctx.waitForCompletion("zone", "create image", op.Name, false); err != nil {
 		if _, ok := err.(resourcePoolExhaustedError); ok && instance.Scheduling.Preemptible {
@@ -183,7 +183,7 @@ retry:
 		return
 	})
 	if err != nil {
-		return "", fmt.Errorf("error getting instance %s details after creation: %v", name, err)
+		return "", fmt.Errorf("error getting instance %s details after creation: %w", name, err)
 	}
 
 	// Finds its internal IP.
@@ -210,7 +210,7 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("failed to delete instance: %v", err)
+		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 	if wait {
 		if err := ctx.waitForCompletion("zone", "delete image", op.Name, true); err != nil {
@@ -255,7 +255,7 @@ func (ctx *Context) CreateImage(imageName, gcsFile string) error {
 			return
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create image: %v", err)
+			return fmt.Errorf("failed to create image: %w", err)
 		}
 	}
 	if err := ctx.waitForCompletion("global", "create image", op.Name, false); err != nil {
@@ -274,7 +274,7 @@ func (ctx *Context) DeleteImage(imageName string) error {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("failed to delete image: %v", err)
+		return fmt.Errorf("failed to delete image: %w", err)
 	}
 	if err := ctx.waitForCompletion("global", "delete image", op.Name, true); err != nil {
 		return err
@@ -305,7 +305,7 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 			return
 		})
 		if err != nil {
-			return fmt.Errorf("failed to get %v operation %v: %v", desc, opName, err)
+			return fmt.Errorf("failed to get %v operation %v: %w", desc, opName, err)
 		}
 		switch op.Status {
 		case "PENDING", "RUNNING":

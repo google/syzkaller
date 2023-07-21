@@ -19,7 +19,7 @@ type akaros struct{}
 func (ctx akaros) build(params Params) (ImageDetails, error) {
 	configFile := filepath.Join(params.KernelDir, ".config")
 	if err := osutil.WriteFile(configFile, params.Config); err != nil {
-		return ImageDetails{}, fmt.Errorf("failed to write config file: %v", err)
+		return ImageDetails{}, fmt.Errorf("failed to write config file: %w", err)
 	}
 	if err := osutil.SandboxChown(configFile); err != nil {
 		return ImageDetails{}, err
@@ -61,7 +61,7 @@ bash
 `
 	initFile := filepath.Join(params.KernelDir, "kern", "kfs", "init.sh")
 	if err := osutil.WriteFile(initFile, []byte(init)); err != nil {
-		return ImageDetails{}, fmt.Errorf("failed to write init script: %v", err)
+		return ImageDetails{}, fmt.Errorf("failed to write init script: %w", err)
 	}
 	if err := osutil.SandboxChown(initFile); err != nil {
 		return ImageDetails{}, err
@@ -82,7 +82,7 @@ bash
 		return ImageDetails{}, err
 	}
 	if err := osutil.WriteFile(filepath.Join(params.OutputDir, "image"), nil); err != nil {
-		return ImageDetails{}, fmt.Errorf("failed to write image file: %v", err)
+		return ImageDetails{}, fmt.Errorf("failed to write image file: %w", err)
 	}
 	for src, dst := range map[string]string{
 		".config":                    "kernel.config",
@@ -93,7 +93,7 @@ bash
 		fullSrc := filepath.Join(params.KernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(params.OutputDir, filepath.FromSlash(dst))
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return ImageDetails{}, fmt.Errorf("failed to copy %v: %v", src, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v: %w", src, err)
 		}
 	}
 	return ImageDetails{}, nil

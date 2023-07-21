@@ -364,7 +364,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 				}
 				frames, err := symb.SymbolizeArray(mod.Path, pcs)
 				if err != nil {
-					res.err = fmt.Errorf("failed to symbolize: %v", err)
+					res.err = fmt.Errorf("failed to symbolize: %w", err)
 				}
 				res.frames = append(res.frames, frames...)
 			}
@@ -491,7 +491,7 @@ func objdump(target *targets.Target, mod *Module) ([2][]uint64, error) {
 	}
 	defer stderr.Close()
 	if err := cmd.Start(); err != nil {
-		return pcs, fmt.Errorf("failed to run objdump on %v: %v", mod.Path, err)
+		return pcs, fmt.Errorf("failed to run objdump on %v: %w", mod.Path, err)
 	}
 	defer func() {
 		cmd.Process.Kill()
@@ -506,10 +506,10 @@ func objdump(target *targets.Target, mod *Module) ([2][]uint64, error) {
 	}
 	stderrOut, _ := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
-		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", mod.Path, err, stderrOut)
+		return pcs, fmt.Errorf("failed to run objdump on %v: %w\n%s", mod.Path, err, stderrOut)
 	}
 	if err := s.Err(); err != nil {
-		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", mod.Path, err, stderrOut)
+		return pcs, fmt.Errorf("failed to run objdump on %v: %w\n%s", mod.Path, err, stderrOut)
 	}
 	return pcs, nil
 }

@@ -98,7 +98,7 @@ func machoReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
 	}
 	debugInfo, err := dSYM.DWARF()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse DWARF: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse DWARF: %w", err)
 	}
 	return readTextRanges(debugInfo, module, nil)
 }

@@ -205,7 +205,7 @@ func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) 
 	for {
 		checkout, instance, err := ctx.Target.NewJob(slotName, ctx.Checkouts)
 		if err != nil {
-			ret <- fmt.Errorf("failed to create instance: %s", err)
+			ret <- fmt.Errorf("failed to create instance: %w", err)
 			return
 		}
 		checkout.AddRunning(instance)
@@ -232,7 +232,7 @@ func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) 
 		}
 		err = checkout.ArchiveInstance(instance)
 		if err != nil {
-			ret <- fmt.Errorf("a call to ArchiveInstance failed: %s", err)
+			ret <- fmt.Errorf("a call to ArchiveInstance failed: %w", err)
 			return
 		}
 	}

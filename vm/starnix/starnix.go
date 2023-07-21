@@ -59,7 +59,7 @@ const targetDir = "/data"
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse starnix vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse starnix vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 128 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
@@ -106,7 +106,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 	if err := inst.setFuchsiaVersion(); err != nil {
 		return nil, fmt.Errorf(
-			"there is an error running ffx commands in the Fuchsia checkout (%q): %v",
+			"there is an error running ffx commands in the Fuchsia checkout (%q): %w",
 			inst.fuchsiaDirectory,
 			err)
 	}
@@ -129,20 +129,20 @@ func (inst *instance) boot() error {
 	inst.ffx("emu", "stop", inst.name)
 
 	if err := inst.startFuchsiaVM(); err != nil {
-		return fmt.Errorf("could not start Fuchsia VM: %v", err)
+		return fmt.Errorf("could not start Fuchsia VM: %w", err)
 	}
 
 	if err := inst.startAdbServerAndConnection(1 * time.Minute); err != nil {
-		return fmt.Errorf("could not start and connect to the adb server: %v", err)
+		return fmt.Errorf("could not start and connect to the adb server: %w", err)
 	}
 
 	if err := inst.createAdbScript(); err != nil {
-		return fmt.Errorf("could not create adb script: %v", err)
+		return fmt.Errorf("could not create adb script: %w", err)
 	}
 
 	err := inst.startFuchsiaLogs()
 	if err != nil {
-		return fmt.Errorf("could not start fuchsia logs: %v", err)
+		return fmt.Errorf("could not start fuchsia logs: %w", err)
 	}
 	if inst.debug {
 		log.Logf(0, "%s booted successfully", inst.name)

@@ -64,7 +64,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Mem:   "512M",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse bhyve vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse bhyve vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 128 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1-128]", cfg.Count)

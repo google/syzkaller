@@ -70,7 +70,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	for _, target := range cfg.Targets {
 		if _, _, err := splitTargetPort(target); err != nil {
-			return nil, fmt.Errorf("bad target %q: %v", target, err)
+			return nil, fmt.Errorf("bad target %q: %w", target, err)
 		}
 	}
 	if len(cfg.USBDevNums) > 0 {
@@ -116,7 +116,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		}
 	}()
 	if err := inst.repair(); err != nil {
-		return nil, fmt.Errorf("repair failed: %v", err)
+		return nil, fmt.Errorf("repair failed: %w", err)
 	}
 
 	// Remount to writable.
@@ -190,7 +190,7 @@ func (inst *instance) ssh(command string) error {
 		if inst.debug {
 			log.Logf(0, "ssh failed: %v\n%s", err, out)
 		}
-		return fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
+		return fmt.Errorf("ssh %+v failed: %w\n%s", args, err, out)
 	}
 	close(done)
 	if inst.debug {
@@ -235,7 +235,7 @@ func (inst *instance) repair() error {
 			log.Logf(2, "isolated: ssh succeeded, trying to reboot by ssh")
 			inst.ssh("reboot") // reboot will return an error, ignore it
 			if err := inst.waitRebootAndSSH(5*60, 30*time.Minute); err != nil {
-				return fmt.Errorf("waitRebootAndSSH failed: %v", err)
+				return fmt.Errorf("waitRebootAndSSH failed: %w", err)
 			}
 		}
 	}
@@ -244,11 +244,11 @@ func (inst *instance) repair() error {
 		// Execute the contents of the StartupScript on the DUT.
 		contents, err := os.ReadFile(inst.cfg.StartupScript)
 		if err != nil {
-			return fmt.Errorf("unable to read startup_script: %v", err)
+			return fmt.Errorf("unable to read startup_script: %w", err)
 		}
 		c := string(contents)
 		if err := inst.ssh(fmt.Sprintf("bash -c \"%v\"", vmimpl.EscapeDoubleQuotes(c))); err != nil {
-			return fmt.Errorf("failed to execute startup_script: %v", err)
+			return fmt.Errorf("failed to execute startup_script: %w", err)
 		}
 		log.Logf(2, "isolated: done executing startup_script")
 	}
@@ -370,7 +370,7 @@ func (inst *instance) readPstoreContents() ([]byte, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("unable to read pstore file: %v: %v", err, stderr.String())
+		return nil, fmt.Errorf("unable to read pstore file: %w: %v", err, stderr.String())
 	}
 	return stdout.Bytes(), nil
 }

@@ -38,7 +38,7 @@ func (p *Prog) validate() error {
 			return fmt.Errorf("call does not have meta information")
 		}
 		if err := ctx.validateCall(c); err != nil {
-			return fmt.Errorf("call %v: %v", c.Meta.Name, err)
+			return fmt.Errorf("call %v: %w", c.Meta.Name, err)
 		}
 	}
 	for u, orig := range ctx.uses {

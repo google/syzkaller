@@ -133,7 +133,7 @@ func (t *SyzManagerTarget) SaveStatView(view StatView, dir string) error {
 	benchDir := filepath.Join(dir, "benches")
 	err := osutil.MkdirAll(benchDir)
 	if err != nil {
-		return fmt.Errorf("failed to create %s: %s", benchDir, err)
+		return fmt.Errorf("failed to create %s: %w", benchDir, err)
 	}
 	tableStats := map[string]func(view StatView) (*Table, error){
 		"bugs.csv":           (StatView).GenerateBugTable,
@@ -174,7 +174,7 @@ type SyzReproInput struct {
 func (inp *SyzReproInput) QueryTitle(checkout *Checkout, dupsMap map[string]int) error {
 	data, err := os.ReadFile(inp.Path)
 	if err != nil {
-		return fmt.Errorf("failed to read: %s", err)
+		return fmt.Errorf("failed to read: %w", err)
 	}
 	report := checkout.GetReporter().Parse(data)
 	if report == nil {

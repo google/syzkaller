@@ -38,11 +38,11 @@ func (ctx *fuchsia) Poll(repo, branch string) (*Commit, error) {
 
 func (ctx *fuchsia) initRepo() error {
 	if err := os.RemoveAll(ctx.dir); err != nil {
-		return fmt.Errorf("failed to remove repo dir: %v", err)
+		return fmt.Errorf("failed to remove repo dir: %w", err)
 	}
 	tmpDir := ctx.dir + ".tmp"
 	if err := osutil.MkdirAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to create repo dir: %v", err)
+		return fmt.Errorf("failed to create repo dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 	if err := osutil.SandboxChown(tmpDir); err != nil {

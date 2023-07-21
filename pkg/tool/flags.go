@@ -75,11 +75,11 @@ func deserializeFlags(value string) ([]Flag, error) {
 		}
 		name, err := flagUnescape(arg[:eq])
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse flags %q: %v", value, err)
+			return nil, fmt.Errorf("failed to parse flags %q: %w", value, err)
 		}
 		value, err := flagUnescape(arg[eq+1:])
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse flags %q: %v", value, err)
+			return nil, fmt.Errorf("failed to parse flags %q: %w", value, err)
 		}
 		flags = append(flags, Flag{name, value})
 	}

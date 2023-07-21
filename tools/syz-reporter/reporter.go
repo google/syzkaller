@@ -92,7 +92,7 @@ func httpSummary(w io.Writer, cfg *mgrconfig.Config) error {
 
 	var err error
 	if data.Crashes, err = collectCrashes(cfg.Workdir); err != nil {
-		return fmt.Errorf("failed to collect crashes: %v", err)
+		return fmt.Errorf("failed to collect crashes: %w", err)
 	}
 
 	data.CrashCount = len(data.Crashes)
@@ -104,7 +104,7 @@ func httpSummary(w io.Writer, cfg *mgrconfig.Config) error {
 	}
 
 	if err = summaryTemplate.Execute(w, data); err != nil {
-		return fmt.Errorf("failed to execute template: %v", err)
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
 	return err

@@ -137,15 +137,15 @@ func writeRepros(bugchan chan *dashapi.BugReport) {
 func createCRepro(bug *dashapi.BugReport) error {
 	opts, err := csource.DeserializeOptions(bug.ReproOpts)
 	if err != nil {
-		return fmt.Errorf("failed to deserialize opts: %v", err)
+		return fmt.Errorf("failed to deserialize opts: %w", err)
 	}
 	file := filepath.Join(*flagOutputDir, bug.ID+".syz")
 	if err := os.WriteFile(file, bug.ReproSyz, 0644); err != nil {
-		return fmt.Errorf("failed to write file: %v", err)
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 	repo := vcs.NewSyzkallerRepo(*flagSyzkallerDir, vcs.OptPrecious)
 	if _, err := repo.SwitchCommit(bug.SyzkallerCommit); err != nil {
-		return fmt.Errorf("failed to checkout commit %v: %v", bug.SyzkallerCommit, err)
+		return fmt.Errorf("failed to checkout commit %v: %w", bug.SyzkallerCommit, err)
 	}
 	// At some points we checked-in generated descriptions, at some  they are not tracked.
 	// Also, new arches were added. This can cause build breakages when switching

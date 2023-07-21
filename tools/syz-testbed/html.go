@@ -192,7 +192,7 @@ func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (
 	return func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
 		table, err := method(view)
 		if err != nil {
-			return nil, fmt.Errorf("table generation failed: %s", err)
+			return nil, fmt.Errorf("table generation failed: %w", err)
 		}
 		return &uiTable{
 			Table:     table,
@@ -208,7 +208,7 @@ func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view StatView, r
 	}
 	table, err := view.AlignedStatsTable(alignBy)
 	if err != nil {
-		return nil, fmt.Errorf("stat table generation failed: %s", err)
+		return nil, fmt.Errorf("stat table generation failed: %w", err)
 	}
 	baseColumn := r.FormValue("base_column")
 	if baseColumn != "" {

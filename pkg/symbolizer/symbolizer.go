@@ -74,7 +74,7 @@ func (s *Symbolizer) checkBinSupport(addr2line string) error {
 	cmd.Env = append(os.Environ(), "LC_ALL=C")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("addr2line execution failed: %s", err)
+		return fmt.Errorf("addr2line execution failed: %w", err)
 	}
 	if !bytes.Contains(out, []byte("supported targets:")) {
 		return fmt.Errorf("addr2line output didn't contain supported targets")
@@ -174,7 +174,7 @@ func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Fra
 func parse(s *bufio.Scanner) ([]Frame, error) {
 	pc, err := strconv.ParseUint(s.Text(), 0, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse pc '%v' in addr2line output: %v", s.Text(), err)
+		return nil, fmt.Errorf("failed to parse pc '%v' in addr2line output: %w", s.Text(), err)
 	}
 	var frames []Frame
 	for {
@@ -191,7 +191,7 @@ func parse(s *bufio.Scanner) ([]Frame, error) {
 			if err == nil {
 				err = io.EOF
 			}
-			return nil, fmt.Errorf("failed to read file:line from addr2line: %v", err)
+			return nil, fmt.Errorf("failed to read file:line from addr2line: %w", err)
 		}
 		ln = s.Text()
 		colon := strings.LastIndexByte(ln, ':')

@@ -65,7 +65,7 @@ func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *Semaphore) (Env, error) {
 		return nil, fmt.Errorf("syzkaller path is empty")
 	}
 	if err := osutil.MkdirAll(cfg.Workdir); err != nil {
-		return nil, fmt.Errorf("failed to create tmp dir: %v", err)
+		return nil, fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 	env := &env{
 		cfg:           cfg,
@@ -88,14 +88,14 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	}
 	repo := vcs.NewSyzkallerRepo(cfg.Syzkaller)
 	if _, err := repo.CheckoutCommit(repoURL, commit); err != nil {
-		return "", fmt.Errorf("failed to checkout syzkaller repo: %v", err)
+		return "", fmt.Errorf("failed to checkout syzkaller repo: %w", err)
 	}
 	// The following commit ("syz-fuzzer: support optional flags") adds support for optional flags
 	// in syz-fuzzer and syz-execprog. This is required to invoke older binaries with newer flags
 	// without failing due to unknown flags.
 	optionalFlags, err := repo.Contains("64435345f0891706a7e0c7885f5f7487581e6005")
 	if err != nil {
-		return "", fmt.Errorf("optional flags check failed: %v", err)
+		return "", fmt.Errorf("optional flags check failed: %w", err)
 	}
 	env.optionalFlags = optionalFlags
 	cmd := osutil.Command(MakeBin, "target")
@@ -128,7 +128,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	buildLog := fmt.Sprintf("go env (err=%v)\n%s\ngit status (err=%v)\n%s\n\n%s",
 		goEnvErr, goEnvOut, gitStatusErr, gitStatusOut, buildOutput)
 	if buildErr != nil {
-		return buildLog, fmt.Errorf("syzkaller build failed: %v\n%s", buildErr, buildLog)
+		return buildLog, fmt.Errorf("syzkaller build failed: %w\n%s", buildErr, buildLog)
 	}
 	return buildLog, nil
 }
@@ -176,7 +176,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 	}
 	vmConfig := make(map[string]interface{})
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
-		return fmt.Errorf("failed to parse VM config: %v", err)
+		return fmt.Errorf("failed to parse VM config: %w", err)
 	}
 	if cfg.Type == "qemu" || cfg.Type == "vmm" {
 		if kernel := filepath.Join(imageDir, "kernel"); osutil.IsExist(kernel) {
@@ -192,7 +192,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 	}
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
-		return fmt.Errorf("failed to serialize VM config: %v", err)
+		return fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 	cfg.VM = vmCfg
 	return nil
@@ -201,7 +201,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 	vmConfig := make(map[string]interface{})
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
-		return fmt.Errorf("failed to parse VM config: %v", err)
+		return fmt.Errorf("failed to parse VM config: %w", err)
 	}
 	if vmConfig["count"] == nil || !vm.AllowsOvercommit(cfg.Type) {
 		return nil
@@ -209,7 +209,7 @@ func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 	vmConfig["count"] = n
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
-		return fmt.Errorf("failed to serialize VM config: %v", err)
+		return fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 	cfg.VM = vmCfg
 	return nil
@@ -252,7 +252,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 	}
 	vmPool, err := vm.Create(env.cfg, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create VM pool: %v", err)
+		return nil, fmt.Errorf("failed to create VM pool: %w", err)
 	}
 	if n := vmPool.Count(); numVMs > n {
 		numVMs = n
@@ -352,7 +352,7 @@ func (inst *inst) test() EnvTestResult {
 func (inst *inst) testInstance() error {
 	ln, err := net.Listen("tcp", ":")
 	if err != nil {
-		return fmt.Errorf("failed to open listening socket: %v", err)
+		return fmt.Errorf("failed to open listening socket: %w", err)
 	}
 	defer ln.Close()
 	acceptErr := make(chan error, 1)
@@ -365,7 +365,7 @@ func (inst *inst) testInstance() error {
 	}()
 	fwdAddr, err := inst.vm.Forward(ln.Addr().(*net.TCPAddr).Port)
 	if err != nil {
-		return fmt.Errorf("failed to setup port forwarding: %v", err)
+		return fmt.Errorf("failed to setup port forwarding: %w", err)
 	}
 
 	fuzzerBin, err := inst.vm.Copy(inst.cfg.FuzzerBin)
@@ -387,7 +387,7 @@ func (inst *inst) testInstance() error {
 		inst.cfg.Sandbox, inst.cfg.SandboxArg, 0, inst.cfg.Cover, true, inst.optionalFlags, inst.cfg.Timeouts.Slowdown)
 	outc, errc, err := inst.vm.Run(10*time.Minute*inst.cfg.Timeouts.Scale, nil, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to run binary in VM: %v", err)
+		return fmt.Errorf("failed to run binary in VM: %w", err)
 	}
 	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, vm.ExitNormal)
 	if rep != nil {

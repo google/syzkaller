@@ -75,12 +75,12 @@ func (ctx netbsd) build(params Params) (ImageDetails, error) {
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %w", fullSrc, fullDst, err)
 		}
 	}
 	keyFile := filepath.Join(params.OutputDir, "key")
 	if err := os.Chmod(keyFile, 0600); err != nil {
-		return ImageDetails{}, fmt.Errorf("failed to chmod 0600 %v: %v", keyFile, err)
+		return ImageDetails{}, fmt.Errorf("failed to chmod 0600 %v: %w", keyFile, err)
 	}
 	return ImageDetails{}, ctx.copyKernelToDisk(params.TargetArch, params.VMType, params.OutputDir,
 		filepath.Join(compileDir, "netbsd"))
@@ -117,23 +117,23 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	// Create a VM pool.
 	pool, err := vm.Create(cfg, false)
 	if err != nil {
-		return fmt.Errorf("failed to create a VM Pool: %v", err)
+		return fmt.Errorf("failed to create a VM Pool: %w", err)
 	}
 	// Create a new reporter instance.
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to create a Reporter: %v", err)
+		return fmt.Errorf("failed to create a Reporter: %w", err)
 	}
 	// Create a VM instance (we need only one).
 	inst, err := pool.Create(0)
 	if err != nil {
-		return fmt.Errorf("failed to create the VM Instance: %v", err)
+		return fmt.Errorf("failed to create the VM Instance: %w", err)
 	}
 	defer inst.Close()
 	// Copy the kernel into the disk image and replace it.
 	kernel, err = inst.Copy(kernel)
 	if err != nil {
-		return fmt.Errorf("error copying the kernel: %v", err)
+		return fmt.Errorf("error copying the kernel: %w", err)
 	}
 	if kernel != "/netbsd" {
 		return fmt.Errorf("kernel is copied into wrong location: %v", kernel)
@@ -153,7 +153,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
 	outc, errc, err := inst.Run(time.Minute, nil, strings.Join(commands, ";"))
 	if err != nil {
-		return fmt.Errorf("error syncing the instance %v", err)
+		return fmt.Errorf("error syncing the instance %w", err)
 	}
 	// Make sure that the command has executed properly.
 	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitNormal)

@@ -29,7 +29,7 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		ctx := &bugTreeContext{
 			c:       c,
@@ -49,7 +49,7 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 		}
 		bug.TreeTests.NeedPoll = false
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		job, jobKey = ctx.job, ctx.jobKey
 		return nil
@@ -68,7 +68,7 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		ctx := &bugTreeContext{
 			c:         c,
@@ -88,7 +88,7 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 			bug.TreeTests.NeedPoll = true
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
@@ -542,7 +542,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 		// We need to also tolerate the case when the crash was just deleted.
 		err := db.Get(ctx.c, crashKey, crash)
 		if err != nil && err != db.ErrNoSuchEntity {
-			return fmt.Errorf("failed to get crash: %v", err)
+			return fmt.Errorf("failed to get crash: %w", err)
 		} else if err == nil {
 			ok, build, err := ctx.isCrashRelevant(crash)
 			if err != nil {
@@ -665,7 +665,7 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 				crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
 				crash := new(Crash)
 				if err := db.Get(c, crashKey, crash); err != nil {
-					return fmt.Errorf("failed to get crash: %v", err)
+					return fmt.Errorf("failed to get crash: %w", err)
 				}
 				info := makeJobInfo(c, job, jobKey, bug, build, crash)
 				mu.Lock()

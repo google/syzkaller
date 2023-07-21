@@ -306,7 +306,7 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 		actual := ReproLevelNone
 		reproCrashes, _, err := queryCrashesForBug(c, key, 2)
 		if err != nil {
-			return fmt.Errorf("failed to fetch crashes with repro: %v", err)
+			return fmt.Errorf("failed to fetch crashes with repro: %w", err)
 		}
 		for _, crash := range reproCrashes {
 			if crash.ReproIsRevoked {

@@ -68,7 +68,7 @@ options 	DIAGNOSTIC
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %w", fullSrc, fullDst, err)
 		}
 	}
 
@@ -114,7 +114,7 @@ sudo mdconfig -d -u ${md#md}
 `, objPrefix, params.KernelDir, confFile)
 
 	if debugOut, err := osutil.RunCmd(10*time.Minute, params.OutputDir, "/bin/sh", "-c", script); err != nil {
-		return ImageDetails{}, fmt.Errorf("error copying kernel: %v\n%v", err, debugOut)
+		return ImageDetails{}, fmt.Errorf("error copying kernel: %w\n%v", err, debugOut)
 	}
 	return ImageDetails{}, nil
 }

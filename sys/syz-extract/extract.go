@@ -193,7 +193,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 		if *flagBuild {
 			dir, err := os.MkdirTemp("", "syzkaller-kernel-build")
 			if err != nil {
-				return nil, 0, fmt.Errorf("failed to create temp dir: %v", err)
+				return nil, 0, fmt.Errorf("failed to create temp dir: %w", err)
 			}
 			buildDir = dir
 		} else if *flagBuildDir != "" {

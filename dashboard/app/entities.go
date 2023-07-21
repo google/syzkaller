@@ -184,14 +184,14 @@ func updateSingleBug(c context.Context, bugKey *db.Key, transform func(*Bug) err
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		err := transform(bug)
 		if err != nil {
 			return err
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
@@ -694,7 +694,7 @@ func loadManager(c context.Context, ns, name string) (*Manager, error) {
 	mgr := new(Manager)
 	if err := db.Get(c, mgrKey(c, ns, name), mgr); err != nil {
 		if err != db.ErrNoSuchEntity {
-			return nil, fmt.Errorf("failed to get manager %v/%v: %v", ns, name, err)
+			return nil, fmt.Errorf("failed to get manager %v/%v: %w", ns, name, err)
 		}
 		mgr = &Manager{
 			Namespace: ns,
@@ -717,7 +717,7 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 		statsKey := db.NewKey(c, "ManagerStats", "", int64(date), mgrKey)
 		if err := db.Get(c, statsKey, stats); err != nil {
 			if err != db.ErrNoSuchEntity {
-				return fmt.Errorf("failed to get stats %v/%v/%v: %v", ns, name, date, err)
+				return fmt.Errorf("failed to get stats %v/%v/%v: %w", ns, name, date, err)
 			}
 			stats = &ManagerStats{
 				Date: date,
@@ -729,10 +729,10 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 		}
 
 		if _, err := db.Put(c, mgrKey, mgr); err != nil {
-			return fmt.Errorf("failed to put manager: %v", err)
+			return fmt.Errorf("failed to put manager: %w", err)
 		}
 		if _, err := db.Put(c, statsKey, stats); err != nil {
-			return fmt.Errorf("failed to put manager stats: %v", err)
+			return fmt.Errorf("failed to put manager stats: %w", err)
 		}
 		return nil
 	}
@@ -747,7 +747,7 @@ func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error
 	}
 	keys, err := query.GetAll(c, &managers)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to query managers: %v", err)
+		return nil, nil, fmt.Errorf("failed to query managers: %w", err)
 	}
 	var result []*Manager
 	var resultKeys []*db.Key
@@ -775,7 +775,7 @@ func loadBuild(c context.Context, ns, id string) (*Build, error) {
 		if err == db.ErrNoSuchEntity {
 			return nil, fmt.Errorf("unknown build %v/%v", ns, id)
 		}
-		return nil, fmt.Errorf("failed to get build %v/%v: %v", ns, id, err)
+		return nil, fmt.Errorf("failed to get build %v/%v: %w", ns, id, err)
 	}
 	return build, nil
 }
@@ -809,7 +809,7 @@ func splitDisplayTitle(display string) (string, int64, error) {
 	seqStr := display[match[4]:match[5]]
 	seq, err := strconv.ParseInt(seqStr, 10, 64)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to parse bug title: %v", err)
+		return "", 0, fmt.Errorf("failed to parse bug title: %w", err)
 	}
 	if seq <= 0 || seq > 1e6 {
 		return "", 0, fmt.Errorf("failed to parse bug title: seq=%v", seq)
@@ -825,7 +825,7 @@ func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {
 		canon := new(Bug)
 		bugKey := db.NewKey(c, "Bug", bug.DupOf, 0, nil)
 		if err := db.Get(c, bugKey, canon); err != nil {
-			return nil, fmt.Errorf("failed to get dup bug %q for %q: %v",
+			return nil, fmt.Errorf("failed to get dup bug %q for %q: %w",
 				bug.DupOf, bug.keyHash(), err)
 		}
 		bug = canon
@@ -949,11 +949,11 @@ func addCrashReference(c context.Context, crashID int64, bugKey *db.Key, ref Cra
 	crash := new(Crash)
 	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
 	if err := db.Get(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to get reported crash %v: %v", crashID, err)
+		return fmt.Errorf("failed to get reported crash %v: %w", crashID, err)
 	}
 	crash.AddReference(ref)
 	if _, err := db.Put(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to put reported crash %v: %v", crashID, err)
+		return fmt.Errorf("failed to put reported crash %v: %w", crashID, err)
 	}
 	return nil
 }
@@ -963,11 +963,11 @@ func removeCrashReference(c context.Context, crashID int64, bugKey *db.Key,
 	crash := new(Crash)
 	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
 	if err := db.Get(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to get reported crash %v: %v", crashID, err)
+		return fmt.Errorf("failed to get reported crash %v: %w", crashID, err)
 	}
 	crash.ClearReference(t, key)
 	if _, err := db.Put(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to put reported crash %v: %v", crashID, err)
+		return fmt.Errorf("failed to put reported crash %v: %w", crashID, err)
 	}
 	return nil
 }

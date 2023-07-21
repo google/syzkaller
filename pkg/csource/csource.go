@@ -39,7 +39,7 @@ import (
 // Write generates C source for program p based on the provided options opt.
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err := opts.Check(p.Target.OS); err != nil {
-		return nil, fmt.Errorf("csource: invalid opts: %v", err)
+		return nil, fmt.Errorf("csource: invalid opts: %w", err)
 	}
 	ctx := &context{
 		p:         p,
@@ -241,7 +241,7 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uin
 	exec := make([]byte, prog.ExecBufferSize)
 	progSize, err := p.SerializeForExec(exec)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to serialize program: %v", err)
+		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
 	}
 	decoded, err := ctx.target.DeserializeExec(exec[:progSize])
 	if err != nil {

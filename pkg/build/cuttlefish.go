@@ -125,7 +125,7 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	var err error
 	// Clean output directory if it exists.
 	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
-		return details, fmt.Errorf("failed to clean before kernel build: %v", err)
+		return details, fmt.Errorf("failed to clean before kernel build: %w", err)
 	}
 	// Default to build.sh if compiler is not specified.
 	if params.Compiler == "bazel" {
@@ -133,25 +133,25 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 			return details, errors.New("kernel config was not provided for build")
 		}
 		if err := c.createDefconfig(filepath.Join(params.KernelDir, "common"), params.Config); err != nil {
-			return details, fmt.Errorf("failed to create defconfig file: %v", err)
+			return details, fmt.Errorf("failed to create defconfig file: %w", err)
 		}
 		if err := c.runBazel(params.KernelDir); err != nil {
-			return details, fmt.Errorf("failed to build kernel: %s", err)
+			return details, fmt.Errorf("failed to build kernel: %w", err)
 		}
 		// Find the .config file; it is placed in a temporary output directory during the build.
 		cmd := osutil.Command("find", ".", "-regex", ".*virtual_device_x86_64_config.*/\\.config")
 		cmd.Dir = params.KernelDir
 		configBytes, err := osutil.Run(time.Minute, cmd)
 		if err != nil {
-			return details, fmt.Errorf("failed to find build config: %v", err)
+			return details, fmt.Errorf("failed to find build config: %w", err)
 		}
 		config = filepath.Join(params.KernelDir, strings.TrimSpace(string(configBytes)))
 	} else {
 		if err := c.runBuild(params.KernelDir, kernelConfig); err != nil {
-			return details, fmt.Errorf("failed to build kernel: %s", err)
+			return details, fmt.Errorf("failed to build kernel: %w", err)
 		}
 		if err := c.runBuild(params.KernelDir, moduleConfig); err != nil {
-			return details, fmt.Errorf("failed to build modules: %s", err)
+			return details, fmt.Errorf("failed to build modules: %w", err)
 		}
 		config = filepath.Join(params.KernelDir, "out", "common", ".config")
 	}
@@ -196,7 +196,7 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 
 	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
-		return details, fmt.Errorf("failed to generate signature: %s", err)
+		return details, fmt.Errorf("failed to generate signature: %w", err)
 	}
 
 	return details, nil

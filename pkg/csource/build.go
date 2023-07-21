@@ -83,7 +83,7 @@ func Format(src []byte) ([]byte, error) {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
-		return src, fmt.Errorf("failed to format source: %v\n%v", err, stderr.String())
+		return src, fmt.Errorf("failed to format source: %w\n%v", err, stderr.String())
 	}
 	return stdout.Bytes(), nil
 }

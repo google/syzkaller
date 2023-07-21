@@ -86,7 +86,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 		buildCfg.DefconfigFragment), fmt.Sprintf("BUILD_TARGET=%v", buildCfg.BuildTarget))
 
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return details, fmt.Errorf("failed to build kernel: %s", err)
+		return details, fmt.Errorf("failed to build kernel: %w", err)
 	}
 
 	buildDistDir := filepath.Join(params.KernelDir, "dist")
@@ -96,30 +96,30 @@ func (a android) build(params Params) (ImageDetails, error) {
 
 	details.CompilerID, err = a.readCompiler(params.KernelDir)
 	if err != nil {
-		return details, fmt.Errorf("failed to read compiler: %v", err)
+		return details, fmt.Errorf("failed to read compiler: %w", err)
 	}
 
 	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "obj", "vmlinux")); err != nil {
-		return details, fmt.Errorf("failed to copy vmlinux: %v", err)
+		return details, fmt.Errorf("failed to copy vmlinux: %w", err)
 	}
 	if err := osutil.CopyFile(config, filepath.Join(params.OutputDir, "obj", "kernel.config")); err != nil {
-		return details, fmt.Errorf("failed to copy kernel config: %v", err)
+		return details, fmt.Errorf("failed to copy kernel config: %w", err)
 	}
 
 	imageFile, err := os.Create(filepath.Join(params.OutputDir, "image"))
 	if err != nil {
-		return details, fmt.Errorf("failed to create output file: %v", err)
+		return details, fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer imageFile.Close()
 
 	if err := a.embedImages(imageFile, buildDistDir, "boot.img", "dtbo.img", buildCfg.VendorBootImage,
 		"vendor_dlkm.img"); err != nil {
-		return details, fmt.Errorf("failed to embed images: %v", err)
+		return details, fmt.Errorf("failed to embed images: %w", err)
 	}
 
 	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
-		return details, fmt.Errorf("failed to generate signature: %s", err)
+		return details, fmt.Errorf("failed to generate signature: %w", err)
 	}
 
 	return details, nil
@@ -133,7 +133,7 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 		path := filepath.Join(srcDir, name)
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("failed to read %q: %v", name, err)
+			return fmt.Errorf("failed to read %q: %w", name, err)
 		}
 
 		if err := tw.WriteHeader(&tar.Header{
@@ -141,16 +141,16 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 			Mode: 0600,
 			Size: int64(len(data)),
 		}); err != nil {
-			return fmt.Errorf("failed to write header for %q: %v", name, err)
+			return fmt.Errorf("failed to write header for %q: %w", name, err)
 		}
 
 		if _, err := tw.Write(data); err != nil {
-			return fmt.Errorf("failed to write data for %q: %v", name, err)
+			return fmt.Errorf("failed to write data for %q: %w", name, err)
 		}
 	}
 
 	if err := tw.Close(); err != nil {
-		return fmt.Errorf("close archive: %v", err)
+		return fmt.Errorf("close archive: %w", err)
 	}
 
 	return nil
@@ -158,10 +158,10 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 
 func (a android) clean(kernelDir, targetArch string) error {
 	if err := osutil.RemoveAll(filepath.Join(kernelDir, "out")); err != nil {
-		return fmt.Errorf("failed to clean 'out' directory: %v", err)
+		return fmt.Errorf("failed to clean 'out' directory: %w", err)
 	}
 	if err := osutil.RemoveAll(filepath.Join(kernelDir, "dist")); err != nil {
-		return fmt.Errorf("failed to clean 'dist' directory: %v", err)
+		return fmt.Errorf("failed to clean 'dist' directory: %w", err)
 	}
 	return nil
 }

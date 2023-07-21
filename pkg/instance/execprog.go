@@ -83,7 +83,7 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 	reporter *report.Reporter, opt *OptionalConfig) (*ExecProgInstance, error) {
 	vmInst, err := vmPool.Create(vmIndex)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create VM: %v", err)
+		return nil, fmt.Errorf("failed to create VM: %w", err)
 	}
 	ret, err := SetupExecProg(vmInst, mgrCfg, reporter, opt)
 	if err != nil {
@@ -109,7 +109,7 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 	}
 	outc, errc, err := inst.VMInstance.Run(duration, nil, command)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run command in VM: %v", err)
+		return nil, fmt.Errorf("failed to run command in VM: %w", err)
 	}
 	result := &RunResult{
 		ExecutionResult: *inst.VMInstance.MonitorExecutionRaw(outc, errc,

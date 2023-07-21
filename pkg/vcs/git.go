@@ -202,10 +202,10 @@ func (git *git) initRepo(reason error) error {
 		log.Logf(1, "git: initializing repo at %v: %v", git.dir, reason)
 	}
 	if err := os.RemoveAll(git.dir); err != nil {
-		return fmt.Errorf("failed to remove repo dir: %v", err)
+		return fmt.Errorf("failed to remove repo dir: %w", err)
 	}
 	if err := osutil.MkdirAll(git.dir); err != nil {
-		return fmt.Errorf("failed to create repo dir: %v", err)
+		return fmt.Errorf("failed to create repo dir: %w", err)
 	}
 	if git.sandbox {
 		if err := osutil.SandboxChown(git.dir); err != nil {
@@ -243,11 +243,11 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	const dateFormat = "Mon Jan 2 15:04:05 2006 -0700"
 	date, err := time.Parse(dateFormat, string(lines[4]))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
+		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
 	}
 	commitDate, err := time.Parse(dateFormat, string(lines[6]))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
+		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
 	}
 	recipients := make(map[string]bool)
 	recipients[strings.ToLower(string(lines[2]))] = true
@@ -375,7 +375,7 @@ func (git *git) ListCommitHashes(baseCommit string) ([]string, error) {
 func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	user, domain, err := splitEmail(email)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse email %q: %v", email, err)
+		return nil, fmt.Errorf("failed to parse email %q: %w", email, err)
 	}
 	grep := user + "+.*" + domain
 	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")

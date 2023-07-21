@@ -64,7 +64,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Lkvm:  "lkvm",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse kvm vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse kvm vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 128 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
@@ -119,16 +119,16 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	os.Remove(inst.sandboxPath + ".sock")
 	out, err := osutil.Command(inst.cfg.Lkvm, "setup", sandbox).CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to lkvm setup: %v\n%s", err, out)
+		return nil, fmt.Errorf("failed to lkvm setup: %w\n%s", err, out)
 	}
 	scriptPath := filepath.Join(workdir, "script.sh")
 	if err := osutil.WriteExecFile(scriptPath, []byte(script)); err != nil {
-		return nil, fmt.Errorf("failed to create temp file: %v", err)
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, fmt.Errorf("failed to create pipe: %w", err)
 	}
 
 	inst.lkvm = osutil.Command("taskset", "-c", strconv.Itoa(index%runtime.NumCPU()),
@@ -146,7 +146,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err := inst.lkvm.Start(); err != nil {
 		rpipe.Close()
 		wpipe.Close()
-		return nil, fmt.Errorf("failed to start lkvm: %v", err)
+		return nil, fmt.Errorf("failed to start lkvm: %w", err)
 	}
 
 	// Start output reading goroutine.
@@ -194,7 +194,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		err = <-errc
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to run script: %v", err)
+		return nil, fmt.Errorf("failed to run script: %w", err)
 	}
 
 	closeInst = nil

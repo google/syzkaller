@@ -64,7 +64,7 @@ func (client *Client) Read(gcsFile string) (*File, error) {
 	f := bkt.Object(filename)
 	attrs, err := f.Attrs(client.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v attributes: %v", gcsFile, err)
+		return nil, fmt.Errorf("failed to read %v attributes: %w", gcsFile, err)
 	}
 	if !attrs.Deleted.IsZero() {
 		return nil, fmt.Errorf("file %v is deleted", gcsFile)

@@ -245,21 +245,21 @@ func parsePattern(insn *x86.Insn, vals []string) error {
 			insn.Modrm = true
 			vv, err := parseModrm(v[3:])
 			if err != nil {
-				return fmt.Errorf("failed to parse %v: %v", v, err)
+				return fmt.Errorf("failed to parse %v: %w", v, err)
 			}
 			insn.Mod = vv
 		case strings.HasPrefix(v, "REG["):
 			insn.Modrm = true
 			vv, err := parseModrm(v[3:])
 			if err != nil {
-				return fmt.Errorf("failed to parse %v: %v", v, err)
+				return fmt.Errorf("failed to parse %v: %w", v, err)
 			}
 			insn.Reg = vv
 		case strings.HasPrefix(v, "RM["):
 			insn.Modrm = true
 			vv, err := parseModrm(v[2:])
 			if err != nil {
-				return fmt.Errorf("failed to parse %v: %v", v, err)
+				return fmt.Errorf("failed to parse %v: %w", v, err)
 			}
 			insn.Rm = vv
 		case v == "RM=4":
@@ -267,7 +267,7 @@ func parsePattern(insn *x86.Insn, vals []string) error {
 		case strings.HasPrefix(v, "SRM["):
 			vv, err := parseModrm(v[3:])
 			if err != nil {
-				return fmt.Errorf("failed to parse %v: %v", v, err)
+				return fmt.Errorf("failed to parse %v: %w", v, err)
 			}
 			insn.Rm = vv
 			insn.Srm = true
