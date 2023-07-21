@@ -6,8 +6,6 @@ package vcs
 // BackportCommit describes a fix commit that must be cherry-picked to an older
 // kernel revision in order to enable kernel build / boot.
 type BackportCommit struct {
-	// If non-empty, it will be first ensured that this commit is reachable.
-	GuiltyTitle string `json:"guilty_title"`
 	// The hash of the commit to cherry-pick.
 	FixHash string `json:"fix_hash"`
 	// The title of the commit to cherry-pick.
@@ -19,16 +17,6 @@ type BackportCommit struct {
 func linuxFixBackports(repo *git, extraCommits ...BackportCommit) error {
 	list := append([]BackportCommit{}, pickLinuxCommits...)
 	for _, info := range append(list, extraCommits...) {
-		if info.GuiltyTitle != "" {
-			guiltyCommit, err := repo.GetCommitByTitle(info.GuiltyTitle)
-			if err != nil {
-				return err
-			}
-			if guiltyCommit == nil {
-				// The problem is not yet introduced.
-				continue
-			}
-		}
 		fixCommit, err := repo.GetCommitByTitle(info.FixTitle)
 		if err != nil {
 			return err
@@ -55,12 +43,12 @@ var pickLinuxCommits = []BackportCommit{
 		FixTitle: `objtool: Don't fail on missing symbol table`,
 	},
 	{
-		// In newer compiler versions, kernel compilation fails with:
+		// With newer compiler versions, kernel compilation fails with:
 		// subcmd-util.h:56:23: error: pointer may be used after ‘realloc’ [-Werror=use-after-free]
 		// 56 |                 ret = realloc(ptr, size);
-		GuiltyTitle: `perf tools: Finalize subcmd independence`,
-		FixHash:     `52a9dab6d892763b2a8334a568bd4e2c1a6fde66`,
-		FixTitle:    `libsubcmd: Fix use-after-free for realloc(..., 0)`,
+		// The guilty commit is from 2015, we don't bisect that far.
+		FixHash:  `52a9dab6d892763b2a8334a568bd4e2c1a6fde66`,
+		FixTitle: `libsubcmd: Fix use-after-free for realloc(..., 0)`,
 	},
 	{
 		// A number of old releases fail with KASAN: use-after-free in task_active_pid_ns.
