@@ -36,7 +36,7 @@ jobs:
           GITHUB_PR_COMMITS: ${{ github.event.pull_request.commits }}
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_aux
   build:
-    runs-on: self-hosted
+    runs-on: any-env
     steps:
     - name: checkout
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
@@ -57,7 +57,7 @@ jobs:
         files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: unittests
   dashboard:
-    runs-on: self-hosted
+    runs-on: any-env
     steps:
     - name: checkout
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
@@ -93,7 +93,7 @@ jobs:
       - name: run
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make ${{ matrix.target }}
   race:
-    runs-on: self-hosted
+    runs-on: any-env
     steps:
     - name: checkout
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
