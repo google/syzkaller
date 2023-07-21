@@ -16,12 +16,12 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/stretchr/testify v1.8.4
 	github.com/ulikunitz/xz v0.5.11
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.12.0
 	golang.org/x/oauth2 v0.5.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
-	golang.org/x/sync v0.2.0
-	golang.org/x/sys v0.8.0
-	golang.org/x/tools v0.9.3
+	golang.org/x/sync v0.3.0
+	golang.org/x/sys v0.10.0
+	golang.org/x/tools v0.11.0
 	google.golang.org/api v0.110.0
 	google.golang.org/appengine/v2 v2.0.2
 	google.golang.org/genproto v0.0.0-20230222225845-10f96fb3dbec
@@ -203,8 +203,8 @@ require (
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.53.0 // indirect
