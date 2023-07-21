@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -517,7 +518,8 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	res, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
-		if _, ok := err.(*bisect.InfraError); ok {
+		var infraErr *bisect.InfraError
+		if errors.As(err, &infraErr) {
 			resp.Flags |= dashapi.BisectResultInfraError
 		}
 		return err
@@ -735,18 +737,20 @@ func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, e
 			continue
 		}
 		anyErr = res.Error
-		switch err := res.Error.(type) {
-		case *instance.TestError:
+		var testError *instance.TestError
+		var crashError *instance.CrashError
+		switch {
+		case errors.As(res.Error, &testError):
 			// We should not put rep into resp.CrashTitle/CrashReport,
 			// because that will be treated as patch not fixing the bug.
-			if rep := err.Report; rep != nil {
+			if rep := testError.Report; rep != nil {
 				testErr = fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
 			} else {
-				testErr = fmt.Errorf("%v\n\n%s", err.Title, err.Output)
+				testErr = fmt.Errorf("%v\n\n%s", testError.Title, testError.Output)
 			}
-		case *instance.CrashError:
-			if resReport == nil || (len(resReport.report.Report) == 0 && len(err.Report.Report) != 0) {
-				resReport = &patchTestResult{report: err.Report, rawOutput: res.RawOutput}
+		case errors.As(res.Error, &crashError):
+			if resReport == nil || (len(resReport.report.Report) == 0 && len(crashError.Report.Report) != 0) {
+				resReport = &patchTestResult{report: crashError.Report, rawOutput: res.RawOutput}
 			}
 		}
 	}

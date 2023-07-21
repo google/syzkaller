@@ -5,6 +5,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -339,14 +340,16 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		rep := &report.Report{
 			Title: fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
 		}
-		switch err1 := err.(type) {
-		case *build.KernelError:
-			rep.Report = err1.Report
-			rep.Output = err1.Output
-			rep.Recipients = err1.Recipients
-		case *osutil.VerboseError:
-			rep.Report = []byte(err1.Title)
-			rep.Output = err1.Output
+		var kernelError *build.KernelError
+		var verboseError *osutil.VerboseError
+		switch {
+		case errors.As(err, &kernelError):
+			rep.Report = kernelError.Report
+			rep.Output = kernelError.Output
+			rep.Recipients = kernelError.Recipients
+		case errors.As(err, &verboseError):
+			rep.Report = []byte(verboseError.Title)
+			rep.Output = verboseError.Output
 		default:
 			rep.Report = []byte(err.Error())
 		}
@@ -437,8 +440,9 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 			continue
 		}
 		failures++
-		switch err := res.Error.(type) {
-		case *instance.TestError:
+		var err *instance.TestError
+		switch {
+		case errors.As(res.Error, &err):
 			if rep := err.Report; rep != nil {
 				what := "test"
 				if err.Boot {

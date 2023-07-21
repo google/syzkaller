@@ -15,6 +15,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -318,14 +319,15 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			ssh.Process.Kill()
 			merger.Wait()
 			con.Wait()
+			var mergeError *vmimpl.MergerError
 			if cmdErr := ssh.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
-			} else if merr, ok := err.(vmimpl.MergerError); ok && merr.R == conRpipe {
+			} else if errors.As(err, &mergeError) && mergeError.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
-				log.Logf(0, "%v: gce console connection failed with %v", inst.name, merr.Err)
+				log.Logf(0, "%v: gce console connection failed with %v", inst.name, mergeError.Err)
 				err = vmimpl.ErrTimeout
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.

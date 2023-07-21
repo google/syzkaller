@@ -703,17 +703,19 @@ func handleTestCommand(c context.Context, info *bugInfoResult,
 		user: msg.Author, extID: msg.MessageID, link: msg.Link,
 		patch: []byte(msg.Patch), repo: args[0], branch: args[1], jobCC: msg.Cc})
 	if err != nil {
-		switch e := err.(type) {
-		case *TestRequestDeniedError:
+		var testDenied *TestRequestDeniedError
+		var badTest *BadTestRequestError
+		switch {
+		case errors.As(err, &testDenied):
 			// Don't send a reply in this case.
-			log.Errorf(c, "patch test request denied: %v", e)
-		case *BadTestRequestError:
-			reply = e.Error()
+			log.Errorf(c, "patch test request denied: %v", testDenied)
+		case errors.As(err, &badTest):
+			reply = badTest.Error()
 		default:
 			// Don't leak any details to the reply email.
 			reply = "Processing failed due to an internal error"
 			// .. but they are useful for debugging, so we'd like to see it on the Admin page.
-			log.Errorf(c, "handleTestRequest error: %v", e)
+			log.Errorf(c, "handleTestRequest error: %v", err)
 		}
 	}
 	return reply

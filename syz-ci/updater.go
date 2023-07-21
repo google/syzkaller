@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -297,7 +298,8 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 	var title string
 	var output []byte
-	if verbose, ok := buildErr.(*osutil.VerboseError); ok {
+	var verbose *osutil.VerboseError
+	if errors.As(buildErr, &verbose) {
 		title = verbose.Title
 		output = verbose.Output
 	} else {

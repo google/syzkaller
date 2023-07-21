@@ -4,6 +4,7 @@
 package bisect
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -622,12 +623,14 @@ func (env *env) test() (*testResult, error) {
 	}
 	if err != nil {
 		errInfo := fmt.Sprintf("failed building %v: ", current.Hash)
-		if verr, ok := err.(*osutil.VerboseError); ok {
+		var verr *osutil.VerboseError
+		var kerr *build.KernelError
+		if errors.As(err, &verr) {
 			errInfo += verr.Title
 			env.saveDebugFile(current.Hash, 0, verr.Output)
-		} else if verr, ok := err.(*build.KernelError); ok {
-			errInfo += string(verr.Report)
-			env.saveDebugFile(current.Hash, 0, verr.Output)
+		} else if errors.As(err, &kerr) {
+			errInfo += string(kerr.Report)
+			env.saveDebugFile(current.Hash, 0, kerr.Output)
 		} else {
 			errInfo += err.Error()
 			env.log("%v", err)
@@ -722,38 +725,40 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 			verdicts = append(verdicts, "OK")
 			continue
 		}
-		switch err := res.Error.(type) {
-		case *instance.TestError:
-			if err.Infra {
+		var testError *instance.TestError
+		var crashError *instance.CrashError
+		switch {
+		case errors.As(res.Error, &testError):
+			if testError.Infra {
 				infra++
-				verdicts = append(verdicts, fmt.Sprintf("infra problem: %v", err))
-			} else if err.Boot {
-				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))
+				verdicts = append(verdicts, fmt.Sprintf("infra problem: %v", testError))
+			} else if testError.Boot {
+				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", testError))
 			} else {
-				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", err))
+				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", testError))
 			}
-			output := err.Output
-			if err.Report != nil {
-				output = err.Report.Output
+			output := testError.Output
+			if testError.Report != nil {
+				output = testError.Report.Output
 			}
 			env.saveDebugFile(current.Hash, i, output)
-		case *instance.CrashError:
-			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
-			output := err.Report.Report
+		case errors.As(res.Error, &crashError):
+			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", crashError))
+			output := crashError.Report.Report
 			if len(output) == 0 {
-				output = err.Report.Output
+				output = crashError.Report.Output
 			}
 			env.saveDebugFile(current.Hash, i, output)
-			if env.isTransientError(err.Report) {
-				verdicts = append(verdicts, fmt.Sprintf("ignore: %v", err))
+			if env.isTransientError(crashError.Report) {
+				verdicts = append(verdicts, fmt.Sprintf("ignore: %v", crashError))
 				break
 			}
 			bad++
-			reports = append(reports, err.Report)
-			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
+			reports = append(reports, crashError.Report)
+			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", crashError))
 		default:
 			infra++
-			verdicts = append(verdicts, fmt.Sprintf("failed: %v", err))
+			verdicts = append(verdicts, fmt.Sprintf("failed: %v", res.Error))
 		}
 	}
 	unique := make(map[string]bool)

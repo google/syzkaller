@@ -50,7 +50,8 @@ func handleContext(fn contextHandler) http.Handler {
 				http.Error(w, "403 Forbidden", http.StatusForbidden)
 				return
 			}
-			if redir, ok := err.(ErrRedirect); ok {
+			var redir *ErrRedirect
+			if errors.As(err, &redir) {
 				http.Redirect(w, r, redir.Error(), http.StatusFound)
 				return
 			}
@@ -201,7 +202,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			ns = adminPage
 		}
 		if ns != adminPage || !isAdminPage {
-			return nil, ErrRedirect{fmt.Errorf("/%v", ns)}
+			return nil, &ErrRedirect{fmt.Errorf("/%v", ns)}
 		}
 	}
 	if ns != adminPage {

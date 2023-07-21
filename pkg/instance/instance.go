@@ -7,6 +7,7 @@ package instance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -305,7 +306,8 @@ func (inst *inst) test() EnvTestResult {
 		ret := EnvTestResult{
 			Error: testErr,
 		}
-		if bootErr, ok := err.(vm.BootErrorer); ok {
+		var bootErr vm.BootErrorer
+		if errors.As(err, &bootErr) {
 			testErr.Title, testErr.Output = bootErr.BootError()
 			ret.RawOutput = testErr.Output
 			rep := inst.reporter.Parse(testErr.Output)
@@ -327,7 +329,8 @@ func (inst *inst) test() EnvTestResult {
 			testErr.Title = rep.Title
 		} else {
 			testErr.Infra = true
-			if infraErr, ok := err.(vm.InfraErrorer); ok {
+			var infraErr vm.InfraErrorer
+			if errors.As(err, &infraErr) {
 				// In case there's more info available.
 				testErr.Title, testErr.Output = infraErr.InfraError()
 			}

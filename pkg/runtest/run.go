@@ -13,6 +13,7 @@ package runtest
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -691,7 +692,8 @@ func runTestC(req *RunRequest) {
 	// Tell ASAN to not mess with our NONFAILING.
 	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
 	req.Output, req.Err = osutil.Run(20*time.Second, cmd)
-	if verr, ok := req.Err.(*osutil.VerboseError); ok {
+	var verr *osutil.VerboseError
+	if errors.As(req.Err, &verr) {
 		// The process can legitimately do something like exit_group(1).
 		// So we ignore the error and rely on the rest of the checks (e.g. syscall return values).
 		req.Err = nil

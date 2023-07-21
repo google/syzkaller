@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -107,8 +108,8 @@ func (c *Ctx) expectFailureStatus(err error, code int) {
 	if err == nil {
 		c.t.Fatalf("expected to fail as %d, but it does not", code)
 	}
-	httpErr, ok := err.(*HTTPError)
-	if !ok || httpErr.Code != code {
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) || httpErr.Code != code {
 		c.t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
 	}
 }
