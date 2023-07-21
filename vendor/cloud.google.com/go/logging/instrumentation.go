@@ -17,8 +17,8 @@ package logging
 import (
 	"strings"
 
+	logpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"cloud.google.com/go/logging/internal"
-	logpb "google.golang.org/genproto/googleapis/logging/v2"
 )
 
 const diagnosticLogID = "diagnostic-log"
