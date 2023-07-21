@@ -22,7 +22,7 @@ cloud.google.com/go/compute/metadata
 ## explicit; go 1.19
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
-# cloud.google.com/go/logging v1.6.1
+# cloud.google.com/go/logging v1.7.0
 ## explicit; go 1.19
 cloud.google.com/go/logging
 cloud.google.com/go/logging/apiv2
@@ -970,7 +970,7 @@ google.golang.org/appengine/v2/log
 google.golang.org/appengine/v2/mail
 google.golang.org/appengine/v2/memcache
 google.golang.org/appengine/v2/user
-# google.golang.org/genproto v0.0.0-20230221151758-ace64dc21148
+# google.golang.org/genproto v0.0.0-20230222225845-10f96fb3dbec
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -983,7 +983,6 @@ google.golang.org/genproto/googleapis/cloud/audit
 google.golang.org/genproto/googleapis/devtools/cloudprofiler/v2
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/logging/type
-google.golang.org/genproto/googleapis/logging/v2
 google.golang.org/genproto/googleapis/longrunning
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context/attribute_context

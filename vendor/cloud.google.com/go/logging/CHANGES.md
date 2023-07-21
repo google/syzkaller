@@ -1,5 +1,20 @@
 # Changes
 
+## [1.7.0](https://github.com/googleapis/google-cloud-go/compare/logging/v1.6.1...logging/v1.7.0) (2023-02-27)
+
+
+### Features
+
+* **logging:** Add (*Logger). StandardLoggerFromTemplate() method. ([#7261](https://github.com/googleapis/google-cloud-go/issues/7261)) ([533ecbb](https://github.com/googleapis/google-cloud-go/commit/533ecbb19a2833e667ad139a6604fd40dfb43cdc))
+* **logging:** Add REST client ([06a54a1](https://github.com/googleapis/google-cloud-go/commit/06a54a16a5866cce966547c51e203b9e09a25bc0))
+* **logging:** Rewrite signatures and type in terms of new location ([620e6d8](https://github.com/googleapis/google-cloud-go/commit/620e6d828ad8641663ae351bfccfe46281e817ad))
+
+
+### Bug Fixes
+
+* **logging:** Correctly populate SourceLocation when logging via (*Logger).StandardLogger ([#7320](https://github.com/googleapis/google-cloud-go/issues/7320)) ([1a0bd13](https://github.com/googleapis/google-cloud-go/commit/1a0bd13b88569826f4ee6528e9cdb59fd26914fa))
+* **logging:** Fix typo in README.md ([#7297](https://github.com/googleapis/google-cloud-go/issues/7297)) ([82aa2ee](https://github.com/googleapis/google-cloud-go/commit/82aa2ee9381f793bd731f1b6789fc18e4b671bd7))
+
 ## [1.6.1](https://github.com/googleapis/google-cloud-go/compare/logging/v1.6.0...logging/v1.6.1) (2022-12-02)
 
 
