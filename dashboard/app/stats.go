@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
+	"google.golang.org/appengine"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -157,6 +158,16 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 		if err := getAllMulti(c, crashKeys, func(i, j int) interface{} {
 			return crashes[i:j]
 		}); err != nil {
+			multi, ok := err.(appengine.MultiError)
+			if ok {
+				for i, err := range multi {
+					if err != nil {
+						return nil, fmt.Errorf("#%d, bug %s, crash %s: %w",
+							i, bugs[i].displayTitle(), crashKeys[i], err)
+					}
+				}
+			}
+
 			return nil, fmt.Errorf("failed to fetch crashes: %w", err)
 		}
 		for i, crash := range crashes {
