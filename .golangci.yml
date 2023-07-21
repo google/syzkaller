@@ -40,6 +40,7 @@ linters:
     - dupl
     - staticcheck
     - syz-linter
+    - errorlint
   disable:
     - bodyclose
     - depguard
@@ -96,6 +97,8 @@ linters-settings:
   custom:
     syz-linter:
       path: bin/syz-linter.so
+  errorlint:
+    comparison: false # we want to use "err == iterator.Done"
 
 issues:
   exclude-use-default: false
