@@ -123,7 +123,7 @@ func Complete(cfg *Config) error {
 	if cfg.WorkdirTemplate != "" {
 		cfg.WorkdirTemplate = osutil.Abs(cfg.WorkdirTemplate)
 		if _, err := os.ReadDir(cfg.WorkdirTemplate); err != nil {
-			return fmt.Errorf("failed to read workdir_template: %v", err)
+			return fmt.Errorf("failed to read workdir_template: %w", err)
 		}
 	}
 	if cfg.Image != "" {

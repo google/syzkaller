@@ -120,7 +120,7 @@ type kconfigParser struct {
 func Parse(target *targets.Target, file string) (*KConfig, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open Kconfig file %v: %v", file, err)
+		return nil, fmt.Errorf("failed to open Kconfig file %v: %w", file, err)
 	}
 	return ParseData(target, data, file)
 }

@@ -149,18 +149,18 @@ type Manager struct {
 func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create instance: %v", err)
+		return nil, fmt.Errorf("failed to create instance: %w", err)
 	}
 	defer inst.Close()
 
 	fwdAddr, err := inst.Forward(mgr.port)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
+		return nil, fmt.Errorf("failed to setup port forwarding: %w", err)
 	}
 
 	fuzzerBin, err := inst.Copy(mgr.cfg.FuzzerBin)
 	if err != nil {
-		return nil, fmt.Errorf("failed to copy binary: %v", err)
+		return nil, fmt.Errorf("failed to copy binary: %w", err)
 	}
 
 	// If SyzExecutorCmd is provided, it means that syz-executor is already in
@@ -169,7 +169,7 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	if executorBin == "" {
 		executorBin, err = inst.Copy(mgr.cfg.ExecutorBin)
 		if err != nil {
-			return nil, fmt.Errorf("failed to copy binary: %v", err)
+			return nil, fmt.Errorf("failed to copy binary: %w", err)
 		}
 	}
 	args := &instance.FuzzerCmdArgs{
@@ -194,7 +194,7 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
+		return nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
 	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitNormal)
 	return rep, nil

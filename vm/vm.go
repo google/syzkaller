@@ -132,7 +132,7 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 	}
 	workdir, err := osutil.ProcessTempDir(pool.workdir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
+		return nil, fmt.Errorf("failed to create instance temp dir: %w", err)
 	}
 	if pool.template != "" {
 		if err := osutil.CopyDirRecursively(pool.template, filepath.Join(workdir, "template")); err != nil {

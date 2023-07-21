@@ -442,7 +442,7 @@ func (ad *crashAssetDeprecator) bugStatusPolicy(crashKey *db.Key, crashAsset *As
 	bug := new(Bug)
 	err := db.Get(ad.c, bugKey, bug)
 	if err != nil {
-		return false, fmt.Errorf("failed to query bug: %s", err)
+		return false, fmt.Errorf("failed to query bug: %w", err)
 	}
 	return bug.Status == BugStatusOpen ||
 		bug.Closed.After(timeNow(ad.c).Add(-keepAssetsForClosedBugs)), nil

@@ -55,7 +55,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Count: 1,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 128 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
@@ -100,7 +100,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	bin, err := exec.LookPath(os.Args[0])
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup %v: %v", os.Args[0], err)
+		return nil, fmt.Errorf("failed to lookup %v: %w", os.Args[0], err)
 	}
 	if err := osutil.CopyFile(bin, filepath.Join(imageDir, "init")); err != nil {
 		return nil, err

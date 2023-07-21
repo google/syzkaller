@@ -96,7 +96,7 @@ func getModuleName(path string) (string, error) {
 	}
 	data, err := section.Data()
 	if err != nil {
-		return "", fmt.Errorf("failed to read .modinfo: %v", err)
+		return "", fmt.Errorf("failed to read .modinfo: %w", err)
 	}
 	if name := searchModuleName(data); name != "" {
 		return name, nil
@@ -107,7 +107,7 @@ func getModuleName(path string) (string, error) {
 	}
 	data, err = section.Data()
 	if err != nil {
-		return "", fmt.Errorf("failed to read .gnu.linkonce.this_module: %v", err)
+		return "", fmt.Errorf("failed to read .gnu.linkonce.this_module: %w", err)
 	}
 	return string(data), nil
 }

@@ -101,12 +101,12 @@ func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig json.Ra
 	repo := vcs.NewSyzkallerRepo(checkout.Path)
 	commit, err := repo.Poll(config.Repo, config.Branch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to checkout %s (%s): %s", config.Repo, config.Branch, err)
+		return nil, fmt.Errorf("failed to checkout %s (%s): %w", config.Repo, config.Branch, err)
 	}
 	log.Printf("[%s] Done. Latest commit: %s", checkout.Name, commit)
 	log.Printf("[%s] Building", checkout.Name)
 	if _, err := osutil.RunCmd(time.Hour, checkout.Path, syz_instance.MakeBin); err != nil {
-		return nil, fmt.Errorf("[%s] Make failed: %s", checkout.Name, err)
+		return nil, fmt.Errorf("[%s] Make failed: %w", checkout.Name, err)
 	}
 	return checkout, nil
 }

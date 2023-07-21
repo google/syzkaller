@@ -74,7 +74,7 @@ func Make(dir string) (*State, error) {
 	osutil.MkdirAll(managersDir)
 	managers, err := os.ReadDir(managersDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v dir: %v", managersDir, err)
+		return nil, fmt.Errorf("failed to read %v dir: %w", managersDir, err)
 	}
 	for _, manager := range managers {
 		_, err := st.createManager(manager.Name())
@@ -103,7 +103,7 @@ func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file, true)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to open %v database: %v", name, err)
+		return nil, 0, fmt.Errorf("failed to open %v database: %w", name, err)
 	}
 	log.Logf(0, "read %v programs", len(db.Records))
 	var maxSeq uint64
@@ -131,7 +131,7 @@ func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 		}
 	}
 	if err := db.Flush(); err != nil {
-		return nil, 0, fmt.Errorf("failed to flush corpus database: %v", err)
+		return nil, 0, fmt.Errorf("failed to flush corpus database: %w", err)
 	}
 	return db, maxSeq, nil
 }
@@ -162,7 +162,7 @@ func (st *State) createManager(name string) (*Manager, error) {
 	mgr.Domain = string(domainData)
 	corpus, _, err := loadDB(mgr.corpusFile, name, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open manager corpus %v: %v", mgr.corpusFile, err)
+		return nil, fmt.Errorf("failed to open manager corpus %v: %w", mgr.corpusFile, err)
 	}
 	mgr.Corpus = corpus
 	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
@@ -276,7 +276,7 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 		}
 		calls, _, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
+			return nil, fmt.Errorf("failed to extract call set: %w\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue
@@ -316,7 +316,7 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 		}
 		calls, _, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, 0, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
+			return nil, 0, fmt.Errorf("failed to extract call set: %w\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue

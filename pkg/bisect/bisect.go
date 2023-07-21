@@ -246,7 +246,7 @@ func (env *env) bisect() (*Result, error) {
 	cfg := env.cfg
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
-		return nil, fmt.Errorf("kernel clean failed: %v", err)
+		return nil, fmt.Errorf("kernel clean failed: %w", err)
 	}
 	env.log("building syzkaller on %v", cfg.Syzkaller.Commit)
 	if _, err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
@@ -579,7 +579,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	buildStart := time.Now()
 	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
-		return current, "", fmt.Errorf("kernel clean failed: %v", err)
+		return current, "", fmt.Errorf("kernel clean failed: %w", err)
 	}
 	kern := &env.cfg.Kernel
 	_, imageDetails, err := env.inst.BuildKernel(&instance.BuildKernelConfig{
@@ -618,7 +618,7 @@ func (env *env) test() (*testResult, error) {
 	}
 	if current == nil {
 		// This is not recoverable, as the caller must know which commit to skip.
-		return res, fmt.Errorf("couldn't get repo HEAD: %v", err)
+		return res, fmt.Errorf("couldn't get repo HEAD: %w", err)
 	}
 	if err != nil {
 		errInfo := fmt.Sprintf("failed building %v: ", current.Hash)

@@ -91,7 +91,7 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 			bug.KcidbStatus = 2
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}

@@ -70,7 +70,7 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 			}
 		}
 		if !tryAgain {
-			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%v\n%s",
+			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%w\n%s",
 				cc, args, err, out)
 		}
 		data.Values = nil
@@ -121,7 +121,7 @@ type CompileData struct {
 func compile(cc string, args []string, data *CompileData) (string, []byte, error) {
 	src := new(bytes.Buffer)
 	if err := srcTemplate.Execute(src, data); err != nil {
-		return "", nil, fmt.Errorf("failed to generate source: %v", err)
+		return "", nil, fmt.Errorf("failed to generate source: %w", err)
 	}
 	binFile, err := osutil.TempFile("syz-extract-bin")
 	if err != nil {
@@ -147,7 +147,7 @@ func compile(cc string, args []string, data *CompileData) (string, []byte, error
 func extractFromExecutable(binFile string) ([]uint64, error) {
 	out, err := osutil.Command(binFile).CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to run flags binary: %v\n%s", err, out)
+		return nil, fmt.Errorf("failed to run flags binary: %w\n%s", err, out)
 	}
 	if len(out) == 0 {
 		return nil, nil
@@ -156,7 +156,7 @@ func extractFromExecutable(binFile string) ([]uint64, error) {
 	for _, val := range strings.Split(string(out), " ") {
 		n, err := strconv.ParseUint(val, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse value: %v (%v)", err, val)
+			return nil, fmt.Errorf("failed to parse value: %w (%v)", err, val)
 		}
 		vals = append(vals, n)
 	}

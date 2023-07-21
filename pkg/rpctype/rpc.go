@@ -23,7 +23,7 @@ type RPCServer struct {
 func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to listen on %v: %v", addr, err)
+		return nil, fmt.Errorf("failed to listen on %v: %w", addr, err)
 	}
 	s := rpc.NewServer()
 	if err := s.RegisterName(name, receiver); err != nil {

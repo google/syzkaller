@@ -754,7 +754,7 @@ func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug
 				break
 			}
 			if err != nil {
-				return fmt.Errorf("failed to fetch bugs: %v", err)
+				return fmt.Errorf("failed to fetch bugs: %w", err)
 			}
 			if err := fn(bug, key); err != nil {
 				return err
@@ -762,7 +762,7 @@ func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug
 		}
 		cur, err := iter.Cursor()
 		if err != nil {
-			return fmt.Errorf("cursor failed while fetching bugs: %v", err)
+			return fmt.Errorf("cursor failed while fetching bugs: %w", err)
 		}
 		cursor = &cur
 	}
@@ -879,7 +879,7 @@ func checkDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey, du
 	*Bug, bool, string, error) {
 	dup := new(Bug)
 	if err := db.Get(c, dupKey, dup); err != nil {
-		return nil, false, internalError, fmt.Errorf("can't find the dup by key: %v", err)
+		return nil, false, internalError, fmt.Errorf("can't find the dup by key: %w", err)
 	}
 	bugReporting, _ := bugReportingByID(bug, cmd.ID)
 	dupReporting, _ := bugReportingByID(dup, cmd.DupOf)
@@ -906,7 +906,7 @@ func checkDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey, du
 	}
 	dupCanon, err := canonicalBug(c, dup)
 	if err != nil {
-		return nil, false, internalError, fmt.Errorf("failed to get canonical bug for dup: %v", err)
+		return nil, false, internalError, fmt.Errorf("failed to get canonical bug for dup: %w", err)
 	}
 	if !dupReporting.Closed.IsZero() && dupCanon.Status == BugStatusOpen {
 		return nil, false, "Dup bug is already upstreamed.", nil
@@ -956,7 +956,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	bool, string, error) {
 	bug := new(Bug)
 	if err := db.Get(c, bugKey, bug); err != nil {
-		return false, internalError, fmt.Errorf("can't find the corresponding bug: %v", err)
+		return false, internalError, fmt.Errorf("can't find the corresponding bug: %w", err)
 	}
 	var dup *Bug
 	if cmd.Status == dashapi.BugStatusDup {
@@ -975,7 +975,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		return ok, reason, err
 	}
 	if _, err := db.Put(c, bugKey, bug); err != nil {
-		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
+		return false, internalError, fmt.Errorf("failed to put bug: %w", err)
 	}
 	if err := saveReportingState(c, state); err != nil {
 		return false, internalError, err
@@ -1160,7 +1160,7 @@ func findBugByReportingID(c context.Context, id string) (*Bug, *db.Key, error) {
 		Limit(2).
 		GetAll(c, &bugs)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to fetch bugs: %v", err)
+		return nil, nil, fmt.Errorf("failed to fetch bugs: %w", err)
 	}
 	if len(bugs) == 0 {
 		return nil, nil, fmt.Errorf("failed to find bug by reporting id %q", id)
@@ -1183,7 +1183,7 @@ func findDupByTitle(c context.Context, ns, title string) (*Bug, *db.Key, error) 
 		if err == db.ErrNoSuchEntity {
 			return nil, nil, nil // This is not really an error, we should notify the user instead.
 		}
-		return nil, nil, fmt.Errorf("failed to get dup: %v", err)
+		return nil, nil, fmt.Errorf("failed to get dup: %w", err)
 	}
 	return bug, bugKey, nil
 }
@@ -1299,7 +1299,7 @@ func loadReportingState(c context.Context) (*ReportingState, error) {
 	state := new(ReportingState)
 	key := db.NewKey(c, "ReportingState", "", 1, nil)
 	if err := db.Get(c, key, state); err != nil && err != db.ErrNoSuchEntity {
-		return nil, fmt.Errorf("failed to get reporting state: %v", err)
+		return nil, fmt.Errorf("failed to get reporting state: %w", err)
 	}
 	return state, nil
 }
@@ -1307,7 +1307,7 @@ func loadReportingState(c context.Context) (*ReportingState, error) {
 func saveReportingState(c context.Context, state *ReportingState) error {
 	key := db.NewKey(c, "ReportingState", "", 1, nil)
 	if _, err := db.Put(c, key, state); err != nil {
-		return fmt.Errorf("failed to put reporting state: %v", err)
+		return fmt.Errorf("failed to put reporting state: %w", err)
 	}
 	return nil
 }
@@ -1390,7 +1390,7 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 	for _, crash := range crashes {
 		rep, err := crashBugReport(c, bug, crash.crash, crash.key, bugReporting, reporting)
 		if err != nil {
-			return nil, fmt.Errorf("crash %d: %e", crash.key.IntID(), err)
+			return nil, fmt.Errorf("crash %d: %w", crash.key.IntID(), err)
 		}
 		ret.Crashes = append(ret.Crashes, rep)
 	}
@@ -1460,7 +1460,7 @@ func representativeCrashes(c context.Context, bugKey *db.Key) ([]*crashWithKey, 
 			Limit(1).
 			GetAll(c, &crashes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch the latest crash: %v", err)
+			return nil, fmt.Errorf("failed to fetch the latest crash: %w", err)
 		}
 		if len(crashes) > 0 {
 			recentCrash = &crashWithKey{crashes[0], keys[0]}

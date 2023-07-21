@@ -48,7 +48,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	//	3776 | #if not SYZ_SANDBOX_ANDROID
 	// Potentially we could analyze errors manually and ignore only the expected ones.
 	if err := cmd.Run(); len(stdout.Bytes()) == 0 {
-		return nil, fmt.Errorf("cpp failed: %v %v: %v\n%v\n%v", cmd.Path, cmd.Args, err, stdout.String(), stderr.String())
+		return nil, fmt.Errorf("cpp failed: %v %v: %w\n%v\n%v", cmd.Path, cmd.Args, err, stdout.String(), stderr.String())
 	}
 
 	src, err := removeSystemDefines(stdout.Bytes(), defines)

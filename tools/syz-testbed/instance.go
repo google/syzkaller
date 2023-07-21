@@ -42,7 +42,7 @@ func (inst *InstanceCommon) Run() error {
 	if inst.LogFile != "" {
 		logfile, err := os.Create(inst.LogFile)
 		if err != nil {
-			return fmt.Errorf("[%s] failed to create logfile: %s", inst.Name, err)
+			return fmt.Errorf("[%s] failed to create logfile: %w", inst.Name, err)
 		}
 		cmd.Stdout = logfile
 		cmd.Stderr = logfile
@@ -120,7 +120,7 @@ func (inst *SyzManagerInstance) Run() error {
 	case err := <-ret:
 		// Syz-managers are not supposed to stop themselves under normal circumstances.
 		// If one of them did stop, there must have been a very good reason to do so.
-		return fmt.Errorf("[%s] stopped: %v", inst.Name, err)
+		return fmt.Errorf("[%s] stopped: %w", inst.Name, err)
 	case <-time.After(inst.RunTime):
 		inst.Stop()
 		<-ret
@@ -153,7 +153,7 @@ func SetupSyzkallerInstance(mgrName, folder string, checkout *Checkout) (*Syzkal
 	}
 	err = osutil.WriteFile(cfgFile, managerCfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save manager config to %s: %s", cfgFile, err)
+		return nil, fmt.Errorf("failed to save manager config to %s: %w", cfgFile, err)
 	}
 	return &SyzkallerInfo{
 		Workdir:   workdir,
@@ -173,7 +173,7 @@ func (t *SyzManagerTarget) newSyzManagerInstance(slotName, uniqName string, chec
 		corpusPath := filepath.Join(common.Workdir, "corpus.db")
 		err = osutil.CopyFile(t.config.Corpus, corpusPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to copy corpus from %s: %s", t.config.Corpus, err)
+			return nil, fmt.Errorf("failed to copy corpus from %s: %w", t.config.Corpus, err)
 		}
 	}
 	return &SyzManagerInstance{

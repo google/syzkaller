@@ -945,7 +945,7 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 	if req != nil {
 		data, err := json.Marshal(req)
 		if err != nil {
-			return fmt.Errorf("failed to marshal request: %v", err)
+			return fmt.Errorf("failed to marshal request: %w", err)
 		}
 		buf := new(bytes.Buffer)
 		gz := gzip.NewWriter(buf)
@@ -964,7 +964,7 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := dash.doer(r)
 	if err != nil {
-		return fmt.Errorf("http request failed: %v", err)
+		return fmt.Errorf("http request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -973,7 +973,7 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 	}
 	if reply != nil {
 		if err := json.NewDecoder(resp.Body).Decode(reply); err != nil {
-			return fmt.Errorf("failed to unmarshal response: %v", err)
+			return fmt.Errorf("failed to unmarshal response: %w", err)
 		}
 	}
 	return nil

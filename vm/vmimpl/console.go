@@ -18,7 +18,7 @@ import (
 func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	fd, err := syscall.Open(con, syscall.O_RDONLY|syscall.O_NOCTTY|syscall.O_SYNC, 0)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open console file: %v", err)
+		return nil, fmt.Errorf("failed to open console file: %w", err)
 	}
 	defer func() {
 		if fd != -1 {
@@ -27,7 +27,7 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	}()
 	term, err := unix.IoctlGetTermios(fd, syscallTCGETS)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get console termios: %v", err)
+		return nil, fmt.Errorf("failed to get console termios: %w", err)
 	}
 	// No parity bit, only need 1 stop bit, no hardware flowcontrol,
 	term.Cflag &^= unixCBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unixCRTSCTS
@@ -41,7 +41,7 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	term.Cc[unix.VMIN] = 0
 	term.Cc[unix.VTIME] = 10 // 1 second timeout
 	if err = unix.IoctlSetTermios(fd, syscallTCSETS, term); err != nil {
-		return nil, fmt.Errorf("failed to get console termios: %v", err)
+		return nil, fmt.Errorf("failed to get console termios: %w", err)
 	}
 	tmp := fd
 	fd = -1
@@ -95,7 +95,7 @@ func OpenRemoteKernelLog(ip, console string) (rc io.ReadCloser, err error) {
 	if err := cmd.Start(); err != nil {
 		rpipe.Close()
 		wpipe.Close()
-		return nil, fmt.Errorf("failed to connect to console server: %v", err)
+		return nil, fmt.Errorf("failed to connect to console server: %w", err)
 	}
 	wpipe.Close()
 	con := &remoteCon{
@@ -118,7 +118,7 @@ func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error)
 	if err := cmd.Start(); err != nil {
 		rpipe.Close()
 		wpipe.Close()
-		return nil, fmt.Errorf("failed to start adb: %v", err)
+		return nil, fmt.Errorf("failed to start adb: %w", err)
 	}
 	wpipe.Close()
 	con := &remoteCon{

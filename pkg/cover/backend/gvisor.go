@@ -111,7 +111,7 @@ func gvisorParseLine(s *bufio.Scanner) (Frame, error) {
 	for i := range ints {
 		x, err := strconv.ParseUint(match[i+3], 0, 32)
 		if err != nil {
-			return Frame{}, fmt.Errorf("failed to parse number %q: %v", match[i+3], err)
+			return Frame{}, fmt.Errorf("failed to parse number %q: %w", match[i+3], err)
 		}
 		ints[i] = int(x)
 	}

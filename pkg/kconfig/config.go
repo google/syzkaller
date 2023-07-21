@@ -107,7 +107,7 @@ func (cf *ConfigFile) Serialize() []byte {
 func ParseConfig(file string) (*ConfigFile, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open .config file %v: %v", file, err)
+		return nil, fmt.Errorf("failed to open .config file %v: %w", file, err)
 	}
 	return ParseConfigData(data, file)
 }

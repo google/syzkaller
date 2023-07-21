@@ -64,7 +64,7 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	}
 	allSymbols, err := file.Symbols()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read ELF symbols: %v", err)
+		return nil, fmt.Errorf("failed to read ELF symbols: %w", err)
 	}
 	if module.Name == "" {
 		info.textAddr = text.Addr
@@ -121,7 +121,7 @@ func elfReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
 			log.Logf(0, "ignoring module %v without DEBUG_INFO", module.Name)
 			return nil, nil, nil
 		}
-		return nil, nil, fmt.Errorf("failed to parse DWARF: %v (set CONFIG_DEBUG_INFO=y on linux)", err)
+		return nil, nil, fmt.Errorf("failed to parse DWARF: %w (set CONFIG_DEBUG_INFO=y on linux)", err)
 	}
 
 	var pcFix pcFixFn

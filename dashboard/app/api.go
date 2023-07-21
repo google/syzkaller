@@ -146,14 +146,14 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	if str := r.PostFormValue("payload"); str != "" {
 		gr, err := gzip.NewReader(strings.NewReader(str))
 		if err != nil {
-			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
+			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
 		}
 		payload, err = io.ReadAll(gr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
+			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
 		}
 		if err := gr.Close(); err != nil {
-			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
+			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
 		}
 	}
 	handler := apiHandlers[method]
@@ -173,7 +173,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 func apiLogError(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.LogEntry)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	log.Errorf(c, "%v: %v", req.Name, req.Text)
 	return nil, nil
@@ -182,7 +182,7 @@ func apiLogError(c context.Context, r *http.Request, payload []byte) (interface{
 func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.BuilderPollReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
@@ -249,7 +249,7 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 		Limit(100).
 		GetAll(c, &bugs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %v", err)
+		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
 	commits := make(map[string]bool)
 	for _, bug := range bugs {
@@ -266,7 +266,7 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 func apiUploadCommits(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.CommitPollResultReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	// This adds fixing commits to bugs.
 	err := addCommitsToBugs(c, ns, "", nil, req.Commits)
@@ -292,7 +292,7 @@ func addCommitInfo(c context.Context, ns string, com dashapi.Commit) error {
 		Filter("Commits=", com.Title).
 		GetAll(c, &bugs)
 	if err != nil {
-		return fmt.Errorf("failed to query bugs: %v", err)
+		return fmt.Errorf("failed to query bugs: %w", err)
 	}
 	for i, bug := range bugs {
 		if err := addCommitInfoToBug(c, bug, keys[i], com); err != nil {
@@ -311,7 +311,7 @@ func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *db.Key, com dashapi
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
+			return fmt.Errorf("failed to get bug %v: %w", bugKey.StringID(), err)
 		}
 		if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
 			return err
@@ -319,7 +319,7 @@ func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *db.Key, com dashapi
 			return nil
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
@@ -365,7 +365,7 @@ func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bo
 func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.JobPollReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	if len(req.Managers) == 0 {
 		return nil, fmt.Errorf("no managers")
@@ -377,7 +377,7 @@ func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}
 func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.JobDoneReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	err := doneJob(c, req)
 	return nil, err
@@ -387,7 +387,7 @@ func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}
 func apiJobReset(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.JobResetReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	err := resetJobs(c, req)
 	return nil, err
@@ -396,7 +396,7 @@ func apiJobReset(c context.Context, r *http.Request, payload []byte) (interface{
 func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.Build)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
 	_, isNewBuild, err := uploadBuild(c, now, ns, req, BuildNormal)
@@ -591,7 +591,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixC
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
+			return fmt.Errorf("failed to get bug %v: %w", bugKey.StringID(), err)
 		}
 		if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, false) {
 			return nil
@@ -616,7 +616,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixC
 			}
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
@@ -650,7 +650,7 @@ func managerList(c context.Context, ns string) ([]string, error) {
 		Distinct().
 		GetAll(c, &builds)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query builds: %v", err)
+		return nil, fmt.Errorf("failed to query builds: %w", err)
 	}
 	configManagers := config.Namespaces[ns].Managers
 	var managers []string
@@ -666,7 +666,7 @@ func managerList(c context.Context, ns string) ([]string, error) {
 func apiReportBuildError(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.BuildErrorReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
 	build, _, err := uploadBuild(c, now, ns, &req.Build, BuildFailed)
@@ -700,7 +700,7 @@ const (
 func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.Crash)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	build, err := loadBuild(c, ns, req.BuildID)
 	if err != nil {
@@ -787,7 +787,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	tx := func(c context.Context) error {
 		bug = new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		bug.LastTime = now
 		if save {
@@ -816,7 +816,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		bug.MergedTitles = mergeString(bug.MergedTitles, req.Title)
 		bug.AltTitles = mergeStringList(bug.AltTitles, req.AltTitles)
 		if _, err = db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
@@ -897,7 +897,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 	crash.UpdateReportingPriority(c, build, bug)
 	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
 	if _, err = db.Put(c, crashKey, crash); err != nil {
-		return fmt.Errorf("failed to put crash: %v", err)
+		return fmt.Errorf("failed to put crash: %w", err)
 	}
 	return nil
 }
@@ -983,7 +983,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.CrashID)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted, req.Suppressed)
 
@@ -999,12 +999,12 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
@@ -1018,7 +1018,7 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.CrashID)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	if req.Corrupted {
 		resp := &dashapi.NeedReproResp{
@@ -1070,7 +1070,7 @@ func normalizeCrashTitle(title string) string {
 func apiManagerStats(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.ManagerStatsReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
 	err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
@@ -1104,7 +1104,7 @@ func apiBugList(c context.Context, ns string, r *http.Request, payload []byte) (
 		KeysOnly().
 		GetAll(c, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %v", err)
+		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
 	resp := &dashapi.BugListResp{}
 	for _, key := range keys {
@@ -1116,12 +1116,12 @@ func apiBugList(c context.Context, ns string, r *http.Request, payload []byte) (
 func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.UpdateReportReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bug := new(Bug)
 	bugKey := db.NewKey(c, "Bug", req.BugID, 0, nil)
 	if err := db.Get(c, bugKey, bug); err != nil {
-		return nil, fmt.Errorf("failed to get bug: %v", err)
+		return nil, fmt.Errorf("failed to get bug: %w", err)
 	}
 	if bug.Namespace != ns {
 		return nil, fmt.Errorf("no such bug")
@@ -1130,13 +1130,13 @@ func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []by
 		crash := new(Crash)
 		crashKey := db.NewKey(c, "Crash", "", req.CrashID, bugKey)
 		if err := db.Get(c, crashKey, crash); err != nil {
-			return fmt.Errorf("failed to query the crash: %v", err)
+			return fmt.Errorf("failed to query the crash: %w", err)
 		}
 		if req.GuiltyFiles != nil {
 			crash.ReportElements.GuiltyFiles = *req.GuiltyFiles
 		}
 		if _, err := db.Put(c, crashKey, crash); err != nil {
-			return fmt.Errorf("failed to put reported crash: %v", err)
+			return fmt.Errorf("failed to put reported crash: %w", err)
 		}
 		return nil
 	}
@@ -1146,12 +1146,12 @@ func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []by
 func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.LoadBugReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bug := new(Bug)
 	bugKey := db.NewKey(c, "Bug", req.ID, 0, nil)
 	if err := db.Get(c, bugKey, bug); err != nil {
-		return nil, fmt.Errorf("failed to get bug: %v", err)
+		return nil, fmt.Errorf("failed to get bug: %w", err)
 	}
 	if bug.Namespace != ns {
 		return nil, fmt.Errorf("no such bug")
@@ -1162,7 +1162,7 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (
 func apiLoadFullBug(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.LoadFullBugReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bug, bugKey, err := findBugByReportingID(c, req.BugID)
 	if err != nil {
@@ -1192,7 +1192,7 @@ func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 func apiAddBuildAssets(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.AddBuildAssetsReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	assets := []Asset{}
 	for i, toAdd := range req.Assets {
@@ -1237,7 +1237,7 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 		Filter("MergedTitles=", titles[0]).
 		GetAll(c, &bugs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %v", err)
+		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
 	// We can find bugs with different bug.Title and uncomparable bug.Seq's.
 	// But there should be only one active bug for each crash title,
@@ -1263,7 +1263,7 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 			Limit(1).
 			GetAll(c, &bugs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to query bugs: %v", err)
+			return nil, fmt.Errorf("failed to query bugs: %w", err)
 		}
 		if len(bugs) != 0 {
 			bug := bugs[0]
@@ -1292,7 +1292,7 @@ func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error
 			Filter("AltTitles=", title).
 			GetAll(c, &bugs1)
 		if err != nil {
-			return nil, fmt.Errorf("failed to query bugs: %v", err)
+			return nil, fmt.Errorf("failed to query bugs: %w", err)
 		}
 		bugs = append(bugs, bugs1...)
 	}
@@ -1347,7 +1347,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 			bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
 			if err := db.Get(c, bugKey, bug); err != nil {
 				if err != db.ErrNoSuchEntity {
-					return fmt.Errorf("failed to get bug: %v", err)
+					return fmt.Errorf("failed to get bug: %w", err)
 				}
 				bug = &Bug{
 					Namespace:      ns,
@@ -1369,7 +1369,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					return err
 				}
 				if _, err = db.Put(c, bugKey, bug); err != nil {
-					return fmt.Errorf("failed to put new bug: %v", err)
+					return fmt.Errorf("failed to put new bug: %w", err)
 				}
 				return nil
 			}
@@ -1493,15 +1493,15 @@ func getText(c context.Context, tag string, id int64) ([]byte, string, error) {
 	}
 	text := new(Text)
 	if err := db.Get(c, db.NewKey(c, tag, "", id, nil), text); err != nil {
-		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
+		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
 	}
 	d, err := gzip.NewReader(bytes.NewBuffer(text.Text))
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
+		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
 	}
 	data, err := io.ReadAll(d)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
+		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
 	}
 	return data, text.Namespace, nil
 }
@@ -1576,7 +1576,7 @@ func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 func apiSaveDiscussion(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.SaveDiscussionReq)
 	if err := json.Unmarshal(payload, req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	d := req.Discussion
 	newBugIDs := []string{}

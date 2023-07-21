@@ -104,7 +104,7 @@ func covFilterAddRawPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
 	for _, f := range rawPCsFiles {
 		rawFile, err := os.Open(f)
 		if err != nil {
-			return fmt.Errorf("failed to open raw PCs file: %v", err)
+			return fmt.Errorf("failed to open raw PCs file: %w", err)
 		}
 		defer rawFile.Close()
 		s := bufio.NewScanner(rawFile)
@@ -180,7 +180,7 @@ func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
 	for _, rs := range regexpStrings {
 		r, err := regexp.Compile(rs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
 		}
 		regexps = append(regexps, r)
 	}

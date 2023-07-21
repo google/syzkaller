@@ -630,7 +630,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	case "":
 	case "memcache_flush":
 		if err := memcache.Flush(c); err != nil {
-			return fmt.Errorf("failed to flush memcache: %v", err)
+			return fmt.Errorf("failed to flush memcache: %w", err)
 		}
 	case "invalidate_bisection":
 		return handleInvalidateBisection(c, w, r)
@@ -669,7 +669,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if r.FormValue("job_type") != "" {
 		value, err := strconv.Atoi(r.FormValue("job_type"))
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrClientBadRequest, err)
+			return fmt.Errorf("%w: %w", ErrClientBadRequest, err)
 		}
 		g.Go(func() error {
 			var err error
@@ -721,7 +721,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrClientNotFound, err)
+		return fmt.Errorf("%w: %w", ErrClientNotFound, err)
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -1166,14 +1166,14 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	if x := r.FormValue("x"); x != "" {
 		xid, err := strconv.ParseUint(x, 16, 64)
 		if err != nil || xid == 0 {
-			return fmt.Errorf("%w: failed to parse text id: %v", ErrClientBadRequest, err)
+			return fmt.Errorf("%w: failed to parse text id: %w", ErrClientBadRequest, err)
 		}
 		id = int64(xid)
 	} else {
 		// Old link support, don't remove.
 		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 		if err != nil || xid == 0 {
-			return fmt.Errorf("%w: failed to parse text id: %v", ErrClientBadRequest, err)
+			return fmt.Errorf("%w: failed to parse text id: %w", ErrClientBadRequest, err)
 		}
 		id = xid
 	}
@@ -1184,7 +1184,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	data, ns, err := getText(c, tag, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "datastore: no such entity") {
-			err = fmt.Errorf("%w: %v", ErrClientBadRequest, err)
+			err = fmt.Errorf("%w: %w", ErrClientBadRequest, err)
 		}
 		return err
 	}
@@ -2058,7 +2058,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 
 	adminClient, err := logadmin.NewClient(c, projID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create the logging client: %v", err)
+		return nil, fmt.Errorf("failed to create the logging client: %w", err)
 	}
 	defer adminClient.Close()
 

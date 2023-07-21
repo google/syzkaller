@@ -767,18 +767,18 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Report, []byte, error) {
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create instance: %v", err)
+		return nil, nil, fmt.Errorf("failed to create instance: %w", err)
 	}
 	defer inst.Close()
 
 	fwdAddr, err := inst.Forward(mgr.serv.port)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to setup port forwarding: %v", err)
+		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
 	}
 
 	fuzzerBin, err := inst.Copy(mgr.cfg.FuzzerBin)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to copy binary: %v", err)
+		return nil, nil, fmt.Errorf("failed to copy binary: %w", err)
 	}
 
 	// If ExecutorBin is provided, it means that syz-executor is already in the image,
@@ -787,7 +787,7 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	if executorBin == "" {
 		executorBin, err = inst.Copy(mgr.cfg.ExecutorBin)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to copy binary: %v", err)
+			return nil, nil, fmt.Errorf("failed to copy binary: %w", err)
 		}
 	}
 
@@ -826,7 +826,7 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to run fuzzer: %v", err)
+		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
 
 	var vmInfo []byte

@@ -38,7 +38,7 @@ func TestProcessTempDir(t *testing.T) {
 				go func() {
 					dir, err := ProcessTempDir(tmp)
 					if err != nil {
-						done <- fmt.Errorf("failed to create temp dir: %v", err)
+						done <- fmt.Errorf("failed to create temp dir: %w", err)
 						return
 					}
 					mu.Lock()

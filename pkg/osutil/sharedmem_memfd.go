@@ -18,7 +18,7 @@ func CreateSharedMemFile(size int) (f *os.File, err error) {
 	// The name is actually irrelevant and can even be the same for all such files.
 	fd, err := unix.MemfdCreate("syz-shared-mem", unix.MFD_CLOEXEC)
 	if err != nil {
-		err = fmt.Errorf("failed to do memfd_create: %v", err)
+		err = fmt.Errorf("failed to do memfd_create: %w", err)
 		return
 	}
 	f = os.NewFile(uintptr(fd), fmt.Sprintf("/proc/self/fd/%d", fd))

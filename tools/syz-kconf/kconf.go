@@ -96,7 +96,7 @@ func main() {
 			}
 			go func() {
 				if err := ctx.generate(); err != nil {
-					results <- fmt.Errorf("%v failed:\n%v", ctx.Inst.Name, err)
+					results <- fmt.Errorf("%v failed:\n%w", ctx.Inst.Name, err)
 				}
 				results <- nil
 			}()
@@ -211,14 +211,14 @@ func (ctx *Context) generate() error {
 	}
 	original := cf.Serialize()
 	if err := osutil.WriteFile(configFile, original); err != nil {
-		return fmt.Errorf("failed to write .config file: %v", err)
+		return fmt.Errorf("failed to write .config file: %w", err)
 	}
 	// Save what we've got before olddefconfig for debugging purposes, it allows to see if we did not set a config,
 	// or olddefconfig removed it. Save as .tmp so that it's not checked-in accidentially.
 	outputFile := filepath.Join(ctx.ConfigDir, ctx.Inst.Name+".config")
 	outputFileTmp := outputFile + ".tmp"
 	if err := osutil.WriteFile(outputFileTmp, original); err != nil {
-		return fmt.Errorf("failed to write tmp config file: %v", err)
+		return fmt.Errorf("failed to write tmp config file: %w", err)
 	}
 	if err := ctx.Make("olddefconfig"); err != nil {
 		return err
@@ -228,7 +228,7 @@ func (ctx *Context) generate() error {
 		return err
 	}
 	if err := ctx.verifyConfigs(cf); err != nil {
-		return fmt.Errorf("%vsaved config before olddefconfig to %v", err, outputFileTmp)
+		return fmt.Errorf("%w: saved config before olddefconfig to %v", err, outputFileTmp)
 	}
 	if !ctx.Inst.Features[featModules] {
 		cf.ModToNo()
@@ -394,11 +394,11 @@ func (ctx *Context) setReleaseFeatures() error {
 	}
 	major, err := strconv.ParseInt(match[1], 10, 32)
 	if err != nil {
-		return fmt.Errorf("bad release tag %q: %v", tag, err)
+		return fmt.Errorf("bad release tag %q: %w", tag, err)
 	}
 	minor, err := strconv.ParseInt(match[2], 10, 32)
 	if err != nil {
-		return fmt.Errorf("bad release tag %q: %v", tag, err)
+		return fmt.Errorf("bad release tag %q: %w", tag, err)
 	}
 	for ; major >= 2; major-- {
 		for ; minor >= 0; minor-- {

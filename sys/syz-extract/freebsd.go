@@ -34,11 +34,11 @@ func (*freebsd) prepareArch(arch *Arch) error {
 
 	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", archName, "include"),
 		filepath.Join(arch.buildDir, "machine")); err != nil {
-		return fmt.Errorf("failed to create link: %v", err)
+		return fmt.Errorf("failed to create link: %w", err)
 	}
 	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "x86", "include"),
 		filepath.Join(arch.buildDir, "x86")); err != nil {
-		return fmt.Errorf("failed to create link: %v", err)
+		return fmt.Errorf("failed to create link: %w", err)
 	}
 	return nil
 }

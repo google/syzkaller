@@ -552,7 +552,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	tmpDirPath string) (*command, error) {
 	dir, err := os.MkdirTemp(tmpDirPath, "syzkaller-testdir")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp dir: %v", err)
+		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	dir = osutil.Abs(dir)
 
@@ -578,20 +578,20 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	}()
 
 	if err := os.Chmod(dir, 0777); err != nil {
-		return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
+		return nil, fmt.Errorf("failed to chmod temp dir: %w", err)
 	}
 
 	// Output capture pipe.
 	rp, wp, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, fmt.Errorf("failed to create pipe: %w", err)
 	}
 	defer wp.Close()
 
 	// executor->ipc command pipe.
 	inrp, inwp, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, fmt.Errorf("failed to create pipe: %w", err)
 	}
 	defer inwp.Close()
 	c.inrp = inrp
@@ -599,7 +599,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	// ipc->executor command pipe.
 	outrp, outwp, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, fmt.Errorf("failed to create pipe: %w", err)
 	}
 	defer outrp.Close()
 	c.outwp = outwp
@@ -644,7 +644,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		}(c)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start executor binary: %v", err)
+		return nil, fmt.Errorf("failed to start executor binary: %w", err)
 	}
 	c.exited = make(chan error, 1)
 	c.cmd = cmd
@@ -695,7 +695,7 @@ func (c *command) handshake() error {
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
-		return c.handshakeError(fmt.Errorf("failed to write control pipe: %v", err))
+		return c.handshakeError(fmt.Errorf("failed to write control pipe: %w", err))
 	}
 
 	read := make(chan error, 1)
@@ -729,7 +729,7 @@ func (c *command) handshake() error {
 func (c *command) handshakeError(err error) error {
 	c.cmd.Process.Kill()
 	output := <-c.readDone
-	err = fmt.Errorf("executor %v: %v\n%s", c.pid, err, output)
+	err = fmt.Errorf("executor %v: %w\n%s", c.pid, err, output)
 	c.wait()
 	return err
 }
@@ -752,13 +752,13 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
 		output = <-c.readDone
-		err0 = fmt.Errorf("executor %v: failed to write control pipe: %v", c.pid, err)
+		err0 = fmt.Errorf("executor %v: failed to write control pipe: %w", c.pid, err)
 		return
 	}
 	if progData != nil {
 		if _, err := c.outwp.Write(progData); err != nil {
 			output = <-c.readDone
-			err0 = fmt.Errorf("executor %v: failed to write control pipe: %v", c.pid, err)
+			err0 = fmt.Errorf("executor %v: failed to write control pipe: %w", c.pid, err)
 			return
 		}
 	}
@@ -836,7 +836,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 	// Without fork server executor can legitimately exit (program contains exit_group),
 	// with fork server the top process can exit with statusFail if it wants special handling.
 	if exitStatus == statusFail {
-		err0 = fmt.Errorf("executor %v: exit status %d err %s\n%s", c.pid, exitStatus, err, output)
+		err0 = fmt.Errorf("executor %v: exit status %d err %w\n%s", c.pid, exitStatus, err, output)
 	}
 	return
 }

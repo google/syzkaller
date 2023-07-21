@@ -43,7 +43,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	}
 	setPdeathsig(cmd, true)
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start %v %+v: %v", cmd.Path, cmd.Args, err)
+		return nil, fmt.Errorf("failed to start %v %+v: %w", cmd.Path, cmd.Args, err)
 	}
 	done := make(chan bool)
 	timedout := make(chan bool, 1)
@@ -125,7 +125,7 @@ func PrependContext(ctx string, err error) error {
 		err1.Title = fmt.Sprintf("%v: %v", ctx, err1.Title)
 		return err1
 	default:
-		return fmt.Errorf("%v: %v", ctx, err)
+		return fmt.Errorf("%v: %w", ctx, err)
 	}
 }
 
@@ -147,7 +147,7 @@ func IsAccessible(name string) error {
 	}
 	f, err := os.Open(name)
 	if err != nil {
-		return fmt.Errorf("%v can't be opened (%v)", name, err)
+		return fmt.Errorf("%v can't be opened (%w)", name, err)
 	}
 	f.Close()
 	return nil
@@ -157,7 +157,7 @@ func IsAccessible(name string) error {
 func IsWritable(name string) error {
 	f, err := os.OpenFile(name, os.O_WRONLY, DefaultFilePerm)
 	if err != nil {
-		return fmt.Errorf("%v can't be written (%v)", name, err)
+		return fmt.Errorf("%v can't be written (%w)", name, err)
 	}
 	f.Close()
 	return nil
@@ -297,7 +297,7 @@ func WriteExecFile(filename string, data []byte) error {
 func TempFile(prefix string) (string, error) {
 	f, err := os.CreateTemp("", prefix)
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %v", err)
+		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	f.Close()
 	return f.Name(), nil

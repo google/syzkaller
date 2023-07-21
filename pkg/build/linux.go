@@ -70,7 +70,7 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 func (linux linux) buildKernel(params Params) error {
 	configFile := filepath.Join(params.KernelDir, ".config")
 	if err := linux.writeFile(configFile, params.Config); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
+		return fmt.Errorf("failed to write config file: %w", err)
 	}
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
@@ -107,7 +107,7 @@ func (linux linux) buildKernel(params Params) error {
 	vmlinux := filepath.Join(params.KernelDir, "vmlinux")
 	outputVmlinux := filepath.Join(params.OutputDir, "obj", "vmlinux")
 	if err := osutil.Rename(vmlinux, outputVmlinux); err != nil {
-		return fmt.Errorf("failed to rename vmlinux: %v", err)
+		return fmt.Errorf("failed to rename vmlinux: %w", err)
 	}
 	return nil
 }
@@ -120,7 +120,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 	defer os.RemoveAll(tempDir)
 	scriptFile := filepath.Join(tempDir, "create.sh")
 	if err := osutil.WriteExecFile(scriptFile, []byte(createImageScript)); err != nil {
-		return fmt.Errorf("failed to write script file: %v", err)
+		return fmt.Errorf("failed to write script file: %w", err)
 	}
 	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelPath, params.TargetArch)
 	cmd.Dir = tempDir
@@ -131,7 +131,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 		"SYZ_SYSCTL_FILE="+osutil.Abs(params.SysctlFile),
 	)
 	if _, err = osutil.Run(time.Hour, cmd); err != nil {
-		return fmt.Errorf("image build failed: %v", err)
+		return fmt.Errorf("image build failed: %w", err)
 	}
 	// Note: we use CopyFile instead of Rename because src and dst can be on different filesystems.
 	imageFile := filepath.Join(params.OutputDir, "image")
@@ -254,11 +254,11 @@ func queryLinuxCompiler(kernelDir string) (string, error) {
 func elfBinarySignature(bin string, tracer debugtracer.DebugTracer) (string, error) {
 	f, err := os.Open(bin)
 	if err != nil {
-		return "", fmt.Errorf("failed to open binary for signature: %v", err)
+		return "", fmt.Errorf("failed to open binary for signature: %w", err)
 	}
 	ef, err := elf.NewFile(f)
 	if err != nil {
-		return "", fmt.Errorf("failed to open elf binary: %v", err)
+		return "", fmt.Errorf("failed to open elf binary: %w", err)
 	}
 	hasher := sha256.New()
 	for _, sec := range ef.Sections {
@@ -272,7 +272,7 @@ func elfBinarySignature(bin string, tracer debugtracer.DebugTracer) (string, err
 		}
 		data, err := sec.Data()
 		if err != nil {
-			return "", fmt.Errorf("failed to read ELF section %v: %v", sec.Name, err)
+			return "", fmt.Errorf("failed to read ELF section %v: %w", sec.Name, err)
 		}
 		hasher1 := sha256.New()
 		hasher1.Write(data)

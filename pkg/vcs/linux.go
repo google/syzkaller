@@ -305,7 +305,7 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, ty
 	}
 	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.dir, "Kconfig"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Kconfig: %v", err)
+		return nil, fmt.Errorf("failed to parse Kconfig: %w", err)
 	}
 	config, err := kconfig.ParseConfigData(original, "original")
 	if err != nil {

@@ -737,11 +737,11 @@ func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, er
 		}
 		files, err := filepath.Glob(filepath.Join("sys", targets.Linux, "test", fs.filePrefix()+"_*"))
 		if err != nil {
-			return nil, fmt.Errorf("error reading output dir: %v", err)
+			return nil, fmt.Errorf("error reading output dir: %w", err)
 		}
 		for _, file := range files {
 			if err := os.Remove(file); err != nil {
-				return nil, fmt.Errorf("error removing output file: %v", err)
+				return nil, fmt.Errorf("error removing output file: %w", err)
 			}
 		}
 	}
@@ -806,7 +806,7 @@ func (img *Image) generateSize() error {
 		// This does not work with runCmd -- sudo does not show password prompt on console.
 		cmd := exec.Command("sudo", os.Args[0], "-populate", img.disk, "-fs", img.fs.Name)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("image population failed: %v\n%s", err, out)
+			return fmt.Errorf("image population failed: %w\n%s", err, out)
 		}
 	}
 	data, err := os.ReadFile(img.disk)
@@ -818,16 +818,16 @@ func (img *Image) generateSize() error {
 	// Write out image *with* change of directory.
 	out, err := writeImage(img, data)
 	if err != nil {
-		return fmt.Errorf("failed to write image: %v", err)
+		return fmt.Errorf("failed to write image: %w", err)
 	}
 
 	p, err := img.target.Deserialize(out, prog.Strict)
 	if err != nil {
-		return fmt.Errorf("failed to deserialize resulting program: %v", err)
+		return fmt.Errorf("failed to deserialize resulting program: %w", err)
 	}
 	exec := make([]byte, prog.ExecBufferSize)
 	if _, err := p.SerializeForExec(exec); err != nil {
-		return fmt.Errorf("failed to serialize for execution: %v", err)
+		return fmt.Errorf("failed to serialize for execution: %w", err)
 	}
 
 	return osutil.WriteFile(outFile, out)
@@ -848,7 +848,7 @@ func populate(disk, fs string) error {
 	}
 	defer os.RemoveAll(dir)
 	if _, err := runCmd("mount", "-t", fs, loop, dir); err != nil {
-		return fmt.Errorf("%v\n%s", err, output)
+		return fmt.Errorf("%w\n%s", err, output)
 	}
 	defer runCmd("umount", dir)
 	return populateDir(dir)

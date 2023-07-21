@@ -76,11 +76,11 @@ func prepareEmails(list []string) map[string]bool {
 func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read email: %v", err)
+		return nil, fmt.Errorf("failed to read email: %w", err)
 	}
 	from, err := msg.Header.AddressList("From")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse email header 'From': %v", err)
+		return nil, fmt.Errorf("failed to parse email header 'From': %w", err)
 	}
 	if len(from) == 0 {
 		return nil, fmt.Errorf("failed to parse email header 'To': no senders")
@@ -194,7 +194,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 func AddAddrContext(email, context string) (string, error) {
 	addr, err := mail.ParseAddress(email)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse %q as email: %v", email, err)
+		return "", fmt.Errorf("failed to parse %q as email: %w", email, err)
 	}
 	at := strings.IndexByte(addr.Address, '@')
 	if at == -1 {
@@ -213,7 +213,7 @@ func AddAddrContext(email, context string) (string, error) {
 func RemoveAddrContext(email string) (string, string, error) {
 	addr, err := mail.ParseAddress(email)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to parse %q as email: %v", email, err)
+		return "", "", fmt.Errorf("failed to parse %q as email: %w", email, err)
 	}
 	at := strings.IndexByte(addr.Address, '@')
 	if at == -1 {
@@ -386,7 +386,7 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 		var err error
 		mediaType, params, err = mime.ParseMediaType(headers.Get("Content-Type"))
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %v", err)
+			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %w", err)
 		}
 	}
 	switch strings.ToLower(headers.Get("Content-Transfer-Encoding")) {
@@ -399,14 +399,14 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 	if disp == "attachment" {
 		attachment, err := io.ReadAll(r)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read email body: %v", err)
+			return nil, nil, fmt.Errorf("failed to read email body: %w", err)
 		}
 		return nil, [][]byte{attachment}, nil
 	}
 	if mediaType == "text/plain" {
 		body, err := io.ReadAll(r)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read email body: %v", err)
+			return nil, nil, fmt.Errorf("failed to read email body: %w", err)
 		}
 		return body, nil, nil
 	}
@@ -422,7 +422,7 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 			return body, attachments, nil
 		}
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse MIME parts: %v", err)
+			return nil, nil, fmt.Errorf("failed to parse MIME parts: %w", err)
 		}
 		body1, attachments1, err1 := parseBody(p, mail.Header(p.Header))
 		if err1 != nil {

@@ -81,7 +81,7 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 		var tmpBugs []*Bug
 		tmpKeys, err := query.Limit(count).GetAll(c, &tmpBugs)
 		if err != nil {
-			return nil, nil, fmt.Errorf("query %d failed: %s", i, err)
+			return nil, nil, fmt.Errorf("query %d failed: %w", i, err)
 		}
 		bugs = append(bugs, tmpBugs...)
 		keys = append(keys, tmpKeys...)
