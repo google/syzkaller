@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -67,7 +68,8 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 			text = fmt.Sprintf("timedout after %v %q", timeout, cmd.Args)
 		}
 		exitCode := 0
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			}
@@ -120,10 +122,11 @@ func (err *VerboseError) Error() string {
 }
 
 func PrependContext(ctx string, err error) error {
-	switch err1 := err.(type) {
-	case *VerboseError:
-		err1.Title = fmt.Sprintf("%v: %v", ctx, err1.Title)
-		return err1
+	var verboseError *VerboseError
+	switch {
+	case errors.As(err, &verboseError):
+		verboseError.Title = fmt.Sprintf("%v: %v", ctx, verboseError.Title)
+		return verboseError
 	default:
 		return fmt.Errorf("%v: %w", ctx, err)
 	}

@@ -7,6 +7,7 @@ package build
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -195,8 +196,8 @@ func extractRootCause(err error, OS, kernelSrc string) error {
 	if err == nil {
 		return nil
 	}
-	verr, ok := err.(*osutil.VerboseError)
-	if !ok {
+	var verr *osutil.VerboseError
+	if !errors.As(err, &verr) {
 		return err
 	}
 	reason, file := extractCauseInner(verr.Output, kernelSrc)

@@ -5,6 +5,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -95,7 +96,8 @@ func apiNewTestJob(c context.Context, r *http.Request, payload []byte) (interfac
 	err := handleExternalTestRequest(c, req)
 	if err != nil {
 		resp.ErrorText = err.Error()
-		if _, ok := err.(*BadTestRequestError); !ok {
+		var badTest *BadTestRequestError
+		if !errors.As(err, &badTest) {
 			// Log errors that are not related to the invalid input.
 			log.Errorf(c, "external patch posting error: %v", err)
 		}

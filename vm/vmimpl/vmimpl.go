@@ -93,12 +93,11 @@ type BootError struct {
 }
 
 func MakeBootError(err error, output []byte) error {
-	switch err1 := err.(type) {
-	case *osutil.VerboseError:
-		return BootError{err1.Title, append(err1.Output, output...)}
-	default:
-		return BootError{err.Error(), output}
+	var verboseError *osutil.VerboseError
+	if errors.As(err, &verboseError) {
+		return BootError{verboseError.Title, append(verboseError.Output, output...)}
 	}
+	return BootError{err.Error(), output}
 }
 
 func (err BootError) Error() string {

@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -1106,8 +1107,8 @@ func TestBugBisectionInvalidation(t *testing.T) {
 
 	// Mark bisection as invalid.
 	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode())
-	httpErr, ok := err.(*HTTPError)
-	c.expectTrue(ok)
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
 
 	// The invalidated bisection should have vanished from the web UI

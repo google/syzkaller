@@ -12,6 +12,7 @@
 package gce
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -170,7 +171,8 @@ retry:
 		return "", fmt.Errorf("failed to create instance: %w", err)
 	}
 	if err := ctx.waitForCompletion("zone", "create image", op.Name, false); err != nil {
-		if _, ok := err.(resourcePoolExhaustedError); ok && instance.Scheduling.Preemptible {
+		var resourcePoolExhaustedError resourcePoolExhaustedError
+		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
 			goto retry
 		}
@@ -206,7 +208,8 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 		op, err = ctx.computeService.Instances.Delete(ctx.ProjectID, ctx.ZoneID, name).Do()
 		return
 	})
-	if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) && apiErr.Code == 404 {
 		return nil
 	}
 	if err != nil {
@@ -270,7 +273,8 @@ func (ctx *Context) DeleteImage(imageName string) error {
 		op, err = ctx.computeService.Images.Delete(ctx.ProjectID, imageName).Do()
 		return
 	})
-	if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) && apiErr.Code == 404 {
 		return nil
 	}
 	if err != nil {

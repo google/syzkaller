@@ -23,6 +23,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -143,7 +144,8 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 		KernelConfig: bisectEnv.KernelConfig,
 	})
 	if err != nil {
-		if verr, ok := err.(*osutil.VerboseError); ok {
+		var verr *osutil.VerboseError
+		if errors.As(err, &verr) {
 			log.Printf("BUILD BROKEN: %v", verr.Title)
 			saveLog(com.Hash, 0, verr.Output)
 		} else {
@@ -162,23 +164,26 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 			verdicts = append(verdicts, "OK")
 			continue
 		}
-		switch err := res.Error.(type) {
-		case *instance.TestError:
-			if err.Boot {
-				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))
+
+		var testError *instance.TestError
+		var crashError *instance.CrashError
+		switch {
+		case errors.As(res.Error, &testError):
+			if testError.Boot {
+				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", testError))
 			} else {
-				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", err))
+				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", testError))
 			}
-			output := err.Output
-			if err.Report != nil {
-				output = err.Report.Output
+			output := testError.Output
+			if testError.Report != nil {
+				output = testError.Report.Output
 			}
 			saveLog(com.Hash, i, output)
-		case *instance.CrashError:
-			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
-			output := err.Report.Report
+		case errors.As(res.Error, &crashError):
+			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", crashError))
+			output := crashError.Report.Report
 			if len(output) == 0 {
-				output = err.Report.Output
+				output = crashError.Report.Output
 			}
 			saveLog(com.Hash, i, output)
 		default:

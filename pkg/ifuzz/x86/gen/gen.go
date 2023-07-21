@@ -7,6 +7,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -19,7 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/tool"
 )
 
-// nolint: gocyclo, gocognit, funlen
+// nolint: gocyclo, gocognit, funlen, dupl
 func main() {
 	if len(os.Args) != 2 {
 		tool.Failf("usage: gen instructions.txt")
@@ -113,8 +114,9 @@ func main() {
 			insn1 = new(x86.Insn)
 			*insn1 = *insn
 			if err := parsePattern(insn1, vals); err != nil {
-				if _, ok := err.(errSkip); !ok {
-					reportError(err.Error())
+				var errSkip errSkip
+				if !errors.As(err, &errSkip) {
+					reportError(errSkip.Error())
 				}
 				if err.Error() != "" {
 					fmt.Fprintf(os.Stderr, "skipping %v on line %v (%v)\n", insn.Name, i, err)
@@ -127,8 +129,9 @@ func main() {
 				break
 			}
 			if err := parseOperands(insn1, vals); err != nil {
-				if _, ok := err.(errSkip); !ok {
-					reportError(err.Error())
+				var errSkip errSkip
+				if !errors.As(err, &errSkip) {
+					reportError(errSkip.Error())
 				}
 				if err.Error() != "" {
 					fmt.Fprintf(os.Stderr, "skipping %v on line %v (%v)\n", insn.Name, i, err)
