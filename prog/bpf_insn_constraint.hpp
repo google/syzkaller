@@ -1,11 +1,11 @@
+#define BPF_BASE_TYPE_MASK	255
+
 /* ALU instruction constraits:
     1. Initialized
     2. Registers are all scalar value
     3. The number of shift bit should be less than 32/64
     4. Frame pointer is read only
 */
-#define BPF_BASE_TYPE_MASK	GENMASK(BPF_BASE_TYPE_BITS - 1, 0)
-
 bool initRegScalar(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt, int64_t value) {
     
     // Constraint 4: R10 is read-only.
@@ -151,18 +151,22 @@ bool CommonInit(u_int8_t reg, u_int8_t regBit, struct regState *regStates, struc
         case Bit32:
             insn = BPF_MOV32_REG(reg, srcReg);
             regStates[reg].type = regStates[srcReg].type;
+            break;
         case Bit64:
             insn = BPF_MOV64_REG(reg, srcReg);
             regStates[reg].type = regStates[srcReg].type;
+            break;
         // Immediate
         case 1<<2 | Bit32:
             imm32 = randNum32();
             insn = BPF_MOV32_IMM(reg, imm32);
             regStates[reg].type = SCALAR_VALUE;
+            break;
         case 1<<2 | Bit64:
             imm64 = randNum64();
             insn = BPF_MOV64_IMM(reg, imm64);
             regStates[reg].type = SCALAR_VALUE;
+            break;
     }
 
     return updateByteCode(bpfBytecode, cnt, insn);
@@ -203,6 +207,7 @@ bool initRegPtr(u_int8_t reg, struct regState *regStates, struct bpf_insn *bpfBy
             insn = BPF_MOV64_REG(reg, i);
             printInsn("BPF_MOV64_REG", 0, reg, i, 0, 0);
             updateByteCode(bpfBytecode, cnt, insn);
+            regStates[reg].type = regStates[i].type; 
             return true;
         }
         i = (i + 1) % sizeof(regs);
@@ -212,10 +217,7 @@ bool initRegPtr(u_int8_t reg, struct regState *regStates, struct bpf_insn *bpfBy
     return false;
 }
 
-/* Load/Store instruction constraits:
-    1. Initialized some registers as pointer, such as stack, map, context.
-    2. Offset:
-*/
+// Load/Store instruction constraits:
 
 inline bool isValidReg(int regno) {
     return regno < MAX_BPF_REG;	
@@ -239,10 +241,6 @@ bool isValidAtomicOp(struct bpf_insn *insn) {
     }
 }
 
-bool check_mem_access(struct bpf_insn *insn, enum bpf_access_type t) {
-    return false;
-}
-
 inline int base_type(int type)
 {
 	return type & BPF_BASE_TYPE_MASK;
@@ -260,70 +258,101 @@ bool isValidLdImmSrc(struct bpf_insn *insn) {
     }
 }
 
+bool checkStAtomicType(int type) {
+    switch (type) {
+        case PTR_TO_CTX:
+        case PTR_TO_PACKET:
+        case PTR_TO_PACKET_META:
+        case PTR_TO_FLOW_KEYS:
+        case PTR_TO_SOCKET:
+        case PTR_TO_SOCK_COMMON:
+        case PTR_TO_TCP_SOCK:
+        case PTR_TO_XDP_SOCK:
+            return false;
+        default:
+            return true;
+    }
+}
+
+inline bool stackOffCheck(regState *regStates, unsigned char reg, signed short off) {
+    return (regStates[reg].type == PTR_TO_STACK && off < 0);
+}
+
 bool commonLSCons(struct bpf_insn *insn, struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt) {
 
     switch(insn->code & ~BPF_SIZE(0xffffffff)) {
         // case BPF_ST_MEM: BPF_ST | BPF_SIZE(SIZE) | BPF_MEM
         // *(size *) (dst + offset) = imm32
         case BPF_ST | BPF_MEM:
-            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
-            if (insn->src_reg != BPF_REG_0) return false;
+            if (insn->src_reg != BPF_REG_0) return false;                                                   /* Constraint 1 */
+            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;                      /* Constraint 2 */
+            if (!stackOffCheck(regStates, insn->dst_reg, insn->off)) return false;                          /* Constraint 4 */
+            if (regStates[insn->dst_reg].type == SCALAR_VALUE) return false;                                /* Constraint 5 */
             break;
         //case BPF_STX_MEM: BPF_STX | BPF_SIZE(SIZE) | BPF_MEM
         // *(size *) (dst + offset) = src
         case BPF_STX | BPF_MEM:
-            if (!insn->imm != 0) return false;
-            if (!(isValidReg(insn->src_reg) && isValidReg(insn->dst_reg))) return false;
-            if (!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;
-            // if (!initRegScalar(insn->dst_reg, Bit64Value, regStates, bpfBytecode, cnt, 0)) return false;
+            if (!insn->imm != 0) return false;                                                              /* Constraint 1 */
+            if (!(isValidReg(insn->src_reg) && isValidReg(insn->dst_reg))) return false;                    /* Constraint 2.1 */
+            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;                      /* Constraint 2.2 */
+            if (!initRegScalar(insn->src_reg, Bit64Value, regStates, bpfBytecode, cnt, 0)) return false;    /* Constraint 2.3 */
             break;
         //case BPF_ATOMIC_OP: BPF_STX | BPF_SIZE(SIZE) | BPF_ATOMIC
         // *(u32 *)(dst + offset) += src
         case BPF_STX | BPF_ATOMIC:
-            if (!isValidAtomicOp(insn)) return false;
-            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;
-            // TODO BIT
-            if (!CommonInit(insn->src_reg, Bit64, regStates, bpfBytecode, cnt)) return false;
+            if (BPF_SIZE(insn->code) != BPF_W && BPF_SIZE(insn->code) != BPF_DW) return false;              /* Constraint 3.1 */
+            if (!isValidAtomicOp(insn)) return false;                                                       /* Constraint 3.2 */
+            if (!initRegPtr(insn->dst_reg, regStates, bpfBytecode, cnt)) return false;                      /* Constraint 3.3 */
+            if (!CommonInit(insn->src_reg, Bit64, regStates, bpfBytecode, cnt)) return false;               /* Constraint 3.3 */
+            if (insn->imm == BPF_CMPXCHG && regStates[BPF_REG_0].type == PTR_TO_MAP_VALUE) return false;    /* Constraint 3.4 */
+            if (regStates[insn->src_reg].type == PTR_TO_MAP_VALUE) return false;                            /* Constraint 3.5 */
+            if (!checkStAtomicType(regStates[insn->dst_reg].type)) return false;                            /* Constraint 3.6 */
+            if (!stackOffCheck(regStates, insn->src_reg, insn->off)) return false;                          /* Constraint 3.8 */
+            if (!stackOffCheck(regStates, insn->dst_reg, insn->off)) return false;                          /* Constraint 3.8 */
             break;
         // case BPF_LDX_MEM: BPF_LDX | BPF_SIZE(SIZE) | BPF_MEM
         // dst = *(size *) (src + offset)
         case BPF_LDX | BPF_MEM:
-            if (!(isValidReg(insn->src_reg) && isValidReg(insn->dst_reg))) return false;
-            if (!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;
-            if (insn->dst_reg == BPF_REG_10) return false;
+            if (!(isValidReg(insn->src_reg) && isValidReg(insn->dst_reg))) return false;                    /* Constraint 1 */
+            if (!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;                      /* Constraint 2, 4 */
+            if (insn->dst_reg == BPF_REG_10) return false;                                                  /* Constraint 3 */
+            if (regStates[insn->src_reg].type == SCALAR_VALUE) return false;                                /* Constraint 4 */
+            if (!stackOffCheck(regStates, insn->src_reg, insn->off)) return false;                          /* Constraint 9 */
+            regStates[insn->dst_reg].type = SCALAR_VALUE;
             break;
         // case BPF_LD_IMM64: BPF_LD | BPF_DW | BPF_IMM + src = 0
         // case BPF_LD_MAP_FD: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_MAP_FD
         // case BPF_LD_FD_MAPVALUE: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_MAP_VALUE
         // case BPF_LD_PSEUDO_FUNC: BPF_LD | BPF_DW | BPF_IMM + src = BPF_PSEUDO_FUNC
         case BPF_LD | BPF_IMM:
-            if (BPF_SIZE(insn->code) != BPF_DW) return false;
-            if (insn->off != 0) return false;
-            if (insn->dst_reg == BPF_REG_10) return false;
-            if (insn->src_reg == BPF_PSEUDO_BTF_ID) {
+            if (BPF_SIZE(insn->code) != BPF_DW) return false;                                               /* Constraint 2.1 */
+            if (insn->off != 0) return false;                                                               /* Constraint 2.2 */
+            if (insn->dst_reg == BPF_REG_10) return false;                                                  /* Constraint 2.3 */
+            if (insn->src_reg == BPF_PSEUDO_BTF_ID) {                                                       /* Constraint 2.4 */
                 struct regState dst = regStates[insn->dst_reg];
                 if (base_type(dst.type) != PTR_TO_MEM && base_type(dst.type) != PTR_TO_BTF_ID)
                     return false;
             }
-            if (!isValidLdImmSrc(insn)) return false;
+            if (!isValidLdImmSrc(insn)) return false;                                                       /* Constraint 2.5 */
             break;
         // case BPF_LD_ABS: BPF_LD | BPF_SIZE(SIZE) | BPF_ABS
         // case BPF_LD_IND: BPF_LD | BPF_SIZE(SIZE) | BPF_IND
         // R0 = *(uint *) (skb->data + imm32)
         case BPF_LD | BPF_ABS:
-            if (insn->src_reg != BPF_REG_0) return false;
-            if (insn->dst_reg != BPF_REG_0) return false;
-            if (insn->off != 0) return false;
-            if (BPF_SIZE(insn->code) == BPF_DW) return false;
-            if (regStates[BPF_REG_6].type != PTR_TO_CTX) return false;
+            if (insn->dst_reg != BPF_REG_0) return false;                                                   /* Constraint 3.1 */
+            if (insn->off != 0) return false;                                                               /* Constraint 3.2 */
+            if (BPF_SIZE(insn->code) == BPF_DW) return false;                                               /* Constraint 3.3 */
+            if (regStates[BPF_REG_6].type != PTR_TO_CTX) return false;                                      /* Constraint 3.4 */
+            if (insn->src_reg != BPF_REG_0) return false;                                                   /* Constraint 4 */
+            regStates[BPF_REG_0].type = SCALAR_VALUE;
             break;
         case BPF_LD | BPF_IND:
-            if (insn->dst_reg != BPF_REG_0) return false;
-            if (insn->off != 0) return false;
-            if (BPF_SIZE(insn->code) == BPF_DW) return false;
-            if (regStates[BPF_REG_6].type != PTR_TO_CTX) return false;
-            if (regStates[insn->src_reg].type != NOT_INIT) return false;
-            // r1 = ctx;
+            if (insn->dst_reg != BPF_REG_0) return false;                                                   /* Constraint 3.1 */
+            if (insn->off != 0) return false;                                                               /* Constraint 3.2 */    
+            if (BPF_SIZE(insn->code) == BPF_DW) return false;                                               /* Constraint 3.3 */
+            if (regStates[BPF_REG_6].type != PTR_TO_CTX) return false;                                      /* Constraint 3.4 */
+            if(!initRegPtr(insn->src_reg, regStates, bpfBytecode, cnt)) return false;                       /* Constraint 5 */
+            regStates[BPF_REG_0].type = SCALAR_VALUE;
             break;
     }
 

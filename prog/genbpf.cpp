@@ -72,6 +72,7 @@ int GenBPFProg(char *bpfProgAttr, char *bpfMapAttr, int MaxMapAttrSize) {
     if (regStates[0].type == NOT_INIT) {
         bpfBytecode[cnt] = BPF_MOV64_IMM(0, 0);
         printInsn("BPF_MOV64_IMM", 0, 0, 0, 0, 0);
+        regStates[0].type == SCALAR_VALUE;
         cnt += 1;
     }
     bpfBytecode[cnt] = BPF_EXIT_INSN();

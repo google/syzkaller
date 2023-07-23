@@ -57,6 +57,11 @@ enum bpf_reg_type {
     __BPF_REG_TYPE_MAX,
 };
 
+struct tnum {
+	__u64 value;
+	__u64 mask;
+};
+
 struct regState {
 	int type;
     __s32 off;
@@ -70,6 +75,7 @@ void genALUOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt
 void genLSOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt, int maxMaps);
 void genJMPOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt);
 void genCallOP(struct regState *regStates, struct bpf_insn *bpfBytecode, int *cnt);
+// Needs to be suppressed
 void printInsn(const char *insn, u_int8_t op, u_int8_t dst, u_int8_t src, int32_t imm, short int off) {
     fprintf(stderr, "%s_%d(dst %d, src %d, imm %d, off %d)\n", insn, op, dst, src, imm, off);
 }
