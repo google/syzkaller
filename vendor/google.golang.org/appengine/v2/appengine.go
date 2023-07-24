@@ -54,6 +54,9 @@ func Main() {
 	internal.Main()
 }
 
+// Middleware wraps an http handler so that it can make GAE API calls
+var Middleware func(http.Handler) http.Handler = internal.Middleware
+
 // IsDevAppServer reports whether the App Engine app is running in the
 // development App Server.
 func IsDevAppServer() bool {

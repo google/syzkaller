@@ -1,7 +1,7 @@
 syntax = "proto2";
-option go_package = "remote_api";
+option go_package = "google.golang.org/appengine/v2/internal/remote_api";
 
-package remote_api;
+package remote_api.v2;
 
 message Request {
   required string service_name = 2;

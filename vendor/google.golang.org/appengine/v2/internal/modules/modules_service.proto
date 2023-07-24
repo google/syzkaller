@@ -1,7 +1,7 @@
 syntax = "proto2";
-option go_package = "modules";
+option go_package = "google.golang.org/appengine/v2/internal/modules";
 
-package appengine;
+package appengine.v2;
 
 message ModulesServiceError {
   enum ErrorCode {

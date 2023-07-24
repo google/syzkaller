@@ -26,9 +26,9 @@ var (
 	maxLogMessage = 255000
 )
 
-func logf(c *context, level int64, format string, args ...interface{}) {
+func logf(c *aeContext, level int64, format string, args ...interface{}) {
 	if c == nil {
-		panic("not an App Engine context")
+		panic("not an App Engine aeContext")
 	}
 
 	if !IsStandard() {
@@ -107,7 +107,7 @@ func chunkLog(msg string) []string {
 	return chunks
 }
 
-func traceAndSpan(c *context) (string, string) {
+func traceAndSpan(c *aeContext) (string, string) {
 	headers := c.req.Header["X-Cloud-Trace-Context"]
 	if len(headers) < 1 {
 		return "", ""

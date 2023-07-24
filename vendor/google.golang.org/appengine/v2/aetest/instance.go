@@ -167,7 +167,7 @@ func fileExists(path string) bool {
 }
 
 func findPython() (path string, err error) {
-	for _, name := range []string{"python2.7", "python"} {
+	for _, name := range []string{"python3"} {
 		path, err = exec.LookPath(name)
 		if err == nil {
 			return
@@ -231,6 +231,11 @@ func (i *instance) startChild() (err error) {
 		return err
 	}
 
+	datastorePath := os.Getenv("APPENGINE_DEV_APPSERVER_DATASTORE_PATH")
+	if len(datastorePath) == 0 {
+		datastorePath = filepath.Join(i.appDir, "datastore")
+	}
+
 	appserverArgs = append(appserverArgs,
 		"--port=0",
 		"--api_port=0",
@@ -239,7 +244,7 @@ func (i *instance) startChild() (err error) {
 		"--skip_sdk_update_check=true",
 		"--clear_datastore=true",
 		"--clear_search_indexes=true",
-		"--datastore_path", filepath.Join(i.appDir, "datastore"),
+		"--datastore_path", datastorePath,
 	)
 	if i.opts != nil && i.opts.StronglyConsistentDatastore {
 		appserverArgs = append(appserverArgs, "--datastore_consistency_policy=consistent")

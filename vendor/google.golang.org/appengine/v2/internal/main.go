@@ -30,7 +30,7 @@ func Main() {
 	if IsDevAppServer() {
 		host = "127.0.0.1"
 	}
-	if err := http.ListenAndServe(host+":"+port, http.HandlerFunc(handleHTTP)); err != nil {
+	if err := http.ListenAndServe(host+":"+port, Middleware(http.DefaultServeMux)); err != nil {
 		log.Fatalf("http.ListenAndServe: %v", err)
 	}
 }

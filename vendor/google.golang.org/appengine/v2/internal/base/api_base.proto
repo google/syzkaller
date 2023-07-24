@@ -1,9 +1,9 @@
 // Built-in base types for API calls. Primarily useful as return types.
 
 syntax = "proto2";
-option go_package = "base";
+option go_package = "google.golang.org/appengine/v2/internal/base";
 
-package appengine.base;
+package appengine.base.v2;
 
 message StringProto {
   required string value = 1;
