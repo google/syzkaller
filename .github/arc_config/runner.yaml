@@ -1,0 +1,38 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
+metadata:
+  name: k8s-action-runner
+  namespace: actions-runner-system
+spec:
+  template:
+    spec:
+      repository: google/syzkaller
+      resources:
+        requests:
+          cpu: "31"
+          memory: "26Gi"
+        limits:
+          memory: "28Gi"
+      labels:
+        - k8s-env
+
+---
+
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: HorizontalRunnerAutoscaler
+metadata:
+  name: k8s-action-runner-autoscaler
+  namespace: actions-runner-system
+spec:
+  scaleTargetRef:
+    kind: RunnerDeployment
+    name: k8s-action-runner
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: TotalNumberOfQueuedAndInProgressWorkflowRuns
+      repositoryNames:
+        - google/syzkaller
