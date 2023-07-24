@@ -1,7 +1,7 @@
 syntax = "proto2";
-option go_package = "datastore";
+option go_package = "google.golang.org/appengine/v2/internal/datastore";
 
-package appengine;
+package appengine.v2;
 
 message Action{}
 

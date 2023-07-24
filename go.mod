@@ -23,7 +23,7 @@ require (
 	golang.org/x/sys v0.10.0
 	golang.org/x/tools v0.11.0
 	google.golang.org/api v0.110.0
-	google.golang.org/appengine/v2 v2.0.2
+	google.golang.org/appengine/v2 v2.0.4
 	google.golang.org/genproto v0.0.0-20230222225845-10f96fb3dbec
 	gopkg.in/yaml.v3 v3.0.1
 )
