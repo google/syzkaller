@@ -332,6 +332,13 @@ syz-prog2c -prog repro.syz.txt -enable=all -threaded -repeat -procs=8 -sandbox=n
 
 However, note that if `syzbot` did not provide a C reproducer, it wasn't able to trigger the bug using the C program (though, it can be just because the bug is triggered by a subtle race condition).
 
+## Downloadable assets
+
+Syzbot shares links to the bootable disk image, kernel object file and other
+relevant files that can be used to reproduce and debug the issue locally.
+
+See [this tutorial](/docs/syzbot_assets.md) on how to use them.
+
 ## Crash does not reproduce?
 
 If the provided reproducer does not work for you, most likely it is related to the
