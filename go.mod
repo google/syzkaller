@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/profiler v0.3.1
 	cloud.google.com/go/pubsub v1.28.0
 	cloud.google.com/go/secretmanager v1.10.0
-	cloud.google.com/go/storage v1.29.0
+	cloud.google.com/go/storage v1.30.1
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golangci/golangci-lint v1.53.3
 	github.com/google/go-cmp v0.5.9
@@ -17,14 +17,14 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/ulikunitz/xz v0.5.11
 	golang.org/x/net v0.12.0
-	golang.org/x/oauth2 v0.5.0
+	golang.org/x/oauth2 v0.6.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.10.0
 	golang.org/x/tools v0.11.0
-	google.golang.org/api v0.110.0
+	google.golang.org/api v0.114.0
 	google.golang.org/appengine/v2 v2.0.4
-	google.golang.org/genproto v0.0.0-20230222225845-10f96fb3dbec
+	google.golang.org/genproto v0.0.0-20230320184635-7606e756e683
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -99,7 +99,7 @@ require (
 	github.com/google/safehtml v0.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
-	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.7.1 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20230610083614-0e73809eb601 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/comment v1.4.2 // indirect
