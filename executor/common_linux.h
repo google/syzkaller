@@ -1931,18 +1931,16 @@ struct io_uring_params {
 #include <unistd.h>
 
 // Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
-static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
+static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], addr_ring vma, addr_sqes vma, ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
-	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* params, void* mmap_addr_ring, void* mmap_addr_sqes, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
+	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* params, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
 
 	// Cast to original
 	uint32 entries = (uint32)a0;
 	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
-	void* vma1 = (void*)a2;
-	void* vma2 = (void*)a3;
-	void** ring_ptr_out = (void**)a4;
-	void** sqes_ptr_out = (void**)a5;
+	void** ring_ptr_out = (void**)a2;
+	void** sqes_ptr_out = (void**)a3;
 
 	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
 
@@ -1954,10 +1952,10 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	// The implication is that the sq_ring_ptr and the cq_ring_ptr are the same but the
 	// difference is in the offsets to access the fields of these rings.
 	uint32 ring_sz = sq_ring_sz > cq_ring_sz ? sq_ring_sz : cq_ring_sz;
-	*ring_ptr_out = mmap(vma1, ring_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE | MAP_FIXED, fd_io_uring, IORING_OFF_SQ_RING);
+	*ring_ptr_out = mmap(0, ring_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd_io_uring, IORING_OFF_SQ_RING);
 
 	uint32 sqes_sz = setup_params->sq_entries * SIZEOF_IO_URING_SQE;
-	*sqes_ptr_out = mmap(vma2, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE | MAP_FIXED, fd_io_uring, IORING_OFF_SQES);
+	*sqes_ptr_out = mmap(0, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd_io_uring, IORING_OFF_SQES);
 
 	return fd_io_uring;
 }

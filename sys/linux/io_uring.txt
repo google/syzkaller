@@ -19,7 +19,7 @@ define IORING_MAX_CQ_ENTRIES	(2 * IORING_MAX_ENTRIES)
 # First does the setup calling io_uring_setup, than calls mmap to map the ring and
 # the sqes. It is hard for the fuzzer to generate correct programs using mmap calls
 # with fuzzer-provided mmap length. This wrapper ensures correct length computation.
-syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], addr_ring vma, addr_sqes vma, ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
 
 io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params]) fd_io_uring
 io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
