@@ -399,7 +399,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	}
 	if req.KernelRepo == "" {
 		req.KernelRepo = mgr.mgrcfg.Repo
-		req.KernelRepo = mgr.mgrcfg.Branch
+		req.KernelBranch = mgr.mgrcfg.Branch
 	}
 	required := []struct {
 		name string
