@@ -196,7 +196,7 @@ io_uring_params {
 syz_io_uring_complete(ring_ptr ring_ptr) fd
 
 # Submit sqe into the sq_ring
-syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u], sqes_index int32)
+syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u])
 
 io_uring_sqe_u [
 	IORING_OP_NOP			io_uring_sqe$nop

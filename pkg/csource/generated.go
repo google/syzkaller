@@ -4463,6 +4463,10 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	uint32 sqes_sz = setup_params->sq_entries * SIZEOF_IO_URING_SQE;
 	*sqes_ptr_out = mmap(0, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd_io_uring, IORING_OFF_SQES);
 
+	uint32* array = (uint32*)((uintptr_t)*ring_ptr_out + setup_params->sq_off.array);
+	for (uint32 index = 0; index < entries; index++)
+		array[index] = index;
+
 	return fd_io_uring;
 }
 
@@ -4470,26 +4474,19 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_submit
 
-static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2)
 {
 	char* ring_ptr = (char*)a0;
 	char* sqes_ptr = (char*)a1;
-	char* sqe = (char*)a2;
-	uint32 sqes_index = (uint32)a3;
 
-	uint32 sq_ring_entries = *(uint32*)(ring_ptr + SQ_RING_ENTRIES_OFFSET);
-	uint32 cq_ring_entries = *(uint32*)(ring_ptr + CQ_RING_ENTRIES_OFFSET);
-	uint32 sq_array_off = (CQ_CQES_OFFSET + cq_ring_entries * SIZEOF_IO_URING_CQE + 63) & ~63;
-	if (sq_ring_entries)
-		sqes_index %= sq_ring_entries;
-	char* sqe_dest = sqes_ptr + sqes_index * SIZEOF_IO_URING_SQE;
-	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
+	char* sqe = (char*)a2;
+
 	uint32 sq_ring_mask = *(uint32*)(ring_ptr + SQ_RING_MASK_OFFSET);
 	uint32* sq_tail_ptr = (uint32*)(ring_ptr + SQ_TAIL_OFFSET);
 	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
+	char* sqe_dest = sqes_ptr + sq_tail * SIZEOF_IO_URING_SQE;
+	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
 	uint32 sq_tail_next = *sq_tail_ptr + 1;
-	uint32* sq_array = (uint32*)(ring_ptr + sq_array_off);
-	*(sq_array + sq_tail) = sqes_index;
 	__atomic_store_n(sq_tail_ptr, sq_tail_next, __ATOMIC_RELEASE);
 	return 0;
 }
