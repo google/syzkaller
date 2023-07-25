@@ -5,7 +5,7 @@ go 1.19
 require (
 	cloud.google.com/go/logging v1.7.0
 	cloud.google.com/go/profiler v0.3.1
-	cloud.google.com/go/pubsub v1.30.0
+	cloud.google.com/go/pubsub v1.33.0
 	cloud.google.com/go/secretmanager v1.10.0
 	cloud.google.com/go/storage v1.30.1
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
@@ -34,8 +34,8 @@ require (
 	cloud.google.com/go v0.110.2 // indirect
 	cloud.google.com/go/compute v1.20.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	cloud.google.com/go/iam v0.13.0 // indirect
-	cloud.google.com/go/longrunning v0.4.1 // indirect
+	cloud.google.com/go/iam v1.1.0 // indirect
+	cloud.google.com/go/longrunning v0.4.2 // indirect
 	github.com/4meepo/tagalign v1.2.2 // indirect
 	github.com/Abirdcfly/dupword v0.0.11 // indirect
 	github.com/Antonboom/errname v0.1.10 // indirect
