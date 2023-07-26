@@ -258,6 +258,8 @@ func invalidateBisection(c context.Context, jobKey *db.Key) error {
 		}
 		if job.Type == JobBisectCause {
 			bug.BisectCause = BisectNot
+		} else if job.IsCrossTree() {
+			bug.FixCandidateJob = ""
 		} else if job.Type == JobBisectFix {
 			bug.BisectFix = BisectNot
 		}
@@ -1264,7 +1266,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	}
 	kernelRepo := kernelRepoInfo(c, build)
 	rep := &dashapi.BugReport{
-		Type:            job.Type.toDashapiReportType(),
+		Type:            job.dashapiReportType(),
 		Config:          reportingConfig,
 		JobID:           extJobID(jobKey),
 		ExtID:           job.ExtID,
@@ -1289,11 +1291,13 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 			rep.CC = strings.Split(bugReporting.CC, "|")
 		}
 		var emails []string
-		switch job.Type {
-		case JobBisectCause:
+		switch job.dashapiReportType() {
+		case dashapi.ReportBisectCause:
 			rep.BisectCause, emails = bisectFromJob(c, job)
-		case JobBisectFix:
+		case dashapi.ReportBisectFix:
 			rep.BisectFix, emails = bisectFromJob(c, job)
+		case dashapi.ReportFixCandidate:
+			rep.FixCandidate, _ = bisectFromJob(c, job)
 		}
 		rep.Maintainers = append(rep.Maintainers, emails...)
 	}
@@ -1667,6 +1671,24 @@ func (b *bugJobs) bestBisection() *bugJob {
 		}
 		if j.job.IsCrossTree() {
 			// It was a cross-tree bisection.
+			continue
+		}
+		return j
+	}
+	return nil
+}
+
+// Find the most representative fix candidate bisection result.
+func (b *bugJobs) bestFixCandidate() *bugJob {
+	// Let's take the most recent finished one.
+	for _, j := range b.list {
+		if !j.job.IsFinished() {
+			continue
+		}
+		if j.job.InvalidatedBy != "" {
+			continue
+		}
+		if !j.job.IsCrossTree() {
 			continue
 		}
 		return j

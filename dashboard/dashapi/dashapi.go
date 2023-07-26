@@ -443,6 +443,7 @@ type BugReport struct {
 	PatchLink      string
 	BisectCause    *BisectResult
 	BisectFix      *BisectResult
+	FixCandidate   *BisectResult
 	Assets         []Asset
 	Subsystems     []BugSubsystem
 	ReportElements *ReportElements
@@ -871,6 +872,7 @@ const (
 	ReportTestPatch                     // Patch testing result.
 	ReportBisectCause                   // Cause bisection result for an already reported bug.
 	ReportBisectFix                     // Fix bisection result for an already reported bug.
+	ReportFixCandidate
 )
 
 type JobInfo struct {

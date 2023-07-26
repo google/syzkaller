@@ -257,9 +257,9 @@ func TestTreeOriginLtsBisection(t *testing.T) {
 	assert.NotNil(t, info.FixCandidate)
 	fix := info.FixCandidate
 	assert.Equal(t, "upstream", fix.KernelRepoAlias)
-	assert.NotNil(t, fix.BisectFix)
-	assert.NotNil(t, fix.BisectFix.Commit)
-	commit := fix.BisectFix.Commit
+	assert.NotNil(t, fix.FixCandidate)
+	assert.NotNil(t, fix.FixCandidate.Commit)
+	commit := fix.FixCandidate.Commit
 	assert.Equal(t, "deadf00d", commit.Hash)
 	assert.Equal(t, "kernel: fix a bug", commit.Title)
 }

@@ -595,16 +595,19 @@ const (
 	JobBisectFix
 )
 
-func (typ JobType) toDashapiReportType() dashapi.ReportType {
-	switch typ {
+func (job *Job) dashapiReportType() dashapi.ReportType {
+	switch job.Type {
 	case JobTestPatch:
 		return dashapi.ReportTestPatch
 	case JobBisectCause:
 		return dashapi.ReportBisectCause
 	case JobBisectFix:
+		if job.IsCrossTree() {
+			return dashapi.ReportFixCandidate
+		}
 		return dashapi.ReportBisectFix
 	default:
-		panic(fmt.Sprintf("unknown job type %v", typ))
+		panic(fmt.Sprintf("unknown job type %v", job.Type))
 	}
 }
 
