@@ -15,7 +15,7 @@ jobs:
     steps:
       # Checks out syzkaller repo at the path.
       - name: checkout
-        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
           # This is needed for tools/check-commits.sh
@@ -24,7 +24,7 @@ jobs:
       # For reference see:
       # https://help.github.com/en/actions/configuring-and-managing-workflows/caching-dependencies-to-speed-up-workflows#using-the-cache-action
       - name: cache
-        uses: actions/cache@99d99cd262b87f5f8671407a1e5c1ddfa36ad5ba # v1
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: .cache
           key: cache
@@ -39,11 +39,11 @@ jobs:
     runs-on: k8s-env
     steps:
     - name: checkout
-      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
     - name: cache
-      uses: actions/cache@99d99cd262b87f5f8671407a1e5c1ddfa36ad5ba # v1
+      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
         path: .cache
         key: cache
@@ -54,7 +54,7 @@ jobs:
     # Upload coverage report to codecov.io. For reference see:
     # https://github.com/codecov/codecov-action/blob/master/README.md
     - name: codecov
-      uses: codecov/codecov-action@2a829b95deaeea2d11d127cc0358005714ff35ea # v3
+      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
       with:
         files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: unittests
@@ -62,11 +62,11 @@ jobs:
     runs-on: k8s-env
     steps:
     - name: checkout
-      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
     - name: cache
-      uses: actions/cache@99d99cd262b87f5f8671407a1e5c1ddfa36ad5ba # v1
+      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
         path: .cache
         key: cache
@@ -75,7 +75,7 @@ jobs:
     - name: run
       run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env timeout --signal=SIGINT 15m make presubmit_dashboard
     - name: codecov
-      uses: codecov/codecov-action@2a829b95deaeea2d11d127cc0358005714ff35ea # v3
+      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
       with:
         files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: dashboard
@@ -86,11 +86,11 @@ jobs:
         target: [presubmit_arch_linux, presubmit_arch_freebsd, presubmit_arch_netbsd, presubmit_arch_openbsd, presubmit_arch_darwin, presubmit_arch_windows, presubmit_arch_executor]
     steps:
       - name: checkout
-        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: cache
-        uses: actions/cache@99d99cd262b87f5f8671407a1e5c1ddfa36ad5ba # v1
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: .cache
           key: cache
@@ -100,11 +100,11 @@ jobs:
     runs-on: k8s-env
     steps:
     - name: checkout
-      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
     - name: cache
-      uses: actions/cache@99d99cd262b87f5f8671407a1e5c1ddfa36ad5ba # v1
+      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
         path: .cache
         key: cache
@@ -116,11 +116,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: cache
-        uses: actions/cache@99d99cd262b87f5f8671407a1e5c1ddfa36ad5ba # v1
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: .cache
           key: cache
