@@ -893,6 +893,17 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 				"Cause bisection attempts", uiList))
 		}
 	}
+	crossTreeJobs := fixBisections.crossTreeJobs()
+	if len(crossTreeJobs.all()) > 0 {
+		uiList, err := crossTreeJobs.uiAll(c)
+		if err != nil {
+			return err
+		}
+		if len(uiList) != 0 {
+			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+				"Cross-tree fix bisection attempts", uiList))
+		}
+	}
 	if isJSONRequested(r) {
 		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)

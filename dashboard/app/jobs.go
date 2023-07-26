@@ -1665,13 +1665,25 @@ func (b *bugJobs) bestBisection() *bugJob {
 		if j.job.InvalidatedBy != "" {
 			continue
 		}
-		if j.job.MergeBaseRepo != "" {
+		if j.job.IsCrossTree() {
 			// It was a cross-tree bisection.
 			continue
 		}
 		return j
 	}
 	return nil
+}
+
+func (b *bugJobs) crossTreeJobs() *bugJobs {
+	var ret []*bugJob
+	for _, j := range b.list {
+		if j.job.IsCrossTree() {
+			ret = append(ret, j)
+		}
+	}
+	return &bugJobs{
+		list: ret,
+	}
 }
 
 func (b *bugJobs) all() []*bugJob {
