@@ -372,7 +372,7 @@ func (ctx *minimizeLinuxCtx) minimizeAgainst(base *kconfig.ConfigFile) error {
 	// Bisection is not getting much faster with smaller configs, only more reliable,
 	// so there's a trade-off. Try to do best in 5 iterations, that's about 1.5 hours.
 	const minimizeRuns = 5
-	minConfig, err := ctx.kconf.Minimize(base, ctx.config, ctx.pred, minimizeRuns, ctx)
+	minConfig, err := ctx.kconf.Minimize(base, ctx.config, ctx.runPred, minimizeRuns, ctx)
 	if err != nil {
 		return err
 	}
@@ -394,7 +394,7 @@ func (ctx *minimizeLinuxCtx) dropInstrumentation(types []crash.Type) error {
 		return nil
 	}
 	ctx.SaveFile("no-instrumentation.config", newConfig.Serialize())
-	ok, err := ctx.pred(newConfig)
+	ok, err := ctx.runPred(newConfig)
 	if err != nil {
 		return err
 	}
@@ -404,6 +404,12 @@ func (ctx *minimizeLinuxCtx) dropInstrumentation(types []crash.Type) error {
 		ctx.config = newConfig
 	}
 	return nil
+}
+
+func (ctx *minimizeLinuxCtx) runPred(cfg *kconfig.ConfigFile) (bool, error) {
+	cfg = cfg.Clone()
+	ctx.transform(cfg)
+	return ctx.pred(cfg)
 }
 
 func (ctx *minimizeLinuxCtx) getConfig() []byte {
