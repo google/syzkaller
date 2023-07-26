@@ -204,26 +204,65 @@ func TestModules(t *testing.T) {
 	}
 }
 
+// Tests coverage conversion when modules are added after initialization.
+func TestChangingModules(t *testing.T) {
+	serv := &RPCServer{
+		fuzzers: make(map[string]*Fuzzer),
+	}
+
+	// Create modules at the specified address offsets.
+	f1ModuleAddresses := []uint64{0x00015000}
+	f1ModuleSizes := []uint64{0x5000}
+	f1Modules := initModules(f1ModuleAddresses, f1ModuleSizes)
+	serv.connect("f1", f1Modules, true)
+
+	f2ModuleAddresses := []uint64{0x00015000, 0x00020000}
+	f2ModuleSizes := []uint64{0x5000, 0x5000}
+	f2Modules := initModules(f2ModuleAddresses, f2ModuleSizes)
+	serv.connect("f2", f2Modules, true)
+
+	// Module 2 is not present in the "canonical" fuzzer, so coverage values
+	// in this range should be deleted.
+	serv.fuzzers["f2"].cov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000}
+	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00025000}
+	serv.fuzzers["f2"].sign = signal.FromRaw(serv.fuzzers["f2"].cov, 0).Serialize()
+	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
+
+	if err := serv.runTest(Canonicalize); err != "" {
+		t.Fatalf("failed in canonicalization: %v", err)
+	}
+
+	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00025000}
+	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
+	if err := serv.runTest(Decanonicalize); err != "" {
+		t.Fatalf("failed in decanonicalization: %v", err)
+	}
+}
+
 func (serv *RPCServer) runTest(val canonicalizeValue) string {
+	var cov []uint32
+	var sign signal.Serial
 	for name, fuzzer := range serv.fuzzers {
 		if val == Canonicalize {
-			fuzzer.instModules.Canonicalize(fuzzer.cov, fuzzer.sign)
+			cov, sign = fuzzer.instModules.Canonicalize(fuzzer.cov, fuzzer.sign)
 		} else {
-			fuzzer.instModules.Decanonicalize(fuzzer.cov, fuzzer.sign)
+			cov, sign = fuzzer.instModules.Decanonicalize(fuzzer.cov, fuzzer.sign)
 			instBitmap := fuzzer.instModules.DecanonicalizeFilter(fuzzer.bitmap)
 			if !reflect.DeepEqual(instBitmap, fuzzer.goalBitmap) {
 				return fmt.Sprintf("failed in bitmap conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
 					name, fuzzer.goalBitmap, instBitmap)
 			}
 		}
-		if !reflect.DeepEqual(fuzzer.cov, fuzzer.goalCov) {
+		if !reflect.DeepEqual(cov, fuzzer.goalCov) {
 			return fmt.Sprintf("failed in coverage conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
-				name, fuzzer.goalCov, fuzzer.cov)
+				name, fuzzer.goalCov, cov)
 		}
-		if !reflect.DeepEqual(fuzzer.sign.Deserialize(), fuzzer.goalSign.Deserialize()) {
+		if !reflect.DeepEqual(sign.Deserialize(), fuzzer.goalSign.Deserialize()) {
 			return fmt.Sprintf("failed in signal conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
-				name, fuzzer.goalSign, fuzzer.sign)
+				name, fuzzer.goalSign, sign)
 		}
+		fuzzer.cov = cov
+		fuzzer.sign = sign
 	}
 	return ""
 }
