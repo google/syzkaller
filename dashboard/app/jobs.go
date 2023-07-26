@@ -258,6 +258,8 @@ func invalidateBisection(c context.Context, jobKey *db.Key) error {
 		}
 		if job.Type == JobBisectCause {
 			bug.BisectCause = BisectNot
+		} else if job.IsCrossTree() {
+			bug.FixCandidateJob = ""
 		} else if job.Type == JobBisectFix {
 			bug.BisectFix = BisectNot
 		}
