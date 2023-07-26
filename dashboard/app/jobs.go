@@ -1539,6 +1539,7 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 		KernelRepo:       job.KernelRepo,
 		KernelBranch:     job.KernelBranch,
 		KernelAlias:      kernelRepoInfoRaw(c, job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
+		KernelLink:       vcs.CommitLink(job.KernelRepo, job.KernelBranch),
 		KernelCommit:     kernelCommit,
 		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
 		PatchLink:        textLink(textPatch, job.Patch),
@@ -1667,6 +1668,24 @@ func (b *bugJobs) bestBisection() *bugJob {
 		}
 		if j.job.MergeBaseRepo != "" {
 			// It was a cross-tree bisection.
+			continue
+		}
+		return j
+	}
+	return nil
+}
+
+// Find the most representative fix candidate bisection result.
+func (b *bugJobs) bestFixCandidate() *bugJob {
+	// Let's take the most recent finished one.
+	for _, j := range b.list {
+		if !j.job.IsFinished() {
+			continue
+		}
+		if j.job.InvalidatedBy != "" {
+			continue
+		}
+		if !j.job.IsCrossTree() {
 			continue
 		}
 		return j

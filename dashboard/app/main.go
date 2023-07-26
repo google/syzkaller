@@ -240,6 +240,7 @@ type uiBugPage struct {
 	Bug             *uiBug
 	BisectCause     *uiJob
 	BisectFix       *uiJob
+	FixCandidate    *uiJob
 	Sections        []*uiCollapsible
 	SampleReport    template.HTML
 	Crashes         *uiCrashTable
@@ -367,6 +368,7 @@ type uiJob struct {
 	*dashapi.JobInfo
 	Crash             *uiCrash
 	InvalidateJobLink string
+	FixCandidate      bool
 }
 
 type userBugFilter struct {
@@ -838,6 +840,13 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 	}
+	var fixCandidate *uiJob
+	if bug.FixCandidateJob != "" {
+		fixCandidate, err = fixBisections.uiBestFixCandidate(c)
+		if err != nil {
+			return err
+		}
+	}
 	testPatchJobs, err := loadTestPatchJobs(c, bug)
 	if err != nil {
 		return err
@@ -858,6 +867,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Bug:          uiBug,
 		BisectCause:  bisectCause,
 		BisectFix:    bisectFix,
+		FixCandidate: fixCandidate,
 		Sections:     sections,
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
@@ -2012,6 +2022,7 @@ func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Cra
 	ui := &uiJob{
 		JobInfo:           makeJobInfo(c, job, jobKey, bug, build, crash),
 		InvalidateJobLink: invalidateJobLink(c, job, jobKey),
+		FixCandidate:      job.IsCrossTree(),
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(c, crash, build)
@@ -2136,6 +2147,14 @@ func (b *bugJobs) uiAll(c context.Context) ([]*uiJob, error) {
 
 func (b *bugJobs) uiBestBisection(c context.Context) (*uiJob, error) {
 	j := b.bestBisection()
+	if j == nil {
+		return nil, nil
+	}
+	return j.ui(c)
+}
+
+func (b *bugJobs) uiBestFixCandidate(c context.Context) (*uiJob, error) {
+	j := b.bestFixCandidate()
 	if j == nil {
 		return nil, nil
 	}
