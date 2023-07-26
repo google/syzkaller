@@ -256,9 +256,6 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 }
 
 func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
-	inputSignal := a.Signal.Deserialize()
-	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
-		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
 	bad, disabled := checkProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
 	if bad || disabled {
 		log.Logf(0, "rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.Input.Prog)
@@ -271,6 +268,9 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if f != nil {
 		f.instModules.Canonicalize(a.Cover, a.Signal)
 	}
+	inputSignal := a.Signal.Deserialize()
+	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
+		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
 	// Note: f may be nil if we called shutdownInstance,
 	// but this request is already in-flight.
 	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
