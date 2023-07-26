@@ -313,24 +313,32 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{/* Show bisection results */}}
 {{define "bisect_results"}}
 {{if .}}
-	<br>
 	{{$causeJob := 1}}
 	{{$fixJob := 2}}
 	{{if .ErrorLink}}
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: failed</b>
 		{{else if eq .Type $fixJob}}
-			<b>Fix bisection: failed</b>
+			{{if .FixCandidate}}
+				<b>Fix candidate bisection: failed</b>
+			{{else}}
+			        <b>Fix bisection: failed</b>
+			{{end}}
 		{{end}}
 		<b>({{link .ErrorLink "error log"}}{{if .LogLink}}, {{link .LogLink "bisect log"}}{{end}})</b><br>
 	{{else if .Commit}}
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: introduced by</b>
 		{{else if eq .Type $fixJob}}
-			<b>Fix bisection: fixed by</b>
+			{{if .FixCandidate}}
+				<b>Fix commit to backport</b>
+			{{else}}
+			        <b>Fix bisection: fixed by</b>
+			{{end}}
 		{{end}}
 		<b>({{link .LogLink "bisect log"}})</b> <span class="bad">{{print .Flags}}</span>:<br>
 		<span class="mono">
+		{{if .FixCandidate}}tree: {{link .KernelLink .KernelAlias}}<br>{{end}}
 		commit {{.Commit.Hash}}<br>
 		Author: {{.Commit.Author}}<br>
 		Date:   {{formatKernelTime .Commit.Date}}<br>
@@ -341,8 +349,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: the cause commit could be any of</b>
 		{{else if eq .Type $fixJob}}
-			<b>Fix bisection: the fix commit could be any of</b>
-		{{end}}
+			<b>{{if .FixCandidate}}Fix candidate detection{{else}}Fix bisection{{end}}
+			the fix commit could be any of</b>
+			{{end}}
 		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<span class="mono">
 		{{range $com := .Commits}}
@@ -353,7 +362,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: the issue happens on the oldest tested release</b>
 		{{else if eq .Type $fixJob}}
-			<b>Fix bisection: the issue occurs on the latest tested release</b>
+			<b>{{if .FixCandidate}}Fix candidate detection:{{else}}Fix bisection:{{end}}
+			the issue occurs on the latest tested release</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}})</b><br>
 	{{end}}

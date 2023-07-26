@@ -891,6 +891,7 @@ type JobInfo struct {
 	KernelAlias      string
 	KernelCommit     string
 	KernelCommitLink string
+	KernelLink       string
 	PatchLink        string
 	Attempts         int
 	Started          time.Time
