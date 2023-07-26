@@ -316,11 +316,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<br>
 	{{$causeJob := 1}}
 	{{$fixJob := 2}}
+	{{$fixCandidate := 3}}
 	{{if .ErrorLink}}
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: failed</b>
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: failed</b>
+		{{else if eq .Type $fixCandidate}}
+			<b>Fix candidate bisection: failed</b>
 		{{end}}
 		<b>({{link .ErrorLink "error log"}}{{if .LogLink}}, {{link .LogLink "bisect log"}}{{end}})</b><br>
 	{{else if .Commit}}
@@ -328,9 +331,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<b>Cause bisection: introduced by</b>
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: fixed by</b>
+		{{else if eq .Type $fixCandidate}}
+			<b>Fix commit to backport</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}})</b> <span class="bad">{{print .Flags}}</span>:<br>
 		<span class="mono">
+		{{if eq .Type $fixCandidate}}tree: {{link .KernelCommitLink .KernelAlias}}<br>{{end}}
 		commit {{.Commit.Hash}}<br>
 		Author: {{.Commit.Author}}<br>
 		Date:   {{formatKernelTime .Commit.Date}}<br>
@@ -342,6 +348,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<b>Cause bisection: the cause commit could be any of</b>
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: the fix commit could be any of</b>
+		{{else if eq .Type $fixCandidate}}
+			<b>Fix candidate detection: the fix commit could be any of</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<span class="mono">
@@ -354,6 +362,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<b>Cause bisection: the issue happens on the oldest tested release</b>
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: the issue occurs on the latest tested release</b>
+		{{else if eq .Type $fixCandidate}}
+			<b>Fix candidate bisection: the issue occurs on the latest tested release</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}})</b><br>
 	{{end}}
@@ -453,7 +463,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						{{- else}}retest repro{{end}}
 					{{else if eq $job.Type 1}}
 						bisect
-					{{else if eq $job.Type 2}}
+					{{else if or (eq $job.Type 2) (eq $job.Type 3)}}
 						bisect fix
 					{{end}}
 				</td>

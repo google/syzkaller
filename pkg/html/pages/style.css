@@ -364,6 +364,10 @@ aside {
 	width: 20pt;
 }
 
+.fix-candidate-block {
+	background: lightgreen;
+}
+
 .bug-bisection-info {
 	float:left;
 	margin-right: 15px;
