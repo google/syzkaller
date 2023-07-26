@@ -77,7 +77,6 @@ use (
 	./internal/examples/mock
 	./internal/gapicgen
 	./internal/generated/snippets
-	./internal/gensnippets
 	./internal/godocfx
 	./internal/postprocessor
 	./iot
@@ -107,8 +106,8 @@ use (
 	./profiler
 	./pubsub
 	./pubsublite
+	./rapidmigrationassessment
 	./recaptchaenterprise
-	./recaptchaenterprise/v2
 	./recommendationengine
 	./recommender
 	./redis
@@ -129,7 +128,9 @@ use (
 	./speech
 	./storage
 	./storage/internal/benchmarks
+	./storageinsights
 	./storagetransfer
+	./support
 	./talent
 	./texttospeech
 	./tpu
@@ -138,7 +139,6 @@ use (
 	./video
 	./videointelligence
 	./vision
-	./vision/v2
 	./vmmigration
 	./vmwareengine
 	./vpcaccess
