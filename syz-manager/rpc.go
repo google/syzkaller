@@ -266,7 +266,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 
 	f := serv.fuzzers[a.Name]
 	if f != nil {
-		f.instModules.Canonicalize(a.Cover, a.Signal)
+		a.Cover, a.Signal = f.instModules.Canonicalize(a.Cover, a.Signal)
 	}
 	inputSignal := a.Signal.Deserialize()
 	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
@@ -378,7 +378,7 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		}
 	}
 	for _, inp := range r.NewInputs {
-		f.instModules.Decanonicalize(inp.Cover, inp.Signal)
+		inp.Cover, inp.Signal = f.instModules.Decanonicalize(inp.Cover, inp.Signal)
 	}
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))

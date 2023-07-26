@@ -4,6 +4,7 @@
 package cover
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/host"
@@ -33,10 +34,19 @@ type Convert struct {
 	moduleKeys     []uint32
 }
 
+type convertContext struct {
+	errCount int
+	errPC    uint32
+	convert  *Convert
+}
+
 // Contains the offset and final address of each module.
 type canonicalizerModule struct {
 	offset  int
 	endAddr uint32
+	// Discard coverage from current module.
+	// Set to true if module is not present in canonical.
+	discard bool
 }
 
 func NewCanonicalizer(modules []host.KernelModule, flagSignal bool) *Canonicalizer {
@@ -71,22 +81,29 @@ func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *Canonicalize
 	instToCanonicalMap := make(map[uint32]*canonicalizerModule)
 	canonicalToInstMap := make(map[uint32]*canonicalizerModule)
 	for _, module := range modules {
+		discard := false
+		canonicalAddr := uint32(0)
 		canonicalModule, found := can.modules[module.Name]
 		if !found || canonicalModule.Size != module.Size {
-			log.Fatalf("kernel build has changed; instance module %v differs from canonical", module.Name)
+			log.Errorf("kernel build has changed; instance module %v differs from canonical", module.Name)
+			discard = true
+		}
+		if found {
+			canonicalAddr = uint32(canonicalModule.Addr)
 		}
 
 		instAddr := uint32(module.Addr)
-		canonicalAddr := uint32(canonicalModule.Addr)
 
 		canonicalToInstMap[canonicalAddr] = &canonicalizerModule{
 			offset:  int(instAddr) - int(canonicalAddr),
 			endAddr: uint32(module.Size) + canonicalAddr,
+			discard: discard,
 		}
 
 		instToCanonicalMap[instAddr] = &canonicalizerModule{
 			offset:  int(canonicalAddr) - int(instAddr),
 			endAddr: uint32(module.Size) + instAddr,
+			discard: discard,
 		}
 	}
 
@@ -103,18 +120,18 @@ func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *Canonicalize
 	}
 }
 
-func (ci *CanonicalizerInstance) Canonicalize(cov []uint32, sign signal.Serial) {
+func (ci *CanonicalizerInstance) Canonicalize(cov []uint32, sign signal.Serial) ([]uint32, signal.Serial) {
 	if ci.canonical.moduleKeys == nil {
-		return
+		return cov, sign
 	}
-	ci.canonicalize.convertPCs(cov, sign)
+	return ci.canonicalize.convertPCs(cov, sign)
 }
 
-func (ci *CanonicalizerInstance) Decanonicalize(cov []uint32, sign signal.Serial) {
+func (ci *CanonicalizerInstance) Decanonicalize(cov []uint32, sign signal.Serial) ([]uint32, signal.Serial) {
 	if ci.canonical.moduleKeys == nil {
-		return
+		return cov, sign
 	}
-	ci.decanonicalize.convertPCs(cov, sign)
+	return ci.decanonicalize.convertPCs(cov, sign)
 }
 
 func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) map[uint32]uint32 {
@@ -123,8 +140,16 @@ func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) 
 		return bitmap
 	}
 	instBitmap := make(map[uint32]uint32)
+	convCtx := &convertContext{convert: ci.decanonicalize}
 	for pc, val := range bitmap {
-		instBitmap[ci.decanonicalize.convertPC(pc)] = val
+		if newPC, ok := ci.decanonicalize.convertPC(pc); ok {
+			instBitmap[newPC] = val
+		} else {
+			convCtx.discard(pc)
+		}
+	}
+	if msg := convCtx.discarded(); msg != "" {
+		log.Logf(4, "error in bitmap conversion: %v", msg)
 	}
 	return instBitmap
 }
@@ -152,26 +177,66 @@ func findModule(pc uint32, moduleKeys []uint32) (moduleIdx int) {
 	return moduleIdx - 1
 }
 
-func (convert *Convert) convertPCs(cov []uint32, sign signal.Serial) {
+func (convert *Convert) convertPCs(cov []uint32, sign signal.Serial) ([]uint32, signal.Serial) {
 	// Convert coverage.
-	for idx, pc := range cov {
-		cov[idx] = convert.convertPC(pc)
+	var retCov []uint32
+	convCtx := &convertContext{convert: convert}
+	for _, pc := range cov {
+		if newPC, ok := convert.convertPC(pc); ok {
+			retCov = append(retCov, newPC)
+		} else {
+			convCtx.discard(pc)
+		}
+	}
+	if msg := convCtx.discarded(); msg != "" {
+		log.Logf(4, "error in PC conversion: %v", msg)
 	}
 	// Convert signals.
+	retSign := &signal.Serial{}
+	convCtx = &convertContext{convert: convert}
 	for idx, elem := range sign.Elems {
-		sign.UpdateElem(idx, convert.convertPC(uint32(elem)))
+		if newSign, ok := convert.convertPC(uint32(elem)); ok {
+			retSign.AddElem(newSign, sign.Prios[idx])
+		} else {
+			convCtx.discard(uint32(elem))
+		}
 	}
+	if msg := convCtx.discarded(); msg != "" {
+		log.Logf(4, "error in signal conversion: %v", msg)
+	}
+	return retCov, *retSign
 }
 
-func (convert *Convert) convertPC(pc uint32) uint32 {
+func (convert *Convert) convertPC(pc uint32) (uint32, bool) {
 	moduleIdx := findModule(pc, convert.moduleKeys)
 	// Check if address is above the first module offset.
 	if moduleIdx >= 0 {
-		module := convert.conversionHash[convert.moduleKeys[moduleIdx]]
+		module, found := convert.conversionHash[convert.moduleKeys[moduleIdx]]
+		if !found {
+			return pc, false
+		}
 		// If the address is within the found module add the offset.
 		if pc < module.endAddr {
+			if module.discard {
+				return pc, false
+			}
 			pc = uint32(int(pc) + module.offset)
 		}
 	}
-	return pc
+	return pc, true
+}
+
+func (cc *convertContext) discarded() string {
+	if cc.errCount == 0 {
+		return ""
+	}
+	errMsg := fmt.Sprintf("discarded 0x%x (and %v other PCs) during conversion", cc.errPC, cc.errCount)
+	return fmt.Sprintf("%v; not found in module map", errMsg)
+}
+
+func (cc *convertContext) discard(pc uint32) {
+	cc.errCount += 1
+	if cc.errPC == 0 {
+		cc.errPC = pc
+	}
 }
