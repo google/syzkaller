@@ -549,7 +549,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if res.IsRelease {
 			resp.Flags |= dashapi.BisectResultRelease
 		}
-		const confidenceCutOff = 0.5
+		const confidenceCutOff = 0.66
 		if res.Confidence < confidenceCutOff {
 			resp.Flags |= dashapi.BisectResultIgnore
 		}
