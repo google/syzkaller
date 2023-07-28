@@ -371,7 +371,7 @@ var List = map[string]map[string]*Target{
 			CCompiler:    "clang",
 			CFlags: []string{
 				"-m64",
-				"-I", sourceDirVar + "/san",
+				"-I", sourceDirVar + "/san/tools",
 				// FIXME(HerrSpace): syscall was marked as deprecated on macos
 				"-Wno-deprecated-declarations",
 			},

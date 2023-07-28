@@ -76,7 +76,7 @@ static void cover_mmap(cover_t* cov)
 	if (cov->data != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	uintptr_t mmap_ptr = 0;
-	if (ksancov_map(cov->fd, &mmap_ptr, &cov->mmap_alloc_size))
+	if (ksancov_map(cov->fd, &mmap_ptr, (size_t*)&cov->mmap_alloc_size))
 		fail("cover mmap failed");
 
 	// Sanity check to make sure our assumptions in the max_entries calculation
@@ -118,8 +118,8 @@ static void cover_collect(cover_t* cov)
 {
 	struct ksancov_trace* trace = (struct ksancov_trace*)cov->data;
 	cov->size = ksancov_trace_head(trace);
-	cov->data_offset = ((int64_t) & (trace->pcs)) - ((int64_t)(cov->data));
-	cov->pc_offset = trace->offset;
+	cov->data_offset = ((int64_t) & (trace->kt_entries)) - ((int64_t)(cov->data));
+	cov->pc_offset = trace->kt_offset;
 }
 
 static bool use_cover_edges(uint64 pc)
