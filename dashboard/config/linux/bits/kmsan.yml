@@ -3,10 +3,6 @@
 
 compiler: /usr/bin/clang
 
-kernel:
- repo: https://github.com/google/kmsan.git
- tag: kmsan-v6.4-rc1
-
 config:
  - KMSAN
  - KMSAN_CHECK_PARAM_RETVAL
