@@ -112,9 +112,13 @@ type Config struct {
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.
-	BisectBinDir string           `json:"bisect_bin_dir"`
-	Ccache       string           `json:"ccache"`
-	Managers     []*ManagerConfig `json:"managers"`
+	BisectBinDir string `json:"bisect_bin_dir"`
+	// Keys of BisectIgnore are full commit hashes that should never be reported
+	// in bisection results.
+	// Values of the map are ignored and can e.g. serve as comments.
+	BisectIgnore map[string]string `json:"bisect_ignore"`
+	Ccache       string            `json:"ccache"`
+	Managers     []*ManagerConfig  `json:"managers"`
 	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
 	JobPollPeriod int `json:"job_poll_period"`
 	// Set up a second (parallel) job processor to speed up processing.

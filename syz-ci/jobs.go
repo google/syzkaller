@@ -553,16 +553,8 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if res.Confidence < confidenceCutOff {
 			resp.Flags |= dashapi.BisectResultIgnore
 		}
-		ignoredCommits := []string{
-			// Commit "usb: gadget: add raw-gadget interface" adds a kernel interface for
-			// triggering USB bugs, which ends up being the guilty commit during bisection
-			// for USB bugs introduced before it.
-			"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
-		}
-		for _, commit := range ignoredCommits {
-			if res.Commits[0].Hash == commit {
-				resp.Flags |= dashapi.BisectResultIgnore
-			}
+		if jp.ignoreBisectCommit(res.Commits[0]) {
+			resp.Flags |= dashapi.BisectResultIgnore
 		}
 	}
 	if res.Report != nil {
@@ -581,6 +573,24 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		}
 	}
 	return nil
+}
+
+var ignoredCommits = []string{
+	// Commit "usb: gadget: add raw-gadget interface" adds a kernel interface for
+	// triggering USB bugs, which ends up being the guilty commit during bisection
+	// for USB bugs introduced before it.
+	"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
+}
+
+func (jp *JobProcessor) ignoreBisectCommit(commit *vcs.Commit) bool {
+	// First look at the always ignored values.
+	for _, hash := range ignoredCommits {
+		if commit.Hash == hash {
+			return true
+		}
+	}
+	_, ok := jp.cfg.BisectIgnore[commit.Hash]
+	return ok
 }
 
 func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
