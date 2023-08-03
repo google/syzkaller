@@ -1322,6 +1322,7 @@ func bisectFromJob(c context.Context, job *Job) (*dashapi.BisectResult, []string
 		CrashLogLink:    externalLink(c, textCrashLog, job.CrashLog),
 		CrashReportLink: externalLink(c, textCrashReport, job.CrashReport),
 		Fix:             job.Type == JobBisectFix,
+		CrossTree:       job.IsCrossTree(),
 	}
 	for _, com := range job.Commits {
 		bisect.Commits = append(bisect.Commits, &dashapi.Commit{

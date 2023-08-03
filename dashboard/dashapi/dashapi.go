@@ -485,6 +485,7 @@ type BisectResult struct {
 	CrashLogLink    string
 	CrashReportLink string
 	Fix             bool
+	CrossTree       bool
 }
 
 type BugListReport struct {
