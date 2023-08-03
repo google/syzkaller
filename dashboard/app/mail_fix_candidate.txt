@@ -1,0 +1,22 @@
+{{$bisect := .BisectFix}}syzbot suspects this issue could be fixed by backporting the following commit:
+
+commit {{$bisect.Commit.Hash}}
+git tree: {{.KernelRepoAlias}}
+Author: {{$bisect.Commit.AuthorName}} <{{$bisect.Commit.Author}}>
+Date:   {{formatKernelTime $bisect.Commit.Date}}
+
+    {{$bisect.Commit.Title}}
+
+bisection log:  {{$bisect.LogLink}}
+{{if $bisect.CrashReportLink}}final oops:     {{$bisect.CrashReportLink}}
+{{end}}{{if $bisect.CrashLogLink}}console output: {{$bisect.CrashLogLink}}
+{{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
+{{end}}dashboard link: {{.Link}}
+{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
+{{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
+{{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
+{{end}}
+
+Please keep in mind that other backports might be required as well.
+
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
