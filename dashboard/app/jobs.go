@@ -1524,7 +1524,7 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 	crash *Crash) *dashapi.JobInfo {
 	kernelRepo, kernelCommit := job.KernelRepo, job.KernelBranch
 	if build != nil {
-		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
+		kernelCommit = build.KernelCommit
 	}
 	info := &dashapi.JobInfo{
 		JobKey:           jobKey.Encode(),
