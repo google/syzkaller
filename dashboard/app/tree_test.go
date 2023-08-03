@@ -236,8 +236,11 @@ func TestTreeOriginLtsBisection(t *testing.T) {
 		CrashReport: []byte("bisect crash report"),
 		Commits: []dashapi.Commit{
 			{
-				Hash:  "deadf00d",
-				Title: "kernel: fix a bug",
+				AuthorName: "Someone",
+				Author:     "someone@somewhere.com",
+				Hash:       "deadf00d",
+				Title:      "kernel: fix a bug",
+				Date:       time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
 			},
 		},
 	}
@@ -250,7 +253,29 @@ func TestTreeOriginLtsBisection(t *testing.T) {
 	job = ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
 	assert.Equal(t, job.ID, "")
 
-	// No emails are to be sent (for now).
+	msg := ctx.emailWithoutURLs()
+	c.expectEQ(msg.Body, `syzbot suspects this issue could be fixed by backporting the following commit:
+
+commit deadf00d
+git tree: upstream
+Author: Someone <someone@somewhere.com>
+Date:   Wed Feb 9 04:05:06 2000 +0000
+
+    kernel: fix a bug
+
+bisection log:  %URL%
+final oops:     %URL%
+console output: %URL%
+kernel config:  %URL%
+dashboard link: %URL%
+syz repro:      %URL%
+C reproducer:   %URL%
+
+
+Please keep in mind that other backports might be required as well.
+
+For information about bisection process see: %URL%#bisection
+`)
 	ctx.ctx.expectNoEmail()
 
 	info := ctx.fullBugInfo()

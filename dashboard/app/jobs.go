@@ -1198,11 +1198,6 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 		if job.Type == JobBisectFix && len(job.Commits) != 1 {
 			continue
 		}
-		// Don't report cross-tree bisection results for now as we need to first understand
-		// how reliable their results are.
-		if job.IsCrossTree() {
-			continue
-		}
 		// If the bug is already known to be fixed, invalid or duplicate, do not report the bisection results.
 		if job.Type == JobBisectCause || job.Type == JobBisectFix {
 			bug := new(Bug)
