@@ -686,6 +686,13 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 	return present, fixCommits, nil
 }
 
+func (mgr *Manager) backportCommits() []vcs.BackportCommit {
+	return append(
+		append([]vcs.BackportCommit{}, mgr.cfg.BisectBackports...),
+		mgr.mgrcfg.BisectBackports...,
+	)
+}
+
 func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder string) ([]dashapi.NewAsset, error) {
 	if mgr.storage == nil {
 		// No reason to continue anyway.
