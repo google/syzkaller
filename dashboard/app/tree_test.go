@@ -287,6 +287,10 @@ For information about bisection process see: %URL%#bisection
 	commit := fix.BisectFix.Commit
 	assert.Equal(t, "deadf00d", commit.Hash)
 	assert.Equal(t, "kernel: fix a bug", commit.Title)
+
+	// Ensure the bug is not automatically closed.
+	bug := ctx.loadBug()
+	assert.Len(t, bug.Commits, 0)
 }
 
 func TestTreeOriginErrors(t *testing.T) {

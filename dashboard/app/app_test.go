@@ -512,8 +512,9 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"tree-tests": {
-			AccessLevel: AccessPublic,
-			Key:         "treeteststreeteststreeteststreeteststreeteststreetests",
+			AccessLevel:           AccessPublic,
+			FixBisectionAutoClose: true,
+			Key:                   "treeteststreeteststreeteststreeteststreeteststreetests",
 			Clients: map[string]string{
 				clientTreeTests: keyTreeTests,
 			},

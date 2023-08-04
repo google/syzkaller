@@ -1355,6 +1355,7 @@ func jobReported(c context.Context, jobID string) error {
 		// if the setting is enabled for the namespace.
 		if job.Type == JobBisectFix &&
 			config.Namespaces[job.Namespace].FixBisectionAutoClose &&
+			!job.IsCrossTree() &&
 			len(job.Commits) == 1 {
 			bug := new(Bug)
 			bugKey := jobKey.Parent()
