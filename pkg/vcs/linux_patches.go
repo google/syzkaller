@@ -15,6 +15,8 @@ type BackportCommit struct {
 	// The title of the commit to cherry-pick.
 	// It's used to determine whether the fix is already in place.
 	FixTitle string `json:"fix_title"`
+	// The field is only intended to make config files less cryptic.
+	Comment string `json:"comment"`
 }
 
 // linuxFixBackports() cherry-picks the commits necessary to compile/run older Linux kernel releases.
