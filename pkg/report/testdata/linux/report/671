@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in flush_to_ldisc
-ALT: KMSAN origin in __pskb_copy_fclone
 ALT: bad-access in flush_to_ldisc
 
 [ 1725.922949][   T52] =====================================================

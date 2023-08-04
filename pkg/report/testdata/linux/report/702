@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in post_read_mst_fixup
-ALT: KMSAN origin in map_mft_record
 ALT: bad-access in post_read_mst_fixup
 
 [  355.605345][ T5697] =====================================================

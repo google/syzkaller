@@ -1374,7 +1374,6 @@ var linuxOopses = append([]*oops{
 				fmt:    "KMSAN: %[1]v in %[3]v",
 				alt: []string{
 					"bad-access in %[3]v",
-					"KMSAN origin in %[4]v",
 				},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{

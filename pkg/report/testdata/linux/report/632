@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in __perf_event_task_sched_in
-ALT: KMSAN origin in corrupted
 ALT: bad-access in __perf_event_task_sched_in
 CORRUPTED: Y
 

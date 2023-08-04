@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in sctp_epaddr_lookup_transport
-ALT: KMSAN origin in sctp_rcv
 ALT: bad-access in sctp_epaddr_lookup_transport
 
 [  701.063465][    C1] =====================================================

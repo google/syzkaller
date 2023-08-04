@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in nilfs_bmap_lookup_at_level
-ALT: KMSAN origin in nilfs_alloc_inode
 ALT: bad-access in nilfs_bmap_lookup_at_level
 
 [  231.715107][ T3795] =====================================================

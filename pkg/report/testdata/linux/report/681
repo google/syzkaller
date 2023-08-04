@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in net_tx_action
-ALT: KMSAN origin in rtnetlink_rcv
 ALT: bad-access in net_tx_action
 
 [  142.141483][    C0] =====================================================
