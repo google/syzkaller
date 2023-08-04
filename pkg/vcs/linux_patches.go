@@ -21,8 +21,16 @@ type BackportCommit struct {
 
 // linuxFixBackports() cherry-picks the commits necessary to compile/run older Linux kernel releases.
 func linuxFixBackports(repo *git, extraCommits ...BackportCommit) error {
-	list := append([]BackportCommit{}, pickLinuxCommits...)
-	for _, info := range append(list, extraCommits...) {
+	return applyFixBackports(repo,
+		append(
+			append([]BackportCommit{}, pickLinuxCommits...),
+			extraCommits...,
+		),
+	)
+}
+
+func applyFixBackports(repo *git, commits []BackportCommit) error {
+	for _, info := range commits {
 		if info.GuiltyHash != "" {
 			contains, err := repo.Contains(info.GuiltyHash)
 			if err != nil {
