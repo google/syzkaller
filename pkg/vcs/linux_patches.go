@@ -3,9 +3,13 @@
 
 package vcs
 
+import "fmt"
+
 // BackportCommit describes a fix commit that must be cherry-picked to an older
 // kernel revision in order to enable kernel build / boot.
 type BackportCommit struct {
+	// Backport is only applied if the commit is reachable from HEAD.
+	GuiltyHash string `json:"guilty_hash"`
 	// The hash of the commit to cherry-pick.
 	FixHash string `json:"fix_hash"`
 	// The title of the commit to cherry-pick.
@@ -17,6 +21,16 @@ type BackportCommit struct {
 func linuxFixBackports(repo *git, extraCommits ...BackportCommit) error {
 	list := append([]BackportCommit{}, pickLinuxCommits...)
 	for _, info := range append(list, extraCommits...) {
+		if info.GuiltyHash != "" {
+			contains, err := repo.Contains(info.GuiltyHash)
+			if err != nil {
+				return fmt.Errorf("failed to check if %s is present: %w", info.GuiltyHash, err)
+			}
+			if !contains {
+				// There's no reason to backport a fix.
+				continue
+			}
+		}
 		fixCommit, err := repo.GetCommitByTitle(info.FixTitle)
 		if err != nil {
 			return err
