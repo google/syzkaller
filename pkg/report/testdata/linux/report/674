@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in ntfs_iget5
-ALT: KMSAN origin in ntfs_alloc_inode
 ALT: bad-access in ntfs_iget5
 
 [  493.519926][ T7865] =====================================================

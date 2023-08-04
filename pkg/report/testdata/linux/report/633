@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in prepend_path
-ALT: KMSAN origin in corrupted
 ALT: bad-access in prepend_path
 CORRUPTED: Y
 

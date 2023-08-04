@@ -1,5 +1,4 @@
 TITLE: KMSAN: kernel-infoleak in urandom_read_nowarn
-ALT: KMSAN origin in crng_reseed
 ALT: bad-access in urandom_read_nowarn
 
 [  600.161674][ T9046] =====================================================
