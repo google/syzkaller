@@ -1219,5 +1219,12 @@ func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dasha
 	c.expectOK(c.client2.JobDone(done))
 	msg := c.client2.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
+
+	// Ensure we do not automatically close the bug.
+	c.expectTrue(!config.Namespaces["test2"].FixBisectionAutoClose)
+	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
+	c.expectOK(err)
+	dbBug, _, _ := c.loadBug(extBugID)
+	c.expectTrue(len(dbBug.Commits) == 0)
 	return resp, done, jobID
 }
