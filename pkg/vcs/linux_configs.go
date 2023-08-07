@@ -107,11 +107,11 @@ func setLinuxSanitizerConfigs(cf *kconfig.ConfigFile, types []crash.Type, dt deb
 			cf.Unset("HARDLOCKUP_DETECTOR")
 			cf.Unset("DETECT_HUNG_TASK")
 			// It looks like it's the only reliable way to completely disable hung errors.
-			val := cf.Value("CMDLINE")
-			pos := strings.LastIndexByte(val, '"')
-			if pos >= 0 {
-				cf.Set("CMDLINE",
-					val[:pos]+" rcupdate.rcu_cpu_stall_suppress=1"+val[pos:])
+			cmdline := cf.Value("CMDLINE")
+			pos := strings.LastIndexByte(cmdline, '"')
+			const rcuStallSuppress = "rcupdate.rcu_cpu_stall_suppress=1"
+			if pos >= 0 && !strings.Contains(cmdline, rcuStallSuppress) {
+				cf.Set("CMDLINE", cmdline[:pos]+" "+rcuStallSuppress+cmdline[pos:])
 			}
 		},
 		crash.MemoryLeak: func() { cf.Unset("DEBUG_KMEMLEAK") },

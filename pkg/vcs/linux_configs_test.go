@@ -83,6 +83,24 @@ CONFIG_PROVE_LOCKING=y
 	}
 }
 
+// Ensure we don't add "rcupdate.rcu_cpu_stall_suppress=1" twice.
+func TestNoDoubleRcuSuppress(t *testing.T) {
+	const base = `
+CONFIG_CMDLINE="param1=a rcupdate.rcu_cpu_stall_suppress=1 param2=b"
+CONFIG_BUG=y
+CONFIG_KASAN=y
+`
+	conf, err := kconfig.ParseConfigData([]byte(base), "base")
+	if err != nil {
+		t.Fatal(err)
+	}
+	setLinuxSanitizerConfigs(conf, []crash.Type{crash.Warning}, &debugtracer.NullTracer{})
+	assert.Equal(t,
+		`"param1=a rcupdate.rcu_cpu_stall_suppress=1 param2=b"`,
+		conf.Value("CMDLINE"),
+	)
+}
+
 func assertConfigs(t *testing.T, cf *kconfig.ConfigFile, names ...string) {
 	var setConfigs []string
 	for _, name := range names {
