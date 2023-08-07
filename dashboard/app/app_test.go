@@ -309,6 +309,9 @@ var testConfig = &GlobalConfig{
 			RetestRepros: true,
 			Subsystems: SubsystemsConfig{
 				Service: subsystem.MustMakeService(testSubsystems),
+				Redirect: map[string]string{
+					"oldSubsystem": "subsystemA",
+				},
 			},
 		},
 		// The second namespace reporting to the same mailing list.
