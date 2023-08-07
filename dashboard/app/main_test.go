@@ -5,6 +5,8 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -335,4 +337,20 @@ func TestAdminJobList(t *testing.T) {
 	reply, err = c.AuthGET(AccessAdmin, fixJobsLink)
 	c.expectOK(err)
 	assert.NotContains(t, string(reply), crash.Title)
+}
+
+func TestSubsystemsPageRedirect(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Verify that the normal subsystem page works.
+	_, err := c.AuthGET(AccessAdmin, "/access-public-email/s/subsystemA")
+	c.expectOK(err)
+
+	// Verify that the old subsystem name points to the new one.
+	_, err = c.AuthGET(AccessAdmin, "/access-public-email/s/oldSubsystem")
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusMovedPermanently)
+	c.expectEQ(httpErr.Headers["Location"], []string{"/access-public-email/s/subsystemA"})
 }

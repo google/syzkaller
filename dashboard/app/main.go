@@ -511,7 +511,12 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	}
 	var subsystem *subsystem.Subsystem
 	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
-		subsystem = service.ByName(r.URL.Path[pos+3:])
+		name := r.URL.Path[pos+3:]
+		if newName := config.Namespaces[hdr.Namespace].Subsystems.Redirect[name]; newName != "" {
+			http.Redirect(w, r, r.URL.Path[:pos+3]+newName, http.StatusMovedPermanently)
+			return nil
+		}
+		subsystem = service.ByName(name)
 	}
 	if subsystem == nil {
 		return fmt.Errorf("%w: the subsystem is not found in the path %v", ErrClientBadRequest, r.URL.Path)

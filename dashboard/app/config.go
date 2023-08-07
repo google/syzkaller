@@ -131,6 +131,8 @@ type SubsystemsConfig struct {
 	Revision int
 	// Periodic per-subsystem reminders about open bugs.
 	Reminder *BugListReportingConfig
+	// Maps old subsystem names to new ones.
+	Redirect map[string]string
 }
 
 // BugListReportingConfig describes how aggregated reminders about open bugs should be processed.
