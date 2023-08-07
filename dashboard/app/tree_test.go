@@ -293,6 +293,19 @@ For information about bisection process see: %URL%#bisection
 	assert.Len(t, bug.Commits, 0)
 }
 
+func TestTreeBisectionBeforeOrigin(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	ctx := setUpTreeTest(c, downstreamUpstreamRepos)
+	ctx.uploadBug(`https://downstream.repo/repo`, `master`, dashapi.ReproLevelC)
+	ctx.reportToEmail()
+	// Ensure the job is no longer created.
+	ctx.ctx.advanceTime(time.Hour)
+	job := ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, "", job.ID)
+}
+
 func TestTreeOriginErrors(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
