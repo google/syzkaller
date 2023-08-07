@@ -464,7 +464,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{else if eq $job.Type 1}}
 						bisect
 					{{else if eq $job.Type 2}}
-						bisect fix
+						{{if $job.FixCandidate}}fix candidate{{else}}bisect fix{{end}}
 					{{end}}
 				</td>
 				<td>{{optlink $job.PatchLink "patch"}}</td>
