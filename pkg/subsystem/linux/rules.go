@@ -83,12 +83,13 @@ var (
 		},
 		extraSubsystems: map[string][]string{
 			"bfs":    {"BFS FILE SYSTEM"},
-			"fat":    {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
+			"exfat":  {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
 			"fuse":   {"FUSE: FILESYSTEM IN USERSPACE"},
 			"hfs":    {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
 			"isofs":  {"ISOFS FILESYSTEM"},
 			"kernfs": {"KERNFS"},
 			"udf":    {"UDF FILESYSTEM"},
+			"nfc":    {"NFC SUBSYSTEM"},
 		},
 		noReminders: map[string]struct{}{
 			// Many misclassified bugs end up in `kernel`, so there's no sense
