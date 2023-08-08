@@ -743,7 +743,6 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 			}
 			env.saveDebugFile(current.Hash, i, output)
 		case errors.As(res.Error, &crashError):
-			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", crashError))
 			output := crashError.Report.Report
 			if len(output) == 0 {
 				output = crashError.Report.Output
