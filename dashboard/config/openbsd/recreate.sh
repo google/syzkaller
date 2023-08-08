@@ -29,7 +29,7 @@ TODAY=$(date -u +%Y-%m-%d)
 SYZ_DIR="$(cd "$(dirname "${0}")"/../../..; pwd -P)"
 [[ -d "${SYZ_DIR}/tools" ]] || { echo "Requires syzkaller dir $SYZ_DIR" ; exit 1; }
 
-ZONE=us-central1-c
+ZONE=us-central1-b
 INSTANCE=ci-openbsd
 IP=$(gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" --project=syzkaller '--format=text(networkInterfaces[].accessConfigs[].natIP)' | cut -f2 -d' ')
 SERVICE_ACCOUNT=$(gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" --project=syzkaller  '--format=text(serviceAccounts[].email)' | cut -d' ' -f2)
