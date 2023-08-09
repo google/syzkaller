@@ -156,6 +156,15 @@ func createTestRepo(t *testing.T) string {
 				com := repo.CommitChange("650")
 				repo.Git("checkout", "master")
 				repo.Git("merge", "-m", "700", com.Hash)
+			} else if rv == 8 && i == 4 {
+				// Let's construct a more elaborate case. See #4117.
+				// We branch off at 700 and merge it into 804.
+				repo.Git("checkout", "v7.0")
+				repo.CommitChange("790")
+				repo.CommitChange("791")
+				com := repo.CommitChange("792")
+				repo.Git("checkout", "master")
+				repo.Git("merge", "-m", "804", com.Hash)
 			} else {
 				repo.CommitChange(fmt.Sprintf("%v", rv*100+i))
 			}
@@ -456,6 +465,19 @@ var bisectionTests = []BisectionTest{
 		commitLen:   1,
 		fixCommit:   "500",
 		isRelease:   true,
+	},
+	// Tests that we do not confuse revisions where the bug was not yet introduced and where it's fixed.
+	// In this case, we have a 700-790-791-792-804 branch, which will be visited during bisection.
+	// As the faulty commit 704 is not reachable from there, kernel wouldn't crash and, without the
+	// special care, we'd incorrectly designate "790" as the fix commit.
+	// See #4117.
+	{
+		name:        "fix-after-bug",
+		fix:         true,
+		startCommit: 802,
+		commitLen:   1,
+		fixCommit:   "803",
+		introduced:  "704",
 	},
 	// Tests that bisection returns the correct fix commit despite SYZFATAL.
 	{
