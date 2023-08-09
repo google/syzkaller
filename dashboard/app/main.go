@@ -2039,11 +2039,12 @@ func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key) string {
 	if !user.IsAdmin(c) {
 		return ""
 	}
-
+	if job.InvalidatedBy != "" || job.Finished.IsZero() {
+		return ""
+	}
 	if job.Type != JobBisectCause && job.Type != JobBisectFix {
 		return ""
 	}
-
 	params := url.Values{}
 	params.Add("action", "invalidate_bisection")
 	params.Add("key", jobKey.Encode())
