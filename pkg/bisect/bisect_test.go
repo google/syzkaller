@@ -540,11 +540,11 @@ var bisectionTests = []BisectionTest{
 	{
 		name:        "fix-inconclusive",
 		fix:         true,
-		startCommit: 400,
-		brokenStart: 500,
-		brokenEnd:   600,
-		commitLen:   8,
-		fixCommit:   "501",
+		startCommit: 500,
+		brokenStart: 600,
+		brokenEnd:   700,
+		commitLen:   9,
+		fixCommit:   "601",
 	},
 	{
 		name:            "cause-same-binary",
