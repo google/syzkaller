@@ -492,6 +492,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{ if $job.InvalidatedBy }}
 						</br>marked invalid by {{$job.InvalidatedBy}}
 					{{end}}
+					{{if and .InvalidateJobLink $.PerBug}}<br/>{{optlink .InvalidateJobLink "❌ retry this bisection"}}{{end}}
 				</td>
 			</tr>
 		{{end}}
