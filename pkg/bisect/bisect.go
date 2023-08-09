@@ -293,7 +293,11 @@ func (env *env) bisect() (*Result, error) {
 	if fatalResult != nil || err != nil {
 		return fatalResult, err
 	}
-
+	if env.cfg.Fix {
+		env.commit = good
+	} else {
+		env.commit = bad
+	}
 	env.results = map[string]*testResult{cfg.Kernel.Commit: testRes}
 	for _, res := range results1 {
 		env.results[res.com.Hash] = res
@@ -674,12 +678,33 @@ func (env *env) test() (*testResult, error) {
 
 // testPredicate() is meant to be invoked by bisecter.Bisect().
 func (env *env) testPredicate() (vcs.BisectResult, error) {
-	testRes1, err := env.test()
-	if err != nil {
-		return 0, err
+	var testRes1 *testResult
+	if env.cfg.Fix {
+		// There's a chance we might test a revision that does not yet contain the bug.
+		// Perform extra checks (see #4117).
+		env.log("determine whether the revision contains the guilty commit")
+		hadBug, err := env.revisionHadBug()
+		if err == errUnknownBugPresence {
+			// Let's skip the revision just in case.
+			testRes1 = &testResult{verdict: vcs.BisectSkip}
+		} else if err != nil {
+			return 0, err
+		}
+		if !hadBug {
+			// For result consistency, pretend that the kernel crashed.
+			env.log("the bug was not introduced yet; pretend that kernel crashed")
+			testRes1 = &testResult{verdict: vcs.BisectBad}
+		}
 	}
-	env.postTestResult(testRes1)
-	env.results[testRes1.com.Hash] = testRes1
+	if testRes1 == nil {
+		var err error
+		testRes1, err = env.test()
+		if err != nil {
+			return 0, err
+		}
+		env.postTestResult(testRes1)
+		env.results[testRes1.com.Hash] = testRes1
+	}
 	// For fix bisections, results are inverted.
 	if env.cfg.Fix {
 		if testRes1.verdict == vcs.BisectBad {
@@ -689,6 +714,72 @@ func (env *env) testPredicate() (vcs.BisectResult, error) {
 		}
 	}
 	return testRes1.verdict, nil
+}
+
+// If there's a merge from a branch that was based on a much older code revision,
+// it's likely that the bug was not yet present at all.
+var errUnknownBugPresence = errors.New("unable to determine whether there was a bug")
+
+func (env *env) revisionHadBug() (bool, error) {
+	// Check if any already tested revision that is reachable from HEAD crashed.
+	for hash, res := range env.results {
+		if res.rep == nil {
+			continue
+		}
+		ok, err := env.repo.Contains(hash)
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			env.log("revision %s crashed and is reachable", hash)
+			return true, nil
+		}
+	}
+
+	// TODO: it's also possible to extract useful information from non-crashed runs.
+	// But let's first see how many extra test() runs we get without it.
+
+	// We'll likely change the revision below. Ensure we get back to the original one.
+	curr, err := env.repo.HeadCommit()
+	if err != nil {
+		return false, err
+	}
+	defer env.repo.SwitchCommit(curr.Hash)
+
+	// Check all merge bases between the original bad commit (*) and the current HEAD revision.
+	// If at least one crashed, bug was definitely present.
+	// (*) Using the same bad commit hopefully helps us reuse many of the results.
+	bases, err := env.repo.MergeBases(curr.Hash, env.commit.Hash)
+	if err != nil {
+		return false, fmt.Errorf("failed to get the merge base between %s and %s: %w",
+			curr.Hash, env.commit.Hash, err)
+	}
+	anyResult := false
+	for _, base := range bases {
+		env.log("checking the merge base %s", base.Hash)
+		res := env.results[base.Hash]
+		if res == nil {
+			env.log("no existing result, test the revision")
+			env.repo.SwitchCommit(base.Hash)
+			res, err = env.test()
+			if err != nil {
+				return false, err
+			}
+			env.results[base.Hash] = res
+		}
+		if res.verdict == vcs.BisectSkip {
+			continue
+		}
+		anyResult = true
+		if res.rep != nil {
+			// No reason to test other bases.
+			return true, nil
+		}
+	}
+	if anyResult {
+		return false, nil
+	}
+	return false, errUnknownBugPresence
 }
 
 func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult, error) {
