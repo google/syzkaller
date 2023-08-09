@@ -5,6 +5,7 @@ use (
 	./accessapproval
 	./accesscontextmanager
 	./advisorynotifications
+	./ai
 	./aiplatform
 	./alloydb
 	./analytics
@@ -59,7 +60,6 @@ use (
 	./filestore
 	./firestore
 	./functions
-	./gaming
 	./gkebackup
 	./gkeconnect
 	./gkehub
@@ -90,6 +90,7 @@ use (
 	./mediatranslation
 	./memcache
 	./metastore
+	./migrationcenter
 	./monitoring
 	./networkconnectivity
 	./networkmanagement

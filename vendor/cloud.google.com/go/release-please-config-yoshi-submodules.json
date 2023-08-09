@@ -12,6 +12,9 @@
         "advisorynotifications": {
             "component": "advisorynotifications"
         },
+        "ai": {
+            "component": "ai"
+        },
         "aiplatform": {
             "component": "aiplatform"
         },
@@ -158,9 +161,6 @@
         },
         "functions": {
             "component": "functions"
-        },
-        "gaming": {
-            "component": "gaming"
         },
         "gkebackup": {
             "component": "gkebackup"
