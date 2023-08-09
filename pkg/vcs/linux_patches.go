@@ -81,4 +81,12 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:  `0711f0d7050b9e07c44bc159bbc64ac0a1022c7f`,
 		FixTitle: "pid: take a reference when initializing `cad_pid`",
 	},
+	{
+		// Fixes the following error:
+		// check.c:2865:58: error: '%d' directive output may be truncated writing between 1 and
+		// 10 bytes into a region of size 9 [-Werror=format-truncation=]
+		GuiltyHash: `db2b0c5d7b6f19b3c2cab08c531b65342eb5252b`,
+		FixHash:    `82880283d7fcd0a1d20964a56d6d1a5cc0df0713`,
+		FixTitle:   `objtool: Fix truncated string warning`,
+	},
 }
