@@ -98,6 +98,8 @@ type env struct {
 	// able to react faster to sudden drops of reproducibility than an estimate
 	// can allows us to.
 	flaky bool
+	// A cache of already performed revision tests.
+	results map[string]*testResult
 }
 
 const MaxNumTests = 20 // number of tests we do per commit
@@ -292,27 +294,11 @@ func (env *env) bisect() (*Result, error) {
 		return fatalResult, err
 	}
 
-	results := map[string]*testResult{cfg.Kernel.Commit: testRes}
+	env.results = map[string]*testResult{cfg.Kernel.Commit: testRes}
 	for _, res := range results1 {
-		results[res.com.Hash] = res
+		env.results[res.com.Hash] = res
 	}
-	pred := func() (vcs.BisectResult, error) {
-		testRes1, err := env.test()
-		if err != nil {
-			return 0, err
-		}
-		env.postTestResult(testRes1)
-		if cfg.Fix {
-			if testRes1.verdict == vcs.BisectBad {
-				testRes1.verdict = vcs.BisectGood
-			} else if testRes1.verdict == vcs.BisectGood {
-				testRes1.verdict = vcs.BisectBad
-			}
-		}
-		results[testRes1.com.Hash] = testRes1
-		return testRes1.verdict, err
-	}
-	commits, err := env.bisecter.Bisect(bad.Hash, good.Hash, cfg.Trace, pred)
+	commits, err := env.bisecter.Bisect(bad.Hash, good.Hash, cfg.Trace, env.testPredicate)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +310,7 @@ func (env *env) bisect() (*Result, error) {
 	}
 	if len(commits) == 1 {
 		com := commits[0]
-		testRes := results[com.Hash]
+		testRes := env.results[com.Hash]
 		if testRes == nil {
 			return nil, fmt.Errorf("no result for culprit commit")
 		}
@@ -334,7 +320,7 @@ func (env *env) bisect() (*Result, error) {
 			env.log("failed to detect release: %v", err)
 		}
 		res.IsRelease = isRelease
-		noopChange, err := env.detectNoopChange(results, com)
+		noopChange, err := env.detectNoopChange(com)
 		if err != nil {
 			env.log("failed to detect noop change: %v", err)
 		}
@@ -415,13 +401,13 @@ func (env *env) minimizeConfig() (*testResult, error) {
 	return testResults[hash.Hash(minConfig)], nil
 }
 
-func (env *env) detectNoopChange(results map[string]*testResult, com *vcs.Commit) (bool, error) {
-	testRes := results[com.Hash]
+func (env *env) detectNoopChange(com *vcs.Commit) (bool, error) {
+	testRes := env.results[com.Hash]
 	if testRes.kernelSign == "" || len(com.Parents) != 1 {
 		return false, nil
 	}
 	parent := com.Parents[0]
-	parentRes := results[parent]
+	parentRes := env.results[parent]
 	if parentRes == nil {
 		env.log("parent commit %v wasn't tested", parent)
 		// We could not test the parent commit if it is not based on the previous release
@@ -684,6 +670,25 @@ func (env *env) test() (*testResult, error) {
 	// TODO: when we start supporting boot/test error bisection, we need to make
 	// processResults treat that verdit as "good".
 	return res, nil
+}
+
+// testPredicate() is meant to be invoked by bisecter.Bisect().
+func (env *env) testPredicate() (vcs.BisectResult, error) {
+	testRes1, err := env.test()
+	if err != nil {
+		return 0, err
+	}
+	env.postTestResult(testRes1)
+	env.results[testRes1.com.Hash] = testRes1
+	// For fix bisections, results are inverted.
+	if env.cfg.Fix {
+		if testRes1.verdict == vcs.BisectBad {
+			testRes1.verdict = vcs.BisectGood
+		} else if testRes1.verdict == vcs.BisectGood {
+			testRes1.verdict = vcs.BisectBad
+		}
+	}
+	return testRes1.verdict, nil
 }
 
 func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult, error) {
