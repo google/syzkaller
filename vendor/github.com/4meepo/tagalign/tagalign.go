@@ -22,6 +22,13 @@ const (
 	GolangciLintMode
 )
 
+type Style int
+
+const (
+	DefaultStyle Style = iota
+	StrictStyle
+)
+
 func NewAnalyzer(options ...Option) *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name: "tagalign",
@@ -38,10 +45,16 @@ func Run(pass *analysis.Pass, options ...Option) []Issue {
 	for _, f := range pass.Files {
 		h := &Helper{
 			mode:  StandaloneMode,
+			style: DefaultStyle,
 			align: true,
 		}
 		for _, opt := range options {
 			opt(h)
+		}
+
+		//  StrictStyle must be used with WithAlign(true) and WithSort(...) together, or it will be ignored.
+		if h.style == StrictStyle && (!h.align || !h.sort) {
+			h.style = DefaultStyle
 		}
 
 		if !h.align && !h.sort {
@@ -61,6 +74,8 @@ func Run(pass *analysis.Pass, options ...Option) []Issue {
 
 type Helper struct {
 	mode Mode
+
+	style Style
 
 	align         bool     // whether enable tags align.
 	sort          bool     // whether enable tags sort.
@@ -182,6 +197,17 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 
 		var maxTagNum int
 		var tagsGroup, notSortedTagsGroup [][]*structtag.Tag
+
+		var uniqueKeys []string
+		addKey := func(k string) {
+			for _, key := range uniqueKeys {
+				if key == k {
+					return
+				}
+			}
+			uniqueKeys = append(uniqueKeys, k)
+		}
+
 		for i, field := range fields {
 			offsets[i] = pass.Fset.Position(field.Tag.Pos()).Column
 			tag, err := strconv.Unquote(field.Tag.Value)
@@ -204,24 +230,45 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 				notSortedTagsGroup = append(notSortedTagsGroup, cp)
 				sortBy(w.fixedTagOrder, tags)
 			}
-
+			for _, t := range tags.Tags() {
+				addKey(t.Key)
+			}
 			tagsGroup = append(tagsGroup, tags.Tags())
 		}
 
-		// if w.align{
-		// record the max length of each column tag
-		tagMaxLens := make([]int, maxTagNum)
+		if w.sort && StrictStyle == w.style {
+			sortAllKeys(w.fixedTagOrder, uniqueKeys)
+			maxTagNum = len(uniqueKeys)
+		}
 
+		// record the max length of each column tag
+		type tagLen struct {
+			Key string // present only when sort enabled
+			Len int
+		}
+		tagMaxLens := make([]tagLen, maxTagNum)
 		for j := 0; j < maxTagNum; j++ {
 			var maxLength int
+			var key string
 			for i := 0; i < len(tagsGroup); i++ {
-				if len(tagsGroup[i]) <= j {
-					// in case of index out of range
-					continue
+				if w.style == StrictStyle {
+					key = uniqueKeys[j]
+					// search by key
+					for _, tag := range tagsGroup[i] {
+						if tag.Key == key {
+							maxLength = max(maxLength, len(tag.String()))
+							break
+						}
+					}
+				} else {
+					if len(tagsGroup[i]) <= j {
+						// in case of index out of range
+						continue
+					}
+					maxLength = max(maxLength, len(tagsGroup[i][j].String()))
 				}
-				maxLength = max(maxLength, len(tagsGroup[i][j].String()))
 			}
-			tagMaxLens[j] = maxLength
+			tagMaxLens[j] = tagLen{key, maxLength}
 		}
 
 		for i, field := range fields {
@@ -231,9 +278,28 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 			if w.align {
 				// if align enabled, align tags.
 				newTagBuilder := strings.Builder{}
-				for i, tag := range tags {
-					format := alignFormat(tagMaxLens[i] + 1) // with an extra space
-					newTagBuilder.WriteString(fmt.Sprintf(format, tag.String()))
+				for i, n := 0, 0; i < len(tags) && n < len(tagMaxLens); {
+					tag := tags[i]
+					var format string
+					if w.style == StrictStyle {
+						if tagMaxLens[n].Key == tag.Key {
+							// match
+							format = alignFormat(tagMaxLens[n].Len + 1) // with an extra space
+							newTagBuilder.WriteString(fmt.Sprintf(format, tag.String()))
+							i++
+							n++
+						} else {
+							// tag missing
+							format = alignFormat(tagMaxLens[n].Len + 1)
+							newTagBuilder.WriteString(fmt.Sprintf(format, ""))
+							n++
+						}
+					} else {
+						format = alignFormat(tagMaxLens[n].Len + 1) // with an extra space
+						newTagBuilder.WriteString(fmt.Sprintf(format, tag.String()))
+						i++
+						n++
+					}
 				}
 				newTagStr = newTagBuilder.String()
 			} else {
@@ -249,7 +315,8 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 				newTagStr = strings.Join(tagsStr, " ")
 			}
 
-			unquoteTag := strings.TrimSpace(newTagStr)
+			unquoteTag := strings.TrimRight(newTagStr, " ")
+			// unquoteTag := newTagStr
 			newTagValue := fmt.Sprintf("`%s`", unquoteTag)
 			if field.Tag.Value == newTagValue {
 				// nothing changed
@@ -278,14 +345,9 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 			sortBy(w.fixedTagOrder, tags)
 		}
 
-		if reflect.DeepEqual(originalTags, tags.Tags()) {
-			// if tags order not changed, do nothing
-			continue
-		}
-
 		newTagValue := fmt.Sprintf("`%s`", tags.String())
-		if field.Tag.Value == newTagValue {
-			// nothing changed
+		if reflect.DeepEqual(originalTags, tags.Tags()) && field.Tag.Value == newTagValue {
+			// if tags order not changed, do nothing
 			continue
 		}
 
@@ -315,6 +377,27 @@ func sortBy(fixedOrder []string, tags *structtag.Tags) {
 
 		if oi == -1 && oj == -1 {
 			return ti.Key < tj.Key
+		}
+
+		if oi == -1 {
+			return false
+		}
+
+		if oj == -1 {
+			return true
+		}
+
+		return oi < oj
+	})
+}
+
+func sortAllKeys(fixedOrder []string, keys []string) {
+	sort.Slice(keys, func(i, j int) bool {
+		oi := findIndex(fixedOrder, keys[i])
+		oj := findIndex(fixedOrder, keys[j])
+
+		if oi == -1 && oj == -1 {
+			return keys[i] < keys[j]
 		}
 
 		if oi == -1 {

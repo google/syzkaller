@@ -26,3 +26,12 @@ func WithAlign(enabled bool) Option {
 		h.align = enabled
 	}
 }
+
+// WithStrictStyle configure whether enable strict style.
+// StrictStyle is disabled by default.
+// Note: StrictStyle must be used with WithAlign(true) and WithSort(...) together, or it will be ignored.
+func WithStrictStyle() Option {
+	return func(h *Helper) {
+		h.style = StrictStyle
+	}
+}

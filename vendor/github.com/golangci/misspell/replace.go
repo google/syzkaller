@@ -18,7 +18,7 @@ func max(x, y int) int {
 
 func inArray(haystack []string, needle string) bool {
 	for _, word := range haystack {
-		if needle == word {
+		if strings.EqualFold(needle, word) {
 			return true
 		}
 	}
@@ -55,6 +55,7 @@ func New() *Replacer {
 }
 
 // RemoveRule deletes existing rules.
+// The content of `ignore` is case-insensitive.
 // TODO: make in place to save memory.
 func (r *Replacer) RemoveRule(ignore []string) {
 	newWords := make([]string, 0, len(r.Replacements))

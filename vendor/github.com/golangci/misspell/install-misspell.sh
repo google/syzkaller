@@ -6,12 +6,12 @@ set -e
 usage() {
   this=$1
   cat <<EOF
-$this: download go binaries for client9/misspell
+$this: download go binaries for golangci/misspell
 
 Usage: $this [-b] bindir [tag]
   -b sets bindir or installation directory, Defaults to ./bin
    [tag] is a tag from
-   https://github.com/client9/misspell/releases
+   https://github.com/golangci/misspell/releases
    If tag is missing, then an attempt to find the latest will be found.
 
    Consider setting GITHUB_TOKEN to avoid triggering GitHub rate limits.
@@ -63,6 +63,8 @@ is_supported_platform() {
     darwin/amd64) found=0 ;;
     linux/amd64) found=0 ;;
     windows/amd64) found=0 ;;
+    darwin/arm64) found=0 ;;
+    linux/arm64) found=0 ;;
   esac
   case "$platform" in
     darwin/386) found=1 ;;
@@ -95,7 +97,8 @@ adjust_os() {
   # adjust archive name based on OS
   case ${OS} in
     386) OS=32bit ;;
-    amd64) OS=64bit ;;
+    amd64) OS=amd64 ;;
+    arm64) OS=64bit ;;
     darwin) OS=mac ;;
   esac
   true
@@ -316,7 +319,7 @@ End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------
 EOF
 
-OWNER=client9
+OWNER=golangci
 REPO="misspell"
 BINARY=misspell
 FORMAT=tar.gz

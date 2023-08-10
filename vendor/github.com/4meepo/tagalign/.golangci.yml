@@ -42,7 +42,6 @@ linters-settings:
       - name: receiver-naming
       - name: redefines-builtin-id
       - name: string-of-int
-      - name: struct-tag
       - name: superfluous-else
       - name: time-naming
       - name: unconditional-recursion
@@ -81,7 +80,7 @@ linters:
     - goprintffuncname
     - gosec
     - gosimple
-    - govet
+    # - govet
     - importas
     - ineffassign
     - makezero

@@ -12,7 +12,7 @@ stages:
 
 test:
     stage: test
-    image: golang:1.18.4@sha256:9349ed889adb906efa5ebc06485fe1b6a12fb265a01c9266a137bb1352565560
+    image: golang:1.20.6@sha256:cfc9d1b07b1ef4f7a4571f0b60a99646a92ef76adb7d9943f4cb7b606c6554e2
     before_script:
         - set -eu
         - if [[ -f .env.pipeline ]];then cp .env.pipeline .env;fi
@@ -27,14 +27,16 @@ test:
 
 lint:source-code:
     stage: test
-    image: golangci/golangci-lint:v1.47.2-alpine@sha256:10ed4891fdd1f7249f5e39d7c17ea746ce26adada3c05686c6aa31290abcd180
+    image: golangci/golangci-lint:v1.53.3-alpine@sha256:b61d8503f0ad16499c023772301ec8c0f2559bf76c28d228c390446c5e647f55
     script:
+        - apk add make bash
+        - make settings
         - '### run linter ###'
         - golangci-lint run ./...
 
 license-check:
     stage: test
-    image: golang:1.18.4@sha256:9349ed889adb906efa5ebc06485fe1b6a12fb265a01c9266a137bb1352565560
+    image: golang:1.20.6@sha256:cfc9d1b07b1ef4f7a4571f0b60a99646a92ef76adb7d9943f4cb7b606c6554e2
     before_script:
         - set -eu
         - if [[ -f .env.pipeline ]];then cp .env.pipeline .env;fi
@@ -51,7 +53,7 @@ license-check:
 
 pages:
     stage: release
-    image: golang:1.18.4@sha256:9349ed889adb906efa5ebc06485fe1b6a12fb265a01c9266a137bb1352565560
+    image: golang:1.20.6@sha256:cfc9d1b07b1ef4f7a4571f0b60a99646a92ef76adb7d9943f4cb7b606c6554e2
     only:
         - tags
     script:

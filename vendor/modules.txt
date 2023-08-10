@@ -58,10 +58,10 @@ cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
 cloud.google.com/go/storage/internal/apiv2
 cloud.google.com/go/storage/internal/apiv2/storagepb
-# github.com/4meepo/tagalign v1.2.2
+# github.com/4meepo/tagalign v1.3.2
 ## explicit; go 1.19
 github.com/4meepo/tagalign
-# github.com/Abirdcfly/dupword v0.0.11
+# github.com/Abirdcfly/dupword v0.0.12
 ## explicit; go 1.20
 github.com/Abirdcfly/dupword
 # github.com/Antonboom/errname v0.1.10
@@ -77,9 +77,11 @@ github.com/BurntSushi/toml/internal
 # github.com/Djarvur/go-err113 v0.1.0
 ## explicit; go 1.13
 github.com/Djarvur/go-err113
-# github.com/GaijinEntertainment/go-exhaustruct/v2 v2.3.0
-## explicit; go 1.19
-github.com/GaijinEntertainment/go-exhaustruct/v2/pkg/analyzer
+# github.com/GaijinEntertainment/go-exhaustruct/v3 v3.1.0
+## explicit; go 1.20
+github.com/GaijinEntertainment/go-exhaustruct/v3/analyzer
+github.com/GaijinEntertainment/go-exhaustruct/v3/internal/fields
+github.com/GaijinEntertainment/go-exhaustruct/v3/internal/pattern
 # github.com/Masterminds/semver v1.5.0
 ## explicit
 github.com/Masterminds/semver
@@ -96,7 +98,7 @@ github.com/alexkohler/prealloc/pkg
 # github.com/alingse/asasalint v0.0.11
 ## explicit; go 1.18
 github.com/alingse/asasalint
-# github.com/ashanbrown/forbidigo v1.5.3
+# github.com/ashanbrown/forbidigo v1.6.0
 ## explicit; go 1.13
 github.com/ashanbrown/forbidigo/forbidigo
 # github.com/ashanbrown/makezero v1.1.1
@@ -142,7 +144,7 @@ github.com/chavacava/garif
 ## explicit; go 1.18
 github.com/curioswitch/go-reassign
 github.com/curioswitch/go-reassign/internal/analyzer
-# github.com/daixiang0/gci v0.10.1
+# github.com/daixiang0/gci v0.11.0
 ## explicit; go 1.18
 github.com/daixiang0/gci/pkg/config
 github.com/daixiang0/gci/pkg/format
@@ -189,7 +191,7 @@ github.com/fsnotify/fsnotify
 # github.com/fzipp/gocyclo v0.6.0
 ## explicit; go 1.18
 github.com/fzipp/gocyclo
-# github.com/go-critic/go-critic v0.8.1
+# github.com/go-critic/go-critic v0.8.2
 ## explicit; go 1.18
 github.com/go-critic/go-critic/checkers
 github.com/go-critic/go-critic/checkers/internal/astwalk
@@ -266,8 +268,8 @@ github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/gofmt/internal/diff
 github.com/golangci/gofmt/gofmt/internal/execabs
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.53.3
-## explicit; go 1.19
+# github.com/golangci/golangci-lint v1.54.0
+## explicit; go 1.20
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
 github.com/golangci/golangci-lint/internal/errorutil
@@ -299,8 +301,8 @@ github.com/golangci/lint-1
 # github.com/golangci/maligned v0.0.0-20180506175553-b1d89398deca
 ## explicit
 github.com/golangci/maligned
-# github.com/golangci/misspell v0.4.0
-## explicit; go 1.18
+# github.com/golangci/misspell v0.4.1
+## explicit; go 1.19
 github.com/golangci/misspell
 # github.com/golangci/revgrep v0.0.0-20220804021717-745bb2f7c2e6
 ## explicit; go 1.17
@@ -438,7 +440,7 @@ github.com/kkHAIKE/contextcheck
 # github.com/kulti/thelper v0.6.3
 ## explicit; go 1.18
 github.com/kulti/thelper/pkg/analyzer
-# github.com/kunwardeep/paralleltest v1.0.7
+# github.com/kunwardeep/paralleltest v1.0.8
 ## explicit; go 1.17
 github.com/kunwardeep/paralleltest/pkg/paralleltest
 # github.com/kyoh86/exportloopref v0.1.11
@@ -526,9 +528,10 @@ github.com/nishanths/exhaustive
 # github.com/nishanths/predeclared v0.2.2
 ## explicit; go 1.14
 github.com/nishanths/predeclared/passes/predeclared
-# github.com/nunnatsa/ginkgolinter v0.12.1
-## explicit; go 1.19
+# github.com/nunnatsa/ginkgolinter v0.13.3
+## explicit; go 1.20
 github.com/nunnatsa/ginkgolinter
+github.com/nunnatsa/ginkgolinter/ginkgohandler
 github.com/nunnatsa/ginkgolinter/gomegahandler
 github.com/nunnatsa/ginkgolinter/reverseassertion
 github.com/nunnatsa/ginkgolinter/types
@@ -546,7 +549,7 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/polyfloyd/go-errorlint v1.4.2
+# github.com/polyfloyd/go-errorlint v1.4.3
 ## explicit; go 1.20
 github.com/polyfloyd/go-errorlint/errorlint
 # github.com/prometheus/client_golang v1.16.0
@@ -725,13 +728,13 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/ultraware/funlen v0.0.3
-## explicit
+# github.com/ultraware/funlen v0.1.0
+## explicit; go 1.20
 github.com/ultraware/funlen
 # github.com/ultraware/whitespace v0.0.5
 ## explicit
 github.com/ultraware/whitespace
-# github.com/uudashr/gocognit v1.0.6
+# github.com/uudashr/gocognit v1.0.7
 ## explicit; go 1.16
 github.com/uudashr/gocognit
 # github.com/xen0n/gosmopolitan v1.2.1
@@ -745,10 +748,10 @@ github.com/yagipy/maintidx/pkg/halstvol
 # github.com/yeya24/promlinter v0.2.0
 ## explicit; go 1.16
 github.com/yeya24/promlinter
-# github.com/ykadowak/zerologlint v0.1.2
+# github.com/ykadowak/zerologlint v0.1.3
 ## explicit; go 1.19
 github.com/ykadowak/zerologlint
-# gitlab.com/bosi/decorder v0.2.3
+# gitlab.com/bosi/decorder v0.4.0
 ## explicit; go 1.17
 gitlab.com/bosi/decorder
 # go.opencensus.io v0.24.0
@@ -770,7 +773,7 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
-# go.tmz.dev/musttag v0.7.0
+# go.tmz.dev/musttag v0.7.1
 ## explicit; go 1.19
 go.tmz.dev/musttag
 # go.uber.org/atomic v1.10.0
@@ -871,6 +874,7 @@ golang.org/x/tools/go/analysis/passes/composite
 golang.org/x/tools/go/analysis/passes/copylock
 golang.org/x/tools/go/analysis/passes/ctrlflow
 golang.org/x/tools/go/analysis/passes/deepequalerrors
+golang.org/x/tools/go/analysis/passes/defers
 golang.org/x/tools/go/analysis/passes/errorsas
 golang.org/x/tools/go/analysis/passes/fieldalignment
 golang.org/x/tools/go/analysis/passes/findcall

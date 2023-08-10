@@ -47,5 +47,17 @@ func main() {
 
     // 4. Deferred case
     defer log.Info() // "must be dispatched by Msg or Send method"
+
+    // 5. zerolog.Logger case
+    logger2 := zerolog.New(os.Stdout)
+    logger2.Info().Send()
+
+    // 6. Dispatch in other function case
+    event := log.Info()
+    dispatcher(event)
+}
+
+func dispatcher(e *zerolog.Event) {
+    e.Send()
 }
 ```

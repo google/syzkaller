@@ -1,12 +1,14 @@
 package section
 
-// Code generated based on go1.20.1. DO NOT EDIT.
+// Code generated based on go1.21.0 X:arenas. DO NOT EDIT.
 
 var standardPackages = map[string]struct{}{
 	"archive/tar":          {},
 	"archive/zip":          {},
+	"arena":                {},
 	"bufio":                {},
 	"bytes":                {},
+	"cmp":                  {},
 	"compress/bzip2":       {},
 	"compress/flate":       {},
 	"compress/gzip":        {},
@@ -96,7 +98,9 @@ var standardPackages = map[string]struct{}{
 	"io/fs":                {},
 	"io/ioutil":            {},
 	"log":                  {},
+	"log/slog":             {},
 	"log/syslog":           {},
+	"maps":                 {},
 	"math":                 {},
 	"math/big":             {},
 	"math/bits":            {},
@@ -139,6 +143,7 @@ var standardPackages = map[string]struct{}{
 	"runtime/pprof":        {},
 	"runtime/race":         {},
 	"runtime/trace":        {},
+	"slices":               {},
 	"sort":                 {},
 	"strconv":              {},
 	"strings":              {},
@@ -149,6 +154,7 @@ var standardPackages = map[string]struct{}{
 	"testing/fstest":       {},
 	"testing/iotest":       {},
 	"testing/quick":        {},
+	"testing/slogtest":     {},
 	"text/scanner":         {},
 	"text/tabwriter":       {},
 	"text/template":        {},

@@ -2,6 +2,7 @@ package zerologlint
 
 import (
 	"go/token"
+	"go/types"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -65,14 +66,11 @@ func inspect(cd callDefer, set *map[posser]struct{}) {
 
 	// check if it's in github.com/rs/zerolog/log since there's some
 	// functions in github.com/rs/zerolog that returns zerolog.Event
-	// which should not be included
-	if isInLogPkg(*c) {
+	// which should not be included. However, zerolog.Logger receiver is an exception.
+	if isInLogPkg(*c) || isLoggerRecv(*c) {
 		if isZerologEvent(c.Value) {
-			// check if this is a new instance of zerolog.Event like logger := log.Error()
-			// which should be dispatched afterwards at some point
-			if len(c.Args) == 0 {
-				(*set)[cd] = struct{}{}
-			}
+			// this ssa block should be dispatched afterwards at some point
+			(*set)[cd] = struct{}{}
 			return
 		}
 	}
@@ -81,21 +79,61 @@ func inspect(cd callDefer, set *map[posser]struct{}) {
 	// check if the base is zerolog.Event.
 	// if so, check if the StaticCallee is Send() or Msg().
 	// if so, remove the arg[0] from the set.
-	for _, arg := range c.Args {
-		if isZerologEvent(arg) {
-			if isDispatchMethod(*c) {
-				val := getRootSsaValue(arg)
-				// if there's branch, remove both ways from the set
-				if phi, ok := val.(*ssa.Phi); ok {
-					for _, edge := range phi.Edges {
-						delete(*set, edge)
+	f := c.StaticCallee()
+	if f == nil {
+		return
+	}
+	if !isDispatchMethod(f) {
+		shouldReturn := true
+		for _, p := range f.Params {
+			if isZerologEvent(p) {
+				// check if this zerolog.Event as a parameter is dispatched in the function
+				// TODO: specifically, it can be dispatched in another function that is called in this function, and
+				//       this algorithm cannot track that. But I'm tired of thinking about that for now.
+				for _, b := range f.Blocks {
+					for _, instr := range b.Instrs {
+						switch v := instr.(type) {
+						case *ssa.Call:
+							if inspectDispatchInFunction(v.Common()) {
+								shouldReturn = false
+							}
+						case *ssa.Defer:
+							if inspectDispatchInFunction(v.Common()) {
+								shouldReturn = false
+							}
+						}
 					}
-				} else {
-					delete(*set, val)
 				}
 			}
 		}
+		if shouldReturn {
+			return
+		}
 	}
+	for _, arg := range c.Args {
+		if isZerologEvent(arg) {
+			val := getRootSsaValue(arg)
+			// if there's branch, remove both ways from the set
+			if phi, ok := val.(*ssa.Phi); ok {
+				for _, edge := range phi.Edges {
+					delete(*set, edge)
+				}
+			} else {
+				delete(*set, val)
+			}
+		}
+	}
+}
+
+func inspectDispatchInFunction(cc *ssa.CallCommon) bool {
+	if isDispatchMethod(cc.StaticCallee()) {
+		for _, arg := range cc.Args {
+			if isZerologEvent(arg) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func isInLogPkg(c ssa.CallCommon) bool {
@@ -106,9 +144,18 @@ func isInLogPkg(c ssa.CallCommon) bool {
 			return false
 		}
 		return strings.HasSuffix(p.Pkg.Path(), "github.com/rs/zerolog/log")
-	default:
-		return false
 	}
+	return false
+}
+
+func isLoggerRecv(c ssa.CallCommon) bool {
+	switch f := c.Value.(type) {
+	case *ssa.Function:
+		if recv := f.Signature.Recv(); recv != nil {
+			return strings.HasSuffix(types.TypeString(recv.Type(), nil), "zerolog.Logger")
+		}
+	}
+	return false
 }
 
 func isZerologEvent(v ssa.Value) bool {
@@ -116,8 +163,11 @@ func isZerologEvent(v ssa.Value) bool {
 	return strings.HasSuffix(ts, "github.com/rs/zerolog.Event")
 }
 
-func isDispatchMethod(c ssa.CallCommon) bool {
-	m := c.StaticCallee().Name()
+func isDispatchMethod(f *ssa.Function) bool {
+	if f == nil {
+		return false
+	}
+	m := f.Name()
 	if m == "Send" || m == "Msg" || m == "Msgf" || m == "MsgFunc" {
 		return true
 	}
@@ -127,15 +177,23 @@ func isDispatchMethod(c ssa.CallCommon) bool {
 func getRootSsaValue(v ssa.Value) ssa.Value {
 	if c, ok := v.(*ssa.Call); ok {
 		v := c.Value()
+
 		// When there is no receiver, that's the block of zerolog.Event
-		// eg. Error() method in log.Error().Str("foo", "bar"). Send()
+		// eg. Error() method in log.Error().Str("foo", "bar").Send()
 		if len(v.Call.Args) == 0 {
+			return v
+		}
+
+		// Even when there is a receiver, if it's a zerolog.Logger instance, return this block
+		// eg. Info() method in zerolog.New(os.Stdout).Info()
+		root := v.Call.Args[0]
+		if !isZerologEvent(root) {
 			return v
 		}
 
 		// Ok to just return the receiver because all the method in this
 		// chain is zerolog.Event at this point.
-		return getRootSsaValue(v.Call.Args[0])
+		return getRootSsaValue(root)
 	}
 	return v
 }

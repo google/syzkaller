@@ -41,6 +41,40 @@ type FooBar struct {
 }
 ```
 
+## Usage
+
+By default tagalign will only align tags, but not sort them. But alignment and [sort feature](https://github.com/4meepo/tagalign#sort-tag) can work together or separately.
+
+* As a Golangci Linter (Recommended)
+
+    Tagalign is a built-in linter in [Golangci Lint](https://golangci-lint.run/usage/linters/#tagalign) since `v1.53`.
+    > Note: In order to have the best experience,  add the `--fix` flag to `golangci-lint` to enabled the aufofix feature.
+
+* Standalone Mode
+
+    Install it using `GO` or download it [here](https://github.com/4meepo/tagalign/releases).
+
+    ```bash
+    go install github.com/4meepo/tagalign/cmd/tagalign@latest
+    ```
+
+    Run it in your terminal.
+
+    ```bash
+    # Only align tags.
+    tagalign -fix {package path}
+    # Only sort tags with fixed order.
+    tagalign -fix -noalign -sort -order "json,xml" {package path}
+    # Align and sort together.
+    tagalign -fix -sort -order "json,xml" {package path}
+    # Align and sort together in strict style.
+    tagalign -fix -sort -order "json,xml" -strict {package path}
+    ```
+
+## Advanced Features
+
+### Sort Tag
+
 In addition to alignment, it can also sort tags with fixed order. If we enable sort with fixed order `json,xml`, the following code
 
 ```go
@@ -63,32 +97,29 @@ type SortExample struct {
 
 The fixed order is `json,xml`, so the tags `json` and `xml` will be sorted and aligned first, and the rest tags will be sorted and aligned in the dictionary order.
 
-## Install
+### Strict Style
 
-```bash
-go install github.com/4meepo/tagalign/cmd/tagalign
+Sometimes, you may want to align your tags in strict style. In this style, the tags will be sorted and aligned in the dictionary order, and the tags with the same name will be aligned together. For example, the following code
+
+```go
+type StrictStyleExample struct {
+    Foo int ` xml:"baz" yaml:"bar" zip:"foo" binding:"required" gorm:"column:foo"  validate:"required"`
+    Bar int `validate:"required" gorm:"column:bar"  yaml:"foo" xml:"bar" binding:"required" json:"bar,omitempty" `
+}
 ```
 
-## Usage
+will be aligned to
 
-By default tagalign will only align tags, but not sort them. But alignment and sort can work together or separately.
-
-If you don't want to align tags, you can use `-noalign` to disable alignment.
-
-You can use `-sort` to enable sort and `-order` to set the fixed order of tags.
-
-```bash
-# Only align tags.
-tagalign -fix {package path}
-# Only sort tags with fixed order.
-tagalign -fix -noalign -sort -order "json,xml" {package path}
-# Align and sort together.
-tagalign -fix -sort -order "json,xml" {package path}
+```go
+type StrictStyleExample struct {
+    Foo int `binding:"required" gorm:"column:foo"                      validate:"required" xml:"baz" yaml:"bar" zip:"foo"`
+    Bar int `binding:"required" gorm:"column:bar" json:"bar,omitempty" validate:"required" xml:"bar" yaml:"foo"`
+}
 ```
 
-TODO: integrate with golangci-lint
+> Note: The strict style can't run without the align or sort feature enabled.
 
-## Reference
+## References
 
 [Golang AST Visualizer](http://goast.yuroyoro.net/)
 

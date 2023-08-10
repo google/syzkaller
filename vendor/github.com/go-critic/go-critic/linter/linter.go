@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"go/types"
 	"strconv"
+	"strings"
 
 	"github.com/go-toolsmith/astfmt"
 )
@@ -350,7 +351,25 @@ func (ctx *CheckerContext) SizeOf(typ types.Type) (int64, bool) {
 	if named, ok := typ.(*types.Named); ok && named.TypeParams() != nil {
 		return 0, false
 	}
-	return ctx.SizesInfo.Sizeof(typ), true
+	return ctx.safeSizesInfoSizeof(typ)
+}
+
+// safeSizesInfoSizeof unlike SizesInfo.Sizeof will not panic on struct with generic fields.
+// it will catch a panic and recover from it, see https://github.com/go-critic/go-critic/issues/1354
+func (ctx *CheckerContext) safeSizesInfoSizeof(typ types.Type) (size int64, ok bool) {
+	ok = true
+	defer func() {
+		if r := recover(); r != nil {
+			if strings.Contains(r.(string), "assertion failed") {
+				size, ok = 0, false
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
+	size = ctx.SizesInfo.Sizeof(typ)
+	return size, ok
 }
 
 func resolvePkgObjects(ctx *Context, f *ast.File) {

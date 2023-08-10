@@ -8,8 +8,8 @@ import (
 	"go/token"
 	"go/types"
 	"path"
-	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -43,16 +43,23 @@ func New(funcs ...Func) *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 		Run: func(pass *analysis.Pass) (any, error) {
 			l := len(builtins) + len(funcs) + len(flagFuncs)
-			m := make(map[string]Func, l)
+			f := make(map[string]Func, l)
+
 			toMap := func(slice []Func) {
 				for _, fn := range slice {
-					m[fn.Name] = fn
+					f[fn.Name] = fn
 				}
 			}
 			toMap(builtins)
 			toMap(funcs)
 			toMap(flagFuncs)
-			return run(pass, m)
+
+			mainModule, err := getMainModule()
+			if err != nil {
+				return nil, err
+			}
+
+			return run(pass, mainModule, f)
 		},
 	}
 }
@@ -81,27 +88,16 @@ func flags(funcs *[]Func) flag.FlagSet {
 }
 
 // for tests only.
-var (
-	report = func(pass *analysis.Pass, st *structType, fn Func, fnPos token.Position) {
-		const format = "`%s` should be annotated with the `%s` tag as it is passed to `%s` at %s"
-		pass.Reportf(st.Pos, format, st.Name, fn.Tag, fn.shortName(), fnPos)
-	}
+var report = func(pass *analysis.Pass, st *structType, fn Func, fnPos token.Position) {
+	const format = "`%s` should be annotated with the `%s` tag as it is passed to `%s` at %s"
+	pass.Reportf(st.Pos, format, st.Name, fn.Tag, fn.shortName(), fnPos)
+}
 
-	// HACK: mainModulePackages() does not return packages from `testdata`,
-	// because it is ignored by the go tool, and thus, by the `go list` command.
-	// For tests to pass we need to add the packages with tests to the main module manually.
-	testPackages []string
-)
+var cleanFullName = regexp.MustCompile(`([^*/(]+/vendor/)`)
 
 // run starts the analysis.
-func run(pass *analysis.Pass, funcs map[string]Func) (any, error) {
-	moduleDir, modulePackages, err := mainModule()
-	if err != nil {
-		return nil, err
-	}
-	for _, pkg := range testPackages {
-		modulePackages[pkg] = struct{}{}
-	}
+func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) (any, error) {
+	var err error
 
 	walk := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	filter := []ast.Node{(*ast.CallExpr)(nil)}
@@ -116,12 +112,13 @@ func run(pass *analysis.Pass, funcs map[string]Func) (any, error) {
 			return // not a function call.
 		}
 
-		caller := typeutil.StaticCallee(pass.TypesInfo, call)
-		if caller == nil {
+		callee := typeutil.StaticCallee(pass.TypesInfo, call)
+		if callee == nil {
 			return // not a static call.
 		}
 
-		fn, ok := funcs[caller.FullName()]
+		name := cleanFullName.ReplaceAllString(callee.FullName(), "")
+		fn, ok := funcs[name]
 		if !ok {
 			return // the function is not supported.
 		}
@@ -148,7 +145,7 @@ func run(pass *analysis.Pass, funcs map[string]Func) (any, error) {
 		}
 
 		checker := checker{
-			mainModule: modulePackages,
+			mainModule: mainModule,
 			seenTypes:  make(map[string]struct{}),
 		}
 
@@ -164,7 +161,6 @@ func run(pass *analysis.Pass, funcs map[string]Func) (any, error) {
 		}
 
 		p := pass.Fset.Position(call.Pos())
-		p.Filename, _ = filepath.Rel(moduleDir, p.Filename)
 		report(pass, result, fn, p)
 	})
 
@@ -181,7 +177,7 @@ type structType struct {
 
 // checker parses and checks struct types.
 type checker struct {
-	mainModule map[string]struct{} // do not check types outside of the main module; see issue #17.
+	mainModule string
 	seenTypes  map[string]struct{} // prevent panic on recursive types; see issue #16.
 }
 
@@ -202,13 +198,16 @@ func (c *checker) parseStructType(t types.Type, pos token.Pos) (*structType, boo
 		if pkg == nil {
 			return nil, false
 		}
-		if _, ok := c.mainModule[pkg.Path()]; !ok {
+
+		if !strings.HasPrefix(pkg.Path(), c.mainModule) {
 			return nil, false
 		}
+
 		s, ok := t.Underlying().(*types.Struct)
 		if !ok {
 			return nil, false
 		}
+
 		return &structType{
 			Struct: s,
 			Pos:    t.Obj().Pos(),

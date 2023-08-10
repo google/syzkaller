@@ -19,6 +19,7 @@ func NewGinkgoLinter(cfg *config.GinkgoLinterSettings) *goanalysis.Linter {
 			"suppress-err-assertion":     cfg.SuppressErrAssertion,
 			"suppress-compare-assertion": cfg.SuppressCompareAssertion,
 			"suppress-async-assertion":   cfg.SuppressAsyncAssertion,
+			"forbid-focus-container":     cfg.ForbidFocusContainer,
 			"allow-havelen-0":            cfg.AllowHaveLenZero,
 		}
 	}
