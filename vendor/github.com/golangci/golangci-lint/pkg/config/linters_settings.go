@@ -114,9 +114,10 @@ var defaultLintersSettings = LintersSettings{
 		Qualified: false,
 	},
 	TagAlign: TagAlignSettings{
-		Align: true,
-		Sort:  true,
-		Order: nil,
+		Align:  true,
+		Sort:   true,
+		Order:  nil,
+		Strict: false,
 	},
 	Testpackage: TestpackageSettings{
 		SkipRegexp:    `(export|internal)_test\.go`,
@@ -272,7 +273,11 @@ type DepGuardDeny struct {
 
 type DecorderSettings struct {
 	DecOrder                  []string `mapstructure:"dec-order"`
+	IgnoreUnderscoreVars      bool     `mapstructure:"ignore-underscore-vars"`
 	DisableDecNumCheck        bool     `mapstructure:"disable-dec-num-check"`
+	DisableTypeDecNumCheck    bool     `mapstructure:"disable-type-dec-num-check"`
+	DisableConstDecNumCheck   bool     `mapstructure:"disable-const-dec-num-check"`
+	DisableVarDecNumCheck     bool     `mapstructure:"disable-var-dec-num-check"`
 	DisableDecOrderCheck      bool     `mapstructure:"disable-dec-order-check"`
 	DisableInitFuncFirstCheck bool     `mapstructure:"disable-init-func-first-check"`
 }
@@ -375,8 +380,9 @@ func (p *ForbidigoPattern) MarshalString() ([]byte, error) {
 }
 
 type FunlenSettings struct {
-	Lines      int
-	Statements int
+	Lines          int
+	Statements     int
+	IgnoreComments bool `mapstructure:"ignore-comments"`
 }
 
 type GciSettings struct {
@@ -392,6 +398,7 @@ type GinkgoLinterSettings struct {
 	SuppressErrAssertion     bool `mapstructure:"suppress-err-assertion"`
 	SuppressCompareAssertion bool `mapstructure:"suppress-compare-assertion"`
 	SuppressAsyncAssertion   bool `mapstructure:"suppress-async-assertion"`
+	ForbidFocusContainer     bool `mapstructure:"forbid-focus-container"`
 	AllowHaveLenZero         bool `mapstructure:"allow-havelen-zero"`
 }
 
@@ -609,7 +616,8 @@ type MalignedSettings struct {
 }
 
 type MisspellSettings struct {
-	Locale      string
+	Locale string
+	// TODO(ldez): v2 the options must be renamed to `IgnoredRules`.
 	IgnoreWords []string `mapstructure:"ignore-words"`
 }
 
@@ -648,7 +656,8 @@ type NoNamedReturnsSettings struct {
 	ReportErrorInDefer bool `mapstructure:"report-error-in-defer"`
 }
 type ParallelTestSettings struct {
-	IgnoreMissing bool `mapstructure:"ignore-missing"`
+	IgnoreMissing         bool `mapstructure:"ignore-missing"`
+	IgnoreMissingSubtests bool `mapstructure:"ignore-missing-subtests"`
 }
 
 type PreallocSettings struct {
@@ -714,9 +723,10 @@ type StructCheckSettings struct {
 }
 
 type TagAlignSettings struct {
-	Align bool     `mapstructure:"align"`
-	Sort  bool     `mapstructure:"sort"`
-	Order []string `mapstructure:"order"`
+	Align  bool     `mapstructure:"align"`
+	Sort   bool     `mapstructure:"sort"`
+	Order  []string `mapstructure:"order"`
+	Strict bool     `mapstructure:"strict"`
 }
 
 type TagliatelleSettings struct {
@@ -828,6 +838,9 @@ type CustomLinterSettings struct {
 	Path string
 	// Description describes the purpose of the private linter.
 	Description string
-	// The URL containing the source code for the private linter.
+	// OriginalURL The URL containing the source code for the private linter.
 	OriginalURL string `mapstructure:"original-url"`
+
+	// Settings plugin settings only work with linterdb.PluginConstructor symbol.
+	Settings any
 }

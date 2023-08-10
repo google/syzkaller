@@ -1,8 +1,7 @@
 project_name: misspell
 
 builds:
-  -
-    main: cmd/misspell/main.go
+  - main: cmd/misspell/main.go
     binary: misspell
     ldflags: -s -w -X main.version={{.Version}}
     goos:

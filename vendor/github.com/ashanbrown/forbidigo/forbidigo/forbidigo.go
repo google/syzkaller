@@ -186,7 +186,40 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 		if isGodocExample && v.cfg.ExcludeGodocExamples {
 			return nil
 		}
-		return v
+		ast.Walk(v, node.Type)
+		if node.Body != nil {
+			ast.Walk(v, node.Body)
+		}
+		return nil
+	// Ignore constant and type names
+	case *ast.ValueSpec:
+		// Look at only type and values for const and variable specs, and not names
+		if node.Type != nil {
+			ast.Walk(v, node.Type)
+		}
+		if node.Values != nil {
+			for _, x := range node.Values {
+				ast.Walk(v, x)
+			}
+		}
+		return nil
+	// Ignore import alias names
+	case *ast.ImportSpec:
+		return nil
+	// Ignore type names
+	case *ast.TypeSpec:
+		// Look at only type parameters for type spec
+		if node.TypeParams != nil {
+			ast.Walk(v, node.TypeParams)
+		}
+		ast.Walk(v, node.Type)
+		return nil
+	// Ignore field names
+	case *ast.Field:
+		if node.Type != nil {
+			ast.Walk(v, node.Type)
+		}
+		return nil
 	// The following two are handled below.
 	case *ast.SelectorExpr:
 	case *ast.Ident:
