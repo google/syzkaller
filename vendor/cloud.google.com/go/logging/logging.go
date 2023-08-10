@@ -47,10 +47,13 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/support/bundler"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 	logtypepb "google.golang.org/genproto/googleapis/logging/type"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -255,6 +258,21 @@ type Logger struct {
 	populateSourceLocation int
 	partialSuccess         bool
 	redirectOutputWriter   io.Writer
+}
+
+type loggerRetryer struct {
+	defaultRetryer gax.Retryer
+}
+
+func (r *loggerRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
+	s, ok := status.FromError(err)
+	if !ok {
+		return r.defaultRetryer.Retry(err)
+	}
+	if s.Code() == codes.Internal && strings.Contains(s.Message(), "string field contains invalid UTF-8") {
+		return 0, false
+	}
+	return r.defaultRetryer.Retry(err)
 }
 
 // Logger returns a Logger that will write entries with the given log ID, such as
@@ -715,7 +733,9 @@ func (l *Logger) writeLogEntries(entries []*logpb.LogEntry) {
 	ctx, afterCall := l.ctxFunc()
 	ctx, cancel := context.WithTimeout(ctx, defaultWriteTimeout)
 	defer cancel()
-	_, err := l.client.client.WriteLogEntries(ctx, req)
+
+	r := &loggerRetryer{}
+	_, err := l.client.client.WriteLogEntries(ctx, req, gax.WithRetry(func() gax.Retryer { return r }))
 	if err != nil {
 		l.client.error(err)
 	}

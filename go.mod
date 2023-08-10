@@ -3,7 +3,7 @@ module github.com/google/syzkaller
 go 1.19
 
 require (
-	cloud.google.com/go/logging v1.7.0
+	cloud.google.com/go/logging v1.8.0
 	cloud.google.com/go/profiler v0.3.1
 	cloud.google.com/go/pubsub v1.33.0
 	cloud.google.com/go/secretmanager v1.11.1
