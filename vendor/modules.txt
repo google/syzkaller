@@ -23,7 +23,7 @@ cloud.google.com/go/compute/metadata
 ## explicit; go 1.19
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
-# cloud.google.com/go/logging v1.7.0
+# cloud.google.com/go/logging v1.8.0
 ## explicit; go 1.19
 cloud.google.com/go/logging
 cloud.google.com/go/logging/apiv2
@@ -1005,11 +1005,9 @@ google.golang.org/genproto/googleapis/cloud/audit
 google.golang.org/genproto/googleapis/devtools/cloudprofiler/v2
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/logging/type
-google.golang.org/genproto/googleapis/longrunning
 google.golang.org/genproto/googleapis/type/date
 google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/internal
-google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/genproto/googleapis/api v0.0.0-20230803162519-f966b187b2e5
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
