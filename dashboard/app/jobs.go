@@ -520,8 +520,9 @@ func createPatchRetestingJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 			// Repro retesting is disabled for the namespace.
 			continue
 		}
-		if timeNow(c).Sub(bug.LastTime) < config.Obsoleting.ReproRetestPeriod {
-			// Also don't retest reproducers if crashes are still happening.
+		if config.Obsoleting.ReproRetestPeriod == 0 ||
+			timeNow(c).Sub(bug.LastTime) < config.Obsoleting.ReproRetestStart {
+			// Don't retest reproducers if crashes are still happening.
 			continue
 		}
 		takeBugs--
