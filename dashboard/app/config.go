@@ -161,7 +161,7 @@ type BugListReportingConfig struct {
 	Config ReportingType
 }
 
-// ObsoletingConfig describes how bugs without reproducer should be obsoleted.
+// ObsoletingConfig describes how bugs should be obsoleted.
 // First, for each bug we conservatively estimate period since the last crash
 // when we consider it stopped happenning. This estimation is based on the first/last time
 // and number and rate of crashes. Then this period is capped by MinPeriod/MaxPeriod.
@@ -175,7 +175,13 @@ type ObsoletingConfig struct {
 	MaxPeriod         time.Duration
 	NonFinalMinPeriod time.Duration
 	NonFinalMaxPeriod time.Duration
+	// Reproducers are retested every ReproRetestPeriod.
+	// If the period is zero, not retesting is performed.
 	ReproRetestPeriod time.Duration
+	// Reproducer retesting begins after there have been no crashes during
+	// the ReproRetestStart period.
+	// By default, it's 7 days.
+	ReproRetestStart time.Duration
 }
 
 // ConfigManager describes a single syz-manager instance.
@@ -355,7 +361,7 @@ func checkConfig(cfg *GlobalConfig) {
 	clientNames := make(map[string]bool)
 	checkClients(clientNames, cfg.Clients)
 	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
-	checkObsoleting(cfg.Obsoleting)
+	checkObsoleting(&cfg.Obsoleting)
 	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
 		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
 	}
@@ -376,7 +382,7 @@ func checkDiscussionEmails(list []DiscussionEmailConfig) {
 	}
 }
 
-func checkObsoleting(o ObsoletingConfig) {
+func checkObsoleting(o *ObsoletingConfig) {
 	if (o.MinPeriod == 0) != (o.MaxPeriod == 0) {
 		panic("obsoleting: both or none of Min/MaxPeriod must be specified")
 	}
@@ -397,6 +403,9 @@ func checkObsoleting(o ObsoletingConfig) {
 	}
 	if o.MinPeriod == 0 && o.NonFinalMinPeriod != 0 {
 		panic("obsoleting: NonFinalMinPeriod without MinPeriod")
+	}
+	if o.ReproRetestStart == 0 {
+		o.ReproRetestStart = time.Hour * 24 * 7
 	}
 }
 

@@ -431,7 +431,7 @@ func TestReproRetestJob(t *testing.T) {
 	c.expectEQ(bug.ReproLevel, ReproLevelC)
 
 	// Let's say that the C repro testing has failed.
-	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
+	c.advanceTime(config.Obsoleting.ReproRetestStart + time.Hour)
 	for i := 0; i < 2; i++ {
 		resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 		c.expectEQ(resp.Type, dashapi.JobTestPatch)
