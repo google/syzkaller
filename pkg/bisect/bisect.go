@@ -272,7 +272,7 @@ func (env *env) bisect() (*Result, error) {
 	if err != nil {
 		return nil, err
 	} else if testRes.verdict != vcs.BisectBad {
-		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
+		return nil, fmt.Errorf("the crash wasn't reproduced on the starting commit")
 	}
 	env.reportTypes = testRes.types
 	env.reproChance = testRes.badRatio
@@ -339,7 +339,7 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 		// If the failing commit is on another tree, just take it as is.
 		return cfg.Kernel.Commit, nil
 	}
-	_, err := env.repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch)
+	head, err := env.repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch)
 	if err != nil {
 		return cfg.Kernel.Commit, err
 	}
@@ -347,7 +347,6 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 	if err != nil || contained {
 		return cfg.Kernel.Commit, err
 	}
-
 	// We record the tested kernel commit when syzkaller triggers a crash. These commits can become
 	// unreachable after the crash was found, when the history of the tested kernel branch was
 	// rewritten. The commit might have been completely deleted from the branch or just changed in
@@ -365,12 +364,23 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 	if err != nil {
 		return cfg.Kernel.Commit, err
 	}
-	if commit == nil {
-		return cfg.Kernel.Commit, fmt.Errorf(
-			"commit %v not reachable in branch '%v'", cfg.Kernel.Commit, cfg.Kernel.Branch)
+	if commit != nil {
+		env.log("rewritten commit %v reidentified by title %q\n", commit.Hash, cfg.Kernel.CommitTitle)
+		return commit.Hash, nil
 	}
-	env.log("rewritten commit %v reidentified by title '%v'\n", commit.Hash, cfg.Kernel.CommitTitle)
-	return commit.Hash, nil
+	env.log("commit %v not reachable in branch %q", cfg.Kernel.Commit, cfg.Kernel.Branch)
+	if !env.cfg.Fix {
+		// A possible reason is a linux-next commit that is no longer available.
+		// Unfortunately, linux-next ToTs are often one-off merge commits/revets/local patches like
+		// "Add linux-next specific files". In that case, both titles and hashes can get lost
+		// in a few days.
+		// Let's try to start the bisection from HEAD. If it fails, then the bug is likely already gone
+		// and it doesn't really matter that the bisection failed.
+		env.log("try to use the current HEAD %s instead\n", head.Hash)
+		return head.Hash, nil
+	}
+	return "", fmt.Errorf("cannot find commit %v (title %q) in branch %q",
+		cfg.Kernel.Commit, cfg.Kernel.CommitTitle, cfg.Kernel.Branch)
 }
 
 func (env *env) minimizeConfig() (*testResult, error) {

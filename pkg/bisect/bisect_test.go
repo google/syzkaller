@@ -669,6 +669,46 @@ var bisectionTests = []BisectionTest{
 		crossTree:         true,
 		fixCommit:         "903",
 	},
+	{
+		// If the original commit is no longer available, HEAD should be used as a starting point.
+		// The typical scenario is a one-off linux-next commit that makes further bisections impossible.
+		name:       "cause-no-commit",
+		startTitle: "title-no-longer exists",
+		startHash:  "71cd4fc492ec41e4acd85e98bbf7a13753fc1e03",
+		commitLen:  1,
+		expectRep:  true,
+		introduced: "602",
+	},
+	{
+		// If the original commit is not available, HEAD should be used as a starting point.
+		name:        "cause-no-commit-head-broken",
+		brokenStart: 900,
+		brokenEnd:   1000,
+		startTitle:  "title-no-longer exists",
+		startHash:   "71cd4fc492ec41e4acd85e98bbf7a13753fc1e03",
+		commitLen:   0,
+		expectErr:   true,
+		introduced:  "602",
+	},
+	{
+		// If the original commit is not available, HEAD should be used as a starting point.
+		name:       "cause-no-commit-head-fixed",
+		startTitle: "title-no-longer exists",
+		startHash:  "71cd4fc492ec41e4acd85e98bbf7a13753fc1e03",
+		commitLen:  0,
+		// This is not a result, but an error.
+		expectErr:  true,
+		introduced: "602",
+		fixCommit:  "901",
+	},
+	{
+		name:       "fix-no-commit",
+		fix:        true,
+		startTitle: "title-no-longer-exists",
+		startHash:  "71cd4fc492ec41e4acd85e98bbf7a13753fc1e03",
+		fixCommit:  "500",
+		expectErr:  true,
+	},
 }
 
 func TestBisectionResults(t *testing.T) {
