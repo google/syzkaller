@@ -8,7 +8,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
-	"io/ioutil"
+	"os"
 	"regexp"
 
 	"github.com/quasilyte/gogrep"
@@ -144,7 +144,7 @@ func (l *irLoader) loadBundle(bundle ir.BundleImport) error {
 }
 
 func (l *irLoader) loadExternFile(prefix, pkgPath, filename string) (*goRuleSet, error) {
-	src, err := ioutil.ReadFile(filename)
+	src, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
