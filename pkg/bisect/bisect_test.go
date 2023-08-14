@@ -192,12 +192,16 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 	} else {
 		r.SwitchCommit("master")
 	}
-	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if sc == nil {
-		t.Fatalf("start commit %v is not found", test.startCommit)
+	startHash := test.startHash
+	if test.startHash == "" {
+		sc, err := r.GetCommitByTitle(test.startTitle)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sc == nil {
+			t.Fatalf("start commit %v is not found", test.startTitle)
+		}
+		startHash = sc.Hash
 	}
 	r.SwitchCommit("master")
 	cfg := &Config{
@@ -214,8 +218,8 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 		Kernel: KernelConfig{
 			Repo:           baseDir,
 			Branch:         "master",
-			Commit:         sc.Hash,
-			CommitTitle:    sc.Title,
+			Commit:         startHash,
+			CommitTitle:    test.startTitle,
 			Config:         []byte("original config"),
 			BaselineConfig: []byte(test.baselineConfig),
 		},
@@ -248,7 +252,7 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 
 	res, err := runImpl(cfg, r, inst)
 	checkBisectionError(test, res, err)
-	if !test.crossTree {
+	if !test.crossTree && test.startHash == "" {
 		// Should be mitigated via GetCommitByTitle during bisection.
 		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
 		res, err = runImpl(cfg, r, inst)
@@ -293,12 +297,15 @@ type BisectionTest struct {
 	fix  bool
 	// By default it's set to "master".
 	startCommitBranch string
-	startCommit       int
-	brokenStart       int
-	brokenEnd         int
-	infraErrStart     int
-	infraErrEnd       int
-	reportType        crash.Type
+	// One of these must be set.
+	// Note that startCommitHash is passed to Bisect() as is.
+	startTitle    string
+	startHash     string
+	brokenStart   int
+	brokenEnd     int
+	infraErrStart int
+	infraErrEnd   int
+	reportType    crash.Type
 	// Range of commits that result in the same kernel binary signature.
 	sameBinaryStart int
 	sameBinaryEnd   int
@@ -333,22 +340,22 @@ type BisectionTest struct {
 var bisectionTests = []BisectionTest{
 	// Tests that bisection returns the correct cause commit.
 	{
-		name:        "cause-finds-cause",
-		startCommit: 905,
-		commitLen:   1,
-		expectRep:   true,
-		introduced:  "602",
+		name:       "cause-finds-cause",
+		startTitle: "905",
+		commitLen:  1,
+		expectRep:  true,
+		introduced: "602",
 		extraTest: func(t *testing.T, res *Result) {
 			assert.Greater(t, res.Confidence, 0.99)
 		},
 	},
 	{
-		name:        "cause-finds-cause-flaky",
-		startCommit: 905,
-		commitLen:   1,
-		expectRep:   true,
-		flaky:       true,
-		introduced:  "605",
+		name:       "cause-finds-cause-flaky",
+		startTitle: "905",
+		commitLen:  1,
+		expectRep:  true,
+		flaky:      true,
+		introduced: "605",
 		extraTest: func(t *testing.T, res *Result) {
 			// False negative probability of each run is ~35%.
 			// We get two "good" results, so our accumulated confidence is ~42%.
@@ -359,7 +366,7 @@ var bisectionTests = []BisectionTest{
 	// Test bisection returns correct cause with different baseline/config combinations.
 	{
 		name:            "cause-finds-cause-baseline-repro",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "602",
@@ -368,7 +375,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-finds-cause-baseline-does-not-repro",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "602",
@@ -377,7 +384,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-finds-cause-baseline-fails",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "602",
@@ -386,7 +393,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-finds-cause-baseline-skip",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "602",
@@ -395,7 +402,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-finds-cause-minimize-succeeds",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "602",
@@ -404,13 +411,13 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:           "cause-finds-cause-minimize-fails",
-		startCommit:    905,
+		startTitle:     "905",
 		baselineConfig: "minimize-fails",
 		expectErr:      true,
 	},
 	{
 		name:            "config-minimize-same-hash",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "905",
@@ -423,15 +430,15 @@ var bisectionTests = []BisectionTest{
 	// Tests that cause bisection returns error when crash does not reproduce
 	// on the original commit.
 	{
-		name:        "cause-does-not-repro",
-		startCommit: 400,
-		expectErr:   true,
+		name:       "cause-does-not-repro",
+		startTitle: "400",
+		expectErr:  true,
 	},
 	// Tests that no commits are returned when crash occurs on oldest commit
 	// for cause bisection.
 	{
 		name:         "cause-crashes-oldest",
-		startCommit:  905,
+		startTitle:   "905",
 		commitLen:    0,
 		expectRep:    true,
 		oldestLatest: 400,
@@ -439,7 +446,7 @@ var bisectionTests = []BisectionTest{
 	// Tests that more than 1 commit is returned when cause bisection is inconclusive.
 	{
 		name:        "cause-inconclusive",
-		startCommit: 802,
+		startTitle:  "802",
 		brokenStart: 500,
 		brokenEnd:   700,
 		commitLen:   15,
@@ -448,7 +455,7 @@ var bisectionTests = []BisectionTest{
 	// All releases are build broken.
 	{
 		name:        "all-releases-broken",
-		startCommit: 802,
+		startTitle:  "802",
 		brokenStart: 100,
 		brokenEnd:   800,
 		// We mark these as failed, because build/boot failures of ancient releases are unlikely to get fixed
@@ -459,12 +466,12 @@ var bisectionTests = []BisectionTest{
 	},
 	// Tests that bisection returns the correct fix commit.
 	{
-		name:        "fix-finds-fix",
-		fix:         true,
-		startCommit: 400,
-		commitLen:   1,
-		fixCommit:   "500",
-		isRelease:   true,
+		name:       "fix-finds-fix",
+		fix:        true,
+		startTitle: "400",
+		commitLen:  1,
+		fixCommit:  "500",
+		isRelease:  true,
 	},
 	// Tests that we do not confuse revisions where the bug was not yet introduced and where it's fixed.
 	// In this case, we have a 700-790-791-792-804 branch, which will be visited during bisection.
@@ -472,18 +479,18 @@ var bisectionTests = []BisectionTest{
 	// special care, we'd incorrectly designate "790" as the fix commit.
 	// See #4117.
 	{
-		name:        "fix-after-bug",
-		fix:         true,
-		startCommit: 802,
-		commitLen:   1,
-		fixCommit:   "803",
-		introduced:  "704",
+		name:       "fix-after-bug",
+		fix:        true,
+		startTitle: "802",
+		commitLen:  1,
+		fixCommit:  "803",
+		introduced: "704",
 	},
 	// Tests that bisection returns the correct fix commit despite SYZFATAL.
 	{
 		name:             "fix-finds-fix-despite-syzfatal",
 		fix:              true,
-		startCommit:      400,
+		startTitle:       "400",
 		injectSyzFailure: true,
 		commitLen:        1,
 		fixCommit:        "500",
@@ -491,29 +498,29 @@ var bisectionTests = []BisectionTest{
 	},
 	// Tests that bisection returns the correct fix commit in case of SYZFATAL.
 	{
-		name:        "fix-finds-fix-for-syzfatal",
-		fix:         true,
-		startCommit: 400,
-		reportType:  crash.SyzFailure,
-		commitLen:   1,
-		fixCommit:   "500",
-		isRelease:   true,
+		name:       "fix-finds-fix-for-syzfatal",
+		fix:        true,
+		startTitle: "400",
+		reportType: crash.SyzFailure,
+		commitLen:  1,
+		fixCommit:  "500",
+		isRelease:  true,
 	},
 	// Tests that fix bisection returns error when crash does not reproduce
 	// on the original commit.
 	{
-		name:        "fix-does-not-repro",
-		fix:         true,
-		startCommit: 905,
-		expectErr:   true,
-		fixCommit:   "900",
+		name:       "fix-does-not-repro",
+		fix:        true,
+		startTitle: "905",
+		expectErr:  true,
+		fixCommit:  "900",
 	},
 	// Tests that no commits are returned when HEAD is build broken.
 	// Fix bisection equivalent of all-releases-broken.
 	{
 		name:         "fix-HEAD-broken",
 		fix:          true,
-		startCommit:  400,
+		startTitle:   "400",
 		brokenStart:  500,
 		brokenEnd:    1000,
 		fixCommit:    "1000",
@@ -529,7 +536,7 @@ var bisectionTests = []BisectionTest{
 	{
 		name:         "fix-HEAD-crashes",
 		fix:          true,
-		startCommit:  400,
+		startTitle:   "400",
 		fixCommit:    "1000",
 		oldestLatest: 905,
 		commitLen:    0,
@@ -540,7 +547,7 @@ var bisectionTests = []BisectionTest{
 	{
 		name:        "fix-inconclusive",
 		fix:         true,
-		startCommit: 500,
+		startTitle:  "500",
 		brokenStart: 600,
 		brokenEnd:   700,
 		commitLen:   9,
@@ -548,7 +555,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-same-binary",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "503",
@@ -558,7 +565,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-same-binary-off-by-one",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "503",
@@ -567,7 +574,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-same-binary-off-by-one-2",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "503",
@@ -577,7 +584,7 @@ var bisectionTests = []BisectionTest{
 	{
 		name:            "fix-same-binary",
 		fix:             true,
-		startCommit:     400,
+		startTitle:      "400",
 		commitLen:       1,
 		fixCommit:       "503",
 		sameBinaryStart: 502,
@@ -586,7 +593,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-same-binary-release1",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "500",
@@ -597,7 +604,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-same-binary-release2",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "501",
@@ -607,7 +614,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:            "cause-same-binary-release3",
-		startCommit:     905,
+		startTitle:      "905",
 		commitLen:       1,
 		expectRep:       true,
 		introduced:      "405",
@@ -618,7 +625,7 @@ var bisectionTests = []BisectionTest{
 	{
 		name:            "fix-same-binary-last",
 		fix:             true,
-		startCommit:     400,
+		startTitle:      "400",
 		commitLen:       1,
 		fixCommit:       "905",
 		sameBinaryStart: 904,
@@ -626,16 +633,16 @@ var bisectionTests = []BisectionTest{
 		noopChange:      true,
 	},
 	{
-		name:        "fix-release",
-		fix:         true,
-		startCommit: 400,
-		commitLen:   1,
-		fixCommit:   "900",
-		isRelease:   true,
+		name:       "fix-release",
+		fix:        true,
+		startTitle: "400",
+		commitLen:  1,
+		fixCommit:  "900",
+		isRelease:  true,
 	},
 	{
 		name:            "cause-not-in-previous-release-issue-1527",
-		startCommit:     905,
+		startTitle:      "905",
 		introduced:      "650",
 		commitLen:       1,
 		expectRep:       true,
@@ -645,7 +652,7 @@ var bisectionTests = []BisectionTest{
 	},
 	{
 		name:          "cause-infra-problems",
-		startCommit:   905,
+		startTitle:    "905",
 		expectRep:     false,
 		expectErr:     true,
 		expectErrType: &InfraError{},
@@ -656,7 +663,7 @@ var bisectionTests = []BisectionTest{
 	{
 		name:              "fix-cross-tree",
 		fix:               true,
-		startCommit:       851,
+		startTitle:        "851",
 		startCommitBranch: "v8-branch",
 		commitLen:         1,
 		crossTree:         true,
