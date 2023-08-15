@@ -91,6 +91,9 @@ const (
 	// timeout is to allow clients to degrade gracefully if underlying logging
 	// service is temporarily impaired for some reason.
 	defaultWriteTimeout = 10 * time.Minute
+
+	// Part of the error message when the payload contains invalid UTF-8 characters.
+	utfErrorString = "string field contains invalid UTF-8"
 )
 
 var (
@@ -264,12 +267,28 @@ type loggerRetryer struct {
 	defaultRetryer gax.Retryer
 }
 
+func newLoggerRetryer() gax.Retryer {
+	// Copied from CallOptions.WriteLogEntries in apiv2/logging_client.go.
+	d := gax.OnCodes([]codes.Code{
+		codes.DeadlineExceeded,
+		codes.Internal,
+		codes.Unavailable,
+	}, gax.Backoff{
+		Initial:    100 * time.Millisecond,
+		Max:        60000 * time.Millisecond,
+		Multiplier: 1.30,
+	})
+
+	r := &loggerRetryer{defaultRetryer: d}
+	return r
+}
+
 func (r *loggerRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
 	s, ok := status.FromError(err)
 	if !ok {
 		return r.defaultRetryer.Retry(err)
 	}
-	if s.Code() == codes.Internal && strings.Contains(s.Message(), "string field contains invalid UTF-8") {
+	if strings.Contains(s.Message(), utfErrorString) {
 		return 0, false
 	}
 	return r.defaultRetryer.Retry(err)
@@ -734,8 +753,7 @@ func (l *Logger) writeLogEntries(entries []*logpb.LogEntry) {
 	ctx, cancel := context.WithTimeout(ctx, defaultWriteTimeout)
 	defer cancel()
 
-	r := &loggerRetryer{}
-	_, err := l.client.client.WriteLogEntries(ctx, req, gax.WithRetry(func() gax.Retryer { return r }))
+	_, err := l.client.client.WriteLogEntries(ctx, req, gax.WithRetry(newLoggerRetryer))
 	if err != nil {
 		l.client.error(err)
 	}
