@@ -1,5 +1,12 @@
 # Changes
 
+## [1.8.1](https://github.com/googleapis/google-cloud-go/compare/logging/v1.8.0...logging/v1.8.1) (2023-08-14)
+
+
+### Bug Fixes
+
+* **logging:** Init default retryer ([#8415](https://github.com/googleapis/google-cloud-go/issues/8415)) ([c980708](https://github.com/googleapis/google-cloud-go/commit/c980708c5f69f69c21632250a96f4f2c2e87f697))
+
 ## [1.8.0](https://github.com/googleapis/google-cloud-go/compare/logging/v1.7.0...logging/v1.8.0) (2023-08-09)
 
 
