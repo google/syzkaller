@@ -227,6 +227,25 @@ func (bug *Bug) UnsetLabels(labels ...BugLabelType) map[BugLabelType]struct{} {
 	return notFound
 }
 
+func (bug *Bug) UnsetLabelValues(values ...string) map[string]struct{} {
+	toDelete := map[string]struct{}{}
+	notFound := map[string]struct{}{}
+	for _, val := range values {
+		toDelete[val] = struct{}{}
+		notFound[val] = struct{}{}
+	}
+	var newList []BugLabel
+	for _, item := range bug.Labels {
+		if _, ok := toDelete[item.Value]; ok && item.Value != "" {
+			delete(notFound, item.Value)
+			continue
+		}
+		newList = append(newList, item)
+	}
+	bug.Labels = newList
+	return notFound
+}
+
 func (bug *Bug) HasUserLabel(label BugLabelType) bool {
 	for _, item := range bug.Labels {
 		if item.Label == label && item.SetBy != "" {

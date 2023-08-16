@@ -1200,6 +1200,11 @@ func TestEmailSetSubsystems(t *testing.T) {
 	c.incomingEmail(sender, "#syz set subsystems: subsystemA, subsystemB\n",
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	expectLabels(t, client, extBugID, "subsystems:subsystemA", "subsystems:subsystemB")
+
+	// Unset one subsystem by value.
+	c.incomingEmail(sender, "#syz unset: subsystemB\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	expectLabels(t, client, extBugID, "subsystems:subsystemA")
 }
 
 func TestEmailBugLabels(t *testing.T) {

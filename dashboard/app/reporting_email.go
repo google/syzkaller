@@ -819,25 +819,31 @@ func handleUnsetCommand(c context.Context, bug *Bug, msg *email.Email,
 		return unsetBugCmdFormat
 	}
 	var labels []BugLabelType
-	for _, name := range unique(setCmdArgSplitRe.Split(command.Args, -1)) {
+	values := unique(setCmdArgSplitRe.Split(command.Args, -1))
+	for _, name := range values {
 		labels = append(labels, BugLabelType(name))
 	}
-
-	var notFound map[BugLabelType]struct{}
+	var notFound []string
 	var notFoundErr = fmt.Errorf("some labels were not found")
 	err := updateSingleBug(c, bug.key(c), func(bug *Bug) error {
-		notFound = bug.UnsetLabels(labels...)
+		unknownLabels := bug.UnsetLabels(labels...)
+		unknownValues := bug.UnsetLabelValues(values...)
+		for _, val := range values {
+			if _, ok := unknownLabels[BugLabelType(val)]; !ok {
+				continue
+			}
+			if _, ok := unknownValues[val]; !ok {
+				continue
+			}
+			notFound = append(notFound, val)
+		}
 		if len(notFound) > 0 {
 			return notFoundErr
 		}
 		return nil
 	})
 	if err == notFoundErr {
-		var names []string
-		for label := range notFound {
-			names = append(names, string(label))
-		}
-		return fmt.Sprintf(unsetLabelsNotFound, strings.Join(names, ", "))
+		return fmt.Sprintf(unsetLabelsNotFound, strings.Join(notFound, ", "))
 	} else if err != nil {
 		log.Errorf(c, "failed to unset bug labels: %s", err)
 		return cmdInternalErrorReply
