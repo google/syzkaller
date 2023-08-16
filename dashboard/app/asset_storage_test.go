@@ -104,7 +104,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 If the bug is already fixed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to change bug's subsystems, reply with:
+If you want to overwrite bug's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
@@ -396,7 +396,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 If the bug is already fixed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to change bug's subsystems, reply with:
+If you want to overwrite bug's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
