@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"golang.org/x/sync/errgroup"
@@ -28,7 +30,8 @@ var (
 	flagArchives  = flag.String("archives", "", "path to the folder with git archives")
 	flagEmails    = flag.String("emails", "", "comma-separated list of own emails")
 	flagDomains   = flag.String("domains", "", "comma-separated list of own domains")
-	flagDashboard = flag.String("dashboard", "https://syzkaller.appspot.com", "dashboard address")
+	flagOutDir    = flag.String("out_dir", "", "a directory to save discussions as JSON files")
+	flagDashboard = flag.String("dashboard", "", "dashboard address")
 	flagAPIClient = flag.String("client", "", "the name of the API client")
 	flagAPIKey    = flag.String("key", "", "api key")
 	flagVerbose   = flag.Bool("v", false, "print more debug info")
@@ -41,11 +44,6 @@ func main() {
 	}
 	emails := strings.Split(*flagEmails, ",")
 	domains := strings.Split(*flagDomains, ",")
-
-	dash, err := dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
-	if err != nil {
-		tool.Failf("dashapi failed: %v", err)
-	}
 	threads := processArchives(*flagArchives, emails, domains)
 	for i, thread := range threads {
 		messages := []dashapi.DiscussionMessage{}
@@ -54,23 +52,52 @@ func main() {
 				ID:       m.MessageID,
 				External: !m.OwnEmail,
 				Time:     m.Date,
+				Email:    m.Author,
 			})
 		}
+		discussion := &dashapi.Discussion{
+			ID:       thread.MessageID,
+			Source:   dashapi.DiscussionLore,
+			Type:     thread.Type,
+			Subject:  thread.Subject,
+			BugIDs:   thread.BugIDs,
+			Messages: messages,
+		}
 		log.Printf("saving %d/%d", i+1, len(threads))
-		err := dash.SaveDiscussion(&dashapi.SaveDiscussionReq{
-			Discussion: &dashapi.Discussion{
-				ID:       thread.MessageID,
-				Source:   dashapi.DiscussionLore,
-				Type:     thread.Type,
-				Subject:  thread.Subject,
-				BugIDs:   thread.BugIDs,
-				Messages: messages,
-			},
-		})
+		err := saveDiscussion(discussion)
+		if err != nil {
+			tool.Fail(err)
+		}
+	}
+}
+
+var dash *dashapi.Dashboard
+
+func saveDiscussion(d *dashapi.Discussion) error {
+	var err error
+	if *flagDashboard != "" && dash == nil {
+		dash, err = dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
 		if err != nil {
 			tool.Failf("dashapi failed: %v", err)
 		}
 	}
+	if *flagOutDir != "" {
+		bytes, err := json.Marshal(d)
+		if err != nil {
+			return err
+		}
+		path := filepath.Join(*flagOutDir, hash.String([]byte(d.ID))+".json")
+		err = osutil.WriteFile(path, bytes)
+		if err != nil {
+			return err
+		}
+	}
+	if dash != nil {
+		return dash.SaveDiscussion(&dashapi.SaveDiscussionReq{
+			Discussion: d,
+		})
+	}
+	return nil
 }
 
 func processArchives(dir string, emails, domains []string) []*lore.Thread {
