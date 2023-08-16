@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -63,7 +63,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
-		http.Handle("/"+ns+"/bug-stats", handlerWrapper(handleBugStats))
+		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
@@ -1275,7 +1275,7 @@ func getBugDiscussionsUI(c context.Context, bug *Bug) ([]*uiBugDiscussion, error
 	return list, nil
 }
 
-func handleBugStats(c context.Context, w http.ResponseWriter, r *http.Request) error {
+func handleBugSummaries(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	if accessLevel(c, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
@@ -1283,78 +1283,16 @@ func handleBugStats(c context.Context, w http.ResponseWriter, r *http.Request) e
 	if err != nil {
 		return err
 	}
-	inputs, err := allBugInputs(c, hdr.Namespace)
+	stage := r.FormValue("stage")
+	if stage == "" {
+		return fmt.Errorf("stage must be specified")
+	}
+	list, err := getBugSummaries(c, hdr.Namespace, stage)
 	if err != nil {
-		return fmt.Errorf("failed to query bugs: %w", err)
+		return err
 	}
-
-	const days = 100
-	reports := []struct {
-		name  string
-		stat  stats
-		since time.Time
-	}{
-		{
-			name:  "Effect of strace among bugs with repro since May 2022",
-			stat:  newStatsFilter(newStraceEffect(days), bugsHaveRepro),
-			since: time.Date(2022, 5, 1, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:  "Effect of reproducer since May 2022",
-			stat:  newReproEffect(days),
-			since: time.Date(2022, 5, 1, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:  "Effect of reproducer since 2020",
-			stat:  newReproEffect(days),
-			since: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:  "Effect of the presence of build assets since Oct 2022",
-			stat:  newAssetEffect(days),
-			since: time.Date(2022, 10, 1, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:  "Effect of cause bisection among bugs with repro since 2022",
-			stat:  newStatsFilter(newBisectCauseEffect(days), bugsHaveRepro),
-			since: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		},
-	}
-
-	// Set up common filters.
-	allReportings := config.Namespaces[hdr.Namespace].Reporting
-	commonFilters := []statsFilter{
-		bugsNoLater(timeNow(c), days),                                  // yet make sure bugs are old enough
-		bugsInReportingStage(allReportings[len(allReportings)-1].Name), // only bugs from the last stage
-	}
-	for i, report := range reports {
-		reports[i].stat = newStatsFilter(report.stat, commonFilters...)
-		reports[i].stat = newStatsFilter(reports[i].stat, bugsNoEarlier(report.since))
-	}
-
-	// Prepare the data.
-	for _, input := range inputs {
-		for _, report := range reports {
-			report.stat.Record(input)
-		}
-	}
-	// Print the results.
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	for _, report := range reports {
-		fmt.Fprintf(w, "%s\n==============\n", report.name)
-		wTab := tabwriter.NewWriter(w, 0, 0, 1, ' ', tabwriter.Debug)
-		table := report.stat.Collect().([][]string)
-		for _, row := range table {
-			for _, cell := range row {
-				fmt.Fprintf(wTab, "%s\t", cell)
-			}
-			fmt.Fprintf(wTab, "\n")
-		}
-		wTab.Flush()
-		fmt.Fprintf(w, "\n\n")
-	}
-
-	return nil
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(list)
 }
 
 func isJSONRequested(request *http.Request) bool {
