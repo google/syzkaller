@@ -152,7 +152,7 @@ type Config struct {
 	Reproduce bool `json:"reproduce"`
 
 	// The number of VMs that are reserved to only perform fuzzing and nothing else.
-	// Can be helpful e.g. to ensure that the pool of fuzzing VMs is never exhaused and
+	// Can be helpful e.g. to ensure that the pool of fuzzing VMs is never exhausted and
 	// the manager continues fuzzing no matter how many new bugs are encountered.
 	// By default the value is 0, i.e. all VMs can be used for all purposes.
 	FuzzingVMs int `json:"fuzzing_vms,omitempty"`
