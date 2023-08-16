@@ -4,43 +4,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/stats/syzbotstats"
 	"golang.org/x/net/context"
+	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )
-
-type stats interface {
-	Record(input *bugInput)
-	Collect() interface{}
-}
-
-// statsFilterStruct allows to embed input filtering to stats collection.
-type statsFilterStruct struct {
-	nested  stats
-	filters []statsFilter
-}
-
-type statsFilter func(input *bugInput) bool
-
-func newStatsFilter(nested stats, filters ...statsFilter) stats {
-	return &statsFilterStruct{nested: nested, filters: filters}
-}
-
-func (sf *statsFilterStruct) Record(input *bugInput) {
-	for _, filter := range sf.filters {
-		if !filter(input) {
-			return
-		}
-	}
-	sf.nested.Record(input)
-}
-
-func (sf *statsFilterStruct) Collect() interface{} {
-	return sf.nested.Collect()
-}
 
 // bugInput structure contains the information for collecting all bug-related statistics.
 type bugInput struct {
@@ -48,17 +21,6 @@ type bugInput struct {
 	bugReporting  *BugReporting
 	reportedCrash *Crash
 	build         *Build
-}
-
-func (bi *bugInput) foundAt() time.Time {
-	return bi.bug.FirstTime
-}
-
-func (bi *bugInput) reportedAt() time.Time {
-	if bi.bugReporting == nil {
-		return time.Time{}
-	}
-	return bi.bugReporting.Reported
 }
 
 func (bi *bugInput) fixedAt() time.Time {
@@ -74,53 +36,22 @@ func (bi *bugInput) fixedAt() time.Time {
 	return closeTime
 }
 
-type statsBugState int
-
-const (
-	stateOpen statsBugState = iota
-	stateDecisionMade
-	stateAutoInvalidated
-)
-
-func (bi *bugInput) stateAt(date time.Time) statsBugState {
-	bug := bi.bug
-	closeTime := bug.Closed
-	closeStatus := stateDecisionMade
-	if at := bi.fixedAt(); !at.IsZero() {
-		closeTime = at
-	} else if bug.Status == BugStatusInvalid {
+func (bi *bugInput) bugStatus() (syzbotstats.BugStatus, error) {
+	if bi.bug.Status == BugStatusFixed ||
+		bi.bug.Closed.IsZero() && len(bi.bug.Commits) > 0 {
+		return syzbotstats.BugFixed, nil
+	} else if bi.bug.Closed.IsZero() {
+		return syzbotstats.BugPending, nil
+	} else if bi.bug.Status == BugStatusDup {
+		return syzbotstats.BugDup, nil
+	} else if bi.bug.Status == BugStatusInvalid {
 		if bi.bugReporting.Auto {
-			closeStatus = stateAutoInvalidated
+			return syzbotstats.BugAutoInvalidated, nil
+		} else {
+			return syzbotstats.BugInvalidated, nil
 		}
 	}
-	if closeTime.IsZero() || date.Before(closeTime) {
-		return stateOpen
-	}
-	return closeStatus
-}
-
-// Some common bug input filters.
-
-func bugsNoEarlier(since time.Time) statsFilter {
-	return func(input *bugInput) bool {
-		return input.reportedAt().After(since)
-	}
-}
-
-func bugsNoLater(now time.Time, days int) statsFilter {
-	return func(input *bugInput) bool {
-		return now.Sub(input.foundAt()) > time.Hour*24*time.Duration(days)
-	}
-}
-
-func bugsInReportingStage(name string) statsFilter {
-	return func(input *bugInput) bool {
-		return input.bugReporting.Name == name
-	}
-}
-
-func bugsHaveRepro(input *bugInput) bool {
-	return input.bug.ReproLevel > 0
+	return "", fmt.Errorf("cannot determine status")
 }
 
 // allBugInputs queries the raw data about all bugs from a namespace.
@@ -154,10 +85,8 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 	buildToInput := map[*db.Key]*bugInput{}
 	if len(crashKeys) > 0 {
 		crashes := make([]*Crash, len(crashKeys))
-		if err := getAllMulti(c, crashKeys, func(i, j int) interface{} {
-			return crashes[i:j]
-		}); err != nil {
-			return nil, fmt.Errorf("failed to fetch crashes: %w", err)
+		if badKey, err := getAllMulti(c, crashKeys, crashes); err != nil {
+			return nil, fmt.Errorf("failed to fetch crashes for %v: %w", badKey, err)
 		}
 		for i, crash := range crashes {
 			if crash == nil {
@@ -174,10 +103,8 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 	// Fetch builds.
 	if len(buildKeys) > 0 {
 		builds := make([]*Build, len(buildKeys))
-		if err := getAllMulti(c, buildKeys, func(i, j int) interface{} {
-			return builds[i:j]
-		}); err != nil {
-			return nil, fmt.Errorf("failed to fetch builds: %w", err)
+		if badKey, err := getAllMulti(c, buildKeys, builds); err != nil {
+			return nil, fmt.Errorf("failed to fetch builds for %v: %w", badKey, err)
 		}
 		for i, build := range builds {
 			if build != nil {
@@ -188,110 +115,96 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 	return inputs, nil
 }
 
-func getAllMulti(c context.Context, key []*db.Key, getDst func(from, to int) interface{}) error {
-	// Circumventing the datastore multi query limitation.
+// Circumventing the datastore's multi query limitation.
+func getAllMulti[T any](c context.Context, keys []*db.Key, objects []*T) (*db.Key, error) {
 	const step = 1000
-	for from := 0; from < len(key); from += step {
+	for from := 0; from < len(keys); from += step {
 		to := from + step
-		if to > len(key) {
-			to = len(key)
+		if to > len(keys) {
+			to = len(keys)
 		}
-		if err := db.GetMulti(c, key[from:to], getDst(from, to)); err != nil {
-			return err
+		err := db.GetMulti(c, keys[from:to], objects[from:to])
+		if err == nil {
+			continue
 		}
-	}
-	return nil
-}
-
-type statsCounter struct {
-	total int
-	match int
-}
-
-func (sc *statsCounter) Record(match bool) {
-	sc.total++
-	if match {
-		sc.match++
-	}
-}
-
-func (sc statsCounter) String() string {
-	percent := 0.0
-	if sc.total != 0 {
-		percent = float64(sc.match) / float64(sc.total) * 100.0
-	}
-	return fmt.Sprintf("%.2f%% (%d/%d)", percent, sc.match, sc.total)
-}
-
-// reactionFactor represents the generic stats collector that measures the effect
-// of a single variable on the how it affected the chances of the bug status
-// becoming statusDecisionMade in `days` days after reporting.
-type reactionFactor struct {
-	factorTrue  statsCounter
-	factorFalse statsCounter
-	days        int
-	factorName  string
-	factor      statsFilter
-}
-
-func newReactionFactor(days int, name string, factor statsFilter) *reactionFactor {
-	return &reactionFactor{
-		days:       days,
-		factorName: name,
-		factor:     factor,
-	}
-}
-
-func (rf *reactionFactor) Record(input *bugInput) {
-	reported := input.reportedAt()
-	state := input.stateAt(reported.Add(time.Hour * time.Duration(24*rf.days)))
-	match := state == stateDecisionMade
-	if rf.factor(input) {
-		rf.factorTrue.Record(match)
-	} else {
-		rf.factorFalse.Record(match)
-	}
-}
-
-func (rf *reactionFactor) Collect() interface{} {
-	return [][]string{
-		{"", rf.factorName, "No " + rf.factorName},
-		{
-			fmt.Sprintf("Resolved in %d days", rf.days),
-			rf.factorTrue.String(),
-			rf.factorFalse.String(),
-		},
-	}
-}
-
-// Some common factors affecting the attention to the bug.
-
-func newStraceEffect(days int) *reactionFactor {
-	return newReactionFactor(days, "Strace", func(bi *bugInput) bool {
-		if bi.reportedCrash == nil {
-			return false
+		var merr appengine.MultiError
+		if errors.As(err, &merr) {
+			for i, objErr := range merr {
+				if objErr != nil {
+					return keys[from+i], objErr
+				}
+			}
 		}
-		return dashapi.CrashFlags(bi.reportedCrash.Flags)&dashapi.CrashUnderStrace > 0
-	})
+		return nil, err
+	}
+	return nil, nil
 }
 
-func newReproEffect(days int) *reactionFactor {
-	return newReactionFactor(days, "Repro", func(bi *bugInput) bool {
-		return bi.bug.ReproLevel > 0
-	})
-}
-
-func newAssetEffect(days int) *reactionFactor {
-	return newReactionFactor(days, "Build Assets", func(bi *bugInput) bool {
-		if bi.build == nil {
-			return false
+// getBugSummaries extracts the list of BugStatSummary objects among bugs
+// that reached the specific reporting stage.
+func getBugSummaries(c context.Context, ns, stage string) ([]*syzbotstats.BugStatSummary, error) {
+	inputs, err := allBugInputs(c, ns)
+	if err != nil {
+		return nil, err
+	}
+	var ret []*syzbotstats.BugStatSummary
+	for _, input := range inputs {
+		bug, crash := input.bug, input.reportedCrash
+		if crash == nil {
+			continue
 		}
-		return len(bi.build.Assets) > 0
-	})
-}
+		targetStage := bugReportingByName(bug, stage)
+		if targetStage == nil || targetStage.Closed.IsZero() {
+			continue
+		}
+		obj := &syzbotstats.BugStatSummary{
+			Title:        bug.Title,
+			ReleasedTime: targetStage.Closed,
+			ResolvedTime: bug.Closed,
+			Strace:       dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
+		}
+		for _, stage := range bug.Reporting {
+			if stage.ID != "" {
+				obj.IDs = append(obj.IDs, stage.ID)
+			}
+		}
+		if crash.ReproSyz > 0 {
+			obj.ReproTime = crash.Time
+		}
+		if bug.BisectCause == BisectYes {
+			causeBisect, err := queryBestBisection(c, bug, JobBisectCause)
+			if err != nil {
+				return nil, err
+			}
+			if causeBisect != nil {
+				obj.CauseBisectTime = causeBisect.job.Finished
+			}
+		}
+		fixTime := input.fixedAt()
+		if !fixTime.IsZero() && (obj.ResolvedTime.IsZero() || fixTime.Before(obj.ResolvedTime)) {
+			// Take the date of the fixing commit, if it's earlier.
+			obj.ResolvedTime = fixTime
+		}
+		obj.Status, err = input.bugStatus()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", bug.Title, err)
+		}
 
-func newBisectCauseEffect(days int) *reactionFactor {
-	return newReactionFactor(days, "Successful Cause Bisection", func(bi *bugInput) bool {
-		return bi.bug.BisectCause == BisectYes
-	})
+		const minAvgHitCrashes = 5
+		const minAvgHitPeriod = time.Hour * 24
+		if bug.NumCrashes >= minAvgHitCrashes ||
+			bug.LastTime.Sub(bug.FirstTime) < minAvgHitPeriod {
+			// If there are only a few crashes or they all happened within a single day,
+			// it's hard to make any accurate frequency estimates.
+			timeSpan := bug.LastTime.Sub(bug.FirstTime)
+			obj.HitsPerDay = float64(bug.NumCrashes) / (timeSpan.Hours() / 24)
+		}
+
+		for _, label := range bug.LabelValues(SubsystemLabel) {
+			obj.Subsystems = append(obj.Subsystems, label.Value)
+		}
+
+		ret = append(ret, obj)
+	}
+	return ret, nil
 }
