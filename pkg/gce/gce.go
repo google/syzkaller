@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/log"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -114,10 +115,11 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 	sshkeyAttr := "syzkaller:" + sshkey
 	oneAttr := "1"
 	falseAttr := false
+	zone := ctx.ZoneID
 	instance := &compute.Instance{
 		Name:        name,
 		Description: "syzkaller worker",
-		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + machineType,
+		MachineType: "", // set below
 		Disks: []*compute.AttachedDisk{
 			{
 				AutoDelete: true,
@@ -157,6 +159,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 		},
 	}
 retry:
+	instance.MachineType = prefix + "/zones/" + zone + "/machineTypes/" + machineType
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(machineType, "e2-") {
 		// Otherwise we get "Error 400: Efficient instances do not support
 		// onHostMaintenance=TERMINATE unless they are preemptible".
@@ -172,9 +175,19 @@ retry:
 	}
 	if err := ctx.waitForCompletion("zone", "create image", op.Name, false); err != nil {
 		var resourcePoolExhaustedError resourcePoolExhaustedError
-		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
-			instance.Scheduling.Preemptible = false
-			goto retry
+		if errors.As(err, &resourcePoolExhaustedError) {
+			// GCE gives us other zones we could use, try to follow the suggestion.
+			newZone := resourcePoolExhaustedError.availableZone
+			if newZone == "" {
+				newZone = zone
+			}
+			if instance.Scheduling.Preemptible || zone != newZone {
+				zone = newZone
+				instance.Scheduling.Preemptible = false
+				log.Logf(1, "%v VM creation failed because of empty zone pool, retry in zone %s with Preemptible=false",
+					name, zone)
+				goto retry
+			}
 		}
 		return "", err
 	}
@@ -200,6 +213,22 @@ retry:
 		return "", fmt.Errorf("didn't find instance internal IP address")
 	}
 	return ip, nil
+}
+
+func queryAvailableZone(err *compute.OperationErrorErrors) string {
+	for _, detail := range err.ErrorDetails {
+		if detail.ErrorInfo == nil {
+			continue
+		}
+		val, ok := detail.ErrorInfo.Metadatas["zonesAvailable"]
+		if !ok || val == "" {
+			continue
+		}
+		// There'll be a comma-separated zone list, e.g. "us-central1-a,us-central1-b,us-central1-f".
+		zone, _, _ := strings.Cut(val, ",")
+		return zone
+	}
+	return ""
 }
 
 func (ctx *Context) DeleteInstance(name string, wait bool) error {
@@ -286,10 +315,13 @@ func (ctx *Context) DeleteImage(imageName string) error {
 	return nil
 }
 
-type resourcePoolExhaustedError string
+type resourcePoolExhaustedError struct {
+	err           string
+	availableZone string
+}
 
 func (err resourcePoolExhaustedError) Error() string {
-	return string(err)
+	return err.err
 }
 
 func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound bool) error {
@@ -319,7 +351,10 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 				reason := ""
 				for _, operr := range op.Error.Errors {
 					if operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED" {
-						return resourcePoolExhaustedError(fmt.Sprintf("%+v", operr))
+						return resourcePoolExhaustedError{
+							err:           fmt.Sprintf("%+v", operr),
+							availableZone: queryAvailableZone(operr),
+						}
 					}
 					if ignoreNotFound && operr.Code == "RESOURCE_NOT_FOUND" {
 						return nil
