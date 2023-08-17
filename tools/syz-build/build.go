@@ -35,9 +35,13 @@ func main() {
 		fmt.Printf("not running under root, image build may fail\n")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
-	kernelConfig, err := os.ReadFile(*flagKernelConfig)
-	if err != nil {
-		tool.Fail(err)
+	var kernelConfig []byte
+	if *flagKernelConfig != "" {
+		var err error
+		kernelConfig, err = os.ReadFile(*flagKernelConfig)
+		if err != nil {
+			tool.Fail(err)
+		}
 	}
 	params := build.Params{
 		TargetOS:     *flagOS,
