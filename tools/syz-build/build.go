@@ -43,12 +43,16 @@ func main() {
 			tool.Fail(err)
 		}
 	}
+	wd, err := os.Getwd()
+	if err != nil {
+		tool.Fail(err)
+	}
 	params := build.Params{
 		TargetOS:     *flagOS,
 		TargetArch:   *flagArch,
 		VMType:       *flagVM,
 		KernelDir:    *flagKernelSrc,
-		OutputDir:    ".",
+		OutputDir:    wd,
 		Compiler:     *flagCompiler,
 		Linker:       *flagLinker,
 		Ccache:       "",
