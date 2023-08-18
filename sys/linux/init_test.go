@@ -11,6 +11,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// nolint: lll
 func TestNeutralize(t *testing.T) {
 	prog.TestDeserializeHelper(t, targets.Linux, targets.AMD64, nil, []prog.DeserializeTest{
 		{
@@ -151,6 +152,25 @@ syz_open_dev$tty1(0xc, 0x4, 0x1)
 		{
 			In:  `sched_setattr(0x0, &(0x7f00000001c0)=ANY=[@ANYBLOB="1234567812345678"], 0x0)`,
 			Out: `sched_setattr(0x0, &(0x7f00000001c0)=ANY=[@ANYBLOB='\x00\x00\x00\x00\x00\x00\x00\x00'], 0x0)`,
+		},
+		{
+			In:  `mount(0x0, 0x0, &(0x7f00000001c0)='ext4\x00', 0x3f000000, 0x0)`,
+			Out: `mount(0x0, 0x0, &(0x7f00000001c0)='ext4\x00', 0x3f000000, &(0x7f0000000000)='errors=continue,')`,
+		},
+		{
+			In:  `mount(0x0, 0x0, &(0x7f00000001c0)='ext4\x00', 0x3f000000, &(0x7f0000000000)='errors=remount-ro')`,
+			Out: `mount(0x0, 0x0, &(0x7f00000001c0)='ext4\x00', 0x3f000000, &(0x7f0000000000)='errors=remount-ro,')`,
+		},
+		{
+			In:  `mount(0x0, 0x0, &(0x7f00000001c0)='ext2\x00', 0x3f000000, &(0x7f0000000000)='errors=panic,key1,key2')`,
+			Out: `mount(0x0, 0x0, &(0x7f00000001c0)='ext2\x00', 0x3f000000, &(0x7f0000000000)='errors=continue,key1,key2')`,
+		},
+		{
+			In:  `mount(0x0, 0x0, &(0x7f00000001c0)='ext2\x00', 0x3f000000, &(0x7f0000000000)='errors=panic,errors=panic,errors=continue')`,
+			Out: `mount(0x0, 0x0, &(0x7f00000001c0)='ext2\x00', 0x3f000000, &(0x7f0000000000)='errors=continue,')`,
+		},
+		{
+			In: `mount(0x0, 0x0, &(0x7f00000001c0)='ntfs\x00', 0x3f000000, 0x0)`,
 		},
 	})
 }

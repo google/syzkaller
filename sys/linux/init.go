@@ -4,7 +4,9 @@
 package linux
 
 import (
+	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -244,6 +246,8 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	case "sched_setattr":
 		// Enabling a SCHED_FIFO or a SCHED_RR policy may lead to false positive stall-related crashes.
 		neutralizeSchedAttr(c.Args[1])
+	case "mount":
+		neutralizeMount(c)
 	}
 
 	switch c.Meta.Name {
@@ -297,6 +301,43 @@ func neutralizeSchedAttr(a prog.Arg) {
 	case *prog.ConstArg:
 		attr.Val = 0
 	}
+}
+
+var dropMountErrorsRe = regexp.MustCompile(`(?m)(^\s*errors=[^,]+,?\s*|,?\s*errors=[^,]+)`)
+
+func neutralizeMount(c *prog.Call) {
+	typePtr, ok := c.Args[2].(*prog.PointerArg)
+	if !ok || typePtr.Res == nil {
+		return
+	}
+	typeData, ok := typePtr.Res.(*prog.DataArg)
+	if !ok {
+		return
+	}
+	// Only patch ext* mounts for now.
+	if !strings.HasPrefix(string(typeData.Data()), "ext") {
+		return
+	}
+	optsPtr, ok := c.Args[4].(*prog.PointerArg)
+	if !ok {
+		return
+	}
+	opts := ""
+	if optsPtr.Res != nil {
+		optsPtrData, ok := optsPtr.Res.(*prog.DataArg)
+		if !ok {
+			return
+		}
+		opts = string(optsPtrData.Data())
+	}
+	hadRemount := strings.Contains(opts, "errors=remount-ro")
+	opts = dropMountErrorsRe.ReplaceAllString(opts, "")
+	if hadRemount {
+		opts = "errors=remount-ro," + opts
+	} else {
+		opts = "errors=continue," + opts
+	}
+	optsPtr.Res = prog.MakeDataArg(typeData.Type(), prog.DirIn, []byte(opts))
 }
 
 func enforceIntArg(a prog.Arg) {
