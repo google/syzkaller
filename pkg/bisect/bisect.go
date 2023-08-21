@@ -348,6 +348,22 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 		return cfg.Kernel.Commit, err
 	}
 
+	if !cfg.Fix {
+		// If we're doing a cause bisection, we don't really need the commit to be
+		// reachable from cfg.Kernel.Branch.
+		// So let's try to force tag fetch and check if the commit is present in the
+		// repository.
+		env.log("fetch other tags and check if the commit is present")
+		commit, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
+		if err != nil {
+			// Ignore the error because the command will fail if the commit is really not
+			// present in the tree.
+			env.log("fetch failed with %s", err)
+		} else if commit != nil {
+			return commit.Hash, nil
+		}
+	}
+
 	// We record the tested kernel commit when syzkaller triggers a crash. These commits can become
 	// unreachable after the crash was found, when the history of the tested kernel branch was
 	// rewritten. The commit might have been completely deleted from the branch or just changed in

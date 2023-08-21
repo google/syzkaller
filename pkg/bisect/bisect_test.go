@@ -173,7 +173,8 @@ func createTestRepo(t *testing.T) string {
 			}
 		}
 	}
-	// Emulate another tree, that's needed for cross-tree tests.
+	// Emulate another tree, that's needed for cross-tree tests and
+	// for cause bisections for commits not reachable from master.
 	repo.Git("checkout", "v8.0")
 	repo.Git("checkout", "-b", "v8-branch")
 	repo.CommitFileChange("850", "v8-branch")
@@ -248,7 +249,7 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 
 	res, err := runImpl(cfg, r, inst)
 	checkBisectionError(test, res, err)
-	if !test.crossTree {
+	if !test.crossTree && !test.noFakeHashTest {
 		// Should be mitigated via GetCommitByTitle during bisection.
 		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
 		res, err = runImpl(cfg, r, inst)
@@ -326,6 +327,7 @@ type BisectionTest struct {
 	baselineConfig  string
 	resultingConfig string
 	crossTree       bool
+	noFakeHashTest  bool
 
 	extraTest func(t *testing.T, res *Result)
 }
@@ -661,6 +663,15 @@ var bisectionTests = []BisectionTest{
 		commitLen:         1,
 		crossTree:         true,
 		fixCommit:         "903",
+	},
+	{
+		name:              "cause-finds-other-branch-commit",
+		startCommit:       852,
+		startCommitBranch: "v8-branch",
+		commitLen:         1,
+		expectRep:         true,
+		introduced:        "602",
+		noFakeHashTest:    true,
 	},
 }
 
