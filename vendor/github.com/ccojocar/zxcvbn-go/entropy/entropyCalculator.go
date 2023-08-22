@@ -1,12 +1,13 @@
 package entropy
 
 import (
-	"github.com/nbutton23/zxcvbn-go/adjacency"
-	"github.com/nbutton23/zxcvbn-go/match"
-	"github.com/nbutton23/zxcvbn-go/utils/math"
 	"math"
 	"regexp"
 	"unicode"
+
+	"github.com/ccojocar/zxcvbn-go/adjacency"
+	"github.com/ccojocar/zxcvbn-go/match"
+	zxcvbnmath "github.com/ccojocar/zxcvbn-go/utils/math"
 )
 
 const (
@@ -27,7 +28,7 @@ var (
 func DictionaryEntropy(match match.Match, rank float64) float64 {
 	baseEntropy := math.Log2(rank)
 	upperCaseEntropy := extraUpperCaseEntropy(match)
-	//TODO: L33t
+	// TODO: L33t
 	return baseEntropy + upperCaseEntropy
 }
 
@@ -46,18 +47,18 @@ func extraUpperCaseEntropy(match match.Match) float64 {
 		return float64(0)
 	}
 
-	//a capitalized word is the most common capitalization scheme,
-	//so it only doubles the search space (uncapitalized + capitalized): 1 extra bit of entropy.
-	//allcaps and end-capitalized are common enough too, underestimate as 1 extra bit to be safe.
+	// a capitalized word is the most common capitalization scheme,
+	// so it only doubles the search space (uncapitalized + capitalized): 1 extra bit of entropy.
+	// allcaps and end-capitalized are common enough too, underestimate as 1 extra bit to be safe.
 
 	for _, matcher := range []*regexp.Regexp{startUpperRx, endUpperRx, allUpperRx} {
 		if matcher.MatchString(word) {
 			return float64(1)
 		}
 	}
-	//Otherwise calculate the number of ways to capitalize U+L uppercase+lowercase letters with U uppercase letters or
-	//less. Or, if there's more uppercase than lower (for e.g. PASSwORD), the number of ways to lowercase U+L letters
-	//with L lowercase letters or less.
+	// Otherwise calculate the number of ways to capitalize U+L uppercase+lowercase letters with U uppercase letters or
+	// less. Or, if there's more uppercase than lower (for e.g. PASSwORD), the number of ways to lowercase U+L letters
+	// with L lowercase letters or less.
 
 	countUpper, countLower := float64(0), float64(0)
 	for _, char := range word {
@@ -71,21 +72,21 @@ func extraUpperCaseEntropy(match match.Match) float64 {
 	var possibililities float64
 
 	for i := float64(0); i <= math.Min(countUpper, countLower); i++ {
-		possibililities += float64(zxcvbnmath.NChoseK(totalLenght, i))
+		possibililities += zxcvbnmath.NChoseK(totalLenght, i)
 	}
 
 	if possibililities < 1 {
 		return float64(1)
 	}
 
-	return float64(math.Log2(possibililities))
+	return (math.Log2(possibililities))
 }
 
 // SpatialEntropy calculates the entropy for spatial matches
 func SpatialEntropy(match match.Match, turns int, shiftCount int) float64 {
 	var s, d float64
 	if match.DictionaryName == "qwerty" || match.DictionaryName == "dvorak" {
-		//todo: verify qwerty and dvorak have the same length and degree
+		// todo: verify qwerty and dvorak have the same length and degree
 		s = float64(len(adjacency.BuildQwerty().Graph))
 		d = adjacency.BuildQwerty().CalculateAvgDegree()
 	} else {
@@ -97,8 +98,8 @@ func SpatialEntropy(match match.Match, turns int, shiftCount int) float64 {
 
 	length := float64(len(match.Token))
 
-	//TODO: Should this be <= or just < ?
-	//Estimate the number of possible patterns w/ length L or less with t turns or less
+	// TODO: Should this be <= or just < ?
+	// Estimate the number of possible patterns w/ length L or less with t turns or less
 	for i := float64(2); i <= length+1; i++ {
 		possibleTurns := math.Min(float64(turns), i-1)
 		for j := float64(1); j <= possibleTurns+1; j++ {
@@ -108,8 +109,8 @@ func SpatialEntropy(match match.Match, turns int, shiftCount int) float64 {
 	}
 
 	entropy := math.Log2(possibilities)
-	//add extra entropu for shifted keys. ( % instead of 5 A instead of a)
-	//Math is similar to extra entropy for uppercase letters in dictionary matches.
+	// add extra entropu for shifted keys. ( % instead of 5 A instead of a)
+	// Math is similar to extra entropy for uppercase letters in dictionary matches.
 
 	if S := float64(shiftCount); S > float64(0) {
 		possibilities = float64(0)
@@ -134,7 +135,7 @@ func RepeatEntropy(match match.Match) float64 {
 }
 
 // CalcBruteForceCardinality calculates the brute force cardinality
-//TODO: Validate against python
+// TODO: Validate against python
 func CalcBruteForceCardinality(password string) float64 {
 	lower, upper, digits, symbols := float64(0), float64(0), float64(0), float64(0)
 
@@ -157,12 +158,12 @@ func CalcBruteForceCardinality(password string) float64 {
 // SequenceEntropy calculates the entropy for sequences such as 4567 or cdef
 func SequenceEntropy(match match.Match, dictionaryLength int, ascending bool) float64 {
 	firstChar := match.Token[0]
-	baseEntropy := float64(0)
+	var baseEntropy float64
 	if string(firstChar) == "a" || string(firstChar) == "1" {
 		baseEntropy = float64(0)
 	} else {
 		baseEntropy = math.Log2(float64(dictionaryLength))
-		//TODO: should this be just the first or any char?
+		// TODO: should this be just the first or any char?
 		if unicode.IsUpper(rune(firstChar)) {
 			baseEntropy++
 		}
@@ -183,7 +184,7 @@ func ExtraLeetEntropy(match match.Match, password string) float64 {
 		if string(char) != string(match.Token[index]) {
 			subsitutions++
 		} else {
-			//TODO: Make this only true for 1337 chars that are not subs?
+			// TODO: Make this only true for 1337 chars that are not subs?
 			unsub++
 		}
 	}
@@ -210,7 +211,7 @@ func DateEntropy(dateMatch match.DateMatch) float64 {
 	}
 
 	if dateMatch.Separator != "" {
-		entropy += 2 //add two bits for separator selection [/,-,.,etc]
+		entropy += 2 // add two bits for separator selection [/,-,.,etc]
 	}
 	return entropy
 }

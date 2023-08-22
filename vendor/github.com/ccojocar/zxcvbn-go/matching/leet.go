@@ -3,14 +3,14 @@ package matching
 import (
 	"strings"
 
-	"github.com/nbutton23/zxcvbn-go/entropy"
-	"github.com/nbutton23/zxcvbn-go/match"
+	"github.com/ccojocar/zxcvbn-go/entropy"
+	"github.com/ccojocar/zxcvbn-go/match"
 )
 
 // L33TMatcherName id
 const L33TMatcherName = "l33t"
 
-//FilterL33tMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
+// FilterL33tMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
 func FilterL33tMatcher(m match.Matcher) bool {
 	return m.ID == L33TMatcherName
 }
@@ -105,7 +105,7 @@ func createListOfMapsWithoutConflicts(table map[string][]string) []map[string][]
 	return result
 }
 
-// This function retrieves the list of values that appear for one or more keys. This is usefull to
+// This function retrieves the list of values that appear for one or more keys. This is useful to
 // know which l33t chars can represent more than one letter.
 func retrieveConflictsListFromTable(table map[string][]string) []string {
 	result := []string{}
@@ -128,7 +128,7 @@ func retrieveConflictsListFromTable(table map[string][]string) []string {
 }
 
 // This function aims to create different maps for a given char if this char represents a conflict.
-// If the specified char is not a conflit one, the same map will be returned. In scenarios which
+// If the specified char is not a conflict one, the same map will be returned. In scenarios which
 // the provided char can not be found on map, an empty list will be returned. This function was
 // designed to be used on conflicts situations.
 func createDifferentMapsForLeetChar(table map[string][]string, leetChar string) []map[string][]string {
@@ -158,7 +158,7 @@ func retrieveListOfKeysWithSpecificValueFromTable(table map[string][]string, val
 	return result
 }
 
-// This function returns a lsit of substitution map from a given table. Each map in the result will
+// This function returns a list of substitution map from a given table. Each map in the result will
 // provide only one representation for each value. As an example, if the provided map contains the
 // values "@" and "4" in the possibilities to represent "a", two maps will be created where one
 // will contain "a" mapping to "@" and the other one will provide "a" mapping to "4".

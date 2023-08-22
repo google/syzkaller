@@ -89,7 +89,7 @@ func (n *nilNil) run(pass *analysis.Pass) (interface{}, error) {
 
 			fRes1, fRes2 := ft.Results.List[0], ft.Results.List[1]
 			if !(n.isDangerNilField(fRes1, typeSpecs) && n.isErrorField(fRes2)) {
-				return
+				return false
 			}
 
 			rRes1, rRes2 := v.Results[0], v.Results[1]

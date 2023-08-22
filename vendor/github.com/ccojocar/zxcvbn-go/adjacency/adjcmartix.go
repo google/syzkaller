@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/nbutton23/zxcvbn-go/data"
+	"github.com/ccojocar/zxcvbn-go/data"
 )
 
 // Graph holds information about different graphs
@@ -25,7 +25,7 @@ func init() {
 	GraphMap["l33t"] = BuildLeet()
 }
 
-//BuildQwerty builds the Qwerty Graph
+// BuildQwerty builds the Qwerty Graph
 func BuildQwerty() Graph {
 	data, err := data.Asset("data/Qwerty.json")
 	if err != nil {
@@ -34,7 +34,7 @@ func BuildQwerty() Graph {
 	return getAdjancencyGraphFromFile(data, "qwerty")
 }
 
-//BuildDvorak builds the Dvorak Graph
+// BuildDvorak builds the Dvorak Graph
 func BuildDvorak() Graph {
 	data, err := data.Asset("data/Dvorak.json")
 	if err != nil {
@@ -43,7 +43,7 @@ func BuildDvorak() Graph {
 	return getAdjancencyGraphFromFile(data, "dvorak")
 }
 
-//BuildKeypad builds the Keypad Graph
+// BuildKeypad builds the Keypad Graph
 func BuildKeypad() Graph {
 	data, err := data.Asset("data/Keypad.json")
 	if err != nil {
@@ -52,7 +52,7 @@ func BuildKeypad() Graph {
 	return getAdjancencyGraphFromFile(data, "keypad")
 }
 
-//BuildMacKeypad builds the Mac Keypad Graph
+// BuildMacKeypad builds the Mac Keypad Graph
 func BuildMacKeypad() Graph {
 	data, err := data.Asset("data/MacKeypad.json")
 	if err != nil {
@@ -61,7 +61,7 @@ func BuildMacKeypad() Graph {
 	return getAdjancencyGraphFromFile(data, "mac_keypad")
 }
 
-//BuildLeet builds the L33T Graph
+// BuildLeet builds the L33T Graph
 func BuildLeet() Graph {
 	data, err := data.Asset("data/L33t.json")
 	if err != nil {
@@ -71,7 +71,6 @@ func BuildLeet() Graph {
 }
 
 func getAdjancencyGraphFromFile(data []byte, name string) Graph {
-
 	var graph Graph
 	err := json.Unmarshal(data, &graph)
 	if err != nil {
@@ -82,9 +81,9 @@ func getAdjancencyGraphFromFile(data []byte, name string) Graph {
 }
 
 // CalculateAvgDegree calclates the average degree between nodes in the graph
-//on qwerty, 'g' has degree 6, being adjacent to 'ftyhbv'. '\' has degree 1.
-//this calculates the average over all keys.
-//TODO double check that i ported this correctly scoring.coffee ln 5
+// on qwerty, 'g' has degree 6, being adjacent to 'ftyhbv'. '\' has degree 1.
+// this calculates the average over all keys.
+// TODO double check that i ported this correctly scoring.coffee ln 5
 func (adjGrp Graph) CalculateAvgDegree() float64 {
 	if adjGrp.averageDegree != float64(0) {
 		return adjGrp.averageDegree
@@ -92,14 +91,12 @@ func (adjGrp Graph) CalculateAvgDegree() float64 {
 	var avg float64
 	var count float64
 	for _, value := range adjGrp.Graph {
-
 		for _, char := range value {
 			if len(char) != 0 || char != " " {
 				avg += float64(len(char))
 				count++
 			}
 		}
-
 	}
 
 	adjGrp.averageDegree = avg / count

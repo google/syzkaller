@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/nbutton23/zxcvbn-go/data"
+	"github.com/ccojocar/zxcvbn-go/data"
 )
 
 // List holds a frequency list
@@ -28,8 +28,8 @@ func init() {
 	Lists["Surname"] = getStringListFromAsset(surnameFilePath, "Surname")
 	Lists["English"] = getStringListFromAsset(englishFilePath, "English")
 	Lists["Passwords"] = getStringListFromAsset(passwordsFilePath, "Passwords")
-
 }
+
 func getAsset(name string) []byte {
 	data, err := data.Asset(name)
 	if err != nil {
@@ -38,8 +38,8 @@ func getAsset(name string) []byte {
 
 	return data
 }
-func getStringListFromAsset(data []byte, name string) List {
 
+func getStringListFromAsset(data []byte, name string) List {
 	var tempList List
 	err := json.Unmarshal(data, &tempList)
 	if err != nil {

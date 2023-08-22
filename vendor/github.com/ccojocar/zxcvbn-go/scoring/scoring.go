@@ -2,11 +2,12 @@ package scoring
 
 import (
 	"fmt"
-	"github.com/nbutton23/zxcvbn-go/entropy"
-	"github.com/nbutton23/zxcvbn-go/match"
-	"github.com/nbutton23/zxcvbn-go/utils/math"
 	"math"
 	"sort"
+
+	"github.com/ccojocar/zxcvbn-go/entropy"
+	"github.com/ccojocar/zxcvbn-go/match"
+	zxcvbnmath "github.com/ccojocar/zxcvbn-go/utils/math"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 	//adjust for your site accordingly if you use another hash function, possibly by
 	//several orders of magnitude!
 	singleGuess     float64 = 0.010
-	numAttackers    float64 = 100 //Cores used to make guesses
+	numAttackers    float64 = 100 // Cores used to make guesses
 	secondsPerGuess float64 = singleGuess / numAttackers
 )
 
@@ -33,11 +34,11 @@ type MinEntropyMatch struct {
 /*
 MinimumEntropyMatchSequence returns the minimum entropy
 
-    Takes a list of overlapping matches, returns the non-overlapping sublist with
-    minimum entropy. O(nm) dp alg for length-n password with m candidate matches.
+	Takes a list of overlapping matches, returns the non-overlapping sublist with
+	minimum entropy. O(nm) dp alg for length-n password with m candidate matches.
 */
 func MinimumEntropyMatchSequence(password string, matches []match.Match) MinEntropyMatch {
-	bruteforceCardinality := float64(entropy.CalcBruteForceCardinality(password))
+	bruteforceCardinality := entropy.CalcBruteForceCardinality(password)
 	upToK := make([]float64, len(password))
 	backPointers := make([]match.Match, len(password))
 
@@ -50,7 +51,7 @@ func MinimumEntropyMatchSequence(password string, matches []match.Match) MinEntr
 			}
 
 			i, j := match.I, match.J
-			//see if best entropy up to i-1 + entropy of match is less that current min at j
+			// see if best entropy up to i-1 + entropy of match is less that current min at j
 			upTo := get(upToK, i-1)
 			candidateEntropy := upTo + match.Entropy
 
@@ -62,7 +63,7 @@ func MinimumEntropyMatchSequence(password string, matches []match.Match) MinEntr
 		}
 	}
 
-	//walk backwards and decode the best sequence
+	// walk backwards and decode the best sequence
 	var matchSequence []match.Match
 	passwordLen := len(password)
 	passwordLen--
@@ -80,12 +81,13 @@ func MinimumEntropyMatchSequence(password string, matches []match.Match) MinEntr
 	sort.Sort(match.Matches(matchSequence))
 
 	makeBruteForceMatch := func(i, j int) match.Match {
-		return match.Match{Pattern: "bruteforce",
+		return match.Match{
+			Pattern: "bruteforce",
 			I:       i,
 			J:       j,
 			Token:   password[i : j+1],
-			Entropy: math.Log2(math.Pow(bruteforceCardinality, float64(j-i)))}
-
+			Entropy: math.Log2(math.Pow(bruteforceCardinality, float64(j-i))),
+		}
 	}
 
 	k := 0
@@ -110,14 +112,16 @@ func MinimumEntropyMatchSequence(password string, matches []match.Match) MinEntr
 	}
 
 	crackTime := roundToXDigits(entropyToCrackTime(minEntropy), 3)
-	return MinEntropyMatch{Password: password,
+	return MinEntropyMatch{
+		Password:         password,
 		Entropy:          roundToXDigits(minEntropy, 3),
 		MatchSequence:    matchSequenceCopy,
 		CrackTime:        crackTime,
 		CrackTimeDisplay: displayTime(crackTime),
-		Score:            crackTimeToScore(crackTime)}
-
+		Score:            crackTimeToScore(crackTime),
+	}
 }
+
 func get(a []float64, i int) float64 {
 	if i < 0 || i >= len(a) {
 		return float64(0)

@@ -19,7 +19,6 @@ linters:
     - unused
     - varcheck
     - bodyclose
-    - depguard
     - dogsled
     - dupl
     - funlen
@@ -51,7 +50,7 @@ linters:
 
 linters-settings:
   godot:
-    check-all: true
+    scope: toplevel
 
 issues:
   exclude-use-default: false

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -244,7 +244,7 @@ func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 // readFile reads file and returns it's lines as strings.
 func readFile(file *ast.File, fset *token.FileSet) ([]string, error) {
 	fname := fset.File(file.Package)
-	f, err := ioutil.ReadFile(fname.Name())
+	f, err := os.ReadFile(fname.Name())
 	if err != nil {
 		return nil, err
 	}

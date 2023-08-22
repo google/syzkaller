@@ -3,9 +3,9 @@ package matching
 import (
 	"sort"
 
-	"github.com/nbutton23/zxcvbn-go/adjacency"
-	"github.com/nbutton23/zxcvbn-go/frequency"
-	"github.com/nbutton23/zxcvbn-go/match"
+	"github.com/ccojocar/zxcvbn-go/adjacency"
+	"github.com/ccojocar/zxcvbn-go/frequency"
+	"github.com/ccojocar/zxcvbn-go/match"
 )
 
 var (
@@ -23,8 +23,7 @@ func init() {
 
 // Omnimatch runs all matchers against the password
 func Omnimatch(password string, userInputs []string, filters ...func(match.Matcher) bool) (matches []match.Match) {
-
-	//Can I run into the issue where nil is not equal to nil?
+	// Can I run into the issue where nil is not equal to nil?
 	if dictionaryMatchers == nil || adjacencyGraphs == nil {
 		loadFrequencyList()
 	}
@@ -51,7 +50,6 @@ func Omnimatch(password string, userInputs []string, filters ...func(match.Match
 }
 
 func loadFrequencyList() {
-
 	for n, list := range frequency.Lists {
 		dictionaryMatchers = append(dictionaryMatchers, match.Matcher{MatchingFunc: buildDictMatcher(n, buildRankedDict(list.List)), ID: n})
 	}
@@ -63,8 +61,8 @@ func loadFrequencyList() {
 	adjacencyGraphs = append(adjacencyGraphs, adjacency.GraphMap["keypad"])
 	adjacencyGraphs = append(adjacencyGraphs, adjacency.GraphMap["macKeypad"])
 
-	//l33tFilePath, _ := filepath.Abs("adjacency/L33t.json")
-	//L33T_TABLE = adjacency.GetAdjancencyGraphFromFile(l33tFilePath, "l33t")
+	// l33tFilePath, _ := filepath.Abs("adjacency/L33t.json")
+	// L33T_TABLE = adjacency.GetAdjancencyGraphFromFile(l33tFilePath, "l33t")
 
 	sequences = make(map[string]string)
 	sequences["lower"] = "abcdefghijklmnopqrstuvwxyz"
@@ -78,5 +76,4 @@ func loadFrequencyList() {
 	matchers = append(matchers, match.Matcher{MatchingFunc: l33tMatch, ID: L33TMatcherName})
 	matchers = append(matchers, match.Matcher{MatchingFunc: dateSepMatcher, ID: dateSepMatcherName})
 	matchers = append(matchers, match.Matcher{MatchingFunc: dateWithoutSepMatch, ID: dateWithOutSepMatcherName})
-
 }

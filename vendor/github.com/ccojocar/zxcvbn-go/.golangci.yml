@@ -12,7 +12,6 @@ linters:
     - gofmt
     - gofumpt
     - goimports
-    - gosec
     - gosimple
     - govet
     - importas
@@ -34,7 +33,7 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/securego)
+      - prefix(github.com/ccojocar)
 
 run:
   timeout: 5m

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nbutton23/zxcvbn-go/entropy"
-	"github.com/nbutton23/zxcvbn-go/match"
+	"github.com/ccojocar/zxcvbn-go/entropy"
+	"github.com/ccojocar/zxcvbn-go/match"
 )
 
 const (
@@ -20,12 +20,12 @@ var (
 	dateWithOutSepMatch = regexp.MustCompile(`\d{4,8}`)
 )
 
-//FilterDateSepMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
+// FilterDateSepMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
 func FilterDateSepMatcher(m match.Matcher) bool {
 	return m.ID == dateSepMatcherName
 }
 
-//FilterDateWithoutSepMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
+// FilterDateWithoutSepMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
 func FilterDateWithoutSepMatcher(m match.Matcher) bool {
 	return m.ID == dateWithOutSepMatcherName
 }
@@ -64,8 +64,8 @@ func dateSepMatcher(password string) []match.Match {
 
 	return matches
 }
-func dateSepMatchHelper(password string) []match.DateMatch {
 
+func dateSepMatchHelper(password string) []match.DateMatch {
 	var matches []match.DateMatch
 
 	for _, v := range dateRxYearSuffix.FindAllString(password, len(password)) {
@@ -101,7 +101,6 @@ func dateSepMatchHelper(password string) []match.DateMatch {
 		}
 	}
 	return out
-
 }
 
 type dateMatchCandidate struct {
@@ -136,7 +135,7 @@ func dateWithoutSepMatch(password string) []match.Match {
 	return matches
 }
 
-//TODO Has issues with 6 digit dates
+// TODO Has issues with 6 digit dates
 func dateWithoutSepMatchHelper(password string) (matches []match.DateMatch) {
 	for _, v := range dateWithOutSepMatch.FindAllString(password, len(password)) {
 		i := strings.Index(password, v)
@@ -146,17 +145,17 @@ func dateWithoutSepMatchHelper(password string) (matches []match.DateMatch) {
 		var candidatesRoundOne []dateMatchCandidate
 
 		if length <= 6 {
-			//2-digit year prefix
+			// 2-digit year prefix
 			candidatesRoundOne = append(candidatesRoundOne, buildDateMatchCandidate(v[2:], v[0:2], i, j))
 
-			//2-digityear suffix
+			// 2-digityear suffix
 			candidatesRoundOne = append(candidatesRoundOne, buildDateMatchCandidate(v[0:lastIndex-2], v[lastIndex-2:], i, j))
 		}
 		if length >= 6 {
-			//4-digit year prefix
+			// 4-digit year prefix
 			candidatesRoundOne = append(candidatesRoundOne, buildDateMatchCandidate(v[4:], v[0:4], i, j))
 
-			//4-digit year sufix
+			// 4-digit year sufix
 			candidatesRoundOne = append(candidatesRoundOne, buildDateMatchCandidate(v[0:lastIndex-3], v[lastIndex-3:], i, j))
 		}
 
@@ -179,7 +178,6 @@ func dateWithoutSepMatchHelper(password string) (matches []match.DateMatch) {
 			}
 
 			intMonth, err := strconv.ParseInt(candidate.Month, 10, 16)
-
 			if err != nil {
 				continue
 			}
@@ -204,6 +202,5 @@ func buildDateMatchCandidate(dayMonth, year string, i, j int) dateMatchCandidate
 }
 
 func buildDateMatchCandidateTwo(day, month string, year string, i, j int) dateMatchCandidateTwo {
-
 	return dateMatchCandidateTwo{Day: day, Month: month, Year: year, I: i, J: j}
 }
