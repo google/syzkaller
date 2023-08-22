@@ -293,6 +293,12 @@ var testConfig = &GlobalConfig{
 					Branch: "access-public-email",
 					Alias:  "access-public-email",
 				},
+				{
+					// Needed for TestTreeOriginLtsBisection().
+					URL:    "https://upstream.repo/repo",
+					Branch: "upstream-master",
+					Alias:  "upstream-master",
+				},
 			},
 			Reporting: []Reporting{
 				{
@@ -531,7 +537,7 @@ var testConfig = &GlobalConfig{
 			},
 			Reporting: []Reporting{
 				{
-					AccessLevel: AccessUser,
+					AccessLevel: AccessAdmin,
 					Name:        "non-public",
 					DailyLimit:  1000,
 					Filter: func(bug *Bug) FilterResult {
@@ -540,8 +546,8 @@ var testConfig = &GlobalConfig{
 					Config: &TestConfig{Index: 1},
 				},
 				{
-					AccessLevel: AccessPublic,
-					Name:        "public",
+					AccessLevel: AccessUser,
+					Name:        "user",
 					DailyLimit:  1000,
 					Config: &EmailConfig{
 						Email:         "bugs@syzkaller.com",

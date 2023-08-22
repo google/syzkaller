@@ -130,6 +130,7 @@ type uiHeader struct {
 	Namespace           string
 	ContactEmail        string
 	BugCounts           *CachedBugStats
+	MissingBackports    int
 	Namespaces          []uiNamespace
 	ShowSubsystems      bool
 }
@@ -215,6 +216,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			return nil, err
 		}
 		h.BugCounts = &cached.Total
+		h.MissingBackports = cached.MissingBackports
 	}
 	return h, nil
 }

@@ -119,6 +119,11 @@ indexes:
   - name: Labels.Value
   - name: Status
 
+- kind: Bug
+  properties:
+  - name: Status
+  - name: FixCandidateJob
+
 - kind: Build
   properties:
   - name: Namespace

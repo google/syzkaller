@@ -64,6 +64,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-stats", handlerWrapper(handleBugStats))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
+		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
@@ -147,6 +148,14 @@ type uiRepo struct {
 	URL    string
 	Branch string
 	Alias  string
+}
+
+func (r uiRepo) String() string {
+	return r.URL + " " + r.Branch
+}
+
+func (r uiRepo) Equals(other *uiRepo) bool {
+	return r.String() == other.String()
 }
 
 type uiSubsystemPage struct {
@@ -371,6 +380,24 @@ type uiJob struct {
 	FixCandidate      bool
 }
 
+type uiBackportGroup struct {
+	From       *uiRepo
+	To         *uiRepo
+	Namespaces []string
+	List       []*uiBackport
+}
+
+type uiBackport struct {
+	Commit *uiCommit
+	Bugs   map[string][]*uiBug // namespace -> list of related bugs in it
+}
+
+type uiBackportsPage struct {
+	Header           *uiHeader
+	Groups           []*uiBackportGroup
+	DisplayNamespace func(string) string
+}
+
 type userBugFilter struct {
 	Manager     string // show bugs that happened on the manager
 	OnlyManager string // show bugs that happened ONLY on the manager
@@ -560,6 +587,177 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 		Parents:  parents,
 		Groups:   groups,
 	})
+}
+
+func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	backports, err := loadAllBackports(c)
+	if err != nil {
+		return err
+	}
+	var groups []*uiBackportGroup
+	accessLevel := accessLevel(c, r)
+	for _, backport := range backports {
+		outgoing := stringInList(backport.FromNs, hdr.Namespace)
+		ui := &uiBackport{
+			Commit: backport.Commit,
+			Bugs:   map[string][]*uiBug{},
+		}
+		incoming := false
+		for _, bug := range backport.Bugs {
+			if accessLevel < bug.sanitizeAccess(accessLevel) {
+				continue
+			}
+			if !outgoing && bug.Namespace != hdr.Namespace {
+				// If it's an incoming backport, don't include other namespaces.
+				continue
+			}
+			if bug.Namespace == hdr.Namespace {
+				incoming = true
+			}
+			ui.Bugs[bug.Namespace] = append(ui.Bugs[bug.Namespace],
+				createUIBug(c, bug, nil, nil))
+		}
+		if len(ui.Bugs) == 0 {
+			continue
+		}
+
+		// Display either backports to/from repos of the namespace
+		// or the backports that affect bugs from the current namespace.
+		if !outgoing && !incoming {
+			continue
+		}
+		var group *uiBackportGroup
+		for _, existing := range groups {
+			if backport.From.Equals(existing.From) &&
+				backport.To.Equals(existing.To) {
+				group = existing
+				break
+			}
+		}
+		if group == nil {
+			group = &uiBackportGroup{
+				From: backport.From,
+				To:   backport.To,
+			}
+			groups = append(groups, group)
+		}
+		group.List = append(group.List, ui)
+	}
+	for _, group := range groups {
+		var nsList []string
+		for _, backport := range group.List {
+			for ns := range backport.Bugs {
+				nsList = append(nsList, ns)
+			}
+		}
+		nsList = unique(nsList)
+		sort.Strings(nsList)
+		group.Namespaces = nsList
+	}
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i].From.String()+groups[i].To.String() <
+			groups[j].From.String()+groups[j].To.String()
+	})
+	return serveTemplate(w, "backports.html", &uiBackportsPage{
+		Header: hdr,
+		Groups: groups,
+		DisplayNamespace: func(ns string) string {
+			return config.Namespaces[ns].DisplayTitle
+		},
+	})
+}
+
+type rawBackport struct {
+	Commit *uiCommit
+	From   *uiRepo
+	FromNs []string // namespaces that correspond to From
+	To     *uiRepo
+	Bugs   []*Bug
+}
+
+func loadAllBackports(c context.Context) ([]*rawBackport, error) {
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("FixCandidateJob>", "").Filter("Status=", BugStatusOpen)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var jobKeys []*db.Key
+	var jobBugs []*Bug
+	for _, bug := range bugs {
+		jobKey, err := db.DecodeKey(bug.FixCandidateJob)
+		if err != nil {
+			return nil, err
+		}
+		jobKeys = append(jobKeys, jobKey)
+		jobBugs = append(jobBugs, bug)
+	}
+
+	jobs := make([]*Job, len(jobKeys))
+	if err := db.GetMulti(c, jobKeys, jobs); err != nil {
+		return nil, err
+	}
+
+	var ret []*rawBackport
+	perCommit := map[string]*rawBackport{}
+	for i, job := range jobs {
+		// Some assertions just in case.
+		if !job.IsCrossTree() {
+			return nil, fmt.Errorf("job %s: expected to be cross-tree", jobKeys[i])
+		}
+		if len(job.Commits) != 1 {
+			continue
+		}
+		jobCommit := job.Commits[0]
+		to := &uiRepo{URL: job.MergeBaseRepo, Branch: job.MergeBaseBranch}
+		from := &uiRepo{URL: job.KernelRepo, Branch: job.KernelBranch}
+		commit := &uiCommit{
+			Hash:   jobCommit.Hash,
+			Title:  jobCommit.Title,
+			Link:   vcs.CommitLink(from.URL, jobCommit.Hash),
+			Repo:   from.URL,
+			Branch: from.Branch,
+		}
+
+		hash := from.String() + to.String() + commit.Hash
+		backport := perCommit[hash]
+		if backport == nil {
+			backport = &rawBackport{
+				From:   from,
+				FromNs: namespacesForRepo(from.URL, from.Branch),
+				To:     to,
+				Commit: commit}
+			ret = append(ret, backport)
+			perCommit[hash] = backport
+		}
+		backport.Bugs = append(backport.Bugs, jobBugs[i])
+	}
+	return ret, nil
+}
+
+func namespacesForRepo(url, branch string) []string {
+	var ret []string
+	for ns, cfg := range config.Namespaces {
+		has := false
+		for _, repo := range cfg.Repos {
+			if repo.NoPoll {
+				continue
+			}
+			if repo.URL == url && repo.Branch == branch {
+				has = true
+				break
+			}
+		}
+		if has {
+			ret = append(ret, ns)
+		}
+	}
+	return ret
 }
 
 func handleRepos(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -1559,7 +1757,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	reportingIdx, status, link := 0, "", ""
 	var reported time.Time
 	var err error
-	if bug.Status == BugStatusOpen {
+	if bug.Status == BugStatusOpen && state != nil {
 		_, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
 		reported = bug.Reporting[reportingIdx].Reported
 		if err != nil {
@@ -1785,15 +1983,16 @@ func loadRepos(c context.Context, accessLevel AccessLevel, ns string) ([]*uiRepo
 		if build == nil {
 			continue
 		}
-		hash := build.KernelRepo + "|" + build.KernelBranch
+		repo := &uiRepo{
+			URL:    build.KernelRepo,
+			Branch: build.KernelBranch,
+		}
+		hash := repo.String()
 		if dedupRepos[hash] {
 			continue
 		}
 		dedupRepos[hash] = true
-		ret = append(ret, &uiRepo{
-			URL:    build.KernelRepo,
-			Branch: build.KernelBranch,
-		})
+		ret = append(ret, repo)
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		if ret[i].URL != ret[j].URL {

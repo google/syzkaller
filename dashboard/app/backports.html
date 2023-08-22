@@ -1,0 +1,45 @@
+{{/*
+Copyright 2023 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+	{{$getName := .DisplayNamespace}}
+	{{range $group := .Groups}}
+        <b>{{$group.From.URL}} {{$group.From.Branch}} → {{$group.To.URL}} {{$group.To.Branch}}</b><br />
+        
+	<table class="list_table">
+		<tr>
+			<th>Commit</th>
+			{{range $ns := .Namespaces}}
+			<th>{{call $getName $ns}}</th>
+			{{end}}
+		</tr>
+		{{range $backport := $group.List}}
+		<tr>
+			<td class="commit_list">
+			{{link $backport.Commit.Link (formatShortHash $backport.Commit.Hash)}}
+			{{$backport.Commit.Title}}
+			</td>
+			{{range $ns := $group.Namespaces}}
+			<td>
+			{{$bugs := index $backport.Bugs $ns}}
+				{{range $i, $bug := $bugs}}
+					{{if gt $i 0}}<br/>{{end}}
+					{{link $bug.Link $bug.Title}}
+				{{end}}
+			</td>
+                        {{end}}
+		</tr>
+		{{end}}
+	</table>
+	{{end}}
+</body>
+</html>

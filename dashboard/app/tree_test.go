@@ -291,6 +291,31 @@ For information about bisection process see: %URL%#bisection
 	// Ensure the bug is not automatically closed.
 	bug := ctx.loadBug()
 	assert.Len(t, bug.Commits, 0)
+
+	// Ensure the bug is present on the backports list page.
+	reply, err := ctx.ctx.AuthGET(AccessAdmin, "/tree-tests/backports")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), treeTestCrashTitle)
+	assert.Contains(t, string(reply), "deadf00d")
+
+	// But don't show this to all users.
+	reply, err = ctx.ctx.AuthGET(AccessPublic, "/tree-tests/backports")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), treeTestCrashTitle)
+
+	// Check that we display it in another related namespace.
+	upstreamBuild := testBuild(100)
+	upstreamBuild.KernelRepo = "https://upstream.repo/repo"
+	upstreamBuild.KernelBranch = "upstream-master"
+	ctx.ctx.publicClient.UploadBuild(upstreamBuild)
+	reply, err = ctx.ctx.AuthGET(AccessAdmin, "/access-public-email/backports")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), treeTestCrashTitle)
+
+	// .. but, again, not to everyone.
+	reply, err = ctx.ctx.AuthGET(AccessPublic, "/access-public-email/backports")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), treeTestCrashTitle)
 }
 
 func TestTreeBisectionBeforeOrigin(t *testing.T) {
@@ -884,8 +909,11 @@ func (ctx *treeTestCtx) uploadBuild(repo, branch string) *dashapi.Build {
 	return build
 }
 
+const treeTestCrashTitle = "cross-tree bug title"
+
 func (ctx *treeTestCtx) uploadBuildCrash(build *dashapi.Build, lvl dashapi.ReproLevel) {
 	crash := testCrash(build, 1)
+	crash.Title = treeTestCrashTitle
 	if lvl > dashapi.ReproLevelNone {
 		crash.ReproSyz = []byte("getpid()")
 	}
