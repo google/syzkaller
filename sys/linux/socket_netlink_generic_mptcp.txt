@@ -19,11 +19,19 @@ sendmsg$MPTCP_PM_CMD_GET_ADDR(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MP
 sendmsg$MPTCP_PM_CMD_FLUSH_ADDRS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_FLUSH_ADDRS]], f flags[send_flags])
 sendmsg$MPTCP_PM_CMD_SET_LIMITS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_SET_LIMITS]], f flags[send_flags])
 sendmsg$MPTCP_PM_CMD_GET_LIMITS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_GET_LIMITS]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_SET_FLAGS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_SET_FLAGS]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_ANNOUNCE(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_ANNOUNCE]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_REMOVE(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_REMOVE]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_SUBFLOW_CREATE(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_SUBFLOW_CREATE]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_SUBFLOW_DESTROY(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_SUBFLOW_DESTROY]], f flags[send_flags])
 
 mptcp_pm_policy [
 	MPTCP_PM_ATTR_ADDR		nlnest[MPTCP_PM_ATTR_ADDR, array[mptcp_pm_addr_policy, 0:7]]
 	MPTCP_PM_ATTR_RCV_ADD_ADDRS	nlattr[MPTCP_PM_ATTR_RCV_ADD_ADDRS, int32[0:8]]
 	MPTCP_PM_ATTR_SUBFLOWS		nlattr[MPTCP_PM_ATTR_SUBFLOWS, int32[0:8]]
+	MPTCP_PM_ATTR_TOKEN		nlattr[MPTCP_PM_ATTR_TOKEN, int32]
+	MPTCP_PM_ATTR_LOC_ID		nlattr[MPTCP_PM_ATTR_LOC_ID, int8]
+	MPTCP_PM_ATTR_ADDR_REMOTE	nlnest[MPTCP_PM_ATTR_ADDR_REMOTE, array[mptcp_pm_addr_policy, 0:7]]
 ] [varlen]
 
 mptcp_pm_addr_policy [
@@ -37,4 +45,4 @@ mptcp_pm_addr_policy [
 ] [varlen]
 
 mptcp_families = AF_INET, AF_INET6
-mptcp_pm_addr_flags = MPTCP_PM_ADDR_FLAG_SIGNAL, MPTCP_PM_ADDR_FLAG_SUBFLOW, MPTCP_PM_ADDR_FLAG_BACKUP
+mptcp_pm_addr_flags = MPTCP_PM_ADDR_FLAG_SIGNAL, MPTCP_PM_ADDR_FLAG_SUBFLOW, MPTCP_PM_ADDR_FLAG_BACKUP, MPTCP_PM_ADDR_FLAG_FULLMESH, MPTCP_PM_ADDR_FLAG_IMPLICIT

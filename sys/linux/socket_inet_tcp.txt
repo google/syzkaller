@@ -5,6 +5,7 @@
 
 include <asm/ioctls.h>
 include <linux/tcp.h>
+include <linux/mptcp.h>
 include <net/tcp.h>
 include <uapi/linux/sockios.h>
 include <uapi/linux/tls.h>
@@ -12,7 +13,9 @@ include <uapi/linux/tls.h>
 resource sock_tcp[sock_in]
 
 socket$inet_tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
-socket$inet_mptcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_tcp
+
+resource sock_mptcp[sock_tcp]
+socket$inet_mptcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_mptcp
 
 # From interface point of view SMC sockets seem to be the same as TCP.
 socket$inet_smc(domain const[AF_SMC], type const[SOCK_STREAM], proto const[0]) sock_tcp
@@ -20,7 +23,9 @@ socket$inet_smc(domain const[AF_SMC], type const[SOCK_STREAM], proto const[0]) s
 resource sock_tcp6[sock_in6]
 
 socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
-socket$inet6_mptcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_tcp6
+
+resource sock_mptcp6[sock_tcp6]
+socket$inet6_mptcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_mptcp6
 
 # Generic TCP socket options
 
@@ -37,6 +42,15 @@ getsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp
 setsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
 getsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+
+# Generic MPTCP socket options
+
+mptcp_option_types_buf = MPTCP_INFO, MPTCP_FULL_INFO, MPTCP_TCPINFO, MPTCP_SUBFLOW_ADDRS
+
+getsockopt$inet_mptcp_buf(fd sock_mptcp, level const[SOL_MPTCP], optname flags[mptcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_mptcp_buf(fd sock_mptcp6, level const[SOL_MPTCP], optname flags[mptcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+
+# Specific TCP socket options
 
 getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ZEROCOPY_RECEIVE], optval ptr[in, tcp_zerocopy_receive], optlen ptr[inout, len[optval, int32]])
 getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ZEROCOPY_RECEIVE], optval ptr[in, tcp_zerocopy_receive], optlen ptr[inout, len[optval, int32]])
