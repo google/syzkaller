@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strings"
@@ -346,13 +347,24 @@ func (bug *Bug) obsoletePeriod() time.Duration {
 	if config.Obsoleting.MinPeriod == 0 {
 		return period
 	}
+
+	// Let's assume that crashes follow the Possion distribution with rate r=crashes/days.
+	// Then, the chance of seeing a crash within t days is p=1-e^(-r*t).
+	// Solving it for t, we get t=log(1/(1-p))/r.
+	// Since our rate is also only an estimate, let's require p=0.99.
+
 	// Before we have at least 10 crashes, any estimation of frequency is too imprecise.
 	// In such case we conservatively assume it still happens.
 	if bug.NumCrashes >= 10 {
-		// This is linear extrapolation for when the next crash should happen.
-		period = bug.LastTime.Sub(bug.FirstTime) / time.Duration(bug.NumCrashes-1)
-		// Let's be conservative with obsoleting too early.
-		period *= 100
+		bugDays := bug.LastTime.Sub(bug.FirstTime).Hours() / 24.0
+		rate := float64(bug.NumCrashes-1) / bugDays
+
+		const probability = 0.99
+		// For 1 crash/day, this will be ~4.6 days.
+		days := math.Log(1.0/(1.0-probability)) / rate
+		// Let's be conservative and multiply it by 3.
+		days = days * 3
+		period = time.Hour * time.Duration(24*days)
 	}
 	min, max := config.Obsoleting.MinPeriod, config.Obsoleting.MaxPeriod
 	if config.Obsoleting.NonFinalMinPeriod != 0 &&
