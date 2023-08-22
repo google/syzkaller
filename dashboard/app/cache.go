@@ -15,9 +15,10 @@ import (
 )
 
 type Cached struct {
-	Total       CachedBugStats
-	Subsystems  map[string]CachedBugStats
-	NoSubsystem CachedBugStats
+	MissingBackports int
+	Total            CachedBugStats
+	Subsystems       map[string]CachedBugStats
+	NoSubsystem      CachedBugStats
 }
 
 type CachedBugStats struct {
@@ -40,13 +41,22 @@ func CacheGet(c context.Context, r *http.Request, ns string) (*Cached, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buildAndStoreCached(c, bugs, ns, accessLevel)
+	backports, err := loadAllBackports(c)
+	if err != nil {
+		return nil, err
+	}
+	return buildAndStoreCached(c, bugs, backports, ns, accessLevel)
 }
 
 // cacheUpdate updates memcache every hour (called by cron.yaml).
 // Cache update is slow and we don't want to slow down user requests.
 func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
+	backports, err := loadAllBackports(c)
+	if err != nil {
+		log.Errorf(c, "failed load backports: %v", err)
+		return
+	}
 	for ns := range config.Namespaces {
 		bugs, _, err := loadNamespaceBugs(c, ns)
 		if err != nil {
@@ -54,7 +64,7 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		for _, accessLevel := range []AccessLevel{AccessPublic, AccessUser, AccessAdmin} {
-			_, err := buildAndStoreCached(c, bugs, ns, accessLevel)
+			_, err := buildAndStoreCached(c, bugs, backports, ns, accessLevel)
 			if err != nil {
 				log.Errorf(c, "failed to build cached for ns=%v access=%v: %v", ns, accessLevel, err)
 				continue
@@ -63,7 +73,8 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildAndStoreCached(c context.Context, bugs []*Bug, ns string, accessLevel AccessLevel) (*Cached, error) {
+func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackport,
+	ns string, accessLevel AccessLevel) (*Cached, error) {
 	v := &Cached{
 		Subsystems: make(map[string]CachedBugStats),
 	}
@@ -80,6 +91,17 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, ns string, accessLevel 
 		}
 		if len(subsystems) == 0 {
 			v.NoSubsystem.Record(bug)
+		}
+	}
+	for _, backport := range backports {
+		outgoing := stringInList(backport.FromNs, ns)
+		for _, bug := range backport.Bugs {
+			if accessLevel < bug.sanitizeAccess(accessLevel) {
+				continue
+			}
+			if bug.Namespace == ns || outgoing {
+				v.MissingBackports++
+			}
 		}
 	}
 	item := &memcache.Item{
