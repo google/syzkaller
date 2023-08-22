@@ -168,11 +168,16 @@ func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	fixes := make(map[string]bool)
 	lastReporting := config.Namespaces[ns].lastActiveReporting()
 	for _, bug := range bugs {
-		if bug.Status >= BugStatusInvalid {
-			continue
-		}
-		if bug.Status == BugStatusOpen && bug.Reporting[lastReporting].Reported.IsZero() {
-			continue
+		if bug.Reporting[lastReporting].Reported.IsZero() {
+			if bug.Status == BugStatusOpen {
+				// These bugs are not released yet.
+				continue
+			}
+			bugReporting := lastReportedReporting(bug)
+			if bugReporting == nil || bugReporting.Auto && bug.Status == BugStatusInvalid {
+				// These bugs were auto-obsoleted before getting released.
+				continue
+			}
 		}
 		dup := false
 		for _, com := range bug.Commits {
@@ -194,9 +199,11 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 	type BugStats struct {
 		Opened        int
 		Fixed         int
+		Closed        int
 		TotalReported int
 		TotalOpen     int
 		TotalFixed    int
+		TotalClosed   int
 	}
 	const timeWeek = 30 * 24 * time.Hour
 	now := timeNow(c)
@@ -220,9 +227,13 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 	for _, bug := range bugs {
 		bugStatsFor(bug.FirstTime).Opened++
 		if !bug.Closed.IsZero() {
-			bugStatsFor(bug.Closed).Fixed++
+			if bug.Status == BugStatusFixed {
+				bugStatsFor(bug.Closed).Fixed++
+			}
+			bugStatsFor(bug.Closed).Closed++
 		} else if len(bug.Commits) != 0 {
 			bugStatsFor(now).Fixed++
+			bugStatsFor(now).Closed++
 		}
 	}
 	var stats []BugStats
@@ -234,7 +245,8 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 		}
 		bs.TotalReported = prev.TotalReported + bs.Opened
 		bs.TotalFixed = prev.TotalFixed + bs.Fixed
-		bs.TotalOpen = bs.TotalReported - bs.TotalFixed
+		bs.TotalClosed = prev.TotalClosed + bs.Closed
+		bs.TotalOpen = bs.TotalReported - bs.TotalClosed
 		stats = append(stats, bs)
 		prev = bs
 	}
@@ -260,6 +272,9 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 		ui := uiBugLifetime{
 			// TODO: this is not the time when it was reported to the final reporting.
 			Reported: bug.FirstTime,
+		}
+		if bug.Status >= BugStatusInvalid {
+			continue
 		}
 		fixed := bug.FixTime
 		if fixed.IsZero() || bug.Status == BugStatusFixed && bug.Closed.Before(fixed) {
