@@ -37,6 +37,7 @@ const (
 	missingAssertionMessage       = linterName + `: %q: missing assertion method. Expected "Should()", "To()", "ShouldNot()", "ToNot()" or "NotTo()"`
 	missingAsyncAssertionMessage  = linterName + `: %q: missing assertion method. Expected "Should()" or "ShouldNot()"`
 	focusContainerFound           = linterName + ": Focus container found. This is used only for local debug and should not be part of the actual source code, consider to replace with %q"
+	focusSpecFound                = linterName + ": Focus spec found. This is used only for local debug and should not be part of the actual source code, consider to remove it"
 )
 const ( // gomega matchers
 	beEmpty        = "BeEmpty"
@@ -232,12 +233,27 @@ func (l *ginkgoLinter) run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func checkFocusContainer(pass *analysis.Pass, ginkgoHndlr ginkgohandler.Handler, exp *ast.CallExpr) bool {
+	foundFocus := false
 	isFocus, id := ginkgoHndlr.GetFocusContainerName(exp)
 	if isFocus {
 		reportNewName(pass, id, id.Name[1:], focusContainerFound, id.Name)
-		return true
+		foundFocus = true
 	}
-	return false
+
+	if id != nil && ginkgohandler.IsContainer(id) {
+		for _, arg := range exp.Args {
+			if ginkgoHndlr.IsFocusSpec(arg) {
+				reportNoFix(pass, arg.Pos(), focusSpecFound)
+				foundFocus = true
+			} else if callExp, ok := arg.(*ast.CallExpr); ok {
+				if checkFocusContainer(pass, ginkgoHndlr, callExp) { // handle table entries
+					foundFocus = true
+				}
+			}
+		}
+	}
+
+	return foundFocus
 }
 
 func checkExpression(pass *analysis.Pass, config types.Config, assertionExp *ast.CallExpr, actualExpr *ast.CallExpr, handler gomegahandler.Handler) bool {

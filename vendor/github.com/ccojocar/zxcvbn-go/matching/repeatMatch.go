@@ -3,13 +3,13 @@ package matching
 import (
 	"strings"
 
-	"github.com/nbutton23/zxcvbn-go/entropy"
-	"github.com/nbutton23/zxcvbn-go/match"
+	"github.com/ccojocar/zxcvbn-go/entropy"
+	"github.com/ccojocar/zxcvbn-go/match"
 )
 
 const repeatMatcherName = "REPEAT"
 
-//FilterRepeatMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
+// FilterRepeatMatcher can be pass to zxcvbn-go.PasswordStrength to skip that matcher
 func FilterRepeatMatcher(m match.Matcher) bool {
 	return m.ID == repeatMatcherName
 }
@@ -17,7 +17,7 @@ func FilterRepeatMatcher(m match.Matcher) bool {
 func repeatMatch(password string) []match.Match {
 	var matches []match.Match
 
-	//Loop through password. if current == prev currentStreak++ else if currentStreak > 2 {buildMatch; currentStreak = 1} prev = current
+	// Loop through password. if current == prev currentStreak++ else if currentStreak > 2 {buildMatch; currentStreak = 1} prev = current
 	var current, prev string
 	currentStreak := 1
 	var i int
@@ -29,9 +29,8 @@ func repeatMatch(password string) []match.Match {
 			continue
 		}
 
-		if strings.ToLower(current) == strings.ToLower(prev) {
+		if strings.EqualFold(current, prev) {
 			currentStreak++
-
 		} else if currentStreak > 2 {
 			iPos := i - currentStreak
 			jPos := i - 1
@@ -40,7 +39,8 @@ func repeatMatch(password string) []match.Match {
 				I:              iPos,
 				J:              jPos,
 				Token:          password[iPos : jPos+1],
-				DictionaryName: prev}
+				DictionaryName: prev,
+			}
 			matchRepeat.Entropy = entropy.RepeatEntropy(matchRepeat)
 			matches = append(matches, matchRepeat)
 			currentStreak = 1
@@ -59,7 +59,8 @@ func repeatMatch(password string) []match.Match {
 			I:              iPos,
 			J:              jPos,
 			Token:          password[iPos : jPos+1],
-			DictionaryName: prev}
+			DictionaryName: prev,
+		}
 		matchRepeat.Entropy = entropy.RepeatEntropy(matchRepeat)
 		matches = append(matches, matchRepeat)
 	}
