@@ -711,7 +711,7 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 		if !job.IsCrossTree() {
 			return nil, fmt.Errorf("job %s: expected to be cross-tree", jobKeys[i])
 		}
-		if len(job.Commits) != 1 {
+		if len(job.Commits) != 1 || job.InvalidatedBy != "" {
 			continue
 		}
 		jobCommit := job.Commits[0]
