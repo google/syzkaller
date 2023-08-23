@@ -377,6 +377,7 @@ type uiJob struct {
 	*dashapi.JobInfo
 	Crash             *uiCrash
 	InvalidateJobLink string
+	RestartJobLink    string
 	FixCandidate      bool
 }
 
@@ -2225,7 +2226,8 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
 		JobInfo:           makeJobInfo(c, job, jobKey, bug, build, crash),
-		InvalidateJobLink: invalidateJobLink(c, job, jobKey),
+		InvalidateJobLink: invalidateJobLink(c, job, jobKey, false),
+		RestartJobLink:    invalidateJobLink(c, job, jobKey, true),
 		FixCandidate:      job.IsCrossTree(),
 	}
 	if crash != nil {
@@ -2234,7 +2236,7 @@ func makeUIJob(c context.Context, job *Job, jobKey *db.Key, bug *Bug, crash *Cra
 	return ui
 }
 
-func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key) string {
+func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key, restart bool) string {
 	if !user.IsAdmin(c) {
 		return ""
 	}
@@ -2247,6 +2249,9 @@ func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key) string {
 	params := url.Values{}
 	params.Add("action", "invalidate_bisection")
 	params.Add("key", jobKey.Encode())
+	if restart {
+		params.Add("restart", "1")
+	}
 	return "/admin?" + params.Encode()
 }
 
