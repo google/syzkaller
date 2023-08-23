@@ -231,8 +231,8 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 	return ""
 }
 
-// Mark bisection job as invalid and reset bisection state of the related bug.
-func invalidateBisection(c context.Context, jobKey *db.Key) error {
+// Mark bisection job as invalid and, if restart=true, reset bisection state of the related bug.
+func invalidateBisection(c context.Context, jobKey *db.Key, restart bool) error {
 	u := user.Current(c)
 	tx := func(c context.Context) error {
 		job := new(Job)
@@ -250,21 +250,23 @@ func invalidateBisection(c context.Context, jobKey *db.Key) error {
 			return fmt.Errorf("failed to put job: %w", err)
 		}
 
-		// Update the bug.
-		bug := new(Bug)
-		bugKey := jobKey.Parent()
-		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %w", err)
-		}
-		if job.Type == JobBisectCause {
-			bug.BisectCause = BisectNot
-		} else if job.IsCrossTree() {
-			bug.FixCandidateJob = ""
-		} else if job.Type == JobBisectFix {
-			bug.BisectFix = BisectNot
-		}
-		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %w", err)
+		if restart {
+			// Update the bug.
+			bug := new(Bug)
+			bugKey := jobKey.Parent()
+			if err := db.Get(c, bugKey, bug); err != nil {
+				return fmt.Errorf("failed to get bug: %w", err)
+			}
+			if job.Type == JobBisectCause {
+				bug.BisectCause = BisectNot
+			} else if job.IsCrossTree() {
+				bug.FixCandidateJob = ""
+			} else if job.Type == JobBisectFix {
+				bug.BisectFix = BisectNot
+			}
+			if _, err := db.Put(c, bugKey, bug); err != nil {
+				return fmt.Errorf("failed to put bug: %w", err)
+			}
 		}
 		return nil
 	}

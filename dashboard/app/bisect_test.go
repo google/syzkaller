@@ -1105,26 +1105,36 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a bug")))
 	c.expectEQ(job.InvalidatedBy, "")
 
-	// Mark bisection as invalid.
+	// Mark bisection as invalid, but do not restart it.
 	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode())
 	var httpErr *HTTPError
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
 
 	// The invalidated bisection should have vanished from the web UI
-	bug, _ = c.loadSingleBug()
 	job, _ = c.loadSingleJob()
 	content, err = c.GET(bugURL)
 	c.expectEQ(err, nil)
-	c.expectEQ(bug.BisectCause, BisectNot)
 	c.expectTrue(!bytes.Contains(content, []byte("Cause bisection: introduced by")))
 	c.expectTrue(!bytes.Contains(content, []byte("kernel: add a bug")))
 	c.expectEQ(job.InvalidatedBy, "user@syzkaller.com")
 
-	// Confirm we wait 7 days before retrying cause bisections.
-	resp := c.client2.pollJobs(build.Manager)
-	c.client2.expectNE(resp.ID, "")
-	c.advanceTime(24 * 7 * time.Hour)
+	// Wait 30 days, no new cause bisection jobs should be created.
+	c.advanceTime(24 * 30 * time.Hour)
+	resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		BisectCause: true,
+	})
+	c.expectEQ(resp.ID, "")
+
+	// Invalidate the bisection once more (why not), but this time ask dashboard to redo it.
+	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode()+"&restart=1")
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusFound)
+	bug, _ = c.loadSingleBug()
+	c.expectEQ(bug.BisectCause, BisectNot)
+
+	// The bisection should be started again.
+	c.advanceTime(time.Hour)
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)

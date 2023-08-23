@@ -25,7 +25,7 @@ func handleInvalidateBisection(c context.Context, w http.ResponseWriter, r *http
 		return fmt.Errorf("failed to decode job key %v: %w", encodedKey, err)
 	}
 
-	err = invalidateBisection(c, jobKey)
+	err = invalidateBisection(c, jobKey, r.FormValue("restart") == "1")
 	if err != nil {
 		return fmt.Errorf("failed to invalidate job %v: %w", jobKey, err)
 	}
@@ -182,7 +182,7 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 		return nil
 	}
 	for idx, jobKey := range toReset {
-		err = invalidateBisection(c, jobKey)
+		err = invalidateBisection(c, jobKey, true)
 		if err != nil {
 			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
 		}
