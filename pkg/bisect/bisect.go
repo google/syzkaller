@@ -209,10 +209,11 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	}
 	if len(res.Commits) == 0 {
 		if cfg.Fix {
-			env.log("crash still not fixed on HEAD or HEAD had kernel test errors")
+			env.log("crash still not fixed or there were kernel test errors")
 		} else {
 			env.log("oldest tested release already had the bug or it had kernel test errors")
 		}
+
 		env.log("commit msg: %v", res.Commit.Title)
 		if res.Report != nil {
 			env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
@@ -466,6 +467,7 @@ func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result,
 }
 
 func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
+	var results []*testResult
 	startCommit := env.commit
 	if env.cfg.CrossTree {
 		env.log("determining the merge base between %v and %v",
@@ -478,8 +480,19 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 			env.log("expected 1 merge base, got %d", len(bases))
 			return nil, nil, nil, fmt.Errorf("expected 1 merge base, got %d", len(bases))
 		}
-		env.log("%s/%s is a merge base", bases[0].Hash, bases[0].Title)
+		env.log("%s/%s is a merge base, check if it has the bug", bases[0].Hash, bases[0].Title)
 		startCommit = bases[0]
+		if _, err := env.repo.SwitchCommit(startCommit.Hash); err != nil {
+			return nil, nil, nil, err
+		}
+		res, err := env.test()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		results = append(results, res)
+		if res.verdict != vcs.BisectBad {
+			return nil, startCommit, results, nil
+		}
 	}
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
@@ -489,10 +502,11 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	results = append(results, res)
 	if res.verdict != vcs.BisectGood {
-		return env.head, nil, []*testResult{res}, nil
+		return env.head, nil, results, nil
 	}
-	return env.head, startCommit, []*testResult{res}, nil
+	return env.head, startCommit, results, nil
 }
 
 func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
@@ -531,6 +545,13 @@ func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, 
 func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult) (*Result, error) {
 	if len(results) < 1 {
 		return nil, fmt.Errorf("commitRange returned no results")
+	}
+
+	if env.cfg.Fix && env.cfg.CrossTree && len(results) < 2 {
+		// For cross-tree bisections, it can be the case that the bug was introduced
+		// after the merge base, so there's no sense to continue the fix bisection.
+		env.log("reproducer does not crash the merge base, so there's no known bad commit")
+		return &Result{Commit: good, Config: env.kernelConfig}, nil
 	}
 
 	finalResult := results[len(results)-1] // HEAD test for fix, oldest tested test for cause bisection
