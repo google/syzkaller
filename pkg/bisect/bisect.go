@@ -518,9 +518,12 @@ func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, 
 	if len(tags) == 0 {
 		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
+	pickedTags := pickReleaseTags(tags)
+	env.log("picked %d out of %d release tags", pickedTags)
+
 	lastBad := env.commit
 	var results []*testResult
-	for _, tag := range tags {
+	for _, tag := range pickedTags {
 		env.log("testing release %v", tag)
 		com, err := env.repo.SwitchCommit(tag)
 		if err != nil {
@@ -1033,4 +1036,57 @@ func checkConfig(cfg *Config) error {
 
 func (env *env) log(msg string, args ...interface{}) {
 	env.cfg.Trace.Log(msg, args...)
+}
+
+// pickReleaseTags() picks a subset of revisions to test.
+// `all` is an ordered list of tags (from newer to older).
+func pickReleaseTags(all []string) []string {
+	if len(all) == 0 {
+		return nil
+	}
+	// First split into x.y.z, x.y.z-1, ... and x.y, x.y-1, ...
+	var subReleases, releases []string
+	releaseBegin := false
+	for _, tag := range all {
+		v1, _, rc, v3 := vcs.ParseReleaseTag(tag)
+		if v1 < 0 || rc < 0 && v3 < 0 {
+			releaseBegin = true
+			releases = append(releases, tag)
+		}
+		if !releaseBegin {
+			subReleases = append(subReleases, tag)
+		}
+	}
+	var ret []string
+	// Take 2 latest sub releases.
+	takeSubReleases := minInts(2, len(subReleases))
+	ret = append(ret, subReleases[:takeSubReleases]...)
+	// If there are a lot of sub releases, also take the middle one.
+	if len(subReleases) > 5 {
+		ret = append(ret, subReleases[len(subReleases)/2])
+	}
+	for i := 0; i < len(releases); i++ {
+		// Gradually increase step.
+		step := 1
+		if i >= 3 {
+			step = 2
+		}
+		if i >= 11 {
+			step = 3
+		}
+		if i%step == 0 || i == len(releases)-1 {
+			ret = append(ret, releases[i])
+		}
+	}
+	return ret
+}
+
+func minInts(vals ...int) int {
+	ret := vals[0]
+	for i := 1; i < len(vals); i++ {
+		if vals[i] < ret {
+			ret = vals[i]
+		}
+	}
+	return ret
 }

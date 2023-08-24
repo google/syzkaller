@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -266,6 +267,31 @@ func CheckBranch(branch string) bool {
 
 func CheckCommitHash(hash string) bool {
 	return gitHashRe.MatchString(hash)
+}
+
+func ParseReleaseTag(tag string) (v1, v2, rc, v3 int) {
+	invalid := func() {
+		v1, v2, rc, v3 = -1, -1, -1, -1
+	}
+	invalid()
+	matches := releaseTagRe.FindStringSubmatch(tag)
+	if matches == nil {
+		return
+	}
+	for ptr, idx := range map[*int]int{
+		&v1: 1, &v2: 2, &rc: 3, &v3: 4,
+	} {
+		if matches[idx] == "" {
+			continue
+		}
+		var err error
+		*ptr, err = strconv.Atoi(matches[idx])
+		if err != nil {
+			invalid()
+			return
+		}
+	}
+	return
 }
 
 func runSandboxed(dir, command string, args ...string) ([]byte, error) {
