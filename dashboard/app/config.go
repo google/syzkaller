@@ -180,7 +180,7 @@ type ObsoletingConfig struct {
 	ReproRetestPeriod time.Duration
 	// Reproducer retesting begins after there have been no crashes during
 	// the ReproRetestStart period.
-	// By default, it's 7 days.
+	// By default, it's 14 days.
 	ReproRetestStart time.Duration
 }
 
@@ -405,7 +405,7 @@ func checkObsoleting(o *ObsoletingConfig) {
 		panic("obsoleting: NonFinalMinPeriod without MinPeriod")
 	}
 	if o.ReproRetestStart == 0 {
-		o.ReproRetestStart = time.Hour * 24 * 7
+		o.ReproRetestStart = time.Hour * 24 * 14
 	}
 }
 
