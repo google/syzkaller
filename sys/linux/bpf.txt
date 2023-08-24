@@ -503,23 +503,63 @@ bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_
 
 define MAX_BPF_REG	__MAX_BPF_REG
 
+bpf_obj_pin_map [
+	generic	bpf_obj_pin_map_generic
+	o_path	bpf_obj_pin_map_o_path
+]
+
+bpf_obj_pin_prog [
+	generic	bpf_obj_pin_prog_generic
+	o_path	bpf_obj_pin_prog_o_path
+]
+
+bpf_obj_get [
+	generic	bpf_obj_get_generic
+	o_path	bpf_obj_get_o_path
+]
+
 # NEED: these filenames must be on bpf filesystem, can we do it somehow?
-bpf_obj_pin_map {
+bpf_obj_pin_map_generic {
 	path	ptr64[in, filename]
 	fd	fd_bpf_map
 	flags	const[0, int32]
+	path_fd	const[0, int32]
 }
 
-bpf_obj_pin_prog {
+bpf_obj_pin_prog_generic {
 	path	ptr64[in, filename]
 	fd	fd_bpf_prog
 	flags	const[0, int32]
+	path_fd	const[0, int32]
 }
 
-bpf_obj_get {
+bpf_obj_get_generic {
 	path		ptr64[in, filename]
 	fd		const[0, int32]
 	file_flags	flags[bpf_open_flags, int32]
+	path_fd		const[0, int32]
+}
+
+# NEED: Specific type for O_PATH fds (for path_fd).
+bpf_obj_pin_map_o_path {
+	path	ptr64[in, filename]
+	fd	fd_bpf_map
+	flags	const[BPF_F_PATH_FD, int32]
+	path_fd	fd
+}
+
+bpf_obj_pin_prog_o_path {
+	path	ptr64[in, filename]
+	fd	fd_bpf_prog
+	flags	const[BPF_F_PATH_FD, int32]
+	path_fd	fd
+}
+
+bpf_obj_get_o_path {
+	path		ptr64[in, filename]
+	fd		const[0, int32]
+	file_flags	flags[bpf_obj_get_flags, int32]
+	path_fd		fd
 }
 
 bpf_attach_targets [
@@ -905,3 +945,4 @@ bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BP
 bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY
 bpf_stat_types = BPF_STATS_RUN_TIME
 bpf_core_relo_kind = BPF_CORE_FIELD_BYTE_OFFSET, BPF_CORE_FIELD_BYTE_SIZE, BPF_CORE_FIELD_EXISTS, BPF_CORE_FIELD_SIGNED, BPF_CORE_FIELD_LSHIFT_U64, BPF_CORE_FIELD_RSHIFT_U64, BPF_CORE_TYPE_ID_LOCAL, BPF_CORE_TYPE_ID_TARGET, BPF_CORE_TYPE_EXISTS, BPF_CORE_TYPE_SIZE, BPF_CORE_ENUMVAL_EXISTS, BPF_CORE_ENUMVAL_VALUE, BPF_CORE_TYPE_MATCHES
+bpf_obj_get_flags = BPF_F_PATH_FD, bpf_open_flags
