@@ -673,6 +673,31 @@ var bisectionTests = []BisectionTest{
 		introduced:        "602",
 		noFakeHashTest:    true,
 	},
+	{
+		// There's no fix for the bug because it was introduced
+		// in another tree.
+		name:              "no-fix-cross-tree",
+		fix:               true,
+		startCommit:       852,
+		startCommitBranch: "v8-branch",
+		commitLen:         0,
+		crossTree:         true,
+		introduced:        "851",
+		oldestLatest:      800,
+	},
+	{
+		// We are unable to test the merge base commit.
+		name:              "fix-cross-tree-broken-start",
+		fix:               true,
+		startCommit:       851,
+		startCommitBranch: "v8-branch",
+		commitLen:         0,
+		crossTree:         true,
+		fixCommit:         "903",
+		brokenStart:       800,
+		brokenEnd:         800,
+		oldestLatest:      800,
+	},
 }
 
 func TestBisectionResults(t *testing.T) {
