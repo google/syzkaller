@@ -714,11 +714,14 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 }
 
 // Create a cross-tree bisection job (if needed).
+// Returns:
+// a) Job object and its key -- in case of success.
+// b) Whether the lookup was expensive (it can help optimize crossTreeBisection calls).
 func crossTreeBisection(c context.Context, bug *Bug,
-	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
+	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, bool, error) {
 	repoGraph, err := makeRepoGraph(getKernelRepos(c, bug.Namespace))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 	bugJobs := &lazyJobList{
 		c:       c,
@@ -727,6 +730,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 	}
 	var job *Job
 	var jobKey *db.Key
+	expensive := false
 	err = repoGraph.forEachEdge(func(from, to *repoNode, info KernelRepoLink) error {
 		if jobKey != nil {
 			return nil
@@ -745,6 +749,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 			// The bug is already fixed on the target tree.
 			return nil
 		}
+		expensive = true
 		crashBuild, err := loadBuild(c, bug.Namespace, crashJob.BuildID)
 		if err != nil {
 			return err
@@ -787,7 +792,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		jobKey, err = saveJob(c, newJob, bug.key(c))
 		return err
 	})
-	return job, jobKey, err
+	return job, jobKey, expensive, err
 }
 
 type lazyJobList struct {
