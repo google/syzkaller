@@ -734,12 +734,13 @@ bpf_btf_info {
 } [align[8]]
 
 bpf_prog_query {
-	target_fd	fd_cgroup
-	attach_type	flags[bpf_prog_query_attach_type, int32]
-	query_flags	flags[bpf_prog_query_flags, int32]
-	attach_flags	int32
-	prog_ids	ptr64[out, array[int32]]
-	prog_cnt	len[prog_ids, int32]
+	target_fd		fd_cgroup
+	attach_type		flags[bpf_prog_query_attach_type, int32]
+	query_flags		flags[bpf_prog_query_flags, int32]
+	attach_flags		int32
+	prog_ids		ptr64[out, array[int32]]
+	prog_cnt		len[prog_ids, int32]
+	prog_attach_flags	ptr64[out, array[int32]]
 } [align[8]]
 
 bpf_btf_load {
