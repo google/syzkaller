@@ -744,11 +744,12 @@ bpf_prog_query {
 } [align[8]]
 
 bpf_btf_load {
-	btf		ptr64[in, bpf_btf_program]
-	btf_log_buf	ptr64[out, array[int8]]
-	btf_size	bytesize[btf, int32]
-	btf_log_size	bytesize[btf_log_buf, int32]
-	btf_log_level	bool32
+	btf			ptr64[in, bpf_btf_program]
+	btf_log_buf		ptr64[out, array[int8]]
+	btf_size		bytesize[btf, int32]
+	btf_log_size		bytesize[btf_log_buf, int32]
+	btf_log_level		bool32
+	btf_log_true_size	int32
 } [align[8]]
 
 bpf_btf_program {
