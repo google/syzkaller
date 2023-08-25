@@ -16,11 +16,14 @@ Page with details about a single bug.
 
 	<b>{{.Bug.Title}}</b><br><br>
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
-	{{if .Labels}}
-		Labels: {{range .Labels}}
-			<span class="bug-label">{{link .Link .Name}}</span>
-		{{- end}}
-		<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#labels">(incorrect?)</a><br>
+	{{if .LabelGroups}}
+		{{range $group := .LabelGroups}}
+			{{$group.Name}}: {{range $group.Labels}}
+				<span class="bug-label">{{link .Link .Name}}</span>
+			{{- end}}
+		<br>
+		{{end}}
+	<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#labels">[Documentation on labels]</a><br>
 	{{- end}}
 	{{if .DebugSubsystems}}
 	{{link .DebugSubsystems "[Debug subsystem assignment]"}}<br>
