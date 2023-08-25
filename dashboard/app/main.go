@@ -254,8 +254,13 @@ type uiBugPage struct {
 	SampleReport    template.HTML
 	Crashes         *uiCrashTable
 	TestPatchJobs   *uiJobList
-	Labels          []*uiBugLabel
+	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
+}
+
+type uiBugLabelGroup struct {
+	Name   string
+	Labels []*uiBugLabel
 }
 
 const (
@@ -1075,9 +1080,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Sections:     sections,
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
-	}
-	for _, entry := range bug.Labels {
-		data.Labels = append(data.Labels, makeBugLabelUI(c, bug, entry))
+		LabelGroups:  getLabelGroups(c, bug),
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = html.AmendURL(data.Bug.Link, "debug_subsystems", "1")
@@ -1113,6 +1116,50 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+type labelGroupInfo struct {
+	Label BugLabelType
+	Name  string
+}
+
+var labelGroupOrder = []labelGroupInfo{
+	{
+		Label: OriginLabel,
+		Name:  "Bug presence",
+	},
+	{
+		Label: SubsystemLabel,
+		Name:  "Subsystems",
+	},
+	{
+		Label: EmptyLabel, // all the rest
+		Name:  "Labels",
+	},
+}
+
+func getLabelGroups(c context.Context, bug *Bug) []*uiBugLabelGroup {
+	var ret []*uiBugLabelGroup
+	seenLabel := map[string]bool{}
+	for _, info := range labelGroupOrder {
+		obj := &uiBugLabelGroup{
+			Name: info.Name,
+		}
+		for _, entry := range bug.Labels {
+			if seenLabel[entry.String()] {
+				continue
+			}
+			if entry.Label == info.Label || info.Label == EmptyLabel {
+				seenLabel[entry.String()] = true
+				obj.Labels = append(obj.Labels, makeBugLabelUI(c, bug, entry))
+			}
+		}
+		if len(obj.Labels) == 0 {
+			continue
+		}
+		ret = append(ret, obj)
+	}
+	return ret
 }
 
 func debugBugSubsystems(c context.Context, w http.ResponseWriter, bug *Bug) error {
