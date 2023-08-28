@@ -115,6 +115,11 @@ indexes:
 - kind: Bug
   properties:
   - name: Namespace
+  - name: SubsystemsRev
+
+- kind: Bug
+  properties:
+  - name: Namespace
   - name: Labels.Label
   - name: Labels.Value
   - name: Status

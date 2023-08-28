@@ -66,10 +66,14 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
 			Filter("SubsystemsTime<", now.Add(-openBugsUpdateTime)),
-		// And, finally, let's consider the update of closed bugs.
+		// Then let's consider the update of closed bugs.
 		db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusFixed).
+			Filter("SubsystemsRev<", rev),
+		// And, at the end, everything else.
+		db.NewQuery("Bug").
+			Filter("Namespace=", ns).
 			Filter("SubsystemsRev<", rev),
 	}
 	var bugs []*Bug
