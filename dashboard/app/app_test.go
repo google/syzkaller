@@ -535,6 +535,11 @@ var testConfig = &GlobalConfig{
 					DetectMissingBackports: true,
 				},
 			},
+			Managers: map[string]ConfigManager{
+				"better-manager": {
+					Priority: 1,
+				},
+			},
 			Reporting: []Reporting{
 				{
 					AccessLevel: AccessAdmin,

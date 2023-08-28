@@ -551,7 +551,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 		crashKey := db.NewKey(ctx.c, "Crash", "", crashID, ctx.bugKey)
 		crash := new(Crash)
 		// We need to also tolerate the case when the crash was just deleted.
-		err := db.Get(ctx.c, crashKey, crash)
+		err := db.Get(ctx.cGlobal, crashKey, crash)
 		if err != nil && err != db.ErrNoSuchEntity {
 			return fmt.Errorf("failed to get crash: %w", err)
 		} else if err == nil {
@@ -566,20 +566,20 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 			}
 		}
 	}
+
 	// Query the most relevant crash with repro.
-	if ctx.crash == nil {
-		crash, crashKey, err := findCrashForBug(ctx.c, ctx.bug)
-		if err != nil {
-			return err
-		}
-		ok, build, err := ctx.isCrashRelevant(crash)
-		if err != nil {
-			return err
-		} else if ok {
-			ctx.build = build
-			ctx.crash = crash
-			ctx.crashKey = crashKey
-		}
+	crash, crashKey, err := findCrashForBug(ctx.cGlobal, ctx.bug)
+	if err != nil {
+		return err
+	}
+	ok, build, err := ctx.isCrashRelevant(crash)
+	if err != nil {
+		return err
+	} else if ok && (ctx.crash == nil || crash.ReportLen > ctx.crash.ReportLen) {
+		// Update the crash only if we found a better one.
+		ctx.build = build
+		ctx.crash = crash
+		ctx.crashKey = crashKey
 	}
 	// Load the rest of the data.
 	if ctx.crash != nil {
