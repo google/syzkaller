@@ -204,7 +204,15 @@ type ConfigManager struct {
 	FixBisectionDisabled bool
 	// CC for all bugs that happened only on this manager.
 	CC CCConfig
+	// Other parameters being equal, Priority helps to order bug's crashes.
+	// Priority is an integer in the range [-3;3].
+	Priority int
 }
+
+const (
+	MinManagerPriority = -3
+	MaxManagerPriority = 3
+)
 
 // One reporting stage.
 type Reporting struct {
@@ -625,6 +633,10 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	}
 	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
 		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
+	}
+	if mgr.Priority < MinManagerPriority && mgr.Priority > MaxManagerPriority {
+		panic(fmt.Sprintf("manager %v/%v priority is not in the [%d;%d] range",
+			ns, name, MinManagerPriority, MaxManagerPriority))
 	}
 	checkCC(&mgr.CC)
 }

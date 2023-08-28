@@ -855,6 +855,9 @@ func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug
 	if crash.Title == bug.Title {
 		prio += 1e8 // prefer reporting crash that matches bug title
 	}
+	if _, mgrConfig := activeManager(crash.Manager, bug.Namespace); mgrConfig != nil {
+		prio += int64((mgrConfig.Priority - MinManagerPriority) * 1e5)
+	}
 	if build.Arch == targets.AMD64 {
 		prio += 1e3
 	}
