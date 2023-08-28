@@ -738,6 +738,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		if !info.BisectFixes {
 			return nil
 		}
+		expensive = true
 		log.Infof(c, "%s: considering cross-tree bisection %s/%s",
 			bug.displayTitle(), from.repo.Alias, to.repo.Alias)
 		_, crashJob := bug.findResult(c, to.repo, wantNewAny{}, runOnHEAD{})
@@ -749,7 +750,6 @@ func crossTreeBisection(c context.Context, bug *Bug,
 			// The bug is already fixed on the target tree.
 			return nil
 		}
-		expensive = true
 		crashBuild, err := loadBuild(c, bug.Namespace, crashJob.BuildID)
 		if err != nil {
 			return err

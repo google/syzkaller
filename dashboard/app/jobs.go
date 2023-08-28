@@ -454,7 +454,7 @@ func jobFromBugSample(c context.Context, managers map[string]dashapi.ManagerJobs
 func createTreeBisectionJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	log.Infof(c, "createTreeBisectionJobs is called for %d bugs", len(bugs))
-	const maxProcess = 2
+	const maxProcess = 5
 	processed := 0
 	for _, bug := range bugs {
 		if bug.FixCandidateJob != "" {
@@ -477,7 +477,7 @@ func createTreeBisectionJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 		}
 		if expensive {
 			// Only count expensive lookups.
-			// It we didn't have to query anything from the DB, it's not a problem to
+			// If we didn't have to query anything from the DB, it's not a problem to
 			// examine more bugs.
 			processed++
 		}
