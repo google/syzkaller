@@ -49,6 +49,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
 	http.Handle("/x/repro.syz", handlerWrapper(handleTextX(textReproSyz)))
 	http.Handle("/x/repro.c", handlerWrapper(handleTextX(textReproC)))
+	http.Handle("/x/repro.log", handlerWrapper(handleTextX(textReproLog)))
 	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
@@ -1445,7 +1446,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	data, ns, err := getText(c, tag, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "datastore: no such entity") {
-			err = fmt.Errorf("%w: %w", ErrClientBadRequest, err)
+			err = fmt.Errorf("%w: %w", ErrClientNotFound, err)
 		}
 		return err
 	}
@@ -1511,6 +1512,8 @@ func textFilename(tag string) string {
 		return "error.txt"
 	case textMachineInfo:
 		return "minfo.txt"
+	case textReproLog:
+		return "repro.log"
 	default:
 		panic(fmt.Sprintf("unknown tag %v", tag))
 	}
