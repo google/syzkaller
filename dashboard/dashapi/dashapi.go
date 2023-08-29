@@ -351,6 +351,7 @@ type CrashID struct {
 	Corrupted    bool
 	Suppressed   bool
 	MayBeMissing bool
+	ReproLog     []byte
 }
 
 type NeedReproResp struct {

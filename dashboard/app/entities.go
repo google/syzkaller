@@ -125,6 +125,7 @@ type Bug struct {
 	TreeTests      BugTreeTestInfo
 	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
 	FixCandidateJob string
+	ReproAttempts   []BugReproAttempt
 }
 
 type BugTreeTestInfo struct {
@@ -170,6 +171,13 @@ func (label BugLabel) String() string {
 		return string(label.Label)
 	}
 	return string(label.Label) + ":" + label.Value
+}
+
+// BugReproAttempt describes a single attempt to generate a repro for a bug.
+type BugReproAttempt struct {
+	Time    time.Time
+	Manager string
+	Log     int64
 }
 
 func (bug *Bug) SetAutoSubsystems(c context.Context, list []*subsystem.Subsystem, now time.Time, rev int) {
@@ -640,6 +648,7 @@ const (
 	textPatch        = "Patch"
 	textLog          = "Log"
 	textError        = "Error"
+	textReproLog     = "ReproLog"
 )
 
 const (

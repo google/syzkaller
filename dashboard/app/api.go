@@ -995,6 +995,10 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	bugKey := bug.key(c)
+	build, err := loadBuild(c, ns, req.BuildID)
+	if err != nil {
+		return nil, err
+	}
 	now := timeNow(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
@@ -1003,6 +1007,12 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
+		if len(req.ReproLog) > 0 {
+			err := saveReproLog(c, bug, build, req.ReproLog)
+			if err != nil {
+				return fmt.Errorf("failed to save repro log: %w", err)
+			}
+		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
@@ -1013,6 +1023,30 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		Attempts: 30,
 	})
 	return nil, err
+}
+
+const maxReproLogs = 5
+
+func saveReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
+	var deleteKeys []*db.Key
+	for len(bug.ReproAttempts)+1 > maxReproLogs {
+		deleteKeys = append(deleteKeys,
+			db.NewKey(c, textReproLog, "", bug.ReproAttempts[0].Log, nil))
+		bug.ReproAttempts = bug.ReproAttempts[1:]
+	}
+	entry := BugReproAttempt{
+		Time:    timeNow(c),
+		Manager: build.Manager,
+	}
+	var err error
+	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log, false); err != nil {
+		return err
+	}
+	if len(deleteKeys) > 0 {
+		return db.DeleteMulti(c, deleteKeys)
+	}
+	bug.ReproAttempts = append(bug.ReproAttempts, entry)
+	return nil
 }
 
 func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
