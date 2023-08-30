@@ -267,20 +267,27 @@ func updateCrashPriorities(c context.Context, w http.ResponseWriter, r *http.Req
 	if ns == "" {
 		return fmt.Errorf("no ns parameter")
 	}
-	var crashKeys []*db.Key
+	bugsCount := 0
 	bugPerKey := map[string]*Bug{}
+	var crashKeys []*db.Key
 	if err := foreachBug(c, func(query *db.Query) *db.Query {
 		return query.Filter("Status=", BugStatusOpen).Filter("Namespace=", ns)
 	}, func(bug *Bug, key *db.Key) error {
+		bugsCount++
+		// There'll be duplicate crash IDs.
+		crashIDs := map[int64]struct{}{}
 		for _, item := range bug.TreeTests.List {
-			crashKeys = append(crashKeys, db.NewKey(c, "Crash", "", item.CrashID, key))
+			crashIDs[item.CrashID] = struct{}{}
+		}
+		for crashID := range crashIDs {
+			crashKeys = append(crashKeys, db.NewKey(c, "Crash", "", crashID, key))
 		}
 		bugPerKey[key.String()] = bug
 		return nil
 	}); err != nil {
 		return err
 	}
-	log.Warningf(c, "fetched %v crash keys to update", len(crashKeys))
+	log.Warningf(c, "fetched %d bugs and %v crash keys to update", bugsCount, len(crashKeys))
 	return updateBatch(c, crashKeys, func(key *db.Key, crash *Crash) {
 		bugKey := key.Parent()
 		bug := bugPerKey[bugKey.String()]
