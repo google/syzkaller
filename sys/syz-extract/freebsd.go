@@ -50,6 +50,7 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 		"-DGENOFFSET",
 		"-D_KERNEL",
 		"-D__BSD_VISIBLE=1",
+		"-DCOMPAT_FREEBSD13",
 		"-I", filepath.Join(arch.sourceDir, "sys"),
 		"-I", filepath.Join(arch.sourceDir, "sys", "sys"),
 		"-I", filepath.Join(arch.sourceDir, "sys", "contrib", "ck", "include"),
