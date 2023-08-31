@@ -609,3 +609,27 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 </table>
 {{end}}
 {{end}}
+
+{{/* List of failed repro attempts, invoked with []*uiReproAttempt */}}
+{{define "repro_attempts"}}
+{{if .}}
+<table class="list_table">
+	<thead>
+	<tr>
+		<th>Time</th>
+		<th>Manager</th>
+		<th>Log</th>
+	</tr>
+	</thead>
+	<tbody>
+	{{range $item := .}}
+		<tr>
+			<td>{{formatTime $item.Time}}</td>
+			<td class="stat">{{$item.Manager}}</td>
+			<td class="stat">{{link $item.LogLink "repro log"}}</td>
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}

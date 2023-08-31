@@ -244,6 +244,12 @@ type uiBugDiscussion struct {
 	Last     time.Time
 }
 
+type uiReproAttempt struct {
+	Time    time.Time
+	Manager string
+	LogLink string
+}
+
 type uiBugPage struct {
 	Header          *uiHeader
 	Now             time.Time
@@ -269,6 +275,7 @@ const (
 	sectionJobList        = "job_list"
 	sectionDiscussionList = "discussion_list"
 	sectionTestResults    = "test_results"
+	sectionReproAttempts  = "repro_attempts"
 )
 
 type uiCollapsible struct {
@@ -1071,6 +1078,14 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			},
 		})
 	}
+	if accessLevel == AccessAdmin && len(bug.ReproAttempts) > 0 {
+		reproAttempts := getReproAttempts(bug)
+		sections = append(sections, &uiCollapsible{
+			Title: fmt.Sprintf("Failed repro attempts (%d)", len(reproAttempts)),
+			Type:  sectionReproAttempts,
+			Value: reproAttempts,
+		})
+	}
 	data := &uiBugPage{
 		Header:       hdr,
 		Now:          timeNow(c),
@@ -1117,6 +1132,18 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func getReproAttempts(bug *Bug) []*uiReproAttempt {
+	var ret []*uiReproAttempt
+	for _, item := range bug.ReproAttempts {
+		ret = append(ret, &uiReproAttempt{
+			Time:    item.Time,
+			Manager: item.Manager,
+			LogLink: textLink(textReproLog, item.Log),
+		})
+	}
+	return ret
 }
 
 type labelGroupInfo struct {
