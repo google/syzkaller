@@ -64,13 +64,13 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "#syz test: repo",
 		EmailOptFrom("test@requester.com"), EmailOptSubject("my-subject"), EmailOptCC([]string{mailingList}))
 	msg := c.pollEmailBug()
-	c.expectEQ(strings.Contains(msg.Body, "want 2 args"), true)
+	c.expectEQ(strings.Contains(msg.Body, "want either no args or 2 args"), true)
 	c.expectEQ(msg.Subject, "Re: my-subject")
 
 	c.incomingEmail(sender, "#syz test: repo branch commit",
 		EmailOptFrom("test@requester.com"), EmailOptSubject("Re: my-subject"), EmailOptCC([]string{mailingList}))
 	msg = c.pollEmailBug()
-	c.expectEQ(strings.Contains(msg.Body, "want 2 args"), true)
+	c.expectEQ(strings.Contains(msg.Body, "want either no args or 2 args"), true)
 	c.expectEQ(msg.Subject, "Re: my-subject")
 
 	c.incomingEmail(sender, "#syz test: repo branch",
@@ -1235,4 +1235,31 @@ func TestJobCauseRetry(t *testing.T) {
 
 	msg := c.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
+}
+
+// Test that we accept `#syz test` commands without arguments.
+func TestEmailTestCommandNoArgs(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.publicClient
+	build := testBuild(1)
+	build.KernelRepo = "git://git.git/git.git"
+	build.KernelBranch = "kernel-branch"
+	client.UploadBuild(build)
+
+	crash := testCrashWithRepro(build, 2)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+
+	c.incomingEmail(sender, "#syz test\n"+sampleGitPatch,
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.expectNoEmail()
+	pollResp := client.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(pollResp.KernelRepo, build.KernelRepo)
+	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
+	c.expectEQ(pollResp.Patch, []byte(sampleGitPatch))
 }
