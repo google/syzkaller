@@ -631,9 +631,11 @@ func handleBugCommand(c context.Context, bugInfo *bugInfoResult, msg *email.Emai
 			if command.Args == "" {
 				return "no dup title"
 			}
-			cmd.DupOf = command.Args
-			cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, replySubjectPrefix))
-			cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, bugInfo.reporting.Config.(*EmailConfig).SubjectPrefix))
+			var err error
+			cmd.DupOf, err = subjectParser.parseFullTitle(command.Args)
+			if err != nil {
+				return "failed to parse the dup title"
+			}
 		case email.CmdUnCC:
 			cmd.CC = []string{msg.Author}
 		default:
@@ -1107,7 +1109,7 @@ func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult
 		log.Infof(c, "processing bug %v", bug.displayTitle())
 		// We could add it to the query, but it's probably not worth it - we already have
 		// tons of db indexes while the number of matching bugs should not be large anyway.
-		if bug.Seq != int64(seq) {
+		if bug.Seq != seq {
 			log.Infof(c, "bug's seq is %v, wanted %d", bug.Seq, seq)
 			continue
 		}
@@ -1151,23 +1153,22 @@ type subjectTitleParser struct {
 	ready   sync.Once
 }
 
-func (p *subjectTitleParser) parseTitle(subject string) (string, int, error) {
+func (p *subjectTitleParser) parseTitle(subject string) (string, int64, error) {
+	rawTitle, err := p.parseFullTitle(subject)
+	if err != nil {
+		return "", 0, err
+	}
+	return splitDisplayTitle(rawTitle)
+}
+
+func (p *subjectTitleParser) parseFullTitle(subject string) (string, error) {
 	p.prepareRegexps()
 	subject = strings.TrimSpace(subject)
 	parts := p.pattern.FindStringSubmatch(subject)
-	if parts == nil || parts[1] == "" {
-		return "", 0, fmt.Errorf("failed to extract the title")
+	if parts == nil || parts[len(parts)-1] == "" {
+		return "", fmt.Errorf("failed to extract the title")
 	}
-	title := parts[1]
-	seq := 0
-	if parts[2] != "" {
-		rawSeq, err := strconv.Atoi(parts[2])
-		if err != nil {
-			return "", 0, fmt.Errorf("failed to parse seq: %w", err)
-		}
-		seq = rawSeq - 1
-	}
-	return title, seq, nil
+	return parts[len(parts)-1], nil
 }
 
 func (p *subjectTitleParser) prepareRegexps() {
@@ -1186,7 +1187,7 @@ func (p *subjectTitleParser) prepareRegexps() {
 			}
 		}
 		rePrefixes := `^(?:(?:` + strings.Join(stripPrefixes, "|") + `)\s*)*`
-		p.pattern = regexp.MustCompile(rePrefixes + `(?:\[[^\]]+\]\s*)*(.*?)(?:\s\((\d+)\))?$`)
+		p.pattern = regexp.MustCompile(rePrefixes + `(?:\[[^\]]+\]\s*)*\s*(.*)$`)
 	})
 }
 

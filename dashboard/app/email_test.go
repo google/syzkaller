@@ -477,12 +477,11 @@ func TestEmailDup(t *testing.T) {
 }
 
 func TestEmailDup2(t *testing.T) {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 4; i++ {
 		i := i
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			c := NewCtx(t)
 			defer c.Close()
-
 			build := testBuild(1)
 			c.client2.UploadBuild(build)
 
@@ -507,6 +506,8 @@ func TestEmailDup2(t *testing.T) {
 				c.incomingEmail(msg2.Sender, "#syz dup: BUG: something bad")
 			case 1:
 				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] BUG: something bad")
+			case 2:
+				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] [subsystemA?] BUG: something bad")
 			default:
 				c.incomingEmail(msg2.Sender, "#syz dup: syzbot: BUG: something bad")
 				reply := c.pollEmailBug()
@@ -890,7 +891,7 @@ func TestSubjectTitleParser(t *testing.T) {
 	tests := []struct {
 		inSubject string
 		outTitle  string
-		outSeq    int
+		outSeq    int64
 	}{
 		{
 			inSubject: "Re: kernel BUG in blk_mq_dispatch_rq_list (4)",
@@ -921,6 +922,16 @@ func TestSubjectTitleParser(t *testing.T) {
 		},
 		{
 			inSubject: "Re: ",
+			outTitle:  "",
+			outSeq:    0,
+		},
+		{
+			inSubject: "Re: [syzbot]",
+			outTitle:  "",
+			outSeq:    0,
+		},
+		{
+			inSubject: "Re: [syzbot] [subsystemA?]",
 			outTitle:  "",
 			outSeq:    0,
 		},
