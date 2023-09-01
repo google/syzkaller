@@ -10,7 +10,7 @@ r2 = bpf$PROG_LOAD(AUTO, &AUTO={0x17, AUTO, &AUTO=@framed={{AUTO, AUTO, AUTO, AU
 
 r3 = openat(0xffffffffffffff9c, &AUTO='./cgroup\x00', 0x0, 0x0)
 
-r4 = bpf$BPF_PROG_ATTACH(AUTO, &AUTO={@cgroup=r3, r2, 0x12, 0x0, 0x0}, AUTO)
+r4 = bpf$BPF_PROG_ATTACH(AUTO, &AUTO={@cgroup=r3, r2, 0x12, 0x0, 0x0, @prog_id=0x0, 0x0}, AUTO)
 
 # It should fail now.
 
