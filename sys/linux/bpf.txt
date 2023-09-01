@@ -17,6 +17,7 @@ resource bpf_map_id[int32]: 0, -1
 resource bpf_btf_id[int32]: 0, -1
 resource bpf_link_id[int32]: 0, -1
 resource fd_bpf_link[fd]
+resource bpf_revision[int64]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -51,7 +52,7 @@ bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_ge
 bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
 bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
 bpf$BPF_GET_BTF_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_btf_info_arg], size len[arg])
-bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
+bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[inout, bpf_prog_query], size len[arg])
 bpf$BPF_BTF_LOAD(cmd const[BPF_BTF_LOAD], arg ptr[in, bpf_btf_load], size len[arg]) fd_btf
 bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id], size len[arg]) fd_btf
 bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
@@ -582,7 +583,7 @@ bpf_attach_arg {
 	flags		flags[bpf_attach_flags, int32]
 	replace_bpf_fd	fd_bpf_prog
 	relative_obj	id_or_fd
-	exp_revision	int64
+	exp_revision	bpf_revision
 }
 
 bpf_detach_arg {
@@ -592,7 +593,7 @@ bpf_detach_arg {
 	flags		flags[bpf_mprog_attach_flags, int32]
 	replace_bpf_fd	const[0, int32]
 	relative_obj	id_or_fd
-	exp_revision	int64
+	exp_revision	bpf_revision
 }
 
 bpf_test_prog_arg {
@@ -747,13 +748,17 @@ bpf_btf_info {
 } [align[8]]
 
 bpf_prog_query {
-	target_fd		fd_cgroup
+	target_fd		bpf_attach_targets
 	attach_type		flags[bpf_prog_query_attach_type, int32]
 	query_flags		flags[bpf_prog_query_flags, int32]
 	attach_flags		int32
 	prog_ids		ptr64[out, array[int32]]
 	prog_cnt		len[prog_ids, int32]
+	pad			const[0, int32]
 	prog_attach_flags	ptr64[out, array[int32]]
+	link_ids		ptr64[out, array[int32]]
+	link_attach_flags	ptr64[out, array[int32]]
+	revision		bpf_revision	(out)
 } [align[8]]
 
 bpf_btf_load {
