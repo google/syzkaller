@@ -1,0 +1,33 @@
+TITLE: KMSAN: uninit-value in tipc_nl_node_reset_link_stats
+ALT: bad-access in tipc_nl_node_reset_link_stats
+
+[ 1414.295772][T23431] =====================================================
+[ 1414.303512][T23431] BUG: KMSAN: uninit-value in strstr+0xb8/0x2f0
+[ 1414.310138][T23431]  strstr+0xb8/0x2f0
+[ 1414.314213][T23431]  tipc_nl_node_reset_link_stats+0x3ea/0xb50
+[ 1414.320934][T23431]  genl_rcv_msg+0x1328/0x13c0
+[ 1414.326012][T23431]  netlink_rcv_skb+0x371/0x650
+[ 1414.331288][T23431]  genl_rcv+0x40/0x60
+[ 1414.335581][T23431]  netlink_unicast+0xf28/0x1230
+[ 1414.341066][T23431]  netlink_sendmsg+0x122f/0x13d0
+[ 1414.346293][T23431]  ____sys_sendmsg+0x9c2/0xd60
+[ 1414.351492][T23431]  ___sys_sendmsg+0x28d/0x3c0
+[ 1414.356372][T23431]  __x64_sys_sendmsg+0x307/0x490
+[ 1414.361862][T23431]  do_syscall_64+0x41/0xc0
+[ 1414.366496][T23431]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 1414.372884][T23431] 
+[ 1414.375477][T23431] Uninit was created at:
+[ 1414.380174][T23431]  slab_post_alloc_hook+0x12f/0xb70
+[ 1414.385655][T23431]  kmem_cache_alloc_node+0x577/0xa80
+[ 1414.391419][T23431]  kmalloc_reserve+0x148/0x470
+[ 1414.396378][T23431]  __alloc_skb+0x318/0x740
+[ 1414.402094][T23431]  netlink_sendmsg+0xb34/0x13d0
+[ 1414.407673][T23431]  ____sys_sendmsg+0x9c2/0xd60
+[ 1414.412918][T23431]  ___sys_sendmsg+0x28d/0x3c0
+[ 1414.417797][T23431]  __x64_sys_sendmsg+0x307/0x490
+[ 1414.423395][T23431]  do_syscall_64+0x41/0xc0
+[ 1414.428114][T23431]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 1414.438453][T23431] 
+[ 1414.441123][T23431] CPU: 1 PID: 23431 Comm: syz-executor.2 Not tainted 6.5.0-rc4-syzkaller #0
+[ 1414.450153][T23431] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/12/2023
+[ 1414.460586][T23431] =====================================================

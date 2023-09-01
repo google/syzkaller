@@ -1148,6 +1148,7 @@ var linuxStackParams = &stackParams{
 		"strncpy",
 		"strscpy",
 		"strlen",
+		"strstr",
 		"strnstr",
 		"strnlen",
 		"strchr",
