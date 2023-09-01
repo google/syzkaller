@@ -18,7 +18,7 @@ r5 = write$tcp_congestion(r0, &AUTO='reno\x00', AUTO) # EPERM
 
 # Detach the BPF program.
 
-r6 = bpf$BPF_PROG_DETACH(AUTO, &AUTO={@cgroup=r3, r2, 0x12, 0x0}, AUTO)
+r6 = bpf$BPF_PROG_DETACH(AUTO, &AUTO={@cgroup=r3, r2, 0x12, 0x0, 0x0, @prog_id=0x0, 0x0}, AUTO)
 
 # It should work again.
 
