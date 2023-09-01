@@ -98,8 +98,10 @@ type testJobArgs struct {
 
 func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	now := timeNow(c)
-	if reason := checkTestJob(c, args.bug, args.bugReporting, args.crash,
-		args.repo, args.branch); reason != "" {
+	if err := patchTestJobArgs(c, args); err != nil {
+		return nil, nil, err
+	}
+	if reason := checkTestJob(args); reason != "" {
 		return nil, nil, &BadTestRequestError{reason}
 	}
 	manager, mgrConfig := activeManager(args.crash.Manager, args.bug.Namespace)
@@ -208,24 +210,37 @@ func saveJob(c context.Context, job *Job, bugKey *db.Key) (*db.Key, error) {
 		CrashReference{CrashReferenceJob, extJobID(jobKey), timeNow(c)})
 }
 
-func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash *Crash,
-	repo, branch string) string {
+func patchTestJobArgs(c context.Context, args *testJobArgs) error {
+	if args.branch == "" && args.repo == "" {
+		// If no arguments were passed, we need to auto-guess them.
+		build, err := loadBuild(c, args.bug.Namespace, args.crash.BuildID)
+		if err != nil {
+			return fmt.Errorf("failed to find the bug reporting object: %w", err)
+		}
+		args.branch = build.KernelBranch
+		args.repo = build.KernelRepo
+	}
+	return nil
+}
+
+func checkTestJob(args *testJobArgs) string {
+	crash, bug := args.crash, args.bug
 	needRepro := !strings.Contains(crash.Title, "boot error:") &&
 		!strings.Contains(crash.Title, "test error:") &&
 		!strings.Contains(crash.Title, "build error")
 	switch {
 	case needRepro && crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it."
-	case !vcs.CheckRepoAddress(repo):
-		return fmt.Sprintf("%q does not look like a valid git repo address.", repo)
-	case !vcs.CheckBranch(branch) && !vcs.CheckCommitHash(branch):
-		return fmt.Sprintf("%q does not look like a valid git branch or commit.", branch)
+	case !vcs.CheckRepoAddress(args.repo):
+		return fmt.Sprintf("%q does not look like a valid git repo address.", args.repo)
+	case !vcs.CheckBranch(args.branch) && !vcs.CheckCommitHash(args.branch):
+		return fmt.Sprintf("%q does not look like a valid git branch or commit.", args.branch)
 	case bug.Status == BugStatusFixed:
 		return "This bug is already marked as fixed. No point in testing."
 	case bug.Status == BugStatusInvalid:
 		return "This bug is already marked as invalid. No point in testing."
 	// TODO(dvyukov): for BugStatusDup check status of the canonical bug.
-	case bugReporting != nil && !bugReporting.Closed.IsZero():
+	case args.bugReporting != nil && !args.bugReporting.Closed.IsZero():
 		return "This bug is already upstreamed. Please test upstream."
 	}
 	return ""
@@ -1397,16 +1412,6 @@ func handleExternalTestRequest(c context.Context, req *dashapi.TestPatchRequest)
 	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return fmt.Errorf("failed to find a crash: %w", err)
-	}
-	if req.Branch == "" && req.Repo == "" {
-		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
-		if err != nil {
-			return fmt.Errorf("failed to find the bug reporting object: %w", err)
-		}
-		req.Branch = build.KernelBranch
-		req.Repo = build.KernelRepo
-	} else if req.Branch == "" || req.Repo == "" {
-		return fmt.Errorf("branch and repo should be either both set or both empty")
 	}
 	_, _, err = addTestJob(c, &testJobArgs{
 		crash:    crash,

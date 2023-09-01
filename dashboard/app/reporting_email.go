@@ -700,9 +700,13 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 
 func handleTestCommand(c context.Context, info *bugInfoResult,
 	msg *email.Email, command *email.SingleCommand) string {
-	args := strings.Split(command.Args, " ")
-	if len(args) != 2 {
-		return fmt.Sprintf("want 2 args (repo, branch), got %v", len(args))
+	args := strings.Fields(command.Args)
+	if len(args) != 0 && len(args) != 2 {
+		return fmt.Sprintf("want either no args or 2 args (repo, branch), got %v", len(args))
+	}
+	repo, branch := "", ""
+	if len(args) == 2 {
+		repo, branch = args[0], args[1]
 	}
 	if info.bug.sanitizeAccess(AccessPublic) != AccessPublic {
 		log.Warningf(c, "%v: bug is not AccessPublic, patch testing request is denied", info.bug.Title)
@@ -712,7 +716,7 @@ func handleTestCommand(c context.Context, info *bugInfoResult,
 	err := handleTestRequest(c, &testReqArgs{
 		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
 		user: msg.Author, extID: msg.MessageID, link: msg.Link,
-		patch: []byte(msg.Patch), repo: args[0], branch: args[1], jobCC: msg.Cc})
+		patch: []byte(msg.Patch), repo: repo, branch: branch, jobCC: msg.Cc})
 	if err != nil {
 		var testDenied *TestRequestDeniedError
 		var badTest *BadTestRequestError

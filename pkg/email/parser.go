@@ -296,13 +296,21 @@ func extractCommand(body string) (*SingleCommand, int) {
 	// For "fix:"/"dup:" we need a whole non-empty line of text.
 	switch cmd {
 	case CmdTest:
-		args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
+		if strings.HasSuffix(str, ":") {
+			// For "#syz test:", we do want to query 2 arguments.
+			args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
+		} else {
+			// For "#syz test", it's likely there won't be anything else, so let's only parse
+			// the first line.
+			fmt.Printf("line: %s", body[cmdPos+cmdEnd:])
+			args = extractArgsLine(body[cmdPos+cmdEnd:], false)
+		}
 	case CmdSet, CmdUnset:
-		args = extractArgsLine(body[cmdPos+cmdEnd:])
+		args = extractArgsLine(body[cmdPos+cmdEnd:], true)
 	case cmdTest5:
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 5)
 	case CmdFix, CmdDup:
-		args = extractArgsLine(body[cmdPos+cmdEnd:])
+		args = extractArgsLine(body[cmdPos+cmdEnd:], true)
 	}
 	return &SingleCommand{
 		Command: cmd,
@@ -365,11 +373,12 @@ func extractArgsTokens(body string, num int) string {
 	return strings.TrimSpace(strings.Join(args, " "))
 }
 
-func extractArgsLine(body string) string {
+func extractArgsLine(body string, skipWs bool) string {
 	pos := 0
-	for pos < len(body) && (body[pos] == ' ' || body[pos] == '\t' ||
-		body[pos] == '\n' || body[pos] == '\r') {
-		pos++
+	if skipWs {
+		for pos < len(body) && unicode.IsSpace(rune(body[pos])) {
+			pos++
+		}
 	}
 	lineEnd := strings.IndexByte(body[pos:], '\n')
 	if lineEnd == -1 {
