@@ -565,14 +565,24 @@ bpf_obj_get_o_path {
 bpf_attach_targets [
 	cgroup	fd_cgroup[opt]
 	map	fd_bpf_map[opt]
+	ifindex	ifindex
+]
+
+id_or_fd [
+	link_fd	fd_bpf_link
+	prog_fd	fd_bpf_prog
+	link_id	bpf_link_id
+	prog_id	bpf_prog_id
 ]
 
 bpf_attach_arg {
-	target_fd	bpf_attach_targets
+	target		bpf_attach_targets
 	attach_bpf_fd	fd_bpf_prog
 	type		flags[bpf_attach_type, int32]
 	flags		flags[bpf_attach_flags, int32]
 	replace_bpf_fd	fd_bpf_prog
+	relative_obj	id_or_fd
+	exp_revision	int64
 }
 
 bpf_detach_arg {
