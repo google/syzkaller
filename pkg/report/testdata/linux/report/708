@@ -1,0 +1,88 @@
+TITLE: KMSAN: kernel-infoleak in filemap_read
+ALT: bad-access in filemap_read
+
+[  410.433138][ T5348] =====================================================
+[  410.440506][ T5348] BUG: KMSAN: kernel-infoleak in _copy_to_iter+0x376/0x1c60
+[  410.448428][ T5348]  _copy_to_iter+0x376/0x1c60
+[  410.453441][ T5348]  copy_page_to_iter+0x420/0x880
+[  410.465780][ T5348]  filemap_read+0xbcc/0x1470
+[  410.470642][ T5348]  blkdev_read_iter+0x6c0/0x8e0
+[  410.476449][ T5348]  vfs_read+0x8fc/0xf50
+[  410.480764][ T5348]  ksys_read+0x20f/0x4c0
+[  410.485225][ T5348]  __x64_sys_read+0x93/0xd0
+[  410.489885][ T5348]  do_syscall_64+0x41/0xc0
+[  410.494614][ T5348]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  410.500887][ T5348] 
+[  410.503703][ T5348] Uninit was stored to memory at:
+[  410.508991][ T5348]  _copy_to_iter+0xc4d/0x1c60
+[  410.513965][ T5348]  copy_page_to_iter+0x420/0x880
+[  410.519105][ T5348]  shmem_file_read_iter+0xac5/0x1310
+[  410.524728][ T5348]  do_iter_read+0x61e/0x14a0
+[  410.529536][ T5348]  vfs_iter_read+0x8e/0xe0
+[  410.534333][ T5348]  loop_process_work+0x12cf/0x39a0
+[  410.539737][ T5348]  loop_rootcg_workfn+0x2b/0x30
+[  410.544958][ T5348]  process_one_work+0xbf6/0x17c0
+[  410.550179][ T5348]  worker_thread+0x107e/0x1d60
+[  410.558944][ T5348]  kthread+0x3e8/0x540
+[  410.571051][ T5348]  ret_from_fork+0x57/0x80
+[  410.576450][ T5348]  ret_from_fork_asm+0x11/0x20
+[  410.581488][ T5348] 
+[  410.584139][ T5348] Uninit was stored to memory at:
+[  410.589452][ T5348]  copy_page_from_iter_atomic+0x117c/0x25e0
+[  410.595703][ T5348]  generic_perform_write+0x4b4/0xc50
+[  410.601236][ T5348]  shmem_file_write_iter+0x2b5/0x2e0
+[  410.606971][ T5348]  do_iter_write+0x60c/0x1420
+[  410.611876][ T5348]  vfs_iter_write+0x8e/0xe0
+[  410.616820][ T5348]  loop_process_work+0x2076/0x39a0
+[  410.622485][ T5348]  loop_rootcg_workfn+0x2b/0x30
+[  410.627604][ T5348]  process_one_work+0xbf6/0x17c0
+[  410.632868][ T5348]  worker_thread+0x107e/0x1d60
+[  410.637928][ T5348]  kthread+0x3e8/0x540
+[  410.642451][ T5348]  ret_from_fork+0x57/0x80
+[  410.647115][ T5348]  ret_from_fork_asm+0x11/0x20
+[  410.652253][ T5348] 
+[  410.655530][ T5348] Uninit was stored to memory at:
+[  410.668151][ T5348]  copy_to_dinode+0x8aa/0xb60
+[  410.673798][ T5348]  diWrite+0x1bf0/0x1f00
+[  410.678301][ T5348]  txCommit+0xe52/0x8f40
+[  410.683056][ T5348]  __jfs_xattr_set+0x1b3/0x1f0
+[  410.688039][ T5348]  jfs_xattr_set+0x79/0x90
+[  410.692825][ T5348]  __vfs_setxattr+0x7aa/0x8b0
+[  410.697714][ T5348]  __vfs_setxattr_noperm+0x24f/0xa30
+[  410.703403][ T5348]  __vfs_setxattr_locked+0x441/0x480
+[  410.708898][ T5348]  vfs_setxattr+0x294/0x650
+[  410.713665][ T5348]  setxattr+0x45f/0x540
+[  410.718042][ T5348]  path_setxattr+0x1f5/0x3c0
+[  410.723039][ T5348]  __ia32_sys_setxattr+0xf4/0x170
+[  410.728276][ T5348]  __do_fast_syscall_32+0xa2/0x100
+[  410.733774][ T5348]  do_fast_syscall_32+0x37/0x80
+[  410.738805][ T5348]  do_SYSENTER_32+0x1f/0x30
+[  410.744429][ T5348]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  410.751016][ T5348] 
+[  410.753642][ T5348] Uninit was stored to memory at:
+[  410.758965][ T5348]  __jfs_setxattr+0x185b/0x1ad0
+[  410.770840][ T5348]  __jfs_xattr_set+0xe6/0x1f0
+[  410.777252][ T5348]  jfs_xattr_set+0x79/0x90
+[  410.781905][ T5348]  __vfs_setxattr+0x7aa/0x8b0
+[  410.787090][ T5348]  __vfs_setxattr_noperm+0x24f/0xa30
+[  410.792715][ T5348]  __vfs_setxattr_locked+0x441/0x480
+[  410.798212][ T5348]  vfs_setxattr+0x294/0x650
+[  410.803217][ T5348]  setxattr+0x45f/0x540
+[  410.807584][ T5348]  path_setxattr+0x1f5/0x3c0
+[  410.812485][ T5348]  __ia32_sys_setxattr+0xf4/0x170
+[  410.817733][ T5348]  __do_fast_syscall_32+0xa2/0x100
+[  410.823174][ T5348]  do_fast_syscall_32+0x37/0x80
+[  410.828214][ T5348]  do_SYSENTER_32+0x1f/0x30
+[  410.833099][ T5348]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  410.839651][ T5348] 
+[  410.842564][ T5348] Local variable ea_buf created at:
+[  410.847886][ T5348]  __jfs_setxattr+0x5d/0x1ad0
+[  410.852999][ T5348]  __jfs_xattr_set+0xe6/0x1f0
+[  410.857911][ T5348] 
+[  410.860335][ T5348] Bytes 3689-3691 of 4096 are uninitialized
+[  410.873242][ T5348] Memory access of size 4096 starts at ffff88809a36e000
+[  410.881124][ T5348] Data copied to user address 000055a64281b958
+[  410.887606][ T5348] 
+[  410.890042][ T5348] CPU: 0 PID: 5348 Comm: udevd Not tainted 6.5.0-syzkaller-04008-geaf9f4649cf0 #0
+[  410.899663][ T5348] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/26/2023
+[  410.910032][ T5348] =====================================================
