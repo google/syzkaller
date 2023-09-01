@@ -83,6 +83,14 @@ or alternatively, to test on exact commit reply with:
 #syz test: git://repo/address.git commit-hash
 ```
 
+You can also completely omit these parameters:
+```
+#syz test
+```
+
+In this case, syzbot will check out the latest commit from the branch where the
+issue was detected.
+
 If you also provide a patch with the email, `syzbot` will apply it on top of the
 tree before testing. The patch can be provided inline in email text or as
 a text attachment (which is more reliable if your email client messes with
