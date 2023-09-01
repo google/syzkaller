@@ -81,6 +81,21 @@ type Item struct {
 	// casID is a client-opaque value used for compare-and-swap operations.
 	// Zero means that compare-and-swap is not used.
 	casID uint64
+
+	// ItemTimestamps are server values only returned when calling Peek and PeekMulti.
+	// The timestamps are nil when calling Get and GetMulti.
+	Timestamps ItemTimestamps
+}
+
+// ItemTimestamps are timestamps optionally provided by the server.
+// See Peek and PeekMulti.
+type ItemTimestamps struct {
+	// Expiration is related to Item.Expiration but it is a Time (not a Duration),
+	// provided by the server. It is not meant to be set by the user.
+	Expiration *time.Time
+	// LastAccess is the last time the Item was accessed.
+	LastAccess *time.Time
+	// The proto also includes delete_lock_time_sec, which is ignored in the Go lib.
 }
 
 const (
@@ -90,12 +105,32 @@ const (
 
 // protoToItem converts a protocol buffer item to a Go struct.
 func protoToItem(p *pb.MemcacheGetResponse_Item) *Item {
+	if p.GetIsDeleteLocked() {
+		// "delete lock" for a duration is not a feature available in the Go lib.
+		// Such items may exist in memcache though, e.g. created by the Java lib.
+		// In this case, nil is more appropriate than an item with empty value.
+		// For a single Get, nil will translate to ErrCacheMiss.
+		return nil
+	}
 	return &Item{
 		Key:   string(p.Key),
 		Value: p.Value,
 		Flags: p.GetFlags(),
 		casID: p.GetCasId(),
+		Timestamps: ItemTimestamps{
+			Expiration: timeSecToTime(p.GetTimestamps().GetExpirationTimeSec()),
+			LastAccess: timeSecToTime(p.GetTimestamps().GetLastAccessTimeSec()),
+		},
 	}
+}
+
+// For convenience, we interpret a 0 unix second timestamp as a nil *Time.
+func timeSecToTime(s int64) *time.Time {
+	if s == 0 {
+		return nil
+	}
+	t := time.Unix(s, 0)
+	return &t
 }
 
 // If err is an appengine.MultiError, return its first element. Otherwise, return err.
@@ -109,7 +144,35 @@ func singleError(err error) error {
 // Get gets the item for the given key. ErrCacheMiss is returned for a memcache
 // cache miss. The key must be at most 250 bytes in length.
 func Get(c context.Context, key string) (*Item, error) {
-	m, err := GetMulti(c, []string{key})
+	cas, peek := true, false
+	return get(c, key, cas, peek)
+}
+
+// GetMulti is a batch version of Get. The returned map from keys to items may
+// have fewer elements than the input slice, due to memcache cache misses.
+// Each key must be at most 250 bytes in length.
+func GetMulti(c context.Context, key []string) (map[string]*Item, error) {
+	cas, peek := true, false
+	return getMulti(c, key, cas, peek)
+}
+
+// Peek gets the item for the given key and additionally populates Item.Timestamps.
+// ErrCacheMiss is returned for a memcache cache miss. The key must be at most 250
+// bytes in length.
+func Peek(c context.Context, key string) (*Item, error) {
+	cas, peek := true, true
+	return get(c, key, cas, peek)
+}
+
+// PeekMulti is a batch version of Peek. It is similar to GetMulti but
+// additionally populates Item.Timestamps.
+func PeekMulti(c context.Context, key []string) (map[string]*Item, error) {
+	cas, peek := true, true
+	return getMulti(c, key, cas, peek)
+}
+
+func get(c context.Context, key string, forCas bool, forPeek bool) (*Item, error) {
+	m, err := getMulti(c, []string{key}, forCas, forPeek)
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +182,7 @@ func Get(c context.Context, key string) (*Item, error) {
 	return m[key], nil
 }
 
-// GetMulti is a batch version of Get. The returned map from keys to items may
-// have fewer elements than the input slice, due to memcache cache misses.
-// Each key must be at most 250 bytes in length.
-func GetMulti(c context.Context, key []string) (map[string]*Item, error) {
+func getMulti(c context.Context, key []string, forCas bool, forPeek bool) (map[string]*Item, error) {
 	if len(key) == 0 {
 		return nil, nil
 	}
@@ -131,8 +191,9 @@ func GetMulti(c context.Context, key []string) (map[string]*Item, error) {
 		keyAsBytes[i] = []byte(k)
 	}
 	req := &pb.MemcacheGetRequest{
-		Key:    keyAsBytes,
-		ForCas: proto.Bool(true),
+		Key:     keyAsBytes,
+		ForCas:  proto.Bool(forCas),
+		ForPeek: proto.Bool(forPeek),
 	}
 	res := &pb.MemcacheGetResponse{}
 	if err := internal.Call(c, "memcache", "Get", req, res); err != nil {
@@ -141,7 +202,9 @@ func GetMulti(c context.Context, key []string) (map[string]*Item, error) {
 	m := make(map[string]*Item, len(res.Item))
 	for _, p := range res.Item {
 		t := protoToItem(p)
-		m[t.Key] = t
+		if t != nil {
+			m[t.Key] = t
+		}
 	}
 	return m, nil
 }

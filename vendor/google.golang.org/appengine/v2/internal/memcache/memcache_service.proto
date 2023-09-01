@@ -27,6 +27,13 @@ message MemcacheGetRequest {
   optional string name_space = 2 [default = ""];
   optional bool for_cas = 4;
   optional AppOverride override = 5;
+  optional bool for_peek = 6 [default = false];
+}
+
+message ItemTimestamps {
+  optional int64 expiration_time_sec = 1;
+  optional int64 last_access_time_sec = 2;
+  optional int64 delete_lock_time_sec = 3;
 }
 
 message MemcacheGetResponse {
@@ -36,6 +43,8 @@ message MemcacheGetResponse {
     optional fixed32 flags = 4;
     optional fixed64 cas_id = 5;
     optional int32 expires_in_seconds = 6;
+    optional ItemTimestamps timestamps = 8;
+    optional bool is_delete_locked = 9;
   }
 }
 
