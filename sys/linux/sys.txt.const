@@ -617,6 +617,7 @@ _NSIG_WORDS = 1, 386:arm:mips64le:2
 __NR_acct = 51, amd64:163, arm64:riscv64:89, mips64le:5158
 __NR_alarm = 27, amd64:37, arm:arm64:riscv64:???, mips64le:5037
 __NR_brk = 45, amd64:12, arm64:riscv64:214, mips64le:5012
+__NR_cachestat = 451, mips64le:5451
 __NR_capget = 184, amd64:125, arm64:riscv64:90, mips64le:5123, ppc64le:183
 __NR_capset = 185, amd64:126, arm64:riscv64:91, mips64le:5124, ppc64le:184
 __NR_chdir = 12, amd64:80, arm64:riscv64:49, mips64le:5078
