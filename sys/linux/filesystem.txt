@@ -759,6 +759,8 @@ f2fs_options [
 	fsync_mode_posix	stringnoz["fsync_mode=posix"]
 	fsync_mode_strict	stringnoz["fsync_mode=strict"]
 	test_dummy_encryption	stringnoz["test_dummy_encryption"]
+	errors_continue		stringnoz["errors=continue"]
+	errors_remount		stringnoz["errors=remount-ro"]
 ] [varlen]
 
 bpf_options [
