@@ -135,6 +135,19 @@ vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flag
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[intptr], opt], count intptr)
 sendfile64(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count intptr)
 
+cachestat_range {
+	off	fileoff[int64]
+	len	int64
+}
+
+cachestat {
+	nr_cache		int64
+	nr_dirty		int64
+	nr_writeback		int64
+	nr_evicted		int64
+	nr_recently_evicted	int64
+}
+
 stat(file ptr[in, filename], statbuf ptr[out, stat])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
@@ -144,6 +157,7 @@ lstat64(file ptr[in, filename], statbuf ptr[out, stat64])
 fstat64(fd fd, statbuf ptr[out, stat64])
 fstatat64(dfd const[AT_FDCWD], file ptr[in, filename], statbuf ptr[out, stat64], flag flags[statx_flags])
 statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
+cachestat(fd fd, cstat_range ptr[in, cachestat_range], cstat ptr[out, cachestat], flags const[0])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset_t], size len[sigmask])
