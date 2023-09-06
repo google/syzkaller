@@ -236,6 +236,16 @@ link_create_tcx {
 	exp_revision	bpf_revision
 }
 
+link_create_uprobe_multi {
+	path		ptr64[in, filename]
+	offsets		ptr64[in, array[int64]]
+	ref_ctr_offsets	ptr64[in, array[int64[0:5]], opt]
+	cookies		int64
+	cnt		len[offsets, int32]
+	flags		flags[bpf_link_create_uprobe_multi_flags, int32]
+	pid		pid
+}
+
 link_create_arg_extra [
 	target_btf_id	bpf_btf_id
 	iter		link_create_iter
@@ -244,6 +254,7 @@ link_create_arg_extra [
 	tracing		link_create_tracing
 	netfilter	link_create_netfilter
 	tcx		link_create_tcx
+	uprobe_multi	link_create_uprobe_multi
 ]
 
 type bpf_link_create_arg_t[PROG_FD, TARGET_FD, ATTACH_TYPE, FLAGS] {
@@ -1047,3 +1058,4 @@ bpf_cgroup_iter_order = BPF_CGROUP_ITER_SELF_ONLY, BPF_CGROUP_ITER_DESCENDANTS_P
 bpf_link_create_kprobe_multi_flags = BPF_F_KPROBE_MULTI_RETURN
 nf_dev_hooks = NF_NETDEV_INGRESS, NF_NETDEV_EGRESS
 bpf_link_create_netfilter_flags = BPF_F_NETFILTER_IP_DEFRAG
+bpf_link_create_uprobe_multi_flags = BPF_F_UPROBE_MULTI_RETURN
