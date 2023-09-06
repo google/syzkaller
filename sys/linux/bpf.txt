@@ -171,11 +171,40 @@ bpf_map_batch_arg {
 	flags		const[0, int64]
 }
 
+bpf_iter_link_cgroup {
+	order		flags[bpf_cgroup_iter_order, int32]
+	cgroup_fd	fd_cgroup
+	cgroup_id	int64
+}
+
+bpf_iter_link_task {
+	tid	pid
+	pid	pid
+	pid_fd	fd_pidfd
+}
+
+bpf_iter_link_info [
+	map_fd	fd_bpf_map
+	cgroup	bpf_iter_link_cgroup
+	task	bpf_iter_link_task
+]
+
+link_create_iter {
+	iter_info	ptr[in, bpf_iter_link_info]
+	iter_info_len	bytesize[iter_info, int32]
+}
+
+link_create_arg_extra [
+	target_btf_id	bpf_btf_id
+	iter		link_create_iter
+]
+
 type bpf_link_create_arg_t[PROG_FD, TARGET_FD, ATTACH_TYPE, FLAGS] {
 	prog_fd		PROG_FD
 	target_fd	TARGET_FD
 	attach_type	ATTACH_TYPE
 	flags		FLAGS
+	extra		optional[link_create_arg_extra]
 }
 
 type bpf_link_create_arg bpf_link_create_arg_t[fd_bpf_prog, fd_cgroup, flags[bpf_attach_types_link_create, int32], const[0, int32]]
@@ -967,3 +996,4 @@ bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY
 bpf_stat_types = BPF_STATS_RUN_TIME
 bpf_core_relo_kind = BPF_CORE_FIELD_BYTE_OFFSET, BPF_CORE_FIELD_BYTE_SIZE, BPF_CORE_FIELD_EXISTS, BPF_CORE_FIELD_SIGNED, BPF_CORE_FIELD_LSHIFT_U64, BPF_CORE_FIELD_RSHIFT_U64, BPF_CORE_TYPE_ID_LOCAL, BPF_CORE_TYPE_ID_TARGET, BPF_CORE_TYPE_EXISTS, BPF_CORE_TYPE_SIZE, BPF_CORE_ENUMVAL_EXISTS, BPF_CORE_ENUMVAL_VALUE, BPF_CORE_TYPE_MATCHES
 bpf_obj_get_flags = BPF_F_PATH_FD, BPF_F_RDONLY, BPF_F_WRONLY
+bpf_cgroup_iter_order = BPF_CGROUP_ITER_SELF_ONLY, BPF_CGROUP_ITER_DESCENDANTS_PRE, BPF_CGROUP_ITER_DESCENDANTS_POST, BPF_CGROUP_ITER_ANCESTORS_UP
