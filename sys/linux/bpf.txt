@@ -194,9 +194,14 @@ link_create_iter {
 	iter_info_len	bytesize[iter_info, int32]
 }
 
+link_create_perf_event {
+	bpf_cookie	int64
+}
+
 link_create_arg_extra [
 	target_btf_id	bpf_btf_id
 	iter		link_create_iter
+	perf_event	link_create_perf_event
 ]
 
 type bpf_link_create_arg_t[PROG_FD, TARGET_FD, ATTACH_TYPE, FLAGS] {
