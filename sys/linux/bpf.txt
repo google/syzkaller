@@ -198,10 +198,32 @@ link_create_perf_event {
 	bpf_cookie	int64
 }
 
+link_create_kprobe_multi_addrs {
+	flags	flags[bpf_link_create_kprobe_multi_flags, int32]
+	cnt	len[addrs, int32]
+	syms	const[0, int64]
+	addrs	ptr64[in, array[int64]]
+	cookies	int64
+}
+
+link_create_kprobe_multi_symbols {
+	flags	flags[bpf_link_create_kprobe_multi_flags, int32]
+	cnt	len[syms, int32]
+	syms	ptr64[in, array[ptr[in, string]]]
+	addrs	const[0, int64]
+	cookies	int64
+}
+
+link_create_kprobe_multi [
+	addrs	link_create_kprobe_multi_addrs
+	syms	link_create_kprobe_multi_symbols
+]
+
 link_create_arg_extra [
 	target_btf_id	bpf_btf_id
 	iter		link_create_iter
 	perf_event	link_create_perf_event
+	kprobe_multi	link_create_kprobe_multi
 ]
 
 type bpf_link_create_arg_t[PROG_FD, TARGET_FD, ATTACH_TYPE, FLAGS] {
@@ -1002,3 +1024,4 @@ bpf_stat_types = BPF_STATS_RUN_TIME
 bpf_core_relo_kind = BPF_CORE_FIELD_BYTE_OFFSET, BPF_CORE_FIELD_BYTE_SIZE, BPF_CORE_FIELD_EXISTS, BPF_CORE_FIELD_SIGNED, BPF_CORE_FIELD_LSHIFT_U64, BPF_CORE_FIELD_RSHIFT_U64, BPF_CORE_TYPE_ID_LOCAL, BPF_CORE_TYPE_ID_TARGET, BPF_CORE_TYPE_EXISTS, BPF_CORE_TYPE_SIZE, BPF_CORE_ENUMVAL_EXISTS, BPF_CORE_ENUMVAL_VALUE, BPF_CORE_TYPE_MATCHES
 bpf_obj_get_flags = BPF_F_PATH_FD, BPF_F_RDONLY, BPF_F_WRONLY
 bpf_cgroup_iter_order = BPF_CGROUP_ITER_SELF_ONLY, BPF_CGROUP_ITER_DESCENDANTS_PRE, BPF_CGROUP_ITER_DESCENDANTS_POST, BPF_CGROUP_ITER_ANCESTORS_UP
+bpf_link_create_kprobe_multi_flags = BPF_F_KPROBE_MULTI_RETURN
