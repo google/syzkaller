@@ -112,6 +112,8 @@ var (
 		"v9fs-developer@lists.sourceforge.net":      "9p",
 		"cluster-devel@redhat.com":                  "gfs2",
 		"kernel-tls-handshake@lists.linux.dev":      "tls",
+		"bcm-kernel-feedback-list@broadcom.com":     "broadcom",
+		"linux@ew.tq-group.com":                     "tq-systems",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
