@@ -168,7 +168,6 @@ func init() {
 //     - net-drivers
 //     - netfilter
 //       - lvs
-//     - nfc
 //     - openvswitch
 //     - openwrt
 //     - oss-drivers
@@ -182,6 +181,7 @@ func init() {
 //     - wireguard
 //     - wpan
 //     - x25
+//   - nfc
 //   - nitro
 //   - ntb
 //   - nvdimm
@@ -1392,14 +1392,9 @@ func subsystems_linux() []*Subsystem {
 		PathRules: []PathRule{
 			{IncludeRegexp: "^fs/affs/"},
 			{IncludeRegexp: "^fs/dax\\.c$|^include/linux/dax\\.h$|^include/trace/events/fs_dax\\.h$"},
-			{IncludeRegexp: "^fs/exfat/"},
 			{IncludeRegexp: "^fs/fcntl\\.c$|^fs/locks\\.c$|^include/linux/fcntl\\.h$|^include/uapi/linux/fcntl\\.h$"},
 			{IncludeRegexp: "^fs/fuse/virtio_fs\\.c$|^include/uapi/linux/virtio_fs\\.h$"},
-			{IncludeRegexp: "^fs/fuse/|^include/uapi/linux/fuse\\.h$"},
-			{IncludeRegexp: "^fs/hfs/"},
-			{IncludeRegexp: "^fs/hfsplus/"},
 			{IncludeRegexp: "^fs/iomap/|^include/linux/iomap\\.h$"},
-			{IncludeRegexp: "^fs/isofs/"},
 			{IncludeRegexp: "^fs/notify/dnotify/|^include/linux/dnotify\\.h$"},
 			{IncludeRegexp: "^fs/notify/fanotify/|^include/linux/fanotify\\.h$|^include/uapi/linux/fanotify\\.h$"},
 			{IncludeRegexp: "^fs/notify/inotify/|^include/linux/inotify\\.h$|^include/uapi/linux/inotify\\.h$"},
@@ -3139,7 +3134,6 @@ func subsystems_linux() []*Subsystem {
 			{IncludeRegexp: "^drivers/net/wwan/|^include/linux/wwan\\.h$|^include/uapi/linux/wwan\\.h$"},
 			{IncludeRegexp: "^drivers/net/xen-netback/"},
 			{IncludeRegexp: "^drivers/nfc/virtual_ncidev\\.c$"},
-			{IncludeRegexp: "^drivers/nfc/|^include/net/nfc/|^include/uapi/linux/nfc\\.h$|^net/nfc/"},
 			{IncludeRegexp: "^drivers/phy/freescale/phy-fsl-lynx-28g\\.c$"},
 			{IncludeRegexp: "^drivers/ptp/ptp_dfl_tod\\.c$"},
 			{IncludeRegexp: "^drivers/ptp/ptp_ocp\\.c$"},
@@ -3210,7 +3204,7 @@ func subsystems_linux() []*Subsystem {
 		Name:        "nfc",
 		Lists:       []string{"netdev@vger.kernel.org"},
 		Maintainers: []string{"krzysztof.kozlowski@linaro.org"},
-		Parents:     []*Subsystem{&net},
+		Parents:     []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/nfc/|^include/net/nfc/|^include/uapi/linux/nfc\\.h$|^net/nfc/"},
 		},

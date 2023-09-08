@@ -27,9 +27,10 @@ func TestGroupLinuxSubsystems(t *testing.T) {
 	}
 	expected := []*subsystem.Subsystem{
 		{
-			Name:        "fs",
-			Lists:       []string{"linux-fsdevel@vger.kernel.org"},
-			Maintainers: []string{"email_vfs@email.com"},
+			Name:  "fs",
+			Lists: []string{"linux-fsdevel@vger.kernel.org"},
+			// Two different subsystems point to linux-fsdevel@vger.kernel.org, so
+			// we do not include maintainers.
 		},
 		{
 			Name:        "ext4",
@@ -73,7 +74,15 @@ func TestCustomCallRules(t *testing.T) {
 	assert.Contains(t, subsystems, &subsystem.Subsystem{
 		Name:        "udf",
 		Maintainers: []string{"email_udf@email.com"},
+		Lists:       []string{"linux-fsdevel@vger.kernel.org"},
 	})
+	// Now that udf is excluded, it becomes possible to generate a maintainer list for vfs.
+	assert.Contains(t, subsystems, &subsystem.Subsystem{
+		Name:        "fs",
+		Lists:       []string{"linux-fsdevel@vger.kernel.org"},
+		Maintainers: []string{"email_vfs@email.com"},
+	})
+
 	expectCalls := map[string][]string{
 		"ext4":  {"syz_mount_image$ext4"},
 		"tmpfs": {"syz_mount_image$tmpfs"},
@@ -275,6 +284,7 @@ F:	mm/shmem*
 
 UDF FILESYSTEM
 M:	email_udf <email_udf@email.com>
+L:	linux-fsdevel@vger.kernel.org
 S:	Maintained
 F:	Documentation/filesystems/udf.rst
 F:	fs/udf/
