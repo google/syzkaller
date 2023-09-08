@@ -519,7 +519,7 @@ func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, 
 		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
 	pickedTags := pickReleaseTags(tags)
-	env.log("picked %d out of %d release tags", pickedTags)
+	env.log("picked %v out of %d release tags", pickedTags, len(tags))
 
 	lastBad := env.commit
 	var results []*testResult
@@ -1035,6 +1035,9 @@ func checkConfig(cfg *Config) error {
 }
 
 func (env *env) log(msg string, args ...interface{}) {
+	if false {
+		_ = fmt.Sprintf(msg, args...) // enable printf checker
+	}
 	env.cfg.Trace.Log(msg, args...)
 }
 
