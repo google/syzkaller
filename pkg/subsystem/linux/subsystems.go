@@ -29,12 +29,11 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, 
 		rawRecords: records,
 		extraRules: rules,
 	}
-	list := ctx.groupByList()
 	extraList, err := ctx.groupByRules()
 	if err != nil {
 		return nil, err
 	}
-	list = append(list, extraList...)
+	list := append(ctx.groupByList(), extraList...)
 	matrix, err := BuildCoincidenceMatrix(root, list, dropPatterns)
 	if err != nil {
 		return nil, err
@@ -108,19 +107,31 @@ func (ctx *linuxCtx) groupByRules() ([]*subsystem.Subsystem, error) {
 	for _, item := range ctx.rawRecords {
 		perName[item.name] = item
 	}
-	ret := []*subsystem.Subsystem{}
+	var ret []*subsystem.Subsystem
+	exclude := map[*maintainersRecord]struct{}{}
 	for name, recordNames := range ctx.extraRules.extraSubsystems {
 		matching := []*maintainersRecord{}
 		for _, recordName := range recordNames {
-			if perName[recordName] == nil {
+			record := perName[recordName]
+			if record == nil {
 				return nil, fmt.Errorf("MAINTAINERS record not found: %#v", recordName)
 			}
-			matching = append(matching, perName[recordName])
+			exclude[record] = struct{}{}
+			matching = append(matching, record)
 		}
 		s := mergeRawRecords(matching, "")
 		s.Name = name
 		ret = append(ret, s)
 	}
+	// Exclude rawRecords from further consideration.
+	var newRecords []*maintainersRecord
+	for _, record := range ctx.rawRecords {
+		if _, ok := exclude[record]; ok {
+			continue
+		}
+		newRecords = append(newRecords, record)
+	}
+	ctx.rawRecords = newRecords
 	return ret, nil
 }
 
