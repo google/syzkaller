@@ -381,7 +381,7 @@ func (mgr *Manager) vmLoop() {
 				reproQueue[last] = nil
 				reproQueue = reproQueue[:last]
 				atomic.AddUint32(&mgr.numReproducing, 1)
-				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
+				log.Logf(0, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
 					reproDone <- mgr.runRepro(crash, vmIndexes, instances.Put)
 				}()
