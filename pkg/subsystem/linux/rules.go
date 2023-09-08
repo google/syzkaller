@@ -90,6 +90,8 @@ var (
 			"kernfs": {"KERNFS"},
 			"udf":    {"UDF FILESYSTEM"},
 			"nfc":    {"NFC SUBSYSTEM"},
+			"iomap":  {"IOMAP FILESYSTEM LIBRARY"},
+			"xfs":    {"XFS FILESYSTEM"},
 		},
 		noReminders: map[string]struct{}{
 			// Many misclassified bugs end up in `kernel`, so there's no sense
