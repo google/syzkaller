@@ -673,7 +673,8 @@ func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool) {
 				inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
 					ctx.reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
 				if err != nil {
-					ctx.reproLogf(0, "failed to init instance: %v", err)
+					ctx.reproLogf(0, "failed to init instance: %v, attempt %d/%d",
+						err, try+1, maxTry)
 					time.Sleep(10 * time.Second)
 					continue
 				}
