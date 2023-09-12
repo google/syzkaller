@@ -580,6 +580,10 @@ var ignoredCommits = []string{
 	// triggering USB bugs, which ends up being the guilty commit during bisection
 	// for USB bugs introduced before it.
 	"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
+	// Commit "devlink: bump the instance index directly when iterating" has likely
+	// fixed some frequent task hung, which skews fix bisection results.
+	// TODO: consider backporting it during bisection itself.
+	"d772781964415c63759572b917e21c4f7ec08d9f",
 }
 
 func (jp *JobProcessor) ignoreBisectCommit(commit *vcs.Commit) bool {
