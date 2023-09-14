@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConstFile(t *testing.T) {
@@ -86,9 +86,9 @@ CONST5_SOME_UNDEFINED2 = 100, arch3:???
 		cf.AddArch(name, arch.consts, arch.undefined)
 	}
 	data := cf.Serialize()
-	if diff := cmp.Diff(serialized, string(data)); diff != "" {
-		t.Fatal(diff)
-	}
+	assert.Equal(t, serialized, string(data))
+	assert.True(t, cf.ExistsAny("CONST3_SOME_UNDEFINED"))
+	assert.False(t, cf.ExistsAny("CONST4_ALL_UNDEFINED"))
 	{
 		file, err := os.CreateTemp("", "syz-const")
 		if err != nil {
@@ -102,9 +102,7 @@ CONST5_SOME_UNDEFINED2 = 100, arch3:???
 		file.Close()
 		cf1 := DeserializeConstFile(file.Name(), nil)
 		for name, arch := range arches {
-			if diff := cmp.Diff(arch.consts, cf1.Arch(name)); diff != "" {
-				t.Errorf("%v: %v", name, diff)
-			}
+			assert.Equal(t, cf1.Arch(name), arch.consts)
 		}
 	}
 	{
@@ -117,9 +115,7 @@ CONST5_SOME_UNDEFINED2 = 100, arch3:???
 		}
 		cf1 := DeserializeConstFile(filepath.Join(dir, "*"), nil)
 		for name, arch := range arches {
-			if diff := cmp.Diff(arch.consts, cf1.Arch(name)); diff != "" {
-				t.Errorf("%v: %v", name, diff)
-			}
+			assert.Equal(t, cf1.Arch(name), arch.consts)
 		}
 	}
 }
