@@ -202,7 +202,12 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 
 	// Don't print warnings, they are printed in syz-check.
 	job.Errors = nil
-	job.OK = true
+	// But let's fail on always actionable errors.
+	if job.Target.OS != targets.Fuchsia {
+		// There are too many broken consts on Fuchsia.
+		constsAreAllDefined(constFile, job.ConstInfo, eh)
+	}
+	job.OK = len(job.Errors) == 0
 }
 
 func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint64, out io.Writer) {
