@@ -87,15 +87,19 @@ func TestData(t *testing.T) {
 					em.DumpErrors()
 					t.Fatalf("const extraction failed")
 				}
-				consts := map[string]uint64{
+				cf := NewConstFile()
+				if err := cf.AddArch(arch, map[string]uint64{
 					"SYS_foo": 1,
 					"C0":      0,
 					"C1":      1,
 					"C2":      2,
 					"U8_MAX":  0xff,
 					"U16_MAX": 0xffff,
+				}, nil); err != nil {
+					t.Fatal(err)
 				}
-				FabricateSyscallConsts(target, constInfo, consts)
+				FabricateSyscallConsts(target, constInfo, cf)
+				consts := cf.Arch(arch)
 				delete(consts, "SYS_unsupported")
 				desc := Compile(astDesc, consts, target, em.ErrorHandler)
 				if name == "errors2.txt" || name == "errors3.txt" {
