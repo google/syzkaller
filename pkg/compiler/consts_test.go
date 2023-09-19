@@ -41,8 +41,12 @@ func TestExtractConsts(t *testing.T) {
 		"CONST26",
 	}
 	sort.Strings(wantConsts)
-	if !reflect.DeepEqual(info.Consts, wantConsts) {
-		t.Fatalf("got consts:\n%q\nwant:\n%q", info.Consts, wantConsts)
+	var constNames []string
+	for _, def := range info.Consts {
+		constNames = append(constNames, def.Name)
+	}
+	if !reflect.DeepEqual(constNames, wantConsts) {
+		t.Fatalf("got consts:\n%q\nwant:\n%q", constNames, wantConsts)
 	}
 	wantIncludes := []string{"foo/bar.h", "bar/foo.h"}
 	if !reflect.DeepEqual(info.Includes, wantIncludes) {

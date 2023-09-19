@@ -98,9 +98,17 @@ func main() {
 
 		var jobs []*Job
 		for _, arch := range archs {
+			target := targets.List[OS][arch]
+			constInfo := compiler.ExtractConsts(descriptions, target, nil)
+			if OS == targets.TestOS {
+				// The ConstFile object provides no guarantees re concurrent read-write,
+				// so let's patch it before we start goroutines.
+				compiler.FabricateSyscallConsts(target, constInfo, constFile)
+			}
 			jobs = append(jobs, &Job{
-				Target:      targets.List[OS][arch],
+				Target:      target,
 				Unsupported: make(map[string]bool),
+				ConstInfo:   constInfo,
 			})
 		}
 		sort.Slice(jobs, func(i, j int) bool {
@@ -167,6 +175,7 @@ type Job struct {
 	Errors      []string
 	Unsupported map[string]bool
 	ArchData    ArchData
+	ConstInfo   map[string]*compiler.ConstInfo
 }
 
 func processJob(job *Job, descriptions *ast.Description, constFile *compiler.ConstFile) {
@@ -174,10 +183,6 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 		job.Errors = append(job.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 	}
 	consts := constFile.Arch(job.Target.Arch)
-	if job.Target.OS == targets.TestOS {
-		constInfo := compiler.ExtractConsts(descriptions, job.Target, eh)
-		compiler.FabricateSyscallConsts(job.Target, constInfo, consts)
-	}
 	prog := compiler.Compile(descriptions, consts, job.Target, eh)
 	if prog == nil {
 		return
