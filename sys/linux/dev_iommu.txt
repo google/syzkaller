@@ -242,8 +242,8 @@ iommu_test_cmd$md_check_refs {
 	op		const[IOMMU_TEST_OP_MD_CHECK_REFS, int32]
 	id		fd_access
 	__reserved	const[0x0, int32]
-	uptr		ptr64[in, array[int8]]
 	length		len[uptr, int64]
+	uptr		ptr64[in, array[int8]]
 	refs		int32
 } [size[IOMMU_TEST_CMD_SIZE]]
 
