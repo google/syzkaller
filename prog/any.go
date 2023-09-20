@@ -250,7 +250,6 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 		panic("bad")
 	}
 	arg.ref = typ.ref()
-	arg.dir = DirIn
 	*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, arg, index))
 }
 
