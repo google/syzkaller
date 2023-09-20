@@ -45,7 +45,7 @@ type Arg interface {
 	Dir() Dir
 	Size() uint64
 
-	validate(ctx *validCtx) error
+	validate(ctx *validCtx, dir Dir) error
 	serialize(ctx *serializer)
 }
 

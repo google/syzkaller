@@ -1110,8 +1110,8 @@ ANYUNION [
 ] [varlen]
 
 ANYPTRS [
-	ANYPTR		ptr[in, array[ANYUNION]]
-	ANYPTR64	ptr64[in, array[ANYUNION]]
+	ANYPTR		ptr[inout, array[ANYUNION]]
+	ANYPTR64	ptr64[inout, array[ANYUNION]]
 ]
 
 resource ANYRES8[int8]: -1, 0
