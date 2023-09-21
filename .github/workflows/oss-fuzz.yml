@@ -11,16 +11,24 @@ jobs:
       uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
       with:
         oss-fuzz-project-name: 'syzkaller'
-        dry-run: false
+        language: go
     - name: Run Fuzzers
       uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
       with:
         oss-fuzz-project-name: 'syzkaller'
         fuzz-seconds: 300
-        dry-run: false
+        language: go
+        output-sarif: true
     - name: Upload Crash
-      uses: actions/upload-artifact@v1
-      if: failure()
+      uses: actions/upload-artifact@v3
+      if: failure() && steps.build.outcome == 'success'
       with:
         name: artifacts
         path: ./out/artifacts
+    - name: Upload Sarif
+      if: always() && steps.build.outcome == 'success'
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        # Path to SARIF file relative to the root of the repository
+        sarif_file: cifuzz-sarif/results.sarif
+        checkout_path: cifuzz-sarif
