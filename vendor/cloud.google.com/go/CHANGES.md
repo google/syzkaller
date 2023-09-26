@@ -1,5 +1,12 @@
 # Changes
 
+## [0.110.7](https://github.com/googleapis/google-cloud-go/compare/v0.110.6...v0.110.7) (2023-07-31)
+
+
+### Bug Fixes
+
+* **main:** Add more docs to base package ([c401ab4](https://github.com/googleapis/google-cloud-go/commit/c401ab4a576c64ab2b8840a90f7ccd5d031cea57))
+
 ## [0.110.6](https://github.com/googleapis/google-cloud-go/compare/v0.110.5...v0.110.6) (2023-07-13)
 
 
