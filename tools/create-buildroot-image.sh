@@ -130,6 +130,7 @@ EOF
 		cat >>.config <<EOF
 BR2_cortex_a57=y
 # BR2_LINUX_KERNEL is not set
+BR2_TARGET_ROOTFS_EXT2_4=y
 EOF
 ;;
 	s390x)
