@@ -13,7 +13,7 @@ resource ipc[int32]: 0, 0xffffffffffffffff
 
 # TODO: describe ipc syscall
 
-define SYS____semctl50	442
+define SYS_____semctl50	442
 
 resource ipc_msq[ipc]
 msgget(key proc[2039379027, 4], flags flags[msgget_flags]) ipc_msq
