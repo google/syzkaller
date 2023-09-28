@@ -8,6 +8,3 @@ LOG_NOWAIT = amd64:16
 LOG_ODELAY = amd64:4
 LOG_PERROR = amd64:32
 LOG_PID = amd64:1
-SYS_ioctl = amd64:54
-SYS_openat = amd64:321
-SYS_sendsyslog = amd64:112
