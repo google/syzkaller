@@ -59,7 +59,7 @@ include <uapi/linux/watch_queue.h>
 include <kernel/sched/sched.h>
 include <uapi/linux/close_range.h>
 include <uapi/linux/netfilter/xt_cgroup.h>
-include <fs/cifs/cifsglob.h>
+include <fs/smb/client/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
 include <uapi/linux/prctl.h>
 include <asm/prctl.h>

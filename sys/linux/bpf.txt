@@ -8,6 +8,7 @@
 include <uapi/linux/bpf.h>
 include <uapi/linux/btf.h>
 include <uapi/linux/if_link.h>
+include <uapi/linux/netfilter.h>
 
 resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
 resource fd_bpf_prog[fd]
