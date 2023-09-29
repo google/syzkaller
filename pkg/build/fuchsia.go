@@ -15,7 +15,9 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type fuchsia struct{}
+type fuchsia struct {
+	defaultBuilder
+}
 
 // syzRoot returns $GOPATH/src/github.com/google/syzkaller.
 func syzRoot() (string, error) {

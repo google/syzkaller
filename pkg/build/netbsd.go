@@ -20,7 +20,9 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-type netbsd struct{}
+type netbsd struct {
+	defaultBuilder
+}
 
 func (ctx netbsd) build(params Params) (ImageDetails, error) {
 	const kernelName = "GENERIC_SYZKALLER"

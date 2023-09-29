@@ -23,6 +23,7 @@ type BuildParams struct {
 	BuildTarget       string `json:"build_target"`
 	BuildScript       string `json:"build_script"`
 	VendorBootImage   string `json:"vendor_boot_image"`
+	BuildSrcPath      string `json:"build_src_path"`
 }
 
 var ccCompilerRegexp = regexp.MustCompile(`#define\s+CONFIG_CC_VERSION_TEXT\s+"(.*)"`)
@@ -164,4 +165,13 @@ func (a android) clean(kernelDir, targetArch string) error {
 		return fmt.Errorf("failed to clean 'dist' directory: %w", err)
 	}
 	return nil
+}
+
+func (a android) buildSrcPath(params Params) (string, error) {
+	buildCfg, err := parseConfig(params.Build)
+	if err != nil {
+		return "", fmt.Errorf("error parsing android configs: %w", err)
+	}
+
+	return filepath.Join(params.KernelDir, buildCfg.BuildSrcPath), nil
 }

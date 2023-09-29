@@ -3,12 +3,6 @@
 
 package build
 
-type test struct{}
-
-func (tb test) build(params Params) (ImageDetails, error) {
-	return ImageDetails{}, nil
-}
-
-func (tb test) clean(string, string) error {
-	return nil
+type test struct {
+	defaultBuilder
 }

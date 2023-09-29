@@ -310,21 +310,12 @@ func (mgr *Manager) createBuildInfo(kernelCommit *vcs.Commit, compilerID string)
 	}
 }
 
-func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
-	// We first form the whole image in tmp dir and then rename it to latest.
-	tmpDir := mgr.latestDir + ".tmp"
-	if err := os.RemoveAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to remove tmp dir: %w", err)
-	}
-	if err := osutil.MkdirAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %w", err)
-	}
-	params := build.Params{
+func (mgr *Manager) buildParams() build.Params {
+	return build.Params{
 		TargetOS:     mgr.managercfg.TargetOS,
 		TargetArch:   mgr.managercfg.TargetVMArch,
 		VMType:       mgr.managercfg.Type,
 		KernelDir:    mgr.kernelDir,
-		OutputDir:    tmpDir,
 		Compiler:     mgr.mgrcfg.Compiler,
 		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
@@ -334,6 +325,19 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		Config:       mgr.configData,
 		Build:        mgr.mgrcfg.Build,
 	}
+}
+
+func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
+	// We first form the whole image in tmp dir and then rename it to latest.
+	tmpDir := mgr.latestDir + ".tmp"
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return fmt.Errorf("failed to remove tmp dir: %w", err)
+	}
+	if err := osutil.MkdirAll(tmpDir); err != nil {
+		return fmt.Errorf("failed to create tmp dir: %w", err)
+	}
+	params := mgr.buildParams()
+	params.OutputDir = tmpDir
 	details, err := build.Image(params)
 	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)
 	if err != nil {
@@ -523,6 +527,11 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 		return nil, err
 	}
 	mgrcfg.KernelSrc = mgr.kernelDir
+	kernelBuildSrc, err := build.BuildSourcePath(mgr.buildParams())
+	if err != nil {
+		return nil, err
+	}
+	mgrcfg.KernelBuildSrc = kernelBuildSrc
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %w", err)
 	}

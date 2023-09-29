@@ -13,7 +13,9 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type openbsd struct{}
+type openbsd struct {
+	defaultBuilder
+}
 
 func (ctx openbsd) build(params Params) (ImageDetails, error) {
 	const kernelName = "SYZKALLER"

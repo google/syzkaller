@@ -14,7 +14,9 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type freebsd struct{}
+type freebsd struct {
+	defaultBuilder
+}
 
 func (ctx freebsd) build(params Params) (ImageDetails, error) {
 	confDir := fmt.Sprintf("%v/sys/%v/conf/", params.KernelDir, params.TargetArch)

@@ -14,7 +14,9 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type akaros struct{}
+type akaros struct {
+	defaultBuilder
+}
 
 func (ctx akaros) build(params Params) (ImageDetails, error) {
 	configFile := filepath.Join(params.KernelDir, ".config")
