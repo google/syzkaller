@@ -759,6 +759,10 @@ func crossTreeBisection(c context.Context, bug *Bug,
 			return nil
 		}
 		_, successJob := bug.findResult(c, from.repo, wantNewAny{}, runOnHEAD{})
+		if successJob == nil {
+			// The jobs is not done yet.
+			return nil
+		}
 		if successJob.CrashTitle != "" {
 			// The kernel tree is still crashed by the repro.
 			return nil
