@@ -386,6 +386,7 @@ bpf_insn [
 	btf_id		bpf_insn_btf_id
 	cb_func		bpf_insn_cb_func
 	printk		bpf_insn_trace_printk
+	snprintf	bpf_insn_snprintf
 ] [varlen]
 
 bpf_insn_generic {
@@ -587,6 +588,7 @@ type bpf_insn_map_value_t[DST, MAP_FD, VALUE_OFFSET] {
 }
 
 type bpf_insn_map_value bpf_insn_map_value_t[flags[bpf_reg, int8:4], fd_bpf_map, int32]
+type bpf_insn_const_str[DST] bpf_insn_map_value_t[const[DST, int8:4], bpf_frozen_const_str, const[0, int32]]
 
 bpf_insn_map_idx_value {
 	code	const[bpf_insn_load_imm_dw, int8]
@@ -654,6 +656,33 @@ bpf_insn_trace_printk {
 	insn5	bpf_insn_mov_imm[BPF_REG_2, 8]
 	insn6	bpf_insn_mov_imm_any[BPF_REG_3]
 	insn7	bpf_insn_call_helper_t[const[BPF_FUNC_trace_printk, int32]]
+}
+
+# (b7) r8 = 0
+# (7b) *(u64 *)(r10 -8) = r8
+# (b7) r8 = X
+# (7b) *(u64 *)(r10 -16) = r8
+# (bf) r1 = r10
+# (07) r1 += -8
+# (bf) r4 = r10
+# (07) r4 += -16
+# (b7) r2 = 8
+# (18) r3 = map[id:31][0]+0
+# (b7) r5 = 8
+# (85) call bpf_snprintf#168880
+bpf_insn_snprintf {
+	insn1	bpf_insn_mov_imm[BPF_REG_8, 0]
+	insn2	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -8]
+	insn3	bpf_insn_mov_imm_any[BPF_REG_8]
+	insn4	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -16]
+	insn5	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_1]
+	insn6	bpf_insn_op_imm[BPF_REG_1, BPF_ADD0, -8]
+	insn7	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_4]
+	insn8	bpf_insn_op_imm[BPF_REG_4, BPF_ADD0, -16]
+	insn9	bpf_insn_mov_imm[BPF_REG_2, 8]
+	insn10	bpf_insn_const_str[BPF_REG_3]
+	insn11	bpf_insn_mov_imm[BPF_REG_5, 8]
+	insn12	bpf_insn_call_helper_t[const[BPF_FUNC_snprintf, int32]]
 }
 
 define MAX_BPF_REG	__MAX_BPF_REG
