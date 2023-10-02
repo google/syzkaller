@@ -19,6 +19,9 @@ resource bpf_btf_id[int32]: 0, -1
 resource bpf_link_id[int32]: 0, -1
 resource fd_bpf_link[fd]
 resource bpf_revision[int64]
+resource fd_bpf_const_str_map[fd_bpf_map]
+resource fd_bpf_const_str[fd_bpf_const_str_map]
+resource bpf_frozen_const_str[fd_bpf_const_str]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -33,8 +36,10 @@ type btf_opt_name_off int32[0:16]
 type map_fd_id int32[0:16]
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
+bpf$MAP_CREATE_CONST_STR(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg_const_str], size len[arg]) fd_bpf_const_str_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
+bpf$MAP_UPDATE_CONST_STR(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[inout, bpf_map_update_const_str_arg], size len[arg])
 bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
 bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
 bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd_bpf_prog
@@ -59,6 +64,7 @@ bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id
 bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
 bpf$BPF_MAP_LOOKUP_AND_DELETE_ELEM(cmd const[BPF_MAP_LOOKUP_AND_DELETE_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$BPF_MAP_FREEZE(cmd const[BPF_MAP_FREEZE], arg ptr[in, fd_bpf_map], size len[arg])
+bpf$BPF_MAP_CONST_STR_FREEZE(cmd const[BPF_MAP_FREEZE], arg ptr[inout, bpf_map_const_str_freeze], size len[arg])
 bpf$MAP_LOOKUP_BATCH(cmd const[BPF_MAP_LOOKUP_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
 bpf$MAP_UPDATE_BATCH(cmd const[BPF_MAP_UPDATE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
 bpf$MAP_DELETE_BATCH(cmd const[BPF_MAP_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
@@ -79,6 +85,11 @@ bpf$BPF_PROG_TEST_RUN_LIVE(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_pr
 type bpf_prog_xdp bpf_prog_t[const[BPF_PROG_TYPE_XDP, int32], const[BPF_XDP, int32], const[0, int32], const[0, int32]]
 type bpf_link_create_xdp bpf_link_create_arg_t[fd_bpf_prog_xdp, ifindex, const[BPF_XDP, int32], flags[xdp_flags, int32]]
 xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST, XDP_FLAGS_SKB_MODE, XDP_FLAGS_DRV_MODE, XDP_FLAGS_HW_MODE, XDP_FLAGS_REPLACE
+
+bpf_map_const_str_freeze {
+	in	fd_bpf_const_str
+	out	bpf_frozen_const_str	(out_overlay)
+}
 
 bpf_map_create_arg [
 	base		bpf_map_create_arg_base
@@ -104,6 +115,7 @@ type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
 
 type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], int32, int32, int32, flags[map_flags, int32], const[0, int64]]
 type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], int32, int32, int32, flags[map_flags, int32], int64[0:15]]
+type bpf_map_create_arg_const_str bpf_map_create_arg_t[const[BPF_MAP_TYPE_ARRAY, int32], const[4, int32], const[8, int32], const[1, int32], const[BPF_F_RDONLY_PROG, int32], const[0, int64]]
 
 bpf_map_get_fd_by_id_arg {
 	map_id		bpf_map_id
@@ -131,6 +143,20 @@ bpf_map_update_arg {
 	key	ptr64[in, array[int8]]
 	val	ptr64[in, bpf_map_update_val]
 	flags	flags[bpf_map_flags, int64]
+}
+
+map_bpf_const_str {
+	in	fd_bpf_const_str_map
+	out	fd_bpf_const_str	(out_overlay)
+}
+
+bpf_printf_str = "%d     ", "%p     "
+
+bpf_map_update_const_str_arg {
+	map	map_bpf_const_str
+	key	ptr64[in, const[0, int32]]
+	val	ptr64[in, string[bpf_printf_str]]
+	flags	const[0, int64]
 }
 
 bpf_map_delete_arg {
