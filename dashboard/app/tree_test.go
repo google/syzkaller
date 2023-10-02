@@ -363,6 +363,38 @@ For information about bisection process see: %URL%#bisection
 	assert.NotContains(t, string(reply), treeTestCrashTitle)
 }
 
+func TestNonfinalFixCandidateBisect(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	ctx := setUpTreeTest(c, downstreamUpstreamRepos)
+	ctx.uploadBug(`https://downstream.repo/repo`, `master`, dashapi.ReproLevelC)
+	ctx.entries = []treeTestEntry{
+		{
+			alias:   `downstream`,
+			results: []treeTestEntryPeriod{{fromDay: 0, result: treeTestCrash}},
+		},
+		{
+			alias:      `lts`,
+			mergeAlias: `downstream`,
+			results:    []treeTestEntryPeriod{{fromDay: 0, result: treeTestCrash}},
+		},
+		{
+			alias: `upstream`,
+			// Ignore these jobs.
+			results: []treeTestEntryPeriod{},
+		},
+	}
+	ctx.jobTestDays = []int{10}
+	ctx.moveToDay(10)
+	ctx.reportToEmail()
+	ctx.ctx.advanceTime(time.Hour)
+
+	// Ensure the code does not fail.
+	job := ctx.client.pollSpecificJobs(ctx.manager, dashapi.ManagerJobs{BisectFix: true})
+	assert.Equal(t, "", job.ID)
+}
+
 func TestTreeBisectionBeforeOrigin(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -1047,11 +1079,17 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 	// Figure out what should the result be.
 	result := treeTestOK
 	build := testBuild(1)
+	var anyFound bool
 	for _, item := range found.results {
 		if day >= item.fromDay {
 			result = item.result
 			build.KernelCommit = item.commit
+			anyFound = true
 		}
+	}
+	if !anyFound {
+		// Just ignore the job.
+		return
 	}
 	if build.KernelCommit == "" {
 		build.KernelCommit = strings.Repeat("f", 40)[:40]
