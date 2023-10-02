@@ -205,6 +205,8 @@ ioctl$IOMMU_TEST_OP_ACCESS_PAGES$syz(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], a
 ioctl$IOMMU_TEST_OP_ACCESS_RW(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_rw])
 ioctl$IOMMU_TEST_OP_ACCESS_RW$syz(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_rw$syz])
 ioctl$IOMMU_TEST_OP_SET_TEMP_MEMORY_LIMIT(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$memory_limit])
+ioctl$IOMMU_TEST_OP_MOCK_DOMAIN_REPLACE(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain_replace])
+ioctl$IOMMU_TEST_OP_ACCESS_REPLACE_IOAS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_replace_ioas])
 
 ioctl$IOMMU_DESTROY$device(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$device])
 ioctl$IOMMU_DESTROY$hwpt(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$hwpt])
@@ -322,6 +324,22 @@ iommu_test_cmd$memory_limit {
 	id		const[0x0, int32]
 	__reserved	const[0x0, int32]
 	limit		int32
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$mock_domain_replace {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_MOCK_DOMAIN_REPLACE, int32]
+	id		ioas_handle
+	__reserved	const[0x0, int32]
+	pt_id		int32
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$access_replace_ioas {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_ACCESS_REPLACE_IOAS, int32]
+	id		fd_access
+	__reserved	const[0x0, int32]
+	ioas_id		int32
 } [size[IOMMU_TEST_CMD_SIZE]]
 
 iommu_destroy$device {
