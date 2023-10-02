@@ -305,10 +305,10 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	expected_attach_type	ATTACH_TYPE
 	btf_fd			fd_btf[opt]
 	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
-	func_info		ptr64[in, bpf_func_info]
+	func_info		ptr64[in, bpf_func_info, opt]
 	func_info_cnt		len[func_info, int32]
 	line_info_rec_size	const[BPF_LINE_INFO_SIZE, int32]
-	line_info		ptr64[in, bpf_line_info]
+	line_info		ptr64[in, bpf_line_info, opt]
 	line_info_cnt		len[line_info, int32]
 	attach_btf_id		BTF_ID
 	attach_prog_fd		PROG_FD
