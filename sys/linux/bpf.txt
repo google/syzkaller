@@ -85,12 +85,12 @@ bpf_map_create_arg [
 	bloom_filter	bpf_map_create_arg_bf
 ]
 
-bpf_map_create_arg_base {
-	type			flags[bpf_map_type, int32]
-	ksize			int32
-	vsize			int32
-	max			int32
-	flags			flags[map_flags, int32]
+type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
+	type			TYPE
+	ksize			KSIZE
+	vsize			VSIZE
+	max			MAX
+	flags			FLAGS
 	inner			fd_bpf_map[opt]
 	node			int32
 	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
@@ -99,25 +99,11 @@ bpf_map_create_arg_base {
 	btf_key_type_id		btf_opt_type_id
 	btf_value_type_id	btf_opt_type_id
 	btf_vmlinux_type_id	btf_opt_type_id
-	map_extra		const[0, int64]
+	map_extra		MAP_EXTRA
 }
 
-bpf_map_create_arg_bf {
-	type			const[BPF_MAP_TYPE_BLOOM_FILTER, int32]
-	ksize			int32
-	vsize			int32
-	max			int32
-	flags			flags[map_flags, int32]
-	inner			fd_bpf_map[opt]
-	node			int32
-	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
-	map_ifindex		ifindex[opt]
-	btf_fd			fd_btf[opt]
-	btf_key_type_id		btf_opt_type_id
-	btf_value_type_id	btf_opt_type_id
-	btf_vmlinux_type_id	btf_opt_type_id
-	map_extra		int64[0:15]
-}
+type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], int32, int32, int32, flags[map_flags, int32], const[0, int64]]
+type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], int32, int32, int32, flags[map_flags, int32], int64[0:15]]
 
 bpf_map_get_fd_by_id_arg {
 	map_id		bpf_map_id
