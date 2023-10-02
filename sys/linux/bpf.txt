@@ -369,15 +369,17 @@ bpf_insn_generic {
 	imm	int32
 }
 
-bpf_insn_ldst {
-	code_class	flags[bpf_ldst_insn, int8:3]
-	code_size	flags[bpf_ldst_size, int8:2]
-	code_mode	flags[bpf_ldst_mode, int8:3]
-	dst		flags[bpf_reg, int8:4]
-	src		flags[bpf_reg, int8:4]
-	off		flags[bpf_insn_offsets, int16]
-	imm		flags[bpf_insn_immediates, int32]
+type bpf_insn_ldst_t[CLASS_TYPE, CLASS, SZ_TYPE, SZ, MODE_TYPE, MODE, DST, SRC, OFF, IMM] {
+	code_class	CLASS_TYPE[CLASS, int8:3]
+	code_size	SZ_TYPE[SZ, int8:2]
+	code_mode	MODE_TYPE[MODE, int8:3]
+	dst		DST
+	src		SRC
+	off		OFF
+	imm		IMM
 }
+
+type bpf_insn_ldst bpf_insn_ldst_t[flags, bpf_ldst_insn, flags, bpf_ldst_size, flags, bpf_ldst_mode, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
 
 bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
 bpf_ldst_size = BPF_W0, BPF_H0, BPF_B0, BPF_DW0
@@ -394,16 +396,19 @@ define BPF_IND0	BPF_IND >> 5
 define BPF_MEM0	BPF_MEM >> 5
 define BPF_XADD0	BPF_XADD >> 5
 
-bpf_insn_alu {
-	code_class	flags[bpf_alu_insn, int8:3]
-	code_s		int8:1
-	code_op		flags[bpf_alu_op, int8:4]
-	dst		flags[bpf_reg, int8:4]
-	src		flags[bpf_reg, int8:4]
-	off		flags[bpf_insn_offsets, int16]
-	imm		flags[bpf_insn_immediates, int32]
+type bpf_insn_alu_t[CLASS_TYPE, CLASS, SOURCE_TYPE, SOURCE, OP_TYPE, OP, DST, SRC, OFF, IMM] {
+	code_class	CLASS_TYPE[CLASS, int8:3]
+	code_s		SOURCE_TYPE[SOURCE, int8:1]
+	code_op		OP_TYPE[OP, int8:4]
+	dst		DST
+	src		SRC
+	off		OFF
+	imm		IMM
 }
 
+type bpf_insn_alu bpf_insn_alu_t[flags, bpf_alu_insn, flags, bpf_alu_source, flags, bpf_alu_op, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+
+bpf_alu_source = BPF_K0, BPF_X0
 bpf_alu_insn = BPF_ALU, BPF_ALU64
 bpf_alu_op = BPF_ADD0, BPF_SUB0, BPF_MUL0, BPF_DIV0, BPF_OR0, BPF_AND0, BPF_LSH0, BPF_RSH0, BPF_NEG0, BPF_MOD0, BPF_XOR0, BPF_MOV0, BPF_ARSH0, BPF_END0
 
@@ -421,6 +426,9 @@ define BPF_XOR0	BPF_XOR >> 4
 define BPF_MOV0	BPF_MOV >> 4
 define BPF_ARSH0	BPF_ARSH >> 4
 define BPF_END0	BPF_END >> 4
+
+define BPF_K0	BPF_K >> 3
+define BPF_X0	BPF_X >> 3
 
 bpf_insn_jmp {
 	code_class	const[BPF_JMP, int8:3]
@@ -449,12 +457,14 @@ define BPF_JLE0	BPF_JLE >> 4
 define BPF_JSLT0	BPF_JSLT >> 4
 define BPF_JSLE0	BPF_JSLE >> 4
 
-bpf_insn_call_helper {
+type bpf_insn_call_helper_t[FUNC] {
 	code	const[bpf_call_code, int8]
 	regs	const[0, int8]
 	off	const[0, int16]
-	func	int32[0:__BPF_FUNC_MAX_ID]
+	func	FUNC
 }
+
+type bpf_insn_call_helper bpf_insn_call_helper_t[int32[0:__BPF_FUNC_MAX_ID]]
 
 bpf_insn_call_func {
 	code	const[bpf_call_code, int8]
@@ -520,17 +530,19 @@ bpf_insn_map_idx {
 	imm2	const[0, int32]
 }
 
-bpf_insn_map_value {
+type bpf_insn_map_value_t[DST, MAP_FD, VALUE_OFFSET] {
 	code	const[bpf_insn_load_imm_dw, int8]
-	dst	flags[bpf_reg, int8:4]
+	dst	DST
 	src	const[BPF_PSEUDO_MAP_VALUE, int8:4]
 	off	const[0, int16]
-	imm	fd_bpf_map
+	imm	MAP_FD
 	code2	const[0, int8]
 	regs2	const[0, int8]
 	off2	const[0, int16]
-	imm2	int32
+	imm2	VALUE_OFFSET
 }
+
+type bpf_insn_map_value bpf_insn_map_value_t[flags[bpf_reg, int8:4], fd_bpf_map, int32]
 
 bpf_insn_map_idx_value {
 	code	const[bpf_insn_load_imm_dw, int8]
