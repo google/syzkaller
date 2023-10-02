@@ -359,6 +359,7 @@ bpf_insn [
 	map_idx_val	bpf_insn_map_idx_value
 	btf_id		bpf_insn_btf_id
 	cb_func		bpf_insn_cb_func
+	printk		bpf_insn_trace_printk
 ] [varlen]
 
 bpf_insn_generic {
@@ -380,6 +381,7 @@ type bpf_insn_ldst_t[CLASS_TYPE, CLASS, SZ_TYPE, SZ, MODE_TYPE, MODE, DST, SRC, 
 }
 
 type bpf_insn_ldst bpf_insn_ldst_t[flags, bpf_ldst_insn, flags, bpf_ldst_size, flags, bpf_ldst_mode, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_st64_reg[SRC, DST, OFF] bpf_insn_ldst_t[const, BPF_STX, const, BPF_DW0, const, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
 
 bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
 bpf_ldst_size = BPF_W0, BPF_H0, BPF_B0, BPF_DW0
@@ -407,6 +409,10 @@ type bpf_insn_alu_t[CLASS_TYPE, CLASS, SOURCE_TYPE, SOURCE, OP_TYPE, OP, DST, SR
 }
 
 type bpf_insn_alu bpf_insn_alu_t[flags, bpf_alu_insn, flags, bpf_alu_source, flags, bpf_alu_op, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_mov_imm[DST, IMM] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
+type bpf_insn_mov_imm_any[DST] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], int32]
+type bpf_insn_mov_reg[SRC, DST] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_X0, const, BPF_MOV0, const[DST, int8:4], const[SRC, int8:4], const[0, int16], const[0, int32]]
+type bpf_insn_op_imm[DST, OP, IMM] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, OP, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
 
 bpf_alu_source = BPF_K0, BPF_X0
 bpf_alu_insn = BPF_ALU, BPF_ALU64
@@ -506,6 +512,18 @@ bpf_insn_init_r0 {
 	imm2	int32
 }
 
+type bpf_insn_mov_imm64[DST, IMM1, IMM2] {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	const[DST, int8:4]
+	src	const[0, int8:4]
+	off	const[0, int16]
+	imm	const[IMM1, int32]
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[IMM2, int32]
+}
+
 bpf_insn_map_fd {
 	code	const[bpf_insn_load_imm_dw, int8]
 	dst	flags[bpf_reg, int8:4]
@@ -587,6 +605,30 @@ define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
 bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, -1, -2, -4, -8, -12, -16, -32, -64
 bpf_insn_immediates = 0, 1, 4, 8, 16, -1, -4, -16
 bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10, __MAX_BPF_REG
+
+type bpf_insn_mov_printk_str_hex[DST] [
+# "%d     "
+	integer	bpf_insn_mov_imm64[DST, 0x25702020, 0x20202000]
+# "%p     "
+	pointer	bpf_insn_mov_imm64[DST, 0x25642020, 0x20202000]
+]
+
+# (18) r1 = "%d     "
+# (7b) *(u64 *)(r10 -8) = r1
+# (bf) r1 = r10
+# (07) r1 += -8
+# (b7) r2 = 8
+# (b7) r3 = X
+# (85) call bpf_trace_printk#-108352
+bpf_insn_trace_printk {
+	insn1	bpf_insn_mov_printk_str_hex[BPF_REG_1]
+	insn2	bpf_insn_st64_reg[BPF_REG_1, BPF_REG_10, -8]
+	insn3	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_1]
+	insn4	bpf_insn_op_imm[BPF_REG_1, BPF_ADD0, -8]
+	insn5	bpf_insn_mov_imm[BPF_REG_2, 8]
+	insn6	bpf_insn_mov_imm_any[BPF_REG_3]
+	insn7	bpf_insn_call_helper_t[const[BPF_FUNC_trace_printk, int32]]
+}
 
 define MAX_BPF_REG	__MAX_BPF_REG
 
