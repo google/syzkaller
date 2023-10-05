@@ -672,10 +672,10 @@ func (comp *compiler) checkConstructors() {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkTypeCtors(arg.Type, prog.DirIn, true, true, ctors, inputs, checked)
+				comp.checkTypeCtors(arg.Type, prog.DirIn, true, true, ctors, inputs, checked, nil)
 			}
 			if n.Ret != nil {
-				comp.checkTypeCtors(n.Ret, prog.DirOut, true, true, ctors, inputs, checked)
+				comp.checkTypeCtors(n.Ret, prog.DirOut, true, true, ctors, inputs, checked, nil)
 			}
 		}
 	}
@@ -699,10 +699,13 @@ func (comp *compiler) checkConstructors() {
 }
 
 func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate bool,
-	ctors, inputs map[string]bool, checked map[structDir]bool) {
+	ctors, inputs map[string]bool, checked map[structDir]bool, neverOutAt *ast.Pos) {
 	desc, args, base := comp.getArgsBase(t, isArg)
 	if base.IsOptional {
 		canCreate = false
+	}
+	if desc.CantHaveOut {
+		neverOutAt = &t.Pos
 	}
 	if desc == typeResource {
 		// TODO(dvyukov): consider changing this to "dir == prog.DirOut".
@@ -710,6 +713,9 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate
 		// only by inout struct fields. These structs should be split
 		// into two different structs: one is in and second is out.
 		// But that will require attaching dir to individual fields.
+		if dir != prog.DirIn && neverOutAt != nil {
+			comp.error(*neverOutAt, "resource %s cannot be created in fmt", t.Ident)
+		}
 		if canCreate && dir != prog.DirIn {
 			r := comp.resources[t.Ident]
 			for r != nil && !ctors[r.Name.Name] {
@@ -742,7 +748,7 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate
 			if !fldHasDir {
 				fldDir = dir
 			}
-			comp.checkTypeCtors(fld.Type, fldDir, false, canCreate, ctors, inputs, checked)
+			comp.checkTypeCtors(fld.Type, fldDir, false, canCreate, ctors, inputs, checked, neverOutAt)
 		}
 		return
 	}
@@ -751,7 +757,7 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate
 	}
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, canCreate, ctors, inputs, checked)
+			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, canCreate, ctors, inputs, checked, neverOutAt)
 		}
 	}
 }
