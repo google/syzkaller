@@ -1104,9 +1104,9 @@ ANYUNION [
 	ANYRES16	ANYRES16
 	ANYRES32	ANYRES32
 	ANYRES64	ANYRES64
-	ANYRESDEC	fmt[dec, ANYRES64]
-	ANYRESHEX	fmt[hex, ANYRES64]
-	ANYRESOCT	fmt[oct, ANYRES64]
+	ANYRESDEC	fmt[dec, ANYRES64] (in)
+	ANYRESHEX	fmt[hex, ANYRES64] (in)
+	ANYRESOCT	fmt[oct, ANYRES64] (in)
 ] [varlen]
 
 ANYPTRS [
@@ -1120,7 +1120,7 @@ resource ANYRES32[int32]: -1, 0
 resource ANYRES64[int64]: -1, 0
 
 syz_builtin0(a ptr[in, ANYPTRS]) (disabled)
-syz_builtin1(a ptr[out, ANYUNION]) (disabled)
+syz_builtin1(a ptr[inout, ANYUNION]) (disabled)
 syz_builtin2() ANYRES8 (disabled)
 syz_builtin3() ANYRES16 (disabled)
 syz_builtin4() ANYRES32 (disabled)

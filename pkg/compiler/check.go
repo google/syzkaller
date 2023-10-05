@@ -185,7 +185,7 @@ func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
 	hasDirections, hasOutOverlay := false, false
 	for fieldIdx, f := range n.Fields {
 		if n.IsUnion {
-			comp.parseAttrs(nil, f, f.Attrs)
+			comp.parseAttrs(unionFieldAttrs, f, f.Attrs)
 			continue
 		}
 		attrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)

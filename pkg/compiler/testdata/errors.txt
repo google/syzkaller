@@ -419,8 +419,9 @@ union$overlay0 [
 ]
 
 union$directions [
-	f1	int32	(in)	### unknown arg/field f1 attribute in
+	f1	int32	(in)
 	f2	int32	(out)	### unknown arg/field f2 attribute out
+	f3	int32	(inout)	### unknown arg/field f3 attribute inout
 ]
 
 

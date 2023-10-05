@@ -169,6 +169,9 @@ func (arg *ResultArg) validate(ctx *validCtx, dir Dir) error {
 	if arg.Dir() == DirIn && len(arg.uses) > 0 {
 		return fmt.Errorf("result arg '%v' is DirIn, but is used %d times", typ.Name(), len(arg.uses))
 	}
+	if len(arg.uses) > 0 && arg.Size() > 8 {
+		return fmt.Errorf("result arg '%v' is to be copied out, yet it's bigger than int64 (%d > 8)", typ.Name(), arg.Size())
+	}
 	return nil
 }
 
