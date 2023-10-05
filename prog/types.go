@@ -680,10 +680,11 @@ type ConstValue struct {
 }
 
 type TypeCtx struct {
-	Meta *Syscall
-	Dir  Dir
-	Ptr  *Type
-	Stop bool // If set by the callback, subtypes of this type are not visited.
+	Meta     *Syscall
+	Dir      Dir
+	Ptr      *Type
+	Optional bool
+	Stop     bool // If set by the callback, subtypes of this type are not visited.
 }
 
 func ForeachType(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
@@ -707,9 +708,12 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 	// It would prune recursion more (across syscalls), but lots of users need to
 	// visit each struct per-syscall (e.g. prio, used resources).
 	seen := make(map[Type]bool)
-	var rec func(*Type, Dir)
-	rec = func(ptr *Type, dir Dir) {
-		ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr}
+	var rec func(*Type, Dir, bool)
+	rec = func(ptr *Type, dir Dir, optional bool) {
+		if _, ref := (*ptr).(Ref); !ref {
+			optional = optional || (*ptr).Optional()
+		}
+		ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr, Optional: optional}
 		if preorder {
 			f(*ptr, ctx)
 			if ctx.Stop {
@@ -718,16 +722,16 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 		}
 		switch a := (*ptr).(type) {
 		case *PtrType:
-			rec(&a.Elem, a.ElemDir)
+			rec(&a.Elem, a.ElemDir, optional)
 		case *ArrayType:
-			rec(&a.Elem, dir)
+			rec(&a.Elem, dir, optional)
 		case *StructType:
 			if seen[a] {
 				break // prune recursion via pointers to structs/unions
 			}
 			seen[a] = true
 			for i, f := range a.Fields {
-				rec(&a.Fields[i].Type, f.Dir(dir))
+				rec(&a.Fields[i].Type, f.Dir(dir), optional)
 			}
 		case *UnionType:
 			if seen[a] {
@@ -735,7 +739,7 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 			}
 			seen[a] = true
 			for i, f := range a.Fields {
-				rec(&a.Fields[i].Type, f.Dir(dir))
+				rec(&a.Fields[i].Type, f.Dir(dir), optional)
 			}
 		case *ResourceType, *BufferType, *VmaType, *LenType, *FlagsType,
 			*ConstType, *IntType, *ProcType, *CsumType:
@@ -752,10 +756,10 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 		}
 	}
 	for i := range meta.Args {
-		rec(&meta.Args[i].Type, DirIn)
+		rec(&meta.Args[i].Type, DirIn, false)
 	}
 	if meta.Ret != nil {
-		rec(&meta.Ret, DirOut)
+		rec(&meta.Ret, DirOut, false)
 	}
 }
 

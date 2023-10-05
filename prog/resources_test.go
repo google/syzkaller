@@ -153,7 +153,7 @@ func testCreateResource(t *testing.T, target *Target, calls map[*Syscall]bool, r
 			if res, ok := typ.(*ResourceType); ok && ctx.Dir != DirOut {
 				s := newState(target, ct, nil)
 				arg, calls := r.createResource(s, res, DirIn)
-				if arg == nil && !res.Optional() {
+				if arg == nil && !ctx.Optional {
 					t.Fatalf("failed to create resource %v", res.Name())
 				}
 				if arg != nil && len(calls) == 0 {
