@@ -421,3 +421,7 @@ foo$non_generatable(a compressed_image) (no_minimize)	### call foo$non_generatab
 foo$non_minimizable(a compressed_image) (no_generate)	### call foo$non_minimizable refers to type compressed_image and so must be marked no_minimize
 foo$non_generatable_via_struct(a ptr[in, struct_non_generatable])	(no_minimize)	### call foo$non_generatable_via_struct refers to type compressed_image and so must be marked no_generate
 foo$non_minimizable_via_union(a ptr[in, union_non_minimizable])	(no_generate)	### call foo$non_minimizable_via_union refers to type compressed_image and so must be marked no_minimize
+
+resource for_fmt[int32]
+foo$fmt_copyin(a ptr[in, fmt[dec, for_fmt]])
+foo$fmt_copyout(a ptr[out, fmt[dec, for_fmt]])	### resource for_fmt cannot be created in fmt
