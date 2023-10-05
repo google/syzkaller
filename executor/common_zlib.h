@@ -494,5 +494,5 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 		return -1;
 	}
 	// Unmap memory-mapped region
-	return munmap(dest, destlen);
+	return munmap(dest, max_destlen);
 }
