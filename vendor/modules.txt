@@ -837,7 +837,7 @@ golang.org/x/oauth2/jwt
 golang.org/x/perf/benchstat
 golang.org/x/perf/internal/stats
 golang.org/x/perf/storage/benchfmt
-# golang.org/x/sync v0.3.0
+# golang.org/x/sync v0.4.0
 ## explicit; go 1.17
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
