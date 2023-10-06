@@ -872,21 +872,34 @@ syz_r103_r104_s {
 resource optional_res1[int32]
 resource optional_res2[int32]
 resource required_res1[int32]
+resource required_res2[int32]
+
+test_args4 {
+	a	required_res2
+}
+
+test_args3 {
+	a	required_res1
+}
 
 test_args2 {
-	a	array[optional_res2]
+	a	ptr[in, test_args3]
+	b	array[optional_res2]
 }
 
 test_args1 {
+	a0	ptr64[out, test_args4]
 	a1	ptr64[in, array[optional_res1], opt]
 	a2	ptr64[in, test_args2, opt]
-	a3	ptr64[in, required_res1]
+	a3	ptr64[in, test_args3]
+	a4	ptr64[in, test_args4]
 }
 
 test_args0 {
 	a1	optional_res1
 	a2	optional_res2
 	a3	required_res1
+	a4	required_res2
 }
 
 test$output_res(arg ptr[out, test_args0])

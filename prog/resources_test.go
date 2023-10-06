@@ -101,6 +101,7 @@ func TestTransitivelyEnabledCallsLinux(t *testing.T) {
 func TestGetInputResources(t *testing.T) {
 	expectedRequiredResources := map[string]bool{
 		"required_res1": false,
+		"required_res2": false,
 	}
 
 	t.Parallel()
