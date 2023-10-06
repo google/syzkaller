@@ -866,3 +866,28 @@ syz_r103_r104_s {
 	opt0	r103	(out)
 	opt1	r104	(in)
 }
+
+# Optional resources
+
+resource optional_res1[int32]
+resource optional_res2[int32]
+resource required_res1[int32]
+
+test_args2 {
+	a	array[optional_res2]
+}
+
+test_args1 {
+	a1	ptr64[in, array[optional_res1], opt]
+	a2	ptr64[in, test_args2, opt]
+	a3	ptr64[in, required_res1]
+}
+
+test_args0 {
+	a1	optional_res1
+	a2	optional_res2
+	a3	required_res1
+}
+
+test$output_res(arg ptr[out, test_args0])
+test$optional_res(arg ptr[in, test_args1])
