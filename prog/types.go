@@ -704,10 +704,20 @@ func ForeachCallType(meta *Syscall, f func(t Type, ctx *TypeCtx)) {
 }
 
 func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx)) {
+	// We need seen to be keyed by the type, the direction, and the optionality
+	// bit. Even if the first time we see a type it is optional or DirOut, it
+	// could be required or DirIn on another path. So to ensure that the
+	// information we report to the caller is correct, we need to visit both
+	// occurrences.
+	type seenKey struct {
+		t Type
+		d Dir
+		o bool
+	}
 	// Note: we specifically don't create seen in ForeachType.
 	// It would prune recursion more (across syscalls), but lots of users need to
 	// visit each struct per-syscall (e.g. prio, used resources).
-	seen := make(map[Type]bool)
+	seen := make(map[seenKey]bool)
 	var rec func(*Type, Dir, bool)
 	rec = func(ptr *Type, dir Dir, optional bool) {
 		if _, ref := (*ptr).(Ref); !ref {
@@ -726,18 +736,28 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 		case *ArrayType:
 			rec(&a.Elem, dir, optional)
 		case *StructType:
-			if seen[a] {
+			key := seenKey{
+				t: a,
+				d: dir,
+				o: optional,
+			}
+			if seen[key] {
 				break // prune recursion via pointers to structs/unions
 			}
-			seen[a] = true
+			seen[key] = true
 			for i, f := range a.Fields {
 				rec(&a.Fields[i].Type, f.Dir(dir), optional)
 			}
 		case *UnionType:
-			if seen[a] {
+			key := seenKey{
+				t: a,
+				d: dir,
+				o: optional,
+			}
+			if seen[key] {
 				break // prune recursion via pointers to structs/unions
 			}
-			seen[a] = true
+			seen[key] = true
 			for i, f := range a.Fields {
 				rec(&a.Fields[i].Type, f.Dir(dir), optional)
 			}
