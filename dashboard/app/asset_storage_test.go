@@ -66,7 +66,7 @@ func TestBuildAssetLifetime(t *testing.T) {
 	crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 	c.expectEQ(sender, fromAddr(c.ctx))
-	to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
+	to := c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 	c.expectEQ(msg.To, []string{to})
 	c.expectEQ(msg.Subject, crash.Title)
 	c.expectEQ(len(msg.Attachments), 0)
@@ -358,7 +358,7 @@ func TestCrashAssetLifetime(t *testing.T) {
 	crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 	c.expectEQ(sender, fromAddr(c.ctx))
-	to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
+	to := c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 	c.expectEQ(msg.To, []string{to})
 	c.expectEQ(msg.Subject, crash.Title)
 	c.expectEQ(len(msg.Attachments), 0)

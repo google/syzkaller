@@ -136,7 +136,7 @@ func neededCrashURLs(c context.Context) ([]string, error) {
 
 func handleDeprecateAssets(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	for ns := range config.Namespaces {
+	for ns := range getConfig(c).Namespaces {
 		err := deprecateNamespaceAssets(c, ns)
 		if err != nil {
 			log.Errorf(c, "deprecateNamespaceAssets failed for ns=%v: %v", ns, err)

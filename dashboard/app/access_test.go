@@ -12,11 +12,13 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/user"
 )
 
 // TestAccessConfig checks that access level were properly assigned throughout the config.
 func TestAccessConfig(t *testing.T) {
+	config := getConfig(context.Background())
 	tests := []struct {
 		what  string
 		want  AccessLevel
@@ -162,7 +164,7 @@ func TestAccess(t *testing.T) {
 		c.expectOK(err)
 		crash, _, err := findCrashForBug(c.ctx, bug)
 		c.expectOK(err)
-		bugID := bug.keyHash()
+		bugID := bug.keyHash(c.ctx)
 		entities = append(entities, []entity{
 			{
 				level: level,
@@ -242,7 +244,7 @@ func TestAccess(t *testing.T) {
 		build, err := loadBuild(c.ctx, ns, buildID)
 		c.expectOK(err)
 		entities = append(entities, entity{
-			level: config.Namespaces[ns].AccessLevel,
+			level: c.config().Namespaces[ns].AccessLevel,
 			ref:   build.ID,
 			url:   fmt.Sprintf("/text?tag=KernelConfig&id=%v", build.KernelConfig),
 		})
@@ -268,10 +270,10 @@ func TestAccess(t *testing.T) {
 	// duplicate/similar cross-references.
 	for _, ns := range []string{"access-admin", "access-user", "access-public"} {
 		clientName, clientKey := "", ""
-		for k, v := range config.Namespaces[ns].Clients {
+		for k, v := range c.config().Namespaces[ns].Clients {
 			clientName, clientKey = k, v
 		}
-		nsLevel := config.Namespaces[ns].AccessLevel
+		nsLevel := c.config().Namespaces[ns].AccessLevel
 		namespaceAccessPrefix := accessLevelPrefix(nsLevel)
 		client := c.makeClient(clientName, clientKey, true)
 		build := testBuild(1)
@@ -280,7 +282,7 @@ func TestAccess(t *testing.T) {
 		noteBuildAccessLevel(ns, build.ID)
 
 		for reportingIdx := 0; reportingIdx < 2; reportingIdx++ {
-			accessLevel := config.Namespaces[ns].Reporting[reportingIdx].AccessLevel
+			accessLevel := c.config().Namespaces[ns].Reporting[reportingIdx].AccessLevel
 			accessPrefix := accessLevelPrefix(accessLevel)
 
 			crashInvalid := testCrashWithRepro(build, reportingIdx*10+0)
@@ -292,8 +294,8 @@ func TestAccess(t *testing.T) {
 			}
 			client.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
 			// Invalid bugs become visible up to the last reporting.
-			finalLevel := config.Namespaces[ns].
-				Reporting[len(config.Namespaces[ns].Reporting)-1].AccessLevel
+			finalLevel := c.config().Namespaces[ns].
+				Reporting[len(c.config().Namespaces[ns].Reporting)-1].AccessLevel
 			noteBugAccessLevel(repInvalid.ID, finalLevel, nsLevel)
 
 			crashFixed := testCrashWithRepro(build, reportingIdx*10+0)

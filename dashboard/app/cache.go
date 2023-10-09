@@ -57,7 +57,7 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "failed load backports: %v", err)
 		return
 	}
-	for ns := range config.Namespaces {
+	for ns := range getConfig(c).Namespaces {
 		bugs, _, err := loadNamespaceBugs(c, ns)
 		if err != nil {
 			log.Errorf(c, "failed load ns=%v bugs: %v", ns, err)
@@ -79,7 +79,7 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackpor
 		Subsystems: make(map[string]CachedBugStats),
 	}
 	for _, bug := range bugs {
-		if bug.Status == BugStatusOpen && accessLevel < bug.sanitizeAccess(accessLevel) {
+		if bug.Status == BugStatusOpen && accessLevel < bug.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		v.Total.Record(bug)
@@ -96,7 +96,7 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackpor
 	for _, backport := range backports {
 		outgoing := stringInList(backport.FromNs, ns)
 		for _, bug := range backport.Bugs {
-			if accessLevel < bug.sanitizeAccess(accessLevel) {
+			if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 				continue
 			}
 			if bug.Namespace == ns || outgoing {

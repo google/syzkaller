@@ -967,12 +967,12 @@ func (ctx *treeTestCtx) now() time.Time {
 }
 
 func (ctx *treeTestCtx) updateRepos(repos []KernelRepo) {
-	checkKernelRepos("tree-tests", config.Namespaces["tree-tests"], repos)
+	checkKernelRepos("tree-tests", ctx.ctx.config().Namespaces["tree-tests"], repos)
 	ctx.perAlias = map[string]KernelRepo{}
 	for _, repo := range repos {
 		ctx.perAlias[repo.Alias] = repo
 	}
-	ctx.ctx.setKernelRepos(repos)
+	ctx.ctx.setKernelRepos("tree-tests", repos)
 }
 
 func (ctx *treeTestCtx) uploadBuild(repo, branch string) *dashapi.Build {

@@ -44,7 +44,7 @@ type testReqArgs struct {
 func handleTestRequest(c context.Context, args *testReqArgs) error {
 	log.Infof(c, "test request: bug=%s user=%q extID=%q patch=%v, repo=%q branch=%q",
 		args.bug.Title, args.user, args.extID, len(args.patch), args.repo, args.branch)
-	for _, blocked := range config.EmailBlocklist {
+	for _, blocked := range getConfig(c).EmailBlocklist {
 		if args.user == blocked {
 			return &TestRequestDeniedError{
 				fmt.Sprintf("test request from blocked user: %v", args.user),
@@ -104,7 +104,7 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	if reason := checkTestJob(args); reason != "" {
 		return nil, nil, &BadTestRequestError{reason}
 	}
-	manager, mgrConfig := activeManager(args.crash.Manager, args.bug.Namespace)
+	manager, mgrConfig := activeManager(c, args.crash.Manager, args.bug.Namespace)
 	if mgrConfig != nil && mgrConfig.RestrictedTestingRepo != "" &&
 		args.repo != mgrConfig.RestrictedTestingRepo {
 		return nil, nil, &BadTestRequestError{mgrConfig.RestrictedTestingReason}
@@ -413,7 +413,7 @@ func jobFromBugSample(c context.Context, managers map[string]dashapi.ManagerJobs
 			continue
 		}
 		managersList = append(managersList, name)
-		managersList = append(managersList, decommissionedInto(name)...)
+		managersList = append(managersList, decommissionedInto(c, name)...)
 	}
 	managersList = unique(managersList)
 
@@ -444,7 +444,7 @@ func jobFromBugSample(c context.Context, managers map[string]dashapi.ManagerJobs
 	}
 	r := rand.New(rand.NewSource(timeNow(c).UnixNano()))
 	// Bugs often happen on multiple instances, so let's filter out duplicates.
-	allBugs, allBugKeys = uniqueBugs(allBugs, allBugKeys)
+	allBugs, allBugKeys = uniqueBugs(c, allBugs, allBugKeys)
 	r.Shuffle(len(allBugs), func(i, j int) {
 		allBugs[i], allBugs[j] = allBugs[j], allBugs[i]
 		allBugKeys[i], allBugKeys[j] = allBugKeys[j], allBugKeys[i]
@@ -480,7 +480,7 @@ func createTreeBisectionJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 		}
 		any := false
 		for _, mgr := range bug.HappenedOn {
-			newMgr, _ := activeManager(mgr, bug.Namespace)
+			newMgr, _ := activeManager(c, mgr, bug.Namespace)
 			any = any || managers[newMgr].BisectFix
 		}
 		if !any {
@@ -505,7 +505,7 @@ func createTreeTestJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	takeBugs := 5
 	prio, next := []int{}, []int{}
 	for i, bug := range bugs {
-		if !config.Namespaces[bug.Namespace].FindBugOriginTrees {
+		if !getConfig(c).Namespaces[bug.Namespace].FindBugOriginTrees {
 			continue
 		}
 		if timeNow(c).Before(bug.TreeTests.NextPoll) {
@@ -538,12 +538,12 @@ func createPatchRetestingJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	takeBugs := 5
 	for i, bug := range bugs {
-		if !config.Namespaces[bug.Namespace].RetestRepros {
+		if !getConfig(c).Namespaces[bug.Namespace].RetestRepros {
 			// Repro retesting is disabled for the namespace.
 			continue
 		}
-		if config.Obsoleting.ReproRetestPeriod == 0 ||
-			timeNow(c).Sub(bug.LastTime) < config.Obsoleting.ReproRetestStart {
+		if getConfig(c).Obsoleting.ReproRetestPeriod == 0 ||
+			timeNow(c).Sub(bug.LastTime) < getConfig(c).Obsoleting.ReproRetestStart {
 			// Don't retest reproducers if crashes are still happening.
 			continue
 		}
@@ -561,9 +561,9 @@ func createPatchRetestingJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	return nil, nil, nil
 }
 
-func decommissionedInto(jobMgr string) []string {
+func decommissionedInto(c context.Context, jobMgr string) []string {
 	var ret []string
-	for _, nsConfig := range config.Namespaces {
+	for _, nsConfig := range getConfig(c).Namespaces {
 		for name, mgr := range nsConfig.Managers {
 			if mgr.DelegatedTo == jobMgr {
 				ret = append(ret, name)
@@ -591,7 +591,7 @@ func handleRetestForBug(c context.Context, bug *Bug, bugKey *db.Key,
 		if crash.ReproSyz == 0 && crash.ReproC == 0 {
 			continue
 		}
-		if now.Sub(crash.LastReproRetest) < config.Obsoleting.ReproRetestPeriod {
+		if now.Sub(crash.LastReproRetest) < getConfig(c).Obsoleting.ReproRetestPeriod {
 			continue
 		}
 		if crash.ReproIsRevoked {
@@ -599,7 +599,7 @@ func handleRetestForBug(c context.Context, bug *Bug, bugKey *db.Key,
 			continue
 		}
 		// We could have decommissioned the original manager since then.
-		manager, _ := activeManager(crash.Manager, bug.Namespace)
+		manager, _ := activeManager(c, crash.Manager, bug.Namespace)
 		if manager == "" || !managers[manager].TestPatches {
 			continue
 		}
@@ -747,7 +747,7 @@ func bisectCrashForBug(c context.Context, bug *Bug, bugKey *db.Key, managers map
 			continue
 		}
 		if jobType == JobBisectFix &&
-			config.Namespaces[bug.Namespace].Managers[crash.Manager].FixBisectionDisabled {
+			getConfig(c).Namespaces[bug.Namespace].Managers[crash.Manager].FixBisectionDisabled {
 			continue
 		}
 		return crash, crashKeys[ci], nil
@@ -1171,7 +1171,7 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	if job.Type == JobBisectCause && infraError {
 		bug.BisectCause = BisectNot
 	}
-	_, bugReporting, _, _, _ := currentReporting(bug)
+	_, bugReporting, _, _, _ := currentReporting(c, bug)
 	// The bug is either already closed or not yet reported in the current reporting,
 	// either way we don't need to report it. If it wasn't reported, it will be reported
 	// with the bisection results.
@@ -1210,7 +1210,7 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 			// In some cases (e.g. repro retesting), it's ok not to have a reporting.
 			continue
 		}
-		reporting := config.Namespaces[job.Namespace].ReportingByName(job.Reporting)
+		reporting := getConfig(c).Namespaces[job.Namespace].ReportingByName(job.Reporting)
 		if reporting.Config.Type() != typ {
 			continue
 		}
@@ -1317,7 +1317,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 		}
 		rep.Maintainers = append(rep.Maintainers, emails...)
 	}
-	if mgr := bug.managerConfig(); mgr != nil {
+	if mgr := bug.managerConfig(c); mgr != nil {
 		rep.CC = append(rep.CC, mgr.CC.Always...)
 		if job.Type == JobBisectCause || job.Type == JobBisectFix {
 			rep.Maintainers = append(rep.Maintainers, mgr.CC.Maintainers...)
@@ -1377,7 +1377,7 @@ func jobReported(c context.Context, jobID string) error {
 		// Auto-mark the bug as fixed by the result of fix bisection,
 		// if the setting is enabled for the namespace.
 		if job.Type == JobBisectFix &&
-			config.Namespaces[job.Namespace].FixBisectionAutoClose &&
+			getConfig(c).Namespaces[job.Namespace].FixBisectionAutoClose &&
 			!job.IsCrossTree() &&
 			len(job.Commits) == 1 {
 			bug := new(Bug)
@@ -1486,8 +1486,8 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 
 // activeManager determines the manager currently responsible for all bugs found by
 // the specified manager.
-func activeManager(manager, ns string) (string, *ConfigManager) {
-	nsConfig := config.Namespaces[ns]
+func activeManager(c context.Context, manager, ns string) (string, *ConfigManager) {
+	nsConfig := getConfig(c).Namespaces[ns]
 	if mgr, ok := nsConfig.Managers[manager]; ok {
 		if mgr.Decommissioned {
 			newMgr := nsConfig.Managers[mgr.DelegatedTo]
@@ -1599,13 +1599,13 @@ func makeJobInfo(c context.Context, job *Job, jobKey *db.Key, bug *Bug, build *B
 	return info
 }
 
-func uniqueBugs(inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*db.Key) {
+func uniqueBugs(c context.Context, inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*db.Key) {
 	var bugs []*Bug
 	var keys []*db.Key
 
 	dups := map[string]bool{}
 	for i, bug := range inBugs {
-		hash := bug.keyHash()
+		hash := bug.keyHash(c)
 		if dups[hash] {
 			continue
 		}

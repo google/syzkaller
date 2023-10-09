@@ -256,7 +256,7 @@ func TestMultiLabelFilter(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build1 := testBuild(1)
 	build1.Manager = "manager-name-123"

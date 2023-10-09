@@ -86,6 +86,10 @@ func NewCtx(t *testing.T) *Ctx {
 	return c
 }
 
+func (c *Ctx) config() *GlobalConfig {
+	return getConfig(c.ctx)
+}
+
 func (c *Ctx) expectOK(err error) {
 	if err != nil {
 		c.t.Helper()
@@ -211,17 +215,28 @@ func (c *Ctx) advanceTime(d time.Duration) {
 
 func (c *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithSubsystems(c, &customSubsystemList{
-			ns:       ns,
-			list:     list,
-			revision: rev,
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Subsystems.Revision = rev
+			if list == nil {
+				ret.Subsystems.Service = nil
+			} else {
+				ret.Subsystems.Service = subsystem.MustMakeService(list)
+			}
+			return &ret
 		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
-func (c *Ctx) setKernelRepos(list []KernelRepo) {
+func (c *Ctx) setKernelRepos(ns string, list []KernelRepo) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithRepos(c, list)
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Repos = list
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
@@ -231,9 +246,25 @@ func (c *Ctx) setNoObsoletions() {
 	}
 }
 
+func (c *Ctx) decommissionManager(ns, oldManager, newManager string) {
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := replaceManagerConfig(c, ns, oldManager, func(cfg ConfigManager) ConfigManager {
+			cfg.Decommissioned = true
+			cfg.DelegatedTo = newManager
+			return cfg
+		})
+		return contextWithConfig(c, newConfig)
+	}
+}
+
 func (c *Ctx) decommission(ns string) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithDecommission(c, ns, true)
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Decommissioned = true
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
@@ -668,4 +699,33 @@ func getRequestID(c context.Context) int {
 		panic("the context did not come from a test")
 	}
 	return val
+}
+
+// Create a shallow copy of GlobalConfig with a replaced namespace config.
+func replaceNamespaceConfig(c context.Context, ns string, f func(*Config) *Config) *GlobalConfig {
+	ret := *getConfig(c)
+	newNsMap := map[string]*Config{}
+	for name, nsCfg := range ret.Namespaces {
+		if name == ns {
+			nsCfg = f(nsCfg)
+		}
+		newNsMap[name] = nsCfg
+	}
+	ret.Namespaces = newNsMap
+	return &ret
+}
+
+func replaceManagerConfig(c context.Context, ns, mgr string, f func(ConfigManager) ConfigManager) *GlobalConfig {
+	return replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+		ret := *cfg
+		newMgrMap := map[string]ConfigManager{}
+		for name, mgrCfg := range ret.Managers {
+			if name == mgr {
+				mgrCfg = f(mgrCfg)
+			}
+			newMgrMap[name] = mgrCfg
+		}
+		ret.Managers = newMgrMap
+		return &ret
+	})
 }

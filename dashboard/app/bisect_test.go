@@ -170,9 +170,9 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
 		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-			dbBug.keyHash(), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
+			dbBug.keyHash(c.ctx), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
 		cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
-			dbBug.keyHash(), crash2.ReproC))
+			dbBug.keyHash(c.ctx), crash2.ReproC))
 		c.checkURLContents(bisectLogLink, []byte("bisect log 2"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisect crash report"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisect crash log"))
@@ -428,7 +428,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
 		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-			dbBug.keyHash(), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
+			dbBug.keyHash(c.ctx), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
 		c.checkURLContents(bisectLogLink, []byte("bisectfix log 4"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisectfix crash report 4"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisectfix crash log 4"))
@@ -1231,7 +1231,7 @@ func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dasha
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
 
 	// Ensure we do not automatically close the bug.
-	c.expectTrue(!config.Namespaces["test2"].FixBisectionAutoClose)
+	c.expectTrue(!c.config().Namespaces["test2"].FixBisectionAutoClose)
 	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	c.expectOK(err)
 	dbBug, _, _ := c.loadBug(extBugID)
