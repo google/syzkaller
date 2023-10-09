@@ -220,7 +220,7 @@ loop:
 }
 
 func reportEmail(c context.Context, ns string) string {
-	for _, reporting := range getConfig(c).Namespaces[ns].Reporting {
+	for _, reporting := range getNsConfig(c, ns).Reporting {
 		if _, ok := reporting.Config.(*EmailConfig); ok {
 			return ownEmail(c)
 		}
@@ -232,7 +232,7 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 	resp := &dashapi.CommitPollResp{
 		ReportEmail: reportEmail(c, ns),
 	}
-	for _, repo := range getConfig(c).Namespaces[ns].Repos {
+	for _, repo := range getNsConfig(c, ns).Repos {
 		if repo.NoPoll {
 			continue
 		}
@@ -652,7 +652,7 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query builds: %w", err)
 	}
-	configManagers := getConfig(c).Namespaces[ns].Managers
+	configManagers := getNsConfig(c, ns).Managers
 	var managers []string
 	for _, build := range builds {
 		if configManagers[build.Manager].Decommissioned {
@@ -706,7 +706,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	if err != nil {
 		return nil, err
 	}
-	if !getConfig(c).Namespaces[ns].TransformCrash(build, req) {
+	if !getNsConfig(c, ns).TransformCrash(build, req) {
 		return new(dashapi.ReportCrashResp), nil
 	}
 	bug, err := reportCrash(c, build, req)
@@ -1221,7 +1221,7 @@ func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 	}
 	// Create report for the last reporting so that it's stable and ExtID does not change over time.
 	bugReporting := &bug.Reporting[len(bug.Reporting)-1]
-	reporting := getConfig(c).Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	reporting := getNsConfig(c, bug.Namespace).ReportingByName(bugReporting.Name)
 	if reporting == nil {
 		return nil, fmt.Errorf("reporting %v is missing in config", bugReporting.Name)
 	}
@@ -1403,7 +1403,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					LastTime:       now,
 					SubsystemsTime: now,
 				}
-				err = bug.updateReportings(c, getConfig(c).Namespaces[ns], now)
+				err = bug.updateReportings(c, getNsConfig(c, ns), now)
 				if err != nil {
 					return err
 				}
@@ -1465,7 +1465,7 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 		bug.Title == suppressedReportTitle {
 		return false
 	}
-	if !getConfig(c).Namespaces[bug.Namespace].NeedRepro(bug) {
+	if !getNsConfig(c, bug.Namespace).NeedRepro(bug) {
 		return false
 	}
 	bestReproLevel := ReproLevelC

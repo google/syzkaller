@@ -213,7 +213,7 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		return err
 	}
 	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
-	cfg := getConfig(c).Namespaces[ns]
+	cfg := getNsConfig(c, ns)
 	var update []*db.Key
 	for i, bug := range bugs {
 		if len(bug.Reporting) >= len(cfg.Reporting) {

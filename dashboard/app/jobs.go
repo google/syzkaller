@@ -505,7 +505,7 @@ func createTreeTestJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	takeBugs := 5
 	prio, next := []int{}, []int{}
 	for i, bug := range bugs {
-		if !getConfig(c).Namespaces[bug.Namespace].FindBugOriginTrees {
+		if !getNsConfig(c, bug.Namespace).FindBugOriginTrees {
 			continue
 		}
 		if timeNow(c).Before(bug.TreeTests.NextPoll) {
@@ -538,7 +538,7 @@ func createPatchRetestingJobs(c context.Context, bugs []*Bug, bugKeys []*db.Key,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	takeBugs := 5
 	for i, bug := range bugs {
-		if !getConfig(c).Namespaces[bug.Namespace].RetestRepros {
+		if !getNsConfig(c, bug.Namespace).RetestRepros {
 			// Repro retesting is disabled for the namespace.
 			continue
 		}
@@ -747,7 +747,7 @@ func bisectCrashForBug(c context.Context, bug *Bug, bugKey *db.Key, managers map
 			continue
 		}
 		if jobType == JobBisectFix &&
-			getConfig(c).Namespaces[bug.Namespace].Managers[crash.Manager].FixBisectionDisabled {
+			getNsConfig(c, bug.Namespace).Managers[crash.Manager].FixBisectionDisabled {
 			continue
 		}
 		return crash, crashKeys[ci], nil
@@ -1210,7 +1210,7 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 			// In some cases (e.g. repro retesting), it's ok not to have a reporting.
 			continue
 		}
-		reporting := getConfig(c).Namespaces[job.Namespace].ReportingByName(job.Reporting)
+		reporting := getNsConfig(c, job.Namespace).ReportingByName(job.Reporting)
 		if reporting.Config.Type() != typ {
 			continue
 		}
@@ -1377,7 +1377,7 @@ func jobReported(c context.Context, jobID string) error {
 		// Auto-mark the bug as fixed by the result of fix bisection,
 		// if the setting is enabled for the namespace.
 		if job.Type == JobBisectFix &&
-			getConfig(c).Namespaces[job.Namespace].FixBisectionAutoClose &&
+			getNsConfig(c, job.Namespace).FixBisectionAutoClose &&
 			!job.IsCrossTree() &&
 			len(job.Commits) == 1 {
 			bug := new(Bug)
@@ -1487,7 +1487,7 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 // activeManager determines the manager currently responsible for all bugs found by
 // the specified manager.
 func activeManager(c context.Context, manager, ns string) (string, *ConfigManager) {
-	nsConfig := getConfig(c).Namespaces[ns]
+	nsConfig := getNsConfig(c, ns)
 	if mgr, ok := nsConfig.Managers[manager]; ok {
 		if mgr.Decommissioned {
 			newMgr := nsConfig.Managers[mgr.DelegatedTo]

@@ -166,7 +166,7 @@ func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	}
 	n := 0
 	fixes := make(map[string]bool)
-	lastReporting := getConfig(c).Namespaces[ns].lastActiveReporting()
+	lastReporting := getNsConfig(c, ns).lastActiveReporting()
 	for _, bug := range bugs {
 		if bug.Reporting[lastReporting].Reported.IsZero() {
 			if bug.Status == BugStatusOpen {

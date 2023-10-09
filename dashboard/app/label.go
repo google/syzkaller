@@ -52,7 +52,7 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 	}
 
 	originLabels := []string{}
-	for _, repo := range getConfig(c).Namespaces[ns].Repos {
+	for _, repo := range getNsConfig(c, ns).Repos {
 		if repo.LabelIntroduced != "" {
 			originLabels = append(originLabels, repo.LabelIntroduced)
 		}

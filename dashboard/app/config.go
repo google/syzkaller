@@ -370,6 +370,10 @@ func getConfig(c context.Context) *GlobalConfig {
 	return configDontUse // The base config was not overwriten.
 }
 
+func getNsConfig(c context.Context, ns string) *Config {
+	return getConfig(c).Namespaces[ns]
+}
+
 func checkConfig(cfg *GlobalConfig) {
 	if cfg == nil {
 		panic("installing nil config")

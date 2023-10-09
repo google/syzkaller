@@ -775,7 +775,7 @@ func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error
 	var result []*Manager
 	var resultKeys []*db.Key
 	for i, mgr := range managers {
-		if getConfig(c).Namespaces[mgr.Namespace].Managers[mgr.Name].Decommissioned {
+		if getNsConfig(c, mgr.Namespace).Managers[mgr.Name].Decommissioned {
 			continue
 		}
 		result = append(result, mgr)
@@ -864,11 +864,11 @@ func (bug *Bug) keyHash(c context.Context) string {
 }
 
 func bugKeyHash(c context.Context, ns, title string, seq int64) string {
-	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getConfig(c).Namespaces[ns].Key, ns, title, seq)))
+	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(c, ns).Key, ns, title, seq)))
 }
 
 func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
-	domain := getConfig(c).Namespaces[bug.Namespace].SimilarityDomain
+	domain := getNsConfig(c, bug.Namespace).SimilarityDomain
 	dedup := make(map[string]bool)
 	dedup[bug.keyHash(c)] = true
 
@@ -882,7 +882,7 @@ func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
 			return nil, err
 		}
 		for _, bug := range similar {
-			if getConfig(c).Namespaces[bug.Namespace].SimilarityDomain != domain ||
+			if getNsConfig(c, bug.Namespace).SimilarityDomain != domain ||
 				dedup[bug.keyHash(c)] {
 				continue
 			}
@@ -1001,7 +1001,7 @@ func kernelRepoInfo(c context.Context, build *Build) KernelRepo {
 
 func kernelRepoInfoRaw(c context.Context, ns, url, branch string) KernelRepo {
 	var info KernelRepo
-	for _, repo := range getConfig(c).Namespaces[ns].Repos {
+	for _, repo := range getNsConfig(c, ns).Repos {
 		if repo.URL == url && repo.Branch == branch {
 			info = repo
 			break

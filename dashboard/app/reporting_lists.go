@@ -443,7 +443,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 			Moderation:  stage.Moderation,
 			TotalStats:  subsystemReport.TotalStats.toDashapi(),
 			PeriodStats: subsystemReport.PeriodStats.toDashapi(),
-			PeriodDays:  getConfig(c).Namespaces[ns].Subsystems.Reminder.PeriodDays,
+			PeriodDays:  getNsConfig(c, ns).Subsystems.Reminder.PeriodDays,
 		}
 		bugKeys, err := subsystemReport.getBugKeys()
 		if err != nil {
@@ -456,7 +456,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 		}
 		for _, bug := range bugs {
 			bugReporting := bugReportingByName(bug,
-				getConfig(c).Namespaces[ns].Subsystems.Reminder.SourceReporting)
+				getNsConfig(c, ns).Subsystems.Reminder.SourceReporting)
 			ret.Bugs = append(ret.Bugs, dashapi.BugListItem{
 				Title:      bug.displayTitle(),
 				Link:       fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
@@ -470,7 +470,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 }
 
 func bugListReportingConfig(c context.Context, ns string, stage *SubsystemReportStage) ReportingType {
-	cfg := getConfig(c).Namespaces[ns].Subsystems.Reminder
+	cfg := getNsConfig(c, ns).Subsystems.Reminder
 	if stage.Moderation {
 		return cfg.ModerationConfig
 	}

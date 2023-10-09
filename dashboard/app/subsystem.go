@@ -191,11 +191,11 @@ func subsystemMaintainers(c context.Context, ns, subsystemName string) []string 
 }
 
 func getSubsystemService(c context.Context, ns string) *subsystem.Service {
-	return getConfig(c).Namespaces[ns].Subsystems.Service
+	return getNsConfig(c, ns).Subsystems.Service
 }
 
 func getSubsystemRevision(c context.Context, ns string) int {
-	return getConfig(c).Namespaces[ns].Subsystems.Revision
+	return getNsConfig(c, ns).Subsystems.Revision
 }
 
 func subsystemListURL(c context.Context, ns string) string {
