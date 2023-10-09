@@ -500,7 +500,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	for _, group := range groups {
-		if getConfig(c).Namespaces[hdr.Namespace].DisplayDiscussions {
+		if getNsConfig(c, hdr.Namespace).DisplayDiscussions {
 			group.DispDiscuss = true
 		} else {
 			group.DispLastAct = true
@@ -553,7 +553,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	var subsystem *subsystem.Subsystem
 	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
 		name := r.URL.Path[pos+3:]
-		if newName := getConfig(c).Namespaces[hdr.Namespace].Subsystems.Redirect[name]; newName != "" {
+		if newName := getNsConfig(c, hdr.Namespace).Subsystems.Redirect[name]; newName != "" {
 			http.Redirect(w, r, r.URL.Path[:pos+3]+newName, http.StatusMovedPermanently)
 			return nil
 		}
@@ -575,7 +575,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	for _, group := range groups {
-		group.DispDiscuss = getConfig(c).Namespaces[hdr.Namespace].DisplayDiscussions
+		group.DispDiscuss = getNsConfig(c, hdr.Namespace).DisplayDiscussions
 	}
 	cached, err := CacheGet(c, r, hdr.Namespace)
 	if err != nil {
@@ -680,7 +680,7 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		Header: hdr,
 		Groups: groups,
 		DisplayNamespace: func(ns string) string {
-			return getConfig(c).Namespaces[ns].DisplayTitle
+			return getNsConfig(c, ns).DisplayTitle
 		},
 	})
 }
@@ -1030,7 +1030,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if len(similar.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
-			Show:  getConfig(c).Namespaces[hdr.Namespace].AccessLevel != AccessPublic,
+			Show:  getNsConfig(c, hdr.Namespace).AccessLevel != AccessPublic,
 			Type:  sectionBugList,
 			Value: similar,
 		})
@@ -1415,7 +1415,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 		}
 		return err
 	}
-	if err := checkAccessLevel(c, r, getConfig(c).Namespaces[ns].AccessLevel); err != nil {
+	if err := checkAccessLevel(c, r, getNsConfig(c, ns).AccessLevel); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -1545,7 +1545,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		}
 		mergeUIBug(c, bug, dup)
 	}
-	cfg := getConfig(c).Namespaces[ns]
+	cfg := getNsConfig(c, ns)
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
 		sort.Slice(bugs, func(i, j int) bool {
@@ -1834,7 +1834,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
 		for i, com := range bug.Commits {
-			cfg := getConfig(c).Namespaces[bug.Namespace]
+			cfg := getNsConfig(c, bug.Namespace)
 			info := bug.getCommitInfo(i)
 			uiBug.Commits = append(uiBug.Commits, &uiCommit{
 				Hash:   info.Hash,
@@ -2128,7 +2128,7 @@ func loadManagerList(c context.Context, accessLevel AccessLevel, ns string,
 	var filtered []*Manager
 	var filteredKeys []*db.Key
 	for i, mgr := range managers {
-		cfg := getConfig(c).Namespaces[mgr.Namespace]
+		cfg := getNsConfig(c, mgr.Namespace)
 		if accessLevel < cfg.AccessLevel {
 			continue
 		}

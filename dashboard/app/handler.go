@@ -196,7 +196,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	cookie := decodeCookie(r)
 	if !found {
 		ns = getConfig(c).DefaultNamespace
-		if cfg := getConfig(c).Namespaces[cookie.Namespace]; cfg != nil && cfg.AccessLevel <= accessLevel {
+		if cfg := getNsConfig(c, cookie.Namespace); cfg != nil && cfg.AccessLevel <= accessLevel {
 			ns = cookie.Namespace
 		}
 		if accessLevel == AccessAdmin {

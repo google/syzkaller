@@ -585,7 +585,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 	if ctx.crash != nil {
 		var err error
 		ns := ctx.bug.Namespace
-		repoGraph, err := makeRepoGraph(getConfig(ctx.c).Namespaces[ns].Repos)
+		repoGraph, err := makeRepoGraph(getNsConfig(ctx.c, ns).Repos)
 		if err != nil {
 			return err
 		}
@@ -719,7 +719,7 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 // b) Whether the lookup was expensive (it can help optimize crossTreeBisection calls).
 func crossTreeBisection(c context.Context, bug *Bug,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, bool, error) {
-	repoGraph, err := makeRepoGraph(getConfig(c).Namespaces[bug.Namespace].Repos)
+	repoGraph, err := makeRepoGraph(getNsConfig(c, bug.Namespace).Repos)
 	if err != nil {
 		return nil, nil, false, err
 	}

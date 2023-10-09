@@ -114,7 +114,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		return
 	}
 	ent := state.getEntry(timeNow(c), bug.Namespace, reporting.Name)
-	cfg := getConfig(c).Namespaces[bug.Namespace]
+	cfg := getNsConfig(c, bug.Namespace)
 	if timeSince(c, bug.FirstTime) < cfg.ReportingDelay {
 		status = fmt.Sprintf("%v: initial reporting delay", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
@@ -331,7 +331,7 @@ func (bug *Bug) canBeObsoleted(c context.Context) bool {
 		return true
 	}
 	if obsoleteWhatWontBeFixBisected {
-		cfg := getConfig(c).Namespaces[bug.Namespace]
+		cfg := getNsConfig(c, bug.Namespace)
 		for _, mgr := range bug.HappenedOn {
 			if !cfg.Managers[mgr].FixBisectionDisabled {
 				return false
@@ -388,7 +388,7 @@ func (bug *Bug) managerConfig(c context.Context) *ConfigManager {
 	if len(bug.HappenedOn) != 1 {
 		return nil
 	}
-	mgr := getConfig(c).Namespaces[bug.Namespace].Managers[bug.HappenedOn[0]]
+	mgr := getNsConfig(c, bug.Namespace).Managers[bug.HappenedOn[0]]
 	return &mgr
 }
 
@@ -447,7 +447,7 @@ func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, i
 		if !bugReporting.Closed.IsZero() {
 			continue
 		}
-		reporting := getConfig(c).Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+		reporting := getNsConfig(c, bug.Namespace).ReportingByName(bugReporting.Name)
 		if reporting == nil {
 			return nil, nil, 0, "", fmt.Errorf("%v: missing in config", bugReporting.Name)
 		}
@@ -946,7 +946,7 @@ func allowCrossReportingDup(c context.Context, bug, dup *Bug,
 	// provided that these two reportings have the same access level and type.
 	// The rest of the combinations can lead to surprising states and
 	// information hiding, so we don't allow them.
-	cfg := getConfig(c).Namespaces[bug.Namespace]
+	cfg := getNsConfig(c, bug.Namespace)
 	bugConfig := &cfg.Reporting[bugIdx]
 	dupConfig := &cfg.Reporting[dupIdx]
 	lastIdx := len(cfg.Reporting) - 1
@@ -1352,7 +1352,7 @@ func (state *ReportingState) getEntry(now time.Time, namespace, name string) *Re
 
 func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 	bugReporting *BugReporting) (*dashapi.FullBugInfo, error) {
-	reporting := getConfig(c).Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	reporting := getNsConfig(c, bug.Namespace).ReportingByName(bugReporting.Name)
 	if reporting == nil {
 		return nil, fmt.Errorf("failed to find the reporting object")
 	}

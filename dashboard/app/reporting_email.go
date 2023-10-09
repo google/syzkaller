@@ -272,7 +272,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 func buildBadCommitMessage(c context.Context, notif *dashapi.BugNotification) (string, error) {
 	var sb strings.Builder
 	days := int(notifyAboutBadCommitPeriod / time.Hour / 24)
-	nsConfig := getConfig(c).Namespaces[notif.Namespace]
+	nsConfig := getNsConfig(c, notif.Namespace)
 	fmt.Fprintf(&sb, `This bug is marked as fixed by commit:
 %v
 
@@ -954,7 +954,7 @@ func identifyEmail(c context.Context, msg *email.Email) (*bugInfoResult, *bugLis
 			log.Errorf(c, "no bug list with the %v ID found", bugID)
 			return nil, nil, nil
 		}
-		reminderConfig := getConfig(c).Namespaces[subsystem.Namespace].Subsystems.Reminder
+		reminderConfig := getNsConfig(c, subsystem.Namespace).Subsystems.Reminder
 		if reminderConfig == nil {
 			log.Errorf(c, "reminder configuration is empty")
 			return nil, nil, nil
@@ -1047,7 +1047,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 		}
 		return nil
 	}
-	reporting := getConfig(c).Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	reporting := getNsConfig(c, bug.Namespace).ReportingByName(bugReporting.Name)
 	if reporting == nil {
 		log.Errorf(c, "can't find reporting for this bug: namespace=%q reporting=%q",
 			bug.Namespace, bugReporting.Name)
