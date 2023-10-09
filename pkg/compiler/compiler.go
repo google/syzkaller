@@ -8,7 +8,6 @@ package compiler
 import (
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -137,6 +136,7 @@ type compiler struct {
 	structVarlen  map[string]bool
 	structTypes   map[string]prog.Type
 	builtinConsts map[string]uint64
+	fileMeta      map[string]Meta
 }
 
 type warn struct {
@@ -154,10 +154,12 @@ func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 }
 
 func (comp *compiler) filterArch() {
-	files := comp.fileList()
+	if comp.fileMeta == nil {
+		comp.fileMeta = comp.fileList()
+	}
 	comp.desc = comp.desc.Filter(func(n ast.Node) bool {
 		pos, typ, name := n.Info()
-		meta := files[filepath.Base(pos.File)]
+		meta := comp.fileMeta[filepath.Base(pos.File)]
 		if meta.SupportsArch(comp.target.Arch) {
 			return true
 		}
@@ -345,18 +347,6 @@ func (comp *compiler) parseIntType(name string) (size uint64, bigEndian bool) {
 		size /= 8
 	}
 	return size, be
-}
-
-func toArray(m map[string]bool) []string {
-	delete(m, "")
-	var res []string
-	for v := range m {
-		if v != "" {
-			res = append(res, v)
-		}
-	}
-	sort.Strings(res)
-	return res
 }
 
 func arrayContains(a []string, v string) bool {

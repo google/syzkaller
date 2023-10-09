@@ -39,8 +39,8 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 	missingIncludes := make(map[string]bool)
 	undeclared := make(map[string]bool)
 	valMap := make(map[string]bool)
-	for _, val := range info.Consts {
-		valMap[val] = true
+	for _, def := range info.Consts {
+		valMap[def.Name] = true
 	}
 	for {
 		bin1, out, err := compile(cc, args, data)
@@ -74,11 +74,11 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 				cc, args, err, out)
 		}
 		data.Values = nil
-		for _, v := range info.Consts {
-			if undeclared[v] {
+		for _, def := range info.Consts {
+			if undeclared[def.Name] {
 				continue
 			}
-			data.Values = append(data.Values, v)
+			data.Values = append(data.Values, def)
 		}
 		data.Includes = nil
 		for _, v := range info.Includes {
@@ -105,8 +105,8 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 			len(flagVals), len(data.Values))
 	}
 	res := make(map[string]uint64)
-	for i, name := range data.Values {
-		res[name] = flagVals[i]
+	for i, def := range data.Values {
+		res[def.Name] = flagVals[i]
 	}
 	return res, undeclared, nil
 }
@@ -115,7 +115,7 @@ type CompileData struct {
 	*extractParams
 	Defines  map[string]string
 	Includes []string
-	Values   []string
+	Values   []*compiler.Const
 }
 
 func compile(cc string, args []string, data *CompileData) (string, []byte, error) {

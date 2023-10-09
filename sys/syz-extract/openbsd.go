@@ -71,11 +71,11 @@ func (*openbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 		"SYS_tmpfd":        true,
 	}
 	compatNames := make(map[string][]string)
-	for _, val := range info.Consts {
-		if _, ok := syscallsQuirks[val]; ok {
-			compat := "SYS___" + val[len("SYS_"):]
-			compatNames[val] = append(compatNames[val], compat)
-			info.Consts = append(info.Consts, compat)
+	for _, def := range info.Consts {
+		if _, ok := syscallsQuirks[def.Name]; ok {
+			compat := "SYS___" + def.Name[len("SYS_"):]
+			compatNames[def.Name] = append(compatNames[def.Name], compat)
+			info.Consts = append(info.Consts, &compiler.Const{Name: compat})
 		}
 	}
 	params := &extractParams{

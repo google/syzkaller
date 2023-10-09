@@ -5,8 +5,8 @@
 # /dev/qat_adf_ctl is only the control interface, and currently ioctl$IOCTL_GET_NUM_DEVICES returns 0 on qemu.
 
 include <linux/fcntl.h>
-include <drivers/crypto/qat/qat_common/adf_cfg_user.h>
-include <drivers/crypto/qat/qat_common/adf_cfg_common.h>
+include <drivers/crypto/intel/qat/qat_common/adf_cfg_user.h>
+include <drivers/crypto/intel/qat/qat_common/adf_cfg_common.h>
 resource fd_qat[fd]
 
 openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd_qat

@@ -79,9 +79,10 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
 	cfg := &Config{
-		Count:         1,
-		Preemptible:   true,
-		DisplayDevice: true,
+		Count:       1,
+		Preemptible: true,
+		// Display device is not supported on other platforms.
+		DisplayDevice: env.Arch == targets.AMD64,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse gce vm config: %w", err)
