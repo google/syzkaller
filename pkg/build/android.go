@@ -123,6 +123,8 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("failed to generate signature: %w", err)
 	}
 
+	details.BuildSrcPath = filepath.Join(params.KernelDir, buildCfg.BuildSrcPath)
+
 	return details, nil
 }
 
@@ -165,13 +167,4 @@ func (a android) clean(kernelDir, targetArch string) error {
 		return fmt.Errorf("failed to clean 'dist' directory: %w", err)
 	}
 	return nil
-}
-
-func (a android) buildSrcPath(params Params) (string, error) {
-	buildCfg, err := parseConfig(params.Build)
-	if err != nil {
-		return "", fmt.Errorf("error parsing android configs: %w", err)
-	}
-
-	return filepath.Join(params.KernelDir, buildCfg.BuildSrcPath), nil
 }

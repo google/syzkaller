@@ -15,9 +15,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type gvisor struct {
-	defaultBuilder
-}
+type gvisor struct{}
 
 var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
 

@@ -67,24 +67,25 @@ func init() {
 //   - latest: latest known good kernel build
 //   - current: currently used kernel build
 type Manager struct {
-	name         string
-	workDir      string
-	kernelDir    string
-	currentDir   string
-	latestDir    string
-	configTag    string
-	configData   []byte
-	cfg          *Config
-	repo         vcs.Repo
-	mgrcfg       *ManagerConfig
-	managercfg   *mgrconfig.Config
-	cmd          *ManagerCmd
-	dash         *dashapi.Dashboard
-	debugStorage bool
-	storage      *asset.Storage
-	stop         chan struct{}
-	debug        bool
-	lastBuild    *dashapi.Build
+	name           string
+	workDir        string
+	kernelDir      string
+	kernelBuildSrc string
+	currentDir     string
+	latestDir      string
+	configTag      string
+	configData     []byte
+	cfg            *Config
+	repo           vcs.Repo
+	mgrcfg         *ManagerConfig
+	managercfg     *mgrconfig.Config
+	cmd            *ManagerCmd
+	dash           *dashapi.Dashboard
+	debugStorage   bool
+	storage        *asset.Storage
+	stop           chan struct{}
+	debug          bool
+	lastBuild      *dashapi.Build
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
@@ -310,23 +311,6 @@ func (mgr *Manager) createBuildInfo(kernelCommit *vcs.Commit, compilerID string)
 	}
 }
 
-func (mgr *Manager) buildParams() build.Params {
-	return build.Params{
-		TargetOS:     mgr.managercfg.TargetOS,
-		TargetArch:   mgr.managercfg.TargetVMArch,
-		VMType:       mgr.managercfg.Type,
-		KernelDir:    mgr.kernelDir,
-		Compiler:     mgr.mgrcfg.Compiler,
-		Linker:       mgr.mgrcfg.Linker,
-		Ccache:       mgr.mgrcfg.Ccache,
-		UserspaceDir: mgr.mgrcfg.Userspace,
-		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
-		SysctlFile:   mgr.mgrcfg.KernelSysctl,
-		Config:       mgr.configData,
-		Build:        mgr.mgrcfg.Build,
-	}
-}
-
 func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	// We first form the whole image in tmp dir and then rename it to latest.
 	tmpDir := mgr.latestDir + ".tmp"
@@ -336,9 +320,23 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	if err := osutil.MkdirAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to create tmp dir: %w", err)
 	}
-	params := mgr.buildParams()
-	params.OutputDir = tmpDir
+	params := build.Params{
+		TargetOS:     mgr.managercfg.TargetOS,
+		TargetArch:   mgr.managercfg.TargetVMArch,
+		VMType:       mgr.managercfg.Type,
+		KernelDir:    mgr.kernelDir,
+		OutputDir:    tmpDir,
+		Compiler:     mgr.mgrcfg.Compiler,
+		Linker:       mgr.mgrcfg.Linker,
+		Ccache:       mgr.mgrcfg.Ccache,
+		UserspaceDir: mgr.mgrcfg.Userspace,
+		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
+		SysctlFile:   mgr.mgrcfg.KernelSysctl,
+		Config:       mgr.configData,
+		Build:        mgr.mgrcfg.Build,
+	}
 	details, err := build.Image(params)
+	mgr.kernelBuildSrc = details.BuildSrcPath
 	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)
 	if err != nil {
 		rep := &report.Report{
@@ -527,11 +525,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 		return nil, err
 	}
 	mgrcfg.KernelSrc = mgr.kernelDir
-	kernelBuildSrc, err := build.BuildSourcePath(mgr.buildParams())
-	if err != nil {
-		return nil, err
-	}
-	mgrcfg.KernelBuildSrc = kernelBuildSrc
+	mgrcfg.KernelBuildSrc = mgr.kernelBuildSrc
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %w", err)
 	}
@@ -569,6 +563,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.KernelSrc = mgr.kernelDir
+	mgrcfg.KernelBuildSrc = mgr.kernelBuildSrc
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return "", fmt.Errorf("bad manager config: %w", err)
 	}

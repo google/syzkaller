@@ -7,9 +7,7 @@ import (
 	"fmt"
 )
 
-type darwin struct {
-	defaultBuilder
-}
+type darwin struct{}
 
 func (ctx darwin) build(params Params) (ImageDetails, error) {
 	// TODO(HerrSpace): Implement this.

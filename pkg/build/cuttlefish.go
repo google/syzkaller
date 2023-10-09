@@ -23,9 +23,7 @@ const (
 	bazelTarget  = "//common-modules/virtual-device:virtual_device_x86_64_dist"
 )
 
-type cuttlefish struct {
-	defaultBuilder
-}
+type cuttlefish struct{}
 
 func (c cuttlefish) runBuild(kernelDir, buildConfig string) error {
 	cmd := osutil.Command("build/build.sh")

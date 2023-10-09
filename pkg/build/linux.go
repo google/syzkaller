@@ -22,9 +22,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type linux struct {
-	defaultBuilder
-}
+type linux struct{}
 
 func (linux linux) build(params Params) (ImageDetails, error) {
 	details := ImageDetails{}

@@ -42,8 +42,9 @@ type Params struct {
 
 // Information that is returned from the Image function.
 type ImageDetails struct {
-	Signature  string
-	CompilerID string
+	Signature    string
+	CompilerID   string
+	BuildSrcPath string
 }
 
 // Image creates a disk image for the specified OS/ARCH/VM.
@@ -115,14 +116,6 @@ func Clean(targetOS, targetArch, vmType, kernelDir string) error {
 	return builder.clean(kernelDir, targetArch)
 }
 
-func BuildSourcePath(params Params) (string, error) {
-	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
-	if err != nil {
-		return "", err
-	}
-	return builder.buildSrcPath(params)
-}
-
 type KernelError struct {
 	Report     []byte
 	Output     []byte
@@ -137,21 +130,6 @@ func (err *KernelError) Error() string {
 type builder interface {
 	build(params Params) (ImageDetails, error)
 	clean(kernelDir, targetArch string) error
-	buildSrcPath(params Params) (string, error)
-}
-
-type defaultBuilder struct{}
-
-func (defaultBuilder) build(params Params) (ImageDetails, error) {
-	return ImageDetails{}, nil
-}
-
-func (defaultBuilder) clean(kernelDir, targetArch string) error {
-	return nil
-}
-
-func (defaultBuilder) buildSrcPath(params Params) (string, error) {
-	return params.KernelDir, nil
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
