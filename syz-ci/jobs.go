@@ -366,6 +366,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
 	mgrcfg.KernelSrc = filepath.Join(dir, "kernel")
+	mgrcfg.KernelBuildSrc = mgr.kernelBuildSrc
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 	os.RemoveAll(mgrcfg.Workdir)
 	defer os.RemoveAll(mgrcfg.Workdir)

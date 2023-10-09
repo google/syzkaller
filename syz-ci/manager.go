@@ -67,24 +67,25 @@ func init() {
 //   - latest: latest known good kernel build
 //   - current: currently used kernel build
 type Manager struct {
-	name         string
-	workDir      string
-	kernelDir    string
-	currentDir   string
-	latestDir    string
-	configTag    string
-	configData   []byte
-	cfg          *Config
-	repo         vcs.Repo
-	mgrcfg       *ManagerConfig
-	managercfg   *mgrconfig.Config
-	cmd          *ManagerCmd
-	dash         *dashapi.Dashboard
-	debugStorage bool
-	storage      *asset.Storage
-	stop         chan struct{}
-	debug        bool
-	lastBuild    *dashapi.Build
+	name           string
+	workDir        string
+	kernelDir      string
+	kernelBuildSrc string
+	currentDir     string
+	latestDir      string
+	configTag      string
+	configData     []byte
+	cfg            *Config
+	repo           vcs.Repo
+	mgrcfg         *ManagerConfig
+	managercfg     *mgrconfig.Config
+	cmd            *ManagerCmd
+	dash           *dashapi.Dashboard
+	debugStorage   bool
+	storage        *asset.Storage
+	stop           chan struct{}
+	debug          bool
+	lastBuild      *dashapi.Build
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
@@ -335,6 +336,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		Build:        mgr.mgrcfg.Build,
 	}
 	details, err := build.Image(params)
+	mgr.kernelBuildSrc = details.BuildSrcPath
 	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)
 	if err != nil {
 		rep := &report.Report{
@@ -523,6 +525,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 		return nil, err
 	}
 	mgrcfg.KernelSrc = mgr.kernelDir
+	mgrcfg.KernelBuildSrc = mgr.kernelBuildSrc
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %w", err)
 	}
@@ -560,6 +563,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.KernelSrc = mgr.kernelDir
+	mgrcfg.KernelBuildSrc = mgr.kernelBuildSrc
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return "", fmt.Errorf("bad manager config: %w", err)
 	}

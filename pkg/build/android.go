@@ -23,6 +23,7 @@ type BuildParams struct {
 	BuildTarget       string `json:"build_target"`
 	BuildScript       string `json:"build_script"`
 	VendorBootImage   string `json:"vendor_boot_image"`
+	BuildSrcPath      string `json:"build_src_path"`
 }
 
 var ccCompilerRegexp = regexp.MustCompile(`#define\s+CONFIG_CC_VERSION_TEXT\s+"(.*)"`)
@@ -121,6 +122,8 @@ func (a android) build(params Params) (ImageDetails, error) {
 	if err != nil {
 		return details, fmt.Errorf("failed to generate signature: %w", err)
 	}
+
+	details.BuildSrcPath = buildCfg.BuildSrcPath
 
 	return details, nil
 }

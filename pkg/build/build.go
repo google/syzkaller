@@ -42,8 +42,9 @@ type Params struct {
 
 // Information that is returned from the Image function.
 type ImageDetails struct {
-	Signature  string
-	CompilerID string
+	Signature    string
+	CompilerID   string
+	BuildSrcPath string
 }
 
 // Image creates a disk image for the specified OS/ARCH/VM.
