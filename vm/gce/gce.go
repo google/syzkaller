@@ -107,10 +107,11 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
-	GCE, err := gce.NewContext(cfg.ZoneID)
+	GCE, err := initGCE(cfg.ZoneID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init gce: %w", err)
+		return nil, err
 	}
+
 	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
 
@@ -136,6 +137,30 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		consoleReadCmd: consoleReadCmd,
 	}
 	return pool, nil
+}
+
+func initGCE(zoneID string) (*gce.Context, error) {
+	// There happen some transient GCE init errors on and off.
+	// Let's try it several times before aborting.
+	const (
+		gceInitAttempts = 3
+		gceInitBackoff  = 5 * time.Second
+	)
+	var (
+		GCE *gce.Context
+		err error
+	)
+	for i := 1; i <= gceInitAttempts; i++ {
+		if i > 1 {
+			time.Sleep(gceInitBackoff)
+		}
+		GCE, err = gce.NewContext(zoneID)
+		if err == nil {
+			return GCE, nil
+		}
+		log.Logf(0, "init GCE attempt %d/%d failed: %v", i, gceInitAttempts, err)
+	}
+	return nil, fmt.Errorf("all attempts to init GCE failed: %w", err)
 }
 
 func (pool *Pool) Count() int {
