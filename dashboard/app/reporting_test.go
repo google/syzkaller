@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestReportBug(t *testing.T) {
@@ -790,12 +791,12 @@ func TestUpdateBugReporting(t *testing.T) {
 	defer c.Close()
 	setIDs := func(bug *Bug, arr []BugReporting) {
 		for i := range arr {
-			arr[i].ID = bugReportingHash(bug.keyHash(), arr[i].Name)
+			arr[i].ID = bugReportingHash(bug.keyHash(c.ctx), arr[i].Name)
 		}
 	}
 	now := timeNow(c.ctx)
 	// We test against the test2 namespace.
-	cfg := config.Namespaces["test2"]
+	cfg := c.config().Namespaces["test2"]
 	tests := []struct {
 		Before []BugReporting
 		After  []BugReporting
@@ -919,7 +920,7 @@ func TestUpdateBugReporting(t *testing.T) {
 		}
 		setIDs(bug, bug.Reporting)
 		setIDs(bug, test.After)
-		hasError := bug.updateReportings(cfg, now) != nil
+		hasError := bug.updateReportings(c.ctx, cfg, now) != nil
 		if hasError != test.Error {
 			t.Errorf("Before: %#v, Expected error: %v, Got error: %v", test.Before, test.Error, hasError)
 		}
@@ -1109,6 +1110,8 @@ func TestReportDecommissionedBugs(t *testing.T) {
 
 func TestObsoletePeriod(t *testing.T) {
 	base := time.Now()
+	c := context.Background()
+	config := getConfig(c)
 	tests := []struct {
 		name   string
 		bug    *Bug
@@ -1166,7 +1169,7 @@ func TestObsoletePeriod(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			ret := test.bug.obsoletePeriod()
+			ret := test.bug.obsoletePeriod(c)
 			assert.Equal(t, test.period, ret)
 		})
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 // nolint: funlen
@@ -42,7 +43,7 @@ func TestEmailReport(t *testing.T) {
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
-		to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
+		to := c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 		c.expectEQ(msg.To, []string{to})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
@@ -146,7 +147,7 @@ For more options, visit https://groups.google.com/d/optout.
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
 	syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-		dbBug0.keyHash(), syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
+		dbBug0.keyHash(c.ctx), syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
 	c.client2.ReportCrash(crash)
 
 	{
@@ -165,7 +166,7 @@ For more options, visit https://groups.google.com/d/optout.
 			"bugs@syzkaller.com", // This is from incomingEmail.
 			"default@sender.com", // This is from incomingEmail.
 			"foo@bar.com",
-			config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
+			c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
 		}
 		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
@@ -295,7 +296,7 @@ Content-Type: text/plain
 	crash.Maintainers = []string{"\"qux\" <qux@qux.com>"}
 	c.client2.ReportCrash(crash)
 	cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
-		dbBug0.keyHash(), crash.ReproC))
+		dbBug0.keyHash(c.ctx), crash.ReproC))
 
 	{
 		msg := c.pollEmailBug()
@@ -943,7 +944,7 @@ func TestSubjectTitleParser(t *testing.T) {
 		},
 	}
 
-	p := subjectTitleParser{}
+	p := makeSubjectTitleParser(context.Background())
 	for _, test := range tests {
 		title, seq, err := p.parseTitle(test.inSubject)
 		if test.outTitle == "" {
@@ -990,7 +991,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	origSender := upstreamCrash(client, build, crashTitle)
 	upstreamCrash(client, build, "unrelated crash 2")
 
-	mailingList := "<" + config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
+	mailingList := "<" + c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
 
 	// First try to ping some non-existing bug.
 	subject := "Re: unknown-bug"
@@ -1154,7 +1155,7 @@ func TestEmailSetInvalidSubsystems(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1186,7 +1187,7 @@ func TestEmailSetSubsystems(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1218,7 +1219,7 @@ func TestEmailBugLabels(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1264,7 +1265,7 @@ func TestInvalidEmailBugLabels(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)

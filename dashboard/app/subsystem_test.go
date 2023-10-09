@@ -1005,7 +1005,7 @@ func TestRemindersPriority(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
-	mailingList := config.Namespaces["subsystem-reminders"].Reporting[1].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["subsystem-reminders"].Reporting[1].Config.(*EmailConfig).Email
 	build := testBuild(1)
 	client.UploadBuild(build)
 

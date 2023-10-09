@@ -336,23 +336,38 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 	return nil
 }
 
-// config is installed either by tests or from mainConfig in main function
-// (a separate file should install mainConfig in an init function).
+// configDontUse holds the configuration object that is installed either by tests
+// or from mainConfig in main function (a separate file should install mainConfig
+// in an init function).
+// Please access it via the getConfig(context.Context) method.
 var (
-	config     *GlobalConfig
-	mainConfig *GlobalConfig
+	configDontUse *GlobalConfig
+	mainConfig    *GlobalConfig
 )
 
 func installConfig(cfg *GlobalConfig) {
 	checkConfig(cfg)
-	if config != nil {
+	if configDontUse != nil {
 		panic("another config is already installed")
 	}
-	config = cfg
+	configDontUse = cfg
 	initEmailReporting()
 	initHTTPHandlers()
 	initAPIHandlers()
 	initKcidb()
+}
+
+var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"
+
+func contextWithConfig(c context.Context, cfg *GlobalConfig) context.Context {
+	return context.WithValue(c, &contextConfigKey, cfg)
+}
+
+func getConfig(c context.Context) *GlobalConfig {
+	if val, ok := c.Value(&contextConfigKey).(*GlobalConfig); ok {
+		return val
+	}
+	return configDontUse // The base config was not overwriten.
 }
 
 func checkConfig(cfg *GlobalConfig) {
@@ -690,34 +705,6 @@ func (cfg *Config) lastActiveReporting() int {
 	return last
 }
 
-var kernelReposKey = "Custom list of kernel repositories"
-
-func contextWithRepos(c context.Context, list []KernelRepo) context.Context {
-	return context.WithValue(c, &kernelReposKey, list)
-}
-
-func getKernelRepos(c context.Context, ns string) []KernelRepo {
-	if val, ok := c.Value(&kernelReposKey).([]KernelRepo); ok {
-		return val
-	}
-	return config.Namespaces[ns].Repos
-}
-
-var decommKey = "Custom decommissioned status"
-
-func contextWithDecommission(c context.Context, ns string, value bool) context.Context {
-	mm, _ := c.Value(&decommKey).(map[string]bool)
-	if mm == nil {
-		mm = map[string]bool{}
-	}
-	mm[ns] = value
-	return context.WithValue(c, &decommKey, mm)
-}
-
 func isDecommissioned(c context.Context, ns string) bool {
-	mm, _ := c.Value(&decommKey).(map[string]bool)
-	if val, set := mm[ns]; set {
-		return val
-	}
-	return config.Namespaces[ns].Decommissioned
+	return getConfig(c).Namespaces[ns].Decommissioned
 }

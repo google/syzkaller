@@ -166,7 +166,7 @@ func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	}
 	n := 0
 	fixes := make(map[string]bool)
-	lastReporting := config.Namespaces[ns].lastActiveReporting()
+	lastReporting := getConfig(c).Namespaces[ns].lastActiveReporting()
 	for _, bug := range bugs {
 		if bug.Reporting[lastReporting].Reported.IsZero() {
 			if bug.Status == BugStatusOpen {
@@ -293,7 +293,7 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 		} else {
 			ui.NotFixed = 400 - float32(i%7)
 		}
-		if job := causeBisects[bug.keyHash()]; job != nil {
+		if job := causeBisects[bug.keyHash(c)]; job != nil {
 			days := float32(job.Commits[0].Date.Sub(ui.Reported)) / float32(24*time.Hour)
 			if days < -365 {
 				ui.Introduced1y = -365 - float32(i%7)
@@ -523,7 +523,7 @@ func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Reques
 	accessLevel := accessLevel(c, r)
 	nbugs := 0
 	for _, bug := range bugs {
-		if accessLevel < bug.sanitizeAccess(accessLevel) {
+		if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		bugs[nbugs] = bug
@@ -564,7 +564,7 @@ func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *ui
 		titleRegexp := regexp.QuoteMeta(bug.Title)
 		table.Rows = append(table.Rows, &uiCrashSummary{
 			Title:     bug.Title,
-			Link:      bugLink(bug.keyHash()),
+			Link:      bugLink(bug.keyHash(c)),
 			GraphLink: "?show-graph=1&Months=1&regexp=" + url.QueryEscape(titleRegexp),
 			Count:     count,
 		})

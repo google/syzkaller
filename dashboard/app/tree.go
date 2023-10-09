@@ -585,7 +585,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 	if ctx.crash != nil {
 		var err error
 		ns := ctx.bug.Namespace
-		repoGraph, err := makeRepoGraph(getKernelRepos(ctx.c, ns))
+		repoGraph, err := makeRepoGraph(getConfig(ctx.c).Namespaces[ns].Repos)
 		if err != nil {
 			return err
 		}
@@ -602,7 +602,7 @@ func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, *Build, error) {
 		// Let's wait for the repro.
 		return false, nil, nil
 	}
-	newManager, _ := activeManager(crash.Manager, ctx.bug.Namespace)
+	newManager, _ := activeManager(ctx.cGlobal, crash.Manager, ctx.bug.Namespace)
 	if newManager != crash.Manager {
 		// The manager was deprecated since the crash.
 		// Let's just ignore such bugs for now.
@@ -719,7 +719,7 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 // b) Whether the lookup was expensive (it can help optimize crossTreeBisection calls).
 func crossTreeBisection(c context.Context, bug *Bug,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, bool, error) {
-	repoGraph, err := makeRepoGraph(getKernelRepos(c, bug.Namespace))
+	repoGraph, err := makeRepoGraph(getConfig(c).Namespaces[bug.Namespace].Repos)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -754,7 +754,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		if err != nil {
 			return err
 		}
-		manager, _ := activeManager(crashJob.Manager, crashJob.Namespace)
+		manager, _ := activeManager(c, crashJob.Manager, crashJob.Namespace)
 		if !managers[manager].BisectFix {
 			return nil
 		}

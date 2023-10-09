@@ -63,7 +63,7 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 	if u == nil ||
 		// Devappserver does not pass AuthDomain.
 		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
-		!strings.HasSuffix(u.Email, config.AuthDomain) {
+		!strings.HasSuffix(u.Email, getConfig(c).AuthDomain) {
 		return AccessPublic
 	}
 	return AccessUser
@@ -127,7 +127,7 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
 		return nil, nil, fmt.Errorf("failed to get bug: %w", err)
 	}
-	bugLevel := bug.sanitizeAccess(accessLevel(c, r))
+	bugLevel := bug.sanitizeAccess(c, accessLevel(c, r))
 	return bug, crash, checkAccessLevel(c, r, bugLevel)
 }
 
@@ -151,11 +151,12 @@ func checkJobTextAccess(c context.Context, r *http.Request, field string, id int
 	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
 		return fmt.Errorf("failed to get bug: %w", err)
 	}
-	bugLevel := bug.sanitizeAccess(accessLevel(c, r))
+	bugLevel := bug.sanitizeAccess(c, accessLevel(c, r))
 	return checkAccessLevel(c, r, bugLevel)
 }
 
-func (bug *Bug) sanitizeAccess(currentLevel AccessLevel) AccessLevel {
+func (bug *Bug) sanitizeAccess(c context.Context, currentLevel AccessLevel) AccessLevel {
+	config := getConfig(c)
 	for ri := len(bug.Reporting) - 1; ri >= 0; ri-- {
 		bugReporting := &bug.Reporting[ri]
 		if ri == 0 || !bugReporting.Reported.IsZero() {

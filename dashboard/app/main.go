@@ -54,7 +54,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
-	for ns := range config.Namespaces {
+	for ns := range getConfig(context.Background()).Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
@@ -500,7 +500,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	for _, group := range groups {
-		if config.Namespaces[hdr.Namespace].DisplayDiscussions {
+		if getConfig(c).Namespaces[hdr.Namespace].DisplayDiscussions {
 			group.DispDiscuss = true
 		} else {
 			group.DispLastAct = true
@@ -553,7 +553,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	var subsystem *subsystem.Subsystem
 	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
 		name := r.URL.Path[pos+3:]
-		if newName := config.Namespaces[hdr.Namespace].Subsystems.Redirect[name]; newName != "" {
+		if newName := getConfig(c).Namespaces[hdr.Namespace].Subsystems.Redirect[name]; newName != "" {
 			http.Redirect(w, r, r.URL.Path[:pos+3]+newName, http.StatusMovedPermanently)
 			return nil
 		}
@@ -575,7 +575,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	for _, group := range groups {
-		group.DispDiscuss = config.Namespaces[hdr.Namespace].DisplayDiscussions
+		group.DispDiscuss = getConfig(c).Namespaces[hdr.Namespace].DisplayDiscussions
 	}
 	cached, err := CacheGet(c, r, hdr.Namespace)
 	if err != nil {
@@ -622,7 +622,7 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		}
 		incoming := false
 		for _, bug := range backport.Bugs {
-			if accessLevel < bug.sanitizeAccess(accessLevel) {
+			if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 				continue
 			}
 			if !outgoing && bug.Namespace != hdr.Namespace {
@@ -680,7 +680,7 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		Header: hdr,
 		Groups: groups,
 		DisplayNamespace: func(ns string) string {
-			return config.Namespaces[ns].DisplayTitle
+			return getConfig(c).Namespaces[ns].DisplayTitle
 		},
 	})
 }
@@ -743,7 +743,7 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 		if backport == nil {
 			backport = &rawBackport{
 				From:   from,
-				FromNs: namespacesForRepo(from.URL, from.Branch),
+				FromNs: namespacesForRepo(c, from.URL, from.Branch),
 				To:     to,
 				Commit: commit}
 			ret = append(ret, backport)
@@ -754,9 +754,9 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 	return ret, nil
 }
 
-func namespacesForRepo(url, branch string) []string {
+func namespacesForRepo(c context.Context, url, branch string) []string {
 	var ret []string
-	for ns, cfg := range config.Namespaces {
+	for ns, cfg := range getConfig(c).Namespaces {
 		has := false
 		for _, repo := range cfg.Repos {
 			if repo.NoPoll {
@@ -943,7 +943,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		return fmt.Errorf("%w: %w", ErrClientNotFound, err)
 	}
 	accessLevel := accessLevel(c, r)
-	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
+	if err := checkAccessLevel(c, r, bug.sanitizeAccess(c, accessLevel)); err != nil {
 		return err
 	}
 	if r.FormValue("debug_subsystems") != "" && accessLevel == AccessAdmin {
@@ -967,7 +967,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
 			return err
 		}
-		if accessLevel >= dup.sanitizeAccess(accessLevel) {
+		if accessLevel >= dup.sanitizeAccess(c, accessLevel) {
 			sections = append(sections, &uiCollapsible{
 				Title: "Duplicate of",
 				Show:  true,
@@ -1030,7 +1030,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if len(similar.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
-			Show:  config.Namespaces[hdr.Namespace].AccessLevel != AccessPublic,
+			Show:  getConfig(c).Namespaces[hdr.Namespace].AccessLevel != AccessPublic,
 			Type:  sectionBugList,
 			Value: similar,
 		})
@@ -1415,7 +1415,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 		}
 		return err
 	}
-	if err := checkAccessLevel(c, r, config.Namespaces[ns].AccessLevel); err != nil {
+	if err := checkAccessLevel(c, r, getConfig(c).Namespaces[ns].AccessLevel); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -1435,7 +1435,7 @@ func augmentRepro(c context.Context, w http.ResponseWriter, tag string, bug *Bug
 			if tag == textReproC {
 				prefix = "//"
 			}
-			fmt.Fprintf(w, "%v %v/bug?id=%v\n", prefix, appURL(c), bug.keyHash())
+			fmt.Fprintf(w, "%v %v/bug?id=%v\n", prefix, appURL(c), bug.keyHash(c))
 		}
 	}
 	if tag == textReproSyz {
@@ -1519,7 +1519,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	bugMap := make(map[string]*uiBug)
 	var dups []*Bug
 	for _, bug := range bugs {
-		if accessLevel < bug.sanitizeAccess(accessLevel) {
+		if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		if bug.Status == BugStatusDup {
@@ -1534,7 +1534,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 			// Don't show "fix pending" bugs on the main page.
 			continue
 		}
-		bugMap[bug.keyHash()] = uiBug
+		bugMap[bug.keyHash(c)] = uiBug
 		id := uiBug.ReportingIndex
 		groups[id] = append(groups[id], uiBug)
 	}
@@ -1545,7 +1545,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		}
 		mergeUIBug(c, bug, dup)
 	}
-	cfg := config.Namespaces[ns]
+	cfg := getConfig(c).Namespaces[ns]
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
 		sort.Slice(bugs, func(i, j int) bool {
@@ -1658,7 +1658,7 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		Namespace:   ns,
 	}
 	for _, bug := range bugs {
-		if accessLevel < bug.sanitizeAccess(accessLevel) {
+		if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		if !typ.Filter.MatchBug(bug) {
@@ -1686,7 +1686,7 @@ func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
 
 func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
 	*uiBugGroup, error) {
-	bugHash := bug.keyHash()
+	bugHash := bug.keyHash(c)
 	var dups []*Bug
 	_, err := db.NewQuery("Bug").
 		Filter("Status=", BugStatusDup).
@@ -1698,7 +1698,7 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 	var results []*uiBug
 	accessLevel := accessLevel(c, r)
 	for _, dup := range dups {
-		if accessLevel < dup.sanitizeAccess(accessLevel) {
+		if accessLevel < dup.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		results = append(results, createUIBug(c, dup, state, managers))
@@ -1722,7 +1722,7 @@ func loadSimilarBugsUI(c context.Context, r *http.Request, bug *Bug, state *Repo
 	}
 	var results []*uiBug
 	for _, similar := range similarBugs {
-		if accessLevel < similar.sanitizeAccess(accessLevel) {
+		if accessLevel < similar.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		if managers[similar.Namespace] == nil {
@@ -1820,13 +1820,13 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		ReproLevel:     bug.ReproLevel,
 		ReportingIndex: reportingIdx,
 		Status:         status,
-		Link:           bugExtLink(bug),
+		Link:           bugExtLink(c, bug),
 		ExternalLink:   link,
 		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
 		LastActivity:   bug.LastActivity,
 		Discussions:    bug.discussionSummary(),
-		ID:             bug.keyHash(),
+		ID:             bug.keyHash(c),
 	}
 	for _, entry := range bug.Labels {
 		uiBug.Labels = append(uiBug.Labels, makeBugLabelUI(c, bug, entry))
@@ -1834,7 +1834,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
 		for i, com := range bug.Commits {
-			cfg := config.Namespaces[bug.Namespace]
+			cfg := getConfig(c).Namespaces[bug.Namespace]
 			info := bug.getCommitInfo(i)
 			uiBug.Commits = append(uiBug.Commits, &uiCommit{
 				Hash:   info.Hash,
@@ -2087,8 +2087,8 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter 
 		coverURL := ""
 		if asset, ok := coverAssets[mgr.Name]; ok {
 			coverURL = asset.DownloadURL
-		} else if config.CoverPath != "" {
-			coverURL = config.CoverPath + mgr.Name + ".html"
+		} else if getConfig(c).CoverPath != "" {
+			coverURL = getConfig(c).CoverPath + mgr.Name + ".html"
 		}
 		ui := &uiManager{
 			Now:                   timeNow(c),
@@ -2128,7 +2128,7 @@ func loadManagerList(c context.Context, accessLevel AccessLevel, ns string,
 	var filtered []*Manager
 	var filteredKeys []*db.Key
 	for i, mgr := range managers {
-		cfg := config.Namespaces[mgr.Namespace]
+		cfg := getConfig(c).Namespaces[mgr.Namespace]
 		if accessLevel < cfg.AccessLevel {
 			continue
 		}
@@ -2388,10 +2388,10 @@ func (b *bugJobs) uiBestFixCandidate(c context.Context) (*uiJob, error) {
 
 // bugExtLink should be preferred to bugLink since it provides a URL that's more consistent with
 // links from email addresses.
-func bugExtLink(bug *Bug) string {
-	_, bugReporting, _, _, _ := currentReporting(bug)
+func bugExtLink(c context.Context, bug *Bug) string {
+	_, bugReporting, _, _, _ := currentReporting(c, bug)
 	if bugReporting == nil || bugReporting.ID == "" {
-		return bugLink(bug.keyHash())
+		return bugLink(bug.keyHash(c))
 	}
 	return "/bug?extid=" + bugReporting.ID
 }

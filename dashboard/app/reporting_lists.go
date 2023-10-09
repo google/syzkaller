@@ -32,7 +32,7 @@ func reportingPollBugLists(c context.Context, typ string) []*dashapi.BugListRepo
 		return nil
 	}
 	ret := []*dashapi.BugListReport{}
-	for ns, nsConfig := range config.Namespaces {
+	for ns, nsConfig := range getConfig(c).Namespaces {
 		rConfig := nsConfig.Subsystems.Reminder
 		if rConfig == nil {
 			continue
@@ -80,7 +80,7 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "failed to load subsystems: %v", err)
 		return
 	}
-	for ns, nsConfig := range config.Namespaces {
+	for ns, nsConfig := range getConfig(c).Namespaces {
 		rConfig := nsConfig.Subsystems.Reminder
 		if rConfig == nil {
 			continue
@@ -173,7 +173,7 @@ func reportingBugListCommand(c context.Context, cmd *dashapi.BugListUpdate) (str
 				return fmt.Errorf("failed to query state: %w", err)
 			}
 			stateEnt := state.getEntry(timeNow(c), subsystem.Namespace,
-				config.Namespaces[subsystem.Namespace].Subsystems.Reminder.SourceReporting)
+				getConfig(c).Namespaces[subsystem.Namespace].Subsystems.Reminder.SourceReporting)
 			stateEnt.Sent++
 			if err := saveReportingState(c, state); err != nil {
 				return fmt.Errorf("failed to save state: %w", err)
@@ -249,7 +249,7 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 	}
 	withRepro, noRepro := []*Bug{}, []*Bug{}
 	for _, bug := range rawOpenBugs {
-		currReporting, _, _, _, _ := currentReporting(bug)
+		currReporting, _, _, _, _ := currentReporting(c, bug)
 		if reporting.Name != currReporting.Name {
 			// The big is not at the expected reporting stage.
 			continue
@@ -370,7 +370,7 @@ func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLev
 			fixed = append(fixed, bug)
 			continue
 		}
-		currReporting, _, _, _, err := currentReporting(bug)
+		currReporting, _, _, _, err := currentReporting(c, bug)
 		if err != nil {
 			continue
 		}
@@ -420,7 +420,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 		if !stage.Closed.IsZero() {
 			continue
 		}
-		repConfig := bugListReportingConfig(ns, &stage)
+		repConfig := bugListReportingConfig(c, ns, &stage)
 		if repConfig == nil {
 			// It might happen if e.g. Moderation was set to nil.
 			// Just skip the stage then.
@@ -443,7 +443,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 			Moderation:  stage.Moderation,
 			TotalStats:  subsystemReport.TotalStats.toDashapi(),
 			PeriodStats: subsystemReport.PeriodStats.toDashapi(),
-			PeriodDays:  config.Namespaces[ns].Subsystems.Reminder.PeriodDays,
+			PeriodDays:  getConfig(c).Namespaces[ns].Subsystems.Reminder.PeriodDays,
 		}
 		bugKeys, err := subsystemReport.getBugKeys()
 		if err != nil {
@@ -456,7 +456,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 		}
 		for _, bug := range bugs {
 			bugReporting := bugReportingByName(bug,
-				config.Namespaces[ns].Subsystems.Reminder.SourceReporting)
+				getConfig(c).Namespaces[ns].Subsystems.Reminder.SourceReporting)
 			ret.Bugs = append(ret.Bugs, dashapi.BugListItem{
 				Title:      bug.displayTitle(),
 				Link:       fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
@@ -469,8 +469,8 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 	return nil, nil
 }
 
-func bugListReportingConfig(ns string, stage *SubsystemReportStage) ReportingType {
-	cfg := config.Namespaces[ns].Subsystems.Reminder
+func bugListReportingConfig(c context.Context, ns string, stage *SubsystemReportStage) ReportingType {
+	cfg := getConfig(c).Namespaces[ns].Subsystems.Reminder
 	if stage.Moderation {
 		return cfg.ModerationConfig
 	}

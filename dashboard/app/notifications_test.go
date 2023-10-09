@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"golang.org/x/net/context"
 )
 
 func TestEmailNotifUpstreamEmbargo(t *testing.T) {
@@ -214,9 +215,10 @@ func TestBugObsoleting(t *testing.T) {
 			period: 80 * day,
 		},
 	}
+	c := context.Background()
 	for i, test := range tests {
 		test.bug.Namespace = "test1"
-		got := test.bug.obsoletePeriod()
+		got := test.bug.obsoletePeriod(c)
 		if got != test.period {
 			t.Errorf("test #%v: got: %.2f, want %.2f",
 				i, float64(got/time.Hour)/24, float64(test.period/time.Hour)/24)

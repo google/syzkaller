@@ -135,7 +135,7 @@ func logSubsystemChange(c context.Context, bug *Bug, new []*subsystem.Subsystem)
 	sort.Strings(newNames)
 	if !reflect.DeepEqual(oldNames, newNames) {
 		log.Infof(c, "bug %s: subsystems set from %v to %v",
-			bug.keyHash(), oldNames, newNames)
+			bug.keyHash(c), oldNames, newNames)
 	}
 }
 
@@ -190,35 +190,12 @@ func subsystemMaintainers(c context.Context, ns, subsystemName string) []string 
 	return item.Emails()
 }
 
-var subsystemsListKey = "custom list of kernel subsystems"
-
-type customSubsystemList struct {
-	ns       string
-	list     []*subsystem.Subsystem
-	revision int
-}
-
-func contextWithSubsystems(c context.Context, custom *customSubsystemList) context.Context {
-	return context.WithValue(c, &subsystemsListKey, custom)
-}
-
 func getSubsystemService(c context.Context, ns string) *subsystem.Service {
-	// This is needed to emulate changes to the subsystem list over time during testing.
-	if val, ok := c.Value(&subsystemsListKey).(*customSubsystemList); ok && val.ns == ns {
-		if len(val.list) == 0 {
-			return nil
-		} else {
-			return subsystem.MustMakeService(val.list)
-		}
-	}
-	return config.Namespaces[ns].Subsystems.Service
+	return getConfig(c).Namespaces[ns].Subsystems.Service
 }
 
 func getSubsystemRevision(c context.Context, ns string) int {
-	if val, ok := c.Value(&subsystemsListKey).(*customSubsystemList); ok && val.ns == ns {
-		return val.revision
-	}
-	return config.Namespaces[ns].Subsystems.Revision
+	return getConfig(c).Namespaces[ns].Subsystems.Revision
 }
 
 func subsystemListURL(c context.Context, ns string) string {

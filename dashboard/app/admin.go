@@ -213,7 +213,7 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		return err
 	}
 	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
-	cfg := config.Namespaces[ns]
+	cfg := getConfig(c).Namespaces[ns]
 	var update []*db.Key
 	for i, bug := range bugs {
 		if len(bug.Reporting) >= len(cfg.Reporting) {
@@ -222,7 +222,7 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		update = append(update, keys[i])
 	}
 	return updateBatch(c, update, func(_ *db.Key, bug *Bug) {
-		err := bug.updateReportings(cfg, timeNow(c))
+		err := bug.updateReportings(c, cfg, timeNow(c))
 		if err != nil {
 			panic(err)
 		}
@@ -364,8 +364,8 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 			}
 		}
 		if actual != bug.HeadReproLevel {
-			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n", bugLink(bug.keyHash()), actual, bug.HeadReproLevel)
-			newLevels[bug.keyHash()] = actual
+			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n", bugLink(bug.keyHash(c)), actual, bug.HeadReproLevel)
+			newLevels[bug.keyHash(c)] = actual
 			keys = append(keys, key)
 		}
 		return nil
@@ -373,7 +373,7 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 		return err
 	}
 	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {
-		newLevel, ok := newLevels[bug.keyHash()]
+		newLevel, ok := newLevels[bug.keyHash(c)]
 		if !ok {
 			panic("fetched unknown bug")
 		}

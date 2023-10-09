@@ -105,7 +105,7 @@ func (ce *ErrClient) HTTPStatus() int {
 
 func handleAuth(fn contextHandler) contextHandler {
 	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {
-		if err := checkAccessLevel(c, r, config.AccessLevel); err != nil {
+		if err := checkAccessLevel(c, r, getConfig(c).AccessLevel); err != nil {
 			return err
 		}
 		return fn(c, w, r)
@@ -148,8 +148,8 @@ func commonHeaderRaw(c context.Context, r *http.Request) *uiHeader {
 	h := &uiHeader{
 		Admin:               accessLevel(c, r) == AccessAdmin,
 		URLPath:             r.URL.Path,
-		AnalyticsTrackingID: config.AnalyticsTrackingID,
-		ContactEmail:        config.ContactEmail,
+		AnalyticsTrackingID: getConfig(c).AnalyticsTrackingID,
+		ContactEmail:        getConfig(c).ContactEmail,
 	}
 	if user.Current(c) == nil {
 		h.LoginLink, _ = user.LoginURL(c, r.URL.String())
@@ -172,7 +172,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	const adminPage = "admin"
 	isAdminPage := r.URL.Path == "/"+adminPage
 	found := false
-	for ns1, cfg := range config.Namespaces {
+	for ns1, cfg := range getConfig(c).Namespaces {
 		if accessLevel < cfg.AccessLevel {
 			if ns1 == ns {
 				return nil, ErrAccess
@@ -195,8 +195,8 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	})
 	cookie := decodeCookie(r)
 	if !found {
-		ns = config.DefaultNamespace
-		if cfg := config.Namespaces[cookie.Namespace]; cfg != nil && cfg.AccessLevel <= accessLevel {
+		ns = getConfig(c).DefaultNamespace
+		if cfg := getConfig(c).Namespaces[cookie.Namespace]; cfg != nil && cfg.AccessLevel <= accessLevel {
 			ns = cookie.Namespace
 		}
 		if accessLevel == AccessAdmin {
