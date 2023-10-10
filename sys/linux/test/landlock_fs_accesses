@@ -33,7 +33,7 @@ symlinkat(&AUTO='./file2\x00', 0xffffffffffffff9c, &AUTO='./file6\x00')
 
 # Creates a ruleset to restrict all kind of file creation.
 
-r0 = landlock_create_ruleset(&AUTO={0x1fff}, AUTO, 0x0)
+r0 = landlock_create_ruleset(&AUTO={0x1fff, 0x0}, AUTO, 0x0)
 prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
 landlock_restrict_self(r0, 0x0)
 

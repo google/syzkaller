@@ -12,7 +12,7 @@ mkdirat(0xffffffffffffff9c, &AUTO='./file1/file4/file7\x00', 0x1c0)
 
 # Creates a ruleset to restrict file linking/renaming and execution (to get an extra access right).
 
-r0 = landlock_create_ruleset(&AUTO={0x2001}, AUTO, 0x0)
+r0 = landlock_create_ruleset(&AUTO={0x2001, 0x0}, AUTO, 0x0)
 
 # Allows link and rename from and to file1.
 
