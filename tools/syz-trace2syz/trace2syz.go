@@ -16,8 +16,8 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"path/filepath"
+	"os"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/db"
@@ -96,7 +96,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 }
 
 func getTraceFiles(dir string) []string {
-	infos, err := ioutil.ReadDir(dir)
+	infos, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatalf("%s", err)
 
