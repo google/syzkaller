@@ -123,7 +123,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("failed to generate signature: %w", err)
 	}
 
-	details.BuildSrcPath = buildCfg.BuildSrcPath
+	details.BuildSrcPath = filepath.Join(params.KernelDir, buildCfg.BuildSrcPath)
 
 	return details, nil
 }
