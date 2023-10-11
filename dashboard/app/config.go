@@ -708,7 +708,3 @@ func (cfg *Config) lastActiveReporting() int {
 	}
 	return last
 }
-
-func isDecommissioned(c context.Context, ns string) bool {
-	return getConfig(c).Namespaces[ns].Decommissioned
-}
