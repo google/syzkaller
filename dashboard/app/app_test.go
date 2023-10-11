@@ -34,6 +34,7 @@ func init() {
 	isBrokenAuthDomainInTest = true
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
+	ensureConfigImmutability = true
 	initMocks()
 	installConfig(testConfig)
 }
