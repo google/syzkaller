@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/storage v1.33.0
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golangci/golangci-lint v1.54.2
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/ianlancetaylor/demangle v0.0.0-20220517205856-0058ec4f073c
 	github.com/prometheus/client_golang v1.17.0
