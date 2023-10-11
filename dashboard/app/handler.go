@@ -182,7 +182,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		if ns1 == ns {
 			found = true
 		}
-		if isDecommissioned(c, ns1) {
+		if getNsConfig(c, ns1).Decommissioned {
 			continue
 		}
 		h.Namespaces = append(h.Namespaces, uiNamespace{
@@ -208,7 +208,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	}
 	if ns != adminPage {
 		h.Namespace = ns
-		h.ShowSubsystems = getSubsystemService(c, ns) != nil
+		h.ShowSubsystems = getNsConfig(c, ns).Subsystems.Service != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)
 		cached, err := CacheGet(c, r, ns)

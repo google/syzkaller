@@ -42,7 +42,7 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 		NoRemindersLabel:     trueFalse{},
 		MissingBackportLabel: trueFalse{},
 	}
-	service := getSubsystemService(c, ns)
+	service := getNsConfig(c, ns).Subsystems.Service
 	if service != nil {
 		names := []string{}
 		for _, item := range service.List() {

@@ -508,7 +508,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	}
 	data := &uiMainPage{
 		Header:         hdr,
-		Decommissioned: isDecommissioned(c, hdr.Namespace),
+		Decommissioned: getNsConfig(c, hdr.Namespace).Decommissioned,
 		Now:            timeNow(c),
 		Groups:         groups,
 		Managers:       makeManagerList(managers, hdr.Namespace),
@@ -546,7 +546,7 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
-	service := getSubsystemService(c, hdr.Namespace)
+	service := getNsConfig(c, hdr.Namespace).Subsystems.Service
 	if service == nil {
 		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
 	}
@@ -1191,7 +1191,7 @@ func getLabelGroups(c context.Context, bug *Bug) []*uiBugLabelGroup {
 }
 
 func debugBugSubsystems(c context.Context, w http.ResponseWriter, bug *Bug) error {
-	service := getSubsystemService(c, bug.Namespace)
+	service := getNsConfig(c, bug.Namespace).Subsystems.Service
 	if service == nil {
 		w.Write([]byte("Subsystem service was not found."))
 		return nil
@@ -1331,7 +1331,7 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err
 	}
-	service := getSubsystemService(c, hdr.Namespace)
+	service := getNsConfig(c, hdr.Namespace).Subsystems.Service
 	if service == nil {
 		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
 	}

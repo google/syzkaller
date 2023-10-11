@@ -434,7 +434,7 @@ func jobFromBugSample(c context.Context, managers map[string]dashapi.ManagerJobs
 				// for which we were already given fixing commits.
 				return false
 			}
-			if isDecommissioned(c, bug.Namespace) {
+			if getNsConfig(c, bug.Namespace).Decommissioned {
 				return false
 			}
 			return true
@@ -712,7 +712,7 @@ func shouldBisectBug(c context.Context, bug *Bug, managers map[string]bool, jobT
 		return false
 	}
 
-	if isDecommissioned(c, bug.Namespace) {
+	if getNsConfig(c, bug.Namespace).Decommissioned {
 		return false
 	}
 

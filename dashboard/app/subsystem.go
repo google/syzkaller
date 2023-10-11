@@ -19,7 +19,7 @@ import (
 // reassignBugSubsystems is expected to be periodically called to refresh old automatic
 // subsystem assignments.
 func reassignBugSubsystems(c context.Context, ns string, count int) error {
-	service := getSubsystemService(c, ns)
+	service := getNsConfig(c, ns).Subsystems.Service
 	if service == nil {
 		return nil
 	}
@@ -28,7 +28,7 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 		return err
 	}
 	log.Infof(c, "updating subsystems for %d bugs in %#v", len(keys), ns)
-	rev := getSubsystemRevision(c, ns)
+	rev := getNsConfig(c, ns).Subsystems.Revision
 	for i, bugKey := range keys {
 		if bugs[i].hasUserSubsystems() {
 			// It might be that the user-set subsystem no longer exists.
@@ -179,7 +179,7 @@ func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key,
 
 // subsystemMaintainers queries the list of emails to send the bug to.
 func subsystemMaintainers(c context.Context, ns, subsystemName string) []string {
-	service := getSubsystemService(c, ns)
+	service := getNsConfig(c, ns).Subsystems.Service
 	if service == nil {
 		return nil
 	}
@@ -199,7 +199,7 @@ func getSubsystemRevision(c context.Context, ns string) int {
 }
 
 func subsystemListURL(c context.Context, ns string) string {
-	if getSubsystemService(c, ns) == nil {
+	if getNsConfig(c, ns).Subsystems.Service == nil {
 		return ""
 	}
 	return fmt.Sprintf("%v/%v/subsystems?all=true", appURL(c), ns)

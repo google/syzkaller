@@ -807,7 +807,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.HasReport = true
 		}
 		if calculateSubsystems {
-			bug.SetAutoSubsystems(c, newSubsystems, now, getSubsystemRevision(c, ns))
+			bug.SetAutoSubsystems(c, newSubsystems, now, getNsConfig(c, ns).Subsystems.Revision)
 		}
 		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
