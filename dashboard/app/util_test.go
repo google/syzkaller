@@ -82,7 +82,6 @@ func NewCtx(t *testing.T) *Ctx {
 	c.client2 = c.makeClient(client2, password2, true)
 	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
 	c.ctx = registerRequest(r, c).Context()
-
 	return c
 }
 
@@ -207,6 +206,7 @@ func (c *Ctx) Close() {
 		}
 	}
 	unregisterContext(c)
+	validateGlobalConfig()
 }
 
 func (c *Ctx) advanceTime(d time.Duration) {

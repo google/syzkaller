@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
@@ -99,9 +100,9 @@ type Config struct {
 	Reporting []Reporting
 	// TransformCrash hook is called when a manager uploads a crash.
 	// The hook can transform the crash or discard the crash by returning false.
-	TransformCrash func(build *Build, crash *dashapi.Crash) bool
+	TransformCrash func(build *Build, crash *dashapi.Crash) bool `json:"-"`
 	// NeedRepro hook can be used to prevent reproduction of some bugs.
-	NeedRepro func(bug *Bug) bool
+	NeedRepro func(bug *Bug) bool `json:"-"`
 	// List of kernel repositories for this namespace.
 	// The first repo considered the "main" repo (e.g. fixing commit info is shown against this repo).
 	// Other repos are secondary repos, they may be tested or not.
@@ -223,7 +224,7 @@ type Reporting struct {
 	// Name used in UI.
 	DisplayTitle string
 	// Filter can be used to conditionally skip this reporting or hold off reporting.
-	Filter ReportingFilter
+	Filter ReportingFilter `json:"-"`
 	// How many new bugs report per day.
 	DailyLimit int
 	// Upstream reports into next reporting after this period.
@@ -345,12 +346,22 @@ var (
 	mainConfig    *GlobalConfig
 )
 
+// To ensure config integrity during tests, we marshal config after it's installed
+// and optionally verify it during execution.
+var (
+	ensureConfigImmutability = false
+	marshaledConfig          = ""
+)
+
 func installConfig(cfg *GlobalConfig) {
 	checkConfig(cfg)
 	if configDontUse != nil {
 		panic("another config is already installed")
 	}
 	configDontUse = cfg
+	if ensureConfigImmutability {
+		marshaledConfig = cfg.marshalJSON()
+	}
 	initEmailReporting()
 	initHTTPHandlers()
 	initAPIHandlers()
@@ -364,10 +375,22 @@ func contextWithConfig(c context.Context, cfg *GlobalConfig) context.Context {
 }
 
 func getConfig(c context.Context) *GlobalConfig {
+	// Check point.
+	validateGlobalConfig()
+
 	if val, ok := c.Value(&contextConfigKey).(*GlobalConfig); ok {
 		return val
 	}
 	return configDontUse // The base config was not overwriten.
+}
+
+func validateGlobalConfig() {
+	if ensureConfigImmutability {
+		currentConfig := configDontUse.marshalJSON()
+		if diff := cmp.Diff(currentConfig, marshaledConfig); diff != "" {
+			panic("global config changed during execution: " + diff)
+		}
+	}
 }
 
 func getNsConfig(c context.Context, ns string) *Config {
@@ -707,4 +730,12 @@ func (cfg *Config) lastActiveReporting() int {
 		last--
 	}
 	return last
+}
+
+func (gCfg *GlobalConfig) marshalJSON() string {
+	ret, err := json.MarshalIndent(gCfg, "", " ")
+	if err != nil {
+		panic(err)
+	}
+	return string(ret)
 }
