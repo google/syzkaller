@@ -660,7 +660,7 @@ func (p *parser) parseArgStruct(typ Type, dir Dir) (Arg, error) {
 	p.Parse('{')
 	t1, ok := typ.(*StructType)
 	if !ok {
-		p.eatExcessive(false, "wrong struct arg")
+		p.eatExcessive(false, "wrong struct arg for %q", typ.Name())
 		p.Parse('}')
 		return typ.DefaultArg(dir), nil
 	}
@@ -728,7 +728,7 @@ func (p *parser) parseArgArray(typ Type, dir Dir) (Arg, error) {
 func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	t1, ok := typ.(*UnionType)
 	if !ok {
-		p.eatExcessive(true, "wrong union arg")
+		p.eatExcessive(true, "wrong union arg for %q", typ.Name())
 		return typ.DefaultArg(dir), nil
 	}
 	p.Parse('@')
