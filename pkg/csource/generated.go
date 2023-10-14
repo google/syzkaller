@@ -4365,6 +4365,29 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_sndrv_get_elem_id
+
+#include <sound/asound.h>
+static long syz_sndrv_get_elem_id(volatile long a0, volatile long a1)
+{
+	int fd_sndctrl = (int)a0;
+	unsigned int elem_id_rand = (unsigned int)a1;
+
+	if (fd_sndctrl < 0)
+		return -EINVAL;
+
+	int err = 0;
+	struct snd_ctl_elem_list list = {0};
+	err = ioctl(fd_sndctrl, SNDRV_CTL_IOCTL_ELEM_LIST, &list);
+	if (err)
+		return err;
+	if (list.count == 0)
+		return -ENODATA;
+	return (elem_id_rand % list.count) + 1;
+}
+
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup
 
 #define SIZEOF_IO_URING_SQE 64
@@ -4563,7 +4586,7 @@ struct btf_header {
 };
 
 #define BTF_INFO_KIND(info) (((info) >> 24) & 0x0f)
-#define BTF_INFO_VLEN(info) ((info)&0xffff)
+#define BTF_INFO_VLEN(info) ((info) & 0xffff)
 
 #define BTF_KIND_INT 1
 #define BTF_KIND_ARRAY 3
