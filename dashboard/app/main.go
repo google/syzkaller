@@ -1526,9 +1526,6 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 			dups = append(dups, bug)
 			continue
 		}
-		if !filter.MatchBug(bug) {
-			continue
-		}
 		uiBug := createUIBug(c, bug, state, managers)
 		if len(uiBug.Commits) != 0 {
 			// Don't show "fix pending" bugs on the main page.
@@ -1593,12 +1590,10 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns string,
 	errc := make(chan error)
 	var dups []*Bug
 	go func() {
+		// Don't apply bugFilter to dups -- they need to be joined unconditionally.
 		filter := func(query *db.Query) *db.Query {
-			return applyBugFilter(
-				query.Filter("Namespace=", ns).
-					Filter("Status=", BugStatusDup),
-				bugFilter,
-			)
+			return query.Filter("Namespace=", ns).
+				Filter("Status=", BugStatusDup)
 		}
 		var err error
 		dups, _, err = loadAllBugs(c, filter)
@@ -1618,7 +1613,13 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns string,
 	if err := <-errc; err != nil {
 		return nil, err
 	}
-	return append(bugs, dups...), nil
+	var filteredBugs []*Bug
+	for _, bug := range bugs {
+		if bugFilter.MatchBug(bug) {
+			filteredBugs = append(filteredBugs, bug)
+		}
+	}
+	return append(filteredBugs, dups...), nil
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
