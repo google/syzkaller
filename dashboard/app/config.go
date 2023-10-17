@@ -208,6 +208,10 @@ type ConfigManager struct {
 	// Other parameters being equal, Priority helps to order bug's crashes.
 	// Priority is an integer in the range [-3;3].
 	Priority int
+	// For how long an old-built kernel image may continue to be fuzzed.
+	// Only taken into account once we fail to build a new kernel image.
+	// By default, the latest working kernel is fuzzed forever until it can be replaced.
+	StaleFuzzingLimit time.Duration
 }
 
 const (

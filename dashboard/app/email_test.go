@@ -660,7 +660,8 @@ func TestEmailFailedBuild(t *testing.T) {
 			Maintainers: []string{"maintainer@crash"},
 		},
 	}
-	c.expectOK(c.client2.ReportBuildError(buildErrorReq))
+	_, err := c.client2.ReportBuildError(buildErrorReq)
+	c.expectOK(err)
 
 	msg := c.pollEmailBug()
 	sender, extBugID, err := email.RemoveAddrContext(msg.Sender)
@@ -784,7 +785,8 @@ func TestEmailManagerCC(t *testing.T) {
 			Log:    []byte("log\n"),
 		},
 	}
-	c.expectOK(c.client2.ReportBuildError(buildErrorReq))
+	_, err := c.client2.ReportBuildError(buildErrorReq)
+	c.expectOK(err)
 	msg = c.pollEmailBug()
 	c.expectEQ(msg.To, []string{
 		"always@manager.org",

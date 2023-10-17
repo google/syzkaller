@@ -335,7 +335,7 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 				Log:   output,
 			},
 		}
-		if err := dash.ReportBuildError(req); err != nil {
+		if _, err := dash.ReportBuildError(req); err != nil {
 			// TODO: log ReportBuildError error to dashboard.
 			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
 		}

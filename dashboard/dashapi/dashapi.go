@@ -275,8 +275,14 @@ type BuildErrorReq struct {
 	Crash Crash
 }
 
-func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
-	return dash.Query("report_build_error", req, nil)
+type BuildErrorResp struct {
+	ContinueFuzzing bool
+}
+
+func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) (*BuildErrorResp, error) {
+	resp := new(BuildErrorResp)
+	err := dash.Query("report_build_error", req, resp)
+	return resp, err
 }
 
 type CommitPollResp struct {

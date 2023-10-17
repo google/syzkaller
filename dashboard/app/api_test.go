@@ -5,6 +5,10 @@ package main
 
 import (
 	"testing"
+	"time"
+
+	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClientSecretOK(t *testing.T) {
@@ -61,5 +65,73 @@ func TestClientNamespaceOK(t *testing.T) {
 	}, "user", "secr1t", "")
 	if err != nil || got != "ns1" {
 		t.Errorf("Unexpected error %v %v", got, err)
+	}
+}
+
+func TestContinueFuzzing(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	manager := "next-fuzzing"
+	// First emulate a failing build.
+	ret, err := client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *testManagerBuild(1, manager),
+		Crash: dashapi.Crash{
+			Title: "failed build",
+		},
+	})
+	c.expectOK(err)
+	assert.False(t, ret.ContinueFuzzing)
+
+	// Then a successful build.
+	client.UploadBuild(testManagerBuild(2, manager))
+
+	// The limit is 3 days, so assume we failed a build in 2 days.
+	c.advanceTime(2 * 24 * time.Hour)
+	ret, err = client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *testManagerBuild(3, manager),
+		Crash: dashapi.Crash{
+			Title: "failed build",
+		},
+	})
+	c.expectOK(err)
+	assert.True(t, ret.ContinueFuzzing) // Fuzzing should continue.
+
+	// In 2 days, we tried once more and still failed.
+	c.advanceTime(2 * 24 * time.Hour)
+	ret, err = client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *testManagerBuild(4, manager),
+		Crash: dashapi.Crash{
+			Title: "failed build",
+		},
+	})
+	c.expectOK(err)
+	assert.False(t, ret.ContinueFuzzing) // No more fuzzing.
+}
+
+// If there's no limit for the manager, fuzzing continues forever.
+func TestAlwaysContinueFuzzing(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	manager := "some-manager"
+
+	// First a successful build.
+	client.UploadBuild(testManagerBuild(1, manager))
+
+	// Then a few failures.
+	for i := 0; i < 3; i++ {
+		c.advanceTime(7 * 24 * time.Hour)
+		ret, err := client.ReportBuildError(&dashapi.BuildErrorReq{
+			Build: *testManagerBuild(2+i, manager),
+			Crash: dashapi.Crash{
+				Title: "failed build",
+			},
+		})
+		c.expectOK(err)
+		// But we continue fuzzing.
+		assert.True(t, ret.ContinueFuzzing)
 	}
 }

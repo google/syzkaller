@@ -728,10 +728,13 @@ func loadManager(c context.Context, ns, name string) (*Manager, error) {
 }
 
 // updateManager does transactional compare-and-swap on the manager and its current stats.
-func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, stats *ManagerStats) error) error {
+func updateManager(c context.Context, ns, name string,
+	fn func(mgr *Manager, stats *ManagerStats) error) (*Manager, error) {
 	date := timeDate(timeNow(c))
+	var mgr *Manager
 	tx := func(c context.Context) error {
-		mgr, err := loadManager(c, ns, name)
+		var err error
+		mgr, err = loadManager(c, ns, name)
 		if err != nil {
 			return err
 		}
@@ -759,7 +762,10 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
+	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10}); err != nil {
+		return nil, err
+	}
+	return mgr, nil
 }
 
 func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error) {

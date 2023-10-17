@@ -181,10 +181,14 @@ func (mgr *Manager) loop() {
 
 loop:
 	for {
+		continueFuzzing := true
 		if time.Since(nextBuildTime) >= 0 {
 			var rebuildAfter time.Duration
-			lastCommit, latestInfo, rebuildAfter = mgr.pollAndBuild(lastCommit, latestInfo)
+			lastCommit, latestInfo, rebuildAfter, continueFuzzing = mgr.pollAndBuild(lastCommit, latestInfo)
 			nextBuildTime = time.Now().Add(rebuildAfter)
+			if !continueFuzzing {
+				mgr.Errorf("infra error/stale kernel, fuzzing canot continue")
+			}
 		}
 		if !artifactUploadTime.IsZero() && time.Now().After(artifactUploadTime) {
 			artifactUploadTime = time.Time{}
@@ -204,7 +208,13 @@ loop:
 		default:
 		}
 
-		if latestInfo != nil && (latestInfo.Time != managerRestartTime || mgr.cmd == nil) {
+		if !continueFuzzing {
+			if mgr.cmd != nil {
+				// Stop fuzzing.
+				mgr.cmd.Close()
+				mgr.cmd = nil
+			}
+		} else if latestInfo != nil && (latestInfo.Time != managerRestartTime || mgr.cmd == nil) {
 			managerRestartTime = latestInfo.Time
 			mgr.restartManager()
 			if mgr.cmd != nil {
@@ -227,8 +237,9 @@ loop:
 }
 
 func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
-	string, *BuildInfo, time.Duration) {
+	string, *BuildInfo, time.Duration, bool) {
 	rebuildAfter := buildRetryPeriod
+	continueFuzz := true
 	commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 	if err != nil {
 		mgr.Errorf("failed to poll: %v", err)
@@ -242,7 +253,8 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 			select {
 			case <-buildSem.WaitC():
 				log.Logf(0, "%v: building kernel...", mgr.name)
-				if err := mgr.build(commit); err != nil {
+				continueFuzz, err = mgr.build(commit)
+				if err != nil {
 					log.Logf(0, "%v: %v", mgr.name, err)
 				} else {
 					log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
@@ -252,12 +264,15 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 						mgr.Errorf("failed to read build info after build")
 					}
 				}
+				if !continueFuzz {
+					log.Logf(0, "%v: the image is too old to fuzz", mgr.name)
+				}
 				buildSem.Signal()
 			case <-mgr.stop:
 			}
 		}
 	}
-	return lastCommit, latestInfo, rebuildAfter
+	return lastCommit, latestInfo, rebuildAfter, continueFuzz
 }
 
 // BuildInfo characterizes a kernel build.
@@ -310,14 +325,17 @@ func (mgr *Manager) createBuildInfo(kernelCommit *vcs.Commit, compilerID string)
 	}
 }
 
-func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
+// In case of success, build() returns (true, nil).
+// If build failed, the first return argument says whether we should continue
+// fuzzing the older kernel image.
+func (mgr *Manager) build(kernelCommit *vcs.Commit) (bool, error) {
 	// We first form the whole image in tmp dir and then rename it to latest.
 	tmpDir := mgr.latestDir + ".tmp"
 	if err := os.RemoveAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to remove tmp dir: %w", err)
+		return false, fmt.Errorf("failed to remove tmp dir: %w", err)
 	}
 	if err := osutil.MkdirAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %w", err)
+		return false, fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 	params := build.Params{
 		TargetOS:     mgr.managercfg.TargetOS,
@@ -353,25 +371,29 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		default:
 			rep.Report = []byte(err.Error())
 		}
-		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
+		continueFuzzing, err := mgr.reportBuildError(rep, info, tmpDir)
+		if err != nil {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
-		return fmt.Errorf("kernel build failed: %w", err)
+		return continueFuzzing, fmt.Errorf("kernel build failed: %w", err)
 	}
 
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
-		return fmt.Errorf("failed to write tag file: %w", err)
+		return false, fmt.Errorf("failed to write tag file: %w", err)
 	}
 
-	if err := mgr.testImage(tmpDir, info); err != nil {
-		return err
+	if continueFuzzing, err := mgr.testImage(tmpDir, info); err != nil {
+		return continueFuzzing, err
 	}
 
 	// Now try to replace latest with our tmp dir as atomically as we can get on Linux.
 	if err := os.RemoveAll(mgr.latestDir); err != nil {
-		return fmt.Errorf("failed to remove latest dir: %w", err)
+		return false, fmt.Errorf("failed to remove latest dir: %w", err)
 	}
-	return osutil.Rename(tmpDir, mgr.latestDir)
+	if err := osutil.Rename(tmpDir, mgr.latestDir); err != nil {
+		return false, fmt.Errorf("failed to rename latest dir: %w", err)
+	}
+	return true, nil
 }
 
 func (mgr *Manager) restartManager() {
@@ -411,19 +433,22 @@ func (mgr *Manager) restartManager() {
 	mgr.cmd = NewManagerCmd(mgr.name, logFile, mgr.Errorf, bin, args...)
 }
 
-func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
+// In case of success, testImage() returns (true, nil).
+// If image test failed, the first return argument says whether we should continue
+// fuzzing the older kernel image.
+func (mgr *Manager) testImage(imageDir string, info *BuildInfo) (bool, error) {
 	log.Logf(0, "%v: testing image...", mgr.name)
 	mgrcfg, err := mgr.createTestConfig(imageDir, info)
 	if err != nil {
-		return fmt.Errorf("failed to create manager config: %w", err)
+		return false, fmt.Errorf("failed to create manager config: %w", err)
 	}
 	defer os.RemoveAll(mgrcfg.Workdir)
 	if !vm.AllowsOvercommit(mgrcfg.Type) {
-		return nil // No support for creating machines out of thin air.
+		return true, nil // No support for creating machines out of thin air.
 	}
 	env, err := instance.NewEnv(mgrcfg, buildSem, testSem)
 	if err != nil {
-		return err
+		return true, err
 	}
 	const (
 		testVMs     = 3
@@ -431,10 +456,11 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	)
 	results, err := env.Test(testVMs, nil, nil, nil)
 	if err != nil {
-		return err
+		return true, err
 	}
 	failures := 0
 	var failureErr error
+	continueFuzzing := true
 	for _, res := range results {
 		if res.Error == nil {
 			continue
@@ -454,8 +480,10 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 				// But if we pass them, we would need to add the same prefix as for Title
 				// in order to avoid duping boot bugs with non-boot bugs.
 				rep.AltTitles = nil
-				if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-					mgr.Errorf("failed to report image error: %v", err)
+				var apiErr error
+				continueFuzzing, apiErr = mgr.reportBuildError(rep, info, imageDir)
+				if apiErr != nil {
+					mgr.Errorf("failed to report image error: %v", apiErr)
 				}
 			}
 			if err.Boot {
@@ -468,20 +496,22 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		}
 	}
 	if failures > maxFailures {
-		return failureErr
+		return continueFuzzing, failureErr
 	}
-	return nil
+	return continueFuzzing, nil
 }
 
-func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
+// reportBuildError is used to let dashboard know that the new kernel build has failed.
+// It returns whether we should continue fuzzing the older image (if it's present).
+func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) (bool, error) {
 	if mgr.dash == nil {
 		log.Logf(0, "%v: image testing failed: %v\n\n%s\n\n%s",
 			mgr.name, rep.Title, rep.Report, rep.Output)
-		return nil
+		return false, nil
 	}
 	build, err := mgr.createDashboardBuild(info, imageDir, "error")
 	if err != nil {
-		return err
+		return false, err
 	}
 	if mgr.storage != nil {
 		// We have to send assets together with the other info because the report
@@ -507,10 +537,11 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 	if rep.GuiltyFile != "" {
 		req.Crash.GuiltyFiles = []string{rep.GuiltyFile}
 	}
-	if err := mgr.dash.ReportBuildError(req); err != nil {
-		return err
+	resp, err := mgr.dash.ReportBuildError(req)
+	if err != nil {
+		return true, err
 	}
-	return nil
+	return resp.ContinueFuzzing, nil
 }
 
 func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconfig.Config, error) {

@@ -404,7 +404,7 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 		return nil, err
 	}
 	if isNewBuild {
-		err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) error {
+		_, err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) error {
 			prevKernel, prevSyzkaller := "", ""
 			if mgr.CurrentBuild != "" {
 				prevBuild, err := loadBuild(c, ns, mgr.CurrentBuild)
@@ -678,7 +678,7 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 	if err != nil {
 		return nil, err
 	}
-	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
+	mgr, err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
 		log.Infof(c, "failed build on %v: kernel=%v", req.Build.Manager, req.Build.KernelCommit)
 		if req.Build.KernelCommit != "" {
 			mgr.FailedBuildBug = bug.keyHash(c)
@@ -686,10 +686,22 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 			mgr.FailedSyzBuildBug = bug.keyHash(c)
 		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	// Determine whether we should continue fuzzing on this syz-manager.
+	continueFuzzing := false
+	if mgr.CurrentBuild != "" {
+		prevBuild, err := loadBuild(c, ns, mgr.CurrentBuild)
+		if err != nil {
+			return nil, err
+		}
+		staleLimit := getNsConfig(c, ns).Managers[req.Build.Manager].StaleFuzzingLimit
+		continueFuzzing = staleLimit == 0 ||
+			timeNow(c).Sub(prevBuild.Time) <= staleLimit
+	}
+	return &dashapi.BuildErrorResp{ContinueFuzzing: continueFuzzing}, nil
 }
 
 const (
@@ -1112,7 +1124,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
-	err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
+	_, err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
 		mgr.Link = req.Addr
 		mgr.LastAlive = now
 		mgr.CurrentUpTime = req.UpTime

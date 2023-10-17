@@ -99,6 +99,9 @@ var testConfig = &GlobalConfig{
 					ObsoletingMinPeriod: 10 * 24 * time.Hour,
 					ObsoletingMaxPeriod: 20 * 24 * time.Hour,
 				},
+				"next-fuzzing": {
+					StaleFuzzingLimit: 3 * 24 * time.Hour,
+				},
 			},
 			Reporting: []Reporting{
 				{
@@ -672,6 +675,12 @@ func testBuild(id int) *dashapi.Build {
 	}
 }
 
+func testManagerBuild(id int, mgr string) *dashapi.Build {
+	ret := testBuild(id)
+	ret.Manager = mgr
+	return ret
+}
+
 var buildCommitDate = time.Date(1, 2, 3, 4, 5, 6, 0, time.UTC)
 
 func testCrash(build *dashapi.Build, id int) *dashapi.Crash {
@@ -993,12 +1002,13 @@ func TestManagerFailedBuild(t *testing.T) {
 	failedBuild.KernelCommit = "kern2"
 	failedBuild.KernelCommitTitle = "failed build 1"
 	failedBuild.SyzkallerCommit = "syz2"
-	c.expectOK(c.client.ReportBuildError(&dashapi.BuildErrorReq{
+	_, err := c.client.ReportBuildError(&dashapi.BuildErrorReq{
 		Build: *failedBuild,
 		Crash: dashapi.Crash{
 			Title: "failed build 1",
 		},
-	}))
+	})
+	c.expectOK(err)
 	checkManagerBuild(c, build, failedBuild, nil)
 
 	// Now the old good build again, nothing should change.
@@ -1016,12 +1026,13 @@ func TestManagerFailedBuild(t *testing.T) {
 	failedBuild.KernelCommit = "kern4"
 	failedBuild.KernelCommitTitle = "failed build 4"
 	failedBuild.SyzkallerCommit = "syz4"
-	c.expectOK(c.client.ReportBuildError(&dashapi.BuildErrorReq{
+	_, err = c.client.ReportBuildError(&dashapi.BuildErrorReq{
 		Build: *failedBuild,
 		Crash: dashapi.Crash{
 			Title: "failed build 4",
 		},
-	}))
+	})
+	c.expectOK(err)
 	checkManagerBuild(c, build, failedBuild, nil)
 
 	failedBuild2 := new(dashapi.Build)
@@ -1030,12 +1041,13 @@ func TestManagerFailedBuild(t *testing.T) {
 	failedBuild2.KernelCommit = ""
 	failedBuild2.KernelCommitTitle = "failed build 5"
 	failedBuild2.SyzkallerCommit = "syz5"
-	c.expectOK(c.client.ReportBuildError(&dashapi.BuildErrorReq{
+	_, err = c.client.ReportBuildError(&dashapi.BuildErrorReq{
 		Build: *failedBuild2,
 		Crash: dashapi.Crash{
 			Title: "failed build 5",
 		},
-	}))
+	})
+	c.expectOK(err)
 	checkManagerBuild(c, build, failedBuild, failedBuild2)
 
 	build.ID = "id6"
