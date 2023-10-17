@@ -69,6 +69,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
+	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
@@ -1503,15 +1504,29 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	filter *userBugFilter) ([]*uiBugGroup, error) {
-	bugs, err := loadVisibleBugs(c, accessLevel, ns, filter)
-	if err != nil {
-		return nil, err
+	if !filter.Any() && getNsConfig(c, ns).CacheUIPages {
+		// If there's no filter, try to fetch data from cache.
+		cached, err := CachedBugGroups(c, ns, accessLevel)
+		if err != nil {
+			log.Errorf(c, "failed to fetch from bug groups cache: %v", err)
+		} else if cached != nil {
+			return cached, nil
+		}
 	}
-	state, err := loadReportingState(c)
+	bugs, err := loadVisibleBugs(c, ns, filter)
 	if err != nil {
 		return nil, err
 	}
 	managers, err := managerList(c, ns)
+	if err != nil {
+		return nil, err
+	}
+	return prepareBugGroups(c, bugs, managers, accessLevel, ns)
+}
+
+func prepareBugGroups(c context.Context, bugs []*Bug, managers []string,
+	accessLevel AccessLevel, ns string) ([]*uiBugGroup, error) {
+	state, err := loadReportingState(c)
 	if err != nil {
 		return nil, err
 	}
@@ -1579,8 +1594,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	return uiGroups, nil
 }
 
-func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns string,
-	bugFilter *userBugFilter) ([]*Bug, error) {
+func loadVisibleBugs(c context.Context, ns string, bugFilter *userBugFilter) ([]*Bug, error) {
 	// Load open and dup bugs in in 2 separate queries.
 	// Ideally we load them in one query with a suitable filter,
 	// but unfortunately status values don't allow one query (<BugStatusFixed || >BugStatusInvalid).
@@ -1673,6 +1687,9 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 }
 
 func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
+	if filter == nil {
+		return query
+	}
 	manager := filter.ManagerName()
 	if len(filter.Labels) > 0 {
 		// Take just the first one.

@@ -114,6 +114,8 @@ type Config struct {
 	Subsystems SubsystemsConfig
 	// Instead of Last acitivity, display Discussions on the main page.
 	DisplayDiscussions bool
+	// Cache what we display on the web dashboard.
+	CacheUIPages bool
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
