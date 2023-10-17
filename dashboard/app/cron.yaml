@@ -6,6 +6,8 @@ cron:
   schedule: every 1 minutes
 - url: /cron/cache_update
   schedule: every 1 hours
+- url: /cron/minute_cache_update
+  schedule: every 1 minutes
 - url: /cron/deprecate_assets
   schedule: every 1 hours
 - url: /cron/kcidb_poll

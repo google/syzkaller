@@ -275,6 +275,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			FindBugOriginTrees: true,
+			CacheUIPages:       true,
 		},
 		"access-public-email": {
 			AccessLevel: AccessPublic,
