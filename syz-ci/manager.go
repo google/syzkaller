@@ -143,6 +143,10 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 		debug:        debug,
 	}
 
+	if mgrcfg.KernelSrcSuffix != "" {
+		mgr.kernelDir = path.Join(kernelDir, mgrcfg.KernelSrcSuffix)
+	}
+
 	os.RemoveAll(mgr.currentDir)
 	return mgr, nil
 }
