@@ -145,7 +145,6 @@ config:
  - DEV_DAX: [x86_64]
  - BLK_DEV_NULL_BLK
  - BLK_DEV_NULL_BLK_FAULT_INJECTION
- - BLK_DEV_FD: [x86_64]
  - ZRAM
  - BLK_DEV_LOOP
  # Loop device per test process.

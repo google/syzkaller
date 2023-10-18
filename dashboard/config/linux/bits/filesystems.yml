@@ -59,12 +59,6 @@ config:
  - XFS_QUOTA
  - XFS_POSIX_ACL
  - XFS_RT
- # Linux kernel still has a big number of XFS v4 bugs, but, as v4 is getting deprecated,
- # the upstream community has no interest in fixing those code problems.
- # See e.g. these links:
- # https://lore.kernel.org/linux-fsdevel/ZG07WoKnBzaN4T1L@dread.disaster.area/T/
- # https://github.com/google/syzkaller/issues/3918
- - XFS_SUPPORT_V4: n
  # Not just sanity checks for code, but also image validation checks that BUG.
  # XFS devs prefer this to be disabled by fuzzers.
  - XFS_DEBUG: n
