@@ -178,7 +178,7 @@ type ManagerConfig struct {
 	Ccache       string `json:"ccache"`
 	Userspace    string `json:"userspace"`
 	KernelConfig string `json:"kernel_config"`
-	// KernelSrcSuffiz adds a suffix to the kernel_src manager config. This is needed for cases where
+	// KernelSrcSuffix adds a suffix to the kernel_src manager config. This is needed for cases where
 	// the kernel source root as reported in the coverage UI is a subdirectory of the VCS root.
 	KernelSrcSuffix string `json:"kernel_src_suffix"`
 	// Build-type-specific parameters.
