@@ -127,7 +127,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 	mgr := &Manager{
 		name:         mgrcfg.managercfg.Name,
 		workDir:      filepath.Join(dir, "workdir"),
-		kernelDir:    kernelDir,
+		kernelDir:    path.Join(kernelDir, mgrcfg.KernelSrcSuffix),
 		currentDir:   filepath.Join(dir, "current"),
 		latestDir:    filepath.Join(dir, "latest"),
 		configTag:    hash.String(configData),
@@ -141,10 +141,6 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 		debugStorage: !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
 		stop:         stop,
 		debug:        debug,
-	}
-
-	if mgrcfg.KernelSrcSuffix != "" {
-		mgr.kernelDir = path.Join(kernelDir, mgrcfg.KernelSrcSuffix)
 	}
 
 	os.RemoveAll(mgr.currentDir)
