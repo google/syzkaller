@@ -948,7 +948,7 @@ golang.org/x/tools/txtar
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.147.0
+# google.golang.org/api v0.148.0
 ## explicit; go 1.19
 google.golang.org/api/compute/v1
 google.golang.org/api/googleapi
@@ -1018,13 +1018,13 @@ google.golang.org/genproto/googleapis/api/distribution
 google.golang.org/genproto/googleapis/api/label
 google.golang.org/genproto/googleapis/api/metric
 google.golang.org/genproto/googleapis/api/monitoredres
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20231009173412-8bfb1ae86b6c
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context/attribute_context
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.58.2
+# google.golang.org/grpc v1.58.3
 ## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
