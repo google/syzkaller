@@ -10,9 +10,9 @@ config:
  # See e.g. these links:
  # https://lore.kernel.org/linux-fsdevel/ZG07WoKnBzaN4T1L@dread.disaster.area/T/
  # https://github.com/google/syzkaller/issues/3918
+ - XFS_FS
  - XFS_SUPPORT_V4
 
  # Floppy driver is known to be buggy, maintainers see no sense in further reports at the moment.
  # https://lore.kernel.org/all/7df3e30a-aa31-495c-9d59-cb6080364f61@kernel.dk/
- - XFS_FS
  - BLK_DEV_FD: [x86_64]
