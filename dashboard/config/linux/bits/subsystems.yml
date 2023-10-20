@@ -69,7 +69,8 @@ config:
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
  - KVM_XEN: [x86_64, v5.12]
- # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
+ - KVM_PROVE_MMU: [x86_64, v6.6]
+   # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
  - X86_SGX_KVM: [x86_64, v6.0, -kmsan]
@@ -100,7 +101,7 @@ config:
  - KSM
  - TRANSPARENT_HUGEPAGE: [-arm, -riscv]
  - TRANSPARENT_HUGEPAGE_MADVISE: [-arm, -riscv]
- - FRONTSWAP
+ - FRONTSWAP: [-v6.6]
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
  - ZSWAP
@@ -362,7 +363,7 @@ config:
  - USB_EHCI_HCD
  - USB_EHCI_ROOT_HUB_TT
  - USB_OHCI_HCD
- - USB_UHCI_HCD
+ - USB_UHCI_HCD: [-s390]
  - USB_ACM
  - USB_PRINTER
  - USB_STORAGE
@@ -469,14 +470,14 @@ config:
  - COUNTER
  - VALIDATE_FS_PARSER
  - PSTORE
- - PSTORE_DEFLATE_COMPRESS
- - PSTORE_LZO_COMPRESS
- - PSTORE_LZ4_COMPRESS
- - PSTORE_LZ4HC_COMPRESS
- - PSTORE_842_COMPRESS
- - PSTORE_ZSTD_COMPRESS
+ - PSTORE_DEFLATE_COMPRESS: [-v6.6]
+ - PSTORE_LZO_COMPRESS: [-v6.6]
+ - PSTORE_LZ4_COMPRESS: [-v6.6]
+ - PSTORE_LZ4HC_COMPRESS: [-v6.6]
+ - PSTORE_842_COMPRESS: [-v6.6]
+ - PSTORE_ZSTD_COMPRESS: [-v6.6]
  - PSTORE_COMPRESS
- - PSTORE_DEFLATE_COMPRESS_DEFAULT
+ - PSTORE_DEFLATE_COMPRESS_DEFAULT: [-v6.6]
  # Didn't find how to enable it for riscv in v5.18
  - FS_DAX: [-arm, -riscv]
  - FS_ENCRYPTION
@@ -490,7 +491,7 @@ config:
  - QUOTA_NETLINK_INTERFACE
  - PRINT_QUOTA_WARNING: n
  - QFMT_V2
- - AUTOFS4_FS
+ - AUTOFS4_FS: [-v6.6]
  - FUSE_FS
  - FUSE_DAX: [v5.10, x86_64]
  - CUSE
@@ -501,6 +502,7 @@ config:
  - TMPFS
  - TMPFS_POSIX_ACL
  - TMPFS_XATTR
+ - TMPFS_QUOTA: [v6.6]
  - HUGETLBFS: [-arm]
  - ECRYPT_FS
  - ECRYPT_FS_MESSAGING
