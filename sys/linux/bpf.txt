@@ -412,7 +412,7 @@ type bpf_insn_st64_reg[SRC, DST, OFF] bpf_insn_ldst_t[const, BPF_STX, const, BPF
 
 bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
 bpf_ldst_size = BPF_W0, BPF_H0, BPF_B0, BPF_DW0
-bpf_ldst_mode = BPF_IMM0, BPF_ABS0, BPF_IND0, BPF_MEM0, BPF_XADD0
+bpf_ldst_mode = BPF_IMM0, BPF_ABS0, BPF_IND0, BPF_MEM0, BPF_XADD0, BPF_MEMSX0
 
 define BPF_W0	BPF_W >> 3
 define BPF_H0	BPF_H >> 3
@@ -424,6 +424,7 @@ define BPF_ABS0	BPF_ABS >> 5
 define BPF_IND0	BPF_IND >> 5
 define BPF_MEM0	BPF_MEM >> 5
 define BPF_XADD0	BPF_XADD >> 5
+define BPF_MEMSX0	BPF_MEMSX >> 5
 
 type bpf_insn_alu_t[CLASS_TYPE, CLASS, SOURCE_TYPE, SOURCE, OP_TYPE, OP, DST, SRC, OFF, IMM] {
 	code_class	CLASS_TYPE[CLASS, int8:3]
