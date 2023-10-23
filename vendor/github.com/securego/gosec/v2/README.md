@@ -1,7 +1,7 @@
 
 # gosec - Golang Security Checker
 
-Inspects source code for security problems by scanning the Go AST.
+Inspects source code for security problems by scanning the Go AST and SSA code representation.
 
 <img src="https://securego.io/img/gosec.png" width="320">
 
@@ -157,6 +157,7 @@ directory you can supply `./...` as the input argument.
 - G304: File path provided as taint input
 - G305: File traversal when extracting zip/tar archive
 - G306: Poor file permissions used when writing to a new file
+- G307: Poor file permissions used when creating a file with os.Create
 - G401: Detect the usage of DES, RC4, MD5 or SHA1
 - G402: Look for bad TLS connection settings
 - G403: Ensure minimum RSA key length of 2048 bits

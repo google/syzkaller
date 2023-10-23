@@ -9,6 +9,7 @@ import (
 	"go/printer"
 	"go/token"
 	gotypes "go/types"
+	"reflect"
 
 	"github.com/go-toolsmith/astcopy"
 	"golang.org/x/tools/go/analysis"
@@ -38,6 +39,8 @@ const (
 	missingAsyncAssertionMessage  = linterName + `: %q: missing assertion method. Expected "Should()" or "ShouldNot()"`
 	focusContainerFound           = linterName + ": Focus container found. This is used only for local debug and should not be part of the actual source code, consider to replace with %q"
 	focusSpecFound                = linterName + ": Focus spec found. This is used only for local debug and should not be part of the actual source code, consider to remove it"
+	compareDifferentTypes         = linterName + ": use %[1]s with different types: Comparing %[2]s with %[3]s; either change the expected value type if possible, or use the BeEquivalentTo() matcher, instead of %[1]s()"
+	compareInterfaces             = linterName + ": be careful comparing interfaces. This can fail in runtime, if the actual implementing types are different"
 )
 const ( // gomega matchers
 	beEmpty        = "BeEmpty"
@@ -55,6 +58,9 @@ const ( // gomega matchers
 	not            = "Not"
 	omega          = "Ω"
 	succeed        = "Succeed"
+	and            = "And"
+	or             = "Or"
+	withTransform  = "WithTransform"
 )
 
 const ( // gomega actuals
@@ -99,6 +105,7 @@ func NewAnalyzer() *analysis.Analyzer {
 	a.Flags.Var(&linter.config.SuppressErr, "suppress-err-assertion", "Suppress warning for wrong error assertions")
 	a.Flags.Var(&linter.config.SuppressCompare, "suppress-compare-assertion", "Suppress warning for wrong comparison assertions")
 	a.Flags.Var(&linter.config.SuppressAsync, "suppress-async-assertion", "Suppress warning for function call in async assertion, like Eventually")
+	a.Flags.Var(&linter.config.SuppressTypeCompare, "suppress-type-compare-assertion", "Suppress warning for comparing values from different types, like int32 and uint32")
 	a.Flags.Var(&linter.config.AllowHaveLen0, "allow-havelen-0", "Do not warn for HaveLen(0); default = false")
 
 	a.Flags.BoolVar(&ignored, "suppress-focus-container", true, "Suppress warning for ginkgo focus containers like FDescribe, FContext, FWhen or FIt. Deprecated and ignored: use --forbid-focus-container instead")
@@ -125,6 +132,9 @@ currently, the linter searches for following:
 	Eventually(checkSomething)
 
 * trigger a warning when a ginkgo focus container (FDescribe, FContext, FWhen or FIt) is found. [Bug]
+
+* trigger a warning when using the Equal or the BeIdentical matcher with two different types, as these matchers will
+  fail in runtime.
 
 * wrong length assertions. We want to assert the item rather than its length. [Style]
 For example:
@@ -299,9 +309,144 @@ func checkExpression(pass *analysis.Pass, config types.Config, assertionExp *ast
 
 	} else if checkPointerComparison(pass, config, assertionExp, expr, actualArg, handler, oldExpr) {
 		return false
-	} else {
-		return handleAssertionOnly(pass, config, expr, handler, actualArg, oldExpr, true)
+	} else if !handleAssertionOnly(pass, config, expr, handler, actualArg, oldExpr, true) {
+		return false
+	} else if !config.SuppressTypeCompare {
+		return !checkEqualWrongType(pass, assertionExp, actualArg, handler, oldExpr)
 	}
+
+	return true
+}
+
+func checkEqualWrongType(pass *analysis.Pass, origExp *ast.CallExpr, actualArg ast.Expr, handler gomegahandler.Handler, old string) bool {
+	matcher, ok := origExp.Args[0].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+
+	return checkEqualDifferentTypes(pass, matcher, actualArg, handler, old, false)
+}
+
+func checkEqualDifferentTypes(pass *analysis.Pass, matcher *ast.CallExpr, actualArg ast.Expr, handler gomegahandler.Handler, old string, parentPointer bool) bool {
+	matcherFuncName, ok := handler.GetActualFuncName(matcher)
+	if !ok {
+		return false
+	}
+
+	actualType := pass.TypesInfo.TypeOf(actualArg)
+
+	switch matcherFuncName {
+	case equal, beIdenticalTo: // continue
+	case and, or:
+		foundIssue := false
+		for _, nestedExp := range matcher.Args {
+			nested, ok := nestedExp.(*ast.CallExpr)
+			if !ok {
+				continue
+			}
+			if checkEqualDifferentTypes(pass, nested, actualArg, handler, old, parentPointer) {
+				foundIssue = true
+			}
+		}
+
+		return foundIssue
+	case withTransform:
+		nested, ok := matcher.Args[1].(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+
+		if t := getFuncType(pass, matcher.Args[0]); t != nil {
+			actualType = t
+			matcher = nested
+			matcherFuncName, ok = handler.GetActualFuncName(nested)
+			if !ok {
+				return false
+			}
+		} else {
+			return checkEqualDifferentTypes(pass, nested, actualArg, handler, old, parentPointer)
+		}
+
+	case not:
+		nested, ok := matcher.Args[0].(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+
+		return checkEqualDifferentTypes(pass, nested, actualArg, handler, old, parentPointer)
+
+	case haveValue:
+		nested, ok := matcher.Args[0].(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+
+		return checkEqualDifferentTypes(pass, nested, actualArg, handler, old, true)
+	default:
+		return false
+	}
+
+	matcherValue := matcher.Args[0]
+
+	switch act := actualType.(type) {
+	case *gotypes.Tuple:
+		actualType = act.At(0).Type()
+	case *gotypes.Pointer:
+		if parentPointer {
+			actualType = act.Elem()
+		}
+	}
+
+	matcherType := pass.TypesInfo.TypeOf(matcherValue)
+
+	if !reflect.DeepEqual(matcherType, actualType) {
+		// Equal can handle comparison of interface and a value that implements it
+		if isImplementing(matcherType, actualType) || isImplementing(actualType, matcherType) {
+			return false
+		}
+
+		reportNoFix(pass, matcher.Pos(), compareDifferentTypes, matcherFuncName, actualType, matcherType)
+		return true
+	}
+
+	return false
+}
+
+func getFuncType(pass *analysis.Pass, expr ast.Expr) gotypes.Type {
+	switch f := expr.(type) {
+	case *ast.FuncLit:
+		if f.Type != nil && f.Type.Results != nil && len(f.Type.Results.List) > 0 {
+			return pass.TypesInfo.TypeOf(f.Type.Results.List[0].Type)
+		}
+	case *ast.Ident:
+		a := pass.TypesInfo.TypeOf(f)
+		if sig, ok := a.(*gotypes.Signature); ok && sig.Results().Len() > 0 {
+			return sig.Results().At(0).Type()
+		}
+	}
+
+	return nil
+}
+
+func isImplementing(ifs, impl gotypes.Type) bool {
+	if gotypes.IsInterface(ifs) {
+
+		var (
+			theIfs *gotypes.Interface
+			ok     bool
+		)
+
+		for {
+			theIfs, ok = ifs.(*gotypes.Interface)
+			if ok {
+				break
+			}
+			ifs = ifs.Underlying()
+		}
+
+		return gotypes.Implements(impl, theIfs)
+	}
+	return false
 }
 
 // be careful - never change origExp!!! only modify its clone, expr!!!
@@ -1181,8 +1326,7 @@ func isPointer(pass *analysis.Pass, expr ast.Expr) bool {
 
 func isInterface(pass *analysis.Pass, expr ast.Expr) bool {
 	t := pass.TypesInfo.TypeOf(expr)
-	_, ok := t.(*gotypes.Named)
-	return ok
+	return gotypes.IsInterface(t)
 }
 
 func isNumeric(pass *analysis.Pass, node ast.Expr) bool {
