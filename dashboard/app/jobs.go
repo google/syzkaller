@@ -379,7 +379,7 @@ func throttleJobGeneration(c context.Context, managers map[string]dashapi.Manage
 		tx := func(c context.Context) error {
 			manager := new(Manager)
 			if err := db.Get(c, keys[0], manager); err != nil {
-				return fmt.Errorf("failed to get %v", keys[0])
+				return fmt.Errorf("failed to get %v: %w", keys[0], err)
 			}
 			if timeNow(c).Sub(manager.LastGeneratedJob) < jobGenerationPeriod {
 				drop[name] = struct{}{}
