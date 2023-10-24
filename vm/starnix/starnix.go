@@ -137,7 +137,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
 	// Start output merger.
-	inst.merger = vmimpl.NewOutputMerger(nil)
+	var tee io.Writer
+	if inst.debug {
+		tee = os.Stdout
+	}
+	inst.merger = vmimpl.NewOutputMerger(tee)
 
 	inst.ffx("doctor", "--restart-daemon")
 
