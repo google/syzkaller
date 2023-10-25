@@ -642,6 +642,7 @@ func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommit
 	return true
 }
 
+// Note: if you do not need the latest data, prefer CachedManagersList().
 func managerList(c context.Context, ns string) ([]string, error) {
 	var builds []*Build
 	_, err := db.NewQuery("Build").

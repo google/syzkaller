@@ -958,7 +958,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	managers, err := managerList(c, bug.Namespace)
+	managers, err := CachedManagerList(c, bug.Namespace)
 	if err != nil {
 		return err
 	}
@@ -1517,7 +1517,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	if err != nil {
 		return nil, err
 	}
-	managers, err := managerList(c, ns)
+	managers, err := CachedManagerList(c, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -1652,7 +1652,7 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, nil, err
 	}
-	managers, err := managerList(c, ns)
+	managers, err := CachedManagerList(c, ns)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1744,7 +1744,7 @@ func loadSimilarBugsUI(c context.Context, r *http.Request, bug *Bug, state *Repo
 			continue
 		}
 		if managers[similar.Namespace] == nil {
-			mgrs, err := managerList(c, similar.Namespace)
+			mgrs, err := CachedManagerList(c, similar.Namespace)
 			if err != nil {
 				return nil, err
 			}
