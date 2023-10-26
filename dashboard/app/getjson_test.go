@@ -21,7 +21,8 @@ func TestJSONAPIIntegration(t *testing.T) {
 			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
-			"syzkaller-commit": "syzkaller_commit1"
+			"syzkaller-commit": "syzkaller_commit1",
+			"crash-report-link": "/text?tag=CrashReport\u0026x=12000000000000"
 		}
 	]
 }`,
@@ -39,7 +40,8 @@ func TestJSONAPIIntegration(t *testing.T) {
 			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
-			"syzkaller-commit": "syzkaller_commit1"
+			"syzkaller-commit": "syzkaller_commit1",
+			"crash-report-link": "/text?tag=CrashReport\u0026x=15000000000000"
 		}
 	]
 }`,
@@ -151,7 +153,8 @@ func TestJSONAPIFixCommits(t *testing.T) {
 			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
-			"syzkaller-commit": "syzkaller_commit1"
+			"syzkaller-commit": "syzkaller_commit1",
+			"crash-report-link": "/text?tag=CrashReport\u0026x=12000000000000"
 		}
 	]
 }`)
@@ -189,7 +192,8 @@ func TestJSONAPICauseBisection(t *testing.T) {
 			"kernel-config": "/text?tag=KernelConfig\u0026x=4d11162a90e18f28",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
-			"syzkaller-commit": "syzkaller_commit1"
+			"syzkaller-commit": "syzkaller_commit1",
+			"crash-report-link": "/text?tag=CrashReport\u0026x=12000000000000"
 		}
 	]
 }`)
