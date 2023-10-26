@@ -1192,10 +1192,14 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 // For now we only enable this in tests.
 var notifyAboutUnsuccessfulBisections = false
 
+// There's really no reason to query all our completed jobs every time.
+// If we did not report a finished job within a month, let it stay unreported.
+const maxReportedJobAge = time.Hour * 24 * 30
+
 func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
-		Filter("Finished>", time.Time{}).
+		Filter("Finished>", timeNow(c).Add(-maxReportedJobAge)).
 		Filter("Reported=", false).
 		GetAll(c, &jobs)
 	if err != nil {
