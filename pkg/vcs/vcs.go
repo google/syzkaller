@@ -368,6 +368,7 @@ func FileLink(url, hash, file string, line int) string {
 	return link(url, hash, file, line, 3)
 }
 
+// nolint: goconst
 func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""
