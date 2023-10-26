@@ -29,6 +29,10 @@ const (
 	StrictStyle
 )
 
+const (
+	errTagValueSyntax = "bad syntax for struct tag value"
+)
+
 func NewAnalyzer(options ...Option) *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name: "tagalign",
@@ -208,16 +212,25 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 			uniqueKeys = append(uniqueKeys, k)
 		}
 
-		for i, field := range fields {
-			offsets[i] = pass.Fset.Position(field.Tag.Pos()).Column
+		for i := 0; i < len(fields); {
+			field := fields[i]
+			column := pass.Fset.Position(field.Tag.Pos()).Column - 1
+			offsets[i] = column
+
 			tag, err := strconv.Unquote(field.Tag.Value)
 			if err != nil {
-				break
+				// if tag value is not a valid string, report it directly
+				w.report(pass, field, column, errTagValueSyntax, field.Tag.Value)
+				fields = removeField(fields, i)
+				continue
 			}
 
 			tags, err := structtag.Parse(tag)
 			if err != nil {
-				break
+				// if tag value is not a valid struct tag, report it directly
+				w.report(pass, field, column, err.Error(), field.Tag.Value)
+				fields = removeField(fields, i)
+				continue
 			}
 
 			maxTagNum = max(maxTagNum, tags.Len())
@@ -234,6 +247,8 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 				addKey(t.Key)
 			}
 			tagsGroup = append(tagsGroup, tags.Tags())
+
+			i++
 		}
 
 		if w.sort && StrictStyle == w.style {
@@ -325,19 +340,22 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 
 			msg := "tag is not aligned, should be: " + unquoteTag
 
-			w.report(pass, field, offsets[i]-1, msg, newTagValue)
+			w.report(pass, field, offsets[i], msg, newTagValue)
 		}
 	}
 
 	// process single fields
 	for _, field := range w.singleFields {
+		column := pass.Fset.Position(field.Tag.Pos()).Column - 1
 		tag, err := strconv.Unquote(field.Tag.Value)
 		if err != nil {
+			w.report(pass, field, column, errTagValueSyntax, field.Tag.Value)
 			continue
 		}
 
 		tags, err := structtag.Parse(tag)
 		if err != nil {
+			w.report(pass, field, column, err.Error(), field.Tag.Value)
 			continue
 		}
 		originalTags := append([]*structtag.Tag(nil), tags.Tags()...)
@@ -353,7 +371,7 @@ func (w *Helper) Process(pass *analysis.Pass) { //nolint:gocognit
 
 		msg := "tag is not aligned , should be: " + tags.String()
 
-		w.report(pass, field, pass.Fset.Position(field.Tag.Pos()).Column-1, msg, newTagValue)
+		w.report(pass, field, column, msg, newTagValue)
 	}
 }
 
@@ -430,4 +448,12 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func removeField(fields []*ast.Field, index int) []*ast.Field {
+	if index < 0 || index >= len(fields) {
+		return fields
+	}
+
+	return append(fields[:index], fields[index+1:]...)
 }

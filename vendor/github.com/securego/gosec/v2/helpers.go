@@ -100,7 +100,7 @@ func GetChar(n ast.Node) (byte, error) {
 // Unlike the other getters, it does _not_ raise an error for unknown ast.Node types. At the base, the recursion will hit a non-BinaryExpr type,
 // either BasicLit or other, so it's not an error case. It will only error if `strconv.Unquote` errors. This matters, because there's
 // currently functionality that relies on error values being returned by GetString if and when it hits a non-basiclit string node type,
-// hence for cases where recursion is needed, we use this separate function, so that we can still be backwards compatbile.
+// hence for cases where recursion is needed, we use this separate function, so that we can still be backwards compatible.
 //
 // This was added to handle a SQL injection concatenation case where the injected value is infixed between two strings, not at the start or end. See example below
 //
@@ -183,7 +183,7 @@ func GetCallInfo(n ast.Node, ctx *Context) (string, string, error) {
 			case *ast.CallExpr:
 				switch call := expr.Fun.(type) {
 				case *ast.Ident:
-					if call.Name == "new" {
+					if call.Name == "new" && len(expr.Args) > 0 {
 						t := ctx.Info.TypeOf(expr.Args[0])
 						if t != nil {
 							return t.String(), fn.Sel.Name, nil

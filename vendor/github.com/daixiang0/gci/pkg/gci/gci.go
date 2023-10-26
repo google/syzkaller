@@ -127,11 +127,17 @@ func LoadFormatGoFile(file io.FileObj, cfg config.Config) (src, dist []byte, err
 		return nil, nil, err
 	}
 
+	return LoadFormat(src, file.Path(), cfg)
+}
+
+func LoadFormat(in []byte, path string, cfg config.Config) (src, dist []byte, err error) {
+	src = in
+
 	if cfg.SkipGenerated && parse.IsGeneratedFileByComment(string(src)) {
 		return src, src, nil
 	}
 
-	imports, headEnd, tailStart, cStart, cEnd, err := parse.ParseFile(src, file.Path())
+	imports, headEnd, tailStart, cStart, cEnd, err := parse.ParseFile(src, path)
 	if err != nil {
 		if errors.Is(err, parse.NoImportError{}) {
 			return src, src, nil
@@ -201,6 +207,10 @@ func LoadFormatGoFile(file io.FileObj, cfg config.Config) (src, dist []byte, err
 	for _, s := range slices {
 		i += copy(dist[i:], s)
 	}
+
+	// remove ^M(\r\n) from Win to Unix
+	dist = bytes.ReplaceAll(dist, []byte{utils.WinLinebreak}, []byte{utils.Linebreak})
+
 	log.L().Debug(fmt.Sprintf("raw:\n%s", dist))
 	dist, err = goFormat.Source(dist)
 	if err != nil {

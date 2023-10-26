@@ -113,6 +113,12 @@ var defaultLintersSettings = LintersSettings{
 		Ignore:    "",
 		Qualified: false,
 	},
+	SlogLint: SlogLintSettings{
+		KVOnly:         false,
+		AttrOnly:       false,
+		NoRawKeys:      false,
+		ArgsOnSepLines: false,
+	},
 	TagAlign: TagAlignSettings{
 		Align:  true,
 		Sort:   true,
@@ -125,6 +131,15 @@ var defaultLintersSettings = LintersSettings{
 	},
 	Unparam: UnparamSettings{
 		Algo: "cha",
+	},
+	Unused: UnusedSettings{
+		FieldWritesAreUses:     true,
+		PostStatementsAreReads: false,
+		ExportedIsUsed:         true,
+		ExportedFieldsAreUsed:  true,
+		ParametersAreUsed:      true,
+		LocalVariablesAreUsed:  true,
+		GeneratedIsUsed:        true,
 	},
 	UseStdlibVars: UseStdlibVarsSettings{
 		HTTPMethod:     true,
@@ -213,15 +228,18 @@ type LintersSettings struct {
 	Reassign         ReassignSettings
 	Revive           ReviveSettings
 	RowsErrCheck     RowsErrCheckSettings
+	SlogLint         SlogLintSettings
 	Staticcheck      StaticCheckSettings
 	Structcheck      StructCheckSettings
 	Stylecheck       StaticCheckSettings
 	TagAlign         TagAlignSettings
 	Tagliatelle      TagliatelleSettings
+	Testifylint      TestifylintSettings
 	Tenv             TenvSettings
 	Testpackage      TestpackageSettings
 	Thelper          ThelperSettings
 	Unparam          UnparamSettings
+	Unused           UnusedSettings
 	UseStdlibVars    UseStdlibVarsSettings
 	Varcheck         VarCheckSettings
 	Varnamelen       VarnamelenSettings
@@ -292,6 +310,7 @@ type DuplSettings struct {
 
 type DupWordSettings struct {
 	Keywords []string `mapstructure:"keywords"`
+	Ignore   []string `mapstructure:"ignore"`
 }
 
 type ErrcheckSettings struct {
@@ -393,13 +412,14 @@ type GciSettings struct {
 }
 
 type GinkgoLinterSettings struct {
-	SuppressLenAssertion     bool `mapstructure:"suppress-len-assertion"`
-	SuppressNilAssertion     bool `mapstructure:"suppress-nil-assertion"`
-	SuppressErrAssertion     bool `mapstructure:"suppress-err-assertion"`
-	SuppressCompareAssertion bool `mapstructure:"suppress-compare-assertion"`
-	SuppressAsyncAssertion   bool `mapstructure:"suppress-async-assertion"`
-	ForbidFocusContainer     bool `mapstructure:"forbid-focus-container"`
-	AllowHaveLenZero         bool `mapstructure:"allow-havelen-zero"`
+	SuppressLenAssertion       bool `mapstructure:"suppress-len-assertion"`
+	SuppressNilAssertion       bool `mapstructure:"suppress-nil-assertion"`
+	SuppressErrAssertion       bool `mapstructure:"suppress-err-assertion"`
+	SuppressCompareAssertion   bool `mapstructure:"suppress-compare-assertion"`
+	SuppressAsyncAssertion     bool `mapstructure:"suppress-async-assertion"`
+	SuppressTypeCompareWarning bool `mapstructure:"suppress-type-compare-assertion"`
+	ForbidFocusContainer       bool `mapstructure:"forbid-focus-container"`
+	AllowHaveLenZero           bool `mapstructure:"allow-havelen-zero"`
 }
 
 type GocognitSettings struct {
@@ -704,6 +724,13 @@ type RowsErrCheckSettings struct {
 	Packages []string
 }
 
+type SlogLintSettings struct {
+	KVOnly         bool `mapstructure:"kv-only"`
+	AttrOnly       bool `mapstructure:"attr-only"`
+	NoRawKeys      bool `mapstructure:"no-raw-keys"`
+	ArgsOnSepLines bool `mapstructure:"args-on-sep-lines"`
+}
+
 type StaticCheckSettings struct {
 	// Deprecated: use the global `run.go` instead.
 	GoVersion string `mapstructure:"go"`
@@ -734,6 +761,19 @@ type TagliatelleSettings struct {
 		Rules        map[string]string
 		UseFieldName bool `mapstructure:"use-field-name"`
 	}
+}
+
+type TestifylintSettings struct {
+	EnableAll       bool     `mapstructure:"enable-all"`
+	EnabledCheckers []string `mapstructure:"enable"`
+
+	ExpectedActual struct {
+		ExpVarPattern string `mapstructure:"pattern"`
+	} `mapstructure:"expected-actual"`
+
+	SuiteExtraAssertCall struct {
+		Mode string `mapstructure:"mode"`
+	} `mapstructure:"suite-extra-assert-call"`
 }
 
 type TestpackageSettings struct {
@@ -776,6 +816,16 @@ type UseStdlibVarsSettings struct {
 type UnparamSettings struct {
 	CheckExported bool `mapstructure:"check-exported"`
 	Algo          string
+}
+
+type UnusedSettings struct {
+	FieldWritesAreUses     bool `mapstructure:"field-writes-are-uses"`
+	PostStatementsAreReads bool `mapstructure:"post-statements-are-reads"`
+	ExportedIsUsed         bool `mapstructure:"exported-is-used"`
+	ExportedFieldsAreUsed  bool `mapstructure:"exported-fields-are-used"`
+	ParametersAreUsed      bool `mapstructure:"parameters-are-used"`
+	LocalVariablesAreUsed  bool `mapstructure:"local-variables-are-used"`
+	GeneratedIsUsed        bool `mapstructure:"generated-is-used"`
 }
 
 type VarCheckSettings struct {

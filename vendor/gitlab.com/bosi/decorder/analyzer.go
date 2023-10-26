@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"strings"
+	"sync"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -65,6 +66,7 @@ var (
 		token.CONST: false,
 		token.VAR:   false,
 	}
+	decLock sync.Mutex
 )
 
 //nolint:lll
@@ -79,10 +81,16 @@ func init() {
 	Analyzer.Flags.BoolVar(&opts.disableInitFuncFirstCheck, FlagDiffc, false, "option to disable check that init function is always first function in file")
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func initDec() {
+	decLock.Lock()
 	decNumConf[token.TYPE] = opts.disableTypeDecNumCheck
 	decNumConf[token.CONST] = opts.disableConstDecNumCheck
 	decNumConf[token.VAR] = opts.disableVarDecNumCheck
+	decLock.Unlock()
+}
+
+func run(pass *analysis.Pass) (interface{}, error) {
+	initDec()
 
 	for _, f := range pass.Files {
 		ast.Inspect(f, runDeclNumAndDecOrderCheck(pass))

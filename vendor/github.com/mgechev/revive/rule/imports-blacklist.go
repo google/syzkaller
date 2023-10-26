@@ -52,10 +52,6 @@ func (r *ImportsBlacklistRule) Apply(file *lint.File, arguments lint.Arguments) 
 
 	var failures []lint.Failure
 
-	if file.IsTest() {
-		return failures // skip, test file
-	}
-
 	for _, is := range file.AST.Imports {
 		path := is.Path
 		if path != nil && r.isBlacklisted(path.Value) {

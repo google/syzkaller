@@ -9,6 +9,7 @@ linters:
     - exportloopref
     - gci
     - ginkgolinter
+    - gochecknoinits
     - gofmt
     - gofumpt
     - goimports
@@ -35,6 +36,10 @@ linters-settings:
       - standard
       - default
       - prefix(github.com/securego)
+  revive:
+    rules:
+      - name: dot-imports
+        disabled: true
 
 run:
   timeout: 5m
