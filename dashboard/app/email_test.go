@@ -996,7 +996,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	// First try to ping some non-existing bug.
 	subject := "Re: unknown-bug"
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom(mailingList), EmailOptSubject(subject),
 	)
@@ -1007,7 +1007,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	// Now try to test the exiting bug, but with the wrong mailing list.
 	subject = "Re: " + crashTitle
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom("<unknown-list@syzkaller.com>"), EmailOptSubject(subject),
 	)
@@ -1016,7 +1016,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	// Now try to test the exiting bug with the proper mailing list.
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
@@ -1026,7 +1026,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	// Test that a different type of email headers is also parsed fine.
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
@@ -1038,7 +1038,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	// Ensure that the inference fails with the proper title.
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
@@ -1058,7 +1058,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	// Make sure syzbot can understand the (2) version.
 	subject = "Re: " + crashTitle + " (2)"
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptFrom(mailingList), EmailOptOrigFrom("<test@requester.com>"),
 		EmailOptSubject(subject),
 	)
@@ -1138,7 +1138,7 @@ func TestEmailPatchTestingAccess(t *testing.T) {
 
 	sender := c.pollEmailBug().Sender
 	c.incomingEmail(sender,
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptFrom("user@kernel.org"), EmailOptSubject("Re: "+crash.Title),
 	)
 

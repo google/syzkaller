@@ -22,6 +22,8 @@ const sampleGitPatch = `--- a/mm/kasan/kasan.c
 +       current->kasan_depth--;
 `
 
+const syzTestGitBranchSamplePatch = "#syz test: git://git.git/git.git kernel-branch\n" + sampleGitPatch
+
 // nolint: funlen
 func TestJob(t *testing.T) {
 	c := NewCtx(t)
@@ -45,7 +47,7 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "bla-bla-bla", EmailOptFrom("maintainer@kernel.org"),
 		EmailOptCC([]string{mailingList, "kernel@mailing.list"}))
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	body := c.pollEmailBug().Body
 	t.Logf("body: %s", body)
@@ -78,20 +80,20 @@ func TestJob(t *testing.T) {
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "does not look like a valid git repo"), true)
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"))
 	c.expectNoEmail()
 	pollResp := client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// This submits actual test request.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com", "test@syzkaller.com"}))
 	c.expectNoEmail()
 
 	// A dup of the same request with the same Message-ID.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com", "test@syzkaller.com"}))
 	c.expectNoEmail()
@@ -157,7 +159,7 @@ patch:          %[1]v
 	}
 
 	// Testing fails with an error.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(2))
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch, EmailOptMessageID(2))
 	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -194,7 +196,7 @@ patch:          %[1]v
 	}
 
 	// Testing fails with a huge error that can't be inlined in email.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(3))
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch, EmailOptMessageID(3))
 	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -236,7 +238,7 @@ patch:          %[3]v
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(4))
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch, EmailOptMessageID(4))
 	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -295,7 +297,7 @@ func TestBootErrorPatch(t *testing.T) {
 	sender = c.pollEmailBug().Sender
 	mailingList := c.config().Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
@@ -320,7 +322,7 @@ func TestTestErrorPatch(t *testing.T) {
 	sender = c.pollEmailBug().Sender
 	mailingList := c.config().Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
