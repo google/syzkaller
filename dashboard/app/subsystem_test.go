@@ -1005,7 +1005,7 @@ func TestRemindersPriority(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
-	mailingList := c.config().Namespaces["subsystem-reminders"].Reporting[1].Config.(*EmailConfig).Email
+	cc := EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"})
 	build := testBuild(1)
 	client.UploadBuild(build)
 
@@ -1018,7 +1018,7 @@ func TestRemindersPriority(t *testing.T) {
 	client.ReportCrash(aFirst)
 	sender, firstExtID := client.pollEmailAndExtID()
 	c.incomingEmail(sender, "#syz set prio: low\n",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+		EmailOptFrom("test@requester.com"), cc)
 	c.advanceTime(time.Hour)
 
 	// WARNING: a second, normal prio
@@ -1036,7 +1036,7 @@ func TestRemindersPriority(t *testing.T) {
 	client.ReportCrash(aThird)
 	sender, thirdExtID := client.pollEmailAndExtID()
 	c.incomingEmail(sender, "#syz set prio: high\n",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+		EmailOptFrom("test@requester.com"), cc)
 	c.advanceTime(time.Hour)
 
 	// Report bugs once more to pretend they're still valid.

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/mail"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -501,9 +502,8 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 	// A mailing list can send us a duplicate email, to not process/reply
 	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	fromMailingList := msg.MailingList != ""
-	mailingList := email.CanonicalEmail(emailConfig.Email)
-	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
-	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
+	missingLists := missingMailingLists(c, msg, emailConfig)
+	log.Infof(c, "from/cc mailing list: %v (missing: %v)", fromMailingList, missingLists)
 	if fromMailingList && len(msg.BugIDs) > 0 && len(msg.Commands) > 0 {
 		// Note that if syzbot was not directly mentioned in To or Cc, this is not really
 		// a duplicate message, so it must be processed. We detect it by looking at BugID.
@@ -545,8 +545,8 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 			replies = append(replies, handleBugCommand(c, bugInfo, msg, nil))
 		}
 		reply := groupEmailReplies(replies)
-		if reply == "" && len(msg.Commands) > 0 && !mailingListInCC && !unCc {
-			reply = warnMailingListInCC(c, msg, mailingList)
+		if reply == "" && len(msg.Commands) > 0 && len(missingLists) > 0 && !unCc {
+			return forwardEmail(c, emailConfig, msg, bugInfo, missingLists)
 		}
 		if reply != "" {
 			return replyTo(c, msg, bugInfo.bugReporting.ID, reply)
@@ -1205,23 +1205,51 @@ func (p *subjectTitleParser) parseFullTitle(subject string) (string, error) {
 	return parts[len(parts)-1], nil
 }
 
-func checkMailingListInCC(c context.Context, msg *email.Email, mailingList string) bool {
-	if msg.MailingList == mailingList {
-		return true
+func missingMailingLists(c context.Context, msg *email.Email, emailConfig *EmailConfig) []string {
+	// We want to ensure that the incoming message is recorded on both our mailing list
+	// and the archive mailing list (in case of Linux -- linux-kernel@vger.kernel.org).
+	mailingLists := []string{
+		email.CanonicalEmail(emailConfig.Email),
 	}
-	for _, cc := range msg.Cc {
-		if cc == mailingList {
-			return true
+	if emailConfig.MailMaintainers {
+		mailingLists = append(mailingLists, emailConfig.DefaultMaintainers...)
+	}
+	// Consider all recipients.
+	exists := map[string]struct{}{}
+	if msg.MailingList != "" {
+		exists[msg.MailingList] = struct{}{}
+	}
+	for _, email := range msg.Cc {
+		exists[email] = struct{}{}
+	}
+	var missing []string
+	for _, list := range mailingLists {
+		if _, ok := exists[list]; !ok {
+			missing = append(missing, list)
 		}
 	}
-	msg.Cc = append(msg.Cc, mailingList)
-	return false
+	sort.Strings(missing)
+	msg.Cc = append(msg.Cc, missing...)
+	return missing
 }
 
-func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string) string {
-	return fmt.Sprintf("Your commands are accepted, but please keep %v mailing list"+
-		" in CC next time. It serves as a history of what happened with each bug report."+
-		" Thank you.", mailingList)
+func forwardEmail(c context.Context, cfg *EmailConfig, msg *email.Email,
+	info *bugInfoResult, mailingLists []string) error {
+	log.Infof(c, "forwarding email: id=%q from=%q to=%q", msg.MessageID, msg.Author, mailingLists)
+	body := fmt.Sprintf(`For archival purposes, forwarding an incoming command email to
+%v.
+
+***
+
+Subject: %s
+Author: %s
+
+%s`, strings.Join(mailingLists, ", "), msg.Subject, msg.Author, msg.Body)
+	from, err := email.AddAddrContext(fromAddr(c), info.bugReporting.ID)
+	if err != nil {
+		return err
+	}
+	return sendMailText(c, cfg, msg.Subject, from, mailingLists, info.bugReporting.ExtID, body)
 }
 
 func sendMailText(c context.Context, cfg *EmailConfig, subject, from string, to []string, replyTo, body string) error {

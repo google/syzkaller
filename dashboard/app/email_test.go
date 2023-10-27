@@ -374,14 +374,9 @@ unknown command "bad-command"
 	}
 
 	// Now mark the bug as fixed.
-	c.incomingEmail(sender1, "#syz fix: some: commit title", EmailOptCC(nil))
-	reply := c.pollEmailBug().Body
-	// nolint: lll
-	c.expectEQ(reply, `> #syz fix: some: commit title
-
-Your commands are accepted, but please keep bugs@syzkaller.com mailing list in CC next time. It serves as a history of what happened with each bug report. Thank you.
-
-`)
+	c.incomingEmail(sender1, "#syz fix: some: commit title",
+		EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"}),
+		EmailOptSubject("fix bug title"))
 
 	// Check that the commit is now passed to builders.
 	builderPollResp, _ := c.client2.BuilderPoll(build.Manager)
@@ -502,15 +497,16 @@ func TestEmailDup2(t *testing.T) {
 			msg2 = c.pollEmailBug()
 			c.expectEQ(msg2.Subject, "[syzbot] KASAN: another bad thing")
 
+			cc := EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"})
 			switch i {
 			case 0:
-				c.incomingEmail(msg2.Sender, "#syz dup: BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: BUG: something bad", cc)
 			case 1:
-				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] BUG: something bad", cc)
 			case 2:
-				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] [subsystemA?] BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] [subsystemA?] BUG: something bad", cc)
 			default:
-				c.incomingEmail(msg2.Sender, "#syz dup: syzbot: BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: syzbot: BUG: something bad", cc)
 				reply := c.pollEmailBug()
 				c.expectTrue(strings.Contains(reply.Body, "can't find the dup bug"))
 			}
@@ -579,8 +575,10 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		crash1.Title = fmt.Sprintf("bug_%v", i)
 		c.client2.ReportCrash(crash1)
 		bugSender := c.pollEmailBug().Sender
+		cc := EmailOptCC([]string{"default@maintainers.com", "test@syzkaller.com",
+			"bugs@syzkaller.com", "default2@maintainers.com", "bugs2@syzkaller.com"})
 		for j := 0; j < test.bug; j++ {
-			c.incomingEmail(bugSender, "#syz upstream")
+			c.incomingEmail(bugSender, "#syz upstream", cc)
 			bugSender = c.pollEmailBug().Sender
 		}
 
@@ -589,11 +587,11 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		c.client2.ReportCrash(crash2)
 		dupSender := c.pollEmailBug().Sender
 		for j := 0; j < test.dup; j++ {
-			c.incomingEmail(dupSender, "#syz upstream")
+			c.incomingEmail(dupSender, "#syz upstream", cc)
 			dupSender = c.pollEmailBug().Sender
 		}
 
-		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title)
+		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title, cc)
 		if test.result {
 			c.expectNoEmail()
 		} else {
@@ -1320,4 +1318,90 @@ func expectLabels(t *testing.T, client *apiClient, extID string, labels ...strin
 		names = append(names, item.String())
 	}
 	assert.ElementsMatch(t, names, labels)
+}
+
+var forwardEmailConfig = EmailConfig{
+	Email:              "test@syzkaller.com",
+	HandleListEmails:   true,
+	SubjectPrefix:      "[syzbot]",
+	MailMaintainers:    true,
+	DefaultMaintainers: []string{"some@list.com"},
+}
+
+func TestSingleListForward(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.updateReporting("access-public-email", "access-public-email-reporting1",
+		func(r Reporting) Reporting {
+			r.Config = &forwardEmailConfig
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+
+	c.incomingEmail(sender, "#syz fix: some: commit title",
+		EmailOptCC([]string{"some@list.com"}), EmailOptSubject("fix bug title"))
+
+	forwarded := c.pollEmailBug()
+	c.expectEQ(forwarded.Subject, "[syzbot] fix bug title")
+	c.expectEQ(forwarded.Sender, sender)
+	c.expectEQ(forwarded.To, []string{"test@syzkaller.com"})
+	c.expectEQ(len(forwarded.Cc), 0)
+	c.expectEQ(forwarded.Body, `For archival purposes, forwarding an incoming command email to
+test@syzkaller.com.
+
+***
+
+Subject: fix bug title
+Author: default@sender.com
+
+#syz fix: some: commit title
+`)
+}
+
+func TestTwoListsForward(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.updateReporting("access-public-email", "access-public-email-reporting1",
+		func(r Reporting) Reporting {
+			r.Config = &forwardEmailConfig
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+
+	c.incomingEmail(sender, "#syz fix: some: commit title",
+		EmailOptCC(nil), EmailOptSubject("fix bug title"))
+
+	forwarded := c.pollEmailBug()
+	c.expectEQ(forwarded.Subject, "[syzbot] fix bug title")
+	c.expectEQ(forwarded.Sender, sender)
+	c.expectEQ(forwarded.To, []string{"some@list.com", "test@syzkaller.com"})
+	c.expectEQ(len(forwarded.Cc), 0)
+	c.expectEQ(forwarded.Body, `For archival purposes, forwarding an incoming command email to
+some@list.com, test@syzkaller.com.
+
+***
+
+Subject: fix bug title
+Author: default@sender.com
+
+#syz fix: some: commit title
+`)
 }
