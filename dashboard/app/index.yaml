@@ -243,3 +243,8 @@ indexes:
   - name: Type
   - name: Finished
     direction: desc
+
+- kind: Job
+  properties:
+  - name: Namespace
+  - name: Type
