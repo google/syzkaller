@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/logging v1.8.1
 	cloud.google.com/go/profiler v0.4.0
 	cloud.google.com/go/pubsub v1.33.0
-	cloud.google.com/go/secretmanager v1.11.2
+	cloud.google.com/go/secretmanager v1.11.3
 	cloud.google.com/go/storage v1.33.0
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golangci/golangci-lint v1.54.2
@@ -208,7 +208,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a // indirect
-	google.golang.org/grpc v1.58.3 // indirect
+	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

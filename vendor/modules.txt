@@ -47,7 +47,7 @@ cloud.google.com/go/pubsub/apiv1/pubsubpb
 cloud.google.com/go/pubsub/internal
 cloud.google.com/go/pubsub/internal/distribution
 cloud.google.com/go/pubsub/internal/scheduler
-# cloud.google.com/go/secretmanager v1.11.2
+# cloud.google.com/go/secretmanager v1.11.3
 ## explicit; go 1.19
 cloud.google.com/go/secretmanager/apiv1
 cloud.google.com/go/secretmanager/apiv1/secretmanagerpb
@@ -1024,7 +1024,7 @@ google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context/attribute_context
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.58.3
+# google.golang.org/grpc v1.59.0
 ## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1083,6 +1083,7 @@ google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
+google.golang.org/grpc/resolver/manual
 google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
