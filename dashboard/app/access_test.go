@@ -42,7 +42,7 @@ func TestAccessConfig(t *testing.T) {
 }
 
 // TestAccess checks that all UIs respect access levels.
-// nolint: funlen
+// nolint: funlen, goconst
 func TestAccess(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
