@@ -257,16 +257,18 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
 		t.Fatalf("bad notification text: %q", notif.Body)
 	}
-	c.expectEQ(notif.To, []string{"bugs@syzkaller.com", "default@sender.com", "somebody@else.com"})
+	c.expectEQ(notif.To, []string{"bugs@syzkaller.com", "default@maintainers.com",
+		"default@sender.com", "somebody@else.com"})
 
 	// New crash must create new bug.
 	c.client2.ReportCrash(crash)
 	report = c.pollEmailBug()
 	c.expectEQ(report.Subject, "title1 (2)")
 	// Now the same, but for the last reporting (must have smaller CC list).
-	c.incomingEmail(report.Sender, "#syz upstream")
+	c.incomingEmail(report.Sender, "#syz upstream", EmailOptCC([]string{"test@syzkaller.com"}))
 	report = c.pollEmailBug()
-	c.incomingEmail(report.Sender, "#syz upstream")
+	c.incomingEmail(report.Sender, "#syz upstream",
+		EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"}))
 	report = c.pollEmailBug()
 	_ = report
 

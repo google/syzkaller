@@ -292,13 +292,12 @@ func TestBootErrorPatch(t *testing.T) {
 	crash.Title = "riscv/fixes boot error: can't ssh into the instance"
 	c.client2.ReportCrash(crash)
 
-	sender := c.pollEmailBug().Sender
-	c.incomingEmail(sender, "#syz upstream\n")
-	sender = c.pollEmailBug().Sender
-	mailingList := c.config().Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
+	report := c.pollEmailBug()
+	c.incomingEmail(report.Sender, "#syz upstream\n", EmailOptCC(report.To))
+	report = c.pollEmailBug()
 
-	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.incomingEmail(report.Sender, syzTestGitBranchSamplePatch,
+		EmailOptFrom("test@requester.com"), EmailOptCC(report.To))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
@@ -319,11 +318,10 @@ func TestTestErrorPatch(t *testing.T) {
 
 	sender := c.pollEmailBug().Sender
 	c.incomingEmail(sender, "#syz upstream\n")
-	sender = c.pollEmailBug().Sender
-	mailingList := c.config().Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
+	report := c.pollEmailBug()
 
-	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.incomingEmail(report.Sender, syzTestGitBranchSamplePatch,
+		EmailOptFrom("test@requester.com"), EmailOptCC(report.To))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
