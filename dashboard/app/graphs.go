@@ -138,13 +138,14 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Filter("Namespace=", hdr.Namespace).
+		Filter("Type=", JobBisectCause).
 		GetAll(c, &jobs)
 	if err != nil {
 		return err
 	}
 	causeBisects := make(map[string]*Job)
 	for i, job := range jobs {
-		if job.Type != JobBisectCause || len(job.Commits) != 1 {
+		if len(job.Commits) != 1 {
 			continue
 		}
 		causeBisects[keys[i].Parent().StringID()] = job
