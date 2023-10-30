@@ -210,13 +210,26 @@ func minuteCacheNsUpdate(c context.Context, ns string) error {
 func CachedManagerList(c context.Context, ns string) ([]string, error) {
 	return cachedObjectList(c,
 		fmt.Sprintf("%s-managers-list", ns),
+		time.Minute,
 		func(c context.Context) ([]string, error) {
 			return managerList(c, ns)
 		},
 	)
 }
 
-func cachedObjectList[T any](c context.Context, key string, load func(context.Context) ([]T, error)) ([]T, error) {
+func CachedUIManagers(c context.Context, accessLevel AccessLevel, ns string,
+	filter *userBugFilter) ([]*uiManager, error) {
+	return cachedObjectList(c,
+		fmt.Sprintf("%s-%v-%v-ui-managers", ns, accessLevel, filter.Hash()),
+		5*time.Minute,
+		func(c context.Context) ([]*uiManager, error) {
+			return loadManagers(c, accessLevel, ns, filter)
+		},
+	)
+}
+
+func cachedObjectList[T any](c context.Context, key string, period time.Duration,
+	load func(context.Context) ([]T, error)) ([]T, error) {
 	// Check if the object is in cache.
 	var obj []T
 	_, err := memcache.Gob.Get(c, key, &obj)
@@ -234,7 +247,7 @@ func cachedObjectList[T any](c context.Context, key string, load func(context.Co
 	item := &memcache.Item{
 		Key:        key,
 		Object:     obj,
-		Expiration: time.Minute,
+		Expiration: period,
 	}
 	if err := memcache.Gob.Set(c, item); err != nil {
 		return nil, err
