@@ -208,29 +208,36 @@ func minuteCacheNsUpdate(c context.Context, ns string) error {
 }
 
 func CachedManagerList(c context.Context, ns string) ([]string, error) {
-	key := fmt.Sprintf("%s-managers-list", ns)
+	return cachedObjectList(c,
+		fmt.Sprintf("%s-managers-list", ns),
+		func(c context.Context) ([]string, error) {
+			return managerList(c, ns)
+		},
+	)
+}
 
+func cachedObjectList[T any](c context.Context, key string, load func(context.Context) ([]T, error)) ([]T, error) {
 	// Check if the object is in cache.
-	list := []string{}
-	_, err := memcache.Gob.Get(c, key, &list)
+	var obj []T
+	_, err := memcache.Gob.Get(c, key, &obj)
 	if err == nil {
-		return list, nil
+		return obj, nil
 	} else if err != memcache.ErrCacheMiss {
 		return nil, err
 	}
 
-	// Update cache.
-	list, err = managerList(c, ns)
+	// Load the object.
+	obj, err = load(c)
 	if err != nil {
 		return nil, err
 	}
 	item := &memcache.Item{
 		Key:        key,
-		Object:     list,
+		Object:     obj,
 		Expiration: time.Minute,
 	}
 	if err := memcache.Gob.Set(c, item); err != nil {
 		return nil, err
 	}
-	return list, nil
+	return obj, nil
 }
