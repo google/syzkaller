@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -469,6 +470,10 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 	return true
 }
 
+func (filter *userBugFilter) Hash() string {
+	return hash.String([]byte(fmt.Sprintf("%#v", filter)))
+}
+
 func splitLabel(rawLabel string) (BugLabelType, string) {
 	label, value, _ := strings.Cut(rawLabel, ":")
 	return BugLabelType(label), value
@@ -492,7 +497,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
 	}
-	managers, err := loadManagers(c, accessLevel, hdr.Namespace, filter)
+	managers, err := CachedUIManagers(c, accessLevel, hdr.Namespace, filter)
 	if err != nil {
 		return err
 	}
