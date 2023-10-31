@@ -74,14 +74,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -253,18 +253,18 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
 If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -702,14 +702,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -872,14 +872,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
