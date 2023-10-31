@@ -291,7 +291,7 @@ Dashboard link: %s
 [1] I expect the commit to be present in:
 `, notif.Text, days, nsConfig.DisplayTitle, notif.Link)
 
-	repos, err := loadRepos(c, AccessPublic, notif.Namespace)
+	repos, err := loadRepos(c, notif.Namespace)
 	if err != nil {
 		return "", err
 	}

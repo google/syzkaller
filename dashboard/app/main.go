@@ -785,7 +785,7 @@ func handleRepos(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	repos, err := loadRepos(c, accessLevel(c, r), hdr.Namespace)
+	repos, err := loadRepos(c, hdr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -2000,8 +2000,8 @@ func makeUIBuild(c context.Context, build *Build) *uiBuild {
 	}
 }
 
-func loadRepos(c context.Context, accessLevel AccessLevel, ns string) ([]*uiRepo, error) {
-	managers, _, err := loadManagerList(c, accessLevel, ns, nil)
+func loadRepos(c context.Context, ns string) ([]*uiRepo, error) {
+	managers, _, err := loadNsManagerList(c, ns, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2045,7 +2045,7 @@ func loadRepos(c context.Context, accessLevel AccessLevel, ns string) ([]*uiRepo
 func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter *userBugFilter) ([]*uiManager, error) {
 	now := timeNow(c)
 	date := timeDate(now)
-	managers, managerKeys, err := loadManagerList(c, accessLevel, ns, filter)
+	managers, managerKeys, err := loadNsManagerList(c, ns, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -2142,8 +2142,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter 
 	return results, nil
 }
 
-func loadManagerList(c context.Context, accessLevel AccessLevel, ns string,
-	filter *userBugFilter) ([]*Manager, []*db.Key, error) {
+func loadNsManagerList(c context.Context, ns string, filter *userBugFilter) ([]*Manager, []*db.Key, error) {
 	managers, keys, err := loadAllManagers(c, ns)
 	if err != nil {
 		return nil, nil, err
@@ -2152,9 +2151,6 @@ func loadManagerList(c context.Context, accessLevel AccessLevel, ns string,
 	var filteredKeys []*db.Key
 	for i, mgr := range managers {
 		cfg := getNsConfig(c, mgr.Namespace)
-		if accessLevel < cfg.AccessLevel {
-			continue
-		}
 		if ns == "" && cfg.Decommissioned {
 			continue
 		}
