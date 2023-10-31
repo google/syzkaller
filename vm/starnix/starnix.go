@@ -180,7 +180,10 @@ func (inst *instance) startFuchsiaVM() error {
 }
 
 func (inst *instance) startFuchsiaLogs() error {
-	cmd := osutil.Command(ffxBinary, "--target", inst.name, "log")
+	// `ffx log` outputs some buffered logs by default, and logs from early boot
+	// trigger a false positive from the unexpected reboot check. To avoid this,
+	// only request logs from now on.
+	cmd := osutil.Command(ffxBinary, "--target", inst.name, "log", "--since", "now")
 	cmd.Dir = inst.fuchsiaDirectory
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
@@ -303,7 +306,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
 		wpipe.Close()
 		return nil, nil, err
 	}
