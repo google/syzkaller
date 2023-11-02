@@ -316,6 +316,7 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httpte
 	if err != nil {
 		c.t.Fatal(err)
 	}
+	r.Header.Add("X-Appengine-User-IP", "127.0.0.1")
 	r = registerRequest(r, c)
 	r = r.WithContext(c.transformContext(r.Context()))
 	if access == AccessAdmin || access == AccessUser {

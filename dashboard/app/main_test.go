@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestOnlyManagerFilter(t *testing.T) {
@@ -353,4 +354,54 @@ func TestSubsystemsPageRedirect(t *testing.T) {
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusMovedPermanently)
 	c.expectEQ(httpErr.Headers["Location"], []string{"/access-public-email/s/subsystemA"})
+}
+
+func TestNoThrottle(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	assert.True(t, c.config().Throttle.Empty())
+	for i := 0; i < 10; i++ {
+		c.advanceTime(time.Millisecond)
+		_, err := c.AuthGET(AccessPublic, "/access-public-email")
+		c.expectOK(err)
+	}
+}
+
+func TestThrottle(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := *getConfig(c)
+		newConfig.Throttle = ThrottleConfig{
+			Window: 10 * time.Second,
+			Limit:  10,
+		}
+		return contextWithConfig(c, &newConfig)
+	}
+
+	// Adhere to the limit.
+	for i := 0; i < 15; i++ {
+		c.advanceTime(time.Second)
+		_, err := c.AuthGET(AccessPublic, "/access-public-email")
+		c.expectOK(err)
+	}
+
+	// Break the limit.
+	c.advanceTime(time.Millisecond)
+	_, err := c.AuthGET(AccessPublic, "/access-public-email")
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusTooManyRequests)
+
+	// Still too frequent requests.
+	c.advanceTime(time.Millisecond)
+	_, err = c.AuthGET(AccessPublic, "/access-public-email")
+	c.expectTrue(err != nil)
+
+	// Wait a bit.
+	c.advanceTime(3 * time.Second)
+	_, err = c.AuthGET(AccessPublic, "/access-public-email")
+	c.expectOK(err)
 }
