@@ -62,6 +62,8 @@ type GlobalConfig struct {
 	// Emails received via the addresses below will be attributed to the corresponding
 	// kind of Discussion.
 	DiscussionEmails []DiscussionEmailConfig
+	// Incoming request throttling.
+	Throttle ThrottleConfig
 }
 
 // Per-namespace config.
@@ -306,6 +308,18 @@ type KcidbConfig struct {
 	Credentials []byte
 }
 
+// ThrottleConfig determines how many requests a single client can make in a period of time.
+type ThrottleConfig struct {
+	// The time period to be considered.
+	Window time.Duration
+	// No more than Limit requests are allowed within the time window.
+	Limit int
+}
+
+func (t ThrottleConfig) Empty() bool {
+	return t.Window == 0 || t.Limit == 0
+}
+
 var (
 	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
 	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
@@ -408,6 +422,12 @@ func checkConfig(cfg *GlobalConfig) {
 	}
 	for i := range cfg.EmailBlocklist {
 		cfg.EmailBlocklist[i] = email.CanonicalEmail(cfg.EmailBlocklist[i])
+	}
+	if cfg.Throttle.Limit < 0 {
+		panic("throttle limit cannot be negative")
+	}
+	if (cfg.Throttle.Limit != 0) != (cfg.Throttle.Window != 0) {
+		panic("throttling window and limit must be both set")
 	}
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)

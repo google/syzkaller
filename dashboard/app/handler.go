@@ -33,6 +33,9 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		c = context.WithValue(c, &currentURLKey, r.URL.RequestURI())
+		if !throttleRequest(c, w, r) {
+			return
+		}
 		if err := fn(c, w, r); err != nil {
 			hdr := commonHeaderRaw(c, r)
 			data := &struct {
@@ -73,6 +76,42 @@ func handleContext(fn contextHandler) http.Handler {
 			}
 		}
 	})
+}
+
+func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) bool {
+	// AppEngine removes all App Engine-specific headers, which include
+	// X-Appengine-User-IP and X-Forwarded-For.
+	// https://cloud.google.com/appengine/docs/standard/reference/request-headers?tab=python#removed_headers
+	ip := r.Header.Get("X-Appengine-User-IP")
+	if ip == "" {
+		ip = r.Header.Get("X-Forwarded-For")
+		ip, _, _ = strings.Cut(ip, ",") // X-Forwarded-For is a comma-delimited list.
+		ip = strings.TrimSpace(ip)
+	}
+	cron := r.Header.Get("X-Appengine-Cron") != ""
+	if ip == "" || cron {
+		log.Infof(c, "cannot throttle request from %q, cron %t", ip, cron)
+		return true
+	}
+	accept, err := ThrottleRequest(c, ip)
+	if err != nil {
+		log.Errorf(c, "failed to throttle: %v", err)
+	}
+	log.Infof(c, "throttling for %q: %t", ip, accept)
+	if !accept {
+		http.Error(w, throttlingErrorMessage(c), http.StatusTooManyRequests)
+		return false
+	}
+	return true
+}
+
+func throttlingErrorMessage(c context.Context) string {
+	ret := "429 Too Many Requests"
+	email := getConfig(c).ContactEmail
+	if email == "" {
+		return ret
+	}
+	return fmt.Sprintf("%s\nPlease contact us at %s if you need access to our data.", ret, email)
 }
 
 var currentURLKey = "the URL of the HTTP request in context"
