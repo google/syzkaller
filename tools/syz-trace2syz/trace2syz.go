@@ -16,8 +16,8 @@ package main
 
 import (
 	"flag"
-	"path/filepath"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/db"
