@@ -312,8 +312,14 @@ func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
 		item.Object = obj
 		err = memcache.Gob.CompareAndSwap(c, item)
 		if err == memcache.ErrCASConflict {
-			// Update conflict. Retry.
-			continue
+			if ok {
+				// Only retry if we approved the query.
+				// If we denied and there was a concurrent write
+				// to the same object, it could have only denied
+				// the query as well.
+				// Our save won't change anything.
+				continue
+			}
 		} else if err != nil {
 			return false, err
 		}
