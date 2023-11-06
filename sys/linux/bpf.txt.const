@@ -66,6 +66,7 @@ BPF_EXIST = 2
 BPF_EXIT0 = 9
 BPF_FLOW_DISSECTOR = 17
 BPF_FUNC_INFO_SIZE = 8
+BPF_FUNC_ringbuf_reserve = 131
 BPF_FUNC_snprintf = 165
 BPF_FUNC_tail_call = 12
 BPF_FUNC_trace_printk = 6
