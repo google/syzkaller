@@ -22,6 +22,8 @@ resource bpf_revision[int64]
 resource fd_bpf_const_str_map[fd_bpf_map]
 resource fd_bpf_const_str[fd_bpf_const_str_map]
 resource bpf_frozen_const_str[fd_bpf_const_str]
+resource tail_call_map_fd[fd_bpf_map]
+resource tail_call_map[tail_call_map_fd]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -37,9 +39,11 @@ type map_fd_id int32[0:16]
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
 bpf$MAP_CREATE_CONST_STR(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg_const_str], size len[arg]) fd_bpf_const_str_map
+bpf$MAP_CREATE_TAIL_CALL(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg_tail_call], size len[arg]) tail_call_map_fd
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
 bpf$MAP_UPDATE_CONST_STR(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[inout, bpf_map_update_const_str_arg], size len[arg])
+bpf$MAP_UPDATE_ELEM_TAIL_CALL(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[inout, bpf_map_update_tail_call_arg], size len[arg])
 bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
 bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
 bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd_bpf_prog
@@ -116,6 +120,7 @@ type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
 type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], int32, int32, int32, flags[map_flags, int32], const[0, int64]]
 type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], int32, int32, int32, flags[map_flags, int32], int64[0:15]]
 type bpf_map_create_arg_const_str bpf_map_create_arg_t[const[BPF_MAP_TYPE_ARRAY, int32], const[4, int32], const[8, int32], const[1, int32], const[BPF_F_RDONLY_PROG, int32], const[0, int64]]
+type bpf_map_create_arg_tail_call bpf_map_create_arg_t[const[BPF_MAP_TYPE_PROG_ARRAY, int32], const[4, int32], const[4, int32], const[10, int32], const[0, int32], const[0, int64]]
 
 bpf_map_get_fd_by_id_arg {
 	map_id		bpf_map_id
@@ -156,6 +161,18 @@ bpf_map_update_const_str_arg {
 	map	map_bpf_const_str
 	key	ptr64[in, const[0, int32]]
 	val	ptr64[in, string[bpf_printf_str]]
+	flags	const[0, int64]
+}
+
+tail_call_map_update {
+	in	tail_call_map_fd
+	out	tail_call_map	(out_overlay)
+}
+
+bpf_map_update_tail_call_arg {
+	map	tail_call_map_update
+	key	ptr64[in, const[0, int32]]
+	val	ptr64[in, fd_bpf_prog]
 	flags	const[0, int64]
 }
 
