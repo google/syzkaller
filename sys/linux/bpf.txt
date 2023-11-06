@@ -387,10 +387,18 @@ bpf_core_relo {
 bpf_instructions [
 	raw	array[bpf_insn]
 	framed	bpf_framed_program
+	ringbuf	bpf_program_ringbuf
 ] [varlen]
 
 bpf_framed_program {
 	initr0	bpf_insn_init_r0
+	body	array[bpf_insn]
+	exit	bpf_insn_exit
+} [packed]
+
+bpf_program_ringbuf {
+	initr0	bpf_insn_init_r0
+	reserve	bpf_insn_ringbuf_reserve
 	body	array[bpf_insn]
 	exit	bpf_insn_exit
 } [packed]
@@ -593,6 +601,7 @@ type bpf_insn_map_fd_t[DST, MAP_FD] {
 
 type bpf_insn_map_fd bpf_insn_map_fd_t[flags[bpf_reg, int8:4], fd_bpf_map]
 type bpf_insn_tail_call_map_fd[DST] bpf_insn_map_fd_t[const[DST, int8:4], tail_call_map]
+type bpf_insn_ringbuf_fd[DST] bpf_insn_map_fd_t[const[DST, int8:4], ringbuf_map_fd]
 
 bpf_insn_map_idx {
 	code	const[bpf_insn_load_imm_dw, int8]
@@ -725,6 +734,19 @@ bpf_insn_tail_call {
 	insn2	bpf_insn_mov_imm[BPF_REG_3, 0]
 	insn3	bpf_insn_call_helper_t[const[BPF_FUNC_tail_call, int32]]
 	insn4	bpf_insn_mov_imm[BPF_REG_0, 0]
+}
+
+# (18) r1 = map[id:16]
+# (b7) r2 = 8
+# (b7) r3 = 0
+# (85) call bpf_ringbuf_reserve#320112
+# (bf) r9 = r0
+bpf_insn_ringbuf_reserve {
+	insn1	bpf_insn_ringbuf_fd[BPF_REG_1]
+	insn2	bpf_insn_mov_imm[BPF_REG_2, 20]
+	insn3	bpf_insn_mov_imm[BPF_REG_3, 0]
+	insn4	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_reserve, int32]]
+	insn5	bpf_insn_mov_reg[BPF_REG_0, BPF_REG_9]
 }
 
 define MAX_BPF_REG	__MAX_BPF_REG
