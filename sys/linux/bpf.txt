@@ -400,6 +400,7 @@ bpf_program_ringbuf {
 	initr0	bpf_insn_init_r0
 	reserve	bpf_insn_ringbuf_reserve
 	body	array[bpf_insn]
+	free	bpf_insn_ringbuf_submit
 	exit	bpf_insn_exit
 } [packed]
 
@@ -747,6 +748,17 @@ bpf_insn_ringbuf_reserve {
 	insn3	bpf_insn_mov_imm[BPF_REG_3, 0]
 	insn4	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_reserve, int32]]
 	insn5	bpf_insn_mov_reg[BPF_REG_0, BPF_REG_9]
+}
+
+# (bf) r1 = r9
+# (b7) r2 = 0
+# (85) call bpf_ringbuf_submit#322192
+# (bf) r0 = 0
+bpf_insn_ringbuf_submit {
+	insn1	bpf_insn_mov_reg[BPF_REG_9, BPF_REG_1]
+	insn2	bpf_insn_mov_imm[BPF_REG_2, 0]
+	insn3	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_submit, int32]]
+	insn4	bpf_insn_mov_imm[BPF_REG_0, 0]
 }
 
 define MAX_BPF_REG	__MAX_BPF_REG
