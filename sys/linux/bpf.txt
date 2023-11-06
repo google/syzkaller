@@ -24,6 +24,7 @@ resource fd_bpf_const_str[fd_bpf_const_str_map]
 resource bpf_frozen_const_str[fd_bpf_const_str]
 resource tail_call_map_fd[fd_bpf_map]
 resource tail_call_map[tail_call_map_fd]
+resource ringbuf_map_fd[fd_bpf_map]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -38,6 +39,7 @@ type btf_opt_name_off int32[0:16]
 type map_fd_id int32[0:16]
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
+bpf$MAP_CREATE_RINGBUF(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg_ringbuf], size len[arg]) ringbuf_map_fd
 bpf$MAP_CREATE_CONST_STR(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg_const_str], size len[arg]) fd_bpf_const_str_map
 bpf$MAP_CREATE_TAIL_CALL(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg_tail_call], size len[arg]) tail_call_map_fd
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
@@ -119,6 +121,7 @@ type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
 
 type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], int32, int32, int32, flags[map_flags, int32], const[0, int64]]
 type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], int32, int32, int32, flags[map_flags, int32], int64[0:15]]
+type bpf_map_create_arg_ringbuf bpf_map_create_arg_t[const[BPF_MAP_TYPE_RINGBUF, int32], const[0, int32], const[0, int32], int32, const[0, int32], const[0, int64]]
 type bpf_map_create_arg_const_str bpf_map_create_arg_t[const[BPF_MAP_TYPE_ARRAY, int32], const[4, int32], const[8, int32], const[1, int32], const[BPF_F_RDONLY_PROG, int32], const[0, int64]]
 type bpf_map_create_arg_tail_call bpf_map_create_arg_t[const[BPF_MAP_TYPE_PROG_ARRAY, int32], const[4, int32], const[4, int32], const[10, int32], const[0, int32], const[0, int64]]
 
