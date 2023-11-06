@@ -11,7 +11,7 @@ require (
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golangci/golangci-lint v1.54.2
 	github.com/google/go-cmp v0.6.0
-	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20230524184225-eabc099b10ab
 	github.com/prometheus/client_golang v1.17.0
 	github.com/stretchr/testify v1.8.4
