@@ -410,6 +410,7 @@ bpf_insn [
 	cb_func		bpf_insn_cb_func
 	printk		bpf_insn_trace_printk
 	snprintf	bpf_insn_snprintf
+	tail_call	bpf_insn_tail_call
 ] [varlen]
 
 bpf_insn_generic {
@@ -575,17 +576,20 @@ type bpf_insn_mov_imm64[DST, IMM1, IMM2] {
 	imm2	const[IMM2, int32]
 }
 
-bpf_insn_map_fd {
+type bpf_insn_map_fd_t[DST, MAP_FD] {
 	code	const[bpf_insn_load_imm_dw, int8]
-	dst	flags[bpf_reg, int8:4]
+	dst	DST
 	src	const[BPF_PSEUDO_MAP_FD, int8:4]
 	off	const[0, int16]
-	imm	fd_bpf_map
+	imm	MAP_FD
 	code2	const[0, int8]
 	regs2	const[0, int8]
 	off2	const[0, int16]
 	imm2	const[0, int32]
 }
+
+type bpf_insn_map_fd bpf_insn_map_fd_t[flags[bpf_reg, int8:4], fd_bpf_map]
+type bpf_insn_tail_call_map_fd[DST] bpf_insn_map_fd_t[const[DST, int8:4], tail_call_map]
 
 bpf_insn_map_idx {
 	code	const[bpf_insn_load_imm_dw, int8]
@@ -707,6 +711,17 @@ bpf_insn_snprintf {
 	insn10	bpf_insn_const_str[BPF_REG_3]
 	insn11	bpf_insn_mov_imm[BPF_REG_5, 8]
 	insn12	bpf_insn_call_helper_t[const[BPF_FUNC_snprintf, int32]]
+}
+
+# (18) r2 = map[id:10]
+# (b7) r3 = 2
+# (85) call bpf_tail_call#12
+# (b7) r0 = 0
+bpf_insn_tail_call {
+	insn1	bpf_insn_tail_call_map_fd[BPF_REG_2]
+	insn2	bpf_insn_mov_imm[BPF_REG_3, 0]
+	insn3	bpf_insn_call_helper_t[const[BPF_FUNC_tail_call, int32]]
+	insn4	bpf_insn_mov_imm[BPF_REG_0, 0]
 }
 
 define MAX_BPF_REG	__MAX_BPF_REG
