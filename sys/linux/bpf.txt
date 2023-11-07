@@ -425,6 +425,7 @@ bpf_insn [
 	snprintf	bpf_insn_snprintf
 	tail_call	bpf_insn_tail_call
 	ringbuf_query	bpf_insn_ringbuf_query
+	ringbuf_output	bpf_insn_ringbuf_output
 ] [varlen]
 
 bpf_insn_generic {
@@ -793,6 +794,25 @@ bpf_insn_ringbuf_query {
 	insn1	bpf_insn_tail_call_map_fd[BPF_REG_1]
 	insn2	bpf_insn_mov_imm[BPF_REG_2, 0]
 	insn3	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_query, int32]]
+}
+
+# (18) r1 = map[id:16]
+# (b7) r8 = X
+# (7b) *(u64 *)(r10 -8) = r8
+# (bf) r2 = r10
+# (07) r2 += -8
+# (b7) r3 = 8
+# (b7) r4 = 0
+# (85) call bpf_ringbuf_output#322192
+bpf_insn_ringbuf_output {
+	insn1	bpf_insn_tail_call_map_fd[BPF_REG_1]
+	insn2	bpf_insn_mov_imm_any[BPF_REG_8]
+	insn3	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -8]
+	insn4	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_2]
+	insn5	bpf_insn_op_imm[BPF_REG_2, BPF_ADD0, -8]
+	insn6	bpf_insn_mov_imm[BPF_REG_3, 8]
+	insn7	bpf_insn_mov_imm[BPF_REG_4, 0]
+	insn8	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_output, int32]]
 }
 
 define MAX_BPF_REG	__MAX_BPF_REG
