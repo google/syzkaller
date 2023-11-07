@@ -397,11 +397,12 @@ bpf_framed_program {
 } [packed]
 
 bpf_program_ringbuf {
-	initr0	bpf_insn_init_r0
-	reserve	bpf_insn_ringbuf_reserve
-	body	array[bpf_insn]
-	free	bpf_insn_ringbuf_submit
-	exit	bpf_insn_exit
+	initr0		bpf_insn_init_r0
+	reserve		bpf_insn_ringbuf_reserve
+	null_check	bpf_insn_null_check[BPF_REG_9]
+	body		array[bpf_insn]
+	free		bpf_insn_ringbuf_submit
+	exit		bpf_insn_exit
 } [packed]
 
 bpf_insn [
@@ -508,6 +509,17 @@ bpf_insn_jmp {
 	src		flags[bpf_reg, int8:4]
 	off		flags[bpf_insn_offsets, int16]
 	imm		flags[bpf_insn_immediates, int32]
+}
+
+# Equivalent to: if reg != 0 goto +1;
+type bpf_insn_not_null_jmp[REG] {
+	code_class	const[BPF_JMP, int8:3]
+	code_s		const[BPF_K0, int8:1]
+	code_op		const[BPF_JNE0, int8:4]
+	dst		const[REG, int8:4]
+	src		const[0, int8:4]
+	off		const[1, int16]
+	imm		const[0, int32]
 }
 
 bpf_jmp_op = BPF_JA0, BPF_JEQ0, BPF_JGT0, BPF_JGE0, BPF_JSET0, BPF_JNE0, BPF_JSGT0, BPF_JSGE0, BPF_CALL0, BPF_EXIT0, BPF_JLT0, BPF_JLE0, BPF_JSLT0, BPF_JSLE0
@@ -674,6 +686,16 @@ define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
 bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, -1, -2, -4, -8, -12, -16, -32, -64
 bpf_insn_immediates = 0, 1, 4, 8, 16, -1, -4, -16
 bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10, __MAX_BPF_REG
+
+# Equivalent to:
+# if reg != 0 goto +1;
+# exit;
+# This is useful to check null pointers. We exit if the pointer is null and
+# continue the normal flow otherwise.
+type bpf_insn_null_check[REG] {
+	cond_jump	bpf_insn_not_null_jmp[REG]
+	exit		bpf_insn_exit
+}
 
 type bpf_insn_mov_printk_str_hex[DST] [
 # "%d     "
