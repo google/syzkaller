@@ -478,6 +478,7 @@ type bpf_insn_alu_t[CLASS_TYPE, CLASS, SOURCE_TYPE, SOURCE, OP_TYPE, OP, DST, SR
 type bpf_insn_alu bpf_insn_alu_t[flags, bpf_alu_insn, flags, bpf_alu_source, flags, bpf_alu_op, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
 type bpf_insn_mov_imm[DST, IMM] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
 type bpf_insn_mov_imm_any[DST] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], int32]
+type bpf_insn_mov_imm_flag[DST, FLAG] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], flags[FLAG, int32]]
 type bpf_insn_mov_reg[SRC, DST] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_X0, const, BPF_MOV0, const[DST, int8:4], const[SRC, int8:4], const[0, int16], const[0, int32]]
 type bpf_insn_op_imm[DST, OP, IMM] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, OP, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
 
@@ -775,12 +776,12 @@ bpf_insn_ringbuf_reserve {
 }
 
 # (bf) r1 = r9
-# (b7) r2 = 0
+# (b7) r2 = BPF_RB_X
 # (85) call bpf_ringbuf_{submit,discard}#322192
 # (bf) r0 = 0
 bpf_insn_ringbuf_free {
 	insn1	bpf_insn_mov_reg[BPF_REG_9, BPF_REG_1]
-	insn2	bpf_insn_mov_imm[BPF_REG_2, 0]
+	insn2	bpf_insn_mov_imm_flag[BPF_REG_2, bpf_ringbuf_wakeup_flags]
 	insn3	bpf_insn_call_helper_t[flags[bpf_helpers_ringbuf_free, int32]]
 	insn4	bpf_insn_mov_imm[BPF_REG_0, 0]
 }
@@ -802,7 +803,7 @@ bpf_insn_ringbuf_query {
 # (bf) r2 = r10
 # (07) r2 += -8
 # (b7) r3 = 8
-# (b7) r4 = 0
+# (b7) r4 = BPF_RB_X
 # (85) call bpf_ringbuf_output#322192
 bpf_insn_ringbuf_output {
 	insn1	bpf_insn_tail_call_map_fd[BPF_REG_1]
@@ -811,7 +812,7 @@ bpf_insn_ringbuf_output {
 	insn4	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_2]
 	insn5	bpf_insn_op_imm[BPF_REG_2, BPF_ADD0, -8]
 	insn6	bpf_insn_mov_imm[BPF_REG_3, 8]
-	insn7	bpf_insn_mov_imm[BPF_REG_4, 0]
+	insn7	bpf_insn_mov_imm_flag[BPF_REG_4, bpf_ringbuf_wakeup_flags]
 	insn8	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_output, int32]]
 }
 
@@ -1285,3 +1286,4 @@ bpf_link_create_kprobe_multi_flags = BPF_F_KPROBE_MULTI_RETURN
 nf_dev_hooks = NF_NETDEV_INGRESS, NF_NETDEV_EGRESS
 bpf_link_create_netfilter_flags = BPF_F_NETFILTER_IP_DEFRAG
 bpf_link_create_uprobe_multi_flags = BPF_F_UPROBE_MULTI_RETURN
+bpf_ringbuf_wakeup_flags = 0, BPF_RB_NO_WAKEUP, BPF_RB_FORCE_WAKEUP
