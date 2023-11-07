@@ -6,11 +6,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"runtime"
 	"runtime/debug"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -56,22 +54,18 @@ type Fuzzer struct {
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
 	corpusHashes map[hash.Sig]struct{}
-	corpusPrios  []int64
-	sumPrios     int64
-
 	signalMu     sync.RWMutex
 	corpusSignal signal.Signal // signal of inputs in corpus
 	maxSignal    signal.Signal // max signal ever observed including flakes
 	newSignal    signal.Signal // diff of maxSignal since last sync with master
+	selector     progSelector
 
 	checkResult *rpctype.CheckArgs
 	logMu       sync.Mutex
 }
 
 type FuzzerSnapshot struct {
-	corpus      []*prog.Prog
-	corpusPrios []int64
-	sumPrios    int64
+	corpus []*prog.Prog
 }
 
 type Stat int
@@ -514,28 +508,15 @@ func (fuzzer *Fuzzer) checkDisabledCalls(p *prog.Prog) {
 	}
 }
 
-func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
-	randVal := r.Int63n(fuzzer.sumPrios + 1)
-	idx := sort.Search(len(fuzzer.corpusPrios), func(i int) bool {
-		return fuzzer.corpusPrios[i] >= randVal
-	})
-	return fuzzer.corpus[idx]
-}
-
 func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig) {
 	fuzzer.corpusMu.Lock()
-	if _, ok := fuzzer.corpusHashes[sig]; !ok {
+	var ok bool
+	if _, ok = fuzzer.corpusHashes[sig]; !ok {
 		fuzzer.corpus = append(fuzzer.corpus, p)
 		fuzzer.corpusHashes[sig] = struct{}{}
-		prio := int64(len(sign))
-		if sign.Empty() {
-			prio = 1
-		}
-		fuzzer.sumPrios += prio
-		fuzzer.corpusPrios = append(fuzzer.corpusPrios, fuzzer.sumPrios)
 	}
 	fuzzer.corpusMu.Unlock()
-
+	fuzzer.selector.addInput(p, sign)
 	if !sign.Empty() {
 		fuzzer.signalMu.Lock()
 		fuzzer.corpusSignal.Merge(sign)
@@ -547,7 +528,7 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 func (fuzzer *Fuzzer) snapshot() FuzzerSnapshot {
 	fuzzer.corpusMu.RLock()
 	defer fuzzer.corpusMu.RUnlock()
-	return FuzzerSnapshot{fuzzer.corpus, fuzzer.corpusPrios, fuzzer.sumPrios}
+	return FuzzerSnapshot{fuzzer.corpus}
 }
 
 func (fuzzer *Fuzzer) addMaxSignal(sign signal.Signal) {

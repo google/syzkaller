@@ -91,7 +91,7 @@ func (proc *Proc) loop() {
 			proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
-			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
+			p := proc.fuzzer.selector.chooseProgram(proc.rnd).Clone()
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, proc.fuzzer.noMutate, fuzzerSnapshot.corpus)
 			log.Logf(1, "#%v: mutated", proc.pid)
 			proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatFuzz)

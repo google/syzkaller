@@ -4,7 +4,6 @@
 package main
 
 import (
-	"math"
 	"math/rand"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 type InputTest struct {
@@ -26,34 +26,32 @@ func TestChooseProgram(t *testing.T) {
 	target := getTarget(t, targets.TestOS, targets.TestArch64)
 	fuzzer := &Fuzzer{corpusHashes: make(map[hash.Sig]struct{})}
 
-	const (
-		maxIters   = 1000
-		sizeCorpus = 1000
-		eps        = 0.01
-	)
-
-	priorities := make(map[*prog.Prog]int64)
-	for i := 0; i < sizeCorpus; i++ {
-		sizeSig := i + 1
-		if sizeSig%250 == 0 {
-			sizeSig = 0
-		}
-		inp := generateInput(target, rs, 10, sizeSig)
+	saveInput := func(size int) *prog.Prog {
+		inp := generateInput(target, rs, 5, size)
 		fuzzer.addInputToCorpus(inp.p, inp.sign, inp.sig)
-		priorities[inp.p] = int64(len(inp.sign))
+		return inp.p
 	}
-	snapshot := fuzzer.snapshot()
-	counters := make(map[*prog.Prog]int)
-	for it := 0; it < maxIters; it++ {
-		counters[snapshot.chooseProgram(r)]++
+
+	// Three inputs with nested coverage: [[[[D]C]B]A].
+	A := saveInput(50)
+	B := saveInput(30)
+	C := saveInput(10)
+	D := saveInput(5)
+
+	selected := map[*prog.Prog]int{}
+	total := 1000
+	for i := 0; i < total; i++ {
+		selected[fuzzer.selector.chooseProgram(r)]++
 	}
-	for p, prio := range priorities {
-		prob := float64(prio) / float64(fuzzer.sumPrios)
-		diff := math.Abs(prob*maxIters - float64(counters[p]))
-		if diff > eps*maxIters {
-			t.Fatalf("the difference (%f) is higher than %f%%", diff, eps*100)
-		}
-	}
+
+	t.Logf("%d %d %d %d", selected[A], selected[B], selected[C], selected[D])
+
+	// We should have selected A most of the time as it covers PCs
+	// that are not covered by any other prog.
+	assert.True(t, selected[A]/selected[B] >= 2)
+	assert.True(t, selected[B]/selected[C] >= 2)
+	assert.True(t, selected[C] > selected[D])
+	assert.True(t, selected[D] > 0)
 }
 
 func TestAddInputConcurrency(t *testing.T) {
@@ -72,8 +70,7 @@ func TestAddInputConcurrency(t *testing.T) {
 			for it := 0; it < iters; it++ {
 				inp := generateInput(target, rs, 10, it)
 				fuzzer.addInputToCorpus(inp.p, inp.sign, inp.sig)
-				snapshot := fuzzer.snapshot()
-				snapshot.chooseProgram(r).Clone()
+				fuzzer.selector.chooseProgram(r).Clone()
 			}
 		}()
 	}
