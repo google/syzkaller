@@ -3,9 +3,4 @@
 
 kernel:
  repo: git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next-history.git
- tag: next-20231020
-
-config:
-  - BCACHEFS_FS
-  - BCACHEFS_QUOTA
-  - BCACHEFS_DEBUG
+ tag: next-20231108

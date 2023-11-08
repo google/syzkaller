@@ -194,3 +194,7 @@ config:
  - ROMFS_BACKED_BY_BOTH
  - ROMFS_ON_BLOCK
  - ROMFS_ON_MTD
+
+ - BCACHEFS_FS: [linux-next]
+ - BCACHEFS_QUOTA: [linux-next]
+ - BCACHEFS_DEBUG: [linux-next]
