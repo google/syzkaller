@@ -1360,7 +1360,7 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		},
 		Fixed: uiSubsystemStats{
 			Count: cached.NoSubsystem.Fixed,
-			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
+			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"), // nolint: goconst
 		},
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -1385,7 +1385,7 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 		},
 		Fixed: uiSubsystemStats{
 			Count: stats.Fixed,
-			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{
+			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{ // nolint: goconst
 				Label: SubsystemLabel,
 				Value: item.Name,
 			}.String()),
