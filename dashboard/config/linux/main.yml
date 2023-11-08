@@ -85,6 +85,7 @@ includes:
  - kfence.yml: [kfence]
  - baseline.yml: [base-config]
  - unmaintained.yml: [unmaintained]
+ - maintained.yml: [-unmaintained]
  - linux-upstream.yml: [upstream]
  - linux-next.yml: [linux-next]
  - stable-5.4.yml: [stable-5.4]
