@@ -38,7 +38,7 @@ func TestEmailNotifUpstreamEmbargo(t *testing.T) {
 	c.expectEQ(notifUpstream.Subject, crash.Title)
 	c.expectEQ(notifUpstream.Sender, report.Sender)
 	c.expectEQ(notifUpstream.Body, "Sending this report to the next reporting stage.")
-	c.expectEQ(upstreamReport.Subject, "[syzbot] "+crash.Title)
+	c.expectEQ(upstreamReport.Subject, "[syzbot] "+crash.Title) // nolint: goconst
 	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
 }

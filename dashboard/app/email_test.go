@@ -224,7 +224,7 @@ If you attach or paste a git patch, syzbot will apply it before testing.
 			"foo@bar.com",
 			"maintainers@repo10.org",
 		})
-		c.expectEQ(msg.Subject, "[syzbot] "+crash.Title)
+		c.expectEQ(msg.Subject, "[syzbot] "+crash.Title) // nolint: goconst
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
@@ -314,7 +314,7 @@ Content-Type: text/plain
 			"another@another.com", "bar@foo.com", "bugs@repo10.org",
 			"bugs@syzkaller.com", "default@maintainers.com", "foo@bar.com",
 			"maintainers@repo10.org", "new@new.com", "qux@qux.com"})
-		c.expectEQ(msg.Subject, "Re: [syzbot] "+crash.Title)
+		c.expectEQ(msg.Subject, "Re: [syzbot] "+crash.Title) // nolint: goconst
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following issue on:
 
@@ -1323,7 +1323,7 @@ func expectLabels(t *testing.T, client *apiClient, extID string, labels ...strin
 var forwardEmailConfig = EmailConfig{
 	Email:              "test@syzkaller.com",
 	HandleListEmails:   true,
-	SubjectPrefix:      "[syzbot]",
+	SubjectPrefix:      "[syzbot]", // nolint: goconst
 	MailMaintainers:    true,
 	DefaultMaintainers: []string{"some@list.com"},
 }

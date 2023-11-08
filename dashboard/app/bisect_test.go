@@ -195,7 +195,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 			"reviewer1@kernel.org",
 			"reviewer2@kernel.org",
 		})
-		c.expectEQ(msg.Subject, "[syzbot] "+crash2.Title)
+		c.expectEQ(msg.Subject, "[syzbot] "+crash2.Title) // nolint: goconst
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot found the following issue on:
@@ -319,7 +319,7 @@ If you want to undo deduplication, reply with:
 				c.expectEQ(msg.Subject, subjects[i])
 				c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 			} else {
-				c.expectEQ(msg.Subject, "[syzbot] "+subjects[i])
+				c.expectEQ(msg.Subject, "[syzbot] "+subjects[i]) // nolint: goconst
 				c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue on"))
 			}
 		}
