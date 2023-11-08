@@ -218,6 +218,7 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 	return commit.Hash
 }
 
+// nolint: goconst // "GOPATH=" looks good here, ignore
 func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	// syzkaller testing may be slowed down by concurrent kernel builds too much
 	// and cause timeout failures, so we serialize it with other builds:
