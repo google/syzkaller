@@ -16,7 +16,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// nolint: funlen
+// nolint: funlen, goconst
 func TestEmailReport(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -430,6 +430,7 @@ Content-Type: text/plain
 }
 
 // Basic dup scenario: mark one bug as dup of another.
+// nolint: goconst
 func TestEmailDup(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -957,6 +958,7 @@ func TestSubjectTitleParser(t *testing.T) {
 	}
 }
 
+// nolint: goconst
 func TestBugFromSubjectInference(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -1122,6 +1124,7 @@ For more options, visit https://groups.google.com/d/optout.
 	c.expectNE(reporting.Link, "")
 }
 
+// nolint: goconst
 func TestEmailPatchTestingAccess(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

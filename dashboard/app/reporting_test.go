@@ -289,6 +289,7 @@ func TestReportingQuota(t *testing.T) {
 }
 
 // Basic dup scenario: mark one bug as dup of another.
+// nolint: goconst
 func TestReportingDup(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -349,6 +350,7 @@ func TestReportingDup(t *testing.T) {
 
 // Dup bug onto a closed bug.
 // A new crash report must create a new bug.
+// nolint: goconst
 func TestReportingDupToClosed(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -667,6 +669,7 @@ func TestAltTitles5(t *testing.T) {
 	c.expectEQ(rep.Log, crash.Log)
 }
 
+// nolint: goconst
 func TestAltTitles6(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

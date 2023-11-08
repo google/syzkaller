@@ -455,6 +455,7 @@ func TestFixedWithCommitTags(t *testing.T) {
 
 // TestFixedDup tests Reported-by commit tag that comes for a dup.
 // In such case we need to associate it with the canonical bugs.
+// nolint: goconst
 func TestFixedDup(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -487,6 +488,7 @@ func TestFixedDup(t *testing.T) {
 
 // TestFixedDup2 tests Reported-by commit tag that comes for a dup.
 // Ensure that non-canonical bug gets fixing commit too.
+// nolint: goconst
 func TestFixedDup2(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -533,6 +535,7 @@ func TestFixedDup2(t *testing.T) {
 }
 
 // TestFixedDup3 tests Reported-by commit tag that comes for both dup and canonical bug.
+// nolint: goconst
 func TestFixedDup3(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

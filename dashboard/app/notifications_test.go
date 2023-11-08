@@ -226,6 +226,7 @@ func TestBugObsoleting(t *testing.T) {
 	}
 }
 
+// nolint: goconst
 func TestEmailNotifObsoleted(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
