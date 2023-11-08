@@ -4,6 +4,7 @@
 package starnix
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -37,6 +38,7 @@ type Pool struct {
 
 type instance struct {
 	fuchsiaDirectory string
+	ffxBinary        string
 	name             string
 	index            int
 	cfg              *Config
@@ -53,7 +55,6 @@ type instance struct {
 	diagnose         chan bool
 }
 
-const ffxBinary = ".jiri_root/bin/ffx"
 const targetDir = "/data"
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -99,6 +100,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}()
 
 	var err error
+	inst.ffxBinary, err = getToolPath(inst.fuchsiaDirectory, "ffx")
+	if err != nil {
+		return nil, err
+	}
+
 	inst.rpipe, inst.wpipe, err = osutil.LongPipe()
 	if err != nil {
 		return nil, err
@@ -183,17 +189,23 @@ func (inst *instance) startFuchsiaLogs() error {
 	// `ffx log` outputs some buffered logs by default, and logs from early boot
 	// trigger a false positive from the unexpected reboot check. To avoid this,
 	// only request logs from now on.
-	cmd := osutil.Command(ffxBinary, "--target", inst.name, "log", "--since", "now")
+	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "log", "--since", "now")
 	cmd.Dir = inst.fuchsiaDirectory
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
 	inst.merger.Add("fuchsia", inst.rpipe)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
 	inst.fuchsiaLogs = cmd
-	return cmd.Start()
+	inst.wpipe.Close()
+	inst.wpipe = nil
+	return nil
 }
 
 func (inst *instance) startAdbServerAndConnection(timeout time.Duration) error {
-	cmd := osutil.Command(ffxBinary, "--target", inst.name, "starnix", "adb", "-p", fmt.Sprintf("%d", inst.port))
+	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "starnix", "adb",
+		"-p", fmt.Sprintf("%d", inst.port))
 	cmd.Dir = inst.fuchsiaDirectory
 	if err := cmd.Start(); err != nil {
 		return err
@@ -234,15 +246,15 @@ func (inst *instance) connectToAdb(timeout time.Duration) error {
 // Script for telling syz-fuzzer how to connect to syz-executor.
 func (inst *instance) createAdbScript() error {
 	adbScript := fmt.Sprintf(
-		`#!/bin/bash
+		`#!/usr/bin/env bash
 		adb_port=$1
 		fuzzer_args=${@:2}
-		adb -s 127.0.0.1:$adb_port shell "cd %s; ./syz-executor $fuzzer_args"`, targetDir)
+		exec adb -s 127.0.0.1:$adb_port shell "cd %s; ./syz-executor $fuzzer_args"`, targetDir)
 	return os.WriteFile(inst.executor, []byte(adbScript), 0777)
 }
 
 func (inst *instance) ffx(args ...string) error {
-	return inst.runCommand(ffxBinary, args...)
+	return inst.runCommand(inst.ffxBinary, args...)
 }
 
 // Runs a command inside the fuchsia directory.
@@ -355,10 +367,58 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 }
 
 func (inst *instance) setFuchsiaVersion() error {
-	version, err := osutil.RunCmd(1*time.Minute, inst.fuchsiaDirectory, ffxBinary, "version")
+	version, err := osutil.RunCmd(1*time.Minute, inst.fuchsiaDirectory, inst.ffxBinary, "version")
 	if err != nil {
 		return err
 	}
 	inst.version = string(version)
 	return nil
+}
+
+// Get the currently-selected build dir in a Fuchsia checkout.
+func getFuchsiaBuildDir(fuchsiaDir string) (string, error) {
+	fxBuildDir := filepath.Join(fuchsiaDir, ".fx-build-dir")
+	contents, err := os.ReadFile(fxBuildDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %q: %w", fxBuildDir, err)
+	}
+
+	buildDir := strings.TrimSpace(string(contents))
+	if !filepath.IsAbs(buildDir) {
+		buildDir = filepath.Join(fuchsiaDir, buildDir)
+	}
+
+	return buildDir, nil
+}
+
+// Subset of data format used in tool_paths.json.
+type toolMetadata struct {
+	Name string
+	Path string
+}
+
+// Resolve a tool by name using tool_paths.json in the build dir.
+func getToolPath(fuchsiaDir, toolName string) (string, error) {
+	buildDir, err := getFuchsiaBuildDir(fuchsiaDir)
+	if err != nil {
+		return "", err
+	}
+
+	jsonPath := filepath.Join(buildDir, "tool_paths.json")
+	jsonBlob, err := os.ReadFile(jsonPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %q: %w", jsonPath, err)
+	}
+	var metadataList []toolMetadata
+	if err := json.Unmarshal(jsonBlob, &metadataList); err != nil {
+		return "", fmt.Errorf("failed to parse %q: %w", jsonPath, err)
+	}
+
+	for _, metadata := range metadataList {
+		if metadata.Name == toolName {
+			return filepath.Join(buildDir, metadata.Path), nil
+		}
+	}
+
+	return "", fmt.Errorf("no path found for tool %q in %q", toolName, jsonPath)
 }
