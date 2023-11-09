@@ -32,15 +32,9 @@ import (
 	"golang.org/x/tools/go/analysis/passes/structtag"
 )
 
-var AnalyzerPlugin analyzerPlugin
+func main() {}
 
-type analyzerPlugin struct{}
-
-func main() {
-	_ = AnalyzerPlugin
-}
-
-func (*analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
+func New(conf any) ([]*analysis.Analyzer, error) {
 	return []*analysis.Analyzer{
 		SyzAnalyzer,
 		// Some standard analyzers that are not enabled in vet.
@@ -49,7 +43,7 @@ func (*analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 		deepequalerrors.Analyzer,
 		nilness.Analyzer,
 		structtag.Analyzer,
-	}
+	}, nil
 }
 
 var SyzAnalyzer = &analysis.Analyzer{
