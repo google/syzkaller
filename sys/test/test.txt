@@ -811,6 +811,21 @@ auto_struct0 {
 	f2	int32
 }
 
+test$auto1(a const[0x42], b ptr[in, auto_struct1], c len[b], d int32)
+
+auto_struct1 {
+	f0	len[parent, int32]
+	f1	const[0x43, int32]
+	f2	const[0, int32]
+}
+
+test$auto2(a const[0x42], b ptr[in, auto_struct2], c len[b], d int32)
+
+auto_struct2 {
+	f0	len[parent, int32]
+	f1	auto_struct1
+}
+
 # Attributes
 
 resource disabled_resource[int32]
