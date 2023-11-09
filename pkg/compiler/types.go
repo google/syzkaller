@@ -60,8 +60,8 @@ type namedArg struct {
 }
 
 const (
-	kindAny = iota
-	kindInt
+	kindAny = 0
+	kindInt = 1 << iota
 	kindIdent
 	kindString
 )
@@ -748,11 +748,8 @@ func (comp *compiler) stringSize(t *ast.Type, args []*ast.Type) uint64 {
 }
 
 var typeArgStringFlags = &typeArg{
+	Kind: kindIdent | kindString,
 	Check: func(comp *compiler, t *ast.Type) {
-		if !t.HasString && t.Ident == "" {
-			comp.error(t.Pos, "unexpected int %v, string arg must be a string literal or string flags", t.Value)
-			return
-		}
 		if t.Ident != "" && comp.strFlags[t.Ident] == nil {
 			comp.error(t.Pos, "unknown string flags %v", t.Ident)
 			return

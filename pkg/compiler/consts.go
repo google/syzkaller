@@ -105,7 +105,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 func (comp *compiler) extractTypeConsts(infos map[string]*constInfo, n ast.Node) {
 	comp.foreachType(n, func(t *ast.Type, desc *typeDesc, args []*ast.Type, _ prog.IntTypeCommon) {
 		for i, arg := range args {
-			if desc.Args[i].Type.Kind == kindInt {
+			if desc.Args[i].Type.Kind&kindInt != 0 {
 				if arg.Ident != "" {
 					comp.addConst(infos, arg.Pos, arg.Ident)
 				}
@@ -228,7 +228,7 @@ func (comp *compiler) patchConsts(consts0 map[string]uint64) {
 			comp.foreachType(decl, func(_ *ast.Type, desc *typeDesc,
 				args []*ast.Type, _ prog.IntTypeCommon) {
 				for i, arg := range args {
-					if desc.Args[i].Type.Kind == kindInt {
+					if desc.Args[i].Type.Kind&kindInt != 0 {
 						comp.patchTypeConst(arg, consts, &missing)
 					}
 				}
