@@ -489,9 +489,20 @@ func (p *parser) parseArgInt(typ Type, dir Dir) (Arg, error) {
 }
 
 func (p *parser) parseAuto(typ Type, dir Dir) (Arg, error) {
-	switch typ.(type) {
+	switch t1 := typ.(type) {
 	case *ConstType, *LenType, *CsumType:
 		return p.auto(MakeConstArg(typ, dir, 0)), nil
+	case *StructType:
+		var inner []Arg
+		for len(inner) < len(t1.Fields) {
+			field := t1.Fields[len(inner)]
+			innerArg, err := p.parseAuto(field.Type, dir)
+			if err != nil {
+				return nil, err
+			}
+			inner = append(inner, innerArg)
+		}
+		return MakeGroupArg(typ, dir, inner), nil
 	default:
 		return nil, fmt.Errorf("wrong type %T for AUTO", typ)
 	}
@@ -562,7 +573,7 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 	var inner Arg
 	if p.Char() == '=' {
 		p.Parse('=')
-		if p.Char() == 'A' {
+		if p.HasNext("ANY") {
 			p.Parse('A')
 			p.Parse('N')
 			p.Parse('Y')
