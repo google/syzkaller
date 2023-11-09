@@ -261,6 +261,18 @@ func TestDeserialize(t *testing.T) {
 			Err: `wrong type *prog.IntType for AUTO`,
 		},
 		{
+			In:  `test$auto1(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
+			Out: `test$auto1(0x42, &(0x7f0000000040)={0xc, 0x43, 0x0}, 0xc, 0x0)`,
+		},
+		{
+			In:  `test$auto2(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
+			Out: `test$auto2(0x42, &(0x7f0000000040)={0x10, {0xc, 0x43, 0x0}}, 0x10, 0x0)`,
+		},
+		{
+			In:  `test$auto0(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
+			Err: `wrong type *prog.IntType for AUTO`,
+		},
+		{
 			In:  `test$str0(&AUTO="303100090a0d7022273a")`,
 			Out: `test$str0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
 		},
