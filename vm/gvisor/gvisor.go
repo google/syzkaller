@@ -421,29 +421,32 @@ const configTempl = `
 		"readonly": true
 	},
 	"linux": {
-	  "cgroupsPath": "%[3]v",
-	  "resources": {
-		  "cpu": {
-			"shares": 1024
-		  },
-		  "memory": {
-			"limit": %[4]d,
-			"reservation": %[4]d,
-			"disableOOMKiller": false
-		  }
-	  }
+		"cgroupsPath": "%[3]v",
+		"resources": {
+			"cpu": {
+				"shares": 1024
+			},
+			"memory": {
+				"limit": %[4]d,
+				"reservation": %[4]d,
+				"disableOOMKiller": false
+			}
+		},
+		"sysctl": {
+			"fs.nr_open": "1048576"
+		}
 	},
 	"process":{
-                "args": ["/init"],
-                "cwd": "/tmp",
-                "env": ["SYZ_GVISOR_PROXY=1"],
-                "capabilities": {
-                	"bounding": [%[2]v],
-                	"effective": [%[2]v],
-                	"inheritable": [%[2]v],
-                	"permitted": [%[2]v],
-                	"ambient": [%[2]v]
-                }
+		"args": ["/init"],
+		"cwd": "/tmp",
+		"env": ["SYZ_GVISOR_PROXY=1"],
+		"capabilities": {
+			"bounding": [%[2]v],
+			"effective": [%[2]v],
+			"inheritable": [%[2]v],
+			"permitted": [%[2]v],
+			"ambient": [%[2]v]
+		}
 	}
 }
 `
