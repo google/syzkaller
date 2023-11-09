@@ -1179,6 +1179,9 @@ func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
 			comp.error(col.Pos, "unexpected ':'")
 			return
 		}
+		// We only want to perform this check if kindIdent is the only kind of
+		// this type. Otherwise, the token after the colon could legitimately
+		// be an int for example.
 		if desc.Kind == kindIdent {
 			if unexpected, expect, ok := checkTypeKind(col, kindIdent); !ok {
 				comp.error(arg.Pos, "unexpected %v after colon, expect %v", unexpected, expect)
@@ -1233,30 +1236,33 @@ func checkTypeKind(t *ast.Type, kind int) (unexpected, expect string, ok bool) {
 	case kind == kindAny:
 		ok = true
 	case t.HasString:
-		ok = kind == kindString
+		ok = kind&kindString != 0
 		if !ok {
 			unexpected = fmt.Sprintf("string %q", t.String)
 		}
 	case t.Ident != "":
-		ok = kind == kindIdent || kind == kindInt
+		ok = kind&(kindIdent|kindInt) != 0
 		if !ok {
 			unexpected = fmt.Sprintf("identifier %v", t.Ident)
 		}
 	default:
-		ok = kind == kindInt
+		ok = kind&kindInt != 0
 		if !ok {
 			unexpected = fmt.Sprintf("int %v", t.Value)
 		}
 	}
 	if !ok {
-		switch kind {
-		case kindString:
-			expect = "string"
-		case kindIdent:
-			expect = "identifier"
-		case kindInt:
-			expect = "int"
+		var expected []string
+		if kind&kindString != 0 {
+			expected = append(expected, "string")
 		}
+		if kind&kindIdent != 0 {
+			expected = append(expected, "identifier")
+		}
+		if kind&kindInt != 0 {
+			expected = append(expected, "int")
+		}
+		expect = strings.Join(expected, " or ")
 	}
 	return
 }

@@ -110,7 +110,7 @@ foo$36(a const[1:2])		### unexpected ':'
 foo$39(a fileoff:1)		### type alias fileoff with ':'
 foo$40(a len["a"])		### unexpected string "a" for len target argument of len type, expect identifier
 foo$41(a vma[C1:C2])
-foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
+foo$43(a ptr[in, string[1]])	### unexpected int 1 for literal or flags argument of string type, expect string or identifier
 foo$44(a int32) len[a]		### len can't be syscall return
 foo$45(a int32) len[b]		### len can't be syscall return
 foo$46(a ptr[in, in])		### unknown type in
@@ -369,7 +369,7 @@ type TT3[A] {
 
 foo$213(a ptr[in, TT1[int8]])
 
-foo$glob001(a ptr[in, glob[1]])			### unexpected int 1, string arg must be a string literal or string flags
+foo$glob001(a ptr[in, glob[1]])			### unexpected int 1 for literal or flags argument of glob type, expect string or identifier
 foo$glob002(a ptr[in, glob])			### glob only accepts 1 arg, provided 0
 foo$glob003(a ptr[in, glob["/sys", 5]])		### glob only accepts 1 arg, provided 2
 foo$glob004(a ptr[in, glob["/sys", 5, 2]])	### wrong number of arguments for type glob, expect [literal or flags], [size], [opt]
