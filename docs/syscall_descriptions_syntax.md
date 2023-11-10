@@ -27,8 +27,10 @@ rest of the type-options are type-specific:
 "const": integer constant, type-options:
 	value, underlying type (one of "intN", "intptr")
 "intN"/"intptr": an integer without a particular meaning, type-options:
-	optional range of values (e.g. "5:10", or "100:200"),
-	optionally followed by an alignment parameter
+	either an optional range of values (e.g. "5:10", or "100:200")
+	or a reference to flags description (see below),
+	or a single value
+	optionally followed by an alignment parameter if using a range
 "flags": a set of values, type-options:
 	reference to flags description (see below), underlying int type (e.g. "int32")
 "array": a variable/fixed-length array, type-options:
@@ -110,6 +112,9 @@ By appending `be` suffix (e.g. `int16be`) integers become big-endian.
 
 It's possible to specify a range of values for an integer in the format of `int32[0:100]` or `int32[0:4096, 512]` for a 512-aligned int.
 
+Integers can also take a reference to flags description or a value as its first type-option.
+In that case, the alignment parameter is not supported.
+
 To denote a bitfield of size N use `int64:N`.
 
 It's possible to use these various kinds of ints as base types for `const`, `flags`, `len` and `proc`.
@@ -121,6 +126,8 @@ example_struct {
 	f2	int32[0:100]		# random 4-byte integer with values from 0 to 100 inclusive
 	f3	int32[1:10, 2]		# random 4-byte integer with values {1, 3, 5, 7, 9}
 	f4	int64:20		# random 20-bit bitfield
+	f5	int8[10]		# const 1-byte integer with value 10
+	f6	int32[flagname]		# random 4-byte integer from the set of values referenced by flagname
 }
 ```
 
@@ -393,6 +400,7 @@ foo(a const[10], b const[-10])
 foo(a const[0xabcd])
 foo(a int8['a':'z'])
 foo(a const[PATH_MAX])
+foo(a int32[PATH_MAX])
 foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
 ```
