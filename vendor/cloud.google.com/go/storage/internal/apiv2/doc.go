@@ -76,31 +76,14 @@
 //		// TODO: Handle error.
 //	}
 //	defer c.Close()
-//	stream, err := c.BidiWriteObject(ctx)
+//
+//	req := &storagepb.DeleteBucketRequest{
+//		// TODO: Fill request struct fields.
+//		// See https://pkg.go.dev/cloud.google.com/go/storage/internal/apiv2/storagepb#DeleteBucketRequest.
+//	}
+//	err = c.DeleteBucket(ctx, req)
 //	if err != nil {
 //		// TODO: Handle error.
-//	}
-//	go func() {
-//		reqs := []*storagepb.BidiWriteObjectRequest{
-//			// TODO: Create requests.
-//		}
-//		for _, req := range reqs {
-//			if err := stream.Send(req); err != nil {
-//				// TODO: Handle error.
-//			}
-//		}
-//		stream.CloseSend()
-//	}()
-//	for {
-//		resp, err := stream.Recv()
-//		if err == io.EOF {
-//			break
-//		}
-//		if err != nil {
-//			// TODO: handle error.
-//		}
-//		// TODO: Use resp.
-//		_ = resp
 //	}
 //
 // # Use of Context
