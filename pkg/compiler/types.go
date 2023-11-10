@@ -156,6 +156,30 @@ var typeInt = &typeDesc{
 	},
 }
 
+func generateFlagsType(comp *compiler, base prog.IntTypeCommon, name string) prog.Type {
+	base.TypeName = name
+	f := comp.intFlags[name]
+	values := genIntArray(f.Values)
+	if len(values) == 0 || len(values) == 1 && values[0] == 0 {
+		// We can get this if all values are unsupported consts.
+		// Also generate const[0] if we have only 1 flags value which is 0,
+		// this is the intention in all existing cases (e.g. an enum with types
+		// of something, but there is really only 1 type exists).
+		return &prog.ConstType{
+			IntTypeCommon: base,
+			Val:           0,
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		return values[i] < values[j]
+	})
+	return &prog.FlagsType{
+		IntTypeCommon: base,
+		Vals:          values,
+		BitMask:       isBitmask(values),
+	}
+}
+
 func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
 	align := base.UnitSize()
 	if align == 8 && comp.target.Int64Alignment != 0 {
@@ -393,29 +417,8 @@ var typeFlags = &typeDesc{
 		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		name := args[0].Ident
-		base.TypeName = name
-		f := comp.intFlags[name]
-		values := genIntArray(f.Values)
-		if len(values) == 0 || len(values) == 1 && values[0] == 0 {
-			// We can get this if all values are unsupported consts.
-			// Also generate const[0] if we have only 1 flags value which is 0,
-			// this is the intention in all existing cases (e.g. an enum with types
-			// of something, but there is really only 1 type exists).
-			return &prog.ConstType{
-				IntTypeCommon: base,
-				Val:           0,
-			}
-		}
-		sort.Slice(values, func(i, j int) bool {
-			return values[i] < values[j]
-		})
 		base.TypeAlign = getIntAlignment(comp, base)
-		return &prog.FlagsType{
-			IntTypeCommon: base,
-			Vals:          values,
-			BitMask:       isBitmask(values),
-		}
+		return generateFlagsType(comp, base, args[0].Ident)
 	},
 }
 
