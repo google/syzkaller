@@ -592,7 +592,8 @@ syz_bf_struct3 {
 syz_bf_struct26 {
 	f0	bytesize[parent, int32]
 	f1	int32:16[bitmask_flags2]
-	f2	int32:16
+	f2	int32:8
+	f3	int32:8[0x18]
 }
 
 test$bf0(a0 ptr[in, syz_bf_struct0])
