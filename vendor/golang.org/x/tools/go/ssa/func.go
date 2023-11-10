@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
-	"go/token"
 	"go/types"
 	"io"
 	"os"
@@ -108,52 +107,40 @@ type lblock struct {
 // labelledBlock returns the branch target associated with the
 // specified label, creating it if needed.
 func (f *Function) labelledBlock(label *ast.Ident) *lblock {
-	obj := f.objectOf(label)
+	obj := f.objectOf(label).(*types.Label)
 	lb := f.lblocks[obj]
 	if lb == nil {
 		lb = &lblock{_goto: f.newBasicBlock(label.Name)}
 		if f.lblocks == nil {
-			f.lblocks = make(map[types.Object]*lblock)
+			f.lblocks = make(map[*types.Label]*lblock)
 		}
 		f.lblocks[obj] = lb
 	}
 	return lb
 }
 
-// addParam adds a (non-escaping) parameter to f.Params of the
-// specified name, type and source position.
-func (f *Function) addParam(name string, typ types.Type, pos token.Pos) *Parameter {
-	v := &Parameter{
-		name:   name,
-		typ:    typ,
-		pos:    pos,
-		parent: f,
-	}
-	f.Params = append(f.Params, v)
-	return v
-}
-
-func (f *Function) addParamObj(obj types.Object) *Parameter {
-	name := obj.Name()
+// addParamVar adds a parameter to f.Params.
+func (f *Function) addParamVar(v *types.Var) *Parameter {
+	name := v.Name()
 	if name == "" {
 		name = fmt.Sprintf("arg%d", len(f.Params))
 	}
-	param := f.addParam(name, f.typ(obj.Type()), obj.Pos())
-	param.object = obj
+	param := &Parameter{
+		name:   name,
+		object: v,
+		typ:    f.typ(v.Type()),
+		parent: f,
+	}
+	f.Params = append(f.Params, param)
 	return param
 }
 
 // addSpilledParam declares a parameter that is pre-spilled to the
 // stack; the function body will load/store the spilled location.
 // Subsequent lifting will eliminate spills where possible.
-func (f *Function) addSpilledParam(obj types.Object) {
-	param := f.addParamObj(obj)
-	spill := &Alloc{Comment: obj.Name()}
-	spill.setType(types.NewPointer(param.Type()))
-	spill.setPos(obj.Pos())
-	f.objects[obj] = spill
-	f.Locals = append(f.Locals, spill)
-	f.emit(spill)
+func (f *Function) addSpilledParam(obj *types.Var) {
+	param := f.addParamVar(obj)
+	spill := emitLocalVar(f, obj)
 	f.emit(&Store{Addr: spill, Val: param})
 }
 
@@ -161,7 +148,7 @@ func (f *Function) addSpilledParam(obj types.Object) {
 // Precondition: f.Type() already set.
 func (f *Function) startBody() {
 	f.currentBlock = f.newBasicBlock("entry")
-	f.objects = make(map[types.Object]Value) // needed for some synthetics, e.g. init
+	f.vars = make(map[*types.Var]Value) // needed for some synthetics, e.g. init
 }
 
 // createSyntacticParams populates f.Params and generates code (spills
@@ -177,11 +164,11 @@ func (f *Function) createSyntacticParams(recv *ast.FieldList, functype *ast.Func
 	if recv != nil {
 		for _, field := range recv.List {
 			for _, n := range field.Names {
-				f.addSpilledParam(f.info.Defs[n])
+				f.addSpilledParam(identVar(f, n))
 			}
 			// Anonymous receiver?  No need to spill.
 			if field.Names == nil {
-				f.addParamObj(f.Signature.Recv())
+				f.addParamVar(f.Signature.Recv())
 			}
 		}
 	}
@@ -191,11 +178,11 @@ func (f *Function) createSyntacticParams(recv *ast.FieldList, functype *ast.Func
 		n := len(f.Params) // 1 if has recv, 0 otherwise
 		for _, field := range functype.Params.List {
 			for _, n := range field.Names {
-				f.addSpilledParam(f.info.Defs[n])
+				f.addSpilledParam(identVar(f, n))
 			}
 			// Anonymous parameter?  No need to spill.
 			if field.Names == nil {
-				f.addParamObj(f.Signature.Params().At(len(f.Params) - n))
+				f.addParamVar(f.Signature.Params().At(len(f.Params) - n))
 			}
 		}
 	}
@@ -205,7 +192,8 @@ func (f *Function) createSyntacticParams(recv *ast.FieldList, functype *ast.Func
 		for _, field := range functype.Results.List {
 			// Implicit "var" decl of locals for named results.
 			for _, n := range field.Names {
-				f.namedResults = append(f.namedResults, f.addLocalForIdent(n))
+				namedResult := emitLocalVar(f, identVar(f, n))
+				f.namedResults = append(f.namedResults, namedResult)
 			}
 		}
 	}
@@ -250,48 +238,13 @@ func buildReferrers(f *Function) {
 	}
 }
 
-// mayNeedRuntimeTypes returns all of the types in the body of fn that might need runtime types.
-//
-// EXCLUSIVE_LOCKS_ACQUIRED(meth.Prog.methodsMu)
-func mayNeedRuntimeTypes(fn *Function) []types.Type {
-	// Collect all types that may need rtypes, i.e. those that flow into an interface.
-	var ts []types.Type
-	for _, bb := range fn.Blocks {
-		for _, instr := range bb.Instrs {
-			if mi, ok := instr.(*MakeInterface); ok {
-				ts = append(ts, mi.X.Type())
-			}
-		}
-	}
-
-	// Types that contain a parameterized type are considered to not be runtime types.
-	if fn.typeparams.Len() == 0 {
-		return ts // No potentially parameterized types.
-	}
-	// Filter parameterized types, in place.
-	fn.Prog.methodsMu.Lock()
-	defer fn.Prog.methodsMu.Unlock()
-	filtered := ts[:0]
-	for _, t := range ts {
-		if !fn.Prog.parameterized.isParameterized(t) {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
-}
-
 // finishBody() finalizes the contents of the function after SSA code generation of its body.
 //
 // The function is not done being built until done() is called.
 func (f *Function) finishBody() {
-	f.objects = nil
+	f.vars = nil
 	f.currentBlock = nil
 	f.lblocks = nil
-
-	// Don't pin the AST in memory (except in debug mode).
-	if n := f.syntax; n != nil && !f.debugInfo() {
-		f.syntax = extentNode{n.Pos(), n.End()}
-	}
 
 	// Remove from f.Locals any Allocs that escape to the heap.
 	j := 0
@@ -320,15 +273,15 @@ func (f *Function) finishBody() {
 		lift(f)
 	}
 
-	// clear remaining stateful variables
+	// clear remaining builder state
 	f.namedResults = nil // (used by lifting)
-	f.info = nil
 	f.subst = nil
 
 	numberRegisters(f) // uses f.namedRegisters
 }
 
-// After this, function is done with BUILD phase.
+// done marks the building of f's SSA body complete,
+// along with any nested functions, and optionally prints them.
 func (f *Function) done() {
 	assert(f.parent == nil, "done called on an anonymous function")
 
@@ -338,7 +291,7 @@ func (f *Function) done() {
 			visit(anon) // anon is done building before f.
 		}
 
-		f.built = true // function is done with BUILD phase
+		f.build = nil // function is built
 
 		if f.Prog.mode&PrintFunctions != 0 {
 			printMu.Lock()
@@ -376,7 +329,6 @@ func (f *Function) removeNilBlocks() {
 // size of the instruction stream, and causes Functions to depend upon
 // the ASTs, potentially keeping them live in memory for longer.
 func (pkg *Package) SetDebugMode(debug bool) {
-	// TODO(adonovan): do we want ast.File granularity?
 	pkg.debug = debug
 }
 
@@ -387,40 +339,25 @@ func (f *Function) debugInfo() bool {
 	return p != nil && p.debug
 }
 
-// addNamedLocal creates a local variable, adds it to function f and
-// returns it.  Its name and type are taken from obj.  Subsequent
-// calls to f.lookup(obj) will return the same local.
-func (f *Function) addNamedLocal(obj types.Object) *Alloc {
-	l := f.addLocal(obj.Type(), obj.Pos())
-	l.Comment = obj.Name()
-	f.objects[obj] = l
-	return l
-}
-
-func (f *Function) addLocalForIdent(id *ast.Ident) *Alloc {
-	return f.addNamedLocal(f.info.Defs[id])
-}
-
-// addLocal creates an anonymous local variable of type typ, adds it
-// to function f and returns it.  pos is the optional source location.
-func (f *Function) addLocal(typ types.Type, pos token.Pos) *Alloc {
-	typ = f.typ(typ)
-	v := &Alloc{}
-	v.setType(types.NewPointer(typ))
-	v.setPos(pos)
-	f.Locals = append(f.Locals, v)
-	f.emit(v)
-	return v
-}
-
 // lookup returns the address of the named variable identified by obj
 // that is local to function f or one of its enclosing functions.
 // If escaping, the reference comes from a potentially escaping pointer
 // expression and the referent must be heap-allocated.
-func (f *Function) lookup(obj types.Object, escaping bool) Value {
-	if v, ok := f.objects[obj]; ok {
-		if alloc, ok := v.(*Alloc); ok && escaping {
-			alloc.Heap = true
+// We assume the referent is a *Alloc or *Phi.
+// (The only Phis at this stage are those created directly by go1.22 "for" loops.)
+func (f *Function) lookup(obj *types.Var, escaping bool) Value {
+	if v, ok := f.vars[obj]; ok {
+		if escaping {
+			switch v := v.(type) {
+			case *Alloc:
+				v.Heap = true
+			case *Phi:
+				for _, edge := range v.Edges {
+					if alloc, ok := edge.(*Alloc); ok {
+						alloc.Heap = true
+					}
+				}
+			}
 		}
 		return v // function-local var (address)
 	}
@@ -438,7 +375,7 @@ func (f *Function) lookup(obj types.Object, escaping bool) Value {
 		outer:  outer,
 		parent: f,
 	}
-	f.objects[obj] = v
+	f.vars[obj] = v
 	f.FreeVars = append(f.FreeVars, v)
 	return v
 }
@@ -536,7 +473,7 @@ func writeSignature(buf *bytes.Buffer, from *types.Package, name string, sig *ty
 func (fn *Function) declaredPackage() *Package {
 	switch {
 	case fn.Pkg != nil:
-		return fn.Pkg // non-generic function
+		return fn.Pkg // non-generic function  (does that follow??)
 	case fn.topLevelOrigin != nil:
 		return fn.topLevelOrigin.Pkg // instance of a named generic function
 	case fn.parent != nil:
@@ -689,17 +626,11 @@ func (prog *Program) NewFunction(name string, sig *types.Signature, provenance s
 	return &Function{Prog: prog, name: name, Signature: sig, Synthetic: provenance}
 }
 
-type extentNode [2]token.Pos
-
-func (n extentNode) Pos() token.Pos { return n[0] }
-func (n extentNode) End() token.Pos { return n[1] }
-
-// Syntax returns an ast.Node whose Pos/End methods provide the
-// lexical extent of the function if it was defined by Go source code
-// (f.Synthetic==""), or nil otherwise.
-//
-// If f was built with debug information (see Package.SetDebugRef),
-// the result is the *ast.FuncDecl or *ast.FuncLit that declared the
-// function.  Otherwise, it is an opaque Node providing only position
-// information; this avoids pinning the AST in memory.
+// Syntax returns the function's syntax (*ast.Func{Decl,Lit)
+// if it was produced from syntax.
 func (f *Function) Syntax() ast.Node { return f.syntax }
+
+// identVar returns the variable defined by id.
+func identVar(fn *Function, id *ast.Ident) *types.Var {
+	return fn.info.Defs[id].(*types.Var)
+}
