@@ -88,7 +88,7 @@ foo$11(a buffer["in"])		### unexpected string "in" for direction argument of ptr
 foo$12(a buffer[10])		### unexpected int 10 for direction argument of ptr type, expect [in out inout]
 foo$13(a int32[2:3])
 foo$14(a int32[2:2])
-foo$16(a int32[3])		### first argument of int32 needs to be a range
+foo$16(a int32[3])		### first argument of int32 needs to be a range or flag
 foo$17(a ptr[in, int32])
 foo$18(a ptr[in, int32[2:3]])
 foo$19(a ptr[in, int32[opt]])
@@ -104,7 +104,7 @@ foo$30(a ptr[in, string[no]])	### unknown string flags no
 foo$31(a int8, b ptr[in, csum[a, inet]])		### wrong number of arguments for type csum, expect csum target, kind, [proto], base type
 foo$32(a int8, b ptr[in, csum[a, inet, 1, int32]])	### only pseudo csum can have proto
 foo$33(a int8, b ptr[in, csum[a, pseudo, 1, int32]])
-foo$34(a int32["foo"])		### unexpected string "foo" for range argument of int32 type, expect int
+foo$34(a int32["foo"])		### unexpected string "foo" for value argument of int32 type, expect identifier or int
 foo$35(a ptr[in, s3[opt]])	### s3 can't be marked as opt
 foo$36(a const[1:2])		### unexpected ':'
 foo$39(a fileoff:1)		### type alias fileoff with ':'
@@ -129,16 +129,17 @@ foo$59(a s1)			### s1 can't be syscall argument
 foo$60() s1			### s1 can't be syscall return
 foo$61(a u6)			### u6 can't be syscall argument
 foo$62() u6			### u6 can't be syscall return
-foo$63(a int32[1[2]])		### range argument has subargs
+foo$63(a int32[1[2]])		### value argument has subargs
 foo$64(a ptr[in, flags[f1[int32], int32]])	### flags argument has subargs
 foo$65(a int32, b len[1])	### unexpected int 1 for len target argument of len type, expect identifier
 foo$66(a int32, b len[a:1])	### unexpected int 1 after colon, expect identifier
 foo$67(x int32[1:2:3, opt])	### unexpected ':'
-foo$68(a int32[15, 2])		### first argument of int32 needs to be a range
+foo$68(a int32[15, 2])		### first argument of int32 needs to be a range or flag
 foo$69() (foo)			### unknown syscall foo$69 attribute foo
 foo$70() ("foo")		### unexpected string "foo", expect attribute
 foo$71() (42)			### unexpected int 42, expect attribute
 foo$72() (disabled, disabled)	### duplicate syscall foo$72 attribute disabled
+foo$73(a int32[int_flags, 2])	### align argument of int32 is not supported unless first argument is a range
 
 opt {				### struct uses reserved name opt
 	f1	int32
@@ -146,6 +147,7 @@ opt {				### struct uses reserved name opt
 
 in = 1, 2			### flags uses reserved name in
 out = "1", "2"			### string flags uses reserved name out
+int_flags = 0, 1, 0xabc, 'x', -11
 
 out [				### union uses reserved name out
 	f1	int32

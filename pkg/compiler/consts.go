@@ -123,6 +123,13 @@ func (comp *compiler) addConst(infos map[string]*constInfo, pos ast.Pos, name st
 	if _, builtin := comp.builtinConsts[name]; builtin {
 		return
 	}
+	// In case of intN[identA], identA may refer to a constant or to a set of
+	// flags. To avoid marking all flags as constants, we must check here
+	// whether identA refers to a flag. We have a check in the compiler to
+	// ensure an identifier can never refer to both a constant and flags.
+	if _, isFlag := comp.intFlags[name]; isFlag {
+		return
+	}
 	info := getConstInfo(infos, pos)
 	info.consts[name] = &Const{
 		Pos:  pos,
@@ -295,6 +302,11 @@ func (comp *compiler) patchConst(val *uint64, id *string, consts map[string]uint
 			*id = ""
 		}
 		*val = v
+		return true
+	}
+	// This check is necessary because in intN[identA], identA may be a
+	// constant or a set of flags.
+	if _, isFlag := comp.intFlags[*id]; isFlag {
 		return true
 	}
 	if missing != nil && *missing == "" {

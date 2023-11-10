@@ -20,6 +20,7 @@ foo_12(a int64[0:-1, 0x1000])
 foo_13() (disabled)
 foo_14() r0 (timeout[100])
 foo_15() r0 (disabled, timeout[C1], prog_timeout[C2])
+foo_16(a int32[int_flags])
 
 resource r0[intptr]
 
@@ -180,6 +181,7 @@ bitfield0 {
 	f3	int16:8[-127:0]
 	f4	int16:8[0:255]
 	f5	int64:64[-1:1]
+	f6	int32:4[int_flags]
 }
 
 foo_bitfield0(a ptr[in, bitfield0])

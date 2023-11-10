@@ -76,7 +76,7 @@ var typeInt = &typeDesc{
 	MaxColon:     1,
 	OptArgs:      2,
 	Args: []namedArg{
-		{Name: "range", Type: typeArgIntRange},
+		{Name: "value", Type: typeArgIntValue},
 		{Name: "align", Type: typeArgIntAlign},
 	},
 	CanBeResourceBase: func(comp *compiler, t *ast.Type) bool {
@@ -89,8 +89,16 @@ var typeInt = &typeDesc{
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
-		if len(args) > 0 && len(args[0].Colon) == 0 {
-			comp.error(args[0].Pos, "first argument of %v needs to be a range", t.Ident)
+		if len(args) > 0 {
+			_, isIntFlag := comp.intFlags[args[0].Ident]
+			if len(args[0].Colon) == 0 && !isIntFlag {
+				comp.error(args[0].Pos, "first argument of %v needs to be a range or flag", t.Ident)
+				return
+			}
+		}
+		if len(args) > 1 && len(args[0].Colon) == 0 {
+			comp.error(args[1].Pos, "align argument of %v is not supported unless first argument is a range",
+				t.Ident)
 		}
 	},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
@@ -129,9 +137,20 @@ var typeInt = &typeDesc{
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		size, be := comp.parseIntType(t.Ident)
+		var bitLen uint64
+		if len(t.Colon) != 0 {
+			bitLen = t.Colon[0].Value
+		}
+		base.TypeSize = size
+		base.TypeAlign = getIntAlignment(comp, base)
+		base = genIntCommon(base.TypeCommon, bitLen, be)
+
 		kind, rangeBegin, rangeEnd, align := prog.IntPlain, uint64(0), uint64(0), uint64(0)
 		if len(args) > 0 {
 			rangeArg := args[0]
+			if _, isIntFlag := comp.intFlags[rangeArg.Ident]; isIntFlag {
+				return generateFlagsType(comp, base, rangeArg.Ident)
+			}
 			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Value
 			if len(rangeArg.Colon) != 0 {
 				rangeEnd = rangeArg.Colon[0].Value
@@ -140,14 +159,8 @@ var typeInt = &typeDesc{
 				align = args[1].Value
 			}
 		}
-		var bitLen uint64
-		if len(t.Colon) != 0 {
-			bitLen = t.Colon[0].Value
-		}
-		base.TypeSize = size
-		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.IntType{
-			IntTypeCommon: genIntCommon(base.TypeCommon, bitLen, be),
+			IntTypeCommon: base,
 			Kind:          kind,
 			RangeBegin:    rangeBegin,
 			RangeEnd:      rangeEnd,
@@ -1006,9 +1019,16 @@ var typeArgInt = &typeArg{
 	Kind: kindInt,
 }
 
-var typeArgIntRange = &typeArg{
-	Kind:     kindInt,
+var typeArgIntValue = &typeArg{
+	Kind:     kindInt | kindIdent,
 	MaxColon: 1,
+	Check: func(comp *compiler, t *ast.Type) {
+		// If the first arg is not a range, then it should be a valid flags.
+		if len(t.Colon) == 0 && t.Ident != "" && comp.intFlags[t.Ident] == nil {
+			comp.error(t.Pos, "unknown flags %v", t.Ident)
+			return
+		}
+	},
 }
 
 var typeArgIntAlign = &typeArg{

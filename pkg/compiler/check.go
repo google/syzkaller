@@ -634,7 +634,8 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 		}
 		return
 	}
-	if desc == typeFlags {
+	if desc == typeFlags ||
+		(desc == typeInt && len(t.Args) > 0 && t.Args[0].Ident != "") {
 		flags[t.Args[0].Ident] = true
 		return
 	}
