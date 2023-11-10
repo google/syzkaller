@@ -47,7 +47,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		call := n.(*ast.CallExpr)
 		fn, _ := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
-		if !analysisutil.IsFunctionNamed(fn, "sort", "Slice", "SliceStable", "SliceIsSorted") {
+		if fn == nil {
+			return
+		}
+
+		fnName := fn.FullName()
+		if fnName != "sort.Slice" && fnName != "sort.SliceStable" && fnName != "sort.SliceIsSorted" {
 			return
 		}
 
@@ -126,7 +131,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		pass.Report(analysis.Diagnostic{
 			Pos:            call.Pos(),
 			End:            call.End(),
-			Message:        fmt.Sprintf("%s's argument must be a slice; is called with %s", fn.FullName(), typ.String()),
+			Message:        fmt.Sprintf("%s's argument must be a slice; is called with %s", fnName, typ.String()),
 			SuggestedFixes: fixes,
 		})
 	})

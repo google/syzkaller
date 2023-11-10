@@ -9,12 +9,13 @@ package gopathwalk
 import (
 	"bufio"
 	"bytes"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/tools/internal/fastwalk"
 )
 
 // Options controls the behavior of a Walk call.
@@ -77,25 +78,14 @@ func walkDir(root Root, add func(Root, string), skip func(root Root, dir string)
 	if opts.Logf != nil {
 		opts.Logf("scanning %s", root.Path)
 	}
-
 	w := &walker{
-		root:  root,
-		add:   add,
-		skip:  skip,
-		opts:  opts,
-		added: make(map[string]bool),
+		root: root,
+		add:  add,
+		skip: skip,
+		opts: opts,
 	}
 	w.init()
-
-	// Add a trailing path separator to cause filepath.WalkDir to traverse symlinks.
-	path := root.Path
-	if len(path) == 0 {
-		path = "." + string(filepath.Separator)
-	} else if !os.IsPathSeparator(path[len(path)-1]) {
-		path = path + string(filepath.Separator)
-	}
-
-	if err := filepath.WalkDir(path, w.walk); err != nil {
+	if err := fastwalk.Walk(root.Path, w.walk); err != nil {
 		logf := opts.Logf
 		if logf == nil {
 			logf = log.Printf
@@ -115,9 +105,7 @@ type walker struct {
 	skip func(Root, string) bool // The callback that will be invoked for every dir. dir is skipped if it returns true.
 	opts Options                 // Options passed to Walk by the user.
 
-	ignoredDirs []string
-
-	added map[string]bool
+	ignoredDirs []os.FileInfo // The ignored directories, loaded from .goimportsignore files.
 }
 
 // init initializes the walker based on its Options
@@ -133,9 +121,13 @@ func (w *walker) init() {
 
 	for _, p := range ignoredPaths {
 		full := filepath.Join(w.root.Path, p)
-		w.ignoredDirs = append(w.ignoredDirs, full)
-		if w.opts.Logf != nil {
-			w.opts.Logf("Directory added to ignore list: %s", full)
+		if fi, err := os.Stat(full); err == nil {
+			w.ignoredDirs = append(w.ignoredDirs, fi)
+			if w.opts.Logf != nil {
+				w.opts.Logf("Directory added to ignore list: %s", full)
+			}
+		} else if w.opts.Logf != nil {
+			w.opts.Logf("Error statting ignored directory: %v", err)
 		}
 	}
 }
@@ -170,9 +162,9 @@ func (w *walker) getIgnoredDirs(path string) []string {
 }
 
 // shouldSkipDir reports whether the file should be skipped or not.
-func (w *walker) shouldSkipDir(dir string) bool {
+func (w *walker) shouldSkipDir(fi os.FileInfo, dir string) bool {
 	for _, ignoredDir := range w.ignoredDirs {
-		if dir == ignoredDir {
+		if os.SameFile(fi, ignoredDir) {
 			return true
 		}
 	}
@@ -184,25 +176,20 @@ func (w *walker) shouldSkipDir(dir string) bool {
 }
 
 // walk walks through the given path.
-func (w *walker) walk(path string, d fs.DirEntry, err error) error {
-	typ := d.Type()
+func (w *walker) walk(path string, typ os.FileMode) error {
 	if typ.IsRegular() {
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-
 		dir := filepath.Dir(path)
 		if dir == w.root.Path && (w.root.Type == RootGOROOT || w.root.Type == RootGOPATH) {
 			// Doesn't make sense to have regular files
 			// directly in your $GOPATH/src or $GOROOT/src.
+			return fastwalk.ErrSkipFiles
+		}
+		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
 
-		if !w.added[dir] {
-			w.add(w.root, dir)
-			w.added[dir] = true
-		}
-		return nil
+		w.add(w.root, dir)
+		return fastwalk.ErrSkipFiles
 	}
 	if typ == os.ModeDir {
 		base := filepath.Base(path)
@@ -212,66 +199,20 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 			(!w.opts.ModulesEnabled && base == "node_modules") {
 			return filepath.SkipDir
 		}
-		if w.shouldSkipDir(path) {
+		fi, err := os.Lstat(path)
+		if err == nil && w.shouldSkipDir(fi, path) {
 			return filepath.SkipDir
 		}
 		return nil
 	}
-	if typ == os.ModeSymlink && err == nil {
-		// TODO(bcmills): 'go list all' itself ignores symlinks within GOROOT/src
-		// and GOPATH/src. Do we really need to traverse them here? If so, why?
-
-		if os.IsPathSeparator(path[len(path)-1]) {
-			// The OS was supposed to resolve a directory symlink but didn't.
-			//
-			// On macOS this may be caused by a known libc/kernel bug;
-			// see https://go.dev/issue/59586.
-			//
-			// On Windows before Go 1.21, this may be caused by a bug in
-			// os.Lstat (fixed in https://go.dev/cl/463177).
-			//
-			// In either case, we can work around the bug by walking this level
-			// explicitly: first the symlink target itself, then its contents.
-
-			fi, err := os.Stat(path)
-			if err != nil || !fi.IsDir() {
-				return nil
-			}
-			err = w.walk(path, fs.FileInfoToDirEntry(fi), nil)
-			if err == filepath.SkipDir {
-				return nil
-			} else if err != nil {
-				return err
-			}
-
-			ents, _ := os.ReadDir(path) // ignore error if unreadable
-			for _, d := range ents {
-				nextPath := filepath.Join(path, d.Name())
-				var err error
-				if d.IsDir() {
-					err = filepath.WalkDir(nextPath, w.walk)
-				} else {
-					err = w.walk(nextPath, d, nil)
-					if err == filepath.SkipDir {
-						break
-					}
-				}
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-
+	if typ == os.ModeSymlink {
 		base := filepath.Base(path)
 		if strings.HasPrefix(base, ".#") {
 			// Emacs noise.
 			return nil
 		}
 		if w.shouldTraverse(path) {
-			// Add a trailing separator to traverse the symlink.
-			nextPath := path + string(filepath.Separator)
-			return filepath.WalkDir(nextPath, w.walk)
+			return fastwalk.ErrTraverseLink
 		}
 	}
 	return nil
@@ -281,10 +222,6 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 // should be followed.  It makes sure symlinks were never visited
 // before to avoid symlink loops.
 func (w *walker) shouldTraverse(path string) bool {
-	if w.shouldSkipDir(path) {
-		return false
-	}
-
 	ts, err := os.Stat(path)
 	if err != nil {
 		logf := w.opts.Logf
@@ -297,7 +234,9 @@ func (w *walker) shouldTraverse(path string) bool {
 	if !ts.IsDir() {
 		return false
 	}
-
+	if w.shouldSkipDir(ts, filepath.Dir(path)) {
+		return false
+	}
 	// Check for symlink loops by statting each directory component
 	// and seeing if any are the same file as ts.
 	for {
