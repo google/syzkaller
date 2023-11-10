@@ -436,18 +436,18 @@ bpf_insn_generic {
 	imm	int32
 }
 
-type bpf_insn_ldst_t[CLASS_TYPE, CLASS, SZ_TYPE, SZ, MODE_TYPE, MODE, DST, SRC, OFF, IMM] {
-	code_class	CLASS_TYPE[CLASS, int8:3]
-	code_size	SZ_TYPE[SZ, int8:2]
-	code_mode	MODE_TYPE[MODE, int8:3]
+type bpf_insn_ldst_t[CLASS, SZ, MODE, DST, SRC, OFF, IMM] {
+	code_class	int8:3[CLASS]
+	code_size	int8:2[SZ]
+	code_mode	int8:3[MODE]
 	dst		DST
 	src		SRC
 	off		OFF
 	imm		IMM
 }
 
-type bpf_insn_ldst bpf_insn_ldst_t[flags, bpf_ldst_insn, flags, bpf_ldst_size, flags, bpf_ldst_mode, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
-type bpf_insn_st64_reg[SRC, DST, OFF] bpf_insn_ldst_t[const, BPF_STX, const, BPF_DW0, const, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
+type bpf_insn_ldst bpf_insn_ldst_t[bpf_ldst_insn, bpf_ldst_size, bpf_ldst_mode, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_st64_reg[SRC, DST, OFF] bpf_insn_ldst_t[BPF_STX, BPF_DW0, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
 
 bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
 bpf_ldst_size = BPF_W0, BPF_H0, BPF_B0, BPF_DW0
@@ -465,22 +465,22 @@ define BPF_MEM0	BPF_MEM >> 5
 define BPF_XADD0	BPF_XADD >> 5
 define BPF_MEMSX0	BPF_MEMSX >> 5
 
-type bpf_insn_alu_t[CLASS_TYPE, CLASS, SOURCE_TYPE, SOURCE, OP_TYPE, OP, DST, SRC, OFF, IMM] {
-	code_class	CLASS_TYPE[CLASS, int8:3]
-	code_s		SOURCE_TYPE[SOURCE, int8:1]
-	code_op		OP_TYPE[OP, int8:4]
+type bpf_insn_alu_t[CLASS, SOURCE, OP, DST, SRC, OFF, IMM] {
+	code_class	int8:3[CLASS]
+	code_s		int8:1[SOURCE]
+	code_op		int8:4[OP]
 	dst		DST
 	src		SRC
 	off		OFF
 	imm		IMM
 }
 
-type bpf_insn_alu bpf_insn_alu_t[flags, bpf_alu_insn, flags, bpf_alu_source, flags, bpf_alu_op, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
-type bpf_insn_mov_imm[DST, IMM] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
-type bpf_insn_mov_imm_any[DST] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], int32]
-type bpf_insn_mov_imm_flag[DST, FLAG] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], flags[FLAG, int32]]
-type bpf_insn_mov_reg[SRC, DST] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_X0, const, BPF_MOV0, const[DST, int8:4], const[SRC, int8:4], const[0, int16], const[0, int32]]
-type bpf_insn_op_imm[DST, OP, IMM] bpf_insn_alu_t[const, BPF_ALU64, const, BPF_K0, const, OP, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
+type bpf_insn_alu bpf_insn_alu_t[bpf_alu_insn, bpf_alu_source, bpf_alu_op, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_mov_imm[DST, IMM] bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
+type bpf_insn_mov_imm_any[DST] bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], int32]
+type bpf_insn_mov_imm_flag[DST, FLAG] bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], flags[FLAG, int32]]
+type bpf_insn_mov_reg[SRC, DST] bpf_insn_alu_t[BPF_ALU64, BPF_X0, BPF_MOV0, const[DST, int8:4], const[SRC, int8:4], const[0, int16], const[0, int32]]
+type bpf_insn_op_imm[DST, OP, IMM] bpf_insn_alu_t[BPF_ALU64, BPF_K0, OP, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
 
 bpf_alu_source = BPF_K0, BPF_X0
 bpf_alu_insn = BPF_ALU, BPF_ALU64
