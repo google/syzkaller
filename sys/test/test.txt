@@ -589,8 +589,15 @@ syz_bf_struct3 {
 	f4	int64be:16
 }
 
+syz_bf_struct26 {
+	f0	bytesize[parent, int32]
+	f1	int32:16[bitmask_flags2]
+	f2	int32:16
+}
+
 test$bf0(a0 ptr[in, syz_bf_struct0])
 test$bf1(a0 ptr[in, syz_bf_struct1])
+test$bf2(a0 ptr[in, syz_bf_struct26])
 
 # Checksums
 
