@@ -1180,6 +1180,21 @@ func (p *parser) Char() byte {
 	return p.s[p.i]
 }
 
+func (p *parser) HasNext(str string) bool {
+	if p.e != nil {
+		return false
+	}
+	if len(p.s) < p.i+len(str) {
+		return false
+	}
+	for i := 0; i < len(str); i++ {
+		if p.s[p.i+i] != str[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (p *parser) Parse(ch byte) {
 	if p.e != nil {
 		return

@@ -515,3 +515,26 @@ serialize0(0x0)
 		t.Errorf("bad program comments %q\nwant: %q", p.Comments, wantComments)
 	}
 }
+
+func TestHasNext(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected bool
+	}{
+		{"abcdef", true},
+		{"xyz", false},
+		{"ab", false},
+		{"abc", true},
+	}
+	for _, testCase := range testCases {
+		p := newParser(nil, []byte(testCase.input), true)
+		if !p.Scan() {
+			t.Fatalf("parser does not scan")
+		}
+		result := p.HasNext("abc")
+		if result != testCase.expected {
+			t.Errorf("expected HasNext(\"abc\") on input %q to be %v, but got %v",
+				testCase.input, testCase.expected, result)
+		}
+	}
+}
