@@ -369,6 +369,7 @@ foo$531(a ptr[in, const[0xffffffffffffffab, int8]])
 foo$532(a ptr[in, const[0x7234567812345678, int64]])
 foo$533(a ptr[in, const[0x12, int8:4]])	### const val 0x12 does not fit into 4 bits
 foo$534(a ptr[in, flags[large_flags, int8]])	### large_flags U16_MAX=0xffff doesn't fit into 8 bits
+foo$535(a int64[no])			### unknown flags no
 
 large_flags = U8_MAX, U16_MAX
 

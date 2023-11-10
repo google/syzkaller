@@ -89,13 +89,6 @@ var typeInt = &typeDesc{
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
-		if len(args) > 0 {
-			_, isIntFlag := comp.intFlags[args[0].Ident]
-			if len(args[0].Colon) == 0 && !isIntFlag {
-				comp.error(args[0].Pos, "first argument of %v needs to be a range or flag", t.Ident)
-				return
-			}
-		}
 		if len(args) > 1 && len(args[0].Colon) == 0 {
 			comp.error(args[1].Pos, "align argument of %v is not supported unless first argument is a range",
 				t.Ident)
@@ -151,10 +144,14 @@ var typeInt = &typeDesc{
 			if _, isIntFlag := comp.intFlags[rangeArg.Ident]; isIntFlag {
 				return generateFlagsType(comp, base, rangeArg.Ident)
 			}
-			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Value
-			if len(rangeArg.Colon) != 0 {
-				rangeEnd = rangeArg.Colon[0].Value
+			if len(rangeArg.Colon) == 0 {
+				// If we have an argument that is not a range, then it's a const.
+				return &prog.ConstType{
+					IntTypeCommon: base,
+					Val:           args[0].Value,
+				}
 			}
+			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Colon[0].Value
 			if len(args) > 1 {
 				align = args[1].Value
 			}
@@ -1022,7 +1019,7 @@ var typeArgInt = &typeArg{
 var typeArgIntValue = &typeArg{
 	Kind:     kindInt | kindIdent,
 	MaxColon: 1,
-	Check: func(comp *compiler, t *ast.Type) {
+	CheckConsts: func(comp *compiler, t *ast.Type) {
 		// If the first arg is not a range, then it should be a valid flags.
 		if len(t.Colon) == 0 && t.Ident != "" && comp.intFlags[t.Ident] == nil {
 			comp.error(t.Pos, "unknown flags %v", t.Ident)
