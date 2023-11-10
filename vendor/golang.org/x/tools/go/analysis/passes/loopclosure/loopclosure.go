@@ -359,5 +359,20 @@ func isMethodCall(info *types.Info, expr ast.Expr, pkgPath, typeName, method str
 	if ptr, ok := recv.Type().(*types.Pointer); ok {
 		rtype = ptr.Elem()
 	}
-	return analysisutil.IsNamedType(rtype, pkgPath, typeName)
+	named, ok := rtype.(*types.Named)
+	if !ok {
+		return false
+	}
+	if named.Obj().Name() != typeName {
+		return false
+	}
+	pkg := f.Pkg()
+	if pkg == nil {
+		return false
+	}
+	if pkg.Path() != pkgPath {
+		return false
+	}
+
+	return true
 }
