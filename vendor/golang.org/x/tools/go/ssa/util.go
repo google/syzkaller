@@ -180,24 +180,6 @@ func makeLen(T types.Type) *Builtin {
 	}
 }
 
-// nonbasicTypes returns a list containing all of the types T in ts that are non-basic.
-func nonbasicTypes(ts []types.Type) []types.Type {
-	if len(ts) == 0 {
-		return nil
-	}
-	added := make(map[types.Type]bool) // additionally filter duplicates
-	var filtered []types.Type
-	for _, T := range ts {
-		if !isBasic(T) {
-			if !added[T] {
-				added[T] = true
-				filtered = append(filtered, T)
-			}
-		}
-	}
-	return filtered
-}
-
 // receiverTypeArgs returns the type arguments to a function's receiver.
 // Returns an empty list if obj does not have a receiver or its receiver does not have type arguments.
 func receiverTypeArgs(obj *types.Func) []types.Type {
@@ -383,4 +365,17 @@ func (canon *canonizer) instantiateMethod(m *types.Func, targs []types.Type, ctx
 	rep := canon.Type(inst)
 	obj, _, _ := types.LookupFieldOrMethod(rep, true, m.Pkg(), m.Name())
 	return obj.(*types.Func)
+}
+
+// Exposed to ssautil using the linkname hack.
+func isSyntactic(pkg *Package) bool { return pkg.syntax }
+
+// mapValues returns a new unordered array of map values.
+func mapValues[K comparable, V any](m map[K]V) []V {
+	vals := make([]V, 0, len(m))
+	for _, fn := range m {
+		vals = append(vals, fn)
+	}
+	return vals
+
 }
