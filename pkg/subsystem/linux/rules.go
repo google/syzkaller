@@ -90,7 +90,7 @@ var (
 			"kernfs": {"KERNFS"},
 			"udf":    {"UDF FILESYSTEM"},
 			"nfc":    {"NFC SUBSYSTEM"},
-			"iomap":  {"IOMAP FILESYSTEM LIBRARY"},
+			"iomap":  {"FILESYSTEMS [IOMAP]"},
 			"xfs":    {"XFS FILESYSTEM"},
 		},
 		noReminders: map[string]struct{}{
