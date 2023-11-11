@@ -180,6 +180,14 @@ func init() {
 //     - tipc
 //     - tls
 //     - wireguard
+//     - wireless
+//       - ath10k
+//       - ath11k
+//       - ath12k
+//       - b43
+//       - brcm80211
+//       - libertas
+//       - wcn36xx
 //     - wpan
 //     - x25
 //   - nfc
@@ -239,14 +247,6 @@ func init() {
 //     - virt
 //     - x86
 //   - watchdog
-//   - wireless
-//     - ath10k
-//     - ath11k
-//     - ath12k
-//     - b43
-//     - brcm80211
-//     - libertas
-//     - wcn36xx
 //   - x86-drivers
 //     - acpi4asus
 //     - dell
@@ -4573,7 +4573,7 @@ func subsystems_linux() []*Subsystem {
 		Name:     "wireless",
 		Syscalls: []string{"syz_80211_join_ibss", "syz_80211_inject_frame"},
 		Lists:    []string{"linux-wireless@vger.kernel.org"},
-		Parents:  []*Subsystem{&kernel},
+		Parents:  []*Subsystem{&net},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/bcma/|^include/linux/bcma/"},
 			{IncludeRegexp: "^drivers/net/wireless/"},

@@ -14,6 +14,8 @@ type customRules struct {
 	extraSubsystems map[string][]string
 	// For these subsystems we do not generate monthly reminders.
 	noReminders map[string]struct{}
+	// Extra child->[]parent links (on top of the inferred ones).
+	addParents map[string][]string
 }
 
 var (
@@ -97,6 +99,10 @@ var (
 			// Many misclassified bugs end up in `kernel`, so there's no sense
 			// in generating monthly reports for it.
 			"kernel": {},
+		},
+		addParents: map[string][]string{
+			// By MAINTAINERS, wireless is somewhat separate, but it's better to keep it as a net child.
+			"wireless": {"net"},
 		},
 	}
 )

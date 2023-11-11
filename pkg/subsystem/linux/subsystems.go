@@ -45,7 +45,9 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, 
 	if err := setSubsystemNames(list); err != nil {
 		return nil, fmt.Errorf("failed to set names: %w", err)
 	}
-	ctx.applyExtraRules(list)
+	if err := ctx.applyExtraRules(list); err != nil {
+		return nil, fmt.Errorf("failed to apply extra rules: %w", err)
+	}
 
 	// Sort subsystems by name to keep output consistent.
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -135,14 +137,37 @@ func (ctx *linuxCtx) groupByRules() ([]*subsystem.Subsystem, error) {
 	return ret, nil
 }
 
-func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) {
+func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) error {
 	if ctx.extraRules == nil {
-		return
+		return nil
 	}
+	perName := map[string]*subsystem.Subsystem{}
 	for _, entry := range list {
 		entry.Syscalls = ctx.extraRules.subsystemCalls[entry.Name]
 		_, entry.NoReminders = ctx.extraRules.noReminders[entry.Name]
+		perName[entry.Name] = entry
 	}
+	for from, toNames := range ctx.extraRules.addParents {
+		item := perName[from]
+		if item == nil {
+			return fmt.Errorf("unknown subsystem: %q", from)
+		}
+		exists := map[string]bool{}
+		for _, p := range item.Parents {
+			exists[p.Name] = true
+		}
+		for _, toName := range toNames {
+			if exists[toName] {
+				continue
+			}
+			if perName[toName] == nil {
+				return fmt.Errorf("unknown parent subsystem: %q", toName)
+			}
+			item.Parents = append(item.Parents, perName[toName])
+		}
+	}
+	transitiveReduction(list)
+	return nil
 }
 
 func mergeRawRecords(records []*maintainersRecord, email string) *subsystem.Subsystem {
