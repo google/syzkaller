@@ -14,15 +14,15 @@ import (
 // setSubsystemNames assigns unique names to the presented subsystems.
 // If it failed to assign a name to a subsystem, the Name field remains empty.
 func setSubsystemNames(list []*subsystem.Subsystem) error {
-	dups := map[string]bool{}
+	dups := map[string]string{}
 	for _, item := range list {
 		if item.Name == "" {
 			continue
 		}
-		if dups[item.Name] {
-			return fmt.Errorf("duplicate name: %s", item.Name)
+		if dups[item.Name] != "" {
+			return fmt.Errorf("duplicate name: %q", item.Name)
 		}
-		dups[item.Name] = true
+		dups[item.Name] = item.Name
 	}
 
 	for _, item := range list {
@@ -38,11 +38,11 @@ func setSubsystemNames(list []*subsystem.Subsystem) error {
 		if !validateName(name) {
 			return fmt.Errorf("failed to extract a name from %s", email)
 		}
-		if dups[name] {
-			return fmt.Errorf("duplicate subsystem name: %s", item.Name)
+		if dups[name] != "" {
+			return fmt.Errorf("duplicate subsystem name: %q and %q", dups[name], email)
 		}
 		item.Name = name
-		dups[name] = true
+		dups[name] = email
 	}
 	return nil
 }
@@ -113,6 +113,7 @@ var (
 		"kernel-tls-handshake@lists.linux.dev":      "tls",
 		"bcm-kernel-feedback-list@broadcom.com":     "broadcom",
 		"linux@ew.tq-group.com":                     "tq-systems",
+		"linux-imx@nxp.com":                         "nxp",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
