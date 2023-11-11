@@ -203,6 +203,15 @@ syz_usb_connect(0x0, 0x58, &(0x7f0000000100)=ANY=[@ANYBLOB="1201000036ee3808d30b
 			// "media" is picked because it's in >= 2/3 guilty paths.
 			expect: []string{"media", "usb"},
 		},
+		{
+			name: "wireless bug that should not be net",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `net/mac80211/rate.c`,
+				},
+			},
+			expect: []string{"wireless"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

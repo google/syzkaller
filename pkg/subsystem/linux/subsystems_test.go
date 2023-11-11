@@ -168,14 +168,35 @@ func TestLinuxSubsystemParents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	expectParents := map[string][]string{
+	ensureParents(t, subsystems, map[string][]string{
 		"ext4":     {"fs"},
 		"mm":       {"kernel"},
 		"fs":       {"kernel"},
 		"tmpfs":    {"mm"},
 		"freevxfs": {"fs"},
+	})
+
+	// Now check that our custom parent rules work.
+	subsystems2, err := listFromRepoInner(repo, &customRules{
+		addParents: map[string][]string{
+			// Just for the sake of testing.
+			"fs": {"mm"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	ensureParents(t, subsystems2, map[string][]string{
+		"ext4":     {"fs"},
+		"mm":       {"kernel"},
+		"fs":       {"mm"}, // We test for this change.
+		"tmpfs":    {"mm"},
+		"freevxfs": {"fs"},
+	})
+}
+
+func ensureParents(t *testing.T, subsystems []*subsystem.Subsystem,
+	expectParents map[string][]string) {
 	for _, s := range subsystems {
 		names := []string{}
 		for _, p := range s.Parents {
