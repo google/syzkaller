@@ -25,7 +25,7 @@ func (comp *compiler) typecheck() {
 	comp.checkTypes()
 }
 
-func (comp *compiler) check() {
+func (comp *compiler) check(consts map[string]uint64) {
 	comp.checkTypeValues()
 	comp.checkAttributeValues()
 	comp.checkUnused()
@@ -34,6 +34,7 @@ func (comp *compiler) check() {
 	comp.checkConstructors()
 	comp.checkVarlens()
 	comp.checkDupConsts()
+	comp.checkConstsFlags(consts)
 }
 
 func (comp *compiler) checkComments() {
@@ -657,6 +658,15 @@ func (comp *compiler) checkUnused() {
 	for _, n := range comp.collectUnused() {
 		pos, typ, name := n.Info()
 		comp.error(pos, fmt.Sprintf("unused %v %v", typ, name))
+	}
+}
+
+func (comp *compiler) checkConstsFlags(consts map[string]uint64) {
+	for name := range consts {
+		if flags, isFlag := comp.intFlags[name]; isFlag {
+			pos, _, _ := flags.Info()
+			comp.error(pos, "const %v is already a flag", name)
+		}
 	}
 }
 

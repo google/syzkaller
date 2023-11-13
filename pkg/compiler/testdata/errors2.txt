@@ -383,6 +383,9 @@ type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow b
 type type501 int8		### unused type type501
 type type502[C] const[C, int8]	### unused type type502
 
+C2 = 0, 1, 2			### const C2 is already a flag
+use_flags(a flags[C2])
+
 s405 {
 	f1	int16:8[-256:0]		### int range [18446744073709551360:0] is too large for base type of size 8
 	f2	int16:8[0:256]		### int range [0:256] is too large for base type of size 8
