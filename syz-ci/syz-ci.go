@@ -321,13 +321,16 @@ func main() {
 			}()
 		}
 	}
-	jm, err := newJobManager(cfg, managers, shutdownPending)
-	if err != nil {
-		log.Fatalf("failed to create dashapi connection %v", err)
-	}
+
 	ctxJobs, stopJobs := context.WithCancel(ctx)
 	wgJobs := sync.WaitGroup{}
-	jm.startLoop(ctxJobs, &wgJobs)
+	if cfg.DashboardAddr != "" {
+		jm, err := newJobManager(cfg, managers, shutdownPending)
+		if err != nil {
+			log.Fatalf("failed to create dashapi connection %v", err)
+		}
+		jm.startLoop(ctxJobs, &wgJobs)
+	}
 
 	// For testing. Racy. Use with care.
 	http.HandleFunc("/upload_cover", func(w http.ResponseWriter, r *http.Request) {
