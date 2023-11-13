@@ -93,7 +93,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		comp.assignSyscallNumbers(consts)
 	}
 	comp.patchConsts(consts)
-	comp.check()
+	comp.check(consts)
 	if comp.errors != 0 {
 		return nil
 	}
