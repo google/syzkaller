@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -65,6 +66,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
+		http.Handle("/"+ns+"/all-bugs", handlerWrapper(handleBugsTarball))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
@@ -994,6 +996,15 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if r.FormValue("debug_subsystems") != "" && accessLevel == AccessAdmin {
 		return debugBugSubsystems(c, w, bug)
 	}
+	if isJSONRequested(r) {
+		data, err := publicBugDescriptionJSON(c, bug)
+		if err != nil {
+			return err
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(data)
+		return err
+	}
 	hdr, err := commonHeader(c, r, w, bug.Namespace)
 	if err != nil {
 		return err
@@ -1171,11 +1182,6 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 				"Cause bisection attempts", uiList))
 		}
 	}
-	if isJSONRequested(r) {
-		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, data)
-	}
-
 	return serveTemplate(w, "bug.html", data)
 }
 
@@ -1365,6 +1371,38 @@ func findBugByID(c context.Context, r *http.Request) (*Bug, error) {
 		return bug, err
 	}
 	return nil, fmt.Errorf("mandatory parameter id/extid is missing")
+}
+
+func handleBugsTarball(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		log.Infof(c, "common header failed: %v", err)
+		return err
+	}
+	// TODO: add it as a config.
+	client, err := gcs.NewClient()
+	if err != nil {
+		log.Errorf(c, "failed create client: %v", err)
+		return err
+	}
+	wc, err := client.FileWriterExt("syzkaller.appspot.com/"+hdr.Namespace+".tar.gz",
+		"application/tar+gzip", "")
+	if err != nil {
+		log.Errorf(c, "file writer ext failed: %v", err)
+		return err
+	}
+	err = createPublicBugsTarball(c, hdr.Namespace, wc)
+	if err != nil {
+		log.Errorf(c, "tarball creation failed: %v", err)
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		log.Errorf(c, "unable to close writer: %v", err)
+		return err
+	}
+	log.Infof(c, "tarball saved")
+
+	return err
 }
 
 func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -1895,17 +1933,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
-		for i, com := range bug.Commits {
-			cfg := getNsConfig(c, bug.Namespace)
-			info := bug.getCommitInfo(i)
-			uiBug.Commits = append(uiBug.Commits, &uiCommit{
-				Hash:   info.Hash,
-				Title:  com,
-				Link:   vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
-				Repo:   cfg.Repos[0].URL,
-				Branch: cfg.Repos[0].Branch,
-			})
-		}
+		uiBug.Commits = getBugUICommits(c, bug)
 		for _, mgr := range managers {
 			found := false
 			for _, mgr1 := range bug.PatchedOn {
@@ -1924,6 +1952,22 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		sort.Strings(uiBug.MissingOn)
 	}
 	return uiBug
+}
+
+func getBugUICommits(c context.Context, bug *Bug) []*uiCommit {
+	var ret []*uiCommit
+	for i, com := range bug.Commits {
+		cfg := getNsConfig(c, bug.Namespace)
+		info := bug.getCommitInfo(i)
+		ret = append(ret, &uiCommit{
+			Hash:   info.Hash,
+			Title:  com,
+			Link:   vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
+			Repo:   cfg.Repos[0].URL,
+			Branch: cfg.Repos[0].Branch,
+		})
+	}
+	return ret
 }
 
 func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
