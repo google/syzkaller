@@ -21,8 +21,8 @@ int_flags4 = 1, -2-			### bad integer "-2-"
 str_flags0 = "foo", "bar"
 str_flags1 = "non terminated		### string literal is not terminated
 str_flags2 = "bad chars здесь"		### illegal character U+00D0 'Ð' in string literal
-str_flags3 = "string", not a string	### unexpected identifier, expecting string, hex string
-str_flags4 = "string", 42		### unexpected int, expecting string, hex string
+str_flags3 = "string", not a string	### unexpected identifier, expecting '\n'
+str_flags4 = "string", 42		### unexpected int, expecting string, hex string, identifier
 str_flags5 = `x`			### bad hex string literal: encoding/hex: invalid byte: U+0078 'x'
 
 call(foo ,int32 , bar int32)		### unexpected ',', expecting int, identifier, string

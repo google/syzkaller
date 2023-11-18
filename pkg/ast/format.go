@@ -57,6 +57,8 @@ func FormatStr(v string, format StrFmt) string {
 		return fmt.Sprintf(`"%v"`, v)
 	case StrFmtHex:
 		return fmt.Sprintf("`%x`", v)
+	case StrFmtIdent:
+		return fmt.Sprintf("%v", v)
 	default:
 		panic(fmt.Sprintf("unknown str format %v", format))
 	}

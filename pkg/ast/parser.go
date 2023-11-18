@@ -497,7 +497,7 @@ func (p *parser) parseIdent() *Ident {
 }
 
 func (p *parser) parseString() *String {
-	p.expect(tokString, tokStringHex)
+	p.expect(tokString, tokStringHex, tokIdent)
 	str := &String{
 		Pos:   p.pos,
 		Value: p.lit,
@@ -513,6 +513,8 @@ func strTokToFmt(tok token) StrFmt {
 		return StrFmtRaw
 	case tokStringHex:
 		return StrFmtHex
+	case tokIdent:
+		return StrFmtIdent
 	default:
 		panic("bad string token")
 	}
