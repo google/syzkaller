@@ -194,6 +194,7 @@ type StrFmt int
 const (
 	StrFmtRaw StrFmt = iota
 	StrFmtHex
+	StrFmtIdent
 )
 
 type Int struct {
