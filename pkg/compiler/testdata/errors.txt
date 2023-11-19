@@ -103,6 +103,10 @@ f130 = 100, 110, f110		### flags f130 used twice or circular dependency on f130
 
 loop_flags(a flags[f110])
 
+f210 = "1", "2", "3", f220	### flags f210 used twice or circular dependency on f210
+f220 = "10", "11", f230		### flags f220 used twice or circular dependency on f220
+f230 = "100", "110", f210	### flags f230 used twice or circular dependency on f230
+
 resource r2[r0]: 2
 resource r3[int32:1]		### unexpected ':', only struct fields can be bitfields
 resource r4[int32[opt]]		### resource base can't be marked as opt

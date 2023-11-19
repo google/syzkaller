@@ -361,6 +361,7 @@ func arrayContains(a []string, v string) bool {
 
 func (comp *compiler) flattenFlags() {
 	comp.flattenIntFlags()
+	comp.flattenStrFlags()
 
 	for _, n := range comp.desc.Nodes {
 		switch flags := n.(type) {
@@ -371,6 +372,11 @@ func (comp *compiler) flattenFlags() {
 			if f, ok := comp.intFlags[flags.Name.Name]; ok {
 				flags.Values = f.Values
 			}
+		case *ast.StrFlags:
+			// Same as for intFlags above.
+			if f, ok := comp.strFlags[flags.Name.Name]; ok {
+				flags.Values = f.Values
+			}
 		}
 	}
 }
@@ -378,6 +384,15 @@ func (comp *compiler) flattenFlags() {
 func (comp *compiler) flattenIntFlags() {
 	for name, flags := range comp.intFlags {
 		if err := recurFlattenFlags[*ast.IntFlags, *ast.Int](comp, name, flags, comp.intFlags,
+			map[string]bool{}); err != nil {
+			comp.error(flags.Pos, "%v", err)
+		}
+	}
+}
+
+func (comp *compiler) flattenStrFlags() {
+	for name, flags := range comp.strFlags {
+		if err := recurFlattenFlags[*ast.StrFlags, *ast.String](comp, name, flags, comp.strFlags,
 			map[string]bool{}); err != nil {
 			comp.error(flags.Pos, "%v", err)
 		}
