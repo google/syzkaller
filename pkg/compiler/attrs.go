@@ -14,7 +14,9 @@ type attrDesc struct {
 	Name string
 	// For now we assume attributes can have only 1 argument and it's an integer,
 	// enough to cover existing cases.
-	HasArg      bool
+	HasArg bool
+	// This function is not invoked for per-field attributes, only for whole
+	// structs/unions.
 	CheckConsts func(comp *compiler, parent ast.Node, attr *ast.Type)
 }
 
