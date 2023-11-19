@@ -326,10 +326,6 @@ func (comp *compiler) checkAttributeValues() {
 			for _, f := range st.Fields {
 				isOut := hasOutOverlay
 				for _, attr := range f.Attrs {
-					desc := structFieldAttrs[attr.Ident]
-					if desc.CheckConsts != nil {
-						desc.CheckConsts(comp, f, attr)
-					}
 					switch attr.Ident {
 					case attrOutOverlay.Name:
 						hasOutOverlay = true
