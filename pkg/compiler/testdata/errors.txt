@@ -139,6 +139,7 @@ foo$70() ("foo")		### unexpected string "foo", expect attribute
 foo$71() (42)			### unexpected int 42, expect attribute
 foo$72() (disabled, disabled)	### duplicate syscall foo$72 attribute disabled
 foo$73(a int32[int_flags, 2])	### align argument of int32 is not supported unless first argument is a range
+foo$74() (int8:1)		### unexpected ':'
 
 opt {				### struct uses reserved name opt
 	f1	int32
@@ -167,6 +168,7 @@ s3 {
 	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
 	f8	const[0, int32:C1]	### literal const bitfield sizes are not supported
 	f9	const[0]	### wrong number of arguments for type const, expect value, base type
+	f10	int8:1:1	### unexpected ':'
 } [packed, align[4]]
 
 s5 {
@@ -200,6 +202,10 @@ s12 {
 s13 {
 	f1	int8
 } [size[0[0]]]			### size attribute has colon or args
+
+s14 {
+	f1	int8
+} [size[1, 2]]			### size attribute is expected to have 1 argument
 
 u3 [
 	f1	int8
