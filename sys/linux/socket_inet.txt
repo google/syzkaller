@@ -37,7 +37,7 @@ getpeername$inet(fd sock_in, peer ptr[out, sockaddr_in], peerlen ptr[inout, len[
 
 inet_option_types_int = IP_TOS, IP_TTL, IP_HDRINCL, IP_ROUTER_ALERT, IP_RECVOPTS, IP_RETOPTS, IP_PKTINFO, IP_MTU_DISCOVER, IP_RECVERR, IP_RECVTTL, IP_RECVTOS, IP_MTU, IP_FREEBIND, IP_PASSSEC, IP_TRANSPARENT, IP_RECVORIGDSTADDR, IP_MINTTL, IP_NODEFRAG, IP_CHECKSUM, IP_BIND_ADDRESS_NO_PORT, IP_MULTICAST_TTL, IP_MULTICAST_LOOP, IP_MULTICAST_ALL, IP_UNICAST_IF
 
-inet_option_types_buf = IP_OPTIONS, IP_PKTOPTIONS, IP_IPSEC_POLICY, IP_XFRM_POLICY, IP_MULTICAST_IF, IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_UNBLOCK_SOURCE, IP_BLOCK_SOURCE, IP_ADD_SOURCE_MEMBERSHIP, IP_DROP_SOURCE_MEMBERSHIP, IP_MSFILTER, MCAST_JOIN_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE, MCAST_LEAVE_GROUP, MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_MSFILTER
+inet_option_types_buf = IP_OPTIONS, IP_PKTOPTIONS, IP_IPSEC_POLICY, IP_XFRM_POLICY, IP_MSFILTER, MCAST_JOIN_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_MSFILTER, sockopt_opt_ip_mreq, sockopt_opt_ip_mreqsrc, sockopt_opt_group_source_req
 
 getsockopt$inet_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[in, int32], optlen len[optval])

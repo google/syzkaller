@@ -108,7 +108,7 @@ define CQ_RING_OVERFLOW_OFFSET	284
 define CQ_FLAGS_OFFSET	280
 
 # Notice all offsets are pointing to uint32 values. This is assumed for the
-io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_FLAGS_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, CQ_FLAGS_OFFSET
+io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, io_uring_flags_offsets
 
 # Also, all values are int32, thus, set nbytes to 4.
 syz_memcpy_off$IO_URING_METADATA_GENERIC(ring_ptr ring_ptr, off flags[io_uring_offsets], src ptr[in, int32], src_off const[0], nbytes const[4])

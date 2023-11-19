@@ -14,7 +14,7 @@ write$trusty(fd fd_trusty, msg ptr[in, array[int8]], len len[msg])
 read$trusty(fd fd_trusty, msg ptr[out, array[int8]], len len[msg])
 
 # TODO: describe interface for the rest of ports.
-trusty_ports = "com.android.trusty.gatekeeper", "com.android.trusty.keymaster", "com.android.trusty.keymaster.secure", "com.android.trusty.avb", "com.android.trusty.storage.proxy", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp", "com.android.trusty.hwkey", "com.android.trusty.hwrng", "com.android.trusty.appmgmt.srv2.start"
+trusty_ports = "com.android.trusty.gatekeeper", "com.android.trusty.keymaster", "com.android.trusty.keymaster.secure", "com.android.trusty.avb", "com.android.trusty.hwkey", "com.android.trusty.hwrng", "com.android.trusty.appmgmt.srv2.start", trusty_storage_ports
 
 trusty_open_flags = O_RDWR, O_RDWR_NONBLOCK
 
