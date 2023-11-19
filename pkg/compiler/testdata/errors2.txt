@@ -157,14 +157,23 @@ slen1 {
 	f7 len[syscall:b, int32]	### len target b does not exist
 	f8 offsetof[parent, int32]	### offsetof must refer to fields
 	f9 offsetof[slen1, int32]	### offsetof must refer to fields
+	f10 len[f0:syscall:b, int32]	### syscall can't be in the middle of path expressions
+	f11 len[slen3:a, int32]		### len path slen3 does not refer to a struct
 	slen2 ptr[in, array[slen2]]
 	slen21 slen2
+	slen3 slen3
 	slen22 array[slen2]
 }
 
 slen2 {
-	f int32
+	f	int32
+	f1	slen3
 }
+
+slen3 [
+	a int32
+	b int32
+]
 
 # Resource ctor tests.
 
