@@ -70,14 +70,14 @@ shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
 shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
 shmdt(addr shmaddr)
 
-msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+msgget_flags = IPC_CREAT, IPC_EXCL, open_mode
 msgbuf_type = 0, 1, 2, 3
 msgsnd_flags = IPC_NOWAIT
 msgrcv_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
-semget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+semget_flags = IPC_CREAT, IPC_EXCL, open_mode
 semop_flags = IPC_NOWAIT, SEM_UNDO
 sem_sem_id = 0, 1, 2, 3, 4
-shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_HUGE_2MB, SHM_HUGE_1GB, SHM_NORESERVE, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_HUGE_2MB, SHM_HUGE_1GB, SHM_NORESERVE, open_mode
 shmat_flags = SHM_RND, SHM_RDONLY, SHM_REMAP
 
 ipc_perm {

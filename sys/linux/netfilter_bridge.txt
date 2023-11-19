@@ -392,7 +392,7 @@ ebt_nat_info {
 	target	flags[ebt_nat_verdicts, int32]
 }
 
-ebt_nat_verdicts = EBT_DROP, EBT_ACCEPT, EBT_RETURN, EBT_CONTINUE, NAT_ARP_BIT
+ebt_nat_verdicts = NAT_ARP_BIT, ebt_verdicts
 
 ebt_log_info {
 	loglevel	int8
