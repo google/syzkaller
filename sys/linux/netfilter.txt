@@ -199,7 +199,7 @@ xt_cgroup_info_v1 {
 	has_classid	bool8
 	invert_path	bool8
 	invert_classid	bool8
-	path		string[cgroup_paths, PATH_MAX]
+	path		string[cgroup_dirs, PATH_MAX]
 # TODO: again "cgroup classid"
 	classid		int32
 	priv		align64[intptr]
