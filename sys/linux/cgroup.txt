@@ -41,7 +41,6 @@ cgroup_control {
 
 cgroup_dirs = "./cgroup/syz0", "./cgroup/syz1", "./cgroup.cpu/syz0", "./cgroup.cpu/syz1", "./cgroup.net/syz0", "./cgroup.net/syz1"
 cgroup_names = "syz0", "syz1"
-cgroup_paths = "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgroup/syz1", "./cgroup.cpu/syz1", "./cgroup.net/syz1"
 cgroup_control_signs = '+', '-'
 cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma", "net", "net_cls", "net_prio", "devices", "blkio", "freezer", "cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"
 cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"
