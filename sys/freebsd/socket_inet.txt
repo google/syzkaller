@@ -69,9 +69,9 @@ setsockopt$inet_msfilter(fd sock_in, level const[IPPROTO_IP], optname const[IP_M
 setsockopt$inet_MCAST_JOIN_GROUP(fd sock_in, level const[IPPROTO_IP], optname const[MCAST_JOIN_GROUP], optval ptr[in, group_req_in], optlen len[optval])
 setsockopt$inet_MCAST_LEAVE_GROUP(fd sock_in, level const[IPPROTO_IP], optname const[MCAST_LEAVE_GROUP], optval ptr[in, group_req_in], optlen len[optval])
 
-sockopt_opt_ip_group_source_req = MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE
+sockopt_opt_group_source_req = MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE
 
-setsockopt$inet_group_source_req(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_group_source_req], optval ptr[in, group_source_req_in], optlen len[optval])
+setsockopt$inet_group_source_req(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_group_source_req], optval ptr[in, group_source_req_in], optlen len[optval])
 
 ip_mreq {
 	imr_multiaddr	ipv4_addr
