@@ -29,6 +29,7 @@ type dwarfParams struct {
 	objDir                string
 	srcDir                string
 	buildDir              string
+	splitBuildDelimiters  []string
 	moduleObj             []string
 	hostModules           []host.KernelModule
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
@@ -153,6 +154,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	objDir := params.objDir
 	srcDir := params.srcDir
 	buildDir := params.buildDir
+	splitBuildDelimiters := params.splitBuildDelimiters
 	modules, err := discoverModules(target, objDir, params.moduleObj, params.hostModules, params.getModuleOffset)
 	if err != nil {
 		return nil, err
@@ -223,7 +225,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir, splitBuildDelimiters)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -247,7 +249,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
-			return symbolize(target, objDir, srcDir, buildDir, pcs)
+			return symbolize(target, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
 		RestorePC:   makeRestorePC(params, pcBase),
 		CoverPoints: allCoverPointsMap,
@@ -383,7 +385,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *Module, pcFix pcFixFn) (
 	return ranges, units, nil
 }
 
-func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
+func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
 	mod *Module, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
@@ -441,7 +443,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
+			name, path := cleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
 			frames = append(frames, Frame{
 				Module: mod,
 				PC:     frame.PC + mod.Addr,
@@ -463,11 +465,11 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 	return frames, nil
 }
 
-func symbolize(target *targets.Target, objDir, srcDir, buildDir string,
+func symbolize(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
 	pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs1)
+		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
 		if err != nil {
 			return nil, err
 		}
@@ -509,8 +511,49 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 	return pcs, nil
 }
 
-func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
+// Source files for Android may be split between two subdirectories: the common AOSP kernel
+// and the device-specific drivers: https://source.android.com/docs/setup/build/building-pixel-kernels.
+// Android build system references these subdirectories in various ways, which often results in
+// paths to non-existent files being recorded in the debug info.
+//
+// cleanPathAndroid() assumes that the subdirectories reside in `srcDir`, with their names being listed in
+// `delimiters`.
+// If one of the `delimiters` occurs in the `path`, it is stripped together with the path prefix, and the
+// remaining file path is appended to `srcDir + delimiter`.
+// If none of the `delimiters` occur in the `path`, `path` is treated as a relative path that needs to be
+// looked up in `srcDir + delimiters[i]`.
+func cleanPathAndroid(path, srcDir string, delimiters []string, existFn func(string) bool) (string, string) {
+	if len(delimiters) == 0 {
+		return "", ""
+	}
+	reStr := "(" + strings.Join(delimiters, "|") + ")(.*)"
+	re := regexp.MustCompile(reStr)
+	match := re.FindStringSubmatch(path)
+	if match != nil {
+		delimiter := match[1]
+		filename := match[2]
+		path := filepath.Clean(srcDir + delimiter + filename)
+		return filename, path
+	}
+	// None of the delimiters found in `path`: it is probably a relative path to the source file.
+	// Try to look it up in every subdirectory of srcDir.
+	for _, delimiter := range delimiters {
+		absPath := filepath.Clean(srcDir + delimiter + path)
+		if existFn(absPath) {
+			return path, absPath
+		}
+	}
+	return "", ""
+}
+
+func cleanPath(path, objDir, srcDir, buildDir string, splitBuildDelimiters []string) (string, string) {
 	filename := ""
+
+	path = filepath.Clean(path)
+	aname, apath := cleanPathAndroid(path, srcDir, splitBuildDelimiters, osutil.IsExist)
+	if aname != "" {
+		return aname, apath
+	}
 	absPath := osutil.Abs(path)
 	switch {
 	case strings.HasPrefix(absPath, objDir):

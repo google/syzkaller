@@ -49,6 +49,8 @@ type Config struct {
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
 	KernelBuildSrc string `json:"kernel_build_src,omitempty"`
+	// Is the kernel built separately from the modules? (Specific to Android builds)
+	AndroidSplitBuild bool `json:"android_split_build"`
 	// Kernel subsystem with paths to each subsystem
 	//	"kernel_subsystem": [
 	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},

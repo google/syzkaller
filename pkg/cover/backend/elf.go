@@ -15,13 +15,14 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
+func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters, moduleObj []string,
+	hostModules []host.KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,
 		srcDir:                srcDir,
 		buildDir:              buildDir,
+		splitBuildDelimiters:  splitBuildDelimiters,
 		moduleObj:             moduleObj,
 		hostModules:           hostModules,
 		readSymbols:           elfReadSymbols,
