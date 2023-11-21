@@ -33,7 +33,7 @@ var RestorePC = backend.RestorePC
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
 	modules []host.KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
-		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.ModuleObj, modules)
+		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
 		return nil, err
 	}
