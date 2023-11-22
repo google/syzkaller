@@ -5,6 +5,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -280,6 +281,8 @@ func (ri *RequesterInfo) Record(now time.Time, cfg ThrottleConfig) bool {
 	return len(newRequests) <= cfg.Limit
 }
 
+var ErrThrottleTooManyRetries = errors.New("all attempts to record request failed")
+
 func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
 	cfg := getConfig(c).Throttle
 	if cfg.Empty() || requesterID == "" {
@@ -325,5 +328,5 @@ func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
 		}
 		return ok, nil
 	}
-	return false, fmt.Errorf("all attempts to record request failed")
+	return false, ErrThrottleTooManyRetries
 }

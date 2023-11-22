@@ -94,7 +94,10 @@ func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) 
 		return true
 	}
 	accept, err := ThrottleRequest(c, ip)
-	if err != nil {
+	if errors.Is(err, ErrThrottleTooManyRetries) {
+		// We get these at peak QPS anyway, it's not an error.
+		log.Warningf(c, "failed to throttle: %v", err)
+	} else if err != nil {
 		log.Errorf(c, "failed to throttle: %v", err)
 	}
 	log.Infof(c, "throttling for %q: %t", ip, accept)
