@@ -672,7 +672,7 @@ func (mgr *Manager) loadCorpus() {
 
 func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 	bad, disabled := checkProgram(mgr.target, mgr.targetEnabledSyscalls, data)
-	if bad {
+	if bad != nil {
 		return false
 	}
 	if disabled {
@@ -720,20 +720,20 @@ func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data [
 	return p.Serialize()
 }
 
-func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad, disabled bool) {
+func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad error, disabled bool) {
 	p, err := target.Deserialize(data, prog.NonStrict)
 	if err != nil {
-		return true, true
+		return err, true
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return true, true
+		return fmt.Errorf("longer than %d calls", prog.MaxCalls), true
 	}
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
-			return false, true
+			return nil, true
 		}
 	}
-	return false, false
+	return nil, false
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
