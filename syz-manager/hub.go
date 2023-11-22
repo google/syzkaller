@@ -216,7 +216,7 @@ func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smas
 	candidates := make([]rpctype.Candidate, 0, len(inputs))
 	for _, inp := range inputs {
 		bad, disabled := checkProgram(hc.target, hc.enabledCalls, inp.Prog)
-		if bad || disabled {
+		if bad != nil || disabled {
 			log.Logf(0, "rejecting program from hub (bad=%v, disabled=%v):\n%s",
 				bad, disabled, inp)
 			dropped++
@@ -269,7 +269,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 	dropped := 0
 	for _, repro := range repros {
 		bad, disabled := checkProgram(hc.target, hc.enabledCalls, repro)
-		if bad || disabled {
+		if bad != nil || disabled {
 			log.Logf(0, "rejecting repro from hub (bad=%v, disabled=%v):\n%s",
 				bad, disabled, repro)
 			dropped++
