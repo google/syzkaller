@@ -53,6 +53,9 @@ func (ctx *validCtx) validateCall(c *Call) error {
 	if c.Meta.Attrs.Disabled {
 		return fmt.Errorf("use of a disabled call")
 	}
+	if c.Props.Rerun > 0 && c.Props.FailNth > 0 {
+		return fmt.Errorf("rerun > 0 && fail_nth > 0")
+	}
 	if len(c.Args) != len(c.Meta.Args) {
 		return fmt.Errorf("wrong number of arguments, want %v, got %v",
 			len(c.Meta.Args), len(c.Args))
