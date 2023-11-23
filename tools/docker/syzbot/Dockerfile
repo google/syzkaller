@@ -26,7 +26,7 @@ RUN test "$(uname -m)" != x86_64 && exit 0 || \
 	  g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	  g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu
 
-RUN curl https://dl.google.com/go/go1.20.1.linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/').tar.gz | tar -C /usr/local -xz
+RUN curl https://dl.google.com/go/go1.21.4.linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/').tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:$PATH
 
 # The default clang-14 is too old, install the latest one.

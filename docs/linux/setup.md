@@ -27,13 +27,13 @@ If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting
 
 ### Go and syzkaller
 
-`syzkaller` is written in [Go](https://golang.org), and `Go 1.19+` toolchain is required for build.
+`syzkaller` is written in [Go](https://golang.org), and `Go 1.20+` toolchain is required for build.
 Generally we aim at supporting 2 latest releases of Go.
 The toolchain can be installed with:
 
 ```
-wget https://dl.google.com/go/go1.20.1.linux-amd64.tar.gz
-tar -xf go1.20.1.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.21.4.linux-amd64.tar.gz
+tar -xf go1.21.4.linux-amd64.tar.gz
 export GOROOT=`pwd`/go
 export PATH=$GOROOT/bin:$PATH
 ```
