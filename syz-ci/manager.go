@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -79,12 +80,21 @@ type Manager struct {
 	mgrcfg       *ManagerConfig
 	managercfg   *mgrconfig.Config
 	cmd          *ManagerCmd
-	dash         *dashapi.Dashboard
+	dash         ManagerDashapi
 	debugStorage bool
 	storage      *asset.Storage
 	stop         chan struct{}
 	debug        bool
 	lastBuild    *dashapi.Build
+}
+
+type ManagerDashapi interface {
+	ReportBuildError(req *dashapi.BuildErrorReq) error
+	UploadBuild(build *dashapi.Build) error
+	BuilderPoll(manager string) (*dashapi.BuilderPollResp, error)
+	LogError(name, msg string, args ...interface{})
+	CommitPoll() (*dashapi.CommitPollResp, error)
+	UploadCommits(commits []dashapi.Commit) error
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
@@ -534,9 +544,9 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	*mgrcfg = *mgr.managercfg
 
 	if mgr.dash != nil {
-		mgrcfg.DashboardClient = mgr.dash.Client
-		mgrcfg.DashboardAddr = mgr.dash.Addr
-		mgrcfg.DashboardKey = mgr.dash.Key
+		mgrcfg.DashboardClient = mgr.mgrcfg.DashboardClient
+		mgrcfg.DashboardAddr = mgr.cfg.DashboardAddr
+		mgrcfg.DashboardKey = mgr.mgrcfg.DashboardKey
 		mgrcfg.AssetStorage = mgr.cfg.AssetStorage
 	}
 	if mgr.cfg.HubAddr != "" {
@@ -651,17 +661,32 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 	if err != nil || len(resp.PendingCommits) == 0 && resp.ReportEmail == "" {
 		return nil, nil, err
 	}
+
+	// We don't want to spend too much time querying commits from the history,
+	// so let's pick a random subset of them each time.
+	const sampleCommits = 25
+
+	pendingCommits := resp.PendingCommits
+	if len(pendingCommits) > sampleCommits {
+		rand.New(rand.NewSource(time.Now().UnixNano())).Shuffle(
+			len(pendingCommits), func(i, j int) {
+				pendingCommits[i], pendingCommits[j] =
+					pendingCommits[j], pendingCommits[i]
+			})
+		pendingCommits = pendingCommits[:sampleCommits]
+	}
+
 	var present []string
-	if len(resp.PendingCommits) != 0 {
-		commits, err := mgr.repo.ListRecentCommits(buildCommit)
+	if len(pendingCommits) != 0 {
+		commits, _, err := mgr.repo.GetCommitsByTitles(pendingCommits)
 		if err != nil {
 			return nil, nil, err
 		}
 		m := make(map[string]bool, len(commits))
 		for _, com := range commits {
-			m[vcs.CanonicalizeCommit(com)] = true
+			m[vcs.CanonicalizeCommit(com.Title)] = true
 		}
-		for _, com := range resp.PendingCommits {
+		for _, com := range pendingCommits {
 			if m[vcs.CanonicalizeCommit(com)] {
 				present = append(present, com)
 			}
