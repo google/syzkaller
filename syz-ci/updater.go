@@ -194,6 +194,10 @@ func (upd *SyzUpdater) UpdateAndRestart() {
 	if err := osutil.CopyFile(latestBin, upd.exe); err != nil {
 		log.Fatal(err)
 	}
+	if *flagExitOnUpgrade {
+		log.Logf(0, "exiting, please restart syz-ci to run the new version")
+		os.Exit(0)
+	}
 	if err := syscall.Exec(upd.exe, os.Args, os.Environ()); err != nil {
 		log.Fatal(err)
 	}

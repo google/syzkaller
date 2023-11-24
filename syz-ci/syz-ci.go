@@ -79,6 +79,8 @@ var (
 	flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary (for testing)")
 	flagManagers   = flag.Bool("managers", true, "start managers (for testing)")
 	flagDebug      = flag.Bool("debug", false, "debug mode (for testing)")
+	// nolint: lll
+	flagExitOnUpgrade = flag.Bool("exit-on-upgrade", false, "exit after a syz-ci upgrade is applied; otherwise syz-ci restarts")
 )
 
 type Config struct {
