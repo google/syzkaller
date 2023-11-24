@@ -512,12 +512,14 @@ func (r *SubsystemReport) findStage(id string) *SubsystemReportStage {
 
 type SubsystemReportStats struct {
 	Reported int
+	LowPrio  int
 	Fixed    int
 }
 
 func (s *SubsystemReportStats) toDashapi() dashapi.BugListReportStats {
 	return dashapi.BugListReportStats{
 		Reported: s.Reported,
+		LowPrio:  s.LowPrio,
 		Fixed:    s.Fixed,
 	}
 }

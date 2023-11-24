@@ -505,6 +505,7 @@ type BugListReport struct {
 
 type BugListReportStats struct {
 	Reported int
+	LowPrio  int
 	Fixed    int
 }
 
