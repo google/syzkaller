@@ -313,7 +313,7 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 	title = "syzkaller: " + title
 	for _, mgrcfg := range upd.cfg.Managers {
 		if upd.dashboardAddr == "" || mgrcfg.DashboardClient == "" {
-			log.Logf(0, "not uploading build error fr %v: no dashboard", mgrcfg.Name)
+			log.Logf(0, "not uploading build error for %v: no dashboard", mgrcfg.Name)
 			continue
 		}
 		dash, err := dashapi.New(mgrcfg.DashboardClient, upd.dashboardAddr, mgrcfg.DashboardKey)
