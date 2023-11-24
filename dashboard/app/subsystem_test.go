@@ -1066,8 +1066,6 @@ Ref Crashes Repro Title
                   https://testapp.appspot.com/bug?extid=%[1]v
 <2> 2       No    WARNING: a second
                   https://testapp.appspot.com/bug?extid=%[2]v
-<3> 2       Yes   WARNING: a first
-                  https://testapp.appspot.com/bug?extid=%[3]v
 
 The report will be sent to: [subsystemA@list.com subsystemA@person.com].
 

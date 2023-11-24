@@ -264,6 +264,11 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 			// Don't take bugs which are too new -- they're still fresh in memory.
 			continue
 		}
+		if bug.prio() == LowPrioBug {
+			// Don't include low priority bugs in reports because the community
+			// actually perceives them as non-actionable.
+			continue
+		}
 		discussions := bug.discussionSummary()
 		if discussions.ExternalMessages > 0 &&
 			discussions.LastMessage.After(timeNow(c).Add(-config.UserReplyFrist)) {
