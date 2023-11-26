@@ -9,8 +9,6 @@ import (
 	"io"
 	"os/exec"
 	"sync"
-
-	_ "github.com/google/syzkaller/pkg/osutil"
 )
 
 // Merely to fix build.
@@ -22,7 +20,7 @@ const (
 )
 
 func OpenConsole(con string) (rc io.ReadCloser, err error) {
-	return nil, fmt.Errorf("failed to get console termios on Windows: %v", err)
+	return nil, fmt.Errorf("OpenConsole not implemented. Failed to get console termios on Windows")
 }
 
 type tty struct {
@@ -33,12 +31,12 @@ type tty struct {
 // OpenRemoteKernelLog accesses to the host where Android VM runs on, not Android VM itself.
 // The host stores all kernel outputs of Android VM so in case of crashes nothing will be lost.
 func OpenRemoteKernelLog(ip, console string) (rc io.ReadCloser, err error) {
-	return nil, fmt.Errorf("failed to connect to console server on Windows: %v", err)
+	return nil, fmt.Errorf("OpenRemoteKernelLog not implemented. Failed to connect to console server on Windows")
 }
 
 // Open dmesg remotely.
 func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error) {
-	return nil, fmt.Errorf("failed to start adb: %v", err)
+	return nil, fmt.Errorf("OpenRemoteConsole not implemented. Failed to start adb")
 }
 
 // OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
