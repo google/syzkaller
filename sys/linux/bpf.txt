@@ -700,11 +700,23 @@ type bpf_insn_null_check[REG] {
 	exit		bpf_insn_exit
 }
 
+# Format specifiers for bpf_trace_printk, encoded as a zero-terminated string
+# of 7 characters. For example, field 'p' corresponds to "%p     ".
 type bpf_insn_mov_printk_str_hex[DST] [
-# "%p     "
-	integer	bpf_insn_mov_imm64[DST, 0x25702020, 0x20202000]
-# "%d     "
-	pointer	bpf_insn_mov_imm64[DST, 0x25642020, 0x20202000]
+	p	bpf_insn_mov_imm64[DST, 0x25702020, 0x20202000]
+	d	bpf_insn_mov_imm64[DST, 0x25642020, 0x20202000]
+	i	bpf_insn_mov_imm64[DST, 0x25692020, 0x20202000]
+	u	bpf_insn_mov_imm64[DST, 0x25752020, 0x20202000]
+	x	bpf_insn_mov_imm64[DST, 0x25782020, 0x20202000]
+	ld	bpf_insn_mov_imm64[DST, 0x256c6420, 0x20202000]
+	li	bpf_insn_mov_imm64[DST, 0x256c6920, 0x20202000]
+	lu	bpf_insn_mov_imm64[DST, 0x256c7520, 0x20202000]
+	lx	bpf_insn_mov_imm64[DST, 0x256c7820, 0x20202000]
+	lld	bpf_insn_mov_imm64[DST, 0x256c6c64, 0x20202000]
+	lli	bpf_insn_mov_imm64[DST, 0x256c6c69, 0x20202000]
+	llu	bpf_insn_mov_imm64[DST, 0x256c6c75, 0x20202000]
+	llx	bpf_insn_mov_imm64[DST, 0x256c6c78, 0x20202000]
+	s	bpf_insn_mov_imm64[DST, 0x25732020, 0x20202000]
 ]
 
 # (18) r1 = "%d     "
