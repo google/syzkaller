@@ -54,16 +54,6 @@ func TestGitRepo(t *testing.T) {
 		}
 	}
 	{
-		commits, err := repo.ListRecentCommits(repo1.Commits["branch1"]["1"].Hash)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want := []string{"repo1-branch1-1", "repo1-branch1-0", "repo1-master-0"}
-		if diff := cmp.Diff(commits, want); diff != "" {
-			t.Fatal(diff)
-		}
-	}
-	{
 		want := repo2.Commits["branch1"]["0"]
 		com, err := repo.CheckoutCommit(repo2.Dir, want.Hash)
 		if err != nil {

@@ -80,10 +80,6 @@ func (ctx *fuchsia) GetCommitsByTitles(titles []string) ([]*Commit, []string, er
 	return ctx.repo.GetCommitsByTitles(titles)
 }
 
-func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
-	return ctx.repo.ListRecentCommits(baseCommit)
-}
-
 func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.repo.ExtractFixTagsFromCommits(baseCommit, email)
 }
