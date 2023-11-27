@@ -1,0 +1,510 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
+define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
+define BPF_CORE_RELO_SIZE	sizeof(struct bpf_core_relo)
+
+type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
+	type			TYPE
+	ninsn			bytesize8[insns, int32]
+	insns			ptr64[in, bpf_instructions]
+	license			ptr64[in, string[bpf_licenses]]
+	loglev			int32
+	logsize			len[log, int32]
+	log			ptr64[out, array[int8], opt]
+	kern_version		flags[bpf_kern_version, int32]
+	flags			flags[bpf_prog_load_flags, int32]
+	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	prog_ifindex		ifindex[opt]
+	expected_attach_type	ATTACH_TYPE
+	btf_fd			fd_btf[opt]
+	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
+	func_info		ptr64[in, bpf_func_info, opt]
+	func_info_cnt		len[func_info, int32]
+	line_info_rec_size	const[BPF_LINE_INFO_SIZE, int32]
+	line_info		ptr64[in, bpf_line_info, opt]
+	line_info_cnt		len[line_info, int32]
+	attach_btf_id		BTF_ID
+	attach_prog_fd		PROG_FD
+	core_relo_cnt		len[core_relos, int32]
+	fd_array		ptr64[in, array[fd_bpf_map], opt]
+	core_relos		ptr64[in, array[bpf_core_relo], opt]
+	core_relo_rec_size	const[BPF_CORE_RELO_SIZE, int32]
+	log_true_size		int32
+}
+
+type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
+
+bpf_licenses = "GPL", "syzkaller"
+bpf_kern_version = 0x40f00, 0x41000, 0x41100
+
+bpf_func_info {
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:10]
+	type_id		btf_type_id
+}
+
+bpf_line_info {
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:5]
+	file_name_off	btf_opt_name_off
+	line_off	int32
+	line_col	int32
+}
+
+bpf_core_relo {
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:5]
+	type_id		btf_type_id
+	access_str_off	btf_opt_name_off
+	kind		flags[bpf_core_relo_kind, int32]
+}
+
+bpf_instructions [
+	raw	array[bpf_insn]
+	framed	bpf_framed_program
+	ringbuf	bpf_program_ringbuf
+] [varlen]
+
+bpf_framed_program {
+	initr0	bpf_insn_init_r0
+	body	array[bpf_insn]
+	exit	bpf_insn_exit
+} [packed]
+
+bpf_program_ringbuf {
+	initr0		bpf_insn_init_r0
+	reserve		bpf_insn_ringbuf_reserve
+	null_check	bpf_insn_null_check[BPF_REG_9]
+	body		array[bpf_insn]
+	free		bpf_insn_ringbuf_free
+	exit		bpf_insn_exit
+} [packed]
+
+bpf_insn [
+	generic		bpf_insn_generic
+	ldst		bpf_insn_ldst
+	alu		bpf_insn_alu
+	jmp		bpf_insn_jmp
+	call		bpf_insn_call_helper
+	func		bpf_insn_call_func
+	kfunc		bpf_insn_call_kfunc
+	exit		bpf_insn_exit
+	initr0		bpf_insn_init_r0
+	map_fd		bpf_insn_map_fd
+	map_idx		bpf_insn_map_idx
+	map_val		bpf_insn_map_value
+	map_idx_val	bpf_insn_map_idx_value
+	btf_id		bpf_insn_btf_id
+	cb_func		bpf_insn_cb_func
+	printk		bpf_insn_trace_printk
+	snprintf	bpf_insn_snprintf
+	tail_call	bpf_insn_tail_call
+	ringbuf_query	bpf_insn_ringbuf_query
+	ringbuf_output	bpf_insn_ringbuf_output
+] [varlen]
+
+bpf_insn_generic {
+	code	int8
+	dst	int8:4
+	src	int8:4
+	off	int16
+	imm	int32
+}
+
+type bpf_insn_ldst_t[CLASS, SZ, MODE, DST, SRC, OFF, IMM] {
+	code_class	int8:3[CLASS]
+	code_size	int8:2[SZ]
+	code_mode	int8:3[MODE]
+	dst		DST
+	src		SRC
+	off		OFF
+	imm		IMM
+}
+
+type bpf_insn_ldst bpf_insn_ldst_t[bpf_ldst_insn, bpf_ldst_size, bpf_ldst_mode, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_st64_reg[SRC, DST, OFF] bpf_insn_ldst_t[BPF_STX, BPF_DW0, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
+
+bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
+bpf_ldst_size = BPF_W0, BPF_H0, BPF_B0, BPF_DW0
+bpf_ldst_mode = BPF_IMM0, BPF_ABS0, BPF_IND0, BPF_MEM0, BPF_XADD0, BPF_MEMSX0
+
+define BPF_W0	BPF_W >> 3
+define BPF_H0	BPF_H >> 3
+define BPF_B0	BPF_B >> 3
+define BPF_DW0	BPF_DW >> 3
+
+define BPF_IMM0	BPF_IMM >> 5
+define BPF_ABS0	BPF_ABS >> 5
+define BPF_IND0	BPF_IND >> 5
+define BPF_MEM0	BPF_MEM >> 5
+define BPF_XADD0	BPF_XADD >> 5
+define BPF_MEMSX0	BPF_MEMSX >> 5
+
+type bpf_insn_alu_t[CLASS, SOURCE, OP, DST, SRC, OFF, IMM] {
+	code_class	int8:3[CLASS]
+	code_s		int8:1[SOURCE]
+	code_op		int8:4[OP]
+	dst		DST
+	src		SRC
+	off		OFF
+	imm		IMM
+}
+
+type bpf_insn_alu bpf_insn_alu_t[bpf_alu_insn, bpf_alu_source, bpf_alu_op, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_mov_imm[DST, IMM] bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
+type bpf_insn_mov_imm_any[DST] bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], int32]
+type bpf_insn_mov_imm_flag[DST, FLAG] bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_MOV0, const[DST, int8:4], const[0, int8:4], const[0, int16], flags[FLAG, int32]]
+type bpf_insn_mov_reg[SRC, DST] bpf_insn_alu_t[BPF_ALU64, BPF_X0, BPF_MOV0, const[DST, int8:4], const[SRC, int8:4], const[0, int16], const[0, int32]]
+type bpf_insn_op_imm[DST, OP, IMM] bpf_insn_alu_t[BPF_ALU64, BPF_K0, OP, const[DST, int8:4], const[0, int8:4], const[0, int16], const[IMM, int32]]
+
+bpf_alu_source = BPF_K0, BPF_X0
+bpf_alu_insn = BPF_ALU, BPF_ALU64
+bpf_alu_op = BPF_ADD0, BPF_SUB0, BPF_MUL0, BPF_DIV0, BPF_OR0, BPF_AND0, BPF_LSH0, BPF_RSH0, BPF_NEG0, BPF_MOD0, BPF_XOR0, BPF_MOV0, BPF_ARSH0, BPF_END0
+
+define BPF_ADD0	BPF_ADD >> 4
+define BPF_SUB0	BPF_SUB >> 4
+define BPF_MUL0	BPF_MUL >> 4
+define BPF_DIV0	BPF_DIV >> 4
+define BPF_OR0	BPF_OR >> 4
+define BPF_AND0	BPF_AND >> 4
+define BPF_LSH0	BPF_LSH >> 4
+define BPF_RSH0	BPF_RSH >> 4
+define BPF_NEG0	BPF_NEG >> 4
+define BPF_MOD0	BPF_MOD >> 4
+define BPF_XOR0	BPF_XOR >> 4
+define BPF_MOV0	BPF_MOV >> 4
+define BPF_ARSH0	BPF_ARSH >> 4
+define BPF_END0	BPF_END >> 4
+
+define BPF_K0	BPF_K >> 3
+define BPF_X0	BPF_X >> 3
+
+bpf_insn_jmp {
+	code_class	const[BPF_JMP, int8:3]
+	code_s		int8:1
+	code_op		flags[bpf_jmp_op, int8:4]
+	dst		flags[bpf_reg, int8:4]
+	src		flags[bpf_reg, int8:4]
+	off		flags[bpf_insn_offsets, int16]
+	imm		flags[bpf_insn_immediates, int32]
+}
+
+# Equivalent to: if reg != 0 goto +1;
+type bpf_insn_not_null_jmp[REG] {
+	code_class	const[BPF_JMP, int8:3]
+	code_s		const[BPF_K0, int8:1]
+	code_op		const[BPF_JNE0, int8:4]
+	dst		const[REG, int8:4]
+	src		const[0, int8:4]
+	off		const[1, int16]
+	imm		const[0, int32]
+}
+
+bpf_jmp_op = BPF_JA0, BPF_JEQ0, BPF_JGT0, BPF_JGE0, BPF_JSET0, BPF_JNE0, BPF_JSGT0, BPF_JSGE0, BPF_CALL0, BPF_EXIT0, BPF_JLT0, BPF_JLE0, BPF_JSLT0, BPF_JSLE0
+
+define BPF_JA0	BPF_JA >> 4
+define BPF_JEQ0	BPF_JEQ >> 4
+define BPF_JGT0	BPF_JGT >> 4
+define BPF_JGE0	BPF_JGE >> 4
+define BPF_JSET0	BPF_JSET >> 4
+define BPF_JNE0	BPF_JNE >> 4
+define BPF_JSGT0	BPF_JSGT >> 4
+define BPF_JSGE0	BPF_JSGE >> 4
+define BPF_CALL0	BPF_CALL >> 4
+define BPF_EXIT0	BPF_EXIT >> 4
+define BPF_JLT0	BPF_JLT >> 4
+define BPF_JLE0	BPF_JLE >> 4
+define BPF_JSLT0	BPF_JSLT >> 4
+define BPF_JSLE0	BPF_JSLE >> 4
+
+type bpf_insn_call_helper_t[FUNC] {
+	code	const[bpf_call_code, int8]
+	regs	const[0, int8]
+	off	const[0, int16]
+	func	FUNC
+}
+
+type bpf_insn_call_helper bpf_insn_call_helper_t[int32[0:__BPF_FUNC_MAX_ID]]
+
+bpf_insn_call_func {
+	code	const[bpf_call_code, int8]
+	dst	const[0, int8:4]
+	src	const[BPF_PSEUDO_CALL, int8:4]
+	off	const[0, int16]
+# NEED: to limit the call offset to the program size, we'd need support for path expressions inside ranges of values.
+	func	int32[-8:8]
+}
+
+bpf_insn_call_kfunc {
+	code	const[bpf_call_code, int8]
+	dst	const[0, int8:4]
+	src	const[BPF_PSEUDO_KFUNC_CALL, int8:4]
+	off	const[0, int16]
+	kfunc	btf_type_id
+}
+
+define bpf_call_code	BPF_JMP | BPF_CALL
+
+bpf_insn_exit {
+	code	const[bpf_exit_code, int8]
+	regs	const[0, int8]
+	off	const[0, int16]
+	imm	const[0, int32]
+}
+
+define bpf_exit_code	BPF_JMP | BPF_EXIT
+
+bpf_insn_init_r0 {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	const[BPF_REG_0, int8:4]
+	src	const[0, int8:4]
+	off	const[0, int16]
+	imm	int32
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
+}
+
+type bpf_insn_mov_imm64[DST, IMM1, IMM2] {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	const[DST, int8:4]
+	src	const[0, int8:4]
+	off	const[0, int16]
+	imm	const[IMM1, int32]
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[IMM2, int32]
+}
+
+type bpf_insn_map_fd_t[DST, MAP_FD] {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	DST
+	src	const[BPF_PSEUDO_MAP_FD, int8:4]
+	off	const[0, int16]
+	imm	MAP_FD
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+type bpf_insn_map_fd bpf_insn_map_fd_t[flags[bpf_reg, int8:4], fd_bpf_map]
+type bpf_insn_tail_call_map_fd[DST] bpf_insn_map_fd_t[const[DST, int8:4], tail_call_map]
+type bpf_insn_ringbuf_fd[DST] bpf_insn_map_fd_t[const[DST, int8:4], ringbuf_map_fd]
+
+bpf_insn_map_idx {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_IDX, int8:4]
+	off	const[0, int16]
+	imm	map_fd_id
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+type bpf_insn_map_value_t[DST, MAP_FD, VALUE_OFFSET] {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	DST
+	src	const[BPF_PSEUDO_MAP_VALUE, int8:4]
+	off	const[0, int16]
+	imm	MAP_FD
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	VALUE_OFFSET
+}
+
+type bpf_insn_map_value bpf_insn_map_value_t[flags[bpf_reg, int8:4], fd_bpf_map, int32]
+type bpf_insn_const_str[DST] bpf_insn_map_value_t[const[DST, int8:4], bpf_frozen_const_str, const[0, int32]]
+
+bpf_insn_map_idx_value {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_IDX_VALUE, int8:4]
+	off	const[0, int16]
+	imm	map_fd_id
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
+}
+
+bpf_insn_cb_func {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_FUNC, int8:4]
+	off	const[0, int16]
+# NEED: to limit the call offset to the program size, we'd need support for path expressions inside ranges of values.
+	imm	int32[-8:8]
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+bpf_insn_btf_id {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_BTF_ID, int8:4]
+	off	const[0, int16]
+	imm	btf_type_id
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
+
+# Slightly prune state space, these values frequently must be 0.
+bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, -1, -2, -4, -8, -12, -16, -32, -64
+bpf_insn_immediates = 0, 1, 4, 8, 16, -1, -4, -16
+bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10, __MAX_BPF_REG
+
+# Equivalent to:
+# if reg != 0 goto +1;
+# exit;
+# This is useful to check null pointers. We exit if the pointer is null and
+# continue the normal flow otherwise.
+type bpf_insn_null_check[REG] {
+	cond_jump	bpf_insn_not_null_jmp[REG]
+	exit		bpf_insn_exit
+}
+
+# Format specifiers for bpf_trace_printk, encoded as a zero-terminated string
+# of 7 characters. For example, field 'p' corresponds to "%p     ".
+type bpf_insn_mov_printk_str_hex[DST] [
+	p	bpf_insn_mov_imm64[DST, 0x25702020, 0x20202000]
+	d	bpf_insn_mov_imm64[DST, 0x25642020, 0x20202000]
+	i	bpf_insn_mov_imm64[DST, 0x25692020, 0x20202000]
+	u	bpf_insn_mov_imm64[DST, 0x25752020, 0x20202000]
+	x	bpf_insn_mov_imm64[DST, 0x25782020, 0x20202000]
+	ld	bpf_insn_mov_imm64[DST, 0x256c6420, 0x20202000]
+	li	bpf_insn_mov_imm64[DST, 0x256c6920, 0x20202000]
+	lu	bpf_insn_mov_imm64[DST, 0x256c7520, 0x20202000]
+	lx	bpf_insn_mov_imm64[DST, 0x256c7820, 0x20202000]
+	lld	bpf_insn_mov_imm64[DST, 0x256c6c64, 0x20202000]
+	lli	bpf_insn_mov_imm64[DST, 0x256c6c69, 0x20202000]
+	llu	bpf_insn_mov_imm64[DST, 0x256c6c75, 0x20202000]
+	llx	bpf_insn_mov_imm64[DST, 0x256c6c78, 0x20202000]
+	s	bpf_insn_mov_imm64[DST, 0x25732020, 0x20202000]
+]
+
+# (18) r1 = "%d     "
+# (7b) *(u64 *)(r10 -8) = r1
+# (bf) r1 = r10
+# (07) r1 += -8
+# (b7) r2 = 8
+# (b7) r3 = X
+# (85) call bpf_trace_printk#-108352
+bpf_insn_trace_printk {
+	insn1	bpf_insn_mov_printk_str_hex[BPF_REG_1]
+	insn2	bpf_insn_st64_reg[BPF_REG_1, BPF_REG_10, -8]
+	insn3	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_1]
+	insn4	bpf_insn_op_imm[BPF_REG_1, BPF_ADD0, -8]
+	insn5	bpf_insn_mov_imm[BPF_REG_2, 8]
+	insn6	bpf_insn_mov_imm_any[BPF_REG_3]
+	insn7	bpf_insn_call_helper_t[const[BPF_FUNC_trace_printk, int32]]
+}
+
+# (b7) r8 = 0
+# (7b) *(u64 *)(r10 -8) = r8
+# (b7) r8 = X
+# (7b) *(u64 *)(r10 -16) = r8
+# (bf) r1 = r10
+# (07) r1 += -8
+# (bf) r4 = r10
+# (07) r4 += -16
+# (b7) r2 = 8
+# (18) r3 = map[id:31][0]+0
+# (b7) r5 = 8
+# (85) call bpf_snprintf#168880
+bpf_insn_snprintf {
+	insn1	bpf_insn_mov_imm[BPF_REG_8, 0]
+	insn2	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -8]
+	insn3	bpf_insn_mov_imm_any[BPF_REG_8]
+	insn4	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -16]
+	insn5	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_1]
+	insn6	bpf_insn_op_imm[BPF_REG_1, BPF_ADD0, -8]
+	insn7	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_4]
+	insn8	bpf_insn_op_imm[BPF_REG_4, BPF_ADD0, -16]
+	insn9	bpf_insn_mov_imm[BPF_REG_2, 8]
+	insn10	bpf_insn_const_str[BPF_REG_3]
+	insn11	bpf_insn_mov_imm[BPF_REG_5, 8]
+	insn12	bpf_insn_call_helper_t[const[BPF_FUNC_snprintf, int32]]
+}
+
+# (18) r2 = map[id:10]
+# (b7) r3 = 2
+# (85) call bpf_tail_call#12
+# (b7) r0 = 0
+bpf_insn_tail_call {
+	insn1	bpf_insn_tail_call_map_fd[BPF_REG_2]
+	insn2	bpf_insn_mov_imm[BPF_REG_3, 0]
+	insn3	bpf_insn_call_helper_t[const[BPF_FUNC_tail_call, int32]]
+	insn4	bpf_insn_mov_imm[BPF_REG_0, 0]
+}
+
+# (18) r1 = map[id:16]
+# (b7) r2 = 8
+# (b7) r3 = 0
+# (85) call bpf_ringbuf_reserve#320112
+# (bf) r9 = r0
+bpf_insn_ringbuf_reserve {
+	insn1	bpf_insn_ringbuf_fd[BPF_REG_1]
+	insn2	bpf_insn_mov_imm[BPF_REG_2, 20]
+	insn3	bpf_insn_mov_imm[BPF_REG_3, 0]
+	insn4	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_reserve, int32]]
+	insn5	bpf_insn_mov_reg[BPF_REG_0, BPF_REG_9]
+}
+
+# (bf) r1 = r9
+# (b7) r2 = BPF_RB_X
+# (85) call bpf_ringbuf_{submit,discard}#322192
+# (bf) r0 = 0
+bpf_insn_ringbuf_free {
+	insn1	bpf_insn_mov_reg[BPF_REG_9, BPF_REG_1]
+	insn2	bpf_insn_mov_imm_flag[BPF_REG_2, bpf_ringbuf_wakeup_flags]
+	insn3	bpf_insn_call_helper_t[flags[bpf_helpers_ringbuf_free, int32]]
+	insn4	bpf_insn_mov_imm[BPF_REG_0, 0]
+}
+
+bpf_helpers_ringbuf_free = BPF_FUNC_ringbuf_submit, BPF_FUNC_ringbuf_discard
+
+# (18) r1 = map[id:16]
+# (b7) r2 = 0
+# (85) call bpf_ringbuf_query#322192
+bpf_insn_ringbuf_query {
+	insn1	bpf_insn_tail_call_map_fd[BPF_REG_1]
+	insn2	bpf_insn_mov_imm[BPF_REG_2, 0]
+	insn3	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_query, int32]]
+}
+
+# (18) r1 = map[id:16]
+# (b7) r8 = X
+# (7b) *(u64 *)(r10 -8) = r8
+# (bf) r2 = r10
+# (07) r2 += -8
+# (b7) r3 = 8
+# (b7) r4 = BPF_RB_X
+# (85) call bpf_ringbuf_output#322192
+bpf_insn_ringbuf_output {
+	insn1	bpf_insn_tail_call_map_fd[BPF_REG_1]
+	insn2	bpf_insn_mov_imm_any[BPF_REG_8]
+	insn3	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -8]
+	insn4	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_2]
+	insn5	bpf_insn_op_imm[BPF_REG_2, BPF_ADD0, -8]
+	insn6	bpf_insn_mov_imm[BPF_REG_3, 8]
+	insn7	bpf_insn_mov_imm_flag[BPF_REG_4, bpf_ringbuf_wakeup_flags]
+	insn8	bpf_insn_call_helper_t[const[BPF_FUNC_ringbuf_output, int32]]
+}
+
+define MAX_BPF_REG	__MAX_BPF_REG
+
+bpf_ringbuf_wakeup_flags = 0, BPF_RB_NO_WAKEUP, BPF_RB_FORCE_WAKEUP
