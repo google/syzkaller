@@ -158,7 +158,7 @@ map_bpf_const_str {
 	out	fd_bpf_const_str	(out_overlay)
 }
 
-bpf_printf_str = "%d     ", "%p     "
+bpf_printf_str = "%-010d ", "%pK    ", "%+9llu ", "%pS    ", "%ps    ", "%pB    ", "%pI4   ", "%pi6   ", "%-5lx  "
 
 bpf_map_update_const_str_arg {
 	map	map_bpf_const_str
