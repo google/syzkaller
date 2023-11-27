@@ -28,6 +28,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		readTextData:          elfReadTextData,
 		readModuleCoverPoints: elfReadModuleCoverPoints,
 		readTextRanges:        elfReadTextRanges,
+		getModuleOffset:       elfGetModuleOffset,
 	})
 }
 
@@ -174,4 +175,45 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 		}
 	}
 	return pcs, nil
+}
+
+// Calculate the offset of the module .text section in the kernel memory.
+// /proc/modules only contains the base address, which corresponds to the
+// beginning of the first code section, but that section does not have to
+// be .text (e.g. on Android it may be .plt).
+// The offset is calculated by summing up the aligned sizes of sections
+// that:
+//   - precede .text;
+//   - are not .init/.exit sections;
+//   - have the SHF_ALLOC and SHF_EXECINSTR flags.
+func elfGetModuleOffset(path string) uint64 {
+	file, err := elf.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer file.Close()
+	ts := file.Section(".text")
+	if ts == nil {
+		return 0
+	}
+	off := uint64(0)
+	const textFlagsMask = elf.SHF_ALLOC | elf.SHF_EXECINSTR
+	for _, s := range file.Sections {
+		if (s.Flags&textFlagsMask == textFlagsMask) && !strings.HasPrefix(s.SectionHeader.Name, ".init") &&
+			!strings.HasPrefix(s.SectionHeader.Name, ".exit") {
+			off = alignUp(off, s.SectionHeader.Addralign)
+			if s == ts {
+				return off
+			}
+			off += s.SectionHeader.Size
+		}
+	}
+	return 0
+}
+
+func alignUp(addr, align uint64) uint64 {
+	if align == 0 {
+		return addr
+	}
+	return (addr + align - 1) & ^(align - 1)
 }
