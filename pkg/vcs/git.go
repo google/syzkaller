@@ -366,17 +366,6 @@ func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
 	return results, missing, nil
 }
 
-func (git *git) ListRecentCommits(baseCommit string) ([]string, error) {
-	// On upstream kernel this produces ~11MB of output.
-	// Somewhat inefficient to collect whole output in a slice
-	// and then convert to string, but should be bearable.
-	output, err := git.git("log", "--pretty=format:%s", "-n", "200000", baseCommit)
-	if err != nil {
-		return nil, err
-	}
-	return strings.Split(string(output), "\n"), nil
-}
-
 func (git *git) ListCommitHashes(baseCommit string) ([]string, error) {
 	output, err := git.git("log", "--pretty=format:%h", baseCommit)
 	if err != nil {
