@@ -701,9 +701,9 @@ type bpf_insn_null_check[REG] {
 }
 
 type bpf_insn_mov_printk_str_hex[DST] [
-# "%d     "
-	integer	bpf_insn_mov_imm64[DST, 0x25702020, 0x20202000]
 # "%p     "
+	integer	bpf_insn_mov_imm64[DST, 0x25702020, 0x20202000]
+# "%d     "
 	pointer	bpf_insn_mov_imm64[DST, 0x25642020, 0x20202000]
 ]
 
