@@ -1,0 +1,7 @@
+# requires: arch=amd64
+
+# This connects to an NVMe-oF/TCP server and sends an H2C PDU
+
+r0 = syz_socket_connect_nvme_tcp()
+sendto$inet_nvme_pdu(r0, &(0x7f00000001c0)=@data_h2c={{0x6, 0x0, 0x18, 0x0, 0x0}, 0x0, 0x0, 0x1, 0x0, "cfbf3586"}, 0x80, 0x0, 0x0, 0x0)
+close(r0)

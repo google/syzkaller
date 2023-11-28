@@ -230,6 +230,10 @@ func isSyzInitNetSocketSupported(c *prog.Syscall, target *prog.Target, sandbox s
 	return isSupportedSocket(c)
 }
 
+func isSyzSocketConnectNvmeTCPSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	return onlySandboxNone(sandbox)
+}
+
 func isSyzGenetlinkGetFamilyIDSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	fd, err := syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_RAW, syscall.NETLINK_GENERIC)
 	if fd == -1 {
@@ -322,6 +326,7 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_clone":                   alwaysSupported,
 	"syz_clone3":                  alwaysSupported,
 	"syz_pkey_set":                isSyzPkeySetSupported,
+	"syz_socket_connect_nvme_tcp": isSyzSocketConnectNvmeTCPSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
