@@ -3365,7 +3365,7 @@ static void initialize_tun(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || __NR_syz_socket_connect_nvme_tcp
 const int kInitNetNsFd = 201;
 #endif
 
@@ -6296,6 +6296,49 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 #endif
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_socket_connect_nvme_tcp
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sched.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+static long syz_socket_connect_nvme_tcp()
+{
+	struct sockaddr_in nvme_local_address;
+	int netns = open("/proc/self/ns/net", O_RDONLY);
+	if (netns == -1)
+		return netns;
+	if (setns(kInitNetNsFd, 0))
+		return -1;
+	int sock = syscall(__NR_socket, AF_INET, SOCK_STREAM, 0x0);
+	int err = errno;
+	if (setns(netns, 0))
+		fail("setns(netns) failed");
+	close(netns);
+	errno = err;
+	nvme_local_address.sin_family = AF_INET;
+	nvme_local_address.sin_port = htobe16(4420);
+	nvme_local_address.sin_addr.s_addr = htobe32(0x7f000001);
+	err = syscall(__NR_connect, sock, &nvme_local_address, sizeof(nvme_local_address));
+	if (err != 0) {
+		close(sock);
+		return -1;
+	}
+	return sock;
+}
+#else
+static long syz_socket_connect_nvme_tcp()
+{
+	return syscall(__NR_socket, -1, 0, 0);
+}
+#endif
+#endif
+
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 #include <errno.h>
 #include <fcntl.h>
@@ -9212,7 +9255,7 @@ static void sandbox_common()
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setsid();
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || __NR_syz_socket_connect_nvme_tcp
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
 		fail("open(/proc/self/ns/net) failed");
