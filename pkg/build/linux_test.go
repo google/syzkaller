@@ -8,14 +8,16 @@ package build
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 	"text/template"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestElfBinarySignature(t *testing.T) {
@@ -48,19 +50,26 @@ func enumerateFlags(t *testing.T, flags, allFlags []string) {
 	}
 	t.Run(strings.Join(flags, "-"), func(t *testing.T) {
 		t.Parallel()
-		sign1, sign2 := "", ""
-		var wg sync.WaitGroup
-		wg.Add(2)
-		go func() {
-			sign1 = sign(t, flags, false, false)
-			wg.Done()
-		}()
-		go func() {
-			sign2 = sign(t, flags, false, true)
-			wg.Done()
-		}()
-		sign3 := sign(t, flags, true, false)
-		wg.Wait()
+		sign1, sign2, sign3 := "", "", ""
+		g, _ := errgroup.WithContext(context.Background())
+		g.Go(func() error {
+			var err error
+			sign1, err = sign(t, flags, false, false)
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			sign2, err = sign(t, flags, false, true)
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			sign3, err = sign(t, flags, true, false)
+			return err
+		})
+		if err := g.Wait(); err != nil {
+			t.Error(err)
+		}
 		if sign1 != sign2 {
 			t.Errorf("signature has changed after a comment-only change")
 		}
@@ -70,28 +79,28 @@ func enumerateFlags(t *testing.T, flags, allFlags []string) {
 	})
 }
 
-func sign(t *testing.T, flags []string, changed, comment bool) string {
+func sign(t *testing.T, flags []string, changed, comment bool) (string, error) {
 	buf := new(bytes.Buffer)
 	if err := srcTemplate.Execute(buf, SrcParams{Changed: changed, Comment: comment}); err != nil {
-		t.Fatal(err)
+		return "", fmt.Errorf("template exec failed: %w", err)
 	}
 	src := buf.Bytes()
 	bin, err := osutil.TempFile("syz-build-test")
 	if err != nil {
-		t.Fatal(err)
+		return "", fmt.Errorf("temp file creation error: %w", err)
 	}
 	defer os.Remove(bin)
 	cmd := osutil.Command("gcc", append(flags, "-pthread", "-o", bin, "-x", "c", "-")...)
 	cmd.Stdin = buf
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("compiler failed: %v\n%s\n\n%s", err, src, out)
+		return "", fmt.Errorf("compiler failed: %w\n%s\n\n%s", err, src, out)
 	}
 	sign, err := elfBinarySignature(bin, &debugtracer.TestTracer{T: t})
 	if err != nil {
-		t.Fatal(err)
+		return "", fmt.Errorf("signature creation failed: %w", err)
 	}
-	return sign
+	return sign, nil
 }
 
 type SrcParams struct {
