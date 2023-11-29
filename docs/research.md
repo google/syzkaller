@@ -1,6 +1,9 @@
 # Research work based on syzkaller
 
+Dear researchers, feel free to contact us at syzkaller@googlegroups.com if you need any assistance.
+
 _newer first_
+* [SyzDirect: Directed Greybox Fuzzing for Linux Kernel](https://dl.acm.org/doi/abs/10.1145/3576915.3623146)
 * [KIT: Testing OS-Level Virtualization for Functional Interference Bugs](https://doi.org/10.1145/3575693.3575731)
 * [SyzDescribe: Principled, Automated, Static Generation of Syscall Descriptions for Kernel Drivers](https://github.com/seclab-ucr/SyzDescribe)
 * [GREBE: Unveiling Exploitation Potential for Linux Kernel Bugs](https://zplin.me/papers/GREBE.pdf)
