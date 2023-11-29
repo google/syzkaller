@@ -11,11 +11,12 @@ func (desc *Description) Walk(cb func(Node)) {
 	}
 }
 
-func Recursive(cb func(Node)) func(Node) {
+func Recursive(cb func(Node) bool) func(Node) {
 	var rec func(Node)
 	rec = func(n Node) {
-		cb(n)
-		n.walk(rec)
+		if cb(n) {
+			n.walk(rec)
+		}
 	}
 	return rec
 }
@@ -117,6 +118,9 @@ func (n *Type) walk(cb func(Node)) {
 	for _, t := range n.Args {
 		cb(t)
 	}
+	if n.Expression != nil {
+		cb(n.Expression)
+	}
 }
 
 func (n *Field) walk(cb func(Node)) {
@@ -128,4 +132,9 @@ func (n *Field) walk(cb func(Node)) {
 	for _, c := range n.Comments {
 		cb(c)
 	}
+}
+
+func (n *BinaryExpression) walk(cb func(Node)) {
+	cb(n.Left)
+	cb(n.Right)
 }

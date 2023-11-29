@@ -252,15 +252,35 @@ func (n *Int) GetName() string {
 	return n.Ident
 }
 
+type Operator int
+
+const (
+	OperatorCompareEq = iota + 1
+	OperatorCompareNeq
+	OperatorBinaryAnd
+)
+
+type BinaryExpression struct {
+	Pos      Pos
+	Operator Operator
+	Left     *Type
+	Right    *Type
+}
+
+func (n *BinaryExpression) Info() (Pos, string, string) {
+	return n.Pos, "binary-expression", ""
+}
+
 type Type struct {
 	Pos Pos
-	// Only one of Value, Ident, String is filled.
-	Value     uint64
-	ValueFmt  IntFmt
-	Ident     string
-	String    string
-	StringFmt StrFmt
-	HasString bool
+	// Only one of Value, Ident, String, Expression is filled.
+	Value      uint64
+	ValueFmt   IntFmt
+	Ident      string
+	String     string
+	StringFmt  StrFmt
+	HasString  bool
+	Expression *BinaryExpression
 	// Parts after COLON (for ranges and bitfields).
 	Colon []*Type
 	// Sub-types in [].

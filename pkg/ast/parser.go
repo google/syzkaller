@@ -433,7 +433,58 @@ func (p *parser) parseField(parseAttrs bool) *Field {
 	return field
 }
 
+type operatorInfo struct {
+	op   Operator
+	prio int
+}
+
+const maxOperatorPrio = 1
+
+// The highest priority is 0.
+var binaryOperators = map[token]operatorInfo{
+	tokCmpEq:  {op: OperatorCompareEq, prio: 0},
+	tokCmpNeq: {op: OperatorCompareNeq, prio: 0},
+	tokBinAnd: {op: OperatorBinaryAnd, prio: 1},
+}
+
+// Parse out a single Type object, which can either be a plain object or an expression.
+// For now, only expressions constructed via '(', ')', "==", "!=", '&' are supported.
 func (p *parser) parseType() *Type {
+	return p.parseBinaryExpr(0)
+}
+
+func (p *parser) parseBinaryExpr(expectPrio int) *Type {
+	if expectPrio > maxOperatorPrio {
+		return p.parseExprFactor()
+	}
+	lastPos := p.pos
+	curr := p.parseBinaryExpr(expectPrio + 1)
+	for {
+		info, ok := binaryOperators[p.tok]
+		if !ok || info.prio != expectPrio {
+			return curr
+		}
+		p.consume(p.tok)
+		curr = &Type{
+			Pos: lastPos,
+			Expression: &BinaryExpression{
+				Pos:      p.pos,
+				Operator: info.op,
+				Left:     curr,
+				Right:    p.parseBinaryExpr(expectPrio + 1),
+			},
+		}
+		lastPos = p.pos
+	}
+}
+
+func (p *parser) parseExprFactor() *Type {
+	if p.tok == tokLParen {
+		p.consume(tokLParen)
+		ret := p.parseBinaryExpr(0)
+		p.consume(tokRParen)
+		return ret
+	}
 	arg := &Type{
 		Pos: p.pos,
 	}
