@@ -4,6 +4,7 @@
 package ast
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -35,6 +36,9 @@ const (
 	tokEq
 	tokComma
 	tokColon
+	tokBinAnd
+	tokCmpEq
+	tokCmpNeq
 
 	tokEOF
 )
@@ -50,6 +54,7 @@ var punctuation = [256]token{
 	'=':  tokEq,
 	',':  tokComma,
 	':':  tokColon,
+	'&':  tokBinAnd,
 }
 
 var tok2str = [...]string{
@@ -66,6 +71,8 @@ var tok2str = [...]string{
 	tokInt:       "int",
 	tokNewLine:   "NEWLINE",
 	tokEOF:       "EOF",
+	tokCmpEq:     "==",
+	tokCmpNeq:    "!=",
 }
 
 func init() {
@@ -181,6 +188,10 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		lit = s.scanChar(pos)
 	case s.ch == '_' || s.ch >= 'a' && s.ch <= 'z' || s.ch >= 'A' && s.ch <= 'Z':
 		tok, lit = s.scanIdent(pos)
+	case s.tryConsume("=="):
+		tok = tokCmpEq
+	case s.tryConsume("!="):
+		tok = tokCmpNeq
 	default:
 		tok = punctuation[s.ch]
 		if tok == tokIllegal {
@@ -311,6 +322,16 @@ func (s *scanner) next() {
 	if s.ch == 0 {
 		s.Error(s.pos(), "illegal character \\x00")
 	}
+}
+
+func (s *scanner) tryConsume(str string) bool {
+	if !bytes.HasPrefix(s.data[s.off:], []byte(str)) {
+		return false
+	}
+	for i := 0; i < len(str); i++ {
+		s.next()
+	}
+	return true
 }
 
 func (s *scanner) skipWhitespace() {

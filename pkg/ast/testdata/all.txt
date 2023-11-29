@@ -8,3 +8,22 @@ incdir <some/path>
 
 strflags0 = "foo", strflags1
 strflags1 = "bar"
+
+expressions {
+	f0	int8	(if[value[X] & Y])
+	f1	int8	(if[X & Y == Z])
+	f2	int8	(if[X & Y & Z == value[X] & A])
+	f3	int8	(if[X & (A == B) & Z != C])
+}
+
+condFields {
+	mask	int8
+# Simple expressions work.
+	f0	int16	(if[val[mask] == SOME_CONST])
+# Conditions and other attributes work together.
+	f1	int16	(out, if[val[mask] == SOME_CONST])
+# Test some more complex expressions.
+	f2	int16	(out, if[val[mask] & SOME_CONST == OTHER_CONST])
+	f3	int16	(out, if[val[mask] & SOME_CONST & OTHER_CONST == val[mask] & CONST_X])
+	f4	int16	(out, if[val[mask] & SOME_CONST])
+}

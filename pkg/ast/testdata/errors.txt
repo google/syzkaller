@@ -11,7 +11,7 @@ meta foo, bar	### unexpected ',', expecting '\n'
 
 int_flags0 = 0, 0x1, 0xab
 int_flags1 = 123ab0x			### bad integer "123ab0x"
-int_flags1 == 0, 1			### unexpected '=', expecting int, identifier, string
+int_flags1 == 0, 1			### unexpected ==, expecting '(', '{', '[', '='
 int_flags = 0, "foo"			### unexpected string, expecting int, identifier
 int_flags2 = '				### char literal is not terminated
 int_flags3 = 'a				### char literal is not terminated
@@ -66,6 +66,14 @@ s2 {
 s3 {
 	f1	int8
 } [attribute[1, "foo"], another[and[another]]]
+
+sCondFieldsError1 {
+	f0	int16 (out, if[val[mask] SOME_CONST == val[mask]]) ### unexpected identifier, expecting ']'
+} ### unexpected '}', expecting comment, define, include, resource, identifier
+
+sCondFieldsError2 {
+	f5	int16 (out, if[val[mask] & == val[mask]]) ### unexpected ==, expecting int, identifier, string
+} ### unexpected '}', expecting comment, define, include, resource, identifier
 
 type mybool8 int8
 type net_port proc[1, 2, int16be]
