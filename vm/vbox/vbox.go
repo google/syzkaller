@@ -30,6 +30,10 @@ type Config struct {
 	BaseVM  string `json:"base_vm"`  // name of the base vm
 	Serial  string `json:"serial"`   // name of the base serial location (linux: /tmp or windows: \\.\pipe\)
 	Count   int    `json:"count"`    // number of VMs to run in parallel
+	PrefixCmd string `json:"prefixcmd"` // prefix command with (e.g. exec)
+	GuestDir string `json:"guestdir"`  // /tmp or something else
+	Mode    string `json:"mode"`     // --type=headless or --type=gui
+	Snapshot string `json:"snapshot"`     // --snapshot="syzstart"
 	Options string `json:"options"`  // any additional options (like --options=Link for faster cloning)
 }
 
@@ -59,6 +63,12 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.BaseVM == "" {
 		return nil, fmt.Errorf("config param base_vm is empty")
 	}
+	if cfg.Mode == "" {
+		cfg.Mode = "--type=headless"
+	}
+	if cfg.GuestDir == "" {
+		cfg.GuestDir = "/"
+	}
 	if cfg.Serial == "" {
 		return nil, fmt.Errorf("config param Serial is empty")
 	}
@@ -85,7 +95,7 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	createTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-	vmname := "syzk-" + createTime
+	vmname := pool.cfg.BaseVM+"-syzk-" + createTime
 	sshkey := pool.env.SSHKey
 	sshuser := pool.env.SSHUser
 	inst := &instance{
@@ -108,18 +118,24 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 }
 
 func (inst *instance) clone() error {
+	/// VBoxManage snapshot win11-fuzz take syzstart
+	//if inst.debug {
+	//	log.Logf(0, "snapshot %v to %v", inst.baseVM, inst.cfg.Snapshot)
+	//}
+	//if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "snapshot", inst.baseVM, "take",inst.cfg.Snapshot); err != nil {
+	//	return err
+	//}
 	if inst.debug {
 		log.Logf(0, "cloning %v to %v", inst.baseVM, inst.vmname)
 	}
-	if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "clonevm", inst.baseVM, "--name="+inst.vmname, "--register","--mode=all",inst.cfg.Options); err != nil {
+	if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "clonevm", inst.baseVM, "--name="+inst.vmname, "--register","--mode=machine",inst.cfg.Snapshot, inst.cfg.Options); err != nil {
 		return err
 	}
-	serialPrefix := filepath.Dir(inst.cfg.Serial)
-	serial := filepath.Join(serialPrefix, inst.serialname)
+	serial := filepath.Join(inst.cfg.Serial, inst.serialname)
 	if inst.debug {
-		log.Logf(0, "setting serial %v to %v", inst.vmname, inst.serialname)
+		log.Logf(0, "setting serial %v to %v", inst.vmname, serial)
 	}
-	if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "modifyvm", inst.vmname, "--uartmode1", "server", serial ); err != nil {
+	if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "modifyvm", inst.vmname, "--uartmode1", "file", serial ); err != nil {
 		return err
 	}
 	return nil
@@ -129,13 +145,18 @@ func (inst *instance) boot() error {
 	if inst.debug {
 		log.Logf(0, "starting %v", inst.vmname)
 	}
-	if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "startvm", inst.vmname, "--type=headless"); err != nil {
+	if _, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "startvm", inst.vmname, inst.cfg.Mode); err != nil {
 		return err
 	}
 	if inst.debug {
 		log.Logf(0, "getting IP of %v", inst.vmname)
 	}
-	ip, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "guestproperty", "wait", inst.vmname, "VirtualBox/GuestInfo/Net/0/V4/IP","--timeout 300000") // in msec = 1000 * 5 * 60
+	ip, err := osutil.RunCmd(5*time.Minute, "", "VBoxManage", "guestproperty", "wait", inst.vmname, "/VirtualBox/GuestInfo/Net/0/V4/IP","--timeout", "300000") // in msec = 1000 * 5 * 60
+	if err != nil {
+		return err
+	}
+	time.Sleep(5 * time.Second) // give time to settle
+	ip, err = osutil.RunCmd(1*time.Minute, "", "VBoxManage", "guestproperty", "get", inst.vmname, "/VirtualBox/GuestInfo/Net/0/V4/IP")
 	if err != nil {
 		return err
 	}
@@ -143,7 +164,7 @@ func (inst *instance) boot() error {
 		log.Logf(0, "Error waiting for VM %v to output IP", inst.vmname)
 		return fmt.Errorf("Error waiting for VM to output IP")
 	}
-	re := regexp.MustCompile(`((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}`)
+	re := regexp.MustCompile(`(((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4})`)
 	match := re.FindStringSubmatch(string(ip))
 	inst.ipAddr = match[1]
 	if inst.debug {
@@ -177,7 +198,7 @@ func (inst *instance) Close() {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
-	vmDst := filepath.Join("/", base)
+	vmDst := filepath.Join(inst.cfg.GuestDir, base)
 
 	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22),
 		hostSrc, fmt.Sprintf("%v@%v:%v", inst.sshuser, inst.ipAddr, vmDst))
@@ -195,16 +216,23 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	serialPrefix := filepath.Dir(inst.cfg.Serial)
-	serial := filepath.Join(serialPrefix, inst.serialname)
+	serial := filepath.Join(inst.cfg.Serial, inst.serialname)
+	if inst.debug {
+		log.Logf(0, "connecting to serial at: %v", serial)
+	}
 	dmesg, err := net.Dial("unix", serial)
 	if err != nil {
-		return nil, nil, err
+		log.Logf(0, "error connecting to serial %v: %v", serial, err)
+		// return nil, nil, err
+		dmesg = nil
 	}
 
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
-		dmesg.Close()
+		log.Logf(0, "osutil.LongPipe() error: %v", err)
+		if dmesg != nil {
+			dmesg.Close()
+		}
 		return nil, nil, err
 	}
 
@@ -214,15 +242,19 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		proxy := fmt.Sprintf("%v:127.0.0.1:%v", inst.forwardPort, inst.forwardPort)
 		args = append(args, "-R", proxy)
 	}
-	args = append(args, inst.sshuser+"@"+inst.ipAddr, "cd / && exec "+command)
+	args = append(args, inst.sshuser+"@"+inst.ipAddr, "cd "+inst.cfg.GuestDir+" && " +inst.cfg.PrefixCmd+" "+command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
+		log.Logf(0, "running command (human): ssh %s", strings.Join(args, " "))
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
-		dmesg.Close()
+		log.Logf(0, "cmd.Start() error: %v", err)
+		if dmesg != nil {
+			dmesg.Close()
+		}
 		rpipe.Close()
 		wpipe.Close()
 		return nil, nil, err
@@ -234,7 +266,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("dmesg", dmesg)
+	if dmesg != nil {
+		merger.Add("dmesg", dmesg)
+	}
 	merger.Add("ssh", rpipe)
 
 	return vmimpl.Multiplex(cmd, merger, dmesg, timeout, stop, inst.closed, inst.debug)
