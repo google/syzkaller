@@ -103,6 +103,9 @@ f130 = 100, 110, f110		### flags f130 used twice or circular dependency on f130
 
 loop_flags(a flags[f110])
 
+f200 = f300, 200, 201		### flags identifier not at the end in f200 definition
+f300 = 300, 301
+
 f210 = "1", "2", "3", f220	### flags f210 used twice or circular dependency on f210
 f220 = "10", "11", f230		### flags f220 used twice or circular dependency on f220
 f230 = "100", "110", f210	### flags f230 used twice or circular dependency on f230

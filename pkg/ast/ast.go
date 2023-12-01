@@ -30,6 +30,7 @@ type Node interface {
 type Flags[T FlagValue] interface {
 	SetValues(values []T)
 	GetValues() []T
+	GetPos() Pos
 }
 
 type FlagValue interface {
@@ -152,6 +153,10 @@ func (n *IntFlags) GetValues() []*Int {
 	return n.Values
 }
 
+func (n *IntFlags) GetPos() Pos {
+	return n.Pos
+}
+
 type StrFlags struct {
 	Pos    Pos
 	Name   *Ident
@@ -168,6 +173,10 @@ func (n *StrFlags) SetValues(values []*String) {
 
 func (n *StrFlags) GetValues() []*String {
 	return n.Values
+}
+
+func (n *StrFlags) GetPos() Pos {
+	return n.Pos
 }
 
 type TypeDef struct {
