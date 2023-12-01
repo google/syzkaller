@@ -20,6 +20,7 @@ func (comp *compiler) typecheck() {
 	comp.checkComments()
 	comp.checkDirectives()
 	comp.checkNames()
+	comp.checkFlags()
 	comp.checkFields()
 	comp.checkTypedefs()
 	comp.checkTypes()
@@ -152,6 +153,27 @@ func (comp *compiler) checkNames() {
 					name, prev.Pos)
 			}
 			calls[name] = n
+		}
+	}
+}
+
+func (comp *compiler) checkFlags() {
+	checkFlagsGeneric[*ast.IntFlags, *ast.Int](comp, comp.intFlags)
+	checkFlagsGeneric[*ast.StrFlags, *ast.String](comp, comp.strFlags)
+}
+
+func checkFlagsGeneric[F ast.Flags[V], V ast.FlagValue](comp *compiler, allFlags map[string]F) {
+	for name, flags := range allFlags {
+		inConstIdent := true
+		for _, val := range flags.GetValues() {
+			if _, ok := allFlags[val.GetName()]; ok {
+				inConstIdent = false
+			} else {
+				if !inConstIdent {
+					comp.error(flags.GetPos(), "flags identifier not at the end in %v definition", name)
+					break
+				}
+			}
 		}
 	}
 }
