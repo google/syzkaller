@@ -97,6 +97,12 @@ f3000 = 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 
 
 nested_flags(a flags[f1000], b flags[f1100])
 
+f110 = 1, 2, 3, 4, f120		### flags f110 used twice or circular dependency on f110
+f120 = 10, 11, 12, f130		### flags f120 used twice or circular dependency on f120
+f130 = 100, 110, f110		### flags f130 used twice or circular dependency on f130
+
+loop_flags(a flags[f110])
+
 resource r2[r0]: 2
 resource r3[int32:1]		### unexpected ':', only struct fields can be bitfields
 resource r4[int32[opt]]		### resource base can't be marked as opt

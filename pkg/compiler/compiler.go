@@ -361,7 +361,7 @@ func arrayContains(a []string, v string) bool {
 
 func (comp *compiler) flattenFlags() {
 	for name, flags := range comp.intFlags {
-		if err := comp.recurFlattenFlags(name, flags); err != nil {
+		if err := comp.recurFlattenFlags(name, flags, map[string]bool{}); err != nil {
 			comp.error(flags.Pos, "%v", err)
 		}
 	}
@@ -379,11 +379,18 @@ func (comp *compiler) flattenFlags() {
 	}
 }
 
-func (comp *compiler) recurFlattenFlags(name string, flags *ast.IntFlags) error {
+func (comp *compiler) recurFlattenFlags(name string, flags *ast.IntFlags, visitedFlags map[string]bool) error {
+	if _, visited := visitedFlags[name]; visited {
+		return fmt.Errorf("flags %v used twice or circular dependency on %v", name, name)
+	}
+	visitedFlags[name] = true
+
 	var values []*ast.Int
 	for _, flag := range flags.Values {
 		if f, isFlags := comp.intFlags[flag.Ident]; isFlags {
-			comp.recurFlattenFlags(flag.Ident, f)
+			if err := comp.recurFlattenFlags(flag.Ident, f, visitedFlags); err != nil {
+				return err
+			}
 			values = append(values, comp.intFlags[flag.Ident].Values...)
 		} else {
 			values = append(values, flag)
