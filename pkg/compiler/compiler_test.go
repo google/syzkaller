@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/serializer"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -302,6 +303,55 @@ func TestCollectUnused(t *testing.T) {
 
 		if !reflect.DeepEqual(names, input.names) {
 			t.Errorf("Test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
+		}
+	}
+}
+
+func TestFlattenFlags(t *testing.T) {
+	t.Parallel()
+	const input = `
+flags1 = 1, 2, 3, flags2
+flags2 = 4, 5, 6
+
+foo$1(a int32[flags1], b int32[flags2])
+
+str1 = "three", "four"
+str2 = "one", "two", str1
+
+foo$2(a ptr[in, string[str1]], b ptr[in, string[str2]])
+	`
+	expectedInts := map[string][]uint64{
+		"flags1": {1, 2, 3, 4, 5, 6},
+		"flags2": {4, 5, 6},
+	}
+	expectedStrings := map[string][]string{
+		"str1": {"three\x00", "four\x00"},
+		"str2": {"one\x00", "two\x00", "three\x00", "four\x00"},
+	}
+	eh := func(pos ast.Pos, msg string) {
+		t.Errorf("%v: %v", pos, msg)
+	}
+	desc := ast.Parse([]byte(input), "input", eh)
+	if desc == nil {
+		t.Fatal("failed to parse")
+	}
+	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List[targets.TestOS][targets.TestArch64], eh)
+	if p == nil {
+		t.Fatal("failed to compile")
+	}
+
+	for _, n := range p.Types {
+		switch typ := n.(type) {
+		case *prog.FlagsType:
+			expected := expectedInts[typ.TypeName]
+			if !reflect.DeepEqual(typ.Vals, expected) {
+				t.Fatalf("unexpected values %v for flags %v, expected %v", typ.Vals, typ.TypeName, expected)
+			}
+		case *prog.BufferType:
+			expected := expectedStrings[typ.SubKind]
+			if !reflect.DeepEqual(typ.Values, expected) {
+				t.Fatalf("unexpected values %v for flags %v, expected %v", typ.Values, typ.SubKind, expected)
+			}
 		}
 	}
 }
