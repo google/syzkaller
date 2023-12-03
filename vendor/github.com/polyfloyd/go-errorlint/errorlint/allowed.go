@@ -3,6 +3,7 @@ package errorlint
 import (
 	"fmt"
 	"go/ast"
+	"go/types"
 	"strings"
 )
 
@@ -110,7 +111,7 @@ func isAllowedErrorComparison(pass *TypesInfoExt, binExpr *ast.BinaryExpr) bool 
 		case *ast.Ident:
 			// Identifier, most likely to be the `err` variable or whatever
 			// produces it.
-			callExprs = assigningCallExprs(pass, t)
+			callExprs = assigningCallExprs(pass, t, map[types.Object]bool{})
 		case *ast.CallExpr:
 			callExprs = append(callExprs, t)
 		}
@@ -149,15 +150,21 @@ func isAllowedErrorComparison(pass *TypesInfoExt, binExpr *ast.BinaryExpr) bool 
 
 // assigningCallExprs finds all *ast.CallExpr nodes that are part of an
 // *ast.AssignStmt that assign to the subject identifier.
-func assigningCallExprs(pass *TypesInfoExt, subject *ast.Ident) []*ast.CallExpr {
+func assigningCallExprs(pass *TypesInfoExt, subject *ast.Ident, visitedObjects map[types.Object]bool) []*ast.CallExpr {
 	if subject.Obj == nil {
 		return nil
 	}
 
-	// Find other identifiers that reference this same object. Make sure to
-	// exclude the subject identifier as it will cause an infinite recursion
-	// and is being used in a read operation anyway.
+	// Find other identifiers that reference this same object.
 	sobj := pass.TypesInfo.ObjectOf(subject)
+
+	if visitedObjects[sobj] {
+		return nil
+	}
+	visitedObjects[sobj] = true
+
+	// Make sure to exclude the subject identifier as it will cause an infinite recursion and is
+	// being used in a read operation anyway.
 	identifiers := []*ast.Ident{}
 	for _, ident := range pass.IdentifiersForObject[sobj] {
 		if subject.Pos() != ident.Pos() {
@@ -196,7 +203,7 @@ func assigningCallExprs(pass *TypesInfoExt, subject *ast.Ident) []*ast.CallExpr 
 					continue
 				}
 				// The subject was the result of assigning from another identifier.
-				callExprs = append(callExprs, assigningCallExprs(pass, assignT)...)
+				callExprs = append(callExprs, assigningCallExprs(pass, assignT, visitedObjects)...)
 			default:
 				// TODO: inconclusive?
 			}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"regexp"
+	"sync"
 
 	"github.com/butuzov/ireturn/analyzer/internal/types"
 )
@@ -13,16 +14,13 @@ type defaultConfig struct {
 	List []string
 
 	// private fields (for search optimization look ups)
-	init  bool
+	once  sync.Once
 	quick uint8
 	list  []*regexp.Regexp
 }
 
 func (config *defaultConfig) Has(i types.IFace) bool {
-	if !config.init {
-		config.compileList()
-		config.init = true
-	}
+	config.once.Do(config.compileList)
 
 	if config.quick&uint8(i.Type) > 0 {
 		return true

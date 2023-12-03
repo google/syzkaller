@@ -20,6 +20,7 @@ const CustomType = "custom"
 
 func (c Custom) MatchSpecificity(spec *parse.GciImports) specificity.MatchSpecificity {
 	for _, prefix := range strings.Split(c.Prefix, CustomSeparator) {
+		prefix = strings.TrimSpace(prefix)
 		if strings.HasPrefix(spec.Path, prefix) {
 			return specificity.Match{Length: len(prefix)}
 		}

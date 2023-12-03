@@ -200,10 +200,10 @@ func (pf *parsedFile) getAllComments(exclude []*regexp.Regexp) []comment {
 	return comments
 }
 
-// getText extracts text from comment. If comment is a special block
+// getText extracts text from comment. If the comment is a special block
 // (e.g., CGO code), a block of empty lines is returned. If comment contains
 // special lines (e.g., tags or indented code examples), they are replaced
-// with `specialReplacer` to skip checks for it.
+// with `specialReplacer` to skip checks for them.
 // The result can be multiline.
 func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 	if len(comment.List) == 1 &&
@@ -241,7 +241,7 @@ func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 	return s[:len(s)-1] // trim last "\n"
 }
 
-// readFile reads file and returns it's lines as strings.
+// readFile reads file and returns its lines as strings.
 func readFile(file *ast.File, fset *token.FileSet) ([]string, error) {
 	fname := fset.File(file.Package)
 	f, err := os.ReadFile(fname.Name())

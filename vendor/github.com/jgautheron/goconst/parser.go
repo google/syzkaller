@@ -99,11 +99,11 @@ func (p *Parser) ProcessResults() {
 		}
 
 		// If the value is a number
-		if i, err := strconv.Atoi(str); err == nil {
-			if p.numberMin != 0 && i < p.numberMin {
+		if i, err := strconv.ParseInt(str, 0, 0); err == nil {
+			if p.numberMin != 0 && i < int64(p.numberMin) {
 				delete(p.strs, str)
 			}
-			if p.numberMax != 0 && i > p.numberMax {
+			if p.numberMax != 0 && i > int64(p.numberMax) {
 				delete(p.strs, str)
 			}
 		}

@@ -101,7 +101,7 @@ func Fix(path string, file *ast.File, fset *token.FileSet, settings Settings) ([
 	return fixed, nil
 }
 
-// Replace rewrites original file with it's fixed version.
+// Replace rewrites original file with its fixed version.
 func Replace(path string, file *ast.File, fset *token.FileSet, settings Settings) error {
 	info, err := os.Stat(path)
 	if err != nil {
