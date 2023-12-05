@@ -181,7 +181,29 @@ These container, or the `Focus` spec, must not be part of the final source code,
 
 ***This rule is disabled by default***. Use the `--forbid-focus-container=true` command line flag to enable it.  
 
+### Comparing values from different types [BUG]
 
+The `Equal` and the `BeIdentical` matchers also check the type, not only the value.
+    
+The following code will fail in runtime:    
+```go
+x := 5 // x is int
+Expect(x).Should(Eqaul(uint(5)) // x and uint(5) are with different
+```
+When using negative checks, it's even worse, because we get a false positive:
+```
+x := 5
+Expect(x).ShouldNot(Equal(uint(5))
+```
+
+The linter suggests two options to solve this warning: either compare with the same type, e.g. 
+using casting, or use the `BeEquivalentTo` matcher.
+
+The linter can't guess what is the best solution in each case, and so it won't auto-fix this warning.
+
+To suppress this warning entirely, use the `--suppress-type-compare-assertion=true` command line parameter. 
+
+To suppress a specific file or line, use the `// ginkgo-linter:ignore-type-compare-warning` comment (see [below](#suppress-warning-from-the-code))
 
 ### Wrong Length Assertion [STYLE]
 The linter finds assertion of the golang built-in `len` function, with all kind of matchers, while there are already gomega matchers for these usecases; We want to assert the item, rather than its length.
@@ -317,6 +339,8 @@ Expect(c1 == x1).Should(BeTrue()) // ==> Expect(x1).Should(Equal(c1))
 * Use the `--suppress-err-assertion=true` flag to suppress the wrong error assertion warning
 * Use the `--suppress-compare-assertion=true` flag to suppress the wrong comparison assertion warning
 * Use the `--suppress-async-assertion=true` flag to suppress the function call in async assertion warning
+* Use the `--forbid-focus-container=true` flag to activate the focused container assertion (deactivated by default)
+* Use the `--suppress-type-compare-assertion=true` to suppress the type compare assertion warning
 * Use the `--allow-havelen-0=true` flag to avoid warnings about `HaveLen(0)`; Note: this parameter is only supported from
   command line, and not from a comment.
 
@@ -344,6 +368,10 @@ To suppress the wrong async assertion warning, add a comment with (only)
 To supress the focus container warning, add a comment with (only)
 
 `ginkgo-linter:ignore-focus-container-warning`
+
+To suppress the different type comparison, add a comment with (only)
+
+`ginkgo-linter:ignore-type-compare-warning`
 
 Notice that this comment will not work for an anonymous variable container like
 ```go

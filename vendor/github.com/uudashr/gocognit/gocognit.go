@@ -26,6 +26,11 @@ func (s Stat) String() string {
 func ComplexityStats(f *ast.File, fset *token.FileSet, stats []Stat) []Stat {
 	for _, decl := range f.Decls {
 		if fn, ok := decl.(*ast.FuncDecl); ok {
+			d := parseDirective(fn.Doc)
+			if d.Ignore {
+				continue
+			}
+
 			stats = append(stats, Stat{
 				PkgName:    f.Name.Name,
 				FuncName:   funcName(fn),
@@ -35,6 +40,24 @@ func ComplexityStats(f *ast.File, fset *token.FileSet, stats []Stat) []Stat {
 		}
 	}
 	return stats
+}
+
+type directive struct {
+	Ignore bool
+}
+
+func parseDirective(doc *ast.CommentGroup) directive {
+	if doc == nil {
+		return directive{}
+	}
+
+	for _, c := range doc.List {
+		if c.Text == "//gocognit:ignore" {
+			return directive{Ignore: true}
+		}
+	}
+
+	return directive{}
 }
 
 // funcName returns the name representation of a function or method:
@@ -356,13 +379,19 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.FuncDecl)(nil),
 	}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
-		fnDecl := n.(*ast.FuncDecl)
+		funcDecl := n.(*ast.FuncDecl)
 
-		fnName := funcName(fnDecl)
-		fnComplexity := Complexity(fnDecl)
+		d := parseDirective(funcDecl.Doc)
+		if d.Ignore {
+			return
+		}
+
+		fnName := funcName(funcDecl)
+
+		fnComplexity := Complexity(funcDecl)
 
 		if fnComplexity > over {
-			pass.Reportf(fnDecl.Pos(), "cognitive complexity %d of func %s is high (> %d)", fnComplexity, fnName, over)
+			pass.Reportf(funcDecl.Pos(), "cognitive complexity %d of func %s is high (> %d)", fnComplexity, fnName, over)
 		}
 	})
 

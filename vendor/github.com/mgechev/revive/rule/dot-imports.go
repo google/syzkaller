@@ -39,9 +39,8 @@ type lintImports struct {
 }
 
 func (w lintImports) Visit(_ ast.Node) ast.Visitor {
-	for i, is := range w.fileAst.Imports {
-		_ = i
-		if is.Name != nil && is.Name.Name == "." && !w.file.IsTest() {
+	for _, is := range w.fileAst.Imports {
+		if is.Name != nil && is.Name.Name == "." {
 			w.onFailure(lint.Failure{
 				Confidence: 1,
 				Failure:    "should not use dot imports",

@@ -23,6 +23,7 @@ type validator interface {
 
 type analyzer struct {
 	once    sync.Once
+	mu      sync.RWMutex
 	handler validator
 	err     error
 
@@ -83,16 +84,25 @@ func (a *analyzer) run(pass *analysis.Pass) (interface{}, error) {
 			}
 			seen[key] = true
 
-			a.found = append(a.found, issue.ExportDiagnostic())
+			a.addDiagnostic(issue.ExportDiagnostic())
 		}
 	})
 
 	// 02. Printing reports.
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	for i := range a.found {
 		pass.Report(a.found[i])
 	}
 
 	return nil, nil
+}
+
+func (a *analyzer) addDiagnostic(d analysis.Diagnostic) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.found = append(a.found, d)
 }
 
 func (a *analyzer) readConfiguration(fs *flag.FlagSet) {
