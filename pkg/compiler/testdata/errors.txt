@@ -470,3 +470,40 @@ union$directions [
 
 
 compressed$test(a int32) compressed_image	### compressed_image can't be syscall return
+
+define FLAG1 = 1
+define FLAG2 = 2
+
+some_nested_flags {
+	f1	int32
+}
+
+conditional_fields {
+	f1	int32
+	f2      some_nested_flags (if[value[f1] & FLAG1])
+	f3      some_nested_flags (if[value[f1] & FLAG1], if[value[f1] & FLAG1]) ### duplicate arg/field f3 attribute if
+	f4      some_nested_flags (if[value & FLAG1]) ### value reference must have only one argument
+	f5      some_nested_flags (if[value[f1] & FLAG1, FLAG2]) ### if attribute is expected to have only one argument
+	f6      some_nested_flags (if[value[f1, FLAG2] & FLAG1]) ### value reference must have only one argument
+	f7      some_nested_flags (if[5])
+	f8      some_nested_flags
+	f9      some_nested_flags (if[value[f8:f1] & FLAG1])
+	f10     some_nested_flags (if[value[f8:f1, A] & FLAG1]) ### value reference must have only one argument
+	f11     some_nested_flags (if[value[f8:f1[A]] & FLAG1]) ### value aguments must not have any further arguments
+	f12     some_nested_flags (if[f1 == "A"]) ### the token must be either an integer or an identifier
+	f13     some_nested_flags (if["ABCD"]) ### if argument must be an expression
+	f14     some_nested_flags (if[X[Y]]) ### consts in expressions must not have any arguments
+	f15	conditional_fields_union1
+	f16	conditional_fields_union2
+}
+
+conditional_fields_union1 [
+	u1	int32 (if [value[parent:f1] & FLAG1])
+	u2	int32 (if [value[parent:f1] & FLAG2]) ### unions must not have if conditions on the last field
+]
+
+conditional_fields_union2 [
+	u1	int32 (if [value[parent:f1] & FLAG1])
+	u2	int32 ### either no fields have conditions or all except the last
+	u3	int32
+]

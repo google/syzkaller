@@ -447,3 +447,64 @@ foo$non_minimizable_via_union(a ptr[in, union_non_minimizable])	(no_generate)	##
 resource for_fmt[int32]
 foo$fmt_copyin(a ptr[in, fmt[dec, for_fmt]])
 foo$fmt_copyout(a ptr[out, fmt[dec, for_fmt]])	### resource for_fmt cannot be created in fmt
+
+
+define FLAG1 1
+define FLAG2 2
+
+some_nested_nested_flags {
+	f4	int32
+}
+
+some_nested_flags {
+	f1	int32
+	f2	array[some_nested_nested_flags]
+	f4	for_fmt
+	f5	int32 (if[value[f1] == 0])
+	f6	some_nested_nested_flags
+} [packed]
+
+conditional_fields {
+	f1	int32
+	f2      some_nested_flags (if[value[f1] & FLAG1])
+	f3	some_nested_flags
+	f4	int32	(if[value[f3:f1] != 0])
+	f5	int32	(if[value[f3:f2:f4] != 0]) ### value path f2 does not refer to a struct
+	f6	int32	(if[value[f3:f4] != 0]) ### f4 does not refer to an integer
+	f7	int32	(if[value[f3:some_field] != 0]) ### value target some_field does not exist in some_nested_flags
+	f8	int32	(if[value[f3:f5] != 0]) ### f5 has conditions, so value path cannot reference it
+	f9	int32	(if[value[parent:a] != 0]) ### value target a does not exist in conditional_fields
+	f10	int32	(if[value[f3:f6] != 0]) ### f6 does not refer to an integer
+	f11	len[f2, int32] ### f2 has conditions, so len path cannot reference it
+	f12	union_cond_fields
+	f13	int32:8 (if[1]) ### bitfields may not have conditions
+} [packed]
+
+union_cond_fields [
+	u1	int32 (if[value[parent:parent:f1] != 0])
+	u2	int32 (if[value[parent:parent:unknown] != 0]) ### value target unknown does not exist in conditional_fields
+	u3	int64
+]
+
+foo$conditional(a ptr[in, conditional_fields])
+
+conditional_non_packed {
+	f0	int64
+	f1	conditional_non_packed_nested ### variable size field f1 in the middle of non-packed struct conditional_non_packed
+	f2	int64
+}
+
+conditional_non_packed_nested {
+	f3	int64 (if[value[parent:parent:f0]])
+	f4	int32
+} [packed]
+
+foo$conditional2(a ptr[in, conditional_non_packed])
+
+conditional_non_packed2 {
+	f0	int64
+	f1	int8	(if[value[f0] == 0]) ### variable size field f1 in the middle of non-packed struct conditional_non_packed2
+	f2	int64
+}
+
+foo$conditional3(a ptr[in, conditional_non_packed2])

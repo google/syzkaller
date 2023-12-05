@@ -349,3 +349,23 @@ compressed$1(a compressed_image) (no_generate, no_minimize)
 compressed$2(a ptr[in, compressed_image]) (no_generate, no_minimize)
 compressed$3(a ptr[in, struct_compressed]) (no_generate, no_minimize)
 compressed$4(a ptr[in, union_compressed]) (no_generate, no_minimize)
+
+struct$conditional {
+	f0	int32
+	f1	int64	(if[value[f0] == 1])
+	f2	struct$conditional2
+	f3	union$conditional3
+} [packed]
+
+struct$conditional2 {
+	f3	int32	(if[value[parent:parent:f0] == 2])
+	f4	int32	(if[value[struct$conditional:f0] == 2])
+} [packed]
+
+union$conditional3 [
+	u1	int32	(if[value[parent:parent:f0] == 3])
+	u2	int32	(if[value[struct$conditional:f0] == 3])
+	u3	const[0xabcd, int64]
+]
+
+conditional(a ptr[in, struct$conditional])

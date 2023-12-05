@@ -966,10 +966,15 @@ func init() {
 			}
 		case *prog.StructType:
 			typ1.Fields = fields
+			for i, field := range fields {
+				if field.Condition != nil {
+					fields[i] = comp.wrapConditionalField(t.Ident, field)
+				}
+			}
 			if overlayField >= 0 {
 				typ1.OverlayField = overlayField
 			}
-			attrs := comp.parseAttrs(structAttrs, s, s.Attrs)
+			attrs := comp.parseIntAttrs(structAttrs, s, s.Attrs)
 			if align := attrs[attrAlign]; align != 0 {
 				typ1.TypeAlign = align
 			} else if attrs[attrPacked] != 0 {

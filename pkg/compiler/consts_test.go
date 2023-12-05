@@ -38,7 +38,7 @@ func TestExtractConsts(t *testing.T) {
 		"CONST11", "CONST12", "CONST13", "CONST14", "CONST15",
 		"CONST16", "CONST17", "CONST18", "CONST19", "CONST20",
 		"CONST21", "CONST22", "CONST23", "CONST24", "CONST25",
-		"CONST26",
+		"CONST26", "CONST27",
 	}
 	sort.Strings(wantConsts)
 	var constNames []string
