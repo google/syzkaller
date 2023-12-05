@@ -72,6 +72,7 @@ type Field struct {
 	Type
 	HasDirection bool
 	Direction    Dir
+	Condition    Expression
 }
 
 func (f *Field) Dir(def Dir) Dir {
@@ -79,6 +80,62 @@ func (f *Field) Dir(def Dir) Dir {
 		return f.Direction
 	}
 	return def
+}
+
+type Expression interface {
+	fmt.GoStringer
+	ForEachValue(func(*Value))
+	Clone() Expression
+}
+
+type BinaryOperator int
+
+const (
+	OperatorCompareEq BinaryOperator = iota
+	OperatorCompareNeq
+	OperatorBinaryAnd
+)
+
+type BinaryExpression struct {
+	Operator BinaryOperator
+	Left     Expression
+	Right    Expression
+}
+
+func (bo BinaryExpression) GoString() string {
+	return fmt.Sprintf("&prog.BinaryExpression{%#v,%#v,%#v}", bo.Operator, bo.Left, bo.Right)
+}
+
+func (bo BinaryExpression) ForEachValue(cb func(*Value)) {
+	bo.Left.ForEachValue(cb)
+	bo.Right.ForEachValue(cb)
+}
+
+func (bo *BinaryExpression) Clone() Expression {
+	return &BinaryExpression{
+		Operator: bo.Operator,
+		Left:     bo.Left.Clone(),
+		Right:    bo.Right.Clone(),
+	}
+}
+
+type Value struct {
+	// If Path is empty, Value is to be used.
+	Value uint64
+	// Path to the field.
+	Path []string
+}
+
+func (v Value) GoString() string {
+	return fmt.Sprintf("&prog.Value{%#v,%#v}", v.Value, v.Path)
+}
+
+func (v *Value) ForEachValue(cb func(*Value)) {
+	cb(v)
+}
+
+func (v *Value) Clone() Expression {
+	return &Value{v.Value, append([]string{}, v.Path...)}
 }
 
 type BinaryFormat int
