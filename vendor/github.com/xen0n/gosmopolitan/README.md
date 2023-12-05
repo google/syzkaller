@@ -54,7 +54,9 @@ following characteristics, and may not suit your particular project's needs:
 
 * Originally developed for an audience using non-Latin writing system(s),
 * Returns bare strings intended for humans containing such non-Latin characters, and
-* May occasionally (or frequently) refer to the local timezone.
+* May occasionally (or frequently) refer to the system timezone, but is
+  architecturally forbidden/discouraged to just treat the system timezone as
+  the reference timezone.
 
 For example, the lints may prove valuable if you're revamping a web service
 originally targetting the Chinese market (hence producing strings with Chinese
@@ -64,71 +66,18 @@ will output nothing.
 
 ## golangci-lint integration
 
-`gosmopolitan` is not integrated into [`golangci-lint`][gcl-home] yet, but
-you can nevertheless run it [as a custom plugin][gcl-plugin].
+`gosmopolitan` support [has been merged][gcl-pr] into [`golangci-lint`][gcl-home],
+and will be usable out-of-the-box in golangci-lint v1.53.0 or later.
 
+Due to the opinionated coding style this linter advocates and checks for, if
+you have `enable-all: true` in your `golangci.yml` and your project deals a
+lot with Chinese text and/or `time.Local`, then you'll get flooded with lints
+when you upgrade to golangci-lint v1.53.0. Just disable this linter (and
+better yet, move away from `enable-all: true`) if the style does not suit your
+specific use case.
+
+[gcl-pr]: https://github.com/golangci/golangci-lint/pull/3458
 [gcl-home]: https://golangci-lint.run
-[gcl-plugin]: https://golangci-lint.run/contributing/new-linters/#how-to-add-a-private-linter-to-golangci-lint
-
-First make yourself a plugin `.so` file like this:
-
-```go
-// compile this with something like `go build -buildmode=plugin`
-
-package main
-
-import (
-	"github.com/xen0n/gosmopolitan"
-	"golang.org/x/tools/go/analysis"
-)
-
-type analyzerPlugin struct{}
-
-func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
-	// You can customize the options via gosmopolitan.NewAnalyzerWithConfig
-	// instead.
-	return []*analysis.Analyzer{
-		gosmopolitan.DefaultAnalyzer,
-	}
-}
-
-var AnalyzerPlugin analyzerPlugin
-```
-
-You just need to make sure the `golang.org/x/tools` version used to build the
-plugin is consistent with that of your `golangci-lint` binary. (Of course the
-`golangci-lint` binary should be built with plugin support enabled too;
-notably, [the Homebrew `golangci-lint` is built without plugin support][hb-issue],
-so beware of this.)
-
-[hb-issue]: https://github.com/golangci/golangci-lint/issues/1182
-
-|`golangci-lint` version|`gosmopolitan` tag to use|
-|-----------------------|-------------------------|
-|1.50.x|v1.0.0|
-
-Then reference it in your `.golangci.yml`, and enable it in the `linters`
-section:
-
-```yaml
-linters:
-  # ...
-  enable:
-    # ...
-    - gosmopolitan
-    # ...
-
-linters-settings:
-  custom:
-    gosmopolitan:
-      path: 'path/to/your/plugin.so'
-      description: 'Report certain i18n/l10n anti-patterns in your Go codebase'
-      original-url: 'https://github.com/xen0n/gosmopolitan'
-  # ...
-```
-
-Then you can `golangci-lint run` and `//nolint:gosmopolitan` as you would
-with any other supported linter.
 
 ## License
 

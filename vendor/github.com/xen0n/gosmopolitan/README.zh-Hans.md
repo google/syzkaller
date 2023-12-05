@@ -46,7 +46,7 @@
 
 * 项目原先是为使用非拉丁字母书写系统的受众群体开发的，
 * 项目会返回包含这些非拉丁字母字符的裸的字符串（即，未经处理或变换的），
-* 项目可能偶尔（或者经常）引用程序当前运行环境的本地时区。
+* 项目可能偶尔（或者经常）引用程序当前运行环境的系统时区，但项目架构上禁止或不建议把系统时区直接作为业务参考时区使用。
 
 举个例子：如果您在翻新一个本来面向中国用户群体（因此到处都在产生含有汉字的字符串）的
 web 服务，以使其更加国际化，这里的 lints 可能会很有价值。
@@ -55,66 +55,14 @@ linter 则什么都不会输出。
 
 ## 与 golangci-lint 集成
 
-`gosmopolitan` 目前没有集成进上游 [`golangci-lint`][gcl-home]，但您仍然可以[以自定义插件的方式][gcl-plugin]使用本项目。
+`gosmopolitan` 支持[已经被合并][gcl-pr]入 [`golangci-lint`][gcl-home] 上游，在 golangci-lint v1.53.0 及以后的版本可以开箱即用。
 
+[gcl-pr]: https://github.com/golangci/golangci-lint/pull/3458
 [gcl-home]: https://golangci-lint.run
-[gcl-plugin]: https://golangci-lint.run/contributing/new-linters/#how-to-add-a-private-linter-to-golangci-lint
 
-首先像这样做一个插件 `.so` 文件：
-
-```go
-// 用类似 `go build -buildmode=plugin` 的方式编译
-
-package main
-
-import (
-	"github.com/xen0n/gosmopolitan"
-	"golang.org/x/tools/go/analysis"
-)
-
-type analyzerPlugin struct{}
-
-func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
-	// 你可以用 gosmopolitan.NewAnalyzer 来自定义配置。
-	return []*analysis.Analyzer{
-		gosmopolitan.DefaultAnalyzer,
-	}
-}
-
-var AnalyzerPlugin analyzerPlugin
-```
-
-您只需要保证构建时使用的 `golang.org/x/tools` 模块版本和您的 `golangci-lint`
-二进制的相应模块版本一致。（当然，`golangci-lint` 二进制也应该包含插件支持；
-[Homebrew 的 `golangci-lint` 没有插件支持][hb-issue]，尤其需要注意。）
-
-[hb-issue]: https://github.com/golangci/golangci-lint/issues/1182
-
-|`golangci-lint` 版本|对应可用的 `gosmopolitan` tag|
-|--------------------|-----------------------------|
-|1.50.x|v1.0.0|
-
-然后在您的 `.golangci.yml` 中引用它，在 `linters` 一节中启用它：
-
-```yaml
-linters:
-  # ...
-  enable:
-    # ...
-    - gosmopolitan
-    # ...
-
-linters-settings:
-  custom:
-    gosmopolitan:
-      path: 'path/to/your/plugin.so'
-      description: 'Report certain i18n/l10n anti-patterns in your Go codebase'
-      original-url: 'https://github.com/xen0n/gosmopolitan'
-  # ...
-```
-
-这样您就可以像使用其他 linters 一样 `golangci-lint run` 和
-`//nolint:gosmopolitan` 了。
+由于本 linter 倡导和检查的代码风格带有鲜明立场，如果您在 `golangci.yml` 开了
+`enable-all: true` 并且您的项目处理很多中文文本或者 `time.Local`，那么您一旦升级到
+golangci-lint v1.53.0 就将被 lints 淹没。如果这种代码风格不适合您的具体使用场景，直接禁用本 linter（或者更彻底一些，不要 `enable-all: true` 了）就好。
 
 ## 许可证
 
