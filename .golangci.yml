@@ -82,6 +82,8 @@ linters-settings:
   goconst:
     min-len: 3
     min-occurrences: 3
+    ignore-tests: true # re-enable once goconst 1.7.0+ merged into golangci-lint
+    ignore-strings: "[syzbot] | (2)|Re: " # will be enabled by goconst 1.7.0
   nestif:
     # TODO: consider reducing this value.
     min-complexity: 12
