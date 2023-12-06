@@ -1,10 +1,22 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <error.h>
+#include <stdint.h>
 #include <sys/utsname.h>
 
 static unsigned host_kernel_version();
 static void dump_cpu_state(int cpufd, char* vm_mem);
+
+#ifdef GOARCH_amd64
+static int cpu_feature_enabled(uint32_t function, uint32_t eax_bits, uint32_t ebx_bits, uint32_t ecx_bits, uint32_t edx_bits);
+
+#define FEATURE_INTEL 0x00000001
+#define FEATURE_INTEL_ECX_VMX (1 << 5)
+
+#define FEATURE_AMD 0x800000001
+#define FEATURE_AMD_ECX_SVM (1 << 2)
+#endif
 
 static int test_one(int text_type, const char* text, int text_size, int flags, unsigned reason, bool check_rax)
 {
@@ -117,39 +129,42 @@ static int test_kvm()
 	//	return res;
 
 #ifdef GOARCH_amd64
-	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
-	if ((res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true)))
-		return res;
-	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true)))
-		return res;
-	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true)))
-		return res;
+	// Note: VIRT86 and CPL3 prefix seems to work with vmx only
+	if (cpu_feature_enabled(FEATURE_INTEL, 0, 0, FEATURE_INTEL_ECX_VMX, 0) == 1) {
+		const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
+		if ((res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true)))
+			return res;
+		if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true)))
+			return res;
+		if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true)))
+			return res;
 
-	const char text16[] = "\x66\xb8\xde\xc0\xad\x0b";
-	if ((res = test_one(16, text16, sizeof(text16) - 1, 0, KVM_EXIT_HLT, true)))
-		return res;
-	if ((res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
-		return res;
+		const char text16[] = "\x66\xb8\xde\xc0\xad\x0b";
+		if ((res = test_one(16, text16, sizeof(text16) - 1, 0, KVM_EXIT_HLT, true)))
+			return res;
+		if ((res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
+			return res;
 
-	const char text32[] = "\xb8\xde\xc0\xad\x0b";
-	if ((res = test_one(32, text32, sizeof(text32) - 1, 0, KVM_EXIT_HLT, true)))
-		return res;
-	if ((res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true)))
-		return res;
-	if ((res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
-		return res;
+		const char text32[] = "\xb8\xde\xc0\xad\x0b";
+		if ((res = test_one(32, text32, sizeof(text32) - 1, 0, KVM_EXIT_HLT, true)))
+			return res;
+		if ((res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true)))
+			return res;
+		if ((res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
+			return res;
 
-	const char text64[] = "\x90\xb8\xde\xc0\xad\x0b";
-	if ((res = test_one(64, text64, sizeof(text64) - 1, 0, KVM_EXIT_HLT, true)))
-		return res;
-	if ((res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true)))
-		return res;
-	if ((res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
-		return res;
+		const char text64[] = "\x90\xb8\xde\xc0\xad\x0b";
+		if ((res = test_one(64, text64, sizeof(text64) - 1, 0, KVM_EXIT_HLT, true)))
+			return res;
+		if ((res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true)))
+			return res;
+		if ((res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
+			return res;
 
-	const char text64_sysenter[] = "\xb8\xde\xc0\xad\x0b\x0f\x34";
-	if ((res = test_one(64, text64_sysenter, sizeof(text64_sysenter) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
-		return res;
+		const char text64_sysenter[] = "\xb8\xde\xc0\xad\x0b\x0f\x34";
+		if ((res = test_one(64, text64_sysenter, sizeof(text64_sysenter) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
+			return res;
+	}
 
 	// Note: SMM does not work on 3.13 kernels.
 	if (ver >= 404) {
@@ -263,3 +278,30 @@ static void dump_cpu_state(int cpufd, char* vm_mem)
 	printf(" SRR0 %016lx  SRR1 %016lx\n", regs.srr0, regs.srr1);
 #endif
 }
+
+#ifdef GOARCH_amd64
+// retcodes:
+//  0 : feature disabled
+//  1 : feature enabled
+// -1 : error getting feature state
+static int cpu_feature_enabled(uint32_t function, uint32_t eax_bits, uint32_t ebx_bits, uint32_t ecx_bits, uint32_t edx_bits)
+{
+	int kvmfd = open("/dev/kvm", O_RDWR);
+	if (kvmfd == -1) {
+		printf("failed to open /dev/kvm (%d)\n", errno);
+		return -1;
+	}
+	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
+	memset(buf, 0, sizeof(buf));
+	struct kvm_cpuid2* cpuid = (struct kvm_cpuid2*)buf;
+	cpuid->nent = 128;
+	ioctl(kvmfd, KVM_GET_SUPPORTED_CPUID, cpuid);
+	close(kvmfd);
+	for (uint32_t i = 0; i < cpuid->nent; i++) {
+		struct kvm_cpuid_entry2* entry = &cpuid->entries[i];
+		if (entry->function == function && (!eax_bits || (entry->eax & eax_bits)) && (!ebx_bits || (entry->ebx & ebx_bits)) && (!ecx_bits || (entry->ecx & ecx_bits)) && (!edx_bits || (entry->edx & edx_bits)))
+			return 1;
+	}
+	return 0;
+}
+#endif
