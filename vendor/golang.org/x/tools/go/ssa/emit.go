@@ -13,14 +13,51 @@ import (
 	"go/types"
 )
 
-// emitNew emits to f a new (heap Alloc) instruction allocating an
-// object of type typ.  pos is the optional source location.
-func emitNew(f *Function, typ types.Type, pos token.Pos) *Alloc {
-	v := &Alloc{Heap: true}
+// emitAlloc emits to f a new Alloc instruction allocating a variable
+// of type typ.
+//
+// The caller must set Alloc.Heap=true (for an heap-allocated variable)
+// or add the Alloc to f.Locals (for a frame-allocated variable).
+//
+// During building, a variable in f.Locals may have its Heap flag
+// set when it is discovered that its address is taken.
+// These Allocs are removed from f.Locals at the end.
+//
+// The builder should generally call one of the emit{New,Local,LocalVar} wrappers instead.
+func emitAlloc(f *Function, typ types.Type, pos token.Pos, comment string) *Alloc {
+	v := &Alloc{Comment: comment}
 	v.setType(types.NewPointer(typ))
 	v.setPos(pos)
 	f.emit(v)
 	return v
+}
+
+// emitNew emits to f a new Alloc instruction heap-allocating a
+// variable of type typ. pos is the optional source location.
+func emitNew(f *Function, typ types.Type, pos token.Pos, comment string) *Alloc {
+	alloc := emitAlloc(f, typ, pos, comment)
+	alloc.Heap = true
+	return alloc
+}
+
+// emitLocal creates a local var for (t, pos, comment) and
+// emits an Alloc instruction for it.
+//
+// (Use this function or emitNew for synthetic variables;
+// for source-level variables, use emitLocalVar.)
+func emitLocal(f *Function, t types.Type, pos token.Pos, comment string) *Alloc {
+	local := emitAlloc(f, t, pos, comment)
+	f.Locals = append(f.Locals, local)
+	return local
+}
+
+// emitLocalVar creates a local var for v and emits an Alloc instruction for it.
+// Subsequent calls to f.lookup(v) return it.
+// It applies the appropriate generic instantiation to the type.
+func emitLocalVar(f *Function, v *types.Var) *Alloc {
+	alloc := emitLocal(f, f.typ(v.Type()), v.Pos(), v.Name())
+	f.vars[v] = alloc
+	return alloc
 }
 
 // emitLoad emits to f an instruction to load the address addr into a
@@ -148,7 +185,7 @@ func emitCompare(f *Function, op token.Token, x, y Value, pos token.Pos) Value {
 // Precondition: neither argument is a named type.
 func isValuePreserving(ut_src, ut_dst types.Type) bool {
 	// Identical underlying types?
-	if structTypesIdentical(ut_dst, ut_src) {
+	if types.IdenticalIgnoreTags(ut_dst, ut_src) {
 		return true
 	}
 
@@ -204,6 +241,13 @@ func emitConv(f *Function, val Value, typ types.Type) Value {
 		// Convert (non-nil) "untyped" literals to their default type.
 		if t, ok := ut_src.(*types.Basic); ok && t.Info()&types.IsUntyped != 0 {
 			val = emitConv(f, val, types.Default(ut_src))
+		}
+
+		// Record the types of operands to MakeInterface, if
+		// non-parameterized, as they are the set of runtime types.
+		t := val.Type()
+		if f.typeparams.Len() == 0 || !f.Prog.parameterized.isParameterized(t) {
+			addRuntimeType(f.Prog, t)
 		}
 
 		mi := &MakeInterface{X: val}
@@ -535,48 +579,6 @@ func emitFieldSelection(f *Function, v Value, index int, wantAddr bool, id *ast.
 	}
 	emitDebugRef(f, id, v, wantAddr)
 	return v
-}
-
-// emitSliceToArray emits to f code to convert a slice value to an array value.
-//
-// Precondition: all types in type set of typ are arrays and convertible to all
-// types in the type set of val.Type().
-func emitSliceToArray(f *Function, val Value, typ types.Type) Value {
-	// Emit the following:
-	// if val == nil && len(typ) == 0 {
-	//    ptr = &[0]T{}
-	// } else {
-	//	  ptr = SliceToArrayPointer(val)
-	// }
-	// v = *ptr
-
-	ptype := types.NewPointer(typ)
-	p := &SliceToArrayPointer{X: val}
-	p.setType(ptype)
-	ptr := f.emit(p)
-
-	nilb := f.newBasicBlock("slicetoarray.nil")
-	nonnilb := f.newBasicBlock("slicetoarray.nonnil")
-	done := f.newBasicBlock("slicetoarray.done")
-
-	cond := emitCompare(f, token.EQL, ptr, zeroConst(ptype), token.NoPos)
-	emitIf(f, cond, nilb, nonnilb)
-	f.currentBlock = nilb
-
-	zero := f.addLocal(typ, token.NoPos)
-	emitJump(f, done)
-	f.currentBlock = nonnilb
-
-	emitJump(f, done)
-	f.currentBlock = done
-
-	phi := &Phi{Edges: []Value{zero, ptr}, Comment: "slicetoarray"}
-	phi.pos = val.Pos()
-	phi.setType(typ)
-	x := f.emit(phi)
-	unOp := &UnOp{Op: token.MUL, X: x}
-	unOp.setType(typ)
-	return f.emit(unOp)
 }
 
 // createRecoverBlock emits to f a block of code to return after a
