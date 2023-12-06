@@ -57,7 +57,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
 	for ns := range getConfig(context.Background()).Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
-		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
+		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed)) // nolint: goconst // remove it with goconst 1.7.0+
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
 		http.Handle("/"+ns+"/graph/bugs", handlerWrapper(handleKernelHealthGraph))
 		http.Handle("/"+ns+"/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
@@ -532,7 +532,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	return handleTerminalBugList(c, w, r, &TerminalBug{
 		Status:      BugStatusFixed,
-		Subpage:     "/fixed",
+		Subpage:     "/fixed", // nolint: goconst // TODO: remove it once goconst 1.7.0+ landed
 		ShowPatch:   true,
 		ShowPatched: true,
 	})
