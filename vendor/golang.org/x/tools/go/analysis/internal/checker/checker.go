@@ -342,28 +342,20 @@ func applyFixes(roots []*action) error {
 				for _, edit := range sf.TextEdits {
 					// Validate the edit.
 					// Any error here indicates a bug in the analyzer.
-					start, end := edit.Pos, edit.End
-					file := act.pkg.Fset.File(start)
+					file := act.pkg.Fset.File(edit.Pos)
 					if file == nil {
 						return fmt.Errorf("analysis %q suggests invalid fix: missing file info for pos (%v)",
-							act.a.Name, start)
+							act.a.Name, edit.Pos)
 					}
-					if !end.IsValid() {
-						end = start
-					}
-					if start > end {
+					if edit.Pos > edit.End {
 						return fmt.Errorf("analysis %q suggests invalid fix: pos (%v) > end (%v)",
-							act.a.Name, start, end)
+							act.a.Name, edit.Pos, edit.End)
 					}
-					if eof := token.Pos(file.Base() + file.Size()); end > eof {
+					if eof := token.Pos(file.Base() + file.Size()); edit.End > eof {
 						return fmt.Errorf("analysis %q suggests invalid fix: end (%v) past end of file (%v)",
-							act.a.Name, end, eof)
+							act.a.Name, edit.End, eof)
 					}
-					edit := diff.Edit{
-						Start: file.Offset(start),
-						End:   file.Offset(end),
-						New:   string(edit.NewText),
-					}
+					edit := diff.Edit{Start: file.Offset(edit.Pos), End: file.Offset(edit.End), New: string(edit.NewText)}
 					editsForTokenFile[file] = append(editsForTokenFile[file], edit)
 				}
 			}
@@ -493,11 +485,11 @@ func diff3Conflict(path string, xlabel, ylabel string, xedits, yedits []diff.Edi
 	}
 	oldlabel, old := "base", string(contents)
 
-	xdiff, err := diff.ToUnified(oldlabel, xlabel, old, xedits, diff.DefaultContextLines)
+	xdiff, err := diff.ToUnified(oldlabel, xlabel, old, xedits)
 	if err != nil {
 		return err
 	}
-	ydiff, err := diff.ToUnified(oldlabel, ylabel, old, yedits, diff.DefaultContextLines)
+	ydiff, err := diff.ToUnified(oldlabel, ylabel, old, yedits)
 	if err != nil {
 		return err
 	}

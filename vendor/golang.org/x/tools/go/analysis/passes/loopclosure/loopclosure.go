@@ -14,7 +14,6 @@ import (
 	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
-	"golang.org/x/tools/internal/versions"
 )
 
 //go:embed doc.go
@@ -32,15 +31,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
-		(*ast.File)(nil),
 		(*ast.RangeStmt)(nil),
 		(*ast.ForStmt)(nil),
 	}
-	inspect.Nodes(nodeFilter, func(n ast.Node, push bool) bool {
-		if !push {
-			// inspect.Nodes is slightly suboptimal as we only use push=true.
-			return true
-		}
+	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		// Find the variables updated by the loop statement.
 		var vars []types.Object
 		addVar := func(expr ast.Expr) {
@@ -52,11 +46,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 		var body *ast.BlockStmt
 		switch n := n.(type) {
-		case *ast.File:
-			// Only traverse the file if its goversion is strictly before go1.22.
-			goversion := versions.Lang(versions.FileVersions(pass.TypesInfo, n))
-			// goversion is empty for older go versions (or the version is invalid).
-			return goversion == "" || versions.Compare(goversion, "go1.22") < 0
 		case *ast.RangeStmt:
 			body = n.Body
 			addVar(n.Key)
@@ -75,7 +64,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 		}
 		if vars == nil {
-			return true
+			return
 		}
 
 		// Inspect statements to find function literals that may be run outside of
@@ -124,7 +113,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				}
 			}
 		}
-		return true
 	})
 	return nil, nil
 }
@@ -371,5 +359,20 @@ func isMethodCall(info *types.Info, expr ast.Expr, pkgPath, typeName, method str
 	if ptr, ok := recv.Type().(*types.Pointer); ok {
 		rtype = ptr.Elem()
 	}
-	return analysisutil.IsNamedType(rtype, pkgPath, typeName)
+	named, ok := rtype.(*types.Named)
+	if !ok {
+		return false
+	}
+	if named.Obj().Name() != typeName {
+		return false
+	}
+	pkg := f.Pkg()
+	if pkg == nil {
+		return false
+	}
+	if pkg.Path() != pkgPath {
+		return false
+	}
+
+	return true
 }
