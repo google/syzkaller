@@ -13,9 +13,11 @@ ioctl$DMA_HEAP_IOCTL_ALLOC(fd fd_dma_heap, cmd const[DMA_HEAP_IOCTL_ALLOC], arg 
 
 dma_open_flags = O_CLOEXEC, O_RDONLY, O_WRONLY, O_RDWR
 
+resource fd_dma_heap_alloc[fd]
+
 dma_heap_allocation_data {
 	len		int64	(in)
-	fd		fd	(inout)
+	fd		fd_dma_heap_alloc	(out)
 	fd_flags	flags[dma_open_flags, int32]	(in)
 	heap_flags	const[0, int64]	(in)
 }
