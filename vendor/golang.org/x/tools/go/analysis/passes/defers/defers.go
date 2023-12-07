@@ -7,6 +7,7 @@ package defers
 import (
 	_ "embed"
 	"go/ast"
+	"go/types"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -35,7 +36,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	checkDeferCall := func(node ast.Node) bool {
 		switch v := node.(type) {
 		case *ast.CallExpr:
-			if analysisutil.IsFunctionNamed(typeutil.StaticCallee(pass.TypesInfo, v), "time", "Since") {
+			fn, ok := typeutil.Callee(pass.TypesInfo, v).(*types.Func)
+			if ok && fn.Name() == "Since" && fn.Pkg().Path() == "time" {
 				pass.Reportf(v.Pos(), "call to time.Since is not deferred")
 			}
 		case *ast.FuncLit:
