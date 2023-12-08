@@ -101,7 +101,7 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 
 static int test_kvm()
 {
-	int res;
+	int res = 0;
 
 	unsigned ver = host_kernel_version();
 	printf("host kernel version %u\n", ver);
