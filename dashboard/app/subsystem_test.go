@@ -345,7 +345,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 
 	// Make sure we don't report crashes at other reporting stages.
 	crash := testCrash(build, 1)
-	crash.Title = `WARNING: a third, keep private` // see the config in app_test.go
+	crash.Title = `WARNING: a third, keep in moderation` // see the config in app_test.go
 	crash.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash)
 	client.pollBug()

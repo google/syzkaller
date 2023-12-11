@@ -481,11 +481,12 @@ var testConfig = &GlobalConfig{
 			},
 			Reporting: []Reporting{
 				{
-					AccessLevel: AccessUser,
-					Name:        "non-public",
+					// Let's emulate public moderation.
+					AccessLevel: AccessPublic,
+					Name:        "moderation",
 					DailyLimit:  1000,
 					Filter: func(bug *Bug) FilterResult {
-						if strings.Contains(bug.Title, "keep private") {
+						if strings.Contains(bug.Title, "keep in moderation") {
 							return FilterReport
 						}
 						return FilterSkip
