@@ -1,0 +1,37 @@
+{{/*
+Copyright 2023 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+	{{optlink .Manager.Link "[Syz-Manager]"}}
+	<table class="list_table">
+		<tr>
+			<th>Time</th>
+			<th>Kernel Commit</th>
+			<th>Kernel Config</th>
+			<th>Syzkaller Commit</th>
+			<th>Assets</th>
+		</tr>
+		{{range $build := .Builds}}
+		<tr>
+			<td class="time">{{formatTime $build.Time}}</td>
+			<td class="commit_list" title="{{$build.KernelCommit}}
+	{{formatTime $build.KernelCommitDate}}">{{link $build.KernelCommitLink (formatTagHash $build.KernelCommit)}} {{$build.KernelCommitTitle}}</td>
+			<td class="config">{{if $build.KernelConfigLink}}<a href="{{$build.KernelConfigLink}}">.config</a>{{end}}</td>
+			<td class="tag">{{link $build.SyzkallerCommitLink (formatShortHash $build.SyzkallerCommit)}}</td>
+			<td class="assets">{{range $i, $asset := $build.Assets}}
+				<span class="no-break">[<a href="{{$asset.DownloadURL}}">{{$asset.Title}}</a>]</span>
+			{{end}}</td>
+		</tr>
+		{{end}}
+	</table>
+</body>
+</html>

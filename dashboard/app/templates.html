@@ -258,7 +258,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tbody>
 	{{range $mgr := .List}}
 		<tr>
-			<td>{{link $mgr.Link $mgr.Name}}</td>
+			<td>{{link $mgr.PageLink $mgr.Name}}</td>
 			<td class="stat {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 			<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
 			<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>

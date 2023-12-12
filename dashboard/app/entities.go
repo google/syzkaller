@@ -816,6 +816,22 @@ func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
 	return loadBuild(c, ns, mgr.CurrentBuild)
 }
 
+func loadBuilds(c context.Context, ns, manager string, typ BuildType) ([]*Build, error) {
+	const limit = 500
+	var builds []*Build
+	_, err := db.NewQuery("Build").
+		Filter("Namespace=", ns).
+		Filter("Manager=", manager).
+		Filter("Type=", typ).
+		Order("-Time").
+		Limit(limit).
+		GetAll(c, &builds)
+	if err != nil {
+		return nil, err
+	}
+	return builds, nil
+}
+
 func (bug *Bug) displayTitle() string {
 	if bug.Seq == 0 {
 		return bug.Title
