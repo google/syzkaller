@@ -68,6 +68,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
+		http.Handle("/"+ns+"/manager/", handlerWrapper(handleManagerPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
@@ -204,11 +205,18 @@ type uiAdminPage struct {
 	MemcacheStats       *memcache.Statistics
 }
 
+type uiManagerPage struct {
+	Header  *uiHeader
+	Manager *uiManager
+	Builds  []*uiBuild
+}
+
 type uiManager struct {
 	Now                   time.Time
 	Namespace             string
 	Name                  string
-	Link                  string
+	Link                  string // link to the syz-manager
+	PageLink              string // link to the manager page
 	CoverLink             string
 	CurrentBuild          *uiBuild
 	FailedBuildBugLink    string
@@ -236,6 +244,7 @@ type uiBuild struct {
 	KernelCommitTitle   string
 	KernelCommitDate    time.Time
 	KernelConfigLink    string
+	Assets              []*uiAsset
 }
 
 type uiBugDiscussion struct {
@@ -545,6 +554,42 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 		ShowPatch: false,
 		ShowStats: true,
 	})
+}
+
+func handleManagerPage(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	managers, err := CachedUIManagers(c, accessLevel(c, r), hdr.Namespace, nil)
+	if err != nil {
+		return err
+	}
+	var manager *uiManager
+	if pos := strings.Index(r.URL.Path, "/manager/"); pos != -1 {
+		manager = findManager(managers, r.URL.Path[pos+len("/manager/"):])
+	}
+	if manager == nil {
+		return fmt.Errorf("%w: manager is unknown", ErrClientBadRequest)
+	}
+	builds, err := loadBuilds(c, hdr.Namespace, manager.Name, BuildNormal)
+	if err != nil {
+		return fmt.Errorf("failed to query builds: %w", err)
+	}
+	managerPage := &uiManagerPage{Manager: manager, Header: hdr}
+	for _, build := range builds {
+		managerPage.Builds = append(managerPage.Builds, makeUIBuild(c, build))
+	}
+	return serveTemplate(w, "manager.html", managerPage)
+}
+
+func findManager(managers []*uiManager, name string) *uiManager {
+	for _, mgr := range managers {
+		if mgr.Name == name {
+			return mgr
+		}
+	}
+	return nil
 }
 
 func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -1955,14 +2000,18 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 
 var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
 
-func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
-	uiAssets := []*uiAsset{}
+func makeUIAssets(build *Build, crash *Crash) []*uiAsset {
+	var uiAssets []*uiAsset
 	for _, asset := range createAssetList(build, crash) {
 		uiAssets = append(uiAssets, &uiAsset{
 			Title:       asset.Title,
 			DownloadURL: asset.DownloadURL,
 		})
 	}
+	return uiAssets
+}
+
+func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
 	ui := &uiCrash{
 		Title:           crash.Title,
 		Manager:         crash.Manager,
@@ -1975,7 +2024,7 @@ func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
 		ReproCLink:      textLink(textReproC, crash.ReproC),
 		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
-		Assets:          uiAssets,
+		Assets:          makeUIAssets(build, crash),
 	}
 	if build != nil {
 		ui.uiBuild = makeUIBuild(c, build)
@@ -1997,6 +2046,7 @@ func makeUIBuild(c context.Context, build *Build) *uiBuild {
 		KernelCommitTitle:   build.KernelCommitTitle,
 		KernelCommitDate:    build.KernelCommitDate,
 		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
+		Assets:              makeUIAssets(build, nil),
 	}
 }
 
@@ -2118,6 +2168,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter 
 			Namespace:             mgr.Namespace,
 			Name:                  mgr.Name,
 			Link:                  link,
+			PageLink:              mgr.Namespace + "/manager/" + mgr.Name,
 			CoverLink:             coverURL,
 			CurrentBuild:          uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink:    bugLink(mgr.FailedBuildBug),

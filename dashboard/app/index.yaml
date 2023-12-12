@@ -165,6 +165,14 @@ indexes:
   - name: Namespace
   - name: AssetsLastCheck
 
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: Type
+  - name: Time
+    direction: desc
+
 - kind: Crash
   ancestor: yes
   properties:

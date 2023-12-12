@@ -497,8 +497,12 @@ func queryLatestManagerAssets(c context.Context, ns string, assetType dashapi.As
 }
 
 func createAssetList(build *Build, crash *Crash) []dashapi.Asset {
+	var crashAssets []Asset
+	if crash != nil {
+		crashAssets = crash.Assets
+	}
 	assetList := []dashapi.Asset{}
-	for _, reportAsset := range append(build.Assets, crash.Assets...) {
+	for _, reportAsset := range append(build.Assets, crashAssets...) {
 		typeDescr := asset.GetTypeDescription(reportAsset.Type)
 		if typeDescr == nil || typeDescr.NoReporting {
 			continue
