@@ -170,7 +170,7 @@ retry:
 	if err != nil {
 		return "", fmt.Errorf("failed to create instance: %w", err)
 	}
-	if err := ctx.waitForCompletion("zone", "create image", op.Name, false); err != nil {
+	if err := ctx.waitForCompletion("zone", "create instance", op.Name, false); err != nil {
 		var resourcePoolExhaustedError resourcePoolExhaustedError
 		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
@@ -318,7 +318,8 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 			if op.Error != nil {
 				reason := ""
 				for _, operr := range op.Error.Errors {
-					if operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED" {
+					if operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED" ||
+						operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS" {
 						return resourcePoolExhaustedError(fmt.Sprintf("%+v", operr))
 					}
 					if ignoreNotFound && operr.Code == "RESOURCE_NOT_FOUND" {
