@@ -80,11 +80,18 @@ func (*linux) prepareArch(arch *Arch) error {
 	}
 	kernelDir := arch.sourceDir
 	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir)
-	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
-	if err != nil {
-		return fmt.Errorf("make defconfig failed: %w\n%s", err, out)
+	if arch.configFile != "" {
+		out, err := osutil.RunCmd(time.Hour, kernelDir, "cp", "-f", arch.configFile, arch.buildDir)
+		if err != nil {
+			return fmt.Errorf("cp config failed: %w\n%s", err, out)
+		}
+	} else {
+		out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
+		if err != nil {
+			return fmt.Errorf("make defconfig failed: %w\n%s", err, out)
+		}
 	}
-	_, err = osutil.RunCmd(time.Minute, arch.buildDir, filepath.Join(kernelDir, "scripts", "config"),
+	_, err := osutil.RunCmd(time.Minute, arch.buildDir, filepath.Join(kernelDir, "scripts", "config"),
 		// powerpc arch is configured to be big-endian by default, but we want little-endian powerpc.
 		// Since all of our archs are little-endian for now, we just blindly switch it.
 		"-d", "CPU_BIG_ENDIAN", "-e", "CPU_LITTLE_ENDIAN",
@@ -104,7 +111,7 @@ func (*linux) prepareArch(arch *Arch) error {
 	if err != nil {
 		return err
 	}
-	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
+	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
 	if err != nil {
 		return fmt.Errorf("make olddefconfig failed: %w\n%s", err, out)
 	}

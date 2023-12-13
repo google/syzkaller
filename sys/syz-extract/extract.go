@@ -27,6 +27,7 @@ var (
 	flagIncludes  = flag.String("includedirs", "", "path to other kernel source include dirs separated by commas")
 	flagBuildDir  = flag.String("builddir", "", "path to kernel build dir")
 	flagArch      = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
+	flagConfig    = flag.String("config", "", "base kernel config file instead of defconfig")
 )
 
 type Arch struct {
@@ -36,6 +37,7 @@ type Arch struct {
 	buildDir    string
 	build       bool
 	files       []*File
+	configFile  string
 	err         error
 	done        chan bool
 }
@@ -213,6 +215,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 			buildDir:    buildDir,
 			build:       *flagBuild,
 			done:        make(chan bool),
+			configFile:  *flagConfig,
 		}
 		var archFiles []string
 		for _, file := range files {
