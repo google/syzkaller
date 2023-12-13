@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/host"
@@ -18,23 +17,6 @@ import (
 
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
-	var pcFixUpStart, pcFixUpEnd, pcFixUpOffset uint64
-	if target.Arch == targets.ARM64 {
-		// On arm64 as PLT is enabled by default, .text section is loaded after .plt section,
-		// so there is 0x18 bytes offset from module load address for .text section
-		// we need to remove the 0x18 bytes offset in order to correct module symbol address
-		// TODO: obtain these values from the binary instead of hardcoding.
-		file, err := elf.Open(filepath.Join(objDir, target.KernelObject))
-		if err != nil {
-			return nil, err
-		}
-		defer file.Close()
-		if file.Section(".plt") != nil {
-			pcFixUpStart = 0x8000000000000000
-			pcFixUpEnd = 0xffffffd010000000
-			pcFixUpOffset = 0x18
-		}
-	}
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,
@@ -42,9 +24,6 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		buildDir:              buildDir,
 		moduleObj:             moduleObj,
 		hostModules:           hostModules,
-		pcFixUpStart:          pcFixUpStart,
-		pcFixUpEnd:            pcFixUpEnd,
-		pcFixUpOffset:         pcFixUpOffset,
 		readSymbols:           elfReadSymbols,
 		readTextData:          elfReadTextData,
 		readModuleCoverPoints: elfReadModuleCoverPoints,
