@@ -24,16 +24,12 @@ import (
 )
 
 type dwarfParams struct {
-	target      *targets.Target
-	objDir      string
-	srcDir      string
-	buildDir    string
-	moduleObj   []string
-	hostModules []host.KernelModule
-	// Kernel coverage PCs in the [pcFixUpStart,pcFixUpEnd) range are offsetted by pcFixUpOffset.
-	pcFixUpStart          uint64
-	pcFixUpEnd            uint64
-	pcFixUpOffset         uint64
+	target                *targets.Target
+	objDir                string
+	srcDir                string
+	buildDir              string
+	moduleObj             []string
+	hostModules           []host.KernelModule
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*Module) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
@@ -209,11 +205,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 
 func makeRestorePC(params *dwarfParams, pcBase uint64) func(pc uint32) uint64 {
 	return func(pcLow uint32) uint64 {
-		pc := PreviousInstructionPC(params.target, RestorePC(pcLow, uint32(pcBase>>32)))
-		if pc >= params.pcFixUpStart && pc < params.pcFixUpEnd {
-			pc -= params.pcFixUpOffset
-		}
-		return pc
+		return PreviousInstructionPC(params.target, RestorePC(pcLow, uint32(pcBase>>32)))
 	}
 }
 
