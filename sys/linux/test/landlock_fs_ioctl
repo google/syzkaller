@@ -1,0 +1,26 @@
+# Makes a regular file.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x81c0, 0x0)
+
+# Creates a ruleset to restrict most filesystem IOCTLs: LANDLOCK_ACCESS_FS_IOCTL.
+
+r0 = landlock_create_ruleset(&AUTO={0x8000, 0x0}, AUTO, 0x0)
+
+# No need to close FDs for this test.
+
+# Enforces the first ruleset.
+
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r0, 0x0)
+
+# Opens file in read-write mode after sandboxing.
+
+r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x2, 0x0)
+
+# Denied FIOQSIZE IOCTL.
+
+ioctl(r1, 0x5460, 0x0) # EACCES
+
+# Allowed FIOCLEX IOCTL.
+
+ioctl(r1, 0x5451, 0x0)
