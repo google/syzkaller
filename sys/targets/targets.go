@@ -490,6 +490,7 @@ var oses = map[string]osCommon{
 			"syz_io_uring_setup":  {"io_uring_setup"},
 			"syz_clone3":          {"clone3", "exit"},
 			"syz_clone":           {"clone", "exit"},
+			"syz_pidfd_open":      {"pidfd_open"},
 		},
 		cflags: []string{"-static-pie"},
 	},

@@ -327,6 +327,7 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_clone3":                  alwaysSupported,
 	"syz_pkey_set":                isSyzPkeySetSupported,
 	"syz_socket_connect_nvme_tcp": isSyzSocketConnectNvmeTCPSupported,
+	"syz_pidfd_open":              alwaysSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {

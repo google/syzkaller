@@ -11823,6 +11823,18 @@ static void setup_swap()
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_pidfd_open
+#include <sys/syscall.h>
+static long syz_pidfd_open(volatile long pid, volatile long flags)
+{
+	if (pid == 1) {
+		pid = 0;
+	}
+	return syscall(__NR_pidfd_open, pid, flags);
+}
+
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>

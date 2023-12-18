@@ -653,7 +653,10 @@ resource fd_pidfd[fd]
 openat$pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/self"]], flags flags[open_flags], mode const[0]) fd_pidfd
 openat$thread_pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self"]], flags flags[open_flags], mode const[0]) fd_pidfd
 pidfd_send_signal(fd fd_pidfd, sig signalno, info ptr[in, siginfo], flags const[0])
-pidfd_open(pid pid, flags const[0]) fd_pidfd
+
+# pidfd_open is dangerous, so we use syz_pidfd_open instead.
+pidfd_open(pid pid, flags const[0]) fd_pidfd (disabled)
+syz_pidfd_open(pid pid, flags const[0]) fd_pidfd
 pidfd_getfd(pidfd fd_pidfd, fd fd, flags const[0]) fd
 
 close_range(fd fd, max_fd fd, flags flags[close_range_flags])

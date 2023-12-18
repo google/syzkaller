@@ -5655,3 +5655,21 @@ static void setup_swap()
 }
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_pidfd_open
+#include <sys/syscall.h>
+
+// TODO: long-term we should improve our sandboxing rules since there are also
+// many other opportunities for a fuzzer process to access what it shouldn't.
+// Here we only shut down one of the recently discovered ways.
+static long syz_pidfd_open(volatile long pid, volatile long flags)
+{
+	if (pid == 1) {
+		// Under a PID namespace, pid=1 is the parent process.
+		// We don't want a forked child to mangle parent syz-executor's fds.
+		pid = 0;
+	}
+	return syscall(__NR_pidfd_open, pid, flags);
+}
+
+#endif
