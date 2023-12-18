@@ -29,7 +29,7 @@ var (
 	prependTime  = true // for testing
 )
 
-// EnableCaching enables in memory caching of log output.
+// EnableLogCaching enables in memory caching of log output.
 // Caches up to maxLines, but no more than maxMem bytes.
 // Cached output can later be queried with CachedOutput.
 func EnableLogCaching(maxLines, maxMem int) {

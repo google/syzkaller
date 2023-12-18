@@ -228,7 +228,7 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 	return pollResultSkip{}
 }
 
-// selectRepoNodes attributes bugs to trees depending on the patch testing results.
+// selectRepoLabels attributes bugs to trees depending on the patch testing results.
 func (ctx *bugTreeContext) selectRepoLabels(in bool, results map[*repoNode]pollTreeJobResult) []string {
 	crashed := map[*repoNode]bool{}
 	for node, result := range results {

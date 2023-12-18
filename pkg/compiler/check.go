@@ -423,7 +423,7 @@ type parentDesc struct {
 	fields []*ast.Field
 }
 
-// templateName return the part before '[' for full template names.
+// templateBase return the part before '[' for full template names.
 func templateBase(name string) string {
 	if pos := strings.IndexByte(name, '['); pos != -1 {
 		return name[:pos]

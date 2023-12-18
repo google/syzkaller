@@ -28,7 +28,7 @@ func shouldSkip(line string) bool {
 		strings.Contains(line, "<ptrace(SYSCALL):No such process>")
 }
 
-// ParseLoop parses each line of a strace file in a loop.
+// ParseData parses each line of a strace file in a loop.
 func ParseData(data []byte) (*TraceTree, error) {
 	tree := NewTraceTree()
 	// Creating the process tree
