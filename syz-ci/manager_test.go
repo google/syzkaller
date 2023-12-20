@@ -84,7 +84,7 @@ Reported-by: foo+abcd000@bar.com`,
 
 	foundCommits := map[string]bool{}
 	// Call it several more times to catch all commits.
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 100; i++ {
 		for _, name := range matches {
 			foundCommits[name] = true
 		}
