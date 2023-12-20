@@ -40,12 +40,6 @@ func New(client, addr, key string) (*Dashboard, error) {
 	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
 }
 
-func NewMock(mocker RequestMocker) *Dashboard {
-	return &Dashboard{
-		mocker: mocker,
-	}
-}
-
 type (
 	RequestCtor   func(method, url string, body io.Reader) (*http.Request, error)
 	RequestDoer   func(req *http.Request) (*http.Response, error)
