@@ -31,34 +31,27 @@ func newDashMock() *dashMock {
 	return &dashMock{downloadURLs: map[string]bool{}}
 }
 
-func (dm *dashMock) do(method string, req, mockReply interface{}) error {
-	switch method {
-	case "add_build_assets":
-		addBuildAssets := req.(*dashapi.AddBuildAssetsReq)
-		for _, obj := range addBuildAssets.Assets {
-			if dm.addBuildAsset != nil {
-				if err := dm.addBuildAsset(obj); err != nil {
-					return err
-				}
+func (dm *dashMock) AddBuildAssets(req *dashapi.AddBuildAssetsReq) error {
+	for _, obj := range req.Assets {
+		if dm.addBuildAsset != nil {
+			if err := dm.addBuildAsset(obj); err != nil {
+				return err
 			}
-			dm.downloadURLs[obj.DownloadURL] = true
 		}
-		return nil
-	case "needed_assets":
-		resp := mockReply.(*dashapi.NeededAssetsResp)
-		for url := range dm.downloadURLs {
-			resp.DownloadURLs = append(resp.DownloadURLs, url)
-		}
-		return nil
+		dm.downloadURLs[obj.DownloadURL] = true
 	}
 	return nil
 }
 
-func (dm *dashMock) getDashapi() *dashapi.Dashboard {
-	return dashapi.NewMock(dm.do)
+func (dm *dashMock) NeededAssetsList() (*dashapi.NeededAssetsResp, error) {
+	resp := &dashapi.NeededAssetsResp{}
+	for url := range dm.downloadURLs {
+		resp.DownloadURLs = append(resp.DownloadURLs, url)
+	}
+	return resp, nil
 }
 
-func makeStorage(t *testing.T, dash *dashapi.Dashboard) (*Storage, *dummyStorageBackend) {
+func makeStorage(t *testing.T, dash Dashboard) (*Storage, *dummyStorageBackend) {
 	be := makeDummyStorageBackend()
 	cfg := &Config{
 		UploadTo: "dummy://test",
@@ -123,7 +116,7 @@ func (storage *Storage) sendBuildAsset(reader io.Reader, fileName string, assetT
 
 func TestUploadBuildAsset(t *testing.T) {
 	dashMock := newDashMock()
-	storage, be := makeStorage(t, dashMock.getDashapi())
+	storage, be := makeStorage(t, dashMock)
 	be.currentTime = time.Now().Add(-2 * deletionEmbargo)
 	build := &dashapi.Build{ID: "1234", KernelCommit: "abcdef2134"}
 
@@ -239,7 +232,7 @@ func collectBytes(saveTo **uploadedFile) objectUploadCallback {
 
 func TestUploadHtmlAsset(t *testing.T) {
 	dashMock := newDashMock()
-	storage, be := makeStorage(t, dashMock.getDashapi())
+	storage, be := makeStorage(t, dashMock)
 	build := &dashapi.Build{ID: "1234", KernelCommit: "abcdef2134"}
 	htmlContent := []byte("<html><head><title>Hi!</title></head></html>")
 	dashMock.addBuildAsset = func(newAsset dashapi.NewAsset) error {
@@ -265,7 +258,7 @@ func TestUploadHtmlAsset(t *testing.T) {
 
 func TestRecentAssetDeletionProtection(t *testing.T) {
 	dashMock := newDashMock()
-	storage, be := makeStorage(t, dashMock.getDashapi())
+	storage, be := makeStorage(t, dashMock)
 	build := &dashapi.Build{ID: "1234", KernelCommit: "abcdef2134"}
 	htmlContent := []byte("<html><head><title>Hi!</title></head></html>")
 	be.currentTime = time.Now().Add(-time.Hour * 24 * 6)
@@ -294,7 +287,7 @@ func TestAssetStorageConfiguration(t *testing.T) {
 			dashapi.KernelObject:       {},
 		},
 	}
-	storage, err := StorageFromConfig(cfg, dashMock.getDashapi())
+	storage, err := StorageFromConfig(cfg, dashMock)
 	if err != nil {
 		t.Fatalf("unexpected error from StorageFromConfig: %s", err)
 	}
@@ -324,7 +317,7 @@ func TestAssetStorageConfiguration(t *testing.T) {
 
 func TestUploadSameContent(t *testing.T) {
 	dashMock := newDashMock()
-	storage, be := makeStorage(t, dashMock.getDashapi())
+	storage, be := makeStorage(t, dashMock)
 	be.currentTime = time.Now().Add(-2 * deletionEmbargo)
 
 	build := &dashapi.Build{ID: "1234", KernelCommit: "abcdef2134"}
@@ -358,7 +351,7 @@ func TestUploadSameContent(t *testing.T) {
 // nolint: dupl
 func TestTwoBucketDeprecation(t *testing.T) {
 	dash := newDashMock()
-	storage, dummy := makeStorage(t, dash.getDashapi())
+	storage, dummy := makeStorage(t, dash)
 
 	// "Upload" an asset from this instance.
 	resp, _ := dummy.upload(&uploadRequest{
@@ -382,7 +375,7 @@ func TestTwoBucketDeprecation(t *testing.T) {
 // nolint: dupl
 func TestInvalidAssetURLs(t *testing.T) {
 	dash := newDashMock()
-	storage, dummy := makeStorage(t, dash.getDashapi())
+	storage, dummy := makeStorage(t, dash)
 
 	// "Upload" an asset from this instance.
 	resp, _ := dummy.upload(&uploadRequest{

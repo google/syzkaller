@@ -24,11 +24,16 @@ import (
 type Storage struct {
 	cfg     *Config
 	backend StorageBackend
-	dash    *dashapi.Dashboard
+	dash    Dashboard
 	tracer  debugtracer.DebugTracer
 }
 
-func StorageFromConfig(cfg *Config, dash *dashapi.Dashboard) (*Storage, error) {
+type Dashboard interface {
+	AddBuildAssets(req *dashapi.AddBuildAssetsReq) error
+	NeededAssetsList() (*dashapi.NeededAssetsResp, error)
+}
+
+func StorageFromConfig(cfg *Config, dash Dashboard) (*Storage, error) {
 	if dash == nil {
 		return nil, fmt.Errorf("dashboard api instance is necessary")
 	}
