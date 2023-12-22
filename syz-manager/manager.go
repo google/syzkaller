@@ -728,6 +728,12 @@ func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 	if len(p.Calls) > prog.MaxCalls {
 		return fmt.Errorf("longer than %d calls", prog.MaxCalls), true
 	}
+	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
+	for _, call := range p.Calls {
+		if call.Props.FailNth > 0 {
+			return fmt.Errorf("input has fail_nth > 0"), true
+		}
+	}
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
 			return nil, true
