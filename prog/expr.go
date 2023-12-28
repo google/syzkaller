@@ -1,0 +1,209 @@
+// Copyright 2023 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package prog
+
+import (
+	"errors"
+	"fmt"
+)
+
+func (bo *BinaryExpression) Evaluate(finder ArgFinder) (uint64, bool) {
+	left, ok := bo.Left.Evaluate(finder)
+	if !ok {
+		return 0, false
+	}
+	right, ok := bo.Right.Evaluate(finder)
+	if !ok {
+		return 0, false
+	}
+	switch bo.Operator {
+	case OperatorCompareEq:
+		if left == right {
+			return 1, true
+		}
+		return 0, true
+	case OperatorCompareNeq:
+		if left != right {
+			return 1, true
+		}
+		return 0, true
+	case OperatorBinaryAnd:
+		return left & right, true
+	}
+	panic(fmt.Sprintf("unknown operator %q", bo.Operator))
+}
+
+func (v *Value) Evaluate(finder ArgFinder) (uint64, bool) {
+	if len(v.Path) == 0 {
+		return v.Value, true
+	}
+	found := finder(v.Path)
+	if found == SquashedArgFound {
+		// This is expectable.
+		return 0, false
+	}
+	if found == nil {
+		panic(fmt.Sprintf("no argument was found by %v", v.Path))
+	}
+	constArg, ok := found.(*ConstArg)
+	if !ok {
+		panic("value expressions must only rely on int fields")
+	}
+	return constArg.Val, true
+}
+
+func argFinderConstructor(t *Target, c *Call) func(*UnionArg) ArgFinder {
+	parentsMap := callParentsMap(c)
+	return func(unionArg *UnionArg) ArgFinder {
+		return func(path []string) Arg {
+			f := t.findArg(unionArg.Option, path, nil, nil, parentsMap, 0)
+			if f == nil {
+				return nil
+			}
+			if f.isAnyPtr {
+				return SquashedArgFound
+			}
+			return f.arg
+		}
+	}
+}
+
+func callParentsMap(c *Call) map[Arg]Arg {
+	parentsMap := map[Arg]Arg{}
+	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+		saveToParentsMap(arg, parentsMap)
+	})
+	return parentsMap
+}
+
+func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, changed bool) {
+	if r.inPatchConditional {
+		return nil, false
+	}
+	r.inPatchConditional = true
+	defer func() { r.inPatchConditional = false }()
+
+	var extraCalls []*Call
+	var anyPatched bool
+	for {
+		replace := map[Arg]Arg{}
+		makeArgFinder := argFinderConstructor(r.target, c)
+		forEachStaleUnion(r.target, c, makeArgFinder,
+			func(unionArg *UnionArg, unionType *UnionType, needIdx int) {
+				newType, newDir := unionType.Fields[needIdx].Type,
+					unionType.Fields[needIdx].Dir(unionArg.Dir())
+				newTypeArg, newCalls := r.generateArg(s, newType, newDir)
+				replace[unionArg] = MakeUnionArg(unionType, newDir, newTypeArg, needIdx)
+				extraCalls = append(extraCalls, newCalls...)
+				anyPatched = true
+			})
+		for old, new := range replace {
+			replaceArg(old, new)
+		}
+		// The newly inserted argument might contain more arguments we need
+		// to patch.
+		// Repeat until we have to change nothing.
+		if len(replace) == 0 {
+			break
+		}
+	}
+	return extraCalls, anyPatched
+}
+
+func forEachStaleUnion(target *Target, c *Call, makeArgFinder func(*UnionArg) ArgFinder,
+	cb func(*UnionArg, *UnionType, int)) {
+	ForeachArg(c, func(arg Arg, argCtx *ArgCtx) {
+		if target.isAnyPtr(arg.Type()) {
+			argCtx.Stop = true
+			return
+		}
+		unionArg, ok := arg.(*UnionArg)
+		if !ok {
+			return
+		}
+		unionType, ok := arg.Type().(*UnionType)
+		if !ok || !unionType.isConditional() {
+			return
+		}
+		argFinder := makeArgFinder(unionArg)
+		needIdx, ok := calculateUnionArg(unionArg, unionType, argFinder)
+		if !ok {
+			// Let it stay as is.
+			return
+		}
+		if unionArg.Index == needIdx {
+			// No changes are needed.
+			return
+		}
+		cb(unionArg, unionType, needIdx)
+		argCtx.Stop = true
+	})
+}
+
+func calculateUnionArg(arg *UnionArg, typ *UnionType, finder ArgFinder) (int, bool) {
+	defaultIdx := typ.defaultField()
+	for i, field := range typ.Fields {
+		if field.Condition == nil {
+			continue
+		}
+		val, ok := field.Condition.Evaluate(finder)
+		if !ok {
+			// We could not calculate the expression.
+			// Let the union stay as it was.
+			return defaultIdx, false
+		}
+		if val != 0 {
+			return i, true
+		}
+	}
+	return defaultIdx, true
+}
+
+func (p *Prog) checkConditions() error {
+	for _, c := range p.Calls {
+		err := c.checkConditions(p.Target)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var ErrViolatedConditions = errors.New("conditional fields rules violation")
+
+func (c *Call) checkConditions(target *Target) error {
+	var ret error
+	makeArgFinder := argFinderConstructor(target, c)
+	forEachStaleUnion(target, c, makeArgFinder,
+		func(a *UnionArg, t *UnionType, need int) {
+			ret = fmt.Errorf("%w union %s field is %s, but %s satisfies conditions",
+				ErrViolatedConditions, t.Name(), t.Fields[a.Index].Name, t.Fields[need].Name)
+		})
+	return ret
+}
+
+func (c *Call) setDefaultConditions(target *Target) bool {
+	var anyReplaced bool
+	// Replace stale conditions with the default values of their correct types.
+	for {
+		replace := map[Arg]Arg{}
+		makeArgFinder := argFinderConstructor(target, c)
+		forEachStaleUnion(target, c, makeArgFinder,
+			func(unionArg *UnionArg, unionType *UnionType, needIdx int) {
+				field := unionType.Fields[needIdx]
+				replace[unionArg] = MakeUnionArg(unionType,
+					unionArg.Dir(),
+					field.DefaultArg(field.Dir(unionArg.Dir())),
+					needIdx)
+			})
+		for old, new := range replace {
+			anyReplaced = true
+			replaceArg(old, new)
+		}
+		if len(replace) == 0 {
+			break
+		}
+	}
+	return anyReplaced
+}

@@ -82,10 +82,16 @@ func (f *Field) Dir(def Dir) Dir {
 	return def
 }
 
+type ArgFinder func(path []string) Arg
+
+// Special case reply of ArgFinder.
+var SquashedArgFound = &DataArg{}
+
 type Expression interface {
 	fmt.GoStringer
 	ForEachValue(func(*Value))
 	Clone() Expression
+	Evaluate(ArgFinder) (uint64, bool)
 }
 
 type BinaryOperator int
@@ -722,13 +728,29 @@ func (t *UnionType) String() string {
 }
 
 func (t *UnionType) DefaultArg(dir Dir) Arg {
-	f := t.Fields[0]
-	return MakeUnionArg(t, dir, f.DefaultArg(f.Dir(dir)), 0)
+	idx := t.defaultField()
+	f := t.Fields[idx]
+	return MakeUnionArg(t, dir, f.DefaultArg(f.Dir(dir)), idx)
+}
+
+func (t *UnionType) defaultField() int {
+	// If it's a conditional union, the last field will be the default value.
+	if t.isConditional() {
+		return len(t.Fields) - 1
+	}
+	// Otherwise, just take the first.
+	return 0
+}
+
+func (t *UnionType) isConditional() bool {
+	// In pkg/compiler, we ensure that either none of the fields have conditions,
+	// or all except the last one.
+	return t.Fields[0].Condition != nil
 }
 
 func (t *UnionType) isDefaultArg(arg Arg) bool {
 	a := arg.(*UnionArg)
-	return a.Index == 0 && isDefault(a.Option)
+	return a.Index == t.defaultField() && isDefault(a.Option)
 }
 
 type ConstValue struct {

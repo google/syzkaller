@@ -51,6 +51,9 @@ compare_data [
 	overlay0	overlay0
 	overlay1	overlay1
 	overlay2	overlay2
+	conditional	conditional_struct
+	conditional2	condition_and_align
+	conditional3	condition_parent_align
 ] [varlen]
 
 flags_with_one_value = 0

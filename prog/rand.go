@@ -27,6 +27,7 @@ type randGen struct {
 	*rand.Rand
 	target             *Target
 	inGenerateResource bool
+	inPatchConditional bool
 	recDepth           map[string]int
 }
 
@@ -598,8 +599,9 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 	}
 	c := MakeCall(meta, nil)
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
+	moreCalls, _ := r.patchConditionalFields(c, s)
 	r.target.assignSizesCall(c)
-	return append(calls, c)
+	return append(append(calls, moreCalls...), c)
 }
 
 // GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
@@ -881,6 +883,11 @@ func (a *StructType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 }
 
 func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	if a.isConditional() {
+		// Conditions may reference other fields that may not have already
+		// been generated. We'll fill them in later.
+		return a.DefaultArg(dir), nil
+	}
 	index := r.Intn(len(a.Fields))
 	optType, optDir := a.Fields[index].Type, a.Fields[index].Dir(dir)
 	opt, calls := r.generateArg(s, optType, optDir)

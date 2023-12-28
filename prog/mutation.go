@@ -198,6 +198,8 @@ func (ctx *mutator) mutateArg() bool {
 			ok = false
 			continue
 		}
+		moreCalls, fieldsPatched := r.patchConditionalFields(c, s)
+		calls = append(calls, moreCalls...)
 		p.insertBefore(c, calls)
 		idx += len(calls)
 		for len(p.Calls) > ctx.ncalls {
@@ -208,7 +210,7 @@ func (ctx *mutator) mutateArg() bool {
 			panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
 				idx, len(calls), len(p.Calls), ctx.ncalls))
 		}
-		if updateSizes {
+		if updateSizes || fieldsPatched {
 			p.Target.assignSizesCall(c)
 		}
 	}

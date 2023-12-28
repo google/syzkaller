@@ -1,0 +1,6 @@
+# requires: bigendian
+
+syz_compare(&AUTO="00ff0000", 0x4, &AUTO=@conditional2={0x0, @void, 0xff}, AUTO)
+syz_compare(&AUTO="01001234ff0000", 0x8, &AUTO=@conditional2={0x1, @value=0x1234, 0xff}, AUTO)
+syz_compare(&AUTO="1100220000330000", 0x8, &AUTO=@conditional3={0x11, {0x0, @void, 0x22}, 0x33}, AUTO)
+syz_compare(&AUTO="1101aabbccdd220000330000", 0xc, &AUTO=@conditional3={0x11, {0x1, @value=0xaabbccdd, 0x22}, 0x33}, AUTO)

@@ -65,6 +65,9 @@ func (ctx *validCtx) validateCall(c *Call) error {
 			return err
 		}
 	}
+	if err := c.checkConditions(ctx.target); err != nil {
+		return err
+	}
 	return ctx.validateRet(c)
 }
 
