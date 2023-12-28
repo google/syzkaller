@@ -69,24 +69,25 @@ func init() {
 //   - latest: latest known good kernel build
 //   - current: currently used kernel build
 type Manager struct {
-	name         string
-	workDir      string
-	kernelDir    string
-	currentDir   string
-	latestDir    string
-	configTag    string
-	configData   []byte
-	cfg          *Config
-	repo         vcs.Repo
-	mgrcfg       *ManagerConfig
-	managercfg   *mgrconfig.Config
-	cmd          *ManagerCmd
-	dash         ManagerDashapi
-	debugStorage bool
-	storage      *asset.Storage
-	stop         chan struct{}
-	debug        bool
-	lastBuild    *dashapi.Build
+	name           string
+	workDir        string
+	kernelBuildDir string
+	kernelSrcDir   string
+	currentDir     string
+	latestDir      string
+	configTag      string
+	configData     []byte
+	cfg            *Config
+	repo           vcs.Repo
+	mgrcfg         *ManagerConfig
+	managercfg     *mgrconfig.Config
+	cmd            *ManagerCmd
+	dash           ManagerDashapi
+	debugStorage   bool
+	storage        *asset.Storage
+	stop           chan struct{}
+	debug          bool
+	lastBuild      *dashapi.Build
 }
 
 type ManagerDashapi interface {
@@ -136,22 +137,23 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 	}
 
 	mgr := &Manager{
-		name:         mgrcfg.managercfg.Name,
-		workDir:      filepath.Join(dir, "workdir"),
-		kernelDir:    path.Join(kernelDir, mgrcfg.KernelSrcSuffix),
-		currentDir:   filepath.Join(dir, "current"),
-		latestDir:    filepath.Join(dir, "latest"),
-		configTag:    hash.String(configData),
-		configData:   configData,
-		cfg:          cfg,
-		repo:         repo,
-		mgrcfg:       mgrcfg,
-		managercfg:   mgrcfg.managercfg,
-		dash:         dash,
-		storage:      assetStorage,
-		debugStorage: !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
-		stop:         stop,
-		debug:        debug,
+		name:           mgrcfg.managercfg.Name,
+		workDir:        filepath.Join(dir, "workdir"),
+		kernelSrcDir:   path.Join(kernelDir, mgrcfg.KernelSrcSuffix),
+		kernelBuildDir: kernelDir,
+		currentDir:     filepath.Join(dir, "current"),
+		latestDir:      filepath.Join(dir, "latest"),
+		configTag:      hash.String(configData),
+		configData:     configData,
+		cfg:            cfg,
+		repo:           repo,
+		mgrcfg:         mgrcfg,
+		managercfg:     mgrcfg.managercfg,
+		dash:           dash,
+		storage:        assetStorage,
+		debugStorage:   !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
+		stop:           stop,
+		debug:          debug,
 	}
 
 	os.RemoveAll(mgr.currentDir)
@@ -334,7 +336,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		TargetOS:     mgr.managercfg.TargetOS,
 		TargetArch:   mgr.managercfg.TargetVMArch,
 		VMType:       mgr.managercfg.Type,
-		KernelDir:    mgr.kernelDir,
+		KernelDir:    mgr.kernelBuildDir,
 		OutputDir:    tmpDir,
 		Compiler:     mgr.mgrcfg.Compiler,
 		Linker:       mgr.mgrcfg.Linker,
@@ -533,7 +535,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	if err := instance.SetConfigImage(mgrcfg, imageDir, true); err != nil {
 		return nil, err
 	}
-	mgrcfg.KernelSrc = mgr.kernelDir
+	mgrcfg.KernelSrc = mgr.kernelSrcDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %w", err)
 	}
@@ -570,7 +572,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// Strictly saying this is somewhat racy as builder can concurrently
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
-	mgrcfg.KernelSrc = mgr.kernelDir
+	mgrcfg.KernelSrc = mgr.kernelSrcDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return "", fmt.Errorf("bad manager config: %w", err)
 	}
