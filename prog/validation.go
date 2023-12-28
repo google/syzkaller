@@ -33,12 +33,12 @@ func (p *Prog) validate() error {
 		args:   make(map[Arg]bool),
 		uses:   make(map[Arg]Arg),
 	}
-	for _, c := range p.Calls {
+	for i, c := range p.Calls {
 		if c.Meta == nil {
 			return fmt.Errorf("call does not have meta information")
 		}
 		if err := ctx.validateCall(c); err != nil {
-			return fmt.Errorf("call %v: %w", c.Meta.Name, err)
+			return fmt.Errorf("call #%d %v: %w", i, c.Meta.Name, err)
 		}
 	}
 	for u, orig := range ctx.uses {
