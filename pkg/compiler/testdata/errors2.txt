@@ -86,14 +86,14 @@ foo$sr0(a ptr[in, use_sr])
 foo$100(a int32, b len[a])
 foo$101(a len[a])		### len target a refers to itself
 foo$102(a ptr[in, len[a, int8]])	### len target a refers to itself
-foo$103(a int32, b len[c])	### len target c does not exist
-foo$104(a len[parent])		### len target parent does not exist
+foo$103(a int32, b len[c])	### len target c does not exist in <foo$103>
+foo$104(a len[parent])		### parent reached the call (foo$104)
 foo$105(a ptr[in, int32], b ptr[in, array[len[a, int32]]])
 foo$106(a int32, b ptr[in, csum[a, inet, int32]])
-foo$107(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist
+foo$107(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist in <foo$107>
 
 s1 {
-	f1	len[s2, int32]	### len target s2 does not exist
+	f1	len[s2, int32]	### len target s2 does not exist in s1
 }
 
 s2 {
@@ -123,12 +123,12 @@ s8 {
 } [align[7]]			###  bad struct s8 alignment 7 (must be a sane power of 2)
 
 u0 [
-	f	len[f1, int32]	### len target f1 does not exist
+	f	len[f1, int32]	### len target f1 does not exist in u0
 ]
 
 u1 [
 	f1	ptr[in, array[int8]]
-	f2	len[f1, int32]	### len target f1 does not exist
+	f2	len[f1, int32]	### len target f1 does not exist in u1
 ]
 
 u2 [
@@ -144,17 +144,17 @@ foo$201(a ptr[in, s1])
 foo$202(a ptr[in, s7])
 foo$203(a u1)
 
-foo$204(a ptr[in, slen1])
+foo$204(a ptr[in, slen1], b ptr[in, no_slen22])
 
 slen1 {
 	f0 len[parent, int32]
-	f1 len[parent:f0, int32]	### parent can't be part of path expressions
-	f2 len[slen21:a, int32]		### len target a does not exist
-	f3 len[f0:parent, int32]	### parent can't be part of path expressions
+	f1 len[parent:f0, int32]
+	f2 len[slen21:a, int32]		### len target a does not exist in slen2
+	f3 len[f0:parent, int32]	### parent may only stay at the beginning (max 2 times)
 	f4 len[slen2:f, int32]		### len path slen2 does not refer to a struct
 	f5 len[slen22:f, int32]		### len path slen22 does not refer to a struct
 	f6 len[syscall, int32]		### no argument name after syscall reference
-	f7 len[syscall:b, int32]	### len target b does not exist
+	f7 len[syscall:c, int32]	### len target c does not exist in <foo$204>
 	f8 offsetof[parent, int32]	### offsetof must refer to fields
 	f9 offsetof[slen1, int32]	### offsetof must refer to fields
 	f10 len[f0:syscall:b, int32]	### syscall can't be in the middle of path expressions
@@ -168,12 +168,21 @@ slen1 {
 slen2 {
 	f	int32
 	f1	slen3
+	f2	len[parent:parent:slen22, int32] ### len target slen22 does not exist in no_slen22
 }
 
 slen3 [
 	a int32
 	b int32
+	c len[parent:parent:parent:x, int32] ### parent may only stay at the beginning (max 2 times)
+	d len[parent:a, int32] ### len target a does not exist in slen3
 ]
+
+no_slen22 {
+	# This one violates the parent:parent:slen22 chain.
+	f slen2
+}
+
 
 # Resource ctor tests.
 

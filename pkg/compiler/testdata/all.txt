@@ -95,6 +95,7 @@ len_expr2 {
 	f23	ptr[in, len_expr4]
 	f24	ptr[in, ptr[in, len_expr4]]
 	f25	len[f21:f31, int32]
+	f26	len_union
 }
 
 len_expr3 {
@@ -111,6 +112,11 @@ len_expr3 {
 len_expr4 {
 	f41	int32
 }
+
+len_union [
+	u1	len[parent:parent:f21:f31, int32]
+	u2	int32
+]
 
 foo_len_expr(a ptr[in, len_expr1], b ptr[in, array[int8, 3]])
 

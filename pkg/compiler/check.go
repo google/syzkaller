@@ -411,7 +411,7 @@ func (comp *compiler) checkLenTargets() {
 		case *ast.Call:
 			for _, arg := range n.Args {
 				checked := make(map[string]bool)
-				parents := []parentDesc{{fields: n.Args}}
+				parents := []parentDesc{{fields: n.Args, call: n.Name.Name}}
 				comp.checkLenType(arg.Type, arg.Type, parents, checked, warned, true)
 			}
 		}
@@ -419,8 +419,16 @@ func (comp *compiler) checkLenTargets() {
 }
 
 type parentDesc struct {
+	call   string
 	name   string
 	fields []*ast.Field
+}
+
+func (pd *parentDesc) String() string {
+	if pd.call != "" {
+		return fmt.Sprintf("<%s>", pd.call)
+	}
+	return pd.name
 }
 
 // templateBase return the part before '[' for full template names.
@@ -442,15 +450,22 @@ func (comp *compiler) checkLenType(t0, t *ast.Type, parents []parentDesc,
 	if desc == typeStruct {
 		s := comp.structs[t.Ident]
 		// Prune recursion, can happen even on correct tree via opt pointers.
-		if checked[s.Name.Name] {
+		// There may be several paths to the same type, let's at least look
+		// at the nearest parent.
+		checkName := s.Name.Name
+		if len(parents) > 1 {
+			checkName = parents[len(parents)-2].name + " " + checkName
+		}
+		if checked[checkName] {
 			return
 		}
-		checked[s.Name.Name] = true
+		checked[checkName] = true
 		fields := s.Fields
 		if s.IsUnion {
 			fields = nil
 		}
 		parentName := parentTargetName(s)
+		parents = append([]parentDesc{}, parents...)
 		parents = append(parents, parentDesc{name: parentName, fields: fields})
 		for _, fld := range s.Fields {
 			comp.checkLenType(fld.Type, fld.Type, parents, checked, warned, false)
@@ -471,9 +486,17 @@ func (comp *compiler) checkLenType(t0, t *ast.Type, parents []parentDesc,
 
 func (comp *compiler) checkLenTarget(arg, t0, t *ast.Type, parents []parentDesc, warned map[string]bool) {
 	targets := append([]*ast.Type{arg}, arg.Colon...)
+	const maxParents = 2
 	for i, target := range targets {
-		if target.Ident == prog.ParentRef && len(targets) != 1 {
-			comp.error(target.Pos, "%v can't be part of path expressions", prog.ParentRef)
+		if target.Ident == prog.ParentRef &&
+			(i >= maxParents || targets[0].Ident != prog.ParentRef) {
+			// It's not a fundamental limitation, but it helps prune recursion in checkLenType().
+			// If we need more, we need to adjust the key of the "checked" map.
+			if !warned[parents[len(parents)-1].name] {
+				comp.error(target.Pos, "%v may only stay at the beginning (max %d times)",
+					prog.ParentRef, maxParents)
+			}
+			warned[parents[len(parents)-1].name] = true
 			return
 		}
 		if target.Ident == prog.SyscallRef {
@@ -487,12 +510,36 @@ func (comp *compiler) checkLenTarget(arg, t0, t *ast.Type, parents []parentDesc,
 			}
 		}
 	}
+	// Drop parents from the prefix (it will simplify further code).
+	droppedParents := 0
+	for len(targets) > 0 && targets[0].Ident == prog.ParentRef {
+		target := targets[0]
+		if parents[len(parents)-1].call != "" {
+			comp.error(target.Pos, "%v reached the call (%v)",
+				prog.ParentRef, parents[0].call)
+			return
+		}
+		droppedParents++
+		targets = targets[1:]
+		// Ignore the first "parent" item.
+		if droppedParents > 1 {
+			if len(parents) < 2 {
+				comp.error(target.Pos, "too many %v elements", prog.ParentRef)
+				return
+			}
+			parents = parents[:len(parents)-1]
+		}
+	}
 	comp.checkLenTargetRec(t0, t, targets, parents, warned)
 }
 
 func (comp *compiler) checkLenTargetRec(t0, t *ast.Type, targets []*ast.Type,
 	parents []parentDesc, warned map[string]bool) {
 	if len(targets) == 0 {
+		if t.Ident == "offsetof" {
+			comp.error(t.Pos, "%v must refer to fields", t.Ident)
+			return
+		}
 		return
 	}
 	target := targets[0]
@@ -537,22 +584,20 @@ func (comp *compiler) checkLenTargetRec(t0, t *ast.Type, targets []*ast.Type,
 	}
 	for pi := len(parents) - 1; pi >= 0; pi-- {
 		parent := parents[pi]
-		if parent.name != "" && (parent.name == target.Ident || target.Ident == prog.ParentRef) ||
+		if parent.name != "" && parent.name == target.Ident ||
 			parent.name == "" && target.Ident == prog.SyscallRef {
-			if len(targets) == 0 {
-				if t.Ident == "offsetof" {
-					comp.error(target.Pos, "%v must refer to fields", t.Ident)
-					return
-				}
-			} else {
-				parents1 := make([]parentDesc, pi+1)
-				copy(parents1, parents[:pi+1])
-				comp.checkLenTargetRec(t0, t, targets, parents1, warned)
-			}
+			parents1 := make([]parentDesc, pi+1)
+			copy(parents1, parents[:pi+1])
+			comp.checkLenTargetRec(t0, t, targets, parents1, warned)
 			return
 		}
 	}
-	comp.error(target.Pos, "%v target %v does not exist", t.Ident, target.Ident)
+	warnKey := parents[len(parents)-1].name + " " + target.Pos.String()
+	if !warned[warnKey] {
+		comp.error(target.Pos, "%v target %v does not exist in %s",
+			t.Ident, target.Ident, parents[len(parents)-1].String())
+	}
+	warned[warnKey] = true
 }
 
 func CollectUnused(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) ([]ast.Node, error) {
