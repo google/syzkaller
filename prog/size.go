@@ -45,26 +45,43 @@ func (target *Target) assignArgSize(arg Arg, args []Arg, fields []Field, parents
 	}
 }
 
-func (target *Target) assignSizeStruct(dst *ConstArg, buf Arg, path []string, parentsMap map[Arg]Arg) {
-	switch arg := buf.(type) {
-	case *GroupArg:
-		typ := arg.Type().(*StructType)
-		target.assignSize(dst, buf, path, arg.Inner, typ.Fields, parentsMap, typ.OverlayField)
-	case *UnionArg:
-		target.assignSize(dst, buf, path, nil, nil, parentsMap, 0)
-	default:
-		panic(fmt.Sprintf("unexpected arg type %v", arg))
+func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []Arg,
+	fields []Field, parentsMap map[Arg]Arg, overlayField int) {
+	found := target.findArg(pos, path, args, fields, parentsMap, overlayField)
+	if found != nil && !found.isAnyPtr {
+		dst.Val = target.computeSize(found.arg, found.offset, dst.Type().(*LenType))
 	}
 }
 
-func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []Arg,
-	fields []Field, parentsMap map[Arg]Arg, overlayField int) {
+type foundArg struct {
+	arg      Arg
+	offset   uint64
+	isAnyPtr bool
+}
+
+func (target *Target) findFieldStruct(buf Arg, path []string, parentsMap map[Arg]Arg) *foundArg {
+	switch arg := buf.(type) {
+	case *GroupArg:
+		typ := arg.Type().(*StructType)
+		return target.findArg(buf, path, arg.Inner, typ.Fields, parentsMap, typ.OverlayField)
+	case *UnionArg:
+		return target.findArg(buf, path, nil, nil, parentsMap, 0)
+	default:
+		panic(fmt.Sprintf("unexpected arg type %#v", arg))
+	}
+}
+
+func (target *Target) findArg(pos Arg, path []string, args []Arg, fields []Field,
+	parentsMap map[Arg]Arg, overlayField int) *foundArg {
 	elem := path[0]
 	path = path[1:]
 	var offset uint64
 	for i, buf := range args {
 		if i == overlayField {
 			offset = 0
+		}
+		if buf == nil {
+			continue
 		}
 		if elem != fields[i].Name {
 			offset += buf.Size()
@@ -74,46 +91,43 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 			// If path points into squashed argument, we don't have the target argument.
 			// In such case we simply leave size argument as is. It can't happen during generation,
 			// only during mutation and mutation can set size to random values, so it should be fine.
-			return
+			return &foundArg{buf, offset, true}
 		}
 		buf = InnerArg(buf)
 		if buf == nil {
-			dst.Val = 0 // target is an optional pointer
-			return
+			return &foundArg{nil, offset, false}
 		}
 		if len(path) != 0 {
-			target.assignSizeStruct(dst, buf, path, parentsMap)
-			return
+			return target.findFieldStruct(buf, path, parentsMap)
 		}
-		dst.Val = target.computeSize(buf, offset, dst.Type().(*LenType))
-		return
+		return &foundArg{buf, offset, false}
 	}
 	if elem == ParentRef {
 		buf := parentsMap[pos]
 		if len(path) != 0 {
-			target.assignSizeStruct(dst, buf, path, parentsMap)
-			return
+			return target.findFieldStruct(buf, path, parentsMap)
 		}
-		dst.Val = target.computeSize(buf, noOffset, dst.Type().(*LenType))
-		return
+		return &foundArg{buf, noOffset, false}
 	}
 	for buf := parentsMap[pos]; buf != nil; buf = parentsMap[buf] {
 		if elem != buf.Type().TemplateName() {
 			continue
 		}
 		if len(path) != 0 {
-			target.assignSizeStruct(dst, buf, path, parentsMap)
-			return
+			return target.findFieldStruct(buf, path, parentsMap)
 		}
-		dst.Val = target.computeSize(buf, noOffset, dst.Type().(*LenType))
-		return
+		return &foundArg{buf, noOffset, false}
 	}
 	var fieldNames []string
 	for _, field := range fields {
 		fieldNames = append(fieldNames, field.Name)
 	}
-	panic(fmt.Sprintf("len field %q references non existent field %q, pos=%q, argsMap: %v, path: %v",
-		dst.Type().Name(), elem, pos.Type().Name(), fieldNames, path))
+	posName := "nil"
+	if pos != nil {
+		posName = pos.Type().Name()
+	}
+	panic(fmt.Sprintf("path references non existent field %q, pos=%q, argsMap: %v, path: %v",
+		elem, posName, fieldNames, path))
 }
 
 const noOffset = ^uint64(0)
@@ -124,6 +138,10 @@ func (target *Target) computeSize(arg Arg, offset uint64, lenType *LenType) uint
 			panic("offset of a non-field")
 		}
 		return offset * 8 / lenType.BitSize
+	}
+	if arg == nil {
+		// For e.g. optional pointers.
+		return 0
 	}
 	bitSize := lenType.BitSize
 	if bitSize == 0 {

@@ -75,6 +75,13 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog))
 		if p.Target.sanitize(c, false) != nil {
 			return
 		}
+		if p.checkConditions() != nil {
+			// Patching unions that no longer satisfy conditions would
+			// require much deeped changes to prog arguments than
+			// generateHints() expects.
+			// Let's just ignore such mutations.
+			return
+		}
 		p.debugValidate()
 		exec(p)
 	}
