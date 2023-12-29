@@ -14,16 +14,16 @@ sendmsg$NL80211_CMD_CONNECT(r0, &AUTO={0x0, 0x0, &AUTO={&AUTO={AUTO, r1, 0x5, 0x
 
 # Inject probe response.
 
-syz_80211_inject_frame(&AUTO=@device_b, &AUTO=@mgmt_frame=@probe_response={@wo_ht={{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0}}, 0x0, @default, 0x1, @val={AUTO, AUTO, @default_ap_ssid}, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0}, {0x12,0x0}, {0x18,0x0}, {0x24,0x0}]}, @void, @void, @void, @void, @void, @void, []}, AUTO)
+syz_80211_inject_frame(&AUTO=@device_b, &AUTO=@mgmt_frame=@probe_response={{{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0}, @void}, 0x0, @default, 0x1, @val={AUTO, AUTO, @default_ap_ssid}, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0}, {0x12,0x0}, {0x18,0x0}, {0x24,0x0}]}, @void, @void, @void, @void, @void, @void, []}, AUTO)
 
 # Wait 50ms and inject auth response.
 
 nanosleep(&AUTO={0x0,0x2FAF080}, &AUTO={0,0})
 
-syz_80211_inject_frame(&AUTO=@device_b, &AUTO=@mgmt_frame=@auth={@wo_ht={{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0x1}}, 0x0, 0x2, 0x0, @void, []}, AUTO)
+syz_80211_inject_frame(&AUTO=@device_b, &AUTO=@mgmt_frame=@auth={{{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0x1}, @void}, 0x0, 0x2, 0x0, @void, []}, AUTO)
 
 # Wait 50ms and inject association response.
 
 nanosleep(&AUTO={0x0,0x2FAF080}, &AUTO={0,0})
 
-syz_80211_inject_frame(&AUTO=@device_b, &AUTO=@mgmt_frame=@assoc_resp={@wo_ht={{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0x2}}, 0x1, 0x0, @default, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0}, {0x12,0x0}, {0x18,0x0}, {0x24,0x0}]}, @void, []}, AUTO)
+syz_80211_inject_frame(&AUTO=@device_b, &AUTO=@mgmt_frame=@assoc_resp={{{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0x2}, @void}, 0x1, 0x0, @default, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0}, {0x12,0x0}, {0x18,0x0}, {0x24,0x0}]}, @void, []}, AUTO)

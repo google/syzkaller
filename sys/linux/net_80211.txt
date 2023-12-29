@@ -203,11 +203,6 @@ type ieee80211_qos_control[A_MSDU] {
 	rest		int8
 } [packed]
 
-type ieee80211_append_qos_control[PAYLOAD, A_MSDU] {
-	payload		PAYLOAD
-	qos_control	ieee80211_qos_control[A_MSDU]
-} [packed]
-
 # Operating Mode field (see sect. 9.4.1.53 of IEEE 802.11-2016).
 ieee80211_operating_mode {
 	channel_width	int8:2
@@ -246,13 +241,8 @@ ieee80211_ht_control [
 	ver_80211n	ieee80211_ht_control_80211n
 ]
 
-type ieee80211_append_ht_control[FRAME] {
-	prefix		FRAME
-	ht_control	ieee80211_ht_control
-} [packed]
-
 # Generic Frame Control field.
-type ieee80211_fc[TO_DS, FROM_DS, TYPE, SUBTYPE, ORDER] {
+type ieee80211_fc[TO_DS, FROM_DS, TYPE, SUBTYPE] {
 	version		const[0, int8:2]
 	type		TYPE
 	subtype		SUBTYPE
@@ -263,7 +253,7 @@ type ieee80211_fc[TO_DS, FROM_DS, TYPE, SUBTYPE, ORDER] {
 	power_mgmt	int8:1
 	more_data	int8:1
 	protected	const[0, int8:1]
-	order		ORDER
+	order		int8:1
 } [packed]
 
 # Control packets use a simpler version of Frame Control.
@@ -448,12 +438,12 @@ type ieee80211_ie_gcr_ga ieee80211_generic_ie_const[WLAN_EID_GCR_GROUP_ADDR, iee
 type ieee80211_ie_preq ieee80211_generic_ie_const[WLAN_EID_PREQ, ieee80211_ie_preq_payload]
 
 # See Figure 9-478 of IEEE 802.11-2016.
-type ieee80211_preq_flags[AE_CONST] {
+ieee80211_preq_flags {
 	gate_anncement	int8:1
 	addr_mode	int8:1
 	proactive_prep	int8:1
 	reserved	const[0, int8:3]
-	ae		const[AE_CONST, int8:1]
+	ae		int8:1
 	reserved_2	const[0, int8:1]
 } [packed]
 
@@ -471,52 +461,42 @@ ieee80211_preq_target {
 	target_sn	int32
 } [packed]
 
-type ieee80211_ie_preq_payload_generic[AE_CONST, ORIGINATOR_TYPE] {
-	flags		ieee80211_preq_flags[AE_CONST]
+ieee80211_ie_preq_payload {
+	flags		ieee80211_preq_flags
 	hop_count	int8
 	ttl		int8
 	discovery_id	int32
 	originator	ieee80211_mac_addr
 	originator_sn	int32
-	originator_ext	ORIGINATOR_TYPE
+	originator_ext	ieee80211_mac_addr	(if[value[flags:ae] == 1])
 	lifetime	int32
 	metric		int32
 	target_count	len[targets, int8]
 	targets		array[ieee80211_preq_target]
 } [packed]
 
-ieee80211_ie_preq_payload [
-	ext	ieee80211_ie_preq_payload_generic[1, ieee80211_mac_addr]
-	not_ext	ieee80211_ie_preq_payload_generic[0, void]
-] [varlen]
-
 # PREP Information Element (see 9.4.2.113 of IEEE 802.11.2016).
 type ieee80211_ie_prep ieee80211_generic_ie_const[WLAN_EID_PREP, ieee80211_ie_prep_payload]
 
 # See Figure 9-481 and Figure 9-483 of IEEE 802.11.2016.
-type ieee80211_ae_flags[AE_CONST] {
+ieee80211_ae_flags {
 	reserved	const[0, int8:6]
-	ae		const[AE_CONST, int8:1]
+	ae		int8:1
 	reserved2	const[0, int8:1]
 } [packed]
 
-type ieee80211_ie_prep_payload_generic[AE_CONST, TARGET_EXT_TYPE] {
-	flags		ieee80211_ae_flags[AE_CONST]
+ieee80211_ie_prep_payload {
+	flags		ieee80211_ae_flags
 	hop_count	int8
 	ttl		int8
 	target_addr	ieee80211_mac_addr
 	target_sn	int32
-	target_ext	TARGET_EXT_TYPE
+	target_ext	ieee80211_mac_addr	(if[value[flags:ae] == 1])
 	lifetime	int32
 	metric		int32
 	originator	ieee80211_mac_addr
 	originator_sn	int32
 } [packed]
-
-ieee80211_ie_prep_payload [
-	ext	ieee80211_ie_prep_payload_generic[1, ieee80211_mac_addr]
-	not_ext	ieee80211_ie_prep_payload_generic[0, void]
-] [varlen]
 
 # PERR Information Element (see 9.4.2.115 of IEEE 802.11.2016).
 type ieee80211_ie_perr ieee80211_generic_ie_const[WLAN_EID_PERR, ieee80211_ie_perr_payload]
@@ -527,18 +507,13 @@ ieee80211_ie_perr_payload {
 	dest_list	array[ieee80211_ie_perr_dest, 0:19]
 } [packed]
 
-type ieee80211_ie_perr_dest_generic[AE_CONST, DEST_EXT_TYPE] {
-	flags		ieee80211_ae_flags[AE_CONST]
+ieee80211_ie_perr_dest {
+	flags		ieee80211_ae_flags
 	dest_addr	ieee80211_mac_addr
 	dest_sn		int32
-	dest_ext	DEST_EXT_TYPE
+	dest_ext	ieee80211_mac_addr	(if[value[flags:ae] == 1])
 	reason		ieee80211_reason_code[int16]
 } [packed]
-
-ieee80211_ie_perr_dest [
-	ext	ieee80211_ie_perr_dest_generic[1, ieee80211_mac_addr]
-	not_ext	ieee80211_ie_perr_dest_generic[0, void]
-] [varlen]
 
 # RANN Information Element (see 9.4.2.112 of IEEE 802.11-2016).
 type ieee80211_ie_rann ieee80211_generic_ie_const[WLAN_EID_RANN, ieee80211_ie_rann_payload]
@@ -613,49 +588,44 @@ ieee80211_ie [
 # Specific 802.11 data frame headers determined by to_ds and from_ds values.
 # See Table 26 of IEEE 802.11-2016.
 
-type ieee80211_data_gen_hdr[TO, FROM, SUBTYPE, ORDER, ADDR_1, ADDR_2, ADDR_3, ADDR_4] {
-	fc		ieee80211_fc[TO, FROM, const[IEEE80211_DATA_FRAME_TYPE, int8:2], SUBTYPE, ORDER]
+type ieee80211_data_gen_hdr[TO, FROM, ADDR_1, ADDR_2, ADDR_3, ADDR_4, A_MSDU] {
+	fc		ieee80211_fc[TO, FROM, const[IEEE80211_DATA_FRAME_TYPE, int8:2], int8:4]
 	duration	ieee80211_duration
 	addr_1		ADDR_1
 	addr_2		ADDR_2
 	addr_3		ADDR_3
 	seqno		ieee80211_seq_control
 	addr_4		ADDR_4
+	qos		ieee80211_qos_control[A_MSDU]	(if[value[fc:subtype] & 0x8])
+# It can be somewhat more nuanced, but for data frames it should work.
+	ht		ieee80211_ht_control	(if[value[fc:order] == 1])
 } [packed]
 
-type ieee80211_msdu_header[SUBTYPE, ORDER] [
+ieee80211_msdu_header [
 # 00: RA = DA, TA = SA, BSSID
-	type00	ieee80211_data_gen_hdr[0, 0, SUBTYPE, ORDER, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_bssid, void]
+	type00	ieee80211_data_gen_hdr[0, 0, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_bssid, void, 0]
 # 01: RA = DA, TA = BSSID, SA
-	type01	ieee80211_data_gen_hdr[0, 1, SUBTYPE, ORDER, ieee80211_mac_addr, ieee80211_bssid, ieee80211_mac_addr, void]
+	type01	ieee80211_data_gen_hdr[0, 1, ieee80211_mac_addr, ieee80211_bssid, ieee80211_mac_addr, void, 0]
 # 10: RA = BSSID, TA = SA, DA
-	type10	ieee80211_data_gen_hdr[1, 0, SUBTYPE, ORDER, ieee80211_bssid, ieee80211_mac_addr, ieee80211_mac_addr, void]
+	type10	ieee80211_data_gen_hdr[1, 0, ieee80211_bssid, ieee80211_mac_addr, ieee80211_mac_addr, void, 0]
 # 11: RA, TA, DA, SA
-	type11	ieee80211_data_gen_hdr[1, 1, SUBTYPE, ORDER, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_mac_addr]
+	type11	ieee80211_data_gen_hdr[1, 1, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_mac_addr, 0]
 ] [varlen]
 
-type ieee80211_a_msdu_header[SUBTYPE, ORDER] [
+ieee80211_a_msdu_header [
 # 00: RA = DA, TA = SA, BSSID
-	type00	ieee80211_data_gen_hdr[0, 0, SUBTYPE, ORDER, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_bssid, void]
+	type00	ieee80211_data_gen_hdr[0, 0, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_bssid, void, 1]
 # 01: RA = DA, TA = BSSID, BSSID
-	type01	ieee80211_data_gen_hdr[0, 1, SUBTYPE, ORDER, ieee80211_mac_addr, ieee80211_bssid, ieee80211_bssid, void]
+	type01	ieee80211_data_gen_hdr[0, 1, ieee80211_mac_addr, ieee80211_bssid, ieee80211_bssid, void, 1]
 # 10: RA = BSSID, TA = SA, BSSID
-	type10	ieee80211_data_gen_hdr[1, 0, SUBTYPE, ORDER, ieee80211_bssid, ieee80211_mac_addr, ieee80211_bssid, void]
+	type10	ieee80211_data_gen_hdr[1, 0, ieee80211_bssid, ieee80211_mac_addr, ieee80211_bssid, void, 1]
 # 11: RA, TA, BSSID, SA
-	type11	ieee80211_data_gen_hdr[1, 1, SUBTYPE, ORDER, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_bssid, ieee80211_mac_addr]
+	type11	ieee80211_data_gen_hdr[1, 1, ieee80211_mac_addr, ieee80211_mac_addr, ieee80211_bssid, ieee80211_mac_addr, 1]
 ] [varlen]
-
-type ieee80211_data_frame_no_qos_hdr ieee80211_msdu_header[int8:4[0x0:0x7], int8:1]
-
-type ieee80211_data_frame_qos_hdr[ORDER] {
-	msdu	ieee80211_append_qos_control[ieee80211_msdu_header[int8:4[0x8:0xf], ORDER], 0x0]
-	a_msdu	ieee80211_append_qos_control[ieee80211_a_msdu_header[int8:4[0x8:0xf], ORDER], 0x1]
-} [packed]
 
 ieee80211_data_frame_hdr [
-	no_qos		ieee80211_data_frame_no_qos_hdr
-	qos_no_ht	ieee80211_data_frame_qos_hdr[const[0, int8:1]]
-	qos_ht		ieee80211_append_ht_control[ieee80211_data_frame_qos_hdr[const[0x1, int8:1]]]
+	msdu	ieee80211_msdu_header
+	a_msdu	ieee80211_a_msdu_header
 ] [varlen]
 
 ieee80211_a_msdu_subframe {
@@ -667,6 +637,7 @@ ieee80211_a_msdu_subframe {
 
 ieee80211_data_frame_payload [
 	random	array[int8, 0:IEEE80211_MAX_DATA_LEN]
+# TODO: here it could have helped to reference conditional fields in if[].
 	a_msdu	array[ieee80211_a_msdu_subframe]
 ] [varlen]
 
@@ -693,19 +664,15 @@ define IEEE80211_MGMT_FRAME_DEAUTH	(IEEE80211_STYPE_DEAUTH >> 4)
 define IEEE80211_MGMT_FRAME_ACTION	(IEEE80211_STYPE_ACTION >> 4)
 define IEEE80211_MGMT_FRAME_ACTION_NOACK	((IEEE80211_STYPE_ACTION >> 4) + 1)
 
-type ieee80211_pre_mgmt_header[SUBTYPE_CONST, ORDER_CONST] {
-	fc		ieee80211_fc[0, 0, const[IEEE80211_MGMT_FRAME_TYPE, int8:2], const[SUBTYPE_CONST, int8:4], const[ORDER_CONST, int8:1]]
+type ieee80211_mgmt_header[SUBTYPE_CONST] {
+	fc		ieee80211_fc[0, 0, const[IEEE80211_MGMT_FRAME_TYPE, int8:2], const[SUBTYPE_CONST, int8:4]]
 	duration	ieee80211_duration
 	addr_1		ieee80211_mac_addr
 	addr_2		ieee80211_mac_addr
 	addr_3		ieee80211_bssid
 	seqno		ieee80211_seq_control
+	ht		ieee80211_ht_control	(if[value[fc:order] == 1])
 } [packed]
-
-type ieee80211_mgmt_header[SUBTYPE_CONST] [
-	wo_ht	ieee80211_pre_mgmt_header[SUBTYPE_CONST, 0x0]
-	with_ht	ieee80211_append_ht_control[ieee80211_pre_mgmt_header[SUBTYPE_CONST, 0x1]]
-] [varlen]
 
 # Beacon frame (see Table 9-27 of IEEE 802.11-2016).
 ieee80211_mgmt_beacon {
