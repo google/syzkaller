@@ -37,7 +37,6 @@ openat$vicodec1(fd const[AT_FDCWD], file ptr[in, string["/dev/video37"]], flags 
 syz_open_dev$swradio(dev ptr[in, string["/dev/swradio#"]], id proc[0, 2], flags const[O_RDWR]) fd_video
 syz_open_dev$radio(dev ptr[in, string["/dev/radio#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
 syz_open_dev$vbi(dev ptr[in, string["/dev/vbi#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
-syz_open_dev$cec(dev ptr[in, string["/dev/cec#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
 
 ioctl$VIDIOC_QUERYCAP(fd fd_video, cmd const[VIDIOC_QUERYCAP], arg ptr[out, v4l2_capability])
 ioctl$VIDIOC_ENUM_FMT(fd fd_video, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4l2_fmtdesc[v4l2_buf_type]])
