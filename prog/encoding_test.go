@@ -226,12 +226,12 @@ func TestDeserialize(t *testing.T) {
 		{
 			In:        `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
 			Out:       `test$type_confusion1(&(0x7f0000000000))`,
-			StrictErr: "wrong union option",
+			StrictErr: `wrong option "unknown" of union "type_confusion", available options are: "f1"`,
 		},
 		{
 			In:        `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
 			Out:       `test$type_confusion1(&(0x7f0000000000))`,
-			StrictErr: "wrong union option",
+			StrictErr: `wrong option "unknown" of union "type_confusion", available options are: "f1"`,
 		},
 		{
 			In:        `test$excessive_fields1(&(0x7f0000000000)=0x0)`,

@@ -747,6 +747,7 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	var (
 		optType Type
 		optDir  Dir
+		options []string
 	)
 	index := -1
 	for i, field := range t1.Fields {
@@ -754,9 +755,11 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 			optType, index, optDir = field.Type, i, field.Dir(dir)
 			break
 		}
+		options = append(options, fmt.Sprintf("%q", field.Name))
 	}
 	if optType == nil {
-		p.eatExcessive(true, "wrong union option")
+		p.eatExcessive(true, "wrong option %q of union %q, available options are: %s",
+			name, typ.Name(), strings.Join(options, ", "))
 		return typ.DefaultArg(dir), nil
 	}
 	var opt Arg
