@@ -25,6 +25,8 @@ import (
 // to select a subset of tests to run.
 var flagFilter = flag.String("filter", "", "prefix to match test file names")
 
+var flagDebug = flag.Bool("debug", false, "include debug output from the executor")
+
 func Test(t *testing.T) {
 	switch runtime.GOOS {
 	case targets.OpenBSD:
@@ -97,6 +99,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		},
 		Retries: 7, // empirical number that seem to reduce flakes to zero
 		Verbose: true,
+		Debug:   *flagDebug,
 	}
 	if err := ctx.Run(); err != nil {
 		t.Fatal(err)
