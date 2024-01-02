@@ -457,7 +457,7 @@ func (p *parser) parseArgImpl(typ Type, dir Dir) (Arg, error) {
 		return p.parseAuto(typ, dir)
 	default:
 		return nil, fmt.Errorf("failed to parse argument at '%c' (line #%v/%v: %v)",
-			p.Char(), p.l, p.i, p.s)
+			p.Char(), p.l, p.i, highlightError(p.s, p.i))
 	}
 }
 
@@ -1261,7 +1261,8 @@ func (p *parser) Ident() string {
 
 func (p *parser) failf(msg string, args ...interface{}) {
 	if p.e == nil {
-		p.e = fmt.Errorf("%v\nline #%v:%v: %v", fmt.Sprintf(msg, args...), p.l, p.i, p.s)
+		p.e = fmt.Errorf("%v\nline #%v:%v: %v", fmt.Sprintf(msg, args...), p.l, p.i,
+			highlightError(p.s, p.i))
 	}
 }
 
@@ -1310,4 +1311,8 @@ func CallSet(data []byte) (map[string]struct{}, int, error) {
 		return nil, 0, fmt.Errorf("program does not contain any calls")
 	}
 	return calls, ncalls, nil
+}
+
+func highlightError(s string, offset int) string {
+	return s[:offset] + "<<<!!ERROR!!>>>" + s[offset:]
 }
