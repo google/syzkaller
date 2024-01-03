@@ -53,28 +53,17 @@ func (v *Value) Evaluate(finder ArgFinder) (uint64, bool) {
 	return constArg.Val, true
 }
 
-func argFinderConstructor(t *Target, c *Call) func(*UnionArg) ArgFinder {
-	parentsMap := callParentsMap(c)
-	return func(unionArg *UnionArg) ArgFinder {
-		return func(path []string) Arg {
-			f := t.findArg(unionArg.Option, path, nil, nil, parentsMap, 0)
-			if f == nil {
-				return nil
-			}
-			if f.isAnyPtr {
-				return SquashedArgFound
-			}
-			return f.arg
+func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) ArgFinder {
+	return func(path []string) Arg {
+		f := t.findArg(unionArg.Option, path, nil, nil, parents, 0)
+		if f == nil {
+			return nil
 		}
+		if f.isAnyPtr {
+			return SquashedArgFound
+		}
+		return f.arg
 	}
-}
-
-func callParentsMap(c *Call) map[Arg]Arg {
-	parentsMap := map[Arg]Arg{}
-	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
-		saveToParentsMap(arg, parentsMap)
-	})
-	return parentsMap
 }
 
 func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, changed bool) {
@@ -88,8 +77,7 @@ func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, chan
 	var anyPatched bool
 	for {
 		replace := map[Arg]Arg{}
-		makeArgFinder := argFinderConstructor(r.target, c)
-		forEachStaleUnion(r.target, c, makeArgFinder,
+		forEachStaleUnion(r.target, c,
 			func(unionArg *UnionArg, unionType *UnionType, okIndices []int) {
 				idx := okIndices[r.Intn(len(okIndices))]
 				newType, newDir := unionType.Fields[idx].Type,
@@ -112,39 +100,40 @@ func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, chan
 	return extraCalls, anyPatched
 }
 
-func forEachStaleUnion(target *Target, c *Call, makeArgFinder func(*UnionArg) ArgFinder,
-	cb func(*UnionArg, *UnionType, []int)) {
-	ForeachArg(c, func(arg Arg, argCtx *ArgCtx) {
-		if target.isAnyPtr(arg.Type()) {
-			argCtx.Stop = true
-			return
-		}
-		unionArg, ok := arg.(*UnionArg)
-		if !ok {
-			return
-		}
-		unionType, ok := arg.Type().(*UnionType)
-		if !ok || !unionType.isConditional() {
-			return
-		}
-		argFinder := makeArgFinder(unionArg)
-		ok, calculated := checkUnionArg(unionArg.Index, unionType, argFinder)
-		if !calculated {
-			// Let it stay as is.
-			return
-		}
-		if !unionArg.transient && ok {
-			return
-		}
-		matchingIndices := matchingUnionArgs(unionType, argFinder)
-		if len(matchingIndices) == 0 {
-			// Conditional fields are transformed in such a way
-			// that one field always matches.
-			// For unions we demand that there's a field w/o conditions.
-			panic(fmt.Sprintf("no matching union fields: %#v", unionType))
-		}
-		cb(unionArg, unionType, matchingIndices)
-	})
+func forEachStaleUnion(target *Target, c *Call, cb func(*UnionArg, *UnionType, []int)) {
+	for _, callArg := range c.Args {
+		foreachSubArgWithStack(callArg, func(arg Arg, argCtx *ArgCtx) {
+			if target.isAnyPtr(arg.Type()) {
+				argCtx.Stop = true
+				return
+			}
+			unionArg, ok := arg.(*UnionArg)
+			if !ok {
+				return
+			}
+			unionType, ok := arg.Type().(*UnionType)
+			if !ok || !unionType.isConditional() {
+				return
+			}
+			argFinder := makeArgFinder(target, c, unionArg, argCtx.parentStack)
+			ok, calculated := checkUnionArg(unionArg.Index, unionType, argFinder)
+			if !calculated {
+				// Let it stay as is.
+				return
+			}
+			if !unionArg.transient && ok {
+				return
+			}
+			matchingIndices := matchingUnionArgs(unionType, argFinder)
+			if len(matchingIndices) == 0 {
+				// Conditional fields are transformed in such a way
+				// that one field always matches.
+				// For unions we demand that there's a field w/o conditions.
+				panic(fmt.Sprintf("no matching union fields: %#v", unionType))
+			}
+			cb(unionArg, unionType, matchingIndices)
+		})
+	}
 }
 
 func checkUnionArg(idx int, typ *UnionType, finder ArgFinder) (ok, calculated bool) {
@@ -186,9 +175,7 @@ var ErrViolatedConditions = errors.New("conditional fields rules violation")
 
 func (c *Call) checkConditions(target *Target, ignoreTransient bool) error {
 	var ret error
-
-	makeArgFinder := argFinderConstructor(target, c)
-	forEachStaleUnion(target, c, makeArgFinder,
+	forEachStaleUnion(target, c,
 		func(a *UnionArg, t *UnionType, okIndices []int) {
 			if ignoreTransient && a.transient {
 				return
@@ -205,8 +192,7 @@ func (c *Call) setDefaultConditions(target *Target, transientOnly bool) bool {
 	// Replace stale conditions with the default values of their correct types.
 	for {
 		replace := map[Arg]Arg{}
-		makeArgFinder := argFinderConstructor(target, c)
-		forEachStaleUnion(target, c, makeArgFinder,
+		forEachStaleUnion(target, c,
 			func(unionArg *UnionArg, unionType *UnionType, okIndices []int) {
 				if transientOnly && !unionArg.transient {
 					return
