@@ -425,6 +425,7 @@ func (inst *instance) Close() {
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
 	inst.monport = vmimpl.UnusedTCPPort()
+	instanceName := fmt.Sprintf("VM-%v", inst.index)
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
@@ -433,16 +434,22 @@ func (inst *instance) boot() error {
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
-		"-name", fmt.Sprintf("VM-%v", inst.index),
+		"-name", instanceName,
 	}
 	if inst.archConfig.RngDev != "" {
 		args = append(args, "-device", inst.archConfig.RngDev)
 	}
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
+
+	forwardedPort := vmimpl.UnusedTCPPort()
+	pprofExt := fmt.Sprintf(",hostfwd=tcp::%v-:%v", forwardedPort, vmimpl.PprofPort)
+	log.Logf(3, "instance %s's pprof is available at 127.0.0.1:%v", instanceName, forwardedPort)
+
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
-		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.port))
+		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22%s", inst.port, pprofExt),
+	)
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
