@@ -155,11 +155,13 @@ func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
 				totalSize = ctx.Offset - ctx0.Offset
 			}
 		}
-		claimedSize := a.Size()
-		varlen := a.Type().Varlen()
-		if varlen && totalSize > claimedSize || !varlen && totalSize != claimedSize {
-			panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %#v type %#v",
-				totalSize, claimedSize, a, a.Type().Name()))
+		if debug {
+			claimedSize := a.Size()
+			varlen := a.Type().Varlen()
+			if varlen && totalSize > claimedSize || !varlen && totalSize != claimedSize {
+				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %#v type %#v",
+					totalSize, claimedSize, a, a.Type().Name()))
+			}
 		}
 	case *PointerArg:
 		if a.Res != nil {
