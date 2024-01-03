@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -28,6 +30,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 type Fuzzer struct {
@@ -192,6 +195,14 @@ func main() {
 		<-shutdown
 		log.Logf(0, "SYZ-FUZZER: PREEMPTED")
 		os.Exit(1)
+	}()
+
+	// Necessary for pprof handlers.
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", vmimpl.PprofPort), nil)
+		if err != nil {
+			log.SyzFatalf("failed to setup a server: %v", err)
+		}
 	}()
 
 	checkArgs := &checkArgs{

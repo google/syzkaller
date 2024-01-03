@@ -186,6 +186,9 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 	return merger.Output, errc, nil
 }
 
+// On VMs, pprof will be listening to this port.
+const PprofPort = 6060
+
 func RandomPort() int {
 	n, err := rand.Int(rand.Reader, big.NewInt(64<<10-1<<10))
 	if err != nil {
