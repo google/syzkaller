@@ -73,7 +73,7 @@ type mac_addr_mask array[flags[mac_addr_mask_vals, int8], 6]
 mac_addr_mask_vals = 0, 0xff
 
 vlan_tag_ad {
-	tpid	const[ETH_P_QINQ1, int16be]
+	tpid	const[ETH_P_8021AD, int16be]
 	pcp	int16:3
 	dei	int16:1
 	vid	int16:12[0:4]
