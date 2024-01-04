@@ -137,7 +137,7 @@ Structs are described as:
 
 ```
 structname "{" "\n"
-	(fieldname type ("(" fieldattribute* ")")? "\n")+
+	(fieldname type ("(" fieldattribute* ")")? (if[expression])? "\n")+
 "}" ("[" attribute* "]")?
 ```
 
@@ -151,6 +151,18 @@ foo {
 	field2	fd		(out)
 }
 ```
+
+You may specify conditions that determine whether a field will be included:
+
+```
+foo {
+	field0	int32
+	field1	int32 (if[value[field0] == 0x1])
+}
+```
+
+See [the corresponding section](syscall_descriptions_syntax.md#conditional-fields)
+for more details.
 
 `out_overlay` attribute allows to have separate input and output layouts for the struct.
 Fields before the `out_overlay` field are input, fields starting from `out_overlay` are output.
@@ -167,7 +179,6 @@ foo {
 }
 ```
 
-
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:
 
@@ -181,9 +192,16 @@ Unions are described as:
 
 ```
 unionname "[" "\n"
-	(fieldname type "\n")+
+	(fieldname type (if[expression])? "\n")+
 "]" ("[" attribute* "]")?
 ```
+
+During fuzzing, syzkaller randomly picks one of the union options.
+
+You may also specify conditions that determine whether the corresponding
+option may or may not be selected, depending on values of other fields. See
+[the corresponding section](syscall_descriptions_syntax.md#conditional-fields)
+for more details.
 
 Unions can have attributes specified in square brackets after the union.
 Attributes are:
@@ -403,6 +421,173 @@ foo(a const[PATH_MAX])
 foo(a int32[PATH_MAX])
 foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
+```
+
+## Conditional fields
+
+### In structures
+
+In syzlang, it's possible to specify a condition for every struct field that
+determines whether the field should be included or omitted:
+
+```
+header_fields {
+  magic       const[0xabcd, int16]
+  haveInteger int8
+} [packed]
+
+packet {
+  header  header_fields
+  integer int64  (if[value[header:haveInteger] == 0x1])
+  body    array[int8]
+} [packed]
+
+some_call(a ptr[in, packet])
+```
+
+In this example, the `packet` structure will include the field `integer` only
+if `header.haveInteger == 1`. In memory, `packet` will have the following
+layout:
+
+| header_files.magic = 0xabcd | header_files.haveInteger = 0x1 | integer | body |
+| - | - | - | - |
+
+
+That corresponds to e.g. the following program:
+```
+some_call(&AUTO={{AUTO, 0x1}, @value=0xabcd, []})
+```
+
+If `header.haveInteger` is not `1`, syzkaller will just pretend that the field
+`integer` does not exist.
+```
+some_call(&AUTO={{AUTO, 0x0}, @void, []})
+```
+
+| header_files.magic = 0xabcd | header_files.haveInteger = 0x0 | body |
+| - | - | - |
+
+Every conditional field is assumed to be of variable length and so is the struct
+to which this field belongs.
+
+When a variable length field appears in the middle of a structure, the structure
+must be marked with `[packed].`
+
+Conditions on bitfields are prohibited:
+```
+struct {
+  f0 int
+  f1 int:3 (if[value[f0] == 0x1])  # It will not compile.
+}
+```
+
+But you may reference bitfields in your conditions:
+```
+struct {
+  f0 int:1
+  f1 int:7
+  f2 int   (if[value[f0] == value[f1]])
+} [packed]
+```
+
+### In unions
+
+Let's consider the following example.
+
+```
+struct {
+  type int
+  body alternatives
+}
+
+alternatives [
+  int     int64 (if[value[struct:type] == 0x1])
+  arr     array[int64, 5] (if[value[struct:type] == 0x2])
+  default int32
+] [varlen]
+
+some_call(a ptr[in, struct])
+```
+
+In this case, the union option will be selected depending on the value of the
+`type` field. For example, if `type` is `0x1`, then it can be either `int` or
+`default`:
+```
+some_call(&AUTO={0x1, @int=0x123})
+some_call(&AUTO={0x1, @default=0x123})
+```
+
+If `type` is `0x2`, it can be either `arr` or `default`.
+
+If `type` is neither `0x1` nor `0x2`, syzkaller may only select `default`:
+```
+some_call(&AUTO={0x0, @default=0xabcd})
+```
+
+To ensure that a union can always be constructed, the last union field **must always
+have no condition**.
+
+Thus, the following definition would fail to compile:
+
+```
+alternatives [
+  int int64 (if[value[struct:type] == 0x1])
+  arr array[int64, 5] (if[value[struct:type] == 0x1])
+] [varlen]
+```
+
+During prog mutation and generation syzkaller will select a random union field
+whose condition is satisfied.
+
+
+### Expression syntax
+
+Currently, only `==`, `!=` and `&` operators are supported. However, the
+functionality was designed in such a way that adding more operators is easy.
+Feel free to file a GitHub issue or write us an email in case it's needed.
+
+Expressions are evaluated as `int64` values. If the final result of an
+expression is not 0, it's assumed to be satisfied.
+
+If you want to reference a field's value, you can do it via
+`value[path:to:field]`, which is similar to the `len[]` argument.
+
+```
+sub_struct {
+  f0 int
+  # Reference a field in a parent struct.
+  f1 int (if[value[struct:f2]]) # Same as if[value[struct:f2] != 0]].
+}
+
+struct {
+  f2 int
+  f3 sub_struct
+  f4 int (if[value[f2] == 0x2]) # Reference a sibling field.
+  f5 int (if[value[f3:f0] == 0x1]) # Reference a nested field.
+} [packed]
+
+call(a ptr[in, struct])
+```
+
+The referenced field must be of integer type and there must be no
+conditional fields in the path to it. For example, the following
+descriptions will not compile.
+
+```
+struct {
+  f0 int
+  f1 int (if[value[f0] == 0x1])
+  f2 int (if[value[f1] == 0x1])
+}
+```
+
+You may also reference constants in expressions:
+```
+struct {
+  f0 int
+  f1 int
+  f2 int (if[value[f0] & SOME_CONST == OTHER_CONST])
+}
 ```
 
 ## Meta
