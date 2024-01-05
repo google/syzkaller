@@ -188,6 +188,10 @@ static uint64 syscall_timeout_ms;
 static uint64 program_timeout_ms;
 static uint64 slowdown_scale;
 
+// Can be used to disginguish whether we're at the initialization stage
+// or we already execute programs.
+static bool in_execute_one = false;
+
 #define SYZ_EXECUTOR 1
 #include "common.h"
 
@@ -748,6 +752,7 @@ void realloc_output_data()
 // execute_one executes program stored in input_data.
 void execute_one()
 {
+	in_execute_one = true;
 #if SYZ_EXECUTOR_USES_SHMEM
 	realloc_output_data();
 	output_pos = output_data;

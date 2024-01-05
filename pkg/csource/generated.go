@@ -2909,6 +2909,11 @@ static void find_vf_interface(void)
 static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 			    uint16 reply_type, int* reply_len, bool dofail)
 {
+#if SYZ_EXECUTOR
+	if (in_execute_one && dofail) {
+		failmsg("invalid netlink_send_ext arguments", "dofail is true during syscall execution");
+	}
+#endif
 	if (nlmsg->pos > nlmsg->buf + sizeof(nlmsg->buf) || nlmsg->nesting)
 		fail("nlmsg overflow/bad nesting");
 	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg->buf;
