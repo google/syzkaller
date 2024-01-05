@@ -28,6 +28,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/sync/semaphore"
 )
 
 type Fuzzer struct {
@@ -66,6 +67,9 @@ type Fuzzer struct {
 
 	checkResult *rpctype.CheckArgs
 	logMu       sync.Mutex
+
+	// Let's limit the number of concurrent NewInput requests.
+	newInputSem *semaphore.Weighted
 }
 
 type FuzzerSnapshot struct {
@@ -141,6 +145,13 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 		config.Flags |= ipc.FlagEnableWifi
 	}
 }
+
+// Gate size controls how deep in the log the last executed by every proc
+// program may be. The intent is to make sure that, given the output log,
+// we always understand what was happening.
+// Judging by the logs collected on syzbot, 32 should be a reasonable figure.
+// It coincides with prog.MaxPids.
+const gateSize = prog.MaxPids
 
 // nolint: funlen
 func main() {
@@ -280,9 +291,10 @@ func main() {
 		fetchRawCover:            *flagRawCover,
 		noMutate:                 r.NoMutateCalls,
 		stats:                    make([]uint64, StatCount),
+		newInputSem:              semaphore.NewWeighted(int64(2 * *flagProcs)),
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
-	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
+	fuzzer.gate = ipc.NewGate(gateSize, gateCallback)
 
 	for needCandidates, more := true, true; more; needCandidates = false {
 		more = fuzzer.poll(needCandidates, nil)
