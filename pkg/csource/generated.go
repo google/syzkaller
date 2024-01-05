@@ -2963,8 +2963,7 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	return -errno;
 }
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
-    __NR_syz_80211_join_ibss || __NR_syz_80211_inject_frame
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154
 static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
 	return netlink_send_ext(nlmsg, sock, 0, NULL, true);
@@ -3575,7 +3574,8 @@ static int set_interface_state(const char* interface_name, int on)
 	return 0;
 }
 
-static int nl80211_set_interface(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex, uint32 iftype)
+static int nl80211_set_interface(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex,
+				 uint32 iftype, bool dofail)
 {
 	struct genlmsghdr genlhdr;
 
@@ -3584,14 +3584,15 @@ static int nl80211_set_interface(struct nlmsg* nlmsg, int sock, int nl80211_fami
 	netlink_init(nlmsg, nl80211_family, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(nlmsg, NL80211_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
 	netlink_attr(nlmsg, NL80211_ATTR_IFTYPE, &iftype, sizeof(iftype));
-	int err = netlink_send(nlmsg, sock);
+	int err = netlink_send_ext(nlmsg, sock, 0, NULL, dofail);
 	if (err < 0) {
 		debug("nl80211_set_interface failed: %s\n", strerror(errno));
 	}
 	return err;
 }
 
-static int nl80211_join_ibss(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex, struct join_ibss_props* props)
+static int nl80211_join_ibss(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex,
+			     struct join_ibss_props* props, bool dofail)
 {
 	struct genlmsghdr genlhdr;
 
@@ -3605,14 +3606,14 @@ static int nl80211_join_ibss(struct nlmsg* nlmsg, int sock, int nl80211_family, 
 		netlink_attr(nlmsg, NL80211_ATTR_MAC, props->mac, ETH_ALEN);
 	if (props->wiphy_freq_fixed)
 		netlink_attr(nlmsg, NL80211_ATTR_FREQ_FIXED, NULL, 0);
-	int err = netlink_send(nlmsg, sock);
+	int err = netlink_send_ext(nlmsg, sock, 0, NULL, dofail);
 	if (err < 0) {
 		debug("nl80211_join_ibss failed: %s\n", strerror(errno));
 	}
 	return err;
 }
 
-static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex)
+static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex, bool dofail)
 {
 	struct ifinfomsg info;
 	memset(&info, 0, sizeof(info));
@@ -3627,7 +3628,7 @@ static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex)
 
 	netlink_init(nlmsg, RTM_GETLINK, 0, &info, sizeof(info));
 	int n;
-	int err = netlink_send_ext(nlmsg, sock, RTM_NEWLINK, &n, true);
+	int err = netlink_send_ext(nlmsg, sock, RTM_NEWLINK, &n, dofail);
 	close(sock);
 
 	if (err) {
@@ -3644,12 +3645,12 @@ static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex)
 	return -1;
 }
 
-static int await_ifla_operstate(struct nlmsg* nlmsg, char* interface, int operstate)
+static int await_ifla_operstate(struct nlmsg* nlmsg, char* interface, int operstate, bool dofail)
 {
 	int ifindex = if_nametoindex(interface);
 	while (true) {
 		usleep(1000);
-		int ret = get_ifla_operstate(nlmsg, ifindex);
+		int ret = get_ifla_operstate(nlmsg, ifindex, dofail);
 		if (ret < 0)
 			return ret;
 		if (ret == operstate)
@@ -3658,7 +3659,8 @@ static int await_ifla_operstate(struct nlmsg* nlmsg, char* interface, int operst
 	return 0;
 }
 
-static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl80211_family_id, char* interface, struct join_ibss_props* ibss_props)
+static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl80211_family_id, char* interface,
+					struct join_ibss_props* ibss_props, bool dofail)
 {
 	int ifindex = if_nametoindex(interface);
 	if (ifindex == 0) {
@@ -3666,7 +3668,7 @@ static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl802
 		return -1;
 	}
 
-	int ret = nl80211_set_interface(nlmsg, sock, nl80211_family_id, ifindex, NL80211_IFTYPE_ADHOC);
+	int ret = nl80211_set_interface(nlmsg, sock, nl80211_family_id, ifindex, NL80211_IFTYPE_ADHOC, dofail);
 	if (ret < 0) {
 		debug("nl80211_setup_ibss_interface: nl80211_set_interface failed for %.32s, ret %d\n", interface, ret);
 		return -1;
@@ -3678,7 +3680,7 @@ static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl802
 		return -1;
 	}
 
-	ret = nl80211_join_ibss(nlmsg, sock, nl80211_family_id, ifindex, ibss_props);
+	ret = nl80211_join_ibss(nlmsg, sock, nl80211_family_id, ifindex, ibss_props, dofail);
 	if (ret < 0) {
 		debug("nl80211_setup_ibss_interface: nl80211_join_ibss failed for %.32s, ret %d\n", interface, ret);
 		return -1;
@@ -3751,13 +3753,13 @@ static void initialize_wifi_devices(void)
 		char interface[6] = "wlan0";
 		interface[4] += device_id;
 
-		if (nl80211_setup_ibss_interface(&nlmsg, sock, nl80211_family_id, interface, &ibss_props) < 0)
+		if (nl80211_setup_ibss_interface(&nlmsg, sock, nl80211_family_id, interface, &ibss_props, true) < 0)
 			failmsg("initialize_wifi_devices: failed set up IBSS network", "device=%d", device_id);
 	}
 	for (int device_id = 0; device_id < WIFI_INITIAL_DEVICE_COUNT; device_id++) {
 		char interface[6] = "wlan0";
 		interface[4] += device_id;
-		int ret = await_ifla_operstate(&nlmsg, interface, IF_OPER_UP);
+		int ret = await_ifla_operstate(&nlmsg, interface, IF_OPER_UP, true);
 		if (ret < 0)
 			failmsg("initialize_wifi_devices: get_ifla_operstate failed",
 				"device=%d, ret=%d", device_id, ret);
@@ -11582,7 +11584,7 @@ static int hwsim_register_socket(struct nlmsg* nlmsg, int sock, int hwsim_family
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = HWSIM_CMD_REGISTER;
 	netlink_init(nlmsg, hwsim_family, 0, &genlhdr, sizeof(genlhdr));
-	int err = netlink_send(nlmsg, sock);
+	int err = netlink_send_ext(nlmsg, sock, 0, NULL, false);
 	if (err < 0) {
 		debug("hwsim_register_device failed: %s\n", strerror(errno));
 	}
@@ -11602,7 +11604,7 @@ static int hwsim_inject_frame(struct nlmsg* nlmsg, int sock, int hwsim_family, u
 	netlink_attr(nlmsg, HWSIM_ATTR_SIGNAL, &signal, sizeof(signal));
 	netlink_attr(nlmsg, HWSIM_ATTR_ADDR_RECEIVER, mac_addr, ETH_ALEN);
 	netlink_attr(nlmsg, HWSIM_ATTR_FRAME, data, len);
-	int err = netlink_send(nlmsg, sock);
+	int err = netlink_send_ext(nlmsg, sock, 0, NULL, false);
 	if (err < 0) {
 		debug("hwsim_inject_frame failed: %s\n", strerror(errno));
 	}
@@ -11627,7 +11629,7 @@ static long syz_80211_inject_frame(volatile long a0, volatile long a1, volatile 
 		return -1;
 	}
 
-	int hwsim_family_id = netlink_query_family_id(&tmp_msg, sock, "MAC80211_HWSIM", true);
+	int hwsim_family_id = netlink_query_family_id(&tmp_msg, sock, "MAC80211_HWSIM", false);
 	int ret = hwsim_register_socket(&tmp_msg, sock, hwsim_family_id);
 	if (ret < 0) {
 		debug("syz_80211_inject_frame: failed to register socket, ret %d\n", ret);
@@ -11681,7 +11683,7 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 		return -1;
 	}
 
-	int nl80211_family_id = netlink_query_family_id(&tmp_msg, sock, "nl80211", true);
+	int nl80211_family_id = netlink_query_family_id(&tmp_msg, sock, "nl80211", false);
 	struct join_ibss_props ibss_props = {
 	    .wiphy_freq = WIFI_DEFAULT_FREQUENCY,
 	    .wiphy_freq_fixed = (mode == WIFI_JOIN_IBSS_NO_SCAN || mode == WIFI_JOIN_IBSS_BG_NO_SCAN),
@@ -11689,7 +11691,7 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 	    .ssid = ssid,
 	    .ssid_len = ssid_len};
 
-	int ret = nl80211_setup_ibss_interface(&tmp_msg, sock, nl80211_family_id, interface, &ibss_props);
+	int ret = nl80211_setup_ibss_interface(&tmp_msg, sock, nl80211_family_id, interface, &ibss_props, false);
 	close(sock);
 	if (ret < 0) {
 		debug("syz_80211_join_ibss: failed set up IBSS network for %.32s\n", interface);
@@ -11697,7 +11699,7 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 	}
 
 	if (mode == WIFI_JOIN_IBSS_NO_SCAN) {
-		ret = await_ifla_operstate(&tmp_msg, interface, IF_OPER_UP);
+		ret = await_ifla_operstate(&tmp_msg, interface, IF_OPER_UP, false);
 		if (ret < 0) {
 			debug("syz_80211_join_ibss: await_ifla_operstate failed for %.32s, ret %d\n", interface, ret);
 			return -1;
