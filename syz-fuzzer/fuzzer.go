@@ -28,7 +28,6 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
-	"golang.org/x/sync/semaphore"
 )
 
 type Fuzzer struct {
@@ -69,7 +68,7 @@ type Fuzzer struct {
 	logMu       sync.Mutex
 
 	// Let's limit the number of concurrent NewInput requests.
-	newInputSem *semaphore.Weighted
+	parallelNewInputs chan struct{}
 }
 
 type FuzzerSnapshot struct {
@@ -291,7 +290,8 @@ func main() {
 		fetchRawCover:            *flagRawCover,
 		noMutate:                 r.NoMutateCalls,
 		stats:                    make([]uint64, StatCount),
-		newInputSem:              semaphore.NewWeighted(int64(2 * *flagProcs)),
+		// Queue no more than ~3 new inputs / proc.
+		parallelNewInputs: make(chan struct{}, int64(3**flagProcs)),
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(gateSize, gateCallback)
@@ -454,13 +454,17 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 }
 
 func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.Input) {
-	a := &rpctype.NewInputArgs{
-		Name:  fuzzer.name,
-		Input: inp,
-	}
-	if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
-		log.SyzFatalf("Manager.NewInput call failed: %v", err)
-	}
+	fuzzer.parallelNewInputs <- struct{}{}
+	go func() {
+		defer func() { <-fuzzer.parallelNewInputs }()
+		a := &rpctype.NewInputArgs{
+			Name:  fuzzer.name,
+			Input: inp,
+		}
+		if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
+			log.SyzFatalf("Manager.NewInput call failed: %v", err)
+		}
+	}()
 }
 
 func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.Input) {
