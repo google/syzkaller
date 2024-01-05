@@ -561,7 +561,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		// Executor has an internal timeout and protects against most hangs when fork server is enabled,
 		// so we use quite large timeout. Executor can be slow due to global locks in namespaces
 		// and other things, so let's better wait than report false misleading crashes.
-		timeout *= 10
+		timeout *= 5
 	}
 
 	c := &command{
