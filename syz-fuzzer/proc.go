@@ -317,15 +317,13 @@ func (proc *Proc) randomCollide(origP *prog.Prog) *prog.Prog {
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
 	proc.fuzzer.checkDisabledCalls(p)
-
-	// Limit concurrency window and do leak checking once in a while.
-	ticket := proc.fuzzer.gate.Enter()
-	defer proc.fuzzer.gate.Leave(ticket)
-
-	proc.logProgram(opts, p)
 	for try := 0; ; try++ {
+		// Limit concurrency.
+		ticket := proc.fuzzer.gate.Enter()
+		proc.logProgram(opts, p)
 		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
 		output, info, hanged, err := proc.env.Exec(opts, p)
+		proc.fuzzer.gate.Leave(ticket)
 		if err != nil {
 			if err == prog.ErrExecBufferTooSmall {
 				// It's bad if we systematically fail to serialize programs,
