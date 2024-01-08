@@ -612,8 +612,8 @@ func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource
 }
 
 func (ctx *context) returnInstance(inst *reproInstance) {
-	ctx.bootRequests <- inst.index
 	inst.execProg.Close()
+	ctx.bootRequests <- inst.index
 }
 
 func (ctx *context) reproLogf(level int, format string, args ...interface{}) {
@@ -660,27 +660,19 @@ func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool) {
 		go func() {
 			defer wg.Done()
 
-			var inst *instance.ExecProgInstance
-			maxTry := 3
-			for try := 0; try < maxTry; try++ {
+			for try := 0; ; try++ {
 				select {
 				case <-vm.Shutdown:
-					try = maxTry
-					continue
+					return
 				default:
 				}
-				var err error
-				inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
+				inst, err := instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
 					ctx.reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
 				if err != nil {
-					ctx.reproLogf(0, "failed to init instance: %v, attempt %d/%d",
-						err, try+1, maxTry)
+					ctx.reproLogf(0, "failed to boot instance (try %v): %v", try+1, err)
 					time.Sleep(10 * time.Second)
 					continue
 				}
-				break
-			}
-			if inst != nil {
 				ctx.instances <- &reproInstance{execProg: inst, index: vmIndex}
 			}
 		}()
