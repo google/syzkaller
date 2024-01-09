@@ -142,6 +142,10 @@ func (inst *instance) boot() error {
 		return fmt.Errorf("could not start and connect to the adb server: %w", err)
 	}
 
+	if err := inst.restartAdbAsRoot(); err != nil {
+		return fmt.Errorf("could not restart adb with root access: %w", err)
+	}
+
 	if err := inst.createAdbScript(); err != nil {
 		return fmt.Errorf("could not create adb script: %w", err)
 	}
@@ -241,6 +245,16 @@ func (inst *instance) connectToAdb(timeout time.Duration) error {
 			return fmt.Errorf("can't connect to ADB server")
 		}
 	}
+}
+
+func (inst *instance) restartAdbAsRoot() error {
+	err := inst.runCommand(
+		"adb",
+		"-s",
+		fmt.Sprintf("127.0.0.1:%d", inst.port),
+		"root",
+	)
+	return err
 }
 
 // Script for telling syz-fuzzer how to connect to syz-executor.
