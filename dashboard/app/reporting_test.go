@@ -1174,3 +1174,47 @@ func TestObsoletePeriod(t *testing.T) {
 		})
 	}
 }
+
+func TestReportRevokedRepro(t *testing.T) {
+	// There was a bug (#4412) where syzbot infinitely re-reported reproducers
+	// for a bug that was upstreamed after its repro was revoked.
+	// Recreate this situation.
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublic, keyPublic, true)
+	build := testBuild(1)
+	build.KernelRepo = "git://mygit.com/git.git"
+	build.KernelBranch = "main"
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	client.ReportCrash(crash)
+	rep1 := client.pollBug()
+	client.expectNE(rep1.ReproSyz, nil)
+
+	// Revoke the reproducer.
+	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
+	jobResp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	c.expectEQ(jobResp.Type, dashapi.JobTestPatch)
+	client.expectOK(client.JobDone(&dashapi.JobDoneReq{
+		ID: jobResp.ID,
+	}))
+
+	c.advanceTime(time.Hour)
+	client.ReportCrash(testCrash(build, 1))
+
+	// Upstream the bug.
+	c.advanceTime(time.Hour)
+	client.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
+	rep2 := client.pollBug()
+
+	// Also ensure that we do not report the revoked reproducer.
+	client.expectEQ(rep2.Type, dashapi.ReportNew)
+	client.expectEQ(rep2.ReproSyz, []byte(nil))
+
+	// Expect no further reports.
+	client.pollBugs(0)
+}

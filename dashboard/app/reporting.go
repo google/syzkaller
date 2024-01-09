@@ -106,7 +106,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		return
 	}
 	link = bugReporting.Link
-	if !bugReporting.Reported.IsZero() && bugReporting.ReproLevel >= bug.ReproLevel {
+	if !bugReporting.Reported.IsZero() && bugReporting.ReproLevel >= bug.HeadReproLevel {
 		status = fmt.Sprintf("%v: reported%v on %v",
 			reporting.DisplayTitle, reproStr(bugReporting.ReproLevel),
 			html.FormatTime(bugReporting.Reported))
@@ -538,14 +538,6 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	if len(report) > maxMailReportLen {
 		report = report[:maxMailReportLen]
 	}
-	reproC, _, err := getText(c, textReproC, crash.ReproC)
-	if err != nil {
-		return nil, err
-	}
-	reproSyz, err := loadReproSyz(c, crash)
-	if err != nil {
-		return nil, err
-	}
 	machineInfo, _, err := getText(c, textMachineInfo, crash.MachineInfo)
 	if err != nil {
 		return nil, err
@@ -573,10 +565,6 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 		ReportLink:      externalLink(c, textCrashReport, crash.Report),
 		CC:              kernelRepo.CC.Always,
 		Maintainers:     append(crash.Maintainers, kernelRepo.CC.Maintainers...),
-		ReproC:          reproC,
-		ReproCLink:      externalLink(c, textReproC, crash.ReproC),
-		ReproSyz:        reproSyz,
-		ReproSyzLink:    externalLink(c, textReproSyz, crash.ReproSyz),
 		ReproOpts:       crash.ReproOpts,
 		MachineInfo:     machineInfo,
 		MachineInfoLink: externalLink(c, textMachineInfo, crash.MachineInfo),
@@ -587,6 +575,18 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 		Manager:         crash.Manager,
 		Assets:          assetList,
 		ReportElements:  &dashapi.ReportElements{GuiltyFiles: crash.ReportElements.GuiltyFiles},
+	}
+	if !crash.ReproIsRevoked {
+		rep.ReproCLink = externalLink(c, textReproC, crash.ReproC)
+		rep.ReproC, _, err = getText(c, textReproC, crash.ReproC)
+		if err != nil {
+			return nil, err
+		}
+		rep.ReproSyzLink = externalLink(c, textReproSyz, crash.ReproSyz)
+		rep.ReproSyz, err = loadReproSyz(c, crash)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if bugReporting.CC != "" {
 		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)
