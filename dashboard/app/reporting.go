@@ -136,20 +136,18 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		return
 	}
 
-	// Limit number of reports sent per day,
-	// but don't limit sending repros to already reported bugs.
-	if bugReporting.Reported.IsZero() && ent.Sent >= reporting.DailyLimit {
+	// Limit number of reports sent per day.
+	if ent.Sent >= reporting.DailyLimit {
 		status = fmt.Sprintf("%v: out of quota for today", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
 	}
 
 	// Ready to be reported.
-	if bugReporting.Reported.IsZero() {
-		// This update won't be committed, but it is useful as a best effort measure
-		// so that we don't overflow the limit in a single poll.
-		ent.Sent++
-	}
+	// This update won't be committed, but it is useful as a best effort measure
+	// so that we don't overflow the limit in a single poll.
+	ent.Sent++
+
 	status = fmt.Sprintf("%v: ready to report", reporting.DisplayTitle)
 	if !bugReporting.Reported.IsZero() {
 		status += fmt.Sprintf(" (reported%v on %v)",
@@ -1067,9 +1065,9 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 	case dashapi.BugStatusOpen:
 		bug.Status = BugStatusOpen
 		bug.Closed = time.Time{}
+		stateEnt.Sent++
 		if bugReporting.Reported.IsZero() {
 			bugReporting.Reported = now
-			stateEnt.Sent++ // sending repro does not count against the quota
 		}
 		if bugReporting.OnHold.IsZero() && cmd.OnHold {
 			bugReporting.OnHold = now

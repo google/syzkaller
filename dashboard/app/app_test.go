@@ -103,7 +103,7 @@ var testConfig = &GlobalConfig{
 			Reporting: []Reporting{
 				{
 					Name:       "reporting1",
-					DailyLimit: 3,
+					DailyLimit: 5,
 					Embargo:    14 * 24 * time.Hour,
 					Filter:     skipWithRepro,
 					Config: &TestConfig{
@@ -112,7 +112,7 @@ var testConfig = &GlobalConfig{
 				},
 				{
 					Name:       "reporting2",
-					DailyLimit: 3,
+					DailyLimit: 5,
 					Config: &TestConfig{
 						Index: 2,
 					},

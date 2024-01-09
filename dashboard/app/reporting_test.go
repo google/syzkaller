@@ -272,20 +272,66 @@ func TestReportingQuota(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	c.updateReporting("test1", "reporting1",
+		func(r Reporting) Reporting {
+			// Set a low daily limit.
+			r.DailyLimit = 2
+			return r
+		})
+
 	build := testBuild(1)
 	c.client.UploadBuild(build)
 
-	const numReports = 8 // quota is 3 per day
+	const numReports = 5
 	for i := 0; i < numReports; i++ {
 		c.client.ReportCrash(testCrash(build, i))
 	}
 
-	for _, reports := range []int{3, 3, 2, 0, 0} {
+	for _, reports := range []int{2, 2, 1, 0, 0} {
 		c.advanceTime(24 * time.Hour)
 		c.client.pollBugs(reports)
 		// Out of quota for today, so must get 0 reports.
 		c.client.pollBugs(0)
 	}
+}
+
+func TestReproReportingQuota(t *testing.T) {
+	// Test that new repro reports are also covered by daily limits.
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	c.updateReporting("test1", "reporting1",
+		func(r Reporting) Reporting {
+			// Set a low daily limit.
+			r.DailyLimit = 2
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// First report of two.
+	c.advanceTime(time.Minute)
+	client.ReportCrash(testCrash(build, 1))
+	client.pollBug()
+
+	// Second report of two.
+	c.advanceTime(time.Minute)
+	crash := testCrash(build, 2)
+	client.ReportCrash(crash)
+	client.pollBug()
+
+	// Now we "find" a reproducer.
+	c.advanceTime(time.Minute)
+	client.ReportCrash(testCrashWithRepro(build, 1))
+
+	// But there's no quota for it.
+	client.pollBugs(0)
+
+	// Wait a day and the quota appears.
+	c.advanceTime(time.Hour * 24)
+	client.pollBug()
 }
 
 // Basic dup scenario: mark one bug as dup of another.
