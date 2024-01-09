@@ -13,6 +13,12 @@ Main page.
 </head>
 <body>
 	{{template "header" .Header}}
+	{{if $.Stopped}}
+		<div class="emergency-stopped">Syzbot is in the emergency stop state</div>
+	{{else}}
+		<div class="emergency-stop">Syzbot is reporting too many bugs? {{link $.StopLink "Emergency stop"}} [click {{$.MoreStopClicks}} more times]<br />
+		In this mode, syzbot will stop all reporting and won't record any new findings.</div>
+	{{end}}
 
 	<a class="plain" href="#log"><div id="log"><b>Error log:</b></div></a>
 	<textarea id="log_textarea" readonly rows="20" wrap=off>{{printf "%s" .Log}}</textarea>
@@ -21,7 +27,6 @@ Main page.
 		textarea.scrollTop = textarea.scrollHeight;
 	</script>
 	<br><br>
-
 	{{with $.MemcacheStats}}
 	<table class="list_table">
 		<caption><a href="https://pkg.go.dev/google.golang.org/appengine/memcache?tab=doc#Item" target="_blank">Memcache stats:</a></caption>

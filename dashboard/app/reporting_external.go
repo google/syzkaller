@@ -19,6 +19,9 @@ import (
 // and report back bug status updates with apiReportingUpdate.
 
 func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	if stop, err := emergentlyStopped(c); err != nil || stop {
+		return &dashapi.PollBugsResponse{}, err
+	}
 	req := new(dashapi.PollBugsRequest)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -36,6 +39,9 @@ func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (i
 }
 
 func apiReportingPollNotifications(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	if stop, err := emergentlyStopped(c); err != nil || stop {
+		return &dashapi.PollNotificationsResponse{}, err
+	}
 	req := new(dashapi.PollNotificationsRequest)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -48,6 +54,9 @@ func apiReportingPollNotifications(c context.Context, r *http.Request, payload [
 }
 
 func apiReportingPollClosed(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	if stop, err := emergentlyStopped(c); err != nil || stop {
+		return &dashapi.PollClosedResponse{}, err
+	}
 	req := new(dashapi.PollClosedRequest)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)

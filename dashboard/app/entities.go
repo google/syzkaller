@@ -986,6 +986,13 @@ func (bug *Bug) dashapiStatus() (dashapi.BugStatus, error) {
 	return status, nil
 }
 
+// If an entity of type EmergencyStop exists, syzbot's operation is paused until
+// a support engineer deletes it from the DB.
+type EmergencyStop struct {
+	Time time.Time
+	User string
+}
+
 func addCrashReference(c context.Context, crashID int64, bugKey *db.Key, ref CrashReference) error {
 	crash := new(Crash)
 	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)

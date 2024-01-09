@@ -30,6 +30,7 @@ import (
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
+	"google.golang.org/appengine/v2/user"
 )
 
 func initAPIHandlers() {
@@ -363,6 +364,10 @@ func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bo
 }
 
 func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	if stop, err := emergentlyStopped(c); err != nil || stop {
+		// The bot's operation was aborted. Don't accept new crash reports.
+		return &dashapi.JobPollResp{}, err
+	}
 	req := new(dashapi.JobPollReq)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -699,6 +704,10 @@ const (
 )
 
 func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	if stop, err := emergentlyStopped(c); err != nil || stop {
+		// The bot's operation was aborted. Don't accept new crash reports.
+		return &dashapi.ReportCrashResp{}, err
+	}
 	req := new(dashapi.Crash)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1631,4 +1640,24 @@ func apiSaveDiscussion(c context.Context, r *http.Request, payload []byte) (inte
 		return nil, nil
 	}
 	return nil, mergeDiscussion(c, d)
+}
+
+func emergentlyStopped(c context.Context) (bool, error) {
+	keys, err := db.NewQuery("EmergencyStop").
+		Limit(1).
+		KeysOnly().
+		GetAll(c, nil)
+	if err != nil {
+		return false, err
+	}
+	return len(keys) > 0, nil
+}
+
+func recordEmergencyStop(c context.Context) error {
+	key := db.NewKey(c, "EmergencyStop", "all", 0, nil)
+	_, err := db.Put(c, key, &EmergencyStop{
+		Time: timeNow(c),
+		User: user.Current(c).Email,
+	})
+	return err
 }
