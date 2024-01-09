@@ -203,6 +203,9 @@ type uiAdminPage struct {
 	CauseBisectionsLink string
 	JobOverviewLink     string
 	MemcacheStats       *memcache.Statistics
+	Stopped             bool
+	StopLink            string
+	MoreStopClicks      int
 }
 
 type uiManagerPage struct {
@@ -904,6 +907,10 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		}
 	case "invalidate_bisection":
 		return handleInvalidateBisection(c, w, r)
+	case "emergency_stop":
+		if err := recordEmergencyStop(c); err != nil {
+			return fmt.Errorf("failed to record an emergency stop: %w", err)
+		}
 	default:
 		return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 	}
@@ -963,15 +970,28 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 			return err
 		})
 	}
+	alreadyStopped := false
+	g.Go(func() error {
+		var err error
+		alreadyStopped, err = emergentlyStopped(c)
+		return err
+	})
 	err = g.Wait()
 	if err != nil {
 		return err
 	}
 	data := &uiAdminPage{
-		Header:        hdr,
-		Log:           errorLog,
-		Managers:      makeManagerList(managers, hdr.Namespace),
-		MemcacheStats: memcacheStats,
+		Header:         hdr,
+		Log:            errorLog,
+		Managers:       makeManagerList(managers, hdr.Namespace),
+		MemcacheStats:  memcacheStats,
+		Stopped:        alreadyStopped,
+		MoreStopClicks: 2,
+		StopLink:       html.AmendURL("/admin", "stop_clicked", "1"),
+	}
+	if r.FormValue("stop_clicked") != "" {
+		data.MoreStopClicks = 1
+		data.StopLink = html.AmendURL("/admin", "action", "emergency_stop")
 	}
 	if r.FormValue("job_type") != "" {
 		data.TypeJobs = &uiJobList{Title: "Last jobs:", Jobs: typeJobs}

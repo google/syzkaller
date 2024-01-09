@@ -105,6 +105,16 @@ func (cfg *EmailConfig) Validate() error {
 // handleEmailPoll is called by cron and sends emails for new bugs, if any.
 func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
+	stop, err := emergentlyStopped(c)
+	if err != nil {
+		log.Errorf(c, "emergency stop querying failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if stop {
+		log.Errorf(c, "aborting email poll due to an emergency stop")
+		return
+	}
 	if err := emailPollJobs(c); err != nil {
 		log.Errorf(c, "job poll failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -476,8 +486,14 @@ func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Infof(c, "received email at %q, source %q", myEmail, source)
 	if source == dashapi.NoDiscussion {
+		if stop, err := emergentlyStopped(c); err != nil || stop {
+			log.Errorf(c, "abort email processing due to emergency stop (stop %v, err %v)",
+				stop, err)
+			return
+		}
 		err = processIncomingEmail(c, msg)
 	} else {
+		// Discussions are safe to handle even during an emergency stop.
 		err = processDiscussionEmail(c, msg, source)
 	}
 	if err != nil {

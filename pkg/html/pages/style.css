@@ -409,3 +409,15 @@ aside {
 .collapsible-show .show-icon {
 	display: none;
 }
+
+.emergency-stop {
+	background-color: yellow;
+	padding: 5pt;
+	margin-bottom: 5pt;
+}
+
+.emergency-stopped {
+	background-color: coral;
+	padding: 5pt;
+	margin-bottom: 5pt;
+}
