@@ -674,6 +674,7 @@ func (ctx *context) createInstances(cfg *mgrconfig.Config, vmPool *vm.Pool) {
 					continue
 				}
 				ctx.instances <- &reproInstance{execProg: inst, index: vmIndex}
+				break
 			}
 		}()
 	}
