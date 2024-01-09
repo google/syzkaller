@@ -182,7 +182,7 @@ func (inst *instance) Close() {
 }
 
 func (inst *instance) startFuchsiaVM() error {
-	err := inst.ffx("emu", "start", "--headless", "--name", inst.name)
+	err := inst.ffx("emu", "start", "--headless", "--name", inst.name, "--net", "user")
 	if err != nil {
 		return err
 	}
