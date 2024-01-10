@@ -581,7 +581,7 @@ func handleManagerPage(c context.Context, w http.ResponseWriter, r *http.Request
 	}
 	managerPage := &uiManagerPage{Manager: manager, Header: hdr}
 	for _, build := range builds {
-		managerPage.Builds = append(managerPage.Builds, makeUIBuild(c, build))
+		managerPage.Builds = append(managerPage.Builds, makeUIBuild(c, build, false))
 	}
 	return serveTemplate(w, "manager.html", managerPage)
 }
@@ -2020,9 +2020,9 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 
 var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
 
-func makeUIAssets(build *Build, crash *Crash) []*uiAsset {
+func makeUIAssets(build *Build, crash *Crash, forReport bool) []*uiAsset {
 	var uiAssets []*uiAsset
-	for _, asset := range createAssetList(build, crash) {
+	for _, asset := range createAssetList(build, crash, forReport) {
 		uiAssets = append(uiAssets, &uiAsset{
 			Title:       asset.Title,
 			DownloadURL: asset.DownloadURL,
@@ -2044,15 +2044,15 @@ func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
 		ReproCLink:      textLink(textReproC, crash.ReproC),
 		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
-		Assets:          makeUIAssets(build, crash),
+		Assets:          makeUIAssets(build, crash, true),
 	}
 	if build != nil {
-		ui.uiBuild = makeUIBuild(c, build)
+		ui.uiBuild = makeUIBuild(c, build, true)
 	}
 	return ui
 }
 
-func makeUIBuild(c context.Context, build *Build) *uiBuild {
+func makeUIBuild(c context.Context, build *Build, forReport bool) *uiBuild {
 	return &uiBuild{
 		Time:                build.Time,
 		SyzkallerCommit:     build.SyzkallerCommit,
@@ -2066,7 +2066,7 @@ func makeUIBuild(c context.Context, build *Build) *uiBuild {
 		KernelCommitTitle:   build.KernelCommitTitle,
 		KernelCommitDate:    build.KernelCommitDate,
 		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
-		Assets:              makeUIAssets(build, nil),
+		Assets:              makeUIAssets(build, nil, forReport),
 	}
 }
 
@@ -2153,7 +2153,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter 
 	}
 	uiBuilds := make(map[string]*uiBuild)
 	for _, build := range builds {
-		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(c, build)
+		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(c, build, true)
 	}
 	var fullStats []*ManagerStats
 	for _, mgr := range managers {
