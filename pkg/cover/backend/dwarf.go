@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -35,6 +36,7 @@ type dwarfParams struct {
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
 	readTextRanges        func(*Module) ([]pcRange, []*CompileUnit, error)
 	getModuleOffset       func(string) uint64
+	getCompilerVersion    func(string) string
 }
 
 type Arch struct {
@@ -124,6 +126,28 @@ func processModule(params *dwarfParams, module *Module, info *symbolInfo,
 	return result, nil
 }
 
+// Regexps to parse compiler version string in IsKcovBrokenInCompiler.
+// Some targets (e.g. NetBSD) use g++ instead of gcc.
+var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
+var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
+
+// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
+// verify that collected coverage points have matching callbacks.
+// See https://github.com/google/syzkaller/issues/4447 for more information.
+func IsKcovBrokenInCompiler(versionStr string) bool {
+	if !gccRE.MatchString(versionStr) {
+		return false
+	}
+	groups := gccVersionRE.FindStringSubmatch(versionStr)
+	if len(groups) > 0 {
+		version, err := strconv.Atoi(groups[2])
+		if err == nil {
+			return version < 14
+		}
+	}
+	return true
+}
+
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
 	objDir := params.objDir
@@ -141,6 +165,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
 	var pcBase uint64
+	var verifyCoverPoints = true
 	for _, module := range modules {
 		errc := make(chan error, 1)
 		go func() {
@@ -174,6 +199,9 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		}
 		allRanges = append(allRanges, ranges...)
 		allUnits = append(allUnits, units...)
+		if IsKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
+			verifyCoverPoints = false
+		}
 	}
 
 	sort.Slice(allSymbols, func(i, j int) bool {
@@ -207,13 +235,22 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 		pcBase = ^uint64(0)
 	}
+	var allCoverPointsMap = make(map[uint64]bool)
+	if verifyCoverPoints {
+		for i := 0; i < 2; i++ {
+			for _, pc := range allCoverPoints[i] {
+				allCoverPointsMap[pc] = true
+			}
+		}
+	}
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
-		RestorePC: makeRestorePC(params, pcBase),
+		RestorePC:   makeRestorePC(params, pcBase),
+		CoverPoints: allCoverPointsMap,
 	}
 	return impl, nil
 }

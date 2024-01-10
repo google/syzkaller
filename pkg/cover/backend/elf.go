@@ -29,6 +29,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		readModuleCoverPoints: elfReadModuleCoverPoints,
 		readTextRanges:        elfReadTextRanges,
 		getModuleOffset:       elfGetModuleOffset,
+		getCompilerVersion:    elfGetCompilerVersion,
 	})
 }
 
@@ -209,6 +210,23 @@ func elfGetModuleOffset(path string) uint64 {
 		}
 	}
 	return 0
+}
+
+func elfGetCompilerVersion(path string) string {
+	file, err := elf.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+	sec := file.Section(".comment")
+	if sec == nil {
+		return ""
+	}
+	data, err := sec.Data()
+	if err != nil {
+		return ""
+	}
+	return string(data[:])
 }
 
 func alignUp(addr, align uint64) uint64 {
