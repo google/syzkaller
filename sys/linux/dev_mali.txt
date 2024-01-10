@@ -1,0 +1,343 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Generated on android14-gs-pixel-5.15-udc-d1
+# CSF and non-csf builds have overlapping definitions. Must define
+# "MALI_USE_CSF" during generation.
+meta noextract
+
+include <gpu/common/include/uapi/gpu/arm/midgard/mali_kbase_hwcnt_reader.h>
+include <gpu/common/include/uapi/gpu/arm/midgard/mali_base_kernel.h>
+include <gpu/common/include/uapi/gpu/arm/midgard/mali_kbase_ioctl.h>
+include <gpu/mali_kbase/mali_kbase.h>
+include <uapi/linux/fcntl.h>
+
+define max_supported_streams	(MAX_SUPPORTED_CSGS * MAX_SUPPORTED_STREAMS_PER_GROUP)
+
+resource gpu_heap_va[int64]
+resource kcpu_queue_id[int8]
+resource cs_queue_group_handle[int8]
+
+ioctl$KBASE_IOCTL_READ_USER_PAGE(fd fd_bifrost, cmd const[KBASE_IOCTL_READ_USER_PAGE], arg ptr[inout, kbase_ioctl_read_user_page])
+ioctl$KBASE_IOCTL_MEM_ALLOC_EX(fd fd_bifrost, cmd const[KBASE_IOCTL_MEM_ALLOC_EX], arg ptr[inout, kbase_ioctl_mem_alloc_ex])
+ioctl$KBASE_IOCTL_CS_CPU_QUEUE_DUMP(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_CPU_QUEUE_DUMP], arg ptr[in, kbase_ioctl_cs_cpu_queue_info])
+ioctl$KBASE_IOCTL_CS_GET_GLB_IFACE(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_GET_GLB_IFACE], arg ptr[inout, kbase_ioctl_cs_get_glb_iface])
+ioctl$KBASE_IOCTL_CS_TILER_HEAP_TERM(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_TILER_HEAP_TERM], arg ptr[in, kbase_ioctl_cs_tiler_heap_term])
+ioctl$KBASE_IOCTL_CS_TILER_HEAP_INIT_1_13(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_TILER_HEAP_INIT_1_13], arg ptr[inout, kbase_ioctl_cs_tiler_heap_init_1_13])
+ioctl$KBASE_IOCTL_CS_TILER_HEAP_INIT(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_TILER_HEAP_INIT], arg ptr[inout, kbase_ioctl_cs_tiler_heap_init])
+ioctl$KBASE_IOCTL_KCPU_QUEUE_ENQUEUE(fd fd_bifrost, cmd const[KBASE_IOCTL_KCPU_QUEUE_ENQUEUE], arg ptr[in, kbase_ioctl_kcpu_queue_enqueue])
+ioctl$KBASE_IOCTL_KCPU_QUEUE_DELETE(fd fd_bifrost, cmd const[KBASE_IOCTL_KCPU_QUEUE_DELETE], arg ptr[in, kbase_ioctl_kcpu_queue_delete])
+ioctl$KBASE_IOCTL_KCPU_QUEUE_CREATE(fd fd_bifrost, cmd const[KBASE_IOCTL_KCPU_QUEUE_CREATE], arg ptr[out, kbase_ioctl_kcpu_queue_new])
+ioctl$KBASE_IOCTL_CS_EVENT_SIGNAL(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_EVENT_SIGNAL])
+ioctl$KBASE_IOCTL_CS_QUEUE_GROUP_TERMINATE(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_GROUP_TERMINATE], arg ptr[in, kbase_ioctl_cs_queue_group_terminate])
+ioctl$KBASE_IOCTL_CS_QUEUE_GROUP_CREATE(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_GROUP_CREATE], arg ptr[inout, kbase_ioctl_cs_queue_group_create])
+ioctl$KBASE_IOCTL_CS_QUEUE_GROUP_CREATE_1_6(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_GROUP_CREATE_1_6], arg ptr[inout, kbase_ioctl_cs_queue_group_create_1_6])
+ioctl$KBASE_IOCTL_CS_QUEUE_TERMINATE(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_TERMINATE], arg ptr[in, kbase_ioctl_cs_queue_terminate])
+ioctl$KBASE_IOCTL_CS_QUEUE_REGISTER_EX(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_REGISTER_EX], arg ptr[in, kbase_ioctl_cs_queue_register_ex])
+ioctl$KBASE_IOCTL_CS_QUEUE_BIND(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_BIND], arg ptr[inout, kbase_ioctl_cs_queue_bind])
+ioctl$KBASE_IOCTL_CS_QUEUE_KICK(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_KICK], arg ptr[in, kbase_ioctl_cs_queue_kick])
+ioctl$KBASE_IOCTL_CS_QUEUE_REGISTER(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_REGISTER], arg ptr[in, base_ioctl_cs_queue_register])
+ioctl$KBASE_IOCTL_VERSION_CHECK_RESERVED(fd fd_bifrost, cmd const[KBASE_IOCTL_VERSION_CHECK_RESERVED], arg ptr[inout, kbase_ioctl_version_check])
+ioctl$KBASE_IOCTL_BUFFER_LIVENESS_UPDATE(fd fd_bifrost, cmd const[KBASE_IOCTL_BUFFER_LIVENESS_UPDATE], arg ptr[in, kbase_ioctl_buffer_liveness_update])
+ioctl$KBASE_IOCTL_KINSTR_PRFCNT_SETUP(fd fd_bifrost, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_SETUP], arg ptr[inout, kbase_ioctl_kinstr_prfcnt_setup])
+ioctl$KBASE_IOCTL_KINSTR_PRFCNT_ENUM_INFO(fd fd_bifrost, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_ENUM_INFO], arg ptr[inout, kbase_ioctl_kinstr_prfcnt_enum_info])
+ioctl$KBASE_IOCTL_SET_LIMITED_CORE_COUNT(fd fd_bifrost, cmd const[KBASE_IOCTL_SET_LIMITED_CORE_COUNT], arg ptr[in, kbase_ioctl_set_limited_core_count])
+ioctl$KBASE_IOCTL_CONTEXT_PRIORITY_CHECK(fd fd_bifrost, cmd const[KBASE_IOCTL_CONTEXT_PRIORITY_CHECK], arg ptr[inout, kbase_ioctl_context_priority_check])
+ioctl$KBASE_HWCNT_READER_GET_BUFFER_WITH_CYCLES(fd fd_hwcnt, cmd const[KBASE_HWCNT_READER_GET_BUFFER_WITH_CYCLES], arg ptr[out, kbase_hwcnt_reader_metadata_with_cycles])
+ioctl$KBASE_HWCNT_READER_PUT_BUFFER_WITH_CYCLES(fd fd_hwcnt, cmd const[KBASE_HWCNT_READER_PUT_BUFFER_WITH_CYCLES], arg ptr[in, kbase_hwcnt_reader_metadata_with_cycles])
+ioctl$KBASE_HWCNT_READER_GET_API_VERSION_WITH_FEATURES(fd fd_hwcnt, cmd const[KBASE_HWCNT_READER_GET_API_VERSION], arg ptr[out, kbase_hwcnt_reader_api_version])
+
+kbase_hwcnt_reader_metadata_cycles {
+	top		int64
+	shader_cores	int64
+}
+
+kbase_hwcnt_reader_metadata_with_cycles {
+	timestamp	int64
+	event_id	int32
+	buffer_idx	int32
+	cycles		kbase_hwcnt_reader_metadata_cycles
+}
+
+kbase_hwcnt_reader_api_version {
+	version		int32
+	features	int32
+}
+
+kbase_ioctl_read_user_page {
+	offset	flags[user_offsets, int32]
+	padding	const[0, int32]
+	val_lo	int32	(out_overlay)
+	val_hi	int32
+}
+
+kbase_ioctl_mem_alloc_ex {
+	va_pages	int64
+	commit_pages	int64
+	extension	int64
+	flags		flags[base_mem_alloc_flags, int64]
+	fixed_address	int64
+	extra		array[const[0, int64], 3]
+	out_flags	int64	(out_overlay)
+	gpu_va		gpu_addr
+}
+
+kbase_ioctl_cs_cpu_queue_info {
+	buffer	ptr64[in, array[int8]]
+	size	len[buffer, int64]
+}
+
+kbase_ioctl_cs_get_glb_iface {
+	max_group_num		int32[0:MAX_SUPPORTED_CSGS]
+	max_total_stream_num	int32[0:max_supported_streams]
+	groups_ptr		ptr64[out, int64]
+	streams_ptr		ptr64[out, int64]
+	glb_version		int32	(out_overlay)
+	features		int32
+	group_num		int32
+	prfcnt_size		int32
+	total_stream_num	int32
+	instr_featurs		int32
+}
+
+kbase_ioctl_cs_tiler_heap_term {
+	gpu_heap_va	gpu_heap_va
+}
+
+kbase_ioctl_cs_tiler_heap_init_1_13 {
+	chunk_size		flags[tiler_heap_chunk_sizes, int32]
+	initial_chunks		int32
+	max_chunks		int32
+	target_in_flight	int16
+	group_id		int8[0:BASE_MEM_GROUP_COUNT]
+	padding			const[0, int8]
+	gpu_heap_va		gpu_heap_va	(out_overlay)
+	first_chunk_va		int64
+}
+
+kbase_ioctl_cs_tiler_heap_init {
+	chunk_size		flags[tiler_heap_chunk_sizes, int32]
+	initial_chunks		int32
+	max_chunks		int32
+	target_in_flight	int16
+	group_id		int8[0:BASE_MEM_GROUP_COUNT]
+	padding			const[0, int8]
+	buf_desc_va		int64
+	gpu_heap_va		gpu_heap_va	(out_overlay)
+	first_chunk_va		int64
+}
+
+kbase_ioctl_kcpu_queue_new {
+	id	kcpu_queue_id
+	pad	array[const[0, int8], 7]
+}
+
+kbase_ioctl_kcpu_queue_delete {
+	id	kcpu_queue_id
+	pad	array[const[0, int8], 7]
+}
+
+kbase_ioctl_kcpu_queue_enqueue {
+	addr		gpu_addr
+	nr_commands	len[addr, int32]
+	id		kcpu_queue_id
+	padding		array[const[0, int8], 3]
+}
+
+kbase_ioctl_cs_queue_terminate {
+	buffer_gpu_addr	gpu_addr
+}
+
+kbase_ioctl_cs_queue_group_terminate {
+	group_handle	cs_queue_group_handle
+	padding		array[const[0, int8], 7]
+}
+
+kbase_ioctl_cs_queue_group_create {
+	tiler_mask	int64
+	fragment_mask	int64
+	compute_mask	int64
+	cs_min		int8
+	priority	flags[queue_group_priority, int8]
+	tiler_max	int8
+	fragment_max	int8
+	compute_max	int8
+	csi_handlers	flags[csf_csi_flags, int8]
+	padding		array[const[0, int8], 2]
+	reserved	int64
+	group_handle	cs_queue_group_handle	(out_overlay)
+	padding_out	array[const[0, int8], 3]
+	group_uid	int32
+}
+
+kbase_ioctl_cs_queue_group_create_1_6 {
+	tiler_mask	int64
+	fragment_mask	int64
+	compute_mask	int64
+	cs_min		int8
+	priority	flags[queue_group_priority, int8]
+	tiler_max	int8
+	fragment_max	int8
+	compute_max	int8
+	padding		array[const[0, int8], 2]
+	reserved	int64
+	group_handle	cs_queue_group_handle	(out_overlay)
+	padding_out	array[const[0, int8], 3]
+	group_uid	int32
+}
+
+kbase_ioctl_cs_queue_register_ex {
+	buffer_gpu_addr		gpu_addr
+	buffer_size		int32
+	priority		int8[0:BASE_QUEUE_MAX_PRIORITY]
+	padding			array[const[0, int8], 3]
+	ex_offset_var_addr	gpu_addr
+	ex_buffer_base		gpu_addr
+	ex_buffer_size		int32
+	ex_event_size		int8
+	ex_event_state		int8
+	ex_padding		array[const[0, int8], 2]
+}
+
+kbase_ioctl_cs_queue_bind {
+	buffer_gpu_addr	gpu_addr
+	group_handle	cs_queue_group_handle
+	csi_index	int8
+	padding		array[const[0, int8], 6]
+	mmap_handle	int64	(out_overlay)
+}
+
+kbase_ioctl_cs_queue_kick {
+	buffer_gpu_addr	gpu_addr
+}
+
+base_ioctl_cs_queue_register {
+	buffer_gpu_addr	gpu_addr
+	buffer_size	int32
+	priority	int8[0:BASE_QUEUE_MAX_PRIORITY]
+	padding		array[const[0, int8], 6]
+}
+
+kbase_ioctl_buffer_liveness_update {
+	live_ranges_address	ptr64[in, array[kbase_pixel_gpu_slc_liveness_mark]]
+	live_ranges_count	len[live_ranges_address, int64]
+	buffer_va_address	ptr64[in, array[gpu_addr]]
+	buffer_sizes_address	ptr64[in, array[int64]]
+	buffer_count		len[buffer_va_address, int64]
+}
+
+kbase_pixel_gpu_slc_liveness_mark {
+	type	int32
+	index	int32
+}
+
+kbase_ioctl_kinstr_prfcnt_setup {
+	request_item_count		len[requests_ptr, int32]
+	request_item_size		int32
+	requests_ptr			ptr64[in, array[prfcnt_request_item]]
+	prfcnt_metadata_item_size	int32	(out_overlay)
+	prfcnt_mmap_size_bytes		int32
+}
+
+prfcnt_request_item {
+	hdr	prfcnt_request_item_header
+	u	prfcnt_request_union
+}
+
+prfcnt_request_item_header {
+	item_type	flags[prfcnt_request_item_type, int16]
+	item_version	const[0, int16]
+}
+
+prfcnt_request_union [
+	req_mode	prfcnt_request_mode
+	req_enable	prfcnt_request_enable
+	req_scope	prfcnt_request_scope
+] [varlen]
+
+prfcnt_request_mode {
+	mode		flags[prfcnt_mode, int8]
+	pad		array[const[0, int8], 7]
+	mode_config	prfcnt_request_mode_union
+}
+
+prfcnt_request_mode_union [
+	periodic	periodic_config
+]
+
+periodic_config {
+	period_ns	int64
+}
+
+prfcnt_request_enable {
+	block_type	flags[prfcnt_block_type, int8]
+	set		flags[prfcnt_set, int8]
+	pad		array[const[0, int8], 6]
+	enable_mask	array[int64, 2]
+}
+
+prfcnt_request_scope {
+	scope	flags[prfcnt_scope, int8]
+	pad	array[const[0, int8], 7]
+}
+
+kbase_ioctl_kinstr_prfcnt_enum_info {
+	info_item_size	len[info_list_ptr, int32]
+	info_item_count	bytesize[info_list_ptr, int32]
+	info_list_ptr	ptr[out, array[prfcnt_enum_item]]
+}
+
+prfcnt_enum_item {
+	hdr	prfcnt_enum_item_header
+	u	prfcnt_enum_union
+}
+
+prfcnt_enum_item_header {
+	item_type	flags[prfcnt_request_item_type, int16]
+	item_version	const[0, int16]
+}
+
+prfcnt_enum_union [
+	block_counter	prfcnt_enum_block_counter
+	request		prfcnt_enum_request
+	sample_info	prfcnt_enum_sample_info
+] [varlen]
+
+prfcnt_enum_block_counter {
+	block_type	flags[prfcnt_block_type, int8]
+	set		flags[prfcnt_set, int8]
+	pad		array[const[0, int8], 2]
+	num_instances	int16
+	num_values	int16
+	counter_mask	array[int64, 2]
+}
+
+prfcnt_enum_request {
+	request_item_type	flags[prfcnt_request_enum_type, int16]
+	pad			const[0, int16]
+	versions_mask		const[0, int32]
+}
+
+prfcnt_enum_sample_info {
+	num_clock_domains	int32
+	pad			const[0, int32]
+}
+
+kbase_ioctl_set_limited_core_count {
+	max_core_count	int8
+}
+
+kbase_ioctl_context_priority_check {
+	priority	flags[queue_group_priority, int8]
+}
+
+csf_csi_flags = BASE_CSF_TILER_OOM_EXCEPTION_FLAG
+user_offsets = LATEST_FLUSH
+prfcnt_request_enum_type = PRFCNT_ENUM_TYPE_BLOCK, PRFCNT_ENUM_TYPE_REQUEST, PRFCNT_ENUM_TYPE_SAMPLE_INFO
+prfcnt_request_item_type = PRFCNT_REQUEST_TYPE_MODE, PRFCNT_REQUEST_TYPE_ENABLE, PRFCNT_REQUEST_TYPE_SCOPE
+prfcnt_scope = PRFCNT_SCOPE_GLOBAL, PRFCNT_SCOPE_RESERVED
+prfcnt_set = PRFCNT_SET_PRIMARY, PRFCNT_SET_SECONDARY, PRFCNT_SET_TERTIARY, PRFCNT_SET_RESERVED
+prfcnt_block_type = PRFCNT_BLOCK_TYPE_FE, PRFCNT_BLOCK_TYPE_TILER, PRFCNT_BLOCK_TYPE_MEMORY, PRFCNT_BLOCK_TYPE_SHADER_CORE, PRFCNT_BLOCK_TYPE_RESERVED
+prfcnt_mode = PRFCNT_MODE_MANUAL, PRFCNT_MODE_PERIODIC, PRFCNT_MODE_RESERVED
+tiler_heap_chunk_sizes = 2048, 4096
+queue_group_priority = KBASE_QUEUE_GROUP_PRIORITY_REALTIME, KBASE_QUEUE_GROUP_PRIORITY_HIGH, KBASE_QUEUE_GROUP_PRIORITY_MEDIUM, KBASE_QUEUE_GROUP_PRIORITY_LOW, KBASE_QUEUE_GROUP_PRIORITY_COUNT
