@@ -11,11 +11,12 @@ import (
 )
 
 type Impl struct {
-	Units     []*CompileUnit
-	Symbols   []*Symbol
-	Frames    []Frame
-	Symbolize func(pcs map[*Module][]uint64) ([]Frame, error)
-	RestorePC func(pc uint32) uint64
+	Units       []*CompileUnit
+	Symbols     []*Symbol
+	Frames      []Frame
+	Symbolize   func(pcs map[*Module][]uint64) ([]Frame, error)
+	RestorePC   func(pc uint32) uint64
+	CoverPoints map[uint64]bool
 }
 
 type Module struct {
