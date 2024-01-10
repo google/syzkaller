@@ -88,12 +88,18 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		}
 	}
 	progPCs := make(map[uint64]map[int]bool)
+	allProgPCs := make(map[uint64]bool)
+	matchedProgPCs := make(map[uint64]bool)
 	for i, prog := range progs {
 		for _, pc := range prog.PCs {
 			if progPCs[pc] == nil {
 				progPCs[pc] = make(map[int]bool)
 			}
 			progPCs[pc][i] = true
+			allProgPCs[pc] = true
+			if rg.CoverPoints[pc] {
+				matchedProgPCs[pc] = true
+			}
 		}
 	}
 	matchedPC := false
@@ -122,6 +128,15 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	if !matchedPC {
 		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
+	}
+	if len(allProgPCs) != len(matchedProgPCs) {
+		for mismatch := range allProgPCs {
+			if !matchedProgPCs[mismatch] {
+				return nil, fmt.Errorf("%d out of %d PCs returned by kcov do not have matching "+
+					"coverage callbacks. Check the discoverModules() code, %v",
+					len(allProgPCs)-len(matchedProgPCs), len(allProgPCs), mismatch)
+			}
+		}
 	}
 	for _, unit := range rg.Units {
 		f := files[unit.Name]
