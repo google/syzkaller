@@ -377,8 +377,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 	}
 	kind := res.Desc.Name
 	// Find calls that produce the necessary resources.
-	// TODO: reduce priority of less specialized ctors.
-	metas := r.enabledCtors(s, kind)
+	ctors := r.enabledCtors(s, kind)
 	// We may have no resources, but still be in createResource due to ANYRES.
 	if len(r.target.resourceMap) != 0 && r.oneOf(1000) {
 		// Spoof resource subkind.
@@ -394,24 +393,41 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 		}
 		sort.Strings(all)
 		kind1 := all[r.Intn(len(all))]
-		metas1 := r.enabledCtors(s, kind1)
-		if len(metas1) != 0 {
+		ctors1 := r.enabledCtors(s, kind1)
+		if len(ctors1) != 0 {
 			// Don't use the resource for which we don't have any ctors.
 			// It's fine per-se because below we just return nil in such case.
 			// But in TestCreateResource tests we want to ensure that we don't fail
 			// to create non-optional resources, and if we spoof a non-optional
 			// resource with ctors with a optional resource w/o ctors, then that check will fail.
-			kind, metas = kind1, metas1
+			kind, ctors = kind1, ctors1
 		}
 	}
-	if len(metas) == 0 {
+	if len(ctors) == 0 {
 		// We may not have any constructors for optional input resources because we don't disable
 		// syscalls based on optional inputs resources w/o ctors in TransitivelyEnabledCalls.
 		return nil, nil
 	}
 	// Now we have a set of candidate calls that can create the necessary resource.
 	// Generate one of them.
-	meta := metas[r.Intn(len(metas))]
+	var meta *Syscall
+	// Prefer precise constructors.
+	var precise []*Syscall
+	for _, info := range ctors {
+		if info.Precise {
+			precise = append(precise, info.Call)
+		}
+	}
+	if len(precise) > 0 {
+		// If the argument is optional, it's not guaranteed that there'd be a
+		// precise constructor.
+		meta = precise[r.Intn(len(precise))]
+	}
+	if meta == nil || r.oneOf(3) {
+		// Sometimes just take a random one.
+		meta = ctors[r.Intn(len(ctors))].Call
+	}
+
 	calls := r.generateParticularCall(s, meta)
 	s1 := newState(r.target, s.ct, nil)
 	s1.analyze(calls[len(calls)-1])
@@ -433,14 +449,14 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 	return arg, calls
 }
 
-func (r *randGen) enabledCtors(s *state, kind string) []*Syscall {
-	var metas []*Syscall
-	for _, meta := range r.target.resourceCtors[kind] {
-		if s.ct.Generatable(meta.ID) {
-			metas = append(metas, meta)
+func (r *randGen) enabledCtors(s *state, kind string) []ResourceCtor {
+	var ret []ResourceCtor
+	for _, info := range r.target.resourceCtors[kind] {
+		if s.ct.Generatable(info.Call.ID) {
+			ret = append(ret, info)
 		}
 	}
-	return metas
+	return ret
 }
 
 func (r *randGen) generateText(kind TextKind) []byte {

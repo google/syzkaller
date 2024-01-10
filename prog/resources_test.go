@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResourceCtors(t *testing.T) {
@@ -189,4 +190,24 @@ func testCreateResource(t *testing.T, target *Target, calls map[*Syscall]bool, r
 			}
 		})
 	}
+}
+
+func TestPreferPreciseResources(t *testing.T) {
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	r := newRand(target, rs)
+	counts := map[string]int{}
+	for i := 0; i < 1500; i++ {
+		s := newState(target, target.DefaultChoiceTable(), nil)
+		calls := r.generateParticularCall(s,
+			target.SyscallMap["test$consume_subtype_of_common"])
+		for _, call := range calls {
+			if call.Meta.Name == "test$consume_subtype_of_common" {
+				continue
+			}
+			counts[call.Meta.Name]++
+		}
+	}
+	assert.Greater(t, counts["test$produce_common"], 15)
+	assert.Greater(t, counts["test$also_produce_common"], 15)
+	assert.Greater(t, counts["test$produce_subtype_of_common"], 100)
 }
