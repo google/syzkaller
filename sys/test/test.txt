@@ -927,3 +927,13 @@ test_args0 {
 
 test$output_res(arg ptr[out, test_args0])
 test$optional_res(arg ptr[in, test_args1])
+
+resource common[int32]
+resource subtype_of_common[common]
+
+test$produce_common() common
+test$also_produce_common() common
+test$produce_subtype_of_common() subtype_of_common
+
+test$consume_common(val common)
+test$consume_subtype_of_common(val subtype_of_common)

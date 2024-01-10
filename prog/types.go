@@ -249,7 +249,7 @@ type ResourceDesc struct {
 }
 
 type ResourceCtor struct {
-	Call    int // index in Target.Syscalls
+	Call    *Syscall
 	Precise bool
 }
 

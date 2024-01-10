@@ -69,7 +69,7 @@ type Target struct {
 	types       []Type
 	resourceMap map[string]*ResourceDesc
 	// Maps resource name to a list of calls that can create the resource.
-	resourceCtors map[string][]*Syscall
+	resourceCtors map[string][]ResourceCtor
 	any           anyTypes
 
 	// The default ChoiceTable is used only by tests and utilities, so we initialize it lazily.
@@ -169,7 +169,7 @@ func (target *Target) initTarget() {
 	}
 
 	target.populateResourceCtors()
-	target.resourceCtors = make(map[string][]*Syscall)
+	target.resourceCtors = make(map[string][]ResourceCtor)
 	for _, res := range target.Resources {
 		target.resourceCtors[res.Name] = target.calcResourceCtors(res, false)
 	}

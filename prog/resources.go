@@ -27,19 +27,19 @@ var (
 	}
 )
 
-func (target *Target) calcResourceCtors(res *ResourceDesc, precise bool) []*Syscall {
-	var metas []*Syscall
+func (target *Target) calcResourceCtors(res *ResourceDesc, preciseOnly bool) []ResourceCtor {
+	var ret []ResourceCtor
 	for _, ctor := range res.Ctors {
-		if !precise || ctor.Precise {
-			metas = append(metas, target.Syscalls[ctor.Call])
+		if !preciseOnly || ctor.Precise {
+			ret = append(ret, ctor)
 		}
 	}
 	if res.Kind[0] == timespecRes.Name {
 		if c := target.SyscallMap["clock_gettime"]; c != nil {
-			metas = append(metas, c)
+			ret = append(ret, ResourceCtor{c, true})
 		}
 	}
-	return metas
+	return ret
 }
 
 func (target *Target) populateResourceCtors() {
@@ -91,10 +91,10 @@ func (target *Target) populateResourceCtors() {
 				}
 			}
 			if preciseOk {
-				res.Ctors = append(res.Ctors, ResourceCtor{call, true})
+				res.Ctors = append(res.Ctors, ResourceCtor{target.Syscalls[call], true})
 			}
 			if impreciseOk {
-				res.Ctors = append(res.Ctors, ResourceCtor{call, false})
+				res.Ctors = append(res.Ctors, ResourceCtor{target.Syscalls[call], false})
 			}
 		}
 	}
@@ -208,8 +208,8 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			}
 			if ctors[res.Name] == nil {
 				var names []string
-				for _, call := range target.calcResourceCtors(res, true) {
-					names = append(names, call.Name)
+				for _, ctor := range target.calcResourceCtors(res, true) {
+					names = append(names, ctor.Call.Name)
 				}
 				ctors[res.Name] = names
 			}
