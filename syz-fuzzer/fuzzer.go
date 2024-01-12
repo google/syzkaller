@@ -625,6 +625,21 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	return true
 }
 
+// nolint: unused
+// It's only needed for debugging.
+func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
+	go func() {
+		a := &rpctype.LogMessageReq{
+			Level:   level,
+			Name:    fuzzer.name,
+			Message: fmt.Sprintf(msg, args...),
+		}
+		if err := fuzzer.manager.Call("Manager.LogMessage", a, nil); err != nil {
+			log.SyzFatalf("Manager.LogMessage call failed: %v", err)
+		}
+	}()
+}
+
 func setupPprofHandler(port int) {
 	// Necessary for pprof handlers.
 	go func() {
