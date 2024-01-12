@@ -7100,6 +7100,7 @@ static int setup_loop_device(unsigned char* data, unsigned long size, const char
 	loopfd = open(loopname, O_RDWR);
 	if (loopfd == -1) {
 		err = errno;
+		debug("setup_loop_device: open failed: %d\n", errno);
 		goto error_close_memfd;
 	}
 	if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
@@ -7127,6 +7128,24 @@ error:
 	errno = err;
 	return -1;
 }
+
+#if SYZ_EXECUTOR || __NR_syz_mount_image
+
+static void reset_loop_device(const char* loopname)
+{
+	int loopfd = open(loopname, O_RDWR);
+	if (loopfd == -1) {
+		debug("reset_loop_device: open failed: %d\n", errno);
+		return;
+	}
+	if (ioctl(loopfd, LOOP_CLR_FD, 0)) {
+		debug("reset_loop_device: LOOP_CLR_FD failed: %d\n", errno);
+	}
+	close(loopfd);
+}
+
+#endif
+
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
@@ -7188,7 +7207,7 @@ static long syz_mount_image(
     volatile long image)
 {
 	unsigned char* data = (unsigned char*)image;
-	int res = -1, err = 0, loopfd = -1, need_loop_device = !!size;
+	int res = -1, err = 0, need_loop_device = !!size;
 	char* mount_opts = (char*)optsarg;
 	char* target = (char*)dir;
 	char* fs = (char*)fsarg;
@@ -7196,10 +7215,12 @@ static long syz_mount_image(
 	char loopname[64];
 
 	if (need_loop_device) {
+		int loopfd;
 		memset(loopname, 0, sizeof(loopname));
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 		if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 			return -1;
+		close(loopfd);
 		source = loopname;
 	}
 
@@ -7250,10 +7271,8 @@ static long syz_mount_image(
 	}
 
 error_clear_loop:
-	if (need_loop_device) {
-		ioctl(loopfd, LOOP_CLR_FD, 0);
-		close(loopfd);
-	}
+	if (need_loop_device)
+		reset_loop_device(loopname);
 	errno = err;
 	return res;
 }
