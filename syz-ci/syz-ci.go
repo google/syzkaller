@@ -133,6 +133,9 @@ type Config struct {
 	CommitPollPeriod int `json:"commit_poll_period"`
 	// Asset Storage config.
 	AssetStorage *asset.Config `json:"asset_storage"`
+	// Per-vm type JSON diffs that will be applied to every instace of the
+	// corresponding VM type.
+	PatchVMConfigs map[string]json.RawMessage `json:"patch_vm_configs"`
 }
 
 type ManagerConfig struct {
@@ -456,6 +459,13 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 
 	if mgr.KernelConfig != "" && mgr.KernelBaselineConfig == "" {
 		mgr.KernelBaselineConfig = inferBaselineConfig(mgr.KernelConfig)
+	}
+
+	if cfg.PatchVMConfigs[managercfg.Type] != nil {
+		managercfg.VM, err = config.MergeJSONs(managercfg.VM, cfg.PatchVMConfigs[managercfg.Type])
+		if err != nil {
+			return fmt.Errorf("failed to patch manager %v's VM: %w", mgr.Name, err)
+		}
 	}
 	return nil
 }
