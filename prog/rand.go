@@ -737,30 +737,36 @@ func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial boo
 }
 
 func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	canRecurse := false
 	if !r.inGenerateResource {
 		// Don't allow recursion for resourceCentric/createResource.
 		// That can lead to generation of huge programs and may be very slow
 		// (esp. if we are generating some failing attempts in createResource already).
 		r.inGenerateResource = true
 		defer func() { r.inGenerateResource = false }()
-
+		canRecurse = true
+	}
+	if canRecurse && r.nOutOf(8, 10) ||
+		!canRecurse && r.nOutOf(19, 20) {
+		arg = r.existingResource(s, a, dir)
+		if arg != nil {
+			return
+		}
+	}
+	if canRecurse {
 		if r.oneOf(4) {
 			arg, calls = r.resourceCentric(s, a, dir)
 			if arg != nil {
 				return
 			}
 		}
-		if r.oneOf(3) {
+		if r.nOutOf(4, 5) {
+			// If we could not reuse a resource, let's prefer resource creation over
+			// random int substitution.
 			arg, calls = r.createResource(s, a, dir)
 			if arg != nil {
 				return
 			}
-		}
-	}
-	if r.nOutOf(9, 10) {
-		arg = r.existingResource(s, a, dir)
-		if arg != nil {
-			return
 		}
 	}
 	special := a.SpecialValues()
