@@ -60,7 +60,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -419,25 +418,11 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	} else {
 		managercfg.Name = cfg.Name + "-" + mgr.Name
 	}
-	// Manager name must not contain dots because it is used as GCE image name prefix.
-	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
-	if !managerNameRe.MatchString(mgr.Name) {
-		return fmt.Errorf("param 'managers.name' has bad value: %q", mgr.Name)
-	}
 	if mgr.CompilerType == "" {
 		mgr.CompilerType = "gcc"
 	}
 	if mgr.Branch == "" {
 		mgr.Branch = "master"
-	}
-	if mgr.Jobs.AnyEnabled() && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
-		return fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
-	}
-	if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
-		return fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
-	}
-	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
-		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
 	}
 	mgr.managercfg = managercfg
 	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
@@ -456,9 +441,11 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
 	mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
 	mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
-
 	if mgr.KernelConfig != "" && mgr.KernelBaselineConfig == "" {
 		mgr.KernelBaselineConfig = inferBaselineConfig(mgr.KernelConfig)
+	}
+	if err := mgr.validate(cfg); err != nil {
+		return err
 	}
 
 	if cfg.PatchVMConfigs[managercfg.Type] != nil {

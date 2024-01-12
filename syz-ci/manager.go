@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -916,4 +917,22 @@ func (mgr *Manager) Errorf(msg string, args ...interface{}) {
 	if mgr.dash != nil {
 		mgr.dash.LogError(mgr.name, msg, args...)
 	}
+}
+
+func (mgr *ManagerConfig) validate(cfg *Config) error {
+	// Manager name must not contain dots because it is used as GCE image name prefix.
+	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
+	if !managerNameRe.MatchString(mgr.Name) {
+		return fmt.Errorf("param 'managers.name' has bad value: %q", mgr.Name)
+	}
+	if mgr.Jobs.AnyEnabled() && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
+		return fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
+	}
+	if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
+		return fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
+	}
+	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
+		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
+	}
+	return nil
 }
