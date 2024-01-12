@@ -196,7 +196,7 @@ func TestPreferPreciseResources(t *testing.T) {
 	target, rs, _ := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
 	counts := map[string]int{}
-	for i := 0; i < 1500; i++ {
+	for i := 0; i < 2000; i++ {
 		s := newState(target, target.DefaultChoiceTable(), nil)
 		calls := r.generateParticularCall(s,
 			target.SyscallMap["test$consume_subtype_of_common"])
@@ -207,7 +207,7 @@ func TestPreferPreciseResources(t *testing.T) {
 			counts[call.Meta.Name]++
 		}
 	}
-	assert.Greater(t, counts["test$produce_common"], 15)
-	assert.Greater(t, counts["test$also_produce_common"], 15)
-	assert.Greater(t, counts["test$produce_subtype_of_common"], 100)
+	assert.Greater(t, counts["test$produce_common"], 70)
+	assert.Greater(t, counts["test$also_produce_common"], 70)
+	assert.Greater(t, counts["test$produce_subtype_of_common"], 1000)
 }
