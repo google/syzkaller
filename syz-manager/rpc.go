@@ -396,3 +396,8 @@ func (serv *RPCServer) shutdownInstance(name string) []byte {
 	delete(serv.fuzzers, name)
 	return fuzzer.machineInfo
 }
+
+func (serv *RPCServer) LogMessage(m *rpctype.LogMessageReq, r *int) error {
+	log.Logf(m.Level, "%s: %s", m.Name, m.Message)
+	return nil
+}
