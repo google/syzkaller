@@ -46,6 +46,15 @@ type Config struct {
 	GCEImage      string `json:"gce_image"`      // pre-created GCE image to use
 	Preemptible   bool   `json:"preemptible"`    // use preemptible VMs if available (defaults to true)
 	DisplayDevice bool   `json:"display_device"` // enable a virtual display device
+	// Username to connect to ssh-serialport.googleapis.com.
+	// Leave empty for non-OS Login GCP projects.
+	// Otherwise take the user from `gcloud compute connect-to-serial-port --dry-run`.
+	SerialPortUser string `json:"serial_port_user"`
+	// A private key to connect to ssh-serialport.googleapis.com.
+	// Leave empty for non-OS Login GCP projects.
+	// Otherwise generate one and upload it:
+	// `gcloud compute os-login ssh-keys add --key-file some-key.pub`.
+	SerialPortKey string `json:"serial_port_key"`
 }
 
 type Pool struct {
@@ -260,9 +269,17 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	var conArgs []string
 	if inst.consoleReadCmd == "" {
-		conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
-			inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
-		conArgs = append(vmimpl.SSHArgs(inst.debug, inst.gceKey, 9600), conAddr)
+		user := "syzkaller"
+		if inst.cfg.SerialPortUser != "" {
+			user = inst.cfg.SerialPortUser
+		}
+		key := inst.gceKey
+		if inst.cfg.SerialPortKey != "" {
+			key = inst.cfg.SerialPortKey
+		}
+		conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1@ssh-serialport.googleapis.com",
+			inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user)
+		conArgs = append(vmimpl.SSHArgs(inst.debug, key, 9600), conAddr)
 		// TODO: remove this later (see also a comment in getSerialPortOutput).
 		conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
 	} else {
