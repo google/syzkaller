@@ -6,10 +6,12 @@ package vcs
 import (
 	"os"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGitParseCommit(t *testing.T) {
@@ -370,4 +372,57 @@ func TestMergeBase(t *testing.T) {
 	} else if len(mergeCommits) != 1 || mergeCommits[0].Hash != newBaseCommit.Hash {
 		t.Fatalf("expected base commit, got %v", mergeCommits)
 	}
+}
+
+func TestGitCustomRefs(t *testing.T) {
+	remoteRepoDir := t.TempDir()
+	remote := MakeTestRepo(t, remoteRepoDir)
+	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "base commit")
+	remote.Git("checkout", "-b", "base_branch")
+	remote.Git("tag", "base_tag")
+
+	// Create a commit non reachable from any branch or tag.
+	remote.Git("checkout", "base_branch")
+	remote.Git("checkout", "-b", "temp_branch")
+	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "detached commit")
+	// Add a ref to prevent the commit from getting garbage collected.
+	remote.Git("update-ref", "refs/custom/test", "temp_branch")
+	refCommit, _ := remote.repo.HeadCommit()
+
+	// Remove the branch, let the commit stay only in refs.
+	remote.Git("checkout", "base_branch")
+	remote.Git("branch", "-D", "temp_branch")
+
+	// Create a local repo.
+	localRepoDir := t.TempDir()
+	local := newGit(localRepoDir, nil, nil)
+
+	// Fetch the commit from the custom ref.
+	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash)
+	assert.NoError(t, err)
+}
+
+func TestGitRemoteTags(t *testing.T) {
+	remoteRepoDir := t.TempDir()
+	remote := MakeTestRepo(t, remoteRepoDir)
+	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "base commit")
+	remote.Git("checkout", "-b", "base_branch")
+	remote.Git("tag", "v1.0")
+
+	// Diverge sub_branch and add a tag.
+	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "sub-branch")
+	remote.Git("checkout", "-b", "sub_branch")
+	remote.Git("tag", "v2.0")
+
+	// Create a local repo.
+	localRepoDir := t.TempDir()
+	local := newGit(localRepoDir, nil, nil)
+
+	// Ensure all tags were fetched.
+	commit, err := local.CheckoutCommit(remoteRepoDir, "sub_branch")
+	assert.NoError(t, err)
+	tags, err := local.previousReleaseTags(commit.Hash, true, false, false)
+	assert.NoError(t, err)
+	sort.Strings(tags)
+	assert.Equal(t, []string{"v1.0", "v2.0"}, tags)
 }
