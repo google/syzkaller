@@ -195,7 +195,7 @@ func (ctx *linux) PrepareBisect() error {
 	if ctx.vmType != "gvisor" {
 		// Some linux repos we fuzz don't import the upstream release git tags. We need tags
 		// to decide which compiler versions to use. Let's fetch upstream for its tags.
-		err := ctx.git.fetchRemote("https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git")
+		err := ctx.git.fetchRemote("https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git", "")
 		if err != nil {
 			return fmt.Errorf("fetching upstream linux failed: %w", err)
 		}
