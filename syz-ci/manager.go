@@ -88,6 +88,7 @@ type Manager struct {
 	stop           chan struct{}
 	debug          bool
 	lastBuild      *dashapi.Build
+	buildFailed    bool
 }
 
 type ManagerDashapi interface {
@@ -241,6 +242,7 @@ loop:
 
 func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
+	var success bool
 	rebuildAfter := buildRetryPeriod
 	commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 	if err != nil {
@@ -263,6 +265,8 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 					latestInfo = mgr.checkLatest()
 					if latestInfo == nil {
 						mgr.Errorf("failed to read build info after build")
+					} else {
+						success = true
 					}
 				}
 				buildSem.Signal()
@@ -270,6 +274,7 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 			}
 		}
 	}
+	mgr.buildFailed = !success
 	return lastCommit, latestInfo, rebuildAfter
 }
 
@@ -408,6 +413,12 @@ func (mgr *Manager) restartManager() {
 	buildTag, err := mgr.uploadBuild(info, mgr.currentDir)
 	if err != nil {
 		mgr.Errorf("failed to upload build: %v", err)
+		return
+	}
+	daysSinceCommit := time.Since(info.KernelCommitDate).Hours() / 24
+	if mgr.buildFailed && daysSinceCommit > float64(mgr.mgrcfg.MaxKernelLagDays) {
+		mgr.Errorf("the kernel is now too old (%.1f days since last commit), fuzzing is stopped",
+			daysSinceCommit)
 		return
 	}
 	cfgFile, err := mgr.writeConfig(buildTag)
