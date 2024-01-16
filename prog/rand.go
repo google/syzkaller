@@ -935,7 +935,7 @@ func (r *randGen) existingResource(s *state, res *ResourceType, dir Dir) Arg {
 func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, calls []*Call) {
 	var p *Prog
 	var resource *ResultArg
-	for idx := range r.Perm(len(s.corpus)) {
+	for _, idx := range r.Perm(len(s.corpus)) {
 		p = s.corpus[idx].Clone()
 		resources := getCompatibleResources(p, t.TypeName, r)
 		if len(resources) > 0 {
