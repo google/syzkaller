@@ -199,9 +199,13 @@ type ManagerConfig struct {
 	Jobs         ManagerJobs `json:"jobs"`
 	// Extra commits to cherry pick to older kernel revisions.
 	BisectBackports []vcs.BackportCommit `json:"bisect_backports"`
-
+	// Base syz-manager config for the instance.
 	ManagerConfig json.RawMessage `json:"manager_config"`
-	managercfg    *mgrconfig.Config
+	// If the kernel's commit is older than MaxKernelLagDays days,
+	// fuzzing won't be started on this instance.
+	// By default it's 30 days.
+	MaxKernelLagDays int
+	managercfg       *mgrconfig.Config
 }
 
 type ManagerJobs struct {
@@ -443,6 +447,9 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
 	if mgr.KernelConfig != "" && mgr.KernelBaselineConfig == "" {
 		mgr.KernelBaselineConfig = inferBaselineConfig(mgr.KernelConfig)
+	}
+	if mgr.MaxKernelLagDays == 0 {
+		mgr.MaxKernelLagDays = 30
 	}
 	if err := mgr.validate(cfg); err != nil {
 		return err
