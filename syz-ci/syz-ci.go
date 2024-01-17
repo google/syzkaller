@@ -204,7 +204,7 @@ type ManagerConfig struct {
 	// If the kernel's commit is older than MaxKernelLagDays days,
 	// fuzzing won't be started on this instance.
 	// By default it's 30 days.
-	MaxKernelLagDays int
+	MaxKernelLagDays int `json:"max_kernel_lag_days"`
 	managercfg       *mgrconfig.Config
 }
 
