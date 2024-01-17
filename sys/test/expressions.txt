@@ -56,3 +56,15 @@ conditional_struct_minimize {
 } [packed]
 
 test$conditional_struct_minimize(a ptr[in, conditional_struct_minimize])
+
+conditional_union [
+	u1	int8	(if[value[conditional_union_parent:f1] == 0])
+	u2	int8
+]
+
+conditional_union_parent {
+	f1	int8:1
+	f2	conditional_union
+}
+
+test$conditional_union(a ptr[in, conditional_union_parent])

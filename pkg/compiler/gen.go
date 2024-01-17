@@ -556,6 +556,11 @@ func (comp *compiler) wrapConditionalField(name string, field prog.Field) prog.F
 				{
 					Name: "void",
 					Type: voidType,
+					Condition: &prog.BinaryExpression{
+						Operator: prog.OperatorCompareEq,
+						Left:     newCondition,
+						Right:    &prog.Value{Value: 0x0, Path: nil},
+					},
 				},
 			},
 		},
