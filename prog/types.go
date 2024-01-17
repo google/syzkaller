@@ -733,6 +733,12 @@ func (t *UnionType) DefaultArg(dir Dir) Arg {
 	return MakeUnionArg(t, dir, f.DefaultArg(f.Dir(dir)), idx)
 }
 
+func (t *UnionType) DefaultTransientArg(dir Dir) Arg {
+	unionArg := t.DefaultArg(dir).(*UnionArg)
+	unionArg.transient = true
+	return unionArg
+}
+
 func (t *UnionType) defaultField() int {
 	// If it's a conditional union, the last field will be the default value.
 	if t.isConditional() {

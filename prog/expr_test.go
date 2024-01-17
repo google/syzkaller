@@ -90,10 +90,11 @@ func TestEvaluateConditionalFields(t *testing.T) {
 				`test$parent_conditions(&AUTO={0x2, @with_flag1=0x123, {0x0, @void}})`,
 				`test$parent_conditions(&AUTO={0x4, @without_flag1=0x123, {0x0, @value=0x0}})`,
 				`test$parent_conditions(&AUTO={0x6, @with_flag1=0x123, {0x0, @value=0x0}})`,
+				// The @without_flag1 option is still possible.
+				`test$parent_conditions(&AUTO={0x2, @without_flag1=0x123, {0x0, @void}})`,
 			},
 			bad: []string{
 				`test$parent_conditions(&AUTO={0x0, @with_flag1=0x123, {0x0, @void}})`,
-				`test$parent_conditions(&AUTO={0x2, @without_flag1=0x123, {0x0, @void}})`,
 				`test$parent_conditions(&AUTO={0x4, @with_flag1=0x123, {0x0, @void}})`,
 				`test$parent_conditions(&AUTO={0x4, @with_flag1=0x123, {0x0, @value=0x0}})`,
 			},
@@ -108,7 +109,8 @@ func TestEvaluateConditionalFields(t *testing.T) {
 			}
 			for _, bad := range test.bad {
 				_, err := target.Deserialize([]byte(bad), Strict)
-				assert.ErrorIs(tt, err, ErrViolatedConditions)
+				assert.ErrorIs(tt, err, ErrViolatedConditions,
+					"prog: %s", bad)
 			}
 		})
 	}
@@ -223,4 +225,38 @@ func parseConditionalStructCall(t *testing.T, c *Call) (bool, bool) {
 	assert.Equal(t, mask&FLAG1 != 0, f1, "flag1 must only be set if mask&FLAG1")
 	assert.Equal(t, mask&FLAG2 != 0, f2, "flag2 must only be set if mask&FLAG2")
 	return f1, f2
+}
+
+func TestConditionalUnionFields(t *testing.T) {
+	// Ensure that we reach different combinations of conditional fields.
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	ct := target.DefaultChoiceTable()
+	r := newRand(target, rs)
+
+	var zeroU1, zeroU2 int
+	var nonzeroU2 int
+	for i := 0; i < 100; i++ {
+		s := newState(target, ct, nil)
+		p := &Prog{
+			Target: target,
+			Calls:  r.generateParticularCall(s, target.SyscallMap["test$conditional_union"]),
+		}
+		if len(p.Calls) > 1 {
+			continue
+		}
+		text := string(p.SerializeVerbose())
+		if strings.Contains(text, "{0x0,") {
+			if strings.Contains(text, "@u1") {
+				zeroU1++
+			} else if strings.Contains(text, "@u2") {
+				zeroU2++
+			}
+		} else {
+			assert.NotContains(t, text, "@u1")
+			nonzeroU2++
+		}
+	}
+	assert.Greater(t, zeroU1, 0)
+	assert.Greater(t, zeroU2, 0)
+	assert.Greater(t, nonzeroU2, 0)
 }

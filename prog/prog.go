@@ -267,6 +267,10 @@ type UnionArg struct {
 	ArgCommon
 	Option Arg
 	Index  int // Index of the selected option in the union type.
+	// Used for unions with conditional fields.
+	// We first create a dummy arg with transient=True and then
+	// patch them.
+	transient bool
 }
 
 func MakeUnionArg(t Type, dir Dir, opt Arg, index int) *UnionArg {
