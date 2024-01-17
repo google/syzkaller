@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -130,13 +131,9 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
 	}
 	if len(allProgPCs) != len(matchedProgPCs) {
-		for mismatch := range allProgPCs {
-			if !matchedProgPCs[mismatch] {
-				return nil, fmt.Errorf("%d out of %d PCs returned by kcov do not have matching "+
-					"coverage callbacks. Check the discoverModules() code, %v",
-					len(allProgPCs)-len(matchedProgPCs), len(allProgPCs), mismatch)
-			}
-		}
+		log.Logf(0, "%d out of %d PCs returned by kcov do not have matching "+
+			"coverage callbacks. Check the discoverModules() code.",
+			len(allProgPCs)-len(matchedProgPCs), len(allProgPCs))
 	}
 	for _, unit := range rg.Units {
 		f := files[unit.Name]
