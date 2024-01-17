@@ -80,6 +80,8 @@ func NewRPCClient(addr string, timeScale time.Duration) (*RPCClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
+	conn.SetDeadline(time.Now().Add(3 * time.Minute * timeScale))
 	cli := &RPCClient{
 		conn:      conn,
 		c:         rpc.NewClient(newFlateConn(conn)),
@@ -89,9 +91,6 @@ func NewRPCClient(addr string, timeScale time.Duration) (*RPCClient, error) {
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
-	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
-	cli.conn.SetDeadline(time.Now().Add(3 * time.Minute * cli.timeScale))
-	defer cli.conn.SetDeadline(time.Time{})
 	return cli.c.Call(method, args, reply)
 }
 
