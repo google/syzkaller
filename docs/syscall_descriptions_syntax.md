@@ -275,11 +275,7 @@ type bool32	int32[0:1]
 type bool64	int64[0:1]
 type boolptr	intptr[0:1]
 
-type fileoff[BASE] BASE
-
 type filename string[filename]
-
-type buffer[DIR] ptr[DIR, array[int8]]
 ```
 
 ## Type Templates
