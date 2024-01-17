@@ -517,6 +517,18 @@ parent_union [
 
 test$length34(a0 ptr[in, parent_union_struct])
 
+struct_with_condition {
+	f1	int32
+	f2	int32	(if[value[f1] == 0x1])
+} [packed]
+
+len_of_cond_struct {
+	f1	len[f2, int32]
+	f2	struct_with_condition
+}
+
+test$length35(a0 ptr[in, len_of_cond_struct])
+
 # Big endian
 
 test$end0(a0 ptr[in, syz_end_int_struct])
