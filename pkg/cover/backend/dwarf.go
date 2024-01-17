@@ -184,22 +184,13 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 		pcBase = ^uint64(0)
 	}
-	var allCoverPointsMap = make(map[uint64]bool)
-	for i := 0; i < 2; i++ {
-		for _, pc := range allCoverPoints[i] {
-			if pc != 0 {
-				allCoverPointsMap[pc] = true
-			}
-		}
-	}
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
-		RestorePC:   makeRestorePC(params, pcBase),
-		CoverPoints: allCoverPointsMap,
+		RestorePC: makeRestorePC(params, pcBase),
 	}
 	return impl, nil
 }
