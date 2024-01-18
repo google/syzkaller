@@ -748,39 +748,13 @@ type rawBackport struct {
 }
 
 func loadAllBackports(c context.Context) ([]*rawBackport, error) {
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
-		return query.Filter("FixCandidateJob>", "").Filter("Status=", BugStatusOpen)
-	})
+	bugs, jobs, _, err := relevantBackportJobs(c)
 	if err != nil {
 		return nil, err
 	}
-
-	var jobKeys []*db.Key
-	var jobBugs []*Bug
-	for _, bug := range bugs {
-		jobKey, err := db.DecodeKey(bug.FixCandidateJob)
-		if err != nil {
-			return nil, err
-		}
-		jobKeys = append(jobKeys, jobKey)
-		jobBugs = append(jobBugs, bug)
-	}
-
-	jobs := make([]*Job, len(jobKeys))
-	if err := db.GetMulti(c, jobKeys, jobs); err != nil {
-		return nil, err
-	}
-
 	var ret []*rawBackport
 	perCommit := map[string]*rawBackport{}
 	for i, job := range jobs {
-		// Some assertions just in case.
-		if !job.IsCrossTree() {
-			return nil, fmt.Errorf("job %s: expected to be cross-tree", jobKeys[i])
-		}
-		if len(job.Commits) != 1 || job.InvalidatedBy != "" {
-			continue
-		}
 		jobCommit := job.Commits[0]
 		to := &uiRepo{URL: job.MergeBaseRepo, Branch: job.MergeBaseBranch}
 		from := &uiRepo{URL: job.KernelRepo, Branch: job.KernelBranch}
@@ -803,7 +777,7 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 			ret = append(ret, backport)
 			perCommit[hash] = backport
 		}
-		backport.Bugs = append(backport.Bugs, jobBugs[i])
+		backport.Bugs = append(backport.Bugs, bugs[i])
 	}
 	return ret, nil
 }
