@@ -223,11 +223,15 @@ func patchTestJobArgs(c context.Context, args *testJobArgs) error {
 	return nil
 }
 
+func crashNeedsRepro(title string) bool {
+	return !strings.Contains(title, "boot error:") &&
+		!strings.Contains(title, "test error:") &&
+		!strings.Contains(title, "build error")
+}
+
 func checkTestJob(args *testJobArgs) string {
 	crash, bug := args.crash, args.bug
-	needRepro := !strings.Contains(crash.Title, "boot error:") &&
-		!strings.Contains(crash.Title, "test error:") &&
-		!strings.Contains(crash.Title, "build error")
+	needRepro := crashNeedsRepro(crash.Title)
 	switch {
 	case needRepro && crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it."
