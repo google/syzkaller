@@ -500,6 +500,8 @@ type BisectResult struct {
 	CrashReportLink string
 	Fix             bool
 	CrossTree       bool
+	// In case a missing backport was backported.
+	Backported *Commit
 }
 
 type BugListReport struct {

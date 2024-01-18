@@ -1351,13 +1351,7 @@ func bisectFromJob(c context.Context, job *Job) (*dashapi.BisectResult, []string
 		CrossTree:       job.IsCrossTree(),
 	}
 	for _, com := range job.Commits {
-		bisect.Commits = append(bisect.Commits, &dashapi.Commit{
-			Hash:       com.Hash,
-			Title:      com.Title,
-			Author:     com.Author,
-			AuthorName: com.AuthorName,
-			Date:       com.Date,
-		})
+		bisect.Commits = append(bisect.Commits, com.toDashapi())
 	}
 	var newEmails []string
 	if len(bisect.Commits) == 1 {
@@ -1366,6 +1360,9 @@ func bisectFromJob(c context.Context, job *Job) (*dashapi.BisectResult, []string
 		com := job.Commits[0]
 		newEmails = []string{com.Author}
 		newEmails = append(newEmails, strings.Split(com.CC, "|")...)
+	}
+	if job.BackportedCommit.Title != "" {
+		bisect.Backported = job.BackportedCommit.toDashapi()
 	}
 	return bisect, newEmails
 }
@@ -1654,7 +1651,8 @@ func relevantBackportJobs(c context.Context) (
 			err = fmt.Errorf("job %s: expected to be cross-tree", jobKey)
 			return
 		}
-		if len(job.Commits) != 1 || job.InvalidatedBy != "" {
+		if len(job.Commits) != 1 || job.InvalidatedBy != "" ||
+			job.BackportedCommit.Title != "" {
 			continue
 		}
 		bugs = append(bugs, allBugs[i])
@@ -1662,6 +1660,61 @@ func relevantBackportJobs(c context.Context) (
 		jobKeys = append(jobKeys, jobKey)
 	}
 	return
+}
+
+func updateBackportCommits(c context.Context, ns string, commits []dashapi.Commit) error {
+	if len(commits) == 0 {
+		return nil
+	}
+	perTitle := map[string]dashapi.Commit{}
+	for _, commit := range commits {
+		perTitle[commit.Title] = commit
+	}
+	bugs, jobs, jobKeys, err := relevantBackportJobs(c)
+	if err != nil {
+		return fmt.Errorf("failed to query backport jobs: %w", err)
+	}
+	for i, job := range jobs {
+		rawCommit, ok := perTitle[job.Commits[0].Title]
+		if !ok {
+			continue
+		}
+		if bugs[i].Namespace != ns {
+			continue
+		}
+		commit := Commit{
+			Hash:       rawCommit.Hash,
+			Title:      rawCommit.Title,
+			Author:     rawCommit.Author,
+			AuthorName: rawCommit.AuthorName,
+			Date:       rawCommit.Date,
+		}
+		err := commitBackported(c, jobKeys[i], commit)
+		if err != nil {
+			return fmt.Errorf("failed to update backport job: %w", err)
+		}
+	}
+	return nil
+}
+
+func commitBackported(c context.Context, jobKey *db.Key, commit Commit) error {
+	tx := func(c context.Context) error {
+		job := new(Job)
+		if err := db.Get(c, jobKey, job); err != nil {
+			return fmt.Errorf("failed to get job: %w", err)
+		}
+		if job.BackportedCommit.Title != "" {
+			// Nothing to update.
+			return nil
+		}
+		job.BackportedCommit = commit
+		job.Reported = false
+		if _, err := db.Put(c, jobKey, job); err != nil {
+			return fmt.Errorf("failed to put job: %w", err)
+		}
+		return nil
+	}
+	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 5})
 }
 
 type bugJobs struct {

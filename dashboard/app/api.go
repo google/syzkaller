@@ -263,7 +263,38 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 	for com := range commits {
 		resp.Commits = append(resp.Commits, com)
 	}
+	if getNsConfig(c, ns).RetestMissingBackports {
+		const takeBackportTitles = 5
+		backportCommits, err := pollBackportCommits(c, ns, takeBackportTitles)
+		if err != nil {
+			return nil, err
+		}
+		resp.Commits = append(resp.Commits, backportCommits...)
+	}
 	return resp, nil
+}
+
+func pollBackportCommits(c context.Context, ns string, count int) ([]string, error) {
+	// Let's assume that there won't be too many pending backports.
+	bugs, jobs, _, err := relevantBackportJobs(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query backport: %w", err)
+	}
+	var backportTitles []string
+	for i, bug := range bugs {
+		if bug.Namespace != ns {
+			continue
+		}
+		backportTitles = append(backportTitles, jobs[i].Commits[0].Title)
+	}
+	randomizer := rand.New(rand.NewSource(timeNow(c).UnixNano()))
+	randomizer.Shuffle(len(backportTitles), func(i, j int) {
+		backportTitles[i], backportTitles[j] = backportTitles[j], backportTitles[i]
+	})
+	if len(backportTitles) > count {
+		backportTitles = backportTitles[:count]
+	}
+	return backportTitles, nil
 }
 
 func apiUploadCommits(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
@@ -283,6 +314,12 @@ func apiUploadCommits(c context.Context, ns string, r *http.Request, payload []b
 		}
 		if err := addCommitInfo(c, ns, com); err != nil {
 			return nil, err
+		}
+	}
+	if getNsConfig(c, ns).RetestMissingBackports {
+		err = updateBackportCommits(c, ns, req.Commits)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update backport commits: %w", err)
 		}
 	}
 	return nil, nil

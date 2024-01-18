@@ -567,7 +567,8 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
-			FindBugOriginTrees: true,
+			FindBugOriginTrees:     true,
+			RetestMissingBackports: true,
 		},
 	},
 }

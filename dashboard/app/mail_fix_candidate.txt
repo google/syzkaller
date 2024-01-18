@@ -1,4 +1,22 @@
-{{$bisect := .BisectFix}}syzbot suspects this issue could be fixed by backporting the following commit:
+{{$bisect := .BisectFix -}}
+
+{{- if $bisect.Backported -}}
+The commit that was suspected to fix the issue was backported to the fuzzed
+kernel trees.
+
+commit {{$bisect.Backported.Hash}}
+Author: {{$bisect.Backported.AuthorName}} <{{$bisect.Backported.Author}}>
+Date:   {{formatKernelTime $bisect.Backported.Date}}
+
+    {{$bisect.Commit.Title}}
+
+If you believe this is correct, please reply with
+#syz fix: {{$bisect.Backported.Title}}
+
+The commit was initially detected here:
+{{- else -}}
+syzbot suspects this issue could be fixed by backporting the following commit:
+{{- end}}
 
 commit {{$bisect.Commit.Hash}}
 git tree: {{.KernelRepoAlias}}
@@ -17,6 +35,9 @@ bisection log:  {{$bisect.LogLink}}
 {{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
 {{end}}
 
+{{- if not $bisect.Backported}}
+
 Please keep in mind that other backports might be required as well.
 
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+{{end -}}
