@@ -120,7 +120,8 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		reporting, bugReporting = nil, nil
 		return
 	}
-	if bug.ReproLevel < ReproLevelC && timeSince(c, bug.FirstTime) < cfg.WaitForRepro {
+	if crashNeedsRepro(bug.Title) && bug.ReproLevel < ReproLevelC &&
+		timeSince(c, bug.FirstTime) < cfg.WaitForRepro {
 		status = fmt.Sprintf("%v: waiting for C repro", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return

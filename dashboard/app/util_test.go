@@ -274,6 +274,17 @@ func (c *Ctx) decommission(ns string) {
 	}
 }
 
+func (c *Ctx) setWaitForRepro(ns string, d time.Duration) {
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.WaitForRepro = d
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
+	}
+}
+
 // GET sends admin-authorized HTTP GET request to the app.
 func (c *Ctx) GET(url string) ([]byte, error) {
 	return c.AuthGET(AccessAdmin, url)

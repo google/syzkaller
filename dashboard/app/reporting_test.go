@@ -1264,3 +1264,39 @@ func TestReportRevokedRepro(t *testing.T) {
 	// Expect no further reports.
 	client.pollBugs(0)
 }
+
+func TestWaitForRepro(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	c.setWaitForRepro("test1", time.Hour*24)
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Normal crash witout repro.
+	client.ReportCrash(testCrash(build, 1))
+	client.pollBugs(0)
+	c.advanceTime(time.Hour * 24)
+	client.pollBug()
+
+	// A crash first without repro, then with it.
+	client.ReportCrash(testCrash(build, 2))
+	c.advanceTime(time.Hour * 12)
+	client.pollBugs(0)
+	client.ReportCrash(testCrashWithRepro(build, 2))
+	client.pollBug()
+
+	// A crash with a reproducer.
+	c.advanceTime(time.Minute)
+	client.ReportCrash(testCrashWithRepro(build, 3))
+	client.pollBug()
+
+	// A crahs that will never have a reproducer.
+	c.advanceTime(time.Minute)
+	crash := testCrash(build, 4)
+	crash.Title = "upstream test error: abcd"
+	client.ReportCrash(crash)
+	client.pollBug()
+}
