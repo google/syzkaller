@@ -2,19 +2,19 @@
 // Use of this source code is governed by the Apache 2.0
 // license that can be found in the LICENSE file.
 
-//go:build !appengine
 // +build !appengine
 
 package appengine
 
 import (
-	"context"
+	"golang.org/x/net/context"
+
+	"google.golang.org/appengine/internal"
 )
 
 // BackgroundContext returns a context not associated with a request.
-//
-// Deprecated: App Engine no longer has a special background context.
-// Just use context.Background().
+// This should only be used when not servicing a request.
+// This only works in App Engine "flexible environment".
 func BackgroundContext() context.Context {
-	return context.Background()
+	return internal.BackgroundContext()
 }
