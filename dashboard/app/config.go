@@ -94,6 +94,9 @@ type Config struct {
 	FixBisectionAutoClose bool
 	// If set, dashboard will periodically request repros and revoke no longer working ones.
 	RetestRepros bool
+	// If set, dashboard will periodically verify the presence of the missing backports in the
+	// tested kernel trees.
+	RetestMissingBackports bool
 	// If set, dashboard will create patch testing jobs to determine bug origin trees.
 	FindBugOriginTrees bool
 	// Managers contains some special additional info about syz-manager instances.

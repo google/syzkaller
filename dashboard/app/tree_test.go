@@ -198,6 +198,9 @@ func TestTreeOriginLts(t *testing.T) {
 	ctx.ctx.expectNoEmail()
 }
 
+// This function is very very big, but the required scenario is unfortunately
+// also very big, so:
+// nolint: funlen
 func TestTreeOriginLtsBisection(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -361,6 +364,63 @@ For information about bisection process see: %URL%#bisection
 	reply, err = ctx.ctx.AuthGET(AccessPublic, "/access-public-email/backports")
 	c.expectOK(err)
 	assert.NotContains(t, string(reply), treeTestCrashTitle)
+
+	// The bug must appear in commit poll.
+	commitPollResp, err := ctx.client.CommitPoll()
+	c.expectOK(err)
+	assert.Contains(t, commitPollResp.Commits, "kernel: fix a bug")
+
+	// Pretend that we have found a commit.
+	c.expectOK(ctx.client.UploadCommits([]dashapi.Commit{
+		{
+			Hash:       "newhash",
+			Title:      "kernel: fix a bug",
+			AuthorName: "Someone",
+			Author:     "someone@somewhere.com",
+			Date:       time.Date(2000, 3, 4, 5, 6, 7, 8, time.UTC),
+		},
+	}))
+
+	// An email must be sent.
+	msg = ctx.emailWithoutURLs()
+	fmt.Printf("%s", msg)
+	c.expectEQ(msg.Body, `The commit that was suspected to fix the issue was backported to the fuzzed
+kernel trees.
+
+commit newhash
+Author: Someone <someone@somewhere.com>
+Date:   Sat Mar 4 05:06:07 2000 +0000
+
+    kernel: fix a bug
+
+If you believe this is correct, please reply with
+#syz fix: kernel: fix a bug
+
+The commit was initially detected here:
+
+commit deadf00d
+git tree: upstream
+Author: Someone <someone@somewhere.com>
+Date:   Wed Feb 9 04:05:06 2000 +0000
+
+    kernel: fix a bug
+
+bisection log:  %URL%
+final oops:     %URL%
+console output: %URL%
+kernel config:  %URL%
+dashboard link: %URL%
+syz repro:      %URL%
+C reproducer:   %URL%
+`)
+	// Only one email.
+	ctx.ctx.expectNoEmail()
+
+	// The commit should disappear from the missing backports list.
+	reply, err = ctx.ctx.AuthGET(AccessAdmin, "/tree-tests/backports")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), treeTestCrashTitle)
+	assert.NotContains(t, string(reply), "deadf00d")
 }
 
 func TestNonfinalFixCandidateBisect(t *testing.T) {

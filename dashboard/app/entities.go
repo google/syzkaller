@@ -292,6 +292,16 @@ type Commit struct {
 	Date       time.Time
 }
 
+func (com Commit) toDashapi() *dashapi.Commit {
+	return &dashapi.Commit{
+		Hash:       com.Hash,
+		Title:      com.Title,
+		Author:     com.Author,
+		AuthorName: com.AuthorName,
+		Date:       com.Date,
+	}
+}
+
 type BugDiscussionInfo struct {
 	Source  string
 	Summary DiscussionSummary
@@ -588,8 +598,9 @@ type Job struct {
 	Error       int64 // reference to Error text entity, if set job failed
 	Flags       dashapi.JobDoneFlags
 
-	Reported      bool   // have we reported result back to user?
-	InvalidatedBy string // user who marked this bug as invalid, empty by default
+	Reported         bool   // have we reported result back to user?
+	InvalidatedBy    string // user who marked this bug as invalid, empty by default
+	BackportedCommit Commit
 }
 
 func (job *Job) IsBisection() bool {
