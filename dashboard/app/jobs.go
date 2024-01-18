@@ -1624,6 +1624,46 @@ func uniqueBugs(c context.Context, inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*
 	return bugs, keys
 }
 
+func relevantBackportJobs(c context.Context) (
+	bugs []*Bug, jobs []*Job, jobKeys []*db.Key, err error) {
+	allBugs, _, bugsErr := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("FixCandidateJob>", "").Filter("Status=", BugStatusOpen)
+	})
+	if bugsErr != nil {
+		err = bugsErr
+		return
+	}
+	var allJobKeys []*db.Key
+	for _, bug := range allBugs {
+		jobKey, decodeErr := db.DecodeKey(bug.FixCandidateJob)
+		if decodeErr != nil {
+			err = decodeErr
+			return
+		}
+		allJobKeys = append(allJobKeys, jobKey)
+	}
+	allJobs := make([]*Job, len(allJobKeys))
+	err = db.GetMulti(c, allJobKeys, allJobs)
+	if err != nil {
+		return
+	}
+	for i, job := range allJobs {
+		// Some assertions just in case.
+		jobKey := allJobKeys[i]
+		if !job.IsCrossTree() {
+			err = fmt.Errorf("job %s: expected to be cross-tree", jobKey)
+			return
+		}
+		if len(job.Commits) != 1 || job.InvalidatedBy != "" {
+			continue
+		}
+		bugs = append(bugs, allBugs[i])
+		jobs = append(jobs, job)
+		jobKeys = append(jobKeys, jobKey)
+	}
+	return
+}
+
 type bugJobs struct {
 	list []*bugJob
 }
