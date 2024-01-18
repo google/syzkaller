@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.opencensus.io/plugin/ochttp"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi/transport"
@@ -70,9 +69,6 @@ func newTransport(ctx context.Context, base http.RoundTripper, settings *interna
 		requestReason: settings.RequestReason,
 	}
 	var trans http.RoundTripper = paramTransport
-	// Give OpenTelemetry precedence over OpenCensus in case user configuration
-	// causes both to write the same header (`X-Cloud-Trace-Context`).
-	trans = addOpenTelemetryTransport(trans, settings)
 	trans = addOCTransport(trans, settings)
 	switch {
 	case settings.NoAuth:
@@ -205,13 +201,6 @@ func fallbackBaseTransport() *http.Transport {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-}
-
-func addOpenTelemetryTransport(trans http.RoundTripper, settings *internal.DialSettings) http.RoundTripper {
-	if settings.TelemetryDisabled {
-		return trans
-	}
-	return otelhttp.NewTransport(trans)
 }
 
 func addOCTransport(trans http.RoundTripper, settings *internal.DialSettings) http.RoundTripper {

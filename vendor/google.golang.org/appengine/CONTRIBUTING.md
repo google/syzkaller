@@ -19,12 +19,14 @@
 
 ## Running system tests
 
+Download and install the [Go App Engine SDK](https://cloud.google.com/appengine/docs/go/download). Make sure the `go_appengine` dir is in your `PATH`.
+
 Set the `APPENGINE_DEV_APPSERVER` environment variable to `/path/to/go_appengine/dev_appserver.py`.
 
-Run tests with `go test`:
+Run tests with `goapp test`:
 
 ```
-go test -v google.golang.org/appengine/...
+goapp test -v google.golang.org/appengine/...
 ```
 
 ## Contributor License Agreements

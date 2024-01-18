@@ -27,7 +27,6 @@ const (
 type DialSettings struct {
 	Endpoint                      string
 	DefaultEndpoint               string
-	DefaultEndpointTemplate       string
 	DefaultMTLSEndpoint           string
 	Scopes                        []string
 	DefaultScopes                 []string
