@@ -318,12 +318,20 @@ func (proc *Proc) randomCollide(origP *prog.Prog) *prog.Prog {
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
 	proc.fuzzer.checkDisabledCalls(p)
 	for try := 0; ; try++ {
-		// Limit concurrency.
-		ticket := proc.fuzzer.gate.Enter()
-		proc.logProgram(opts, p)
-		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
-		output, info, hanged, err := proc.env.Exec(opts, p)
-		proc.fuzzer.gate.Leave(ticket)
+		var output []byte
+		var info *ipc.ProgInfo
+		var hanged bool
+		// On a heavily loaded VM, syz-executor may take significant time to start.
+		// Let's do it outside of the gate ticket.
+		err := proc.env.RestartIfNeeded(p.Target)
+		if err == nil {
+			// Limit concurrency.
+			ticket := proc.fuzzer.gate.Enter()
+			proc.logProgram(opts, p)
+			atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
+			output, info, hanged, err = proc.env.Exec(opts, p)
+			proc.fuzzer.gate.Leave(ticket)
+		}
 		if err != nil {
 			if err == prog.ErrExecBufferTooSmall {
 				// It's bad if we systematically fail to serialize programs,
