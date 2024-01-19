@@ -68,6 +68,8 @@ linters:
     - wsl
 
 linters-settings:
+  staticcheck:
+    checks: [ all, -nilness ]
   revive:
     rules:
     - name: package-comments
