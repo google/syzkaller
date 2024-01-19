@@ -270,19 +270,11 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	}
 
 	atomic.AddUint64(&env.StatExecs, 1)
-	if env.cmd == nil {
-		if p.Target.OS != targets.TestOS && targets.Get(p.Target.OS, p.Target.Arch).HostFuzzer {
-			// The executor is actually ssh,
-			// starting them too frequently leads to timeouts.
-			<-rateLimit.C
-		}
-		tmpDirPath := "./"
-		atomic.AddUint64(&env.StatRestarts, 1)
-		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
-		if err0 != nil {
-			return
-		}
+	err0 = env.RestartIfNeeded(p.Target)
+	if err0 != nil {
+		return
 	}
+
 	output, hanged, err0 = env.cmd.exec(opts, progData)
 	if err0 != nil {
 		env.cmd.close()
@@ -299,6 +291,23 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 		env.cmd = nil
 	}
 	return
+}
+
+// This smethod brings up an executor process if it was stopped.
+func (env *Env) RestartIfNeeded(target *prog.Target) error {
+	if env.cmd == nil {
+		if target.OS != targets.TestOS && targets.Get(target.OS, target.Arch).HostFuzzer {
+			// The executor is actually ssh,
+			// starting them too frequently leads to timeouts.
+			<-rateLimit.C
+		}
+		tmpDirPath := "./"
+		atomic.AddUint64(&env.StatRestarts, 1)
+		var err error
+		env.cmd, err = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
+		return err
+	}
+	return nil
 }
 
 // addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
