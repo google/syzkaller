@@ -417,8 +417,8 @@ func (mgr *Manager) restartManager() {
 	}
 	daysSinceCommit := time.Since(info.KernelCommitDate).Hours() / 24
 	if mgr.buildFailed && daysSinceCommit > float64(mgr.mgrcfg.MaxKernelLagDays) {
-		mgr.Errorf("the kernel is now too old (%.1f days since last commit), fuzzing is stopped",
-			daysSinceCommit)
+		log.Logf(0, "%s: the kernel is now too old (%.1f days since last commit), fuzzing is stopped",
+			mgr.name, daysSinceCommit)
 		return
 	}
 	cfgFile, err := mgr.writeConfig(buildTag)
