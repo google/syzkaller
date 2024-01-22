@@ -1142,6 +1142,12 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		stats.TotalCrashes += int64(req.Crashes)
 		stats.SuppressedCrashes += int64(req.SuppressedCrashes)
 		stats.TotalExecs += int64(req.Execs)
+		if cur := int64(req.TriagedCoverage); cur > stats.TriagedCoverage {
+			stats.TriagedCoverage = cur
+		}
+		if cur := int64(req.TriagedPCs); cur > stats.TriagedPCs {
+			stats.TriagedPCs = cur
+		}
 		return nil
 	})
 	return nil, err

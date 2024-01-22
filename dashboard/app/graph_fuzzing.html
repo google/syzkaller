@@ -24,7 +24,7 @@ Manager statistics graphs.
 			{{- end}}
 			data.addRows([ {{range $.Graph.Columns}}
 					[ "{{.Hint}}", {{range .Vals}}
-						{{if .Val}}{{.Val}}{{end}}, '{{.Hint}}',
+						{{if .IsNull}}null{{else if .Val}}{{.Val}}{{end}}, '{{.Hint}}',
 					{{- end}}
 					],
 				{{- end}}

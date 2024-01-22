@@ -50,6 +50,9 @@ type ManagerStats struct {
 	CrashTypes        int64 // unique crash types
 	SuppressedCrashes int64
 	TotalExecs        int64
+	// These are only recorded once right after corpus is triaged.
+	TriagedCoverage int64
+	TriagedPCs      int64
 }
 
 type Asset struct {

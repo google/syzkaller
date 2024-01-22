@@ -725,6 +725,10 @@ type ManagerStatsReq struct {
 	Crashes           uint64
 	SuppressedCrashes uint64
 	Execs             uint64
+
+	// Non-zero only when set.
+	TriagedCoverage uint64
+	TriagedPCs      uint64
 }
 
 func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
