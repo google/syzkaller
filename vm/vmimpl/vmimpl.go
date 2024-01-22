@@ -67,6 +67,11 @@ type Infoer interface {
 	Info() ([]byte, error)
 }
 
+// PprofPortProvider is used when the instance wants to define a custom pprof port.
+type PprofPortProvider interface {
+	PprofPort() int
+}
+
 // Env contains global constant parameters for a pool of VMs.
 type Env struct {
 	// Unique name
