@@ -242,17 +242,18 @@ loop:
 
 func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
-	var success bool
 	rebuildAfter := buildRetryPeriod
 	commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 	if err != nil {
+		mgr.buildFailed = true
 		mgr.Errorf("failed to poll: %v", err)
 	} else {
 		log.Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
-		if commit.Hash != lastCommit &&
-			(latestInfo == nil ||
-				commit.Hash != latestInfo.KernelCommit ||
-				mgr.configTag != latestInfo.KernelConfigTag) {
+		needsUpdate := (latestInfo == nil ||
+			commit.Hash != latestInfo.KernelCommit ||
+			mgr.configTag != latestInfo.KernelConfigTag)
+		mgr.buildFailed = needsUpdate
+		if commit.Hash != lastCommit && needsUpdate {
 			lastCommit = commit.Hash
 			select {
 			case <-buildSem.WaitC():
@@ -261,12 +262,11 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 					log.Logf(0, "%v: %v", mgr.name, err)
 				} else {
 					log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
+					mgr.buildFailed = false
 					rebuildAfter = kernelRebuildPeriod
 					latestInfo = mgr.checkLatest()
 					if latestInfo == nil {
 						mgr.Errorf("failed to read build info after build")
-					} else {
-						success = true
 					}
 				}
 				buildSem.Signal()
@@ -274,7 +274,6 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 			}
 		}
 	}
-	mgr.buildFailed = !success
 	return lastCommit, latestInfo, rebuildAfter
 }
 
