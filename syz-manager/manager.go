@@ -90,10 +90,11 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules            []host.KernelModule
-	coverFilter        map[uint32]uint32
-	execCoverFilter    map[uint32]uint32
-	modulesInitialized bool
+	modules             []host.KernelModule
+	coverFilter         map[uint32]uint32
+	execCoverFilter     map[uint32]uint32
+	modulesInitialized  bool
+	afterTriageStatSent bool
 
 	assetStorage *asset.Storage
 }
@@ -1520,6 +1521,11 @@ func (mgr *Manager) dashboardReporter() {
 			Crashes:           crashes - lastCrashes,
 			SuppressedCrashes: suppressedCrashes - lastSuppressedCrashes,
 			Execs:             execs - lastExecs,
+		}
+		if mgr.phase >= phaseTriagedCorpus && !mgr.afterTriageStatSent {
+			mgr.afterTriageStatSent = true
+			req.TriagedCoverage = mgr.stats.corpusSignal.get()
+			req.TriagedPCs = mgr.stats.corpusCover.get()
 		}
 		mgr.mu.Unlock()
 

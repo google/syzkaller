@@ -63,8 +63,9 @@ type uiGraphColumn struct {
 }
 
 type uiGraphValue struct {
-	Val  float32
-	Hint string
+	Val    float32
+	IsNull bool
+	Hint   string
 }
 
 type uiCrashPageTable struct {
@@ -328,7 +329,7 @@ func handleGraphFuzzing(c context.Context, w http.ResponseWriter, r *http.Reques
 	metrics, err := createCheckBox(r, "Metrics", []string{
 		"MaxCorpus", "MaxCover", "MaxPCs", "TotalFuzzingTime",
 		"TotalCrashes", "CrashTypes", "SuppressedCrashes", "TotalExecs",
-		"ExecsPerSec"})
+		"ExecsPerSec", "TriagedPCs", "TriagedCoverage"})
 	if err != nil {
 		return err
 	}
@@ -381,10 +382,11 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 				continue
 			}
 			for metricIndex, metric := range selMetrics {
-				val := extractMetric(stat, metric)
+				val, canBeZero := extractMetric(stat, metric)
 				graph.Columns[dayIndex].Vals[mgrIndex*len(selMetrics)+metricIndex] = uiGraphValue{
-					Val:  float32(val),
-					Hint: fmt.Sprintf("%.2f", val),
+					Val:    float32(val),
+					IsNull: !canBeZero && val == 0,
+					Hint:   fmt.Sprintf("%.2f", val),
 				}
 			}
 		}
@@ -398,7 +400,11 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 			max := float32(1)
 			for col := range graph.Columns {
 				for mgrIndex := range selManagers {
-					val := graph.Columns[col].Vals[mgrIndex*len(selMetrics)+metricIndex].Val
+					item := graph.Columns[col].Vals[mgrIndex*len(selMetrics)+metricIndex]
+					if item.IsNull {
+						continue
+					}
+					val := item.Val
 					if max < val {
 						max = val
 					}
@@ -414,30 +420,34 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 	return graph, nil
 }
 
-func extractMetric(stat *ManagerStats, metric string) float64 {
+func extractMetric(stat *ManagerStats, metric string) (val float64, canBeZero bool) {
 	switch metric {
 	case "MaxCorpus":
-		return float64(stat.MaxCorpus)
+		return float64(stat.MaxCorpus), false
 	case "MaxCover":
-		return float64(stat.MaxCover)
+		return float64(stat.MaxCover), false
 	case "MaxPCs":
-		return float64(stat.MaxPCs)
+		return float64(stat.MaxPCs), false
 	case "TotalFuzzingTime":
-		return float64(stat.TotalFuzzingTime)
+		return float64(stat.TotalFuzzingTime), true
 	case "TotalCrashes":
-		return float64(stat.TotalCrashes)
+		return float64(stat.TotalCrashes), true
 	case "CrashTypes":
-		return float64(stat.CrashTypes)
+		return float64(stat.CrashTypes), true
 	case "SuppressedCrashes":
-		return float64(stat.SuppressedCrashes)
+		return float64(stat.SuppressedCrashes), true
 	case "TotalExecs":
-		return float64(stat.TotalExecs)
+		return float64(stat.TotalExecs), true
 	case "ExecsPerSec":
 		timeSec := float64(stat.TotalFuzzingTime) / 1e9
 		if timeSec == 0 {
-			return 0
+			return 0, true
 		}
-		return float64(stat.TotalExecs) / timeSec
+		return float64(stat.TotalExecs) / timeSec, true
+	case "TriagedCoverage":
+		return float64(stat.TriagedCoverage), false
+	case "TriagedPCs":
+		return float64(stat.TriagedPCs), false
 	default:
 		panic(fmt.Sprintf("unknown metric %q", metric))
 	}
