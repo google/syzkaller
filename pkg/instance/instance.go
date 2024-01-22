@@ -459,6 +459,7 @@ type OptionalFuzzerArgs struct {
 	Slowdown   int
 	RawCover   bool
 	SandboxArg int
+	PprofPort  int
 }
 
 type FuzzerCmdArgs struct {
@@ -500,6 +501,7 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
 			{Name: "raw_cover", Value: fmt.Sprint(args.Optional.RawCover)},
 			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
+			{Name: "pprof_port", Value: fmt.Sprint(args.Optional.PprofPort)},
 		}
 		optionalArg = " " + tool.OptionalFlags(flags)
 	}

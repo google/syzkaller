@@ -30,7 +30,6 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 type Fuzzer struct {
@@ -160,15 +159,16 @@ func main() {
 	debug.SetGCPercent(50)
 
 	var (
-		flagName     = flag.String("name", "test", "unique name for manager")
-		flagOS       = flag.String("os", runtime.GOOS, "target OS")
-		flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
-		flagManager  = flag.String("manager", "", "manager rpc address")
-		flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
-		flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-		flagTest     = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
-		flagRunTest  = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
-		flagRawCover = flag.Bool("raw_cover", false, "fetch raw coverage")
+		flagName      = flag.String("name", "test", "unique name for manager")
+		flagOS        = flag.String("os", runtime.GOOS, "target OS")
+		flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
+		flagManager   = flag.String("manager", "", "manager rpc address")
+		flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
+		flagOutput    = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+		flagTest      = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
+		flagRunTest   = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
+		flagRawCover  = flag.Bool("raw_cover", false, "fetch raw coverage")
+		flagPprofPort = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
 	)
 	defer tool.Init()()
 	outputType := parseOutputType(*flagOutput)
@@ -197,13 +197,9 @@ func main() {
 		os.Exit(1)
 	}()
 
-	// Necessary for pprof handlers.
-	go func() {
-		err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", vmimpl.PprofPort), nil)
-		if err != nil {
-			log.SyzFatalf("failed to setup a server: %v", err)
-		}
-	}()
+	if *flagPprofPort != 0 {
+		setupPprofHandler(*flagPprofPort)
+	}
 
 	checkArgs := &checkArgs{
 		target:         target,
@@ -627,6 +623,16 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	fuzzer.signalMu.Unlock()
 	fuzzer.signalMu.RLock()
 	return true
+}
+
+func setupPprofHandler(port int) {
+	// Necessary for pprof handlers.
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", port), nil)
+		if err != nil {
+			log.SyzFatalf("failed to setup a server: %v", err)
+		}
+	}()
 }
 
 func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
