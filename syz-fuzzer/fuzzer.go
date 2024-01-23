@@ -71,6 +71,9 @@ type Fuzzer struct {
 
 	// Let's limit the number of concurrent NewInput requests.
 	parallelNewInputs chan struct{}
+
+	// Experimental flags.
+	resetAccState bool
 }
 
 type FuzzerSnapshot struct {
@@ -169,6 +172,9 @@ func main() {
 		flagRunTest   = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
 		flagRawCover  = flag.Bool("raw_cover", false, "fetch raw coverage")
 		flagPprofPort = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
+
+		// Experimental flags.
+		flagResetAccState = flag.Bool("reset_acc_state", false, "restarts executor before most executions")
 	)
 	defer tool.Init()()
 	outputType := parseOutputType(*flagOutput)
@@ -299,6 +305,7 @@ func main() {
 		stats:                    make([]uint64, StatCount),
 		// Queue no more than ~3 new inputs / proc.
 		parallelNewInputs: make(chan struct{}, int64(3**flagProcs)),
+		resetAccState:     *flagResetAccState,
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(gateSize, gateCallback)

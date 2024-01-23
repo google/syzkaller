@@ -825,10 +825,11 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		Test:      false,
 		Runtest:   false,
 		Optional: &instance.OptionalFuzzerArgs{
-			Slowdown:   mgr.cfg.Timeouts.Slowdown,
-			RawCover:   mgr.cfg.RawCover,
-			SandboxArg: mgr.cfg.SandboxArg,
-			PprofPort:  inst.PprofPort(),
+			Slowdown:      mgr.cfg.Timeouts.Slowdown,
+			RawCover:      mgr.cfg.RawCover,
+			SandboxArg:    mgr.cfg.SandboxArg,
+			PprofPort:     inst.PprofPort(),
+			ResetAccState: mgr.cfg.Experimental.ResetAccState,
 		},
 	}
 	cmd := instance.FuzzerCmd(args)
@@ -1212,6 +1213,12 @@ func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 func (mgr *Manager) addNewCandidates(candidates []rpctype.Candidate) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+	if mgr.cfg.Experimental.ResetAccState {
+		// Don't accept new candidates -- the execution is already very slow,
+		// syz-hub will just overwhelm us.
+		return
+	}
+
 	mgr.candidates = append(mgr.candidates, candidates...)
 	if mgr.phase == phaseTriagedCorpus {
 		mgr.phase = phaseQueriedHub

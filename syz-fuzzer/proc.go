@@ -73,7 +73,7 @@ func (proc *Proc) loop() {
 			case *WorkTriage:
 				proc.triageInput(item)
 			case *WorkCandidate:
-				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
+				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate, false)
 			case *WorkSmash:
 				proc.smashInput(item)
 			default:
@@ -124,6 +124,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	notexecuted := 0
 	rawCover := []uint32{}
 	for i := 0; i < signalRuns; i++ {
+		proc.resetAccState()
 		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
 		if !reexecutionSuccess(info, &item.info, item.call) {
 			// The call was not executed or failed.
@@ -149,7 +150,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {
-					info := proc.execute(proc.execOpts, p1, ProgNormal, StatMinimize)
+					info := proc.execute(proc.execOpts, p1, ProgNormal,
+						StatMinimize, i == 0)
 					if !reexecutionSuccess(info, &item.info, call1) {
 						// The call was not executed or failed.
 						continue
@@ -237,7 +239,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	log.Logf(1, "#%v: collecting comparisons", proc.pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
+	info := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed, true)
 	if info == nil {
 		return
 	}
@@ -247,11 +249,15 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(call, info.Calls[call].Comps, func(p *prog.Prog) {
 		log.Logf(1, "#%v: executing comparison hint", proc.pid)
-		proc.execute(proc.execOpts, p, ProgNormal, StatHint)
+		proc.execute(proc.execOpts, p, ProgNormal, StatHint, false)
 	})
 }
 
-func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
+func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat,
+	resetState bool) *ipc.ProgInfo {
+	if resetState {
+		proc.resetAccState()
+	}
 	info := proc.executeRaw(execOpts, p, stat)
 	if info == nil {
 		return nil
@@ -281,7 +287,7 @@ func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int
 }
 
 func (proc *Proc) executeAndCollide(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) {
-	proc.execute(execOpts, p, flags, stat)
+	proc.execute(execOpts, p, flags, stat, true)
 
 	if proc.execOptsCollide.Flags&ipc.FlagThreaded == 0 {
 		// We cannot collide syscalls without being in the threaded mode.
@@ -388,4 +394,11 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	default:
 		log.SyzFatalf("unknown output type: %v", proc.fuzzer.outputType)
 	}
+}
+
+func (proc *Proc) resetAccState() {
+	if !proc.fuzzer.resetAccState {
+		return
+	}
+	proc.env.ForceRestart()
 }

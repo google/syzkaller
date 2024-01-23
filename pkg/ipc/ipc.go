@@ -293,6 +293,13 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	return
 }
 
+func (env *Env) ForceRestart() {
+	if env.cmd != nil {
+		env.cmd.close()
+		env.cmd = nil
+	}
+}
+
 // This smethod brings up an executor process if it was stopped.
 func (env *Env) RestartIfNeeded(target *prog.Target) error {
 	if env.cmd == nil {
