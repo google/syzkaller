@@ -202,8 +202,19 @@ type Config struct {
 	// More details can be found in pkg/asset/config.go.
 	AssetStorage *asset.Config `json:"asset_storage"`
 
+	// Experimental options.
+	Experimental Experimental
+
 	// Implementation details beyond this point. Filled after parsing.
 	Derived `json:"-"`
+}
+
+// These options are not guaranteed to be backward/forward compatible and
+// can be dropped at any moment.
+type Experimental struct {
+	// Don't let the VM state accumulate too much by restarting
+	// syz-executor before most prog executions.
+	ResetAccState bool `json:"reset_acc_state"`
 }
 
 type Subsystem struct {
