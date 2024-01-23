@@ -17,6 +17,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 type Context struct {
 	ProjectID  string
 	ZoneID     string
+	RegionID   string
 	Instance   string
 	InternalIP string
 	ExternalIP string
@@ -81,6 +83,13 @@ func NewContext(customZoneID string) (*Context, error) {
 		ctx.ZoneID = customZoneID
 	} else {
 		ctx.ZoneID = myZoneID
+	}
+	if !validateZone(ctx.ZoneID) {
+		return nil, fmt.Errorf("%q is not a valid zone name", ctx.ZoneID)
+	}
+	ctx.RegionID = zoneToRegion(ctx.ZoneID)
+	if ctx.RegionID == "" {
+		return nil, fmt.Errorf("failed to extract region id from %s", ctx.ZoneID)
 	}
 	ctx.Instance, err = ctx.getMeta("instance/name")
 	if err != nil {
@@ -372,4 +381,16 @@ func (ctx *Context) apiCall(fn func() error) error {
 		}
 		return err
 	}
+}
+
+var zoneNameRe = regexp.MustCompile("^[a-zA-Z0-9]*-[a-zA-Z0-9]*[-][a-zA-Z0-9]*$")
+
+func validateZone(zone string) bool {
+	return zoneNameRe.MatchString(zone)
+}
+
+var regionNameRe = regexp.MustCompile("^[a-zA-Z0-9]*-[a-zA-Z0-9]*")
+
+func zoneToRegion(zone string) string {
+	return regionNameRe.FindString(zone)
 }
