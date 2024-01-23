@@ -214,15 +214,6 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshUser = "syzkaller"
 	}
 	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
-		sshKey, sshUser, pool.env.OS, 22, nil); err != nil {
-		output, outputErr := pool.getSerialPortOutput(name, gceKey)
-		if outputErr != nil {
-			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
-		}
-		return nil, vmimpl.MakeBootError(err, output)
-	}
-	ok = true
 	inst := &instance{
 		env:            pool.env,
 		cfg:            pool.cfg,
@@ -236,6 +227,15 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		closed:         make(chan bool),
 		consoleReadCmd: pool.consoleReadCmd,
 	}
+	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
+		sshKey, sshUser, pool.env.OS, 22, nil); err != nil {
+		output, outputErr := inst.getSerialPortOutput()
+		if outputErr != nil {
+			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
+		}
+		return nil, vmimpl.MakeBootError(err, output)
+	}
+	ok = true
 	return inst, nil
 }
 
@@ -269,19 +269,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	var conArgs []string
 	if inst.consoleReadCmd == "" {
-		user := "syzkaller"
-		if inst.cfg.SerialPortUser != "" {
-			user = inst.cfg.SerialPortUser
-		}
-		key := inst.gceKey
-		if inst.cfg.SerialPortKey != "" {
-			key = inst.cfg.SerialPortKey
-		}
-		conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1@ssh-serialport.googleapis.com",
-			inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user)
-		conArgs = append(vmimpl.SSHArgs(inst.debug, key, 9600), conAddr)
-		// TODO: remove this later (see also a comment in getSerialPortOutput).
-		conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
+		conArgs = inst.serialPortArgs(false)
 	} else {
 		conArgs = inst.sshArgs(inst.consoleReadCmd)
 	}
@@ -452,20 +440,36 @@ func (inst *instance) sshArgs(args ...string) []string {
 	return append(sshArgs, args...)
 }
 
-func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
+func (inst *instance) serialPortArgs(replay bool) []string {
+	user := "syzkaller"
+	if inst.cfg.SerialPortUser != "" {
+		user = inst.cfg.SerialPortUser
+	}
+	key := inst.gceKey
+	if inst.cfg.SerialPortKey != "" {
+		key = inst.cfg.SerialPortKey
+	}
+	replayArg := ""
+	if replay {
+		replayArg = ".replay-lines=10000"
+	}
+	conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1%s@ssh-serialport.googleapis.com",
+		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user, replayArg)
+	conArgs := append(vmimpl.SSHArgs(inst.debug, key, 9600), conAddr)
+	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
+	// host key algorithm: ssh-rsa.
+	return append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
+}
+
+func (inst *instance) getSerialPortOutput() ([]byte, error) {
 	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, err
 	}
 	defer conRpipe.Close()
 	defer conWpipe.Close()
-	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1.replay-lines=10000@ssh-serialport.googleapis.com",
-		pool.GCE.ProjectID, pool.GCE.ZoneID, name)
-	conArgs := append(vmimpl.SSHArgs(pool.env.Debug, gceKey, 9600), conAddr)
-	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
-	// host key algorithm: ssh-rsa.
-	conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
-	con := osutil.Command("ssh", conArgs...)
+
+	con := osutil.Command("ssh", inst.serialPortArgs(true)...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
 	con.Stderr = conWpipe
