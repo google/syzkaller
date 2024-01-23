@@ -453,8 +453,8 @@ func (inst *instance) serialPortArgs(replay bool) []string {
 	if replay {
 		replayArg = ".replay-lines=10000"
 	}
-	conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1%s@ssh-serialport.googleapis.com",
-		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user, replayArg)
+	conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1%s@%v-ssh-serialport.googleapis.com",
+		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user, replayArg, inst.GCE.RegionID)
 	conArgs := append(vmimpl.SSHArgs(inst.debug, key, 9600), conAddr)
 	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
 	// host key algorithm: ssh-rsa.
