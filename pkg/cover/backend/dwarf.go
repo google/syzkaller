@@ -87,6 +87,43 @@ func makeDWARF(params *dwarfParams) (impl *Impl, err error) {
 	impl, err = makeDWARFUnsafe(params)
 	return
 }
+
+type Result struct {
+	CoverPoints [2][]uint64
+	Symbols     []*Symbol
+}
+
+func processModule(params *dwarfParams, module *Module, info *symbolInfo,
+	target *targets.Target) (*Result, error) {
+	symbols, err := params.readSymbols(module, info)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []byte
+	var coverPoints [2][]uint64
+	if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
+		coverPoints, err = objdump(target, module)
+	} else if module.Name == "" {
+		data, err = params.readTextData(module)
+		if err != nil {
+			return nil, err
+		}
+		coverPoints, err = readCoverPoints(target, info, data)
+	} else {
+		coverPoints, err = params.readModuleCoverPoints(target, module, info)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	result := &Result{
+		Symbols:     symbols,
+		CoverPoints: coverPoints,
+	}
+	return result, nil
+}
+
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
 	objDir := params.objDir
@@ -112,32 +149,18 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 				tracePCIdx:  make(map[int]bool),
 				traceCmpIdx: make(map[int]bool),
 			}
-			symbols, err := params.readSymbols(module, info)
+			result, err := processModule(params, module, info, target)
 			if err != nil {
 				errc <- err
 				return
 			}
-			allSymbols = append(allSymbols, symbols...)
+			allSymbols = append(allSymbols, result.Symbols...)
 			if module.Name == "" {
 				pcBase = info.textAddr
 			}
-			var data []byte
-			var coverPoints [2][]uint64
-			if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
-				coverPoints, err = objdump(target, module)
-			} else if module.Name == "" {
-				data, err = params.readTextData(module)
-				if err != nil {
-					errc <- err
-					return
-				}
-				coverPoints, err = readCoverPoints(target, info, data)
-			} else {
-				coverPoints, err = params.readModuleCoverPoints(target, module, info)
-			}
-			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
-			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
-			if err == nil && module.Name == "" && len(coverPoints[0]) == 0 {
+			allCoverPoints[0] = append(allCoverPoints[0], result.CoverPoints[0]...)
+			allCoverPoints[1] = append(allCoverPoints[1], result.CoverPoints[1]...)
+			if module.Name == "" && len(result.CoverPoints[0]) == 0 {
 				err = fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y on linux)", module.Path)
 			}
 			errc <- err
