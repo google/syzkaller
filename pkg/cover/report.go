@@ -181,15 +181,6 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 		return err
 	}
 	rg.Frames = append(rg.Frames, frames...)
-	uniqueFrames := make(map[uint64]bool)
-	var finalFrames []backend.Frame
-	for _, frame := range rg.Frames {
-		if !uniqueFrames[frame.PC] {
-			uniqueFrames[frame.PC] = true
-			finalFrames = append(finalFrames, frame)
-		}
-	}
-	rg.Frames = finalFrames
 	for sym := range symbolize {
 		sym.Symbolized = true
 	}

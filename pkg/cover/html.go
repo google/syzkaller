@@ -184,17 +184,24 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 	if err := rg.lazySymbolize(progs); err != nil {
 		return err
 	}
-	sort.Slice(rg.Frames, func(i, j int) bool {
-		return rg.Frames[i].PC < rg.Frames[j].PC
+
+	resFrames := rg.Frames
+
+	sort.Slice(resFrames, func(i, j int) bool {
+		fl, fr := resFrames[i], resFrames[j]
+		if fl.PC == fr.PC {
+			return !fl.Inline && fr.Inline // non-inline first
+		}
+		return fl.PC < fr.PC
 	})
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
-	fmt.Fprintf(buf, "PC,Module,Offset,Filename,StartLine,EndLine\n")
-	for _, frame := range rg.Frames {
+	fmt.Fprintf(buf, "PC,Module,Offset,Filename,Inline,StartLine,EndLine\n")
+	for _, frame := range resFrames {
 		offset := frame.PC - frame.Module.Addr
-		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v,%v\n",
-			frame.PC, frame.Module.Name, offset, frame.Name, frame.StartLine, frame.EndLine)
+		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v,%v,%v\n",
+			frame.PC, frame.Module.Name, offset, frame.Name, frame.Inline, frame.StartLine, frame.EndLine)
 	}
 	buf.Flush()
 	return nil
