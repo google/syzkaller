@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -299,8 +300,13 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database file: %w", err)
 	}
-	for _, rec := range db.Records {
-		p, err := target.Deserialize(rec.Val, prog.NonStrict)
+	recordKeys := make([]string, 0, len(db.Records))
+	for key := range db.Records {
+		recordKeys = append(recordKeys, key)
+	}
+	sort.Strings(recordKeys)
+	for _, key := range recordKeys {
+		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
 		if err != nil {
 			return nil, fmt.Errorf("failed to deserialize corpus program: %w", err)
 		}
