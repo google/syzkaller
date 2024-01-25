@@ -24,7 +24,7 @@ func main() {
   }
   print(target.OS)
   programs := loadPrograms(target, flag.Args())
-  print(programs)
+	println("Programs parsed: ", len(programs))
 }
 
 func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
@@ -36,7 +36,10 @@ func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
     }
     for _, entry := range target.ParseLog(data) {
       progs = append(progs, entry.P)
-      print(entry.P)
+			for _, comm := range entry.P.Calls {
+      	println(comm.Meta.Name)
+			}
+			println("------")
     }
   }
   return progs
