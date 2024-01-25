@@ -23,6 +23,13 @@ type fuchsia struct {
 }
 
 var (
+	// Ignore these strings when detecting crashes.
+	fuchsiaIgnores = []*regexp.Regexp{
+		// Don't generate a crash report for a Rust panic, unless it causes a kernel panic.
+		regexp.MustCompile(`panic::`),
+	}
+	rustBacktrace      = regexp.MustCompile(` (stack backtrace:)`)
+	starnixLinePrefix  = regexp.MustCompile(`^\[\d+\.\d+\]`)
 	zirconRIP          = regexp.MustCompile(` RIP: (0x[0-9a-f]+) `)
 	zirconBT           = regexp.MustCompile(`^bt#[0-9]+: (0x[0-9a-f]+)`)
 	zirconReportEnd    = []byte("Halted")
@@ -43,6 +50,7 @@ func ctorFuchsia(cfg *config) (reporterImpl, []string, error) {
 	ctx := &fuchsia{
 		config: cfg,
 	}
+	ctx.ignores = append(ctx.ignores, fuchsiaIgnores...)
 	if ctx.kernelObj != "" {
 		ctx.obj = filepath.Join(ctx.kernelObj, ctx.target.KernelObject)
 	}
@@ -53,13 +61,13 @@ func ctorFuchsia(cfg *config) (reporterImpl, []string, error) {
 }
 
 func (ctx *fuchsia) ContainsCrash(output []byte) bool {
-	return containsCrash(output, zirconOopses, ctx.ignores)
+	return containsCrash(output, fuchsiaOopses, ctx.ignores)
 }
 
 func (ctx *fuchsia) Parse(output []byte) *Report {
 	// We symbolize here because zircon output does not contain even function names.
 	symbolized := ctx.symbolize(output)
-	rep := simpleLineParser(symbolized, zirconOopses, zirconStackParams, ctx.ignores)
+	rep := simpleLineParser(symbolized, fuchsiaOopses, fuchsiaStackParams, ctx.ignores)
 	if rep == nil {
 		return nil
 	}
@@ -67,7 +75,48 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 	if report := ctx.shortenReport(rep.Report); len(report) != 0 {
 		rep.Report = report
 	}
+	if strings.HasPrefix(rep.Title, "starnix kernel panic") {
+		if report := ctx.shortenStarnixPanicReport(rep.Report, 5, 20); len(report) != 0 {
+			rep.Report = report
+		}
+	}
 	return rep
+}
+
+// Captures lines that match one of `starnixFramePatterns`, plus some surrounding lines that may
+// or may not be interesting.
+//
+// Captures up to `maxUnrelatedLines` of consecutive lines that do not start with the usual starnix
+// log prefix `starnixLinePrefix` before suppressing unrelated lines. These lines are often
+// syzkaller log lines, but are sometimes continuations of newline-containing logs from starnix.
+//
+// Captures up to `maxUnmatchedLines` of consecutive starnix log lines that do not match one of
+// `starnixFramePatterns` before ending the report. These lines (usually in relatively short groups)
+// may separate portions of the stack trace.
+func (ctx *fuchsia) shortenStarnixPanicReport(report []byte, maxUnrelatedLines, maxUnmatchedLines int) []byte {
+	out := new(bytes.Buffer)
+	unrelatedLines := 0
+	unmatchedLines := 0
+	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
+		line := s.Bytes()
+		if matchesAny(line, starnixFramePatterns) {
+			unrelatedLines = 0
+			unmatchedLines = 0
+		} else if starnixLinePrefix.FindSubmatch(line) == nil {
+			unrelatedLines += 1
+			if unrelatedLines > maxUnrelatedLines {
+				continue
+			}
+		} else {
+			unmatchedLines += 1
+		}
+		out.Write(line)
+		out.WriteByte('\n')
+		if unmatchedLines == maxUnmatchedLines {
+			return out.Bytes()
+		}
+	}
+	return out.Bytes()
 }
 
 func (ctx *fuchsia) shortenReport(report []byte) []byte {
@@ -172,21 +221,40 @@ func (ctx *fuchsia) Symbolize(rep *Report) error {
 	return nil
 }
 
-var zirconStackParams = &stackParams{
-	frameRes: []*regexp.Regexp{
-		compile(` RIP: 0x[0-9a-f]{8} +([a-zA-Z0-9_:~]+)`),
-		compile(` RIP: \[ inline \] +([a-zA-Z0-9_:~]+)`),
-		compile(`^bt#[0-9]+: 0x[0-9a-f]{8} +([a-zA-Z0-9_:~]+)`),
-		compile(`^bt#[0-9]+: \[ inline \] +([a-zA-Z0-9_:~]+)`),
-	},
-	skipPatterns: []string{
-		"^platform_halt$",
-		"^exception_die$",
-		"^_panic$",
-	},
+var zirconStartRes = []*regexp.Regexp{}
+
+var zirconFramePatterns = []*regexp.Regexp{
+	compile(` RIP: 0x[0-9a-f]{8} +([a-zA-Z0-9_:~]+)`),
+	compile(` RIP: \[ inline \] +([a-zA-Z0-9_:~]+)`),
+	compile(`^bt#[0-9]+: 0x[0-9a-f]{8} +([a-zA-Z0-9_:~]+)`),
+	compile(`^bt#[0-9]+: \[ inline \] +([a-zA-Z0-9_:~]+)`),
 }
 
-var zirconOopses = append([]*oops{
+var zirconSkipPatterns = []string{
+	"^platform_halt$",
+	"^exception_die$",
+	"^_panic$",
+}
+
+var starnixStartRes = []*regexp.Regexp{
+	rustBacktrace,
+}
+
+var starnixFramePatterns = []*regexp.Regexp{
+	compile(` \[\[\[ELF module #0x[\da-f]+ "(.*)" (BuildID=[\da-f]{16}) (0x[\da-f]{12})\]\]\]`),
+	compile(`#\d+\.?\d*[\s]+(0x[\da-f]{16}) in (.+):([\d]+)[\s]+<(.*)>\+(0x[\da-f]+)`),
+	compile(`#\d+\.?\d*[\s]+(0x[\da-f]{16}) in ([^\s]+)[\s]+<(.*)>\+(0x[\da-f]+)`),
+}
+
+var starnixSkipPatterns = []string{}
+
+var fuchsiaStackParams = &stackParams{
+	stackStartRes: append(zirconStartRes, starnixStartRes...),
+	frameRes:      append(zirconFramePatterns, starnixFramePatterns...),
+	skipPatterns:  append(zirconSkipPatterns, starnixSkipPatterns...),
+}
+
+var zirconOopses = []*oops{
 	{
 		[]byte("ZIRCON KERNEL PANIC"),
 		[]oopsFormat{
@@ -323,5 +391,27 @@ var zirconOopses = append([]*oops{
 		},
 		crash.UnknownType,
 	},
-	&groupGoRuntimeErrors,
-}, commonOopses...)
+}
+
+var starnixOopses = []*oops{
+	{
+		[]byte("STARNIX KERNEL PANIC"),
+		[]oopsFormat{
+			{
+				title:  compile("STARNIX KERNEL PANIC"),
+				report: compile("STARNIX KERNEL PANIC(?:.|\\n)*PANIC info=panicked at [./]*(.*):.*:.*:\\n(.*)\\n"),
+				fmt:    "starnix kernel panic: panic in %[1]v: %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						rustBacktrace,
+						parseStackTrace,
+					},
+				},
+			},
+		},
+		[]*regexp.Regexp{},
+		crash.UnknownType,
+	},
+}
+
+var fuchsiaOopses = append(append(append(zirconOopses, starnixOopses...), commonOopses...), &groupGoRuntimeErrors)
