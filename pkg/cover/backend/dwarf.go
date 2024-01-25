@@ -387,6 +387,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 				PC:     frame.PC + mod.Addr,
 				Name:   name,
 				Path:   path,
+				Inline: frame.Inline,
 				Range: Range{
 					StartLine: frame.Line,
 					StartCol:  0,

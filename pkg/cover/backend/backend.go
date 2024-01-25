@@ -51,6 +51,7 @@ type Frame struct {
 	PC     uint64
 	Name   string
 	Path   string
+	Inline bool
 	Range
 }
 
