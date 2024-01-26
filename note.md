@@ -1,5 +1,25 @@
 # Log
 
+### Jan-26-Fri-2024
+
+SyzLLM can start working!
+
+1. The SyzLLM-Server receive request calls and generate **top5** syscalls that most matched at the specific position in the request sequence, and return the **first** syscall in the top5 calls.
+
+![replace-p-calls0](/Users/wangwenzhi/Desktop/截图/replace-p-calls0.png)
+
+2. The syzLLM-client receive the call and insert it to the positin to generate a new program. 
+
+   Like below the `newProg` insert `socket` to position 6 where placing the `sendmsg` before insert.
+
+![replace-p-calls1](/Users/wangwenzhi/Desktop/截图/replace-p-calls1.png)
+
+3. In the mutation.go, assign the new syscall sequence to the origin program.
+
+![replace-p-calls2](/Users/wangwenzhi/Desktop/截图/replace-p-calls2.png)
+
+![replace-p-calls3](/Users/wangwenzhi/Desktop/截图/replace-p-calls3.png)
+
 ### Jan-18-Thu-2024
 
 1. SyzLLM_client:
