@@ -97,18 +97,14 @@ func (wq *WorkQueue) dequeue() (item interface{}) {
 	wq.mu.Lock()
 	wantCandidates := false
 	if len(wq.triageCandidate) != 0 {
-		last := len(wq.triageCandidate) - 1
-		item = wq.triageCandidate[last]
-		wq.triageCandidate = wq.triageCandidate[:last]
+		wq.triageCandidate, item = popWorkTriage(wq.triageCandidate)
 	} else if len(wq.candidate) != 0 {
 		last := len(wq.candidate) - 1
 		item = wq.candidate[last]
 		wq.candidate = wq.candidate[:last]
 		wantCandidates = len(wq.candidate) < wq.procs
 	} else if len(wq.triage) != 0 {
-		last := len(wq.triage) - 1
-		item = wq.triage[last]
-		wq.triage = wq.triage[:last]
+		wq.triage, item = popWorkTriage(wq.triage)
 	} else if len(wq.smash) != 0 {
 		last := len(wq.smash) - 1
 		item = wq.smash[last]
@@ -128,4 +124,23 @@ func (wq *WorkQueue) wantCandidates() bool {
 	wq.mu.RLock()
 	defer wq.mu.RUnlock()
 	return len(wq.candidate) < wq.procs
+}
+
+// We might have used a heap for this, but the cost of traversing the queue
+// is miniscule compared to the cost of executing a program.
+func popWorkTriage(queue []*WorkTriage) ([]*WorkTriage, *WorkTriage) {
+	var retIdx int
+	newQueue := make([]*WorkTriage, len(queue)-1)
+	for i, item := range queue {
+		if len(queue[retIdx].info.Signal) < len(item.info.Signal) {
+			retIdx = i
+		}
+	}
+	if retIdx > 0 {
+		copy(newQueue, queue[0:retIdx])
+	}
+	if retIdx+1 < len(queue) {
+		copy(newQueue[retIdx:], queue[retIdx+1:])
+	}
+	return newQueue, queue[retIdx]
 }
