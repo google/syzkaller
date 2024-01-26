@@ -1,6 +1,9 @@
 # Copyright 2023 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <uapi/linux/bpf.h>
+include <uapi/linux/bpf_common.h>
+
 define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
 define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
 define BPF_CORE_RELO_SIZE	sizeof(struct bpf_core_relo)
