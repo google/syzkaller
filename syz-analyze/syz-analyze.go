@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	flagOS       = flag.String("os", runtime.GOOS, "target os")
-	flagArch     = flag.String("arch", runtime.GOARCH, "target architecture")
-	flagExecutor = flag.String("executor", "", "Executor for syz program")
+	flagOS   = flag.String("os", runtime.GOOS, "target os")
+	flagArch = flag.String("arch", runtime.GOARCH, "target architecture")
+	//flagExecutor = flag.String("executor", "", "Executor for syz program")
 )
 
 func main() {
@@ -30,6 +30,7 @@ func main() {
 
 	config, execOpts := createConfig(target)
 
+	println("Executor: ", config.Executor)
 	for _, program := range programs {
 		env, err := ipc.MakeEnv(config, 0)
 		if err != nil {
@@ -39,10 +40,8 @@ func main() {
 		log.Logf(0, "executing program %v:\n%s", 0, data)
 		output, info, hanged, err := env.Exec(execOpts, program)
 		println("------")
-		println(output)
 		println(info)
-		println(hanged)
-		println(err)
+		log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
 		println("------")
 
 	}
