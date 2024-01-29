@@ -364,6 +364,23 @@ func (dash *Dashboard) ReportFailedRepro(crash *CrashID) error {
 	return dash.Query("report_failed_repro", crash, nil)
 }
 
+type LogToReproReq struct {
+	BuildID string
+}
+
+type LogToReproResp struct {
+	Title    string
+	CrashLog []byte
+}
+
+// LogToRepro are crash logs for older bugs that need to be reproduced on the
+// querying instance.
+func (dash *Dashboard) LogToRepro(req *LogToReproReq) (*LogToReproResp, error) {
+	resp := new(LogToReproResp)
+	err := dash.Query("log_to_repro", req, resp)
+	return resp, err
+}
+
 type LogEntry struct {
 	Name string
 	Text string

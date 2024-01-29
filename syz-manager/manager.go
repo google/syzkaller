@@ -82,9 +82,9 @@ type Manager struct {
 	dataRaceFrames   map[string]bool
 	saturatedCalls   map[string]bool
 
-	needMoreRepros chan chan bool
-	hubReproQueue  chan *Crash
-	reproRequest   chan chan map[string]bool
+	needMoreRepros     chan chan bool
+	externalReproQueue chan *Crash
+	reproRequest       chan chan map[string]bool
 
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
@@ -139,8 +139,8 @@ const (
 const currentDBVersion = 4
 
 type Crash struct {
-	vmIndex int
-	hub     bool // this crash was created based on a repro from hub
+	vmIndex  int
+	external bool // this crash was created based on a repro from hub or dashboard
 	*report.Report
 	machineInfo []byte
 }
@@ -184,26 +184,26 @@ func RunManager(cfg *mgrconfig.Config) {
 	}
 
 	mgr := &Manager{
-		cfg:              cfg,
-		vmPool:           vmPool,
-		target:           cfg.Target,
-		sysTarget:        cfg.SysTarget,
-		reporter:         reporter,
-		crashdir:         crashdir,
-		startTime:        time.Now(),
-		stats:            &Stats{haveHub: cfg.HubClient != ""},
-		crashTypes:       make(map[string]bool),
-		corpus:           make(map[string]CorpusItem),
-		disabledHashes:   make(map[string]struct{}),
-		memoryLeakFrames: make(map[string]bool),
-		dataRaceFrames:   make(map[string]bool),
-		fresh:            true,
-		vmStop:           make(chan bool),
-		hubReproQueue:    make(chan *Crash, 10),
-		needMoreRepros:   make(chan chan bool),
-		reproRequest:     make(chan chan map[string]bool),
-		usedFiles:        make(map[string]time.Time),
-		saturatedCalls:   make(map[string]bool),
+		cfg:                cfg,
+		vmPool:             vmPool,
+		target:             cfg.Target,
+		sysTarget:          cfg.SysTarget,
+		reporter:           reporter,
+		crashdir:           crashdir,
+		startTime:          time.Now(),
+		stats:              &Stats{haveHub: cfg.HubClient != ""},
+		crashTypes:         make(map[string]bool),
+		corpus:             make(map[string]CorpusItem),
+		disabledHashes:     make(map[string]struct{}),
+		memoryLeakFrames:   make(map[string]bool),
+		dataRaceFrames:     make(map[string]bool),
+		fresh:              true,
+		vmStop:             make(chan bool),
+		externalReproQueue: make(chan *Crash, 10),
+		needMoreRepros:     make(chan chan bool),
+		reproRequest:       make(chan chan map[string]bool),
+		usedFiles:          make(map[string]time.Time),
+		saturatedCalls:     make(map[string]bool),
 	}
 
 	mgr.preloadCorpus()
@@ -264,6 +264,7 @@ func RunManager(cfg *mgrconfig.Config) {
 
 	if mgr.dash != nil {
 		go mgr.dashboardReporter()
+		go mgr.dashboardReproTasks()
 	}
 
 	osutil.HandleInterrupts(vm.Shutdown)
@@ -322,7 +323,7 @@ type ReproResult struct {
 	strace    *repro.StraceResult
 	stats     *repro.Stats
 	err       error
-	hub       bool // repro came from hub
+	external  bool // repro came from hub or dashboard
 }
 
 // Manager needs to be refactored (#605).
@@ -443,7 +444,7 @@ func (mgr *Manager) vmLoop() {
 			}
 			delete(reproducing, res.report0.Title)
 			if res.repro == nil {
-				if !res.hub {
+				if !res.external {
 					mgr.saveFailedRepro(res.report0, res.stats)
 				}
 			} else {
@@ -452,8 +453,8 @@ func (mgr *Manager) vmLoop() {
 		case <-shutdown:
 			log.Logf(1, "loop: shutting down...")
 			shutdown = nil
-		case crash := <-mgr.hubReproQueue:
-			log.Logf(1, "loop: get repro from hub")
+		case crash := <-mgr.externalReproQueue:
+			log.Logf(1, "loop: got repro request")
 			pendingRepro[crash] = true
 		case reply := <-mgr.needMoreRepros:
 			reply <- phase >= phaseTriagedHub &&
@@ -502,7 +503,7 @@ func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(..
 		repro:     res,
 		stats:     stats,
 		err:       err,
-		hub:       crash.hub,
+		external:  crash.external,
 	}
 	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
 		// We need only one instance to get strace output, release the rest.
@@ -764,7 +765,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	}
 	crash := &Crash{
 		vmIndex:     index,
-		hub:         false,
+		external:    false,
 		Report:      rep,
 		machineInfo: machineInfo,
 	}
@@ -994,7 +995,7 @@ func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 }
 
 func (mgr *Manager) needRepro(crash *Crash) bool {
-	if crash.hub {
+	if crash.external {
 		return true
 	}
 	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
@@ -1058,7 +1059,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 	progText := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
-	if !res.hub {
+	if !res.external {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
 			repro.Opts, repro.Report.Title, mgr.cfg.Tag, progText))
 		mgr.mu.Lock()
@@ -1546,6 +1547,36 @@ func (mgr *Manager) dashboardReporter() {
 		lastSuppressedCrashes += req.SuppressedCrashes
 		lastExecs += req.Execs
 		mgr.mu.Unlock()
+	}
+}
+
+func (mgr *Manager) dashboardReproTasks() {
+	if !mgr.cfg.Reproduce {
+		return
+	}
+	for {
+		time.Sleep(20 * time.Minute)
+		needReproReply := make(chan bool)
+		mgr.needMoreRepros <- needReproReply
+		if !<-needReproReply {
+			// We don't need reproducers at the moment.
+			continue
+		}
+		resp, err := mgr.dash.LogToRepro(&dashapi.LogToReproReq{BuildID: mgr.cfg.Tag})
+		if err != nil {
+			log.Logf(0, "failed to query logs to reproduce: %v", err)
+			continue
+		}
+		if len(resp.CrashLog) > 0 {
+			mgr.externalReproQueue <- &Crash{
+				vmIndex:  -1,
+				external: true,
+				Report: &report.Report{
+					Title:  resp.Title,
+					Output: resp.CrashLog,
+				},
+			}
+		}
 	}
 }
 
