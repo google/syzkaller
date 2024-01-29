@@ -3,7 +3,7 @@
 
 instances:
  - upstream-apparmor-kasan:	[linux-next, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan, kfence]
- - upstream-selinux-kasan:	[linux-next, x86_64, timeouts_native, gcc, lsm, selinux, slab, kasan, kfence]
+ - upstream-selinux-kasan:	[linux-next, x86_64, timeouts_native, gcc, lsm, selinux, kasan, kfence]
  - upstream-smack-kasan:	[linux-next, x86_64, timeouts_native, clang, bpfjit, lsm, smack, kasan, kfence]
  - upstream-kasan-badwrites:	[linux-next, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan, kasan_panic_on_write, kfence]
  - upstream-unmaintained:	[upstream, x86_64, timeouts_native, clang, baseline, unmaintained, kasan, kfence]
@@ -72,7 +72,6 @@ includes:
  - apparmor.yml: [apparmor]
  - selinux.yml: [selinux]
  - smack.yml: [smack]
- - slab.yml: [slab]
  - debug.yml: [-nonoise]
  # lockdep is broken on arm: https://lore.kernel.org/all/0000000000004f14c105bde08f75@google.com/
  - lockdep.yml: [-nonoise, -arm]

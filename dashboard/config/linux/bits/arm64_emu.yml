@@ -902,6 +902,9 @@ config:
 
  # Disable whole menu "PHY Subsystem"
  - GENERIC_PHY: n
+ - GENERIC_PHY_MIPI_DPHY: n
+ - PHY_CADENCE_DPHY_RX: n
+ - PHY_FSL_IMX8M_PCIE: n
  - PHY_CAN_TRANSCEIVER: [n, v6.3]
  - PHY_LPC18XX_USB_OTG: n
  - PHY_PISTACHIO_USB: n
