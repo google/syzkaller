@@ -721,9 +721,24 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	if !getNsConfig(c, ns).TransformCrash(build, req) {
 		return new(dashapi.ReportCrashResp), nil
 	}
+	var bug2 *Bug
+	if req.OriginalTitle != "" {
+		bug2, err = findExistingBugForCrash(c, ns, []string{req.OriginalTitle})
+		if err != nil {
+			return nil, fmt.Errorf("original bug query failed: %w", err)
+		}
+	}
 	bug, err := reportCrash(c, build, req)
 	if err != nil {
 		return nil, err
+	}
+	if bug2 != nil && bug2.Title != bug.Title && len(req.ReproLog) > 0 {
+		// During bug reproduction, we have diverted to another bug.
+		// Let's remember this.
+		err = saveFailedReproLog(c, bug2, build, req.ReproLog)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save failed repro log: %w", err)
+		}
 	}
 	resp := &dashapi.ReportCrashResp{
 		NeedRepro: needRepro(c, bug),
@@ -1011,12 +1026,16 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 	if bug == nil {
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
-	bugKey := bug.key(c)
 	build, err := loadBuild(c, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
+	return nil, saveFailedReproLog(c, bug, build, req.ReproLog)
+}
+
+func saveFailedReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
 	now := timeNow(c)
+	bugKey := bug.key(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
@@ -1024,8 +1043,8 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
-		if len(req.ReproLog) > 0 {
-			err := saveReproLog(c, bug, build, req.ReproLog)
+		if len(log) > 0 {
+			err := saveReproAttempt(c, bug, build, log)
 			if err != nil {
 				return fmt.Errorf("failed to save repro log: %w", err)
 			}
@@ -1035,16 +1054,15 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		return nil
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{
+	return db.RunInTransaction(c, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	})
-	return nil, err
 }
 
 const maxReproLogs = 5
 
-func saveReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
+func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) error {
 	var deleteKeys []*db.Key
 	for len(bug.ReproAttempts)+1 > maxReproLogs {
 		deleteKeys = append(deleteKeys,

@@ -323,9 +323,11 @@ type Crash struct {
 	Assets      []NewAsset
 	GuiltyFiles []string
 	// The following is optional and is filled only after repro.
-	ReproOpts []byte
-	ReproSyz  []byte
-	ReproC    []byte
+	ReproOpts     []byte
+	ReproSyz      []byte
+	ReproC        []byte
+	ReproLog      []byte
+	OriginalTitle string // Title before we began bug reproduction.
 }
 
 type ReportCrashResp struct {
