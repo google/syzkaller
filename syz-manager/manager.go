@@ -317,13 +317,14 @@ type RunResult struct {
 }
 
 type ReproResult struct {
-	instances []int
-	report0   *report.Report // the original report we started reproducing
-	repro     *repro.Result
-	strace    *repro.StraceResult
-	stats     *repro.Stats
-	err       error
-	external  bool // repro came from hub or dashboard
+	instances     []int
+	report0       *report.Report // the original report we started reproducing
+	repro         *repro.Result
+	strace        *repro.StraceResult
+	stats         *repro.Stats
+	err           error
+	external      bool   // repro came from hub or dashboard
+	originalTitle string // crash title before we started bug reproduction
 }
 
 // Manager needs to be refactored (#605).
@@ -498,12 +499,13 @@ func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(..
 	features := mgr.checkResult.Features
 	res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
 	ret := &ReproResult{
-		instances: vmIndexes,
-		report0:   crash.Report,
-		repro:     res,
-		stats:     stats,
-		err:       err,
-		external:  crash.external,
+		instances:     vmIndexes,
+		report0:       crash.Report,
+		repro:         res,
+		stats:         stats,
+		err:           err,
+		external:      crash.external,
+		originalTitle: crash.Title,
 	}
 	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
 		// We need only one instance to get strace output, release the rest.
@@ -1101,18 +1103,20 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		}
 
 		dc := &dashapi.Crash{
-			BuildID:    mgr.cfg.Tag,
-			Title:      report.Title,
-			AltTitles:  report.AltTitles,
-			Suppressed: report.Suppressed,
-			Recipients: report.Recipients.ToDash(),
-			Log:        output,
-			Flags:      crashFlags,
-			Report:     report.Report,
-			ReproOpts:  repro.Opts.Serialize(),
-			ReproSyz:   progText,
-			ReproC:     cprogText,
-			Assets:     mgr.uploadReproAssets(repro),
+			BuildID:       mgr.cfg.Tag,
+			Title:         report.Title,
+			AltTitles:     report.AltTitles,
+			Suppressed:    report.Suppressed,
+			Recipients:    report.Recipients.ToDash(),
+			Log:           output,
+			Flags:         crashFlags,
+			Report:        report.Report,
+			ReproOpts:     repro.Opts.Serialize(),
+			ReproSyz:      progText,
+			ReproC:        cprogText,
+			ReproLog:      fullReproLog(res.stats),
+			Assets:        mgr.uploadReproAssets(repro),
+			OriginalTitle: res.originalTitle,
 		}
 		setGuiltyFiles(dc, report)
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {

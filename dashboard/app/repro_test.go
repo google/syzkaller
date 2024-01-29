@@ -450,3 +450,38 @@ func TestLogToReproduce(t *testing.T) {
 	c.expectOK(err)
 	c.expectEQ(resp.CrashLog, []byte(nil))
 }
+
+// A frequent case -- when trying to find a reproducer for one bug,
+// we have found a reproducer for a different bug.
+// We want to remember the reproduction log in this case.
+func TestReproForDifferentCrash(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Original crash.
+	crash := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title1",
+		Log:     []byte("log1"),
+		Report:  []byte("report1"),
+	}
+	client.ReportCrash(crash)
+	oldBug := client.pollBug()
+
+	// Now we have "found" a reproducer with a different title.
+	crash.Title = "new title"
+	crash.ReproOpts = []byte("opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproLog = []byte("repro log")
+	crash.OriginalTitle = "title1"
+	client.ReportCrash(crash)
+	client.pollBug()
+
+	// Ensure that we have saved the reproduction log in this case.
+	dbBug, _, _ := c.loadBug(oldBug.ID)
+	c.expectEQ(len(dbBug.ReproAttempts), 1)
+}
