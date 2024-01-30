@@ -212,6 +212,27 @@ syz_usb_connect(0x0, 0x58, &(0x7f0000000100)=ANY=[@ANYBLOB="1201000036ee3808d30b
 			},
 			expect: []string{"wireless"},
 		},
+		{
+			name: "old ntfs bug",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `fs/ntfs/super.c`,
+					SyzRepro: []byte(`
+syz_mount_image$ntfs(&AUTO, &AUTO, AUTO, &AUTO, AUTO, AUTO, &AUTO)`),
+				},
+			},
+			expect: []string{"ntfs3"},
+		},
+		{
+			// "p9" is no longer in "net".
+			name: "vf9fs bug",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `net/9p/client.c`,
+				},
+			},
+			expect: []string{"v9fs"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
