@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -112,6 +113,10 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 	defer imageFile.Close()
 
+	if err := a.copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
+		return details, fmt.Errorf("failed copying module files: %w", err)
+	}
+
 	if err := a.embedImages(imageFile, buildDistDir, "boot.img", "dtbo.img", buildCfg.VendorBootImage,
 		"vendor_dlkm.img"); err != nil {
 		return details, fmt.Errorf("failed to embed images: %w", err)
@@ -123,6 +128,30 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 
 	return details, nil
+}
+
+func (a android) copyModuleFiles(srcDir, dstDir string) error {
+	err := filepath.Walk(srcDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return fmt.Errorf("error walking out dir: %w", err)
+			}
+			// Staging directories contain stripped module object files.
+			if strings.Contains(path, "staging") {
+				return nil
+			}
+
+			if filepath.Ext(path) == ".ko" {
+				if err := osutil.CopyFile(path, filepath.Join(dstDir, info.Name())); err != nil {
+					return fmt.Errorf("error copying file: %w", err)
+				}
+			}
+			return nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to copy module objects: %w", err)
+	}
+	return nil
 }
 
 func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) error {
