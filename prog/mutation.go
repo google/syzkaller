@@ -416,8 +416,14 @@ func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
 }
 
 func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
-	// TODO: swap elements of the array
 	a := arg.(*GroupArg)
+	if len(a.Inner) > 1 && r.oneOf(5) {
+		// Swap array elements.
+		for r.nOutOf(2, 3) {
+			i, j := r.Intn(len(a.Inner)), r.Intn(len(a.Inner))
+			a.Inner[i], a.Inner[j] = a.Inner[j], a.Inner[i]
+		}
+	}
 	count := uint64(0)
 	switch t.Kind {
 	case ArrayRandLen:
