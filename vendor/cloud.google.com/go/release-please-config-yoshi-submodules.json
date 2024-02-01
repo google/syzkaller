@@ -81,6 +81,9 @@
         "clouddms": {
             "component": "clouddms"
         },
+        "cloudprofiler": {
+            "component": "cloudprofiler"
+        },
         "cloudtasks": {
             "component": "cloudtasks"
         },
@@ -155,6 +158,9 @@
         },
         "edgecontainer": {
             "component": "edgecontainer"
+        },
+        "edgenetwork": {
+            "component": "edgenetwork"
         },
         "essentialcontacts": {
             "component": "essentialcontacts"
@@ -347,6 +353,9 @@
         },
         "talent": {
             "component": "talent"
+        },
+        "telcoautomation": {
+            "component": "telcoautomation"
         },
         "texttospeech": {
             "component": "texttospeech"
