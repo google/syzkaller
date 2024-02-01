@@ -367,3 +367,12 @@ func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader)) {
 		})
 	}
 }
+
+func (p *Prog) ContainsAny() bool {
+	for _, c := range p.Calls {
+		if p.Target.CallContainsAny(c) {
+			return true
+		}
+	}
+	return false
+}
