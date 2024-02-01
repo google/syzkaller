@@ -283,8 +283,8 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 			typ = crash.MemoryLeak
 		}
 		hc.hubReproQueue <- &Crash{
-			vmIndex:  -1,
-			external: true,
+			vmIndex: -1,
+			fromHub: true,
 			Report: &report.Report{
 				Title:  "external repro",
 				Type:   typ,
