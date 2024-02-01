@@ -61,7 +61,7 @@ type RPCManagerView interface {
 	fuzzerConnect([]host.KernelModule) (
 		[]rpctype.Input, BugFrames, map[uint32]uint32, map[uint32]uint32, error)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
-	newInput(inp rpctype.Input, sign signal.Signal) bool
+	newInput(inp rpctype.Input, sign signal.Signal, hasAny bool) bool
 	candidateBatch(size int) []rpctype.Candidate
 	rotateCorpus() bool
 }
@@ -256,7 +256,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 }
 
 func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
-	bad, disabled := checkProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
+	bad, disabled, hasAny := checkProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
 	if bad != nil || disabled {
 		log.Errorf("rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.Input.Prog)
 		return nil
@@ -281,7 +281,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if !genuine && !rotated {
 		return nil
 	}
-	if !serv.mgr.newInput(a.Input, inputSignal) {
+	if !serv.mgr.newInput(a.Input, inputSignal, hasAny) {
 		return nil
 	}
 

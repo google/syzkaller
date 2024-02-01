@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -107,6 +108,7 @@ type CorpusItemUpdate struct {
 type CorpusItem struct {
 	Call    string
 	Prog    []byte
+	HasAny  bool // whether the prog contains squashed arguments
 	Signal  signal.Serial
 	Cover   []uint32
 	Updates []CorpusItemUpdate
@@ -685,7 +687,7 @@ func (mgr *Manager) loadCorpus() {
 }
 
 func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
-	bad, disabled := checkProgram(mgr.target, mgr.targetEnabledSyscalls, data)
+	bad, disabled, _ := checkProgram(mgr.target, mgr.targetEnabledSyscalls, data)
 	if bad != nil {
 		return false
 	}
@@ -734,26 +736,29 @@ func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data [
 	return p.Serialize()
 }
 
-func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad error, disabled bool) {
+// The linter complains about error not being the last argument.
+// nolint: stylecheck
+func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad error, disabled, hasAny bool) {
 	p, err := target.Deserialize(data, prog.NonStrict)
 	if err != nil {
-		return err, true
+		return err, true, false
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return fmt.Errorf("longer than %d calls", prog.MaxCalls), true
+		return fmt.Errorf("longer than %d calls", prog.MaxCalls), true, false
 	}
 	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
 	for _, call := range p.Calls {
 		if call.Props.FailNth > 0 {
-			return fmt.Errorf("input has fail_nth > 0"), true
+			return fmt.Errorf("input has fail_nth > 0"), true, false
 		}
 	}
+	hasAny = p.ContainsAny()
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
-			return nil, true
+			return nil, true, hasAny
 		}
 	}
-	return nil, false
+	return nil, false, hasAny
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
@@ -1251,9 +1256,18 @@ func (mgr *Manager) minimizeCorpus() {
 			Context: inp,
 		})
 	}
-	newCorpus := make(map[string]CorpusItem)
+
 	// Note: inputs are unsorted (based on map iteration).
 	// This gives some intentional non-determinism during minimization.
+	// However, we want to give preference to non-squashed inputs,
+	// so let's sort by this criteria.
+	sort.SliceStable(inputs, func(i, j int) bool {
+		firstAny := inputs[i].Context.(CorpusItem).HasAny
+		secondAny := inputs[j].Context.(CorpusItem).HasAny
+		return !firstAny && secondAny
+	})
+
+	newCorpus := make(map[string]CorpusItem)
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(CorpusItem)
 		newCorpus[hash.String(inp.Prog)] = inp
@@ -1387,7 +1401,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 	mgr.firstConnect = time.Now()
 }
 
-func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
+func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal, hasAny bool) bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.saturatedCalls[inp.Call] {
@@ -1416,6 +1430,7 @@ func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 		mgr.corpus[sig] = CorpusItem{
 			Call:    inp.Call,
 			Prog:    inp.Prog,
+			HasAny:  hasAny,
 			Signal:  inp.Signal,
 			Cover:   inp.Cover,
 			Updates: []CorpusItemUpdate{update},

@@ -126,7 +126,7 @@ func (target *Target) isAnyRes(name string) bool {
 
 func (target *Target) CallContainsAny(c *Call) (res bool) {
 	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
-		if target.isAnyPtr(arg.Type()) {
+		if target.isAnyPtr(arg.Type()) || res {
 			res = true
 			ctx.Stop = true
 		}
@@ -136,7 +136,7 @@ func (target *Target) CallContainsAny(c *Call) (res bool) {
 
 func (target *Target) ArgContainsAny(arg0 Arg) (res bool) {
 	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
-		if target.isAnyPtr(arg.Type()) {
+		if target.isAnyPtr(arg.Type()) || res {
 			res = true
 			ctx.Stop = true
 		}
