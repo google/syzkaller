@@ -32,6 +32,7 @@ use (
 	./channel
 	./cloudbuild
 	./clouddms
+	./cloudprofiler
 	./cloudtasks
 	./commerce
 	./compute
@@ -58,6 +59,7 @@ use (
 	./documentai
 	./domains
 	./edgecontainer
+	./edgenetwork
 	./errorreporting
 	./essentialcontacts
 	./eventarc
@@ -141,6 +143,7 @@ use (
 	./storagetransfer
 	./support
 	./talent
+	./telcoautomation
 	./texttospeech
 	./tpu
 	./trace
