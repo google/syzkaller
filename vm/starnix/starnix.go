@@ -196,7 +196,8 @@ func (inst *instance) startFuchsiaLogs() error {
 	// `ffx log` outputs some buffered logs by default, and logs from early boot
 	// trigger a false positive from the unexpected reboot check. To avoid this,
 	// only request logs from now on.
-	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "log", "--since", "now")
+	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "log", "--since", "now",
+		"--show-metadata", "--show-full-moniker", "--no-color")
 	cmd.Dir = inst.fuchsiaDirectory
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
