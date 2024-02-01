@@ -139,8 +139,9 @@ const (
 const currentDBVersion = 4
 
 type Crash struct {
-	vmIndex  int
-	external bool // this crash was created based on a repro from hub or dashboard
+	vmIndex       int
+	fromHub       bool // this crash was created based on a repro from syz-hub
+	fromDashboard bool // .. or from dashboard
 	*report.Report
 	machineInfo []byte
 }
@@ -323,7 +324,8 @@ type ReproResult struct {
 	strace        *repro.StraceResult
 	stats         *repro.Stats
 	err           error
-	external      bool   // repro came from hub or dashboard
+	fromHub       bool
+	fromDashboard bool
 	originalTitle string // crash title before we started bug reproduction
 }
 
@@ -445,7 +447,7 @@ func (mgr *Manager) vmLoop() {
 			}
 			delete(reproducing, res.report0.Title)
 			if res.repro == nil {
-				if !res.external {
+				if !res.fromHub {
 					mgr.saveFailedRepro(res.report0, res.stats)
 				}
 			} else {
@@ -504,7 +506,8 @@ func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(..
 		repro:         res,
 		stats:         stats,
 		err:           err,
-		external:      crash.external,
+		fromHub:       crash.fromHub,
+		fromDashboard: crash.fromDashboard,
 		originalTitle: crash.Title,
 	}
 	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
@@ -767,7 +770,6 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	}
 	crash := &Crash{
 		vmIndex:     index,
-		external:    false,
 		Report:      rep,
 		machineInfo: machineInfo,
 	}
@@ -997,7 +999,7 @@ func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 }
 
 func (mgr *Manager) needRepro(crash *Crash) bool {
-	if crash.external {
+	if crash.fromHub || crash.fromDashboard {
 		return true
 	}
 	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
@@ -1061,7 +1063,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 	progText := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
-	if !res.external {
+	if !res.fromHub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
 			repro.Opts, repro.Report.Title, mgr.cfg.Tag, progText))
 		mgr.mu.Lock()
@@ -1573,8 +1575,8 @@ func (mgr *Manager) dashboardReproTasks() {
 		}
 		if len(resp.CrashLog) > 0 {
 			mgr.externalReproQueue <- &Crash{
-				vmIndex:  -1,
-				external: true,
+				vmIndex:       -1,
+				fromDashboard: true,
 				Report: &report.Report{
 					Title:  resp.Title,
 					Output: resp.CrashLog,
