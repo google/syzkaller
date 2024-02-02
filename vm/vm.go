@@ -46,14 +46,16 @@ type Pool struct {
 	template    string
 	timeouts    targets.Timeouts
 	activeCount int32
+	hostFuzzer  bool
 }
 
 type Instance struct {
-	impl     vmimpl.Instance
-	workdir  string
-	timeouts targets.Timeouts
-	index    int
-	onClose  func()
+	impl       vmimpl.Instance
+	workdir    string
+	timeouts   targets.Timeouts
+	index      int
+	onClose    func()
+	hostFuzzer bool
 }
 
 var (
@@ -115,10 +117,11 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		return nil, err
 	}
 	return &Pool{
-		impl:     impl,
-		workdir:  env.Workdir,
-		template: cfg.WorkdirTemplate,
-		timeouts: cfg.Timeouts,
+		impl:       impl,
+		workdir:    env.Workdir,
+		template:   cfg.WorkdirTemplate,
+		timeouts:   cfg.Timeouts,
+		hostFuzzer: cfg.SysTarget.HostFuzzer,
 	}, nil
 }
 
@@ -146,11 +149,12 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 	}
 	atomic.AddInt32(&pool.activeCount, 1)
 	return &Instance{
-		impl:     impl,
-		workdir:  workdir,
-		timeouts: pool.timeouts,
-		index:    index,
-		onClose:  func() { atomic.AddInt32(&pool.activeCount, -1) },
+		impl:       impl,
+		workdir:    workdir,
+		timeouts:   pool.timeouts,
+		index:      index,
+		onClose:    func() { atomic.AddInt32(&pool.activeCount, -1) },
+		hostFuzzer: pool.hostFuzzer,
 	}, nil
 }
 
@@ -188,6 +192,11 @@ func (inst *Instance) Info() ([]byte, error) {
 }
 
 func (inst *Instance) PprofPort() int {
+	if inst.hostFuzzer {
+		// In the fuzzing on host mode, fuzzers are always on the same network.
+		// Don't set up pprof endpoints in this case.
+		return 0
+	}
 	if ii, ok := inst.impl.(vmimpl.PprofPortProvider); ok {
 		return ii.PprofPort()
 	}
