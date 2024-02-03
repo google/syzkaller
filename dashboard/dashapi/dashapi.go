@@ -323,9 +323,11 @@ type Crash struct {
 	Assets      []NewAsset
 	GuiltyFiles []string
 	// The following is optional and is filled only after repro.
-	ReproOpts []byte
-	ReproSyz  []byte
-	ReproC    []byte
+	ReproOpts     []byte
+	ReproSyz      []byte
+	ReproC        []byte
+	ReproLog      []byte
+	OriginalTitle string // Title before we began bug reproduction.
 }
 
 type ReportCrashResp struct {
@@ -362,6 +364,23 @@ func (dash *Dashboard) NeedRepro(crash *CrashID) (bool, error) {
 // ReportFailedRepro notifies dashboard about a failed repro attempt for the crash.
 func (dash *Dashboard) ReportFailedRepro(crash *CrashID) error {
 	return dash.Query("report_failed_repro", crash, nil)
+}
+
+type LogToReproReq struct {
+	BuildID string
+}
+
+type LogToReproResp struct {
+	Title    string
+	CrashLog []byte
+}
+
+// LogToRepro are crash logs for older bugs that need to be reproduced on the
+// querying instance.
+func (dash *Dashboard) LogToRepro(req *LogToReproReq) (*LogToReproResp, error) {
+	resp := new(LogToReproResp)
+	err := dash.Query("log_to_repro", req, resp)
+	return resp, err
 }
 
 type LogEntry struct {

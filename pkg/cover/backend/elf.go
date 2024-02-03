@@ -15,13 +15,14 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
+func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters, moduleObj []string,
+	hostModules []host.KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,
 		srcDir:                srcDir,
 		buildDir:              buildDir,
+		splitBuildDelimiters:  splitBuildDelimiters,
 		moduleObj:             moduleObj,
 		hostModules:           hostModules,
 		readSymbols:           elfReadSymbols,
@@ -29,6 +30,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		readModuleCoverPoints: elfReadModuleCoverPoints,
 		readTextRanges:        elfReadTextRanges,
 		getModuleOffset:       elfGetModuleOffset,
+		getCompilerVersion:    elfGetCompilerVersion,
 	})
 }
 
@@ -209,6 +211,23 @@ func elfGetModuleOffset(path string) uint64 {
 		}
 	}
 	return 0
+}
+
+func elfGetCompilerVersion(path string) string {
+	file, err := elf.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+	sec := file.Section(".comment")
+	if sec == nil {
+		return ""
+	}
+	data, err := sec.Data()
+	if err != nil {
+		return ""
+	}
+	return string(data[:])
 }
 
 func alignUp(addr, align uint64) uint64 {

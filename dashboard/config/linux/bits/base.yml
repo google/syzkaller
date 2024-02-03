@@ -171,7 +171,7 @@ config:
  - SECURITYFS
 
  # More debugging info is always good.
- - NMI_CHECK_CPU: [linux-next]
+ - NMI_CHECK_CPU: [x86_64, v6.3]
 
  # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
  # It managed to do so with some mount's, chdir's and bogus file names.

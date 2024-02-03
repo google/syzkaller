@@ -22,7 +22,6 @@ include <uapi/linux/tc_act/tc_ctinfo.h>
 include <uapi/linux/tc_act/tc_defact.h>
 include <uapi/linux/tc_act/tc_gact.h>
 include <uapi/linux/tc_act/tc_ife.h>
-include <uapi/linux/tc_act/tc_ipt.h>
 include <uapi/linux/tc_act/tc_mirred.h>
 include <uapi/linux/tc_act/tc_mpls.h>
 include <uapi/linux/tc_act/tc_nat.h>
@@ -107,7 +106,6 @@ qdisc_kind_options [
 	q_cbs			tca_kind_options_t["cbs", cbs_policy]
 	q_choke			tca_kind_options_t["choke", array[choke_policy]]
 	q_codel			tca_kind_options_t["codel", array[codel_policy]]
-	q_dsmark		tca_kind_options_t["dsmark", array[dsmark_policy]]
 	q_etf			tca_kind_options_t["etf", etf_policy]
 	q_bfifo			tca_kind_options_t["bfifo", int32]
 	q_pfifo			tca_kind_options_t["pfifo", int32]
@@ -162,14 +160,6 @@ cake_policy [
 	TCA_CAKE_FWMARK		nlattr[TCA_CAKE_FWMARK, int32]
 ] [varlen]
 
-cbq_policy [
-	TCA_CBQ_LSSOPT	nlattr[TCA_CBQ_LSSOPT, tc_cbq_lssopt]
-	TCA_CBQ_WRROPT	nlattr[TCA_CBQ_WRROPT, tc_cbq_wrropt]
-	TCA_CBQ_FOPT	nlattr[TCA_CBQ_FOPT, tc_cbq_fopt]
-	TCA_CBQ_RATE	nlattr[TCA_CBQ_RATE, tc_ratespec]
-	TCA_CBQ_RTAB	nlattr[TCA_CBQ_RTAB, array[int32, 256]]
-] [varlen]
-
 cbs_policy [
 	TCA_CBS_PARMS	nlattr[TCA_CBS_PARMS, tc_cbs_qopt]
 ] [varlen]
@@ -186,12 +176,6 @@ codel_policy [
 	TCA_CODEL_INTERVAL	nlattr[TCA_CODEL_INTERVAL, int32]
 	TCA_CODEL_ECN		nlattr[TCA_CODEL_ECN, int32[0:1]]
 	TCA_CODEL_CE_THRESHOLD	nlattr[TCA_CODEL_CE_THRESHOLD, int32]
-] [varlen]
-
-dsmark_policy [
-	TCA_DSMARK_INDICES		nlattr[TCA_DSMARK_INDICES, flags[tca_dsmark_ind, int16]]
-	TCA_DSMARK_DEFAULT_INDEX	nlattr[TCA_DSMARK_DEFAULT_INDEX, int16]
-	TCA_DSMARK_SET_TC_INDEX		nlattr[TCA_DSMARK_SET_TC_INDEX, void]
 ] [varlen]
 
 etf_policy [
@@ -372,32 +356,6 @@ tbf_policy [
 	TCA_TBF_BURST	nlattr[TCA_TBF_BURST, int32]
 	TCA_TBF_PBURST	nlattr[TCA_TBF_PBURST, int32[0:9000]]
 ] [varlen]
-
-tc_cbq_lssopt {
-	change		int8[0:64]
-	flags		int8[0:3]
-	ewma_log	int8[0:32]
-	level		int8
-	maxidle		int32
-	minidle		int32
-	offtime		int32
-	avpkt		int32
-}
-
-tc_cbq_wrropt {
-	flags		int8
-	priority	int8[0:TC_CBQ_MAXPRIO]
-	cpriority	int8
-	__reserved	int8
-	allot		int32
-	weight		int32
-}
-
-tc_cbq_fopt {
-	split		tcm_handle
-	defmap		int32
-	defchange	int32
-}
 
 tc_cbs_qopt {
 	offload		int8
@@ -591,10 +549,7 @@ tc_tbf_qopt {
 
 # ------------------------------ tc class ------------------------------
 tclass_kind_options [
-	c_atm		tca_kind_options_t["atm", array[atm_policy]]
-	c_cbq		tca_kind_options_t["cbq", array[cbq_policy]]
 	c_drr		tca_kind_options_t["drr", drr_policy]
-	c_dsmark	tca_kind_options_t["dsmark", dsmark_policy$class]
 	c_hfsc		tca_kind_options_t["hfsc", array[hfsc_policy]]
 	c_htb		tca_kind_options_t["htb", array[htb_policy$class]]
 	c_qfq		tca_kind_options_t["qfq", array[qfq_policy]]
@@ -616,19 +571,8 @@ tclass_kind_options [
 	c_clsact	nlattr[TCA_KIND, string["clsact"]]
 ] [varlen]
 
-atm_policy [
-	TCA_ATM_FD	nlattr[TCA_ATM_FD, sock]
-	TCA_ATM_HDR	nlattr[TCA_ATM_HDR, array[int8, 0:64]]
-	TCA_ATM_EXCESS	nlattr[TCA_ATM_EXCESS, tcm_handle]
-] [varlen]
-
 drr_policy [
 	TCA_DRR_QUANTUM	nlattr[TCA_DRR_QUANTUM, int32]
-] [varlen]
-
-dsmark_policy$class [
-	TCA_DSMARK_MASK		nlattr[TCA_DSMARK_MASK, int8]
-	TCA_DSMARK_VALUE	nlattr[TCA_DSMARK_VALUE, int8]
 ] [varlen]
 
 htb_policy$class [
@@ -657,15 +601,6 @@ tc_htb_opt {
 
 # ------------------------------ tc filter ------------------------------
 
-# TODO: remove the following filters that were removed from the kernel
-# once they are removed from relevant LTS kernels:
-#
-# 265b4da82dbf5 net/sched: Retire rsvp classifier
-# 8c710f75256bb net/sched: Retire tcindex classifier
-# bbe77c14ee618 net/sched: Retire dsmark qdisc
-# fb38306ceb9e7 net/sched: Retire ATM qdisc
-# 051d442098421 net/sched: Retire CBQ qdisc
-
 filter_kind_options [
 	f_basic		tca_kind_options_t["basic", array[basic_policy]]
 	f_bpf		tca_kind_options_t["bpf", array[bpf_policy]]
@@ -675,9 +610,6 @@ filter_kind_options [
 	f_fw		tca_kind_options_t["fw", array[fw_policy]]
 	f_matchall	tca_kind_options_t["matchall", array[mall_policy]]
 	f_route		tca_kind_options_t["route", array[route4_policy]]
-	f_rsvp		tca_kind_options_t["rsvp", array[rsvp_policy]]
-	f_rsvp6		tca_kind_options_t["rsvp6", array[rsvp_policy$ipv6]]
-	f_tcindex	tca_kind_options_t["tcindex", array[tcindex_policy]]
 	f_u32		tca_kind_options_t["u32", array[u32_policy]]
 ] [varlen]
 
@@ -884,34 +816,6 @@ route4_policy [
 	TCA_ROUTE4_ACT		nlattr[TCA_ROUTE4_ACT, array[tca_actions]]
 ] [varlen]
 
-rsvp_policy [
-	TCA_RSVP_CLASSID	nlattr[TCA_RSVP_CLASSID, tcm_handle]
-	TCA_RSVP_DST		nlattr[TCA_RSVP_DST, ipv4_addr]
-	TCA_RSVP_SRC		nlattr[TCA_RSVP_SRC, ipv4_addr]
-	TCA_RSVP_PINFO		nlattr[TCA_RSVP_PINFO, tc_rsvp_pinfo]
-	TCA_RSVP_POLICE		nlattr[TCA_RSVP_POLICE, array[police_policy]]
-	TCA_RSVP_ACT		nlattr[TCA_RSVP_ACT, array[tca_actions]]
-] [varlen]
-
-rsvp_policy$ipv6 [
-	TCA_RSVP_CLASSID	nlattr[TCA_RSVP_CLASSID, tcm_handle]
-	TCA_RSVP_DST		nlattr[TCA_RSVP_DST, ipv6_addr]
-	TCA_RSVP_SRC		nlattr[TCA_RSVP_SRC, ipv6_addr]
-	TCA_RSVP_PINFO		nlattr[TCA_RSVP_PINFO, tc_rsvp_pinfo]
-	TCA_RSVP_POLICE		nlattr[TCA_RSVP_POLICE, array[police_policy]]
-	TCA_RSVP_ACT		nlattr[TCA_RSVP_ACT, array[tca_actions]]
-] [varlen]
-
-tcindex_policy [
-	TCA_TCINDEX_HASH		nlattr[TCA_TCINDEX_HASH, int32[0:0x10000]]
-	TCA_TCINDEX_MASK		nlattr[TCA_TCINDEX_MASK, int16]
-	TCA_TCINDEX_SHIFT		nlattr[TCA_TCINDEX_SHIFT, int32]
-	TCA_TCINDEX_FALL_THROUGH	nlattr[TCA_TCINDEX_FALL_THROUGH, int32[0:1]]
-	TCA_TCINDEX_CLASSID		nlattr[TCA_TCINDEX_CLASSID, tcm_handle]
-	TCA_TCINDEX_POLICE		nlattr[TCA_TCINDEX_POLICE, array[police_policy]]
-	TCA_TCINDEX_ACT			nlattr[TCA_TCINDEX_ACT, array[tca_actions]]
-] [varlen]
-
 u32_policy [
 	TCA_U32_CLASSID	nlattr[TCA_U32_CLASSID, tcm_handle]
 	TCA_U32_HASH	nlattr[TCA_U32_HASH, int32]
@@ -970,7 +874,6 @@ tca_actions [
 	m_ctinfo	nlattr_tca_actions[tcf_action_policy["ctinfo", ctinfo_policy]]
 	m_gact		nlattr_tca_actions[tcf_action_policy["gact", gact_policy]]
 	m_ife		nlattr_tca_actions[tcf_action_policy["ife", ife_policy]]
-	m_ipt		nlattr_tca_actions[tcf_action_policy["ipt", ipt_policy]]
 	m_xt		nlattr_tca_actions[tcf_action_policy["xt", ipt_policy]]
 	m_mirred	nlattr_tca_actions[tcf_action_policy["mirred", mirred_policy]]
 	m_mpls		nlattr_tca_actions[tcf_action_policy["mpls", mpls_policy]]
@@ -1063,13 +966,6 @@ xt_entry_target {
 	target_size	int16
 	data		array[int8]
 }
-
-ipt_policy [
-	TCA_IPT_TABLE	nlattr[TCA_IPT_TABLE, string[ipt_tables, XT_TABLE_MAXNAMELEN]]
-	TCA_IPT_HOOK	nlattr[TCA_IPT_HOOK, flags[nf_inet_hooks, int32]]
-	TCA_IPT_INDEX	nlattr[TCA_IPT_INDEX, int32]
-	TCA_IPT_TARG	nlattr[TCA_IPT_TARG, xt_entry_target]
-] [varlen]
 
 mirred_policy [
 	TCA_MIRRED_PARMS	nlattr[TCA_MIRRED_PARMS, tc_mirred]

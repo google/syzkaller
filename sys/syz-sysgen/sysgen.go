@@ -179,6 +179,19 @@ type Job struct {
 }
 
 func processJob(job *Job, descriptions *ast.Description, constFile *compiler.ConstFile) {
+	var flags []prog.FlagDesc
+	for _, decl := range descriptions.Nodes {
+		switch n := decl.(type) {
+		case *ast.IntFlags:
+			var flag prog.FlagDesc
+			flag.Name = n.Name.Name
+			for _, val := range n.Values {
+				flag.Values = append(flag.Values, val.Ident)
+			}
+			flags = append(flags, flag)
+		}
+	}
+
 	eh := func(pos ast.Pos, msg string) {
 		job.Errors = append(job.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 	}
@@ -193,7 +206,7 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 
 	sysFile := filepath.Join(*outDir, "sys", job.Target.OS, "gen", job.Target.Arch+".go")
 	out := new(bytes.Buffer)
-	generate(job.Target, prog, consts, out)
+	generate(job.Target, prog, consts, flags, out)
 	rev := hash.String(out.Bytes())
 	fmt.Fprintf(out, "const revision_%v = %q\n", job.Target.Arch, rev)
 	writeSource(sysFile, out.Bytes())
@@ -210,7 +223,8 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 	job.OK = len(job.Errors) == 0
 }
 
-func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint64, out io.Writer) {
+func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint64, flags []prog.FlagDesc,
+	out io.Writer) {
 	tag := fmt.Sprintf("syz_target,syz_os_%v,syz_arch_%v", target.OS, target.Arch)
 	if target.VMArch != "" {
 		tag += fmt.Sprintf(" syz_target,syz_os_%v,syz_arch_%v", target.OS, target.VMArch)
@@ -226,11 +240,11 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 	fmt.Fprintf(out, "\tRegisterTarget(&Target{"+
 		"OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v, PageSize: %v, "+
 		"NumPages: %v, DataOffset: %v, LittleEndian: %v, ExecutorUsesShmem: %v, "+
-		"Syscalls: syscalls_%v, Resources: resources_%v, Consts: consts_%v}, "+
-		"types_%v, InitTarget)\n}\n\n",
+		"Syscalls: syscalls_%v, Resources: resources_%v, Consts: consts_%v,"+
+		"Flags: flags_%v}, types_%v, InitTarget)\n}\n\n",
 		target.OS, target.Arch, target.Arch, target.PtrSize, target.PageSize,
 		target.NumPages, target.DataOffset, target.LittleEndian, target.ExecutorUsesShmem,
-		target.Arch, target.Arch, target.Arch, target.Arch)
+		target.Arch, target.Arch, target.Arch, target.Arch, target.Arch)
 
 	fmt.Fprintf(out, "var resources_%v = ", target.Arch)
 	serializer.Write(out, prg.Resources)
@@ -242,6 +256,10 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 
 	fmt.Fprintf(out, "var types_%v = ", target.Arch)
 	serializer.Write(out, prg.Types)
+	fmt.Fprintf(out, "\n\n")
+
+	fmt.Fprintf(out, "var flags_%v = ", target.Arch)
+	serializer.Write(out, flags)
 	fmt.Fprintf(out, "\n\n")
 
 	constArr := make([]prog.ConstValue, 0, len(consts))

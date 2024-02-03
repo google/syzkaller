@@ -26,6 +26,7 @@ type Target struct {
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc
 	Consts    []ConstValue
+	Flags     []FlagDesc
 
 	// MakeDataMmap creates calls that mmaps target data memory range.
 	MakeDataMmap func() []*Call
@@ -63,6 +64,7 @@ type Target struct {
 	// Filled by prog package:
 	SyscallMap map[string]*Syscall
 	ConstMap   map[string]uint64
+	FlagsMap   map[string][]string
 
 	init        sync.Once
 	initArch    func(target *Target)
@@ -148,7 +150,6 @@ func (target *Target) lazyInit() {
 		}
 	}
 	// These are used only during lazyInit.
-	target.ConstMap = nil
 	target.types = nil
 }
 
@@ -168,6 +169,11 @@ func (target *Target) initTarget() {
 		target.SyscallMap[c.Name] = c
 	}
 
+	target.FlagsMap = make(map[string][]string)
+	for _, c := range target.Flags {
+		target.FlagsMap[c.Name] = c.Values
+	}
+
 	target.populateResourceCtors()
 	target.resourceCtors = make(map[string][]ResourceCtor)
 	for _, res := range target.Resources {
@@ -176,9 +182,6 @@ func (target *Target) initTarget() {
 }
 
 func (target *Target) GetConst(name string) uint64 {
-	if target.ConstMap == nil {
-		panic("GetConst can only be used during target initialization")
-	}
 	v, ok := target.ConstMap[name]
 	if !ok {
 		panic(fmt.Sprintf("const %v is not defined for %v/%v", name, target.OS, target.Arch))

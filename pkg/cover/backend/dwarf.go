@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -28,6 +29,7 @@ type dwarfParams struct {
 	objDir                string
 	srcDir                string
 	buildDir              string
+	splitBuildDelimiters  []string
 	moduleObj             []string
 	hostModules           []host.KernelModule
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
@@ -35,6 +37,7 @@ type dwarfParams struct {
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
 	readTextRanges        func(*Module) ([]pcRange, []*CompileUnit, error)
 	getModuleOffset       func(string) uint64
+	getCompilerVersion    func(string) string
 }
 
 type Arch struct {
@@ -87,11 +90,71 @@ func makeDWARF(params *dwarfParams) (impl *Impl, err error) {
 	impl, err = makeDWARFUnsafe(params)
 	return
 }
+
+type Result struct {
+	CoverPoints [2][]uint64
+	Symbols     []*Symbol
+}
+
+func processModule(params *dwarfParams, module *Module, info *symbolInfo,
+	target *targets.Target) (*Result, error) {
+	symbols, err := params.readSymbols(module, info)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []byte
+	var coverPoints [2][]uint64
+	if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
+		coverPoints, err = objdump(target, module)
+	} else if module.Name == "" {
+		data, err = params.readTextData(module)
+		if err != nil {
+			return nil, err
+		}
+		coverPoints, err = readCoverPoints(target, info, data)
+	} else {
+		coverPoints, err = params.readModuleCoverPoints(target, module, info)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	result := &Result{
+		Symbols:     symbols,
+		CoverPoints: coverPoints,
+	}
+	return result, nil
+}
+
+// Regexps to parse compiler version string in IsKcovBrokenInCompiler.
+// Some targets (e.g. NetBSD) use g++ instead of gcc.
+var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
+var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
+
+// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
+// verify that collected coverage points have matching callbacks.
+// See https://github.com/google/syzkaller/issues/4447 for more information.
+func IsKcovBrokenInCompiler(versionStr string) bool {
+	if !gccRE.MatchString(versionStr) {
+		return false
+	}
+	groups := gccVersionRE.FindStringSubmatch(versionStr)
+	if len(groups) > 0 {
+		version, err := strconv.Atoi(groups[2])
+		if err == nil {
+			return version < 14
+		}
+	}
+	return true
+}
+
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
 	objDir := params.objDir
 	srcDir := params.srcDir
 	buildDir := params.buildDir
+	splitBuildDelimiters := params.splitBuildDelimiters
 	modules, err := discoverModules(target, objDir, params.moduleObj, params.hostModules, params.getModuleOffset)
 	if err != nil {
 		return nil, err
@@ -104,6 +167,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
 	var pcBase uint64
+	var verifyCoverPoints = true
 	for _, module := range modules {
 		errc := make(chan error, 1)
 		go func() {
@@ -112,32 +176,18 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 				tracePCIdx:  make(map[int]bool),
 				traceCmpIdx: make(map[int]bool),
 			}
-			symbols, err := params.readSymbols(module, info)
+			result, err := processModule(params, module, info, target)
 			if err != nil {
 				errc <- err
 				return
 			}
-			allSymbols = append(allSymbols, symbols...)
+			allSymbols = append(allSymbols, result.Symbols...)
 			if module.Name == "" {
 				pcBase = info.textAddr
 			}
-			var data []byte
-			var coverPoints [2][]uint64
-			if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
-				coverPoints, err = objdump(target, module)
-			} else if module.Name == "" {
-				data, err = params.readTextData(module)
-				if err != nil {
-					errc <- err
-					return
-				}
-				coverPoints, err = readCoverPoints(target, info, data)
-			} else {
-				coverPoints, err = params.readModuleCoverPoints(target, module, info)
-			}
-			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
-			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
-			if err == nil && module.Name == "" && len(coverPoints[0]) == 0 {
+			allCoverPoints[0] = append(allCoverPoints[0], result.CoverPoints[0]...)
+			allCoverPoints[1] = append(allCoverPoints[1], result.CoverPoints[1]...)
+			if module.Name == "" && len(result.CoverPoints[0]) == 0 {
 				err = fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y on linux)", module.Path)
 			}
 			errc <- err
@@ -151,6 +201,9 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		}
 		allRanges = append(allRanges, ranges...)
 		allUnits = append(allUnits, units...)
+		if IsKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
+			verifyCoverPoints = false
+		}
 	}
 
 	sort.Slice(allSymbols, func(i, j int) bool {
@@ -172,7 +225,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir, splitBuildDelimiters)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -184,13 +237,22 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 		pcBase = ^uint64(0)
 	}
+	var allCoverPointsMap = make(map[uint64]bool)
+	if verifyCoverPoints {
+		for i := 0; i < 2; i++ {
+			for _, pc := range allCoverPoints[i] {
+				allCoverPointsMap[pc] = true
+			}
+		}
+	}
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
-			return symbolize(target, objDir, srcDir, buildDir, pcs)
+			return symbolize(target, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
-		RestorePC: makeRestorePC(params, pcBase),
+		RestorePC:   makeRestorePC(params, pcBase),
+		CoverPoints: allCoverPointsMap,
 	}
 	return impl, nil
 }
@@ -323,7 +385,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *Module, pcFix pcFixFn) (
 	return ranges, units, nil
 }
 
-func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
+func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
 	mod *Module, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
@@ -381,7 +443,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
+			name, path := cleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
 			frames = append(frames, Frame{
 				Module: mod,
 				PC:     frame.PC + mod.Addr,
@@ -403,11 +465,11 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 	return frames, nil
 }
 
-func symbolize(target *targets.Target, objDir, srcDir, buildDir string,
+func symbolize(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
 	pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs1)
+		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
 		if err != nil {
 			return nil, err
 		}
@@ -449,8 +511,49 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 	return pcs, nil
 }
 
-func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
+// Source files for Android may be split between two subdirectories: the common AOSP kernel
+// and the device-specific drivers: https://source.android.com/docs/setup/build/building-pixel-kernels.
+// Android build system references these subdirectories in various ways, which often results in
+// paths to non-existent files being recorded in the debug info.
+//
+// cleanPathAndroid() assumes that the subdirectories reside in `srcDir`, with their names being listed in
+// `delimiters`.
+// If one of the `delimiters` occurs in the `path`, it is stripped together with the path prefix, and the
+// remaining file path is appended to `srcDir + delimiter`.
+// If none of the `delimiters` occur in the `path`, `path` is treated as a relative path that needs to be
+// looked up in `srcDir + delimiters[i]`.
+func cleanPathAndroid(path, srcDir string, delimiters []string, existFn func(string) bool) (string, string) {
+	if len(delimiters) == 0 {
+		return "", ""
+	}
+	reStr := "(" + strings.Join(delimiters, "|") + ")(.*)"
+	re := regexp.MustCompile(reStr)
+	match := re.FindStringSubmatch(path)
+	if match != nil {
+		delimiter := match[1]
+		filename := match[2]
+		path := filepath.Clean(srcDir + delimiter + filename)
+		return filename, path
+	}
+	// None of the delimiters found in `path`: it is probably a relative path to the source file.
+	// Try to look it up in every subdirectory of srcDir.
+	for _, delimiter := range delimiters {
+		absPath := filepath.Clean(srcDir + delimiter + path)
+		if existFn(absPath) {
+			return path, absPath
+		}
+	}
+	return "", ""
+}
+
+func cleanPath(path, objDir, srcDir, buildDir string, splitBuildDelimiters []string) (string, string) {
 	filename := ""
+
+	path = filepath.Clean(path)
+	aname, apath := cleanPathAndroid(path, srcDir, splitBuildDelimiters, osutil.IsExist)
+	if aname != "" {
+		return aname, apath
+	}
 	absPath := osutil.Abs(path)
 	switch {
 	case strings.HasPrefix(absPath, objDir):

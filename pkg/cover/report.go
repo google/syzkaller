@@ -33,7 +33,7 @@ var RestorePC = backend.RestorePC
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
 	modules []host.KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
-		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.ModuleObj, modules)
+		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +88,17 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		}
 	}
 	progPCs := make(map[uint64]map[int]bool)
+	unmatchedProgPCs := make(map[uint64]bool)
+	verifyCoverPoints := (len(rg.CoverPoints) > 0)
 	for i, prog := range progs {
 		for _, pc := range prog.PCs {
 			if progPCs[pc] == nil {
 				progPCs[pc] = make(map[int]bool)
 			}
 			progPCs[pc][i] = true
+			if verifyCoverPoints && !rg.CoverPoints[pc] {
+				unmatchedProgPCs[pc] = true
+			}
 		}
 	}
 	matchedPC := false
@@ -122,6 +127,13 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	if !matchedPC {
 		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
+	}
+	// If the backend provided coverage callback locations for the binaries, use them to
+	// verify data returned by kcov.
+	if verifyCoverPoints && (len(unmatchedProgPCs) > 0) {
+		return nil, fmt.Errorf("%d out of %d PCs returned by kcov do not have matching "+
+			"coverage callbacks. Check the discoverModules() code",
+			len(unmatchedProgPCs), len(progPCs))
 	}
 	for _, unit := range rg.Units {
 		f := files[unit.Name]

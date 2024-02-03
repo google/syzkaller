@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -66,6 +67,7 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 	"load_bug":            apiLoadBug,
 	"update_report":       apiUpdateReport,
 	"add_build_assets":    apiAddBuildAssets,
+	"log_to_repro":        apiLogToReproduce,
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
@@ -719,9 +721,24 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	if !getNsConfig(c, ns).TransformCrash(build, req) {
 		return new(dashapi.ReportCrashResp), nil
 	}
+	var bug2 *Bug
+	if req.OriginalTitle != "" {
+		bug2, err = findExistingBugForCrash(c, ns, []string{req.OriginalTitle})
+		if err != nil {
+			return nil, fmt.Errorf("original bug query failed: %w", err)
+		}
+	}
 	bug, err := reportCrash(c, build, req)
 	if err != nil {
 		return nil, err
+	}
+	if bug2 != nil && bug2.Title != bug.Title && len(req.ReproLog) > 0 {
+		// During bug reproduction, we have diverted to another bug.
+		// Let's remember this.
+		err = saveFailedReproLog(c, bug2, build, req.ReproLog)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save failed repro log: %w", err)
+		}
 	}
 	resp := &dashapi.ReportCrashResp{
 		NeedRepro: needRepro(c, bug),
@@ -1009,12 +1026,16 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 	if bug == nil {
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
-	bugKey := bug.key(c)
 	build, err := loadBuild(c, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
+	return nil, saveFailedReproLog(c, bug, build, req.ReproLog)
+}
+
+func saveFailedReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
 	now := timeNow(c)
+	bugKey := bug.key(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
@@ -1022,8 +1043,8 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
-		if len(req.ReproLog) > 0 {
-			err := saveReproLog(c, bug, build, req.ReproLog)
+		if len(log) > 0 {
+			err := saveReproAttempt(c, bug, build, log)
 			if err != nil {
 				return fmt.Errorf("failed to save repro log: %w", err)
 			}
@@ -1033,16 +1054,15 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		return nil
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{
+	return db.RunInTransaction(c, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	})
-	return nil, err
 }
 
 const maxReproLogs = 5
 
-func saveReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
+func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) error {
 	var deleteKeys []*db.Key
 	for len(bug.ReproAttempts)+1 > maxReproLogs {
 		deleteKeys = append(deleteKeys,
@@ -1666,4 +1686,73 @@ func recordEmergencyStop(c context.Context) error {
 		User: user.Current(c).Email,
 	})
 	return err
+}
+
+// Share crash logs for non-reproduced bugs with syz-managers.
+// In future, this can also take care of repro exchange between instances
+// in the place of syz-hub.
+func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.LogToReproReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
+	}
+	build, err := loadBuild(c, ns, req.BuildID)
+	if err != nil {
+		return nil, err
+	}
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", ns).
+			Filter("HappenedOn=", build.Manager).
+			Filter("Status=", BugStatusOpen)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query bugs: %w", err)
+	}
+	rand.New(rand.NewSource(timeNow(c).UnixNano())).Shuffle(len(bugs), func(i, j int) {
+		bugs[i], bugs[j] = bugs[j], bugs[i]
+	})
+	// Let's limit the load on the DB.
+	const bugsToConsider = 10
+	checkedBugs := 0
+	for _, bug := range bugs {
+		if bug.ReproLevel != ReproLevelNone {
+			continue
+		}
+		if len(bug.Commits) > 0 || len(bug.ReproAttempts) > 0 {
+			// For now let's focus on all bugs where we have never ever
+			// finished a bug reproduction process.
+			continue
+		}
+		checkedBugs++
+		if checkedBugs > bugsToConsider {
+			break
+		}
+		resp, err := logToReproForBug(c, bug, build.Manager)
+		if resp != nil || err != nil {
+			return resp, err
+		}
+	}
+	return nil, nil
+}
+
+func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.LogToReproResp, error) {
+	const considerCrashes = 10
+	crashes, _, err := queryCrashesForBug(c, bug.key(c), considerCrashes)
+	if err != nil {
+		return nil, err
+	}
+	for _, crash := range crashes {
+		if crash.Manager != manager {
+			continue
+		}
+		crashLog, _, err := getText(c, textCrashLog, crash.Log)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query a crash log: %w", err)
+		}
+		return &dashapi.LogToReproResp{
+			Title:    bug.Title,
+			CrashLog: crashLog,
+		}, nil
+	}
+	return nil, nil
 }

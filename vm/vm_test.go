@@ -347,6 +347,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 				Slowdown: 1,
 				NoOutput: 5 * time.Second,
 			},
+			SysTarget: targets.Get(targets.Linux, targets.AMD64),
 		},
 		Workdir: dir,
 		Type:    "test",

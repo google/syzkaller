@@ -400,3 +400,88 @@ func TestFailedReproLogs(t *testing.T) {
 	c.expectOK(err)
 	c.expectEQ(reply, []byte("report log 1"))
 }
+
+func TestLogToReproduce(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Also add some unrelated crash, which should not appear in responses.
+	build2 := testBuild(2)
+	client.UploadBuild(build2)
+	client.ReportCrash(testCrash(build2, 3))
+	client.pollBug()
+
+	// Bug with a reproducer.
+	crash1 := testCrashWithRepro(build, 1)
+	client.ReportCrash(crash1)
+	client.pollBug()
+	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
+	c.expectOK(err)
+	c.expectEQ(resp.CrashLog, []byte(nil))
+
+	// Bug without a reproducer.
+	crash2 := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title2",
+		Log:     []byte("log2"),
+		Report:  []byte("report2"),
+	}
+	client.ReportCrash(crash2)
+	client.pollBug()
+	resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
+	c.expectOK(err)
+	c.expectEQ(resp.Title, "title2")
+	c.expectEQ(resp.CrashLog, []byte("log2"))
+
+	// Suppose we tried to find a repro, but failed.
+	err = client.ReportFailedRepro(&dashapi.CrashID{
+		BuildID:  crash2.BuildID,
+		Title:    crash2.Title,
+		ReproLog: []byte("abcd"),
+	})
+	c.expectOK(err)
+
+	// Now this crash should not be suggested.
+	resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
+	c.expectOK(err)
+	c.expectEQ(resp.CrashLog, []byte(nil))
+}
+
+// A frequent case -- when trying to find a reproducer for one bug,
+// we have found a reproducer for a different bug.
+// We want to remember the reproduction log in this case.
+func TestReproForDifferentCrash(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Original crash.
+	crash := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title1",
+		Log:     []byte("log1"),
+		Report:  []byte("report1"),
+	}
+	client.ReportCrash(crash)
+	oldBug := client.pollBug()
+
+	// Now we have "found" a reproducer with a different title.
+	crash.Title = "new title"
+	crash.ReproOpts = []byte("opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproLog = []byte("repro log")
+	crash.OriginalTitle = "title1"
+	client.ReportCrash(crash)
+	client.pollBug()
+
+	// Ensure that we have saved the reproduction log in this case.
+	dbBug, _, _ := c.loadBug(oldBug.ID)
+	c.expectEQ(len(dbBug.ReproAttempts), 1)
+}

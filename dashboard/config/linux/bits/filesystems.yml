@@ -11,8 +11,8 @@ config:
  - MSDOS_FS
  - VFAT_FS
  - EXFAT_FS
- - NTFS_FS
- - NTFS_RW
+ - NTFS_FS: [-linux-next]
+ - NTFS_RW: [-linux-next]
  - NTFS3_FS: [v5.15]
  - NTFS3_64BIT_CLUSTER: n
  - NTFS3_LZX_XPRESS: [v5.15]
@@ -195,6 +195,9 @@ config:
  - ROMFS_ON_BLOCK
  - ROMFS_ON_MTD
 
- - BCACHEFS_FS: [linux-next]
- - BCACHEFS_QUOTA: [linux-next]
- - BCACHEFS_DEBUG: [linux-next]
+ - BCACHEFS_FS: [v6.7]
+ - BCACHEFS_QUOTA: [v6.7]
+ - BCACHEFS_DEBUG: [v6.7]
+
+ - FSCACHE
+ - CACHEFILES

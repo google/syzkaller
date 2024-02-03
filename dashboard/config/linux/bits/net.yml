@@ -318,14 +318,14 @@ config:
  - NET_SCH_ETS: [v5.5]
  - NET_SCH_DEFAULT
  - NET_CLS_BASIC
- - NET_CLS_TCINDEX: [-v6.3, -stable-5.10]
+ - NET_CLS_TCINDEX: [-v6.3, -stable-5.10, -stable-6.1]
  - NET_CLS_ROUTE4
  - NET_CLS_FW
  - NET_CLS_U32
  - CLS_U32_PERF
  - CLS_U32_MARK
- - NET_CLS_RSVP: [-v6.3]
- - NET_CLS_RSVP6: [-v6.3]
+ - NET_CLS_RSVP: [-v6.3, -stable-5.10, -stable-6.1]
+ - NET_CLS_RSVP6: [-v6.3, -stable-5.10, -stable-6.1]
  - NET_CLS_FLOW
  - NET_CLS_CGROUP
  - NET_CLS_BPF

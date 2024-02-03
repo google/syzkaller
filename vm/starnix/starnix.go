@@ -50,6 +50,8 @@ type instance struct {
 	wpipe            io.WriteCloser
 	fuchsiaLogs      *exec.Cmd
 	adb              *exec.Cmd
+	adbTimeout       time.Duration
+	adbRetryWait     time.Duration
 	executor         string
 	merger           *vmimpl.OutputMerger
 	diagnose         chan bool
@@ -135,23 +137,28 @@ func (inst *instance) boot() error {
 	inst.ffx("emu", "stop", inst.name)
 
 	if err := inst.startFuchsiaVM(); err != nil {
-		return fmt.Errorf("could not start Fuchsia VM: %w", err)
+		return fmt.Errorf("instance %s: could not start Fuchsia VM: %w", inst.name, err)
 	}
-
-	if err := inst.startAdbServerAndConnection(1 * time.Minute); err != nil {
-		return fmt.Errorf("could not start and connect to the adb server: %w", err)
+	if err := inst.startAdbServerAndConnection(2*time.Minute, 3*time.Second); err != nil {
+		return fmt.Errorf("instance %s: could not start and connect to the adb server: %w", inst.name, err)
+	}
+	if inst.debug {
+		log.Logf(0, "instance %s: setting up...", inst.name)
+	}
+	if err := inst.restartAdbAsRoot(); err != nil {
+		return fmt.Errorf("instance %s: could not restart adb with root access: %w", inst.name, err)
 	}
 
 	if err := inst.createAdbScript(); err != nil {
-		return fmt.Errorf("could not create adb script: %w", err)
+		return fmt.Errorf("instance %s: could not create adb script: %w", inst.name, err)
 	}
 
 	err := inst.startFuchsiaLogs()
 	if err != nil {
-		return fmt.Errorf("could not start fuchsia logs: %w", err)
+		return fmt.Errorf("instance %s: could not start fuchsia logs: %w", inst.name, err)
 	}
 	if inst.debug {
-		log.Logf(0, "%s booted successfully", inst.name)
+		log.Logf(0, "instance %s: booted successfully", inst.name)
 	}
 	return nil
 }
@@ -178,7 +185,7 @@ func (inst *instance) Close() {
 }
 
 func (inst *instance) startFuchsiaVM() error {
-	err := inst.ffx("emu", "start", "--headless", "--name", inst.name)
+	err := inst.ffx("emu", "start", "--headless", "--name", inst.name, "--net", "user")
 	if err != nil {
 		return err
 	}
@@ -189,7 +196,8 @@ func (inst *instance) startFuchsiaLogs() error {
 	// `ffx log` outputs some buffered logs by default, and logs from early boot
 	// trigger a false positive from the unexpected reboot check. To avoid this,
 	// only request logs from now on.
-	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "log", "--since", "now")
+	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "log", "--since", "now",
+		"--show-metadata", "--show-full-moniker", "--no-color")
 	cmd.Dir = inst.fuchsiaDirectory
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
@@ -203,7 +211,7 @@ func (inst *instance) startFuchsiaLogs() error {
 	return nil
 }
 
-func (inst *instance) startAdbServerAndConnection(timeout time.Duration) error {
+func (inst *instance) startAdbServerAndConnection(timeout, retry time.Duration) error {
 	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "starnix", "adb",
 		"-p", fmt.Sprintf("%d", inst.port))
 	cmd.Dir = inst.fuchsiaDirectory
@@ -211,18 +219,19 @@ func (inst *instance) startAdbServerAndConnection(timeout time.Duration) error {
 		return err
 	}
 	if inst.debug {
-		log.Logf(0, fmt.Sprintf("the adb bridge is listening on 127.0.0.1:%d", inst.port))
+		log.Logf(0, fmt.Sprintf("instance %s: the adb bridge is listening on 127.0.0.1:%d", inst.name, inst.port))
 	}
 	inst.adb = cmd
-	return inst.connectToAdb(timeout)
+	inst.adbTimeout = timeout
+	inst.adbRetryWait = retry
+	return inst.connectToAdb()
 }
 
-func (inst *instance) connectToAdb(timeout time.Duration) error {
+func (inst *instance) connectToAdb() error {
 	startTime := time.Now()
 	for {
-		vmimpl.SleepInterruptible(3 * time.Second)
 		if inst.debug {
-			log.Logf(0, "attempting to connect to ADB")
+			log.Logf(1, "instance %s: attempting to connect to adb", inst.name)
 		}
 		connectOutput, err := osutil.RunCmd(
 			2*time.Minute,
@@ -231,15 +240,44 @@ func (inst *instance) connectToAdb(timeout time.Duration) error {
 			"connect",
 			fmt.Sprintf("127.0.0.1:%d", inst.port))
 		if err == nil && strings.HasPrefix(string(connectOutput), "connected to") {
+			if inst.debug {
+				log.Logf(0, "instance %s: connected to adb server", inst.name)
+			}
 			return nil
 		}
 		inst.runCommand("adb", "disconnect", fmt.Sprintf("127.0.0.1:%d", inst.port))
 		if inst.debug {
-			log.Logf(0, "adb connect failed")
+			log.Logf(1, "instance %s: adb connect failed", inst.name)
 		}
-		if time.Since(startTime) > timeout {
-			return fmt.Errorf("can't connect to ADB server")
+		if time.Since(startTime) > (inst.adbTimeout - inst.adbRetryWait) {
+			return fmt.Errorf("instance %s: can't connect to adb server", inst.name)
 		}
+		vmimpl.SleepInterruptible(inst.adbRetryWait)
+	}
+}
+
+func (inst *instance) restartAdbAsRoot() error {
+	startTime := time.Now()
+	for {
+		if inst.debug {
+			log.Logf(1, "instance %s: attempting to restart adbd with root access", inst.name)
+		}
+		err := inst.runCommand(
+			"adb",
+			"-s",
+			fmt.Sprintf("127.0.0.1:%d", inst.port),
+			"root",
+		)
+		if err == nil {
+			return nil
+		}
+		if inst.debug {
+			log.Logf(1, "instance %s: adb root failed", inst.name)
+		}
+		if time.Since(startTime) > (inst.adbTimeout - inst.adbRetryWait) {
+			return fmt.Errorf("instance %s: can't restart adbd with root access", inst.name)
+		}
+		vmimpl.SleepInterruptible(inst.adbRetryWait)
 	}
 }
 
@@ -260,11 +298,11 @@ func (inst *instance) ffx(args ...string) error {
 // Runs a command inside the fuchsia directory.
 func (inst *instance) runCommand(cmd string, args ...string) error {
 	if inst.debug {
-		log.Logf(0, "running command: %s %q", cmd, args)
+		log.Logf(1, "instance %s: running command: %s %q", inst.name, cmd, args)
 	}
 	output, err := osutil.RunCmd(5*time.Minute, inst.fuchsiaDirectory, cmd, args...)
 	if inst.debug {
-		log.Logf(0, "%s", output)
+		log.Logf(1, "instance %s: %s", inst.name, output)
 	}
 	return err
 }
@@ -277,20 +315,35 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
+	startTime := time.Now()
 	base := filepath.Base(hostSrc)
-	vmDst := filepath.Join(targetDir, base)
 	if base == "syz-fuzzer" || base == "syz-execprog" {
 		return hostSrc, nil // we will run these on host.
 	}
+	vmDst := filepath.Join(targetDir, base)
 
-	err := inst.runCommand(
-		"adb",
-		"-s",
-		fmt.Sprintf("127.0.0.1:%d", inst.port),
-		"push",
-		hostSrc,
-		vmDst)
-	return vmDst, err
+	for {
+		if inst.debug {
+			log.Logf(1, "instance %s: attempting to push executor binary over ADB", inst.name)
+		}
+		err := inst.runCommand(
+			"adb",
+			"-s",
+			fmt.Sprintf("127.0.0.1:%d", inst.port),
+			"push",
+			hostSrc,
+			vmDst)
+		if err == nil {
+			return vmDst, nil
+		}
+		if inst.debug {
+			log.Logf(1, "instance %s: adb push failed", inst.name)
+		}
+		if time.Since(startTime) > (inst.adbTimeout - inst.adbRetryWait) {
+			return vmDst, fmt.Errorf("instance %s: can't push executor binary to VM", inst.name)
+		}
+		vmimpl.SleepInterruptible(inst.adbRetryWait)
+	}
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
@@ -312,7 +365,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		}
 	}
 	if inst.debug {
-		log.Logf(0, "running command: %#v", args)
+		log.Logf(1, "instance %s: running command: %#v", inst.name, args)
 	}
 	cmd := osutil.Command(args[0], args[1:]...)
 	cmd.Dir = inst.workdir

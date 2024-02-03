@@ -45,7 +45,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		enabledCalls:  mgr.targetEnabledSyscalls,
 		leak:          mgr.checkResult.Features[host.FeatureLeak].Enabled,
 		fresh:         mgr.fresh,
-		hubReproQueue: mgr.hubReproQueue,
+		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
 	}
 	if mgr.cfg.Reproduce && mgr.dash != nil {
@@ -284,7 +284,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		}
 		hc.hubReproQueue <- &Crash{
 			vmIndex: -1,
-			hub:     true,
+			fromHub: true,
 			Report: &report.Report{
 				Title:  "external repro",
 				Type:   typ,
