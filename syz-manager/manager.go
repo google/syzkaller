@@ -440,14 +440,21 @@ func (mgr *Manager) vmLoop() {
 				crepro = res.repro.CRepro
 				title = res.repro.Report.Title
 			}
-			log.Logf(0, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
-				res.instances, res.report0.Title, res.repro != nil, crepro, title)
+			log.Logf(0, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'"+
+				" hub=%v from_dashboard=%v",
+				res.instances, res.report0.Title, res.repro != nil, crepro, title,
+				res.fromHub, res.fromDashboard,
+			)
 			if res.err != nil {
 				reportReproError(res.err)
 			}
 			delete(reproducing, res.report0.Title)
 			if res.repro == nil {
-				if !res.fromHub {
+				if res.fromHub {
+					log.Logf(1, "repro '%v' came from syz-hub, not reporting the failure",
+						res.report0.Title)
+				} else {
+					log.Logf(1, "report repro failure of '%v'", res.report0.Title)
 					mgr.saveFailedRepro(res.report0, res.stats)
 				}
 			} else {
@@ -1030,6 +1037,7 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 		if rep.Type == crash_pkg.MemoryLeak {
 			// Don't send failed leak repro attempts to dashboard
 			// as we did not send the crash itself.
+			log.Logf(1, "failed repro of '%v': not sending because of the memleak type", rep.Title)
 			return
 		}
 		cid := &dashapi.CrashID{
