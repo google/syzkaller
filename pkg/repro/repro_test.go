@@ -63,7 +63,7 @@ func TestBisect(t *testing.T) {
 			}
 			return guilty == numGuilty, nil
 		})
-		if numGuilty > 8 && len(progs) == 0 {
+		if numGuilty > 6 && len(progs) == 0 {
 			// Bisection has been aborted.
 			continue
 		}
