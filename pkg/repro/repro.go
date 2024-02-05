@@ -640,7 +640,7 @@ func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEnt
 		Pred: minimizePred,
 		// For flaky crashes we usually end up with too many chunks.
 		// Continuing bisection would just take a lot of time and likely produce no result.
-		MaxChunks: 8,
+		MaxChunks: 6,
 		Logf: func(msg string, args ...interface{}) {
 			ctx.reproLogf(3, "bisect: "+msg, args...)
 		},
