@@ -100,6 +100,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	"mem": 1024
 }`
 	// Create config for booting the disk image.
+	target := targets.Get(targets.NetBSD, targetArch)
 	cfg := &mgrconfig.Config{
 		Workdir: outputDir,
 		Image:   filepath.Join(outputDir, "image"),
@@ -111,7 +112,8 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 			TargetOS:     targets.NetBSD,
 			TargetArch:   targetArch,
 			TargetVMArch: targetArch,
-			Timeouts:     targets.Get(targets.NetBSD, targetArch).Timeouts(1),
+			Timeouts:     target.Timeouts(1),
+			SysTarget:    target,
 		},
 	}
 	// Create a VM pool.
