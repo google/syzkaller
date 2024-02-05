@@ -427,7 +427,7 @@ func (mgr *Manager) restartManager() {
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
-	args := []string{"-config", cfgFile}
+	args := []string{"-config", cfgFile, "-vv", "1"}
 	if mgr.debug {
 		args = append(args, "-debug")
 	}
