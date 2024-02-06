@@ -13,8 +13,12 @@ import (
 )
 
 type PoolInfo struct {
-	config   *mgrconfig.Config
-	pool     *vm.Pool
+	config *mgrconfig.Config
+	pool   *vm.Pool
+}
+
+type Analyzer struct {
+	pools    map[int]*PoolInfo
 	programs []*prog.Prog
 }
 
@@ -26,7 +30,13 @@ func test() {
 	flag.Parse()
 	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
 	programs := loadPrograms(target, flag.Args())
-	server, err := createRPCServer(":2233", PoolInfo{programs: programs})
+	pools := make(map[int]*PoolInfo)
+	analyzer := &Analyzer{
+		programs: programs,
+		pools:    pools,
+	}
+	analyzer.pools[0] = &PoolInfo{}
+	server, err := createRPCServer(":2233", *analyzer)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +64,7 @@ func myFunc() {
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
-		pool.programs = loadPrograms(pool.config.Target, flag.Args())
+		//pool.programs = loadPrograms(pool.config.Target, flag.Args())
 		//instance := pool.pool.Create(0)
 		//instance.Run()
 		pools[idx] = pool

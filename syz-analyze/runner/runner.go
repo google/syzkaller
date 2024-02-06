@@ -8,6 +8,7 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/syz-analyze"
 	"runtime"
 )
 
@@ -51,8 +52,8 @@ func main() {
 	}
 	log.Logf(0, "%v", runner)
 
-	res := &rpctype.NextExchangeRes{}
-	if err := runner.client.Call("Analyzer.NextProgram", &rpctype.NextExchangeArgs{Pool: runner.pool, VM: runner.vm}, res); err != nil {
+	res := &syz_analyze.ProgramResults{}
+	if err := runner.client.Call("Analyzer.NextProgram", &syz_analyze.ProgramArgs{Pool: runner.pool, VM: runner.vm}, res); err != nil {
 		log.Fatalf("Can't get initial programm: %v", err)
 	}
 
@@ -75,25 +76,21 @@ func (runner *Runner) Run(firstProgram []byte, taskID int64) {
 
 		println(len(program.Calls))
 
-		log.Logf(0, "Executing program: %s\n", rawProgram)
+		output, _, hanged, err := env.Exec(runner.opts, program)
 
-		output, info, hanged, err := env.Exec(runner.opts, program)
+		if err != nil {
+			log.Logf(0, "%v\n", err)
+		}
 
-		println("-----------------")
-		log.Logf(0, "%s\n", output)
-		println(info)
-		println(hanged)
-		println(err)
-		println("-----------------")
-
-		args := &rpctype.NextExchangeArgs{
+		args := &syz_analyze.ProgramArgs{
 			Pool:       runner.pool,
 			VM:         runner.vm,
 			ExecTaskID: id,
 			Hanged:     hanged,
+			Error:      output,
 		}
 
-		res := &rpctype.NextExchangeRes{}
+		res := &syz_analyze.ProgramResults{}
 
 		if err := runner.client.Call("Analyzer.NextProgram", args, res); err != nil {
 			log.Fatalf("Can't get next programm: %v", err)
