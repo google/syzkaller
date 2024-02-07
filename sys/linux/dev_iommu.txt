@@ -32,6 +32,9 @@ ioctl$IOMMU_VFIO_IOAS$GET(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in,
 ioctl$IOMMU_VFIO_IOAS$SET(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$SET])
 ioctl$IOMMU_VFIO_IOAS$CLEAR(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$CLEAR])
 
+ioctl$IOMMU_HWPT_ALLOC$NONE(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_NONE])
+ioctl$IOMMU_HWPT_ALLOC$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST])
+
 # VFIO compatibility ioctls
 # This shares a few structs with dev_vfio.txt
 ioctl$IOMMU_VFIO_GET_API_VERSION(fd fd_iommufd, cmd const[VFIO_GET_API_VERSION])
@@ -170,6 +173,26 @@ iommu_vfio_ioas$CLEAR {
 	__reserved	const[0x0, int16]
 }
 
+type iommu_hwpt_alloc[DATA_TYPE, DATA] {
+	size		len[parent, int32]
+	flags		flags[iommufd_hwpt_alloc_flags, int32]
+	dev_id		device_handle
+	pt_id		ioas_handle
+	out_hwpt_id	hwpt_handle	(out)
+	__reserved	const[0x0, int32]
+	data_type	const[DATA_TYPE, int32]
+	data_len	len[uptr, int32]
+	uptr		ptr64[in, DATA]
+}
+
+type iommu_hwpt_alloc$IOMMU_HWPT_DATA_NONE iommu_hwpt_alloc[IOMMU_HWPT_DATA_NONE, array[int8]]
+
+iommu_hwpt_selftest {
+	iotlb	const[0xbadbeef, int32]
+}
+
+type iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST iommu_hwpt_alloc[IOMMU_HWPT_DATA_SELFTEST, iommu_hwpt_selftest]
+
 iommu_iova_range {
 	start	int64
 	last	int64
@@ -178,6 +201,7 @@ iommu_iova_range {
 iommufd_ioas_map_flags = IOMMU_IOAS_MAP_FIXED_IOVA, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE
 iommufd_ioas_map_flags_syz = MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE, MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_READABLE
 iommufd_option_ops = IOMMU_OPTION_OP_SET, IOMMU_OPTION_OP_GET
+iommufd_hwpt_alloc_flags = IOMMU_HWPT_ALLOC_NEST_PARENT, IOMMU_HWPT_ALLOC_DIRTY_TRACKING
 
 iommu_type = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU
 iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_TYPE1_NESTING_IOMMU, VFIO_UPDATE_VADDR
