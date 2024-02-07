@@ -35,6 +35,8 @@ ioctl$IOMMU_VFIO_IOAS$CLEAR(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[i
 ioctl$IOMMU_HWPT_ALLOC$NONE(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_NONE])
 ioctl$IOMMU_HWPT_ALLOC$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST])
 
+ioctl$IOMMU_GET_HW_INFO(fd fd_iommufd, cmd const[IOMMU_GET_HW_INFO], arg ptr[in, iommu_hw_info])
+
 # VFIO compatibility ioctls
 # This shares a few structs with dev_vfio.txt
 ioctl$IOMMU_VFIO_GET_API_VERSION(fd fd_iommufd, cmd const[VFIO_GET_API_VERSION])
@@ -192,6 +194,17 @@ iommu_hwpt_selftest {
 }
 
 type iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST iommu_hwpt_alloc[IOMMU_HWPT_DATA_SELFTEST, iommu_hwpt_selftest]
+
+iommu_hw_info {
+	size			len[parent, int32]
+	flags			const[0x0, int32]
+	dev_id			device_handle
+	data_len		len[data_uptr, int32]
+	data_uptr		ptr64[out, array[int8]]
+	out_data_type		int32	(out)
+	__reserved		const[0x0, int32]
+	out_capabilities	int64	(out)
+}
 
 iommu_iova_range {
 	start	int64
