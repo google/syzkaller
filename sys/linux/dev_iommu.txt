@@ -209,7 +209,7 @@ ioctl$IOMMU_TEST_OP_SET_TEMP_MEMORY_LIMIT(fd fd_iommufd, cmd const[IOMMU_TEST_CM
 ioctl$IOMMU_TEST_OP_MOCK_DOMAIN_REPLACE(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain_replace])
 ioctl$IOMMU_TEST_OP_ACCESS_REPLACE_IOAS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_replace_ioas])
 
-ioctl$IOMMU_DESTROY$device(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$device])
+ioctl$IOMMU_DESTROY$stdev(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$stdev])
 ioctl$IOMMU_DESTROY$hwpt(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$hwpt])
 
 iommu_test_cmd$add_reserved {
@@ -345,9 +345,9 @@ iommu_test_cmd$access_replace_ioas {
 	ioas_id		ioas_handle
 } [size[IOMMU_TEST_CMD_SIZE]]
 
-iommu_destroy$device {
+iommu_destroy$stdev {
 	size	len[parent, int32]
-	id	device_handle
+	id	selftest_device_handle
 }
 
 iommu_destroy$hwpt {
