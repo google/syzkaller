@@ -6289,8 +6289,9 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 		return -1;
 	int sock = syscall(__NR_socket, domain, type, proto);
 	int err = errno;
-	if (setns(netns, 0))
-		fail("setns(netns) failed");
+	if (setns(netns, 0)) {
+		exitf("setns(netns) failed");
+	}
 	close(netns);
 	errno = err;
 	return sock;
@@ -6324,8 +6325,9 @@ static long syz_socket_connect_nvme_tcp()
 		return -1;
 	int sock = syscall(__NR_socket, AF_INET, SOCK_STREAM, 0x0);
 	int err = errno;
-	if (setns(netns, 0))
-		fail("setns(netns) failed");
+	if (setns(netns, 0)) {
+		exitf("setns(netns) failed");
+	}
 	close(netns);
 	errno = err;
 	nvme_local_address.sin_family = AF_INET;
