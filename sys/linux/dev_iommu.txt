@@ -36,6 +36,7 @@ ioctl$IOMMU_HWPT_ALLOC$NONE(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[
 ioctl$IOMMU_HWPT_ALLOC$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST])
 
 ioctl$IOMMU_GET_HW_INFO(fd fd_iommufd, cmd const[IOMMU_GET_HW_INFO], arg ptr[in, iommu_hw_info])
+ioctl$IOMMU_HWPT_SET_DIRTY_TRACKING(fd fd_iommufd, cmd const[IOMMU_HWPT_SET_DIRTY_TRACKING], arg ptr[in, iommu_hwpt_set_dirty_tracking])
 
 # VFIO compatibility ioctls
 # This shares a few structs with dev_vfio.txt
@@ -206,6 +207,13 @@ iommu_hw_info {
 	out_capabilities	int64	(out)
 }
 
+iommu_hwpt_set_dirty_tracking {
+	size		len[parent, int32]
+	flags		flags[iommufd_hwpt_set_dirty_tracking_flags, int32]
+	hwpt_id		hwpt_handle
+	__reserved	const[0x0, int32]
+}
+
 iommu_iova_range {
 	start	int64
 	last	int64
@@ -215,6 +223,7 @@ iommufd_ioas_map_flags = IOMMU_IOAS_MAP_FIXED_IOVA, IOMMU_IOAS_MAP_WRITEABLE, IO
 iommufd_ioas_map_flags_syz = MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE, MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_READABLE
 iommufd_option_ops = IOMMU_OPTION_OP_SET, IOMMU_OPTION_OP_GET
 iommufd_hwpt_alloc_flags = IOMMU_HWPT_ALLOC_NEST_PARENT, IOMMU_HWPT_ALLOC_DIRTY_TRACKING
+iommufd_hwpt_set_dirty_tracking_flags = IOMMU_HWPT_DIRTY_TRACKING_ENABLE
 
 iommu_type = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU
 iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_TYPE1_NESTING_IOMMU, VFIO_UPDATE_VADDR
