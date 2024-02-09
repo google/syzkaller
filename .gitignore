@@ -19,9 +19,6 @@ sys/*/gen/*.go
 executor/defs.h
 executor/syscalls.h
 
-# produced by gcloud command
-dashboard/app/.gcloudignore
-
 # jetbrains goland
 .idea
 
