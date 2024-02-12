@@ -365,20 +365,23 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) ([]byte, [
 		progs = append(progs, Prog{Data: "main", PCs: pcs})
 	}
 	html := new(bytes.Buffer)
-	if err := rg.DoHTML(html, progs, nil); err != nil {
+	params := CoverHandlerParams{
+		Progs: progs,
+	}
+	if err := rg.DoHTML(html, params); err != nil {
 		return nil, nil, err
 	}
 	htmlTable := new(bytes.Buffer)
-	if err := rg.DoHTMLTable(htmlTable, progs, nil); err != nil {
+	if err := rg.DoHTMLTable(htmlTable, params); err != nil {
 		return nil, nil, err
 	}
 	_ = htmlTable
 	csv := new(bytes.Buffer)
-	if err := rg.DoCSV(csv, progs, nil); err != nil {
+	if err := rg.DoCSV(csv, params); err != nil {
 		return nil, nil, err
 	}
 	csvFiles := new(bytes.Buffer)
-	if err := rg.DoCSVFiles(csvFiles, progs, nil); err != nil {
+	if err := rg.DoCSVFiles(csvFiles, params); err != nil {
 		return nil, nil, err
 	}
 	_ = csvFiles

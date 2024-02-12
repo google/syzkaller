@@ -349,6 +349,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	}
 
 	do := rg.DoHTML
+
 	if funcFlag == DoHTMLTable {
 		do = rg.DoHTMLTable
 	} else if funcFlag == DoModuleCover {
@@ -359,7 +360,15 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		do = rg.DoCSVFiles
 	}
 
-	if err := do(w, progs, coverFilter); err != nil {
+	debug := r.FormValue("debug") != ""
+
+	params := cover.CoverHandlerParams{
+		Progs:       progs,
+		CoverFilter: coverFilter,
+		Debug:       debug,
+	}
+
+	if err := do(w, params); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}

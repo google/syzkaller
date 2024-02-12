@@ -77,8 +77,13 @@ func main() {
 	}
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
+	params := cover.CoverHandlerParams{
+		Progs:       progs,
+		CoverFilter: nil,
+		Debug:       false,
+	}
 	if *flagExportCSV != "" {
-		if err := rg.DoCSV(buf, progs, nil); err != nil {
+		if err := rg.DoCSV(buf, params); err != nil {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExportCSV, buf.Bytes()); err != nil {
@@ -87,7 +92,7 @@ func main() {
 		return
 	}
 	if *flagExportLineJSON != "" {
-		if err := rg.DoLineJSON(buf, progs, nil); err != nil {
+		if err := rg.DoLineJSON(buf, params); err != nil {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExportLineJSON, buf.Bytes()); err != nil {
@@ -95,7 +100,7 @@ func main() {
 		}
 		return
 	}
-	if err := rg.DoHTML(buf, progs, nil); err != nil {
+	if err := rg.DoHTML(buf, params); err != nil {
 		tool.Fail(err)
 	}
 	if *flagExportHTML != "" {
