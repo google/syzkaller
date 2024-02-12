@@ -24,9 +24,15 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
-	files, err := rg.prepareFileMap(progs)
+type CoverHandlerParams struct {
+	Progs       []Prog
+	CoverFilter map[uint32]uint32
+	Debug       bool
+}
+
+func (rg *ReportGenerator) DoHTML(w io.Writer, params CoverHandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	files, err := rg.prepareFileMap(progs, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -127,9 +133,9 @@ type lineCoverExport struct {
 	Both      []int `json:",omitempty"`
 }
 
-func (rg *ReportGenerator) DoLineJSON(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
-	files, err := rg.prepareFileMap(progs)
+func (rg *ReportGenerator) DoLineJSON(w io.Writer, params CoverHandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	files, err := rg.prepareFileMap(progs, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -291,7 +297,7 @@ var csvFilesHeader = []string{
 }
 
 func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
-	files, err := rg.prepareFileMap(progs)
+	files, err := rg.prepareFileMap(progs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -341,8 +347,8 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 	return data, nil
 }
 
-func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+func (rg *ReportGenerator) DoCSVFiles(w io.Writer, params CoverHandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -441,8 +447,8 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 	return d
 }
 
-func (rg *ReportGenerator) DoHTMLTable(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+func (rg *ReportGenerator) DoHTMLTable(w io.Writer, params CoverHandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -517,8 +523,8 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 	return d
 }
 
-func (rg *ReportGenerator) DoModuleCover(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+func (rg *ReportGenerator) DoModuleCover(w io.Writer, params CoverHandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -537,9 +543,9 @@ var csvHeader = []string{
 	"Total PCs",
 }
 
-func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
-	files, err := rg.prepareFileMap(progs)
+func (rg *ReportGenerator) DoCSV(w io.Writer, params CoverHandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	files, err := rg.prepareFileMap(progs, params.Debug)
 	if err != nil {
 		return err
 	}

@@ -74,7 +74,20 @@ type line struct {
 	progIndex int          // example program index that covers this line
 }
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error) {
+func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
+	debugStr := ""
+	if debug {
+		debugStr += "\n\nUnmatched PCs:\n"
+		for pc := range unmatchedProgPCs {
+			debugStr += fmt.Sprintf("%x\n", pc)
+		}
+	}
+	// nolint: lll
+	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks. Check the discoverModules() code.%s",
+		len(unmatchedProgPCs), numPCs, debugStr)
+}
+
+func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (map[string]*file, error) {
 	if err := rg.lazySymbolize(progs); err != nil {
 		return nil, err
 	}
@@ -131,9 +144,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	// If the backend provided coverage callback locations for the binaries, use them to
 	// verify data returned by kcov.
 	if verifyCoverPoints && (len(unmatchedProgPCs) > 0) {
-		return nil, fmt.Errorf("%d out of %d PCs returned by kcov do not have matching "+
-			"coverage callbacks. Check the discoverModules() code",
-			len(unmatchedProgPCs), len(progPCs))
+		return nil, coverageCallbackMismatch(debug, len(progPCs), unmatchedProgPCs)
 	}
 	for _, unit := range rg.Units {
 		f := files[unit.Name]
