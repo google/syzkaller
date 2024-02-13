@@ -1118,18 +1118,19 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		}
 
 		dc := &dashapi.Crash{
-			BuildID:       mgr.cfg.Tag,
-			Title:         report.Title,
-			AltTitles:     report.AltTitles,
-			Suppressed:    report.Suppressed,
-			Recipients:    report.Recipients.ToDash(),
-			Log:           output,
-			Flags:         crashFlags,
-			Report:        report.Report,
-			ReproOpts:     repro.Opts.Serialize(),
-			ReproSyz:      progText,
-			ReproC:        cprogText,
-			ReproLog:      fullReproLog(res.stats),
+			BuildID:    mgr.cfg.Tag,
+			Title:      report.Title,
+			AltTitles:  report.AltTitles,
+			Suppressed: report.Suppressed,
+			Recipients: report.Recipients.ToDash(),
+			Log:        output,
+			Flags:      crashFlags,
+			Report:     report.Report,
+			ReproOpts:  repro.Opts.Serialize(),
+			ReproSyz:   progText,
+			ReproC:     cprogText,
+			// Paused because of #4495.
+			// ReproLog:      fullReproLog(res.stats),
 			Assets:        mgr.uploadReproAssets(repro),
 			OriginalTitle: res.originalTitle,
 		}
