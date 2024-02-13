@@ -1259,6 +1259,7 @@ var linuxStackParams = &stackParams{
 		"insert_work",
 		"__queue_delayed_work",
 		"queue_delayed_work_on",
+		"ida_free",
 		// arm64 translation exception handling path.
 		"do_(kernel|translation)_fault",
 		"do_mem_abort",
