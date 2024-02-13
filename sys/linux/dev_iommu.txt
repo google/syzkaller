@@ -38,6 +38,7 @@ ioctl$IOMMU_HWPT_ALLOC$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[
 ioctl$IOMMU_GET_HW_INFO(fd fd_iommufd, cmd const[IOMMU_GET_HW_INFO], arg ptr[in, iommu_hw_info])
 ioctl$IOMMU_HWPT_SET_DIRTY_TRACKING(fd fd_iommufd, cmd const[IOMMU_HWPT_SET_DIRTY_TRACKING], arg ptr[in, iommu_hwpt_set_dirty_tracking])
 ioctl$IOMMU_HWPT_GET_DIRTY_BITMAP(fd fd_iommufd, cmd const[IOMMU_HWPT_GET_DIRTY_BITMAP], arg ptr[in, iommu_hwpt_get_dirty_bitmap])
+ioctl$IOMMU_HWPT_INVALIDATE$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_INVALIDATE], arg ptr[in, iommu_hwpt_invalidate$IOMMU_HWPT_INVALIDATE_DATA_SELFTEST])
 
 # VFIO compatibility ioctls
 # This shares a few structs with dev_vfio.txt
@@ -224,6 +225,21 @@ iommu_hwpt_get_dirty_bitmap {
 	length		int64
 	page_size	int64
 	data		ptr64[out, array[int8]]
+}
+
+iommu_hwpt_invalidate_selftest {
+	flags		flags[iommufd_hwpt_invalidate_selftest_flags, int32]
+	iotlb_id	int32[0:MOCK_NESTED_DOMAIN_IOTLB_ID_MAX]
+}
+
+iommu_hwpt_invalidate$IOMMU_HWPT_INVALIDATE_DATA_SELFTEST {
+	size		len[parent, int32]
+	hwpt_id		hwpt_handle
+	data_uptr	ptr64[in, array[iommu_hwpt_invalidate_selftest]]
+	data_type	const[IOMMU_HWPT_INVALIDATE_DATA_SELFTEST, int32]
+	entry_len	const[0x8, int32]
+	entry_num	len[data_uptr, int32]
+	__reserved	const[0x0, int32]
 }
 
 iommu_iova_range {
@@ -432,3 +448,4 @@ iommu_test_cmd_acess_pages_flags_syz = MOCK_FLAGS_ACCESS_SYZ, MOCK_FLAGS_ACCESS_
 iommu_test_cmd_acess_rw_flags = MOCK_ACCESS_RW_WRITE, MOCK_ACCESS_RW_SLOW_PATH
 iommu_test_cmd_acess_rw_flags_syz = MOCK_FLAGS_ACCESS_SYZ, iommu_test_cmd_acess_rw_flags
 iommu_test_cmd_mock_domain_flags = MOCK_FLAGS_DEVICE_NO_DIRTY
+iommufd_hwpt_invalidate_selftest_flags = IOMMU_TEST_INVALIDATE_FLAG_ALL
