@@ -1,0 +1,22 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/lsm.h>
+
+lsm_set_self_attr(attr flags[lsm_attr_flags], ctx ptr[in, lsm_ctx], size bytesize[ctx], flags const[0])
+lsm_get_self_attr(attr flags[lsm_attr_flags], ctx ptr[out, lsm_ctx], size ptr[inout, bytesize[ctx, intptr]], flags flags[lsm_get_self_attr_flags])
+lsm_list_modules(ids ptr[out, array[int64]], size ptr[inout, bytesize[ids, intptr]], flags const[0])
+
+lsm_ctx {
+	id	flags[lsm_id_flags, int64]
+	flags	int64
+	len	bytesize[parent, int64]
+	ctx_len	bytesize[ctx, int64]
+	ctx	array[int8]
+}
+
+lsm_attr_flags = LSM_ATTR_UNDEF, LSM_ATTR_CURRENT, LSM_ATTR_EXEC, LSM_ATTR_FSCREATE, LSM_ATTR_KEYCREATE, LSM_ATTR_PREV, LSM_ATTR_SOCKCREATE
+
+lsm_id_flags = LSM_ID_UNDEF, LSM_ID_CAPABILITY, LSM_ID_SELINUX, LSM_ID_SMACK, LSM_ID_TOMOYO, LSM_ID_APPARMOR, LSM_ID_YAMA, LSM_ID_LOADPIN, LSM_ID_SAFESETID, LSM_ID_LOCKDOWN, LSM_ID_BPF, LSM_ID_LANDLOCK
+
+lsm_get_self_attr_flags = LSM_FLAG_SINGLE
