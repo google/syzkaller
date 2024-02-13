@@ -1054,7 +1054,8 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 			ReproLog:     reproLog,
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
-			log.Logf(0, "failed to report failed repro to dashboard: %v", err)
+			log.Logf(0, "failed to report failed repro to dashboard (log size %d): %v",
+				len(reproLog), err)
 		} else {
 			return
 		}
