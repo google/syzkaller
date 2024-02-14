@@ -11,11 +11,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
@@ -969,30 +968,43 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 		}
 		reflect.ValueOf(reply).Elem().Set(reflect.New(typ.Elem()).Elem())
 	}
-	values := make(url.Values)
-	values.Add("client", dash.Client)
-	values.Add("key", dash.Key)
-	values.Add("method", method)
+	body := &bytes.Buffer{}
+	mWriter := multipart.NewWriter(body)
+	err := mWriter.WriteField("client", dash.Client)
+	if err != nil {
+		return err
+	}
+	err = mWriter.WriteField("key", dash.Key)
+	if err != nil {
+		return err
+	}
+	err = mWriter.WriteField("method", method)
+	if err != nil {
+		return err
+	}
 	if req != nil {
+		w, err := mWriter.CreateFormField("payload")
+		if err != nil {
+			return err
+		}
 		data, err := json.Marshal(req)
 		if err != nil {
 			return fmt.Errorf("failed to marshal request: %w", err)
 		}
-		buf := new(bytes.Buffer)
-		gz := gzip.NewWriter(buf)
+		gz := gzip.NewWriter(w)
 		if _, err := gz.Write(data); err != nil {
 			return err
 		}
 		if err := gz.Close(); err != nil {
 			return err
 		}
-		values.Add("payload", buf.String())
 	}
-	r, err := dash.ctor("POST", fmt.Sprintf("%v/api", dash.Addr), strings.NewReader(values.Encode()))
+	mWriter.Close()
+	r, err := dash.ctor("POST", fmt.Sprintf("%v/api", dash.Addr), body)
 	if err != nil {
 		return err
 	}
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Set("Content-Type", mWriter.FormDataContentType())
 	resp, err := dash.doer(r)
 	if err != nil {
 		return fmt.Errorf("http request failed: %w", err)
