@@ -39,6 +39,9 @@
         "appengine": {
             "component": "appengine"
         },
+        "apps": {
+            "component": "apps"
+        },
         "area120": {
             "component": "area120"
         },
@@ -83,6 +86,9 @@
         },
         "cloudprofiler": {
             "component": "cloudprofiler"
+        },
+        "cloudquotas": {
+            "component": "cloudquotas"
         },
         "cloudtasks": {
             "component": "cloudtasks"
@@ -320,6 +326,9 @@
         },
         "securitycenter": {
             "component": "securitycenter"
+        },
+        "securitycentermanagement": {
+            "component": "securitycentermanagement"
         },
         "servicecontrol": {
             "component": "servicecontrol"

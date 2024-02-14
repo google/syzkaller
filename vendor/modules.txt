@@ -4,7 +4,7 @@
 # 4d63.com/gochecknoglobals v0.2.1
 ## explicit; go 1.15
 4d63.com/gochecknoglobals/checknoglobals
-# cloud.google.com/go v0.111.0
+# cloud.google.com/go v0.112.0
 ## explicit; go 1.19
 cloud.google.com/go
 cloud.google.com/go/internal
@@ -39,7 +39,7 @@ cloud.google.com/go/longrunning/autogen/longrunningpb
 ## explicit; go 1.19
 cloud.google.com/go/profiler
 cloud.google.com/go/profiler/internal
-# cloud.google.com/go/pubsub v1.33.0
+# cloud.google.com/go/pubsub v1.36.1
 ## explicit; go 1.19
 cloud.google.com/go/pubsub
 cloud.google.com/go/pubsub/apiv1
@@ -52,7 +52,7 @@ cloud.google.com/go/pubsub/internal/scheduler
 cloud.google.com/go/secretmanager/apiv1
 cloud.google.com/go/secretmanager/apiv1/secretmanagerpb
 cloud.google.com/go/secretmanager/internal
-# cloud.google.com/go/storage v1.35.1
+# cloud.google.com/go/storage v1.36.0
 ## explicit; go 1.19
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
@@ -1058,7 +1058,7 @@ google.golang.org/appengine/v2/log
 google.golang.org/appengine/v2/mail
 google.golang.org/appengine/v2/memcache
 google.golang.org/appengine/v2/user
-# google.golang.org/genproto v0.0.0-20240102182953-50ed04b92917
+# google.golang.org/genproto v0.0.0-20240116215550-a9fa1716bcac
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/appengine/logging/v1
 google.golang.org/genproto/googleapis/cloud/audit
@@ -1068,7 +1068,7 @@ google.golang.org/genproto/googleapis/logging/type
 google.golang.org/genproto/googleapis/type/date
 google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/internal
-# google.golang.org/genproto/googleapis/api v0.0.0-20240102182953-50ed04b92917
+# google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -1082,7 +1082,7 @@ google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context/attribute_context
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.60.1
+# google.golang.org/grpc v1.61.0
 ## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
