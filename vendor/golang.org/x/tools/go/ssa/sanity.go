@@ -132,6 +132,11 @@ func (s *sanity) checkInstr(idx int, instr Instruction) {
 
 	case *BinOp:
 	case *Call:
+		if common := instr.Call; common.IsInvoke() {
+			if !types.IsInterface(common.Value.Type()) {
+				s.errorf("invoke on %s (%s) which is not an interface type (or type param)", common.Value, common.Value.Type())
+			}
+		}
 	case *ChangeInterface:
 	case *ChangeType:
 	case *SliceToArrayPointer:
@@ -422,7 +427,8 @@ func (s *sanity) checkFunction(fn *Function) bool {
 	// shared across packages, or duplicated as weak symbols in a
 	// separate-compilation model), and error.Error.
 	if fn.Pkg == nil {
-		if strings.HasPrefix(fn.Synthetic, "wrapper ") ||
+		if strings.HasPrefix(fn.Synthetic, "from type information (on demand)") ||
+			strings.HasPrefix(fn.Synthetic, "wrapper ") ||
 			strings.HasPrefix(fn.Synthetic, "bound ") ||
 			strings.HasPrefix(fn.Synthetic, "thunk ") ||
 			strings.HasSuffix(fn.name, "Error") ||
