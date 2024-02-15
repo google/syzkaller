@@ -172,6 +172,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		errc := make(chan error, 1)
 		go func() {
 			info := &symbolInfo{
+				tracePC:     make(map[uint64]bool),
 				traceCmp:    make(map[uint64]bool),
 				tracePCIdx:  make(map[int]bool),
 				traceCmpIdx: make(map[int]bool),
@@ -324,8 +325,9 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 }
 
 type symbolInfo struct {
-	textAddr    uint64
-	tracePC     uint64
+	textAddr uint64
+	// Set of addresses that correspond to __sanitizer_cov_trace_pc or its trampolines.
+	tracePC     map[uint64]bool
 	traceCmp    map[uint64]bool
 	tracePCIdx  map[int]bool
 	traceCmpIdx map[int]bool
@@ -483,7 +485,7 @@ func symbolize(target *targets.Target, objDir, srcDir, buildDir string, splitBui
 // Running objdump on the whole object file is too slow.
 func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2][]uint64, error) {
 	var pcs [2][]uint64
-	if info.tracePC == 0 {
+	if len(info.tracePC) == 0 {
 		return pcs, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
 	}
 
@@ -502,7 +504,7 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 		}
 		pc := info.textAddr + uint64(i)
 		target := arch.target(&arch, data[i:], pc, opcode)
-		if target == info.tracePC {
+		if info.tracePC[target] {
 			pcs[0] = append(pcs[0], pc)
 		} else if info.traceCmp[target] {
 			pcs[1] = append(pcs[1], pc)
@@ -652,7 +654,11 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 		return [][]byte{[]byte("\tcall ")}, callName
 	case targets.ARM64:
 		// ffff0000080d9cc0:       bl      ffff00000820f478 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tbl\t")}, callName
+		return [][]byte{[]byte("\tbl ")}, [][]byte{
+			[]byte("<__sanitizer_cov_trace_pc>"),
+			[]byte("<____sanitizer_cov_trace_pc_veneer>"),
+		}
+
 	case targets.ARM:
 		// 8010252c:       bl      801c3280 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tbl\t")}, callName
