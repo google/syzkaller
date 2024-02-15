@@ -75,7 +75,7 @@ func machoReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 			if symb.Name == "___sanitizer_cov_trace_pc_guard" {
 				info.tracePCIdx[i] = true
 				if text {
-					info.tracePC = symb.Value
+					info.tracePC[symb.Value] = true
 				}
 			} else {
 				info.traceCmpIdx[i] = true
