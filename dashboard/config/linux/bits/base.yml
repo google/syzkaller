@@ -86,7 +86,8 @@ config:
  - HARDENED_USERCOPY
  - HARDENED_USERCOPY_FALLBACK: [-v5.15]
  - BUG_ON_DATA_CORRUPTION
- - DEBUG_LIST
+ # TODO: remove when https://github.com/google/syzkaller/issues/4504 is fixed.
+ - DEBUG_LIST: [-kmsan]
  - DEBUG_STACKOVERFLOW: [-v5.0]
 
  # CONFIG_DEBUG_PI_LIST was renamed to CONFIG_DEBUG_PLIST in 8e18faeac3e4.
