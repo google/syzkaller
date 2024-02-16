@@ -141,6 +141,7 @@ const (
 	S390x               = "s390x"
 	RiscV64             = "riscv64"
 	TestArch64          = "64"
+	TestArch64Fuzz      = "64_fuzz"
 	TestArch64Fork      = "64_fork"
 	TestArch32Shmem     = "32_shmem"
 	TestArch32ForkShmem = "32_fork_shmem"
@@ -187,6 +188,18 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: false,
+			},
+		},
+		TestArch64Fuzz: {
+			PtrSize:  8,
+			PageSize: 8 << 10,
+			// -fsanitize=address causes SIGSEGV.
+			CFlags: []string{"-no-pie"},
+			osCommon: osCommon{
+				SyscallNumbers:         true,
+				SyscallPrefix:          "SYS_",
+				ExecutorUsesShmem:      true,
+				ExecutorUsesForkServer: true,
 			},
 		},
 		TestArch64Fork: {

@@ -1,0 +1,290 @@
+// Copyright 2024 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package fuzzer
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"hash/crc32"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
+	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/errgroup"
+)
+
+func TestFuzz(t *testing.T) {
+	defer checkGoroutineLeaks()
+
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executor := buildExecutor(t, target)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fuzzer := NewFuzzer(ctx, &Config{
+		Debug: true,
+		Logf: func(level int, msg string, args ...interface{}) {
+			if level > 1 {
+				return
+			}
+			t.Logf(msg, args...)
+		},
+		Coverage: true,
+		EnabledCalls: map[*prog.Syscall]bool{
+			target.SyscallMap["syz_test_fuzzer1"]: true,
+		},
+		NewInputs: make(chan rpctype.Input),
+	}, rand.New(testutil.RandSource(t)), target)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case c := <-fuzzer.Config.NewInputs:
+				t.Logf("new prog:\n%s", c.Prog)
+			}
+		}
+	}()
+
+	tf := newTestFuzzer(t, fuzzer, map[string]bool{
+		"first bug":  true,
+		"second bug": true,
+	}, 10000)
+
+	for i := 0; i < 2; i++ {
+		tf.registerExecutor(newProc(t, target, executor))
+	}
+	tf.wait()
+
+	t.Logf("resulting corpus:")
+	for _, p := range fuzzer.Corpus.Programs() {
+		t.Logf("-----")
+		t.Logf("%s", p.Serialize())
+	}
+
+	assert.Equal(t, len(tf.expectedCrashes), len(tf.crashes),
+		"not all expected crashes were found")
+}
+
+func BenchmarkFuzzer(b *testing.B) {
+	b.ReportAllocs()
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
+	if err != nil {
+		b.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	calls := map[*prog.Syscall]bool{}
+	for _, c := range target.Syscalls {
+		calls[c] = true
+	}
+	fuzzer := NewFuzzer(ctx, &Config{
+		Coverage:     true,
+		EnabledCalls: calls,
+	}, rand.New(rand.NewSource(time.Now().UnixNano())), target)
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			req := fuzzer.NextInput()
+			res, _, _ := emulateExec(req)
+			fuzzer.Done(req, res)
+		}
+	})
+}
+
+// Based on the example from Go documentation.
+var crc32q = crc32.MakeTable(0xD5828281)
+
+func emulateExec(req *Request) (*Result, string, error) {
+	serializedLines := bytes.Split(req.Prog.Serialize(), []byte("\n"))
+	var info ipc.ProgInfo
+	for i, call := range req.Prog.Calls {
+		cover := uint32(call.Meta.ID*1024) +
+			crc32.Checksum(serializedLines[i], crc32q)%4
+		callInfo := ipc.CallInfo{}
+		if req.NeedCover {
+			callInfo.Cover = []uint32{cover}
+		}
+		if req.NeedSignal {
+			callInfo.Signal = []uint32{cover}
+		}
+		info.Calls = append(info.Calls, callInfo)
+	}
+	return &Result{Info: &info}, "", nil
+}
+
+type testFuzzer struct {
+	t               testing.TB
+	eg              errgroup.Group
+	fuzzer          *Fuzzer
+	mu              sync.Mutex
+	crashes         map[string]int
+	expectedCrashes map[string]bool
+	iter            int
+	iterLimit       int
+}
+
+func newTestFuzzer(t testing.TB, fuzzer *Fuzzer, expectedCrashes map[string]bool, iterLimit int) *testFuzzer {
+	return &testFuzzer{
+		t:               t,
+		fuzzer:          fuzzer,
+		expectedCrashes: expectedCrashes,
+		crashes:         map[string]int{},
+		iterLimit:       iterLimit,
+	}
+}
+
+func (f *testFuzzer) oneMore() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.iter++
+	if f.iter%100 == 0 {
+		stat := f.fuzzer.Corpus.Stat()
+		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d",
+			f.iter, stat.Progs, stat.Signal, stat.MaxSignal, len(f.crashes))
+	}
+	return f.iter < f.iterLimit &&
+		(f.expectedCrashes == nil || len(f.crashes) != len(f.expectedCrashes))
+}
+
+func (f *testFuzzer) registerExecutor(proc *executorProc) {
+	f.eg.Go(func() error {
+		for f.oneMore() {
+			req := f.fuzzer.NextInput()
+			res, crash, err := proc.execute(req)
+			if err != nil {
+				return err
+			}
+			if crash != "" {
+				res = &Result{Stop: true}
+				if !f.expectedCrashes[crash] {
+					return fmt.Errorf("unexpected crash: %q", crash)
+				}
+				f.mu.Lock()
+				f.t.Logf("CRASH: %s", crash)
+				f.crashes[crash]++
+				f.mu.Unlock()
+			}
+			f.fuzzer.Done(req, res)
+		}
+		return nil
+	})
+}
+
+func (f *testFuzzer) wait() {
+	t := f.t
+	err := f.eg.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("crashes:")
+	for title, cnt := range f.crashes {
+		t.Logf("%s: %d", title, cnt)
+	}
+	t.Logf("stats:\n%v", f.fuzzer.GrabStats())
+}
+
+// TODO: it's already implemented in syz-fuzzer/proc.go,
+// pkg/runtest and tools/syz-execprog.
+// Looks like it's time to factor out this functionality.
+type executorProc struct {
+	env      *ipc.Env
+	execOpts ipc.ExecOpts
+}
+
+func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {
+	config, execOpts, err := ipcconfig.Default(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.Executor = executor
+	config.Flags |= ipc.FlagSignal
+	env, err := ipc.MakeEnv(config, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { env.Close() })
+	return &executorProc{
+		env:      env,
+		execOpts: *execOpts,
+	}
+}
+
+var crashRe = regexp.MustCompile(`{{CRASH: (.*?)}}`)
+
+func (proc *executorProc) execute(req *Request) (*Result, string, error) {
+	execOpts := proc.execOpts
+	// TODO: it's duplicated from fuzzer.go.
+	if req.NeedSignal {
+		execOpts.Flags |= ipc.FlagCollectSignal
+	}
+	if req.NeedCover {
+		execOpts.Flags |= ipc.FlagCollectCover
+	}
+	// TODO: support req.NeedHints.
+	output, info, _, err := proc.env.Exec(&execOpts, req.Prog)
+	ret := crashRe.FindStringSubmatch(string(output))
+	if ret != nil {
+		return nil, ret[1], nil
+	} else if err != nil {
+		return nil, "", err
+	}
+	return &Result{Info: info}, "", nil
+}
+
+func buildExecutor(t *testing.T, target *prog.Target) string {
+	executor, err := csource.BuildFile(target,
+		filepath.FromSlash("../../executor/executor.cc"),
+		"-fsanitize-coverage=trace-pc", "-g",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Remove(executor) })
+	return executor
+}
+
+func checkGoroutineLeaks() {
+	// Inspired by src/net/http/main_test.go.
+	buf := make([]byte, 2<<20)
+	err := ""
+	for i := 0; i < 3; i++ {
+		buf = buf[:runtime.Stack(buf, true)]
+		err = ""
+		for _, g := range strings.Split(string(buf), "\n\n") {
+			if !strings.Contains(g, "pkg/fuzzer/fuzzer.go") {
+				continue
+			}
+			err = fmt.Sprintf("%sLeaked goroutine:\n%s", err, g)
+		}
+		if err == "" {
+			return
+		}
+		// Give ctx.Done() a chance to propagate to all goroutines.
+		time.Sleep(100 * time.Millisecond)
+	}
+	if err != "" {
+		panic(err)
+	}
+}

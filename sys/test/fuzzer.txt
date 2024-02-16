@@ -1,0 +1,7 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# These definitions are used for pkg/fuzzer tests.
+# They must be in close sync with common_test.h.
+
+syz_test_fuzzer1(a int64[0:16], b int64[0:16], c int64[0:16])

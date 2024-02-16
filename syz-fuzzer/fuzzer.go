@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -12,12 +13,12 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
@@ -25,90 +26,29 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type Fuzzer struct {
-	name        string
-	outputType  OutputType
-	config      *ipc.Config
-	execOpts    *ipc.ExecOpts
-	procs       []*Proc
-	gate        *ipc.Gate
-	workQueue   *WorkQueue
-	needPoll    chan struct{}
-	choiceTable *prog.ChoiceTable
-	noMutate    map[int]bool
-	// The stats field cannot unfortunately be just an uint64 array, because it
-	// results in "unaligned 64-bit atomic operation" errors on 32-bit platforms.
-	stats             []uint64
+type FuzzerTool struct {
+	name              string
+	outputType        OutputType
+	config            *ipc.Config
+	fuzzer            *fuzzer.Fuzzer
+	procs             []*Proc
+	gate              *ipc.Gate
 	manager           *rpctype.RPCClient
 	target            *prog.Target
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
 
-	faultInjectionEnabled    bool
-	comparisonTracingEnabled bool
-	fetchRawCover            bool
-
-	corpusMu     sync.RWMutex
-	corpus       []*prog.Prog
-	corpusHashes map[hash.Sig]struct{}
-	corpusPrios  []int64
-	sumPrios     int64
-
-	signalMu     sync.RWMutex
-	corpusSignal signal.Signal // signal of inputs in corpus
-	maxSignal    signal.Signal // max signal ever observed including flakes
-	newSignal    signal.Signal // diff of maxSignal since last sync with master
-
 	checkResult *rpctype.CheckArgs
 	logMu       sync.Mutex
 
-	// Let's limit the number of concurrent NewInput requests.
-	parallelNewInputs chan struct{}
-
-	// Experimental flags.
-	resetAccState bool
-}
-
-type FuzzerSnapshot struct {
-	corpus      []*prog.Prog
-	corpusPrios []int64
-	sumPrios    int64
-}
-
-type Stat int
-
-const (
-	StatGenerate Stat = iota
-	StatFuzz
-	StatCandidate
-	StatTriage
-	StatMinimize
-	StatSmash
-	StatHint
-	StatSeed
-	StatCollide
-	StatBufferTooSmall
-	StatCount
-)
-
-var statNames = [StatCount]string{
-	StatGenerate:       "exec gen",
-	StatFuzz:           "exec fuzz",
-	StatCandidate:      "exec candidate",
-	StatTriage:         "exec triage",
-	StatMinimize:       "exec minimize",
-	StatSmash:          "exec smash",
-	StatHint:           "exec hints",
-	StatSeed:           "exec seeds",
-	StatCollide:        "exec collide",
-	StatBufferTooSmall: "buffer too small",
+	bufferTooSmall uint64
+	resetAccState  bool
 }
 
 type OutputType int
@@ -157,7 +97,8 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 // It coincides with prog.MaxPids.
 const gateSize = prog.MaxPids
 
-// nolint: funlen
+// TODO: split into smaller methods.
+// nolint: funlen, gocyclo
 func main() {
 	debug.SetGCPercent(50)
 
@@ -283,60 +224,74 @@ func main() {
 		runTest(target, manager, *flagName, config.Executor)
 		return
 	}
-
-	needPoll := make(chan struct{}, 1)
-	needPoll <- struct{}{}
-	fuzzer := &Fuzzer{
-		name:                     *flagName,
-		outputType:               outputType,
-		config:                   config,
-		execOpts:                 execOpts,
-		workQueue:                newWorkQueue(*flagProcs, needPoll),
-		needPoll:                 needPoll,
-		manager:                  manager,
-		target:                   target,
-		timeouts:                 timeouts,
-		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
-		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
-		corpusHashes:             make(map[hash.Sig]struct{}),
-		checkResult:              r.CheckResult,
-		fetchRawCover:            *flagRawCover,
-		noMutate:                 r.NoMutateCalls,
-		stats:                    make([]uint64, StatCount),
-		// Queue no more than ~3 new inputs / proc.
-		parallelNewInputs: make(chan struct{}, int64(3**flagProcs)),
-		resetAccState:     *flagResetAccState,
-	}
-	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
-	fuzzer.gate = ipc.NewGate(gateSize, gateCallback)
-
-	for needCandidates, more := true, true; more; needCandidates = false {
-		more = fuzzer.poll(needCandidates, nil)
-		// This loop lead to "no output" in qemu emulation, tell manager we are not dead.
-		log.Logf(0, "fetching corpus: %v, signal %v/%v (executing program)",
-			len(fuzzer.corpus), len(fuzzer.corpusSignal), len(fuzzer.maxSignal))
-	}
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	calls := make(map[*prog.Syscall]bool)
 	for _, id := range r.CheckResult.EnabledCalls[sandbox] {
 		calls[target.Syscalls[id]] = true
 	}
-	fuzzer.choiceTable = target.BuildChoiceTable(fuzzer.corpus, calls)
+	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+		Coverage:       config.Flags&ipc.FlagSignal > 0,
+		FaultInjection: r.CheckResult.Features[host.FeatureFault].Enabled,
+		Comparisons:    r.CheckResult.Features[host.FeatureComparisons].Enabled,
+		Collide:        execOpts.Flags&ipc.FlagThreaded > 0,
+		EnabledCalls:   calls,
+		NoMutateCalls:  r.NoMutateCalls,
+		LeakChecking:   r.CheckResult.Features[host.FeatureLeak].Enabled,
+		FetchRawCover:  *flagRawCover,
+		MinCandidates:  uint(*flagProcs * 2),
+		NewInputs:      make(chan rpctype.Input),
+	}, rnd, target)
 
+	fuzzerTool := &FuzzerTool{
+		fuzzer:        fuzzerObj,
+		name:          *flagName,
+		outputType:    outputType,
+		manager:       manager,
+		target:        target,
+		timeouts:      timeouts,
+		config:        config,
+		checkResult:   r.CheckResult,
+		resetAccState: *flagResetAccState,
+	}
+	fuzzerObj.Config.Logf = func(level int, msg string, args ...interface{}) {
+		// Log 0 messages are most important: send them directly to syz-manager.
+		if level == 0 {
+			fuzzerTool.Logf(level, msg, args...)
+		}
+		// Dump log level 0 and 1 messages into syz-fuzzer output.
+		if level <= 1 {
+			fuzzerTool.logMu.Lock()
+			defer fuzzerTool.logMu.Unlock()
+			log.Logf(0, "fuzzer: "+msg, args...)
+		}
+	}
+	fuzzerTool.gate = ipc.NewGate(gateSize,
+		fuzzerTool.useBugFrames(r, *flagProcs))
+	for needCandidates, more := true, true; more; needCandidates = false {
+		more = fuzzerTool.poll(needCandidates, nil)
+		// This loop lead to "no output" in qemu emulation, tell manager we are not dead.
+		stat := fuzzerObj.Corpus.Stat()
+		log.Logf(0, "fetching corpus: %v, signal %v/%v (executing program)",
+			stat.Progs, stat.Signal, stat.MaxSignal)
+	}
 	if r.CoverFilterBitmap != nil {
-		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
+		execOpts.Flags |= ipc.FlagEnableCoverageFilter
 	}
 
 	log.Logf(0, "starting %v fuzzer processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		proc, err := newProc(fuzzer, pid)
+		proc, err := newProc(fuzzerTool, execOpts, pid)
 		if err != nil {
 			log.SyzFatalf("failed to create proc: %v", err)
 		}
-		fuzzer.procs = append(fuzzer.procs, proc)
+		fuzzerTool.procs = append(fuzzerTool.procs, proc)
 		go proc.loop()
 	}
-
-	fuzzer.pollLoop()
+	// Start send input workers.
+	for i := 0; i < *flagProcs*2; i++ {
+		go fuzzerTool.sendInputsWorker()
+	}
+	fuzzerTool.pollLoop()
 }
 
 func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
@@ -352,33 +307,33 @@ func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
 }
 
 // Returns gateCallback for leak checking if enabled.
-func (fuzzer *Fuzzer) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() {
+func (tool *FuzzerTool) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() {
 	var gateCallback func()
 
 	if r.CheckResult.Features[host.FeatureLeak].Enabled {
-		gateCallback = func() { fuzzer.gateCallback(r.MemoryLeakFrames) }
+		gateCallback = func() { tool.gateCallback(r.MemoryLeakFrames) }
 	}
 
 	if r.CheckResult.Features[host.FeatureKCSAN].Enabled && len(r.DataRaceFrames) != 0 {
-		fuzzer.filterDataRaceFrames(r.DataRaceFrames)
+		tool.filterDataRaceFrames(r.DataRaceFrames)
 	}
 
 	return gateCallback
 }
 
-func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
+func (tool *FuzzerTool) gateCallback(leakFrames []string) {
 	// Leak checking is very slow so we don't do it while triaging the corpus
 	// (otherwise it takes infinity). When we have presumably triaged the corpus
 	// (triagedCandidates == 1), we run leak checking bug ignore the result
 	// to flush any previous leaks. After that (triagedCandidates == 2)
 	// we do actual leak checking and report leaks.
-	triagedCandidates := atomic.LoadUint32(&fuzzer.triagedCandidates)
+	triagedCandidates := atomic.LoadUint32(&tool.triagedCandidates)
 	if triagedCandidates == 0 {
 		return
 	}
 	args := append([]string{"leak"}, leakFrames...)
-	timeout := fuzzer.timeouts.NoOutput * 9 / 10
-	output, err := osutil.RunCmd(timeout, "", fuzzer.config.Executor, args...)
+	timeout := tool.timeouts.NoOutput * 9 / 10
+	output, err := osutil.RunCmd(timeout, "", tool.config.Executor, args...)
 	if err != nil && triagedCandidates == 2 {
 		// If we exit right away, dying executors will dump lots of garbage to console.
 		os.Stdout.Write(output)
@@ -387,261 +342,165 @@ func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
 		os.Exit(1)
 	}
 	if triagedCandidates == 1 {
-		atomic.StoreUint32(&fuzzer.triagedCandidates, 2)
+		atomic.StoreUint32(&tool.triagedCandidates, 2)
 	}
 }
 
-func (fuzzer *Fuzzer) filterDataRaceFrames(frames []string) {
+func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
 	args := append([]string{"setup_kcsan_filterlist"}, frames...)
-	timeout := time.Minute * fuzzer.timeouts.Scale
-	output, err := osutil.RunCmd(timeout, "", fuzzer.config.Executor, args...)
+	timeout := time.Minute * tool.timeouts.Scale
+	output, err := osutil.RunCmd(timeout, "", tool.config.Executor, args...)
 	if err != nil {
 		log.SyzFatalf("failed to set KCSAN filterlist: %v", err)
 	}
 	log.Logf(0, "%s", output)
 }
 
-func (fuzzer *Fuzzer) pollLoop() {
+func (tool *FuzzerTool) pollLoop() {
 	var execTotal uint64
 	var lastPoll time.Time
 	var lastPrint time.Time
-	ticker := time.NewTicker(3 * time.Second * fuzzer.timeouts.Scale).C
+	ticker := time.NewTicker(3 * time.Second * tool.timeouts.Scale).C
 	for {
-		poll := false
+		needCandidates := false
 		select {
 		case <-ticker:
-		case <-fuzzer.needPoll:
-			poll = true
+		case <-tool.fuzzer.NeedCandidates:
+			needCandidates = true
 		}
-		if fuzzer.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second*fuzzer.timeouts.Scale {
+		if tool.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second*tool.timeouts.Scale {
 			// Keep-alive for manager.
 			log.Logf(0, "alive, executed %v", execTotal)
 			lastPrint = time.Now()
 		}
-		if poll || time.Since(lastPoll) > 10*time.Second*fuzzer.timeouts.Scale {
-			needCandidates := fuzzer.workQueue.wantCandidates()
-			if poll && !needCandidates {
-				continue
-			}
-			stats := make(map[string]uint64)
-			for _, proc := range fuzzer.procs {
-				stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
-				stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
-			}
-			for stat := Stat(0); stat < StatCount; stat++ {
-				v := atomic.SwapUint64(&fuzzer.stats[stat], 0)
-				stats[statNames[stat]] = v
-				execTotal += v
-			}
-			if !fuzzer.poll(needCandidates, stats) {
+		needCandidates = tool.fuzzer.NeedCandidatesNow()
+		if needCandidates || time.Since(lastPoll) > 10*time.Second*tool.timeouts.Scale {
+			more := tool.poll(needCandidates, tool.grabStats())
+			if !more {
 				lastPoll = time.Now()
 			}
 		}
 	}
 }
 
-func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
+func (tool *FuzzerTool) poll(needCandidates bool, stats map[string]uint64) bool {
+	fuzzer := tool.fuzzer
 	a := &rpctype.PollArgs{
-		Name:           fuzzer.name,
+		Name:           tool.name,
 		NeedCandidates: needCandidates,
-		MaxSignal:      fuzzer.grabNewSignal().Serialize(),
+		MaxSignal:      fuzzer.Corpus.GrabNewSignal().Serialize(),
 		Stats:          stats,
 	}
 	r := &rpctype.PollRes{}
-	if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
+	if err := tool.manager.Call("Manager.Poll", a, r); err != nil {
 		log.SyzFatalf("Manager.Poll call failed: %v", err)
 	}
 	maxSignal := r.MaxSignal.Deserialize()
 	log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
 		len(r.Candidates), len(r.NewInputs), maxSignal.Len())
-	fuzzer.addMaxSignal(maxSignal)
+	fuzzer.Corpus.AddMaxSignal(maxSignal)
 	for _, inp := range r.NewInputs {
-		fuzzer.addInputFromAnotherFuzzer(inp)
+		tool.inputFromOtherFuzzer(inp)
 	}
-	for _, candidate := range r.Candidates {
-		fuzzer.addCandidateInput(candidate)
-	}
-	if needCandidates && len(r.Candidates) == 0 && atomic.LoadUint32(&fuzzer.triagedCandidates) == 0 {
-		atomic.StoreUint32(&fuzzer.triagedCandidates, 1)
+	tool.addCandidates(r.Candidates)
+	if needCandidates && len(r.Candidates) == 0 && atomic.LoadUint32(&tool.triagedCandidates) == 0 {
+		atomic.StoreUint32(&tool.triagedCandidates, 1)
 	}
 	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
 }
 
-func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.Input) {
-	fuzzer.parallelNewInputs <- struct{}{}
-	go func() {
-		defer func() { <-fuzzer.parallelNewInputs }()
+func (tool *FuzzerTool) sendInputsWorker() {
+	for inp := range tool.fuzzer.Config.NewInputs {
 		a := &rpctype.NewInputArgs{
-			Name:  fuzzer.name,
+			Name:  tool.name,
 			Input: inp,
 		}
-		if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
+		if err := tool.manager.Call("Manager.NewInput", a, nil); err != nil {
 			log.SyzFatalf("Manager.NewInput call failed: %v", err)
 		}
-	}()
+	}
 }
 
-func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.Input) {
-	p := fuzzer.deserializeInput(inp.Prog)
+func (tool *FuzzerTool) grabStats() map[string]uint64 {
+	stats := tool.fuzzer.GrabStats()
+	for _, proc := range tool.procs {
+		stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
+		stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
+	}
+	stats["buffer too small"] = atomic.SwapUint64(&tool.bufferTooSmall, 0)
+	return stats
+}
+
+func (tool *FuzzerTool) addCandidates(candidates []rpctype.Candidate) {
+	var inputs []fuzzer.Candidate
+	for _, candidate := range candidates {
+		p := tool.deserializeInput(candidate.Prog)
+		if p == nil {
+			continue
+		}
+		inputs = append(inputs, fuzzer.Candidate{
+			Prog:      p,
+			Smashed:   candidate.Smashed,
+			Minimized: candidate.Minimized,
+		})
+	}
+	if len(inputs) > 0 {
+		tool.fuzzer.AddCandidates(inputs)
+	}
+}
+
+func (tool *FuzzerTool) inputFromOtherFuzzer(inp rpctype.Input) {
+	p := tool.deserializeInput(inp.Prog)
 	if p == nil {
 		return
 	}
-	sig := hash.Hash(inp.Prog)
-	sign := inp.Signal.Deserialize()
-	fuzzer.addInputToCorpus(p, sign, sig)
+	tool.fuzzer.Corpus.Save(p,
+		inp.Signal.Deserialize(),
+		hash.Hash(inp.Prog))
 }
 
-func (fuzzer *Fuzzer) addCandidateInput(candidate rpctype.Candidate) {
-	p := fuzzer.deserializeInput(candidate.Prog)
-	if p == nil {
-		return
-	}
-	flags := ProgCandidate
-	if candidate.Minimized {
-		flags |= ProgMinimized
-	}
-	if candidate.Smashed {
-		flags |= ProgSmashed
-	}
-	fuzzer.workQueue.enqueue(&WorkCandidate{
-		p:     p,
-		flags: flags,
-	})
-}
-
-func (fuzzer *Fuzzer) deserializeInput(inp []byte) *prog.Prog {
-	p, err := fuzzer.target.Deserialize(inp, prog.NonStrict)
+func (tool *FuzzerTool) deserializeInput(inp []byte) *prog.Prog {
+	p, err := tool.target.Deserialize(inp, prog.NonStrict)
 	if err != nil {
 		log.SyzFatalf("failed to deserialize prog: %v\n%s", err, inp)
 	}
-	// We build choice table only after we received the initial corpus,
-	// so we don't check the initial corpus here, we check it later in BuildChoiceTable.
-	if fuzzer.choiceTable != nil {
-		fuzzer.checkDisabledCalls(p)
-	}
+	tool.checkDisabledCalls(p)
 	if len(p.Calls) > prog.MaxCalls {
 		return nil
 	}
 	return p
 }
 
-func (fuzzer *Fuzzer) checkDisabledCalls(p *prog.Prog) {
+func (tool *FuzzerTool) checkDisabledCalls(p *prog.Prog) {
+	ct := tool.fuzzer.ChoiceTable()
 	for _, call := range p.Calls {
-		if !fuzzer.choiceTable.Enabled(call.Meta.ID) {
+		if !ct.Enabled(call.Meta.ID) {
 			fmt.Printf("executing disabled syscall %v [%v]\n", call.Meta.Name, call.Meta.ID)
-			sandbox := ipc.FlagsToSandbox(fuzzer.config.Flags)
+			sandbox := ipc.FlagsToSandbox(tool.config.Flags)
 			fmt.Printf("check result for sandbox=%v:\n", sandbox)
-			for _, id := range fuzzer.checkResult.EnabledCalls[sandbox] {
-				meta := fuzzer.target.Syscalls[id]
+			for _, id := range tool.checkResult.EnabledCalls[sandbox] {
+				meta := tool.target.Syscalls[id]
 				fmt.Printf("  %v [%v]\n", meta.Name, meta.ID)
 			}
 			fmt.Printf("choice table:\n")
-			for i, meta := range fuzzer.target.Syscalls {
-				fmt.Printf("  #%v: %v [%v]: enabled=%v\n", i, meta.Name, meta.ID, fuzzer.choiceTable.Enabled(meta.ID))
+			for i, meta := range tool.target.Syscalls {
+				fmt.Printf("  #%v: %v [%v]: enabled=%v\n", i, meta.Name, meta.ID, ct.Enabled(meta.ID))
 			}
 			panic("disabled syscall")
 		}
 	}
 }
 
-func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
-	randVal := r.Int63n(fuzzer.sumPrios + 1)
-	idx := sort.Search(len(fuzzer.corpusPrios), func(i int) bool {
-		return fuzzer.corpusPrios[i] >= randVal
-	})
-	return fuzzer.corpus[idx]
-}
-
-func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig) {
-	fuzzer.corpusMu.Lock()
-	if _, ok := fuzzer.corpusHashes[sig]; !ok {
-		fuzzer.corpus = append(fuzzer.corpus, p)
-		fuzzer.corpusHashes[sig] = struct{}{}
-		prio := int64(len(sign))
-		if sign.Empty() {
-			prio = 1
-		}
-		fuzzer.sumPrios += prio
-		fuzzer.corpusPrios = append(fuzzer.corpusPrios, fuzzer.sumPrios)
-	}
-	fuzzer.corpusMu.Unlock()
-
-	if !sign.Empty() {
-		fuzzer.signalMu.Lock()
-		fuzzer.corpusSignal.Merge(sign)
-		fuzzer.maxSignal.Merge(sign)
-		fuzzer.signalMu.Unlock()
-	}
-}
-
-func (fuzzer *Fuzzer) snapshot() FuzzerSnapshot {
-	fuzzer.corpusMu.RLock()
-	defer fuzzer.corpusMu.RUnlock()
-	return FuzzerSnapshot{fuzzer.corpus, fuzzer.corpusPrios, fuzzer.sumPrios}
-}
-
-func (fuzzer *Fuzzer) addMaxSignal(sign signal.Signal) {
-	if sign.Len() == 0 {
-		return
-	}
-	fuzzer.signalMu.Lock()
-	defer fuzzer.signalMu.Unlock()
-	fuzzer.maxSignal.Merge(sign)
-}
-
-func (fuzzer *Fuzzer) grabNewSignal() signal.Signal {
-	fuzzer.signalMu.Lock()
-	defer fuzzer.signalMu.Unlock()
-	sign := fuzzer.newSignal
-	if sign.Empty() {
-		return nil
-	}
-	fuzzer.newSignal = nil
-	return sign
-}
-
-func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
-	fuzzer.signalMu.RLock()
-	defer fuzzer.signalMu.RUnlock()
-	return fuzzer.corpusSignal.Diff(sign)
-}
-
-func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool) {
-	fuzzer.signalMu.RLock()
-	defer fuzzer.signalMu.RUnlock()
-	for i, inf := range info.Calls {
-		if fuzzer.checkNewCallSignal(p, &inf, i) {
-			calls = append(calls, i)
-		}
-	}
-	extra = fuzzer.checkNewCallSignal(p, &info.Extra, -1)
-	return
-}
-
-func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call int) bool {
-	diff := fuzzer.maxSignal.DiffRaw(info.Signal, signalPrio(p, info, call))
-	if diff.Empty() {
-		return false
-	}
-	fuzzer.signalMu.RUnlock()
-	fuzzer.signalMu.Lock()
-	fuzzer.maxSignal.Merge(diff)
-	fuzzer.newSignal.Merge(diff)
-	fuzzer.signalMu.Unlock()
-	fuzzer.signalMu.RLock()
-	return true
-}
-
 // nolint: unused
 // It's only needed for debugging.
-func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
+func (tool *FuzzerTool) Logf(level int, msg string, args ...interface{}) {
 	go func() {
 		a := &rpctype.LogMessageReq{
 			Level:   level,
-			Name:    fuzzer.name,
+			Name:    tool.name,
 			Message: fmt.Sprintf(msg, args...),
 		}
-		if err := fuzzer.manager.Call("Manager.LogMessage", a, nil); err != nil {
+		if err := tool.manager.Call("Manager.LogMessage", a, nil); err != nil {
 			log.SyzFatalf("Manager.LogMessage call failed: %v", err)
 		}
 	}()
@@ -655,19 +514,6 @@ func setupPprofHandler(port int) {
 			log.SyzFatalf("failed to setup a server: %v", err)
 		}
 	}()
-}
-
-func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
-	if call == -1 {
-		return 0
-	}
-	if info.Errno == 0 {
-		prio |= 1 << 1
-	}
-	if !p.Target.CallContainsAny(p.Calls[call]) {
-		prio |= 1 << 0
-	}
-	return
 }
 
 func parseOutputType(str string) OutputType {
