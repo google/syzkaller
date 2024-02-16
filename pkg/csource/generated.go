@@ -8173,7 +8173,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	}
 
 	struct kvm_vcpu_init init;
-	ioctl(cpufd, KVM_ARM_PREFERRED_TARGET, &init);
+	ioctl(vmfd, KVM_ARM_PREFERRED_TARGET, &init);
 	init.features[0] = features;
 	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
 
