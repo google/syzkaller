@@ -133,3 +133,23 @@ static int do_sandbox_none(void)
 	return 0;
 }
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_test_fuzzer1
+
+static void fake_crash(const char* name)
+{
+	failmsg("crash", "{{CRASH: %s}}", name);
+	doexit(1);
+}
+
+static long syz_test_fuzzer1(volatile long a, volatile long b, volatile long c)
+{
+	// We probably want something more interesting here.
+	if (a == 1 && b == 1 && c == 1)
+		fake_crash("first bug");
+	if (a == 1 && b == 2 && c == 3)
+		fake_crash("second bug");
+	return 0;
+}
+
+#endif
