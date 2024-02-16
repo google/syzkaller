@@ -17,14 +17,15 @@ import (
 )
 
 func discoverModules(target *targets.Target, objDir string, moduleObj []string,
-	hostModules []host.KernelModule, getModuleOffset func(string) uint64) (
+	hostModules []host.KernelModule, isKernel61OrEarlier bool, getModuleOffset func(bool, bool, string) uint64) (
 	[]*Module, error) {
 	modules := []*Module{
 		// A dummy module representing the kernel itself.
 		{Path: filepath.Join(objDir, target.KernelObject)},
 	}
 	if target.OS == targets.Linux {
-		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...),
+		isArm64 := target.Arch == "arm64"
+		modules1, err := discoverModulesLinux(isArm64, isKernel61OrEarlier, append([]string{objDir}, moduleObj...),
 			hostModules, getModuleOffset)
 		if err != nil {
 			return nil, err
@@ -36,8 +37,8 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []host.KernelModule,
-	getModuleOffset func(string) uint64) ([]*Module, error) {
+func discoverModulesLinux(isArm64, isKernel61OrEarlier bool, dirs []string, hostModules []host.KernelModule,
+	getModuleOffset func(bool, bool, string) uint64) ([]*Module, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
@@ -50,7 +51,7 @@ func discoverModulesLinux(dirs []string, hostModules []host.KernelModule,
 			continue
 		}
 		log.Logf(0, "module %v -> %v", mod.Name, path)
-		offset := getModuleOffset(path)
+		offset := getModuleOffset(isArm64, isKernel61OrEarlier, path)
 		modules = append(modules, &Module{
 			Name: mod.Name,
 			Addr: mod.Addr + offset,

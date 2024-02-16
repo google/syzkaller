@@ -51,6 +51,8 @@ type Config struct {
 	KernelBuildSrc string `json:"kernel_build_src,omitempty"`
 	// Is the kernel built separately from the modules? (Specific to Android builds)
 	AndroidSplitBuild bool `json:"android_split_build"`
+	// Starting from 6.2, Linux kernels calculate module offsets in a slightly different way.
+	IsKernel61OrEarlier bool `json:"is_kernel_6_1_or_earlier"`
 	// Kernel subsystem with paths to each subsystem
 	//	"kernel_subsystem": [
 	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},

@@ -16,6 +16,7 @@ import (
 )
 
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters, moduleObj []string,
+	isKernel61OrEarlier bool,
 	hostModules []host.KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
@@ -29,6 +30,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuild
 		readTextData:          elfReadTextData,
 		readModuleCoverPoints: elfReadModuleCoverPoints,
 		readTextRanges:        elfReadTextRanges,
+		isKernel61OrEarlier:   isKernel61OrEarlier,
 		getModuleOffset:       elfGetModuleOffset,
 		getCompilerVersion:    elfGetCompilerVersion,
 	})
@@ -203,16 +205,70 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 	return pcs, nil
 }
 
+// sizeof(struct plt_record) in the ARM64 Linux kernel.
+const SizeOfStructPltRecord = 12
+
+// alignof(struct plt_record) in the ARM64 Linux kernel.
+const AlignOfStructPltRecord = 4
+
+// L1_CACHE_BYTES in the ARM64 Linux kernel.
+const L1CacheBytes = 32
+
+// NR_FTRACE_PLTS is 2 for Linux kernels <= 6.1, 1 for >= 6.2.
+var NrFtracePlts = map[bool]uint64{
+	true:  2,
+	false: 1,
+}
+
 // Calculate the offset of the module .text section in the kernel memory.
-// /proc/modules only contains the base address, which corresponds to the
-// beginning of the first code section, but that section does not have to
-// be .text (e.g. on Android it may be .plt).
+// /proc/modules only contains the base address, which corresponds to the beginning of the
+// first code section, but that section does not have to be .text (e.g. on Android it may
+// be `.plt`).
 // The offset is calculated by summing up the aligned sizes of sections
 // that:
-//   - precede .text;
-//   - are not .init/.exit sections;
+//   - precede `.text`;
+//   - are not `.init`/`.exit` sections;
 //   - have the SHF_ALLOC and SHF_EXECINSTR flags.
-func elfGetModuleOffset(path string) uint64 {
+//
+// On ARM64 there is a catch: a function called module_frob_arch_sections()
+// overrides the size and alignment of `.plt` and `.text.ftrace_trampoline`
+// sections as follows:
+//   - size of `.plt` becomes equal to `sizeof(struct plt_record) * (1 + count_plts())`,
+//     where count_plts() scans all relocations and counts those that require a PLT entry
+//     (that is a rare case, and we currently ignore them);
+//   - alignment of `.plt` becomes equal to L1_CACHE_BYTES;
+//   - size of `.text.ftrace_trampoline` becomes `sizeof(struct plt_record) * NR_FTRACE_PLTS`,
+//     where NR_FTRACE_PLTS varies depending on the kernel version;
+//   - alignment of `.text.ftrace_trampoline` becomes `alignof(struct plt_record)`.
+func elfSimulateModuleLoad(text *elf.Section, sections []*elf.Section, isArm64, isKernel61OrEarlier bool) uint64 {
+	off := uint64(0)
+	const textFlagsMask = elf.SHF_ALLOC | elf.SHF_EXECINSTR
+	for _, s := range sections {
+		if (s.Flags&textFlagsMask == textFlagsMask) && !strings.HasPrefix(s.SectionHeader.Name, ".init") &&
+			!strings.HasPrefix(s.SectionHeader.Name, ".exit") {
+			size := s.SectionHeader.Size
+			addralign := s.SectionHeader.Addralign
+			if isArm64 {
+				if s.SectionHeader.Name == ".plt" {
+					addralign = L1CacheBytes
+					size = SizeOfStructPltRecord
+				}
+				if s.SectionHeader.Name == ".text.ftrace_trampoline" {
+					addralign = AlignOfStructPltRecord
+					size = NrFtracePlts[isKernel61OrEarlier] * SizeOfStructPltRecord
+				}
+			}
+			off = alignUp(off, addralign)
+			if s.SectionHeader.Name == ".text" {
+				return off
+			}
+			off += size
+		}
+	}
+	return 0
+}
+
+func elfGetModuleOffset(isArm64, isKernel61OrEarlier bool, path string) uint64 {
 	file, err := elf.Open(path)
 	if err != nil {
 		return 0
@@ -222,19 +278,8 @@ func elfGetModuleOffset(path string) uint64 {
 	if ts == nil {
 		return 0
 	}
-	off := uint64(0)
-	const textFlagsMask = elf.SHF_ALLOC | elf.SHF_EXECINSTR
-	for _, s := range file.Sections {
-		if (s.Flags&textFlagsMask == textFlagsMask) && !strings.HasPrefix(s.SectionHeader.Name, ".init") &&
-			!strings.HasPrefix(s.SectionHeader.Name, ".exit") {
-			off = alignUp(off, s.SectionHeader.Addralign)
-			if s == ts {
-				return off
-			}
-			off += s.SectionHeader.Size
-		}
-	}
-	return 0
+	res := elfSimulateModuleLoad(ts, file.Sections, isArm64, isKernel61OrEarlier)
+	return res
 }
 
 func elfGetCompilerVersion(path string) string {

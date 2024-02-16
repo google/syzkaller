@@ -65,7 +65,7 @@ type Range struct {
 
 const LineEnd = 1 << 30
 
-func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuild bool,
+func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuild, isKernel61OrEarlier bool,
 	moduleObj []string, modules []host.KernelModule) (*Impl, error) {
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
@@ -83,5 +83,5 @@ func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuil
 		// details.
 		delimiters = []string{"/aosp/", "/private/"}
 	}
-	return makeELF(target, objDir, srcDir, buildDir, delimiters, moduleObj, modules)
+	return makeELF(target, objDir, srcDir, buildDir, delimiters, moduleObj, isKernel61OrEarlier, modules)
 }
