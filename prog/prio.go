@@ -196,16 +196,16 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 		}
 	}
 	noGenerateCalls := make(map[int]bool)
+	enabledCalls := make(map[*Syscall]bool)
 	for call := range enabled {
-		if call.Attrs.Disabled {
-			delete(enabled, call)
-		} else if call.Attrs.NoGenerate {
+		if call.Attrs.NoGenerate {
 			noGenerateCalls[call.ID] = true
-			delete(enabled, call)
+		} else if !call.Attrs.Disabled {
+			enabledCalls[call] = true
 		}
 	}
 	var generatableCalls []*Syscall
-	for c := range enabled {
+	for c := range enabledCalls {
 		generatableCalls = append(generatableCalls, c)
 	}
 	if len(generatableCalls) == 0 {
@@ -216,8 +216,11 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	})
 	for _, p := range corpus {
 		for _, call := range p.Calls {
-			if !enabled[call.Meta] && !noGenerateCalls[call.Meta.ID] {
+			if !enabledCalls[call.Meta] && !noGenerateCalls[call.Meta.ID] {
 				fmt.Printf("corpus contains disabled syscall %v\n", call.Meta.Name)
+				for call := range enabled {
+					fmt.Printf("%s: enabled\n", call.Name)
+				}
 				panic("disabled syscall")
 			}
 		}
@@ -228,13 +231,13 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	// This helps in quick binary search with biases when generating programs.
 	// This only applies for system calls that are enabled for the target.
 	for i := range run {
-		if !enabled[target.Syscalls[i]] {
+		if !enabledCalls[target.Syscalls[i]] {
 			continue
 		}
 		run[i] = make([]int32, len(target.Syscalls))
 		var sum int32
 		for j := range run[i] {
-			if enabled[target.Syscalls[j]] {
+			if enabledCalls[target.Syscalls[j]] {
 				sum += prios[i][j]
 			}
 			run[i][j] = sum
