@@ -493,13 +493,17 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 	if int(size)*4 > len(out) {
 		return nil, false
 	}
+	// "Convert" the data to uint32.
 	var res []uint32
 	hdr := (*reflect.SliceHeader)((unsafe.Pointer(&res)))
 	hdr.Data = uintptr(unsafe.Pointer(&out[0]))
 	hdr.Len = int(size)
 	hdr.Cap = int(size)
 	*outp = out[size*4:]
-	return res, true
+	// Now duplicate the resulting array.
+	dupRes := make([]uint32, size)
+	copy(dupRes, res)
+	return dupRes, true
 }
 
 type command struct {
