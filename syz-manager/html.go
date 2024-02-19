@@ -300,6 +300,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			updateID, err := strconv.Atoi(r.FormValue("update_id"))
 			if err != nil || updateID < 0 || updateID >= len(inp.Updates) {
 				http.Error(w, "bad call_id", http.StatusBadRequest)
+				return
 			}
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
