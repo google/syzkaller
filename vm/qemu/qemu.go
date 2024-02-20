@@ -376,7 +376,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		sshuser:    sshuser,
 		diagnose:   make(chan bool, 1),
 	}
-	if st, err := os.Stat(inst.image); err != nil && st.Size() == 0 {
+	if st, err := os.Stat(inst.image); err == nil && st.Size() == 0 {
 		// Some kernels may not need an image, however caller may still
 		// want to pass us a fake empty image because the rest of syzkaller
 		// assumes that an image is mandatory. So if the image is empty, we ignore it.
