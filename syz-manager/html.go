@@ -335,42 +335,32 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		coverFilter = mgr.coverFilter
 	}
 
-	if funcFlag == DoRawCoverFiles {
-		if err := rg.DoRawCoverFiles(w, progs, coverFilter); err != nil {
-			http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
-			return
-		}
-		runtime.GC()
-		return
-	} else if funcFlag == DoRawCover {
-		rg.DoRawCover(w, progs, coverFilter)
-		return
-	} else if funcFlag == DoFilterPCs {
-		rg.DoFilterPCs(w, progs, coverFilter)
-		return
-	}
-
-	do := rg.DoHTML
-
-	if funcFlag == DoHTMLTable {
-		do = rg.DoHTMLTable
-	} else if funcFlag == DoModuleCover {
-		do = rg.DoModuleCover
-	} else if funcFlag == DoCSV {
-		do = rg.DoCSV
-	} else if funcFlag == DoCSVFiles {
-		do = rg.DoCSVFiles
-	}
-
-	debug := r.FormValue("debug") != ""
-
 	params := cover.CoverHandlerParams{
 		Progs:       progs,
 		CoverFilter: coverFilter,
-		Debug:       debug,
+		Debug:       r.FormValue("debug") != "",
 	}
 
-	if err := do(w, params); err != nil {
+	type handlerFuncType func(w io.Writer, params cover.CoverHandlerParams) error
+	flagToFunc := map[int]struct {
+		Do          handlerFuncType
+		isPlainText bool
+	}{
+		DoHTML:          {rg.DoHTML, false},
+		DoHTMLTable:     {rg.DoHTMLTable, false},
+		DoModuleCover:   {rg.DoModuleCover, false},
+		DoCSV:           {rg.DoCSV, false},
+		DoCSVFiles:      {rg.DoCSVFiles, true},
+		DoRawCoverFiles: {rg.DoRawCoverFiles, true},
+		DoRawCover:      {rg.DoRawCover, true},
+		DoFilterPCs:     {rg.DoFilterPCs, true},
+	}
+
+	if flagToFunc[funcFlag].isPlainText {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	}
+
+	if err := flagToFunc[funcFlag].Do(w, params); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
