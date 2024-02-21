@@ -176,6 +176,9 @@ func testCreateResource(t *testing.T, target *Target, calls map[*Syscall]bool, r
 	r.inGenerateResource = true
 	ct := target.BuildChoiceTable(nil, calls)
 	for call := range calls {
+		if call.Attrs.Disabled {
+			continue
+		}
 		t.Logf("testing call %v", call.Name)
 		ForeachCallType(call, func(typ Type, ctx *TypeCtx) {
 			if res, ok := typ.(*ResourceType); ok && ctx.Dir != DirOut {
