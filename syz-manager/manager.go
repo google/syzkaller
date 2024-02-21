@@ -1036,6 +1036,12 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	return needRepro
 }
 
+func truncateReproLog(log []byte) []byte {
+	// Repro logs can get quite large and we have trouble sending large API requests (see #4495).
+	// Let's truncate the log to a 512KB prefix and 512KB suffix.
+	return report.Truncate(log, 512000, 512000)
+}
+
 func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 	reproLog := fullReproLog(stats)
 	if mgr.dash != nil {
@@ -1051,7 +1057,7 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 			Corrupted:    rep.Corrupted,
 			Suppressed:   rep.Suppressed,
 			MayBeMissing: rep.Type == crash_pkg.MemoryLeak,
-			ReproLog:     reproLog,
+			ReproLog:     truncateReproLog(reproLog),
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard (log size %d): %v",
@@ -1119,19 +1125,18 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		}
 
 		dc := &dashapi.Crash{
-			BuildID:    mgr.cfg.Tag,
-			Title:      report.Title,
-			AltTitles:  report.AltTitles,
-			Suppressed: report.Suppressed,
-			Recipients: report.Recipients.ToDash(),
-			Log:        output,
-			Flags:      crashFlags,
-			Report:     report.Report,
-			ReproOpts:  repro.Opts.Serialize(),
-			ReproSyz:   progText,
-			ReproC:     cprogText,
-			// Paused because of #4495.
-			// ReproLog:      fullReproLog(res.stats),
+			BuildID:       mgr.cfg.Tag,
+			Title:         report.Title,
+			AltTitles:     report.AltTitles,
+			Suppressed:    report.Suppressed,
+			Recipients:    report.Recipients.ToDash(),
+			Log:           output,
+			Flags:         crashFlags,
+			Report:        report.Report,
+			ReproOpts:     repro.Opts.Serialize(),
+			ReproSyz:      progText,
+			ReproC:        cprogText,
+			ReproLog:      truncateReproLog(fullReproLog(res.stats)),
 			Assets:        mgr.uploadReproAssets(repro),
 			OriginalTitle: res.originalTitle,
 		}
