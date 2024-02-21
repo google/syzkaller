@@ -13,7 +13,6 @@ import (
 	"html/template"
 	"io"
 	"math"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -185,8 +184,8 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 	return lce
 }
 
-func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, coverFilter map[uint32]uint32) error {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParams) error {
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	if err := rg.lazySymbolize(progs); err != nil {
 		return err
 	}
@@ -201,7 +200,6 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 		return fl.PC < fr.PC
 	})
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
 	fmt.Fprintf(buf, "PC,Module,Offset,Filename,Inline,StartLine,EndLine\n")
 	for _, frame := range resFrames {
@@ -213,8 +211,8 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 	return nil
 }
 
-func (rg *ReportGenerator) DoRawCover(w http.ResponseWriter, progs []Prog, coverFilter map[uint32]uint32) {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+func (rg *ReportGenerator) DoRawCover(w io.Writer, params CoverHandlerParams) error {
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	var pcs []uint64
 	if len(progs) == 1 && rg.rawCoverEnabled {
 		pcs = append([]uint64{}, progs[0].PCs...)
@@ -234,16 +232,16 @@ func (rg *ReportGenerator) DoRawCover(w http.ResponseWriter, progs []Prog, cover
 		})
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
 	for _, pc := range pcs {
 		fmt.Fprintf(buf, "0x%x\n", pc)
 	}
 	buf.Flush()
+	return nil
 }
 
-func (rg *ReportGenerator) DoFilterPCs(w http.ResponseWriter, progs []Prog, coverFilter map[uint32]uint32) {
-	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
+func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params CoverHandlerParams) error {
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	var pcs []uint64
 	uniquePCs := make(map[uint64]bool)
 	for _, prog := range progs {
@@ -252,7 +250,7 @@ func (rg *ReportGenerator) DoFilterPCs(w http.ResponseWriter, progs []Prog, cove
 				continue
 			}
 			uniquePCs[pc] = true
-			if coverFilter[uint32(pc)] != 0 {
+			if params.CoverFilter[uint32(pc)] != 0 {
 				pcs = append(pcs, pc)
 			}
 		}
@@ -261,12 +259,12 @@ func (rg *ReportGenerator) DoFilterPCs(w http.ResponseWriter, progs []Prog, cove
 		return pcs[i] < pcs[j]
 	})
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
 	for _, pc := range pcs {
 		fmt.Fprintf(buf, "0x%x\n", pc)
 	}
 	buf.Flush()
+	return nil
 }
 
 type fileStats struct {
