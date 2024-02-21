@@ -13,6 +13,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -533,11 +534,22 @@ func (mgr *Manager) modulesInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(modules)
 }
 
+var alphaNumRegExp = regexp.MustCompile(`^[a-zA-Z0-9]*$`)
+
+func isAlphanumeric(s string) bool {
+	return alphaNumRegExp.MatchString(s)
+}
+
 func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
 	crashID := r.FormValue("id")
+	if !isAlphanumeric(crashID) {
+		http.Error(w, "wrong id", http.StatusBadRequest)
+		return
+	}
+
 	desc, err := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "description"))
 	if err != nil {
 		http.Error(w, "failed to read description file", http.StatusInternalServerError)
