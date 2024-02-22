@@ -28,7 +28,7 @@ jobs:
           GITHUB_PR_COMMITS: ${{ github.event.pull_request.commits }}
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_aux
   build:
-    runs-on: k8s-env
+    runs-on: ubuntu-20.04-32core
     steps:
     - name: checkout
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -58,7 +58,7 @@ jobs:
         files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: unittests
   dashboard:
-    runs-on: k8s-env
+    runs-on: ubuntu-20.04-32core
     steps:
     - name: checkout
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -86,7 +86,7 @@ jobs:
       - name: run
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make ${{ matrix.target }}
   race:
-    runs-on: k8s-env
+    runs-on: ubuntu-20.04-32core
     steps:
     - name: checkout
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
