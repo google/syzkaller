@@ -20,10 +20,12 @@ import (
 type android struct{}
 
 type BuildParams struct {
-	DefconfigFragment string `json:"defconfig_fragment"`
-	BuildTarget       string `json:"build_target"`
-	BuildScript       string `json:"build_script"`
-	VendorBootImage   string `json:"vendor_boot_image"`
+	BuildScript      string   `json:"build_script"`
+	EnvVars          []string `json:"env_vars"`
+	Flags            []string `json:"flags"`
+	AdditionalImages []string `json:"additional_images"`
+	AutoconfPath     string   `json:"autoconf_path"`
+	ConfigPath       string   `json:"config_path"`
 }
 
 var ccCompilerRegexp = regexp.MustCompile(`#define\s+CONFIG_CC_VERSION_TEXT\s+"(.*)"`)
@@ -34,34 +36,25 @@ func parseConfig(conf []byte) (*BuildParams, error) {
 		return nil, fmt.Errorf("failed to parse build config: %w", err)
 	}
 
-	if buildCfg.DefconfigFragment == "" {
-		return nil, fmt.Errorf("defconfig fragment not specified for Android build")
-	}
-
-	if buildCfg.BuildTarget == "" {
-		return nil, fmt.Errorf("build target not specified for Android build")
-	}
-
 	if buildCfg.BuildScript == "" {
 		return nil, fmt.Errorf("build script not specified for Android build")
 	}
 
-	if buildCfg.VendorBootImage == "" {
-		return nil, fmt.Errorf("vendor boot image not specified for Android build")
+	if buildCfg.ConfigPath == "" {
+		return nil, fmt.Errorf("kernel config path not specified for Android build")
 	}
 
 	return buildCfg, nil
 }
 
-func (a android) readCompiler(kernelDir string) (string, error) {
-	bytes, err := os.ReadFile(filepath.Join(kernelDir, "out", "mixed", "device-kernel", "private",
-		"gs-google", "include", "generated", "autoconf.h"))
+func (a android) readCompiler(path string) (string, error) {
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
 	result := ccCompilerRegexp.FindSubmatch(bytes)
 	if result == nil {
-		return "", fmt.Errorf("include/generated/autoconf.h does not contain build information")
+		return "", fmt.Errorf("%s does not contain build information", path)
 	}
 	return string(result[1]), nil
 }
@@ -81,10 +74,9 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 
 	// Build kernel.
-	cmd := osutil.Command(fmt.Sprintf("./%v", buildCfg.BuildScript))
+	cmd := osutil.Command(fmt.Sprintf("./%v", buildCfg.BuildScript), buildCfg.Flags...)
 	cmd.Dir = params.KernelDir
-	cmd.Env = append(cmd.Env, "OUT_DIR=out", "DIST_DIR=dist", fmt.Sprintf("GKI_DEFCONFIG_FRAGMENT=%v",
-		buildCfg.DefconfigFragment), fmt.Sprintf("BUILD_TARGET=%v", buildCfg.BuildTarget))
+	cmd.Env = append(cmd.Env, buildCfg.EnvVars...)
 
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return details, fmt.Errorf("failed to build kernel: %w", err)
@@ -93,17 +85,19 @@ func (a android) build(params Params) (ImageDetails, error) {
 	buildDistDir := filepath.Join(params.KernelDir, "dist")
 
 	vmlinux := filepath.Join(buildDistDir, "vmlinux")
-	config := filepath.Join(params.KernelDir, "out", "mixed", "device-kernel", "private", "gs-google", ".config")
 
-	details.CompilerID, err = a.readCompiler(params.KernelDir)
-	if err != nil {
-		return details, fmt.Errorf("failed to read compiler: %w", err)
+	if buildCfg.AutoconfPath != "" {
+		details.CompilerID, err = a.readCompiler(filepath.Join(params.KernelDir, buildCfg.AutoconfPath))
+		if err != nil {
+			return details, fmt.Errorf("failed to read compiler: %w", err)
+		}
 	}
 
 	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "obj", "vmlinux")); err != nil {
 		return details, fmt.Errorf("failed to copy vmlinux: %w", err)
 	}
-	if err := osutil.CopyFile(config, filepath.Join(params.OutputDir, "obj", "kernel.config")); err != nil {
+	if err := osutil.CopyFile(filepath.Join(params.KernelDir, buildCfg.ConfigPath),
+		filepath.Join(params.OutputDir, "obj", "kernel.config")); err != nil {
 		return details, fmt.Errorf("failed to copy kernel config: %w", err)
 	}
 
@@ -117,8 +111,8 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("failed copying module files: %w", err)
 	}
 
-	if err := a.embedImages(imageFile, buildDistDir, "boot.img", "dtbo.img", buildCfg.VendorBootImage,
-		"vendor_dlkm.img"); err != nil {
+	images := append(buildCfg.AdditionalImages, "boot.img")
+	if err := a.embedImages(imageFile, buildDistDir, images...); err != nil {
 		return details, fmt.Errorf("failed to embed images: %w", err)
 	}
 
