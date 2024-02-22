@@ -357,7 +357,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		DoHTML:          {rg.DoHTML, false},
 		DoHTMLTable:     {rg.DoHTMLTable, false},
 		DoModuleCover:   {rg.DoModuleCover, false},
-		DoCSV:           {rg.DoCSV, false},
+		DoCSV:           {rg.DoCSV, true},
 		DoCSVFiles:      {rg.DoCSVFiles, true},
 		DoRawCoverFiles: {rg.DoRawCoverFiles, true},
 		DoRawCover:      {rg.DoRawCover, true},
