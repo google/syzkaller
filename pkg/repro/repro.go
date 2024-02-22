@@ -357,8 +357,18 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 		return baseDuration + time.Duration(entries/4)*time.Second
 	}
 
+	// First check if replaying the log may crash the kernel at all.
+	ret, err := ctx.testProgs(entries, duration(len(entries)), opts)
+	if !ret {
+		ctx.reproLogf(3, "replaying the whole log did not cause a kernel crash")
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	// Bisect the log to find multiple guilty programs.
-	entries, err := ctx.bisectProgs(entries, func(progs []*prog.LogEntry) (bool, error) {
+	entries, err = ctx.bisectProgs(entries, func(progs []*prog.LogEntry) (bool, error) {
 		return ctx.testProgs(progs, duration(len(progs)), opts)
 	})
 	if err != nil {
