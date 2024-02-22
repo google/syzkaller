@@ -12,6 +12,10 @@ permissions:
 jobs:
   aux:
     runs-on: ubuntu-latest
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
     steps:
       # Checks out syzkaller repo at the path.
       - name: checkout
@@ -26,94 +30,123 @@ jobs:
           GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_PR_COMMITS: ${{ github.event.pull_request.commits }}
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_aux
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh make presubmit_aux
+
   build:
-    runs-on: ubuntu-20.04-32core
+    runs-on: arc-runner-set
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
     steps:
     - name: checkout
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
 
-    # https://github.com/golang/go/issues/23565 asks to cache -coverprofile results since 2018.
     - id: get-date
       run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
       shell: bash
-    - name: go build cache
+    - name: test build cache
       uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
-        path: .cache
-        key: ${{ runner.os }}-go-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
-        restore-keys: ${{ runner.os }}-go-build- #read the freshest available after miss
+        path: ~/.cache
+        key: ${{ runner.os }}-go-test-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
+        restore-keys: ${{ runner.os }}-go-test-build- #read the freshest available after miss
 
-    - name: pull syz-env
-      run: docker pull gcr.io/syzkaller/env:latest
     - name: run
-      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_build
-    # Upload coverage report to codecov.io. For reference see:
-    # https://github.com/codecov/codecov-action/blob/master/README.md
+      run: |
+        cd gopath/src/github.com/google/syzkaller
+        .github/workflows/run.sh make presubmit_build
     - name: codecov
       uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
       with:
         files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: unittests
+
   dashboard:
-    runs-on: ubuntu-20.04-32core
+    runs-on: arc-runner-set
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
     steps:
-    - name: checkout
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      with:
-        path: gopath/src/github.com/google/syzkaller
-    - name: pull syz-env
-      run: docker pull gcr.io/syzkaller/env:latest
-    - name: run
-      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env timeout --signal=SIGINT 15m make presubmit_dashboard
-    - name: codecov
-      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-      with:
-        files: gopath/src/github.com/google/syzkaller/.coverage.txt
-        flags: dashboard
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: run
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
+      - name: codecov
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        with:
+          files: gopath/src/github.com/google/syzkaller/.coverage.txt
+          flags: dashboard
+
   arch:
     runs-on: ubuntu-latest
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
     strategy:
       matrix:
-        target: [presubmit_arch_linux, presubmit_arch_freebsd, presubmit_arch_netbsd, presubmit_arch_openbsd, presubmit_arch_darwin, presubmit_arch_windows, presubmit_arch_executor]
+        target: [ presubmit_arch_linux, presubmit_arch_freebsd, presubmit_arch_netbsd, presubmit_arch_openbsd, presubmit_arch_darwin, presubmit_arch_windows, presubmit_arch_executor ]
     steps:
       - name: checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: run
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make ${{ matrix.target }}
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh make ${{ matrix.target }}
+
   race:
-    runs-on: ubuntu-20.04-32core
+    runs-on: arc-runner-set
+    timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
     steps:
-    - name: checkout
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      with:
-        path: gopath/src/github.com/google/syzkaller
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
 
-    # https://github.com/golang/go/issues/61608 to cache -race results.
-    - id: get-date
-      run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
-      shell: bash
-    - name: test race cache
-      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-      with:
-        path: .cache
-        key: ${{ runner.os }}-go-test-race-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
-        restore-keys: ${{ runner.os }}-go-test-race- #read the freshest available after miss
+      # https://github.com/golang/go/issues/61608 to cache -race results.
+      - id: get-date
+        run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: test race cache
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        with:
+          path: ~/.cache
+          key: ${{ runner.os }}-go-test-race-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
+          restore-keys: ${{ runner.os }}-go-test-race- #read the freshest available after miss
 
-    - name: pull syz-env
-      run: docker pull gcr.io/syzkaller/env:latest
-    - name: run
-      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_race
+      - name: run
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh make presubmit_race
+
   old:
     runs-on: ubuntu-latest
+    container: gcr.io/syzkaller/old-env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
     steps:
       - name: checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: run
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-old-env make presubmit_old
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh make presubmit_old
