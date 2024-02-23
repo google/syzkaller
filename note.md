@@ -4,7 +4,7 @@
 
 Resource constrain in programs.
 
-![replace-p-calls0](./syzLLM-assets/resourse.png)
+![replace-p-calls0](./syzLLM-assets/resource.png)
 
 ### Jan-26-Fri-2024
 
