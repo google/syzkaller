@@ -1,5 +1,11 @@
 # Log
 
+### Feb-23-Fri-2024
+
+Resource constrain in programs.
+
+![replace-p-calls0](./syzLLM-assets/resourse.png)
+
 ### Jan-26-Fri-2024
 
 SyzLLM can start working!
