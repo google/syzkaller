@@ -41,34 +41,44 @@ type dwarfParams struct {
 }
 
 type Arch struct {
+	scanSize      int
 	callLen       int
 	relaOffset    uint64
-	opcodeOffset  int
-	opcodes       [2]byte
 	callRelocType uint64
-	target        func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64
+	isCallInsn    func(arch *Arch, insn []byte) bool
+	callTarget    func(arch *Arch, insn []byte, pc uint64) uint64
 }
 
 var arches = map[string]Arch{
 	targets.AMD64: {
+		scanSize:      1,
 		callLen:       5,
 		relaOffset:    1,
-		opcodes:       [2]byte{0xe8, 0xe8},
 		callRelocType: uint64(elf.R_X86_64_PLT32),
-		target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
+		isCallInsn: func(arch *Arch, insn []byte) bool {
+			return insn[0] == 0xe8
+		},
+		callTarget: func(arch *Arch, insn []byte, pc uint64) uint64 {
 			off := uint64(int64(int32(binary.LittleEndian.Uint32(insn[1:]))))
 			return pc + off + uint64(arch.callLen)
 		},
 	},
 	targets.ARM64: {
+		scanSize:      4,
 		callLen:       4,
-		opcodeOffset:  3,
-		opcodes:       [2]byte{0x94, 0x97},
 		callRelocType: uint64(elf.R_AARCH64_CALL26),
-		target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
-			off := uint64(binary.LittleEndian.Uint32(insn)) & ((1 << 24) - 1)
-			if opcode == arch.opcodes[1] {
-				off |= 0xffffffffff000000
+		isCallInsn: func(arch *Arch, insn []byte) bool {
+			const mask = uint32(0xfc000000)
+			const opc = uint32(0x94000000)
+			return binary.LittleEndian.Uint32(insn)&mask == opc
+		},
+		callTarget: func(arch *Arch, insn []byte, pc uint64) uint64 {
+			off26 := binary.LittleEndian.Uint32(insn) & 0x3ffffff
+			sign := off26 >> 25
+			off := uint64(off26)
+			// Sign-extend the 26-bit offset stored in the instruction.
+			if sign == 1 {
+				off |= 0xfffffffffc000000
 			}
 			return pc + 4*off
 		},
@@ -480,6 +490,27 @@ func symbolize(target *targets.Target, objDir, srcDir, buildDir string, splitBui
 	return frames, nil
 }
 
+// nextCallTarget finds the next call instruction in data[] starting at *pos and returns that
+// instruction's target and pc.
+func nextCallTarget(arch *Arch, textAddr uint64, data []byte, pos *int) (uint64, uint64) {
+	for *pos < len(data) {
+		i := *pos
+		if i+arch.callLen > len(data) {
+			break
+		}
+		*pos += arch.scanSize
+		insn := data[i : i+arch.callLen]
+		if !arch.isCallInsn(arch, insn) {
+			continue
+		}
+		pc := textAddr + uint64(i)
+		callTarget := arch.callTarget(arch, insn, pc)
+		*pos = i + arch.scanSize
+		return callTarget, pc
+	}
+	return 0, 0
+}
+
 // readCoverPoints finds all coverage points (calls of __sanitizer_cov_trace_*) in the object file.
 // Currently it is [amd64|arm64]-specific: looks for opcode and correct offset.
 // Running objdump on the whole object file is too slow.
@@ -489,24 +520,16 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 		return pcs, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
 	}
 
-	// Loop that's checking each instruction for the current architectures call
-	// opcode. When found, it compares the call target address with those of the
-	// __sanitizer_cov_trace_* functions we previously collected. When found,
-	// we collect the pc as a coverage point.
-	arch := arches[target.Arch]
-	for i, opcode := range data {
-		if opcode != arch.opcodes[0] && opcode != arch.opcodes[1] {
-			continue
+	i := 0
+	for {
+		arch := arches[target.Arch]
+		callTarget, pc := nextCallTarget(&arch, info.textAddr, data, &i)
+		if callTarget == 0 {
+			break
 		}
-		i -= arch.opcodeOffset
-		if i < 0 || i+arch.callLen > len(data) {
-			continue
-		}
-		pc := info.textAddr + uint64(i)
-		target := arch.target(&arch, data[i:], pc, opcode)
-		if info.tracePC[target] {
+		if info.tracePC[callTarget] {
 			pcs[0] = append(pcs[0], pc)
-		} else if info.traceCmp[target] {
+		} else if info.traceCmp[callTarget] {
 			pcs[1] = append(pcs[1], pc)
 		}
 	}
