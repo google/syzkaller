@@ -102,3 +102,79 @@ func TestCleanPathAndroid(t *testing.T) {
 		}
 	}
 }
+
+type NextCallTargetTest struct {
+	Arch      *Arch
+	Text      uint64
+	Data      []byte
+	ExpTarget uint64
+	ExpPC     uint64
+}
+
+func runNextCallTarget(t *testing.T, arg NextCallTargetTest) {
+	i := 0
+	target, pc := nextCallTarget(arg.Arch, arg.Text, arg.Data, &i)
+	if target != arg.ExpTarget || pc != arg.ExpPC {
+		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)\n",
+			arg.Arch, arg.Text, arg.Data, target, pc, arg.ExpTarget, arg.ExpPC)
+	}
+}
+
+func TestNextCallTargetARM64(t *testing.T) {
+	tests := []NextCallTargetTest{
+		// ffff800080020010:       9414234f        bl      ffff800080528d4c <__sanitizer_cov_trace_pc>
+		{
+			Data:      []byte{0x4f, 0x23, 0x14, 0x94},
+			ExpTarget: 0xffff800080528d4c,
+			ExpPC:     0xffff800080020010,
+		},
+		// ffff800080020088:       95fbe498        bl      ffff800087f192e8 <__debug_smp_processor_id_veneer>
+		{
+			Data:      []byte{0x98, 0xe4, 0xfb, 0x95},
+			ExpTarget: 0xffff800087f192e8,
+			ExpPC:     0xffff800080020088,
+		},
+		// ffff80008477626c:       96f6cab8        bl      ffff800080528d4c <__sanitizer_cov_trace_pc>
+		{
+			Data:      []byte{0xb8, 0xca, 0xf6, 0x96},
+			ExpTarget: 0xffff800080528d4c,
+			ExpPC:     0xffff80008477626c,
+		},
+		// ffff80008052aa18:       97fff8cd        bl      ffff800080528d4c <__sanitizer_cov_trace_pc>
+		{
+			Data:      []byte{0xcd, 0xf8, 0xff, 0x97},
+			ExpTarget: 0xffff800080528d4c,
+			ExpPC:     0xffff80008052aa18,
+		},
+	}
+	for _, test := range tests {
+		arch := arches["arm64"]
+		test.Arch = &arch
+		test.Text = test.ExpPC
+		runNextCallTarget(t, test)
+	}
+}
+
+func TestNextCallTargetAMD64(t *testing.T) {
+	tests := []NextCallTargetTest{
+		// ffffffff811744c6:	e8 85 fb 7b 00       	call   ffffffff81934050 <__sanitizer_cov_trace_pc>
+		{
+			Data:      []byte{0xe8, 0x85, 0xfb, 0x7b, 0x00},
+			Text:      0xffffffff811744c6,
+			ExpTarget: 0xffffffff81934050,
+			ExpPC:     0xffffffff811744c6,
+		},
+		// Same, but the search window starts two bytes earlier.
+		{
+			Data:      []byte{0x90, 0x90, 0xe8, 0x85, 0xfb, 0x7b, 0x00},
+			Text:      0xffffffff811744c4,
+			ExpTarget: 0xffffffff81934050,
+			ExpPC:     0xffffffff811744c6,
+		},
+	}
+	for _, test := range tests {
+		arch := arches["amd64"]
+		test.Arch = &arch
+		runNextCallTarget(t, test)
+	}
+}
