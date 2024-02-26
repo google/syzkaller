@@ -36,7 +36,6 @@ type dwarfParams struct {
 	readTextData          func(*Module) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
 	readTextRanges        func(*Module) ([]pcRange, []*CompileUnit, error)
-	getModuleOffset       func(string) uint64
 	getCompilerVersion    func(string) string
 }
 
@@ -165,7 +164,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	srcDir := params.srcDir
 	buildDir := params.buildDir
 	splitBuildDelimiters := params.splitBuildDelimiters
-	modules, err := discoverModules(target, objDir, params.moduleObj, params.hostModules, params.getModuleOffset)
+	modules, err := discoverModules(target, objDir, params.moduleObj, params.hostModules)
 	if err != nil {
 		return nil, err
 	}

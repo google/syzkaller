@@ -17,7 +17,7 @@ import (
 )
 
 func discoverModules(target *targets.Target, objDir string, moduleObj []string,
-	hostModules []host.KernelModule, getModuleOffset func(string) uint64) (
+	hostModules []host.KernelModule) (
 	[]*Module, error) {
 	modules := []*Module{
 		// A dummy module representing the kernel itself.
@@ -25,7 +25,7 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 	}
 	if target.OS == targets.Linux {
 		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...),
-			hostModules, getModuleOffset)
+			hostModules)
 		if err != nil {
 			return nil, err
 		}
@@ -37,7 +37,7 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 }
 
 func discoverModulesLinux(dirs []string, hostModules []host.KernelModule,
-	getModuleOffset func(string) uint64) ([]*Module, error) {
+) ([]*Module, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
