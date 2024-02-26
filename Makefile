@@ -289,11 +289,15 @@ tidy: descriptions
 		-extra-arg=-DHOSTGOOS_$(HOSTOS)=1 -extra-arg=-DGIT_REVISION=\"$(REV)\" \
 		executor/*.cc
 
+ifdef CI
+  LINT-FLAGS := --out-format github-actions
+endif
+
 lint:
 	# This should install the command from our vendor dir.
 	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
-	bin/golangci-lint run ./...
+	bin/golangci-lint run $(LINT-FLAGS) ./...
 
 presubmit:
 	$(MAKE) presubmit_aux
