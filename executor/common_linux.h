@@ -1935,6 +1935,8 @@ struct io_uring_params {
 
 #define IORING_OFF_SQ_RING 0
 #define IORING_OFF_SQES 0x10000000ULL
+#define IORING_SETUP_SQE128 (1U << 10)
+#define IORING_SETUP_CQE32 (1U << 11)
 
 #include <sys/mman.h>
 #include <unistd.h>
@@ -1950,7 +1952,9 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
 	void** ring_ptr_out = (void**)a2;
 	void** sqes_ptr_out = (void**)a3;
-
+	// Temporarily disable IORING_SETUP_CQE32 and IORING_SETUP_SQE128 that may change SIZEOF_IO_URING_CQE and SIZEOF_IO_URING_SQE.
+	// Tracking bug: https://github.com/google/syzkaller/issues/4531.
+	setup_params->flags &= ~(IORING_SETUP_CQE32 | IORING_SETUP_SQE128);
 	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
 
 	// Compute the ring sizes
