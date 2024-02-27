@@ -140,6 +140,23 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make presubmit_race
 
+  race_dashboard:
+    runs-on: arc-runner-set
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
+      TERM: dumb
+    steps:
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: run
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh make presubmit_race_dashboard
+
   old:
     runs-on: ubuntu-latest
     container: gcr.io/syzkaller/old-env:latest
