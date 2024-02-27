@@ -91,7 +91,7 @@ jobs:
           flags: dashboard
 
   arch:
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
