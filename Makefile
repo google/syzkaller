@@ -321,7 +321,7 @@ presubmit_build: descriptions
 	# This does not check build of test files, but running go test takes too long (even for building).
 	$(GO) build ./...
 	$(MAKE) lint
-	SYZ_SKIP_DASHBOARD=1 $(MAKE) test
+	SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(MAKE) test
 
 presubmit_arch_linux: descriptions
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
@@ -375,7 +375,7 @@ presubmit_dashboard: descriptions
 presubmit_race: descriptions
 	# -race requires cgo
 	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	env CGO_ENABLED=1 SYZ_SKIP_DASHBOARD=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
+	env CGO_ENABLED=1 SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
 	fi
 
 presubmit_race_dashboard: descriptions
