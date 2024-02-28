@@ -73,7 +73,6 @@ docker run \
 	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
 	--env HOME=/syzkaller \
 	--env GOPATH=/syzkaller/gopath:/gopath \
-	--env SILENCE_SYZ_ENV_HINT=1 \
 	--env FUZZIT_API_KEY \
 	--env GITHUB_REF \
 	--env GITHUB_SHA \
