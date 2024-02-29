@@ -220,6 +220,13 @@ func patchTestJobArgs(c context.Context, args *testJobArgs) error {
 		args.branch = build.KernelBranch
 		args.repo = build.KernelRepo
 	}
+	// Let trees be also identified by their alias names.
+	for _, repo := range getNsConfig(c, args.bug.Namespace).Repos {
+		if repo.Alias != "" && repo.Alias == args.repo {
+			args.repo = repo.URL
+			break
+		}
+	}
 	return nil
 }
 
