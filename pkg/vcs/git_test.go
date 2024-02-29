@@ -426,3 +426,22 @@ func TestGitRemoteTags(t *testing.T) {
 	sort.Strings(tags)
 	assert.Equal(t, []string{"v1.0", "v2.0"}, tags)
 }
+
+func TestGitFetchShortHash(t *testing.T) {
+	remoteRepoDir := t.TempDir()
+	remote := MakeTestRepo(t, remoteRepoDir)
+	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "base commit")
+	remote.Git("checkout", "-b", "base_branch")
+	remote.Git("tag", "base_tag")
+	remote.Git("checkout", "-b", "temp_branch")
+	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "detached commit")
+	refCommit, _ := remote.repo.HeadCommit()
+
+	// Create a local repo.
+	localRepoDir := t.TempDir()
+	local := newGit(localRepoDir, nil, nil)
+
+	// Fetch the commit from the custom ref.
+	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash[:12])
+	assert.NoError(t, err)
+}
