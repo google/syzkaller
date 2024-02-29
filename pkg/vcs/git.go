@@ -145,7 +145,8 @@ func (git *git) fetchRemote(repo, commit string) error {
 	// Ignore error as we can double add the same remote and that will fail.
 	git.git("remote", "add", repoHash, repo)
 	fetchArgs := []string{"fetch", "--force", "--tags", repoHash}
-	if commit != "" {
+	if commit != "" && gitFullHashRe.MatchString(commit) {
+		// This trick only works with full commit hashes.
 		fetchArgs = append(fetchArgs, commit)
 	}
 	_, err := git.git(fetchArgs...)
@@ -526,6 +527,8 @@ func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func()
 	}
 }
 
+var gitFullHashRe = regexp.MustCompile("[a-f0-9]{40}")
+
 func (git *git) bisectInconclusive(output []byte) ([]*Commit, error) {
 	// For inconclusive bisection git prints the following message:
 	//
@@ -540,7 +543,7 @@ func (git *git) bisectInconclusive(output []byte) ([]*Commit, error) {
 	//
 	//	7c3850adbcccc2c6c9e7ab23a7dcbc4926ee5b96 is the first bad commit
 	var commits []*Commit
-	for _, hash := range regexp.MustCompile("[a-f0-9]{40}").FindAll(output, -1) {
+	for _, hash := range gitFullHashRe.FindAll(output, -1) {
 		com, err := git.getCommit(string(hash))
 		if err != nil {
 			return nil, err
