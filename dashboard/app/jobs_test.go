@@ -1260,3 +1260,44 @@ func TestEmailTestCommandNoArgs(t *testing.T) {
 	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
 	c.expectEQ(pollResp.Patch, []byte(sampleGitPatch))
 }
+
+func TestAliasPatchTestingJob(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	_, err = client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  origReport.ID,
+		User:   "developer@kernel.org",
+		Branch: "some-branch",
+		Repo:   "repo10alias",
+		Patch:  []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+
+	// Make sure branch and repo are correct.
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.KernelRepo, "git://syzkaller.org")
+	c.expectEQ(pollResp.KernelBranch, "some-branch")
+}
