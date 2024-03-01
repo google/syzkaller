@@ -470,11 +470,11 @@ conditional_fields {
 	f3	some_nested_flags
 	f4	int32	(if[value[f3:f1] != 0])
 	f5	int32	(if[value[f3:f2:f4] != 0]) ### value path f2 does not refer to a struct
-	f6	int32	(if[value[f3:f4] != 0]) ### f4 does not refer to an integer
+	f6	int32	(if[value[f3:f4] != 0]) ### f4 does not refer to an integer or a flag
 	f7	int32	(if[value[f3:some_field] != 0]) ### value target some_field does not exist in some_nested_flags
 	f8	int32	(if[value[f3:f5] != 0]) ### f5 has conditions, so value path cannot reference it
 	f9	int32	(if[value[parent:a] != 0]) ### value target a does not exist in conditional_fields
-	f10	int32	(if[value[f3:f6] != 0]) ### f6 does not refer to an integer
+	f10	int32	(if[value[f3:f6] != 0]) ### f6 does not refer to an integer or a flag
 	f11	len[f2, int32] ### f2 has conditions, so len path cannot reference it
 	f12	union_cond_fields
 	f13	int32:8 (if[1]) ### bitfields may not have conditions
