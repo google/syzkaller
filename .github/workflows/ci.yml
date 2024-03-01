@@ -54,7 +54,7 @@ jobs:
     - name: test build cache
       uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
-        path: /syzkaller/.cache
+        path: /root/.cache
         key: ${{ runner.os }}-go-test-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
         restore-keys: ${{ runner.os }}-go-test-build- #read the freshest available after miss
 
@@ -131,7 +131,7 @@ jobs:
       - name: test race cache
         uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
-          path: /syzkaller/.cache
+          path: /root/.cache
           key: ${{ runner.os }}-go-test-race-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
           restore-keys: ${{ runner.os }}-go-test-race- #read the freshest available after miss
 
