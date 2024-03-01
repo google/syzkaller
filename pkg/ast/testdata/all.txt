@@ -16,8 +16,11 @@ expressions {
 	f3	int8	(if[X & (A == B) & Z != C])
 }
 
+intflags = 1, 2, 3, 4
+
 condFields {
 	mask	int8
+	flags	flags[intflags, int8]
 # Simple expressions work.
 	f0	int16	(if[val[mask] == SOME_CONST])
 # Conditions and other attributes work together.
@@ -25,5 +28,5 @@ condFields {
 # Test some more complex expressions.
 	f2	int16	(out, if[val[mask] & SOME_CONST == OTHER_CONST])
 	f3	int16	(out, if[val[mask] & SOME_CONST & OTHER_CONST == val[mask] & CONST_X])
-	f4	int16	(out, if[val[mask] & SOME_CONST])
+	f4	int16	(out, if[val[flags] & SOME_CONST])
 }

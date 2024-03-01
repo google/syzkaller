@@ -650,8 +650,8 @@ func (comp *compiler) checkPathField(target, t *ast.Type, field *ast.Field) bool
 
 func (comp *compiler) checkExprLastField(target *ast.Type, field *ast.Field) {
 	_, desc := comp.derefPointers(field.Type)
-	if desc != typeInt {
-		comp.error(target.Pos, "%v does not refer to an integer", field.Name.Name)
+	if desc != typeInt && desc != typeFlags {
+		comp.error(target.Pos, "%v does not refer to an integer or a flag", field.Name.Name)
 	}
 }
 
