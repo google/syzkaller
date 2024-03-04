@@ -64,7 +64,7 @@ func (c *flagNameChecker) checkFlagName(call *ast.CallExpr, arg ast.Expr) {
 	case name == "":
 		c.warnEmpty(call)
 	case strings.HasPrefix(name, "-"):
-		c.warnHypenPrefix(call, name)
+		c.warnHyphenPrefix(call, name)
 	case strings.Contains(name, "="):
 		c.warnEq(call, name)
 	case strings.Contains(name, " "):
@@ -76,8 +76,8 @@ func (c *flagNameChecker) warnEmpty(cause ast.Node) {
 	c.ctx.Warn(cause, "empty flag name")
 }
 
-func (c *flagNameChecker) warnHypenPrefix(cause ast.Node, name string) {
-	c.ctx.Warn(cause, "flag name %q should not start with a hypen", name)
+func (c *flagNameChecker) warnHyphenPrefix(cause ast.Node, name string) {
+	c.ctx.Warn(cause, "flag name %q should not start with a hyphen", name)
 }
 
 func (c *flagNameChecker) warnEq(cause ast.Node, name string) {

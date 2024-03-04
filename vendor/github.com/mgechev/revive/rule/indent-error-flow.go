@@ -19,7 +19,7 @@ func (*IndentErrorFlowRule) Name() string {
 }
 
 // CheckIfElse evaluates the rule against an ifelse.Chain.
-func (e *IndentErrorFlowRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
+func (*IndentErrorFlowRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
 	if !chain.If.Deviates() {
 		// this rule only applies if the if-block deviates control flow
 		return

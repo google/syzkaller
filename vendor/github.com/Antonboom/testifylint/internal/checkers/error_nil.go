@@ -14,8 +14,14 @@ import (
 //
 //	assert.Nil(t, err)
 //	assert.NotNil(t, err)
-//	assert.Equal(t, err, nil)
-//	assert.NotEqual(t, err, nil)
+//	assert.Equal(t, nil, err)
+//	assert.EqualValues(t, nil, err)
+//	assert.Exactly(t, nil, err)
+//	assert.ErrorIs(t, err, nil)
+//
+//	assert.NotEqual(t, nil, err)
+//	assert.NotEqualValues(t, nil, err)
+//	assert.NotErrorIs(t, err, nil)
 //
 // and requires
 //
@@ -34,40 +40,40 @@ func (checker ErrorNil) Check(pass *analysis.Pass, call *CallMeta) *analysis.Dia
 	)
 
 	proposedFn, survivingArg, replacementEndPos := func() (string, ast.Expr, token.Pos) {
-		switch call.Fn.Name {
-		case "NotNil", "NotNilf":
-			if len(call.Args) >= 1 && isError(pass, call.Args[0]) {
-				return errorFn, call.Args[0], call.Args[0].End()
-			}
-
-		case "Nil", "Nilf":
+		switch call.Fn.NameFTrimmed {
+		case "Nil":
 			if len(call.Args) >= 1 && isError(pass, call.Args[0]) {
 				return noErrorFn, call.Args[0], call.Args[0].End()
 			}
 
-		case "Equal", "Equalf":
+		case "NotNil":
+			if len(call.Args) >= 1 && isError(pass, call.Args[0]) {
+				return errorFn, call.Args[0], call.Args[0].End()
+			}
+
+		case "Equal", "EqualValues", "Exactly", "ErrorIs":
 			if len(call.Args) < 2 {
 				return "", nil, token.NoPos
 			}
 			a, b := call.Args[0], call.Args[1]
 
 			switch {
-			case isError(pass, a) && isNil(pass, b):
+			case isError(pass, a) && isNil(b):
 				return noErrorFn, a, b.End()
-			case isNil(pass, a) && isError(pass, b):
+			case isNil(a) && isError(pass, b):
 				return noErrorFn, b, b.End()
 			}
 
-		case "NotEqual", "NotEqualf":
+		case "NotEqual", "NotEqualValues", "NotErrorIs":
 			if len(call.Args) < 2 {
 				return "", nil, token.NoPos
 			}
 			a, b := call.Args[0], call.Args[1]
 
 			switch {
-			case isError(pass, a) && isNil(pass, b):
+			case isError(pass, a) && isNil(b):
 				return errorFn, a, b.End()
-			case isNil(pass, a) && isError(pass, b):
+			case isNil(a) && isError(pass, b):
 				return errorFn, b, b.End()
 			}
 		}
@@ -86,7 +92,10 @@ func (checker ErrorNil) Check(pass *analysis.Pass, call *CallMeta) *analysis.Dia
 	return nil
 }
 
-var errIface = types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
+var (
+	errorType  = types.Universe.Lookup("error").Type()
+	errorIface = errorType.Underlying().(*types.Interface)
+)
 
 func isError(pass *analysis.Pass, expr ast.Expr) bool {
 	t := pass.TypesInfo.TypeOf(expr)
@@ -95,15 +104,10 @@ func isError(pass *analysis.Pass, expr ast.Expr) bool {
 	}
 
 	_, ok := t.Underlying().(*types.Interface)
-	return ok && types.Implements(t, errIface)
+	return ok && types.Implements(t, errorIface)
 }
 
-func isNil(pass *analysis.Pass, expr ast.Expr) bool {
-	t := pass.TypesInfo.TypeOf(expr)
-	if t == nil {
-		return false
-	}
-
-	b, ok := t.(*types.Basic)
-	return ok && b.Kind()&types.UntypedNil > 0
+func isNil(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "nil"
 }

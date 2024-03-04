@@ -161,9 +161,8 @@ func displayTime(seconds float64) string {
 		return fmt.Sprintf(formater, (1 + math.Ceil(seconds/month)), "months")
 	} else if seconds < century {
 		return fmt.Sprintf(formater, (1 + math.Ceil(seconds/century)), "years")
-	} else {
-		return "centuries"
 	}
+	return "centuries"
 }
 
 func crackTimeToScore(seconds float64) int {

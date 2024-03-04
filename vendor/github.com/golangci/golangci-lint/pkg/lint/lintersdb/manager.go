@@ -105,6 +105,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		grouperCfg          *config.GrouperSettings
 		ifshortCfg          *config.IfshortSettings
 		importAsCfg         *config.ImportAsSettings
+		inamedparamCfg      *config.INamedParamSettings
 		interfaceBloatCfg   *config.InterfaceBloatSettings
 		ireturnCfg          *config.IreturnSettings
 		lllCfg              *config.LllSettings
@@ -121,13 +122,16 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		noLintLintCfg       *config.NoLintLintSettings
 		noNamedReturnsCfg   *config.NoNamedReturnsSettings
 		parallelTestCfg     *config.ParallelTestSettings
+		perfSprintCfg       *config.PerfSprintSettings
 		preallocCfg         *config.PreallocSettings
 		predeclaredCfg      *config.PredeclaredSettings
 		promlinterCfg       *config.PromlinterSettings
+		protogetterCfg      *config.ProtoGetterSettings
 		reassignCfg         *config.ReassignSettings
 		reviveCfg           *config.ReviveSettings
 		rowserrcheckCfg     *config.RowsErrCheckSettings
 		sloglintCfg         *config.SlogLintSettings
+		spancheckCfg        *config.SpancheckSettings
 		staticcheckCfg      *config.StaticCheckSettings
 		structcheckCfg      *config.StructCheckSettings
 		stylecheckCfg       *config.StaticCheckSettings
@@ -187,6 +191,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		grouperCfg = &m.cfg.LintersSettings.Grouper
 		ifshortCfg = &m.cfg.LintersSettings.Ifshort
 		importAsCfg = &m.cfg.LintersSettings.ImportAs
+		inamedparamCfg = &m.cfg.LintersSettings.Inamedparam
 		interfaceBloatCfg = &m.cfg.LintersSettings.InterfaceBloat
 		ireturnCfg = &m.cfg.LintersSettings.Ireturn
 		lllCfg = &m.cfg.LintersSettings.Lll
@@ -202,14 +207,17 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		nlreturnCfg = &m.cfg.LintersSettings.Nlreturn
 		noLintLintCfg = &m.cfg.LintersSettings.NoLintLint
 		noNamedReturnsCfg = &m.cfg.LintersSettings.NoNamedReturns
-		preallocCfg = &m.cfg.LintersSettings.Prealloc
 		parallelTestCfg = &m.cfg.LintersSettings.ParallelTest
+		perfSprintCfg = &m.cfg.LintersSettings.PerfSprint
+		preallocCfg = &m.cfg.LintersSettings.Prealloc
 		predeclaredCfg = &m.cfg.LintersSettings.Predeclared
 		promlinterCfg = &m.cfg.LintersSettings.Promlinter
+		protogetterCfg = &m.cfg.LintersSettings.ProtoGetter
 		reassignCfg = &m.cfg.LintersSettings.Reassign
 		reviveCfg = &m.cfg.LintersSettings.Revive
 		rowserrcheckCfg = &m.cfg.LintersSettings.RowsErrCheck
 		sloglintCfg = &m.cfg.LintersSettings.SlogLint
+		spancheckCfg = &m.cfg.LintersSettings.Spancheck
 		staticcheckCfg = &m.cfg.LintersSettings.Staticcheck
 		structcheckCfg = &m.cfg.LintersSettings.Structcheck
 		stylecheckCfg = &m.cfg.LintersSettings.Stylecheck
@@ -228,25 +236,22 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 		wrapcheckCfg = &m.cfg.LintersSettings.Wrapcheck
 		wslCfg = &m.cfg.LintersSettings.WSL
 
-		if govetCfg != nil {
-			govetCfg.Go = m.cfg.Run.Go
-		}
+		govetCfg.Go = m.cfg.Run.Go
 
-		if gocriticCfg != nil {
-			gocriticCfg.Go = trimGoVersion(m.cfg.Run.Go)
-		}
+		gocriticCfg.Go = trimGoVersion(m.cfg.Run.Go)
 
-		if gofumptCfg != nil && gofumptCfg.LangVersion == "" {
+		if gofumptCfg.LangVersion == "" {
 			gofumptCfg.LangVersion = m.cfg.Run.Go
 		}
 
-		if staticcheckCfg != nil && staticcheckCfg.GoVersion == "" {
+		// staticcheck related linters.
+		if staticcheckCfg.GoVersion == "" {
 			staticcheckCfg.GoVersion = trimGoVersion(m.cfg.Run.Go)
 		}
-		if gosimpleCfg != nil && gosimpleCfg.GoVersion == "" {
+		if gosimpleCfg.GoVersion == "" {
 			gosimpleCfg.GoVersion = trimGoVersion(m.cfg.Run.Go)
 		}
-		if stylecheckCfg != nil && stylecheckCfg.GoVersion != "" {
+		if stylecheckCfg.GoVersion != "" {
 			stylecheckCfg.GoVersion = trimGoVersion(m.cfg.Run.Go)
 		}
 	}
@@ -580,7 +585,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithLoadForGoAnalysis().
 			WithURL("https://github.com/julz/importas"),
 
-		linter.NewConfig(golinters.NewINamedParam()).
+		linter.NewConfig(golinters.NewINamedParam(inamedparamCfg)).
 			WithSince("v1.55.0").
 			WithPresets(linter.PresetStyle).
 			WithURL("https://github.com/macabu/inamedparam"),
@@ -654,7 +659,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithSince("v1.51.0").
 			WithLoadForGoAnalysis().
 			WithPresets(linter.PresetStyle, linter.PresetBugs).
-			WithURL("https://github.com/tmzane/musttag"),
+			WithURL("https://github.com/go-simpler/musttag"),
 
 		linter.NewConfig(golinters.NewNakedret(nakedretCfg)).
 			WithSince("v1.19.0").
@@ -712,7 +717,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithPresets(linter.PresetStyle, linter.PresetTest).
 			WithURL("https://github.com/kunwardeep/paralleltest"),
 
-		linter.NewConfig(golinters.NewPerfSprint()).
+		linter.NewConfig(golinters.NewPerfSprint(perfSprintCfg)).
 			WithSince("v1.55.0").
 			WithLoadForGoAnalysis().
 			WithPresets(linter.PresetPerformance).
@@ -733,7 +738,7 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithPresets(linter.PresetStyle).
 			WithURL("https://github.com/yeya24/promlinter"),
 
-		linter.NewConfig(golinters.NewProtoGetter()).
+		linter.NewConfig(golinters.NewProtoGetter(protogetterCfg)).
 			WithSince("v1.55.0").
 			WithPresets(linter.PresetBugs).
 			WithLoadForGoAnalysis().
@@ -775,6 +780,12 @@ func (m Manager) GetAllSupportedLinterConfigs() []*linter.Config {
 			WithPresets(linter.PresetBugs, linter.PresetSQL).
 			WithLoadForGoAnalysis().
 			WithURL("https://github.com/ryanrolds/sqlclosecheck"),
+
+		linter.NewConfig(golinters.NewSpancheck(spancheckCfg)).
+			WithSince("v1.56.0").
+			WithLoadForGoAnalysis().
+			WithPresets(linter.PresetBugs).
+			WithURL("https://github.com/jjti/go-spancheck"),
 
 		linter.NewConfig(golinters.NewStaticcheck(staticcheckCfg)).
 			WithEnabledByDefault().
@@ -977,7 +988,7 @@ func trimGoVersion(v string) string {
 		return ""
 	}
 
-	exp := regexp.MustCompile(`(\d\.\d+)\.\d+`)
+	exp := regexp.MustCompile(`(\d\.\d+)(?:\.\d+|[a-z]+\d)`)
 
 	if exp.MatchString(v) {
 		return exp.FindStringSubmatch(v)[1]

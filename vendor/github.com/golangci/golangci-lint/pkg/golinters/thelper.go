@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/kulti/thelper/pkg/analyzer"
+	"golang.org/x/exp/maps"
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/config"
@@ -42,10 +43,7 @@ func NewThelper(cfg *config.ThelperSettings) *goanalysis.Linter {
 		linterLogger.Fatalf("thelper: at least one option must be enabled")
 	}
 
-	var args []string
-	for k := range opts {
-		args = append(args, k)
-	}
+	args := maps.Keys(opts)
 
 	cfgMap := map[string]map[string]any{
 		a.Name: {
@@ -54,8 +52,8 @@ func NewThelper(cfg *config.ThelperSettings) *goanalysis.Linter {
 	}
 
 	return goanalysis.NewLinter(
-		"thelper",
-		"thelper detects Go test helpers without t.Helper() call and checks the consistency of test helpers",
+		a.Name,
+		a.Doc,
 		[]*analysis.Analyzer{a},
 		cfgMap,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)

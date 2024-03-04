@@ -171,7 +171,7 @@ func (w lintFuncLength) countFuncLitStmts(stmt ast.Expr) int {
 	return 0
 }
 
-func (w lintFuncLength) countBodyListStmts(t interface{}) int {
+func (w lintFuncLength) countBodyListStmts(t any) int {
 	i := reflect.ValueOf(t).Elem().FieldByName(`Body`).Elem().FieldByName(`List`).Interface()
 	return w.countStmts(i.([]ast.Stmt))
 }

@@ -117,7 +117,7 @@ func (c *mapKeyChecker) checkWhitespace(lit *ast.CompositeLit) {
 }
 
 func (c *mapKeyChecker) warnWhitespace(key ast.Node) {
-	c.ctx.Warn(key, "suspucious whitespace in %s key", key)
+	c.ctx.Warn(key, "suspicious whitespace in %s key", key)
 }
 
 func (c *mapKeyChecker) warnDupKey(key ast.Node) {

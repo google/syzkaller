@@ -11,12 +11,22 @@ import (
 )
 
 type List struct {
-	Files []string          `json:"files" yaml:"files" toml:"files" mapstructure:"files"`
-	Allow []string          `json:"allow" yaml:"allow" toml:"allow" mapstructure:"allow"`
-	Deny  map[string]string `json:"deny" yaml:"deny" toml:"deny" mapstructure:"deny"`
+	ListMode string            `json:"listMode" yaml:"listMode" toml:"listMode" mapstructure:"listMode"`
+	Files    []string          `json:"files" yaml:"files" toml:"files" mapstructure:"files"`
+	Allow    []string          `json:"allow" yaml:"allow" toml:"allow" mapstructure:"allow"`
+	Deny     map[string]string `json:"deny" yaml:"deny" toml:"deny" mapstructure:"deny"`
 }
 
+type listMode int
+
+const (
+	listModeOriginal listMode = iota
+	listModeStrict
+	listModeLax
+)
+
 type list struct {
+	listMode    listMode
 	name        string
 	files       []glob.Glob
 	negFiles    []glob.Glob
@@ -32,6 +42,20 @@ func (l *List) compile() (*list, error) {
 	li := &list{}
 	var errs utils.MultiError
 	var err error
+
+	// Determine List Mode
+	switch strings.ToLower(l.ListMode) {
+	case "":
+		li.listMode = listModeOriginal
+	case "original":
+		li.listMode = listModeOriginal
+	case "strict":
+		li.listMode = listModeStrict
+	case "lax":
+		li.listMode = listModeLax
+	default:
+		errs = append(errs, fmt.Errorf("%s is not a known list mode", l.ListMode))
+	}
 
 	// Compile Files
 	for _, f := range l.Files {
@@ -113,16 +137,25 @@ func (l *list) fileMatch(fileName string) bool {
 }
 
 func (l *list) importAllowed(imp string) (bool, string) {
-	inAllowed := len(l.allow) == 0
-	if !inAllowed {
-		inAllowed, _ = strInPrefixList(imp, l.allow)
+	inAllowed, aIdx := strInPrefixList(imp, l.allow)
+	inDenied, dIdx := strInPrefixList(imp, l.deny)
+	var allowed bool
+	switch l.listMode {
+	case listModeOriginal:
+		inAllowed = len(l.allow) == 0 || inAllowed
+		allowed = inAllowed && !inDenied
+	case listModeStrict:
+		allowed = inAllowed && (!inDenied || len(l.allow[aIdx]) > len(l.deny[dIdx]))
+	case listModeLax:
+		allowed = !inDenied || (inAllowed && len(l.allow[aIdx]) > len(l.deny[dIdx]))
+	default:
+		allowed = false
 	}
-	inDenied, suggIdx := strInPrefixList(imp, l.deny)
 	sugg := ""
-	if inDenied && suggIdx != -1 {
-		sugg = l.suggestions[suggIdx]
+	if !allowed && inDenied && dIdx != -1 {
+		sugg = l.suggestions[dIdx]
 	}
-	return inAllowed && !inDenied, sugg
+	return allowed, sugg
 }
 
 type LinterSettings map[string]*List

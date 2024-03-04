@@ -140,7 +140,7 @@ func (lintStructTagRule) getTagName(tag *structtag.Tag) string {
 				return strings.TrimPrefix(option, "name=")
 			}
 		}
-		return "" //protobuf tag lacks 'name' option
+		return "" // protobuf tag lacks 'name' option
 	default:
 		return tag.Name
 	}

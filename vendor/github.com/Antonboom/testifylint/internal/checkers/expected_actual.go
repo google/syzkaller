@@ -2,10 +2,13 @@ package checkers
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
 	"regexp"
 
 	"golang.org/x/tools/go/analysis"
+
+	"github.com/Antonboom/testifylint/internal/analysisutil"
 )
 
 // DefaultExpectedVarPattern matches variables with "expected" or "wanted" prefix or suffix in the name.
@@ -14,11 +17,30 @@ var DefaultExpectedVarPattern = regexp.MustCompile(
 
 // ExpectedActual detects situation like
 //
-//	assert.NotEqual(t, result, "expected value")
+//	assert.Equal(t, result, expected)
+//	assert.EqualExportedValues(t, resultObj, User{Name: "Anton"})
+//	assert.EqualValues(t, result, 42)
+//	assert.Exactly(t, result, int64(42))
+//	assert.JSONEq(t, result, `{"version": 3}`)
+//	assert.InDelta(t, result, 42.42, 1.0)
+//	assert.InDeltaMapValues(t, result, map[string]float64{"score": 0.99}, 1.0)
+//	assert.InDeltaSlice(t, result, []float64{0.98, 0.99}, 1.0)
+//	assert.InEpsilon(t, result, 42.42, 0.0001)
+//	assert.InEpsilonSlice(t, result, []float64{0.9801, 0.9902}, 0.0001)
+//	assert.IsType(t, result, (*User)(nil))
+//	assert.NotEqual(t, result, "expected")
+//	assert.NotEqualValues(t, result, "expected")
+//	assert.NotSame(t, resultPtr, &value)
+//	assert.Same(t, resultPtr, &value)
+//	assert.WithinDuration(t, resultTime, time.Date(2023, 01, 12, 11, 46, 33, 0, nil), time.Second)
+//	assert.YAMLEq(t, result, "version: '3'")
 //
 // and requires
 //
-//	assert.NotEqual(t, "expected value", result)
+//	assert.Equal(t, expected, result)
+//	assert.EqualExportedValues(t, User{Name: "Anton"}, resultObj)
+//	assert.EqualValues(t, 42, result)
+//	...
 type ExpectedActual struct {
 	expVarPattern *regexp.Regexp
 }
@@ -38,9 +60,24 @@ func (checker *ExpectedActual) SetExpVarPattern(p *regexp.Regexp) *ExpectedActua
 }
 
 func (checker ExpectedActual) Check(pass *analysis.Pass, call *CallMeta) *analysis.Diagnostic {
-	switch call.Fn.Name {
-	case "Equal", "Equalf", "NotEqual", "NotEqualf",
-		"JSONEq", "JSONEqf", "YAMLEq", "YAMLEqf":
+	switch call.Fn.NameFTrimmed {
+	case "Equal",
+		"EqualExportedValues",
+		"EqualValues",
+		"Exactly",
+		"InDelta",
+		"InDeltaMapValues",
+		"InDeltaSlice",
+		"InEpsilon",
+		"InEpsilonSlice",
+		"IsType",
+		"JSONEq",
+		"NotEqual",
+		"NotEqualValues",
+		"NotSame",
+		"Same",
+		"WithinDuration",
+		"YAMLEq":
 	default:
 		return nil
 	}
@@ -73,19 +110,35 @@ func (checker ExpectedActual) isWrongExpectedActualOrder(pass *analysis.Pass, fi
 
 func (checker ExpectedActual) isExpectedValueCandidate(pass *analysis.Pass, expr ast.Expr) bool {
 	switch v := expr.(type) {
+	case *ast.ParenExpr:
+		return checker.isExpectedValueCandidate(pass, v.X)
+
+	case *ast.StarExpr: // *value
+		return checker.isExpectedValueCandidate(pass, v.X)
+
+	case *ast.UnaryExpr:
+		return (v.Op == token.AND) && checker.isExpectedValueCandidate(pass, v.X) // &value
+
 	case *ast.CompositeLit:
 		return true
 
 	case *ast.CallExpr:
-		return isCastedBasicLitOrExpectedValue(v, checker.expVarPattern) ||
-			isExpectedValueFactory(v, checker.expVarPattern)
+		return isParenExpr(v) ||
+			isCastedBasicLitOrExpectedValue(v, checker.expVarPattern) ||
+			isExpectedValueFactory(pass, v, checker.expVarPattern)
 	}
 
 	return isBasicLit(expr) ||
 		isUntypedConst(pass, expr) ||
 		isTypedConst(pass, expr) ||
 		isIdentNamedAsExpected(checker.expVarPattern, expr) ||
+		isStructVarNamedAsExpected(checker.expVarPattern, expr) ||
 		isStructFieldNamedAsExpected(checker.expVarPattern, expr)
+}
+
+func isParenExpr(ce *ast.CallExpr) bool {
+	_, ok := ce.Fun.(*ast.ParenExpr)
+	return ok
 }
 
 func isCastedBasicLitOrExpectedValue(ce *ast.CallExpr, pattern *regexp.Regexp) bool {
@@ -111,15 +164,16 @@ func isCastedBasicLitOrExpectedValue(ce *ast.CallExpr, pattern *regexp.Regexp) b
 	return false
 }
 
-func isExpectedValueFactory(ce *ast.CallExpr, pattern *regexp.Regexp) bool {
-	if len(ce.Args) != 0 {
-		return false
-	}
-
+func isExpectedValueFactory(pass *analysis.Pass, ce *ast.CallExpr, pattern *regexp.Regexp) bool {
 	switch fn := ce.Fun.(type) {
 	case *ast.Ident:
 		return pattern.MatchString(fn.Name)
+
 	case *ast.SelectorExpr:
+		timeDateFn := analysisutil.ObjectOf(pass.Pkg, "time", "Date")
+		if timeDateFn != nil && analysisutil.IsObj(pass.TypesInfo, fn.Sel, timeDateFn) {
+			return true
+		}
 		return pattern.MatchString(fn.Sel.Name)
 	}
 	return false
@@ -148,6 +202,11 @@ func isTypedConst(p *analysis.Pass, e ast.Expr) bool {
 func isIdentNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
 	id, ok := e.(*ast.Ident)
 	return ok && pattern.MatchString(id.Name)
+}
+
+func isStructVarNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
+	s, ok := e.(*ast.SelectorExpr)
+	return ok && isIdentNamedAsExpected(pattern, s.X)
 }
 
 func isStructFieldNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {

@@ -19,6 +19,7 @@ func registerFlags() {
 	Analyzer.Flags.BoolVar(&fExplicitExhaustiveMap, ExplicitExhaustiveMapFlag, false, `check map literal only if associated with "//exhaustive:enforce" comment`)
 	Analyzer.Flags.BoolVar(&fCheckGenerated, CheckGeneratedFlag, false, "check generated files")
 	Analyzer.Flags.BoolVar(&fDefaultSignifiesExhaustive, DefaultSignifiesExhaustiveFlag, false, "switch statement is unconditionally exhaustive if it has a default case")
+	Analyzer.Flags.BoolVar(&fDefaultCaseRequired, DefaultCaseRequiredFlag, false, "switch statement requires default case even if exhaustive")
 	Analyzer.Flags.Var(&fIgnoreEnumMembers, IgnoreEnumMembersFlag, "ignore constants matching `regexp`")
 	Analyzer.Flags.Var(&fIgnoreEnumTypes, IgnoreEnumTypesFlag, "ignore types matching `regexp`")
 	Analyzer.Flags.BoolVar(&fPackageScopeOnly, PackageScopeOnlyFlag, false, "only discover enums declared in file-level blocks")
@@ -36,6 +37,7 @@ const (
 	ExplicitExhaustiveMapFlag      = "explicit-exhaustive-map"
 	CheckGeneratedFlag             = "check-generated"
 	DefaultSignifiesExhaustiveFlag = "default-signifies-exhaustive"
+	DefaultCaseRequiredFlag        = "default-case-required"
 	IgnoreEnumMembersFlag          = "ignore-enum-members"
 	IgnoreEnumTypesFlag            = "ignore-enum-types"
 	PackageScopeOnlyFlag           = "package-scope-only"
@@ -52,6 +54,7 @@ var (
 	fExplicitExhaustiveMap      bool
 	fCheckGenerated             bool
 	fDefaultSignifiesExhaustive bool
+	fDefaultCaseRequired        bool
 	fIgnoreEnumMembers          regexpFlag
 	fIgnoreEnumTypes            regexpFlag
 	fPackageScopeOnly           bool
@@ -65,6 +68,7 @@ func resetFlags() {
 	fExplicitExhaustiveMap = false
 	fCheckGenerated = false
 	fDefaultSignifiesExhaustive = false
+	fDefaultCaseRequired = false
 	fIgnoreEnumMembers = regexpFlag{}
 	fIgnoreEnumTypes = regexpFlag{}
 	fPackageScopeOnly = false
@@ -121,6 +125,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			conf := switchConfig{
 				explicit:                   fExplicitExhaustiveSwitch,
 				defaultSignifiesExhaustive: fDefaultSignifiesExhaustive,
+				defaultCaseRequired:        fDefaultCaseRequired,
 				checkGenerated:             fCheckGenerated,
 				ignoreConstant:             fIgnoreEnumMembers.re,
 				ignoreType:                 fIgnoreEnumTypes.re,

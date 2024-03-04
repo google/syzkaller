@@ -9,14 +9,34 @@ import (
 
 // newCheckers accepts linter config and returns slices of enabled checkers sorted by priority.
 func newCheckers(cfg config.Config) ([]checkers.RegularChecker, []checkers.AdvancedChecker, error) {
-	enabledCheckers := cfg.EnabledCheckers
-	if len(enabledCheckers) == 0 {
-		enabledCheckers = checkers.EnabledByDefault()
-	}
-	if cfg.EnableAll {
-		enabledCheckers = checkers.All()
+	if err := cfg.Validate(); err != nil {
+		return nil, nil, err
 	}
 
+	enabledCheckersSet := make(map[string]struct{})
+
+	if cfg.EnableAll {
+		for _, checker := range checkers.All() {
+			enabledCheckersSet[checker] = struct{}{}
+		}
+	} else if !cfg.DisableAll {
+		for _, checker := range checkers.EnabledByDefault() {
+			enabledCheckersSet[checker] = struct{}{}
+		}
+	}
+
+	for _, checker := range cfg.EnabledCheckers {
+		enabledCheckersSet[checker] = struct{}{}
+	}
+
+	for _, checker := range cfg.DisabledCheckers {
+		delete(enabledCheckersSet, checker)
+	}
+
+	enabledCheckers := make([]string, 0, len(enabledCheckersSet))
+	for v := range enabledCheckersSet {
+		enabledCheckers = append(enabledCheckers, v)
+	}
 	checkers.SortByPriority(enabledCheckers)
 
 	regularCheckers := make([]checkers.RegularChecker, 0, len(enabledCheckers))
@@ -31,6 +51,9 @@ func newCheckers(cfg config.Config) ([]checkers.RegularChecker, []checkers.Advan
 		switch c := ch.(type) {
 		case *checkers.ExpectedActual:
 			c.SetExpVarPattern(cfg.ExpectedActual.ExpVarPattern.Regexp)
+
+		case *checkers.RequireError:
+			c.SetFnPattern(cfg.RequireError.FnPattern.Regexp)
 
 		case *checkers.SuiteExtraAssertCall:
 			c.SetMode(cfg.SuiteExtraAssertCall.Mode)

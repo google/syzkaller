@@ -30,5 +30,5 @@ func IsObj(typesInfo *types.Info, expr ast.Expr, expected types.Object) bool {
 	}
 
 	obj := typesInfo.ObjectOf(id)
-	return obj.Id() == expected.Id()
+	return obj == expected
 }

@@ -123,7 +123,7 @@ func (i ignores) get(file string, line string) map[string][]issue.SuppressionInf
 	start, end := i.parseLine(line)
 	if is, ok := i[file]; ok {
 		for _, i := range is {
-			if i.start <= start && i.end >= end {
+			if start <= i.start && end >= i.end {
 				return i.suppressions
 			}
 		}
@@ -414,6 +414,9 @@ func (gosec *Analyzer) CheckAnalyzers(pkg *packages.Package) {
 			SSA:    ssaResult.(*buildssa.SSA),
 		},
 	}
+
+	generatedFiles := gosec.generatedFiles(pkg)
+
 	for _, analyzer := range gosec.analyzerList {
 		pass := &analysis.Pass{
 			Analyzer:          analyzer,
@@ -441,11 +444,31 @@ func (gosec *Analyzer) CheckAnalyzers(pkg *packages.Package) {
 		if result != nil {
 			if passIssues, ok := result.([]*issue.Issue); ok {
 				for _, iss := range passIssues {
+					if gosec.excludeGenerated {
+						if _, ok := generatedFiles[iss.File]; ok {
+							continue
+						}
+					}
 					gosec.updateIssues(iss)
 				}
 			}
 		}
 	}
+}
+
+func (gosec *Analyzer) generatedFiles(pkg *packages.Package) map[string]bool {
+	generatedFiles := map[string]bool{}
+	for _, file := range pkg.Syntax {
+		if isGeneratedFile(file) {
+			fp := pkg.Fset.File(file.Pos())
+			if fp == nil {
+				// skip files which cannot be located
+				continue
+			}
+			generatedFiles[fp.Name()] = true
+		}
+	}
+	return generatedFiles
 }
 
 // buildSSA runs the SSA pass which builds the SSA representation of the package. It handles gracefully any panic.
@@ -557,8 +580,8 @@ func (gosec *Analyzer) ignore(n ast.Node) map[string]issue.SuppressionInfo {
 
 		for _, group := range groups {
 			comment := strings.TrimSpace(group.Text())
-			foundDefaultTag := strings.HasPrefix(comment, noSecDefaultTag) || regexp.MustCompile("\n *"+noSecDefaultTag).Match([]byte(comment))
-			foundAlternativeTag := strings.HasPrefix(comment, noSecAlternativeTag) || regexp.MustCompile("\n *"+noSecAlternativeTag).Match([]byte(comment))
+			foundDefaultTag := strings.HasPrefix(comment, noSecDefaultTag) || regexp.MustCompile("\n *"+noSecDefaultTag).MatchString(comment)
+			foundAlternativeTag := strings.HasPrefix(comment, noSecAlternativeTag) || regexp.MustCompile("\n *"+noSecAlternativeTag).MatchString(comment)
 
 			if foundDefaultTag || foundAlternativeTag {
 				gosec.stats.NumNosec++

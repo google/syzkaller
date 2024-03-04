@@ -47,7 +47,7 @@ type EnforceMapStyleRule struct {
 func (r *EnforceMapStyleRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	
+
 	if r.configured {
 		return
 	}
@@ -58,7 +58,7 @@ func (r *EnforceMapStyleRule) configure(arguments lint.Arguments) {
 		return
 	}
 
-	enforceMapStyle, ok := arguments[0].(string) 
+	enforceMapStyle, ok := arguments[0].(string)
 	if !ok {
 		panic(fmt.Sprintf("Invalid argument '%v' for 'enforce-map-style' rule. Expecting string, got %T", arguments[0], arguments[0]))
 	}
@@ -141,7 +141,7 @@ func (r *EnforceMapStyleRule) Apply(file *lint.File, arguments lint.Arguments) [
 }
 
 // Name returns the rule name.
-func (r *EnforceMapStyleRule) Name() string {
+func (*EnforceMapStyleRule) Name() string {
 	return "enforce-map-style"
 }
 

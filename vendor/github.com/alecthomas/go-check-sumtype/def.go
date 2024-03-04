@@ -1,10 +1,20 @@
 package gochecksumtype
 
 import (
+	"flag"
 	"fmt"
 	"go/token"
 	"go/types"
+	"log"
 )
+
+var debug = flag.Bool("debug", false, "enable debug logging")
+
+func debugf(format string, args ...interface{}) {
+	if *debug {
+		log.Printf(format, args...)
+	}
+}
 
 // Error as returned by Run()
 type Error interface {
@@ -107,6 +117,7 @@ func newSumTypeDef(pkg *types.Package, decl sumTypeDecl) (*sumTypeDef, error) {
 		Decl: decl,
 		Ty:   iface,
 	}
+	debugf("searching for variants of %s.%s\n", pkg.Path(), decl.TypeName)
 	for _, name := range pkg.Scope().Names() {
 		obj, ok := pkg.Scope().Lookup(name).(*types.TypeName)
 		if !ok {
@@ -116,7 +127,12 @@ func newSumTypeDef(pkg *types.Package, decl sumTypeDecl) (*sumTypeDef, error) {
 		if types.Identical(ty.Underlying(), iface) {
 			continue
 		}
+		// Skip generic types.
+		if named, ok := ty.(*types.Named); ok && named.TypeParams() != nil {
+			continue
+		}
 		if types.Implements(ty, iface) || types.Implements(types.NewPointer(ty), iface) {
+			debugf("  found variant: %s.%s\n", pkg.Path(), obj.Name())
 			def.Variants = append(def.Variants, obj)
 		}
 	}

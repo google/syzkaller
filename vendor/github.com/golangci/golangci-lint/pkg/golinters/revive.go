@@ -34,7 +34,7 @@ type jsonObject struct {
 
 // NewRevive returns a new Revive linter.
 //
-//nolint:dupl
+
 func NewRevive(settings *config.ReviveSettings) *goanalysis.Linter {
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
@@ -247,7 +247,7 @@ func safeTomlSlice(r []any) []any {
 }
 
 // This element is not exported by revive, so we need copy the code.
-// Extracted from https://github.com/mgechev/revive/blob/v1.3.4/config/config.go#L15
+// Extracted from https://github.com/mgechev/revive/blob/v1.3.7/config/config.go#L15
 var defaultRules = []lint.Rule{
 	&rule.VarDeclarationsRule{},
 	&rule.PackageCommentsRule{},
@@ -290,7 +290,7 @@ var allRules = append([]lint.Rule{
 	&rule.ModifiesValRecRule{},
 	&rule.ConstantLogicalExprRule{},
 	&rule.BoolLiteralRule{},
-	&rule.ImportsBlacklistRule{},
+	&rule.ImportsBlocklistRule{},
 	&rule.FunctionResultsLimitRule{},
 	&rule.MaxPublicStructsRule{},
 	&rule.RangeValInClosureRule{},
@@ -327,6 +327,9 @@ var allRules = append([]lint.Rule{
 	&rule.RedundantImportAlias{},
 	&rule.ImportAliasNamingRule{},
 	&rule.EnforceMapStyleRule{},
+	&rule.EnforceRepeatedArgTypeStyleRule{},
+	&rule.EnforceSliceStyleRule{},
+	&rule.MaxControlNestingRule{},
 }, defaultRules...)
 
 const defaultConfidence = 0.8
@@ -349,8 +352,8 @@ func normalizeConfig(cfg *lint.Config) {
 	}
 	if cfg.EnableAllRules {
 		// Add to the configuration all rules not yet present in it
-		for _, rule := range allRules {
-			ruleName := rule.Name()
+		for _, r := range allRules {
+			ruleName := r.Name()
 			_, alreadyInConf := cfg.Rules[ruleName]
 			if alreadyInConf {
 				continue

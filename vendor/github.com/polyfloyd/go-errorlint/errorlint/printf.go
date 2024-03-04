@@ -7,23 +7,6 @@ import (
 	"strings"
 )
 
-func verbOrder(verbs []verb, numArgs int) [][]verb {
-	orderedVerbs := make([][]verb, numArgs)
-	i := 0
-	for _, v := range verbs {
-		if v.index != -1 {
-			i = v.index - 1
-		}
-		if i >= len(orderedVerbs) {
-			continue
-		}
-		orderedVerbs[i] = append(orderedVerbs[i], v)
-		verbs = verbs[1:]
-		i++
-	}
-	return orderedVerbs
-}
-
 type verb struct {
 	format       string
 	formatOffset int

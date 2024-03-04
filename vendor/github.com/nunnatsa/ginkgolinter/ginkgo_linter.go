@@ -16,6 +16,7 @@ import (
 
 	"github.com/nunnatsa/ginkgolinter/ginkgohandler"
 	"github.com/nunnatsa/ginkgolinter/gomegahandler"
+	"github.com/nunnatsa/ginkgolinter/interfaces"
 	"github.com/nunnatsa/ginkgolinter/reverseassertion"
 	"github.com/nunnatsa/ginkgolinter/types"
 	"github.com/nunnatsa/ginkgolinter/version"
@@ -40,8 +41,13 @@ const (
 	focusContainerFound           = linterName + ": Focus container found. This is used only for local debug and should not be part of the actual source code, consider to replace with %q"
 	focusSpecFound                = linterName + ": Focus spec found. This is used only for local debug and should not be part of the actual source code, consider to remove it"
 	compareDifferentTypes         = linterName + ": use %[1]s with different types: Comparing %[2]s with %[3]s; either change the expected value type if possible, or use the BeEquivalentTo() matcher, instead of %[1]s()"
-	compareInterfaces             = linterName + ": be careful comparing interfaces. This can fail in runtime, if the actual implementing types are different"
+	matchErrorArgWrongType        = linterName + ": the MatchError matcher used to assert a non error type (%s)"
+	matchErrorWrongTypeAssertion  = linterName + ": MatchError first parameter (%s) must be error, string, GomegaMatcher or func(error)bool are allowed"
+	matchErrorMissingDescription  = linterName + ": missing function description as second parameter of MatchError"
+	matchErrorRedundantArg        = linterName + ": redundant MatchError arguments; consider removing them; consider using `%s` instead"
+	matchErrorNoFuncDescription   = linterName + ": The second parameter of MatchError must be the function description (string)"
 )
+
 const ( // gomega matchers
 	beEmpty        = "BeEmpty"
 	beEquivalentTo = "BeEquivalentTo"
@@ -61,6 +67,7 @@ const ( // gomega matchers
 	and            = "And"
 	or             = "Or"
 	withTransform  = "WithTransform"
+	matchError     = "MatchError"
 )
 
 const ( // gomega actuals
@@ -133,6 +140,8 @@ currently, the linter searches for following:
 
 * trigger a warning when a ginkgo focus container (FDescribe, FContext, FWhen or FIt) is found. [Bug]
 
+* validate the MatchError gomega matcher [Bug]
+
 * trigger a warning when using the Equal or the BeIdentical matcher with two different types, as these matchers will
   fail in runtime.
 
@@ -178,6 +187,8 @@ func (l *ginkgoLinter) run(pass *analysis.Pass) (interface{}, error) {
 		if gomegaHndlr == nil && ginkgoHndlr == nil { // no gomega or ginkgo imports => no use in gomega in this file; nothing to do here
 			continue
 		}
+
+		//gomegaMatcher = getMatcherInterface(pass, file)
 
 		ast.Inspect(file, func(n ast.Node) bool {
 			if ginkgoHndlr != nil && fileConfig.ForbidFocus {
@@ -304,6 +315,8 @@ func checkExpression(pass *analysis.Pass, config types.Config, assertionExp *ast
 		}
 		return bool(config.SuppressCompare) || checkComparison(expr, pass, matcher, handler, first, second, op, oldExpr)
 
+	} else if checkMatchError(pass, assertionExp, actualArg, handler, oldExpr) {
+		return false
 	} else if isExprError(pass, actualArg) {
 		return bool(config.SuppressErr) || checkNilError(pass, expr, handler, actualArg, oldExpr)
 
@@ -316,6 +329,130 @@ func checkExpression(pass *analysis.Pass, config types.Config, assertionExp *ast
 	}
 
 	return true
+}
+
+func checkMatchError(pass *analysis.Pass, origExp *ast.CallExpr, actualArg ast.Expr, handler gomegahandler.Handler, oldExpr string) bool {
+	matcher, ok := origExp.Args[0].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+
+	return doCheckMatchError(pass, origExp, matcher, actualArg, handler, oldExpr)
+}
+
+func doCheckMatchError(pass *analysis.Pass, origExp *ast.CallExpr, matcher *ast.CallExpr, actualArg ast.Expr, handler gomegahandler.Handler, oldExpr string) bool {
+	name, ok := handler.GetActualFuncName(matcher)
+	if !ok {
+		return false
+	}
+	switch name {
+	case matchError:
+	case not:
+		nested, ok := matcher.Args[0].(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+
+		return doCheckMatchError(pass, origExp, nested, actualArg, handler, oldExpr)
+	case and, or:
+		res := true
+		for _, arg := range matcher.Args {
+			if nested, ok := arg.(*ast.CallExpr); ok {
+				if !doCheckMatchError(pass, origExp, nested, actualArg, handler, oldExpr) {
+					res = false
+				}
+			}
+		}
+		return res
+	default:
+		return false
+	}
+
+	if !isExprError(pass, actualArg) {
+		reportNoFix(pass, origExp.Pos(), matchErrorArgWrongType, goFmt(pass.Fset, actualArg))
+	}
+
+	expr := astcopy.CallExpr(matcher)
+
+	validAssertion, requiredParams := checkMatchErrorAssertion(pass, matcher)
+	if !validAssertion {
+		reportNoFix(pass, expr.Pos(), matchErrorWrongTypeAssertion, goFmt(pass.Fset, matcher.Args[0]))
+		return false
+	}
+
+	numParams := len(matcher.Args)
+	if numParams == requiredParams {
+		if numParams == 2 {
+			t := pass.TypesInfo.TypeOf(matcher.Args[1])
+			if !gotypes.Identical(t, gotypes.Typ[gotypes.String]) {
+				pass.Reportf(expr.Pos(), matchErrorNoFuncDescription)
+				return false
+			}
+		}
+		return true
+	}
+
+	if requiredParams == 2 && numParams == 1 {
+		reportNoFix(pass, expr.Pos(), matchErrorMissingDescription)
+		return false
+	}
+
+	var newArgsSuggestion = []ast.Expr{expr.Args[0]}
+	if requiredParams == 2 {
+		newArgsSuggestion = append(newArgsSuggestion, expr.Args[1])
+	}
+	expr.Args = newArgsSuggestion
+	report(pass, expr, matchErrorRedundantArg, oldExpr)
+	return false
+}
+
+func checkMatchErrorAssertion(pass *analysis.Pass, matcher *ast.CallExpr) (bool, int) {
+	if isErrorMatcherValidArg(pass, matcher.Args[0]) {
+		return true, 1
+	}
+
+	t1 := pass.TypesInfo.TypeOf(matcher.Args[0])
+	if isFuncErrBool(t1) {
+		return true, 2
+	}
+
+	return false, 0
+}
+
+// isFuncErrBool checks if a function is with the signature `func(error) bool`
+func isFuncErrBool(t gotypes.Type) bool {
+	sig, ok := t.(*gotypes.Signature)
+	if !ok {
+		return false
+	}
+	if sig.Params().Len() != 1 || sig.Results().Len() != 1 {
+		return false
+	}
+
+	if !interfaces.ImplementsError(sig.Params().At(0).Type()) {
+		return false
+	}
+
+	b, ok := sig.Results().At(0).Type().(*gotypes.Basic)
+	if ok && b.Name() == "bool" && b.Info() == gotypes.IsBoolean && b.Kind() == gotypes.Bool {
+		return true
+	}
+
+	return false
+}
+
+func isErrorMatcherValidArg(pass *analysis.Pass, arg ast.Expr) bool {
+	if isExprError(pass, arg) {
+		return true
+	}
+
+	if t, ok := pass.TypesInfo.TypeOf(arg).(*gotypes.Basic); ok && t.Kind() == gotypes.String {
+		return true
+	}
+
+	t := pass.TypesInfo.TypeOf(arg)
+
+	return interfaces.ImplementsGomegaMatcher(t)
 }
 
 func checkEqualWrongType(pass *analysis.Pass, origExp *ast.CallExpr, actualArg ast.Expr, handler gomegahandler.Handler, old string) bool {
@@ -1297,28 +1434,18 @@ func goFmt(fset *token.FileSet, x ast.Expr) string {
 	return b.String()
 }
 
-var errorType *gotypes.Interface
-
-func init() {
-	errorType = gotypes.Universe.Lookup("error").Type().Underlying().(*gotypes.Interface)
-}
-
-func isError(t gotypes.Type) bool {
-	return gotypes.Implements(t, errorType)
-}
-
 func isExprError(pass *analysis.Pass, expr ast.Expr) bool {
 	actualArgType := pass.TypesInfo.TypeOf(expr)
 	switch t := actualArgType.(type) {
 	case *gotypes.Named:
-		if isError(actualArgType) {
+		if interfaces.ImplementsError(actualArgType) {
 			return true
 		}
 	case *gotypes.Tuple:
 		if t.Len() > 0 {
 			switch t0 := t.At(0).Type().(type) {
 			case *gotypes.Named, *gotypes.Pointer:
-				if isError(t0) {
+				if interfaces.ImplementsError(t0) {
 					return true
 				}
 			}

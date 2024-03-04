@@ -10,8 +10,8 @@ The Go [language spec] does not have an explicit definition for enums. For
 the purpose of this analyzer, and by convention, an enum type is any named
 type that:
 
-  - has underlying type float, string, or integer (includes byte and rune);
-    and
+  - has an [underlying type] of float, string, or integer (includes byte
+    and rune); and
   - has at least one constant of its type defined in the same [block].
 
 In the example below, Biome is an enum type. The three constants are its
@@ -209,6 +209,7 @@ To ignore specific types, specify the -ignore-enum-types flag:
 	exhaustive -ignore-enum-types '^time\.Duration$|^example\.org/measure\.Unit$'
 
 [language spec]: https://golang.org/ref/spec
+[underlying type]: https://golang.org/ref/spec#Underlying_types
 [block]: https://golang.org/ref/spec#Blocks
 [BasicKind]: https://pkg.go.dev/go/types#BasicKind
 */

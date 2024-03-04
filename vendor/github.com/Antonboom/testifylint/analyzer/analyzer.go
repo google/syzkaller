@@ -3,8 +3,6 @@ package analyzer
 import (
 	"fmt"
 	"go/ast"
-	"go/types"
-	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/ast/inspector"
@@ -79,58 +77,11 @@ func (tl *testifyLint) run(pass *analysis.Pass) (any, error) {
 }
 
 func (tl *testifyLint) regularCheck(pass *analysis.Pass, ce *ast.CallExpr) {
-	se, ok := ce.Fun.(*ast.SelectorExpr)
-	if !ok || se.Sel == nil {
-		return
-	}
-	fnName := se.Sel.Name
-
-	initiatorPkg, isPkgCall := func() (*types.Package, bool) {
-		// Examples:
-		// s.Assert         -> method of *suite.Suite        -> package suite ("vendor/github.com/stretchr/testify/suite")
-		// s.Assert().Equal -> method of *assert.Assertions  -> package assert ("vendor/github.com/stretchr/testify/assert")
-		// s.Equal          -> method of *assert.Assertions  -> package assert ("vendor/github.com/stretchr/testify/assert")
-		// reqObj.Falsef    -> method of *require.Assertions -> package require ("vendor/github.com/stretchr/testify/require")
-		if sel, ok := pass.TypesInfo.Selections[se]; ok {
-			return sel.Obj().Pkg(), false
-		}
-
-		// Examples:
-		// assert.False      -> assert  -> package assert ("vendor/github.com/stretchr/testify/assert")
-		// require.NotEqualf -> require -> package require ("vendor/github.com/stretchr/testify/require")
-		if id, ok := se.X.(*ast.Ident); ok {
-			if selObj := pass.TypesInfo.ObjectOf(id); selObj != nil {
-				if pkg, ok := selObj.(*types.PkgName); ok {
-					return pkg.Imported(), true
-				}
-			}
-		}
-		return nil, false
-	}()
-	if initiatorPkg == nil {
+	call := checkers.NewCallMeta(pass, ce)
+	if nil == call {
 		return
 	}
 
-	isAssert := analysisutil.IsPkg(initiatorPkg, testify.AssertPkgName, testify.AssertPkgPath)
-	isRequire := analysisutil.IsPkg(initiatorPkg, testify.RequirePkgName, testify.RequirePkgPath)
-	if !(isAssert || isRequire) {
-		return
-	}
-
-	call := &checkers.CallMeta{
-		Range:        ce,
-		IsPkg:        isPkgCall,
-		IsAssert:     isAssert,
-		Selector:     se,
-		SelectorXStr: analysisutil.NodeString(pass.Fset, se.X),
-		Fn: checkers.FnMeta{
-			Range: se.Sel,
-			Name:  fnName,
-			IsFmt: strings.HasSuffix(fnName, "f"),
-		},
-		Args:    trimTArg(pass, isAssert, ce.Args),
-		ArgsRaw: ce.Args,
-	}
 	for _, ch := range tl.regularCheckers {
 		if d := ch.Check(pass, call); d != nil {
 			pass.Report(*d)
@@ -139,37 +90,4 @@ func (tl *testifyLint) regularCheck(pass *analysis.Pass, ce *ast.CallExpr) {
 			return
 		}
 	}
-}
-
-func trimTArg(pass *analysis.Pass, isAssert bool, args []ast.Expr) []ast.Expr {
-	if len(args) == 0 {
-		return args
-	}
-
-	if isTestingTPtr(pass, isAssert, args[0]) {
-		return args[1:]
-	}
-	return args
-}
-
-func isTestingTPtr(pass *analysis.Pass, isAssert bool, arg ast.Expr) bool {
-	pkgPath := testify.RequirePkgPath
-	if isAssert {
-		pkgPath = testify.AssertPkgPath
-	}
-
-	testingInterfaceObj := analysisutil.ObjectOf(pass.Pkg, pkgPath, "TestingT")
-	if testingInterfaceObj == nil {
-		return false
-	}
-
-	argType := pass.TypesInfo.TypeOf(arg)
-	if argType == nil {
-		return false
-	}
-
-	return types.Implements(
-		argType,
-		testingInterfaceObj.Type().Underlying().(*types.Interface),
-	)
 }

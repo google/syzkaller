@@ -24,11 +24,11 @@ const (
 
 type Parser struct {
 	// Meant to be passed via New()
-	path, ignore               string
-	ignoreTests, matchConstant bool
-	minLength, minOccurrences  int
-	numberMin, numberMax       int
-	excludeTypes               map[Type]bool
+	path, ignore, ignoreStrings string
+	ignoreTests, matchConstant  bool
+	minLength, minOccurrences   int
+	numberMin, numberMax        int
+	excludeTypes                map[Type]bool
 
 	supportedTokens []token.Token
 
@@ -39,7 +39,7 @@ type Parser struct {
 
 // New creates a new instance of the parser.
 // This is your entry point if you'd like to use goconst as an API.
-func New(path, ignore string, ignoreTests, matchConstant, numbers bool, numberMin, numberMax, minLength, minOccurrences int, excludeTypes map[Type]bool) *Parser {
+func New(path, ignore, ignoreStrings string, ignoreTests, matchConstant, numbers bool, numberMin, numberMax, minLength, minOccurrences int, excludeTypes map[Type]bool) *Parser {
 	supportedTokens := []token.Token{token.STRING}
 	if numbers {
 		supportedTokens = append(supportedTokens, token.INT, token.FLOAT)
@@ -48,6 +48,7 @@ func New(path, ignore string, ignoreTests, matchConstant, numbers bool, numberMi
 	return &Parser{
 		path:            path,
 		ignore:          ignore,
+		ignoreStrings:   ignoreStrings,
 		ignoreTests:     ignoreTests,
 		matchConstant:   matchConstant,
 		minLength:       minLength,
@@ -96,6 +97,16 @@ func (p *Parser) ProcessResults() {
 		// Filter out items whose occurrences don't match the min value
 		if len(item) < p.minOccurrences {
 			delete(p.strs, str)
+		}
+
+		if p.ignoreStrings != "" {
+			match, err := regexp.MatchString(p.ignoreStrings, str)
+			if err != nil {
+				log.Println(err)
+			}
+			if match {
+				delete(p.strs, str)
+			}
 		}
 
 		// If the value is a number
