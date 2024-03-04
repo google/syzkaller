@@ -313,9 +313,13 @@ func (it *messageIterator) receive(maxToPull int32) ([]*Message, error) {
 			}
 		}
 		// Only return for processing messages that were successfully modack'ed.
+		// Iterate over the original messages slice for ordering.
 		v := make([]*ipubsub.Message, 0, len(pendingMessages))
-		for _, m := range pendingMessages {
-			v = append(v, m)
+		for _, m := range msgs {
+			ackID := msgAckID(m)
+			if _, ok := pendingMessages[ackID]; ok {
+				v = append(v, m)
+			}
 		}
 		return v, nil
 	}
