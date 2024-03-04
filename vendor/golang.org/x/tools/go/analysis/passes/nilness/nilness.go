@@ -38,11 +38,15 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 	reportf := func(category string, pos token.Pos, format string, args ...interface{}) {
-		pass.Report(analysis.Diagnostic{
-			Pos:      pos,
-			Category: category,
-			Message:  fmt.Sprintf(format, args...),
-		})
+		// We ignore nil-checking ssa.Instructions
+		// that don't correspond to syntax.
+		if pos.IsValid() {
+			pass.Report(analysis.Diagnostic{
+				Pos:      pos,
+				Category: category,
+				Message:  fmt.Sprintf(format, args...),
+			})
+		}
 	}
 
 	// notNil reports an error if v is provably nil.
@@ -182,6 +186,42 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 					visit(d, s)
 				}
 				return
+			}
+		}
+
+		// In code of the form:
+		//
+		// 	if ptr, ok := x.(*T); ok { ... } else { fsucc }
+		//
+		// the fsucc block learns that ptr == nil,
+		// since that's its zero value.
+		if If, ok := b.Instrs[len(b.Instrs)-1].(*ssa.If); ok {
+			// Handle "if ok" and "if !ok" variants.
+			cond, fsucc := If.Cond, b.Succs[1]
+			if unop, ok := cond.(*ssa.UnOp); ok && unop.Op == token.NOT {
+				cond, fsucc = unop.X, b.Succs[0]
+			}
+
+			// Match pattern:
+			//   t0 = typeassert (pointerlike)
+			//   t1 = extract t0 #0  // ptr
+			//   t2 = extract t0 #1  // ok
+			//   if t2 goto tsucc, fsucc
+			if extract1, ok := cond.(*ssa.Extract); ok && extract1.Index == 1 {
+				if assert, ok := extract1.Tuple.(*ssa.TypeAssert); ok &&
+					isNillable(assert.AssertedType) {
+					for _, pinstr := range *assert.Referrers() {
+						if extract0, ok := pinstr.(*ssa.Extract); ok &&
+							extract0.Index == 0 &&
+							extract0.Tuple == extract1.Tuple {
+							for _, d := range b.Dominees() {
+								if len(d.Preds) == 1 && d == fsucc {
+									visit(d, append(stack, fact{extract0, isnil}))
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -355,4 +395,24 @@ func (ff facts) negate() facts {
 		nn[i] = f.negate()
 	}
 	return nn
+}
+
+func is[T any](x any) bool {
+	_, ok := x.(T)
+	return ok
+}
+
+func isNillable(t types.Type) bool {
+	switch t := typeparams.CoreType(t).(type) {
+	case *types.Pointer,
+		*types.Map,
+		*types.Signature,
+		*types.Chan,
+		*types.Interface,
+		*types.Slice:
+		return true
+	case *types.Basic:
+		return t == types.Typ[types.UnsafePointer]
+	}
+	return false
 }
