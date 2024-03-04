@@ -416,7 +416,11 @@ func (env *env) minimizeConfig() (*testResult, error) {
 	minConfig, err := env.minimizer.Minimize(env.cfg.Manager.SysTarget, env.cfg.Kernel.Config,
 		env.cfg.Kernel.BaselineConfig, env.reportTypes, env.cfg.Trace, predMinimize)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, vcs.ErrBadKconfig) {
+			env.log("config minimization failed due to bad Kconfig %v\nproceeding with the original config", err)
+		} else {
+			return nil, err
+		}
 	}
 	env.kernelConfig = minConfig
 	return testResults[hash.Hash(minConfig)], nil
