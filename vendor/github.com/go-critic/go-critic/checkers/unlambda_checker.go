@@ -91,11 +91,28 @@ func (c *unlambdaChecker) VisitExpr(x ast.Expr) {
 		}
 	}
 
-	if len(result.Args) == n {
+	if c.lenArgs(result.Args) == n {
 		c.warn(fn, callable)
 	}
 }
 
 func (c *unlambdaChecker) warn(cause ast.Node, suggestion string) {
 	c.ctx.Warn(cause, "replace `%s` with `%s`", cause, suggestion)
+}
+
+func (c *unlambdaChecker) lenArgs(args []ast.Expr) int {
+	lenArgs := len(args)
+
+	for _, arg := range args {
+		callExp, ok := arg.(*ast.CallExpr)
+		if !ok {
+			continue
+		}
+
+		// Don't count function call. only args.
+		lenArgs--
+		lenArgs += c.lenArgs(callExp.Args)
+	}
+
+	return lenArgs
 }

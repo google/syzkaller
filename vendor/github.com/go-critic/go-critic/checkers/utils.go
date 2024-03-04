@@ -260,7 +260,7 @@ func isUnitTestFunc(ctx *linter.CheckerContext, fn *ast.FuncDecl) bool {
 	return false
 }
 
-// qualifiedName returns called expr fully-quallified name.
+// qualifiedName returns called expr fully-qualified name.
 //
 // It works for simple identifiers like f => "f" and identifiers
 // from other package like pkg.f => "pkg.f".

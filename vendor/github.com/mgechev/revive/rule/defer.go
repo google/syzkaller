@@ -56,7 +56,7 @@ func (*DeferRule) allowFromArgs(args lint.Arguments) map[string]bool {
 		return allow
 	}
 
-	aa, ok := args[0].([]interface{})
+	aa, ok := args[0].([]any)
 	if !ok {
 		panic(fmt.Sprintf("Invalid argument '%v' for 'defer' rule. Expecting []string, got %T", args[0], args[0]))
 	}
@@ -144,8 +144,8 @@ func (w lintDeferRule) Visit(node ast.Node) ast.Visitor {
 					w.newFailure("be careful when deferring calls to methods without pointer receiver", fn, 0.8, "bad practice", "method-call")
 				}
 			}
-
 		}
+
 		return nil
 	}
 

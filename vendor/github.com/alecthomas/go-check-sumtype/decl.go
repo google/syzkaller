@@ -57,6 +57,7 @@ func findSumTypeDecls(pkgs []*packages.Package) ([]sumTypeDecl, error) {
 					}
 					pos = pkg.Fset.Position(tspec.Pos())
 					decl := sumTypeDecl{Package: pkg, TypeName: tspec.Name.Name, Pos: pos}
+					debugf("found sum type decl: %s.%s", decl.Package.PkgPath, decl.TypeName)
 					decls = append(decls, decl)
 					break
 				}

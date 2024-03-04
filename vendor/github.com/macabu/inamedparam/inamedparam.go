@@ -1,6 +1,7 @@
 package inamedparam
 
 import (
+	"flag"
 	"go/ast"
 
 	"golang.org/x/tools/go/analysis"
@@ -8,13 +9,28 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
+const (
+	analyzerName = "inamedparam"
+
+	flagSkipSingleParam = "skip-single-param"
+)
+
 var Analyzer = &analysis.Analyzer{
-	Name: "inamedparam",
-	Doc:  "reports interfaces with unnamed method parameters",
-	Run:  run,
+	Name:  analyzerName,
+	Doc:   "reports interfaces with unnamed method parameters",
+	Run:   run,
+	Flags: flags(),
 	Requires: []*analysis.Analyzer{
 		inspect.Analyzer,
 	},
+}
+
+func flags() flag.FlagSet {
+	flags := flag.NewFlagSet(analyzerName, flag.ExitOnError)
+
+	flags.Bool(flagSkipSingleParam, false, "skip interface methods with a single unnamed parameter")
+
+	return *flags
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -23,6 +39,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	types := []ast.Node{
 		&ast.InterfaceType{},
 	}
+
+	skipSingleParam := pass.Analyzer.Flags.Lookup(flagSkipSingleParam).Value.(flag.Getter).Get().(bool)
 
 	inspect.Preorder(types, func(n ast.Node) {
 		interfaceType, ok := n.(*ast.InterfaceType)
@@ -36,7 +54,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				continue
 			}
 
+			// Improvement: add test case to reproduce this. Help wanted.
+			if len(method.Names) == 0 {
+				continue
+			}
+
 			methodName := method.Names[0].Name
+
+			if skipSingleParam && len(interfaceFunc.Params.List) == 1 {
+				continue
+			}
 
 			for _, param := range interfaceFunc.Params.List {
 				if param.Names == nil {

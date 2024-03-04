@@ -22,7 +22,7 @@ func (*EarlyReturnRule) Name() string {
 }
 
 // CheckIfElse evaluates the rule against an ifelse.Chain.
-func (e *EarlyReturnRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
+func (*EarlyReturnRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
 	if !chain.Else.Deviates() {
 		// this rule only applies if the else-block deviates control flow
 		return

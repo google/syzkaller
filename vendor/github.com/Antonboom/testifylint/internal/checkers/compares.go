@@ -18,6 +18,7 @@ import (
 //	assert.True(t, a >= b)
 //	assert.True(t, a < b)
 //	assert.True(t, a <= b)
+//	assert.False(t, a == b)
 //	...
 //
 // and requires
@@ -46,10 +47,10 @@ func (checker Compares) Check(pass *analysis.Pass, call *CallMeta) *analysis.Dia
 
 	var tokenToProposedFn map[token.Token]string
 
-	switch call.Fn.Name {
-	case "True", "Truef":
+	switch call.Fn.NameFTrimmed {
+	case "True":
 		tokenToProposedFn = tokenToProposedFnInsteadOfTrue
-	case "False", "Falsef":
+	case "False":
 		tokenToProposedFn = tokenToProposedFnInsteadOfFalse
 	default:
 		return nil

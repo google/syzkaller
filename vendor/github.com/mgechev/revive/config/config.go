@@ -1,3 +1,4 @@
+// Package config implements revive's configuration data structures and related methods
 package config
 
 import (
@@ -5,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mgechev/revive/formatter"
-
 	"github.com/BurntSushi/toml"
+
+	"github.com/mgechev/revive/formatter"
 	"github.com/mgechev/revive/lint"
 	"github.com/mgechev/revive/rule"
 )
@@ -54,7 +55,7 @@ var allRules = append([]lint.Rule{
 	&rule.ModifiesValRecRule{},
 	&rule.ConstantLogicalExprRule{},
 	&rule.BoolLiteralRule{},
-	&rule.ImportsBlacklistRule{},
+	&rule.ImportsBlocklistRule{},
 	&rule.FunctionResultsLimitRule{},
 	&rule.MaxPublicStructsRule{},
 	&rule.RangeValInClosureRule{},
@@ -91,6 +92,9 @@ var allRules = append([]lint.Rule{
 	&rule.RedundantImportAlias{},
 	&rule.ImportAliasNamingRule{},
 	&rule.EnforceMapStyleRule{},
+	&rule.EnforceRepeatedArgTypeStyleRule{},
+	&rule.EnforceSliceStyleRule{},
+	&rule.MaxControlNestingRule{},
 }, defaultRules...)
 
 var allFormatters = []lint.Formatter{
@@ -128,7 +132,8 @@ func GetLintingRules(config *lint.Config, extraRules []lint.Rule) ([]lint.Rule, 
 
 	var lintingRules []lint.Rule
 	for name, ruleConfig := range config.Rules {
-		r, ok := rulesMap[name]
+		actualName := actualRuleName(name)
+		r, ok := rulesMap[actualName]
 		if !ok {
 			return nil, fmt.Errorf("cannot find rule: %s", name)
 		}
@@ -141,6 +146,15 @@ func GetLintingRules(config *lint.Config, extraRules []lint.Rule) ([]lint.Rule, 
 	}
 
 	return lintingRules, nil
+}
+
+func actualRuleName(name string) string {
+	switch name {
+	case "imports-blacklist":
+		return "imports-blocklist"
+	default:
+		return name
+	}
 }
 
 func parseConfig(path string, config *lint.Config) error {

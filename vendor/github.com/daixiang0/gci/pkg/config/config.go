@@ -15,6 +15,7 @@ var defaultOrder = map[string]int{
 	section.CustomType:   2,
 	section.BlankType:    3,
 	section.DotType:      4,
+	section.AliasType:    5,
 }
 
 type BoolConfig struct {

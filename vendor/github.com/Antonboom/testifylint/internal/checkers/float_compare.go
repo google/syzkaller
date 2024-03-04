@@ -1,6 +1,7 @@
 package checkers
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -10,13 +11,15 @@ import (
 
 // FloatCompare detects situation like
 //
-//	assert.Equal(t, 42.42, a)
-//	assert.True(t, a == 42.42)
-//	assert.False(t, a != 42.42)
+//	assert.Equal(t, 42.42, result)
+//	assert.EqualValues(t, 42.42, result)
+//	assert.Exactly(t, 42.42, result)
+//	assert.True(t, result == 42.42)
+//	assert.False(t, result != 42.42)
 //
 // and requires
 //
-//	assert.InEpsilon(t, 42.42, a, 0.0001) // Or assert.InDelta
+//	assert.InEpsilon(t, 42.42, result, 0.0001) // Or assert.InDelta
 type FloatCompare struct{}
 
 // NewFloatCompare constructs FloatCompare checker.
@@ -25,21 +28,25 @@ func (FloatCompare) Name() string   { return "float-compare" }
 
 func (checker FloatCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.Diagnostic {
 	invalid := func() bool {
-		switch call.Fn.Name {
-		case "Equal", "Equalf":
-			return len(call.Args) > 1 && isFloat(pass, call.Args[0]) && isFloat(pass, call.Args[1])
+		switch call.Fn.NameFTrimmed {
+		case "Equal", "EqualValues", "Exactly":
+			return len(call.Args) > 1 && (isFloat(pass, call.Args[0]) || isFloat(pass, call.Args[1]))
 
-		case "True", "Truef":
+		case "True":
 			return len(call.Args) > 0 && isFloatCompare(pass, call.Args[0], token.EQL)
 
-		case "False", "Falsef":
+		case "False":
 			return len(call.Args) > 0 && isFloatCompare(pass, call.Args[0], token.NEQ)
 		}
 		return false
 	}()
 
 	if invalid {
-		return newUseFunctionDiagnostic(checker.Name(), call, "InEpsilon (or InDelta)", nil)
+		format := "use %s.InEpsilon (or InDelta)"
+		if call.Fn.IsFmt {
+			format = "use %s.InEpsilonf (or InDeltaf)"
+		}
+		return newDiagnostic(checker.Name(), call, fmt.Sprintf(format, call.SelectorXStr), nil)
 	}
 	return nil
 }

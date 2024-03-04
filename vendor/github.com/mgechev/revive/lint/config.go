@@ -3,6 +3,7 @@ package lint
 // Arguments is type used for the arguments of a rule.
 type Arguments = []interface{}
 
+// FileFilters is type used for modeling file filters to apply to rules.
 type FileFilters = []*FileFilter
 
 // RuleConfig is type used for the rule configuration.
@@ -32,8 +33,8 @@ func (rc *RuleConfig) Initialize() error {
 type RulesConfig = map[string]RuleConfig
 
 // MustExclude - checks if given filename `name` must be excluded
-func (rcfg *RuleConfig) MustExclude(name string) bool {
-	for _, exclude := range rcfg.excludeFilters {
+func (rc *RuleConfig) MustExclude(name string) bool {
+	for _, exclude := range rc.excludeFilters {
 		if exclude.MatchFileName(name) {
 			return true
 		}

@@ -44,7 +44,7 @@ It is not enabled by default, though. There are two ways to run ginkgolinter wit
      enable:
        - ginkgolinter
    ```
-## Linter Checks
+## Linter Rules
 The linter checks the ginkgo and gomega assertions in golang test code. Gomega may be used together with ginkgo tests, 
 For example:
 ```go
@@ -177,7 +177,8 @@ var _ = Describe("checking something", Focus, func() {
 })
 ```
 
-These container, or the `Focus` spec, must not be part of the final source code, and should only be used locally by the developer.
+These container, or the `Focus` spec, must not be part of the final source code, and should only be used locally by the 
+developer.
 
 ***This rule is disabled by default***. Use the `--forbid-focus-container=true` command line flag to enable it.  
 
@@ -205,8 +206,30 @@ To suppress this warning entirely, use the `--suppress-type-compare-assertion=tr
 
 To suppress a specific file or line, use the `// ginkgo-linter:ignore-type-compare-warning` comment (see [below](#suppress-warning-from-the-code))
 
+### Wrong Usage of the `MatchError` gomega Matcher [BUG]
+The `MatchError` gomega matcher asserts an error value (and if it's not nil).
+There are four valid formats for using this Matcher:
+* error value; e.g. `Expect(err).To(MatchError(anotherErr))`
+* string, to be equal to the output of the `Error()` method; e.g. `Expect(err).To(MatchError("Not Found"))`
+* A gomega matcher that asserts strings; e.g. `Expect(err).To(MatchError(ContainSubstring("Found")))`
+* [from v0.29.0] a function that receive a single error parameter and returns a single boolean value. 
+  In this format, an additional single string parameter, with the function description, is also required; e.g.
+  `Expect(err).To(MatchError(isNotFound, "is the error is a not found error"))`
+
+These four format are checked on runtime, but sometimes it's too late. ginkgolinter performs a static analysis and so it
+will find these issues on build time.
+
+ginkgolinter checks the following:
+* Is the first parameter is one of the four options above.
+* That there are no additional parameters passed to the matcher; e.g.
+  `MatchError(isNotFoundFunc, "a valid description" , "not used string")`. In this case, the matcher won't fail on run 
+  time, but the additional parameters are not in use and ignored.   
+* If the first parameter is a function with the format of `func(error)bool`, ginkgolinter makes sure that the second 
+  parameter exists and its type is string.
+
 ### Wrong Length Assertion [STYLE]
-The linter finds assertion of the golang built-in `len` function, with all kind of matchers, while there are already gomega matchers for these usecases; We want to assert the item, rather than its length.
+The linter finds assertion of the golang built-in `len` function, with all kind of matchers, while there are already 
+gomega matchers for these usecases; We want to assert the item, rather than its length.
 
 There are several wrong patterns:
 ```go
@@ -240,7 +263,8 @@ The output of the linter,when finding issues, looks like this:
 The linter will also warn about the `HaveLen(0)` matcher, and will suggest to replace it with `BeEmpty()`
 
 ### Wrong `nil` Assertion [STYLE]
-The linter finds assertion of the comparison to nil, with all kind of matchers, instead of using the existing `BeNil()` matcher; We want to assert the item, rather than a comparison result.
+The linter finds assertion of the comparison to nil, with all kind of matchers, instead of using the existing `BeNil()` 
+matcher; We want to assert the item, rather than a comparison result.
 
 There are several wrong patterns:
 

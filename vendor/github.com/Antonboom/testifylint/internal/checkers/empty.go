@@ -15,9 +15,19 @@ import (
 //
 //	assert.Len(t, arr, 0)
 //	assert.Equal(t, 0, len(arr))
+//	assert.EqualValues(t, 0, len(arr))
+//	assert.Exactly(t, 0, len(arr))
+//	assert.LessOrEqual(t, len(arr), 0)
+//	assert.GreaterOrEqual(t, 0, len(arr))
+//	assert.Less(t, len(arr), 0)
+//	assert.Greater(t, 0, len(arr))
+//	assert.Less(t, len(arr), 1)
+//	assert.Greater(t, 1, len(arr))
+//
 //	assert.NotEqual(t, 0, len(arr))
-//	assert.GreaterOrEqual(t, len(arr), 1)
-//	...
+//	assert.NotEqualValues(t, 0, len(arr))
+//	assert.Less(t, 0, len(arr))
+//	assert.Greater(t, len(arr), 0)
 //
 // and requires
 //
@@ -53,13 +63,13 @@ func (checker Empty) checkEmpty(pass *analysis.Pass, call *CallMeta) *analysis.D
 	}
 	a, b := call.Args[0], call.Args[1]
 
-	switch call.Fn.Name {
-	case "Len", "Lenf":
+	switch call.Fn.NameFTrimmed {
+	case "Len":
 		if isZero(b) {
 			return newUseEmptyDiagnostic(a.Pos(), b.End(), a)
 		}
 
-	case "Equal", "Equalf":
+	case "Equal", "EqualValues", "Exactly":
 		arg1, ok1 := isLenCallAndZero(pass, a, b)
 		arg2, ok2 := isLenCallAndZero(pass, b, a)
 
@@ -67,23 +77,23 @@ func (checker Empty) checkEmpty(pass *analysis.Pass, call *CallMeta) *analysis.D
 			return newUseEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 
-	case "LessOrEqual", "LessOrEqualf":
+	case "LessOrEqual":
 		if lenArg, ok := isBuiltinLenCall(pass, a); ok && isZero(b) {
 			return newUseEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 
-	case "GreaterOrEqual", "GreaterOrEqualf":
+	case "GreaterOrEqual":
 		if lenArg, ok := isBuiltinLenCall(pass, b); ok && isZero(a) {
 			return newUseEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 
-	case "Less", "Lessf":
-		if lenArg, ok := isBuiltinLenCall(pass, a); ok && isOne(b) {
+	case "Less":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok && (isOne(b) || isZero(b)) {
 			return newUseEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 
-	case "Greater", "Greaterf":
-		if lenArg, ok := isBuiltinLenCall(pass, b); ok && isOne(a) {
+	case "Greater":
+		if lenArg, ok := isBuiltinLenCall(pass, b); ok && (isOne(a) || isZero(a)) {
 			return newUseEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 	}
@@ -107,8 +117,8 @@ func (checker Empty) checkNotEmpty(pass *analysis.Pass, call *CallMeta) *analysi
 	}
 	a, b := call.Args[0], call.Args[1]
 
-	switch call.Fn.Name {
-	case "NotEqual", "NotEqualf":
+	switch call.Fn.NameFTrimmed {
+	case "NotEqual", "NotEqualValues":
 		arg1, ok1 := isLenCallAndZero(pass, a, b)
 		arg2, ok2 := isLenCallAndZero(pass, b, a)
 
@@ -116,23 +126,13 @@ func (checker Empty) checkNotEmpty(pass *analysis.Pass, call *CallMeta) *analysi
 			return newUseNotEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 
-	case "Greater", "Greaterf":
-		if lenArg, ok := isBuiltinLenCall(pass, a); ok && isZero(b) || isOne(b) {
+	case "Less":
+		if lenArg, ok := isBuiltinLenCall(pass, b); ok && isZero(a) {
 			return newUseNotEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 
-	case "Less", "Lessf":
-		if lenArg, ok := isBuiltinLenCall(pass, b); ok && isZero(a) || isOne(a) {
-			return newUseNotEmptyDiagnostic(a.Pos(), b.End(), lenArg)
-		}
-
-	case "GreaterOrEqual", "GreaterOrEqualf":
-		if lenArg, ok := isBuiltinLenCall(pass, a); ok && isOne(b) {
-			return newUseNotEmptyDiagnostic(a.Pos(), b.End(), lenArg)
-		}
-
-	case "LessOrEqual", "LessOrEqualf":
-		if lenArg, ok := isBuiltinLenCall(pass, b); ok && isOne(a) {
+	case "Greater":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok && isZero(b) {
 			return newUseNotEmptyDiagnostic(a.Pos(), b.End(), lenArg)
 		}
 	}

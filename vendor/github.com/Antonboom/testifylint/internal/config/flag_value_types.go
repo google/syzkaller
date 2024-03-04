@@ -35,6 +35,15 @@ func (kcv *KnownCheckersValue) Set(v string) error {
 	return nil
 }
 
+func (kcv KnownCheckersValue) Contains(v string) bool {
+	for _, checker := range kcv {
+		if checker == v {
+			return true
+		}
+	}
+	return false
+}
+
 // RegexpValue is a special wrapper for support of flag.FlagSet over regexp.Regexp.
 // Original regexp is available through RegexpValue.Regexp.
 type RegexpValue struct {

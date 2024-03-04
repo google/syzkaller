@@ -5,6 +5,10 @@ import (
 	"go/token"
 )
 
+const (
+	importPath = `"github.com/onsi/gomega"`
+)
+
 // Handler provide different handling, depend on the way gomega was imported, whether
 // in imported with "." name, custom name or without any name.
 type Handler interface {
@@ -23,7 +27,7 @@ type Handler interface {
 // GetGomegaHandler returns a gomegar handler according to the way gomega was imported in the specific file
 func GetGomegaHandler(file *ast.File) Handler {
 	for _, imp := range file.Imports {
-		if imp.Path.Value != `"github.com/onsi/gomega"` {
+		if imp.Path.Value != importPath {
 			continue
 		}
 

@@ -38,7 +38,7 @@ func (*StringFormatRule) Name() string {
 // ParseArgumentsTest is a public wrapper around w.parseArguments used for testing. Returns the error message provided to panic, or nil if no error was encountered
 func (StringFormatRule) ParseArgumentsTest(arguments lint.Arguments) *string {
 	w := lintStringFormatRule{}
-	c := make(chan interface{})
+	c := make(chan any)
 	// Parse the arguments in a goroutine, defer a recover() call, return the error encountered (or nil if there was no error)
 	go func() {
 		defer func() {
@@ -101,8 +101,8 @@ func (w *lintStringFormatRule) parseArguments(arguments lint.Arguments) {
 	}
 }
 
-func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, negated bool, errorMessage string) {
-	g, ok := argument.([]interface{}) // Cast to generic slice first
+func (w lintStringFormatRule) parseArgument(argument any, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, negated bool, errorMessage string) {
+	g, ok := argument.([]any) // Cast to generic slice first
 	if !ok {
 		w.configError("argument is not a slice", ruleNum, 0)
 	}

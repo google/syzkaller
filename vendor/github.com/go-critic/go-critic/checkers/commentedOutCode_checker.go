@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-critic/go-critic/checkers/internal/astwalk"
 	"github.com/go-critic/go-critic/linter"
@@ -18,6 +19,12 @@ func init() {
 	info.Name = "commentedOutCode"
 	info.Tags = []string{linter.DiagnosticTag, linter.ExperimentalTag}
 	info.Summary = "Detects commented-out code inside function bodies"
+	info.Params = linter.CheckerParams{
+		"minLength": {
+			Value: 15,
+			Usage: "min length of the comment that triggers a warning",
+		},
+	}
 	info.Before = `
 // fmt.Println("Debugging hard")
 foo(1, 2)`
@@ -27,6 +34,7 @@ foo(1, 2)`
 		return astwalk.WalkerForLocalComment(&commentedOutCodeChecker{
 			ctx:              ctx,
 			notQuiteFuncCall: regexp.MustCompile(`\w+\s+\([^)]*\)\s*$`),
+			minLength:        info.Params.Int("minLength"),
 		}), nil
 	})
 }
@@ -37,6 +45,7 @@ type commentedOutCodeChecker struct {
 	fn  *ast.FuncDecl
 
 	notQuiteFuncCall *regexp.Regexp
+	minLength        int
 }
 
 func (c *commentedOutCodeChecker) EnterFunc(fn *ast.FuncDecl) bool {
@@ -69,7 +78,7 @@ func (c *commentedOutCodeChecker) VisitLocalComment(cg *ast.CommentGroup) {
 	// Some very short comment that can be skipped.
 	// Usually triggering on these results in false positive.
 	// Unless there is a very popular call like print/println.
-	cond := len(s) < len("quite too short") &&
+	cond := utf8.RuneCountInString(s) < c.minLength &&
 		!strings.Contains(s, "print") &&
 		!strings.Contains(s, "fmt.") &&
 		!strings.Contains(s, "log.")

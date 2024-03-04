@@ -13,7 +13,10 @@ import (
 // BoolCompare detects situations like
 //
 //	assert.Equal(t, false, result)
-//	assert.NotEqual(t, result, true)
+//	assert.EqualValues(t, false, result)
+//	assert.Exactly(t, false, result)
+//	assert.NotEqual(t, true, result)
+//	assert.NotEqualValues(t, true, result)
 //	assert.False(t, !result)
 //	assert.True(t, result == true)
 //	...
@@ -60,13 +63,17 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 		)
 	}
 
-	switch call.Fn.Name {
-	case "Equal", "Equalf":
+	switch call.Fn.NameFTrimmed {
+	case "Equal", "EqualValues", "Exactly":
 		if len(call.Args) < 2 {
 			return nil
 		}
 
 		arg1, arg2 := call.Args[0], call.Args[1]
+		if isEmptyInterface(pass, arg1) || isEmptyInterface(pass, arg2) {
+			return nil
+		}
+
 		t1, t2 := isUntypedTrue(pass, arg1), isUntypedTrue(pass, arg2)
 		f1, f2 := isUntypedFalse(pass, arg1), isUntypedFalse(pass, arg2)
 
@@ -80,12 +87,16 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			return newUseFalseDiagnostic(survivingArg, arg1.Pos(), arg2.End())
 		}
 
-	case "NotEqual", "NotEqualf":
+	case "NotEqual", "NotEqualValues":
 		if len(call.Args) < 2 {
 			return nil
 		}
 
 		arg1, arg2 := call.Args[0], call.Args[1]
+		if isEmptyInterface(pass, arg1) || isEmptyInterface(pass, arg2) {
+			return nil
+		}
+
 		t1, t2 := isUntypedTrue(pass, arg1), isUntypedTrue(pass, arg2)
 		f1, f2 := isUntypedFalse(pass, arg1), isUntypedFalse(pass, arg2)
 
@@ -99,7 +110,7 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			return newUseTrueDiagnostic(survivingArg, arg1.Pos(), arg2.End())
 		}
 
-	case "True", "Truef":
+	case "True":
 		if len(call.Args) < 1 {
 			return nil
 		}
@@ -109,7 +120,8 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			arg1, ok1 := isComparisonWithTrue(pass, expr, token.EQL)
 			arg2, ok2 := isComparisonWithFalse(pass, expr, token.NEQ)
 
-			if survivingArg, ok := anyVal([]bool{ok1, ok2}, arg1, arg2); ok {
+			survivingArg, ok := anyVal([]bool{ok1, ok2}, arg1, arg2)
+			if ok && !isEmptyInterface(pass, survivingArg) {
 				return newNeedSimplifyDiagnostic(survivingArg, expr.Pos(), expr.End())
 			}
 		}
@@ -119,12 +131,13 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			arg2, ok2 := isComparisonWithFalse(pass, expr, token.EQL)
 			arg3, ok3 := isNegation(expr)
 
-			if survivingArg, ok := anyVal([]bool{ok1, ok2, ok3}, arg1, arg2, arg3); ok {
+			survivingArg, ok := anyVal([]bool{ok1, ok2, ok3}, arg1, arg2, arg3)
+			if ok && !isEmptyInterface(pass, survivingArg) {
 				return newUseFalseDiagnostic(survivingArg, expr.Pos(), expr.End())
 			}
 		}
 
-	case "False", "Falsef":
+	case "False":
 		if len(call.Args) < 1 {
 			return nil
 		}
@@ -134,7 +147,8 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			arg1, ok1 := isComparisonWithTrue(pass, expr, token.EQL)
 			arg2, ok2 := isComparisonWithFalse(pass, expr, token.NEQ)
 
-			if survivingArg, ok := anyVal([]bool{ok1, ok2}, arg1, arg2); ok {
+			survivingArg, ok := anyVal([]bool{ok1, ok2}, arg1, arg2)
+			if ok && !isEmptyInterface(pass, survivingArg) {
 				return newNeedSimplifyDiagnostic(survivingArg, expr.Pos(), expr.End())
 			}
 		}
@@ -144,7 +158,8 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			arg2, ok2 := isComparisonWithFalse(pass, expr, token.EQL)
 			arg3, ok3 := isNegation(expr)
 
-			if survivingArg, ok := anyVal([]bool{ok1, ok2, ok3}, arg1, arg2, arg3); ok {
+			survivingArg, ok := anyVal([]bool{ok1, ok2, ok3}, arg1, arg2, arg3)
+			if ok && !isEmptyInterface(pass, survivingArg) {
 				return newUseTrueDiagnostic(survivingArg, expr.Pos(), expr.End())
 			}
 		}
@@ -220,4 +235,14 @@ func anyVal[T any](bools []bool, vals ...T) (T, bool) {
 
 	var _default T
 	return _default, false
+}
+
+func isEmptyInterface(pass *analysis.Pass, expr ast.Expr) bool {
+	t, ok := pass.TypesInfo.Types[expr]
+	if !ok {
+		return false
+	}
+
+	iface, ok := t.Type.Underlying().(*types.Interface)
+	return ok && iface.NumMethods() == 0
 }

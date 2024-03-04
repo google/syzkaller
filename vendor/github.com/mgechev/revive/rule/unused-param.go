@@ -35,7 +35,7 @@ func (r *UnusedParamRule) configure(args lint.Arguments) {
 		r.failureMsg = "parameter '%s' seems to be unused, consider removing or renaming it as _"
 	} else {
 		// Arguments = [{}]
-		options := args[0].(map[string]interface{})
+		options := args[0].(map[string]any)
 		// Arguments = [{allowedRegex="^_"}]
 
 		if allowedRegexParam, ok := options["allowRegex"]; ok {
@@ -87,54 +87,64 @@ type lintUnusedParamRule struct {
 }
 
 func (w lintUnusedParamRule) Visit(node ast.Node) ast.Visitor {
+	var (
+		funcType *ast.FuncType
+		funcBody *ast.BlockStmt
+	)
 	switch n := node.(type) {
+	case *ast.FuncLit:
+		funcType = n.Type
+		funcBody = n.Body
 	case *ast.FuncDecl:
-		params := retrieveNamedParams(n.Type.Params)
-		if len(params) < 1 {
-			return nil // skip, func without parameters
-		}
-
 		if n.Body == nil {
 			return nil // skip, is a function prototype
 		}
 
-		// inspect the func body looking for references to parameters
-		fselect := func(n ast.Node) bool {
-			ident, isAnID := n.(*ast.Ident)
-
-			if !isAnID {
-				return false
-			}
-
-			_, isAParam := params[ident.Obj]
-			if isAParam {
-				params[ident.Obj] = false // mark as used
-			}
-
-			return false
-		}
-		_ = pick(n.Body, fselect, nil)
-
-		for _, p := range n.Type.Params.List {
-			for _, n := range p.Names {
-				if w.allowRegex.FindStringIndex(n.Name) != nil {
-					continue
-				}
-				if params[n.Obj] {
-					w.onFailure(lint.Failure{
-						Confidence: 1,
-						Node:       n,
-						Category:   "bad practice",
-						Failure:    fmt.Sprintf(w.failureMsg, n.Name),
-					})
-				}
-			}
-		}
-
-		return nil // full method body already inspected
+		funcType = n.Type
+		funcBody = n.Body
+	default:
+		return w // skip, not a function
 	}
 
-	return w
+	params := retrieveNamedParams(funcType.Params)
+	if len(params) < 1 {
+		return w // skip, func without parameters
+	}
+
+	// inspect the func body looking for references to parameters
+	fselect := func(n ast.Node) bool {
+		ident, isAnID := n.(*ast.Ident)
+
+		if !isAnID {
+			return false
+		}
+
+		_, isAParam := params[ident.Obj]
+		if isAParam {
+			params[ident.Obj] = false // mark as used
+		}
+
+		return false
+	}
+	_ = pick(funcBody, fselect)
+
+	for _, p := range funcType.Params.List {
+		for _, n := range p.Names {
+			if w.allowRegex.FindStringIndex(n.Name) != nil {
+				continue
+			}
+			if params[n.Obj] {
+				w.onFailure(lint.Failure{
+					Confidence: 1,
+					Node:       n,
+					Category:   "bad practice",
+					Failure:    fmt.Sprintf(w.failureMsg, n.Name),
+				})
+			}
+		}
+	}
+
+	return w // full method body was inspected
 }
 
 func retrieveNamedParams(params *ast.FieldList) map[*ast.Object]bool {

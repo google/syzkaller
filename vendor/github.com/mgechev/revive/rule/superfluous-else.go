@@ -20,7 +20,7 @@ func (*SuperfluousElseRule) Name() string {
 }
 
 // CheckIfElse evaluates the rule against an ifelse.Chain.
-func (e *SuperfluousElseRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
+func (*SuperfluousElseRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
 	if !chain.If.Deviates() {
 		// this rule only applies if the if-block deviates control flow
 		return

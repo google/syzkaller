@@ -14,6 +14,7 @@ type IFace struct {
 
 	Pos      token.Pos // Token Position
 	FuncName string    //
+	OfType   string
 }
 
 func NewIssue(name string, interfaceType IType) IFace {
@@ -30,11 +31,15 @@ func (i *IFace) Enrich(f *ast.FuncDecl) {
 }
 
 func (i IFace) String() string {
-	if i.Type == Generic {
-		return fmt.Sprintf("%s returns generic interface (%s)", i.FuncName, i.Name)
+	if i.Type != Generic {
+		return fmt.Sprintf("%s returns interface (%s)", i.FuncName, i.Name)
 	}
 
-	return fmt.Sprintf("%s returns interface (%s)", i.FuncName, i.Name)
+	if i.OfType != "" {
+		return fmt.Sprintf("%s returns generic interface (%s) of type param %s", i.FuncName, i.Name, i.OfType)
+	}
+
+	return fmt.Sprintf("%s returns generic interface (%s)", i.FuncName, i.Name)
 }
 
 func (i IFace) HashString() string {

@@ -16,9 +16,8 @@ func (s Matches) Less(i, j int) bool {
 		return true
 	} else if s[i].I == s[j].I {
 		return s[i].J < s[j].J
-	} else {
-		return false
 	}
+	return false
 }
 
 // Match represents different matches

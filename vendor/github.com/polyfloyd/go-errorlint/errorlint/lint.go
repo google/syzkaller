@@ -307,6 +307,11 @@ func LintErrorTypeAssertions(fset *token.FileSet, info *TypesInfoExt) []analysis
 			continue
 		}
 
+		// If the asserted type is not an error, allow the expression.
+		if !implementsError(info.TypesInfo.Types[typeAssert.Type].Type) {
+			continue
+		}
+
 		lints = append(lints, analysis.Diagnostic{
 			Message: "type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors",
 			Pos:     typeAssert.Pos(),

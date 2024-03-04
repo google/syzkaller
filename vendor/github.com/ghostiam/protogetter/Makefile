@@ -1,6 +1,6 @@
 .PHONY: test
 test:
-	cd testdata && make vendor
+	$(MAKE) -C testdata vendor
 	go test -v ./...
 
 .PHONY: install

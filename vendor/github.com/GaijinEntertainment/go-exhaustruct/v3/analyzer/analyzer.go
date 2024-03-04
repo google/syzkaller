@@ -12,16 +12,17 @@ import (
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 
-	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/fields"
+	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/comment"
 	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/pattern"
+	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/structure"
 )
 
 type analyzer struct {
 	include pattern.List `exhaustruct:"optional"`
 	exclude pattern.List `exhaustruct:"optional"`
 
-	fieldsCache   map[types.Type]fields.StructFields
-	fieldsCacheMu sync.RWMutex `exhaustruct:"optional"`
+	structFields structure.FieldsCache `exhaustruct:"optional"`
+	comments     comment.Cache         `exhaustruct:"optional"`
 
 	typeProcessingNeed   map[string]bool
 	typeProcessingNeedMu sync.RWMutex `exhaustruct:"optional"`
@@ -29,8 +30,8 @@ type analyzer struct {
 
 func NewAnalyzer(include, exclude []string) (*analysis.Analyzer, error) {
 	a := analyzer{
-		fieldsCache:        make(map[types.Type]fields.StructFields),
 		typeProcessingNeed: make(map[string]bool),
+		comments:           comment.Cache{},
 	}
 
 	var err error
@@ -74,12 +75,7 @@ Anonymous structs can be matched by '<anonymous>' alias.
 func (a *analyzer) run(pass *analysis.Pass) (any, error) {
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector) //nolint:forcetypeassert
 
-	insp.WithStack(
-		[]ast.Node{
-			(*ast.CompositeLit)(nil),
-		},
-		a.newVisitor(pass),
-	)
+	insp.WithStack([]ast.Node{(*ast.CompositeLit)(nil)}, a.newVisitor(pass))
 
 	return nil, nil //nolint:nilnil
 }
@@ -115,13 +111,45 @@ func (a *analyzer) newVisitor(pass *analysis.Pass) func(n ast.Node, push bool, s
 			}
 		}
 
-		pos, msg := a.processStruct(pass, lit, structTyp, typeInfo)
+		file := a.comments.Get(pass.Fset, stack[0].(*ast.File)) //nolint:forcetypeassert
+		rc := getCompositeLitRelatedComments(stack, file)
+		pos, msg := a.processStruct(pass, lit, structTyp, typeInfo, rc)
+
 		if pos != nil {
 			pass.Reportf(*pos, msg)
 		}
 
 		return true
 	}
+}
+
+// getCompositeLitRelatedComments returns all comments that are related to checked node. We
+// have to traverse the stack manually as ast do not associate comments with
+// [ast.CompositeLit].
+func getCompositeLitRelatedComments(stack []ast.Node, cm ast.CommentMap) []*ast.CommentGroup {
+	comments := make([]*ast.CommentGroup, 0)
+
+	for i := len(stack) - 1; i >= 0; i-- {
+		node := stack[i]
+
+		switch node.(type) {
+		case *ast.CompositeLit, // stack[len(stack)-1]
+			*ast.ReturnStmt, // return ...
+			*ast.IndexExpr,  // map[enum]...{...}[key]
+			*ast.CallExpr,   // myfunc(map...)
+			*ast.UnaryExpr,  // &map...
+			*ast.AssignStmt, // variable assignment (without var keyword)
+			*ast.DeclStmt,   // var declaration, parent of *ast.GenDecl
+			*ast.GenDecl,    // var declaration, parent of *ast.ValueSpec
+			*ast.ValueSpec:  // var declaration
+			comments = append(comments, cm[node]...)
+
+		default:
+			return comments
+		}
+	}
+
+	return comments
 }
 
 func getStructType(pass *analysis.Pass, lit *ast.CompositeLit) (*types.Struct, *TypeInfo, bool) {
@@ -179,8 +207,15 @@ func (a *analyzer) processStruct(
 	lit *ast.CompositeLit,
 	structTyp *types.Struct,
 	info *TypeInfo,
+	comments []*ast.CommentGroup,
 ) (*token.Pos, string) {
-	if !a.shouldProcessType(info) {
+	shouldProcess := a.shouldProcessType(info)
+
+	if shouldProcess && comment.HasDirective(comments, comment.DirectiveIgnore) {
+		return nil, ""
+	}
+
+	if !shouldProcess && !comment.HasDirective(comments, comment.DirectiveEnforce) {
 		return nil, ""
 	}
 
@@ -233,24 +268,12 @@ func (a *analyzer) shouldProcessType(info *TypeInfo) bool {
 	return res
 }
 
-//revive:disable-next-line:unused-receiver
 func (a *analyzer) litSkippedFields(
 	lit *ast.CompositeLit,
 	typ *types.Struct,
 	onlyExported bool,
-) fields.StructFields {
-	a.fieldsCacheMu.RLock()
-	f, ok := a.fieldsCache[typ]
-	a.fieldsCacheMu.RUnlock()
-
-	if !ok {
-		a.fieldsCacheMu.Lock()
-		f = fields.NewStructFields(typ)
-		a.fieldsCache[typ] = f
-		a.fieldsCacheMu.Unlock()
-	}
-
-	return f.SkippedFields(lit, onlyExported)
+) structure.Fields {
+	return a.structFields.Get(typ).Skipped(lit, onlyExported)
 }
 
 type TypeInfo struct {

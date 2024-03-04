@@ -71,7 +71,6 @@ func (*ConfusingNamingRule) Name() string {
 
 // checkMethodName checks if a given method/function name is similar (just case differences) to other method/function of the same struct/file.
 func checkMethodName(holder string, id *ast.Ident, w *lintConfusingNames) {
-
 	if id.Name == "init" && holder == defaultStructName {
 		// ignore init functions
 		return
@@ -112,7 +111,7 @@ func checkMethodName(holder string, id *ast.Ident, w *lintConfusingNames) {
 		pkgm.methods[holder] = make(map[string]*referenceMethod, 1)
 	}
 
-	// update the black list
+	// update the block list
 	if pkgm.methods[holder] == nil {
 		println("no entry for '", holder, "'")
 	}

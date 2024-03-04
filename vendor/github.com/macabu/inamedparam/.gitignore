@@ -7,6 +7,7 @@
 *.dll
 *.so
 *.dylib
+inamedparam
 
 # Test binary, built with `go test -c`
 *.test

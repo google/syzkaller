@@ -1,5 +1,5 @@
 
-# gosec - Golang Security Checker
+# gosec - Go Security Checker
 
 Inspects source code for security problems by scanning the Go AST and SSA code representation.
 
@@ -105,7 +105,7 @@ jobs:
           # we let the report trigger content trigger a failure using the GitHub Security features.
           args: '-no-fail -fmt sarif -out results.sarif ./...'
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v1
+        uses: github/codeql-action/upload-sarif@v2
         with:
           # Path to SARIF file relative to the root of the repository
           sarif_file: results.sarif
@@ -113,16 +113,8 @@ jobs:
 
 ### Local Installation
 
-#### Go 1.16+
-
 ```bash
 go install github.com/securego/gosec/v2/cmd/gosec@latest
-```
-
-#### Go version < 1.16
-
-```bash
-go get -u github.com/securego/gosec/v2/cmd/gosec
 ```
 
 ## Usage
@@ -393,7 +385,7 @@ schema-generate -i sarif-schema-2.1.0.json -o mypath/types.go
 ```
 
 Most of the MarshallJSON/UnmarshalJSON are removed except the one for PropertyBag which is handy to inline the additional properties. The rest can be removed.
-The URI,ID, UUID, GUID were renamed so it fits the Golang convention defined [here](https://github.com/golang/lint/blob/master/lint.go#L700)
+The URI,ID, UUID, GUID were renamed so it fits the Go convention defined [here](https://github.com/golang/lint/blob/master/lint.go#L700)
 
 ### Tests
 

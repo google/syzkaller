@@ -33,6 +33,8 @@ func Parse(data []string) (SectionList, error) {
 			list = append(list, Dot{})
 		} else if s == "blank" {
 			list = append(list, Blank{})
+		} else if s == "alias" {
+			list = append(list, Alias{})
 		} else {
 			errString += fmt.Sprintf(" %s", s)
 		}
