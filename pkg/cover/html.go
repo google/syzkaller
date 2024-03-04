@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -209,6 +210,10 @@ func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParam
 	}
 	buf.Flush()
 	return nil
+}
+
+func (rg *ReportGenerator) DoCoverJSON(w io.Writer, params CoverHandlerParams) error {
+	return errors.New("DoCoverJSON is not implemented")
 }
 
 func (rg *ReportGenerator) DoRawCover(w io.Writer, params CoverHandlerParams) error {
