@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -212,8 +211,69 @@ func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParam
 	return nil
 }
 
+type covCallbacksStat struct {
+	TotalCount   int `json:"total_cb_count"`
+	CoveredCount int `json:"covered_cb_count"`
+}
+
+type covFuncDetails struct {
+	covCallbacksStat
+}
+
+type covFileDetails struct {
+	covCallbacksStat
+	Functions map[string]*covFuncDetails `json:"functions,omitempty"`
+}
+
+type coverageInfo struct {
+	Version int `json:"version"`
+	covCallbacksStat
+	Files map[string]*covFileDetails `json:"files,omitempty"`
+}
+
+type visitFuncCb func(filePath, funcName string, funcObj *function)
+
+func forEachFunction(fm fileMap, cb visitFuncCb) {
+	for filePath, fileObj := range fm {
+		for _, funcObj := range fileObj.functions {
+			cb(filePath, funcObj.name, funcObj)
+		}
+	}
+}
+
+// DoCoverJSON is a handler for "/cover&json=1".
 func (rg *ReportGenerator) DoCoverJSON(w io.Writer, params CoverHandlerParams) error {
-	return errors.New("DoCoverJSON is not implemented")
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	fm, err := rg.prepareFileMap(progs, params.Debug)
+	if err != nil {
+		return fmt.Errorf("failed to rg.prepareFileMap(): %w", err)
+	}
+	c := &coverageInfo{
+		Version: 1,
+		Files:   make(map[string]*covFileDetails),
+	}
+	forEachFunction(fm, func(filePath, funcName string, funcObj *function) {
+		if _, ok := c.Files[filePath]; !ok {
+			c.Files[filePath] = &covFileDetails{
+				Functions: make(map[string]*covFuncDetails),
+			}
+		}
+		c.TotalCount += funcObj.pcs
+		c.CoveredCount += funcObj.covered
+		fileCbStat := c.Files[filePath]
+		fileCbStat.TotalCount += funcObj.pcs
+		fileCbStat.CoveredCount += funcObj.covered
+		fileCbStat.Functions[funcName] = &covFuncDetails{
+			covCallbacksStat: covCallbacksStat{
+				TotalCount:   funcObj.pcs,
+				CoveredCount: funcObj.covered,
+			},
+		}
+	})
+	if err = json.NewEncoder(w).Encode(c); err != nil {
+		return fmt.Errorf("failed to json.Encode(): %w", err)
+	}
+	return nil
 }
 
 func (rg *ReportGenerator) DoRawCover(w io.Writer, params CoverHandlerParams) error {

@@ -87,11 +87,13 @@ func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint6
 		len(unmatchedProgPCs), numPCs, debugStr)
 }
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (map[string]*file, error) {
+type fileMap map[string]*file
+
+func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, error) {
 	if err := rg.lazySymbolize(progs); err != nil {
 		return nil, err
 	}
-	files := make(map[string]*file)
+	files := make(fileMap)
 	for _, unit := range rg.Units {
 		files[unit.Name] = &file{
 			module:   unit.Module.Name,
