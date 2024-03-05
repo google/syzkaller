@@ -362,6 +362,9 @@ func replaceArg(arg, arg1 Arg) {
 	case *PointerArg:
 		*a = *arg1.(*PointerArg)
 	case *UnionArg:
+		if a.Option != nil {
+			removeArg(a.Option)
+		}
 		*a = *arg1.(*UnionArg)
 	case *DataArg:
 		*a = *arg1.(*DataArg)
