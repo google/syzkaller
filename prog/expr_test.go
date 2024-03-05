@@ -42,6 +42,23 @@ func TestGenerateConditionalFields(t *testing.T) {
 	}
 }
 
+func TestConditionalResources(t *testing.T) {
+	// Let's stress test the code and rely on various internal checks.
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	ct := target.BuildChoiceTable(nil, map[*Syscall]bool{
+		target.SyscallMap["test$create_cond_resource"]: true,
+		target.SyscallMap["test$use_cond_resource"]:    true,
+	})
+	iters := 500
+	if testing.Short() {
+		iters /= 10
+	}
+	for i := 0; i < iters; i++ {
+		p := target.Generate(rs, 10, ct)
+		p.Mutate(rs, 10, ct, nil, nil)
+	}
+}
+
 func TestMutateConditionalFields(t *testing.T) {
 	target, rs, _ := initRandomTargetTest(t, "test", "64")
 	ct := target.DefaultChoiceTable()
