@@ -533,7 +533,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		BugFilter:      makeUIBugFilter(c, filter),
 	}
 
-	if r.FormValue("json") != "" {
+	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)
 	}
@@ -860,7 +860,7 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 		BugFilter: makeUIBugFilter(c, typ.Filter),
 	}
 
-	if r.FormValue("json") != "" {
+	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)
 	}
@@ -1171,7 +1171,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 				"Cause bisection attempts", uiList))
 		}
 	}
-	if r.FormValue("json") != "" {
+	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)
 	}
