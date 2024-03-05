@@ -11,6 +11,9 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+
+	"golang.org/x/tools/internal/aliases"
+	"golang.org/x/tools/internal/typeparams"
 )
 
 // emitAlloc emits to f a new Alloc instruction allocating a variable
@@ -64,7 +67,7 @@ func emitLocalVar(f *Function, v *types.Var) *Alloc {
 // new temporary, and returns the value so defined.
 func emitLoad(f *Function, addr Value) *UnOp {
 	v := &UnOp{Op: token.MUL, X: addr}
-	v.setType(mustDeref(addr.Type()))
+	v.setType(typeparams.MustDeref(addr.Type()))
 	f.emit(v)
 	return v
 }
@@ -182,7 +185,7 @@ func emitCompare(f *Function, op token.Token, x, y Value, pos token.Pos) Value {
 
 // isValuePreserving returns true if a conversion from ut_src to
 // ut_dst is value-preserving, i.e. just a change of type.
-// Precondition: neither argument is a named type.
+// Precondition: neither argument is a named or alias type.
 func isValuePreserving(ut_src, ut_dst types.Type) bool {
 	// Identical underlying types?
 	if types.IdenticalIgnoreTags(ut_dst, ut_src) {
@@ -281,11 +284,11 @@ func emitConv(f *Function, val Value, typ types.Type) Value {
 		}
 
 		// Conversion from slice to array or slice to array pointer?
-		if slice, ok := s.(*types.Slice); ok {
+		if slice, ok := aliases.Unalias(s).(*types.Slice); ok {
 			var arr *types.Array
 			var ptr bool
 			// Conversion from slice to array pointer?
-			switch d := d.(type) {
+			switch d := aliases.Unalias(d).(type) {
 			case *types.Array:
 				arr = d
 			case *types.Pointer:
@@ -414,7 +417,7 @@ func emitTypeCoercion(f *Function, v Value, typ types.Type) Value {
 // emitStore emits to f an instruction to store value val at location
 // addr, applying implicit conversions as required by assignability rules.
 func emitStore(f *Function, addr, val Value, pos token.Pos) *Store {
-	typ := mustDeref(addr.Type())
+	typ := typeparams.MustDeref(addr.Type())
 	s := &Store{
 		Addr: addr,
 		Val:  emitConv(f, val, typ),
