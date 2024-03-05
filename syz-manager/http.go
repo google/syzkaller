@@ -279,6 +279,8 @@ func (mgr *Manager) httpModuleCover(w http.ResponseWriter, r *http.Request) {
 	mgr.httpCoverCover(w, r, DoModuleCover)
 }
 
+const ctTextPlain = "text/plain; charset=utf-8"
+
 func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcFlag int) {
 	if !mgr.cfg.Cover {
 		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
@@ -352,20 +354,20 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	type handlerFuncType func(w io.Writer, params cover.CoverHandlerParams) error
 	flagToFunc := map[int]struct {
 		Do          handlerFuncType
-		isPlainText bool
+		contentType string
 	}{
-		DoHTML:          {rg.DoHTML, false},
-		DoHTMLTable:     {rg.DoHTMLTable, false},
-		DoModuleCover:   {rg.DoModuleCover, false},
-		DoCSV:           {rg.DoCSV, true},
-		DoCSVFiles:      {rg.DoCSVFiles, true},
-		DoRawCoverFiles: {rg.DoRawCoverFiles, true},
-		DoRawCover:      {rg.DoRawCover, true},
-		DoFilterPCs:     {rg.DoFilterPCs, true},
+		DoHTML:          {rg.DoHTML, ""},
+		DoHTMLTable:     {rg.DoHTMLTable, ""},
+		DoModuleCover:   {rg.DoModuleCover, ""},
+		DoCSV:           {rg.DoCSV, ctTextPlain},
+		DoCSVFiles:      {rg.DoCSVFiles, ctTextPlain},
+		DoRawCoverFiles: {rg.DoRawCoverFiles, ctTextPlain},
+		DoRawCover:      {rg.DoRawCover, ctTextPlain},
+		DoFilterPCs:     {rg.DoFilterPCs, ctTextPlain},
 	}
 
-	if flagToFunc[funcFlag].isPlainText {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if ct := flagToFunc[funcFlag].contentType; ct != "" {
+		w.Header().Set("Content-Type", ct)
 	}
 
 	if err := flagToFunc[funcFlag].Do(w, params); err != nil {
