@@ -261,7 +261,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		mgr.httpCoverFallback(w, r)
 		return
 	}
-	if r.FormValue("json") != "" {
+	if r.FormValue("json") == "1" {
 		mgr.httpCoverCover(w, r, DoCoverJSON)
 		return
 	}
