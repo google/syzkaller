@@ -81,16 +81,15 @@ import (
 	"os"
 	"sync"
 
+	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/typeparams"
 	"golang.org/x/tools/internal/versions"
 )
 
-type opaqueType struct {
-	types.Type
-	name string
-}
+type opaqueType struct{ name string }
 
-func (t *opaqueType) String() string { return t.name }
+func (t *opaqueType) String() string         { return t.name }
+func (t *opaqueType) Underlying() types.Type { return t }
 
 var (
 	varOk    = newVar("ok", tBool)
@@ -103,7 +102,7 @@ var (
 	tInvalid    = types.Typ[types.Invalid]
 	tString     = types.Typ[types.String]
 	tUntypedNil = types.Typ[types.UntypedNil]
-	tRangeIter  = &opaqueType{nil, "iter"} // the type of all "range" iterators
+	tRangeIter  = &opaqueType{"iter"} // the type of all "range" iterators
 	tEface      = types.NewInterfaceType(nil, nil).Complete()
 
 	// SSA Value constants.
@@ -328,7 +327,7 @@ func (b *builder) builtin(fn *Function, obj *types.Builtin, args []ast.Expr, typ
 		}
 
 	case "new":
-		return emitNew(fn, mustDeref(typ), pos, "new")
+		return emitNew(fn, typeparams.MustDeref(typ), pos, "new")
 
 	case "len", "cap":
 		// Special case: len or cap of an array or *array is
@@ -419,7 +418,7 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) lvalue {
 		wantAddr := true
 		v := b.receiver(fn, e.X, wantAddr, escaping, sel)
 		index := sel.index[len(sel.index)-1]
-		fld := fieldOf(mustDeref(v.Type()), index) // v is an addr.
+		fld := fieldOf(typeparams.MustDeref(v.Type()), index) // v is an addr.
 
 		// Due to the two phases of resolving AssignStmt, a panic from x.f = p()
 		// when x is nil is required to come after the side-effects of
@@ -468,7 +467,7 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) lvalue {
 			v.setType(et)
 			return fn.emit(v)
 		}
-		return &lazyAddress{addr: emit, t: mustDeref(et), pos: e.Lbrack, expr: e}
+		return &lazyAddress{addr: emit, t: typeparams.MustDeref(et), pos: e.Lbrack, expr: e}
 
 	case *ast.StarExpr:
 		return &address{addr: b.expr(fn, e.X), pos: e.Star, expr: e}
@@ -802,7 +801,7 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 			if types.IsInterface(rt) {
 				// If v may be an interface type I (after instantiating),
 				// we must emit a check that v is non-nil.
-				if recv, ok := sel.recv.(*types.TypeParam); ok {
+				if recv, ok := aliases.Unalias(sel.recv).(*types.TypeParam); ok {
 					// Emit a nil check if any possible instantiation of the
 					// type parameter is an interface type.
 					if typeSetOf(recv).Len() > 0 {
@@ -1253,7 +1252,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 	case *types.Array, *types.Slice:
 		var at *types.Array
 		var array Value
-		switch t := t.(type) {
+		switch t := aliases.Unalias(t).(type) {
 		case *types.Slice:
 			at = types.NewArray(t.Elem(), b.arrayLen(fn, e.Elts))
 			array = emitNew(fn, at, e.Lbrace, "slicelit")
@@ -1748,8 +1747,7 @@ func (b *builder) forStmt(fn *Function, s *ast.ForStmt, label *lblock) {
 	// Use forStmtGo122 instead if it applies.
 	if s.Init != nil {
 		if assign, ok := s.Init.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
-			afterGo122 := versions.Compare(fn.goversion, "go1.21") > 0
-			if afterGo122 {
+			if versions.AtLeast(fn.goversion, versions.Go1_22) {
 				b.forStmtGo122(fn, s, label)
 				return
 			}
@@ -2244,7 +2242,7 @@ func (b *builder) rangeStmt(fn *Function, s *ast.RangeStmt, label *lblock) {
 		}
 	}
 
-	afterGo122 := versions.Compare(fn.goversion, "go1.21") > 0
+	afterGo122 := versions.AtLeast(fn.goversion, versions.Go1_22)
 	if s.Tok == token.DEFINE && !afterGo122 {
 		// pre-go1.22: If iteration variables are defined (:=), this
 		// occurs once outside the loop.
