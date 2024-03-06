@@ -21,15 +21,25 @@ func (p *Prog) debugValidate() {
 	}
 }
 
+func (p *Prog) validate() error {
+	return p.validateWithOpts(validationOptions{})
+}
+
 type validCtx struct {
 	target *Target
+	opts   validationOptions
 	args   map[Arg]bool
 	uses   map[Arg]Arg
 }
 
-func (p *Prog) validate() error {
+type validationOptions struct {
+	ignoreTransient bool
+}
+
+func (p *Prog) validateWithOpts(opts validationOptions) error {
 	ctx := &validCtx{
 		target: p.Target,
+		opts:   opts,
 		args:   make(map[Arg]bool),
 		uses:   make(map[Arg]Arg),
 	}
@@ -65,7 +75,7 @@ func (ctx *validCtx) validateCall(c *Call) error {
 			return err
 		}
 	}
-	if err := c.checkConditions(ctx.target); err != nil {
+	if err := c.checkConditions(ctx.target, ctx.opts.ignoreTransient); err != nil {
 		return err
 	}
 	return ctx.validateRet(c)

@@ -886,7 +886,7 @@ func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 	if a.isConditional() {
 		// Conditions may reference other fields that may not have already
 		// been generated. We'll fill them in later.
-		return a.DefaultTransientArg(dir), nil
+		return a.DefaultArg(dir), nil
 	}
 	index := r.Intn(len(a.Fields))
 	optType, optDir := a.Fields[index].Type, a.Fields[index].Dir(dir)
