@@ -31,7 +31,7 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, dir prog.Di
 	} else {
 		// TODO(dvyukov): try to restore original hook order after mutation
 		// instead of assigning brand new offsets.
-		arg = old
+		arg = prog.CloneArg(old)
 		calls = g.MutateArg(arg)
 	}
 	var tableArg *prog.GroupArg
@@ -113,7 +113,7 @@ func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, dir prog.Dir, old
 	} else {
 		// TODO(dvyukov): try to restore original hook order after mutation
 		// instead of assigning brand new offsets.
-		arg = old
+		arg = prog.CloneArg(old)
 		calls = g.MutateArg(arg)
 	}
 	if g.Target().ArgContainsAny(arg) {
