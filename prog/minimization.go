@@ -281,7 +281,7 @@ func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 
 	// By mutating an integer, we risk violating conditional fields.
 	// If the fields are patched, the minimization process must be restarted.
-	patched := ctx.call.setDefaultConditions(ctx.p.Target)
+	patched := ctx.call.setDefaultConditions(ctx.p.Target, false)
 	if ctx.pred(ctx.p, ctx.callIndex0) {
 		*ctx.p0 = ctx.p
 		ctx.triedPaths[path] = true
