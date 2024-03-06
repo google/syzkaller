@@ -55,7 +55,7 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir p
 	if old == nil {
 		arg = g.GenerateSpecialArg(typ0, dir, &calls)
 	} else {
-		arg = old
+		arg = prog.CloneArg(old)
 		calls = g.MutateArg(arg)
 	}
 	if g.Target().ArgContainsAny(arg) {
@@ -144,7 +144,7 @@ func (arch *arch) generateUsbHidDeviceDescriptor(g *prog.Gen, typ0 prog.Type, di
 	if old == nil {
 		arg = g.GenerateSpecialArg(typ0, dir, &calls)
 	} else {
-		arg = old
+		arg = prog.CloneArg(old)
 		calls = g.MutateArg(arg)
 	}
 	if g.Target().ArgContainsAny(arg) {

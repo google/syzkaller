@@ -39,6 +39,10 @@ func cloneCall(c *Call, newargs map[*ResultArg]*ResultArg) *Call {
 	return c1
 }
 
+func CloneArg(arg Arg) Arg {
+	return clone(arg, nil)
+}
+
 func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
 	var arg1 Arg
 	switch a := arg.(type) {
