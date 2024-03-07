@@ -11,6 +11,7 @@ package cover
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 type Test struct {
@@ -154,7 +156,7 @@ func TestReportGenerator(t *testing.T) {
 }
 
 func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
-	rep, csv, err := generateReport(t, target, &test)
+	reps, err := generateReport(t, target, &test)
 	if err != nil {
 		if test.Result == "" {
 			t.Fatalf("expected no error, but got:\n%v", err)
@@ -167,8 +169,8 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 	if test.Result != "" {
 		t.Fatalf("got no error, but expected %q", test.Result)
 	}
-	checkCSVReport(t, csv)
-	_ = rep
+	checkCSVReport(t, reps.csv)
+	checkJSONReport(t, reps.json)
 }
 
 const kcovCode = `
@@ -287,7 +289,13 @@ func targetKcovIsBroken(t *testing.T, target *targets.Target) bool {
 	return true
 }
 
-func generateReport(t *testing.T, target *targets.Target, test *Test) ([]byte, []byte, error) {
+type reports struct {
+	html []byte
+	csv  []byte
+	json []byte
+}
+
+func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports, error) {
 	dir := t.TempDir()
 	bin := buildTestBinary(t, target, test, dir)
 	cfg := &mgrconfig.Config{
@@ -318,7 +326,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) ([]byte, [
 
 	rg, err := MakeReportGenerator(cfg, subsystem, nil, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if test.AddCover {
 		var pcs []uint64
@@ -369,24 +377,31 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) ([]byte, [
 		Progs: progs,
 	}
 	if err := rg.DoHTML(html, params); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	htmlTable := new(bytes.Buffer)
 	if err := rg.DoHTMLTable(htmlTable, params); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	_ = htmlTable
 	csv := new(bytes.Buffer)
 	if err := rg.DoCSV(csv, params); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	csvFiles := new(bytes.Buffer)
 	if err := rg.DoCSVFiles(csvFiles, params); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	_ = csvFiles
-
-	return html.Bytes(), csv.Bytes(), nil
+	json := new(bytes.Buffer)
+	if err := rg.DoCoverJSON(json, params); err != nil {
+		return nil, err
+	}
+	return &reports{
+		html: html.Bytes(),
+		csv:  csv.Bytes(),
+		json: json.Bytes(),
+	}, nil
 }
 
 func checkCSVReport(t *testing.T, CSVReport []byte) {
@@ -412,4 +427,29 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 	if !foundMain {
 		t.Fatalf("no main in the CSV report")
 	}
+}
+func checkJSONReport(t *testing.T, r []byte) {
+	expected := []byte(`{
+	"version":1,
+	"total_cb_count":1,
+	"covered_cb_count":1,
+	"files": {
+		"main.c": {
+			"total_cb_count":1,
+			"covered_cb_count":1,
+			"functions":{
+				"main": {
+					"total_cb_count":1,
+					"covered_cb_count":1
+				}
+			}
+		}
+	}
+}`)
+	compacted := new(bytes.Buffer)
+	if err := json.Compact(compacted, expected); err != nil {
+		t.Errorf("failed to prepare compacted json: %v", err)
+	}
+	compacted.Write([]byte("\n"))
+	assert.Equal(t, compacted.String(), string(r))
 }
