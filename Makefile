@@ -27,7 +27,7 @@ endef
 
 RED := $(shell tput setaf 1)
 RESET := $(shell tput sgr0)
-ifndef SYZ_ENV
+ifndef CI
 $(warning $(RED)run command via tools/syz-env for best compatibility, see:$(RESET))
 $(warning $(RED)https://github.com/google/syzkaller/blob/master/docs/contributing.md#using-syz-env$(RESET))
 endif
@@ -390,6 +390,8 @@ presubmit_old: descriptions
 	TARGETARCH=ppc64le $(MAKE) target
 	TARGETARCH=mips64le $(MAKE) target
 	TARGETARCH=s390x $(MAKE) target
+	$(GO) tool fix .
+	$(MAKE) check_fix_diff
 
 test: descriptions
 	$(GO) test -short -coverprofile=.coverage.txt ./...
@@ -445,3 +447,12 @@ check_diff:
 
 check_shebang:
 	./tools/check-shebang.sh
+
+check_fix_diff:
+	echo "Check for diff presence in $(shell pwd)"
+	@if [ "$(shell git --no-pager diff --name-only)" != "" ]; then \
+		git --no-pager diff; \
+		git --no-pager diff --name-only | \
+			sed "s#.*#&:1:1: The file is not fixed. Run 'go tool fix' and include it into the commit.#g"; \
+		false; \
+	fi
