@@ -257,13 +257,9 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 	// This validation is done even in non-debug mode because deserialization
 	// procedure does not catch all bugs (e.g. mismatched types).
 	// And we can receive bad programs from corpus and hub.
-	if err := prog.validateWithOpts(validationOptions{
-		// Don't validate auto-set conditional fields. We'll patch them later.
-		ignoreTransient: true,
-	}); err != nil {
+	if err := prog.validate(); err != nil {
 		return nil, err
 	}
-	p.fixupConditionals(prog)
 	if p.autos != nil {
 		p.fixupAutos(prog)
 	}
@@ -1155,13 +1151,6 @@ func (p *parser) fixupAutos(prog *Prog) {
 	}
 	if len(p.autos) != 0 {
 		panic(fmt.Sprintf("leftoever autos: %+v", p.autos))
-	}
-}
-
-func (p *parser) fixupConditionals(prog *Prog) {
-	for _, c := range prog.Calls {
-		// Only overwrite transient union fields.
-		c.setDefaultConditions(p.target, true)
 	}
 }
 

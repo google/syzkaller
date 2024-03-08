@@ -174,7 +174,7 @@ func matchingUnionArgs(typ *UnionType, finder ArgFinder) []int {
 
 func (p *Prog) checkConditions() error {
 	for _, c := range p.Calls {
-		err := c.checkConditions(p.Target, false)
+		err := c.checkConditions(p.Target)
 		if err != nil {
 			return err
 		}
@@ -184,15 +184,12 @@ func (p *Prog) checkConditions() error {
 
 var ErrViolatedConditions = errors.New("conditional fields rules violation")
 
-func (c *Call) checkConditions(target *Target, ignoreTransient bool) error {
+func (c *Call) checkConditions(target *Target) error {
 	var ret error
 
 	makeArgFinder := argFinderConstructor(target, c)
 	forEachStaleUnion(target, c, makeArgFinder,
 		func(a *UnionArg, t *UnionType, okIndices []int) {
-			if ignoreTransient && a.transient {
-				return
-			}
 			ret = fmt.Errorf("%w union %s field is #%d(%s), but %v satisfy conditions",
 				ErrViolatedConditions, t.Name(), a.Index, t.Fields[a.Index].Name,
 				okIndices)
@@ -200,7 +197,7 @@ func (c *Call) checkConditions(target *Target, ignoreTransient bool) error {
 	return ret
 }
 
-func (c *Call) setDefaultConditions(target *Target, transientOnly bool) bool {
+func (c *Call) setDefaultConditions(target *Target) bool {
 	var anyReplaced bool
 	// Replace stale conditions with the default values of their correct types.
 	for {
@@ -208,9 +205,6 @@ func (c *Call) setDefaultConditions(target *Target, transientOnly bool) bool {
 		makeArgFinder := argFinderConstructor(target, c)
 		forEachStaleUnion(target, c, makeArgFinder,
 			func(unionArg *UnionArg, unionType *UnionType, okIndices []int) {
-				if transientOnly && !unionArg.transient {
-					return
-				}
 				// If several union options match, take the first one.
 				idx := okIndices[0]
 				field := unionType.Fields[idx]
