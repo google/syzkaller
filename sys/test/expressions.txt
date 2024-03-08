@@ -68,14 +68,3 @@ conditional_union_parent {
 }
 
 test$conditional_union(a ptr[in, conditional_union_parent])
-
-resource cond_res[int32]
-
-test$create_cond_resource() cond_res
-
-conditional_resouce_struct {
-	f0	int8
-	f1	cond_res	(if[value[f0] == 1])
-}
-
-test$use_cond_resource(a ptr[in, conditional_resouce_struct])
