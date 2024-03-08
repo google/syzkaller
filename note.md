@@ -1,3 +1,18 @@
+# How to debug syz-fuzzer
+
+>1. Install golang and dlv to host (which run syz-manager);
+>2. Send dlv to image (which run syz-fuzzer) by scp command;
+>3. Enable port-forwarding for host;
+>4. Set Goland for debugging refer to the port.
+
+1. Run SyzLLM-server on host;
+2. Turn on port-forwarding; 
+3. Launch image vm; 
+4. Run syzkaller;
+5. Attach dlv to syz-fuzzer on the image vm;
+6. Debug on Goland.
+
+
 # Log
 
 ### Feb-23-Fri-2024
