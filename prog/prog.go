@@ -354,9 +354,6 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 
 // replaceArg replaces arg with arg1 in a program.
 func replaceArg(arg, arg1 Arg) {
-	if arg == arg1 {
-		panic("replacing an argument with itself")
-	}
 	switch a := arg.(type) {
 	case *ConstArg:
 		*a = *arg1.(*ConstArg)
