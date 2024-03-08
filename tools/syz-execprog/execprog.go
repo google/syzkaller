@@ -181,7 +181,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 		output, info, hanged, err := env.Exec(callOpts, p)
 		if err != nil && err != prog.ErrExecBufferTooSmall {
 			if try > 10 {
-				log.Fatalf("executor failed %v times: %v\n%s", try, err, output)
+				log.SyzFatalf("executor %d failed %d times: %v\n%s", pid, try, err, output)
 			}
 			// Don't print err/output in this case as it may contain "SYZFAIL" and we want to fail yet.
 			log.Logf(1, "executor failed, retrying")
