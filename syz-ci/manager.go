@@ -941,7 +941,8 @@ func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader, allowPublis
 	URL.Path = path.Join(URL.Path, name)
 	URLStr := URL.String()
 	log.Logf(0, "uploading %v to %v", name, URLStr)
-	if strings.HasPrefix(URLStr, "http") {
+	if strings.HasPrefix(URLStr, "http://") ||
+		strings.HasPrefix(URLStr, "https://") {
 		return uploadFileHTTPPut(URLStr, file)
 	}
 	return uploadFileGCS(URLStr, file, allowPublishing && mgr.cfg.PublishGCS)
