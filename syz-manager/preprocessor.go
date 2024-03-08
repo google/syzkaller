@@ -49,7 +49,6 @@ func PreprocessAllCorpora(manager *Manager) {
 type Preprocessor struct {
 	corpusDB     *db.DB
 	mgr          *Manager
-	argTable     map[string][][]proglib.Arg
 	logCollector *LogCollector
 }
 
@@ -57,51 +56,15 @@ func NewPreprocessor(manager *Manager, corpusDB *db.DB) *Preprocessor {
 	preprocessor := new(Preprocessor)
 	preprocessor.corpusDB = corpusDB
 	preprocessor.mgr = manager
-	preprocessor.argTable = make(map[string][][]proglib.Arg)
 	preprocessor.logCollector = NewLogCollector()
 	return preprocessor
 }
 
 func (preprocessor *Preprocessor) Preprocessing() *LogCollector {
-	//preprocessor.InitArgTable()
 	preprocessor.ReplaceArgs()
 	preprocessor.ParseCorpusToFile()
 	log.Logf(0, "preprocessing done! Replaced Args Count: %v, Panic Count: %v", preprocessor.logCollector.TotalReplacedArgsCnt, preprocessor.logCollector.TotalPanicCnt)
 	return preprocessor.logCollector
-}
-
-func (preprocessor *Preprocessor) InitArgTable() {
-	for _, rec := range preprocessor.corpusDB.Records {
-		program, err := preprocessor.mgr.target.Deserialize(rec.Val[:], proglib.NonStrict)
-		if err != nil {
-			if program == nil {
-				continue
-			}
-			log.Fatalf("InitArgTable - Preprocessor Deserialize record failed: %v", err)
-		}
-
-		for _, call := range program.Calls {
-			for j, arg := range call.Args {
-				preprocessor.InsertArg(call.Meta.Name, j, arg, len(call.Args))
-			}
-		}
-	}
-}
-
-func (preprocessor *Preprocessor) InsertArg(callName string, idx int, arg proglib.Arg, callArgSize int) {
-	argList, exist := preprocessor.argTable[callName]
-	if !exist {
-		argList = make([][]proglib.Arg, callArgSize)
-	}
-
-	switch arg := arg.(type) {
-	case *proglib.DataArg, *proglib.PointerArg, *proglib.GroupArg:
-		if len(argList[idx]) < 10 && !ArgContainResArg(arg) {
-			argList[idx] = append(argList[idx], arg)
-		}
-	default:
-	}
-	preprocessor.argTable[callName] = argList
 }
 
 func (preprocessor *Preprocessor) ReplaceArgs() {
