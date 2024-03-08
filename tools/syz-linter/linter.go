@@ -252,7 +252,7 @@ func (pass *Pass) checkFlagDefinition(n *ast.CallExpr) {
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
 func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	arg, newLine, sure := pass.logFormatArg(n)
-	if arg == -1 {
+	if arg == -1 || len(n.Args) <= arg {
 		return
 	}
 	val, ok := stringLit(n.Args[arg])
@@ -301,6 +301,9 @@ func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
 			break
 		}
 		return 1, true, true
+	}
+	if fun.Sel.String() == "Logf" {
+		return 1, false, true
 	}
 	return -1, false, false
 }
