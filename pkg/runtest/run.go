@@ -416,6 +416,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	}
 	if cov {
 		cfg.Flags |= ipc.FlagSignal
+		opts.Flags |= ipc.FlagCollectSignal
 		opts.Flags |= ipc.FlagCollectCover
 	}
 	if ctx.Features[host.FeatureExtraCoverage].Enabled {
