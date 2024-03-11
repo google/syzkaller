@@ -64,6 +64,10 @@ config:
  - KALLSYMS_ALL
  - KALLSYMS_BASE_RELATIVE
 
+ # NET_NS depends on NET, NETDEVICES and NET_CORE are needed for any network device.
+ - NET
+ - NETDEVICES
+ - NET_CORE
  # For namespace sandbox.
  - NAMESPACES
  - USER_NS
@@ -74,6 +78,7 @@ config:
  - NET_NS
 
  # Control groups are needed for better sandboxing of test processes.
+ - CGROUPS
  - CGROUP_PIDS
  - MEMCG
 
@@ -164,12 +169,20 @@ config:
  - UEVENT_HELPER_PATH: "/sbin/hotplug"
 
  # QEMU disk is usually on the generic PCI bus.
+ - PCI
  - PCI_HOST_GENERIC: [v4.16]
  - OF: [v4.16]
 
- # Options enabled to boot Debian Stretch.
+ # Options enabled to boot Debian Stretch, Bullseye and Bookworm
+ - EXT4_FS
+ - BINFMT_ELF
+ - TMPFS
+ - UNIX
  - CONFIGFS_FS
  - SECURITYFS
+ - BINFMT_SCRIPT
+ - INET
+ - PACKET
 
  # More debugging info is always good.
  - NMI_CHECK_CPU: [x86_64, v6.3]
