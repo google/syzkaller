@@ -80,10 +80,7 @@ func Check(target *prog.Target) (*Features, error) {
 		Feature802154Emulation:  {Name: "802.15.4 emulation", Reason: unsupported},
 		FeatureSwap:             {Name: "swap file", Reason: unsupported},
 	}
-	if noHostChecks(target) {
-		return res, nil
-	}
-	for n, check := range checkFeature {
+	for n, check := range featureCheckers(target) {
 		if check == nil {
 			continue
 		}
@@ -133,6 +130,23 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	output, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
 	log.Logf(1, "executor %v\n%s", args, output)
 	return err
+}
+
+func featureCheckers(target *prog.Target) [numFeatures]func() string {
+	ret := [numFeatures]func() string{}
+	if target.OS == targets.TestOS {
+		sysTarget := targets.Get(target.OS, target.Arch)
+		ret[FeatureCoverage] = func() string {
+			if sysTarget.ExecutorUsesShmem && sysTarget.PtrSize == 8 {
+				return ""
+			}
+			return "disabled"
+		}
+	}
+	if noHostChecks(target) {
+		return ret
+	}
+	return checkFeature
 }
 
 func noHostChecks(target *prog.Target) bool {

@@ -175,8 +175,13 @@ var List = map[string]map[string]*Target{
 		TestArch64: {
 			PtrSize:  8,
 			PageSize: 4 << 10,
-			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
-			CFlags: []string{"-fsanitize=address", "-no-pie"},
+			CFlags: []string{
+				"-fsanitize=address",
+				// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
+				"-no-pie",
+				// Otherwise it conflicts with -fsanitize-coverage=trace-pc.
+				"-fno-exceptions",
+			},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -187,8 +192,13 @@ var List = map[string]map[string]*Target{
 		TestArch64Fork: {
 			PtrSize:  8,
 			PageSize: 8 << 10,
-			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
-			CFlags: []string{"-fsanitize=address", "-no-pie"},
+			CFlags: []string{
+				"-fsanitize=address",
+				// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
+				"-no-pie",
+				// Otherwise it conflicts with -fsanitize-coverage=trace-pc.
+				"-fno-exceptions",
+			},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
