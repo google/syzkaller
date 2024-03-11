@@ -75,7 +75,6 @@ config:
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
  - X86_SGX_KVM: [x86_64, v6.0, -kmsan]
- - JUMP_LABEL
  - MODULES
  - MODULE_UNLOAD
  - MODULE_FORCE_UNLOAD
