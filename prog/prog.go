@@ -372,14 +372,30 @@ func replaceArg(arg, arg1 Arg) {
 	case *DataArg:
 		*a = *arg1.(*DataArg)
 	case *GroupArg:
+		_, isStruct := arg.Type().(*StructType)
 		a1 := arg1.(*GroupArg)
-		if len(a.Inner) != len(a1.Inner) {
+		if isStruct && len(a.Inner) != len(a1.Inner) {
 			panic(fmt.Sprintf("replaceArg: group fields don't match: %v/%v",
 				len(a.Inner), len(a1.Inner)))
 		}
 		a.ArgCommon = a1.ArgCommon
-		for i := range a.Inner {
+		// Replace min(|a|, |a1|) arguments.
+		for i := 0; i < len(a.Inner) && i < len(a1.Inner); i++ {
 			replaceArg(a.Inner[i], a1.Inner[i])
+		}
+		// Remove extra arguments of a.
+		for len(a.Inner) > len(a1.Inner) {
+			i := len(a.Inner) - 1
+			removeArg(a.Inner[i])
+			a.Inner[i] = nil
+			a.Inner = a.Inner[:i]
+		}
+		// Add extra arguments to a.
+		for i := len(a.Inner); i < len(a1.Inner); i++ {
+			a.Inner = append(a.Inner, a1.Inner[i])
+		}
+		if debug && len(a.Inner) != len(a1.Inner) {
+			panic("replaceArg implementation bug")
 		}
 	default:
 		panic(fmt.Sprintf("replaceArg: bad arg kind %#v", arg))
