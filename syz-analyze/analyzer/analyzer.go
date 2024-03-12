@@ -90,11 +90,11 @@ func myFunc() {
 
 	exe := config.SysTarget.ExeExtension
 	runnerBin := filepath.Join(config.Syzkaller, "bin", config.Target.OS+"_"+config.Target.Arch, "syz-runner"+exe)
-	// check
+	// TODO: check
 	analyzer.runnerBin = runnerBin
 
 	executorBin := config.ExecutorBin
-	// check
+	// TODO: check
 	analyzer.executorBin = executorBin
 
 	analyzer.initializeInstances()
@@ -121,7 +121,7 @@ func (analyzer *Analyzer) createInstance(pool *PoolInfo, poolID, vmID int) {
 	}
 	//defer instance.Close()
 
-	port, err := instance.Forward(analyzer.port)
+	port, err := instance.Forward(analyzer.server.port)
 	log.Logf(poolID, "port for %d-%d: %d\n", poolID, vmID, port)
 	if err != nil {
 		log.Fatalf("%v with port %s\n", err, port)
