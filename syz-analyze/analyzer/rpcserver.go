@@ -8,12 +8,12 @@ import (
 )
 
 type RPCServer struct {
-	analyzer    Analyzer
+	analyzer    *Analyzer
 	port        int
 	currentTask map[int]int
 }
 
-func createRPCServer(addr string, analyzer Analyzer) (*RPCServer, error) {
+func createRPCServer(addr string, analyzer *Analyzer) (*RPCServer, error) {
 	currentTask := make(map[int]int)
 	server := &RPCServer{
 		analyzer:    analyzer,
