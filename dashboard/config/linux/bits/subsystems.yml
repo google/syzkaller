@@ -93,7 +93,6 @@ config:
  - IOSCHED_BFQ
  - BFQ_GROUP_IOSCHED
  - BFQ_CGROUP_DEBUG
- - BINFMT_MISC
  - MEMORY_HOTPLUG: [-arm, -riscv]
  - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv]
  - MEMORY_HOTREMOVE: [-arm, -riscv]
