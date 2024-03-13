@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -41,7 +41,8 @@ func TestFuzz(t *testing.T) {
 	defer cancel()
 
 	fuzzer := NewFuzzer(ctx, &Config{
-		Debug: true,
+		Debug:  true,
+		Corpus: corpus.NewCorpus(ctx),
 		Logf: func(level int, msg string, args ...interface{}) {
 			if level > 1 {
 				return
@@ -52,7 +53,7 @@ func TestFuzz(t *testing.T) {
 		EnabledCalls: map[*prog.Syscall]bool{
 			target.SyscallMap["syz_test_fuzzer1"]: true,
 		},
-		NewInputs: make(chan rpctype.Input),
+		NewInputs: make(chan corpus.NewInput),
 	}, rand.New(testutil.RandSource(t)), target)
 
 	go func() {
@@ -77,7 +78,7 @@ func TestFuzz(t *testing.T) {
 	tf.wait()
 
 	t.Logf("resulting corpus:")
-	for _, p := range fuzzer.Corpus.Programs() {
+	for _, p := range fuzzer.Config.Corpus.Programs() {
 		t.Logf("-----")
 		t.Logf("%s", p.Serialize())
 	}
@@ -99,6 +100,7 @@ func BenchmarkFuzzer(b *testing.B) {
 		calls[c] = true
 	}
 	fuzzer := NewFuzzer(ctx, &Config{
+		Corpus:       corpus.NewCorpus(ctx),
 		Coverage:     true,
 		EnabledCalls: calls,
 	}, rand.New(rand.NewSource(time.Now().UnixNano())), target)
@@ -160,7 +162,7 @@ func (f *testFuzzer) oneMore() bool {
 	defer f.mu.Unlock()
 	f.iter++
 	if f.iter%100 == 0 {
-		stat := f.fuzzer.Corpus.Stat()
+		stat := f.fuzzer.Stat()
 		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d",
 			f.iter, stat.Progs, stat.Signal, stat.MaxSignal, len(f.crashes))
 	}

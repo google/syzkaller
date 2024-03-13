@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,14 +15,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
-	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/gce"
@@ -35,7 +35,6 @@ import (
 	crash_pkg "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
@@ -55,7 +54,9 @@ type Manager struct {
 	reporter       *report.Reporter
 	crashdir       string
 	serv           *RPCServer
+	corpus         *corpus.Corpus
 	corpusDB       *db.DB
+	corpusDBMu     sync.Mutex // for concurrent operations on corpusDB
 	startTime      time.Time
 	firstConnect   time.Time
 	fuzzingTime    time.Duration
@@ -75,7 +76,6 @@ type Manager struct {
 
 	candidates       []rpctype.Candidate // untriaged inputs from corpus and hub
 	disabledHashes   map[string]struct{}
-	corpus           map[string]CorpusItem
 	seeds            [][]byte
 	newRepros        [][]byte
 	lastMinCorpus    int
@@ -98,29 +98,6 @@ type Manager struct {
 	afterTriageStatSent bool
 
 	assetStorage *asset.Storage
-}
-
-type CorpusItemUpdate struct {
-	CallID   int
-	RawCover []uint32
-}
-
-type CorpusItem struct {
-	Call    string
-	Prog    []byte
-	HasAny  bool // whether the prog contains squashed arguments
-	Signal  signal.Serial
-	Cover   []uint32
-	Updates []CorpusItemUpdate
-}
-
-func (item *CorpusItem) RPCInput() rpctype.Input {
-	return rpctype.Input{
-		Call:   item.Call,
-		Prog:   item.Prog,
-		Signal: item.Signal,
-		Cover:  item.Cover,
-	}
 }
 
 const (
@@ -186,9 +163,11 @@ func RunManager(cfg *mgrconfig.Config) {
 		log.Fatalf("%v", err)
 	}
 
+	corpusUpdates := make(chan corpus.NewItemEvent, 32)
 	mgr := &Manager{
 		cfg:                cfg,
 		vmPool:             vmPool,
+		corpus:             corpus.NewMonitoredCorpus(context.Background(), corpusUpdates),
 		target:             cfg.Target,
 		sysTarget:          cfg.SysTarget,
 		reporter:           reporter,
@@ -196,7 +175,6 @@ func RunManager(cfg *mgrconfig.Config) {
 		startTime:          time.Now(),
 		stats:              &Stats{haveHub: cfg.HubClient != ""},
 		crashTypes:         make(map[string]bool),
-		corpus:             make(map[string]CorpusItem),
 		disabledHashes:     make(map[string]struct{}),
 		memoryLeakFrames:   make(map[string]bool),
 		dataRaceFrames:     make(map[string]bool),
@@ -213,6 +191,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initStats() // Initializes prometheus variables.
 	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
+	go mgr.saveCorpus(corpusUpdates)
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)
@@ -295,8 +274,9 @@ func (mgr *Manager) initBench() {
 				mgr.mu.Unlock()
 				continue
 			}
-			mgr.minimizeCorpus()
-			vals["corpus"] = uint64(len(mgr.corpus))
+			mgr.minimizeCorpusUnlocked()
+			stat := mgr.corpus.Stat()
+			vals["corpus"] = uint64(stat.Progs)
 			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
 			vals["candidates"] = uint64(len(mgr.candidates))
@@ -687,7 +667,7 @@ func (mgr *Manager) loadCorpus() {
 }
 
 func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
-	bad, disabled, _ := checkProgram(mgr.target, mgr.targetEnabledSyscalls, data)
+	_, disabled, bad := parseProgram(mgr.target, mgr.targetEnabledSyscalls, data)
 	if bad != nil {
 		return false
 	}
@@ -736,29 +716,27 @@ func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data [
 	return p.Serialize()
 }
 
-// The linter complains about error not being the last argument.
-// nolint: stylecheck
-func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad error, disabled, hasAny bool) {
-	p, err := target.Deserialize(data, prog.NonStrict)
+func parseProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (
+	p *prog.Prog, disabled bool, err error) {
+	p, err = target.Deserialize(data, prog.NonStrict)
 	if err != nil {
-		return err, true, false
+		return
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return fmt.Errorf("longer than %d calls", prog.MaxCalls), true, false
+		return nil, false, fmt.Errorf("longer than %d calls", prog.MaxCalls)
 	}
 	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
 	for _, call := range p.Calls {
 		if call.Props.FailNth > 0 {
-			return fmt.Errorf("input has fail_nth > 0"), true, false
+			return nil, false, fmt.Errorf("input has fail_nth > 0")
 		}
 	}
-	hasAny = p.ContainsAny()
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
-			return nil, true, hasAny
+			return p, true, nil
 		}
 	}
-	return nil, false, hasAny
+	return p, false, nil
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
@@ -1224,13 +1202,29 @@ func fullReproLog(stats *repro.Stats) []byte {
 		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
 }
 
+func (mgr *Manager) saveCorpus(updates <-chan corpus.NewItemEvent) {
+	for update := range updates {
+		if update.Exists {
+			// We only save new progs into the corpus.db file.
+			continue
+		}
+		mgr.corpusDBMu.Lock()
+		mgr.corpusDB.Save(update.Sig, update.ProgData, 0)
+		if err := mgr.corpusDB.Flush(); err != nil {
+			log.Errorf("failed to save corpus database: %v", err)
+		}
+		mgr.corpusDBMu.Unlock()
+	}
+}
+
 func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.minimizeCorpus()
-	corpus = make([][]byte, 0, len(mgr.corpus))
-	for _, inp := range mgr.corpus {
-		corpus = append(corpus, inp.Prog)
+	mgr.minimizeCorpusUnlocked()
+	items := mgr.corpus.Items()
+	corpus = make([][]byte, 0, len(items))
+	for _, inp := range items {
+		corpus = append(corpus, inp.ProgData)
 	}
 	repros = mgr.newRepros
 	mgr.newRepros = nil
@@ -1252,46 +1246,26 @@ func (mgr *Manager) addNewCandidates(candidates []rpctype.Candidate) {
 	}
 }
 
-func (mgr *Manager) minimizeCorpus() {
-	if mgr.phase < phaseLoadedCorpus || len(mgr.corpus) <= mgr.lastMinCorpus*103/100 {
+func (mgr *Manager) minimizeCorpusUnlocked() {
+	currSize := mgr.corpus.Stat().Progs
+	if mgr.phase < phaseLoadedCorpus || currSize <= mgr.lastMinCorpus*103/100 {
 		return
 	}
-	inputs := make([]signal.Context, 0, len(mgr.corpus))
-	for _, inp := range mgr.corpus {
-		inputs = append(inputs, signal.Context{
-			Signal:  inp.Signal.Deserialize(),
-			Context: inp,
-		})
-	}
+	mgr.corpus.Minimize(mgr.cfg.Cover)
+	newSize := mgr.corpus.Stat().Progs
 
-	// Note: inputs are unsorted (based on map iteration).
-	// This gives some intentional non-determinism during minimization.
-	// However, we want to give preference to non-squashed inputs,
-	// so let's sort by this criteria.
-	sort.SliceStable(inputs, func(i, j int) bool {
-		firstAny := inputs[i].Context.(CorpusItem).HasAny
-		secondAny := inputs[j].Context.(CorpusItem).HasAny
-		return !firstAny && secondAny
-	})
-
-	newCorpus := make(map[string]CorpusItem)
-	for _, ctx := range signal.Minimize(inputs) {
-		inp := ctx.(CorpusItem)
-		newCorpus[hash.String(inp.Prog)] = inp
-	}
-	log.Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
-	mgr.corpus = newCorpus
-	mgr.lastMinCorpus = len(newCorpus)
+	log.Logf(1, "minimized corpus: %v -> %v", currSize, newSize)
+	mgr.lastMinCorpus = newSize
 
 	// From time to time we get corpus explosion due to different reason:
 	// generic bugs, per-OS bugs, problems with fallback coverage, kcov bugs, etc.
 	// This has bad effect on the instance and especially on instances
 	// connected via hub. Do some per-syscall sanity checking to prevent this.
-	for call, info := range mgr.collectSyscallInfoUnlocked() {
+	for call, info := range mgr.corpus.CallCover() {
 		if mgr.cfg.Cover {
 			// If we have less than 1K inputs per this call,
 			// accept all new inputs unconditionally.
-			if info.count < 1000 {
+			if info.Count < 1000 {
 				continue
 			}
 			// If we have more than 3K already, don't accept any more.
@@ -1299,13 +1273,13 @@ func (mgr *Manager) minimizeCorpus() {
 			// Empirically, real coverage for the most saturated syscalls is ~30-60
 			// per program (even when we have a thousand of them). For explosion
 			// case coverage tend to be much lower (~0.3-5 per program).
-			if info.count < 3000 && len(info.cov)/info.count >= 10 {
+			if info.Count < 3000 && len(info.Cover)/info.Count >= 10 {
 				continue
 			}
 		} else {
 			// If we don't have real coverage, signal is weak.
 			// If we have more than several hundreds, there is something wrong.
-			if info.count < 300 {
+			if info.Count < 300 {
 				continue
 			}
 		}
@@ -1320,8 +1294,10 @@ func (mgr *Manager) minimizeCorpus() {
 	if mgr.phase < phaseTriagedCorpus {
 		return
 	}
+	mgr.corpusDBMu.Lock()
+	defer mgr.corpusDBMu.Unlock()
 	for key := range mgr.corpusDB.Records {
-		_, ok1 := mgr.corpus[key]
+		ok1 := mgr.corpus.Item(key) != nil
 		_, ok2 := mgr.disabledHashes[key]
 		if !ok1 && !ok2 {
 			mgr.corpusDB.Delete(key)
@@ -1336,32 +1312,21 @@ func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
 	}
 }
 
-type CallCov struct {
-	count int
-	cov   cover.Cover
-}
-
-func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
+func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	return mgr.collectSyscallInfoUnlocked()
-}
+	checkResult := mgr.checkResult
+	mgr.mu.Unlock()
 
-func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
-	if mgr.checkResult == nil {
+	if checkResult == nil {
 		return nil
 	}
-	calls := make(map[string]*CallCov)
-	for _, call := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
-		calls[mgr.target.Syscalls[call].Name] = new(CallCov)
-	}
-	for _, inp := range mgr.corpus {
-		if calls[inp.Call] == nil {
-			calls[inp.Call] = new(CallCov)
+	calls := mgr.corpus.CallCover()
+	// Add enabled, but not yet covered calls.
+	for _, call := range checkResult.EnabledCalls[mgr.cfg.Sandbox] {
+		key := mgr.target.Syscalls[call].Name
+		if calls[key] == nil {
+			calls[key] = new(corpus.CallCov)
 		}
-		cc := calls[inp.Call]
-		cc.count++
-		cc.cov.Merge(inp.Cover)
 	}
 	return calls
 }
@@ -1371,10 +1336,11 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	mgr.minimizeCorpus()
-	corpus := make([]rpctype.Input, 0, len(mgr.corpus))
-	for _, inp := range mgr.corpus {
-		corpus = append(corpus, inp.RPCInput())
+	mgr.minimizeCorpusUnlocked()
+	items := mgr.corpus.Items()
+	corpus := make([]rpctype.Input, 0, len(items))
+	for _, inp := range items {
+		corpus = append(corpus, inp.RPCInputShort())
 	}
 	frames := BugFrames{
 		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
@@ -1408,45 +1374,14 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 	mgr.firstConnect = time.Now()
 }
 
-func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal, hasAny bool) bool {
+func (mgr *Manager) newInput(inp corpus.NewInput) bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if mgr.saturatedCalls[inp.Call] {
+	if mgr.saturatedCalls[inp.StringCall()] {
+		// TODO: move this logic to pkg/corpus or pkg/fuzzer?
 		return false
 	}
-	update := CorpusItemUpdate{
-		CallID:   inp.CallID,
-		RawCover: inp.RawCover,
-	}
-	sig := hash.String(inp.Prog)
-	if old, ok := mgr.corpus[sig]; ok {
-		// The input is already present, but possibly with diffent signal/coverage/call.
-		sign.Merge(old.Signal.Deserialize())
-		old.Signal = sign.Serialize()
-		var cov cover.Cover
-		cov.Merge(old.Cover)
-		cov.Merge(inp.Cover)
-		old.Cover = cov.Serialize()
-		const maxUpdates = 32
-		old.Updates = append(old.Updates, update)
-		if len(old.Updates) > maxUpdates {
-			old.Updates = old.Updates[:maxUpdates]
-		}
-		mgr.corpus[sig] = old
-	} else {
-		mgr.corpus[sig] = CorpusItem{
-			Call:    inp.Call,
-			Prog:    inp.Prog,
-			HasAny:  hasAny,
-			Signal:  inp.Signal,
-			Cover:   inp.Cover,
-			Updates: []CorpusItemUpdate{update},
-		}
-		mgr.corpusDB.Save(sig, inp.Prog, 0)
-		if err := mgr.corpusDB.Flush(); err != nil {
-			log.Errorf("failed to save corpus database: %v", err)
-		}
-	}
+	mgr.corpus.Save(inp)
 	return true
 }
 
@@ -1553,11 +1488,12 @@ func (mgr *Manager) dashboardReporter() {
 		crashes := mgr.stats.crashes.get()
 		suppressedCrashes := mgr.stats.crashSuppressed.get()
 		execs := mgr.stats.execTotal.get()
+		corpusStat := mgr.corpus.Stat()
 		req := &dashapi.ManagerStatsReq{
 			Name:              mgr.cfg.Name,
 			Addr:              webAddr,
 			UpTime:            time.Since(mgr.firstConnect),
-			Corpus:            uint64(len(mgr.corpus)),
+			Corpus:            uint64(corpusStat.Progs),
 			PCs:               mgr.stats.corpusCover.get(),
 			Cover:             mgr.stats.corpusSignal.get(),
 			CrashTypes:        mgr.stats.crashTypes.get(),

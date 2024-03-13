@@ -17,9 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/fuzzer"
-	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
@@ -230,6 +230,7 @@ func main() {
 		calls[target.Syscalls[id]] = true
 	}
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+		Corpus:         corpus.NewCorpus(context.Background()),
 		Coverage:       config.Flags&ipc.FlagSignal > 0,
 		FaultInjection: r.CheckResult.Features[host.FeatureFault].Enabled,
 		Comparisons:    r.CheckResult.Features[host.FeatureComparisons].Enabled,
@@ -239,7 +240,7 @@ func main() {
 		LeakChecking:   r.CheckResult.Features[host.FeatureLeak].Enabled,
 		FetchRawCover:  *flagRawCover,
 		MinCandidates:  uint(*flagProcs * 2),
-		NewInputs:      make(chan rpctype.Input),
+		NewInputs:      make(chan corpus.NewInput),
 	}, rnd, target)
 
 	fuzzerTool := &FuzzerTool{
@@ -270,7 +271,7 @@ func main() {
 	for needCandidates, more := true, true; more; needCandidates = false {
 		more = fuzzerTool.poll(needCandidates, nil)
 		// This loop lead to "no output" in qemu emulation, tell manager we are not dead.
-		stat := fuzzerObj.Corpus.Stat()
+		stat := fuzzerObj.Stat()
 		log.Logf(0, "fetching corpus: %v, signal %v/%v (executing program)",
 			stat.Progs, stat.Signal, stat.MaxSignal)
 	}
@@ -289,7 +290,7 @@ func main() {
 	}
 	// Start send input workers.
 	for i := 0; i < *flagProcs*2; i++ {
-		go fuzzerTool.sendInputsWorker()
+		go fuzzerTool.sendInputsWorker(fuzzerObj.Config.NewInputs)
 	}
 	fuzzerTool.pollLoop()
 }
@@ -388,7 +389,7 @@ func (tool *FuzzerTool) poll(needCandidates bool, stats map[string]uint64) bool 
 	a := &rpctype.PollArgs{
 		Name:           tool.name,
 		NeedCandidates: needCandidates,
-		MaxSignal:      fuzzer.Corpus.GrabNewSignal().Serialize(),
+		MaxSignal:      fuzzer.Cover.GrabNewSignal().Serialize(),
 		Stats:          stats,
 	}
 	r := &rpctype.PollRes{}
@@ -398,7 +399,7 @@ func (tool *FuzzerTool) poll(needCandidates bool, stats map[string]uint64) bool 
 	maxSignal := r.MaxSignal.Deserialize()
 	log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
 		len(r.Candidates), len(r.NewInputs), maxSignal.Len())
-	fuzzer.Corpus.AddMaxSignal(maxSignal)
+	fuzzer.Cover.AddMaxSignal(maxSignal)
 	for _, inp := range r.NewInputs {
 		tool.inputFromOtherFuzzer(inp)
 	}
@@ -409,11 +410,11 @@ func (tool *FuzzerTool) poll(needCandidates bool, stats map[string]uint64) bool 
 	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
 }
 
-func (tool *FuzzerTool) sendInputsWorker() {
-	for inp := range tool.fuzzer.Config.NewInputs {
+func (tool *FuzzerTool) sendInputsWorker(ch <-chan corpus.NewInput) {
+	for update := range ch {
 		a := &rpctype.NewInputArgs{
 			Name:  tool.name,
-			Input: inp,
+			Input: update.RPCInput(),
 		}
 		if err := tool.manager.Call("Manager.NewInput", a, nil); err != nil {
 			log.SyzFatalf("Manager.NewInput call failed: %v", err)
@@ -454,9 +455,12 @@ func (tool *FuzzerTool) inputFromOtherFuzzer(inp rpctype.Input) {
 	if p == nil {
 		return
 	}
-	tool.fuzzer.Corpus.Save(p,
-		inp.Signal.Deserialize(),
-		hash.Hash(inp.Prog))
+	tool.fuzzer.Config.Corpus.Save(corpus.NewInput{
+		Prog:   p,
+		Call:   inp.Call,
+		Signal: inp.Signal.Deserialize(),
+		Cover:  inp.Cover,
+	})
 }
 
 func (tool *FuzzerTool) deserializeInput(inp []byte) *prog.Prog {

@@ -215,7 +215,7 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smashed, dropped int) {
 	candidates := make([]rpctype.Candidate, 0, len(inputs))
 	for _, inp := range inputs {
-		bad, disabled, _ := checkProgram(hc.target, hc.enabledCalls, inp.Prog)
+		_, disabled, bad := parseProgram(hc.target, hc.enabledCalls, inp.Prog)
 		if bad != nil || disabled {
 			log.Logf(0, "rejecting program from hub (bad=%v, disabled=%v):\n%s",
 				bad, disabled, inp)
@@ -268,7 +268,7 @@ func splitDomains(domain string) (string, string) {
 func (hc *HubConnector) processRepros(repros [][]byte) int {
 	dropped := 0
 	for _, repro := range repros {
-		bad, disabled, _ := checkProgram(hc.target, hc.enabledCalls, repro)
+		_, disabled, bad := parseProgram(hc.target, hc.enabledCalls, repro)
 		if bad != nil || disabled {
 			log.Logf(0, "rejecting repro from hub (bad=%v, disabled=%v):\n%s",
 				bad, disabled, repro)

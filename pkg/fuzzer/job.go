@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
@@ -71,7 +70,7 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 }
 
 func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
-	p := fuzzer.Corpus.chooseProgram(rnd)
+	p := fuzzer.Config.Corpus.ChooseProgram(rnd)
 	if p == nil {
 		return nil
 	}
@@ -80,7 +79,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		prog.RecommendedCalls,
 		fuzzer.ChoiceTable(),
 		fuzzer.Config.NoMutateCalls,
-		fuzzer.Corpus.Programs(),
+		fuzzer.Config.Corpus.Programs(),
 	)
 	return &Request{
 		Prog:       newP,
@@ -126,10 +125,9 @@ func triageJobPrio(flags ProgTypes) jobPriority {
 }
 
 func (job *triageJob) run(fuzzer *Fuzzer) {
-	callName := ".extra"
 	logCallName := "extra"
 	if job.call != -1 {
-		callName = job.p.Calls[job.call].Meta.Name
+		callName := job.p.Calls[job.call].Meta.Name
 		logCallName = fmt.Sprintf("call #%v %v", job.call, callName)
 	}
 	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", logCallName, job.newSignal.Len())
@@ -144,9 +142,7 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 			return
 		}
 	}
-	data := job.p.Serialize()
-	fuzzer.Logf(2, "added new input for %q to the corpus:\n%s",
-		logCallName, string(data))
+	fuzzer.Logf(2, "added new input for %q to the corpus:\n%s", logCallName, job.p.String())
 	if job.flags&ProgSmashed == 0 {
 		fuzzer.startJob(&smashJob{
 			p:           job.p.Clone(),
@@ -154,18 +150,18 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 			jobPriority: newJobPriority(smashPrio),
 		})
 	}
-	fuzzer.Corpus.Save(job.p, info.stableSignal, hash.Hash(data))
+	input := corpus.NewInput{
+		Prog:     job.p,
+		Call:     job.call,
+		Signal:   info.stableSignal,
+		Cover:    info.cover.Serialize(),
+		RawCover: info.rawCover,
+	}
+	fuzzer.Config.Corpus.Save(input)
 	if fuzzer.Config.NewInputs != nil {
 		select {
 		case <-fuzzer.ctx.Done():
-		case fuzzer.Config.NewInputs <- rpctype.Input{
-			Call:     callName,
-			CallID:   job.call,
-			Prog:     data,
-			Signal:   info.stableSignal.Serialize(),
-			Cover:    info.cover.Serialize(),
-			RawCover: info.rawCover,
-		}:
+		case fuzzer.Config.NewInputs <- input:
 		}
 	}
 }
@@ -298,7 +294,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 		p.Mutate(rnd, prog.RecommendedCalls,
 			fuzzer.ChoiceTable(),
 			fuzzer.Config.NoMutateCalls,
-			fuzzer.Corpus.Programs())
+			fuzzer.Config.Corpus.Programs())
 		result := fuzzer.exec(job, &Request{
 			Prog:       p,
 			NeedSignal: true,

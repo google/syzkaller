@@ -24,7 +24,6 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/gorilla/handlers"
@@ -106,8 +105,8 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 		data.Calls = append(data.Calls, UICallType{
 			Name:   c,
 			ID:     syscallID,
-			Inputs: cc.count,
-			Cover:  len(cc.cov),
+			Inputs: cc.Count,
+			Cover:  len(cc.Cover),
 		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
@@ -131,7 +130,7 @@ func (mgr *Manager) collectStats() []UIStat {
 		{Name: "config", Value: configName, Link: "/config"},
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
-		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
+		{Name: "corpus", Value: fmt.Sprint(mgr.corpus.Stat().Progs), Link: "/corpus"},
 		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
 		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
 		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
@@ -203,18 +202,13 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		Call:     r.FormValue("call"),
 		RawCover: mgr.cfg.RawCover,
 	}
-	for sig, inp := range mgr.corpus {
-		if data.Call != "" && data.Call != inp.Call {
+	for _, inp := range mgr.corpus.Items() {
+		if data.Call != "" && data.Call != inp.StringCall() {
 			continue
 		}
-		p, err := mgr.target.Deserialize(inp.Prog, prog.NonStrict)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
-			return
-		}
 		data.Inputs = append(data.Inputs, &UIInput{
-			Sig:   sig,
-			Short: p.String(),
+			Sig:   inp.Sig,
+			Short: inp.Prog.String(),
 			Cover: len(inp.Cover),
 		})
 	}
@@ -312,7 +306,11 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	mgr.mu.Lock()
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
-		inp := mgr.corpus[sig]
+		inp := mgr.corpus.Item(sig)
+		if inp == nil {
+			http.Error(w, "unknown input hash", http.StatusInternalServerError)
+			return
+		}
 		if r.FormValue("update_id") != "" {
 			updateID, err := strconv.Atoi(r.FormValue("update_id"))
 			if err != nil || updateID < 0 || updateID >= len(inp.Updates) {
@@ -321,25 +319,25 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			}
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
-				Data: string(inp.Prog),
+				Data: string(inp.ProgData),
 				PCs:  coverToPCs(rg, inp.Updates[updateID].RawCover),
 			})
 		} else {
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
-				Data: string(inp.Prog),
+				Data: string(inp.ProgData),
 				PCs:  coverToPCs(rg, inp.Cover),
 			})
 		}
 	} else {
 		call := r.FormValue("call")
-		for sig, inp := range mgr.corpus {
-			if call != "" && call != inp.Call {
+		for _, inp := range mgr.corpus.Items() {
+			if call != "" && call != inp.StringCall() {
 				continue
 			}
 			progs = append(progs, cover.Prog{
-				Sig:  sig,
-				Data: string(inp.Prog),
+				Sig:  inp.Sig,
+				Data: string(inp.ProgData),
 				PCs:  coverToPCs(rg, inp.Cover),
 			})
 		}
@@ -387,12 +385,8 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	var maxSignal signal.Signal
-	for _, inp := range mgr.corpus {
-		maxSignal.Merge(inp.Signal.Deserialize())
-	}
 	calls := make(map[int][]int)
-	for s := range maxSignal {
+	for s := range mgr.corpus.Signal() {
 		id, errno := prog.DecodeFallbackSignal(uint32(s))
 		calls[id] = append(calls[id], errno)
 	}
@@ -437,13 +431,8 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var corpus []*prog.Prog
-	for _, inp := range mgr.corpus {
-		p, err := mgr.target.Deserialize(inp.Prog, prog.NonStrict)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
-			return
-		}
-		corpus = append(corpus, p)
+	for _, inp := range mgr.corpus.Items() {
+		corpus = append(corpus, inp.Prog)
 	}
 	prios := mgr.target.CalculatePriorities(corpus)
 
@@ -477,34 +466,34 @@ func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	inp, ok := mgr.corpus[r.FormValue("sig")]
-	if !ok {
+	inp := mgr.corpus.Item(r.FormValue("sig"))
+	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write(inp.Prog)
+	w.Write(inp.ProgData)
 }
 
 func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	inp, ok := mgr.corpus[r.FormValue("sig")]
-	if !ok {
+	inp := mgr.corpus.Item(r.FormValue("sig"))
+	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
 	}
 	getIDs := func(callID int) []int {
 		ret := []int{}
 		for id, update := range inp.Updates {
-			if update.CallID == callID {
+			if update.Call == callID {
 				ret = append(ret, id)
 			}
 		}
 		return ret
 	}
 	data := []UIRawCallCover{}
-	for pos, line := range strings.Split(string(inp.Prog), "\n") {
+	for pos, line := range strings.Split(string(inp.ProgData), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
