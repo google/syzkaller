@@ -63,8 +63,9 @@ func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable,
 			comps.AddComp(v, v+1)
 			comps.AddComp(v, v+10)
 		}
-		p.MutateWithHints(i, comps, func(p1 *Prog) {
+		p.MutateWithHints(i, comps, func(p1 *Prog) bool {
 			p = p1.Clone()
+			return true
 		})
 	}
 	for _, crash := range []bool{false, true} {

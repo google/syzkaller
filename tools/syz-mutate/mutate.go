@@ -89,8 +89,9 @@ func main() {
 		if *flagHintCall != -1 {
 			comps := make(prog.CompMap)
 			comps.AddComp(*flagHintSrc, *flagHintCmp)
-			p.MutateWithHints(*flagHintCall, comps, func(p *prog.Prog) {
+			p.MutateWithHints(*flagHintCall, comps, func(p *prog.Prog) bool {
 				fmt.Printf("%s\n\n", p.Serialize())
+				return true
 			})
 			return
 		} else {

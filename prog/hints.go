@@ -65,32 +65,40 @@ func (m CompMap) String() string {
 
 // Mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
-func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog)) {
+// The callback must return whether we should continue substitution (true)
+// or abort the process (false).
+func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog) bool) {
 	p = p.Clone()
 	c := p.Calls[callIndex]
-	execValidate := func() {
+	doMore := true
+	execValidate := func() bool {
 		// Don't try to fix the candidate program.
 		// Assuming the original call was sanitized, we've got a bad call
 		// as the result of hint substitution, so just throw it away.
 		if p.Target.sanitize(c, false) != nil {
-			return
+			return true
 		}
 		if p.checkConditions() != nil {
 			// Patching unions that no longer satisfy conditions would
 			// require much deeped changes to prog arguments than
 			// generateHints() expects.
 			// Let's just ignore such mutations.
-			return
+			return true
 		}
 		p.debugValidate()
-		exec(p)
+		doMore = exec(p)
+		return doMore
 	}
-	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
+		if !doMore {
+			ctx.Stop = true
+			return
+		}
 		generateHints(comps, arg, execValidate)
 	})
 }
 
-func generateHints(compMap CompMap, arg Arg, exec func()) {
+func generateHints(compMap CompMap, arg Arg, exec func() bool) {
 	typ := arg.Type()
 	if typ == nil || arg.Dir() == DirOut {
 		return
@@ -134,18 +142,20 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 	}
 }
 
-func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
+func checkConstArg(arg *ConstArg, compMap CompMap, exec func() bool) {
 	original := arg.Val
 	// Note: because shrinkExpand returns a map, order of programs is non-deterministic.
 	// This can affect test coverage reports.
 	for _, replacer := range shrinkExpand(original, compMap, arg.Type().TypeBitSize(), false) {
 		arg.Val = replacer
-		exec()
+		if !exec() {
+			break
+		}
 	}
 	arg.Val = original
 }
 
-func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
+func checkDataArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	bytes := make([]byte, 8)
 	data := arg.Data()
 	size := len(data)
@@ -159,13 +169,15 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 		for _, replacer := range shrinkExpand(val, compMap, 64, false) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
-			exec()
+			if !exec() {
+				break
+			}
 		}
 		copy(data[i:], original)
 	}
 }
 
-func checkCompressedArg(arg *DataArg, compMap CompMap, exec func()) {
+func checkCompressedArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	data0 := arg.Data()
 	data, dtor := image.MustDecompress(data0)
 	defer dtor()
@@ -183,7 +195,9 @@ func checkCompressedArg(arg *DataArg, compMap CompMap, exec func()) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
 			arg.SetData(image.Compress(data))
-			exec()
+			if !exec() {
+				break
+			}
 		}
 		copy(data[i:], original)
 	}

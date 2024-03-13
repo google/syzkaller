@@ -385,17 +385,13 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
-	var stop bool
 	p.MutateWithHints(job.call, result.Info.Calls[job.call].Comps,
-		func(p *prog.Prog) {
-			if stop {
-				return
-			}
+		func(p *prog.Prog) bool {
 			result := fuzzer.exec(job, &Request{
 				Prog:       p,
 				NeedSignal: true,
 				stat:       statHint,
 			})
-			stop = stop || result.Stop
+			return !result.Stop
 		})
 }
