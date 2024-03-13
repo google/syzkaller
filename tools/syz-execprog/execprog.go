@@ -251,11 +251,12 @@ func (ctx *Context) printHints(p *prog.Prog, info *ipc.ProgInfo) {
 				fmt.Printf("\n")
 			}
 		}
-		p.MutateWithHints(i, comps, func(p *prog.Prog) {
+		p.MutateWithHints(i, comps, func(p *prog.Prog) bool {
 			ncandidates++
 			if *flagOutput {
 				log.Logf(1, "PROGRAM:\n%s", p.Serialize())
 			}
+			return true
 		})
 	}
 	log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)

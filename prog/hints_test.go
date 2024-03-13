@@ -164,8 +164,9 @@ func TestHintsCheckConstArg(t *testing.T) {
 			var res []uint64
 			typ := types[fmt.Sprintf("int%v_%v", test.size, test.bitsize)]
 			constArg := MakeConstArg(typ, DirIn, test.in)
-			checkConstArg(constArg, test.comps, func() {
+			checkConstArg(constArg, test.comps, func() bool {
 				res = append(res, constArg.Val)
+				return true
 			})
 			if !reflect.DeepEqual(res, test.res) {
 				t.Fatalf("\ngot : %v\nwant: %v", res, test.res)
@@ -302,8 +303,9 @@ func TestHintsCheckDataArg(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			res := make(map[string]bool)
 			dataArg := MakeDataArg(typ, DirIn, []byte(test.in))
-			checkDataArg(dataArg, test.comps, func() {
+			checkDataArg(dataArg, test.comps, func() bool {
 				res[string(dataArg.Data())] = true
+				return true
 			})
 			if !reflect.DeepEqual(res, test.res) {
 				s := "\ngot:  ["
@@ -390,8 +392,9 @@ func TestHintsCompressedImage(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			var res []string
 			arg := MakeDataArg(typ, DirIn, image.Compress([]byte(test.input)))
-			generateHints(test.comps, arg, func() {
+			generateHints(test.comps, arg, func() bool {
 				res = append(res, string(arg.Data()))
+				return true
 			})
 			for i, compressed := range res {
 				data, dtor := image.MustDecompress([]byte(compressed))
@@ -588,7 +591,7 @@ func TestHintsRandom(t *testing.T) {
 			for v := range vals {
 				comps.AddComp(v, r.randInt64())
 			}
-			p.MutateWithHints(i, comps, func(p1 *Prog) {})
+			p.MutateWithHints(i, comps, func(p1 *Prog) bool { return true })
 		}
 	}
 }
@@ -649,9 +652,10 @@ func TestHintsData(t *testing.T) {
 			t.Fatal(err)
 		}
 		var got []string
-		p.MutateWithHints(0, test.comps, func(newP *Prog) {
+		p.MutateWithHints(0, test.comps, func(newP *Prog) bool {
 			got = append(got, hex.EncodeToString(
 				newP.Calls[0].Args[0].(*PointerArg).Res.(*DataArg).Data()))
+			return true
 		})
 		sort.Strings(test.out)
 		sort.Strings(got)
@@ -683,7 +687,7 @@ func BenchmarkHints(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := range p.Calls {
-				p.MutateWithHints(i, comps[i], func(p1 *Prog) {})
+				p.MutateWithHints(i, comps[i], func(p1 *Prog) bool { return true })
 			}
 		}
 	})
