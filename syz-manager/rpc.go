@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
@@ -30,9 +31,13 @@ type RPCServer struct {
 	batchSize             int
 	canonicalModules      *cover.Canonicalizer
 
-	mu            sync.Mutex
-	fuzzers       map[string]*Fuzzer
-	checkResult   *rpctype.CheckArgs
+	mu          sync.Mutex
+	fuzzers     map[string]*Fuzzer
+	checkResult *rpctype.CheckArgs
+
+	// TODO: we don't really need these anymore, but there's not much sense
+	// in rewriting the code that uses them -- most of that code will be dropped
+	// once we move pkg/fuzzer to the host.
 	maxSignal     signal.Signal
 	corpusSignal  signal.Signal
 	corpusCover   cover.Cover
@@ -61,7 +66,7 @@ type RPCManagerView interface {
 	fuzzerConnect([]host.KernelModule) (
 		[]rpctype.Input, BugFrames, map[uint32]uint32, map[uint32]uint32, error)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
-	newInput(inp rpctype.Input, sign signal.Signal, hasAny bool) bool
+	newInput(inp corpus.NewInput) bool
 	candidateBatch(size int) []rpctype.Candidate
 	rotateCorpus() bool
 }
@@ -256,7 +261,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 }
 
 func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
-	bad, disabled, hasAny := checkProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
+	p, disabled, bad := parseProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
 	if bad != nil || disabled {
 		log.Errorf("rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.Input.Prog)
 		return nil
@@ -269,8 +274,16 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		a.Cover, a.Signal = f.instModules.Canonicalize(a.Cover, a.Signal)
 	}
 	inputSignal := a.Signal.Deserialize()
+
+	inp := corpus.NewInput{
+		Prog:   p,
+		Call:   a.Call,
+		Signal: inputSignal,
+		Cover:  a.Cover,
+	}
+
 	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
-		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
+		a.Name, inp.StringCall(), inputSignal.Len(), len(a.Cover))
 	// Note: f may be nil if we called shutdownInstance,
 	// but this request is already in-flight.
 	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
@@ -281,7 +294,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if !genuine && !rotated {
 		return nil
 	}
-	if !serv.mgr.newInput(a.Input, inputSignal, hasAny) {
+	if !serv.mgr.newInput(inp) {
 		return nil
 	}
 

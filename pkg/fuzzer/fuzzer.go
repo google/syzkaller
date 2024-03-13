@@ -12,15 +12,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
 
 type Fuzzer struct {
 	Config         *Config
-	Corpus         *Corpus
+	Cover          *Cover
 	NeedCandidates chan struct{}
 
 	ctx    context.Context
@@ -49,7 +49,7 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	target *prog.Target) *Fuzzer {
 	f := &Fuzzer{
 		Config:         cfg,
-		Corpus:         newCorpus(),
+		Cover:          &Cover{},
 		NeedCandidates: make(chan struct{}, 1),
 
 		ctx:    ctx,
@@ -75,6 +75,7 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 
 type Config struct {
 	Debug          bool
+	Corpus         *corpus.Corpus
 	Logf           func(level int, msg string, args ...interface{})
 	Coverage       bool
 	FaultInjection bool
@@ -87,7 +88,7 @@ type Config struct {
 	// If the number of queued candidates is less than MinCandidates,
 	// NeedCandidates is triggered.
 	MinCandidates uint
-	NewInputs     chan rpctype.Input
+	NewInputs     chan corpus.NewInput
 }
 
 type Request struct {
@@ -133,7 +134,7 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 	flags ProgTypes) {
 	prio := signalPrio(p, info, call)
-	newMaxSignal := fuzzer.Corpus.AddRawMaxSignal(info.Signal, prio)
+	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
 		return
 	}
@@ -304,12 +305,12 @@ func (fuzzer *Fuzzer) choiceTableUpdater() {
 			return
 		case <-fuzzer.ctRegenerate:
 		}
-		fuzzer.updateChoiceTable(fuzzer.Corpus.Programs())
+		fuzzer.updateChoiceTable(fuzzer.Config.Corpus.Programs())
 	}
 }
 
 func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
-	progs := fuzzer.Corpus.Programs()
+	progs := fuzzer.Config.Corpus.Programs()
 
 	fuzzer.ctMu.Lock()
 	defer fuzzer.ctMu.Unlock()
@@ -346,5 +347,17 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 			fuzzer.nextExec.Len(), len(fuzzer.runningExecs), m.Alloc/1000/1000)
 		fuzzer.mu.Unlock()
 		fuzzer.Logf(0, "%s", str)
+	}
+}
+
+type Stat struct {
+	CoverStat
+	corpus.Stat
+}
+
+func (fuzzer *Fuzzer) Stat() Stat {
+	return Stat{
+		CoverStat: fuzzer.Cover.Stat(),
+		Stat:      fuzzer.Config.Corpus.Stat(),
 	}
 }
