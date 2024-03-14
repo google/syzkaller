@@ -24,7 +24,7 @@ const (
 )
 
 // ExecTask is the atomic analysis entity. Once executed, it could trigger the
-// pipeline propagation fof the program.
+// pipeline propagation for the program.
 type ExecTask struct {
 	CreationTime   time.Time
 	Program        *prog.Prog
