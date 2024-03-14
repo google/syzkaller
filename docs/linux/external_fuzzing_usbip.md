@@ -1,4 +1,4 @@
-# **USB/IP Fuzzing for Linux Kernel**
+# USB/IP Fuzzing for Linux Kernel
 
 Syzkaller supports fuzzing the Linux kernel USB/IP subsystem externally. We can set up a virtual network and send USB/IP packets to the client kernel as they are being received from an external server.
 USB/IP fuzzing needs USB/IP configurations to be enabled. You can find the list in the configurations part.
@@ -8,7 +8,7 @@ Currently syzkaller only includes support for fuzzing the client side of USB/IP,
 1. USB/IP pseudo-syscalls.
 2. Syzkaller descriptions.
 
-### **Configurations**
+### Configurations
 
 Following configurations should be enabled for USB/IP.
 
@@ -22,7 +22,7 @@ CONFIG_USBIP_VUDC=y
 CONFIG_USBIP_DEBUG=y
 ```
 
-### **Pseudo-syscalls**
+### Pseudo-syscalls
 
 Currently syzkaller defines one USB/IP pseudo-syscall and one USB/IP specific write syscall (see [this](/executor/common_linux.h) for the pseudo-syscall and [this](/sys/linux/usbip.txt) for its syzkaller descriptions):
 
