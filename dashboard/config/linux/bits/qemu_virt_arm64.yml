@@ -1,0 +1,16 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+  - ARM_AMBA
+  - SERIAL_AMBA_PL011
+  - SERIAL_AMBA_PL011_CONSOLE
+  # Basics for virtio devices
+  - VIRTIO
+  - VIRTIO_MENU
+  # VIRTIO_BLK needs BLOCK AND BLK_DEV
+  - BLOCK
+  - BLK_DEV
+  - VIRTIO_BLK
+  - VIRTIO_NET
+  - VIRTIO_PCI

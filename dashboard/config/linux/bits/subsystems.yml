@@ -30,7 +30,6 @@ config:
  - X86_USER_SHADOW_STACK: [x86_64, v6.6]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable this.
  - X86_X2APIC: [x86_64, -kmsan]
- - CGROUPS
  - BLK_CGROUP
  - CGROUP_SCHED
  - FAIR_GROUP_SCHED
@@ -76,7 +75,6 @@ config:
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
  - X86_SGX_KVM: [x86_64, v6.0, -kmsan]
- - JUMP_LABEL
  - MODULES
  - MODULE_UNLOAD
  - MODULE_FORCE_UNLOAD
@@ -94,8 +92,6 @@ config:
  - IOSCHED_BFQ
  - BFQ_GROUP_IOSCHED
  - BFQ_CGROUP_DEBUG
- - BINFMT_MISC
- - BINFMT_SCRIPT
  - MEMORY_HOTPLUG: [-arm, -riscv]
  - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv]
  - MEMORY_HOTREMOVE: [-arm, -riscv]
@@ -114,7 +110,6 @@ config:
  - DEVICE_PRIVATE: [-arm, -riscv, -s390]
  - PERCPU_STATS
  - READ_ONLY_THP_FOR_FS: [-arm, -riscv]
- - PCI
  - PCIEPORTBUS
  - HOTPLUG_PCI_PCIE
  - PCIEAER
@@ -500,7 +495,6 @@ config:
  - CUSE
  - VIRTIO_FS
  - PROC_KCORE: [-arm]
- - TMPFS
  - TMPFS_POSIX_ACL
  - TMPFS_XATTR
  - TMPFS_QUOTA: [v6.6]

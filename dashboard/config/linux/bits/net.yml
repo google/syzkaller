@@ -4,10 +4,7 @@
 # This file enables most networking subsystems that syzkaller can test.
 
 config:
- - NET
- - PACKET
  - PACKET_DIAG
- - UNIX
  - UNIX_DIAG
  - TLS
  - TLS_DEVICE
@@ -23,7 +20,6 @@ config:
  - SMC_DIAG
  - XDP_SOCKETS
  - XDP_SOCKETS_DIAG
- - INET
  - IP_MULTICAST
  - IP_ADVANCED_ROUTER
  - IP_FIB_TRIE_STATS
@@ -406,7 +402,6 @@ config:
  - NFC_SIM
  - NFC_FDP
 
- - NETDEVICES
  - BONDING
  - DUMMY
  - WIREGUARD: [v5.6, -kmsan]
