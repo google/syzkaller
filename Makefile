@@ -168,16 +168,16 @@ runtest: descriptions
 fuzzer: descriptions
 	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
 
-.PHONY: syz-analyze
-syz-analyze: syz-analyzer syz-runner
+.PHONY: syz-analyzer
+syz-analyzer: syz-analyze syz-runner
 
 .PHONY: syz-runner
 syz-runner: descriptions
-	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-runner$(EXE) github.com/google/syzkaller/syz-analyze/runner
+	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-runner$(EXE) github.com/google/syzkaller/syz-analyzer/runner
 
-.PHONY: syz-analyzer
-syz-analyzer: descriptions
-	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-analyze$(EXE) github.com/google/syzkaller/syz-analyze/analyzer
+.PHONY: syz-analyze
+syz-analyze: descriptions
+	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-analyze$(EXE) github.com/google/syzkaller/syz-analyzer/analyzer
 
 execprog: descriptions
 	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog

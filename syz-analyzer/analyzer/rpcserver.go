@@ -3,21 +3,22 @@ package main
 import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/syz-analyze"
+	"github.com/google/syzkaller/syz-analyzer"
 	"net"
 )
 
 type RPCServer struct {
-	analyzer    *Analyzer
-	port        int
-	currentTask map[int]int
+	analyzer   *Analyzer
+	port       int
+	tasksQueue *TasksQueue
 }
 
 func createRPCServer(addr string, analyzer *Analyzer) (*RPCServer, error) {
-	currentTask := make(map[int]int)
+	tasksQueue := &TasksQueue{queue: make(map[int][]int)}
+
 	server := &RPCServer{
-		analyzer:    analyzer,
-		currentTask: currentTask,
+		analyzer:   analyzer,
+		tasksQueue: tasksQueue,
 	}
 	rpc, err := rpctype.NewRPCServer(addr, "Analyzer", server)
 	if err != nil {
@@ -29,14 +30,25 @@ func createRPCServer(addr string, analyzer *Analyzer) (*RPCServer, error) {
 	return server, nil
 }
 
-func (server *RPCServer) NextProgram(args *syz_analyze.ProgramArgs, res *syz_analyze.ProgramResults) error {
-	log.Logf(0, "program %d of %d-%d machine results: %s\n", args.ExecTaskID, args.Pool, args.VM, args.Error)
-	nextProgramID := server.currentTask[vmKey(args.Pool, args.VM)]
+func (server *RPCServer) NextProgram(args *syz_analyzer.ProgramArgs, res *syz_analyzer.ProgramResults) error {
+	if args.Error != nil {
+		log.Logf(0, "program %d of %d-%d machine results: %s\n", args.TaskID, args.Pool, args.VM, args.Error)
+	}
+
+	if server.tasksQueue.isEmpty(vmKey(args.Pool, args.VM)) {
+		return nil
+	}
+	nextProgramID, err := server.tasksQueue.getAndPop(vmKey(args.Pool, args.VM))
+
+	if err != nil {
+		return err
+	}
+
 	if nextProgramID < len(server.analyzer.programs) {
 		res.ID = int64(nextProgramID)
 		res.Prog = server.analyzer.programs[nextProgramID].Serialize()
-		server.currentTask[vmKey(args.Pool, args.VM)] += 1
 	}
+
 	return nil
 }
 

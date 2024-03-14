@@ -31,7 +31,7 @@ type Analyzer struct {
 
 func main() {
 	//test()
-	myFunc()
+	start()
 }
 
 func test() {
@@ -53,11 +53,16 @@ func test() {
 	}
 }
 
-func myFunc() {
+func start() {
 	var configs tool.CfgsFlag
 	flag.Var(&configs, "configs", "list of configuration files for kernels divided by comma")
 	flagDebug := flag.Bool("debug", false, "print debug info from virtual machines")
 	flag.Parse()
+
+	if len(configs) == 0 {
+		flag.Usage()
+		os.Exit(-1)
+	}
 
 	pools := make(map[int]*PoolInfo)
 	analyzer := &Analyzer{}
@@ -82,11 +87,13 @@ func myFunc() {
 	analyzer.programs = loadPrograms(config.Target, flag.Args())
 
 	server, err := createRPCServer(config.RPC, analyzer)
-	log.Logf(0, "my rpc port: %d\n", server.port)
+
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	analyzer.server = server
+
+	analyzer.initializeTasks()
 
 	exe := config.SysTarget.ExeExtension
 	runnerBin := filepath.Join(config.Syzkaller, "bin", config.Target.OS+"_"+config.Target.Arch, "syz-runner"+exe)
@@ -119,16 +126,15 @@ func (analyzer *Analyzer) createInstance(pool *PoolInfo, poolID, vmID int) {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	//defer instance.Close()
 
-	port, err := instance.Forward(analyzer.port)
-	log.Logf(poolID, "port for %d-%d: %d\n", poolID, vmID, port)
+	port, err := instance.Forward(analyzer.server.port)
+	log.Logf(poolID, "port for %d-%d: %s\n", poolID, vmID, port)
 	if err != nil {
 		log.Fatalf("%v with port %s\n", err, port)
 	}
 
 	runnerBin, err := instance.Copy(analyzer.runnerBin)
-	log.Logf(poolID, "runner for %d-%d: %d\n", poolID, vmID, runnerBin)
+	log.Logf(poolID, "runner for %d-%d: %s\n", poolID, vmID, runnerBin)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -138,10 +144,26 @@ func (analyzer *Analyzer) createInstance(pool *PoolInfo, poolID, vmID int) {
 	}
 
 	command := fmt.Sprintf("%s -os=%s -arch=%s -addr=%s -pool=%d -vm=%d", runnerBin, pool.config.TargetOS, pool.config.TargetArch, port, poolID, vmID)
-	//command := runnerBin + " -os=" + pool.config.TargetOS + " -arch=" + pool.config.TargetArch + " -addr=" + port + " -pool=" + poolID + " -vm=" + vmID
 	_, _, err = instance.Run(pool.config.Timeouts.VMRunningTime, analyzer.vmStopChan, command)
 	if err != nil {
 		log.Fatalf("%v", err)
+	}
+}
+
+func (analyzer *Analyzer) initializeTasks() {
+	for poolID, pool := range analyzer.pools {
+		count := pool.pool.Count()
+		for vmID := 0; vmID < count; vmID++ {
+			analyzer.addTasks(vmKey(poolID, vmID), analyzer.programs)
+		}
+	}
+}
+
+func (analyzer *Analyzer) addTasks(vmID int, programs []*prog.Prog) {
+	for programID, _ := range programs {
+		for i := 0; i < 1; i++ {
+			analyzer.server.tasksQueue.push(vmID, programID)
+		}
 	}
 }
 
@@ -150,52 +172,12 @@ func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 	for _, filePath := range files {
 		data, err := os.ReadFile(filePath)
 		if err != nil {
-			log.Fatalf("%v", err)
+			log.Fatalf("can't read repro file: %v", err)
 		}
 		for _, entry := range target.ParseLog(data) {
 			progs = append(progs, entry.P)
-			//for _, comm := range entry.P.Calls {
-			//	println(comm.Meta.Name)
-			//}
-			//println("------")
 		}
 	}
-	log.Logf(0, "load : %d programs", len(files))
+	log.Logf(0, "number of loaded programs: %d", len(progs))
 	return progs
 }
-
-//func createConfig(target *prog.Target) (*ipc.Config, *ipc.ExecOpts) {
-//	config, execOpts, err := ipcconfig.Default(target)
-//	if err != nil {
-//		log.Fatalf("%v", err)
-//	}
-//	return config, execOpts
-//}
-
-//target, err := prog.GetTarget(*flagOS, *flagArch)
-//if err != nil {
-//	log.Fatalf("%v", err)
-//}
-//print(target.OS)
-//programs := loadPrograms(target, flag.Args())
-//println("Programs parsed: ", len(programs))
-//
-//config, execOpts := createConfig(target)
-//
-//println("Executor: ", config.Executor)
-//for _, program := range programs {
-//	env, err := ipc.MakeEnv(config, 0)
-//	if err != nil {
-//		log.Fatalf("%v", err)
-//	}
-//	data := program.Serialize()
-//	log.Logf(0, "executing program %v:\n%s", 0, data)
-//	output, info, hanged, err := env.Exec(execOpts, program)
-//	println("------")
-//	println(info)
-//	log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
-//	println("------")
-//
-//}
-//
-//println(config, execOpts)
