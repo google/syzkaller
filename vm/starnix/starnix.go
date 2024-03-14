@@ -326,7 +326,9 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		if inst.debug {
 			log.Logf(1, "instance %s: attempting to push executor binary over ADB", inst.name)
 		}
-		err := inst.runCommand(
+		output, err := osutil.RunCmd(
+			1*time.Minute,
+			inst.fuchsiaDirectory,
 			"adb",
 			"-s",
 			fmt.Sprintf("127.0.0.1:%d", inst.port),
@@ -334,13 +336,53 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 			hostSrc,
 			vmDst)
 		if err == nil {
-			return vmDst, nil
+			err = inst.Chmod(vmDst)
+			return vmDst, err
+		}
+		// Retryable connection errors usually look like "adb: error: ... : device offline"
+		// or "adb: error: ... closed"
+		if !strings.HasPrefix(string(output), "adb: error:") {
+			log.Logf(0, "instance %s: adb push failed: %s", inst.name, string(output))
+			return vmDst, err
 		}
 		if inst.debug {
-			log.Logf(1, "instance %s: adb push failed", inst.name)
+			log.Logf(1, "instance %s: adb push failed: %s", inst.name, string(output))
 		}
 		if time.Since(startTime) > (inst.adbTimeout - inst.adbRetryWait) {
 			return vmDst, fmt.Errorf("instance %s: can't push executor binary to VM", inst.name)
+		}
+		vmimpl.SleepInterruptible(inst.adbRetryWait)
+	}
+}
+
+func (inst *instance) Chmod(vmDst string) error {
+	startTime := time.Now()
+	for {
+		if inst.debug {
+			log.Logf(1, "instance %s: attempting to chmod executor script over ADB", inst.name)
+		}
+		output, err := osutil.RunCmd(
+			1*time.Minute,
+			inst.fuchsiaDirectory,
+			"adb",
+			"-s",
+			fmt.Sprintf("127.0.0.1:%d", inst.port),
+			"shell",
+			fmt.Sprintf("chmod +x %s", vmDst))
+		if err == nil {
+			return nil
+		}
+		// Retryable connection errors usually look like "adb: error: ... : device offline"
+		// or "adb: error: ... closed"
+		if !strings.HasPrefix(string(output), "adb: error:") {
+			log.Logf(0, "instance %s: adb shell command failed: %s", inst.name, string(output))
+			return err
+		}
+		if inst.debug {
+			log.Logf(1, "instance %s: adb shell command failed: %s", inst.name, string(output))
+		}
+		if time.Since(startTime) > (inst.adbTimeout - inst.adbRetryWait) {
+			return fmt.Errorf("instance %s: can't chmod executor script for VM", inst.name)
 		}
 		vmimpl.SleepInterruptible(inst.adbRetryWait)
 	}
