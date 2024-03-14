@@ -97,11 +97,11 @@ func start() {
 
 	exe := config.SysTarget.ExeExtension
 	runnerBin := filepath.Join(config.Syzkaller, "bin", config.Target.OS+"_"+config.Target.Arch, "syz-runner"+exe)
-	// check
+	// TODO: check
 	analyzer.runnerBin = runnerBin
 
 	executorBin := config.ExecutorBin
-	// check
+	// TODO: check
 	analyzer.executorBin = executorBin
 
 	analyzer.initializeInstances()
