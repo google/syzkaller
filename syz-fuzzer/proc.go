@@ -9,13 +9,12 @@ import (
 	"math/rand"
 	"os"
 	"runtime/debug"
-	"sync/atomic"
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -44,9 +43,9 @@ func newProc(tool *FuzzerTool, execOpts *ipc.ExecOpts, pid int) (*Proc, error) {
 func (proc *Proc) loop() {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + int64(proc.pid)))
 	for {
-		req := proc.tool.fuzzer.NextInput()
+		req := proc.nextRequest()
 		opts := *proc.execOpts
-		if !req.NeedSignal {
+		if req.NeedSignal == rpctype.NoSignal {
 			opts.Flags &= ^ipc.FlagCollectSignal
 		}
 		if req.NeedCover {
@@ -62,18 +61,32 @@ func (proc *Proc) loop() {
 		const restartIn = 600
 		restart := rnd.Intn(restartIn) == 0
 		if (restart || proc.tool.resetAccState) &&
-			(req.NeedCover || req.NeedSignal || req.NeedHints) {
+			(req.NeedCover || req.NeedSignal != rpctype.NoSignal || req.NeedHints) {
 			proc.env.ForceRestart()
 		}
-		info := proc.executeRaw(&opts, req.Prog)
-		proc.tool.fuzzer.Done(req, &fuzzer.Result{
-			Info: info,
-		})
+		info := proc.executeRaw(&opts, req.prog)
+		// Let's perform signal filtering in a separate thread to get the most
+		// exec/sec out of a syz-executor instance.
+		proc.tool.results <- executionResult{
+			ExecutionRequest: req.ExecutionRequest,
+			info:             info,
+		}
 	}
 }
 
+func (proc *Proc) nextRequest() executionRequest {
+	select {
+	case req := <-proc.tool.inputs:
+		return req
+	default:
+	}
+	// Not having enough inputs to execute is a sign of RPC communication problems.
+	// Let's count and report such situations.
+	proc.tool.noExecRequests.Add(1)
+	return <-proc.tool.inputs
+}
+
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
-	proc.tool.checkDisabledCalls(p)
 	for try := 0; ; try++ {
 		var output []byte
 		var info *ipc.ProgInfo
@@ -93,7 +106,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 				// It's bad if we systematically fail to serialize programs,
 				// but so far we don't have a better handling than counting this.
 				// This error is observed a lot on the seeded syz_mount_image calls.
-				atomic.AddUint64(&proc.tool.bufferTooSmall, 1)
+				proc.tool.bufferTooSmall.Add(1)
 				return nil
 			}
 			if try > 10 {

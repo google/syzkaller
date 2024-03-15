@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/signal"
 )
 
 type Canonicalizer struct {
@@ -120,18 +119,18 @@ func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *Canonicalize
 	}
 }
 
-func (ci *CanonicalizerInstance) Canonicalize(cov []uint32, sign signal.Serial) ([]uint32, signal.Serial) {
+func (ci *CanonicalizerInstance) Canonicalize(elems []uint32) []uint32 {
 	if ci.canonical.moduleKeys == nil {
-		return cov, sign
+		return elems
 	}
-	return ci.canonicalize.convertPCs(cov, sign)
+	return ci.canonicalize.convertPCs(elems)
 }
 
-func (ci *CanonicalizerInstance) Decanonicalize(cov []uint32, sign signal.Serial) ([]uint32, signal.Serial) {
+func (ci *CanonicalizerInstance) Decanonicalize(elems []uint32) []uint32 {
 	if ci.canonical.moduleKeys == nil {
-		return cov, sign
+		return elems
 	}
-	return ci.decanonicalize.convertPCs(cov, sign)
+	return ci.decanonicalize.convertPCs(elems)
 }
 
 func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) map[uint32]uint32 {
@@ -177,34 +176,21 @@ func findModule(pc uint32, moduleKeys []uint32) (moduleIdx int) {
 	return moduleIdx - 1
 }
 
-func (convert *Convert) convertPCs(cov []uint32, sign signal.Serial) ([]uint32, signal.Serial) {
+func (convert *Convert) convertPCs(pcs []uint32) []uint32 {
 	// Convert coverage.
-	var retCov []uint32
+	var ret []uint32
 	convCtx := &convertContext{convert: convert}
-	for _, pc := range cov {
+	for _, pc := range pcs {
 		if newPC, ok := convert.convertPC(pc); ok {
-			retCov = append(retCov, newPC)
+			ret = append(ret, newPC)
 		} else {
 			convCtx.discard(pc)
 		}
 	}
 	if msg := convCtx.discarded(); msg != "" {
-		log.Logf(4, "error in PC conversion: %v", msg)
+		log.Logf(4, "error in PC/signal conversion: %v", msg)
 	}
-	// Convert signals.
-	retSign := &signal.Serial{}
-	convCtx = &convertContext{convert: convert}
-	for idx, elem := range sign.Elems {
-		if newSign, ok := convert.convertPC(uint32(elem)); ok {
-			retSign.AddElem(newSign, sign.Prios[idx])
-		} else {
-			convCtx.discard(uint32(elem))
-		}
-	}
-	if msg := convCtx.discarded(); msg != "" {
-		log.Logf(4, "error in signal conversion: %v", msg)
-	}
-	return retCov, *retSign
+	return ret
 }
 
 func (convert *Convert) convertPC(pc uint32) (uint32, bool) {

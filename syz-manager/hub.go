@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
@@ -73,7 +74,7 @@ type HubConnector struct {
 // HubManagerView restricts interface between HubConnector and Manager.
 type HubManagerView interface {
 	getMinimizedCorpus() (corpus, repros [][]byte)
-	addNewCandidates(candidates []rpctype.Candidate)
+	addNewCandidates(candidates []fuzzer.Candidate)
 	hubIsUnreachable()
 }
 
@@ -213,9 +214,9 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 }
 
 func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smashed, dropped int) {
-	candidates := make([]rpctype.Candidate, 0, len(inputs))
+	candidates := make([]fuzzer.Candidate, 0, len(inputs))
 	for _, inp := range inputs {
-		_, disabled, bad := parseProgram(hc.target, hc.enabledCalls, inp.Prog)
+		p, disabled, bad := parseProgram(hc.target, hc.enabledCalls, inp.Prog)
 		if bad != nil || disabled {
 			log.Logf(0, "rejecting program from hub (bad=%v, disabled=%v):\n%s",
 				bad, disabled, inp)
@@ -229,8 +230,8 @@ func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smas
 		if smash {
 			smashed++
 		}
-		candidates = append(candidates, rpctype.Candidate{
-			Prog:      inp.Prog,
+		candidates = append(candidates, fuzzer.Candidate{
+			Prog:      p,
 			Minimized: min,
 			Smashed:   smash,
 		})
@@ -283,7 +284,6 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 			typ = crash.MemoryLeak
 		}
 		hc.hubReproQueue <- &Crash{
-			vmIndex: -1,
 			fromHub: true,
 			Report: &report.Report{
 				Title:  "external repro",

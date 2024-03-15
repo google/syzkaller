@@ -32,6 +32,8 @@ type Stats struct {
 	corpusCoverFiltered Stat
 	corpusSignal        Stat
 	maxSignal           Stat
+	triageQueueLen      Stat
+	fuzzerJobs          Stat
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
@@ -73,6 +75,7 @@ func (stats *Stats) all() map[string]uint64 {
 		"signal":            stats.corpusSignal.get(),
 		"max signal":        stats.maxSignal.get(),
 		"rpc traffic (MB)":  stats.rpcTraffic.get() / 1e6,
+		"fuzzer jobs":       stats.fuzzerJobs.get(),
 	}
 	if stats.haveHub {
 		m["hub: send prog add"] = stats.hubSendProgAdd.get()
@@ -104,6 +107,17 @@ func (stats *Stats) mergeNamed(named map[string]uint64) {
 		default:
 			stats.namedStats[k] += v
 		}
+	}
+}
+
+func (stats *Stats) setNamed(named map[string]uint64) {
+	stats.mu.Lock()
+	defer stats.mu.Unlock()
+	if stats.namedStats == nil {
+		stats.namedStats = make(map[string]uint64)
+	}
+	for k, v := range named {
+		stats.namedStats[k] = v
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
@@ -67,14 +68,15 @@ type Manager struct {
 	fresh          bool
 	numFuzzing     uint32
 	numReproducing uint32
+	nextInstanceID atomic.Uint64
 
 	dash *dashapi.Dashboard
 
 	mu                    sync.Mutex
+	fuzzer                *fuzzer.Fuzzer
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
-	candidates       []rpctype.Candidate // untriaged inputs from corpus and hub
 	disabledHashes   map[string]struct{}
 	seeds            [][]byte
 	newRepros        [][]byte
@@ -118,7 +120,7 @@ const (
 const currentDBVersion = 4
 
 type Crash struct {
-	vmIndex       int
+	instanceName  string
 	fromHub       bool // this crash was created based on a repro from syz-hub
 	fromDashboard bool // .. or from dashboard
 	*report.Report
@@ -191,7 +193,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initStats() // Initializes prometheus variables.
 	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
-	go mgr.saveCorpus(corpusUpdates)
+	go mgr.corpusInputHandler(corpusUpdates)
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)
@@ -225,13 +227,13 @@ func RunManager(cfg *mgrconfig.Config) {
 				continue
 			}
 			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
+			mgr.mu.Unlock()
 			executed := mgr.stats.execTotal.get()
 			crashes := mgr.stats.crashes.get()
 			corpusCover := mgr.stats.corpusCover.get()
 			corpusSignal := mgr.stats.corpusSignal.get()
 			maxSignal := mgr.stats.maxSignal.get()
-			triageQLen := len(mgr.candidates)
-			mgr.mu.Unlock()
+			triageQLen := mgr.stats.triageQueueLen.get()
 			numReproducing := atomic.LoadUint32(&mgr.numReproducing)
 			numFuzzing := atomic.LoadUint32(&mgr.numFuzzing)
 
@@ -279,7 +281,7 @@ func (mgr *Manager) initBench() {
 			vals["corpus"] = uint64(stat.Progs)
 			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
-			vals["candidates"] = uint64(len(mgr.candidates))
+			vals["candidates"] = uint64(mgr.fuzzer.Stats().Candidates)
 			mgr.mu.Unlock()
 
 			data, err := json.MarshalIndent(vals, "", "  ")
@@ -633,21 +635,29 @@ func (mgr *Manager) loadCorpus() {
 		fallthrough
 	case currentDBVersion:
 	}
+	var candidates []fuzzer.Candidate
 	broken := 0
 	for key, rec := range mgr.corpusDB.Records {
-		if !mgr.loadProg(rec.Val, minimized, smashed) {
+		drop, item := mgr.loadProg(rec.Val, minimized, smashed)
+		if drop {
 			mgr.corpusDB.Delete(key)
 			broken++
 		}
+		if item != nil {
+			candidates = append(candidates, *item)
+		}
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	corpusSize := len(mgr.candidates)
+	corpusSize := len(candidates)
 	log.Logf(0, "%-24v: %v (deleted %v broken)", "corpus", corpusSize, broken)
 
 	for _, seed := range mgr.seeds {
-		mgr.loadProg(seed, true, false)
+		_, item := mgr.loadProg(seed, true, false)
+		if item != nil {
+			candidates = append(candidates, *item)
+		}
 	}
-	log.Logf(0, "%-24v: %v/%v", "seeds", len(mgr.candidates)-corpusSize, len(mgr.seeds))
+	log.Logf(0, "%-24v: %v/%v", "seeds", len(candidates)-corpusSize, len(candidates))
 	mgr.seeds = nil
 
 	// We duplicate all inputs in the corpus and shuffle the second part.
@@ -655,8 +665,8 @@ func (mgr *Manager) loadCorpus() {
 	// in such case it will also lost all cached candidates. Or, the input can be somewhat flaky
 	// and doesn't give the coverage on first try. So we give each input the second chance.
 	// Shuffling should alleviate deterministically losing the same inputs on fuzzer crashing.
-	mgr.candidates = append(mgr.candidates, mgr.candidates...)
-	shuffle := mgr.candidates[len(mgr.candidates)/2:]
+	candidates = append(candidates, candidates...)
+	shuffle := candidates[len(candidates)/2:]
 	rand.Shuffle(len(shuffle), func(i, j int) {
 		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
 	})
@@ -664,12 +674,14 @@ func (mgr *Manager) loadCorpus() {
 		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
 	}
 	mgr.phase = phaseLoadedCorpus
+	mgr.fuzzer.AddCandidates(candidates)
 }
 
-func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
-	_, disabled, bad := parseProgram(mgr.target, mgr.targetEnabledSyscalls, data)
+// Returns (delete item from the corpus, a fuzzer.Candidate object).
+func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) (drop bool, candidate *fuzzer.Candidate) {
+	p, disabled, bad := parseProgram(mgr.target, mgr.targetEnabledSyscalls, data)
 	if bad != nil {
-		return false
+		return true, nil
 	}
 	if disabled {
 		if mgr.cfg.PreserveCorpus {
@@ -682,25 +694,24 @@ func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 			// minimize what remains from the prog. The original prog will be
 			// deleted from the corpus.
 			leftover := programLeftover(mgr.target, mgr.targetEnabledSyscalls, data)
-			if len(leftover) > 0 {
-				mgr.candidates = append(mgr.candidates, rpctype.Candidate{
+			if leftover != nil {
+				candidate = &fuzzer.Candidate{
 					Prog:      leftover,
 					Minimized: false,
 					Smashed:   smashed,
-				})
+				}
 			}
 		}
-		return true
+		return false, candidate
 	}
-	mgr.candidates = append(mgr.candidates, rpctype.Candidate{
-		Prog:      data,
+	return false, &fuzzer.Candidate{
+		Prog:      p,
 		Minimized: minimized,
 		Smashed:   smashed,
-	})
-	return true
+	}
 }
 
-func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) []byte {
+func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) *prog.Prog {
 	p, err := target.Deserialize(data, prog.NonStrict)
 	if err != nil {
 		panic(fmt.Sprintf("subsequent deserialization failed: %s", data))
@@ -713,7 +724,7 @@ func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data [
 		}
 		i++
 	}
-	return p.Serialize()
+	return p
 }
 
 func parseProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (
@@ -741,7 +752,8 @@ func parseProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
-	instanceName := fmt.Sprintf("vm-%d", index)
+	// Use unique instance names to keep name collisions in case of untimely RPC messages.
+	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
 
 	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName)
 
@@ -759,9 +771,9 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, nil
 	}
 	crash := &Crash{
-		vmIndex:     index,
-		Report:      rep,
-		machineInfo: machineInfo,
+		instanceName: instanceName,
+		Report:       rep,
+		machineInfo:  machineInfo,
 	}
 	return crash, nil
 }
@@ -884,7 +896,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if crash.Suppressed {
 		flags += " [suppressed]"
 	}
-	log.Logf(0, "vm-%v: crash: %v%v", crash.vmIndex, crash.Title, flags)
+	log.Logf(0, "%s: crash: %v%v", crash.instanceName, crash.Title, flags)
 
 	if crash.Suppressed {
 		// Collect all of them into a single bucket so that it's possible to control and assess them,
@@ -1202,8 +1214,11 @@ func fullReproLog(stats *repro.Stats) []byte {
 		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
 }
 
-func (mgr *Manager) saveCorpus(updates <-chan corpus.NewItemEvent) {
+func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
+		mgr.stats.newInputs.inc()
+		mgr.serv.updateFilteredCover(update.NewCover)
+
 		if update.Exists {
 			// We only save new progs into the corpus.db file.
 			continue
@@ -1231,16 +1246,16 @@ func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 	return
 }
 
-func (mgr *Manager) addNewCandidates(candidates []rpctype.Candidate) {
+func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
 	if mgr.cfg.Experimental.ResetAccState {
 		// Don't accept new candidates -- the execution is already very slow,
 		// syz-hub will just overwhelm us.
 		return
 	}
-
-	mgr.candidates = append(mgr.candidates, candidates...)
+	mgr.fuzzer.AddCandidates(candidates)
 	if mgr.phase == phaseTriagedCorpus {
 		mgr.phase = phaseQueriedHub
 	}
@@ -1332,16 +1347,11 @@ func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 }
 
 func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
-	[]rpctype.Input, BugFrames, map[uint32]uint32, map[uint32]uint32, error) {
+	BugFrames, map[uint32]uint32, map[uint32]uint32, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
 	mgr.minimizeCorpusUnlocked()
-	items := mgr.corpus.Items()
-	corpus := make([]rpctype.Input, 0, len(items))
-	for _, inp := range items {
-		corpus = append(corpus, inp.RPCInputShort())
-	}
 	frames := BugFrames{
 		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
 		dataRaces:   make([]string, 0, len(mgr.dataRaceFrames)),
@@ -1361,54 +1371,94 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 		}
 		mgr.modulesInitialized = true
 	}
-	return corpus, frames, mgr.coverFilter, mgr.execCoverFilter, nil
+	return frames, mgr.coverFilter, mgr.execCoverFilter, nil
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+	if mgr.checkResult != nil {
+		panic("machineChecked() called twice")
+	}
+
 	mgr.checkResult = a
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	mgr.target.UpdateGlobs(a.GlobFiles)
-	mgr.loadCorpus()
 	mgr.firstConnect = time.Now()
+
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	calls := make(map[*prog.Syscall]bool)
+	for _, id := range a.EnabledCalls[mgr.cfg.Sandbox] {
+		calls[mgr.target.Syscalls[id]] = true
+	}
+	mgr.fuzzer = fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+		Corpus:         mgr.corpus,
+		Coverage:       mgr.cfg.Cover,
+		FaultInjection: a.Features[host.FeatureFault].Enabled,
+		Comparisons:    a.Features[host.FeatureComparisons].Enabled,
+		Collide:        true,
+		EnabledCalls:   calls,
+		NoMutateCalls:  mgr.cfg.NoMutateCalls,
+		FetchRawCover:  mgr.cfg.RawCover,
+		Logf: func(level int, msg string, args ...interface{}) {
+			if level != 0 {
+				return
+			}
+			log.Logf(level, msg, args...)
+		},
+		NewInputFilter: func(input *corpus.NewInput) bool {
+			mgr.mu.Lock()
+			defer mgr.mu.Unlock()
+			return !mgr.saturatedCalls[input.StringCall()]
+		},
+	}, rnd, mgr.target)
+
+	mgr.loadCorpus()
+	go mgr.fuzzerLoop()
 }
 
-func (mgr *Manager) newInput(inp corpus.NewInput) bool {
+func (mgr *Manager) getFuzzer() *fuzzer.Fuzzer {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if mgr.saturatedCalls[inp.StringCall()] {
-		// TODO: move this logic to pkg/corpus or pkg/fuzzer?
-		return false
-	}
-	mgr.corpus.Save(inp)
-	return true
+	return mgr.fuzzer
 }
 
-func (mgr *Manager) candidateBatch(size int) []rpctype.Candidate {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	var res []rpctype.Candidate
-	for i := 0; i < size && len(mgr.candidates) > 0; i++ {
-		last := len(mgr.candidates) - 1
-		res = append(res, mgr.candidates[last])
-		mgr.candidates[last] = rpctype.Candidate{}
-		mgr.candidates = mgr.candidates[:last]
-	}
-	if len(mgr.candidates) == 0 {
-		mgr.candidates = nil
-		if mgr.phase == phaseLoadedCorpus {
-			if mgr.cfg.HubClient != "" {
-				mgr.phase = phaseTriagedCorpus
-				go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
-			} else {
+func (mgr *Manager) fuzzerLoop() {
+	for {
+		time.Sleep(time.Second / 2)
+
+		// Distribute new max signal over all instances.
+		newSignal := mgr.fuzzer.Cover.GrabNewSignal()
+		log.Logf(2, "distributing %d new signal", len(newSignal))
+		mgr.serv.distributeMaxSignal(newSignal)
+
+		// Collect statistics.
+		fuzzerStats := mgr.fuzzer.Stats()
+		mgr.stats.setNamed(fuzzerStats.Named)
+		mgr.stats.corpusCover.set(fuzzerStats.Cover)
+		mgr.stats.corpusSignal.set(fuzzerStats.Signal)
+		mgr.stats.maxSignal.set(fuzzerStats.MaxSignal)
+		mgr.stats.triageQueueLen.set(fuzzerStats.Candidates)
+		mgr.stats.fuzzerJobs.set(fuzzerStats.RunningJobs)
+		mgr.stats.rpcTraffic.add(int(mgr.serv.server.TotalBytes.Swap(0)))
+
+		// Update the state machine.
+		if fuzzerStats.Candidates == 0 {
+			mgr.mu.Lock()
+			if mgr.phase == phaseLoadedCorpus {
+				mgr.fuzzer.EnableOutOfQueue()
+				if mgr.cfg.HubClient != "" {
+					mgr.phase = phaseTriagedCorpus
+					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
+				} else {
+					mgr.phase = phaseTriagedHub
+				}
+			} else if mgr.phase == phaseQueriedHub {
 				mgr.phase = phaseTriagedHub
 			}
-		} else if mgr.phase == phaseQueriedHub {
-			mgr.phase = phaseTriagedHub
+			mgr.mu.Unlock()
 		}
 	}
-	return res
 }
 
 func (mgr *Manager) hubIsUnreachable() {
@@ -1535,7 +1585,6 @@ func (mgr *Manager) dashboardReproTasks() {
 		}
 		if len(resp.CrashLog) > 0 {
 			mgr.externalReproQueue <- &Crash{
-				vmIndex:       -1,
 				fromDashboard: true,
 				Report: &report.Report{
 					Title:  resp.Title,

@@ -3,6 +3,8 @@
 
 package fuzzer
 
+import "github.com/google/syzkaller/pkg/corpus"
+
 const (
 	statGenerate       = "exec gen"
 	statFuzz           = "exec fuzz"
@@ -17,10 +19,28 @@ const (
 	statBufferTooSmall = "buffer too small"
 )
 
-func (fuzzer *Fuzzer) GrabStats() map[string]uint64 {
+type Stats struct {
+	CoverStats
+	corpus.Stats
+	Candidates  int
+	RunningJobs int
+	// Let's keep stats in Named as long as the rest of the code does not depend
+	// on their specific values.
+	Named map[string]uint64
+}
+
+func (fuzzer *Fuzzer) Stats() Stats {
+	ret := Stats{
+		CoverStats:  fuzzer.Cover.Stats(),
+		Stats:       fuzzer.Config.Corpus.Stats(),
+		Candidates:  int(fuzzer.queuedCandidates.Load()),
+		RunningJobs: int(fuzzer.runningJobs.Load()),
+		Named:       make(map[string]uint64),
+	}
 	fuzzer.mu.Lock()
 	defer fuzzer.mu.Unlock()
-	ret := fuzzer.stats
-	fuzzer.stats = map[string]uint64{}
+	for k, v := range fuzzer.stats {
+		ret.Named[k] = v
+	}
 	return ret
 }

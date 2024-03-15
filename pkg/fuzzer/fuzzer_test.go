@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -54,7 +55,6 @@ func TestFuzz(t *testing.T) {
 		EnabledCalls: map[*prog.Syscall]bool{
 			target.SyscallMap["syz_test_fuzzer1"]: true,
 		},
-		NewInputs: make(chan corpus.NewInput),
 	}, rand.New(testutil.RandSource(t)), target)
 
 	go func() {
@@ -129,7 +129,7 @@ func emulateExec(req *Request) (*Result, string, error) {
 		if req.NeedCover {
 			callInfo.Cover = []uint32{cover}
 		}
-		if req.NeedSignal {
+		if req.NeedSignal != rpctype.NoSignal {
 			callInfo.Signal = []uint32{cover}
 		}
 		info.Calls = append(info.Calls, callInfo)
@@ -205,7 +205,6 @@ func (f *testFuzzer) wait() {
 	for title, cnt := range f.crashes {
 		t.Logf("%s: %d", title, cnt)
 	}
-	t.Logf("stats:\n%v", f.fuzzer.GrabStats())
 }
 
 // TODO: it's already implemented in syz-fuzzer/proc.go,
@@ -239,7 +238,7 @@ var crashRe = regexp.MustCompile(`{{CRASH: (.*?)}}`)
 func (proc *executorProc) execute(req *Request) (*Result, string, error) {
 	execOpts := proc.execOpts
 	// TODO: it's duplicated from fuzzer.go.
-	if req.NeedSignal {
+	if req.NeedSignal != rpctype.NoSignal {
 		execOpts.Flags |= ipc.FlagCollectSignal
 	}
 	if req.NeedCover {

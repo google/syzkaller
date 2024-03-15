@@ -35,6 +35,12 @@ func (cover *Cover) addRawMaxSignal(signal []uint32, prio uint8) signal.Signal {
 	return diff
 }
 
+func (cover *Cover) CopyMaxSignal() signal.Signal {
+	cover.mu.RLock()
+	defer cover.mu.RUnlock()
+	return cover.maxSignal.Copy()
+}
+
 func (cover *Cover) GrabNewSignal() signal.Signal {
 	cover.mu.Lock()
 	defer cover.mu.Unlock()

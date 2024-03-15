@@ -13,7 +13,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
-	"github.com/google/syzkaller/pkg/signal"
 )
 
 type RPCServer struct {
@@ -28,8 +27,8 @@ type Fuzzer struct {
 	goalCov     []uint32
 	bitmap      map[uint32]uint32
 	goalBitmap  map[uint32]uint32
-	sign        signal.Serial
-	goalSign    signal.Serial
+	sign        []uint32
+	goalSign    []uint32
 }
 
 type canonicalizeValue int
@@ -49,13 +48,9 @@ func TestNilModules(t *testing.T) {
 
 	serv.fuzzers["f1"].cov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f1"].sign = signal.FromRaw(serv.fuzzers["f1"].cov, 0).Serialize()
-	serv.fuzzers["f1"].goalSign = signal.FromRaw(serv.fuzzers["f1"].goalCov, 0).Serialize()
 
 	serv.fuzzers["f2"].cov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f2"].sign = signal.FromRaw(serv.fuzzers["f2"].cov, 0).Serialize()
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
 
 	serv.fuzzers["f1"].bitmap = map[uint32]uint32{
 		0x00010011: 1,
@@ -87,15 +82,15 @@ func TestNilModules(t *testing.T) {
 	}
 
 	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f1"].goalSign = signal.FromRaw(serv.fuzzers["f1"].goalCov, 0).Serialize()
+	serv.fuzzers["f1"].goalSign = serv.fuzzers["f1"].goalCov
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
+	serv.fuzzers["f2"].goalSign = serv.fuzzers["f2"].goalCov
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
 	}
 }
 
-// Confirms there is no change to signals if coverage is disabled and fallback signals are used.
+// Confirms there is no change to PCs if coverage is disabled and fallback signals are used.
 func TestDisabledSignals(t *testing.T) {
 	serv := &RPCServer{
 		fuzzers: make(map[string]*Fuzzer),
@@ -112,18 +107,18 @@ func TestDisabledSignals(t *testing.T) {
 	serv.connect("f2", f2Modules, false)
 
 	pcs := []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f1"].sign = signal.FromRaw(pcs, 0).Serialize()
-	serv.fuzzers["f1"].goalSign = signal.FromRaw(pcs, 0).Serialize()
+	serv.fuzzers["f1"].cov = pcs
+	serv.fuzzers["f1"].goalCov = pcs
 
-	serv.fuzzers["f2"].sign = signal.FromRaw(pcs, 0).Serialize()
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(pcs, 0).Serialize()
+	serv.fuzzers["f2"].sign = pcs
+	serv.fuzzers["f2"].goalSign = pcs
 
 	if err := serv.runTest(Canonicalize); err != "" {
 		t.Fatalf("failed in canonicalization: %v", err)
 	}
 
-	serv.fuzzers["f1"].goalSign = signal.FromRaw(pcs, 0).Serialize()
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(pcs, 0).Serialize()
+	serv.fuzzers["f1"].goalSign = pcs
+	serv.fuzzers["f2"].goalSign = pcs
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
 	}
@@ -152,8 +147,6 @@ func TestModules(t *testing.T) {
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
 	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
-	serv.fuzzers["f1"].sign = signal.FromRaw(serv.fuzzers["f1"].cov, 0).Serialize()
-	serv.fuzzers["f1"].goalSign = signal.FromRaw(serv.fuzzers["f1"].goalCov, 0).Serialize()
 
 	// The modules addresss are inverted between: (2 and 4), (3 and 5),
 	// affecting the output canonical coverage values in these ranges.
@@ -161,8 +154,6 @@ func TestModules(t *testing.T) {
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00040000, 0x00025000, 0x00045000,
 		0x0004a000, 0x00020000, 0x00030000, 0x0003b000, 0x00055000}
-	serv.fuzzers["f2"].sign = signal.FromRaw(serv.fuzzers["f2"].cov, 0).Serialize()
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
 
 	serv.fuzzers["f1"].bitmap = map[uint32]uint32{
 		0x00010011: 1,
@@ -195,10 +186,8 @@ func TestModules(t *testing.T) {
 
 	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
-	serv.fuzzers["f1"].goalSign = signal.FromRaw(serv.fuzzers["f1"].goalCov, 0).Serialize()
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
 	}
@@ -225,15 +214,12 @@ func TestChangingModules(t *testing.T) {
 	// in this range should be deleted.
 	serv.fuzzers["f2"].cov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000}
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00025000}
-	serv.fuzzers["f2"].sign = signal.FromRaw(serv.fuzzers["f2"].cov, 0).Serialize()
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
 
 	if err := serv.runTest(Canonicalize); err != "" {
 		t.Fatalf("failed in canonicalization: %v", err)
 	}
 
 	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00025000}
-	serv.fuzzers["f2"].goalSign = signal.FromRaw(serv.fuzzers["f2"].goalCov, 0).Serialize()
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
 	}
@@ -241,12 +227,11 @@ func TestChangingModules(t *testing.T) {
 
 func (serv *RPCServer) runTest(val canonicalizeValue) string {
 	var cov []uint32
-	var sign signal.Serial
 	for name, fuzzer := range serv.fuzzers {
 		if val == Canonicalize {
-			cov, sign = fuzzer.instModules.Canonicalize(fuzzer.cov, fuzzer.sign)
+			cov = fuzzer.instModules.Canonicalize(fuzzer.cov)
 		} else {
-			cov, sign = fuzzer.instModules.Decanonicalize(fuzzer.cov, fuzzer.sign)
+			cov = fuzzer.instModules.Decanonicalize(fuzzer.cov)
 			instBitmap := fuzzer.instModules.DecanonicalizeFilter(fuzzer.bitmap)
 			if !reflect.DeepEqual(instBitmap, fuzzer.goalBitmap) {
 				return fmt.Sprintf("failed in bitmap conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
@@ -257,12 +242,7 @@ func (serv *RPCServer) runTest(val canonicalizeValue) string {
 			return fmt.Sprintf("failed in coverage conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
 				name, fuzzer.goalCov, cov)
 		}
-		if !reflect.DeepEqual(sign.Deserialize(), fuzzer.goalSign.Deserialize()) {
-			return fmt.Sprintf("failed in signal conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
-				name, fuzzer.goalSign, sign)
-		}
 		fuzzer.cov = cov
-		fuzzer.sign = sign
 	}
 	return ""
 }
