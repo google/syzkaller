@@ -211,67 +211,50 @@ func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParam
 	return nil
 }
 
-type covCallbacksStat struct {
-	TotalCount   int `json:"total_cb_count"`
-	CoveredCount int `json:"covered_cb_count"`
-}
-
-type covFuncDetails struct {
-	covCallbacksStat
-}
-
-type covFileDetails struct {
-	covCallbacksStat
-	Functions map[string]*covFuncDetails `json:"functions,omitempty"`
-}
-
 type coverageInfo struct {
-	Version int `json:"version"`
-	covCallbacksStat
-	Files map[string]*covFileDetails `json:"files,omitempty"`
+	Version   int    `json:"version"`
+	FilePath  string `json:"file_path"`
+	FuncName  string `json:"func_name"`
+	StartLine int    `json:"sl"`
+	StartCol  int    `json:"sc"`
+	EndLine   int    `json:"el"`
+	EndCol    int    `json:"ec"`
+	HitCount  int    `json:"hit_count"`
+	Inline    bool   `json:"inline"`
+	PC        uint64 `json:"pc"`
 }
 
-type visitFuncCb func(filePath, funcName string, funcObj *function)
-
-func forEachFunction(fm fileMap, cb visitFuncCb) {
-	for filePath, fileObj := range fm {
-		for _, funcObj := range fileObj.functions {
-			cb(filePath, funcObj.name, funcObj)
-		}
-	}
-}
-
-// DoCoverJSON is a handler for "/cover&json=1".
-func (rg *ReportGenerator) DoCoverJSON(w io.Writer, params CoverHandlerParams) error {
+// DoCoverJSONL is a handler for "/cover?jsonl=1".
+func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	fm, err := rg.prepareFileMap(progs, params.Debug)
 	if err != nil {
 		return fmt.Errorf("failed to rg.prepareFileMap(): %w", err)
 	}
-	c := &coverageInfo{
-		Version: 1,
-		Files:   make(map[string]*covFileDetails),
-	}
-	forEachFunction(fm, func(filePath, funcName string, funcObj *function) {
-		if _, ok := c.Files[filePath]; !ok {
-			c.Files[filePath] = &covFileDetails{
-				Functions: make(map[string]*covFuncDetails),
-			}
+
+	encoder := json.NewEncoder(w)
+	for _, frame := range rg.Frames {
+		endCol := frame.Range.EndCol
+		if endCol == backend.LineEnd {
+			endCol = -1
 		}
-		c.TotalCount += funcObj.pcs
-		c.CoveredCount += funcObj.covered
-		fileCbStat := c.Files[filePath]
-		fileCbStat.TotalCount += funcObj.pcs
-		fileCbStat.CoveredCount += funcObj.covered
-		fileCbStat.Functions[funcName] = &covFuncDetails{
-			covCallbacksStat: covCallbacksStat{
-				TotalCount:   funcObj.pcs,
-				CoveredCount: funcObj.covered,
-			},
+		pcProgCount := FileByFrame(fm, &frame).lines[frame.StartLine].pcProgCount
+		hitCount := pcProgCount[frame.PC]
+		covInfo := &coverageInfo{
+			Version:   1,
+			FilePath:  frame.Name,
+			FuncName:  frame.FuncName,
+			StartLine: frame.Range.StartLine,
+			StartCol:  frame.Range.StartCol,
+			EndLine:   frame.Range.EndLine,
+			EndCol:    endCol,
+			HitCount:  hitCount,
+			Inline:    frame.Inline,
+			PC:        frame.PC,
 		}
-	})
-	if err = json.NewEncoder(w).Encode(c); err != nil {
-		return fmt.Errorf("failed to json.Encode(): %w", err)
+		if err = encoder.Encode(covInfo); err != nil {
+			return fmt.Errorf("failed to json.Encode(): %w", err)
+		}
 	}
 	return nil
 }

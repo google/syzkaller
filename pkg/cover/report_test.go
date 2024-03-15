@@ -170,7 +170,7 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 		t.Fatalf("got no error, but expected %q", test.Result)
 	}
 	checkCSVReport(t, reps.csv)
-	checkJSONReport(t, reps.json)
+	checkJSONLReport(t, reps.jsonl)
 }
 
 const kcovCode = `
@@ -290,9 +290,9 @@ func targetKcovIsBroken(t *testing.T, target *targets.Target) bool {
 }
 
 type reports struct {
-	html []byte
-	csv  []byte
-	json []byte
+	html  []byte
+	csv   []byte
+	jsonl []byte
 }
 
 func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports, error) {
@@ -393,14 +393,14 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		return nil, err
 	}
 	_ = csvFiles
-	json := new(bytes.Buffer)
-	if err := rg.DoCoverJSON(json, params); err != nil {
+	jsonl := new(bytes.Buffer)
+	if err := rg.DoCoverJSONL(jsonl, params); err != nil {
 		return nil, err
 	}
 	return &reports{
-		html: html.Bytes(),
-		csv:  csv.Bytes(),
-		json: json.Bytes(),
+		html:  html.Bytes(),
+		csv:   csv.Bytes(),
+		jsonl: jsonl.Bytes(),
 	}, nil
 }
 
@@ -428,28 +428,20 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 		t.Fatalf("no main in the CSV report")
 	}
 }
-func checkJSONReport(t *testing.T, r []byte) {
-	expected := []byte(`{
-	"version":1,
-	"total_cb_count":1,
-	"covered_cb_count":1,
-	"files": {
-		"main.c": {
-			"total_cb_count":1,
-			"covered_cb_count":1,
-			"functions":{
-				"main": {
-					"total_cb_count":1,
-					"covered_cb_count":1
-				}
-			}
-		}
-	}
-}`)
+
+// nolint:lll
+func checkJSONLReport(t *testing.T, r []byte) {
+	expected := []byte(`{"version":1,"file_path":"main.c","func_name":"main",` +
+		`"sl":1,"sc":0,"el":1,"ec":-1,"hit_count":1,"inline":false,"pc":12345}`)
+
 	compacted := new(bytes.Buffer)
 	if err := json.Compact(compacted, expected); err != nil {
 		t.Errorf("failed to prepare compacted json: %v", err)
 	}
 	compacted.Write([]byte("\n"))
-	assert.Equal(t, compacted.String(), string(r))
+
+	// PC is hard to predict here. Let's fix it.
+	actualString := regexp.MustCompile(`"pc":[0-9]*`).ReplaceAllString(
+		string(r), `"pc":12345`)
+	assert.Equal(t, compacted.String(), actualString)
 }

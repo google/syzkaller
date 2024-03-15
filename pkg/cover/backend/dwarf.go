@@ -456,11 +456,12 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, sp
 		for _, frame := range res.frames {
 			name, path := cleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
 			frames = append(frames, Frame{
-				Module: mod,
-				PC:     frame.PC + mod.Addr,
-				Name:   name,
-				Path:   path,
-				Inline: frame.Inline,
+				Module:   mod,
+				PC:       frame.PC + mod.Addr,
+				Name:     name,
+				FuncName: frame.Func,
+				Path:     path,
+				Inline:   frame.Inline,
 				Range: Range{
 					StartLine: frame.Line,
 					StartCol:  0,
