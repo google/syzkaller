@@ -5,13 +5,12 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"sync"
-	"time"
+	"sync/atomic"
 
-	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -23,34 +22,32 @@ import (
 type RPCServer struct {
 	mgr                   RPCManagerView
 	cfg                   *mgrconfig.Config
+	server                *rpctype.RPCServer
 	modules               []host.KernelModule
 	port                  int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 	coverFilter           map[uint32]uint32
 	stats                 *Stats
-	batchSize             int
 	canonicalModules      *cover.Canonicalizer
 
 	mu          sync.Mutex
-	fuzzers     map[string]*Fuzzer
+	runners     sync.Map // Instead of map[string]*Runner.
 	checkResult *rpctype.CheckArgs
 
-	// TODO: we don't really need these anymore, but there's not much sense
-	// in rewriting the code that uses them -- most of that code will be dropped
-	// once we move pkg/fuzzer to the host.
-	maxSignal     signal.Signal
-	corpusSignal  signal.Signal
-	corpusCover   cover.Cover
-	rnd           *rand.Rand
 	checkFailures int
 }
 
-type Fuzzer struct {
-	name         string
-	inputs       []rpctype.Input
-	newMaxSignal signal.Signal
-	machineInfo  []byte
-	instModules  *cover.CanonicalizerInstance
+type Runner struct {
+	name string
+
+	machineInfo []byte
+	instModules *cover.CanonicalizerInstance
+
+	// The mutex protects newMaxSignal and requests.
+	mu            sync.Mutex
+	newMaxSignal  signal.Signal
+	nextRequestID atomic.Int64
+	requests      map[int64]*fuzzer.Request
 }
 
 type BugFrames struct {
@@ -60,24 +57,16 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect([]host.KernelModule) (
-		[]rpctype.Input, BugFrames, map[uint32]uint32, map[uint32]uint32, error)
+	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32, map[uint32]uint32, error)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
-	newInput(inp corpus.NewInput) bool
-	candidateBatch(size int) []rpctype.Candidate
+	getFuzzer() *fuzzer.Fuzzer
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
-		mgr:     mgr,
-		cfg:     mgr.cfg,
-		stats:   mgr.stats,
-		fuzzers: make(map[string]*Fuzzer),
-		rnd:     rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-	serv.batchSize = 5
-	if serv.batchSize < mgr.cfg.Procs {
-		serv.batchSize = mgr.cfg.Procs
+		mgr:   mgr,
+		cfg:   mgr.cfg,
+		stats: mgr.stats,
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
 	if err != nil {
@@ -85,13 +74,8 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	}
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	serv.port = s.Addr().(*net.TCPAddr).Port
+	serv.server = s
 	go s.Serve()
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			mgr.stats.rpcTraffic.add(int(s.TotalBytes.Swap(0)))
-		}
-	}()
 	return serv, nil
 }
 
@@ -99,37 +83,47 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
+	serv.mu.Lock()
 	if serv.canonicalModules == nil {
 		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
 		serv.modules = a.Modules
 	}
-	corpus, bugFrames, coverFilter, execCoverFilter, err := serv.mgr.fuzzerConnect(serv.modules)
+	serv.mu.Unlock()
+
+	bugFrames, coverFilter, execCoverFilter, err := serv.mgr.fuzzerConnect(serv.modules)
 	if err != nil {
 		return err
 	}
-	serv.coverFilter = coverFilter
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
-	f := &Fuzzer{
+	serv.coverFilter = coverFilter
+
+	runner := &Runner{
 		name:        a.Name,
 		machineInfo: a.MachineInfo,
 		instModules: serv.canonicalModules.NewInstance(a.Modules),
+		requests:    make(map[int64]*fuzzer.Request),
 	}
-	serv.fuzzers[a.Name] = f
+	if _, loaded := serv.runners.LoadOrStore(a.Name, runner); loaded {
+		return fmt.Errorf("duplicate connection from %s", a.Name)
+	}
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
 
-	instCoverFilter := f.instModules.DecanonicalizeFilter(execCoverFilter)
+	instCoverFilter := runner.instModules.DecanonicalizeFilter(execCoverFilter)
 	r.CoverFilterBitmap = createCoverageBitmap(serv.cfg.SysTarget, instCoverFilter)
 	r.EnabledCalls = serv.cfg.Syscalls
-	r.NoMutateCalls = serv.cfg.NoMutateCalls
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.cfg.Target.Revision
 	r.CheckResult = serv.checkResult
-	f.inputs = corpus
-	f.newMaxSignal = serv.maxSignal.Copy()
+
+	if fuzzer := serv.mgr.getFuzzer(); fuzzer != nil {
+		// A Fuzzer object is created after the first Check() call.
+		// If there was none, there would be no collected max signal either.
+		runner.newMaxSignal = fuzzer.Cover.CopyMaxSignal()
+	}
 	return nil
 }
 
@@ -177,140 +171,147 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	return nil
 }
 
-func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
-	p, disabled, bad := parseProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
-	if bad != nil || disabled {
-		log.Errorf("rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.Input.Prog)
-		return nil
-	}
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-
-	f := serv.fuzzers[a.Name]
-	// Note: f may be nil if we called shutdownInstance,
-	// but this request is already in-flight.
-	if f != nil {
-		a.Cover, a.Signal = f.instModules.Canonicalize(a.Cover, a.Signal)
-	}
-	inputSignal := a.Signal.Deserialize()
-
-	inp := corpus.NewInput{
-		Prog:   p,
-		Call:   a.Call,
-		Signal: inputSignal,
-		Cover:  a.Cover,
-	}
-
-	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
-		a.Name, inp.StringCall(), inputSignal.Len(), len(a.Cover))
-	if serv.corpusSignal.Diff(inputSignal).Empty() {
-		return nil
-	}
-	if !serv.mgr.newInput(inp) {
+func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.ExchangeInfoReply) error {
+	var runner *Runner
+	if val, _ := serv.runners.Load(a.Name); val != nil {
+		runner = val.(*Runner)
+	} else {
+		// There might be a parallel shutdownInstance().
+		// Ignore the request then.
 		return nil
 	}
 
-	diff := serv.corpusCover.MergeDiff(a.Cover)
-	serv.stats.corpusCover.set(len(serv.corpusCover))
-	if len(diff) != 0 && serv.coverFilter != nil {
-		// Note: ReportGenerator is already initialized if coverFilter is enabled.
-		rg, err := getReportGenerator(serv.cfg, serv.modules)
-		if err != nil {
-			return err
-		}
-		filtered := 0
-		for _, pc := range diff {
-			if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
-				filtered++
-			}
-		}
-		serv.stats.corpusCoverFiltered.add(filtered)
+	fuzzer := serv.mgr.getFuzzer()
+	if fuzzer == nil {
+		// ExchangeInfo calls follow MachineCheck, so the fuzzer must have been initialized.
+		panic("exchange info call with nil fuzzer")
 	}
-	serv.stats.newInputs.inc()
 
-	serv.corpusSignal.Merge(inputSignal)
-	serv.stats.corpusSignal.set(serv.corpusSignal.Len())
-
-	a.Input.Cover = nil // Don't send coverage back to all fuzzers.
-	a.Input.RawCover = nil
-	for _, other := range serv.fuzzers {
-		if other == f {
-			continue
-		}
-		other.inputs = append(other.inputs, a.Input)
+	// First query new inputs and only then post results.
+	// It should foster a more even distribution of executions
+	// across all VMs.
+	for i := 0; i < a.NeedProgs; i++ {
+		inp := fuzzer.NextInput()
+		r.Requests = append(r.Requests, runner.newRequest(inp))
 	}
+
+	for _, result := range a.Results {
+		runner.doneRequest(result, fuzzer)
+	}
+
+	serv.stats.mergeNamed(a.StatsDelta)
+
+	runner.mu.Lock()
+	// Let's transfer new max signal in portions.
+	const transferMaxSignal = 500000
+	maxSignalDiff := runner.newMaxSignal.Split(transferMaxSignal)
+	runner.mu.Unlock()
+
+	r.NewMaxSignal = runner.instModules.Decanonicalize(maxSignalDiff.ToRaw())
+
+	log.Logf(2, "exchange with %s: %d done, %d new requests, %d new max signal",
+		a.Name, len(a.Results), len(r.Requests), len(r.NewMaxSignal))
+
 	return nil
 }
 
-func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
-	serv.stats.mergeNamed(a.Stats)
-
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-
-	f := serv.fuzzers[a.Name]
-	if f == nil {
-		// This is possible if we called shutdownInstance,
-		// but already have a pending request from this instance in-flight.
-		log.Logf(1, "poll: fuzzer %v is not connected", a.Name)
+func (serv *RPCServer) updateFilteredCover(pcs []uint32) error {
+	if len(pcs) == 0 || serv.coverFilter == nil {
 		return nil
 	}
-	newMaxSignal := serv.maxSignal.Diff(a.MaxSignal.Deserialize())
-	if !newMaxSignal.Empty() {
-		serv.maxSignal.Merge(newMaxSignal)
-		serv.stats.maxSignal.set(len(serv.maxSignal))
-		for _, f1 := range serv.fuzzers {
-			if f1 == f {
-				continue
-			}
-			f1.newMaxSignal.Merge(newMaxSignal)
+	// Note: ReportGenerator is already initialized if coverFilter is enabled.
+	rg, err := getReportGenerator(serv.cfg, serv.modules)
+	if err != nil {
+		return err
+	}
+	filtered := 0
+	for _, pc := range pcs {
+		if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
+			filtered++
 		}
 	}
-	r.MaxSignal = f.newMaxSignal.Split(2000).Serialize()
-	if a.NeedCandidates {
-		r.Candidates = serv.mgr.candidateBatch(serv.batchSize)
-	}
-	if len(r.Candidates) == 0 {
-		batchSize := serv.batchSize
-		// When the fuzzer starts, it pumps the whole corpus.
-		// If we do it using the final batchSize, it can be very slow
-		// (batch of size 6 can take more than 10 mins for 50K corpus and slow kernel).
-		// So use a larger batch initially (we use no stats as approximation of initial pump).
-		const initialBatch = 50
-		if len(a.Stats) == 0 && batchSize < initialBatch {
-			batchSize = initialBatch
-		}
-		for i := 0; i < batchSize && len(f.inputs) > 0; i++ {
-			last := len(f.inputs) - 1
-			r.NewInputs = append(r.NewInputs, f.inputs[last])
-			f.inputs[last] = rpctype.Input{}
-			f.inputs = f.inputs[:last]
-		}
-		if len(f.inputs) == 0 {
-			f.inputs = nil
-		}
-	}
-	for _, inp := range r.NewInputs {
-		inp.Cover, inp.Signal = f.instModules.Decanonicalize(inp.Cover, inp.Signal)
-	}
-	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
-		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
+	serv.stats.corpusCoverFiltered.add(filtered)
 	return nil
 }
 
 func (serv *RPCServer) shutdownInstance(name string) []byte {
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-
-	fuzzer := serv.fuzzers[name]
-	if fuzzer == nil {
+	var runner *Runner
+	if val, _ := serv.runners.LoadAndDelete(name); val != nil {
+		runner = val.(*Runner)
+	} else {
 		return nil
 	}
-	delete(serv.fuzzers, name)
-	return fuzzer.machineInfo
+
+	runner.mu.Lock()
+	if runner.requests == nil {
+		// We are supposed to invoke this code only once.
+		panic("Runner.requests is already nil")
+	}
+	oldRequests := runner.requests
+	runner.requests = nil
+	runner.mu.Unlock()
+
+	// If the object does not exist, there would be no oldRequests either.
+	fuzzerObj := serv.mgr.getFuzzer()
+	for _, req := range oldRequests {
+		// The VM likely crashed, so let's tell pkg/fuzzer to abort the affected jobs.
+		// TODO: distinguish between real VM crashes and regular VM restarts?
+		fuzzerObj.Done(req, &fuzzer.Result{Stop: true})
+	}
+	return runner.machineInfo
 }
 
-func (serv *RPCServer) LogMessage(m *rpctype.LogMessageReq, r *int) error {
-	log.Logf(m.Level, "%s: %s", m.Name, m.Message)
-	return nil
+func (serv *RPCServer) distributeMaxSignal(delta signal.Signal) {
+	serv.runners.Range(func(key, value any) bool {
+		runner := value.(*Runner)
+		runner.mu.Lock()
+		defer runner.mu.Unlock()
+		runner.newMaxSignal.Merge(delta)
+		return true
+	})
+}
+
+func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer) {
+	runner.mu.Lock()
+	req, ok := runner.requests[resp.ID]
+	if ok {
+		delete(runner.requests, resp.ID)
+	}
+	runner.mu.Unlock()
+	if !ok {
+		// There may be a concurrent shutdownInstance() call.
+		return
+	}
+	info := &resp.Info
+	for i := 0; i < len(info.Calls); i++ {
+		call := &info.Calls[i]
+		call.Cover = runner.instModules.Canonicalize(call.Cover)
+		call.Signal = runner.instModules.Canonicalize(call.Signal)
+	}
+	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
+	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
+	fuzzerObj.Done(req, &fuzzer.Result{Info: info})
+}
+
+func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {
+	var signalFilter signal.Signal
+	if req.SignalFilter != nil {
+		newRawSignal := runner.instModules.Decanonicalize(req.SignalFilter.ToRaw())
+		// We don't care about specific priorities here.
+		signalFilter = signal.FromRaw(newRawSignal, 0)
+	}
+	id := runner.nextRequestID.Add(1)
+	runner.mu.Lock()
+	if runner.requests != nil {
+		runner.requests[id] = req
+	}
+	runner.mu.Unlock()
+	return rpctype.ExecutionRequest{
+		ID:           id,
+		ProgData:     req.Prog.Serialize(),
+		NeedCover:    req.NeedCover,
+		NeedSignal:   req.NeedSignal,
+		SignalFilter: signalFilter,
+		NeedHints:    req.NeedHints,
+	}
 }

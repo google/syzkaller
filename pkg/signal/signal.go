@@ -11,11 +11,6 @@ type (
 
 type Signal map[elemType]prioType
 
-type Serial struct {
-	Elems []elemType
-	Prios []prioType
-}
-
 func (s Signal) Len() int {
 	return len(s)
 }
@@ -60,42 +55,6 @@ func FromRaw(raw []uint32, prio uint8) Signal {
 	s := make(Signal, len(raw))
 	for _, e := range raw {
 		s[elemType(e)] = prioType(prio)
-	}
-	return s
-}
-
-func (s Signal) Serialize() Serial {
-	if s.Empty() {
-		return Serial{}
-	}
-	res := Serial{
-		Elems: make([]elemType, len(s)),
-		Prios: make([]prioType, len(s)),
-	}
-	i := 0
-	for e, p := range s {
-		res.Elems[i] = e
-		res.Prios[i] = p
-		i++
-	}
-	return res
-}
-
-func (ser *Serial) AddElem(elem uint32, prio prioType) {
-	ser.Elems = append(ser.Elems, elemType(elem))
-	ser.Prios = append(ser.Prios, prio)
-}
-
-func (ser Serial) Deserialize() Signal {
-	if len(ser.Elems) != len(ser.Prios) {
-		panic("corrupted Serial")
-	}
-	if len(ser.Elems) == 0 {
-		return nil
-	}
-	s := make(Signal, len(ser.Elems))
-	for i, e := range ser.Elems {
-		s[e] = ser.Prios[i]
 	}
 	return s
 }
@@ -158,6 +117,36 @@ func (s *Signal) Merge(s1 Signal) {
 			s0[e] = p1
 		}
 	}
+}
+
+// FilterRaw returns a subset of original raw elements that coincides with the one in Signal.
+func (s Signal) FilterRaw(raw []uint32) []uint32 {
+	var ret []uint32
+	for _, e := range raw {
+		if _, ok := s[elemType(e)]; ok {
+			ret = append(ret, e)
+		}
+	}
+	return ret
+}
+
+// DiffFromRaw returns a subset of the raw elements that is not present in Signal.
+func (s Signal) DiffFromRaw(raw []uint32) []uint32 {
+	var ret []uint32
+	for _, e := range raw {
+		if _, ok := s[elemType(e)]; !ok {
+			ret = append(ret, e)
+		}
+	}
+	return ret
+}
+
+func (s Signal) ToRaw() []uint32 {
+	var raw []uint32
+	for e := range s {
+		raw = append(raw, uint32(e))
+	}
+	return raw
 }
 
 type Context struct {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
@@ -63,15 +62,6 @@ func (item Item) StringCall() string {
 	return stringCall(item.Prog, item.Call)
 }
 
-// RPCInputShort() does not include coverage.
-func (item Item) RPCInputShort() rpctype.Input {
-	return rpctype.Input{
-		Call:   item.Call,
-		Prog:   item.ProgData,
-		Signal: item.Signal.Serialize(),
-	}
-}
-
 func stringCall(p *prog.Prog, call int) string {
 	if call != -1 {
 		return p.Calls[call].Meta.Name
@@ -89,16 +79,6 @@ type NewInput struct {
 
 func (item NewInput) StringCall() string {
 	return stringCall(item.Prog, item.Call)
-}
-
-func (item NewInput) RPCInput() rpctype.Input {
-	return rpctype.Input{
-		Call:     item.Call,
-		Prog:     item.Prog.Serialize(),
-		Signal:   item.Signal.Serialize(),
-		Cover:    item.Cover,
-		RawCover: item.RawCover,
-	}
 }
 
 type NewItemEvent struct {

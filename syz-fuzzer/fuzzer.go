@@ -4,10 +4,8 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -17,15 +15,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -36,7 +33,6 @@ type FuzzerTool struct {
 	name              string
 	outputType        OutputType
 	config            *ipc.Config
-	fuzzer            *fuzzer.Fuzzer
 	procs             []*Proc
 	gate              *ipc.Gate
 	manager           *rpctype.RPCClient
@@ -47,8 +43,27 @@ type FuzzerTool struct {
 	checkResult *rpctype.CheckArgs
 	logMu       sync.Mutex
 
-	bufferTooSmall uint64
+	bufferTooSmall atomic.Uint64
+	noExecRequests atomic.Uint64
 	resetAccState  bool
+
+	inputs    chan executionRequest
+	results   chan executionResult
+	signalMu  sync.RWMutex
+	maxSignal signal.Signal
+}
+
+// executionResult offloads some computations from the proc loop
+// to the communication thread.
+type executionResult struct {
+	rpctype.ExecutionRequest
+	info *ipc.ProgInfo
+}
+
+// executionRequest offloads prog deseralization to another thread.
+type executionRequest struct {
+	rpctype.ExecutionRequest
+	prog *prog.Prog
 }
 
 type OutputType int
@@ -224,26 +239,8 @@ func main() {
 		runTest(target, manager, *flagName, config.Executor)
 		return
 	}
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	calls := make(map[*prog.Syscall]bool)
-	for _, id := range r.CheckResult.EnabledCalls[sandbox] {
-		calls[target.Syscalls[id]] = true
-	}
-	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-		Corpus:         corpus.NewCorpus(context.Background()),
-		Coverage:       config.Flags&ipc.FlagSignal > 0,
-		FaultInjection: r.CheckResult.Features[host.FeatureFault].Enabled,
-		Comparisons:    r.CheckResult.Features[host.FeatureComparisons].Enabled,
-		Collide:        execOpts.Flags&ipc.FlagThreaded > 0,
-		EnabledCalls:   calls,
-		NoMutateCalls:  r.NoMutateCalls,
-		FetchRawCover:  *flagRawCover,
-		MinCandidates:  uint(*flagProcs * 2),
-		NewInputs:      make(chan corpus.NewInput),
-	}, rnd, target)
-
+	inputsCount := *flagProcs * 2
 	fuzzerTool := &FuzzerTool{
-		fuzzer:        fuzzerObj,
 		name:          *flagName,
 		outputType:    outputType,
 		manager:       manager,
@@ -252,33 +249,18 @@ func main() {
 		config:        config,
 		checkResult:   r.CheckResult,
 		resetAccState: *flagResetAccState,
-	}
-	fuzzerObj.Config.Logf = func(level int, msg string, args ...interface{}) {
-		// Log 0 messages are most important: send them directly to syz-manager.
-		if level == 0 {
-			fuzzerTool.Logf(level, msg, args...)
-		}
-		// Dump log level 0 and 1 messages into syz-fuzzer output.
-		if level <= 1 {
-			fuzzerTool.logMu.Lock()
-			defer fuzzerTool.logMu.Unlock()
-			log.Logf(0, "fuzzer: "+msg, args...)
-		}
+
+		inputs:  make(chan executionRequest, inputsCount),
+		results: make(chan executionResult, inputsCount),
 	}
 	fuzzerTool.gate = ipc.NewGate(gateSize,
 		fuzzerTool.useBugFrames(r, *flagProcs))
-	for needCandidates, more := true, true; more; needCandidates = false {
-		more = fuzzerTool.poll(needCandidates, nil)
-		// This loop lead to "no output" in qemu emulation, tell manager we are not dead.
-		stat := fuzzerObj.Stats()
-		log.Logf(0, "fetching corpus: %v, signal %v/%v (executing program)",
-			stat.Progs, stat.Signal, stat.MaxSignal)
-	}
 	if r.CoverFilterBitmap != nil {
 		execOpts.Flags |= ipc.FlagEnableCoverageFilter
 	}
-
-	log.Logf(0, "starting %v fuzzer processes", *flagProcs)
+	// Query enough inputs at the beginning.
+	fuzzerTool.exchangeDataCall(inputsCount, nil)
+	log.Logf(0, "starting %v executor processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzerTool, execOpts, pid)
 		if err != nil {
@@ -287,11 +269,8 @@ func main() {
 		fuzzerTool.procs = append(fuzzerTool.procs, proc)
 		go proc.loop()
 	}
-	// Start send input workers.
-	for i := 0; i < *flagProcs*2; i++ {
-		go fuzzerTool.sendInputsWorker(fuzzerObj.Config.NewInputs)
-	}
-	fuzzerTool.pollLoop()
+	go fuzzerTool.exchangeDataWorker()
+	fuzzerTool.exchangeDataWorker()
 }
 
 func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
@@ -356,110 +335,75 @@ func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
 	log.Logf(0, "%s", output)
 }
 
-func (tool *FuzzerTool) pollLoop() {
-	var execTotal uint64
-	var lastPoll time.Time
-	var lastPrint time.Time
-	ticker := time.NewTicker(3 * time.Second * tool.timeouts.Scale).C
-	for {
-		needCandidates := false
-		select {
-		case <-ticker:
-		case <-tool.fuzzer.NeedCandidates:
-			needCandidates = true
+func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResult) {
+	a := &rpctype.ExchangeInfoRequest{
+		Name:       tool.name,
+		NeedProgs:  needProgs,
+		StatsDelta: tool.grabStats(),
+	}
+	for _, result := range results {
+		a.Results = append(a.Results, tool.convertExecutionResult(result))
+	}
+	r := &rpctype.ExchangeInfoReply{}
+	if err := tool.manager.Call("Manager.ExchangeInfo", a, r); err != nil {
+		log.SyzFatalf("Manager.ExchangeInfo call failed: %v", err)
+	}
+	tool.addMaxSignal(r.NewMaxSignal)
+	for _, req := range r.Requests {
+		p := tool.deserializeInput(req.ProgData)
+		if p == nil {
+			log.SyzFatalf("failed to deserialize input: %s", req.ProgData)
 		}
-		if tool.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second*tool.timeouts.Scale {
-			// Keep-alive for manager.
-			log.Logf(0, "alive, executed %v", execTotal)
-			lastPrint = time.Now()
+		tool.inputs <- executionRequest{
+			ExecutionRequest: req,
+			prog:             p,
 		}
-		needCandidates = tool.fuzzer.NeedCandidatesNow()
-		if needCandidates || time.Since(lastPoll) > 10*time.Second*tool.timeouts.Scale {
-			more := tool.poll(needCandidates, tool.grabStats())
-			if !more {
-				lastPoll = time.Now()
+	}
+}
+
+func (tool *FuzzerTool) exchangeDataWorker() {
+	for result := range tool.results {
+		results := []executionResult{
+			result,
+		}
+		// Grab other finished calls, just in case there are any.
+	loop:
+		for {
+			select {
+			case res := <-tool.results:
+				results = append(results, res)
+			default:
+				break loop
 			}
 		}
+		// Replenish exactly the finished requests.
+		tool.exchangeDataCall(len(results), results)
 	}
 }
 
-func (tool *FuzzerTool) poll(needCandidates bool, stats map[string]uint64) bool {
-	fuzzer := tool.fuzzer
-	a := &rpctype.PollArgs{
-		Name:           tool.name,
-		NeedCandidates: needCandidates,
-		MaxSignal:      fuzzer.Cover.GrabNewSignal().Serialize(),
-		Stats:          stats,
+func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.ExecutionResult {
+	if res.NeedSignal == rpctype.NewSignal {
+		tool.diffMaxSignal(res.info)
 	}
-	r := &rpctype.PollRes{}
-	if err := tool.manager.Call("Manager.Poll", a, r); err != nil {
-		log.SyzFatalf("Manager.Poll call failed: %v", err)
+	if res.SignalFilter != nil {
+		// TODO: we can filter without maps if req.SignalFilter is sorted.
+		filterProgInfo(res.info, res.SignalFilter)
 	}
-	maxSignal := r.MaxSignal.Deserialize()
-	log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
-		len(r.Candidates), len(r.NewInputs), maxSignal.Len())
-	fuzzer.Cover.AddMaxSignal(maxSignal)
-	for _, inp := range r.NewInputs {
-		tool.inputFromOtherFuzzer(inp)
-	}
-	tool.addCandidates(r.Candidates)
-	if needCandidates && len(r.Candidates) == 0 && atomic.LoadUint32(&tool.triagedCandidates) == 0 {
-		atomic.StoreUint32(&tool.triagedCandidates, 1)
-	}
-	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
-}
-
-func (tool *FuzzerTool) sendInputsWorker(ch <-chan corpus.NewInput) {
-	for update := range ch {
-		a := &rpctype.NewInputArgs{
-			Name:  tool.name,
-			Input: update.RPCInput(),
-		}
-		if err := tool.manager.Call("Manager.NewInput", a, nil); err != nil {
-			log.SyzFatalf("Manager.NewInput call failed: %v", err)
-		}
+	return rpctype.ExecutionResult{
+		ID:   res.ID,
+		Info: *res.info,
 	}
 }
 
 func (tool *FuzzerTool) grabStats() map[string]uint64 {
-	stats := tool.fuzzer.GrabStats()
+	stats := map[string]uint64{}
 	for _, proc := range tool.procs {
 		stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
 		stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 	}
-	stats["buffer too small"] = atomic.SwapUint64(&tool.bufferTooSmall, 0)
+	stats["buffer too small"] = tool.bufferTooSmall.Swap(0)
+	stats["no exec requests"] = tool.noExecRequests.Swap(0)
 	return stats
-}
-
-func (tool *FuzzerTool) addCandidates(candidates []rpctype.Candidate) {
-	var inputs []fuzzer.Candidate
-	for _, candidate := range candidates {
-		p := tool.deserializeInput(candidate.Prog)
-		if p == nil {
-			continue
-		}
-		inputs = append(inputs, fuzzer.Candidate{
-			Prog:      p,
-			Smashed:   candidate.Smashed,
-			Minimized: candidate.Minimized,
-		})
-	}
-	if len(inputs) > 0 {
-		tool.fuzzer.AddCandidates(inputs)
-	}
-}
-
-func (tool *FuzzerTool) inputFromOtherFuzzer(inp rpctype.Input) {
-	p := tool.deserializeInput(inp.Prog)
-	if p == nil {
-		return
-	}
-	tool.fuzzer.Config.Corpus.Save(corpus.NewInput{
-		Prog:   p,
-		Call:   inp.Call,
-		Signal: inp.Signal.Deserialize(),
-		Cover:  inp.Cover,
-	})
 }
 
 func (tool *FuzzerTool) deserializeInput(inp []byte) *prog.Prog {
@@ -467,46 +411,41 @@ func (tool *FuzzerTool) deserializeInput(inp []byte) *prog.Prog {
 	if err != nil {
 		log.SyzFatalf("failed to deserialize prog: %v\n%s", err, inp)
 	}
-	tool.checkDisabledCalls(p)
 	if len(p.Calls) > prog.MaxCalls {
 		return nil
 	}
 	return p
 }
 
-func (tool *FuzzerTool) checkDisabledCalls(p *prog.Prog) {
-	ct := tool.fuzzer.ChoiceTable()
-	for _, call := range p.Calls {
-		if !ct.Enabled(call.Meta.ID) {
-			fmt.Printf("executing disabled syscall %v [%v]\n", call.Meta.Name, call.Meta.ID)
-			sandbox := ipc.FlagsToSandbox(tool.config.Flags)
-			fmt.Printf("check result for sandbox=%v:\n", sandbox)
-			for _, id := range tool.checkResult.EnabledCalls[sandbox] {
-				meta := tool.target.Syscalls[id]
-				fmt.Printf("  %v [%v]\n", meta.Name, meta.ID)
-			}
-			fmt.Printf("choice table:\n")
-			for i, meta := range tool.target.Syscalls {
-				fmt.Printf("  #%v: %v [%v]: enabled=%v\n", i, meta.Name, meta.ID, ct.Enabled(meta.ID))
-			}
-			panic("disabled syscall")
-		}
+// The linter is too aggressive.
+// nolint: dupl
+func filterProgInfo(info *ipc.ProgInfo, mask signal.Signal) {
+	info.Extra.Signal = mask.FilterRaw(info.Extra.Signal)
+	for i := 0; i < len(info.Calls); i++ {
+		info.Calls[i].Signal = mask.FilterRaw(info.Calls[i].Signal)
 	}
 }
 
-// nolint: unused
-// It's only needed for debugging.
-func (tool *FuzzerTool) Logf(level int, msg string, args ...interface{}) {
-	go func() {
-		a := &rpctype.LogMessageReq{
-			Level:   level,
-			Name:    tool.name,
-			Message: fmt.Sprintf(msg, args...),
-		}
-		if err := tool.manager.Call("Manager.LogMessage", a, nil); err != nil {
-			log.SyzFatalf("Manager.LogMessage call failed: %v", err)
-		}
-	}()
+// The linter is too aggressive.
+// nolint: dupl
+func diffProgInfo(info *ipc.ProgInfo, base signal.Signal) {
+	info.Extra.Signal = base.DiffFromRaw(info.Extra.Signal)
+	for i := 0; i < len(info.Calls); i++ {
+		info.Calls[i].Signal = base.DiffFromRaw(info.Calls[i].Signal)
+	}
+}
+
+func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo) {
+	tool.signalMu.RLock()
+	defer tool.signalMu.RUnlock()
+
+	diffProgInfo(info, tool.maxSignal)
+}
+
+func (tool *FuzzerTool) addMaxSignal(diff []uint32) {
+	tool.signalMu.Lock()
+	defer tool.signalMu.Unlock()
+	tool.maxSignal.Merge(signal.FromRaw(diff, 0))
 }
 
 func setupPprofHandler(port int) {

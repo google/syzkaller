@@ -10,6 +10,7 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
@@ -64,7 +65,7 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		fuzzer.ChoiceTable())
 	return &Request{
 		Prog:       p,
-		NeedSignal: true,
+		NeedSignal: rpctype.NewSignal,
 		stat:       statGenerate,
 	}
 }
@@ -83,7 +84,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 	)
 	return &Request{
 		Prog:       newP,
-		NeedSignal: true,
+		NeedSignal: rpctype.NewSignal,
 		stat:       statFuzz,
 	}
 }
@@ -98,7 +99,7 @@ func candidateRequest(input Candidate) *Request {
 	}
 	return &Request{
 		Prog:       input.Prog,
-		NeedSignal: true,
+		NeedSignal: rpctype.NewSignal,
 		stat:       statCandidate,
 		flags:      flags,
 	}
@@ -157,13 +158,10 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 		Cover:    info.cover.Serialize(),
 		RawCover: info.rawCover,
 	}
-	fuzzer.Config.Corpus.Save(input)
-	if fuzzer.Config.NewInputs != nil {
-		select {
-		case <-fuzzer.ctx.Done():
-		case fuzzer.Config.NewInputs <- input:
-		}
+	if filter := fuzzer.Config.NewInputFilter; filter != nil && !filter(&input) {
+		return
 	}
+	fuzzer.Config.Corpus.Save(input)
 }
 
 type deflakedCover struct {
@@ -179,7 +177,7 @@ func (job *triageJob) deflake(fuzzer *Fuzzer) (info deflakedCover, stop bool) {
 	for i := 0; i < signalRuns; i++ {
 		result := fuzzer.exec(job, &Request{
 			Prog:         job.p,
-			NeedSignal:   true,
+			NeedSignal:   rpctype.AllSignal,
 			NeedCover:    true,
 			NeedRawCover: fuzzer.Config.FetchRawCover,
 			stat:         statTriage,
@@ -226,9 +224,10 @@ func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bo
 			}
 			for i := 0; i < minimizeAttempts; i++ {
 				result := fuzzer.exec(job, &Request{
-					Prog:       p1,
-					NeedSignal: true,
-					stat:       statMinimize,
+					Prog:         p1,
+					NeedSignal:   rpctype.AllSignal,
+					SignalFilter: newSignal,
+					stat:         statMinimize,
 				})
 				if result.Stop {
 					stop = true
@@ -298,7 +297,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.Config.Corpus.Programs())
 		result := fuzzer.exec(job, &Request{
 			Prog:       p,
-			NeedSignal: true,
+			NeedSignal: rpctype.NewSignal,
 			stat:       statSmash,
 		})
 		if result.Stop {
@@ -386,7 +385,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		func(p *prog.Prog) bool {
 			result := fuzzer.exec(job, &Request{
 				Prog:       p,
-				NeedSignal: true,
+				NeedSignal: rpctype.NewSignal,
 				stat:       statHint,
 			})
 			return !result.Stop
