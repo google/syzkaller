@@ -1425,12 +1425,6 @@ func (mgr *Manager) hubIsUnreachable() {
 	}
 }
 
-func (mgr *Manager) rotateCorpus() bool {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	return mgr.phase == phaseTriagedHub
-}
-
 func (mgr *Manager) collectUsedFiles() {
 	if mgr.vmPool == nil {
 		return

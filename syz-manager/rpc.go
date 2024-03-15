@@ -41,19 +41,16 @@ type RPCServer struct {
 	maxSignal     signal.Signal
 	corpusSignal  signal.Signal
 	corpusCover   cover.Cover
-	rotator       *prog.Rotator
 	rnd           *rand.Rand
 	checkFailures int
 }
 
 type Fuzzer struct {
-	name          string
-	rotated       bool
-	inputs        []rpctype.Input
-	newMaxSignal  signal.Signal
-	rotatedSignal signal.Signal
-	machineInfo   []byte
-	instModules   *cover.CanonicalizerInstance
+	name         string
+	inputs       []rpctype.Input
+	newMaxSignal signal.Signal
+	machineInfo  []byte
+	instModules  *cover.CanonicalizerInstance
 }
 
 type BugFrames struct {
@@ -68,7 +65,6 @@ type RPCManagerView interface {
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp corpus.NewInput) bool
 	candidateBatch(size int) []rpctype.Candidate
-	rotateCorpus() bool
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -131,94 +127,10 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.NoMutateCalls = serv.cfg.NoMutateCalls
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.cfg.Target.Revision
-	if serv.mgr.rotateCorpus() && serv.rnd.Intn(5) == 0 {
-		// We do rotation every other time because there are no objective
-		// proofs regarding its efficiency either way.
-		// Also, rotation gives significantly skewed syscall selection
-		// (run prog.TestRotationCoverage), it may or may not be OK.
-		r.CheckResult = serv.rotateCorpus(f, corpus)
-	} else {
-		r.CheckResult = serv.checkResult
-		f.inputs = corpus
-		f.newMaxSignal = serv.maxSignal.Copy()
-	}
+	r.CheckResult = serv.checkResult
+	f.inputs = corpus
+	f.newMaxSignal = serv.maxSignal.Copy()
 	return nil
-}
-
-func (serv *RPCServer) rotateCorpus(f *Fuzzer, corpus []rpctype.Input) *rpctype.CheckArgs {
-	// Fuzzing tends to stuck in some local optimum and then it fails to cover
-	// other state space points since code coverage is only a very approximate
-	// measure of logic coverage. To overcome this we introduce some variation
-	// into the process which should cause steady corpus rotation over time
-	// (the same coverage is achieved in different ways).
-	//
-	// First, we select a subset of all syscalls for each VM run (result.EnabledCalls).
-	// This serves 2 goals: (1) target fuzzer at a particular area of state space,
-	// (2) disable syscalls that cause frequent crashes at least in some runs
-	// to allow it to do actual fuzzing.
-	//
-	// Then, we remove programs that contain disabled syscalls from corpus
-	// that will be sent to the VM (f.inputs). We also remove 10% of remaining
-	// programs at random to allow to rediscover different variations of these programs.
-	//
-	// Then, we drop signal provided by the removed programs and also 10%
-	// of the remaining signal at random (f.newMaxSignal). This again allows
-	// rediscovery of this signal by different programs.
-	//
-	// Finally, we adjust criteria for accepting new programs from this VM (f.rotatedSignal).
-	// This allows to accept rediscovered varied programs even if they don't
-	// increase overall coverage. As the result we have multiple programs
-	// providing the same duplicate coverage, these are removed during periodic
-	// corpus minimization process. The minimization process is specifically
-	// non-deterministic to allow the corpus rotation.
-	//
-	// Note: at no point we drop anything globally and permanently.
-	// Everything we remove during this process is temporal and specific to a single VM.
-	calls := serv.rotator.Select()
-
-	var callIDs []int
-	callNames := make(map[string]bool)
-	for call := range calls {
-		callNames[call.Name] = true
-		callIDs = append(callIDs, call.ID)
-	}
-
-	f.inputs, f.newMaxSignal = serv.selectInputs(callNames, corpus, serv.maxSignal)
-	// Remove the corresponding signal from rotatedSignal which will
-	// be used to accept new inputs from this manager.
-	f.rotatedSignal = serv.corpusSignal.Intersection(f.newMaxSignal)
-	f.rotated = true
-
-	result := *serv.checkResult
-	result.EnabledCalls = map[string][]int{serv.cfg.Sandbox: callIDs}
-	return &result
-}
-
-func (serv *RPCServer) selectInputs(enabled map[string]bool, inputs0 []rpctype.Input, signal0 signal.Signal) (
-	inputs []rpctype.Input, signal signal.Signal) {
-	signal = signal0.Copy()
-	for _, inp := range inputs0 {
-		calls, _, err := prog.CallSet(inp.Prog)
-		if err != nil {
-			panic(fmt.Sprintf("rotateInputs: CallSet failed: %v\n%s", err, inp.Prog))
-		}
-		for call := range calls {
-			if !enabled[call] {
-				goto drop
-			}
-		}
-		if serv.rnd.Float64() > 0.9 {
-			goto drop
-		}
-		inputs = append(inputs, inp)
-		continue
-	drop:
-		for _, sig := range inp.Signal.Elems {
-			delete(signal, sig)
-		}
-	}
-	signal.Split(len(signal) / 10)
-	return inputs, signal
 }
 
 func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
@@ -262,7 +174,6 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	serv.mgr.machineChecked(a, serv.targetEnabledSyscalls)
 	a.DisabledCalls = nil
 	serv.checkResult = a
-	serv.rotator = prog.MakeRotator(serv.cfg.Target, serv.targetEnabledSyscalls, serv.rnd)
 	return nil
 }
 
@@ -276,6 +187,8 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	defer serv.mu.Unlock()
 
 	f := serv.fuzzers[a.Name]
+	// Note: f may be nil if we called shutdownInstance,
+	// but this request is already in-flight.
 	if f != nil {
 		a.Cover, a.Signal = f.instModules.Canonicalize(a.Cover, a.Signal)
 	}
@@ -290,23 +203,13 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 
 	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
 		a.Name, inp.StringCall(), inputSignal.Len(), len(a.Cover))
-	// Note: f may be nil if we called shutdownInstance,
-	// but this request is already in-flight.
-	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
-	rotated := false
-	if !genuine && f != nil && f.rotated {
-		rotated = !f.rotatedSignal.Diff(inputSignal).Empty()
-	}
-	if !genuine && !rotated {
+	if serv.corpusSignal.Diff(inputSignal).Empty() {
 		return nil
 	}
 	if !serv.mgr.newInput(inp) {
 		return nil
 	}
 
-	if f != nil && f.rotated {
-		f.rotatedSignal.Merge(inputSignal)
-	}
 	diff := serv.corpusCover.MergeDiff(a.Cover)
 	serv.stats.corpusCover.set(len(serv.corpusCover))
 	if len(diff) != 0 && serv.coverFilter != nil {
@@ -324,22 +227,17 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		serv.stats.corpusCoverFiltered.add(filtered)
 	}
 	serv.stats.newInputs.inc()
-	if rotated {
-		serv.stats.rotatedInputs.inc()
-	}
 
-	if genuine {
-		serv.corpusSignal.Merge(inputSignal)
-		serv.stats.corpusSignal.set(serv.corpusSignal.Len())
+	serv.corpusSignal.Merge(inputSignal)
+	serv.stats.corpusSignal.set(serv.corpusSignal.Len())
 
-		a.Input.Cover = nil // Don't send coverage back to all fuzzers.
-		a.Input.RawCover = nil
-		for _, other := range serv.fuzzers {
-			if other == f || other.rotated {
-				continue
-			}
-			other.inputs = append(other.inputs, a.Input)
+	a.Input.Cover = nil // Don't send coverage back to all fuzzers.
+	a.Input.RawCover = nil
+	for _, other := range serv.fuzzers {
+		if other == f {
+			continue
 		}
+		other.inputs = append(other.inputs, a.Input)
 	}
 	return nil
 }
@@ -362,15 +260,11 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		serv.maxSignal.Merge(newMaxSignal)
 		serv.stats.maxSignal.set(len(serv.maxSignal))
 		for _, f1 := range serv.fuzzers {
-			if f1 == f || f1.rotated {
+			if f1 == f {
 				continue
 			}
 			f1.newMaxSignal.Merge(newMaxSignal)
 		}
-	}
-	if f.rotated {
-		// Let rotated VMs run in isolation, don't send them anything.
-		return nil
 	}
 	r.MaxSignal = f.newMaxSignal.Split(2000).Serialize()
 	if a.NeedCandidates {
