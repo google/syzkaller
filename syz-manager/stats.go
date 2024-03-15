@@ -19,7 +19,6 @@ type Stats struct {
 	crashSuppressed     Stat
 	vmRestarts          Stat
 	newInputs           Stat
-	rotatedInputs       Stat
 	execTotal           Stat
 	rpcTraffic          Stat
 	hubSendProgAdd      Stat
@@ -68,7 +67,6 @@ func (stats *Stats) all() map[string]uint64 {
 		"suppressed":        stats.crashSuppressed.get(),
 		"vm restarts":       stats.vmRestarts.get(),
 		"new inputs":        stats.newInputs.get(),
-		"rotated inputs":    stats.rotatedInputs.get(),
 		"exec total":        stats.execTotal.get(),
 		"coverage":          stats.corpusCover.get(),
 		"filtered coverage": stats.corpusCoverFiltered.get(),
