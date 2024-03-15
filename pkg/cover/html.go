@@ -226,8 +226,10 @@ type coverageInfo struct {
 
 // DoCoverJSONL is a handler for "/cover?jsonl=1".
 func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) error {
-	if err := rg.symbolizePCs(rg.CoverageCallbackPoints); err != nil {
-		return fmt.Errorf("failed to rg.fullSymbolize(): %w", err)
+	if rg.CoverageCallbackPoints != nil {
+		if err := rg.symbolizePCs(rg.CoverageCallbackPoints); err != nil {
+			return fmt.Errorf("failed to symbolize PCs(): %w", err)
+		}
 	}
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	fm, err := rg.prepareFileMap(progs, params.Debug)
