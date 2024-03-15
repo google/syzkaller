@@ -70,8 +70,9 @@ type function struct {
 }
 
 type line struct {
-	progCount map[int]bool // program indices that cover this line
-	progIndex int          // example program index that covers this line
+	progCount   map[int]bool   // program indices that cover this line
+	progIndex   int            // example program index that covers this line
+	pcProgCount map[uint64]int // some lines have multiple BBs
 }
 
 func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
@@ -118,7 +119,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := getFile(files, frame.Name, frame.Path, frame.Module.Name)
+		f := FileByFrame(files, &frame)
 		ln := f.lines[frame.StartLine]
 		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
@@ -130,6 +131,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 		matchedPC = true
 		if ln.progCount == nil {
 			ln.progCount = make(map[int]bool)
+			ln.pcProgCount = make(map[uint64]int)
 			ln.progIndex = -1
 		}
 		for progIndex := range coveredBy {
@@ -137,6 +139,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 			if ln.progIndex == -1 || len(progs[progIndex].Data) < len(progs[ln.progIndex].Data) {
 				ln.progIndex = progIndex
 			}
+			ln.pcProgCount[frame.PC]++
 		}
 		f.lines[frame.StartLine] = ln
 	}
@@ -212,18 +215,18 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 	return nil
 }
 
-func getFile(files map[string]*file, name, path, module string) *file {
-	f := files[name]
+func FileByFrame(files map[string]*file, frame *backend.Frame) *file {
+	f := files[frame.Name]
 	if f == nil {
 		f = &file{
-			module:   module,
-			filename: path,
+			module:   frame.Module.Name,
+			filename: frame.Path,
 			lines:    make(map[int]line),
 			// Special mark for header files, if a file does not have coverage at all it is not shown.
 			totalPCs:   1,
 			coveredPCs: 1,
 		}
-		files[name] = f
+		files[frame.Name] = f
 	}
 	return f
 }

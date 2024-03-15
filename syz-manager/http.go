@@ -247,7 +247,7 @@ const (
 	DoRawCoverFiles
 	DoRawCover
 	DoFilterPCs
-	DoCoverJSON
+	DoCoverJSONL
 )
 
 func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
@@ -255,8 +255,8 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		mgr.httpCoverFallback(w, r)
 		return
 	}
-	if r.FormValue("json") == "1" {
-		mgr.httpCoverCover(w, r, DoCoverJSON)
+	if r.FormValue("jsonl") == "1" {
+		mgr.httpCoverCover(w, r, DoCoverJSONL)
 		return
 	}
 	mgr.httpCoverCover(w, r, DoHTML)
@@ -368,7 +368,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		DoRawCoverFiles: {rg.DoRawCoverFiles, ctTextPlain},
 		DoRawCover:      {rg.DoRawCover, ctTextPlain},
 		DoFilterPCs:     {rg.DoFilterPCs, ctTextPlain},
-		DoCoverJSON:     {rg.DoCoverJSON, ctApplicationJSON},
+		DoCoverJSONL:    {rg.DoCoverJSONL, ctApplicationJSON},
 	}
 
 	if ct := flagToFunc[funcFlag].contentType; ct != "" {

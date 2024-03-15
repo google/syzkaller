@@ -48,11 +48,12 @@ type ObjectUnit struct {
 }
 
 type Frame struct {
-	Module *Module
-	PC     uint64
-	Name   string
-	Path   string
-	Inline bool
+	Module   *Module
+	PC       uint64
+	Name     string
+	FuncName string
+	Path     string
+	Inline   bool
 	Range
 }
 
