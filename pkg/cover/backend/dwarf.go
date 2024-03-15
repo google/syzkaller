@@ -261,8 +261,9 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
-		RestorePC:   makeRestorePC(params, pcBase),
-		CoverPoints: allCoverPointsMap,
+		RestorePC:              makeRestorePC(params, pcBase),
+		CallbackPoints:         allCoverPointsMap,
+		CoverageCallbackPoints: allCoverPoints[0],
 	}
 	return impl, nil
 }

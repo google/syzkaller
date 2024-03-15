@@ -11,6 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/exp/maps"
 )
 
 type ReportGenerator struct {
@@ -91,7 +92,7 @@ func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint6
 type fileMap map[string]*file
 
 func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, error) {
-	if err := rg.lazySymbolize(progs); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return nil, err
 	}
 	files := make(fileMap)
@@ -105,14 +106,14 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	progPCs := make(map[uint64]map[int]bool)
 	unmatchedProgPCs := make(map[uint64]bool)
-	verifyCoverPoints := (len(rg.CoverPoints) > 0)
+	verifyCallbackPoints := (len(rg.CallbackPoints) > 0)
 	for i, prog := range progs {
 		for _, pc := range prog.PCs {
 			if progPCs[pc] == nil {
 				progPCs[pc] = make(map[int]bool)
 			}
 			progPCs[pc][i] = true
-			if verifyCoverPoints && !rg.CoverPoints[pc] {
+			if verifyCallbackPoints && !rg.CallbackPoints[pc] {
 				unmatchedProgPCs[pc] = true
 			}
 		}
@@ -148,7 +149,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	// If the backend provided coverage callback locations for the binaries, use them to
 	// verify data returned by kcov.
-	if verifyCoverPoints && (len(unmatchedProgPCs) > 0) {
+	if verifyCallbackPoints && (len(unmatchedProgPCs) > 0) {
 		return nil, coverageCallbackMismatch(debug, len(progPCs), unmatchedProgPCs)
 	}
 	for _, unit := range rg.Units {
@@ -180,29 +181,32 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	return files, nil
 }
 
-func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
+func uniquePCs(progs []Prog) []uint64 {
+	PCs := make(map[uint64]bool)
+	for _, p := range progs {
+		for _, pc := range p.PCs {
+			PCs[pc] = true
+		}
+	}
+	return maps.Keys(PCs)
+}
+
+func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
+	if len(PCs) == 0 {
+		return fmt.Errorf("no coverage collected so far to symbolize")
+	}
 	if len(rg.Symbols) == 0 {
 		return nil
 	}
 	symbolize := make(map[*backend.Symbol]bool)
-	uniquePCs := make(map[uint64]bool)
 	pcs := make(map[*backend.Module][]uint64)
-	for _, prog := range progs {
-		for _, pc := range prog.PCs {
-			if uniquePCs[pc] {
-				continue
-			}
-			uniquePCs[pc] = true
-			sym := rg.findSymbol(pc)
-			if sym == nil || (sym.Symbolized || symbolize[sym]) {
-				continue
-			}
-			symbolize[sym] = true
-			pcs[sym.Module] = append(pcs[sym.Module], sym.PCs...)
+	for _, pc := range PCs {
+		sym := rg.findSymbol(pc)
+		if sym == nil || sym.Symbolized || symbolize[sym] {
+			continue
 		}
-	}
-	if len(uniquePCs) == 0 {
-		return fmt.Errorf("no coverage collected so far")
+		symbolize[sym] = true
+		pcs[sym.Module] = append(pcs[sym.Module], sym.PCs...)
 	}
 	frames, err := rg.Symbolize(pcs)
 	if err != nil {

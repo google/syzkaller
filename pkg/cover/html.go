@@ -186,7 +186,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParams) error {
 	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	if err := rg.lazySymbolize(progs); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return err
 	}
 
@@ -226,6 +226,9 @@ type coverageInfo struct {
 
 // DoCoverJSONL is a handler for "/cover?jsonl=1".
 func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) error {
+	if err := rg.symbolizePCs(rg.CoverageCallbackPoints); err != nil {
+		return fmt.Errorf("failed to rg.fullSymbolize(): %w", err)
+	}
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
 	fm, err := rg.prepareFileMap(progs, params.Debug)
 	if err != nil {
