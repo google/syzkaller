@@ -157,7 +157,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join("/", base)
 
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22),
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22, false),
 		hostSrc, fmt.Sprintf("%v@%v:%v", inst.sshuser, inst.ipAddr, vmDst))
 
 	if inst.debug {
@@ -186,7 +186,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	args := vmimpl.SSHArgs(inst.debug, inst.sshkey, 22)
+	args := vmimpl.SSHArgs(inst.debug, inst.sshkey, 22, false)
 	// Forward target port as part of the ssh connection (reverse proxy)
 	if inst.forwardPort != 0 {
 		proxy := fmt.Sprintf("%v:127.0.0.1:%v", inst.forwardPort, inst.forwardPort)

@@ -228,7 +228,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		consoleReadCmd: pool.consoleReadCmd,
 	}
 	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
-		sshKey, sshUser, pool.env.OS, 22, nil); err != nil {
+		sshKey, sshUser, pool.env.OS, 22, nil, false); err != nil {
 		output, outputErr := inst.getSerialPortOutput()
 		if outputErr != nil {
 			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
@@ -253,7 +253,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(vmimpl.SCPArgs(true, inst.sshKey, 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
+	args := append(vmimpl.SCPArgs(true, inst.sshKey, 22, false), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
 	if err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
@@ -433,7 +433,7 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.ip)
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22, false), inst.sshUser+"@"+inst.ip)
 	if inst.env.OS == targets.Linux && inst.sshUser != "root" {
 		args = []string{"sudo", "bash", "-c", "'" + strings.Join(args, " ") + "'"}
 	}
@@ -455,7 +455,7 @@ func (inst *instance) serialPortArgs(replay bool) []string {
 	}
 	conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1%s@%v-ssh-serialport.googleapis.com",
 		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user, replayArg, inst.GCE.RegionID)
-	conArgs := append(vmimpl.SSHArgs(inst.debug, key, 9600), conAddr)
+	conArgs := append(vmimpl.SSHArgs(inst.debug, key, 9600, false), conAddr)
 	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
 	// host key algorithm: ssh-rsa.
 	return append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")

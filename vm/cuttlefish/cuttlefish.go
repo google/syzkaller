@@ -104,7 +104,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 }
 
 func (inst *instance) sshArgs(command string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.name)
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22, false), inst.sshUser+"@"+inst.name)
 	if inst.sshUser != "root" {
 		return append(sshArgs, "sudo", "bash", "-c", "'"+command+"'")
 	}

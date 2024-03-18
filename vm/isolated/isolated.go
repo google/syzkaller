@@ -34,6 +34,7 @@ type Config struct {
 	USBDevNums    []string `json:"usb_device_num"` // /sys/bus/usb/devices/
 	StartupScript string   `json:"startup_script"` // script to execute after each startup
 	Pstore        bool     `json:"pstore"`         // use crashlogs from pstore
+	SystemSSHCfg  bool     `json:"system_ssh_cfg"` // whether to allow system-wide SSH configuration
 }
 
 type Pool struct {
@@ -159,7 +160,7 @@ func (inst *instance) ssh(command string) error {
 	}
 	// TODO(dvyukov): who is closing rpipe?
 
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort),
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort, inst.cfg.SystemSSHCfg),
 		inst.sshUser+"@"+inst.targetAddr, command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
@@ -257,7 +258,7 @@ func (inst *instance) repair() error {
 
 func (inst *instance) waitForSSH(timeout time.Duration) error {
 	return vmimpl.WaitForSSH(inst.debug, timeout, inst.targetAddr, inst.sshKey, inst.sshUser,
-		inst.os, inst.targetPort, nil)
+		inst.os, inst.targetPort, nil, inst.cfg.SystemSSHCfg)
 }
 
 func (inst *instance) waitForReboot(timeout int) error {
@@ -286,7 +287,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	baseName := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.cfg.TargetDir, baseName)
 	inst.ssh("pkill -9 '" + baseName + "'; rm -f '" + vmDst + "'")
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshKey, inst.targetPort),
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshKey, inst.targetPort, inst.cfg.SystemSSHCfg),
 		hostSrc, inst.sshUser+"@"+inst.targetAddr+":"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
@@ -315,7 +316,8 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort), inst.sshUser+"@"+inst.targetAddr)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort, inst.cfg.SystemSSHCfg),
+		inst.sshUser+"@"+inst.targetAddr)
 	dmesg, err := vmimpl.OpenRemoteConsole("ssh", args...)
 	if err != nil {
 		return nil, nil, err
@@ -327,7 +329,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	args = vmimpl.SSHArgsForward(inst.debug, inst.sshKey, inst.targetPort, inst.forwardPort)
+	args = vmimpl.SSHArgsForward(inst.debug, inst.sshKey, inst.targetPort, inst.forwardPort, inst.cfg.SystemSSHCfg)
 	if inst.cfg.Pstore {
 		args = append(args, "-o", "ServerAliveInterval=6")
 		args = append(args, "-o", "ServerAliveCountMax=5")
@@ -360,7 +362,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func (inst *instance) readPstoreContents() ([]byte, error) {
 	log.Logf(0, "reading pstore contents")
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort),
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort, inst.cfg.SystemSSHCfg),
 		inst.sshUser+"@"+inst.targetAddr, "cat "+pstoreConsoleFile+" && rm "+pstoreConsoleFile)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)

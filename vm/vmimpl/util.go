@@ -23,7 +23,8 @@ func SleepInterruptible(d time.Duration) bool {
 	}
 }
 
-func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int, stop chan error) error {
+func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int, stop chan error,
+	systemSSHCfg bool) error {
 	pwd := "pwd"
 	if OS == targets.Windows {
 		pwd = "dir"
@@ -38,7 +39,7 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 		case <-Shutdown:
 			return fmt.Errorf("shutdown in progress")
 		}
-		args := append(SSHArgs(debug, sshKey, port), sshUser+"@"+addr, pwd)
+		args := append(SSHArgs(debug, sshKey, port, systemSSHCfg), sshUser+"@"+addr, pwd)
 		if debug {
 			log.Logf(0, "running ssh: %#v", args)
 		}
@@ -55,28 +56,31 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 	}
 }
 
-func SSHArgs(debug bool, sshKey string, port int) []string {
-	return sshArgs(debug, sshKey, "-p", port, 0)
+func SSHArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
+	return sshArgs(debug, sshKey, "-p", port, 0, systemSSHCfg)
 }
 
-func SSHArgsForward(debug bool, sshKey string, port, forwardPort int) []string {
-	return sshArgs(debug, sshKey, "-p", port, forwardPort)
+func SSHArgsForward(debug bool, sshKey string, port, forwardPort int, systemSSHCfg bool) []string {
+	return sshArgs(debug, sshKey, "-p", port, forwardPort, systemSSHCfg)
 }
 
-func SCPArgs(debug bool, sshKey string, port int) []string {
-	return sshArgs(debug, sshKey, "-P", port, 0)
+func SCPArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
+	return sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg)
 }
 
-func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int) []string {
-	args := []string{
-		portArg, fmt.Sprint(port),
-		"-F", "/dev/null",
-		"-o", "UserKnownHostsFile=/dev/null",
+func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSSHCfg bool) []string {
+	args := []string{portArg, fmt.Sprint(port)}
+	if !systemSSHCfg {
+		args = append(args,
+			"-F", "/dev/null",
+			"-o", "UserKnownHostsFile=/dev/null",
+			"-o", "IdentitiesOnly=yes")
+	}
+	args = append(args,
 		"-o", "BatchMode=yes",
-		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "ConnectTimeout=10",
-	}
+	)
 	if sshKey != "" {
 		args = append(args, "-i", sshKey)
 	}

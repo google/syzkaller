@@ -550,7 +550,7 @@ func (inst *instance) boot() error {
 		}
 	}()
 	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute*inst.timeouts.Scale, "localhost",
-		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err); err != nil {
+		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err, false); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
@@ -632,7 +632,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		inst.files[vmDst] = hostSrc
 	}
 
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port),
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port, false),
 		hostSrc, inst.sshuser+"@localhost:"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
@@ -652,7 +652,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort)
+	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort, false)
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); inst.target.HostFuzzer &&
 		(bin == "syz-fuzzer" || bin == "syz-execprog") {
@@ -751,7 +751,7 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port), inst.sshuser+"@localhost")
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port, false), inst.sshuser+"@localhost")
 	return append(sshArgs, args...)
 }
 
