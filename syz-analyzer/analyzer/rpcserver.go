@@ -33,7 +33,15 @@ func createRPCServer(addr string, analyzer *Analyzer) (*RPCServer, error) {
 func (server *RPCServer) NextProgram(args *syz_analyzer.ProgramArgs, res *syz_analyzer.ProgramResults) error {
 	if args.Error != nil {
 		log.Logf(0, "program %d of %d-%d machine results: %s\n", args.TaskID, args.Pool, args.VM, args.Error)
+	} else {
+		log.Logf(0, "program %d of %d-%d machine results: Finished successfully\n", args.TaskID, args.Pool, args.VM)
 	}
+
+	//if args.Info != nil {
+	//	for _, call := range args.Info.Calls {
+	//		log.Logf(0, "errno: %d", call.Flags)
+	//	}
+	//}
 
 	if server.tasksQueue.isEmpty(vmKey(args.Pool, args.VM)) {
 		return nil

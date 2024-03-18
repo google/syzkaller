@@ -75,7 +75,6 @@ func (runner *Runner) Run(firstProgram []byte, taskID int64) {
 		}
 
 		output, info, hanged, err := env.Exec(runner.opts, program)
-
 		if err != nil {
 			log.Logf(0, "%v\n", err)
 		}

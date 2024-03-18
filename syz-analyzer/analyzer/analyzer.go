@@ -128,13 +128,11 @@ func (analyzer *Analyzer) createInstance(pool *PoolInfo, poolID, vmID int) {
 	}
 
 	port, err := instance.Forward(analyzer.server.port)
-	log.Logf(poolID, "port for %d-%d: %s\n", poolID, vmID, port)
 	if err != nil {
 		log.Fatalf("%v with port %s\n", err, port)
 	}
 
 	runnerBin, err := instance.Copy(analyzer.runnerBin)
-	log.Logf(poolID, "runner for %d-%d: %s\n", poolID, vmID, runnerBin)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

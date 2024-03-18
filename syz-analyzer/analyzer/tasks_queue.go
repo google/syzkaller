@@ -16,7 +16,7 @@ func (tq *TasksQueue) push(vmID int, taskID int) {
 
 func (tq *TasksQueue) getAndPop(vmID int) (int, error) {
 	if tq.queue[vmID] == nil || len(tq.queue[vmID]) == 0 {
-		err := fmt.Errorf("tasks qeue of vm %d is empty", vmID)
+		err := fmt.Errorf("tasks queue of vm %d is empty", vmID)
 		return -1, err
 	}
 	taskID := tq.queue[vmID][0]
