@@ -187,7 +187,7 @@ func (inst *instance) Boot() error {
 	}
 
 	if err := vmimpl.WaitForSSH(inst.debug, 20*time.Minute, inst.sshhost,
-		inst.sshkey, inst.sshuser, inst.os, inst.sshport, nil); err != nil {
+		inst.sshkey, inst.sshuser, inst.os, inst.sshport, nil, false); err != nil {
 		out := <-inst.merger.Output
 		return vmimpl.BootError{Title: err.Error(), Output: out}
 	}
@@ -239,7 +239,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/root", filepath.Base(hostSrc))
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.sshport),
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.sshport, false),
 		hostSrc, inst.sshuser+"@"+inst.sshhost+":"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
@@ -259,7 +259,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.sshport),
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.sshport, false),
 		inst.sshuser+"@"+inst.sshhost, command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
