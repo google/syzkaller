@@ -40,9 +40,10 @@ func TestFuzz(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	corpusUpdates := make(chan corpus.NewItemEvent)
 	fuzzer := NewFuzzer(ctx, &Config{
 		Debug:  true,
-		Corpus: corpus.NewCorpus(ctx),
+		Corpus: corpus.NewMonitoredCorpus(ctx, corpusUpdates),
 		Logf: func(level int, msg string, args ...interface{}) {
 			if level > 1 {
 				return
@@ -61,8 +62,8 @@ func TestFuzz(t *testing.T) {
 			select {
 			case <-ctx.Done():
 				return
-			case c := <-fuzzer.Config.NewInputs:
-				t.Logf("new prog:\n%s", c.Prog)
+			case u := <-corpusUpdates:
+				t.Logf("new prog:\n%s", u.ProgData)
 			}
 		}
 	}()
