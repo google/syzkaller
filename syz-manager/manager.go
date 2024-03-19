@@ -275,7 +275,7 @@ func (mgr *Manager) initBench() {
 				continue
 			}
 			mgr.minimizeCorpusUnlocked()
-			stat := mgr.corpus.Stat()
+			stat := mgr.corpus.Stats()
 			vals["corpus"] = uint64(stat.Progs)
 			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
@@ -1247,12 +1247,12 @@ func (mgr *Manager) addNewCandidates(candidates []rpctype.Candidate) {
 }
 
 func (mgr *Manager) minimizeCorpusUnlocked() {
-	currSize := mgr.corpus.Stat().Progs
+	currSize := mgr.corpus.Stats().Progs
 	if mgr.phase < phaseLoadedCorpus || currSize <= mgr.lastMinCorpus*103/100 {
 		return
 	}
 	mgr.corpus.Minimize(mgr.cfg.Cover)
-	newSize := mgr.corpus.Stat().Progs
+	newSize := mgr.corpus.Stats().Progs
 
 	log.Logf(1, "minimized corpus: %v -> %v", currSize, newSize)
 	mgr.lastMinCorpus = newSize
@@ -1488,7 +1488,7 @@ func (mgr *Manager) dashboardReporter() {
 		crashes := mgr.stats.crashes.get()
 		suppressedCrashes := mgr.stats.crashSuppressed.get()
 		execs := mgr.stats.execTotal.get()
-		corpusStat := mgr.corpus.Stat()
+		corpusStat := mgr.corpus.Stats()
 		req := &dashapi.ManagerStatsReq{
 			Name:              mgr.cfg.Name,
 			Addr:              webAddr,

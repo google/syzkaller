@@ -350,14 +350,14 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 	}
 }
 
-type Stat struct {
-	CoverStat
-	corpus.Stat
+type Stats struct {
+	CoverStats
+	corpus.Stats
 }
 
-func (fuzzer *Fuzzer) Stat() Stat {
-	return Stat{
-		CoverStat: fuzzer.Cover.Stat(),
-		Stat:      fuzzer.Config.Corpus.Stat(),
+func (fuzzer *Fuzzer) Stats() Stats {
+	return Stats{
+		CoverStats: fuzzer.Cover.Stats(),
+		Stats:      fuzzer.Config.Corpus.Stats(),
 	}
 }

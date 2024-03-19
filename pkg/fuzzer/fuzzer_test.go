@@ -162,7 +162,7 @@ func (f *testFuzzer) oneMore() bool {
 	defer f.mu.Unlock()
 	f.iter++
 	if f.iter%100 == 0 {
-		stat := f.fuzzer.Stat()
+		stat := f.fuzzer.Stats()
 		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d",
 			f.iter, stat.Progs, stat.Signal, stat.MaxSignal, len(f.crashes))
 	}
