@@ -139,6 +139,12 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 	if newMaxSignal.Empty() {
 		return
 	}
+	if flags&progInTriage > 0 {
+		// We are already triaging this exact prog.
+		// All newly found coverage is flaky.
+		fuzzer.Logf(2, "found new flaky signal in call %d in %s", call, p)
+		return
+	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
 	fuzzer.startJob(&triageJob{
 		p:           p.Clone(),
