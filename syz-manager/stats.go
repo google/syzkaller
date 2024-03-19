@@ -21,6 +21,7 @@ type Stats struct {
 	newInputs           Stat
 	rotatedInputs       Stat
 	execTotal           Stat
+	rpcTraffic          Stat
 	hubSendProgAdd      Stat
 	hubSendProgDel      Stat
 	hubSendRepro        Stat
@@ -73,6 +74,7 @@ func (stats *Stats) all() map[string]uint64 {
 		"filtered coverage": stats.corpusCoverFiltered.get(),
 		"signal":            stats.corpusSignal.get(),
 		"max signal":        stats.maxSignal.get(),
+		"rpc traffic (MB)":  stats.rpcTraffic.get() / 1e6,
 	}
 	if stats.haveHub {
 		m["hub: send prog add"] = stats.hubSendProgAdd.get()

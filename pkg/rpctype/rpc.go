@@ -10,14 +10,16 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
 )
 
 type RPCServer struct {
-	ln net.Listener
-	s  *rpc.Server
+	ln         net.Listener
+	s          *rpc.Server
+	TotalBytes atomic.Uint64
 }
 
 func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
@@ -44,7 +46,7 @@ func (serv *RPCServer) Serve() {
 			continue
 		}
 		setupKeepAlive(conn, time.Minute)
-		go serv.s.ServeConn(newFlateConn(conn))
+		go serv.s.ServeConn(newFlateConn(newCountedConn(serv, conn)))
 	}
 }
 
@@ -159,4 +161,30 @@ func (fc *flateConn) Close() error {
 		err0 = err
 	}
 	return err0
+}
+
+// countedConn wraps net.Conn to record the transferred bytes.
+type countedConn struct {
+	io.ReadWriteCloser
+	server *RPCServer
+}
+
+func newCountedConn(server *RPCServer,
+	conn io.ReadWriteCloser) io.ReadWriteCloser {
+	return &countedConn{
+		ReadWriteCloser: conn,
+		server:          server,
+	}
+}
+
+func (cc countedConn) Read(p []byte) (n int, err error) {
+	n, err = cc.ReadWriteCloser.Read(p)
+	cc.server.TotalBytes.Add(uint64(n))
+	return
+}
+
+func (cc countedConn) Write(b []byte) (n int, err error) {
+	n, err = cc.ReadWriteCloser.Write(b)
+	cc.server.TotalBytes.Add(uint64(n))
+	return
 }
