@@ -31,10 +31,10 @@ type job interface {
 type ProgTypes int
 
 const (
-	ProgCandidate ProgTypes = 1 << iota
-	ProgMinimized
-	ProgSmashed
-	ProgNormal ProgTypes = 0
+	progCandidate ProgTypes = 1 << iota
+	progMinimized
+	progSmashed
+	progInTriage
 )
 
 type jobPriority struct {
@@ -89,12 +89,12 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 }
 
 func candidateRequest(input Candidate) *Request {
-	flags := ProgCandidate
+	flags := progCandidate
 	if input.Minimized {
-		flags |= ProgMinimized
+		flags |= progMinimized
 	}
 	if input.Smashed {
-		flags |= ProgSmashed
+		flags |= progSmashed
 	}
 	return &Request{
 		Prog:       input.Prog,
@@ -118,7 +118,7 @@ type triageJob struct {
 }
 
 func triageJobPrio(flags ProgTypes) jobPriority {
-	if flags&ProgCandidate > 0 {
+	if flags&progCandidate > 0 {
 		return newJobPriority(candidateTriagePrio)
 	}
 	return newJobPriority(triagePrio)
@@ -136,14 +136,14 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	if stop || info.newStableSignal.Empty() {
 		return
 	}
-	if job.flags&ProgMinimized == 0 {
+	if job.flags&progMinimized == 0 {
 		stop = job.minimize(fuzzer, info.newStableSignal)
 		if stop {
 			return
 		}
 	}
 	fuzzer.Logf(2, "added new input for %q to the corpus:\n%s", logCallName, job.p.String())
-	if job.flags&ProgSmashed == 0 {
+	if job.flags&progSmashed == 0 {
 		fuzzer.startJob(&smashJob{
 			p:           job.p.Clone(),
 			call:        job.call,
@@ -183,6 +183,7 @@ func (job *triageJob) deflake(fuzzer *Fuzzer) (info deflakedCover, stop bool) {
 			NeedCover:    true,
 			NeedRawCover: fuzzer.Config.FetchRawCover,
 			stat:         statTriage,
+			flags:        progInTriage,
 		})
 		if result.Stop {
 			stop = true
