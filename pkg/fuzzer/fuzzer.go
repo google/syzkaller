@@ -38,6 +38,7 @@ type Fuzzer struct {
 	runningExecs map[*Request]time.Time
 	nextJobID    atomic.Int64
 
+	runningJobs      atomic.Int64
 	queuedCandidates atomic.Int64
 	// If the source of candidates runs out of them, we risk
 	// generating too many needCandidate requests (one for
@@ -214,7 +215,11 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 func (fuzzer *Fuzzer) startJob(newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
 	newJob.saveID(-fuzzer.nextJobID.Add(1))
-	go newJob.run(fuzzer)
+	go func() {
+		fuzzer.runningJobs.Add(1)
+		newJob.run(fuzzer)
+		fuzzer.runningJobs.Add(-1)
+	}()
 }
 
 func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
@@ -353,11 +358,15 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 type Stats struct {
 	CoverStats
 	corpus.Stats
+	Candidates  int
+	RunningJobs int
 }
 
 func (fuzzer *Fuzzer) Stats() Stats {
 	return Stats{
-		CoverStats: fuzzer.Cover.Stats(),
-		Stats:      fuzzer.Config.Corpus.Stats(),
+		CoverStats:  fuzzer.Cover.Stats(),
+		Stats:       fuzzer.Config.Corpus.Stats(),
+		Candidates:  int(fuzzer.queuedCandidates.Load()),
+		RunningJobs: int(fuzzer.runningJobs.Load()),
 	}
 }
