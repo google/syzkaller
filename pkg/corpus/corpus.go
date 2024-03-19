@@ -198,17 +198,17 @@ func (corpus *Corpus) Item(sig string) *Item {
 	return corpus.progs[sig]
 }
 
-// Stat is a snapshot of the relevant current state figures.
-type Stat struct {
+// Stats is a snapshot of the relevant current state figures.
+type Stats struct {
 	Progs  int
 	Signal int
 	Cover  int
 }
 
-func (corpus *Corpus) Stat() Stat {
+func (corpus *Corpus) Stats() Stats {
 	corpus.mu.RLock()
 	defer corpus.mu.RUnlock()
-	return Stat{
+	return Stats{
 		Progs:  len(corpus.progs),
 		Signal: len(corpus.signal),
 		Cover:  len(corpus.cover),

@@ -271,7 +271,7 @@ func main() {
 	for needCandidates, more := true, true; more; needCandidates = false {
 		more = fuzzerTool.poll(needCandidates, nil)
 		// This loop lead to "no output" in qemu emulation, tell manager we are not dead.
-		stat := fuzzerObj.Stat()
+		stat := fuzzerObj.Stats()
 		log.Logf(0, "fetching corpus: %v, signal %v/%v (executing program)",
 			stat.Progs, stat.Signal, stat.MaxSignal)
 	}

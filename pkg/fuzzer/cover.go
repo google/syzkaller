@@ -43,14 +43,14 @@ func (cover *Cover) GrabNewSignal() signal.Signal {
 	return sign
 }
 
-type CoverStat struct {
+type CoverStats struct {
 	MaxSignal int
 }
 
-func (cover *Cover) Stat() CoverStat {
+func (cover *Cover) Stats() CoverStats {
 	cover.mu.RLock()
 	defer cover.mu.RUnlock()
-	return CoverStat{
+	return CoverStats{
 		MaxSignal: len(cover.maxSignal),
 	}
 }
