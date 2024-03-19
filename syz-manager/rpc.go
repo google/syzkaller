@@ -90,6 +90,12 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	serv.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			mgr.stats.rpcTraffic.add(int(s.TotalBytes.Swap(0)))
+		}
+	}()
 	return serv, nil
 }
 
