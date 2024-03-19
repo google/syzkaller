@@ -774,6 +774,14 @@ syz_use_missing {
 	a1	syz_missing_const_struct
 }
 
+resource inout_resource[fd, opt]
+
+test$use_resource(a ptr[inout, inout_resource_struct])
+
+inout_resource_struct {
+	field	inout_resource
+}
+
 # Hints tests.
 
 test$hint_int(a0 ptr[in, hint_ints])

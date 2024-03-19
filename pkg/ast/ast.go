@@ -98,6 +98,7 @@ type Resource struct {
 	Name   *Ident
 	Base   *Type
 	Values []*Int
+	Args   []*Type
 }
 
 func (n *Resource) Info() (Pos, string, string) {

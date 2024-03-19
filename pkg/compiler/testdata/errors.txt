@@ -507,3 +507,5 @@ conditional_fields_union2 [
 	u2	int32 ### either no fields have conditions or all except the last
 	u3	int32
 ]
+
+resource opt_resource[int32, custom_arg] ### unexpected resource arguments, only opt is supported now

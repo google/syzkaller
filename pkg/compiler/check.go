@@ -304,11 +304,19 @@ func (comp *compiler) checkTypes() {
 		switch n := decl.(type) {
 		case *ast.Resource:
 			comp.checkType(checkCtx{}, n.Base, checkIsResourceBase)
+			comp.checkResource(n)
 		case *ast.Struct:
 			comp.checkStruct(checkCtx{}, n)
 		case *ast.Call:
 			comp.checkCall(n)
 		}
+	}
+}
+
+func (comp *compiler) checkResource(n *ast.Resource) {
+	args, _ := removeOpt(n.Args)
+	if len(args) > 0 {
+		comp.error(n.Pos, "unexpected resource arguments, only opt is supported now")
 	}
 }
 
@@ -1104,7 +1112,7 @@ func (comp *compiler) checkTypeBasic(t *ast.Type, desc *typeDesc, flags checkFla
 }
 
 func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlags) []*ast.Type {
-	args, opt := removeOpt(t)
+	args, opt := removeOpt(t.Args)
 	if opt != nil {
 		if len(opt.Args) != 0 {
 			comp.error(opt.Pos, "opt can't have arguments")

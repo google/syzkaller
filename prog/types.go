@@ -310,10 +310,11 @@ type FlagDesc struct {
 }
 
 type ResourceDesc struct {
-	Name   string
-	Kind   []string
-	Values []uint64
-	Ctors  []ResourceCtor
+	Name     string
+	Optional bool
+	Kind     []string
+	Values   []uint64
+	Ctors    []ResourceCtor
 }
 
 type ResourceCtor struct {

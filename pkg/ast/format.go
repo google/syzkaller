@@ -95,7 +95,12 @@ func (n *Define) serialize(w io.Writer) {
 }
 
 func (n *Resource) serialize(w io.Writer) {
-	fmt.Fprintf(w, "resource %v[%v]", n.Name.Name, fmtType(n.Base))
+	fmt.Fprintf(w, "resource %v[%v", n.Name.Name, fmtType(n.Base))
+	for _, a := range n.Args {
+		fmt.Fprintf(w, ", ")
+		a.serialize(w)
+	}
+	fmt.Fprintf(w, "]")
 	for i, v := range n.Values {
 		fmt.Fprintf(w, "%v%v", comma(i, ": "), fmtInt(v))
 	}
