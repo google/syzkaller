@@ -20,7 +20,8 @@ type Corpus struct {
 	ctx     context.Context
 	mu      sync.RWMutex
 	progs   map[string]*Item
-	signal  signal.Signal // signal of inputs in corpus
+	signal  signal.Signal // total signal of all items
+	cover   cover.Cover   // total coverage of all items
 	updates chan<- NewItemEvent
 	ProgramsList
 }
@@ -104,6 +105,7 @@ type NewItemEvent struct {
 	Sig      string
 	Exists   bool
 	ProgData []byte
+	NewCover []uint32
 }
 
 func (corpus *Corpus) Save(inp NewInput) {
@@ -154,6 +156,7 @@ func (corpus *Corpus) Save(inp NewInput) {
 		corpus.saveProgram(inp.Prog, inp.Signal)
 	}
 	corpus.signal.Merge(inp.Signal)
+	newCover := corpus.cover.MergeDiff(inp.Cover)
 	if corpus.updates != nil {
 		select {
 		case <-corpus.ctx.Done():
@@ -161,6 +164,7 @@ func (corpus *Corpus) Save(inp NewInput) {
 			Sig:      sig,
 			Exists:   exists,
 			ProgData: progData,
+			NewCover: newCover,
 		}:
 		}
 	}
@@ -198,6 +202,7 @@ func (corpus *Corpus) Item(sig string) *Item {
 type Stat struct {
 	Progs  int
 	Signal int
+	Cover  int
 }
 
 func (corpus *Corpus) Stat() Stat {
@@ -206,6 +211,7 @@ func (corpus *Corpus) Stat() Stat {
 	return Stat{
 		Progs:  len(corpus.progs),
 		Signal: len(corpus.signal),
+		Cover:  len(corpus.cover),
 	}
 }
 

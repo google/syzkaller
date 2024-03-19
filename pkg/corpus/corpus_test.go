@@ -48,9 +48,36 @@ func TestCorpusOperation(t *testing.T) {
 	}
 
 	// Verify the total signal.
-	assert.Len(t, corpus.Signal(), 5)
+	stat := corpus.Stat()
+	assert.Equal(t, Stat{
+		Signal: 5,
+		Cover:  0,
+		Progs:  2,
+	}, stat)
 
 	corpus.Minimize(true)
+}
+
+func TestCorpusCoverage(t *testing.T) {
+	target := getTarget(t, targets.TestOS, targets.TestArch64)
+	ch := make(chan NewItemEvent)
+	corpus := NewMonitoredCorpus(context.Background(), ch)
+	rs := rand.NewSource(0)
+
+	inp := generateInput(target, rs, 5, 5)
+	inp.Cover = []uint32{10, 11}
+	go corpus.Save(inp)
+	event := <-ch
+	assert.Equal(t, []uint32{10, 11}, event.NewCover)
+
+	inp.Call = 1
+	inp.Cover = []uint32{11, 12}
+	go corpus.Save(inp)
+	event = <-ch
+	assert.Equal(t, []uint32{12}, event.NewCover)
+
+	// Check the total corpus size.
+	assert.Equal(t, corpus.Stat().Cover, 3)
 }
 
 func TestCorpusSaveConcurrency(t *testing.T) {
