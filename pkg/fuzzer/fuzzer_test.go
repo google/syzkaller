@@ -164,8 +164,8 @@ func (f *testFuzzer) oneMore() bool {
 	f.iter++
 	if f.iter%100 == 0 {
 		stat := f.fuzzer.Stats()
-		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d",
-			f.iter, stat.Progs, stat.Signal, stat.MaxSignal, len(f.crashes))
+		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d, running jobs %d",
+			f.iter, stat.Progs, stat.Signal, stat.MaxSignal, len(f.crashes), stat.RunningJobs)
 	}
 	return f.iter < f.iterLimit &&
 		(f.expectedCrashes == nil || len(f.crashes) != len(f.expectedCrashes))
