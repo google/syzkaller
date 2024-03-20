@@ -211,8 +211,7 @@ func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParam
 	return nil
 }
 
-type coverageInfo struct {
-	Version   int    `json:"version"`
+type CoverageInfo struct {
 	FilePath  string `json:"file_path"`
 	FuncName  string `json:"func_name"`
 	StartLine int    `json:"sl"`
@@ -245,8 +244,7 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) 
 		}
 		pcProgCount := FileByFrame(fm, &frame).lines[frame.StartLine].pcProgCount
 		hitCount := pcProgCount[frame.PC]
-		covInfo := &coverageInfo{
-			Version:   1,
+		covInfo := &CoverageInfo{
 			FilePath:  frame.Name,
 			FuncName:  frame.FuncName,
 			StartLine: frame.Range.StartLine,

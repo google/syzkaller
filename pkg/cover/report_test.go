@@ -429,13 +429,13 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 	}
 }
 
+var sampleCoverJSON = []byte(`{"file_path":"main.c","func_name":"main",` +
+	`"sl":1,"sc":0,"el":1,"ec":-1,"hit_count":1,"inline":false,"pc":12345}`)
+
 // nolint:lll
 func checkJSONLReport(t *testing.T, r []byte) {
-	expected := []byte(`{"version":1,"file_path":"main.c","func_name":"main",` +
-		`"sl":1,"sc":0,"el":1,"ec":-1,"hit_count":1,"inline":false,"pc":12345}`)
-
 	compacted := new(bytes.Buffer)
-	if err := json.Compact(compacted, expected); err != nil {
+	if err := json.Compact(compacted, sampleCoverJSON); err != nil {
 		t.Errorf("failed to prepare compacted json: %v", err)
 	}
 	compacted.Write([]byte("\n"))
