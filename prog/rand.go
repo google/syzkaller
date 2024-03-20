@@ -943,12 +943,15 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 	var p *Prog
 	var resource *ResultArg
 	for _, idx := range r.Perm(len(s.corpus)) {
-		p = s.corpus[idx].Clone()
-		resources := getCompatibleResources(p, t.TypeName, r)
-		if len(resources) > 0 {
-			resource = resources[r.Intn(len(resources))]
-			break
+		corpusProg := s.corpus[idx]
+		resources := getCompatibleResources(corpusProg, t.TypeName, r)
+		if len(resources) == 0 {
+			continue
 		}
+		argMap := make(map[*ResultArg]*ResultArg)
+		p = corpusProg.cloneWithMap(argMap)
+		resource = argMap[resources[r.Intn(len(resources))]]
+		break
 	}
 
 	// No compatible resource was found.
