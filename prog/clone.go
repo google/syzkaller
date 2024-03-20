@@ -8,7 +8,10 @@ import (
 )
 
 func (p *Prog) Clone() *Prog {
-	newargs := make(map[*ResultArg]*ResultArg)
+	return p.cloneWithMap(make(map[*ResultArg]*ResultArg))
+}
+
+func (p *Prog) cloneWithMap(newargs map[*ResultArg]*ResultArg) *Prog {
 	p1 := &Prog{
 		Target: p.Target,
 		Calls:  cloneCalls(p.Calls, newargs),
