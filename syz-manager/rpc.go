@@ -43,9 +43,10 @@ type Runner struct {
 	machineInfo []byte
 	instModules *cover.CanonicalizerInstance
 
-	// The mutex protects newMaxSignal and requests.
+	// The mutex protects newMaxSignal, dropMaxSignal, and requests.
 	mu            sync.Mutex
 	newMaxSignal  signal.Signal
+	dropMaxSignal signal.Signal
 	nextRequestID atomic.Int64
 	requests      map[int64]*fuzzer.Request
 }
@@ -203,15 +204,17 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 
 	runner.mu.Lock()
 	// Let's transfer new max signal in portions.
+
 	const transferMaxSignal = 500000
-	maxSignalDiff := runner.newMaxSignal.Split(transferMaxSignal)
+	newSignal := runner.newMaxSignal.Split(transferMaxSignal)
+	dropSignal := runner.dropMaxSignal.Split(transferMaxSignal)
 	runner.mu.Unlock()
 
-	r.NewMaxSignal = runner.instModules.Decanonicalize(maxSignalDiff.ToRaw())
+	r.NewMaxSignal = runner.instModules.Decanonicalize(newSignal.ToRaw())
+	r.DropMaxSignal = runner.instModules.Decanonicalize(dropSignal.ToRaw())
 
-	log.Logf(2, "exchange with %s: %d done, %d new requests, %d new max signal",
-		a.Name, len(a.Results), len(r.Requests), len(r.NewMaxSignal))
-
+	log.Logf(2, "exchange with %s: %d done, %d new requests, %d new max signal, %d drop signal",
+		a.Name, len(a.Results), len(r.Requests), len(r.NewMaxSignal), len(r.DropMaxSignal))
 	return nil
 }
 
@@ -261,12 +264,13 @@ func (serv *RPCServer) shutdownInstance(name string) []byte {
 	return runner.machineInfo
 }
 
-func (serv *RPCServer) distributeMaxSignal(delta signal.Signal) {
+func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	serv.runners.Range(func(key, value any) bool {
 		runner := value.(*Runner)
 		runner.mu.Lock()
 		defer runner.mu.Unlock()
-		runner.newMaxSignal.Merge(delta)
+		runner.newMaxSignal.Merge(plus)
+		runner.dropMaxSignal.Merge(minus)
 		return true
 	})
 }

@@ -1415,6 +1415,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 
 	mgr.loadCorpus()
 	go mgr.fuzzerLoop()
+	go mgr.fuzzerSignalRotation()
 }
 
 func (mgr *Manager) getFuzzer() *fuzzer.Fuzzer {
@@ -1423,14 +1424,46 @@ func (mgr *Manager) getFuzzer() *fuzzer.Fuzzer {
 	return mgr.fuzzer
 }
 
+func (mgr *Manager) fuzzerSignalRotation() {
+	const (
+		rotateSignals      = 1000
+		timeBetweenRotates = 15 * time.Minute
+		// Every X dropped signals may in the worst case lead up to 3 * X
+		// additional triage executions, which is in this case constitutes
+		// 3000/60000 = 5%.
+		execsBetweenRotates = 60000
+	)
+	var lastExecTotal uint64
+	lastRotation := time.Now()
+	for {
+		time.Sleep(time.Minute * 5)
+		mgr.mu.Lock()
+		phase := mgr.phase
+		mgr.mu.Unlock()
+		if phase < phaseTriagedCorpus {
+			continue
+		}
+		if mgr.stats.execTotal.get()-lastExecTotal < execsBetweenRotates {
+			continue
+		}
+		if time.Since(lastRotation) < timeBetweenRotates {
+			continue
+		}
+		mgr.fuzzer.RotateMaxSignal(rotateSignals)
+		lastRotation = time.Now()
+		lastExecTotal = mgr.stats.execTotal.get()
+	}
+}
+
 func (mgr *Manager) fuzzerLoop() {
 	for {
 		time.Sleep(time.Second / 2)
 
 		// Distribute new max signal over all instances.
-		newSignal := mgr.fuzzer.Cover.GrabNewSignal()
-		log.Logf(2, "distributing %d new signal", len(newSignal))
-		mgr.serv.distributeMaxSignal(newSignal)
+		newSignal, dropSignal := mgr.fuzzer.Cover.GrabSignalDelta()
+		log.Logf(2, "distributing %d new signal, %d dropped signal",
+			len(newSignal), len(dropSignal))
+		mgr.serv.distributeSignalDelta(newSignal, dropSignal)
 
 		// Collect statistics.
 		fuzzerStats := mgr.fuzzer.Stats()

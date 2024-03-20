@@ -149,13 +149,6 @@ func (corpus *Corpus) Save(inp NewInput) {
 		}
 	}
 }
-
-func (corpus *Corpus) DiffSignal(s signal.Signal) signal.Signal {
-	corpus.mu.RLock()
-	defer corpus.mu.RUnlock()
-	return corpus.signal.Diff(s)
-}
-
 func (corpus *Corpus) Signal() signal.Signal {
 	corpus.mu.RLock()
 	defer corpus.mu.RUnlock()
