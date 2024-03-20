@@ -49,8 +49,9 @@ type ExchangeInfoRequest struct {
 
 // ExchangeInfoReply is a reply to ExchangeInfoRequest.
 type ExchangeInfoReply struct {
-	Requests     []ExecutionRequest
-	NewMaxSignal []uint32
+	Requests      []ExecutionRequest
+	NewMaxSignal  []uint32
+	DropMaxSignal []uint32
 }
 
 // TODO: merge ExecutionRequest and ExecTask.

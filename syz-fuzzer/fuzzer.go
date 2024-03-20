@@ -348,7 +348,7 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResul
 	if err := tool.manager.Call("Manager.ExchangeInfo", a, r); err != nil {
 		log.SyzFatalf("Manager.ExchangeInfo call failed: %v", err)
 	}
-	tool.addMaxSignal(r.NewMaxSignal)
+	tool.updateMaxSignal(r.NewMaxSignal, r.DropMaxSignal)
 	for _, req := range r.Requests {
 		p := tool.deserializeInput(req.ProgData)
 		if p == nil {
@@ -442,10 +442,11 @@ func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo) {
 	diffProgInfo(info, tool.maxSignal)
 }
 
-func (tool *FuzzerTool) addMaxSignal(diff []uint32) {
+func (tool *FuzzerTool) updateMaxSignal(add, drop []uint32) {
 	tool.signalMu.Lock()
 	defer tool.signalMu.Unlock()
-	tool.maxSignal.Merge(signal.FromRaw(diff, 0))
+	tool.maxSignal.Subtract(signal.FromRaw(drop, 0))
+	tool.maxSignal.Merge(signal.FromRaw(add, 0))
 }
 
 func setupPprofHandler(port int) {
