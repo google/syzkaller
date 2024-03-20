@@ -33,8 +33,10 @@ func (s Signal) Copy() Signal {
 }
 
 func (s *Signal) Split(n int) Signal {
-	if s.Empty() {
-		return nil
+	if n >= s.Len() {
+		ret := *s
+		*s = nil
+		return ret
 	}
 	c := make(Signal, n)
 	for e, p := range *s {
