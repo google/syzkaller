@@ -161,6 +161,9 @@ func (ctx *linux) EnvForCommit(
 }
 
 func linuxClangPath(tags map[string]bool, binDir, defaultCompiler string) string {
+	if defaultCompiler == "system" {
+		return ""
+	}
 	version := ""
 	switch {
 	case tags["v5.9"]:
@@ -175,6 +178,9 @@ func linuxClangPath(tags map[string]bool, binDir, defaultCompiler string) string
 }
 
 func linuxGCCPath(tags map[string]bool, binDir, defaultCompiler string) string {
+	if defaultCompiler == "system" {
+		return ""
+	}
 	version := ""
 	switch {
 	case tags["v5.16"]:

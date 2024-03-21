@@ -43,6 +43,8 @@ var (
 )
 
 type Config struct {
+	// If set to system, compiler as installed on host os will be used.
+	// Compilers from bin_dir will be ignored.
 	Compiler string `json:"compiler"`
 	// Currently either 'gcc' or 'clang'. Note that pkg/bisect requires
 	// explicit plumbing for every os/compiler combination.

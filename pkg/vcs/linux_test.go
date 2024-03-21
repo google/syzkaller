@@ -24,6 +24,11 @@ func TestClangVersion(t *testing.T) {
 	actual = linuxClangPath(tags, binDir, defaultCompiler)
 	expected = defaultCompiler
 	assert.Equal(t, actual, expected, "unexpected clang path")
+
+	// Use system case.
+	actual = linuxClangPath(tags, binDir, "system")
+	expected = ""
+	assert.Equal(t, actual, expected, "unexpected clang path")
 }
 
 func TestGCCVersion(t *testing.T) {
@@ -46,5 +51,10 @@ func TestGCCVersion(t *testing.T) {
 	tags["v5.16"] = true
 	actual = linuxGCCPath(tags, binDir, defaultCompiler)
 	expected = defaultCompiler
+	assert.Equal(t, actual, expected, "unexpected gcc path")
+
+	// Use system case.
+	actual = linuxGCCPath(tags, binDir, "system")
+	expected = ""
 	assert.Equal(t, actual, expected, "unexpected gcc path")
 }
