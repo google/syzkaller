@@ -53,7 +53,7 @@ func main() {
 	log.Logf(0, "%v", runner)
 
 	res := &syz_analyzer.ProgramResults{}
-	if err := runner.client.Call("Analyzer.NextProgram", &syz_analyzer.ProgramArgs{Pool: runner.pool, VM: runner.vm}, res); err != nil {
+	if err := runner.client.Call("Analyzer.NextProgram", &syz_analyzer.ProgramArgs{Pool: runner.pool, VM: runner.vm, TaskID: -1}, res); err != nil {
 		log.Fatalf("Can't get initial programm: %v", err)
 	}
 

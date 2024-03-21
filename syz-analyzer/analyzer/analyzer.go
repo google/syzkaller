@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 )
 
 type PoolInfo struct {
@@ -27,6 +29,8 @@ type Analyzer struct {
 	runnerBin   string
 	executorBin string
 	vmStopChan  chan bool
+	statistics  *Statistics
+	wgFinish    sync.WaitGroup
 }
 
 func main() {
@@ -60,7 +64,13 @@ func start() {
 	flag.Parse()
 
 	if len(configs) == 0 {
+		log.Errorf("There are no configs for virtual machines")
 		flag.Usage()
+		os.Exit(-1)
+	}
+
+	if len(flag.Args()) == 0 {
+		log.Errorf("There are no reproducers for testing")
 		os.Exit(-1)
 	}
 
@@ -82,6 +92,8 @@ func start() {
 	analyzer.pools = pools
 	log.Logf(0, "pools size: %d\n", len(pools))
 
+	analyzer.wgFinish.Add(1)
+
 	config := analyzer.pools[0].config
 
 	analyzer.programs = loadPrograms(config.Target, flag.Args())
@@ -97,17 +109,25 @@ func start() {
 
 	exe := config.SysTarget.ExeExtension
 	runnerBin := filepath.Join(config.Syzkaller, "bin", config.Target.OS+"_"+config.Target.Arch, "syz-runner"+exe)
-	// TODO: check
-	analyzer.runnerBin = runnerBin
+	if !osutil.IsExist(runnerBin) {
+		log.Fatalf("bad syzkaller config: can't find %v", runnerBin)
+	}
 
 	executorBin := config.ExecutorBin
-	// TODO: check
+	if !osutil.IsExist(runnerBin) {
+		log.Fatalf("bad syzkaller config: can't find %v", executorBin)
+	}
+
+	analyzer.runnerBin = runnerBin
 	analyzer.executorBin = executorBin
 
 	analyzer.initializeInstances()
 
-	for {
-	}
+	analyzer.statistics = initStatistics(len(pools))
+
+	analyzer.wgFinish.Wait()
+
+	analyzer.statistics.printStatistics()
 }
 
 func (analyzer *Analyzer) initializeInstances() {
@@ -159,7 +179,7 @@ func (analyzer *Analyzer) initializeTasks() {
 
 func (analyzer *Analyzer) addTasks(vmID int, programs []*prog.Prog) {
 	for programID, _ := range programs {
-		for i := 0; i < 1; i++ {
+		for i := 0; i < 100000; i++ {
 			analyzer.server.tasksQueue.push(vmID, programID)
 		}
 	}

@@ -1,9 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type TasksQueue struct {
 	queue map[int][]int
+	empty int
 }
 
 func (tq *TasksQueue) push(vmID int, taskID int) {
@@ -27,7 +30,15 @@ func (tq *TasksQueue) getAndPop(vmID int) (int, error) {
 
 func (tq *TasksQueue) isEmpty(vmID int) bool {
 	if tq.queue[vmID] == nil || len(tq.queue[vmID]) == 0 {
+		tq.empty++
 		return true
 	}
+	if len(tq.queue[vmID]) == 0 {
+		tq.empty++
+	}
 	return len(tq.queue[vmID]) == 0
+}
+
+func (tq *TasksQueue) isFinished() bool {
+	return tq.empty == len(tq.queue)
 }
