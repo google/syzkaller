@@ -61,6 +61,7 @@ func start() {
 	var configs tool.CfgsFlag
 	flag.Var(&configs, "configs", "list of configuration files for kernels divided by comma")
 	flagDebug := flag.Bool("debug", false, "print debug info from virtual machines")
+	flagRepeats := flag.Int("repeat", 1000, "how many times will we run each reproducer")
 	flag.Parse()
 
 	if len(configs) == 0 {
@@ -105,7 +106,7 @@ func start() {
 	}
 	analyzer.server = server
 
-	analyzer.initializeTasks()
+	analyzer.initializeTasks(*flagRepeats)
 
 	exe := config.SysTarget.ExeExtension
 	runnerBin := filepath.Join(config.Syzkaller, "bin", config.Target.OS+"_"+config.Target.Arch, "syz-runner"+exe)
@@ -168,18 +169,18 @@ func (analyzer *Analyzer) createInstance(pool *PoolInfo, poolID, vmID int) {
 	}
 }
 
-func (analyzer *Analyzer) initializeTasks() {
+func (analyzer *Analyzer) initializeTasks(repeat int) {
 	for poolID, pool := range analyzer.pools {
 		count := pool.pool.Count()
 		for vmID := 0; vmID < count; vmID++ {
-			analyzer.addTasks(vmKey(poolID, vmID), analyzer.programs)
+			analyzer.addTasks(vmKey(poolID, vmID), analyzer.programs, repeat)
 		}
 	}
 }
 
-func (analyzer *Analyzer) addTasks(vmID int, programs []*prog.Prog) {
+func (analyzer *Analyzer) addTasks(vmID int, programs []*prog.Prog, repeat int) {
 	for programID, _ := range programs {
-		for i := 0; i < 100000; i++ {
+		for i := 0; i < repeat; i++ {
 			analyzer.server.tasksQueue.push(vmID, programID)
 		}
 	}
