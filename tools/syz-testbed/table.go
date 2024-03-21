@@ -161,7 +161,7 @@ func (t *Table) SetRelativeValues(baseColumn string) error {
 	for rowName, row := range t.Cells {
 		baseCell := t.Get(rowName, baseColumn)
 		if baseCell == nil {
-			return fmt.Errorf("base column %s not found in row %s", baseColumn, rowName)
+			continue
 		}
 		baseValueCell, ok := baseCell.(*ValueCell)
 		if !ok {
