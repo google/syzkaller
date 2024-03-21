@@ -369,3 +369,11 @@ union$conditional3 [
 ]
 
 conditional(a ptr[in, struct$conditional])
+
+resource r_opt[intptr]
+
+r_opt_inout_struct {
+	f	r_opt[opt]
+}
+
+test$inout_resource(p ptr[inout, r_opt_inout_struct])

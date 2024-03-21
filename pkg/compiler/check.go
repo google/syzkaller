@@ -830,11 +830,17 @@ func (comp *compiler) checkConstructors() {
 			if !comp.used[name] {
 				continue
 			}
-			if !ctors[name] {
+			if _, haveCtor := ctors[name]; !haveCtor {
+				// We don't have any way to generate the resource. Even optionally.
 				comp.error(n.Pos, "resource %v can't be created"+
 					" (never mentioned as a syscall return value or output argument/field)", name)
+			} else if inputs[name] && !ctors[name] {
+				// There are cases when we need the resource, but there's no reliable
+				// way to construct it.
+				comp.error(n.Pos, "resource %v is used in non-optional contexts, but is "+
+					"created in only optional ones", name)
 			}
-			if !inputs[name] {
+			if _, haveUsages := inputs[name]; !haveUsages {
 				comp.error(n.Pos, "resource %v is never used as an input"+
 					" (such resources are not useful)", name)
 			}
@@ -846,8 +852,9 @@ type checkTypeCtorsCtx struct {
 	dir        prog.Dir
 	isArg      bool
 	canCreate  bool
-	ctors      map[string]bool
-	inputs     map[string]bool
+	optional   bool
+	ctors      map[string]bool // true if we can always create the constructor, false if sometimes
+	inputs     map[string]bool // true if the resource value is mandatory, false if it's optional
 	checked    map[structDir]bool
 	neverOutAt *ast.Pos
 }
@@ -855,7 +862,7 @@ type checkTypeCtorsCtx struct {
 func (comp *compiler) checkTypeCtors(t *ast.Type, ctx checkTypeCtorsCtx) {
 	desc, args, base := comp.getArgsBase(t, ctx.isArg)
 	if base.IsOptional {
-		ctx.canCreate = false
+		ctx.optional = true
 	}
 	if desc.CantHaveOut {
 		ctx.neverOutAt = &t.Pos
@@ -871,15 +878,22 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, ctx checkTypeCtorsCtx) {
 		}
 		if ctx.canCreate && ctx.dir != prog.DirIn {
 			r := comp.resources[t.Ident]
-			for r != nil && !ctx.ctors[r.Name.Name] {
-				ctx.ctors[r.Name.Name] = true
+			// It it's a way to reliably create the constructor, let's propagate
+			// the info to all the parents.
+			canConstruct := !ctx.optional
+			for r != nil {
+				ctx.ctors[r.Name.Name] = ctx.ctors[r.Name.Name] || canConstruct
 				r = comp.resources[r.Base.Ident]
 			}
 		}
 		if ctx.dir != prog.DirOut {
 			r := comp.resources[t.Ident]
-			for r != nil && !ctx.inputs[r.Name.Name] {
-				ctx.inputs[r.Name.Name] = true
+			for r != nil {
+				_, ok := ctx.inputs[r.Name.Name]
+				if ok {
+					break
+				}
+				ctx.inputs[r.Name.Name] = ctx.inputs[r.Name.Name] || !ctx.optional
 				r = comp.resources[r.Base.Ident]
 			}
 		}
