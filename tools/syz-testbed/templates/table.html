@@ -1,11 +1,3 @@
-{{define "PrintValue"}}
-	{{if or (lt . -100.0) (gt . 100.0)}}
-		{{printf "%.0f" .}}
-	{{else}}
-		{{printf "%.1f" .}}
-	{{end}}
-{{end}}
-
 {{define "PrintExtra"}}
 	{{if .PercentChange}}
 		{{$numVal := (dereference .PercentChange)}}
@@ -57,12 +49,10 @@
 		</td>
 		{{range $c := $uiTable.Table.ColumnHeaders}}
 			{{$cell := ($uiTable.Table.Get $r $c)}}
-			{{if and $cell $uiTable.Extra}}
-			<td>{{template "PrintValue" $cell.Value}}</td>
-			<td>{{template "PrintExtra" $cell}}</td>
-			{{else}}
-			<td>{{$cell}}</td>
-			{{end}}
+			<td>{{if $cell}}{{$cell}}{{end}}</td>
+			{{if $uiTable.Extra}}
+			<td>{{if $cell}}{{template "PrintExtra" $cell}}{{end}}</td>
+		        {{end}}
 		{{end}}
 	</tr>
 	{{end}}
