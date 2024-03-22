@@ -911,7 +911,8 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 		}
 		pw.Close()
 	}()
-	fileName := fmt.Sprintf("%s-%s-%d-%d.jsonl",
+	fileName := fmt.Sprintf("%s/%s-%s-%d-%d.jsonl",
+		mgr.cfg.DashboardClient,
 		mgr.name, curTime.Format(time.DateOnly),
 		curTime.Hour(), curTime.Minute())
 	err = mgr.uploadFile(mgr.cfg.CoverPipelinePath, fileName, pr, false)
