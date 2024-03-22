@@ -14,6 +14,8 @@ func TestPriority(t *testing.T) {
 	assert.True(t, priority{1, 2}.greaterThan(priority{1, 1}))
 	assert.True(t, priority{3, 2}.greaterThan(priority{2, 3}))
 	assert.True(t, priority{1, -5}.greaterThan(priority{1, -10}))
+	assert.True(t, priority{1}.greaterThan(priority{1, -1}))
+	assert.False(t, priority{1}.greaterThan(priority{1, 1}))
 }
 
 func TestPrioQueueOrder(t *testing.T) {
