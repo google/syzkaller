@@ -237,7 +237,6 @@ func main() {
 		Collide:        execOpts.Flags&ipc.FlagThreaded > 0,
 		EnabledCalls:   calls,
 		NoMutateCalls:  r.NoMutateCalls,
-		LeakChecking:   r.CheckResult.Features[host.FeatureLeak].Enabled,
 		FetchRawCover:  *flagRawCover,
 		MinCandidates:  uint(*flagProcs * 2),
 		NewInputs:      make(chan corpus.NewInput),
