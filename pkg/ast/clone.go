@@ -59,6 +59,7 @@ func (n *Resource) Clone() Node {
 		Name:   n.Name.Clone().(*Ident),
 		Base:   n.Base.Clone().(*Type),
 		Values: cloneInts(n.Values),
+		Args:   cloneTypes(n.Args),
 	}
 }
 
