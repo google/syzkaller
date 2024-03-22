@@ -4,10 +4,10 @@
 package fuzzer
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestPriority(t *testing.T) {
@@ -18,27 +18,40 @@ func TestPriority(t *testing.T) {
 
 func TestPrioQueueOrder(t *testing.T) {
 	pq := makePriorityQueue[int]()
+	assert.Nil(t, pq.tryPop())
+
 	pq.push(&priorityQueueItem[int]{value: 1, prio: priority{1}})
 	pq.push(&priorityQueueItem[int]{value: 3, prio: priority{3}})
 	pq.push(&priorityQueueItem[int]{value: 2, prio: priority{2}})
 
-	assert.Equal(t, 3, pq.pop().value)
-	assert.Equal(t, 2, pq.pop().value)
-	assert.Equal(t, 1, pq.pop().value)
+	assert.Equal(t, 3, pq.tryPop().value)
+	assert.Equal(t, 2, pq.tryPop().value)
+	assert.Equal(t, 1, pq.tryPop().value)
 	assert.Nil(t, pq.tryPop())
+	assert.Zero(t, pq.Len())
 }
 
-func TestPrioQueueWait(t *testing.T) {
-	var wg sync.WaitGroup
+func TestPrioQueueRace(t *testing.T) {
+	var eg errgroup.Group
 	pq := makePriorityQueue[int]()
-	assert.Nil(t, pq.tryPop())
 
-	wg.Add(1)
-	go func() {
-		assert.Equal(t, 10, pq.pop().value)
-		wg.Done()
-	}()
-
-	pq.push(&priorityQueueItem[int]{value: 10, prio: priority{1}})
-	wg.Wait()
+	// Two writers.
+	for writer := 0; writer < 2; writer++ {
+		eg.Go(func() error {
+			for i := 0; i < 1000; i++ {
+				pq.push(&priorityQueueItem[int]{value: 10, prio: priority{1}})
+			}
+			return nil
+		})
+	}
+	// Two readers.
+	for reader := 0; reader < 2; reader++ {
+		eg.Go(func() error {
+			for i := 0; i < 1000; i++ {
+				pq.tryPop()
+			}
+			return nil
+		})
+	}
+	eg.Wait()
 }
