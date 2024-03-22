@@ -81,7 +81,6 @@ type Config struct {
 	Collide        bool
 	EnabledCalls   map[*prog.Syscall]bool
 	NoMutateCalls  map[int]bool
-	LeakChecking   bool
 	FetchRawCover  bool
 	// If the number of queued candidates is less than MinCandidates,
 	// NeedCandidates is triggered.
