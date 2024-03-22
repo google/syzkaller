@@ -19,6 +19,14 @@ func (p priority) greaterThan(other priority) bool {
 			return false
 		}
 	}
+	for i := len(p); i < len(other); i++ {
+		if other[i] < 0 {
+			return true
+		}
+		if other[i] > 0 {
+			return false
+		}
+	}
 	return false
 }
 

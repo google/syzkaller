@@ -1479,7 +1479,6 @@ func (mgr *Manager) fuzzerLoop() {
 		if fuzzerStats.Candidates == 0 {
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
-				mgr.fuzzer.EnableOutOfQueue()
 				if mgr.cfg.HubClient != "" {
 					mgr.phase = phaseTriagedCorpus
 					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))

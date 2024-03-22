@@ -25,8 +25,11 @@ const (
 
 type job interface {
 	run(fuzzer *Fuzzer)
-	saveID(id int64)
 	priority() priority
+}
+
+type jobSaveID interface {
+	saveID(id int64)
 }
 
 type ProgTypes int
@@ -41,6 +44,8 @@ const (
 type jobPriority struct {
 	prio priority
 }
+
+var _ jobSaveID = new(jobPriority)
 
 func newJobPriority(base int64) jobPriority {
 	prio := append(make(priority, 0, 2), base)
@@ -146,9 +151,8 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(2, "added new input for %q to the corpus:\n%s", logCallName, job.p.String())
 	if job.flags&progSmashed == 0 {
 		fuzzer.startJob(&smashJob{
-			p:           job.p.Clone(),
-			call:        job.call,
-			jobPriority: newJobPriority(smashPrio),
+			p:    job.p.Clone(),
+			call: job.call,
 		})
 	}
 	input := corpus.NewInput{
@@ -274,20 +278,19 @@ func getSignalAndCover(p *prog.Prog, info *ipc.ProgInfo, call int) (signal.Signa
 type smashJob struct {
 	p    *prog.Prog
 	call int
-	jobPriority
+}
+
+func (job *smashJob) priority() priority {
+	return priority{smashPrio}
 }
 
 func (job *smashJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(2, "smashing the program %s (call=%d):", job.p, job.call)
 	if fuzzer.Config.Comparisons && job.call >= 0 {
-		fuzzer.startJob(&hintsJob{
-			p:           job.p.Clone(),
-			call:        job.call,
-			jobPriority: newJobPriority(smashPrio),
-		})
+		fuzzer.startJob(newHintsJob(job.p.Clone(), job.call))
 	}
 
-	const iters = 100
+	const iters = 75
 	rnd := fuzzer.rand()
 	for i := 0; i < iters; i++ {
 		p := job.p.Clone()
@@ -364,7 +367,17 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 type hintsJob struct {
 	p    *prog.Prog
 	call int
-	jobPriority
+}
+
+func newHintsJob(p *prog.Prog, call int) *hintsJob {
+	return &hintsJob{
+		p:    p,
+		call: call,
+	}
+}
+
+func (job *hintsJob) priority() priority {
+	return priority{smashPrio}
 }
 
 func (job *hintsJob) run(fuzzer *Fuzzer) {

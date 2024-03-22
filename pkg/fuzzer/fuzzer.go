@@ -39,9 +39,6 @@ type Fuzzer struct {
 
 	runningJobs      atomic.Int64
 	queuedCandidates atomic.Int64
-
-	outOfQueue     atomic.Bool
-	outOfQueueNext atomic.Int64
 }
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
@@ -177,16 +174,18 @@ func (fuzzer *Fuzzer) NextInput() *Request {
 }
 
 func (fuzzer *Fuzzer) nextInput() *Request {
-	// The fuzzer may get biased to one specific part of the kernel.
-	// Periodically generate random programs to ensure that the coverage
-	// is more uniform.
-	if !fuzzer.outOfQueue.Load() ||
-		fuzzer.outOfQueueNext.Add(1)%400 > 0 {
-		nextExec := fuzzer.nextExec.tryPop()
-		if nextExec != nil {
+	nextExec := fuzzer.nextExec.tryPop()
+
+	// The fuzzer may become too interested in potentially very long hint and smash jobs.
+	// Let's leave more space for new input space exploration.
+	if nextExec != nil {
+		if nextExec.prio.greaterThan(priority{smashPrio}) || fuzzer.nextRand()%3 != 0 {
 			return nextExec.value
+		} else {
+			fuzzer.nextExec.push(nextExec)
 		}
 	}
+
 	// Either generate a new input or mutate an existing one.
 	mutateRate := 0.95
 	if !fuzzer.Config.Coverage {
@@ -206,7 +205,11 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 
 func (fuzzer *Fuzzer) startJob(newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
-	newJob.saveID(-fuzzer.nextJobID.Add(1))
+	if impl, ok := newJob.(jobSaveID); ok {
+		// E.g. for big and slow hint jobs, we would prefer not to serialize them,
+		// but rather to start them all in parallel.
+		impl.saveID(-fuzzer.nextJobID.Add(1))
+	}
 	go func() {
 		fuzzer.runningJobs.Add(1)
 		newJob.run(fuzzer)
@@ -228,15 +231,14 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 	}
 }
 
-func (fuzzer *Fuzzer) EnableOutOfQueue() {
-	fuzzer.outOfQueue.Store(true)
+func (fuzzer *Fuzzer) rand() *rand.Rand {
+	return rand.New(rand.NewSource(fuzzer.nextRand()))
 }
 
-func (fuzzer *Fuzzer) rand() *rand.Rand {
+func (fuzzer *Fuzzer) nextRand() int64 {
 	fuzzer.mu.Lock()
-	seed := fuzzer.rnd.Int63()
-	fuzzer.mu.Unlock()
-	return rand.New(rand.NewSource(seed))
+	defer fuzzer.mu.Unlock()
+	return fuzzer.rnd.Int63()
 }
 
 func (fuzzer *Fuzzer) pushExec(req *Request, prio priority) {
