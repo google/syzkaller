@@ -34,9 +34,8 @@ type Fuzzer struct {
 	ctMu         sync.Mutex // TODO: use RWLock.
 	ctRegenerate chan struct{}
 
-	nextExec     *priorityQueue[*Request]
-	runningExecs map[*Request]time.Time
-	nextJobID    atomic.Int64
+	nextExec  *priorityQueue[*Request]
+	nextJobID atomic.Int64
 
 	runningJobs      atomic.Int64
 	queuedCandidates atomic.Int64
@@ -62,13 +61,11 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		// regenerating the table, we don't want to repeat it right away.
 		ctRegenerate: make(chan struct{}),
 
-		nextExec:     makePriorityQueue[*Request](),
-		runningExecs: map[*Request]time.Time{},
+		nextExec: makePriorityQueue[*Request](),
 	}
 	f.updateChoiceTable(nil)
 	go f.choiceTableUpdater()
 	if cfg.Debug {
-		go f.leakDetector()
 		go f.logCurrentStats()
 	}
 	return f
@@ -128,7 +125,6 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	// Update stats.
 	fuzzer.mu.Lock()
 	fuzzer.stats[req.stat]++
-	delete(fuzzer.runningExecs, req)
 	fuzzer.mu.Unlock()
 }
 
@@ -178,9 +174,6 @@ type Candidate struct {
 
 func (fuzzer *Fuzzer) NextInput() *Request {
 	req := fuzzer.nextInput()
-	fuzzer.mu.Lock()
-	fuzzer.runningExecs[req] = time.Now()
-	fuzzer.mu.Unlock()
 	if req.stat == statCandidate {
 		if fuzzer.queuedCandidates.Add(-1) < 0 {
 			panic("queuedCandidates is out of sync")
@@ -278,26 +271,6 @@ func (fuzzer *Fuzzer) exec(job job, req *Request) *Result {
 	}
 }
 
-func (fuzzer *Fuzzer) leakDetector() {
-	const timeout = 20 * time.Minute
-	ticket := time.NewTicker(timeout)
-	defer ticket.Stop()
-	for {
-		select {
-		case now := <-ticket.C:
-			fuzzer.mu.Lock()
-			for req, startedTime := range fuzzer.runningExecs {
-				if now.Sub(startedTime) > timeout {
-					panic(fmt.Sprintf("execution timed out: %v", req))
-				}
-			}
-			fuzzer.mu.Unlock()
-		case <-fuzzer.ctx.Done():
-			return
-		}
-	}
-}
-
 func (fuzzer *Fuzzer) updateChoiceTable(programs []*prog.Prog) {
 	newCt := fuzzer.target.BuildChoiceTable(programs, fuzzer.Config.EnabledCalls)
 
@@ -353,10 +326,8 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 
-		fuzzer.mu.Lock()
-		str := fmt.Sprintf("exec queue size: %d, running execs: %d, heap (MB): %d",
-			fuzzer.nextExec.Len(), len(fuzzer.runningExecs), m.Alloc/1000/1000)
-		fuzzer.mu.Unlock()
+		str := fmt.Sprintf("exec queue size: %d, running jobs: %d, heap (MB): %d",
+			fuzzer.nextExec.Len(), fuzzer.runningJobs.Load(), m.Alloc/1000/1000)
 		fuzzer.Logf(0, "%s", str)
 	}
 }
