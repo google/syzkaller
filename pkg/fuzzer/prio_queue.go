@@ -24,41 +24,28 @@ func (p priority) greaterThan(other priority) bool {
 
 type priorityQueue[T any] struct {
 	impl priorityQueueImpl[T]
-	c    *sync.Cond
+	mu   sync.RWMutex
 }
 
 func makePriorityQueue[T any]() *priorityQueue[T] {
-	return &priorityQueue[T]{
-		c: sync.NewCond(&sync.Mutex{}),
-	}
+	return &priorityQueue[T]{}
 }
 
 func (pq *priorityQueue[T]) Len() int {
-	pq.c.L.Lock()
-	defer pq.c.L.Unlock()
+	pq.mu.RLock()
+	defer pq.mu.RUnlock()
 	return pq.impl.Len()
 }
 
 func (pq *priorityQueue[T]) push(item *priorityQueueItem[T]) {
-	pq.c.L.Lock()
-	defer pq.c.L.Unlock()
+	pq.mu.Lock()
+	defer pq.mu.Unlock()
 	heap.Push(&pq.impl, item)
-	pq.c.Signal()
-}
-
-// pop() blocks until there's input.
-func (pq *priorityQueue[T]) pop() *priorityQueueItem[T] {
-	pq.c.L.Lock()
-	defer pq.c.L.Unlock()
-	for pq.impl.Len() == 0 {
-		pq.c.Wait()
-	}
-	return heap.Pop(&pq.impl).(*priorityQueueItem[T])
 }
 
 func (pq *priorityQueue[T]) tryPop() *priorityQueueItem[T] {
-	pq.c.L.Lock()
-	defer pq.c.L.Unlock()
+	pq.mu.Lock()
+	defer pq.mu.Unlock()
 	if len(pq.impl) == 0 {
 		return nil
 	}
