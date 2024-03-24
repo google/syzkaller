@@ -305,15 +305,17 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"EOPNOTSUPP": 95,
 
 		// Fuchsia specific errors.
-		"ZX_ERR_NO_RESOURCES":   3,
-		"ZX_ERR_INVALID_ARGS":   10,
-		"ZX_ERR_BAD_HANDLE":     11,
-		"ZX_ERR_BAD_STATE":      20,
-		"ZX_ERR_TIMED_OUT":      21,
-		"ZX_ERR_SHOULD_WAIT":    22,
-		"ZX_ERR_PEER_CLOSED":    24,
-		"ZX_ERR_ALREADY_EXISTS": 26,
-		"ZX_ERR_ACCESS_DENIED":  30,
+		"ZX_ERR_NO_RESOURCES":     3,
+		"ZX_ERR_INVALID_ARGS":     10,
+		"ZX_ERR_BAD_HANDLE":       11,
+		"ZX_ERR_WRONG_TYPE":       12,
+		"ZX_ERR_BUFFER_TOO_SMALL": 15,
+		"ZX_ERR_BAD_STATE":        20,
+		"ZX_ERR_TIMED_OUT":        21,
+		"ZX_ERR_SHOULD_WAIT":      22,
+		"ZX_ERR_PEER_CLOSED":      24,
+		"ZX_ERR_ALREADY_EXISTS":   26,
+		"ZX_ERR_ACCESS_DENIED":    30,
 	}
 	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
 	for i, call := range p.Calls {
