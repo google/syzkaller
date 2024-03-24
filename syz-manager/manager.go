@@ -115,7 +115,7 @@ const (
 	phaseTriagedHub
 )
 
-const currentDBVersion = 4
+const currentDBVersion = 5
 
 type Crash struct {
 	vmIndex       int
@@ -630,6 +630,10 @@ func (mgr *Manager) loadCorpus() {
 	case 3:
 		// Version 3->4: to shake things up.
 		minimized = false
+		fallthrough
+	case 4:
+		// To re-trigger fault injection for copy_to/from_user.
+		smashed = false
 		fallthrough
 	case currentDBVersion:
 	}
