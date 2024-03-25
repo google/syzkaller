@@ -1,0 +1,5 @@
+arg_of_awesome_func {
+ field1 int64
+}
+
+syz_awesome_func(arg ptr[in, arg_of_awesome_func])

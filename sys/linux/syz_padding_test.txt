@@ -1,0 +1,14 @@
+
+padding_default {
+  field1 int8
+  field2 int32 
+  field3 int16
+}
+
+padding_packed{
+  field1 int8
+  field2 int32 
+  field3 int16
+} [packed]
+
+syz_padding_test(arg1 ptr[in, padding_default], arg2 ptr[in, padding_packed])

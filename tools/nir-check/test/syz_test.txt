@@ -1,0 +1,10 @@
+
+type byte int8
+
+test_args {
+  field1 int32
+  field2 int8
+  field3 byte
+}
+
+syz_test(arg ptr[in, test_args])

@@ -1,0 +1,11 @@
+arg_of_awesome_func {
+ field1 int64
+ field2 int32 
+ field3 int8
+}
+
+# COCK COCK COCK
+# COCK COCK COCK
+# COCK COCK COCK
+
+syz_awesome_func(arg ptr[in, arg_of_awesome_func])
