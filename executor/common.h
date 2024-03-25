@@ -78,6 +78,7 @@ static unsigned long long procid;
 #include <setjmp.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #if GOOS_linux
 #include <sys/syscall.h>
@@ -142,8 +143,22 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	doexit(sig);
 }
 
+static void setaltstack(void)
+{
+	stack_t ss = {};
+	ss.ss_size = SIGSTKSZ;
+	ss.ss_sp = mmap(NULL, SIGSTKSZ, PROT_READ | PROT_WRITE,
+			MAP_PRIVATE | MAP_ANON, -1, 0);
+	if (ss.ss_sp == MAP_FAILED)
+		fail("mmap failed");
+	if (sigaltstack(&ss, NULL) == -1)
+		fail("sigaltstack failed");
+}
+
 static void install_segv_handler(void)
 {
+	setaltstack();
+
 	struct sigaction sa;
 #if GOOS_linux
 	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
@@ -156,7 +171,7 @@ static void install_segv_handler(void)
 #endif
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_sigaction = segv_handler;
-	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
+	sa.sa_flags = SA_NODEFER | SA_SIGINFO | SA_ONSTACK;
 	sigaction(SIGSEGV, &sa, NULL);
 	sigaction(SIGBUS, &sa, NULL);
 }
@@ -553,6 +568,10 @@ static int running;
 static void* thr(void* arg)
 {
 	struct thread_t* th = (struct thread_t*)arg;
+
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	setaltstack();
+#endif
 	for (;;) {
 		event_wait(&th->ready);
 		event_reset(&th->ready);
