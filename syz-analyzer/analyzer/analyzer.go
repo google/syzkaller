@@ -10,6 +10,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -61,6 +62,7 @@ func start() {
 	var configs tool.CfgsFlag
 	flag.Var(&configs, "configs", "list of configuration files for kernels divided by comma")
 	flagDebug := flag.Bool("debug", false, "print debug info from virtual machines")
+	flagStats := flag.String("stats", "", "where stats will be written after execution, default stdout")
 	flagRepeats := flag.Int("repeat", 1000, "how many times will we run each reproducer")
 	flag.Parse()
 
@@ -113,18 +115,31 @@ func start() {
 	if !osutil.IsExist(runnerBin) {
 		log.Fatalf("bad syzkaller config: can't find %v", runnerBin)
 	}
+	analyzer.runnerBin = runnerBin
 
 	executorBin := config.ExecutorBin
 	if !osutil.IsExist(runnerBin) {
 		log.Fatalf("bad syzkaller config: can't find %v", executorBin)
 	}
-
-	analyzer.runnerBin = runnerBin
 	analyzer.executorBin = executorBin
 
-	analyzer.initializeInstances()
+	var sw io.Writer
+	if *flagStats == "" {
+		sw = os.Stdout
+	} else {
+		currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			log.Fatalf("failed to create stats file: %v", err)
+		}
+		file := filepath.Join(currentDir, *flagStats)
+		sw, err = os.Create(file)
+		if err != nil {
+			log.Fatalf("failed to create stats file: %v", err)
+		}
+	}
+	analyzer.statistics = initStatistics(len(pools), sw)
 
-	analyzer.statistics = initStatistics(len(pools))
+	analyzer.initializeInstances()
 
 	analyzer.wgFinish.Wait()
 

@@ -1,14 +1,16 @@
 package main
 
 import (
+	"fmt"
 	syz_analyzer "github.com/google/syzkaller/syz-analyzer"
-	"log"
+	"io"
 )
 
 type Statistics struct {
 	results    map[int64]map[string]*ExecResult
 	total      map[int64]int
 	successful map[int64]int
+	statsWrite io.Writer
 	pools      int
 }
 
@@ -17,11 +19,12 @@ type ExecResult struct {
 	count int
 }
 
-func initStatistics(pools int) *Statistics {
+func initStatistics(pools int, sw io.Writer) *Statistics {
 	stats := &Statistics{
 		results:    make(map[int64]map[string]*ExecResult),
 		total:      make(map[int64]int),
 		successful: make(map[int64]int),
+		statsWrite: sw,
 		pools:      pools,
 	}
 
@@ -50,26 +53,26 @@ func (stats *Statistics) addResult(result *syz_analyzer.ProgramArgs) {
 
 func (stats *Statistics) printStatistics() {
 	for taskId := range stats.total {
-		log.Printf("------------------------------------")
-		log.Printf("Statistics of task number %d", taskId)
-		log.Printf("Total runs: %d", stats.total[taskId])
-		log.Printf("Successful runs: %d", stats.successful[taskId])
-		log.Printf("Error runs: %d", stats.total[taskId]-stats.successful[taskId])
-		log.Printf("Percentage of successful runs: %f%%", float64(stats.successful[taskId]*100)/float64(stats.total[taskId]))
+		fmt.Fprintf(stats.statsWrite, "------------------------------------\n")
+		fmt.Fprintf(stats.statsWrite, "Statistics of task number %d\n", taskId)
+		fmt.Fprintf(stats.statsWrite, "Total runs: %d\n", stats.total[taskId])
+		fmt.Fprintf(stats.statsWrite, "Successful runs: %d\n", stats.successful[taskId])
+		fmt.Fprintf(stats.statsWrite, "Error runs: %d\n", stats.total[taskId]-stats.successful[taskId])
+		fmt.Fprintf(stats.statsWrite, "Percentage of successful runs: %f%%\n", float64(stats.successful[taskId]*100)/float64(stats.total[taskId]))
 		if stats.results[taskId] == nil {
 			continue
 		}
-		log.Printf("Errors while executing:")
+		fmt.Fprintf(stats.statsWrite, "Errors while executing:\n")
 		for output, res := range stats.results[taskId] {
-			log.Printf("	This error occurs: %d times", res.count)
+			fmt.Fprintf(stats.statsWrite, "	This error occurs: %d times\n", res.count)
 			for id, pool := range res.pool {
 				if pool == 0 {
 					continue
 				}
-				log.Printf("		In pool %d: %d times", id, pool)
+				fmt.Fprintf(stats.statsWrite, "		In pool %d: %d times\n", id, pool)
 			}
-			log.Printf("	Error: %s", output)
+			fmt.Fprintf(stats.statsWrite, "	Error: %s\n", output)
 		}
 	}
-	log.Printf("------------------------------------")
+	fmt.Fprintf(stats.statsWrite, "------------------------------------\n")
 }

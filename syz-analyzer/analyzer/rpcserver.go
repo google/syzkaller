@@ -36,11 +36,6 @@ func (server *RPCServer) NextProgram(args *syz_analyzer.ProgramArgs, res *syz_an
 	defer server.mu.Unlock()
 
 	if args.TaskID != -1 {
-		//if args.Error != nil {
-		//	log.Logf(0, "program %d of %d-%d machine results: %s\n", args.TaskID, args.Pool, args.VM, args.Error)
-		//} else {
-		//	log.Logf(0, "program %d of %d-%d machine results: Finished successfully\n", args.TaskID, args.Pool, args.VM)
-		//}
 		server.analyzer.statistics.addResult(args)
 	}
 
