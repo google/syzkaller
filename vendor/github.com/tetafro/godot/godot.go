@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -69,7 +68,7 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error
 // Fix fixes all issues and returns new version of file content.
 func Fix(path string, file *ast.File, fset *token.FileSet, settings Settings) ([]byte, error) {
 	// Read file
-	content, err := ioutil.ReadFile(path) // nolint: gosec
+	content, err := os.ReadFile(path) // nolint: gosec
 	if err != nil {
 		return nil, fmt.Errorf("read file: %v", err)
 	}
@@ -115,7 +114,7 @@ func Replace(path string, file *ast.File, fset *token.FileSet, settings Settings
 		return fmt.Errorf("fix issues: %v", err)
 	}
 
-	if err := ioutil.WriteFile(path, fixed, mode); err != nil {
+	if err := os.WriteFile(path, fixed, mode); err != nil {
 		return fmt.Errorf("write file: %v", err)
 	}
 	return nil

@@ -35,13 +35,13 @@ func init() {
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	lints := []analysis.Diagnostic{}
-	extInfo := newTypesInfoExt(pass.TypesInfo)
+	extInfo := newTypesInfoExt(pass)
 	if checkComparison {
-		l := LintErrorComparisons(pass.Fset, extInfo)
+		l := LintErrorComparisons(extInfo)
 		lints = append(lints, l...)
 	}
 	if checkAsserts {
-		l := LintErrorTypeAssertions(pass.Fset, *pass.TypesInfo)
+		l := LintErrorTypeAssertions(pass.Fset, extInfo)
 		lints = append(lints, l...)
 	}
 	if checkErrorf {
@@ -57,7 +57,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 type TypesInfoExt struct {
-	types.Info
+	*analysis.Pass
 
 	// Maps AST nodes back to the node they are contained within.
 	NodeParent map[ast.Node]ast.Node
@@ -66,9 +66,9 @@ type TypesInfoExt struct {
 	IdentifiersForObject map[types.Object][]*ast.Ident
 }
 
-func newTypesInfoExt(info *types.Info) *TypesInfoExt {
+func newTypesInfoExt(pass *analysis.Pass) *TypesInfoExt {
 	nodeParent := map[ast.Node]ast.Node{}
-	for node := range info.Scopes {
+	for node := range pass.TypesInfo.Scopes {
 		file, ok := node.(*ast.File)
 		if !ok {
 			continue
@@ -86,15 +86,15 @@ func newTypesInfoExt(info *types.Info) *TypesInfoExt {
 	}
 
 	identifiersForObject := map[types.Object][]*ast.Ident{}
-	for node, obj := range info.Defs {
+	for node, obj := range pass.TypesInfo.Defs {
 		identifiersForObject[obj] = append(identifiersForObject[obj], node)
 	}
-	for node, obj := range info.Uses {
+	for node, obj := range pass.TypesInfo.Uses {
 		identifiersForObject[obj] = append(identifiersForObject[obj], node)
 	}
 
 	return &TypesInfoExt{
-		Info:                 *info,
+		Pass:                 pass,
 		NodeParent:           nodeParent,
 		IdentifiersForObject: identifiersForObject,
 	}

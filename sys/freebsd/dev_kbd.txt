@@ -41,6 +41,8 @@ ioctl$OGIO_KEYMAP(fd fd_kbd, cmd const[OGIO_KEYMAP], arg ptr[out, okeymap])
 ioctl$OPIO_KEYMAP(fd fd_kbd, cmd const[OPIO_KEYMAP], arg ptr[in, okeymap])
 ioctl$GIO_DEADKEYMAP(fd fd_kbd, cmd const[GIO_DEADKEYMAP], arg ptr[out, accentmap])
 ioctl$PIO_DEADKEYMAP(fd fd_kbd, cmd const[PIO_DEADKEYMAP], arg ptr[in, accentmap])
+ioctl$OGIO_DEADKEYMAP(fd fd_kbd, cmd const[OGIO_DEADKEYMAP], arg ptr[out, oaccentmap])
+ioctl$OPIO_DEADKEYMAP(fd fd_kbd, cmd const[OPIO_DEADKEYMAP], arg ptr[in, oaccentmap])
 ioctl$GIO_KEYMAPENT(fd fd_kbd, cmd const[GIO_KEYMAPENT], arg ptr[inout, keyarg])
 ioctl$PIO_KEYMAPENT(fd fd_kbd, cmd const[PIO_KEYMAPENT], arg ptr[in, keyarg])
 
@@ -80,6 +82,16 @@ accentmap {
 }
 
 acc_t {
+	accchar	int32
+	map	array[int32, 104]
+}
+
+oaccentmap {
+	n_accs	int16
+	acc	array[oacc_t, NUM_DEADKEYS]
+}
+
+oacc_t {
 	accchar	int8
 	map	array[int8, 104]
 }

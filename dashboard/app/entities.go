@@ -125,6 +125,7 @@ type Bug struct {
 	TreeTests      BugTreeTestInfo
 	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
 	FixCandidateJob string
+	ReproAttempts   []BugReproAttempt
 }
 
 type BugTreeTestInfo struct {
@@ -170,6 +171,13 @@ func (label BugLabel) String() string {
 		return string(label.Label)
 	}
 	return string(label.Label) + ":" + label.Value
+}
+
+// BugReproAttempt describes a single attempt to generate a repro for a bug.
+type BugReproAttempt struct {
+	Time    time.Time
+	Manager string
+	Log     int64
 }
 
 func (bug *Bug) SetAutoSubsystems(c context.Context, list []*subsystem.Subsystem, now time.Time, rev int) {
@@ -640,6 +648,7 @@ const (
 	textPatch        = "Patch"
 	textLog          = "Log"
 	textError        = "Error"
+	textReproLog     = "ReproLog"
 )
 
 const (
@@ -766,7 +775,7 @@ func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error
 	var result []*Manager
 	var resultKeys []*db.Key
 	for i, mgr := range managers {
-		if config.Namespaces[mgr.Namespace].Managers[mgr.Name].Decommissioned {
+		if getNsConfig(c, mgr.Namespace).Managers[mgr.Name].Decommissioned {
 			continue
 		}
 		result = append(result, mgr)
@@ -840,28 +849,28 @@ func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {
 		bugKey := db.NewKey(c, "Bug", bug.DupOf, 0, nil)
 		if err := db.Get(c, bugKey, canon); err != nil {
 			return nil, fmt.Errorf("failed to get dup bug %q for %q: %w",
-				bug.DupOf, bug.keyHash(), err)
+				bug.DupOf, bug.keyHash(c), err)
 		}
 		bug = canon
 	}
 }
 
 func (bug *Bug) key(c context.Context) *db.Key {
-	return db.NewKey(c, "Bug", bug.keyHash(), 0, nil)
+	return db.NewKey(c, "Bug", bug.keyHash(c), 0, nil)
 }
 
-func (bug *Bug) keyHash() string {
-	return bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+func (bug *Bug) keyHash(c context.Context) string {
+	return bugKeyHash(c, bug.Namespace, bug.Title, bug.Seq)
 }
 
-func bugKeyHash(ns, title string, seq int64) string {
-	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", config.Namespaces[ns].Key, ns, title, seq)))
+func bugKeyHash(c context.Context, ns, title string, seq int64) string {
+	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(c, ns).Key, ns, title, seq)))
 }
 
 func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
-	domain := config.Namespaces[bug.Namespace].SimilarityDomain
+	domain := getNsConfig(c, bug.Namespace).SimilarityDomain
 	dedup := make(map[string]bool)
-	dedup[bug.keyHash()] = true
+	dedup[bug.keyHash(c)] = true
 
 	ret := []*Bug{}
 	for _, title := range bug.AltTitles {
@@ -873,11 +882,11 @@ func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
 			return nil, err
 		}
 		for _, bug := range similar {
-			if config.Namespaces[bug.Namespace].SimilarityDomain != domain ||
-				dedup[bug.keyHash()] {
+			if getNsConfig(c, bug.Namespace).SimilarityDomain != domain ||
+				dedup[bug.keyHash(c)] {
 				continue
 			}
-			dedup[bug.keyHash()] = true
+			dedup[bug.keyHash(c)] = true
 			ret = append(ret, bug)
 		}
 	}
@@ -992,7 +1001,7 @@ func kernelRepoInfo(c context.Context, build *Build) KernelRepo {
 
 func kernelRepoInfoRaw(c context.Context, ns, url, branch string) KernelRepo {
 	var info KernelRepo
-	for _, repo := range getKernelRepos(c, ns) {
+	for _, repo := range getNsConfig(c, ns).Repos {
 		if repo.URL == url && repo.Branch == branch {
 			info = repo
 			break

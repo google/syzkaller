@@ -82,8 +82,11 @@ func NewCtx(t *testing.T) *Ctx {
 	c.client2 = c.makeClient(client2, password2, true)
 	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
 	c.ctx = registerRequest(r, c).Context()
-
 	return c
+}
+
+func (c *Ctx) config() *GlobalConfig {
+	return getConfig(c.ctx)
 }
 
 func (c *Ctx) expectOK(err error) {
@@ -203,6 +206,7 @@ func (c *Ctx) Close() {
 		}
 	}
 	unregisterContext(c)
+	validateGlobalConfig()
 }
 
 func (c *Ctx) advanceTime(d time.Duration) {
@@ -211,17 +215,28 @@ func (c *Ctx) advanceTime(d time.Duration) {
 
 func (c *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithSubsystems(c, &customSubsystemList{
-			ns:       ns,
-			list:     list,
-			revision: rev,
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Subsystems.Revision = rev
+			if list == nil {
+				ret.Subsystems.Service = nil
+			} else {
+				ret.Subsystems.Service = subsystem.MustMakeService(list)
+			}
+			return &ret
 		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
-func (c *Ctx) setKernelRepos(list []KernelRepo) {
+func (c *Ctx) setKernelRepos(ns string, list []KernelRepo) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithRepos(c, list)
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Repos = list
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
@@ -231,9 +246,31 @@ func (c *Ctx) setNoObsoletions() {
 	}
 }
 
+func (c *Ctx) updateReporting(ns, name string, f func(Reporting) Reporting) {
+	c.transformContext = func(c context.Context) context.Context {
+		return contextWithConfig(c, replaceReporting(c, ns, name, f))
+	}
+}
+
+func (c *Ctx) decommissionManager(ns, oldManager, newManager string) {
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := replaceManagerConfig(c, ns, oldManager, func(cfg ConfigManager) ConfigManager {
+			cfg.Decommissioned = true
+			cfg.DelegatedTo = newManager
+			return cfg
+		})
+		return contextWithConfig(c, newConfig)
+	}
+}
+
 func (c *Ctx) decommission(ns string) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithDecommission(c, ns, true)
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Decommissioned = true
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
@@ -279,6 +316,7 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httpte
 	if err != nil {
 		c.t.Fatal(err)
 	}
+	r.Header.Add("X-Appengine-User-IP", "127.0.0.1")
 	r = registerRequest(r, c)
 	r = r.WithContext(c.transformContext(r.Context()))
 	if access == AccessAdmin || access == AccessUser {
@@ -668,4 +706,48 @@ func getRequestID(c context.Context) int {
 		panic("the context did not come from a test")
 	}
 	return val
+}
+
+// Create a shallow copy of GlobalConfig with a replaced namespace config.
+func replaceNamespaceConfig(c context.Context, ns string, f func(*Config) *Config) *GlobalConfig {
+	ret := *getConfig(c)
+	newNsMap := map[string]*Config{}
+	for name, nsCfg := range ret.Namespaces {
+		if name == ns {
+			nsCfg = f(nsCfg)
+		}
+		newNsMap[name] = nsCfg
+	}
+	ret.Namespaces = newNsMap
+	return &ret
+}
+
+func replaceManagerConfig(c context.Context, ns, mgr string, f func(ConfigManager) ConfigManager) *GlobalConfig {
+	return replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+		ret := *cfg
+		newMgrMap := map[string]ConfigManager{}
+		for name, mgrCfg := range ret.Managers {
+			if name == mgr {
+				mgrCfg = f(mgrCfg)
+			}
+			newMgrMap[name] = mgrCfg
+		}
+		ret.Managers = newMgrMap
+		return &ret
+	})
+}
+
+func replaceReporting(c context.Context, ns, name string, f func(Reporting) Reporting) *GlobalConfig {
+	return replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+		ret := *cfg
+		var newReporting []Reporting
+		for _, cfg := range ret.Reporting {
+			if cfg.Name == name {
+				cfg = f(cfg)
+			}
+			newReporting = append(newReporting, cfg)
+		}
+		ret.Reporting = newReporting
+		return &ret
+	})
 }

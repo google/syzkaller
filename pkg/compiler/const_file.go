@@ -82,6 +82,10 @@ func (cf *ConstFile) Arch(arch string) map[string]uint64 {
 	return m
 }
 
+func (cf *ConstFile) ExistsAny(constName string) bool {
+	return len(cf.m[constName].vals) > 0
+}
+
 func (cf *ConstFile) Serialize() []byte {
 	if len(cf.arches) == 0 {
 		return nil

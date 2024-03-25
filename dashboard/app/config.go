@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
@@ -61,6 +62,8 @@ type GlobalConfig struct {
 	// Emails received via the addresses below will be attributed to the corresponding
 	// kind of Discussion.
 	DiscussionEmails []DiscussionEmailConfig
+	// Incoming request throttling.
+	Throttle ThrottleConfig
 }
 
 // Per-namespace config.
@@ -99,9 +102,9 @@ type Config struct {
 	Reporting []Reporting
 	// TransformCrash hook is called when a manager uploads a crash.
 	// The hook can transform the crash or discard the crash by returning false.
-	TransformCrash func(build *Build, crash *dashapi.Crash) bool
+	TransformCrash func(build *Build, crash *dashapi.Crash) bool `json:"-"`
 	// NeedRepro hook can be used to prevent reproduction of some bugs.
-	NeedRepro func(bug *Bug) bool
+	NeedRepro func(bug *Bug) bool `json:"-"`
 	// List of kernel repositories for this namespace.
 	// The first repo considered the "main" repo (e.g. fixing commit info is shown against this repo).
 	// Other repos are secondary repos, they may be tested or not.
@@ -113,6 +116,8 @@ type Config struct {
 	Subsystems SubsystemsConfig
 	// Instead of Last acitivity, display Discussions on the main page.
 	DisplayDiscussions bool
+	// Cache what we display on the web dashboard.
+	CacheUIPages bool
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
@@ -161,7 +166,7 @@ type BugListReportingConfig struct {
 	Config ReportingType
 }
 
-// ObsoletingConfig describes how bugs without reproducer should be obsoleted.
+// ObsoletingConfig describes how bugs should be obsoleted.
 // First, for each bug we conservatively estimate period since the last crash
 // when we consider it stopped happenning. This estimation is based on the first/last time
 // and number and rate of crashes. Then this period is capped by MinPeriod/MaxPeriod.
@@ -175,7 +180,13 @@ type ObsoletingConfig struct {
 	MaxPeriod         time.Duration
 	NonFinalMinPeriod time.Duration
 	NonFinalMaxPeriod time.Duration
+	// Reproducers are retested every ReproRetestPeriod.
+	// If the period is zero, not retesting is performed.
 	ReproRetestPeriod time.Duration
+	// Reproducer retesting begins after there have been no crashes during
+	// the ReproRetestStart period.
+	// By default, it's 14 days.
+	ReproRetestStart time.Duration
 }
 
 // ConfigManager describes a single syz-manager instance.
@@ -198,7 +209,15 @@ type ConfigManager struct {
 	FixBisectionDisabled bool
 	// CC for all bugs that happened only on this manager.
 	CC CCConfig
+	// Other parameters being equal, Priority helps to order bug's crashes.
+	// Priority is an integer in the range [-3;3].
+	Priority int
 }
+
+const (
+	MinManagerPriority = -3
+	MaxManagerPriority = 3
+)
 
 // One reporting stage.
 type Reporting struct {
@@ -209,7 +228,7 @@ type Reporting struct {
 	// Name used in UI.
 	DisplayTitle string
 	// Filter can be used to conditionally skip this reporting or hold off reporting.
-	Filter ReportingFilter
+	Filter ReportingFilter `json:"-"`
 	// How many new bugs report per day.
 	DailyLimit int
 	// Upstream reports into next reporting after this period.
@@ -289,6 +308,18 @@ type KcidbConfig struct {
 	Credentials []byte
 }
 
+// ThrottleConfig determines how many requests a single client can make in a period of time.
+type ThrottleConfig struct {
+	// The time period to be considered.
+	Window time.Duration
+	// No more than Limit requests are allowed within the time window.
+	Limit int
+}
+
+func (t ThrottleConfig) Empty() bool {
+	return t.Window == 0 || t.Limit == 0
+}
+
 var (
 	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
 	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
@@ -322,23 +353,64 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 	return nil
 }
 
-// config is installed either by tests or from mainConfig in main function
-// (a separate file should install mainConfig in an init function).
+// configDontUse holds the configuration object that is installed either by tests
+// or from mainConfig in main function (a separate file should install mainConfig
+// in an init function).
+// Please access it via the getConfig(context.Context) method.
 var (
-	config     *GlobalConfig
-	mainConfig *GlobalConfig
+	configDontUse *GlobalConfig
+	mainConfig    *GlobalConfig
+)
+
+// To ensure config integrity during tests, we marshal config after it's installed
+// and optionally verify it during execution.
+var (
+	ensureConfigImmutability = false
+	marshaledConfig          = ""
 )
 
 func installConfig(cfg *GlobalConfig) {
 	checkConfig(cfg)
-	if config != nil {
+	if configDontUse != nil {
 		panic("another config is already installed")
 	}
-	config = cfg
+	configDontUse = cfg
+	if ensureConfigImmutability {
+		marshaledConfig = cfg.marshalJSON()
+	}
 	initEmailReporting()
 	initHTTPHandlers()
 	initAPIHandlers()
 	initKcidb()
+}
+
+var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"
+
+func contextWithConfig(c context.Context, cfg *GlobalConfig) context.Context {
+	return context.WithValue(c, &contextConfigKey, cfg)
+}
+
+func getConfig(c context.Context) *GlobalConfig {
+	// Check point.
+	validateGlobalConfig()
+
+	if val, ok := c.Value(&contextConfigKey).(*GlobalConfig); ok {
+		return val
+	}
+	return configDontUse // The base config was not overwriten.
+}
+
+func validateGlobalConfig() {
+	if ensureConfigImmutability {
+		currentConfig := configDontUse.marshalJSON()
+		if diff := cmp.Diff(currentConfig, marshaledConfig); diff != "" {
+			panic("global config changed during execution: " + diff)
+		}
+	}
+}
+
+func getNsConfig(c context.Context, ns string) *Config {
+	return getConfig(c).Namespaces[ns]
 }
 
 func checkConfig(cfg *GlobalConfig) {
@@ -351,11 +423,17 @@ func checkConfig(cfg *GlobalConfig) {
 	for i := range cfg.EmailBlocklist {
 		cfg.EmailBlocklist[i] = email.CanonicalEmail(cfg.EmailBlocklist[i])
 	}
+	if cfg.Throttle.Limit < 0 {
+		panic("throttle limit cannot be negative")
+	}
+	if (cfg.Throttle.Limit != 0) != (cfg.Throttle.Window != 0) {
+		panic("throttling window and limit must be both set")
+	}
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)
 	checkClients(clientNames, cfg.Clients)
 	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
-	checkObsoleting(cfg.Obsoleting)
+	checkObsoleting(&cfg.Obsoleting)
 	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
 		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
 	}
@@ -376,7 +454,7 @@ func checkDiscussionEmails(list []DiscussionEmailConfig) {
 	}
 }
 
-func checkObsoleting(o ObsoletingConfig) {
+func checkObsoleting(o *ObsoletingConfig) {
 	if (o.MinPeriod == 0) != (o.MaxPeriod == 0) {
 		panic("obsoleting: both or none of Min/MaxPeriod must be specified")
 	}
@@ -397,6 +475,9 @@ func checkObsoleting(o ObsoletingConfig) {
 	}
 	if o.MinPeriod == 0 && o.NonFinalMinPeriod != 0 {
 		panic("obsoleting: NonFinalMinPeriod without MinPeriod")
+	}
+	if o.ReproRetestStart == 0 {
+		o.ReproRetestStart = time.Hour * 24 * 14
 	}
 }
 
@@ -617,6 +698,10 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
 		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
 	}
+	if mgr.Priority < MinManagerPriority && mgr.Priority > MaxManagerPriority {
+		panic(fmt.Sprintf("manager %v/%v priority is not in the [%d;%d] range",
+			ns, name, MinManagerPriority, MaxManagerPriority))
+	}
 	checkCC(&mgr.CC)
 }
 
@@ -669,34 +754,10 @@ func (cfg *Config) lastActiveReporting() int {
 	return last
 }
 
-var kernelReposKey = "Custom list of kernel repositories"
-
-func contextWithRepos(c context.Context, list []KernelRepo) context.Context {
-	return context.WithValue(c, &kernelReposKey, list)
-}
-
-func getKernelRepos(c context.Context, ns string) []KernelRepo {
-	if val, ok := c.Value(&kernelReposKey).([]KernelRepo); ok {
-		return val
+func (gCfg *GlobalConfig) marshalJSON() string {
+	ret, err := json.MarshalIndent(gCfg, "", " ")
+	if err != nil {
+		panic(err)
 	}
-	return config.Namespaces[ns].Repos
-}
-
-var decommKey = "Custom decommissioned status"
-
-func contextWithDecommission(c context.Context, ns string, value bool) context.Context {
-	mm, _ := c.Value(&decommKey).(map[string]bool)
-	if mm == nil {
-		mm = map[string]bool{}
-	}
-	mm[ns] = value
-	return context.WithValue(c, &decommKey, mm)
-}
-
-func isDecommissioned(c context.Context, ns string) bool {
-	mm, _ := c.Value(&decommKey).(map[string]bool)
-	if val, set := mm[ns]; set {
-		return val
-	}
-	return config.Namespaces[ns].Decommissioned
+	return string(ret)
 }

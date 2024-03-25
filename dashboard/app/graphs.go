@@ -138,13 +138,14 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Filter("Namespace=", hdr.Namespace).
+		Filter("Type=", JobBisectCause).
 		GetAll(c, &jobs)
 	if err != nil {
 		return err
 	}
 	causeBisects := make(map[string]*Job)
 	for i, job := range jobs {
-		if job.Type != JobBisectCause || len(job.Commits) != 1 {
+		if len(job.Commits) != 1 {
 			continue
 		}
 		causeBisects[keys[i].Parent().StringID()] = job
@@ -166,13 +167,18 @@ func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	}
 	n := 0
 	fixes := make(map[string]bool)
-	lastReporting := config.Namespaces[ns].lastActiveReporting()
+	lastReporting := getNsConfig(c, ns).lastActiveReporting()
 	for _, bug := range bugs {
-		if bug.Status >= BugStatusInvalid {
-			continue
-		}
-		if bug.Status == BugStatusOpen && bug.Reporting[lastReporting].Reported.IsZero() {
-			continue
+		if bug.Reporting[lastReporting].Reported.IsZero() {
+			if bug.Status == BugStatusOpen {
+				// These bugs are not released yet.
+				continue
+			}
+			bugReporting := lastReportedReporting(bug)
+			if bugReporting == nil || bugReporting.Auto && bug.Status == BugStatusInvalid {
+				// These bugs were auto-obsoleted before getting released.
+				continue
+			}
 		}
 		dup := false
 		for _, com := range bug.Commits {
@@ -194,9 +200,11 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 	type BugStats struct {
 		Opened        int
 		Fixed         int
+		Closed        int
 		TotalReported int
 		TotalOpen     int
 		TotalFixed    int
+		TotalClosed   int
 	}
 	const timeWeek = 30 * 24 * time.Hour
 	now := timeNow(c)
@@ -220,9 +228,13 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 	for _, bug := range bugs {
 		bugStatsFor(bug.FirstTime).Opened++
 		if !bug.Closed.IsZero() {
-			bugStatsFor(bug.Closed).Fixed++
+			if bug.Status == BugStatusFixed {
+				bugStatsFor(bug.Closed).Fixed++
+			}
+			bugStatsFor(bug.Closed).Closed++
 		} else if len(bug.Commits) != 0 {
 			bugStatsFor(now).Fixed++
+			bugStatsFor(now).Closed++
 		}
 	}
 	var stats []BugStats
@@ -234,7 +246,8 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 		}
 		bs.TotalReported = prev.TotalReported + bs.Opened
 		bs.TotalFixed = prev.TotalFixed + bs.Fixed
-		bs.TotalOpen = bs.TotalReported - bs.TotalFixed
+		bs.TotalClosed = prev.TotalClosed + bs.Closed
+		bs.TotalOpen = bs.TotalReported - bs.TotalClosed
 		stats = append(stats, bs)
 		prev = bs
 	}
@@ -261,6 +274,9 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 			// TODO: this is not the time when it was reported to the final reporting.
 			Reported: bug.FirstTime,
 		}
+		if bug.Status >= BugStatusInvalid {
+			continue
+		}
 		fixed := bug.FixTime
 		if fixed.IsZero() || bug.Status == BugStatusFixed && bug.Closed.Before(fixed) {
 			fixed = bug.Closed
@@ -278,7 +294,7 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 		} else {
 			ui.NotFixed = 400 - float32(i%7)
 		}
-		if job := causeBisects[bug.keyHash()]; job != nil {
+		if job := causeBisects[bug.keyHash(c)]; job != nil {
 			days := float32(job.Commits[0].Date.Sub(ui.Reported)) / float32(24*time.Hour)
 			if days < -365 {
 				ui.Introduced1y = -365 - float32(i%7)
@@ -508,7 +524,7 @@ func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Reques
 	accessLevel := accessLevel(c, r)
 	nbugs := 0
 	for _, bug := range bugs {
-		if accessLevel < bug.sanitizeAccess(accessLevel) {
+		if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 			continue
 		}
 		bugs[nbugs] = bug
@@ -549,7 +565,7 @@ func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *ui
 		titleRegexp := regexp.QuoteMeta(bug.Title)
 		table.Rows = append(table.Rows, &uiCrashSummary{
 			Title:     bug.Title,
-			Link:      bugLink(bug.keyHash()),
+			Link:      bugLink(bug.keyHash(c)),
 			GraphLink: "?show-graph=1&Months=1&regexp=" + url.QueryEscape(titleRegexp),
 			Count:     count,
 		})

@@ -257,8 +257,8 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 
 func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	bad, disabled := checkProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.Input.Prog)
-	if bad || disabled {
-		log.Logf(0, "rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.Input.Prog)
+	if bad != nil || disabled {
+		log.Errorf("rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.Input.Prog)
 		return nil
 	}
 	serv.mu.Lock()

@@ -34,6 +34,7 @@ func (ctx *freebsd) Symbolize(rep *Report) error {
 
 var freebsdStackParams = &stackParams{}
 
+// nolint: goconst
 var freebsdOopses = append([]*oops{
 	{
 		[]byte("Fatal trap"),

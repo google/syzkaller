@@ -132,7 +132,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 		return nil, err
 	}
 	// Somewhat confusingly the "key" parameter is the password.
-	ns, err := checkClient(config, client, r.PostFormValue("key"), subj)
+	ns, err := checkClient(getConfig(c), client, r.PostFormValue("key"), subj)
 	if err != nil {
 		if client != "" {
 			log.Errorf(c, "%v", err)
@@ -220,7 +220,7 @@ loop:
 }
 
 func reportEmail(c context.Context, ns string) string {
-	for _, reporting := range config.Namespaces[ns].Reporting {
+	for _, reporting := range getNsConfig(c, ns).Reporting {
 		if _, ok := reporting.Config.(*EmailConfig); ok {
 			return ownEmail(c)
 		}
@@ -232,7 +232,7 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 	resp := &dashapi.CommitPollResp{
 		ReportEmail: reportEmail(c, ns),
 	}
-	for _, repo := range getKernelRepos(c, ns) {
+	for _, repo := range getNsConfig(c, ns).Repos {
 		if repo.NoPoll {
 			continue
 		}
@@ -642,6 +642,7 @@ func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommit
 	return true
 }
 
+// Note: if you do not need the latest data, prefer CachedManagersList().
 func managerList(c context.Context, ns string) ([]string, error) {
 	var builds []*Build
 	_, err := db.NewQuery("Build").
@@ -652,7 +653,7 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query builds: %w", err)
 	}
-	configManagers := config.Namespaces[ns].Managers
+	configManagers := getNsConfig(c, ns).Managers
 	var managers []string
 	for _, build := range builds {
 		if configManagers[build.Manager].Decommissioned {
@@ -681,9 +682,9 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
 		log.Infof(c, "failed build on %v: kernel=%v", req.Build.Manager, req.Build.KernelCommit)
 		if req.Build.KernelCommit != "" {
-			mgr.FailedBuildBug = bug.keyHash()
+			mgr.FailedBuildBug = bug.keyHash(c)
 		} else {
-			mgr.FailedSyzBuildBug = bug.keyHash()
+			mgr.FailedSyzBuildBug = bug.keyHash(c)
 		}
 		return nil
 	}); err != nil {
@@ -706,7 +707,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	if err != nil {
 		return nil, err
 	}
-	if !config.Namespaces[ns].TransformCrash(build, req) {
+	if !getNsConfig(c, ns).TransformCrash(build, req) {
 		return new(dashapi.ReportCrashResp), nil
 	}
 	bug, err := reportCrash(c, build, req)
@@ -807,7 +808,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.HasReport = true
 		}
 		if calculateSubsystems {
-			bug.SetAutoSubsystems(c, newSubsystems, now, getSubsystemRevision(c, ns))
+			bug.SetAutoSubsystems(c, newSubsystems, now, getNsConfig(c, ns).Subsystems.Revision)
 		}
 		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
@@ -855,6 +856,11 @@ func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug
 	if crash.Title == bug.Title {
 		prio += 1e8 // prefer reporting crash that matches bug title
 	}
+	managerPrio := 0
+	if _, mgrConfig := activeManager(c, crash.Manager, bug.Namespace); mgrConfig != nil {
+		managerPrio = mgrConfig.Priority
+	}
+	prio += int64((managerPrio - MinManagerPriority) * 1e5)
 	if build.Arch == targets.AMD64 {
 		prio += 1e3
 	}
@@ -995,6 +1001,10 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	bugKey := bug.key(c)
+	build, err := loadBuild(c, ns, req.BuildID)
+	if err != nil {
+		return nil, err
+	}
 	now := timeNow(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
@@ -1003,6 +1013,12 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
+		if len(req.ReproLog) > 0 {
+			err := saveReproLog(c, bug, build, req.ReproLog)
+			if err != nil {
+				return fmt.Errorf("failed to save repro log: %w", err)
+			}
+		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
@@ -1013,6 +1029,30 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		Attempts: 30,
 	})
 	return nil, err
+}
+
+const maxReproLogs = 5
+
+func saveReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
+	var deleteKeys []*db.Key
+	for len(bug.ReproAttempts)+1 > maxReproLogs {
+		deleteKeys = append(deleteKeys,
+			db.NewKey(c, textReproLog, "", bug.ReproAttempts[0].Log, nil))
+		bug.ReproAttempts = bug.ReproAttempts[1:]
+	}
+	entry := BugReproAttempt{
+		Time:    timeNow(c),
+		Manager: build.Manager,
+	}
+	var err error
+	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log, false); err != nil {
+		return err
+	}
+	if len(deleteKeys) > 0 {
+		return db.DeleteMulti(c, deleteKeys)
+	}
+	bug.ReproAttempts = append(bug.ReproAttempts, entry)
+	return nil
 }
 
 func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
@@ -1182,7 +1222,7 @@ func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 	}
 	// Create report for the last reporting so that it's stable and ExtID does not change over time.
 	bugReporting := &bug.Reporting[len(bug.Reporting)-1]
-	reporting := config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	reporting := getNsConfig(c, bug.Namespace).ReportingByName(bugReporting.Name)
 	if reporting == nil {
 		return nil, fmt.Errorf("reporting %v is missing in config", bugReporting.Name)
 	}
@@ -1343,7 +1383,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 	tx := func(c context.Context) error {
 		for seq := int64(0); ; seq++ {
 			bug = new(Bug)
-			bugHash := bugKeyHash(ns, req.Title, seq)
+			bugHash := bugKeyHash(c, ns, req.Title, seq)
 			bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
 			if err := db.Get(c, bugKey, bug); err != nil {
 				if err != db.ErrNoSuchEntity {
@@ -1364,7 +1404,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					LastTime:       now,
 					SubsystemsTime: now,
 				}
-				err = bug.updateReportings(config.Namespaces[ns], now)
+				err = bug.updateReportings(c, getNsConfig(c, ns), now)
 				if err != nil {
 					return err
 				}
@@ -1426,7 +1466,7 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 		bug.Title == suppressedReportTitle {
 		return false
 	}
-	if !config.Namespaces[bug.Namespace].NeedRepro(bug) {
+	if !getNsConfig(c, bug.Namespace).NeedRepro(bug) {
 		return false
 	}
 	bestReproLevel := ReproLevelC
@@ -1565,7 +1605,7 @@ func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string)
 func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	const updateBugsCount = 25
-	for ns := range config.Namespaces {
+	for ns := range getConfig(c).Namespaces {
 		err := reassignBugSubsystems(c, ns, updateBugsCount)
 		if err != nil {
 			log.Errorf(c, "failed to update subsystems for %s: %v", ns, err)

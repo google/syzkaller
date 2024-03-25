@@ -162,6 +162,49 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	expectLabels(t, client, extID, "subsystems:first")
 }
 
+func TestInvalidBugSubsystemRefresh(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Create a bug without any subsystems.
+	c.setSubsystems(subsystemTestNs, nil, 0)
+	crash := testCrash(build, 1)
+	crash.GuiltyFiles = []string{"test.c"}
+	client.ReportCrash(crash)
+	rep := client.pollBug()
+	extID := rep.ID
+
+	// Invalidate the bug.
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusInvalid,
+	})
+	c.expectEQ(reply.OK, true)
+	bug, _, _ := c.loadBug(rep.ID)
+	c.expectEQ(bug.Status, BugStatusInvalid)
+
+	// Initially there should be no subsystems.
+	expectLabels(t, client, extID)
+
+	// Update subsystems.
+	c.advanceTime(time.Hour)
+	item := &subsystem.Subsystem{
+		Name:      "first",
+		PathRules: []subsystem.PathRule{{IncludeRegexp: `test\.c`}},
+	}
+	c.setSubsystems(subsystemTestNs, []*subsystem.Subsystem{item}, 1)
+
+	// Refresh subsystems.
+	c.advanceTime(time.Hour)
+	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
+	c.expectOK(err)
+	expectLabels(t, client, extID, "subsystems:first")
+}
+
 func TestUserSubsystemsRefresh(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -962,7 +1005,7 @@ func TestRemindersPriority(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
-	mailingList := config.Namespaces["subsystem-reminders"].Reporting[1].Config.(*EmailConfig).Email
+	cc := EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"})
 	build := testBuild(1)
 	client.UploadBuild(build)
 
@@ -975,7 +1018,7 @@ func TestRemindersPriority(t *testing.T) {
 	client.ReportCrash(aFirst)
 	sender, firstExtID := client.pollEmailAndExtID()
 	c.incomingEmail(sender, "#syz set prio: low\n",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+		EmailOptFrom("test@requester.com"), cc)
 	c.advanceTime(time.Hour)
 
 	// WARNING: a second, normal prio
@@ -993,7 +1036,7 @@ func TestRemindersPriority(t *testing.T) {
 	client.ReportCrash(aThird)
 	sender, thirdExtID := client.pollEmailAndExtID()
 	c.incomingEmail(sender, "#syz set prio: high\n",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+		EmailOptFrom("test@requester.com"), cc)
 	c.advanceTime(time.Hour)
 
 	// Report bugs once more to pretend they're still valid.

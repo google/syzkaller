@@ -72,20 +72,20 @@ func (*netbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 	// Syscall consts on netbsd have weird prefixes sometimes,
 	// try to extract consts with these prefixes as well.
 	compatNames := make(map[string][]string)
-	for _, val := range info.Consts {
+	for _, def := range info.Consts {
 		const SYS = "SYS_"
-		if strings.HasPrefix(val, SYS) {
+		if strings.HasPrefix(def.Name, SYS) {
 			for _, prefix := range []string{"_", "__", "___"} {
 				for _, suffix := range []string{"30", "50"} {
-					compat := SYS + prefix + val[len(SYS):] + suffix
-					compatNames[val] = append(compatNames[val], compat)
-					info.Consts = append(info.Consts, compat)
+					compat := SYS + prefix + def.Name[len(SYS):] + suffix
+					compatNames[def.Name] = append(compatNames[def.Name], compat)
+					info.Consts = append(info.Consts, &compiler.Const{Name: compat})
 				}
 			}
 		} else {
-			compat := "LINUX_" + val
-			compatNames[val] = append(compatNames[val], compat)
-			info.Consts = append(info.Consts, compat)
+			compat := "LINUX_" + def.Name
+			compatNames[def.Name] = append(compatNames[def.Name], compat)
+			info.Consts = append(info.Consts, &compiler.Const{Name: compat})
 		}
 	}
 	params := &extractParams{

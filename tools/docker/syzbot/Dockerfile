@@ -5,7 +5,7 @@
 
 FROM debian:bookworm
 
-RUN apt-get update --allow-releaseinfo-change
+RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Build essentials:
 	gcc g++ binutils make ccache \
@@ -14,8 +14,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# These are needed to build Linux kernel:
 	flex bison bc gawk dwarves cpio texinfo texi2html lzop lbzip2 \
 	zlib1g-dev libelf-dev libncurses-dev libmpc-dev libssl-dev \
-	# This is required to run alien arch binaries in pkg/cover tests:
-	qemu-user \
 	apt-transport-https curl gnupg python-is-python3 \
 	# Needed for building Cuttlefish images.
 	rsync libarchive-tools \
@@ -24,9 +22,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
         DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	  libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-12-dev lib32stdc++-12-dev \
-	  # These are required to run foreign arch kernels:
-	  qemu-utils qemu-system-misc qemu-system-x86 qemu-system-arm qemu-system-aarch64  \
-	  qemu-system-s390x qemu-system-mips qemu-system-ppc \
 	  # Cross-compilation:
 	  g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	  g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu
@@ -57,6 +52,18 @@ RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2
 # Install bazel
 # Download the official bazel binary. The APT repository isn't used because there is not packages for arm64.
 RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/6.2.0/release/bazel-6.2.0-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
+
+# Install qemu from the backports.
+# The currently stable version (7.4) cannot properly run arm64-MTE kernels.
+RUN add-apt-repository "deb http://deb.debian.org/debian bookworm-backports main"
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
+# This is required to run alien arch binaries in pkg/cover tests:
+	qemu-user
+RUN test "$(uname -m)" != x86_64 && exit 0 || \
+    DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
+    # These are required to run foreign arch kernels:
+    qemu-utils qemu-system-misc qemu-system-x86 qemu-system-arm qemu-system-aarch64  \
+    qemu-system-s390x qemu-system-mips qemu-system-ppc
 
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller

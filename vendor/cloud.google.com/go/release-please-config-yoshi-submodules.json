@@ -51,6 +51,9 @@
         "assuredworkloads": {
             "component": "assuredworkloads"
         },
+        "auth": {
+            "component": "auth"
+        },
         "automl": {
             "component": "automl"
         },
@@ -84,6 +87,9 @@
         "cloudtasks": {
             "component": "cloudtasks"
         },
+        "commerce": {
+            "component": "commerce"
+        },
         "compute": {
             "component": "compute"
         },
@@ -92,6 +98,9 @@
         },
         "confidentialcomputing": {
             "component": "confidentialcomputing"
+        },
+        "config": {
+            "component": "config"
         },
         "contactcenterinsights": {
             "component": "contactcenterinsights"
@@ -225,6 +234,9 @@
         "monitoring": {
             "component": "monitoring"
         },
+        "netapp": {
+            "component": "netapp"
+        },
         "networkconnectivity": {
             "component": "networkconnectivity"
         },
@@ -254,6 +266,9 @@
         },
         "phishingprotection": {
             "component": "phishingprotection"
+        },
+        "policysimulator": {
+            "component": "policysimulator"
         },
         "policytroubleshooter": {
             "component": "policytroubleshooter"

@@ -31,6 +31,7 @@ var (
 	structAttrs      = makeAttrs(attrPacked, attrSize, attrAlign)
 	unionAttrs       = makeAttrs(attrVarlen, attrSize)
 	structFieldAttrs = makeAttrs(attrIn, attrOut, attrInOut, attrOutOverlay)
+	unionFieldAttrs  = makeAttrs(attrIn) // Let's still support attrIn, it's safe.
 	callAttrs        = make(map[string]*attrDesc)
 )
 

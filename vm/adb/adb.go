@@ -67,7 +67,7 @@ type instance struct {
 }
 
 var (
-	androidSerial = "^[0-9A-Z]+$"
+	androidSerial = "^[0-9A-Za-z]+$"
 	ipAddress     = `^(?:localhost|(?:[0-9]{1,3}\.){3}[0-9]{1,3})\:(?:[0-9]{1,5})$` // cuttlefish or remote_device_proxy
 	emulatorID    = `^emulator\-\d+$`
 )

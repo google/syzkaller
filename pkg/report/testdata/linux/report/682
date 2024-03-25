@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in ieee80211_rx_list
-ALT: KMSAN origin in nfnetlink_rcv
 ALT: bad-access in ieee80211_rx_list
 
 [  338.587187][    C0] BUG: KMSAN: uninit-value in ieee80211_rx_list+0x1839/0x5860

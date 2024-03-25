@@ -20,6 +20,7 @@ type typeDesc struct {
 	CanBeTypedef      bool            // can be type alias target?
 	CantBeOpt         bool            // can't be marked as opt?
 	CantBeOut         bool            // can't be used as an explicitly output argument?
+	CantHaveOut       bool            // everything inside can only be in
 	NeedBase          bool            // needs base type when used as field?
 	MaxColon          int             // max number of colons (int8:2) on fields
 	OptArgs           int             // number of optional arguments in Args array
@@ -764,6 +765,7 @@ var typeFmt = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	CantBeOut:    true,
+	CantHaveOut:  true,
 	Args: []namedArg{
 		{Name: "format", Type: typeFmtFormat},
 		{Name: "value", Type: typeArgType, IsArg: true},
@@ -1104,14 +1106,14 @@ ANYUNION [
 	ANYRES16	ANYRES16
 	ANYRES32	ANYRES32
 	ANYRES64	ANYRES64
-	ANYRESDEC	fmt[dec, ANYRES64]
-	ANYRESHEX	fmt[hex, ANYRES64]
-	ANYRESOCT	fmt[oct, ANYRES64]
+	ANYRESDEC	fmt[dec, ANYRES64] (in)
+	ANYRESHEX	fmt[hex, ANYRES64] (in)
+	ANYRESOCT	fmt[oct, ANYRES64] (in)
 ] [varlen]
 
 ANYPTRS [
-	ANYPTR		ptr[in, array[ANYUNION]]
-	ANYPTR64	ptr64[in, array[ANYUNION]]
+	ANYPTR		ptr[inout, array[ANYUNION]]
+	ANYPTR64	ptr64[inout, array[ANYUNION]]
 ]
 
 resource ANYRES8[int8]: -1, 0
@@ -1120,7 +1122,7 @@ resource ANYRES32[int32]: -1, 0
 resource ANYRES64[int64]: -1, 0
 
 syz_builtin0(a ptr[in, ANYPTRS]) (disabled)
-syz_builtin1(a ptr[out, ANYUNION]) (disabled)
+syz_builtin1(a ptr[inout, ANYUNION]) (disabled)
 syz_builtin2() ANYRES8 (disabled)
 syz_builtin3() ANYRES16 (disabled)
 syz_builtin4() ANYRES32 (disabled)

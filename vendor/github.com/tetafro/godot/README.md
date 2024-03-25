@@ -1,7 +1,7 @@
 # godot
 
 [![License](http://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/tetafro/godot/master/LICENSE)
-[![Github CI](https://img.shields.io/github/workflow/status/tetafro/godot/Test)](https://github.com/tetafro/godot/actions?query=workflow%3ATest)
+[![Github CI](https://img.shields.io/github/actions/workflow/status/tetafro/godot/push.yml)](https://github.com/tetafro/godot/actions)
 [![Go Report](https://goreportcard.com/badge/github.com/tetafro/godot)](https://goreportcard.com/report/github.com/tetafro/godot)
 [![Codecov](https://codecov.io/gh/tetafro/godot/branch/master/graph/badge.svg)](https://codecov.io/gh/tetafro/godot)
 

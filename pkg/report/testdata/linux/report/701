@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in btrfs_bin_search
-ALT: KMSAN origin in alloc_extent_buffer
 ALT: bad-access in btrfs_bin_search
 
 [  343.493742][ T5647] =====================================================

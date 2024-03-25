@@ -4,6 +4,8 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -339,4 +341,62 @@ func TestNeedReproIsolated(t *testing.T) {
 				bug, test.needRepro, funcResult)
 		}
 	}
+}
+
+func TestFailedReproLogs(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	crash1 := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title1",
+		Log:     []byte("log1"),
+		Report:  []byte("report1"),
+	}
+	c.client.ReportCrash(crash1)
+
+	resp, _ := c.client.ReportingPollBugs("test")
+	c.expectEQ(len(resp.Reports), 1)
+	rep := resp.Reports[0]
+	c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+
+	// Report max attempts.
+	cid := &dashapi.CrashID{
+		BuildID: crash1.BuildID,
+		Title:   crash1.Title,
+	}
+	for i := 0; i < maxReproLogs; i++ {
+		c.advanceTime(time.Minute)
+		cid.ReproLog = []byte(fmt.Sprintf("report log %#v", i))
+		err := c.client.ReportFailedRepro(cid)
+		c.expectOK(err)
+	}
+
+	dbBug, _, _ := c.loadBug(rep.ID)
+	firstRecords := dbBug.ReproAttempts
+	c.expectEQ(len(firstRecords), maxReproLogs)
+
+	// Report one more.
+	cid.ReproLog = []byte(fmt.Sprintf("report log %#v", maxReproLogs))
+	err := c.client.ReportFailedRepro(cid)
+	c.expectOK(err)
+
+	dbBug, _, _ = c.loadBug(rep.ID)
+	lastRecords := dbBug.ReproAttempts
+	c.expectEQ(len(firstRecords), maxReproLogs)
+
+	// Ensure the first record was dropped.
+	checkResponseStatusCode(c, AccessAdmin,
+		textLink(textReproLog, firstRecords[0].Log), http.StatusNotFound)
+
+	// Ensure that the second record is readable.
+	reply, err := c.AuthGET(AccessAdmin, textLink(textReproLog, lastRecords[0].Log))
+	c.expectOK(err)
+	c.expectEQ(reply, []byte("report log 1"))
 }

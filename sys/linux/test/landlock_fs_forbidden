@@ -14,7 +14,7 @@ mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x1c0)
 
 # Creates a first ruleset to restrict execution.
 
-r0 = landlock_create_ruleset(&AUTO={0x1}, AUTO, 0x0)
+r0 = landlock_create_ruleset(&AUTO={0x1, 0x0}, AUTO, 0x0)
 prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
 landlock_restrict_self(r0, 0x0)
 

@@ -6,6 +6,7 @@ package vcs
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"net/mail"
 	"os"
@@ -144,6 +145,18 @@ func (git *git) fetchRemote(repo string) error {
 	// Ignore error as we can double add the same remote and that will fail.
 	git.git("remote", "add", repoHash, repo)
 	_, err := git.git("fetch", "--force", "--tags", repoHash)
+	if err != nil {
+		var verbose *osutil.VerboseError
+		if errors.As(err, &verbose) &&
+			bytes.Contains(verbose.Output, []byte("error: cannot lock ref")) {
+			// It can happen that the fetched repo has tags names that conflict
+			// with the ones already present in the repository.
+			// Try to fetch more, but this time prune tags, it should help.
+			// The --prune-tags option will remove all tags that are not present
+			// in this remote repo, so don't do it always. Only when necessary.
+			_, err = git.git("fetch", "--force", "--tags", "--prune", "--prune-tags", repoHash)
+		}
+	}
 	return err
 }
 

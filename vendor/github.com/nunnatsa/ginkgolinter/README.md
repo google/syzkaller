@@ -153,24 +153,35 @@ The linter will not suggest a fix for this warning.
 
 This rule cannot be suppressed.
 
-### Focus Container Found [BUG]
-This rule finds ginkgo focus containers in the code.
+### Focus Container / Focus individual spec found [BUG]
+This rule finds ginkgo focus containers, or the `Focus` individual spec in the code.
 
-ginkgo supports the `FDescribe`, `FContext`, `FWhen` and `FIt` containers to allow the developer to focus
+ginkgo supports the `FDescribe`, `FContext`, `FWhen`, `FIt`, `FDescribeTable` and `FEntry`
+containers to allow the developer to focus
 on a specific test or set of tests during test development or debug.
-
-***This rule is disabled by default***. Use the `--forbid-focus-container=true` command line flag to enable it.  
 
 For example:
 ```go
 var _ = Describe("checking something", func() {
-	FIt("this test is the only one that will run", func(){
-		...
-	})
+    FIt("this test is the only one that will run", func(){
+        ...
+    })
+})
+```
+Alternatively, the `Focus` individual spec may be used for the same purpose, e.g.
+```go
+var _ = Describe("checking something", Focus, func() {
+    It("this test is the only one that will run", func(){
+        ...
+    })
 })
 ```
 
-These container must not be part of the final source code, and should only be used locally by the developer.
+These container, or the `Focus` spec, must not be part of the final source code, and should only be used locally by the developer.
+
+***This rule is disabled by default***. Use the `--forbid-focus-container=true` command line flag to enable it.  
+
+
 
 ### Wrong Length Assertion [STYLE]
 The linter finds assertion of the golang built-in `len` function, with all kind of matchers, while there are already gomega matchers for these usecases; We want to assert the item, rather than its length.

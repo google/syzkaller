@@ -217,7 +217,8 @@ git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core
 		cmd: &SingleCommand{
 			Command: CmdTest,
 			Str:     "test",
-			Args:    "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+			// We only look for arguments if there's ":" after "#syz test".
+			Args: "",
 		},
 	},
 	{
@@ -247,6 +248,16 @@ locking/core
 			Command: CmdTest,
 			Str:     "test:",
 			Args:    "repo commit",
+		},
+	},
+	{
+		body: `#syz test
+patch-begins
+`,
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test",
+			Args:    "",
 		},
 	},
 	{
@@ -696,7 +707,7 @@ index 3d85747bd86e..a257b872a53d 100644
 				{
 					Command: CmdTest,
 					Str:     "test",
-					Args:    "commit 59372bbf3abd5b24a7f6f676a3968685c280f955",
+					Args:    "",
 				},
 			},
 		}},

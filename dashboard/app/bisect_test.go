@@ -170,9 +170,9 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
 		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-			dbBug.keyHash(), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
+			dbBug.keyHash(c.ctx), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
 		cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
-			dbBug.keyHash(), crash2.ReproC))
+			dbBug.keyHash(c.ctx), crash2.ReproC))
 		c.checkURLContents(bisectLogLink, []byte("bisect log 2"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisect crash report"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisect crash log"))
@@ -237,18 +237,18 @@ syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
 If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -428,7 +428,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
 		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-			dbBug.keyHash(), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
+			dbBug.keyHash(c.ctx), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
 		c.checkURLContents(bisectLogLink, []byte("bisectfix log 4"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisectfix crash report 4"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisectfix crash log 4"))
@@ -556,18 +556,18 @@ syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
 If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -840,18 +840,18 @@ syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
 If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -1105,26 +1105,36 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a bug")))
 	c.expectEQ(job.InvalidatedBy, "")
 
-	// Mark bisection as invalid.
+	// Mark bisection as invalid, but do not restart it.
 	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode())
 	var httpErr *HTTPError
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusFound)
 
 	// The invalidated bisection should have vanished from the web UI
-	bug, _ = c.loadSingleBug()
 	job, _ = c.loadSingleJob()
 	content, err = c.GET(bugURL)
 	c.expectEQ(err, nil)
-	c.expectEQ(bug.BisectCause, BisectNot)
 	c.expectTrue(!bytes.Contains(content, []byte("Cause bisection: introduced by")))
 	c.expectTrue(!bytes.Contains(content, []byte("kernel: add a bug")))
 	c.expectEQ(job.InvalidatedBy, "user@syzkaller.com")
 
-	// Confirm we wait 7 days before retrying cause bisections.
-	resp := c.client2.pollJobs(build.Manager)
-	c.client2.expectNE(resp.ID, "")
-	c.advanceTime(24 * 7 * time.Hour)
+	// Wait 30 days, no new cause bisection jobs should be created.
+	c.advanceTime(24 * 30 * time.Hour)
+	resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		BisectCause: true,
+	})
+	c.expectEQ(resp.ID, "")
+
+	// Invalidate the bisection once more (why not), but this time ask dashboard to redo it.
+	_, err = c.AuthGET(AccessAdmin, "/admin?action=invalidate_bisection&key="+jobKey.Encode()+"&restart=1")
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusFound)
+	bug, _ = c.loadSingleBug()
+	c.expectEQ(bug.BisectCause, BisectNot)
+
+	// The bisection should be started again.
+	c.advanceTime(time.Hour)
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
@@ -1221,7 +1231,7 @@ func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dasha
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
 
 	// Ensure we do not automatically close the bug.
-	c.expectTrue(!config.Namespaces["test2"].FixBisectionAutoClose)
+	c.expectTrue(!c.config().Namespaces["test2"].FixBisectionAutoClose)
 	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	c.expectOK(err)
 	dbBug, _, _ := c.loadBug(extBugID)

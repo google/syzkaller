@@ -15,6 +15,8 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestReportBug(t *testing.T) {
@@ -789,12 +791,12 @@ func TestUpdateBugReporting(t *testing.T) {
 	defer c.Close()
 	setIDs := func(bug *Bug, arr []BugReporting) {
 		for i := range arr {
-			arr[i].ID = bugReportingHash(bug.keyHash(), arr[i].Name)
+			arr[i].ID = bugReportingHash(bug.keyHash(c.ctx), arr[i].Name)
 		}
 	}
 	now := timeNow(c.ctx)
 	// We test against the test2 namespace.
-	cfg := config.Namespaces["test2"]
+	cfg := c.config().Namespaces["test2"]
 	tests := []struct {
 		Before []BugReporting
 		After  []BugReporting
@@ -918,7 +920,7 @@ func TestUpdateBugReporting(t *testing.T) {
 		}
 		setIDs(bug, bug.Reporting)
 		setIDs(bug, test.After)
-		hasError := bug.updateReportings(cfg, now) != nil
+		hasError := bug.updateReportings(c.ctx, cfg, now) != nil
 		if hasError != test.Error {
 			t.Errorf("Before: %#v, Expected error: %v, Got error: %v", test.Before, test.Error, hasError)
 		}
@@ -1104,4 +1106,71 @@ func TestReportDecommissionedBugs(t *testing.T) {
 	closed, _ = client.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 1)
 	c.expectEQ(closed[0], rep.ID)
+}
+
+func TestObsoletePeriod(t *testing.T) {
+	base := time.Now()
+	c := context.Background()
+	config := getConfig(c)
+	tests := []struct {
+		name   string
+		bug    *Bug
+		period time.Duration
+	}{
+		{
+			name: "frequent final bug",
+			bug: &Bug{
+				// Once in a day.
+				NumCrashes: 30,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24 * 30),
+				Reporting:  []BugReporting{{Reported: base}},
+			},
+			// 80 days are definitely enough.
+			period: config.Obsoleting.MinPeriod,
+		},
+		{
+			name: "very short-living final bug",
+			bug: &Bug{
+				NumCrashes: 5,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24),
+				Reporting:  []BugReporting{{Reported: base}},
+			},
+			// Too few crashes, wait max time.
+			period: config.Obsoleting.MaxPeriod,
+		},
+		{
+			name: "rare stable final bug",
+			bug: &Bug{
+				// Once in 20 days.
+				NumCrashes: 20,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24 * 400),
+				Reporting:  []BugReporting{{Reported: base}},
+			},
+			// Wait max time.
+			period: config.Obsoleting.MaxPeriod,
+		},
+		{
+			name: "frequent non-final bug",
+			bug: &Bug{
+				// Once in a day.
+				NumCrashes: 10,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24 * 10),
+				Reporting:  []BugReporting{{}},
+			},
+			// 40 days are also enough.
+			period: config.Obsoleting.NonFinalMinPeriod,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			ret := test.bug.obsoletePeriod(c)
+			assert.Equal(t, test.period, ret)
+		})
+	}
 }

@@ -16,7 +16,7 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -96,7 +96,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 }
 
 func getTraceFiles(dir string) []string {
-	infos, err := ioutil.ReadDir(dir)
+	infos, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatalf("%s", err)
 

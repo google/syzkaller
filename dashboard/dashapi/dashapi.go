@@ -351,6 +351,7 @@ type CrashID struct {
 	Corrupted    bool
 	Suppressed   bool
 	MayBeMissing bool
+	ReproLog     []byte
 }
 
 type NeedReproResp struct {
@@ -639,6 +640,7 @@ type DiscussionMessage struct {
 	ID       string
 	External bool // true if the message is not from the bot itself
 	Time     time.Time
+	Email    string // not saved to the DB
 }
 
 type SaveDiscussionReq struct {

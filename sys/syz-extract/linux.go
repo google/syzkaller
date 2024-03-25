@@ -115,6 +115,7 @@ func (*linux) prepareArch(arch *Arch) error {
 	return nil
 }
 
+// nolint: goconst
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
 	headerArch := arch.target.KernelHeaderArch
 	sourceDir := arch.sourceDir
@@ -135,7 +136,6 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/include",
 		"-I" + sourceDir + "/include",
 		"-I" + sourceDir + "/arch/" + headerArch + "/include/uapi",
-		"-I" + buildDir + "/arch/" + headerArch + "/include/generated/uapi",
 		"-I" + sourceDir + "/include/uapi",
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,

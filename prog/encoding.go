@@ -489,9 +489,20 @@ func (p *parser) parseArgInt(typ Type, dir Dir) (Arg, error) {
 }
 
 func (p *parser) parseAuto(typ Type, dir Dir) (Arg, error) {
-	switch typ.(type) {
+	switch t1 := typ.(type) {
 	case *ConstType, *LenType, *CsumType:
 		return p.auto(MakeConstArg(typ, dir, 0)), nil
+	case *StructType:
+		var inner []Arg
+		for len(inner) < len(t1.Fields) {
+			field := t1.Fields[len(inner)]
+			innerArg, err := p.parseAuto(field.Type, dir)
+			if err != nil {
+				return nil, err
+			}
+			inner = append(inner, innerArg)
+		}
+		return MakeGroupArg(typ, dir, inner), nil
 	default:
 		return nil, fmt.Errorf("wrong type %T for AUTO", typ)
 	}
@@ -562,7 +573,7 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 	var inner Arg
 	if p.Char() == '=' {
 		p.Parse('=')
-		if p.Char() == 'A' {
+		if p.HasNext("ANY") {
 			p.Parse('A')
 			p.Parse('N')
 			p.Parse('Y')
@@ -660,7 +671,7 @@ func (p *parser) parseArgStruct(typ Type, dir Dir) (Arg, error) {
 	p.Parse('{')
 	t1, ok := typ.(*StructType)
 	if !ok {
-		p.eatExcessive(false, "wrong struct arg")
+		p.eatExcessive(false, "wrong struct arg for %q", typ.Name())
 		p.Parse('}')
 		return typ.DefaultArg(dir), nil
 	}
@@ -728,7 +739,7 @@ func (p *parser) parseArgArray(typ Type, dir Dir) (Arg, error) {
 func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	t1, ok := typ.(*UnionType)
 	if !ok {
-		p.eatExcessive(true, "wrong union arg")
+		p.eatExcessive(true, "wrong union arg for %q", typ.Name())
 		return typ.DefaultArg(dir), nil
 	}
 	p.Parse('@')
@@ -1178,6 +1189,21 @@ func (p *parser) Char() byte {
 		return 0
 	}
 	return p.s[p.i]
+}
+
+func (p *parser) HasNext(str string) bool {
+	if p.e != nil {
+		return false
+	}
+	if len(p.s) < p.i+len(str) {
+		return false
+	}
+	for i := 0; i < len(str); i++ {
+		if p.s[p.i+i] != str[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (p *parser) Parse(ch byte) {

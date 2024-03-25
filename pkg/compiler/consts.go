@@ -5,6 +5,7 @@ package compiler
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -13,11 +14,15 @@ import (
 )
 
 type ConstInfo struct {
-	File     string
-	Consts   []string
+	Consts   []*Const
 	Includes []string
 	Incdirs  []string
 	Defines  map[string]string
+}
+
+type Const struct {
+	Name string
+	Pos  ast.Pos
 }
 
 func ExtractConsts(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) map[string]*ConstInfo {
@@ -30,14 +35,14 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh ast.ErrorHa
 
 // FabricateSyscallConsts adds syscall number constants to consts map.
 // Used for test OS to not bother specifying consts for all syscalls.
-func FabricateSyscallConsts(target *targets.Target, constInfo map[string]*ConstInfo, consts map[string]uint64) {
+func FabricateSyscallConsts(target *targets.Target, constInfo map[string]*ConstInfo, cf *ConstFile) {
 	if !target.SyscallNumbers {
 		return
 	}
 	for _, info := range constInfo {
-		for _, name := range info.Consts {
-			if strings.HasPrefix(name, target.SyscallPrefix) {
-				consts[name] = 0
+		for _, c := range info.Consts {
+			if strings.HasPrefix(c.Name, target.SyscallPrefix) {
+				cf.addConst(target.Arch, c.Name, 0, true)
 			}
 		}
 	}
@@ -94,7 +99,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 			comp.addConst(infos, n.Pos, n.Ident)
 		}
 	}))
-	return convertConstInfo(infos)
+	return convertConstInfo(infos, comp.fileMeta)
 }
 
 func (comp *compiler) extractTypeConsts(infos map[string]*constInfo, n ast.Node) {
@@ -119,11 +124,14 @@ func (comp *compiler) addConst(infos map[string]*constInfo, pos ast.Pos, name st
 		return
 	}
 	info := getConstInfo(infos, pos)
-	info.consts[name] = true
+	info.consts[name] = &Const{
+		Pos:  pos,
+		Name: name,
+	}
 }
 
 type constInfo struct {
-	consts       map[string]bool
+	consts       map[string]*Const
 	defines      map[string]string
 	includeArray []string
 	incdirArray  []string
@@ -133,7 +141,7 @@ func getConstInfo(infos map[string]*constInfo, pos ast.Pos) *constInfo {
 	info := infos[pos.File]
 	if info == nil {
 		info = &constInfo{
-			consts:  make(map[string]bool),
+			consts:  make(map[string]*Const),
 			defines: make(map[string]string),
 		}
 		infos[pos.File] = info
@@ -141,15 +149,24 @@ func getConstInfo(infos map[string]*constInfo, pos ast.Pos) *constInfo {
 	return info
 }
 
-func convertConstInfo(infos map[string]*constInfo) map[string]*ConstInfo {
+func convertConstInfo(infos map[string]*constInfo, metas map[string]Meta) map[string]*ConstInfo {
 	res := make(map[string]*ConstInfo)
 	for file, info := range infos {
 		if file == ast.BuiltinFile {
 			continue
 		}
+		var allConsts []*Const
+		for name, val := range info.consts {
+			if name == "" {
+				continue
+			}
+			allConsts = append(allConsts, val)
+		}
+		sort.Slice(allConsts, func(i, j int) bool {
+			return allConsts[i].Name < allConsts[j].Name
+		})
 		res[file] = &ConstInfo{
-			File:     file,
-			Consts:   toArray(info.consts),
+			Consts:   allConsts,
 			Includes: info.includeArray,
 			Incdirs:  info.incdirArray,
 			Defines:  info.defines,

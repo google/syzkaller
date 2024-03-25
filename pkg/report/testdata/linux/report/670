@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in native_apic_mem_write
-ALT: KMSAN origin in inet_reqsk_alloc
 ALT: bad-access in native_apic_mem_write
 
 [  663.629383][    C1] =====================================================

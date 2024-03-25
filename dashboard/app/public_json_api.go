@@ -39,6 +39,7 @@ type publicAPICrashDescription struct {
 	SyzkallerCommit     string `json:"syzkaller-commit,omitempty"`
 	CompilerDescription string `json:"compiler-description,omitempty"`
 	Architecture        string `json:"architecture,omitempty"`
+	CrashReport         string `json:"crash-report-link,omitempty"`
 }
 
 func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
@@ -94,6 +95,7 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 					SyzkallerCommit:    crash.SyzkallerCommit,
 					// TODO: add the CompilerDescription
 					// TODO: add the Architecture
+					CrashReport: crash.ReportLink,
 				})
 			}
 			return res

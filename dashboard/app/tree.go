@@ -551,7 +551,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 		crashKey := db.NewKey(ctx.c, "Crash", "", crashID, ctx.bugKey)
 		crash := new(Crash)
 		// We need to also tolerate the case when the crash was just deleted.
-		err := db.Get(ctx.c, crashKey, crash)
+		err := db.Get(ctx.cGlobal, crashKey, crash)
 		if err != nil && err != db.ErrNoSuchEntity {
 			return fmt.Errorf("failed to get crash: %w", err)
 		} else if err == nil {
@@ -566,26 +566,26 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 			}
 		}
 	}
+
 	// Query the most relevant crash with repro.
-	if ctx.crash == nil {
-		crash, crashKey, err := findCrashForBug(ctx.c, ctx.bug)
-		if err != nil {
-			return err
-		}
-		ok, build, err := ctx.isCrashRelevant(crash)
-		if err != nil {
-			return err
-		} else if ok {
-			ctx.build = build
-			ctx.crash = crash
-			ctx.crashKey = crashKey
-		}
+	crash, crashKey, err := findCrashForBug(ctx.cGlobal, ctx.bug)
+	if err != nil {
+		return err
+	}
+	ok, build, err := ctx.isCrashRelevant(crash)
+	if err != nil {
+		return err
+	} else if ok && (ctx.crash == nil || crash.ReportLen > ctx.crash.ReportLen) {
+		// Update the crash only if we found a better one.
+		ctx.build = build
+		ctx.crash = crash
+		ctx.crashKey = crashKey
 	}
 	// Load the rest of the data.
 	if ctx.crash != nil {
 		var err error
 		ns := ctx.bug.Namespace
-		repoGraph, err := makeRepoGraph(getKernelRepos(ctx.c, ns))
+		repoGraph, err := makeRepoGraph(getNsConfig(ctx.c, ns).Repos)
 		if err != nil {
 			return err
 		}
@@ -602,7 +602,7 @@ func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, *Build, error) {
 		// Let's wait for the repro.
 		return false, nil, nil
 	}
-	newManager, _ := activeManager(crash.Manager, ctx.bug.Namespace)
+	newManager, _ := activeManager(ctx.cGlobal, crash.Manager, ctx.bug.Namespace)
 	if newManager != crash.Manager {
 		// The manager was deprecated since the crash.
 		// Let's just ignore such bugs for now.
@@ -714,11 +714,14 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 }
 
 // Create a cross-tree bisection job (if needed).
+// Returns:
+// a) Job object and its key -- in case of success.
+// b) Whether the lookup was expensive (it can help optimize crossTreeBisection calls).
 func crossTreeBisection(c context.Context, bug *Bug,
-	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
-	repoGraph, err := makeRepoGraph(getKernelRepos(c, bug.Namespace))
+	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, bool, error) {
+	repoGraph, err := makeRepoGraph(getNsConfig(c, bug.Namespace).Repos)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 	bugJobs := &lazyJobList{
 		c:       c,
@@ -727,6 +730,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 	}
 	var job *Job
 	var jobKey *db.Key
+	expensive := false
 	err = repoGraph.forEachEdge(func(from, to *repoNode, info KernelRepoLink) error {
 		if jobKey != nil {
 			return nil
@@ -734,6 +738,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		if !info.BisectFixes {
 			return nil
 		}
+		expensive = true
 		log.Infof(c, "%s: considering cross-tree bisection %s/%s",
 			bug.displayTitle(), from.repo.Alias, to.repo.Alias)
 		_, crashJob := bug.findResult(c, to.repo, wantNewAny{}, runOnHEAD{})
@@ -749,11 +754,15 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		if err != nil {
 			return err
 		}
-		manager, _ := activeManager(crashJob.Manager, crashJob.Namespace)
+		manager, _ := activeManager(c, crashJob.Manager, crashJob.Namespace)
 		if !managers[manager].BisectFix {
 			return nil
 		}
 		_, successJob := bug.findResult(c, from.repo, wantNewAny{}, runOnHEAD{})
+		if successJob == nil {
+			// The jobs is not done yet.
+			return nil
+		}
 		if successJob.CrashTitle != "" {
 			// The kernel tree is still crashed by the repro.
 			return nil
@@ -787,7 +796,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		jobKey, err = saveJob(c, newJob, bug.key(c))
 		return err
 	})
-	return job, jobKey, err
+	return job, jobKey, expensive, err
 }
 
 type lazyJobList struct {

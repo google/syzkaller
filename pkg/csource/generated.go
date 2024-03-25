@@ -7023,7 +7023,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 		munmap(dest, max_destlen);
 		return -1;
 	}
-	return munmap(dest, destlen);
+	return munmap(dest, max_destlen);
 }
 
 #include <errno.h>
@@ -12213,7 +12213,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 		munmap(dest, max_destlen);
 		return -1;
 	}
-	return munmap(dest, destlen);
+	return munmap(dest, max_destlen);
 }
 
 #include <errno.h>

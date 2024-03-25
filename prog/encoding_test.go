@@ -261,6 +261,18 @@ func TestDeserialize(t *testing.T) {
 			Err: `wrong type *prog.IntType for AUTO`,
 		},
 		{
+			In:  `test$auto1(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
+			Out: `test$auto1(0x42, &(0x7f0000000040)={0xc, 0x43, 0x0}, 0xc, 0x0)`,
+		},
+		{
+			In:  `test$auto2(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
+			Out: `test$auto2(0x42, &(0x7f0000000040)={0x10, {0xc, 0x43, 0x0}}, 0x10, 0x0)`,
+		},
+		{
+			In:  `test$auto0(AUTO, &AUTO=AUTO, AUTO, 0x0)`,
+			Err: `wrong type *prog.IntType for AUTO`,
+		},
+		{
 			In:  `test$str0(&AUTO="303100090a0d7022273a")`,
 			Out: `test$str0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
 		},
@@ -513,5 +525,28 @@ serialize0(0x0)
 	}
 	if !reflect.DeepEqual(p.Comments, wantComments) {
 		t.Errorf("bad program comments %q\nwant: %q", p.Comments, wantComments)
+	}
+}
+
+func TestHasNext(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected bool
+	}{
+		{"abcdef", true},
+		{"xyz", false},
+		{"ab", false},
+		{"abc", true},
+	}
+	for _, testCase := range testCases {
+		p := newParser(nil, []byte(testCase.input), true)
+		if !p.Scan() {
+			t.Fatalf("parser does not scan")
+		}
+		result := p.HasNext("abc")
+		if result != testCase.expected {
+			t.Errorf("expected HasNext(\"abc\") on input %q to be %v, but got %v",
+				testCase.input, testCase.expected, result)
+		}
 	}
 }

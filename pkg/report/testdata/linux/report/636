@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in ppp_send_frame
-ALT: KMSAN origin in ppp_write
 ALT: bad-access in ppp_send_frame
 
 [   87.733076][ T3479] =====================================================

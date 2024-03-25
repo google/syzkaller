@@ -13,7 +13,7 @@ mkdirat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1c0)
 
 # Creates a ruleset with a reference to this mount point.
 
-r0 = landlock_create_ruleset(&AUTO={0x100}, AUTO, 0x0)
+r0 = landlock_create_ruleset(&AUTO={0x100, 0x0}, AUTO, 0x0)
 r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x200000, 0x0)
 landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r0, AUTO, &AUTO={0x100, r1}, 0x0)
 

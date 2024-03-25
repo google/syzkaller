@@ -153,11 +153,11 @@ func (ctx *Context) run(pid int) {
 			return
 		}
 		entry := ctx.progs[idx%len(ctx.progs)]
-		ctx.execute(pid, env, entry)
+		ctx.execute(pid, env, entry, idx)
 	}
 }
 
-func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog) {
+func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) {
 	// Limit concurrency window.
 	ticket := ctx.gate.Enter()
 	defer ctx.gate.Leave(ticket)
@@ -187,7 +187,8 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog) {
 				ctx.printHints(p, info)
 			}
 			if *flagCoverFile != "" {
-				ctx.dumpCoverage(*flagCoverFile, info)
+				covFile := fmt.Sprintf("%s_prog%d", *flagCoverFile, progIndex)
+				ctx.dumpCoverage(covFile, info)
 			}
 		} else {
 			log.Logf(1, "RESULT: no calls executed")

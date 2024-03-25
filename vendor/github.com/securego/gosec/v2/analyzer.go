@@ -59,7 +59,7 @@ var generatedCodePattern = regexp.MustCompile(`^// Code generated .* DO NOT EDIT
 
 // The Context is populated with data parsed from the source code as it is scanned.
 // It is passed through to all rule functions as they are called. Rules may use
-// this data in conjunction withe the encountered AST node.
+// this data in conjunction with the encountered AST node.
 type Context struct {
 	FileSet      *token.FileSet
 	Comments     ast.CommentMap
@@ -449,10 +449,12 @@ func (gosec *Analyzer) ignore(n ast.Node) map[string]issue.SuppressionInfo {
 	if groups, ok := gosec.context.Comments[n]; ok && !gosec.ignoreNosec {
 
 		// Checks if an alternative for #nosec is set and, if not, uses the default.
-		noSecDefaultTag := "#nosec"
+		noSecDefaultTag := NoSecTag(string(Nosec))
 		noSecAlternativeTag, err := gosec.config.GetGlobal(NoSecAlternative)
 		if err != nil {
 			noSecAlternativeTag = noSecDefaultTag
+		} else {
+			noSecAlternativeTag = NoSecTag(noSecAlternativeTag)
 		}
 
 		for _, group := range groups {

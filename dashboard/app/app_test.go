@@ -34,6 +34,7 @@ func init() {
 	isBrokenAuthDomainInTest = true
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
+	ensureConfigImmutability = true
 	initMocks()
 	installConfig(testConfig)
 }
@@ -274,6 +275,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			FindBugOriginTrees: true,
+			CacheUIPages:       true,
 		},
 		"access-public-email": {
 			AccessLevel: AccessPublic,
@@ -292,6 +294,12 @@ var testConfig = &GlobalConfig{
 					URL:    "git://syzkaller.org/access-public-email.git",
 					Branch: "access-public-email",
 					Alias:  "access-public-email",
+				},
+				{
+					// Needed for TestTreeOriginLtsBisection().
+					URL:    "https://upstream.repo/repo",
+					Branch: "upstream-master",
+					Alias:  "upstream-master",
 				},
 			},
 			Reporting: []Reporting{
@@ -529,9 +537,14 @@ var testConfig = &GlobalConfig{
 					DetectMissingBackports: true,
 				},
 			},
+			Managers: map[string]ConfigManager{
+				"better-manager": {
+					Priority: 1,
+				},
+			},
 			Reporting: []Reporting{
 				{
-					AccessLevel: AccessUser,
+					AccessLevel: AccessAdmin,
 					Name:        "non-public",
 					DailyLimit:  1000,
 					Filter: func(bug *Bug) FilterResult {
@@ -540,8 +553,8 @@ var testConfig = &GlobalConfig{
 					Config: &TestConfig{Index: 1},
 				},
 				{
-					AccessLevel: AccessPublic,
-					Name:        "public",
+					AccessLevel: AccessUser,
+					Name:        "user",
 					DailyLimit:  1000,
 					Config: &EmailConfig{
 						Email:         "bugs@syzkaller.com",

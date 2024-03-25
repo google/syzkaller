@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 // nolint: funlen
@@ -42,7 +43,7 @@ func TestEmailReport(t *testing.T) {
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
-		to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
+		to := c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 		c.expectEQ(msg.To, []string{to})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
@@ -73,14 +74,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -146,7 +147,7 @@ For more options, visit https://groups.google.com/d/optout.
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
 	syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
-		dbBug0.keyHash(), syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
+		dbBug0.keyHash(c.ctx), syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
 	c.client2.ReportCrash(crash)
 
 	{
@@ -165,7 +166,7 @@ For more options, visit https://groups.google.com/d/optout.
 			"bugs@syzkaller.com", // This is from incomingEmail.
 			"default@sender.com", // This is from incomingEmail.
 			"foo@bar.com",
-			config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
+			c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
 		}
 		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
@@ -252,18 +253,18 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
 If you want syzbot to run the reproducer, reply with:
 #syz test: git://repo/address.git branch-or-commit-hash
 If you attach or paste a git patch, syzbot will apply it before testing.
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -295,7 +296,7 @@ Content-Type: text/plain
 	crash.Maintainers = []string{"\"qux\" <qux@qux.com>"}
 	c.client2.ReportCrash(crash)
 	cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
-		dbBug0.keyHash(), crash.ReproC))
+		dbBug0.keyHash(c.ctx), crash.ReproC))
 
 	{
 		msg := c.pollEmailBug()
@@ -373,14 +374,9 @@ unknown command "bad-command"
 	}
 
 	// Now mark the bug as fixed.
-	c.incomingEmail(sender1, "#syz fix: some: commit title", EmailOptCC(nil))
-	reply := c.pollEmailBug().Body
-	// nolint: lll
-	c.expectEQ(reply, `> #syz fix: some: commit title
-
-Your commands are accepted, but please keep bugs@syzkaller.com mailing list in CC next time. It serves as a history of what happened with each bug report. Thank you.
-
-`)
+	c.incomingEmail(sender1, "#syz fix: some: commit title",
+		EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"}),
+		EmailOptSubject("fix bug title"))
 
 	// Check that the commit is now passed to builders.
 	builderPollResp, _ := c.client2.BuilderPoll(build.Manager)
@@ -477,12 +473,11 @@ func TestEmailDup(t *testing.T) {
 }
 
 func TestEmailDup2(t *testing.T) {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 4; i++ {
 		i := i
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			c := NewCtx(t)
 			defer c.Close()
-
 			build := testBuild(1)
 			c.client2.UploadBuild(build)
 
@@ -502,13 +497,16 @@ func TestEmailDup2(t *testing.T) {
 			msg2 = c.pollEmailBug()
 			c.expectEQ(msg2.Subject, "[syzbot] KASAN: another bad thing")
 
+			cc := EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"})
 			switch i {
 			case 0:
-				c.incomingEmail(msg2.Sender, "#syz dup: BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: BUG: something bad", cc)
 			case 1:
-				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] BUG: something bad", cc)
+			case 2:
+				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] [subsystemA?] BUG: something bad", cc)
 			default:
-				c.incomingEmail(msg2.Sender, "#syz dup: syzbot: BUG: something bad")
+				c.incomingEmail(msg2.Sender, "#syz dup: syzbot: BUG: something bad", cc)
 				reply := c.pollEmailBug()
 				c.expectTrue(strings.Contains(reply.Body, "can't find the dup bug"))
 			}
@@ -577,8 +575,10 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		crash1.Title = fmt.Sprintf("bug_%v", i)
 		c.client2.ReportCrash(crash1)
 		bugSender := c.pollEmailBug().Sender
+		cc := EmailOptCC([]string{"default@maintainers.com", "test@syzkaller.com",
+			"bugs@syzkaller.com", "default2@maintainers.com", "bugs2@syzkaller.com"})
 		for j := 0; j < test.bug; j++ {
-			c.incomingEmail(bugSender, "#syz upstream")
+			c.incomingEmail(bugSender, "#syz upstream", cc)
 			bugSender = c.pollEmailBug().Sender
 		}
 
@@ -587,11 +587,11 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		c.client2.ReportCrash(crash2)
 		dupSender := c.pollEmailBug().Sender
 		for j := 0; j < test.dup; j++ {
-			c.incomingEmail(dupSender, "#syz upstream")
+			c.incomingEmail(dupSender, "#syz upstream", cc)
 			dupSender = c.pollEmailBug().Sender
 		}
 
-		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title)
+		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title, cc)
 		if test.result {
 			c.expectNoEmail()
 		} else {
@@ -700,14 +700,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -870,14 +870,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -890,7 +890,7 @@ func TestSubjectTitleParser(t *testing.T) {
 	tests := []struct {
 		inSubject string
 		outTitle  string
-		outSeq    int
+		outSeq    int64
 	}{
 		{
 			inSubject: "Re: kernel BUG in blk_mq_dispatch_rq_list (4)",
@@ -925,6 +925,16 @@ func TestSubjectTitleParser(t *testing.T) {
 			outSeq:    0,
 		},
 		{
+			inSubject: "Re: [syzbot]",
+			outTitle:  "",
+			outSeq:    0,
+		},
+		{
+			inSubject: "Re: [syzbot] [subsystemA?]",
+			outTitle:  "",
+			outSeq:    0,
+		},
+		{
 			// Make sure we delete filesystem tags.
 			inSubject: "Re: [syzbot] [ntfs3?] [ext4?] kernel BUG in blk_mq_dispatch_rq_list (4)",
 			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list",
@@ -932,7 +942,7 @@ func TestSubjectTitleParser(t *testing.T) {
 		},
 	}
 
-	p := subjectTitleParser{}
+	p := makeSubjectTitleParser(context.Background())
 	for _, test := range tests {
 		title, seq, err := p.parseTitle(test.inSubject)
 		if test.outTitle == "" {
@@ -979,12 +989,12 @@ func TestBugFromSubjectInference(t *testing.T) {
 	origSender := upstreamCrash(client, build, crashTitle)
 	upstreamCrash(client, build, "unrelated crash 2")
 
-	mailingList := "<" + config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
+	mailingList := "<" + c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
 
 	// First try to ping some non-existing bug.
 	subject := "Re: unknown-bug"
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom(mailingList), EmailOptSubject(subject),
 	)
@@ -995,7 +1005,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	// Now try to test the exiting bug, but with the wrong mailing list.
 	subject = "Re: " + crashTitle
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom("<unknown-list@syzkaller.com>"), EmailOptSubject(subject),
 	)
@@ -1004,7 +1014,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	// Now try to test the exiting bug with the proper mailing list.
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
@@ -1014,7 +1024,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	// Test that a different type of email headers is also parsed fine.
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
@@ -1026,7 +1036,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	// Ensure that the inference fails with the proper title.
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
@@ -1046,7 +1056,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	// Make sure syzbot can understand the (2) version.
 	subject = "Re: " + crashTitle + " (2)"
 	c.incomingEmail("bugs@syzkaller.com",
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptFrom(mailingList), EmailOptOrigFrom("<test@requester.com>"),
 		EmailOptSubject(subject),
 	)
@@ -1126,7 +1136,7 @@ func TestEmailPatchTestingAccess(t *testing.T) {
 
 	sender := c.pollEmailBug().Sender
 	c.incomingEmail(sender,
-		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		syzTestGitBranchSamplePatch,
 		EmailOptFrom("user@kernel.org"), EmailOptSubject("Re: "+crash.Title),
 	)
 
@@ -1143,7 +1153,7 @@ func TestEmailSetInvalidSubsystems(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1175,7 +1185,7 @@ func TestEmailSetSubsystems(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1207,7 +1217,7 @@ func TestEmailBugLabels(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1253,7 +1263,7 @@ func TestInvalidEmailBugLabels(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -1308,4 +1318,90 @@ func expectLabels(t *testing.T, client *apiClient, extID string, labels ...strin
 		names = append(names, item.String())
 	}
 	assert.ElementsMatch(t, names, labels)
+}
+
+var forwardEmailConfig = EmailConfig{
+	Email:              "test@syzkaller.com",
+	HandleListEmails:   true,
+	SubjectPrefix:      "[syzbot]",
+	MailMaintainers:    true,
+	DefaultMaintainers: []string{"some@list.com"},
+}
+
+func TestSingleListForward(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.updateReporting("access-public-email", "access-public-email-reporting1",
+		func(r Reporting) Reporting {
+			r.Config = &forwardEmailConfig
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+
+	c.incomingEmail(sender, "#syz fix: some: commit title",
+		EmailOptCC([]string{"some@list.com"}), EmailOptSubject("fix bug title"))
+
+	forwarded := c.pollEmailBug()
+	c.expectEQ(forwarded.Subject, "[syzbot] fix bug title")
+	c.expectEQ(forwarded.Sender, sender)
+	c.expectEQ(forwarded.To, []string{"test@syzkaller.com"})
+	c.expectEQ(len(forwarded.Cc), 0)
+	c.expectEQ(forwarded.Body, `For archival purposes, forwarding an incoming command email to
+test@syzkaller.com.
+
+***
+
+Subject: fix bug title
+Author: default@sender.com
+
+#syz fix: some: commit title
+`)
+}
+
+func TestTwoListsForward(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.updateReporting("access-public-email", "access-public-email-reporting1",
+		func(r Reporting) Reporting {
+			r.Config = &forwardEmailConfig
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+
+	c.incomingEmail(sender, "#syz fix: some: commit title",
+		EmailOptCC(nil), EmailOptSubject("fix bug title"))
+
+	forwarded := c.pollEmailBug()
+	c.expectEQ(forwarded.Subject, "[syzbot] fix bug title")
+	c.expectEQ(forwarded.Sender, sender)
+	c.expectEQ(forwarded.To, []string{"some@list.com", "test@syzkaller.com"})
+	c.expectEQ(len(forwarded.Cc), 0)
+	c.expectEQ(forwarded.Body, `For archival purposes, forwarding an incoming command email to
+some@list.com, test@syzkaller.com.
+
+***
+
+Subject: fix bug title
+Author: default@sender.com
+
+#syz fix: some: commit title
+`)
 }

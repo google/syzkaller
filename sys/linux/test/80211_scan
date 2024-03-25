@@ -6,11 +6,11 @@ ioctl$sock_SIOCGIFINDEX_80211(r0, 0x8933, &(0x7f0000000700)={'wlan1\x00', <r2=>0
 
 # Set station mode for wlan1.
 
-sendmsg$NL80211_CMD_SET_INTERFACE(r0, &(0x7f0000000340)={0x0, 0x0, &(0x7f0000000300)={&(0x7f0000000240)={AUTO, r1, 0x5, 0x0, 0x0, {{AUTO, AUTO, AUTO}, {@val={AUTO, AUTO, r2, nil}, @void}}, [@NL80211_ATTR_IFTYPE={AUTO, AUTO, 0x2, nil}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+sendmsg$NL80211_CMD_SET_INTERFACE(r0, &(0x7f0000000340)={0x0, 0x0, &(0x7f0000000300)={&(0x7f0000000240)={AUTO, r1, 0x5, 0x0, 0x0, {AUTO, {@val={AUTO, AUTO, r2, nil}, @void}}, [@NL80211_ATTR_IFTYPE={AUTO, AUTO, 0x2, nil}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
 
 # Trigger a scan.
 
-sendmsg$NL80211_CMD_TRIGGER_SCAN(r0, &(0x7f0000000340)={0x0, 0x0, &(0x7f0000000300)={&(0x7f0000000240)={AUTO, r1, 0x5, 0x0, 0x0, {{AUTO, AUTO, AUTO}, {@val={AUTO, AUTO, r2, nil}, @void}}, [@NL80211_ATTR_IE={AUTO, AUTO, [@random={0xdd, AUTO, 'abcdefghijk'}], nil}, @NL80211_ATTR_SCAN_SSIDS={AUTO, AUTO, AUTO, AUTO, [{AUTO, AUTO, @default_ap_ssid, nil}], nil}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+sendmsg$NL80211_CMD_TRIGGER_SCAN(r0, &(0x7f0000000340)={0x0, 0x0, &(0x7f0000000300)={&(0x7f0000000240)={AUTO, r1, 0x5, 0x0, 0x0, {AUTO, {@val={AUTO, AUTO, r2, nil}, @void}}, [@NL80211_ATTR_IE={AUTO, AUTO, [@random={0xdd, AUTO, 'abcdefghijk'}], nil}, @NL80211_ATTR_SCAN_SSIDS={AUTO, AUTO, AUTO, AUTO, [{AUTO, AUTO, @default_ap_ssid, nil}], nil}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
 
 # Inject a beacon.
 

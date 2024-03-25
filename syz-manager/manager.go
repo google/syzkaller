@@ -381,7 +381,7 @@ func (mgr *Manager) vmLoop() {
 				reproQueue[last] = nil
 				reproQueue = reproQueue[:last]
 				atomic.AddUint32(&mgr.numReproducing, 1)
-				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
+				log.Logf(0, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
 					reproDone <- mgr.runRepro(crash, vmIndexes, instances.Put)
 				}()
@@ -435,7 +435,7 @@ func (mgr *Manager) vmLoop() {
 				crepro = res.repro.CRepro
 				title = res.repro.Report.Title
 			}
-			log.Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
+			log.Logf(0, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
 				res.instances, res.report0.Title, res.repro != nil, crepro, title)
 			if res.err != nil {
 				reportReproError(res.err)
@@ -672,7 +672,7 @@ func (mgr *Manager) loadCorpus() {
 
 func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 	bad, disabled := checkProgram(mgr.target, mgr.targetEnabledSyscalls, data)
-	if bad {
+	if bad != nil {
 		return false
 	}
 	if disabled {
@@ -720,20 +720,20 @@ func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data [
 	return p.Serialize()
 }
 
-func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad, disabled bool) {
+func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad error, disabled bool) {
 	p, err := target.Deserialize(data, prog.NonStrict)
 	if err != nil {
-		return true, true
+		return err, true
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return true, true
+		return fmt.Errorf("longer than %d calls", prog.MaxCalls), true
 	}
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
-			return false, true
+			return nil, true
 		}
 	}
-	return false, false
+	return nil, false
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
@@ -1011,6 +1011,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 }
 
 func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
+	reproLog := fullReproLog(stats)
 	if mgr.dash != nil {
 		if rep.Type == crash_pkg.MemoryLeak {
 			// Don't send failed leak repro attempts to dashboard
@@ -1023,6 +1024,7 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 			Corrupted:    rep.Corrupted,
 			Suppressed:   rep.Suppressed,
 			MayBeMissing: rep.Type == crash_pkg.MemoryLeak,
+			ReproLog:     reproLog,
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard: %v", err)
@@ -1034,8 +1036,8 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 	osutil.MkdirAll(dir)
 	for i := 0; i < maxReproAttempts; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
-		if !osutil.IsExist(name) {
-			saveReproStats(name, stats)
+		if !osutil.IsExist(name) && len(reproLog) > 0 {
+			osutil.WriteFile(name, reproLog)
 			break
 		}
 	}
@@ -1148,7 +1150,9 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.strace.Output)
 		}
 	}
-	saveReproStats(filepath.Join(dir, "repro.stats"), res.stats)
+	if reproLog := fullReproLog(res.stats); len(reproLog) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.stats"), reproLog)
+	}
 }
 
 func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
@@ -1174,15 +1178,14 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 	return ret
 }
 
-func saveReproStats(filename string, stats *repro.Stats) {
-	text := ""
-	if stats != nil {
-		text = fmt.Sprintf("Extracting prog: %v\nMinimizing prog: %v\n"+
-			"Simplifying prog options: %v\nExtracting C: %v\nSimplifying C: %v\n\n\n%s",
-			stats.ExtractProgTime, stats.MinimizeProgTime,
-			stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log)
+func fullReproLog(stats *repro.Stats) []byte {
+	if stats == nil {
+		return nil
 	}
-	osutil.WriteFile(filename, []byte(text))
+	return []byte(fmt.Sprintf("Extracting prog: %v\nMinimizing prog: %v\n"+
+		"Simplifying prog options: %v\nExtracting C: %v\nSimplifying C: %v\n\n\n%s",
+		stats.ExtractProgTime, stats.MinimizeProgTime,
+		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
 }
 
 func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {

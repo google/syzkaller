@@ -173,7 +173,8 @@ func createTestRepo(t *testing.T) string {
 			}
 		}
 	}
-	// Emulate another tree, that's needed for cross-tree tests.
+	// Emulate another tree, that's needed for cross-tree tests and
+	// for cause bisections for commits not reachable from master.
 	repo.Git("checkout", "v8.0")
 	repo.Git("checkout", "-b", "v8-branch")
 	repo.CommitFileChange("850", "v8-branch")
@@ -248,7 +249,7 @@ func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 
 	res, err := runImpl(cfg, r, inst)
 	checkBisectionError(test, res, err)
-	if !test.crossTree {
+	if !test.crossTree && !test.noFakeHashTest {
 		// Should be mitigated via GetCommitByTitle during bisection.
 		cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
 		res, err = runImpl(cfg, r, inst)
@@ -326,6 +327,7 @@ type BisectionTest struct {
 	baselineConfig  string
 	resultingConfig string
 	crossTree       bool
+	noFakeHashTest  bool
 
 	extraTest func(t *testing.T, res *Result)
 }
@@ -351,9 +353,9 @@ var bisectionTests = []BisectionTest{
 		introduced:  "605",
 		extraTest: func(t *testing.T, res *Result) {
 			// False negative probability of each run is ~35%.
-			// We get two "good" results, so our accumulated confidence is ~42%.
-			assert.Less(t, res.Confidence, 0.5)
-			assert.Greater(t, res.Confidence, 0.4)
+			// We get three "good" results, so our accumulated confidence is ~27%.
+			assert.Less(t, res.Confidence, 0.3)
+			assert.Greater(t, res.Confidence, 0.2)
 		},
 	},
 	// Test bisection returns correct cause with different baseline/config combinations.
@@ -662,6 +664,40 @@ var bisectionTests = []BisectionTest{
 		crossTree:         true,
 		fixCommit:         "903",
 	},
+	{
+		name:              "cause-finds-other-branch-commit",
+		startCommit:       852,
+		startCommitBranch: "v8-branch",
+		commitLen:         1,
+		expectRep:         true,
+		introduced:        "602",
+		noFakeHashTest:    true,
+	},
+	{
+		// There's no fix for the bug because it was introduced
+		// in another tree.
+		name:              "no-fix-cross-tree",
+		fix:               true,
+		startCommit:       852,
+		startCommitBranch: "v8-branch",
+		commitLen:         0,
+		crossTree:         true,
+		introduced:        "851",
+		oldestLatest:      800,
+	},
+	{
+		// We are unable to test the merge base commit.
+		name:              "fix-cross-tree-broken-start",
+		fix:               true,
+		startCommit:       851,
+		startCommitBranch: "v8-branch",
+		commitLen:         0,
+		crossTree:         true,
+		fixCommit:         "903",
+		brokenStart:       800,
+		brokenEnd:         800,
+		oldestLatest:      800,
+	},
 }
 
 func TestBisectionResults(t *testing.T) {
@@ -916,6 +952,62 @@ func TestMostFrequentReport(t *testing.T) {
 			assert.ElementsMatch(t, types, test.types)
 			assert.Equal(t, rep.Title, test.report)
 			assert.Equal(t, other, test.other)
+		})
+	}
+}
+
+func TestPickReleaseTags(t *testing.T) {
+	tests := []struct {
+		name string
+		tags []string
+		ret  []string
+	}{
+		{
+			name: "upstream-clang",
+			tags: []string{
+				"v6.5", "v6.4", "v6.3", "v6.2", "v6.1", "v6.0", "v5.19",
+				"v5.18", "v5.17", "v5.16", "v5.15", "v5.14", "v5.13",
+				"v5.12", "v5.11", "v5.10", "v5.9", "v5.8", "v5.7", "v5.6",
+				"v5.5", "v5.4",
+			},
+			ret: []string{
+				"v6.5", "v6.4", "v6.3", "v6.1", "v5.19", "v5.17", "v5.15",
+				"v5.13", "v5.10", "v5.7", "v5.4",
+			},
+		},
+		{
+			name: "upstream-gcc",
+			tags: []string{
+				"v6.5", "v6.4", "v6.3", "v6.2", "v6.1", "v6.0", "v5.19",
+				"v5.18", "v5.17", "v5.16", "v5.15", "v5.14", "v5.13",
+				"v5.12", "v5.11", "v5.10", "v5.9", "v5.8", "v5.7", "v5.6",
+				"v5.5", "v5.4", "v5.3", "v5.2", "v5.1", "v5.0", "v4.20", "v4.19",
+				"v4.18",
+			},
+			ret: []string{
+				"v6.5", "v6.4", "v6.3", "v6.1", "v5.19", "v5.17", "v5.15",
+				"v5.13", "v5.10", "v5.7", "v5.4", "v5.1", "v4.19", "v4.18",
+			},
+		},
+		{
+			name: "lts",
+			tags: []string{
+				"v5.15.10", "v5.15.9", "v5.15.8", "v5.15.7", "v5.15.6",
+				"v5.15.5", "v5.15.4", "v5.15.3", "v5.15.2", "v5.15.1",
+				"v5.15", "v5.14", "v5.13", "v5.12", "v5.11", "v5.10",
+				"v5.9", "v5.8", "v5.7", "v5.6", "v5.5", "v5.4",
+			},
+			ret: []string{
+				"v5.15.10", "v5.15.9", "v5.15.5", "v5.15", "v5.14", "v5.13",
+				"v5.11", "v5.9", "v5.7", "v5.5", "v5.4",
+			},
+		},
+	}
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			ret := pickReleaseTags(append([]string{}, test.tags...))
+			assert.Equal(t, test.ret, ret)
 		})
 	}
 }

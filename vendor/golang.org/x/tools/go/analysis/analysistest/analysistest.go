@@ -11,7 +11,6 @@ import (
 	"go/format"
 	"go/token"
 	"go/types"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -35,7 +34,7 @@ import (
 // maps file names to contents). On success it returns the name of the
 // directory and a cleanup function to delete it.
 func WriteFiles(filemap map[string]string) (dir string, cleanup func(), err error) {
-	gopath, err := ioutil.TempDir("", "analysistest")
+	gopath, err := os.MkdirTemp("", "analysistest")
 	if err != nil {
 		return "", nil, err
 	}
@@ -44,7 +43,7 @@ func WriteFiles(filemap map[string]string) (dir string, cleanup func(), err erro
 	for name, content := range filemap {
 		filename := filepath.Join(gopath, "src", name)
 		os.MkdirAll(filepath.Dir(filename), 0777) // ignore error
-		if err := ioutil.WriteFile(filename, []byte(content), 0666); err != nil {
+		if err := os.WriteFile(filename, []byte(content), 0666); err != nil {
 			cleanup()
 			return "", nil, err
 		}
@@ -98,6 +97,34 @@ type Testing interface {
 //			println()
 //		}
 //	}
+//
+// # Conflicts
+//
+// A single analysis pass may offer two or more suggested fixes that
+// (1) conflict but are nonetheless logically composable, (e.g.
+// because both update the import declaration), or (2) are
+// fundamentally incompatible (e.g. alternative fixes to the same
+// statement).
+//
+// It is up to the driver to decide how to apply such fixes. A
+// sophisticated driver could attempt to resolve conflicts of the
+// first kind, but this test driver simply reports the fact of the
+// conflict with the expectation that the user will split their tests
+// into nonconflicting parts.
+//
+// Conflicts of the second kind can be avoided by giving the
+// alternative fixes different names (SuggestedFix.Message) and using
+// a multi-section .txtar file with a named section for each
+// alternative fix.
+//
+// Analyzers that compute fixes from a textual diff of the
+// before/after file contents (instead of directly from syntax tree
+// positions) may produce fixes that, although logically
+// non-conflicting, nonetheless conflict due to the particulars of the
+// diff algorithm. In such cases it may suffice to introduce
+// sufficient separation of the statements in the test input so that
+// the computed diffs do not overlap. If that fails, break the test
+// into smaller parts.
 func RunWithSuggestedFixes(t Testing, dir string, a *analysis.Analyzer, patterns ...string) []*Result {
 	r := Run(t, dir, a, patterns...)
 
@@ -135,7 +162,7 @@ func RunWithSuggestedFixes(t Testing, dir string, a *analysis.Analyzer, patterns
 						continue
 					}
 					if _, ok := fileContents[file]; !ok {
-						contents, err := ioutil.ReadFile(file.Name())
+						contents, err := os.ReadFile(file.Name())
 						if err != nil {
 							t.Errorf("error reading %s: %v", file.Name(), err)
 						}
@@ -184,24 +211,14 @@ func RunWithSuggestedFixes(t Testing, dir string, a *analysis.Analyzer, patterns
 					for _, vf := range ar.Files {
 						if vf.Name == sf {
 							found = true
-							out, err := diff.ApplyBytes(orig, edits)
-							if err != nil {
-								t.Errorf("%s: error applying fixes: %v", file.Name(), err)
-								continue
-							}
 							// the file may contain multiple trailing
 							// newlines if the user places empty lines
 							// between files in the archive. normalize
 							// this to a single newline.
-							want := string(bytes.TrimRight(vf.Data, "\n")) + "\n"
-							formatted, err := format.Source(out)
-							if err != nil {
-								t.Errorf("%s: error formatting edited source: %v\n%s", file.Name(), err, out)
-								continue
-							}
-							if got := string(formatted); got != want {
-								unified := diff.Unified(fmt.Sprintf("%s.golden [%s]", file.Name(), sf), "actual", want, got)
-								t.Errorf("suggested fixes failed for %s:\n%s", file.Name(), unified)
+							golden := append(bytes.TrimRight(vf.Data, "\n"), '\n')
+
+							if err := applyDiffsAndCompare(orig, golden, edits, file.Name()); err != nil {
+								t.Errorf("%s", err)
 							}
 							break
 						}
@@ -218,26 +235,37 @@ func RunWithSuggestedFixes(t Testing, dir string, a *analysis.Analyzer, patterns
 					catchallEdits = append(catchallEdits, edits...)
 				}
 
-				out, err := diff.ApplyBytes(orig, catchallEdits)
-				if err != nil {
-					t.Errorf("%s: error applying fixes: %v", file.Name(), err)
-					continue
-				}
-				want := string(ar.Comment)
-
-				formatted, err := format.Source(out)
-				if err != nil {
-					t.Errorf("%s: error formatting resulting source: %v\n%s", file.Name(), err, out)
-					continue
-				}
-				if got := string(formatted); got != want {
-					unified := diff.Unified(file.Name()+".golden", "actual", want, got)
-					t.Errorf("suggested fixes failed for %s:\n%s", file.Name(), unified)
+				if err := applyDiffsAndCompare(orig, ar.Comment, catchallEdits, file.Name()); err != nil {
+					t.Errorf("%s", err)
 				}
 			}
 		}
 	}
 	return r
+}
+
+// applyDiffsAndCompare applies edits to src and compares the results against
+// golden after formatting both. fileName is use solely for error reporting.
+func applyDiffsAndCompare(src, golden []byte, edits []diff.Edit, fileName string) error {
+	out, err := diff.ApplyBytes(src, edits)
+	if err != nil {
+		return fmt.Errorf("%s: error applying fixes: %v (see possible explanations at RunWithSuggestedFixes)", fileName, err)
+	}
+	wantRaw, err := format.Source(golden)
+	if err != nil {
+		return fmt.Errorf("%s.golden: error formatting golden file: %v\n%s", fileName, err, out)
+	}
+	want := string(wantRaw)
+
+	formatted, err := format.Source(out)
+	if err != nil {
+		return fmt.Errorf("%s: error formatting resulting source: %v\n%s", fileName, err, out)
+	}
+	if got := string(formatted); got != want {
+		unified := diff.Unified(fileName+".golden", "actual", want, got)
+		return fmt.Errorf("suggested fixes failed for %s:\n%s", fileName, unified)
+	}
+	return nil
 }
 
 // Run applies an analysis to the packages denoted by the "go list" patterns.
@@ -423,7 +451,7 @@ func check(t Testing, gopath string, pass *analysis.Pass, diagnostics []analysis
 	// Extract 'want' comments from non-Go files.
 	// TODO(adonovan): we may need to handle //line directives.
 	for _, filename := range pass.OtherFiles {
-		data, err := ioutil.ReadFile(filename)
+		data, err := os.ReadFile(filename)
 		if err != nil {
 			t.Errorf("can't read '// want' comments from %s: %v", filename, err)
 			continue

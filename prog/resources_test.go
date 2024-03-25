@@ -98,6 +98,33 @@ func TestTransitivelyEnabledCallsLinux(t *testing.T) {
 	}
 }
 
+func TestGetInputResources(t *testing.T) {
+	expectedRequiredResources := map[string]bool{
+		"required_res1": false,
+		"required_res2": false,
+	}
+
+	t.Parallel()
+	target, err := GetTarget("test", "64")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resources := target.getInputResources(target.SyscallMap["test$optional_res"])
+	for _, resource := range resources {
+		if _, ok := expectedRequiredResources[resource.Name]; ok {
+			expectedRequiredResources[resource.Name] = true
+		} else {
+			t.Fatalf(" unexpected %v", resource.Name)
+		}
+	}
+	for expectedRes, found := range expectedRequiredResources {
+		if !found {
+			t.Fatalf(" missing %v", expectedRes)
+		}
+	}
+}
+
 func TestClockGettime(t *testing.T) {
 	t.Parallel()
 	target, err := GetTarget("linux", "amd64")
@@ -153,7 +180,7 @@ func testCreateResource(t *testing.T, target *Target, calls map[*Syscall]bool, r
 			if res, ok := typ.(*ResourceType); ok && ctx.Dir != DirOut {
 				s := newState(target, ct, nil)
 				arg, calls := r.createResource(s, res, DirIn)
-				if arg == nil && !res.Optional() {
+				if arg == nil && !ctx.Optional {
 					t.Fatalf("failed to create resource %v", res.Name())
 				}
 				if arg != nil && len(calls) == 0 {

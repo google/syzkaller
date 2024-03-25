@@ -45,6 +45,7 @@ include <linux/nfs.h>
 include <linux/syslog.h>
 include <linux/exportfs.h>
 include <linux/splice.h>
+include <linux/filelock.h>
 include <fs/overlayfs/overlayfs.h>
 include <uapi/linux/memfd.h>
 include <uapi/linux/module.h>
@@ -58,7 +59,7 @@ include <uapi/linux/watch_queue.h>
 include <kernel/sched/sched.h>
 include <uapi/linux/close_range.h>
 include <uapi/linux/netfilter/xt_cgroup.h>
-include <fs/cifs/cifsglob.h>
+include <fs/smb/client/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
 include <uapi/linux/prctl.h>
 include <asm/prctl.h>
@@ -134,6 +135,19 @@ vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flag
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[intptr], opt], count intptr)
 sendfile64(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count intptr)
 
+cachestat_range {
+	off	fileoff[int64]
+	len	int64
+}
+
+cachestat {
+	nr_cache		int64
+	nr_dirty		int64
+	nr_writeback		int64
+	nr_evicted		int64
+	nr_recently_evicted	int64
+}
+
 stat(file ptr[in, filename], statbuf ptr[out, stat])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
@@ -143,6 +157,7 @@ lstat64(file ptr[in, filename], statbuf ptr[out, stat64])
 fstat64(fd fd, statbuf ptr[out, stat64])
 fstatat64(dfd const[AT_FDCWD], file ptr[in, filename], statbuf ptr[out, stat64], flag flags[statx_flags])
 statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
+cachestat(fd fd, cstat_range ptr[in, cachestat_range], cstat ptr[out, cachestat], flags const[0])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset_t], size len[sigmask])
@@ -1265,7 +1280,7 @@ open_how {
 # Not providing O_WRONLY means O_RDONLY.
 open_flags = O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, __O_TMPFILE
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-resolve_flags = RESOLVE_BENEATH, RESOLVE_IN_ROOT, RESOLVE_NO_MAGICLINKS, RESOLVE_NO_SYMLINKS, RESOLVE_NO_XDEV
+resolve_flags = RESOLVE_CACHED, RESOLVE_BENEATH, RESOLVE_IN_ROOT, RESOLVE_NO_MAGICLINKS, RESOLVE_NO_SYMLINKS, RESOLVE_NO_XDEV
 madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP, MADV_WIPEONFORK, MADV_KEEPONFORK, MADV_COLD, MADV_PAGEOUT, MADV_POPULATE_READ, MADV_POPULATE_WRITE, MADV_COLLAPSE
 fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
 move_pages_flags = MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
@@ -1300,7 +1315,7 @@ renameat2_flags = RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 statx_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH, AT_STATX_SYNC_TYPE, AT_STATX_SYNC_AS_STAT, AT_STATX_FORCE_SYNC, AT_STATX_DONT_SYNC
 statx_mask = STATX_TYPE, STATX_MODE, STATX_NLINK, STATX_UID, STATX_GID, STATX_ATIME, STATX_MTIME, STATX_CTIME, STATX_INO, STATX_SIZE, STATX_BLOCKS, STATX_BASIC_STATS, STATX_BTIME
-name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
+name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW, AT_HANDLE_FID
 mq_open_flags = O_WRONLY, O_RDWR, O_NONBLOCK, O_CREAT, O_EXCL, O_CREAT
 finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC

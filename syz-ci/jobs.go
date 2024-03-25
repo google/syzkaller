@@ -365,7 +365,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	mgrcfg := new(mgrconfig.Config)
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
-	mgrcfg.KernelSrc = filepath.Join(dir, "kernel")
+	mgrcfg.KernelSrc = filepath.Join(dir, "kernel", mgr.mgrcfg.KernelSrcSuffix)
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 	os.RemoveAll(mgrcfg.Workdir)
 	defer os.RemoveAll(mgrcfg.Workdir)
@@ -580,6 +580,10 @@ var ignoredCommits = []string{
 	// triggering USB bugs, which ends up being the guilty commit during bisection
 	// for USB bugs introduced before it.
 	"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
+	// Commit "devlink: bump the instance index directly when iterating" has likely
+	// fixed some frequent task hung, which skews fix bisection results.
+	// TODO: consider backporting it during bisection itself.
+	"d772781964415c63759572b917e21c4f7ec08d9f",
 }
 
 func (jp *JobProcessor) ignoreBisectCommit(commit *vcs.Commit) bool {

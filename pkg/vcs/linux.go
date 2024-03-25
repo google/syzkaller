@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -105,36 +104,21 @@ func gitParseReleaseTags(output []byte, includeRC bool) []string {
 }
 
 func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
-	matches := releaseTagRe.FindStringSubmatchIndex(tag)
-	if matches == nil {
+	v1, v2, rc, v3 := ParseReleaseTag(tag)
+	if v1 < 0 {
 		return 0
 	}
-	v1, err := strconv.ParseUint(tag[matches[2]:matches[3]], 10, 64)
-	if err != nil {
-		return 0
+	if v3 < 0 {
+		v3 = 0
 	}
-	v2, err := strconv.ParseUint(tag[matches[4]:matches[5]], 10, 64)
-	if err != nil {
-		return 0
-	}
-	rc := uint64(999)
-	if matches[6] != -1 {
+	if rc >= 0 {
 		if !includeRC {
 			return 0
 		}
-		rc, err = strconv.ParseUint(tag[matches[6]:matches[7]], 10, 64)
-		if err != nil {
-			return 0
-		}
+	} else {
+		rc = 999
 	}
-	var v3 uint64
-	if matches[8] != -1 {
-		v3, err = strconv.ParseUint(tag[matches[8]:matches[9]], 10, 64)
-		if err != nil {
-			return 0
-		}
-	}
-	return v1*1e9 + v2*1e6 + rc*1e3 + v3
+	return uint64(v1)*1e9 + uint64(v2)*1e6 + uint64(rc)*1e3 + uint64(v3)
 }
 
 func (ctx *linux) EnvForCommit(

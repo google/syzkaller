@@ -1,5 +1,4 @@
 TITLE: KMSAN: uninit-value in nilfs_add_checksums_on_logs
-ALT: KMSAN origin in block_write_begin
 ALT: bad-access in nilfs_add_checksums_on_logs
 
 [  417.716144][ T7542] =====================================================

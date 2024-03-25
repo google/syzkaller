@@ -92,6 +92,7 @@ type Test struct {
 	Report         *report.Report
 }
 
+// nolint: goconst // "DIAGNOSE\n", "BUG: bad\n" and "other output\n"
 var tests = []*Test{
 	{
 		Name: "program-exits-normally",

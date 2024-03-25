@@ -70,6 +70,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						<span style="color:ForestGreen;">🐞</span> Fixed [{{$.BugCounts.Fixed}}]</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
 						<span style="color:RoyalBlue;">🐞</span> Invalid [{{$.BugCounts.Invalid}}]</a>
+					{{if gt .MissingBackports 0}}
+                                        <a class="navigation_tab{{if eq .URLPath (printf "/%v/backports" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/backports'>
+						<span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]</a>
+					{{end}}
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/bugs'>
 						<span style="color:DarkOrange;">📈</span> Kernel Health</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/lifetimes'>
@@ -375,7 +379,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{end}}
 
 	{{if not .Reported}}[report pending]<br>{{end}}
-	{{optlink .InvalidateJobLink "❌ retry this bisection"}}
+	{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;
+	{{optlink .InvalidateJobLink "❌ mark as invalid"}}
 {{end}}
 {{end}}
 
@@ -492,7 +497,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{ if $job.InvalidatedBy }}
 						</br>marked invalid by {{$job.InvalidatedBy}}
 					{{end}}
-					{{if and .InvalidateJobLink $.PerBug}}<br/>{{optlink .InvalidateJobLink "❌ retry this bisection"}}{{end}}
+					{{if and $.PerBug (or .InvalidateJobLink .RestartJobLink)}}<br/>{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;{{optlink .InvalidateJobLink "❌ mark as invalid"}}{{end}}
 				</td>
 			</tr>
 		{{end}}
@@ -598,6 +603,30 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{else}}
 			<td class="status-ok">Didn't crash</td>
                         {{end}}
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}
+
+{{/* List of failed repro attempts, invoked with []*uiReproAttempt */}}
+{{define "repro_attempts"}}
+{{if .}}
+<table class="list_table">
+	<thead>
+	<tr>
+		<th>Time</th>
+		<th>Manager</th>
+		<th>Log</th>
+	</tr>
+	</thead>
+	<tbody>
+	{{range $item := .}}
+		<tr>
+			<td>{{formatTime $item.Time}}</td>
+			<td class="stat">{{$item.Manager}}</td>
+			<td class="stat">{{link $item.LogLink "repro log"}}</td>
 		</tr>
 	{{end}}
 	</tbody>

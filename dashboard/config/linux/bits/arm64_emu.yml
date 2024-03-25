@@ -33,7 +33,6 @@ config:
  - SSB: n
  - MMC: n
  - PWM: n
- - PINCTRL: n
  - RC_CORE: n
  - HWMON: n
  - REGULATOR: n

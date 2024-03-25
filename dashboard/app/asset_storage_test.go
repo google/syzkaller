@@ -66,7 +66,7 @@ func TestBuildAssetLifetime(t *testing.T) {
 	crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 	c.expectEQ(sender, fromAddr(c.ctx))
-	to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
+	to := c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 	c.expectEQ(msg.To, []string{to})
 	c.expectEQ(msg.Subject, crash.Title)
 	c.expectEQ(len(msg.Attachments), 0)
@@ -101,14 +101,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:
@@ -358,7 +358,7 @@ func TestCrashAssetLifetime(t *testing.T) {
 	crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 	c.expectEQ(sender, fromAddr(c.ctx))
-	to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
+	to := c.config().Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 	c.expectEQ(msg.To, []string{to})
 	c.expectEQ(msg.Subject, crash.Title)
 	c.expectEQ(len(msg.Attachments), 0)
@@ -393,14 +393,14 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-If the bug is already fixed, let syzbot know by replying with:
+If the report is already addressed, let syzbot know by replying with:
 #syz fix: exact-commit-title
 
-If you want to overwrite bug's subsystems, reply with:
+If you want to overwrite report's subsystems, reply with:
 #syz set subsystems: new-subsystem
 (See the list of subsystem names on the web dashboard)
 
-If the bug is a duplicate of another bug, reply with:
+If the report is a duplicate of another one, reply with:
 #syz dup: exact-subject-of-another-report
 
 If you want to undo deduplication, reply with:

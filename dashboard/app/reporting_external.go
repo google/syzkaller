@@ -29,7 +29,7 @@ func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (i
 	}
 	jobs, err := pollCompletedJobs(c, req.Type)
 	if err != nil {
-		log.Errorf(c, "failed to poll jobs: %v", err)
+		log.Errorf(c, "failed to poll jobs(bugs): %v", err)
 	}
 	resp.Reports = append(resp.Reports, jobs...)
 	return resp, nil

@@ -20,14 +20,6 @@ jobs:
           path: gopath/src/github.com/google/syzkaller
           # This is needed for tools/check-commits.sh
           fetch-depth: 100
-      # Caches everything in .cache dir, in partiuclar we want to cache go-build and golangci-lint stuff.
-      # For reference see:
-      # https://help.github.com/en/actions/configuring-and-managing-workflows/caching-dependencies-to-speed-up-workflows#using-the-cache-action
-      - name: cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-        with:
-          path: .cache
-          key: cache
       # Run make presubmit_aux.
       - name: run
         env:
@@ -42,11 +34,18 @@ jobs:
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
-    - name: cache
+
+    # https://github.com/golang/go/issues/23565 asks to cache -coverprofile results since 2018.
+    - id: get-date
+      run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: go build cache
       uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
         path: .cache
-        key: cache
+        key: ${{ runner.os }}-go-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
+        restore-keys: ${{ runner.os }}-go-build- #read the freshest available after miss
+
     - name: pull syz-env
       run: docker pull gcr.io/syzkaller/env:latest
     - name: run
@@ -65,11 +64,6 @@ jobs:
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
-    - name: cache
-      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-      with:
-        path: .cache
-        key: cache
     - name: pull syz-env
       run: docker pull gcr.io/syzkaller/env:latest
     - name: run
@@ -89,11 +83,6 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
-      - name: cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-        with:
-          path: .cache
-          key: cache
       - name: run
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make ${{ matrix.target }}
   race:
@@ -103,11 +92,18 @@ jobs:
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: gopath/src/github.com/google/syzkaller
-    - name: cache
+
+    # https://github.com/golang/go/issues/61608 to cache -race results.
+    - id: get-date
+      run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: test race cache
       uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
       with:
         path: .cache
-        key: cache
+        key: ${{ runner.os }}-go-test-race-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
+        restore-keys: ${{ runner.os }}-go-test-race- #read the freshest available after miss
+
     - name: pull syz-env
       run: docker pull gcr.io/syzkaller/env:latest
     - name: run
@@ -119,10 +115,5 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
-      - name: cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-        with:
-          path: .cache
-          key: cache
       - name: run
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-old-env make presubmit_old

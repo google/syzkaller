@@ -209,10 +209,11 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	}
 	if len(res.Commits) == 0 {
 		if cfg.Fix {
-			env.log("crash still not fixed on HEAD or HEAD had kernel test errors")
+			env.log("crash still not fixed or there were kernel test errors")
 		} else {
 			env.log("oldest tested release already had the bug or it had kernel test errors")
 		}
+
 		env.log("commit msg: %v", res.Commit.Title)
 		if res.Report != nil {
 			env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
@@ -348,6 +349,22 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 		return cfg.Kernel.Commit, err
 	}
 
+	if !cfg.Fix {
+		// If we're doing a cause bisection, we don't really need the commit to be
+		// reachable from cfg.Kernel.Branch.
+		// So let's try to force tag fetch and check if the commit is present in the
+		// repository.
+		env.log("fetch other tags and check if the commit is present")
+		commit, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
+		if err != nil {
+			// Ignore the error because the command will fail if the commit is really not
+			// present in the tree.
+			env.log("fetch failed with %s", err)
+		} else if commit != nil {
+			return commit.Hash, nil
+		}
+	}
+
 	// We record the tested kernel commit when syzkaller triggers a crash. These commits can become
 	// unreachable after the crash was found, when the history of the tested kernel branch was
 	// rewritten. The commit might have been completely deleted from the branch or just changed in
@@ -450,6 +467,7 @@ func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result,
 }
 
 func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
+	var results []*testResult
 	startCommit := env.commit
 	if env.cfg.CrossTree {
 		env.log("determining the merge base between %v and %v",
@@ -462,8 +480,19 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 			env.log("expected 1 merge base, got %d", len(bases))
 			return nil, nil, nil, fmt.Errorf("expected 1 merge base, got %d", len(bases))
 		}
-		env.log("%s/%s is a merge base", bases[0].Hash, bases[0].Title)
+		env.log("%s/%s is a merge base, check if it has the bug", bases[0].Hash, bases[0].Title)
 		startCommit = bases[0]
+		if _, err := env.repo.SwitchCommit(startCommit.Hash); err != nil {
+			return nil, nil, nil, err
+		}
+		res, err := env.test()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		results = append(results, res)
+		if res.verdict != vcs.BisectBad {
+			return nil, startCommit, results, nil
+		}
 	}
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
@@ -473,10 +502,11 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	results = append(results, res)
 	if res.verdict != vcs.BisectGood {
-		return env.head, nil, []*testResult{res}, nil
+		return env.head, nil, results, nil
 	}
-	return env.head, startCommit, []*testResult{res}, nil
+	return env.head, startCommit, results, nil
 }
 
 func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
@@ -488,9 +518,12 @@ func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, 
 	if len(tags) == 0 {
 		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
+	pickedTags := pickReleaseTags(tags)
+	env.log("picked %v out of %d release tags", pickedTags, len(tags))
+
 	lastBad := env.commit
 	var results []*testResult
-	for _, tag := range tags {
+	for _, tag := range pickedTags {
 		env.log("testing release %v", tag)
 		com, err := env.repo.SwitchCommit(tag)
 		if err != nil {
@@ -515,6 +548,13 @@ func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, 
 func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult) (*Result, error) {
 	if len(results) < 1 {
 		return nil, fmt.Errorf("commitRange returned no results")
+	}
+
+	if env.cfg.Fix && env.cfg.CrossTree && len(results) < 2 {
+		// For cross-tree bisections, it can be the case that the bug was introduced
+		// after the merge base, so there's no sense to continue the fix bisection.
+		env.log("reproducer does not crash the merge base, so there's no known bad commit")
+		return &Result{Commit: good, Config: env.kernelConfig}, nil
 	}
 
 	finalResult := results[len(results)-1] // HEAD test for fix, oldest tested test for cause bisection
@@ -995,5 +1035,61 @@ func checkConfig(cfg *Config) error {
 }
 
 func (env *env) log(msg string, args ...interface{}) {
+	if false {
+		_ = fmt.Sprintf(msg, args...) // enable printf checker
+	}
 	env.cfg.Trace.Log(msg, args...)
+}
+
+// pickReleaseTags() picks a subset of revisions to test.
+// `all` is an ordered list of tags (from newer to older).
+func pickReleaseTags(all []string) []string {
+	if len(all) == 0 {
+		return nil
+	}
+	// First split into x.y.z, x.y.z-1, ... and x.y, x.y-1, ...
+	var subReleases, releases []string
+	releaseBegin := false
+	for _, tag := range all {
+		v1, _, rc, v3 := vcs.ParseReleaseTag(tag)
+		if v1 < 0 || rc < 0 && v3 < 0 {
+			releaseBegin = true
+			releases = append(releases, tag)
+		}
+		if !releaseBegin {
+			subReleases = append(subReleases, tag)
+		}
+	}
+	var ret []string
+	// Take 2 latest sub releases.
+	takeSubReleases := minInts(2, len(subReleases))
+	ret = append(ret, subReleases[:takeSubReleases]...)
+	// If there are a lot of sub releases, also take the middle one.
+	if len(subReleases) > 5 {
+		ret = append(ret, subReleases[len(subReleases)/2])
+	}
+	for i := 0; i < len(releases); i++ {
+		// Gradually increase step.
+		step := 1
+		if i >= 3 {
+			step = 2
+		}
+		if i >= 11 {
+			step = 3
+		}
+		if i%step == 0 || i == len(releases)-1 {
+			ret = append(ret, releases[i])
+		}
+	}
+	return ret
+}
+
+func minInts(vals ...int) int {
+	ret := vals[0]
+	for i := 1; i < len(vals); i++ {
+		if vals[i] < ret {
+			ret = vals[i]
+		}
+	}
+	return ret
 }

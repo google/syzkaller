@@ -1148,6 +1148,7 @@ var linuxStackParams = &stackParams{
 		"strncpy",
 		"strscpy",
 		"strlen",
+		"strstr",
 		"strnstr",
 		"strnlen",
 		"strchr",
@@ -1157,6 +1158,9 @@ var linuxStackParams = &stackParams{
 		"copy_from_user",
 		"copy_to_iter",
 		"copy_from_iter",
+		"copy_page_to_iter",
+		"copy_page_from_iter",
+		"copy_folio_to_iter",
 		"^copyin$",
 		"^copyout$",
 		"put_user",
@@ -1374,7 +1378,6 @@ var linuxOopses = append([]*oops{
 				fmt:    "KMSAN: %[1]v in %[3]v",
 				alt: []string{
 					"bad-access in %[3]v",
-					"KMSAN origin in %[4]v",
 				},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
