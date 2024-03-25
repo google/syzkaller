@@ -73,7 +73,7 @@ type Manager struct {
 	dash *dashapi.Dashboard
 
 	mu                    sync.Mutex
-	fuzzer                *fuzzer.Fuzzer
+	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
@@ -281,7 +281,7 @@ func (mgr *Manager) initBench() {
 			vals["corpus"] = uint64(stat.Progs)
 			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
-			vals["candidates"] = uint64(mgr.fuzzer.Stats().Candidates)
+			vals["candidates"] = uint64(mgr.fuzzer.Load().Stats().Candidates)
 			mgr.mu.Unlock()
 
 			data, err := json.MarshalIndent(vals, "", "  ")
@@ -674,7 +674,7 @@ func (mgr *Manager) loadCorpus() {
 		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
 	}
 	mgr.phase = phaseLoadedCorpus
-	mgr.fuzzer.AddCandidates(candidates)
+	mgr.fuzzer.Load().AddCandidates(candidates)
 }
 
 // Returns (delete item from the corpus, a fuzzer.Candidate object).
@@ -1247,15 +1247,14 @@ func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 }
 
 func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
 	if mgr.cfg.Experimental.ResetAccState {
 		// Don't accept new candidates -- the execution is already very slow,
 		// syz-hub will just overwhelm us.
 		return
 	}
-	mgr.fuzzer.AddCandidates(candidates)
+	mgr.fuzzer.Load().AddCandidates(candidates)
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
 	if mgr.phase == phaseTriagedCorpus {
 		mgr.phase = phaseQueriedHub
 	}
@@ -1391,7 +1390,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 	for _, id := range a.EnabledCalls[mgr.cfg.Sandbox] {
 		calls[mgr.target.Syscalls[id]] = true
 	}
-	mgr.fuzzer = fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 		Corpus:         mgr.corpus,
 		Coverage:       mgr.cfg.Cover,
 		FaultInjection: a.Features[host.FeatureFault].Enabled,
@@ -1412,19 +1411,19 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 			return !mgr.saturatedCalls[input.StringCall()]
 		},
 	}, rnd, mgr.target)
+	mgr.fuzzer.Store(fuzzerObj)
 
 	mgr.loadCorpus()
-	go mgr.fuzzerLoop()
-	go mgr.fuzzerSignalRotation()
+	go mgr.fuzzerLoop(fuzzerObj)
+	go mgr.fuzzerSignalRotation(fuzzerObj)
 }
 
+// We need this method since we're not supposed to access Manager fields from RPCServer.
 func (mgr *Manager) getFuzzer() *fuzzer.Fuzzer {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	return mgr.fuzzer
+	return mgr.fuzzer.Load()
 }
 
-func (mgr *Manager) fuzzerSignalRotation() {
+func (mgr *Manager) fuzzerSignalRotation(fuzzer *fuzzer.Fuzzer) {
 	const (
 		rotateSignals      = 1000
 		timeBetweenRotates = 15 * time.Minute
@@ -1449,24 +1448,24 @@ func (mgr *Manager) fuzzerSignalRotation() {
 		if time.Since(lastRotation) < timeBetweenRotates {
 			continue
 		}
-		mgr.fuzzer.RotateMaxSignal(rotateSignals)
+		fuzzer.RotateMaxSignal(rotateSignals)
 		lastRotation = time.Now()
 		lastExecTotal = mgr.stats.execTotal.get()
 	}
 }
 
-func (mgr *Manager) fuzzerLoop() {
+func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 	for {
 		time.Sleep(time.Second / 2)
 
 		// Distribute new max signal over all instances.
-		newSignal, dropSignal := mgr.fuzzer.Cover.GrabSignalDelta()
+		newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
 		log.Logf(2, "distributing %d new signal, %d dropped signal",
 			len(newSignal), len(dropSignal))
 		mgr.serv.distributeSignalDelta(newSignal, dropSignal)
 
 		// Collect statistics.
-		fuzzerStats := mgr.fuzzer.Stats()
+		fuzzerStats := fuzzer.Stats()
 		mgr.stats.setNamed(fuzzerStats.Named)
 		mgr.stats.corpusCover.set(fuzzerStats.Cover)
 		mgr.stats.corpusSignal.set(fuzzerStats.Signal)
