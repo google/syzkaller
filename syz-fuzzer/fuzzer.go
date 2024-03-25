@@ -382,17 +382,18 @@ func (tool *FuzzerTool) exchangeDataWorker() {
 }
 
 func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.ExecutionResult {
-	if res.NeedSignal == rpctype.NewSignal {
-		tool.diffMaxSignal(res.info)
+	ret := rpctype.ExecutionResult{ID: res.ID}
+	if res.info != nil {
+		if res.NeedSignal == rpctype.NewSignal {
+			tool.diffMaxSignal(res.info)
+		}
+		if res.SignalFilter != nil {
+			// TODO: we can filter without maps if req.SignalFilter is sorted.
+			filterProgInfo(res.info, res.SignalFilter)
+		}
+		ret.Info = *res.info
 	}
-	if res.SignalFilter != nil {
-		// TODO: we can filter without maps if req.SignalFilter is sorted.
-		filterProgInfo(res.info, res.SignalFilter)
-	}
-	return rpctype.ExecutionResult{
-		ID:   res.ID,
-		Info: *res.info,
-	}
+	return ret
 }
 
 func (tool *FuzzerTool) grabStats() map[string]uint64 {
