@@ -48,14 +48,8 @@ RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/b
 
 # Install OS toolchains from pre-built archives.
 # These archives were created with:
-# tar -cz --owner=0 --group=0 --mode=go=u -f akaros-toolchain.tar.gz akaros/toolchain
 # tar -cz --owner=0 --group=0 --mode=go=u -f netbsd-toolchain.tar.gz netbsd/tools netbsd/dest
-# tar -cz --owner=0 --group=0 --mode=go=u -f fuchsia-toolchain.tar.gz fuchsia/prebuilt/third_party/clang \
-#	fuchsia/zircon/system/ulib fuchsia/src/lib/ddk fuchsia/out/x64/fidling/gen \
-#	fuchsia/out/x64/zircon_toolchain/obj/zircon/public/sysroot/sysroot \
-#	fuchsia/out/x64/x64-shared/*.so fuchsia/out/arm64/fidling/gen \
-#	fuchsia/out/arm64/zircon_toolchain/obj/zircon/public/sysroot/sysroot \
-#	fuchsia/out/arm64/arm64-shared/*.so
+# tar -cz --owner=0 --group=0 --mode=go=u -f fuchsia-toolchain.tar.gz fuchsia
 #
 # And then uploaded to GCS with:
 # gsutil mv gs://syzkaller/GOOS-toolchain.tar.gz gs://syzkaller/GOOS-toolchain.old.tar.gz
@@ -81,7 +75,7 @@ RUN dpkg --add-architecture i386 && \
 	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
 
-RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
+RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain-20230905.tar.gz | tar -C /syzkaller -xzv 
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz
 ENV SOURCEDIR_FUCHSIA /syzkaller/fuchsia
 ENV SOURCEDIR_NETBSD /syzkaller/netbsd
