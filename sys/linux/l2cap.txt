@@ -4,10 +4,17 @@
 include <net/bluetooth/bluetooth.h>
 include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/l2cap.h>
+include <net/bluetooth/a2mp.h>
+include <net/bluetooth/hci_core.h>
+include <net/bluetooth/smp.h>
 
 l2cap_hdr_un [
 	l2cap_cid_signaling	l2cap_hdr_t[L2CAP_CID_SIGNALING, array[l2cap_cid_signaling_un]]
+	l2cap_cid_conn_less	l2cap_hdr_t[L2CAP_CID_CONN_LESS, l2cap_cid_conn_less_t]
 	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, l2cap_cid_le_signaling_un]
+	l2cap_cid_a2mp		l2cap_hdr_t[L2CAP_CID_A2MP, array[l2cap_cid_a2mp_un]]
+	l2cap_cid_smp		l2cap_hdr_t[L2CAP_CID_SMP, smp_sig_channel_un]
+	l2cap_cid_smp_bredr	l2cap_hdr_t[L2CAP_CID_SMP_BREDR, smp_sig_channel_un]
 ] [varlen]
 
 l2cap_cid_signaling_un [
@@ -256,3 +263,145 @@ l2cap_options {
 	max_tx		int8
 	txwin_size	int16
 }
+
+l2cap_cid_conn_less_t {
+	data	array[int8]
+} [packed]
+
+l2cap_cid_a2mp_un [
+	a2mp_command_rej		l2cap_cmd_hdr_t[A2MP_COMMAND_REJ, a2mp_cmd_rej]
+	a2mp_discover_req		l2cap_cmd_hdr_t[A2MP_DISCOVER_REQ, a2mp_discov_req]
+	a2mp_change_notify		l2cap_cmd_hdr_t[A2MP_CHANGE_NOTIFY, a2mp_cl]
+	a2mp_getinfo_req		l2cap_cmd_hdr_t[A2MP_GETINFO_REQ, a2mp_info_req]
+	a2mp_getampassoc_req		l2cap_cmd_hdr_t[A2MP_GETAMPASSOC_REQ, a2mp_amp_assoc_req]
+	a2mp_createphyslink_req		l2cap_cmd_hdr_t[A2MP_CREATEPHYSLINK_REQ, a2mp_physlink_req]
+	a2mp_disconnphyslink_req	l2cap_cmd_hdr_t[A2MP_DISCONNPHYSLINK_REQ, a2mp_physlink_req]
+	a2mp_discover_rsp		l2cap_cmd_hdr_t[A2MP_DISCOVER_RSP, a2mp_discov_rsp]
+	a2mp_getinfo_rsp		l2cap_cmd_hdr_t[A2MP_GETINFO_RSP, a2mp_info_rsp]
+	a2mp_getampassoc_rsp		l2cap_cmd_hdr_t[A2MP_GETAMPASSOC_RSP, a2mp_amp_assoc_rsp]
+	a2mp_change_rsp			l2cap_cmd_hdr_t[A2MP_CHANGE_RSP, array[int8]]
+	a2mp_createphyslink_rsp		l2cap_cmd_hdr_t[A2MP_CREATEPHYSLINK_RSP, array[int8]]
+	a2mp_disconnphyslink_rsp	l2cap_cmd_hdr_t[A2MP_DISCONNPHYSLINK_RSP, array[int8]]
+] [varlen]
+
+a2mp_cmd_rej {
+	reason	int16
+	data	array[int8]
+} [packed]
+
+a2mp_discov_req {
+	mtu		int16
+	ext_feat	int16
+} [packed]
+
+a2mp_cl {
+	id	int8
+	type	int8
+	status	int8
+} [packed]
+
+a2mp_info_req {
+	id	int8
+} [packed]
+
+a2mp_amp_assoc_req {
+	id	int8
+} [packed]
+
+a2mp_physlink_req {
+	local_id	int8
+	remote_id	int8
+	amp_assoc	array[int8]
+} [packed]
+
+a2mp_discov_rsp {
+	mtu		int16
+	ext_feat	int16
+	cl		array[a2mp_cl]
+} [packed]
+
+a2mp_info_rsp {
+	id		int8
+	status		int8
+	total_bw	int32
+	max_bw		int32
+	min_latency	int32
+	pal_cap		int16
+	assoc_size	int16
+} [packed]
+
+a2mp_amp_assoc_rsp {
+	id		int8
+	status		int8
+	amp_assoc	array[int8]
+} [packed]
+
+smp_sig_channel_un [
+	smp_cmd_pairing_req	smp_cmd_hdr_t[SMP_CMD_PAIRING_REQ, smp_cmd_pairing]
+	smp_cmd_pairing_fail	smp_cmd_hdr_t[SMP_CMD_PAIRING_FAIL, array[int8]]
+	smp_cmd_pairing_rsp	smp_cmd_hdr_t[SMP_CMD_PAIRING_RSP, smp_cmd_pairing]
+	smp_cmd_security_req	smp_cmd_hdr_t[SMP_CMD_SECURITY_REQ, smp_cmd_security_req]
+	smp_cmd_pairing_confirm	smp_cmd_hdr_t[SMP_CMD_PAIRING_CONFIRM, array[int8, 16]]
+	smp_cmd_pairing_random	smp_cmd_hdr_t[SMP_CMD_PAIRING_RANDOM, array[int8, 16]]
+	smp_cmd_encrypt_info	smp_cmd_hdr_t[SMP_CMD_ENCRYPT_INFO, smp_cmd_encrypt_info]
+	smp_cmd_initiator_ident	smp_cmd_hdr_t[SMP_CMD_INITIATOR_IDENT, smp_cmd_initiator_ident]
+	smp_cmd_ident_info	smp_cmd_hdr_t[SMP_CMD_IDENT_INFO, smp_cmd_ident_info]
+	smp_cmd_ident_addr_info	smp_cmd_hdr_t[SMP_CMD_IDENT_ADDR_INFO, smp_cmd_ident_addr_info]
+	smp_cmd_sign_info	smp_cmd_hdr_t[SMP_CMD_SIGN_INFO, smp_cmd_sign_info]
+	smp_cmd_public_key	smp_cmd_hdr_t[SMP_CMD_PUBLIC_KEY, smp_cmd_public_key]
+	smp_cmd_dhkey_check	smp_cmd_hdr_t[SMP_CMD_DHKEY_CHECK, smp_cmd_dhkey_check]
+	smp_cmd_keypress_notify	smp_cmd_hdr_t[SMP_CMD_KEYPRESS_NOTIFY, smp_cmd_keypress_notify]
+] [varlen]
+
+type smp_cmd_hdr_t[CODE, PAYLOAD] {
+	code	const[CODE, int8]
+	payload	PAYLOAD
+} [packed]
+
+smp_cmd_pairing {
+	io_capability	int8
+	oob_flag	int8
+	auth_req	int8
+	max_key_size	int8
+	init_key_dist	int8
+	resp_key_dist	int8
+} [packed]
+
+smp_cmd_security_req {
+	auth_req	int8
+} [packed]
+
+smp_cmd_encrypt_info {
+	ltk	array[int8, 16]
+} [packed]
+
+smp_cmd_initiator_ident {
+	ediv	int16
+	rand	int64
+} [packed]
+
+smp_cmd_ident_info {
+	irk	array[int8, 16]
+} [packed]
+
+smp_cmd_ident_addr_info {
+	addr_type	int8
+	bdaddr		array[int8, 6]
+}
+
+smp_cmd_sign_info {
+	csrk	array[int8, 16]
+} [packed]
+
+smp_cmd_public_key {
+	x	array[int8, 32]
+	y	array[int8, 32]
+} [packed]
+
+smp_cmd_dhkey_check {
+	e	array[int8, 16]
+} [packed]
+
+smp_cmd_keypress_notify {
+	value	int8
+} [packed]
