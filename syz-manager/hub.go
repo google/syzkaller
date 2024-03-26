@@ -49,26 +49,22 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
 	}
-	if mgr.cfg.Reproduce && mgr.dash != nil {
-		hc.needMoreRepros = mgr.needMoreRepros
-	}
 	hc.loop()
 }
 
 type HubConnector struct {
-	mgr            HubManagerView
-	cfg            *mgrconfig.Config
-	target         *prog.Target
-	stats          *Stats
-	domain         string
-	enabledCalls   map[*prog.Syscall]bool
-	leak           bool
-	fresh          bool
-	hubCorpus      map[hash.Sig]bool
-	newRepros      [][]byte
-	hubReproQueue  chan *Crash
-	needMoreRepros chan chan bool
-	keyGet         keyGetter
+	mgr           HubManagerView
+	cfg           *mgrconfig.Config
+	target        *prog.Target
+	stats         *Stats
+	domain        string
+	enabledCalls  map[*prog.Syscall]bool
+	leak          bool
+	fresh         bool
+	hubCorpus     map[hash.Sig]bool
+	newRepros     [][]byte
+	hubReproQueue chan *Crash
+	keyGet        keyGetter
 }
 
 // HubManagerView restricts interface between HubConnector and Manager.
@@ -76,6 +72,7 @@ type HubManagerView interface {
 	getMinimizedCorpus() (corpus, repros [][]byte)
 	addNewCandidates(candidates []fuzzer.Candidate)
 	hubIsUnreachable()
+	needMoreRepros() bool
 }
 
 func (hc *HubConnector) loop() {
@@ -177,11 +174,7 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 		delete(hc.hubCorpus, sig)
 		a.Del = append(a.Del, sig.String())
 	}
-	if hc.needMoreRepros != nil {
-		needReproReply := make(chan bool)
-		hc.needMoreRepros <- needReproReply
-		a.NeedRepros = <-needReproReply
-	}
+	a.NeedRepros = hc.mgr.needMoreRepros()
 	a.Repros = hc.newRepros
 	for {
 		r := new(rpctype.HubSyncRes)

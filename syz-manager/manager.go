@@ -39,6 +39,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
+	"golang.org/x/sync/semaphore"
 )
 
 var (
@@ -67,7 +68,6 @@ type Manager struct {
 	checkResult    *rpctype.CheckArgs
 	fresh          bool
 	numFuzzing     uint32
-	numReproducing uint32
 	nextInstanceID atomic.Uint64
 
 	dash *dashapi.Dashboard
@@ -85,9 +85,8 @@ type Manager struct {
 	dataRaceFrames   map[string]bool
 	saturatedCalls   map[string]bool
 
-	needMoreRepros     chan chan bool
+	repros             *reproLoop
 	externalReproQueue chan *Crash
-	reproRequest       chan chan map[string]bool
 
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
@@ -183,11 +182,10 @@ func RunManager(cfg *mgrconfig.Config) {
 		fresh:              true,
 		vmStop:             make(chan bool),
 		externalReproQueue: make(chan *Crash, 10),
-		needMoreRepros:     make(chan chan bool),
-		reproRequest:       make(chan chan map[string]bool),
 		usedFiles:          make(map[string]time.Time),
 		saturatedCalls:     make(map[string]bool),
 	}
+	mgr.repros = newReproLoop(context.Background(), vmPool.Count()-mgr.cfg.FuzzingVMs, mgr)
 
 	mgr.preloadCorpus()
 	mgr.initStats() // Initializes prometheus variables.
@@ -234,7 +232,7 @@ func RunManager(cfg *mgrconfig.Config) {
 			corpusSignal := mgr.stats.corpusSignal.get()
 			maxSignal := mgr.stats.maxSignal.get()
 			triageQLen := mgr.stats.triageQueueLen.get()
-			numReproducing := atomic.LoadUint32(&mgr.numReproducing)
+			numReproducing := mgr.repros.NumReproducing.Load()
 			numFuzzing := atomic.LoadUint32(&mgr.numFuzzing)
 
 			log.Logf(0, "VMs %v, executed %v, cover %v, signal %v/%v, crashes %v, repro %v, triageQLen %v",
@@ -301,35 +299,13 @@ type RunResult struct {
 	err   error
 }
 
-type ReproResult struct {
-	instances     []int
-	report0       *report.Report // the original report we started reproducing
-	repro         *repro.Result
-	strace        *repro.StraceResult
-	stats         *repro.Stats
-	err           error
-	fromHub       bool
-	fromDashboard bool
-	originalTitle string // crash title before we started bug reproduction
-}
-
-// Manager needs to be refactored (#605).
-// nolint: gocyclo, gocognit, funlen
 func (mgr *Manager) vmLoop() {
 	log.Logf(0, "booting test machines...")
 	log.Logf(0, "wait for the connection from test machine...")
-	instancesPerRepro := 3
 	vmCount := mgr.vmPool.Count()
-	maxReproVMs := vmCount - mgr.cfg.FuzzingVMs
-	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
-		instancesPerRepro = maxReproVMs
-	}
-	instances := SequentialResourcePool(vmCount, 10*time.Second*mgr.cfg.Timeouts.Scale)
+	instances := SequentialResourcePool(context.Background(),
+		vmCount, 10*time.Second*mgr.cfg.Timeouts.Scale)
 	runDone := make(chan *RunResult, 1)
-	pendingRepro := make(map[*Crash]bool)
-	reproducing := make(map[string]bool)
-	var reproQueue []*Crash
-	reproDone := make(chan *ReproResult, 1)
 	stopPending := false
 	shutdown := vm.Shutdown
 	for shutdown != nil || instances.Len() != vmCount {
@@ -337,48 +313,19 @@ func (mgr *Manager) vmLoop() {
 		phase := mgr.phase
 		mgr.mu.Unlock()
 
-		for crash := range pendingRepro {
-			if reproducing[crash.Title] {
-				continue
-			}
-			delete(pendingRepro, crash)
-			if !mgr.needRepro(crash) {
-				continue
-			}
-			log.Logf(1, "loop: add to repro queue '%v'", crash.Title)
-			reproducing[crash.Title] = true
-			reproQueue = append(reproQueue, crash)
-		}
-
-		log.Logf(1, "loop: phase=%v shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v",
+		log.Logf(1, "loop: phase=%v shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v",
 			phase, shutdown == nil, instances.Len(), vmCount, instances.Snapshot(),
-			len(pendingRepro), len(reproducing), len(reproQueue))
-
-		canRepro := func() bool {
-			return phase >= phaseTriagedHub && len(reproQueue) != 0 &&
-				(int(atomic.LoadUint32(&mgr.numReproducing))+1)*instancesPerRepro <= maxReproVMs
-		}
+			mgr.repros.NumPending.Load(), mgr.repros.NumReproducing.Load())
 
 		if shutdown != nil {
-			for canRepro() {
-				vmIndexes := instances.Take(instancesPerRepro)
-				if vmIndexes == nil {
-					break
-				}
-				last := len(reproQueue) - 1
-				crash := reproQueue[last]
-				reproQueue[last] = nil
-				reproQueue = reproQueue[:last]
-				atomic.AddUint32(&mgr.numReproducing, 1)
-				log.Logf(0, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
-				go func() {
-					reproDone <- mgr.runRepro(crash, vmIndexes, instances.Put)
-				}()
-			}
-			for !canRepro() {
-				idx := instances.TakeOne()
+			for {
+				idx := instances.TryTake()
 				if idx == nil {
 					break
+				}
+				if phase >= phaseTriagedHub && mgr.repros.TakeInstance(*idx) {
+					// The instance is reserved for bug reproduction.
+					continue
 				}
 				log.Logf(1, "loop: starting instance %v", *idx)
 				go func() {
@@ -389,11 +336,10 @@ func (mgr *Manager) vmLoop() {
 		}
 
 		var stopRequest chan bool
-		if !stopPending && canRepro() {
+		if !stopPending && phase >= phaseTriagedHub && mgr.repros.WantVMs() {
 			stopRequest = mgr.vmStop
 		}
 
-	wait:
 		select {
 		case <-instances.Freed:
 			// An instance has been released.
@@ -413,54 +359,15 @@ func (mgr *Manager) vmLoop() {
 				needRepro := mgr.saveCrash(res.crash)
 				if needRepro {
 					log.Logf(1, "loop: add pending repro for '%v'", res.crash.Title)
-					pendingRepro[res.crash] = true
+					go mgr.repros.Process(res.crash, instances.Put)
 				}
-			}
-		case res := <-reproDone:
-			atomic.AddUint32(&mgr.numReproducing, ^uint32(0))
-			crepro := false
-			title := ""
-			if res.repro != nil {
-				crepro = res.repro.CRepro
-				title = res.repro.Report.Title
-			}
-			log.Logf(0, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'"+
-				" hub=%v from_dashboard=%v",
-				res.instances, res.report0.Title, res.repro != nil, crepro, title,
-				res.fromHub, res.fromDashboard,
-			)
-			if res.err != nil {
-				reportReproError(res.err)
-			}
-			delete(reproducing, res.report0.Title)
-			if res.repro == nil {
-				if res.fromHub {
-					log.Logf(1, "repro '%v' came from syz-hub, not reporting the failure",
-						res.report0.Title)
-				} else {
-					log.Logf(1, "report repro failure of '%v'", res.report0.Title)
-					mgr.saveFailedRepro(res.report0, res.stats)
-				}
-			} else {
-				mgr.saveRepro(res)
 			}
 		case <-shutdown:
 			log.Logf(1, "loop: shutting down...")
 			shutdown = nil
 		case crash := <-mgr.externalReproQueue:
 			log.Logf(1, "loop: got repro request")
-			pendingRepro[crash] = true
-		case reply := <-mgr.needMoreRepros:
-			reply <- phase >= phaseTriagedHub &&
-				len(reproQueue)+len(pendingRepro)+len(reproducing) == 0
-			goto wait
-		case reply := <-mgr.reproRequest:
-			repros := make(map[string]bool)
-			for title := range reproducing {
-				repros[title] = true
-			}
-			reply <- repros
-			goto wait
+			go mgr.repros.Process(crash, instances.Put)
 		}
 	}
 }
@@ -527,12 +434,28 @@ func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(..
 
 type ResourcePool struct {
 	ids   []int
+	size  int
+	ctx   context.Context
 	mu    sync.RWMutex
+	sem   *semaphore.Weighted
 	Freed chan interface{}
 }
 
-func SequentialResourcePool(count int, delay time.Duration) *ResourcePool {
-	ret := &ResourcePool{Freed: make(chan interface{}, 1)}
+func EmptyResourcePool(ctx context.Context, size int) *ResourcePool {
+	sem := semaphore.NewWeighted(int64(size))
+	if err := sem.Acquire(ctx, int64(size)); err != nil {
+		return nil
+	}
+	return &ResourcePool{
+		ctx:   ctx,
+		size:  size,
+		sem:   sem,
+		Freed: make(chan interface{}, 1),
+	}
+}
+
+func SequentialResourcePool(ctx context.Context, count int, delay time.Duration) *ResourcePool {
+	ret := EmptyResourcePool(ctx, count)
 	go func() {
 		for i := 0; i < count; i++ {
 			ret.Put(i)
@@ -546,6 +469,7 @@ func (pool *ResourcePool) Put(ids ...int) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	pool.ids = append(pool.ids, ids...)
+	pool.sem.Release(int64(len(ids)))
 	// Notify the listener.
 	select {
 	case pool.Freed <- true:
@@ -566,23 +490,31 @@ func (pool *ResourcePool) Snapshot() []int {
 }
 
 func (pool *ResourcePool) Take(cnt int) []int {
+	err := pool.sem.Acquire(pool.ctx, int64(cnt))
+	if err != nil {
+		return nil
+	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	totalItems := len(pool.ids)
 	if totalItems < cnt {
-		return nil
+		panic(fmt.Sprintf("inconsistent ResourcePool: take %d, have %d", cnt, totalItems))
 	}
 	ret := append([]int{}, pool.ids[totalItems-cnt:]...)
 	pool.ids = pool.ids[:totalItems-cnt]
 	return ret
 }
 
-func (pool *ResourcePool) TakeOne() *int {
-	ret := pool.Take(1)
-	if ret == nil {
+func (pool *ResourcePool) TryTake() *int {
+	if !pool.sem.TryAcquire(1) {
 		return nil
 	}
-	return &ret[0]
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	total := len(pool.ids)
+	ret := pool.ids[total-1]
+	pool.ids = pool.ids[:total-1]
+	return &ret
 }
 
 func (mgr *Manager) preloadCorpus() {
@@ -1597,15 +1529,21 @@ func (mgr *Manager) dashboardReporter() {
 	}
 }
 
+func (mgr *Manager) needMoreRepros() bool {
+	mgr.mu.Lock()
+	phase := mgr.phase
+	mgr.mu.Unlock()
+	return phase >= phaseTriagedHub &&
+		mgr.repros.NumPending.Load()+mgr.repros.NumReproducing.Load() == 0
+}
+
 func (mgr *Manager) dashboardReproTasks() {
 	if !mgr.cfg.Reproduce {
 		return
 	}
 	for {
 		time.Sleep(20 * time.Minute)
-		needReproReply := make(chan bool)
-		mgr.needMoreRepros <- needReproReply
-		if !<-needReproReply {
+		if !mgr.needMoreRepros() {
 			// We don't need reproducers at the moment.
 			continue
 		}

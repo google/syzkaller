@@ -594,9 +594,7 @@ func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 
 func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	// Note: mu is not locked here.
-	reproReply := make(chan map[string]bool)
-	mgr.reproRequest <- reproReply
-	repros := <-reproReply
+	repros := mgr.repros.Reproducing()
 
 	crashdir := filepath.Join(workdir, "crashes")
 	dirs, err := osutil.ListDir(crashdir)
