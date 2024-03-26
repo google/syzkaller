@@ -184,6 +184,7 @@ var List = map[string]map[string]*Target{
 				"-fno-exceptions",
 			},
 			osCommon: osCommon{
+				BuildOS:                Linux,
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
@@ -196,6 +197,7 @@ var List = map[string]map[string]*Target{
 			// -fsanitize=address causes SIGSEGV.
 			CFlags: []string{"-no-pie"},
 			osCommon: osCommon{
+				BuildOS:                Linux,
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      true,
@@ -213,6 +215,7 @@ var List = map[string]map[string]*Target{
 				"-fno-exceptions",
 			},
 			osCommon: osCommon{
+				BuildOS:                Linux,
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
