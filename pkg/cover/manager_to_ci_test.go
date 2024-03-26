@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var sampleCoverJSON = []byte(`{"file_path":"main.c","func_name":"main",` +
+	`"sl":1,"sc":0,"el":1,"ec":-1,"hit_count":1,"inline":false,"pc":12345}`)
+
 func TestWriteCIJSONLine(t *testing.T) {
 	expectedJSON :=
 		`{"version":1,` +
