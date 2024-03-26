@@ -15,7 +15,7 @@ func TestExecTask_MakeDelete(t *testing.T) {
 	}
 	task := taskFactory.MakeExecTask(program)
 	if l := taskFactory.ExecTasksQueued(); l != 1 {
-		t.Errorf("expected map len is 0, current size is %v", l)
+		t.Errorf("expected map len is 1, current size is %v", l)
 	}
 	taskFactory.DeleteExecTask(task)
 	if l := taskFactory.ExecTasksQueued(); l != 0 {
