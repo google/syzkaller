@@ -429,9 +429,6 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 	}
 }
 
-var sampleCoverJSON = []byte(`{"file_path":"main.c","func_name":"main",` +
-	`"sl":1,"sc":0,"el":1,"ec":-1,"hit_count":1,"inline":false,"pc":12345}`)
-
 // nolint:lll
 func checkJSONLReport(t *testing.T, r []byte) {
 	compacted := new(bytes.Buffer)
