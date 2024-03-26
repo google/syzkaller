@@ -12,8 +12,8 @@ import (
 	"github.com/google/syzkaller/vm"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
-	"runtime"
 	"sync"
 )
 
@@ -35,27 +35,7 @@ type Analyzer struct {
 }
 
 func main() {
-	//test()
 	start()
-}
-
-func test() {
-	flag.Parse()
-	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
-	programs := loadPrograms(target, flag.Args())
-	pools := make(map[int]*PoolInfo)
-	analyzer := &Analyzer{
-		programs: programs,
-		pools:    pools,
-	}
-	analyzer.pools[0] = &PoolInfo{}
-	server, err := createRPCServer(":2233", analyzer)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Logf(0, "my rpc prot: %d", server.port)
-	for {
-	}
 }
 
 func start() {
@@ -138,12 +118,25 @@ func start() {
 		}
 	}
 	analyzer.statistics = initStatistics(len(pools), sw)
+	analyzer.onInterruptListener()
 
 	analyzer.initializeInstances()
 
 	analyzer.wgFinish.Wait()
 
 	analyzer.statistics.printStatistics()
+}
+
+func (analyzer *Analyzer) onInterruptListener() {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+
+	go func() {
+		<-signalChan
+		defer os.Exit(0)
+
+		analyzer.statistics.printStatistics()
+	}()
 }
 
 func (analyzer *Analyzer) initializeInstances() {
@@ -194,8 +187,8 @@ func (analyzer *Analyzer) initializeTasks(repeat int) {
 }
 
 func (analyzer *Analyzer) addTasks(vmID int, programs []*prog.Prog, repeat int) {
-	for programID, _ := range programs {
-		for i := 0; i < repeat; i++ {
+	for i := 0; i < repeat; i++ {
+		for programID, _ := range programs {
 			analyzer.server.tasksQueue.push(vmID, programID)
 		}
 	}
