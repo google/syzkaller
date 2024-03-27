@@ -61,7 +61,7 @@ func main() {
 		reqMap:           make(map[int]*runtest.RunRequest),
 		lastReq:          make(map[string]int),
 	}
-	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr)
+	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr, true)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}

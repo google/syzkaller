@@ -118,16 +118,17 @@ func main() {
 	debug.SetGCPercent(50)
 
 	var (
-		flagName      = flag.String("name", "test", "unique name for manager")
-		flagOS        = flag.String("os", runtime.GOOS, "target OS")
-		flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
-		flagManager   = flag.String("manager", "", "manager rpc address")
-		flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
-		flagOutput    = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-		flagTest      = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
-		flagRunTest   = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
-		flagRawCover  = flag.Bool("raw_cover", false, "fetch raw coverage")
-		flagPprofPort = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
+		flagName           = flag.String("name", "test", "unique name for manager")
+		flagOS             = flag.String("os", runtime.GOOS, "target OS")
+		flagArch           = flag.String("arch", runtime.GOARCH, "target arch")
+		flagManager        = flag.String("manager", "", "manager rpc address")
+		flagProcs          = flag.Int("procs", 1, "number of parallel test processes")
+		flagOutput         = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+		flagTest           = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
+		flagRunTest        = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
+		flagRawCover       = flag.Bool("raw_cover", false, "fetch raw coverage")
+		flagPprofPort      = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
+		flagNetCompression = flag.Bool("net_compression", false, "use network compression for RPC calls")
 
 		// Experimental flags.
 		flagResetAccState = flag.Bool("reset_acc_state", false, "restarts executor before most executions")
@@ -179,7 +180,7 @@ func main() {
 	machineInfo, modules := collectMachineInfos(target)
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
-	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
+	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale, *flagNetCompression)
 	if err != nil {
 		log.SyzFatalf("failed to create an RPC client: %v ", err)
 	}
