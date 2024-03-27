@@ -175,8 +175,8 @@ func (mgr *Manager) collectStats() []UIStat {
 		var intStats []UIStat
 		for k, v := range rawStats {
 			val := ""
-			switch k {
-			case "fuzzer jobs":
+			switch {
+			case k == "fuzzer jobs" || strings.HasPrefix(k, "rpc exchange"):
 				val = fmt.Sprint(v)
 			default:
 				val = rateStat(v, secs)

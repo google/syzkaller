@@ -259,7 +259,7 @@ func main() {
 		execOpts.Flags |= ipc.FlagEnableCoverageFilter
 	}
 	// Query enough inputs at the beginning.
-	fuzzerTool.exchangeDataCall(inputsCount, nil)
+	fuzzerTool.exchangeDataCall(inputsCount, nil, 0)
 	log.Logf(0, "starting %v executor processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzerTool, execOpts, pid)
@@ -335,18 +335,25 @@ func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
 	log.Logf(0, "%s", output)
 }
 
-func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResult) {
+func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResult,
+	latency time.Duration) time.Duration {
 	a := &rpctype.ExchangeInfoRequest{
 		Name:       tool.name,
 		NeedProgs:  needProgs,
 		StatsDelta: tool.grabStats(),
+		Latency:    latency,
 	}
 	for _, result := range results {
 		a.Results = append(a.Results, tool.convertExecutionResult(result))
 	}
 	r := &rpctype.ExchangeInfoReply{}
+	start := time.Now()
 	if err := tool.manager.Call("Manager.ExchangeInfo", a, r); err != nil {
 		log.SyzFatalf("Manager.ExchangeInfo call failed: %v", err)
+	}
+	latency = time.Since(start)
+	if needProgs != len(r.Requests) {
+		log.SyzFatalf("manager returned wrong number of requests: %v/%v", needProgs, len(r.Requests))
 	}
 	tool.updateMaxSignal(r.NewMaxSignal, r.DropMaxSignal)
 	for _, req := range r.Requests {
@@ -359,9 +366,11 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResul
 			prog:             p,
 		}
 	}
+	return latency
 }
 
 func (tool *FuzzerTool) exchangeDataWorker() {
+	var latency time.Duration
 	for result := range tool.results {
 		results := []executionResult{
 			result,
@@ -377,7 +386,7 @@ func (tool *FuzzerTool) exchangeDataWorker() {
 			}
 		}
 		// Replenish exactly the finished requests.
-		tool.exchangeDataCall(len(results), results)
+		latency = tool.exchangeDataCall(len(results), results, latency)
 	}
 }
 

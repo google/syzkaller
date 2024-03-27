@@ -14,26 +14,30 @@ import (
 type Stat uint64
 
 type Stats struct {
-	crashes             Stat
-	crashTypes          Stat
-	crashSuppressed     Stat
-	vmRestarts          Stat
-	newInputs           Stat
-	execTotal           Stat
-	rpcTraffic          Stat
-	hubSendProgAdd      Stat
-	hubSendProgDel      Stat
-	hubSendRepro        Stat
-	hubRecvProg         Stat
-	hubRecvProgDrop     Stat
-	hubRecvRepro        Stat
-	hubRecvReproDrop    Stat
-	corpusCover         Stat
-	corpusCoverFiltered Stat
-	corpusSignal        Stat
-	maxSignal           Stat
-	triageQueueLen      Stat
-	fuzzerJobs          Stat
+	crashes                  Stat
+	crashTypes               Stat
+	crashSuppressed          Stat
+	vmRestarts               Stat
+	newInputs                Stat
+	execTotal                Stat
+	rpcTraffic               Stat
+	rpcExchangeCalls         Stat
+	rpcExchangeProgs         Stat
+	rpcExchangeServerLatency Stat
+	rpcExchangeClientLatency Stat
+	hubSendProgAdd           Stat
+	hubSendProgDel           Stat
+	hubSendRepro             Stat
+	hubRecvProg              Stat
+	hubRecvProgDrop          Stat
+	hubRecvRepro             Stat
+	hubRecvReproDrop         Stat
+	corpusCover              Stat
+	corpusCoverFiltered      Stat
+	corpusSignal             Stat
+	maxSignal                Stat
+	triageQueueLen           Stat
+	fuzzerJobs               Stat
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
@@ -74,8 +78,14 @@ func (stats *Stats) all() map[string]uint64 {
 		"filtered coverage": stats.corpusCoverFiltered.get(),
 		"signal":            stats.corpusSignal.get(),
 		"max signal":        stats.maxSignal.get(),
-		"rpc traffic (MB)":  stats.rpcTraffic.get() / 1e6,
+		"rpc traffic (MB)":  stats.rpcTraffic.get() >> 20,
 		"fuzzer jobs":       stats.fuzzerJobs.get(),
+	}
+	if exchanges := stats.rpcExchangeCalls.get(); exchanges != 0 {
+		m["exchange calls"] = exchanges
+		m["exchange progs"] = uint64(float64(stats.rpcExchangeProgs.get())/float64(exchanges) + 0.5)
+		m["exchange lat server (us)"] = stats.rpcExchangeServerLatency.get() / exchanges / 1e3
+		m["exchange lat client (us)"] = stats.rpcExchangeClientLatency.get() / exchanges / 1e3
 	}
 	if stats.haveHub {
 		m["hub: send prog add"] = stats.hubSendProgAdd.get()

@@ -7,6 +7,7 @@ package rpctype
 
 import (
 	"math"
+	"time"
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
@@ -45,6 +46,7 @@ type ExchangeInfoRequest struct {
 	NeedProgs  int
 	StatsDelta map[string]uint64
 	Results    []ExecutionResult
+	Latency    time.Duration // latency of the previous ExchangeInfo request
 }
 
 // ExchangeInfoReply is a reply to ExchangeInfoRequest.
