@@ -8,6 +8,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/fuzzer"
@@ -173,6 +174,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 }
 
 func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.ExchangeInfoReply) error {
+	start := time.Now()
 	var runner *Runner
 	if val, _ := serv.runners.Load(a.Name); val != nil {
 		runner = val.(*Runner)
@@ -215,6 +217,11 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 
 	log.Logf(2, "exchange with %s: %d done, %d new requests, %d new max signal, %d drop signal",
 		a.Name, len(a.Results), len(r.Requests), len(r.NewMaxSignal), len(r.DropMaxSignal))
+
+	serv.stats.rpcExchangeCalls.inc()
+	serv.stats.rpcExchangeProgs.add(a.NeedProgs)
+	serv.stats.rpcExchangeClientLatency.add(int(a.Latency))
+	serv.stats.rpcExchangeServerLatency.add(int(time.Since(start).Nanoseconds()))
 	return nil
 }
 
