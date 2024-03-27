@@ -757,7 +757,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 
 	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName)
 
-	machineInfo := mgr.serv.shutdownInstance(instanceName)
+	machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
 	if len(vmInfo) != 0 {
 		machineInfo = append(append(vmInfo, '\n'), machineInfo...)
 	}

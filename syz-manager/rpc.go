@@ -35,6 +35,10 @@ type RPCServer struct {
 	checkResult *rpctype.CheckArgs
 
 	checkFailures int
+
+	// We did not finish these requests because of VM restarts.
+	// They will be eventually given to other VMs.
+	rescuedInputs []*fuzzer.Request
 }
 
 type Runner struct {
@@ -188,6 +192,18 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		panic("exchange info call with nil fuzzer")
 	}
 
+	// Try to collect some of the postponed requests.
+	if serv.mu.TryLock() {
+		for i := len(serv.rescuedInputs) - 1; i >= 0 && a.NeedProgs > 0; i-- {
+			inp := serv.rescuedInputs[i]
+			serv.rescuedInputs[i] = nil
+			serv.rescuedInputs = serv.rescuedInputs[:i]
+			r.Requests = append(r.Requests, runner.newRequest(inp))
+			a.NeedProgs--
+		}
+		serv.mu.Unlock()
+	}
+
 	// First query new inputs and only then post results.
 	// It should foster a more even distribution of executions
 	// across all VMs.
@@ -237,7 +253,7 @@ func (serv *RPCServer) updateFilteredCover(pcs []uint32) error {
 	return nil
 }
 
-func (serv *RPCServer) shutdownInstance(name string) []byte {
+func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
 	var runner *Runner
 	if val, _ := serv.runners.LoadAndDelete(name); val != nil {
 		runner = val.(*Runner)
@@ -254,12 +270,20 @@ func (serv *RPCServer) shutdownInstance(name string) []byte {
 	runner.requests = nil
 	runner.mu.Unlock()
 
-	// If the object does not exist, there would be no oldRequests either.
-	fuzzerObj := serv.mgr.getFuzzer()
-	for _, req := range oldRequests {
+	if crashed {
 		// The VM likely crashed, so let's tell pkg/fuzzer to abort the affected jobs.
-		// TODO: distinguish between real VM crashes and regular VM restarts?
-		fuzzerObj.Done(req, &fuzzer.Result{Stop: true})
+		// fuzzerObj may be null, but in that case oldRequests would be empty as well.
+		fuzzerObj := serv.mgr.getFuzzer()
+		for _, req := range oldRequests {
+			fuzzerObj.Done(req, &fuzzer.Result{Stop: true})
+		}
+	} else {
+		// We will resend these inputs to another VM.
+		serv.mu.Lock()
+		for _, req := range oldRequests {
+			serv.rescuedInputs = append(serv.rescuedInputs, req)
+		}
+		serv.mu.Unlock()
 	}
 	return runner.machineInfo
 }
