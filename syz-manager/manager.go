@@ -66,6 +66,7 @@ type Manager struct {
 	vmStop         chan bool
 	checkResult    *rpctype.CheckArgs
 	fresh          bool
+	expertMode     bool
 	numFuzzing     uint32
 	numReproducing uint32
 	nextInstanceID atomic.Uint64
