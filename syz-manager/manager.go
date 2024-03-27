@@ -67,6 +67,7 @@ type Manager struct {
 	vmStop          chan bool
 	checkResult     *rpctype.CheckArgs
 	fresh           bool
+	netCompression  bool
 	expertMode      bool
 	numFuzzing      uint32
 	numReproducing  uint32
@@ -184,6 +185,7 @@ func RunManager(cfg *mgrconfig.Config) {
 		memoryLeakFrames:   make(map[string]bool),
 		dataRaceFrames:     make(map[string]bool),
 		fresh:              true,
+		netCompression:     vm.UseNetCompression(cfg.Type),
 		vmStop:             make(chan bool),
 		externalReproQueue: make(chan *Crash, 10),
 		needMoreRepros:     make(chan chan bool),
@@ -836,11 +838,12 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		Test:      false,
 		Runtest:   false,
 		Optional: &instance.OptionalFuzzerArgs{
-			Slowdown:      mgr.cfg.Timeouts.Slowdown,
-			RawCover:      mgr.cfg.RawCover,
-			SandboxArg:    mgr.cfg.SandboxArg,
-			PprofPort:     inst.PprofPort(),
-			ResetAccState: mgr.cfg.Experimental.ResetAccState,
+			Slowdown:       mgr.cfg.Timeouts.Slowdown,
+			RawCover:       mgr.cfg.RawCover,
+			SandboxArg:     mgr.cfg.SandboxArg,
+			PprofPort:      inst.PprofPort(),
+			ResetAccState:  mgr.cfg.Experimental.ResetAccState,
+			NetCompression: mgr.netCompression,
 		},
 	}
 	cmd := instance.FuzzerCmd(args)
