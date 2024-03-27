@@ -37,6 +37,7 @@ func (mgr *Manager) initHTTP() {
 	}
 	handle("/", mgr.httpSummary)
 	handle("/config", mgr.httpConfig)
+	handle("/expert_mode", mgr.httpExpertMode)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
 	handle("/corpus", mgr.httpCorpus)
@@ -70,9 +71,10 @@ func (mgr *Manager) initHTTP() {
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
-		Name:  mgr.cfg.Name,
-		Log:   log.CachedLogOutput(),
-		Stats: mgr.collectStats(),
+		Name:   mgr.cfg.Name,
+		Expert: mgr.expertMode,
+		Log:    log.CachedLogOutput(),
+		Stats:  mgr.collectStats(),
 	}
 
 	var err error
@@ -91,6 +93,11 @@ func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(data)
+}
+
+func (mgr *Manager) httpExpertMode(w http.ResponseWriter, r *http.Request) {
+	mgr.expertMode = !mgr.expertMode
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
@@ -123,18 +130,25 @@ func (mgr *Manager) collectStats() []UIStat {
 	if configName == "" {
 		configName = "config"
 	}
+	secs := uint64(1)
+	if !mgr.firstConnect.IsZero() {
+		secs = uint64(time.Since(mgr.firstConnect).Seconds()) + 1
+	}
 	rawStats := mgr.stats.all()
 	head := prog.GitRevisionBase
 	stats := []UIStat{
 		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
 		{Name: "config", Value: configName, Link: "/config"},
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
-		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
+		{Name: "fuzzing time", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
 		{Name: "corpus", Value: fmt.Sprint(mgr.corpus.Stats().Progs), Link: "/corpus"},
 		{Name: "triage queue", Value: fmt.Sprint(mgr.stats.triageQueueLen.get())},
+		{Name: "crashes", Value: rateStat(rawStats["crashes"], secs)},
+		{Name: "crash types", Value: rateStat(rawStats["crash types"], secs)},
+		{Name: "suppressed", Value: rateStat(rawStats["suppressed"], secs)},
 		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
 		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
-		{Name: "fuzzer jobs", Value: fmt.Sprint(mgr.stats.fuzzerJobs.get())},
+		{Name: "exec total", Value: fmt.Sprint(rawStats["exec total"])},
 	}
 	if mgr.coverFilter != nil {
 		stats = append(stats, UIStat{
@@ -144,11 +158,9 @@ func (mgr *Manager) collectStats() []UIStat {
 				rawStats["filtered coverage"]*100/uint64(len(mgr.coverFilter))),
 			Link: "/cover?filter=yes",
 		})
+	} else {
+		delete(rawStats, "filtered coverage")
 	}
-	delete(rawStats, "signal")
-	delete(rawStats, "coverage")
-	delete(rawStats, "filtered coverage")
-	delete(rawStats, "fuzzer jobs")
 	if mgr.checkResult != nil {
 		stats = append(stats, UIStat{
 			Name:  "syscalls",
@@ -156,34 +168,38 @@ func (mgr *Manager) collectStats() []UIStat {
 			Link:  "/syscalls",
 		})
 	}
-
-	secs := uint64(1)
-	if !mgr.firstConnect.IsZero() {
-		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
+	for _, stat := range stats {
+		delete(rawStats, stat.Name)
 	}
-	intStats := convertStats(rawStats, secs)
-	sort.Slice(intStats, func(i, j int) bool {
-		return intStats[i].Name < intStats[j].Name
-	})
-	stats = append(stats, intStats...)
+	if mgr.expertMode {
+		var intStats []UIStat
+		for k, v := range rawStats {
+			val := ""
+			switch k {
+			case "fuzzer jobs":
+				val = fmt.Sprint(v)
+			default:
+				val = rateStat(v, secs)
+			}
+			intStats = append(intStats, UIStat{Name: k, Value: val})
+		}
+		sort.Slice(intStats, func(i, j int) bool {
+			return intStats[i].Name < intStats[j].Name
+		})
+		stats = append(stats, intStats...)
+	}
 	return stats
 }
 
-func convertStats(stats map[string]uint64, secs uint64) []UIStat {
-	var intStats []UIStat
-	for k, v := range stats {
-		val := fmt.Sprintf("%v", v)
-		if x := v / secs; x >= 10 {
-			val += fmt.Sprintf(" (%v/sec)", x)
-		} else if x := v * 60 / secs; x >= 10 {
-			val += fmt.Sprintf(" (%v/min)", x)
-		} else {
-			x := v * 60 * 60 / secs
-			val += fmt.Sprintf(" (%v/hour)", x)
-		}
-		intStats = append(intStats, UIStat{Name: k, Value: val})
+func rateStat(v, secs uint64) string {
+	if x := v / secs; x >= 10 {
+		return fmt.Sprintf("%v (%v/sec)", v, x)
 	}
-	return intStats
+	if x := v * 60 / secs; x >= 10 {
+		return fmt.Sprintf("%v (%v/min)", v, x)
+	}
+	x := v * 60 * 60 / secs
+	return fmt.Sprintf("%v (%v/hour)", v, x)
 }
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
@@ -736,6 +752,7 @@ func trimNewLines(data []byte) []byte {
 
 type UISummaryData struct {
 	Name    string
+	Expert  bool
 	Stats   []UIStat
 	Crashes []*UICrashType
 	Log     string
@@ -795,11 +812,12 @@ var summaryTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
-	<title>{{.Name }} syzkaller</title>
+	<title>{{.Name}} syzkaller</title>
 	{{HEAD}}
 </head>
 <body>
 <b>{{.Name }} syzkaller</b>
+<a class="navigation_tab" href='expert_mode'>{{if .Expert}}disable{{else}}enable{{end}} expert mode</a>
 <br>
 
 <table class="list_table">
