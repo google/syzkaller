@@ -18,16 +18,21 @@ import (
 	"google.golang.org/appengine/v2"
 )
 
-// searchPath differs for the tests and AppEngine because we don't follow
+// search path differs for the tests and AppEngine because we don't follow
 // the recommended folder structure (my best guess).
 // When you run the dashboard/app tests, CWD is syzkaller/dashboard/app.
 // When you deploy AppEngine in the GOPATH mode, CWD is syzkaller/dashboard/app.
 // When you deploy AppEngine in the  GOMOD, CWD is syzkaller/.
-func globSearchPath() string {
+var globSearchPath = func() string {
 	if appengine.IsAppEngine() {
 		return "dashboard/app/"
 	}
 	return ""
+}()
+
+// SetGlobSearchPath overrides the default path where syzkaller looks for templates.
+func SetGlobSearchPath(path string) {
+	globSearchPath = path
 }
 
 func CreateGlob(glob string) *template.Template {
@@ -35,7 +40,7 @@ func CreateGlob(glob string) *template.Template {
 		panic("glob can't be a path, the files mask is expected")
 	}
 	return template.Must(
-		template.New("").Funcs(Funcs).ParseGlob(globSearchPath() + glob))
+		template.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
 }
 
 func CreateTextGlob(glob string) *texttemplate.Template {
@@ -43,7 +48,7 @@ func CreateTextGlob(glob string) *texttemplate.Template {
 		panic("glob can't be a path, the files mask is expected")
 	}
 	return texttemplate.Must(
-		texttemplate.New("").Funcs(Funcs).ParseGlob(globSearchPath() + glob))
+		texttemplate.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
 }
 
 var Funcs = template.FuncMap{
