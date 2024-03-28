@@ -1406,10 +1406,10 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 			}
 			log.Logf(level, msg, args...)
 		},
-		NewInputFilter: func(input *corpus.NewInput) bool {
+		NewInputFilter: func(call string) bool {
 			mgr.mu.Lock()
 			defer mgr.mu.Unlock()
-			return !mgr.saturatedCalls[input.StringCall()]
+			return !mgr.saturatedCalls[call]
 		},
 	}, rnd, mgr.target)
 	mgr.fuzzer.Store(fuzzerObj)
