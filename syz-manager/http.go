@@ -148,7 +148,7 @@ func (mgr *Manager) collectStats() []UIStat {
 		{Name: "suppressed", Value: rateStat(rawStats["suppressed"], secs)},
 		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
 		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
-		{Name: "exec total", Value: fmt.Sprint(rawStats["exec total"])},
+		{Name: "exec total", Value: rateStat(rawStats["exec total"], secs)},
 	}
 	if mgr.coverFilter != nil {
 		stats = append(stats, UIStat{
