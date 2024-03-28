@@ -110,7 +110,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 				return nil
 			}
 			if try > 10 {
-				log.SyzFatalf("executor %v failed %v times: %v", proc.pid, try, err)
+				log.SyzFatalf("executor %v failed %v times: %v\n%s", proc.pid, try, err, output)
 			}
 			log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
 			debug.FreeOSMemory()
