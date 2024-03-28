@@ -17,6 +17,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	_ "unsafe" // required to use go:linkname
 )
 
 const (
@@ -337,3 +338,14 @@ func Abs(path string) string {
 	}
 	return filepath.Join(wd, path)
 }
+
+// MonotonicNano returns monotonic time in nanoseconds from some unspecified point in time.
+// Useful mostly to measure time intervals.
+// This function should be used inside of tested VMs b/c time.Now may reject to use monotonic time
+// if the fuzzer messes with system time (sets time past Y2157, see comments in time/time.go).
+// This is a hacky way to use the private runtime function.
+// If this ever breaks, we can either provide specializations for different Go versions
+// using build tags, or fall back to time.Now.
+//
+//go:linkname MonotonicNano runtime.nanotime
+func MonotonicNano() time.Duration
