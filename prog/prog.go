@@ -14,6 +14,16 @@ type Prog struct {
 	Comments []string
 }
 
+func (p *Prog) CallName(call int) string {
+	if call >= len(p.Calls) || call < -1 {
+		panic(fmt.Sprintf("bad call index %v/%v", call, len(p.Calls)))
+	}
+	if call == -1 {
+		return ".extra"
+	}
+	return p.Calls[call].Meta.Name
+}
+
 // These properties are parsed and serialized according to the tag and the type
 // of the corresponding fields.
 // IMPORTANT: keep the exact values of "key" tag for existing props unchanged,

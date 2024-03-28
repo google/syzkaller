@@ -129,16 +129,18 @@ func (err InfraError) InfraError() (string, []byte) {
 }
 
 // Register registers a new VM type within the package.
-func Register(typ string, ctor ctorFunc, allowsOvercommit bool) {
+func Register(typ string, ctor ctorFunc, allowsOvercommit, netCompression bool) {
 	Types[typ] = Type{
-		Ctor:       ctor,
-		Overcommit: allowsOvercommit,
+		Ctor:           ctor,
+		Overcommit:     allowsOvercommit,
+		NetCompression: netCompression,
 	}
 }
 
 type Type struct {
-	Ctor       ctorFunc
-	Overcommit bool
+	Ctor           ctorFunc
+	Overcommit     bool
+	NetCompression bool
 }
 
 type ctorFunc func(env *Env) (Pool, error)

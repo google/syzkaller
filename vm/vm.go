@@ -93,6 +93,12 @@ func AllowsOvercommit(typ string) bool {
 	return vmimpl.Types[vmType(typ)].Overcommit
 }
 
+// UseNetCompression says if it's beneficial to use network compression for this VM type.
+// Local VMs (qemu) generally don't benefit from compression, while remote machines may benefit.
+func UseNetCompression(typ string) bool {
+	return vmimpl.Types[vmType(typ)].NetCompression
+}
+
 // Create creates a VM pool that can be used to create individual VMs.
 func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 	typ, ok := vmimpl.Types[vmType(cfg.Type)]

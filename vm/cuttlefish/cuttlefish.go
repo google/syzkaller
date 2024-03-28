@@ -28,7 +28,7 @@ const (
 )
 
 func init() {
-	vmimpl.Register("cuttlefish", ctor, true)
+	vmimpl.Register("cuttlefish", ctor, true, true)
 }
 
 type Pool struct {

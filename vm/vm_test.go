@@ -80,7 +80,7 @@ func init() {
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return &testPool{}, nil
 	}
-	vmimpl.Register("test", ctor, false)
+	vmimpl.Register("test", ctor, false, false)
 }
 
 type Test struct {

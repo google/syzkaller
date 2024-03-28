@@ -33,7 +33,7 @@ func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 		notChecked: len(vrf.pools),
 	}
 
-	s, err := rpctype.NewRPCServer(vrf.addr, "Verifier", srv)
+	s, err := rpctype.NewRPCServer(vrf.addr, "Verifier", srv, true)
 	if err != nil {
 		return nil, err
 	}

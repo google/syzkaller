@@ -32,7 +32,7 @@ func init() {
 		func(env *vmimpl.Env) (vmimpl.Pool, error) {
 			return ctor(makeDefaultParams(), env)
 		},
-		false)
+		false, true)
 }
 
 // Package configuration VARs are mostly needed for tests.

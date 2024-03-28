@@ -131,12 +131,8 @@ func triageJobPrio(flags ProgTypes) jobPriority {
 }
 
 func (job *triageJob) run(fuzzer *Fuzzer) {
-	logCallName := "extra"
-	if job.call != -1 {
-		callName := job.p.Calls[job.call].Meta.Name
-		logCallName = fmt.Sprintf("call #%v %v", job.call, callName)
-	}
-	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", logCallName, job.newSignal.Len())
+	callName := fmt.Sprintf("call #%v %v", job.call, job.p.CallName(job.call))
+	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", callName, job.newSignal.Len())
 	// Compute input coverage and non-flaky signal for minimization.
 	info, stop := job.deflake(fuzzer)
 	if stop || info.newStableSignal.Empty() {
@@ -148,7 +144,10 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 			return
 		}
 	}
-	fuzzer.Logf(2, "added new input for %q to the corpus:\n%s", logCallName, job.p.String())
+	if !fuzzer.Config.NewInputFilter(job.p.CallName(job.call)) {
+		return
+	}
+	fuzzer.Logf(2, "added new input for %v to the corpus: %s", callName, job.p)
 	if job.flags&progSmashed == 0 {
 		fuzzer.startJob(&smashJob{
 			p:    job.p.Clone(),
@@ -161,9 +160,6 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 		Signal:   info.stableSignal,
 		Cover:    info.cover.Serialize(),
 		RawCover: info.rawCover,
-	}
-	if filter := fuzzer.Config.NewInputFilter; filter != nil && !filter(&input) {
-		return
 	}
 	fuzzer.Config.Corpus.Save(input)
 }

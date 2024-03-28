@@ -17,12 +17,14 @@ import (
 )
 
 type RPCServer struct {
-	ln         net.Listener
-	s          *rpc.Server
-	TotalBytes atomic.Uint64
+	TotalBytes atomic.Uint64 // total compressed bytes transmitted
+
+	ln             net.Listener
+	s              *rpc.Server
+	useCompression bool
 }
 
-func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
+func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %v: %w", addr, err)
@@ -32,8 +34,9 @@ func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
 		return nil, err
 	}
 	serv := &RPCServer{
-		ln: ln,
-		s:  s,
+		ln:             ln,
+		s:              s,
+		useCompression: useCompression,
 	}
 	return serv, nil
 }
@@ -46,7 +49,7 @@ func (serv *RPCServer) Serve() {
 			continue
 		}
 		setupKeepAlive(conn, time.Minute)
-		go serv.s.ServeConn(newFlateConn(newCountedConn(serv, conn)))
+		go serv.s.ServeConn(maybeFlateConn(newCountedConn(serv, conn), serv.useCompression))
 	}
 }
 
@@ -55,9 +58,10 @@ func (serv *RPCServer) Addr() net.Addr {
 }
 
 type RPCClient struct {
-	conn      net.Conn
-	c         *rpc.Client
-	timeScale time.Duration
+	conn           net.Conn
+	c              *rpc.Client
+	timeScale      time.Duration
+	useCompression bool
 }
 
 func Dial(addr string, timeScale time.Duration) (net.Conn, error) {
@@ -77,15 +81,16 @@ func Dial(addr string, timeScale time.Duration) (net.Conn, error) {
 	return conn, nil
 }
 
-func NewRPCClient(addr string, timeScale time.Duration) (*RPCClient, error) {
+func NewRPCClient(addr string, timeScale time.Duration, useCompression bool) (*RPCClient, error) {
 	conn, err := Dial(addr, timeScale)
 	if err != nil {
 		return nil, err
 	}
 	cli := &RPCClient{
-		conn:      conn,
-		c:         rpc.NewClient(newFlateConn(conn)),
-		timeScale: timeScale,
+		conn:           conn,
+		c:              rpc.NewClient(maybeFlateConn(conn, useCompression)),
+		timeScale:      timeScale,
+		useCompression: useCompression,
 	}
 	return cli, nil
 }
@@ -101,15 +106,6 @@ func (cli *RPCClient) Close() {
 	cli.c.Close()
 }
 
-func RPCCall(addr string, timeScale time.Duration, method string, args, reply interface{}) error {
-	c, err := NewRPCClient(addr, timeScale)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-	return c.Call(method, args, reply)
-}
-
 func setupKeepAlive(conn net.Conn, keepAlive time.Duration) {
 	conn.(*net.TCPConn).SetKeepAlive(true)
 	conn.(*net.TCPConn).SetKeepAlivePeriod(keepAlive)
@@ -122,7 +118,10 @@ type flateConn struct {
 	c io.Closer
 }
 
-func newFlateConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
+func maybeFlateConn(conn io.ReadWriteCloser, useCompression bool) io.ReadWriteCloser {
+	if !useCompression {
+		return conn
+	}
 	w, err := flate.NewWriter(conn, 9)
 	if err != nil {
 		panic(err)

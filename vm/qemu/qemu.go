@@ -27,7 +27,7 @@ import (
 
 func init() {
 	var _ vmimpl.Infoer = (*instance)(nil)
-	vmimpl.Register("qemu", ctor, true)
+	vmimpl.Register("qemu", ctor, true, false)
 }
 
 type Config struct {

@@ -25,7 +25,7 @@ import (
 var vmctlStatusRegex = regexp.MustCompile(`^\s+([0-9]+)\b.*\brunning`)
 
 func init() {
-	vmimpl.Register("vmm", ctor, true)
+	vmimpl.Register("vmm", ctor, true, false)
 }
 
 type Config struct {
