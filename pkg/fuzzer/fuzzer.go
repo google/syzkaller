@@ -43,6 +43,11 @@ type Fuzzer struct {
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	target *prog.Target) *Fuzzer {
+	if cfg.NewInputFilter == nil {
+		cfg.NewInputFilter = func(call string) bool {
+			return true
+		}
+	}
 	f := &Fuzzer{
 		Config: cfg,
 		Cover:  &Cover{},
@@ -77,7 +82,7 @@ type Config struct {
 	EnabledCalls   map[*prog.Syscall]bool
 	NoMutateCalls  map[int]bool
 	FetchRawCover  bool
-	NewInputFilter func(input *corpus.NewInput) bool
+	NewInputFilter func(call string) bool
 }
 
 type Request struct {
@@ -129,6 +134,9 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 		// We are already triaging this exact prog.
 		// All newly found coverage is flaky.
 		fuzzer.Logf(2, "found new flaky signal in call %d in %s", call, p)
+		return
+	}
+	if !fuzzer.Config.NewInputFilter(p.CallName(call)) {
 		return
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
