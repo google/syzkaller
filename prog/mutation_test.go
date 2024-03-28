@@ -152,6 +152,7 @@ func TestMutateArgument(t *testing.T) {
 					ncalls: 2 * len(p.Calls),
 					ct:     ct,
 					corpus: nil,
+					opts:   DefaultMutateOpts,
 				}
 				ctx.mutateArg()
 				data1 := p1.Serialize()
@@ -179,6 +180,7 @@ func TestSizeMutateArg(t *testing.T) {
 				ncalls: 2 * len(p.Calls),
 				ct:     ct,
 				corpus: nil,
+				opts:   DefaultMutateOpts,
 			}
 			ctx.mutateArg()
 			ForeachArg(p.Calls[0], func(arg Arg, ctx *ArgCtx) {
