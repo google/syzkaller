@@ -347,11 +347,11 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResul
 		a.Results = append(a.Results, tool.convertExecutionResult(result))
 	}
 	r := &rpctype.ExchangeInfoReply{}
-	start := time.Now()
+	start := osutil.MonotonicNano()
 	if err := tool.manager.Call("Manager.ExchangeInfo", a, r); err != nil {
 		log.SyzFatalf("Manager.ExchangeInfo call failed: %v", err)
 	}
-	latency = time.Since(start)
+	latency = osutil.MonotonicNano() - start
 	if needProgs != len(r.Requests) {
 		log.SyzFatalf("manager returned wrong number of requests: %v/%v", needProgs, len(r.Requests))
 	}
