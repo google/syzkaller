@@ -37,6 +37,8 @@ type Fuzzer struct {
 	nextExec  *priorityQueue[*Request]
 	nextJobID atomic.Int64
 
+	nextExecFallback chan *Request
+
 	runningJobs      atomic.Int64
 	queuedCandidates atomic.Int64
 }
@@ -56,10 +58,14 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		// regenerating the table, we don't want to repeat it right away.
 		ctRegenerate: make(chan struct{}),
 
-		nextExec: makePriorityQueue[*Request](),
+		nextExec:         makePriorityQueue[*Request](),
+		nextExecFallback: make(chan *Request, cfg.PregenerateCount),
 	}
 	f.updateChoiceTable(nil)
 	go f.choiceTableUpdater()
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go f.generateFallback()
+	}
 	if cfg.Debug {
 		go f.logCurrentStats()
 	}
@@ -74,10 +80,12 @@ type Config struct {
 	FaultInjection bool
 	Comparisons    bool
 	Collide        bool
-	EnabledCalls   map[*prog.Syscall]bool
-	NoMutateCalls  map[int]bool
-	FetchRawCover  bool
-	NewInputFilter func(input *corpus.NewInput) bool
+	// Pregenerate that many exec requests asynchronously ahead of time.
+	PregenerateCount int
+	EnabledCalls     map[*prog.Syscall]bool
+	NoMutateCalls    map[int]bool
+	FetchRawCover    bool
+	NewInputFilter   func(input *corpus.NewInput) bool
 }
 
 type Request struct {
@@ -186,6 +194,15 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 		}
 	}
 
+	select {
+	case r := <-fuzzer.nextExecFallback:
+		return r
+	default:
+		return fuzzer.nextInputFallback(fuzzer.rand())
+	}
+}
+
+func (fuzzer *Fuzzer) nextInputFallback(rnd *rand.Rand) *Request {
 	// Either generate a new input or mutate an existing one.
 	mutateRate := 0.95
 	if !fuzzer.Config.Coverage {
@@ -193,7 +210,6 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 		// more frequently because fallback signal is weak.
 		mutateRate = 0.5
 	}
-	rnd := fuzzer.rand()
 	if rnd.Float64() < mutateRate {
 		req := mutateProgRequest(fuzzer, rnd)
 		if req != nil {
@@ -201,6 +217,17 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 		}
 	}
 	return genProgRequest(fuzzer, rnd)
+}
+
+func (fuzzer *Fuzzer) generateFallback() {
+	rnd := fuzzer.rand()
+	for {
+		select {
+		case fuzzer.nextExecFallback <- fuzzer.nextInputFallback(rnd):
+		case <-fuzzer.ctx.Done():
+			return
+		}
+	}
 }
 
 func (fuzzer *Fuzzer) startJob(newJob job) {

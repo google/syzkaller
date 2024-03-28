@@ -1392,14 +1392,15 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 		calls[mgr.target.Syscalls[id]] = true
 	}
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-		Corpus:         mgr.corpus,
-		Coverage:       mgr.cfg.Cover,
-		FaultInjection: a.Features[host.FeatureFault].Enabled,
-		Comparisons:    a.Features[host.FeatureComparisons].Enabled,
-		Collide:        true,
-		EnabledCalls:   calls,
-		NoMutateCalls:  mgr.cfg.NoMutateCalls,
-		FetchRawCover:  mgr.cfg.RawCover,
+		Corpus:           mgr.corpus,
+		Coverage:         mgr.cfg.Cover,
+		FaultInjection:   a.Features[host.FeatureFault].Enabled,
+		Comparisons:      a.Features[host.FeatureComparisons].Enabled,
+		Collide:          true,
+		EnabledCalls:     calls,
+		NoMutateCalls:    mgr.cfg.NoMutateCalls,
+		FetchRawCover:    mgr.cfg.RawCover,
+		PregenerateCount: mgr.vmPool.Count() * mgr.cfg.Procs * 4,
 		Logf: func(level int, msg string, args ...interface{}) {
 			if level != 0 {
 				return
