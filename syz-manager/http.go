@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/gorilla/handlers"
@@ -38,6 +39,7 @@ func (mgr *Manager) initHTTP() {
 	handle("/", mgr.httpSummary)
 	handle("/config", mgr.httpConfig)
 	handle("/expert_mode", mgr.httpExpertMode)
+	handle("/stats", mgr.httpStats)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
 	handle("/corpus", mgr.httpCorpus)
@@ -71,10 +73,24 @@ func (mgr *Manager) initHTTP() {
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
-		Name:   mgr.cfg.Name,
-		Expert: mgr.expertMode,
-		Log:    log.CachedLogOutput(),
-		Stats:  mgr.collectStats(),
+		Name:         mgr.cfg.Name,
+		Revision:     prog.GitRevisionBase[:8],
+		RevisionLink: vcs.LogLink(vcs.SyzkallerRepo, prog.GitRevisionBase),
+		Expert:       mgr.expertMode,
+		Log:          log.CachedLogOutput(),
+	}
+
+	level := stats.Simple
+	if mgr.expertMode {
+		level = stats.All
+	}
+	for _, stat := range stats.Collect(level) {
+		data.Stats = append(data.Stats, UIStat{
+			Name:  stat.Name,
+			Value: stat.Value,
+			Hint:  stat.Desc,
+			Link:  stat.Link,
+		})
 	}
 
 	var err error
@@ -122,89 +138,19 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, syscallsTemplate, data)
 }
 
-func (mgr *Manager) collectStats() []UIStat {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
-	configName := mgr.cfg.Name
-	if configName == "" {
-		configName = "config"
+func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
+	data, err := stats.RenderHTML()
+	if err != nil {
+		log.Logf(0, "failed to execute template: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	secs := uint64(1)
-	if !mgr.firstConnect.IsZero() {
-		secs = uint64(time.Since(mgr.firstConnect).Seconds()) + 1
-	}
-	rawStats := mgr.stats.all()
-	head := prog.GitRevisionBase
-	stats := []UIStat{
-		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
-		{Name: "config", Value: configName, Link: "/config"},
-		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
-		{Name: "fuzzing time", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
-		{Name: "corpus", Value: fmt.Sprint(mgr.corpus.Stats().Progs), Link: "/corpus"},
-		{Name: "triage queue", Value: fmt.Sprint(mgr.stats.triageQueueLen.get())},
-		{Name: "crashes", Value: rateStat(rawStats["crashes"], secs)},
-		{Name: "crash types", Value: rateStat(rawStats["crash types"], secs)},
-		{Name: "suppressed", Value: rateStat(rawStats["suppressed"], secs)},
-		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
-		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
-		{Name: "exec total", Value: rateStat(rawStats["exec total"], secs)},
-	}
-	if mgr.coverFilter != nil {
-		stats = append(stats, UIStat{
-			Name: "filtered coverage",
-			Value: fmt.Sprintf("%v / %v (%v%%)",
-				rawStats["filtered coverage"], len(mgr.coverFilter),
-				rawStats["filtered coverage"]*100/uint64(len(mgr.coverFilter))),
-			Link: "/cover?filter=yes",
-		})
-	} else {
-		delete(rawStats, "filtered coverage")
-	}
-	if mgr.checkResult != nil {
-		stats = append(stats, UIStat{
-			Name:  "syscalls",
-			Value: fmt.Sprint(len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])),
-			Link:  "/syscalls",
-		})
-	}
-	for _, stat := range stats {
-		delete(rawStats, stat.Name)
-	}
-	if mgr.expertMode {
-		var intStats []UIStat
-		for k, v := range rawStats {
-			val := ""
-			switch {
-			case k == "fuzzer jobs" || strings.HasPrefix(k, "rpc exchange"):
-				val = fmt.Sprint(v)
-			default:
-				val = rateStat(v, secs)
-			}
-			intStats = append(intStats, UIStat{Name: k, Value: val})
-		}
-		sort.Slice(intStats, func(i, j int) bool {
-			return intStats[i].Name < intStats[j].Name
-		})
-		stats = append(stats, intStats...)
-	}
-	return stats
-}
-
-func rateStat(v, secs uint64) string {
-	if x := v / secs; x >= 10 {
-		return fmt.Sprintf("%v (%v/sec)", v, x)
-	}
-	if x := v * 60 / secs; x >= 10 {
-		return fmt.Sprintf("%v (%v/min)", v, x)
-	}
-	x := v * 60 * 60 / secs
-	return fmt.Sprintf("%v (%v/hour)", v, x)
+	w.Write(data)
 }
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
-	crash := readCrash(mgr.cfg.Workdir, crashID, nil, mgr.startTime, true)
+	crash := readCrash(mgr.cfg.Workdir, crashID, nil, mgr.firstConnect.Load(), true)
 	if crash == nil {
 		http.Error(w, "failed to read crash info", http.StatusInternalServerError)
 		return
@@ -621,7 +567,7 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	}
 	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		crash := readCrash(workdir, dir, repros, mgr.startTime, false)
+		crash := readCrash(workdir, dir, repros, mgr.firstConnect.Load(), false)
 		if crash != nil {
 			crashTypes = append(crashTypes, crash)
 		}
@@ -632,7 +578,7 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	return crashTypes, nil
 }
 
-func readCrash(workdir, dir string, repros map[string]bool, start time.Time, full bool) *UICrashType {
+func readCrash(workdir, dir string, repros map[string]bool, start int64, full bool) *UICrashType {
 	if len(dir) != 40 {
 		return nil
 	}
@@ -691,7 +637,7 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 			crash.Log = filepath.Join("crashes", dir, "log"+index)
 			if stat, err := os.Stat(filepath.Join(workdir, crash.Log)); err == nil {
 				crash.Time = stat.ModTime()
-				crash.Active = crash.Time.After(start)
+				crash.Active = start != 0 && crash.Time.Unix() >= start
 			}
 			tag, _ := os.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
 			crash.Tag = string(tag)
@@ -709,7 +655,7 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 	return &UICrashType{
 		Description: desc,
 		LastTime:    modTime,
-		Active:      modTime.After(start),
+		Active:      start != 0 && modTime.Unix() >= start,
 		ID:          dir,
 		Count:       len(crashes),
 		Triaged:     triaged,
@@ -751,11 +697,13 @@ func trimNewLines(data []byte) []byte {
 }
 
 type UISummaryData struct {
-	Name    string
-	Expert  bool
-	Stats   []UIStat
-	Crashes []*UICrashType
-	Log     string
+	Name         string
+	Revision     string
+	RevisionLink string
+	Expert       bool
+	Stats        []UIStat
+	Crashes      []*UICrashType
+	Log          string
 }
 
 type UISyscallsData struct {
@@ -786,6 +734,7 @@ type UICrash struct {
 type UIStat struct {
 	Name  string
 	Value string
+	Hint  string
 	Link  string
 }
 
@@ -817,14 +766,16 @@ var summaryTemplate = pages.Create(`
 </head>
 <body>
 <b>{{.Name }} syzkaller</b>
+<a href='/config'>[config]</a>
+<a href='{{.RevisionLink}}'>{{.Revision}}</a>
 <a class="navigation_tab" href='expert_mode'>{{if .Expert}}disable{{else}}enable{{end}} expert mode</a>
 <br>
 
 <table class="list_table">
-	<caption>Stats:</caption>
+	<caption><a href='/stats'>Stats 📈</a></caption>
 	{{range $s := $.Stats}}
 	<tr>
-		<td class="stat_name">{{$s.Name}}</td>
+		<td class="stat_name" title="{{$s.Hint}}">{{$s.Name}}</td>
 		<td class="stat_value">
 			{{if $s.Link}}
 				<a href="{{$s.Link}}">{{$s.Value}}</a>

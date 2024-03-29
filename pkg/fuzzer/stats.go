@@ -3,44 +3,55 @@
 
 package fuzzer
 
-import "github.com/google/syzkaller/pkg/corpus"
-
-const (
-	statGenerate       = "exec gen"
-	statFuzz           = "exec fuzz"
-	statCandidate      = "exec candidate"
-	statTriage         = "exec triage"
-	statMinimize       = "exec minimize"
-	statSmash          = "exec smash"
-	statHint           = "exec hints"
-	statSeed           = "exec seeds"
-	statCollide        = "exec collide"
-	statExecTotal      = "exec total"
-	statBufferTooSmall = "buffer too small"
-)
+import "github.com/google/syzkaller/pkg/stats"
 
 type Stats struct {
-	CoverStats
-	corpus.Stats
-	Candidates  int
-	RunningJobs int
-	// Let's keep stats in Named as long as the rest of the code does not depend
-	// on their specific values.
-	Named map[string]uint64
+	StatCandidates    *stats.Val
+	statNewInputs     *stats.Val
+	statJobs          *stats.Val
+	statJobsTriage    *stats.Val
+	statJobsSmash     *stats.Val
+	statJobsHints     *stats.Val
+	statExecTime      *stats.Val
+	statExecGenerate  *stats.Val
+	statExecFuzz      *stats.Val
+	statExecCandidate *stats.Val
+	statExecTriage    *stats.Val
+	statExecMinimize  *stats.Val
+	statExecSmash     *stats.Val
+	statExecHint      *stats.Val
+	statExecSeed      *stats.Val
+	statExecCollide   *stats.Val
 }
 
-func (fuzzer *Fuzzer) Stats() Stats {
-	ret := Stats{
-		CoverStats:  fuzzer.Cover.Stats(),
-		Stats:       fuzzer.Config.Corpus.Stats(),
-		Candidates:  int(fuzzer.queuedCandidates.Load()),
-		RunningJobs: int(fuzzer.runningJobs.Load()),
-		Named:       make(map[string]uint64),
+func newStats() Stats {
+	return Stats{
+		StatCandidates: stats.Create("candidates", "Number of candidate programs in triage queue",
+			stats.Graph("corpus")),
+		statNewInputs: stats.Create("new inputs", "Potential untriaged corpus candidates",
+			stats.Graph("corpus")),
+		statJobs:       stats.Create("fuzzer jobs", "Total running fuzzer jobs", stats.NoGraph),
+		statJobsTriage: stats.Create("triage jobs", "Running triage jobs", stats.StackedGraph("jobs")),
+		statJobsSmash:  stats.Create("smash jobs", "Running smash jobs", stats.StackedGraph("jobs")),
+		statJobsHints:  stats.Create("hints jobs", "Running hints jobs", stats.StackedGraph("jobs")),
+		statExecTime:   stats.Create("prog exec time", "Test program execution time (ms)", stats.Distribution{}),
+		statExecGenerate: stats.Create("exec gen", "Executions of generated programs", stats.Rate{},
+			stats.StackedGraph("exec")),
+		statExecFuzz: stats.Create("exec fuzz", "Executions of mutated programs",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecCandidate: stats.Create("exec candidate", "Executions of candidate programs",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecTriage: stats.Create("exec triage", "Executions of corpus triage programs",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecMinimize: stats.Create("exec minimize", "Executions of programs during minimization",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecSmash: stats.Create("exec smash", "Executions of smashed programs",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecHint: stats.Create("exec hints", "Executions of programs generated using hints",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecSeed: stats.Create("exec seeds", "Executions of programs for hints extraction",
+			stats.Rate{}, stats.StackedGraph("exec")),
+		statExecCollide: stats.Create("exec collide", "Executions of programs in collide mode",
+			stats.Rate{}, stats.StackedGraph("exec")),
 	}
-	fuzzer.mu.Lock()
-	defer fuzzer.mu.Unlock()
-	for k, v := range fuzzer.stats {
-		ret.Named[k] = v
-	}
-	return ret
 }

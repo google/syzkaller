@@ -10,6 +10,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -23,6 +24,9 @@ type Corpus struct {
 	cover   cover.Cover   // total coverage of all items
 	updates chan<- NewItemEvent
 	*ProgramsList
+	StatProgs  *stats.Val
+	StatSignal *stats.Val
+	StatCover  *stats.Val
 }
 
 func NewCorpus(ctx context.Context) *Corpus {
@@ -30,12 +34,19 @@ func NewCorpus(ctx context.Context) *Corpus {
 }
 
 func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpus {
-	return &Corpus{
+	corpus := &Corpus{
 		ctx:          ctx,
 		progs:        make(map[string]*Item),
 		updates:      updates,
 		ProgramsList: &ProgramsList{},
 	}
+	corpus.StatProgs = stats.Create("corpus", "Number of test programs in the corpus", stats.Console,
+		stats.Link("/corpus"), stats.Graph("corpus"), stats.LenOf(&corpus.progs, &corpus.mu))
+	corpus.StatSignal = stats.Create("signal", "Fuzzing signal in the corpus",
+		stats.LenOf(&corpus.signal, &corpus.mu))
+	corpus.StatCover = stats.Create("coverage", "Source coverage in the corpus", stats.Console,
+		stats.Link("/cover"), stats.Prometheus("syz_corpus_cover"), stats.LenOf(&corpus.cover, &corpus.mu))
+	return corpus
 }
 
 // It may happen that a single program is relevant because of several
@@ -159,23 +170,6 @@ func (corpus *Corpus) Item(sig string) *Item {
 	corpus.mu.RLock()
 	defer corpus.mu.RUnlock()
 	return corpus.progs[sig]
-}
-
-// Stats is a snapshot of the relevant current state figures.
-type Stats struct {
-	Progs  int
-	Signal int
-	Cover  int
-}
-
-func (corpus *Corpus) Stats() Stats {
-	corpus.mu.RLock()
-	defer corpus.mu.RUnlock()
-	return Stats{
-		Progs:  len(corpus.progs),
-		Signal: len(corpus.signal),
-		Cover:  len(corpus.cover),
-	}
 }
 
 type CallCov struct {

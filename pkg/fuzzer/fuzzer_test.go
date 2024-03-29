@@ -159,15 +159,13 @@ func TestRotate(t *testing.T) {
 	})
 	fuzzer.Cover.AddMaxSignal(fakeSignal(1000))
 
-	stats := fuzzer.Stats()
-	assert.Equal(t, 1000, stats.MaxSignal)
-	assert.Equal(t, 100, stats.Signal)
+	assert.Equal(t, 1000, len(fuzzer.Cover.maxSignal))
+	assert.Equal(t, 100, corpusObj.StatSignal.Val())
 
 	// Rotate some of the signal.
 	fuzzer.RotateMaxSignal(200)
-	stats = fuzzer.Stats()
-	assert.Equal(t, 800, stats.MaxSignal)
-	assert.Equal(t, 100, stats.Signal)
+	assert.Equal(t, 800, len(fuzzer.Cover.maxSignal))
+	assert.Equal(t, 100, corpusObj.StatSignal.Val())
 
 	plus, minus := fuzzer.Cover.GrabSignalDelta()
 	assert.Equal(t, 0, plus.Len())
@@ -175,9 +173,8 @@ func TestRotate(t *testing.T) {
 
 	// Rotate the rest.
 	fuzzer.RotateMaxSignal(1000)
-	stats = fuzzer.Stats()
-	assert.Equal(t, 100, stats.MaxSignal)
-	assert.Equal(t, 100, stats.Signal)
+	assert.Equal(t, 100, len(fuzzer.Cover.maxSignal))
+	assert.Equal(t, 100, corpusObj.StatSignal.Val())
 	plus, minus = fuzzer.Cover.GrabSignalDelta()
 	assert.Equal(t, 0, plus.Len())
 	assert.Equal(t, 700, minus.Len())
@@ -230,9 +227,9 @@ func (f *testFuzzer) oneMore() bool {
 	defer f.mu.Unlock()
 	f.iter++
 	if f.iter%100 == 0 {
-		stat := f.fuzzer.Stats()
 		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d, running jobs %d",
-			f.iter, stat.Progs, stat.Signal, stat.MaxSignal, len(f.crashes), stat.RunningJobs)
+			f.iter, f.fuzzer.Config.Corpus.StatProgs.Val(), f.fuzzer.Config.Corpus.StatSignal.Val(),
+			len(f.fuzzer.Cover.maxSignal), len(f.crashes), f.fuzzer.statJobs.Val())
 	}
 	return f.iter < f.iterLimit &&
 		(f.expectedCrashes == nil || len(f.crashes) != len(f.expectedCrashes))
