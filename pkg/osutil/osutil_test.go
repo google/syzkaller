@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestIsExist(t *testing.T) {
@@ -117,5 +118,14 @@ func TestCopyFiles(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestMonotonicNano(t *testing.T) {
+	start := MonotonicNano()
+	time.Sleep(100 * time.Millisecond)
+	diff := MonotonicNano() - start
+	if diff <= 0 || diff > 10*time.Second {
+		t.Fatalf("diff %v", diff)
 	}
 }
