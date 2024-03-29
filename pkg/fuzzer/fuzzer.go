@@ -103,7 +103,6 @@ type Request struct {
 	// Fields that are only relevant within pkg/fuzzer.
 	flags   ProgTypes
 	stat    string
-	result  *Result
 	resultC chan *Result
 }
 
@@ -123,7 +122,6 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 		fuzzer.triageProgCall(req.Prog, &res.Info.Extra, -1, req.flags)
 	}
 	// Unblock threads that wait for the result.
-	req.result = res
 	if req.resultC != nil {
 		req.resultC <- res
 	}
