@@ -45,6 +45,7 @@ type FuzzerTool struct {
 
 	bufferTooSmall atomic.Uint64
 	noExecRequests atomic.Uint64
+	noExecDuration atomic.Uint64
 	resetAccState  bool
 
 	inputs    chan executionRequest
@@ -414,6 +415,7 @@ func (tool *FuzzerTool) grabStats() map[string]uint64 {
 	}
 	stats["buffer too small"] = tool.bufferTooSmall.Swap(0)
 	stats["no exec requests"] = tool.noExecRequests.Swap(0)
+	stats["no exec duration"] = tool.noExecDuration.Swap(0)
 	return stats
 }
 

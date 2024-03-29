@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stats"
 )
 
 // Cover keeps track of the signal known to the fuzzer.
@@ -15,6 +16,13 @@ type Cover struct {
 	maxSignal  signal.Signal // max signal ever observed (including flakes)
 	newSignal  signal.Signal // newly identified max signal
 	dropSignal signal.Signal // the newly dropped max signal
+}
+
+func newCover() *Cover {
+	cover := new(Cover)
+	stats.Create("max signal", "Maximum fuzzing signal (including flakes)",
+		stats.Graph("signal"), stats.LenOf(&cover.maxSignal, &cover.mu))
+	return cover
 }
 
 // Signal that should no longer be chased after.
@@ -59,18 +67,6 @@ func (cover *Cover) GrabSignalDelta() (plus, minus signal.Signal) {
 	minus = cover.dropSignal
 	cover.dropSignal = nil
 	return
-}
-
-type CoverStats struct {
-	MaxSignal int
-}
-
-func (cover *Cover) Stats() CoverStats {
-	cover.mu.RLock()
-	defer cover.mu.RUnlock()
-	return CoverStats{
-		MaxSignal: len(cover.maxSignal),
-	}
 }
 
 func (cover *Cover) subtract(delta signal.Signal) {

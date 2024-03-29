@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -28,7 +29,6 @@ type RPCServer struct {
 	port                  int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 	coverFilter           map[uint32]uint32
-	stats                 *Stats
 	canonicalModules      *cover.Canonicalizer
 
 	mu          sync.Mutex
@@ -40,6 +40,13 @@ type RPCServer struct {
 	// We did not finish these requests because of VM restarts.
 	// They will be eventually given to other VMs.
 	rescuedInputs []*fuzzer.Request
+
+	statVMRestarts            *stats.Val
+	statExchangeCalls         *stats.Val
+	statExchangeProgs         *stats.Val
+	statExchangeServerLatency *stats.Val
+	statExchangeClientLatency *stats.Val
+	statCorpusCoverFiltered   *stats.Val
 }
 
 type Runner struct {
@@ -70,9 +77,19 @@ type RPCManagerView interface {
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
-		mgr:   mgr,
-		cfg:   mgr.cfg,
-		stats: mgr.stats,
+		mgr: mgr,
+		cfg: mgr.cfg,
+		statVMRestarts: stats.Create("vm restarts", "Total number of VM starts",
+			stats.Rate{}, stats.NoGraph),
+		statExchangeCalls: stats.Create("exchange calls", "Number of RPC Exchange calls",
+			stats.Rate{}),
+		statExchangeProgs: stats.Create("exchange progs", "Test programs exchanged per RPC call",
+			stats.Distribution{}),
+		statExchangeServerLatency: stats.Create("exchange manager latency",
+			"Manager RPC Exchange call latency (us)", stats.Distribution{}),
+		statExchangeClientLatency: stats.Create("exchange fuzzer latency",
+			"End-to-end fuzzer RPC Exchange call latency (us)", stats.Distribution{}),
+		statCorpusCoverFiltered: stats.Create("filtered coverage", "", stats.NoGraph),
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv, mgr.netCompression)
 	if err != nil {
@@ -87,7 +104,7 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 
 func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
 	log.Logf(1, "fuzzer %v connected", a.Name)
-	serv.stats.vmRestarts.inc()
+	serv.statVMRestarts.Add(1)
 
 	serv.mu.Lock()
 	if serv.canonicalModules == nil {
@@ -218,7 +235,7 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		runner.doneRequest(result, fuzzer)
 	}
 
-	serv.stats.mergeNamed(a.StatsDelta)
+	stats.Import(a.StatsDelta)
 
 	runner.mu.Lock()
 	// Let's transfer new max signal in portions.
@@ -234,10 +251,10 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	log.Logf(2, "exchange with %s: %d done, %d new requests, %d new max signal, %d drop signal",
 		a.Name, len(a.Results), len(r.Requests), len(r.NewMaxSignal), len(r.DropMaxSignal))
 
-	serv.stats.rpcExchangeCalls.inc()
-	serv.stats.rpcExchangeProgs.add(a.NeedProgs)
-	serv.stats.rpcExchangeClientLatency.add(int(a.Latency))
-	serv.stats.rpcExchangeServerLatency.add(int(time.Since(start).Nanoseconds()))
+	serv.statExchangeCalls.Add(1)
+	serv.statExchangeProgs.Add(a.NeedProgs)
+	serv.statExchangeClientLatency.Add(int(a.Latency.Microseconds()))
+	serv.statExchangeServerLatency.Add(int(time.Since(start).Microseconds()))
 	return nil
 }
 
@@ -256,7 +273,7 @@ func (serv *RPCServer) updateFilteredCover(pcs []uint32) error {
 			filtered++
 		}
 	}
-	serv.stats.corpusCoverFiltered.add(filtered)
+	serv.statCorpusCoverFiltered.Add(filtered)
 	return nil
 }
 

@@ -10,18 +10,18 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/stats"
 )
 
 type RPCServer struct {
-	TotalBytes atomic.Uint64 // total compressed bytes transmitted
-
 	ln             net.Listener
 	s              *rpc.Server
 	useCompression bool
+	statSent       *stats.Val
+	statRecv       *stats.Val
 }
 
 func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) (*RPCServer, error) {
@@ -33,10 +33,18 @@ func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) 
 	if err := s.RegisterName(name, receiver); err != nil {
 		return nil, err
 	}
+	formatMB := func(v int, period time.Duration) string {
+		const KB, MB = 1 << 10, 1 << 20
+		return fmt.Sprintf("%v MB (%v kb/sec)", (v+MB/2)/MB, (v+KB/2)/KB/int(period/time.Second))
+	}
 	serv := &RPCServer{
 		ln:             ln,
 		s:              s,
 		useCompression: useCompression,
+		statSent: stats.Create("rpc sent", "Uncompressed outbound RPC traffic",
+			stats.Graph("RPC traffic"), stats.Rate{}, formatMB),
+		statRecv: stats.Create("rpc recv", "Uncompressed inbound RPC traffic",
+			stats.Graph("RPC traffic"), stats.Rate{}, formatMB),
 	}
 	return serv, nil
 }
@@ -178,12 +186,12 @@ func newCountedConn(server *RPCServer,
 
 func (cc countedConn) Read(p []byte) (n int, err error) {
 	n, err = cc.ReadWriteCloser.Read(p)
-	cc.server.TotalBytes.Add(uint64(n))
+	cc.server.statRecv.Add(n)
 	return
 }
 
 func (cc countedConn) Write(b []byte) (n int, err error) {
 	n, err = cc.ReadWriteCloser.Write(b)
-	cc.server.TotalBytes.Add(uint64(n))
+	cc.server.statSent.Add(n)
 	return
 }

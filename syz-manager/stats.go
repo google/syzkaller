@@ -4,145 +4,71 @@
 package main
 
 import (
-	"sync"
-	"sync/atomic"
+	"fmt"
+	"runtime"
+	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/google/syzkaller/pkg/stats"
 )
 
-type Stat uint64
-
 type Stats struct {
-	crashes                  Stat
-	crashTypes               Stat
-	crashSuppressed          Stat
-	vmRestarts               Stat
-	newInputs                Stat
-	execTotal                Stat
-	rpcTraffic               Stat
-	rpcExchangeCalls         Stat
-	rpcExchangeProgs         Stat
-	rpcExchangeServerLatency Stat
-	rpcExchangeClientLatency Stat
-	hubSendProgAdd           Stat
-	hubSendProgDel           Stat
-	hubSendRepro             Stat
-	hubRecvProg              Stat
-	hubRecvProgDrop          Stat
-	hubRecvRepro             Stat
-	hubRecvReproDrop         Stat
-	corpusCover              Stat
-	corpusCoverFiltered      Stat
-	corpusSignal             Stat
-	maxSignal                Stat
-	triageQueueLen           Stat
-	fuzzerJobs               Stat
-
-	mu         sync.Mutex
-	namedStats map[string]uint64
-	haveHub    bool
+	statNumFuzzing     *stats.Val
+	statNumReproducing *stats.Val
+	statExecs          *stats.Val
+	statCrashes        *stats.Val
+	statCrashTypes     *stats.Val
+	statSuppressed     *stats.Val
+	statUptime         *stats.Val
+	statFuzzingTime    *stats.Val
 }
 
 func (mgr *Manager) initStats() {
-	// Prometheus Instrumentation https://prometheus.io/docs/guides/go-application .
-	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "syz_exec_total",
-		Help: "Total executions during current execution of syz-manager",
-	},
-		func() float64 { return float64(mgr.stats.execTotal.get()) },
-	))
-	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "syz_corpus_cover",
-		Help: "Corpus coverage during current execution of syz-manager",
-	},
-		func() float64 { return float64(mgr.stats.corpusCover.get()) },
-	))
-	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "syz_crash_total",
-		Help: "Count of crashes during current execution of syz-manager",
-	},
-		func() float64 { return float64(mgr.stats.crashes.get()) },
-	))
-}
+	mgr.statNumFuzzing = stats.Create("VMs", "Number of VMs that are currently fuzzing",
+		stats.Console, stats.NoGraph)
+	mgr.statNumReproducing = stats.Create("reproducing", "Number of crashes being reproduced",
+		stats.Console, stats.NoGraph)
+	mgr.statExecs = stats.Create("exec total", "Total test program executions",
+		stats.Console, stats.Rate{}, stats.Prometheus("syz_exec_total"))
+	mgr.statCrashes = stats.Create("crashes", "Total number of VM crashes",
+		stats.Simple, stats.Prometheus("syz_crash_total"))
+	mgr.statCrashTypes = stats.Create("crash types", "Number of unique crashes types",
+		stats.Simple, stats.NoGraph)
+	mgr.statSuppressed = stats.Create("suppressed", "Total number of suppressed VM crashes",
+		stats.Simple, stats.NoGraph)
+	mgr.statFuzzingTime = stats.Create("fuzzing", "Total fuzzing time in all VMs (seconds)",
+		stats.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
 
-func (stats *Stats) all() map[string]uint64 {
-	m := map[string]uint64{
-		"crashes":           stats.crashes.get(),
-		"crash types":       stats.crashTypes.get(),
-		"suppressed":        stats.crashSuppressed.get(),
-		"vm restarts":       stats.vmRestarts.get(),
-		"new inputs":        stats.newInputs.get(),
-		"exec total":        stats.execTotal.get(),
-		"coverage":          stats.corpusCover.get(),
-		"filtered coverage": stats.corpusCoverFiltered.get(),
-		"signal":            stats.corpusSignal.get(),
-		"max signal":        stats.maxSignal.get(),
-		"rpc traffic (MB)":  stats.rpcTraffic.get() >> 20,
-		"fuzzer jobs":       stats.fuzzerJobs.get(),
-	}
-	if exchanges := stats.rpcExchangeCalls.get(); exchanges != 0 {
-		m["exchange calls"] = exchanges
-		m["exchange progs"] = uint64(float64(stats.rpcExchangeProgs.get())/float64(exchanges) + 0.5)
-		m["exchange lat server (us)"] = stats.rpcExchangeServerLatency.get() / exchanges / 1e3
-		m["exchange lat client (us)"] = stats.rpcExchangeClientLatency.get() / exchanges / 1e3
-	}
-	if stats.haveHub {
-		m["hub: send prog add"] = stats.hubSendProgAdd.get()
-		m["hub: send prog del"] = stats.hubSendProgDel.get()
-		m["hub: send repro"] = stats.hubSendRepro.get()
-		m["hub: recv prog"] = stats.hubRecvProg.get()
-		m["hub: recv prog drop"] = stats.hubRecvProgDrop.get()
-		m["hub: recv repro"] = stats.hubRecvRepro.get()
-		m["hub: recv repro drop"] = stats.hubRecvReproDrop.get()
-	}
-	stats.mu.Lock()
-	defer stats.mu.Unlock()
-	for k, v := range stats.namedStats {
-		m[k] = v
-	}
-	return m
-}
+	mgr.statUptime = stats.Create("uptime", "Total uptime (seconds)", stats.Simple, stats.NoGraph,
+		func() int {
+			firstConnect := mgr.firstConnect.Load()
+			if firstConnect == 0 {
+				return 0
+			}
+			return int(time.Now().Unix() - firstConnect)
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v sec", v)
+		})
 
-func (stats *Stats) mergeNamed(named map[string]uint64) {
-	stats.mu.Lock()
-	defer stats.mu.Unlock()
-	if stats.namedStats == nil {
-		stats.namedStats = make(map[string]uint64)
-	}
-	for k, v := range named {
-		switch k {
-		case "exec total":
-			stats.execTotal.add(int(v))
-		default:
-			stats.namedStats[k] += v
-		}
-	}
-}
+	stats.Create("heap", "Process heap size (bytes)", stats.Graph("memory"),
+		func() int {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			return int(ms.Alloc)
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v MB", v>>20)
+		})
+	stats.Create("VM", "Process VM size (bytes)", stats.Graph("memory"),
+		func() int {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			return int(ms.Sys - ms.HeapReleased)
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v MB", v>>20)
+		})
 
-func (stats *Stats) setNamed(named map[string]uint64) {
-	stats.mu.Lock()
-	defer stats.mu.Unlock()
-	if stats.namedStats == nil {
-		stats.namedStats = make(map[string]uint64)
-	}
-	for k, v := range named {
-		stats.namedStats[k] = v
-	}
-}
-
-func (s *Stat) get() uint64 {
-	return atomic.LoadUint64((*uint64)(s))
-}
-
-func (s *Stat) inc() {
-	s.add(1)
-}
-
-func (s *Stat) add(v int) {
-	atomic.AddUint64((*uint64)(s), uint64(v))
-}
-
-func (s *Stat) set(v int) {
-	atomic.StoreUint64((*uint64)(s), uint64(v))
+	// Stats imported from the fuzzer (names must match the the fuzzer names).
+	stats.Create("executor restarts", "Number of times executor process was restarted", stats.Rate{})
+	stats.Create("buffer too small", "Program serialization overflowed exec buffer", stats.NoGraph)
+	stats.Create("no exec requests", "Number of times fuzzer was stalled with no exec requests", stats.Rate{})
+	stats.Create("no exec duration", "Total duration fuzzer was stalled with no exec requests (ns/sec)", stats.Rate{})
 }

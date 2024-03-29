@@ -32,7 +32,7 @@ func TestDeflakeFail(t *testing.T) {
 		run++
 		// For first, we return 0 and 1. For second, 1 and 2. And so on.
 		return fakeResult(0, []uint32{uint32(run), uint32(run + 1)}, []uint32{10, 20})
-	}, false)
+	}, nil, false)
 	assert.False(t, stop)
 	assert.Equal(t, 5, run)
 	assert.Empty(t, ret.stableSignal.ToRaw())
@@ -69,7 +69,7 @@ func TestDeflakeSuccess(t *testing.T) {
 		// We expect it to have finished earlier.
 		t.Fatal("only 4 runs were expected")
 		return nil
-	}, false)
+	}, nil, false)
 	assert.False(t, stop)
 	// Cover is a union of all coverages.
 	assert.ElementsMatch(t, []uint32{10, 20, 30, 40}, ret.cover.Serialize())

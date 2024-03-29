@@ -16,10 +16,12 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
 
 type Fuzzer struct {
+	Stats
 	Config *Config
 	Cover  *Cover
 
@@ -36,9 +38,6 @@ type Fuzzer struct {
 
 	nextExec  *priorityQueue[*Request]
 	nextJobID atomic.Int64
-
-	runningJobs      atomic.Int64
-	queuedCandidates atomic.Int64
 }
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
@@ -49,8 +48,9 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		}
 	}
 	f := &Fuzzer{
+		Stats:  newStats(),
 		Config: cfg,
-		Cover:  &Cover{},
+		Cover:  newCover(),
 
 		ctx:    ctx,
 		stats:  map[string]uint64{},
@@ -94,7 +94,7 @@ type Request struct {
 	SignalFilter signal.Signal // If specified, the resulting signal MAY be a subset of it.
 	// Fields that are only relevant within pkg/fuzzer.
 	flags   ProgTypes
-	stat    string
+	stat    *stats.Val
 	resultC chan *Result
 }
 
@@ -117,10 +117,10 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	if req.resultC != nil {
 		req.resultC <- res
 	}
-	// Update stats.
-	fuzzer.mu.Lock()
-	fuzzer.stats[req.stat]++
-	fuzzer.mu.Unlock()
+	if res.Info != nil {
+		fuzzer.statExecTime.Add(int(res.Info.Elapsed.Milliseconds()))
+	}
+	req.stat.Add(1)
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
@@ -140,7 +140,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 		return
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
-	fuzzer.startJob(&triageJob{
+	fuzzer.startJob(fuzzer.statJobsTriage, &triageJob{
 		p:           p.Clone(),
 		call:        call,
 		info:        *info,
@@ -171,10 +171,8 @@ type Candidate struct {
 
 func (fuzzer *Fuzzer) NextInput() *Request {
 	req := fuzzer.nextInput()
-	if req.stat == statCandidate {
-		if fuzzer.queuedCandidates.Add(-1) < 0 {
-			panic("queuedCandidates is out of sync")
-		}
+	if req.stat == fuzzer.statExecCandidate {
+		fuzzer.StatCandidates.Add(-1)
 	}
 	return req
 }
@@ -209,7 +207,7 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 	return genProgRequest(fuzzer, rnd)
 }
 
-func (fuzzer *Fuzzer) startJob(newJob job) {
+func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
 	if impl, ok := newJob.(jobSaveID); ok {
 		// E.g. for big and slow hint jobs, we would prefer not to serialize them,
@@ -217,9 +215,11 @@ func (fuzzer *Fuzzer) startJob(newJob job) {
 		impl.saveID(-fuzzer.nextJobID.Add(1))
 	}
 	go func() {
-		fuzzer.runningJobs.Add(1)
+		stat.Add(1)
+		fuzzer.statJobs.Add(1)
 		newJob.run(fuzzer)
-		fuzzer.runningJobs.Add(-1)
+		fuzzer.statJobs.Add(-1)
+		stat.Add(-1)
 	}()
 }
 
@@ -231,9 +231,9 @@ func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
 }
 
 func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
-	fuzzer.queuedCandidates.Add(int64(len(candidates)))
+	fuzzer.StatCandidates.Add(len(candidates))
 	for _, candidate := range candidates {
-		fuzzer.pushExec(candidateRequest(candidate), priority{candidatePrio})
+		fuzzer.pushExec(candidateRequest(fuzzer, candidate), priority{candidatePrio})
 	}
 }
 
@@ -248,9 +248,6 @@ func (fuzzer *Fuzzer) nextRand() int64 {
 }
 
 func (fuzzer *Fuzzer) pushExec(req *Request, prio priority) {
-	if req.stat == "" {
-		panic("Request.Stat field must be set")
-	}
 	if req.NeedHints && (req.NeedCover || req.NeedSignal != rpctype.NoSignal) {
 		panic("Request.NeedHints is mutually exclusive with other fields")
 	}
@@ -327,7 +324,7 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 		runtime.ReadMemStats(&m)
 
 		str := fmt.Sprintf("exec queue size: %d, running jobs: %d, heap (MB): %d",
-			fuzzer.nextExec.Len(), fuzzer.runningJobs.Load(), m.Alloc/1000/1000)
+			fuzzer.nextExec.Len(), fuzzer.statJobs.Val(), m.Alloc/1000/1000)
 		fuzzer.Logf(0, "%s", str)
 	}
 }

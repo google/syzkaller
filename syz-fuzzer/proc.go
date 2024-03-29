@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
@@ -82,8 +83,11 @@ func (proc *Proc) nextRequest() executionRequest {
 	}
 	// Not having enough inputs to execute is a sign of RPC communication problems.
 	// Let's count and report such situations.
+	start := osutil.MonotonicNano()
+	req := <-proc.tool.inputs
+	proc.tool.noExecDuration.Add(uint64(osutil.MonotonicNano() - start))
 	proc.tool.noExecRequests.Add(1)
-	return <-proc.tool.inputs
+	return req
 }
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
