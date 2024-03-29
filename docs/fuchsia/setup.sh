@@ -89,21 +89,25 @@ run() {
 
   cd "$fuchsia"
 
-  # Look up needed deps from build_api metadata
-  fvm_path=$(jq -r '.[] | select(.name == "storage-full" and .type == "blk").path' out/x64/images.json)
-  zbi_path=$(jq -r '.[] | select(.name == "zircon-a" and .type == "zbi").path' out/x64/images.json)
-  multiboot_path=$(jq -r '.[] | select(.name == "qemu-kernel" and .type == "kernel").path' out/x64/images.json)
+  product_bundle_path="$(ffx config get product.path | tr -d '"')"
+  # Look up needed deps from the product bundle assembled
+  fxfs_path="$(ffx product get-image-path "$product_bundle_path" --slot a --image-type fxfs)"
+  zbi_path="$(ffx product get-image-path "$product_bundle_path" --slot a --image-type zbi)"
+  multiboot_path="$(ffx product get-image-path "$product_bundle_path" --slot a --image-type qemu-kernel)"
+
+  # Make sure there are ssh keys available
+  ffx config check-ssh-keys
+  auth_keys_path="$(ffx config get ssh.pub | tr -d '"')"
+  priv_key_path="$(ffx config get ssh.priv | tr -d '"')"
 
   # Make a separate directory for copies of files we need to modify
   syz_deps_path=$fuchsia/out/x64/syzdeps
-  mkdir -p $syz_deps_path
+  mkdir -p "$syz_deps_path"
 
-  ./out/x64/host_x64/zbi -o $syz_deps_path/fuchsia-ssh.zbi out/x64/$zbi_path \
-    --entry "data/ssh/authorized_keys=${fuchsia}/.ssh/authorized_keys"
-  cp out/x64/$fvm_path \
-    $syz_deps_path/fvm-extended.blk
-  ./out/x64/host_x64/fvm \
-    $syz_deps_path/fvm-extended.blk extend --length 3G
+  ./out/x64/host_x64/zbi -o "${syz_deps_path}/fuchsia-ssh.zbi" "${zbi_path}" \
+    --entry "data/ssh/authorized_keys=${auth_keys_path}"
+
+  cp "$fxfs_path" "${syz_deps_path}/fxfs.blk"
 
   echo "{
   \"name\": \"fuchsia\",
@@ -112,8 +116,8 @@ run() {
   \"workdir\": \"$workdir\",
   \"kernel_obj\": \"$fuchsia/out/x64/kernel_x64-kasan/obj/zircon/kernel\",
   \"syzkaller\": \"$syzkaller\",
-  \"image\": \"$syz_deps_path/fvm-extended.blk\",
-  \"sshkey\": \"$fuchsia/.ssh/pkey\",
+  \"image\": \"$syz_deps_path/fxfs.blk\",
+  \"sshkey\": \"$priv_key_path\",
   \"reproduce\": false,
   \"cover\": false,
   \"procs\": 8,
@@ -122,7 +126,7 @@ run() {
     \"count\": 10,
     \"cpu\": 4,
     \"mem\": 2048,
-    \"kernel\": \"$fuchsia/out/x64/$multiboot_path\",
+    \"kernel\": \"$multiboot_path\",
     \"initrd\": \"$syz_deps_path/fuchsia-ssh.zbi\"
   }
 }" > "$workdir/fx-syz-manager-config.json"
@@ -153,7 +157,8 @@ main() {
   while getopts "d" o; do
     case "$o" in
     d)
-      debug="--debug"
+      debug="--debug" ;;
+    *) ;;
     esac
   done
   shift $((OPTIND - 1))
@@ -180,4 +185,4 @@ main() {
   esac
 }
 
-main $@
+main "$@"
