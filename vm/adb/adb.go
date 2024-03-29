@@ -27,7 +27,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("adb", ctor, false)
+	vmimpl.Register("adb", ctor, false, true)
 }
 
 type Device struct {

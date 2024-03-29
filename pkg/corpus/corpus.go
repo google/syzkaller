@@ -59,14 +59,7 @@ type Item struct {
 }
 
 func (item Item) StringCall() string {
-	return stringCall(item.Prog, item.Call)
-}
-
-func stringCall(p *prog.Prog, call int) string {
-	if call != -1 {
-		return p.Calls[call].Meta.Name
-	}
-	return ".extra"
+	return item.Prog.CallName(item.Call)
 }
 
 type NewInput struct {
@@ -75,10 +68,6 @@ type NewInput struct {
 	Signal   signal.Signal
 	Cover    []uint32
 	RawCover []uint32
-}
-
-func (item NewInput) StringCall() string {
-	return stringCall(item.Prog, item.Call)
 }
 
 type NewItemEvent struct {
