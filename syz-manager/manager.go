@@ -327,7 +327,7 @@ func (mgr *Manager) vmLoop() {
 	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
 		instancesPerRepro = maxReproVMs
 	}
-	instances := SequentialResourcePool(vmCount, 10*time.Second*mgr.cfg.Timeouts.Scale)
+	instances := SequentialResourcePool(vmCount, 2*time.Second*mgr.cfg.Timeouts.Scale)
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
