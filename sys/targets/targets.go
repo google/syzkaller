@@ -693,7 +693,12 @@ func init() {
 				target.CFlags[i] = strings.Replace(target.CFlags[i], "-m32", "-m31", -1)
 			}
 		}
-		target.BuildOS = goos
+		if runtime.GOOS == OpenBSD {
+			// Can't build TestOS on OpenBSD due to missing syscall function.
+			target.BuildOS = Linux
+		} else {
+			target.BuildOS = goos
+		}
 	}
 }
 
