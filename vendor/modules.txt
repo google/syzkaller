@@ -133,6 +133,9 @@ github.com/breml/bidichk/pkg/bidichk
 # github.com/breml/errchkjson v0.3.6
 ## explicit; go 1.20
 github.com/breml/errchkjson
+# github.com/bsm/histogram/v3 v3.0.2
+## explicit; go 1.14
+github.com/bsm/histogram/v3
 # github.com/butuzov/ireturn v0.3.0
 ## explicit; go 1.18
 github.com/butuzov/ireturn/analyzer
