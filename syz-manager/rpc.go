@@ -325,7 +325,9 @@ func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzze
 	}
 	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
 	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
-	fuzzerObj.Done(req, &fuzzer.Result{Info: info})
+	fuzzerObj.Done(req, &fuzzer.Result{
+		Info: info,
+	})
 }
 
 func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {

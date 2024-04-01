@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/learning"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
@@ -34,6 +35,12 @@ type Fuzzer struct {
 	ctMu         sync.Mutex // TODO: use RWLock.
 	ctRegenerate chan struct{}
 
+	// Use a MAB to determine the right distribution of
+	// exec fuzz and exec gen.
+	genFuzzMAB      *learning.PlainMAB[string]
+	genSignalSpeed  *learning.RunningRatioAverage[float64]
+	fuzzSignalSpeed *learning.RunningRatioAverage[float64]
+
 	nextExec  *priorityQueue[*Request]
 	nextJobID atomic.Int64
 
@@ -43,6 +50,12 @@ type Fuzzer struct {
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	target *prog.Target) *Fuzzer {
+	genFuzzMAB := &learning.PlainMAB[string]{
+		ExplorationRate: 0.02,
+		MinLearningRate: 0.0005,
+	}
+	genFuzzMAB.AddArms(statFuzz, statGenerate)
+
 	f := &Fuzzer{
 		Config: cfg,
 		Cover:  &Cover{},
@@ -54,7 +67,10 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 
 		// We're okay to lose some of the messages -- if we are already
 		// regenerating the table, we don't want to repeat it right away.
-		ctRegenerate: make(chan struct{}),
+		ctRegenerate:    make(chan struct{}),
+		genFuzzMAB:      genFuzzMAB,
+		genSignalSpeed:  learning.NewRunningRatioAverage[float64](10000),
+		fuzzSignalSpeed: learning.NewRunningRatioAverage[float64](20000),
 
 		nextExec: makePriorityQueue[*Request](),
 	}
@@ -91,6 +107,8 @@ type Request struct {
 	flags   ProgTypes
 	stat    string
 	resultC chan *Result
+
+	genFuzzAction learning.Action[string]
 }
 
 type Result struct {
@@ -102,11 +120,12 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	// Triage individual calls.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
+	var newSignal int
 	if req.NeedSignal != rpctype.NoSignal && res.Info != nil {
 		for call, info := range res.Info.Calls {
-			fuzzer.triageProgCall(req.Prog, &info, call, req.flags)
+			newSignal += fuzzer.triageProgCall(req.Prog, &info, call, req.flags)
 		}
-		fuzzer.triageProgCall(req.Prog, &res.Info.Extra, -1, req.flags)
+		newSignal += fuzzer.triageProgCall(req.Prog, &res.Info.Extra, -1, req.flags)
 	}
 	// Unblock threads that wait for the result.
 	if req.resultC != nil {
@@ -116,20 +135,36 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	fuzzer.mu.Lock()
 	fuzzer.stats[req.stat]++
 	fuzzer.mu.Unlock()
+	// Update the MAB(s).
+	reward := 0.0
+	if res.Info != nil && res.Info.ElapsedSec > 0 {
+		// Similarly to the "SyzVegas: Beating Kernel Fuzzing Odds with Reinforcement Learning"
+		// paper, let's use the ratio of "new max signal" to "execution time".
+		// Unlike the paper, let's take the raw value of it instead of its ratio to the average one.
+		reward = float64(newSignal) / res.Info.ElapsedSec
+		if req.stat == statGenerate {
+			fuzzer.genSignalSpeed.Save(float64(newSignal), res.Info.ElapsedSec)
+		} else if req.stat == statFuzz {
+			fuzzer.fuzzSignalSpeed.Save(float64(newSignal), res.Info.ElapsedSec)
+		}
+	}
+	if !req.genFuzzAction.Empty() {
+		fuzzer.genFuzzMAB.SaveReward(req.genFuzzAction, reward)
+	}
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
-	flags ProgTypes) {
+	flags ProgTypes) int {
 	prio := signalPrio(p, info, call)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
-		return
+		return 0
 	}
 	if flags&progInTriage > 0 {
 		// We are already triaging this exact prog.
 		// All newly found coverage is flaky.
 		fuzzer.Logf(2, "found new flaky signal in call %d in %s", call, p)
-		return
+		return newMaxSignal.Len()
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
 	fuzzer.startJob(&triageJob{
@@ -140,6 +175,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 		flags:       flags,
 		jobPriority: triageJobPrio(flags),
 	})
+	return newMaxSignal.Len()
 }
 
 func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
@@ -184,21 +220,18 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 		}
 	}
 
-	// Either generate a new input or mutate an existing one.
-	mutateRate := 0.95
-	if !fuzzer.Config.Coverage {
-		// If we don't have real coverage signal, generate programs
-		// more frequently because fallback signal is weak.
-		mutateRate = 0.5
-	}
 	rnd := fuzzer.rand()
-	if rnd.Float64() < mutateRate {
-		req := mutateProgRequest(fuzzer, rnd)
-		if req != nil {
-			return req
-		}
+	action := fuzzer.genFuzzMAB.Action(rnd)
+
+	var req *Request
+	if action.Arm == statFuzz {
+		req = mutateProgRequest(fuzzer, rnd)
 	}
-	return genProgRequest(fuzzer, rnd)
+	if req == nil {
+		req = genProgRequest(fuzzer, rnd)
+	}
+	req.genFuzzAction = action
+	return req
 }
 
 func (fuzzer *Fuzzer) startJob(newJob job) {
