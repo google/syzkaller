@@ -48,28 +48,29 @@ var (
 )
 
 type Manager struct {
-	cfg            *mgrconfig.Config
-	vmPool         *vm.Pool
-	target         *prog.Target
-	sysTarget      *targets.Target
-	reporter       *report.Reporter
-	crashdir       string
-	serv           *RPCServer
-	corpus         *corpus.Corpus
-	corpusDB       *db.DB
-	corpusDBMu     sync.Mutex // for concurrent operations on corpusDB
-	startTime      time.Time
-	firstConnect   time.Time
-	fuzzingTime    time.Duration
-	stats          *Stats
-	crashTypes     map[string]bool
-	vmStop         chan bool
-	checkResult    *rpctype.CheckArgs
-	fresh          bool
-	expertMode     bool
-	numFuzzing     uint32
-	numReproducing uint32
-	nextInstanceID atomic.Uint64
+	cfg             *mgrconfig.Config
+	vmPool          *vm.Pool
+	target          *prog.Target
+	sysTarget       *targets.Target
+	reporter        *report.Reporter
+	crashdir        string
+	serv            *RPCServer
+	corpus          *corpus.Corpus
+	corpusDB        *db.DB
+	corpusDBMu      sync.Mutex // for concurrent operations on corpusDB
+	corpusPreloaded chan bool
+	startTime       time.Time
+	firstConnect    time.Time
+	fuzzingTime     time.Duration
+	stats           *Stats
+	crashTypes      map[string]bool
+	vmStop          chan bool
+	checkResult     *rpctype.CheckArgs
+	fresh           bool
+	expertMode      bool
+	numFuzzing      uint32
+	numReproducing  uint32
+	nextInstanceID  atomic.Uint64
 
 	dash *dashapi.Dashboard
 
@@ -171,6 +172,7 @@ func RunManager(cfg *mgrconfig.Config) {
 		cfg:                cfg,
 		vmPool:             vmPool,
 		corpus:             corpus.NewMonitoredCorpus(context.Background(), corpusUpdates),
+		corpusPreloaded:    make(chan bool),
 		target:             cfg.Target,
 		sysTarget:          cfg.SysTarget,
 		reporter:           reporter,
@@ -190,7 +192,7 @@ func RunManager(cfg *mgrconfig.Config) {
 		saturatedCalls:     make(map[string]bool),
 	}
 
-	mgr.preloadCorpus()
+	go mgr.preloadCorpus()
 	mgr.initStats() // Initializes prometheus variables.
 	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
@@ -587,7 +589,6 @@ func (pool *ResourcePool) TakeOne() *int {
 }
 
 func (mgr *Manager) preloadCorpus() {
-	log.Logf(0, "loading corpus...")
 	corpusDB, err := db.Open(filepath.Join(mgr.cfg.Workdir, "corpus.db"), true)
 	if err != nil {
 		if corpusDB == nil {
@@ -610,9 +611,11 @@ func (mgr *Manager) preloadCorpus() {
 			mgr.seeds = append(mgr.seeds, data)
 		}
 	}
+	close(mgr.corpusPreloaded)
 }
 
 func (mgr *Manager) loadCorpus() {
+	<-mgr.corpusPreloaded
 	// By default we don't re-minimize/re-smash programs from corpus,
 	// it takes lots of time on start and is unnecessary.
 	// However, on version bumps we can selectively re-minimize/re-smash.
