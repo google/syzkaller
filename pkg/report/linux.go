@@ -34,6 +34,7 @@ type linux struct {
 	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
 	eoi                   []byte
+	symbolizerCache       symbolizer.Cache
 }
 
 func ctorLinux(cfg *config) (reporterImpl, []string, error) {
@@ -399,13 +400,16 @@ func (ctx *linux) Symbolize(rep *Report) error {
 func (ctx *linux) symbolize(rep *Report) error {
 	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
+	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
+		return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)
+	}
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(rep.Report))
 	prefix := rep.reportPrefixLen
 	for s.Scan() {
 		line := append([]byte{}, s.Bytes()...)
 		line = append(line, '\n')
-		newLine := symbolizeLine(symb.Symbolize, ctx.symbols, ctx.vmlinux, ctx.kernelBuildSrc, line)
+		newLine := symbolizeLine(symbFunc, ctx.symbols, ctx.vmlinux, ctx.kernelBuildSrc, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
 		}
