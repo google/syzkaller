@@ -5,7 +5,7 @@ go 1.19
 require (
 	cloud.google.com/go/logging v1.9.0
 	cloud.google.com/go/profiler v0.4.0
-	cloud.google.com/go/pubsub v1.36.2
+	cloud.google.com/go/pubsub v1.37.0
 	cloud.google.com/go/secretmanager v1.12.0
 	cloud.google.com/go/storage v1.40.0
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
