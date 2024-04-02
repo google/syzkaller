@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"sort"
 )
@@ -27,11 +28,12 @@ import (
 func (target *Target) CalculatePriorities(corpus []*Prog) [][]int32 {
 	static := target.calcStaticPriorities()
 	if len(corpus) != 0 {
+		// Let's just sum the static and dynamic distributions.
 		dynamic := target.calcDynamicPrio(corpus)
 		for i, prios := range dynamic {
 			dst := static[i]
 			for j, p := range prios {
-				dst[j] = dst[j] * p / prioHigh
+				dst[j] += p
 			}
 		}
 	}
@@ -57,11 +59,21 @@ func (target *Target) calcStaticPriorities() [][]int32 {
 			}
 		}
 	}
-	normalizePrio(prios)
 	// The value assigned for self-priority (call wrt itself) have to be high, but not too high.
 	for c0, pp := range prios {
-		pp[c0] = prioHigh * 9 / 10
+		var max int32
+		for _, p := range pp {
+			if p > max {
+				max = p
+			}
+		}
+		if max == 0 {
+			pp[c0] = 1
+		} else {
+			pp[c0] = max * 3 / 4
+		}
 	}
+	normalizePrios(prios)
 	return prios
 }
 
@@ -155,26 +167,31 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]int32 {
 			}
 		}
 	}
-	normalizePrio(prios)
+	for i := range prios {
+		for j, val := range prios[i] {
+			// It's more important that some calls do coexist than whether
+			// it happened 50 or 100 times.
+			// Let's use sqrt() to lessen the effect of large counts.
+			prios[i][j] = int32(2.0 * math.Sqrt(float64(val)))
+		}
+	}
+	normalizePrios(prios)
 	return prios
 }
 
-const (
-	prioLow  = 10
-	prioHigh = 1000
-)
-
-// normalizePrio normalizes priorities to [prioLow..prioHigh] range.
-func normalizePrio(prios [][]int32) {
+// normalizePrio distributes |N| * 10 points proportional to the values in the matrix.
+func normalizePrios(prios [][]int32) {
+	total := 10 * int32(len(prios))
 	for _, prio := range prios {
-		max := int32(1)
+		sum := int32(0)
 		for _, p := range prio {
-			if max < p {
-				max = p
-			}
+			sum += p
+		}
+		if sum == 0 {
+			continue
 		}
 		for i, p := range prio {
-			prio[i] = prioLow + p*(prioHigh-prioLow)/max
+			prio[i] = p * total / sum
 		}
 	}
 }
@@ -255,6 +272,10 @@ func (ct *ChoiceTable) Generatable(call int) bool {
 }
 
 func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
+	if r.Intn(100) < 5 {
+		// Let's make 5% decisions totally at random.
+		return ct.calls[r.Intn(len(ct.calls))].ID
+	}
 	if bias < 0 {
 		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
@@ -263,7 +284,8 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 		panic("disabled or non-generatable syscall")
 	}
 	run := ct.runs[bias]
-	x := int32(r.Intn(int(run[len(run)-1])) + 1)
+	runSum := int(run[len(run)-1])
+	x := int32(r.Intn(runSum) + 1)
 	res := sort.Search(len(run), func(i int) bool {
 		return run[i] >= x
 	})
