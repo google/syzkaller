@@ -66,12 +66,26 @@ func (checker GoRequire) Check(pass *analysis.Pass, inspector *inspector.Inspect
 
 	nodesFilter := []ast.Node{
 		(*ast.FuncDecl)(nil),
+		(*ast.FuncType)(nil),
 		(*ast.GoStmt)(nil),
 		(*ast.CallExpr)(nil),
 	}
 	inspector.Nodes(nodesFilter, func(node ast.Node, push bool) bool {
 		if fd, ok := node.(*ast.FuncDecl); ok {
 			if !isTestingFuncOrMethod(pass, fd) {
+				return false
+			}
+
+			if push {
+				inGoroutineRunningTestFunc.Push(true)
+			} else {
+				inGoroutineRunningTestFunc.Pop()
+			}
+			return true
+		}
+
+		if ft, ok := node.(*ast.FuncType); ok {
+			if !isTestingAnonymousFunc(pass, ft) {
 				return false
 			}
 
@@ -106,6 +120,10 @@ func (checker GoRequire) Check(pass *analysis.Pass, inspector *inspector.Inspect
 
 		if !push {
 			return false
+		}
+		if inGoroutineRunningTestFunc.Len() == 0 {
+			// Insufficient info.
+			return true
 		}
 		if inGoroutineRunningTestFunc.Last() {
 			// We are in testing goroutine and can skip any assertion checks.
@@ -252,6 +270,10 @@ func (fd funcDeclarations) Get(pass *analysis.Pass, ce *ast.CallExpr) *ast.FuncD
 
 type boolStack []bool
 
+func (s boolStack) Len() int {
+	return len(s)
+}
+
 func (s *boolStack) Push(v bool) {
 	*s = append(*s, v)
 }
@@ -284,15 +306,19 @@ func isSubTestRun(pass *analysis.Pass, ce *ast.CallExpr) bool {
 }
 
 func isTestingFuncOrMethod(pass *analysis.Pass, fd *ast.FuncDecl) bool {
-	return hasTestingTParam(pass, fd) || isTestifySuiteMethod(pass, fd)
+	return hasTestingTParam(pass, fd.Type) || isTestifySuiteMethod(pass, fd)
 }
 
-func hasTestingTParam(pass *analysis.Pass, fd *ast.FuncDecl) bool {
-	if fd.Type == nil || fd.Type.Params == nil {
+func isTestingAnonymousFunc(pass *analysis.Pass, ft *ast.FuncType) bool {
+	return hasTestingTParam(pass, ft)
+}
+
+func hasTestingTParam(pass *analysis.Pass, ft *ast.FuncType) bool {
+	if ft == nil || ft.Params == nil {
 		return false
 	}
 
-	for _, param := range fd.Type.Params.List {
+	for _, param := range ft.Params.List {
 		if isTestingTPtr(pass, param.Type) {
 			return true
 		}

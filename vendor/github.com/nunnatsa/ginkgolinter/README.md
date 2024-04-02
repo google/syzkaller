@@ -227,6 +227,54 @@ ginkgolinter checks the following:
 * If the first parameter is a function with the format of `func(error)bool`, ginkgolinter makes sure that the second 
   parameter exists and its type is string.
 
+### Async timing interval: timeout is shorter than polling interval [BUG]
+***Note***: Only applied when the `suppress-async-assertion` flag is **not set** *and* the `validate-async-intervals` 
+flag **is** set.
+
+***Note***: This rule work with best-effort approach. It can't find many cases, like const defined not in the same
+package, or when using variables.
+
+The timeout and polling intervals may be passed as optional arguments to the `Eventually` or `Constanly` functions, or
+using the `WithTimeout` or , `Within` methods (timeout), and `WithPolling` or `ProbeEvery` methods (polling).
+
+This rule checks if the async (`Eventually` or `Consistently`) timeout duration, is not shorter than the polling interval.
+
+For example:
+   ```go
+   Eventually(aFunc).WithTimeout(500 * time.Millisecond).WithPolling(10 * time.Second).Should(Succeed())
+   ```
+
+This will probably happen when using the old format:
+   ```go
+   Eventually(aFunc, 500 * time.Millisecond /*timeout*/, 10 * time.Second /*polling*/).Should(Succeed())
+   ```
+
+### Avoid Spec Pollution: Don't Initialize Variables in Container Nodes [BUG/STYLE]:
+***Note***: Only applied when the `--forbid-spec-pollution=true` flag is set (disabled by default).
+
+According to [ginkgo documentation](https://onsi.github.io/ginkgo/#avoid-spec-pollution-dont-initialize-variables-in-container-nodes), 
+no variable should be assigned within a container node (`Describe`, `Context`, `When` or their `F`, `P` or `X` forms)
+  
+For example:
+```go
+var _ = Describe("description", func(){
+    var x = 10
+    ...
+})
+```
+
+Instead, use `BeforeEach()`; e.g.
+```go
+var _ = Describe("description", func (){
+    var x int
+	
+    BeforeEach(func (){
+        x = 10
+    })
+    ...
+})
+```
+
 ### Wrong Length Assertion [STYLE]
 The linter finds assertion of the golang built-in `len` function, with all kind of matchers, while there are already 
 gomega matchers for these usecases; We want to assert the item, rather than its length.
@@ -259,6 +307,20 @@ The output of the linter,when finding issues, looks like this:
 ./testdata/src/a/a.go:18:5: ginkgo-linter: wrong length assertion; consider using `Expect("").Should(BeEmpty())` instead
 ./testdata/src/a/a.go:22:5: ginkgo-linter: wrong length assertion; consider using `Expect("").Should(BeEmpty())` instead
 ```
+
+### Wrong Cap Assertion [STYLE]
+The linter finds assertion of the golang built-in `cap` function, with all kind of matchers, while there are already
+gomega matchers for these usecases; We want to assert the item, rather than its cap.
+
+There are several wrong patterns:
+```go
+Expect(cap(x)).To(Equal(0)) // should be: Expect(x).To(HaveCap(0))
+Expect(cap(x)).To(BeZero()) // should be: Expect(x).To(HaveCap(0))
+Expect(cap(x)).To(BeNumeric(">", 0)) // should be: Expect(x).ToNot(HaveCap(0))
+Expect(cap(x)).To(BeNumeric("==", 2)) // should be: Expect(x).To(HaveCap(2))
+Expect(cap(x)).To(BeNumeric("!=", 3)) // should be: Expect(x).ToNot(HaveCap(3))
+```
+
 #### use the `HaveLen(0)` matcher.  [STYLE]
 The linter will also warn about the `HaveLen(0)` matcher, and will suggest to replace it with `BeEmpty()`
 
@@ -356,9 +418,67 @@ Expect(x1 == c1).Should(BeTrue()) // ==> Expect(x1).Should(Equal(c1))
 Expect(c1 == x1).Should(BeTrue()) // ==> Expect(x1).Should(Equal(c1))
 ```
 
+### Don't Allow Using `Expect` with `Should` or `ShouldNot` [STYLE]
+This optional rule forces the usage of the `Expect` method only with the `To`, `ToNot` or `NotTo` 
+assertion methods; e.g.
+```go
+Expect("abc").Should(HaveLen(3)) // => Expect("abc").To(HaveLen(3))
+Expect("abc").ShouldNot(BeEmpty()) // => Expect("abc").ToNot(BeEmpty())
+```
+This rule support auto fixing.
+
+***This rule is disabled by default***. Use the `--force-expect-to=true` command line flag to enable it.
+
+### Async timing interval: multiple timeout or polling intervals [STYLE]
+***Note***: Only applied when the `suppress-async-assertion` flag is **not set** *and* the `validate-async-intervals`
+flag **is** set.
+
+The timeout and polling intervals may be passed as optional arguments to the `Eventually` or `Constanly` functions, or
+using the `WithTimeout` or , `Within` methods (timeout), and `WithPolling` or `ProbeEvery` methods (polling).
+
+The linter checks that there is up to one polling argument and up to one timeout argument. 
+
+For example:
+
+```go
+// both WithTimeout() and Within()
+Eventually(aFunc).WithTimeout(time.Second * 10).Within(time.Second * 10).WithPolling(time.Millisecond * 500).Should(BeTrue())
+// both polling argument, and WithPolling() method
+Eventually(aFunc, time.Second*10, time.Millisecond * 500).WithPolling(time.Millisecond * 500).Should(BeTrue())
+```
+
+### Async timing interval: non-time.Duration intervals [STYLE]
+***Note***: Only applied when the `suppress-async-assertion` flag is **not set** *and* the `validate-async-intervals`
+flag **is** set.
+
+gomega supports a few formats for timeout and polling intervals, when using the old format (the last two parameters of Eventually and Constantly):
+* a `time.Duration` value
+* any kind of numeric value (int(8/16/32/64), uint(8/16/32/64) or float(32/64), as the number of seconds.
+* duration string like `"12s"`
+
+The linter triggers a warning for any duration value that is not of the `time.Duration` type, assuming that this is
+the desired type, given the type of the argument of the newer "WithTimeout", "WithPolling", "Within" and "ProbeEvery"
+methods.
+
+For example:
+   ```go
+   Eventually(func() bool { return true }, "1s").Should(BeTrue())
+   Eventually(context.Background(), func() bool { return true }, time.Second*60, float64(2)).Should(BeTrue())
+   ```
+
+This rule offers a limited auto fix: for integer values, or integer consts, the linter will suggest multiply the
+value with `time.Second`; e.g.
+```go
+const polling = 1
+Eventually(aFunc, 5, polling)
+```
+will be changed to:
+```go
+Eventually(aFunc, time.Second*5, time.Second*polling)
+```
 ## Suppress the linter
 ### Suppress warning from command line
-* Use the `--suppress-len-assertion=true` flag to suppress the wrong length assertion warning
+* Use the `--suppress-len-assertion=true` flag to suppress the wrong length and cap assertions warning
 * Use the `--suppress-nil-assertion=true` flag to suppress the wrong nil assertion warning
 * Use the `--suppress-err-assertion=true` flag to suppress the wrong error assertion warning
 * Use the `--suppress-compare-assertion=true` flag to suppress the wrong comparison assertion warning
@@ -369,7 +489,7 @@ Expect(c1 == x1).Should(BeTrue()) // ==> Expect(x1).Should(Equal(c1))
   command line, and not from a comment.
 
 ### Suppress warning from the code
-To suppress the wrong length assertion warning, add a comment with (only)
+To suppress the wrong length and cap assertions warning, add a comment with (only)
 
 `ginkgo-linter:ignore-len-assert-warning`. 
 

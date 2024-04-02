@@ -1,33 +1,48 @@
 package commands
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
+	"runtime/pprof"
+	"runtime/trace"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/gofrs/flock"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
 
+	"github.com/golangci/golangci-lint/internal/cache"
+	"github.com/golangci/golangci-lint/internal/pkgcache"
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/exitcodes"
+	"github.com/golangci/golangci-lint/pkg/fsutils"
+	"github.com/golangci/golangci-lint/pkg/goanalysis/load"
+	"github.com/golangci/golangci-lint/pkg/goutil"
 	"github.com/golangci/golangci-lint/pkg/lint"
+	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/lint/lintersdb"
 	"github.com/golangci/golangci-lint/pkg/logutils"
-	"github.com/golangci/golangci-lint/pkg/packages"
 	"github.com/golangci/golangci-lint/pkg/printers"
+	"github.com/golangci/golangci-lint/pkg/report"
 	"github.com/golangci/golangci-lint/pkg/result"
+	"github.com/golangci/golangci-lint/pkg/timeutils"
 )
-
-const defaultFileMode = 0644
 
 const defaultTimeout = time.Minute
 
@@ -38,302 +53,347 @@ const (
 	envMemLogEvery = "GL_MEM_LOG_EVERY"
 )
 
-//nolint:funlen,gomnd
-func (e *Executor) initFlagSet(fs *pflag.FlagSet, cfg *config.Config, isFinalInit bool) {
-	hideFlag := func(name string) {
-		if err := fs.MarkHidden(name); err != nil {
-			panic(err)
-		}
+const (
+	// envHelpRun value: "1".
+	envHelpRun        = "HELP_RUN"
+	envMemProfileRate = "GL_MEM_PROFILE_RATE"
+)
 
-		// we run initFlagSet multiple times, but we wouldn't like to see deprecation message multiple times
-		if isFinalInit {
-			const deprecateMessage = "flag will be removed soon, please, use .golangci.yml config"
-			if err := fs.MarkDeprecated(name, deprecateMessage); err != nil {
-				panic(err)
-			}
-		}
-	}
+type runOptions struct {
+	config.LoaderOptions
 
-	// Config file config
-	rc := &cfg.Run
-	initConfigFileFlagSet(fs, rc)
+	CPUProfilePath string // Flag only.
+	MemProfilePath string // Flag only.
+	TracePath      string // Flag only.
 
-	// Output config
-	oc := &cfg.Output
-	fs.StringVar(&oc.Format, "out-format",
-		config.OutFormatColoredLineNumber,
-		wh(fmt.Sprintf("Format of output: %s", strings.Join(config.OutFormats, "|"))))
-	fs.BoolVar(&oc.PrintIssuedLine, "print-issued-lines", true, wh("Print lines of code with issue"))
-	fs.BoolVar(&oc.PrintLinterName, "print-linter-name", true, wh("Print linter name in issue line"))
-	fs.BoolVar(&oc.UniqByLine, "uniq-by-line", true, wh("Make issues output unique by line"))
-	fs.BoolVar(&oc.SortResults, "sort-results", false, wh("Sort linter results"))
-	fs.BoolVar(&oc.PrintWelcomeMessage, "print-welcome", false, wh("Print welcome message"))
-	fs.StringVar(&oc.PathPrefix, "path-prefix", "", wh("Path prefix to add to output"))
-	hideFlag("print-welcome") // no longer used
-
-	fs.BoolVar(&cfg.InternalCmdTest, "internal-cmd-test", false, wh("Option is used only for testing golangci-lint command, don't use it"))
-	if err := fs.MarkHidden("internal-cmd-test"); err != nil {
-		panic(err)
-	}
-
-	// Run config
-	fs.StringVar(&rc.ModulesDownloadMode, "modules-download-mode", "",
-		wh("Modules download mode. If not empty, passed as -mod=<mode> to go tools"))
-	fs.IntVar(&rc.ExitCodeIfIssuesFound, "issues-exit-code",
-		exitcodes.IssuesFound, wh("Exit code when issues were found"))
-	fs.StringVar(&rc.Go, "go", "", wh("Targeted Go version"))
-	fs.StringSliceVar(&rc.BuildTags, "build-tags", nil, wh("Build tags"))
-
-	fs.DurationVar(&rc.Timeout, "deadline", defaultTimeout, wh("Deadline for total work"))
-	if err := fs.MarkHidden("deadline"); err != nil {
-		panic(err)
-	}
-	fs.DurationVar(&rc.Timeout, "timeout", defaultTimeout, wh("Timeout for total work"))
-
-	fs.BoolVar(&rc.AnalyzeTests, "tests", true, wh("Analyze tests (*_test.go)"))
-	fs.BoolVar(&rc.PrintResourcesUsage, "print-resources-usage", false,
-		wh("Print avg and max memory usage of golangci-lint and total time"))
-	fs.StringSliceVar(&rc.SkipDirs, "skip-dirs", nil, wh("Regexps of directories to skip"))
-	fs.BoolVar(&rc.UseDefaultSkipDirs, "skip-dirs-use-default", true, getDefaultDirectoryExcludeHelp())
-	fs.StringSliceVar(&rc.SkipFiles, "skip-files", nil, wh("Regexps of files to skip"))
-
-	const allowParallelDesc = "Allow multiple parallel golangci-lint instances running. " +
-		"If false (default) - golangci-lint acquires file lock on start."
-	fs.BoolVar(&rc.AllowParallelRunners, "allow-parallel-runners", false, wh(allowParallelDesc))
-	const allowSerialDesc = "Allow multiple golangci-lint instances running, but serialize them around a lock. " +
-		"If false (default) - golangci-lint exits with an error if it fails to acquire file lock on start."
-	fs.BoolVar(&rc.AllowSerialRunners, "allow-serial-runners", false, wh(allowSerialDesc))
-	fs.BoolVar(&rc.ShowStats, "show-stats", false, wh("Show statistics per linter"))
-
-	// Linters settings config
-	lsc := &cfg.LintersSettings
-
-	// Hide all linters settings flags: they were initially visible,
-	// but when number of linters started to grow it became obvious that
-	// we can't fill 90% of flags by linters settings: common flags became hard to find.
-	// New linters settings should be done only through config file.
-	fs.BoolVar(&lsc.Errcheck.CheckTypeAssertions, "errcheck.check-type-assertions",
-		false, "Errcheck: check for ignored type assertion results")
-	hideFlag("errcheck.check-type-assertions")
-	fs.BoolVar(&lsc.Errcheck.CheckAssignToBlank, "errcheck.check-blank", false,
-		"Errcheck: check for errors assigned to blank identifier: _ = errFunc()")
-	hideFlag("errcheck.check-blank")
-	fs.StringVar(&lsc.Errcheck.Exclude, "errcheck.exclude", "",
-		"Path to a file containing a list of functions to exclude from checking")
-	hideFlag("errcheck.exclude")
-	fs.StringVar(&lsc.Errcheck.Ignore, "errcheck.ignore", "fmt:.*",
-		`Comma-separated list of pairs of the form pkg:regex. The regex is used to ignore names within pkg`)
-	hideFlag("errcheck.ignore")
-
-	fs.BoolVar(&lsc.Govet.CheckShadowing, "govet.check-shadowing", false,
-		"Govet: check for shadowed variables")
-	hideFlag("govet.check-shadowing")
-
-	fs.Float64Var(&lsc.Golint.MinConfidence, "golint.min-confidence", 0.8,
-		"Golint: minimum confidence of a problem to print it")
-	hideFlag("golint.min-confidence")
-
-	fs.BoolVar(&lsc.Gofmt.Simplify, "gofmt.simplify", true, "Gofmt: simplify code")
-	hideFlag("gofmt.simplify")
-
-	fs.IntVar(&lsc.Gocyclo.MinComplexity, "gocyclo.min-complexity",
-		30, "Minimal complexity of function to report it")
-	hideFlag("gocyclo.min-complexity")
-
-	fs.BoolVar(&lsc.Maligned.SuggestNewOrder, "maligned.suggest-new", false,
-		"Maligned: print suggested more optimal struct fields ordering")
-	hideFlag("maligned.suggest-new")
-
-	fs.IntVar(&lsc.Dupl.Threshold, "dupl.threshold",
-		150, "Dupl: Minimal threshold to detect copy-paste")
-	hideFlag("dupl.threshold")
-
-	fs.BoolVar(&lsc.Goconst.MatchWithConstants, "goconst.match-constant",
-		true, "Goconst: look for existing constants matching the values")
-	hideFlag("goconst.match-constant")
-	fs.IntVar(&lsc.Goconst.MinStringLen, "goconst.min-len",
-		3, "Goconst: minimum constant string length")
-	hideFlag("goconst.min-len")
-	fs.IntVar(&lsc.Goconst.MinOccurrencesCount, "goconst.min-occurrences",
-		3, "Goconst: minimum occurrences of constant string count to trigger issue")
-	hideFlag("goconst.min-occurrences")
-	fs.BoolVar(&lsc.Goconst.ParseNumbers, "goconst.numbers",
-		false, "Goconst: search also for duplicated numbers")
-	hideFlag("goconst.numbers")
-	fs.IntVar(&lsc.Goconst.NumberMin, "goconst.min",
-		3, "minimum value, only works with goconst.numbers")
-	hideFlag("goconst.min")
-	fs.IntVar(&lsc.Goconst.NumberMax, "goconst.max",
-		3, "maximum value, only works with goconst.numbers")
-	hideFlag("goconst.max")
-	fs.BoolVar(&lsc.Goconst.IgnoreCalls, "goconst.ignore-calls",
-		true, "Goconst: ignore when constant is not used as function argument")
-	hideFlag("goconst.ignore-calls")
-
-	fs.IntVar(&lsc.Lll.TabWidth, "lll.tab-width", 1,
-		"Lll: tab width in spaces")
-	hideFlag("lll.tab-width")
-
-	// Linters config
-	lc := &cfg.Linters
-	e.initLintersFlagSet(fs, lc)
-
-	// Issues config
-	ic := &cfg.Issues
-	fs.StringSliceVarP(&ic.ExcludePatterns, "exclude", "e", nil, wh("Exclude issue by regexp"))
-	fs.BoolVar(&ic.UseDefaultExcludes, "exclude-use-default", true, getDefaultIssueExcludeHelp())
-	fs.BoolVar(&ic.ExcludeCaseSensitive, "exclude-case-sensitive", false, wh("If set to true exclude "+
-		"and exclude rules regular expressions are case sensitive"))
-
-	fs.IntVar(&ic.MaxIssuesPerLinter, "max-issues-per-linter", 50,
-		wh("Maximum issues count per one linter. Set to 0 to disable"))
-	fs.IntVar(&ic.MaxSameIssues, "max-same-issues", 3,
-		wh("Maximum count of issues with the same text. Set to 0 to disable"))
-
-	fs.BoolVarP(&ic.Diff, "new", "n", false,
-		wh("Show only new issues: if there are unstaged changes or untracked files, only those changes "+
-			"are analyzed, else only changes in HEAD~ are analyzed.\nIt's a super-useful option for integration "+
-			"of golangci-lint into existing large codebase.\nIt's not practical to fix all existing issues at "+
-			"the moment of integration: much better to not allow issues in new code.\nFor CI setups, prefer "+
-			"--new-from-rev=HEAD~, as --new can skip linting the current patch if any scripts generate "+
-			"unstaged files before golangci-lint runs."))
-	fs.StringVar(&ic.DiffFromRevision, "new-from-rev", "",
-		wh("Show only new issues created after git revision `REV`"))
-	fs.StringVar(&ic.DiffPatchFilePath, "new-from-patch", "",
-		wh("Show only new issues created in git patch with file path `PATH`"))
-	fs.BoolVar(&ic.WholeFiles, "whole-files", false,
-		wh("Show issues in any part of update files (requires new-from-rev or new-from-patch)"))
-	fs.BoolVar(&ic.NeedFix, "fix", false, wh("Fix found issues (if it's supported by the linter)"))
+	PrintResourcesUsage bool // Flag only.
 }
 
-func (e *Executor) initRunConfiguration(cmd *cobra.Command) {
-	fs := cmd.Flags()
+type runCommand struct {
+	viper *viper.Viper
+	cmd   *cobra.Command
+
+	opts runOptions
+
+	cfg *config.Config
+
+	buildInfo BuildInfo
+
+	dbManager *lintersdb.Manager
+
+	printer *printers.Printer
+
+	log        logutils.Log
+	debugf     logutils.DebugFunc
+	reportData *report.Data
+
+	contextBuilder *lint.ContextBuilder
+	goenv          *goutil.Env
+
+	fileCache *fsutils.FileCache
+	lineCache *fsutils.LineCache
+
+	flock *flock.Flock
+
+	exitCode int
+}
+
+func newRunCommand(logger logutils.Log, info BuildInfo) *runCommand {
+	reportData := &report.Data{}
+
+	c := &runCommand{
+		viper:      viper.New(),
+		log:        report.NewLogWrapper(logger, reportData),
+		debugf:     logutils.Debug(logutils.DebugKeyExec),
+		cfg:        config.NewDefault(),
+		reportData: reportData,
+		buildInfo:  info,
+	}
+
+	runCmd := &cobra.Command{
+		Use:                "run",
+		Short:              "Run the linters",
+		Run:                c.execute,
+		PreRunE:            c.preRunE,
+		PostRun:            c.postRun,
+		PersistentPreRunE:  c.persistentPreRunE,
+		PersistentPostRunE: c.persistentPostRunE,
+		SilenceUsage:       true,
+	}
+
+	runCmd.SetOut(logutils.StdOut) // use custom output to properly color it in Windows terminals
+	runCmd.SetErr(logutils.StdErr)
+
+	fs := runCmd.Flags()
 	fs.SortFlags = false // sort them as they are defined here
-	e.initFlagSet(fs, e.cfg, true)
+
+	// Only for testing purpose.
+	// Don't add other flags here.
+	fs.BoolVar(&c.cfg.InternalCmdTest, "internal-cmd-test", false,
+		color.GreenString("Option is used only for testing golangci-lint command, don't use it"))
+	_ = fs.MarkHidden("internal-cmd-test")
+
+	setupConfigFileFlagSet(fs, &c.opts.LoaderOptions)
+
+	setupLintersFlagSet(c.viper, fs)
+	setupRunFlagSet(c.viper, fs)
+	setupOutputFlagSet(c.viper, fs)
+	setupIssuesFlagSet(c.viper, fs)
+
+	setupRunPersistentFlags(runCmd.PersistentFlags(), &c.opts)
+
+	c.cmd = runCmd
+
+	return c
 }
 
-func (e *Executor) getConfigForCommandLine() (*config.Config, error) {
-	// We use another pflag.FlagSet here to not set `changed` flag
-	// on cmd.Flags() options. Otherwise, string slice options will be duplicated.
-	fs := pflag.NewFlagSet("config flag set", pflag.ContinueOnError)
-
-	var cfg config.Config
-	// Don't do `fs.AddFlagSet(cmd.Flags())` because it shares flags representations:
-	// `changed` variable inside string slice vars will be shared.
-	// Use another config variable here, not e.cfg, to not
-	// affect main parsing by this parsing of only config option.
-	e.initFlagSet(fs, &cfg, false)
-	initVersionFlagSet(fs, &cfg)
-
-	// Parse max options, even force version option: don't want
-	// to get access to Executor here: it's error-prone to use
-	// cfg vs e.cfg.
-	initRootFlagSet(fs, &cfg, true)
-
-	fs.Usage = func() {} // otherwise, help text will be printed twice
-	if err := fs.Parse(os.Args); err != nil {
-		if errors.Is(err, pflag.ErrHelp) {
-			return nil, err
-		}
-
-		return nil, fmt.Errorf("can't parse args: %w", err)
+func (c *runCommand) persistentPreRunE(cmd *cobra.Command, _ []string) error {
+	if err := c.startTracing(); err != nil {
+		return err
 	}
 
-	return &cfg, nil
-}
+	loader := config.NewLoader(c.log.Child(logutils.DebugKeyConfigReader), c.viper, cmd.Flags(), c.opts.LoaderOptions, c.cfg)
 
-func (e *Executor) initRun() {
-	e.runCmd = &cobra.Command{
-		Use:   "run",
-		Short: "Run the linters",
-		Run:   e.executeRun,
-		PreRunE: func(_ *cobra.Command, _ []string) error {
-			if ok := e.acquireFileLock(); !ok {
-				return errors.New("parallel golangci-lint is running")
-			}
-			return nil
-		},
-		PostRun: func(_ *cobra.Command, _ []string) {
-			e.releaseFileLock()
-		},
+	if err := loader.Load(); err != nil {
+		return fmt.Errorf("can't load config: %w", err)
 	}
-	e.rootCmd.AddCommand(e.runCmd)
 
-	e.runCmd.SetOut(logutils.StdOut) // use custom output to properly color it in Windows terminals
-	e.runCmd.SetErr(logutils.StdErr)
+	if c.cfg.Run.Concurrency == 0 {
+		backup := runtime.GOMAXPROCS(0)
 
-	e.initRunConfiguration(e.runCmd)
-}
-
-func fixSlicesFlags(fs *pflag.FlagSet) {
-	// It's a dirty hack to set flag.Changed to true for every string slice flag.
-	// It's necessary to merge config and command-line slices: otherwise command-line
-	// flags will always overwrite ones from the config.
-	fs.VisitAll(func(f *pflag.Flag) {
-		if f.Value.Type() != "stringSlice" {
-			return
-		}
-
-		s, err := fs.GetStringSlice(f.Name)
+		// Automatically set GOMAXPROCS to match Linux container CPU quota.
+		_, err := maxprocs.Set(maxprocs.Logger(c.log.Infof))
 		if err != nil {
-			return
+			runtime.GOMAXPROCS(backup)
+		}
+	} else {
+		runtime.GOMAXPROCS(c.cfg.Run.Concurrency)
+	}
+
+	return c.startTracing()
+}
+
+func (c *runCommand) persistentPostRunE(_ *cobra.Command, _ []string) error {
+	if err := c.stopTracing(); err != nil {
+		return err
+	}
+
+	os.Exit(c.exitCode)
+
+	return nil
+}
+
+func (c *runCommand) preRunE(_ *cobra.Command, args []string) error {
+	dbManager, err := lintersdb.NewManager(c.log.Child(logutils.DebugKeyLintersDB), c.cfg,
+		lintersdb.NewLinterBuilder(), lintersdb.NewPluginModuleBuilder(c.log), lintersdb.NewPluginGoBuilder(c.log))
+	if err != nil {
+		return err
+	}
+
+	c.dbManager = dbManager
+
+	printer, err := printers.NewPrinter(c.log, &c.cfg.Output, c.reportData)
+	if err != nil {
+		return err
+	}
+
+	c.printer = printer
+
+	c.goenv = goutil.NewEnv(c.log.Child(logutils.DebugKeyGoEnv))
+
+	c.fileCache = fsutils.NewFileCache()
+	c.lineCache = fsutils.NewLineCache(c.fileCache)
+
+	sw := timeutils.NewStopwatch("pkgcache", c.log.Child(logutils.DebugKeyStopwatch))
+
+	pkgCache, err := pkgcache.NewCache(sw, c.log.Child(logutils.DebugKeyPkgCache))
+	if err != nil {
+		return fmt.Errorf("failed to build packages cache: %w", err)
+	}
+
+	guard := load.NewGuard()
+
+	pkgLoader := lint.NewPackageLoader(c.log.Child(logutils.DebugKeyLoader), c.cfg, args, c.goenv, guard)
+
+	c.contextBuilder = lint.NewContextBuilder(c.cfg, pkgLoader, c.fileCache, pkgCache, guard)
+
+	if err = initHashSalt(c.buildInfo.Version, c.cfg); err != nil {
+		return fmt.Errorf("failed to init hash salt: %w", err)
+	}
+
+	if ok := c.acquireFileLock(); !ok {
+		return errors.New("parallel golangci-lint is running")
+	}
+
+	return nil
+}
+
+func (c *runCommand) postRun(_ *cobra.Command, _ []string) {
+	c.releaseFileLock()
+}
+
+func (c *runCommand) execute(_ *cobra.Command, args []string) {
+	needTrackResources := logutils.IsVerbose() || c.opts.PrintResourcesUsage
+
+	trackResourcesEndCh := make(chan struct{})
+	defer func() { // XXX: this defer must be before ctx.cancel defer
+		if needTrackResources { // wait until resource tracking finished to print properly
+			<-trackResourcesEndCh
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.cfg.Run.Timeout)
+	defer cancel()
+
+	if needTrackResources {
+		go watchResources(ctx, trackResourcesEndCh, c.log, c.debugf)
+	}
+
+	if err := c.runAndPrint(ctx, args); err != nil {
+		c.log.Errorf("Running error: %s", err)
+		if c.exitCode == exitcodes.Success {
+			var exitErr *exitcodes.ExitError
+			if errors.As(err, &exitErr) {
+				c.exitCode = exitErr.Code
+			} else {
+				c.exitCode = exitcodes.Failure
+			}
+		}
+	}
+
+	c.setupExitCode(ctx)
+}
+
+func (c *runCommand) startTracing() error {
+	if c.opts.CPUProfilePath != "" {
+		f, err := os.Create(c.opts.CPUProfilePath)
+		if err != nil {
+			return fmt.Errorf("can't create file %s: %w", c.opts.CPUProfilePath, err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			return fmt.Errorf("can't start CPU profiling: %w", err)
+		}
+	}
+
+	if c.opts.MemProfilePath != "" {
+		if rate := os.Getenv(envMemProfileRate); rate != "" {
+			runtime.MemProfileRate, _ = strconv.Atoi(rate)
+		}
+	}
+
+	if c.opts.TracePath != "" {
+		f, err := os.Create(c.opts.TracePath)
+		if err != nil {
+			return fmt.Errorf("can't create file %s: %w", c.opts.TracePath, err)
+		}
+		if err = trace.Start(f); err != nil {
+			return fmt.Errorf("can't start tracing: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (c *runCommand) stopTracing() error {
+	if c.opts.CPUProfilePath != "" {
+		pprof.StopCPUProfile()
+	}
+
+	if c.opts.MemProfilePath != "" {
+		f, err := os.Create(c.opts.MemProfilePath)
+		if err != nil {
+			return fmt.Errorf("can't create file %s: %w", c.opts.MemProfilePath, err)
 		}
 
-		if s == nil { // assume that every string slice flag has nil as the default
-			return
-		}
+		var ms runtime.MemStats
+		runtime.ReadMemStats(&ms)
+		printMemStats(&ms, c.log)
 
-		var safe []string
-		for _, v := range s {
-			// add quotes to escape comma because spf13/pflag use a CSV parser:
-			// https://github.com/spf13/pflag/blob/85dd5c8bc61cfa382fecd072378089d4e856579d/string_slice.go#L43
-			safe = append(safe, `"`+v+`"`)
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			return fmt.Errorf("can't write heap profile: %w", err)
 		}
+		_ = f.Close()
+	}
 
-		// calling Set sets Changed to true: next Set calls will append, not overwrite
-		_ = f.Value.Set(strings.Join(safe, ","))
-	})
+	if c.opts.TracePath != "" {
+		trace.Stop()
+	}
+
+	return nil
+}
+
+func (c *runCommand) runAndPrint(ctx context.Context, args []string) error {
+	if err := c.goenv.Discover(ctx); err != nil {
+		c.log.Warnf("Failed to discover go env: %s", err)
+	}
+
+	if !logutils.HaveDebugTag(logutils.DebugKeyLintersOutput) {
+		// Don't allow linters and loader to print anything
+		log.SetOutput(io.Discard)
+		savedStdout, savedStderr := c.setOutputToDevNull()
+		defer func() {
+			os.Stdout, os.Stderr = savedStdout, savedStderr
+		}()
+	}
+
+	enabledLintersMap, err := c.dbManager.GetEnabledLintersMap()
+	if err != nil {
+		return err
+	}
+
+	c.printDeprecatedLinterMessages(enabledLintersMap)
+
+	issues, err := c.runAnalysis(ctx, args)
+	if err != nil {
+		return err // XXX: don't lose type
+	}
+
+	// Fills linters information for the JSON printer.
+	for _, lc := range c.dbManager.GetAllSupportedLinterConfigs() {
+		isEnabled := enabledLintersMap[lc.Name()] != nil
+		c.reportData.AddLinter(lc.Name(), isEnabled, lc.EnabledByDefault)
+	}
+
+	err = c.printer.Print(issues)
+	if err != nil {
+		return err
+	}
+
+	c.printStats(issues)
+
+	c.setExitCodeIfIssuesFound(issues)
+
+	c.fileCache.PrintStats(c.log)
+
+	return nil
 }
 
 // runAnalysis executes the linters that have been enabled in the configuration.
-func (e *Executor) runAnalysis(ctx context.Context, args []string) ([]result.Issue, error) {
-	e.cfg.Run.Args = args
-
-	lintersToRun, err := e.EnabledLintersSet.GetOptimizedLinters()
+func (c *runCommand) runAnalysis(ctx context.Context, args []string) ([]result.Issue, error) {
+	lintersToRun, err := c.dbManager.GetOptimizedLinters()
 	if err != nil {
 		return nil, err
 	}
 
-	enabledLintersMap, err := e.EnabledLintersSet.GetEnabledLintersMap()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, lc := range e.DBManager.GetAllSupportedLinterConfigs() {
-		isEnabled := enabledLintersMap[lc.Name()] != nil
-		e.reportData.AddLinter(lc.Name(), isEnabled, lc.EnabledByDefault)
-	}
-
-	lintCtx, err := e.contextLoader.Load(ctx, lintersToRun)
+	lintCtx, err := c.contextBuilder.Build(ctx, c.log.Child(logutils.DebugKeyLintersContext), lintersToRun)
 	if err != nil {
 		return nil, fmt.Errorf("context loading failed: %w", err)
 	}
-	lintCtx.Log = e.log.Child(logutils.DebugKeyLintersContext)
 
-	runner, err := lint.NewRunner(e.cfg, e.log.Child(logutils.DebugKeyRunner),
-		e.goenv, e.EnabledLintersSet, e.lineCache, e.fileCache, e.DBManager, lintCtx.Packages)
+	runner, err := lint.NewRunner(c.log.Child(logutils.DebugKeyRunner), c.cfg, args,
+		c.goenv, c.lineCache, c.fileCache, c.dbManager, lintCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	return runner.Run(ctx, lintersToRun, lintCtx)
+	return runner.Run(ctx, lintersToRun)
 }
 
-func (e *Executor) setOutputToDevNull() (savedStdout, savedStderr *os.File) {
+func (c *runCommand) setOutputToDevNull() (savedStdout, savedStderr *os.File) {
 	savedStdout, savedStderr = os.Stdout, os.Stderr
 	devNull, err := os.Open(os.DevNull)
 	if err != nil {
-		e.log.Warnf("Can't open null device %q: %s", os.DevNull, err)
+		c.log.Warnf("Can't open null device %q: %s", os.DevNull, err)
 		return
 	}
 
@@ -341,134 +401,38 @@ func (e *Executor) setOutputToDevNull() (savedStdout, savedStderr *os.File) {
 	return
 }
 
-func (e *Executor) setExitCodeIfIssuesFound(issues []result.Issue) {
+func (c *runCommand) setExitCodeIfIssuesFound(issues []result.Issue) {
 	if len(issues) != 0 {
-		e.exitCode = e.cfg.Run.ExitCodeIfIssuesFound
+		c.exitCode = c.cfg.Run.ExitCodeIfIssuesFound
 	}
 }
 
-func (e *Executor) runAndPrint(ctx context.Context, args []string) error {
-	if err := e.goenv.Discover(ctx); err != nil {
-		e.log.Warnf("Failed to discover go env: %s", err)
+func (c *runCommand) printDeprecatedLinterMessages(enabledLinters map[string]*linter.Config) {
+	if c.cfg.InternalCmdTest {
+		return
 	}
 
-	if !logutils.HaveDebugTag(logutils.DebugKeyLintersOutput) {
-		// Don't allow linters and loader to print anything
-		log.SetOutput(io.Discard)
-		savedStdout, savedStderr := e.setOutputToDevNull()
-		defer func() {
-			os.Stdout, os.Stderr = savedStdout, savedStderr
-		}()
-	}
-
-	issues, err := e.runAnalysis(ctx, args)
-	if err != nil {
-		return err // XXX: don't loose type
-	}
-
-	formats := strings.Split(e.cfg.Output.Format, ",")
-	for _, format := range formats {
-		out := strings.SplitN(format, ":", 2)
-		if len(out) < 2 {
-			out = append(out, "")
+	for name, lc := range enabledLinters {
+		if !lc.IsDeprecated() {
+			continue
 		}
 
-		err := e.printReports(issues, out[1], out[0])
-		if err != nil {
-			return err
+		var extra string
+		if lc.Deprecation.Replacement != "" {
+			extra = fmt.Sprintf("Replaced by %s.", lc.Deprecation.Replacement)
 		}
+
+		c.log.Warnf("The linter '%s' is deprecated (since %s) due to: %s %s", name, lc.Deprecation.Since, lc.Deprecation.Message, extra)
 	}
-
-	e.printStats(issues)
-
-	e.setExitCodeIfIssuesFound(issues)
-
-	e.fileCache.PrintStats(e.log)
-
-	return nil
 }
 
-func (e *Executor) printReports(issues []result.Issue, path, format string) error {
-	w, shouldClose, err := e.createWriter(path)
-	if err != nil {
-		return fmt.Errorf("can't create output for %s: %w", path, err)
-	}
-
-	p, err := e.createPrinter(format, w)
-	if err != nil {
-		if file, ok := w.(io.Closer); shouldClose && ok {
-			_ = file.Close()
-		}
-		return err
-	}
-
-	if err = p.Print(issues); err != nil {
-		if file, ok := w.(io.Closer); shouldClose && ok {
-			_ = file.Close()
-		}
-		return fmt.Errorf("can't print %d issues: %w", len(issues), err)
-	}
-
-	if file, ok := w.(io.Closer); shouldClose && ok {
-		_ = file.Close()
-	}
-
-	return nil
-}
-
-func (e *Executor) createWriter(path string) (io.Writer, bool, error) {
-	if path == "" || path == "stdout" {
-		return logutils.StdOut, false, nil
-	}
-	if path == "stderr" {
-		return logutils.StdErr, false, nil
-	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultFileMode)
-	if err != nil {
-		return nil, false, err
-	}
-	return f, true, nil
-}
-
-func (e *Executor) createPrinter(format string, w io.Writer) (printers.Printer, error) {
-	var p printers.Printer
-	switch format {
-	case config.OutFormatJSON:
-		p = printers.NewJSON(&e.reportData, w)
-	case config.OutFormatColoredLineNumber, config.OutFormatLineNumber:
-		p = printers.NewText(e.cfg.Output.PrintIssuedLine,
-			format == config.OutFormatColoredLineNumber, e.cfg.Output.PrintLinterName,
-			e.log.Child(logutils.DebugKeyTextPrinter), w)
-	case config.OutFormatTab, config.OutFormatColoredTab:
-		p = printers.NewTab(e.cfg.Output.PrintLinterName,
-			format == config.OutFormatColoredTab,
-			e.log.Child(logutils.DebugKeyTabPrinter), w)
-	case config.OutFormatCheckstyle:
-		p = printers.NewCheckstyle(w)
-	case config.OutFormatCodeClimate:
-		p = printers.NewCodeClimate(w)
-	case config.OutFormatHTML:
-		p = printers.NewHTML(w)
-	case config.OutFormatJunitXML:
-		p = printers.NewJunitXML(w)
-	case config.OutFormatGithubActions:
-		p = printers.NewGithub(w)
-	case config.OutFormatTeamCity:
-		p = printers.NewTeamCity(w)
-	default:
-		return nil, fmt.Errorf("unknown output format %s", format)
-	}
-
-	return p, nil
-}
-
-func (e *Executor) printStats(issues []result.Issue) {
-	if !e.cfg.Run.ShowStats {
+func (c *runCommand) printStats(issues []result.Issue) {
+	if !c.cfg.Output.ShowStats {
 		return
 	}
 
 	if len(issues) == 0 {
-		e.runCmd.Println("0 issues.")
+		c.cmd.Println("0 issues.")
 		return
 	}
 
@@ -477,78 +441,76 @@ func (e *Executor) printStats(issues []result.Issue) {
 		stats[issues[idx].FromLinter]++
 	}
 
-	e.runCmd.Printf("%d issues:\n", len(issues))
+	c.cmd.Printf("%d issues:\n", len(issues))
 
 	keys := maps.Keys(stats)
 	sort.Strings(keys)
 
 	for _, key := range keys {
-		e.runCmd.Printf("* %s: %d\n", key, stats[key])
+		c.cmd.Printf("* %s: %d\n", key, stats[key])
 	}
 }
 
-// executeRun executes the 'run' CLI command, which runs the linters.
-func (e *Executor) executeRun(_ *cobra.Command, args []string) {
-	needTrackResources := e.cfg.Run.IsVerbose || e.cfg.Run.PrintResourcesUsage
-	trackResourcesEndCh := make(chan struct{})
-	defer func() { // XXX: this defer must be before ctx.cancel defer
-		if needTrackResources { // wait until resource tracking finished to print properly
-			<-trackResourcesEndCh
-		}
-	}()
-
-	e.setTimeoutToDeadlineIfOnlyDeadlineIsSet()
-	ctx, cancel := context.WithTimeout(context.Background(), e.cfg.Run.Timeout)
-	defer cancel()
-
-	if needTrackResources {
-		go watchResources(ctx, trackResourcesEndCh, e.log, e.debugf)
-	}
-
-	if err := e.runAndPrint(ctx, args); err != nil {
-		e.log.Errorf("Running error: %s", err)
-		if e.exitCode == exitcodes.Success {
-			var exitErr *exitcodes.ExitError
-			if errors.As(err, &exitErr) {
-				e.exitCode = exitErr.Code
-			} else {
-				e.exitCode = exitcodes.Failure
-			}
-		}
-	}
-
-	e.setupExitCode(ctx)
-}
-
-// to be removed when deadline is finally decommissioned
-func (e *Executor) setTimeoutToDeadlineIfOnlyDeadlineIsSet() {
-	deadlineValue := e.cfg.Run.Deadline
-	if deadlineValue != 0 && e.cfg.Run.Timeout == defaultTimeout {
-		e.cfg.Run.Timeout = deadlineValue
-	}
-}
-
-func (e *Executor) setupExitCode(ctx context.Context) {
+func (c *runCommand) setupExitCode(ctx context.Context) {
 	if ctx.Err() != nil {
-		e.exitCode = exitcodes.Timeout
-		e.log.Errorf("Timeout exceeded: try increasing it by passing --timeout option")
+		c.exitCode = exitcodes.Timeout
+		c.log.Errorf("Timeout exceeded: try increasing it by passing --timeout option")
 		return
 	}
 
-	if e.exitCode != exitcodes.Success {
+	if c.exitCode != exitcodes.Success {
 		return
 	}
 
-	needFailOnWarnings := os.Getenv(lintersdb.EnvTestRun) == "1" || os.Getenv(envFailOnWarnings) == "1"
-	if needFailOnWarnings && len(e.reportData.Warnings) != 0 {
-		e.exitCode = exitcodes.WarningInTest
+	needFailOnWarnings := os.Getenv(logutils.EnvTestRun) == "1" || os.Getenv(envFailOnWarnings) == "1"
+	if needFailOnWarnings && len(c.reportData.Warnings) != 0 {
+		c.exitCode = exitcodes.WarningInTest
 		return
 	}
 
-	if e.reportData.Error != "" {
+	if c.reportData.Error != "" {
 		// it's a case e.g. when typecheck linter couldn't parse and error and just logged it
-		e.exitCode = exitcodes.ErrorWasLogged
+		c.exitCode = exitcodes.ErrorWasLogged
 		return
+	}
+}
+
+func (c *runCommand) acquireFileLock() bool {
+	if c.cfg.Run.AllowParallelRunners {
+		c.debugf("Parallel runners are allowed, no locking")
+		return true
+	}
+
+	lockFile := filepath.Join(os.TempDir(), "golangci-lint.lock")
+	c.debugf("Locking on file %s...", lockFile)
+	f := flock.New(lockFile)
+	const retryDelay = time.Second
+
+	ctx := context.Background()
+	if !c.cfg.Run.AllowSerialRunners {
+		const totalTimeout = 5 * time.Second
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, totalTimeout)
+		defer cancel()
+	}
+	if ok, _ := f.TryLockContext(ctx, retryDelay); !ok {
+		return false
+	}
+
+	c.flock = f
+	return true
+}
+
+func (c *runCommand) releaseFileLock() {
+	if c.cfg.Run.AllowParallelRunners {
+		return
+	}
+
+	if err := c.flock.Unlock(); err != nil {
+		c.debugf("Failed to unlock on file: %s", err)
+	}
+	if err := os.Remove(c.flock.Path()); err != nil {
+		c.debugf("Failed to remove lock file: %s", err)
 	}
 }
 
@@ -608,27 +570,119 @@ func watchResources(ctx context.Context, done chan struct{}, logger logutils.Log
 	close(done)
 }
 
-func getDefaultIssueExcludeHelp() string {
-	parts := []string{color.GreenString("Use or not use default excludes:")}
-	for _, ep := range config.DefaultExcludePatterns {
-		parts = append(parts,
-			fmt.Sprintf("  # %s %s: %s", ep.ID, ep.Linter, ep.Why),
-			fmt.Sprintf("  - %s", color.YellowString(ep.Pattern)),
-			"",
-		)
-	}
-	return strings.Join(parts, "\n")
+func setupConfigFileFlagSet(fs *pflag.FlagSet, cfg *config.LoaderOptions) {
+	fs.StringVarP(&cfg.Config, "config", "c", "", color.GreenString("Read config from file path `PATH`"))
+	fs.BoolVar(&cfg.NoConfig, "no-config", false, color.GreenString("Don't read config file"))
 }
 
-func getDefaultDirectoryExcludeHelp() string {
-	parts := []string{color.GreenString("Use or not use default excluded directories:")}
-	for _, dir := range packages.StdExcludeDirRegexps {
-		parts = append(parts, fmt.Sprintf("  - %s", color.YellowString(dir)))
-	}
-	parts = append(parts, "")
-	return strings.Join(parts, "\n")
+func setupRunPersistentFlags(fs *pflag.FlagSet, opts *runOptions) {
+	fs.BoolVar(&opts.PrintResourcesUsage, "print-resources-usage", false,
+		color.GreenString("Print avg and max memory usage of golangci-lint and total time"))
+
+	fs.StringVar(&opts.CPUProfilePath, "cpu-profile-path", "", color.GreenString("Path to CPU profile output file"))
+	fs.StringVar(&opts.MemProfilePath, "mem-profile-path", "", color.GreenString("Path to memory profile output file"))
+	fs.StringVar(&opts.TracePath, "trace-path", "", color.GreenString("Path to trace output file"))
 }
 
-func wh(text string) string {
-	return color.GreenString(text)
+func getDefaultConcurrency() int {
+	if os.Getenv(envHelpRun) == "1" {
+		// Make stable concurrency for generating help documentation.
+		const prettyConcurrency = 8
+		return prettyConcurrency
+	}
+
+	return runtime.NumCPU()
+}
+
+func printMemStats(ms *runtime.MemStats, logger logutils.Log) {
+	logger.Infof("Mem stats: alloc=%s total_alloc=%s sys=%s "+
+		"heap_alloc=%s heap_sys=%s heap_idle=%s heap_released=%s heap_in_use=%s "+
+		"stack_in_use=%s stack_sys=%s "+
+		"mspan_sys=%s mcache_sys=%s buck_hash_sys=%s gc_sys=%s other_sys=%s "+
+		"mallocs_n=%d frees_n=%d heap_objects_n=%d gc_cpu_fraction=%.2f",
+		formatMemory(ms.Alloc), formatMemory(ms.TotalAlloc), formatMemory(ms.Sys),
+		formatMemory(ms.HeapAlloc), formatMemory(ms.HeapSys),
+		formatMemory(ms.HeapIdle), formatMemory(ms.HeapReleased), formatMemory(ms.HeapInuse),
+		formatMemory(ms.StackInuse), formatMemory(ms.StackSys),
+		formatMemory(ms.MSpanSys), formatMemory(ms.MCacheSys), formatMemory(ms.BuckHashSys),
+		formatMemory(ms.GCSys), formatMemory(ms.OtherSys),
+		ms.Mallocs, ms.Frees, ms.HeapObjects, ms.GCCPUFraction)
+}
+
+func formatMemory(memBytes uint64) string {
+	const Kb = 1024
+	const Mb = Kb * 1024
+
+	if memBytes < Kb {
+		return fmt.Sprintf("%db", memBytes)
+	}
+	if memBytes < Mb {
+		return fmt.Sprintf("%dkb", memBytes/Kb)
+	}
+	return fmt.Sprintf("%dmb", memBytes/Mb)
+}
+
+// Related to cache.
+
+func initHashSalt(version string, cfg *config.Config) error {
+	binSalt, err := computeBinarySalt(version)
+	if err != nil {
+		return fmt.Errorf("failed to calculate binary salt: %w", err)
+	}
+
+	configSalt, err := computeConfigSalt(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to calculate config salt: %w", err)
+	}
+
+	b := bytes.NewBuffer(binSalt)
+	b.Write(configSalt)
+	cache.SetSalt(b.Bytes())
+	return nil
+}
+
+func computeBinarySalt(version string) ([]byte, error) {
+	if version != "" && version != "(devel)" {
+		return []byte(version), nil
+	}
+
+	if logutils.HaveDebugTag(logutils.DebugKeyBinSalt) {
+		return []byte("debug"), nil
+	}
+
+	p, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
+}
+
+// computeConfigSalt computes configuration hash.
+// We don't hash all config fields to reduce meaningless cache invalidations.
+// At least, it has a huge impact on tests speed.
+// Fields: `LintersSettings` and `Run.BuildTags`.
+func computeConfigSalt(cfg *config.Config) ([]byte, error) {
+	lintersSettingsBytes, err := yaml.Marshal(cfg.LintersSettings)
+	if err != nil {
+		return nil, fmt.Errorf("failed to json marshal config linter settings: %w", err)
+	}
+
+	configData := bytes.NewBufferString("linters-settings=")
+	configData.Write(lintersSettingsBytes)
+	configData.WriteString("\nbuild-tags=%s" + strings.Join(cfg.Run.BuildTags, ","))
+
+	h := sha256.New()
+	if _, err := h.Write(configData.Bytes()); err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
 }

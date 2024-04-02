@@ -1275,4 +1275,24 @@ import (
 )
 `,
 	},
+	{
+		"no-trailing-newline",
+
+		`sections:
+  - Standard
+`,
+		`package main
+
+import (
+	"net"
+	"fmt"
+)`,
+		`package main
+
+import (
+	"fmt"
+	"net"
+)
+`,
+	},
 }

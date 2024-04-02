@@ -62,6 +62,10 @@ func (v *treeVisitor) Visit(node ast.Node) ast.Visitor {
 
 	// if foo == "moo"
 	case *ast.BinaryExpr:
+		if t.Op != token.EQL && t.Op != token.NEQ {
+			return v
+		}
+
 		var lit *ast.BasicLit
 		var ok bool
 

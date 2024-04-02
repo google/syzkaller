@@ -218,10 +218,8 @@ func (c *processor) processInner(expr ast.Expr) {
 		c.write("*")
 		c.processInner(x.X)
 
-	case *ast.CompositeLit:
-		c.write(formatNode(x))
-
-	case *ast.TypeAssertExpr:
+	case *ast.CompositeLit, *ast.TypeAssertExpr, *ast.ArrayType:
+		// Process the node as is.
 		c.write(formatNode(x))
 
 	default:

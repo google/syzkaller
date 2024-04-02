@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -18,8 +17,10 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-var nolintDebugf = logutils.Debug(logutils.DebugKeyNolint)
-var nolintRe = regexp.MustCompile(`^nolint( |:|$)`)
+var (
+	nolintDebugf = logutils.Debug(logutils.DebugKeyNolint)
+	nolintRe     = regexp.MustCompile(`^nolint( |:|$)`)
+)
 
 type ignoredRange struct {
 	linters                []string
@@ -97,33 +98,31 @@ func (p *Nolint) Process(issues []result.Issue) ([]result.Issue, error) {
 	return filterIssuesErr(issues, p.shouldPassIssue)
 }
 
-func (p *Nolint) getOrCreateFileData(i *result.Issue) (*fileData, error) {
-	fd := p.cache[i.FilePath()]
+func (p *Nolint) getOrCreateFileData(issue *result.Issue) *fileData {
+	fd := p.cache[issue.FilePath()]
 	if fd != nil {
-		return fd, nil
+		return fd
 	}
 
 	fd = &fileData{}
-	p.cache[i.FilePath()] = fd
-
-	if i.FilePath() == "" {
-		return nil, errors.New("no file path for issue")
-	}
+	p.cache[issue.FilePath()] = fd
 
 	// TODO: migrate this parsing to go/analysis facts
 	// or cache them somehow per file.
 
 	// Don't use cached AST because they consume a lot of memory on large projects.
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, i.FilePath(), nil, parser.ParseComments)
+	f, err := parser.ParseFile(fset, issue.FilePath(), nil, parser.ParseComments)
 	if err != nil {
 		// Don't report error because it's already must be reporter by typecheck or go/analysis.
-		return fd, nil
+		return fd
 	}
 
-	fd.ignoredRanges = p.buildIgnoredRangesForFile(f, fset, i.FilePath())
-	nolintDebugf("file %s: built nolint ranges are %+v", i.FilePath(), fd.ignoredRanges)
-	return fd, nil
+	fd.ignoredRanges = p.buildIgnoredRangesForFile(f, fset, issue.FilePath())
+
+	nolintDebugf("file %s: built nolint ranges are %+v", issue.FilePath(), fd.ignoredRanges)
+
+	return fd
 }
 
 func (p *Nolint) buildIgnoredRangesForFile(f *ast.File, fset *token.FileSet, filePath string) []ignoredRange {
@@ -148,28 +147,25 @@ func (p *Nolint) buildIgnoredRangesForFile(f *ast.File, fset *token.FileSet, fil
 	return allRanges
 }
 
-func (p *Nolint) shouldPassIssue(i *result.Issue) (bool, error) {
-	nolintDebugf("got issue: %v", *i)
-	if i.FromLinter == golinters.NoLintLintName && i.ExpectNoLint && i.ExpectedNoLintLinter != "" {
+func (p *Nolint) shouldPassIssue(issue *result.Issue) (bool, error) {
+	nolintDebugf("got issue: %v", *issue)
+	if issue.FromLinter == golinters.NoLintLintName && issue.ExpectNoLint && issue.ExpectedNoLintLinter != "" {
 		// don't expect disabled linters to cover their nolint statements
 		nolintDebugf("enabled linters: %v", p.enabledLinters)
-		if p.enabledLinters[i.ExpectedNoLintLinter] == nil {
+		if p.enabledLinters[issue.ExpectedNoLintLinter] == nil {
 			return false, nil
 		}
-		nolintDebugf("checking that lint issue was used for %s: %v", i.ExpectedNoLintLinter, i)
+		nolintDebugf("checking that lint issue was used for %s: %v", issue.ExpectedNoLintLinter, issue)
 	}
 
-	fd, err := p.getOrCreateFileData(i)
-	if err != nil {
-		return false, err
-	}
+	fd := p.getOrCreateFileData(issue)
 
 	for _, ir := range fd.ignoredRanges {
-		if ir.doesMatch(i) {
-			nolintDebugf("found ignored range for issue %v: %v", i, ir)
-			ir.matchedIssueFromLinter[i.FromLinter] = true
+		if ir.doesMatch(issue) {
+			nolintDebugf("found ignored range for issue %v: %v", issue, ir)
+			ir.matchedIssueFromLinter[issue.FromLinter] = true
 			if ir.originalRange != nil {
-				ir.originalRange.matchedIssueFromLinter[i.FromLinter] = true
+				ir.originalRange.matchedIssueFromLinter[issue.FromLinter] = true
 			}
 			return false, nil
 		}

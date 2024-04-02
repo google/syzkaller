@@ -141,7 +141,7 @@ func (p *Processor) addError(fileset *token.FileSet, pos token.Pos, reason strin
 //
 // It works by iterating over the dependant modules specified in the require
 // directive, checking if the module domain or full name is in the allowed list.
-func (p *Processor) SetBlockedModules() { //nolint:gocognit,funlen
+func (p *Processor) SetBlockedModules() { //nolint:funlen
 	blockedModules := make(map[string][]string, len(p.Modfile.Require))
 	currentModuleName := p.Modfile.Module.Mod.Path
 	lintedModules := p.Modfile.Require

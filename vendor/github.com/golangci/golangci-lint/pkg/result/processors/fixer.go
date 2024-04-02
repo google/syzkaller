@@ -133,20 +133,22 @@ func (f Fixer) mergeLineIssues(lineNum int, lineIssues []result.Issue, origFileL
 
 	// check issues first
 	for ind := range lineIssues {
-		i := &lineIssues[ind]
-		if i.LineRange != nil {
+		li := &lineIssues[ind]
+
+		if li.LineRange != nil {
 			f.log.Infof("Line %d has multiple issues but at least one of them is ranged: %#v", lineNum, lineIssues)
 			return &lineIssues[0]
 		}
 
-		r := i.Replacement
-		if r.Inline == nil || len(r.NewLines) != 0 || r.NeedOnlyDelete {
+		inline := li.Replacement.Inline
+
+		if inline == nil || len(li.Replacement.NewLines) != 0 || li.Replacement.NeedOnlyDelete {
 			f.log.Infof("Line %d has multiple issues but at least one of them isn't inline: %#v", lineNum, lineIssues)
-			return &lineIssues[0]
+			return li
 		}
 
-		if r.Inline.StartCol < 0 || r.Inline.Length <= 0 || r.Inline.StartCol+r.Inline.Length > len(origLine) {
-			f.log.Warnf("Line %d (%q) has invalid inline fix: %#v, %#v", lineNum, origLine, i, r.Inline)
+		if inline.StartCol < 0 || inline.Length <= 0 || inline.StartCol+inline.Length > len(origLine) {
+			f.log.Warnf("Line %d (%q) has invalid inline fix: %#v, %#v", lineNum, origLine, li, inline)
 			return nil
 		}
 	}
@@ -162,7 +164,7 @@ func (f Fixer) applyInlineFixes(lineIssues []result.Issue, origLine []byte, line
 	var newLineBuf bytes.Buffer
 	newLineBuf.Grow(len(origLine))
 
-	//nolint:misspell
+	//nolint:misspell // misspelling is intentional
 	// example: origLine="it's becouse of them", StartCol=5, Length=7, NewString="because"
 
 	curOrigLinePos := 0

@@ -353,11 +353,16 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) (RET lvalue) {
 		}
 		wantAddr := true
 		v := b.receiver(fn, e.X, wantAddr, escaping, sel, e)
-		last := len(sel.Index()) - 1
-		return &address{
-			addr: emitFieldSelection(fn, v, sel.Index()[last], true, e.Sel),
-			expr: e.Sel,
+		index := sel.Index()[len(sel.Index())-1]
+		vut := typeutil.CoreType(deref(v.Type())).Underlying().(*types.Struct)
+		fld := vut.Field(index)
+		// Due to the two phases of resolving AssignStmt, a panic from x.f = p()
+		// when x is nil is required to come after the side-effects of
+		// evaluating x and p().
+		emit := func(fn *Function) Value {
+			return emitFieldSelection(fn, v, index, true, e.Sel)
 		}
+		return &lazyAddress{addr: emit, t: fld.Type(), expr: e.Sel}
 
 	case *ast.IndexExpr:
 		var x Value
@@ -411,12 +416,19 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) (RET lvalue) {
 			panic("unexpected container type in IndexExpr: " + t.String())
 		}
 
-		v := &IndexAddr{
-			X:     x,
-			Index: b.expr(fn, e.Index),
+		// Due to the two phases of resolving AssignStmt, a panic from x[i] = p()
+		// when x is nil or i is out-of-bounds is required to come after the
+		// side-effects of evaluating x, i and p().
+		index := b.expr(fn, e.Index)
+		emit := func(fn *Function) Value {
+			v := &IndexAddr{
+				X:     x,
+				Index: index,
+			}
+			v.setType(et)
+			return fn.emit(v, e)
 		}
-		v.setType(et)
-		return &address{addr: fn.emit(v, e), expr: e}
+		return &lazyAddress{addr: emit, t: deref(et), expr: e}
 
 	case *ast.StarExpr:
 		return &address{addr: b.expr(fn, e.X), expr: e}
@@ -680,11 +692,11 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 		}
 
 		var low, high, max Value
-		if e.High != nil {
-			high = b.expr(fn, e.High)
-		}
 		if e.Low != nil {
 			low = b.expr(fn, e.Low)
+		}
+		if e.High != nil {
+			high = b.expr(fn, e.High)
 		}
 		if e.Slice3 {
 			max = b.expr(fn, e.Max)
@@ -1027,8 +1039,7 @@ func (b *builder) setCall(fn *Function, e *ast.CallExpr, c *CallCommon) {
 
 // assignOp emits to fn code to perform loc <op>= val.
 func (b *builder) assignOp(fn *Function, loc lvalue, val Value, op token.Token, source ast.Node) {
-	oldv := loc.load(fn, source)
-	loc.store(fn, emitArith(fn, op, oldv, emitConv(fn, val, oldv.Type(), source), loc.typ(), source), source)
+	loc.store(fn, emitArith(fn, op, loc.load(fn, source), val, loc.typ(), source), source)
 }
 
 // localValueSpec emits to fn code to define all of the vars in the

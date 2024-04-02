@@ -3,18 +3,18 @@ package golinters
 import (
 	"sync"
 
-	unconvertAPI "github.com/golangci/unconvert"
+	"github.com/golangci/unconvert"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/config"
+	"github.com/golangci/golangci-lint/pkg/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
 const unconvertName = "unconvert"
 
-//nolint:dupl
-func NewUnconvert() *goanalysis.Linter {
+func NewUnconvert(settings *config.UnconvertSettings) *goanalysis.Linter {
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
 
@@ -22,7 +22,7 @@ func NewUnconvert() *goanalysis.Linter {
 		Name: unconvertName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
 		Run: func(pass *analysis.Pass) (any, error) {
-			issues := runUnconvert(pass)
+			issues := runUnconvert(pass, settings)
 
 			if len(issues) == 0 {
 				return nil, nil
@@ -46,18 +46,13 @@ func NewUnconvert() *goanalysis.Linter {
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }
 
-func runUnconvert(pass *analysis.Pass) []goanalysis.Issue {
-	prog := goanalysis.MakeFakeLoaderProgram(pass)
+func runUnconvert(pass *analysis.Pass, settings *config.UnconvertSettings) []goanalysis.Issue {
+	positions := unconvert.Run(pass, settings.FastMath, settings.Safe)
 
-	positions := unconvertAPI.Run(prog)
-	if len(positions) == 0 {
-		return nil
-	}
-
-	issues := make([]goanalysis.Issue, 0, len(positions))
-	for _, pos := range positions {
+	var issues []goanalysis.Issue
+	for _, position := range positions {
 		issues = append(issues, goanalysis.NewIssue(&result.Issue{
-			Pos:        pos,
+			Pos:        position,
 			Text:       "unnecessary conversion",
 			FromLinter: unconvertName,
 		}, pass))
