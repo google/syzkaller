@@ -107,8 +107,8 @@ func (i UnusedCandidate) Details() string {
 
 func (i UnusedCandidate) String() string { return toString(i) }
 
-func toString(i Issue) string {
-	return fmt.Sprintf("%s at %s", i.Details(), i.Position())
+func toString(issue Issue) string {
+	return fmt.Sprintf("%s at %s", issue.Details(), issue.Position())
 }
 
 type Issue interface {
@@ -151,10 +151,12 @@ func NewLinter(needs Needs, excludes []string) (*Linter, error) {
 	}, nil
 }
 
-var leadingSpacePattern = regexp.MustCompile(`^//(\s*)`)
-var trailingBlankExplanation = regexp.MustCompile(`\s*(//\s*)?$`)
+var (
+	leadingSpacePattern      = regexp.MustCompile(`^//(\s*)`)
+	trailingBlankExplanation = regexp.MustCompile(`\s*(//\s*)?$`)
+)
 
-//nolint:funlen,gocyclo
+//nolint:funlen,gocyclo // the function is going to be refactored in the future
 func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 	var issues []Issue
 

@@ -8,11 +8,23 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
+	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
+	"github.com/golangci/golangci-lint/pkg/lint/lintersdb"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
-func (e *Executor) initHelp() {
+type helpCommand struct {
+	cmd *cobra.Command
+
+	dbManager *lintersdb.Manager
+
+	log logutils.Log
+}
+
+func newHelpCommand(logger logutils.Log) *helpCommand {
+	c := &helpCommand{log: logger}
+
 	helpCmd := &cobra.Command{
 		Use:   "help",
 		Short: "Help",
@@ -21,22 +33,83 @@ func (e *Executor) initHelp() {
 			return cmd.Help()
 		},
 	}
-	e.rootCmd.SetHelpCommand(helpCmd)
 
-	lintersHelpCmd := &cobra.Command{
-		Use:               "linters",
-		Short:             "Help about linters",
-		Args:              cobra.NoArgs,
-		ValidArgsFunction: cobra.NoFileCompletions,
-		Run:               e.executeLintersHelp,
-	}
-	helpCmd.AddCommand(lintersHelpCmd)
+	helpCmd.AddCommand(
+		&cobra.Command{
+			Use:               "linters",
+			Short:             "Help about linters",
+			Args:              cobra.NoArgs,
+			ValidArgsFunction: cobra.NoFileCompletions,
+			Run:               c.execute,
+			PreRunE:           c.preRunE,
+		},
+	)
+
+	c.cmd = helpCmd
+
+	return c
 }
 
-func printLinterConfigs(lcs []*linter.Config) {
+func (c *helpCommand) preRunE(_ *cobra.Command, _ []string) error {
+	// The command doesn't depend on the real configuration.
+	// It just needs the list of all plugins and all presets.
+	dbManager, err := lintersdb.NewManager(c.log.Child(logutils.DebugKeyLintersDB), config.NewDefault(), lintersdb.NewLinterBuilder())
+	if err != nil {
+		return err
+	}
+
+	c.dbManager = dbManager
+
+	return nil
+}
+
+func (c *helpCommand) execute(_ *cobra.Command, _ []string) {
+	var enabledLCs, disabledLCs []*linter.Config
+	for _, lc := range c.dbManager.GetAllSupportedLinterConfigs() {
+		if lc.Internal {
+			continue
+		}
+
+		if lc.EnabledByDefault {
+			enabledLCs = append(enabledLCs, lc)
+		} else {
+			disabledLCs = append(disabledLCs, lc)
+		}
+	}
+
+	color.Green("Enabled by default linters:\n")
+	printLinters(enabledLCs)
+
+	color.Red("\nDisabled by default linters:\n")
+	printLinters(disabledLCs)
+
+	color.Green("\nLinters presets:")
+	c.printPresets()
+}
+
+func (c *helpCommand) printPresets() {
+	for _, p := range lintersdb.AllPresets() {
+		linters := c.dbManager.GetAllLinterConfigsForPreset(p)
+
+		var linterNames []string
+		for _, lc := range linters {
+			if lc.Internal {
+				continue
+			}
+
+			linterNames = append(linterNames, lc.Name())
+		}
+		sort.Strings(linterNames)
+
+		_, _ = fmt.Fprintf(logutils.StdOut, "%s: %s\n", color.YellowString(p), strings.Join(linterNames, ", "))
+	}
+}
+
+func printLinters(lcs []*linter.Config) {
 	sort.Slice(lcs, func(i, j int) bool {
 		return lcs[i].Name() < lcs[j].Name()
 	})
+
 	for _, lc := range lcs {
 		altNamesStr := ""
 		if len(lc.AlternativeNames) != 0 {
@@ -55,42 +128,7 @@ func printLinterConfigs(lcs []*linter.Config) {
 			deprecatedMark = " [" + color.RedString("deprecated") + "]"
 		}
 
-		fmt.Fprintf(logutils.StdOut, "%s%s%s: %s [fast: %t, auto-fix: %t]\n", color.YellowString(lc.Name()),
-			altNamesStr, deprecatedMark, linterDescription, !lc.IsSlowLinter(), lc.CanAutoFix)
-	}
-}
-
-func (e *Executor) executeLintersHelp(_ *cobra.Command, _ []string) {
-	var enabledLCs, disabledLCs []*linter.Config
-	for _, lc := range e.DBManager.GetAllSupportedLinterConfigs() {
-		if lc.Internal {
-			continue
-		}
-
-		if lc.EnabledByDefault {
-			enabledLCs = append(enabledLCs, lc)
-		} else {
-			disabledLCs = append(disabledLCs, lc)
-		}
-	}
-
-	color.Green("Enabled by default linters:\n")
-	printLinterConfigs(enabledLCs)
-	color.Red("\nDisabled by default linters:\n")
-	printLinterConfigs(disabledLCs)
-
-	color.Green("\nLinters presets:")
-	for _, p := range e.DBManager.AllPresets() {
-		linters := e.DBManager.GetAllLinterConfigsForPreset(p)
-		var linterNames []string
-		for _, lc := range linters {
-			if lc.Internal {
-				continue
-			}
-
-			linterNames = append(linterNames, lc.Name())
-		}
-		sort.Strings(linterNames)
-		fmt.Fprintf(logutils.StdOut, "%s: %s\n", color.YellowString(p), strings.Join(linterNames, ", "))
+		_, _ = fmt.Fprintf(logutils.StdOut, "%s%s%s: %s [fast: %t, auto-fix: %t]\n",
+			color.YellowString(lc.Name()), altNamesStr, deprecatedMark, linterDescription, !lc.IsSlowLinter(), lc.CanAutoFix)
 	}
 }

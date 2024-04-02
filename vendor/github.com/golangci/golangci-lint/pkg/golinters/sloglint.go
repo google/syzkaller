@@ -5,7 +5,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/goanalysis"
 )
 
 func NewSlogLint(settings *config.SlogLintSettings) *goanalysis.Linter {
@@ -14,6 +14,7 @@ func NewSlogLint(settings *config.SlogLintSettings) *goanalysis.Linter {
 		opts = &sloglint.Options{
 			NoMixedArgs:    settings.NoMixedArgs,
 			KVOnly:         settings.KVOnly,
+			NoGlobal:       settings.NoGlobal,
 			AttrOnly:       settings.AttrOnly,
 			ContextOnly:    settings.ContextOnly,
 			StaticMsg:      settings.StaticMsg,

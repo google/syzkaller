@@ -4,14 +4,16 @@ import (
 	"github.com/timakin/bodyclose/passes/bodyclose"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/goanalysis"
 )
 
 func NewBodyclose() *goanalysis.Linter {
+	a := bodyclose.Analyzer
+
 	return goanalysis.NewLinter(
-		"bodyclose",
+		a.Name,
 		"checks whether HTTP response body is closed successfully",
-		[]*analysis.Analyzer{bodyclose.Analyzer},
+		[]*analysis.Analyzer{a},
 		nil,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }

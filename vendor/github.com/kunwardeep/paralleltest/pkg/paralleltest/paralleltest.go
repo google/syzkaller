@@ -26,6 +26,7 @@ type parallelAnalyzer struct {
 	analyzer              *analysis.Analyzer
 	ignoreMissing         bool
 	ignoreMissingSubtests bool
+	ignoreLoopVar         bool
 }
 
 func newParallelAnalyzer() *parallelAnalyzer {
@@ -34,6 +35,7 @@ func newParallelAnalyzer() *parallelAnalyzer {
 	var flags flag.FlagSet
 	flags.BoolVar(&a.ignoreMissing, "i", false, "ignore missing calls to t.Parallel")
 	flags.BoolVar(&a.ignoreMissingSubtests, "ignoremissingsubtests", false, "ignore missing calls to t.Parallel in subtests")
+	flags.BoolVar(&a.ignoreLoopVar, "ignoreloopVar", false, "ignore loop variable detection")
 
 	a.analyzer = &analysis.Analyzer{
 		Name:  "paralleltest",
@@ -137,7 +139,7 @@ func (a *parallelAnalyzer) run(pass *analysis.Pass) (interface{}, error) {
 								rangeStatementCantParallelMethod = methodSetenvIsCalledInMethodRun(r.X, innerTestVar)
 							}
 
-							if loopVariableUsedInRun == nil {
+							if !a.ignoreLoopVar && loopVariableUsedInRun == nil {
 								if run, ok := r.X.(*ast.CallExpr); ok {
 									loopVariableUsedInRun = loopVarReferencedInRun(run, loopVars, pass.TypesInfo)
 								}

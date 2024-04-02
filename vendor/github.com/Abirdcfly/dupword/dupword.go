@@ -75,7 +75,7 @@ type ignore struct {
 }
 
 func (a *ignore) String() string {
-	t := make([]string,0,  len(ignoreWord))
+	t := make([]string, 0, len(ignoreWord))
 	for k := range ignoreWord {
 		t = append(t, k)
 	}
@@ -83,7 +83,7 @@ func (a *ignore) String() string {
 }
 
 func (a *ignore) Set(w string) error {
-	for _, k := range strings.Split(w, ","){
+	for _, k := range strings.Split(w, ",") {
 		ignoreWord[k] = true
 	}
 	return nil

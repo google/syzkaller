@@ -10,13 +10,6 @@ Checks usage of:
 - [OpenTelemetry spans](https://opentelemetry.io/docs/instrumentation/go/manual/) from [go.opentelemetry.io/otel/trace](go.opentelemetry.io/otel/trace)
 - [OpenCensus spans](https://opencensus.io/quickstart/go/tracing/) from [go.opencensus.io/trace](https://pkg.go.dev/go.opencensus.io/trace#Span)
 
-## Installation & Usage
-
-```bash
-go install github.com/jjti/go-spancheck/cmd/spancheck@latest
-spancheck ./...
-```
-
 ## Example
 
 ```bash
@@ -43,6 +36,44 @@ func _() error {
 
 ## Configuration
 
+### golangci-lint
+
+Docs on configuring the linter are also available at [https://golangci-lint.run/usage/linters/#spancheck](https://golangci-lint.run/usage/linters/#spancheck):
+
+```yaml
+linters:
+  enable:
+    - spancheck
+
+linters-settings:
+  spancheck:
+    # Checks to enable.
+    # Options include:
+    # - `end`: check that `span.End()` is called
+    # - `record-error`: check that `span.RecordError(err)` is called when an error is returned
+    # - `set-status`: check that `span.SetStatus(codes.Error, msg)` is called when an error is returned
+    # Default: ["end"]
+    checks:
+      - end
+      - record-error
+      - set-status
+    # A list of regexes for function signatures that silence `record-error` and `set-status` reports
+    # if found in the call path to a returned error.
+    # https://github.com/jjti/go-spancheck#ignore-check-signatures
+    # Default: []
+    ignore-check-signatures:
+      - "telemetry.RecordError"
+```
+
+### CLI
+
+To install the linter as a CLI:
+
+```bash
+go install github.com/jjti/go-spancheck/cmd/spancheck@latest
+spancheck ./...
+```
+
 Only the `span.End()` check is enabled by default. The others can be enabled with `-checks 'end,set-status,record-error'`.
 
 ```txt
@@ -55,7 +86,7 @@ Flags:
         comma-separated list of regex for function signatures that disable checks on errors
 ```
 
-### Ignore check signatures
+### Ignore Check Signatures
 
 The `span.SetStatus()` and `span.RecordError()` checks warn when there is:
 

@@ -64,7 +64,7 @@ Alternatively, you can download a prebuilt binary from the [Releases][9] page to
 Run `golangci-lint` with `musttag` enabled.
 See the list of [available options][10] to configure the linter.
 
-When using `sloglint` standalone, pass the options as flags.
+When using `musttag` standalone, pass the options as flags.
 
 ### Custom packages
 

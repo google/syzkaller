@@ -150,16 +150,19 @@ type checker struct {
 }
 
 func (c *checker) parseStruct(typ types.Type) (*types.Struct, bool) {
-	for {
-		// unwrap pointers (if any) first.
-		ptr, ok := typ.(*types.Pointer)
-		if !ok {
-			break
-		}
-		typ = ptr.Elem()
-	}
-
 	switch typ := typ.(type) {
+	case *types.Pointer:
+		return c.parseStruct(typ.Elem())
+
+	case *types.Array:
+		return c.parseStruct(typ.Elem())
+
+	case *types.Slice:
+		return c.parseStruct(typ.Elem())
+
+	case *types.Map:
+		return c.parseStruct(typ.Elem())
+
 	case *types.Named: // a struct of the named type.
 		pkg := typ.Obj().Pkg()
 		if pkg == nil {

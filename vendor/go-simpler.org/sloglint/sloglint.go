@@ -9,6 +9,7 @@ import (
 	"go/token"
 	"go/types"
 	"strconv"
+	"strings"
 
 	"github.com/ettle/strcase"
 	"golang.org/x/tools/go/analysis"
@@ -22,6 +23,7 @@ type Options struct {
 	NoMixedArgs    bool   // Enforce not mixing key-value pairs and attributes (default true).
 	KVOnly         bool   // Enforce using key-value pairs only (overrides NoMixedArgs, incompatible with AttrOnly).
 	AttrOnly       bool   // Enforce using attributes only (overrides NoMixedArgs, incompatible with KVOnly).
+	NoGlobal       string // Enforce not using global loggers ("all" or "default").
 	ContextOnly    bool   // Enforce using methods that accept a context.
 	StaticMsg      bool   // Enforce using static log messages.
 	NoRawKeys      bool   // Enforce using constants instead of raw keys.
@@ -43,11 +45,19 @@ func New(opts *Options) *analysis.Analyzer {
 			if opts.KVOnly && opts.AttrOnly {
 				return nil, fmt.Errorf("sloglint: Options.KVOnly and Options.AttrOnly: %w", errIncompatible)
 			}
+
+			switch opts.NoGlobal {
+			case "", "all", "default":
+			default:
+				return nil, fmt.Errorf("sloglint: Options.NoGlobal=%s: %w", opts.NoGlobal, errInvalidValue)
+			}
+
 			switch opts.KeyNamingCase {
 			case "", snakeCase, kebabCase, camelCase, pascalCase:
 			default:
 				return nil, fmt.Errorf("sloglint: Options.KeyNamingCase=%s: %w", opts.KeyNamingCase, errInvalidValue)
 			}
+
 			run(pass, opts)
 			return nil, nil
 		},
@@ -60,30 +70,34 @@ var (
 )
 
 func flags(opts *Options) flag.FlagSet {
-	fs := flag.NewFlagSet("sloglint", flag.ContinueOnError)
+	fset := flag.NewFlagSet("sloglint", flag.ContinueOnError)
 
 	boolVar := func(value *bool, name, usage string) {
-		fs.Func(name, usage, func(s string) error {
+		fset.Func(name, usage, func(s string) error {
 			v, err := strconv.ParseBool(s)
 			*value = v
 			return err
 		})
 	}
 
+	strVar := func(value *string, name, usage string) {
+		fset.Func(name, usage, func(s string) error {
+			*value = s
+			return nil
+		})
+	}
+
 	boolVar(&opts.NoMixedArgs, "no-mixed-args", "enforce not mixing key-value pairs and attributes (default true)")
 	boolVar(&opts.KVOnly, "kv-only", "enforce using key-value pairs only (overrides -no-mixed-args, incompatible with -attr-only)")
 	boolVar(&opts.AttrOnly, "attr-only", "enforce using attributes only (overrides -no-mixed-args, incompatible with -kv-only)")
+	strVar(&opts.NoGlobal, "no-global", "enforce not using global loggers (all|default)")
 	boolVar(&opts.ContextOnly, "context-only", "enforce using methods that accept a context")
 	boolVar(&opts.StaticMsg, "static-msg", "enforce using static log messages")
 	boolVar(&opts.NoRawKeys, "no-raw-keys", "enforce using constants instead of raw keys")
+	strVar(&opts.KeyNamingCase, "key-naming-case", "enforce a single key naming convention (snake|kebab|camel|pascal)")
 	boolVar(&opts.ArgsOnSepLines, "args-on-sep-lines", "enforce putting arguments on separate lines")
 
-	fs.Func("key-naming-case", "enforce a single key naming convention (snake|kebab|camel|pascal)", func(s string) error {
-		opts.KeyNamingCase = s
-		return nil
-	})
-
-	return *fs
+	return *fset
 }
 
 var slogFuncs = map[string]int{ // funcName:argsPos
@@ -139,9 +153,21 @@ func run(pass *analysis.Pass, opts *Options) {
 			return
 		}
 
-		argsPos, ok := slogFuncs[fn.FullName()]
+		name := fn.FullName()
+		argsPos, ok := slogFuncs[name]
 		if !ok {
 			return
+		}
+
+		switch opts.NoGlobal {
+		case "all":
+			if strings.HasPrefix(name, "log/slog.") || globalLoggerUsed(pass.TypesInfo, call.Fun) {
+				pass.Reportf(call.Pos(), "global logger should not be used")
+			}
+		case "default":
+			if strings.HasPrefix(name, "log/slog.") {
+				pass.Reportf(call.Pos(), "default logger should not be used")
+			}
 		}
 
 		if opts.ContextOnly {
@@ -150,6 +176,7 @@ func run(pass *analysis.Pass, opts *Options) {
 				pass.Reportf(call.Pos(), "methods without a context should not be used")
 			}
 		}
+
 		if opts.StaticMsg && !staticMsg(call.Args[argsPos-1]) {
 			pass.Reportf(call.Pos(), "message should be a string literal or a constant")
 		}
@@ -189,6 +216,7 @@ func run(pass *analysis.Pass, opts *Options) {
 		if opts.NoRawKeys && rawKeysUsed(pass.TypesInfo, keys, attrs) {
 			pass.Reportf(call.Pos(), "raw keys should not be used")
 		}
+
 		if opts.ArgsOnSepLines && argsOnSameLine(pass.Fset, call, keys, attrs) {
 			pass.Reportf(call.Pos(), "arguments should be put on separate lines")
 		}
@@ -204,6 +232,19 @@ func run(pass *analysis.Pass, opts *Options) {
 			pass.Reportf(call.Pos(), "keys should be written in PascalCase")
 		}
 	})
+}
+
+func globalLoggerUsed(info *types.Info, expr ast.Expr) bool {
+	selector, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := selector.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	obj := info.ObjectOf(ident)
+	return obj.Parent() == obj.Pkg().Scope()
 }
 
 func staticMsg(expr ast.Expr) bool {

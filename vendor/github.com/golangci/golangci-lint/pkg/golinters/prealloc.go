@@ -8,14 +8,14 @@ import (
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/golinters/internal"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
 const preallocName = "prealloc"
 
-//nolint:dupl
 func NewPreAlloc(settings *config.PreallocSettings) *goanalysis.Linter {
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
@@ -56,7 +56,7 @@ func runPreAlloc(pass *analysis.Pass, settings *config.PreallocSettings) []goana
 	for _, hint := range hints {
 		issues = append(issues, goanalysis.NewIssue(&result.Issue{
 			Pos:        pass.Fset.Position(hint.Pos),
-			Text:       fmt.Sprintf("Consider pre-allocating %s", formatCode(hint.DeclaredSliceName, nil)),
+			Text:       fmt.Sprintf("Consider pre-allocating %s", internal.FormatCode(hint.DeclaredSliceName, nil)),
 			FromLinter: preallocName,
 		}, pass))
 	}

@@ -2,48 +2,89 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
+	"github.com/golangci/golangci-lint/pkg/lint/lintersdb"
+	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
-func (e *Executor) initLinters() {
-	e.lintersCmd = &cobra.Command{
+type lintersOptions struct {
+	config.LoaderOptions
+}
+
+type lintersCommand struct {
+	viper *viper.Viper
+	cmd   *cobra.Command
+
+	opts lintersOptions
+
+	cfg *config.Config
+
+	log logutils.Log
+
+	dbManager *lintersdb.Manager
+}
+
+func newLintersCommand(logger logutils.Log) *lintersCommand {
+	c := &lintersCommand{
+		viper: viper.New(),
+		cfg:   config.NewDefault(),
+		log:   logger,
+	}
+
+	lintersCmd := &cobra.Command{
 		Use:               "linters",
 		Short:             "List current linters configuration",
 		Args:              cobra.NoArgs,
 		ValidArgsFunction: cobra.NoFileCompletions,
-		RunE:              e.executeLinters,
+		RunE:              c.execute,
+		PreRunE:           c.preRunE,
+		SilenceUsage:      true,
 	}
 
-	fs := e.lintersCmd.Flags()
+	fs := lintersCmd.Flags()
 	fs.SortFlags = false // sort them as they are defined here
 
-	initConfigFileFlagSet(fs, &e.cfg.Run)
-	e.initLintersFlagSet(fs, &e.cfg.Linters)
+	setupConfigFileFlagSet(fs, &c.opts.LoaderOptions)
+	setupLintersFlagSet(c.viper, fs)
 
-	e.rootCmd.AddCommand(e.lintersCmd)
+	c.cmd = lintersCmd
+
+	return c
 }
 
-func (e *Executor) initLintersFlagSet(fs *pflag.FlagSet, cfg *config.Linters) {
-	fs.StringSliceVarP(&cfg.Disable, "disable", "D", nil, wh("Disable specific linter"))
-	fs.BoolVar(&cfg.DisableAll, "disable-all", false, wh("Disable all linters"))
-	fs.StringSliceVarP(&cfg.Enable, "enable", "E", nil, wh("Enable specific linter"))
-	fs.BoolVar(&cfg.EnableAll, "enable-all", false, wh("Enable all linters"))
-	fs.BoolVar(&cfg.Fast, "fast", false, wh("Enable only fast linters from enabled linters set (first run won't be fast)"))
-	fs.StringSliceVarP(&cfg.Presets, "presets", "p", nil,
-		wh(fmt.Sprintf("Enable presets (%s) of linters. Run 'golangci-lint help linters' to see "+
-			"them. This option implies option --disable-all", strings.Join(e.DBManager.AllPresets(), "|"))))
+func (c *lintersCommand) preRunE(cmd *cobra.Command, _ []string) error {
+	// Hack to hide deprecation messages related to `--skip-dirs-use-default`:
+	// Flags are not bound then the default values, defined only through flags, are not applied.
+	// In this command, linters information are the only requirements, i.e. it don't need flag values.
+	//
+	// TODO(ldez) add an option (check deprecation) to `Loader.Load()` but this require a dedicated PR.
+	c.cfg.Run.UseDefaultSkipDirs = true
+
+	loader := config.NewLoader(c.log.Child(logutils.DebugKeyConfigReader), c.viper, cmd.Flags(), c.opts.LoaderOptions, c.cfg)
+
+	if err := loader.Load(); err != nil {
+		return fmt.Errorf("can't load config: %w", err)
+	}
+
+	dbManager, err := lintersdb.NewManager(c.log.Child(logutils.DebugKeyLintersDB), c.cfg,
+		lintersdb.NewLinterBuilder(), lintersdb.NewPluginModuleBuilder(c.log), lintersdb.NewPluginGoBuilder(c.log))
+	if err != nil {
+		return err
+	}
+
+	c.dbManager = dbManager
+
+	return nil
 }
 
-// executeLinters runs the 'linters' CLI command, which displays the supported linters.
-func (e *Executor) executeLinters(_ *cobra.Command, _ []string) error {
-	enabledLintersMap, err := e.EnabledLintersSet.GetEnabledLintersMap()
+func (c *lintersCommand) execute(_ *cobra.Command, _ []string) error {
+	enabledLintersMap, err := c.dbManager.GetEnabledLintersMap()
 	if err != nil {
 		return fmt.Errorf("can't get enabled linters: %w", err)
 	}
@@ -51,7 +92,7 @@ func (e *Executor) executeLinters(_ *cobra.Command, _ []string) error {
 	var enabledLinters []*linter.Config
 	var disabledLCs []*linter.Config
 
-	for _, lc := range e.DBManager.GetAllSupportedLinterConfigs() {
+	for _, lc := range c.dbManager.GetAllSupportedLinterConfigs() {
 		if lc.Internal {
 			continue
 		}
@@ -64,9 +105,9 @@ func (e *Executor) executeLinters(_ *cobra.Command, _ []string) error {
 	}
 
 	color.Green("Enabled by your configuration linters:\n")
-	printLinterConfigs(enabledLinters)
+	printLinters(enabledLinters)
 	color.Red("\nDisabled by your configuration linters:\n")
-	printLinterConfigs(disabledLCs)
+	printLinters(disabledLCs)
 
 	return nil
 }

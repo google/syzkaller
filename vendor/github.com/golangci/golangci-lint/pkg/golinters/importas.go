@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/julz/importas" //nolint:misspell
+	"github.com/julz/importas"
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 )
 
@@ -26,7 +26,7 @@ func NewImportAs(settings *config.ImportAsSettings) *goanalysis.Linter {
 			return
 		}
 		if len(settings.Alias) == 0 {
-			lintCtx.Log.Infof("importas settings found, but no aliases listed. List aliases under alias: key.") //nolint:misspell
+			lintCtx.Log.Infof("importas settings found, but no aliases listed. List aliases under alias: key.")
 		}
 
 		if err := analyzer.Flags.Set("no-unaliased", strconv.FormatBool(settings.NoUnaliased)); err != nil {

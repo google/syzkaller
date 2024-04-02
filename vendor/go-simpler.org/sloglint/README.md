@@ -17,6 +17,7 @@ With `sloglint` you can enforce various rules for `log/slog` based on your prefe
 
 * Enforce not mixing key-value pairs and attributes (default)
 * Enforce using either key-value pairs only or attributes only (optional)
+* Enforce not using global loggers (optional)
 * Enforce using methods that accept a context (optional)
 * Enforce using static log messages (optional)
 * Enforce using constants instead of raw keys (optional)
@@ -69,6 +70,17 @@ In contrast, the `attr-only` option causes `sloglint` to report any use of key-v
 ```go
 slog.Info("a user has logged in", "user_id", 42) // sloglint: key-value pairs should not be used
 ```
+
+### No global
+
+Some projects prefer to pass loggers as explicit dependencies.
+The `no-global` option causes `sloglint` to report the usage of global loggers.
+
+```go
+slog.Info("a user has logged in", "user_id", 42) // sloglint: global logger should not be used
+```
+
+Possible values are `all` (report all global loggers) and `default` (report only the default `slog` logger).
 
 ### Context only
 

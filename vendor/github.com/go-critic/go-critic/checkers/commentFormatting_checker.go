@@ -27,12 +27,16 @@ func init() {
 			"//nolint",
 		}
 		parts := []string{
-			"//go:generate ",  // e.g.: go:generate value
-			"//line /",        // e.g.: line /path/to/file:123
-			"//nolint ",       // e.g.: nolint
-			"//noinspection ", // e.g.: noinspection ALL, some GoLand and friends versions
-			"//export ",       // e.g.: export Foo
-			"///",             // e.g.: vertical breaker /////////////
+			"//go:generate ",   // e.g.: go:generate value
+			"//line /",         // e.g.: line /path/to/file:123
+			"//nolint ",        // e.g.: nolint
+			"//noinspection ",  // e.g.: noinspection ALL, some GoLand and friends versions
+			"//region",         // e.g.: region awawa, used by GoLand and friends for custom folding
+			"//endregion",      // e.g.: endregion awawa or endregion, closes GoLand regions
+			"//<editor-fold",   // e.g.: <editor-fold desc="awawa"> or <editor-fold>, used by VSCode for custom folding
+			"//</editor-fold>", // e.g.: </editor-fold>, closes VSCode regions
+			"//export ",        // e.g.: export Foo
+			"///",              // e.g.: vertical breaker /////////////
 			"//+",
 			"//#",
 			"//-",
