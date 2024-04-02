@@ -8728,6 +8728,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		switch (errno) {
 		case EAFNOSUPPORT:
 		case ENOPROTOOPT:
+		case ENOENT:
 			return;
 		}
 		failmsg("iptable checkpoint: socket(SOCK_STREAM, IPPROTO_TCP) failed", "family=%d", family);
@@ -8781,6 +8782,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		switch (errno) {
 		case EAFNOSUPPORT:
 		case ENOPROTOOPT:
+		case ENOENT:
 			return;
 		}
 		failmsg("iptable: socket(SOCK_STREAM, IPPROTO_TCP) failed", "family=%d", family);
@@ -8827,6 +8829,7 @@ static void checkpoint_arptables(void)
 		switch (errno) {
 		case EAFNOSUPPORT:
 		case ENOPROTOOPT:
+		case ENOENT:
 			return;
 		}
 		fail("arptable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP) failed");
@@ -8877,6 +8880,7 @@ static void reset_arptables()
 		switch (errno) {
 		case EAFNOSUPPORT:
 		case ENOPROTOOPT:
+		case ENOENT:
 			return;
 		}
 		fail("arptable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
@@ -8966,6 +8970,7 @@ static void checkpoint_ebtables(void)
 		switch (errno) {
 		case EAFNOSUPPORT:
 		case ENOPROTOOPT:
+		case ENOENT:
 			return;
 		}
 		fail("ebtable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
@@ -9007,6 +9012,7 @@ static void reset_ebtables()
 		switch (errno) {
 		case EAFNOSUPPORT:
 		case ENOPROTOOPT:
+		case ENOENT:
 			return;
 		}
 		fail("ebtable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
