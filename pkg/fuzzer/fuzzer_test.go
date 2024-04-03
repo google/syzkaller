@@ -38,6 +38,10 @@ func TestFuzz(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
+	}
 	executor := buildExecutor(t, target)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

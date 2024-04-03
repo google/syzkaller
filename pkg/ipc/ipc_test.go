@@ -196,6 +196,10 @@ func TestZlib(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
+	}
 	cfg, opts, err := ipcconfig.Default(target)
 	if err != nil {
 		t.Fatal(err)
