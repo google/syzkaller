@@ -140,9 +140,13 @@ func applyProperty(record *maintainersRecord, property *recordProperty) error {
 func parseEmail(value string) (string, error) {
 	// Sometimes there happen extra symbols at the end of the line,
 	// let's make this parser more error tolerant.
-	pos := strings.LastIndexAny(value, ">)")
-	if pos >= 0 {
+	if pos := strings.LastIndexAny(value, ">)"); pos >= 0 {
 		value = value[:pos+1]
+	}
+	// Let's also make the parser more robust by skipping everything before the first <,
+	// if it exists.
+	if pos := strings.LastIndexAny(value, "<"); pos >= 0 {
+		value = value[pos:]
 	}
 	addr, err := mail.ParseAddress(value)
 	if err != nil {
