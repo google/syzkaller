@@ -26,7 +26,7 @@ Recompile and reinstall the Linux kernel with [debugging kernel options](https:/
 
 Get syzkaller as described [here](/docs/linux/setup.md#go-and-syzkaller).
 
-The build it for either `arm` or `arm64` target architecture depending on the device you're using.
+Then build it for either `arm` or `arm64` target architecture depending on the device you're using.
 
 ``` bash
 make TARGETOS=linux TARGETARCH=arm
