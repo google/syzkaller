@@ -30,7 +30,9 @@ type maintainersRecord struct {
 func parseLinuxMaintainers(content io.Reader) ([]*maintainersRecord, error) {
 	scanner := bufio.NewScanner(content)
 	// First skip the headers.
+	var skippedLines int
 	for scanner.Scan() {
+		skippedLines++
 		line := scanner.Text()
 		if line == "Maintainers List" {
 			// Also skip ------.
@@ -38,7 +40,7 @@ func parseLinuxMaintainers(content io.Reader) ([]*maintainersRecord, error) {
 			break
 		}
 	}
-	ml := &maintainersLexer{scanner: scanner}
+	ml := &maintainersLexer{scanner: scanner, currentLine: skippedLines + 1}
 	ret := []*maintainersRecord{}
 loop:
 	for {
