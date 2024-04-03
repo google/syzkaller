@@ -89,6 +89,7 @@ var (
 	emailExceptions = map[string]string{
 		"patches@opensource.cirrus.com":             "cirrus",
 		"virtualization@lists.linux-foundation.org": "virt", // the name is too long
+		"virtualization@lists.linux.dev":            "virt",
 		"dev@openvswitch.org":                       "openvswitch",
 		"devel@acpica.org":                          "acpica",
 		"kernel@dh-electronics.com":                 "dh-electr",
