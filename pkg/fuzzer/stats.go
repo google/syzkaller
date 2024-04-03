@@ -42,5 +42,7 @@ func (fuzzer *Fuzzer) Stats() Stats {
 	for k, v := range fuzzer.stats {
 		ret.Named[k] = v
 	}
+	ret.Named["exec gen, sig/sec*1000"] = uint64(fuzzer.genSignalSpeed.Load() * 1000)
+	ret.Named["exec fuzz, sig/sec*1000"] = uint64(fuzzer.fuzzSignalSpeed.Load() * 1000)
 	return ret
 }

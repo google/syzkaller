@@ -95,8 +95,9 @@ type CallInfo struct {
 }
 
 type ProgInfo struct {
-	Calls []CallInfo
-	Extra CallInfo // stores Signal and Cover collected from background threads
+	Calls      []CallInfo
+	Extra      CallInfo // stores Signal and Cover collected from background threads
+	ElapsedSec float64  // total execution time in seconds
 }
 
 type Env struct {
@@ -275,7 +276,9 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 		return
 	}
 
+	start := osutil.MonotonicNano()
 	output, hanged, err0 = env.cmd.exec(opts, progData)
+	elapsedNs := osutil.MonotonicNano() - start
 	if err0 != nil {
 		env.cmd.close()
 		env.cmd = nil
@@ -283,6 +286,9 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	}
 
 	info, err0 = env.parseOutput(p, opts)
+	if info != nil {
+		info.ElapsedSec = float64(elapsedNs) / float64(1e9)
+	}
 	if info != nil && env.config.Flags&FlagSignal == 0 {
 		addFallbackSignal(p, info)
 	}
