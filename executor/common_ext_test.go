@@ -14,12 +14,17 @@ import (
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestCommonExt(t *testing.T) {
 	target, err := prog.GetTarget("test", "64_fork")
 	if err != nil {
 		t.Fatal(err)
+	}
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 	}
 	bin, err := csource.BuildFile(target, "executor.cc", "-DSYZ_TEST_COMMON_EXT_EXAMPLE=1")
 	if err != nil {
