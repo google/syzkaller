@@ -322,6 +322,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	uint64* gdt = (uint64*)(host_mem + sregs.gdt.base);
 
 	struct kvm_segment seg_ldt;
+	memset(&seg_ldt, 0, sizeof(seg_ldt));
 	seg_ldt.selector = SEL_LDT;
 	seg_ldt.type = 2;
 	seg_ldt.base = guest_mem + ADDR_LDT;
@@ -336,6 +337,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	uint64* ldt = (uint64*)(host_mem + sregs.ldt.base);
 
 	struct kvm_segment seg_cs16;
+	memset(&seg_cs16, 0, sizeof(seg_cs16));
 	seg_cs16.selector = SEL_CS16;
 	seg_cs16.type = 11;
 	seg_cs16.base = 0;
@@ -391,6 +393,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	seg_ds64_cpl3.dpl = 3;
 
 	struct kvm_segment seg_tss32;
+	memset(&seg_tss32, 0, sizeof(seg_tss32));
 	seg_tss32.selector = SEL_TSS32;
 	seg_tss32.type = 9;
 	seg_tss32.base = ADDR_VAR_TSS32;
@@ -441,6 +444,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	seg_tss64_cpl3.dpl = 3;
 
 	struct kvm_segment seg_cgate16;
+	memset(&seg_cgate16, 0, sizeof(seg_cgate16));
 	seg_cgate16.selector = SEL_CGATE16;
 	seg_cgate16.type = 4;
 	seg_cgate16.base = SEL_CS16 | (2 << 16); // selector + param count
