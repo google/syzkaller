@@ -891,7 +891,8 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 		for decoder.More() {
 			var covInfo cover.CoverageInfo
 			if err := decoder.Decode(&covInfo); err != nil {
-				pw.CloseWithError(fmt.Errorf("failed to decode CoverageInfo: %w", err))
+				pw.CloseWithError(fmt.Errorf("failed to decode %d bytes resp at pos %d to CoverageInfo: %w",
+					resp.ContentLength, decoder.InputOffset(), err))
 				return
 			}
 			if err := cover.WriteCIJSONLine(pw, covInfo, cover.CIDetails{
