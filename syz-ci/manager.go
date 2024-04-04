@@ -879,9 +879,15 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 
 	resp, err := mgr.httpGET("/cover?jsonl=1")
 	if err != nil {
-		return fmt.Errorf("failed to get /cover?json=1 report: %w", err)
+		return fmt.Errorf("failed to httpGet /cover?jsonl=1 report: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		sb := new(strings.Builder)
+		io.Copy(sb, resp.Body)
+		return fmt.Errorf("failed to GET /cover?jsonl=1, httpStatus %d: %s",
+			resp.StatusCode, sb.String())
+	}
 
 	curTime := time.Now()
 	pr, pw := io.Pipe()
@@ -915,8 +921,7 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 		mgr.mgrcfg.DashboardClient,
 		mgr.name, curTime.Format(time.DateOnly),
 		curTime.Hour(), curTime.Minute())
-	err = mgr.uploadFile(mgr.cfg.CoverPipelinePath, fileName, pr, false)
-	if err != nil {
+	if err := mgr.uploadFile(mgr.cfg.CoverPipelinePath, fileName, pr, false); err != nil {
 		return fmt.Errorf("failed to uploadFileGCS(): %w", err)
 	}
 	return nil
