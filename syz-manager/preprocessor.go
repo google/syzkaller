@@ -43,7 +43,7 @@ func PreprocessAllCorpora(manager *Manager) {
 		fmt.Println("filepath.Walk Error:", err)
 	}
 	log.Fatalf("preprocessing exit!\n"+
-		"programs cnt: %v \n"+"calls cnt: %v \n"+"replaced args cnt: %v \n"+"panic cnt: %v \n", logCollector.TotalProgramsCnt, logCollector.TotalCallsCnt, logCollector.TotalReplacedArgsCnt, logCollector.TotalPanicCnt)
+		"programs cnt: %v \n"+"calls cnt: %v \n"+"replaced args cnt: %v \n"+"panic cnt: %v \n"+"max sequence length: %v \n", logCollector.TotalProgramsCnt, logCollector.TotalCallsCnt, logCollector.TotalReplacedArgsCnt, logCollector.TotalPanicCnt, logCollector.MaxProgramLength)
 }
 
 type Preprocessor struct {
@@ -67,6 +67,168 @@ func (preprocessor *Preprocessor) Preprocessing() *LogCollector {
 	return preprocessor.logCollector
 }
 
+func (preprocessor *Preprocessor) Replace() {
+	for x, rec := range preprocessor.corpusDB.Records {
+		program, err := preprocessor.mgr.target.Deserialize(rec.Val[:], proglib.NonStrict)
+		if err != nil {
+			if program == nil {
+				continue
+			}
+			log.Fatalf("ReplaceArgs - Preprocessor Deserialize record failed: %v", err)
+		}
+		preprocessor.logCollector.CalcMaxProgramLength(len(program.Calls))
+
+		for i, call := range program.Calls {
+			preprocessor.logCollector.TotalCallsCnt += 1
+
+			fields := call.Meta.Args
+			for j, _arg := range call.Args {
+				switch arg := _arg.(type) {
+				case *proglib.ResultArg:
+					continue
+				default:
+					program.Calls[i].Args[j] = DFSArgs(arg, &fields[j])
+				}
+			}
+		}
+		//log.Logf(0, "arg cnt: %v", preprocessor.replacedArgsCnt)
+
+		newRecord := preprocessor.MakeRecord(program, rec)
+		preprocessor.corpusDB.Records[x] = newRecord
+	}
+}
+
+func DFSArgs(arg proglib.Arg, field *proglib.Field) proglib.Arg {
+	switch argType := arg.(type) {
+	case *proglib.DataArg:
+		return GenerateDataArg(argType)
+	case *proglib.ConstArg:
+		return GenerateConstArg(argType, field)
+	case *proglib.UnionArg:
+		return GenerateUnionArg(argType, field)
+	case *proglib.PointerArg:
+		return GeneratePtrArg(argType, field)
+	case *proglib.GroupArg:
+		return GenerateGroupArg(argType, field)
+	default:
+		return arg
+	}
+}
+
+// GenerateDataArg todo: buffer addr generator, identify path
+// some of buffer values are choose from BufferType.Values, seems a type of flags
+func GenerateDataArg(dataArg *proglib.DataArg) *proglib.DataArg {
+	const BufferSize = 0x1000
+
+	if dataArg.ArgCommon.Dir() == proglib.DirOut {
+		return proglib.MakeOutDataArg(dataArg.ArgCommon.Type(), dataArg.ArgCommon.Dir(), BufferSize)
+	} else if dataArg.ArgCommon.Dir() == proglib.DirIn {
+		data := make([]byte, BufferSize)
+		for i := 0; i < BufferSize; i++ {
+			data[i] = 0
+		}
+		return proglib.MakeDataArg(dataArg.ArgCommon.Type(), dataArg.ArgCommon.Dir(), data)
+	}
+
+	return dataArg
+}
+
+// GenerateConstArg some of const values are choose from UnionType.Fields by ConstArg.Index, seems a type of flags
+func GenerateConstArg(constArg *proglib.ConstArg, field *proglib.Field) *proglib.ConstArg {
+	const FD = ^uint64(0)
+	const NUM = 0x111
+
+	switch fieldType := field.Type.(type) {
+	case *proglib.FlagsType:
+		return constArg
+	default:
+		if fieldType.Name() == "mode" {
+			return constArg
+		} else if fieldType.Name() == "fd" {
+			return proglib.MakeConstArg(constArg.ArgCommon.Type(), constArg.ArgCommon.Dir(), FD)
+		} else {
+			return proglib.MakeConstArg(constArg.ArgCommon.Type(), constArg.ArgCommon.Dir(), NUM)
+		}
+	}
+}
+
+func GenerateUnionArg(unionArg *proglib.UnionArg, field *proglib.Field) *proglib.UnionArg {
+	switch fieldType := field.Type.(type) {
+	case *proglib.UnionType:
+		switch argOption := unionArg.Option.(type) {
+		case *proglib.DataArg:
+			unionArg.Option = GenerateDataArg(argOption)
+		case *proglib.ConstArg:
+			unionArg.Option = GenerateConstArg(argOption, &fieldType.Fields[0])
+		case *proglib.PointerArg:
+			unionArg.Option = GeneratePtrArg(argOption, &fieldType.Fields[0])
+		case *proglib.GroupArg:
+			unionArg.Option = GenerateGroupArg(argOption, &fieldType.Fields[0])
+		case *proglib.UnionArg:
+			unionArg.Option = GenerateUnionArg(argOption, &fieldType.Fields[0])
+		}
+	}
+
+	return unionArg
+}
+
+func GenerateGroupArg(groupArg *proglib.GroupArg, field *proglib.Field) *proglib.GroupArg {
+	switch fieldType := field.Type.(type) {
+	case *proglib.StructType:
+		for i, child := range groupArg.Inner {
+			switch child := child.(type) {
+			case *proglib.DataArg:
+				groupArg.Inner[i] = GenerateDataArg(child)
+			case *proglib.ConstArg:
+				groupArg.Inner[i] = GenerateConstArg(child, &fieldType.Fields[i])
+			case *proglib.GroupArg:
+				groupArg.Inner[i] = GenerateGroupArg(child, &fieldType.Fields[i])
+			case *proglib.PointerArg:
+				groupArg.Inner[i] = GeneratePtrArg(child, &fieldType.Fields[i])
+			case *proglib.UnionArg:
+				groupArg.Inner[i] = GenerateUnionArg(child, &fieldType.Fields[i])
+			}
+		}
+	}
+
+	return groupArg
+}
+
+func GeneratePtrArg(ptrArg *proglib.PointerArg, field *proglib.Field) *proglib.PointerArg {
+	// todo replace ptrArg.Address
+
+	switch fieldType := field.Type.(type) {
+	case *proglib.PtrType:
+		switch elem := fieldType.Elem.(type) {
+		case *proglib.BufferType:
+			switch ptrRes := ptrArg.Res.(type) { // Res can be nil !
+			case *proglib.DataArg:
+				ptrArg.Res = GenerateDataArg(ptrRes)
+			}
+		case *proglib.ConstType:
+			switch ptrRes := ptrArg.Res.(type) {
+			case *proglib.ConstArg:
+				ptrArg.Res = GenerateConstArg(ptrRes, field)
+			}
+		case *proglib.StructType:
+			switch ptrRes := ptrArg.Res.(type) {
+			case *proglib.GroupArg:
+				ptrArg.Res = GenerateGroupArg(ptrRes, &elem.Fields[0])
+			}
+		}
+	}
+
+	return ptrArg
+}
+
+type AddrGenerator struct {
+	addrs []uint64
+}
+
+func (a AddrGenerator) GetAddr(addr uint64) uint64 {
+	return 0
+}
+
 func (preprocessor *Preprocessor) ReplaceArgs() {
 	for x, rec := range preprocessor.corpusDB.Records {
 		program, err := preprocessor.mgr.target.Deserialize(rec.Val[:], proglib.NonStrict)
@@ -76,6 +238,7 @@ func (preprocessor *Preprocessor) ReplaceArgs() {
 			}
 			log.Fatalf("ReplaceArgs - Preprocessor Deserialize record failed: %v", err)
 		}
+		preprocessor.logCollector.CalcMaxProgramLength(len(program.Calls))
 
 		for i, call := range program.Calls {
 			preprocessor.logCollector.TotalCallsCnt += 1
@@ -115,6 +278,7 @@ func (preprocessor *Preprocessor) SearchForArg(callName string, idx int, arg pro
 		//log.Fatalf("Arg: %v has not been collected, callName: %v", arg, callName)
 	}
 
+	// collect arg
 	if len(argList[idx]) <= 0 && !ArgContainResArg(arg) {
 		argList[idx] = append(argList[idx], arg)
 		argTableInstance.argTable[callName] = argList
@@ -187,11 +351,12 @@ func UnionArgDFSContainResArg(arg *proglib.UnionArg) bool {
 	return false
 }
 
+var tokenFileCnt int = 1
+
 func (preprocessor *Preprocessor) ParseCorpusToFile() {
 	CreatePathIfNotExist("./syz-manager/data/tokens/")
 	CreatePathIfNotExist("./syz-manager/data/vocab/")
 	buffer := ""
-	fileCount := 1
 	programCount := 0
 	for _, rec := range preprocessor.corpusDB.Records {
 		buffer += string(rec.Val[:]) + "[SEP]\n"
@@ -199,10 +364,10 @@ func (preprocessor *Preprocessor) ParseCorpusToFile() {
 		preprocessor.logCollector.TotalProgramsCnt += 1
 
 		if programCount >= TokenFileSize {
-			//SaveTokensFile(fileCount, &buffer)
+			SaveTokensFile(&buffer)
 			SaveVocabFile(&buffer)
 
-			fileCount += 1
+			tokenFileCnt += 1
 			programCount = 0
 			buffer = ""
 		}
@@ -211,7 +376,7 @@ func (preprocessor *Preprocessor) ParseCorpusToFile() {
 	buffer += "[MASK]\n"
 	buffer += "[CLS]\n"
 	buffer += "[PAD]\n"
-	//SaveTokensFile(fileCount, &buffer)
+	SaveTokensFile(&buffer)
 	SaveVocabFile(&buffer)
 
 	log.Logf(0, "total number of sequences (traces): %v", preprocessor.logCollector.TotalProgramsCnt)
@@ -230,8 +395,8 @@ func CreatePathIfNotExist(path string) {
 	}
 }
 
-func SaveTokensFile(fileCount int, content *string) {
-	f, err := os.Create(TokensFilePath + strconv.Itoa(fileCount) + ".txt")
+func SaveTokensFile(content *string) {
+	f, err := os.Create(TokensFilePath + strconv.Itoa(tokenFileCnt) + ".txt")
 	if err != nil {
 		log.Fatalf("open token error :", err)
 		return
@@ -274,15 +439,17 @@ type ArgTable struct {
 	argTable map[string][][]proglib.Arg
 }
 
-var argTableInstance *ArgTable
-var once sync.Once
+var _argTableInstance *ArgTable
+var argTableOnce sync.Once
 
 // GetInstance returns the singleton instance
 func GetArgTableInstance() *ArgTable {
-	once.Do(func() {
-		argTableInstance = &ArgTable{argTable: make(map[string][][]proglib.Arg)}
+	argTableOnce.Do(func() {
+		_argTableInstance = &ArgTable{
+			argTable: make(map[string][][]proglib.Arg),
+		}
 	})
-	return argTableInstance
+	return _argTableInstance
 }
 
 type LogCollector struct {
@@ -290,6 +457,7 @@ type LogCollector struct {
 	TotalCallsCnt        int
 	TotalReplacedArgsCnt int
 	TotalPanicCnt        int
+	MaxProgramLength     int
 }
 
 func NewLogCollector() *LogCollector {
@@ -298,6 +466,7 @@ func NewLogCollector() *LogCollector {
 	logCollector.TotalCallsCnt = 0
 	logCollector.TotalReplacedArgsCnt = 0
 	logCollector.TotalPanicCnt = 0
+	logCollector.MaxProgramLength = 0
 
 	return logCollector
 }
@@ -307,4 +476,17 @@ func (logCollector *LogCollector) MergeCnt(newLogCollector *LogCollector) {
 	logCollector.TotalCallsCnt += newLogCollector.TotalCallsCnt
 	logCollector.TotalReplacedArgsCnt += newLogCollector.TotalReplacedArgsCnt
 	logCollector.TotalPanicCnt += newLogCollector.TotalPanicCnt
+	logCollector.MaxProgramLength = logCollector.CalcMaxProgramLength(newLogCollector.MaxProgramLength)
+}
+
+func (logCollector *LogCollector) CalcMaxProgramLength(length int) int {
+	logCollector.MaxProgramLength = max(logCollector.MaxProgramLength, length)
+	return logCollector.MaxProgramLength
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
