@@ -22,7 +22,7 @@ type Corpus struct {
 	signal  signal.Signal // total signal of all items
 	cover   cover.Cover   // total coverage of all items
 	updates chan<- NewItemEvent
-	ProgramsList
+	*ProgramsList
 }
 
 func NewCorpus(ctx context.Context) *Corpus {
@@ -31,9 +31,10 @@ func NewCorpus(ctx context.Context) *Corpus {
 
 func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpus {
 	return &Corpus{
-		ctx:     ctx,
-		progs:   make(map[string]*Item),
-		updates: updates,
+		ctx:          ctx,
+		progs:        make(map[string]*Item),
+		updates:      updates,
+		ProgramsList: &ProgramsList{},
 	}
 }
 
