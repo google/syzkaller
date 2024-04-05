@@ -134,7 +134,7 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	callName := fmt.Sprintf("call #%v %v", job.call, job.p.CallName(job.call))
 	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", callName, job.newSignal.Len())
 	// Compute input coverage and non-flaky signal for minimization.
-	info, stop := job.deflake(fuzzer)
+	info, stop := job.deflake(fuzzer.exec, fuzzer.Config.FetchRawCover)
 	if stop || info.newStableSignal.Empty() {
 		return
 	}
@@ -171,15 +171,31 @@ type deflakedCover struct {
 	rawCover        []uint32
 }
 
-func (job *triageJob) deflake(fuzzer *Fuzzer) (info deflakedCover, stop bool) {
-	const signalRuns = 3
-	var notExecuted int
-	for i := 0; i < signalRuns; i++ {
-		result := fuzzer.exec(job, &Request{
+func (job *triageJob) deflake(exec func(job, *Request) *Result, rawCover bool) (info deflakedCover, stop bool) {
+	// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
+	// The triage algorithm must tolerate this, so let's pick the signal that is common
+	// to 3 out of 5 runs.
+	// By binomial distribution, a program that reproduces 80% of time will pass deflake()
+	// with a 94% probability. If it reproduces 90% of time, it passes in 99% of cases.
+	const (
+		needRuns = 3
+		maxRuns  = 5
+	)
+	signals := make([]signal.Signal, needRuns)
+	for i := 0; i < maxRuns; i++ {
+		if signals[needRuns-1].Len() > 0 {
+			// We've already got signal common to needRuns.
+			break
+		}
+		if left := maxRuns - i; left < needRuns && signals[needRuns-left-1].Len() == 0 {
+			// There's no chance to get coverage common to needRuns.
+			break
+		}
+		result := exec(job, &Request{
 			Prog:         job.p,
 			NeedSignal:   rpctype.AllSignal,
 			NeedCover:    true,
-			NeedRawCover: fuzzer.Config.FetchRawCover,
+			NeedRawCover: rawCover,
 			stat:         statTriage,
 			flags:        progInTriage,
 		})
@@ -189,29 +205,22 @@ func (job *triageJob) deflake(fuzzer *Fuzzer) (info deflakedCover, stop bool) {
 		}
 		if !reexecutionSuccess(result.Info, &job.info, job.call) {
 			// The call was not executed or failed.
-			notExecuted++
-			if notExecuted >= signalRuns/2+1 {
-				stop = true
-				return // if happens too often, give up
-			}
 			continue
 		}
 		thisSignal, thisCover := getSignalAndCover(job.p, result.Info, job.call)
-		if len(info.rawCover) == 0 && fuzzer.Config.FetchRawCover {
+		if len(info.rawCover) == 0 && rawCover {
 			info.rawCover = thisCover
 		}
-		if i == 0 {
-			info.stableSignal = thisSignal
-			info.newStableSignal = job.newSignal.Intersection(thisSignal)
-		} else {
-			info.stableSignal = info.stableSignal.Intersection(thisSignal)
-			info.newStableSignal = info.newStableSignal.Intersection(thisSignal)
-		}
-		if info.newStableSignal.Empty() {
-			return
-		}
 		info.cover.Merge(thisCover)
+		for j := len(signals) - 1; j > 0; j-- {
+			intersect := signals[j-1].Intersection(thisSignal)
+			signals[j].Merge(intersect)
+		}
+		signals[0].Merge(thisSignal)
 	}
+
+	info.stableSignal = signals[needRuns-1]
+	info.newStableSignal = job.newSignal.Intersection(info.stableSignal)
 	return
 }
 
