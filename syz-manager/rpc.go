@@ -31,9 +31,9 @@ type RPCServer struct {
 	coverFilter           map[uint32]uint32
 	canonicalModules      *cover.Canonicalizer
 
-	mu          sync.Mutex
-	runners     sync.Map // Instead of map[string]*Runner.
-	checkResult *rpctype.CheckArgs
+	mu            sync.Mutex
+	runners       sync.Map // Instead of map[string]*Runner.
+	checkFeatures *host.Features
 
 	checkFailures int
 
@@ -71,7 +71,7 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32, map[uint32]uint32, error)
-	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
+	machineChecked(features *host.Features, globFiles map[string][]string, enabledSyscalls map[*prog.Syscall]bool)
 	getFuzzer() *fuzzer.Fuzzer
 }
 
@@ -140,7 +140,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.EnabledCalls = serv.cfg.Syscalls
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.cfg.Target.Revision
-	r.CheckResult = serv.checkResult
+	r.Features = serv.checkFeatures
 
 	if fuzzer := serv.mgr.getFuzzer(); fuzzer != nil {
 		// A Fuzzer object is created after the first Check() call.
@@ -154,7 +154,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
-	if serv.checkResult != nil {
+	if serv.checkFeatures != nil {
 		return nil // another VM has already made the check
 	}
 	// Note: need to print disbled syscalls before failing due to an error.
@@ -188,9 +188,8 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	for _, feat := range a.Features.Supported() {
 		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 	}
-	serv.mgr.machineChecked(a, serv.targetEnabledSyscalls)
-	a.DisabledCalls = nil
-	serv.checkResult = a
+	serv.mgr.machineChecked(a.Features, a.GlobFiles, serv.targetEnabledSyscalls)
+	serv.checkFeatures = a.Features
 	return nil
 }
 

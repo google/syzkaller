@@ -69,11 +69,12 @@ type ConnectArgs struct {
 }
 
 type ConnectRes struct {
-	EnabledCalls      []int
-	GitRevision       string
-	TargetRevision    string
-	AllSandboxes      bool
-	CheckResult       *CheckArgs
+	EnabledCalls   []int
+	GitRevision    string
+	TargetRevision string
+	AllSandboxes   bool
+	// This is forwarded from CheckArgs, if checking was already done.
+	Features          *host.Features
 	MemoryLeakFrames  []string
 	DataRaceFrames    []string
 	CoverFilterBitmap []byte

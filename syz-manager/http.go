@@ -355,8 +355,8 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 		calls[id] = append(calls[id], errno)
 	}
 	data := &UIFallbackCoverData{}
-	for _, id := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
-		errnos := calls[id]
+	for call := range mgr.targetEnabledSyscalls {
+		errnos := calls[call.ID]
 		sort.Ints(errnos)
 		successful := 0
 		for len(errnos) != 0 && errnos[0] == 0 {
@@ -364,7 +364,7 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 			errnos = errnos[1:]
 		}
 		data.Calls = append(data.Calls, UIFallbackCall{
-			Name:       mgr.target.Syscalls[id].Name,
+			Name:       call.Name,
 			Successful: successful,
 			Errnos:     errnos,
 		})

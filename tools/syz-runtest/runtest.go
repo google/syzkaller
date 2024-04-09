@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -50,16 +51,16 @@ func main() {
 	}
 	osutil.MkdirAll(cfg.Workdir)
 	mgr := &Manager{
-		cfg:              cfg,
-		vmPool:           vmPool,
-		reporter:         reporter,
-		debug:            *flagDebug,
-		requests:         make(chan *runtest.RunRequest, 2*vmPool.Count()),
-		checkResultC:     make(chan *rpctype.CheckArgs, 1),
-		checkResultReady: make(chan bool),
-		vmStop:           make(chan bool),
-		reqMap:           make(map[int]*runtest.RunRequest),
-		lastReq:          make(map[string]int),
+		cfg:                cfg,
+		vmPool:             vmPool,
+		reporter:           reporter,
+		debug:              *flagDebug,
+		requests:           make(chan *runtest.RunRequest, 2*vmPool.Count()),
+		checkResultC:       make(chan *rpctype.CheckArgs, 1),
+		checkFeaturesReady: make(chan bool),
+		vmStop:             make(chan bool),
+		reqMap:             make(map[int]*runtest.RunRequest),
+		lastReq:            make(map[string]int),
 	}
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr, true)
 	if err != nil {
@@ -89,17 +90,18 @@ func main() {
 			}
 		}()
 	}
-	mgr.checkResult = <-mgr.checkResultC
-	close(mgr.checkResultReady)
+	checkResult := <-mgr.checkResultC
+	mgr.checkFeatures = checkResult.Features
+	close(mgr.checkFeaturesReady)
 	enabledCalls := make(map[string]map[*prog.Syscall]bool)
-	for sandbox, ids := range mgr.checkResult.EnabledCalls {
+	for sandbox, ids := range checkResult.EnabledCalls {
 		calls := make(map[*prog.Syscall]bool)
 		for _, id := range ids {
 			calls[cfg.Target.Syscalls[id]] = true
 		}
 		enabledCalls[sandbox] = calls
 	}
-	for _, feat := range mgr.checkResult.Features.Supported() {
+	for _, feat := range checkResult.Features.Supported() {
 		fmt.Printf("%-24v: %v\n", feat.Name, feat.Reason)
 	}
 	for sandbox, calls := range enabledCalls {
@@ -111,7 +113,7 @@ func main() {
 	ctx := &runtest.Context{
 		Dir:          filepath.Join(cfg.Syzkaller, "sys", cfg.Target.OS, "test"),
 		Target:       cfg.Target,
-		Features:     mgr.checkResult.Features,
+		Features:     checkResult.Features,
 		EnabledCalls: enabledCalls,
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
@@ -129,16 +131,16 @@ func main() {
 }
 
 type Manager struct {
-	cfg              *mgrconfig.Config
-	vmPool           *vm.Pool
-	reporter         *report.Reporter
-	requests         chan *runtest.RunRequest
-	checkResult      *rpctype.CheckArgs
-	checkResultReady chan bool
-	checkResultC     chan *rpctype.CheckArgs
-	vmStop           chan bool
-	port             int
-	debug            bool
+	cfg                *mgrconfig.Config
+	vmPool             *vm.Pool
+	reporter           *report.Reporter
+	requests           chan *runtest.RunRequest
+	checkFeatures      *host.Features
+	checkFeaturesReady chan bool
+	checkResultC       chan *rpctype.CheckArgs
+	vmStop             chan bool
+	port               int
+	debug              bool
 
 	reqMu   sync.Mutex
 	reqSeq  int
@@ -224,8 +226,8 @@ func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error
 	r.TargetRevision = mgr.cfg.Target.Revision
 	r.AllSandboxes = true
 	select {
-	case <-mgr.checkResultReady:
-		r.CheckResult = mgr.checkResult
+	case <-mgr.checkFeaturesReady:
+		r.Features = mgr.checkFeatures
 	default:
 	}
 	return nil
