@@ -93,14 +93,13 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	progPCs := make(map[uint64]map[int]bool)
 	unmatchedProgPCs := make(map[uint64]bool)
-	verifyCallbackPoints := (len(rg.CallbackPoints) > 0)
 	for i, prog := range progs {
 		for _, pc := range prog.PCs {
 			if progPCs[pc] == nil {
 				progPCs[pc] = make(map[int]bool)
 			}
 			progPCs[pc][i] = true
-			if verifyCallbackPoints && !rg.CallbackPoints[pc] {
+			if rg.PreciseCoverage && !contains(rg.CallbackPoints, pc) {
 				unmatchedProgPCs[pc] = true
 			}
 		}
@@ -136,7 +135,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	// If the backend provided coverage callback locations for the binaries, use them to
 	// verify data returned by kcov.
-	if verifyCallbackPoints && (len(unmatchedProgPCs) > 0) {
+	if len(unmatchedProgPCs) > 0 {
 		return nil, coverageCallbackMismatch(debug, len(progPCs), unmatchedProgPCs)
 	}
 	for _, unit := range rg.Units {
@@ -166,6 +165,11 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 		})
 	}
 	return files, nil
+}
+
+func contains(pcs []uint64, pc uint64) bool {
+	idx := sort.Search(len(pcs), func(i int) bool { return pcs[i] >= pc })
+	return idx < len(pcs) && pcs[idx] == pc
 }
 
 func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
