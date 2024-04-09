@@ -120,7 +120,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := FileByFrame(files, &frame)
+		f := fileByFrame(files, &frame)
 		ln := f.lines[frame.StartLine]
 		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
@@ -219,7 +219,7 @@ func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
 	return nil
 }
 
-func FileByFrame(files map[string]*file, frame *backend.Frame) *file {
+func fileByFrame(files map[string]*file, frame *backend.Frame) *file {
 	f := files[frame.Name]
 	if f == nil {
 		f = &file{
