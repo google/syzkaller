@@ -225,11 +225,12 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 		pcBase = ^uint64(0)
 	}
+	var interner symbolizer.Interner
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
-			return symbolize(target, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
+			return symbolize(target, &interner, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
 		RestorePC:       makeRestorePC(params, pcBase),
 		CallbackPoints:  allCoverPoints[0],
@@ -389,8 +390,8 @@ func readTextRanges(debugInfo *dwarf.Data, module *Module, pcFix pcFixFn) (
 	return ranges, units, nil
 }
 
-func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
-	mod *Module, pcs []uint64) ([]Frame, error) {
+func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
+	splitBuildDelimiters []string, mod *Module, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -451,9 +452,9 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, sp
 			frames = append(frames, Frame{
 				Module:   mod,
 				PC:       frame.PC + mod.Addr,
-				Name:     name,
+				Name:     interner.Do(name),
 				FuncName: frame.Func,
-				Path:     path,
+				Path:     interner.Do(path),
 				Inline:   frame.Inline,
 				Range: Range{
 					StartLine: frame.Line,
@@ -470,11 +471,11 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, sp
 	return frames, nil
 }
 
-func symbolize(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
-	pcs map[*Module][]uint64) ([]Frame, error) {
+func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
+	splitBuildDelimiters []string, pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
+		frames1, err := symbolizeModule(target, interner, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
 		if err != nil {
 			return nil, err
 		}

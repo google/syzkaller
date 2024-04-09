@@ -150,10 +150,11 @@ func TestParse(t *testing.T) {
 	// First, symbolize all PCs one-by-one.
 	input := bufio.NewWriter(inputw)
 	scanner := bufio.NewScanner(outputr)
+	var interner Interner
 	var allPCs []uint64
 	var allFrames []Frame
 	for _, addr := range addresses {
-		frames, err := symbolize(input, scanner, []uint64{addr.pc})
+		frames, err := symbolize(&interner, input, scanner, []uint64{addr.pc})
 		if err != nil {
 			t.Fatalf("got error: %v", err)
 		}
@@ -166,11 +167,11 @@ func TestParse(t *testing.T) {
 
 	// Symbolize PCs in 2 groups.
 	for i := 0; i <= len(addresses); i++ {
-		frames, err := symbolize(input, scanner, allPCs[:i])
+		frames, err := symbolize(&interner, input, scanner, allPCs[:i])
 		if err != nil {
 			t.Fatalf("got error: %v", err)
 		}
-		frames2, err := symbolize(input, scanner, allPCs[i:])
+		frames2, err := symbolize(&interner, input, scanner, allPCs[i:])
 		if err != nil {
 			t.Fatalf("got error: %v", err)
 		}
@@ -185,7 +186,7 @@ func TestParse(t *testing.T) {
 	for i := range lots {
 		lots[i] = addresses[0].pc
 	}
-	frames, err := symbolize(input, scanner, lots)
+	frames, err := symbolize(&interner, input, scanner, lots)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}
