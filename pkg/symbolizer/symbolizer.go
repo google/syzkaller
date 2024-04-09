@@ -7,10 +7,8 @@ package symbolizer
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -65,35 +63,11 @@ func (s *Symbolizer) Close() {
 	}
 }
 
-func (s *Symbolizer) checkBinSupport(addr2line string) error {
-	if s.target.OS != targets.Darwin || s.target.Arch != targets.AMD64 {
-		return nil
-	}
-
-	cmd := exec.Command(addr2line, "--help")
-	cmd.Env = append(os.Environ(), "LC_ALL=C")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("addr2line execution failed: %w", err)
-	}
-	if !bytes.Contains(out, []byte("supported targets:")) {
-		return fmt.Errorf("addr2line output didn't contain supported targets")
-	}
-	if !bytes.Contains(out, []byte("mach-o-x86-64")) {
-		return fmt.Errorf("addr2line was built without mach-o-x86-64 support")
-	}
-	return nil
-}
-
 func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	if sub := s.subprocs[bin]; sub != nil {
 		return sub, nil
 	}
-	addr2line := "addr2line"
-	if s.target.Triple != "" {
-		addr2line = s.target.Triple + "-" + addr2line
-	}
-	err := s.checkBinSupport(addr2line)
+	addr2line, err := s.target.Addr2Line()
 	if err != nil {
 		return nil, err
 	}
