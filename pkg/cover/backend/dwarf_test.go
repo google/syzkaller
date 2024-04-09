@@ -26,15 +26,13 @@ func TestIsKcovBrokenInCompiler(t *testing.T) {
 		"g++ (Compiler-Explorer-Build-gcc-2a9637b229f64775d82fb5917f83f71e8ad1911d-binutils-2.40) 14.0.1 20240125 (experimental)", // nolint:lll
 	}
 	for _, ver := range inputDataTrue {
-		result := IsKcovBrokenInCompiler(ver)
-		if !result {
-			t.Fatalf("IsKcovBrokenInCompiler(`%s`) unexpectedly returned %v\n", ver, result)
+		if !isKcovBrokenInCompiler(ver) {
+			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned false\n", ver)
 		}
 	}
 	for _, ver := range inputDataFalse {
-		result := IsKcovBrokenInCompiler(ver)
-		if result {
-			t.Fatalf("IsKcovBrokenInCompiler(`%s`) unexpectedly returned %v\n", ver, result)
+		if isKcovBrokenInCompiler(ver) {
+			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned true\n", ver)
 		}
 	}
 }

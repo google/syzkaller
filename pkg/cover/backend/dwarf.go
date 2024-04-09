@@ -189,7 +189,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		}
 		allRanges = append(allRanges, ranges...)
 		allUnits = append(allUnits, units...)
-		if IsKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
+		if isKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
 			preciseCoverage = false
 		}
 	}
@@ -304,7 +304,7 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 	return symbols
 }
 
-// Regexps to parse compiler version string in IsKcovBrokenInCompiler.
+// Regexps to parse compiler version string in isKcovBrokenInCompiler.
 // Some targets (e.g. NetBSD) use g++ instead of gcc.
 var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
 var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
@@ -312,7 +312,7 @@ var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[
 // GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
 // verify that collected coverage points have matching callbacks.
 // See https://github.com/google/syzkaller/issues/4447 for more information.
-func IsKcovBrokenInCompiler(versionStr string) bool {
+func isKcovBrokenInCompiler(versionStr string) bool {
 	if !gccRE.MatchString(versionStr) {
 		return false
 	}
