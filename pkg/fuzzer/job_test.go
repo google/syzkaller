@@ -24,7 +24,7 @@ func TestDeflakeFail(t *testing.T) {
 	testJob := &triageJob{
 		p:         prog,
 		info:      ipc.CallInfo{},
-		newSignal: signal.FromRaw([]uint32{0, 1, 2}, 0),
+		newSignal: signal.FromRaw([]uint32{0, 1, 2, 3, 4}, 0),
 	}
 
 	run := 0

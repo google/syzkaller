@@ -186,11 +186,12 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 	)
 	signals := make([]signal.Signal, needRuns)
 	for i := 0; i < maxRuns; i++ {
-		if signals[needRuns-1].Len() > 0 {
-			// We've already got signal common to needRuns.
+		if job.newSignal.IntersectsWith(signals[needRuns-1]) {
+			// We already have the right deflaked signal.
 			break
 		}
-		if left := maxRuns - i; left < needRuns && signals[needRuns-left-1].Len() == 0 {
+		if left := maxRuns - i; left < needRuns &&
+			!job.newSignal.IntersectsWith(signals[needRuns-left-1]) {
 			// There's no chance to get coverage common to needRuns.
 			break
 		}

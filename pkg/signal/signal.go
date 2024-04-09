@@ -92,6 +92,15 @@ func (s Signal) DiffRaw(raw []uint32, prio uint8) Signal {
 	return res
 }
 
+func (s Signal) IntersectsWith(other Signal) bool {
+	for e, p := range s {
+		if p1, ok := other[e]; ok && p1 >= p {
+			return true
+		}
+	}
+	return false
+}
+
 func (s Signal) Intersection(s1 Signal) Signal {
 	if s1.Empty() {
 		return nil
