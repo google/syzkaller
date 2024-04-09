@@ -154,7 +154,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
 	var pcBase uint64
-	var verifyCoverPoints = true
+	preciseCoverage := true
 	for _, module := range modules {
 		errc := make(chan error, 1)
 		go func() {
@@ -190,7 +190,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		allRanges = append(allRanges, ranges...)
 		allUnits = append(allUnits, units...)
 		if IsKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
-			verifyCoverPoints = false
+			preciseCoverage = false
 		}
 	}
 
@@ -225,23 +225,15 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 		pcBase = ^uint64(0)
 	}
-	var allCoverPointsMap = make(map[uint64]bool)
-	if verifyCoverPoints {
-		for i := 0; i < 2; i++ {
-			for _, pc := range allCoverPoints[i] {
-				allCoverPointsMap[pc] = true
-			}
-		}
-	}
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
-		RestorePC:              makeRestorePC(params, pcBase),
-		CallbackPoints:         allCoverPointsMap,
-		CoverageCallbackPoints: allCoverPoints[0],
+		RestorePC:       makeRestorePC(params, pcBase),
+		CallbackPoints:  allCoverPoints[0],
+		PreciseCoverage: preciseCoverage,
 	}
 	return impl, nil
 }
