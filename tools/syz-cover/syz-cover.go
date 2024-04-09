@@ -44,6 +44,7 @@ func main() {
 			"modules JSON info obtained from /modules (optional)")
 		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
 		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
+		flagExportJSONL    = flag.String("jsonl", "", "export jsonl coverage data (optional)")
 		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
 	)
 	defer tool.Init()()
@@ -96,6 +97,15 @@ func main() {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExportLineJSON, buf.Bytes()); err != nil {
+			tool.Fail(err)
+		}
+		return
+	}
+	if *flagExportJSONL != "" {
+		if err := rg.DoCoverJSONL(buf, params); err != nil {
+			tool.Fail(err)
+		}
+		if err := osutil.WriteFile(*flagExportJSONL, buf.Bytes()); err != nil {
 			tool.Fail(err)
 		}
 		return
