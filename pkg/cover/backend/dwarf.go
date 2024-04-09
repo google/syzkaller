@@ -136,28 +136,6 @@ func processModule(params *dwarfParams, module *Module, info *symbolInfo,
 	return result, nil
 }
 
-// Regexps to parse compiler version string in IsKcovBrokenInCompiler.
-// Some targets (e.g. NetBSD) use g++ instead of gcc.
-var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
-var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
-
-// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
-// verify that collected coverage points have matching callbacks.
-// See https://github.com/google/syzkaller/issues/4447 for more information.
-func IsKcovBrokenInCompiler(versionStr string) bool {
-	if !gccRE.MatchString(versionStr) {
-		return false
-	}
-	groups := gccVersionRE.FindStringSubmatch(versionStr)
-	if len(groups) > 0 {
-		version, err := strconv.Atoi(groups[2])
-		if err == nil {
-			return version < 14
-		}
-	}
-	return true
-}
-
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
 	objDir := params.objDir
@@ -332,6 +310,28 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 		}
 	}
 	return symbols
+}
+
+// Regexps to parse compiler version string in IsKcovBrokenInCompiler.
+// Some targets (e.g. NetBSD) use g++ instead of gcc.
+var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
+var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
+
+// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
+// verify that collected coverage points have matching callbacks.
+// See https://github.com/google/syzkaller/issues/4447 for more information.
+func IsKcovBrokenInCompiler(versionStr string) bool {
+	if !gccRE.MatchString(versionStr) {
+		return false
+	}
+	groups := gccVersionRE.FindStringSubmatch(versionStr)
+	if len(groups) > 0 {
+		version, err := strconv.Atoi(groups[2])
+		if err == nil {
+			return version < 14
+		}
+	}
+	return true
 }
 
 type symbolInfo struct {

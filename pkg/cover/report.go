@@ -76,19 +76,6 @@ type line struct {
 	pcProgCount map[uint64]int // some lines have multiple BBs
 }
 
-func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
-	debugStr := ""
-	if debug {
-		debugStr += "\n\nUnmatched PCs:\n"
-		for pc := range unmatchedProgPCs {
-			debugStr += fmt.Sprintf("%x\n", pc)
-		}
-	}
-	// nolint: lll
-	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks. Check the discoverModules() code.%s",
-		len(unmatchedProgPCs), numPCs, debugStr)
-}
-
 type fileMap map[string]*file
 
 func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, error) {
@@ -179,6 +166,18 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 		})
 	}
 	return files, nil
+}
+
+func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
+	debugStr := ""
+	if debug {
+		debugStr += "\n\nUnmatched PCs:\n"
+		for pc := range unmatchedProgPCs {
+			debugStr += fmt.Sprintf("%x\n", pc)
+		}
+	}
+	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks."+
+		" Check the discoverModules() code.%s", len(unmatchedProgPCs), numPCs, debugStr)
 }
 
 func uniquePCs(progs []Prog) []uint64 {
