@@ -35,7 +35,6 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	crash_pkg "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/repro"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -63,7 +62,7 @@ type Manager struct {
 	firstConnect    atomic.Int64 // unix time, or 0 if not connected
 	crashTypes      map[string]bool
 	vmStop          chan bool
-	checkResult     *rpctype.CheckArgs
+	checkFeatures   *host.Features
 	fresh           bool
 	netCompression  bool
 	expertMode      bool
@@ -471,8 +470,7 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(...int)) *ReproResult {
-	features := mgr.checkResult.Features
-	res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
+	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.checkFeatures, mgr.reporter, mgr.vmPool, vmIndexes)
 	ret := &ReproResult{
 		instances:     vmIndexes,
 		report0:       crash.Report,
@@ -988,7 +986,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	if crash.fromHub || crash.fromDashboard {
 		return true
 	}
-	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
+	if mgr.checkFeatures == nil || (mgr.checkFeatures[host.FeatureLeak].Enabled &&
 		crash.Type != crash_pkg.MemoryLeak) {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
@@ -1311,18 +1309,17 @@ func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
 
 func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 	mgr.mu.Lock()
-	checkResult := mgr.checkResult
+	enabledSyscalls := mgr.targetEnabledSyscalls
 	mgr.mu.Unlock()
 
-	if checkResult == nil {
+	if enabledSyscalls == nil {
 		return nil
 	}
 	calls := mgr.corpus.CallCover()
 	// Add enabled, but not yet covered calls.
-	for _, call := range checkResult.EnabledCalls[mgr.cfg.Sandbox] {
-		key := mgr.target.Syscalls[call].Name
-		if calls[key] == nil {
-			calls[key] = new(corpus.CallCov)
+	for call := range enabledSyscalls {
+		if calls[call.Name] == nil {
+			calls[call.Name] = new(corpus.CallCov)
 		}
 	}
 	return calls
@@ -1356,33 +1353,30 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	return frames, mgr.coverFilter, mgr.execCoverFilter, nil
 }
 
-func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
+func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string][]string,
+	enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if mgr.checkResult != nil {
+	if mgr.checkFeatures != nil {
 		panic("machineChecked() called twice")
 	}
 
-	mgr.checkResult = a
+	mgr.checkFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
-	mgr.target.UpdateGlobs(a.GlobFiles)
+	mgr.target.UpdateGlobs(globFiles)
 	mgr.firstConnect.Store(time.Now().Unix())
 	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
-	statSyscalls.Add(len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox]))
+	statSyscalls.Add(len(enabledSyscalls))
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	calls := make(map[*prog.Syscall]bool)
-	for _, id := range a.EnabledCalls[mgr.cfg.Sandbox] {
-		calls[mgr.target.Syscalls[id]] = true
-	}
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 		Corpus:         mgr.corpus,
 		Coverage:       mgr.cfg.Cover,
-		FaultInjection: a.Features[host.FeatureFault].Enabled,
-		Comparisons:    a.Features[host.FeatureComparisons].Enabled,
+		FaultInjection: features[host.FeatureFault].Enabled,
+		Comparisons:    features[host.FeatureComparisons].Enabled,
 		Collide:        true,
-		EnabledCalls:   calls,
+		EnabledCalls:   enabledSyscalls,
 		NoMutateCalls:  mgr.cfg.NoMutateCalls,
 		FetchRawCover:  mgr.cfg.RawCover,
 		Logf: func(level int, msg string, args ...interface{}) {

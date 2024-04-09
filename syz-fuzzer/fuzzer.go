@@ -40,8 +40,7 @@ type FuzzerTool struct {
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
 
-	checkResult *rpctype.CheckArgs
-	logMu       sync.Mutex
+	logMu sync.Mutex
 
 	bufferTooSmall atomic.Uint64
 	noExecRequests atomic.Uint64
@@ -205,37 +204,36 @@ func main() {
 			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
 		}
 	}
-	if r.CheckResult == nil {
+	if r.Features == nil {
 		checkArgs.gitRevision = r.GitRevision
 		checkArgs.targetRevision = r.TargetRevision
 		checkArgs.enabledCalls = r.EnabledCalls
 		checkArgs.allSandboxes = r.AllSandboxes
 		checkArgs.featureFlags = featureFlags
-		r.CheckResult, err = checkMachine(checkArgs)
+		checkResult, err := checkMachine(checkArgs)
 		if err != nil {
-			if r.CheckResult == nil {
-				r.CheckResult = new(rpctype.CheckArgs)
+			if checkResult == nil {
+				checkResult = new(rpctype.CheckArgs)
 			}
-			r.CheckResult.Error = err.Error()
+			checkResult.Error = err.Error()
 		}
-		r.CheckResult.Name = *flagName
-		if err := manager.Call("Manager.Check", r.CheckResult, nil); err != nil {
+		checkResult.Name = *flagName
+		if err := manager.Call("Manager.Check", checkResult, nil); err != nil {
 			log.SyzFatalf("Manager.Check call failed: %v", err)
 		}
-		if r.CheckResult.Error != "" {
-			log.SyzFatalf("%v", r.CheckResult.Error)
+		if checkResult.Error != "" {
+			log.SyzFatalf("%v", checkResult.Error)
 		}
+		r.Features = checkResult.Features
 	} else {
-		target.UpdateGlobs(r.CheckResult.GlobFiles)
-		if err = host.Setup(target, r.CheckResult.Features, featureFlags, config.Executor); err != nil {
+		if err = host.Setup(target, r.Features, featureFlags, config.Executor); err != nil {
 			log.SyzFatalf("%v", err)
 		}
 	}
-	log.Logf(0, "syscalls: %v", len(r.CheckResult.EnabledCalls[sandbox]))
-	for _, feat := range r.CheckResult.Features.Supported() {
+	for _, feat := range r.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	createIPCConfig(r.CheckResult.Features, config)
+	createIPCConfig(r.Features, config)
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)
@@ -249,7 +247,6 @@ func main() {
 		target:        target,
 		timeouts:      timeouts,
 		config:        config,
-		checkResult:   r.CheckResult,
 		resetAccState: *flagResetAccState,
 
 		inputs:  make(chan executionRequest, inputsCount),
@@ -291,11 +288,11 @@ func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
 func (tool *FuzzerTool) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() {
 	var gateCallback func()
 
-	if r.CheckResult.Features[host.FeatureLeak].Enabled {
+	if r.Features[host.FeatureLeak].Enabled {
 		gateCallback = func() { tool.gateCallback(r.MemoryLeakFrames) }
 	}
 
-	if r.CheckResult.Features[host.FeatureKCSAN].Enabled && len(r.DataRaceFrames) != 0 {
+	if r.Features[host.FeatureKCSAN].Enabled && len(r.DataRaceFrames) != 0 {
 		tool.filterDataRaceFrames(r.DataRaceFrames)
 	}
 

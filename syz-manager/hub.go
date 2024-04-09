@@ -44,7 +44,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		target:        mgr.target,
 		domain:        mgr.cfg.TargetOS + "/" + mgr.cfg.HubDomain,
 		enabledCalls:  mgr.targetEnabledSyscalls,
-		leak:          mgr.checkResult.Features[host.FeatureLeak].Enabled,
+		leak:          mgr.checkFeatures[host.FeatureLeak].Enabled,
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
