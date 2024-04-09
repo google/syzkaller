@@ -57,7 +57,7 @@ type instance struct {
 	diagnose         chan bool
 }
 
-const targetDir = "/data"
+const targetDir = "/tmp"
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{}
