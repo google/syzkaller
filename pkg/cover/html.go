@@ -230,20 +230,22 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) 
 			return fmt.Errorf("failed to symbolize PCs(): %w", err)
 		}
 	}
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	fm, err := rg.prepareFileMap(progs, params.Debug)
-	if err != nil {
-		return fmt.Errorf("failed to rg.prepareFileMap(): %w", err)
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+		return err
 	}
-
+	progPCs := make(map[uint64]int)
+	for _, prog := range progs {
+		for _, pc := range prog.PCs {
+			progPCs[pc]++
+		}
+	}
 	encoder := json.NewEncoder(w)
 	for _, frame := range rg.Frames {
 		endCol := frame.Range.EndCol
 		if endCol == backend.LineEnd {
 			endCol = -1
 		}
-		pcProgCount := FileByFrame(fm, &frame).lines[frame.StartLine].pcProgCount
-		hitCount := pcProgCount[frame.PC]
 		covInfo := &CoverageInfo{
 			FilePath:  frame.Name,
 			FuncName:  frame.FuncName,
@@ -251,11 +253,11 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) 
 			StartCol:  frame.Range.StartCol,
 			EndLine:   frame.Range.EndLine,
 			EndCol:    endCol,
-			HitCount:  hitCount,
+			HitCount:  progPCs[frame.PC],
 			Inline:    frame.Inline,
 			PC:        frame.PC,
 		}
-		if err = encoder.Encode(covInfo); err != nil {
+		if err := encoder.Encode(covInfo); err != nil {
 			return fmt.Errorf("failed to json.Encode(): %w", err)
 		}
 	}
