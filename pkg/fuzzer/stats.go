@@ -27,7 +27,7 @@ type Stats struct {
 func newStats() Stats {
 	return Stats{
 		StatCandidates: stats.Create("candidates", "Number of candidate programs in triage queue",
-			stats.Graph("corpus")),
+			stats.Console, stats.Graph("corpus")),
 		statNewInputs: stats.Create("new inputs", "Potential untriaged corpus candidates",
 			stats.Graph("corpus")),
 		statJobs:       stats.Create("fuzzer jobs", "Total running fuzzer jobs", stats.NoGraph),
