@@ -78,7 +78,7 @@ type line struct {
 
 type fileMap map[string]*file
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, error) {
+func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (fileMap, error) {
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	// If the backend provided coverage callback locations for the binaries, use them to
 	// verify data returned by kcov.
-	if len(unmatchedProgPCs) > 0 {
+	if len(unmatchedProgPCs) > 0 && !force {
 		return nil, coverageCallbackMismatch(debug, len(progPCs), unmatchedProgPCs)
 	}
 	for _, unit := range rg.Units {
@@ -181,7 +181,8 @@ func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint6
 		}
 	}
 	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks."+
-		" Check the discoverModules() code.%s", len(unmatchedProgPCs), numPCs, debugStr)
+		" Check the discoverModules() code. Use ?force=1 to disable this message.%s",
+		len(unmatchedProgPCs), numPCs, debugStr)
 }
 
 func uniquePCs(progs []Prog) []uint64 {

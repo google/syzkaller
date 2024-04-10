@@ -82,6 +82,7 @@ func main() {
 		Progs:       progs,
 		CoverFilter: nil,
 		Debug:       false,
+		Force:       false,
 	}
 	if *flagExportCSV != "" {
 		if err := rg.DoCSV(buf, params); err != nil {

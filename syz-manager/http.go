@@ -324,6 +324,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		Progs:       progs,
 		CoverFilter: coverFilter,
 		Debug:       r.FormValue("debug") != "",
+		Force:       r.FormValue("force") != "",
 	}
 
 	type handlerFuncType func(w io.Writer, params cover.CoverHandlerParams) error
