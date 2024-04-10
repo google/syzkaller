@@ -877,7 +877,10 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 	}
 	defer buildSem.Signal()
 
-	resp, err := mgr.httpGET("/cover?jsonl=1")
+	// Coverage report generation consumes and caches lots of memory.
+	// In the syz-ci context report generation won't be used after this point,
+	// so tell manager to flush report generator.
+	resp, err := mgr.httpGET("/cover?jsonl=1&flush=1")
 	if err != nil {
 		return fmt.Errorf("failed to httpGet /cover?jsonl=1 report: %w", err)
 	}
