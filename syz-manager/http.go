@@ -14,7 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -267,6 +267,13 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		return
 	}
 
+	if r.FormValue("flush") != "" {
+		defer func() {
+			resetReportGenerator()
+			debug.FreeOSMemory()
+		}()
+	}
+
 	mgr.mu.Lock()
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
@@ -343,7 +350,6 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
-	runtime.GC()
 }
 
 func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
