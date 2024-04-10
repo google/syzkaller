@@ -27,7 +27,6 @@ type Fuzzer struct {
 
 	ctx    context.Context
 	mu     sync.Mutex
-	stats  map[string]uint64
 	rnd    *rand.Rand
 	target *prog.Target
 
@@ -53,7 +52,6 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		Cover:  newCover(),
 
 		ctx:    ctx,
-		stats:  map[string]uint64{},
 		rnd:    rnd,
 		target: target,
 
