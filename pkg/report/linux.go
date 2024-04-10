@@ -376,7 +376,14 @@ func (ctx *linux) Symbolize(rep *Report) error {
 		}
 	}
 
+	oldLen := len(rep.Report)
 	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
+	if len(rep.Report) > 0 && rep.reportPrefixLen > len(rep.Report) {
+		// An attempt to catch #4198.
+		panic(fmt.Sprintf("invalid reportPrefixLen (%d) after decompileOpcodes, report len: %d -> %d, report: %+v",
+			rep.reportPrefixLen, oldLen, len(rep.Report), rep,
+		))
+	}
 
 	// Skip getting maintainers for Android fuzzing since the kernel source
 	// directory structure is different.
@@ -415,8 +422,18 @@ func (ctx *linux) symbolize(rep *Report) error {
 		}
 		symbolized = append(symbolized, newLine...)
 	}
+	oldLen := len(rep.Report)
 	rep.Report = symbolized
+	oldPrefixLen := rep.reportPrefixLen
 	rep.reportPrefixLen = prefix
+
+	if len(rep.Report) > 0 && rep.reportPrefixLen > len(rep.Report) {
+		// An attempt to catch #4198.
+		panic(fmt.Sprintf("invalid reportPrefixLen after symbolize: prefix %d -> %d,"+
+			"report len: %d -> %d, report: %+v",
+			oldPrefixLen, rep.reportPrefixLen, oldLen, len(rep.Report), rep,
+		))
+	}
 	return nil
 }
 
