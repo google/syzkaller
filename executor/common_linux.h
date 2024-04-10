@@ -4534,10 +4534,15 @@ static void remove_dir(const char* dir)
 	DIR* dp = 0;
 retry:
 #if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
+	// Starting from v6.9, it does no longer make sense to use MNT_DETACH, because
+	// a loop device may only be reused in RW mode if no mounted filesystem keeps a
+	// reference to it. So we have to umount them synchronously.
+	// MNT_FORCE should hopefully prevent hangs for filesystems that may require a complex cleanup.
+	const int umount_flags = MNT_FORCE | UMOUNT_NOFOLLOW;
 #if SYZ_EXECUTOR
 	if (!flag_sandbox_android)
 #endif
-		while (umount2(dir, MNT_DETACH | UMOUNT_NOFOLLOW) == 0) {
+		while (umount2(dir, umount_flags) == 0) {
 			debug("umount(%s)\n", dir);
 		}
 #endif
@@ -4563,7 +4568,7 @@ retry:
 #if SYZ_EXECUTOR
 		if (!flag_sandbox_android)
 #endif
-			while (umount2(filename, MNT_DETACH | UMOUNT_NOFOLLOW) == 0) {
+			while (umount2(filename, umount_flags) == 0) {
 				debug("umount(%s)\n", filename);
 			}
 #endif
@@ -4601,7 +4606,7 @@ retry:
 			if (!flag_sandbox_android) {
 #endif
 				debug("umount(%s)\n", filename);
-				if (umount2(filename, MNT_DETACH | UMOUNT_NOFOLLOW))
+				if (umount2(filename, umount_flags))
 					exitf("umount(%s) failed", filename);
 #if SYZ_EXECUTOR
 			}
@@ -4636,7 +4641,7 @@ retry:
 				if (!flag_sandbox_android) {
 #endif
 					debug("umount(%s)\n", dir);
-					if (umount2(dir, MNT_DETACH | UMOUNT_NOFOLLOW))
+					if (umount2(dir, umount_flags))
 						exitf("umount(%s) failed", dir);
 #if SYZ_EXECUTOR
 				}
