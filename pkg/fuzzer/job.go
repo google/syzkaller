@@ -70,9 +70,10 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		prog.RecommendedCalls,
 		fuzzer.ChoiceTable())
 	return &Request{
-		Prog:       p,
-		NeedSignal: rpctype.NewSignal,
-		stat:       fuzzer.statExecGenerate,
+		Prog:         p,
+		NeedSignal:   rpctype.NewSignal,
+		stat:         fuzzer.statExecGenerate,
+		notImportant: true,
 	}
 }
 
@@ -89,9 +90,10 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		fuzzer.Config.Corpus.Programs(),
 	)
 	return &Request{
-		Prog:       newP,
-		NeedSignal: rpctype.NewSignal,
-		stat:       fuzzer.statExecFuzz,
+		Prog:         newP,
+		NeedSignal:   rpctype.NewSignal,
+		stat:         fuzzer.statExecFuzz,
+		notImportant: true,
 	}
 }
 

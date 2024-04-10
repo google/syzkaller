@@ -99,6 +99,8 @@ type Manager struct {
 
 	assetStorage *asset.Storage
 
+	bootTime stats.AverageValue[time.Duration]
+
 	Stats
 }
 
@@ -760,6 +762,8 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 }
 
 func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Report, []byte, error) {
+	start := time.Now()
+
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create instance: %w", err)
@@ -794,7 +798,8 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	}
 
 	// Run the fuzzer binary.
-	start := time.Now()
+	mgr.bootTime.Save(time.Since(start))
+	start = time.Now()
 	mgr.statNumFuzzing.Add(1)
 	defer mgr.statNumFuzzing.Add(-1)
 
@@ -1589,6 +1594,10 @@ func (mgr *Manager) dashboardReproTasks() {
 			}
 		}
 	}
+}
+
+func (mgr *Manager) avgBootTime() time.Duration {
+	return mgr.bootTime.Value()
 }
 
 func publicWebAddr(addr string) string {

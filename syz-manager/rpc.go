@@ -34,12 +34,9 @@ type RPCServer struct {
 	mu            sync.Mutex
 	runners       sync.Map // Instead of map[string]*Runner.
 	checkFeatures *host.Features
+	requests      atomic.Pointer[requestDistributor]
 
 	checkFailures int
-
-	// We did not finish these requests because of VM restarts.
-	// They will be eventually given to other VMs.
-	rescuedInputs []*fuzzer.Request
 
 	statVMRestarts            *stats.Val
 	statExchangeCalls         *stats.Val
@@ -47,10 +44,15 @@ type RPCServer struct {
 	statExchangeServerLatency *stats.Val
 	statExchangeClientLatency *stats.Val
 	statCorpusCoverFiltered   *stats.Val
+	statReusedSafeInputs      *stats.Val
+	statReusedUnsafeInputs    *stats.Val
 }
 
 type Runner struct {
-	name string
+	name       string
+	started    time.Time
+	bootTime   time.Duration
+	lastUnsafe time.Time
 
 	machineInfo []byte
 	instModules *cover.CanonicalizerInstance
@@ -73,12 +75,14 @@ type RPCManagerView interface {
 	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32, map[uint32]uint32, error)
 	machineChecked(features *host.Features, globFiles map[string][]string, enabledSyscalls map[*prog.Syscall]bool)
 	getFuzzer() *fuzzer.Fuzzer
+	avgBootTime() time.Duration
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
 		mgr: mgr,
 		cfg: mgr.cfg,
+
 		statVMRestarts: stats.Create("vm restarts", "Total number of VM starts",
 			stats.Rate{}, stats.NoGraph),
 		statExchangeCalls: stats.Create("exchange calls", "Number of RPC Exchange calls",
@@ -90,6 +94,10 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 		statExchangeClientLatency: stats.Create("exchange fuzzer latency",
 			"End-to-end fuzzer RPC Exchange call latency (us)", stats.Distribution{}),
 		statCorpusCoverFiltered: stats.Create("filtered coverage", "", stats.NoGraph),
+		statReusedSafeInputs: stats.Create("reused safe inputs", "Inputs from restarted VMs that were sent to other VMs",
+			stats.Rate{}, stats.StackedGraph("reused inputs")),
+		statReusedUnsafeInputs: stats.Create("reused unsafe inputs", "Inputs from crashed VMs that were sent to other VMs",
+			stats.Rate{}, stats.StackedGraph("reused inputs")),
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv, mgr.netCompression)
 	if err != nil {
@@ -124,7 +132,11 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.coverFilter = coverFilter
 
 	runner := &Runner{
-		name:        a.Name,
+		name: a.Name,
+		// It makes little sense to track the boot time of each individual VM,
+		// so let's just use the average value.
+		bootTime:    serv.mgr.avgBootTime(),
+		started:     time.Now(),
 		machineInfo: a.MachineInfo,
 		instModules: serv.canonicalModules.NewInstance(a.Modules),
 		requests:    make(map[int64]*fuzzer.Request),
@@ -210,28 +222,26 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		panic("exchange info call with nil fuzzer")
 	}
 
-	// Try to collect some of the postponed requests.
-	if serv.mu.TryLock() {
-		for i := len(serv.rescuedInputs) - 1; i >= 0 && a.NeedProgs > 0; i-- {
-			inp := serv.rescuedInputs[i]
-			serv.rescuedInputs[i] = nil
-			serv.rescuedInputs = serv.rescuedInputs[:i]
-			r.Requests = append(r.Requests, runner.newRequest(inp))
-			a.NeedProgs--
-		}
-		serv.mu.Unlock()
+	// Lazily initialize the request distributor.
+	requests := serv.requests.Load()
+	if requests == nil {
+		requests = newRequestDistributor(fuzzer, serv.statReusedSafeInputs, serv.statReusedUnsafeInputs)
+		serv.requests.CompareAndSwap(nil, requests)
 	}
 
 	// First query new inputs and only then post results.
 	// It should foster a more even distribution of executions
 	// across all VMs.
 	for i := 0; i < a.NeedProgs; i++ {
-		inp := fuzzer.NextInput()
-		r.Requests = append(r.Requests, runner.newRequest(inp))
+		req := requests.Next(runner)
+		r.Requests = append(r.Requests, runner.newRequest(req))
 	}
-
 	for _, result := range a.Results {
-		runner.doneRequest(result, fuzzer)
+		req, res := runner.convertResult(result)
+		if req == nil {
+			continue
+		}
+		requests.Done(req, res)
 	}
 
 	stats.Import(a.StatsDelta)
@@ -293,20 +303,8 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
 	runner.requests = nil
 	runner.mu.Unlock()
 
-	if crashed {
-		// The VM likely crashed, so let's tell pkg/fuzzer to abort the affected jobs.
-		// fuzzerObj may be null, but in that case oldRequests would be empty as well.
-		fuzzerObj := serv.mgr.getFuzzer()
-		for _, req := range oldRequests {
-			fuzzerObj.Done(req, &fuzzer.Result{Stop: true})
-		}
-	} else {
-		// We will resend these inputs to another VM.
-		serv.mu.Lock()
-		for _, req := range oldRequests {
-			serv.rescuedInputs = append(serv.rescuedInputs, req)
-		}
-		serv.mu.Unlock()
+	for _, req := range oldRequests {
+		serv.requests.Load().Save(req, !crashed)
 	}
 	return runner.machineInfo
 }
@@ -322,7 +320,7 @@ func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	})
 }
 
-func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer) {
+func (runner *Runner) convertResult(resp rpctype.ExecutionResult) (*fuzzer.Request, *fuzzer.Result) {
 	runner.mu.Lock()
 	req, ok := runner.requests[resp.ID]
 	if ok {
@@ -331,7 +329,7 @@ func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzze
 	runner.mu.Unlock()
 	if !ok {
 		// There may be a concurrent shutdownInstance() call.
-		return
+		return nil, nil
 	}
 	info := &resp.Info
 	for i := 0; i < len(info.Calls); i++ {
@@ -341,7 +339,7 @@ func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzze
 	}
 	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
 	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
-	fuzzerObj.Done(req, &fuzzer.Result{Info: info})
+	return req, &fuzzer.Result{Info: info}
 }
 
 func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {
@@ -365,4 +363,148 @@ func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {
 		SignalFilter: signalFilter,
 		NeedHints:    req.NeedHints,
 	}
+}
+
+type requestDistributor struct {
+	fuzzer           *fuzzer.Fuzzer
+	statReusedSafe   *stats.Val
+	statReusedUnsafe *stats.Val
+	// These are the inputs that were sent to VMs, but were not executed.
+	safeInputs   *queue[fuzzer.Request] // from stopped VMs
+	unsafeInputs *queue[fuzzer.Request] // from crashed VMs
+
+	// We don't want to rescue unsafe inputs twice.
+	rescuedUnsafe sync.Map
+}
+
+func newRequestDistributor(fuzzerObj *fuzzer.Fuzzer, statReusedSafe, statReusedUnsafe *stats.Val) *requestDistributor {
+	return &requestDistributor{
+		fuzzer:           fuzzerObj,
+		safeInputs:       newQueue[fuzzer.Request](1000),
+		unsafeInputs:     newQueue[fuzzer.Request](1000),
+		statReusedSafe:   statReusedSafe,
+		statReusedUnsafe: statReusedUnsafe,
+	}
+}
+
+func (rd *requestDistributor) Next(runner *Runner) *fuzzer.Request {
+	if rd.mayUnsafe(runner) {
+		req := rd.unsafeInputs.Fetch()
+		if req != nil {
+			rd.statReusedUnsafe.Add(1)
+			rd.rescuedUnsafe.Store(req, true)
+			return req
+		}
+	}
+	// Next() must be as fast as possible, so let's avoid contention.
+	req := rd.safeInputs.TryFetch()
+	if req != nil {
+		rd.statReusedSafe.Add(1)
+		return req
+	}
+	return rd.fuzzer.NextInput()
+}
+
+func (rd *requestDistributor) mayUnsafe(runner *Runner) bool {
+	if !runner.mu.TryLock() {
+		return false
+	}
+	defer runner.mu.Unlock()
+	uptime := time.Since(runner.started)
+
+	// We don't want to risk crashing freshly booted VMs.
+	// So let's limit the time wasted on VM re-creation to 10% of the total uptime.
+	if (runner.bootTime+uptime).Seconds()*0.1 < runner.bootTime.Seconds() {
+		return false
+	}
+
+	const unsafeOnceIn = time.Minute
+	if time.Since(runner.lastUnsafe) < unsafeOnceIn {
+		return false
+	}
+
+	runner.lastUnsafe = time.Now()
+	return true
+}
+
+func (rd *requestDistributor) Save(req *fuzzer.Request, safe bool) {
+	_, twice := rd.rescuedUnsafe.LoadAndDelete(req)
+	if !req.Important() || twice {
+		rd.revoke(req)
+		return
+	}
+	if safe {
+		rd.safeInputs.Add(req, rd.revoke)
+	} else {
+		rd.unsafeInputs.Add(req, rd.revoke)
+	}
+}
+
+func (rd *requestDistributor) Done(req *fuzzer.Request, res *fuzzer.Result) {
+	// No reason to create goroutines here.
+	rd.revokeSync(req, res)
+}
+
+func (rd *requestDistributor) revoke(req *fuzzer.Request) {
+	go rd.revokeSync(req, &fuzzer.Result{Stop: true})
+}
+
+func (rd *requestDistributor) revokeSync(req *fuzzer.Request, res *fuzzer.Result) {
+	rd.rescuedUnsafe.Delete(req)
+	rd.fuzzer.Done(req, res)
+}
+
+type queue[T any] struct {
+	mu    sync.Mutex
+	elems []*T
+	start int
+	end   int
+	full  bool
+}
+
+func newQueue[T any](limit int) *queue[T] {
+	return &queue[T]{
+		elems: make([]*T, limit),
+	}
+}
+
+func (q *queue[T]) Add(elem *T, revoke func(*T)) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.elems[q.end] != nil {
+		revoke(q.elems[q.end])
+	}
+	q.elems[q.end] = elem
+	if q.full {
+		q.start = (q.start + 1) % len(q.elems)
+	}
+	q.end = (q.end + 1) % len(q.elems)
+	if q.start == q.end {
+		q.full = true
+	}
+}
+
+func (q *queue[T]) Fetch() *T {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.fetchUnlocked()
+}
+
+func (q *queue[T]) TryFetch() *T {
+	if !q.mu.TryLock() {
+		return nil
+	}
+	defer q.mu.Unlock()
+	return q.fetchUnlocked()
+}
+
+func (q *queue[T]) fetchUnlocked() *T {
+	ret := q.elems[q.start]
+	if ret == nil {
+		return nil
+	}
+	q.elems[q.start] = nil
+	q.start = (q.start + 1) % len(q.elems)
+	q.full = false
+	return ret
 }

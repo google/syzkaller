@@ -93,9 +93,14 @@ type Request struct {
 	NeedHints    bool
 	SignalFilter signal.Signal // If specified, the resulting signal MAY be a subset of it.
 	// Fields that are only relevant within pkg/fuzzer.
-	flags   ProgTypes
-	stat    *stats.Val
-	resultC chan *Result
+	notImportant bool
+	flags        ProgTypes
+	stat         *stats.Val
+	resultC      chan *Result
+}
+
+func (r *Request) Important() bool {
+	return !r.notImportant
 }
 
 type Result struct {

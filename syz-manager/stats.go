@@ -20,6 +20,7 @@ type Stats struct {
 	statSuppressed     *stats.Val
 	statUptime         *stats.Val
 	statFuzzingTime    *stats.Val
+	statAvgBootTime    *stats.Val
 }
 
 func (mgr *Manager) initStats() {
@@ -46,6 +47,14 @@ func (mgr *Manager) initStats() {
 			}
 			return int(time.Now().Unix() - firstConnect)
 		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v sec", v)
+		})
+	mgr.statAvgBootTime = stats.Create("instance restart", "Average VM restart time (sec)",
+		stats.NoGraph,
+		func() int {
+			return int(mgr.bootTime.Value().Seconds())
+		},
+		func(v int, _ time.Duration) string {
 			return fmt.Sprintf("%v sec", v)
 		})
 
