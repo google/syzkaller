@@ -27,11 +27,12 @@ type CoverHandlerParams struct {
 	Progs       []Prog
 	CoverFilter map[uint32]uint32
 	Debug       bool
+	Force       bool
 }
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	files, err := rg.prepareFileMap(progs, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ type lineCoverExport struct {
 
 func (rg *ReportGenerator) DoLineJSON(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	files, err := rg.prepareFileMap(progs, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -348,7 +349,7 @@ var csvFilesHeader = []string{
 }
 
 func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
-	files, err := rg.prepareFileMap(progs, false)
+	files, err := rg.prepareFileMap(progs, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -596,7 +597,7 @@ var csvHeader = []string{
 
 func (rg *ReportGenerator) DoCSV(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	files, err := rg.prepareFileMap(progs, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
 	}
