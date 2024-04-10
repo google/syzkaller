@@ -1874,7 +1874,7 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
 			compile("WARNING: workqueue cpumask: online intersect > possible intersect"),
-			compile("WARNING: [Tt]he mand mount option (is being|has been) deprecated"),
+			compile("WARNING: [Tt]he mand mount option"),
 			compile("WARNING: Unsupported flag value\\(s\\) of 0x%x in DT_FLAGS_1"), // printed when glibc is dumped
 			compile("WARNING: Unprivileged eBPF is enabled with eIBRS"),
 			compile(`WARNING: fbcon: Driver '(.*)' missed to adjust virtual screen size (\((?:\d+)x(?:\d+) vs\. (?:\d+)x(?:\d+)\))`),
