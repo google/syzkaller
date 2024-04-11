@@ -50,13 +50,16 @@ type RPCServer struct {
 }
 
 type Runner struct {
-	name string
+	name         string
+	connectTime  time.Time
+	bootDuration time.Duration
 
 	machineInfo []byte
 	instModules *cover.CanonicalizerInstance
 
-	// The mutex protects newMaxSignal, dropMaxSignal, and requests.
+	// The mutex protects newMaxSignal, dropMaxSignal, lastRisky, and requests.
 	mu            sync.Mutex
+	lastRisky     time.Time
 	newMaxSignal  signal.Signal
 	dropMaxSignal signal.Signal
 	nextRequestID atomic.Int64
@@ -70,9 +73,12 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32, map[uint32]uint32, error)
-	machineChecked(features *host.Features, globFiles map[string][]string, enabledSyscalls map[*prog.Syscall]bool)
-	getFuzzer() *fuzzer.Fuzzer
+	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32, map[uint32]uint32,
+		signal.Signal, error)
+	machineChecked(features *host.Features, globFiles map[string][]string,
+		enabledSyscalls map[*prog.Syscall]bool)
+	getFuzzerOps() fuzzer.FuzzerOps
+	avgBootTime() time.Duration
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -113,7 +119,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	}
 	serv.mu.Unlock()
 
-	bugFrames, coverFilter, execCoverFilter, err := serv.mgr.fuzzerConnect(serv.modules)
+	bugFrames, coverFilter, execCoverFilter, maxSignal, err := serv.mgr.fuzzerConnect(serv.modules)
 	if err != nil {
 		return err
 	}
@@ -124,10 +130,13 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.coverFilter = coverFilter
 
 	runner := &Runner{
-		name:        a.Name,
-		machineInfo: a.MachineInfo,
-		instModules: serv.canonicalModules.NewInstance(a.Modules),
-		requests:    make(map[int64]*fuzzer.Request),
+		name:         a.Name,
+		connectTime:  time.Now(),
+		bootDuration: serv.mgr.avgBootTime(),
+		machineInfo:  a.MachineInfo,
+		instModules:  serv.canonicalModules.NewInstance(a.Modules),
+		requests:     make(map[int64]*fuzzer.Request),
+		newMaxSignal: maxSignal,
 	}
 	if _, loaded := serv.runners.LoadOrStore(a.Name, runner); loaded {
 		return fmt.Errorf("duplicate connection from %s", a.Name)
@@ -141,12 +150,6 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.cfg.Target.Revision
 	r.Features = serv.checkFeatures
-
-	if fuzzer := serv.mgr.getFuzzer(); fuzzer != nil {
-		// A Fuzzer object is created after the first Check() call.
-		// If there was none, there would be no collected max signal either.
-		runner.newMaxSignal = fuzzer.Cover.CopyMaxSignal()
-	}
 	return nil
 }
 
@@ -204,8 +207,8 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		return nil
 	}
 
-	fuzzer := serv.mgr.getFuzzer()
-	if fuzzer == nil {
+	fuzzOps := serv.mgr.getFuzzerOps()
+	if fuzzOps == nil {
 		// ExchangeInfo calls follow MachineCheck, so the fuzzer must have been initialized.
 		panic("exchange info call with nil fuzzer")
 	}
@@ -226,12 +229,12 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	// It should foster a more even distribution of executions
 	// across all VMs.
 	for i := 0; i < a.NeedProgs; i++ {
-		inp := fuzzer.NextInput()
+		inp := fuzzOps.NextInput(fuzzer.RequestOpts{MayRisk: runner.mayRiskNow()})
 		r.Requests = append(r.Requests, runner.newRequest(inp))
 	}
 
 	for _, result := range a.Results {
-		runner.doneRequest(result, fuzzer)
+		runner.doneRequest(result, fuzzOps)
 	}
 
 	stats.Import(a.StatsDelta)
@@ -294,11 +297,11 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
 	runner.mu.Unlock()
 
 	if crashed {
-		// The VM likely crashed, so let's tell pkg/fuzzer to abort the affected jobs.
+		// The VM crashed, so let's tell pkg/fuzzer to abort the affected jobs.
 		// fuzzerObj may be null, but in that case oldRequests would be empty as well.
-		fuzzerObj := serv.mgr.getFuzzer()
+		fuzzerObj := serv.mgr.getFuzzerOps()
 		for _, req := range oldRequests {
-			fuzzerObj.Done(req, &fuzzer.Result{Stop: true})
+			fuzzerObj.Done(req, &fuzzer.Result{Crashed: true})
 		}
 	} else {
 		// We will resend these inputs to another VM.
@@ -322,7 +325,7 @@ func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	})
 }
 
-func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer) {
+func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerOps fuzzer.FuzzerOps) {
 	runner.mu.Lock()
 	req, ok := runner.requests[resp.ID]
 	if ok {
@@ -341,7 +344,7 @@ func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzze
 	}
 	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
 	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
-	fuzzerObj.Done(req, &fuzzer.Result{Info: info})
+	fuzzerOps.Done(req, &fuzzer.Result{Info: info})
 }
 
 func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {
@@ -365,4 +368,27 @@ func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {
 		SignalFilter: signalFilter,
 		NeedHints:    req.NeedHints,
 	}
+}
+
+func (runner *Runner) mayRiskNow() bool {
+	if !runner.mu.TryLock() {
+		return false
+	}
+	defer runner.mu.Unlock()
+
+	uptime := time.Since(runner.connectTime)
+	// We don't want to risk crashing freshly booted VMs.
+	// So let's limit the time wasted on VM re-creation to 10% of the total uptime.
+	if uptime < 10*runner.bootDuration {
+		return false
+	}
+
+	// Don't sent too many risky inputs at once, otherwise we won't know which one was truly bad.
+	const riskyOnceIn = time.Minute / 2
+	if time.Since(runner.lastRisky) < riskyOnceIn {
+		return false
+	}
+
+	runner.lastRisky = time.Now()
+	return true
 }

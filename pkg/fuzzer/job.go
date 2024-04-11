@@ -73,6 +73,7 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		Prog:       p,
 		NeedSignal: rpctype.NewSignal,
 		stat:       fuzzer.statExecGenerate,
+		noRetry:    true,
 	}
 }
 
@@ -92,6 +93,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		Prog:       newP,
 		NeedSignal: rpctype.NewSignal,
 		stat:       fuzzer.statExecFuzz,
+		noRetry:    true,
 	}
 }
 
@@ -203,7 +205,7 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 			stat:         stat,
 			flags:        progInTriage,
 		})
-		if result.Stop {
+		if result.Crashed {
 			stop = true
 			return
 		}
@@ -242,7 +244,7 @@ func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bo
 					SignalFilter: newSignal,
 					stat:         fuzzer.statExecMinimize,
 				})
-				if result.Stop {
+				if result.Crashed {
 					stop = true
 					return false
 				}
@@ -315,17 +317,15 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			NeedSignal: rpctype.NewSignal,
 			stat:       fuzzer.statExecSmash,
 		})
-		if result.Stop {
+		if result.Crashed {
 			return
 		}
 		if fuzzer.Config.Collide {
-			result := fuzzer.exec(job, &Request{
-				Prog: randomCollide(p, rnd),
-				stat: fuzzer.statExecCollide,
+			fuzzer.exec(job, &Request{
+				Prog:    randomCollide(p, rnd),
+				stat:    fuzzer.statExecCollide,
+				noRetry: true,
 			})
-			if result.Stop {
-				return
-			}
 		}
 	}
 	if fuzzer.Config.FaultInjection && job.call >= 0 {
@@ -365,7 +365,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 			Prog: job.p,
 			stat: fuzzer.statExecSmash,
 		})
-		if result.Stop {
+		if result.Crashed {
 			return
 		}
 		info := result.Info
@@ -393,7 +393,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		NeedHints: true,
 		stat:      fuzzer.statExecSeed,
 	})
-	if result.Stop || result.Info == nil {
+	if result.Crashed || result.Info == nil {
 		return
 	}
 	// Then mutate the initial program for every match between
@@ -406,6 +406,6 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 				NeedSignal: rpctype.NewSignal,
 				stat:       fuzzer.statExecHint,
 			})
-			return !result.Stop
+			return !result.Crashed
 		})
 }

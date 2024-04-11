@@ -52,8 +52,20 @@ func (pq *priorityQueue[T]) push(item *priorityQueueItem[T]) {
 }
 
 func (pq *priorityQueue[T]) tryPop() *priorityQueueItem[T] {
+	if !pq.mu.TryLock() {
+		return nil
+	}
+	defer pq.mu.Unlock()
+	return pq.popLocked()
+}
+
+func (pq *priorityQueue[T]) pop() *priorityQueueItem[T] {
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
+	return pq.popLocked()
+}
+
+func (pq *priorityQueue[T]) popLocked() *priorityQueueItem[T] {
 	if len(pq.impl) == 0 {
 		return nil
 	}

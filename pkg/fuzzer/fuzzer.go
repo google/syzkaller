@@ -20,6 +20,12 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
+// FuzzerOps is what actual request executors need from the fuzzer.
+type FuzzerOps interface {
+	NextInput(RequestOpts) *Request
+	Done(req *Request, res *Result)
+}
+
 type Fuzzer struct {
 	Stats
 	Config *Config
@@ -94,11 +100,14 @@ type Request struct {
 	flags   ProgTypes
 	stat    *stats.Val
 	resultC chan *Result
+
+	noRetry bool // don't retry this request if it failed
+	retried bool // whether the request has already been resent
 }
 
 type Result struct {
-	Info *ipc.ProgInfo
-	Stop bool
+	Info    *ipc.ProgInfo
+	Crashed bool
 }
 
 func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
@@ -167,7 +176,11 @@ type Candidate struct {
 	Minimized bool
 }
 
-func (fuzzer *Fuzzer) NextInput() *Request {
+type RequestOpts struct {
+	MayRisk bool // whether we may run inputs that are likely to crash the VM.
+}
+
+func (fuzzer *Fuzzer) NextInput(_ RequestOpts) *Request {
 	req := fuzzer.nextInput()
 	if req.stat == fuzzer.statExecCandidate {
 		fuzzer.StatCandidates.Add(-1)
@@ -176,7 +189,7 @@ func (fuzzer *Fuzzer) NextInput() *Request {
 }
 
 func (fuzzer *Fuzzer) nextInput() *Request {
-	nextExec := fuzzer.nextExec.tryPop()
+	nextExec := fuzzer.nextExec.pop()
 
 	// The fuzzer may become too interested in potentially very long hint and smash jobs.
 	// Let's leave more space for new input space exploration.
@@ -259,7 +272,8 @@ func (fuzzer *Fuzzer) exec(job job, req *Request) *Result {
 	fuzzer.pushExec(req, job.priority())
 	select {
 	case <-fuzzer.ctx.Done():
-		return &Result{Stop: true}
+		// Pretend the input has crashed to stop corresponding jobs.
+		return &Result{Crashed: true}
 	case res := <-req.resultC:
 		close(req.resultC)
 		return res

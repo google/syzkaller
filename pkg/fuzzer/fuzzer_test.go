@@ -114,7 +114,7 @@ func BenchmarkFuzzer(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := fuzzer.NextInput()
+			req := fuzzer.NextInput(RequestOpts{})
 			res, _, _ := emulateExec(req)
 			fuzzer.Done(req, res)
 		}
@@ -238,13 +238,13 @@ func (f *testFuzzer) oneMore() bool {
 func (f *testFuzzer) registerExecutor(proc *executorProc) {
 	f.eg.Go(func() error {
 		for f.oneMore() {
-			req := f.fuzzer.NextInput()
+			req := f.fuzzer.NextInput(RequestOpts{})
 			res, crash, err := proc.execute(req)
 			if err != nil {
 				return err
 			}
 			if crash != "" {
-				res = &Result{Stop: true}
+				res = &Result{Crashed: true}
 				if !f.expectedCrashes[crash] {
 					return fmt.Errorf("unexpected crash: %q", crash)
 				}
