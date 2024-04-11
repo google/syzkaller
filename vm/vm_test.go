@@ -366,10 +366,6 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatal(err)
 	}
 	defer inst.Close()
-	outc, errc, err := inst.Run(time.Second, nil, "")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testInst := inst.impl.(*testInstance)
 	testInst.diagnoseBug = test.DiagnoseBug
 	testInst.diagnoseNoWait = test.DiagnoseNoWait
@@ -378,7 +374,10 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.Body(testInst.outc, testInst.errc)
 		done <- true
 	}()
-	rep := inst.MonitorExecution(outc, errc, reporter, test.Exit)
+	_, rep, err := inst.Run(time.Second, reporter, "", test.Exit)
+	if err != nil {
+		t.Fatal(err)
+	}
 	<-done
 	if test.Report != nil && rep == nil {
 		t.Fatalf("got no report")

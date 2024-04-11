@@ -185,9 +185,58 @@ func (inst *Instance) Forward(port int) (string, error) {
 	return inst.impl.Forward(port)
 }
 
-func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command string) (
-	outc <-chan []byte, errc <-chan error, err error) {
-	return inst.impl.Run(timeout, stop, command)
+type ExitCondition int
+
+const (
+	// The program is allowed to exit after timeout.
+	ExitTimeout = ExitCondition(1 << iota)
+	// The program is allowed to exit with no errors.
+	ExitNormal
+	// The program is allowed to exit with errors.
+	ExitError
+)
+
+type StopChan <-chan bool
+type OutputSize int
+
+// Run runs cmd inside of the VM (think of ssh cmd) and monitors command execution
+// and the kernel console output. It detects kernel oopses in output, lost connections, hangs, etc.
+// Returns command+kernel output and a non-symbolized crash report (nil if no error happens).
+// Accepted options:
+//   - StopChan: stop channel can be used to prematurely stop the command
+//   - ExitCondition: says which exit modes should be considered as errors/OK
+//   - OutputSize: how much output to keep/return
+func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, command string, opts ...any) (
+	[]byte, *report.Report, error) {
+	exit := ExitNormal
+	var stop <-chan bool
+	outputSize := beforeContextDefault
+	for _, o := range opts {
+		switch opt := o.(type) {
+		case ExitCondition:
+			exit = opt
+		case StopChan:
+			stop = opt
+		case OutputSize:
+			outputSize = int(opt)
+		default:
+			panic(fmt.Sprintf("unknown option %#v", opt))
+		}
+	}
+	outc, errc, err := inst.impl.Run(timeout, stop, command)
+	if err != nil {
+		return nil, nil, err
+	}
+	mon := &monitor{
+		inst:          inst,
+		outc:          outc,
+		errc:          errc,
+		reporter:      reporter,
+		beforeContext: outputSize,
+		exit:          exit,
+	}
+	rep := mon.monitorExecution()
+	return mon.output, rep, nil
 }
 
 func (inst *Instance) Info() ([]byte, error) {
@@ -220,51 +269,6 @@ func (inst *Instance) Close() {
 	inst.impl.Close()
 	os.RemoveAll(inst.workdir)
 	inst.onClose()
-}
-
-type ExitCondition int
-
-const (
-	// The program is allowed to exit after timeout.
-	ExitTimeout = ExitCondition(1 << iota)
-	// The program is allowed to exit with no errors.
-	ExitNormal
-	// The program is allowed to exit with errors.
-	ExitError
-)
-
-// MonitorExecution monitors execution of a program running inside of a VM.
-// It detects kernel oopses in output, lost connections, hangs, etc.
-// outc/errc is what vm.Instance.Run returns, reporter parses kernel output for oopses.
-// Exit says which exit modes should be considered as errors/OK.
-// Returns a non-symbolized crash report, or nil if no error happens.
-func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
-	reporter *report.Reporter, exit ExitCondition) (rep *report.Report) {
-	return inst.MonitorExecutionRaw(outc, errc, reporter, exit, 0).Report
-}
-
-type ExecutionResult struct {
-	Report    *report.Report
-	RawOutput []byte
-}
-
-func (inst *Instance) MonitorExecutionRaw(outc <-chan []byte, errc <-chan error,
-	reporter *report.Reporter, exit ExitCondition, beforeContextSize int) (res *ExecutionResult) {
-	if beforeContextSize == 0 {
-		beforeContextSize = beforeContextDefault
-	}
-	mon := &monitor{
-		inst:          inst,
-		outc:          outc,
-		errc:          errc,
-		reporter:      reporter,
-		beforeContext: beforeContextSize,
-		exit:          exit,
-	}
-	return &ExecutionResult{
-		Report:    mon.monitorExecution(),
-		RawOutput: mon.output,
-	}
 }
 
 type monitor struct {

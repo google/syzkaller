@@ -266,13 +266,10 @@ func (vrf *Verifier) createAndManageInstance(pi *poolInfo, poolID, vmID int) {
 	}
 
 	cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, poolID, 0, false, vrf.newEnv)
-	outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
+	_, _, err = inst.Run(pi.cfg.Timeouts.VMRunningTime, pi.Reporter, cmd, vm.ExitTimeout, vm.StopChan(vrf.vmStop))
 	if err != nil {
 		log.Fatalf("failed to start runner: %v", err)
 	}
-
-	inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
-
 	log.Logf(0, "reboot the VM in pool %d", poolID)
 }
 

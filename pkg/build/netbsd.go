@@ -153,12 +153,11 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	}
 	commands = append(commands, "mknod /dev/vhci c 355 0")
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
-	outc, errc, err := inst.Run(time.Minute, nil, strings.Join(commands, ";"))
+	_, rep, err := inst.Run(time.Minute, reporter, strings.Join(commands, ";"))
 	if err != nil {
 		return fmt.Errorf("error syncing the instance %w", err)
 	}
 	// Make sure that the command has executed properly.
-	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitNormal)
 	if rep != nil {
 		return fmt.Errorf("error executing sync: %v", rep.Title)
 	}
