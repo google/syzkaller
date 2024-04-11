@@ -111,9 +111,24 @@ func TestReportGenerator(t *testing.T) {
 			LDFlags:   []string{"-pie", "-Wl,--section-start=.text=0x33300000,--emit-relocs"},
 			DebugInfo: true,
 			Supports: func(target *targets.Target) bool {
-				return target.OS == targets.Fuchsia ||
-					target.OS == targets.Linux && target.Arch != targets.ARM64 &&
-						target.Arch != targets.ARM && target.Arch != targets.I386
+				if target.OS == targets.Fuchsia {
+					return true
+				}
+				if target.OS == targets.Linux {
+					if target.Arch == targets.RiscV64 {
+						// When the binary is compiled with gcc and parsed with
+						// llvm-addr2line, we get an invalid "func_name", which
+						// breaks our tests.
+						fmt.Printf("target.CCompiler=%s", target.CCompiler)
+						return target.CCompiler == "clang"
+					}
+					if target.Arch == targets.ARM64 || target.Arch == targets.ARM ||
+						target.Arch == targets.I386 {
+						return false
+					}
+					return true
+				}
+				return false
 			},
 		},
 	}
