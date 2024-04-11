@@ -716,12 +716,12 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 	now := timeNow(c)
 	build, _, err := uploadBuild(c, now, ns, &req.Build, BuildFailed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to store build: %w", err)
 	}
 	req.Crash.BuildID = req.Build.ID
 	bug, err := reportCrash(c, build, &req.Crash)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to store crash: %w", err)
 	}
 	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
 		log.Infof(c, "failed build on %v: kernel=%v", req.Build.Manager, req.Build.KernelCommit)
@@ -732,7 +732,7 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 		}
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update manager: %w", err)
 	}
 	return nil, nil
 }
@@ -803,12 +803,12 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	ns := build.Namespace
 	bug, err := findBugForCrash(c, ns, req.AltTitles)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find bug for the crash: %w", err)
 	}
 	if bug == nil {
 		bug, err = createBugForCrash(c, ns, req)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to create a bug: %w", err)
 		}
 	}
 
@@ -827,7 +827,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		!stringInList(bug.MergedTitles, req.Title)
 	if save {
 		if err := saveCrash(c, ns, req, bug, bugKey, build, assets); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to save the crash: %w", err)
 		}
 	} else {
 		log.Infof(c, "not saving crash for %q", bug.Title)
@@ -885,7 +885,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		return nil
 	}
 	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bug updating failed: %w", err)
 	}
 	if save {
 		purgeOldCrashes(c, bug, bugKey)
