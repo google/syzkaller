@@ -69,6 +69,7 @@ type RPCClient struct {
 	conn           net.Conn
 	c              *rpc.Client
 	timeScale      time.Duration
+	useTimeouts    bool
 	useCompression bool
 }
 
@@ -89,7 +90,7 @@ func Dial(addr string, timeScale time.Duration) (net.Conn, error) {
 	return conn, nil
 }
 
-func NewRPCClient(addr string, timeScale time.Duration, useCompression bool) (*RPCClient, error) {
+func NewRPCClient(addr string, timeScale time.Duration, useTimeouts, useCompression bool) (*RPCClient, error) {
 	conn, err := Dial(addr, timeScale)
 	if err != nil {
 		return nil, err
@@ -98,15 +99,18 @@ func NewRPCClient(addr string, timeScale time.Duration, useCompression bool) (*R
 		conn:           conn,
 		c:              rpc.NewClient(maybeFlateConn(conn, useCompression)),
 		timeScale:      timeScale,
+		useTimeouts:    useTimeouts,
 		useCompression: useCompression,
 	}
 	return cli, nil
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
-	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
-	cli.conn.SetDeadline(time.Now().Add(3 * time.Minute * cli.timeScale))
-	defer cli.conn.SetDeadline(time.Time{})
+	if cli.useTimeouts {
+		// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
+		cli.conn.SetDeadline(time.Now().Add(3 * time.Minute * cli.timeScale))
+		defer cli.conn.SetDeadline(time.Time{})
+	}
 	return cli.c.Call(method, args, reply)
 }
 
