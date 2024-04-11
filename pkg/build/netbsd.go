@@ -94,10 +94,12 @@ func (ctx netbsd) clean(kernelDir, targetArch string) error {
 
 // Copy the compiled kernel to the qemu disk image using ssh.
 func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
+	// Let's run in emulation mode - we don't need to run long and it's most compatible.
 	vmConfig := `
 {
 	"snapshot": false,
-	"mem": 1024
+	"mem": 1024,
+	"qemu_args": ""
 }`
 	// Create config for booting the disk image.
 	target := targets.Get(targets.NetBSD, targetArch)
