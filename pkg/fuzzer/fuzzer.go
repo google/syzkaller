@@ -24,6 +24,7 @@ import (
 type FuzzerOps interface {
 	NextInput(RequestOpts) *Request
 	Done(req *Request, res *Result)
+	SetUnsafeSyscalls(map[*prog.Syscall]struct{})
 }
 
 type Fuzzer struct {
@@ -36,13 +37,15 @@ type Fuzzer struct {
 	rnd    *rand.Rand
 	target *prog.Target
 
-	ct           *prog.ChoiceTable
+	ctSafe       *prog.ChoiceTable
+	ctUnsafe     *prog.ChoiceTable
 	ctProgs      int
 	ctMu         sync.Mutex // TODO: use RWLock.
 	ctRegenerate chan struct{}
 
-	nextExec  *priorityQueue[*Request]
-	nextJobID atomic.Int64
+	nextExec    *priorityQueue[*Request]
+	nextJobID   atomic.Int64
+	unsafeCalls atomic.Value // map[*prog.Syscall]struct{}
 }
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
@@ -101,8 +104,9 @@ type Request struct {
 	stat    *stats.Val
 	resultC chan *Result
 
-	noRetry bool // don't retry this request if it failed
-	retried bool // whether the request has already been resent
+	preserveProg bool // never modify the Prog
+	retried      bool // whether the request has already been resent
+	prio         priority
 }
 
 type Result struct {
@@ -180,15 +184,15 @@ type RequestOpts struct {
 	MayRisk bool // whether we may run inputs that are likely to crash the VM.
 }
 
-func (fuzzer *Fuzzer) NextInput(_ RequestOpts) *Request {
-	req := fuzzer.nextInput()
+func (fuzzer *Fuzzer) NextInput(opts RequestOpts) *Request {
+	req := fuzzer.nextInput(opts.MayRisk)
 	if req.stat == fuzzer.statExecCandidate {
 		fuzzer.StatCandidates.Add(-1)
 	}
 	return req
 }
 
-func (fuzzer *Fuzzer) nextInput() *Request {
+func (fuzzer *Fuzzer) nextInput(risky bool) *Request {
 	nextExec := fuzzer.nextExec.pop()
 
 	// The fuzzer may become too interested in potentially very long hint and smash jobs.
@@ -210,12 +214,12 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 	}
 	rnd := fuzzer.rand()
 	if rnd.Float64() < mutateRate {
-		req := mutateProgRequest(fuzzer, rnd)
+		req := mutateProgRequest(fuzzer, rnd, risky)
 		if req != nil {
 			return req
 		}
 	}
-	return genProgRequest(fuzzer, rnd)
+	return genProgRequest(fuzzer, rnd, risky)
 }
 
 func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
@@ -269,7 +273,9 @@ func (fuzzer *Fuzzer) pushExec(req *Request, prio priority) {
 
 func (fuzzer *Fuzzer) exec(job job, req *Request) *Result {
 	req.resultC = make(chan *Result, 1)
-	fuzzer.pushExec(req, job.priority())
+	prio := job.priority()
+	req.prio = prio
+	fuzzer.pushExec(req, prio)
 	select {
 	case <-fuzzer.ctx.Done():
 		// Pretend the input has crashed to stop corresponding jobs.
@@ -281,13 +287,23 @@ func (fuzzer *Fuzzer) exec(job job, req *Request) *Result {
 }
 
 func (fuzzer *Fuzzer) updateChoiceTable(programs []*prog.Prog) {
-	newCt := fuzzer.target.BuildChoiceTable(programs, fuzzer.Config.EnabledCalls)
+	enabledCalls := fuzzer.Config.EnabledCalls
+	newCtUnsafe := fuzzer.target.BuildChoiceTable(programs, enabledCalls)
+	newCtSafe := newCtUnsafe
+
+	if calls, ok := fuzzer.unsafeCalls.Load().(map[*prog.Syscall]struct{}); ok && len(calls) > 0 {
+		for call := range calls {
+			enabledCalls[call] = false
+		}
+		newCtSafe = fuzzer.target.BuildChoiceTable(programs, enabledCalls)
+	}
 
 	fuzzer.ctMu.Lock()
 	defer fuzzer.ctMu.Unlock()
 	if len(programs) >= fuzzer.ctProgs {
 		fuzzer.ctProgs = len(programs)
-		fuzzer.ct = newCt
+		fuzzer.ctSafe = newCtSafe
+		fuzzer.ctUnsafe = newCtUnsafe
 	}
 }
 
@@ -303,6 +319,10 @@ func (fuzzer *Fuzzer) choiceTableUpdater() {
 }
 
 func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
+	return fuzzer.getChoiceTable(false)
+}
+
+func (fuzzer *Fuzzer) getChoiceTable(risky bool) *prog.ChoiceTable {
 	progs := fuzzer.Config.Corpus.Programs()
 
 	fuzzer.ctMu.Lock()
@@ -321,7 +341,10 @@ func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
 			// It means that we're already regenerating the table.
 		}
 	}
-	return fuzzer.ct
+	if risky {
+		return fuzzer.ctUnsafe
+	}
+	return fuzzer.ctSafe
 }
 
 func (fuzzer *Fuzzer) logCurrentStats() {
@@ -351,4 +374,9 @@ func (fuzzer *Fuzzer) RotateMaxSignal(items int) {
 
 	delta := pureMaxSignal.RandomSubset(fuzzer.rand(), items)
 	fuzzer.Cover.subtract(delta)
+}
+
+func (fuzzer *Fuzzer) SetUnsafeSyscalls(syscalls map[*prog.Syscall]struct{}) {
+	fuzzer.unsafeCalls.Store(syscalls)
+	fuzzer.ctRegenerate <- struct{}{}
 }

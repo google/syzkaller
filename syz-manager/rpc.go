@@ -57,9 +57,8 @@ type Runner struct {
 	machineInfo []byte
 	instModules *cover.CanonicalizerInstance
 
-	// The mutex protects newMaxSignal, dropMaxSignal, lastRisky, and requests.
+	// The mutex protects newMaxSignal, dropMaxSignal, and requests.
 	mu            sync.Mutex
-	lastRisky     time.Time
 	newMaxSignal  signal.Signal
 	dropMaxSignal signal.Signal
 	nextRequestID atomic.Int64
@@ -378,17 +377,6 @@ func (runner *Runner) mayRiskNow() bool {
 
 	uptime := time.Since(runner.connectTime)
 	// We don't want to risk crashing freshly booted VMs.
-	// So let's limit the time wasted on VM re-creation to 10% of the total uptime.
-	if uptime < 10*runner.bootDuration {
-		return false
-	}
-
-	// Don't sent too many risky inputs at once, otherwise we won't know which one was truly bad.
-	const riskyOnceIn = time.Minute / 2
-	if time.Since(runner.lastRisky) < riskyOnceIn {
-		return false
-	}
-
-	runner.lastRisky = time.Now()
-	return true
+	// So let's limit the time wasted on VM re-creation to 20% of the total uptime.
+	return uptime >= 5*runner.bootDuration
 }

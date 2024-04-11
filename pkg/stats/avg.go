@@ -9,13 +9,19 @@ import (
 )
 
 type AverageParameter interface {
-	time.Duration
+	time.Duration | float64
 }
 
 type AverageValue[T AverageParameter] struct {
 	mu    sync.Mutex
 	total int64
 	avg   T
+}
+
+func (av *AverageValue[T]) Count() int64 {
+	av.mu.Lock()
+	defer av.mu.Unlock()
+	return av.total
 }
 
 func (av *AverageValue[T]) Value() T {

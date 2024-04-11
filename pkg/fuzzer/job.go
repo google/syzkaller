@@ -65,19 +65,18 @@ func (jp *jobPriority) saveID(id int64) {
 	jp.prio = append(jp.prio, id)
 }
 
-func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
+func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand, risky bool) *Request {
 	p := fuzzer.target.Generate(rnd,
 		prog.RecommendedCalls,
-		fuzzer.ChoiceTable())
+		fuzzer.getChoiceTable(risky))
 	return &Request{
 		Prog:       p,
 		NeedSignal: rpctype.NewSignal,
 		stat:       fuzzer.statExecGenerate,
-		noRetry:    true,
 	}
 }
 
-func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
+func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand, risky bool) *Request {
 	p := fuzzer.Config.Corpus.ChooseProgram(rnd)
 	if p == nil {
 		return nil
@@ -85,7 +84,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 	newP := p.Clone()
 	newP.Mutate(rnd,
 		prog.RecommendedCalls,
-		fuzzer.ChoiceTable(),
+		fuzzer.getChoiceTable(risky),
 		fuzzer.Config.NoMutateCalls,
 		fuzzer.Config.Corpus.Programs(),
 	)
@@ -93,7 +92,6 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		Prog:       newP,
 		NeedSignal: rpctype.NewSignal,
 		stat:       fuzzer.statExecFuzz,
-		noRetry:    true,
 	}
 }
 
@@ -106,10 +104,11 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) *Request {
 		flags |= progSmashed
 	}
 	return &Request{
-		Prog:       input.Prog,
-		NeedSignal: rpctype.NewSignal,
-		stat:       fuzzer.statExecCandidate,
-		flags:      flags,
+		Prog:         input.Prog,
+		NeedSignal:   rpctype.NewSignal,
+		stat:         fuzzer.statExecCandidate,
+		flags:        flags,
+		preserveProg: true,
 	}
 }
 
@@ -204,6 +203,7 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 			NeedRawCover: rawCover,
 			stat:         stat,
 			flags:        progInTriage,
+			preserveProg: true,
 		})
 		if result.Crashed {
 			stop = true
@@ -243,6 +243,7 @@ func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bo
 					NeedSignal:   rpctype.AllSignal,
 					SignalFilter: newSignal,
 					stat:         fuzzer.statExecMinimize,
+					preserveProg: true,
 				})
 				if result.Crashed {
 					stop = true
@@ -312,19 +313,15 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.ChoiceTable(),
 			fuzzer.Config.NoMutateCalls,
 			fuzzer.Config.Corpus.Programs())
-		result := fuzzer.exec(job, &Request{
+		fuzzer.exec(job, &Request{
 			Prog:       p,
 			NeedSignal: rpctype.NewSignal,
 			stat:       fuzzer.statExecSmash,
 		})
-		if result.Crashed {
-			return
-		}
 		if fuzzer.Config.Collide {
 			fuzzer.exec(job, &Request{
-				Prog:    randomCollide(p, rnd),
-				stat:    fuzzer.statExecCollide,
-				noRetry: true,
+				Prog: randomCollide(p, rnd),
+				stat: fuzzer.statExecCollide,
 			})
 		}
 	}
@@ -362,7 +359,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 		newProg := job.p.Clone()
 		newProg.Calls[job.call].Props.FailNth = nth
 		result := fuzzer.exec(job, &Request{
-			Prog: job.p,
+			Prog: newProg,
 			stat: fuzzer.statExecSmash,
 		})
 		if result.Crashed {
@@ -389,9 +386,10 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// First execute the original program to dump comparisons from KCOV.
 	p := job.p
 	result := fuzzer.exec(job, &Request{
-		Prog:      p,
-		NeedHints: true,
-		stat:      fuzzer.statExecSeed,
+		Prog:         p,
+		NeedHints:    true,
+		stat:         fuzzer.statExecSeed,
+		preserveProg: true,
 	})
 	if result.Crashed || result.Info == nil {
 		return
@@ -401,11 +399,12 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(job.call, result.Info.Calls[job.call].Comps,
 		func(p *prog.Prog) bool {
-			result := fuzzer.exec(job, &Request{
-				Prog:       p,
-				NeedSignal: rpctype.NewSignal,
-				stat:       fuzzer.statExecHint,
+			fuzzer.exec(job, &Request{
+				Prog:         p,
+				NeedSignal:   rpctype.NewSignal,
+				stat:         fuzzer.statExecHint,
+				preserveProg: true,
 			})
-			return !result.Crashed
+			return true
 		})
 }
