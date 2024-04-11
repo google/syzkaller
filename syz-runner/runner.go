@@ -46,7 +46,7 @@ func main() {
 	}
 
 	timeouts := config.Timeouts
-	vrf, err := rpctype.NewRPCClient(*flagAddr, timeouts.Scale, true)
+	vrf, err := rpctype.NewRPCClient(*flagAddr, timeouts.Scale, true, true)
 	if err != nil {
 		log.Fatalf("failed to connect to verifier : %v", err)
 	}
