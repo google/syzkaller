@@ -231,10 +231,11 @@ var archConfigs = map[string]*archConfig{
 		RngDev:    "virtio-rng-pci",
 	},
 	"netbsd/amd64": {
-		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm",
-		NetDev:   "e1000",
-		RngDev:   "virtio-rng-pci",
+		Qemu:                   "qemu-system-x86_64",
+		QemuArgs:               "-enable-kvm",
+		NetDev:                 "e1000",
+		RngDev:                 "virtio-rng-pci",
+		UseNewQemuImageOptions: true,
 	},
 	"fuchsia/amd64": {
 		Qemu:      "qemu-system-x86_64",
