@@ -388,11 +388,11 @@ func (inst *inst) testInstance() error {
 
 	cmd := OldFuzzerCmd(fuzzerBin, executorBin, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
 		inst.cfg.Sandbox, inst.cfg.SandboxArg, 0, inst.cfg.Cover, true, inst.optionalFlags, inst.cfg.Timeouts.Slowdown)
-	outc, errc, err := inst.vm.Run(10*time.Minute*inst.cfg.Timeouts.Scale, nil, cmd)
+	timeout := 10 * time.Minute * inst.cfg.Timeouts.Scale
+	_, rep, err := inst.vm.Run(timeout, inst.reporter, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %w", err)
 	}
-	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, vm.ExitNormal)
 	if rep != nil {
 		if err := inst.reporter.Symbolize(rep); err != nil {
 			// TODO(dvyukov): send such errors to dashboard.
@@ -424,9 +424,9 @@ func (inst *inst) testRepro() ([]byte, error) {
 			return nil, err
 		}
 		if res != nil && res.Report != nil {
-			return res.RawOutput, &CrashError{Report: res.Report}
+			return res.Output, &CrashError{Report: res.Report}
 		}
-		return res.RawOutput, nil
+		return res.Output, nil
 	}
 	out := []byte{}
 	if len(inst.reproSyz) > 0 {

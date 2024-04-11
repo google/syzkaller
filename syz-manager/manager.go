@@ -827,23 +827,19 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		},
 	}
 	cmd := instance.FuzzerCmd(args)
-	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
+	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd, vm.ExitTimeout, vm.StopChan(mgr.vmStop))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
-
-	var vmInfo []byte
-	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
 	if rep == nil {
 		// This is the only "OK" outcome.
 		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
-	} else {
-		vmInfo, err = inst.Info()
-		if err != nil {
-			vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
-		}
+		return nil, nil, nil
 	}
-
+	vmInfo, err := inst.Info()
+	if err != nil {
+		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
+	}
 	return rep, vmInfo, nil
 }
 

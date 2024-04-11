@@ -194,11 +194,10 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 		},
 	}
 	cmd := instance.FuzzerCmd(args)
-	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
+	_, rep, err := inst.Run(time.Hour, mgr.reporter, cmd, vm.StopChan(mgr.vmStop))
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
-	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitNormal)
 	return rep, nil
 }
 

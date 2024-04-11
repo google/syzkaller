@@ -37,7 +37,8 @@ type ExecProgInstance struct {
 }
 
 type RunResult struct {
-	vm.ExecutionResult
+	Output []byte
+	Report *report.Report
 }
 
 func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *report.Reporter,
@@ -107,25 +108,23 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
 		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
 	}
-	outc, errc, err := inst.VMInstance.Run(duration, nil, command)
+	opts := []any{inst.ExitCondition}
+	if inst.BeforeContextLen != 0 {
+		opts = append(opts, vm.OutputSize(inst.BeforeContextLen))
+	}
+	output, rep, err := inst.VMInstance.Run(duration, inst.reporter, command, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %w", err)
 	}
-	result := &RunResult{
-		ExecutionResult: *inst.VMInstance.MonitorExecutionRaw(outc, errc,
-			inst.reporter, inst.ExitCondition, inst.BeforeContextLen),
-	}
-	if len(prefixOutput) > 0 {
-		result.RawOutput = append(prefixOutput, result.RawOutput...)
-	}
-	if result.Report == nil {
+	if rep == nil {
 		inst.Logf(2, "program did not crash")
 	} else {
-		if err := inst.reporter.Symbolize(result.Report); err != nil {
+		if err := inst.reporter.Symbolize(rep); err != nil {
 			inst.Logf(0, "failed to symbolize report: %v", err)
 		}
-		inst.Logf(2, "program crashed: %v", result.Report.Title)
+		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
+	result := &RunResult{append(prefixOutput, output...), rep}
 	return result, nil
 }
 
