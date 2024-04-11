@@ -31,7 +31,6 @@ import (
 
 type FuzzerTool struct {
 	name              string
-	outputType        OutputType
 	config            *ipc.Config
 	procs             []*Proc
 	gate              *ipc.Gate
@@ -65,15 +64,6 @@ type executionRequest struct {
 	rpctype.ExecutionRequest
 	prog *prog.Prog
 }
-
-type OutputType int
-
-const (
-	OutputNone OutputType = iota
-	OutputStdout
-	OutputDmesg
-	OutputFile
-)
 
 func createIPCConfig(features *host.Features, config *ipc.Config) {
 	if features[host.FeatureExtraCoverage].Enabled {
@@ -123,7 +113,6 @@ func main() {
 		flagArch           = flag.String("arch", runtime.GOARCH, "target arch")
 		flagManager        = flag.String("manager", "", "manager rpc address")
 		flagProcs          = flag.Int("procs", 1, "number of parallel test processes")
-		flagOutput         = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
 		flagTest           = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
 		flagRunTest        = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
 		flagRawCover       = flag.Bool("raw_cover", false, "fetch raw coverage")
@@ -134,7 +123,6 @@ func main() {
 		flagResetAccState = flag.Bool("reset_acc_state", false, "restarts executor before most executions")
 	)
 	defer tool.Init()()
-	outputType := parseOutputType(*flagOutput)
 	log.Logf(0, "fuzzer started")
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
@@ -242,7 +230,6 @@ func main() {
 	inputsCount := *flagProcs * 2
 	fuzzerTool := &FuzzerTool{
 		name:          *flagName,
-		outputType:    outputType,
 		manager:       manager,
 		target:        target,
 		timeouts:      timeouts,
@@ -467,20 +454,4 @@ func setupPprofHandler(port int) {
 			log.SyzFatalf("failed to setup a server: %v", err)
 		}
 	}()
-}
-
-func parseOutputType(str string) OutputType {
-	switch str {
-	case "none":
-		return OutputNone
-	case "stdout":
-		return OutputStdout
-	case "dmesg":
-		return OutputDmesg
-	case "file":
-		return OutputFile
-	default:
-		log.SyzFatalf("-output flag must be one of none/stdout/dmesg/file")
-		return OutputNone
-	}
 }

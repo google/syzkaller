@@ -4,12 +4,9 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
-	"os"
 	"runtime/debug"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/ipc"
@@ -101,7 +98,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 		if err == nil {
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()
-			proc.logProgram(opts, p)
+			proc.logProgram(p)
 			output, info, hanged, err = proc.env.Exec(opts, p)
 			proc.tool.gate.Leave(ticket)
 		}
@@ -126,39 +123,13 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 	}
 }
 
-func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
-	if proc.tool.outputType == OutputNone {
-		return
-	}
-
-	data := p.Serialize()
-
+func (proc *Proc) logProgram(p *prog.Prog) {
 	// The following output helps to understand what program crashed kernel.
 	// It must not be intermixed.
-	switch proc.tool.outputType {
-	case OutputStdout:
-		now := time.Now()
-		proc.tool.logMu.Lock()
-		fmt.Printf("%02v:%02v:%02v executing program %v:\n%s\n",
-			now.Hour(), now.Minute(), now.Second(),
-			proc.pid, data)
-		proc.tool.logMu.Unlock()
-	case OutputDmesg:
-		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
-		if err == nil {
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "syzkaller: executing program %v:\n%s\n",
-				proc.pid, data)
-			syscall.Write(fd, buf.Bytes())
-			syscall.Close(fd)
-		}
-	case OutputFile:
-		f, err := os.Create(fmt.Sprintf("%v-%v.prog", proc.tool.name, proc.pid))
-		if err == nil {
-			f.Write(data)
-			f.Close()
-		}
-	default:
-		log.SyzFatalf("unknown output type: %v", proc.tool.outputType)
-	}
+	now := time.Now()
+	data := p.Serialize()
+	proc.tool.logMu.Lock()
+	fmt.Printf("%02v:%02v:%02v executing program %v:\n%s\n",
+		now.Hour(), now.Minute(), now.Second(), proc.pid, data)
+	proc.tool.logMu.Unlock()
 }
