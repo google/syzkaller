@@ -199,10 +199,9 @@ func normalizePrios(prios [][]int32) {
 // ChooseTable allows to do a weighted choice of a syscall for a given syscall
 // based on call-to-call priorities and a set of enabled and generatable syscalls.
 type ChoiceTable struct {
-	target          *Target
-	runs            [][]int32
-	calls           []*Syscall
-	noGenerateCalls map[int]bool
+	target *Target
+	runs   [][]int32
+	calls  []*Syscall
 }
 
 func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool) *ChoiceTable {
@@ -260,11 +259,7 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{target, run, generatableCalls, noGenerateCalls}
-}
-
-func (ct *ChoiceTable) Enabled(call int) bool {
-	return ct.Generatable(call) || ct.noGenerateCalls[call]
+	return &ChoiceTable{target, run, generatableCalls}
 }
 
 func (ct *ChoiceTable) Generatable(call int) bool {
