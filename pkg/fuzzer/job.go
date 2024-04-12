@@ -362,7 +362,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 		newProg := job.p.Clone()
 		newProg.Calls[job.call].Props.FailNth = nth
 		result := fuzzer.exec(job, &Request{
-			Prog: job.p,
+			Prog: newProg,
 			stat: fuzzer.statExecSmash,
 		})
 		if result.Stop {
