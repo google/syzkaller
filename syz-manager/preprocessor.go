@@ -43,7 +43,7 @@ func PreprocessAllCorpora(manager *Manager) {
 		fmt.Println("filepath.Walk Error:", err)
 	}
 	log.Fatalf("preprocessing exit!\n"+
-		"programs cnt: %v \n"+"calls cnt: %v \n"+"replaced args cnt: %v \n"+"panic cnt: %v \n"+"max sequence length: %v \n"+"broken progs: %v\n", logCollector.TotalProgramsCnt, logCollector.TotalCallsCnt, logCollector.TotalReplacedArgsCnt, logCollector.TotalPanicCnt, logCollector.MaxProgramLength, logCollector.BrokenProgCNT)
+		"programs cnt: %v \n"+"calls cnt: %v \n"+"replaced args cnt: %v \n"+"panic cnt: %v \n"+"max sequence length: %v \n"+"broken progs: %v\n"+"Any: %v\n", logCollector.TotalProgramsCnt, logCollector.TotalCallsCnt, logCollector.TotalReplacedArgsCnt, logCollector.TotalPanicCnt, logCollector.MaxProgramLength, logCollector.BrokenProgCNT, logCollector.Cnt)
 }
 
 type Preprocessor struct {
@@ -108,6 +108,7 @@ func (preprocessor *Preprocessor) Replace() {
 		for i, call := range program.Calls {
 			preprocessor.logCollector.TotalCallsCnt += 1
 			if strings.Contains(callsText[i], "ANY") {
+				preprocessor.logCollector.Cnt += 1
 				continue
 			}
 			GetAddrGeneratorInstance().ResetCounter()
@@ -553,6 +554,7 @@ type LogCollector struct {
 	TotalPanicCnt        int
 	BrokenProgCNT        int
 	MaxProgramLength     int
+	Cnt                  int
 }
 
 func NewLogCollector() *LogCollector {
@@ -563,6 +565,7 @@ func NewLogCollector() *LogCollector {
 	logCollector.TotalPanicCnt = 0
 	logCollector.BrokenProgCNT = 0
 	logCollector.MaxProgramLength = 0
+	logCollector.Cnt = 0
 
 	return logCollector
 }
@@ -573,6 +576,7 @@ func (logCollector *LogCollector) MergeCnt(newLogCollector *LogCollector) {
 	logCollector.TotalReplacedArgsCnt += newLogCollector.TotalReplacedArgsCnt
 	logCollector.TotalPanicCnt += newLogCollector.TotalPanicCnt
 	logCollector.BrokenProgCNT += newLogCollector.BrokenProgCNT
+	logCollector.Cnt += newLogCollector.Cnt
 	logCollector.MaxProgramLength = logCollector.CalcMaxProgramLength(newLogCollector.MaxProgramLength)
 }
 
