@@ -42,6 +42,7 @@ type FuzzerTool struct {
 	logMu sync.Mutex
 
 	bufferTooSmall atomic.Uint64
+	execRetries    atomic.Uint64
 	noExecRequests atomic.Uint64
 	noExecDuration atomic.Uint64
 	resetAccState  bool
@@ -398,6 +399,7 @@ func (tool *FuzzerTool) grabStats() map[string]uint64 {
 		stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 	}
 	stats["buffer too small"] = tool.bufferTooSmall.Swap(0)
+	stats["exec retries"] = tool.execRetries.Swap(0)
 	stats["no exec requests"] = tool.noExecRequests.Swap(0)
 	stats["no exec duration"] = tool.noExecDuration.Swap(0)
 	return stats
