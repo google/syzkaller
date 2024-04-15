@@ -378,6 +378,11 @@ func TestSerializeDeserialize(t *testing.T) {
 		{
 			In: `serialize3(&(0x7f0000000000)="$eJwqrqzKTszJSS0CBAAA//8TyQPi")`,
 		},
+		{
+			In:        `foo$any_filename(&(0x7f0000000000)=ANY=[@ANYBLOB='/'])`,
+			Out:       `foo$any_filename(&(0x7f0000000000)=@complex={0x0, 0x0, 0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, []})`,
+			StrictErr: `wrong array arg`,
+		},
 	})
 }
 

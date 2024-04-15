@@ -547,9 +547,10 @@ func (p *parser) parseArgRes(typ Type, dir Dir) (Arg, error) {
 func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 	var elem Type
 	elemDir := DirInOut
+	squashableElem := false
 	switch t1 := typ.(type) {
 	case *PtrType:
-		elem, elemDir = t1.Elem, t1.ElemDir
+		elem, elemDir, squashableElem = t1.Elem, t1.ElemDir, t1.SquashableElem
 	case *VmaType:
 	default:
 		p.eatExcessive(true, "wrong addr arg %T", typ)
@@ -582,8 +583,10 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 			p.Parse('N')
 			p.Parse('Y')
 			p.Parse('=')
-			anyPtr := p.target.getAnyPtrType(typ.Size())
-			typ, elem, elemDir = anyPtr, anyPtr.Elem, anyPtr.ElemDir
+			if squashableElem {
+				anyPtr := p.target.getAnyPtrType(typ.Size())
+				typ, elem, elemDir = anyPtr, anyPtr.Elem, anyPtr.ElemDir
+			}
 		}
 		var err error
 		inner, err = p.parseArg(elem, elemDir)

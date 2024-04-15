@@ -671,8 +671,9 @@ func (t *ArrayType) isDefaultArg(arg Arg) bool {
 
 type PtrType struct {
 	TypeCommon
-	Elem    Type
-	ElemDir Dir
+	Elem           Type
+	ElemDir        Dir
+	SquashableElem bool
 }
 
 func (t *PtrType) String() string {
@@ -775,97 +776,103 @@ type TypeCtx struct {
 
 func ForeachType(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
 	for _, meta := range syscalls {
-		foreachTypeImpl(meta, true, f)
+		foreachCallTypeImpl(meta, true, f)
 	}
 }
 
 func ForeachTypePost(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
 	for _, meta := range syscalls {
-		foreachTypeImpl(meta, false, f)
+		foreachCallTypeImpl(meta, false, f)
 	}
 }
 
 func ForeachCallType(meta *Syscall, f func(t Type, ctx *TypeCtx)) {
-	foreachTypeImpl(meta, true, f)
+	foreachCallTypeImpl(meta, true, f)
 }
 
-func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx)) {
-	// We need seen to be keyed by the type, the direction, and the optionality
-	// bit. Even if the first time we see a type it is optional or DirOut, it
-	// could be required or DirIn on another path. So to ensure that the
-	// information we report to the caller is correct, we need to visit both
-	// occurrences.
-	type seenKey struct {
-		t Type
-		d Dir
-		o bool
-	}
+// We need seen to be keyed by the type, the direction, and the optionality
+// bit. Even if the first time we see a type it is optional or DirOut, it
+// could be required or DirIn on another path. So to ensure that the
+// information we report to the caller is correct, we need to visit both
+// occurrences.
+type seenKey struct {
+	t Type
+	d Dir
+	o bool
+}
+
+func foreachCallTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx)) {
 	// Note: we specifically don't create seen in ForeachType.
 	// It would prune recursion more (across syscalls), but lots of users need to
 	// visit each struct per-syscall (e.g. prio, used resources).
 	seen := make(map[seenKey]bool)
-	var rec func(*Type, Dir, bool)
-	rec = func(ptr *Type, dir Dir, optional bool) {
-		if _, ref := (*ptr).(Ref); !ref {
-			optional = optional || (*ptr).Optional()
-		}
-		ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr, Optional: optional}
-		if preorder {
-			f(*ptr, ctx)
-			if ctx.Stop {
-				return
-			}
-		}
-		switch a := (*ptr).(type) {
-		case *PtrType:
-			rec(&a.Elem, a.ElemDir, optional)
-		case *ArrayType:
-			rec(&a.Elem, dir, optional)
-		case *StructType:
-			key := seenKey{
-				t: a,
-				d: dir,
-				o: optional,
-			}
-			if seen[key] {
-				break // prune recursion via pointers to structs/unions
-			}
-			seen[key] = true
-			for i, f := range a.Fields {
-				rec(&a.Fields[i].Type, f.Dir(dir), optional)
-			}
-		case *UnionType:
-			key := seenKey{
-				t: a,
-				d: dir,
-				o: optional,
-			}
-			if seen[key] {
-				break // prune recursion via pointers to structs/unions
-			}
-			seen[key] = true
-			for i, f := range a.Fields {
-				rec(&a.Fields[i].Type, f.Dir(dir), optional)
-			}
-		case *ResourceType, *BufferType, *VmaType, *LenType, *FlagsType,
-			*ConstType, *IntType, *ProcType, *CsumType:
-		case Ref:
-			// This is only needed for pkg/compiler.
-		default:
-			panic("unknown type")
-		}
-		if !preorder {
-			f(*ptr, ctx)
-			if ctx.Stop {
-				panic("Stop is set in post-order iteration")
-			}
-		}
-	}
 	for i := range meta.Args {
-		rec(&meta.Args[i].Type, DirIn, false)
+		foreachTypeRec(f, meta, seen, &meta.Args[i].Type, DirIn, preorder, false)
 	}
 	if meta.Ret != nil {
-		rec(&meta.Ret, DirOut, false)
+		foreachTypeRec(f, meta, seen, &meta.Ret, DirOut, preorder, false)
+	}
+}
+
+func ForeachArgType(typ Type, f func(t Type, ctx *TypeCtx)) {
+	foreachTypeRec(f, nil, make(map[seenKey]bool), &typ, DirIn, true, false)
+}
+
+func foreachTypeRec(cb func(t Type, ctx *TypeCtx), meta *Syscall, seen map[seenKey]bool, ptr *Type,
+	dir Dir, preorder, optional bool) {
+	if _, ref := (*ptr).(Ref); !ref {
+		optional = optional || (*ptr).Optional()
+	}
+	ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr, Optional: optional}
+	if preorder {
+		cb(*ptr, ctx)
+		if ctx.Stop {
+			return
+		}
+	}
+	switch a := (*ptr).(type) {
+	case *PtrType:
+		foreachTypeRec(cb, meta, seen, &a.Elem, a.ElemDir, preorder, optional)
+	case *ArrayType:
+		foreachTypeRec(cb, meta, seen, &a.Elem, dir, preorder, optional)
+	case *StructType:
+		key := seenKey{
+			t: a,
+			d: dir,
+			o: optional,
+		}
+		if seen[key] {
+			break // prune recursion via pointers to structs/unions
+		}
+		seen[key] = true
+		for i, f := range a.Fields {
+			foreachTypeRec(cb, meta, seen, &a.Fields[i].Type, f.Dir(dir), preorder, optional)
+		}
+	case *UnionType:
+		key := seenKey{
+			t: a,
+			d: dir,
+			o: optional,
+		}
+		if seen[key] {
+			break // prune recursion via pointers to structs/unions
+		}
+		seen[key] = true
+		for i, f := range a.Fields {
+			foreachTypeRec(cb, meta, seen, &a.Fields[i].Type, f.Dir(dir), preorder, optional)
+		}
+	case *ResourceType, *BufferType, *VmaType, *LenType, *FlagsType,
+		*ConstType, *IntType, *ProcType, *CsumType:
+	case Ref:
+		// This is only needed for pkg/compiler.
+	default:
+		panic("unknown type")
+	}
+	if !preorder {
+		cb(*ptr, ctx)
+		if ctx.Stop {
+			panic("Stop is set in post-order iteration")
+		}
 	}
 }
 

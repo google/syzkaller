@@ -161,10 +161,7 @@ func TestAssignSize(t *testing.T) {
 		},
 		{
 			// If len target points into squashed argument, value is not updated.
-			In: `
-test$length11(&(0x7f0000000000)=ANY=[@ANYBLOB="11"], 0x42)
-test$length30(&(0x7f0000000000)=ANY=[@ANYBLOB="11"], 0x42, &(0x7f0000000000)=0x43, 0x44)
-`,
+			In: `test$length_any(&(0x7f0000000000)=ANY=[@ANYBLOB="11"], 0x42)`,
 		},
 		{
 			In:  "test$length32(&(0x7f0000000000)={[0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0], {0x0}, &(0x7f0000000040)={0x0}})",

@@ -529,6 +529,16 @@ len_of_cond_struct {
 
 test$length35(a0 ptr[in, len_of_cond_struct])
 
+test$length_any(a0 ptr[in, syz_length_any_struct], a1 len[a0])
+
+syz_length_any_struct {
+	f0	int32
+	f1	int32
+	f2	int32
+	f3	int32
+	f4	array[int8]
+} [packed]
+
 # Big endian
 
 test$end0(a0 ptr[in, syz_end_int_struct])
