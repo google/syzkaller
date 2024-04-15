@@ -104,13 +104,13 @@ func (dec *execDecoder) parse() {
 		case execInstrCopyin:
 			dec.commitCall()
 			dec.call.Copyin = append(dec.call.Copyin, ExecCopyin{
-				Addr: dec.read(),
+				Addr: dec.read() + dec.target.DataOffset,
 				Arg:  dec.readArg(),
 			})
 		case execInstrCopyout:
 			dec.call.Copyout = append(dec.call.Copyout, ExecCopyout{
 				Index: dec.read(),
-				Addr:  dec.read(),
+				Addr:  dec.read() + dec.target.DataOffset,
 				Size:  dec.read(),
 			})
 		case execInstrEOF:
@@ -168,6 +168,17 @@ func (dec *execDecoder) readArg() ExecArg {
 			BitfieldLength: (meta >> 24) & 0xff,
 			PidStride:      meta >> 32,
 		}
+	case execArgAddr32:
+		fallthrough
+	case execArgAddr64:
+		size := 4
+		if typ == execArgAddr64 {
+			size = 8
+		}
+		return ExecArgConst{
+			Value: dec.read() + dec.target.DataOffset,
+			Size:  uint64(size),
+		}
 	case execArgResult:
 		meta := dec.read()
 		arg := ExecArgResult{
@@ -197,10 +208,16 @@ func (dec *execDecoder) readArg() ExecArg {
 		case ExecArgCsumInet:
 			chunks := make([]ExecCsumChunk, dec.read())
 			for i := range chunks {
+				kind := dec.read()
+				addr := dec.read()
+				size := dec.read()
+				if kind == ExecArgCsumChunkData {
+					addr += dec.target.DataOffset
+				}
 				chunks[i] = ExecCsumChunk{
-					Kind:  dec.read(),
-					Value: dec.read(),
-					Size:  dec.read(),
+					Kind:  kind,
+					Value: addr,
+					Size:  size,
 				}
 			}
 			return ExecArgCsum{

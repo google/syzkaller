@@ -8,14 +8,16 @@
 // The sequence is terminated by a speciall call execInstrEOF.
 // Each call is (call ID, copyout index, number of arguments, arguments...).
 // Each argument is (type, size, value).
-// There are 4 types of arguments:
+// There are the following types of arguments:
 //  - execArgConst: value is const value
+//  - execArgAddr32/64: constant address
 //  - execArgResult: value is copyout index we want to reference
 //  - execArgData: value is a binary blob (represented as ]size/8[ uint64's)
 //  - execArgCsum: runtime checksum calculation
-// There are 2 other special calls:
+// There are the following special calls:
 //  - execInstrCopyin: copies its second argument into address specified by first argument
 //  - execInstrCopyout: reads value at address specified by first argument (result can be referenced by execArgResult)
+//  - execInstrSetProps: sets special properties for the previous call
 
 package prog
 
@@ -36,6 +38,8 @@ const (
 
 const (
 	execArgConst = uint64(iota)
+	execArgAddr32
+	execArgAddr64
 	execArgResult
 	execArgData
 	execArgCsum
@@ -155,7 +159,7 @@ func (w *execContext) writeCopyin(c *Call) {
 		if ctx.Base == nil {
 			return
 		}
-		addr := w.target.PhysicalAddr(ctx.Base) + ctx.Offset
+		addr := w.target.PhysicalAddr(ctx.Base) - w.target.DataOffset + ctx.Offset
 		addr -= arg.Type().UnitOffset()
 		if w.willBeUsed(arg) {
 			w.args[arg] = argInfo{Addr: addr}
@@ -279,7 +283,15 @@ func (w *execContext) writeArg(arg Arg) {
 			w.write(a.Type().(*ResourceType).Default())
 		}
 	case *PointerArg:
-		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, FormatNative)
+		switch a.Size() {
+		case 4:
+			w.write(execArgAddr32)
+		case 8:
+			w.write(execArgAddr64)
+		default:
+			panic(fmt.Sprintf("bad pointer address size %v", a.Size()))
+		}
+		w.write(w.target.PhysicalAddr(a) - w.target.DataOffset)
 	case *DataArg:
 		data := a.Data()
 		if len(data) == 0 {
