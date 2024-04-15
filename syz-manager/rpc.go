@@ -358,11 +358,12 @@ func (runner *Runner) newRequest(req *fuzzer.Request) rpctype.ExecutionRequest {
 	}
 	runner.mu.Unlock()
 	return rpctype.ExecutionRequest{
-		ID:           id,
-		ProgData:     req.Prog.Serialize(),
-		NeedCover:    req.NeedCover,
-		NeedSignal:   req.NeedSignal,
-		SignalFilter: signalFilter,
-		NeedHints:    req.NeedHints,
+		ID:               id,
+		ProgData:         req.Prog.Serialize(),
+		NeedCover:        req.NeedCover,
+		NeedSignal:       req.NeedSignal,
+		SignalFilter:     signalFilter,
+		SignalFilterCall: req.SignalFilterCall,
+		NeedHints:        req.NeedHints,
 	}
 }

@@ -89,7 +89,10 @@ type Request struct {
 	NeedRawCover bool
 	NeedSignal   rpctype.SignalType
 	NeedHints    bool
-	SignalFilter signal.Signal // If specified, the resulting signal MAY be a subset of it.
+	// If specified, the resulting signal for call SignalFilterCall
+	// will include subset of it even if it's not new.
+	SignalFilter     signal.Signal
+	SignalFilterCall int
 	// Fields that are only relevant within pkg/fuzzer.
 	flags   ProgTypes
 	stat    *stats.Val
@@ -248,6 +251,9 @@ func (fuzzer *Fuzzer) nextRand() int64 {
 func (fuzzer *Fuzzer) pushExec(req *Request, prio priority) {
 	if req.NeedHints && (req.NeedCover || req.NeedSignal != rpctype.NoSignal) {
 		panic("Request.NeedHints is mutually exclusive with other fields")
+	}
+	if req.SignalFilter != nil && req.NeedSignal != rpctype.NewSignal {
+		panic("SignalFilter must be used with NewSignal")
 	}
 	fuzzer.nextExec.push(&priorityQueueItem[*Request]{
 		value: req, prio: prio,

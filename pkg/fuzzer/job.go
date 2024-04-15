@@ -237,10 +237,11 @@ func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bo
 			}
 			for i := 0; i < minimizeAttempts; i++ {
 				result := fuzzer.exec(job, &Request{
-					Prog:         p1,
-					NeedSignal:   rpctype.AllSignal,
-					SignalFilter: newSignal,
-					stat:         fuzzer.statExecMinimize,
+					Prog:             p1,
+					NeedSignal:       rpctype.NewSignal,
+					SignalFilter:     newSignal,
+					SignalFilterCall: call1,
+					stat:             fuzzer.statExecMinimize,
 				})
 				if result.Stop {
 					stop = true

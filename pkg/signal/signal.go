@@ -159,11 +159,14 @@ func (s Signal) RandomSubset(r *rand.Rand, size int) Signal {
 	return ret
 }
 
-// FilterRaw returns a subset of original raw elements that coincides with the one in Signal.
-func (s Signal) FilterRaw(raw []uint32) []uint32 {
+// FilterRaw returns a subset of original raw elements that either are not present in ignore,
+// or coincides with the one in alwaysTake.
+func FilterRaw(raw []uint32, ignore, alwaysTake Signal) []uint32 {
 	var ret []uint32
 	for _, e := range raw {
-		if _, ok := s[elemType(e)]; ok {
+		if _, ok := alwaysTake[elemType(e)]; ok {
+			ret = append(ret, e)
+		} else if _, ok := ignore[elemType(e)]; !ok {
 			ret = append(ret, e)
 		}
 	}

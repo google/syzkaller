@@ -25,13 +25,14 @@ const (
 // ExecutionRequest describes the task of executing a particular program.
 // Corresponds to Fuzzer.Request.
 type ExecutionRequest struct {
-	ID           int64
-	ProgData     []byte
-	NeedCover    bool
-	NeedRawCover bool
-	NeedHints    bool
-	NeedSignal   SignalType
-	SignalFilter signal.Signal
+	ID               int64
+	ProgData         []byte
+	NeedCover        bool
+	NeedRawCover     bool
+	NeedHints        bool
+	NeedSignal       SignalType
+	SignalFilter     signal.Signal
+	SignalFilterCall int
 }
 
 // ExecutionResult is sent after ExecutionRequest is completed.
