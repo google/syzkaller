@@ -589,8 +589,8 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 		}
 		calls[callName] = true
 	} else {
-		if len(inf.Signal) == 0 {
-			return fmt.Errorf("run %v: call %v: no fallback signal", run, call)
+		if len(inf.Signal) != 0 {
+			return fmt.Errorf("run %v: call %v: got %v unwanted signal", run, call, len(inf.Signal))
 		}
 	}
 	return nil

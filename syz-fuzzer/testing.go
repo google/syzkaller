@@ -272,9 +272,6 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
 	}
-	if len(info.Calls[0].Signal) < 1 {
-		return fmt.Errorf("got no fallback coverage:\n%s", output)
-	}
 	return nil
 }
 

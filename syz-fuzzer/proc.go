@@ -60,7 +60,7 @@ func (proc *Proc) loop() {
 			(req.NeedCover || req.NeedSignal != rpctype.NoSignal || req.NeedHints) {
 			proc.env.ForceRestart()
 		}
-		info, try := proc.executeRaw(&opts, req.ID, req.prog)
+		info, try := proc.execute(&opts, req.ID, req.prog)
 		// Let's perform signal filtering in a separate thread to get the most
 		// exec/sec out of a syz-executor instance.
 		proc.tool.results <- executionResult{
@@ -87,7 +87,15 @@ func (proc *Proc) nextRequest() executionRequest {
 	return req
 }
 
-func (proc *Proc) executeRaw(opts *ipc.ExecOpts, progID int64, p *prog.Prog) (*ipc.ProgInfo, int) {
+func (proc *Proc) execute(opts *ipc.ExecOpts, progID int64, p *prog.Prog) (*ipc.ProgInfo, int) {
+	progData, err := p.SerializeForExec()
+	if err != nil {
+		// It's bad if we systematically fail to serialize programs,
+		// but so far we don't have a better handling than counting this.
+		// This error is observed a lot on the seeded syz_mount_image calls.
+		proc.tool.bufferTooSmall.Add(1)
+		return nil, 0
+	}
 	for try := 0; ; try++ {
 		var output []byte
 		var info *ipc.ProgInfo
@@ -99,17 +107,10 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, progID int64, p *prog.Prog) (*i
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()
 			proc.tool.startExecutingCall(progID, proc.pid, try)
-			output, info, hanged, err = proc.env.Exec(opts, p)
+			output, info, hanged, err = proc.env.ExecProg(opts, progData)
 			proc.tool.gate.Leave(ticket)
 		}
 		if err != nil {
-			if err == prog.ErrExecBufferTooSmall {
-				// It's bad if we systematically fail to serialize programs,
-				// but so far we don't have a better handling than counting this.
-				// This error is observed a lot on the seeded syz_mount_image calls.
-				proc.tool.bufferTooSmall.Add(1)
-				return nil, try
-			}
 			if try > 10 {
 				log.SyzFatalf("executor %v failed %v times: %v\n%s", proc.pid, try, err, output)
 			}

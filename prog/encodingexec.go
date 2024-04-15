@@ -23,7 +23,6 @@ package prog
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -63,8 +62,6 @@ const (
 	execMaxCommands = 1000 // executor knows about this constant (kMaxCommands)
 )
 
-var ErrExecBufferTooSmall = errors.New("encodingexec: provided buffer is too small")
-
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
@@ -81,8 +78,11 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 		w.serializeCall(c)
 	}
 	w.write(execInstrEOF)
-	if len(w.buf) > ExecBufferSize || w.copyoutSeq > execMaxCommands {
-		return nil, ErrExecBufferTooSmall
+	if len(w.buf) > ExecBufferSize {
+		return nil, fmt.Errorf("encodingexec: too large program (%v/%v)", len(w.buf), ExecBufferSize)
+	}
+	if w.copyoutSeq > execMaxCommands {
+		return nil, fmt.Errorf("encodingexec: too many resources (%v/%v)", w.copyoutSeq, execMaxCommands)
 	}
 	return w.buf, nil
 }

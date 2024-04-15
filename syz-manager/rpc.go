@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -269,7 +270,7 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	}
 
 	for _, result := range a.Results {
-		runner.doneRequest(result, fuzzer)
+		runner.doneRequest(result, fuzzer, serv.cfg.Cover)
 	}
 
 	stats.Import(a.StatsDelta)
@@ -376,7 +377,7 @@ func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	})
 }
 
-func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer) {
+func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer, cover bool) {
 	runner.mu.Lock()
 	req, ok := runner.requests[resp.ID]
 	if ok {
@@ -393,6 +394,9 @@ func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzze
 		runner.logProgram(resp.ProcID, req.req.Prog)
 	}
 	info := &resp.Info
+	if !cover {
+		addFallbackSignal(req.req.Prog, info)
+	}
 	for i := 0; i < len(info.Calls); i++ {
 		call := &info.Calls[i]
 		call.Cover = runner.instModules.Canonicalize(call.Cover)
@@ -436,5 +440,28 @@ func (runner *Runner) logProgram(procID int, p *prog.Prog) {
 	select {
 	case runner.injectLog <- buf.Bytes():
 	case <-runner.injectStop:
+	}
+}
+
+// addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
+// We use syscall number or-ed with returned errno value as signal.
+// At least this gives us all combinations of syscall+errno.
+func addFallbackSignal(p *prog.Prog, info *ipc.ProgInfo) {
+	callInfos := make([]prog.CallInfo, len(info.Calls))
+	for i, inf := range info.Calls {
+		if inf.Flags&ipc.CallExecuted != 0 {
+			callInfos[i].Flags |= prog.CallExecuted
+		}
+		if inf.Flags&ipc.CallFinished != 0 {
+			callInfos[i].Flags |= prog.CallFinished
+		}
+		if inf.Flags&ipc.CallBlocked != 0 {
+			callInfos[i].Flags |= prog.CallBlocked
+		}
+		callInfos[i].Errno = inf.Errno
+	}
+	p.FallbackSignal(callInfos)
+	for i, inf := range callInfos {
+		info.Calls[i].Signal = inf.Signal
 	}
 }

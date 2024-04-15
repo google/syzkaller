@@ -247,13 +247,14 @@ func (env *Env) Close() error {
 	}
 }
 
-// Exec starts executor binary to execute program p and returns information about the execution:
+// Exec starts executor binary to execute program stored in progData in exec encoding
+// and returns information about the execution:
 // output: process output
 // info: per-call info
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
-	progData, err := p.SerializeForExec()
+func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+	ncalls, err := prog.ExecCallCount(progData)
 	if err != nil {
 		err0 = err
 		return
@@ -284,18 +285,24 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 		return
 	}
 
-	info, err0 = env.parseOutput(p, opts)
+	info, err0 = env.parseOutput(opts, ncalls)
 	if info != nil {
 		info.Elapsed = elapsed
-		if env.config.Flags&FlagSignal == 0 {
-			addFallbackSignal(p, info)
-		}
 	}
 	if !env.config.UseForkServer {
 		env.cmd.close()
 		env.cmd = nil
 	}
 	return
+}
+
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+	progData, err := p.SerializeForExec()
+	if err != nil {
+		err0 = err
+		return
+	}
+	return env.ExecProg(opts, progData)
 }
 
 func (env *Env) ForceRestart() {
@@ -328,36 +335,13 @@ var (
 	rateLimiter     <-chan time.Time
 )
 
-// addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
-// We use syscall number or-ed with returned errno value as signal.
-// At least this gives us all combinations of syscall+errno.
-func addFallbackSignal(p *prog.Prog, info *ProgInfo) {
-	callInfos := make([]prog.CallInfo, len(info.Calls))
-	for i, inf := range info.Calls {
-		if inf.Flags&CallExecuted != 0 {
-			callInfos[i].Flags |= prog.CallExecuted
-		}
-		if inf.Flags&CallFinished != 0 {
-			callInfos[i].Flags |= prog.CallFinished
-		}
-		if inf.Flags&CallBlocked != 0 {
-			callInfos[i].Flags |= prog.CallBlocked
-		}
-		callInfos[i].Errno = inf.Errno
-	}
-	p.FallbackSignal(callInfos)
-	for i, inf := range callInfos {
-		info.Calls[i].Signal = inf.Signal
-	}
-}
-
-func (env *Env) parseOutput(p *prog.Prog, opts *ExecOpts) (*ProgInfo, error) {
+func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 	out := env.out
 	ncmd, ok := readUint32(&out)
 	if !ok {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
-	info := &ProgInfo{Calls: make([]CallInfo, len(p.Calls))}
+	info := &ProgInfo{Calls: make([]CallInfo, ncalls)}
 	extraParts := make([]CallInfo, 0)
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
@@ -372,9 +356,6 @@ func (env *Env) parseOutput(p *prog.Prog, opts *ExecOpts) (*ProgInfo, error) {
 		if reply.index != extraReplyIndex {
 			if int(reply.index) >= len(info.Calls) {
 				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
-			}
-			if num := p.Calls[reply.index].Meta.ID; int(reply.num) != num {
-				return nil, fmt.Errorf("wrong call %v num %v/%v", i, reply.num, num)
 			}
 			inf = &info.Calls[reply.index]
 			if inf.Flags != 0 || inf.Signal != nil {

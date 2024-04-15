@@ -176,10 +176,18 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 	if *flagOutput {
 		ctx.logProgram(pid, p, callOpts)
 	}
+	progData, err := p.SerializeForExec()
+	if err != nil {
+		log.Logf(1, "RESULT: failed to serialize: %v", err)
+		return
+	}
 	// This mimics the syz-fuzzer logic. This is important for reproduction.
 	for try := 0; ; try++ {
-		output, info, hanged, err := env.Exec(callOpts, p)
-		if err != nil && err != prog.ErrExecBufferTooSmall {
+		output, info, hanged, err := env.ExecProg(callOpts, progData)
+		if err != nil {
+			if ctx.config.Flags&ipc.FlagDebug != 0 {
+				log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
+			}
 			if try > 10 {
 				log.SyzFatalf("executor %d failed %d times: %v\n%s", pid, try, err, output)
 			}
@@ -189,9 +197,6 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 				time.Sleep(100 * time.Millisecond)
 			}
 			continue
-		}
-		if ctx.config.Flags&ipc.FlagDebug != 0 || err != nil {
-			log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
 		}
 		if info != nil {
 			ctx.printCallResults(info)

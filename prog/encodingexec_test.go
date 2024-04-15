@@ -752,8 +752,8 @@ func TestSerializeForExecOverflow(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, err = p.SerializeForExec()
-			if test.overflow && err != ErrExecBufferTooSmall {
-				t.Fatalf("want overflow but got %v", err)
+			if test.overflow && err == nil {
+				t.Fatalf("want overflow but got no error")
 			}
 			if !test.overflow && err != nil {
 				t.Fatalf("want no overflow but got %v", err)
