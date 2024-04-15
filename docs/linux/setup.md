@@ -12,7 +12,6 @@ Instructions for a particular VM type or kernel architecture can be found on the
 - [Setup: Linux host, Android device, arm32/64 kernel](setup_linux-host_android-device_arm-kernel.md)
 - [Setup: Linux isolated host](setup_linux-host_isolated.md)
 - [Setup: Ubuntu host, VMware vm, x86-64 kernel](setup_ubuntu-host_vmware-vm_x86-64-kernel.md)
-- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md) [outdated]
 
 ## Install
 
