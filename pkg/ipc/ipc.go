@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -68,6 +69,7 @@ type Config struct {
 
 	UseShmem      bool // use shared memory instead of pipes for communication
 	UseForkServer bool // use extended protocol with handshake
+	RateLimit     bool // rate limit start of new processes for host fuzzer mode
 
 	// Flags are configuation flags, defined above.
 	Flags      EnvFlags
@@ -246,8 +248,6 @@ func (env *Env) Close() error {
 	}
 }
 
-var rateLimit = time.NewTicker(1 * time.Second)
-
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
 // info: per-call info
@@ -271,7 +271,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	}
 
 	atomic.AddUint64(&env.StatExecs, 1)
-	err0 = env.RestartIfNeeded(p.Target)
+	err0 = env.RestartIfNeeded()
 	if err0 != nil {
 		return
 	}
@@ -306,22 +306,28 @@ func (env *Env) ForceRestart() {
 	}
 }
 
-// This smethod brings up an executor process if it was stopped.
-func (env *Env) RestartIfNeeded(target *prog.Target) error {
-	if env.cmd == nil {
-		if target.OS != targets.TestOS && targets.Get(target.OS, target.Arch).HostFuzzer {
-			// The executor is actually ssh,
-			// starting them too frequently leads to timeouts.
-			<-rateLimit.C
-		}
-		tmpDirPath := "./"
-		atomic.AddUint64(&env.StatRestarts, 1)
-		var err error
-		env.cmd, err = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
-		return err
+// RestartIfNeeded brings up an executor process if it was stopped.
+func (env *Env) RestartIfNeeded() error {
+	if env.cmd != nil {
+		return nil
 	}
-	return nil
+	if env.config.RateLimit {
+		rateLimiterOnce.Do(func() {
+			rateLimiter = time.NewTicker(1 * time.Second).C
+		})
+		<-rateLimiter
+	}
+	tmpDirPath := "./"
+	atomic.AddUint64(&env.StatRestarts, 1)
+	var err error
+	env.cmd, err = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
+	return err
 }
+
+var (
+	rateLimiterOnce sync.Once
+	rateLimiter     <-chan time.Time
+)
 
 // addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
 // We use syscall number or-ed with returned errno value as signal.
