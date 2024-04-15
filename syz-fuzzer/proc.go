@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -61,11 +60,13 @@ func (proc *Proc) loop() {
 			(req.NeedCover || req.NeedSignal != rpctype.NoSignal || req.NeedHints) {
 			proc.env.ForceRestart()
 		}
-		info := proc.executeRaw(&opts, req.prog)
+		info, try := proc.executeRaw(&opts, req.ID, req.prog)
 		// Let's perform signal filtering in a separate thread to get the most
 		// exec/sec out of a syz-executor instance.
 		proc.tool.results <- executionResult{
 			ExecutionRequest: req.ExecutionRequest,
+			procID:           proc.pid,
+			try:              try,
 			info:             info,
 		}
 	}
@@ -86,7 +87,7 @@ func (proc *Proc) nextRequest() executionRequest {
 	return req
 }
 
-func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
+func (proc *Proc) executeRaw(opts *ipc.ExecOpts, progID int64, p *prog.Prog) (*ipc.ProgInfo, int) {
 	for try := 0; ; try++ {
 		var output []byte
 		var info *ipc.ProgInfo
@@ -97,7 +98,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 		if err == nil {
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()
-			proc.logProgram(p)
+			proc.tool.startExecutingCall(progID, proc.pid, try)
 			output, info, hanged, err = proc.env.Exec(opts, p)
 			proc.tool.gate.Leave(ticket)
 		}
@@ -107,9 +108,8 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 				// but so far we don't have a better handling than counting this.
 				// This error is observed a lot on the seeded syz_mount_image calls.
 				proc.tool.bufferTooSmall.Add(1)
-				return nil
+				return nil, try
 			}
-			proc.tool.execRetries.Add(1)
 			if try > 10 {
 				log.SyzFatalf("executor %v failed %v times: %v\n%s", proc.pid, try, err, output)
 			}
@@ -120,17 +120,6 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 			continue
 		}
 		log.Logf(2, "result hanged=%v: %s", hanged, output)
-		return info
+		return info, try
 	}
-}
-
-func (proc *Proc) logProgram(p *prog.Prog) {
-	// The following output helps to understand what program crashed kernel.
-	// It must not be intermixed.
-	now := time.Now()
-	data := p.Serialize()
-	proc.tool.logMu.Lock()
-	fmt.Printf("%02v:%02v:%02v executing program %v:\n%s\n",
-		now.Hour(), now.Minute(), now.Second(), proc.pid, data)
-	proc.tool.logMu.Unlock()
 }

@@ -37,8 +37,10 @@ type ExecutionRequest struct {
 
 // ExecutionResult is sent after ExecutionRequest is completed.
 type ExecutionResult struct {
-	ID   int64
-	Info ipc.ProgInfo
+	ID     int64
+	ProcID int
+	Try    int
+	Info   ipc.ProgInfo
 }
 
 // ExchangeInfoRequest is periodically sent by syz-fuzzer to syz-manager.
@@ -55,6 +57,17 @@ type ExchangeInfoReply struct {
 	Requests      []ExecutionRequest
 	NewMaxSignal  []uint32
 	DropMaxSignal []uint32
+}
+
+// ExecutingRequest is notification from the fuzzer that it started executing
+// the program ProgID. We want this request to be as small and as fast as possible
+// b/c we want it to reach manager (or at least leave the VM) before it crashes
+// executing this program.
+type ExecutingRequest struct {
+	Name   string
+	ID     int64
+	ProcID int
+	Try    int
 }
 
 // TODO: merge ExecutionRequest and ExecTask.

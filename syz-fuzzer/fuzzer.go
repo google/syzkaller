@@ -39,10 +39,7 @@ type FuzzerTool struct {
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
 
-	logMu sync.Mutex
-
 	bufferTooSmall atomic.Uint64
-	execRetries    atomic.Uint64
 	noExecRequests atomic.Uint64
 	noExecDuration atomic.Uint64
 	resetAccState  bool
@@ -57,7 +54,9 @@ type FuzzerTool struct {
 // to the communication thread.
 type executionResult struct {
 	rpctype.ExecutionRequest
-	info *ipc.ProgInfo
+	procID int
+	try    int
+	info   *ipc.ProgInfo
 }
 
 // executionRequest offloads prog deseralization to another thread.
@@ -322,6 +321,15 @@ func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
 	log.Logf(0, "%s", output)
 }
 
+func (tool *FuzzerTool) startExecutingCall(progID int64, pid, try int) {
+	tool.manager.AsyncCall("Manager.StartExecuting", &rpctype.ExecutingRequest{
+		Name:   tool.name,
+		ID:     progID,
+		ProcID: pid,
+		Try:    try,
+	})
+}
+
 func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResult,
 	latency time.Duration) time.Duration {
 	a := &rpctype.ExchangeInfoRequest{
@@ -378,7 +386,11 @@ func (tool *FuzzerTool) exchangeDataWorker() {
 }
 
 func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.ExecutionResult {
-	ret := rpctype.ExecutionResult{ID: res.ID}
+	ret := rpctype.ExecutionResult{
+		ID:     res.ID,
+		ProcID: res.procID,
+		Try:    res.try,
+	}
 	if res.info != nil {
 		if res.NeedSignal == rpctype.NewSignal {
 			tool.diffMaxSignal(res.info, res.SignalFilter, res.SignalFilterCall)
@@ -391,11 +403,9 @@ func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.Exec
 func (tool *FuzzerTool) grabStats() map[string]uint64 {
 	stats := map[string]uint64{}
 	for _, proc := range tool.procs {
-		stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
 		stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 	}
 	stats["buffer too small"] = tool.bufferTooSmall.Swap(0)
-	stats["exec retries"] = tool.execRetries.Swap(0)
 	stats["no exec requests"] = tool.noExecRequests.Swap(0)
 	stats["no exec duration"] = tool.noExecDuration.Swap(0)
 	return stats
