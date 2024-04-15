@@ -19,16 +19,19 @@ func TestSerializeForExecRandom(t *testing.T) {
 	buf := make([]byte, ExecBufferSize)
 	execSizes := histogram.New(1000)
 	textSizes := histogram.New(1000)
+	totalSize := 0
+	sizes := make(map[string]int)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, ct)
 		n, err := p.SerializeForExec(buf)
 		if err != nil {
 			t.Fatalf("failed to serialize: %v", err)
 		}
-		_, err = target.DeserializeExec(buf[:n])
+		_, err = target.DeserializeExec(buf[:n], sizes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		totalSize += n
 		execSizes.Add(float64(n))
 		textSizes.Add(float64(len(p.Serialize())))
 	}
@@ -36,6 +39,9 @@ func TestSerializeForExecRandom(t *testing.T) {
 		int(execSizes.Quantile(0.1)), int(execSizes.Quantile(0.5)), int(execSizes.Quantile(0.9)))
 	t.Logf("text sizes: 10%%:%v 50%%:%v 90%%:%v",
 		int(textSizes.Quantile(0.1)), int(textSizes.Quantile(0.5)), int(textSizes.Quantile(0.9)))
+	for what, size := range sizes {
+		t.Logf("%-24v: %5.2f%%", what, float64(size)/float64(totalSize)*100)
+	}
 }
 
 // nolint: funlen
@@ -675,7 +681,7 @@ test$res1(r0)
 				t.Logf("got:  %q", data)
 				t.Fatalf("mismatch")
 			}
-			decoded, err := target.DeserializeExec(data)
+			decoded, err := target.DeserializeExec(data, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
