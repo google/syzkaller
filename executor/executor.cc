@@ -200,9 +200,11 @@ const uint64 instr_copyout = -3;
 const uint64 instr_setprops = -4;
 
 const uint64 arg_const = 0;
-const uint64 arg_result = 1;
-const uint64 arg_data = 2;
-const uint64 arg_csum = 3;
+const uint64 arg_addr32 = 1;
+const uint64 arg_addr64 = 2;
+const uint64 arg_result = 3;
+const uint64 arg_data = 4;
+const uint64 arg_csum = 5;
 
 const uint64 binary_format_native = 0;
 const uint64 binary_format_bigendian = 1;
@@ -762,13 +764,22 @@ void execute_one()
 		if (call_num == instr_eof)
 			break;
 		if (call_num == instr_copyin) {
-			char* addr = (char*)read_input(&input_pos);
+			char* addr = (char*)(read_input(&input_pos) + SYZ_DATA_OFFSET);
 			uint64 typ = read_input(&input_pos);
 			switch (typ) {
 			case arg_const: {
 				uint64 size, bf, bf_off, bf_len;
 				uint64 arg = read_const_arg(&input_pos, &size, &bf, &bf_off, &bf_len);
 				copyin(addr, arg, size, bf, bf_off, bf_len);
+				break;
+			}
+			case arg_addr32:
+			case arg_addr64: {
+				uint64 val = read_input(&input_pos) + SYZ_DATA_OFFSET;
+				if (typ == arg_addr32)
+					NONFAILING(*(uint32*)addr = val);
+				else
+					NONFAILING(*(uint64*)addr = val);
 				break;
 			}
 			case arg_result: {
@@ -808,6 +819,7 @@ void execute_one()
 						uint64 chunk_size = read_input(&input_pos);
 						switch (chunk_kind) {
 						case arg_csum_chunk_data:
+							chunk_value += SYZ_DATA_OFFSET;
 							debug_verbose("#%lld: data chunk, addr: %llx, size: %llu\n",
 								      chunk, chunk_value, chunk_size);
 							NONFAILING(csum_inet_update(&csum, (const uint8*)chunk_value, chunk_size));
@@ -1082,7 +1094,7 @@ void copyout_call_results(thread_t* th)
 			uint64 index = read_input(&th->copyout_pos);
 			if (index >= kMaxCommands)
 				failmsg("result overflows kMaxCommands", "index=%lld", index);
-			char* addr = (char*)read_input(&th->copyout_pos);
+			char* addr = (char*)(read_input(&th->copyout_pos) + SYZ_DATA_OFFSET);
 			uint64 size = read_input(&th->copyout_pos);
 			uint64 val = 0;
 			if (copyout(addr, size, &val)) {
@@ -1433,6 +1445,10 @@ uint64 read_arg(uint8** input_posp)
 		if (bf_off != 0 || bf_len != 0)
 			failmsg("bad argument bitfield", "off=%llu, len=%llu", bf_off, bf_len);
 		return swap(val, size, bf);
+	}
+	case arg_addr32:
+	case arg_addr64: {
+		return read_input(input_posp) + SYZ_DATA_OFFSET;
 	}
 	case arg_result: {
 		uint64 meta = read_input(input_posp);

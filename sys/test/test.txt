@@ -756,6 +756,7 @@ resource syz_res[int32]: 0xffff
 test$res0() syz_res
 test$res1(a0 syz_res)
 test$res2() fd
+test$res3(a0 ptr[out, syz_res])
 
 # ONLY_32BITS_CONST const is not present on all arches.
 # Ensure that it does not break build.
