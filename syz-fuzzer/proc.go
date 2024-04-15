@@ -93,7 +93,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 		var hanged bool
 		// On a heavily loaded VM, syz-executor may take significant time to start.
 		// Let's do it outside of the gate ticket.
-		err := proc.env.RestartIfNeeded(p.Target)
+		err := proc.env.RestartIfNeeded()
 		if err == nil {
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()

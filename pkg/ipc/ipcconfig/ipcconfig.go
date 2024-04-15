@@ -41,6 +41,7 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	c.Flags |= sandboxFlags
 	c.UseShmem = sysTarget.ExecutorUsesShmem
 	c.UseForkServer = sysTarget.ExecutorUsesForkServer
+	c.RateLimit = sysTarget.HostFuzzer && target.OS != targets.TestOS
 	opts := &ipc.ExecOpts{
 		Flags: ipc.FlagDedupCover,
 	}
