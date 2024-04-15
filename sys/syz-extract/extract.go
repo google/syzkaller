@@ -57,7 +57,6 @@ type Extractor interface {
 }
 
 var extractors = map[string]Extractor{
-	targets.Akaros:  new(akaros),
 	targets.Linux:   new(linux),
 	targets.FreeBSD: new(freebsd),
 	targets.Darwin:  new(darwin),

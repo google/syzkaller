@@ -29,7 +29,6 @@ one. These header files are defined in [gen.go](../pkg/csource/gen.go):
 
     executorFilenames := []string{
             "common_linux.h",
-            "common_akaros.h",
             "common_bsd.h",
             "common_fuchsia.h",
             "common_windows.h",

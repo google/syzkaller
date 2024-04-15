@@ -181,15 +181,6 @@ func createIPCConfig(target *prog.Target, features *host.Features, featuresFlags
 }
 
 func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool {
-	if *flagOS != runtime.GOOS {
-		// This is currently used on akaros, where syz-stress runs on host.
-		calls := make(map[*prog.Syscall]bool)
-		for _, c := range target.Syscalls {
-			calls[c] = true
-		}
-		return calls
-	}
-
 	enabledSyscalls := make(map[*prog.Syscall]bool)
 	if len(enabled) != 0 {
 		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
