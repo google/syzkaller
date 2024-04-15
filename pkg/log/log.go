@@ -15,18 +15,20 @@ import (
 	golog "log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 var (
-	flagV        = flag.Int("vv", 0, "verbosity")
-	mu           sync.Mutex
-	cacheMem     int
-	cacheMaxMem  int
-	cachePos     int
-	cacheEntries []string
-	instanceName string
-	prependTime  = true // for testing
+	flagV          = flag.Int("vv", 0, "verbosity")
+	mu             sync.Mutex
+	cacheMem       int
+	cacheMaxMem    int
+	cachePos       int
+	cacheEntries   []string
+	cachingEnabled atomic.Bool
+	instanceName   string
+	prependTime    = true // for testing
 )
 
 // EnableLogCaching enables in memory caching of log output.
@@ -43,6 +45,7 @@ func EnableLogCaching(maxLines, maxMem int) {
 	}
 	cacheMaxMem = maxMem
 	cacheEntries = make([]string, maxLines)
+	cachingEnabled.Store(true)
 }
 
 // Retrieves cached log output.
@@ -73,11 +76,11 @@ func V(level int) bool {
 }
 
 func Logf(v int, msg string, args ...interface{}) {
-	writeMessage(v, message("", msg, args...))
+	writeMessage(v, "", msg, args...)
 }
 
 func Errorf(msg string, args ...interface{}) {
-	writeMessage(0, message("ERROR", msg, args...))
+	writeMessage(0, "ERROR", msg, args...)
 }
 
 func Fatal(err error) {
@@ -105,36 +108,41 @@ func message(severity, msg string, args ...interface{}) string {
 	return sb.String()
 }
 
-func writeMessage(v int, msg string) {
-	mu.Lock()
-	if cacheEntries != nil && v <= 1 {
-		cacheMem -= len(cacheEntries[cachePos])
-		if cacheMem < 0 {
-			panic("log cache size underflow")
-		}
-		timeStr := ""
-		if prependTime {
-			timeStr = time.Now().Format("2006/01/02 15:04:05 ")
-		}
-		cacheEntries[cachePos] = timeStr + msg
-		cacheMem += len(cacheEntries[cachePos])
-		cachePos++
-		if cachePos == len(cacheEntries) {
-			cachePos = 0
-		}
-		for i := 0; i < len(cacheEntries)-1 && cacheMem > cacheMaxMem; i++ {
-			pos := (cachePos + i) % len(cacheEntries)
-			cacheMem -= len(cacheEntries[pos])
-			cacheEntries[pos] = ""
-		}
-		if cacheMem < 0 {
-			panic("log cache size underflow")
-		}
+func writeMessage(v int, severity, msg string, args ...interface{}) {
+	cache := v <= 1 && cachingEnabled.Load()
+	if !V(v) && !cache {
+		return
 	}
-	mu.Unlock()
-
+	text := message(severity, msg, args...)
 	if V(v) {
-		golog.Print(msg)
+		golog.Print(text)
+	}
+	if !cache {
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	cacheMem -= len(cacheEntries[cachePos])
+	if cacheMem < 0 {
+		panic("log cache size underflow")
+	}
+	timeStr := ""
+	if prependTime {
+		timeStr = time.Now().Format("2006/01/02 15:04:05 ")
+	}
+	cacheEntries[cachePos] = timeStr + text
+	cacheMem += len(cacheEntries[cachePos])
+	cachePos++
+	if cachePos == len(cacheEntries) {
+		cachePos = 0
+	}
+	for i := 0; i < len(cacheEntries)-1 && cacheMem > cacheMaxMem; i++ {
+		pos := (cachePos + i) % len(cacheEntries)
+		cacheMem -= len(cacheEntries[pos])
+		cacheEntries[pos] = ""
+	}
+	if cacheMem < 0 {
+		panic("log cache size underflow")
 	}
 }
 
