@@ -20,6 +20,7 @@
 package prog
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"reflect"
@@ -251,8 +252,8 @@ func (w *execContext) write(v uint64) {
 		w.eof = true
 		return
 	}
-	HostEndian.PutUint64(w.buf, v)
-	w.buf = w.buf[8:]
+	n := binary.PutVarint(w.buf, int64(v))
+	w.buf = w.buf[n:]
 }
 
 func (w *execContext) writeArg(arg Arg) {
