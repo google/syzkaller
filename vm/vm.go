@@ -195,6 +195,7 @@ const (
 )
 
 type StopChan <-chan bool
+type InjectOutput <-chan []byte
 type OutputSize int
 
 // Run runs cmd inside of the VM (think of ssh cmd) and monitors command execution
@@ -208,6 +209,7 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 	[]byte, *report.Report, error) {
 	exit := ExitNormal
 	var stop <-chan bool
+	var injected <-chan []byte
 	outputSize := beforeContextDefault
 	for _, o := range opts {
 		switch opt := o.(type) {
@@ -217,6 +219,8 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 			stop = opt
 		case OutputSize:
 			outputSize = int(opt)
+		case InjectOutput:
+			injected = (<-chan []byte)(opt)
 		default:
 			panic(fmt.Sprintf("unknown option %#v", opt))
 		}
@@ -226,12 +230,14 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 		return nil, nil, err
 	}
 	mon := &monitor{
-		inst:          inst,
-		outc:          outc,
-		errc:          errc,
-		reporter:      reporter,
-		beforeContext: outputSize,
-		exit:          exit,
+		inst:            inst,
+		outc:            outc,
+		injected:        injected,
+		errc:            errc,
+		reporter:        reporter,
+		beforeContext:   outputSize,
+		exit:            exit,
+		lastExecuteTime: time.Now(),
 	}
 	rep := mon.monitorExecution()
 	return mon.output, rep, nil
@@ -270,20 +276,21 @@ func (inst *Instance) Close() {
 }
 
 type monitor struct {
-	inst          *Instance
-	outc          <-chan []byte
-	errc          <-chan error
-	reporter      *report.Reporter
-	exit          ExitCondition
-	output        []byte
-	beforeContext int
-	matchPos      int
+	inst            *Instance
+	outc            <-chan []byte
+	injected        <-chan []byte
+	errc            <-chan error
+	reporter        *report.Reporter
+	exit            ExitCondition
+	output          []byte
+	beforeContext   int
+	matchPos        int
+	lastExecuteTime time.Time
 }
 
 func (mon *monitor) monitorExecution() *report.Report {
 	ticker := time.NewTicker(tickerPeriod * mon.inst.timeouts.Scale)
 	defer ticker.Stop()
-	lastExecuteTime := time.Now()
 	for {
 		select {
 		case err := <-mon.errc:
@@ -315,45 +322,56 @@ func (mon *monitor) monitorExecution() *report.Report {
 				mon.outc = nil
 				continue
 			}
-			lastPos := len(mon.output)
-			mon.output = append(mon.output, out...)
-			if bytes.Contains(mon.output[lastPos:], executingProgram1) ||
-				bytes.Contains(mon.output[lastPos:], executingProgram2) {
-				lastExecuteTime = time.Now()
+			if rep := mon.appendOutput(out); rep != nil {
+				return rep
 			}
-			if mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
-				return mon.extractError("unknown error")
-			}
-			if len(mon.output) > 2*mon.beforeContext {
-				copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
-				mon.output = mon.output[:mon.beforeContext]
-			}
-			// Find the starting position for crash matching on the next iteration.
-			// We step back from the end of output by maxErrorLength to handle the case
-			// when a crash line is currently split/incomplete. And then we try to find
-			// the preceding '\n' to have a full line. This is required to handle
-			// the case when a particular pattern is ignored as crash, but a suffix
-			// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
-			mon.matchPos = len(mon.output) - maxErrorLength
-			for i := 0; i < maxErrorLength; i++ {
-				if mon.matchPos <= 0 || mon.output[mon.matchPos-1] == '\n' {
-					break
-				}
-				mon.matchPos--
-			}
-			if mon.matchPos < 0 {
-				mon.matchPos = 0
+		case out := <-mon.injected:
+			if rep := mon.appendOutput(out); rep != nil {
+				return rep
 			}
 		case <-ticker.C:
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
-			if time.Since(lastExecuteTime) > mon.inst.timeouts.NoOutput {
+			if time.Since(mon.lastExecuteTime) > mon.inst.timeouts.NoOutput {
 				return mon.extractError(noOutputCrash)
 			}
 		case <-Shutdown:
 			return nil
 		}
 	}
+}
+
+func (mon *monitor) appendOutput(out []byte) *report.Report {
+	lastPos := len(mon.output)
+	mon.output = append(mon.output, out...)
+	if bytes.Contains(mon.output[lastPos:], executingProgram1) ||
+		bytes.Contains(mon.output[lastPos:], executingProgram2) {
+		mon.lastExecuteTime = time.Now()
+	}
+	if mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
+		return mon.extractError("unknown error")
+	}
+	if len(mon.output) > 2*mon.beforeContext {
+		copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
+		mon.output = mon.output[:mon.beforeContext]
+	}
+	// Find the starting position for crash matching on the next iteration.
+	// We step back from the end of output by maxErrorLength to handle the case
+	// when a crash line is currently split/incomplete. And then we try to find
+	// the preceding '\n' to have a full line. This is required to handle
+	// the case when a particular pattern is ignored as crash, but a suffix
+	// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
+	mon.matchPos = len(mon.output) - maxErrorLength
+	for i := 0; i < maxErrorLength; i++ {
+		if mon.matchPos <= 0 || mon.output[mon.matchPos-1] == '\n' {
+			break
+		}
+		mon.matchPos--
+	}
+	if mon.matchPos < 0 {
+		mon.matchPos = 0
+	}
+	return nil
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
