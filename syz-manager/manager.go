@@ -631,16 +631,15 @@ func (mgr *Manager) loadCorpus() {
 		}
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	corpusSize := len(candidates)
-	log.Logf(0, "%-24v: %v (deleted %v broken)", "corpus", corpusSize, broken)
-
+	seeds := 0
 	for _, seed := range mgr.seeds {
 		_, item := mgr.loadProg(seed, true, false)
 		if item != nil {
 			candidates = append(candidates, *item)
+			seeds++
 		}
 	}
-	log.Logf(0, "%-24v: %v/%v", "seeds", len(candidates)-corpusSize, len(candidates))
+	log.Logf(0, "%-24v: %v (%v broken, %v seeds)", "corpus", len(candidates), broken, seeds)
 	mgr.seeds = nil
 
 	// We duplicate all inputs in the corpus and shuffle the second part.
@@ -1365,7 +1364,6 @@ func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string
 	mgr.checkFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	mgr.target.UpdateGlobs(globFiles)
-	mgr.firstConnect.Store(time.Now().Unix())
 	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
@@ -1395,6 +1393,7 @@ func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string
 	mgr.fuzzer.Store(fuzzerObj)
 
 	mgr.loadCorpus()
+	mgr.firstConnect.Store(time.Now().Unix())
 	go mgr.fuzzerLoop(fuzzerObj)
 	go mgr.fuzzerSignalRotation(fuzzerObj)
 }
