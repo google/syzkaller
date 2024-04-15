@@ -39,12 +39,11 @@ type FuzzerTool struct {
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
 
-	bufferTooSmall atomic.Uint64
 	noExecRequests atomic.Uint64
 	noExecDuration atomic.Uint64
 	resetAccState  bool
 
-	inputs    chan executionRequest
+	requests  chan rpctype.ExecutionRequest
 	results   chan executionResult
 	signalMu  sync.RWMutex
 	maxSignal signal.Signal
@@ -57,12 +56,6 @@ type executionResult struct {
 	procID int
 	try    int
 	info   *ipc.ProgInfo
-}
-
-// executionRequest offloads prog deseralization to another thread.
-type executionRequest struct {
-	rpctype.ExecutionRequest
-	prog *prog.Prog
 }
 
 func createIPCConfig(features *host.Features, config *ipc.Config) {
@@ -165,7 +158,7 @@ func main() {
 		return
 	}
 
-	machineInfo, modules := collectMachineInfos(target)
+	machineInfo, modules := collectMachineInfos()
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale, false, *flagNetCompression)
@@ -236,8 +229,8 @@ func main() {
 		config:        config,
 		resetAccState: *flagResetAccState,
 
-		inputs:  make(chan executionRequest, inputsCount),
-		results: make(chan executionResult, inputsCount),
+		requests: make(chan rpctype.ExecutionRequest, inputsCount),
+		results:  make(chan executionResult, inputsCount),
 	}
 	fuzzerTool.gate = ipc.NewGate(gateSize,
 		fuzzerTool.useBugFrames(r, *flagProcs))
@@ -259,7 +252,7 @@ func main() {
 	fuzzerTool.exchangeDataWorker()
 }
 
-func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
+func collectMachineInfos() ([]byte, []host.KernelModule) {
 	machineInfo, err := host.CollectMachineInfo()
 	if err != nil {
 		log.SyzFatalf("failed to collect machine information: %v", err)
@@ -330,16 +323,14 @@ func (tool *FuzzerTool) startExecutingCall(progID int64, pid, try int) {
 	})
 }
 
-func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResult,
+func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []rpctype.ExecutionResult,
 	latency time.Duration) time.Duration {
 	a := &rpctype.ExchangeInfoRequest{
 		Name:       tool.name,
 		NeedProgs:  needProgs,
+		Results:    results,
 		StatsDelta: tool.grabStats(),
 		Latency:    latency,
-	}
-	for _, result := range results {
-		a.Results = append(a.Results, tool.convertExecutionResult(result))
 	}
 	r := &rpctype.ExchangeInfoReply{}
 	start := osutil.MonotonicNano()
@@ -352,14 +343,7 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResul
 	}
 	tool.updateMaxSignal(r.NewMaxSignal, r.DropMaxSignal)
 	for _, req := range r.Requests {
-		p := tool.deserializeInput(req.ProgData)
-		if p == nil {
-			log.SyzFatalf("failed to deserialize input: %s", req.ProgData)
-		}
-		tool.inputs <- executionRequest{
-			ExecutionRequest: req,
-			prog:             p,
-		}
+		tool.requests <- req
 	}
 	return latency
 }
@@ -367,15 +351,13 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []executionResul
 func (tool *FuzzerTool) exchangeDataWorker() {
 	var latency time.Duration
 	for result := range tool.results {
-		results := []executionResult{
-			result,
-		}
+		results := []rpctype.ExecutionResult{tool.convertExecutionResult(result)}
 		// Grab other finished calls, just in case there are any.
 	loop:
 		for {
 			select {
 			case res := <-tool.results:
-				results = append(results, res)
+				results = append(results, tool.convertExecutionResult(res))
 			default:
 				break loop
 			}
@@ -405,21 +387,9 @@ func (tool *FuzzerTool) grabStats() map[string]uint64 {
 	for _, proc := range tool.procs {
 		stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 	}
-	stats["buffer too small"] = tool.bufferTooSmall.Swap(0)
 	stats["no exec requests"] = tool.noExecRequests.Swap(0)
 	stats["no exec duration"] = tool.noExecDuration.Swap(0)
 	return stats
-}
-
-func (tool *FuzzerTool) deserializeInput(inp []byte) *prog.Prog {
-	p, err := tool.target.Deserialize(inp, prog.NonStrict)
-	if err != nil {
-		log.SyzFatalf("failed to deserialize prog: %v\n%s", err, inp)
-	}
-	if len(p.Calls) > prog.MaxCalls {
-		return nil
-	}
-	return p
 }
 
 func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo, mask signal.Signal, maskCall int) {

@@ -11,7 +11,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/prog"
 )
 
 // Proc represents a single fuzzing process (executor).
@@ -60,11 +59,11 @@ func (proc *Proc) loop() {
 			(req.NeedCover || req.NeedSignal != rpctype.NoSignal || req.NeedHints) {
 			proc.env.ForceRestart()
 		}
-		info, try := proc.execute(&opts, req.ID, req.prog)
+		info, try := proc.execute(&opts, req.ID, req.ProgData)
 		// Let's perform signal filtering in a separate thread to get the most
 		// exec/sec out of a syz-executor instance.
 		proc.tool.results <- executionResult{
-			ExecutionRequest: req.ExecutionRequest,
+			ExecutionRequest: req,
 			procID:           proc.pid,
 			try:              try,
 			info:             info,
@@ -72,30 +71,22 @@ func (proc *Proc) loop() {
 	}
 }
 
-func (proc *Proc) nextRequest() executionRequest {
+func (proc *Proc) nextRequest() rpctype.ExecutionRequest {
 	select {
-	case req := <-proc.tool.inputs:
+	case req := <-proc.tool.requests:
 		return req
 	default:
 	}
 	// Not having enough inputs to execute is a sign of RPC communication problems.
 	// Let's count and report such situations.
 	start := osutil.MonotonicNano()
-	req := <-proc.tool.inputs
+	req := <-proc.tool.requests
 	proc.tool.noExecDuration.Add(uint64(osutil.MonotonicNano() - start))
 	proc.tool.noExecRequests.Add(1)
 	return req
 }
 
-func (proc *Proc) execute(opts *ipc.ExecOpts, progID int64, p *prog.Prog) (*ipc.ProgInfo, int) {
-	progData, err := p.SerializeForExec()
-	if err != nil {
-		// It's bad if we systematically fail to serialize programs,
-		// but so far we don't have a better handling than counting this.
-		// This error is observed a lot on the seeded syz_mount_image calls.
-		proc.tool.bufferTooSmall.Add(1)
-		return nil, 0
-	}
+func (proc *Proc) execute(opts *ipc.ExecOpts, progID int64, progData []byte) (*ipc.ProgInfo, int) {
 	for try := 0; ; try++ {
 		var output []byte
 		var info *ipc.ProgInfo
@@ -109,18 +100,16 @@ func (proc *Proc) execute(opts *ipc.ExecOpts, progID int64, p *prog.Prog) (*ipc.
 			proc.tool.startExecutingCall(progID, proc.pid, try)
 			output, info, hanged, err = proc.env.ExecProg(opts, progData)
 			proc.tool.gate.Leave(ticket)
-		}
-		if err != nil {
-			if try > 10 {
-				log.SyzFatalf("executor %v failed %v times: %v\n%s", proc.pid, try, err, output)
+			if err == nil {
+				log.Logf(2, "result hanged=%v: %s", hanged, output)
+				return info, try
 			}
-			log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
-			if try > 3 {
-				time.Sleep(100 * time.Millisecond)
-			}
-			continue
 		}
-		log.Logf(2, "result hanged=%v: %s", hanged, output)
-		return info, try
+		log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
+		if try > 10 {
+			log.SyzFatalf("executor %v failed %v times: %v\n%s", proc.pid, try, err, output)
+		} else if try > 3 {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 }
