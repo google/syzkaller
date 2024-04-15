@@ -73,11 +73,24 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage:\n")
-	fmt.Fprintf(os.Stderr, "  syz-db pack dir corpus.db\n")
-	fmt.Fprintf(os.Stderr, "  syz-db unpack corpus.db dir\n")
-	fmt.Fprintf(os.Stderr, "  syz-db merge dst-corpus.db add-corpus.db* add-prog*\n")
-	fmt.Fprintf(os.Stderr, "  syz-db bench corpus.db\n")
+	fmt.Fprintf(os.Stderr, `usage: syz-db can be used to manipulate corpus
+databases that are used by syz-managers. The following generic arguments are
+offered:
+  -arch string
+  -os string
+  -version uint
+  -vv int
+
+  they can be used for:
+  packing a database:
+    syz-db pack dir corpus.db
+  unpacking a database. A file containing performed syscalls will be returned:
+    syz-db unpack corpus.db dir
+  merging databases. No additional file will be created: The first file will be replaced by the merged result:
+    syz-db merge dst-corpus.db add-corpus.db* add-prog*
+  running a deserialization benchmark:
+    syz-db bench corpus.db
+`)
 	os.Exit(1)
 }
 
