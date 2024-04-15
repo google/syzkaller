@@ -87,14 +87,6 @@ static __thread int clone_ongoing;
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
-#if GOOS_akaros
-#include <parlib/parlib.h>
-static void recover(void)
-{
-	_longjmp(segv_env, 1);
-}
-#endif
-
 static void segv_handler(int sig, siginfo_t* info, void* ctx)
 {
 	// Generated programs can contain bad (unmapped/protected) addresses,
@@ -130,13 +122,7 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 #endif
 	if (skip && valid) {
 		debug("SIGSEGV on %p, skipping\n", (void*)addr);
-#if GOOS_akaros
-		struct user_context* uctx = (struct user_context*)ctx;
-		uctx->tf.hw_tf.tf_rip = (long)(void*)recover;
-		return;
-#else
 		_longjmp(segv_env, 1);
-#endif
 	}
 	debug("SIGSEGV on %p, exiting\n", (void*)addr);
 	doexit(sig);
@@ -239,7 +225,7 @@ static void use_temporary_dir(void)
 #endif
 #endif
 
-#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
+#if GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
 #include <dirent.h>
 #include <errno.h>
@@ -378,7 +364,7 @@ static void thread_start(void* (*fn)(void*), void* arg)
 #endif
 #endif
 
-#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd || GOOS_akaros || GOOS_test
+#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd || GOOS_test
 #if SYZ_EXECUTOR || SYZ_THREADED
 
 #include <pthread.h>
@@ -493,9 +479,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
-#if GOOS_akaros
-#include "common_akaros.h"
-#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd
+#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd
 #include "common_bsd.h"
 #elif GOOS_openbsd
 #include "common_openbsd.h"
@@ -635,13 +619,6 @@ static void loop(void)
 	// Tell parent that we are ready to serve.
 	reply_handshake();
 #endif
-#if SYZ_EXECUTOR && GOOS_akaros
-	// For akaros we do exec in the child process because new threads can't be created in the fork child.
-	// Thus we proxy input program over the child_pipe to the child process.
-	int child_pipe[2];
-	if (pipe(child_pipe))
-		fail("pipe failed");
-#endif
 	int iter = 0;
 #if SYZ_REPEAT_TIMES
 	for (; iter < /*{{{REPEAT_TIMES}}}*/; iter++) {
@@ -675,15 +652,6 @@ static void loop(void)
 #if SYZ_HAVE_SETUP_EXT_TEST
 			setup_ext_test();
 #endif
-#if GOOS_akaros
-#if SYZ_EXECUTOR
-			dup2(child_pipe[0], kInPipeFd);
-			close(child_pipe[0]);
-			close(child_pipe[1]);
-#endif
-			execl(program_name, program_name, "child", NULL);
-			fail("execl failed");
-#else
 #if SYZ_EXECUTOR
 			close(kInPipeFd);
 #endif
@@ -695,13 +663,9 @@ static void loop(void)
 			close_fds();
 #endif
 			doexit(0);
-#endif
 		}
 		debug("spawned worker pid %d\n", pid);
 
-#if SYZ_EXECUTOR && GOOS_akaros
-		resend_execute(child_pipe[1]);
-#endif
 		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
 		// But SIGCHLD is also delivered when a process stops/continues,
 		// so it would require a loop with status analysis and timeout recalculation.
@@ -799,21 +763,9 @@ void loop(void)
 #endif
 
 // This is the main function for csource.
-#if GOOS_akaros && SYZ_REPEAT
-#include <string.h>
-
-int main(int argc, char** argv)
-{
-	/*{{{MMAP_DATA}}}*/
-
-	program_name = argv[0];
-	if (argc == 2 && strcmp(argv[1], "child") == 0)
-		child();
-#else
 int main(void)
 {
 	/*{{{MMAP_DATA}}}*/
-#endif
 
 #if SYZ_SYSCTL
 	setup_sysctl();

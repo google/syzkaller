@@ -2,7 +2,7 @@
 
 [Linux kernel bugs](linux/found_bugs.md)
 
-[Akaros kernel bugs](akaros/found_bugs.md)
+[Akaros kernel bugs](akaros/README.md)
 
 [FreeBSD kernel bugs](freebsd/found_bugs.md)
 

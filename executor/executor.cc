@@ -107,10 +107,6 @@ void debug_dump_data(const char* data, int length);
 static void receive_execute();
 static void reply_execute(int status);
 
-#if GOOS_akaros
-static void resend_execute(int fd);
-#endif
-
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 static void receive_handshake();
 static void reply_handshake();
@@ -397,8 +393,6 @@ static void setup_features(char** enable, int n);
 #include "executor_linux.h"
 #elif GOOS_fuchsia
 #include "executor_fuchsia.h"
-#elif GOOS_akaros
-#include "executor_akaros.h"
 #elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 #include "executor_bsd.h"
 #elif GOOS_darwin
@@ -711,17 +705,6 @@ bool cover_collection_required()
 {
 	return flag_coverage && (flag_collect_signal || flag_collect_cover || flag_comparisons);
 }
-
-#if GOOS_akaros
-void resend_execute(int fd)
-{
-	execute_req& req = last_execute_req;
-	if (write(fd, &req, sizeof(req)) != sizeof(req))
-		fail("child pipe header write failed");
-	if (write(fd, input_data, req.prog_size) != (ssize_t)req.prog_size)
-		fail("child pipe program write failed");
-}
-#endif
 
 void reply_execute(int status)
 {

@@ -251,7 +251,7 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 		errText = strings.ReplaceAll(errText, "‘", "'")
 		errText = strings.ReplaceAll(errText, "’", "'")
 		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
-			(os.Getenv("SYZ_ENV") == "" || target.OS == targets.Akaros) {
+			os.Getenv("SYZ_ENV") == "" {
 			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
 		}
 		t.Fatal(err)

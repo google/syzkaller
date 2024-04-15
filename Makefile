@@ -87,11 +87,6 @@ ifeq ("$(TARGETOS)", "test")
 	TARGETGOARCH := $(HOSTARCH)
 endif
 
-ifeq ("$(TARGETOS)", "akaros")
-	TARGETGOOS := $(HOSTOS)
-	TARGETGOARCH := $(HOSTARCH)
-endif
-
 ifeq ("$(TARGETOS)", "fuchsia")
 	TARGETGOOS := $(HOSTOS)
 	TARGETGOARCH := $(HOSTARCH)
@@ -355,7 +350,6 @@ presubmit_arch_windows: descriptions
 
 presubmit_arch_executor: descriptions
 	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
-	env TARGETOS=akaros TARGETARCH=amd64 $(MAKE) executor
 	env TARGETOS=fuchsia TARGETARCH=amd64 $(MAKE) executor
 	env TARGETOS=fuchsia TARGETARCH=arm64 $(MAKE) executor
 	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
