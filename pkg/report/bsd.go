@@ -4,7 +4,6 @@
 package report
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"path/filepath"
@@ -57,11 +56,9 @@ func (ctx *bsd) Symbolize(rep *Report) error {
 	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
 	var symbolized []byte
-	s := bufio.NewScanner(bytes.NewReader(rep.Report))
 	prefix := rep.reportPrefixLen
-	for s.Scan() {
-		line := append([]byte{}, s.Bytes()...)
-		line = append(line, '\n')
+	for _, line := range bytes.SplitAfter(rep.Report, []byte("\n")) {
+		line := bytes.Clone(line)
 		newLine := ctx.symbolizeLine(symb.Symbolize, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
