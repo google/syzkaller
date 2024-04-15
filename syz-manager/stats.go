@@ -76,7 +76,11 @@ func (mgr *Manager) initStats() {
 		})
 
 	// Stats imported from the fuzzer (names must match the the fuzzer names).
-	stats.Create("executor restarts", "Number of times executor process was restarted", stats.Rate{})
+	stats.Create("executor restarts", "Number of times executor process was restarted",
+		stats.Rate{}, stats.Graph("executor"))
+	stats.Create("exec retries",
+		"Number of times a test program was restarted because the first run failed",
+		stats.Rate{}, stats.Graph("executor"))
 	stats.Create("buffer too small", "Program serialization overflowed exec buffer", stats.NoGraph)
 	stats.Create("no exec requests", "Number of times fuzzer was stalled with no exec requests", stats.Rate{})
 	stats.Create("no exec duration", "Total duration fuzzer was stalled with no exec requests (ns/sec)", stats.Rate{})

@@ -185,7 +185,9 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 			}
 			// Don't print err/output in this case as it may contain "SYZFAIL" and we want to fail yet.
 			log.Logf(1, "executor failed, retrying")
-			time.Sleep(time.Second)
+			if try > 3 {
+				time.Sleep(100 * time.Millisecond)
+			}
 			continue
 		}
 		if ctx.config.Flags&ipc.FlagDebug != 0 || err != nil {

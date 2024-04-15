@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"runtime/debug"
 	"time"
 
 	"github.com/google/syzkaller/pkg/ipc"
@@ -110,12 +109,14 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog) *ipc.ProgInfo {
 				proc.tool.bufferTooSmall.Add(1)
 				return nil
 			}
+			proc.tool.execRetries.Add(1)
 			if try > 10 {
 				log.SyzFatalf("executor %v failed %v times: %v\n%s", proc.pid, try, err, output)
 			}
 			log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
-			debug.FreeOSMemory()
-			time.Sleep(time.Second)
+			if try > 3 {
+				time.Sleep(100 * time.Millisecond)
+			}
 			continue
 		}
 		log.Logf(2, "result hanged=%v: %s", hanged, output)
