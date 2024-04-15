@@ -68,12 +68,11 @@ var ErrExecBufferTooSmall = errors.New("encodingexec: provided buffer is too sma
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
-func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
+func (p *Prog) SerializeForExec() ([]byte, error) {
 	p.debugValidate()
 	w := &execContext{
 		target: p.Target,
-		buf:    buffer,
-		eof:    false,
+		buf:    make([]byte, 0, 4<<10),
 		args:   make(map[Arg]argInfo),
 	}
 	for _, c := range p.Calls {
@@ -81,10 +80,10 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		w.serializeCall(c)
 	}
 	w.write(execInstrEOF)
-	if w.eof || w.copyoutSeq > execMaxCommands {
-		return 0, ErrExecBufferTooSmall
+	if len(w.buf) > ExecBufferSize || w.copyoutSeq > execMaxCommands {
+		return nil, ErrExecBufferTooSmall
 	}
-	return len(buffer) - len(w.buf), nil
+	return w.buf, nil
 }
 
 func (w *execContext) serializeCall(c *Call) {
@@ -122,7 +121,6 @@ func (w *execContext) serializeCall(c *Call) {
 type execContext struct {
 	target     *Target
 	buf        []byte
-	eof        bool
 	args       map[Arg]argInfo
 	copyoutSeq uint64
 	// Per-call state cached here to not pass it through all functions.
@@ -252,12 +250,7 @@ func (w *execContext) writeCopyout(c *Call) {
 }
 
 func (w *execContext) write(v uint64) {
-	if len(w.buf) < 8 {
-		w.eof = true
-		return
-	}
-	n := binary.PutVarint(w.buf, int64(v))
-	w.buf = w.buf[n:]
+	w.buf = binary.AppendVarint(w.buf, int64(v))
 }
 
 func (w *execContext) writeArg(arg Arg) {
@@ -303,12 +296,7 @@ func (w *execContext) writeArg(arg Arg) {
 			flags |= execArgDataReadable
 		}
 		w.write(flags)
-		if len(w.buf) < len(data) {
-			w.eof = true
-		} else {
-			n := copy(w.buf, data)
-			w.buf = w.buf[n:]
-		}
+		w.buf = append(w.buf, data...)
 	case *UnionArg:
 		w.writeArg(a.Option)
 	default:

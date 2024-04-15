@@ -27,7 +27,6 @@ type DeserializeTest struct {
 
 func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target, *Prog), tests []DeserializeTest) {
 	target := InitTargetTest(t, OS, arch)
-	buf := make([]byte, ExecBufferSize)
 	for testidx, test := range tests {
 		t.Run(fmt.Sprint(testidx), func(t *testing.T) {
 			if test.StrictErr == "" {
@@ -75,7 +74,7 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 					if want != output && want != outputVerbose {
 						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n", outputVerbose, want)
 					}
-					p.SerializeForExec(buf)
+					p.SerializeForExec()
 				}
 			}
 		})
