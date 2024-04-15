@@ -381,11 +381,7 @@ func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.Exec
 	ret := rpctype.ExecutionResult{ID: res.ID}
 	if res.info != nil {
 		if res.NeedSignal == rpctype.NewSignal {
-			tool.diffMaxSignal(res.info)
-		}
-		if res.SignalFilter != nil {
-			// TODO: we can filter without maps if req.SignalFilter is sorted.
-			filterProgInfo(res.info, res.SignalFilter)
+			tool.diffMaxSignal(res.info, res.SignalFilter, res.SignalFilterCall)
 		}
 		ret.Info = *res.info
 	}
@@ -416,29 +412,24 @@ func (tool *FuzzerTool) deserializeInput(inp []byte) *prog.Prog {
 	return p
 }
 
-// The linter is too aggressive.
-// nolint: dupl
-func filterProgInfo(info *ipc.ProgInfo, mask signal.Signal) {
-	info.Extra.Signal = mask.FilterRaw(info.Extra.Signal)
-	for i := 0; i < len(info.Calls); i++ {
-		info.Calls[i].Signal = mask.FilterRaw(info.Calls[i].Signal)
-	}
-}
-
-// The linter is too aggressive.
-// nolint: dupl
-func diffProgInfo(info *ipc.ProgInfo, base signal.Signal) {
-	info.Extra.Signal = base.DiffFromRaw(info.Extra.Signal)
-	for i := 0; i < len(info.Calls); i++ {
-		info.Calls[i].Signal = base.DiffFromRaw(info.Calls[i].Signal)
-	}
-}
-
-func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo) {
+func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo, mask signal.Signal, maskCall int) {
 	tool.signalMu.RLock()
 	defer tool.signalMu.RUnlock()
+	diffMaxSignal(info, tool.maxSignal, mask, maskCall)
+}
 
-	diffProgInfo(info, tool.maxSignal)
+func diffMaxSignal(info *ipc.ProgInfo, max, mask signal.Signal, maskCall int) {
+	info.Extra.Signal = diffCallSignal(info.Extra.Signal, max, mask, -1, maskCall)
+	for i := 0; i < len(info.Calls); i++ {
+		info.Calls[i].Signal = diffCallSignal(info.Calls[i].Signal, max, mask, i, maskCall)
+	}
+}
+
+func diffCallSignal(raw []uint32, max, mask signal.Signal, call, maskCall int) []uint32 {
+	if mask != nil && call == maskCall {
+		return signal.FilterRaw(raw, max, mask)
+	}
+	return max.DiffFromRaw(raw)
 }
 
 func (tool *FuzzerTool) updateMaxSignal(add, drop []uint32) {
