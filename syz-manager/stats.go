@@ -35,7 +35,7 @@ func (mgr *Manager) initStats() {
 	mgr.statCrashTypes = stats.Create("crash types", "Number of unique crashes types",
 		stats.Simple, stats.NoGraph)
 	mgr.statSuppressed = stats.Create("suppressed", "Total number of suppressed VM crashes",
-		stats.Simple, stats.NoGraph)
+		stats.Simple, stats.Graph("crashes"))
 	mgr.statFuzzingTime = stats.Create("fuzzing", "Total fuzzing time in all VMs (seconds)",
 		stats.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
 
