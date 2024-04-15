@@ -4,7 +4,6 @@
 package report
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -404,8 +403,8 @@ func (ctx *linux) symbolize(rep *Report) error {
 	}
 	var symbolized []byte
 	prefix := rep.reportPrefixLen
-	for _, originalLine := range bytes.SplitAfter(rep.Report, []byte("\n")) {
-		line := append([]byte{}, originalLine...)
+	for _, line := range bytes.SplitAfter(rep.Report, []byte("\n")) {
+		line := bytes.Clone(line)
 		newLine := symbolizeLine(symbFunc, ctx.symbols, ctx.vmlinux, ctx.kernelBuildSrc, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
@@ -658,8 +657,12 @@ func (ctx *linux) decompileOpcodes(text []byte, report *Report) []byte {
 	// Iterate over all "Code: " lines and pick the first that could be decompiled
 	// that might be of interest to the user.
 	var decompiled *decompiledOpcodes
-	var prevLine []byte
-	for s := bufio.NewScanner(bytes.NewReader(text)); s.Scan(); prevLine = append([]byte{}, s.Bytes()...) {
+	lines := lines(text)
+	for i, line := range lines {
+		var prevLine []byte
+		if i > 0 {
+			prevLine = lines[i-1]
+		}
 		// We want to avoid decompiling code from user-space as it is not of big interest during
 		// debugging kernel problems.
 		// For now this check only works for x86/amd64, but Linux on other architectures supported
@@ -667,7 +670,7 @@ func (ctx *linux) decompileOpcodes(text []byte, report *Report) []byte {
 		if linuxUserSegmentRe.Match(prevLine) {
 			continue
 		}
-		match := linuxCodeRe.FindSubmatch(s.Bytes())
+		match := linuxCodeRe.FindSubmatch(line)
 		if match == nil {
 			continue
 		}
@@ -731,12 +734,13 @@ func (ctx *linux) extractGuiltyFileRaw(title string, report []byte) string {
 }
 
 func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
-	scanner := bufio.NewScanner(bytes.NewReader(report))
-
 	// Extract the first possible guilty file.
 	guilty := ""
-	for scanner.Scan() {
-		match := filenameRe.FindSubmatch(scanner.Bytes())
+	var line []byte
+	lines := lines(report)
+	for len(lines) > 0 {
+		line, lines = lines[0], lines[1:]
+		match := filenameRe.FindSubmatch(line)
 		if match == nil {
 			continue
 		}
@@ -748,7 +752,7 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 			guilty = string(file)
 		}
 
-		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(scanner.Bytes()) {
+		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(line) {
 			continue
 		}
 		guilty = filepath.Clean(string(file))
@@ -757,13 +761,14 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 
 	// Search for deeper filepaths in the stack trace below the first possible guilty file.
 	deepestPath := filepath.Dir(guilty)
-	for scanner.Scan() {
-		match := filenameRe.FindSubmatch(scanner.Bytes())
+	for len(lines) > 0 {
+		line, lines = lines[0], lines[1:]
+		match := filenameRe.FindSubmatch(line)
 		if match == nil {
 			continue
 		}
 		file := match[1]
-		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(scanner.Bytes()) {
+		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(line) {
 			continue
 		}
 		clean := filepath.Clean(string(file))
@@ -839,7 +844,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 		if match == nil {
 			continue
 		}
-		frames := bytes.Split(report[match[0]:], []byte{'\n'})
+		frames := lines(report[match[0]:])
 		if len(frames) < 4 {
 			return true, "call trace is missed"
 		}
