@@ -33,18 +33,14 @@ func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) 
 	if err := s.RegisterName(name, receiver); err != nil {
 		return nil, err
 	}
-	formatMB := func(v int, period time.Duration) string {
-		const KB, MB = 1 << 10, 1 << 20
-		return fmt.Sprintf("%v MB (%v kb/sec)", (v+MB/2)/MB, (v+KB/2)/KB/int(period/time.Second))
-	}
 	serv := &RPCServer{
 		ln:             ln,
 		s:              s,
 		useCompression: useCompression,
 		statSent: stats.Create("rpc sent", "Uncompressed outbound RPC traffic",
-			stats.Graph("RPC traffic"), stats.Rate{}, formatMB),
+			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
 		statRecv: stats.Create("rpc recv", "Uncompressed inbound RPC traffic",
-			stats.Graph("RPC traffic"), stats.Rate{}, formatMB),
+			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
 	}
 	return serv, nil
 }
