@@ -736,8 +736,10 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
 	// Use unique instance names to keep name collisions in case of untimely RPC messages.
 	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
+	injectLog := make(chan []byte, 10)
+	mgr.serv.createInstance(instanceName, injectLog)
 
-	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName)
+	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectLog)
 
 	machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
 	if len(vmInfo) != 0 {
@@ -760,7 +762,8 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	return crash, nil
 }
 
-func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Report, []byte, error) {
+func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <-chan []byte) (
+	*report.Report, []byte, error) {
 	start := time.Now()
 
 	inst, err := mgr.vmPool.Create(index)
@@ -826,7 +829,8 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		},
 	}
 	cmd := instance.FuzzerCmd(args)
-	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd, vm.ExitTimeout, vm.StopChan(mgr.vmStop))
+	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
+		vm.ExitTimeout, vm.StopChan(mgr.vmStop), vm.InjectOutput(injectLog))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
