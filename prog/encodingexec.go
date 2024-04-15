@@ -283,7 +283,7 @@ func (w *execContext) writeArg(arg Arg) {
 	case *DataArg:
 		data := a.Data()
 		if len(data) == 0 {
-			return
+			panic("writing data arg with 0 size")
 		}
 		w.write(execArgData)
 		flags := uint64(len(data))
@@ -291,16 +291,11 @@ func (w *execContext) writeArg(arg Arg) {
 			flags |= execArgDataReadable
 		}
 		w.write(flags)
-		padded := len(data)
-		if pad := 8 - len(data)%8; pad != 8 {
-			padded += pad
-		}
-		if len(w.buf) < padded {
+		if len(w.buf) < len(data) {
 			w.eof = true
 		} else {
-			copy(w.buf, data)
-			copy(w.buf[len(data):], make([]byte, 8))
-			w.buf = w.buf[padded:]
+			n := copy(w.buf, data)
+			w.buf = w.buf[n:]
 		}
 	case *UnionArg:
 		w.writeArg(a.Option)

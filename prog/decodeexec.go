@@ -232,15 +232,14 @@ func (dec *execDecoder) read() uint64 {
 }
 
 func (dec *execDecoder) readBlob(size uint64) []byte {
-	padded := (size + 7) / 8 * 8
-	if uint64(len(dec.data)) < padded {
+	if uint64(len(dec.data)) < size {
 		dec.setErr(fmt.Errorf("exec program overflow"))
 	}
 	if dec.err != nil {
 		return nil
 	}
 	data := dec.data[:size]
-	dec.data = dec.data[padded:]
+	dec.data = dec.data[size:]
 	return data
 }
 

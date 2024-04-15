@@ -522,7 +522,6 @@ test() (async, rerun: 10)
 					want = binary.AppendVarint(want, int64(elem))
 				case []byte:
 					want = append(want, elem...)
-					want = append(want, make([]byte, ((len(elem)+7) & ^7)-len(elem))...)
 				default:
 					t.Fatalf("unexpected elem type %T %#v", e, e)
 				}

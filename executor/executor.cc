@@ -782,11 +782,10 @@ void execute_one()
 			case arg_data: {
 				uint64 size = read_input(&input_pos);
 				size &= ~(1ull << 63); // readable flag
-				uint64 padded = (size + 7) & ~7;
-				if (input_pos + padded > input_data + kMaxInput)
+				if (input_pos + size > input_data + kMaxInput)
 					fail("data arg overflow");
 				NONFAILING(memcpy(addr, input_pos, size));
-				input_pos += padded;
+				input_pos += size;
 				break;
 			}
 			case arg_csum: {
