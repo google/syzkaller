@@ -185,7 +185,6 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 			}
 		}()
 	} else {
-		inmem = make([]byte, prog.ExecBufferSize)
 		outmem = make([]byte, outputSize)
 	}
 	env := &Env{
@@ -254,15 +253,15 @@ func (env *Env) Close() error {
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
-	// Copy-in serialized program.
-	progSize, err := p.SerializeForExec(env.in)
+	progData, err := p.SerializeForExec()
 	if err != nil {
 		err0 = err
 		return
 	}
-	var progData []byte
-	if !env.config.UseShmem {
-		progData = env.in[:progSize]
+	// Copy-in serialized program.
+	if env.config.UseShmem {
+		copy(env.in, progData)
+		progData = nil
 	}
 	// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
 	// if executor crashes before writing non-garbage there.

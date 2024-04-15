@@ -16,23 +16,22 @@ import (
 func TestSerializeForExecRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	buf := make([]byte, ExecBufferSize)
 	execSizes := histogram.New(1000)
 	textSizes := histogram.New(1000)
 	totalSize := 0
 	sizes := make(map[string]int)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, ct)
-		n, err := p.SerializeForExec(buf)
+		buf, err := p.SerializeForExec()
 		if err != nil {
 			t.Fatalf("failed to serialize: %v", err)
 		}
-		_, err = target.DeserializeExec(buf[:n], sizes)
+		_, err = target.DeserializeExec(buf, sizes)
 		if err != nil {
 			t.Fatal(err)
 		}
-		totalSize += n
-		execSizes.Add(float64(n))
+		totalSize += len(buf)
+		execSizes.Add(float64(len(buf)))
 		textSizes.Add(float64(len(p.Serialize())))
 	}
 	t.Logf("exec sizes: 10%%:%v 50%%:%v 90%%:%v",
@@ -650,7 +649,6 @@ test$res1(r0)
 		},
 	}
 
-	buf := make([]byte, ExecBufferSize)
 	for i, test := range tests {
 		i, test := i, test
 		t.Run(fmt.Sprintf("%v:%v", i, test.prog), func(t *testing.T) {
@@ -658,7 +656,7 @@ test$res1(r0)
 			if err != nil {
 				t.Fatalf("failed to deserialize prog %v: %v", i, err)
 			}
-			n, err := p.SerializeForExec(buf)
+			data, err := p.SerializeForExec()
 			if err != nil {
 				t.Fatalf("failed to serialize: %v", err)
 			}
@@ -675,7 +673,6 @@ test$res1(r0)
 					t.Fatalf("unexpected elem type %T %#v", e, e)
 				}
 			}
-			data := buf[:n]
 			if !bytes.Equal(data, want) {
 				t.Logf("want: %v", test.serialized)
 				t.Logf("got:  %q", data)
@@ -749,8 +746,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			buf := make([]byte, ExecBufferSize)
-			_, err = p.SerializeForExec(buf)
+			_, err = p.SerializeForExec()
 			if test.overflow && err != ErrExecBufferTooSmall {
 				t.Fatalf("want overflow but got %v", err)
 			}

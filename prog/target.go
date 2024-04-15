@@ -361,7 +361,7 @@ func (pg *Builder) Finalize() (*Prog, error) {
 	if err := pg.p.validate(); err != nil {
 		return nil, err
 	}
-	if _, err := pg.p.SerializeForExec(make([]byte, ExecBufferSize)); err != nil {
+	if _, err := pg.p.SerializeForExec(); err != nil {
 		return nil, err
 	}
 	p := pg.p

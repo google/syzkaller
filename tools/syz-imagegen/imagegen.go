@@ -825,8 +825,7 @@ func (img *Image) generateSize() error {
 	if err != nil {
 		return fmt.Errorf("failed to deserialize resulting program: %w", err)
 	}
-	exec := make([]byte, prog.ExecBufferSize)
-	if _, err := p.SerializeForExec(exec); err != nil {
+	if _, err := p.SerializeForExec(); err != nil {
 		return fmt.Errorf("failed to serialize for execution: %w", err)
 	}
 

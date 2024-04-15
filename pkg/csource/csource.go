@@ -239,12 +239,11 @@ func (ctx *context) generateSyscallDefines() string {
 }
 
 func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uint64, error) {
-	exec := make([]byte, prog.ExecBufferSize)
-	progSize, err := p.SerializeForExec(exec)
+	exec, err := p.SerializeForExec()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
 	}
-	decoded, err := ctx.target.DeserializeExec(exec[:progSize], nil)
+	decoded, err := ctx.target.DeserializeExec(exec, nil)
 	if err != nil {
 		return nil, nil, err
 	}

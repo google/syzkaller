@@ -389,39 +389,36 @@ func TestSerializeDeserialize(t *testing.T) {
 func TestSerializeDeserializeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
-		data0 := make([]byte, ExecBufferSize)
-		data1 := make([]byte, ExecBufferSize)
 		for i := 0; i < iters; i++ {
 			p0 := target.Generate(rs, 10, ct)
-			if ok, _, _ := testSerializeDeserialize(t, p0, data0, data1); ok {
+			if _, _, ok := testSerializeDeserialize(t, p0); ok {
 				continue
 			}
 			p0, _ = Minimize(p0, -1, false, func(p1 *Prog, _ int) bool {
-				ok, _, _ := testSerializeDeserialize(t, p1, data0, data1)
+				_, _, ok := testSerializeDeserialize(t, p1)
 				return !ok
 			})
-			ok, n0, n1 := testSerializeDeserialize(t, p0, data0, data1)
+			data0, data1, ok := testSerializeDeserialize(t, p0)
 			if ok {
 				t.Log("flaky?")
 			}
-			decoded0, err := target.DeserializeExec(data0[:n0], nil)
+			decoded0, err := target.DeserializeExec(data0, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded1, err := target.DeserializeExec(data1[:n1], nil)
+			decoded1, err := target.DeserializeExec(data1, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			t.Logf("decoded0: %+v", decoded0)
 			t.Logf("decoded1: %+v", decoded1)
-			t.Fatalf("was: %q\ngot: %q\nprogram:\n%s",
-				data0[:n0], data1[:n1], p0.Serialize())
+			t.Fatalf("was: %q\ngot: %q\nprogram:\n%s", data0, data1, p0.Serialize())
 		}
 	})
 }
 
-func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool, int, int) {
-	n0, err := p0.SerializeForExec(data0)
+func testSerializeDeserialize(t *testing.T, p0 *Prog) ([]byte, []byte, bool) {
+	data0, err := p0.SerializeForExec()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,16 +427,16 @@ func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool
 	if err != nil {
 		t.Fatal(err)
 	}
-	n1, err := p1.SerializeForExec(data1)
+	data1, err := p1.SerializeForExec()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(data0[:n0], data1[:n1]) {
+	if !bytes.Equal(data0, data1) {
 		t.Logf("PROG0:\n%s\n", p0.Serialize())
 		t.Logf("PROG1:\n%s\n", p1.Serialize())
-		return false, n0, n1
+		return data0, data1, false
 	}
-	return true, 0, 0
+	return nil, nil, true
 }
 
 func TestSerializeCallProps(t *testing.T) {
