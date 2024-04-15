@@ -88,6 +88,7 @@ type Test struct {
 	Exit           ExitCondition
 	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash.
 	DiagnoseNoWait bool // Diagnose returns output directly rather than to console.
+	InjectOutput   string
 	Body           func(outc chan []byte, errc chan error)
 	Report         *report.Report
 }
@@ -323,6 +324,31 @@ var tests = []*Test{
 			errc <- nil
 		},
 	},
+	{
+		Name:         "inject-error",
+		Exit:         ExitNormal,
+		InjectOutput: "BUG: foo\n",
+		Body: func(outc chan []byte, errc chan error) {
+			errc <- nil
+		},
+		Report: &report.Report{
+			Title:  "BUG: foo",
+			Report: []byte("BUG: foo\nDIAGNOSE\n"),
+		},
+	},
+	{
+		Name:         "inject-output",
+		Exit:         ExitNormal,
+		InjectOutput: "INJECTED\n",
+		Body: func(outc chan []byte, errc chan error) {
+			time.Sleep(time.Second)
+			outc <- []byte("BUG: foo\n")
+		},
+		Report: &report.Report{
+			Title:  "BUG: foo",
+			Report: []byte("INJECTED\nBUG: foo\nDIAGNOSE\n"),
+		},
+	},
 }
 
 func TestMonitorExecution(t *testing.T) {
@@ -374,7 +400,13 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.Body(testInst.outc, testInst.errc)
 		done <- true
 	}()
-	_, rep, err := inst.Run(time.Second, reporter, "", test.Exit)
+	opts := []any{test.Exit}
+	if test.InjectOutput != "" {
+		c := make(chan []byte, 1)
+		c <- []byte(test.InjectOutput)
+		opts = append(opts, InjectOutput(c))
+	}
+	_, rep, err := inst.Run(time.Second, reporter, "", opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
