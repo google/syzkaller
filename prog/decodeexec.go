@@ -4,6 +4,7 @@
 package prog
 
 import (
+	"encoding/binary"
 	"fmt"
 	"reflect"
 )
@@ -218,15 +219,16 @@ func (dec *execDecoder) readArg() ExecArg {
 }
 
 func (dec *execDecoder) read() uint64 {
-	if len(dec.data) < 8 {
-		dec.setErr(fmt.Errorf("exec program overflow"))
-	}
 	if dec.err != nil {
 		return 0
 	}
-	v := HostEndian.Uint64(dec.data)
-	dec.data = dec.data[8:]
-	return v
+	v, n := binary.Varint(dec.data)
+	if n <= 0 {
+		dec.setErr(fmt.Errorf("exec program overflow"))
+		return 0
+	}
+	dec.data = dec.data[n:]
+	return uint64(v)
 }
 
 func (dec *execDecoder) readBlob(size uint64) []byte {

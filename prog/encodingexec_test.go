@@ -9,12 +9,16 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/bsm/histogram/v3"
 )
 
 func TestSerializeForExecRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
 	buf := make([]byte, ExecBufferSize)
+	execSizes := histogram.New(1000)
+	textSizes := histogram.New(1000)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, ct)
 		n, err := p.SerializeForExec(buf)
@@ -25,7 +29,13 @@ func TestSerializeForExecRandom(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		execSizes.Add(float64(n))
+		textSizes.Add(float64(len(p.Serialize())))
 	}
+	t.Logf("exec sizes: 10%%:%v 50%%:%v 90%%:%v",
+		int(execSizes.Quantile(0.1)), int(execSizes.Quantile(0.5)), int(execSizes.Quantile(0.9)))
+	t.Logf("text sizes: 10%%:%v 50%%:%v 90%%:%v",
+		int(textSizes.Quantile(0.1)), int(textSizes.Quantile(0.5)), int(textSizes.Quantile(0.9)))
 }
 
 // nolint: funlen
@@ -42,26 +52,14 @@ func TestSerializeForExec(t *testing.T) {
 		}
 		return uint64(c.ID)
 	}
-	letoh64 := func(v uint64) uint64 {
-		buf := make([]byte, 8)
-		buf[0] = byte(v >> 0)
-		buf[1] = byte(v >> 8)
-		buf[2] = byte(v >> 16)
-		buf[3] = byte(v >> 24)
-		buf[4] = byte(v >> 32)
-		buf[5] = byte(v >> 40)
-		buf[6] = byte(v >> 48)
-		buf[7] = byte(v >> 56)
-		return HostEndian.Uint64(buf)
-	}
 	tests := []struct {
 		prog       string
-		serialized []uint64
+		serialized []any
 		decoded    *ExecProg
 	}{
 		{
 			"test()",
-			[]uint64{
+			[]any{
 				callID("test"), ExecNoCopyout, 0,
 				execInstrEOF,
 			},
@@ -76,7 +74,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$int(0x1, 0x2, 0x3, 0x4, 0x5)",
-			[]uint64{
+			[]any{
 				callID("test$int"), ExecNoCopyout, 5,
 				execArgConst, 8, 1,
 				execArgConst, 1, 2,
@@ -89,7 +87,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align0(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, 0x5})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2, 1,
 				execInstrCopyin, dataOffset + 4, execArgConst, 4, 2,
 				execInstrCopyin, dataOffset + 8, execArgConst, 1, 3,
@@ -102,7 +100,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align1(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, 0x5})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2, 1,
 				execInstrCopyin, dataOffset + 2, execArgConst, 4, 2,
 				execInstrCopyin, dataOffset + 6, execArgConst, 1, 3,
@@ -115,7 +113,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align2(&(0x7f0000000000)={0x42, {[0x43]}, {[0x44]}})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
 				execInstrCopyin, dataOffset + 1, execArgConst, 2, 0x43,
 				execInstrCopyin, dataOffset + 4, execArgConst, 2, 0x44,
@@ -126,7 +124,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align3(&(0x7f0000000000)={0x42, {0x43}, {0x44}})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
 				execInstrCopyin, dataOffset + 1, execArgConst, 1, 0x43,
 				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x44,
@@ -137,7 +135,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align4(&(0x7f0000000000)={{0x42, 0x43}, 0x44})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
 				execInstrCopyin, dataOffset + 1, execArgConst, 2, 0x43,
 				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x44,
@@ -148,7 +146,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align5(&(0x7f0000000000)={{0x42, []}, {0x43, [0x44, 0x45, 0x46]}, 0x47})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 8, 0x42,
 				execInstrCopyin, dataOffset + 8, execArgConst, 8, 0x43,
 				execInstrCopyin, dataOffset + 16, execArgConst, 2, 0x44,
@@ -162,7 +160,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align6(&(0x7f0000000000)={0x42, [0x43]})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
 				execInstrCopyin, dataOffset + 4, execArgConst, 4, 0x43,
 				callID("test$align6"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
@@ -172,7 +170,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$union0(&(0x7f0000000000)={0x1, @f2=0x2})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 8, 1,
 				execInstrCopyin, dataOffset + 8, execArgConst, 1, 2,
 				callID("test$union0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
@@ -182,7 +180,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$union1(&(0x7f0000000000)={@f1=0x42, 0x43})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 4, 0x42,
 				execInstrCopyin, dataOffset + 8, execArgConst, 1, 0x43,
 				callID("test$union1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
@@ -192,7 +190,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$union2(&(0x7f0000000000)={@f1=0x42, 0x43})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 4, 0x42,
 				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x43,
 				callID("test$union2"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
@@ -202,7 +200,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$array0(&(0x7f0000000000)={0x1, [@f0=0x2, @f1=0x3], 0x4})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 1,
 				execInstrCopyin, dataOffset + 1, execArgConst, 2, 2,
 				execInstrCopyin, dataOffset + 3, execArgConst, 8, 3,
@@ -214,9 +212,9 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$array1(&(0x7f0000000000)={0x42, \"0102030405\"})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgData, 5, letoh64(0x0504030201),
+				execInstrCopyin, dataOffset + 1, execArgData, 5, []byte{0x01, 0x02, 0x03, 0x04, 0x05},
 				callID("test$array1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
 			},
@@ -224,9 +222,14 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$array2(&(0x7f0000000000)={0x42, \"aaaaaaaabbbbbbbbccccccccdddddddd\", 0x43})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2, 0x42,
-				execInstrCopyin, dataOffset + 2, execArgData, 16, letoh64(0xbbbbbbbbaaaaaaaa), letoh64(0xddddddddcccccccc),
+				execInstrCopyin, dataOffset + 2, execArgData, 16, []byte{
+					0xaa, 0xaa, 0xaa, 0xaa,
+					0xbb, 0xbb, 0xbb, 0xbb,
+					0xcc, 0xcc, 0xcc, 0xcc,
+					0xdd, 0xdd, 0xdd, 0xdd,
+				},
 				execInstrCopyin, dataOffset + 18, execArgConst, 2, 0x43,
 				callID("test$array2"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
@@ -235,7 +238,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$end0(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
 				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 1<<8, 0x42,
 				execInstrCopyin, dataOffset + 3, execArgConst, 4 | 1<<8, 0x42,
@@ -247,7 +250,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$end1(&(0x7f0000000000)={0xe, 0x42, 0x1})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 1<<8, 0xe,
 				execInstrCopyin, dataOffset + 2, execArgConst, 4 | 1<<8, 0x42,
 				execInstrCopyin, dataOffset + 6, execArgConst, 8 | 1<<8, 0x1,
@@ -258,7 +261,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$bf0(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 0<<16 | 10<<24, 0x42,
 				execInstrCopyin, dataOffset + 8, execArgConst, 8, 0x42,
 				execInstrCopyin, dataOffset + 16, execArgConst, 2 | 0<<16 | 5<<24, 0x42,
@@ -358,7 +361,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$bf1(&(0x7f0000000000)={{0x42, 0x42, 0x42}, 0x42})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 4 | 0<<16 | 10<<24, 0x42,
 				execInstrCopyin, dataOffset + 0, execArgConst, 4 | 10<<16 | 10<<24, 0x42,
 				execInstrCopyin, dataOffset + 0, execArgConst, 4 | 20<<16 | 10<<24, 0x42,
@@ -370,7 +373,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$res1(0xffff)",
-			[]uint64{
+			[]any{
 				callID("test$res1"), ExecNoCopyout, 1, execArgConst, 4, 0xffff,
 				execInstrEOF,
 			},
@@ -378,7 +381,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$opt3(0x0)",
-			[]uint64{
+			[]any{
 				callID("test$opt3"), ExecNoCopyout, 1, execArgConst, 8 | 4<<32, 0x64,
 				execInstrEOF,
 			},
@@ -387,7 +390,7 @@ func TestSerializeForExec(t *testing.T) {
 		{
 			// Special value that translates to 0 for all procs.
 			"test$opt3(0xffffffffffffffff)",
-			[]uint64{
+			[]any{
 				callID("test$opt3"), ExecNoCopyout, 1, execArgConst, 8, 0,
 				execInstrEOF,
 			},
@@ -396,7 +399,7 @@ func TestSerializeForExec(t *testing.T) {
 		{
 			// NULL pointer must be encoded os 0.
 			"test$opt1(0x0)",
-			[]uint64{
+			[]any{
 				callID("test$opt1"), ExecNoCopyout, 1, execArgConst, 8, 0,
 				execInstrEOF,
 			},
@@ -404,7 +407,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$align7(&(0x7f0000000000)={{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}, 0x42})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 0<<16 | 1<<24, 0x1,
 				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 1<<16 | 1<<24, 0x2,
 				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 2<<16 | 1<<24, 0x3,
@@ -419,7 +422,7 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$excessive_fields1(0x0)",
-			[]uint64{
+			[]any{
 				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0x0,
 				execInstrEOF,
 			},
@@ -427,28 +430,28 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$excessive_fields1(0xffffffffffffffff)",
-			[]uint64{
-				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0xffffffffffffffff,
+			[]any{
+				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, uint64(0xffffffffffffffff),
 				execInstrEOF,
 			},
 			nil,
 		},
 		{
 			"test$excessive_fields1(0xfffffffffffffffe)",
-			[]uint64{
-				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0x9999999999999999,
+			[]any{
+				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, uint64(0x9999999999999999),
 				execInstrEOF,
 			},
 			nil,
 		},
 		{
 			"test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, 0x1, 0x2}, {{0x0}, \"ab\"}})",
-			[]uint64{
+			[]any{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2, 0x0,
 				execInstrCopyin, dataOffset + 2, execArgConst, 4 | 1<<8, 0x1,
 				execInstrCopyin, dataOffset + 6, execArgConst, 4 | 1<<8, 0x2,
 				execInstrCopyin, dataOffset + 10, execArgConst, 2, 0x0,
-				execInstrCopyin, dataOffset + 12, execArgData, 1, letoh64(0xab),
+				execInstrCopyin, dataOffset + 12, execArgData, 1, []byte{0xab},
 				execInstrCopyin, dataOffset + 10, execArgCsum, 2, ExecArgCsumInet, 5,
 				ExecArgCsumChunkData, dataOffset + 2, 4,
 				ExecArgCsumChunkData, dataOffset + 6, 4,
@@ -467,7 +470,7 @@ func TestSerializeForExec(t *testing.T) {
 test() (fail_nth: 4)
 test() (async, rerun: 10)
 `,
-			[]uint64{
+			[]any{
 				execInstrSetProps, 3, 0, 0,
 				callID("test"), ExecNoCopyout, 0,
 				execInstrSetProps, 4, 0, 0,
@@ -510,14 +513,24 @@ test() (async, rerun: 10)
 			if err != nil {
 				t.Fatalf("failed to serialize: %v", err)
 			}
-			w := new(bytes.Buffer)
-			binary.Write(w, HostEndian, test.serialized)
+			var want []byte
+			for _, e := range test.serialized {
+				switch elem := e.(type) {
+				case uint64:
+					want = binary.AppendVarint(want, int64(elem))
+				case int:
+					want = binary.AppendVarint(want, int64(elem))
+				case []byte:
+					want = append(want, elem...)
+					want = append(want, make([]byte, ((len(elem)+7) & ^7)-len(elem))...)
+				default:
+					t.Fatalf("unexpected elem type %T %#v", e, e)
+				}
+			}
 			data := buf[:n]
-			if !bytes.Equal(data, w.Bytes()) {
-				got := make([]uint64, len(data)/8)
-				binary.Read(bytes.NewReader(data), HostEndian, &got)
+			if !bytes.Equal(data, want) {
 				t.Logf("want: %v", test.serialized)
-				t.Logf("got:  %v", got)
+				t.Logf("got:  %q", data)
 				t.Fatalf("mismatch")
 			}
 			decoded, err := target.DeserializeExec(data)
@@ -574,7 +587,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			overflow: true,
 			gen: func(w *bytes.Buffer) {
 				fmt.Fprintf(w, "r0 = test$res0()\n")
-				for i := 0; i < 59e3; i++ {
+				for i := 0; i < 4e5; i++ {
 					fmt.Fprintf(w, "test$res1(r0)\n")
 				}
 			},
