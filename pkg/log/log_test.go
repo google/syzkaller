@@ -33,3 +33,15 @@ func TestCaching(t *testing.T) {
 		}
 	}
 }
+
+func TestLazy(t *testing.T) {
+	// Ensure that the format message is formatted lazily only when logging enabled.
+	Logf(1e6, "%v", noFormat{t})
+}
+
+type noFormat struct{ *testing.T }
+
+func (nf noFormat) String() string {
+	nf.T.Fatalf("must not be formatted")
+	return ""
+}
