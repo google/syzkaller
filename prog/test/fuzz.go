@@ -49,7 +49,7 @@ func FuzzDeserialize(data []byte) int {
 		panic("got different data")
 	}
 	if n, err := p0.SerializeForExec(fuzzBuffer); err == nil {
-		if _, err := fuzzTarget.DeserializeExec(fuzzBuffer[:n]); err != nil {
+		if _, err := fuzzTarget.DeserializeExec(fuzzBuffer[:n], nil); err != nil {
 			panic(err)
 		}
 	}

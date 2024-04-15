@@ -244,7 +244,7 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uin
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
 	}
-	decoded, err := ctx.target.DeserializeExec(exec[:progSize])
+	decoded, err := ctx.target.DeserializeExec(exec[:progSize], nil)
 	if err != nil {
 		return nil, nil, err
 	}

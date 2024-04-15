@@ -399,11 +399,11 @@ func TestSerializeDeserializeRandom(t *testing.T) {
 			if ok {
 				t.Log("flaky?")
 			}
-			decoded0, err := target.DeserializeExec(data0[:n0])
+			decoded0, err := target.DeserializeExec(data0[:n0], nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded1, err := target.DeserializeExec(data1[:n1])
+			decoded1, err := target.DeserializeExec(data1[:n1], nil)
 			if err != nil {
 				t.Fatal(err)
 			}
