@@ -7,7 +7,9 @@ resource anyres64[int64]
 
 foo$anyres(a0 ptr[out, anyres8], a1 ptr[out, anyres32], a2 ptr[out, anyres64])
 
-foo$any0(a ptr[in, any0])
+foo$any_in(a ptr[in, any0])
+foo$any_inout(a ptr[inout, any0])
+foo$any_filename(a ptr[in, any_filename])
 
 any0 {
 	f1	int8
@@ -43,3 +45,8 @@ anybitfields {
 	f5	int16:10
 	f6	int16:3
 }
+
+any_filename [
+	complex		any0
+	filename	filename
+] [varlen]

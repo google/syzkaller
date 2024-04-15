@@ -210,12 +210,60 @@ var typePtr = &typeDesc{
 			base.TypeSize = 8
 		}
 		base.TypeAlign = getIntAlignment(comp, base)
+		elem := comp.genType(args[1], 0)
+		elemDir := genDir(args[0])
 		return &prog.PtrType{
-			TypeCommon: base.TypeCommon,
-			Elem:       comp.genType(args[1], 0),
-			ElemDir:    genDir(args[0]),
+			TypeCommon:     base.TypeCommon,
+			Elem:           elem,
+			ElemDir:        elemDir,
+			SquashableElem: isSquashableElem(elem, elemDir),
 		}
 	},
+}
+
+func isSquashableElem(elem prog.Type, dir prog.Dir) bool {
+	if dir != prog.DirIn {
+		return false
+	}
+	// Check if the pointer element contains something that can be complex, and does not contain
+	// anything unsupported we don't want to sqaush. Prog package later checks at runtime
+	// if a concrete arg actually contains something complex. But we look at the whole type
+	// to understand if it contains anything unsupported b/c a union may contain e.g. a complex struct
+	// and a filename we don't want to squash, or an array may contain something unsupported,
+	// but has 0 size in a concrete argument.
+	complex, unsupported := false, false
+	prog.ForeachArgType(elem, func(t prog.Type, ctx *prog.TypeCtx) {
+		switch typ := t.(type) {
+		case *prog.StructType:
+			if typ.Varlen() {
+				complex = true
+			}
+			if typ.OverlayField != 0 {
+				// Squashing of structs with out_overlay is not supported.
+				// If we do it, we need to be careful to either squash out part as well,
+				// or remove any resources in the out part from the prog.
+				unsupported = true
+			}
+		case *prog.UnionType:
+			if typ.Varlen() && len(typ.Fields) > 5 {
+				complex = true
+			}
+		case *prog.PtrType:
+			// Squashing of pointers is not supported b/c if we do it
+			// we will pass random garbage as pointers.
+			unsupported = true
+		case *prog.BufferType:
+			switch typ.Kind {
+			case prog.BufferFilename, prog.BufferGlob, prog.BufferCompressed:
+				// Squashing file names may lead to unwanted escaping paths (e.g. "/"),
+				// squashing compressed buffers is not useful since we uncompress them ourselves
+				// (not the kernel).
+				unsupported = true
+			}
+		}
+		ctx.Stop = unsupported
+	})
+	return complex && !unsupported
 }
 
 var typeVoid = &typeDesc{
