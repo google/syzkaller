@@ -375,15 +375,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 			return err
 		}
 	}
-
-	oldLen := len(rep.Report)
 	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
-	if len(rep.Report) > 0 && rep.reportPrefixLen > len(rep.Report) {
-		// An attempt to catch #4198.
-		panic(fmt.Sprintf("invalid reportPrefixLen (%d) after decompileOpcodes, report len: %d -> %d, report: %+v",
-			rep.reportPrefixLen, oldLen, len(rep.Report), rep,
-		))
-	}
 
 	// Skip getting maintainers for Android fuzzing since the kernel source
 	// directory structure is different.
@@ -411,27 +403,24 @@ func (ctx *linux) symbolize(rep *Report) error {
 		return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)
 	}
 	var symbolized []byte
-	s := bufio.NewScanner(bytes.NewReader(rep.Report))
 	prefix := rep.reportPrefixLen
-	for s.Scan() {
-		line := append([]byte{}, s.Bytes()...)
-		line = append(line, '\n')
+	for _, originalLine := range bytes.SplitAfter(rep.Report, []byte("\n")) {
+		line := append([]byte{}, originalLine...)
 		newLine := symbolizeLine(symbFunc, ctx.symbols, ctx.vmlinux, ctx.kernelBuildSrc, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
 		}
 		symbolized = append(symbolized, newLine...)
 	}
-	oldLen := len(rep.Report)
+	oldReport := rep.Report
 	rep.Report = symbolized
 	oldPrefixLen := rep.reportPrefixLen
 	rep.reportPrefixLen = prefix
 
 	if len(rep.Report) > 0 && rep.reportPrefixLen > len(rep.Report) {
-		// An attempt to catch #4198.
 		panic(fmt.Sprintf("invalid reportPrefixLen after symbolize: prefix %d -> %d,"+
-			"report len: %d -> %d, report: %+v",
-			oldPrefixLen, rep.reportPrefixLen, oldLen, len(rep.Report), rep,
+			"report len: %d -> %d, old report: %q",
+			oldPrefixLen, rep.reportPrefixLen, len(oldReport), len(rep.Report), oldReport,
 		))
 	}
 	return nil
