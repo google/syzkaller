@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 
@@ -39,21 +40,21 @@ import (
 )
 
 type Pool struct {
-	impl        vmimpl.Pool
-	workdir     string
-	template    string
-	timeouts    targets.Timeouts
-	activeCount int32
-	hostFuzzer  bool
+	impl               vmimpl.Pool
+	workdir            string
+	template           string
+	timeouts           targets.Timeouts
+	activeCount        int32
+	hostFuzzer         bool
+	statOutputReceived *stats.Val
 }
 
 type Instance struct {
-	impl       vmimpl.Instance
-	workdir    string
-	timeouts   targets.Timeouts
-	index      int
-	onClose    func()
-	hostFuzzer bool
+	pool    *Pool
+	impl    vmimpl.Instance
+	workdir string
+	index   int
+	onClose func()
 }
 
 var (
@@ -126,6 +127,8 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		template:   cfg.WorkdirTemplate,
 		timeouts:   cfg.Timeouts,
 		hostFuzzer: cfg.SysTarget.HostFuzzer,
+		statOutputReceived: stats.Create("vm output", "Bytes of VM console output received",
+			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
 	}, nil
 }
 
@@ -153,12 +156,11 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 	}
 	atomic.AddInt32(&pool.activeCount, 1)
 	return &Instance{
-		impl:       impl,
-		workdir:    workdir,
-		timeouts:   pool.timeouts,
-		index:      index,
-		onClose:    func() { atomic.AddInt32(&pool.activeCount, -1) },
-		hostFuzzer: pool.hostFuzzer,
+		pool:    pool,
+		impl:    impl,
+		workdir: workdir,
+		index:   index,
+		onClose: func() { atomic.AddInt32(&pool.activeCount, -1) },
 	}, nil
 }
 
@@ -251,7 +253,7 @@ func (inst *Instance) Info() ([]byte, error) {
 }
 
 func (inst *Instance) PprofPort() int {
-	if inst.hostFuzzer {
+	if inst.pool.hostFuzzer {
 		// In the fuzzing on host mode, fuzzers are always on the same network.
 		// Don't set up pprof endpoints in this case.
 		return 0
@@ -289,7 +291,7 @@ type monitor struct {
 }
 
 func (mon *monitor) monitorExecution() *report.Report {
-	ticker := time.NewTicker(tickerPeriod * mon.inst.timeouts.Scale)
+	ticker := time.NewTicker(tickerPeriod * mon.inst.pool.timeouts.Scale)
 	defer ticker.Stop()
 	for {
 		select {
@@ -322,6 +324,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 				mon.outc = nil
 				continue
 			}
+			mon.inst.pool.statOutputReceived.Add(len(out))
 			if rep := mon.appendOutput(out); rep != nil {
 				return rep
 			}
@@ -332,7 +335,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 		case <-ticker.C:
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
-			if time.Since(mon.lastExecuteTime) > mon.inst.timeouts.NoOutput {
+			if time.Since(mon.lastExecuteTime) > mon.inst.pool.timeouts.NoOutput {
 				return mon.extractError(noOutputCrash)
 			}
 		case <-Shutdown:
@@ -432,7 +435,7 @@ func (mon *monitor) createReport(defaultError string) *report.Report {
 }
 
 func (mon *monitor) waitForOutput() {
-	timer := time.NewTimer(waitForOutputTimeout * mon.inst.timeouts.Scale)
+	timer := time.NewTimer(waitForOutputTimeout * mon.inst.pool.timeouts.Scale)
 	defer timer.Stop()
 	for {
 		select {

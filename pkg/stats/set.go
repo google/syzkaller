@@ -190,6 +190,11 @@ func LenOf(containerPtr any, mu *sync.RWMutex) func() int {
 	}
 }
 
+func FormatMB(v int, period time.Duration) string {
+	const KB, MB = 1 << 10, 1 << 20
+	return fmt.Sprintf("%v MB (%v kb/sec)", (v+MB/2)/MB, (v+KB/2)/KB/int(period/time.Second))
+}
+
 // Addittionally a custom 'func() int' can be passed to read the metric value from the function.
 // and 'func(int, time.Duration) string' can be passed for custom formatting of the metric value.
 
