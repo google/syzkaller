@@ -27,10 +27,8 @@ type RPCServer struct {
 	mgr                   RPCManagerView
 	cfg                   *mgrconfig.Config
 	server                *rpctype.RPCServer
-	modules               []host.KernelModule
 	port                  int
 	targetEnabledSyscalls map[*prog.Syscall]bool
-	coverFilter           map[uint32]uint32
 	canonicalModules      *cover.Canonicalizer
 
 	mu            sync.Mutex
@@ -52,7 +50,6 @@ type RPCServer struct {
 	statExchangeProgs         *stats.Val
 	statExchangeServerLatency *stats.Val
 	statExchangeClientLatency *stats.Val
-	statCorpusCoverFiltered   *stats.Val
 }
 
 type Runner struct {
@@ -84,7 +81,7 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32, map[uint32]uint32, error)
+	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32)
 	machineChecked(features *host.Features, globFiles map[string][]string, enabledSyscalls map[*prog.Syscall]bool)
 	getFuzzer() *fuzzer.Fuzzer
 }
@@ -111,7 +108,6 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 			"Manager RPC Exchange call latency (us)", stats.Distribution{}),
 		statExchangeClientLatency: stats.Create("exchange fuzzer latency",
 			"End-to-end fuzzer RPC Exchange call latency (us)", stats.Distribution{}),
-		statCorpusCoverFiltered: stats.Create("filtered coverage", "", stats.NoGraph),
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv, mgr.netCompression)
 	if err != nil {
@@ -128,22 +124,13 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.statVMRestarts.Add(1)
 
-	serv.mu.Lock()
-	if serv.canonicalModules == nil {
-		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
-		serv.modules = a.Modules
-	}
-	serv.mu.Unlock()
-
-	bugFrames, coverFilter, execCoverFilter, err := serv.mgr.fuzzerConnect(serv.modules)
-	if err != nil {
-		return err
-	}
+	bugFrames, execCoverFilter := serv.mgr.fuzzerConnect(a.Modules)
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
-
-	serv.coverFilter = coverFilter
+	if serv.canonicalModules == nil {
+		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
+	}
 
 	runner := serv.findRunner(a.Name)
 	runner.mu.Lock()
@@ -319,25 +306,6 @@ func (serv *RPCServer) findRunner(name string) *Runner {
 	}
 	// There might be a parallel shutdownInstance().
 	// Ignore requests then.
-	return nil
-}
-
-func (serv *RPCServer) updateFilteredCover(pcs []uint32) error {
-	if len(pcs) == 0 || serv.coverFilter == nil {
-		return nil
-	}
-	// Note: ReportGenerator is already initialized if coverFilter is enabled.
-	rg, err := getReportGenerator(serv.cfg, serv.modules)
-	if err != nil {
-		return err
-	}
-	filtered := 0
-	for _, pc := range pcs {
-		if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
-			filtered++
-		}
-	}
-	serv.statCorpusCoverFiltered.Add(filtered)
 	return nil
 }
 
