@@ -759,6 +759,7 @@ void execute_one()
 	call_props_t call_props;
 	memset(&call_props, 0, sizeof(call_props));
 
+	read_input(&input_pos); // total number of calls
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)

@@ -75,6 +75,7 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 		buf:    make([]byte, 0, 4<<10),
 		args:   make(map[Arg]argInfo),
 	}
+	w.write(uint64(len(p.Calls)))
 	for _, c := range p.Calls {
 		w.csumMap, w.csumUses = calcChecksumsCall(c)
 		w.serializeCall(c)
