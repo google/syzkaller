@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -97,9 +96,10 @@ type CallInfo struct {
 }
 
 type ProgInfo struct {
-	Calls   []CallInfo
-	Extra   CallInfo      // stores Signal and Cover collected from background threads
-	Elapsed time.Duration // total execution time of the program
+	Calls     []CallInfo
+	Extra     CallInfo      // stores Signal and Cover collected from background threads
+	Elapsed   time.Duration // total execution time of the program
+	Freshness int           // number of programs executed in the same process before this one
 }
 
 type Env struct {
@@ -113,9 +113,6 @@ type Env struct {
 	linkedBin string
 	pid       int
 	config    *Config
-
-	StatExecs    uint64
-	StatRestarts uint64
 }
 
 const (
@@ -270,7 +267,6 @@ func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *
 		env.out[i] = 0
 	}
 
-	atomic.AddUint64(&env.StatExecs, 1)
 	err0 = env.RestartIfNeeded()
 	if err0 != nil {
 		return
@@ -288,7 +284,9 @@ func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *
 	info, err0 = env.parseOutput(opts, ncalls)
 	if info != nil {
 		info.Elapsed = elapsed
+		info.Freshness = env.cmd.freshness
 	}
+	env.cmd.freshness++
 	if !env.config.UseForkServer {
 		env.cmd.close()
 		env.cmd = nil
@@ -324,7 +322,6 @@ func (env *Env) RestartIfNeeded() error {
 		<-rateLimiter
 	}
 	tmpDirPath := "./"
-	atomic.AddUint64(&env.StatRestarts, 1)
 	var err error
 	env.cmd, err = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
 	return err
@@ -499,16 +496,17 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 }
 
 type command struct {
-	pid      int
-	config   *Config
-	timeout  time.Duration
-	cmd      *exec.Cmd
-	dir      string
-	readDone chan []byte
-	exited   chan error
-	inrp     *os.File
-	outwp    *os.File
-	outmem   []byte
+	pid       int
+	config    *Config
+	timeout   time.Duration
+	cmd       *exec.Cmd
+	dir       string
+	readDone  chan []byte
+	exited    chan error
+	inrp      *os.File
+	outwp     *os.File
+	outmem    []byte
+	freshness int
 }
 
 const (

@@ -45,6 +45,7 @@ type RPCServer struct {
 
 	statExecs                 *stats.Val
 	statExecRetries           *stats.Val
+	statExecutorRestarts      *stats.Val
 	statExecBufferTooSmall    *stats.Val
 	statVMRestarts            *stats.Val
 	statExchangeCalls         *stats.Val
@@ -96,6 +97,8 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 		statExecRetries: stats.Create("exec retries",
 			"Number of times a test program was restarted because the first run failed",
 			stats.Rate{}, stats.Graph("executor")),
+		statExecutorRestarts: stats.Create("executor restarts",
+			"Number of times executor process was restarted", stats.Rate{}, stats.Graph("executor")),
 		statExecBufferTooSmall: stats.Create("buffer too small",
 			"Program serialization overflowed exec buffer", stats.NoGraph),
 		statVMRestarts: stats.Create("vm restarts", "Total number of VM starts",
@@ -284,7 +287,7 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	}
 
 	for _, result := range a.Results {
-		runner.doneRequest(result, fuzzerObj, serv.cfg.Cover)
+		serv.doneRequest(runner, result, fuzzerObj)
 	}
 
 	stats.Import(a.StatsDelta)
@@ -391,7 +394,11 @@ func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	})
 }
 
-func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer, cover bool) {
+func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer) {
+	info := &resp.Info
+	if info.Freshness == 0 {
+		serv.statExecutorRestarts.Add(1)
+	}
 	runner.mu.Lock()
 	req, ok := runner.requests[resp.ID]
 	if ok {
@@ -407,8 +414,7 @@ func (runner *Runner) doneRequest(resp rpctype.ExecutionResult, fuzzerObj *fuzze
 	if req.try < resp.Try {
 		runner.logProgram(resp.ProcID, req.req.Prog)
 	}
-	info := &resp.Info
-	if !cover {
+	if !serv.cfg.Cover {
 		addFallbackSignal(req.req.Prog, info)
 	}
 	for i := 0; i < len(info.Calls); i++ {
