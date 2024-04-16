@@ -1213,7 +1213,7 @@ func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.minimizeCorpusUnlocked()
+	mgr.minimizeCorpusLocked()
 	items := mgr.corpus.Items()
 	corpus = make([][]byte, 0, len(items))
 	for _, inp := range items {
@@ -1238,9 +1238,9 @@ func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
 	}
 }
 
-func (mgr *Manager) minimizeCorpusUnlocked() {
+func (mgr *Manager) minimizeCorpusLocked() {
 	currSize := mgr.corpus.StatProgs.Val()
-	if mgr.phase < phaseLoadedCorpus || currSize <= mgr.lastMinCorpus*103/100 {
+	if currSize <= mgr.lastMinCorpus*103/100 {
 		return
 	}
 	mgr.corpus.Minimize(mgr.cfg.Cover)
@@ -1327,7 +1327,6 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	mgr.minimizeCorpusUnlocked()
 	frames := BugFrames{
 		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
 		dataRaces:   make([]string, 0, len(mgr.dataRaceFrames)),
@@ -1391,12 +1390,21 @@ func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string
 
 	mgr.loadCorpus()
 	mgr.firstConnect.Store(time.Now().Unix())
+	go mgr.corpusMinimization()
 	go mgr.fuzzerLoop(fuzzerObj)
 	if mgr.dash != nil {
 		go mgr.dashboardReporter()
 		if mgr.cfg.Reproduce {
 			go mgr.dashboardReproTasks()
 		}
+	}
+}
+
+func (mgr *Manager) corpusMinimization() {
+	for range time.NewTicker(time.Minute).C {
+		mgr.mu.Lock()
+		mgr.minimizeCorpusLocked()
+		mgr.mu.Unlock()
 	}
 }
 
