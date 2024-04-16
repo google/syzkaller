@@ -4258,7 +4258,7 @@ static int read_tun(char* data, int size)
 
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
-		if (errno == EAGAIN || errno == EBADFD)
+		if (errno == EAGAIN || errno == EBADF || errno == EBADFD)
 			return -1;
 		fail("tun read failed");
 	}
