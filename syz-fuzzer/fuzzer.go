@@ -158,8 +158,6 @@ func main() {
 		return
 	}
 
-	machineInfo, modules := collectMachineInfos()
-
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale, false, *flagNetCompression)
 	if err != nil {
@@ -168,9 +166,7 @@ func main() {
 
 	log.Logf(1, "connecting to manager...")
 	a := &rpctype.ConnectArgs{
-		Name:        *flagName,
-		MachineInfo: machineInfo,
-		Modules:     modules,
+		Name: *flagName,
 	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
@@ -180,36 +176,35 @@ func main() {
 	if err != nil {
 		log.SyzFatalf("%v", err)
 	}
-	if r.CoverFilterBitmap != nil {
-		if err := osutil.WriteFile("syz-cover-bitmap", r.CoverFilterBitmap); err != nil {
-			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
-		}
-	}
+	var checkReq *rpctype.CheckArgs
 	if r.Features == nil {
 		checkArgs.gitRevision = r.GitRevision
 		checkArgs.targetRevision = r.TargetRevision
 		checkArgs.enabledCalls = r.EnabledCalls
 		checkArgs.allSandboxes = r.AllSandboxes
 		checkArgs.featureFlags = featureFlags
-		checkResult, err := checkMachine(checkArgs)
+		checkReq, err = checkMachine(checkArgs)
 		if err != nil {
-			if checkResult == nil {
-				checkResult = new(rpctype.CheckArgs)
+			if checkReq == nil {
+				checkReq = new(rpctype.CheckArgs)
 			}
-			checkResult.Error = err.Error()
+			checkReq.Error = err.Error()
 		}
-		checkResult.Name = *flagName
-		if err := manager.Call("Manager.Check", checkResult, nil); err != nil {
-			log.SyzFatalf("Manager.Check call failed: %v", err)
-		}
-		if checkResult.Error != "" {
-			log.SyzFatalf("%v", checkResult.Error)
-		}
-		r.Features = checkResult.Features
+		r.Features = checkReq.Features
 	} else {
 		if err = host.Setup(target, r.Features, featureFlags, config.Executor); err != nil {
 			log.SyzFatalf("%v", err)
 		}
+		checkReq = new(rpctype.CheckArgs)
+	}
+	checkReq.Name = *flagName
+	checkReq.Files = host.ReadFiles(r.ReadFiles)
+	checkRes := new(rpctype.CheckRes)
+	if err := manager.Call("Manager.Check", checkReq, checkRes); err != nil {
+		log.SyzFatalf("Manager.Check call failed: %v", err)
+	}
+	if checkReq.Error != "" {
+		log.SyzFatalf("%v", checkReq.Error)
 	}
 	for _, feat := range r.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
@@ -232,10 +227,13 @@ func main() {
 		requests: make(chan rpctype.ExecutionRequest, inputsCount),
 		results:  make(chan executionResult, inputsCount),
 	}
-	fuzzerTool.gate = ipc.NewGate(gateSize,
-		fuzzerTool.useBugFrames(r, *flagProcs))
-	if r.CoverFilterBitmap != nil {
+	gateCb := fuzzerTool.useBugFrames(r.Features, checkRes.MemoryLeakFrames, checkRes.DataRaceFrames)
+	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
+	if checkRes.CoverFilterBitmap != nil {
 		execOpts.Flags |= ipc.FlagEnableCoverageFilter
+		if err := osutil.WriteFile("syz-cover-bitmap", checkRes.CoverFilterBitmap); err != nil {
+			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
+		}
 	}
 	// Query enough inputs at the beginning.
 	fuzzerTool.exchangeDataCall(inputsCount, nil, 0)
@@ -252,28 +250,16 @@ func main() {
 	fuzzerTool.exchangeDataWorker()
 }
 
-func collectMachineInfos() ([]byte, []host.KernelModule) {
-	machineInfo, err := host.CollectMachineInfo()
-	if err != nil {
-		log.SyzFatalf("failed to collect machine information: %v", err)
-	}
-	modules, err := host.CollectModulesInfo()
-	if err != nil {
-		log.SyzFatalf("failed to collect modules info: %v", err)
-	}
-	return machineInfo, modules
-}
-
 // Returns gateCallback for leak checking if enabled.
-func (tool *FuzzerTool) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() {
+func (tool *FuzzerTool) useBugFrames(featues *host.Features, leakFrames, raceFrames []string) func() {
 	var gateCallback func()
 
-	if r.Features[host.FeatureLeak].Enabled {
-		gateCallback = func() { tool.gateCallback(r.MemoryLeakFrames) }
+	if featues[host.FeatureLeak].Enabled {
+		gateCallback = func() { tool.gateCallback(leakFrames) }
 	}
 
-	if r.Features[host.FeatureKCSAN].Enabled && len(r.DataRaceFrames) != 0 {
-		tool.filterDataRaceFrames(r.DataRaceFrames)
+	if featues[host.FeatureKCSAN].Enabled && len(raceFrames) != 0 {
+		tool.filterDataRaceFrames(raceFrames)
 	}
 
 	return gateCallback
