@@ -49,7 +49,7 @@ func TestParseMulti(t *testing.T) {
 	entries := target.ParseLog([]byte(execLog))
 	if len(entries) != 5 {
 		for i, ent := range entries {
-			t.Logf("program #%v: %v\n", i, ent.P)
+			t.Logf("program #%v: %v", i, ent.P)
 		}
 		t.Fatalf("got %v programs, want 5", len(entries))
 	}

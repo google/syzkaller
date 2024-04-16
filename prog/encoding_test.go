@@ -432,8 +432,8 @@ func testSerializeDeserialize(t *testing.T, p0 *Prog) ([]byte, []byte, bool) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(data0, data1) {
-		t.Logf("PROG0:\n%s\n", p0.Serialize())
-		t.Logf("PROG1:\n%s\n", p1.Serialize())
+		t.Logf("PROG0:\n%s", p0.Serialize())
+		t.Logf("PROG1:\n%s", p1.Serialize())
 		return data0, data1, false
 	}
 	return nil, nil, true

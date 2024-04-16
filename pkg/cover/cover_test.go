@@ -51,7 +51,7 @@ func TestMergeDiff(t *testing.T) {
 			cov.Merge(test.init)
 			diff := cov.MergeDiff(test.merge)
 			if res := cmp.Diff(test.diff, diff); res != "" {
-				t.Fatalf("MergeDiff result is wrong: %v", res)
+				t.Fatalf("result is wrong: %v", res)
 			}
 			result := cov.Serialize()
 			sort.Slice(result, func(i, j int) bool {

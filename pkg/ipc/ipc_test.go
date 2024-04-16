@@ -94,7 +94,7 @@ func TestExecute(t *testing.T) {
 
 	flags := []ExecFlags{0, FlagThreaded}
 	for _, flag := range flags {
-		t.Logf("testing flags 0x%x\n", flag)
+		t.Logf("testing flags 0x%x", flag)
 		cfg := &Config{
 			Executor:      bin,
 			UseShmem:      useShmem,

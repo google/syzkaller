@@ -301,14 +301,16 @@ func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
 			break
 		}
 		return 1, true, true
+	case "t.Errorf", "t.Fatalf":
+		return 0, false, true
 	}
 	if fun.Sel.String() == "Logf" {
-		return 1, false, true
+		return 0, false, true
 	}
 	return -1, false, false
 }
 
-var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
+var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+?((\.|[A-Z])[[:alnum:]]+)+ `)
 
 func stringLit(n ast.Node) (string, bool) {
 	lit, ok := n.(*ast.BasicLit)

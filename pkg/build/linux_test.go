@@ -38,7 +38,7 @@ func TestQueryLinuxCompiler(t *testing.T) {
 	const badDir = "./testingData/non_existing_folder"
 	_, err = queryLinuxCompiler(badDir)
 	if err == nil {
-		t.Fatalf("Expected an error, got none")
+		t.Fatalf("expected an error, got none")
 	}
 }
 

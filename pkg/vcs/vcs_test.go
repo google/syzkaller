@@ -226,7 +226,7 @@ func TestFileLink(t *testing.T) {
 	for _, test := range tests {
 		link := FileLink(test.URL, test.Hash, test.File, test.Line)
 		if link != test.FileLink {
-			t.Errorf("Test: %+v\ngot:  %v", test, link)
+			t.Errorf("test: %+v\ngot:  %v", test, link)
 		}
 	}
 }

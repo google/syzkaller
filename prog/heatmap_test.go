@@ -64,7 +64,7 @@ func TestGenericHeatmap(t *testing.T) {
 				index := hm.ChooseLocation()
 				if !checkIndex(index, len(data), test.regions) {
 					hm.debugPrint(t, data, test.regions)
-					t.Fatalf("selected index %d does not fall in a region\n", index)
+					t.Fatalf("selected index %d does not fall in a region", index)
 				}
 			}
 		}
@@ -100,7 +100,7 @@ func (hm *GenericHeatmap) debugPrint(t *testing.T, data []byte, regions []region
 		}
 		t.Logf("%8d: %x", j*granularity, data[j:end])
 	}
-	t.Logf("\n")
+	t.Log("\n")
 
 	// Print selected regions in data.
 	sort.Slice(regions, func(i, j int) bool {
@@ -109,12 +109,12 @@ func (hm *GenericHeatmap) debugPrint(t *testing.T, data []byte, regions []region
 	for j, region := range regions {
 		t.Logf("region  %4d: %8v - %8v", j, region.start, region.end)
 	}
-	t.Logf("\n")
+	t.Log("\n")
 
 	// Print heatmap.
 	t.Logf("generic heatmap (total segment length %d)", hm.length)
 	for j, seg := range hm.segments {
 		t.Logf("segment %4d: %8v - %8v", j, seg.offset, seg.offset+seg.length)
 	}
-	t.Logf("\n\n\n")
+	t.Log("\n\n\n")
 }

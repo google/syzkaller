@@ -184,14 +184,14 @@ func TestUploadBuildAsset(t *testing.T) {
 	be.objectRemove = func(string) error { return fmt.Errorf("not now") }
 	err = storage.DeprecateAssets()
 	if err == nil {
-		t.Fatalf("DeprecateAssets() should have failed")
+		t.Fatalf("DeprecateAssets should have failed")
 	}
 
 	// Let the deletion be successful.
 	be.objectRemove = nil
 	err = storage.DeprecateAssets()
 	if err != nil {
-		t.Fatalf("DeprecateAssets() was expected to be successful, got %s", err)
+		t.Fatalf("DeprecateAssets was expected to be successful, got %s", err)
 	}
 	path, err := be.getPath(allUrls[2])
 	if err != nil {
@@ -199,14 +199,14 @@ func TestUploadBuildAsset(t *testing.T) {
 	}
 	err = be.hasOnly([]string{path})
 	if err != nil {
-		t.Fatalf("after first DeprecateAssets(): %s", err)
+		t.Fatalf("after first DeprecateAssets: %s", err)
 	}
 
 	// Delete the rest.
 	dashMock.downloadURLs = map[string]bool{}
 	err = storage.DeprecateAssets()
 	if err != nil || len(be.objects) != 0 {
-		t.Fatalf("second DeprecateAssets() failed: %s, len %d",
+		t.Fatalf("second DeprecateAssets failed: %s, len %d",
 			err, len(be.objects))
 	}
 }
@@ -365,7 +365,7 @@ func TestTwoBucketDeprecation(t *testing.T) {
 		url: true,
 	}
 	dummy.objectRemove = func(url string) error {
-		t.Fatalf("Unexpected removal")
+		t.Fatalf("unexpected removal")
 		return nil
 	}
 	err := storage.DeprecateAssets()
@@ -389,7 +389,7 @@ func TestInvalidAssetURLs(t *testing.T) {
 		url: true,
 	}
 	dummy.objectRemove = func(url string) error {
-		t.Fatalf("Unexpected removal")
+		t.Fatalf("unexpected removal")
 		return nil
 	}
 	err := storage.DeprecateAssets()

@@ -27,12 +27,12 @@ func TestIsKcovBrokenInCompiler(t *testing.T) {
 	}
 	for _, ver := range inputDataTrue {
 		if !isKcovBrokenInCompiler(ver) {
-			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned false\n", ver)
+			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned false", ver)
 		}
 	}
 	for _, ver := range inputDataFalse {
 		if isKcovBrokenInCompiler(ver) {
-			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned true\n", ver)
+			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned true", ver)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func TestCleanPathAndroid(t *testing.T) {
 			path, epath, ename := files[0], files[1], files[2]
 			rpath, rname := cleanPathAndroid(path, test.SrcDir, test.Delimiters, test.FnExists)
 			if (rpath != epath) || (rname != ename) {
-				t.Fatalf("cleanPathAndroid(`%s`, `%s`, %v, ...) unexpectedly returned (`%s`, `%s`) instead of (`%s`, `%s`)\n",
+				t.Fatalf("cleanPathAndroid(`%s`, `%s`, %v, ...) unexpectedly returned (`%s`, `%s`) instead of (`%s`, `%s`)",
 					path, test.SrcDir, test.Delimiters, rpath, rname, epath, ename)
 			}
 		}
@@ -113,7 +113,7 @@ func runNextCallTarget(t *testing.T, arg NextCallTargetTest) {
 	i := 0
 	target, pc := nextCallTarget(arg.Arch, arg.Text, arg.Data, &i)
 	if target != arg.ExpTarget || pc != arg.ExpPC {
-		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)\n",
+		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)",
 			arg.Arch, arg.Text, arg.Data, target, pc, arg.ExpTarget, arg.ExpPC)
 	}
 }
