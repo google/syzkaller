@@ -254,7 +254,7 @@ func TestMinimize(t *testing.T) {
 		p1, ci := Minimize(p, test.callIndex, false, test.pred)
 		res := p1.Serialize()
 		if string(res) != test.result {
-			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v\n",
+			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v",
 				ti, test.orig, test.result, string(res))
 		}
 		if ci != test.resultCallIndex {

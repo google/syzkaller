@@ -139,7 +139,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		if atomic.AddUint32(&failedTests, 1) > maxFailures {
 			t.Fatal()
 		}
-		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
+		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	bin, err := Build(p.Target, src)
@@ -147,7 +147,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		if atomic.AddUint32(&failedTests, 1) > maxFailures {
 			t.Fatal()
 		}
-		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
+		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(bin)

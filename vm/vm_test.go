@@ -424,10 +424,10 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatalf("want title %q, got title %q", test.Report.Title, rep.Title)
 	}
 	if !bytes.Equal(test.Report.Report, rep.Report) {
-		t.Fatalf("want report:\n%s\n\ngot report:\n%s\n", test.Report.Report, rep.Report)
+		t.Fatalf("want report:\n%s\n\ngot report:\n%s", test.Report.Report, rep.Report)
 	}
 	if test.Report.Output != nil && !bytes.Equal(test.Report.Output, rep.Output) {
-		t.Fatalf("want output:\n%s\n\ngot output:\n%s\n", test.Report.Output, rep.Output)
+		t.Fatalf("want output:\n%s\n\ngot output:\n%s", test.Report.Output, rep.Output)
 	}
 }
 

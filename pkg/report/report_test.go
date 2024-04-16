@@ -148,10 +148,10 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	containsCrash := reporter.ContainsCrash(test.Log)
 	expectCrash := (test.Title != "")
 	if expectCrash && !containsCrash {
-		t.Fatalf("ContainsCrash did not find crash")
+		t.Fatalf("did not find crash")
 	}
 	if !expectCrash && containsCrash {
-		t.Fatalf("ContainsCrash found unexpected crash")
+		t.Fatalf("found unexpected crash")
 	}
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
@@ -185,7 +185,7 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 			wantAltTitles += "ALT: " + t + "\n"
 		}
 		t.Fatalf("want:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
-			"got:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\n",
+			"got:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v (%v)\nSUPPRESSED: %v",
 			test.Title, wantAltTitles, test.Type, test.Frame, test.Corrupted, test.Suppressed,
 			title, gotAltTitles, typ, frame, corrupted, corruptedReason, suppressed)
 	}
@@ -206,13 +206,13 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 		t.Fatalf("bad Output:\n%s", rep.Output)
 	}
 	if rep.StartPos != 0 && rep.EndPos != 0 && rep.StartPos >= rep.EndPos {
-		t.Fatalf("StartPos=%v >= EndPos=%v", rep.StartPos, rep.EndPos)
+		t.Fatalf("StartPos %v >= EndPos %v", rep.StartPos, rep.EndPos)
 	}
 	if rep.EndPos > len(rep.Output) {
-		t.Fatalf("EndPos=%v > len(Output)=%v", rep.EndPos, len(rep.Output))
+		t.Fatalf("EndPos %v > len(Output) %v", rep.EndPos, len(rep.Output))
 	}
 	if rep.SkipPos <= rep.StartPos || rep.SkipPos > rep.EndPos {
-		t.Fatalf("bad SkipPos=%v: StartPos=%v EndPos=%v", rep.SkipPos, rep.StartPos, rep.EndPos)
+		t.Fatalf("bad SkipPos %v: StartPos %v EndPos %v", rep.SkipPos, rep.StartPos, rep.EndPos)
 	}
 	if test.StartLine != "" {
 		if test.EndLine == "" {

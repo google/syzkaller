@@ -159,7 +159,7 @@ func TestParse(t *testing.T) {
 			t.Fatalf("got error: %v", err)
 		}
 		if !reflect.DeepEqual(addr.frames, frames) {
-			t.Fatalf("want frames:\n%+v\ngot:\n%+v\n", addr.frames, frames)
+			t.Fatalf("want frames:\n%+v\ngot:\n%+v", addr.frames, frames)
 		}
 		allPCs = append(allPCs, addr.pc)
 		allFrames = append(allFrames, frames...)
@@ -177,7 +177,7 @@ func TestParse(t *testing.T) {
 		}
 		frames = append(frames, frames2...)
 		if !reflect.DeepEqual(allFrames, frames) {
-			t.Fatalf("want frames:\n%+v\ngot:\n%+v\n", allFrames, frames)
+			t.Fatalf("want frames:\n%+v\ngot:\n%+v", allFrames, frames)
 		}
 	}
 

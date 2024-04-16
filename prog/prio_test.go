@@ -63,7 +63,7 @@ func TestStaticPriorities(t *testing.T) {
 			}
 			// Checks that prio[callCreatesRes][callUsesRes] > prio[callUsesRes][callCreatesRes]
 			if count >= counter[call] {
-				t.Fatalf("Too high priority for %s -> %s: %d vs %s -> %s: %d",
+				t.Fatalf("too high priority for %s -> %s: %d vs %s -> %s: %d",
 					call, referenceCall, count, referenceCall, call, counter[call])
 			}
 		}

@@ -238,7 +238,7 @@ Bug report`,
 	}
 
 	if len(threads) > len(expected) {
-		t.Fatalf("Expected %d threads, got %d", len(expected), len(threads))
+		t.Fatalf("expected %d threads, got %d", len(expected), len(threads))
 	}
 }
 

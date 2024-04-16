@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"testing"
 )
 
 /* some comment */ // want "Use C-style comments // instead of /* */"
@@ -98,6 +99,14 @@ func logErrorMessages() {
 	fmt.Fprintf(os.Stderr, "Real output message with capital letter\n") // want "Don't start log/error messages with a Capital letter"
 	fmt.Fprintf(os.Stderr, "real output message without newline")       // want "Add \\\\n at the end of printed messages"
 	fmt.Fprintf(os.Stderr, "%v", err)                                   // want "Add \\\\n at the end of printed messages"
+}
+
+func testMessages(t *testing.T) {
+	t.Logf("good message %v", 1)
+	t.Logf("Bad message %v", 1)     // want "Don't start log/error messages with a Capital letter"
+	t.Errorf("bad message %v\n", 1) // want "Don't use \\\\n at the end of log/error messages"
+	t.Fatalf("Bad message %v", 1)   // want "Don't start log/error messages with a Capital letter"
+	t.Fatalf("PublicFunc is ok %v", 1)
 }
 
 func varDecls() {

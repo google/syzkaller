@@ -87,7 +87,7 @@ func testSerialize(t *testing.T, verbose bool) {
 			t.Fatalf("different number of calls")
 		}
 		if !bytes.Equal(data, data1) {
-			t.Fatalf("program changed after serialize/deserialize\noriginal:\n%s\n\nnew:\n%s\n", data, data1)
+			t.Fatalf("program changed after serialize/deserialize\noriginal:\n%s\n\nnew:\n%s", data, data1)
 		}
 	}
 }

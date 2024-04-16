@@ -27,6 +27,6 @@ func TestConnect(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(&rpctype.RunnerConnectRes{CheckUnsupportedCalls: true}, r); diff != "" {
-		t.Errorf("Connect result mismatch (-want +got):\n%s", diff)
+		t.Errorf("connect result mismatch (-want +got):\n%s", diff)
 	}
 }

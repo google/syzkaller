@@ -20,6 +20,6 @@ func TestOutputDeadline(t *testing.T) {
 	c.wait()
 	out := <-c.readDone
 	if string(out) != "done\n" {
-		t.Errorf("Unexpected output: '%s'", out)
+		t.Errorf("unexpected output: '%s'", out)
 	}
 }

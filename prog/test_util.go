@@ -36,7 +36,7 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 				t.Errorf("both Err and Out are set")
 			}
 			if test.In == test.Out {
-				t.Errorf("In and Out are equal, remove Out in such case\n%v", test.In)
+				t.Errorf("in and out are equal, remove Out in such case\n%v", test.In)
 			}
 			if test.Out == "" {
 				test.Out = test.In
@@ -49,7 +49,7 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 				}
 				if err != nil {
 					if wantErr == "" {
-						t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n",
+						t.Fatalf("deserialization failed with\n%s\ndata:\n%s",
 							err, test.In)
 					}
 					if !strings.Contains(err.Error(), wantErr) {
@@ -58,7 +58,7 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 					}
 				} else {
 					if wantErr != "" {
-						t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
+						t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s",
 							wantErr, test.In)
 					}
 					if transform != nil {
@@ -72,7 +72,7 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 					// the verbose and non-verbose output don't match -- the strict parsing
 					// mode does not accept the non-verbose output as input.
 					if want != output && want != outputVerbose {
-						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n", outputVerbose, want)
+						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s", outputVerbose, want)
 					}
 					p.SerializeForExec()
 				}

@@ -281,16 +281,16 @@ func TestCollectUnused(t *testing.T) {
 	for i, input := range inputs {
 		desc := ast.Parse([]byte(input.text), "input", nil)
 		if desc == nil {
-			t.Fatalf("Test %d: failed to parse", i)
+			t.Fatalf("test %d: failed to parse", i)
 		}
 
 		nodes, err := CollectUnused(desc, targets.List[targets.TestOS][targets.TestArch64], nil)
 		if err != nil {
-			t.Fatalf("Test %d: CollectUnused failed: %v", i, err)
+			t.Fatalf("test %d: CollectUnused failed: %v", i, err)
 		}
 
 		if len(input.names) != len(nodes) {
-			t.Errorf("Test %d: want %d nodes, got %d", i, len(input.names), len(nodes))
+			t.Errorf("test %d: want %d nodes, got %d", i, len(input.names), len(nodes))
 		}
 
 		names := make([]string, len(nodes))
@@ -302,7 +302,7 @@ func TestCollectUnused(t *testing.T) {
 		sort.Strings(input.names)
 
 		if !reflect.DeepEqual(names, input.names) {
-			t.Errorf("Test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
+			t.Errorf("test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
 		}
 	}
 }

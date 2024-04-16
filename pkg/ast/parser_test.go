@@ -76,7 +76,7 @@ func TestParseAll(t *testing.T) {
 			desc4 := desc.Filter(func(n Node) bool { return true })
 			desc5 := desc.Filter(func(n Node) bool { return false })
 			if len(desc4.Nodes) != len(desc.Nodes) || len(desc5.Nodes) != 0 {
-				t.Fatalf("Filter is broken: desc=%v desc4=%v desc5=%v",
+				t.Fatalf("filter is broken: desc=%v desc4=%v desc5=%v",
 					len(desc.Nodes), len(desc4.Nodes), len(desc5.Nodes))
 			}
 		})

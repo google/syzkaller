@@ -337,7 +337,7 @@ func TestNeedReproIsolated(t *testing.T) {
 		}
 		funcResult := needReproForBug(c.ctx, bug)
 		if funcResult != test.needRepro {
-			t.Errorf("For %#v expected needRepro=%v, got needRepro=%v",
+			t.Errorf("for %#v expected needRepro=%v, got needRepro=%v",
 				bug, test.needRepro, funcResult)
 		}
 	}
