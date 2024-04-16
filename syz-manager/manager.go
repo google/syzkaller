@@ -1195,8 +1195,17 @@ func fullReproLog(stats *repro.Stats) []byte {
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
-		mgr.serv.updateFilteredCover(update.NewCover)
-
+		if len(update.NewCover) != 0 && mgr.coverFilter != nil {
+			if rg, _ := getReportGenerator(mgr.cfg, mgr.modules); rg != nil {
+				filtered := 0
+				for _, pc := range update.NewCover {
+					if mgr.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
+						filtered++
+					}
+				}
+				mgr.statCoverFiltered.Add(filtered)
+			}
+		}
 		if update.Exists {
 			// We only save new progs into the corpus.db file.
 			continue
@@ -1322,8 +1331,7 @@ func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
-	BugFrames, map[uint32]uint32, map[uint32]uint32, error) {
+func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (BugFrames, map[uint32]uint32) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1346,7 +1354,7 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 		}
 		mgr.modulesInitialized = true
 	}
-	return frames, mgr.coverFilter, mgr.execCoverFilter, nil
+	return frames, mgr.execCoverFilter
 }
 
 func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string][]string,

@@ -492,7 +492,7 @@ func (mgr *Manager) modulesInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// NewCanonicalizer() is initialized with serv.modules.
-	modules, err := json.MarshalIndent(mgr.serv.modules, "", "\t")
+	modules, err := json.MarshalIndent(mgr.modules, "", "\t")
 	if err != nil {
 		fmt.Fprintf(w, "unable to create JSON modules info: %v", err)
 		return
