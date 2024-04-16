@@ -116,6 +116,42 @@ func testDecode(t *testing.T, arch string) {
 	}
 }
 
+func TestGenerate(t *testing.T) {
+	for _, arch := range allArches {
+		t.Run(arch, func(t *testing.T) {
+			testGenerate(t, arch)
+		})
+	}
+}
+
+func testGenerate(t *testing.T, arch string) {
+	insnset := iset.Arches[arch]
+	r := rand.New(testutil.RandSource(t))
+	for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
+		for repeat := 1; repeat < 10; repeat++ {
+			if len(insnset.GetInsns(mode, iset.TypeUser)) == 0 {
+				continue
+			}
+			cfg := &iset.Config{
+				Arch: arch,
+				Mode: mode,
+				Priv: true,
+				Exec: true,
+				Len:  repeat,
+			}
+			text := Generate(cfg, r)
+			for len(text) != 0 {
+				size, err := insnset.Decode(mode, text)
+				if size == 0 || err != nil {
+					t.Errorf("failed to decode text: %v", text)
+					break
+				}
+				text = text[size:]
+			}
+		}
+	}
+}
+
 func allInsns(arch string, mode iset.Mode, priv, exec bool) []iset.Insn {
 	insnset := iset.Arches[arch]
 	insns := insnset.GetInsns(mode, iset.TypeUser)
