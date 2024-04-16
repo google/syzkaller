@@ -91,11 +91,10 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules             []host.KernelModule
-	coverFilter         map[uint32]uint32
-	execCoverFilter     map[uint32]uint32
-	modulesInitialized  bool
-	afterTriageStatSent bool
+	modules            []host.KernelModule
+	coverFilter        map[uint32]uint32
+	execCoverFilter    map[uint32]uint32
+	modulesInitialized bool
 
 	assetStorage *asset.Storage
 
@@ -217,33 +216,11 @@ func RunManager(cfg *mgrconfig.Config) {
 		}
 	}
 
-	go func() {
-		for lastTime := time.Now(); ; {
-			time.Sleep(10 * time.Second)
-			now := time.Now()
-			diff := int(now.Sub(lastTime))
-			lastTime = now
-			if mgr.firstConnect.Load() == 0 {
-				continue
-			}
-			mgr.statFuzzingTime.Add(diff * mgr.statNumFuzzing.Val())
-			buf := new(bytes.Buffer)
-			for _, stat := range stats.Collect(stats.Console) {
-				fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
-			}
-			log.Logf(0, "%s", buf.String())
-		}
-	}()
-
 	if *flagBench != "" {
 		mgr.initBench()
 	}
 
-	if mgr.dash != nil {
-		go mgr.dashboardReporter()
-		go mgr.dashboardReproTasks()
-	}
-
+	go mgr.heartbeatLoop()
 	osutil.HandleInterrupts(vm.Shutdown)
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
@@ -255,14 +232,30 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.vmLoop()
 }
 
+func (mgr *Manager) heartbeatLoop() {
+	lastTime := time.Now()
+	for now := range time.NewTicker(10 * time.Second).C {
+		diff := int(now.Sub(lastTime))
+		lastTime = now
+		if mgr.firstConnect.Load() == 0 {
+			continue
+		}
+		mgr.statFuzzingTime.Add(diff * mgr.statNumFuzzing.Val())
+		buf := new(bytes.Buffer)
+		for _, stat := range stats.Collect(stats.Console) {
+			fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
+		}
+		log.Logf(0, "%s", buf.String())
+	}
+}
+
 func (mgr *Manager) initBench() {
 	f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, osutil.DefaultFilePerm)
 	if err != nil {
 		log.Fatalf("failed to open bench file: %v", err)
 	}
 	go func() {
-		for {
-			time.Sleep(time.Minute)
+		for range time.NewTicker(time.Minute).C {
 			vals := make(map[string]int)
 			for _, stat := range stats.Collect(stats.All) {
 				vals[stat.Name] = stat.V
@@ -1399,7 +1392,12 @@ func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string
 	mgr.loadCorpus()
 	mgr.firstConnect.Store(time.Now().Unix())
 	go mgr.fuzzerLoop(fuzzerObj)
-	go mgr.fuzzerSignalRotation(fuzzerObj)
+	if mgr.dash != nil {
+		go mgr.dashboardReporter()
+		if mgr.cfg.Reproduce {
+			go mgr.dashboardReproTasks()
+		}
+	}
 }
 
 // We need this method since we're not supposed to access Manager fields from RPCServer.
@@ -1407,7 +1405,7 @@ func (mgr *Manager) getFuzzer() *fuzzer.Fuzzer {
 	return mgr.fuzzer.Load()
 }
 
-func (mgr *Manager) fuzzerSignalRotation(fuzzer *fuzzer.Fuzzer) {
+func (mgr *Manager) fuzzerSignalRotation() {
 	const (
 		rotateSignals      = 1000
 		timeBetweenRotates = 15 * time.Minute
@@ -1418,30 +1416,21 @@ func (mgr *Manager) fuzzerSignalRotation(fuzzer *fuzzer.Fuzzer) {
 	)
 	lastExecTotal := 0
 	lastRotation := time.Now()
-	for {
-		time.Sleep(time.Minute * 5)
-		mgr.mu.Lock()
-		phase := mgr.phase
-		mgr.mu.Unlock()
-		if phase < phaseTriagedCorpus {
-			continue
-		}
+	for range time.NewTicker(5 * time.Minute).C {
 		if mgr.statExecs.Val()-lastExecTotal < execsBetweenRotates {
 			continue
 		}
 		if time.Since(lastRotation) < timeBetweenRotates {
 			continue
 		}
-		fuzzer.RotateMaxSignal(rotateSignals)
+		mgr.fuzzer.Load().RotateMaxSignal(rotateSignals)
 		lastRotation = time.Now()
 		lastExecTotal = mgr.statExecs.Val()
 	}
 }
 
 func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
-	for {
-		time.Sleep(time.Second / 2)
-
+	for ; ; time.Sleep(time.Second / 2) {
 		// Distribute new max signal over all instances.
 		newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
 		log.Logf(2, "distributing %d new signal, %d dropped signal",
@@ -1452,6 +1441,7 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 		if fuzzer.StatCandidates.Val() == 0 {
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
+				go mgr.fuzzerSignalRotation()
 				if mgr.cfg.HubClient != "" {
 					mgr.phase = phaseTriagedCorpus
 					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
@@ -1525,13 +1515,10 @@ func (mgr *Manager) checkUsedFiles() {
 
 func (mgr *Manager) dashboardReporter() {
 	webAddr := publicWebAddr(mgr.cfg.HTTP)
+	triageInfoSent := false
 	var lastFuzzingTime time.Duration
 	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
-	for {
-		time.Sleep(time.Minute)
-		if mgr.firstConnect.Load() == 0 {
-			continue
-		}
+	for range time.NewTicker(time.Minute).C {
 		mgr.mu.Lock()
 		req := &dashapi.ManagerStatsReq{
 			Name:              mgr.cfg.Name,
@@ -1546,8 +1533,8 @@ func (mgr *Manager) dashboardReporter() {
 			SuppressedCrashes: uint64(mgr.statSuppressed.Val()) - lastSuppressedCrashes,
 			Execs:             uint64(mgr.statExecs.Val()) - lastExecs,
 		}
-		if mgr.phase >= phaseTriagedCorpus && !mgr.afterTriageStatSent {
-			mgr.afterTriageStatSent = true
+		if mgr.phase >= phaseTriagedCorpus && !triageInfoSent {
+			triageInfoSent = true
 			req.TriagedCoverage = uint64(mgr.corpus.StatSignal.Val())
 			req.TriagedPCs = uint64(mgr.corpus.StatCover.Val())
 		}
@@ -1567,11 +1554,7 @@ func (mgr *Manager) dashboardReporter() {
 }
 
 func (mgr *Manager) dashboardReproTasks() {
-	if !mgr.cfg.Reproduce {
-		return
-	}
-	for {
-		time.Sleep(20 * time.Minute)
+	for range time.NewTicker(20 * time.Minute).C {
 		needReproReply := make(chan bool)
 		mgr.needMoreRepros <- needReproReply
 		if !<-needReproReply {
