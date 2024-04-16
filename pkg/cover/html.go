@@ -70,19 +70,12 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, params CoverHandlerParams) error 
 			pos = pos.Dirs[dir]
 			fname = fname[sep+1:]
 		}
-		var TotalInCoveredFunc int
-		for _, function := range file.functions {
-			if function.covered > 0 {
-				TotalInCoveredFunc += function.pcs
-			}
-		}
 		f := &templateFile{
 			templateBase: templateBase{
-				Path:               path,
-				Name:               fname,
-				Total:              file.totalPCs,
-				TotalInCoveredFunc: TotalInCoveredFunc,
-				Covered:            file.coveredPCs,
+				Path:    path,
+				Name:    fname,
+				Total:   file.totalPCs,
+				Covered: file.coveredPCs,
 			},
 			HasFunctions: len(file.functions) != 0,
 		}
@@ -816,22 +809,14 @@ func processDir(dir *templateDir) {
 	for _, f := range dir.Files {
 		dir.Total += f.Total
 		dir.Covered += f.Covered
-		dir.TotalInCoveredFunc += f.TotalInCoveredFunc
 		f.Percent = percent(f.Covered, f.Total)
-		if f.TotalInCoveredFunc > 0 {
-			f.PercentInCoveredFunc = percent(f.Covered, f.TotalInCoveredFunc)
-		}
 	}
 	for _, child := range dir.Dirs {
 		processDir(child)
 		dir.Total += child.Total
 		dir.Covered += child.Covered
-		dir.TotalInCoveredFunc += child.TotalInCoveredFunc
 	}
 	dir.Percent = percent(dir.Covered, dir.Total)
-	if dir.TotalInCoveredFunc > 0 {
-		dir.PercentInCoveredFunc += percent(dir.Covered, dir.TotalInCoveredFunc)
-	}
 	if dir.Covered == 0 {
 		dir.Dirs = nil
 		dir.Files = nil
@@ -880,13 +865,11 @@ type templateProg struct {
 }
 
 type templateBase struct {
-	Name                 string
-	Path                 string
-	Total                int
-	Covered              int
-	TotalInCoveredFunc   int
-	Percent              int
-	PercentInCoveredFunc int
+	Name    string
+	Path    string
+	Total   int
+	Covered int
+	Percent int
 }
 
 type templateDir struct {
@@ -1095,8 +1078,8 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			<span id="path/{{$dir.Path}}" class="caret hover">
 				{{$dir.Name}}
 				<span class="cover hover">
-					{{if $dir.Covered}}{{$dir.Percent}}%({{$dir.PercentInCoveredFunc}}%){{else}}---{{end}}
-					<span class="cover-right">of {{$dir.Total}}({{$dir.TotalInCoveredFunc}})</span>
+					{{if $dir.Covered}}{{$dir.Percent}}%{{else}}---{{end}}
+					<span class="cover-right">of {{$dir.Total}}</span>
 				</span>
 			</span>
 			<ul class="nested">
@@ -1113,9 +1096,9 @@ var coverTemplate = template.Must(template.New("").Parse(`
 				<span class="cover hover">
 					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
 						onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
-                                                {{$file.Percent}}%({{$file.PercentInCoveredFunc}}%)
+                                                {{$file.Percent}}%
 					</a>
-					<span class="cover-right">of {{$file.Total}}({{$file.TotalInCoveredFunc}})</span>
+					<span class="cover-right">of {{$file.Total}}</span>
 				</span>
 			{{else}}
 					{{$file.Name}}<span class="cover hover">---<span class="cover-right">
