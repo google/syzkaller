@@ -4479,8 +4479,10 @@ static long syz_usbip_server_init(volatile long a0)
 	bool usb3 = (speed == USB_SPEED_SUPER);
 
 	int socket_pair[2];
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair))
-		fail("syz_usbip_server_init: socketpair failed");
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair)) {
+		debug("syz_usbip_server_init: socketpair failed (%d)\n", errno);
+		return -1;
+	}
 
 	int client_fd = socket_pair[0];
 	int server_fd = socket_pair[1];
