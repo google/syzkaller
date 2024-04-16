@@ -1749,8 +1749,9 @@ static int read_tun(char* data, int size)
 
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
+		// EBADF can be returned if the test closes tunfd with close_range syscall.
 		// Tun sometimes returns EBADFD, unclear if it's a kernel bug or not.
-		if (errno == EAGAIN || errno == EBADFD)
+		if (errno == EAGAIN || errno == EBADF || errno == EBADFD)
 			return -1;
 		fail("tun read failed");
 	}
