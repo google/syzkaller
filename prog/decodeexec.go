@@ -72,6 +72,17 @@ type ExecCsumChunk struct {
 	Size  uint64
 }
 
+func ExecCallCount(exec []byte) (int, error) {
+	v, n := binary.Varint(exec)
+	if n <= 0 {
+		return 0, fmt.Errorf("not enough data in the buffer")
+	}
+	if v > MaxCalls {
+		return 0, fmt.Errorf("too many calls (%v)", v)
+	}
+	return int(v), nil
+}
+
 func (target *Target) DeserializeExec(exec []byte, stats map[string]int) (ExecProg, error) {
 	dec := &execDecoder{target: target, data: exec, stats: stats}
 	dec.parse()
@@ -101,6 +112,7 @@ type execDecoder struct {
 }
 
 func (dec *execDecoder) parse() {
+	ncalls := dec.read("header")
 	for dec.err == nil {
 		switch instr := dec.read("instr/opcode"); instr {
 		case execInstrCopyin:
@@ -117,6 +129,9 @@ func (dec *execDecoder) parse() {
 			})
 		case execInstrEOF:
 			dec.commitCall()
+			if ncalls != uint64(len(dec.calls)) {
+				dec.err = fmt.Errorf("bad number of calls: %v/%v", ncalls, len(dec.calls))
+			}
 			return
 		case execInstrSetProps:
 			dec.commitCall()

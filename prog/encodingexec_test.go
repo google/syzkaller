@@ -26,9 +26,14 @@ func TestSerializeForExecRandom(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to serialize: %v", err)
 		}
-		_, err = target.DeserializeExec(buf, sizes)
+		got, err := target.DeserializeExec(buf, sizes)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if n, err := ExecCallCount(buf); err != nil {
+			t.Fatal(err)
+		} else if n != len(got.Calls) {
+			t.Fatalf("mismatching number of calls: %v/%v", n, len(got.Calls))
 		}
 		totalSize += len(buf)
 		execSizes.Add(float64(len(buf)))
@@ -660,7 +665,7 @@ test$res1(r0)
 			if err != nil {
 				t.Fatalf("failed to serialize: %v", err)
 			}
-			var want []byte
+			want := binary.AppendVarint(nil, int64(len(p.Calls)))
 			for _, e := range test.serialized {
 				switch elem := e.(type) {
 				case uint64:
