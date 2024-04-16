@@ -383,13 +383,10 @@ func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.Exec
 }
 
 func (tool *FuzzerTool) grabStats() map[string]uint64 {
-	stats := map[string]uint64{}
-	for _, proc := range tool.procs {
-		stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
+	return map[string]uint64{
+		"no exec requests": tool.noExecRequests.Swap(0),
+		"no exec duration": tool.noExecDuration.Swap(0),
 	}
-	stats["no exec requests"] = tool.noExecRequests.Swap(0)
-	stats["no exec duration"] = tool.noExecDuration.Swap(0)
-	return stats
 }
 
 func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo, mask signal.Signal, maskCall int) {
