@@ -20,22 +20,25 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 )
 
 type RPCServer struct {
-	mgr                   RPCManagerView
-	cfg                   *mgrconfig.Config
-	server                *rpctype.RPCServer
-	port                  int
+	mgr     RPCManagerView
+	cfg     *mgrconfig.Config
+	server  *rpctype.RPCServer
+	checker *vminfo.Checker
+	port    int
+
+	checkDone             bool
+	checkFailures         int
+	checkFeatures         *host.Features
 	targetEnabledSyscalls map[*prog.Syscall]bool
 	canonicalModules      *cover.Canonicalizer
 
-	mu            sync.Mutex
-	runners       sync.Map // Instead of map[string]*Runner.
-	checkFeatures *host.Features
-
-	checkFailures int
+	mu      sync.Mutex
+	runners sync.Map // Instead of map[string]*Runner.
 
 	// We did not finish these requests because of VM restarts.
 	// They will be eventually given to other VMs.
@@ -81,8 +84,9 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect([]host.KernelModule) (BugFrames, map[uint32]uint32)
-	machineChecked(features *host.Features, globFiles map[string][]string, enabledSyscalls map[*prog.Syscall]bool)
+	fuzzerConnect() (BugFrames, map[uint32]uint32, signal.Signal)
+	machineChecked(features *host.Features, globFiles map[string][]string,
+		enabledSyscalls map[*prog.Syscall]bool, modules []host.KernelModule)
 	getFuzzer() *fuzzer.Fuzzer
 }
 
@@ -90,6 +94,7 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
 		mgr:       mgr,
 		cfg:       mgr.cfg,
+		checker:   vminfo.New(mgr.cfg),
 		statExecs: mgr.statExecs,
 		statExecRetries: stats.Create("exec retries",
 			"Number of times a test program was restarted because the first run failed",
@@ -124,13 +129,36 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.statVMRestarts.Add(1)
 
-	bugFrames, execCoverFilter := serv.mgr.fuzzerConnect(a.Modules)
-
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
-	if serv.canonicalModules == nil {
-		serv.canonicalModules = cover.NewCanonicalizer(a.Modules, serv.cfg.Cover)
+	r.EnabledCalls = serv.cfg.Syscalls
+	r.GitRevision = prog.GitRevision
+	r.TargetRevision = serv.cfg.Target.Revision
+	r.Features = serv.checkFeatures
+	r.ReadFiles = serv.checker.RequiredFiles()
+	return nil
+}
+
+func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+
+	modules, machineInfo, err := serv.checker.MachineInfo(a.Files)
+	if err != nil {
+		log.Logf(0, "parsing of machine info failed: %v", err)
+		if a.Error == "" {
+			a.Error = err.Error()
+		}
 	}
+
+	if !serv.checkDone {
+		if err := serv.check(a, modules); err != nil {
+			return err
+		}
+		serv.checkDone = true
+	}
+
+	bugFrames, execCoverFilter, maxSignal := serv.mgr.fuzzerConnect()
 
 	runner := serv.findRunner(a.Name)
 	runner.mu.Lock()
@@ -138,34 +166,18 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	if runner.machineInfo != nil {
 		return fmt.Errorf("duplicate connection from %s", a.Name)
 	}
-	runner.machineInfo = a.MachineInfo
-	runner.instModules = serv.canonicalModules.NewInstance(a.Modules)
+	runner.machineInfo = machineInfo
+	runner.instModules = serv.canonicalModules.NewInstance(modules)
+	runner.newMaxSignal = maxSignal
 
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
-
 	instCoverFilter := runner.instModules.DecanonicalizeFilter(execCoverFilter)
 	r.CoverFilterBitmap = createCoverageBitmap(serv.cfg.SysTarget, instCoverFilter)
-	r.EnabledCalls = serv.cfg.Syscalls
-	r.GitRevision = prog.GitRevision
-	r.TargetRevision = serv.cfg.Target.Revision
-	r.Features = serv.checkFeatures
-
-	if fuzzer := serv.mgr.getFuzzer(); fuzzer != nil {
-		// A Fuzzer object is created after the first Check() call.
-		// If there was none, there would be no collected max signal either.
-		runner.newMaxSignal = fuzzer.Cover.CopyMaxSignal()
-	}
 	return nil
 }
 
-func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-
-	if serv.checkFeatures != nil {
-		return nil // another VM has already made the check
-	}
+func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) error {
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
 	if len(serv.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls[serv.cfg.Sandbox]) != 0 {
@@ -178,6 +190,11 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 			if reason := disabled[name]; reason != "" {
 				log.Logf(0, "disabling %v: %v", name, reason)
 			}
+		}
+	}
+	for _, file := range a.Files {
+		if file.Error != "" {
+			log.Logf(0, "failed to read %q: %v", file.Name, file.Error)
 		}
 	}
 	if a.Error != "" {
@@ -197,8 +214,9 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	for _, feat := range a.Features.Supported() {
 		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 	}
-	serv.mgr.machineChecked(a.Features, a.GlobFiles, serv.targetEnabledSyscalls)
 	serv.checkFeatures = a.Features
+	serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
+	serv.mgr.machineChecked(a.Features, a.GlobFiles, serv.targetEnabledSyscalls, modules)
 	return nil
 }
 

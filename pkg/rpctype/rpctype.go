@@ -77,9 +77,7 @@ type ExecTask struct {
 }
 
 type ConnectArgs struct {
-	Name        string
-	MachineInfo []byte
-	Modules     []host.KernelModule
+	Name string
 }
 
 type ConnectRes struct {
@@ -88,10 +86,9 @@ type ConnectRes struct {
 	TargetRevision string
 	AllSandboxes   bool
 	// This is forwarded from CheckArgs, if checking was already done.
-	Features          *host.Features
-	MemoryLeakFrames  []string
-	DataRaceFrames    []string
-	CoverFilterBitmap []byte
+	Features *host.Features
+	// Fuzzer reads these files inside of the VM and returns contents in CheckArgs.Files.
+	ReadFiles []string
 }
 
 type CheckArgs struct {
@@ -101,6 +98,13 @@ type CheckArgs struct {
 	DisabledCalls map[string][]SyscallReason
 	Features      *host.Features
 	GlobFiles     map[string][]string
+	Files         []host.FileInfo
+}
+
+type CheckRes struct {
+	MemoryLeakFrames  []string
+	DataRaceFrames    []string
+	CoverFilterBitmap []byte
 }
 
 type SyscallReason struct {

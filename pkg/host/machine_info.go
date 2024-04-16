@@ -4,39 +4,10 @@
 package host
 
 import (
-	"bytes"
-	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
-
-func CollectMachineInfo() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	for _, pair := range machineInfoFuncs {
-		pos0 := buf.Len()
-		fmt.Fprintf(buf, "[%s]\n", pair.name)
-		pos1 := buf.Len()
-		err := pair.fn(buf)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
-			}
-		}
-		if buf.Len() == pos1 {
-			buf.Truncate(pos0)
-			continue
-		}
-		fmt.Fprintf(buf, "\n%v\n\n", strings.Repeat("-", 80))
-	}
-	return buf.Bytes(), nil
-}
-
-func CollectModulesInfo() ([]KernelModule, error) {
-	if machineModulesInfo == nil {
-		return nil, nil
-	}
-	return machineModulesInfo()
-}
 
 func CollectGlobsInfo(globs map[string]bool) (map[string][]string, error) {
 	if machineGlobsInfo == nil {
@@ -45,17 +16,54 @@ func CollectGlobsInfo(globs map[string]bool) (map[string][]string, error) {
 	return machineGlobsInfo(globs)
 }
 
-var machineInfoFuncs []machineInfoFunc
-var machineModulesInfo func() ([]KernelModule, error)
 var machineGlobsInfo func(map[string]bool) (map[string][]string, error)
-
-type machineInfoFunc struct {
-	name string
-	fn   func(*bytes.Buffer) error
-}
 
 type KernelModule struct {
 	Name string `json:"Name"`
 	Addr uint64 `json:"Addr"`
 	Size uint64 `json:"Size"`
+}
+
+type FileInfo struct {
+	Name   string
+	Exists bool
+	Error  string
+	Data   []byte
+}
+
+func ReadFiles(files []string) []FileInfo {
+	var res []FileInfo
+	for _, glob := range files {
+		glob = filepath.FromSlash(glob)
+		if !strings.Contains(glob, "*") {
+			res = append(res, readFile(glob))
+			continue
+		}
+		matches, err := filepath.Glob(glob)
+		if err != nil {
+			res = append(res, FileInfo{
+				Name:  glob,
+				Error: err.Error(),
+			})
+			continue
+		}
+		for _, file := range matches {
+			res = append(res, readFile(file))
+		}
+	}
+	return res
+}
+
+func readFile(file string) FileInfo {
+	data, err := os.ReadFile(file)
+	exists, errStr := true, ""
+	if err != nil {
+		exists, errStr = os.IsNotExist(err), err.Error()
+	}
+	return FileInfo{
+		Name:   file,
+		Exists: exists,
+		Error:  errStr,
+		Data:   data,
+	}
 }

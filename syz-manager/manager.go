@@ -35,6 +35,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	crash_pkg "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/repro"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -91,10 +92,9 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules            []host.KernelModule
-	coverFilter        map[uint32]uint32
-	execCoverFilter    map[uint32]uint32
-	modulesInitialized bool
+	modules         []host.KernelModule
+	coverFilter     map[uint32]uint32
+	execCoverFilter map[uint32]uint32
 
 	assetStorage *asset.Storage
 
@@ -1331,7 +1331,7 @@ func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (BugFrames, map[uint32]uint32) {
+func (mgr *Manager) fuzzerConnect() (BugFrames, map[uint32]uint32, signal.Signal) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1345,32 +1345,31 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (BugFrames, map[u
 	for frame := range mgr.dataRaceFrames {
 		frames.dataRaces = append(frames.dataRaces, frame)
 	}
-	if !mgr.modulesInitialized {
-		var err error
-		mgr.modules = modules
-		mgr.execCoverFilter, mgr.coverFilter, err = mgr.createCoverageFilter()
-		if err != nil {
-			log.Fatalf("failed to create coverage filter: %v", err)
-		}
-		mgr.modulesInitialized = true
-	}
-	return frames, mgr.execCoverFilter
+	maxSignal := mgr.fuzzer.Load().Cover.CopyMaxSignal()
+	return frames, mgr.execCoverFilter, maxSignal
 }
 
 func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string][]string,
-	enabledSyscalls map[*prog.Syscall]bool) {
+	enabledSyscalls map[*prog.Syscall]bool, modules []host.KernelModule) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.checkFeatures != nil {
 		panic("machineChecked() called twice")
 	}
 
+	mgr.modules = modules
 	mgr.checkFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	mgr.target.UpdateGlobs(globFiles)
 	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
+
+	var err error
+	mgr.execCoverFilter, mgr.coverFilter, err = mgr.createCoverageFilter()
+	if err != nil {
+		log.Fatalf("failed to init coverage filter: %v", err)
+	}
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{

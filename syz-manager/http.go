@@ -254,7 +254,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	// Don't hold the mutex while creating report generator and generating the report,
 	// these operations take lots of time.
 	mgr.mu.Lock()
-	initialized := mgr.modulesInitialized
+	initialized := mgr.checkFeatures != nil
 	mgr.mu.Unlock()
 	if !initialized {
 		http.Error(w, "coverage is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
