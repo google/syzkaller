@@ -124,15 +124,6 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	if err := checkRevisions(args); err != nil {
 		return nil, err
 	}
-	globFiles, err := host.CollectGlobsInfo(args.target.GetGlobs())
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect glob info: %w", err)
-	}
-	// TODO: make host.DetectSupportedSyscalls below filter out globs with no values.
-	// Also make prog package more strict with respect to generation/mutation of globs
-	// with no values (they still can appear in tests and tools). We probably should
-	// generate an empty string for these and never mutate.
-	args.target.UpdateGlobs(globFiles)
 	features, err := host.Check(args.target)
 	if err != nil {
 		return nil, err
@@ -161,7 +152,6 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 		Features:      features,
 		EnabledCalls:  make(map[string][]int),
 		DisabledCalls: make(map[string][]rpctype.SyscallReason),
-		GlobFiles:     globFiles,
 	}
 	if err := checkCalls(args, res); err != nil {
 		return nil, err

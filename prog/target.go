@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -246,28 +247,71 @@ func (target *Target) DefaultChoiceTable() *ChoiceTable {
 	return target.defaultChoiceTable
 }
 
-func (target *Target) GetGlobs() map[string]bool {
+func (target *Target) RequiredGlobs() []string {
 	globs := make(map[string]bool)
 	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
 		switch a := typ.(type) {
 		case *BufferType:
 			if a.Kind == BufferGlob {
-				globs[a.SubKind] = true
+				for _, glob := range requiredGlobs(a.SubKind) {
+					globs[glob] = true
+				}
 			}
 		}
 	})
-	return globs
+	return stringMapToSlice(globs)
 }
 
 func (target *Target) UpdateGlobs(globFiles map[string][]string) {
+	// TODO: make host.DetectSupportedSyscalls below filter out globs with no values.
+	// Also make prog package more strict with respect to generation/mutation of globs
+	// with no values (they still can appear in tests and tools). We probably should
+	// generate an empty string for these and never mutate.
 	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
 		switch a := typ.(type) {
 		case *BufferType:
 			if a.Kind == BufferGlob {
-				a.Values = globFiles[a.SubKind]
+				a.Values = populateGlob(a.SubKind, globFiles)
 			}
 		}
 	})
+}
+
+func requiredGlobs(pattern string) []string {
+	var res []string
+	for _, tok := range strings.Split(pattern, ":") {
+		if tok[0] != '-' {
+			res = append(res, tok)
+		}
+	}
+	return res
+}
+
+func populateGlob(pattern string, globFiles map[string][]string) []string {
+	files := make(map[string]bool)
+	parts := strings.Split(pattern, ":")
+	for _, tok := range parts {
+		if tok[0] != '-' {
+			for _, file := range globFiles[tok] {
+				files[file] = true
+			}
+		}
+	}
+	for _, tok := range parts {
+		if tok[0] == '-' {
+			delete(files, tok[1:])
+		}
+	}
+	return stringMapToSlice(files)
+}
+
+func stringMapToSlice(m map[string]bool) []string {
+	var res []string
+	for k := range m {
+		res = append(res, k)
+	}
+	sort.Strings(res)
+	return res
 }
 
 type Gen struct {

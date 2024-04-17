@@ -27,6 +27,7 @@ import (
 type RPCServer struct {
 	mgr     RPCManagerView
 	cfg     *mgrconfig.Config
+	target  *prog.Target
 	server  *rpctype.RPCServer
 	checker *vminfo.Checker
 	port    int
@@ -94,6 +95,7 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
 		mgr:       mgr,
 		cfg:       mgr.cfg,
+		target:    mgr.target,
 		checker:   vminfo.New(mgr.cfg),
 		statExecs: mgr.statExecs,
 		statExecRetries: stats.Create("exec retries",
@@ -136,6 +138,9 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.TargetRevision = serv.cfg.Target.Revision
 	r.Features = serv.checkFeatures
 	r.ReadFiles = serv.checker.RequiredFiles()
+	if !serv.checkDone {
+		r.ReadGlobs = serv.target.RequiredGlobs()
+	}
 	return nil
 }
 
@@ -216,7 +221,7 @@ func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) 
 	}
 	serv.checkFeatures = a.Features
 	serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
-	serv.mgr.machineChecked(a.Features, a.GlobFiles, serv.targetEnabledSyscalls, modules)
+	serv.mgr.machineChecked(a.Features, a.Globs, serv.targetEnabledSyscalls, modules)
 	return nil
 }
 
