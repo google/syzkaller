@@ -9,6 +9,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -199,6 +200,14 @@ func main() {
 	}
 	checkReq.Name = *flagName
 	checkReq.Files = host.ReadFiles(r.ReadFiles)
+	checkReq.Globs = make(map[string][]string)
+	for _, glob := range r.ReadGlobs {
+		files, err := filepath.Glob(filepath.FromSlash(glob))
+		if err != nil && checkReq.Error == "" {
+			checkReq.Error = fmt.Sprintf("failed to read glob %q: %v", glob, err)
+		}
+		checkReq.Globs[glob] = files
+	}
 	checkRes := new(rpctype.CheckRes)
 	if err := manager.Call("Manager.Check", checkReq, checkRes); err != nil {
 		log.SyzFatalf("Manager.Check call failed: %v", err)

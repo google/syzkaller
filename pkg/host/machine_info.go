@@ -9,15 +9,6 @@ import (
 	"strings"
 )
 
-func CollectGlobsInfo(globs map[string]bool) (map[string][]string, error) {
-	if machineGlobsInfo == nil {
-		return nil, nil
-	}
-	return machineGlobsInfo(globs)
-}
-
-var machineGlobsInfo func(map[string]bool) (map[string][]string, error)
-
 type KernelModule struct {
 	Name string `json:"Name"`
 	Addr uint64 `json:"Addr"`

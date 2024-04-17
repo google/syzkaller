@@ -89,6 +89,7 @@ type ConnectRes struct {
 	Features *host.Features
 	// Fuzzer reads these files inside of the VM and returns contents in CheckArgs.Files.
 	ReadFiles []string
+	ReadGlobs []string
 }
 
 type CheckArgs struct {
@@ -97,7 +98,7 @@ type CheckArgs struct {
 	EnabledCalls  map[string][]int
 	DisabledCalls map[string][]SyscallReason
 	Features      *host.Features
-	GlobFiles     map[string][]string
+	Globs         map[string][]string
 	Files         []host.FileInfo
 }
 
