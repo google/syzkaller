@@ -18,7 +18,7 @@ import (
 )
 
 func (mgr *Manager) createCoverageFilter() (map[uint32]uint32, map[uint32]uint32, error) {
-	if len(mgr.cfg.CovFilter.Functions)+len(mgr.cfg.CovFilter.Files)+len(mgr.cfg.CovFilter.RawPCs) == 0 {
+	if !mgr.cfg.HasCovFilter() {
 		return nil, nil, nil
 	}
 	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.

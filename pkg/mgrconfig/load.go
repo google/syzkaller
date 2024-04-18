@@ -220,6 +220,10 @@ func checkNonEmpty(fields ...string) error {
 	return nil
 }
 
+func (cfg *Config) HasCovFilter() bool {
+	return len(cfg.CovFilter.Functions)+len(cfg.CovFilter.Files)+len(cfg.CovFilter.RawPCs) != 0
+}
+
 func (cfg *Config) CompleteKernelDirs() {
 	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
 	if cfg.KernelSrc == "" {
