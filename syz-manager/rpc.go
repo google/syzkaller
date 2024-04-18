@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -68,7 +67,7 @@ type Runner struct {
 	mu            sync.Mutex
 	newMaxSignal  signal.Signal
 	dropMaxSignal signal.Signal
-	nextRequestID atomic.Int64
+	nextRequestID int64
 	requests      map[int64]Request
 }
 
@@ -430,8 +429,9 @@ func (runner *Runner) newRequest(req *fuzzer.Request) (rpctype.ExecutionRequest,
 		// We don't care about specific priorities here.
 		signalFilter = signal.FromRaw(newRawSignal, 0)
 	}
-	id := runner.nextRequestID.Add(1)
 	runner.mu.Lock()
+	runner.nextRequestID++
+	id := runner.nextRequestID
 	if runner.requests != nil {
 		runner.requests[id] = Request{
 			req: req,
