@@ -195,12 +195,11 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 			break
 		}
 		result := exec(job, &Request{
-			Prog:         job.p,
-			NeedSignal:   AllSignal,
-			NeedCover:    true,
-			NeedRawCover: rawCover,
-			stat:         stat,
-			flags:        progInTriage,
+			Prog:       job.p,
+			NeedSignal: AllSignal,
+			NeedCover:  true,
+			stat:       stat,
+			flags:      progInTriage,
 		})
 		if result.Stop {
 			stop = true
