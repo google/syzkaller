@@ -814,7 +814,6 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 		Runtest:   false,
 		Optional: &instance.OptionalFuzzerArgs{
 			Slowdown:       mgr.cfg.Timeouts.Slowdown,
-			RawCover:       mgr.cfg.RawCover,
 			SandboxArg:     mgr.cfg.SandboxArg,
 			PprofPort:      inst.PprofPort(),
 			ResetAccState:  mgr.cfg.Experimental.ResetAccState,
