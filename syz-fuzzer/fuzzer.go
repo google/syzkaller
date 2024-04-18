@@ -59,36 +59,6 @@ type executionResult struct {
 	info   *ipc.ProgInfo
 }
 
-func createIPCConfig(features *host.Features, opts *ipc.ExecOpts) {
-	if features[host.FeatureExtraCoverage].Enabled {
-		opts.EnvFlags |= ipc.FlagExtraCover
-	}
-	if features[host.FeatureDelayKcovMmap].Enabled {
-		opts.EnvFlags |= ipc.FlagDelayKcovMmap
-	}
-	if features[host.FeatureNetInjection].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableTun
-	}
-	if features[host.FeatureNetDevices].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableNetDev
-	}
-	opts.EnvFlags |= ipc.FlagEnableNetReset
-	opts.EnvFlags |= ipc.FlagEnableCgroups
-	opts.EnvFlags |= ipc.FlagEnableCloseFds
-	if features[host.FeatureDevlinkPCI].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableDevlinkPCI
-	}
-	if features[host.FeatureNicVF].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableNicVF
-	}
-	if features[host.FeatureVhciInjection].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableVhciInjection
-	}
-	if features[host.FeatureWifiEmulation].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableWifi
-	}
-}
-
 // Gate size controls how deep in the log the last executed by every proc
 // program may be. The intent is to make sure that, given the output log,
 // we always understand what was happening.
@@ -218,7 +188,7 @@ func main() {
 	for _, feat := range r.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	createIPCConfig(r.Features, execOpts)
+	execOpts.EnvFlags |= ipc.FeaturesToFlags(r.Features, nil)
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)

@@ -419,32 +419,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		opts.ExecFlags |= ipc.FlagCollectSignal
 		opts.ExecFlags |= ipc.FlagCollectCover
 	}
-	if ctx.Features[host.FeatureExtraCoverage].Enabled {
-		opts.EnvFlags |= ipc.FlagExtraCover
-	}
-	if ctx.Features[host.FeatureDelayKcovMmap].Enabled {
-		opts.EnvFlags |= ipc.FlagDelayKcovMmap
-	}
-	if ctx.Features[host.FeatureNetInjection].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableTun
-	}
-	if ctx.Features[host.FeatureNetDevices].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableNetDev
-	}
-	opts.EnvFlags |= ipc.FlagEnableNetReset
-	opts.EnvFlags |= ipc.FlagEnableCgroups
-	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableDevlinkPCI
-	}
-	if ctx.Features[host.FeatureNicVF].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableNicVF
-	}
-	if ctx.Features[host.FeatureVhciInjection].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableVhciInjection
-	}
-	if ctx.Features[host.FeatureWifiEmulation].Enabled {
-		opts.EnvFlags |= ipc.FlagEnableWifi
-	}
+	opts.EnvFlags |= ipc.FeaturesToFlags(ctx.Features, nil)
 	if ctx.Debug {
 		opts.EnvFlags |= ipc.FlagDebug
 	}
