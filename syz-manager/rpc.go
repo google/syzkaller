@@ -128,19 +128,40 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 
 func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
 	log.Logf(1, "fuzzer %v connected", a.Name)
+	checkRevisions(a, serv.cfg.Target)
 	serv.statVMRestarts.Add(1)
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 	r.EnabledCalls = serv.cfg.Syscalls
-	r.GitRevision = prog.GitRevision
-	r.TargetRevision = serv.cfg.Target.Revision
 	r.Features = serv.checkFeatures
 	r.ReadFiles = serv.checker.RequiredFiles()
 	if !serv.checkDone {
 		r.ReadGlobs = serv.target.RequiredGlobs()
 	}
 	return nil
+}
+
+func checkRevisions(a *rpctype.ConnectArgs, target *prog.Target) {
+	if target.Arch != a.ExecutorArch {
+		log.Fatalf("mismatching target/executor arches: %v vs %v", target.Arch, a.ExecutorArch)
+	}
+	if prog.GitRevision != a.GitRevision {
+		log.Fatalf("mismatching manager/fuzzer git revisions: %v vs %v",
+			prog.GitRevision, a.GitRevision)
+	}
+	if prog.GitRevision != a.ExecutorGitRevision {
+		log.Fatalf("mismatching manager/executor git revisions: %v vs %v",
+			prog.GitRevision, a.ExecutorGitRevision)
+	}
+	if target.Revision != a.SyzRevision {
+		log.Fatalf("mismatching manager/fuzzer system call descriptions: %v vs %v",
+			target.Revision, a.SyzRevision)
+	}
+	if target.Revision != a.ExecutorSyzRevision {
+		log.Fatalf("mismatching manager/executor system call descriptions: %v vs %v",
+			target.Revision, a.ExecutorSyzRevision)
+	}
 }
 
 func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
