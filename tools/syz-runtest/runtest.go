@@ -221,8 +221,6 @@ func (mgr *Manager) finishRequest(name string, rep *report.Report) error {
 }
 
 func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
-	r.GitRevision = prog.GitRevision
-	r.TargetRevision = mgr.cfg.Target.Revision
 	r.AllSandboxes = true
 	select {
 	case <-mgr.checkFeaturesReady:

@@ -38,6 +38,9 @@ func testImage(hostAddr string, args *checkArgs) {
 		log.SyzFatalf("BUG: failed to connect to host: %v", err)
 	}
 	conn.Close()
+	if err := checkRevisions(args); err != nil {
+		log.SyzFatalf("BUG: %v", err)
+	}
 	if _, err := checkMachine(args); err != nil {
 		log.SyzFatalf("BUG: %v", err)
 	}
@@ -121,9 +124,6 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	done := make(chan bool)
 	defer close(done)
 	go checkMachineHeartbeats(done)
-	if err := checkRevisions(args); err != nil {
-		return nil, err
-	}
 	features, err := host.Check(args.target)
 	if err != nil {
 		return nil, err
@@ -198,41 +198,50 @@ func checkCalls(args *checkArgs, res *rpctype.CheckArgs) error {
 
 func checkRevisions(args *checkArgs) error {
 	log.Logf(0, "checking revisions...")
-	executorArgs := strings.Split(args.ipcConfig.Executor, " ")
-	executorArgs = append(executorArgs, "version")
-	cmd := osutil.Command(executorArgs[0], executorArgs[1:]...)
-	cmd.Stderr = io.Discard
-	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
+	arch, syzRev, gitRev, err := executorVersion(args.ipcConfig.Executor)
+	if err != nil {
 		return err
 	}
-	out, err := osutil.Run(time.Minute, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to run executor version: %w", err)
+	if args.target.Arch != arch {
+		return fmt.Errorf("mismatching target/executor arches: %v vs %v", args.target.Arch, arch)
 	}
-	vers := strings.Split(strings.TrimSpace(string(out)), " ")
-	if len(vers) != 4 {
-		return fmt.Errorf("executor version returned bad result: %q", string(out))
-	}
-	if args.target.Arch != vers[1] {
-		return fmt.Errorf("mismatching target/executor arches: %v vs %v", args.target.Arch, vers[1])
-	}
-	if prog.GitRevision != vers[3] {
+	if prog.GitRevision != gitRev {
 		return fmt.Errorf("mismatching fuzzer/executor git revisions: %v vs %v",
-			prog.GitRevision, vers[3])
+			prog.GitRevision, gitRev)
 	}
 	if args.gitRevision != prog.GitRevision {
 		return fmt.Errorf("mismatching manager/fuzzer git revisions: %v vs %v",
 			args.gitRevision, prog.GitRevision)
 	}
-	if args.target.Revision != vers[2] {
+	if args.target.Revision != syzRev {
 		return fmt.Errorf("mismatching fuzzer/executor system call descriptions: %v vs %v",
-			args.target.Revision, vers[2])
+			args.target.Revision, syzRev)
 	}
 	if args.target.Revision != args.targetRevision {
 		return fmt.Errorf("mismatching fuzzer/manager system call descriptions: %v vs %v",
 			args.target.Revision, args.targetRevision)
 	}
 	return nil
+}
+
+func executorVersion(bin string) (string, string, string, error) {
+	args := strings.Split(bin, " ")
+	args = append(args, "version")
+	cmd := osutil.Command(args[0], args[1:]...)
+	cmd.Stderr = io.Discard
+	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
+		return "", "", "", err
+	}
+	out, err := osutil.Run(time.Minute, cmd)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to run executor version: %w", err)
+	}
+	// Executor returns OS, arch, descriptions hash, git revision.
+	vers := strings.Split(strings.TrimSpace(string(out)), " ")
+	if len(vers) != 4 {
+		return "", "", "", fmt.Errorf("executor version returned bad result: %q", string(out))
+	}
+	return vers[1], vers[2], vers[3], nil
 }
 
 func checkSimpleProgram(args *checkArgs, features *host.Features) error {

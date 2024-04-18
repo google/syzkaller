@@ -132,7 +132,13 @@ func main() {
 
 	log.Logf(1, "connecting to manager...")
 	a := &rpctype.ConnectArgs{
-		Name: *flagName,
+		Name:        *flagName,
+		GitRevision: prog.GitRevision,
+		SyzRevision: target.Revision,
+	}
+	a.ExecutorArch, a.ExecutorSyzRevision, a.ExecutorGitRevision, err = executorVersion(executor)
+	if err != nil {
+		log.SyzFatalf("failed to run executor version: %v ", err)
 	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
@@ -144,8 +150,6 @@ func main() {
 	}
 	var checkReq *rpctype.CheckArgs
 	if r.Features == nil {
-		checkArgs.gitRevision = r.GitRevision
-		checkArgs.targetRevision = r.TargetRevision
 		checkArgs.enabledCalls = r.EnabledCalls
 		checkArgs.allSandboxes = r.AllSandboxes
 		checkArgs.featureFlags = featureFlags
