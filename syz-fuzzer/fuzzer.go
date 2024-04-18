@@ -59,33 +59,33 @@ type executionResult struct {
 	info   *ipc.ProgInfo
 }
 
-func createIPCConfig(features *host.Features, config *ipc.Config) {
+func createIPCConfig(features *host.Features, opts *ipc.ExecOpts) {
 	if features[host.FeatureExtraCoverage].Enabled {
-		config.Flags |= ipc.FlagExtraCover
+		opts.EnvFlags |= ipc.FlagExtraCover
 	}
 	if features[host.FeatureDelayKcovMmap].Enabled {
-		config.Flags |= ipc.FlagDelayKcovMmap
+		opts.EnvFlags |= ipc.FlagDelayKcovMmap
 	}
 	if features[host.FeatureNetInjection].Enabled {
-		config.Flags |= ipc.FlagEnableTun
+		opts.EnvFlags |= ipc.FlagEnableTun
 	}
 	if features[host.FeatureNetDevices].Enabled {
-		config.Flags |= ipc.FlagEnableNetDev
+		opts.EnvFlags |= ipc.FlagEnableNetDev
 	}
-	config.Flags |= ipc.FlagEnableNetReset
-	config.Flags |= ipc.FlagEnableCgroups
-	config.Flags |= ipc.FlagEnableCloseFds
+	opts.EnvFlags |= ipc.FlagEnableNetReset
+	opts.EnvFlags |= ipc.FlagEnableCgroups
+	opts.EnvFlags |= ipc.FlagEnableCloseFds
 	if features[host.FeatureDevlinkPCI].Enabled {
-		config.Flags |= ipc.FlagEnableDevlinkPCI
+		opts.EnvFlags |= ipc.FlagEnableDevlinkPCI
 	}
 	if features[host.FeatureNicVF].Enabled {
-		config.Flags |= ipc.FlagEnableNicVF
+		opts.EnvFlags |= ipc.FlagEnableNicVF
 	}
 	if features[host.FeatureVhciInjection].Enabled {
-		config.Flags |= ipc.FlagEnableVhciInjection
+		opts.EnvFlags |= ipc.FlagEnableVhciInjection
 	}
 	if features[host.FeatureWifiEmulation].Enabled {
-		config.Flags |= ipc.FlagEnableWifi
+		opts.EnvFlags |= ipc.FlagEnableWifi
 	}
 }
 
@@ -129,10 +129,10 @@ func main() {
 		log.SyzFatalf("failed to create default ipc config: %v", err)
 	}
 	if *flagRawCover {
-		execOpts.Flags &^= ipc.FlagDedupCover
+		execOpts.ExecFlags &^= ipc.FlagDedupCover
 	}
 	timeouts := config.Timeouts
-	sandbox := ipc.FlagsToSandbox(config.Flags)
+	sandbox := ipc.FlagsToSandbox(execOpts.EnvFlags)
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
 	go func() {
@@ -218,7 +218,7 @@ func main() {
 	for _, feat := range r.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	createIPCConfig(r.Features, config)
+	createIPCConfig(r.Features, execOpts)
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)
@@ -239,7 +239,7 @@ func main() {
 	gateCb := fuzzerTool.useBugFrames(r.Features, checkRes.MemoryLeakFrames, checkRes.DataRaceFrames)
 	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
 	if checkRes.CoverFilterBitmap != nil {
-		execOpts.Flags |= ipc.FlagEnableCoverageFilter
+		execOpts.ExecFlags |= ipc.FlagEnableCoverageFilter
 		if err := osutil.WriteFile("syz-cover-bitmap", checkRes.CoverFilterBitmap); err != nil {
 			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
 		}

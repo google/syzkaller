@@ -58,7 +58,11 @@ const (
 )
 
 type ExecOpts struct {
-	Flags ExecFlags
+	// Changing ExecFlags between executions does not cause executor process restart.
+	// Changing EnvFlags/SandboxArg does cause process restart.
+	ExecFlags  ExecFlags
+	EnvFlags   EnvFlags
+	SandboxArg int
 }
 
 // Config is the configuration for Env.
@@ -69,10 +73,6 @@ type Config struct {
 	UseShmem      bool // use shared memory instead of pipes for communication
 	UseForkServer bool // use extended protocol with handshake
 	RateLimit     bool // rate limit start of new processes for host fuzzer mode
-
-	// Flags are configuation flags, defined above.
-	Flags      EnvFlags
-	SandboxArg int
 
 	Timeouts targets.Timeouts
 }
@@ -267,7 +267,7 @@ func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *
 		env.out[i] = 0
 	}
 
-	err0 = env.RestartIfNeeded()
+	err0 = env.RestartIfNeeded(opts)
 	if err0 != nil {
 		return
 	}
@@ -311,9 +311,12 @@ func (env *Env) ForceRestart() {
 }
 
 // RestartIfNeeded brings up an executor process if it was stopped.
-func (env *Env) RestartIfNeeded() error {
+func (env *Env) RestartIfNeeded(opts *ExecOpts) error {
 	if env.cmd != nil {
-		return nil
+		if env.cmd.flags == opts.EnvFlags && env.cmd.sandboxArg == opts.SandboxArg {
+			return nil
+		}
+		env.ForceRestart()
 	}
 	if env.config.RateLimit {
 		rateLimiterOnce.Do(func() {
@@ -321,9 +324,8 @@ func (env *Env) RestartIfNeeded() error {
 		})
 		<-rateLimiter
 	}
-	tmpDirPath := "./"
 	var err error
-	env.cmd, err = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
+	env.cmd, err = env.makeCommand(opts, "./")
 	return err
 }
 
@@ -381,7 +383,7 @@ func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 	if len(extraParts) == 0 {
 		return info, nil
 	}
-	info.Extra = convertExtra(extraParts, opts.Flags&FlagDedupCover > 0)
+	info.Extra = convertExtra(extraParts, opts.ExecFlags&FlagDedupCover > 0)
 	return info, nil
 }
 
@@ -496,17 +498,19 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 }
 
 type command struct {
-	pid       int
-	config    *Config
-	timeout   time.Duration
-	cmd       *exec.Cmd
-	dir       string
-	readDone  chan []byte
-	exited    chan error
-	inrp      *os.File
-	outwp     *os.File
-	outmem    []byte
-	freshness int
+	pid        int
+	config     *Config
+	flags      EnvFlags
+	sandboxArg int
+	timeout    time.Duration
+	cmd        *exec.Cmd
+	dir        string
+	readDone   chan []byte
+	exited     chan error
+	inrp       *os.File
+	outwp      *os.File
+	outmem     []byte
+	freshness  int
 }
 
 const (
@@ -558,16 +562,15 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte,
-	tmpDirPath string) (*command, error) {
-	dir, err := os.MkdirTemp(tmpDirPath, "syzkaller-testdir")
+func (env *Env) makeCommand(opts *ExecOpts, tmpDir string) (*command, error) {
+	dir, err := os.MkdirTemp(tmpDir, "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	dir = osutil.Abs(dir)
 
-	timeout := config.Timeouts.Program
-	if config.UseForkServer {
+	timeout := env.config.Timeouts.Program
+	if env.config.UseForkServer {
 		// Executor has an internal timeout and protects against most hangs when fork server is enabled,
 		// so we use quite large timeout. Executor can be slow due to global locks in namespaces
 		// and other things, so let's better wait than report false misleading crashes.
@@ -575,11 +578,13 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	}
 
 	c := &command{
-		pid:     pid,
-		config:  config,
-		timeout: timeout,
-		dir:     dir,
-		outmem:  outmem,
+		pid:        env.pid,
+		config:     env.config,
+		flags:      opts.EnvFlags,
+		sandboxArg: opts.SandboxArg,
+		timeout:    timeout,
+		dir:        dir,
+		outmem:     env.out,
 	}
 	defer func() {
 		if c != nil {
@@ -616,16 +621,16 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 
 	c.readDone = make(chan []byte, 1)
 
-	cmd := osutil.Command(bin[0], bin[1:]...)
-	if inFile != nil && outFile != nil {
-		cmd.ExtraFiles = []*os.File{inFile, outFile}
+	cmd := osutil.Command(env.bin[0], env.bin[1:]...)
+	if env.inFile != nil && env.outFile != nil {
+		cmd.ExtraFiles = []*os.File{env.inFile, env.outFile}
 	}
 	cmd.Dir = dir
 	// Tell ASAN to not mess with our NONFAILING.
 	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
 	cmd.Stdin = outrp
 	cmd.Stdout = inwp
-	if config.Flags&FlagDebug != 0 {
+	if c.flags&FlagDebug != 0 {
 		close(c.readDone)
 		cmd.Stderr = os.Stdout
 	} else {
@@ -699,9 +704,9 @@ func (c *command) close() {
 func (c *command) handshake() error {
 	req := &handshakeReq{
 		magic:      inMagic,
-		flags:      uint64(c.config.Flags),
+		flags:      uint64(c.flags),
 		pid:        uint64(c.pid),
-		sandboxArg: uint64(c.config.SandboxArg),
+		sandboxArg: uint64(c.sandboxArg),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
@@ -749,10 +754,13 @@ func (c *command) wait() error {
 }
 
 func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
+	if c.flags != opts.EnvFlags || c.sandboxArg != opts.SandboxArg {
+		panic("wrong command")
+	}
 	req := &executeReq{
 		magic:            inMagic,
-		envFlags:         uint64(c.config.Flags),
-		execFlags:        uint64(opts.Flags),
+		envFlags:         uint64(c.flags),
+		execFlags:        uint64(opts.ExecFlags),
 		pid:              uint64(c.pid),
 		syscallTimeoutMS: uint64(c.config.Timeouts.Syscall / time.Millisecond),
 		programTimeoutMS: uint64(c.config.Timeouts.Program / time.Millisecond),

@@ -75,7 +75,8 @@ func main() {
 		enabled[c] = true
 	}
 	if r.CheckUnsupportedCalls {
-		_, unsupported, err := host.DetectSupportedSyscalls(target, ipc.FlagsToSandbox(config.Flags), enabled)
+		sandbox := ipc.FlagsToSandbox(opts.EnvFlags)
+		_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, enabled)
 		if err != nil {
 			log.Fatalf("failed to get unsupported system calls: %v", err)
 		}

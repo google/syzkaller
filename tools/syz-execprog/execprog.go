@@ -185,7 +185,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 	for try := 0; ; try++ {
 		output, info, hanged, err := env.ExecProg(callOpts, progData)
 		if err != nil {
-			if ctx.config.Flags&ipc.FlagDebug != 0 {
+			if ctx.execOpts.EnvFlags&ipc.FlagDebug != 0 {
 				log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
 			}
 			if try > 10 {
@@ -361,52 +361,52 @@ func createConfig(target *prog.Target, features *host.Features, featuresFlags cs
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if config.Flags&ipc.FlagSignal != 0 {
-		execOpts.Flags |= ipc.FlagCollectCover
+	if execOpts.EnvFlags&ipc.FlagSignal != 0 {
+		execOpts.ExecFlags |= ipc.FlagCollectCover
 	}
 	if *flagCoverFile != "" {
-		config.Flags |= ipc.FlagSignal
-		execOpts.Flags |= ipc.FlagCollectCover
-		execOpts.Flags &^= ipc.FlagDedupCover
+		execOpts.EnvFlags |= ipc.FlagSignal
+		execOpts.ExecFlags |= ipc.FlagCollectCover
+		execOpts.ExecFlags &^= ipc.FlagDedupCover
 	}
 	if *flagHints {
-		if execOpts.Flags&ipc.FlagCollectCover != 0 {
-			execOpts.Flags ^= ipc.FlagCollectCover
+		if execOpts.ExecFlags&ipc.FlagCollectCover != 0 {
+			execOpts.ExecFlags ^= ipc.FlagCollectCover
 		}
-		execOpts.Flags |= ipc.FlagCollectComps
+		execOpts.ExecFlags |= ipc.FlagCollectComps
 	}
 	if features[host.FeatureExtraCoverage].Enabled {
-		config.Flags |= ipc.FlagExtraCover
+		execOpts.EnvFlags |= ipc.FlagExtraCover
 	}
 	if features[host.FeatureDelayKcovMmap].Enabled {
-		config.Flags |= ipc.FlagDelayKcovMmap
+		execOpts.EnvFlags |= ipc.FlagDelayKcovMmap
 	}
 	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
-		config.Flags |= ipc.FlagEnableTun
+		execOpts.EnvFlags |= ipc.FlagEnableTun
 	}
 	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetDevices].Enabled {
-		config.Flags |= ipc.FlagEnableNetDev
+		execOpts.EnvFlags |= ipc.FlagEnableNetDev
 	}
 	if featuresFlags["net_reset"].Enabled {
-		config.Flags |= ipc.FlagEnableNetReset
+		execOpts.EnvFlags |= ipc.FlagEnableNetReset
 	}
 	if featuresFlags["cgroups"].Enabled {
-		config.Flags |= ipc.FlagEnableCgroups
+		execOpts.EnvFlags |= ipc.FlagEnableCgroups
 	}
 	if featuresFlags["close_fds"].Enabled {
-		config.Flags |= ipc.FlagEnableCloseFds
+		execOpts.EnvFlags |= ipc.FlagEnableCloseFds
 	}
 	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
-		config.Flags |= ipc.FlagEnableDevlinkPCI
+		execOpts.EnvFlags |= ipc.FlagEnableDevlinkPCI
 	}
 	if featuresFlags["nic_vf"].Enabled && features[host.FeatureNicVF].Enabled {
-		config.Flags |= ipc.FlagEnableNicVF
+		execOpts.EnvFlags |= ipc.FlagEnableNicVF
 	}
 	if featuresFlags["vhci"].Enabled && features[host.FeatureVhciInjection].Enabled {
-		config.Flags |= ipc.FlagEnableVhciInjection
+		execOpts.EnvFlags |= ipc.FlagEnableVhciInjection
 	}
 	if featuresFlags["wifi"].Enabled && features[host.FeatureWifiEmulation].Enabled {
-		config.Flags |= ipc.FlagEnableWifi
+		execOpts.EnvFlags |= ipc.FlagEnableWifi
 	}
 	return config, execOpts
 }
