@@ -22,7 +22,6 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
@@ -193,7 +192,7 @@ func emulateExec(req *Request) (*Result, string, error) {
 		if req.NeedCover {
 			callInfo.Cover = []uint32{cover}
 		}
-		if req.NeedSignal != rpctype.NoSignal {
+		if req.NeedSignal != NoSignal {
 			callInfo.Signal = []uint32{cover}
 		}
 		info.Calls = append(info.Calls, callInfo)
@@ -302,7 +301,7 @@ var crashRe = regexp.MustCompile(`{{CRASH: (.*?)}}`)
 func (proc *executorProc) execute(req *Request) (*Result, string, error) {
 	execOpts := proc.execOpts
 	// TODO: it's duplicated from fuzzer.go.
-	if req.NeedSignal != rpctype.NoSignal {
+	if req.NeedSignal != NoSignal {
 		execOpts.ExecFlags |= ipc.FlagCollectSignal
 	}
 	if req.NeedCover {
