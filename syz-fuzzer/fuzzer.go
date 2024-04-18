@@ -31,18 +31,16 @@ import (
 )
 
 type FuzzerTool struct {
-	name              string
-	config            *ipc.Config
-	procs             []*Proc
-	gate              *ipc.Gate
-	manager           *rpctype.RPCClient
-	target            *prog.Target
+	name     string
+	executor string
+	gate     *ipc.Gate
+	manager  *rpctype.RPCClient
+	// TODO: repair triagedCandidates logic, it's broken now.
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
 
 	noExecRequests atomic.Uint64
 	noExecDuration atomic.Uint64
-	resetAccState  bool
 
 	requests  chan rpctype.ExecutionRequest
 	results   chan executionResult
@@ -103,6 +101,7 @@ func main() {
 	}
 	timeouts := config.Timeouts
 	sandbox := ipc.FlagsToSandbox(execOpts.EnvFlags)
+	executor := config.Executor
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
 	go func() {
@@ -163,7 +162,7 @@ func main() {
 		}
 		r.Features = checkReq.Features
 	} else {
-		if err = host.Setup(target, r.Features, featureFlags, config.Executor); err != nil {
+		if err = host.Setup(target, r.Features, featureFlags, executor); err != nil {
 			log.SyzFatalf("%v", err)
 		}
 		checkReq = new(rpctype.CheckArgs)
@@ -191,17 +190,14 @@ func main() {
 	execOpts.EnvFlags |= ipc.FeaturesToFlags(r.Features, nil)
 
 	if *flagRunTest {
-		runTest(target, manager, *flagName, config.Executor)
+		runTest(target, manager, *flagName, executor)
 		return
 	}
 	inputsCount := *flagProcs * 2
 	fuzzerTool := &FuzzerTool{
-		name:          *flagName,
-		manager:       manager,
-		target:        target,
-		timeouts:      timeouts,
-		config:        config,
-		resetAccState: *flagResetAccState,
+		name:     *flagName,
+		manager:  manager,
+		timeouts: timeouts,
 
 		requests: make(chan rpctype.ExecutionRequest, inputsCount),
 		results:  make(chan executionResult, inputsCount),
@@ -218,12 +214,7 @@ func main() {
 	fuzzerTool.exchangeDataCall(inputsCount, nil, 0)
 	log.Logf(0, "starting %v executor processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		proc, err := newProc(fuzzerTool, execOpts, pid)
-		if err != nil {
-			log.SyzFatalf("failed to create proc: %v", err)
-		}
-		fuzzerTool.procs = append(fuzzerTool.procs, proc)
-		go proc.loop()
+		startProc(fuzzerTool, execOpts, pid, config, *flagResetAccState)
 	}
 	go fuzzerTool.exchangeDataWorker()
 	fuzzerTool.exchangeDataWorker()
@@ -256,7 +247,7 @@ func (tool *FuzzerTool) gateCallback(leakFrames []string) {
 	}
 	args := append([]string{"leak"}, leakFrames...)
 	timeout := tool.timeouts.NoOutput * 9 / 10
-	output, err := osutil.RunCmd(timeout, "", tool.config.Executor, args...)
+	output, err := osutil.RunCmd(timeout, "", tool.executor, args...)
 	if err != nil && triagedCandidates == 2 {
 		// If we exit right away, dying executors will dump lots of garbage to console.
 		os.Stdout.Write(output)
@@ -272,7 +263,7 @@ func (tool *FuzzerTool) gateCallback(leakFrames []string) {
 func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
 	args := append([]string{"setup_kcsan_filterlist"}, frames...)
 	timeout := time.Minute * tool.timeouts.Scale
-	output, err := osutil.RunCmd(timeout, "", tool.config.Executor, args...)
+	output, err := osutil.RunCmd(timeout, "", tool.executor, args...)
 	if err != nil {
 		log.SyzFatalf("failed to set KCSAN filterlist: %v", err)
 	}
