@@ -27,30 +27,30 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 		Executor: *flagExecutor,
 		Timeouts: sysTarget.Timeouts(*flagSlowdown),
 	}
+	c.UseShmem = sysTarget.ExecutorUsesShmem
+	c.UseForkServer = sysTarget.ExecutorUsesForkServer
+	c.RateLimit = sysTarget.HostFuzzer && target.OS != targets.TestOS
+
+	opts := &ipc.ExecOpts{
+		ExecFlags: ipc.FlagDedupCover,
+	}
+	if *flagThreaded {
+		opts.ExecFlags |= ipc.FlagThreaded
+	}
 	if *flagSignal {
-		c.Flags |= ipc.FlagSignal
+		opts.ExecFlags |= ipc.FlagCollectSignal
+	}
+	if *flagSignal {
+		opts.EnvFlags |= ipc.FlagSignal
 	}
 	if *flagDebug {
-		c.Flags |= ipc.FlagDebug
+		opts.EnvFlags |= ipc.FlagDebug
 	}
 	sandboxFlags, err := ipc.SandboxToFlags(*flagSandbox)
 	if err != nil {
 		return nil, nil, err
 	}
-	c.SandboxArg = *flagSandboxArg
-	c.Flags |= sandboxFlags
-	c.UseShmem = sysTarget.ExecutorUsesShmem
-	c.UseForkServer = sysTarget.ExecutorUsesForkServer
-	c.RateLimit = sysTarget.HostFuzzer && target.OS != targets.TestOS
-	opts := &ipc.ExecOpts{
-		Flags: ipc.FlagDedupCover,
-	}
-	if *flagThreaded {
-		opts.Flags |= ipc.FlagThreaded
-	}
-	if *flagSignal {
-		opts.Flags |= ipc.FlagCollectSignal
-	}
-
+	opts.SandboxArg = *flagSandboxArg
+	opts.EnvFlags |= sandboxFlags
 	return c, opts, nil
 }

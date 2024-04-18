@@ -410,43 +410,43 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if err != nil {
 		return nil, err
 	}
-	cfg.Flags |= sandboxFlags
+	opts.EnvFlags |= sandboxFlags
 	if threaded {
-		opts.Flags |= ipc.FlagThreaded
+		opts.ExecFlags |= ipc.FlagThreaded
 	}
 	if cov {
-		cfg.Flags |= ipc.FlagSignal
-		opts.Flags |= ipc.FlagCollectSignal
-		opts.Flags |= ipc.FlagCollectCover
+		opts.EnvFlags |= ipc.FlagSignal
+		opts.ExecFlags |= ipc.FlagCollectSignal
+		opts.ExecFlags |= ipc.FlagCollectCover
 	}
 	if ctx.Features[host.FeatureExtraCoverage].Enabled {
-		cfg.Flags |= ipc.FlagExtraCover
+		opts.EnvFlags |= ipc.FlagExtraCover
 	}
 	if ctx.Features[host.FeatureDelayKcovMmap].Enabled {
-		cfg.Flags |= ipc.FlagDelayKcovMmap
+		opts.EnvFlags |= ipc.FlagDelayKcovMmap
 	}
 	if ctx.Features[host.FeatureNetInjection].Enabled {
-		cfg.Flags |= ipc.FlagEnableTun
+		opts.EnvFlags |= ipc.FlagEnableTun
 	}
 	if ctx.Features[host.FeatureNetDevices].Enabled {
-		cfg.Flags |= ipc.FlagEnableNetDev
+		opts.EnvFlags |= ipc.FlagEnableNetDev
 	}
-	cfg.Flags |= ipc.FlagEnableNetReset
-	cfg.Flags |= ipc.FlagEnableCgroups
+	opts.EnvFlags |= ipc.FlagEnableNetReset
+	opts.EnvFlags |= ipc.FlagEnableCgroups
 	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
-		cfg.Flags |= ipc.FlagEnableDevlinkPCI
+		opts.EnvFlags |= ipc.FlagEnableDevlinkPCI
 	}
 	if ctx.Features[host.FeatureNicVF].Enabled {
-		cfg.Flags |= ipc.FlagEnableNicVF
+		opts.EnvFlags |= ipc.FlagEnableNicVF
 	}
 	if ctx.Features[host.FeatureVhciInjection].Enabled {
-		cfg.Flags |= ipc.FlagEnableVhciInjection
+		opts.EnvFlags |= ipc.FlagEnableVhciInjection
 	}
 	if ctx.Features[host.FeatureWifiEmulation].Enabled {
-		cfg.Flags |= ipc.FlagEnableWifi
+		opts.EnvFlags |= ipc.FlagEnableWifi
 	}
 	if ctx.Debug {
-		cfg.Flags |= ipc.FlagDebug
+		opts.EnvFlags |= ipc.FlagDebug
 	}
 	req := &RunRequest{
 		P:      p,
@@ -504,7 +504,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		P:   p,
 		Bin: bin,
 		Opts: &ipc.ExecOpts{
-			Flags: ipcFlags,
+			ExecFlags: ipcFlags,
 		},
 		Repeat: times,
 	}
@@ -547,7 +547,7 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 				// C code does not detect blocked/non-finished calls.
 				continue
 			}
-			if req.Opts.Flags&ipc.FlagThreaded == 0 {
+			if req.Opts.ExecFlags&ipc.FlagThreaded == 0 {
 				// In non-threaded mode blocked syscalls will block main thread
 				// and we won't detect blocked/unfinished syscalls.
 				continue
@@ -573,7 +573,7 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 	if isC || inf.Flags&ipc.CallExecuted == 0 {
 		return nil
 	}
-	if req.Cfg.Flags&ipc.FlagSignal != 0 {
+	if req.Opts.EnvFlags&ipc.FlagSignal != 0 {
 		// Signal is always deduplicated, so we may not get any signal
 		// on a second invocation of the same syscall.
 		// For calls that are not meant to collect synchronous coverage we

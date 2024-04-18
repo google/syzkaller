@@ -129,22 +129,22 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 		return nil, err
 	}
 	if feat := features[host.FeatureCoverage]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSignal != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 {
 		return nil, fmt.Errorf("coverage is not supported (%v)", feat.Reason)
 	}
 	if feat := features[host.FeatureSandboxSetuid]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSandboxSetuid != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxSetuid != 0 {
 		return nil, fmt.Errorf("sandbox=setuid is not supported (%v)", feat.Reason)
 	}
 	if feat := features[host.FeatureSandboxNamespace]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSandboxNamespace != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxNamespace != 0 {
 		return nil, fmt.Errorf("sandbox=namespace is not supported (%v)", feat.Reason)
 	}
 	if feat := features[host.FeatureSandboxAndroid]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSandboxAndroid != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxAndroid != 0 {
 		return nil, fmt.Errorf("sandbox=android is not supported (%v)", feat.Reason)
 	}
-	createIPCConfig(features, args.ipcConfig)
+	createIPCConfig(features, args.ipcExecOpts)
 	if err := checkSimpleProgram(args, features); err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 	if info.Calls[0].Errno != 0 {
 		return fmt.Errorf("simple call failed: %+v\n%s", info.Calls[0], output)
 	}
-	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
+	if args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
 	}
 	return nil

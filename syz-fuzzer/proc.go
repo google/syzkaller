@@ -41,16 +41,16 @@ func (proc *Proc) loop() {
 		req := proc.nextRequest()
 		opts := *proc.execOpts
 		if req.NeedSignal == rpctype.NoSignal {
-			opts.Flags &= ^ipc.FlagCollectSignal
+			opts.ExecFlags &= ^ipc.FlagCollectSignal
 		}
 		if req.NeedCover {
-			opts.Flags |= ipc.FlagCollectCover
+			opts.ExecFlags |= ipc.FlagCollectCover
 		}
 		if req.NeedHints {
-			opts.Flags |= ipc.FlagCollectComps
+			opts.ExecFlags |= ipc.FlagCollectComps
 		}
 		if req.NeedRawCover {
-			opts.Flags &= ^ipc.FlagDedupCover
+			opts.ExecFlags &= ^ipc.FlagDedupCover
 		}
 		// Do not let too much state accumulate.
 		const restartIn = 600
@@ -93,7 +93,7 @@ func (proc *Proc) execute(opts *ipc.ExecOpts, progID int64, progData []byte) (*i
 		var hanged bool
 		// On a heavily loaded VM, syz-executor may take significant time to start.
 		// Let's do it outside of the gate ticket.
-		err := proc.env.RestartIfNeeded()
+		err := proc.env.RestartIfNeeded(opts)
 		if err == nil {
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()
