@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
@@ -87,7 +86,7 @@ type Request struct {
 	Prog         *prog.Prog
 	NeedCover    bool
 	NeedRawCover bool
-	NeedSignal   rpctype.SignalType
+	NeedSignal   SignalType
 	NeedHints    bool
 	// If specified, the resulting signal for call SignalFilterCall
 	// will include subset of it even if it's not new.
@@ -99,6 +98,14 @@ type Request struct {
 	resultC chan *Result
 }
 
+type SignalType int
+
+const (
+	NoSignal  SignalType = 0 // we don't need any signal
+	NewSignal SignalType = 1 // we need the newly seen signal
+	AllSignal SignalType = 2 // we need all signal
+)
+
 type Result struct {
 	Info *ipc.ProgInfo
 	Stop bool
@@ -108,7 +115,7 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	// Triage individual calls.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
-	if req.NeedSignal != rpctype.NoSignal && res.Info != nil {
+	if req.NeedSignal != NoSignal && res.Info != nil {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, &info, call, req.flags)
 		}
@@ -249,10 +256,10 @@ func (fuzzer *Fuzzer) nextRand() int64 {
 }
 
 func (fuzzer *Fuzzer) pushExec(req *Request, prio priority) {
-	if req.NeedHints && (req.NeedCover || req.NeedSignal != rpctype.NoSignal) {
+	if req.NeedHints && (req.NeedCover || req.NeedSignal != NoSignal) {
 		panic("Request.NeedHints is mutually exclusive with other fields")
 	}
-	if req.SignalFilter != nil && req.NeedSignal != rpctype.NewSignal {
+	if req.SignalFilter != nil && req.NeedSignal != NewSignal {
 		panic("SignalFilter must be used with NewSignal")
 	}
 	fuzzer.nextExec.push(&priorityQueueItem[*Request]{

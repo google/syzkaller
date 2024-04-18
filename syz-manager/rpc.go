@@ -478,7 +478,7 @@ func (serv *RPCServer) newRequest(runner *Runner, req *fuzzer.Request) (rpctype.
 		ID:               id,
 		ProgData:         progData,
 		ExecOpts:         serv.createExecOpts(req),
-		NewSignal:        req.NeedSignal == rpctype.NewSignal,
+		NewSignal:        req.NeedSignal == fuzzer.NewSignal,
 		SignalFilter:     signalFilter,
 		SignalFilterCall: req.SignalFilterCall,
 	}, true
@@ -506,7 +506,7 @@ func (serv *RPCServer) createExecOpts(req *fuzzer.Request) ipc.ExecOpts {
 		exec |= ipc.FlagEnableCoverageFilter
 	}
 	if serv.cfg.Cover {
-		if req.NeedSignal != rpctype.NoSignal {
+		if req.NeedSignal != fuzzer.NoSignal {
 			exec |= ipc.FlagCollectSignal
 		}
 		if req.NeedCover {
