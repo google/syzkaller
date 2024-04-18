@@ -67,14 +67,17 @@ type ExecTask struct {
 }
 
 type ConnectArgs struct {
-	Name string
+	Name                string
+	GitRevision         string
+	SyzRevision         string
+	ExecutorArch        string
+	ExecutorGitRevision string
+	ExecutorSyzRevision string
 }
 
 type ConnectRes struct {
-	EnabledCalls   []int
-	GitRevision    string
-	TargetRevision string
-	AllSandboxes   bool
+	EnabledCalls []int
+	AllSandboxes bool
 	// This is forwarded from CheckArgs, if checking was already done.
 	Features *host.Features
 	// Fuzzer reads these files inside of the VM and returns contents in CheckArgs.Files.
