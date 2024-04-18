@@ -100,7 +100,6 @@ func TestExecute(t *testing.T) {
 			UseShmem:      useShmem,
 			UseForkServer: useForkServer,
 			Timeouts:      timeouts,
-			SandboxArg:    0,
 		}
 		env, err := MakeEnv(cfg, 0)
 		if err != nil {
@@ -111,7 +110,7 @@ func TestExecute(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			p := prepareTestProgram(target)
 			opts := &ExecOpts{
-				Flags: flag,
+				ExecFlags: flag,
 			}
 			output, info, hanged, err := env.Exec(opts, p)
 			if err != nil {
@@ -142,7 +141,6 @@ func TestParallel(t *testing.T) {
 		UseShmem:      useShmem,
 		UseForkServer: useForkServer,
 		Timeouts:      timeouts,
-		SandboxArg:    0,
 	}
 	const P = 10
 	errs := make(chan error, P)
@@ -204,7 +202,7 @@ func TestZlib(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.Flags |= FlagDebug
+	opts.EnvFlags |= FlagDebug
 	cfg.Executor = buildExecutor(t, target)
 	defer os.Remove(cfg.Executor)
 	env, err := MakeEnv(cfg, 0)

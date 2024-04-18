@@ -9,11 +9,16 @@ import (
 
 func TestOutputDeadline(t *testing.T) {
 	// Run the command that leaks stderr to a child process.
-	c, err := makeCommand(1, []string{
-		"sh",
-		"-c",
-		"exec 1>&2; ( sleep 100; echo fail ) & echo done",
-	}, &Config{}, nil, nil, nil, "/tmp")
+	env := &Env{
+		bin: []string{
+			"sh",
+			"-c",
+			"exec 1>&2; ( sleep 100; echo fail ) & echo done",
+		},
+		pid:    1,
+		config: &Config{},
+	}
+	c, err := env.makeCommand(&ExecOpts{}, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

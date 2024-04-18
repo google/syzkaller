@@ -285,7 +285,7 @@ func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {
 		t.Fatal(err)
 	}
 	config.Executor = executor
-	config.Flags |= ipc.FlagSignal
+	execOpts.EnvFlags |= ipc.FlagSignal
 	env, err := ipc.MakeEnv(config, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -303,10 +303,10 @@ func (proc *executorProc) execute(req *Request) (*Result, string, error) {
 	execOpts := proc.execOpts
 	// TODO: it's duplicated from fuzzer.go.
 	if req.NeedSignal != rpctype.NoSignal {
-		execOpts.Flags |= ipc.FlagCollectSignal
+		execOpts.ExecFlags |= ipc.FlagCollectSignal
 	}
 	if req.NeedCover {
-		execOpts.Flags |= ipc.FlagCollectCover
+		execOpts.ExecFlags |= ipc.FlagCollectCover
 	}
 	// TODO: support req.NeedHints.
 	output, info, _, err := proc.env.Exec(&execOpts, req.Prog)

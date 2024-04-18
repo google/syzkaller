@@ -151,31 +151,31 @@ func createIPCConfig(target *prog.Target, features *host.Features, featuresFlags
 		return nil, nil, err
 	}
 	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
-		config.Flags |= ipc.FlagEnableTun
+		execOpts.EnvFlags |= ipc.FlagEnableTun
 	}
 	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetDevices].Enabled {
-		config.Flags |= ipc.FlagEnableNetDev
+		execOpts.EnvFlags |= ipc.FlagEnableNetDev
 	}
 	if featuresFlags["net_reset"].Enabled {
-		config.Flags |= ipc.FlagEnableNetReset
+		execOpts.EnvFlags |= ipc.FlagEnableNetReset
 	}
 	if featuresFlags["cgroups"].Enabled {
-		config.Flags |= ipc.FlagEnableCgroups
+		execOpts.EnvFlags |= ipc.FlagEnableCgroups
 	}
 	if featuresFlags["close_fds"].Enabled {
-		config.Flags |= ipc.FlagEnableCloseFds
+		execOpts.EnvFlags |= ipc.FlagEnableCloseFds
 	}
 	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
-		config.Flags |= ipc.FlagEnableDevlinkPCI
+		execOpts.EnvFlags |= ipc.FlagEnableDevlinkPCI
 	}
 	if featuresFlags["nic_vf"].Enabled && features[host.FeatureNicVF].Enabled {
-		config.Flags |= ipc.FlagEnableNicVF
+		execOpts.EnvFlags |= ipc.FlagEnableNicVF
 	}
 	if featuresFlags["vhci"].Enabled && features[host.FeatureVhciInjection].Enabled {
-		config.Flags |= ipc.FlagEnableVhciInjection
+		execOpts.EnvFlags |= ipc.FlagEnableVhciInjection
 	}
 	if featuresFlags["wifi"].Enabled && features[host.FeatureWifiEmulation].Enabled {
-		config.Flags |= ipc.FlagEnableWifi
+		execOpts.EnvFlags |= ipc.FlagEnableWifi
 	}
 	return config, execOpts, nil
 }

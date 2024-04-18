@@ -52,7 +52,7 @@ func TestCommonExt(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Executor = bin
-	cfg.Flags |= ipc.FlagDebug
+	opts.EnvFlags |= ipc.FlagDebug
 	env, err := ipc.MakeEnv(cfg, 0)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
