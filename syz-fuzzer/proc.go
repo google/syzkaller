@@ -15,24 +15,26 @@ import (
 
 // Proc represents a single fuzzing process (executor).
 type Proc struct {
-	tool     *FuzzerTool
-	pid      int
-	env      *ipc.Env
-	execOpts *ipc.ExecOpts
+	tool       *FuzzerTool
+	pid        int
+	env        *ipc.Env
+	execOpts   *ipc.ExecOpts
+	resetState bool
 }
 
-func newProc(tool *FuzzerTool, execOpts *ipc.ExecOpts, pid int) (*Proc, error) {
-	env, err := ipc.MakeEnv(tool.config, pid)
+func startProc(tool *FuzzerTool, execOpts *ipc.ExecOpts, pid int, config *ipc.Config, resetState bool) {
+	env, err := ipc.MakeEnv(config, pid)
 	if err != nil {
-		return nil, err
+		log.SyzFatalf("failed to create env: %v", err)
 	}
 	proc := &Proc{
-		tool:     tool,
-		pid:      pid,
-		env:      env,
-		execOpts: execOpts,
+		tool:       tool,
+		pid:        pid,
+		env:        env,
+		execOpts:   execOpts,
+		resetState: resetState,
 	}
-	return proc, nil
+	go proc.loop()
 }
 
 func (proc *Proc) loop() {
@@ -55,7 +57,7 @@ func (proc *Proc) loop() {
 		// Do not let too much state accumulate.
 		const restartIn = 600
 		restart := rnd.Intn(restartIn) == 0
-		if (restart || proc.tool.resetAccState) &&
+		if (restart || proc.resetState) &&
 			(req.NeedCover || req.NeedSignal != rpctype.NoSignal || req.NeedHints) {
 			proc.env.ForceRestart()
 		}
