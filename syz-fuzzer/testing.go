@@ -144,7 +144,7 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxAndroid != 0 {
 		return nil, fmt.Errorf("sandbox=android is not supported (%v)", feat.Reason)
 	}
-	createIPCConfig(features, args.ipcExecOpts)
+	args.ipcExecOpts.EnvFlags |= ipc.FeaturesToFlags(features, nil)
 	if err := checkSimpleProgram(args, features); err != nil {
 		return nil, err
 	}

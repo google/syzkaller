@@ -16,6 +16,8 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
@@ -152,6 +154,45 @@ func FlagsToSandbox(flags EnvFlags) string {
 		return "android"
 	}
 	return "none"
+}
+
+// nolint: gocyclo
+func FeaturesToFlags(feat *host.Features, manual csource.Features) EnvFlags {
+	var flags EnvFlags
+	if manual == nil || manual["net_reset"].Enabled {
+		flags |= FlagEnableNetReset
+	}
+	if manual == nil || manual["cgroups"].Enabled {
+		flags |= FlagEnableCgroups
+	}
+	if manual == nil || manual["close_fds"].Enabled {
+		flags |= FlagEnableCloseFds
+	}
+	if feat[host.FeatureExtraCoverage].Enabled {
+		flags |= FlagExtraCover
+	}
+	if feat[host.FeatureDelayKcovMmap].Enabled {
+		flags |= FlagDelayKcovMmap
+	}
+	if feat[host.FeatureNetInjection].Enabled && (manual == nil || manual["tun"].Enabled) {
+		flags |= FlagEnableTun
+	}
+	if feat[host.FeatureNetDevices].Enabled && (manual == nil || manual["net_dev"].Enabled) {
+		flags |= FlagEnableNetDev
+	}
+	if feat[host.FeatureDevlinkPCI].Enabled && (manual == nil || manual["devlink_pci"].Enabled) {
+		flags |= FlagEnableDevlinkPCI
+	}
+	if feat[host.FeatureNicVF].Enabled && (manual == nil || manual["nic_vf"].Enabled) {
+		flags |= FlagEnableNicVF
+	}
+	if feat[host.FeatureVhciInjection].Enabled && (manual == nil || manual["vhci"].Enabled) {
+		flags |= FlagEnableVhciInjection
+	}
+	if feat[host.FeatureWifiEmulation].Enabled && (manual == nil || manual["wifi"].Enabled) {
+		flags |= FlagEnableWifi
+	}
+	return flags
 }
 
 func MakeEnv(config *Config, pid int) (*Env, error) {
