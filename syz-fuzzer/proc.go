@@ -18,11 +18,10 @@ type Proc struct {
 	tool       *FuzzerTool
 	pid        int
 	env        *ipc.Env
-	execOpts   *ipc.ExecOpts
 	resetState bool
 }
 
-func startProc(tool *FuzzerTool, execOpts *ipc.ExecOpts, pid int, config *ipc.Config, resetState bool) {
+func startProc(tool *FuzzerTool, pid int, config *ipc.Config, resetState bool) {
 	env, err := ipc.MakeEnv(config, pid)
 	if err != nil {
 		log.SyzFatalf("failed to create env: %v", err)
@@ -31,7 +30,6 @@ func startProc(tool *FuzzerTool, execOpts *ipc.ExecOpts, pid int, config *ipc.Co
 		tool:       tool,
 		pid:        pid,
 		env:        env,
-		execOpts:   execOpts,
 		resetState: resetState,
 	}
 	go proc.loop()
@@ -41,27 +39,13 @@ func (proc *Proc) loop() {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + int64(proc.pid)))
 	for {
 		req := proc.nextRequest()
-		opts := *proc.execOpts
-		if req.NeedSignal == rpctype.NoSignal {
-			opts.ExecFlags &= ^ipc.FlagCollectSignal
-		}
-		if req.NeedCover {
-			opts.ExecFlags |= ipc.FlagCollectCover
-		}
-		if req.NeedHints {
-			opts.ExecFlags |= ipc.FlagCollectComps
-		}
-		if req.NeedRawCover {
-			opts.ExecFlags &= ^ipc.FlagDedupCover
-		}
 		// Do not let too much state accumulate.
 		const restartIn = 600
-		restart := rnd.Intn(restartIn) == 0
-		if (restart || proc.resetState) &&
-			(req.NeedCover || req.NeedSignal != rpctype.NoSignal || req.NeedHints) {
+		if req.ExecOpts.ExecFlags&(ipc.FlagCollectSignal|ipc.FlagCollectCover|ipc.FlagCollectComps) != 0 &&
+			(proc.resetState || rnd.Intn(restartIn) == 0) {
 			proc.env.ForceRestart()
 		}
-		info, try := proc.execute(&opts, req.ID, req.ProgData)
+		info, try := proc.execute(req)
 		// Let's perform signal filtering in a separate thread to get the most
 		// exec/sec out of a syz-executor instance.
 		proc.tool.results <- executionResult{
@@ -88,19 +72,19 @@ func (proc *Proc) nextRequest() rpctype.ExecutionRequest {
 	return req
 }
 
-func (proc *Proc) execute(opts *ipc.ExecOpts, progID int64, progData []byte) (*ipc.ProgInfo, int) {
+func (proc *Proc) execute(req rpctype.ExecutionRequest) (*ipc.ProgInfo, int) {
 	for try := 0; ; try++ {
 		var output []byte
 		var info *ipc.ProgInfo
 		var hanged bool
 		// On a heavily loaded VM, syz-executor may take significant time to start.
 		// Let's do it outside of the gate ticket.
-		err := proc.env.RestartIfNeeded(opts)
+		err := proc.env.RestartIfNeeded(&req.ExecOpts)
 		if err == nil {
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()
-			proc.tool.startExecutingCall(progID, proc.pid, try)
-			output, info, hanged, err = proc.env.ExecProg(opts, progData)
+			proc.tool.startExecutingCall(req.ID, proc.pid, try)
+			output, info, hanged, err = proc.env.ExecProg(&req.ExecOpts, req.ProgData)
 			proc.tool.gate.Leave(ticket)
 			if err == nil {
 				log.Logf(2, "result hanged=%v: %s", hanged, output)

@@ -27,10 +27,8 @@ const (
 type ExecutionRequest struct {
 	ID               int64
 	ProgData         []byte
-	NeedCover        bool
-	NeedRawCover     bool
-	NeedHints        bool
-	NeedSignal       SignalType
+	ExecOpts         ipc.ExecOpts
+	NewSignal        bool
 	SignalFilter     signal.Signal
 	SignalFilterCall int
 }
