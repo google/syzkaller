@@ -77,7 +77,6 @@ func main() {
 		flagProcs          = flag.Int("procs", 1, "number of parallel test processes")
 		flagTest           = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
 		flagRunTest        = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
-		flagRawCover       = flag.Bool("raw_cover", false, "fetch raw coverage")
 		flagPprofPort      = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
 		flagNetCompression = flag.Bool("net_compression", false, "use network compression for RPC calls")
 
@@ -95,9 +94,6 @@ func main() {
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.SyzFatalf("failed to create default ipc config: %v", err)
-	}
-	if *flagRawCover {
-		execOpts.ExecFlags &^= ipc.FlagDedupCover
 	}
 	timeouts := config.Timeouts
 	sandbox := ipc.FlagsToSandbox(execOpts.EnvFlags)
@@ -187,7 +183,6 @@ func main() {
 	for _, feat := range r.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	execOpts.EnvFlags |= ipc.FeaturesToFlags(r.Features, nil)
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, executor)
@@ -205,7 +200,6 @@ func main() {
 	gateCb := fuzzerTool.useBugFrames(r.Features, checkRes.MemoryLeakFrames, checkRes.DataRaceFrames)
 	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
 	if checkRes.CoverFilterBitmap != nil {
-		execOpts.ExecFlags |= ipc.FlagEnableCoverageFilter
 		if err := osutil.WriteFile("syz-cover-bitmap", checkRes.CoverFilterBitmap); err != nil {
 			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
 		}
@@ -214,7 +208,7 @@ func main() {
 	fuzzerTool.exchangeDataCall(inputsCount, nil, 0)
 	log.Logf(0, "starting %v executor processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		startProc(fuzzerTool, execOpts, pid, config, *flagResetAccState)
+		startProc(fuzzerTool, pid, config, *flagResetAccState)
 	}
 	go fuzzerTool.exchangeDataWorker()
 	fuzzerTool.exchangeDataWorker()
@@ -330,7 +324,7 @@ func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.Exec
 		Try:    res.try,
 	}
 	if res.info != nil {
-		if res.NeedSignal == rpctype.NewSignal {
+		if res.NewSignal {
 			tool.diffMaxSignal(res.info, res.SignalFilter, res.SignalFilterCall)
 		}
 		ret.Info = *res.info

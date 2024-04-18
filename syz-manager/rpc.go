@@ -265,7 +265,7 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	}
 
 	appendRequest := func(inp *fuzzer.Request) {
-		if req, ok := runner.newRequest(inp); ok {
+		if req, ok := serv.newRequest(runner, inp); ok {
 			r.Requests = append(r.Requests, req)
 		} else {
 			// It's bad if we systematically fail to serialize programs,
@@ -417,7 +417,7 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult,
 	fuzzerObj.Done(req.req, &fuzzer.Result{Info: info})
 }
 
-func (runner *Runner) newRequest(req *fuzzer.Request) (rpctype.ExecutionRequest, bool) {
+func (serv *RPCServer) newRequest(runner *Runner, req *fuzzer.Request) (rpctype.ExecutionRequest, bool) {
 	progData, err := req.Prog.SerializeForExec()
 	if err != nil {
 		return rpctype.ExecutionRequest{}, false
@@ -442,12 +442,50 @@ func (runner *Runner) newRequest(req *fuzzer.Request) (rpctype.ExecutionRequest,
 	return rpctype.ExecutionRequest{
 		ID:               id,
 		ProgData:         progData,
-		NeedCover:        req.NeedCover,
-		NeedSignal:       req.NeedSignal,
+		ExecOpts:         serv.createExecOpts(req),
+		NewSignal:        req.NeedSignal == rpctype.NewSignal,
 		SignalFilter:     signalFilter,
 		SignalFilterCall: req.SignalFilterCall,
-		NeedHints:        req.NeedHints,
 	}, true
+}
+
+func (serv *RPCServer) createExecOpts(req *fuzzer.Request) ipc.ExecOpts {
+	env := ipc.FeaturesToFlags(serv.checkFeatures, nil)
+	if *flagDebug {
+		env |= ipc.FlagDebug
+	}
+	if serv.cfg.Cover {
+		env |= ipc.FlagSignal
+	}
+	sandbox, err := ipc.SandboxToFlags(serv.cfg.Sandbox)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
+	}
+	env |= sandbox
+
+	exec := ipc.FlagThreaded
+	if !serv.cfg.RawCover {
+		exec |= ipc.FlagDedupCover
+	}
+	if serv.cfg.HasCovFilter() {
+		exec |= ipc.FlagEnableCoverageFilter
+	}
+	if serv.cfg.Cover {
+		if req.NeedSignal != rpctype.NoSignal {
+			exec |= ipc.FlagCollectSignal
+		}
+		if req.NeedCover {
+			exec |= ipc.FlagCollectCover
+		}
+		if req.NeedHints {
+			exec |= ipc.FlagCollectComps
+		}
+	}
+	return ipc.ExecOpts{
+		EnvFlags:   env,
+		ExecFlags:  exec,
+		SandboxArg: serv.cfg.SandboxArg,
+	}
 }
 
 func (runner *Runner) logProgram(procID int, p *prog.Prog) {
