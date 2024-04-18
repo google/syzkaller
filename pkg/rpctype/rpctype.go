@@ -14,14 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 )
 
-type SignalType int
-
-const (
-	NoSignal  SignalType = 0 // we don't need any signal
-	NewSignal SignalType = 1 // we need the newly seen signal
-	AllSignal SignalType = 2 // we need all signal
-)
-
 // ExecutionRequest describes the task of executing a particular program.
 // Corresponds to Fuzzer.Request.
 type ExecutionRequest struct {

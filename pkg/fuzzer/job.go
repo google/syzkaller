@@ -10,7 +10,6 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
@@ -71,7 +70,7 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		fuzzer.ChoiceTable())
 	return &Request{
 		Prog:       p,
-		NeedSignal: rpctype.NewSignal,
+		NeedSignal: NewSignal,
 		stat:       fuzzer.statExecGenerate,
 	}
 }
@@ -90,7 +89,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 	)
 	return &Request{
 		Prog:       newP,
-		NeedSignal: rpctype.NewSignal,
+		NeedSignal: NewSignal,
 		stat:       fuzzer.statExecFuzz,
 	}
 }
@@ -105,7 +104,7 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) *Request {
 	}
 	return &Request{
 		Prog:       input.Prog,
-		NeedSignal: rpctype.NewSignal,
+		NeedSignal: NewSignal,
 		stat:       fuzzer.statExecCandidate,
 		flags:      flags,
 	}
@@ -197,7 +196,7 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 		}
 		result := exec(job, &Request{
 			Prog:         job.p,
-			NeedSignal:   rpctype.AllSignal,
+			NeedSignal:   AllSignal,
 			NeedCover:    true,
 			NeedRawCover: rawCover,
 			stat:         stat,
@@ -238,7 +237,7 @@ func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bo
 			for i := 0; i < minimizeAttempts; i++ {
 				result := fuzzer.exec(job, &Request{
 					Prog:             p1,
-					NeedSignal:       rpctype.NewSignal,
+					NeedSignal:       NewSignal,
 					SignalFilter:     newSignal,
 					SignalFilterCall: call1,
 					stat:             fuzzer.statExecMinimize,
@@ -313,7 +312,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.Config.Corpus.Programs())
 		result := fuzzer.exec(job, &Request{
 			Prog:       p,
-			NeedSignal: rpctype.NewSignal,
+			NeedSignal: NewSignal,
 			stat:       fuzzer.statExecSmash,
 		})
 		if result.Stop {
@@ -404,7 +403,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		func(p *prog.Prog) bool {
 			result := fuzzer.exec(job, &Request{
 				Prog:       p,
-				NeedSignal: rpctype.NewSignal,
+				NeedSignal: NewSignal,
 				stat:       fuzzer.statExecHint,
 			})
 			return !result.Stop
