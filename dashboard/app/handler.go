@@ -33,9 +33,6 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		c = context.WithValue(c, &currentURLKey, r.URL.RequestURI())
-		if !throttleRequest(c, w, r) {
-			return
-		}
 		if err := fn(c, w, r); err != nil {
 			hdr := commonHeaderRaw(c, r)
 			data := &struct {
