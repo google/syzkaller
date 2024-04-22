@@ -329,6 +329,7 @@ var tests = []*Test{
 		Exit:         ExitNormal,
 		InjectOutput: "BUG: foo\n",
 		Body: func(outc chan []byte, errc chan error) {
+			time.Sleep(time.Second)
 			errc <- nil
 		},
 		Report: &report.Report{
