@@ -109,7 +109,8 @@ func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) 
 }
 
 func throttlingErrorMessage(c context.Context) string {
-	ret := "429 Too Many Requests"
+	ret := fmt.Sprintf("429 Too Many Requests\nAllowed rate is %d requests per %d seconds.",
+		getConfig(c).Throttle.Limit, int(getConfig(c).Throttle.Window.Seconds()))
 	email := getConfig(c).ContactEmail
 	if email == "" {
 		return ret
