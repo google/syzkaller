@@ -535,7 +535,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, data)
+		return writeJSONVersionOf(c, w, data)
 	}
 
 	return serveTemplate(w, "main.html", data)
@@ -862,7 +862,7 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, data)
+		return writeJSONVersionOf(c, w, data)
 	}
 
 	return serveTemplate(w, "terminal.html", data)
@@ -983,7 +983,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 // handleBug serves page about a single bug (which is passed in id argument).
 // nolint: funlen, gocyclo
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	bug, err := findBugByID(c, r)
+	bug, err := findRequestedBug(c, r)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrClientNotFound, err)
 	}
@@ -1173,7 +1173,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, data)
+		return writeJSONVersionOf(c, w, data)
 	}
 
 	return serveTemplate(w, "bug.html", data)
@@ -1340,8 +1340,8 @@ func handleBugSummaries(c context.Context, w http.ResponseWriter, r *http.Reques
 	return json.NewEncoder(w).Encode(list)
 }
 
-func writeJSONVersionOf(writer http.ResponseWriter, page interface{}) error {
-	data, err := GetJSONDescrFor(page)
+func writeJSONVersionOf(c context.Context, writer http.ResponseWriter, page interface{}) error {
+	data, err := GetJSONDescrFor(c, page)
 	if err != nil {
 		return err
 	}
@@ -1349,18 +1349,22 @@ func writeJSONVersionOf(writer http.ResponseWriter, page interface{}) error {
 	return err
 }
 
-func findBugByID(c context.Context, r *http.Request) (*Bug, error) {
+func findRequestedBug(c context.Context, r *http.Request) (*Bug, error) {
 	if id := r.FormValue("id"); id != "" {
-		bug := new(Bug)
-		bugKey := db.NewKey(c, "Bug", id, 0, nil)
-		err := db.Get(c, bugKey, bug)
-		return bug, err
+		return findBugByID(c, id)
 	}
 	if extID := r.FormValue("extid"); extID != "" {
 		bug, _, err := findBugByReportingID(c, extID)
 		return bug, err
 	}
 	return nil, fmt.Errorf("mandatory parameter id/extid is missing")
+}
+
+func findBugByID(c context.Context, id string) (*Bug, error) {
+	bug := new(Bug)
+	bugKey := db.NewKey(c, "Bug", id, 0, nil)
+	err := db.Get(c, bugKey, bug)
+	return bug, err
 }
 
 func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Request) error {

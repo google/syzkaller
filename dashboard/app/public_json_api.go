@@ -4,7 +4,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 // publicApiBugDescription is used to serve the /bug HTTP requests
@@ -42,50 +45,84 @@ type publicAPICrashDescription struct {
 	CrashReport         string `json:"crash-report-link,omitempty"`
 }
 
-func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
-	return &publicAPIBugDescription{
-		Version: 1,
-		Title:   bugPage.Bug.Title,
-		ID:      bugPage.Bug.ID,
-		Discussions: func() []string {
-			if bugPage.Bug.ExternalLink == "" {
-				return nil
-			}
-			return []string{bugPage.Bug.ExternalLink}
-		}(),
-		FixCommits: getBugFixCommits(bugPage.Bug),
-		CauseCommit: func() *vcsCommit {
-			if bugPage.BisectCause == nil || bugPage.BisectCause.Commit == nil {
-				return nil
-			}
-			bisectCause := bugPage.BisectCause
-			return &vcsCommit{
-				Title:  bisectCause.Commit.Title,
-				Link:   bisectCause.Commit.Link,
-				Hash:   bisectCause.Commit.Hash,
-				Repo:   bisectCause.KernelRepo,
-				Branch: bisectCause.KernelBranch}
-		}(),
-		Crashes: func() []publicAPICrashDescription {
-			var res []publicAPICrashDescription
-			for _, crash := range bugPage.Crashes.Crashes {
-				res = append(res, publicAPICrashDescription{
-					Title:              crash.Title,
-					SyzReproducer:      crash.ReproSyzLink,
-					CReproducer:        crash.ReproCLink,
-					KernelConfig:       crash.KernelConfigLink,
-					KernelSourceGit:    crash.KernelCommitLink,
-					KernelSourceCommit: crash.KernelCommit,
-					SyzkallerGit:       crash.SyzkallerCommitLink,
-					SyzkallerCommit:    crash.SyzkallerCommit,
-					// TODO: add the CompilerDescription
-					// TODO: add the Architecture
-					CrashReport: crash.ReportLink,
-				})
-			}
-			return res
-		}(),
+func getExtAPIDescrForBug(c context.Context, bug *uiBug) (*publicAPIBugDescription, error) {
+	causeCommit, err := getBugCauseCommit(c, bug.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to getBugCauseCommit(%s): %w", bug.ID, err)
 	}
+	var crashes []publicAPICrashDescription
+	if crashes, err = getBugCrashes(c, bug.ID); err != nil {
+		return nil, fmt.Errorf("failed to getBugCrashes(%s): %w", bug.ID, err)
+	}
+	return &publicAPIBugDescription{
+		Version:     1,
+		Title:       bug.Title,
+		ID:          bug.ID,
+		Discussions: getBugDiscussions(bug),
+		FixCommits:  getBugFixCommits(bug),
+		CauseCommit: causeCommit,
+		Crashes:     crashes,
+	}, nil
+}
+
+func getBugDiscussions(bug *uiBug) []string {
+	if bug.ExternalLink == "" {
+		return nil
+	}
+	return []string{bug.ExternalLink}
+}
+
+func getBugCrashes(c context.Context, bugID string) ([]publicAPICrashDescription, error) {
+	bug, err := findBugByID(c, bugID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load bug id(%s)", bugID)
+	}
+	crashes, _, err := loadCrashesForBug(c, bug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to loadCrashesForBug(%s)", bugID)
+	}
+	var res []publicAPICrashDescription
+	for _, crash := range crashes {
+		res = append(res, publicAPICrashDescription{
+			Title:              crash.Title,
+			SyzReproducer:      crash.ReproSyzLink,
+			CReproducer:        crash.ReproCLink,
+			KernelConfig:       crash.KernelConfigLink,
+			KernelSourceGit:    crash.KernelCommitLink,
+			KernelSourceCommit: crash.KernelCommit,
+			SyzkallerGit:       crash.SyzkallerCommitLink,
+			SyzkallerCommit:    crash.SyzkallerCommit,
+			// TODO: add the CompilerDescription
+			// TODO: add the Architecture
+			CrashReport: crash.ReportLink,
+		})
+	}
+	return res, nil
+}
+
+func getBugCauseCommit(c context.Context, bugID string) (*vcsCommit, error) {
+	bug, err := findBugByID(c, bugID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load bug id(%s)", bugID)
+	}
+	var res *vcsCommit
+	if bug.BisectCause > BisectPending {
+		causeBisections, err := queryBugJobs(c, bug, JobBisectCause)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cause bisections: %w", err)
+		}
+		j := causeBisections.bestBisection()
+		if j != nil && len(j.job.Commits) == 1 {
+			commit := j.job.Commits[0]
+			res = &vcsCommit{
+				Title:  commit.Title,
+				Link:   vcs.CommitLink(j.job.KernelRepo, commit.Hash),
+				Hash:   commit.Hash,
+				Repo:   j.job.KernelRepo,
+				Branch: j.job.KernelBranch}
+		}
+	}
+	return res, nil
 }
 
 func getBugFixCommits(bug *uiBug) []vcsCommit {
@@ -112,38 +149,56 @@ type publicAPIBug struct {
 	Link        string      `json:"link"`
 	LastUpdated string      `json:"last-updated,omitempty"`
 	FixCommits  []vcsCommit `json:"fix-commits,omitempty"`
+	CauseCommit *vcsCommit  `json:"cause-commit,omitempty"`
+	// links to the discussions
+	Discussions []string                    `json:"discussions,omitempty"`
+	Crashes     []publicAPICrashDescription `json:"crashes,omitempty"`
 }
 
-func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *publicAPIBugGroup {
+func getExtAPIDescrForBugGroups(c context.Context, bugGroups []*uiBugGroup) (*publicAPIBugGroup, error) {
+	var res []publicAPIBug
+	for _, group := range bugGroups {
+		for _, bug := range group.Bugs {
+			var err error
+			var causeCommit *vcsCommit
+			if causeCommit, err = getBugCauseCommit(c, bug.ID); err != nil {
+				return nil, fmt.Errorf("failed to getBugCauseCommit(%s): %w", bug.ID, err)
+			}
+			var crashes []publicAPICrashDescription
+			if crashes, err = getBugCrashes(c, bug.ID); err != nil {
+				return nil, fmt.Errorf("failed to get bug(%s) crashes: %w", bug.ID, err)
+			}
+			res = append(res, publicAPIBug{
+				Title:       bug.Title,
+				Link:        bug.Link,
+				FixCommits:  getBugFixCommits(bug),
+				CauseCommit: causeCommit,
+				Discussions: getBugDiscussions(bug),
+				Crashes:     crashes,
+			})
+		}
+	}
 	return &publicAPIBugGroup{
 		Version: 1,
-		Bugs: func() []publicAPIBug {
-			var res []publicAPIBug
-			for _, group := range bugGroups {
-				for _, bug := range group.Bugs {
-					res = append(res, publicAPIBug{
-						Title:      bug.Title,
-						Link:       bug.Link,
-						FixCommits: getBugFixCommits(bug),
-					})
-				}
-			}
-			return res
-		}(),
-	}
+		Bugs:    res,
+	}, nil
 }
 
-func GetJSONDescrFor(page interface{}) ([]byte, error) {
+func GetJSONDescrFor(c context.Context, page interface{}) ([]byte, error) {
 	var res interface{}
+	var err error
 	switch i := page.(type) {
 	case *uiBugPage:
-		res = getExtAPIDescrForBugPage(i)
+		res, err = getExtAPIDescrForBug(c, i.Bug)
 	case *uiTerminalPage:
-		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
+		res, err = getExtAPIDescrForBugGroups(c, []*uiBugGroup{i.Bugs})
 	case *uiMainPage:
-		res = getExtAPIDescrForBugGroups(i.Groups)
+		res, err = getExtAPIDescrForBugGroups(c, i.Groups)
 	default:
 		return nil, ErrClientNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to GetJSONDescrFor(): %w", err)
 	}
 	return json.MarshalIndent(res, "", "\t")
 }

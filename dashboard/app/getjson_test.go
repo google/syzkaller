@@ -52,11 +52,33 @@ func TestJSONAPIIntegration(t *testing.T) {
 	"Bugs": [
 		{
 			"title": "title1",
-			"link": "/bug?extid=decf42d66dced481afc1"
+			"link": "/bug?extid=decf42d66dced481afc1",
+			"crashes": [
+				{
+					"title": "title1",
+					"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+					"kernel-source-commit": "1111111111111111111111111111111111111111",
+					"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
+					"syzkaller-commit": "syzkaller_commit1",
+					"crash-report-link": "/text?tag=CrashReport\u0026x=12000000000000"
+				}
+			]
 		},
 		{
 			"title": "title2",
-			"link": "/bug?extid=0267d1c87b9ed4eb5def"
+			"link": "/bug?extid=0267d1c87b9ed4eb5def",
+			"crashes": [
+				{
+					"title": "title2",
+					"syz-reproducer": "/text?tag=ReproSyz\u0026x=13000000000000",
+					"c-reproducer": "/text?tag=ReproC\u0026x=17000000000000",
+					"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+					"kernel-source-commit": "1111111111111111111111111111111111111111",
+					"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
+					"syzkaller-commit": "syzkaller_commit1",
+					"crash-report-link": "/text?tag=CrashReport\u0026x=15000000000000"
+				}
+			]
 		}
 	]
 }`)
@@ -77,6 +99,18 @@ func TestJSONAPIIntegration(t *testing.T) {
 					"title": "foo: fix2",
 					"repo": "git://syzkaller.org",
 					"branch": "branch10"
+				}
+			],
+			"crashes": [
+				{
+					"title": "title2",
+					"syz-reproducer": "/text?tag=ReproSyz\u0026x=13000000000000",
+					"c-reproducer": "/text?tag=ReproC\u0026x=17000000000000",
+					"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+					"kernel-source-commit": "1111111111111111111111111111111111111111",
+					"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
+					"syzkaller-commit": "syzkaller_commit1",
+					"crash-report-link": "/text?tag=CrashReport\u0026x=15000000000000"
 				}
 			]
 		}
