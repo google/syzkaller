@@ -41,10 +41,6 @@ func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, st
 	if c.CallName == "pkey_alloc" {
 		return isSyzPkeySetSupported(c, target, sandbox)
 	}
-	if c.Name == "ioctl$EXT4_IOC_SHUTDOWN" && sandbox == "none" {
-		// Don't shutdown root filesystem.
-		return false, "unsafe with sandbox=none"
-	}
 	return isSupportedSyscall(c, target)
 }
 
