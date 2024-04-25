@@ -27,6 +27,15 @@ func (linux) RequiredFiles() []string {
 	}
 }
 
+func (linux) checkFiles() []string {
+	return []string{
+		"/proc/version",
+		"/proc/filesystems",
+		"/sys/kernel/security/lsm",
+		"/dev/raw-gadget",
+	}
+}
+
 func (linux) machineInfos() []machineInfoFunc {
 	return []machineInfoFunc{
 		linuxReadCPUInfo,

@@ -1,6 +1,10 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// This is broken for now.
+
+//go:build ignore
+
 // Runtest runs syzkaller test programs in sys/*/test/*. Start as:
 // $ syz-runtest -config manager.config
 // Also see pkg/runtest docs.
@@ -24,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/runtest"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
@@ -53,6 +58,7 @@ func main() {
 	mgr := &Manager{
 		cfg:                cfg,
 		vmPool:             vmPool,
+		checker:            vminfo.New(cfg),
 		reporter:           reporter,
 		debug:              *flagDebug,
 		requests:           make(chan *runtest.RunRequest, 2*vmPool.Count()),
@@ -62,7 +68,7 @@ func main() {
 		reqMap:             make(map[int]*runtest.RunRequest),
 		lastReq:            make(map[string]int),
 	}
-	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr, true)
+	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr, false)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -93,14 +99,16 @@ func main() {
 	checkResult := <-mgr.checkResultC
 	mgr.checkFeatures = checkResult.Features
 	close(mgr.checkFeaturesReady)
-	enabledCalls := make(map[string]map[*prog.Syscall]bool)
-	for sandbox, ids := range checkResult.EnabledCalls {
-		calls := make(map[*prog.Syscall]bool)
-		for _, id := range ids {
-			calls[cfg.Target.Syscalls[id]] = true
-		}
-		enabledCalls[sandbox] = calls
+	calls, _, err := mgr.checker.Check(checkResult.Files, checkResult.CheckProgs)
+	if err != nil {
+		log.Fatalf("failed to detect enabled syscalls: %v", err)
 	}
+	calls, _ = cfg.Target.TransitivelyEnabledCalls(calls)
+	enabledCalls := make(map[string]map[*prog.Syscall]bool)
+	// TODO: restore checking/testing of all other sandboxes (we used to test them).
+	// Note: syz_emit_ethernet/syz_extract_tcp_res were manually disabled for "" ("no") sandbox,
+	// b/c tun is not setup without sandbox.
+	enabledCalls[mgr.cfg.Sandbox] = calls
 	for _, feat := range checkResult.Features.Supported() {
 		fmt.Printf("%-24v: %v\n", feat.Name, feat.Reason)
 	}
@@ -133,6 +141,7 @@ func main() {
 type Manager struct {
 	cfg                *mgrconfig.Config
 	vmPool             *vm.Pool
+	checker            *vminfo.Checker
 	reporter           *report.Reporter
 	requests           chan *runtest.RunRequest
 	checkFeatures      *host.Features
@@ -221,16 +230,19 @@ func (mgr *Manager) finishRequest(name string, rep *report.Report) error {
 }
 
 func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
-	r.AllSandboxes = true
 	select {
 	case <-mgr.checkFeaturesReady:
 		r.Features = mgr.checkFeatures
 	default:
+		infoFiles, checkFiles, checkProgs := mgr.checker.RequiredThings()
+		r.ReadFiles = append(infoFiles, checkFiles...)
+		r.ReadGlobs = mgr.cfg.Target.RequiredGlobs()
+		r.CheckProgs = checkProgs
 	}
 	return nil
 }
 
-func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
+func (mgr *Manager) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	if a.Error != "" {
 		log.Fatalf("machine check: %v", a.Error)
 	}

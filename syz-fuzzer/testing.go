@@ -24,8 +24,6 @@ type checkArgs struct {
 	sandbox        string
 	gitRevision    string
 	targetRevision string
-	enabledCalls   []int
-	allSandboxes   bool
 	ipcConfig      *ipc.Config
 	ipcExecOpts    *ipc.ExecOpts
 	featureFlags   map[string]csource.Feature
@@ -42,6 +40,9 @@ func testImage(hostAddr string, args *checkArgs) {
 		log.SyzFatalf("BUG: %v", err)
 	}
 	if _, err := checkMachine(args); err != nil {
+		log.SyzFatalf("BUG: %v", err)
+	}
+	if err := buildCallList(args.target, args.sandbox); err != nil {
 		log.SyzFatalf("BUG: %v", err)
 	}
 }
@@ -149,51 +150,9 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 		return nil, err
 	}
 	res := &rpctype.CheckArgs{
-		Features:      features,
-		EnabledCalls:  make(map[string][]int),
-		DisabledCalls: make(map[string][]rpctype.SyscallReason),
-	}
-	if err := checkCalls(args, res); err != nil {
-		return nil, err
+		Features: features,
 	}
 	return res, nil
-}
-
-func checkCalls(args *checkArgs, res *rpctype.CheckArgs) error {
-	sandboxes := []string{args.sandbox}
-	if args.allSandboxes {
-		if args.sandbox != "none" {
-			sandboxes = append(sandboxes, "none")
-		}
-		if args.sandbox != "setuid" && res.Features[host.FeatureSandboxSetuid].Enabled {
-			sandboxes = append(sandboxes, "setuid")
-		}
-		if args.sandbox != "namespace" && res.Features[host.FeatureSandboxNamespace].Enabled {
-			sandboxes = append(sandboxes, "namespace")
-		}
-		// TODO: Add "android" sandbox here when needed. Will require fixing runtests.
-	}
-	for _, sandbox := range sandboxes {
-		enabledCalls, disabledCalls, err := buildCallList(args.target, args.enabledCalls, sandbox)
-		res.EnabledCalls[sandbox] = enabledCalls
-		res.DisabledCalls[sandbox] = disabledCalls
-		if err != nil {
-			return err
-		}
-	}
-	if args.allSandboxes {
-		var enabled []int
-		for _, id := range res.EnabledCalls["none"] {
-			switch args.target.Syscalls[id].Name {
-			default:
-				enabled = append(enabled, id)
-			case "syz_emit_ethernet", "syz_extract_tcp_res":
-				// Tun is not setup without sandbox, this is a hacky way to workaround this.
-			}
-		}
-		res.EnabledCalls[""] = enabled
-	}
-	return nil
 }
 
 func checkRevisions(args *checkArgs) error {
@@ -274,44 +233,34 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 	return nil
 }
 
-func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
-	enabled []int, disabled []rpctype.SyscallReason, err error) {
+func buildCallList(target *prog.Target, sandbox string) error {
 	log.Logf(0, "building call list...")
 	calls := make(map[*prog.Syscall]bool)
-	if len(enabledCalls) != 0 {
-		for _, n := range enabledCalls {
-			if n >= len(target.Syscalls) {
-				return nil, nil, fmt.Errorf("unknown enabled syscall %v", n)
-			}
-			calls[target.Syscalls[n]] = true
-		}
-	} else {
-		for _, c := range target.Syscalls {
-			calls[c] = true
-		}
+	for _, c := range target.Syscalls {
+		calls[c] = true
 	}
 
 	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, calls)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to detect host supported syscalls: %w", err)
+		return fmt.Errorf("failed to detect host supported syscalls: %w", err)
 	}
 	for c := range calls {
 		if reason, ok := unsupported[c]; ok {
 			// Note: if we print call name followed by ':', it may be detected
 			// as a kernel crash if the call ends with "BUG" or "INFO".
 			log.Logf(1, "unsupported syscall: %v(): %v", c.Name, reason)
-			disabled = append(disabled, rpctype.SyscallReason{
-				ID:     c.ID,
-				Reason: reason,
-			})
 			delete(calls, c)
 		}
 	}
+	_, unsupported = target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
-		enabled = append(enabled, c.ID)
+		if reason, ok := unsupported[c]; ok {
+			log.Logf(1, "transitively unsupported: %v(): %v", c.Name, reason)
+			delete(calls, c)
+		}
 	}
 	if len(calls) == 0 {
-		return enabled, disabled, fmt.Errorf("all system calls are disabled")
+		return fmt.Errorf("all system calls are disabled")
 	}
-	return enabled, disabled, nil
+	return nil
 }

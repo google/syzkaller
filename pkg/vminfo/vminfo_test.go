@@ -9,11 +9,14 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestHostMachineInfo(t *testing.T) {
-	checker, files := hostChecker()
+	checker, files := hostChecker(t)
 	dups := make(map[string]bool)
 	for _, file := range files {
 		if file.Name[0] != '/' || file.Name[len(file.Name)-1] == '/' || strings.Contains(file.Name, "\\") {
@@ -38,15 +41,32 @@ func TestHostMachineInfo(t *testing.T) {
 	}
 }
 
-func hostChecker() (*Checker, []host.FileInfo) {
-	cfg := &mgrconfig.Config{
-		Derived: mgrconfig.Derived{
-			TargetOS:     runtime.GOOS,
-			TargetArch:   runtime.GOARCH,
-			TargetVMArch: runtime.GOARCH,
-		},
-	}
+func hostChecker(t *testing.T) (*Checker, []host.FileInfo) {
+	cfg := testConfig(t, runtime.GOOS, runtime.GOARCH)
 	checker := New(cfg)
 	files := host.ReadFiles(checker.RequiredFiles())
 	return checker, files
+}
+
+func testConfig(t *testing.T, OS, arch string) *mgrconfig.Config {
+	target, err := prog.GetTarget(OS, arch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := &mgrconfig.Config{
+		Sandbox: ipc.FlagsToSandbox(0),
+		Derived: mgrconfig.Derived{
+			TargetOS:     OS,
+			TargetArch:   arch,
+			TargetVMArch: arch,
+			Target:       target,
+			SysTarget:    targets.Get(OS, arch),
+		},
+	}
+	for id := range target.Syscalls {
+		if !target.Syscalls[id].Attrs.Disabled {
+			cfg.Syscalls = append(cfg.Syscalls, id)
+		}
+	}
+	return cfg
 }
