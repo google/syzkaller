@@ -14,15 +14,78 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestLinuxSyscalls(t *testing.T) {
+	cfg := testConfig(t, targets.Linux, targets.AMD64)
+	checker := New(cfg)
+	_, checkProgs := checker.StartCheck()
+	filesystems := []string{
+		"", "9p", "esdfs", "incremental-fs", "cgroup", "cgroup2",
+		"pvfs2", "nfs", "nfs4", "fuse", "fuseblk", "afs", "pipefs",
+		"sysfs", "tmpfs", "overlay", "bpf", "efs", "vfat", "xfs",
+		"qnx4", "hfs", "f2fs", "btrfs", "befs", "cramfs", "vxfs",
+		"ubifs", "jfs", "erofs", "udf", "squashfs", "romfs", "qnx6",
+		"ntfs", "ntfs3", "hfsplus", "bfs", "exfat", "affs", "jffs2",
+		"ext4", "gfs2", "msdos", "v7", "gfs2meta", "zonefs", "omfs",
+		"minix", "adfs", "ufs", "sysv", "reiserfs", "ocfs2", "nilfs2",
+		"iso9660", "hpfs", "binder", "",
+	}
+	files := []host.FileInfo{
+		{
+			Name:   "/proc/version",
+			Exists: true,
+			Data:   []byte("Linux version 6.8.0-dirty"),
+		},
+		{
+			Name:   "/proc/filesystems",
+			Exists: true,
+			Data:   []byte(strings.Join(filesystems, "\nnodev\t")),
+		},
+	}
+	var results []rpctype.ExecutionResult
+	for _, req := range checkProgs {
+		p, err := cfg.Target.DeserializeExec(req.ProgData, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := rpctype.ExecutionResult{
+			ID: req.ID,
+			Info: ipc.ProgInfo{
+				Calls: make([]ipc.CallInfo, len(p.Calls)),
+			},
+		}
+		results = append(results, res)
+	}
+	enabled, disabled, err := checker.FinishCheck(files, results)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectDisabled := map[string]bool{
+		"syz_kvm_setup_cpu$arm64": true,
+		"syz_kvm_setup_cpu$ppc64": true,
+	}
+	for call, reason := range disabled {
+		if expectDisabled[call.Name] {
+			continue
+		}
+		t.Errorf("disabled call %v: %v", call.Name, reason)
+	}
+	expectEnabled := len(cfg.Syscalls) - len(expectDisabled)
+	if len(enabled) != expectEnabled {
+		t.Errorf("enabled only %v calls out of %v", len(enabled), expectEnabled)
+	}
+}
 
 func TestReadKVMInfo(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("not linux")
 	}
-	_, files := hostChecker()
+	_, files := hostChecker(t)
 	fs := createVirtualFilesystem(files)
 	buf := new(bytes.Buffer)
 	if _, err := linuxReadKVMInfo(fs, buf); err != nil {

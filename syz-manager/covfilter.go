@@ -13,16 +13,19 @@ import (
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func (mgr *Manager) createCoverageFilter() (map[uint32]uint32, map[uint32]uint32, error) {
-	if !mgr.cfg.HasCovFilter() {
+func createCoverageFilter(cfg *mgrconfig.Config, modules []host.KernelModule) (
+	map[uint32]uint32, map[uint32]uint32, error) {
+	if !cfg.HasCovFilter() {
 		return nil, nil, nil
 	}
 	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.
-	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
+	rg, err := getReportGenerator(cfg, modules)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -32,7 +35,7 @@ func (mgr *Manager) createCoverageFilter() (map[uint32]uint32, map[uint32]uint32
 			apply(&sym.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, mgr.cfg.CovFilter.Functions, foreachSymbol); err != nil {
+	if err := covFilterAddFilter(pcs, cfg.CovFilter.Functions, foreachSymbol); err != nil {
 		return nil, nil, err
 	}
 	foreachUnit := func(apply func(*backend.ObjectUnit)) {
@@ -40,16 +43,16 @@ func (mgr *Manager) createCoverageFilter() (map[uint32]uint32, map[uint32]uint32
 			apply(&unit.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, mgr.cfg.CovFilter.Files, foreachUnit); err != nil {
+	if err := covFilterAddFilter(pcs, cfg.CovFilter.Files, foreachUnit); err != nil {
 		return nil, nil, err
 	}
-	if err := covFilterAddRawPCs(pcs, mgr.cfg.CovFilter.RawPCs); err != nil {
+	if err := covFilterAddRawPCs(pcs, cfg.CovFilter.RawPCs); err != nil {
 		return nil, nil, err
 	}
 	if len(pcs) == 0 {
 		return nil, nil, nil
 	}
-	if !mgr.cfg.SysTarget.ExecutorUsesShmem {
+	if !cfg.SysTarget.ExecutorUsesShmem {
 		return nil, nil, fmt.Errorf("coverage filter is only supported for targets that use shmem")
 	}
 	// Copy pcs into execPCs. This is used to filter coverage in the executor.

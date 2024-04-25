@@ -150,8 +150,6 @@ func main() {
 	}
 	var checkReq *rpctype.CheckArgs
 	if r.Features == nil {
-		checkArgs.enabledCalls = r.EnabledCalls
-		checkArgs.allSandboxes = r.AllSandboxes
 		checkArgs.featureFlags = featureFlags
 		checkReq, err = checkMachine(checkArgs)
 		if err != nil {

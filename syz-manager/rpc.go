@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -33,11 +34,18 @@ type RPCServer struct {
 	checker *vminfo.Checker
 	port    int
 
-	checkDone             bool
-	checkFailures         int
-	checkFeatures         *host.Features
-	targetEnabledSyscalls map[*prog.Syscall]bool
-	canonicalModules      *cover.Canonicalizer
+	checkDone        atomic.Bool
+	checkFiles       []string
+	checkFilesInfo   []host.FileInfo
+	checkProgs       []rpctype.ExecutionRequest
+	checkResults     []rpctype.ExecutionResult
+	needCheckResults int
+	checkFailures    int
+	checkFeatures    *host.Features
+	modules          []host.KernelModule
+	canonicalModules *cover.Canonicalizer
+	execCoverFilter  map[uint32]uint32
+	coverFilter      map[uint32]uint32
 
 	mu      sync.Mutex
 	runners sync.Map // Instead of map[string]*Runner.
@@ -55,6 +63,7 @@ type RPCServer struct {
 	statExchangeProgs         *stats.Val
 	statExchangeServerLatency *stats.Val
 	statExchangeClientLatency *stats.Val
+	statCoverFiltered         *stats.Val
 }
 
 type Runner struct {
@@ -87,9 +96,7 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	currentBugFrames() BugFrames
-	fuzzerConnect() (map[uint32]uint32, signal.Signal)
-	machineChecked(features *host.Features, globFiles map[string][]string,
-		enabledSyscalls map[*prog.Syscall]bool, modules []host.KernelModule)
+	machineChecked(features *host.Features, enabledSyscalls map[*prog.Syscall]bool)
 	getFuzzer() *fuzzer.Fuzzer
 }
 
@@ -117,11 +124,14 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 			"Manager RPC Exchange call latency (us)", stats.Distribution{}),
 		statExchangeClientLatency: stats.Create("exchange fuzzer latency",
 			"End-to-end fuzzer RPC Exchange call latency (us)", stats.Distribution{}),
+		statCoverFiltered: stats.Create("filtered coverage", "", stats.NoGraph),
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv, mgr.netCompression)
 	if err != nil {
 		return nil, err
 	}
+	serv.checkFiles, serv.checkProgs = serv.checker.StartCheck()
+	serv.needCheckResults = len(serv.checkProgs)
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	serv.port = s.Addr().(*net.TCPAddr).Port
 	serv.server = s
@@ -140,10 +150,10 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
-	r.EnabledCalls = serv.cfg.Syscalls
 	r.Features = serv.checkFeatures
 	r.ReadFiles = serv.checker.RequiredFiles()
-	if !serv.checkDone {
+	if serv.checkFeatures == nil {
+		r.ReadFiles = append(r.ReadFiles, serv.checkFiles...)
 		r.ReadGlobs = serv.target.RequiredGlobs()
 	}
 	return nil
@@ -183,14 +193,27 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 		}
 	}
 
-	if !serv.checkDone {
-		if err := serv.check(a, modules); err != nil {
-			return err
+	if a.Error != "" {
+		log.Logf(0, "machine check failed: %v", a.Error)
+		serv.checkFailures++
+		if serv.checkFailures == 10 {
+			log.Fatalf("machine check failing")
 		}
-		serv.checkDone = true
+		return fmt.Errorf("machine check failed: %v", a.Error)
 	}
 
-	execCoverFilter, maxSignal := serv.mgr.fuzzerConnect()
+	if serv.checkFeatures == nil {
+		serv.checkFeatures = a.Features
+		serv.checkFilesInfo = a.Files
+		serv.modules = modules
+		serv.target.UpdateGlobs(a.Globs)
+		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
+		var err error
+		serv.execCoverFilter, serv.coverFilter, err = createCoverageFilter(serv.cfg, modules)
+		if err != nil {
+			log.Fatalf("failed to init coverage filter: %v", err)
+		}
+	}
 
 	runner := serv.findRunner(a.Name)
 	if runner == nil {
@@ -205,23 +228,17 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	}
 	runner.machineInfo = machineInfo
 	runner.instModules = serv.canonicalModules.NewInstance(modules)
-	runner.newMaxSignal = maxSignal
-
-	instCoverFilter := runner.instModules.DecanonicalizeFilter(execCoverFilter)
+	instCoverFilter := runner.instModules.DecanonicalizeFilter(serv.execCoverFilter)
 	r.CoverFilterBitmap = createCoverageBitmap(serv.cfg.SysTarget, instCoverFilter)
 	return nil
 }
 
-func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) error {
+func (serv *RPCServer) finishCheck() error {
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
-	enabledCalls := make(map[*prog.Syscall]bool)
-	for _, call := range a.EnabledCalls[serv.cfg.Sandbox] {
-		enabledCalls[serv.cfg.Target.Syscalls[call]] = true
-	}
-	disabledCalls := make(map[*prog.Syscall]string)
-	for _, dc := range a.DisabledCalls[serv.cfg.Sandbox] {
-		disabledCalls[serv.cfg.Target.Syscalls[dc.ID]] = dc.Reason
+	enabledCalls, disabledCalls, err := serv.checker.FinishCheck(serv.checkFilesInfo, serv.checkResults)
+	if err != nil {
+		return fmt.Errorf("failed to detect enabled syscalls: %w", err)
 	}
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	buf := new(bytes.Buffer)
@@ -245,11 +262,8 @@ func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) 
 				strings.Join(lines, ""))
 		}
 	}
-	if len(enabledCalls) == 0 && a.Error == "" {
-		a.Error = "all system calls are disabled"
-	}
 	hasFileErrors := false
-	for _, file := range a.Files {
+	for _, file := range serv.checkFilesInfo {
 		if file.Error == "" {
 			continue
 		}
@@ -263,23 +277,15 @@ func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) 
 		fmt.Fprintf(buf, "\n")
 	}
 	fmt.Fprintf(buf, "%-24v: %v/%v\n", "syscalls", len(enabledCalls), len(serv.cfg.Target.Syscalls))
-	for _, feat := range a.Features.Supported() {
+	for _, feat := range serv.checkFeatures.Supported() {
 		fmt.Fprintf(buf, "%-24v: %v\n", feat.Name, feat.Reason)
 	}
 	fmt.Fprintf(buf, "\n")
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
-	if a.Error != "" {
-		log.Logf(0, "machine check failed: %v", a.Error)
-		serv.checkFailures++
-		if serv.checkFailures == 10 {
-			log.Fatalf("machine check failing")
-		}
-		return fmt.Errorf("machine check failed: %v", a.Error)
+	if len(enabledCalls) == 0 {
+		log.Fatalf("all system calls are disabled")
 	}
-	serv.targetEnabledSyscalls = enabledCalls
-	serv.checkFeatures = a.Features
-	serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
-	serv.mgr.machineChecked(a.Features, a.Globs, serv.targetEnabledSyscalls, modules)
+	serv.mgr.machineChecked(serv.checkFeatures, enabledCalls)
 	return nil
 }
 
@@ -314,6 +320,27 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	start := time.Now()
 	runner := serv.findRunner(a.Name)
 	if runner == nil {
+		return nil
+	}
+
+	if !serv.checkDone.Load() {
+		serv.mu.Lock()
+		serv.checkResults = append(serv.checkResults, a.Results...)
+		if len(serv.checkResults) < serv.needCheckResults {
+			numRequests := min(len(serv.checkProgs), a.NeedProgs)
+			r.Requests = serv.checkProgs[:numRequests]
+			serv.checkProgs = serv.checkProgs[numRequests:]
+		} else {
+			if err := serv.finishCheck(); err != nil {
+				log.Fatalf("check failed: %v", err)
+			}
+			serv.checkProgs = nil
+			serv.checkResults = nil
+			serv.checkFiles = nil
+			serv.checkFilesInfo = nil
+			serv.checkDone.Store(true)
+		}
+		serv.mu.Unlock()
 		return nil
 	}
 
@@ -390,12 +417,13 @@ func (serv *RPCServer) findRunner(name string) *Runner {
 	return nil
 }
 
-func (serv *RPCServer) createInstance(name string, injectLog chan<- []byte) {
+func (serv *RPCServer) createInstance(name string, maxSignal signal.Signal, injectLog chan<- []byte) {
 	runner := &Runner{
-		name:       name,
-		requests:   make(map[int64]Request),
-		injectLog:  injectLog,
-		injectStop: make(chan bool),
+		name:         name,
+		requests:     make(map[int64]Request),
+		newMaxSignal: maxSignal,
+		injectLog:    injectLog,
+		injectStop:   make(chan bool),
 	}
 	if _, loaded := serv.runners.LoadOrStore(name, runner); loaded {
 		panic(fmt.Sprintf("duplicate instance %s", name))
@@ -403,6 +431,9 @@ func (serv *RPCServer) createInstance(name string, injectLog chan<- []byte) {
 }
 
 func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
+	if !serv.checkDone.Load() {
+		log.Fatalf("VM is exited while checking is not done")
+	}
 	runnerPtr, _ := serv.runners.LoadAndDelete(name)
 	runner := runnerPtr.(*Runner)
 	runner.mu.Lock()
@@ -441,6 +472,23 @@ func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 		runner.dropMaxSignal.Merge(minus)
 		return true
 	})
+}
+
+func (serv *RPCServer) updateCoverFilter(newCover []uint32) {
+	if len(newCover) == 0 || serv.coverFilter == nil {
+		return
+	}
+	rg, _ := getReportGenerator(serv.cfg, serv.modules)
+	if rg == nil {
+		return
+	}
+	filtered := 0
+	for _, pc := range newCover {
+		if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
+			filtered++
+		}
+	}
+	serv.statCoverFiltered.Add(filtered)
 }
 
 func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult, fuzzerObj *fuzzer.Fuzzer) {

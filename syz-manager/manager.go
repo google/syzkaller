@@ -92,10 +92,6 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules         []host.KernelModule
-	coverFilter     map[uint32]uint32
-	execCoverFilter map[uint32]uint32
-
 	assetStorage *asset.Storage
 
 	bootTime stats.AverageValue[time.Duration]
@@ -300,7 +296,7 @@ func (mgr *Manager) vmLoop() {
 	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
 		instancesPerRepro = maxReproVMs
 	}
-	instances := SequentialResourcePool(vmCount, 10*time.Second*mgr.cfg.Timeouts.Scale)
+	instances := SequentialResourcePool(vmCount, 5*time.Second)
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
@@ -727,10 +723,14 @@ func parseProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
+	var maxSignal signal.Signal
+	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
+		maxSignal = fuzzer.Cover.CopyMaxSignal()
+	}
 	// Use unique instance names to keep name collisions in case of untimely RPC messages.
 	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
 	injectLog := make(chan []byte, 10)
-	mgr.serv.createInstance(instanceName, injectLog)
+	mgr.serv.createInstance(instanceName, maxSignal, injectLog)
 
 	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectLog)
 
@@ -1194,17 +1194,7 @@ func fullReproLog(stats *repro.Stats) []byte {
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
-		if len(update.NewCover) != 0 && mgr.coverFilter != nil {
-			if rg, _ := getReportGenerator(mgr.cfg, mgr.modules); rg != nil {
-				filtered := 0
-				for _, pc := range update.NewCover {
-					if mgr.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
-						filtered++
-					}
-				}
-				mgr.statCoverFiltered.Add(filtered)
-			}
-		}
+		mgr.serv.updateCoverFilter(update.NewCover)
 		if update.Exists {
 			// We only save new progs into the corpus.db file.
 			continue
@@ -1346,34 +1336,18 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 	return frames
 }
 
-func (mgr *Manager) fuzzerConnect() (map[uint32]uint32, signal.Signal) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	maxSignal := mgr.fuzzer.Load().Cover.CopyMaxSignal()
-	return mgr.execCoverFilter, maxSignal
-}
-
-func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string][]string,
-	enabledSyscalls map[*prog.Syscall]bool, modules []host.KernelModule) {
+func (mgr *Manager) machineChecked(features *host.Features, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.checkFeatures != nil {
 		panic("machineChecked() called twice")
 	}
 
-	mgr.modules = modules
 	mgr.checkFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
-	mgr.target.UpdateGlobs(globFiles)
 	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
-
-	var err error
-	mgr.execCoverFilter, mgr.coverFilter, err = mgr.createCoverageFilter()
-	if err != nil {
-		log.Fatalf("failed to init coverage filter: %v", err)
-	}
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{

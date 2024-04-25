@@ -18,7 +18,6 @@ type Stats struct {
 	statCrashes        *stats.Val
 	statCrashTypes     *stats.Val
 	statSuppressed     *stats.Val
-	statCoverFiltered  *stats.Val
 	statUptime         *stats.Val
 	statFuzzingTime    *stats.Val
 	statAvgBootTime    *stats.Val
@@ -39,7 +38,6 @@ func (mgr *Manager) initStats() {
 		stats.Simple, stats.Graph("crashes"))
 	mgr.statFuzzingTime = stats.Create("fuzzing", "Total fuzzing time in all VMs (seconds)",
 		stats.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
-	mgr.statCoverFiltered = stats.Create("filtered coverage", "", stats.NoGraph)
 	mgr.statUptime = stats.Create("uptime", "Total uptime (seconds)", stats.Simple, stats.NoGraph,
 		func() int {
 			firstConnect := mgr.firstConnect.Load()
