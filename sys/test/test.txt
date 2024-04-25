@@ -3,7 +3,7 @@
 
 # Syscalls used in syzkaller tests.
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 test()
 

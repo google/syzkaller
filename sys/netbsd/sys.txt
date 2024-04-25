@@ -24,7 +24,7 @@ include <sys/module.h>
 include <sys/swap.h>
 include <sys/ras.h>
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 pipe(pipefd ptr[out, pipefd])
 

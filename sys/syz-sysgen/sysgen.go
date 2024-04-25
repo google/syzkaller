@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -342,8 +343,10 @@ func newSyscallData(target *targets.Target, sc *prog.Syscall, attrs []uint64) Sy
 		Name:     sc.Name,
 		CallName: callName,
 		NR:       int32(sc.NR),
-		NeedCall: (!target.HasCallNumber(sc.CallName) || patchCallName) && !sc.Attrs.Disabled,
-		Attrs:    attrs,
+		NeedCall: (!target.HasCallNumber(sc.CallName) || patchCallName) &&
+			// These are declared in the compiler for internal purposes.
+			!strings.HasPrefix(sc.Name, "syz_builtin"),
+		Attrs: attrs,
 	}
 }
 

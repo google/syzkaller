@@ -17,7 +17,7 @@ include <time.h>
 include <signal.h>
 include <sys/wait.h>
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
