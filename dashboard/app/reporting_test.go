@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"reflect"
@@ -11,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"context"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"

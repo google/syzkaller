@@ -4,11 +4,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
-	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/stats/syzbotstats"
 	"google.golang.org/appengine/v2"

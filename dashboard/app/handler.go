@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"context"
 	"github.com/google/syzkaller/pkg/html"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"

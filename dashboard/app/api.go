@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,7 +20,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/auth"
