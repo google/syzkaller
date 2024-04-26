@@ -190,10 +190,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $.DispDiscuss}}
 			{{$d := $b.Discussions}}
 			<td class="discussions" sort-value="{{formatLateness $.Now $d.LastMessage}}">
-			{{- if $d.LastPatchMessage.IsZero -}}
-				<span class="icon">&#128172;</span> {{$d.ExternalMessages}} [{{formatLateness $.Now $d.LastMessage}}]
-			{{else}}
+			{{- if not $d.LastPatchMessage.IsZero -}}
 				<b>PATCH</b> [{{formatLateness $.Now $d.LastPatchMessage}}]
+			{{- else if $d.ExternalMessages -}}
+				<span class="icon">&#128172;</span> {{$d.ExternalMessages}} [{{formatLateness $.Now $d.LastMessage}}]
 			{{- end -}}
 			</td>
 			{{end}}
