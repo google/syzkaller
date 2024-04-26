@@ -4,11 +4,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
-
-	"context"
 )
 
 const (

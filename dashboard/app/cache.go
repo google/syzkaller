@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"sort"
 	"time"
 
-	"context"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/image"
 	"google.golang.org/appengine/v2"
