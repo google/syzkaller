@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestOnlyManagerFilter(t *testing.T) {

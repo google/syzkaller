@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/stats/syzbotstats"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )

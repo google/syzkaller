@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"

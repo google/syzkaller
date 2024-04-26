@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"

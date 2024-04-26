@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"context"
 	"github.com/google/syzkaller/pkg/html"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/user"

@@ -3,7 +3,6 @@
 
 // As we use syscall package:
 //go:build linux
-// +build linux
 
 // syz-imagegen generates sys/linux/test/syz_mount_image_* test files.
 // It requires the following packages to be installed:

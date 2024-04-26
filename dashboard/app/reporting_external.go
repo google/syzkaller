@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/log"
 )
 

@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"testing"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/user"
 )
 

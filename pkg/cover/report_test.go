@@ -4,7 +4,6 @@
 // It may or may not work on other OSes.
 // If you test on another OS and it works, enable it.
 //go:build linux
-// +build linux
 
 package cover
 

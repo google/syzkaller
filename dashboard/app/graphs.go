@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
