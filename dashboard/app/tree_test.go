@@ -1135,6 +1135,7 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 	}
 	if found == nil {
 		ctx.ctx.t.Fatalf("unknown job request: %#v", resp)
+		return // to avoid staticcheck false positive about nil deref
 	}
 	// Figure out what should the result be.
 	result := treeTestOK
