@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
+	"context"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 )
 

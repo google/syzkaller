@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build freebsd || netbsd || openbsd || linux || darwin
-// +build freebsd netbsd openbsd linux darwin
 
 package osutil
 
