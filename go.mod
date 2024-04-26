@@ -15,10 +15,10 @@ require (
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20230524184225-eabc099b10ab
 	github.com/prometheus/client_golang v1.19.0
+	github.com/sergi/go-diff v1.3.1
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.11
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
-	golang.org/x/net v0.23.0
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
 	golang.org/x/sync v0.6.0
@@ -213,6 +213,7 @@ require (
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20240314144324-c7f7c6466f7f // indirect
 	golang.org/x/mod v0.16.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect

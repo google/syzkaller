@@ -649,6 +649,9 @@ github.com/securego/gosec/v2/analyzers
 github.com/securego/gosec/v2/cwe
 github.com/securego/gosec/v2/issue
 github.com/securego/gosec/v2/rules
+# github.com/sergi/go-diff v1.3.1
+## explicit; go 1.12
+github.com/sergi/go-diff/diffmatchpatch
 # github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c
 ## explicit
 github.com/shazow/go-diff/difflib
@@ -874,7 +877,6 @@ golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.23.0
 ## explicit; go 1.18
-golang.org/x/net/context
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
