@@ -317,73 +317,73 @@ presubmit_build: descriptions
 	SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(MAKE) test
 
 presubmit_arch_linux: descriptions
-	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
-	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
-	env TARGETOS=linux TARGETARCH=mips64le $(MAKE) target
-	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
-	env TARGETOS=linux TARGETARCH=riscv64 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=s390x $(MAKE) target
+	HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
+	TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
+	TARGETOS=linux TARGETARCH=386 TARGETVMARCH=386 $(MAKE) target
+	TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm64 $(MAKE) target
+	TARGETOS=linux TARGETARCH=arm TARGETVMARCH=arm $(MAKE) target
+	TARGETOS=linux TARGETARCH=mips64le TARGETVMARCH=mips64le $(MAKE) target
+	TARGETOS=linux TARGETARCH=ppc64le TARGETVMARCH=ppc64le $(MAKE) target
+	TARGETOS=linux TARGETARCH=riscv64 TARGETVMARCH=riscv64 $(MAKE) target
+	TARGETOS=linux TARGETARCH=s390x TARGETVMARCH=s390x $(MAKE) target
 
 presubmit_arch_freebsd: descriptions
-	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
-	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
-	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
-	env TARGETOS=freebsd TARGETARCH=arm64 $(MAKE) target
-	env TARGETOS=freebsd TARGETARCH=riscv64 $(MAKE) target
+	HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
+	TARGETOS=freebsd TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
+	TARGETOS=freebsd TARGETARCH=386 TARGETVMARCH=386 $(MAKE) target
+	TARGETOS=freebsd TARGETARCH=arm64 TARGETVMARCH=arm64 $(MAKE) target
+	TARGETOS=freebsd TARGETARCH=riscv64 TARGETVMARCH=riscv64 $(MAKE) target
 
 presubmit_arch_netbsd: descriptions
-	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
-	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
+	HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
+	TARGETOS=netbsd TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
 
 presubmit_arch_openbsd: descriptions
-	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
-	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
+	HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
+	TARGETOS=openbsd TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
 
 presubmit_arch_darwin: descriptions
-	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
+	HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 
 presubmit_arch_windows: descriptions
-	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
+	TARGETOS=windows TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
 
 presubmit_arch_executor: descriptions
-	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
-	env TARGETOS=fuchsia TARGETARCH=amd64 $(MAKE) executor
-	env TARGETOS=fuchsia TARGETARCH=arm64 $(MAKE) executor
-	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
-	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
-	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
-	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
+	TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
+	TARGETOS=fuchsia TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) executor
+	TARGETOS=fuchsia TARGETARCH=arm64 TARGETVMARCH=arm64 $(MAKE) executor
+	TARGETOS=test TARGETARCH=64 TARGETVMARCH=64 $(MAKE) executor
+	TARGETOS=test TARGETARCH=64_fork TARGETVMARCH=64_fork $(MAKE) executor
+	TARGETOS=test TARGETARCH=32_shmem TARGETVMARCH=32_shmem $(MAKE) executor
+	TARGETOS=test TARGETARCH=32_fork_shmem TARGETVMARCH=32_fork_shmem $(MAKE) executor
+	TARGETOS=test TARGETARCH=64 TARGETVMARCH=64 $(MAKE) executor
+	TARGETOS=test TARGETARCH=64_fork TARGETVMARCH=64_fork $(MAKE) executor
+	TARGETOS=test TARGETARCH=32_shmem TARGETVMARCH=32_shmem $(MAKE) executor
+	TARGETOS=test TARGETARCH=32_fork_shmem TARGETVMARCH=32_fork_shmem $(MAKE) executor
 
 presubmit_dashboard: descriptions
 	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app
 
 presubmit_race: descriptions
 	# -race requires cgo
-	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	env CGO_ENABLED=1 SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
+	CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
+	CGO_ENABLED=1 SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
 	fi
 
 presubmit_race_dashboard: descriptions
 	# -race requires cgo
-	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	env CGO_ENABLED=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./dashboard/app/... ;\
+	CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
+	CGO_ENABLED=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./dashboard/app/... ;\
 	fi
 
 presubmit_old: descriptions
 	# Binaries we can compile in syz-old-env. 386 is broken, riscv64 is missing.
-	TARGETARCH=amd64 $(MAKE) target
-	TARGETARCH=arm64 $(MAKE) target
-	TARGETARCH=arm $(MAKE) target
-	TARGETARCH=ppc64le $(MAKE) target
-	TARGETARCH=mips64le $(MAKE) target
-	TARGETARCH=s390x $(MAKE) target
+	TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
+	TARGETARCH=arm64 TARGETVMARCH=arm64 $(MAKE) target
+	TARGETARCH=arm TARGETVMARCH=arm $(MAKE) target
+	TARGETARCH=ppc64le TARGETVMARCH=ppc64le $(MAKE) target
+	TARGETARCH=mips64le TARGETVMARCH=mips64le $(MAKE) target
+	TARGETARCH=s390x TARGETVMARCH=s390x $(MAKE) target
 
 test: descriptions
 	$(GO) test -short -coverprofile=.coverage.txt ./...
