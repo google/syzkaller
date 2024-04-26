@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -479,20 +479,15 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 		return nil, true
 	}
 	out := *outp
-	if int(size)*4 > len(out) {
+	dataSize := int(size * 4)
+	if dataSize > len(out) {
 		return nil, false
 	}
 	// "Convert" the data to uint32.
-	var res []uint32
-	hdr := (*reflect.SliceHeader)((unsafe.Pointer(&res)))
-	hdr.Data = uintptr(unsafe.Pointer(&out[0]))
-	hdr.Len = int(size)
-	hdr.Cap = int(size)
-	*outp = out[size*4:]
-	// Now duplicate the resulting array.
-	dupRes := make([]uint32, size)
-	copy(dupRes, res)
-	return dupRes, true
+	res := unsafe.Slice((*uint32)(unsafe.Pointer(&out[0])), size)
+	*outp = out[dataSize:]
+	// Detach the resulting array from the original data.
+	return slices.Clone(res), true
 }
 
 type command struct {
