@@ -58,7 +58,7 @@ override the commit simply by sending another `#syz fix` command.
 **Note**: all commands must start from beginning of the line.
 
 **Note**: please keep at least `syzkaller-bugs@googlegroups.com` mailing list in CC.
-It serves as a history of what happened with each bug report. Keepint the main kernel
+It serves as a history of what happened with each bug report. Keeping the main kernel
 mailing list (e.g. `linux-kernel@vger.kernel.org `) in CC is useful as well so that
 it's searchable in those archives as well.
 
