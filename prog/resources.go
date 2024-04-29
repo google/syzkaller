@@ -211,11 +211,12 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 				for _, ctor := range target.calcResourceCtors(res, true) {
 					names = append(names, ctor.Call.Name)
 				}
+				if len(names) > 5 {
+					names = append(names[:3], "...")
+				}
 				ctors[res.Name] = names
 			}
-			disabled[c] = fmt.Sprintf("no syscalls can create resource %v,"+
-				" enable some syscalls that can create it %v",
-				res.Name, ctors[res.Name])
+			disabled[c] = fmt.Sprintf("%v %v", res.Name, ctors[res.Name])
 			break
 		}
 	}

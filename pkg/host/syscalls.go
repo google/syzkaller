@@ -15,29 +15,20 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string, enabled map[*p
 	log.Logf(1, "detecting supported syscalls")
 	supported := make(map[*prog.Syscall]bool)
 	unsupported := make(map[*prog.Syscall]string)
-	const disabledAttribute = "has disabled attribute in descriptions"
 	// These do not have own host and parasitize on some other OS.
 	if noHostChecks(target) {
 		for _, c := range target.Syscalls {
-			if c.Attrs.Disabled {
-				unsupported[c] = disabledAttribute
-			} else {
-				supported[c] = true
+			if c.Attrs.Disabled || !enabled[c] {
+				continue
 			}
+			supported[c] = true
 		}
 	} else {
 		for _, c := range target.Syscalls {
-			ok, reason := false, ""
-			switch {
-			case c.Attrs.Disabled:
-				ok = false
-				reason = disabledAttribute
-			case !enabled[c]:
-				ok = false
-				reason = "not in set of enabled calls"
-			default:
-				ok, reason = isSupported(c, target, sandbox)
+			if c.Attrs.Disabled || !enabled[c] {
+				continue
 			}
+			ok, reason := isSupported(c, target, sandbox)
 			if ok {
 				supported[c] = true
 			} else {
