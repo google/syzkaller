@@ -298,17 +298,6 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 			delete(calls, c)
 		}
 	}
-	_, unsupported = target.TransitivelyEnabledCalls(calls)
-	for c := range calls {
-		if reason, ok := unsupported[c]; ok {
-			log.Logf(1, "transitively unsupported: %v(): %v", c.Name, reason)
-			disabled = append(disabled, rpctype.SyscallReason{
-				ID:     c.ID,
-				Reason: reason,
-			})
-			delete(calls, c)
-		}
-	}
 	for c := range calls {
 		enabled = append(enabled, c.ID)
 	}

@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -189,23 +191,59 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) error {
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
-	if len(serv.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls[serv.cfg.Sandbox]) != 0 {
-		disabled := make(map[string]string)
-		for _, dc := range a.DisabledCalls[serv.cfg.Sandbox] {
-			disabled[serv.cfg.Target.Syscalls[dc.ID].Name] = dc.Reason
-		}
-		for _, id := range serv.cfg.Syscalls {
-			name := serv.cfg.Target.Syscalls[id].Name
-			if reason := disabled[name]; reason != "" {
-				log.Logf(0, "disabling %v: %v", name, reason)
+	enabledCalls := make(map[*prog.Syscall]bool)
+	for _, call := range a.EnabledCalls[serv.cfg.Sandbox] {
+		enabledCalls[serv.cfg.Target.Syscalls[call]] = true
+	}
+	disabledCalls := make(map[*prog.Syscall]string)
+	for _, dc := range a.DisabledCalls[serv.cfg.Sandbox] {
+		disabledCalls[serv.cfg.Target.Syscalls[dc.ID]] = dc.Reason
+	}
+	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
+	buf := new(bytes.Buffer)
+	if len(serv.cfg.EnabledSyscalls) != 0 || log.V(1) {
+		if len(disabledCalls) != 0 {
+			var lines []string
+			for call, reason := range disabledCalls {
+				lines = append(lines, fmt.Sprintf("%-44v: %v\n", call.Name, reason))
 			}
+			sort.Strings(lines)
+			fmt.Fprintf(buf, "disabled the following syscalls:\n%s\n", strings.Join(lines, ""))
+		}
+		if len(transitivelyDisabled) != 0 {
+			var lines []string
+			for call, reason := range transitivelyDisabled {
+				lines = append(lines, fmt.Sprintf("%-44v: %v\n", call.Name, reason))
+			}
+			sort.Strings(lines)
+			fmt.Fprintf(buf, "transitively disabled the following syscalls"+
+				" (missing resource [creating syscalls]):\n%s\n",
+				strings.Join(lines, ""))
 		}
 	}
+	if len(enabledCalls) == 0 && a.Error == "" {
+		a.Error = "all system calls are disabled"
+	}
+	hasFileErrors := false
 	for _, file := range a.Files {
-		if file.Error != "" {
-			log.Logf(0, "failed to read %q: %v", file.Name, file.Error)
+		if file.Error == "" {
+			continue
 		}
+		if !hasFileErrors {
+			fmt.Fprintf(buf, "failed to read the following files in the VM:\n")
+		}
+		fmt.Fprintf(buf, "%-44v: %v\n", file.Name, file.Error)
+		hasFileErrors = true
 	}
+	if hasFileErrors {
+		fmt.Fprintf(buf, "\n")
+	}
+	fmt.Fprintf(buf, "%-24v: %v/%v\n", "syscalls", len(enabledCalls), len(serv.cfg.Target.Syscalls))
+	for _, feat := range a.Features.Supported() {
+		fmt.Fprintf(buf, "%-24v: %v\n", feat.Name, feat.Reason)
+	}
+	fmt.Fprintf(buf, "\n")
+	log.Logf(0, "machine check:\n%s", buf.Bytes())
 	if a.Error != "" {
 		log.Logf(0, "machine check failed: %v", a.Error)
 		serv.checkFailures++
@@ -214,15 +252,7 @@ func (serv *RPCServer) check(a *rpctype.CheckArgs, modules []host.KernelModule) 
 		}
 		return fmt.Errorf("machine check failed: %v", a.Error)
 	}
-	serv.targetEnabledSyscalls = make(map[*prog.Syscall]bool)
-	for _, call := range a.EnabledCalls[serv.cfg.Sandbox] {
-		serv.targetEnabledSyscalls[serv.cfg.Target.Syscalls[call]] = true
-	}
-	log.Logf(0, "machine check:")
-	log.Logf(0, "%-24v: %v/%v", "syscalls", len(serv.targetEnabledSyscalls), len(serv.cfg.Target.Syscalls))
-	for _, feat := range a.Features.Supported() {
-		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
-	}
+	serv.targetEnabledSyscalls = enabledCalls
 	serv.checkFeatures = a.Features
 	serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
 	serv.mgr.machineChecked(a.Features, a.Globs, serv.targetEnabledSyscalls, modules)
