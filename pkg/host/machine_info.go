@@ -49,7 +49,7 @@ func readFile(file string) FileInfo {
 	data, err := os.ReadFile(file)
 	exists, errStr := true, ""
 	if err != nil {
-		exists, errStr = os.IsNotExist(err), err.Error()
+		exists, errStr = !os.IsNotExist(err), err.Error()
 	}
 	return FileInfo{
 		Name:   file,
