@@ -86,7 +86,8 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect() (BugFrames, map[uint32]uint32, signal.Signal)
+	currentBugFrames() BugFrames
+	fuzzerConnect() (map[uint32]uint32, signal.Signal)
 	machineChecked(features *host.Features, globFiles map[string][]string,
 		enabledSyscalls map[*prog.Syscall]bool, modules []host.KernelModule)
 	getFuzzer() *fuzzer.Fuzzer
@@ -132,6 +133,10 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	checkRevisions(a, serv.cfg.Target)
 	serv.statVMRestarts.Add(1)
+
+	bugFrames := serv.mgr.currentBugFrames()
+	r.MemoryLeakFrames = bugFrames.memoryLeaks
+	r.DataRaceFrames = bugFrames.dataRaces
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -185,7 +190,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 		serv.checkDone = true
 	}
 
-	bugFrames, execCoverFilter, maxSignal := serv.mgr.fuzzerConnect()
+	execCoverFilter, maxSignal := serv.mgr.fuzzerConnect()
 
 	runner := serv.findRunner(a.Name)
 	if runner == nil {
@@ -202,8 +207,6 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	runner.instModules = serv.canonicalModules.NewInstance(modules)
 	runner.newMaxSignal = maxSignal
 
-	r.MemoryLeakFrames = bugFrames.memoryLeaks
-	r.DataRaceFrames = bugFrames.dataRaces
 	instCoverFilter := runner.instModules.DecanonicalizeFilter(execCoverFilter)
 	r.CoverFilterBitmap = createCoverageBitmap(serv.cfg.SysTarget, instCoverFilter)
 	return nil

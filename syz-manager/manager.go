@@ -1330,10 +1330,9 @@ func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect() (BugFrames, map[uint32]uint32, signal.Signal) {
+func (mgr *Manager) currentBugFrames() BugFrames {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-
 	frames := BugFrames{
 		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
 		dataRaces:   make([]string, 0, len(mgr.dataRaceFrames)),
@@ -1344,8 +1343,14 @@ func (mgr *Manager) fuzzerConnect() (BugFrames, map[uint32]uint32, signal.Signal
 	for frame := range mgr.dataRaceFrames {
 		frames.dataRaces = append(frames.dataRaces, frame)
 	}
+	return frames
+}
+
+func (mgr *Manager) fuzzerConnect() (map[uint32]uint32, signal.Signal) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
 	maxSignal := mgr.fuzzer.Load().Cover.CopyMaxSignal()
-	return frames, mgr.execCoverFilter, maxSignal
+	return mgr.execCoverFilter, maxSignal
 }
 
 func (mgr *Manager) machineChecked(features *host.Features, globFiles map[string][]string,

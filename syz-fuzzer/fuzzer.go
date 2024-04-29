@@ -167,6 +167,28 @@ func main() {
 		}
 		checkReq = new(rpctype.CheckArgs)
 	}
+
+	for _, feat := range r.Features.Supported() {
+		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
+	}
+
+	inputsCount := *flagProcs * 2
+	fuzzerTool := &FuzzerTool{
+		name:     *flagName,
+		manager:  manager,
+		timeouts: timeouts,
+
+		requests: make(chan rpctype.ExecutionRequest, inputsCount),
+		results:  make(chan executionResult, inputsCount),
+	}
+	gateCb := fuzzerTool.useBugFrames(r.Features, r.MemoryLeakFrames, r.DataRaceFrames)
+	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
+
+	log.Logf(0, "starting %v executor processes", *flagProcs)
+	for pid := 0; pid < *flagProcs; pid++ {
+		startProc(fuzzerTool, pid, config, *flagResetAccState)
+	}
+
 	checkReq.Name = *flagName
 	checkReq.Files = host.ReadFiles(r.ReadFiles)
 	checkReq.Globs = make(map[string][]string)
@@ -184,25 +206,11 @@ func main() {
 	if checkReq.Error != "" {
 		log.SyzFatalf("%v", checkReq.Error)
 	}
-	for _, feat := range r.Features.Supported() {
-		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
-	}
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, executor)
 		return
 	}
-	inputsCount := *flagProcs * 2
-	fuzzerTool := &FuzzerTool{
-		name:     *flagName,
-		manager:  manager,
-		timeouts: timeouts,
-
-		requests: make(chan rpctype.ExecutionRequest, inputsCount),
-		results:  make(chan executionResult, inputsCount),
-	}
-	gateCb := fuzzerTool.useBugFrames(r.Features, checkRes.MemoryLeakFrames, checkRes.DataRaceFrames)
-	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
 	if checkRes.CoverFilterBitmap != nil {
 		if err := osutil.WriteFile("syz-cover-bitmap", checkRes.CoverFilterBitmap); err != nil {
 			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
@@ -210,10 +218,6 @@ func main() {
 	}
 	// Query enough inputs at the beginning.
 	fuzzerTool.exchangeDataCall(inputsCount, nil, 0)
-	log.Logf(0, "starting %v executor processes", *flagProcs)
-	for pid := 0; pid < *flagProcs; pid++ {
-		startProc(fuzzerTool, pid, config, *flagResetAccState)
-	}
 	go fuzzerTool.exchangeDataWorker()
 	fuzzerTool.exchangeDataWorker()
 }
