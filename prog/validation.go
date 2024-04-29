@@ -34,6 +34,7 @@ type validCtx struct {
 
 type validationOptions struct {
 	ignoreTransient bool
+	allowUnsafe     bool // allow global file names, etc
 }
 
 func (p *Prog) validateWithOpts(opts validationOptions) error {
@@ -60,7 +61,7 @@ func (p *Prog) validateWithOpts(opts validationOptions) error {
 }
 
 func (ctx *validCtx) validateCall(c *Call) error {
-	if c.Meta.Attrs.Disabled {
+	if !ctx.opts.allowUnsafe && c.Meta.Attrs.Disabled {
 		return fmt.Errorf("use of a disabled call")
 	}
 	if c.Props.Rerun > 0 && c.Props.FailNth > 0 {
@@ -210,7 +211,7 @@ func (arg *DataArg) validate(ctx *validCtx, dir Dir) error {
 				typ.Name(), arg.Size(), typ.TypeSize)
 		}
 	case BufferFilename:
-		if escapingFilename(string(arg.data)) {
+		if !ctx.opts.allowUnsafe && escapingFilename(string(arg.data)) {
 			return fmt.Errorf("escaping filename %q", arg.data)
 		}
 	}

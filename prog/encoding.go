@@ -235,8 +235,17 @@ func (a *ResultArg) serialize(ctx *serializer) {
 type DeserializeMode int
 
 const (
-	Strict    DeserializeMode = iota
-	NonStrict DeserializeMode = iota
+	// In strict mode deserialization fails if the program is malformed in any way.
+	// This mode is used for manually written programs to ensure that they are correct.
+	Strict DeserializeMode = iota
+	// In non-strict mode malformed programs silently fixed in a best-effort way,
+	// e.g. missing/wrong arguments are replaced with default values.
+	// This mode is used for the corpus programs to "repair" them after descriptions changes.
+	NonStrict
+	// Unsafe mode is used for VM checking programs. In this mode programs are not fixed
+	// for safety, e.g. can access global files, issue prohibited ioctl's, disabled syscalls, etc.
+	StrictUnsafe
+	NonStrictUnsafe
 )
 
 func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, error) {
@@ -246,7 +255,8 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 				err, target.OS, target.Arch, GitRevision, mode, data))
 		}
 	}()
-	p := newParser(target, data, mode == Strict)
+	strict := mode == Strict || mode == StrictUnsafe
+	p := newParser(target, data, strict)
 	prog, err := p.parseProg()
 	if err := p.Err(); err != nil {
 		return nil, err
@@ -260,6 +270,7 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 	if err := prog.validateWithOpts(validationOptions{
 		// Don't validate auto-set conditional fields. We'll patch them later.
 		ignoreTransient: true,
+		allowUnsafe:     mode == StrictUnsafe || mode == NonStrictUnsafe,
 	}); err != nil {
 		return nil, err
 	}
@@ -267,8 +278,10 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 	if p.autos != nil {
 		p.fixupAutos(prog)
 	}
-	if err := prog.sanitize(mode == NonStrict); err != nil {
-		return nil, err
+	if mode != StrictUnsafe {
+		if err := prog.sanitize(!strict); err != nil {
+			return nil, err
+		}
 	}
 	return prog, nil
 }

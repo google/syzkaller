@@ -155,3 +155,31 @@ syz_open_dev$tty1(0xc, 0x4, 0x1)
 		},
 	})
 }
+
+func TestDeserializeStrictUnsafe(t *testing.T) {
+	t.Parallel()
+	target, _ := prog.GetTarget("linux", "amd64")
+	// Raw mode must preserve the global file name, allow to use mmap with non-fixed addr,
+	// and allow to use disabled syscalls.
+	had := `openat(0x0, &(0x7f0000000000)='/dev/foo', 0x0, 0x0)
+mmap(0x0, 0x0, 0x0, 0x0, 0x0, 0x0)
+clone(0x0, &(0x7f0000000000), &(0x7f0000000010), &(0x7f0000000020), &(0x7f0000000030))
+`
+	p, err := target.Deserialize([]byte(had), prog.StrictUnsafe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(p.Serialize())
+	if had != got {
+		t.Fatalf("program was changed:\n%s\ngot:\n%s", had, got)
+	}
+}
+
+func TestDeserializeNonStrictUnsafe(t *testing.T) {
+	t.Parallel()
+	target, _ := prog.GetTarget("linux", "amd64")
+	_, err := target.Deserialize([]byte("clone()"), prog.NonStrictUnsafe)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
