@@ -166,6 +166,11 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	bugFrames, execCoverFilter, maxSignal := serv.mgr.fuzzerConnect()
 
 	runner := serv.findRunner(a.Name)
+	if runner == nil {
+		// There may be a parallel shutdownInstance() call that removes the runner.
+		return fmt.Errorf("unknown runner %s", a.Name)
+	}
+
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 	if runner.machineInfo != nil {
