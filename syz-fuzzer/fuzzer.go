@@ -175,6 +175,7 @@ func main() {
 	inputsCount := *flagProcs * 2
 	fuzzerTool := &FuzzerTool{
 		name:     *flagName,
+		executor: executor,
 		manager:  manager,
 		timeouts: timeouts,
 
