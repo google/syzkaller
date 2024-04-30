@@ -570,6 +570,7 @@ func (serv *RPCServer) newRequest(runner *Runner, req *fuzzer.Request) (rpctype.
 		NewSignal:        req.NeedSignal == fuzzer.NewSignal,
 		SignalFilter:     signalFilter,
 		SignalFilterCall: req.SignalFilterCall,
+		ResetState:       serv.cfg.Experimental.ResetAccState,
 	}, true
 }
 

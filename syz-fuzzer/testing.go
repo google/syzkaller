@@ -15,7 +15,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -45,64 +44,6 @@ func testImage(hostAddr string, args *checkArgs) {
 	if err := buildCallList(args.target, args.sandbox); err != nil {
 		log.SyzFatalf("BUG: %v", err)
 	}
-}
-
-func runTest(target *prog.Target, manager *rpctype.RPCClient, name, executor string) {
-	pollReq := &rpctype.RunTestPollReq{Name: name}
-	for {
-		req := new(rpctype.RunTestPollRes)
-		if err := manager.Call("Manager.Poll", pollReq, req); err != nil {
-			log.SyzFatalf("Manager.Poll call failed: %v", err)
-		}
-		if len(req.Bin) == 0 && len(req.Prog) == 0 {
-			return
-		}
-		test := convertTestReq(target, req)
-		if test.Err == nil {
-			runtest.RunTest(test, executor)
-		}
-		reply := &rpctype.RunTestDoneArgs{
-			Name:   name,
-			ID:     req.ID,
-			Output: test.Output,
-			Info:   test.Info,
-		}
-		if test.Err != nil {
-			reply.Error = test.Err.Error()
-		}
-		if err := manager.Call("Manager.Done", reply, nil); err != nil {
-			log.SyzFatalf("Manager.Done call failed: %v", err)
-		}
-	}
-}
-
-func convertTestReq(target *prog.Target, req *rpctype.RunTestPollRes) *runtest.RunRequest {
-	test := &runtest.RunRequest{
-		Cfg:    req.Cfg,
-		Opts:   req.Opts,
-		Repeat: req.Repeat,
-	}
-	if len(req.Bin) != 0 {
-		bin, err := osutil.TempFile("syz-runtest")
-		if err != nil {
-			test.Err = err
-			return test
-		}
-		if err := osutil.WriteExecFile(bin, req.Bin); err != nil {
-			test.Err = err
-			return test
-		}
-		test.Bin = bin
-	}
-	if len(req.Prog) != 0 {
-		p, err := target.Deserialize(req.Prog, prog.NonStrict)
-		if err != nil {
-			test.Err = err
-			return test
-		}
-		test.P = p
-	}
-	return test
 }
 
 func checkMachineHeartbeats(done chan bool) {
