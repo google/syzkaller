@@ -459,7 +459,6 @@ type OptionalFuzzerArgs struct {
 	Slowdown       int
 	SandboxArg     int
 	PprofPort      int
-	ResetAccState  bool
 	NetCompression bool
 }
 
@@ -476,7 +475,6 @@ type FuzzerCmdArgs struct {
 	Cover     bool
 	Debug     bool
 	Test      bool
-	Runtest   bool
 	Optional  *OptionalFuzzerArgs
 }
 
@@ -488,10 +486,6 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 		// because old execprog does not have os flag.
 		osArg = " -os=" + args.OS
 	}
-	runtestArg := ""
-	if args.Runtest {
-		runtestArg = " -runtest"
-	}
 	verbosityArg := ""
 	if args.Verbosity != 0 {
 		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
@@ -502,15 +496,14 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
 			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
 			{Name: "pprof_port", Value: fmt.Sprint(args.Optional.PprofPort)},
-			{Name: "reset_acc_state", Value: fmt.Sprint(args.Optional.ResetAccState)},
 			{Name: "net_compression", Value: fmt.Sprint(args.Optional.NetCompression)},
 		}
 		optionalArg = " " + tool.OptionalFlags(flags)
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -cover=%v -debug=%v -test=%v%v%v%v",
+		" -procs=%v -cover=%v -debug=%v -test=%v%v%v",
 		args.Fuzzer, args.Executor, args.Name, args.Arch, osArg, args.FwdAddr, args.Sandbox,
-		args.Procs, args.Cover, args.Debug, args.Test, runtestArg, verbosityArg, optionalArg)
+		args.Procs, args.Cover, args.Debug, args.Test, verbosityArg, optionalArg)
 }
 
 func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, sandboxArg, procs int,
@@ -521,7 +514,7 @@ func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, san
 	}
 	return FuzzerCmd(&FuzzerCmdArgs{Fuzzer: fuzzer, Executor: executor, Name: name,
 		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox,
-		Procs: procs, Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
+		Procs: procs, Verbosity: 0, Cover: cover, Debug: false, Test: test,
 		Optional: optional})
 }
 

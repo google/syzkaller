@@ -1,10 +1,6 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// This is broken for now.
-
-//go:build ignore
-
 // Runtest runs syzkaller test programs in sys/*/test/*. Start as:
 // $ syz-runtest -config manager.config
 // Also see pkg/runtest docs.
@@ -19,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/host"
@@ -61,13 +58,16 @@ func main() {
 		checker:            vminfo.New(cfg),
 		reporter:           reporter,
 		debug:              *flagDebug,
-		requests:           make(chan *runtest.RunRequest, 2*vmPool.Count()),
+		requests:           make(chan *runtest.RunRequest, 4*vmPool.Count()*cfg.Procs),
 		checkResultC:       make(chan *rpctype.CheckArgs, 1),
+		checkProgsDone:     make(chan bool),
 		checkFeaturesReady: make(chan bool),
 		vmStop:             make(chan bool),
-		reqMap:             make(map[int]*runtest.RunRequest),
-		lastReq:            make(map[string]int),
+		reqMap:             make(map[int64]*runtest.RunRequest),
+		pending:            make(map[string]map[int64]bool),
 	}
+	mgr.checkFiles, mgr.checkProgs = mgr.checker.StartCheck()
+	mgr.needCheckResults = len(mgr.checkProgs)
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr, false)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
@@ -77,12 +77,13 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(vmPool.Count())
 	fmt.Printf("booting VMs...\n")
+	var nameSeq atomic.Uint64
 	for i := 0; i < vmPool.Count(); i++ {
 		i := i
 		go func() {
 			defer wg.Done()
-			name := fmt.Sprintf("vm-%v", i)
 			for {
+				name := fmt.Sprintf("vm-%v", nameSeq.Add(1))
 				rep, err := mgr.boot(name, i)
 				if err != nil {
 					log.Fatal(err)
@@ -90,7 +91,7 @@ func main() {
 				if rep == nil {
 					return
 				}
-				if err := mgr.finishRequest(name, rep); err != nil {
+				if err := mgr.finishRequests(name, rep); err != nil {
 					log.Fatal(err)
 				}
 			}
@@ -98,8 +99,10 @@ func main() {
 	}
 	checkResult := <-mgr.checkResultC
 	mgr.checkFeatures = checkResult.Features
+	mgr.checkFilesInfo = checkResult.Files
 	close(mgr.checkFeaturesReady)
-	calls, _, err := mgr.checker.Check(checkResult.Files, checkResult.CheckProgs)
+	<-mgr.checkProgsDone
+	calls, _, err := mgr.checker.FinishCheck(mgr.checkFilesInfo, mgr.checkResults)
 	if err != nil {
 		log.Fatalf("failed to detect enabled syscalls: %v", err)
 	}
@@ -142,6 +145,12 @@ type Manager struct {
 	cfg                *mgrconfig.Config
 	vmPool             *vm.Pool
 	checker            *vminfo.Checker
+	checkFiles         []string
+	checkFilesInfo     []host.FileInfo
+	checkProgs         []rpctype.ExecutionRequest
+	checkResults       []rpctype.ExecutionResult
+	needCheckResults   int
+	checkProgsDone     chan bool
 	reporter           *report.Reporter
 	requests           chan *runtest.RunRequest
 	checkFeatures      *host.Features
@@ -152,9 +161,9 @@ type Manager struct {
 	debug              bool
 
 	reqMu   sync.Mutex
-	reqSeq  int
-	reqMap  map[int]*runtest.RunRequest
-	lastReq map[string]int
+	reqSeq  int64
+	reqMap  map[int64]*runtest.RunRequest
+	pending map[string]map[int64]bool
 }
 
 func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
@@ -191,12 +200,11 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 		Arch:      mgr.cfg.TargetArch,
 		FwdAddr:   fwdAddr,
 		Sandbox:   mgr.cfg.Sandbox,
-		Procs:     mgr.cfg.Procs,
+		Procs:     1,
 		Verbosity: 0,
 		Cover:     mgr.cfg.Cover,
 		Debug:     mgr.debug,
 		Test:      false,
-		Runtest:   true,
 		Optional: &instance.OptionalFuzzerArgs{
 			Slowdown:   mgr.cfg.Timeouts.Slowdown,
 			SandboxArg: mgr.cfg.SandboxArg,
@@ -210,22 +218,23 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	return rep, nil
 }
 
-func (mgr *Manager) finishRequest(name string, rep *report.Report) error {
+func (mgr *Manager) finishRequests(name string, rep *report.Report) error {
 	mgr.reqMu.Lock()
 	defer mgr.reqMu.Unlock()
-	lastReq := mgr.lastReq[name]
-	req := mgr.reqMap[lastReq]
-	if lastReq == 0 || req == nil {
-		return fmt.Errorf("vm crash: %v\n%s\n%s", rep.Title, rep.Report, rep.Output)
+	for id := range mgr.pending[name] {
+		req := mgr.reqMap[id]
+		if req == nil {
+			return fmt.Errorf("vm crash: %v\n%s\n%s", rep.Title, rep.Report, rep.Output)
+		}
+		delete(mgr.reqMap, id)
+		req.Err = fmt.Errorf("%v", rep.Title)
+		req.Output = rep.Report
+		if len(req.Output) == 0 {
+			req.Output = rep.Output
+		}
+		close(req.Done)
 	}
-	delete(mgr.reqMap, lastReq)
-	delete(mgr.lastReq, name)
-	req.Err = fmt.Errorf("%v", rep.Title)
-	req.Output = rep.Report
-	if len(req.Output) == 0 {
-		req.Output = rep.Output
-	}
-	close(req.Done)
+	delete(mgr.pending, name)
 	return nil
 }
 
@@ -234,10 +243,8 @@ func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error
 	case <-mgr.checkFeaturesReady:
 		r.Features = mgr.checkFeatures
 	default:
-		infoFiles, checkFiles, checkProgs := mgr.checker.RequiredThings()
-		r.ReadFiles = append(infoFiles, checkFiles...)
+		r.ReadFiles = append(mgr.checker.RequiredFiles(), mgr.checkFiles...)
 		r.ReadGlobs = mgr.cfg.Target.RequiredGlobs()
-		r.CheckProgs = checkProgs
 	}
 	return nil
 }
@@ -253,53 +260,83 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	return nil
 }
 
-func (mgr *Manager) Poll(a *rpctype.RunTestPollReq, r *rpctype.RunTestPollRes) error {
-	req := <-mgr.requests
-	if req == nil {
-		return nil
-	}
+func (mgr *Manager) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.ExchangeInfoReply) error {
 	mgr.reqMu.Lock()
-	if mgr.lastReq[a.Name] != 0 {
-		log.Fatalf("double poll req from %v", a.Name)
-	}
-	mgr.reqSeq++
-	r.ID = mgr.reqSeq
-	mgr.reqMap[mgr.reqSeq] = req
-	mgr.lastReq[a.Name] = mgr.reqSeq
-	mgr.reqMu.Unlock()
-	if req.Bin != "" {
-		data, err := os.ReadFile(req.Bin)
-		if err != nil {
-			log.Fatalf("failed to read bin file: %v", err)
+	defer mgr.reqMu.Unlock()
+
+	select {
+	case <-mgr.checkProgsDone:
+	default:
+		mgr.checkResults = append(mgr.checkResults, a.Results...)
+		if len(mgr.checkResults) < mgr.needCheckResults {
+			numRequests := min(len(mgr.checkProgs), a.NeedProgs)
+			r.Requests = mgr.checkProgs[:numRequests]
+			mgr.checkProgs = mgr.checkProgs[numRequests:]
+		} else {
+			close(mgr.checkProgsDone)
 		}
-		r.Bin = data
 		return nil
 	}
-	r.Prog = req.P.Serialize()
-	r.Cfg = req.Cfg
-	r.Opts = req.Opts
-	r.Repeat = req.Repeat
+
+	if mgr.pending[a.Name] == nil {
+		mgr.pending[a.Name] = make(map[int64]bool)
+	}
+	for _, res := range a.Results {
+		if !mgr.pending[a.Name][res.ID] {
+			log.Fatalf("runner %v wasn't executing request %v", a.Name, res.ID)
+		}
+		delete(mgr.pending[a.Name], res.ID)
+		req := mgr.reqMap[res.ID]
+		if req == nil {
+			log.Fatalf("request %v does not exist", res.ID)
+		}
+		delete(mgr.reqMap, res.ID)
+		if req == nil {
+			log.Fatalf("got done request for unknown id %v", res.ID)
+		}
+		req.Output = res.Output
+		req.Info = res.Info
+		if res.Error != "" {
+			req.Err = errors.New(res.Error)
+		}
+		close(req.Done)
+	}
+	for i := 0; i < a.NeedProgs; i++ {
+		var req *runtest.RunRequest
+		select {
+		case req = <-mgr.requests:
+		default:
+		}
+		if req == nil {
+			break
+		}
+		mgr.reqSeq++
+		mgr.reqMap[mgr.reqSeq] = req
+		mgr.pending[a.Name][mgr.reqSeq] = true
+		var progData []byte
+		var err error
+		if req.Bin != "" {
+			progData, err = os.ReadFile(req.Bin)
+		} else {
+			progData, err = req.P.SerializeForExec()
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.Requests = append(r.Requests, rpctype.ExecutionRequest{
+			ID:           mgr.reqSeq,
+			ProgData:     progData,
+			ExecOpts:     req.Opts,
+			IsBinary:     req.Bin != "",
+			ResetState:   req.Bin == "",
+			ReturnOutput: true,
+			ReturnError:  true,
+			Repeat:       req.Repeat,
+		})
+	}
 	return nil
 }
 
-func (mgr *Manager) Done(a *rpctype.RunTestDoneArgs, r *int) error {
-	mgr.reqMu.Lock()
-	lastReq := mgr.lastReq[a.Name]
-	if lastReq != a.ID {
-		log.Fatalf("wrong done id %v from %v", a.ID, a.Name)
-	}
-	req := mgr.reqMap[a.ID]
-	delete(mgr.reqMap, a.ID)
-	delete(mgr.lastReq, a.Name)
-	mgr.reqMu.Unlock()
-	if req == nil {
-		log.Fatalf("got done request for unknown id %v", a.ID)
-	}
-	req.Output = a.Output
-	req.Info = a.Info
-	if a.Error != "" {
-		req.Err = errors.New(a.Error)
-	}
-	close(req.Done)
+func (mgr *Manager) StartExecuting(a *rpctype.ExecutingRequest, r *int) error {
 	return nil
 }
