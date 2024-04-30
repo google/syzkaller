@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -382,6 +383,12 @@ func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
 	info := &ProgInfo{Calls: make([]CallInfo, ncalls)}
+	for i := range info.Calls {
+		// Store some unsuccessful errno in the case we won't get any result.
+		// It also won't have CallExecuted flag, but it's handy to make it
+		// look failed based on errno as well.
+		info.Calls[i].Errno = int(syscall.ENOSYS)
+	}
 	extraParts := make([]CallInfo, 0)
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
