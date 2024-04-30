@@ -67,9 +67,10 @@ type RPCServer struct {
 }
 
 type Runner struct {
-	name       string
-	injectLog  chan<- []byte
-	injectStop chan bool
+	name        string
+	injectLog   chan<- []byte
+	injectStop  chan bool
+	stopFuzzing atomic.Bool
 
 	machineInfo []byte
 	instModules *cover.CanonicalizerInstance
@@ -410,7 +411,11 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 
 func (serv *RPCServer) findRunner(name string) *Runner {
 	if val, _ := serv.runners.Load(name); val != nil {
-		return val.(*Runner)
+		runner := val.(*Runner)
+		if runner.stopFuzzing.Load() {
+			return nil
+		}
+		return runner
 	}
 	// There might be a parallel shutdownInstance().
 	// Ignore requests then.
@@ -428,6 +433,16 @@ func (serv *RPCServer) createInstance(name string, maxSignal signal.Signal, inje
 	if _, loaded := serv.runners.LoadOrStore(name, runner); loaded {
 		panic(fmt.Sprintf("duplicate instance %s", name))
 	}
+}
+
+// stopInstance prevents further request exchange requests.
+// To make RPCServer fully forget an instance, shutdownInstance() must be called.
+func (serv *RPCServer) stopFuzzing(name string) {
+	runner := serv.findRunner(name)
+	if runner == nil {
+		return
+	}
+	runner.stopFuzzing.Store(true)
 }
 
 func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
