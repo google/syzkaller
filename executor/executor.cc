@@ -1114,7 +1114,7 @@ void copyout_call_results(thread_t* th)
 
 void write_call_output(thread_t* th, bool finished)
 {
-	uint32 reserrno = 999;
+	uint32 reserrno = ENOSYS;
 	const bool blocked = finished && th != last_scheduled;
 	uint32 call_flags = call_flag_executed | (blocked ? call_flag_blocked : 0);
 	if (finished) {
