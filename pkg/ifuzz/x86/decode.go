@@ -145,7 +145,11 @@ nextInsn:
 			modrm := text1[0]
 			text1 = text1[1:]
 			mod := modrm >> 6
+			reg := int8(modrm>>3) & 7
 			rm := modrm & 7
+			if insn.Reg >= 0 && reg != insn.Reg {
+				continue nextInsn
+			}
 			if !insn.NoSibDisp {
 				disp := 0
 				if addrSize == 2 {
