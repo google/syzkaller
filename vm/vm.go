@@ -200,6 +200,9 @@ type StopChan <-chan bool
 type InjectOutput <-chan []byte
 type OutputSize int
 
+// An early notification that the command has finished / VM crashed.
+type EarlyFinishCb func()
+
 // Run runs cmd inside of the VM (think of ssh cmd) and monitors command execution
 // and the kernel console output. It detects kernel oopses in output, lost connections, hangs, etc.
 // Returns command+kernel output and a non-symbolized crash report (nil if no error happens).
@@ -212,6 +215,7 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 	exit := ExitNormal
 	var stop <-chan bool
 	var injected <-chan []byte
+	var finished func()
 	outputSize := beforeContextDefault
 	for _, o := range opts {
 		switch opt := o.(type) {
@@ -223,6 +227,8 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 			outputSize = int(opt)
 		case InjectOutput:
 			injected = (<-chan []byte)(opt)
+		case EarlyFinishCb:
+			finished = opt
 		default:
 			panic(fmt.Sprintf("unknown option %#v", opt))
 		}
@@ -236,6 +242,7 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 		outc:            outc,
 		injected:        injected,
 		errc:            errc,
+		finished:        finished,
 		reporter:        reporter,
 		beforeContext:   outputSize,
 		exit:            exit,
@@ -281,6 +288,7 @@ type monitor struct {
 	inst            *Instance
 	outc            <-chan []byte
 	injected        <-chan []byte
+	finished        func()
 	errc            <-chan error
 	reporter        *report.Reporter
 	exit            ExitCondition
@@ -378,6 +386,10 @@ func (mon *monitor) appendOutput(out []byte) *report.Report {
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
+	if mon.finished != nil {
+		// If the caller wanted an early notification, provide it.
+		mon.finished()
+	}
 	diagOutput, diagWait := []byte{}, false
 	if defaultError != "" {
 		diagOutput, diagWait = mon.inst.diagnose(mon.createReport(defaultError))
