@@ -31,7 +31,7 @@ written in C++, compiled as static binary and uses shared memory for communicati
 
 ## Syscall descriptions
 
-The `syz-fuzzer` process generates programs to be executed by `syz-executor` based on syscall descriptions described [here](syscall_descriptions.md).
+The `syz-manager` process generates programs based on syscall descriptions described [here](syscall_descriptions.md).
 
 ## Coverage
 
