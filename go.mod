@@ -17,7 +17,7 @@ require (
 	github.com/prometheus/client_golang v1.19.0
 	github.com/sergi/go-diff v1.3.1
 	github.com/stretchr/testify v1.9.0
-	github.com/ulikunitz/xz v0.5.11
+	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
