@@ -33,7 +33,7 @@ func TestLinuxSyscalls(t *testing.T) {
 		"ntfs", "ntfs3", "hfsplus", "bfs", "exfat", "affs", "jffs2",
 		"ext4", "gfs2", "msdos", "v7", "gfs2meta", "zonefs", "omfs",
 		"minix", "adfs", "ufs", "sysv", "reiserfs", "ocfs2", "nilfs2",
-		"iso9660", "hpfs", "binder", "",
+		"iso9660", "hpfs", "binder", "bcachefs", "",
 	}
 	files := []host.FileInfo{
 		{
