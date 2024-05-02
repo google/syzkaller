@@ -417,5 +417,6 @@ func (kp *kconfigParser) expandString(str string) string {
 	str = strings.Replace(str, "$(SRCARCH)", kp.target.KernelHeaderArch, -1)
 	str = strings.Replace(str, "$SRCARCH", kp.target.KernelHeaderArch, -1)
 	str = strings.Replace(str, "$(KCONFIG_EXT_PREFIX)", "", -1)
+	str = strings.Replace(str, "$(MALI_KCONFIG_EXT_PREFIX)", "", -1) // ChromeOS.
 	return str
 }
