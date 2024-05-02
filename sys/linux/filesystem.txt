@@ -133,6 +133,7 @@ syz_mount_image$jffs2(fs ptr[in, string["jffs2"]], dir ptr[in, filename], flags 
 syz_mount_image$nilfs2(fs ptr[in, string["nilfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[nilfs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$squashfs(fs ptr[in, string["squashfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$udf(fs ptr[in, string["udf"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[udf_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$bcachefs(fs ptr[in, string["bcachefs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[bcachefs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 
 # TODO: zonefs needs a zoned block device:
 # https://elixir.bootlin.com/linux/v6.1-rc6/source/fs/zonefs/super.c#L1768
@@ -965,6 +966,19 @@ esdfs_options [
 ] [varlen]
 
 esdfs_derive = "none", "legacy", "unified", "multi", "public"
+
+bcachefs_options [
+	metadata_checksum	fs_opt["metadata_checksum", stringnoz[bcachefs_checksum]]
+	data_checksum		fs_opt["data_checksum", stringnoz[bcachefs_checksum]]
+	compression		fs_opt["compression", stringnoz[bcachefs_compression]]
+	background_compression	fs_opt["background_compression", stringnoz[bcachefs_compression]]
+	str_hash		fs_opt["str_hash", stringnoz[bcachefs_str_hash]]
+	nocow			stringnoz["nocow"]
+] [varlen]
+
+bcachefs_checksum = "none", "crc32c", "crc64", "xxhash"
+bcachefs_compression = "none", "lz4", "gzip", "zstd"
+bcachefs_str_hash = "crc32c", "crc64", "siphash"
 
 cgroup_options [
 	all		stringnoz["all"]
