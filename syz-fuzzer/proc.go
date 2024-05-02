@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/signal"
 )
 
 // Proc represents a single fuzzing process (executor).
@@ -41,66 +41,74 @@ func startProc(tool *FuzzerTool, pid int, config *ipc.Config) {
 func (proc *Proc) loop() {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + int64(proc.pid)))
 	for {
-		req := proc.nextRequest()
+		req, wait := proc.nextRequest()
 		// Do not let too much state accumulate.
 		const restartIn = 600
 		resetFlags := flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectComps
-		if (req.ExecOpts.ExecFlags&resetFlags != 0 &&
-			rnd.Intn(restartIn) == 0) || req.ResetState {
+		if (req.ExecFlags&resetFlags != 0 &&
+			rnd.Intn(restartIn) == 0) || req.Flags&flatrpc.RequestFlagResetState != 0 {
 			proc.env.ForceRestart()
 		}
-		info, output, err, try := proc.execute(req)
-		res := executionResult{
-			ExecutionRequest: req,
-			procID:           proc.pid,
-			try:              try,
-			info:             info,
-			output:           output,
-			err:              err,
+		info, output, err := proc.execute(req, wait)
+		res := &flatrpc.ExecResult{
+			Id:     req.Id,
+			Info:   convertProgInfo(info),
+			Output: output,
+			Error:  err,
 		}
-		for i := 1; i < req.Repeat && res.err == "" && !req.IsBinary; i++ {
+		for i := 1; i < int(req.Repeat) && res.Error == "" && req.Flags&flatrpc.RequestFlagIsBinary == 0; i++ {
 			// Recreate Env every few iterations, this allows to cover more paths.
 			if i%2 == 0 {
 				proc.env.ForceRestart()
 			}
-			info, output, err, _ := proc.execute(req)
-			if res.info == nil {
-				res.info = info
-			} else {
-				res.info.Calls = append(res.info.Calls, info.Calls...)
+			info, output, err := proc.execute(req, 0)
+			if res.Info == nil {
+				res.Info = convertProgInfo(info)
+			} else if info != nil {
+				res.Info.Calls = append(res.Info.Calls, convertCalls(info)...)
 			}
-			res.output = append(res.output, output...)
-			res.err = err
+			res.Output = append(res.Output, output...)
+			res.Error = err
 		}
-		// Let's perform signal filtering in a separate thread to get the most
-		// exec/sec out of a syz-executor instance.
-		proc.tool.results <- res
+		if res.Info != nil && req.Flags&flatrpc.RequestFlagNewSignal != 0 {
+			filter := signal.FromRaw(req.SignalFilter, 0)
+			proc.tool.diffMaxSignal(res.Info, filter, int(req.SignalFilterCall))
+		}
+		msg := &flatrpc.ExecutorMessage{
+			Msg: &flatrpc.ExecutorMessages{
+				Type:  flatrpc.ExecutorMessagesRawExecResult,
+				Value: res,
+			},
+		}
+		if err := flatrpc.Send(proc.tool.conn, msg); err != nil {
+			log.SyzFatal(err)
+		}
 	}
 }
 
-func (proc *Proc) nextRequest() rpctype.ExecutionRequest {
+func (proc *Proc) nextRequest() (*flatrpc.ExecRequest, time.Duration) {
 	select {
 	case req := <-proc.tool.requests:
-		return req
+		return req, 0
 	default:
 	}
 	// Not having enough inputs to execute is a sign of RPC communication problems.
 	// Let's count and report such situations.
 	start := osutil.MonotonicNano()
 	req := <-proc.tool.requests
-	proc.tool.noExecDuration.Add(uint64(osutil.MonotonicNano() - start))
-	proc.tool.noExecRequests.Add(1)
-	return req
+	wait := osutil.MonotonicNano() - start
+	return req, wait
 }
 
-func (proc *Proc) execute(req rpctype.ExecutionRequest) (info *ipc.ProgInfo, output []byte, errStr string, try int) {
+func (proc *Proc) execute(req *flatrpc.ExecRequest, wait time.Duration) (
+	info *ipc.ProgInfo, output []byte, errStr string) {
 	var err error
-	if req.IsBinary {
+	if req.Flags&flatrpc.RequestFlagIsBinary != 0 {
 		output, err = executeBinary(req)
 	} else {
-		info, output, try, err = proc.executeProgram(req)
+		info, output, err = proc.executeProgram(req, wait)
 	}
-	if !req.ReturnOutput {
+	if req.Flags&flatrpc.RequestFlagReturnOutput == 0 {
 		output = nil
 	}
 	if err != nil {
@@ -109,30 +117,36 @@ func (proc *Proc) execute(req rpctype.ExecutionRequest) (info *ipc.ProgInfo, out
 	return
 }
 
-func (proc *Proc) executeProgram(req rpctype.ExecutionRequest) (*ipc.ProgInfo, []byte, int, error) {
+func (proc *Proc) executeProgram(req *flatrpc.ExecRequest, wait time.Duration) (*ipc.ProgInfo, []byte, error) {
+	returnError := req.Flags&flatrpc.RequestFlagReturnError != 0
+	execOpts := &ipc.ExecOpts{
+		EnvFlags:   req.ExecEnv,
+		ExecFlags:  req.ExecFlags,
+		SandboxArg: int(req.SandboxArg),
+	}
 	for try := 0; ; try++ {
 		var output []byte
 		var info *ipc.ProgInfo
 		var hanged bool
 		// On a heavily loaded VM, syz-executor may take significant time to start.
 		// Let's do it outside of the gate ticket.
-		err := proc.env.RestartIfNeeded(&req.ExecOpts)
+		err := proc.env.RestartIfNeeded(execOpts)
 		if err == nil {
 			// Limit concurrency.
 			ticket := proc.tool.gate.Enter()
-			proc.tool.startExecutingCall(req.ID, proc.pid, try)
-			output, info, hanged, err = proc.env.ExecProg(&req.ExecOpts, req.ProgData)
+			proc.tool.startExecutingCall(req.Id, proc.pid, try, wait)
+			output, info, hanged, err = proc.env.ExecProg(execOpts, req.ProgData)
 			proc.tool.gate.Leave(ticket)
 			// Don't print output if returning error b/c it may contain SYZFAIL.
-			if !req.ReturnError {
+			if !returnError {
 				log.Logf(2, "result hanged=%v err=%v: %s", hanged, err, output)
 			}
-			if hanged && err == nil && req.ReturnError {
+			if hanged && err == nil && returnError {
 				err = errors.New("hanged")
 			}
 		}
-		if err == nil || req.ReturnError {
-			return info, output, try, err
+		if err == nil || returnError {
+			return info, output, err
 		}
 		log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d", err, try+1)
 		if try > 10 {
@@ -143,7 +157,7 @@ func (proc *Proc) executeProgram(req rpctype.ExecutionRequest) (*ipc.ProgInfo, [
 	}
 }
 
-func executeBinary(req rpctype.ExecutionRequest) ([]byte, error) {
+func executeBinary(req *flatrpc.ExecRequest) ([]byte, error) {
 	tmp, err := os.MkdirTemp("", "syz-runtest")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
@@ -165,4 +179,40 @@ func executeBinary(req rpctype.ExecutionRequest) ([]byte, error) {
 		return verr.Output, nil
 	}
 	return output, err
+}
+
+func convertProgInfo(info *ipc.ProgInfo) *flatrpc.ProgInfo {
+	if info == nil {
+		return nil
+	}
+	return &flatrpc.ProgInfo{
+		Elapsed:   uint64(info.Elapsed),
+		Freshness: uint64(info.Freshness),
+		Extra:     convertCallInfo(info.Extra),
+		Calls:     convertCalls(info),
+	}
+}
+
+func convertCalls(info *ipc.ProgInfo) []*flatrpc.CallInfo {
+	var calls []*flatrpc.CallInfo
+	for _, call := range info.Calls {
+		calls = append(calls, convertCallInfo(call))
+	}
+	return calls
+}
+
+func convertCallInfo(info ipc.CallInfo) *flatrpc.CallInfo {
+	var comps []*flatrpc.Comparison
+	for op1, ops := range info.Comps {
+		for op2 := range ops {
+			comps = append(comps, &flatrpc.Comparison{Op1: op1, Op2: op2})
+		}
+	}
+	return &flatrpc.CallInfo{
+		Flags:  flatrpc.CallFlag(info.Flags),
+		Error:  int32(info.Errno),
+		Cover:  info.Cover,
+		Signal: info.Signal,
+		Comps:  comps,
+	}
 }
