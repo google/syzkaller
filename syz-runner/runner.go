@@ -148,7 +148,7 @@ func (rn *Runner) Run(firstProg []byte, taskID int64) {
 
 		env, err = ipc.MakeEnv(rn.config, 0)
 		if err != nil {
-			log.Fatalf("failed to create new execution environmentL %v", err)
+			log.Fatalf("failed to create new execution environment: %v", err)
 		}
 	}
 }
