@@ -8,7 +8,8 @@
 // It requires the following packages to be installed:
 //
 //	f2fs-tools xfsprogs reiserfsprogs gfs2-utils ocfs2-tools genromfs erofs-utils makefs udftools
-//	mtd-utils nilfs-tools squashfs-tools genisoimage jfsutils exfat-utils ntfs-3g hfsprogs.
+//	mtd-utils nilfs-tools squashfs-tools genisoimage jfsutils exfat-utils ntfs-3g hfsprogs
+//	bcachefs-tools.
 package main
 
 import (
@@ -495,6 +496,15 @@ var fileSystems = []FileSystem{
 			{"", "-P"},
 			{"", "-s"},
 			{"-b 512", "-b 1024", "-b 2048"},
+		},
+	},
+	{
+		Name:    "bcachefs",
+		MinSize: 512 << 10,
+		MkfsFlagCombinations: [][]string{
+			{"", "--encrypted --no_passphrase"},
+			{"", "--compression=lz4"},
+			{"", "--data_checksum=none --metadata_checksum=none"},
 		},
 	},
 	{
