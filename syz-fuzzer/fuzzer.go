@@ -179,8 +179,8 @@ func main() {
 		manager:  manager,
 		timeouts: timeouts,
 
-		requests: make(chan rpctype.ExecutionRequest, inputsCount),
-		results:  make(chan executionResult, inputsCount),
+		requests: make(chan rpctype.ExecutionRequest, 2*inputsCount),
+		results:  make(chan executionResult, 2*inputsCount),
 	}
 	gateCb := fuzzerTool.useBugFrames(r.Features, r.MemoryLeakFrames, r.DataRaceFrames)
 	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
@@ -218,7 +218,7 @@ func main() {
 		}
 	}
 	// Query enough inputs at the beginning.
-	fuzzerTool.exchangeDataCall(inputsCount, nil, 0)
+	fuzzerTool.exchangeDataCall(nil, 0)
 	go fuzzerTool.exchangeDataWorker()
 	fuzzerTool.exchangeDataWorker()
 }
@@ -282,8 +282,8 @@ func (tool *FuzzerTool) startExecutingCall(progID int64, pid, try int) {
 	})
 }
 
-func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []rpctype.ExecutionResult,
-	latency time.Duration) time.Duration {
+func (tool *FuzzerTool) exchangeDataCall(results []rpctype.ExecutionResult, latency time.Duration) time.Duration {
+	needProgs := max(0, cap(tool.requests)/2-len(tool.requests))
 	a := &rpctype.ExchangeInfoRequest{
 		Name:       tool.name,
 		NeedProgs:  needProgs,
@@ -297,10 +297,11 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []rpctype.Execut
 		log.SyzFatalf("Manager.ExchangeInfo call failed: %v", err)
 	}
 	latency = osutil.MonotonicNano() - start
-	if needProgs != len(r.Requests) {
-		log.SyzFatalf("manager returned wrong number of requests: %v/%v", needProgs, len(r.Requests))
-	}
 	tool.updateMaxSignal(r.NewMaxSignal, r.DropMaxSignal)
+	if len(r.Requests) == 0 {
+		// This is possible during initial checking stage, backoff a bit.
+		time.Sleep(100 * time.Millisecond)
+	}
 	for _, req := range r.Requests {
 		tool.requests <- req
 	}
@@ -309,8 +310,18 @@ func (tool *FuzzerTool) exchangeDataCall(needProgs int, results []rpctype.Execut
 
 func (tool *FuzzerTool) exchangeDataWorker() {
 	var latency time.Duration
-	for result := range tool.results {
-		results := []rpctype.ExecutionResult{tool.convertExecutionResult(result)}
+	ticker := time.NewTicker(3 * time.Second * tool.timeouts.Scale).C
+	for {
+		var results []rpctype.ExecutionResult
+		select {
+		case res := <-tool.results:
+			results = append(results, tool.convertExecutionResult(res))
+		case <-ticker:
+			// This is not expected to happen a lot,
+			// but this is required to resolve potential deadlock
+			// during initial checking stage when we may get
+			// no test requests from the host in some requests.
+		}
 		// Grab other finished calls, just in case there are any.
 	loop:
 		for {
@@ -322,7 +333,7 @@ func (tool *FuzzerTool) exchangeDataWorker() {
 			}
 		}
 		// Replenish exactly the finished requests.
-		latency = tool.exchangeDataCall(len(results), results, latency)
+		latency = tool.exchangeDataCall(results, latency)
 	}
 }
 
