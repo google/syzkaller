@@ -282,10 +282,11 @@ configs: kconf
 	bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR)
 
 tidy: descriptions
-	clang-tidy -quiet -header-filter=.* -warnings-as-errors=* \
+	clang-tidy -quiet -header-filter=executor/.* -warnings-as-errors=* \
 		-checks=-*,misc-definitions-in-headers,bugprone-macro-parentheses,clang-analyzer-*,-clang-analyzer-security.insecureAPI*,-clang-analyzer-optin.performance* \
 		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
 		-extra-arg=-DHOSTGOOS_$(HOSTOS)=1 -extra-arg=-DGIT_REVISION=\"$(REV)\" \
+		--extra-arg=-I. --extra-arg=-Ivendor \
 		executor/*.cc
 
 ifdef CI

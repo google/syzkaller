@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -41,7 +39,7 @@ func TestFuzz(t *testing.T) {
 	if sysTarget.BrokenCompiler != "" {
 		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 	}
-	executor := buildExecutor(t, target)
+	executor := csource.BuildExecutor(t, target, "../..", "-fsanitize-coverage=trace-pc", "-g")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -316,18 +314,6 @@ func (proc *executorProc) execute(req *Request) (*Result, string, error) {
 		return nil, "", err
 	}
 	return &Result{Info: info}, "", nil
-}
-
-func buildExecutor(t *testing.T, target *prog.Target) string {
-	executor, err := csource.BuildFile(target,
-		filepath.FromSlash("../../executor/executor.cc"),
-		"-fsanitize-coverage=trace-pc", "-g",
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Remove(executor) })
-	return executor
 }
 
 func checkGoroutineLeaks() {

@@ -5,7 +5,6 @@ package executor
 
 import (
 	"bytes"
-	"os"
 	"testing"
 	"time"
 
@@ -26,11 +25,7 @@ func TestCommonExt(t *testing.T) {
 	if sysTarget.BrokenCompiler != "" {
 		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 	}
-	bin, err := csource.BuildFile(target, "executor.cc", "-DSYZ_TEST_COMMON_EXT_EXAMPLE=1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(bin)
+	bin := csource.BuildExecutor(t, target, "..", "-DSYZ_TEST_COMMON_EXT_EXAMPLE=1")
 	out, err := osutil.RunCmd(time.Minute, "", bin, "setup")
 	if err != nil {
 		t.Fatal(err)
