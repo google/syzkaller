@@ -54,13 +54,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	executor, err := csource.BuildFile(target,
-		filepath.FromSlash("../../executor/executor.cc"),
-		"-fsanitize-coverage=trace-pc")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(executor)
+	executor := csource.BuildExecutor(t, target, "../../", "-fsanitize-coverage=trace-pc")
 	features, err := host.Check(target)
 	if err != nil {
 		t.Fatalf("failed to detect host features: %v", err)

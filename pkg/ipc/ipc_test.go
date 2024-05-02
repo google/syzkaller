@@ -6,8 +6,6 @@ package ipc_test
 import (
 	"fmt"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
@@ -22,15 +20,6 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
-
-func buildExecutor(t *testing.T, target *prog.Target) string {
-	src := filepath.FromSlash("../../executor/executor.cc")
-	bin, err := csource.BuildFile(target, src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return bin
-}
 
 func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool, targets.Timeouts) {
 	t.Parallel()
@@ -65,8 +54,7 @@ func TestExecutor(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			bin := buildExecutor(t, target)
-			defer os.Remove(bin)
+			bin := csource.BuildExecutor(t, target, "../..")
 			// qemu-user may allow us to run some cross-arch binaries.
 			if _, err := osutil.RunCmd(time.Minute, "", bin, "test"); err != nil {
 				if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
@@ -89,8 +77,7 @@ func prepareTestProgram(target *prog.Target) *prog.Prog {
 func TestExecute(t *testing.T) {
 	target, _, _, useShmem, useForkServer, timeouts := initTest(t)
 
-	bin := buildExecutor(t, target)
-	defer os.Remove(bin)
+	bin := csource.BuildExecutor(t, target, "../..")
 
 	flags := []ExecFlags{0, FlagThreaded}
 	for _, flag := range flags {
@@ -134,8 +121,7 @@ func TestExecute(t *testing.T) {
 
 func TestParallel(t *testing.T) {
 	target, _, _, useShmem, useForkServer, timeouts := initTest(t)
-	bin := buildExecutor(t, target)
-	defer os.Remove(bin)
+	bin := csource.BuildExecutor(t, target, "../..")
 	cfg := &Config{
 		Executor:      bin,
 		UseShmem:      useShmem,
@@ -203,8 +189,7 @@ func TestZlib(t *testing.T) {
 		t.Fatal(err)
 	}
 	opts.EnvFlags |= FlagDebug
-	cfg.Executor = buildExecutor(t, target)
-	defer os.Remove(cfg.Executor)
+	cfg.Executor = csource.BuildExecutor(t, target, "../..")
 	env, err := MakeEnv(cfg, 0)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)

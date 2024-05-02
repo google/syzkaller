@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -224,7 +225,10 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 		aslrExtraLibs = []string{"-ldl"}
 	}
 
-	kcovFlags := append([]string{"-c", "-fpie", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, target.CFlags...)
+	targetCFlags := slices.DeleteFunc(slices.Clone(target.CFlags), func(flag string) bool {
+		return strings.HasPrefix(flag, "-std=c++")
+	})
+	kcovFlags := append([]string{"-c", "-fpie", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, targetCFlags...)
 	src := filepath.Join(dir, "main.c")
 	obj := filepath.Join(dir, "main.o")
 	bin := filepath.Join(dir, target.KernelObject)
@@ -240,7 +244,7 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 	// -fsanitize-coverage=trace-pc is provided during linking and
 	// ubsan runtime is missing for arm/arm64/riscv arches in the llvm packages.
 	// So we first compile with -fsanitize-coverage and then link w/o it.
-	cflags := append(append([]string{"-w", "-c", "-o", obj, src}, target.CFlags...), test.CFlags...)
+	cflags := append(append([]string{"-w", "-c", "-o", obj, src}, targetCFlags...), test.CFlags...)
 	if test.DebugInfo {
 		// TODO: pkg/cover doesn't support DWARF5 yet, which is the default in Clang.
 		cflags = append([]string{"-g", "-gdwarf-4"}, cflags...)
@@ -257,7 +261,7 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 	}
 
 	ldflags := append(append(append([]string{"-o", bin, obj, kcovObj}, aslrExtraLibs...),
-		target.CFlags...), test.LDFlags...)
+		targetCFlags...), test.LDFlags...)
 	staticIdx, pieIdx := -1, -1
 	for i, arg := range ldflags {
 		switch arg {
