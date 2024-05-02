@@ -103,7 +103,7 @@ endif
 	execprog mutate prog2c trace2syz stress repro upgrade db \
 	usbgen symbolize cover kconf syz-build crush \
 	bin/syz-extract bin/syz-fmt \
-	extract generate generate_go generate_sys \
+	extract generate generate_go generate_rpc generate_sys \
 	format format_go format_cpp format_sys \
 	tidy test test_race \
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang \
@@ -239,11 +239,17 @@ bin/syz-extract:
 generate:
 	$(MAKE) descriptions
 	$(MAKE) generate_go
+	$(MAKE) generate_rpc
 	$(MAKE) format
 
 generate_go: format_cpp
 	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build
 	$(GO) generate ./vm/proxyapp
+
+generate_rpc:
+	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --go --gen-onefile --go-namespace flatrpc pkg/flatrpc/flatrpc.fbs
+	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --cpp --scoped-enums pkg/flatrpc/flatrpc.fbs
+	$(GO) fmt ./pkg/flatrpc/flatrpc.go
 
 generate_fidl:
 ifeq ($(TARGETOS),fuchsia)
@@ -410,6 +416,7 @@ install_prerequisites:
 	[ -z "$(shell which python)" -a -n "$(shell which python3)" ] && sudo apt-get install -y -q python-is-python3 || true
 	sudo apt-get install -y -q clang-tidy || true
 	sudo apt-get install -y -q clang clang-format ragel
+	sudo apt-get install -y -q flatbuffers-compiler libflatbuffers-dev
 	GO111MODULE=off go get -u golang.org/x/tools/cmd/goyacc
 
 check_copyright:
