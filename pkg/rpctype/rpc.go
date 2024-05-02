@@ -37,9 +37,9 @@ func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) 
 		ln:             ln,
 		s:              s,
 		useCompression: useCompression,
-		statSent: stats.Create("rpc sent", "Uncompressed outbound RPC traffic",
+		statSent: stats.Create("go rpc sent", "Uncompressed outbound RPC traffic",
 			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
-		statRecv: stats.Create("rpc recv", "Uncompressed inbound RPC traffic",
+		statRecv: stats.Create("go rpc recv", "Uncompressed inbound RPC traffic",
 			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
 	}
 	return serv, nil
