@@ -7,7 +7,6 @@
 set -eux
 
 # Create a minimal Debian distribution in a directory.
-DIR=chroot
 PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros,debian-ports-archive-keyring
 
 # If ADD_PACKAGE is not defined as an external environment variable, use our default packages
@@ -128,6 +127,7 @@ if [ $FEATURE = "full" ]; then
     PREINSTALL_PKGS=$PREINSTALL_PKGS","$ADD_PACKAGE
 fi
 
+DIR=$RELEASE
 sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
