@@ -73,8 +73,4 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-
-	// Stats imported from the fuzzer (names must match the the fuzzer names).
-	stats.Create("no exec requests", "Number of times fuzzer was stalled with no exec requests", stats.Rate{})
-	stats.Create("no exec duration", "Total duration fuzzer was stalled with no exec requests (ns/sec)", stats.Rate{})
 }

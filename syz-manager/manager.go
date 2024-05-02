@@ -724,14 +724,10 @@ func parseProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
-	var maxSignal signal.Signal
-	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
-		maxSignal = fuzzer.Cover.CopyMaxSignal()
-	}
 	// Use unique instance names to prevent name collisions in case of untimely RPC messages.
 	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
 	injectLog := make(chan []byte, 10)
-	mgr.serv.createInstance(instanceName, maxSignal, injectLog)
+	mgr.serv.createInstance(instanceName, injectLog)
 
 	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectLog)
 	machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
@@ -1400,6 +1396,13 @@ func (mgr *Manager) corpusMinimization() {
 	}
 }
 
+func (mgr *Manager) maxSignal() signal.Signal {
+	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
+		return fuzzer.Cover.CopyMaxSignal()
+	}
+	return nil
+}
+
 func (mgr *Manager) fuzzerSignalRotation() {
 	const (
 		rotateSignals      = 1000
@@ -1426,12 +1429,14 @@ func (mgr *Manager) fuzzerSignalRotation() {
 
 func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 	for ; ; time.Sleep(time.Second / 2) {
-		// Distribute new max signal over all instances.
-		newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
-		log.Logf(2, "distributing %d new signal, %d dropped signal",
-			len(newSignal), len(dropSignal))
-		if len(newSignal)+len(dropSignal) != 0 {
-			mgr.serv.distributeSignalDelta(newSignal, dropSignal)
+		if mgr.cfg.Cover {
+			// Distribute new max signal over all instances.
+			newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
+			log.Logf(2, "distributing %d new signal, %d dropped signal",
+				len(newSignal), len(dropSignal))
+			if len(newSignal)+len(dropSignal) != 0 {
+				mgr.serv.distributeSignalDelta(newSignal, dropSignal)
+			}
 		}
 
 		// Update the state machine.

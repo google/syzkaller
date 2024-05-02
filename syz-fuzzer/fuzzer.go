@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,7 +23,6 @@ import (
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
@@ -31,33 +31,17 @@ import (
 )
 
 type FuzzerTool struct {
-	name     string
+	conn     *flatrpc.Conn
 	executor string
 	gate     *ipc.Gate
-	manager  *rpctype.RPCClient
 	// TODO: repair triagedCandidates logic, it's broken now.
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
 	leakFrames        []string
 
-	noExecRequests atomic.Uint64
-	noExecDuration atomic.Uint64
-
-	requests  chan rpctype.ExecutionRequest
-	results   chan executionResult
+	requests  chan *flatrpc.ExecRequest
 	signalMu  sync.RWMutex
 	maxSignal signal.Signal
-}
-
-// executionResult offloads some computations from the proc loop
-// to the communication thread.
-type executionResult struct {
-	rpctype.ExecutionRequest
-	procID int
-	try    int
-	info   *ipc.ProgInfo
-	output []byte
-	err    string
 }
 
 // Gate size controls how deep in the log the last executed by every proc
@@ -121,69 +105,75 @@ func main() {
 		return
 	}
 
-	log.Logf(0, "dialing manager at %v", *flagManager)
-	manager, err := rpctype.NewRPCClient(*flagManager)
-	if err != nil {
-		log.SyzFatalf("failed to create an RPC client: %v ", err)
-	}
-
-	log.Logf(1, "connecting to manager...")
-	a := &rpctype.ConnectArgs{
-		Name:        *flagName,
-		GitRevision: prog.GitRevision,
-		SyzRevision: target.Revision,
-	}
-	a.ExecutorArch, a.ExecutorSyzRevision, a.ExecutorGitRevision, err = executorVersion(executor)
+	executorArch, executorSyzRevision, executorGitRevision, err := executorVersion(executor)
 	if err != nil {
 		log.SyzFatalf("failed to run executor version: %v ", err)
 	}
-	r := &rpctype.ConnectRes{}
-	if err := manager.Call("Manager.Connect", a, r); err != nil {
-		log.SyzFatalf("failed to call Manager.Connect(): %v ", err)
-	}
-	checkReq := &rpctype.CheckArgs{
-		Name:  *flagName,
-		Files: host.ReadFiles(r.ReadFiles),
-		Globs: make(map[string][]string),
-	}
-	features, err := host.SetupFeatures(target, executor, r.Features, nil)
+
+	log.Logf(0, "dialing manager at %v", *flagManager)
+	conn, err := flatrpc.Dial(*flagManager, timeouts.Scale)
 	if err != nil {
-		log.SyzFatalf("failed to setup features: %v ", err)
-	}
-	checkReq.Features = features
-	for _, glob := range r.ReadGlobs {
-		files, err := filepath.Glob(filepath.FromSlash(glob))
-		if err != nil && checkReq.Error == "" {
-			checkReq.Error = fmt.Sprintf("failed to read glob %q: %v", glob, err)
-		}
-		checkReq.Globs[glob] = files
-	}
-	checkRes := new(rpctype.CheckRes)
-	if err := manager.Call("Manager.Check", checkReq, checkRes); err != nil {
-		log.SyzFatalf("Manager.Check call failed: %v", err)
-	}
-	if checkReq.Error != "" {
-		log.SyzFatalf("%v", checkReq.Error)
+		log.SyzFatalf("failed to connect to host: %v ", err)
 	}
 
-	if checkRes.CoverFilterBitmap != nil {
-		if err := osutil.WriteFile("syz-cover-bitmap", checkRes.CoverFilterBitmap); err != nil {
+	log.Logf(1, "connecting to manager...")
+	connectReq := &flatrpc.ConnectRequest{
+		Name:        *flagName,
+		Arch:        executorArch,
+		GitRevision: executorGitRevision,
+		SyzRevision: executorSyzRevision,
+	}
+	if err := flatrpc.Send(conn, connectReq); err != nil {
+		log.SyzFatal(err)
+	}
+	connectReplyRaw, err := flatrpc.Recv[flatrpc.ConnectReplyRaw](conn)
+	if err != nil {
+		log.SyzFatal(err)
+	}
+	connectReply := connectReplyRaw.UnPack()
+
+	infoReq := &flatrpc.InfoRequest{
+		Files: host.ReadFiles(connectReply.Files),
+	}
+	features, err := host.SetupFeatures(target, executor, connectReply.Features, nil)
+	if err != nil {
+		infoReq.Error = fmt.Sprintf("failed to setup features: %v ", err)
+	}
+	infoReq.Features = features
+	for _, glob := range connectReply.Globs {
+		files, err := filepath.Glob(filepath.FromSlash(glob))
+		if err != nil && infoReq.Error == "" {
+			infoReq.Error = fmt.Sprintf("failed to read glob %q: %v", glob, err)
+		}
+		infoReq.Globs = append(infoReq.Globs, &flatrpc.GlobInfo{
+			Name:  glob,
+			Files: files,
+		})
+	}
+	if err := flatrpc.Send(conn, infoReq); err != nil {
+		log.SyzFatal(err)
+	}
+	infoReplyRaw, err := flatrpc.Recv[flatrpc.InfoReplyRaw](conn)
+	if err != nil {
+		log.SyzFatal(err)
+	}
+	infoReply := infoReplyRaw.UnPack()
+
+	if len(infoReply.CoverFilter) != 0 {
+		if err := osutil.WriteFile("syz-cover-bitmap", infoReply.CoverFilter); err != nil {
 			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
 		}
 	}
 
-	inputsCount := *flagProcs * 2
 	fuzzerTool := &FuzzerTool{
-		name:       *flagName,
+		conn:       conn,
 		executor:   executor,
-		manager:    manager,
 		timeouts:   timeouts,
-		leakFrames: r.MemoryLeakFrames,
+		leakFrames: connectReply.LeakFrames,
 
-		requests: make(chan rpctype.ExecutionRequest, 2*inputsCount),
-		results:  make(chan executionResult, 2*inputsCount),
+		requests: make(chan *flatrpc.ExecRequest, *flagProcs*4),
 	}
-	fuzzerTool.filterDataRaceFrames(r.DataRaceFrames)
+	fuzzerTool.filterDataRaceFrames(connectReply.RaceFrames)
 	var gateCallback func()
 	for _, feat := range features {
 		if feat.Id == flatrpc.FeatureLeak && feat.Reason == "" {
@@ -197,10 +187,7 @@ func main() {
 		startProc(fuzzerTool, pid, config)
 	}
 
-	// Query enough inputs at the beginning.
-	fuzzerTool.exchangeDataCall(nil, 0)
-	go fuzzerTool.exchangeDataWorker()
-	fuzzerTool.exchangeDataWorker()
+	fuzzerTool.handleConn()
 }
 
 func (tool *FuzzerTool) leakGateCallback() {
@@ -241,101 +228,46 @@ func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
 	log.Logf(0, "%s", output)
 }
 
-func (tool *FuzzerTool) startExecutingCall(progID int64, pid, try int) {
-	tool.manager.AsyncCall("Manager.StartExecuting", &rpctype.ExecutingRequest{
-		Name:   tool.name,
-		ID:     progID,
-		ProcID: pid,
-		Try:    try,
-	})
+func (tool *FuzzerTool) startExecutingCall(progID int64, pid, try int, wait time.Duration) {
+	msg := &flatrpc.ExecutorMessage{
+		Msg: &flatrpc.ExecutorMessages{
+			Type: flatrpc.ExecutorMessagesRawExecuting,
+			Value: &flatrpc.ExecutingMessage{
+				Id:           progID,
+				ProcId:       int32(pid),
+				Try:          int32(try),
+				WaitDuration: int64(wait),
+			},
+		},
+	}
+	if err := flatrpc.Send(tool.conn, msg); err != nil {
+		log.SyzFatal(err)
+	}
 }
 
-func (tool *FuzzerTool) exchangeDataCall(results []rpctype.ExecutionResult, latency time.Duration) time.Duration {
-	needProgs := max(0, cap(tool.requests)/2-len(tool.requests))
-	a := &rpctype.ExchangeInfoRequest{
-		Name:       tool.name,
-		NeedProgs:  needProgs,
-		Results:    results,
-		StatsDelta: tool.grabStats(),
-		Latency:    latency,
-	}
-	r := &rpctype.ExchangeInfoReply{}
-	start := osutil.MonotonicNano()
-	if err := tool.manager.Call("Manager.ExchangeInfo", a, r); err != nil {
-		log.SyzFatalf("Manager.ExchangeInfo call failed: %v", err)
-	}
-	latency = osutil.MonotonicNano() - start
-	tool.updateMaxSignal(r.NewMaxSignal, r.DropMaxSignal)
-	if len(r.Requests) == 0 {
-		// This is possible during initial checking stage, backoff a bit.
-		time.Sleep(100 * time.Millisecond)
-	}
-	for _, req := range r.Requests {
-		tool.requests <- req
-	}
-	return latency
-}
-
-func (tool *FuzzerTool) exchangeDataWorker() {
-	var latency time.Duration
-	ticker := time.NewTicker(3 * time.Second * tool.timeouts.Scale).C
+func (tool *FuzzerTool) handleConn() {
 	for {
-		var results []rpctype.ExecutionResult
-		select {
-		case res := <-tool.results:
-			results = append(results, tool.convertExecutionResult(res))
-		case <-ticker:
-			// This is not expected to happen a lot,
-			// but this is required to resolve potential deadlock
-			// during initial checking stage when we may get
-			// no test requests from the host in some requests.
+		raw, err := flatrpc.Recv[flatrpc.HostMessageRaw](tool.conn)
+		if err != nil {
+			log.SyzFatal(err)
 		}
-		// Grab other finished calls, just in case there are any.
-	loop:
-		for {
-			select {
-			case res := <-tool.results:
-				results = append(results, tool.convertExecutionResult(res))
-			default:
-				break loop
-			}
+		switch msg := raw.UnPack().Msg.Value.(type) {
+		case *flatrpc.ExecRequest:
+			msg.ProgData = slices.Clone(msg.ProgData)
+			tool.requests <- msg
+		case *flatrpc.SignalUpdate:
+			tool.handleSignalUpdate(msg)
 		}
-		// Replenish exactly the finished requests.
-		latency = tool.exchangeDataCall(results, latency)
 	}
 }
 
-func (tool *FuzzerTool) convertExecutionResult(res executionResult) rpctype.ExecutionResult {
-	ret := rpctype.ExecutionResult{
-		ID:     res.ID,
-		ProcID: res.procID,
-		Try:    res.try,
-		Output: res.output,
-		Error:  res.err,
-	}
-	if res.info != nil {
-		if res.NewSignal {
-			tool.diffMaxSignal(res.info, res.SignalFilter, res.SignalFilterCall)
-		}
-		ret.Info = *res.info
-	}
-	return ret
-}
-
-func (tool *FuzzerTool) grabStats() map[string]uint64 {
-	return map[string]uint64{
-		"no exec requests": tool.noExecRequests.Swap(0),
-		"no exec duration": tool.noExecDuration.Swap(0),
-	}
-}
-
-func (tool *FuzzerTool) diffMaxSignal(info *ipc.ProgInfo, mask signal.Signal, maskCall int) {
+func (tool *FuzzerTool) diffMaxSignal(info *flatrpc.ProgInfo, mask signal.Signal, maskCall int) {
 	tool.signalMu.RLock()
 	defer tool.signalMu.RUnlock()
 	diffMaxSignal(info, tool.maxSignal, mask, maskCall)
 }
 
-func diffMaxSignal(info *ipc.ProgInfo, max, mask signal.Signal, maskCall int) {
+func diffMaxSignal(info *flatrpc.ProgInfo, max, mask signal.Signal, maskCall int) {
 	info.Extra.Signal = diffCallSignal(info.Extra.Signal, max, mask, -1, maskCall)
 	for i := 0; i < len(info.Calls); i++ {
 		info.Calls[i].Signal = diffCallSignal(info.Calls[i].Signal, max, mask, i, maskCall)
@@ -349,11 +281,11 @@ func diffCallSignal(raw []uint32, max, mask signal.Signal, call, maskCall int) [
 	return max.DiffFromRaw(raw)
 }
 
-func (tool *FuzzerTool) updateMaxSignal(add, drop []uint32) {
+func (tool *FuzzerTool) handleSignalUpdate(msg *flatrpc.SignalUpdate) {
 	tool.signalMu.Lock()
 	defer tool.signalMu.Unlock()
-	tool.maxSignal.Subtract(signal.FromRaw(drop, 0))
-	tool.maxSignal.Merge(signal.FromRaw(add, 0))
+	tool.maxSignal.Subtract(signal.FromRaw(msg.DropMax, 0))
+	tool.maxSignal.Merge(signal.FromRaw(msg.NewMax, 0))
 }
 
 func setupPprofHandler(port int) {
