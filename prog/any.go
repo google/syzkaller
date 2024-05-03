@@ -175,7 +175,7 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 	case *GroupArg:
 		target.squashGroup(arg, elems)
 	default:
-		panic("bad arg kind")
+		panic(fmt.Sprintf("bad arg kind %v (%#v) %v", a, a, a.Type()))
 	}
 	if pad != 0 {
 		elem := target.ensureDataElem(elems)

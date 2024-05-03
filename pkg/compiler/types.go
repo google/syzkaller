@@ -213,10 +213,9 @@ var typePtr = &typeDesc{
 		elem := comp.genType(args[1], 0)
 		elemDir := genDir(args[0])
 		return &prog.PtrType{
-			TypeCommon:     base.TypeCommon,
-			Elem:           elem,
-			ElemDir:        elemDir,
-			SquashableElem: isSquashableElem(elem, elemDir),
+			TypeCommon: base.TypeCommon,
+			Elem:       elem,
+			ElemDir:    elemDir,
 		}
 	},
 }

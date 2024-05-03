@@ -355,3 +355,33 @@ foo$2(a ptr[in, string[str1]], b ptr[in, string[str2]])
 		}
 	}
 }
+
+func TestSquashablePtr(t *testing.T) {
+	t.Parallel()
+	// recursive must not be marked as squashable b/c it contains a pointer.
+	const input = `
+foo(a ptr[in, recursive])
+
+recursive {
+	f0	ptr[in, recursive, opt]
+	f1	int32
+	f2	array[int8]
+}
+`
+	eh := func(pos ast.Pos, msg string) {
+		t.Errorf("%v: %v", pos, msg)
+	}
+	desc := ast.Parse([]byte(input), "input", eh)
+	if desc == nil {
+		t.Fatal("failed to parse")
+	}
+	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List[targets.TestOS][targets.TestArch64], eh)
+	if p == nil {
+		t.Fatal("failed to compile")
+	}
+	for _, typ := range p.Types {
+		if ptr, ok := typ.(*prog.PtrType); ok && ptr.SquashableElem {
+			t.Fatal("got squashable ptr")
+		}
+	}
+}

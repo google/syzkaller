@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 	"strings"
 	"testing"
@@ -13,56 +14,57 @@ import (
 )
 
 func TestIsComplexPtr(t *testing.T) {
-	target, rs, _ := initRandomTargetTest(t, "linux", "amd64")
-	allComplex := make(map[string]bool)
-	ForeachType(target.Syscalls, func(t Type, ctx *TypeCtx) {
-		if ptr, ok := t.(*PtrType); ok && ptr.SquashableElem {
-			allComplex[ptr.Elem.String()] = true
+	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		allComplex := make(map[string]bool)
+		ForeachType(target.Syscalls, func(t Type, ctx *TypeCtx) {
+			if ptr, ok := t.(*PtrType); ok && ptr.SquashableElem {
+				allComplex[ptr.Elem.String()] = true
+			}
+		})
+		var arr []string
+		for id := range allComplex {
+			arr = append(arr, id)
 		}
-	})
-	var arr []string
-	for id := range allComplex {
-		arr = append(arr, id)
-	}
-	sort.Strings(arr)
-	// Log all complex types for manual inspection.
-	t.Log("complex types:\n" + strings.Join(arr, "\n"))
-	if testing.Short() || testutil.RaceEnabled {
-		return
-	}
-	// Compare with what we can generate at runtime.
-	// We cannot guarantee that we will generate 100% of complex types
-	// (some are no_generate, and the process is random), but we should
-	// generate at least 90% or there is something wrong.
-	ct := target.DefaultChoiceTable()
-	r := newRand(target, rs)
-	generatedComplex := make(map[string]bool)
-	for _, meta := range target.Syscalls {
-		if meta.Attrs.Disabled || meta.Attrs.NoGenerate {
-			continue
+		sort.Strings(arr)
+		// Log all complex types for manual inspection.
+		t.Log("complex types:\n" + strings.Join(arr, "\n"))
+		if testing.Short() || testutil.RaceEnabled {
+			return
 		}
-		for i := 0; i < 10; i++ {
-			s := newState(target, ct, nil)
-			calls := r.generateParticularCall(s, meta)
-			p := &Prog{Target: target, Calls: calls}
-			for _, arg := range p.complexPtrs() {
-				generatedComplex[arg.arg.Res.Type().String()] = true
+		// Compare with what we can generate at runtime.
+		// We cannot guarantee that we will generate 100% of complex types
+		// (some are no_generate, and the process is random), but we should
+		// generate at least 90% or there is something wrong.
+		ct := target.DefaultChoiceTable()
+		r := newRand(target, rs)
+		generatedComplex := make(map[string]bool)
+		for _, meta := range target.Syscalls {
+			if meta.Attrs.Disabled || meta.Attrs.NoGenerate {
+				continue
+			}
+			for i := 0; i < 10; i++ {
+				s := newState(target, ct, nil)
+				calls := r.generateParticularCall(s, meta)
+				p := &Prog{Target: target, Calls: calls}
+				for _, arg := range p.complexPtrs() {
+					generatedComplex[arg.arg.Res.Type().String()] = true
+				}
 			}
 		}
-	}
-	for id := range generatedComplex {
-		if !allComplex[id] {
-			t.Errorf("generated complex %v that is not statically complex", id)
+		for id := range generatedComplex {
+			if !allComplex[id] {
+				t.Errorf("generated complex %v that is not statically complex", id)
+			}
 		}
-	}
-	for id := range allComplex {
-		if !generatedComplex[id] {
-			t.Logf("did not generate %v", id)
+		for id := range allComplex {
+			if !generatedComplex[id] {
+				t.Logf("did not generate %v", id)
+			}
 		}
-	}
-	if len(generatedComplex) < len(allComplex)*9/10 {
-		t.Errorf("generated too few complex types: %v/%v", len(generatedComplex), len(allComplex))
-	}
+		if len(generatedComplex) < len(allComplex)*9/10 {
+			t.Errorf("generated too few complex types: %v/%v", len(generatedComplex), len(allComplex))
+		}
+	})
 }
 
 func TestSquash(t *testing.T) {
