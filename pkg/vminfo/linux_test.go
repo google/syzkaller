@@ -45,8 +45,8 @@ func TestLinuxSyscalls(t *testing.T) {
 			Data:   []byte(strings.Join(filesystems, "\nnodev\t")),
 		},
 	}
-	results := createSuccessfulResults(t, cfg.Target, checkProgs)
-	enabled, disabled, err := checker.FinishCheck(files, results)
+	results, featureInfos := createSuccessfulResults(t, cfg.Target, checkProgs)
+	enabled, disabled, features, err := checker.FinishCheck(files, results, featureInfos)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,6 +73,14 @@ func TestLinuxSyscalls(t *testing.T) {
 	expectEnabled := len(cfg.Syscalls) - len(expectDisabled)
 	if len(enabled) != expectEnabled {
 		t.Errorf("enabled only %v calls out of %v", len(enabled), expectEnabled)
+	}
+	if len(features) != len(flatrpc.EnumNamesFeature) {
+		t.Errorf("enabled only %v features out of %v", len(features), len(flatrpc.EnumNamesFeature))
+	}
+	for feat, info := range features {
+		if !info.Enabled {
+			t.Errorf("feature %v is not enabled: %v", flatrpc.EnumNamesFeature[feat], info.Reason)
+		}
 	}
 }
 

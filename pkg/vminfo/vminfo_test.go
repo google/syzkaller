@@ -56,8 +56,8 @@ func TestSyscalls(t *testing.T) {
 				cfg := testConfig(t, target.OS, target.Arch)
 				checker := New(cfg)
 				_, checkProgs := checker.StartCheck()
-				results := createSuccessfulResults(t, cfg.Target, checkProgs)
-				enabled, disabled, err := checker.FinishCheck(nil, results)
+				results, featureInfos := createSuccessfulResults(t, cfg.Target, checkProgs)
+				enabled, disabled, _, err := checker.FinishCheck(nil, results, featureInfos)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -73,7 +73,7 @@ func TestSyscalls(t *testing.T) {
 }
 
 func createSuccessfulResults(t *testing.T, target *prog.Target,
-	progs []rpctype.ExecutionRequest) []rpctype.ExecutionResult {
+	progs []rpctype.ExecutionRequest) ([]rpctype.ExecutionResult, []flatrpc.FeatureInfo) {
 	var results []rpctype.ExecutionResult
 	for _, req := range progs {
 		p, err := target.DeserializeExec(req.ProgData, nil)
@@ -82,13 +82,25 @@ func createSuccessfulResults(t *testing.T, target *prog.Target,
 		}
 		res := rpctype.ExecutionResult{
 			ID: req.ID,
-			Info: ipc.ProgInfo{
-				Calls: make([]ipc.CallInfo, len(p.Calls)),
-			},
+		}
+		for range p.Calls {
+			res.Info.Calls = append(res.Info.Calls, ipc.CallInfo{
+				Cover:  []uint32{1},
+				Signal: []uint32{1},
+				Comps: map[uint64]map[uint64]bool{
+					1: {2: true},
+				},
+			})
 		}
 		results = append(results, res)
 	}
-	return results
+	var features []flatrpc.FeatureInfo
+	for feat := range flatrpc.EnumNamesFeature {
+		features = append(features, flatrpc.FeatureInfo{
+			Id: feat,
+		})
+	}
+	return results, features
 }
 
 func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfo) {

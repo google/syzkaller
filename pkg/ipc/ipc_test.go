@@ -226,7 +226,7 @@ func TestExecutorCommonExt(t *testing.T) {
 		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 	}
 	bin := csource.BuildExecutor(t, target, "../..", "-DSYZ_TEST_COMMON_EXT_EXAMPLE=1")
-	out, err := osutil.RunCmd(time.Minute, "", bin, "setup")
+	out, err := osutil.RunCmd(time.Minute, "", bin, "setup", "0")
 	if err != nil {
 		t.Fatal(err)
 	}

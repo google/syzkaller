@@ -24,6 +24,7 @@ static void setup_usb(void)
 	if (dir == NULL)
 		fail("failed to open /dev");
 
+	bool have_vhci = false;
 	struct dirent* ent = NULL;
 	while ((ent = readdir(dir)) != NULL) {
 		if (ent->d_type != DT_CHR)
@@ -34,7 +35,10 @@ static void setup_usb(void)
 		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
 		if (chmod(path, 0666))
 			failmsg("failed to chmod vhci", "path=%s", path);
+		have_vhci = true;
 	}
+	if (!have_vhci)
+		fail("don't have any /dev/vhci devices");
 
 	closedir(dir);
 }

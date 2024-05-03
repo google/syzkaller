@@ -182,8 +182,8 @@ static bool use_cover_edges(uint64 pc)
 #if GOOS_netbsd
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
-    {"usb", setup_usb},
-    {"fault", setup_fault},
+    {rpc::Feature::USBEmulation, setup_usb},
+    {rpc::Feature::Fault, setup_fault},
 };
 
 static void setup_sysctl(void)

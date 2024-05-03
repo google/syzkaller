@@ -21,13 +21,16 @@ import (
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
@@ -91,24 +94,23 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	features, err := host.Check(target)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	if *flagOutput {
-		for _, feat := range features.Supported() {
-			log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
-		}
-	}
 	if *flagCollide {
 		log.Logf(0, "note: setting -collide to true is deprecated now and has no effect")
 	}
-	config, execOpts := createConfig(target, features, featuresFlags)
-	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {
-		log.Fatal(err)
+	var requestedSyscalls []int
+	if *flagStress {
+		syscallList := strings.Split(*flagSyscalls, ",")
+		if *flagSyscalls == "" {
+			syscallList = nil
+		}
+		requestedSyscalls, err = mgrconfig.ParseEnabledSyscalls(target, syscallList, nil)
+		if err != nil {
+			log.Fatalf("failed to parse enabled syscalls: %v", err)
+		}
 	}
+	config, execOpts, syscalls, features := createConfig(target, featuresFlags, requestedSyscalls)
 	var gateCallback func()
-	if features[host.FeatureLeak].Enabled {
+	if features&flatrpc.FeatureLeak != 0 {
 		gateCallback = func() {
 			output, err := osutil.RunCmd(10*time.Minute, "", config.Executor, "leak")
 			if err != nil {
@@ -119,12 +121,7 @@ func main() {
 	}
 	var choiceTable *prog.ChoiceTable
 	if *flagStress {
-		var syscalls []string
-		if *flagSyscalls != "" {
-			syscalls = strings.Split(*flagSyscalls, ",")
-		}
-		calls := buildCallList(target, syscalls)
-		choiceTable = target.BuildChoiceTable(progs, calls)
+		choiceTable = target.BuildChoiceTable(progs, syscalls)
 	}
 	sysTarget := targets.Get(*flagOS, *flagArch)
 	upperBase := getKernelUpperBase(sysTarget)
@@ -398,8 +395,8 @@ func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 	return progs
 }
 
-func createConfig(target *prog.Target, features *host.Features, featuresFlags csource.Features) (
-	*ipc.Config, *ipc.ExecOpts) {
+func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls []int) (
+	*ipc.Config, *ipc.ExecOpts, map[*prog.Syscall]bool, flatrpc.Feature) {
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -418,29 +415,64 @@ func createConfig(target *prog.Target, features *host.Features, featuresFlags cs
 		}
 		execOpts.ExecFlags |= ipc.FlagCollectComps
 	}
-	execOpts.EnvFlags |= ipc.FeaturesToFlags(features.ToFlatRPC(), featuresFlags)
-	return config, execOpts
-}
-
-func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool {
-	syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
+	cfg := &mgrconfig.Config{
+		Sandbox:    ipc.FlagsToSandbox(execOpts.EnvFlags),
+		SandboxArg: execOpts.SandboxArg,
+		Derived: mgrconfig.Derived{
+			TargetOS:     target.OS,
+			TargetArch:   target.Arch,
+			TargetVMArch: target.Arch,
+			Target:       target,
+			SysTarget:    targets.Get(target.OS, target.Arch),
+			Syscalls:     syscalls,
+		},
+	}
+	checker := vminfo.New(cfg)
+	files, requests := checker.StartCheck()
+	fileInfos := host.ReadFiles(files)
+	featureInfos, err := host.SetupFeatures(target, config.Executor, flatrpc.AllFeatures, featuresFlags)
 	if err != nil {
-		log.Fatalf("failed to parse enabled syscalls: %v", err)
+		log.Fatal(err)
 	}
-	enabledSyscalls := make(map[*prog.Syscall]bool)
-	for _, id := range syscallsIDs {
-		enabledSyscalls[target.Syscalls[id]] = true
-	}
-	calls, disabled, err := host.DetectSupportedSyscalls(target, "none", enabledSyscalls)
+	env, err := ipc.MakeEnv(config, 0)
 	if err != nil {
-		log.Fatalf("failed to detect host supported syscalls: %v", err)
+		log.Fatalf("failed to create ipc env: %v", err)
 	}
-	for c, reason := range disabled {
-		log.Logf(0, "unsupported syscall: %v: %v", c.Name, reason)
+	defer env.Close()
+	var results []rpctype.ExecutionResult
+	for _, req := range requests {
+		output, info, hanged, err := env.ExecProg(&req.ExecOpts, req.ProgData)
+		res := rpctype.ExecutionResult{
+			ID:     req.ID,
+			Output: output,
+		}
+		if info != nil {
+			res.Info = *info
+		}
+		if err != nil {
+			res.Error = err.Error()
+		}
+		if hanged && err == nil {
+			res.Error = "hanged"
+		}
+		results = append(results, res)
 	}
-	calls, disabled = target.TransitivelyEnabledCalls(calls)
-	for c, reason := range disabled {
-		log.Logf(0, "transitively unsupported: %v: %v", c.Name, reason)
+	enabledSyscalls, disabledSyscalls, features, err := checker.FinishCheck(fileInfos, results, featureInfos)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return calls
+	if *flagOutput {
+		for feat, info := range features {
+			log.Logf(0, "%-24v: %v", flatrpc.EnumNamesFeature[feat], info.Reason)
+		}
+		for c, reason := range disabledSyscalls {
+			log.Logf(0, "unsupported syscall: %v: %v", c.Name, reason)
+		}
+		enabledSyscalls, disabledSyscalls = target.TransitivelyEnabledCalls(enabledSyscalls)
+		for c, reason := range disabledSyscalls {
+			log.Logf(0, "transitively unsupported: %v: %v", c.Name, reason)
+		}
+	}
+	execOpts.EnvFlags |= ipc.FeaturesToFlags(features.Enabled(), featuresFlags)
+	return config, execOpts, enabledSyscalls, features.Enabled()
 }

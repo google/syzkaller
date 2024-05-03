@@ -36,9 +36,13 @@ type Checker struct {
 
 func New(cfg *mgrconfig.Config) *Checker {
 	var impl checker
-	switch {
-	case cfg.TargetOS == targets.Linux:
+	switch cfg.TargetOS {
+	case targets.Linux:
 		impl = new(linux)
+	case targets.NetBSD:
+		impl = new(netbsd)
+	case targets.OpenBSD:
+		impl = new(openbsd)
 	default:
 		impl = new(stub)
 	}
@@ -77,11 +81,11 @@ func (checker *Checker) StartCheck() ([]string, []rpctype.ExecutionRequest) {
 	return checker.checkFiles(), checker.checkContext.startCheck()
 }
 
-func (checker *Checker) FinishCheck(files []flatrpc.FileInfo, progs []rpctype.ExecutionResult) (
-	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
+func (checker *Checker) FinishCheck(files []flatrpc.FileInfo, progs []rpctype.ExecutionResult,
+	featureInfos []flatrpc.FeatureInfo) (map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	ctx := checker.checkContext
 	checker.checkContext = nil
-	return ctx.finishCheck(files, progs)
+	return ctx.finishCheck(files, progs, featureInfos)
 }
 
 type machineInfoFunc func(files filesystem, w io.Writer) (string, error)

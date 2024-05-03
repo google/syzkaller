@@ -4,11 +4,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"runtime"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -74,19 +72,7 @@ func main() {
 		enabled[c] = true
 	}
 	if r.CheckUnsupportedCalls {
-		sandbox := ipc.FlagsToSandbox(opts.EnvFlags)
-		_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, enabled)
-		if err != nil {
-			log.Fatalf("failed to get unsupported system calls: %v", err)
-		}
-
-		calls := make([]rpctype.SyscallReason, 0)
-		for c, reason := range unsupported {
-			calls = append(calls, rpctype.SyscallReason{
-				ID:     c.ID,
-				Reason: fmt.Sprintf("%s (not supported on kernel %d)", reason, rn.pool)})
-		}
-		a := &rpctype.UpdateUnsupportedArgs{Pool: rn.pool, UnsupportedCalls: calls}
+		a := &rpctype.UpdateUnsupportedArgs{Pool: rn.pool, UnsupportedCalls: nil}
 		if err := vrf.Call("Verifier.UpdateUnsupported", a, nil); err != nil {
 			log.Fatalf("failed to send unsupported system calls: %v", err)
 		}

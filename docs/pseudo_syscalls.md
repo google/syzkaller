@@ -56,17 +56,10 @@ are violated (e.g. passing `NULL` to a `non-NULL` argument, or passing
 that.
 
 Now, to handle the pseudo-syscall properly we have to update the
-`isSupportedSyzkall` in
-[syscalls_linux.go](../pkg/host/syscalls_linux.go) and add a particular
+`linuxSyscallChecks` in
+[linux_syscalls.go](../pkg/vminfo/linux_syscalls.go) and add a particular
 case for this syscall, enabling it when necessary. If we want to enable
-it unconditionally we can simply make `isSupportedSyzkall` return `true,
-""` for it:
-
-    func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
-            switch c.CallName {
-            ...
-            case "syz_mycall":
-                    return true, ""
+it unconditionally we can simply use `alwaysSupported` for it.
 
 Finally, run `make generate`. Now you can use it in a syscall
 description file as if it was a regular system call:

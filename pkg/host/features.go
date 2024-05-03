@@ -4,212 +4,73 @@
 package host
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-const (
-	FeatureCoverage = iota
-	FeatureComparisons
-	FeatureExtraCoverage
-	FeatureDelayKcovMmap
-	FeatureSandboxSetuid
-	FeatureSandboxNamespace
-	FeatureSandboxAndroid
-	FeatureFault
-	FeatureLeak
-	FeatureNetInjection
-	FeatureNetDevices
-	FeatureKCSAN
-	FeatureDevlinkPCI
-	FeatureNicVF
-	FeatureUSBEmulation
-	FeatureVhciInjection
-	FeatureWifiEmulation
-	Feature802154Emulation
-	FeatureSwap
-	numFeatures
-)
-
-type Feature struct {
-	Name    string
-	Enabled bool
-	Reason  string
-}
-
-type Features [numFeatures]Feature
-
-func (features *Features) Supported() *Features {
-	return features
-}
-
-func (features *Features) ToFlatRPC() flatrpc.Feature {
-	var result flatrpc.Feature
-	if features[FeatureCoverage].Enabled {
-		result |= flatrpc.FeatureCoverage
+// SetupFeatures enables and does any one-time setup for the requested features on the host.
+// Note: this can be called multiple times and must be idempotent.
+func SetupFeatures(target *prog.Target, executor string, mask flatrpc.Feature, flags csource.Features) (
+	[]flatrpc.FeatureInfo, error) {
+	if noHostChecks(target) {
+		return nil, nil
 	}
-	if features[FeatureComparisons].Enabled {
-		result |= flatrpc.FeatureComparisons
-	}
-	if features[FeatureExtraCoverage].Enabled {
-		result |= flatrpc.FeatureExtraCoverage
-	}
-	if features[FeatureDelayKcovMmap].Enabled {
-		result |= flatrpc.FeatureDelayKcovMmap
-	}
-	if features[FeatureSandboxSetuid].Enabled {
-		result |= flatrpc.FeatureSandboxSetuid
-	}
-	if features[FeatureSandboxNamespace].Enabled {
-		result |= flatrpc.FeatureSandboxNamespace
-	}
-	if features[FeatureSandboxAndroid].Enabled {
-		result |= flatrpc.FeatureSandboxAndroid
-	}
-	if features[FeatureFault].Enabled {
-		result |= flatrpc.FeatureFault
-	}
-	if features[FeatureLeak].Enabled {
-		result |= flatrpc.FeatureLeak
-	}
-	if features[FeatureNetInjection].Enabled {
-		result |= flatrpc.FeatureNetInjection
-	}
-	if features[FeatureNetDevices].Enabled {
-		result |= flatrpc.FeatureNetDevices
-	}
-	if features[FeatureKCSAN].Enabled {
-		result |= flatrpc.FeatureKCSAN
-	}
-	if features[FeatureDevlinkPCI].Enabled {
-		result |= flatrpc.FeatureDevlinkPCI
-	}
-	if features[FeatureNicVF].Enabled {
-		result |= flatrpc.FeatureNicVF
-	}
-	if features[FeatureUSBEmulation].Enabled {
-		result |= flatrpc.FeatureUSBEmulation
-	}
-	if features[FeatureVhciInjection].Enabled {
-		result |= flatrpc.FeatureVhciInjection
-	}
-	if features[FeatureWifiEmulation].Enabled {
-		result |= flatrpc.FeatureWifiEmulation
-	}
-	if features[Feature802154Emulation].Enabled {
-		result |= flatrpc.FeatureLRWPANEmulation
-	}
-	if features[FeatureSwap].Enabled {
-		result |= flatrpc.FeatureSwap
-	}
-	return result
-}
-
-var checkFeature [numFeatures]func() string
-
-func unconditionallyEnabled() string { return "" }
-
-// Check detects features supported on the host.
-// Empty string for a feature means the feature is supported,
-// otherwise the string contains the reason why the feature is not supported.
-func Check(target *prog.Target) (*Features, error) {
-	const unsupported = "support is not implemented in syzkaller"
-	res := &Features{
-		FeatureCoverage:         {Name: "code coverage", Reason: unsupported},
-		FeatureComparisons:      {Name: "comparison tracing", Reason: unsupported},
-		FeatureExtraCoverage:    {Name: "extra coverage", Reason: unsupported},
-		FeatureDelayKcovMmap:    {Name: "delay kcov mmap", Reason: unsupported},
-		FeatureSandboxSetuid:    {Name: "setuid sandbox", Reason: unsupported},
-		FeatureSandboxNamespace: {Name: "namespace sandbox", Reason: unsupported},
-		FeatureSandboxAndroid:   {Name: "Android sandbox", Reason: unsupported},
-		FeatureFault:            {Name: "fault injection", Reason: unsupported},
-		FeatureLeak:             {Name: "leak checking", Reason: unsupported},
-		FeatureNetInjection:     {Name: "net packet injection", Reason: unsupported},
-		FeatureNetDevices:       {Name: "net device setup", Reason: unsupported},
-		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
-		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
-		FeatureNicVF:            {Name: "NIC VF setup", Reason: unsupported},
-		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
-		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
-		FeatureWifiEmulation:    {Name: "wifi device emulation", Reason: unsupported},
-		Feature802154Emulation:  {Name: "802.15.4 emulation", Reason: unsupported},
-		FeatureSwap:             {Name: "swap file", Reason: unsupported},
-	}
-	for n, check := range featureCheckers(target) {
-		if check == nil {
+	var results []flatrpc.FeatureInfo
+	resultC := make(chan flatrpc.FeatureInfo)
+	for feat := range flatrpc.EnumNamesFeature {
+		feat := feat
+		if mask&feat == 0 {
 			continue
 		}
-		if reason := check(); reason == "" {
-			if n == FeatureCoverage && !target.ExecutorUsesShmem {
-				return nil, fmt.Errorf("enabling FeatureCoverage requires enabling ExecutorUsesShmem")
-			}
-			res[n].Enabled = true
-			res[n].Reason = "enabled"
-		} else {
-			res[n].Reason = reason
+		opt := ipc.FlatRPCFeaturesToCSource[feat]
+		if opt != "" && flags != nil && !flags["binfmt_misc"].Enabled {
+			continue
 		}
+		results = append(results, flatrpc.FeatureInfo{})
+		go setupFeature(executor, feat, resultC)
 	}
-	return res, nil
+	// Feature 0 setups common things that are not part of any feature.
+	setupFeature(executor, 0, nil)
+	for i := range results {
+		results[i] = <-resultC
+	}
+	return results, nil
 }
 
-// Setup enables and does any one-time setup for the requested features on the host.
-// Note: this can be called multiple times and must be idempotent.
-func Setup(target *prog.Target, features *Features, featureFlags csource.Features, executor string) error {
-	if noHostChecks(target) {
-		return nil
-	}
+func setupFeature(executor string, feat flatrpc.Feature, resultC chan flatrpc.FeatureInfo) {
 	args := strings.Split(executor, " ")
 	executor = args[0]
-	args = append(args[1:], "setup")
-	if features[FeatureLeak].Enabled {
-		args = append(args, "leak")
+	args = append(args[1:], "setup", fmt.Sprint(uint64(feat)))
+	output, err := osutil.RunCmd(3*time.Minute, "", executor, args...)
+	log.Logf(1, "executor %v\n%s", args, bytes.ReplaceAll(output, []byte("SYZFAIL:"), nil))
+	outputStr := string(output)
+	if err == nil {
+		outputStr = ""
+	} else if outputStr == "" {
+		outputStr = err.Error()
 	}
-	if features[FeatureFault].Enabled {
-		args = append(args, "fault")
+	needSetup := true
+	if strings.Contains(outputStr, "feature setup is not needed") {
+		needSetup = false
+		outputStr = ""
 	}
-	if target.OS == targets.Linux && featureFlags["binfmt_misc"].Enabled {
-		args = append(args, "binfmt_misc")
-	}
-	if features[FeatureKCSAN].Enabled {
-		args = append(args, "kcsan")
-	}
-	if features[FeatureUSBEmulation].Enabled {
-		args = append(args, "usb")
-	}
-	if featureFlags["ieee802154"].Enabled && features[Feature802154Emulation].Enabled {
-		args = append(args, "802154")
-	}
-	if features[FeatureSwap].Enabled {
-		args = append(args, "swap")
-	}
-	output, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
-	log.Logf(1, "executor %v\n%s", args, output)
-	return err
-}
-
-func featureCheckers(target *prog.Target) [numFeatures]func() string {
-	ret := [numFeatures]func() string{}
-	if target.OS == targets.TestOS {
-		sysTarget := targets.Get(target.OS, target.Arch)
-		ret[FeatureCoverage] = func() string {
-			if sysTarget.ExecutorUsesShmem && sysTarget.PtrSize == 8 {
-				return ""
-			}
-			return "disabled"
+	if resultC != nil {
+		resultC <- flatrpc.FeatureInfo{
+			Id:        feat,
+			NeedSetup: needSetup,
+			Reason:    outputStr,
 		}
 	}
-	if noHostChecks(target) {
-		return ret
-	}
-	return checkFeature
 }
 
 func noHostChecks(target *prog.Target) bool {

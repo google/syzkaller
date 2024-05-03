@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -54,18 +53,17 @@ func main() {
 	}
 	osutil.MkdirAll(cfg.Workdir)
 	mgr := &Manager{
-		cfg:                cfg,
-		vmPool:             vmPool,
-		checker:            vminfo.New(cfg),
-		reporter:           reporter,
-		debug:              *flagDebug,
-		requests:           make(chan *runtest.RunRequest, 4*vmPool.Count()*cfg.Procs),
-		checkResultC:       make(chan *rpctype.CheckArgs, 1),
-		checkProgsDone:     make(chan bool),
-		checkFeaturesReady: make(chan bool),
-		vmStop:             make(chan bool),
-		reqMap:             make(map[int64]*runtest.RunRequest),
-		pending:            make(map[string]map[int64]bool),
+		cfg:            cfg,
+		vmPool:         vmPool,
+		checker:        vminfo.New(cfg),
+		reporter:       reporter,
+		debug:          *flagDebug,
+		requests:       make(chan *runtest.RunRequest, 4*vmPool.Count()*cfg.Procs),
+		checkResultC:   make(chan *rpctype.CheckArgs, 1),
+		checkProgsDone: make(chan bool),
+		vmStop:         make(chan bool),
+		reqMap:         make(map[int64]*runtest.RunRequest),
+		pending:        make(map[string]map[int64]bool),
 	}
 	mgr.checkFiles, mgr.checkProgs = mgr.checker.StartCheck()
 	mgr.needCheckResults = len(mgr.checkProgs)
@@ -99,11 +97,8 @@ func main() {
 		}()
 	}
 	checkResult := <-mgr.checkResultC
-	mgr.checkFeatures = checkResult.Features
-	mgr.checkFilesInfo = checkResult.Files
-	close(mgr.checkFeaturesReady)
 	<-mgr.checkProgsDone
-	calls, _, err := mgr.checker.FinishCheck(mgr.checkFilesInfo, mgr.checkResults)
+	calls, _, features, err := mgr.checker.FinishCheck(checkResult.Files, mgr.checkResults, checkResult.Features)
 	if err != nil {
 		log.Fatalf("failed to detect enabled syscalls: %v", err)
 	}
@@ -113,8 +108,8 @@ func main() {
 	// Note: syz_emit_ethernet/syz_extract_tcp_res were manually disabled for "" ("no") sandbox,
 	// b/c tun is not setup without sandbox.
 	enabledCalls[mgr.cfg.Sandbox] = calls
-	for _, feat := range checkResult.Features.Supported() {
-		fmt.Printf("%-24v: %v\n", feat.Name, feat.Reason)
+	for feat, info := range features {
+		fmt.Printf("%-24v: %v\n", flatrpc.EnumNamesFeature[feat], info.Reason)
 	}
 	for sandbox, calls := range enabledCalls {
 		if sandbox == "" {
@@ -125,7 +120,7 @@ func main() {
 	ctx := &runtest.Context{
 		Dir:          filepath.Join(cfg.Syzkaller, "sys", cfg.Target.OS, "test"),
 		Target:       cfg.Target,
-		Features:     checkResult.Features.ToFlatRPC(),
+		Features:     features.Enabled(),
 		EnabledCalls: enabledCalls,
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
@@ -143,23 +138,20 @@ func main() {
 }
 
 type Manager struct {
-	cfg                *mgrconfig.Config
-	vmPool             *vm.Pool
-	checker            *vminfo.Checker
-	checkFiles         []string
-	checkFilesInfo     []flatrpc.FileInfo
-	checkProgs         []rpctype.ExecutionRequest
-	checkResults       []rpctype.ExecutionResult
-	needCheckResults   int
-	checkProgsDone     chan bool
-	reporter           *report.Reporter
-	requests           chan *runtest.RunRequest
-	checkFeatures      *host.Features
-	checkFeaturesReady chan bool
-	checkResultC       chan *rpctype.CheckArgs
-	vmStop             chan bool
-	port               int
-	debug              bool
+	cfg              *mgrconfig.Config
+	vmPool           *vm.Pool
+	checker          *vminfo.Checker
+	checkFiles       []string
+	checkProgs       []rpctype.ExecutionRequest
+	checkResults     []rpctype.ExecutionResult
+	needCheckResults int
+	checkProgsDone   chan bool
+	reporter         *report.Reporter
+	requests         chan *runtest.RunRequest
+	checkResultC     chan *rpctype.CheckArgs
+	vmStop           chan bool
+	port             int
+	debug            bool
 
 	reqMu   sync.Mutex
 	reqSeq  int64
@@ -240,12 +232,10 @@ func (mgr *Manager) finishRequests(name string, rep *report.Report) error {
 }
 
 func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
-	select {
-	case <-mgr.checkFeaturesReady:
-		r.Features = mgr.checkFeatures
-	default:
-		r.ReadFiles = append(mgr.checker.RequiredFiles(), mgr.checkFiles...)
-		r.ReadGlobs = mgr.cfg.Target.RequiredGlobs()
+	r.ReadFiles = append(mgr.checker.RequiredFiles(), mgr.checkFiles...)
+	r.ReadGlobs = mgr.cfg.Target.RequiredGlobs()
+	for feat := range flatrpc.EnumNamesFeature {
+		r.Features |= feat
 	}
 	return nil
 }

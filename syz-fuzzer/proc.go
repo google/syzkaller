@@ -121,7 +121,10 @@ func (proc *Proc) executeProgram(req rpctype.ExecutionRequest) (*ipc.ProgInfo, [
 			proc.tool.startExecutingCall(req.ID, proc.pid, try)
 			output, info, hanged, err = proc.env.ExecProg(&req.ExecOpts, req.ProgData)
 			proc.tool.gate.Leave(ticket)
-			log.Logf(2, "result hanged=%v err=%v: %s", hanged, err, output)
+			// Don't print output if returning error b/c it may contain SYZFAIL.
+			if !req.ReturnError {
+				log.Logf(2, "result hanged=%v err=%v: %s", hanged, err, output)
+			}
 			if hanged && err == nil && req.ReturnError {
 				err = errors.New("hanged")
 			}
