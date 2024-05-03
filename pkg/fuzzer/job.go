@@ -9,27 +9,15 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
 
-const (
-	smashPrio int64 = iota + 1
-	genPrio
-	triagePrio
-	candidatePrio
-	candidateTriagePrio
-)
-
 type job interface {
 	run(fuzzer *Fuzzer)
-	priority() priority
-}
-
-type jobSaveID interface {
-	saveID(id int64)
 }
 
 type ProgTypes int
@@ -38,44 +26,20 @@ const (
 	progCandidate ProgTypes = 1 << iota
 	progMinimized
 	progSmashed
-	progInTriage
 )
 
-type jobPriority struct {
-	prio priority
-}
-
-var _ jobSaveID = new(jobPriority)
-
-func newJobPriority(base int64) jobPriority {
-	prio := append(make(priority, 0, 2), base)
-	return jobPriority{prio}
-}
-
-func (jp jobPriority) priority() priority {
-	return jp.prio
-}
-
-// If we prioritize execution requests only by the base priorities of their origin
-// jobs, we risk letting 1000s of simultaneous jobs slowly progress in parallel.
-// It's better to let same-prio jobs that were started earlier finish first.
-// saveID() allows Fuzzer to attach this sub-prio at the moment of job creation.
-func (jp *jobPriority) saveID(id int64) {
-	jp.prio = append(jp.prio, id)
-}
-
-func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
+func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
 		prog.RecommendedCalls,
 		fuzzer.ChoiceTable())
-	return &Request{
+	return &queue.Request{
 		Prog:       p,
-		NeedSignal: NewSignal,
-		stat:       fuzzer.statExecGenerate,
+		NeedSignal: queue.NewSignal,
+		Stat:       fuzzer.statExecGenerate,
 	}
 }
 
-func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
+func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.Config.Corpus.ChooseProgram(rnd)
 	if p == nil {
 		return nil
@@ -87,14 +51,14 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *Request {
 		fuzzer.Config.NoMutateCalls,
 		fuzzer.Config.Corpus.Programs(),
 	)
-	return &Request{
+	return &queue.Request{
 		Prog:       newP,
-		NeedSignal: NewSignal,
-		stat:       fuzzer.statExecFuzz,
+		NeedSignal: queue.NewSignal,
+		Stat:       fuzzer.statExecFuzz,
 	}
 }
 
-func candidateRequest(fuzzer *Fuzzer, input Candidate) *Request {
+func candidateRequest(fuzzer *Fuzzer, input Candidate) (*queue.Request, ProgTypes) {
 	flags := progCandidate
 	if input.Minimized {
 		flags |= progMinimized
@@ -102,12 +66,11 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) *Request {
 	if input.Smashed {
 		flags |= progSmashed
 	}
-	return &Request{
+	return &queue.Request{
 		Prog:       input.Prog,
-		NeedSignal: NewSignal,
-		stat:       fuzzer.statExecCandidate,
-		flags:      flags,
-	}
+		NeedSignal: queue.NewSignal,
+		Stat:       fuzzer.statExecCandidate,
+	}, flags
 }
 
 // triageJob are programs for which we noticed potential new coverage during
@@ -120,27 +83,28 @@ type triageJob struct {
 	info      ipc.CallInfo
 	newSignal signal.Signal
 	flags     ProgTypes
-	jobPriority
+	fuzzer    *Fuzzer
+	queue     queue.Executor
 }
 
-func triageJobPrio(flags ProgTypes) jobPriority {
-	if flags&progCandidate > 0 {
-		return newJobPriority(candidateTriagePrio)
-	}
-	return newJobPriority(triagePrio)
+func (job *triageJob) execute(req *queue.Request, opts ...execOpt) *queue.Result {
+	return job.fuzzer.execute(job.queue, req, opts...)
 }
 
 func (job *triageJob) run(fuzzer *Fuzzer) {
 	fuzzer.statNewInputs.Add(1)
+	job.fuzzer = fuzzer
+
 	callName := fmt.Sprintf("call #%v %v", job.call, job.p.CallName(job.call))
 	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", callName, job.newSignal.Len())
+
 	// Compute input coverage and non-flaky signal for minimization.
-	info, stop := job.deflake(fuzzer.exec, fuzzer.statExecTriage, fuzzer.Config.FetchRawCover)
+	info, stop := job.deflake(job.execute, fuzzer.statExecTriage, fuzzer.Config.FetchRawCover)
 	if stop || info.newStableSignal.Empty() {
 		return
 	}
 	if job.flags&progMinimized == 0 {
-		stop = job.minimize(fuzzer, info.newStableSignal)
+		stop = job.minimize(info.newStableSignal)
 		if stop {
 			return
 		}
@@ -172,8 +136,8 @@ type deflakedCover struct {
 	rawCover        []uint32
 }
 
-func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val, rawCover bool) (
-	info deflakedCover, stop bool) {
+func (job *triageJob) deflake(exec func(*queue.Request, ...execOpt) *queue.Result, stat *stats.Val,
+	rawCover bool) (info deflakedCover, stop bool) {
 	// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
 	// The triage algorithm must tolerate this, so let's pick the signal that is common
 	// to 3 out of 5 runs.
@@ -194,13 +158,12 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 			// There's no chance to get coverage common to needRuns.
 			break
 		}
-		result := exec(job, &Request{
+		result := exec(&queue.Request{
 			Prog:       job.p,
-			NeedSignal: AllSignal,
+			NeedSignal: queue.AllSignal,
 			NeedCover:  true,
-			stat:       stat,
-			flags:      progInTriage,
-		})
+			Stat:       stat,
+		}, &dontTriage{})
 		if result.Stop {
 			stop = true
 			return
@@ -226,7 +189,7 @@ func (job *triageJob) deflake(exec func(job, *Request) *Result, stat *stats.Val,
 	return
 }
 
-func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bool) {
+func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 	const minimizeAttempts = 3
 	job.p, job.call = prog.Minimize(job.p, job.call, false,
 		func(p1 *prog.Prog, call1 int) bool {
@@ -234,12 +197,12 @@ func (job *triageJob) minimize(fuzzer *Fuzzer, newSignal signal.Signal) (stop bo
 				return false
 			}
 			for i := 0; i < minimizeAttempts; i++ {
-				result := fuzzer.exec(job, &Request{
+				result := job.execute(&queue.Request{
 					Prog:             p1,
-					NeedSignal:       NewSignal,
+					NeedSignal:       queue.NewSignal,
 					SignalFilter:     newSignal,
 					SignalFilterCall: call1,
-					stat:             fuzzer.statExecMinimize,
+					Stat:             job.fuzzer.statExecMinimize,
 				})
 				if result.Stop {
 					stop = true
@@ -288,10 +251,6 @@ type smashJob struct {
 	call int
 }
 
-func (job *smashJob) priority() priority {
-	return priority{smashPrio}
-}
-
 func (job *smashJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(2, "smashing the program %s (call=%d):", job.p, job.call)
 	if fuzzer.Config.Comparisons && job.call >= 0 {
@@ -309,18 +268,18 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.ChoiceTable(),
 			fuzzer.Config.NoMutateCalls,
 			fuzzer.Config.Corpus.Programs())
-		result := fuzzer.exec(job, &Request{
+		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 			Prog:       p,
-			NeedSignal: NewSignal,
-			stat:       fuzzer.statExecSmash,
+			NeedSignal: queue.NewSignal,
+			Stat:       fuzzer.statExecSmash,
 		})
 		if result.Stop {
 			return
 		}
 		if fuzzer.Config.Collide {
-			result := fuzzer.exec(job, &Request{
+			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 				Prog: randomCollide(p, rnd),
-				stat: fuzzer.statExecCollide,
+				Stat: fuzzer.statExecCollide,
 			})
 			if result.Stop {
 				return
@@ -360,9 +319,9 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 			job.call, nth)
 		newProg := job.p.Clone()
 		newProg.Calls[job.call].Props.FailNth = nth
-		result := fuzzer.exec(job, &Request{
+		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 			Prog: newProg,
-			stat: fuzzer.statExecSmash,
+			Stat: fuzzer.statExecSmash,
 		})
 		if result.Stop {
 			return
@@ -380,20 +339,16 @@ type hintsJob struct {
 	call int
 }
 
-func (job *hintsJob) priority() priority {
-	return priority{smashPrio}
-}
-
 func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// First execute the original program twice to get comparisons from KCOV.
 	// The second execution lets us filter out flaky values, which seem to constitute ~30-40%.
 	p := job.p
 	var comps prog.CompMap
 	for i := 0; i < 2; i++ {
-		result := fuzzer.exec(job, &Request{
+		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 			Prog:      p,
 			NeedHints: true,
-			stat:      fuzzer.statExecSeed,
+			Stat:      fuzzer.statExecSeed,
 		})
 		if result.Stop || result.Info == nil {
 			return
@@ -413,10 +368,10 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(job.call, comps,
 		func(p *prog.Prog) bool {
-			result := fuzzer.exec(job, &Request{
+			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 				Prog:       p,
-				NeedSignal: NewSignal,
-				stat:       fuzzer.statExecHint,
+				NeedSignal: queue.NewSignal,
+				Stat:       fuzzer.statExecHint,
 			})
 			return !result.Stop
 		})

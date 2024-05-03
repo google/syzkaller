@@ -1,11 +1,10 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package fuzzer
+package queue
 
 import (
 	"container/heap"
-	"sync"
 )
 
 type priority []int64
@@ -30,34 +29,33 @@ func (p priority) greaterThan(other priority) bool {
 	return false
 }
 
-type priorityQueue[T any] struct {
+func (p priority) next() priority {
+	if len(p) == 0 {
+		return p
+	}
+	newPrio := append([]int64{}, p...)
+	newPrio[len(newPrio)-1]--
+	return newPrio
+}
+
+type priorityQueueOps[T any] struct {
 	impl priorityQueueImpl[T]
-	mu   sync.RWMutex
 }
 
-func makePriorityQueue[T any]() *priorityQueue[T] {
-	return &priorityQueue[T]{}
-}
-
-func (pq *priorityQueue[T]) Len() int {
-	pq.mu.RLock()
-	defer pq.mu.RUnlock()
+func (pq *priorityQueueOps[T]) Len() int {
 	return pq.impl.Len()
 }
 
-func (pq *priorityQueue[T]) push(item *priorityQueueItem[T]) {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
-	heap.Push(&pq.impl, item)
+func (pq *priorityQueueOps[T]) Push(item T, prio priority) {
+	heap.Push(&pq.impl, &priorityQueueItem[T]{item, prio})
 }
 
-func (pq *priorityQueue[T]) tryPop() *priorityQueueItem[T] {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
+func (pq *priorityQueueOps[T]) Pop() T {
 	if len(pq.impl) == 0 {
-		return nil
+		var def T
+		return def
 	}
-	return heap.Pop(&pq.impl).(*priorityQueueItem[T])
+	return heap.Pop(&pq.impl).(*priorityQueueItem[T]).value
 }
 
 // The implementation below is based on the example provided
