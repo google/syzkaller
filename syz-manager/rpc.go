@@ -42,7 +42,7 @@ type RPCServer struct {
 	needCheckResults int
 	checkFailures    int
 	checkFeatures    *host.Features
-	modules          []host.KernelModule
+	modules          []cover.KernelModule
 	canonicalModules *cover.Canonicalizer
 	execCoverFilter  map[uint32]uint32
 	coverFilter      map[uint32]uint32

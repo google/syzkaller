@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -47,7 +48,7 @@ func New(cfg *mgrconfig.Config) *Checker {
 	}
 }
 
-func (checker *Checker) MachineInfo(fileInfos []host.FileInfo) ([]host.KernelModule, []byte, error) {
+func (checker *Checker) MachineInfo(fileInfos []host.FileInfo) ([]cover.KernelModule, []byte, error) {
 	files := createVirtualFilesystem(fileInfos)
 	modules, err := checker.parseModules(files)
 	if err != nil {
@@ -88,7 +89,7 @@ type machineInfoFunc func(files filesystem, w io.Writer) (string, error)
 type checker interface {
 	RequiredFiles() []string
 	checkFiles() []string
-	parseModules(files filesystem) ([]host.KernelModule, error)
+	parseModules(files filesystem) ([]cover.KernelModule, error)
 	machineInfos() []machineInfoFunc
 	syscallCheck(*checkContext, *prog.Syscall) string
 }
@@ -148,7 +149,7 @@ func (stub) checkFiles() []string {
 	return nil
 }
 
-func (stub) parseModules(files filesystem) ([]host.KernelModule, error) {
+func (stub) parseModules(files filesystem) ([]cover.KernelModule, error) {
 	return nil, nil
 }
 

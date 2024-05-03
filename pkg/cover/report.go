@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/exp/maps"
@@ -29,10 +28,12 @@ type Prog struct {
 	PCs  []uint64
 }
 
+type KernelModule = backend.KernelModule
+
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
-	modules []host.KernelModule, rawCover bool) (*ReportGenerator, error) {
+	modules []KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
 		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {

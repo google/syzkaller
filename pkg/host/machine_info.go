@@ -9,12 +9,6 @@ import (
 	"strings"
 )
 
-type KernelModule struct {
-	Name string `json:"Name"`
-	Addr uint64 `json:"Addr"`
-	Size uint64 `json:"Size"`
-}
-
 type FileInfo struct {
 	Name   string
 	Exists bool

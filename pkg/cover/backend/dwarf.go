@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
@@ -31,7 +30,7 @@ type dwarfParams struct {
 	buildDir              string
 	splitBuildDelimiters  []string
 	moduleObj             []string
-	hostModules           []host.KernelModule
+	hostModules           []KernelModule
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*Module) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
