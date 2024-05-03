@@ -79,6 +79,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"runtime"
 	"sync"
 
 	"golang.org/x/tools/internal/aliases"
@@ -335,7 +336,7 @@ func (b *builder) builtin(fn *Function, obj *types.Builtin, args []ast.Expr, typ
 		// We must still evaluate the value, though.  (If it
 		// was side-effect free, the whole call would have
 		// been constant-folded.)
-		t, _ := deref(fn.typeOf(args[0]))
+		t := typeparams.Deref(fn.typeOf(args[0]))
 		if at, ok := typeparams.CoreType(t).(*types.Array); ok {
 			b.expr(fn, args[0]) // for effects only
 			return intConst(at.Len())
@@ -391,7 +392,7 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) lvalue {
 		return &address{addr: v, pos: e.Pos(), expr: e}
 
 	case *ast.CompositeLit:
-		typ, _ := deref(fn.typeOf(e))
+		typ := typeparams.Deref(fn.typeOf(e))
 		var v *Alloc
 		if escaping {
 			v = emitNew(fn, typ, e.Lbrace, "complit")
@@ -512,17 +513,15 @@ func (b *builder) assign(fn *Function, loc lvalue, e ast.Expr, isZero bool, sb *
 		// A CompositeLit never evaluates to a pointer,
 		// so if the type of the location is a pointer,
 		// an &-operation is implied.
-		if _, ok := loc.(blank); !ok { // avoid calling blank.typ()
-			if _, ok := deref(loc.typ()); ok {
-				ptr := b.addr(fn, e, true).address(fn)
-				// copy address
-				if sb != nil {
-					sb.store(loc, ptr)
-				} else {
-					loc.store(fn, ptr)
-				}
-				return
+		if !is[blank](loc) && isPointerCore(loc.typ()) { // avoid calling blank.typ()
+			ptr := b.addr(fn, e, true).address(fn)
+			// copy address
+			if sb != nil {
+				sb.store(loc, ptr)
+			} else {
+				loc.store(fn, ptr)
 			}
+			return
 		}
 
 		if _, ok := loc.(*address); ok {
@@ -794,7 +793,7 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 			// The result is a "bound".
 			obj := sel.obj.(*types.Func)
 			rt := fn.typ(recvType(obj))
-			_, wantAddr := deref(rt)
+			wantAddr := isPointer(rt)
 			escaping := true
 			v := b.receiver(fn, e.X, wantAddr, escaping, sel)
 
@@ -922,7 +921,7 @@ func (b *builder) stmtList(fn *Function, list []ast.Stmt) {
 // escaping is defined as per builder.addr().
 func (b *builder) receiver(fn *Function, e ast.Expr, wantAddr, escaping bool, sel *selection) Value {
 	var v Value
-	if _, eptr := deref(fn.typeOf(e)); wantAddr && !sel.indirect && !eptr {
+	if wantAddr && !sel.indirect && !isPointerCore(fn.typeOf(e)) {
 		v = b.addr(fn, e, escaping).address(fn)
 	} else {
 		v = b.expr(fn, e)
@@ -934,7 +933,7 @@ func (b *builder) receiver(fn *Function, e ast.Expr, wantAddr, escaping bool, se
 	if types.IsInterface(v.Type()) {
 		// When v is an interface, sel.Kind()==MethodValue and v.f is invoked.
 		// So v is not loaded, even if v has a pointer core type.
-	} else if _, vptr := deref(v.Type()); !wantAddr && vptr {
+	} else if !wantAddr && isPointerCore(v.Type()) {
 		v = emitLoad(fn, v)
 	}
 	return v
@@ -953,7 +952,7 @@ func (b *builder) setCallFunc(fn *Function, e *ast.CallExpr, c *CallCommon) {
 			obj := sel.obj.(*types.Func)
 			recv := recvType(obj)
 
-			_, wantAddr := deref(recv)
+			wantAddr := isPointer(recv)
 			escaping := true
 			v := b.receiver(fn, selector.X, wantAddr, escaping, sel)
 			if types.IsInterface(recv) {
@@ -1214,12 +1213,12 @@ func (b *builder) arrayLen(fn *Function, elts []ast.Expr) int64 {
 // literal has type *T behaves like &T{}.
 // In that case, addr must hold a T, not a *T.
 func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero bool, sb *storebuf) {
-	typ, _ := deref(fn.typeOf(e)) // type with name [may be type param]
+	typ := typeparams.Deref(fn.typeOf(e)) // retain the named/alias/param type, if any
 	switch t := typeparams.CoreType(typ).(type) {
 	case *types.Struct:
 		if !isZero && len(e.Elts) != t.NumFields() {
 			// memclear
-			zt, _ := deref(addr.Type())
+			zt := typeparams.MustDeref(addr.Type())
 			sb.store(&address{addr, e.Lbrace, nil}, zeroConst(zt))
 			isZero = true
 		}
@@ -1252,7 +1251,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 	case *types.Array, *types.Slice:
 		var at *types.Array
 		var array Value
-		switch t := aliases.Unalias(t).(type) {
+		switch t := t.(type) {
 		case *types.Slice:
 			at = types.NewArray(t.Elem(), b.arrayLen(fn, e.Elts))
 			array = emitNew(fn, at, e.Lbrace, "slicelit")
@@ -1262,7 +1261,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 
 			if !isZero && int64(len(e.Elts)) != at.Len() {
 				// memclear
-				zt, _ := deref(array.Type())
+				zt := typeparams.MustDeref(array.Type())
 				sb.store(&address{array, e.Lbrace, nil}, zeroConst(zt))
 			}
 		}
@@ -1318,7 +1317,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 			//	map[*struct{}]bool{&struct{}{}: true}
 			wantAddr := false
 			if _, ok := unparen(e.Key).(*ast.CompositeLit); ok {
-				_, wantAddr = deref(t.Key())
+				wantAddr = isPointerCore(t.Key())
 			}
 
 			var key Value
@@ -1865,7 +1864,7 @@ func (b *builder) forStmtGo122(fn *Function, s *ast.ForStmt, label *lblock) {
 		fn.emit(phi)
 
 		fn.currentBlock = post
-		// If next is is local, it reuses the address and zeroes the old value so
+		// If next is local, it reuses the address and zeroes the old value so
 		// load before allocating next.
 		load := emitLoad(fn, phi)
 		next := emitLocal(fn, typ, v.Pos(), v.Name())
@@ -1991,7 +1990,7 @@ func (b *builder) rangeIndexed(fn *Function, x Value, tv types.Type, pos token.P
 
 	// Determine number of iterations.
 	var length Value
-	dt, _ := deref(x.Type())
+	dt := typeparams.Deref(x.Type())
 	if arr, ok := typeparams.CoreType(dt).(*types.Array); ok {
 		// For array or *array, the number of iterations is
 		// known statically thanks to the type.  We avoid a
@@ -2338,6 +2337,12 @@ start:
 		}
 
 	case *ast.LabeledStmt:
+		if s.Label.Name == "_" {
+			// Blank labels can't be the target of a goto, break,
+			// or continue statement, so we don't need a new block.
+			_s = s.Stmt
+			goto start
+		}
 		label = fn.labelledBlock(s.Label)
 		emitJump(fn, label._goto)
 		fn.currentBlock = label._goto
@@ -2616,14 +2621,19 @@ func (prog *Program) Build() {
 			p.Build()
 		} else {
 			wg.Add(1)
+			cpuLimit <- struct{}{} // acquire a token
 			go func(p *Package) {
 				p.Build()
 				wg.Done()
+				<-cpuLimit // release a token
 			}(p)
 		}
 	}
 	wg.Wait()
 }
+
+// cpuLimit is a counting semaphore to limit CPU parallelism.
+var cpuLimit = make(chan struct{}, runtime.GOMAXPROCS(0))
 
 // Build builds SSA code for all functions and vars in package p.
 //
