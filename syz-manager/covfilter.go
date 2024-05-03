@@ -12,14 +12,14 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func createCoverageFilter(cfg *mgrconfig.Config, modules []host.KernelModule) (
+func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	map[uint32]uint32, map[uint32]uint32, error) {
 	if !cfg.HasCovFilter() {
 		return nil, nil, nil
