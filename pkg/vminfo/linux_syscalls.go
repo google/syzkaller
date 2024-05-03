@@ -62,7 +62,7 @@ func linuxSupportedLSM(ctx *checkContext, call *prog.Syscall) string {
 }
 
 var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
-	"openat":                      linuxSupportedOpenat,
+	"openat":                      supportedOpenat,
 	"mount":                       linuxSupportedMount,
 	"socket":                      linuxSupportedSocket,
 	"socketpair":                  linuxSupportedSocket,
@@ -183,24 +183,6 @@ func linuxSyzKvmSetupCPUSupported(ctx *checkContext, call *prog.Syscall) string 
 		}
 	}
 	return "unsupported arch"
-}
-
-func linuxSupportedOpenat(ctx *checkContext, call *prog.Syscall) string {
-	fname, ok := extractStringConst(call.Args[1].Type)
-	if !ok || fname[0] != '/' {
-		return ""
-	}
-	modes := ctx.allOpenModes()
-	// Attempt to extract flags from the syscall description.
-	if mode, ok := call.Args[2].Type.(*prog.ConstType); ok {
-		modes = []uint64{mode.Val}
-	}
-	var calls []string
-	for _, mode := range modes {
-		call := fmt.Sprintf("openat(0x%0x, &AUTO='%v', 0x%x, 0x0)", ctx.val("AT_FDCWD"), fname, mode)
-		calls = append(calls, call)
-	}
-	return ctx.anyCallSucceeds(calls, fmt.Sprintf("failed to open %v", fname))
 }
 
 func linuxSupportedMount(ctx *checkContext, call *prog.Syscall) string {

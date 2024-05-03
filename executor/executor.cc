@@ -369,7 +369,7 @@ struct kcov_comparison_t {
 typedef char kcov_comparison_size[sizeof(kcov_comparison_t) == 4 * sizeof(uint64) ? 1 : -1];
 
 struct feature_t {
-	const char* name;
+	rpc::Feature id;
 	void (*setup)();
 };
 
@@ -1658,33 +1658,41 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 }
 #endif // if SYZ_EXECUTOR_USES_SHMEM
 
+#if !SYZ_HAVE_FEATURES
+static feature_t features[] = {};
+#endif
+
 void setup_features(char** enable, int n)
 {
 	// This does any one-time setup for the requested features on the machine.
 	// Note: this can be called multiple times and must be idempotent.
 	flag_debug = true;
+	if (n != 1)
+		fail("setup: more than one feature");
+	char* endptr = nullptr;
+	auto feature = static_cast<rpc::Feature>(strtoull(enable[0], &endptr, 10));
+	if (endptr == enable[0] || (feature > rpc::Feature::ANY) ||
+	    __builtin_popcountll(static_cast<uint64>(feature)) > 1)
+		failmsg("setup: failed to parse feature", "feature='%s'", enable[0]);
+	if (feature == rpc::Feature::NONE) {
 #if SYZ_HAVE_FEATURES
-	setup_sysctl();
-	setup_cgroups();
+		setup_sysctl();
+		setup_cgroups();
 #endif
 #if SYZ_HAVE_SETUP_EXT
-	// This can be defined in common_ext.h.
-	setup_ext();
+		// This can be defined in common_ext.h.
+		setup_ext();
 #endif
-	for (int i = 0; i < n; i++) {
-		bool found = false;
-#if SYZ_HAVE_FEATURES
-		for (unsigned f = 0; f < sizeof(features) / sizeof(features[0]); f++) {
-			if (strcmp(enable[i], features[f].name) == 0) {
-				features[f].setup();
-				found = true;
-				break;
-			}
-		}
-#endif
-		if (!found)
-			failmsg("setup features: unknown feature", "feature=%s", enable[i]);
+		return;
 	}
+	for (size_t i = 0; i < sizeof(features) / sizeof(features[0]); i++) {
+		if (features[i].id == feature) {
+			features[i].setup();
+			return;
+		}
+	}
+	// Note: pkg/host knows about this error message.
+	fail("feature setup is not needed");
 }
 
 void failmsg(const char* err, const char* msg, ...)
@@ -1728,7 +1736,7 @@ void exitf(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	doexit(0);
+	doexit(1);
 }
 
 void debug(const char* msg, ...)

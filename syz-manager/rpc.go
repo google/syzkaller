@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -35,15 +34,17 @@ type RPCServer struct {
 	checker *vminfo.Checker
 	port    int
 
+	infoDone         bool
 	checkDone        atomic.Bool
 	checkFiles       []string
 	checkFilesInfo   []flatrpc.FileInfo
+	checkFeatureInfo []flatrpc.FeatureInfo
 	checkProgs       []rpctype.ExecutionRequest
 	checkResults     []rpctype.ExecutionResult
 	needCheckResults int
 	checkFailures    int
-	checkFeatures    *host.Features
 	enabledFeatures  flatrpc.Feature
+	setupFeatures    flatrpc.Feature
 	modules          []cover.KernelModule
 	canonicalModules *cover.Canonicalizer
 	execCoverFilter  map[uint32]uint32
@@ -154,11 +155,13 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
-	r.Features = serv.checkFeatures
 	r.ReadFiles = serv.checker.RequiredFiles()
-	if serv.checkFeatures == nil {
+	if serv.checkDone.Load() {
+		r.Features = serv.setupFeatures
+	} else {
 		r.ReadFiles = append(r.ReadFiles, serv.checkFiles...)
 		r.ReadGlobs = serv.target.RequiredGlobs()
+		r.Features = flatrpc.AllFeatures
 	}
 	return nil
 }
@@ -206,9 +209,9 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 		return fmt.Errorf("machine check failed: %v", a.Error)
 	}
 
-	if serv.checkFeatures == nil {
-		serv.checkFeatures = a.Features
-		serv.enabledFeatures = a.Features.ToFlatRPC()
+	if !serv.infoDone {
+		serv.infoDone = true
+		serv.checkFeatureInfo = a.Features
 		serv.checkFilesInfo = a.Files
 		serv.modules = modules
 		serv.target.UpdateGlobs(a.Globs)
@@ -241,10 +244,8 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 func (serv *RPCServer) finishCheck() error {
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
-	enabledCalls, disabledCalls, err := serv.checker.FinishCheck(serv.checkFilesInfo, serv.checkResults)
-	if err != nil {
-		return fmt.Errorf("failed to detect enabled syscalls: %w", err)
-	}
+	enabledCalls, disabledCalls, features, checkErr := serv.checker.FinishCheck(
+		serv.checkFilesInfo, serv.checkResults, serv.checkFeatureInfo)
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	buf := new(bytes.Buffer)
 	if len(serv.cfg.EnabledSyscalls) != 0 || log.V(1) {
@@ -281,15 +282,25 @@ func (serv *RPCServer) finishCheck() error {
 	if hasFileErrors {
 		fmt.Fprintf(buf, "\n")
 	}
-	fmt.Fprintf(buf, "%-24v: %v/%v\n", "syscalls", len(enabledCalls), len(serv.cfg.Target.Syscalls))
-	for _, feat := range serv.checkFeatures.Supported() {
-		fmt.Fprintf(buf, "%-24v: %v\n", feat.Name, feat.Reason)
+	var lines []string
+	lines = append(lines, fmt.Sprintf("%-24v: %v/%v\n", "syscalls",
+		len(enabledCalls), len(serv.cfg.Target.Syscalls)))
+	for feat, info := range features {
+		lines = append(lines, fmt.Sprintf("%-24v: %v\n",
+			flatrpc.EnumNamesFeature[feat], info.Reason))
 	}
+	sort.Strings(lines)
+	buf.WriteString(strings.Join(lines, ""))
 	fmt.Fprintf(buf, "\n")
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
-	if len(enabledCalls) == 0 {
-		log.Fatalf("all system calls are disabled")
+	if checkErr != nil {
+		return checkErr
 	}
+	if len(enabledCalls) == 0 {
+		return fmt.Errorf("all system calls are disabled")
+	}
+	serv.enabledFeatures = features.Enabled()
+	serv.setupFeatures = features.NeedSetup()
 	serv.mgr.machineChecked(serv.enabledFeatures, enabledCalls)
 	return nil
 }
@@ -344,6 +355,7 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 				serv.checkResults = nil
 				serv.checkFiles = nil
 				serv.checkFilesInfo = nil
+				serv.checkFeatureInfo = nil
 				serv.checkDone.Store(true)
 			}
 		}

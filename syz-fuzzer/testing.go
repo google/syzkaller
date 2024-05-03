@@ -10,12 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -26,7 +23,6 @@ type checkArgs struct {
 	targetRevision string
 	ipcConfig      *ipc.Config
 	ipcExecOpts    *ipc.ExecOpts
-	featureFlags   map[string]csource.Feature
 }
 
 func testImage(hostAddr string, args *checkArgs) {
@@ -43,62 +39,9 @@ func testImage(hostAddr string, args *checkArgs) {
 	if err := checkRevisions(args); err != nil {
 		log.SyzFatal(err)
 	}
-	if _, err := checkMachine(args); err != nil {
+	if err := checkSimpleProgram(args); err != nil {
 		log.SyzFatal(err)
 	}
-	if err := buildCallList(args.target, args.sandbox); err != nil {
-		log.SyzFatal(err)
-	}
-}
-
-func checkMachineHeartbeats(done chan bool) {
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			fmt.Printf("executing program\n")
-		}
-	}
-}
-
-func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
-	log.Logf(0, "checking machine...")
-	// Machine checking can be very slow on some machines (qemu without kvm, KMEMLEAK linux, etc),
-	// so print periodic heartbeats for vm.MonitorExecution so that it does not decide that we are dead.
-	done := make(chan bool)
-	defer close(done)
-	go checkMachineHeartbeats(done)
-	features, err := host.Check(args.target)
-	if err != nil {
-		return nil, err
-	}
-	if feat := features[host.FeatureCoverage]; !feat.Enabled &&
-		args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 {
-		return nil, fmt.Errorf("coverage is not supported (%v)", feat.Reason)
-	}
-	if feat := features[host.FeatureSandboxSetuid]; !feat.Enabled &&
-		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxSetuid != 0 {
-		return nil, fmt.Errorf("sandbox=setuid is not supported (%v)", feat.Reason)
-	}
-	if feat := features[host.FeatureSandboxNamespace]; !feat.Enabled &&
-		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxNamespace != 0 {
-		return nil, fmt.Errorf("sandbox=namespace is not supported (%v)", feat.Reason)
-	}
-	if feat := features[host.FeatureSandboxAndroid]; !feat.Enabled &&
-		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxAndroid != 0 {
-		return nil, fmt.Errorf("sandbox=android is not supported (%v)", feat.Reason)
-	}
-	args.ipcExecOpts.EnvFlags |= ipc.FeaturesToFlags(features.ToFlatRPC(), nil)
-	if err := checkSimpleProgram(args, features); err != nil {
-		return nil, err
-	}
-	res := &rpctype.CheckArgs{
-		Features: features,
-	}
-	return res, nil
 }
 
 func checkRevisions(args *checkArgs) error {
@@ -149,11 +92,8 @@ func executorVersion(bin string) (string, string, string, error) {
 	return vers[1], vers[2], vers[3], nil
 }
 
-func checkSimpleProgram(args *checkArgs, features *host.Features) error {
+func checkSimpleProgram(args *checkArgs) error {
 	log.Logf(0, "testing simple program...")
-	if err := host.Setup(args.target, features, args.featureFlags, args.ipcConfig.Executor); err != nil {
-		return fmt.Errorf("host setup failed: %w", err)
-	}
 	env, err := ipc.MakeEnv(args.ipcConfig, 0)
 	if err != nil {
 		return fmt.Errorf("failed to create ipc env: %w", err)
@@ -175,38 +115,6 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 	}
 	if args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
-	}
-	return nil
-}
-
-func buildCallList(target *prog.Target, sandbox string) error {
-	log.Logf(0, "building call list...")
-	calls := make(map[*prog.Syscall]bool)
-	for _, c := range target.Syscalls {
-		calls[c] = true
-	}
-
-	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, calls)
-	if err != nil {
-		return fmt.Errorf("failed to detect host supported syscalls: %w", err)
-	}
-	for c := range calls {
-		if reason, ok := unsupported[c]; ok {
-			// Note: if we print call name followed by ':', it may be detected
-			// as a kernel crash if the call ends with "BUG" or "INFO".
-			log.Logf(1, "unsupported syscall: %v(): %v", c.Name, reason)
-			delete(calls, c)
-		}
-	}
-	_, unsupported = target.TransitivelyEnabledCalls(calls)
-	for c := range calls {
-		if reason, ok := unsupported[c]; ok {
-			log.Logf(1, "transitively unsupported: %v(): %v", c.Name, reason)
-			delete(calls, c)
-		}
-	}
-	if len(calls) == 0 {
-		return fmt.Errorf("all system calls are disabled")
 	}
 	return nil
 }

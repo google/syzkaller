@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
@@ -38,6 +38,7 @@ type FuzzerTool struct {
 	// TODO: repair triagedCandidates logic, it's broken now.
 	triagedCandidates uint32
 	timeouts          targets.Timeouts
+	leakFrames        []string
 
 	noExecRequests atomic.Uint64
 	noExecDuration atomic.Uint64
@@ -93,7 +94,6 @@ func main() {
 		log.SyzFatalf("failed to create default ipc config: %v", err)
 	}
 	timeouts := config.Timeouts
-	sandbox := ipc.FlagsToSandbox(execOpts.EnvFlags)
 	executor := config.Executor
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
@@ -108,15 +108,15 @@ func main() {
 		setupPprofHandler(*flagPprofPort)
 	}
 
-	checkArgs := &checkArgs{
-		target:         target,
-		sandbox:        sandbox,
-		ipcConfig:      config,
-		ipcExecOpts:    execOpts,
-		gitRevision:    prog.GitRevision,
-		targetRevision: target.Revision,
-	}
 	if *flagTest {
+		checkArgs := &checkArgs{
+			target:         target,
+			sandbox:        ipc.FlagsToSandbox(execOpts.EnvFlags),
+			ipcConfig:      config,
+			ipcExecOpts:    execOpts,
+			gitRevision:    prog.GitRevision,
+			targetRevision: target.Revision,
+		}
 		testImage(*flagManager, checkArgs)
 		return
 	}
@@ -141,53 +141,16 @@ func main() {
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		log.SyzFatalf("failed to call Manager.Connect(): %v ", err)
 	}
-	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
+	checkReq := &rpctype.CheckArgs{
+		Name:  *flagName,
+		Files: host.ReadFiles(r.ReadFiles),
+		Globs: make(map[string][]string),
+	}
+	features, err := host.SetupFeatures(target, executor, r.Features, nil)
 	if err != nil {
-		log.SyzFatal(err)
+		log.SyzFatalf("failed to setup features: %v ", err)
 	}
-	var checkReq *rpctype.CheckArgs
-	if r.Features == nil {
-		checkArgs.featureFlags = featureFlags
-		checkReq, err = checkMachine(checkArgs)
-		if err != nil {
-			if checkReq == nil {
-				checkReq = new(rpctype.CheckArgs)
-			}
-			checkReq.Error = err.Error()
-		}
-		r.Features = checkReq.Features
-	} else {
-		if err = host.Setup(target, r.Features, featureFlags, executor); err != nil {
-			log.SyzFatal(err)
-		}
-		checkReq = new(rpctype.CheckArgs)
-	}
-
-	for _, feat := range r.Features.Supported() {
-		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
-	}
-
-	inputsCount := *flagProcs * 2
-	fuzzerTool := &FuzzerTool{
-		name:     *flagName,
-		executor: executor,
-		manager:  manager,
-		timeouts: timeouts,
-
-		requests: make(chan rpctype.ExecutionRequest, 2*inputsCount),
-		results:  make(chan executionResult, 2*inputsCount),
-	}
-	gateCb := fuzzerTool.useBugFrames(r.Features, r.MemoryLeakFrames, r.DataRaceFrames)
-	fuzzerTool.gate = ipc.NewGate(gateSize, gateCb)
-
-	log.Logf(0, "starting %v executor processes", *flagProcs)
-	for pid := 0; pid < *flagProcs; pid++ {
-		startProc(fuzzerTool, pid, config)
-	}
-
-	checkReq.Name = *flagName
-	checkReq.Files = host.ReadFiles(r.ReadFiles)
-	checkReq.Globs = make(map[string][]string)
+	checkReq.Features = features
 	for _, glob := range r.ReadGlobs {
 		files, err := filepath.Glob(filepath.FromSlash(glob))
 		if err != nil && checkReq.Error == "" {
@@ -208,28 +171,39 @@ func main() {
 			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
 		}
 	}
+
+	inputsCount := *flagProcs * 2
+	fuzzerTool := &FuzzerTool{
+		name:       *flagName,
+		executor:   executor,
+		manager:    manager,
+		timeouts:   timeouts,
+		leakFrames: r.MemoryLeakFrames,
+
+		requests: make(chan rpctype.ExecutionRequest, 2*inputsCount),
+		results:  make(chan executionResult, 2*inputsCount),
+	}
+	fuzzerTool.filterDataRaceFrames(r.DataRaceFrames)
+	var gateCallback func()
+	for _, feat := range features {
+		if feat.Id == flatrpc.FeatureLeak && feat.Reason == "" {
+			gateCallback = fuzzerTool.leakGateCallback
+		}
+	}
+	fuzzerTool.gate = ipc.NewGate(gateSize, gateCallback)
+
+	log.Logf(0, "starting %v executor processes", *flagProcs)
+	for pid := 0; pid < *flagProcs; pid++ {
+		startProc(fuzzerTool, pid, config)
+	}
+
 	// Query enough inputs at the beginning.
 	fuzzerTool.exchangeDataCall(nil, 0)
 	go fuzzerTool.exchangeDataWorker()
 	fuzzerTool.exchangeDataWorker()
 }
 
-// Returns gateCallback for leak checking if enabled.
-func (tool *FuzzerTool) useBugFrames(featues *host.Features, leakFrames, raceFrames []string) func() {
-	var gateCallback func()
-
-	if featues[host.FeatureLeak].Enabled {
-		gateCallback = func() { tool.gateCallback(leakFrames) }
-	}
-
-	if featues[host.FeatureKCSAN].Enabled && len(raceFrames) != 0 {
-		tool.filterDataRaceFrames(raceFrames)
-	}
-
-	return gateCallback
-}
-
-func (tool *FuzzerTool) gateCallback(leakFrames []string) {
+func (tool *FuzzerTool) leakGateCallback() {
 	// Leak checking is very slow so we don't do it while triaging the corpus
 	// (otherwise it takes infinity). When we have presumably triaged the corpus
 	// (triagedCandidates == 1), we run leak checking bug ignore the result
@@ -239,7 +213,7 @@ func (tool *FuzzerTool) gateCallback(leakFrames []string) {
 	if triagedCandidates == 0 {
 		return
 	}
-	args := append([]string{"leak"}, leakFrames...)
+	args := append([]string{"leak"}, tool.leakFrames...)
 	timeout := tool.timeouts.NoOutput * 9 / 10
 	output, err := osutil.RunCmd(timeout, "", tool.executor, args...)
 	if err != nil && triagedCandidates == 2 {
@@ -255,6 +229,9 @@ func (tool *FuzzerTool) gateCallback(leakFrames []string) {
 }
 
 func (tool *FuzzerTool) filterDataRaceFrames(frames []string) {
+	if len(frames) == 0 {
+		return
+	}
 	args := append([]string{"setup_kcsan_filterlist"}, frames...)
 	timeout := time.Minute * tool.timeouts.Scale
 	output, err := osutil.RunCmd(timeout, "", tool.executor, args...)

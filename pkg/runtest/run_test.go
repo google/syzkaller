@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
@@ -55,28 +54,13 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		t.Fatal(err)
 	}
 	executor := csource.BuildExecutor(t, target, "../../", "-fsanitize-coverage=trace-pc")
-	features, err := host.Check(target)
-	if err != nil {
-		t.Fatalf("failed to detect host features: %v", err)
-	}
-	enabled := make(map[*prog.Syscall]bool)
-	for _, c := range target.Syscalls {
-		enabled[c] = true
-	}
-	calls, _, err := host.DetectSupportedSyscalls(target, "none", enabled)
-	if err != nil {
-		t.Fatalf("failed to detect supported syscalls: %v", err)
+	calls := make(map[*prog.Syscall]bool)
+	for _, call := range target.Syscalls {
+		calls[call] = true
 	}
 	enabledCalls := map[string]map[*prog.Syscall]bool{
 		"":     calls,
 		"none": calls,
-	}
-	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := host.Setup(target, features, featureFlags, executor); err != nil {
-		t.Fatal(err)
 	}
 	requests := make(chan *RunRequest, 2*runtime.GOMAXPROCS(0))
 	go func() {
@@ -93,7 +77,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Dir:          filepath.Join("..", "..", "sys", target.OS, targets.TestOS),
 		Target:       target,
 		Tests:        *flagFilter,
-		Features:     features.ToFlatRPC(),
+		Features:     0,
 		EnabledCalls: enabledCalls,
 		Requests:     requests,
 		LogFunc: func(text string) {

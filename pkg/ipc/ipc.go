@@ -159,6 +159,12 @@ func FlagsToSandbox(flags EnvFlags) string {
 
 // nolint: gocyclo
 func FeaturesToFlags(features flatrpc.Feature, manual csource.Features) EnvFlags {
+	for feat := range flatrpc.EnumNamesFeature {
+		opt := FlatRPCFeaturesToCSource[feat]
+		if opt != "" && manual != nil && !manual[opt].Enabled {
+			features &= ^feat
+		}
+	}
 	var flags EnvFlags
 	if manual == nil || manual["net_reset"].Enabled {
 		flags |= FlagEnableNetReset
@@ -175,25 +181,38 @@ func FeaturesToFlags(features flatrpc.Feature, manual csource.Features) EnvFlags
 	if features&flatrpc.FeatureDelayKcovMmap != 0 {
 		flags |= FlagDelayKcovMmap
 	}
-	if features&flatrpc.FeatureNetInjection != 0 && (manual == nil || manual["tun"].Enabled) {
+	if features&flatrpc.FeatureNetInjection != 0 {
 		flags |= FlagEnableTun
 	}
-	if features&flatrpc.FeatureNetDevices != 0 && (manual == nil || manual["net_dev"].Enabled) {
+	if features&flatrpc.FeatureNetDevices != 0 {
 		flags |= FlagEnableNetDev
 	}
-	if features&flatrpc.FeatureDevlinkPCI != 0 && (manual == nil || manual["devlink_pci"].Enabled) {
+	if features&flatrpc.FeatureDevlinkPCI != 0 {
 		flags |= FlagEnableDevlinkPCI
 	}
-	if features&flatrpc.FeatureNicVF != 0 && (manual == nil || manual["nic_vf"].Enabled) {
+	if features&flatrpc.FeatureNicVF != 0 {
 		flags |= FlagEnableNicVF
 	}
-	if features&flatrpc.FeatureVhciInjection != 0 && (manual == nil || manual["vhci"].Enabled) {
+	if features&flatrpc.FeatureVhciInjection != 0 {
 		flags |= FlagEnableVhciInjection
 	}
-	if features&flatrpc.FeatureWifiEmulation != 0 && (manual == nil || manual["wifi"].Enabled) {
+	if features&flatrpc.FeatureWifiEmulation != 0 {
 		flags |= FlagEnableWifi
 	}
 	return flags
+}
+
+var FlatRPCFeaturesToCSource = map[flatrpc.Feature]string{
+	flatrpc.FeatureNetInjection:    "tun",
+	flatrpc.FeatureNetDevices:      "net_dev",
+	flatrpc.FeatureDevlinkPCI:      "devlink_pci",
+	flatrpc.FeatureNicVF:           "nic_vf",
+	flatrpc.FeatureVhciInjection:   "vhci",
+	flatrpc.FeatureWifiEmulation:   "wifi",
+	flatrpc.FeatureUSBEmulation:    "usb",
+	flatrpc.FeatureBinFmtMisc:      "binfmt_misc",
+	flatrpc.FeatureLRWPANEmulation: "ieee802154",
+	flatrpc.FeatureSwap:            "swap",
 }
 
 func MakeEnv(config *Config, pid int) (*Env, error) {

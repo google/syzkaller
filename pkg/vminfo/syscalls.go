@@ -62,12 +62,13 @@ type checkContext struct {
 	// Ready channel is closed after we've recevied results of execution of test
 	// programs and file contents. After this results maps and fs are populated.
 	ready   chan bool
-	results map[int64]*ipc.ProgInfo
+	results map[int64]rpctype.ExecutionResult
 	fs      filesystem
 	// Once checking of a syscall is finished, the result is sent to syscalls.
 	// The main goroutine will wait for exactly pendingSyscalls messages.
 	syscalls        chan syscallResult
 	pendingSyscalls int
+	features        chan featureResult
 }
 
 type syscallResult struct {
@@ -86,8 +87,9 @@ func newCheckContext(cfg *mgrconfig.Config, impl checker) *checkContext {
 		target:   cfg.Target,
 		sandbox:  sandbox,
 		requests: make(chan []*rpctype.ExecutionRequest),
-		results:  make(map[int64]*ipc.ProgInfo),
+		results:  make(map[int64]rpctype.ExecutionResult),
 		syscalls: make(chan syscallResult),
+		features: make(chan featureResult, 100),
 		ready:    make(chan bool),
 	}
 }
@@ -130,6 +132,7 @@ func (ctx *checkContext) startCheck() []rpctype.ExecutionRequest {
 			ctx.syscalls <- syscallResult{call, reason}
 		}()
 	}
+	ctx.checkFeatures()
 	var progs []rpctype.ExecutionRequest
 	dedup := make(map[hash.Sig]int64)
 	for i := 0; i < ctx.pendingRequests; i++ {
@@ -148,12 +151,11 @@ func (ctx *checkContext) startCheck() []rpctype.ExecutionRequest {
 	return progs
 }
 
-func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfo, progs []rpctype.ExecutionResult) (
-	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
+func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfo, progs []rpctype.ExecutionResult,
+	featureInfos []flatrpc.FeatureInfo) (map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	ctx.fs = createVirtualFilesystem(fileInfos)
-	for i := range progs {
-		res := &progs[i]
-		ctx.results[res.ID] = &res.Info
+	for _, res := range progs {
+		ctx.results[res.ID] = res
 	}
 	close(ctx.ready)
 	enabled := make(map[*prog.Syscall]bool)
@@ -166,7 +168,8 @@ func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfo, progs []rpcty
 			disabled[res.call] = res.reason
 		}
 	}
-	return enabled, disabled, nil
+	features, err := ctx.finishFeatures(featureInfos)
+	return enabled, disabled, features, err
 }
 
 func (ctx *checkContext) rootCanOpen(file string) string {
@@ -218,6 +221,24 @@ func (ctx *checkContext) supportedSyscalls(names []string) string {
 		}
 	}
 	return ""
+}
+
+func supportedOpenat(ctx *checkContext, call *prog.Syscall) string {
+	fname, ok := extractStringConst(call.Args[1].Type)
+	if !ok || fname[0] != '/' {
+		return ""
+	}
+	modes := ctx.allOpenModes()
+	// Attempt to extract flags from the syscall description.
+	if mode, ok := call.Args[2].Type.(*prog.ConstType); ok {
+		modes = []uint64{mode.Val}
+	}
+	var calls []string
+	for _, mode := range modes {
+		call := fmt.Sprintf("openat(0x%0x, &AUTO='%v', 0x%x, 0x0)", ctx.val("AT_FDCWD"), fname, mode)
+		calls = append(calls, call)
+	}
+	return ctx.anyCallSucceeds(calls, fmt.Sprintf("failed to open %v", fname))
 }
 
 func (ctx *checkContext) allOpenModes() []uint64 {
@@ -307,20 +328,48 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 	<-ctx.ready
 	info := &ipc.ProgInfo{}
 	for _, req := range requests {
-		res := ctx.results[req.ID]
-		if res == nil {
+		res, ok := ctx.results[req.ID]
+		if !ok {
 			panic(fmt.Sprintf("no result for request %v", req.ID))
 		}
-		if len(res.Calls) == 0 {
+		if len(res.Info.Calls) == 0 {
 			panic(fmt.Sprintf("result for request %v has no calls", req.ID))
 		}
-		info.Calls = append(info.Calls, res.Calls...)
+		info.Calls = append(info.Calls, res.Info.Calls...)
 	}
 	if len(info.Calls) != len(calls) {
 		panic(fmt.Sprintf("got only %v results for program %v with %v calls:\n%s",
 			len(info.Calls), requests[0].ID, len(calls), strings.Join(calls, "\n")))
 	}
 	return info
+}
+
+func (ctx *checkContext) execProg(p *prog.Prog, envFlags ipc.EnvFlags,
+	execFlags ipc.ExecFlags) rpctype.ExecutionResult {
+	if ctx.requests == nil {
+		panic("only one test execution per checker is supported")
+	}
+	data, err := p.SerializeForExec()
+	if err != nil {
+		panic(fmt.Sprintf("failed to serialize test program: %v\n%s", err, p.Serialize()))
+	}
+	req := &rpctype.ExecutionRequest{
+		ProgData:     data,
+		ReturnOutput: true,
+		ReturnError:  true,
+		ExecOpts: ipc.ExecOpts{
+			EnvFlags:   envFlags,
+			ExecFlags:  execFlags,
+			SandboxArg: ctx.cfg.SandboxArg,
+		},
+	}
+	ctx.requests <- []*rpctype.ExecutionRequest{req}
+	<-ctx.ready
+	res, ok := ctx.results[req.ID]
+	if !ok {
+		panic(fmt.Sprintf("no result for request %v", req.ID))
+	}
+	return res
 }
 
 func (ctx *checkContext) readFile(name string) ([]byte, error) {

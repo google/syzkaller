@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 )
@@ -92,8 +91,8 @@ type ConnectArgs struct {
 type ConnectRes struct {
 	MemoryLeakFrames []string
 	DataRaceFrames   []string
-	// This is forwarded from CheckArgs, if checking was already done.
-	Features *host.Features
+	// Bitmask of features to try to setup.
+	Features flatrpc.Feature
 	// Fuzzer reads these files inside of the VM and returns contents in CheckArgs.Files.
 	ReadFiles []string
 	ReadGlobs []string
@@ -102,7 +101,7 @@ type ConnectRes struct {
 type CheckArgs struct {
 	Name     string
 	Error    string
-	Features *host.Features
+	Features []flatrpc.FeatureInfo
 	Globs    map[string][]string
 	Files    []flatrpc.FileInfo
 }

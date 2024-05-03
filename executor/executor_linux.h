@@ -256,13 +256,51 @@ NORETURN void doexit_thread(int status)
 	}
 }
 
+static void setup_nicvf()
+{
+	// This feature has custom checking precedure rather than just rely on running
+	// a simple program with this feature enabled b/c find_vf_interface cannot be made
+	// failing. It searches for the nic in init namespace, but then the nic is moved
+	// to one of testing namespace, so if number of procs is more than the number of devices,
+	// then some of them won't fine a nic (the code is also racy, more than one proc
+	// can find the same device and then moving it will fail for all but one).
+	// So we have to make find_vf_interface non-failing in case of failures,
+	// which means we cannot use it for feature checking.
+	if (open("/sys/bus/pci/devices/0000:00:11.0/", O_RDONLY | O_NONBLOCK) == -1)
+		fail("PCI device 0000:00:11.0 is not available");
+}
+
+static void setup_devlink_pci()
+{
+	// See comment in setup_nicvf.
+	if (open("/sys/bus/pci/devices/0000:00:10.0/", O_RDONLY | O_NONBLOCK) == -1)
+		fail("PCI device 0000:00:10.0 is not available");
+}
+
+static void setup_delay_kcov()
+{
+	is_kernel_64_bit = detect_kernel_bitness();
+	cover_t cov = {};
+	cov.fd = kCoverFd;
+	cover_open(&cov, false);
+	cover_mmap(&cov);
+	cov.data = nullptr;
+	cover_mmap(&cov);
+	// If delayed kcov mmap is not supported by the kernel,
+	// accesses to the second mapping will crash.
+	const_cast<volatile char*>(cov.data)[0] = 1;
+}
+
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
-    {"leak", setup_leak},
-    {"fault", setup_fault},
-    {"binfmt_misc", setup_binfmt_misc},
-    {"kcsan", setup_kcsan},
-    {"usb", setup_usb},
-    {"802154", setup_802154},
-    {"swap", setup_swap},
+    {rpc::Feature::DelayKcovMmap, setup_delay_kcov},
+    {rpc::Feature::Fault, setup_fault},
+    {rpc::Feature::Leak, setup_leak},
+    {rpc::Feature::KCSAN, setup_kcsan},
+    {rpc::Feature::USBEmulation, setup_usb},
+    {rpc::Feature::LRWPANEmulation, setup_802154},
+    {rpc::Feature::BinFmtMisc, setup_binfmt_misc},
+    {rpc::Feature::Swap, setup_swap},
+    {rpc::Feature::NicVF, setup_nicvf},
+    {rpc::Feature::DevlinkPCI, setup_devlink_pci},
 };
