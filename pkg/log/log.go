@@ -96,6 +96,10 @@ func SyzFatalf(msg string, args ...interface{}) {
 	golog.Fatalf("SYZFATAL: "+msg, args...)
 }
 
+func SyzFatal(err error) {
+	SyzFatalf("%v", err)
+}
+
 func message(severity, msg string, args ...interface{}) string {
 	var sb strings.Builder
 	if severity != "" {
