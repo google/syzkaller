@@ -69,7 +69,7 @@ func main() {
 	}
 	mgr.checkFiles, mgr.checkProgs = mgr.checker.StartCheck()
 	mgr.needCheckResults = len(mgr.checkProgs)
-	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr, false)
+	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}

@@ -65,7 +65,6 @@ type Manager struct {
 	vmStop          chan bool
 	checkFeatures   *host.Features
 	fresh           bool
-	netCompression  bool
 	expertMode      bool
 	nextInstanceID  atomic.Uint64
 
@@ -177,7 +176,6 @@ func RunManager(cfg *mgrconfig.Config) {
 		memoryLeakFrames:   make(map[string]bool),
 		dataRaceFrames:     make(map[string]bool),
 		fresh:              true,
-		netCompression:     vm.UseNetCompression(cfg.Type),
 		vmStop:             make(chan bool),
 		externalReproQueue: make(chan *Crash, 10),
 		needMoreRepros:     make(chan chan bool),
@@ -811,10 +809,9 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 		Debug:     *flagDebug,
 		Test:      false,
 		Optional: &instance.OptionalFuzzerArgs{
-			Slowdown:       mgr.cfg.Timeouts.Slowdown,
-			SandboxArg:     mgr.cfg.SandboxArg,
-			PprofPort:      inst.PprofPort(),
-			NetCompression: mgr.netCompression,
+			Slowdown:   mgr.cfg.Timeouts.Slowdown,
+			SandboxArg: mgr.cfg.SandboxArg,
+			PprofPort:  inst.PprofPort(),
 		},
 	}
 	cmd := instance.FuzzerCmd(args)

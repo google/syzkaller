@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("vmware", ctor, false, false)
+	vmimpl.Register("vmware", ctor, false)
 }
 
 type Config struct {
