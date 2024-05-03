@@ -1284,6 +1284,7 @@ var linuxStackParams = &stackParams{
 		"xas_(?:start|load|find)",
 		"find_lock_entries",
 		"truncate_inode_pages_range",
+		"__phys_addr",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
