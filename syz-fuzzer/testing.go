@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"time"
 
@@ -30,7 +31,8 @@ type checkArgs struct {
 
 func testImage(hostAddr string, args *checkArgs) {
 	log.Logf(0, "connecting to host at %v", hostAddr)
-	conn, err := rpctype.Dial(hostAddr, args.ipcConfig.Timeouts.Scale)
+	timeout := time.Minute * args.ipcConfig.Timeouts.Scale
+	conn, err := net.DialTimeout("tcp", hostAddr, timeout)
 	if err != nil {
 		log.SyzFatalf("failed to connect to host: %v", err)
 	}

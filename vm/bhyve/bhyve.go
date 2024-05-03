@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("bhyve", ctor, true, false)
+	vmimpl.Register("bhyve", ctor, true)
 }
 
 type Config struct {

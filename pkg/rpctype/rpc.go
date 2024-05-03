@@ -13,18 +13,14 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/stats"
 )
 
 type RPCServer struct {
-	ln             net.Listener
-	s              *rpc.Server
-	useCompression bool
-	statSent       *stats.Val
-	statRecv       *stats.Val
+	ln net.Listener
+	s  *rpc.Server
 }
 
-func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) (*RPCServer, error) {
+func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %v: %w", addr, err)
@@ -34,13 +30,8 @@ func NewRPCServer(addr, name string, receiver interface{}, useCompression bool) 
 		return nil, err
 	}
 	serv := &RPCServer{
-		ln:             ln,
-		s:              s,
-		useCompression: useCompression,
-		statSent: stats.Create("go rpc sent", "Uncompressed outbound RPC traffic",
-			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
-		statRecv: stats.Create("go rpc recv", "Uncompressed inbound RPC traffic",
-			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
+		ln: ln,
+		s:  s,
 	}
 	return serv, nil
 }
@@ -53,7 +44,7 @@ func (serv *RPCServer) Serve() {
 			continue
 		}
 		setupKeepAlive(conn, time.Minute)
-		go serv.s.ServeConn(maybeFlateConn(newCountedConn(serv, conn), serv.useCompression))
+		go serv.s.ServeConn(newFlateConn(conn))
 	}
 }
 
@@ -62,51 +53,35 @@ func (serv *RPCServer) Addr() net.Addr {
 }
 
 type RPCClient struct {
-	conn           net.Conn
-	c              *rpc.Client
-	timeScale      time.Duration
-	useTimeouts    bool
-	useCompression bool
+	conn net.Conn
+	c    *rpc.Client
 }
 
-func Dial(addr string, timeScale time.Duration) (net.Conn, error) {
-	if timeScale <= 0 {
-		return nil, fmt.Errorf("bad rpc time scale %v", timeScale)
-	}
+func NewRPCClient(addr string) (*RPCClient, error) {
 	var conn net.Conn
 	var err error
 	if addr == "stdin" {
 		// This is used by vm/gvisor which passes us a unix socket connection in stdin.
-		return net.FileConn(os.Stdin)
+		// TODO: remove this once we switch to flatrpc for target communication.
+		conn, err = net.FileConn(os.Stdin)
+	} else {
+		conn, err = net.DialTimeout("tcp", addr, 3*time.Minute)
 	}
-	if conn, err = net.DialTimeout("tcp", addr, time.Minute*timeScale); err != nil {
-		return nil, err
-	}
-	setupKeepAlive(conn, time.Minute*timeScale)
-	return conn, nil
-}
-
-func NewRPCClient(addr string, timeScale time.Duration, useTimeouts, useCompression bool) (*RPCClient, error) {
-	conn, err := Dial(addr, timeScale)
 	if err != nil {
 		return nil, err
 	}
+	setupKeepAlive(conn, time.Minute)
 	cli := &RPCClient{
-		conn:           conn,
-		c:              rpc.NewClient(maybeFlateConn(conn, useCompression)),
-		timeScale:      timeScale,
-		useTimeouts:    useTimeouts,
-		useCompression: useCompression,
+		conn: conn,
+		c:    rpc.NewClient(newFlateConn(conn)),
 	}
 	return cli, nil
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
-	if cli.useTimeouts {
-		// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
-		cli.conn.SetDeadline(time.Now().Add(3 * time.Minute * cli.timeScale))
-		defer cli.conn.SetDeadline(time.Time{})
-	}
+	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
+	cli.conn.SetDeadline(time.Now().Add(10 * time.Minute))
+	defer cli.conn.SetDeadline(time.Time{})
 	return cli.c.Call(method, args, reply)
 }
 
@@ -130,10 +105,7 @@ type flateConn struct {
 	c io.Closer
 }
 
-func maybeFlateConn(conn io.ReadWriteCloser, useCompression bool) io.ReadWriteCloser {
-	if !useCompression {
-		return conn
-	}
+func newFlateConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 	w, err := flate.NewWriter(conn, 9)
 	if err != nil {
 		panic(err)
@@ -172,30 +144,4 @@ func (fc *flateConn) Close() error {
 		err0 = err
 	}
 	return err0
-}
-
-// countedConn wraps net.Conn to record the transferred bytes.
-type countedConn struct {
-	io.ReadWriteCloser
-	server *RPCServer
-}
-
-func newCountedConn(server *RPCServer,
-	conn io.ReadWriteCloser) io.ReadWriteCloser {
-	return &countedConn{
-		ReadWriteCloser: conn,
-		server:          server,
-	}
-}
-
-func (cc countedConn) Read(p []byte) (n int, err error) {
-	n, err = cc.ReadWriteCloser.Read(p)
-	cc.server.statRecv.Add(n)
-	return
-}
-
-func (cc countedConn) Write(b []byte) (n int, err error) {
-	n, err = cc.ReadWriteCloser.Write(b)
-	cc.server.statSent.Add(n)
-	return
 }

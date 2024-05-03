@@ -128,7 +128,7 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 			"End-to-end fuzzer RPC Exchange call latency (us)", stats.Distribution{}),
 		statCoverFiltered: stats.Create("filtered coverage", "", stats.NoGraph),
 	}
-	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv, mgr.netCompression)
+	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
 	if err != nil {
 		return nil, err
 	}

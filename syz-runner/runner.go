@@ -45,8 +45,7 @@ func main() {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
 
-	timeouts := config.Timeouts
-	vrf, err := rpctype.NewRPCClient(*flagAddr, timeouts.Scale, true, true)
+	vrf, err := rpctype.NewRPCClient(*flagAddr)
 	if err != nil {
 		log.Fatalf("failed to connect to verifier : %v", err)
 	}

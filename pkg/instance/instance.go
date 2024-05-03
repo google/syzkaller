@@ -456,10 +456,9 @@ func (inst *inst) testRepro() ([]byte, error) {
 }
 
 type OptionalFuzzerArgs struct {
-	Slowdown       int
-	SandboxArg     int
-	PprofPort      int
-	NetCompression bool
+	Slowdown   int
+	SandboxArg int
+	PprofPort  int
 }
 
 type FuzzerCmdArgs struct {
@@ -496,7 +495,6 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
 			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
 			{Name: "pprof_port", Value: fmt.Sprint(args.Optional.PprofPort)},
-			{Name: "net_compression", Value: fmt.Sprint(args.Optional.NetCompression)},
 		}
 		optionalArg = " " + tool.OptionalFlags(flags)
 	}

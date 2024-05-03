@@ -22,7 +22,7 @@ import (
 
 func init() {
 	var _ vmimpl.Infoer = (*instance)(nil)
-	vmimpl.Register("starnix", ctor, true, false)
+	vmimpl.Register("starnix", ctor, true)
 }
 
 type Config struct {

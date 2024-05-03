@@ -72,14 +72,13 @@ func main() {
 	debug.SetGCPercent(50)
 
 	var (
-		flagName           = flag.String("name", "test", "unique name for manager")
-		flagOS             = flag.String("os", runtime.GOOS, "target OS")
-		flagArch           = flag.String("arch", runtime.GOARCH, "target arch")
-		flagManager        = flag.String("manager", "", "manager rpc address")
-		flagProcs          = flag.Int("procs", 1, "number of parallel test processes")
-		flagTest           = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
-		flagPprofPort      = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
-		flagNetCompression = flag.Bool("net_compression", false, "use network compression for RPC calls")
+		flagName      = flag.String("name", "test", "unique name for manager")
+		flagOS        = flag.String("os", runtime.GOOS, "target OS")
+		flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
+		flagManager   = flag.String("manager", "", "manager rpc address")
+		flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
+		flagTest      = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
+		flagPprofPort = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
 	)
 	defer tool.Init()()
 	log.Logf(0, "fuzzer started")
@@ -123,7 +122,7 @@ func main() {
 	}
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
-	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale, false, *flagNetCompression)
+	manager, err := rpctype.NewRPCClient(*flagManager)
 	if err != nil {
 		log.SyzFatalf("failed to create an RPC client: %v ", err)
 	}
