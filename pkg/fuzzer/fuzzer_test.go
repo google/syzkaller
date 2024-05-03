@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/signal"
@@ -111,9 +112,9 @@ func BenchmarkFuzzer(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := fuzzer.NextInput()
+			req := fuzzer.Next()
 			res, _, _ := emulateExec(req)
-			fuzzer.Done(req, res)
+			req.Done(res)
 		}
 	})
 }
@@ -180,7 +181,7 @@ func TestRotate(t *testing.T) {
 // Based on the example from Go documentation.
 var crc32q = crc32.MakeTable(0xD5828281)
 
-func emulateExec(req *Request) (*Result, string, error) {
+func emulateExec(req *queue.Request) (*queue.Result, string, error) {
 	serializedLines := bytes.Split(req.Prog.Serialize(), []byte("\n"))
 	var info ipc.ProgInfo
 	for i, call := range req.Prog.Calls {
@@ -190,12 +191,12 @@ func emulateExec(req *Request) (*Result, string, error) {
 		if req.NeedCover {
 			callInfo.Cover = []uint32{cover}
 		}
-		if req.NeedSignal != NoSignal {
+		if req.NeedSignal != queue.NoSignal {
 			callInfo.Signal = []uint32{cover}
 		}
 		info.Calls = append(info.Calls, callInfo)
 	}
-	return &Result{Info: &info}, "", nil
+	return &queue.Result{Info: &info}, "", nil
 }
 
 type testFuzzer struct {
@@ -235,13 +236,13 @@ func (f *testFuzzer) oneMore() bool {
 func (f *testFuzzer) registerExecutor(proc *executorProc) {
 	f.eg.Go(func() error {
 		for f.oneMore() {
-			req := f.fuzzer.NextInput()
+			req := f.fuzzer.Next()
 			res, crash, err := proc.execute(req)
 			if err != nil {
 				return err
 			}
 			if crash != "" {
-				res = &Result{Stop: true}
+				res = &queue.Result{Stop: true}
 				if !f.expectedCrashes[crash] {
 					return fmt.Errorf("unexpected crash: %q", crash)
 				}
@@ -250,7 +251,7 @@ func (f *testFuzzer) registerExecutor(proc *executorProc) {
 				f.crashes[crash]++
 				f.mu.Unlock()
 			}
-			f.fuzzer.Done(req, res)
+			req.Done(res)
 		}
 		return nil
 	})
@@ -296,10 +297,10 @@ func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {
 
 var crashRe = regexp.MustCompile(`{{CRASH: (.*?)}}`)
 
-func (proc *executorProc) execute(req *Request) (*Result, string, error) {
+func (proc *executorProc) execute(req *queue.Request) (*queue.Result, string, error) {
 	execOpts := proc.execOpts
 	// TODO: it's duplicated from fuzzer.go.
-	if req.NeedSignal != NoSignal {
+	if req.NeedSignal != queue.NoSignal {
 		execOpts.ExecFlags |= ipc.FlagCollectSignal
 	}
 	if req.NeedCover {
@@ -313,7 +314,7 @@ func (proc *executorProc) execute(req *Request) (*Result, string, error) {
 	} else if err != nil {
 		return nil, "", err
 	}
-	return &Result{Info: info}, "", nil
+	return &queue.Result{Info: info}, "", nil
 }
 
 func checkGoroutineLeaks() {
