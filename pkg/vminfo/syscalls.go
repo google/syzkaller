@@ -11,8 +11,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -148,7 +148,7 @@ func (ctx *checkContext) startCheck() []rpctype.ExecutionRequest {
 	return progs
 }
 
-func (ctx *checkContext) finishCheck(fileInfos []host.FileInfo, progs []rpctype.ExecutionResult) (
+func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfoT, progs []rpctype.ExecutionResult) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
 	ctx.fs = createVirtualFilesystem(fileInfos)
 	for i := range progs {

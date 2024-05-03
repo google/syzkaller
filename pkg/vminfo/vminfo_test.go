@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -41,7 +42,7 @@ func TestHostMachineInfo(t *testing.T) {
 	}
 }
 
-func hostChecker(t *testing.T) (*Checker, []host.FileInfo) {
+func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfoT) {
 	cfg := testConfig(t, runtime.GOOS, runtime.GOARCH)
 	checker := New(cfg)
 	files := host.ReadFiles(checker.RequiredFiles())

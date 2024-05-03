@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/sys/targets"
@@ -35,7 +35,7 @@ func TestLinuxSyscalls(t *testing.T) {
 		"minix", "adfs", "ufs", "sysv", "reiserfs", "ocfs2", "nilfs2",
 		"iso9660", "hpfs", "binder", "bcachefs", "",
 	}
-	files := []host.FileInfo{
+	files := []flatrpc.FileInfoT{
 		{
 			Name:   "/proc/version",
 			Exists: true,
@@ -128,7 +128,7 @@ func TestCannedCPUInfoLinux(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			files := createVirtualFilesystem([]host.FileInfo{{
+			files := createVirtualFilesystem([]flatrpc.FileInfoT{{
 				Name:   "/proc/cpuinfo",
 				Exists: true,
 				Data:   []byte(test.data),
