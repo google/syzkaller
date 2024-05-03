@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -146,7 +147,7 @@ type Manager struct {
 	vmPool             *vm.Pool
 	checker            *vminfo.Checker
 	checkFiles         []string
-	checkFilesInfo     []host.FileInfo
+	checkFilesInfo     []flatrpc.FileInfoT
 	checkProgs         []rpctype.ExecutionRequest
 	checkResults       []rpctype.ExecutionResult
 	needCheckResults   int

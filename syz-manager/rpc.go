@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
@@ -36,7 +37,7 @@ type RPCServer struct {
 
 	checkDone        atomic.Bool
 	checkFiles       []string
-	checkFilesInfo   []host.FileInfo
+	checkFilesInfo   []flatrpc.FileInfoT
 	checkProgs       []rpctype.ExecutionRequest
 	checkResults     []rpctype.ExecutionResult
 	needCheckResults int

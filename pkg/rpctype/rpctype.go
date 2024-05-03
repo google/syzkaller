@@ -9,6 +9,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
@@ -103,7 +104,7 @@ type CheckArgs struct {
 	Error    string
 	Features *host.Features
 	Globs    map[string][]string
-	Files    []host.FileInfo
+	Files    []flatrpc.FileInfoT
 }
 
 type CheckRes struct {
