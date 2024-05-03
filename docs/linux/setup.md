@@ -26,7 +26,7 @@ If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting
 
 ### Go and syzkaller
 
-`syzkaller` is written in [Go](https://golang.org), and `Go 1.20+` toolchain is required for build.
+`syzkaller` is written in [Go](https://golang.org), and `Go 1.21+` toolchain is required for build.
 Generally we aim at supporting 2 latest releases of Go.
 The toolchain can be installed with:
 
