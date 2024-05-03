@@ -21,7 +21,7 @@ require (
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
-	golang.org/x/sync v0.6.0
+	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.19.0
 	golang.org/x/tools v0.19.0
 	google.golang.org/api v0.172.0
