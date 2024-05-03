@@ -3,7 +3,7 @@
 
 // Tests the translation of coverage pcs between fuzzer instances with differing module offsets.
 
-package cover_test
+package cover
 
 import (
 	"fmt"
@@ -11,18 +11,17 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
 )
 
 type RPCServer struct {
-	canonicalModules   *cover.Canonicalizer
+	canonicalModules   *Canonicalizer
 	modulesInitialized bool
 	fuzzers            map[string]*Fuzzer
 }
 
 type Fuzzer struct {
-	instModules *cover.CanonicalizerInstance
+	instModules *CanonicalizerInstance
 	cov         []uint32
 	goalCov     []uint32
 	bitmap      map[uint32]uint32
@@ -249,7 +248,7 @@ func (serv *RPCServer) runTest(val canonicalizeValue) string {
 
 func (serv *RPCServer) connect(name string, modules []host.KernelModule, flagSignal bool) {
 	if !serv.modulesInitialized {
-		serv.canonicalModules = cover.NewCanonicalizer(modules, flagSignal)
+		serv.canonicalModules = NewCanonicalizer(modules, flagSignal)
 		serv.modulesInitialized = true
 	}
 
