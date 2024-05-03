@@ -326,20 +326,22 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 
 	if !serv.checkDone.Load() {
 		serv.mu.Lock()
-		serv.checkResults = append(serv.checkResults, a.Results...)
-		if len(serv.checkResults) < serv.needCheckResults {
-			numRequests := min(len(serv.checkProgs), a.NeedProgs)
-			r.Requests = serv.checkProgs[:numRequests]
-			serv.checkProgs = serv.checkProgs[numRequests:]
-		} else {
-			if err := serv.finishCheck(); err != nil {
-				log.Fatalf("check failed: %v", err)
+		if !serv.checkDone.Load() {
+			serv.checkResults = append(serv.checkResults, a.Results...)
+			if len(serv.checkResults) < serv.needCheckResults {
+				numRequests := min(len(serv.checkProgs), a.NeedProgs)
+				r.Requests = serv.checkProgs[:numRequests]
+				serv.checkProgs = serv.checkProgs[numRequests:]
+			} else {
+				if err := serv.finishCheck(); err != nil {
+					log.Fatalf("check failed: %v", err)
+				}
+				serv.checkProgs = nil
+				serv.checkResults = nil
+				serv.checkFiles = nil
+				serv.checkFilesInfo = nil
+				serv.checkDone.Store(true)
 			}
-			serv.checkProgs = nil
-			serv.checkResults = nil
-			serv.checkFiles = nil
-			serv.checkFilesInfo = nil
-			serv.checkDone.Store(true)
 		}
 		serv.mu.Unlock()
 		return nil
@@ -446,9 +448,6 @@ func (serv *RPCServer) stopFuzzing(name string) {
 }
 
 func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
-	if !serv.checkDone.Load() {
-		log.Fatalf("VM is exited while checking is not done")
-	}
 	runnerPtr, _ := serv.runners.LoadAndDelete(name)
 	runner := runnerPtr.(*Runner)
 	runner.mu.Lock()
@@ -466,6 +465,9 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
 	// fuzzerObj may be null, but in that case oldRequests would be empty as well.
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
+	if !serv.checkDone.Load() {
+		log.Fatalf("VM is exited while checking is not done")
+	}
 	fuzzerObj := serv.mgr.getFuzzer()
 	for _, req := range oldRequests {
 		if crashed && req.try >= 0 {
