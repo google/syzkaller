@@ -86,7 +86,7 @@ func main() {
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
-		log.SyzFatalf("%v", err)
+		log.SyzFatal(err)
 	}
 
 	config, execOpts, err := ipcconfig.Default(target)
@@ -144,7 +144,7 @@ func main() {
 	}
 	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
 	if err != nil {
-		log.SyzFatalf("%v", err)
+		log.SyzFatal(err)
 	}
 	var checkReq *rpctype.CheckArgs
 	if r.Features == nil {
@@ -159,7 +159,7 @@ func main() {
 		r.Features = checkReq.Features
 	} else {
 		if err = host.Setup(target, r.Features, featureFlags, executor); err != nil {
-			log.SyzFatalf("%v", err)
+			log.SyzFatal(err)
 		}
 		checkReq = new(rpctype.CheckArgs)
 	}

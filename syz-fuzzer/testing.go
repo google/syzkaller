@@ -32,17 +32,17 @@ func testImage(hostAddr string, args *checkArgs) {
 	log.Logf(0, "connecting to host at %v", hostAddr)
 	conn, err := rpctype.Dial(hostAddr, args.ipcConfig.Timeouts.Scale)
 	if err != nil {
-		log.SyzFatalf("BUG: failed to connect to host: %v", err)
+		log.SyzFatalf("failed to connect to host: %v", err)
 	}
 	conn.Close()
 	if err := checkRevisions(args); err != nil {
-		log.SyzFatalf("BUG: %v", err)
+		log.SyzFatal(err)
 	}
 	if _, err := checkMachine(args); err != nil {
-		log.SyzFatalf("BUG: %v", err)
+		log.SyzFatal(err)
 	}
 	if err := buildCallList(args.target, args.sandbox); err != nil {
-		log.SyzFatalf("BUG: %v", err)
+		log.SyzFatal(err)
 	}
 }
 
