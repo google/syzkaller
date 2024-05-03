@@ -164,7 +164,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ...execOpt) *queue.Resul
 			NeedCover:  true,
 			Stat:       stat,
 		}, &dontTriage{})
-		if result.Stop {
+		if result.Stop() {
 			stop = true
 			return
 		}
@@ -204,7 +204,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 					SignalFilterCall: call1,
 					Stat:             job.fuzzer.statExecMinimize,
 				})
-				if result.Stop {
+				if result.Stop() {
 					stop = true
 					return false
 				}
@@ -273,7 +273,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			NeedSignal: queue.NewSignal,
 			Stat:       fuzzer.statExecSmash,
 		})
-		if result.Stop {
+		if result.Stop() {
 			return
 		}
 		if fuzzer.Config.Collide {
@@ -281,7 +281,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 				Prog: randomCollide(p, rnd),
 				Stat: fuzzer.statExecCollide,
 			})
-			if result.Stop {
+			if result.Stop() {
 				return
 			}
 		}
@@ -323,7 +323,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 			Prog: newProg,
 			Stat: fuzzer.statExecSmash,
 		})
-		if result.Stop {
+		if result.Stop() {
 			return
 		}
 		info := result.Info
@@ -343,6 +343,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// First execute the original program twice to get comparisons from KCOV.
 	// The second execution lets us filter out flaky values, which seem to constitute ~30-40%.
 	p := job.p
+
 	var comps prog.CompMap
 	for i := 0; i < 2; i++ {
 		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
@@ -350,7 +351,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 			NeedHints: true,
 			Stat:      fuzzer.statExecSeed,
 		})
-		if result.Stop || result.Info == nil {
+		if result.Stop() || result.Info == nil {
 			return
 		}
 		if i == 0 {
@@ -373,6 +374,6 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 				NeedSignal: queue.NewSignal,
 				Stat:       fuzzer.statExecHint,
 			})
-			return !result.Stop
+			return !result.Stop()
 		})
 }

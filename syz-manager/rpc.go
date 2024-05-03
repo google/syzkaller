@@ -15,7 +15,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
@@ -53,10 +52,6 @@ type RPCServer struct {
 
 	mu      sync.Mutex
 	runners sync.Map // Instead of map[string]*Runner.
-
-	// We did not finish these requests because of VM restarts.
-	// They will be eventually given to other VMs.
-	rescuedInputs []*queue.Request
 
 	statExecs                 *stats.Val
 	statExecRetries           *stats.Val
@@ -103,7 +98,7 @@ type BugFrames struct {
 type RPCManagerView interface {
 	currentBugFrames() BugFrames
 	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool)
-	getFuzzer() *fuzzer.Fuzzer
+	getExecSource() queue.Source
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -364,13 +359,17 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		return nil
 	}
 
-	fuzzerObj := serv.mgr.getFuzzer()
-	if fuzzerObj == nil {
+	source := serv.mgr.getExecSource()
+	if source == nil {
 		// ExchangeInfo calls follow MachineCheck, so the fuzzer must have been initialized.
 		panic("exchange info call with nil fuzzer")
 	}
 
-	appendRequest := func(inp *queue.Request) {
+	// First query new inputs and only then post results.
+	// It should foster a more even distribution of executions
+	// across all VMs.
+	for len(r.Requests) < a.NeedProgs {
+		inp := source.Next()
 		if req, ok := serv.newRequest(runner, inp); ok {
 			r.Requests = append(r.Requests, req)
 		} else {
@@ -378,27 +377,8 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 			// but so far we don't have a better handling than counting this.
 			// This error is observed a lot on the seeded syz_mount_image calls.
 			serv.statExecBufferTooSmall.Add(1)
-			inp.Done(&queue.Result{Stop: true})
+			inp.Done(&queue.Result{Status: queue.ExecFailure})
 		}
-	}
-
-	// Try to collect some of the postponed requests.
-	if serv.mu.TryLock() {
-		for len(serv.rescuedInputs) != 0 && len(r.Requests) < a.NeedProgs {
-			last := len(serv.rescuedInputs) - 1
-			inp := serv.rescuedInputs[last]
-			serv.rescuedInputs[last] = nil
-			serv.rescuedInputs = serv.rescuedInputs[:last]
-			appendRequest(inp)
-		}
-		serv.mu.Unlock()
-	}
-
-	// First query new inputs and only then post results.
-	// It should foster a more even distribution of executions
-	// across all VMs.
-	for len(r.Requests) < a.NeedProgs {
-		appendRequest(fuzzerObj.Next())
 	}
 
 	for _, result := range a.Results {
@@ -485,10 +465,9 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
 	}
 	for _, req := range oldRequests {
 		if crashed && req.try >= 0 {
-			req.req.Done(&queue.Result{Stop: true})
+			req.req.Done(&queue.Result{Status: queue.Crashed})
 		} else {
-			// We will resend these inputs to another VM.
-			serv.rescuedInputs = append(serv.rescuedInputs, req.req)
+			req.req.Done(&queue.Result{Status: queue.Restarted})
 		}
 	}
 	return runner.machineInfo
