@@ -242,7 +242,7 @@ func (f *testFuzzer) registerExecutor(proc *executorProc) {
 				return err
 			}
 			if crash != "" {
-				res = &queue.Result{Stop: true}
+				res = &queue.Result{Status: queue.Crashed}
 				if !f.expectedCrashes[crash] {
 					return fmt.Errorf("unexpected crash: %q", crash)
 				}
