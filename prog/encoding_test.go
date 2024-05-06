@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func setToArray(s map[string]struct{}) []string {
@@ -32,7 +34,7 @@ func TestSerializeData(t *testing.T) {
 			}
 			buf := new(bytes.Buffer)
 			serializeData(buf, data, readable)
-			p := newParser(nil, buf.Bytes(), true)
+			p := newParser(nil, buf.Bytes(), true, false)
 			if !p.Scan() {
 				t.Fatalf("parser does not scan")
 			}
@@ -386,6 +388,18 @@ func TestSerializeDeserialize(t *testing.T) {
 	})
 }
 
+func TestDeserializeDataMmapProg(t *testing.T) {
+	testEachTarget(t, func(t *testing.T, target *Target) {
+		p := target.DataMmapProg()
+		data := p.Serialize()
+		p2, err := target.Deserialize(data, StrictUnsafe)
+		assert.NoError(t, err)
+		data2 := p2.Serialize()
+		assert.Equal(t, string(data), string(data2))
+		p.SerializeForExec()
+	})
+}
+
 func TestSerializeDeserializeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
@@ -545,7 +559,7 @@ func TestHasNext(t *testing.T) {
 		{"abc", true},
 	}
 	for _, testCase := range testCases {
-		p := newParser(nil, []byte(testCase.input), true)
+		p := newParser(nil, []byte(testCase.input), true, false)
 		if !p.Scan() {
 			t.Fatalf("parser does not scan")
 		}

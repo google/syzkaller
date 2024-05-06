@@ -256,7 +256,8 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 		}
 	}()
 	strict := mode == Strict || mode == StrictUnsafe
-	p := newParser(target, data, strict)
+	unsafe := mode == StrictUnsafe || mode == NonStrictUnsafe
+	p := newParser(target, data, strict, unsafe)
 	prog, err := p.parseProg()
 	if err := p.Err(); err != nil {
 		return nil, err
@@ -270,7 +271,6 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 	if err := prog.validateWithOpts(validationOptions{
 		// Don't validate auto-set conditional fields. We'll patch them later.
 		ignoreTransient: true,
-		allowUnsafe:     mode == StrictUnsafe || mode == NonStrictUnsafe,
 	}); err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 	if p.autos != nil {
 		p.fixupAutos(prog)
 	}
-	if mode != StrictUnsafe {
+	if !unsafe {
 		if err := prog.sanitize(!strict); err != nil {
 			return nil, err
 		}
@@ -288,7 +288,8 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 
 func (p *parser) parseProg() (*Prog, error) {
 	prog := &Prog{
-		Target: p.target,
+		Target:   p.target,
+		isUnsafe: p.unsafe,
 	}
 	for p.Scan() {
 		if p.EOF() {
@@ -860,31 +861,8 @@ func (p *parser) parseAddr() (uint64, uint64, error) {
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to parse addr: %q", pstr)
 	}
-	if addr < encodingAddrBase {
-		return 0, 0, fmt.Errorf("address without base offset: %q", pstr)
-	}
 	addr -= encodingAddrBase
-	// This is not used anymore, but left here to parse old programs.
-	if p.Char() == '+' || p.Char() == '-' {
-		minus := false
-		if p.Char() == '-' {
-			minus = true
-			p.Parse('-')
-		} else {
-			p.Parse('+')
-		}
-		ostr := p.Ident()
-		off, err := strconv.ParseUint(ostr, 0, 64)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to parse addr offset: %q", ostr)
-		}
-		if minus {
-			off = -off
-		}
-		addr += off
-	}
 	target := p.target
-	maxMem := target.NumPages * target.PageSize
 	var vmaSize uint64
 	if p.Char() == '/' {
 		p.Parse('/')
@@ -898,11 +876,14 @@ func (p *parser) parseAddr() (uint64, uint64, error) {
 		if vmaSize == 0 {
 			vmaSize = target.PageSize
 		}
-		if vmaSize > maxMem {
-			vmaSize = maxMem
-		}
-		if addr > maxMem-vmaSize {
-			addr = maxMem - vmaSize
+		if !p.unsafe {
+			maxMem := target.NumPages * target.PageSize
+			if vmaSize > maxMem {
+				vmaSize = maxMem
+			}
+			if addr > maxMem-vmaSize {
+				addr = maxMem - vmaSize
+			}
 		}
 	}
 	p.Parse(')')
@@ -1119,6 +1100,7 @@ func fromHexChar(v byte) (byte, bool) {
 type parser struct {
 	target  *Target
 	strict  bool
+	unsafe  bool
 	vars    map[string]*ResultArg
 	autos   map[Arg]bool
 	comment string
@@ -1130,10 +1112,11 @@ type parser struct {
 	e    error
 }
 
-func newParser(target *Target, data []byte, strict bool) *parser {
+func newParser(target *Target, data []byte, strict, unsafe bool) *parser {
 	p := &parser{
 		target: target,
 		strict: strict,
+		unsafe: unsafe,
 		vars:   make(map[string]*ResultArg),
 		data:   data,
 	}

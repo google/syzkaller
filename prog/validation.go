@@ -26,23 +26,24 @@ func (p *Prog) validate() error {
 }
 
 type validCtx struct {
-	target *Target
-	opts   validationOptions
-	args   map[Arg]bool
-	uses   map[Arg]Arg
+	target   *Target
+	isUnsafe bool
+	opts     validationOptions
+	args     map[Arg]bool
+	uses     map[Arg]Arg
 }
 
 type validationOptions struct {
 	ignoreTransient bool
-	allowUnsafe     bool // allow global file names, etc
 }
 
 func (p *Prog) validateWithOpts(opts validationOptions) error {
 	ctx := &validCtx{
-		target: p.Target,
-		opts:   opts,
-		args:   make(map[Arg]bool),
-		uses:   make(map[Arg]Arg),
+		target:   p.Target,
+		isUnsafe: p.isUnsafe,
+		opts:     opts,
+		args:     make(map[Arg]bool),
+		uses:     make(map[Arg]Arg),
 	}
 	for i, c := range p.Calls {
 		if c.Meta == nil {
@@ -61,7 +62,7 @@ func (p *Prog) validateWithOpts(opts validationOptions) error {
 }
 
 func (ctx *validCtx) validateCall(c *Call) error {
-	if !ctx.opts.allowUnsafe && c.Meta.Attrs.Disabled {
+	if !ctx.isUnsafe && c.Meta.Attrs.Disabled {
 		return fmt.Errorf("use of a disabled call")
 	}
 	if c.Props.Rerun > 0 && c.Props.FailNth > 0 {
@@ -211,7 +212,7 @@ func (arg *DataArg) validate(ctx *validCtx, dir Dir) error {
 				typ.Name(), arg.Size(), typ.TypeSize)
 		}
 	case BufferFilename:
-		if !ctx.opts.allowUnsafe && escapingFilename(string(arg.data)) {
+		if !ctx.isUnsafe && escapingFilename(string(arg.data)) {
 			return fmt.Errorf("escaping filename %q", arg.data)
 		}
 	}
@@ -286,11 +287,16 @@ func (arg *PointerArg) validate(ctx *validCtx, dir Dir) error {
 		}
 	} else {
 		maxMem := ctx.target.NumPages * ctx.target.PageSize
-		size := arg.VmaSize
+		addr, size := arg.Address, arg.VmaSize
 		if size == 0 && arg.Res != nil {
 			size = arg.Res.Size()
 		}
-		if arg.Address >= maxMem || arg.Address+size > maxMem {
+		if ctx.isUnsafe {
+			// Allow mapping 2 surrounding pages for DataMmapProg.
+			addr += ctx.target.PageSize
+			maxMem += 2 * ctx.target.PageSize
+		}
+		if addr >= maxMem || addr+size > maxMem {
 			return fmt.Errorf("ptr %v has bad address %v/%v/%v",
 				arg.Type().Name(), arg.Address, arg.VmaSize, size)
 		}

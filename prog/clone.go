@@ -12,6 +12,14 @@ func (p *Prog) Clone() *Prog {
 }
 
 func (p *Prog) cloneWithMap(newargs map[*ResultArg]*ResultArg) *Prog {
+	if p.isUnsafe {
+		// We could clone it, but since we prohibit mutation
+		// of unsafe programs, it's unclear why we would clone it.
+		// Note: this also covers cloning of corpus programs
+		// during mutation, so if this is removed, we may need
+		// additional checks during mutation.
+		panic("cloning of unsafe programs is not supposed to be done")
+	}
 	p1 := &Prog{
 		Target: p.Target,
 		Calls:  cloneCalls(p.Calls, newargs),

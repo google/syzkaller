@@ -6,6 +6,9 @@
 
 include <user/trusty_syscalls.h>
 
+# Needed for MakeSyzMmap, or need to fix target.MakeDataMmap to use mmap.
+syz_mmap(addr vma, len len[addr])
+
 write(fd int32, msg ptr[in, array[int8]], size len[msg])
 brk(brk int32)
 exit_etc(status int32, flags int32)
