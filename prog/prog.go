@@ -12,6 +12,9 @@ type Prog struct {
 	Target   *Target
 	Calls    []*Call
 	Comments []string
+
+	// Was deserialized using Unsafe mode, so can do unsafe things.
+	isUnsafe bool
 }
 
 func (p *Prog) CallName(call int) string {
