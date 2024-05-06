@@ -43,6 +43,7 @@ type RPCServer struct {
 	needCheckResults int
 	checkFailures    int
 	checkFeatures    *host.Features
+	enabledFeatures  flatrpc.Feature
 	modules          []cover.KernelModule
 	canonicalModules *cover.Canonicalizer
 	execCoverFilter  map[uint32]uint32
@@ -98,7 +99,7 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	currentBugFrames() BugFrames
-	machineChecked(features *host.Features, enabledSyscalls map[*prog.Syscall]bool)
+	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool)
 	getFuzzer() *fuzzer.Fuzzer
 }
 
@@ -206,6 +207,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 
 	if serv.checkFeatures == nil {
 		serv.checkFeatures = a.Features
+		serv.enabledFeatures = a.Features.ToFlatRPC()
 		serv.checkFilesInfo = a.Files
 		serv.modules = modules
 		serv.target.UpdateGlobs(a.Globs)
@@ -287,7 +289,7 @@ func (serv *RPCServer) finishCheck() error {
 	if len(enabledCalls) == 0 {
 		log.Fatalf("all system calls are disabled")
 	}
-	serv.mgr.machineChecked(serv.checkFeatures, enabledCalls)
+	serv.mgr.machineChecked(serv.enabledFeatures, enabledCalls)
 	return nil
 }
 
@@ -576,7 +578,7 @@ func (serv *RPCServer) newRequest(runner *Runner, req *fuzzer.Request) (rpctype.
 }
 
 func (serv *RPCServer) createExecOpts(req *fuzzer.Request) ipc.ExecOpts {
-	env := ipc.FeaturesToFlags(serv.checkFeatures, nil)
+	env := ipc.FeaturesToFlags(serv.enabledFeatures, nil)
 	if *flagDebug {
 		env |= ipc.FlagDebug
 	}

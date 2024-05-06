@@ -18,7 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
@@ -158,7 +158,7 @@ func FlagsToSandbox(flags EnvFlags) string {
 }
 
 // nolint: gocyclo
-func FeaturesToFlags(feat *host.Features, manual csource.Features) EnvFlags {
+func FeaturesToFlags(features flatrpc.Feature, manual csource.Features) EnvFlags {
 	var flags EnvFlags
 	if manual == nil || manual["net_reset"].Enabled {
 		flags |= FlagEnableNetReset
@@ -169,28 +169,28 @@ func FeaturesToFlags(feat *host.Features, manual csource.Features) EnvFlags {
 	if manual == nil || manual["close_fds"].Enabled {
 		flags |= FlagEnableCloseFds
 	}
-	if feat[host.FeatureExtraCoverage].Enabled {
+	if features&flatrpc.FeatureExtraCoverage != 0 {
 		flags |= FlagExtraCover
 	}
-	if feat[host.FeatureDelayKcovMmap].Enabled {
+	if features&flatrpc.FeatureDelayKcovMmap != 0 {
 		flags |= FlagDelayKcovMmap
 	}
-	if feat[host.FeatureNetInjection].Enabled && (manual == nil || manual["tun"].Enabled) {
+	if features&flatrpc.FeatureNetInjection != 0 && (manual == nil || manual["tun"].Enabled) {
 		flags |= FlagEnableTun
 	}
-	if feat[host.FeatureNetDevices].Enabled && (manual == nil || manual["net_dev"].Enabled) {
+	if features&flatrpc.FeatureNetDevices != 0 && (manual == nil || manual["net_dev"].Enabled) {
 		flags |= FlagEnableNetDev
 	}
-	if feat[host.FeatureDevlinkPCI].Enabled && (manual == nil || manual["devlink_pci"].Enabled) {
+	if features&flatrpc.FeatureDevlinkPCI != 0 && (manual == nil || manual["devlink_pci"].Enabled) {
 		flags |= FlagEnableDevlinkPCI
 	}
-	if feat[host.FeatureNicVF].Enabled && (manual == nil || manual["nic_vf"].Enabled) {
+	if features&flatrpc.FeatureNicVF != 0 && (manual == nil || manual["nic_vf"].Enabled) {
 		flags |= FlagEnableNicVF
 	}
-	if feat[host.FeatureVhciInjection].Enabled && (manual == nil || manual["vhci"].Enabled) {
+	if features&flatrpc.FeatureVhciInjection != 0 && (manual == nil || manual["vhci"].Enabled) {
 		flags |= FlagEnableVhciInjection
 	}
-	if feat[host.FeatureWifiEmulation].Enabled && (manual == nil || manual["wifi"].Enabled) {
+	if features&flatrpc.FeatureWifiEmulation != 0 && (manual == nil || manual["wifi"].Enabled) {
 		flags |= FlagEnableWifi
 	}
 	return flags

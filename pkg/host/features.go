@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -48,6 +49,68 @@ type Features [numFeatures]Feature
 
 func (features *Features) Supported() *Features {
 	return features
+}
+
+func (features *Features) ToFlatRPC() flatrpc.Feature {
+	var result flatrpc.Feature
+	if features[FeatureCoverage].Enabled {
+		result |= flatrpc.FeatureCoverage
+	}
+	if features[FeatureComparisons].Enabled {
+		result |= flatrpc.FeatureComparisons
+	}
+	if features[FeatureExtraCoverage].Enabled {
+		result |= flatrpc.FeatureExtraCoverage
+	}
+	if features[FeatureDelayKcovMmap].Enabled {
+		result |= flatrpc.FeatureDelayKcovMmap
+	}
+	if features[FeatureSandboxSetuid].Enabled {
+		result |= flatrpc.FeatureSandboxSetuid
+	}
+	if features[FeatureSandboxNamespace].Enabled {
+		result |= flatrpc.FeatureSandboxNamespace
+	}
+	if features[FeatureSandboxAndroid].Enabled {
+		result |= flatrpc.FeatureSandboxAndroid
+	}
+	if features[FeatureFault].Enabled {
+		result |= flatrpc.FeatureFault
+	}
+	if features[FeatureLeak].Enabled {
+		result |= flatrpc.FeatureLeak
+	}
+	if features[FeatureNetInjection].Enabled {
+		result |= flatrpc.FeatureNetInjection
+	}
+	if features[FeatureNetDevices].Enabled {
+		result |= flatrpc.FeatureNetDevices
+	}
+	if features[FeatureKCSAN].Enabled {
+		result |= flatrpc.FeatureKCSAN
+	}
+	if features[FeatureDevlinkPCI].Enabled {
+		result |= flatrpc.FeatureDevlinkPCI
+	}
+	if features[FeatureNicVF].Enabled {
+		result |= flatrpc.FeatureNicVF
+	}
+	if features[FeatureUSBEmulation].Enabled {
+		result |= flatrpc.FeatureUSBEmulation
+	}
+	if features[FeatureVhciInjection].Enabled {
+		result |= flatrpc.FeatureVhciInjection
+	}
+	if features[FeatureWifiEmulation].Enabled {
+		result |= flatrpc.FeatureWifiEmulation
+	}
+	if features[Feature802154Emulation].Enabled {
+		result |= flatrpc.FeatureLRWPANEmulation
+	}
+	if features[FeatureSwap].Enabled {
+		result |= flatrpc.FeatureSwap
+	}
+	return result
 }
 
 var checkFeature [numFeatures]func() string

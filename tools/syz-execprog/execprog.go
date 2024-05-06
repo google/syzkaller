@@ -418,7 +418,7 @@ func createConfig(target *prog.Target, features *host.Features, featuresFlags cs
 		}
 		execOpts.ExecFlags |= ipc.FlagCollectComps
 	}
-	execOpts.EnvFlags |= ipc.FeaturesToFlags(features, featuresFlags)
+	execOpts.EnvFlags |= ipc.FeaturesToFlags(features.ToFlatRPC(), featuresFlags)
 	return config, execOpts
 }
 
