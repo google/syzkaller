@@ -37,7 +37,7 @@ type RPCServer struct {
 
 	checkDone        atomic.Bool
 	checkFiles       []string
-	checkFilesInfo   []flatrpc.FileInfoT
+	checkFilesInfo   []flatrpc.FileInfo
 	checkProgs       []rpctype.ExecutionRequest
 	checkResults     []rpctype.ExecutionResult
 	needCheckResults int

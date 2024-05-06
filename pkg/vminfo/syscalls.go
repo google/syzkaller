@@ -148,7 +148,7 @@ func (ctx *checkContext) startCheck() []rpctype.ExecutionRequest {
 	return progs
 }
 
-func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfoT, progs []rpctype.ExecutionResult) (
+func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfo, progs []rpctype.ExecutionResult) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
 	ctx.fs = createVirtualFilesystem(fileInfos)
 	for i := range progs {

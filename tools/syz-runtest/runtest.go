@@ -147,7 +147,7 @@ type Manager struct {
 	vmPool             *vm.Pool
 	checker            *vminfo.Checker
 	checkFiles         []string
-	checkFilesInfo     []flatrpc.FileInfoT
+	checkFilesInfo     []flatrpc.FileInfo
 	checkProgs         []rpctype.ExecutionRequest
 	checkResults       []rpctype.ExecutionResult
 	needCheckResults   int

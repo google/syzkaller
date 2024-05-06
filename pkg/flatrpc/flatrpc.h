@@ -15,67 +15,71 @@ static_assert(FLATBUFFERS_VERSION_MAJOR == 2 &&
 
 namespace rpc {
 
-struct ConnectRequest;
-struct ConnectRequestBuilder;
-struct ConnectRequestT;
+struct ConnectRequestRaw;
+struct ConnectRequestRawBuilder;
+struct ConnectRequestRawT;
 
-struct ConnectReply;
-struct ConnectReplyBuilder;
-struct ConnectReplyT;
+struct ConnectReplyRaw;
+struct ConnectReplyRawBuilder;
+struct ConnectReplyRawT;
 
-struct InfoRequest;
-struct InfoRequestBuilder;
-struct InfoRequestT;
+struct InfoRequestRaw;
+struct InfoRequestRawBuilder;
+struct InfoRequestRawT;
 
-struct InfoReply;
-struct InfoReplyBuilder;
-struct InfoReplyT;
+struct InfoReplyRaw;
+struct InfoReplyRawBuilder;
+struct InfoReplyRawT;
 
-struct FileInfo;
-struct FileInfoBuilder;
-struct FileInfoT;
+struct FileInfoRaw;
+struct FileInfoRawBuilder;
+struct FileInfoRawT;
 
-struct GlobInfo;
-struct GlobInfoBuilder;
-struct GlobInfoT;
+struct GlobInfoRaw;
+struct GlobInfoRawBuilder;
+struct GlobInfoRawT;
 
-struct HostMessage;
-struct HostMessageBuilder;
-struct HostMessageT;
+struct FeatureInfoRaw;
+struct FeatureInfoRawBuilder;
+struct FeatureInfoRawT;
 
-struct ExecutorMessage;
-struct ExecutorMessageBuilder;
-struct ExecutorMessageT;
+struct HostMessageRaw;
+struct HostMessageRawBuilder;
+struct HostMessageRawT;
 
-struct ExecRequest;
-struct ExecRequestBuilder;
-struct ExecRequestT;
+struct ExecutorMessageRaw;
+struct ExecutorMessageRawBuilder;
+struct ExecutorMessageRawT;
 
-struct SignalUpdate;
-struct SignalUpdateBuilder;
-struct SignalUpdateT;
+struct ExecRequestRaw;
+struct ExecRequestRawBuilder;
+struct ExecRequestRawT;
 
-struct ExecutingMessage;
-struct ExecutingMessageBuilder;
-struct ExecutingMessageT;
+struct SignalUpdateRaw;
+struct SignalUpdateRawBuilder;
+struct SignalUpdateRawT;
 
-struct StatsMessage;
-struct StatsMessageBuilder;
-struct StatsMessageT;
+struct ExecutingMessageRaw;
+struct ExecutingMessageRawBuilder;
+struct ExecutingMessageRawT;
 
-struct CallInfo;
-struct CallInfoBuilder;
-struct CallInfoT;
+struct StatsMessageRaw;
+struct StatsMessageRawBuilder;
+struct StatsMessageRawT;
 
-struct Comparison;
+struct CallInfoRaw;
+struct CallInfoRawBuilder;
+struct CallInfoRawT;
 
-struct ProgInfo;
-struct ProgInfoBuilder;
-struct ProgInfoT;
+struct ComparisonRaw;
 
-struct ExecResult;
-struct ExecResultBuilder;
-struct ExecResultT;
+struct ProgInfoRaw;
+struct ProgInfoRawBuilder;
+struct ProgInfoRawT;
+
+struct ExecResultRaw;
+struct ExecResultRawBuilder;
+struct ExecResultRawT;
 
 enum class Feature : uint64_t {
   Coverage = 1ULL,
@@ -155,7 +159,7 @@ inline const char *EnumNameFeature(Feature e) {
   }
 }
 
-enum class HostMessages : uint8_t {
+enum class HostMessagesRaw : uint8_t {
   NONE = 0,
   ExecRequest = 1,
   SignalUpdate = 2,
@@ -163,16 +167,16 @@ enum class HostMessages : uint8_t {
   MAX = SignalUpdate
 };
 
-inline const HostMessages (&EnumValuesHostMessages())[3] {
-  static const HostMessages values[] = {
-    HostMessages::NONE,
-    HostMessages::ExecRequest,
-    HostMessages::SignalUpdate
+inline const HostMessagesRaw (&EnumValuesHostMessagesRaw())[3] {
+  static const HostMessagesRaw values[] = {
+    HostMessagesRaw::NONE,
+    HostMessagesRaw::ExecRequest,
+    HostMessagesRaw::SignalUpdate
   };
   return values;
 }
 
-inline const char * const *EnumNamesHostMessages() {
+inline const char * const *EnumNamesHostMessagesRaw() {
   static const char * const names[4] = {
     "NONE",
     "ExecRequest",
@@ -182,50 +186,50 @@ inline const char * const *EnumNamesHostMessages() {
   return names;
 }
 
-inline const char *EnumNameHostMessages(HostMessages e) {
-  if (flatbuffers::IsOutRange(e, HostMessages::NONE, HostMessages::SignalUpdate)) return "";
+inline const char *EnumNameHostMessagesRaw(HostMessagesRaw e) {
+  if (flatbuffers::IsOutRange(e, HostMessagesRaw::NONE, HostMessagesRaw::SignalUpdate)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesHostMessages()[index];
+  return EnumNamesHostMessagesRaw()[index];
 }
 
-template<typename T> struct HostMessagesTraits {
-  static const HostMessages enum_value = HostMessages::NONE;
+template<typename T> struct HostMessagesRawTraits {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::NONE;
 };
 
-template<> struct HostMessagesTraits<rpc::ExecRequest> {
-  static const HostMessages enum_value = HostMessages::ExecRequest;
+template<> struct HostMessagesRawTraits<rpc::ExecRequestRaw> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::ExecRequest;
 };
 
-template<> struct HostMessagesTraits<rpc::SignalUpdate> {
-  static const HostMessages enum_value = HostMessages::SignalUpdate;
+template<> struct HostMessagesRawTraits<rpc::SignalUpdateRaw> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::SignalUpdate;
 };
 
-template<typename T> struct HostMessagesUnionTraits {
-  static const HostMessages enum_value = HostMessages::NONE;
+template<typename T> struct HostMessagesRawUnionTraits {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::NONE;
 };
 
-template<> struct HostMessagesUnionTraits<rpc::ExecRequestT> {
-  static const HostMessages enum_value = HostMessages::ExecRequest;
+template<> struct HostMessagesRawUnionTraits<rpc::ExecRequestRawT> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::ExecRequest;
 };
 
-template<> struct HostMessagesUnionTraits<rpc::SignalUpdateT> {
-  static const HostMessages enum_value = HostMessages::SignalUpdate;
+template<> struct HostMessagesRawUnionTraits<rpc::SignalUpdateRawT> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::SignalUpdate;
 };
 
-struct HostMessagesUnion {
-  HostMessages type;
+struct HostMessagesRawUnion {
+  HostMessagesRaw type;
   void *value;
 
-  HostMessagesUnion() : type(HostMessages::NONE), value(nullptr) {}
-  HostMessagesUnion(HostMessagesUnion&& u) FLATBUFFERS_NOEXCEPT :
-    type(HostMessages::NONE), value(nullptr)
+  HostMessagesRawUnion() : type(HostMessagesRaw::NONE), value(nullptr) {}
+  HostMessagesRawUnion(HostMessagesRawUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(HostMessagesRaw::NONE), value(nullptr)
     { std::swap(type, u.type); std::swap(value, u.value); }
-  HostMessagesUnion(const HostMessagesUnion &);
-  HostMessagesUnion &operator=(const HostMessagesUnion &u)
-    { HostMessagesUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
-  HostMessagesUnion &operator=(HostMessagesUnion &&u) FLATBUFFERS_NOEXCEPT
+  HostMessagesRawUnion(const HostMessagesRawUnion &);
+  HostMessagesRawUnion &operator=(const HostMessagesRawUnion &u)
+    { HostMessagesRawUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  HostMessagesRawUnion &operator=(HostMessagesRawUnion &&u) FLATBUFFERS_NOEXCEPT
     { std::swap(type, u.type); std::swap(value, u.value); return *this; }
-  ~HostMessagesUnion() { Reset(); }
+  ~HostMessagesRawUnion() { Reset(); }
 
   void Reset();
 
@@ -233,37 +237,37 @@ struct HostMessagesUnion {
   void Set(T&& val) {
     typedef typename std::remove_reference<T>::type RT;
     Reset();
-    type = HostMessagesUnionTraits<RT>::enum_value;
-    if (type != HostMessages::NONE) {
+    type = HostMessagesRawUnionTraits<RT>::enum_value;
+    if (type != HostMessagesRaw::NONE) {
       value = new RT(std::forward<T>(val));
     }
   }
 
-  static void *UnPack(const void *obj, HostMessages type, const flatbuffers::resolver_function_t *resolver);
+  static void *UnPack(const void *obj, HostMessagesRaw type, const flatbuffers::resolver_function_t *resolver);
   flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
 
-  rpc::ExecRequestT *AsExecRequest() {
-    return type == HostMessages::ExecRequest ?
-      reinterpret_cast<rpc::ExecRequestT *>(value) : nullptr;
+  rpc::ExecRequestRawT *AsExecRequest() {
+    return type == HostMessagesRaw::ExecRequest ?
+      reinterpret_cast<rpc::ExecRequestRawT *>(value) : nullptr;
   }
-  const rpc::ExecRequestT *AsExecRequest() const {
-    return type == HostMessages::ExecRequest ?
-      reinterpret_cast<const rpc::ExecRequestT *>(value) : nullptr;
+  const rpc::ExecRequestRawT *AsExecRequest() const {
+    return type == HostMessagesRaw::ExecRequest ?
+      reinterpret_cast<const rpc::ExecRequestRawT *>(value) : nullptr;
   }
-  rpc::SignalUpdateT *AsSignalUpdate() {
-    return type == HostMessages::SignalUpdate ?
-      reinterpret_cast<rpc::SignalUpdateT *>(value) : nullptr;
+  rpc::SignalUpdateRawT *AsSignalUpdate() {
+    return type == HostMessagesRaw::SignalUpdate ?
+      reinterpret_cast<rpc::SignalUpdateRawT *>(value) : nullptr;
   }
-  const rpc::SignalUpdateT *AsSignalUpdate() const {
-    return type == HostMessages::SignalUpdate ?
-      reinterpret_cast<const rpc::SignalUpdateT *>(value) : nullptr;
+  const rpc::SignalUpdateRawT *AsSignalUpdate() const {
+    return type == HostMessagesRaw::SignalUpdate ?
+      reinterpret_cast<const rpc::SignalUpdateRawT *>(value) : nullptr;
   }
 };
 
-bool VerifyHostMessages(flatbuffers::Verifier &verifier, const void *obj, HostMessages type);
-bool VerifyHostMessagesVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<HostMessages> *types);
+bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type);
+bool VerifyHostMessagesRawVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<HostMessagesRaw> *types);
 
-enum class ExecutorMessages : uint8_t {
+enum class ExecutorMessagesRaw : uint8_t {
   NONE = 0,
   ExecResult = 1,
   Executing = 2,
@@ -272,17 +276,17 @@ enum class ExecutorMessages : uint8_t {
   MAX = Stats
 };
 
-inline const ExecutorMessages (&EnumValuesExecutorMessages())[4] {
-  static const ExecutorMessages values[] = {
-    ExecutorMessages::NONE,
-    ExecutorMessages::ExecResult,
-    ExecutorMessages::Executing,
-    ExecutorMessages::Stats
+inline const ExecutorMessagesRaw (&EnumValuesExecutorMessagesRaw())[4] {
+  static const ExecutorMessagesRaw values[] = {
+    ExecutorMessagesRaw::NONE,
+    ExecutorMessagesRaw::ExecResult,
+    ExecutorMessagesRaw::Executing,
+    ExecutorMessagesRaw::Stats
   };
   return values;
 }
 
-inline const char * const *EnumNamesExecutorMessages() {
+inline const char * const *EnumNamesExecutorMessagesRaw() {
   static const char * const names[5] = {
     "NONE",
     "ExecResult",
@@ -293,58 +297,58 @@ inline const char * const *EnumNamesExecutorMessages() {
   return names;
 }
 
-inline const char *EnumNameExecutorMessages(ExecutorMessages e) {
-  if (flatbuffers::IsOutRange(e, ExecutorMessages::NONE, ExecutorMessages::Stats)) return "";
+inline const char *EnumNameExecutorMessagesRaw(ExecutorMessagesRaw e) {
+  if (flatbuffers::IsOutRange(e, ExecutorMessagesRaw::NONE, ExecutorMessagesRaw::Stats)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesExecutorMessages()[index];
+  return EnumNamesExecutorMessagesRaw()[index];
 }
 
-template<typename T> struct ExecutorMessagesTraits {
-  static const ExecutorMessages enum_value = ExecutorMessages::NONE;
+template<typename T> struct ExecutorMessagesRawTraits {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::NONE;
 };
 
-template<> struct ExecutorMessagesTraits<rpc::ExecResult> {
-  static const ExecutorMessages enum_value = ExecutorMessages::ExecResult;
+template<> struct ExecutorMessagesRawTraits<rpc::ExecResultRaw> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::ExecResult;
 };
 
-template<> struct ExecutorMessagesTraits<rpc::ExecutingMessage> {
-  static const ExecutorMessages enum_value = ExecutorMessages::Executing;
+template<> struct ExecutorMessagesRawTraits<rpc::ExecutingMessageRaw> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Executing;
 };
 
-template<> struct ExecutorMessagesTraits<rpc::StatsMessage> {
-  static const ExecutorMessages enum_value = ExecutorMessages::Stats;
+template<> struct ExecutorMessagesRawTraits<rpc::StatsMessageRaw> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Stats;
 };
 
-template<typename T> struct ExecutorMessagesUnionTraits {
-  static const ExecutorMessages enum_value = ExecutorMessages::NONE;
+template<typename T> struct ExecutorMessagesRawUnionTraits {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::NONE;
 };
 
-template<> struct ExecutorMessagesUnionTraits<rpc::ExecResultT> {
-  static const ExecutorMessages enum_value = ExecutorMessages::ExecResult;
+template<> struct ExecutorMessagesRawUnionTraits<rpc::ExecResultRawT> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::ExecResult;
 };
 
-template<> struct ExecutorMessagesUnionTraits<rpc::ExecutingMessageT> {
-  static const ExecutorMessages enum_value = ExecutorMessages::Executing;
+template<> struct ExecutorMessagesRawUnionTraits<rpc::ExecutingMessageRawT> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Executing;
 };
 
-template<> struct ExecutorMessagesUnionTraits<rpc::StatsMessageT> {
-  static const ExecutorMessages enum_value = ExecutorMessages::Stats;
+template<> struct ExecutorMessagesRawUnionTraits<rpc::StatsMessageRawT> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Stats;
 };
 
-struct ExecutorMessagesUnion {
-  ExecutorMessages type;
+struct ExecutorMessagesRawUnion {
+  ExecutorMessagesRaw type;
   void *value;
 
-  ExecutorMessagesUnion() : type(ExecutorMessages::NONE), value(nullptr) {}
-  ExecutorMessagesUnion(ExecutorMessagesUnion&& u) FLATBUFFERS_NOEXCEPT :
-    type(ExecutorMessages::NONE), value(nullptr)
+  ExecutorMessagesRawUnion() : type(ExecutorMessagesRaw::NONE), value(nullptr) {}
+  ExecutorMessagesRawUnion(ExecutorMessagesRawUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(ExecutorMessagesRaw::NONE), value(nullptr)
     { std::swap(type, u.type); std::swap(value, u.value); }
-  ExecutorMessagesUnion(const ExecutorMessagesUnion &);
-  ExecutorMessagesUnion &operator=(const ExecutorMessagesUnion &u)
-    { ExecutorMessagesUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
-  ExecutorMessagesUnion &operator=(ExecutorMessagesUnion &&u) FLATBUFFERS_NOEXCEPT
+  ExecutorMessagesRawUnion(const ExecutorMessagesRawUnion &);
+  ExecutorMessagesRawUnion &operator=(const ExecutorMessagesRawUnion &u)
+    { ExecutorMessagesRawUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  ExecutorMessagesRawUnion &operator=(ExecutorMessagesRawUnion &&u) FLATBUFFERS_NOEXCEPT
     { std::swap(type, u.type); std::swap(value, u.value); return *this; }
-  ~ExecutorMessagesUnion() { Reset(); }
+  ~ExecutorMessagesRawUnion() { Reset(); }
 
   void Reset();
 
@@ -352,43 +356,43 @@ struct ExecutorMessagesUnion {
   void Set(T&& val) {
     typedef typename std::remove_reference<T>::type RT;
     Reset();
-    type = ExecutorMessagesUnionTraits<RT>::enum_value;
-    if (type != ExecutorMessages::NONE) {
+    type = ExecutorMessagesRawUnionTraits<RT>::enum_value;
+    if (type != ExecutorMessagesRaw::NONE) {
       value = new RT(std::forward<T>(val));
     }
   }
 
-  static void *UnPack(const void *obj, ExecutorMessages type, const flatbuffers::resolver_function_t *resolver);
+  static void *UnPack(const void *obj, ExecutorMessagesRaw type, const flatbuffers::resolver_function_t *resolver);
   flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
 
-  rpc::ExecResultT *AsExecResult() {
-    return type == ExecutorMessages::ExecResult ?
-      reinterpret_cast<rpc::ExecResultT *>(value) : nullptr;
+  rpc::ExecResultRawT *AsExecResult() {
+    return type == ExecutorMessagesRaw::ExecResult ?
+      reinterpret_cast<rpc::ExecResultRawT *>(value) : nullptr;
   }
-  const rpc::ExecResultT *AsExecResult() const {
-    return type == ExecutorMessages::ExecResult ?
-      reinterpret_cast<const rpc::ExecResultT *>(value) : nullptr;
+  const rpc::ExecResultRawT *AsExecResult() const {
+    return type == ExecutorMessagesRaw::ExecResult ?
+      reinterpret_cast<const rpc::ExecResultRawT *>(value) : nullptr;
   }
-  rpc::ExecutingMessageT *AsExecuting() {
-    return type == ExecutorMessages::Executing ?
-      reinterpret_cast<rpc::ExecutingMessageT *>(value) : nullptr;
+  rpc::ExecutingMessageRawT *AsExecuting() {
+    return type == ExecutorMessagesRaw::Executing ?
+      reinterpret_cast<rpc::ExecutingMessageRawT *>(value) : nullptr;
   }
-  const rpc::ExecutingMessageT *AsExecuting() const {
-    return type == ExecutorMessages::Executing ?
-      reinterpret_cast<const rpc::ExecutingMessageT *>(value) : nullptr;
+  const rpc::ExecutingMessageRawT *AsExecuting() const {
+    return type == ExecutorMessagesRaw::Executing ?
+      reinterpret_cast<const rpc::ExecutingMessageRawT *>(value) : nullptr;
   }
-  rpc::StatsMessageT *AsStats() {
-    return type == ExecutorMessages::Stats ?
-      reinterpret_cast<rpc::StatsMessageT *>(value) : nullptr;
+  rpc::StatsMessageRawT *AsStats() {
+    return type == ExecutorMessagesRaw::Stats ?
+      reinterpret_cast<rpc::StatsMessageRawT *>(value) : nullptr;
   }
-  const rpc::StatsMessageT *AsStats() const {
-    return type == ExecutorMessages::Stats ?
-      reinterpret_cast<const rpc::StatsMessageT *>(value) : nullptr;
+  const rpc::StatsMessageRawT *AsStats() const {
+    return type == ExecutorMessagesRaw::Stats ?
+      reinterpret_cast<const rpc::StatsMessageRawT *>(value) : nullptr;
   }
 };
 
-bool VerifyExecutorMessages(flatbuffers::Verifier &verifier, const void *obj, ExecutorMessages type);
-bool VerifyExecutorMessagesVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<ExecutorMessages> *types);
+bool VerifyExecutorMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, ExecutorMessagesRaw type);
+bool VerifyExecutorMessagesRawVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<ExecutorMessagesRaw> *types);
 
 enum class RequestFlag : uint64_t {
   IsBinary = 1ULL,
@@ -584,17 +588,17 @@ inline const char *EnumNameCallFlag(CallFlag e) {
   return EnumNamesCallFlag()[index];
 }
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Comparison FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ComparisonRaw FLATBUFFERS_FINAL_CLASS {
  private:
   uint64_t op1_;
   uint64_t op2_;
 
  public:
-  Comparison()
+  ComparisonRaw()
       : op1_(0),
         op2_(0) {
   }
-  Comparison(uint64_t _op1, uint64_t _op2)
+  ComparisonRaw(uint64_t _op1, uint64_t _op2)
       : op1_(flatbuffers::EndianScalar(_op1)),
         op2_(flatbuffers::EndianScalar(_op2)) {
   }
@@ -605,19 +609,19 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Comparison FLATBUFFERS_FINAL_CLASS {
     return flatbuffers::EndianScalar(op2_);
   }
 };
-FLATBUFFERS_STRUCT_END(Comparison, 16);
+FLATBUFFERS_STRUCT_END(ComparisonRaw, 16);
 
-struct ConnectRequestT : public flatbuffers::NativeTable {
-  typedef ConnectRequest TableType;
+struct ConnectRequestRawT : public flatbuffers::NativeTable {
+  typedef ConnectRequestRaw TableType;
   std::string name{};
   std::string arch{};
   std::string git_revision{};
   std::string syz_revision{};
 };
 
-struct ConnectRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ConnectRequestT NativeTableType;
-  typedef ConnectRequestBuilder Builder;
+struct ConnectRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ConnectRequestRawT NativeTableType;
+  typedef ConnectRequestRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_ARCH = 6,
@@ -648,45 +652,45 @@ struct ConnectRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(syz_revision()) &&
            verifier.EndTable();
   }
-  ConnectRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ConnectRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ConnectRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ConnectRequestRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ConnectRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ConnectRequestRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ConnectRequestBuilder {
-  typedef ConnectRequest Table;
+struct ConnectRequestRawBuilder {
+  typedef ConnectRequestRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(ConnectRequest::VT_NAME, name);
+    fbb_.AddOffset(ConnectRequestRaw::VT_NAME, name);
   }
   void add_arch(flatbuffers::Offset<flatbuffers::String> arch) {
-    fbb_.AddOffset(ConnectRequest::VT_ARCH, arch);
+    fbb_.AddOffset(ConnectRequestRaw::VT_ARCH, arch);
   }
   void add_git_revision(flatbuffers::Offset<flatbuffers::String> git_revision) {
-    fbb_.AddOffset(ConnectRequest::VT_GIT_REVISION, git_revision);
+    fbb_.AddOffset(ConnectRequestRaw::VT_GIT_REVISION, git_revision);
   }
   void add_syz_revision(flatbuffers::Offset<flatbuffers::String> syz_revision) {
-    fbb_.AddOffset(ConnectRequest::VT_SYZ_REVISION, syz_revision);
+    fbb_.AddOffset(ConnectRequestRaw::VT_SYZ_REVISION, syz_revision);
   }
-  explicit ConnectRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ConnectRequestRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ConnectRequest> Finish() {
+  flatbuffers::Offset<ConnectRequestRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ConnectRequest>(end);
+    auto o = flatbuffers::Offset<ConnectRequestRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ConnectRequest> CreateConnectRequest(
+inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> arch = 0,
     flatbuffers::Offset<flatbuffers::String> git_revision = 0,
     flatbuffers::Offset<flatbuffers::String> syz_revision = 0) {
-  ConnectRequestBuilder builder_(_fbb);
+  ConnectRequestRawBuilder builder_(_fbb);
   builder_.add_syz_revision(syz_revision);
   builder_.add_git_revision(git_revision);
   builder_.add_arch(arch);
@@ -694,7 +698,7 @@ inline flatbuffers::Offset<ConnectRequest> CreateConnectRequest(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<ConnectRequest> CreateConnectRequestDirect(
+inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const char *arch = nullptr,
@@ -704,7 +708,7 @@ inline flatbuffers::Offset<ConnectRequest> CreateConnectRequestDirect(
   auto arch__ = arch ? _fbb.CreateString(arch) : 0;
   auto git_revision__ = git_revision ? _fbb.CreateString(git_revision) : 0;
   auto syz_revision__ = syz_revision ? _fbb.CreateString(syz_revision) : 0;
-  return rpc::CreateConnectRequest(
+  return rpc::CreateConnectRequestRaw(
       _fbb,
       name__,
       arch__,
@@ -712,10 +716,10 @@ inline flatbuffers::Offset<ConnectRequest> CreateConnectRequestDirect(
       syz_revision__);
 }
 
-flatbuffers::Offset<ConnectRequest> CreateConnectRequest(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ConnectReplyT : public flatbuffers::NativeTable {
-  typedef ConnectReply TableType;
+struct ConnectReplyRawT : public flatbuffers::NativeTable {
+  typedef ConnectReplyRaw TableType;
   std::vector<std::string> leak_frames{};
   std::vector<std::string> race_frames{};
   rpc::Feature features = static_cast<rpc::Feature>(0);
@@ -723,9 +727,9 @@ struct ConnectReplyT : public flatbuffers::NativeTable {
   std::vector<std::string> globs{};
 };
 
-struct ConnectReply FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ConnectReplyT NativeTableType;
-  typedef ConnectReplyBuilder Builder;
+struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ConnectReplyRawT NativeTableType;
+  typedef ConnectReplyRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LEAK_FRAMES = 4,
     VT_RACE_FRAMES = 6,
@@ -765,49 +769,49 @@ struct ConnectReply FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfStrings(globs()) &&
            verifier.EndTable();
   }
-  ConnectReplyT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ConnectReplyT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ConnectReply> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ConnectReplyRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ConnectReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ConnectReplyRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ConnectReplyBuilder {
-  typedef ConnectReply Table;
+struct ConnectReplyRawBuilder {
+  typedef ConnectReplyRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_leak_frames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames) {
-    fbb_.AddOffset(ConnectReply::VT_LEAK_FRAMES, leak_frames);
+    fbb_.AddOffset(ConnectReplyRaw::VT_LEAK_FRAMES, leak_frames);
   }
   void add_race_frames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> race_frames) {
-    fbb_.AddOffset(ConnectReply::VT_RACE_FRAMES, race_frames);
+    fbb_.AddOffset(ConnectReplyRaw::VT_RACE_FRAMES, race_frames);
   }
   void add_features(rpc::Feature features) {
-    fbb_.AddElement<uint64_t>(ConnectReply::VT_FEATURES, static_cast<uint64_t>(features), 0);
+    fbb_.AddElement<uint64_t>(ConnectReplyRaw::VT_FEATURES, static_cast<uint64_t>(features), 0);
   }
   void add_files(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files) {
-    fbb_.AddOffset(ConnectReply::VT_FILES, files);
+    fbb_.AddOffset(ConnectReplyRaw::VT_FILES, files);
   }
   void add_globs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> globs) {
-    fbb_.AddOffset(ConnectReply::VT_GLOBS, globs);
+    fbb_.AddOffset(ConnectReplyRaw::VT_GLOBS, globs);
   }
-  explicit ConnectReplyBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ConnectReplyRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ConnectReply> Finish() {
+  flatbuffers::Offset<ConnectReplyRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ConnectReply>(end);
+    auto o = flatbuffers::Offset<ConnectReplyRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ConnectReply> CreateConnectReply(
+inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> race_frames = 0,
     rpc::Feature features = static_cast<rpc::Feature>(0),
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> globs = 0) {
-  ConnectReplyBuilder builder_(_fbb);
+  ConnectReplyRawBuilder builder_(_fbb);
   builder_.add_features(features);
   builder_.add_globs(globs);
   builder_.add_files(files);
@@ -816,7 +820,7 @@ inline flatbuffers::Offset<ConnectReply> CreateConnectReply(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<ConnectReply> CreateConnectReplyDirect(
+inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *race_frames = nullptr,
@@ -827,7 +831,7 @@ inline flatbuffers::Offset<ConnectReply> CreateConnectReplyDirect(
   auto race_frames__ = race_frames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*race_frames) : 0;
   auto files__ = files ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*files) : 0;
   auto globs__ = globs ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*globs) : 0;
-  return rpc::CreateConnectReply(
+  return rpc::CreateConnectReplyRaw(
       _fbb,
       leak_frames__,
       race_frames__,
@@ -836,127 +840,130 @@ inline flatbuffers::Offset<ConnectReply> CreateConnectReplyDirect(
       globs__);
 }
 
-flatbuffers::Offset<ConnectReply> CreateConnectReply(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct InfoRequestT : public flatbuffers::NativeTable {
-  typedef InfoRequest TableType;
+struct InfoRequestRawT : public flatbuffers::NativeTable {
+  typedef InfoRequestRaw TableType;
   std::string error{};
-  rpc::Feature features = static_cast<rpc::Feature>(0);
-  std::vector<std::unique_ptr<rpc::GlobInfoT>> globs{};
-  std::vector<std::unique_ptr<rpc::FileInfoT>> files{};
-  InfoRequestT() = default;
-  InfoRequestT(const InfoRequestT &o);
-  InfoRequestT(InfoRequestT&&) FLATBUFFERS_NOEXCEPT = default;
-  InfoRequestT &operator=(InfoRequestT o) FLATBUFFERS_NOEXCEPT;
+  std::vector<std::unique_ptr<rpc::FeatureInfoRawT>> features{};
+  std::vector<std::unique_ptr<rpc::FileInfoRawT>> files{};
+  std::vector<std::unique_ptr<rpc::GlobInfoRawT>> globs{};
+  InfoRequestRawT() = default;
+  InfoRequestRawT(const InfoRequestRawT &o);
+  InfoRequestRawT(InfoRequestRawT&&) FLATBUFFERS_NOEXCEPT = default;
+  InfoRequestRawT &operator=(InfoRequestRawT o) FLATBUFFERS_NOEXCEPT;
 };
 
-struct InfoRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef InfoRequestT NativeTableType;
-  typedef InfoRequestBuilder Builder;
+struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef InfoRequestRawT NativeTableType;
+  typedef InfoRequestRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ERROR = 4,
     VT_FEATURES = 6,
-    VT_GLOBS = 8,
-    VT_FILES = 10
+    VT_FILES = 8,
+    VT_GLOBS = 10
   };
   const flatbuffers::String *error() const {
     return GetPointer<const flatbuffers::String *>(VT_ERROR);
   }
-  rpc::Feature features() const {
-    return static_cast<rpc::Feature>(GetField<uint64_t>(VT_FEATURES, 0));
+  const flatbuffers::Vector<flatbuffers::Offset<rpc::FeatureInfoRaw>> *features() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::FeatureInfoRaw>> *>(VT_FEATURES);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfo>> *globs() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfo>> *>(VT_GLOBS);
+  const flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>> *files() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>> *>(VT_FILES);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfo>> *files() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfo>> *>(VT_FILES);
+  const flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>> *globs() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>> *>(VT_GLOBS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_ERROR) &&
            verifier.VerifyString(error()) &&
-           VerifyField<uint64_t>(verifier, VT_FEATURES, 8) &&
-           VerifyOffset(verifier, VT_GLOBS) &&
-           verifier.VerifyVector(globs()) &&
-           verifier.VerifyVectorOfTables(globs()) &&
+           VerifyOffset(verifier, VT_FEATURES) &&
+           verifier.VerifyVector(features()) &&
+           verifier.VerifyVectorOfTables(features()) &&
            VerifyOffset(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfTables(files()) &&
+           VerifyOffset(verifier, VT_GLOBS) &&
+           verifier.VerifyVector(globs()) &&
+           verifier.VerifyVectorOfTables(globs()) &&
            verifier.EndTable();
   }
-  InfoRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(InfoRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<InfoRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  InfoRequestRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(InfoRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<InfoRequestRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct InfoRequestBuilder {
-  typedef InfoRequest Table;
+struct InfoRequestRawBuilder {
+  typedef InfoRequestRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_error(flatbuffers::Offset<flatbuffers::String> error) {
-    fbb_.AddOffset(InfoRequest::VT_ERROR, error);
+    fbb_.AddOffset(InfoRequestRaw::VT_ERROR, error);
   }
-  void add_features(rpc::Feature features) {
-    fbb_.AddElement<uint64_t>(InfoRequest::VT_FEATURES, static_cast<uint64_t>(features), 0);
+  void add_features(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FeatureInfoRaw>>> features) {
+    fbb_.AddOffset(InfoRequestRaw::VT_FEATURES, features);
   }
-  void add_globs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfo>>> globs) {
-    fbb_.AddOffset(InfoRequest::VT_GLOBS, globs);
+  void add_files(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>>> files) {
+    fbb_.AddOffset(InfoRequestRaw::VT_FILES, files);
   }
-  void add_files(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfo>>> files) {
-    fbb_.AddOffset(InfoRequest::VT_FILES, files);
+  void add_globs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>>> globs) {
+    fbb_.AddOffset(InfoRequestRaw::VT_GLOBS, globs);
   }
-  explicit InfoRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit InfoRequestRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<InfoRequest> Finish() {
+  flatbuffers::Offset<InfoRequestRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<InfoRequest>(end);
+    auto o = flatbuffers::Offset<InfoRequestRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<InfoRequest> CreateInfoRequest(
+inline flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> error = 0,
-    rpc::Feature features = static_cast<rpc::Feature>(0),
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfo>>> globs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfo>>> files = 0) {
-  InfoRequestBuilder builder_(_fbb);
-  builder_.add_features(features);
-  builder_.add_files(files);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FeatureInfoRaw>>> features = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>>> files = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>>> globs = 0) {
+  InfoRequestRawBuilder builder_(_fbb);
   builder_.add_globs(globs);
+  builder_.add_files(files);
+  builder_.add_features(features);
   builder_.add_error(error);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<InfoRequest> CreateInfoRequestDirect(
+inline flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *error = nullptr,
-    rpc::Feature features = static_cast<rpc::Feature>(0),
-    const std::vector<flatbuffers::Offset<rpc::GlobInfo>> *globs = nullptr,
-    const std::vector<flatbuffers::Offset<rpc::FileInfo>> *files = nullptr) {
+    const std::vector<flatbuffers::Offset<rpc::FeatureInfoRaw>> *features = nullptr,
+    const std::vector<flatbuffers::Offset<rpc::FileInfoRaw>> *files = nullptr,
+    const std::vector<flatbuffers::Offset<rpc::GlobInfoRaw>> *globs = nullptr) {
   auto error__ = error ? _fbb.CreateString(error) : 0;
-  auto globs__ = globs ? _fbb.CreateVector<flatbuffers::Offset<rpc::GlobInfo>>(*globs) : 0;
-  auto files__ = files ? _fbb.CreateVector<flatbuffers::Offset<rpc::FileInfo>>(*files) : 0;
-  return rpc::CreateInfoRequest(
+  auto features__ = features ? _fbb.CreateVector<flatbuffers::Offset<rpc::FeatureInfoRaw>>(*features) : 0;
+  auto files__ = files ? _fbb.CreateVector<flatbuffers::Offset<rpc::FileInfoRaw>>(*files) : 0;
+  auto globs__ = globs ? _fbb.CreateVector<flatbuffers::Offset<rpc::GlobInfoRaw>>(*globs) : 0;
+  return rpc::CreateInfoRequestRaw(
       _fbb,
       error__,
-      features,
-      globs__,
-      files__);
+      features__,
+      files__,
+      globs__);
 }
 
-flatbuffers::Offset<InfoRequest> CreateInfoRequest(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct InfoReplyT : public flatbuffers::NativeTable {
-  typedef InfoReply TableType;
+struct InfoReplyRawT : public flatbuffers::NativeTable {
+  typedef InfoReplyRaw TableType;
   std::vector<uint32_t> cover_filter{};
 };
 
-struct InfoReply FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef InfoReplyT NativeTableType;
-  typedef InfoReplyBuilder Builder;
+struct InfoReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef InfoReplyRawT NativeTableType;
+  typedef InfoReplyRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COVER_FILTER = 4
   };
@@ -969,59 +976,59 @@ struct InfoReply FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(cover_filter()) &&
            verifier.EndTable();
   }
-  InfoReplyT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(InfoReplyT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<InfoReply> Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  InfoReplyRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(InfoReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<InfoReplyRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct InfoReplyBuilder {
-  typedef InfoReply Table;
+struct InfoReplyRawBuilder {
+  typedef InfoReplyRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_cover_filter(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover_filter) {
-    fbb_.AddOffset(InfoReply::VT_COVER_FILTER, cover_filter);
+    fbb_.AddOffset(InfoReplyRaw::VT_COVER_FILTER, cover_filter);
   }
-  explicit InfoReplyBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit InfoReplyRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<InfoReply> Finish() {
+  flatbuffers::Offset<InfoReplyRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<InfoReply>(end);
+    auto o = flatbuffers::Offset<InfoReplyRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<InfoReply> CreateInfoReply(
+inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover_filter = 0) {
-  InfoReplyBuilder builder_(_fbb);
+  InfoReplyRawBuilder builder_(_fbb);
   builder_.add_cover_filter(cover_filter);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<InfoReply> CreateInfoReplyDirect(
+inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<uint32_t> *cover_filter = nullptr) {
   auto cover_filter__ = cover_filter ? _fbb.CreateVector<uint32_t>(*cover_filter) : 0;
-  return rpc::CreateInfoReply(
+  return rpc::CreateInfoReplyRaw(
       _fbb,
       cover_filter__);
 }
 
-flatbuffers::Offset<InfoReply> CreateInfoReply(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct FileInfoT : public flatbuffers::NativeTable {
-  typedef FileInfo TableType;
+struct FileInfoRawT : public flatbuffers::NativeTable {
+  typedef FileInfoRaw TableType;
   std::string name{};
   bool exists = false;
   std::string error{};
   std::vector<uint8_t> data{};
 };
 
-struct FileInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef FileInfoT NativeTableType;
-  typedef FileInfoBuilder Builder;
+struct FileInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FileInfoRawT NativeTableType;
+  typedef FileInfoRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_EXISTS = 6,
@@ -1051,45 +1058,45 @@ struct FileInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(data()) &&
            verifier.EndTable();
   }
-  FileInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FileInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<FileInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  FileInfoRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(FileInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<FileInfoRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct FileInfoBuilder {
-  typedef FileInfo Table;
+struct FileInfoRawBuilder {
+  typedef FileInfoRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(FileInfo::VT_NAME, name);
+    fbb_.AddOffset(FileInfoRaw::VT_NAME, name);
   }
   void add_exists(bool exists) {
-    fbb_.AddElement<uint8_t>(FileInfo::VT_EXISTS, static_cast<uint8_t>(exists), 0);
+    fbb_.AddElement<uint8_t>(FileInfoRaw::VT_EXISTS, static_cast<uint8_t>(exists), 0);
   }
   void add_error(flatbuffers::Offset<flatbuffers::String> error) {
-    fbb_.AddOffset(FileInfo::VT_ERROR, error);
+    fbb_.AddOffset(FileInfoRaw::VT_ERROR, error);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
-    fbb_.AddOffset(FileInfo::VT_DATA, data);
+    fbb_.AddOffset(FileInfoRaw::VT_DATA, data);
   }
-  explicit FileInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit FileInfoRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<FileInfo> Finish() {
+  flatbuffers::Offset<FileInfoRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<FileInfo>(end);
+    auto o = flatbuffers::Offset<FileInfoRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<FileInfo> CreateFileInfo(
+inline flatbuffers::Offset<FileInfoRaw> CreateFileInfoRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     bool exists = false,
     flatbuffers::Offset<flatbuffers::String> error = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
-  FileInfoBuilder builder_(_fbb);
+  FileInfoRawBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_error(error);
   builder_.add_name(name);
@@ -1097,7 +1104,7 @@ inline flatbuffers::Offset<FileInfo> CreateFileInfo(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<FileInfo> CreateFileInfoDirect(
+inline flatbuffers::Offset<FileInfoRaw> CreateFileInfoRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     bool exists = false,
@@ -1106,7 +1113,7 @@ inline flatbuffers::Offset<FileInfo> CreateFileInfoDirect(
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto error__ = error ? _fbb.CreateString(error) : 0;
   auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
-  return rpc::CreateFileInfo(
+  return rpc::CreateFileInfoRaw(
       _fbb,
       name__,
       exists,
@@ -1114,17 +1121,17 @@ inline flatbuffers::Offset<FileInfo> CreateFileInfoDirect(
       data__);
 }
 
-flatbuffers::Offset<FileInfo> CreateFileInfo(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<FileInfoRaw> CreateFileInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct GlobInfoT : public flatbuffers::NativeTable {
-  typedef GlobInfo TableType;
+struct GlobInfoRawT : public flatbuffers::NativeTable {
+  typedef GlobInfoRaw TableType;
   std::string name{};
   std::vector<std::string> files{};
 };
 
-struct GlobInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef GlobInfoT NativeTableType;
-  typedef GlobInfoBuilder Builder;
+struct GlobInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef GlobInfoRawT NativeTableType;
+  typedef GlobInfoRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_FILES = 6
@@ -1144,221 +1151,309 @@ struct GlobInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfStrings(files()) &&
            verifier.EndTable();
   }
-  GlobInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(GlobInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<GlobInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  GlobInfoRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(GlobInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<GlobInfoRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct GlobInfoBuilder {
-  typedef GlobInfo Table;
+struct GlobInfoRawBuilder {
+  typedef GlobInfoRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(GlobInfo::VT_NAME, name);
+    fbb_.AddOffset(GlobInfoRaw::VT_NAME, name);
   }
   void add_files(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files) {
-    fbb_.AddOffset(GlobInfo::VT_FILES, files);
+    fbb_.AddOffset(GlobInfoRaw::VT_FILES, files);
   }
-  explicit GlobInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit GlobInfoRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<GlobInfo> Finish() {
+  flatbuffers::Offset<GlobInfoRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<GlobInfo>(end);
+    auto o = flatbuffers::Offset<GlobInfoRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<GlobInfo> CreateGlobInfo(
+inline flatbuffers::Offset<GlobInfoRaw> CreateGlobInfoRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files = 0) {
-  GlobInfoBuilder builder_(_fbb);
+  GlobInfoRawBuilder builder_(_fbb);
   builder_.add_files(files);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<GlobInfo> CreateGlobInfoDirect(
+inline flatbuffers::Offset<GlobInfoRaw> CreateGlobInfoRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *files = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto files__ = files ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*files) : 0;
-  return rpc::CreateGlobInfo(
+  return rpc::CreateGlobInfoRaw(
       _fbb,
       name__,
       files__);
 }
 
-flatbuffers::Offset<GlobInfo> CreateGlobInfo(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<GlobInfoRaw> CreateGlobInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct HostMessageT : public flatbuffers::NativeTable {
-  typedef HostMessage TableType;
-  rpc::HostMessagesUnion msg{};
+struct FeatureInfoRawT : public flatbuffers::NativeTable {
+  typedef FeatureInfoRaw TableType;
+  rpc::Feature id = static_cast<rpc::Feature>(0);
+  bool need_setup = false;
+  std::string reason{};
 };
 
-struct HostMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef HostMessageT NativeTableType;
-  typedef HostMessageBuilder Builder;
+struct FeatureInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FeatureInfoRawT NativeTableType;
+  typedef FeatureInfoRawBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ID = 4,
+    VT_NEED_SETUP = 6,
+    VT_REASON = 8
+  };
+  rpc::Feature id() const {
+    return static_cast<rpc::Feature>(GetField<uint64_t>(VT_ID, 0));
+  }
+  bool need_setup() const {
+    return GetField<uint8_t>(VT_NEED_SETUP, 0) != 0;
+  }
+  const flatbuffers::String *reason() const {
+    return GetPointer<const flatbuffers::String *>(VT_REASON);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_ID, 8) &&
+           VerifyField<uint8_t>(verifier, VT_NEED_SETUP, 1) &&
+           VerifyOffset(verifier, VT_REASON) &&
+           verifier.VerifyString(reason()) &&
+           verifier.EndTable();
+  }
+  FeatureInfoRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(FeatureInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<FeatureInfoRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct FeatureInfoRawBuilder {
+  typedef FeatureInfoRaw Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_id(rpc::Feature id) {
+    fbb_.AddElement<uint64_t>(FeatureInfoRaw::VT_ID, static_cast<uint64_t>(id), 0);
+  }
+  void add_need_setup(bool need_setup) {
+    fbb_.AddElement<uint8_t>(FeatureInfoRaw::VT_NEED_SETUP, static_cast<uint8_t>(need_setup), 0);
+  }
+  void add_reason(flatbuffers::Offset<flatbuffers::String> reason) {
+    fbb_.AddOffset(FeatureInfoRaw::VT_REASON, reason);
+  }
+  explicit FeatureInfoRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<FeatureInfoRaw> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<FeatureInfoRaw>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<FeatureInfoRaw> CreateFeatureInfoRaw(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    rpc::Feature id = static_cast<rpc::Feature>(0),
+    bool need_setup = false,
+    flatbuffers::Offset<flatbuffers::String> reason = 0) {
+  FeatureInfoRawBuilder builder_(_fbb);
+  builder_.add_id(id);
+  builder_.add_reason(reason);
+  builder_.add_need_setup(need_setup);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<FeatureInfoRaw> CreateFeatureInfoRawDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    rpc::Feature id = static_cast<rpc::Feature>(0),
+    bool need_setup = false,
+    const char *reason = nullptr) {
+  auto reason__ = reason ? _fbb.CreateString(reason) : 0;
+  return rpc::CreateFeatureInfoRaw(
+      _fbb,
+      id,
+      need_setup,
+      reason__);
+}
+
+flatbuffers::Offset<FeatureInfoRaw> CreateFeatureInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct HostMessageRawT : public flatbuffers::NativeTable {
+  typedef HostMessageRaw TableType;
+  rpc::HostMessagesRawUnion msg{};
+};
+
+struct HostMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef HostMessageRawT NativeTableType;
+  typedef HostMessageRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_MSG_TYPE = 4,
     VT_MSG = 6
   };
-  rpc::HostMessages msg_type() const {
-    return static_cast<rpc::HostMessages>(GetField<uint8_t>(VT_MSG_TYPE, 0));
+  rpc::HostMessagesRaw msg_type() const {
+    return static_cast<rpc::HostMessagesRaw>(GetField<uint8_t>(VT_MSG_TYPE, 0));
   }
   const void *msg() const {
     return GetPointer<const void *>(VT_MSG);
   }
   template<typename T> const T *msg_as() const;
-  const rpc::ExecRequest *msg_as_ExecRequest() const {
-    return msg_type() == rpc::HostMessages::ExecRequest ? static_cast<const rpc::ExecRequest *>(msg()) : nullptr;
+  const rpc::ExecRequestRaw *msg_as_ExecRequest() const {
+    return msg_type() == rpc::HostMessagesRaw::ExecRequest ? static_cast<const rpc::ExecRequestRaw *>(msg()) : nullptr;
   }
-  const rpc::SignalUpdate *msg_as_SignalUpdate() const {
-    return msg_type() == rpc::HostMessages::SignalUpdate ? static_cast<const rpc::SignalUpdate *>(msg()) : nullptr;
+  const rpc::SignalUpdateRaw *msg_as_SignalUpdate() const {
+    return msg_type() == rpc::HostMessagesRaw::SignalUpdate ? static_cast<const rpc::SignalUpdateRaw *>(msg()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
            VerifyOffset(verifier, VT_MSG) &&
-           VerifyHostMessages(verifier, msg(), msg_type()) &&
+           VerifyHostMessagesRaw(verifier, msg(), msg_type()) &&
            verifier.EndTable();
   }
-  HostMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(HostMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<HostMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  HostMessageRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(HostMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<HostMessageRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-template<> inline const rpc::ExecRequest *HostMessage::msg_as<rpc::ExecRequest>() const {
+template<> inline const rpc::ExecRequestRaw *HostMessageRaw::msg_as<rpc::ExecRequestRaw>() const {
   return msg_as_ExecRequest();
 }
 
-template<> inline const rpc::SignalUpdate *HostMessage::msg_as<rpc::SignalUpdate>() const {
+template<> inline const rpc::SignalUpdateRaw *HostMessageRaw::msg_as<rpc::SignalUpdateRaw>() const {
   return msg_as_SignalUpdate();
 }
 
-struct HostMessageBuilder {
-  typedef HostMessage Table;
+struct HostMessageRawBuilder {
+  typedef HostMessageRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_msg_type(rpc::HostMessages msg_type) {
-    fbb_.AddElement<uint8_t>(HostMessage::VT_MSG_TYPE, static_cast<uint8_t>(msg_type), 0);
+  void add_msg_type(rpc::HostMessagesRaw msg_type) {
+    fbb_.AddElement<uint8_t>(HostMessageRaw::VT_MSG_TYPE, static_cast<uint8_t>(msg_type), 0);
   }
   void add_msg(flatbuffers::Offset<void> msg) {
-    fbb_.AddOffset(HostMessage::VT_MSG, msg);
+    fbb_.AddOffset(HostMessageRaw::VT_MSG, msg);
   }
-  explicit HostMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit HostMessageRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<HostMessage> Finish() {
+  flatbuffers::Offset<HostMessageRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<HostMessage>(end);
+    auto o = flatbuffers::Offset<HostMessageRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<HostMessage> CreateHostMessage(
+inline flatbuffers::Offset<HostMessageRaw> CreateHostMessageRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    rpc::HostMessages msg_type = rpc::HostMessages::NONE,
+    rpc::HostMessagesRaw msg_type = rpc::HostMessagesRaw::NONE,
     flatbuffers::Offset<void> msg = 0) {
-  HostMessageBuilder builder_(_fbb);
+  HostMessageRawBuilder builder_(_fbb);
   builder_.add_msg(msg);
   builder_.add_msg_type(msg_type);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<HostMessage> CreateHostMessage(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<HostMessageRaw> CreateHostMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ExecutorMessageT : public flatbuffers::NativeTable {
-  typedef ExecutorMessage TableType;
-  rpc::ExecutorMessagesUnion msg{};
+struct ExecutorMessageRawT : public flatbuffers::NativeTable {
+  typedef ExecutorMessageRaw TableType;
+  rpc::ExecutorMessagesRawUnion msg{};
 };
 
-struct ExecutorMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ExecutorMessageT NativeTableType;
-  typedef ExecutorMessageBuilder Builder;
+struct ExecutorMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ExecutorMessageRawT NativeTableType;
+  typedef ExecutorMessageRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_MSG_TYPE = 4,
     VT_MSG = 6
   };
-  rpc::ExecutorMessages msg_type() const {
-    return static_cast<rpc::ExecutorMessages>(GetField<uint8_t>(VT_MSG_TYPE, 0));
+  rpc::ExecutorMessagesRaw msg_type() const {
+    return static_cast<rpc::ExecutorMessagesRaw>(GetField<uint8_t>(VT_MSG_TYPE, 0));
   }
   const void *msg() const {
     return GetPointer<const void *>(VT_MSG);
   }
   template<typename T> const T *msg_as() const;
-  const rpc::ExecResult *msg_as_ExecResult() const {
-    return msg_type() == rpc::ExecutorMessages::ExecResult ? static_cast<const rpc::ExecResult *>(msg()) : nullptr;
+  const rpc::ExecResultRaw *msg_as_ExecResult() const {
+    return msg_type() == rpc::ExecutorMessagesRaw::ExecResult ? static_cast<const rpc::ExecResultRaw *>(msg()) : nullptr;
   }
-  const rpc::ExecutingMessage *msg_as_Executing() const {
-    return msg_type() == rpc::ExecutorMessages::Executing ? static_cast<const rpc::ExecutingMessage *>(msg()) : nullptr;
+  const rpc::ExecutingMessageRaw *msg_as_Executing() const {
+    return msg_type() == rpc::ExecutorMessagesRaw::Executing ? static_cast<const rpc::ExecutingMessageRaw *>(msg()) : nullptr;
   }
-  const rpc::StatsMessage *msg_as_Stats() const {
-    return msg_type() == rpc::ExecutorMessages::Stats ? static_cast<const rpc::StatsMessage *>(msg()) : nullptr;
+  const rpc::StatsMessageRaw *msg_as_Stats() const {
+    return msg_type() == rpc::ExecutorMessagesRaw::Stats ? static_cast<const rpc::StatsMessageRaw *>(msg()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
            VerifyOffset(verifier, VT_MSG) &&
-           VerifyExecutorMessages(verifier, msg(), msg_type()) &&
+           VerifyExecutorMessagesRaw(verifier, msg(), msg_type()) &&
            verifier.EndTable();
   }
-  ExecutorMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ExecutorMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ExecutorMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ExecutorMessageRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ExecutorMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ExecutorMessageRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-template<> inline const rpc::ExecResult *ExecutorMessage::msg_as<rpc::ExecResult>() const {
+template<> inline const rpc::ExecResultRaw *ExecutorMessageRaw::msg_as<rpc::ExecResultRaw>() const {
   return msg_as_ExecResult();
 }
 
-template<> inline const rpc::ExecutingMessage *ExecutorMessage::msg_as<rpc::ExecutingMessage>() const {
+template<> inline const rpc::ExecutingMessageRaw *ExecutorMessageRaw::msg_as<rpc::ExecutingMessageRaw>() const {
   return msg_as_Executing();
 }
 
-template<> inline const rpc::StatsMessage *ExecutorMessage::msg_as<rpc::StatsMessage>() const {
+template<> inline const rpc::StatsMessageRaw *ExecutorMessageRaw::msg_as<rpc::StatsMessageRaw>() const {
   return msg_as_Stats();
 }
 
-struct ExecutorMessageBuilder {
-  typedef ExecutorMessage Table;
+struct ExecutorMessageRawBuilder {
+  typedef ExecutorMessageRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_msg_type(rpc::ExecutorMessages msg_type) {
-    fbb_.AddElement<uint8_t>(ExecutorMessage::VT_MSG_TYPE, static_cast<uint8_t>(msg_type), 0);
+  void add_msg_type(rpc::ExecutorMessagesRaw msg_type) {
+    fbb_.AddElement<uint8_t>(ExecutorMessageRaw::VT_MSG_TYPE, static_cast<uint8_t>(msg_type), 0);
   }
   void add_msg(flatbuffers::Offset<void> msg) {
-    fbb_.AddOffset(ExecutorMessage::VT_MSG, msg);
+    fbb_.AddOffset(ExecutorMessageRaw::VT_MSG, msg);
   }
-  explicit ExecutorMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ExecutorMessageRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ExecutorMessage> Finish() {
+  flatbuffers::Offset<ExecutorMessageRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ExecutorMessage>(end);
+    auto o = flatbuffers::Offset<ExecutorMessageRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ExecutorMessage> CreateExecutorMessage(
+inline flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    rpc::ExecutorMessages msg_type = rpc::ExecutorMessages::NONE,
+    rpc::ExecutorMessagesRaw msg_type = rpc::ExecutorMessagesRaw::NONE,
     flatbuffers::Offset<void> msg = 0) {
-  ExecutorMessageBuilder builder_(_fbb);
+  ExecutorMessageRawBuilder builder_(_fbb);
   builder_.add_msg(msg);
   builder_.add_msg_type(msg_type);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<ExecutorMessage> CreateExecutorMessage(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ExecRequestT : public flatbuffers::NativeTable {
-  typedef ExecRequest TableType;
+struct ExecRequestRawT : public flatbuffers::NativeTable {
+  typedef ExecRequestRaw TableType;
   int64_t id = 0;
   std::vector<uint8_t> prog_data{};
   rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0);
@@ -1370,9 +1465,9 @@ struct ExecRequestT : public flatbuffers::NativeTable {
   int32_t repeat = 0;
 };
 
-struct ExecRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ExecRequestT NativeTableType;
-  typedef ExecRequestBuilder Builder;
+struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ExecRequestRawT NativeTableType;
+  typedef ExecRequestRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_PROG_DATA = 6,
@@ -1426,54 +1521,54 @@ struct ExecRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_REPEAT, 4) &&
            verifier.EndTable();
   }
-  ExecRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ExecRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ExecRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ExecRequestRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ExecRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ExecRequestRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ExecRequestBuilder {
-  typedef ExecRequest Table;
+struct ExecRequestRawBuilder {
+  typedef ExecRequestRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_id(int64_t id) {
-    fbb_.AddElement<int64_t>(ExecRequest::VT_ID, id, 0);
+    fbb_.AddElement<int64_t>(ExecRequestRaw::VT_ID, id, 0);
   }
   void add_prog_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data) {
-    fbb_.AddOffset(ExecRequest::VT_PROG_DATA, prog_data);
+    fbb_.AddOffset(ExecRequestRaw::VT_PROG_DATA, prog_data);
   }
   void add_flags(rpc::RequestFlag flags) {
-    fbb_.AddElement<uint64_t>(ExecRequest::VT_FLAGS, static_cast<uint64_t>(flags), 0);
+    fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_FLAGS, static_cast<uint64_t>(flags), 0);
   }
   void add_exec_env(rpc::ExecEnv exec_env) {
-    fbb_.AddElement<uint64_t>(ExecRequest::VT_EXEC_ENV, static_cast<uint64_t>(exec_env), 0);
+    fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_EXEC_ENV, static_cast<uint64_t>(exec_env), 0);
   }
   void add_exec_flags(rpc::ExecFlag exec_flags) {
-    fbb_.AddElement<uint64_t>(ExecRequest::VT_EXEC_FLAGS, static_cast<uint64_t>(exec_flags), 0);
+    fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_EXEC_FLAGS, static_cast<uint64_t>(exec_flags), 0);
   }
   void add_sandbox_arg(int64_t sandbox_arg) {
-    fbb_.AddElement<int64_t>(ExecRequest::VT_SANDBOX_ARG, sandbox_arg, 0);
+    fbb_.AddElement<int64_t>(ExecRequestRaw::VT_SANDBOX_ARG, sandbox_arg, 0);
   }
   void add_signal_filter(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal_filter) {
-    fbb_.AddOffset(ExecRequest::VT_SIGNAL_FILTER, signal_filter);
+    fbb_.AddOffset(ExecRequestRaw::VT_SIGNAL_FILTER, signal_filter);
   }
   void add_signal_filter_call(int32_t signal_filter_call) {
-    fbb_.AddElement<int32_t>(ExecRequest::VT_SIGNAL_FILTER_CALL, signal_filter_call, 0);
+    fbb_.AddElement<int32_t>(ExecRequestRaw::VT_SIGNAL_FILTER_CALL, signal_filter_call, 0);
   }
   void add_repeat(int32_t repeat) {
-    fbb_.AddElement<int32_t>(ExecRequest::VT_REPEAT, repeat, 0);
+    fbb_.AddElement<int32_t>(ExecRequestRaw::VT_REPEAT, repeat, 0);
   }
-  explicit ExecRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ExecRequestRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ExecRequest> Finish() {
+  flatbuffers::Offset<ExecRequestRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ExecRequest>(end);
+    auto o = flatbuffers::Offset<ExecRequestRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ExecRequest> CreateExecRequest(
+inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data = 0,
@@ -1484,7 +1579,7 @@ inline flatbuffers::Offset<ExecRequest> CreateExecRequest(
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal_filter = 0,
     int32_t signal_filter_call = 0,
     int32_t repeat = 0) {
-  ExecRequestBuilder builder_(_fbb);
+  ExecRequestRawBuilder builder_(_fbb);
   builder_.add_sandbox_arg(sandbox_arg);
   builder_.add_exec_flags(exec_flags);
   builder_.add_exec_env(exec_env);
@@ -1497,7 +1592,7 @@ inline flatbuffers::Offset<ExecRequest> CreateExecRequest(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<ExecRequest> CreateExecRequestDirect(
+inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
     const std::vector<uint8_t> *prog_data = nullptr,
@@ -1510,7 +1605,7 @@ inline flatbuffers::Offset<ExecRequest> CreateExecRequestDirect(
     int32_t repeat = 0) {
   auto prog_data__ = prog_data ? _fbb.CreateVector<uint8_t>(*prog_data) : 0;
   auto signal_filter__ = signal_filter ? _fbb.CreateVector<uint32_t>(*signal_filter) : 0;
-  return rpc::CreateExecRequest(
+  return rpc::CreateExecRequestRaw(
       _fbb,
       id,
       prog_data__,
@@ -1523,17 +1618,17 @@ inline flatbuffers::Offset<ExecRequest> CreateExecRequestDirect(
       repeat);
 }
 
-flatbuffers::Offset<ExecRequest> CreateExecRequest(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct SignalUpdateT : public flatbuffers::NativeTable {
-  typedef SignalUpdate TableType;
+struct SignalUpdateRawT : public flatbuffers::NativeTable {
+  typedef SignalUpdateRaw TableType;
   std::vector<uint32_t> new_max{};
   std::vector<uint32_t> drop_max{};
 };
 
-struct SignalUpdate FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef SignalUpdateT NativeTableType;
-  typedef SignalUpdateBuilder Builder;
+struct SignalUpdateRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SignalUpdateRawT NativeTableType;
+  typedef SignalUpdateRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NEW_MAX = 4,
     VT_DROP_MAX = 6
@@ -1552,66 +1647,66 @@ struct SignalUpdate FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(drop_max()) &&
            verifier.EndTable();
   }
-  SignalUpdateT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(SignalUpdateT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<SignalUpdate> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  SignalUpdateRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SignalUpdateRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SignalUpdateRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct SignalUpdateBuilder {
-  typedef SignalUpdate Table;
+struct SignalUpdateRawBuilder {
+  typedef SignalUpdateRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_new_max(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> new_max) {
-    fbb_.AddOffset(SignalUpdate::VT_NEW_MAX, new_max);
+    fbb_.AddOffset(SignalUpdateRaw::VT_NEW_MAX, new_max);
   }
   void add_drop_max(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> drop_max) {
-    fbb_.AddOffset(SignalUpdate::VT_DROP_MAX, drop_max);
+    fbb_.AddOffset(SignalUpdateRaw::VT_DROP_MAX, drop_max);
   }
-  explicit SignalUpdateBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit SignalUpdateRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<SignalUpdate> Finish() {
+  flatbuffers::Offset<SignalUpdateRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<SignalUpdate>(end);
+    auto o = flatbuffers::Offset<SignalUpdateRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<SignalUpdate> CreateSignalUpdate(
+inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> new_max = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> drop_max = 0) {
-  SignalUpdateBuilder builder_(_fbb);
+  SignalUpdateRawBuilder builder_(_fbb);
   builder_.add_drop_max(drop_max);
   builder_.add_new_max(new_max);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<SignalUpdate> CreateSignalUpdateDirect(
+inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<uint32_t> *new_max = nullptr,
     const std::vector<uint32_t> *drop_max = nullptr) {
   auto new_max__ = new_max ? _fbb.CreateVector<uint32_t>(*new_max) : 0;
   auto drop_max__ = drop_max ? _fbb.CreateVector<uint32_t>(*drop_max) : 0;
-  return rpc::CreateSignalUpdate(
+  return rpc::CreateSignalUpdateRaw(
       _fbb,
       new_max__,
       drop_max__);
 }
 
-flatbuffers::Offset<SignalUpdate> CreateSignalUpdate(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ExecutingMessageT : public flatbuffers::NativeTable {
-  typedef ExecutingMessage TableType;
+struct ExecutingMessageRawT : public flatbuffers::NativeTable {
+  typedef ExecutingMessageRaw TableType;
   int64_t id = 0;
   int32_t proc_id = 0;
   int32_t try_ = 0;
 };
 
-struct ExecutingMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ExecutingMessageT NativeTableType;
-  typedef ExecutingMessageBuilder Builder;
+struct ExecutingMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ExecutingMessageRawT NativeTableType;
+  typedef ExecutingMessageRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_PROC_ID = 6,
@@ -1633,58 +1728,58 @@ struct ExecutingMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_TRY_, 4) &&
            verifier.EndTable();
   }
-  ExecutingMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ExecutingMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ExecutingMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ExecutingMessageRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ExecutingMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ExecutingMessageRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ExecutingMessageBuilder {
-  typedef ExecutingMessage Table;
+struct ExecutingMessageRawBuilder {
+  typedef ExecutingMessageRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_id(int64_t id) {
-    fbb_.AddElement<int64_t>(ExecutingMessage::VT_ID, id, 0);
+    fbb_.AddElement<int64_t>(ExecutingMessageRaw::VT_ID, id, 0);
   }
   void add_proc_id(int32_t proc_id) {
-    fbb_.AddElement<int32_t>(ExecutingMessage::VT_PROC_ID, proc_id, 0);
+    fbb_.AddElement<int32_t>(ExecutingMessageRaw::VT_PROC_ID, proc_id, 0);
   }
   void add_try_(int32_t try_) {
-    fbb_.AddElement<int32_t>(ExecutingMessage::VT_TRY_, try_, 0);
+    fbb_.AddElement<int32_t>(ExecutingMessageRaw::VT_TRY_, try_, 0);
   }
-  explicit ExecutingMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ExecutingMessageRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ExecutingMessage> Finish() {
+  flatbuffers::Offset<ExecutingMessageRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ExecutingMessage>(end);
+    auto o = flatbuffers::Offset<ExecutingMessageRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ExecutingMessage> CreateExecutingMessage(
+inline flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
     int32_t proc_id = 0,
     int32_t try_ = 0) {
-  ExecutingMessageBuilder builder_(_fbb);
+  ExecutingMessageRawBuilder builder_(_fbb);
   builder_.add_id(id);
   builder_.add_try_(try_);
   builder_.add_proc_id(proc_id);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<ExecutingMessage> CreateExecutingMessage(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct StatsMessageT : public flatbuffers::NativeTable {
-  typedef StatsMessage TableType;
+struct StatsMessageRawT : public flatbuffers::NativeTable {
+  typedef StatsMessageRaw TableType;
   int64_t noexec_count = 0;
   int64_t noexec_duration = 0;
 };
 
-struct StatsMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef StatsMessageT NativeTableType;
-  typedef StatsMessageBuilder Builder;
+struct StatsMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef StatsMessageRawT NativeTableType;
+  typedef StatsMessageRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NOEXEC_COUNT = 4,
     VT_NOEXEC_DURATION = 6
@@ -1701,56 +1796,56 @@ struct StatsMessage FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int64_t>(verifier, VT_NOEXEC_DURATION, 8) &&
            verifier.EndTable();
   }
-  StatsMessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(StatsMessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<StatsMessage> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  StatsMessageRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(StatsMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<StatsMessageRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct StatsMessageBuilder {
-  typedef StatsMessage Table;
+struct StatsMessageRawBuilder {
+  typedef StatsMessageRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_noexec_count(int64_t noexec_count) {
-    fbb_.AddElement<int64_t>(StatsMessage::VT_NOEXEC_COUNT, noexec_count, 0);
+    fbb_.AddElement<int64_t>(StatsMessageRaw::VT_NOEXEC_COUNT, noexec_count, 0);
   }
   void add_noexec_duration(int64_t noexec_duration) {
-    fbb_.AddElement<int64_t>(StatsMessage::VT_NOEXEC_DURATION, noexec_duration, 0);
+    fbb_.AddElement<int64_t>(StatsMessageRaw::VT_NOEXEC_DURATION, noexec_duration, 0);
   }
-  explicit StatsMessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit StatsMessageRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<StatsMessage> Finish() {
+  flatbuffers::Offset<StatsMessageRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<StatsMessage>(end);
+    auto o = flatbuffers::Offset<StatsMessageRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<StatsMessage> CreateStatsMessage(
+inline flatbuffers::Offset<StatsMessageRaw> CreateStatsMessageRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t noexec_count = 0,
     int64_t noexec_duration = 0) {
-  StatsMessageBuilder builder_(_fbb);
+  StatsMessageRawBuilder builder_(_fbb);
   builder_.add_noexec_duration(noexec_duration);
   builder_.add_noexec_count(noexec_count);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<StatsMessage> CreateStatsMessage(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<StatsMessageRaw> CreateStatsMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct CallInfoT : public flatbuffers::NativeTable {
-  typedef CallInfo TableType;
+struct CallInfoRawT : public flatbuffers::NativeTable {
+  typedef CallInfoRaw TableType;
   rpc::CallFlag flags = static_cast<rpc::CallFlag>(0);
   int32_t error = 0;
   std::vector<uint32_t> signal{};
   std::vector<uint32_t> cover{};
-  std::vector<rpc::Comparison> comps{};
+  std::vector<rpc::ComparisonRaw> comps{};
 };
 
-struct CallInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef CallInfoT NativeTableType;
-  typedef CallInfoBuilder Builder;
+struct CallInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef CallInfoRawT NativeTableType;
+  typedef CallInfoRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_FLAGS = 4,
     VT_ERROR = 6,
@@ -1770,8 +1865,8 @@ struct CallInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<uint32_t> *cover() const {
     return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_COVER);
   }
-  const flatbuffers::Vector<const rpc::Comparison *> *comps() const {
-    return GetPointer<const flatbuffers::Vector<const rpc::Comparison *> *>(VT_COMPS);
+  const flatbuffers::Vector<const rpc::ComparisonRaw *> *comps() const {
+    return GetPointer<const flatbuffers::Vector<const rpc::ComparisonRaw *> *>(VT_COMPS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1785,49 +1880,49 @@ struct CallInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(comps()) &&
            verifier.EndTable();
   }
-  CallInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(CallInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<CallInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  CallInfoRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(CallInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<CallInfoRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct CallInfoBuilder {
-  typedef CallInfo Table;
+struct CallInfoRawBuilder {
+  typedef CallInfoRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_flags(rpc::CallFlag flags) {
-    fbb_.AddElement<uint8_t>(CallInfo::VT_FLAGS, static_cast<uint8_t>(flags), 0);
+    fbb_.AddElement<uint8_t>(CallInfoRaw::VT_FLAGS, static_cast<uint8_t>(flags), 0);
   }
   void add_error(int32_t error) {
-    fbb_.AddElement<int32_t>(CallInfo::VT_ERROR, error, 0);
+    fbb_.AddElement<int32_t>(CallInfoRaw::VT_ERROR, error, 0);
   }
   void add_signal(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal) {
-    fbb_.AddOffset(CallInfo::VT_SIGNAL, signal);
+    fbb_.AddOffset(CallInfoRaw::VT_SIGNAL, signal);
   }
   void add_cover(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover) {
-    fbb_.AddOffset(CallInfo::VT_COVER, cover);
+    fbb_.AddOffset(CallInfoRaw::VT_COVER, cover);
   }
-  void add_comps(flatbuffers::Offset<flatbuffers::Vector<const rpc::Comparison *>> comps) {
-    fbb_.AddOffset(CallInfo::VT_COMPS, comps);
+  void add_comps(flatbuffers::Offset<flatbuffers::Vector<const rpc::ComparisonRaw *>> comps) {
+    fbb_.AddOffset(CallInfoRaw::VT_COMPS, comps);
   }
-  explicit CallInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit CallInfoRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<CallInfo> Finish() {
+  flatbuffers::Offset<CallInfoRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<CallInfo>(end);
+    auto o = flatbuffers::Offset<CallInfoRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<CallInfo> CreateCallInfo(
+inline flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     rpc::CallFlag flags = static_cast<rpc::CallFlag>(0),
     int32_t error = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const rpc::Comparison *>> comps = 0) {
-  CallInfoBuilder builder_(_fbb);
+    flatbuffers::Offset<flatbuffers::Vector<const rpc::ComparisonRaw *>> comps = 0) {
+  CallInfoRawBuilder builder_(_fbb);
   builder_.add_comps(comps);
   builder_.add_cover(cover);
   builder_.add_signal(signal);
@@ -1836,17 +1931,17 @@ inline flatbuffers::Offset<CallInfo> CreateCallInfo(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<CallInfo> CreateCallInfoDirect(
+inline flatbuffers::Offset<CallInfoRaw> CreateCallInfoRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     rpc::CallFlag flags = static_cast<rpc::CallFlag>(0),
     int32_t error = 0,
     const std::vector<uint32_t> *signal = nullptr,
     const std::vector<uint32_t> *cover = nullptr,
-    const std::vector<rpc::Comparison> *comps = nullptr) {
+    const std::vector<rpc::ComparisonRaw> *comps = nullptr) {
   auto signal__ = signal ? _fbb.CreateVector<uint32_t>(*signal) : 0;
   auto cover__ = cover ? _fbb.CreateVector<uint32_t>(*cover) : 0;
-  auto comps__ = comps ? _fbb.CreateVectorOfStructs<rpc::Comparison>(*comps) : 0;
-  return rpc::CreateCallInfo(
+  auto comps__ = comps ? _fbb.CreateVectorOfStructs<rpc::ComparisonRaw>(*comps) : 0;
+  return rpc::CreateCallInfoRaw(
       _fbb,
       flags,
       error,
@@ -1855,34 +1950,34 @@ inline flatbuffers::Offset<CallInfo> CreateCallInfoDirect(
       comps__);
 }
 
-flatbuffers::Offset<CallInfo> CreateCallInfo(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ProgInfoT : public flatbuffers::NativeTable {
-  typedef ProgInfo TableType;
-  std::vector<std::unique_ptr<rpc::CallInfoT>> calls{};
-  std::unique_ptr<rpc::CallInfoT> extra{};
+struct ProgInfoRawT : public flatbuffers::NativeTable {
+  typedef ProgInfoRaw TableType;
+  std::vector<std::unique_ptr<rpc::CallInfoRawT>> calls{};
+  std::unique_ptr<rpc::CallInfoRawT> extra{};
   uint64_t elapsed = 0;
   uint64_t freshness = 0;
-  ProgInfoT() = default;
-  ProgInfoT(const ProgInfoT &o);
-  ProgInfoT(ProgInfoT&&) FLATBUFFERS_NOEXCEPT = default;
-  ProgInfoT &operator=(ProgInfoT o) FLATBUFFERS_NOEXCEPT;
+  ProgInfoRawT() = default;
+  ProgInfoRawT(const ProgInfoRawT &o);
+  ProgInfoRawT(ProgInfoRawT&&) FLATBUFFERS_NOEXCEPT = default;
+  ProgInfoRawT &operator=(ProgInfoRawT o) FLATBUFFERS_NOEXCEPT;
 };
 
-struct ProgInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ProgInfoT NativeTableType;
-  typedef ProgInfoBuilder Builder;
+struct ProgInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ProgInfoRawT NativeTableType;
+  typedef ProgInfoRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_CALLS = 4,
     VT_EXTRA = 6,
     VT_ELAPSED = 8,
     VT_FRESHNESS = 10
   };
-  const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfo>> *calls() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfo>> *>(VT_CALLS);
+  const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>> *calls() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>> *>(VT_CALLS);
   }
-  const rpc::CallInfo *extra() const {
-    return GetPointer<const rpc::CallInfo *>(VT_EXTRA);
+  const rpc::CallInfoRaw *extra() const {
+    return GetPointer<const rpc::CallInfoRaw *>(VT_EXTRA);
   }
   uint64_t elapsed() const {
     return GetField<uint64_t>(VT_ELAPSED, 0);
@@ -1901,45 +1996,45 @@ struct ProgInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint64_t>(verifier, VT_FRESHNESS, 8) &&
            verifier.EndTable();
   }
-  ProgInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ProgInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ProgInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ProgInfoRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ProgInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ProgInfoRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ProgInfoBuilder {
-  typedef ProgInfo Table;
+struct ProgInfoRawBuilder {
+  typedef ProgInfoRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_calls(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfo>>> calls) {
-    fbb_.AddOffset(ProgInfo::VT_CALLS, calls);
+  void add_calls(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>>> calls) {
+    fbb_.AddOffset(ProgInfoRaw::VT_CALLS, calls);
   }
-  void add_extra(flatbuffers::Offset<rpc::CallInfo> extra) {
-    fbb_.AddOffset(ProgInfo::VT_EXTRA, extra);
+  void add_extra(flatbuffers::Offset<rpc::CallInfoRaw> extra) {
+    fbb_.AddOffset(ProgInfoRaw::VT_EXTRA, extra);
   }
   void add_elapsed(uint64_t elapsed) {
-    fbb_.AddElement<uint64_t>(ProgInfo::VT_ELAPSED, elapsed, 0);
+    fbb_.AddElement<uint64_t>(ProgInfoRaw::VT_ELAPSED, elapsed, 0);
   }
   void add_freshness(uint64_t freshness) {
-    fbb_.AddElement<uint64_t>(ProgInfo::VT_FRESHNESS, freshness, 0);
+    fbb_.AddElement<uint64_t>(ProgInfoRaw::VT_FRESHNESS, freshness, 0);
   }
-  explicit ProgInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ProgInfoRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ProgInfo> Finish() {
+  flatbuffers::Offset<ProgInfoRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ProgInfo>(end);
+    auto o = flatbuffers::Offset<ProgInfoRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ProgInfo> CreateProgInfo(
+inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfo>>> calls = 0,
-    flatbuffers::Offset<rpc::CallInfo> extra = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>>> calls = 0,
+    flatbuffers::Offset<rpc::CallInfoRaw> extra = 0,
     uint64_t elapsed = 0,
     uint64_t freshness = 0) {
-  ProgInfoBuilder builder_(_fbb);
+  ProgInfoRawBuilder builder_(_fbb);
   builder_.add_freshness(freshness);
   builder_.add_elapsed(elapsed);
   builder_.add_extra(extra);
@@ -1947,14 +2042,14 @@ inline flatbuffers::Offset<ProgInfo> CreateProgInfo(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<ProgInfo> CreateProgInfoDirect(
+inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<rpc::CallInfo>> *calls = nullptr,
-    flatbuffers::Offset<rpc::CallInfo> extra = 0,
+    const std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> *calls = nullptr,
+    flatbuffers::Offset<rpc::CallInfoRaw> extra = 0,
     uint64_t elapsed = 0,
     uint64_t freshness = 0) {
-  auto calls__ = calls ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfo>>(*calls) : 0;
-  return rpc::CreateProgInfo(
+  auto calls__ = calls ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfoRaw>>(*calls) : 0;
+  return rpc::CreateProgInfoRaw(
       _fbb,
       calls__,
       extra,
@@ -1962,31 +2057,31 @@ inline flatbuffers::Offset<ProgInfo> CreateProgInfoDirect(
       freshness);
 }
 
-flatbuffers::Offset<ProgInfo> CreateProgInfo(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ExecResultT : public flatbuffers::NativeTable {
-  typedef ExecResult TableType;
-  std::unique_ptr<rpc::ExecutingMessageT> executing{};
+struct ExecResultRawT : public flatbuffers::NativeTable {
+  typedef ExecResultRaw TableType;
+  std::unique_ptr<rpc::ExecutingMessageRawT> executing{};
   std::vector<uint8_t> output{};
   std::string error{};
-  std::unique_ptr<rpc::ProgInfoT> info{};
-  ExecResultT() = default;
-  ExecResultT(const ExecResultT &o);
-  ExecResultT(ExecResultT&&) FLATBUFFERS_NOEXCEPT = default;
-  ExecResultT &operator=(ExecResultT o) FLATBUFFERS_NOEXCEPT;
+  std::unique_ptr<rpc::ProgInfoRawT> info{};
+  ExecResultRawT() = default;
+  ExecResultRawT(const ExecResultRawT &o);
+  ExecResultRawT(ExecResultRawT&&) FLATBUFFERS_NOEXCEPT = default;
+  ExecResultRawT &operator=(ExecResultRawT o) FLATBUFFERS_NOEXCEPT;
 };
 
-struct ExecResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ExecResultT NativeTableType;
-  typedef ExecResultBuilder Builder;
+struct ExecResultRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ExecResultRawT NativeTableType;
+  typedef ExecResultRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_EXECUTING = 4,
     VT_OUTPUT = 6,
     VT_ERROR = 8,
     VT_INFO = 10
   };
-  const rpc::ExecutingMessage *executing() const {
-    return GetPointer<const rpc::ExecutingMessage *>(VT_EXECUTING);
+  const rpc::ExecutingMessageRaw *executing() const {
+    return GetPointer<const rpc::ExecutingMessageRaw *>(VT_EXECUTING);
   }
   const flatbuffers::Vector<uint8_t> *output() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_OUTPUT);
@@ -1994,8 +2089,8 @@ struct ExecResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *error() const {
     return GetPointer<const flatbuffers::String *>(VT_ERROR);
   }
-  const rpc::ProgInfo *info() const {
-    return GetPointer<const rpc::ProgInfo *>(VT_INFO);
+  const rpc::ProgInfoRaw *info() const {
+    return GetPointer<const rpc::ProgInfoRaw *>(VT_INFO);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -2009,45 +2104,45 @@ struct ExecResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyTable(info()) &&
            verifier.EndTable();
   }
-  ExecResultT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ExecResultT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ExecResult> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ExecResultRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ExecResultRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ExecResultRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ExecResultBuilder {
-  typedef ExecResult Table;
+struct ExecResultRawBuilder {
+  typedef ExecResultRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_executing(flatbuffers::Offset<rpc::ExecutingMessage> executing) {
-    fbb_.AddOffset(ExecResult::VT_EXECUTING, executing);
+  void add_executing(flatbuffers::Offset<rpc::ExecutingMessageRaw> executing) {
+    fbb_.AddOffset(ExecResultRaw::VT_EXECUTING, executing);
   }
   void add_output(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output) {
-    fbb_.AddOffset(ExecResult::VT_OUTPUT, output);
+    fbb_.AddOffset(ExecResultRaw::VT_OUTPUT, output);
   }
   void add_error(flatbuffers::Offset<flatbuffers::String> error) {
-    fbb_.AddOffset(ExecResult::VT_ERROR, error);
+    fbb_.AddOffset(ExecResultRaw::VT_ERROR, error);
   }
-  void add_info(flatbuffers::Offset<rpc::ProgInfo> info) {
-    fbb_.AddOffset(ExecResult::VT_INFO, info);
+  void add_info(flatbuffers::Offset<rpc::ProgInfoRaw> info) {
+    fbb_.AddOffset(ExecResultRaw::VT_INFO, info);
   }
-  explicit ExecResultBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ExecResultRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ExecResult> Finish() {
+  flatbuffers::Offset<ExecResultRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ExecResult>(end);
+    auto o = flatbuffers::Offset<ExecResultRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ExecResult> CreateExecResult(
+inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<rpc::ExecutingMessage> executing = 0,
+    flatbuffers::Offset<rpc::ExecutingMessageRaw> executing = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output = 0,
     flatbuffers::Offset<flatbuffers::String> error = 0,
-    flatbuffers::Offset<rpc::ProgInfo> info = 0) {
-  ExecResultBuilder builder_(_fbb);
+    flatbuffers::Offset<rpc::ProgInfoRaw> info = 0) {
+  ExecResultRawBuilder builder_(_fbb);
   builder_.add_info(info);
   builder_.add_error(error);
   builder_.add_output(output);
@@ -2055,15 +2150,15 @@ inline flatbuffers::Offset<ExecResult> CreateExecResult(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<ExecResult> CreateExecResultDirect(
+inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<rpc::ExecutingMessage> executing = 0,
+    flatbuffers::Offset<rpc::ExecutingMessageRaw> executing = 0,
     const std::vector<uint8_t> *output = nullptr,
     const char *error = nullptr,
-    flatbuffers::Offset<rpc::ProgInfo> info = 0) {
+    flatbuffers::Offset<rpc::ProgInfoRaw> info = 0) {
   auto output__ = output ? _fbb.CreateVector<uint8_t>(*output) : 0;
   auto error__ = error ? _fbb.CreateString(error) : 0;
-  return rpc::CreateExecResult(
+  return rpc::CreateExecResultRaw(
       _fbb,
       executing,
       output__,
@@ -2071,15 +2166,15 @@ inline flatbuffers::Offset<ExecResult> CreateExecResultDirect(
       info);
 }
 
-flatbuffers::Offset<ExecResult> CreateExecResult(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-inline ConnectRequestT *ConnectRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ConnectRequestT>(new ConnectRequestT());
+inline ConnectRequestRawT *ConnectRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ConnectRequestRawT>(new ConnectRequestRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ConnectRequest::UnPackTo(ConnectRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ConnectRequestRaw::UnPackTo(ConnectRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
@@ -2088,19 +2183,19 @@ inline void ConnectRequest::UnPackTo(ConnectRequestT *_o, const flatbuffers::res
   { auto _e = syz_revision(); if (_e) _o->syz_revision = _e->str(); }
 }
 
-inline flatbuffers::Offset<ConnectRequest> ConnectRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateConnectRequest(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ConnectRequestRaw> ConnectRequestRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateConnectRequestRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ConnectRequest> CreateConnectRequest(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectRequestT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _arch = _o->arch.empty() ? 0 : _fbb.CreateString(_o->arch);
   auto _git_revision = _o->git_revision.empty() ? 0 : _fbb.CreateString(_o->git_revision);
   auto _syz_revision = _o->syz_revision.empty() ? 0 : _fbb.CreateString(_o->syz_revision);
-  return rpc::CreateConnectRequest(
+  return rpc::CreateConnectRequestRaw(
       _fbb,
       _name,
       _arch,
@@ -2108,13 +2203,13 @@ inline flatbuffers::Offset<ConnectRequest> CreateConnectRequest(flatbuffers::Fla
       _syz_revision);
 }
 
-inline ConnectReplyT *ConnectReply::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ConnectReplyT>(new ConnectReplyT());
+inline ConnectReplyRawT *ConnectReplyRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ConnectReplyRawT>(new ConnectReplyRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ConnectReply::UnPackTo(ConnectReplyT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = leak_frames(); if (_e) { _o->leak_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->leak_frames[_i] = _e->Get(_i)->str(); } } }
@@ -2124,20 +2219,20 @@ inline void ConnectReply::UnPackTo(ConnectReplyT *_o, const flatbuffers::resolve
   { auto _e = globs(); if (_e) { _o->globs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->globs[_i] = _e->Get(_i)->str(); } } }
 }
 
-inline flatbuffers::Offset<ConnectReply> ConnectReply::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateConnectReply(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ConnectReplyRaw> ConnectReplyRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateConnectReplyRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ConnectReply> CreateConnectReply(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _leak_frames = _o->leak_frames.size() ? _fbb.CreateVectorOfStrings(_o->leak_frames) : 0;
   auto _race_frames = _o->race_frames.size() ? _fbb.CreateVectorOfStrings(_o->race_frames) : 0;
   auto _features = _o->features;
   auto _files = _o->files.size() ? _fbb.CreateVectorOfStrings(_o->files) : 0;
   auto _globs = _o->globs.size() ? _fbb.CreateVectorOfStrings(_o->globs) : 0;
-  return rpc::CreateConnectReply(
+  return rpc::CreateConnectReplyRaw(
       _fbb,
       _leak_frames,
       _race_frames,
@@ -2146,91 +2241,92 @@ inline flatbuffers::Offset<ConnectReply> CreateConnectReply(flatbuffers::FlatBuf
       _globs);
 }
 
-inline InfoRequestT::InfoRequestT(const InfoRequestT &o)
-      : error(o.error),
-        features(o.features) {
-  globs.reserve(o.globs.size());
-  for (const auto &globs_ : o.globs) { globs.emplace_back((globs_) ? new rpc::GlobInfoT(*globs_) : nullptr); }
+inline InfoRequestRawT::InfoRequestRawT(const InfoRequestRawT &o)
+      : error(o.error) {
+  features.reserve(o.features.size());
+  for (const auto &features_ : o.features) { features.emplace_back((features_) ? new rpc::FeatureInfoRawT(*features_) : nullptr); }
   files.reserve(o.files.size());
-  for (const auto &files_ : o.files) { files.emplace_back((files_) ? new rpc::FileInfoT(*files_) : nullptr); }
+  for (const auto &files_ : o.files) { files.emplace_back((files_) ? new rpc::FileInfoRawT(*files_) : nullptr); }
+  globs.reserve(o.globs.size());
+  for (const auto &globs_ : o.globs) { globs.emplace_back((globs_) ? new rpc::GlobInfoRawT(*globs_) : nullptr); }
 }
 
-inline InfoRequestT &InfoRequestT::operator=(InfoRequestT o) FLATBUFFERS_NOEXCEPT {
+inline InfoRequestRawT &InfoRequestRawT::operator=(InfoRequestRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(error, o.error);
   std::swap(features, o.features);
-  std::swap(globs, o.globs);
   std::swap(files, o.files);
+  std::swap(globs, o.globs);
   return *this;
 }
 
-inline InfoRequestT *InfoRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<InfoRequestT>(new InfoRequestT());
+inline InfoRequestRawT *InfoRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<InfoRequestRawT>(new InfoRequestRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void InfoRequest::UnPackTo(InfoRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void InfoRequestRaw::UnPackTo(InfoRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = error(); if (_e) _o->error = _e->str(); }
-  { auto _e = features(); _o->features = _e; }
-  { auto _e = globs(); if (_e) { _o->globs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->globs[_i] = std::unique_ptr<rpc::GlobInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = std::unique_ptr<rpc::FileInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = features(); if (_e) { _o->features.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->features[_i] = std::unique_ptr<rpc::FeatureInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = std::unique_ptr<rpc::FileInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = globs(); if (_e) { _o->globs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->globs[_i] = std::unique_ptr<rpc::GlobInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
-inline flatbuffers::Offset<InfoRequest> InfoRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateInfoRequest(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<InfoRequestRaw> InfoRequestRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateInfoRequestRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<InfoRequest> CreateInfoRequest(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const InfoRequestT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const InfoRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _error = _o->error.empty() ? 0 : _fbb.CreateString(_o->error);
-  auto _features = _o->features;
-  auto _globs = _o->globs.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::GlobInfo>> (_o->globs.size(), [](size_t i, _VectorArgs *__va) { return CreateGlobInfo(*__va->__fbb, __va->__o->globs[i].get(), __va->__rehasher); }, &_va ) : 0;
-  auto _files = _o->files.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::FileInfo>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfo(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va ) : 0;
-  return rpc::CreateInfoRequest(
+  auto _features = _o->features.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::FeatureInfoRaw>> (_o->features.size(), [](size_t i, _VectorArgs *__va) { return CreateFeatureInfoRaw(*__va->__fbb, __va->__o->features[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _files = _o->files.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::FileInfoRaw>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfoRaw(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _globs = _o->globs.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::GlobInfoRaw>> (_o->globs.size(), [](size_t i, _VectorArgs *__va) { return CreateGlobInfoRaw(*__va->__fbb, __va->__o->globs[i].get(), __va->__rehasher); }, &_va ) : 0;
+  return rpc::CreateInfoRequestRaw(
       _fbb,
       _error,
       _features,
-      _globs,
-      _files);
+      _files,
+      _globs);
 }
 
-inline InfoReplyT *InfoReply::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<InfoReplyT>(new InfoReplyT());
+inline InfoReplyRawT *InfoReplyRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<InfoReplyRawT>(new InfoReplyRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void InfoReply::UnPackTo(InfoReplyT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void InfoReplyRaw::UnPackTo(InfoReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = cover_filter(); if (_e) { _o->cover_filter.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cover_filter[_i] = _e->Get(_i); } } }
 }
 
-inline flatbuffers::Offset<InfoReply> InfoReply::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateInfoReply(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<InfoReplyRaw> InfoReplyRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateInfoReplyRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<InfoReply> CreateInfoReply(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const InfoReplyT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const InfoReplyRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _cover_filter = _o->cover_filter.size() ? _fbb.CreateVector(_o->cover_filter) : 0;
-  return rpc::CreateInfoReply(
+  return rpc::CreateInfoReplyRaw(
       _fbb,
       _cover_filter);
 }
 
-inline FileInfoT *FileInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<FileInfoT>(new FileInfoT());
+inline FileInfoRawT *FileInfoRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<FileInfoRawT>(new FileInfoRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void FileInfo::UnPackTo(FileInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void FileInfoRaw::UnPackTo(FileInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
@@ -2239,19 +2335,19 @@ inline void FileInfo::UnPackTo(FileInfoT *_o, const flatbuffers::resolver_functi
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
 }
 
-inline flatbuffers::Offset<FileInfo> FileInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFileInfo(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<FileInfoRaw> FileInfoRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateFileInfoRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<FileInfo> CreateFileInfo(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<FileInfoRaw> CreateFileInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FileInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FileInfoRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _exists = _o->exists;
   auto _error = _o->error.empty() ? 0 : _fbb.CreateString(_o->error);
   auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
-  return rpc::CreateFileInfo(
+  return rpc::CreateFileInfoRaw(
       _fbb,
       _name,
       _exists,
@@ -2259,100 +2355,132 @@ inline flatbuffers::Offset<FileInfo> CreateFileInfo(flatbuffers::FlatBufferBuild
       _data);
 }
 
-inline GlobInfoT *GlobInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<GlobInfoT>(new GlobInfoT());
+inline GlobInfoRawT *GlobInfoRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<GlobInfoRawT>(new GlobInfoRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void GlobInfo::UnPackTo(GlobInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void GlobInfoRaw::UnPackTo(GlobInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = _e->Get(_i)->str(); } } }
 }
 
-inline flatbuffers::Offset<GlobInfo> GlobInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateGlobInfo(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<GlobInfoRaw> GlobInfoRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateGlobInfoRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<GlobInfo> CreateGlobInfo(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<GlobInfoRaw> CreateGlobInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const GlobInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const GlobInfoRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _files = _o->files.size() ? _fbb.CreateVectorOfStrings(_o->files) : 0;
-  return rpc::CreateGlobInfo(
+  return rpc::CreateGlobInfoRaw(
       _fbb,
       _name,
       _files);
 }
 
-inline HostMessageT *HostMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<HostMessageT>(new HostMessageT());
+inline FeatureInfoRawT *FeatureInfoRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<FeatureInfoRawT>(new FeatureInfoRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void HostMessage::UnPackTo(HostMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void FeatureInfoRaw::UnPackTo(FeatureInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = id(); _o->id = _e; }
+  { auto _e = need_setup(); _o->need_setup = _e; }
+  { auto _e = reason(); if (_e) _o->reason = _e->str(); }
+}
+
+inline flatbuffers::Offset<FeatureInfoRaw> FeatureInfoRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateFeatureInfoRaw(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<FeatureInfoRaw> CreateFeatureInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FeatureInfoRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _id = _o->id;
+  auto _need_setup = _o->need_setup;
+  auto _reason = _o->reason.empty() ? 0 : _fbb.CreateString(_o->reason);
+  return rpc::CreateFeatureInfoRaw(
+      _fbb,
+      _id,
+      _need_setup,
+      _reason);
+}
+
+inline HostMessageRawT *HostMessageRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<HostMessageRawT>(new HostMessageRawT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void HostMessageRaw::UnPackTo(HostMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = msg_type(); _o->msg.type = _e; }
-  { auto _e = msg(); if (_e) _o->msg.value = rpc::HostMessagesUnion::UnPack(_e, msg_type(), _resolver); }
+  { auto _e = msg(); if (_e) _o->msg.value = rpc::HostMessagesRawUnion::UnPack(_e, msg_type(), _resolver); }
 }
 
-inline flatbuffers::Offset<HostMessage> HostMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateHostMessage(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<HostMessageRaw> HostMessageRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateHostMessageRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<HostMessage> CreateHostMessage(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<HostMessageRaw> CreateHostMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const HostMessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const HostMessageRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _msg_type = _o->msg.type;
   auto _msg = _o->msg.Pack(_fbb);
-  return rpc::CreateHostMessage(
+  return rpc::CreateHostMessageRaw(
       _fbb,
       _msg_type,
       _msg);
 }
 
-inline ExecutorMessageT *ExecutorMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ExecutorMessageT>(new ExecutorMessageT());
+inline ExecutorMessageRawT *ExecutorMessageRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ExecutorMessageRawT>(new ExecutorMessageRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ExecutorMessage::UnPackTo(ExecutorMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ExecutorMessageRaw::UnPackTo(ExecutorMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = msg_type(); _o->msg.type = _e; }
-  { auto _e = msg(); if (_e) _o->msg.value = rpc::ExecutorMessagesUnion::UnPack(_e, msg_type(), _resolver); }
+  { auto _e = msg(); if (_e) _o->msg.value = rpc::ExecutorMessagesRawUnion::UnPack(_e, msg_type(), _resolver); }
 }
 
-inline flatbuffers::Offset<ExecutorMessage> ExecutorMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecutorMessage(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ExecutorMessageRaw> ExecutorMessageRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateExecutorMessageRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ExecutorMessage> CreateExecutorMessage(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecutorMessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecutorMessageRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _msg_type = _o->msg.type;
   auto _msg = _o->msg.Pack(_fbb);
-  return rpc::CreateExecutorMessage(
+  return rpc::CreateExecutorMessageRaw(
       _fbb,
       _msg_type,
       _msg);
 }
 
-inline ExecRequestT *ExecRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ExecRequestT>(new ExecRequestT());
+inline ExecRequestRawT *ExecRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ExecRequestRawT>(new ExecRequestRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ExecRequest::UnPackTo(ExecRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ExecRequestRaw::UnPackTo(ExecRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = id(); _o->id = _e; }
@@ -2366,14 +2494,14 @@ inline void ExecRequest::UnPackTo(ExecRequestT *_o, const flatbuffers::resolver_
   { auto _e = repeat(); _o->repeat = _e; }
 }
 
-inline flatbuffers::Offset<ExecRequest> ExecRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecRequest(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ExecRequestRaw> ExecRequestRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateExecRequestRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ExecRequest> CreateExecRequest(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecRequestT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _o->id;
   auto _prog_data = _o->prog_data.size() ? _fbb.CreateVector(_o->prog_data) : 0;
   auto _flags = _o->flags;
@@ -2383,7 +2511,7 @@ inline flatbuffers::Offset<ExecRequest> CreateExecRequest(flatbuffers::FlatBuffe
   auto _signal_filter = _o->signal_filter.size() ? _fbb.CreateVector(_o->signal_filter) : 0;
   auto _signal_filter_call = _o->signal_filter_call;
   auto _repeat = _o->repeat;
-  return rpc::CreateExecRequest(
+  return rpc::CreateExecRequestRaw(
       _fbb,
       _id,
       _prog_data,
@@ -2396,42 +2524,42 @@ inline flatbuffers::Offset<ExecRequest> CreateExecRequest(flatbuffers::FlatBuffe
       _repeat);
 }
 
-inline SignalUpdateT *SignalUpdate::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<SignalUpdateT>(new SignalUpdateT());
+inline SignalUpdateRawT *SignalUpdateRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<SignalUpdateRawT>(new SignalUpdateRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void SignalUpdate::UnPackTo(SignalUpdateT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void SignalUpdateRaw::UnPackTo(SignalUpdateRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = new_max(); if (_e) { _o->new_max.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->new_max[_i] = _e->Get(_i); } } }
   { auto _e = drop_max(); if (_e) { _o->drop_max.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->drop_max[_i] = _e->Get(_i); } } }
 }
 
-inline flatbuffers::Offset<SignalUpdate> SignalUpdate::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSignalUpdate(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<SignalUpdateRaw> SignalUpdateRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSignalUpdateRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<SignalUpdate> CreateSignalUpdate(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SignalUpdateT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SignalUpdateRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _new_max = _o->new_max.size() ? _fbb.CreateVector(_o->new_max) : 0;
   auto _drop_max = _o->drop_max.size() ? _fbb.CreateVector(_o->drop_max) : 0;
-  return rpc::CreateSignalUpdate(
+  return rpc::CreateSignalUpdateRaw(
       _fbb,
       _new_max,
       _drop_max);
 }
 
-inline ExecutingMessageT *ExecutingMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ExecutingMessageT>(new ExecutingMessageT());
+inline ExecutingMessageRawT *ExecutingMessageRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ExecutingMessageRawT>(new ExecutingMessageRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ExecutingMessage::UnPackTo(ExecutingMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ExecutingMessageRaw::UnPackTo(ExecutingMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = id(); _o->id = _e; }
@@ -2439,60 +2567,60 @@ inline void ExecutingMessage::UnPackTo(ExecutingMessageT *_o, const flatbuffers:
   { auto _e = try_(); _o->try_ = _e; }
 }
 
-inline flatbuffers::Offset<ExecutingMessage> ExecutingMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecutingMessage(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ExecutingMessageRaw> ExecutingMessageRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateExecutingMessageRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ExecutingMessage> CreateExecutingMessage(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecutingMessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecutingMessageRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _o->id;
   auto _proc_id = _o->proc_id;
   auto _try_ = _o->try_;
-  return rpc::CreateExecutingMessage(
+  return rpc::CreateExecutingMessageRaw(
       _fbb,
       _id,
       _proc_id,
       _try_);
 }
 
-inline StatsMessageT *StatsMessage::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<StatsMessageT>(new StatsMessageT());
+inline StatsMessageRawT *StatsMessageRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<StatsMessageRawT>(new StatsMessageRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void StatsMessage::UnPackTo(StatsMessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void StatsMessageRaw::UnPackTo(StatsMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = noexec_count(); _o->noexec_count = _e; }
   { auto _e = noexec_duration(); _o->noexec_duration = _e; }
 }
 
-inline flatbuffers::Offset<StatsMessage> StatsMessage::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateStatsMessage(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<StatsMessageRaw> StatsMessageRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateStatsMessageRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<StatsMessage> CreateStatsMessage(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<StatsMessageRaw> CreateStatsMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StatsMessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StatsMessageRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _noexec_count = _o->noexec_count;
   auto _noexec_duration = _o->noexec_duration;
-  return rpc::CreateStatsMessage(
+  return rpc::CreateStatsMessageRaw(
       _fbb,
       _noexec_count,
       _noexec_duration);
 }
 
-inline CallInfoT *CallInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<CallInfoT>(new CallInfoT());
+inline CallInfoRawT *CallInfoRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<CallInfoRawT>(new CallInfoRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void CallInfo::UnPackTo(CallInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void CallInfoRaw::UnPackTo(CallInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = flags(); _o->flags = _e; }
@@ -2502,20 +2630,20 @@ inline void CallInfo::UnPackTo(CallInfoT *_o, const flatbuffers::resolver_functi
   { auto _e = comps(); if (_e) { _o->comps.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->comps[_i] = *_e->Get(_i); } } }
 }
 
-inline flatbuffers::Offset<CallInfo> CallInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateCallInfo(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<CallInfoRaw> CallInfoRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateCallInfoRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<CallInfo> CreateCallInfo(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CallInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CallInfoRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _flags = _o->flags;
   auto _error = _o->error;
   auto _signal = _o->signal.size() ? _fbb.CreateVector(_o->signal) : 0;
   auto _cover = _o->cover.size() ? _fbb.CreateVector(_o->cover) : 0;
   auto _comps = _o->comps.size() ? _fbb.CreateVectorOfStructs(_o->comps) : 0;
-  return rpc::CreateCallInfo(
+  return rpc::CreateCallInfoRaw(
       _fbb,
       _flags,
       _error,
@@ -2524,15 +2652,15 @@ inline flatbuffers::Offset<CallInfo> CreateCallInfo(flatbuffers::FlatBufferBuild
       _comps);
 }
 
-inline ProgInfoT::ProgInfoT(const ProgInfoT &o)
-      : extra((o.extra) ? new rpc::CallInfoT(*o.extra) : nullptr),
+inline ProgInfoRawT::ProgInfoRawT(const ProgInfoRawT &o)
+      : extra((o.extra) ? new rpc::CallInfoRawT(*o.extra) : nullptr),
         elapsed(o.elapsed),
         freshness(o.freshness) {
   calls.reserve(o.calls.size());
-  for (const auto &calls_ : o.calls) { calls.emplace_back((calls_) ? new rpc::CallInfoT(*calls_) : nullptr); }
+  for (const auto &calls_ : o.calls) { calls.emplace_back((calls_) ? new rpc::CallInfoRawT(*calls_) : nullptr); }
 }
 
-inline ProgInfoT &ProgInfoT::operator=(ProgInfoT o) FLATBUFFERS_NOEXCEPT {
+inline ProgInfoRawT &ProgInfoRawT::operator=(ProgInfoRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(calls, o.calls);
   std::swap(extra, o.extra);
   std::swap(elapsed, o.elapsed);
@@ -2540,34 +2668,34 @@ inline ProgInfoT &ProgInfoT::operator=(ProgInfoT o) FLATBUFFERS_NOEXCEPT {
   return *this;
 }
 
-inline ProgInfoT *ProgInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ProgInfoT>(new ProgInfoT());
+inline ProgInfoRawT *ProgInfoRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ProgInfoRawT>(new ProgInfoRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ProgInfo::UnPackTo(ProgInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ProgInfoRaw::UnPackTo(ProgInfoRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = calls(); if (_e) { _o->calls.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->calls[_i] = std::unique_ptr<rpc::CallInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = extra(); if (_e) _o->extra = std::unique_ptr<rpc::CallInfoT>(_e->UnPack(_resolver)); }
+  { auto _e = calls(); if (_e) { _o->calls.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->calls[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = extra(); if (_e) _o->extra = std::unique_ptr<rpc::CallInfoRawT>(_e->UnPack(_resolver)); }
   { auto _e = elapsed(); _o->elapsed = _e; }
   { auto _e = freshness(); _o->freshness = _e; }
 }
 
-inline flatbuffers::Offset<ProgInfo> ProgInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateProgInfo(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ProgInfoRaw> ProgInfoRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateProgInfoRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ProgInfo> CreateProgInfo(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ProgInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _calls = _o->calls.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfo>> (_o->calls.size(), [](size_t i, _VectorArgs *__va) { return CreateCallInfo(*__va->__fbb, __va->__o->calls[i].get(), __va->__rehasher); }, &_va ) : 0;
-  auto _extra = _o->extra ? CreateCallInfo(_fbb, _o->extra.get(), _rehasher) : 0;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ProgInfoRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _calls = _o->calls.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfoRaw>> (_o->calls.size(), [](size_t i, _VectorArgs *__va) { return CreateCallInfoRaw(*__va->__fbb, __va->__o->calls[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _extra = _o->extra ? CreateCallInfoRaw(_fbb, _o->extra.get(), _rehasher) : 0;
   auto _elapsed = _o->elapsed;
   auto _freshness = _o->freshness;
-  return rpc::CreateProgInfo(
+  return rpc::CreateProgInfoRaw(
       _fbb,
       _calls,
       _extra,
@@ -2575,14 +2703,14 @@ inline flatbuffers::Offset<ProgInfo> CreateProgInfo(flatbuffers::FlatBufferBuild
       _freshness);
 }
 
-inline ExecResultT::ExecResultT(const ExecResultT &o)
-      : executing((o.executing) ? new rpc::ExecutingMessageT(*o.executing) : nullptr),
+inline ExecResultRawT::ExecResultRawT(const ExecResultRawT &o)
+      : executing((o.executing) ? new rpc::ExecutingMessageRawT(*o.executing) : nullptr),
         output(o.output),
         error(o.error),
-        info((o.info) ? new rpc::ProgInfoT(*o.info) : nullptr) {
+        info((o.info) ? new rpc::ProgInfoRawT(*o.info) : nullptr) {
 }
 
-inline ExecResultT &ExecResultT::operator=(ExecResultT o) FLATBUFFERS_NOEXCEPT {
+inline ExecResultRawT &ExecResultRawT::operator=(ExecResultRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(executing, o.executing);
   std::swap(output, o.output);
   std::swap(error, o.error);
@@ -2590,34 +2718,34 @@ inline ExecResultT &ExecResultT::operator=(ExecResultT o) FLATBUFFERS_NOEXCEPT {
   return *this;
 }
 
-inline ExecResultT *ExecResult::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ExecResultT>(new ExecResultT());
+inline ExecResultRawT *ExecResultRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ExecResultRawT>(new ExecResultRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ExecResult::UnPackTo(ExecResultT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ExecResultRaw::UnPackTo(ExecResultRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = executing(); if (_e) _o->executing = std::unique_ptr<rpc::ExecutingMessageT>(_e->UnPack(_resolver)); }
+  { auto _e = executing(); if (_e) _o->executing = std::unique_ptr<rpc::ExecutingMessageRawT>(_e->UnPack(_resolver)); }
   { auto _e = output(); if (_e) { _o->output.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->output.begin()); } }
   { auto _e = error(); if (_e) _o->error = _e->str(); }
-  { auto _e = info(); if (_e) _o->info = std::unique_ptr<rpc::ProgInfoT>(_e->UnPack(_resolver)); }
+  { auto _e = info(); if (_e) _o->info = std::unique_ptr<rpc::ProgInfoRawT>(_e->UnPack(_resolver)); }
 }
 
-inline flatbuffers::Offset<ExecResult> ExecResult::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecResult(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ExecResultRaw> ExecResultRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateExecResultRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ExecResult> CreateExecResult(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecResultT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _executing = _o->executing ? CreateExecutingMessage(_fbb, _o->executing.get(), _rehasher) : 0;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecResultRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _executing = _o->executing ? CreateExecutingMessageRaw(_fbb, _o->executing.get(), _rehasher) : 0;
   auto _output = _o->output.size() ? _fbb.CreateVector(_o->output) : 0;
   auto _error = _o->error.empty() ? 0 : _fbb.CreateString(_o->error);
-  auto _info = _o->info ? CreateProgInfo(_fbb, _o->info.get(), _rehasher) : 0;
-  return rpc::CreateExecResult(
+  auto _info = _o->info ? CreateProgInfoRaw(_fbb, _o->info.get(), _rehasher) : 0;
+  return rpc::CreateExecResultRaw(
       _fbb,
       _executing,
       _output,
@@ -2625,73 +2753,73 @@ inline flatbuffers::Offset<ExecResult> CreateExecResult(flatbuffers::FlatBufferB
       _info);
 }
 
-inline bool VerifyHostMessages(flatbuffers::Verifier &verifier, const void *obj, HostMessages type) {
+inline bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type) {
   switch (type) {
-    case HostMessages::NONE: {
+    case HostMessagesRaw::NONE: {
       return true;
     }
-    case HostMessages::ExecRequest: {
-      auto ptr = reinterpret_cast<const rpc::ExecRequest *>(obj);
+    case HostMessagesRaw::ExecRequest: {
+      auto ptr = reinterpret_cast<const rpc::ExecRequestRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case HostMessages::SignalUpdate: {
-      auto ptr = reinterpret_cast<const rpc::SignalUpdate *>(obj);
+    case HostMessagesRaw::SignalUpdate: {
+      auto ptr = reinterpret_cast<const rpc::SignalUpdateRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
   }
 }
 
-inline bool VerifyHostMessagesVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<HostMessages> *types) {
+inline bool VerifyHostMessagesRawVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<HostMessagesRaw> *types) {
   if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
-    if (!VerifyHostMessages(
-        verifier,  values->Get(i), types->GetEnum<HostMessages>(i))) {
+    if (!VerifyHostMessagesRaw(
+        verifier,  values->Get(i), types->GetEnum<HostMessagesRaw>(i))) {
       return false;
     }
   }
   return true;
 }
 
-inline void *HostMessagesUnion::UnPack(const void *obj, HostMessages type, const flatbuffers::resolver_function_t *resolver) {
+inline void *HostMessagesRawUnion::UnPack(const void *obj, HostMessagesRaw type, const flatbuffers::resolver_function_t *resolver) {
   (void)resolver;
   switch (type) {
-    case HostMessages::ExecRequest: {
-      auto ptr = reinterpret_cast<const rpc::ExecRequest *>(obj);
+    case HostMessagesRaw::ExecRequest: {
+      auto ptr = reinterpret_cast<const rpc::ExecRequestRaw *>(obj);
       return ptr->UnPack(resolver);
     }
-    case HostMessages::SignalUpdate: {
-      auto ptr = reinterpret_cast<const rpc::SignalUpdate *>(obj);
+    case HostMessagesRaw::SignalUpdate: {
+      auto ptr = reinterpret_cast<const rpc::SignalUpdateRaw *>(obj);
       return ptr->UnPack(resolver);
     }
     default: return nullptr;
   }
 }
 
-inline flatbuffers::Offset<void> HostMessagesUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+inline flatbuffers::Offset<void> HostMessagesRawUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
   (void)_rehasher;
   switch (type) {
-    case HostMessages::ExecRequest: {
-      auto ptr = reinterpret_cast<const rpc::ExecRequestT *>(value);
-      return CreateExecRequest(_fbb, ptr, _rehasher).Union();
+    case HostMessagesRaw::ExecRequest: {
+      auto ptr = reinterpret_cast<const rpc::ExecRequestRawT *>(value);
+      return CreateExecRequestRaw(_fbb, ptr, _rehasher).Union();
     }
-    case HostMessages::SignalUpdate: {
-      auto ptr = reinterpret_cast<const rpc::SignalUpdateT *>(value);
-      return CreateSignalUpdate(_fbb, ptr, _rehasher).Union();
+    case HostMessagesRaw::SignalUpdate: {
+      auto ptr = reinterpret_cast<const rpc::SignalUpdateRawT *>(value);
+      return CreateSignalUpdateRaw(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
 }
 
-inline HostMessagesUnion::HostMessagesUnion(const HostMessagesUnion &u) : type(u.type), value(nullptr) {
+inline HostMessagesRawUnion::HostMessagesRawUnion(const HostMessagesRawUnion &u) : type(u.type), value(nullptr) {
   switch (type) {
-    case HostMessages::ExecRequest: {
-      value = new rpc::ExecRequestT(*reinterpret_cast<rpc::ExecRequestT *>(u.value));
+    case HostMessagesRaw::ExecRequest: {
+      value = new rpc::ExecRequestRawT(*reinterpret_cast<rpc::ExecRequestRawT *>(u.value));
       break;
     }
-    case HostMessages::SignalUpdate: {
-      value = new rpc::SignalUpdateT(*reinterpret_cast<rpc::SignalUpdateT *>(u.value));
+    case HostMessagesRaw::SignalUpdate: {
+      value = new rpc::SignalUpdateRawT(*reinterpret_cast<rpc::SignalUpdateRawT *>(u.value));
       break;
     }
     default:
@@ -2699,107 +2827,107 @@ inline HostMessagesUnion::HostMessagesUnion(const HostMessagesUnion &u) : type(u
   }
 }
 
-inline void HostMessagesUnion::Reset() {
+inline void HostMessagesRawUnion::Reset() {
   switch (type) {
-    case HostMessages::ExecRequest: {
-      auto ptr = reinterpret_cast<rpc::ExecRequestT *>(value);
+    case HostMessagesRaw::ExecRequest: {
+      auto ptr = reinterpret_cast<rpc::ExecRequestRawT *>(value);
       delete ptr;
       break;
     }
-    case HostMessages::SignalUpdate: {
-      auto ptr = reinterpret_cast<rpc::SignalUpdateT *>(value);
+    case HostMessagesRaw::SignalUpdate: {
+      auto ptr = reinterpret_cast<rpc::SignalUpdateRawT *>(value);
       delete ptr;
       break;
     }
     default: break;
   }
   value = nullptr;
-  type = HostMessages::NONE;
+  type = HostMessagesRaw::NONE;
 }
 
-inline bool VerifyExecutorMessages(flatbuffers::Verifier &verifier, const void *obj, ExecutorMessages type) {
+inline bool VerifyExecutorMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, ExecutorMessagesRaw type) {
   switch (type) {
-    case ExecutorMessages::NONE: {
+    case ExecutorMessagesRaw::NONE: {
       return true;
     }
-    case ExecutorMessages::ExecResult: {
-      auto ptr = reinterpret_cast<const rpc::ExecResult *>(obj);
+    case ExecutorMessagesRaw::ExecResult: {
+      auto ptr = reinterpret_cast<const rpc::ExecResultRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ExecutorMessages::Executing: {
-      auto ptr = reinterpret_cast<const rpc::ExecutingMessage *>(obj);
+    case ExecutorMessagesRaw::Executing: {
+      auto ptr = reinterpret_cast<const rpc::ExecutingMessageRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ExecutorMessages::Stats: {
-      auto ptr = reinterpret_cast<const rpc::StatsMessage *>(obj);
+    case ExecutorMessagesRaw::Stats: {
+      auto ptr = reinterpret_cast<const rpc::StatsMessageRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
   }
 }
 
-inline bool VerifyExecutorMessagesVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<ExecutorMessages> *types) {
+inline bool VerifyExecutorMessagesRawVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<ExecutorMessagesRaw> *types) {
   if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
-    if (!VerifyExecutorMessages(
-        verifier,  values->Get(i), types->GetEnum<ExecutorMessages>(i))) {
+    if (!VerifyExecutorMessagesRaw(
+        verifier,  values->Get(i), types->GetEnum<ExecutorMessagesRaw>(i))) {
       return false;
     }
   }
   return true;
 }
 
-inline void *ExecutorMessagesUnion::UnPack(const void *obj, ExecutorMessages type, const flatbuffers::resolver_function_t *resolver) {
+inline void *ExecutorMessagesRawUnion::UnPack(const void *obj, ExecutorMessagesRaw type, const flatbuffers::resolver_function_t *resolver) {
   (void)resolver;
   switch (type) {
-    case ExecutorMessages::ExecResult: {
-      auto ptr = reinterpret_cast<const rpc::ExecResult *>(obj);
+    case ExecutorMessagesRaw::ExecResult: {
+      auto ptr = reinterpret_cast<const rpc::ExecResultRaw *>(obj);
       return ptr->UnPack(resolver);
     }
-    case ExecutorMessages::Executing: {
-      auto ptr = reinterpret_cast<const rpc::ExecutingMessage *>(obj);
+    case ExecutorMessagesRaw::Executing: {
+      auto ptr = reinterpret_cast<const rpc::ExecutingMessageRaw *>(obj);
       return ptr->UnPack(resolver);
     }
-    case ExecutorMessages::Stats: {
-      auto ptr = reinterpret_cast<const rpc::StatsMessage *>(obj);
+    case ExecutorMessagesRaw::Stats: {
+      auto ptr = reinterpret_cast<const rpc::StatsMessageRaw *>(obj);
       return ptr->UnPack(resolver);
     }
     default: return nullptr;
   }
 }
 
-inline flatbuffers::Offset<void> ExecutorMessagesUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+inline flatbuffers::Offset<void> ExecutorMessagesRawUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
   (void)_rehasher;
   switch (type) {
-    case ExecutorMessages::ExecResult: {
-      auto ptr = reinterpret_cast<const rpc::ExecResultT *>(value);
-      return CreateExecResult(_fbb, ptr, _rehasher).Union();
+    case ExecutorMessagesRaw::ExecResult: {
+      auto ptr = reinterpret_cast<const rpc::ExecResultRawT *>(value);
+      return CreateExecResultRaw(_fbb, ptr, _rehasher).Union();
     }
-    case ExecutorMessages::Executing: {
-      auto ptr = reinterpret_cast<const rpc::ExecutingMessageT *>(value);
-      return CreateExecutingMessage(_fbb, ptr, _rehasher).Union();
+    case ExecutorMessagesRaw::Executing: {
+      auto ptr = reinterpret_cast<const rpc::ExecutingMessageRawT *>(value);
+      return CreateExecutingMessageRaw(_fbb, ptr, _rehasher).Union();
     }
-    case ExecutorMessages::Stats: {
-      auto ptr = reinterpret_cast<const rpc::StatsMessageT *>(value);
-      return CreateStatsMessage(_fbb, ptr, _rehasher).Union();
+    case ExecutorMessagesRaw::Stats: {
+      auto ptr = reinterpret_cast<const rpc::StatsMessageRawT *>(value);
+      return CreateStatsMessageRaw(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
   }
 }
 
-inline ExecutorMessagesUnion::ExecutorMessagesUnion(const ExecutorMessagesUnion &u) : type(u.type), value(nullptr) {
+inline ExecutorMessagesRawUnion::ExecutorMessagesRawUnion(const ExecutorMessagesRawUnion &u) : type(u.type), value(nullptr) {
   switch (type) {
-    case ExecutorMessages::ExecResult: {
-      value = new rpc::ExecResultT(*reinterpret_cast<rpc::ExecResultT *>(u.value));
+    case ExecutorMessagesRaw::ExecResult: {
+      value = new rpc::ExecResultRawT(*reinterpret_cast<rpc::ExecResultRawT *>(u.value));
       break;
     }
-    case ExecutorMessages::Executing: {
-      value = new rpc::ExecutingMessageT(*reinterpret_cast<rpc::ExecutingMessageT *>(u.value));
+    case ExecutorMessagesRaw::Executing: {
+      value = new rpc::ExecutingMessageRawT(*reinterpret_cast<rpc::ExecutingMessageRawT *>(u.value));
       break;
     }
-    case ExecutorMessages::Stats: {
-      value = new rpc::StatsMessageT(*reinterpret_cast<rpc::StatsMessageT *>(u.value));
+    case ExecutorMessagesRaw::Stats: {
+      value = new rpc::StatsMessageRawT(*reinterpret_cast<rpc::StatsMessageRawT *>(u.value));
       break;
     }
     default:
@@ -2807,27 +2935,27 @@ inline ExecutorMessagesUnion::ExecutorMessagesUnion(const ExecutorMessagesUnion 
   }
 }
 
-inline void ExecutorMessagesUnion::Reset() {
+inline void ExecutorMessagesRawUnion::Reset() {
   switch (type) {
-    case ExecutorMessages::ExecResult: {
-      auto ptr = reinterpret_cast<rpc::ExecResultT *>(value);
+    case ExecutorMessagesRaw::ExecResult: {
+      auto ptr = reinterpret_cast<rpc::ExecResultRawT *>(value);
       delete ptr;
       break;
     }
-    case ExecutorMessages::Executing: {
-      auto ptr = reinterpret_cast<rpc::ExecutingMessageT *>(value);
+    case ExecutorMessagesRaw::Executing: {
+      auto ptr = reinterpret_cast<rpc::ExecutingMessageRawT *>(value);
       delete ptr;
       break;
     }
-    case ExecutorMessages::Stats: {
-      auto ptr = reinterpret_cast<rpc::StatsMessageT *>(value);
+    case ExecutorMessagesRaw::Stats: {
+      auto ptr = reinterpret_cast<rpc::StatsMessageRawT *>(value);
       delete ptr;
       break;
     }
     default: break;
   }
   value = nullptr;
-  type = ExecutorMessages::NONE;
+  type = ExecutorMessagesRaw::NONE;
 }
 
 }  // namespace rpc
