@@ -1,0 +1,21 @@
+# Open the sndctrl file
+
+r0 = syz_open_dev$sndctrl(&AUTO, 0x0, 0x0)
+
+# get valid elem id numids
+
+r1 = syz_sndrv_get_elem_id(r0, 0x0)
+r2 = syz_sndrv_get_elem_id(r0, 0x1)
+r3 = syz_sndrv_get_elem_id(r0, 0xfff)
+r4 = syz_sndrv_get_elem_id(r0, 0xffffffff)
+
+# read elems
+
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(r0, 0xc4c85512, &AUTO={{@existing_id=r1}})
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(r0, 0xc4c85512, &AUTO={{@existing_id=r2}})
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(r0, 0xc4c85512, &AUTO={{@existing_id=r3}})
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(r0, 0xc4c85512, &AUTO={{@existing_id=r4}})
+
+# Close the device file
+
+close(r0)

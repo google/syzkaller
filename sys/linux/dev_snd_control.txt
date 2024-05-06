@@ -7,24 +7,25 @@ include <uapi/linux/time.h>
 include <uapi/sound/asound.h>
 
 resource fd_sndctrl[fd]
+resource snd_ctl_elem_id_numid[int32]
 
 syz_open_dev$sndctrl(dev ptr[in, string["/dev/snd/controlC#"]], id intptr, flags flags[open_flags]) fd_sndctrl
-
+syz_sndrv_get_elem_id(fd fd_sndctrl, elem_id_rand int32)	snd_ctl_elem_id_numid
 ioctl$SNDRV_CTL_IOCTL_PVERSION(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PVERSION], arg ptr[out, int32])
 ioctl$SNDRV_CTL_IOCTL_CARD_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_CARD_INFO], arg buffer[out])
 ioctl$SNDRV_CTL_IOCTL_HWDEP_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_HWDEP_INFO], arg buffer[out])
 ioctl$SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE], arg buffer[out])
 ioctl$SNDRV_CTL_IOCTL_POWER_STATE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_POWER_STATE], arg ptr[out, int32])
-ioctl$SNDRV_CTL_IOCTL_ELEM_LIST(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LIST], arg ptr[in, snd_ctl_elem_list])
-ioctl$SNDRV_CTL_IOCTL_ELEM_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_INFO], arg ptr[in, snd_ctl_elem_info])
-ioctl$SNDRV_CTL_IOCTL_ELEM_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_READ], arg ptr[in, snd_ctl_elem_value])
-ioctl$SNDRV_CTL_IOCTL_ELEM_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_WRITE], arg ptr[in, snd_ctl_elem_value])
+ioctl$SNDRV_CTL_IOCTL_ELEM_LIST(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LIST], arg ptr[inout, snd_ctl_elem_list])
+ioctl$SNDRV_CTL_IOCTL_ELEM_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_INFO], arg ptr[inout, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_READ], arg ptr[inout, snd_ctl_elem_value])
+ioctl$SNDRV_CTL_IOCTL_ELEM_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_WRITE], arg ptr[inout, snd_ctl_elem_value])
 ioctl$SNDRV_CTL_IOCTL_ELEM_LOCK(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LOCK], arg ptr[in, snd_ctl_elem_id])
 ioctl$SNDRV_CTL_IOCTL_ELEM_UNLOCK(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_UNLOCK], arg ptr[in, snd_ctl_elem_id])
 ioctl$SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS], arg ptr[in, int32])
-ioctl$SNDRV_CTL_IOCTL_ELEM_ADD(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_ADD], arg ptr[in, snd_ctl_elem_info])
-ioctl$SNDRV_CTL_IOCTL_ELEM_REPLACE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REPLACE], arg ptr[in, snd_ctl_elem_info])
-ioctl$SNDRV_CTL_IOCTL_ELEM_REMOVE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REMOVE], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_ELEM_ADD(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_ADD], arg ptr[inout, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_REPLACE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REPLACE], arg ptr[inout, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_REMOVE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REMOVE], arg ptr[inout, snd_ctl_elem_id])
 ioctl$SNDRV_CTL_IOCTL_TLV_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_READ], arg ptr[in, snd_ctl_tlv])
 ioctl$SNDRV_CTL_IOCTL_TLV_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_WRITE], arg ptr[in, snd_ctl_tlv])
 ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_COMMAND], arg ptr[in, snd_ctl_tlv])
@@ -40,8 +41,18 @@ snd_ctl_access = SNDRV_CTL_ELEM_ACCESS_READ, SNDRV_CTL_ELEM_ACCESS_WRITE, SNDRV_
 snd_ctl_names = "", "syz0", "syz1"
 snd_ctl_elem_names = "syz0", "syz1"
 
+# In some cases like ELEM_ADD, it is good to use a small range of ids to
+# increase the chances of collisions (thus, 'other_id').  On the other hand,
+# drivers may add hundreds of potentially interesting custom controls (with
+# custom get()/put()/info() handlers), which cannot be captured with
+# such small range.  Capture them dynamically with syz_sndrv_get_elem_id().
+snd_ctl_elem_id_numid_t [
+	existing_id	snd_ctl_elem_id_numid
+	other_id	int32[0:10]
+]
+
 snd_ctl_elem_id {
-	numid	int32[0:10]
+	numid	snd_ctl_elem_id_numid_t
 	iface	flags[snd_ctl_iface, int32]
 	dev	int32
 	subdev	int32
