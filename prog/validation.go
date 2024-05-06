@@ -5,12 +5,17 @@ package prog
 
 import (
 	"fmt"
+	"os"
+	"strings"
 )
 
 var debug = false // enabled in tests and fuzzers
 
-func Debug() {
-	debug = true
+func init() {
+	// Enable debug checking in all tests.
+	if strings.HasSuffix(os.Args[0], ".test") {
+		debug = true
+	}
 }
 
 func (p *Prog) debugValidate() {
