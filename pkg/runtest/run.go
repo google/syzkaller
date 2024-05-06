@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -50,7 +50,7 @@ type RunRequest struct {
 type Context struct {
 	Dir          string
 	Target       *prog.Target
-	Features     *host.Features
+	Features     flatrpc.Feature
 	EnabledCalls map[string]map[*prog.Syscall]bool
 	Requests     chan *RunRequest
 	LogFunc      func(text string)
@@ -164,7 +164,7 @@ func (ctx *Context) Run() error {
 
 func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 	cover := []bool{false}
-	if ctx.Features[host.FeatureCoverage].Enabled {
+	if ctx.Features&flatrpc.FeatureCoverage != 0 {
 		cover = append(cover, true)
 	}
 	var sandboxes []string
@@ -448,22 +448,22 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		HandleSegv:  true,
 		Cgroups:     p.Target.OS == targets.Linux && sandbox != "",
 		Trace:       true,
-		Swap:        ctx.Features[host.FeatureSwap].Enabled,
+		Swap:        ctx.Features&flatrpc.FeatureSwap != 0,
 	}
 	if sandbox != "" {
-		if ctx.Features[host.FeatureNetInjection].Enabled {
+		if ctx.Features&flatrpc.FeatureNetInjection != 0 {
 			opts.NetInjection = true
 		}
-		if ctx.Features[host.FeatureNetDevices].Enabled {
+		if ctx.Features&flatrpc.FeatureNetDevices != 0 {
 			opts.NetDevices = true
 		}
-		if ctx.Features[host.FeatureVhciInjection].Enabled {
+		if ctx.Features&flatrpc.FeatureVhciInjection != 0 {
 			opts.VhciInjection = true
 		}
-		if ctx.Features[host.FeatureWifiEmulation].Enabled {
+		if ctx.Features&flatrpc.FeatureWifiEmulation != 0 {
 			opts.Wifi = true
 		}
-		if ctx.Features[host.Feature802154Emulation].Enabled {
+		if ctx.Features&flatrpc.FeatureLRWPANEmulation != 0 {
 			opts.IEEE802154 = true
 		}
 	}
