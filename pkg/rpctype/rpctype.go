@@ -104,7 +104,7 @@ type CheckArgs struct {
 	Error    string
 	Features *host.Features
 	Globs    map[string][]string
-	Files    []flatrpc.FileInfoT
+	Files    []flatrpc.FileInfo
 }
 
 type CheckRes struct {

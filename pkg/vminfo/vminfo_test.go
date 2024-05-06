@@ -42,7 +42,7 @@ func TestHostMachineInfo(t *testing.T) {
 	}
 }
 
-func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfoT) {
+func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfo) {
 	cfg := testConfig(t, runtime.GOOS, runtime.GOARCH)
 	checker := New(cfg)
 	files := host.ReadFiles(checker.RequiredFiles())

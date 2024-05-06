@@ -35,7 +35,7 @@ func TestLinuxSyscalls(t *testing.T) {
 		"minix", "adfs", "ufs", "sysv", "reiserfs", "ocfs2", "nilfs2",
 		"iso9660", "hpfs", "binder", "bcachefs", "",
 	}
-	files := []flatrpc.FileInfoT{
+	files := []flatrpc.FileInfo{
 		{
 			Name:   "/proc/version",
 			Exists: true,
@@ -128,7 +128,7 @@ func TestCannedCPUInfoLinux(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			files := createVirtualFilesystem([]flatrpc.FileInfoT{{
+			files := createVirtualFilesystem([]flatrpc.FileInfo{{
 				Name:   "/proc/cpuinfo",
 				Exists: true,
 				Data:   []byte(test.data),

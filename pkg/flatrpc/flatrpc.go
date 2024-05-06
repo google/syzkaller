@@ -86,124 +86,124 @@ func (v Feature) String() string {
 	return "Feature(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
-type HostMessages byte
+type HostMessagesRaw byte
 
 const (
-	HostMessagesNONE         HostMessages = 0
-	HostMessagesExecRequest  HostMessages = 1
-	HostMessagesSignalUpdate HostMessages = 2
+	HostMessagesRawNONE         HostMessagesRaw = 0
+	HostMessagesRawExecRequest  HostMessagesRaw = 1
+	HostMessagesRawSignalUpdate HostMessagesRaw = 2
 )
 
-var EnumNamesHostMessages = map[HostMessages]string{
-	HostMessagesNONE:         "NONE",
-	HostMessagesExecRequest:  "ExecRequest",
-	HostMessagesSignalUpdate: "SignalUpdate",
+var EnumNamesHostMessagesRaw = map[HostMessagesRaw]string{
+	HostMessagesRawNONE:         "NONE",
+	HostMessagesRawExecRequest:  "ExecRequest",
+	HostMessagesRawSignalUpdate: "SignalUpdate",
 }
 
-var EnumValuesHostMessages = map[string]HostMessages{
-	"NONE":         HostMessagesNONE,
-	"ExecRequest":  HostMessagesExecRequest,
-	"SignalUpdate": HostMessagesSignalUpdate,
+var EnumValuesHostMessagesRaw = map[string]HostMessagesRaw{
+	"NONE":         HostMessagesRawNONE,
+	"ExecRequest":  HostMessagesRawExecRequest,
+	"SignalUpdate": HostMessagesRawSignalUpdate,
 }
 
-func (v HostMessages) String() string {
-	if s, ok := EnumNamesHostMessages[v]; ok {
+func (v HostMessagesRaw) String() string {
+	if s, ok := EnumNamesHostMessagesRaw[v]; ok {
 		return s
 	}
-	return "HostMessages(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "HostMessagesRaw(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
-type HostMessagesT struct {
-	Type  HostMessages
+type HostMessagesRawT struct {
+	Type  HostMessagesRaw
 	Value interface{}
 }
 
-func (t *HostMessagesT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *HostMessagesRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	switch t.Type {
-	case HostMessagesExecRequest:
-		return t.Value.(*ExecRequestT).Pack(builder)
-	case HostMessagesSignalUpdate:
-		return t.Value.(*SignalUpdateT).Pack(builder)
+	case HostMessagesRawExecRequest:
+		return t.Value.(*ExecRequestRawT).Pack(builder)
+	case HostMessagesRawSignalUpdate:
+		return t.Value.(*SignalUpdateRawT).Pack(builder)
 	}
 	return 0
 }
 
-func (rcv HostMessages) UnPack(table flatbuffers.Table) *HostMessagesT {
+func (rcv HostMessagesRaw) UnPack(table flatbuffers.Table) *HostMessagesRawT {
 	switch rcv {
-	case HostMessagesExecRequest:
-		x := ExecRequest{_tab: table}
-		return &HostMessagesT{Type: HostMessagesExecRequest, Value: x.UnPack()}
-	case HostMessagesSignalUpdate:
-		x := SignalUpdate{_tab: table}
-		return &HostMessagesT{Type: HostMessagesSignalUpdate, Value: x.UnPack()}
+	case HostMessagesRawExecRequest:
+		x := ExecRequestRaw{_tab: table}
+		return &HostMessagesRawT{Type: HostMessagesRawExecRequest, Value: x.UnPack()}
+	case HostMessagesRawSignalUpdate:
+		x := SignalUpdateRaw{_tab: table}
+		return &HostMessagesRawT{Type: HostMessagesRawSignalUpdate, Value: x.UnPack()}
 	}
 	return nil
 }
 
-type ExecutorMessages byte
+type ExecutorMessagesRaw byte
 
 const (
-	ExecutorMessagesNONE       ExecutorMessages = 0
-	ExecutorMessagesExecResult ExecutorMessages = 1
-	ExecutorMessagesExecuting  ExecutorMessages = 2
-	ExecutorMessagesStats      ExecutorMessages = 3
+	ExecutorMessagesRawNONE       ExecutorMessagesRaw = 0
+	ExecutorMessagesRawExecResult ExecutorMessagesRaw = 1
+	ExecutorMessagesRawExecuting  ExecutorMessagesRaw = 2
+	ExecutorMessagesRawStats      ExecutorMessagesRaw = 3
 )
 
-var EnumNamesExecutorMessages = map[ExecutorMessages]string{
-	ExecutorMessagesNONE:       "NONE",
-	ExecutorMessagesExecResult: "ExecResult",
-	ExecutorMessagesExecuting:  "Executing",
-	ExecutorMessagesStats:      "Stats",
+var EnumNamesExecutorMessagesRaw = map[ExecutorMessagesRaw]string{
+	ExecutorMessagesRawNONE:       "NONE",
+	ExecutorMessagesRawExecResult: "ExecResult",
+	ExecutorMessagesRawExecuting:  "Executing",
+	ExecutorMessagesRawStats:      "Stats",
 }
 
-var EnumValuesExecutorMessages = map[string]ExecutorMessages{
-	"NONE":       ExecutorMessagesNONE,
-	"ExecResult": ExecutorMessagesExecResult,
-	"Executing":  ExecutorMessagesExecuting,
-	"Stats":      ExecutorMessagesStats,
+var EnumValuesExecutorMessagesRaw = map[string]ExecutorMessagesRaw{
+	"NONE":       ExecutorMessagesRawNONE,
+	"ExecResult": ExecutorMessagesRawExecResult,
+	"Executing":  ExecutorMessagesRawExecuting,
+	"Stats":      ExecutorMessagesRawStats,
 }
 
-func (v ExecutorMessages) String() string {
-	if s, ok := EnumNamesExecutorMessages[v]; ok {
+func (v ExecutorMessagesRaw) String() string {
+	if s, ok := EnumNamesExecutorMessagesRaw[v]; ok {
 		return s
 	}
-	return "ExecutorMessages(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "ExecutorMessagesRaw(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
-type ExecutorMessagesT struct {
-	Type  ExecutorMessages
+type ExecutorMessagesRawT struct {
+	Type  ExecutorMessagesRaw
 	Value interface{}
 }
 
-func (t *ExecutorMessagesT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ExecutorMessagesRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	switch t.Type {
-	case ExecutorMessagesExecResult:
-		return t.Value.(*ExecResultT).Pack(builder)
-	case ExecutorMessagesExecuting:
-		return t.Value.(*ExecutingMessageT).Pack(builder)
-	case ExecutorMessagesStats:
-		return t.Value.(*StatsMessageT).Pack(builder)
+	case ExecutorMessagesRawExecResult:
+		return t.Value.(*ExecResultRawT).Pack(builder)
+	case ExecutorMessagesRawExecuting:
+		return t.Value.(*ExecutingMessageRawT).Pack(builder)
+	case ExecutorMessagesRawStats:
+		return t.Value.(*StatsMessageRawT).Pack(builder)
 	}
 	return 0
 }
 
-func (rcv ExecutorMessages) UnPack(table flatbuffers.Table) *ExecutorMessagesT {
+func (rcv ExecutorMessagesRaw) UnPack(table flatbuffers.Table) *ExecutorMessagesRawT {
 	switch rcv {
-	case ExecutorMessagesExecResult:
-		x := ExecResult{_tab: table}
-		return &ExecutorMessagesT{Type: ExecutorMessagesExecResult, Value: x.UnPack()}
-	case ExecutorMessagesExecuting:
-		x := ExecutingMessage{_tab: table}
-		return &ExecutorMessagesT{Type: ExecutorMessagesExecuting, Value: x.UnPack()}
-	case ExecutorMessagesStats:
-		x := StatsMessage{_tab: table}
-		return &ExecutorMessagesT{Type: ExecutorMessagesStats, Value: x.UnPack()}
+	case ExecutorMessagesRawExecResult:
+		x := ExecResultRaw{_tab: table}
+		return &ExecutorMessagesRawT{Type: ExecutorMessagesRawExecResult, Value: x.UnPack()}
+	case ExecutorMessagesRawExecuting:
+		x := ExecutingMessageRaw{_tab: table}
+		return &ExecutorMessagesRawT{Type: ExecutorMessagesRawExecuting, Value: x.UnPack()}
+	case ExecutorMessagesRawStats:
+		x := StatsMessageRaw{_tab: table}
+		return &ExecutorMessagesRawT{Type: ExecutorMessagesRawStats, Value: x.UnPack()}
 	}
 	return nil
 }
@@ -373,14 +373,14 @@ func (v CallFlag) String() string {
 	return "CallFlag(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
-type ConnectRequestT struct {
+type ConnectRequestRawT struct {
 	Name        string `json:"name"`
 	Arch        string `json:"arch"`
 	GitRevision string `json:"git_revision"`
 	SyzRevision string `json:"syz_revision"`
 }
 
-func (t *ConnectRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ConnectRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -388,58 +388,58 @@ func (t *ConnectRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 	archOffset := builder.CreateString(t.Arch)
 	gitRevisionOffset := builder.CreateString(t.GitRevision)
 	syzRevisionOffset := builder.CreateString(t.SyzRevision)
-	ConnectRequestStart(builder)
-	ConnectRequestAddName(builder, nameOffset)
-	ConnectRequestAddArch(builder, archOffset)
-	ConnectRequestAddGitRevision(builder, gitRevisionOffset)
-	ConnectRequestAddSyzRevision(builder, syzRevisionOffset)
-	return ConnectRequestEnd(builder)
+	ConnectRequestRawStart(builder)
+	ConnectRequestRawAddName(builder, nameOffset)
+	ConnectRequestRawAddArch(builder, archOffset)
+	ConnectRequestRawAddGitRevision(builder, gitRevisionOffset)
+	ConnectRequestRawAddSyzRevision(builder, syzRevisionOffset)
+	return ConnectRequestRawEnd(builder)
 }
 
-func (rcv *ConnectRequest) UnPackTo(t *ConnectRequestT) {
+func (rcv *ConnectRequestRaw) UnPackTo(t *ConnectRequestRawT) {
 	t.Name = string(rcv.Name())
 	t.Arch = string(rcv.Arch())
 	t.GitRevision = string(rcv.GitRevision())
 	t.SyzRevision = string(rcv.SyzRevision())
 }
 
-func (rcv *ConnectRequest) UnPack() *ConnectRequestT {
+func (rcv *ConnectRequestRaw) UnPack() *ConnectRequestRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ConnectRequestT{}
+	t := &ConnectRequestRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ConnectRequest struct {
+type ConnectRequestRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsConnectRequest(buf []byte, offset flatbuffers.UOffsetT) *ConnectRequest {
+func GetRootAsConnectRequestRaw(buf []byte, offset flatbuffers.UOffsetT) *ConnectRequestRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ConnectRequest{}
+	x := &ConnectRequestRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsConnectRequest(buf []byte, offset flatbuffers.UOffsetT) *ConnectRequest {
+func GetSizePrefixedRootAsConnectRequestRaw(buf []byte, offset flatbuffers.UOffsetT) *ConnectRequestRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ConnectRequest{}
+	x := &ConnectRequestRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ConnectRequest) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ConnectRequestRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ConnectRequest) Table() flatbuffers.Table {
+func (rcv *ConnectRequestRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ConnectRequest) Name() []byte {
+func (rcv *ConnectRequestRaw) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -447,7 +447,7 @@ func (rcv *ConnectRequest) Name() []byte {
 	return nil
 }
 
-func (rcv *ConnectRequest) Arch() []byte {
+func (rcv *ConnectRequestRaw) Arch() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -455,7 +455,7 @@ func (rcv *ConnectRequest) Arch() []byte {
 	return nil
 }
 
-func (rcv *ConnectRequest) GitRevision() []byte {
+func (rcv *ConnectRequestRaw) GitRevision() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -463,7 +463,7 @@ func (rcv *ConnectRequest) GitRevision() []byte {
 	return nil
 }
 
-func (rcv *ConnectRequest) SyzRevision() []byte {
+func (rcv *ConnectRequestRaw) SyzRevision() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -471,26 +471,26 @@ func (rcv *ConnectRequest) SyzRevision() []byte {
 	return nil
 }
 
-func ConnectRequestStart(builder *flatbuffers.Builder) {
+func ConnectRequestRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func ConnectRequestAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
+func ConnectRequestRawAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
 }
-func ConnectRequestAddArch(builder *flatbuffers.Builder, arch flatbuffers.UOffsetT) {
+func ConnectRequestRawAddArch(builder *flatbuffers.Builder, arch flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(arch), 0)
 }
-func ConnectRequestAddGitRevision(builder *flatbuffers.Builder, gitRevision flatbuffers.UOffsetT) {
+func ConnectRequestRawAddGitRevision(builder *flatbuffers.Builder, gitRevision flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(gitRevision), 0)
 }
-func ConnectRequestAddSyzRevision(builder *flatbuffers.Builder, syzRevision flatbuffers.UOffsetT) {
+func ConnectRequestRawAddSyzRevision(builder *flatbuffers.Builder, syzRevision flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(syzRevision), 0)
 }
-func ConnectRequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ConnectRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type ConnectReplyT struct {
+type ConnectReplyRawT struct {
 	LeakFrames []string `json:"leak_frames"`
 	RaceFrames []string `json:"race_frames"`
 	Features   Feature  `json:"features"`
@@ -498,7 +498,7 @@ type ConnectReplyT struct {
 	Globs      []string `json:"globs"`
 }
 
-func (t *ConnectReplyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -509,7 +509,7 @@ func (t *ConnectReplyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 		for j := 0; j < leakFramesLength; j++ {
 			leakFramesOffsets[j] = builder.CreateString(t.LeakFrames[j])
 		}
-		ConnectReplyStartLeakFramesVector(builder, leakFramesLength)
+		ConnectReplyRawStartLeakFramesVector(builder, leakFramesLength)
 		for j := leakFramesLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(leakFramesOffsets[j])
 		}
@@ -522,7 +522,7 @@ func (t *ConnectReplyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 		for j := 0; j < raceFramesLength; j++ {
 			raceFramesOffsets[j] = builder.CreateString(t.RaceFrames[j])
 		}
-		ConnectReplyStartRaceFramesVector(builder, raceFramesLength)
+		ConnectReplyRawStartRaceFramesVector(builder, raceFramesLength)
 		for j := raceFramesLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(raceFramesOffsets[j])
 		}
@@ -535,7 +535,7 @@ func (t *ConnectReplyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 		for j := 0; j < filesLength; j++ {
 			filesOffsets[j] = builder.CreateString(t.Files[j])
 		}
-		ConnectReplyStartFilesVector(builder, filesLength)
+		ConnectReplyRawStartFilesVector(builder, filesLength)
 		for j := filesLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(filesOffsets[j])
 		}
@@ -548,22 +548,22 @@ func (t *ConnectReplyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 		for j := 0; j < globsLength; j++ {
 			globsOffsets[j] = builder.CreateString(t.Globs[j])
 		}
-		ConnectReplyStartGlobsVector(builder, globsLength)
+		ConnectReplyRawStartGlobsVector(builder, globsLength)
 		for j := globsLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(globsOffsets[j])
 		}
 		globsOffset = builder.EndVector(globsLength)
 	}
-	ConnectReplyStart(builder)
-	ConnectReplyAddLeakFrames(builder, leakFramesOffset)
-	ConnectReplyAddRaceFrames(builder, raceFramesOffset)
-	ConnectReplyAddFeatures(builder, t.Features)
-	ConnectReplyAddFiles(builder, filesOffset)
-	ConnectReplyAddGlobs(builder, globsOffset)
-	return ConnectReplyEnd(builder)
+	ConnectReplyRawStart(builder)
+	ConnectReplyRawAddLeakFrames(builder, leakFramesOffset)
+	ConnectReplyRawAddRaceFrames(builder, raceFramesOffset)
+	ConnectReplyRawAddFeatures(builder, t.Features)
+	ConnectReplyRawAddFiles(builder, filesOffset)
+	ConnectReplyRawAddGlobs(builder, globsOffset)
+	return ConnectReplyRawEnd(builder)
 }
 
-func (rcv *ConnectReply) UnPackTo(t *ConnectReplyT) {
+func (rcv *ConnectReplyRaw) UnPackTo(t *ConnectReplyRawT) {
 	leakFramesLength := rcv.LeakFramesLength()
 	t.LeakFrames = make([]string, leakFramesLength)
 	for j := 0; j < leakFramesLength; j++ {
@@ -587,43 +587,43 @@ func (rcv *ConnectReply) UnPackTo(t *ConnectReplyT) {
 	}
 }
 
-func (rcv *ConnectReply) UnPack() *ConnectReplyT {
+func (rcv *ConnectReplyRaw) UnPack() *ConnectReplyRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ConnectReplyT{}
+	t := &ConnectReplyRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ConnectReply struct {
+type ConnectReplyRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsConnectReply(buf []byte, offset flatbuffers.UOffsetT) *ConnectReply {
+func GetRootAsConnectReplyRaw(buf []byte, offset flatbuffers.UOffsetT) *ConnectReplyRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ConnectReply{}
+	x := &ConnectReplyRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsConnectReply(buf []byte, offset flatbuffers.UOffsetT) *ConnectReply {
+func GetSizePrefixedRootAsConnectReplyRaw(buf []byte, offset flatbuffers.UOffsetT) *ConnectReplyRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ConnectReply{}
+	x := &ConnectReplyRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ConnectReply) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ConnectReplyRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ConnectReply) Table() flatbuffers.Table {
+func (rcv *ConnectReplyRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ConnectReply) LeakFrames(j int) []byte {
+func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -632,7 +632,7 @@ func (rcv *ConnectReply) LeakFrames(j int) []byte {
 	return nil
 }
 
-func (rcv *ConnectReply) LeakFramesLength() int {
+func (rcv *ConnectReplyRaw) LeakFramesLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -640,7 +640,7 @@ func (rcv *ConnectReply) LeakFramesLength() int {
 	return 0
 }
 
-func (rcv *ConnectReply) RaceFrames(j int) []byte {
+func (rcv *ConnectReplyRaw) RaceFrames(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -649,7 +649,7 @@ func (rcv *ConnectReply) RaceFrames(j int) []byte {
 	return nil
 }
 
-func (rcv *ConnectReply) RaceFramesLength() int {
+func (rcv *ConnectReplyRaw) RaceFramesLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -657,7 +657,7 @@ func (rcv *ConnectReply) RaceFramesLength() int {
 	return 0
 }
 
-func (rcv *ConnectReply) Features() Feature {
+func (rcv *ConnectReplyRaw) Features() Feature {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return Feature(rcv._tab.GetUint64(o + rcv._tab.Pos))
@@ -665,11 +665,11 @@ func (rcv *ConnectReply) Features() Feature {
 	return 0
 }
 
-func (rcv *ConnectReply) MutateFeatures(n Feature) bool {
+func (rcv *ConnectReplyRaw) MutateFeatures(n Feature) bool {
 	return rcv._tab.MutateUint64Slot(8, uint64(n))
 }
 
-func (rcv *ConnectReply) Files(j int) []byte {
+func (rcv *ConnectReplyRaw) Files(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -678,7 +678,7 @@ func (rcv *ConnectReply) Files(j int) []byte {
 	return nil
 }
 
-func (rcv *ConnectReply) FilesLength() int {
+func (rcv *ConnectReplyRaw) FilesLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -686,7 +686,7 @@ func (rcv *ConnectReply) FilesLength() int {
 	return 0
 }
 
-func (rcv *ConnectReply) Globs(j int) []byte {
+func (rcv *ConnectReplyRaw) Globs(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -695,7 +695,7 @@ func (rcv *ConnectReply) Globs(j int) []byte {
 	return nil
 }
 
-func (rcv *ConnectReply) GlobsLength() int {
+func (rcv *ConnectReplyRaw) GlobsLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -703,64 +703,64 @@ func (rcv *ConnectReply) GlobsLength() int {
 	return 0
 }
 
-func ConnectReplyStart(builder *flatbuffers.Builder) {
+func ConnectReplyRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(5)
 }
-func ConnectReplyAddLeakFrames(builder *flatbuffers.Builder, leakFrames flatbuffers.UOffsetT) {
+func ConnectReplyRawAddLeakFrames(builder *flatbuffers.Builder, leakFrames flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(leakFrames), 0)
 }
-func ConnectReplyStartLeakFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ConnectReplyRawStartLeakFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func ConnectReplyAddRaceFrames(builder *flatbuffers.Builder, raceFrames flatbuffers.UOffsetT) {
+func ConnectReplyRawAddRaceFrames(builder *flatbuffers.Builder, raceFrames flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(raceFrames), 0)
 }
-func ConnectReplyStartRaceFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ConnectReplyRawStartRaceFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func ConnectReplyAddFeatures(builder *flatbuffers.Builder, features Feature) {
+func ConnectReplyRawAddFeatures(builder *flatbuffers.Builder, features Feature) {
 	builder.PrependUint64Slot(2, uint64(features), 0)
 }
-func ConnectReplyAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
+func ConnectReplyRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(files), 0)
 }
-func ConnectReplyStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ConnectReplyRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func ConnectReplyAddGlobs(builder *flatbuffers.Builder, globs flatbuffers.UOffsetT) {
+func ConnectReplyRawAddGlobs(builder *flatbuffers.Builder, globs flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(globs), 0)
 }
-func ConnectReplyStartGlobsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ConnectReplyRawStartGlobsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func ConnectReplyEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ConnectReplyRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type InfoRequestT struct {
-	Error    string       `json:"error"`
-	Features Feature      `json:"features"`
-	Globs    []*GlobInfoT `json:"globs"`
-	Files    []*FileInfoT `json:"files"`
+type InfoRequestRawT struct {
+	Error    string             `json:"error"`
+	Features []*FeatureInfoRawT `json:"features"`
+	Files    []*FileInfoRawT    `json:"files"`
+	Globs    []*GlobInfoRawT    `json:"globs"`
 }
 
-func (t *InfoRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *InfoRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	errorOffset := builder.CreateString(t.Error)
-	globsOffset := flatbuffers.UOffsetT(0)
-	if t.Globs != nil {
-		globsLength := len(t.Globs)
-		globsOffsets := make([]flatbuffers.UOffsetT, globsLength)
-		for j := 0; j < globsLength; j++ {
-			globsOffsets[j] = t.Globs[j].Pack(builder)
+	featuresOffset := flatbuffers.UOffsetT(0)
+	if t.Features != nil {
+		featuresLength := len(t.Features)
+		featuresOffsets := make([]flatbuffers.UOffsetT, featuresLength)
+		for j := 0; j < featuresLength; j++ {
+			featuresOffsets[j] = t.Features[j].Pack(builder)
 		}
-		InfoRequestStartGlobsVector(builder, globsLength)
-		for j := globsLength - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(globsOffsets[j])
+		InfoRequestRawStartFeaturesVector(builder, featuresLength)
+		for j := featuresLength - 1; j >= 0; j-- {
+			builder.PrependUOffsetT(featuresOffsets[j])
 		}
-		globsOffset = builder.EndVector(globsLength)
+		featuresOffset = builder.EndVector(featuresLength)
 	}
 	filesOffset := flatbuffers.UOffsetT(0)
 	if t.Files != nil {
@@ -769,76 +769,95 @@ func (t *InfoRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		for j := 0; j < filesLength; j++ {
 			filesOffsets[j] = t.Files[j].Pack(builder)
 		}
-		InfoRequestStartFilesVector(builder, filesLength)
+		InfoRequestRawStartFilesVector(builder, filesLength)
 		for j := filesLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(filesOffsets[j])
 		}
 		filesOffset = builder.EndVector(filesLength)
 	}
-	InfoRequestStart(builder)
-	InfoRequestAddError(builder, errorOffset)
-	InfoRequestAddFeatures(builder, t.Features)
-	InfoRequestAddGlobs(builder, globsOffset)
-	InfoRequestAddFiles(builder, filesOffset)
-	return InfoRequestEnd(builder)
+	globsOffset := flatbuffers.UOffsetT(0)
+	if t.Globs != nil {
+		globsLength := len(t.Globs)
+		globsOffsets := make([]flatbuffers.UOffsetT, globsLength)
+		for j := 0; j < globsLength; j++ {
+			globsOffsets[j] = t.Globs[j].Pack(builder)
+		}
+		InfoRequestRawStartGlobsVector(builder, globsLength)
+		for j := globsLength - 1; j >= 0; j-- {
+			builder.PrependUOffsetT(globsOffsets[j])
+		}
+		globsOffset = builder.EndVector(globsLength)
+	}
+	InfoRequestRawStart(builder)
+	InfoRequestRawAddError(builder, errorOffset)
+	InfoRequestRawAddFeatures(builder, featuresOffset)
+	InfoRequestRawAddFiles(builder, filesOffset)
+	InfoRequestRawAddGlobs(builder, globsOffset)
+	return InfoRequestRawEnd(builder)
 }
 
-func (rcv *InfoRequest) UnPackTo(t *InfoRequestT) {
+func (rcv *InfoRequestRaw) UnPackTo(t *InfoRequestRawT) {
 	t.Error = string(rcv.Error())
-	t.Features = rcv.Features()
-	globsLength := rcv.GlobsLength()
-	t.Globs = make([]*GlobInfoT, globsLength)
-	for j := 0; j < globsLength; j++ {
-		x := GlobInfo{}
-		rcv.Globs(&x, j)
-		t.Globs[j] = x.UnPack()
+	featuresLength := rcv.FeaturesLength()
+	t.Features = make([]*FeatureInfoRawT, featuresLength)
+	for j := 0; j < featuresLength; j++ {
+		x := FeatureInfoRaw{}
+		rcv.Features(&x, j)
+		t.Features[j] = x.UnPack()
 	}
 	filesLength := rcv.FilesLength()
-	t.Files = make([]*FileInfoT, filesLength)
+	t.Files = make([]*FileInfoRawT, filesLength)
 	for j := 0; j < filesLength; j++ {
-		x := FileInfo{}
+		x := FileInfoRaw{}
 		rcv.Files(&x, j)
 		t.Files[j] = x.UnPack()
 	}
+	globsLength := rcv.GlobsLength()
+	t.Globs = make([]*GlobInfoRawT, globsLength)
+	for j := 0; j < globsLength; j++ {
+		x := GlobInfoRaw{}
+		rcv.Globs(&x, j)
+		t.Globs[j] = x.UnPack()
+	}
 }
 
-func (rcv *InfoRequest) UnPack() *InfoRequestT {
+func (rcv *InfoRequestRaw) UnPack() *InfoRequestRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &InfoRequestT{}
+	t := &InfoRequestRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type InfoRequest struct {
+type InfoRequestRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsInfoRequest(buf []byte, offset flatbuffers.UOffsetT) *InfoRequest {
+func GetRootAsInfoRequestRaw(buf []byte, offset flatbuffers.UOffsetT) *InfoRequestRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &InfoRequest{}
+	x := &InfoRequestRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsInfoRequest(buf []byte, offset flatbuffers.UOffsetT) *InfoRequest {
+func GetSizePrefixedRootAsInfoRequestRaw(buf []byte, offset flatbuffers.UOffsetT) *InfoRequestRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &InfoRequest{}
+	x := &InfoRequestRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *InfoRequest) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *InfoRequestRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *InfoRequest) Table() flatbuffers.Table {
+func (rcv *InfoRequestRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *InfoRequest) Error() []byte {
+func (rcv *InfoRequestRaw) Error() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -846,19 +865,27 @@ func (rcv *InfoRequest) Error() []byte {
 	return nil
 }
 
-func (rcv *InfoRequest) Features() Feature {
+func (rcv *InfoRequestRaw) Features(obj *FeatureInfoRaw, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
-		return Feature(rcv._tab.GetUint64(o + rcv._tab.Pos))
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *InfoRequestRaw) FeaturesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
 	}
 	return 0
 }
 
-func (rcv *InfoRequest) MutateFeatures(n Feature) bool {
-	return rcv._tab.MutateUint64Slot(6, uint64(n))
-}
-
-func (rcv *InfoRequest) Globs(obj *GlobInfo, j int) bool {
+func (rcv *InfoRequestRaw) Files(obj *FileInfoRaw, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
@@ -870,7 +897,7 @@ func (rcv *InfoRequest) Globs(obj *GlobInfo, j int) bool {
 	return false
 }
 
-func (rcv *InfoRequest) GlobsLength() int {
+func (rcv *InfoRequestRaw) FilesLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -878,7 +905,7 @@ func (rcv *InfoRequest) GlobsLength() int {
 	return 0
 }
 
-func (rcv *InfoRequest) Files(obj *FileInfo, j int) bool {
+func (rcv *InfoRequestRaw) Globs(obj *GlobInfoRaw, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
@@ -890,7 +917,7 @@ func (rcv *InfoRequest) Files(obj *FileInfo, j int) bool {
 	return false
 }
 
-func (rcv *InfoRequest) FilesLength() int {
+func (rcv *InfoRequestRaw) GlobsLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -898,54 +925,57 @@ func (rcv *InfoRequest) FilesLength() int {
 	return 0
 }
 
-func InfoRequestStart(builder *flatbuffers.Builder) {
+func InfoRequestRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func InfoRequestAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
+func InfoRequestRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(error), 0)
 }
-func InfoRequestAddFeatures(builder *flatbuffers.Builder, features Feature) {
-	builder.PrependUint64Slot(1, uint64(features), 0)
+func InfoRequestRawAddFeatures(builder *flatbuffers.Builder, features flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(features), 0)
 }
-func InfoRequestAddGlobs(builder *flatbuffers.Builder, globs flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(globs), 0)
-}
-func InfoRequestStartGlobsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func InfoRequestRawStartFeaturesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func InfoRequestAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(files), 0)
+func InfoRequestRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(files), 0)
 }
-func InfoRequestStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func InfoRequestRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func InfoRequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func InfoRequestRawAddGlobs(builder *flatbuffers.Builder, globs flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(globs), 0)
+}
+func InfoRequestRawStartGlobsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func InfoRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type InfoReplyT struct {
+type InfoReplyRawT struct {
 	CoverFilter []uint32 `json:"cover_filter"`
 }
 
-func (t *InfoReplyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *InfoReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	coverFilterOffset := flatbuffers.UOffsetT(0)
 	if t.CoverFilter != nil {
 		coverFilterLength := len(t.CoverFilter)
-		InfoReplyStartCoverFilterVector(builder, coverFilterLength)
+		InfoReplyRawStartCoverFilterVector(builder, coverFilterLength)
 		for j := coverFilterLength - 1; j >= 0; j-- {
 			builder.PrependUint32(t.CoverFilter[j])
 		}
 		coverFilterOffset = builder.EndVector(coverFilterLength)
 	}
-	InfoReplyStart(builder)
-	InfoReplyAddCoverFilter(builder, coverFilterOffset)
-	return InfoReplyEnd(builder)
+	InfoReplyRawStart(builder)
+	InfoReplyRawAddCoverFilter(builder, coverFilterOffset)
+	return InfoReplyRawEnd(builder)
 }
 
-func (rcv *InfoReply) UnPackTo(t *InfoReplyT) {
+func (rcv *InfoReplyRaw) UnPackTo(t *InfoReplyRawT) {
 	coverFilterLength := rcv.CoverFilterLength()
 	t.CoverFilter = make([]uint32, coverFilterLength)
 	for j := 0; j < coverFilterLength; j++ {
@@ -953,43 +983,43 @@ func (rcv *InfoReply) UnPackTo(t *InfoReplyT) {
 	}
 }
 
-func (rcv *InfoReply) UnPack() *InfoReplyT {
+func (rcv *InfoReplyRaw) UnPack() *InfoReplyRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &InfoReplyT{}
+	t := &InfoReplyRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type InfoReply struct {
+type InfoReplyRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsInfoReply(buf []byte, offset flatbuffers.UOffsetT) *InfoReply {
+func GetRootAsInfoReplyRaw(buf []byte, offset flatbuffers.UOffsetT) *InfoReplyRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &InfoReply{}
+	x := &InfoReplyRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsInfoReply(buf []byte, offset flatbuffers.UOffsetT) *InfoReply {
+func GetSizePrefixedRootAsInfoReplyRaw(buf []byte, offset flatbuffers.UOffsetT) *InfoReplyRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &InfoReply{}
+	x := &InfoReplyRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *InfoReply) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *InfoReplyRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *InfoReply) Table() flatbuffers.Table {
+func (rcv *InfoReplyRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *InfoReply) CoverFilter(j int) uint32 {
+func (rcv *InfoReplyRaw) CoverFilter(j int) uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -998,7 +1028,7 @@ func (rcv *InfoReply) CoverFilter(j int) uint32 {
 	return 0
 }
 
-func (rcv *InfoReply) CoverFilterLength() int {
+func (rcv *InfoReplyRaw) CoverFilterLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1006,7 +1036,7 @@ func (rcv *InfoReply) CoverFilterLength() int {
 	return 0
 }
 
-func (rcv *InfoReply) MutateCoverFilter(j int, n uint32) bool {
+func (rcv *InfoReplyRaw) MutateCoverFilter(j int, n uint32) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1015,27 +1045,27 @@ func (rcv *InfoReply) MutateCoverFilter(j int, n uint32) bool {
 	return false
 }
 
-func InfoReplyStart(builder *flatbuffers.Builder) {
+func InfoReplyRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(1)
 }
-func InfoReplyAddCoverFilter(builder *flatbuffers.Builder, coverFilter flatbuffers.UOffsetT) {
+func InfoReplyRawAddCoverFilter(builder *flatbuffers.Builder, coverFilter flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(coverFilter), 0)
 }
-func InfoReplyStartCoverFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func InfoReplyRawStartCoverFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func InfoReplyEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func InfoReplyRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type FileInfoT struct {
+type FileInfoRawT struct {
 	Name   string `json:"name"`
 	Exists bool   `json:"exists"`
 	Error  string `json:"error"`
 	Data   []byte `json:"data"`
 }
 
-func (t *FileInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *FileInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -1045,58 +1075,58 @@ func (t *FileInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t.Data != nil {
 		dataOffset = builder.CreateByteString(t.Data)
 	}
-	FileInfoStart(builder)
-	FileInfoAddName(builder, nameOffset)
-	FileInfoAddExists(builder, t.Exists)
-	FileInfoAddError(builder, errorOffset)
-	FileInfoAddData(builder, dataOffset)
-	return FileInfoEnd(builder)
+	FileInfoRawStart(builder)
+	FileInfoRawAddName(builder, nameOffset)
+	FileInfoRawAddExists(builder, t.Exists)
+	FileInfoRawAddError(builder, errorOffset)
+	FileInfoRawAddData(builder, dataOffset)
+	return FileInfoRawEnd(builder)
 }
 
-func (rcv *FileInfo) UnPackTo(t *FileInfoT) {
+func (rcv *FileInfoRaw) UnPackTo(t *FileInfoRawT) {
 	t.Name = string(rcv.Name())
 	t.Exists = rcv.Exists()
 	t.Error = string(rcv.Error())
 	t.Data = rcv.DataBytes()
 }
 
-func (rcv *FileInfo) UnPack() *FileInfoT {
+func (rcv *FileInfoRaw) UnPack() *FileInfoRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &FileInfoT{}
+	t := &FileInfoRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type FileInfo struct {
+type FileInfoRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsFileInfo(buf []byte, offset flatbuffers.UOffsetT) *FileInfo {
+func GetRootAsFileInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *FileInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &FileInfo{}
+	x := &FileInfoRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsFileInfo(buf []byte, offset flatbuffers.UOffsetT) *FileInfo {
+func GetSizePrefixedRootAsFileInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *FileInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &FileInfo{}
+	x := &FileInfoRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *FileInfo) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *FileInfoRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *FileInfo) Table() flatbuffers.Table {
+func (rcv *FileInfoRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *FileInfo) Name() []byte {
+func (rcv *FileInfoRaw) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -1104,7 +1134,7 @@ func (rcv *FileInfo) Name() []byte {
 	return nil
 }
 
-func (rcv *FileInfo) Exists() bool {
+func (rcv *FileInfoRaw) Exists() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -1112,11 +1142,11 @@ func (rcv *FileInfo) Exists() bool {
 	return false
 }
 
-func (rcv *FileInfo) MutateExists(n bool) bool {
+func (rcv *FileInfoRaw) MutateExists(n bool) bool {
 	return rcv._tab.MutateBoolSlot(6, n)
 }
 
-func (rcv *FileInfo) Error() []byte {
+func (rcv *FileInfoRaw) Error() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -1124,7 +1154,7 @@ func (rcv *FileInfo) Error() []byte {
 	return nil
 }
 
-func (rcv *FileInfo) Data(j int) byte {
+func (rcv *FileInfoRaw) Data(j int) byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1133,7 +1163,7 @@ func (rcv *FileInfo) Data(j int) byte {
 	return 0
 }
 
-func (rcv *FileInfo) DataLength() int {
+func (rcv *FileInfoRaw) DataLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1141,7 +1171,7 @@ func (rcv *FileInfo) DataLength() int {
 	return 0
 }
 
-func (rcv *FileInfo) DataBytes() []byte {
+func (rcv *FileInfoRaw) DataBytes() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -1149,7 +1179,7 @@ func (rcv *FileInfo) DataBytes() []byte {
 	return nil
 }
 
-func (rcv *FileInfo) MutateData(j int, n byte) bool {
+func (rcv *FileInfoRaw) MutateData(j int, n byte) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1158,34 +1188,34 @@ func (rcv *FileInfo) MutateData(j int, n byte) bool {
 	return false
 }
 
-func FileInfoStart(builder *flatbuffers.Builder) {
+func FileInfoRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func FileInfoAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
+func FileInfoRawAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
 }
-func FileInfoAddExists(builder *flatbuffers.Builder, exists bool) {
+func FileInfoRawAddExists(builder *flatbuffers.Builder, exists bool) {
 	builder.PrependBoolSlot(1, exists, false)
 }
-func FileInfoAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
+func FileInfoRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(error), 0)
 }
-func FileInfoAddData(builder *flatbuffers.Builder, data flatbuffers.UOffsetT) {
+func FileInfoRawAddData(builder *flatbuffers.Builder, data flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(data), 0)
 }
-func FileInfoStartDataVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func FileInfoRawStartDataVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
-func FileInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func FileInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type GlobInfoT struct {
+type GlobInfoRawT struct {
 	Name  string   `json:"name"`
 	Files []string `json:"files"`
 }
 
-func (t *GlobInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *GlobInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -1197,19 +1227,19 @@ func (t *GlobInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		for j := 0; j < filesLength; j++ {
 			filesOffsets[j] = builder.CreateString(t.Files[j])
 		}
-		GlobInfoStartFilesVector(builder, filesLength)
+		GlobInfoRawStartFilesVector(builder, filesLength)
 		for j := filesLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(filesOffsets[j])
 		}
 		filesOffset = builder.EndVector(filesLength)
 	}
-	GlobInfoStart(builder)
-	GlobInfoAddName(builder, nameOffset)
-	GlobInfoAddFiles(builder, filesOffset)
-	return GlobInfoEnd(builder)
+	GlobInfoRawStart(builder)
+	GlobInfoRawAddName(builder, nameOffset)
+	GlobInfoRawAddFiles(builder, filesOffset)
+	return GlobInfoRawEnd(builder)
 }
 
-func (rcv *GlobInfo) UnPackTo(t *GlobInfoT) {
+func (rcv *GlobInfoRaw) UnPackTo(t *GlobInfoRawT) {
 	t.Name = string(rcv.Name())
 	filesLength := rcv.FilesLength()
 	t.Files = make([]string, filesLength)
@@ -1218,43 +1248,43 @@ func (rcv *GlobInfo) UnPackTo(t *GlobInfoT) {
 	}
 }
 
-func (rcv *GlobInfo) UnPack() *GlobInfoT {
+func (rcv *GlobInfoRaw) UnPack() *GlobInfoRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &GlobInfoT{}
+	t := &GlobInfoRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type GlobInfo struct {
+type GlobInfoRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsGlobInfo(buf []byte, offset flatbuffers.UOffsetT) *GlobInfo {
+func GetRootAsGlobInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *GlobInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &GlobInfo{}
+	x := &GlobInfoRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsGlobInfo(buf []byte, offset flatbuffers.UOffsetT) *GlobInfo {
+func GetSizePrefixedRootAsGlobInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *GlobInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &GlobInfo{}
+	x := &GlobInfoRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *GlobInfo) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *GlobInfoRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *GlobInfo) Table() flatbuffers.Table {
+func (rcv *GlobInfoRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *GlobInfo) Name() []byte {
+func (rcv *GlobInfoRaw) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -1262,7 +1292,7 @@ func (rcv *GlobInfo) Name() []byte {
 	return nil
 }
 
-func (rcv *GlobInfo) Files(j int) []byte {
+func (rcv *GlobInfoRaw) Files(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1271,7 +1301,7 @@ func (rcv *GlobInfo) Files(j int) []byte {
 	return nil
 }
 
-func (rcv *GlobInfo) FilesLength() int {
+func (rcv *GlobInfoRaw) FilesLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1279,96 +1309,204 @@ func (rcv *GlobInfo) FilesLength() int {
 	return 0
 }
 
-func GlobInfoStart(builder *flatbuffers.Builder) {
+func GlobInfoRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(2)
 }
-func GlobInfoAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
+func GlobInfoRawAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
 }
-func GlobInfoAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
+func GlobInfoRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(files), 0)
 }
-func GlobInfoStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func GlobInfoRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func GlobInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func GlobInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type HostMessageT struct {
-	Msg *HostMessagesT `json:"msg"`
+type FeatureInfoRawT struct {
+	Id        Feature `json:"id"`
+	NeedSetup bool    `json:"need_setup"`
+	Reason    string  `json:"reason"`
 }
 
-func (t *HostMessageT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *FeatureInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	reasonOffset := builder.CreateString(t.Reason)
+	FeatureInfoRawStart(builder)
+	FeatureInfoRawAddId(builder, t.Id)
+	FeatureInfoRawAddNeedSetup(builder, t.NeedSetup)
+	FeatureInfoRawAddReason(builder, reasonOffset)
+	return FeatureInfoRawEnd(builder)
+}
+
+func (rcv *FeatureInfoRaw) UnPackTo(t *FeatureInfoRawT) {
+	t.Id = rcv.Id()
+	t.NeedSetup = rcv.NeedSetup()
+	t.Reason = string(rcv.Reason())
+}
+
+func (rcv *FeatureInfoRaw) UnPack() *FeatureInfoRawT {
+	if rcv == nil {
+		return nil
+	}
+	t := &FeatureInfoRawT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type FeatureInfoRaw struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsFeatureInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *FeatureInfoRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &FeatureInfoRaw{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsFeatureInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *FeatureInfoRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &FeatureInfoRaw{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func (rcv *FeatureInfoRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *FeatureInfoRaw) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func (rcv *FeatureInfoRaw) Id() Feature {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return Feature(rcv._tab.GetUint64(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *FeatureInfoRaw) MutateId(n Feature) bool {
+	return rcv._tab.MutateUint64Slot(4, uint64(n))
+}
+
+func (rcv *FeatureInfoRaw) NeedSetup() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *FeatureInfoRaw) MutateNeedSetup(n bool) bool {
+	return rcv._tab.MutateBoolSlot(6, n)
+}
+
+func (rcv *FeatureInfoRaw) Reason() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func FeatureInfoRawStart(builder *flatbuffers.Builder) {
+	builder.StartObject(3)
+}
+func FeatureInfoRawAddId(builder *flatbuffers.Builder, id Feature) {
+	builder.PrependUint64Slot(0, uint64(id), 0)
+}
+func FeatureInfoRawAddNeedSetup(builder *flatbuffers.Builder, needSetup bool) {
+	builder.PrependBoolSlot(1, needSetup, false)
+}
+func FeatureInfoRawAddReason(builder *flatbuffers.Builder, reason flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(reason), 0)
+}
+func FeatureInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
+type HostMessageRawT struct {
+	Msg *HostMessagesRawT `json:"msg"`
+}
+
+func (t *HostMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	msgOffset := t.Msg.Pack(builder)
 
-	HostMessageStart(builder)
+	HostMessageRawStart(builder)
 	if t.Msg != nil {
-		HostMessageAddMsgType(builder, t.Msg.Type)
+		HostMessageRawAddMsgType(builder, t.Msg.Type)
 	}
-	HostMessageAddMsg(builder, msgOffset)
-	return HostMessageEnd(builder)
+	HostMessageRawAddMsg(builder, msgOffset)
+	return HostMessageRawEnd(builder)
 }
 
-func (rcv *HostMessage) UnPackTo(t *HostMessageT) {
+func (rcv *HostMessageRaw) UnPackTo(t *HostMessageRawT) {
 	msgTable := flatbuffers.Table{}
 	if rcv.Msg(&msgTable) {
 		t.Msg = rcv.MsgType().UnPack(msgTable)
 	}
 }
 
-func (rcv *HostMessage) UnPack() *HostMessageT {
+func (rcv *HostMessageRaw) UnPack() *HostMessageRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &HostMessageT{}
+	t := &HostMessageRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type HostMessage struct {
+type HostMessageRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsHostMessage(buf []byte, offset flatbuffers.UOffsetT) *HostMessage {
+func GetRootAsHostMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *HostMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &HostMessage{}
+	x := &HostMessageRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsHostMessage(buf []byte, offset flatbuffers.UOffsetT) *HostMessage {
+func GetSizePrefixedRootAsHostMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *HostMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &HostMessage{}
+	x := &HostMessageRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *HostMessage) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *HostMessageRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *HostMessage) Table() flatbuffers.Table {
+func (rcv *HostMessageRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *HostMessage) MsgType() HostMessages {
+func (rcv *HostMessageRaw) MsgType() HostMessagesRaw {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
-		return HostMessages(rcv._tab.GetByte(o + rcv._tab.Pos))
+		return HostMessagesRaw(rcv._tab.GetByte(o + rcv._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *HostMessage) MutateMsgType(n HostMessages) bool {
+func (rcv *HostMessageRaw) MutateMsgType(n HostMessagesRaw) bool {
 	return rcv._tab.MutateByteSlot(4, byte(n))
 }
 
-func (rcv *HostMessage) Msg(obj *flatbuffers.Table) bool {
+func (rcv *HostMessageRaw) Msg(obj *flatbuffers.Table) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		rcv._tab.Union(obj, o)
@@ -1377,93 +1515,93 @@ func (rcv *HostMessage) Msg(obj *flatbuffers.Table) bool {
 	return false
 }
 
-func HostMessageStart(builder *flatbuffers.Builder) {
+func HostMessageRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(2)
 }
-func HostMessageAddMsgType(builder *flatbuffers.Builder, msgType HostMessages) {
+func HostMessageRawAddMsgType(builder *flatbuffers.Builder, msgType HostMessagesRaw) {
 	builder.PrependByteSlot(0, byte(msgType), 0)
 }
-func HostMessageAddMsg(builder *flatbuffers.Builder, msg flatbuffers.UOffsetT) {
+func HostMessageRawAddMsg(builder *flatbuffers.Builder, msg flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(msg), 0)
 }
-func HostMessageEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func HostMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type ExecutorMessageT struct {
-	Msg *ExecutorMessagesT `json:"msg"`
+type ExecutorMessageRawT struct {
+	Msg *ExecutorMessagesRawT `json:"msg"`
 }
 
-func (t *ExecutorMessageT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ExecutorMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	msgOffset := t.Msg.Pack(builder)
 
-	ExecutorMessageStart(builder)
+	ExecutorMessageRawStart(builder)
 	if t.Msg != nil {
-		ExecutorMessageAddMsgType(builder, t.Msg.Type)
+		ExecutorMessageRawAddMsgType(builder, t.Msg.Type)
 	}
-	ExecutorMessageAddMsg(builder, msgOffset)
-	return ExecutorMessageEnd(builder)
+	ExecutorMessageRawAddMsg(builder, msgOffset)
+	return ExecutorMessageRawEnd(builder)
 }
 
-func (rcv *ExecutorMessage) UnPackTo(t *ExecutorMessageT) {
+func (rcv *ExecutorMessageRaw) UnPackTo(t *ExecutorMessageRawT) {
 	msgTable := flatbuffers.Table{}
 	if rcv.Msg(&msgTable) {
 		t.Msg = rcv.MsgType().UnPack(msgTable)
 	}
 }
 
-func (rcv *ExecutorMessage) UnPack() *ExecutorMessageT {
+func (rcv *ExecutorMessageRaw) UnPack() *ExecutorMessageRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ExecutorMessageT{}
+	t := &ExecutorMessageRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ExecutorMessage struct {
+type ExecutorMessageRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsExecutorMessage(buf []byte, offset flatbuffers.UOffsetT) *ExecutorMessage {
+func GetRootAsExecutorMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecutorMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ExecutorMessage{}
+	x := &ExecutorMessageRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsExecutorMessage(buf []byte, offset flatbuffers.UOffsetT) *ExecutorMessage {
+func GetSizePrefixedRootAsExecutorMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecutorMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ExecutorMessage{}
+	x := &ExecutorMessageRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ExecutorMessage) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ExecutorMessageRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ExecutorMessage) Table() flatbuffers.Table {
+func (rcv *ExecutorMessageRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ExecutorMessage) MsgType() ExecutorMessages {
+func (rcv *ExecutorMessageRaw) MsgType() ExecutorMessagesRaw {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
-		return ExecutorMessages(rcv._tab.GetByte(o + rcv._tab.Pos))
+		return ExecutorMessagesRaw(rcv._tab.GetByte(o + rcv._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *ExecutorMessage) MutateMsgType(n ExecutorMessages) bool {
+func (rcv *ExecutorMessageRaw) MutateMsgType(n ExecutorMessagesRaw) bool {
 	return rcv._tab.MutateByteSlot(4, byte(n))
 }
 
-func (rcv *ExecutorMessage) Msg(obj *flatbuffers.Table) bool {
+func (rcv *ExecutorMessageRaw) Msg(obj *flatbuffers.Table) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		rcv._tab.Union(obj, o)
@@ -1472,20 +1610,20 @@ func (rcv *ExecutorMessage) Msg(obj *flatbuffers.Table) bool {
 	return false
 }
 
-func ExecutorMessageStart(builder *flatbuffers.Builder) {
+func ExecutorMessageRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(2)
 }
-func ExecutorMessageAddMsgType(builder *flatbuffers.Builder, msgType ExecutorMessages) {
+func ExecutorMessageRawAddMsgType(builder *flatbuffers.Builder, msgType ExecutorMessagesRaw) {
 	builder.PrependByteSlot(0, byte(msgType), 0)
 }
-func ExecutorMessageAddMsg(builder *flatbuffers.Builder, msg flatbuffers.UOffsetT) {
+func ExecutorMessageRawAddMsg(builder *flatbuffers.Builder, msg flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(msg), 0)
 }
-func ExecutorMessageEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ExecutorMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type ExecRequestT struct {
+type ExecRequestRawT struct {
 	Id               int64       `json:"id"`
 	ProgData         []byte      `json:"prog_data"`
 	Flags            RequestFlag `json:"flags"`
@@ -1497,7 +1635,7 @@ type ExecRequestT struct {
 	Repeat           int32       `json:"repeat"`
 }
 
-func (t *ExecRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -1508,26 +1646,26 @@ func (t *ExecRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	signalFilterOffset := flatbuffers.UOffsetT(0)
 	if t.SignalFilter != nil {
 		signalFilterLength := len(t.SignalFilter)
-		ExecRequestStartSignalFilterVector(builder, signalFilterLength)
+		ExecRequestRawStartSignalFilterVector(builder, signalFilterLength)
 		for j := signalFilterLength - 1; j >= 0; j-- {
 			builder.PrependUint32(t.SignalFilter[j])
 		}
 		signalFilterOffset = builder.EndVector(signalFilterLength)
 	}
-	ExecRequestStart(builder)
-	ExecRequestAddId(builder, t.Id)
-	ExecRequestAddProgData(builder, progDataOffset)
-	ExecRequestAddFlags(builder, t.Flags)
-	ExecRequestAddExecEnv(builder, t.ExecEnv)
-	ExecRequestAddExecFlags(builder, t.ExecFlags)
-	ExecRequestAddSandboxArg(builder, t.SandboxArg)
-	ExecRequestAddSignalFilter(builder, signalFilterOffset)
-	ExecRequestAddSignalFilterCall(builder, t.SignalFilterCall)
-	ExecRequestAddRepeat(builder, t.Repeat)
-	return ExecRequestEnd(builder)
+	ExecRequestRawStart(builder)
+	ExecRequestRawAddId(builder, t.Id)
+	ExecRequestRawAddProgData(builder, progDataOffset)
+	ExecRequestRawAddFlags(builder, t.Flags)
+	ExecRequestRawAddExecEnv(builder, t.ExecEnv)
+	ExecRequestRawAddExecFlags(builder, t.ExecFlags)
+	ExecRequestRawAddSandboxArg(builder, t.SandboxArg)
+	ExecRequestRawAddSignalFilter(builder, signalFilterOffset)
+	ExecRequestRawAddSignalFilterCall(builder, t.SignalFilterCall)
+	ExecRequestRawAddRepeat(builder, t.Repeat)
+	return ExecRequestRawEnd(builder)
 }
 
-func (rcv *ExecRequest) UnPackTo(t *ExecRequestT) {
+func (rcv *ExecRequestRaw) UnPackTo(t *ExecRequestRawT) {
 	t.Id = rcv.Id()
 	t.ProgData = rcv.ProgDataBytes()
 	t.Flags = rcv.Flags()
@@ -1543,43 +1681,43 @@ func (rcv *ExecRequest) UnPackTo(t *ExecRequestT) {
 	t.Repeat = rcv.Repeat()
 }
 
-func (rcv *ExecRequest) UnPack() *ExecRequestT {
+func (rcv *ExecRequestRaw) UnPack() *ExecRequestRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ExecRequestT{}
+	t := &ExecRequestRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ExecRequest struct {
+type ExecRequestRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsExecRequest(buf []byte, offset flatbuffers.UOffsetT) *ExecRequest {
+func GetRootAsExecRequestRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecRequestRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ExecRequest{}
+	x := &ExecRequestRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsExecRequest(buf []byte, offset flatbuffers.UOffsetT) *ExecRequest {
+func GetSizePrefixedRootAsExecRequestRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecRequestRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ExecRequest{}
+	x := &ExecRequestRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ExecRequest) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ExecRequestRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ExecRequest) Table() flatbuffers.Table {
+func (rcv *ExecRequestRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ExecRequest) Id() int64 {
+func (rcv *ExecRequestRaw) Id() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -1587,11 +1725,11 @@ func (rcv *ExecRequest) Id() int64 {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateId(n int64) bool {
+func (rcv *ExecRequestRaw) MutateId(n int64) bool {
 	return rcv._tab.MutateInt64Slot(4, n)
 }
 
-func (rcv *ExecRequest) ProgData(j int) byte {
+func (rcv *ExecRequestRaw) ProgData(j int) byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1600,7 +1738,7 @@ func (rcv *ExecRequest) ProgData(j int) byte {
 	return 0
 }
 
-func (rcv *ExecRequest) ProgDataLength() int {
+func (rcv *ExecRequestRaw) ProgDataLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1608,7 +1746,7 @@ func (rcv *ExecRequest) ProgDataLength() int {
 	return 0
 }
 
-func (rcv *ExecRequest) ProgDataBytes() []byte {
+func (rcv *ExecRequestRaw) ProgDataBytes() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -1616,7 +1754,7 @@ func (rcv *ExecRequest) ProgDataBytes() []byte {
 	return nil
 }
 
-func (rcv *ExecRequest) MutateProgData(j int, n byte) bool {
+func (rcv *ExecRequestRaw) MutateProgData(j int, n byte) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1625,7 +1763,7 @@ func (rcv *ExecRequest) MutateProgData(j int, n byte) bool {
 	return false
 }
 
-func (rcv *ExecRequest) Flags() RequestFlag {
+func (rcv *ExecRequestRaw) Flags() RequestFlag {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return RequestFlag(rcv._tab.GetUint64(o + rcv._tab.Pos))
@@ -1633,11 +1771,11 @@ func (rcv *ExecRequest) Flags() RequestFlag {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateFlags(n RequestFlag) bool {
+func (rcv *ExecRequestRaw) MutateFlags(n RequestFlag) bool {
 	return rcv._tab.MutateUint64Slot(8, uint64(n))
 }
 
-func (rcv *ExecRequest) ExecEnv() ExecEnv {
+func (rcv *ExecRequestRaw) ExecEnv() ExecEnv {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return ExecEnv(rcv._tab.GetUint64(o + rcv._tab.Pos))
@@ -1645,11 +1783,11 @@ func (rcv *ExecRequest) ExecEnv() ExecEnv {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateExecEnv(n ExecEnv) bool {
+func (rcv *ExecRequestRaw) MutateExecEnv(n ExecEnv) bool {
 	return rcv._tab.MutateUint64Slot(10, uint64(n))
 }
 
-func (rcv *ExecRequest) ExecFlags() ExecFlag {
+func (rcv *ExecRequestRaw) ExecFlags() ExecFlag {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return ExecFlag(rcv._tab.GetUint64(o + rcv._tab.Pos))
@@ -1657,11 +1795,11 @@ func (rcv *ExecRequest) ExecFlags() ExecFlag {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateExecFlags(n ExecFlag) bool {
+func (rcv *ExecRequestRaw) MutateExecFlags(n ExecFlag) bool {
 	return rcv._tab.MutateUint64Slot(12, uint64(n))
 }
 
-func (rcv *ExecRequest) SandboxArg() int64 {
+func (rcv *ExecRequestRaw) SandboxArg() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -1669,11 +1807,11 @@ func (rcv *ExecRequest) SandboxArg() int64 {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateSandboxArg(n int64) bool {
+func (rcv *ExecRequestRaw) MutateSandboxArg(n int64) bool {
 	return rcv._tab.MutateInt64Slot(14, n)
 }
 
-func (rcv *ExecRequest) SignalFilter(j int) uint32 {
+func (rcv *ExecRequestRaw) SignalFilter(j int) uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1682,7 +1820,7 @@ func (rcv *ExecRequest) SignalFilter(j int) uint32 {
 	return 0
 }
 
-func (rcv *ExecRequest) SignalFilterLength() int {
+func (rcv *ExecRequestRaw) SignalFilterLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1690,7 +1828,7 @@ func (rcv *ExecRequest) SignalFilterLength() int {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateSignalFilter(j int, n uint32) bool {
+func (rcv *ExecRequestRaw) MutateSignalFilter(j int, n uint32) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1699,7 +1837,7 @@ func (rcv *ExecRequest) MutateSignalFilter(j int, n uint32) bool {
 	return false
 }
 
-func (rcv *ExecRequest) SignalFilterCall() int32 {
+func (rcv *ExecRequestRaw) SignalFilterCall() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -1707,11 +1845,11 @@ func (rcv *ExecRequest) SignalFilterCall() int32 {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateSignalFilterCall(n int32) bool {
+func (rcv *ExecRequestRaw) MutateSignalFilterCall(n int32) bool {
 	return rcv._tab.MutateInt32Slot(18, n)
 }
 
-func (rcv *ExecRequest) Repeat() int32 {
+func (rcv *ExecRequestRaw) Repeat() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -1719,63 +1857,63 @@ func (rcv *ExecRequest) Repeat() int32 {
 	return 0
 }
 
-func (rcv *ExecRequest) MutateRepeat(n int32) bool {
+func (rcv *ExecRequestRaw) MutateRepeat(n int32) bool {
 	return rcv._tab.MutateInt32Slot(20, n)
 }
 
-func ExecRequestStart(builder *flatbuffers.Builder) {
+func ExecRequestRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(9)
 }
-func ExecRequestAddId(builder *flatbuffers.Builder, id int64) {
+func ExecRequestRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
 }
-func ExecRequestAddProgData(builder *flatbuffers.Builder, progData flatbuffers.UOffsetT) {
+func ExecRequestRawAddProgData(builder *flatbuffers.Builder, progData flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(progData), 0)
 }
-func ExecRequestStartProgDataVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ExecRequestRawStartProgDataVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
-func ExecRequestAddFlags(builder *flatbuffers.Builder, flags RequestFlag) {
+func ExecRequestRawAddFlags(builder *flatbuffers.Builder, flags RequestFlag) {
 	builder.PrependUint64Slot(2, uint64(flags), 0)
 }
-func ExecRequestAddExecEnv(builder *flatbuffers.Builder, execEnv ExecEnv) {
+func ExecRequestRawAddExecEnv(builder *flatbuffers.Builder, execEnv ExecEnv) {
 	builder.PrependUint64Slot(3, uint64(execEnv), 0)
 }
-func ExecRequestAddExecFlags(builder *flatbuffers.Builder, execFlags ExecFlag) {
+func ExecRequestRawAddExecFlags(builder *flatbuffers.Builder, execFlags ExecFlag) {
 	builder.PrependUint64Slot(4, uint64(execFlags), 0)
 }
-func ExecRequestAddSandboxArg(builder *flatbuffers.Builder, sandboxArg int64) {
+func ExecRequestRawAddSandboxArg(builder *flatbuffers.Builder, sandboxArg int64) {
 	builder.PrependInt64Slot(5, sandboxArg, 0)
 }
-func ExecRequestAddSignalFilter(builder *flatbuffers.Builder, signalFilter flatbuffers.UOffsetT) {
+func ExecRequestRawAddSignalFilter(builder *flatbuffers.Builder, signalFilter flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(signalFilter), 0)
 }
-func ExecRequestStartSignalFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ExecRequestRawStartSignalFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func ExecRequestAddSignalFilterCall(builder *flatbuffers.Builder, signalFilterCall int32) {
+func ExecRequestRawAddSignalFilterCall(builder *flatbuffers.Builder, signalFilterCall int32) {
 	builder.PrependInt32Slot(7, signalFilterCall, 0)
 }
-func ExecRequestAddRepeat(builder *flatbuffers.Builder, repeat int32) {
+func ExecRequestRawAddRepeat(builder *flatbuffers.Builder, repeat int32) {
 	builder.PrependInt32Slot(8, repeat, 0)
 }
-func ExecRequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ExecRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type SignalUpdateT struct {
+type SignalUpdateRawT struct {
 	NewMax  []uint32 `json:"new_max"`
 	DropMax []uint32 `json:"drop_max"`
 }
 
-func (t *SignalUpdateT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	newMaxOffset := flatbuffers.UOffsetT(0)
 	if t.NewMax != nil {
 		newMaxLength := len(t.NewMax)
-		SignalUpdateStartNewMaxVector(builder, newMaxLength)
+		SignalUpdateRawStartNewMaxVector(builder, newMaxLength)
 		for j := newMaxLength - 1; j >= 0; j-- {
 			builder.PrependUint32(t.NewMax[j])
 		}
@@ -1784,19 +1922,19 @@ func (t *SignalUpdateT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 	dropMaxOffset := flatbuffers.UOffsetT(0)
 	if t.DropMax != nil {
 		dropMaxLength := len(t.DropMax)
-		SignalUpdateStartDropMaxVector(builder, dropMaxLength)
+		SignalUpdateRawStartDropMaxVector(builder, dropMaxLength)
 		for j := dropMaxLength - 1; j >= 0; j-- {
 			builder.PrependUint32(t.DropMax[j])
 		}
 		dropMaxOffset = builder.EndVector(dropMaxLength)
 	}
-	SignalUpdateStart(builder)
-	SignalUpdateAddNewMax(builder, newMaxOffset)
-	SignalUpdateAddDropMax(builder, dropMaxOffset)
-	return SignalUpdateEnd(builder)
+	SignalUpdateRawStart(builder)
+	SignalUpdateRawAddNewMax(builder, newMaxOffset)
+	SignalUpdateRawAddDropMax(builder, dropMaxOffset)
+	return SignalUpdateRawEnd(builder)
 }
 
-func (rcv *SignalUpdate) UnPackTo(t *SignalUpdateT) {
+func (rcv *SignalUpdateRaw) UnPackTo(t *SignalUpdateRawT) {
 	newMaxLength := rcv.NewMaxLength()
 	t.NewMax = make([]uint32, newMaxLength)
 	for j := 0; j < newMaxLength; j++ {
@@ -1809,43 +1947,43 @@ func (rcv *SignalUpdate) UnPackTo(t *SignalUpdateT) {
 	}
 }
 
-func (rcv *SignalUpdate) UnPack() *SignalUpdateT {
+func (rcv *SignalUpdateRaw) UnPack() *SignalUpdateRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &SignalUpdateT{}
+	t := &SignalUpdateRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type SignalUpdate struct {
+type SignalUpdateRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsSignalUpdate(buf []byte, offset flatbuffers.UOffsetT) *SignalUpdate {
+func GetRootAsSignalUpdateRaw(buf []byte, offset flatbuffers.UOffsetT) *SignalUpdateRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &SignalUpdate{}
+	x := &SignalUpdateRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsSignalUpdate(buf []byte, offset flatbuffers.UOffsetT) *SignalUpdate {
+func GetSizePrefixedRootAsSignalUpdateRaw(buf []byte, offset flatbuffers.UOffsetT) *SignalUpdateRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &SignalUpdate{}
+	x := &SignalUpdateRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *SignalUpdate) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *SignalUpdateRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *SignalUpdate) Table() flatbuffers.Table {
+func (rcv *SignalUpdateRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *SignalUpdate) NewMax(j int) uint32 {
+func (rcv *SignalUpdateRaw) NewMax(j int) uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1854,7 +1992,7 @@ func (rcv *SignalUpdate) NewMax(j int) uint32 {
 	return 0
 }
 
-func (rcv *SignalUpdate) NewMaxLength() int {
+func (rcv *SignalUpdateRaw) NewMaxLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1862,7 +2000,7 @@ func (rcv *SignalUpdate) NewMaxLength() int {
 	return 0
 }
 
-func (rcv *SignalUpdate) MutateNewMax(j int, n uint32) bool {
+func (rcv *SignalUpdateRaw) MutateNewMax(j int, n uint32) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1871,7 +2009,7 @@ func (rcv *SignalUpdate) MutateNewMax(j int, n uint32) bool {
 	return false
 }
 
-func (rcv *SignalUpdate) DropMax(j int) uint32 {
+func (rcv *SignalUpdateRaw) DropMax(j int) uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1880,7 +2018,7 @@ func (rcv *SignalUpdate) DropMax(j int) uint32 {
 	return 0
 }
 
-func (rcv *SignalUpdate) DropMaxLength() int {
+func (rcv *SignalUpdateRaw) DropMaxLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -1888,7 +2026,7 @@ func (rcv *SignalUpdate) DropMaxLength() int {
 	return 0
 }
 
-func (rcv *SignalUpdate) MutateDropMax(j int, n uint32) bool {
+func (rcv *SignalUpdateRaw) MutateDropMax(j int, n uint32) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -1897,85 +2035,85 @@ func (rcv *SignalUpdate) MutateDropMax(j int, n uint32) bool {
 	return false
 }
 
-func SignalUpdateStart(builder *flatbuffers.Builder) {
+func SignalUpdateRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(2)
 }
-func SignalUpdateAddNewMax(builder *flatbuffers.Builder, newMax flatbuffers.UOffsetT) {
+func SignalUpdateRawAddNewMax(builder *flatbuffers.Builder, newMax flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(newMax), 0)
 }
-func SignalUpdateStartNewMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func SignalUpdateRawStartNewMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func SignalUpdateAddDropMax(builder *flatbuffers.Builder, dropMax flatbuffers.UOffsetT) {
+func SignalUpdateRawAddDropMax(builder *flatbuffers.Builder, dropMax flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(dropMax), 0)
 }
-func SignalUpdateStartDropMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func SignalUpdateRawStartDropMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func SignalUpdateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func SignalUpdateRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type ExecutingMessageT struct {
+type ExecutingMessageRawT struct {
 	Id     int64 `json:"id"`
 	ProcId int32 `json:"proc_id"`
 	Try    int32 `json:"try"`
 }
 
-func (t *ExecutingMessageT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ExecutingMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
-	ExecutingMessageStart(builder)
-	ExecutingMessageAddId(builder, t.Id)
-	ExecutingMessageAddProcId(builder, t.ProcId)
-	ExecutingMessageAddTry(builder, t.Try)
-	return ExecutingMessageEnd(builder)
+	ExecutingMessageRawStart(builder)
+	ExecutingMessageRawAddId(builder, t.Id)
+	ExecutingMessageRawAddProcId(builder, t.ProcId)
+	ExecutingMessageRawAddTry(builder, t.Try)
+	return ExecutingMessageRawEnd(builder)
 }
 
-func (rcv *ExecutingMessage) UnPackTo(t *ExecutingMessageT) {
+func (rcv *ExecutingMessageRaw) UnPackTo(t *ExecutingMessageRawT) {
 	t.Id = rcv.Id()
 	t.ProcId = rcv.ProcId()
 	t.Try = rcv.Try()
 }
 
-func (rcv *ExecutingMessage) UnPack() *ExecutingMessageT {
+func (rcv *ExecutingMessageRaw) UnPack() *ExecutingMessageRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ExecutingMessageT{}
+	t := &ExecutingMessageRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ExecutingMessage struct {
+type ExecutingMessageRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsExecutingMessage(buf []byte, offset flatbuffers.UOffsetT) *ExecutingMessage {
+func GetRootAsExecutingMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecutingMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ExecutingMessage{}
+	x := &ExecutingMessageRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsExecutingMessage(buf []byte, offset flatbuffers.UOffsetT) *ExecutingMessage {
+func GetSizePrefixedRootAsExecutingMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecutingMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ExecutingMessage{}
+	x := &ExecutingMessageRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ExecutingMessage) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ExecutingMessageRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ExecutingMessage) Table() flatbuffers.Table {
+func (rcv *ExecutingMessageRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ExecutingMessage) Id() int64 {
+func (rcv *ExecutingMessageRaw) Id() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -1983,11 +2121,11 @@ func (rcv *ExecutingMessage) Id() int64 {
 	return 0
 }
 
-func (rcv *ExecutingMessage) MutateId(n int64) bool {
+func (rcv *ExecutingMessageRaw) MutateId(n int64) bool {
 	return rcv._tab.MutateInt64Slot(4, n)
 }
 
-func (rcv *ExecutingMessage) ProcId() int32 {
+func (rcv *ExecutingMessageRaw) ProcId() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -1995,11 +2133,11 @@ func (rcv *ExecutingMessage) ProcId() int32 {
 	return 0
 }
 
-func (rcv *ExecutingMessage) MutateProcId(n int32) bool {
+func (rcv *ExecutingMessageRaw) MutateProcId(n int32) bool {
 	return rcv._tab.MutateInt32Slot(6, n)
 }
 
-func (rcv *ExecutingMessage) Try() int32 {
+func (rcv *ExecutingMessageRaw) Try() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -2007,83 +2145,83 @@ func (rcv *ExecutingMessage) Try() int32 {
 	return 0
 }
 
-func (rcv *ExecutingMessage) MutateTry(n int32) bool {
+func (rcv *ExecutingMessageRaw) MutateTry(n int32) bool {
 	return rcv._tab.MutateInt32Slot(8, n)
 }
 
-func ExecutingMessageStart(builder *flatbuffers.Builder) {
+func ExecutingMessageRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(3)
 }
-func ExecutingMessageAddId(builder *flatbuffers.Builder, id int64) {
+func ExecutingMessageRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
 }
-func ExecutingMessageAddProcId(builder *flatbuffers.Builder, procId int32) {
+func ExecutingMessageRawAddProcId(builder *flatbuffers.Builder, procId int32) {
 	builder.PrependInt32Slot(1, procId, 0)
 }
-func ExecutingMessageAddTry(builder *flatbuffers.Builder, try int32) {
+func ExecutingMessageRawAddTry(builder *flatbuffers.Builder, try int32) {
 	builder.PrependInt32Slot(2, try, 0)
 }
-func ExecutingMessageEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ExecutingMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type StatsMessageT struct {
+type StatsMessageRawT struct {
 	NoexecCount    int64 `json:"noexec_count"`
 	NoexecDuration int64 `json:"noexec_duration"`
 }
 
-func (t *StatsMessageT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *StatsMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
-	StatsMessageStart(builder)
-	StatsMessageAddNoexecCount(builder, t.NoexecCount)
-	StatsMessageAddNoexecDuration(builder, t.NoexecDuration)
-	return StatsMessageEnd(builder)
+	StatsMessageRawStart(builder)
+	StatsMessageRawAddNoexecCount(builder, t.NoexecCount)
+	StatsMessageRawAddNoexecDuration(builder, t.NoexecDuration)
+	return StatsMessageRawEnd(builder)
 }
 
-func (rcv *StatsMessage) UnPackTo(t *StatsMessageT) {
+func (rcv *StatsMessageRaw) UnPackTo(t *StatsMessageRawT) {
 	t.NoexecCount = rcv.NoexecCount()
 	t.NoexecDuration = rcv.NoexecDuration()
 }
 
-func (rcv *StatsMessage) UnPack() *StatsMessageT {
+func (rcv *StatsMessageRaw) UnPack() *StatsMessageRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &StatsMessageT{}
+	t := &StatsMessageRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type StatsMessage struct {
+type StatsMessageRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsStatsMessage(buf []byte, offset flatbuffers.UOffsetT) *StatsMessage {
+func GetRootAsStatsMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *StatsMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &StatsMessage{}
+	x := &StatsMessageRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsStatsMessage(buf []byte, offset flatbuffers.UOffsetT) *StatsMessage {
+func GetSizePrefixedRootAsStatsMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *StatsMessageRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &StatsMessage{}
+	x := &StatsMessageRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *StatsMessage) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *StatsMessageRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *StatsMessage) Table() flatbuffers.Table {
+func (rcv *StatsMessageRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *StatsMessage) NoexecCount() int64 {
+func (rcv *StatsMessageRaw) NoexecCount() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -2091,11 +2229,11 @@ func (rcv *StatsMessage) NoexecCount() int64 {
 	return 0
 }
 
-func (rcv *StatsMessage) MutateNoexecCount(n int64) bool {
+func (rcv *StatsMessageRaw) MutateNoexecCount(n int64) bool {
 	return rcv._tab.MutateInt64Slot(4, n)
 }
 
-func (rcv *StatsMessage) NoexecDuration() int64 {
+func (rcv *StatsMessageRaw) NoexecDuration() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -2103,39 +2241,39 @@ func (rcv *StatsMessage) NoexecDuration() int64 {
 	return 0
 }
 
-func (rcv *StatsMessage) MutateNoexecDuration(n int64) bool {
+func (rcv *StatsMessageRaw) MutateNoexecDuration(n int64) bool {
 	return rcv._tab.MutateInt64Slot(6, n)
 }
 
-func StatsMessageStart(builder *flatbuffers.Builder) {
+func StatsMessageRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(2)
 }
-func StatsMessageAddNoexecCount(builder *flatbuffers.Builder, noexecCount int64) {
+func StatsMessageRawAddNoexecCount(builder *flatbuffers.Builder, noexecCount int64) {
 	builder.PrependInt64Slot(0, noexecCount, 0)
 }
-func StatsMessageAddNoexecDuration(builder *flatbuffers.Builder, noexecDuration int64) {
+func StatsMessageRawAddNoexecDuration(builder *flatbuffers.Builder, noexecDuration int64) {
 	builder.PrependInt64Slot(1, noexecDuration, 0)
 }
-func StatsMessageEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func StatsMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type CallInfoT struct {
-	Flags  CallFlag       `json:"flags"`
-	Error  int32          `json:"error"`
-	Signal []uint32       `json:"signal"`
-	Cover  []uint32       `json:"cover"`
-	Comps  []*ComparisonT `json:"comps"`
+type CallInfoRawT struct {
+	Flags  CallFlag          `json:"flags"`
+	Error  int32             `json:"error"`
+	Signal []uint32          `json:"signal"`
+	Cover  []uint32          `json:"cover"`
+	Comps  []*ComparisonRawT `json:"comps"`
 }
 
-func (t *CallInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *CallInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
 	signalOffset := flatbuffers.UOffsetT(0)
 	if t.Signal != nil {
 		signalLength := len(t.Signal)
-		CallInfoStartSignalVector(builder, signalLength)
+		CallInfoRawStartSignalVector(builder, signalLength)
 		for j := signalLength - 1; j >= 0; j-- {
 			builder.PrependUint32(t.Signal[j])
 		}
@@ -2144,7 +2282,7 @@ func (t *CallInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	coverOffset := flatbuffers.UOffsetT(0)
 	if t.Cover != nil {
 		coverLength := len(t.Cover)
-		CallInfoStartCoverVector(builder, coverLength)
+		CallInfoRawStartCoverVector(builder, coverLength)
 		for j := coverLength - 1; j >= 0; j-- {
 			builder.PrependUint32(t.Cover[j])
 		}
@@ -2153,22 +2291,22 @@ func (t *CallInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	compsOffset := flatbuffers.UOffsetT(0)
 	if t.Comps != nil {
 		compsLength := len(t.Comps)
-		CallInfoStartCompsVector(builder, compsLength)
+		CallInfoRawStartCompsVector(builder, compsLength)
 		for j := compsLength - 1; j >= 0; j-- {
 			t.Comps[j].Pack(builder)
 		}
 		compsOffset = builder.EndVector(compsLength)
 	}
-	CallInfoStart(builder)
-	CallInfoAddFlags(builder, t.Flags)
-	CallInfoAddError(builder, t.Error)
-	CallInfoAddSignal(builder, signalOffset)
-	CallInfoAddCover(builder, coverOffset)
-	CallInfoAddComps(builder, compsOffset)
-	return CallInfoEnd(builder)
+	CallInfoRawStart(builder)
+	CallInfoRawAddFlags(builder, t.Flags)
+	CallInfoRawAddError(builder, t.Error)
+	CallInfoRawAddSignal(builder, signalOffset)
+	CallInfoRawAddCover(builder, coverOffset)
+	CallInfoRawAddComps(builder, compsOffset)
+	return CallInfoRawEnd(builder)
 }
 
-func (rcv *CallInfo) UnPackTo(t *CallInfoT) {
+func (rcv *CallInfoRaw) UnPackTo(t *CallInfoRawT) {
 	t.Flags = rcv.Flags()
 	t.Error = rcv.Error()
 	signalLength := rcv.SignalLength()
@@ -2182,51 +2320,51 @@ func (rcv *CallInfo) UnPackTo(t *CallInfoT) {
 		t.Cover[j] = rcv.Cover(j)
 	}
 	compsLength := rcv.CompsLength()
-	t.Comps = make([]*ComparisonT, compsLength)
+	t.Comps = make([]*ComparisonRawT, compsLength)
 	for j := 0; j < compsLength; j++ {
-		x := Comparison{}
+		x := ComparisonRaw{}
 		rcv.Comps(&x, j)
 		t.Comps[j] = x.UnPack()
 	}
 }
 
-func (rcv *CallInfo) UnPack() *CallInfoT {
+func (rcv *CallInfoRaw) UnPack() *CallInfoRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &CallInfoT{}
+	t := &CallInfoRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type CallInfo struct {
+type CallInfoRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsCallInfo(buf []byte, offset flatbuffers.UOffsetT) *CallInfo {
+func GetRootAsCallInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *CallInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &CallInfo{}
+	x := &CallInfoRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsCallInfo(buf []byte, offset flatbuffers.UOffsetT) *CallInfo {
+func GetSizePrefixedRootAsCallInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *CallInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &CallInfo{}
+	x := &CallInfoRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *CallInfo) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *CallInfoRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *CallInfo) Table() flatbuffers.Table {
+func (rcv *CallInfoRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *CallInfo) Flags() CallFlag {
+func (rcv *CallInfoRaw) Flags() CallFlag {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return CallFlag(rcv._tab.GetByte(o + rcv._tab.Pos))
@@ -2234,11 +2372,11 @@ func (rcv *CallInfo) Flags() CallFlag {
 	return 0
 }
 
-func (rcv *CallInfo) MutateFlags(n CallFlag) bool {
+func (rcv *CallInfoRaw) MutateFlags(n CallFlag) bool {
 	return rcv._tab.MutateByteSlot(4, byte(n))
 }
 
-func (rcv *CallInfo) Error() int32 {
+func (rcv *CallInfoRaw) Error() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -2246,11 +2384,11 @@ func (rcv *CallInfo) Error() int32 {
 	return 0
 }
 
-func (rcv *CallInfo) MutateError(n int32) bool {
+func (rcv *CallInfoRaw) MutateError(n int32) bool {
 	return rcv._tab.MutateInt32Slot(6, n)
 }
 
-func (rcv *CallInfo) Signal(j int) uint32 {
+func (rcv *CallInfoRaw) Signal(j int) uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -2259,7 +2397,7 @@ func (rcv *CallInfo) Signal(j int) uint32 {
 	return 0
 }
 
-func (rcv *CallInfo) SignalLength() int {
+func (rcv *CallInfoRaw) SignalLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -2267,7 +2405,7 @@ func (rcv *CallInfo) SignalLength() int {
 	return 0
 }
 
-func (rcv *CallInfo) MutateSignal(j int, n uint32) bool {
+func (rcv *CallInfoRaw) MutateSignal(j int, n uint32) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -2276,7 +2414,7 @@ func (rcv *CallInfo) MutateSignal(j int, n uint32) bool {
 	return false
 }
 
-func (rcv *CallInfo) Cover(j int) uint32 {
+func (rcv *CallInfoRaw) Cover(j int) uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -2285,7 +2423,7 @@ func (rcv *CallInfo) Cover(j int) uint32 {
 	return 0
 }
 
-func (rcv *CallInfo) CoverLength() int {
+func (rcv *CallInfoRaw) CoverLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -2293,7 +2431,7 @@ func (rcv *CallInfo) CoverLength() int {
 	return 0
 }
 
-func (rcv *CallInfo) MutateCover(j int, n uint32) bool {
+func (rcv *CallInfoRaw) MutateCover(j int, n uint32) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -2302,7 +2440,7 @@ func (rcv *CallInfo) MutateCover(j int, n uint32) bool {
 	return false
 }
 
-func (rcv *CallInfo) Comps(obj *Comparison, j int) bool {
+func (rcv *CallInfoRaw) Comps(obj *ComparisonRaw, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
@@ -2313,7 +2451,7 @@ func (rcv *CallInfo) Comps(obj *Comparison, j int) bool {
 	return false
 }
 
-func (rcv *CallInfo) CompsLength() int {
+func (rcv *CallInfoRaw) CompsLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -2321,104 +2459,104 @@ func (rcv *CallInfo) CompsLength() int {
 	return 0
 }
 
-func CallInfoStart(builder *flatbuffers.Builder) {
+func CallInfoRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(5)
 }
-func CallInfoAddFlags(builder *flatbuffers.Builder, flags CallFlag) {
+func CallInfoRawAddFlags(builder *flatbuffers.Builder, flags CallFlag) {
 	builder.PrependByteSlot(0, byte(flags), 0)
 }
-func CallInfoAddError(builder *flatbuffers.Builder, error int32) {
+func CallInfoRawAddError(builder *flatbuffers.Builder, error int32) {
 	builder.PrependInt32Slot(1, error, 0)
 }
-func CallInfoAddSignal(builder *flatbuffers.Builder, signal flatbuffers.UOffsetT) {
+func CallInfoRawAddSignal(builder *flatbuffers.Builder, signal flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(signal), 0)
 }
-func CallInfoStartSignalVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func CallInfoRawStartSignalVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func CallInfoAddCover(builder *flatbuffers.Builder, cover flatbuffers.UOffsetT) {
+func CallInfoRawAddCover(builder *flatbuffers.Builder, cover flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(cover), 0)
 }
-func CallInfoStartCoverVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func CallInfoRawStartCoverVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func CallInfoAddComps(builder *flatbuffers.Builder, comps flatbuffers.UOffsetT) {
+func CallInfoRawAddComps(builder *flatbuffers.Builder, comps flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(comps), 0)
 }
-func CallInfoStartCompsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func CallInfoRawStartCompsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(16, numElems, 8)
 }
-func CallInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func CallInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type ComparisonT struct {
+type ComparisonRawT struct {
 	Op1 uint64 `json:"op1"`
 	Op2 uint64 `json:"op2"`
 }
 
-func (t *ComparisonT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ComparisonRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
-	return CreateComparison(builder, t.Op1, t.Op2)
+	return CreateComparisonRaw(builder, t.Op1, t.Op2)
 }
-func (rcv *Comparison) UnPackTo(t *ComparisonT) {
+func (rcv *ComparisonRaw) UnPackTo(t *ComparisonRawT) {
 	t.Op1 = rcv.Op1()
 	t.Op2 = rcv.Op2()
 }
 
-func (rcv *Comparison) UnPack() *ComparisonT {
+func (rcv *ComparisonRaw) UnPack() *ComparisonRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ComparisonT{}
+	t := &ComparisonRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type Comparison struct {
+type ComparisonRaw struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *Comparison) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ComparisonRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *Comparison) Table() flatbuffers.Table {
+func (rcv *ComparisonRaw) Table() flatbuffers.Table {
 	return rcv._tab.Table
 }
 
-func (rcv *Comparison) Op1() uint64 {
+func (rcv *ComparisonRaw) Op1() uint64 {
 	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *Comparison) MutateOp1(n uint64) bool {
+func (rcv *ComparisonRaw) MutateOp1(n uint64) bool {
 	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
 }
 
-func (rcv *Comparison) Op2() uint64 {
+func (rcv *ComparisonRaw) Op2() uint64 {
 	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(8))
 }
-func (rcv *Comparison) MutateOp2(n uint64) bool {
+func (rcv *ComparisonRaw) MutateOp2(n uint64) bool {
 	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(8), n)
 }
 
-func CreateComparison(builder *flatbuffers.Builder, op1 uint64, op2 uint64) flatbuffers.UOffsetT {
+func CreateComparisonRaw(builder *flatbuffers.Builder, op1 uint64, op2 uint64) flatbuffers.UOffsetT {
 	builder.Prep(8, 16)
 	builder.PrependUint64(op2)
 	builder.PrependUint64(op1)
 	return builder.Offset()
 }
 
-type ProgInfoT struct {
-	Calls     []*CallInfoT `json:"calls"`
-	Extra     *CallInfoT   `json:"extra"`
-	Elapsed   uint64       `json:"elapsed"`
-	Freshness uint64       `json:"freshness"`
+type ProgInfoRawT struct {
+	Calls     []*CallInfoRawT `json:"calls"`
+	Extra     *CallInfoRawT   `json:"extra"`
+	Elapsed   uint64          `json:"elapsed"`
+	Freshness uint64          `json:"freshness"`
 }
 
-func (t *ProgInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ProgInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -2429,26 +2567,26 @@ func (t *ProgInfoT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		for j := 0; j < callsLength; j++ {
 			callsOffsets[j] = t.Calls[j].Pack(builder)
 		}
-		ProgInfoStartCallsVector(builder, callsLength)
+		ProgInfoRawStartCallsVector(builder, callsLength)
 		for j := callsLength - 1; j >= 0; j-- {
 			builder.PrependUOffsetT(callsOffsets[j])
 		}
 		callsOffset = builder.EndVector(callsLength)
 	}
 	extraOffset := t.Extra.Pack(builder)
-	ProgInfoStart(builder)
-	ProgInfoAddCalls(builder, callsOffset)
-	ProgInfoAddExtra(builder, extraOffset)
-	ProgInfoAddElapsed(builder, t.Elapsed)
-	ProgInfoAddFreshness(builder, t.Freshness)
-	return ProgInfoEnd(builder)
+	ProgInfoRawStart(builder)
+	ProgInfoRawAddCalls(builder, callsOffset)
+	ProgInfoRawAddExtra(builder, extraOffset)
+	ProgInfoRawAddElapsed(builder, t.Elapsed)
+	ProgInfoRawAddFreshness(builder, t.Freshness)
+	return ProgInfoRawEnd(builder)
 }
 
-func (rcv *ProgInfo) UnPackTo(t *ProgInfoT) {
+func (rcv *ProgInfoRaw) UnPackTo(t *ProgInfoRawT) {
 	callsLength := rcv.CallsLength()
-	t.Calls = make([]*CallInfoT, callsLength)
+	t.Calls = make([]*CallInfoRawT, callsLength)
 	for j := 0; j < callsLength; j++ {
-		x := CallInfo{}
+		x := CallInfoRaw{}
 		rcv.Calls(&x, j)
 		t.Calls[j] = x.UnPack()
 	}
@@ -2457,43 +2595,43 @@ func (rcv *ProgInfo) UnPackTo(t *ProgInfoT) {
 	t.Freshness = rcv.Freshness()
 }
 
-func (rcv *ProgInfo) UnPack() *ProgInfoT {
+func (rcv *ProgInfoRaw) UnPack() *ProgInfoRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ProgInfoT{}
+	t := &ProgInfoRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ProgInfo struct {
+type ProgInfoRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsProgInfo(buf []byte, offset flatbuffers.UOffsetT) *ProgInfo {
+func GetRootAsProgInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *ProgInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ProgInfo{}
+	x := &ProgInfoRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsProgInfo(buf []byte, offset flatbuffers.UOffsetT) *ProgInfo {
+func GetSizePrefixedRootAsProgInfoRaw(buf []byte, offset flatbuffers.UOffsetT) *ProgInfoRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ProgInfo{}
+	x := &ProgInfoRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ProgInfo) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ProgInfoRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ProgInfo) Table() flatbuffers.Table {
+func (rcv *ProgInfoRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ProgInfo) Calls(obj *CallInfo, j int) bool {
+func (rcv *ProgInfoRaw) Calls(obj *CallInfoRaw, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
@@ -2505,7 +2643,7 @@ func (rcv *ProgInfo) Calls(obj *CallInfo, j int) bool {
 	return false
 }
 
-func (rcv *ProgInfo) CallsLength() int {
+func (rcv *ProgInfoRaw) CallsLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -2513,12 +2651,12 @@ func (rcv *ProgInfo) CallsLength() int {
 	return 0
 }
 
-func (rcv *ProgInfo) Extra(obj *CallInfo) *CallInfo {
+func (rcv *ProgInfoRaw) Extra(obj *CallInfoRaw) *CallInfoRaw {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		x := rcv._tab.Indirect(o + rcv._tab.Pos)
 		if obj == nil {
-			obj = new(CallInfo)
+			obj = new(CallInfoRaw)
 		}
 		obj.Init(rcv._tab.Bytes, x)
 		return obj
@@ -2526,7 +2664,7 @@ func (rcv *ProgInfo) Extra(obj *CallInfo) *CallInfo {
 	return nil
 }
 
-func (rcv *ProgInfo) Elapsed() uint64 {
+func (rcv *ProgInfoRaw) Elapsed() uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.GetUint64(o + rcv._tab.Pos)
@@ -2534,11 +2672,11 @@ func (rcv *ProgInfo) Elapsed() uint64 {
 	return 0
 }
 
-func (rcv *ProgInfo) MutateElapsed(n uint64) bool {
+func (rcv *ProgInfoRaw) MutateElapsed(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(8, n)
 }
 
-func (rcv *ProgInfo) Freshness() uint64 {
+func (rcv *ProgInfoRaw) Freshness() uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.GetUint64(o + rcv._tab.Pos)
@@ -2546,40 +2684,40 @@ func (rcv *ProgInfo) Freshness() uint64 {
 	return 0
 }
 
-func (rcv *ProgInfo) MutateFreshness(n uint64) bool {
+func (rcv *ProgInfoRaw) MutateFreshness(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(10, n)
 }
 
-func ProgInfoStart(builder *flatbuffers.Builder) {
+func ProgInfoRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func ProgInfoAddCalls(builder *flatbuffers.Builder, calls flatbuffers.UOffsetT) {
+func ProgInfoRawAddCalls(builder *flatbuffers.Builder, calls flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(calls), 0)
 }
-func ProgInfoStartCallsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ProgInfoRawStartCallsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func ProgInfoAddExtra(builder *flatbuffers.Builder, extra flatbuffers.UOffsetT) {
+func ProgInfoRawAddExtra(builder *flatbuffers.Builder, extra flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(extra), 0)
 }
-func ProgInfoAddElapsed(builder *flatbuffers.Builder, elapsed uint64) {
+func ProgInfoRawAddElapsed(builder *flatbuffers.Builder, elapsed uint64) {
 	builder.PrependUint64Slot(2, elapsed, 0)
 }
-func ProgInfoAddFreshness(builder *flatbuffers.Builder, freshness uint64) {
+func ProgInfoRawAddFreshness(builder *flatbuffers.Builder, freshness uint64) {
 	builder.PrependUint64Slot(3, freshness, 0)
 }
-func ProgInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ProgInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type ExecResultT struct {
-	Executing *ExecutingMessageT `json:"executing"`
-	Output    []byte             `json:"output"`
-	Error     string             `json:"error"`
-	Info      *ProgInfoT         `json:"info"`
+type ExecResultRawT struct {
+	Executing *ExecutingMessageRawT `json:"executing"`
+	Output    []byte                `json:"output"`
+	Error     string                `json:"error"`
+	Info      *ProgInfoRawT         `json:"info"`
 }
 
-func (t *ExecResultT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
@@ -2590,63 +2728,63 @@ func (t *ExecResultT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	}
 	errorOffset := builder.CreateString(t.Error)
 	infoOffset := t.Info.Pack(builder)
-	ExecResultStart(builder)
-	ExecResultAddExecuting(builder, executingOffset)
-	ExecResultAddOutput(builder, outputOffset)
-	ExecResultAddError(builder, errorOffset)
-	ExecResultAddInfo(builder, infoOffset)
-	return ExecResultEnd(builder)
+	ExecResultRawStart(builder)
+	ExecResultRawAddExecuting(builder, executingOffset)
+	ExecResultRawAddOutput(builder, outputOffset)
+	ExecResultRawAddError(builder, errorOffset)
+	ExecResultRawAddInfo(builder, infoOffset)
+	return ExecResultRawEnd(builder)
 }
 
-func (rcv *ExecResult) UnPackTo(t *ExecResultT) {
+func (rcv *ExecResultRaw) UnPackTo(t *ExecResultRawT) {
 	t.Executing = rcv.Executing(nil).UnPack()
 	t.Output = rcv.OutputBytes()
 	t.Error = string(rcv.Error())
 	t.Info = rcv.Info(nil).UnPack()
 }
 
-func (rcv *ExecResult) UnPack() *ExecResultT {
+func (rcv *ExecResultRaw) UnPack() *ExecResultRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &ExecResultT{}
+	t := &ExecResultRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type ExecResult struct {
+type ExecResultRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsExecResult(buf []byte, offset flatbuffers.UOffsetT) *ExecResult {
+func GetRootAsExecResultRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecResultRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &ExecResult{}
+	x := &ExecResultRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsExecResult(buf []byte, offset flatbuffers.UOffsetT) *ExecResult {
+func GetSizePrefixedRootAsExecResultRaw(buf []byte, offset flatbuffers.UOffsetT) *ExecResultRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &ExecResult{}
+	x := &ExecResultRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *ExecResult) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *ExecResultRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *ExecResult) Table() flatbuffers.Table {
+func (rcv *ExecResultRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ExecResult) Executing(obj *ExecutingMessage) *ExecutingMessage {
+func (rcv *ExecResultRaw) Executing(obj *ExecutingMessageRaw) *ExecutingMessageRaw {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		x := rcv._tab.Indirect(o + rcv._tab.Pos)
 		if obj == nil {
-			obj = new(ExecutingMessage)
+			obj = new(ExecutingMessageRaw)
 		}
 		obj.Init(rcv._tab.Bytes, x)
 		return obj
@@ -2654,7 +2792,7 @@ func (rcv *ExecResult) Executing(obj *ExecutingMessage) *ExecutingMessage {
 	return nil
 }
 
-func (rcv *ExecResult) Output(j int) byte {
+func (rcv *ExecResultRaw) Output(j int) byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -2663,7 +2801,7 @@ func (rcv *ExecResult) Output(j int) byte {
 	return 0
 }
 
-func (rcv *ExecResult) OutputLength() int {
+func (rcv *ExecResultRaw) OutputLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -2671,7 +2809,7 @@ func (rcv *ExecResult) OutputLength() int {
 	return 0
 }
 
-func (rcv *ExecResult) OutputBytes() []byte {
+func (rcv *ExecResultRaw) OutputBytes() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -2679,7 +2817,7 @@ func (rcv *ExecResult) OutputBytes() []byte {
 	return nil
 }
 
-func (rcv *ExecResult) MutateOutput(j int, n byte) bool {
+func (rcv *ExecResultRaw) MutateOutput(j int, n byte) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -2688,7 +2826,7 @@ func (rcv *ExecResult) MutateOutput(j int, n byte) bool {
 	return false
 }
 
-func (rcv *ExecResult) Error() []byte {
+func (rcv *ExecResultRaw) Error() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -2696,12 +2834,12 @@ func (rcv *ExecResult) Error() []byte {
 	return nil
 }
 
-func (rcv *ExecResult) Info(obj *ProgInfo) *ProgInfo {
+func (rcv *ExecResultRaw) Info(obj *ProgInfoRaw) *ProgInfoRaw {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		x := rcv._tab.Indirect(o + rcv._tab.Pos)
 		if obj == nil {
-			obj = new(ProgInfo)
+			obj = new(ProgInfoRaw)
 		}
 		obj.Init(rcv._tab.Bytes, x)
 		return obj
@@ -2709,24 +2847,24 @@ func (rcv *ExecResult) Info(obj *ProgInfo) *ProgInfo {
 	return nil
 }
 
-func ExecResultStart(builder *flatbuffers.Builder) {
+func ExecResultRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func ExecResultAddExecuting(builder *flatbuffers.Builder, executing flatbuffers.UOffsetT) {
+func ExecResultRawAddExecuting(builder *flatbuffers.Builder, executing flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(executing), 0)
 }
-func ExecResultAddOutput(builder *flatbuffers.Builder, output flatbuffers.UOffsetT) {
+func ExecResultRawAddOutput(builder *flatbuffers.Builder, output flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(output), 0)
 }
-func ExecResultStartOutputVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func ExecResultRawStartOutputVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
-func ExecResultAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
+func ExecResultRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(error), 0)
 }
-func ExecResultAddInfo(builder *flatbuffers.Builder, info flatbuffers.UOffsetT) {
+func ExecResultRawAddInfo(builder *flatbuffers.Builder, info flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(info), 0)
 }
-func ExecResultEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func ExecResultRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }

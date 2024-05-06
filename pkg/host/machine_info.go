@@ -11,8 +11,8 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 )
 
-func ReadFiles(files []string) []flatrpc.FileInfoT {
-	var res []flatrpc.FileInfoT
+func ReadFiles(files []string) []flatrpc.FileInfo {
+	var res []flatrpc.FileInfo
 	for _, glob := range files {
 		glob = filepath.FromSlash(glob)
 		if !strings.Contains(glob, "*") {
@@ -21,7 +21,7 @@ func ReadFiles(files []string) []flatrpc.FileInfoT {
 		}
 		matches, err := filepath.Glob(glob)
 		if err != nil {
-			res = append(res, flatrpc.FileInfoT{
+			res = append(res, flatrpc.FileInfo{
 				Name:  glob,
 				Error: err.Error(),
 			})
@@ -34,13 +34,13 @@ func ReadFiles(files []string) []flatrpc.FileInfoT {
 	return res
 }
 
-func readFile(file string) flatrpc.FileInfoT {
+func readFile(file string) flatrpc.FileInfo {
 	data, err := os.ReadFile(file)
 	exists, errStr := true, ""
 	if err != nil {
 		exists, errStr = !os.IsNotExist(err), err.Error()
 	}
-	return flatrpc.FileInfoT{
+	return flatrpc.FileInfo{
 		Name:   file,
 		Exists: exists,
 		Error:  errStr,

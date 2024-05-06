@@ -26,65 +26,71 @@ enum Feature : uint64 (bit_flags) {
 	Swap,
 }
  
-table ConnectRequest {
+table ConnectRequestRaw {
 	name			:string;
 	arch			:string;
 	git_revision		:string;
 	syz_revision		:string;
 }
 
-table ConnectReply {
+table ConnectReplyRaw {
 	leak_frames		:[string];
 	race_frames		:[string];
-	// Features are forwarded from CheckArgs, if checking was already done.
+	// Fuzzer sets up these features and returns results in InfoRequest.features.
 	features		:Feature;
-	// Fuzzer reads these files inside of the VM and returns contents in CheckArgs.Files.
+	// Fuzzer reads these files inside of the VM and returns contents in InfoRequest.files.
 	files			:[string];
 	globs			:[string];
 }
 
-table InfoRequest {
+table InfoRequestRaw {
 	error			:string;
-	features		:Feature;
-	globs			:[GlobInfo];
-	files			:[FileInfo];
+	features		:[FeatureInfoRaw];
+	files			:[FileInfoRaw];
+	globs			:[GlobInfoRaw];
 }
 
-table InfoReply {
+table InfoReplyRaw {
 	cover_filter		:[uint32];
 }
 
-table FileInfo {
+table FileInfoRaw {
 	name			:string;
 	exists			:bool;
 	error			:string;
 	data			:[uint8];
 }
 
-table GlobInfo {
+table GlobInfoRaw {
 	name			:string;
 	files			:[string];
 }
 
-// Messages sent from the host to the executor.
-union HostMessages {
-	ExecRequest		:ExecRequest,
-	SignalUpdate		:SignalUpdate,
+table FeatureInfoRaw {
+	id			:Feature;
+	need_setup		:bool;
+	reason			:string;
 }
 
-table HostMessage {
-	msg			:HostMessages;
+// Messages sent from the host to the executor.
+union HostMessagesRaw {
+	ExecRequest		:ExecRequestRaw,
+	SignalUpdate		:SignalUpdateRaw,
+}
+
+table HostMessageRaw {
+	msg			:HostMessagesRaw;
 }
 
 // Messages sent from the executor to the host.
-union ExecutorMessages {
-	ExecResult		:ExecResult,
-	Executing		:ExecutingMessage,
-	Stats			:StatsMessage,
+union ExecutorMessagesRaw {
+	ExecResult		:ExecResultRaw,
+	Executing		:ExecutingMessageRaw,
+	Stats			:StatsMessageRaw,
 }
 
-table ExecutorMessage {
-	msg			:ExecutorMessages;
+table ExecutorMessageRaw {
+	msg			:ExecutorMessagesRaw;
 }
 
 enum RequestFlag : uint64 (bit_flags) {
@@ -131,7 +137,7 @@ enum ExecFlag : uint64 (bit_flags) {
 }
 
 // Request to execute a test program.
-table ExecRequest {
+table ExecRequestRaw {
 	id			:int64;
 	prog_data		:[uint8];
 	flags			:RequestFlag;
@@ -144,7 +150,7 @@ table ExecRequest {
 	repeat			:int32;
 }
 
-table SignalUpdate {
+table SignalUpdateRaw {
 	new_max			:[uint32];
 	drop_max		:[uint32];
 }
@@ -153,13 +159,13 @@ table SignalUpdate {
 // We want this request to be as small and as fast as possible b/c we need it
 // to reach the host (or at least leave the VM) before the VM crashes
 // executing this program.
-table ExecutingMessage {
+table ExecutingMessageRaw {
 	id			:int64;
 	proc_id			:int32;
 	try			:int32;
 }
 
-table StatsMessage {
+table StatsMessageRaw {
 	noexec_count		:int64;
 	noexec_duration		:int64;
 }
@@ -171,7 +177,7 @@ enum CallFlag : uint8 (bit_flags) {
 	FaultInjected,		// fault was injected into this call
 }
 
-table CallInfo {
+table CallInfoRaw {
 	flags			:CallFlag;
 	// Call errno (0 if the call was successful).
 	error			:int32;
@@ -181,18 +187,18 @@ table CallInfo {
 	// If ExecFlag.DedupCover is set, then duplicates are removed, otherwise it contains a trace.
 	cover			:[uint32];
 	// Comparison operands.
-	comps			:[Comparison];
+	comps			:[ComparisonRaw];
 }
 
-struct Comparison {
+struct ComparisonRaw {
 	op1			:uint64;
 	op2			:uint64;
 }
 
-table ProgInfo {
-	calls			:[CallInfo];
+table ProgInfoRaw {
+	calls			:[CallInfoRaw];
 	// Contains signal and cover collected from background threads.
-	extra			:CallInfo;
+	extra			:CallInfoRaw;
 	// Total execution time of the program in nanoseconds.
 	elapsed			:uint64;
 	// Number of programs executed in the same process before this one.
@@ -200,9 +206,9 @@ table ProgInfo {
 }
 
 // Result of executing a test program.
-table ExecResult {
-	executing	:ExecutingMessage;
+table ExecResultRaw {
+	executing	:ExecutingMessageRaw;
 	output		:[uint8];
 	error		:string;
-	info		:ProgInfo;
+	info		:ProgInfoRaw;
 }
