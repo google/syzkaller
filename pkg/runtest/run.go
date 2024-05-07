@@ -13,6 +13,7 @@ package runtest
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,27 +25,23 @@ import (
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type RunRequest struct {
-	Bin    string
-	P      *prog.Prog
-	Opts   ipc.ExecOpts
-	Repeat int
+type runRequest struct {
+	*queue.Request
 
-	Done   chan struct{}
-	Output []byte
-	Info   ipc.ProgInfo
-	Err    error
-
+	err      error
 	finished chan struct{}
-	results  *ipc.ProgInfo
-	name     string
-	broken   string
-	skip     string
+	result   *queue.Result
+	results  *ipc.ProgInfo // the expected results
+
+	name   string
+	broken string
+	skip   string
 }
 
 type Context struct {
@@ -52,12 +49,13 @@ type Context struct {
 	Target       *prog.Target
 	Features     flatrpc.Feature
 	EnabledCalls map[string]map[*prog.Syscall]bool
-	Requests     chan *RunRequest
 	LogFunc      func(text string)
 	Retries      int // max number of test retries to deal with flaky tests
 	Verbose      bool
 	Debug        bool
 	Tests        string // prefix to match test file names
+
+	executor queue.PlainQueue
 }
 
 func (ctx *Context) log(msg string, args ...interface{}) {
@@ -65,17 +63,16 @@ func (ctx *Context) log(msg string, args ...interface{}) {
 }
 
 func (ctx *Context) Run() error {
-	defer close(ctx.Requests)
 	if ctx.Retries%2 == 0 {
 		ctx.Retries++
 	}
-	progs := make(chan *RunRequest, 1000+2*cap(ctx.Requests))
+	progs := make(chan *runRequest, 1000)
 	errc := make(chan error, 1)
 	go func() {
 		defer close(progs)
 		errc <- ctx.generatePrograms(progs)
 	}()
-	var requests []*RunRequest
+	var requests []*runRequest
 	for req := range progs {
 		req := req
 		requests = append(requests, req)
@@ -94,12 +91,10 @@ func (ctx *Context) Run() error {
 			// In the best case this allows to get off with just 1 test run.
 			var resultErr error
 			for try, failed := 0, 0; try < ctx.Retries; try++ {
-				req.Output = nil
-				req.Info = ipc.ProgInfo{}
-				req.Done = make(chan struct{})
-				ctx.Requests <- req
-				<-req.Done
-				if req.Err != nil {
+				ctx.executor.Submit(req.Request)
+				req.result = req.Request.Wait(context.Background())
+				if req.result.Err != nil {
+					resultErr = req.result.Err
 					break
 				}
 				err := checkResult(req)
@@ -112,9 +107,7 @@ func (ctx *Context) Run() error {
 					break
 				}
 			}
-			if req.Err == nil {
-				req.Err = resultErr
-			}
+			req.err = resultErr
 			close(req.finished)
 		}()
 	}
@@ -132,13 +125,14 @@ func (ctx *Context) Run() error {
 			verbose = true
 		} else {
 			<-req.finished
-			if req.Err != nil {
+			if req.err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
-					strings.Replace(req.Err.Error(), "\n", "\n\t", -1))
-				if len(req.Output) != 0 {
+					strings.Replace(req.err.Error(), "\n", "\n\t", -1))
+				res := req.result
+				if len(res.Output) != 0 {
 					result += fmt.Sprintf("\n\t%s",
-						strings.Replace(string(req.Output), "\n", "\n\t", -1))
+						strings.Replace(string(res.Output), "\n", "\n\t", -1))
 				}
 			} else {
 				ok++
@@ -148,8 +142,8 @@ func (ctx *Context) Run() error {
 		if !verbose || ctx.Verbose {
 			ctx.log("%-38v: %v", req.name, result)
 		}
-		if req.Bin != "" {
-			os.Remove(req.Bin)
+		if req.Request != nil && req.Request.BinaryFile != "" {
+			os.Remove(req.BinaryFile)
 		}
 	}
 	if err := <-errc; err != nil {
@@ -162,7 +156,11 @@ func (ctx *Context) Run() error {
 	return nil
 }
 
-func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
+func (ctx *Context) Next() *queue.Request {
+	return ctx.executor.Next()
+}
+
+func (ctx *Context) generatePrograms(progs chan *runRequest) error {
 	cover := []bool{false}
 	if ctx.Features&flatrpc.FeatureCoverage != 0 {
 		cover = append(cover, true)
@@ -201,7 +199,7 @@ func progFileList(dir, filter string) ([]string, error) {
 	return res, nil
 }
 
-func (ctx *Context) generateFile(progs chan *RunRequest, sandboxes []string, cover []bool, filename string) error {
+func (ctx *Context) generateFile(progs chan *runRequest, sandboxes []string, cover []bool, filename string) error {
 	p, requires, results, err := parseProg(ctx.Target, ctx.Dir, filename)
 	if err != nil {
 		return err
@@ -215,7 +213,7 @@ nextSandbox:
 		name := fmt.Sprintf("%v %v", filename, sandbox)
 		for _, call := range p.Calls {
 			if !ctx.EnabledCalls[sandbox][call.Meta] {
-				progs <- &RunRequest{
+				progs <- &runRequest{
 					name: name,
 					skip: fmt.Sprintf("unsupported call %v", call.Meta.Name),
 				}
@@ -267,7 +265,7 @@ nextSandbox:
 				name += " C"
 				if !sysTarget.ExecutorUsesForkServer && times > 1 {
 					// Non-fork loop implementation does not support repetition.
-					progs <- &RunRequest{
+					progs <- &runRequest{
 						name:   name,
 						broken: "non-forking loop",
 					}
@@ -378,7 +376,7 @@ func checkArch(requires map[string]bool, arch string) bool {
 	return true
 }
 
-func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name string,
+func (ctx *Context) produceTest(progs chan *runRequest, req *runRequest, name string,
 	properties, requires map[string]bool, results *ipc.ProgInfo) {
 	req.name = name
 	req.results = results
@@ -409,7 +407,7 @@ func match(props, requires map[string]bool) bool {
 	return true
 }
 
-func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool, times int) (*RunRequest, error) {
+func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool, times int) (*runRequest, error) {
 	var opts ipc.ExecOpts
 	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
 	if err != nil {
@@ -428,15 +426,17 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if ctx.Debug {
 		opts.EnvFlags |= ipc.FlagDebug
 	}
-	req := &RunRequest{
-		P:      p,
-		Opts:   opts,
-		Repeat: times,
+	req := &runRequest{
+		Request: &queue.Request{
+			Prog:     p,
+			ExecOpts: &opts,
+			Repeat:   times,
+		},
 	}
 	return req, nil
 }
 
-func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, times int) (*RunRequest, error) {
+func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, times int) (*runRequest, error) {
 	opts := csource.Options{
 		Threaded:    threaded,
 		Repeat:      times > 1,
@@ -479,29 +479,34 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 	if threaded {
 		ipcFlags |= ipc.FlagThreaded
 	}
-	req := &RunRequest{
-		P:   p,
-		Bin: bin,
-		Opts: ipc.ExecOpts{
-			ExecFlags: ipcFlags,
+	req := &runRequest{
+		Request: &queue.Request{
+			Prog:       p,
+			BinaryFile: bin,
+			ExecOpts: &ipc.ExecOpts{
+				ExecFlags: ipcFlags,
+			},
+			Repeat: times,
 		},
-		Repeat: times,
 	}
 	return req, nil
 }
 
-func checkResult(req *RunRequest) error {
+func checkResult(req *runRequest) error {
+	if req.result.Status != queue.Success {
+		return fmt.Errorf("non-successful result status (%v)", req.result.Status)
+	}
 	var infos []ipc.ProgInfo
-	isC := req.Bin != ""
+	isC := req.BinaryFile != ""
 	if isC {
 		var err error
 		if infos, err = parseBinOutput(req); err != nil {
 			return err
 		}
 	} else {
-		raw := req.Info
+		raw := req.result.Info
 		for len(raw.Calls) != 0 {
-			ncalls := min(len(raw.Calls), len(req.P.Calls))
+			ncalls := min(len(raw.Calls), len(req.Prog.Calls))
 			infos = append(infos, ipc.ProgInfo{
 				Extra: raw.Extra,
 				Calls: raw.Calls[:ncalls],
@@ -511,7 +516,7 @@ func checkResult(req *RunRequest) error {
 	}
 	if req.Repeat != len(infos) {
 		return fmt.Errorf("should repeat %v times, but repeated %v, prog calls %v, info calls %v\n%s",
-			req.Repeat, len(infos), req.P.Calls, len(req.Info.Calls), req.Output)
+			req.Repeat, len(infos), req.Prog.Calls, len(req.result.Info.Calls), req.result.Output)
 	}
 	calls := make(map[string]bool)
 	for run, info := range infos {
@@ -524,7 +529,7 @@ func checkResult(req *RunRequest) error {
 	return nil
 }
 
-func checkCallResult(req *RunRequest, isC bool, run, call int, info ipc.ProgInfo, calls map[string]bool) error {
+func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo, calls map[string]bool) error {
 	inf := info.Calls[call]
 	want := req.results.Calls[call]
 	for flag, what := range map[ipc.CallFlags]string{
@@ -537,7 +542,7 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info ipc.ProgInfo
 				// C code does not detect blocked/non-finished calls.
 				continue
 			}
-			if req.Opts.ExecFlags&ipc.FlagThreaded == 0 {
+			if req.ExecOpts.ExecFlags&ipc.FlagThreaded == 0 {
 				// In non-threaded mode blocked syscalls will block main thread
 				// and we won't detect blocked/unfinished syscalls.
 				continue
@@ -563,12 +568,12 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info ipc.ProgInfo
 	if isC || inf.Flags&ipc.CallExecuted == 0 {
 		return nil
 	}
-	if req.Opts.EnvFlags&ipc.FlagSignal != 0 {
+	if req.ExecOpts.EnvFlags&ipc.FlagSignal != 0 {
 		// Signal is always deduplicated, so we may not get any signal
 		// on a second invocation of the same syscall.
 		// For calls that are not meant to collect synchronous coverage we
 		// allow the signal to be empty as long as the extra signal is not.
-		callName := req.P.Calls[call].Meta.CallName
+		callName := req.Prog.Calls[call].Meta.CallName
 		if len(inf.Signal) < 2 && !calls[callName] && len(info.Extra.Signal) == 0 {
 			return fmt.Errorf("run %v: call %v: no signal", run, call)
 		}
@@ -586,13 +591,13 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info ipc.ProgInfo
 	return nil
 }
 
-func parseBinOutput(req *RunRequest) ([]ipc.ProgInfo, error) {
+func parseBinOutput(req *runRequest) ([]ipc.ProgInfo, error) {
 	var infos []ipc.ProgInfo
-	s := bufio.NewScanner(bytes.NewReader(req.Output))
+	s := bufio.NewScanner(bytes.NewReader(req.result.Output))
 	re := regexp.MustCompile("^### call=([0-9]+) errno=([0-9]+)$")
 	for s.Scan() {
 		if s.Text() == "### start" {
-			infos = append(infos, ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(req.P.Calls))})
+			infos = append(infos, ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(req.Prog.Calls))})
 		}
 		match := re.FindSubmatch(s.Bytes())
 		if match == nil {

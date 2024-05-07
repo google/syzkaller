@@ -4,6 +4,7 @@
 package runtest
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
@@ -62,24 +64,12 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		"":     calls,
 		"none": calls,
 	}
-	requests := make(chan *RunRequest, 2*runtime.GOMAXPROCS(0))
-	go func() {
-		for req := range requests {
-			if req.Bin != "" {
-				runTestC(req)
-			} else {
-				runTest(req, executor)
-			}
-			close(req.Done)
-		}
-	}()
 	ctx := &Context{
 		Dir:          filepath.Join("..", "..", "sys", target.OS, targets.TestOS),
 		Target:       target,
 		Tests:        *flagFilter,
 		Features:     0,
 		EnabledCalls: enabledCalls,
-		Requests:     requests,
 		LogFunc: func(text string) {
 			t.Helper()
 			t.Logf(text)
@@ -88,66 +78,99 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
+
+	executorCtx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go func() {
+		for {
+			select {
+			case <-time.After(time.Millisecond):
+			case <-executorCtx.Done():
+				return
+			}
+			req := ctx.Next()
+			if req == nil {
+				continue
+			}
+			if req.BinaryFile != "" {
+				req.Done(runTestC(req))
+			} else {
+				req.Done(runTest(req, executor))
+			}
+		}
+	}()
 	if err := ctx.Run(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func runTest(req *RunRequest, executor string) {
+func runTest(req *queue.Request, executor string) *queue.Result {
 	cfg := new(ipc.Config)
-	sysTarget := targets.Get(req.P.Target.OS, req.P.Target.Arch)
+	sysTarget := targets.Get(req.Prog.Target.OS, req.Prog.Target.Arch)
 	cfg.UseShmem = sysTarget.ExecutorUsesShmem
 	cfg.UseForkServer = sysTarget.ExecutorUsesForkServer
 	cfg.Timeouts = sysTarget.Timeouts(1)
 	cfg.Executor = executor
 	env, err := ipc.MakeEnv(cfg, 0)
 	if err != nil {
-		req.Err = fmt.Errorf("failed to create ipc env: %w", err)
-		return
+		return &queue.Result{
+			Status: queue.ExecFailure,
+			Err:    fmt.Errorf("failed to create ipc env: %w", err),
+		}
 	}
 	defer env.Close()
+	ret := &queue.Result{Status: queue.Success}
 	for run := 0; run < req.Repeat; run++ {
 		if run%2 == 0 {
 			// Recreate Env every few iterations, this allows to cover more paths.
 			env.ForceRestart()
 		}
-		output, info, hanged, err := env.Exec(&req.Opts, req.P)
-		req.Output = append(req.Output, output...)
+		output, info, hanged, err := env.Exec(req.ExecOpts, req.Prog)
+		ret.Output = append(ret.Output, output...)
 		if err != nil {
-			req.Err = fmt.Errorf("run %v: failed to run: %w", run, err)
-			return
+			return &queue.Result{
+				Status: queue.ExecFailure,
+				Err:    fmt.Errorf("run %v: failed to run: %w", run, err),
+			}
 		}
 		if hanged {
-			req.Err = fmt.Errorf("run %v: hanged", run)
-			return
+			return &queue.Result{
+				Status: queue.ExecFailure,
+				Err:    fmt.Errorf("run %v: hanged", run),
+			}
 		}
 		if run == 0 {
-			req.Info = *info
+			ret.Info = info
 		} else {
-			req.Info.Calls = append(req.Info.Calls, info.Calls...)
+			ret.Info.Calls = append(ret.Info.Calls, info.Calls...)
 		}
 	}
+	return ret
 }
 
-func runTestC(req *RunRequest) {
+func runTestC(req *queue.Request) *queue.Result {
 	tmpDir, err := os.MkdirTemp("", "syz-runtest")
 	if err != nil {
-		req.Err = fmt.Errorf("failed to create temp dir: %w", err)
-		return
+		return &queue.Result{
+			Status: queue.ExecFailure,
+			Err:    fmt.Errorf("failed to create temp dir: %w", err),
+		}
 	}
 	defer os.RemoveAll(tmpDir)
-	cmd := osutil.Command(req.Bin)
+	cmd := osutil.Command(req.BinaryFile)
 	cmd.Dir = tmpDir
 	// Tell ASAN to not mess with our NONFAILING.
 	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
-	req.Output, req.Err = osutil.Run(20*time.Second, cmd)
+	res := &queue.Result{}
+	res.Output, res.Err = osutil.Run(20*time.Second, cmd)
 	var verr *osutil.VerboseError
-	if errors.As(req.Err, &verr) {
+	if errors.As(res.Err, &verr) {
 		// The process can legitimately do something like exit_group(1).
 		// So we ignore the error and rely on the rest of the checks (e.g. syscall return values).
-		req.Err = nil
-		req.Output = verr.Output
+		res.Err = nil
+		res.Output = verr.Output
 	}
+	return res
 }
 
 func TestParsing(t *testing.T) {
