@@ -23,6 +23,7 @@ var (
 		subsystemCalls: map[string][]string{
 			"adfs":      {"syz_mount_image$adfs"},
 			"affs":      {"syz_mount_image$affs"},
+			"bcachefs":  {"syz_mount_image$bcachefs"},
 			"befs":      {"syz_mount_image$befs"},
 			"bfs":       {"syz_mount_image$bfs"},
 			"bluetooth": {"syz_emit_vhci"},
