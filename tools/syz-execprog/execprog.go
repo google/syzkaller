@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -22,13 +23,13 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
@@ -428,36 +429,17 @@ func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls 
 		},
 	}
 	checker := vminfo.New(cfg)
-	files, requests := checker.StartCheck()
-	fileInfos := host.ReadFiles(files)
+	fileInfos := host.ReadFiles(checker.RequiredFiles())
 	featureInfos, err := host.SetupFeatures(target, config.Executor, flatrpc.AllFeatures, featuresFlags)
 	if err != nil {
 		log.Fatal(err)
 	}
-	env, err := ipc.MakeEnv(config, 0)
-	if err != nil {
-		log.Fatalf("failed to create ipc env: %v", err)
-	}
-	defer env.Close()
-	var results []rpctype.ExecutionResult
-	for _, req := range requests {
-		output, info, hanged, err := env.ExecProg(&req.ExecOpts, req.ProgData)
-		res := rpctype.ExecutionResult{
-			ID:     req.ID,
-			Output: output,
-		}
-		if info != nil {
-			res.Info = *info
-		}
-		if err != nil {
-			res.Error = err.Error()
-		}
-		if hanged && err == nil {
-			res.Error = "hanged"
-		}
-		results = append(results, res)
-	}
-	enabledSyscalls, disabledSyscalls, features, err := checker.FinishCheck(fileInfos, results, featureInfos)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go checkerExecutor(ctx, checker, config)
+
+	enabledSyscalls, disabledSyscalls, features, err := checker.Run(fileInfos, featureInfos)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -475,4 +457,42 @@ func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls 
 	}
 	execOpts.EnvFlags |= ipc.FeaturesToFlags(features.Enabled(), featuresFlags)
 	return config, execOpts, enabledSyscalls, features.Enabled()
+}
+
+func checkerExecutor(ctx context.Context, source queue.Source, config *ipc.Config) {
+	env, err := ipc.MakeEnv(config, 0)
+	if err != nil {
+		log.Fatalf("failed to create ipc env: %v", err)
+	}
+	defer env.Close()
+	for {
+		req := source.Next()
+		if req == nil {
+			select {
+			case <-time.After(time.Second / 100):
+			case <-ctx.Done():
+				return
+			}
+			continue
+		}
+		progData, err := req.Prog.SerializeForExec()
+		if err != nil {
+			log.Fatalf("failed to serialize %s: %v", req.Prog.Serialize(), err)
+		}
+		output, info, hanged, err := env.ExecProg(req.ExecOpts, progData)
+		res := &queue.Result{
+			Status: queue.Success,
+			Info:   info,
+			Output: output,
+		}
+		if err != nil {
+			res.Status = queue.ExecFailure
+			res.Error = err.Error()
+		}
+		if hanged && err == nil {
+			res.Status = queue.ExecFailure
+			res.Error = "hanged"
+		}
+		req.Done(res)
+	}
 }

@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -46,14 +46,24 @@ type featureResult struct {
 	reason string
 }
 
-func (ctx *checkContext) checkFeatures() {
+func (ctx *checkContext) startFeaturesCheck() {
 	testProg := ctx.target.DataMmapProg()
 	for feat := range flatrpc.EnumNamesFeature {
 		feat := feat
-		ctx.pendingRequests++
 		go func() {
 			envFlags, execFlags := ctx.featureToFlags(feat)
-			res := ctx.execProg(testProg, envFlags, execFlags)
+			req := &queue.Request{
+				Prog:         testProg,
+				ReturnOutput: true,
+				ReturnError:  true,
+				ExecOpts: &ipc.ExecOpts{
+					EnvFlags:   envFlags,
+					ExecFlags:  execFlags,
+					SandboxArg: ctx.cfg.SandboxArg,
+				},
+			}
+			ctx.executor.Submit(req)
+			res := req.Wait(ctx.ctx)
 			reason := ctx.featureSucceeded(feat, testProg, res)
 			ctx.features <- featureResult{feat, reason}
 		}()
@@ -161,8 +171,8 @@ func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (ipc.EnvFlags, ipc
 // This generally checks that just all syscalls were executed and succeed,
 // for coverage features we also check that we got actual coverage.
 func (ctx *checkContext) featureSucceeded(feat flatrpc.Feature, testProg *prog.Prog,
-	res rpctype.ExecutionResult) string {
-	if res.Error != "" {
+	res *queue.Result) string {
+	if res.Status != queue.Success {
 		if len(res.Output) != 0 {
 			return string(res.Output)
 		}

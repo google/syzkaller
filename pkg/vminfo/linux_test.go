@@ -21,14 +21,6 @@ import (
 func TestLinuxSyscalls(t *testing.T) {
 	cfg := testConfig(t, targets.Linux, targets.AMD64)
 	checker := New(cfg)
-	_, checkProgs := checker.StartCheck()
-	t.Logf("got %v test programs", len(checkProgs))
-	if len(checkProgs) > 1000 {
-		// This is just a sanity check that we don't do something stupid accidentally.
-		// If it grows above the limit intentionally, the limit can be increased.
-		// Currently we have 641 (when we failed to properly dedup syscall tests, it was 4349).
-		t.Fatal("too many test programs")
-	}
 	filesystems := []string{
 		// Without sysfs, the checks would also disable mount().
 		"", "sysfs", "ext4", "binder", "",
@@ -45,8 +37,10 @@ func TestLinuxSyscalls(t *testing.T) {
 			Data:   []byte(strings.Join(filesystems, "\nnodev\t")),
 		},
 	}
-	results, featureInfos := createSuccessfulResults(t, cfg.Target, checkProgs)
-	enabled, disabled, features, err := checker.FinishCheck(files, results, featureInfos)
+	stop := make(chan struct{})
+	go createSuccessfulResults(checker, stop)
+	enabled, disabled, features, err := checker.Run(files, allFeatures())
+	close(stop)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,6 +63,17 @@ func TestLinuxSyscalls(t *testing.T) {
 			continue
 		}
 		t.Errorf("disabled call %v: %v", call.Name, reason)
+	}
+	for _, id := range cfg.Syscalls {
+		call := cfg.Target.Syscalls[id]
+		if enabled[call] && disabled[call] != "" {
+			t.Fatalf("%s is both enabled and disabled", call.Name)
+		}
+		expected := !expectDisabled[call.Name]
+		got := enabled[call]
+		if expected != got {
+			t.Errorf("%s: expected %t, got %t", call.Name, expected, got)
+		}
 	}
 	expectEnabled := len(cfg.Syscalls) - len(expectDisabled)
 	if len(enabled) != expectEnabled {

@@ -7,12 +7,13 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -55,9 +56,10 @@ func TestSyscalls(t *testing.T) {
 				t.Parallel()
 				cfg := testConfig(t, target.OS, target.Arch)
 				checker := New(cfg)
-				_, checkProgs := checker.StartCheck()
-				results, featureInfos := createSuccessfulResults(t, cfg.Target, checkProgs)
-				enabled, disabled, _, err := checker.FinishCheck(nil, results, featureInfos)
+				stop := make(chan struct{})
+				go createSuccessfulResults(checker, stop)
+				enabled, disabled, _, err := checker.Run(nil, allFeatures())
+				close(stop)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -72,19 +74,38 @@ func TestSyscalls(t *testing.T) {
 	}
 }
 
-func createSuccessfulResults(t *testing.T, target *prog.Target,
-	progs []rpctype.ExecutionRequest) ([]rpctype.ExecutionResult, []flatrpc.FeatureInfo) {
-	var results []rpctype.ExecutionResult
-	for _, req := range progs {
-		p, err := target.DeserializeExec(req.ProgData, nil)
-		if err != nil {
-			t.Fatal(err)
+func allFeatures() []flatrpc.FeatureInfo {
+	var features []flatrpc.FeatureInfo
+	for feat := range flatrpc.EnumNamesFeature {
+		features = append(features, flatrpc.FeatureInfo{
+			Id: feat,
+		})
+	}
+	return features
+}
+
+func createSuccessfulResults(source queue.Source, stop chan struct{}) {
+	var count int
+	for {
+		select {
+		case <-stop:
+			return
+		case <-time.After(time.Millisecond):
 		}
-		res := rpctype.ExecutionResult{
-			ID: req.ID,
+		req := source.Next()
+		if req == nil {
+			continue
 		}
-		for range p.Calls {
-			res.Info.Calls = append(res.Info.Calls, ipc.CallInfo{
+		count++
+		if count > 1000 {
+			// This is just a sanity check that we don't do something stupid accidentally.
+			// If it grows above the limit intentionally, the limit can be increased.
+			// Currently we have 641 (when we failed to properly dedup syscall tests, it was 4349).
+			panic("too many test programs")
+		}
+		info := &ipc.ProgInfo{}
+		for range req.Prog.Calls {
+			info.Calls = append(info.Calls, ipc.CallInfo{
 				Cover:  []uint32{1},
 				Signal: []uint32{1},
 				Comps: map[uint64]map[uint64]bool{
@@ -92,15 +113,11 @@ func createSuccessfulResults(t *testing.T, target *prog.Target,
 				},
 			})
 		}
-		results = append(results, res)
-	}
-	var features []flatrpc.FeatureInfo
-	for feat := range flatrpc.EnumNamesFeature {
-		features = append(features, flatrpc.FeatureInfo{
-			Id: feat,
+		req.Done(&queue.Result{
+			Status: queue.Success,
+			Info:   info,
 		})
 	}
-	return results, features
 }
 
 func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfo) {
