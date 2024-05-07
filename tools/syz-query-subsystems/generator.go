@@ -45,11 +45,12 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commitInfo
 		}
 		sort.Strings(parents)
 		subsystem := &templateSubsystem{
-			VarName:     varName,
-			Name:        serializer.WriteString(entry.Name),
-			PathRules:   serializer.WriteString(entry.PathRules),
-			Parents:     parents,
-			NoReminders: entry.NoReminders,
+			VarName:      varName,
+			Name:         serializer.WriteString(entry.Name),
+			PathRules:    serializer.WriteString(entry.PathRules),
+			Parents:      parents,
+			NoReminders:  entry.NoReminders,
+			NoIndirectCc: entry.NoIndirectCc,
 		}
 		// Some of the records are mostly empty.
 		if len(entry.Maintainers) > 0 {
@@ -112,14 +113,15 @@ func hierarchyList(list []*subsystem.Subsystem) []string {
 var makeVarRegexp = regexp.MustCompile(`[^\w]|^([^a-z0-9]+)`)
 
 type templateSubsystem struct {
-	VarName     string
-	Name        string
-	Syscalls    string
-	PathRules   string
-	Lists       string
-	Maintainers string
-	Parents     []string
-	NoReminders bool
+	VarName      string
+	Name         string
+	Syscalls     string
+	PathRules    string
+	Lists        string
+	Maintainers  string
+	Parents      []string
+	NoReminders  bool
+	NoIndirectCc bool
 }
 
 type templateVars struct {
@@ -171,6 +173,9 @@ var {{range $i, $item := .List}}
  PathRules: {{.PathRules}},
 {{- if .NoReminders}}
  NoReminders: true,
+{{- end}}
+{{- if .NoIndirectCc}}
+NoIndirectCc: true,
 {{- end}}
 }
 {{end}}
