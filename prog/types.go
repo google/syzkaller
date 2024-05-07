@@ -19,8 +19,12 @@ type Syscall struct {
 	Ret         Type
 	Attrs       SyscallAttrs
 
-	inputResources  []*ResourceDesc
-	outputResources []*ResourceDesc
+	// Resources that are required for this call to be generated (in/inout).
+	inputResources []*ResourceDesc
+	// Resources that this call can be used to create (out, but excluding no_generate).
+	createsResources []*ResourceDesc
+	// Both inputs and output resources (including no_generate).
+	usesResources []*ResourceDesc
 }
 
 // SyscallAttrs represents call attributes in syzlang.

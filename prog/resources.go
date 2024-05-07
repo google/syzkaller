@@ -56,22 +56,28 @@ func (target *Target) populateResourceCtors() {
 			case *UnionType:
 				ctx.Stop = true
 			case *ResourceType:
-				if ctx.Dir == DirIn || dedup[typ1.Desc] {
+				if ctx.Dir == DirIn || dedup[typ1.Desc] || meta.Attrs.Disabled {
 					break
 				}
 				dedup[typ1.Desc] = true
-				callsResources[meta.ID] = append(callsResources[meta.ID], typ1.Desc)
-				meta.outputResources = append(meta.outputResources, typ1.Desc)
+				meta.usesResources = append(meta.usesResources, typ1.Desc)
+				if !meta.Attrs.NoGenerate {
+					callsResources[meta.ID] = append(callsResources[meta.ID], typ1.Desc)
+					meta.createsResources = append(meta.createsResources, typ1.Desc)
+				}
 			}
 		})
 	}
 
 	if c := target.SyscallMap["clock_gettime"]; c != nil {
-		c.outputResources = append(c.outputResources, timespecRes)
+		c.usesResources = append(c.usesResources, timespecRes)
+		c.createsResources = append(c.createsResources, timespecRes)
+		callsResources[c.ID] = append(callsResources[c.ID], timespecRes)
 	}
 
 	for _, c := range target.Syscalls {
 		c.inputResources = target.getInputResources(c)
+		c.usesResources = append(c.usesResources, c.inputResources...)
 	}
 
 	// Populate resource ctors accounting for resource compatibility.
@@ -181,7 +187,7 @@ func (target *Target) transitivelyEnabled(enabled map[*Syscall]bool) (map[*Sysca
 				}
 			}
 			supported[c] = true
-			for _, res := range c.outputResources {
+			for _, res := range c.createsResources {
 				for _, kind := range res.Kind {
 					canCreate[kind] = true
 				}
