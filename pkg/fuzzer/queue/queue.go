@@ -36,6 +36,10 @@ type Request struct {
 	// This stat will be incremented on request completion.
 	Stat *stats.Val
 
+	// Options needed by runtest.
+	BinaryFile string // If set, it's executed instead of Prog.
+	Repeat     int    // Repeats in addition to the first run.
+
 	// The callback will be called on request completion in the LIFO order.
 	// If it returns false, all further processing will be stopped.
 	// It allows wrappers to intercept Done() requests.
@@ -123,7 +127,7 @@ type Result struct {
 	Info   *ipc.ProgInfo
 	Output []byte
 	Status Status
-	Error  string // More details in case of ExecFailure.
+	Err    error // More details in case of ExecFailure.
 }
 
 func (r *Result) clone() *Result {

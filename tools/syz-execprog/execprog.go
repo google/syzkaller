@@ -484,14 +484,14 @@ func checkerExecutor(ctx context.Context, source queue.Source, config *ipc.Confi
 			Status: queue.Success,
 			Info:   info,
 			Output: output,
+			Err:    err,
 		}
 		if err != nil {
 			res.Status = queue.ExecFailure
-			res.Error = err.Error()
 		}
 		if hanged && err == nil {
 			res.Status = queue.ExecFailure
-			res.Error = "hanged"
+			res.Err = fmt.Errorf("hanged")
 		}
 		req.Done(res)
 	}

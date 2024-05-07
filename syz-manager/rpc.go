@@ -509,10 +509,14 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult)
 	}
 	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
 	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
+	var err error
+	if resp.Error != "" {
+		err = fmt.Errorf("%s", resp.Error)
+	}
 	req.req.Done(&queue.Result{
 		Info:   info,
 		Output: resp.Output,
-		Error:  resp.Error,
+		Err:    err,
 	})
 }
 

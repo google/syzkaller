@@ -14,11 +14,13 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -53,20 +55,17 @@ func main() {
 	}
 	osutil.MkdirAll(cfg.Workdir)
 	mgr := &Manager{
-		cfg:            cfg,
-		vmPool:         vmPool,
-		checker:        vminfo.New(cfg),
-		reporter:       reporter,
-		debug:          *flagDebug,
-		requests:       make(chan *runtest.RunRequest, 4*vmPool.Count()*cfg.Procs),
-		checkResultC:   make(chan *rpctype.CheckArgs, 1),
-		checkProgsDone: make(chan bool),
-		vmStop:         make(chan bool),
-		reqMap:         make(map[int64]*runtest.RunRequest),
-		pending:        make(map[string]map[int64]bool),
+		cfg:          cfg,
+		vmPool:       vmPool,
+		checker:      vminfo.New(cfg),
+		reporter:     reporter,
+		debug:        *flagDebug,
+		checkResultC: make(chan *rpctype.CheckArgs, 1),
+		vmStop:       make(chan bool),
+		reqMap:       make(map[int64]*queue.Request),
+		pending:      make(map[string]map[int64]bool),
 	}
-	mgr.checkFiles, mgr.checkProgs = mgr.checker.StartCheck()
-	mgr.needCheckResults = len(mgr.checkProgs)
+	mgr.checkFiles = mgr.checker.RequiredFiles()
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
@@ -97,8 +96,8 @@ func main() {
 		}()
 	}
 	checkResult := <-mgr.checkResultC
-	<-mgr.checkProgsDone
-	calls, _, features, err := mgr.checker.FinishCheck(checkResult.Files, mgr.checkResults, checkResult.Features)
+	mgr.source.Store(mgr.checker)
+	calls, _, features, err := mgr.checker.Run(checkResult.Files, checkResult.Features)
 	if err != nil {
 		log.Fatalf("failed to detect enabled syscalls: %v", err)
 	}
@@ -122,12 +121,12 @@ func main() {
 		Target:       cfg.Target,
 		Features:     features.Enabled(),
 		EnabledCalls: enabledCalls,
-		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
-		Verbose:      false,
+		Verbose:      true,
 		Debug:        *flagDebug,
 		Tests:        *flagTests,
 	}
+	mgr.source.Store(ctx)
 	err = ctx.Run()
 	close(vm.Shutdown)
 	wg.Wait()
@@ -138,24 +137,20 @@ func main() {
 }
 
 type Manager struct {
-	cfg              *mgrconfig.Config
-	vmPool           *vm.Pool
-	checker          *vminfo.Checker
-	checkFiles       []string
-	checkProgs       []rpctype.ExecutionRequest
-	checkResults     []rpctype.ExecutionResult
-	needCheckResults int
-	checkProgsDone   chan bool
-	reporter         *report.Reporter
-	requests         chan *runtest.RunRequest
-	checkResultC     chan *rpctype.CheckArgs
-	vmStop           chan bool
-	port             int
-	debug            bool
+	cfg          *mgrconfig.Config
+	vmPool       *vm.Pool
+	checker      *vminfo.Checker
+	checkFiles   []string
+	reporter     *report.Reporter
+	checkResultC chan *rpctype.CheckArgs
+	vmStop       chan bool
+	port         int
+	debug        bool
+	source       queue.DynamicSource
 
 	reqMu   sync.Mutex
 	reqSeq  int64
-	reqMap  map[int64]*runtest.RunRequest
+	reqMap  map[int64]*queue.Request
 	pending map[string]map[int64]bool
 }
 
@@ -220,12 +215,15 @@ func (mgr *Manager) finishRequests(name string, rep *report.Report) error {
 			return fmt.Errorf("vm crash: %v\n%s\n%s", rep.Title, rep.Report, rep.Output)
 		}
 		delete(mgr.reqMap, id)
-		req.Err = fmt.Errorf("%v", rep.Title)
-		req.Output = rep.Report
-		if len(req.Output) == 0 {
-			req.Output = rep.Output
+		output := rep.Report
+		if len(output) == 0 {
+			output = rep.Output
 		}
-		close(req.Done)
+		req.Done(&queue.Result{
+			Status: queue.Crashed,
+			Err:    fmt.Errorf("%v", rep.Title),
+			Output: slices.Clone(output),
+		})
 	}
 	delete(mgr.pending, name)
 	return nil
@@ -254,25 +252,11 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 func (mgr *Manager) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.ExchangeInfoReply) error {
 	mgr.reqMu.Lock()
 	defer mgr.reqMu.Unlock()
-
-	select {
-	case <-mgr.checkProgsDone:
-	default:
-		mgr.checkResults = append(mgr.checkResults, a.Results...)
-		if len(mgr.checkResults) < mgr.needCheckResults {
-			numRequests := min(len(mgr.checkProgs), a.NeedProgs)
-			r.Requests = mgr.checkProgs[:numRequests]
-			mgr.checkProgs = mgr.checkProgs[numRequests:]
-		} else {
-			close(mgr.checkProgsDone)
-		}
-		return nil
-	}
-
 	if mgr.pending[a.Name] == nil {
 		mgr.pending[a.Name] = make(map[int64]bool)
 	}
-	for _, res := range a.Results {
+	for i := range a.Results {
+		res := a.Results[i]
 		if !mgr.pending[a.Name][res.ID] {
 			log.Fatalf("runner %v wasn't executing request %v", a.Name, res.ID)
 		}
@@ -285,19 +269,19 @@ func (mgr *Manager) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.Exch
 		if req == nil {
 			log.Fatalf("got done request for unknown id %v", res.ID)
 		}
-		req.Output = res.Output
-		req.Info = res.Info
-		if res.Error != "" {
-			req.Err = errors.New(res.Error)
+		result := &queue.Result{
+			Status: queue.Success,
+			Info:   &res.Info,
+			Output: res.Output,
 		}
-		close(req.Done)
+		if res.Error != "" {
+			result.Status = queue.ExecFailure
+			result.Err = errors.New(res.Error)
+		}
+		req.Done(result)
 	}
 	for i := 0; i < a.NeedProgs; i++ {
-		var req *runtest.RunRequest
-		select {
-		case req = <-mgr.requests:
-		default:
-		}
+		req := mgr.source.Next()
 		if req == nil {
 			break
 		}
@@ -306,10 +290,10 @@ func (mgr *Manager) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.Exch
 		mgr.pending[a.Name][mgr.reqSeq] = true
 		var progData []byte
 		var err error
-		if req.Bin != "" {
-			progData, err = os.ReadFile(req.Bin)
+		if req.BinaryFile != "" {
+			progData, err = os.ReadFile(req.BinaryFile)
 		} else {
-			progData, err = req.P.SerializeForExec()
+			progData, err = req.Prog.SerializeForExec()
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -317,9 +301,9 @@ func (mgr *Manager) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.Exch
 		r.Requests = append(r.Requests, rpctype.ExecutionRequest{
 			ID:           mgr.reqSeq,
 			ProgData:     progData,
-			ExecOpts:     req.Opts,
-			IsBinary:     req.Bin != "",
-			ResetState:   req.Bin == "",
+			ExecOpts:     *req.ExecOpts,
+			IsBinary:     req.BinaryFile != "",
+			ResetState:   req.BinaryFile == "",
 			ReturnOutput: true,
 			ReturnError:  true,
 			Repeat:       req.Repeat,
