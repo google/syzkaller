@@ -30,13 +30,16 @@ type checkArgs struct {
 }
 
 func testImage(hostAddr string, args *checkArgs) {
-	log.Logf(0, "connecting to host at %v", hostAddr)
-	timeout := time.Minute * args.ipcConfig.Timeouts.Scale
-	conn, err := net.DialTimeout("tcp", hostAddr, timeout)
-	if err != nil {
-		log.SyzFatalf("failed to connect to host: %v", err)
+	// gVisor uses "stdin" for communication, which is not a real tcp address.
+	if hostAddr != "stdin" {
+		log.Logf(0, "connecting to host at %v", hostAddr)
+		timeout := time.Minute * args.ipcConfig.Timeouts.Scale
+		conn, err := net.DialTimeout("tcp", hostAddr, timeout)
+		if err != nil {
+			log.SyzFatalf("failed to connect to host: %v", err)
+		}
+		conn.Close()
 	}
-	conn.Close()
 	if err := checkRevisions(args); err != nil {
 		log.SyzFatal(err)
 	}
