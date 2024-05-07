@@ -105,6 +105,17 @@ type ProgInfo struct {
 	Freshness int           // number of programs executed in the same process before this one
 }
 
+func EmptyProgInfo(calls int) *ProgInfo {
+	info := &ProgInfo{Calls: make([]CallInfo, calls)}
+	for i := range info.Calls {
+		// Store some unsuccessful errno in the case we won't get any result.
+		// It also won't have CallExecuted flag, but it's handy to make it
+		// look failed based on errno as well.
+		info.Calls[i].Errno = int(syscall.ENOSYS)
+	}
+	return info
+}
+
 type Env struct {
 	in  []byte
 	out []byte
@@ -401,13 +412,7 @@ func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
-	info := &ProgInfo{Calls: make([]CallInfo, ncalls)}
-	for i := range info.Calls {
-		// Store some unsuccessful errno in the case we won't get any result.
-		// It also won't have CallExecuted flag, but it's handy to make it
-		// look failed based on errno as well.
-		info.Calls[i].Errno = int(syscall.ENOSYS)
-	}
+	info := EmptyProgInfo(ncalls)
 	extraParts := make([]CallInfo, 0)
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
