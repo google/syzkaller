@@ -36,13 +36,8 @@ type RPCServer struct {
 
 	infoDone         bool
 	checkDone        atomic.Bool
-	checkFiles       []string
-	checkFilesInfo   []flatrpc.FileInfo
-	checkFeatureInfo []flatrpc.FeatureInfo
-	checkProgs       []rpctype.ExecutionRequest
-	checkResults     []rpctype.ExecutionResult
-	needCheckResults int
 	checkFailures    int
+	checkerSource    *queue.DynamicSource
 	enabledFeatures  flatrpc.Feature
 	setupFeatures    flatrpc.Feature
 	modules          []cover.KernelModule
@@ -50,8 +45,9 @@ type RPCServer struct {
 	execCoverFilter  map[uint32]uint32
 	coverFilter      map[uint32]uint32
 
-	mu      sync.Mutex
-	runners sync.Map // Instead of map[string]*Runner.
+	mu         sync.Mutex
+	runners    sync.Map // Instead of map[string]*Runner.
+	execSource queue.Source
 
 	statExecs                 *stats.Val
 	statExecRetries           *stats.Val
@@ -98,16 +94,18 @@ type BugFrames struct {
 type RPCManagerView interface {
 	currentBugFrames() BugFrames
 	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool)
-	getExecSource() queue.Source
 }
 
-func startRPCServer(mgr *Manager) (*RPCServer, error) {
+func startRPCServer(mgr *Manager, source queue.Source) (*RPCServer, error) {
+	var checkSource queue.DynamicSource
 	serv := &RPCServer{
-		mgr:       mgr,
-		cfg:       mgr.cfg,
-		target:    mgr.target,
-		checker:   vminfo.New(mgr.cfg),
-		statExecs: mgr.statExecs,
+		mgr:           mgr,
+		cfg:           mgr.cfg,
+		target:        mgr.target,
+		checker:       vminfo.New(mgr.cfg),
+		checkerSource: &checkSource,
+		execSource:    queue.Retry(queue.Order(&checkSource, source)),
+		statExecs:     mgr.statExecs,
 		statExecRetries: stats.Create("exec retries",
 			"Number of times a test program was restarted because the first run failed",
 			stats.Rate{}, stats.Graph("executor")),
@@ -131,8 +129,8 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	serv.checkFiles, serv.checkProgs = serv.checker.StartCheck()
-	serv.needCheckResults = len(serv.checkProgs)
+	checkSource.Store(serv.checker)
+
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	serv.port = s.Addr().(*net.TCPAddr).Port
 	serv.server = s
@@ -155,7 +153,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	if serv.checkDone.Load() {
 		r.Features = serv.setupFeatures
 	} else {
-		r.ReadFiles = append(r.ReadFiles, serv.checkFiles...)
+		r.ReadFiles = append(r.ReadFiles, serv.checker.CheckFiles()...)
 		r.ReadGlobs = serv.target.RequiredGlobs()
 		r.Features = flatrpc.AllFeatures
 	}
@@ -207,8 +205,10 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 
 	if !serv.infoDone {
 		serv.infoDone = true
-		serv.checkFeatureInfo = a.Features
-		serv.checkFilesInfo = a.Files
+
+		// Now execute check programs.
+		go serv.runCheck(a.Files, a.Features)
+
 		serv.modules = modules
 		serv.target.UpdateGlobs(a.Globs)
 		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
@@ -237,11 +237,19 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	return nil
 }
 
-func (serv *RPCServer) finishCheck() error {
+func (serv *RPCServer) runCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatureInfo []flatrpc.FeatureInfo) {
+	if err := serv.finishCheck(checkFilesInfo, checkFeatureInfo); err != nil {
+		log.Fatalf("check failed: %v", err)
+	}
+	serv.checkerSource.Store(nil) // There's no sense in calling checker's Next() each time.
+	serv.checkDone.Store(true)
+}
+
+func (serv *RPCServer) finishCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatureInfo []flatrpc.FeatureInfo) error {
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
-	enabledCalls, disabledCalls, features, checkErr := serv.checker.FinishCheck(
-		serv.checkFilesInfo, serv.checkResults, serv.checkFeatureInfo)
+
+	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(checkFilesInfo, checkFeatureInfo)
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	buf := new(bytes.Buffer)
 	if len(serv.cfg.EnabledSyscalls) != 0 || log.V(1) {
@@ -265,7 +273,7 @@ func (serv *RPCServer) finishCheck() error {
 		}
 	}
 	hasFileErrors := false
-	for _, file := range serv.checkFilesInfo {
+	for _, file := range checkFilesInfo {
 		if file.Error == "" {
 			continue
 		}
@@ -334,42 +342,15 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	if runner == nil {
 		return nil
 	}
-
-	if !serv.checkDone.Load() {
-		serv.mu.Lock()
-		if !serv.checkDone.Load() {
-			serv.checkResults = append(serv.checkResults, a.Results...)
-			if len(serv.checkResults) < serv.needCheckResults {
-				numRequests := min(len(serv.checkProgs), a.NeedProgs)
-				r.Requests = serv.checkProgs[:numRequests]
-				serv.checkProgs = serv.checkProgs[numRequests:]
-			} else {
-				if err := serv.finishCheck(); err != nil {
-					log.Fatalf("check failed: %v", err)
-				}
-				serv.checkProgs = nil
-				serv.checkResults = nil
-				serv.checkFiles = nil
-				serv.checkFilesInfo = nil
-				serv.checkFeatureInfo = nil
-				serv.checkDone.Store(true)
-			}
-		}
-		serv.mu.Unlock()
-		return nil
-	}
-
-	source := serv.mgr.getExecSource()
-	if source == nil {
-		// ExchangeInfo calls follow MachineCheck, so the fuzzer must have been initialized.
-		panic("exchange info call with nil fuzzer")
-	}
-
 	// First query new inputs and only then post results.
 	// It should foster a more even distribution of executions
 	// across all VMs.
 	for len(r.Requests) < a.NeedProgs {
-		inp := source.Next()
+		inp := serv.execSource.Next()
+		if inp == nil {
+			// It's unlikely that subsequent Next() calls will yield something.
+			break
+		}
 		if req, ok := serv.newRequest(runner, inp); ok {
 			r.Requests = append(r.Requests, req)
 		} else {
@@ -460,9 +441,6 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
-	if !serv.checkDone.Load() {
-		log.Fatalf("VM is exited while checking is not done")
-	}
 	for _, req := range oldRequests {
 		if crashed && req.try >= 0 {
 			req.req.Done(&queue.Result{Status: queue.Crashed})
@@ -531,7 +509,11 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult)
 	}
 	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
 	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
-	req.req.Done(&queue.Result{Info: info})
+	req.req.Done(&queue.Result{
+		Info:   info,
+		Output: resp.Output,
+		Error:  resp.Error,
+	})
 }
 
 func (serv *RPCServer) newRequest(runner *Runner, req *queue.Request) (rpctype.ExecutionRequest, bool) {
@@ -560,14 +542,23 @@ func (serv *RPCServer) newRequest(runner *Runner, req *queue.Request) (rpctype.E
 		}
 	}
 	runner.mu.Unlock()
+
+	var execOpts ipc.ExecOpts
+	if req.ExecOpts != nil {
+		execOpts = *req.ExecOpts
+	} else {
+		execOpts = serv.createExecOpts(req)
+	}
 	return rpctype.ExecutionRequest{
 		ID:               id,
 		ProgData:         progData,
-		ExecOpts:         serv.createExecOpts(req),
+		ExecOpts:         execOpts,
 		NewSignal:        req.NeedSignal == queue.NewSignal,
 		SignalFilter:     signalFilter,
 		SignalFilterCall: req.SignalFilterCall,
 		ResetState:       serv.cfg.Experimental.ResetAccState,
+		ReturnError:      req.ReturnError,
+		ReturnOutput:     req.ReturnOutput,
 	}, true
 }
 

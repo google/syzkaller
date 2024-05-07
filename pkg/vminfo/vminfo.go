@@ -14,6 +14,7 @@ package vminfo
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,14 +24,15 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 type Checker struct {
 	checker
+	source       queue.Source
 	checkContext *checkContext
 }
 
@@ -46,9 +48,12 @@ func New(cfg *mgrconfig.Config) *Checker {
 	default:
 		impl = new(stub)
 	}
+	ctx := context.Background()
+	executor := queue.Plain()
 	return &Checker{
 		checker:      impl,
-		checkContext: newCheckContext(cfg, impl),
+		source:       queue.Deduplicate(ctx, executor),
+		checkContext: newCheckContext(ctx, cfg, impl, executor),
 	}
 }
 
@@ -77,16 +82,24 @@ func (checker *Checker) MachineInfo(fileInfos []flatrpc.FileInfo) ([]cover.Kerne
 	return modules, info.Bytes(), nil
 }
 
-func (checker *Checker) StartCheck() ([]string, []rpctype.ExecutionRequest) {
-	return checker.checkFiles(), checker.checkContext.startCheck()
+func (checker *Checker) CheckFiles() []string {
+	return checker.checkFiles()
 }
 
-func (checker *Checker) FinishCheck(files []flatrpc.FileInfo, progs []rpctype.ExecutionResult,
-	featureInfos []flatrpc.FeatureInfo) (map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
+func (checker *Checker) Run(files []flatrpc.FileInfo, featureInfos []flatrpc.FeatureInfo) (
+	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	ctx := checker.checkContext
 	checker.checkContext = nil
-	return ctx.finishCheck(files, progs, featureInfos)
+	ctx.start(files)
+	return ctx.wait(featureInfos)
 }
+
+// Implementation of the queue.Source interface.
+func (checker *Checker) Next() *queue.Request {
+	return checker.source.Next()
+}
+
+var _ queue.Source = &Checker{}
 
 type machineInfoFunc func(files filesystem, w io.Writer) (string, error)
 

@@ -6,6 +6,7 @@ package ipc
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -98,11 +99,29 @@ type CallInfo struct {
 	Errno int          // call errno (0 if the call was successful)
 }
 
+func (ci *CallInfo) Clone() CallInfo {
+	ret := *ci
+	ret.Signal = slices.Clone(ret.Signal)
+	ret.Cover = slices.Clone(ret.Cover)
+	ret.Comps = maps.Clone(ret.Comps)
+	return ret
+}
+
 type ProgInfo struct {
 	Calls     []CallInfo
 	Extra     CallInfo      // stores Signal and Cover collected from background threads
 	Elapsed   time.Duration // total execution time of the program
 	Freshness int           // number of programs executed in the same process before this one
+}
+
+func (pi *ProgInfo) Clone() *ProgInfo {
+	ret := *pi
+	ret.Extra = ret.Extra.Clone()
+	ret.Calls = slices.Clone(ret.Calls)
+	for i, call := range ret.Calls {
+		ret.Calls[i] = call.Clone()
+	}
+	return &ret
 }
 
 func EmptyProgInfo(calls int) *ProgInfo {

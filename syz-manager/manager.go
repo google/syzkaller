@@ -74,7 +74,7 @@ type Manager struct {
 
 	mu                    sync.Mutex
 	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
-	execSource            atomic.Value // queue.Source
+	execSource            queue.DynamicSource
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
@@ -194,7 +194,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	go mgr.corpusInputHandler(corpusUpdates)
 
 	// Create RPC server for fuzzers.
-	mgr.serv, err = startRPCServer(mgr)
+	mgr.serv, err = startRPCServer(mgr, &mgr.execSource)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -1376,7 +1376,7 @@ func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map
 		},
 	}, rnd, mgr.target)
 	mgr.fuzzer.Store(fuzzerObj)
-	mgr.execSource.Store(queue.Retry(fuzzerObj))
+	mgr.execSource.Store(fuzzerObj)
 
 	mgr.loadCorpus()
 	mgr.firstConnect.Store(time.Now().Unix())
@@ -1396,11 +1396,6 @@ func (mgr *Manager) corpusMinimization() {
 		mgr.minimizeCorpusLocked()
 		mgr.mu.Unlock()
 	}
-}
-
-// We need this method since we're not supposed to access Manager fields from RPCServer.
-func (mgr *Manager) getExecSource() queue.Source {
-	return mgr.execSource.Load().(queue.Source)
 }
 
 func (mgr *Manager) fuzzerSignalRotation() {

@@ -4,10 +4,14 @@
 package queue
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
@@ -19,10 +23,15 @@ type Request struct {
 	NeedSignal SignalType
 	NeedCover  bool
 	NeedHints  bool
+	ExecOpts   *ipc.ExecOpts
+
 	// If specified, the resulting signal for call SignalFilterCall
 	// will include subset of it even if it's not new.
 	SignalFilter     signal.Signal
 	SignalFilterCall int
+
+	ReturnError  bool
+	ReturnOutput bool
 
 	// This stat will be incremented on request completion.
 	Stat *stats.Val
@@ -78,6 +87,22 @@ func (r *Request) Wait(ctx context.Context) *Result {
 	}
 }
 
+func (r *Request) hash() hash.Sig {
+	buf := new(bytes.Buffer)
+	if r.ExecOpts != nil {
+		if err := gob.NewEncoder(buf).Encode(r.ExecOpts); err != nil {
+			panic(err)
+		}
+	}
+	return hash.Hash(
+		[]byte(fmt.Sprint(r.NeedSignal)),
+		[]byte(fmt.Sprint(r.NeedCover)),
+		[]byte(fmt.Sprint(r.NeedHints)),
+		r.Prog.Serialize(),
+		buf.Bytes(),
+	)
+}
+
 func (r *Request) initChannel() {
 	r.mu.Lock()
 	if r.done == nil {
@@ -96,7 +121,17 @@ const (
 
 type Result struct {
 	Info   *ipc.ProgInfo
+	Output []byte
 	Status Status
+	Error  string // More details in case of ExecFailure.
+}
+
+func (r *Result) clone() *Result {
+	ret := *r
+	if ret.Info != nil {
+		ret.Info = ret.Info.Clone()
+	}
+	return &ret
 }
 
 func (r *Result) Stop() bool {
@@ -292,4 +327,90 @@ func (pq *PriorityQueue) Next() *Request {
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
 	return pq.ops.Pop()
+}
+
+type DynamicSource struct {
+	value atomic.Pointer[wrapSource]
+}
+
+type wrapSource struct {
+	source Source
+}
+
+func (ds *DynamicSource) Store(source Source) {
+	ds.value.Store(&wrapSource{source})
+}
+
+func (ds *DynamicSource) Next() *Request {
+	val := ds.value.Load()
+	if val == nil || val.source == nil {
+		return nil
+	}
+	return val.source.Next()
+}
+
+// Deduplicator() keeps track of the previously run requests to avoid re-running them.
+type Deduplicator struct {
+	mu     sync.Mutex
+	ctx    context.Context
+	source Source
+	mm     map[hash.Sig]*duplicateState
+}
+
+type duplicateState struct {
+	res    *Result
+	queued []*Request // duplicate requests waiting for the result.
+}
+
+func Deduplicate(ctx context.Context, source Source) Source {
+	return &Deduplicator{
+		ctx:    ctx,
+		source: source,
+		mm:     map[hash.Sig]*duplicateState{},
+	}
+}
+
+func (d *Deduplicator) Next() *Request {
+	for {
+		req := d.source.Next()
+		if req == nil {
+			return nil
+		}
+		hash := req.hash()
+		d.mu.Lock()
+		entry, ok := d.mm[hash]
+		if !ok {
+			d.mm[hash] = &duplicateState{}
+		} else if entry.res == nil {
+			// There's no result yet, put the request to the queue.
+			entry.queued = append(entry.queued, req)
+		} else {
+			// We already know the result.
+			req.Done(entry.res.clone())
+		}
+		d.mu.Unlock()
+		if !ok {
+			// This is the first time we see such a request.
+			req.OnDone(d.onDone)
+			return req
+		}
+	}
+}
+
+func (d *Deduplicator) onDone(req *Request, res *Result) bool {
+	hash := req.hash()
+	clonedRes := res.clone()
+
+	d.mu.Lock()
+	entry := d.mm[hash]
+	queued := entry.queued
+	entry.queued = nil
+	entry.res = clonedRes
+	d.mu.Unlock()
+
+	// Broadcast the result.
+	for _, waitingReq := range queued {
+		waitingReq.Done(res.clone())
+	}
+	return true
 }

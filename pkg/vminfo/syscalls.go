@@ -4,18 +4,15 @@
 package vminfo
 
 import (
-	"bytes"
-	"encoding/gob"
+	"context"
 	"fmt"
-	"slices"
 	"strings"
 	"syscall"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -26,44 +23,19 @@ import (
 // and provides primitives for reading target VM files, checking if a file can be opened,
 // executing test programs on the target VM, etc.
 //
-// To make use of this type simpler, we collect all test programs that need
-// to be executed on the target into a batch, send them to the target VM once,
-// then get results and finish the check. This means that impl.syscallCheck
-// cannot e.g. issue one test program, look at results, and then issue another one.
-// This is achieved by starting each impl.syscallCheck in a separate goroutine
-// and then waiting when it will call ctx.execRaw to submit syscalls that
-// need to be executed on the target. Once all impl.syscallCheck submit
-// their test syscalls, we know that we collected all of them.
-// impl.syscallCheck may also decide to read a file on the target VM instead
-// of executing a test program, this also counts as submitting an empty test program.
-// This means that impl.syscallCheck cannot execute a test program after reading a file,
-// but can do these things in opposite order (since all files are known ahead of time).
-// These rules are bit brittle, but all of the checkers are unit-tested
-// and misuse (trying to execute 2 programs, etc) will either crash or hang in tests.
-// Theoretically we can execute more than 1 program per checker, but it will
-// require some special arrangements, e.g. see handling of PseudoSyscallDeps.
-//
 // The external interface of this type contains only 2 methods:
 // startCheck - starts impl.syscallCheck goroutines and collects all test programs in progs,
 // finishCheck - accepts results of program execution, unblocks impl.syscallCheck goroutines,
 //
 //	waits and returns results of checking.
 type checkContext struct {
-	impl    checker
-	cfg     *mgrconfig.Config
-	target  *prog.Target
-	sandbox ipc.EnvFlags
-	// Checkers use requests channel to submit their test programs,
-	// main goroutine will wait for exactly pendingRequests message on this channel
-	// (similar to sync.WaitGroup, pendingRequests is incremented before starting
-	// a goroutine that will send on requests).
-	requests        chan []*rpctype.ExecutionRequest
-	pendingRequests int
-	// Ready channel is closed after we've recevied results of execution of test
-	// programs and file contents. After this results maps and fs are populated.
-	ready   chan bool
-	results map[int64]rpctype.ExecutionResult
-	fs      filesystem
+	ctx      context.Context
+	impl     checker
+	cfg      *mgrconfig.Config
+	target   *prog.Target
+	sandbox  ipc.EnvFlags
+	executor queue.Executor
+	fs       filesystem
 	// Once checking of a syscall is finished, the result is sent to syscalls.
 	// The main goroutine will wait for exactly pendingSyscalls messages.
 	syscalls        chan syscallResult
@@ -76,25 +48,26 @@ type syscallResult struct {
 	reason string
 }
 
-func newCheckContext(cfg *mgrconfig.Config, impl checker) *checkContext {
+func newCheckContext(ctx context.Context, cfg *mgrconfig.Config, impl checker,
+	executor queue.Executor) *checkContext {
 	sandbox, err := ipc.SandboxToFlags(cfg.Sandbox)
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
 	}
 	return &checkContext{
+		ctx:      ctx,
 		impl:     impl,
 		cfg:      cfg,
 		target:   cfg.Target,
 		sandbox:  sandbox,
-		requests: make(chan []*rpctype.ExecutionRequest),
-		results:  make(map[int64]rpctype.ExecutionResult),
+		executor: executor,
 		syscalls: make(chan syscallResult),
 		features: make(chan featureResult, 100),
-		ready:    make(chan bool),
 	}
 }
 
-func (ctx *checkContext) startCheck() []rpctype.ExecutionRequest {
+func (ctx *checkContext) start(fileInfos []flatrpc.FileInfo) {
+	ctx.fs = createVirtualFilesystem(fileInfos)
 	for _, id := range ctx.cfg.Syscalls {
 		call := ctx.target.Syscalls[id]
 		if call.Attrs.Disabled {
@@ -112,52 +85,24 @@ func (ctx *checkContext) startCheck() []rpctype.ExecutionRequest {
 		if ctx.cfg.SysTarget.HostFuzzer || ctx.target.OS == targets.TestOS {
 			syscallCheck = alwaysSupported
 		}
-
-		var depsReason chan string
-		deps := ctx.cfg.SysTarget.PseudoSyscallDeps[call.CallName]
-		if len(deps) != 0 {
-			ctx.pendingRequests++
-			depsReason = make(chan string, 1)
-			go func() {
-				depsReason <- ctx.supportedSyscalls(deps)
-			}()
-		}
-		ctx.pendingRequests++
 		go func() {
-			reason := syscallCheck(ctx, call)
-			ctx.waitForResults()
-			if reason == "" && depsReason != nil {
-				reason = <-depsReason
+			var reason string
+			deps := ctx.cfg.SysTarget.PseudoSyscallDeps[call.CallName]
+			if len(deps) != 0 {
+				reason = ctx.supportedSyscalls(deps)
+			}
+			// Only check the call if all its dependencies are satisfied.
+			if reason == "" {
+				reason = syscallCheck(ctx, call)
 			}
 			ctx.syscalls <- syscallResult{call, reason}
 		}()
 	}
-	ctx.checkFeatures()
-	var progs []rpctype.ExecutionRequest
-	dedup := make(map[hash.Sig]int64)
-	for i := 0; i < ctx.pendingRequests; i++ {
-		for _, req := range <-ctx.requests {
-			sig := hashReq(req)
-			req.ID = dedup[sig]
-			if req.ID != 0 {
-				continue
-			}
-			req.ID = int64(len(dedup) + 1)
-			dedup[sig] = req.ID
-			progs = append(progs, *req)
-		}
-	}
-	ctx.requests = nil
-	return progs
+	ctx.startFeaturesCheck()
 }
 
-func (ctx *checkContext) finishCheck(fileInfos []flatrpc.FileInfo, progs []rpctype.ExecutionResult,
-	featureInfos []flatrpc.FeatureInfo) (map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
-	ctx.fs = createVirtualFilesystem(fileInfos)
-	for _, res := range progs {
-		ctx.results[res.ID] = res
-	}
-	close(ctx.ready)
+func (ctx *checkContext) wait(featureInfos []flatrpc.FeatureInfo) (
+	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	enabled := make(map[*prog.Syscall]bool)
 	disabled := make(map[*prog.Syscall]string)
 	for i := 0; i < ctx.pendingSyscalls; i++ {
@@ -292,16 +237,12 @@ func (ctx *checkContext) val(name string) uint64 {
 }
 
 func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root bool) *ipc.ProgInfo {
-	if ctx.requests == nil {
-		panic("only one test execution per checker is supported")
-	}
 	sandbox := ctx.sandbox
 	if root {
 		sandbox = 0
 	}
-	remain := calls
-	var requests []*rpctype.ExecutionRequest
-	for len(remain) != 0 {
+	info := &ipc.ProgInfo{}
+	for remain := calls; len(remain) != 0; {
 		// Don't put too many syscalls into a single program,
 		// it will have higher chances to time out.
 		ncalls := min(len(remain), prog.MaxCalls/2)
@@ -311,91 +252,37 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 		if err != nil {
 			panic(fmt.Sprintf("failed to deserialize: %v\n%v", err, progStr))
 		}
-		data, err := p.SerializeForExec()
-		if err != nil {
-			panic(fmt.Sprintf("failed to serialize test program: %v\n%s", err, progStr))
-		}
-		requests = append(requests, &rpctype.ExecutionRequest{
-			ProgData: slices.Clone(data), // clone to reduce memory usage
-			ExecOpts: ipc.ExecOpts{
+		// TODO: request that the program must be re-executed on the first failure.
+		req := &queue.Request{
+			Prog: p,
+			ExecOpts: &ipc.ExecOpts{
 				EnvFlags:   sandbox,
 				ExecFlags:  0,
 				SandboxArg: ctx.cfg.SandboxArg,
 			},
-		})
-	}
-	ctx.requests <- requests
-	<-ctx.ready
-	info := &ipc.ProgInfo{}
-	for _, req := range requests {
-		res, ok := ctx.results[req.ID]
-		if !ok {
-			panic(fmt.Sprintf("no result for request %v", req.ID))
 		}
-		if len(res.Info.Calls) == 0 {
-			panic(fmt.Sprintf("result for request %v has no calls", req.ID))
+		ctx.executor.Submit(req)
+		res := req.Wait(ctx.ctx)
+		if res.Status == queue.Success {
+			info.Calls = append(info.Calls, res.Info.Calls...)
+		} else if res.Status == queue.Crashed {
+			// Pretend these calls were not executed.
+			info.Calls = append(info.Calls, ipc.EmptyProgInfo(ncalls).Calls...)
+		} else {
+			// The program must have been either executed or not due to a crash.
+			panic(fmt.Sprintf("got unexpected execution status (%d) for the prog %s",
+				res.Status, progStr))
 		}
-		info.Calls = append(info.Calls, res.Info.Calls...)
 	}
 	if len(info.Calls) != len(calls) {
-		panic(fmt.Sprintf("got only %v results for program %v with %v calls:\n%s",
-			len(info.Calls), requests[0].ID, len(calls), strings.Join(calls, "\n")))
+		panic(fmt.Sprintf("got %v != %v results for program:\n%s",
+			len(info.Calls), len(calls), strings.Join(calls, "\n")))
 	}
 	return info
 }
 
-func (ctx *checkContext) execProg(p *prog.Prog, envFlags ipc.EnvFlags,
-	execFlags ipc.ExecFlags) rpctype.ExecutionResult {
-	if ctx.requests == nil {
-		panic("only one test execution per checker is supported")
-	}
-	data, err := p.SerializeForExec()
-	if err != nil {
-		panic(fmt.Sprintf("failed to serialize test program: %v\n%s", err, p.Serialize()))
-	}
-	req := &rpctype.ExecutionRequest{
-		ProgData:     data,
-		ReturnOutput: true,
-		ReturnError:  true,
-		ExecOpts: ipc.ExecOpts{
-			EnvFlags:   envFlags,
-			ExecFlags:  execFlags,
-			SandboxArg: ctx.cfg.SandboxArg,
-		},
-	}
-	ctx.requests <- []*rpctype.ExecutionRequest{req}
-	<-ctx.ready
-	res, ok := ctx.results[req.ID]
-	if !ok {
-		panic(fmt.Sprintf("no result for request %v", req.ID))
-	}
-	return res
-}
-
 func (ctx *checkContext) readFile(name string) ([]byte, error) {
-	ctx.waitForResults()
 	return ctx.fs.ReadFile(name)
-}
-
-func (ctx *checkContext) waitForResults() {
-	// If syscallCheck has already executed a program, then it's also waited for ctx.ready.
-	// If it hasn't, then we need to unblock the loop in startCheck by sending a nil request.
-	if ctx.requests == nil {
-		return
-	}
-	ctx.requests <- nil
-	<-ctx.ready
-	if ctx.fs == nil {
-		panic("filesystem should be initialized by now")
-	}
-}
-
-func hashReq(req *rpctype.ExecutionRequest) hash.Sig {
-	buf := new(bytes.Buffer)
-	if err := gob.NewEncoder(buf).Encode(req.ExecOpts); err != nil {
-		panic(err)
-	}
-	return hash.Hash(req.ProgData, buf.Bytes())
 }
 
 func alwaysSupported(ctx *checkContext, call *prog.Syscall) string {
