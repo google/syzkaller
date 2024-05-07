@@ -20,7 +20,19 @@ func (linux) syscallCheck(ctx *checkContext, call *prog.Syscall) string {
 	check := linuxSyscallChecks[call.CallName]
 	if check == nil {
 		check = func(ctx *checkContext, call *prog.Syscall) string {
-			return ctx.supportedSyscalls([]string{call.Name})
+			// Execute plain syscall (rather than a variation with $) to make test program
+			// deduplication effective. However, if the plain syscall does not exist take
+			// the first variant for this syscall, this still allows to dedup all variants.
+			// This works b/c in syscall test we only check for ENOSYS result.
+			name := call.CallName
+			if ctx.target.SyscallMap[name] == nil {
+				for _, call1 := range ctx.target.Syscalls {
+					if name == call1.CallName {
+						name = call1.Name
+					}
+				}
+			}
+			return ctx.supportedSyscalls([]string{name})
 		}
 	}
 	if reason := check(ctx, call); reason != "" {
