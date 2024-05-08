@@ -39,6 +39,9 @@
         "appengine": {
             "component": "appengine"
         },
+        "apphub": {
+            "component": "apphub"
+        },
         "apps": {
             "component": "apps"
         },
@@ -80,6 +83,9 @@
         },
         "cloudbuild": {
             "component": "cloudbuild"
+        },
+        "cloudcontrolspartner": {
+            "component": "cloudcontrolspartner"
         },
         "clouddms": {
             "component": "clouddms"

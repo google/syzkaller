@@ -1,5 +1,12 @@
 # Changes
 
+## [0.112.2](https://github.com/googleapis/google-cloud-go/compare/v0.112.1...v0.112.2) (2024-03-27)
+
+
+### Bug Fixes
+
+* **all:** Release protobuf dep bump ([#9586](https://github.com/googleapis/google-cloud-go/issues/9586)) ([30b038d](https://github.com/googleapis/google-cloud-go/commit/30b038d8cac0b8cd5dd4761c87f3f298760dd33a))
+
 ## [0.112.1](https://github.com/googleapis/google-cloud-go/compare/v0.112.0...v0.112.1) (2024-02-26)
 
 
