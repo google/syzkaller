@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/google/syzkaller/executor"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -163,7 +164,7 @@ func TestExecutorMacros(t *testing.T) {
 	expected["SYZ_HAVE_RESET_LOOP"] = true
 	expected["SYZ_HAVE_SETUP_TEST"] = true
 	expected["SYZ_TEST_COMMON_EXT_EXAMPLE"] = true
-	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(commonHeader, -1)
+	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(string(executor.CommonHeader), -1)
 	for _, macro := range macros {
 		if strings.HasPrefix(macro, "SYZ_HAVE_") {
 			continue
