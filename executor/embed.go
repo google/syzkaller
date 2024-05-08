@@ -8,6 +8,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"regexp"
 )
@@ -36,9 +37,9 @@ var CommonHeader = func() []byte {
 		}
 	}
 	// To not hardcode concrete order in which headers need to be replaced
-	// we just iteratively try to replace whatever headers can be replaced
-	// on the current step.
-	for len(headers) != 0 {
+	// we just iteratively try to replace whatever headers can be replaced.
+	unused := maps.Clone(headers)
+	for {
 		relacedSomething := false
 		for file := range headers {
 			replace := []byte("#include \"" + path.Base(file) + "\"")
@@ -53,12 +54,15 @@ var CommonHeader = func() []byte {
 				panic(err)
 			}
 			data = bytes.ReplaceAll(data, replace, contents)
-			delete(headers, file)
+			delete(unused, file)
 			relacedSomething = true
 		}
 		if !relacedSomething {
-			panic(fmt.Sprintf("can't find includes for %v", headers))
+			break
 		}
+	}
+	if len(unused) != 0 {
+		panic(fmt.Sprintf("can't find includes for %v", unused))
 	}
 	// Remove `//` comments, but keep lines which start with `//%`.
 	for _, remove := range []string{
