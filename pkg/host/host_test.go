@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -15,6 +16,9 @@ import (
 func TestDetectSupportedSyscalls(t *testing.T) {
 	// Note: this test is not parallel because it modifies global testFallback var.
 	for _, fallback := range []bool{false, true} {
+		if testutil.RaceEnabled && fallback {
+			continue // too slow under race detector
+		}
 		t.Run(fmt.Sprintf("fallback=%v", fallback), func(t *testing.T) {
 			oldFallback := testFallback
 			testFallback = fallback
