@@ -35,9 +35,9 @@ cl executor\executor_windows.cc /EHsc -o bin\windows_amd64\syz-executor.exe \
 	Msimg32.lib RpcRT4.lib Rpcrt4.lib lz32.lib
 ```
 
-To run `syz-stress`:
+To run `syz-execprog`:
 ```
-bin\windows_amd64\syz-stress.exe -executor c:\full\path\to\bin\windows_amd64\syz-executor.exe
+bin\windows_amd64\syz-execprog.exe -executor c:\full\path\to\bin\windows_amd64\syz-executor.exe -stress
 ```
 
 Windows is supported by only `gce` VMs at the moment.

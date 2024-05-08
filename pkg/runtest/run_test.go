@@ -93,7 +93,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Dir:          filepath.Join("..", "..", "sys", target.OS, targets.TestOS),
 		Target:       target,
 		Tests:        *flagFilter,
-		Features:     features,
+		Features:     features.ToFlatRPC(),
 		EnabledCalls: enabledCalls,
 		Requests:     requests,
 		LogFunc: func(text string) {

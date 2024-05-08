@@ -145,6 +145,7 @@ func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) error {
 	for _, entry := range list {
 		entry.Syscalls = ctx.extraRules.subsystemCalls[entry.Name]
 		_, entry.NoReminders = ctx.extraRules.noReminders[entry.Name]
+		_, entry.NoIndirectCc = ctx.extraRules.noIndirectCc[entry.Name]
 		perName[entry.Name] = entry
 	}
 	for from, toNames := range ctx.extraRules.addParents {

@@ -14,8 +14,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,6 +22,13 @@ func TestLinuxSyscalls(t *testing.T) {
 	cfg := testConfig(t, targets.Linux, targets.AMD64)
 	checker := New(cfg)
 	_, checkProgs := checker.StartCheck()
+	t.Logf("got %v test programs", len(checkProgs))
+	if len(checkProgs) > 1000 {
+		// This is just a sanity check that we don't do something stupid accidentally.
+		// If it grows above the limit intentionally, the limit can be increased.
+		// Currently we have 641 (when we failed to properly dedup syscall tests, it was 4349).
+		t.Fatal("too many test programs")
+	}
 	filesystems := []string{
 		"", "9p", "esdfs", "incremental-fs", "cgroup", "cgroup2",
 		"pvfs2", "nfs", "nfs4", "fuse", "fuseblk", "afs", "pipefs",
@@ -35,7 +40,7 @@ func TestLinuxSyscalls(t *testing.T) {
 		"minix", "adfs", "ufs", "sysv", "reiserfs", "ocfs2", "nilfs2",
 		"iso9660", "hpfs", "binder", "bcachefs", "",
 	}
-	files := []flatrpc.FileInfoT{
+	files := []flatrpc.FileInfo{
 		{
 			Name:   "/proc/version",
 			Exists: true,
@@ -47,20 +52,7 @@ func TestLinuxSyscalls(t *testing.T) {
 			Data:   []byte(strings.Join(filesystems, "\nnodev\t")),
 		},
 	}
-	var results []rpctype.ExecutionResult
-	for _, req := range checkProgs {
-		p, err := cfg.Target.DeserializeExec(req.ProgData, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		res := rpctype.ExecutionResult{
-			ID: req.ID,
-			Info: ipc.ProgInfo{
-				Calls: make([]ipc.CallInfo, len(p.Calls)),
-			},
-		}
-		results = append(results, res)
-	}
+	results := createSuccessfulResults(t, cfg.Target, checkProgs)
 	enabled, disabled, err := checker.FinishCheck(files, results)
 	if err != nil {
 		t.Fatal(err)
@@ -128,7 +120,7 @@ func TestCannedCPUInfoLinux(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			files := createVirtualFilesystem([]flatrpc.FileInfoT{{
+			files := createVirtualFilesystem([]flatrpc.FileInfo{{
 				Name:   "/proc/cpuinfo",
 				Exists: true,
 				Data:   []byte(test.data),

@@ -10,8 +10,10 @@ type Subsystem struct {
 	Lists       []string
 	Maintainers []string
 	Parents     []*Subsystem
-	// If NoReminders is set to true, there should be no monthly reports for the subsystem.
+	// If NoReminders is true, there should be no monthly reports for the subsystem.
 	NoReminders bool
+	// If NoIndirectCc is true, the subsystem lists are not tagged in sub-subsystem reports.
+	NoIndirectCc bool
 }
 
 // ReachableParents returns the set of subsystems reachable from the current one.
@@ -41,7 +43,9 @@ func (subsystem *Subsystem) Emails() []string {
 	ret = append(ret, subsystem.Maintainers...)
 	// For its parent subsystems, we only take lists.
 	for parent := range subsystem.ReachableParents() {
-		ret = append(ret, parent.Lists...)
+		if !parent.NoIndirectCc {
+			ret = append(ret, parent.Lists...)
+		}
 	}
 	return ret
 }

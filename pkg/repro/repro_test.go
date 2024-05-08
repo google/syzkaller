@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
@@ -158,7 +159,7 @@ func prepareTestCtx(t *testing.T, log string) *context {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, err := prepareCtx([]byte(log), mgrConfig, nil, reporter, 3)
+	ctx, err := prepareCtx([]byte(log), mgrConfig, flatrpc.AllFeatures, reporter, 3)
 	if err != nil {
 		t.Fatal(err)
 	}

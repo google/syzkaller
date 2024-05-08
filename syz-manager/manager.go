@@ -24,10 +24,10 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -63,7 +63,8 @@ type Manager struct {
 	firstConnect    atomic.Int64 // unix time, or 0 if not connected
 	crashTypes      map[string]bool
 	vmStop          chan bool
-	checkFeatures   *host.Features
+	enabledFeatures flatrpc.Feature
+	checkDone       bool
 	fresh           bool
 	expertMode      bool
 	nextInstanceID  atomic.Uint64
@@ -459,7 +460,7 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(...int)) *ReproResult {
-	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.checkFeatures, mgr.reporter, mgr.vmPool, vmIndexes)
+	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.enabledFeatures, mgr.reporter, mgr.vmPool, vmIndexes)
 	ret := &ReproResult{
 		instances:     vmIndexes,
 		report0:       crash.Report,
@@ -983,7 +984,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	if crash.fromHub || crash.fromDashboard {
 		return true
 	}
-	if mgr.checkFeatures == nil || (mgr.checkFeatures[host.FeatureLeak].Enabled &&
+	if !mgr.checkDone || (mgr.enabledFeatures&flatrpc.FeatureLeak != 0 &&
 		crash.Type != crash_pkg.MemoryLeak) {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
@@ -1337,14 +1338,14 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 	return frames
 }
 
-func (mgr *Manager) machineChecked(features *host.Features, enabledSyscalls map[*prog.Syscall]bool) {
+func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if mgr.checkFeatures != nil {
+	if mgr.checkDone {
 		panic("machineChecked() called twice")
 	}
-
-	mgr.checkFeatures = features
+	mgr.checkDone = true
+	mgr.enabledFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
@@ -1354,8 +1355,8 @@ func (mgr *Manager) machineChecked(features *host.Features, enabledSyscalls map[
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 		Corpus:         mgr.corpus,
 		Coverage:       mgr.cfg.Cover,
-		FaultInjection: features[host.FeatureFault].Enabled,
-		Comparisons:    features[host.FeatureComparisons].Enabled,
+		FaultInjection: features&flatrpc.FeatureFault != 0,
+		Comparisons:    features&flatrpc.FeatureComparisons != 0,
 		Collide:        true,
 		EnabledCalls:   enabledSyscalls,
 		NoMutateCalls:  mgr.cfg.NoMutateCalls,

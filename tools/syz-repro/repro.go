@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -64,7 +65,7 @@ func main() {
 	}
 	osutil.HandleInterrupts(vm.Shutdown)
 
-	res, stats, err := repro.Run(data, cfg, nil, reporter, vmPool, vmIndexes)
+	res, stats, err := repro.Run(data, cfg, flatrpc.AllFeatures, reporter, vmPool, vmIndexes)
 	if err != nil {
 		log.Logf(0, "reproduction failed: %v", err)
 	}

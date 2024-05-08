@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/bisect/minimize"
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -74,7 +74,7 @@ type execInterface interface {
 
 var ErrNoPrograms = errors.New("crash log does not contain any programs")
 
-func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
+func Run(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, reporter *report.Reporter,
 	vmPool *vm.Pool, vmIndexes []int) (*Result, *Stats, error) {
 	ctx, err := prepareCtx(crashLog, cfg, features, reporter, len(vmIndexes))
 	if err != nil {
@@ -95,7 +95,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 	return ctx.run()
 }
 
-func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
+func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, reporter *report.Reporter,
 	VMs int) (*context, error) {
 	if VMs == 0 {
 		return nil, fmt.Errorf("no VMs provided")
@@ -178,40 +178,38 @@ func (ctx *context) run() (*Result, *Stats, error) {
 	return res, ctx.stats, nil
 }
 
-func createStartOptions(cfg *mgrconfig.Config, features *host.Features,
+func createStartOptions(cfg *mgrconfig.Config, features flatrpc.Feature,
 	crashType crash.Type) csource.Options {
 	opts := csource.DefaultOpts(cfg)
 	if crashType == crash.MemoryLeak {
 		opts.Leak = true
 	}
-	if features != nil {
-		if !features[host.FeatureNetInjection].Enabled {
-			opts.NetInjection = false
-		}
-		if !features[host.FeatureNetDevices].Enabled {
-			opts.NetDevices = false
-		}
-		if !features[host.FeatureDevlinkPCI].Enabled {
-			opts.DevlinkPCI = false
-		}
-		if !features[host.FeatureNicVF].Enabled {
-			opts.NicVF = false
-		}
-		if !features[host.FeatureUSBEmulation].Enabled {
-			opts.USB = false
-		}
-		if !features[host.FeatureVhciInjection].Enabled {
-			opts.VhciInjection = false
-		}
-		if !features[host.FeatureWifiEmulation].Enabled {
-			opts.Wifi = false
-		}
-		if !features[host.Feature802154Emulation].Enabled {
-			opts.IEEE802154 = false
-		}
-		if !features[host.FeatureSwap].Enabled {
-			opts.Swap = false
-		}
+	if features&flatrpc.FeatureNetInjection == 0 {
+		opts.NetInjection = false
+	}
+	if features&flatrpc.FeatureNetDevices == 0 {
+		opts.NetDevices = false
+	}
+	if features&flatrpc.FeatureDevlinkPCI == 0 {
+		opts.DevlinkPCI = false
+	}
+	if features&flatrpc.FeatureNicVF == 0 {
+		opts.NicVF = false
+	}
+	if features&flatrpc.FeatureUSBEmulation == 0 {
+		opts.USB = false
+	}
+	if features&flatrpc.FeatureVhciInjection == 0 {
+		opts.VhciInjection = false
+	}
+	if features&flatrpc.FeatureWifiEmulation == 0 {
+		opts.Wifi = false
+	}
+	if features&flatrpc.FeatureLRWPANEmulation == 0 {
+		opts.IEEE802154 = false
+	}
+	if features&flatrpc.FeatureSwap == 0 {
+		opts.Swap = false
 	}
 	return opts
 }

@@ -51,7 +51,6 @@ func TestFsSubsystemFlow(t *testing.T) {
 	c.expectEQ(reply.Subject, "[syzbot] [nilfs?] WARNING in nilfs_dat_commit_end")
 	assert.ElementsMatch(t, reply.To, []string{
 		"konishi.ryusuke@gmail.com",
-		"linux-fsdevel@vger.kernel.org",
 		"linux-kernel@vger.kernel.org",
 		"linux-nilfs@vger.kernel.org",
 		"maintainer@kernel.org",
@@ -97,7 +96,6 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 	// Make sure ntfs3 maintainers are in the recipients.
 	assert.ElementsMatch(t, reply.To, []string{
 		"almaz.alexandrovich@paragon-software.com",
-		"linux-fsdevel@vger.kernel.org",
 		"linux-kernel@vger.kernel.org",
 		"maintainer@kernel.org",
 		"ntfs3@lists.linux.dev",

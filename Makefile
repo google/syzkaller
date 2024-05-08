@@ -100,7 +100,7 @@ endif
 .PHONY: all clean host target \
 	manager runtest fuzzer executor \
 	ci hub \
-	execprog mutate prog2c trace2syz stress repro upgrade db \
+	execprog mutate prog2c trace2syz repro upgrade db \
 	usbgen symbolize cover kconf syz-build crush \
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_rpc generate_sys \
@@ -113,7 +113,7 @@ endif
 
 all: host target
 host: manager runtest repro mutate prog2c db upgrade
-target: fuzzer execprog stress executor
+target: fuzzer execprog executor
 
 executor: descriptions
 ifeq ($(TARGETOS),fuchsia)
@@ -184,9 +184,6 @@ crush: descriptions
 
 reporter: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-reporter github.com/google/syzkaller/tools/syz-reporter
-
-stress: descriptions
-	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
 
 db: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db

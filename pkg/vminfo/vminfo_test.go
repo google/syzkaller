@@ -12,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -42,7 +43,55 @@ func TestHostMachineInfo(t *testing.T) {
 	}
 }
 
-func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfoT) {
+func TestSyscalls(t *testing.T) {
+	t.Parallel()
+	for _, arches := range targets.List {
+		for _, target := range arches {
+			target := target
+			if target.OS == targets.Linux {
+				continue // linux has own TestLinuxSyscalls test
+			}
+			t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
+				t.Parallel()
+				cfg := testConfig(t, target.OS, target.Arch)
+				checker := New(cfg)
+				_, checkProgs := checker.StartCheck()
+				results := createSuccessfulResults(t, cfg.Target, checkProgs)
+				enabled, disabled, err := checker.FinishCheck(nil, results)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for call, reason := range disabled {
+					t.Errorf("disabled call %v: %v", call.Name, reason)
+				}
+				if len(enabled) != len(cfg.Syscalls) {
+					t.Errorf("enabled only %v calls out of %v", len(enabled), len(cfg.Syscalls))
+				}
+			})
+		}
+	}
+}
+
+func createSuccessfulResults(t *testing.T, target *prog.Target,
+	progs []rpctype.ExecutionRequest) []rpctype.ExecutionResult {
+	var results []rpctype.ExecutionResult
+	for _, req := range progs {
+		p, err := target.DeserializeExec(req.ProgData, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := rpctype.ExecutionResult{
+			ID: req.ID,
+			Info: ipc.ProgInfo{
+				Calls: make([]ipc.CallInfo, len(p.Calls)),
+			},
+		}
+		results = append(results, res)
+	}
+	return results
+}
+
+func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfo) {
 	cfg := testConfig(t, runtime.GOOS, runtime.GOARCH)
 	checker := New(cfg)
 	files := host.ReadFiles(checker.RequiredFiles())

@@ -48,7 +48,7 @@ func New(cfg *mgrconfig.Config) *Checker {
 	}
 }
 
-func (checker *Checker) MachineInfo(fileInfos []flatrpc.FileInfoT) ([]cover.KernelModule, []byte, error) {
+func (checker *Checker) MachineInfo(fileInfos []flatrpc.FileInfo) ([]cover.KernelModule, []byte, error) {
 	files := createVirtualFilesystem(fileInfos)
 	modules, err := checker.parseModules(files)
 	if err != nil {
@@ -77,7 +77,7 @@ func (checker *Checker) StartCheck() ([]string, []rpctype.ExecutionRequest) {
 	return checker.checkFiles(), checker.checkContext.startCheck()
 }
 
-func (checker *Checker) FinishCheck(files []flatrpc.FileInfoT, progs []rpctype.ExecutionResult) (
+func (checker *Checker) FinishCheck(files []flatrpc.FileInfo, progs []rpctype.ExecutionResult) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
 	ctx := checker.checkContext
 	checker.checkContext = nil
@@ -94,9 +94,9 @@ type checker interface {
 	syscallCheck(*checkContext, *prog.Syscall) string
 }
 
-type filesystem map[string]flatrpc.FileInfoT
+type filesystem map[string]flatrpc.FileInfo
 
-func createVirtualFilesystem(fileInfos []flatrpc.FileInfoT) filesystem {
+func createVirtualFilesystem(fileInfos []flatrpc.FileInfo) filesystem {
 	files := make(filesystem)
 	for _, file := range fileInfos {
 		if file.Exists {

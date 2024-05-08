@@ -663,8 +663,9 @@ func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source) *Prog {
 // Also used for testing as the simplest program.
 func (target *Target) DataMmapProg() *Prog {
 	return &Prog{
-		Target: target,
-		Calls:  target.MakeDataMmap(),
+		Target:   target,
+		Calls:    target.MakeDataMmap(),
+		isUnsafe: true,
 	}
 }
 

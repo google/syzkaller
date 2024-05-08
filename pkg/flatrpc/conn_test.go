@@ -10,23 +10,23 @@ import (
 )
 
 func TestConn(t *testing.T) {
-	connectReq := &ConnectRequestT{
+	connectReq := &ConnectRequest{
 		Name:        "foo",
 		Arch:        "arch",
 		GitRevision: "rev1",
 		SyzRevision: "rev2",
 	}
-	connectReply := &ConnectReplyT{
+	connectReply := &ConnectReply{
 		LeakFrames: []string{"foo", "bar"},
 		RaceFrames: []string{"bar", "baz"},
 		Features:   FeatureCoverage | FeatureLeak,
 		Files:      []string{"file1"},
 		Globs:      []string{"glob1"},
 	}
-	executorMsg := &ExecutorMessageT{
-		Msg: &ExecutorMessagesT{
-			Type: ExecutorMessagesExecuting,
-			Value: &ExecutingMessageT{
+	executorMsg := &ExecutorMessage{
+		Msg: &ExecutorMessages{
+			Type: ExecutorMessagesRawExecuting,
+			Value: &ExecutingMessage{
 				Id:     1,
 				ProcId: 2,
 				Try:    3,
@@ -40,7 +40,7 @@ func TestConn(t *testing.T) {
 	}()
 	serv, err := ListenAndServe(":0", func(c *Conn) {
 		defer close(done)
-		connectReqGot, err := Recv[ConnectRequest](c)
+		connectReqGot, err := Recv[ConnectRequestRaw](c)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -51,7 +51,7 @@ func TestConn(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			got, err := Recv[ExecutorMessage](c)
+			got, err := Recv[ExecutorMessageRaw](c)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -73,7 +73,7 @@ func TestConn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	connectReplyGot, err := Recv[ConnectReply](c)
+	connectReplyGot, err := Recv[ConnectReplyRaw](c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,13 +87,13 @@ func TestConn(t *testing.T) {
 }
 
 func BenchmarkConn(b *testing.B) {
-	connectReq := &ConnectRequestT{
+	connectReq := &ConnectRequest{
 		Name:        "foo",
 		Arch:        "arch",
 		GitRevision: "rev1",
 		SyzRevision: "rev2",
 	}
-	connectReply := &ConnectReplyT{
+	connectReply := &ConnectReply{
 		LeakFrames: []string{"foo", "bar"},
 		RaceFrames: []string{"bar", "baz"},
 		Features:   FeatureCoverage | FeatureLeak,
@@ -108,7 +108,7 @@ func BenchmarkConn(b *testing.B) {
 	serv, err := ListenAndServe(":0", func(c *Conn) {
 		defer close(done)
 		for i := 0; i < b.N; i++ {
-			_, err := Recv[ConnectRequest](c)
+			_, err := Recv[ConnectRequestRaw](c)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -134,7 +134,7 @@ func BenchmarkConn(b *testing.B) {
 		if err := Send(c, connectReq); err != nil {
 			b.Fatal(err)
 		}
-		_, err := Recv[ConnectReply](c)
+		_, err := Recv[ConnectReplyRaw](c)
 		if err != nil {
 			b.Fatal(err)
 		}

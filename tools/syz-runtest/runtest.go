@@ -125,7 +125,7 @@ func main() {
 	ctx := &runtest.Context{
 		Dir:          filepath.Join(cfg.Syzkaller, "sys", cfg.Target.OS, "test"),
 		Target:       cfg.Target,
-		Features:     checkResult.Features,
+		Features:     checkResult.Features.ToFlatRPC(),
 		EnabledCalls: enabledCalls,
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
@@ -147,7 +147,7 @@ type Manager struct {
 	vmPool             *vm.Pool
 	checker            *vminfo.Checker
 	checkFiles         []string
-	checkFilesInfo     []flatrpc.FileInfoT
+	checkFilesInfo     []flatrpc.FileInfo
 	checkProgs         []rpctype.ExecutionRequest
 	checkResults       []rpctype.ExecutionResult
 	needCheckResults   int
