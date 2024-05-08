@@ -586,7 +586,7 @@ var (
 	commonCFlags = []string{
 		"-std=c++11",
 		"-I.",
-		"-Ivendor",
+		"-Iexecutor/_include",
 		"-O2",
 		"-pthread",
 		"-Wall",
