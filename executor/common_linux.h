@@ -4988,6 +4988,7 @@ static void setup_binfmt_misc()
 {
 	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
 		debug("mount(binfmt_misc) failed: %d\n", errno);
+		return;
 	}
 	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:") ||
 	    !write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC"))
