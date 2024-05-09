@@ -49,17 +49,14 @@ func (c *Cache) Symbolize(inner func(string, uint64) ([]Frame, error), bin strin
 // buffer, it won't after interning (and won't prevent GC'ing of the large buffer).
 // The type is not thread-safe.
 type Interner struct {
-	m map[string]string
+	m sync.Map
 }
 
 func (in *Interner) Do(s string) string {
-	if in.m == nil {
-		in.m = make(map[string]string)
-	}
-	if interned, ok := in.m[s]; ok {
-		return interned
+	if interned, ok := in.m.Load(s); ok {
+		return interned.(string)
 	}
 	s = strings.Clone(s)
-	in.m[s] = s
+	in.m.Store(s, s)
 	return s
 }
