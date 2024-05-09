@@ -7,8 +7,6 @@ import (
 	"debug/elf"
 	"fmt"
 	"sort"
-
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type Symbol struct {
@@ -18,16 +16,16 @@ type Symbol struct {
 
 // ReadTextSymbols returns list of text symbols in the binary bin.
 func (s *Symbolizer) ReadTextSymbols(bin string) (map[string][]Symbol, error) {
-	return read(s.target, bin, true)
+	return read(bin, true)
 }
 
 // ReadRodataSymbols returns list of rodata symbols in the binary bin.
 func (s *Symbolizer) ReadRodataSymbols(bin string) (map[string][]Symbol, error) {
-	return read(s.target, bin, false)
+	return read(bin, false)
 }
 
-func read(target *targets.Target, bin string, text bool) (map[string][]Symbol, error) {
-	raw, err := load(target, bin, text)
+func read(bin string, text bool) (map[string][]Symbol, error) {
+	raw, err := load(bin, text)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +54,7 @@ func read(target *targets.Target, bin string, text bool) (map[string][]Symbol, e
 	return symbols, nil
 }
 
-func load(target *targets.Target, bin string, text bool) ([]elf.Symbol, error) {
+func load(bin string, text bool) ([]elf.Symbol, error) {
 	file, err := elf.Open(bin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open ELF file %v: %w", bin, err)
