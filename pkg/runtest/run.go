@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -29,15 +30,15 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/sync/errgroup"
 )
 
 type runRequest struct {
 	*queue.Request
 
-	err      error
-	finished chan struct{}
-	result   *queue.Result
-	results  *ipc.ProgInfo // the expected results
+	err     error
+	result  *queue.Result
+	results *ipc.ProgInfo // the expected results
 
 	name   string
 	broken string
@@ -67,20 +68,26 @@ func (ctx *Context) Run() error {
 		ctx.Retries++
 	}
 	progs := make(chan *runRequest, 1000)
-	errc := make(chan error, 1)
-	go func() {
+	var eg errgroup.Group
+	eg.Go(func() error {
 		defer close(progs)
-		errc <- ctx.generatePrograms(progs)
-	}()
-	var requests []*runRequest
+		return ctx.generatePrograms(progs)
+	})
+	done := make(chan *runRequest)
+	eg.Go(func() error {
+		return ctx.processResults(done)
+	})
+
+	var wg sync.WaitGroup
 	for req := range progs {
 		req := req
-		requests = append(requests, req)
 		if req.broken != "" || req.skip != "" {
+			done <- req
 			continue
 		}
-		req.finished = make(chan struct{})
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
 			// We don't want to fix this by significantly bumping all timeouts,
 			// because if a program fails all the time with the default timeouts,
@@ -108,11 +115,21 @@ func (ctx *Context) Run() error {
 				}
 			}
 			req.err = resultErr
-			close(req.finished)
+			done <- req
 		}()
 	}
+	wg.Wait()
+	close(done)
+	return eg.Wait()
+}
+
+func (ctx *Context) Next() *queue.Request {
+	return ctx.executor.Next()
+}
+
+func (ctx *Context) processResults(requests chan *runRequest) error {
 	var ok, fail, broken, skip int
-	for _, req := range requests {
+	for req := range requests {
 		result := ""
 		verbose := false
 		if req.broken != "" {
@@ -124,7 +141,6 @@ func (ctx *Context) Run() error {
 			result = fmt.Sprintf("SKIP (%v)", req.skip)
 			verbose = true
 		} else {
-			<-req.finished
 			if req.err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
@@ -146,18 +162,11 @@ func (ctx *Context) Run() error {
 			os.Remove(req.BinaryFile)
 		}
 	}
-	if err := <-errc; err != nil {
-		return err
-	}
 	ctx.log("ok: %v, broken: %v, skip: %v, fail: %v", ok, broken, skip, fail)
 	if fail != 0 {
 		return fmt.Errorf("tests failed")
 	}
 	return nil
-}
-
-func (ctx *Context) Next() *queue.Request {
-	return ctx.executor.Next()
 }
 
 func (ctx *Context) generatePrograms(progs chan *runRequest) error {
