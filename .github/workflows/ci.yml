@@ -49,31 +49,32 @@ jobs:
       TERM: dumb
       GITHUB_ACTIONS: true
     steps:
-    - name: checkout
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      with:
-        path: gopath/src/github.com/google/syzkaller
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
 
-    - id: get-date
-      run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
-      shell: bash
-    - name: test build cache
-      uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-      with:
-        path: /root/.cache
-        key: ${{ runner.os }}-go-test-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
-        restore-keys: ${{ runner.os }}-go-test-build- #read the freshest available after miss
+      - id: get-date
+        run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: test build cache
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        with:
+          path: /root/.cache
+          key: ${{ runner.os }}-go-test-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
+          restore-keys: ${{ runner.os }}-go-test-build- #read the freshest available after miss
 
-    - name: run
-      run: |
-        cd gopath/src/github.com/google/syzkaller
-        .github/workflows/run.sh make presubmit_build
-    - name: codecov
-      uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
-      with:
-        files: gopath/src/github.com/google/syzkaller/.coverage.txt
-        flags: unittests
-        token: ${{ secrets.CODECOV_TOKEN }}
+      - name: run
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          .github/workflows/run.sh make presubmit_build
+      - name: codecov
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
+        with:
+          files: gopath/src/github.com/google/syzkaller/.coverage.txt
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   dashboard:
     runs-on: arc-runner-set
@@ -98,6 +99,7 @@ jobs:
           files: gopath/src/github.com/google/syzkaller/.coverage.txt
           flags: dashboard
           token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   arch:
     runs-on: ubuntu-latest
