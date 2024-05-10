@@ -71,7 +71,8 @@ jobs:
       - name: codecov
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
-          files: gopath/src/github.com/google/syzkaller/.coverage.txt
+          codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
+          file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
           flags: unittests
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
@@ -96,7 +97,8 @@ jobs:
       - name: codecov
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
-          files: gopath/src/github.com/google/syzkaller/.coverage.txt
+          codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
+          file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
           flags: dashboard
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
