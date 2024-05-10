@@ -4,6 +4,7 @@
 package targets
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -38,6 +39,7 @@ type Target struct {
 	NeedSyscallDefine  func(nr uint64) bool
 	HostEndian         binary.ByteOrder
 	SyscallTrampolines map[string]string
+	Addr2Line          func() (string, error)
 
 	init      *sync.Once
 	initOther *sync.Once
@@ -121,7 +123,6 @@ type Timeouts struct {
 }
 
 const (
-	Akaros  = "akaros"
 	FreeBSD = "freebsd"
 	Darwin  = "darwin"
 	Fuchsia = "fuchsia"
@@ -477,19 +478,6 @@ var List = map[string]map[string]*Target{
 			LittleEndian: true,
 		},
 	},
-	Akaros: {
-		AMD64: {
-			PtrSize:           8,
-			PageSize:          4 << 10,
-			LittleEndian:      true,
-			KernelHeaderArch:  "x86",
-			NeedSyscallDefine: dontNeedSyscallDefine,
-			CCompiler:         sourceDirVar + "/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++",
-			CFlags: []string{
-				"-static",
-			},
-		},
-	},
 	Trusty: {
 		ARM: {
 			PtrSize:           4,
@@ -587,15 +575,6 @@ var oses = map[string]osCommon{
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
 	},
-	Akaros: {
-		BuildOS:                Linux,
-		SyscallNumbers:         true,
-		SyscallPrefix:          "SYS_",
-		ExecutorUsesShmem:      false,
-		ExecutorUsesForkServer: true,
-		HostFuzzer:             true,
-		KernelObject:           "akaros-kernel-64b",
-	},
 	Trusty: {
 		SyscallNumbers:   true,
 		Int64SyscallArgs: true,
@@ -605,6 +584,9 @@ var oses = map[string]osCommon{
 
 var (
 	commonCFlags = []string{
+		"-std=c++11",
+		"-I.",
+		"-Iexecutor/_include",
 		"-O2",
 		"-pthread",
 		"-Wall",
@@ -775,6 +757,52 @@ func initTarget(target *Target, OS, arch string) {
 		target.ExecutorUsesForkServer = false
 		target.HostFuzzer = true
 	}
+	target.initAddr2Line()
+}
+
+func (target *Target) initAddr2Line() {
+	// Initialize addr2line lazily since lots of tests don't need it,
+	// but we invoke a number of external binaries during addr2line detection.
+	var (
+		init sync.Once
+		bin  string
+		err  error
+	)
+	target.Addr2Line = func() (string, error) {
+		init.Do(func() { bin, err = target.findAddr2Line() })
+		return bin, err
+	}
+}
+
+func (target *Target) findAddr2Line() (string, error) {
+	// Try llvm-addr2line first as it's significantly faster on large binaries.
+	// But it's unclear if it works for darwin binaries.
+	if target.OS != Darwin {
+		if path, err := exec.LookPath("llvm-addr2line"); err == nil {
+			return path, nil
+		}
+	}
+	bin := "addr2line"
+	if target.Triple != "" {
+		bin = target.Triple + "-" + bin
+	}
+	if target.OS != Darwin || target.Arch != AMD64 {
+		return bin, nil
+	}
+	// A special check for darwin kernel to produce a more useful error.
+	cmd := exec.Command(bin, "--help")
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("addr2line execution failed: %w", err)
+	}
+	if !bytes.Contains(out, []byte("supported targets:")) {
+		return "", fmt.Errorf("addr2line output didn't contain supported targets")
+	}
+	if !bytes.Contains(out, []byte("mach-o-x86-64")) {
+		return "", fmt.Errorf("addr2line was built without mach-o-x86-64 support")
+	}
+	return bin, nil
 }
 
 func (target *Target) Timeouts(slowdown int) Timeouts {

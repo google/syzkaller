@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/mail"
@@ -17,7 +18,6 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
-	"golang.org/x/net/context"
 )
 
 // There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).

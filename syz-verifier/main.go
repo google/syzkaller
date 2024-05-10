@@ -45,6 +45,7 @@ func main() {
 	flagStats := flag.String("stats", "", "where stats will be written when"+
 		"execution of syz-verifier finishes, defaults to stdout")
 	flagEnv := flag.Bool("new-env", true, "create a new environment for each program")
+	flagAddress := flag.String("address", "127.0.0.1:8080", "http address for monitoring")
 	flagReruns := flag.Int("rerun", 3, "number of time program is rerun when a mismatch is found")
 	flag.Parse()
 
@@ -165,9 +166,8 @@ func main() {
 	monitor := MakeMonitor()
 	monitor.SetStatsTracking(vrf.stats)
 
-	// TODO: move binding address to configuration
-	log.Logf(0, "run the Monitor at http://127.0.0.1:8080/")
-	go monitor.ListenAndServe("127.0.0.1:8080")
+	log.Logf(0, "run the Monitor at http://%s", *flagAddress)
+	go monitor.ListenAndServe(*flagAddress)
 
 	select {}
 }

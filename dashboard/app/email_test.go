@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 // nolint: funlen

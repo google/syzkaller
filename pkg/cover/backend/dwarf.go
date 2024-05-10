@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
@@ -31,7 +30,7 @@ type dwarfParams struct {
 	buildDir              string
 	splitBuildDelimiters  []string
 	moduleObj             []string
-	hostModules           []host.KernelModule
+	hostModules           []KernelModule
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*Module) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
@@ -136,28 +135,6 @@ func processModule(params *dwarfParams, module *Module, info *symbolInfo,
 	return result, nil
 }
 
-// Regexps to parse compiler version string in IsKcovBrokenInCompiler.
-// Some targets (e.g. NetBSD) use g++ instead of gcc.
-var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
-var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
-
-// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
-// verify that collected coverage points have matching callbacks.
-// See https://github.com/google/syzkaller/issues/4447 for more information.
-func IsKcovBrokenInCompiler(versionStr string) bool {
-	if !gccRE.MatchString(versionStr) {
-		return false
-	}
-	groups := gccVersionRE.FindStringSubmatch(versionStr)
-	if len(groups) > 0 {
-		version, err := strconv.Atoi(groups[2])
-		if err == nil {
-			return version < 14
-		}
-	}
-	return true
-}
-
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
 	objDir := params.objDir
@@ -176,7 +153,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
 	var pcBase uint64
-	var verifyCoverPoints = true
+	preciseCoverage := true
 	for _, module := range modules {
 		errc := make(chan error, 1)
 		go func() {
@@ -211,8 +188,8 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		}
 		allRanges = append(allRanges, ranges...)
 		allUnits = append(allUnits, units...)
-		if IsKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
-			verifyCoverPoints = false
+		if isKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
+			preciseCoverage = false
 		}
 	}
 
@@ -247,23 +224,16 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 		pcBase = ^uint64(0)
 	}
-	var allCoverPointsMap = make(map[uint64]bool)
-	if verifyCoverPoints {
-		for i := 0; i < 2; i++ {
-			for _, pc := range allCoverPoints[i] {
-				allCoverPointsMap[pc] = true
-			}
-		}
-	}
+	var interner symbolizer.Interner
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
-			return symbolize(target, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
+			return symbolize(target, &interner, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
-		RestorePC:              makeRestorePC(params, pcBase),
-		CallbackPoints:         allCoverPointsMap,
-		CoverageCallbackPoints: allCoverPoints[0],
+		RestorePC:       makeRestorePC(params, pcBase),
+		CallbackPoints:  allCoverPoints[0],
+		PreciseCoverage: preciseCoverage,
 	}
 	return impl, nil
 }
@@ -334,6 +304,28 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 	return symbols
 }
 
+// Regexps to parse compiler version string in isKcovBrokenInCompiler.
+// Some targets (e.g. NetBSD) use g++ instead of gcc.
+var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
+var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
+
+// GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
+// verify that collected coverage points have matching callbacks.
+// See https://github.com/google/syzkaller/issues/4447 for more information.
+func isKcovBrokenInCompiler(versionStr string) bool {
+	if !gccRE.MatchString(versionStr) {
+		return false
+	}
+	groups := gccVersionRE.FindStringSubmatch(versionStr)
+	if len(groups) > 0 {
+		version, err := strconv.Atoi(groups[2])
+		if err == nil {
+			return version < 14
+		}
+	}
+	return true
+}
+
 type symbolInfo struct {
 	textAddr uint64
 	// Set of addresses that correspond to __sanitizer_cov_trace_pc or its trampolines.
@@ -397,8 +389,8 @@ func readTextRanges(debugInfo *dwarf.Data, module *Module, pcFix pcFixFn) (
 	return ranges, units, nil
 }
 
-func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
-	mod *Module, pcs []uint64) ([]Frame, error) {
+func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
+	splitBuildDelimiters []string, mod *Module, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -459,9 +451,9 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, sp
 			frames = append(frames, Frame{
 				Module:   mod,
 				PC:       frame.PC + mod.Addr,
-				Name:     name,
+				Name:     interner.Do(name),
 				FuncName: frame.Func,
-				Path:     path,
+				Path:     interner.Do(path),
 				Inline:   frame.Inline,
 				Range: Range{
 					StartLine: frame.Line,
@@ -478,11 +470,11 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, sp
 	return frames, nil
 }
 
-func symbolize(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters []string,
-	pcs map[*Module][]uint64) ([]Frame, error) {
+func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
+	splitBuildDelimiters []string, pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
+		frames1, err := symbolizeModule(target, interner, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
 		if err != nil {
 			return nil, err
 		}

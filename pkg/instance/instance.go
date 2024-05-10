@@ -388,11 +388,11 @@ func (inst *inst) testInstance() error {
 
 	cmd := OldFuzzerCmd(fuzzerBin, executorBin, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
 		inst.cfg.Sandbox, inst.cfg.SandboxArg, 0, inst.cfg.Cover, true, inst.optionalFlags, inst.cfg.Timeouts.Slowdown)
-	outc, errc, err := inst.vm.Run(10*time.Minute*inst.cfg.Timeouts.Scale, nil, cmd)
+	timeout := 10 * time.Minute * inst.cfg.Timeouts.Scale
+	_, rep, err := inst.vm.Run(timeout, inst.reporter, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %w", err)
 	}
-	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, vm.ExitNormal)
 	if rep != nil {
 		if err := inst.reporter.Symbolize(rep); err != nil {
 			// TODO(dvyukov): send such errors to dashboard.
@@ -424,9 +424,9 @@ func (inst *inst) testRepro() ([]byte, error) {
 			return nil, err
 		}
 		if res != nil && res.Report != nil {
-			return res.RawOutput, &CrashError{Report: res.Report}
+			return res.Output, &CrashError{Report: res.Report}
 		}
-		return res.RawOutput, nil
+		return res.Output, nil
 	}
 	out := []byte{}
 	if len(inst.reproSyz) > 0 {
@@ -456,12 +456,9 @@ func (inst *inst) testRepro() ([]byte, error) {
 }
 
 type OptionalFuzzerArgs struct {
-	Slowdown       int
-	RawCover       bool
-	SandboxArg     int
-	PprofPort      int
-	ResetAccState  bool
-	NetCompression bool
+	Slowdown   int
+	SandboxArg int
+	PprofPort  int
 }
 
 type FuzzerCmdArgs struct {
@@ -477,7 +474,6 @@ type FuzzerCmdArgs struct {
 	Cover     bool
 	Debug     bool
 	Test      bool
-	Runtest   bool
 	Optional  *OptionalFuzzerArgs
 }
 
@@ -489,10 +485,6 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 		// because old execprog does not have os flag.
 		osArg = " -os=" + args.OS
 	}
-	runtestArg := ""
-	if args.Runtest {
-		runtestArg = " -runtest"
-	}
 	verbosityArg := ""
 	if args.Verbosity != 0 {
 		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
@@ -501,18 +493,15 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 	if args.Optional != nil {
 		flags := []tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
-			{Name: "raw_cover", Value: fmt.Sprint(args.Optional.RawCover)},
 			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
 			{Name: "pprof_port", Value: fmt.Sprint(args.Optional.PprofPort)},
-			{Name: "reset_acc_state", Value: fmt.Sprint(args.Optional.ResetAccState)},
-			{Name: "net_compression", Value: fmt.Sprint(args.Optional.NetCompression)},
 		}
 		optionalArg = " " + tool.OptionalFlags(flags)
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -cover=%v -debug=%v -test=%v%v%v%v",
+		" -procs=%v -cover=%v -debug=%v -test=%v%v%v",
 		args.Fuzzer, args.Executor, args.Name, args.Arch, osArg, args.FwdAddr, args.Sandbox,
-		args.Procs, args.Cover, args.Debug, args.Test, runtestArg, verbosityArg, optionalArg)
+		args.Procs, args.Cover, args.Debug, args.Test, verbosityArg, optionalArg)
 }
 
 func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, sandboxArg, procs int,
@@ -523,7 +512,7 @@ func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, san
 	}
 	return FuzzerCmd(&FuzzerCmdArgs{Fuzzer: fuzzer, Executor: executor, Name: name,
 		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox,
-		Procs: procs, Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
+		Procs: procs, Verbosity: 0, Cover: cover, Debug: false, Test: test,
 		Optional: optional})
 }
 

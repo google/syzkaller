@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -27,7 +28,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -677,7 +677,7 @@ func registerRequest(r *http.Request, c *Ctx) *http.Request {
 	defer requestMu.Unlock()
 
 	requestNum++
-	newContext := context.WithValue(r.Context(), requestIDKey, requestNum)
+	newContext := context.WithValue(r.Context(), requestIDKey{}, requestNum)
 	newRequest := r.WithContext(newContext)
 	requestContexts = append(requestContexts, RequestMapping{requestNum, c})
 	return newRequest
@@ -709,10 +709,10 @@ func unregisterContext(c *Ctx) {
 	requestContexts = requestContexts[:n]
 }
 
-const requestIDKey = "test_request_id"
+type requestIDKey struct{}
 
 func getRequestID(c context.Context) int {
-	val, ok := c.Value(requestIDKey).(int)
+	val, ok := c.Value(requestIDKey{}).(int)
 	if !ok {
 		panic("the context did not come from a test")
 	}

@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 )
 
 type Canonicalizer struct {
 	// Map of modules stored as module name:kernel module.
-	modules map[string]host.KernelModule
+	modules map[string]KernelModule
 
 	// Contains a sorted list of the canonical module addresses.
 	moduleKeys []uint32
@@ -48,13 +47,13 @@ type canonicalizerModule struct {
 	discard bool
 }
 
-func NewCanonicalizer(modules []host.KernelModule, flagSignal bool) *Canonicalizer {
+func NewCanonicalizer(modules []KernelModule, flagSignal bool) *Canonicalizer {
 	// Return if not using canonicalization.
 	if len(modules) == 0 || !flagSignal {
 		return &Canonicalizer{}
 	}
 	// Create a map of canonical module offsets by name.
-	canonicalModules := make(map[string]host.KernelModule)
+	canonicalModules := make(map[string]KernelModule)
 	for _, module := range modules {
 		canonicalModules[module.Name] = module
 	}
@@ -68,7 +67,7 @@ func NewCanonicalizer(modules []host.KernelModule, flagSignal bool) *Canonicaliz
 	}
 }
 
-func (can *Canonicalizer) NewInstance(modules []host.KernelModule) *CanonicalizerInstance {
+func (can *Canonicalizer) NewInstance(modules []KernelModule) *CanonicalizerInstance {
 	if can.moduleKeys == nil {
 		return &CanonicalizerInstance{}
 	}
@@ -154,7 +153,7 @@ func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) 
 }
 
 // Store sorted list of addresses. Used to binary search when converting PCs.
-func setModuleKeys(moduleKeys []uint32, modules []host.KernelModule) {
+func setModuleKeys(moduleKeys []uint32, modules []KernelModule) {
 	for idx, module := range modules {
 		// Truncate PCs to uint32, assuming that they fit into 32 bits.
 		// True for x86_64 and arm64 without KASLR.

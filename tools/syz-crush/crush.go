@@ -143,7 +143,7 @@ func storeCrash(cfg *mgrconfig.Config, res *instance.RunResult) {
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
 		log.Printf("failed to write crash description: %v", err)
 	}
-	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), res.RawOutput); err != nil {
+	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), res.Output); err != nil {
 		log.Printf("failed to write crash log: %v", err)
 	}
 	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", index)), []byte(cfg.Tag)); err != nil {

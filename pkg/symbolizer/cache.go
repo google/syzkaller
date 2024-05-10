@@ -4,6 +4,7 @@
 package symbolizer
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -39,4 +40,26 @@ func (c *Cache) Symbolize(inner func(string, uint64) ([]Frame, error), bin strin
 	c.cache[key] = cacheVal{frames, err}
 	c.mu.Unlock()
 	return frames, err
+}
+
+// Interner allows to intern/deduplicate strings.
+// Interner.Do semantically returns the same string, but physically it will point
+// to an existing string with the same contents (if there was one passed to Do in the past).
+// Interned strings are also "cloned", that is, if the passed string points to a large
+// buffer, it won't after interning (and won't prevent GC'ing of the large buffer).
+// The type is not thread-safe.
+type Interner struct {
+	m map[string]string
+}
+
+func (in *Interner) Do(s string) string {
+	if in.m == nil {
+		in.m = make(map[string]string)
+	}
+	if interned, ok := in.m[s]; ok {
+		return interned
+	}
+	s = strings.Clone(s)
+	in.m[s] = s
+	return s
 }

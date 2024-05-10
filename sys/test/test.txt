@@ -3,7 +3,7 @@
 
 # Syscalls used in syzkaller tests.
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 test()
 
@@ -529,6 +529,16 @@ len_of_cond_struct {
 
 test$length35(a0 ptr[in, len_of_cond_struct])
 
+test$length_any(a0 ptr[in, syz_length_any_struct], a1 len[a0])
+
+syz_length_any_struct {
+	f0	int32
+	f1	int32
+	f2	int32
+	f3	int32
+	f4	array[int8]
+} [packed]
+
 # Big endian
 
 test$end0(a0 ptr[in, syz_end_int_struct])
@@ -756,6 +766,7 @@ resource syz_res[int32]: 0xffff
 test$res0() syz_res
 test$res1(a0 syz_res)
 test$res2() fd
+test$res3(a0 ptr[out, syz_res])
 
 # ONLY_32BITS_CONST const is not present on all arches.
 # Ensure that it does not break build.

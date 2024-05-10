@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/syzkaller/executor"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -35,7 +36,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	for _, def := range defines {
 		cmd.Args = append(cmd.Args, "-D"+def)
 	}
-	cmd.Stdin = strings.NewReader(commonHeader)
+	cmd.Stdin = bytes.NewReader(executor.CommonHeader)
 	stderr := new(bytes.Buffer)
 	stdout := new(bytes.Buffer)
 	cmd.Stderr = stderr

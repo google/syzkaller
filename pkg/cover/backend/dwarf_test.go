@@ -26,15 +26,13 @@ func TestIsKcovBrokenInCompiler(t *testing.T) {
 		"g++ (Compiler-Explorer-Build-gcc-2a9637b229f64775d82fb5917f83f71e8ad1911d-binutils-2.40) 14.0.1 20240125 (experimental)", // nolint:lll
 	}
 	for _, ver := range inputDataTrue {
-		result := IsKcovBrokenInCompiler(ver)
-		if !result {
-			t.Fatalf("IsKcovBrokenInCompiler(`%s`) unexpectedly returned %v\n", ver, result)
+		if !isKcovBrokenInCompiler(ver) {
+			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned false", ver)
 		}
 	}
 	for _, ver := range inputDataFalse {
-		result := IsKcovBrokenInCompiler(ver)
-		if result {
-			t.Fatalf("IsKcovBrokenInCompiler(`%s`) unexpectedly returned %v\n", ver, result)
+		if isKcovBrokenInCompiler(ver) {
+			t.Fatalf("isKcovBrokenInCompiler(%q) unexpectedly returned true", ver)
 		}
 	}
 }
@@ -96,7 +94,7 @@ func TestCleanPathAndroid(t *testing.T) {
 			path, epath, ename := files[0], files[1], files[2]
 			rpath, rname := cleanPathAndroid(path, test.SrcDir, test.Delimiters, test.FnExists)
 			if (rpath != epath) || (rname != ename) {
-				t.Fatalf("cleanPathAndroid(`%s`, `%s`, %v, ...) unexpectedly returned (`%s`, `%s`) instead of (`%s`, `%s`)\n",
+				t.Fatalf("cleanPathAndroid(`%s`, `%s`, %v, ...) unexpectedly returned (`%s`, `%s`) instead of (`%s`, `%s`)",
 					path, test.SrcDir, test.Delimiters, rpath, rname, epath, ename)
 			}
 		}
@@ -115,7 +113,7 @@ func runNextCallTarget(t *testing.T, arg NextCallTargetTest) {
 	i := 0
 	target, pc := nextCallTarget(arg.Arch, arg.Text, arg.Data, &i)
 	if target != arg.ExpTarget || pc != arg.ExpPC {
-		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)\n",
+		t.Fatalf("nextCallTarget(`%v`, %x, %v) unexpectedly returned (%x, %x) instead of (%x, %x)",
 			arg.Arch, arg.Text, arg.Data, target, pc, arg.ExpTarget, arg.ExpPC)
 	}
 }

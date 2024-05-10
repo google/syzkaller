@@ -48,12 +48,9 @@ func TestCorpusOperation(t *testing.T) {
 	}
 
 	// Verify the total signal.
-	stat := corpus.Stats()
-	assert.Equal(t, Stats{
-		Signal: 5,
-		Cover:  0,
-		Progs:  2,
-	}, stat)
+	assert.Equal(t, corpus.StatSignal.Val(), 5)
+	assert.Equal(t, corpus.StatCover.Val(), 0)
+	assert.Equal(t, corpus.StatProgs.Val(), 2)
 
 	corpus.Minimize(true)
 }
@@ -77,7 +74,7 @@ func TestCorpusCoverage(t *testing.T) {
 	assert.Equal(t, []uint32{12}, event.NewCover)
 
 	// Check the total corpus size.
-	assert.Equal(t, corpus.Stats().Cover, 3)
+	assert.Equal(t, corpus.StatCover.Val(), 3)
 }
 
 func TestCorpusSaveConcurrency(t *testing.T) {

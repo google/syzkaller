@@ -6,7 +6,6 @@
 package report
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"regexp"
@@ -137,7 +136,6 @@ const (
 )
 
 var ctors = map[string]fn{
-	targets.Akaros:  ctorAkaros,
 	targets.Linux:   ctorLinux,
 	"starnix":       ctorFuchsia,
 	"gvisor":        ctorGvisor,
@@ -586,9 +584,13 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]s
 	return extractStackFrameImpl(params, output, skipRe, stack.parts2, extractor)
 }
 
+func lines(text []byte) [][]byte {
+	return bytes.Split(text, []byte("\n"))
+}
+
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
 	parts []*regexp.Regexp, extractor frameExtractor) ([]string, bool) {
-	s := bufio.NewScanner(bytes.NewReader(output))
+	lines := lines(output)
 	var frames, results []string
 	ok := true
 	numStackTraces := 0
@@ -608,8 +610,9 @@ nextPart:
 		part := parts[partIdx]
 		if part == parseStackTrace {
 			numStackTraces++
-			for s.Scan() {
-				ln := s.Bytes()
+			var ln []byte
+			for len(lines) > 0 {
+				ln, lines = lines[0], lines[1:]
 				if matchesAny(ln, params.corruptedLines) {
 					ok = false
 					continue nextPart
@@ -636,8 +639,9 @@ nextPart:
 				frames = appendStackFrame(frames, match, params, skipRe)
 			}
 		} else {
-			for s.Scan() {
-				ln := s.Bytes()
+			var ln []byte
+			for len(lines) > 0 {
+				ln, lines = lines[0], lines[1:]
 				if matchesAny(ln, params.corruptedLines) {
 					ok = false
 					continue nextPart

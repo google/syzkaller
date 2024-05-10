@@ -95,7 +95,7 @@ func TestRepro(t *testing.T) {
 		t.Helper()
 		repro := st.PendingRepro(name)
 		if string(repro) != result {
-			t.Fatalf("PendingRepro returned %q, want %q", string(repro), result)
+			t.Fatalf("got %q, want %q", string(repro), result)
 		}
 	}
 	expectPendingRepro("foo", "")

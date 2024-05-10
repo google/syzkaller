@@ -31,7 +31,6 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -44,6 +43,7 @@ func main() {
 			"modules JSON info obtained from /modules (optional)")
 		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
 		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
+		flagExportJSONL    = flag.String("jsonl", "", "export jsonl coverage data (optional)")
 		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
 	)
 	defer tool.Init()()
@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	var modules []host.KernelModule
+	var modules []cover.KernelModule
 	if *flagModules != "" {
 		m, err := loadModules(*flagModules)
 		if err != nil {
@@ -81,6 +81,7 @@ func main() {
 		Progs:       progs,
 		CoverFilter: nil,
 		Debug:       false,
+		Force:       false,
 	}
 	if *flagExportCSV != "" {
 		if err := rg.DoCSV(buf, params); err != nil {
@@ -96,6 +97,15 @@ func main() {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExportLineJSON, buf.Bytes()); err != nil {
+			tool.Fail(err)
+		}
+		return
+	}
+	if *flagExportJSONL != "" {
+		if err := rg.DoCoverJSONL(buf, params); err != nil {
+			tool.Fail(err)
+		}
+		if err := osutil.WriteFile(*flagExportJSONL, buf.Bytes()); err != nil {
 			tool.Fail(err)
 		}
 		return
@@ -144,12 +154,12 @@ func readPCs(files []string) ([]uint64, error) {
 	return pcs, nil
 }
 
-func loadModules(fname string) ([]host.KernelModule, error) {
+func loadModules(fname string) ([]cover.KernelModule, error) {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return nil, err
 	}
-	var modules []host.KernelModule
+	var modules []cover.KernelModule
 	err = json.Unmarshal(data, &modules)
 	if err != nil {
 		return nil, err

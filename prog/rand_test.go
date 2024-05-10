@@ -110,7 +110,7 @@ func TestEnabledCalls(t *testing.T) {
 		}
 		for _, c := range p.Calls {
 			if _, ok := enabledCalls[c.Meta.Name]; !ok {
-				t.Fatalf("program contains a syscall that is not enabled: %v\n", c.Meta.Name)
+				t.Fatalf("program contains a syscall that is not enabled: %v", c.Meta.Name)
 			}
 		}
 	}
@@ -234,7 +234,7 @@ func TestNoGenerate(t *testing.T) {
 		}
 		for _, c := range p.Calls {
 			if c.Meta.Attrs.NoGenerate {
-				t.Fatalf("program contains a no_generate syscall: %v\n", c.Meta.Name)
+				t.Fatalf("program contains a no_generate syscall: %v", c.Meta.Name)
 			}
 		}
 	}

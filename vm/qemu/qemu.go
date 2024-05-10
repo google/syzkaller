@@ -27,7 +27,7 @@ import (
 
 func init() {
 	var _ vmimpl.Infoer = (*instance)(nil)
-	vmimpl.Register("qemu", ctor, true, false)
+	vmimpl.Register("qemu", ctor, true)
 }
 
 type Config struct {
@@ -253,12 +253,6 @@ var archConfigs = map[string]*archConfig{
 			"kernel.lockup-detector.heartbeat-age-threshold-ms=300000",
 			"kernel.lockup-detector.heartbeat-age-fatal-threshold-ms=300000",
 		},
-	},
-	"akaros/amd64": {
-		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm -cpu host,migratable=off",
-		NetDev:   "e1000",
-		RngDev:   "virtio-rng-pci",
 	},
 }
 
@@ -656,7 +650,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); inst.target.HostFuzzer &&
 		(bin == "syz-fuzzer" || bin == "syz-execprog") {
-		// Weird mode for fuchsia and akaros.
+		// Weird mode for Fuchsia.
 		// Fuzzer and execprog are on host (we did not copy them), so we will run them as is,
 		// but we will also wrap executor with ssh invocation.
 		for i, arg := range args {

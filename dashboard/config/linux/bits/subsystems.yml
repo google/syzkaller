@@ -285,7 +285,9 @@ config:
  # Workaround: select small driver that selects DRM_DISPLAY_HELPER required by
  # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
  - DRM_PANEL_EDP: [v5.16, -s390]
- - DRM_DP_AUX_CHARDEV: [x86_64]
+ - DRM_DP_AUX_CHARDEV: [x86_64, -linux-next]
+ - DRM_DISPLAY_DP_AUX_BUS: [linux-next]
+ - DRM_DISPLAY_DP_HELPER: [v5.19, -s390]
  - DRM_DEBUG_MM
  - DRM_I915: [x86_64]
  - DRM_VGEM
@@ -583,7 +585,8 @@ config:
  - DAMON: [v5.15]
  - DAMON_VADDR: [v5.15]
  - DAMON_PADDR: [v5.16]
- - DAMON_DBGFS: [v5.15]
+ # DAMON_DBGFS is getting deprecated in v6.9.
+ - DAMON_DBGFS: [v5.15, -v6.9]
  - DAMON_RECLAIM: [v5.17]
  - ZSWAP_DEFAULT_ON: [v5.7]
 

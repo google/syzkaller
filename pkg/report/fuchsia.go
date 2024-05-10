@@ -4,7 +4,6 @@
 package report
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"path/filepath"
@@ -97,8 +96,7 @@ func (ctx *fuchsia) shortenStarnixPanicReport(report []byte, maxUnrelatedLines, 
 	out := new(bytes.Buffer)
 	unrelatedLines := 0
 	unmatchedLines := 0
-	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
-		line := s.Bytes()
+	for _, line := range lines(report) {
 		if matchesAny(line, starnixFramePatterns) {
 			unrelatedLines = 0
 			unmatchedLines = 0
@@ -113,16 +111,16 @@ func (ctx *fuchsia) shortenStarnixPanicReport(report []byte, maxUnrelatedLines, 
 		out.Write(line)
 		out.WriteByte('\n')
 		if unmatchedLines == maxUnmatchedLines {
-			return out.Bytes()
+			break
 		}
 	}
-	return out.Bytes()
+	return append(bytes.TrimRight(out.Bytes(), "\n"), '\n')
 }
 
 func (ctx *fuchsia) shortenReport(report []byte) []byte {
 	out := new(bytes.Buffer)
-	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
-		line := zirconLinePrefix.ReplaceAll(s.Bytes(), nil)
+	for _, rawLine := range lines(report) {
+		line := zirconLinePrefix.ReplaceAll(rawLine, nil)
 		if matchesAny(line, zirconUnrelated) {
 			continue
 		}
@@ -139,14 +137,17 @@ func (ctx *fuchsia) symbolize(output []byte) []byte {
 	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
 	out := new(bytes.Buffer)
-	for s := bufio.NewScanner(bytes.NewReader(output)); s.Scan(); {
-		line := s.Bytes()
+
+	lines := lines(output)
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
 		if bytes.Contains(line, zirconAssertFailed) && len(line) == 127 {
 			// This is super hacky: but zircon splits the most important information in long assert lines
 			// (and they are always long) into several lines in irreversible way. Try to restore full line.
 			line = append([]byte{}, line...)
-			if s.Scan() {
-				line = append(line, s.Bytes()...)
+			if i+1 < len(lines) {
+				line = append(bytes.Clone(line), lines[i+1]...)
+				i++
 			}
 		}
 		if ctx.obj != "" {

@@ -12,6 +12,7 @@
 package gce
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -21,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"

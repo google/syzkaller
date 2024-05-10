@@ -45,8 +45,7 @@ func main() {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
 
-	timeouts := config.Timeouts
-	vrf, err := rpctype.NewRPCClient(*flagAddr, timeouts.Scale, true)
+	vrf, err := rpctype.NewRPCClient(*flagAddr)
 	if err != nil {
 		log.Fatalf("failed to connect to verifier : %v", err)
 	}
@@ -75,7 +74,8 @@ func main() {
 		enabled[c] = true
 	}
 	if r.CheckUnsupportedCalls {
-		_, unsupported, err := host.DetectSupportedSyscalls(target, ipc.FlagsToSandbox(config.Flags), enabled)
+		sandbox := ipc.FlagsToSandbox(opts.EnvFlags)
+		_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, enabled)
 		if err != nil {
 			log.Fatalf("failed to get unsupported system calls: %v", err)
 		}
@@ -147,7 +147,7 @@ func (rn *Runner) Run(firstProg []byte, taskID int64) {
 
 		env, err = ipc.MakeEnv(rn.config, 0)
 		if err != nil {
-			log.Fatalf("failed to create new execution environmentL %v", err)
+			log.Fatalf("failed to create new execution environment: %v", err)
 		}
 	}
 }

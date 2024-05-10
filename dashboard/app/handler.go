@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/html"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/user"
@@ -36,6 +36,7 @@ func handleContext(fn contextHandler) http.Handler {
 		if !throttleRequest(c, w, r) {
 			return
 		}
+		defer backpressureRobots(c, r)()
 		if err := fn(c, w, r); err != nil {
 			hdr := commonHeaderRaw(c, r)
 			data := &struct {
@@ -78,6 +79,35 @@ func handleContext(fn contextHandler) http.Handler {
 	})
 }
 
+func isRobot(r *http.Request) bool {
+	userAgent := strings.ToLower(strings.Join(r.Header["User-Agent"], " "))
+	if strings.HasPrefix(userAgent, "curl") ||
+		strings.HasPrefix(userAgent, "wget") {
+		return true
+	}
+	return false
+}
+
+// We don't count the request round trip time here.
+// Actual delay will be the minDelay + requestRoundTripTime.
+func backpressureRobots(c context.Context, r *http.Request) func() {
+	if !isRobot(r) {
+		return func() {}
+	}
+	cfg := getConfig(c).Throttle
+	if cfg.Empty() {
+		return func() {}
+	}
+	minDelay := cfg.Window / time.Duration(cfg.Limit)
+	delayUntil := time.Now().Add(minDelay)
+	return func() {
+		select {
+		case <-c.Done():
+		case <-time.After(time.Until(delayUntil)):
+		}
+	}
+}
+
 func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) bool {
 	// AppEngine removes all App Engine-specific headers, which include
 	// X-Appengine-User-IP and X-Forwarded-For.
@@ -109,7 +139,8 @@ func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) 
 }
 
 func throttlingErrorMessage(c context.Context) string {
-	ret := "429 Too Many Requests"
+	ret := fmt.Sprintf("429 Too Many Requests\nAllowed rate is %d requests per %d seconds.",
+		getConfig(c).Throttle.Limit, int(getConfig(c).Throttle.Window.Seconds()))
 	email := getConfig(c).ContactEmail
 	if email == "" {
 		return ret

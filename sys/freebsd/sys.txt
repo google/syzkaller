@@ -24,7 +24,7 @@ include <sys/specialfd.h>
 
 type signo int32[0:SIGRTMAX]
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 sf_hdtr {
 	headers		ptr[in, array[iovec_in]]

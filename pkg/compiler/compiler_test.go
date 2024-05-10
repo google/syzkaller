@@ -281,16 +281,16 @@ func TestCollectUnused(t *testing.T) {
 	for i, input := range inputs {
 		desc := ast.Parse([]byte(input.text), "input", nil)
 		if desc == nil {
-			t.Fatalf("Test %d: failed to parse", i)
+			t.Fatalf("test %d: failed to parse", i)
 		}
 
 		nodes, err := CollectUnused(desc, targets.List[targets.TestOS][targets.TestArch64], nil)
 		if err != nil {
-			t.Fatalf("Test %d: CollectUnused failed: %v", i, err)
+			t.Fatalf("test %d: CollectUnused failed: %v", i, err)
 		}
 
 		if len(input.names) != len(nodes) {
-			t.Errorf("Test %d: want %d nodes, got %d", i, len(input.names), len(nodes))
+			t.Errorf("test %d: want %d nodes, got %d", i, len(input.names), len(nodes))
 		}
 
 		names := make([]string, len(nodes))
@@ -302,7 +302,7 @@ func TestCollectUnused(t *testing.T) {
 		sort.Strings(input.names)
 
 		if !reflect.DeepEqual(names, input.names) {
-			t.Errorf("Test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
+			t.Errorf("test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
 		}
 	}
 }
@@ -352,6 +352,36 @@ foo$2(a ptr[in, string[str1]], b ptr[in, string[str2]])
 			if !reflect.DeepEqual(typ.Values, expected) {
 				t.Fatalf("unexpected values %v for flags %v, expected %v", typ.Values, typ.SubKind, expected)
 			}
+		}
+	}
+}
+
+func TestSquashablePtr(t *testing.T) {
+	t.Parallel()
+	// recursive must not be marked as squashable b/c it contains a pointer.
+	const input = `
+foo(a ptr[in, recursive])
+
+recursive {
+	f0	ptr[in, recursive, opt]
+	f1	int32
+	f2	array[int8]
+}
+`
+	eh := func(pos ast.Pos, msg string) {
+		t.Errorf("%v: %v", pos, msg)
+	}
+	desc := ast.Parse([]byte(input), "input", eh)
+	if desc == nil {
+		t.Fatal("failed to parse")
+	}
+	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List[targets.TestOS][targets.TestArch64], eh)
+	if p == nil {
+		t.Fatal("failed to compile")
+	}
+	for _, typ := range p.Types {
+		if ptr, ok := typ.(*prog.PtrType); ok && ptr.SquashableElem {
+			t.Fatal("got squashable ptr")
 		}
 	}
 }

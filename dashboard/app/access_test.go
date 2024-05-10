@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -373,7 +373,7 @@ func TestAccess(t *testing.T) {
 				continue
 			}
 			if bytes.Contains(reply, []byte(ent.ref)) {
-				t.Errorf("request %v at level %v contains ref %v at level %v:\n%s\n\n",
+				t.Errorf("request %v at level %v contains ref %v at level %v:\n%s",
 					url, requestLevel, ent.ref, ent.level, reply)
 			}
 		}

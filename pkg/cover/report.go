@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/exp/maps"
@@ -29,10 +28,12 @@ type Prog struct {
 	PCs  []uint64
 }
 
+type KernelModule = backend.KernelModule
+
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
-	modules []host.KernelModule, rawCover bool) (*ReportGenerator, error) {
+	modules []KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
 		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
@@ -76,22 +77,9 @@ type line struct {
 	pcProgCount map[uint64]int // some lines have multiple BBs
 }
 
-func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
-	debugStr := ""
-	if debug {
-		debugStr += "\n\nUnmatched PCs:\n"
-		for pc := range unmatchedProgPCs {
-			debugStr += fmt.Sprintf("%x\n", pc)
-		}
-	}
-	// nolint: lll
-	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks. Check the discoverModules() code.%s",
-		len(unmatchedProgPCs), numPCs, debugStr)
-}
-
 type fileMap map[string]*file
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, error) {
+func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (fileMap, error) {
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return nil, err
 	}
@@ -106,21 +94,20 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	progPCs := make(map[uint64]map[int]bool)
 	unmatchedProgPCs := make(map[uint64]bool)
-	verifyCallbackPoints := (len(rg.CallbackPoints) > 0)
 	for i, prog := range progs {
 		for _, pc := range prog.PCs {
 			if progPCs[pc] == nil {
 				progPCs[pc] = make(map[int]bool)
 			}
 			progPCs[pc][i] = true
-			if verifyCallbackPoints && !rg.CallbackPoints[pc] {
+			if rg.PreciseCoverage && !contains(rg.CallbackPoints, pc) {
 				unmatchedProgPCs[pc] = true
 			}
 		}
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := FileByFrame(files, &frame)
+		f := fileByFrame(files, &frame)
 		ln := f.lines[frame.StartLine]
 		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
@@ -149,7 +136,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 	}
 	// If the backend provided coverage callback locations for the binaries, use them to
 	// verify data returned by kcov.
-	if verifyCallbackPoints && (len(unmatchedProgPCs) > 0) {
+	if len(unmatchedProgPCs) > 0 && !force {
 		return nil, coverageCallbackMismatch(debug, len(progPCs), unmatchedProgPCs)
 	}
 	for _, unit := range rg.Units {
@@ -179,6 +166,24 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, debug bool) (fileMap, er
 		})
 	}
 	return files, nil
+}
+
+func contains(pcs []uint64, pc uint64) bool {
+	idx := sort.Search(len(pcs), func(i int) bool { return pcs[i] >= pc })
+	return idx < len(pcs) && pcs[idx] == pc
+}
+
+func coverageCallbackMismatch(debug bool, numPCs int, unmatchedProgPCs map[uint64]bool) error {
+	debugStr := ""
+	if debug {
+		debugStr += "\n\nUnmatched PCs:\n"
+		for pc := range unmatchedProgPCs {
+			debugStr += fmt.Sprintf("%x\n", pc)
+		}
+	}
+	return fmt.Errorf("%d out of %d PCs returned by kcov do not have matching coverage callbacks."+
+		" Check the discoverModules() code. Use ?force=1 to disable this message.%s",
+		len(unmatchedProgPCs), numPCs, debugStr)
 }
 
 func uniquePCs(progs []Prog) []uint64 {
@@ -219,7 +224,7 @@ func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
 	return nil
 }
 
-func FileByFrame(files map[string]*file, frame *backend.Frame) *file {
+func fileByFrame(files map[string]*file, frame *backend.Frame) *file {
 	f := files[frame.Name]
 	if f == nil {
 		f = &file{

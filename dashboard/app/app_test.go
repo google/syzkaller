@@ -947,7 +947,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 
 	// A sanity check for the test itself.
 	if !firstCrashExists() {
-		t.Fatalf("The first reported crash should be present")
+		t.Fatalf("the first reported crash should be present")
 	}
 
 	// Unreport the first crash.
@@ -970,7 +970,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 	}
 	// Check that the unreported crash was purged.
 	if firstCrashExists() {
-		t.Fatalf("The unreported crash should have been purged.")
+		t.Fatalf("the unreported crash should have been purged")
 	}
 }
 

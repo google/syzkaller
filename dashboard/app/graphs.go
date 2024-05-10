@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 )
 

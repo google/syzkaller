@@ -3,26 +3,23 @@
 
 // Tests the translation of coverage pcs between fuzzer instances with differing module offsets.
 
-package cover_test
+package cover
 
 import (
 	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
-
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/host"
 )
 
 type RPCServer struct {
-	canonicalModules   *cover.Canonicalizer
+	canonicalModules   *Canonicalizer
 	modulesInitialized bool
 	fuzzers            map[string]*Fuzzer
 }
 
 type Fuzzer struct {
-	instModules *cover.CanonicalizerInstance
+	instModules *CanonicalizerInstance
 	cov         []uint32
 	goalCov     []uint32
 	bitmap      map[uint32]uint32
@@ -247,9 +244,9 @@ func (serv *RPCServer) runTest(val canonicalizeValue) string {
 	return ""
 }
 
-func (serv *RPCServer) connect(name string, modules []host.KernelModule, flagSignal bool) {
+func (serv *RPCServer) connect(name string, modules []KernelModule, flagSignal bool) {
 	if !serv.modulesInitialized {
-		serv.canonicalModules = cover.NewCanonicalizer(modules, flagSignal)
+		serv.canonicalModules = NewCanonicalizer(modules, flagSignal)
 		serv.modulesInitialized = true
 	}
 
@@ -258,10 +255,10 @@ func (serv *RPCServer) connect(name string, modules []host.KernelModule, flagSig
 	}
 }
 
-func initModules(addrs, sizes []uint64) []host.KernelModule {
-	var modules []host.KernelModule
+func initModules(addrs, sizes []uint64) []KernelModule {
+	var modules []KernelModule
 	for idx, addr := range addrs {
-		modules = append(modules, host.KernelModule{
+		modules = append(modules, KernelModule{
 			Name: strconv.FormatInt(int64(idx), 10),
 			Addr: addr,
 			Size: sizes[idx],

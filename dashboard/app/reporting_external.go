@@ -4,13 +4,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/log"
 )
 

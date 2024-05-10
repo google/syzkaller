@@ -31,3 +31,11 @@ func TestSubtract(t *testing.T) {
 	base.Subtract(FromRaw([]uint32{1}, 0))
 	assert.Equal(t, 3, base.Len())
 }
+
+func TestIntersectsWith(t *testing.T) {
+	base := FromRaw([]uint32{0, 1, 2, 3, 4}, 1)
+	assert.True(t, base.IntersectsWith(FromRaw([]uint32{0, 5, 10}, 1)))
+	assert.False(t, base.IntersectsWith(FromRaw([]uint32{5, 10, 15}, 1)))
+	// The other signal has a lower priority.
+	assert.False(t, base.IntersectsWith(FromRaw([]uint32{0, 1, 2}, 0)))
+}

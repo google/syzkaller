@@ -11,6 +11,7 @@ import (
 const (
 	ArchX86     = "x86"
 	ArchPowerPC = "powerpc"
+	ArchArm64   = "arm64"
 )
 
 var Arches = make(map[string]InsnSet)

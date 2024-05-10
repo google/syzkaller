@@ -51,7 +51,7 @@ func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
 	}
 	return &StraceResult{
 		Report: runRes.Report,
-		Output: runRes.RawOutput,
+		Output: runRes.Output,
 	}
 }
 

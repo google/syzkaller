@@ -27,11 +27,12 @@ type CoverHandlerParams struct {
 	Progs       []Prog
 	CoverFilter map[uint32]uint32
 	Debug       bool
+	Force       bool
 }
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	files, err := rg.prepareFileMap(progs, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -69,19 +70,12 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, params CoverHandlerParams) error 
 			pos = pos.Dirs[dir]
 			fname = fname[sep+1:]
 		}
-		var TotalInCoveredFunc int
-		for _, function := range file.functions {
-			if function.covered > 0 {
-				TotalInCoveredFunc += function.pcs
-			}
-		}
 		f := &templateFile{
 			templateBase: templateBase{
-				Path:               path,
-				Name:               fname,
-				Total:              file.totalPCs,
-				TotalInCoveredFunc: TotalInCoveredFunc,
-				Covered:            file.coveredPCs,
+				Path:    path,
+				Name:    fname,
+				Total:   file.totalPCs,
+				Covered: file.coveredPCs,
 			},
 			HasFunctions: len(file.functions) != 0,
 		}
@@ -134,7 +128,7 @@ type lineCoverExport struct {
 
 func (rg *ReportGenerator) DoLineJSON(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	files, err := rg.prepareFileMap(progs, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -225,25 +219,27 @@ type CoverageInfo struct {
 
 // DoCoverJSONL is a handler for "/cover?jsonl=1".
 func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) error {
-	if rg.CoverageCallbackPoints != nil {
-		if err := rg.symbolizePCs(rg.CoverageCallbackPoints); err != nil {
+	if rg.CallbackPoints != nil {
+		if err := rg.symbolizePCs(rg.CallbackPoints); err != nil {
 			return fmt.Errorf("failed to symbolize PCs(): %w", err)
 		}
 	}
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	fm, err := rg.prepareFileMap(progs, params.Debug)
-	if err != nil {
-		return fmt.Errorf("failed to rg.prepareFileMap(): %w", err)
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+		return err
 	}
-
+	progPCs := make(map[uint64]int)
+	for _, prog := range progs {
+		for _, pc := range prog.PCs {
+			progPCs[pc]++
+		}
+	}
 	encoder := json.NewEncoder(w)
 	for _, frame := range rg.Frames {
 		endCol := frame.Range.EndCol
 		if endCol == backend.LineEnd {
 			endCol = -1
 		}
-		pcProgCount := FileByFrame(fm, &frame).lines[frame.StartLine].pcProgCount
-		hitCount := pcProgCount[frame.PC]
 		covInfo := &CoverageInfo{
 			FilePath:  frame.Name,
 			FuncName:  frame.FuncName,
@@ -251,11 +247,11 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) 
 			StartCol:  frame.Range.StartCol,
 			EndLine:   frame.Range.EndLine,
 			EndCol:    endCol,
-			HitCount:  hitCount,
+			HitCount:  progPCs[frame.PC],
 			Inline:    frame.Inline,
 			PC:        frame.PC,
 		}
-		if err = encoder.Encode(covInfo); err != nil {
+		if err := encoder.Encode(covInfo); err != nil {
 			return fmt.Errorf("failed to json.Encode(): %w", err)
 		}
 	}
@@ -346,7 +342,7 @@ var csvFilesHeader = []string{
 }
 
 func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
-	files, err := rg.prepareFileMap(progs, false)
+	files, err := rg.prepareFileMap(progs, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -594,7 +590,7 @@ var csvHeader = []string{
 
 func (rg *ReportGenerator) DoCSV(w io.Writer, params CoverHandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
-	files, err := rg.prepareFileMap(progs, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
 	}
@@ -813,22 +809,14 @@ func processDir(dir *templateDir) {
 	for _, f := range dir.Files {
 		dir.Total += f.Total
 		dir.Covered += f.Covered
-		dir.TotalInCoveredFunc += f.TotalInCoveredFunc
 		f.Percent = percent(f.Covered, f.Total)
-		if f.TotalInCoveredFunc > 0 {
-			f.PercentInCoveredFunc = percent(f.Covered, f.TotalInCoveredFunc)
-		}
 	}
 	for _, child := range dir.Dirs {
 		processDir(child)
 		dir.Total += child.Total
 		dir.Covered += child.Covered
-		dir.TotalInCoveredFunc += child.TotalInCoveredFunc
 	}
 	dir.Percent = percent(dir.Covered, dir.Total)
-	if dir.TotalInCoveredFunc > 0 {
-		dir.PercentInCoveredFunc += percent(dir.Covered, dir.TotalInCoveredFunc)
-	}
 	if dir.Covered == 0 {
 		dir.Dirs = nil
 		dir.Files = nil
@@ -877,13 +865,11 @@ type templateProg struct {
 }
 
 type templateBase struct {
-	Name                 string
-	Path                 string
-	Total                int
-	Covered              int
-	TotalInCoveredFunc   int
-	Percent              int
-	PercentInCoveredFunc int
+	Name    string
+	Path    string
+	Total   int
+	Covered int
+	Percent int
 }
 
 type templateDir struct {
@@ -1092,8 +1078,8 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			<span id="path/{{$dir.Path}}" class="caret hover">
 				{{$dir.Name}}
 				<span class="cover hover">
-					{{if $dir.Covered}}{{$dir.Percent}}%({{$dir.PercentInCoveredFunc}}%){{else}}---{{end}}
-					<span class="cover-right">of {{$dir.Total}}({{$dir.TotalInCoveredFunc}})</span>
+					{{if $dir.Covered}}{{$dir.Percent}}%{{else}}---{{end}}
+					<span class="cover-right">of {{$dir.Total}}</span>
 				</span>
 			</span>
 			<ul class="nested">
@@ -1110,9 +1096,9 @@ var coverTemplate = template.Must(template.New("").Parse(`
 				<span class="cover hover">
 					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
 						onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
-                                                {{$file.Percent}}%({{$file.PercentInCoveredFunc}}%)
+                                                {{$file.Percent}}%
 					</a>
-					<span class="cover-right">of {{$file.Total}}({{$file.TotalInCoveredFunc}})</span>
+					<span class="cover-right">of {{$file.Total}}</span>
 				</span>
 			{{else}}
 					{{$file.Name}}<span class="cover hover">---<span class="cover-right">

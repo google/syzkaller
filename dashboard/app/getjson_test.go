@@ -63,7 +63,24 @@ func TestJSONAPIIntegration(t *testing.T) {
 
 	sampleFixedBugGroupDescr := []byte(`{
 	"version": 1,
-	"Bugs": null
+	"Bugs": [
+		{
+			"title": "title2",
+			"link": "/bug?extid=0267d1c87b9ed4eb5def",
+			"fix-commits": [
+				{
+					"title": "foo: fix1",
+					"repo": "git://syzkaller.org",
+					"branch": "branch10"
+				},
+				{
+					"title": "foo: fix2",
+					"repo": "git://syzkaller.org",
+					"branch": "branch10"
+				}
+			]
+		}
+	]
 }`)
 
 	c := NewCtx(t)
@@ -85,6 +102,13 @@ func TestJSONAPIIntegration(t *testing.T) {
 	checkBugPageJSONIs(c, bugReport2.ID, sampleCrashWithReproDescr)
 
 	checkBugGroupPageJSONIs(c, "/test1?json=1", sampleOpenBugGroupDescr)
+
+	c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:         bugReport2.ID,
+		Status:     dashapi.BugStatusOpen,
+		FixCommits: []string{"foo: fix1", "foo: fix2"},
+	})
+
 	checkBugGroupPageJSONIs(c, "/test1/fixed?json=1", sampleFixedBugGroupDescr)
 }
 

@@ -24,10 +24,10 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -35,7 +35,8 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	crash_pkg "github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/repro"
-	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
@@ -59,18 +60,13 @@ type Manager struct {
 	corpusDB        *db.DB
 	corpusDBMu      sync.Mutex // for concurrent operations on corpusDB
 	corpusPreloaded chan bool
-	startTime       time.Time
-	firstConnect    time.Time
-	fuzzingTime     time.Duration
-	stats           *Stats
+	firstConnect    atomic.Int64 // unix time, or 0 if not connected
 	crashTypes      map[string]bool
 	vmStop          chan bool
-	checkResult     *rpctype.CheckArgs
+	enabledFeatures flatrpc.Feature
+	checkDone       bool
 	fresh           bool
-	netCompression  bool
 	expertMode      bool
-	numFuzzing      uint32
-	numReproducing  uint32
 	nextInstanceID  atomic.Uint64
 
 	dash *dashapi.Dashboard
@@ -96,13 +92,11 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules             []host.KernelModule
-	coverFilter         map[uint32]uint32
-	execCoverFilter     map[uint32]uint32
-	modulesInitialized  bool
-	afterTriageStatSent bool
-
 	assetStorage *asset.Storage
+
+	bootTime stats.AverageValue[time.Duration]
+
+	Stats
 }
 
 const (
@@ -178,14 +172,11 @@ func RunManager(cfg *mgrconfig.Config) {
 		sysTarget:          cfg.SysTarget,
 		reporter:           reporter,
 		crashdir:           crashdir,
-		startTime:          time.Now(),
-		stats:              &Stats{haveHub: cfg.HubClient != ""},
 		crashTypes:         make(map[string]bool),
 		disabledHashes:     make(map[string]struct{}),
 		memoryLeakFrames:   make(map[string]bool),
 		dataRaceFrames:     make(map[string]bool),
 		fresh:              true,
-		netCompression:     vm.UseNetCompression(cfg.Type),
 		vmStop:             make(chan bool),
 		externalReproQueue: make(chan *Crash, 10),
 		needMoreRepros:     make(chan chan bool),
@@ -194,9 +185,9 @@ func RunManager(cfg *mgrconfig.Config) {
 		saturatedCalls:     make(map[string]bool),
 	}
 
+	mgr.initStats()
 	go mgr.preloadCorpus()
-	mgr.initStats() // Initializes prometheus variables.
-	mgr.initHTTP()  // Creates HTTP server.
+	mgr.initHTTP() // Creates HTTP server.
 	mgr.collectUsedFiles()
 	go mgr.corpusInputHandler(corpusUpdates)
 
@@ -220,42 +211,11 @@ func RunManager(cfg *mgrconfig.Config) {
 		}
 	}
 
-	go func() {
-		for lastTime := time.Now(); ; {
-			time.Sleep(10 * time.Second)
-			now := time.Now()
-			diff := now.Sub(lastTime)
-			lastTime = now
-			mgr.mu.Lock()
-			if mgr.firstConnect.IsZero() {
-				mgr.mu.Unlock()
-				continue
-			}
-			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
-			mgr.mu.Unlock()
-			executed := mgr.stats.execTotal.get()
-			crashes := mgr.stats.crashes.get()
-			corpusCover := mgr.stats.corpusCover.get()
-			corpusSignal := mgr.stats.corpusSignal.get()
-			maxSignal := mgr.stats.maxSignal.get()
-			triageQLen := mgr.stats.triageQueueLen.get()
-			numReproducing := atomic.LoadUint32(&mgr.numReproducing)
-			numFuzzing := atomic.LoadUint32(&mgr.numFuzzing)
-
-			log.Logf(0, "VMs %v, executed %v, cover %v, signal %v/%v, crashes %v, repro %v, triageQLen %v",
-				numFuzzing, executed, corpusCover, corpusSignal, maxSignal, crashes, numReproducing, triageQLen)
-		}
-	}()
-
 	if *flagBench != "" {
 		mgr.initBench()
 	}
 
-	if mgr.dash != nil {
-		go mgr.dashboardReporter()
-		go mgr.dashboardReproTasks()
-	}
-
+	go mgr.heartbeatLoop()
 	osutil.HandleInterrupts(vm.Shutdown)
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
@@ -267,28 +227,34 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.vmLoop()
 }
 
+func (mgr *Manager) heartbeatLoop() {
+	lastTime := time.Now()
+	for now := range time.NewTicker(10 * time.Second).C {
+		diff := int(now.Sub(lastTime))
+		lastTime = now
+		if mgr.firstConnect.Load() == 0 {
+			continue
+		}
+		mgr.statFuzzingTime.Add(diff * mgr.statNumFuzzing.Val())
+		buf := new(bytes.Buffer)
+		for _, stat := range stats.Collect(stats.Console) {
+			fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
+		}
+		log.Logf(0, "%s", buf.String())
+	}
+}
+
 func (mgr *Manager) initBench() {
 	f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, osutil.DefaultFilePerm)
 	if err != nil {
 		log.Fatalf("failed to open bench file: %v", err)
 	}
 	go func() {
-		for {
-			time.Sleep(time.Minute)
-			vals := mgr.stats.all()
-			mgr.mu.Lock()
-			if mgr.firstConnect.IsZero() {
-				mgr.mu.Unlock()
-				continue
+		for range time.NewTicker(time.Minute).C {
+			vals := make(map[string]int)
+			for _, stat := range stats.Collect(stats.All) {
+				vals[stat.Name] = stat.V
 			}
-			mgr.minimizeCorpusUnlocked()
-			stat := mgr.corpus.Stats()
-			vals["corpus"] = uint64(stat.Progs)
-			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
-			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
-			vals["candidates"] = uint64(mgr.fuzzer.Load().Stats().Candidates)
-			mgr.mu.Unlock()
-
 			data, err := json.MarshalIndent(vals, "", "  ")
 			if err != nil {
 				log.Fatalf("failed to serialize bench data")
@@ -329,7 +295,7 @@ func (mgr *Manager) vmLoop() {
 	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
 		instancesPerRepro = maxReproVMs
 	}
-	instances := SequentialResourcePool(vmCount, 10*time.Second*mgr.cfg.Timeouts.Scale)
+	instances := SequentialResourcePool(vmCount, 5*time.Second)
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
@@ -361,7 +327,7 @@ func (mgr *Manager) vmLoop() {
 
 		canRepro := func() bool {
 			return phase >= phaseTriagedHub && len(reproQueue) != 0 &&
-				(int(atomic.LoadUint32(&mgr.numReproducing))+1)*instancesPerRepro <= maxReproVMs
+				(mgr.statNumReproducing.Val()+1)*instancesPerRepro <= maxReproVMs
 		}
 
 		if shutdown != nil {
@@ -374,7 +340,7 @@ func (mgr *Manager) vmLoop() {
 				crash := reproQueue[last]
 				reproQueue[last] = nil
 				reproQueue = reproQueue[:last]
-				atomic.AddUint32(&mgr.numReproducing, 1)
+				mgr.statNumReproducing.Add(1)
 				log.Logf(0, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
 					reproDone <- mgr.runRepro(crash, vmIndexes, instances.Put)
@@ -422,7 +388,7 @@ func (mgr *Manager) vmLoop() {
 				}
 			}
 		case res := <-reproDone:
-			atomic.AddUint32(&mgr.numReproducing, ^uint32(0))
+			mgr.statNumReproducing.Add(-1)
 			crepro := false
 			title := ""
 			if res.repro != nil {
@@ -494,8 +460,7 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(...int)) *ReproResult {
-	features := mgr.checkResult.Features
-	res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
+	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.enabledFeatures, mgr.reporter, mgr.vmPool, vmIndexes)
 	ret := &ReproResult{
 		instances:     vmIndexes,
 		report0:       crash.Report,
@@ -654,16 +619,15 @@ func (mgr *Manager) loadCorpus() {
 		}
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	corpusSize := len(candidates)
-	log.Logf(0, "%-24v: %v (deleted %v broken)", "corpus", corpusSize, broken)
-
+	seeds := 0
 	for _, seed := range mgr.seeds {
 		_, item := mgr.loadProg(seed, true, false)
 		if item != nil {
 			candidates = append(candidates, *item)
+			seeds++
 		}
 	}
-	log.Logf(0, "%-24v: %v/%v", "seeds", len(candidates)-corpusSize, len(candidates))
+	log.Logf(0, "%-24v: %v (%v broken, %v seeds)", "corpus", len(candidates), broken, seeds)
 	mgr.seeds = nil
 
 	// We duplicate all inputs in the corpus and shuffle the second part.
@@ -758,11 +722,16 @@ func parseProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
-	// Use unique instance names to keep name collisions in case of untimely RPC messages.
+	var maxSignal signal.Signal
+	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
+		maxSignal = fuzzer.Cover.CopyMaxSignal()
+	}
+	// Use unique instance names to prevent name collisions in case of untimely RPC messages.
 	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
+	injectLog := make(chan []byte, 10)
+	mgr.serv.createInstance(instanceName, maxSignal, injectLog)
 
-	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName)
-
+	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectLog)
 	machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
 	if len(vmInfo) != 0 {
 		machineInfo = append(append(vmInfo, '\n'), machineInfo...)
@@ -784,7 +753,10 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	return crash, nil
 }
 
-func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Report, []byte, error) {
+func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <-chan []byte) (
+	*report.Report, []byte, error) {
+	start := time.Now()
+
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create instance: %w", err)
@@ -819,9 +791,10 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	}
 
 	// Run the fuzzer binary.
-	start := time.Now()
-	atomic.AddUint32(&mgr.numFuzzing, 1)
-	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
+	mgr.bootTime.Save(time.Since(start))
+	start = time.Now()
+	mgr.statNumFuzzing.Add(1)
+	defer mgr.statNumFuzzing.Add(-1)
 
 	args := &instance.FuzzerCmdArgs{
 		Fuzzer:    fuzzerBin,
@@ -836,34 +809,34 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		Cover:     mgr.cfg.Cover,
 		Debug:     *flagDebug,
 		Test:      false,
-		Runtest:   false,
 		Optional: &instance.OptionalFuzzerArgs{
-			Slowdown:       mgr.cfg.Timeouts.Slowdown,
-			RawCover:       mgr.cfg.RawCover,
-			SandboxArg:     mgr.cfg.SandboxArg,
-			PprofPort:      inst.PprofPort(),
-			ResetAccState:  mgr.cfg.Experimental.ResetAccState,
-			NetCompression: mgr.netCompression,
+			Slowdown:   mgr.cfg.Timeouts.Slowdown,
+			SandboxArg: mgr.cfg.SandboxArg,
+			PprofPort:  inst.PprofPort(),
 		},
 	}
 	cmd := instance.FuzzerCmd(args)
-	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
+	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
+		vm.ExitTimeout, vm.StopChan(mgr.vmStop), vm.InjectOutput(injectLog),
+		vm.EarlyFinishCb(func() {
+			// Depending on the crash type and kernel config, fuzzing may continue
+			// running for several seconds even after kernel has printed a crash report.
+			// This litters the log and we want to prevent it.
+			mgr.serv.stopFuzzing(instanceName)
+		}),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
-
-	var vmInfo []byte
-	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
 	if rep == nil {
 		// This is the only "OK" outcome.
 		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
-	} else {
-		vmInfo, err = inst.Info()
-		if err != nil {
-			vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
-		}
+		return nil, nil, nil
 	}
-
+	vmInfo, err := inst.Info()
+	if err != nil {
+		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
+	}
 	return rep, vmInfo, nil
 }
 
@@ -909,14 +882,14 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		// Collect all of them into a single bucket so that it's possible to control and assess them,
 		// e.g. if there are some spikes in suppressed reports.
 		crash.Title = "suppressed report"
-		mgr.stats.crashSuppressed.inc()
+		mgr.statSuppressed.Add(1)
 	}
 
-	mgr.stats.crashes.inc()
+	mgr.statCrashes.Add(1)
 	mgr.mu.Lock()
 	if !mgr.crashTypes[crash.Title] {
 		mgr.crashTypes[crash.Title] = true
-		mgr.stats.crashTypes.inc()
+		mgr.statCrashTypes.Add(1)
 	}
 	mgr.mu.Unlock()
 
@@ -1011,7 +984,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	if crash.fromHub || crash.fromDashboard {
 		return true
 	}
-	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
+	if !mgr.checkDone || (mgr.enabledFeatures&flatrpc.FeatureLeak != 0 &&
 		crash.Type != crash_pkg.MemoryLeak) {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
@@ -1223,9 +1196,7 @@ func fullReproLog(stats *repro.Stats) []byte {
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
-		mgr.stats.newInputs.inc()
-		mgr.serv.updateFilteredCover(update.NewCover)
-
+		mgr.serv.updateCoverFilter(update.NewCover)
 		if update.Exists {
 			// We only save new progs into the corpus.db file.
 			continue
@@ -1242,7 +1213,7 @@ func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.minimizeCorpusUnlocked()
+	mgr.minimizeCorpusLocked()
 	items := mgr.corpus.Items()
 	corpus = make([][]byte, 0, len(items))
 	for _, inp := range items {
@@ -1267,13 +1238,13 @@ func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
 	}
 }
 
-func (mgr *Manager) minimizeCorpusUnlocked() {
-	currSize := mgr.corpus.Stats().Progs
-	if mgr.phase < phaseLoadedCorpus || currSize <= mgr.lastMinCorpus*103/100 {
+func (mgr *Manager) minimizeCorpusLocked() {
+	currSize := mgr.corpus.StatProgs.Val()
+	if currSize <= mgr.lastMinCorpus*103/100 {
 		return
 	}
 	mgr.corpus.Minimize(mgr.cfg.Cover)
-	newSize := mgr.corpus.Stats().Progs
+	newSize := mgr.corpus.StatProgs.Val()
 
 	log.Logf(1, "minimized corpus: %v -> %v", currSize, newSize)
 	mgr.lastMinCorpus = newSize
@@ -1335,29 +1306,25 @@ func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
 
 func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
 	mgr.mu.Lock()
-	checkResult := mgr.checkResult
+	enabledSyscalls := mgr.targetEnabledSyscalls
 	mgr.mu.Unlock()
 
-	if checkResult == nil {
+	if enabledSyscalls == nil {
 		return nil
 	}
 	calls := mgr.corpus.CallCover()
 	// Add enabled, but not yet covered calls.
-	for _, call := range checkResult.EnabledCalls[mgr.cfg.Sandbox] {
-		key := mgr.target.Syscalls[call].Name
-		if calls[key] == nil {
-			calls[key] = new(corpus.CallCov)
+	for call := range enabledSyscalls {
+		if calls[call.Name] == nil {
+			calls[call.Name] = new(corpus.CallCov)
 		}
 	}
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
-	BugFrames, map[uint32]uint32, map[uint32]uint32, error) {
+func (mgr *Manager) currentBugFrames() BugFrames {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-
-	mgr.minimizeCorpusUnlocked()
 	frames := BugFrames{
 		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
 		dataRaces:   make([]string, 0, len(mgr.dataRaceFrames)),
@@ -1368,42 +1335,30 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	for frame := range mgr.dataRaceFrames {
 		frames.dataRaces = append(frames.dataRaces, frame)
 	}
-	if !mgr.modulesInitialized {
-		var err error
-		mgr.modules = modules
-		mgr.execCoverFilter, mgr.coverFilter, err = mgr.createCoverageFilter()
-		if err != nil {
-			log.Fatalf("failed to create coverage filter: %v", err)
-		}
-		mgr.modulesInitialized = true
-	}
-	return frames, mgr.coverFilter, mgr.execCoverFilter, nil
+	return frames
 }
 
-func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
+func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if mgr.checkResult != nil {
+	if mgr.checkDone {
 		panic("machineChecked() called twice")
 	}
-
-	mgr.checkResult = a
+	mgr.checkDone = true
+	mgr.enabledFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
-	mgr.target.UpdateGlobs(a.GlobFiles)
-	mgr.firstConnect = time.Now()
+	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
+		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
+	statSyscalls.Add(len(enabledSyscalls))
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	calls := make(map[*prog.Syscall]bool)
-	for _, id := range a.EnabledCalls[mgr.cfg.Sandbox] {
-		calls[mgr.target.Syscalls[id]] = true
-	}
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 		Corpus:         mgr.corpus,
 		Coverage:       mgr.cfg.Cover,
-		FaultInjection: a.Features[host.FeatureFault].Enabled,
-		Comparisons:    a.Features[host.FeatureComparisons].Enabled,
+		FaultInjection: features&flatrpc.FeatureFault != 0,
+		Comparisons:    features&flatrpc.FeatureComparisons != 0,
 		Collide:        true,
-		EnabledCalls:   calls,
+		EnabledCalls:   enabledSyscalls,
 		NoMutateCalls:  mgr.cfg.NoMutateCalls,
 		FetchRawCover:  mgr.cfg.RawCover,
 		Logf: func(level int, msg string, args ...interface{}) {
@@ -1421,8 +1376,23 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 	mgr.fuzzer.Store(fuzzerObj)
 
 	mgr.loadCorpus()
+	mgr.firstConnect.Store(time.Now().Unix())
+	go mgr.corpusMinimization()
 	go mgr.fuzzerLoop(fuzzerObj)
-	go mgr.fuzzerSignalRotation(fuzzerObj)
+	if mgr.dash != nil {
+		go mgr.dashboardReporter()
+		if mgr.cfg.Reproduce {
+			go mgr.dashboardReproTasks()
+		}
+	}
+}
+
+func (mgr *Manager) corpusMinimization() {
+	for range time.NewTicker(time.Minute).C {
+		mgr.mu.Lock()
+		mgr.minimizeCorpusLocked()
+		mgr.mu.Unlock()
+	}
 }
 
 // We need this method since we're not supposed to access Manager fields from RPCServer.
@@ -1430,7 +1400,7 @@ func (mgr *Manager) getFuzzer() *fuzzer.Fuzzer {
 	return mgr.fuzzer.Load()
 }
 
-func (mgr *Manager) fuzzerSignalRotation(fuzzer *fuzzer.Fuzzer) {
+func (mgr *Manager) fuzzerSignalRotation() {
 	const (
 		rotateSignals      = 1000
 		timeBetweenRotates = 15 * time.Minute
@@ -1439,52 +1409,34 @@ func (mgr *Manager) fuzzerSignalRotation(fuzzer *fuzzer.Fuzzer) {
 		// 3000/60000 = 5%.
 		execsBetweenRotates = 60000
 	)
-	var lastExecTotal uint64
+	lastExecTotal := 0
 	lastRotation := time.Now()
-	for {
-		time.Sleep(time.Minute * 5)
-		mgr.mu.Lock()
-		phase := mgr.phase
-		mgr.mu.Unlock()
-		if phase < phaseTriagedCorpus {
-			continue
-		}
-		if mgr.stats.execTotal.get()-lastExecTotal < execsBetweenRotates {
+	for range time.NewTicker(5 * time.Minute).C {
+		if mgr.statExecs.Val()-lastExecTotal < execsBetweenRotates {
 			continue
 		}
 		if time.Since(lastRotation) < timeBetweenRotates {
 			continue
 		}
-		fuzzer.RotateMaxSignal(rotateSignals)
+		mgr.fuzzer.Load().RotateMaxSignal(rotateSignals)
 		lastRotation = time.Now()
-		lastExecTotal = mgr.stats.execTotal.get()
+		lastExecTotal = mgr.statExecs.Val()
 	}
 }
 
 func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
-	for {
-		time.Sleep(time.Second / 2)
-
+	for ; ; time.Sleep(time.Second / 2) {
 		// Distribute new max signal over all instances.
 		newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
 		log.Logf(2, "distributing %d new signal, %d dropped signal",
 			len(newSignal), len(dropSignal))
 		mgr.serv.distributeSignalDelta(newSignal, dropSignal)
 
-		// Collect statistics.
-		fuzzerStats := fuzzer.Stats()
-		mgr.stats.setNamed(fuzzerStats.Named)
-		mgr.stats.corpusCover.set(fuzzerStats.Cover)
-		mgr.stats.corpusSignal.set(fuzzerStats.Signal)
-		mgr.stats.maxSignal.set(fuzzerStats.MaxSignal)
-		mgr.stats.triageQueueLen.set(fuzzerStats.Candidates)
-		mgr.stats.fuzzerJobs.set(fuzzerStats.RunningJobs)
-		mgr.stats.rpcTraffic.add(int(mgr.serv.server.TotalBytes.Swap(0)))
-
 		// Update the state machine.
-		if fuzzerStats.Candidates == 0 {
+		if fuzzer.StatCandidates.Val() == 0 {
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
+				go mgr.fuzzerSignalRotation()
 				if mgr.cfg.HubClient != "" {
 					mgr.phase = phaseTriagedCorpus
 					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
@@ -1558,36 +1510,28 @@ func (mgr *Manager) checkUsedFiles() {
 
 func (mgr *Manager) dashboardReporter() {
 	webAddr := publicWebAddr(mgr.cfg.HTTP)
+	triageInfoSent := false
 	var lastFuzzingTime time.Duration
 	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
-	for {
-		time.Sleep(time.Minute)
+	for range time.NewTicker(time.Minute).C {
 		mgr.mu.Lock()
-		if mgr.firstConnect.IsZero() {
-			mgr.mu.Unlock()
-			continue
-		}
-		crashes := mgr.stats.crashes.get()
-		suppressedCrashes := mgr.stats.crashSuppressed.get()
-		execs := mgr.stats.execTotal.get()
-		corpusStat := mgr.corpus.Stats()
 		req := &dashapi.ManagerStatsReq{
 			Name:              mgr.cfg.Name,
 			Addr:              webAddr,
-			UpTime:            time.Since(mgr.firstConnect),
-			Corpus:            uint64(corpusStat.Progs),
-			PCs:               mgr.stats.corpusCover.get(),
-			Cover:             mgr.stats.corpusSignal.get(),
-			CrashTypes:        mgr.stats.crashTypes.get(),
-			FuzzingTime:       mgr.fuzzingTime - lastFuzzingTime,
-			Crashes:           crashes - lastCrashes,
-			SuppressedCrashes: suppressedCrashes - lastSuppressedCrashes,
-			Execs:             execs - lastExecs,
+			UpTime:            time.Duration(mgr.statUptime.Val()) * time.Second,
+			Corpus:            uint64(mgr.corpus.StatProgs.Val()),
+			PCs:               uint64(mgr.corpus.StatCover.Val()),
+			Cover:             uint64(mgr.corpus.StatSignal.Val()),
+			CrashTypes:        uint64(mgr.statCrashTypes.Val()),
+			FuzzingTime:       time.Duration(mgr.statFuzzingTime.Val()) - lastFuzzingTime,
+			Crashes:           uint64(mgr.statCrashes.Val()) - lastCrashes,
+			SuppressedCrashes: uint64(mgr.statSuppressed.Val()) - lastSuppressedCrashes,
+			Execs:             uint64(mgr.statExecs.Val()) - lastExecs,
 		}
-		if mgr.phase >= phaseTriagedCorpus && !mgr.afterTriageStatSent {
-			mgr.afterTriageStatSent = true
-			req.TriagedCoverage = mgr.stats.corpusSignal.get()
-			req.TriagedPCs = mgr.stats.corpusCover.get()
+		if mgr.phase >= phaseTriagedCorpus && !triageInfoSent {
+			triageInfoSent = true
+			req.TriagedCoverage = uint64(mgr.corpus.StatSignal.Val())
+			req.TriagedPCs = uint64(mgr.corpus.StatCover.Val())
 		}
 		mgr.mu.Unlock()
 
@@ -1605,11 +1549,7 @@ func (mgr *Manager) dashboardReporter() {
 }
 
 func (mgr *Manager) dashboardReproTasks() {
-	if !mgr.cfg.Reproduce {
-		return
-	}
-	for {
-		time.Sleep(20 * time.Minute)
+	for range time.NewTicker(20 * time.Minute).C {
 		needReproReply := make(chan bool)
 		mgr.needMoreRepros <- needReproReply
 		if !<-needReproReply {

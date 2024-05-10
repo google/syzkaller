@@ -103,6 +103,14 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 			calls = append(calls, comp.genSyscall(n, callArgSizes[n.CallName]))
 		}
 	}
+	// We assign SquashableElem here rather than during pointer type generation
+	// because during pointer generation recursive struct types may not be fully
+	// generated yet, thus ForeachArgType won't observe all types.
+	prog.ForeachTypePost(calls, func(typ prog.Type, ctx *prog.TypeCtx) {
+		if ptr, ok := typ.(*prog.PtrType); ok {
+			ptr.SquashableElem = isSquashableElem(ptr.Elem, ptr.ElemDir)
+		}
+	})
 	sort.Slice(calls, func(i, j int) bool {
 		return calls[i].Name < calls[j].Name
 	})

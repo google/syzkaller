@@ -1,0 +1,214 @@
+// Copyright 2024 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+namespace rpc;
+
+enum Feature : uint64 (bit_flags) {
+	Coverage,
+	Comparisons,
+	ExtraCoverage,
+	DelayKcovMmap,
+	SandboxSetuid,
+	SandboxNamespace,
+	SandboxAndroid,
+	Fault,
+	Leak,
+	NetInjection,
+	NetDevices,
+	KCSAN,
+	DevlinkPCI,
+	NicVF,
+	USBEmulation,
+	VhciInjection,
+	WifiEmulation,
+	LRWPANEmulation,	// 802.15.4 standard
+	BinFmtMisc,
+	Swap,
+}
+ 
+table ConnectRequestRaw {
+	name			:string;
+	arch			:string;
+	git_revision		:string;
+	syz_revision		:string;
+}
+
+table ConnectReplyRaw {
+	leak_frames		:[string];
+	race_frames		:[string];
+	// Fuzzer sets up these features and returns results in InfoRequest.features.
+	features		:Feature;
+	// Fuzzer reads these files inside of the VM and returns contents in InfoRequest.files.
+	files			:[string];
+	globs			:[string];
+}
+
+table InfoRequestRaw {
+	error			:string;
+	features		:[FeatureInfoRaw];
+	files			:[FileInfoRaw];
+	globs			:[GlobInfoRaw];
+}
+
+table InfoReplyRaw {
+	cover_filter		:[uint32];
+}
+
+table FileInfoRaw {
+	name			:string;
+	exists			:bool;
+	error			:string;
+	data			:[uint8];
+}
+
+table GlobInfoRaw {
+	name			:string;
+	files			:[string];
+}
+
+table FeatureInfoRaw {
+	id			:Feature;
+	need_setup		:bool;
+	reason			:string;
+}
+
+// Messages sent from the host to the executor.
+union HostMessagesRaw {
+	ExecRequest		:ExecRequestRaw,
+	SignalUpdate		:SignalUpdateRaw,
+}
+
+table HostMessageRaw {
+	msg			:HostMessagesRaw;
+}
+
+// Messages sent from the executor to the host.
+union ExecutorMessagesRaw {
+	ExecResult		:ExecResultRaw,
+	Executing		:ExecutingMessageRaw,
+	Stats			:StatsMessageRaw,
+}
+
+table ExecutorMessageRaw {
+	msg			:ExecutorMessagesRaw;
+}
+
+enum RequestFlag : uint64 (bit_flags) {
+	// If set, prog_data contains compiled executable binary
+	// that needs to be written to disk and executed.
+	IsBinary,
+	// Return only new signal rather than all signal.
+	NewSignal,
+	// If set, fully reset executor state befor executing the test.
+	ResetState,
+	// If set, collect program output and return in output field.
+	ReturnOutput,
+	// If set, don't fail on program failures, instead return the error in error field.
+	ReturnError,
+}
+
+// Note: New / changed flags should be added to parse_env_flags in executor.cc.
+enum ExecEnv : uint64 (bit_flags) {
+	Debug,			// debug output from executor
+	Signal,			// collect feedback signals (coverage)
+	SandboxSetuid,		// impersonate nobody user
+	SandboxNamespace,	// use namespaces for sandboxing
+	SandboxAndroid,		// use Android sandboxing for the untrusted_app domain
+	ExtraCover,		// collect extra coverage
+	EnableTun,		// setup and use /dev/tun for packet injection
+	EnableNetDev,		// setup more network devices for testing
+	EnableNetReset,		// reset network namespace between programs
+	EnableCgroups,		// setup cgroups for testing
+	EnableCloseFds,		// close fds after each program
+	EnableDevlinkPCI,	// setup devlink PCI device
+	EnableVhciInjection,	// setup and use /dev/vhci for hci packet injection
+	EnableWifi,		// setup and use mac80211_hwsim for wifi emulation
+	DelayKcovMmap,		// manage kcov memory in an optimized way
+	EnableNicVF,		// setup NIC VF device
+}
+
+enum ExecFlag : uint64 (bit_flags) {
+	CollectSignal,		// collect feedback signals
+	CollectCover,		// collect coverage
+	DedupCover,		// deduplicate coverage in executor
+	CollectComps,		// collect KCOV comparisons
+	Threaded,		// use multiple threads to mitigate blocked syscalls
+	CoverFilter,		// setup and use bitmap to do coverage filter
+}
+
+// Request to execute a test program.
+table ExecRequestRaw {
+	id			:int64;
+	prog_data		:[uint8];
+	flags			:RequestFlag;
+	exec_env		:ExecEnv;
+	exec_flags		:ExecFlag;
+	sandbox_arg		:int64;
+	signal_filter		:[uint32];
+	signal_filter_call	:int32;
+	// Repeat the program that many times (0 means 1).
+	repeat			:int32;
+}
+
+table SignalUpdateRaw {
+	new_max			:[uint32];
+	drop_max		:[uint32];
+}
+
+// Notification from the executor that it started executing the program 'id'.
+// We want this request to be as small and as fast as possible b/c we need it
+// to reach the host (or at least leave the VM) before the VM crashes
+// executing this program.
+table ExecutingMessageRaw {
+	id			:int64;
+	proc_id			:int32;
+	try			:int32;
+}
+
+table StatsMessageRaw {
+	noexec_count		:int64;
+	noexec_duration		:int64;
+}
+
+enum CallFlag : uint8 (bit_flags) {
+	Executed,		// was started at all
+	Finished,		// finished executing (rather than blocked forever)
+	Blocked,		// finished but blocked during execution
+	FaultInjected,		// fault was injected into this call
+}
+
+table CallInfoRaw {
+	flags			:CallFlag;
+	// Call errno (0 if the call was successful).
+	error			:int32;
+	// Feedback signal, filled if ExecFlag.CollectSignal is set.
+	signal			:[uint32];
+	// Code coverage, filled if ExecFlag.CollectCover is set.
+	// If ExecFlag.DedupCover is set, then duplicates are removed, otherwise it contains a trace.
+	cover			:[uint32];
+	// Comparison operands.
+	comps			:[ComparisonRaw];
+}
+
+struct ComparisonRaw {
+	op1			:uint64;
+	op2			:uint64;
+}
+
+table ProgInfoRaw {
+	calls			:[CallInfoRaw];
+	// Contains signal and cover collected from background threads.
+	extra			:CallInfoRaw;
+	// Total execution time of the program in nanoseconds.
+	elapsed			:uint64;
+	// Number of programs executed in the same process before this one.
+	freshness		:uint64;
+}
+
+// Result of executing a test program.
+table ExecResultRaw {
+	executing	:ExecutingMessageRaw;
+	output		:[uint8];
+	error		:string;
+	info		:ProgInfoRaw;
+}

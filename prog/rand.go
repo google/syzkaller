@@ -466,9 +466,6 @@ func (r *randGen) generateText(kind TextKind) []byte {
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Generate(cfg, r.Rand)
 		}
-		fallthrough
-	case TextArm64:
-		// Just a stub, need something better.
 		text := make([]byte, 50)
 		for i := range text {
 			text[i] = byte(r.Intn(256))
@@ -486,8 +483,6 @@ func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Mutate(cfg, r.Rand, text)
 		}
-		fallthrough
-	case TextArm64:
 		return mutateData(r, text, 40, 60)
 	default:
 		cfg := createIfuzzConfig(kind)
@@ -519,6 +514,9 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	case "ppc64":
 		cfg.Mode = ifuzz.ModeLong64
 		cfg.Arch = ifuzz.ArchPowerPC
+	case "arm64":
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchArm64
 	default:
 		return nil
 	}
@@ -560,8 +558,11 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 	case TextPpc64:
 		cfg.Mode = ifuzz.ModeLong64
 		cfg.Arch = ifuzz.ArchPowerPC
+	case TextArm64:
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchArm64
 	default:
-		panic("unknown text kind")
+		panic(fmt.Sprintf("unknown text kind: %v", kind))
 	}
 	return cfg
 }
@@ -662,8 +663,9 @@ func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source) *Prog {
 // Also used for testing as the simplest program.
 func (target *Target) DataMmapProg() *Prog {
 	return &Prog{
-		Target: target,
-		Calls:  target.MakeDataMmap(),
+		Target:   target,
+		Calls:    target.MakeDataMmap(),
+		isUnsafe: true,
 	}
 }
 

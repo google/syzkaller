@@ -7,7 +7,11 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
+	"slices"
+	"strings"
+	"testing"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -16,7 +20,7 @@ import (
 
 // Build builds a C program from source src and returns name of the resulting binary.
 func Build(target *prog.Target, src []byte) (string, error) {
-	return build(target, src, "")
+	return build(target, src, "", "")
 }
 
 // BuildNoWarn is the same as Build, but ignores all compilation warnings.
@@ -24,15 +28,24 @@ func Build(target *prog.Target, src []byte) (string, error) {
 // using an old repro with newer compiler, or a compiler that we never seen before.
 // In these cases it's more important to build successfully.
 func BuildNoWarn(target *prog.Target, src []byte) (string, error) {
-	return build(target, src, "", "-fpermissive", "-w")
+	return build(target, src, "", "", "-fpermissive", "-w")
 }
 
-// BuildFile builds a C/C++ program from file src and returns name of the resulting binary.
-func BuildFile(target *prog.Target, src string, cflags ...string) (string, error) {
-	return build(target, nil, src, cflags...)
+// BuildExecutor builds the executor binary for tests.
+// rootDir must point to syzkaller root directory in slash notation.
+func BuildExecutor(t *testing.T, target *prog.Target, rootDir string, cflags ...string) string {
+	bin, err := build(target, nil, filepath.FromSlash(rootDir),
+		filepath.FromSlash("executor/executor.cc"), cflags...)
+	if err != nil {
+		t.Fatalf("failed to build executor: %v", err)
+	}
+	t.Cleanup(func() {
+		os.Remove(bin)
+	})
+	return bin
 }
 
-func build(target *prog.Target, src []byte, file string, cflags ...string) (string, error) {
+func build(target *prog.Target, src []byte, dir, file string, cflags ...string) (string, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler := sysTarget.CCompiler
 	// We call the binary syz-executor because it sometimes shows in bug titles,
@@ -59,7 +72,14 @@ func build(target *prog.Target, src []byte, file string, cflags ...string) (stri
 		flags = append(flags, "-Wno-overflow")
 	}
 	flags = append(flags, cflags...)
+	if file == "" || strings.HasSuffix(file, ".c") {
+		// Building C source, so remove C++ flags.
+		flags = slices.DeleteFunc(flags, func(flag string) bool {
+			return strings.HasPrefix(flag, "-std=c++")
+		})
+	}
 	cmd := osutil.Command(compiler, flags...)
+	cmd.Dir = dir
 	if file == "" {
 		cmd.Stdin = bytes.NewReader(src)
 	}

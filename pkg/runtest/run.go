@@ -13,7 +13,6 @@ package runtest
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,12 +21,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -35,25 +32,25 @@ import (
 type RunRequest struct {
 	Bin    string
 	P      *prog.Prog
-	Cfg    *ipc.Config
-	Opts   *ipc.ExecOpts
+	Opts   ipc.ExecOpts
 	Repeat int
 
 	Done   chan struct{}
 	Output []byte
-	Info   []*ipc.ProgInfo
+	Info   ipc.ProgInfo
 	Err    error
 
-	results *ipc.ProgInfo
-	name    string
-	broken  string
-	skip    string
+	finished chan struct{}
+	results  *ipc.ProgInfo
+	name     string
+	broken   string
+	skip     string
 }
 
 type Context struct {
 	Dir          string
 	Target       *prog.Target
-	Features     *host.Features
+	Features     flatrpc.Feature
 	EnabledCalls map[string]map[*prog.Syscall]bool
 	Requests     chan *RunRequest
 	LogFunc      func(text string)
@@ -78,19 +75,15 @@ func (ctx *Context) Run() error {
 		defer close(progs)
 		errc <- ctx.generatePrograms(progs)
 	}()
-	var ok, fail, broken, skip int
+	var requests []*RunRequest
 	for req := range progs {
-		result := ""
-		verbose := false
-		if req.broken != "" {
-			broken++
-			result = fmt.Sprintf("BROKEN (%v)", req.broken)
-			verbose = true
-		} else if req.skip != "" {
-			skip++
-			result = fmt.Sprintf("SKIP (%v)", req.skip)
-			verbose = true
-		} else {
+		req := req
+		requests = append(requests, req)
+		if req.broken != "" || req.skip != "" {
+			continue
+		}
+		req.finished = make(chan struct{})
+		go func() {
 			// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
 			// We don't want to fix this by significantly bumping all timeouts,
 			// because if a program fails all the time with the default timeouts,
@@ -102,7 +95,7 @@ func (ctx *Context) Run() error {
 			var resultErr error
 			for try, failed := 0, 0; try < ctx.Retries; try++ {
 				req.Output = nil
-				req.Info = nil
+				req.Info = ipc.ProgInfo{}
 				req.Done = make(chan struct{})
 				ctx.Requests <- req
 				<-req.Done
@@ -122,6 +115,23 @@ func (ctx *Context) Run() error {
 			if req.Err == nil {
 				req.Err = resultErr
 			}
+			close(req.finished)
+		}()
+	}
+	var ok, fail, broken, skip int
+	for _, req := range requests {
+		result := ""
+		verbose := false
+		if req.broken != "" {
+			broken++
+			result = fmt.Sprintf("BROKEN (%v)", req.broken)
+			verbose = true
+		} else if req.skip != "" {
+			skip++
+			result = fmt.Sprintf("SKIP (%v)", req.skip)
+			verbose = true
+		} else {
+			<-req.finished
 			if req.Err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
@@ -154,7 +164,7 @@ func (ctx *Context) Run() error {
 
 func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 	cover := []bool{false}
-	if ctx.Features[host.FeatureCoverage].Enabled {
+	if ctx.Features&flatrpc.FeatureCoverage != 0 {
 		cover = append(cover, true)
 	}
 	var sandboxes []string
@@ -400,57 +410,26 @@ func match(props, requires map[string]bool) bool {
 }
 
 func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool, times int) (*RunRequest, error) {
-	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
-	cfg := new(ipc.Config)
-	opts := new(ipc.ExecOpts)
-	cfg.UseShmem = sysTarget.ExecutorUsesShmem
-	cfg.UseForkServer = sysTarget.ExecutorUsesForkServer
-	cfg.Timeouts = sysTarget.Timeouts(1)
+	var opts ipc.ExecOpts
 	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
 	if err != nil {
 		return nil, err
 	}
-	cfg.Flags |= sandboxFlags
+	opts.EnvFlags |= sandboxFlags
 	if threaded {
-		opts.Flags |= ipc.FlagThreaded
+		opts.ExecFlags |= ipc.FlagThreaded
 	}
 	if cov {
-		cfg.Flags |= ipc.FlagSignal
-		opts.Flags |= ipc.FlagCollectSignal
-		opts.Flags |= ipc.FlagCollectCover
+		opts.EnvFlags |= ipc.FlagSignal
+		opts.ExecFlags |= ipc.FlagCollectSignal
+		opts.ExecFlags |= ipc.FlagCollectCover
 	}
-	if ctx.Features[host.FeatureExtraCoverage].Enabled {
-		cfg.Flags |= ipc.FlagExtraCover
-	}
-	if ctx.Features[host.FeatureDelayKcovMmap].Enabled {
-		cfg.Flags |= ipc.FlagDelayKcovMmap
-	}
-	if ctx.Features[host.FeatureNetInjection].Enabled {
-		cfg.Flags |= ipc.FlagEnableTun
-	}
-	if ctx.Features[host.FeatureNetDevices].Enabled {
-		cfg.Flags |= ipc.FlagEnableNetDev
-	}
-	cfg.Flags |= ipc.FlagEnableNetReset
-	cfg.Flags |= ipc.FlagEnableCgroups
-	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
-		cfg.Flags |= ipc.FlagEnableDevlinkPCI
-	}
-	if ctx.Features[host.FeatureNicVF].Enabled {
-		cfg.Flags |= ipc.FlagEnableNicVF
-	}
-	if ctx.Features[host.FeatureVhciInjection].Enabled {
-		cfg.Flags |= ipc.FlagEnableVhciInjection
-	}
-	if ctx.Features[host.FeatureWifiEmulation].Enabled {
-		cfg.Flags |= ipc.FlagEnableWifi
-	}
+	opts.EnvFlags |= ipc.FeaturesToFlags(ctx.Features, nil)
 	if ctx.Debug {
-		cfg.Flags |= ipc.FlagDebug
+		opts.EnvFlags |= ipc.FlagDebug
 	}
 	req := &RunRequest{
 		P:      p,
-		Cfg:    cfg,
 		Opts:   opts,
 		Repeat: times,
 	}
@@ -469,22 +448,22 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		HandleSegv:  true,
 		Cgroups:     p.Target.OS == targets.Linux && sandbox != "",
 		Trace:       true,
-		Swap:        ctx.Features[host.FeatureSwap].Enabled,
+		Swap:        ctx.Features&flatrpc.FeatureSwap != 0,
 	}
 	if sandbox != "" {
-		if ctx.Features[host.FeatureNetInjection].Enabled {
+		if ctx.Features&flatrpc.FeatureNetInjection != 0 {
 			opts.NetInjection = true
 		}
-		if ctx.Features[host.FeatureNetDevices].Enabled {
+		if ctx.Features&flatrpc.FeatureNetDevices != 0 {
 			opts.NetDevices = true
 		}
-		if ctx.Features[host.FeatureVhciInjection].Enabled {
+		if ctx.Features&flatrpc.FeatureVhciInjection != 0 {
 			opts.VhciInjection = true
 		}
-		if ctx.Features[host.FeatureWifiEmulation].Enabled {
+		if ctx.Features&flatrpc.FeatureWifiEmulation != 0 {
 			opts.Wifi = true
 		}
-		if ctx.Features[host.Feature802154Emulation].Enabled {
+		if ctx.Features&flatrpc.FeatureLRWPANEmulation != 0 {
 			opts.IEEE802154 = true
 		}
 	}
@@ -503,8 +482,8 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 	req := &RunRequest{
 		P:   p,
 		Bin: bin,
-		Opts: &ipc.ExecOpts{
-			Flags: ipcFlags,
+		Opts: ipc.ExecOpts{
+			ExecFlags: ipcFlags,
 		},
 		Repeat: times,
 	}
@@ -512,19 +491,30 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 }
 
 func checkResult(req *RunRequest) error {
+	var infos []ipc.ProgInfo
 	isC := req.Bin != ""
 	if isC {
 		var err error
-		if req.Info, err = parseBinOutput(req); err != nil {
+		if infos, err = parseBinOutput(req); err != nil {
 			return err
 		}
+	} else {
+		raw := req.Info
+		for len(raw.Calls) != 0 {
+			ncalls := min(len(raw.Calls), len(req.P.Calls))
+			infos = append(infos, ipc.ProgInfo{
+				Extra: raw.Extra,
+				Calls: raw.Calls[:ncalls],
+			})
+			raw.Calls = raw.Calls[ncalls:]
+		}
 	}
-	if req.Repeat != len(req.Info) {
-		return fmt.Errorf("should repeat %v times, but repeated %v\n%s",
-			req.Repeat, len(req.Info), req.Output)
+	if req.Repeat != len(infos) {
+		return fmt.Errorf("should repeat %v times, but repeated %v, prog calls %v, info calls %v\n%s",
+			req.Repeat, len(infos), req.P.Calls, len(req.Info.Calls), req.Output)
 	}
 	calls := make(map[string]bool)
-	for run, info := range req.Info {
+	for run, info := range infos {
 		for call := range info.Calls {
 			if err := checkCallResult(req, isC, run, call, info, calls); err != nil {
 				return err
@@ -534,7 +524,7 @@ func checkResult(req *RunRequest) error {
 	return nil
 }
 
-func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInfo, calls map[string]bool) error {
+func checkCallResult(req *RunRequest, isC bool, run, call int, info ipc.ProgInfo, calls map[string]bool) error {
 	inf := info.Calls[call]
 	want := req.results.Calls[call]
 	for flag, what := range map[ipc.CallFlags]string{
@@ -547,7 +537,7 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 				// C code does not detect blocked/non-finished calls.
 				continue
 			}
-			if req.Opts.Flags&ipc.FlagThreaded == 0 {
+			if req.Opts.ExecFlags&ipc.FlagThreaded == 0 {
 				// In non-threaded mode blocked syscalls will block main thread
 				// and we won't detect blocked/unfinished syscalls.
 				continue
@@ -573,7 +563,7 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 	if isC || inf.Flags&ipc.CallExecuted == 0 {
 		return nil
 	}
-	if req.Cfg.Flags&ipc.FlagSignal != 0 {
+	if req.Opts.EnvFlags&ipc.FlagSignal != 0 {
 		// Signal is always deduplicated, so we may not get any signal
 		// on a second invocation of the same syscall.
 		// For calls that are not meant to collect synchronous coverage we
@@ -589,20 +579,20 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 		}
 		calls[callName] = true
 	} else {
-		if len(inf.Signal) == 0 {
-			return fmt.Errorf("run %v: call %v: no fallback signal", run, call)
+		if len(inf.Signal) != 0 {
+			return fmt.Errorf("run %v: call %v: got %v unwanted signal", run, call, len(inf.Signal))
 		}
 	}
 	return nil
 }
 
-func parseBinOutput(req *RunRequest) ([]*ipc.ProgInfo, error) {
-	var infos []*ipc.ProgInfo
+func parseBinOutput(req *RunRequest) ([]ipc.ProgInfo, error) {
+	var infos []ipc.ProgInfo
 	s := bufio.NewScanner(bytes.NewReader(req.Output))
 	re := regexp.MustCompile("^### call=([0-9]+) errno=([0-9]+)$")
 	for s.Scan() {
 		if s.Text() == "### start" {
-			infos = append(infos, &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(req.P.Calls))})
+			infos = append(infos, ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(req.P.Calls))})
 		}
 		match := re.FindSubmatch(s.Bytes())
 		if match == nil {
@@ -621,7 +611,7 @@ func parseBinOutput(req *RunRequest) ([]*ipc.ProgInfo, error) {
 			return nil, fmt.Errorf("failed to parse errno %q in %q",
 				string(match[2]), s.Text())
 		}
-		info := infos[len(infos)-1]
+		info := &infos[len(infos)-1]
 		if call >= uint64(len(info.Calls)) {
 			return nil, fmt.Errorf("bad call index %v", call)
 		}
@@ -632,72 +622,4 @@ func parseBinOutput(req *RunRequest) ([]*ipc.ProgInfo, error) {
 		info.Calls[call].Errno = int(errno)
 	}
 	return infos, nil
-}
-
-func RunTest(req *RunRequest, executor string) {
-	if req.Bin != "" {
-		runTestC(req)
-		return
-	}
-	req.Cfg.Executor = executor
-	var env *ipc.Env
-	defer func() {
-		if env != nil {
-			env.Close()
-		}
-	}()
-	for run := 0; run < req.Repeat; run++ {
-		if run%2 == 0 {
-			// Recreate Env every few iterations, this allows to cover more paths.
-			if env != nil {
-				env.Close()
-				env = nil
-			}
-			var err error
-			env, err = ipc.MakeEnv(req.Cfg, 0)
-			if err != nil {
-				req.Err = fmt.Errorf("failed to create ipc env: %w", err)
-				return
-			}
-		}
-		output, info, hanged, err := env.Exec(req.Opts, req.P)
-		req.Output = append(req.Output, output...)
-		if err != nil {
-			req.Err = fmt.Errorf("run %v: failed to run: %w", run, err)
-			return
-		}
-		if hanged {
-			req.Err = fmt.Errorf("run %v: hanged", run)
-			return
-		}
-		// Detach Signal and Cover because they point into the output shmem region.
-		for i := range info.Calls {
-			info.Calls[i].Signal = append([]uint32{}, info.Calls[i].Signal...)
-			info.Calls[i].Cover = append([]uint32{}, info.Calls[i].Cover...)
-		}
-		info.Extra.Signal = append([]uint32{}, info.Extra.Signal...)
-		info.Extra.Cover = append([]uint32{}, info.Extra.Cover...)
-		req.Info = append(req.Info, info)
-	}
-}
-
-func runTestC(req *RunRequest) {
-	tmpDir, err := os.MkdirTemp("", "syz-runtest")
-	if err != nil {
-		req.Err = fmt.Errorf("failed to create temp dir: %w", err)
-		return
-	}
-	defer os.RemoveAll(tmpDir)
-	cmd := osutil.Command(req.Bin)
-	cmd.Dir = tmpDir
-	// Tell ASAN to not mess with our NONFAILING.
-	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
-	req.Output, req.Err = osutil.Run(20*time.Second, cmd)
-	var verr *osutil.VerboseError
-	if errors.As(req.Err, &verr) {
-		// The process can legitimately do something like exit_group(1).
-		// So we ignore the error and rely on the rest of the checks (e.g. syscall return values).
-		req.Err = nil
-		req.Output = verr.Output
-	}
 }

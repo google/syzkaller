@@ -7,10 +7,8 @@ package symbolizer
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -22,6 +20,7 @@ import (
 type Symbolizer struct {
 	target   *targets.Target
 	subprocs map[string]*subprocess
+	interner Interner
 }
 
 type Frame struct {
@@ -53,7 +52,7 @@ func (s *Symbolizer) SymbolizeArray(bin string, pcs []uint64) ([]Frame, error) {
 	if err != nil {
 		return nil, err
 	}
-	return symbolize(sub.input, sub.scanner, pcs)
+	return symbolize(&s.interner, sub.input, sub.scanner, pcs)
 }
 
 func (s *Symbolizer) Close() {
@@ -65,35 +64,11 @@ func (s *Symbolizer) Close() {
 	}
 }
 
-func (s *Symbolizer) checkBinSupport(addr2line string) error {
-	if s.target.OS != targets.Darwin || s.target.Arch != targets.AMD64 {
-		return nil
-	}
-
-	cmd := exec.Command(addr2line, "--help")
-	cmd.Env = append(os.Environ(), "LC_ALL=C")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("addr2line execution failed: %w", err)
-	}
-	if !bytes.Contains(out, []byte("supported targets:")) {
-		return fmt.Errorf("addr2line output didn't contain supported targets")
-	}
-	if !bytes.Contains(out, []byte("mach-o-x86-64")) {
-		return fmt.Errorf("addr2line was built without mach-o-x86-64 support")
-	}
-	return nil
-}
-
 func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	if sub := s.subprocs[bin]; sub != nil {
 		return sub, nil
 	}
-	addr2line := "addr2line"
-	if s.target.Triple != "" {
-		addr2line = s.target.Triple + "-" + addr2line
-	}
-	err := s.checkBinSupport(addr2line)
+	addr2line, err := s.target.Addr2Line()
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +101,7 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	return sub, nil
 }
 
-func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Frame, error) {
+func symbolize(interner *Interner, input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Frame, error) {
 	var frames []Frame
 	done := make(chan error, 1)
 	go func() {
@@ -142,7 +117,7 @@ func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Fra
 		}
 		for range pcs {
 			var frames1 []Frame
-			frames1, err = parse(scanner)
+			frames1, err = parse(interner, scanner)
 			if err != nil {
 				return
 			}
@@ -171,7 +146,7 @@ func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Fra
 	return frames, nil
 }
 
-func parse(s *bufio.Scanner) ([]Frame, error) {
+func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 	pc, err := strconv.ParseUint(s.Text(), 0, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse pc '%v' in addr2line output: %w", s.Text(), err)
@@ -209,8 +184,8 @@ func parse(s *bufio.Scanner) ([]Frame, error) {
 		}
 		frames = append(frames, Frame{
 			PC:     pc,
-			Func:   fn,
-			File:   file,
+			Func:   interner.Do(fn),
+			File:   interner.Do(file),
 			Line:   line,
 			Inline: true,
 		})

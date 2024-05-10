@@ -8,7 +8,6 @@
 //	go test -v -tags xed
 
 //go:build xed
-// +build xed
 
 package x86
 

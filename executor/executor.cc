@@ -3,6 +3,9 @@
 
 // +build
 
+// Currently this is unused (included only to test building).
+#include "pkg/flatrpc/flatrpc.h"
+
 #include <algorithm>
 #include <errno.h>
 #include <limits.h>
@@ -107,10 +110,6 @@ void debug_dump_data(const char* data, int length);
 static void receive_execute();
 static void reply_execute(int status);
 
-#if GOOS_akaros
-static void resend_execute(int fd);
-#endif
-
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 static void receive_handshake();
 static void reply_handshake();
@@ -204,9 +203,11 @@ const uint64 instr_copyout = -3;
 const uint64 instr_setprops = -4;
 
 const uint64 arg_const = 0;
-const uint64 arg_result = 1;
-const uint64 arg_data = 2;
-const uint64 arg_csum = 3;
+const uint64 arg_addr32 = 1;
+const uint64 arg_addr64 = 2;
+const uint64 arg_result = 3;
+const uint64 arg_data = 4;
+const uint64 arg_csum = 5;
 
 const uint64 binary_format_native = 0;
 const uint64 binary_format_bigendian = 1;
@@ -220,7 +221,7 @@ static int running;
 uint32 completed;
 bool is_kernel_64_bit = true;
 
-static char* input_data;
+static uint8* input_data;
 
 // Checksum kinds.
 static const uint64 arg_csum_inet = 0;
@@ -264,7 +265,7 @@ struct thread_t {
 	bool created;
 	event_t ready;
 	event_t done;
-	uint64* copyout_pos;
+	uint8* copyout_pos;
 	uint64 copyout_index;
 	bool executing;
 	int call_index;
@@ -372,7 +373,7 @@ struct feature_t {
 	void (*setup)();
 };
 
-static thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos, call_props_t call_props);
+static thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint8* pos, call_props_t call_props);
 static void handle_completion(thread_t* th);
 static void copyout_call_results(thread_t* th);
 static void write_call_output(thread_t* th, bool finished);
@@ -381,10 +382,10 @@ static void execute_call(thread_t* th);
 static void thread_create(thread_t* th, int id, bool need_coverage);
 static void thread_mmap_cover(thread_t* th);
 static void* worker_thread(void* arg);
-static uint64 read_input(uint64** input_posp, bool peek = false);
-static uint64 read_arg(uint64** input_posp);
-static uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf, uint64* bf_off_p, uint64* bf_len_p);
-static uint64 read_result(uint64** input_posp);
+static uint64 read_input(uint8** input_posp, bool peek = false);
+static uint64 read_arg(uint8** input_posp);
+static uint64 read_const_arg(uint8** input_posp, uint64* size_p, uint64* bf, uint64* bf_off_p, uint64* bf_len_p);
+static uint64 read_result(uint8** input_posp);
 static uint64 swap(uint64 v, uint64 size, uint64 bf);
 static void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len);
 static bool copyout(char* addr, uint64 size, uint64* res);
@@ -397,8 +398,6 @@ static void setup_features(char** enable, int n);
 #include "executor_linux.h"
 #elif GOOS_fuchsia
 #include "executor_fuchsia.h"
-#elif GOOS_akaros
-#include "executor_akaros.h"
 #elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 #include "executor_bsd.h"
 #elif GOOS_darwin
@@ -465,7 +464,7 @@ int main(int argc, char** argv)
 #endif
 	if (mmap_out == MAP_FAILED)
 		fail("mmap of input file failed");
-	input_data = static_cast<char*>(mmap_out);
+	input_data = static_cast<uint8*>(mmap_out);
 
 #if SYZ_EXECUTOR_USES_SHMEM
 	mmap_output(kInitialOutput);
@@ -712,17 +711,6 @@ bool cover_collection_required()
 	return flag_coverage && (flag_collect_signal || flag_collect_cover || flag_comparisons);
 }
 
-#if GOOS_akaros
-void resend_execute(int fd)
-{
-	execute_req& req = last_execute_req;
-	if (write(fd, &req, sizeof(req)) != sizeof(req))
-		fail("child pipe header write failed");
-	if (write(fd, input_data, req.prog_size) != (ssize_t)req.prog_size)
-		fail("child pipe program write failed");
-}
-#endif
-
 void reply_execute(int status)
 {
 	execute_reply reply = {};
@@ -759,7 +747,7 @@ void execute_one()
 	write_output(0); // Number of executed syscalls (updated later).
 #endif // if SYZ_EXECUTOR_USES_SHMEM
 	uint64 start = current_time_ms();
-	uint64* input_pos = (uint64*)input_data;
+	uint8* input_pos = input_data;
 
 	if (cover_collection_required()) {
 		if (!flag_threaded)
@@ -774,18 +762,28 @@ void execute_one()
 	call_props_t call_props;
 	memset(&call_props, 0, sizeof(call_props));
 
+	read_input(&input_pos); // total number of calls
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
 		if (call_num == instr_copyin) {
-			char* addr = (char*)read_input(&input_pos);
+			char* addr = (char*)(read_input(&input_pos) + SYZ_DATA_OFFSET);
 			uint64 typ = read_input(&input_pos);
 			switch (typ) {
 			case arg_const: {
 				uint64 size, bf, bf_off, bf_len;
 				uint64 arg = read_const_arg(&input_pos, &size, &bf, &bf_off, &bf_len);
 				copyin(addr, arg, size, bf, bf_off, bf_len);
+				break;
+			}
+			case arg_addr32:
+			case arg_addr64: {
+				uint64 val = read_input(&input_pos) + SYZ_DATA_OFFSET;
+				if (typ == arg_addr32)
+					NONFAILING(*(uint32*)addr = val);
+				else
+					NONFAILING(*(uint64*)addr = val);
 				break;
 			}
 			case arg_result: {
@@ -799,10 +797,10 @@ void execute_one()
 			case arg_data: {
 				uint64 size = read_input(&input_pos);
 				size &= ~(1ull << 63); // readable flag
+				if (input_pos + size > input_data + kMaxInput)
+					fail("data arg overflow");
 				NONFAILING(memcpy(addr, input_pos, size));
-				// Read out the data.
-				for (uint64 i = 0; i < (size + 7) / 8; i++)
-					read_input(&input_pos);
+				input_pos += size;
 				break;
 			}
 			case arg_csum: {
@@ -825,6 +823,7 @@ void execute_one()
 						uint64 chunk_size = read_input(&input_pos);
 						switch (chunk_kind) {
 						case arg_csum_chunk_data:
+							chunk_value += SYZ_DATA_OFFSET;
 							debug_verbose("#%lld: data chunk, addr: %llx, size: %llu\n",
 								      chunk, chunk_value, chunk_size);
 							NONFAILING(csum_inet_update(&csum, (const uint8*)chunk_value, chunk_size));
@@ -872,8 +871,6 @@ void execute_one()
 		if (call_num >= ARRAY_SIZE(syscalls))
 			failmsg("invalid syscall number", "call_num=%llu", call_num);
 		const call_t* call = &syscalls[call_num];
-		if (call->attrs.disabled)
-			failmsg("executing disabled syscall", "syscall=%s", call->name);
 		if (prog_extra_timeout < call->attrs.prog_timeout)
 			prog_extra_timeout = call->attrs.prog_timeout * slowdown_scale;
 		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
@@ -967,7 +964,7 @@ void execute_one()
 	}
 }
 
-thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos, call_props_t call_props)
+thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint8* pos, call_props_t call_props)
 {
 	// Find a spare thread to execute the call.
 	int i = 0;
@@ -1099,7 +1096,7 @@ void copyout_call_results(thread_t* th)
 			uint64 index = read_input(&th->copyout_pos);
 			if (index >= kMaxCommands)
 				failmsg("result overflows kMaxCommands", "index=%lld", index);
-			char* addr = (char*)read_input(&th->copyout_pos);
+			char* addr = (char*)(read_input(&th->copyout_pos) + SYZ_DATA_OFFSET);
 			uint64 size = read_input(&th->copyout_pos);
 			uint64 val = 0;
 			if (copyout(addr, size, &val)) {
@@ -1118,7 +1115,7 @@ void copyout_call_results(thread_t* th)
 
 void write_call_output(thread_t* th, bool finished)
 {
-	uint32 reserrno = 999;
+	uint32 reserrno = ENOSYS;
 	const bool blocked = finished && th != last_scheduled;
 	uint32 call_flags = call_flag_executed | (blocked ? call_flag_blocked : 0);
 	if (finished) {
@@ -1438,7 +1435,7 @@ bool copyout(char* addr, uint64 size, uint64* res)
 	    });
 }
 
-uint64 read_arg(uint64** input_posp)
+uint64 read_arg(uint8** input_posp)
 {
 	uint64 typ = read_input(input_posp);
 	switch (typ) {
@@ -1450,6 +1447,10 @@ uint64 read_arg(uint64** input_posp)
 		if (bf_off != 0 || bf_len != 0)
 			failmsg("bad argument bitfield", "off=%llu, len=%llu", bf_off, bf_len);
 		return swap(val, size, bf);
+	}
+	case arg_addr32:
+	case arg_addr64: {
+		return read_input(input_posp) + SYZ_DATA_OFFSET;
 	}
 	case arg_result: {
 		uint64 meta = read_input(input_posp);
@@ -1481,7 +1482,7 @@ uint64 swap(uint64 v, uint64 size, uint64 bf)
 	}
 }
 
-uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_p, uint64* bf_off_p, uint64* bf_len_p)
+uint64 read_const_arg(uint8** input_posp, uint64* size_p, uint64* bf_p, uint64* bf_off_p, uint64* bf_len_p)
 {
 	uint64 meta = read_input(input_posp);
 	uint64 val = read_input(input_posp);
@@ -1495,7 +1496,7 @@ uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_p, uint64*
 	return val;
 }
 
-uint64 read_result(uint64** input_posp)
+uint64 read_result(uint8** input_posp)
 {
 	uint64 idx = read_input(input_posp);
 	uint64 op_div = read_input(input_posp);
@@ -1512,14 +1513,33 @@ uint64 read_result(uint64** input_posp)
 	return arg;
 }
 
-uint64 read_input(uint64** input_posp, bool peek)
+uint64 read_input(uint8** input_posp, bool peek)
 {
-	uint64* input_pos = *input_posp;
-	if ((char*)input_pos >= input_data + kMaxInput)
-		failmsg("input command overflows input", "pos=%p: [%p:%p)", input_pos, input_data, input_data + kMaxInput);
+	uint64 v = 0;
+	unsigned shift = 0;
+	uint8* input_pos = *input_posp;
+	for (int i = 0;; i++, shift += 7) {
+		const int maxLen = 10;
+		if (i == maxLen)
+			failmsg("varint overflow", "pos=%zu", *input_posp - input_data);
+		if (input_pos >= input_data + kMaxInput)
+			failmsg("input command overflows input", "pos=%p: [%p:%p)",
+				input_pos, input_data, input_data + kMaxInput);
+		uint8 b = *input_pos++;
+		v |= uint64(b & 0x7f) << shift;
+		if (b < 0x80) {
+			if (i == maxLen - 1 && b > 1)
+				failmsg("varint overflow", "pos=%zu", *input_posp - input_data);
+			break;
+		}
+	}
+	if (v & 1)
+		v = ~(v >> 1);
+	else
+		v = v >> 1;
 	if (!peek)
-		*input_posp = input_pos + 1;
-	return *input_pos;
+		*input_posp = input_pos;
+	return v;
 }
 
 #if SYZ_EXECUTOR_USES_SHMEM

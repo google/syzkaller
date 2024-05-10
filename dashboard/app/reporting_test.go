@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"reflect"
@@ -16,7 +17,6 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestReportBug(t *testing.T) {
@@ -968,10 +968,10 @@ func TestUpdateBugReporting(t *testing.T) {
 		setIDs(bug, test.After)
 		hasError := bug.updateReportings(c.ctx, cfg, now) != nil
 		if hasError != test.Error {
-			t.Errorf("Before: %#v, Expected error: %v, Got error: %v", test.Before, test.Error, hasError)
+			t.Errorf("before: %#v, expected error: %v, got error: %v", test.Before, test.Error, hasError)
 		}
 		if !test.Error && !reflect.DeepEqual(bug.Reporting, test.After) {
-			t.Errorf("Before: %#v, Expected After: %#v, Got After: %#v", test.Before, test.After, bug.Reporting)
+			t.Errorf("before: %#v, expected after: %#v, got after: %#v", test.Before, test.After, bug.Reporting)
 		}
 	}
 }

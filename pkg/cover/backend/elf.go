@@ -10,13 +10,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters, moduleObj []string,
-	hostModules []host.KernelModule) (*Impl, error) {
+	hostModules []KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,

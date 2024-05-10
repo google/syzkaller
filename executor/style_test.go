@@ -190,7 +190,7 @@ if (foo) {
 				}
 
 				line := bytes.Count(data[:start], []byte{'\n'}) + 1
-				t.Errorf("\nexecutor/%v:%v: %v\n%s\n", file, line, check.message, data[start:end])
+				t.Errorf("\nexecutor/%v:%v: %v\n%s", file, line, check.message, data[start:end])
 			}
 		}
 	}

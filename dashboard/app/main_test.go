@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestOnlyManagerFilter(t *testing.T) {

@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build linux
-// +build linux
 
 package build
 
@@ -38,7 +37,7 @@ func TestQueryLinuxCompiler(t *testing.T) {
 	const badDir = "./testingData/non_existing_folder"
 	_, err = queryLinuxCompiler(badDir)
 	if err == nil {
-		t.Fatalf("Expected an error, got none")
+		t.Fatalf("expected an error, got none")
 	}
 }
 

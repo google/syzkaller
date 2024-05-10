@@ -7,24 +7,34 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-var getReportGenerator = func() func(cfg *mgrconfig.Config,
-	modules []host.KernelModule) (*cover.ReportGenerator, error) {
-	var once sync.Once
-	var rg *cover.ReportGenerator
-	var err error
-	return func(cfg *mgrconfig.Config, modules []host.KernelModule) (*cover.ReportGenerator, error) {
-		once.Do(func() {
-			log.Logf(0, "initializing coverage information...")
-			rg, err = cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, cfg.RawCover)
-		})
-		return rg, err
+var (
+	cachedRepGenMu sync.Mutex
+	cachedRepGen   *cover.ReportGenerator
+)
+
+func getReportGenerator(cfg *mgrconfig.Config, modules []cover.KernelModule) (*cover.ReportGenerator, error) {
+	cachedRepGenMu.Lock()
+	defer cachedRepGenMu.Unlock()
+	if cachedRepGen == nil {
+		log.Logf(0, "initializing coverage information...")
+		rg, err := cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, cfg.RawCover)
+		if err != nil {
+			return nil, err
+		}
+		cachedRepGen = rg
 	}
-}()
+	return cachedRepGen, nil
+}
+
+func resetReportGenerator() {
+	cachedRepGenMu.Lock()
+	defer cachedRepGenMu.Unlock()
+	cachedRepGen = nil
+}
 
 func coverToPCs(rg *cover.ReportGenerator, cov []uint32) []uint64 {
 	pcs := make([]uint64, 0, len(cov))

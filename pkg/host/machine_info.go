@@ -4,58 +4,46 @@
 package host
 
 import (
-	"bytes"
-	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/flatrpc"
 )
 
-func CollectMachineInfo() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	for _, pair := range machineInfoFuncs {
-		pos0 := buf.Len()
-		fmt.Fprintf(buf, "[%s]\n", pair.name)
-		pos1 := buf.Len()
-		err := pair.fn(buf)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
-			}
-		}
-		if buf.Len() == pos1 {
-			buf.Truncate(pos0)
+func ReadFiles(files []string) []flatrpc.FileInfo {
+	var res []flatrpc.FileInfo
+	for _, glob := range files {
+		glob = filepath.FromSlash(glob)
+		if !strings.Contains(glob, "*") {
+			res = append(res, readFile(glob))
 			continue
 		}
-		fmt.Fprintf(buf, "\n%v\n\n", strings.Repeat("-", 80))
+		matches, err := filepath.Glob(glob)
+		if err != nil {
+			res = append(res, flatrpc.FileInfo{
+				Name:  glob,
+				Error: err.Error(),
+			})
+			continue
+		}
+		for _, file := range matches {
+			res = append(res, readFile(file))
+		}
 	}
-	return buf.Bytes(), nil
+	return res
 }
 
-func CollectModulesInfo() ([]KernelModule, error) {
-	if machineModulesInfo == nil {
-		return nil, nil
+func readFile(file string) flatrpc.FileInfo {
+	data, err := os.ReadFile(file)
+	exists, errStr := true, ""
+	if err != nil {
+		exists, errStr = !os.IsNotExist(err), err.Error()
 	}
-	return machineModulesInfo()
-}
-
-func CollectGlobsInfo(globs map[string]bool) (map[string][]string, error) {
-	if machineGlobsInfo == nil {
-		return nil, nil
+	return flatrpc.FileInfo{
+		Name:   file,
+		Exists: exists,
+		Error:  errStr,
+		Data:   data,
 	}
-	return machineGlobsInfo(globs)
-}
-
-var machineInfoFuncs []machineInfoFunc
-var machineModulesInfo func() ([]KernelModule, error)
-var machineGlobsInfo func(map[string]bool) (map[string][]string, error)
-
-type machineInfoFunc struct {
-	name string
-	fn   func(*bytes.Buffer) error
-}
-
-type KernelModule struct {
-	Name string `json:"Name"`
-	Addr uint64 `json:"Addr"`
-	Size uint64 `json:"Size"`
 }

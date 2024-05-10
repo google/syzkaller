@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build tools
-// +build tools
 
 // tools is not a normal package, it's only purpose is tools dependency management.
 // It allows us to vendor all used tools, ensure that all contributors have the same versions of tools,
@@ -13,4 +12,5 @@ import (
 	_ "github.com/dvyukov/go-fuzz/go-fuzz-build"
 	_ "github.com/dvyukov/go-fuzz/go-fuzz-dep"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/vektra/mockery/v2"
 )

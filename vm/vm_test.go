@@ -80,7 +80,7 @@ func init() {
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return &testPool{}, nil
 	}
-	vmimpl.Register("test", ctor, false, false)
+	vmimpl.Register("test", ctor, false)
 }
 
 type Test struct {
@@ -88,6 +88,7 @@ type Test struct {
 	Exit           ExitCondition
 	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash.
 	DiagnoseNoWait bool // Diagnose returns output directly rather than to console.
+	InjectOutput   string
 	Body           func(outc chan []byte, errc chan error)
 	Report         *report.Report
 }
@@ -323,6 +324,32 @@ var tests = []*Test{
 			errc <- nil
 		},
 	},
+	{
+		Name:         "inject-error",
+		Exit:         ExitNormal,
+		InjectOutput: "BUG: foo\n",
+		Body: func(outc chan []byte, errc chan error) {
+			time.Sleep(time.Second)
+			errc <- nil
+		},
+		Report: &report.Report{
+			Title:  "BUG: foo",
+			Report: []byte("BUG: foo\nDIAGNOSE\n"),
+		},
+	},
+	{
+		Name:         "inject-output",
+		Exit:         ExitNormal,
+		InjectOutput: "INJECTED\n",
+		Body: func(outc chan []byte, errc chan error) {
+			time.Sleep(time.Second)
+			outc <- []byte("BUG: foo\n")
+		},
+		Report: &report.Report{
+			Title:  "BUG: foo",
+			Report: []byte("INJECTED\nBUG: foo\nDIAGNOSE\n"),
+		},
+	},
 }
 
 func TestMonitorExecution(t *testing.T) {
@@ -366,10 +393,6 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatal(err)
 	}
 	defer inst.Close()
-	outc, errc, err := inst.Run(time.Second, nil, "")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testInst := inst.impl.(*testInstance)
 	testInst.diagnoseBug = test.DiagnoseBug
 	testInst.diagnoseNoWait = test.DiagnoseNoWait
@@ -378,7 +401,16 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.Body(testInst.outc, testInst.errc)
 		done <- true
 	}()
-	rep := inst.MonitorExecution(outc, errc, reporter, test.Exit)
+	opts := []any{test.Exit}
+	if test.InjectOutput != "" {
+		c := make(chan []byte, 1)
+		c <- []byte(test.InjectOutput)
+		opts = append(opts, InjectOutput(c))
+	}
+	_, rep, err := inst.Run(time.Second, reporter, "", opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
 	<-done
 	if test.Report != nil && rep == nil {
 		t.Fatalf("got no report")
@@ -393,10 +425,10 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatalf("want title %q, got title %q", test.Report.Title, rep.Title)
 	}
 	if !bytes.Equal(test.Report.Report, rep.Report) {
-		t.Fatalf("want report:\n%s\n\ngot report:\n%s\n", test.Report.Report, rep.Report)
+		t.Fatalf("want report:\n%s\n\ngot report:\n%s", test.Report.Report, rep.Report)
 	}
 	if test.Report.Output != nil && !bytes.Equal(test.Report.Output, rep.Output) {
-		t.Fatalf("want output:\n%s\n\ngot output:\n%s\n", test.Report.Output, rep.Output)
+		t.Fatalf("want output:\n%s\n\ngot output:\n%s", test.Report.Output, rep.Output)
 	}
 }
 

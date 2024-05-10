@@ -52,6 +52,6 @@ Disassembly of section .data:
 		},
 	}
 	if !reflect.DeepEqual(opcodes, expected) {
-		t.Errorf("Expected: %#v, got: %#v", expected, opcodes)
+		t.Errorf("expected: %#v, got: %#v", expected, opcodes)
 	}
 }

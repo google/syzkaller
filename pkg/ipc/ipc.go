@@ -9,13 +9,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
+	"slices"
 	"strings"
-	"sync/atomic"
+	"sync"
+	"syscall"
 	"time"
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
@@ -58,7 +61,11 @@ const (
 )
 
 type ExecOpts struct {
-	Flags ExecFlags
+	// Changing ExecFlags between executions does not cause executor process restart.
+	// Changing EnvFlags/SandboxArg does cause process restart.
+	ExecFlags  ExecFlags
+	EnvFlags   EnvFlags
+	SandboxArg int
 }
 
 // Config is the configuration for Env.
@@ -68,10 +75,7 @@ type Config struct {
 
 	UseShmem      bool // use shared memory instead of pipes for communication
 	UseForkServer bool // use extended protocol with handshake
-
-	// Flags are configuation flags, defined above.
-	Flags      EnvFlags
-	SandboxArg int
+	RateLimit     bool // rate limit start of new processes for host fuzzer mode
 
 	Timeouts targets.Timeouts
 }
@@ -95,8 +99,10 @@ type CallInfo struct {
 }
 
 type ProgInfo struct {
-	Calls []CallInfo
-	Extra CallInfo // stores Signal and Cover collected from background threads
+	Calls     []CallInfo
+	Extra     CallInfo      // stores Signal and Cover collected from background threads
+	Elapsed   time.Duration // total execution time of the program
+	Freshness int           // number of programs executed in the same process before this one
 }
 
 type Env struct {
@@ -110,9 +116,6 @@ type Env struct {
 	linkedBin string
 	pid       int
 	config    *Config
-
-	StatExecs    uint64
-	StatRestarts uint64
 }
 
 const (
@@ -154,6 +157,45 @@ func FlagsToSandbox(flags EnvFlags) string {
 	return "none"
 }
 
+// nolint: gocyclo
+func FeaturesToFlags(features flatrpc.Feature, manual csource.Features) EnvFlags {
+	var flags EnvFlags
+	if manual == nil || manual["net_reset"].Enabled {
+		flags |= FlagEnableNetReset
+	}
+	if manual == nil || manual["cgroups"].Enabled {
+		flags |= FlagEnableCgroups
+	}
+	if manual == nil || manual["close_fds"].Enabled {
+		flags |= FlagEnableCloseFds
+	}
+	if features&flatrpc.FeatureExtraCoverage != 0 {
+		flags |= FlagExtraCover
+	}
+	if features&flatrpc.FeatureDelayKcovMmap != 0 {
+		flags |= FlagDelayKcovMmap
+	}
+	if features&flatrpc.FeatureNetInjection != 0 && (manual == nil || manual["tun"].Enabled) {
+		flags |= FlagEnableTun
+	}
+	if features&flatrpc.FeatureNetDevices != 0 && (manual == nil || manual["net_dev"].Enabled) {
+		flags |= FlagEnableNetDev
+	}
+	if features&flatrpc.FeatureDevlinkPCI != 0 && (manual == nil || manual["devlink_pci"].Enabled) {
+		flags |= FlagEnableDevlinkPCI
+	}
+	if features&flatrpc.FeatureNicVF != 0 && (manual == nil || manual["nic_vf"].Enabled) {
+		flags |= FlagEnableNicVF
+	}
+	if features&flatrpc.FeatureVhciInjection != 0 && (manual == nil || manual["vhci"].Enabled) {
+		flags |= FlagEnableVhciInjection
+	}
+	if features&flatrpc.FeatureWifiEmulation != 0 && (manual == nil || manual["wifi"].Enabled) {
+		flags |= FlagEnableWifi
+	}
+	return flags
+}
+
 func MakeEnv(config *Config, pid int) (*Env, error) {
 	if config.Timeouts.Slowdown == 0 || config.Timeouts.Scale == 0 ||
 		config.Timeouts.Syscall == 0 || config.Timeouts.Program == 0 {
@@ -182,7 +224,6 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 			}
 		}()
 	} else {
-		inmem = make([]byte, prog.ExecBufferSize)
 		outmem = make([]byte, outputSize)
 	}
 	env := &Env{
@@ -245,23 +286,22 @@ func (env *Env) Close() error {
 	}
 }
 
-var rateLimit = time.NewTicker(1 * time.Second)
-
-// Exec starts executor binary to execute program p and returns information about the execution:
+// Exec starts executor binary to execute program stored in progData in exec encoding
+// and returns information about the execution:
 // output: process output
 // info: per-call info
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
-	// Copy-in serialized program.
-	progSize, err := p.SerializeForExec(env.in)
+func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+	ncalls, err := prog.ExecCallCount(progData)
 	if err != nil {
 		err0 = err
 		return
 	}
-	var progData []byte
-	if !env.config.UseShmem {
-		progData = env.in[:progSize]
+	// Copy-in serialized program.
+	if env.config.UseShmem {
+		copy(env.in, progData)
+		progData = nil
 	}
 	// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
 	// if executor crashes before writing non-garbage there.
@@ -269,28 +309,40 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 		env.out[i] = 0
 	}
 
-	atomic.AddUint64(&env.StatExecs, 1)
-	err0 = env.RestartIfNeeded(p.Target)
+	err0 = env.RestartIfNeeded(opts)
 	if err0 != nil {
 		return
 	}
 
+	start := osutil.MonotonicNano()
 	output, hanged, err0 = env.cmd.exec(opts, progData)
+	elapsed := osutil.MonotonicNano() - start
 	if err0 != nil {
 		env.cmd.close()
 		env.cmd = nil
 		return
 	}
 
-	info, err0 = env.parseOutput(p, opts)
-	if info != nil && env.config.Flags&FlagSignal == 0 {
-		addFallbackSignal(p, info)
+	info, err0 = env.parseOutput(opts, ncalls)
+	if info != nil {
+		info.Elapsed = elapsed
+		info.Freshness = env.cmd.freshness
 	}
+	env.cmd.freshness++
 	if !env.config.UseForkServer {
 		env.cmd.close()
 		env.cmd = nil
 	}
 	return
+}
+
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+	progData, err := p.SerializeForExec()
+	if err != nil {
+		err0 = err
+		return
+	}
+	return env.ExecProg(opts, progData)
 }
 
 func (env *Env) ForceRestart() {
@@ -300,53 +352,43 @@ func (env *Env) ForceRestart() {
 	}
 }
 
-// This smethod brings up an executor process if it was stopped.
-func (env *Env) RestartIfNeeded(target *prog.Target) error {
-	if env.cmd == nil {
-		if target.OS != targets.TestOS && targets.Get(target.OS, target.Arch).HostFuzzer {
-			// The executor is actually ssh,
-			// starting them too frequently leads to timeouts.
-			<-rateLimit.C
+// RestartIfNeeded brings up an executor process if it was stopped.
+func (env *Env) RestartIfNeeded(opts *ExecOpts) error {
+	if env.cmd != nil {
+		if env.cmd.flags == opts.EnvFlags && env.cmd.sandboxArg == opts.SandboxArg {
+			return nil
 		}
-		tmpDirPath := "./"
-		atomic.AddUint64(&env.StatRestarts, 1)
-		var err error
-		env.cmd, err = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
-		return err
+		env.ForceRestart()
 	}
-	return nil
+	if env.config.RateLimit {
+		rateLimiterOnce.Do(func() {
+			rateLimiter = time.NewTicker(1 * time.Second).C
+		})
+		<-rateLimiter
+	}
+	var err error
+	env.cmd, err = env.makeCommand(opts, "./")
+	return err
 }
 
-// addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
-// We use syscall number or-ed with returned errno value as signal.
-// At least this gives us all combinations of syscall+errno.
-func addFallbackSignal(p *prog.Prog, info *ProgInfo) {
-	callInfos := make([]prog.CallInfo, len(info.Calls))
-	for i, inf := range info.Calls {
-		if inf.Flags&CallExecuted != 0 {
-			callInfos[i].Flags |= prog.CallExecuted
-		}
-		if inf.Flags&CallFinished != 0 {
-			callInfos[i].Flags |= prog.CallFinished
-		}
-		if inf.Flags&CallBlocked != 0 {
-			callInfos[i].Flags |= prog.CallBlocked
-		}
-		callInfos[i].Errno = inf.Errno
-	}
-	p.FallbackSignal(callInfos)
-	for i, inf := range callInfos {
-		info.Calls[i].Signal = inf.Signal
-	}
-}
+var (
+	rateLimiterOnce sync.Once
+	rateLimiter     <-chan time.Time
+)
 
-func (env *Env) parseOutput(p *prog.Prog, opts *ExecOpts) (*ProgInfo, error) {
+func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 	out := env.out
 	ncmd, ok := readUint32(&out)
 	if !ok {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
-	info := &ProgInfo{Calls: make([]CallInfo, len(p.Calls))}
+	info := &ProgInfo{Calls: make([]CallInfo, ncalls)}
+	for i := range info.Calls {
+		// Store some unsuccessful errno in the case we won't get any result.
+		// It also won't have CallExecuted flag, but it's handy to make it
+		// look failed based on errno as well.
+		info.Calls[i].Errno = int(syscall.ENOSYS)
+	}
 	extraParts := make([]CallInfo, 0)
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
@@ -361,9 +403,6 @@ func (env *Env) parseOutput(p *prog.Prog, opts *ExecOpts) (*ProgInfo, error) {
 		if reply.index != extraReplyIndex {
 			if int(reply.index) >= len(info.Calls) {
 				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
-			}
-			if num := p.Calls[reply.index].Meta.ID; int(reply.num) != num {
-				return nil, fmt.Errorf("wrong call %v num %v/%v", i, reply.num, num)
 			}
 			inf = &info.Calls[reply.index]
 			if inf.Flags != 0 || inf.Signal != nil {
@@ -392,7 +431,7 @@ func (env *Env) parseOutput(p *prog.Prog, opts *ExecOpts) (*ProgInfo, error) {
 	if len(extraParts) == 0 {
 		return info, nil
 	}
-	info.Extra = convertExtra(extraParts, opts.Flags&FlagDedupCover > 0)
+	info.Extra = convertExtra(extraParts, opts.ExecFlags&FlagDedupCover > 0)
 	return info, nil
 }
 
@@ -490,33 +529,31 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 		return nil, true
 	}
 	out := *outp
-	if int(size)*4 > len(out) {
+	dataSize := int(size * 4)
+	if dataSize > len(out) {
 		return nil, false
 	}
 	// "Convert" the data to uint32.
-	var res []uint32
-	hdr := (*reflect.SliceHeader)((unsafe.Pointer(&res)))
-	hdr.Data = uintptr(unsafe.Pointer(&out[0]))
-	hdr.Len = int(size)
-	hdr.Cap = int(size)
-	*outp = out[size*4:]
-	// Now duplicate the resulting array.
-	dupRes := make([]uint32, size)
-	copy(dupRes, res)
-	return dupRes, true
+	res := unsafe.Slice((*uint32)(unsafe.Pointer(&out[0])), size)
+	*outp = out[dataSize:]
+	// Detach the resulting array from the original data.
+	return slices.Clone(res), true
 }
 
 type command struct {
-	pid      int
-	config   *Config
-	timeout  time.Duration
-	cmd      *exec.Cmd
-	dir      string
-	readDone chan []byte
-	exited   chan error
-	inrp     *os.File
-	outwp    *os.File
-	outmem   []byte
+	pid        int
+	config     *Config
+	flags      EnvFlags
+	sandboxArg int
+	timeout    time.Duration
+	cmd        *exec.Cmd
+	dir        string
+	readDone   chan []byte
+	exited     chan error
+	inrp       *os.File
+	outwp      *os.File
+	outmem     []byte
+	freshness  int
 }
 
 const (
@@ -568,16 +605,15 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte,
-	tmpDirPath string) (*command, error) {
-	dir, err := os.MkdirTemp(tmpDirPath, "syzkaller-testdir")
+func (env *Env) makeCommand(opts *ExecOpts, tmpDir string) (*command, error) {
+	dir, err := os.MkdirTemp(tmpDir, "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	dir = osutil.Abs(dir)
 
-	timeout := config.Timeouts.Program
-	if config.UseForkServer {
+	timeout := env.config.Timeouts.Program
+	if env.config.UseForkServer {
 		// Executor has an internal timeout and protects against most hangs when fork server is enabled,
 		// so we use quite large timeout. Executor can be slow due to global locks in namespaces
 		// and other things, so let's better wait than report false misleading crashes.
@@ -585,11 +621,13 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	}
 
 	c := &command{
-		pid:     pid,
-		config:  config,
-		timeout: timeout,
-		dir:     dir,
-		outmem:  outmem,
+		pid:        env.pid,
+		config:     env.config,
+		flags:      opts.EnvFlags,
+		sandboxArg: opts.SandboxArg,
+		timeout:    timeout,
+		dir:        dir,
+		outmem:     env.out,
 	}
 	defer func() {
 		if c != nil {
@@ -626,16 +664,16 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 
 	c.readDone = make(chan []byte, 1)
 
-	cmd := osutil.Command(bin[0], bin[1:]...)
-	if inFile != nil && outFile != nil {
-		cmd.ExtraFiles = []*os.File{inFile, outFile}
+	cmd := osutil.Command(env.bin[0], env.bin[1:]...)
+	if env.inFile != nil && env.outFile != nil {
+		cmd.ExtraFiles = []*os.File{env.inFile, env.outFile}
 	}
 	cmd.Dir = dir
 	// Tell ASAN to not mess with our NONFAILING.
 	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
 	cmd.Stdin = outrp
 	cmd.Stdout = inwp
-	if config.Flags&FlagDebug != 0 {
+	if c.flags&FlagDebug != 0 {
 		close(c.readDone)
 		cmd.Stderr = os.Stdout
 	} else {
@@ -709,9 +747,9 @@ func (c *command) close() {
 func (c *command) handshake() error {
 	req := &handshakeReq{
 		magic:      inMagic,
-		flags:      uint64(c.config.Flags),
+		flags:      uint64(c.flags),
 		pid:        uint64(c.pid),
-		sandboxArg: uint64(c.config.SandboxArg),
+		sandboxArg: uint64(c.sandboxArg),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
@@ -759,10 +797,13 @@ func (c *command) wait() error {
 }
 
 func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
+	if c.flags != opts.EnvFlags || c.sandboxArg != opts.SandboxArg {
+		panic("wrong command")
+	}
 	req := &executeReq{
 		magic:            inMagic,
-		envFlags:         uint64(c.config.Flags),
-		execFlags:        uint64(opts.Flags),
+		envFlags:         uint64(c.flags),
+		execFlags:        uint64(opts.ExecFlags),
 		pid:              uint64(c.pid),
 		syscallTimeoutMS: uint64(c.config.Timeouts.Syscall / time.Millisecond),
 		programTimeoutMS: uint64(c.config.Timeouts.Program / time.Millisecond),

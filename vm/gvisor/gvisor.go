@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("gvisor", ctor, true, false)
+	vmimpl.Register("gvisor", ctor, true)
 }
 
 type Config struct {

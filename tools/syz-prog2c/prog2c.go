@@ -92,6 +92,7 @@ func main() {
 		Wifi:          features["wifi"].Enabled,
 		IEEE802154:    features["ieee802154"].Enabled,
 		Sysctl:        features["sysctl"].Enabled,
+		Swap:          features["swap"].Enabled,
 		UseTmpDir:     *flagUseTmpDir,
 		HandleSegv:    *flagHandleSegv,
 		Repro:         *flagRepro,

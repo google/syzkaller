@@ -9,9 +9,11 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
@@ -40,6 +43,17 @@ var (
 	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
 	flagEnable    = flag.String("enable", "none", "enable only listed additional features")
 	flagDisable   = flag.String("disable", "none", "enable all additional features except listed")
+
+	// The in the stress mode resembles simple unguided fuzzer.
+	// This mode can be used as an intermediate step when porting syzkaller to a new OS,
+	// or when testing on a machine that is not supported by the vm package (as syz-manager cannot be used).
+	// To use this mode one needs to start a VM manually, copy syz-execprog and run it.
+	// syz-execprog will execute random programs infinitely until it's stopped or it crashes
+	// the kernel underneath. If it's given a corpus of programs, it will alternate between
+	// executing random programs and mutated programs from the corpus.
+	flagStress   = flag.Bool("stress", false, "enable stress mode (local fuzzer)")
+	flagSyscalls = flag.String("syscalls", "", "comma-separated list of enabled syscalls for the stress mode")
+
 	// The following flag is only kept to let syzkaller remain compatible with older execprog versions.
 	// In order to test incoming patches or perform bug bisection, syz-ci must use the exact syzkaller
 	// version that detected the bug (as descriptions and syntax could've already been changed), and
@@ -62,10 +76,6 @@ func main() {
 		csource.PrintAvailableFeaturesFlags()
 	}
 	defer tool.Init()()
-	if len(flag.Args()) == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
 	featuresFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -77,8 +87,9 @@ func main() {
 	}
 
 	progs := loadPrograms(target, flag.Args())
-	if len(progs) == 0 {
-		return
+	if !*flagStress && len(progs) == 0 {
+		flag.Usage()
+		os.Exit(1)
 	}
 	features, err := host.Check(target)
 	if err != nil {
@@ -106,17 +117,29 @@ func main() {
 			}
 		}
 	}
+	var choiceTable *prog.ChoiceTable
+	if *flagStress {
+		var syscalls []string
+		if *flagSyscalls != "" {
+			syscalls = strings.Split(*flagSyscalls, ",")
+		}
+		calls := buildCallList(target, syscalls)
+		choiceTable = target.BuildChoiceTable(progs, calls)
+	}
 	sysTarget := targets.Get(*flagOS, *flagArch)
 	upperBase := getKernelUpperBase(sysTarget)
 	ctx := &Context{
-		progs:     progs,
-		config:    config,
-		execOpts:  execOpts,
-		gate:      ipc.NewGate(2**flagProcs, gateCallback),
-		shutdown:  make(chan struct{}),
-		repeat:    *flagRepeat,
-		target:    sysTarget,
-		upperBase: upperBase,
+		target:      target,
+		progs:       progs,
+		choiceTable: choiceTable,
+		config:      config,
+		execOpts:    execOpts,
+		gate:        ipc.NewGate(2**flagProcs, gateCallback),
+		shutdown:    make(chan struct{}),
+		stress:      *flagStress,
+		repeat:      *flagRepeat,
+		sysTarget:   sysTarget,
+		upperBase:   upperBase,
 	}
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
@@ -132,18 +155,21 @@ func main() {
 }
 
 type Context struct {
-	progs     []*prog.Prog
-	config    *ipc.Config
-	execOpts  *ipc.ExecOpts
-	gate      *ipc.Gate
-	shutdown  chan struct{}
-	logMu     sync.Mutex
-	posMu     sync.Mutex
-	repeat    int
-	pos       int
-	lastPrint time.Time
-	target    *targets.Target
-	upperBase uint32
+	target      *prog.Target
+	progs       []*prog.Prog
+	choiceTable *prog.ChoiceTable
+	config      *ipc.Config
+	execOpts    *ipc.ExecOpts
+	gate        *ipc.Gate
+	shutdown    chan struct{}
+	logMu       sync.Mutex
+	posMu       sync.Mutex
+	stress      bool
+	repeat      int
+	pos         int
+	lastPrint   time.Time
+	sysTarget   *targets.Target
+	upperBase   uint32
 }
 
 func (ctx *Context) run(pid int) {
@@ -152,18 +178,24 @@ func (ctx *Context) run(pid int) {
 		log.Fatalf("failed to create ipc env: %v", err)
 	}
 	defer env.Close()
+	rs := rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12)
 	for {
 		select {
 		case <-ctx.shutdown:
 			return
 		default:
 		}
-		idx := ctx.getProgramIndex()
-		if ctx.repeat > 0 && idx >= len(ctx.progs)*ctx.repeat {
-			return
+		if ctx.stress {
+			p := ctx.createStressProg(rs)
+			ctx.execute(pid, env, p, 0)
+		} else {
+			idx := ctx.getProgramIndex()
+			if ctx.repeat > 0 && idx >= len(ctx.progs)*ctx.repeat {
+				return
+			}
+			p := ctx.progs[idx%len(ctx.progs)]
+			ctx.execute(pid, env, p, idx)
 		}
-		entry := ctx.progs[idx%len(ctx.progs)]
-		ctx.execute(pid, env, entry, idx)
 	}
 }
 
@@ -176,20 +208,27 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 	if *flagOutput {
 		ctx.logProgram(pid, p, callOpts)
 	}
+	progData, err := p.SerializeForExec()
+	if err != nil {
+		log.Logf(1, "RESULT: failed to serialize: %v", err)
+		return
+	}
 	// This mimics the syz-fuzzer logic. This is important for reproduction.
 	for try := 0; ; try++ {
-		output, info, hanged, err := env.Exec(callOpts, p)
-		if err != nil && err != prog.ErrExecBufferTooSmall {
+		output, info, hanged, err := env.ExecProg(callOpts, progData)
+		if err != nil {
+			if ctx.execOpts.EnvFlags&ipc.FlagDebug != 0 {
+				log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
+			}
 			if try > 10 {
 				log.SyzFatalf("executor %d failed %d times: %v\n%s", pid, try, err, output)
 			}
 			// Don't print err/output in this case as it may contain "SYZFAIL" and we want to fail yet.
 			log.Logf(1, "executor failed, retrying")
-			time.Sleep(time.Second)
+			if try > 3 {
+				time.Sleep(100 * time.Millisecond)
+			}
 			continue
-		}
-		if ctx.config.Flags&ipc.FlagDebug != 0 || err != nil {
-			log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
 		}
 		if info != nil {
 			ctx.printCallResults(info)
@@ -294,7 +333,8 @@ func (ctx *Context) dumpCallCoverage(coverFile string, info *ipc.CallInfo) {
 	}
 	buf := new(bytes.Buffer)
 	for _, pc := range info.Cover {
-		fmt.Fprintf(buf, "0x%x\n", backend.PreviousInstructionPC(ctx.target, cover.RestorePC(pc, ctx.upperBase)))
+		prev := backend.PreviousInstructionPC(ctx.sysTarget, cover.RestorePC(pc, ctx.upperBase))
+		fmt.Fprintf(buf, "0x%x\n", prev)
 	}
 	err := osutil.WriteFile(coverFile, buf.Bytes())
 	if err != nil {
@@ -321,6 +361,16 @@ func (ctx *Context) getProgramIndex() int {
 	}
 	ctx.posMu.Unlock()
 	return idx
+}
+
+func (ctx *Context) createStressProg(rs rand.Source) *prog.Prog {
+	rnd := rand.New(rs)
+	if len(ctx.progs) == 0 || rnd.Intn(2) == 0 {
+		return ctx.target.Generate(rs, prog.RecommendedCalls, ctx.choiceTable)
+	}
+	p := ctx.progs[rnd.Intn(len(ctx.progs))].Clone()
+	p.Mutate(rs, prog.RecommendedCalls, ctx.choiceTable, nil, ctx.progs)
+	return p
 }
 
 func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
@@ -354,52 +404,43 @@ func createConfig(target *prog.Target, features *host.Features, featuresFlags cs
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if config.Flags&ipc.FlagSignal != 0 {
-		execOpts.Flags |= ipc.FlagCollectCover
+	if execOpts.EnvFlags&ipc.FlagSignal != 0 {
+		execOpts.ExecFlags |= ipc.FlagCollectCover
 	}
 	if *flagCoverFile != "" {
-		config.Flags |= ipc.FlagSignal
-		execOpts.Flags |= ipc.FlagCollectCover
-		execOpts.Flags &^= ipc.FlagDedupCover
+		execOpts.EnvFlags |= ipc.FlagSignal
+		execOpts.ExecFlags |= ipc.FlagCollectCover
+		execOpts.ExecFlags &^= ipc.FlagDedupCover
 	}
 	if *flagHints {
-		if execOpts.Flags&ipc.FlagCollectCover != 0 {
-			execOpts.Flags ^= ipc.FlagCollectCover
+		if execOpts.ExecFlags&ipc.FlagCollectCover != 0 {
+			execOpts.ExecFlags ^= ipc.FlagCollectCover
 		}
-		execOpts.Flags |= ipc.FlagCollectComps
+		execOpts.ExecFlags |= ipc.FlagCollectComps
 	}
-	if features[host.FeatureExtraCoverage].Enabled {
-		config.Flags |= ipc.FlagExtraCover
-	}
-	if features[host.FeatureDelayKcovMmap].Enabled {
-		config.Flags |= ipc.FlagDelayKcovMmap
-	}
-	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
-		config.Flags |= ipc.FlagEnableTun
-	}
-	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetDevices].Enabled {
-		config.Flags |= ipc.FlagEnableNetDev
-	}
-	if featuresFlags["net_reset"].Enabled {
-		config.Flags |= ipc.FlagEnableNetReset
-	}
-	if featuresFlags["cgroups"].Enabled {
-		config.Flags |= ipc.FlagEnableCgroups
-	}
-	if featuresFlags["close_fds"].Enabled {
-		config.Flags |= ipc.FlagEnableCloseFds
-	}
-	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
-		config.Flags |= ipc.FlagEnableDevlinkPCI
-	}
-	if featuresFlags["nic_vf"].Enabled && features[host.FeatureNicVF].Enabled {
-		config.Flags |= ipc.FlagEnableNicVF
-	}
-	if featuresFlags["vhci"].Enabled && features[host.FeatureVhciInjection].Enabled {
-		config.Flags |= ipc.FlagEnableVhciInjection
-	}
-	if featuresFlags["wifi"].Enabled && features[host.FeatureWifiEmulation].Enabled {
-		config.Flags |= ipc.FlagEnableWifi
-	}
+	execOpts.EnvFlags |= ipc.FeaturesToFlags(features.ToFlatRPC(), featuresFlags)
 	return config, execOpts
+}
+
+func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool {
+	syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
+	if err != nil {
+		log.Fatalf("failed to parse enabled syscalls: %v", err)
+	}
+	enabledSyscalls := make(map[*prog.Syscall]bool)
+	for _, id := range syscallsIDs {
+		enabledSyscalls[target.Syscalls[id]] = true
+	}
+	calls, disabled, err := host.DetectSupportedSyscalls(target, "none", enabledSyscalls)
+	if err != nil {
+		log.Fatalf("failed to detect host supported syscalls: %v", err)
+	}
+	for c, reason := range disabled {
+		log.Logf(0, "unsupported syscall: %v: %v", c.Name, reason)
+	}
+	calls, disabled = target.TransitivelyEnabledCalls(calls)
+	for c, reason := range disabled {
+		log.Logf(0, "transitively unsupported: %v: %v", c.Name, reason)
+	}
+	return calls
 }

@@ -4,11 +4,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
-
-	"golang.org/x/net/context"
 )
 
 const (

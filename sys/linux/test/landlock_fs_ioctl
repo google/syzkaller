@@ -2,7 +2,7 @@
 
 mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x81c0, 0x0)
 
-# Creates a ruleset to restrict most filesystem IOCTLs: LANDLOCK_ACCESS_FS_IOCTL.
+# Creates a ruleset to restrict most filesystem IOCTLs: LANDLOCK_ACCESS_FS_IOCTL_DEV.
 
 r0 = landlock_create_ruleset(&AUTO={0x8000, 0x0}, AUTO, 0x0)
 

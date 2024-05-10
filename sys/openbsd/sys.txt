@@ -17,7 +17,7 @@ include <time.h>
 include <signal.h>
 include <sys/wait.h>
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 pipe(pipefd ptr[out, pipefd])
 

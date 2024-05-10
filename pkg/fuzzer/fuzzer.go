@@ -14,18 +14,18 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
 
 type Fuzzer struct {
+	Stats
 	Config *Config
 	Cover  *Cover
 
 	ctx    context.Context
 	mu     sync.Mutex
-	stats  map[string]uint64
 	rnd    *rand.Rand
 	target *prog.Target
 
@@ -36,9 +36,6 @@ type Fuzzer struct {
 
 	nextExec  *priorityQueue[*Request]
 	nextJobID atomic.Int64
-
-	runningJobs      atomic.Int64
-	queuedCandidates atomic.Int64
 }
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
@@ -49,11 +46,11 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		}
 	}
 	f := &Fuzzer{
+		Stats:  newStats(),
 		Config: cfg,
-		Cover:  &Cover{},
+		Cover:  newCover(),
 
 		ctx:    ctx,
-		stats:  map[string]uint64{},
 		rnd:    rnd,
 		target: target,
 
@@ -86,17 +83,27 @@ type Config struct {
 }
 
 type Request struct {
-	Prog         *prog.Prog
-	NeedCover    bool
-	NeedRawCover bool
-	NeedSignal   rpctype.SignalType
-	NeedHints    bool
-	SignalFilter signal.Signal // If specified, the resulting signal MAY be a subset of it.
+	Prog       *prog.Prog
+	NeedSignal SignalType
+	NeedCover  bool
+	NeedHints  bool
+	// If specified, the resulting signal for call SignalFilterCall
+	// will include subset of it even if it's not new.
+	SignalFilter     signal.Signal
+	SignalFilterCall int
 	// Fields that are only relevant within pkg/fuzzer.
 	flags   ProgTypes
-	stat    string
+	stat    *stats.Val
 	resultC chan *Result
 }
+
+type SignalType int
+
+const (
+	NoSignal  SignalType = iota // we don't need any signal
+	NewSignal                   // we need the newly seen signal
+	AllSignal                   // we need all signal
+)
 
 type Result struct {
 	Info *ipc.ProgInfo
@@ -107,7 +114,8 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	// Triage individual calls.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
-	if req.NeedSignal != rpctype.NoSignal && res.Info != nil {
+	// If we are already triaging this exact prog, this is flaky coverage.
+	if req.NeedSignal != NoSignal && res.Info != nil && req.flags&progInTriage == 0 {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, &info, call, req.flags)
 		}
@@ -117,30 +125,23 @@ func (fuzzer *Fuzzer) Done(req *Request, res *Result) {
 	if req.resultC != nil {
 		req.resultC <- res
 	}
-	// Update stats.
-	fuzzer.mu.Lock()
-	fuzzer.stats[req.stat]++
-	fuzzer.mu.Unlock()
+	if res.Info != nil {
+		fuzzer.statExecTime.Add(int(res.Info.Elapsed.Milliseconds()))
+	}
+	req.stat.Add(1)
 }
 
-func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
-	flags ProgTypes) {
+func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int, flags ProgTypes) {
 	prio := signalPrio(p, info, call)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
-		return
-	}
-	if flags&progInTriage > 0 {
-		// We are already triaging this exact prog.
-		// All newly found coverage is flaky.
-		fuzzer.Logf(2, "found new flaky signal in call %d in %s", call, p)
 		return
 	}
 	if !fuzzer.Config.NewInputFilter(p.CallName(call)) {
 		return
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
-	fuzzer.startJob(&triageJob{
+	fuzzer.startJob(fuzzer.statJobsTriage, &triageJob{
 		p:           p.Clone(),
 		call:        call,
 		info:        *info,
@@ -171,10 +172,8 @@ type Candidate struct {
 
 func (fuzzer *Fuzzer) NextInput() *Request {
 	req := fuzzer.nextInput()
-	if req.stat == statCandidate {
-		if fuzzer.queuedCandidates.Add(-1) < 0 {
-			panic("queuedCandidates is out of sync")
-		}
+	if req.stat == fuzzer.statExecCandidate {
+		fuzzer.StatCandidates.Add(-1)
 	}
 	return req
 }
@@ -209,7 +208,7 @@ func (fuzzer *Fuzzer) nextInput() *Request {
 	return genProgRequest(fuzzer, rnd)
 }
 
-func (fuzzer *Fuzzer) startJob(newJob job) {
+func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
 	if impl, ok := newJob.(jobSaveID); ok {
 		// E.g. for big and slow hint jobs, we would prefer not to serialize them,
@@ -217,9 +216,11 @@ func (fuzzer *Fuzzer) startJob(newJob job) {
 		impl.saveID(-fuzzer.nextJobID.Add(1))
 	}
 	go func() {
-		fuzzer.runningJobs.Add(1)
+		stat.Add(1)
+		fuzzer.statJobs.Add(1)
 		newJob.run(fuzzer)
-		fuzzer.runningJobs.Add(-1)
+		fuzzer.statJobs.Add(-1)
+		stat.Add(-1)
 	}()
 }
 
@@ -231,9 +232,9 @@ func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
 }
 
 func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
-	fuzzer.queuedCandidates.Add(int64(len(candidates)))
+	fuzzer.StatCandidates.Add(len(candidates))
 	for _, candidate := range candidates {
-		fuzzer.pushExec(candidateRequest(candidate), priority{candidatePrio})
+		fuzzer.pushExec(candidateRequest(fuzzer, candidate), priority{candidatePrio})
 	}
 }
 
@@ -248,11 +249,11 @@ func (fuzzer *Fuzzer) nextRand() int64 {
 }
 
 func (fuzzer *Fuzzer) pushExec(req *Request, prio priority) {
-	if req.stat == "" {
-		panic("Request.Stat field must be set")
-	}
-	if req.NeedHints && (req.NeedCover || req.NeedSignal != rpctype.NoSignal) {
+	if req.NeedHints && (req.NeedCover || req.NeedSignal != NoSignal) {
 		panic("Request.NeedHints is mutually exclusive with other fields")
+	}
+	if req.SignalFilter != nil && req.NeedSignal != NewSignal {
+		panic("SignalFilter must be used with NewSignal")
 	}
 	fuzzer.nextExec.push(&priorityQueueItem[*Request]{
 		value: req, prio: prio,
@@ -327,7 +328,7 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 		runtime.ReadMemStats(&m)
 
 		str := fmt.Sprintf("exec queue size: %d, running jobs: %d, heap (MB): %d",
-			fuzzer.nextExec.Len(), fuzzer.runningJobs.Load(), m.Alloc/1000/1000)
+			fuzzer.nextExec.Len(), fuzzer.statJobs.Val(), m.Alloc/1000/1000)
 		fuzzer.Logf(0, "%s", str)
 	}
 }

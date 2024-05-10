@@ -94,10 +94,12 @@ func (ctx netbsd) clean(kernelDir, targetArch string) error {
 
 // Copy the compiled kernel to the qemu disk image using ssh.
 func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
+	// Let's run in emulation mode - we don't need to run long and it's most compatible.
 	vmConfig := `
 {
 	"snapshot": false,
-	"mem": 1024
+	"mem": 1024,
+	"qemu_args": ""
 }`
 	// Create config for booting the disk image.
 	target := targets.Get(targets.NetBSD, targetArch)
@@ -153,12 +155,11 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	}
 	commands = append(commands, "mknod /dev/vhci c 355 0")
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
-	outc, errc, err := inst.Run(time.Minute, nil, strings.Join(commands, ";"))
+	_, rep, err := inst.Run(time.Minute, reporter, strings.Join(commands, ";"))
 	if err != nil {
 		return fmt.Errorf("error syncing the instance %w", err)
 	}
 	// Make sure that the command has executed properly.
-	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitNormal)
 	if rep != nil {
 		return fmt.Errorf("error executing sync: %v", rep.Title)
 	}

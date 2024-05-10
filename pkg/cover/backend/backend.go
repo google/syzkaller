@@ -6,18 +6,17 @@ package backend
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 type Impl struct {
-	Units                  []*CompileUnit
-	Symbols                []*Symbol
-	Frames                 []Frame
-	Symbolize              func(pcs map[*Module][]uint64) ([]Frame, error)
-	RestorePC              func(pc uint32) uint64
-	CallbackPoints         map[uint64]bool
-	CoverageCallbackPoints []uint64
+	Units           []*CompileUnit
+	Symbols         []*Symbol
+	Frames          []Frame
+	Symbolize       func(pcs map[*Module][]uint64) ([]Frame, error)
+	RestorePC       func(pc uint32) uint64
+	CallbackPoints  []uint64
+	PreciseCoverage bool
 }
 
 type Module struct {
@@ -68,7 +67,7 @@ type Range struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuild bool,
-	moduleObj []string, modules []host.KernelModule) (*Impl, error) {
+	moduleObj []string, modules []KernelModule) (*Impl, error) {
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}

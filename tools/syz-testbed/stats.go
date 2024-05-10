@@ -417,7 +417,19 @@ func (group *RunResultGroup) SaveAvgBenchFile(fileName string) error {
 		return err
 	}
 	defer f.Close()
-	for _, averaged := range group.AvgStatRecords() {
+	// In long runs, we collect a lot of stat samples, which results
+	// in large and slow to load graphs. A subset of 128-256 data points
+	// seems to be a reasonable enough precision.
+	records := group.AvgStatRecords()
+	const targetRecords = 128
+	for len(records) > targetRecords*2 {
+		newRecords := make([]map[string]uint64, 0, len(records)/2)
+		for i := 0; i < len(records); i += 2 {
+			newRecords = append(newRecords, records[i])
+		}
+		records = newRecords
+	}
+	for _, averaged := range records {
 		data, err := json.MarshalIndent(averaged, "", "  ")
 		if err != nil {
 			return err

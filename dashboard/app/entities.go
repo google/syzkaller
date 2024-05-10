@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/subsystem"
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 )
 

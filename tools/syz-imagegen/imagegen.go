@@ -3,13 +3,13 @@
 
 // As we use syscall package:
 //go:build linux
-// +build linux
 
 // syz-imagegen generates sys/linux/test/syz_mount_image_* test files.
 // It requires the following packages to be installed:
 //
 //	f2fs-tools xfsprogs reiserfsprogs gfs2-utils ocfs2-tools genromfs erofs-utils makefs udftools
-//	mtd-utils nilfs-tools squashfs-tools genisoimage jfsutils exfat-utils ntfs-3g hfsprogs.
+//	mtd-utils nilfs-tools squashfs-tools genisoimage jfsutils exfat-utils ntfs-3g hfsprogs
+//	bcachefs-tools.
 package main
 
 import (
@@ -499,6 +499,15 @@ var fileSystems = []FileSystem{
 		},
 	},
 	{
+		Name:    "bcachefs",
+		MinSize: 512 << 10,
+		MkfsFlagCombinations: [][]string{
+			{"", "--encrypted --no_passphrase"},
+			{"", "--compression=lz4"},
+			{"", "--data_checksum=none --metadata_checksum=none"},
+		},
+	},
+	{
 		Name:     parttable,
 		MinSize:  1 << 20,
 		ReadOnly: true,
@@ -825,8 +834,7 @@ func (img *Image) generateSize() error {
 	if err != nil {
 		return fmt.Errorf("failed to deserialize resulting program: %w", err)
 	}
-	exec := make([]byte, prog.ExecBufferSize)
-	if _, err := p.SerializeForExec(exec); err != nil {
+	if _, err := p.SerializeForExec(); err != nil {
 		return fmt.Errorf("failed to serialize for execution: %w", err)
 	}
 

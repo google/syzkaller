@@ -7,7 +7,6 @@
 set -eux
 
 # Create a minimal Debian distribution in a directory.
-DIR=chroot
 PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros,debian-ports-archive-keyring
 
 # If ADD_PACKAGE is not defined as an external environment variable, use our default packages
@@ -128,6 +127,7 @@ if [ $FEATURE = "full" ]; then
     PREINSTALL_PKGS=$PREINSTALL_PKGS","$ADD_PACKAGE
 fi
 
+DIR=$RELEASE
 sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
@@ -144,7 +144,16 @@ fi
 if [ $DEBARCH == "riscv64" ]; then
     DEBOOTSTRAP_PARAMS="--keyring /usr/share/keyrings/debian-ports-archive-keyring.gpg --exclude firmware-atheros $DEBOOTSTRAP_PARAMS http://deb.debian.org/debian-ports"
 fi
-sudo --preserve-env=http_proxy,https_proxy,ftp_proxy,no_proxy debootstrap $DEBOOTSTRAP_PARAMS
+
+# debootstrap may fail for EoL Debian releases
+RET=0
+sudo --preserve-env=http_proxy,https_proxy,ftp_proxy,no_proxy debootstrap $DEBOOTSTRAP_PARAMS || RET=$?
+
+if [ $RET != 0 ] && [ $DEBARCH != "riscv64" ]; then
+    # Try running debootstrap again using the Debian archive
+    DEBOOTSTRAP_PARAMS="--keyring /usr/share/keyrings/debian-archive-removed-keys.gpg $DEBOOTSTRAP_PARAMS https://archive.debian.org/debian-archive/debian/"
+    sudo --preserve-env=http_proxy,https_proxy,ftp_proxy,no_proxy debootstrap $DEBOOTSTRAP_PARAMS
+fi
 
 # 2. debootstrap stage: only necessary if target != host architecture
 

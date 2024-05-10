@@ -11,13 +11,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/targets"
 )
 
+type KernelModule struct {
+	Name string
+	Addr uint64
+	Size uint64
+}
+
 func discoverModules(target *targets.Target, objDir string, moduleObj []string,
-	hostModules []host.KernelModule) (
+	hostModules []KernelModule) (
 	[]*Module, error) {
 	modules := []*Module{
 		// A dummy module representing the kernel itself.
@@ -36,8 +41,7 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []host.KernelModule,
-) ([]*Module, error) {
+func discoverModulesLinux(dirs []string, hostModules []KernelModule) ([]*Module, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err

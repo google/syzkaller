@@ -36,7 +36,7 @@ func TestGenerateConditionalFields(t *testing.T) {
 	for _, first := range []int{0, 1} {
 		for _, second := range []int{0, 1} {
 			if !combinations[first][second] {
-				t.Fatalf("Did not generate a combination f1=%v f2=%v", first, second)
+				t.Fatalf("did not generate a combination f1=%v f2=%v", first, second)
 			}
 		}
 	}

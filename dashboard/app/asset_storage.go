@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/sys/targets"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"

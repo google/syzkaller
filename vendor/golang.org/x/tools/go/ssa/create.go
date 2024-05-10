@@ -34,13 +34,12 @@ import (
 // See the Example tests for simple examples.
 func NewProgram(fset *token.FileSet, mode BuilderMode) *Program {
 	return &Program{
-		Fset:          fset,
-		imported:      make(map[string]*Package),
-		packages:      make(map[*types.Package]*Package),
-		mode:          mode,
-		canon:         newCanonizer(),
-		ctxt:          types.NewContext(),
-		parameterized: tpWalker{seen: make(map[types.Type]bool)},
+		Fset:     fset,
+		imported: make(map[string]*Package),
+		packages: make(map[*types.Package]*Package),
+		mode:     mode,
+		canon:    newCanonizer(),
+		ctxt:     types.NewContext(),
 	}
 }
 
@@ -301,7 +300,7 @@ func (prog *Program) CreatePackage(pkg *types.Package, files []*ast.File, info *
 var printMu sync.Mutex
 
 // AllPackages returns a new slice containing all packages created by
-// prog.CreatePackage in in unspecified order.
+// prog.CreatePackage in unspecified order.
 func (prog *Program) AllPackages() []*Package {
 	pkgs := make([]*Package, 0, len(prog.packages))
 	for _, pkg := range prog.packages {

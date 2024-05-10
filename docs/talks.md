@@ -43,6 +43,7 @@ at Linux Collaboration Summit 2013
 
 # Articles
 
+* [Your NVMe Had Been Syz’ed: Fuzzing NVMe-oF/TCP Driver for Linux with Syzkaller](https://www.cyberark.com/resources/threat-research-blog/your-nvme-had-been-syzed-fuzzing-nvme-of-tcp-driver-for-linux-with-syzkaller)
 * [Looking for Remote Code Execution bugs in the Linux kernel](https://xairy.io/articles/syzkaller-external-network)
 * From [Collabora](https://twitter.com/Collabora):
   * [syzkaller: fuzzing the kernel](https://www.collabora.com/news-and-blog/blog/2020/03/26/syzkaller-fuzzing-the-kernel/)

@@ -55,6 +55,9 @@ func (o MutateOpts) weight() int {
 
 func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool,
 	corpus []*Prog, opts MutateOpts) {
+	if p.isUnsafe {
+		panic("mutation of unsafe programs is not supposed to be done")
+	}
 	totalWeight := opts.weight()
 	r := newRand(p.Target, rs)
 	if ncalls < len(p.Calls) {

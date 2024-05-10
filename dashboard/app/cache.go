@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/image"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/memcache"

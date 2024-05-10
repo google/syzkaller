@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -24,81 +24,31 @@ type checkArgs struct {
 	sandbox        string
 	gitRevision    string
 	targetRevision string
-	enabledCalls   []int
-	allSandboxes   bool
 	ipcConfig      *ipc.Config
 	ipcExecOpts    *ipc.ExecOpts
 	featureFlags   map[string]csource.Feature
 }
 
 func testImage(hostAddr string, args *checkArgs) {
-	log.Logf(0, "connecting to host at %v", hostAddr)
-	conn, err := rpctype.Dial(hostAddr, args.ipcConfig.Timeouts.Scale)
-	if err != nil {
-		log.SyzFatalf("BUG: failed to connect to host: %v", err)
+	// gVisor uses "stdin" for communication, which is not a real tcp address.
+	if hostAddr != "stdin" {
+		log.Logf(0, "connecting to host at %v", hostAddr)
+		timeout := time.Minute * args.ipcConfig.Timeouts.Scale
+		conn, err := net.DialTimeout("tcp", hostAddr, timeout)
+		if err != nil {
+			log.SyzFatalf("failed to connect to host: %v", err)
+		}
+		conn.Close()
 	}
-	conn.Close()
+	if err := checkRevisions(args); err != nil {
+		log.SyzFatal(err)
+	}
 	if _, err := checkMachine(args); err != nil {
-		log.SyzFatalf("BUG: %v", err)
+		log.SyzFatal(err)
 	}
-}
-
-func runTest(target *prog.Target, manager *rpctype.RPCClient, name, executor string) {
-	pollReq := &rpctype.RunTestPollReq{Name: name}
-	for {
-		req := new(rpctype.RunTestPollRes)
-		if err := manager.Call("Manager.Poll", pollReq, req); err != nil {
-			log.SyzFatalf("Manager.Poll call failed: %v", err)
-		}
-		if len(req.Bin) == 0 && len(req.Prog) == 0 {
-			return
-		}
-		test := convertTestReq(target, req)
-		if test.Err == nil {
-			runtest.RunTest(test, executor)
-		}
-		reply := &rpctype.RunTestDoneArgs{
-			Name:   name,
-			ID:     req.ID,
-			Output: test.Output,
-			Info:   test.Info,
-		}
-		if test.Err != nil {
-			reply.Error = test.Err.Error()
-		}
-		if err := manager.Call("Manager.Done", reply, nil); err != nil {
-			log.SyzFatalf("Manager.Done call failed: %v", err)
-		}
+	if err := buildCallList(args.target, args.sandbox); err != nil {
+		log.SyzFatal(err)
 	}
-}
-
-func convertTestReq(target *prog.Target, req *rpctype.RunTestPollRes) *runtest.RunRequest {
-	test := &runtest.RunRequest{
-		Cfg:    req.Cfg,
-		Opts:   req.Opts,
-		Repeat: req.Repeat,
-	}
-	if len(req.Bin) != 0 {
-		bin, err := osutil.TempFile("syz-runtest")
-		if err != nil {
-			test.Err = err
-			return test
-		}
-		if err := osutil.WriteExecFile(bin, req.Bin); err != nil {
-			test.Err = err
-			return test
-		}
-		test.Bin = bin
-	}
-	if len(req.Prog) != 0 {
-		p, err := target.Deserialize(req.Prog, prog.NonStrict)
-		if err != nil {
-			test.Err = err
-			return test
-		}
-		test.P = p
-	}
-	return test
 }
 
 func checkMachineHeartbeats(done chan bool) {
@@ -121,128 +71,82 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	done := make(chan bool)
 	defer close(done)
 	go checkMachineHeartbeats(done)
-	if err := checkRevisions(args); err != nil {
-		return nil, err
-	}
-	globFiles, err := host.CollectGlobsInfo(args.target.GetGlobs())
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect glob info: %w", err)
-	}
-	// TODO: make host.DetectSupportedSyscalls below filter out globs with no values.
-	// Also make prog package more strict with respect to generation/mutation of globs
-	// with no values (they still can appear in tests and tools). We probably should
-	// generate an empty string for these and never mutate.
-	args.target.UpdateGlobs(globFiles)
 	features, err := host.Check(args.target)
 	if err != nil {
 		return nil, err
 	}
 	if feat := features[host.FeatureCoverage]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSignal != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 {
 		return nil, fmt.Errorf("coverage is not supported (%v)", feat.Reason)
 	}
 	if feat := features[host.FeatureSandboxSetuid]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSandboxSetuid != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxSetuid != 0 {
 		return nil, fmt.Errorf("sandbox=setuid is not supported (%v)", feat.Reason)
 	}
 	if feat := features[host.FeatureSandboxNamespace]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSandboxNamespace != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxNamespace != 0 {
 		return nil, fmt.Errorf("sandbox=namespace is not supported (%v)", feat.Reason)
 	}
 	if feat := features[host.FeatureSandboxAndroid]; !feat.Enabled &&
-		args.ipcConfig.Flags&ipc.FlagSandboxAndroid != 0 {
+		args.ipcExecOpts.EnvFlags&ipc.FlagSandboxAndroid != 0 {
 		return nil, fmt.Errorf("sandbox=android is not supported (%v)", feat.Reason)
 	}
-	createIPCConfig(features, args.ipcConfig)
+	args.ipcExecOpts.EnvFlags |= ipc.FeaturesToFlags(features.ToFlatRPC(), nil)
 	if err := checkSimpleProgram(args, features); err != nil {
 		return nil, err
 	}
 	res := &rpctype.CheckArgs{
-		Features:      features,
-		EnabledCalls:  make(map[string][]int),
-		DisabledCalls: make(map[string][]rpctype.SyscallReason),
-		GlobFiles:     globFiles,
-	}
-	if err := checkCalls(args, res); err != nil {
-		return nil, err
+		Features: features,
 	}
 	return res, nil
 }
 
-func checkCalls(args *checkArgs, res *rpctype.CheckArgs) error {
-	sandboxes := []string{args.sandbox}
-	if args.allSandboxes {
-		if args.sandbox != "none" {
-			sandboxes = append(sandboxes, "none")
-		}
-		if args.sandbox != "setuid" && res.Features[host.FeatureSandboxSetuid].Enabled {
-			sandboxes = append(sandboxes, "setuid")
-		}
-		if args.sandbox != "namespace" && res.Features[host.FeatureSandboxNamespace].Enabled {
-			sandboxes = append(sandboxes, "namespace")
-		}
-		// TODO: Add "android" sandbox here when needed. Will require fixing runtests.
-	}
-	for _, sandbox := range sandboxes {
-		enabledCalls, disabledCalls, err := buildCallList(args.target, args.enabledCalls, sandbox)
-		res.EnabledCalls[sandbox] = enabledCalls
-		res.DisabledCalls[sandbox] = disabledCalls
-		if err != nil {
-			return err
-		}
-	}
-	if args.allSandboxes {
-		var enabled []int
-		for _, id := range res.EnabledCalls["none"] {
-			switch args.target.Syscalls[id].Name {
-			default:
-				enabled = append(enabled, id)
-			case "syz_emit_ethernet", "syz_extract_tcp_res":
-				// Tun is not setup without sandbox, this is a hacky way to workaround this.
-			}
-		}
-		res.EnabledCalls[""] = enabled
-	}
-	return nil
-}
-
 func checkRevisions(args *checkArgs) error {
 	log.Logf(0, "checking revisions...")
-	executorArgs := strings.Split(args.ipcConfig.Executor, " ")
-	executorArgs = append(executorArgs, "version")
-	cmd := osutil.Command(executorArgs[0], executorArgs[1:]...)
-	cmd.Stderr = io.Discard
-	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
+	arch, syzRev, gitRev, err := executorVersion(args.ipcConfig.Executor)
+	if err != nil {
 		return err
 	}
-	out, err := osutil.Run(time.Minute, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to run executor version: %w", err)
+	if args.target.Arch != arch {
+		return fmt.Errorf("mismatching target/executor arches: %v vs %v", args.target.Arch, arch)
 	}
-	vers := strings.Split(strings.TrimSpace(string(out)), " ")
-	if len(vers) != 4 {
-		return fmt.Errorf("executor version returned bad result: %q", string(out))
-	}
-	if args.target.Arch != vers[1] {
-		return fmt.Errorf("mismatching target/executor arches: %v vs %v", args.target.Arch, vers[1])
-	}
-	if prog.GitRevision != vers[3] {
+	if prog.GitRevision != gitRev {
 		return fmt.Errorf("mismatching fuzzer/executor git revisions: %v vs %v",
-			prog.GitRevision, vers[3])
+			prog.GitRevision, gitRev)
 	}
 	if args.gitRevision != prog.GitRevision {
 		return fmt.Errorf("mismatching manager/fuzzer git revisions: %v vs %v",
 			args.gitRevision, prog.GitRevision)
 	}
-	if args.target.Revision != vers[2] {
+	if args.target.Revision != syzRev {
 		return fmt.Errorf("mismatching fuzzer/executor system call descriptions: %v vs %v",
-			args.target.Revision, vers[2])
+			args.target.Revision, syzRev)
 	}
 	if args.target.Revision != args.targetRevision {
 		return fmt.Errorf("mismatching fuzzer/manager system call descriptions: %v vs %v",
 			args.target.Revision, args.targetRevision)
 	}
 	return nil
+}
+
+func executorVersion(bin string) (string, string, string, error) {
+	args := strings.Split(bin, " ")
+	args = append(args, "version")
+	cmd := osutil.Command(args[0], args[1:]...)
+	cmd.Stderr = io.Discard
+	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
+		return "", "", "", err
+	}
+	out, err := osutil.Run(time.Minute, cmd)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to run executor version: %w", err)
+	}
+	// Executor returns OS, arch, descriptions hash, git revision.
+	vers := strings.Split(strings.TrimSpace(string(out)), " ")
+	if len(vers) != 4 {
+		return "", "", "", fmt.Errorf("executor version returned bad result: %q", string(out))
+	}
+	return vers[1], vers[2], vers[3], nil
 }
 
 func checkSimpleProgram(args *checkArgs, features *host.Features) error {
@@ -269,45 +173,28 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 	if info.Calls[0].Errno != 0 {
 		return fmt.Errorf("simple call failed: %+v\n%s", info.Calls[0], output)
 	}
-	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
+	if args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
-	}
-	if len(info.Calls[0].Signal) < 1 {
-		return fmt.Errorf("got no fallback coverage:\n%s", output)
 	}
 	return nil
 }
 
-func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
-	enabled []int, disabled []rpctype.SyscallReason, err error) {
+func buildCallList(target *prog.Target, sandbox string) error {
 	log.Logf(0, "building call list...")
 	calls := make(map[*prog.Syscall]bool)
-	if len(enabledCalls) != 0 {
-		for _, n := range enabledCalls {
-			if n >= len(target.Syscalls) {
-				return nil, nil, fmt.Errorf("unknown enabled syscall %v", n)
-			}
-			calls[target.Syscalls[n]] = true
-		}
-	} else {
-		for _, c := range target.Syscalls {
-			calls[c] = true
-		}
+	for _, c := range target.Syscalls {
+		calls[c] = true
 	}
 
 	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, calls)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to detect host supported syscalls: %w", err)
+		return fmt.Errorf("failed to detect host supported syscalls: %w", err)
 	}
 	for c := range calls {
 		if reason, ok := unsupported[c]; ok {
 			// Note: if we print call name followed by ':', it may be detected
 			// as a kernel crash if the call ends with "BUG" or "INFO".
 			log.Logf(1, "unsupported syscall: %v(): %v", c.Name, reason)
-			disabled = append(disabled, rpctype.SyscallReason{
-				ID:     c.ID,
-				Reason: reason,
-			})
 			delete(calls, c)
 		}
 	}
@@ -315,18 +202,11 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 	for c := range calls {
 		if reason, ok := unsupported[c]; ok {
 			log.Logf(1, "transitively unsupported: %v(): %v", c.Name, reason)
-			disabled = append(disabled, rpctype.SyscallReason{
-				ID:     c.ID,
-				Reason: reason,
-			})
 			delete(calls, c)
 		}
 	}
-	for c := range calls {
-		enabled = append(enabled, c.ID)
-	}
 	if len(calls) == 0 {
-		return enabled, disabled, fmt.Errorf("all system calls are disabled")
+		return fmt.Errorf("all system calls are disabled")
 	}
-	return enabled, disabled, nil
+	return nil
 }

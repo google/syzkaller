@@ -53,22 +53,7 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			}
 			return []string{bugPage.Bug.ExternalLink}
 		}(),
-		FixCommits: func() []vcsCommit {
-			if len(bugPage.Bug.Commits) == 0 {
-				return nil
-			}
-			var res []vcsCommit
-			for _, commit := range bugPage.Bug.Commits {
-				res = append(res, vcsCommit{
-					Title:  commit.Title,
-					Link:   commit.Link,
-					Hash:   commit.Hash,
-					Repo:   commit.Repo,
-					Branch: commit.Branch,
-				})
-			}
-			return res
-		}(),
+		FixCommits: getBugFixCommits(bugPage.Bug),
 		CauseCommit: func() *vcsCommit {
 			if bugPage.BisectCause == nil || bugPage.BisectCause.Commit == nil {
 				return nil
@@ -103,15 +88,30 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 	}
 }
 
+func getBugFixCommits(bug *uiBug) []vcsCommit {
+	var res []vcsCommit
+	for _, commit := range bug.Commits {
+		res = append(res, vcsCommit{
+			Title:  commit.Title,
+			Link:   commit.Link,
+			Hash:   commit.Hash,
+			Repo:   commit.Repo,
+			Branch: commit.Branch,
+		})
+	}
+	return res
+}
+
 type publicAPIBugGroup struct {
 	Version int `json:"version"`
 	Bugs    []publicAPIBug
 }
 
 type publicAPIBug struct {
-	Title       string `json:"title,omitempty"`
-	Link        string `json:"link"`
-	LastUpdated string `json:"last-updated,omitempty"`
+	Title       string      `json:"title,omitempty"`
+	Link        string      `json:"link"`
+	LastUpdated string      `json:"last-updated,omitempty"`
+	FixCommits  []vcsCommit `json:"fix-commits,omitempty"`
 }
 
 func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *publicAPIBugGroup {
@@ -122,8 +122,9 @@ func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *publicAPIBugGroup {
 			for _, group := range bugGroups {
 				for _, bug := range group.Bugs {
 					res = append(res, publicAPIBug{
-						Title: bug.Title,
-						Link:  bug.Link,
+						Title:      bug.Title,
+						Link:       bug.Link,
+						FixCommits: getBugFixCommits(bug),
 					})
 				}
 			}

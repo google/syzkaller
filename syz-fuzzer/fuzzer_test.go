@@ -11,17 +11,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// nolint: dupl
 func TestFilterProgInfo(t *testing.T) {
+	max := signal.FromRaw([]uint32{5, 6, 7}, 0)
 	mask := signal.FromRaw([]uint32{2, 4, 6, 8}, 0)
 	info := ipc.ProgInfo{
 		Calls: []ipc.CallInfo{
 			{
-				Signal: []uint32{1, 2, 3},
+				Signal: []uint32{1, 2, 3, 5, 6},
 				Cover:  []uint32{1, 2, 3},
 			},
 			{
-				Signal: []uint32{2, 3, 4},
+				Signal: []uint32{2, 3, 4, 6, 7},
 				Cover:  []uint32{2, 3, 4},
 			},
 		},
@@ -30,59 +30,21 @@ func TestFilterProgInfo(t *testing.T) {
 			Cover:  []uint32{3, 4, 5},
 		},
 	}
-	filterProgInfo(&info, mask)
+	diffMaxSignal(&info, max, mask, 1)
 	assert.Equal(t, ipc.ProgInfo{
 		Calls: []ipc.CallInfo{
-			{
-				Signal: []uint32{2},
-				Cover:  []uint32{1, 2, 3},
-			},
-			{
-				Signal: []uint32{2, 4},
-				Cover:  []uint32{2, 3, 4},
-			},
-		},
-		Extra: ipc.CallInfo{
-			Signal: []uint32{4},
-			Cover:  []uint32{3, 4, 5},
-		},
-	}, info)
-}
-
-// nolint: dupl
-func TestDiffProgInfo(t *testing.T) {
-	base := signal.FromRaw([]uint32{0, 1, 2}, 0)
-	info := ipc.ProgInfo{
-		Calls: []ipc.CallInfo{
-			{
-				Signal: []uint32{0, 1, 2},
-				Cover:  []uint32{0, 1, 2},
-			},
 			{
 				Signal: []uint32{1, 2, 3},
 				Cover:  []uint32{1, 2, 3},
 			},
-		},
-		Extra: ipc.CallInfo{
-			Signal: []uint32{2, 3, 4},
-			Cover:  []uint32{2, 3, 4},
-		},
-	}
-	diffProgInfo(&info, base)
-	assert.Equal(t, ipc.ProgInfo{
-		Calls: []ipc.CallInfo{
 			{
-				Signal: nil,
-				Cover:  []uint32{0, 1, 2},
-			},
-			{
-				Signal: []uint32{3},
-				Cover:  []uint32{1, 2, 3},
+				Signal: []uint32{2, 3, 4, 6},
+				Cover:  []uint32{2, 3, 4},
 			},
 		},
 		Extra: ipc.CallInfo{
 			Signal: []uint32{3, 4},
-			Cover:  []uint32{2, 3, 4},
+			Cover:  []uint32{3, 4, 5},
 		},
 	}, info)
 }

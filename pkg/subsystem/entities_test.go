@@ -30,13 +30,17 @@ func TestSubsystemEmails(t *testing.T) {
 		Maintainers: []string{"c@person.com"},
 		Parents:     []*Subsystem{parentParent},
 	}
+	parent3 := &Subsystem{
+		Lists:        []string{"d@list.com"},
+		NoIndirectCc: true,
+	}
 	subsystem := &Subsystem{
-		Lists:       []string{"d@list.com"},
-		Maintainers: []string{"d@person.com"},
-		Parents:     []*Subsystem{parent1, parent2},
+		Lists:       []string{"e@list.com"},
+		Maintainers: []string{"e@person.com"},
+		Parents:     []*Subsystem{parent1, parent2, parent3},
 	}
 	assert.ElementsMatch(t, subsystem.Emails(), []string{
-		"a@list.com", "b@list.com", "c@list.com", "d@list.com", "d@person.com",
+		"a@list.com", "b@list.com", "c@list.com", "e@list.com", "e@person.com",
 	})
 }
 

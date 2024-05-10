@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build !ppc64le
-// +build !ppc64le
 
 package adb
 
@@ -27,7 +26,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("adb", ctor, false, true)
+	vmimpl.Register("adb", ctor, false)
 }
 
 type Device struct {

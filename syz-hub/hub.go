@@ -61,7 +61,7 @@ func main() {
 
 	hub.initHTTP(cfg.HTTP)
 
-	s, err := rpctype.NewRPCServer(cfg.RPC, "Hub", hub, true)
+	s, err := rpctype.NewRPCServer(cfg.RPC, "Hub", hub)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}

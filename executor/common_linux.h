@@ -1106,25 +1106,19 @@ static void initialize_wifi_devices(void)
 		return;
 #endif
 	int rfkill = open("/dev/rfkill", O_RDWR);
-	if (rfkill == -1) {
-		if (errno != ENOENT && errno != EACCES)
-			fail("open(/dev/rfkill) failed");
-	} else {
-		struct rfkill_event event = {0};
-		event.type = RFKILL_TYPE_ALL;
-		event.op = RFKILL_OP_CHANGE_ALL;
-		if (write(rfkill, &event, sizeof(event)) != (ssize_t)(sizeof(event)))
-			fail("write(/dev/rfkill) failed");
-		close(rfkill);
-	}
+	if (rfkill == -1)
+		fail("open(/dev/rfkill) failed");
+	struct rfkill_event event = {0};
+	event.type = RFKILL_TYPE_ALL;
+	event.op = RFKILL_OP_CHANGE_ALL;
+	if (write(rfkill, &event, sizeof(event)) != (ssize_t)(sizeof(event)))
+		fail("write(/dev/rfkill) failed");
+	close(rfkill);
 
 	uint8 mac_addr[6] = WIFI_MAC_BASE;
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-	if (sock < 0) {
-		debug("initialize_wifi_devices: failed to create socket (%d)\n", errno);
-		return;
-	}
-
+	if (sock < 0)
+		fail("initialize_wifi_devices: failed to create socket");
 	int hwsim_family_id = netlink_query_family_id(&nlmsg, sock, "MAC80211_HWSIM", true);
 	int nl80211_family_id = netlink_query_family_id(&nlmsg, sock, "nl80211", true);
 	uint8 ssid[] = WIFI_IBSS_SSID;
@@ -1467,20 +1461,16 @@ static void netlink_nicvf_setup(void)
 	sprintf(cmdline, "nsenter -t 1 -n ip link set %s netns %d",
 		vf_intf.pass_thru_intf, getpid());
 	if (runcmdline(cmdline))
-		return;
-
+		failmsg("failed to run command", "%s", cmdline);
 	sprintf(cmdline, "ip a s %s", vf_intf.pass_thru_intf);
 	if (runcmdline(cmdline))
-		return;
-
+		failmsg("failed to run command", "%s", cmdline);
 	sprintf(cmdline, "ip link set %s down", vf_intf.pass_thru_intf);
 	if (runcmdline(cmdline))
-		return;
-
+		failmsg("failed to run command", "%s", cmdline);
 	sprintf(cmdline, "ip link set %s name nicvf0", vf_intf.pass_thru_intf);
 	if (runcmdline(cmdline))
-		return;
-
+		failmsg("failed to run command", "%s", cmdline);
 	debug("nicvf0 VF pass-through setup complete.\n");
 }
 #endif // SYZ_NIC_VF
@@ -1749,8 +1739,9 @@ static int read_tun(char* data, int size)
 
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
+		// EBADF can be returned if the test closes tunfd with close_range syscall.
 		// Tun sometimes returns EBADFD, unclear if it's a kernel bug or not.
-		if (errno == EAGAIN || errno == EBADFD)
+		if (errno == EAGAIN || errno == EBADF || errno == EBADFD)
 			return -1;
 		fail("tun read failed");
 	}
@@ -2046,8 +2037,11 @@ static long syz_usbip_server_init(volatile long a0)
 	bool usb3 = (speed == USB_SPEED_SUPER);
 
 	int socket_pair[2];
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair))
-		fail("syz_usbip_server_init: socketpair failed");
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair)) {
+		// This can happen if the test calls prlimit(RLIMIT_AS).
+		debug("syz_usbip_server_init: socketpair failed (%d)\n", errno);
+		return -1;
+	}
 
 	int client_fd = socket_pair[0];
 	int server_fd = socket_pair[1];
@@ -4534,10 +4528,15 @@ static void remove_dir(const char* dir)
 	DIR* dp = 0;
 retry:
 #if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
+	// Starting from v6.9, it does no longer make sense to use MNT_DETACH, because
+	// a loop device may only be reused in RW mode if no mounted filesystem keeps a
+	// reference to it. So we have to umount them synchronously.
+	// MNT_FORCE should hopefully prevent hangs for filesystems that may require a complex cleanup.
+	const int umount_flags = MNT_FORCE | UMOUNT_NOFOLLOW;
 #if SYZ_EXECUTOR
 	if (!flag_sandbox_android)
 #endif
-		while (umount2(dir, MNT_DETACH | UMOUNT_NOFOLLOW) == 0) {
+		while (umount2(dir, umount_flags) == 0) {
 			debug("umount(%s)\n", dir);
 		}
 #endif
@@ -4563,7 +4562,7 @@ retry:
 #if SYZ_EXECUTOR
 		if (!flag_sandbox_android)
 #endif
-			while (umount2(filename, MNT_DETACH | UMOUNT_NOFOLLOW) == 0) {
+			while (umount2(filename, umount_flags) == 0) {
 				debug("umount(%s)\n", filename);
 			}
 #endif
@@ -4601,7 +4600,7 @@ retry:
 			if (!flag_sandbox_android) {
 #endif
 				debug("umount(%s)\n", filename);
-				if (umount2(filename, MNT_DETACH | UMOUNT_NOFOLLOW))
+				if (umount2(filename, umount_flags))
 					exitf("umount(%s) failed", filename);
 #if SYZ_EXECUTOR
 			}
@@ -4636,7 +4635,7 @@ retry:
 				if (!flag_sandbox_android) {
 #endif
 					debug("umount(%s)\n", dir);
-					if (umount2(dir, MNT_DETACH | UMOUNT_NOFOLLOW))
+					if (umount2(dir, umount_flags))
 						exitf("umount(%s) failed", dir);
 #if SYZ_EXECUTOR
 				}
@@ -4840,6 +4839,16 @@ static void close_fds()
 
 static void setup_fault()
 {
+	int fd = open("/proc/self/make-it-fail", O_WRONLY);
+	if (fd == -1)
+		fail("CONFIG_FAULT_INJECTION is not enabled");
+	close(fd);
+
+	fd = open("/proc/thread-self/fail-nth", O_WRONLY);
+	if (fd == -1)
+		fail("kernel does not have systematic fault injection support");
+	close(fd);
+
 	static struct {
 		const char* file;
 		const char* val;
@@ -4875,6 +4884,12 @@ static void setup_fault()
 
 static void setup_leak()
 {
+	if (!write_file(KMEMLEAK_FILE, "scan=off")) {
+		if (errno == EBUSY)
+			fail("KMEMLEAK disabled: increase CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE"
+			     " or unset CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF");
+		fail("failed to write(kmemleak, \"scan=off\")");
+	}
 	// Flush boot leaks.
 	if (!write_file(KMEMLEAK_FILE, "scan"))
 		fail("failed to write(kmemleak, \"scan\")");
@@ -4973,9 +4988,11 @@ static void setup_binfmt_misc()
 {
 	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
 		debug("mount(binfmt_misc) failed: %d\n", errno);
+		return;
 	}
-	write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:");
-	write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC");
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:") ||
+	    !write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC"))
+		fail("write(/proc/sys/fs/binfmt_misc/register) failed");
 }
 #endif
 
@@ -4985,7 +5002,7 @@ static void setup_binfmt_misc()
 static void setup_kcsan()
 {
 	if (!write_file(KCSAN_DEBUGFS_FILE, "on"))
-		fail("failed to enable KCSAN");
+		fail("write(/sys/kernel/debug/kcsan, on) failed");
 }
 
 #if SYZ_EXECUTOR // currently only used by executor
@@ -5113,18 +5130,16 @@ static void setup_802154()
 		netlink_attr(&nlmsg, NL802154_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
 		netlink_attr(&nlmsg, NL802154_ATTR_SHORT_ADDR, &shortaddr, sizeof(shortaddr));
 		int err = netlink_send(&nlmsg, sock_generic);
-		if (err < 0) {
-			debug("NL802154_CMD_SET_SHORT_ADDR failed: %s\n", strerror(errno));
-		}
+		if (err < 0)
+			fail("NL802154_CMD_SET_SHORT_ADDR failed");
 		netlink_device_change(&nlmsg, sock_route, devname, true, 0, &hwaddr, sizeof(hwaddr), 0);
 		if (i == 0) {
 			netlink_add_device_impl(&nlmsg, "lowpan", "lowpan0", false);
 			netlink_done(&nlmsg);
 			netlink_attr(&nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 			int err = netlink_send(&nlmsg, sock_route);
-			if (err < 0) {
-				debug("netlink: adding device lowpan0 type lowpan link wpan0: %s\n", strerror(errno));
-			}
+			if (err < 0)
+				fail("netlink: adding device lowpan0 type lowpan link wpan0");
 		}
 	}
 	close(sock_route);
@@ -5686,24 +5701,18 @@ static void setup_swap()
 	unlink(SWAP_FILE);
 	// Zero-fill the file.
 	int fd = open(SWAP_FILE, O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
-	if (fd == -1) {
+	if (fd == -1)
 		failmsg("swap file open failed", "file: %s", SWAP_FILE);
-		return;
-	}
 	// We cannot do ftruncate -- swapon complains about this. Do fallocate instead.
 	fallocate(fd, FALLOC_FL_ZERO_RANGE, 0, SWAP_FILE_SIZE);
 	close(fd);
 	// Set up the swap file.
 	char cmdline[64];
 	sprintf(cmdline, "mkswap %s", SWAP_FILE);
-	if (runcmdline(cmdline)) {
+	if (runcmdline(cmdline))
 		fail("mkswap failed");
-		return;
-	}
-	if (swapon(SWAP_FILE, SWAP_FLAG_PREFER) == 1) {
+	if (swapon(SWAP_FILE, SWAP_FLAG_PREFER) == 1)
 		failmsg("swapon failed", "file: %s", SWAP_FILE);
-		return;
-	}
 }
 
 #endif

@@ -233,7 +233,7 @@ The second step is translation of descriptions into Go code using
 [pkg/ast](/pkg/ast/) and [pkg/compiler](/pkg/compiler/)).
 This step uses syscall descriptions and the const files generated during the first step
 and produces instantiations of `Syscall` and `Type` types defined in [prog/types.go](/prog/types.go).
-You can see an example of the compiler output for Akaros in `sys/akaros/gen/amd64.go`.
+You can see an example of the compiler output for Linux/AMD64 in `sys/linux/gen/amd64.go`.
 This step also generates some minimal syscall metadata for C++ code in `executor/syscalls.h`.
 
 ## Non-mainline subsystems

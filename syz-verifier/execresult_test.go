@@ -171,7 +171,7 @@ func TestCompareResults(t *testing.T) {
 			}
 			got := CompareResults(test.res, prog)
 			if diff := cmp.Diff(test.wantReport, got); diff != "" {
-				t.Errorf("Verify report mismatch (-want +got):\n%s", diff)
+				t.Errorf("verify report mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

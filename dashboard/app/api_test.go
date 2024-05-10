@@ -17,7 +17,7 @@ func TestClientSecretOK(t *testing.T) {
 		},
 	}, "user", "secr1t", "")
 	if err != nil || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
@@ -28,7 +28,7 @@ func TestClientOauthOK(t *testing.T) {
 		},
 	}, "user", "", "OauthSubject:public")
 	if err != nil || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
@@ -39,7 +39,7 @@ func TestClientSecretFail(t *testing.T) {
 		},
 	}, "user", "wrong", "")
 	if err != ErrAccess || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
@@ -48,7 +48,7 @@ func TestClientSecretMissing(t *testing.T) {
 		Clients: map[string]string{},
 	}, "user", "ignored", "")
 	if err != ErrAccess || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestClientNamespaceOK(t *testing.T) {
 		},
 	}, "user", "secr1t", "")
 	if err != nil || got != "ns1" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
