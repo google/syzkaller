@@ -52,7 +52,7 @@ RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2
 
 # Install bazel
 # Download the official bazel binary. The APT repository isn't used because there is not packages for arm64.
-RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/6.2.0/release/bazel-6.2.0-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
+RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/7.1.2/release/bazel-7.1.2-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
 
 # Install qemu from the backports.
 # The currently stable version (7.4) cannot properly run arm64-MTE kernels.
