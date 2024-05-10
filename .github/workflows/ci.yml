@@ -69,10 +69,11 @@ jobs:
         cd gopath/src/github.com/google/syzkaller
         .github/workflows/run.sh make presubmit_build
     - name: codecov
-      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+      uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
       with:
         files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: unittests
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   dashboard:
     runs-on: arc-runner-set
@@ -92,10 +93,11 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
       - name: codecov
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
           files: gopath/src/github.com/google/syzkaller/.coverage.txt
           flags: dashboard
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   arch:
     runs-on: ubuntu-latest
