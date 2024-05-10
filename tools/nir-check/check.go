@@ -20,6 +20,11 @@ type Warn struct {
 	msg  string
 }
 
+type STR struct {
+	name   string
+	fields map[string]*string
+}
+
 const (
 	WarnCompiler           = "compiler"
 	WarnNoSuchStruct       = "no-such-struct"
@@ -36,14 +41,21 @@ const (
 
 func main() {
 
+	// locs := getStructs()
+
+	generator()
+
+}
+
+func getStructs() map[string]*ast.Struct {
 	// file, err = filepath.Glob("./test/syz_test.txt")
 
 	// if err != nil || file
 	var flagOS = flag.String("os", runtime.GOOS, "OS")
 
-	//var OS = "linux"
 	var arch = "amd64"
 	structTypes, locs, warnings, err := parseDescriptions_custom("syz_awesome_func.txt", *flagOS, arch)
+
 	if err != nil {
 		fmt.Errorf("Error: %v", err)
 	}
@@ -79,12 +91,17 @@ func main() {
 	// 	Args []*Type
 	// }
 
+	fmt.Print("Printing locs: \n")
+
 	for _, str := range locs {
+		fmt.Printf("struct: %v\n", str.Name.Name)
 		for i, field := range str.Fields {
 			fmt.Println(i, ": ", field.Name.Name, ": ", field.Type.Ident)
 		}
+		fmt.Println()
 	}
 
+	return locs
 }
 
 func parseDescriptions_custom(name, OS, arch string) ([]prog.Type, map[string]*ast.Struct, []Warn, error) {
@@ -97,21 +114,26 @@ func parseDescriptions_custom(name, OS, arch string) ([]prog.Type, map[string]*a
 	}
 
 	top := ast.ParseGlob(filepath.Join("../../sys", OS, name), eh)
+
 	fmt.Printf("top: %v \n", top)
 	if top == nil {
+		fmt.Printf("failed to parse txt files:\n%s", errorBuf.Bytes())
 		return nil, nil, nil, fmt.Errorf("failed to parse txt files:\n%s", errorBuf.Bytes())
 	}
 
 	consts := compiler.DeserializeConstFile(filepath.Join("../../sys", OS, "*.const"), eh).Arch(arch)
-	//fmt.Println("consts: %v", consts)
+	//fmt.Printf("consts: %v", consts)
 	if consts == nil {
+		fmt.Printf("failed to parse const files:\n%s", errorBuf.Bytes())
 		return nil, nil, nil, fmt.Errorf("failed to parse const files:\n%s", errorBuf.Bytes())
 	}
 
 	prg := compiler.Compile(top, consts, targets.Get(OS, arch), eh)
 	if prg == nil {
+		fmt.Printf("failed to compile descriptions:\n%s", errorBuf.Bytes())
 		return nil, nil, nil, fmt.Errorf("failed to compile descriptions:\n%s", errorBuf.Bytes())
 	}
+	fmt.Printf("prg: %v", prg)
 
 	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.Types)
 	locs := make(map[string]*ast.Struct)
@@ -222,17 +244,6 @@ func parseDescriptions(OS, arch string) ([]prog.Type, map[string]*ast.Struct, []
 }
 
 /*
-100 лет комбинатю логики
-в апреле будет семинар - встреча, где можно предложить доклады.
-Научно технич. семинар.
-
-Потом публикуем в журнале статьи.
-максимум 10-15 статей.
-
-
-
-
-
 Получается большую часть времени - реализация
 Но аналитику тоже пишу:
 Конкретно актуальность новизна лалала
