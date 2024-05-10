@@ -30,10 +30,6 @@ type Dashboard struct {
 	errorHandler func(error)
 }
 
-func New(client, addr, key string) (*Dashboard, error) {
-	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
-}
-
 type (
 	RequestCtor   func(method, url string, body io.Reader) (*http.Request, error)
 	RequestDoer   func(req *http.Request) (*http.Response, error)
