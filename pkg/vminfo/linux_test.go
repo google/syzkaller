@@ -30,15 +30,8 @@ func TestLinuxSyscalls(t *testing.T) {
 		t.Fatal("too many test programs")
 	}
 	filesystems := []string{
-		"", "9p", "esdfs", "incremental-fs", "cgroup", "cgroup2",
-		"pvfs2", "nfs", "nfs4", "fuse", "fuseblk", "afs", "pipefs",
-		"sysfs", "tmpfs", "overlay", "bpf", "efs", "vfat", "xfs",
-		"qnx4", "hfs", "f2fs", "btrfs", "befs", "cramfs", "vxfs",
-		"ubifs", "jfs", "erofs", "udf", "squashfs", "romfs", "qnx6",
-		"ntfs", "ntfs3", "hfsplus", "bfs", "exfat", "affs", "jffs2",
-		"ext4", "gfs2", "msdos", "v7", "gfs2meta", "zonefs", "omfs",
-		"minix", "adfs", "ufs", "sysv", "reiserfs", "ocfs2", "nilfs2",
-		"iso9660", "hpfs", "binder", "bcachefs", "",
+		// Without sysfs, the checks would also disable mount().
+		"", "sysfs", "ext4", "binder", "",
 	}
 	files := []flatrpc.FileInfo{
 		{
@@ -60,6 +53,16 @@ func TestLinuxSyscalls(t *testing.T) {
 	expectDisabled := map[string]bool{
 		"syz_kvm_setup_cpu$arm64": true,
 		"syz_kvm_setup_cpu$ppc64": true,
+	}
+	// All mount and syz_mount_image calls except for ext4 and binder will be disabled.
+	for call := range disabled {
+		name := call.Name
+		if name == "mount$binder" || name == "syz_mount_image$ext4" {
+			continue
+		}
+		if strings.HasPrefix(name, "syz_mount_image$") || strings.HasPrefix(name, "mount$") {
+			expectDisabled[name] = true
+		}
 	}
 	for call, reason := range disabled {
 		if expectDisabled[call.Name] {
