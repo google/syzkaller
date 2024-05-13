@@ -458,12 +458,23 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
 	splitBuildDelimiters []string, pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
+	type frameResult struct {
+		frames []Frame
+		err    error
+	}
+	frameC := make(chan frameResult, len(pcs))
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, interner, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs1)
-		if err != nil {
-			return nil, err
+		go func(mod *Module, pcs []uint64) {
+			frames, err := symbolizeModule(target, interner, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs)
+			frameC <- frameResult{frames: frames, err: err}
+		}(mod, pcs1)
+	}
+	for range pcs {
+		res := <-frameC
+		if res.err != nil {
+			return nil, res.err
 		}
-		frames = append(frames, frames1...)
+		frames = append(frames, res.frames...)
 	}
 	return frames, nil
 }
