@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/image"
+	"github.com/stretchr/testify/assert"
 )
 
 type ConstArgTest struct {
@@ -664,6 +665,24 @@ func TestHintsData(t *testing.T) {
 				test.comps, test.in, got, test.out)
 		}
 	}
+}
+
+func TestInplaceIntersect(t *testing.T) {
+	m1 := CompMap{
+		0xdead: compSet(0x1, 0x2),
+		0xbeef: compSet(0x3, 0x4),
+		0xffff: compSet(0x5),
+	}
+	m2 := CompMap{
+		0xdead: compSet(0x2),
+		0xbeef: compSet(0x3, 0x6),
+		0xeeee: compSet(0x6),
+	}
+	m1.InplaceIntersect(m2)
+	assert.Equal(t, CompMap{
+		0xdead: compSet(0x2),
+		0xbeef: compSet(0x3),
+	}, m1)
 }
 
 func BenchmarkHints(b *testing.B) {
