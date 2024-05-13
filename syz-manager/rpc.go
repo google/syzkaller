@@ -86,9 +86,10 @@ type Runner struct {
 }
 
 type Request struct {
-	req    *fuzzer.Request
-	try    int
-	procID int
+	req        *fuzzer.Request
+	serialized []byte
+	try        int
+	procID     int
 }
 
 type BugFrames struct {
@@ -316,7 +317,7 @@ func (serv *RPCServer) StartExecuting(a *rpctype.ExecutingRequest, r *int) error
 	}
 	runner.requests[a.ID] = req
 	runner.mu.Unlock()
-	runner.logProgram(a.ProcID, req.req.Prog)
+	runner.logProgram(a.ProcID, req.serialized)
 	return nil
 }
 
@@ -529,7 +530,7 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult,
 	// RPC handlers are invoked in separate goroutines, so log the program here
 	// if completion notification outrun start executing notification.
 	if req.try < resp.Try {
-		runner.logProgram(resp.ProcID, req.req.Prog)
+		runner.logProgram(resp.ProcID, req.serialized)
 	}
 	if !serv.cfg.Cover {
 		addFallbackSignal(req.req.Prog, info)
@@ -550,6 +551,9 @@ func (serv *RPCServer) newRequest(runner *Runner, req *fuzzer.Request) (rpctype.
 		return rpctype.ExecutionRequest{}, false
 	}
 
+	// logProgram() may race with Done(), so let's serialize the program right now.
+	serialized := req.Prog.Serialize()
+
 	var signalFilter signal.Signal
 	if req.SignalFilter != nil {
 		newRawSignal := runner.instModules.Decanonicalize(req.SignalFilter.ToRaw())
@@ -561,8 +565,9 @@ func (serv *RPCServer) newRequest(runner *Runner, req *fuzzer.Request) (rpctype.
 	id := runner.nextRequestID
 	if runner.requests != nil {
 		runner.requests[id] = Request{
-			req: req,
-			try: -1,
+			req:        req,
+			try:        -1,
+			serialized: serialized,
 		}
 	}
 	runner.mu.Unlock()
@@ -616,9 +621,9 @@ func (serv *RPCServer) createExecOpts(req *fuzzer.Request) ipc.ExecOpts {
 	}
 }
 
-func (runner *Runner) logProgram(procID int, p *prog.Prog) {
+func (runner *Runner) logProgram(procID int, serialized []byte) {
 	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "executing program %v:\n%s\n", procID, p.Serialize())
+	fmt.Fprintf(buf, "executing program %v:\n%s\n", procID, serialized)
 	select {
 	case runner.injectLog <- buf.Bytes():
 	case <-runner.injectStop:
