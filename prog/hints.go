@@ -63,6 +63,20 @@ func (m CompMap) String() string {
 	return buf.String()
 }
 
+// InplaceIntersect() only leaves the value pairs that are also present in other.
+func (m CompMap) InplaceIntersect(other CompMap) {
+	for val1, nested := range m {
+		for val2 := range nested {
+			if !other[val1][val2] {
+				delete(nested, val2)
+			}
+		}
+		if len(nested) == 0 {
+			delete(m, val1)
+		}
+	}
+}
+
 // Mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
 // The callback must return whether we should continue substitution (true)

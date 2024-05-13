@@ -385,20 +385,33 @@ func (job *hintsJob) priority() priority {
 }
 
 func (job *hintsJob) run(fuzzer *Fuzzer) {
-	// First execute the original program to dump comparisons from KCOV.
+	// First execute the original program twice to get comparisons from KCOV.
+	// The second execution lets us filter out flaky values, which seem to constitute ~30-40%.
 	p := job.p
-	result := fuzzer.exec(job, &Request{
-		Prog:      p,
-		NeedHints: true,
-		stat:      fuzzer.statExecSeed,
-	})
-	if result.Stop || result.Info == nil {
-		return
+	var comps prog.CompMap
+	for i := 0; i < 2; i++ {
+		result := fuzzer.exec(job, &Request{
+			Prog:      p,
+			NeedHints: true,
+			stat:      fuzzer.statExecSeed,
+		})
+		if result.Stop || result.Info == nil {
+			return
+		}
+		if i == 0 {
+			comps = result.Info.Calls[job.call].Comps
+			if len(comps) == 0 {
+				return
+			}
+		} else {
+			comps.InplaceIntersect(result.Info.Calls[job.call].Comps)
+		}
 	}
+
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
-	p.MutateWithHints(job.call, result.Info.Calls[job.call].Comps,
+	p.MutateWithHints(job.call, comps,
 		func(p *prog.Prog) bool {
 			result := fuzzer.exec(job, &Request{
 				Prog:       p,
