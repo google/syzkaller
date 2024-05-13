@@ -19,18 +19,6 @@ type ProgramsList struct {
 	accPrios []int64
 }
 
-func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
-	pl.mu.Lock()
-	defer pl.mu.Unlock()
-	prio := int64(len(signal))
-	if prio == 0 {
-		prio = 1
-	}
-	pl.sumPrios += prio
-	pl.accPrios = append(pl.accPrios, pl.sumPrios)
-	pl.progs = append(pl.progs, p)
-}
-
 func (pl *ProgramsList) ChooseProgram(r *rand.Rand) *prog.Prog {
 	pl.mu.RLock()
 	defer pl.mu.RUnlock()
@@ -48,4 +36,24 @@ func (pl *ProgramsList) Programs() []*prog.Prog {
 	pl.mu.RLock()
 	defer pl.mu.RUnlock()
 	return pl.progs
+}
+
+func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
+	pl.mu.Lock()
+	defer pl.mu.Unlock()
+	prio := int64(len(signal))
+	if prio == 0 {
+		prio = 1
+	}
+	pl.sumPrios += prio
+	pl.accPrios = append(pl.accPrios, pl.sumPrios)
+	pl.progs = append(pl.progs, p)
+}
+
+func (pl *ProgramsList) replace(other *ProgramsList) {
+	pl.mu.Lock()
+	defer pl.mu.Unlock()
+	pl.sumPrios = other.sumPrios
+	pl.accPrios = other.accPrios
+	pl.progs = other.progs
 }
