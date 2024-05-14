@@ -40,10 +40,15 @@ type Request struct {
 	BinaryFile string // If set, it's executed instead of Prog.
 	Repeat     int    // Repeats in addition to the first run.
 
+	// Important requests will be retried even from crashed VMs.
+	Important bool
+
 	// The callback will be called on request completion in the LIFO order.
 	// If it returns false, all further processing will be stopped.
 	// It allows wrappers to intercept Done() requests.
 	callback DoneCallback
+
+	onceCrashed bool
 
 	mu     sync.Mutex
 	result *Result
@@ -89,6 +94,11 @@ func (r *Request) Wait(ctx context.Context) *Result {
 	case <-r.done:
 		return r.result
 	}
+}
+
+// Risky() returns true if there's a substantial risk of the input crashing the VM.
+func (r *Request) Risky() bool {
+	return r.onceCrashed
 }
 
 func (r *Request) hash() hash.Sig {

@@ -252,7 +252,6 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 		if err != nil {
 			panic(fmt.Sprintf("failed to deserialize: %v\n%v", err, progStr))
 		}
-		// TODO: request that the program must be re-executed on the first failure.
 		req := &queue.Request{
 			Prog: p,
 			ExecOpts: &ipc.ExecOpts{
@@ -260,6 +259,7 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 				ExecFlags:  0,
 				SandboxArg: ctx.cfg.SandboxArg,
 			},
+			Important: true,
 		}
 		ctx.executor.Submit(req)
 		res := req.Wait(ctx.ctx)
