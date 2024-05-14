@@ -359,11 +359,11 @@ func (env *Env) parseOutput(opts *flatrpc.ExecOpts, ncalls int) (*flatrpc.ProgIn
 			extraParts = append(extraParts, flatrpc.CallInfo{})
 			inf = &extraParts[len(extraParts)-1]
 		}
-		if inf.Signal, ok = readUint32Array(&out, reply.signalSize); !ok {
+		if inf.Signal, ok = readUint64Array(&out, reply.signalSize); !ok {
 			return nil, fmt.Errorf("call %v/%v/%v: signal overflow: %v/%v",
 				i, reply.index, reply.num, reply.signalSize, len(out))
 		}
-		if inf.Cover, ok = readUint32Array(&out, reply.coverSize); !ok {
+		if inf.Cover, ok = readUint64Array(&out, reply.coverSize); !ok {
 			return nil, fmt.Errorf("call %v/%v/%v: cover overflow: %v/%v",
 				i, reply.index, reply.num, reply.coverSize, len(out))
 		}
@@ -397,10 +397,10 @@ func convertExtra(extraParts []flatrpc.CallInfo, dedupCover bool) *flatrpc.CallI
 	for _, part := range extraParts {
 		extraSignal.Merge(signal.FromRaw(part.Signal, 0))
 	}
-	extra.Signal = make([]uint32, len(extraSignal))
+	extra.Signal = make([]uint64, len(extraSignal))
 	i := 0
 	for s := range extraSignal {
-		extra.Signal[i] = uint32(s)
+		extra.Signal[i] = uint64(s)
 		i++
 	}
 	return &extra
@@ -466,17 +466,16 @@ func readUint64(outp *[]byte) (uint64, bool) {
 	return v, true
 }
 
-func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
+func readUint64Array(outp *[]byte, size uint32) ([]uint64, bool) {
 	if size == 0 {
 		return nil, true
 	}
 	out := *outp
-	dataSize := int(size * 4)
+	dataSize := int(size * 8)
 	if dataSize > len(out) {
 		return nil, false
 	}
-	// "Convert" the data to uint32.
-	res := unsafe.Slice((*uint32)(unsafe.Pointer(&out[0])), size)
+	res := unsafe.Slice((*uint64)(unsafe.Pointer(&out[0])), size)
 	*outp = out[dataSize:]
 	// Detach the resulting array from the original data.
 	return slices.Clone(res), true

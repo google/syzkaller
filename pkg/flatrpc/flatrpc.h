@@ -1459,7 +1459,7 @@ struct ExecRequestRawT : public flatbuffers::NativeTable {
   std::vector<uint8_t> prog_data{};
   std::unique_ptr<rpc::ExecOptsRaw> exec_opts{};
   rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0);
-  std::vector<uint32_t> signal_filter{};
+  std::vector<uint64_t> signal_filter{};
   int32_t signal_filter_call = 0;
   int32_t repeat = 0;
   ExecRequestRawT() = default;
@@ -1492,8 +1492,8 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   rpc::RequestFlag flags() const {
     return static_cast<rpc::RequestFlag>(GetField<uint64_t>(VT_FLAGS, 0));
   }
-  const flatbuffers::Vector<uint32_t> *signal_filter() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_SIGNAL_FILTER);
+  const flatbuffers::Vector<uint64_t> *signal_filter() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_SIGNAL_FILTER);
   }
   int32_t signal_filter_call() const {
     return GetField<int32_t>(VT_SIGNAL_FILTER_CALL, 0);
@@ -1535,7 +1535,7 @@ struct ExecRequestRawBuilder {
   void add_flags(rpc::RequestFlag flags) {
     fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_FLAGS, static_cast<uint64_t>(flags), 0);
   }
-  void add_signal_filter(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal_filter) {
+  void add_signal_filter(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> signal_filter) {
     fbb_.AddOffset(ExecRequestRaw::VT_SIGNAL_FILTER, signal_filter);
   }
   void add_signal_filter_call(int32_t signal_filter_call) {
@@ -1561,7 +1561,7 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data = 0,
     const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal_filter = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> signal_filter = 0,
     int32_t signal_filter_call = 0,
     int32_t repeat = 0) {
   ExecRequestRawBuilder builder_(_fbb);
@@ -1581,11 +1581,11 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
     const std::vector<uint8_t> *prog_data = nullptr,
     const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
-    const std::vector<uint32_t> *signal_filter = nullptr,
+    const std::vector<uint64_t> *signal_filter = nullptr,
     int32_t signal_filter_call = 0,
     int32_t repeat = 0) {
   auto prog_data__ = prog_data ? _fbb.CreateVector<uint8_t>(*prog_data) : 0;
-  auto signal_filter__ = signal_filter ? _fbb.CreateVector<uint32_t>(*signal_filter) : 0;
+  auto signal_filter__ = signal_filter ? _fbb.CreateVector<uint64_t>(*signal_filter) : 0;
   return rpc::CreateExecRequestRaw(
       _fbb,
       id,
@@ -1601,8 +1601,8 @@ flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::FlatBuffer
 
 struct SignalUpdateRawT : public flatbuffers::NativeTable {
   typedef SignalUpdateRaw TableType;
-  std::vector<uint32_t> new_max{};
-  std::vector<uint32_t> drop_max{};
+  std::vector<uint64_t> new_max{};
+  std::vector<uint64_t> drop_max{};
 };
 
 struct SignalUpdateRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1612,11 +1612,11 @@ struct SignalUpdateRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NEW_MAX = 4,
     VT_DROP_MAX = 6
   };
-  const flatbuffers::Vector<uint32_t> *new_max() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_NEW_MAX);
+  const flatbuffers::Vector<uint64_t> *new_max() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_NEW_MAX);
   }
-  const flatbuffers::Vector<uint32_t> *drop_max() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_DROP_MAX);
+  const flatbuffers::Vector<uint64_t> *drop_max() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_DROP_MAX);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1635,10 +1635,10 @@ struct SignalUpdateRawBuilder {
   typedef SignalUpdateRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_new_max(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> new_max) {
+  void add_new_max(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> new_max) {
     fbb_.AddOffset(SignalUpdateRaw::VT_NEW_MAX, new_max);
   }
-  void add_drop_max(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> drop_max) {
+  void add_drop_max(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> drop_max) {
     fbb_.AddOffset(SignalUpdateRaw::VT_DROP_MAX, drop_max);
   }
   explicit SignalUpdateRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1654,8 +1654,8 @@ struct SignalUpdateRawBuilder {
 
 inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> new_max = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> drop_max = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> new_max = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> drop_max = 0) {
   SignalUpdateRawBuilder builder_(_fbb);
   builder_.add_drop_max(drop_max);
   builder_.add_new_max(new_max);
@@ -1664,10 +1664,10 @@ inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(
 
 inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint32_t> *new_max = nullptr,
-    const std::vector<uint32_t> *drop_max = nullptr) {
-  auto new_max__ = new_max ? _fbb.CreateVector<uint32_t>(*new_max) : 0;
-  auto drop_max__ = drop_max ? _fbb.CreateVector<uint32_t>(*drop_max) : 0;
+    const std::vector<uint64_t> *new_max = nullptr,
+    const std::vector<uint64_t> *drop_max = nullptr) {
+  auto new_max__ = new_max ? _fbb.CreateVector<uint64_t>(*new_max) : 0;
+  auto drop_max__ = drop_max ? _fbb.CreateVector<uint64_t>(*drop_max) : 0;
   return rpc::CreateSignalUpdateRaw(
       _fbb,
       new_max__,
@@ -1765,8 +1765,8 @@ struct CallInfoRawT : public flatbuffers::NativeTable {
   typedef CallInfoRaw TableType;
   rpc::CallFlag flags = static_cast<rpc::CallFlag>(0);
   int32_t error = 0;
-  std::vector<uint32_t> signal{};
-  std::vector<uint32_t> cover{};
+  std::vector<uint64_t> signal{};
+  std::vector<uint64_t> cover{};
   std::vector<rpc::ComparisonRaw> comps{};
 };
 
@@ -1786,11 +1786,11 @@ struct CallInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t error() const {
     return GetField<int32_t>(VT_ERROR, 0);
   }
-  const flatbuffers::Vector<uint32_t> *signal() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_SIGNAL);
+  const flatbuffers::Vector<uint64_t> *signal() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_SIGNAL);
   }
-  const flatbuffers::Vector<uint32_t> *cover() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_COVER);
+  const flatbuffers::Vector<uint64_t> *cover() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_COVER);
   }
   const flatbuffers::Vector<const rpc::ComparisonRaw *> *comps() const {
     return GetPointer<const flatbuffers::Vector<const rpc::ComparisonRaw *> *>(VT_COMPS);
@@ -1822,10 +1822,10 @@ struct CallInfoRawBuilder {
   void add_error(int32_t error) {
     fbb_.AddElement<int32_t>(CallInfoRaw::VT_ERROR, error, 0);
   }
-  void add_signal(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal) {
+  void add_signal(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> signal) {
     fbb_.AddOffset(CallInfoRaw::VT_SIGNAL, signal);
   }
-  void add_cover(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover) {
+  void add_cover(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> cover) {
     fbb_.AddOffset(CallInfoRaw::VT_COVER, cover);
   }
   void add_comps(flatbuffers::Offset<flatbuffers::Vector<const rpc::ComparisonRaw *>> comps) {
@@ -1846,8 +1846,8 @@ inline flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     rpc::CallFlag flags = static_cast<rpc::CallFlag>(0),
     int32_t error = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> signal = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> cover = 0,
     flatbuffers::Offset<flatbuffers::Vector<const rpc::ComparisonRaw *>> comps = 0) {
   CallInfoRawBuilder builder_(_fbb);
   builder_.add_comps(comps);
@@ -1862,11 +1862,11 @@ inline flatbuffers::Offset<CallInfoRaw> CreateCallInfoRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     rpc::CallFlag flags = static_cast<rpc::CallFlag>(0),
     int32_t error = 0,
-    const std::vector<uint32_t> *signal = nullptr,
-    const std::vector<uint32_t> *cover = nullptr,
+    const std::vector<uint64_t> *signal = nullptr,
+    const std::vector<uint64_t> *cover = nullptr,
     const std::vector<rpc::ComparisonRaw> *comps = nullptr) {
-  auto signal__ = signal ? _fbb.CreateVector<uint32_t>(*signal) : 0;
-  auto cover__ = cover ? _fbb.CreateVector<uint32_t>(*cover) : 0;
+  auto signal__ = signal ? _fbb.CreateVector<uint64_t>(*signal) : 0;
+  auto cover__ = cover ? _fbb.CreateVector<uint64_t>(*cover) : 0;
   auto comps__ = comps ? _fbb.CreateVectorOfStructs<rpc::ComparisonRaw>(*comps) : 0;
   return rpc::CreateCallInfoRaw(
       _fbb,

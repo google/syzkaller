@@ -53,7 +53,7 @@ func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpu
 // sysalls. In that case, there will be several ItemUpdate entities.
 type ItemUpdate struct {
 	Call     int
-	RawCover []uint32
+	RawCover []uint64
 }
 
 // Item objects are to be treated as immutable, otherwise it's just
@@ -66,7 +66,7 @@ type Item struct {
 	ProgData []byte // to save some Serialize() calls
 	HasAny   bool   // whether the prog contains squashed arguments
 	Signal   signal.Signal
-	Cover    []uint32
+	Cover    []uint64
 	Updates  []ItemUpdate
 }
 
@@ -78,15 +78,15 @@ type NewInput struct {
 	Prog     *prog.Prog
 	Call     int
 	Signal   signal.Signal
-	Cover    []uint32
-	RawCover []uint32
+	Cover    []uint64
+	RawCover []uint64
 }
 
 type NewItemEvent struct {
 	Sig      string
 	Exists   bool
 	ProgData []byte
-	NewCover []uint32
+	NewCover []uint64
 }
 
 func (corpus *Corpus) Save(inp NewInput) {

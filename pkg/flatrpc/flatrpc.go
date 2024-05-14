@@ -1688,7 +1688,7 @@ type ExecRequestRawT struct {
 	ProgData         []byte        `json:"prog_data"`
 	ExecOpts         *ExecOptsRawT `json:"exec_opts"`
 	Flags            RequestFlag   `json:"flags"`
-	SignalFilter     []uint32      `json:"signal_filter"`
+	SignalFilter     []uint64      `json:"signal_filter"`
 	SignalFilterCall int32         `json:"signal_filter_call"`
 	Repeat           int32         `json:"repeat"`
 }
@@ -1706,7 +1706,7 @@ func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 		signalFilterLength := len(t.SignalFilter)
 		ExecRequestRawStartSignalFilterVector(builder, signalFilterLength)
 		for j := signalFilterLength - 1; j >= 0; j-- {
-			builder.PrependUint32(t.SignalFilter[j])
+			builder.PrependUint64(t.SignalFilter[j])
 		}
 		signalFilterOffset = builder.EndVector(signalFilterLength)
 	}
@@ -1728,7 +1728,7 @@ func (rcv *ExecRequestRaw) UnPackTo(t *ExecRequestRawT) {
 	t.ExecOpts = rcv.ExecOpts(nil).UnPack()
 	t.Flags = rcv.Flags()
 	signalFilterLength := rcv.SignalFilterLength()
-	t.SignalFilter = make([]uint32, signalFilterLength)
+	t.SignalFilter = make([]uint64, signalFilterLength)
 	for j := 0; j < signalFilterLength; j++ {
 		t.SignalFilter[j] = rcv.SignalFilter(j)
 	}
@@ -1843,11 +1843,11 @@ func (rcv *ExecRequestRaw) MutateFlags(n RequestFlag) bool {
 	return rcv._tab.MutateUint64Slot(10, uint64(n))
 }
 
-func (rcv *ExecRequestRaw) SignalFilter(j int) uint32 {
+func (rcv *ExecRequestRaw) SignalFilter(j int) uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
 	}
 	return 0
 }
@@ -1860,11 +1860,11 @@ func (rcv *ExecRequestRaw) SignalFilterLength() int {
 	return 0
 }
 
-func (rcv *ExecRequestRaw) MutateSignalFilter(j int, n uint32) bool {
+func (rcv *ExecRequestRaw) MutateSignalFilter(j int, n uint64) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
 	}
 	return false
 }
@@ -1915,7 +1915,7 @@ func ExecRequestRawAddSignalFilter(builder *flatbuffers.Builder, signalFilter fl
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(signalFilter), 0)
 }
 func ExecRequestRawStartSignalFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+	return builder.StartVector(8, numElems, 8)
 }
 func ExecRequestRawAddSignalFilterCall(builder *flatbuffers.Builder, signalFilterCall int32) {
 	builder.PrependInt32Slot(5, signalFilterCall, 0)
@@ -1928,8 +1928,8 @@ func ExecRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type SignalUpdateRawT struct {
-	NewMax  []uint32 `json:"new_max"`
-	DropMax []uint32 `json:"drop_max"`
+	NewMax  []uint64 `json:"new_max"`
+	DropMax []uint64 `json:"drop_max"`
 }
 
 func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -1941,7 +1941,7 @@ func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 		newMaxLength := len(t.NewMax)
 		SignalUpdateRawStartNewMaxVector(builder, newMaxLength)
 		for j := newMaxLength - 1; j >= 0; j-- {
-			builder.PrependUint32(t.NewMax[j])
+			builder.PrependUint64(t.NewMax[j])
 		}
 		newMaxOffset = builder.EndVector(newMaxLength)
 	}
@@ -1950,7 +1950,7 @@ func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 		dropMaxLength := len(t.DropMax)
 		SignalUpdateRawStartDropMaxVector(builder, dropMaxLength)
 		for j := dropMaxLength - 1; j >= 0; j-- {
-			builder.PrependUint32(t.DropMax[j])
+			builder.PrependUint64(t.DropMax[j])
 		}
 		dropMaxOffset = builder.EndVector(dropMaxLength)
 	}
@@ -1962,12 +1962,12 @@ func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 
 func (rcv *SignalUpdateRaw) UnPackTo(t *SignalUpdateRawT) {
 	newMaxLength := rcv.NewMaxLength()
-	t.NewMax = make([]uint32, newMaxLength)
+	t.NewMax = make([]uint64, newMaxLength)
 	for j := 0; j < newMaxLength; j++ {
 		t.NewMax[j] = rcv.NewMax(j)
 	}
 	dropMaxLength := rcv.DropMaxLength()
-	t.DropMax = make([]uint32, dropMaxLength)
+	t.DropMax = make([]uint64, dropMaxLength)
 	for j := 0; j < dropMaxLength; j++ {
 		t.DropMax[j] = rcv.DropMax(j)
 	}
@@ -2009,11 +2009,11 @@ func (rcv *SignalUpdateRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *SignalUpdateRaw) NewMax(j int) uint32 {
+func (rcv *SignalUpdateRaw) NewMax(j int) uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
 	}
 	return 0
 }
@@ -2026,20 +2026,20 @@ func (rcv *SignalUpdateRaw) NewMaxLength() int {
 	return 0
 }
 
-func (rcv *SignalUpdateRaw) MutateNewMax(j int, n uint32) bool {
+func (rcv *SignalUpdateRaw) MutateNewMax(j int, n uint64) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
 	}
 	return false
 }
 
-func (rcv *SignalUpdateRaw) DropMax(j int) uint32 {
+func (rcv *SignalUpdateRaw) DropMax(j int) uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
 	}
 	return 0
 }
@@ -2052,11 +2052,11 @@ func (rcv *SignalUpdateRaw) DropMaxLength() int {
 	return 0
 }
 
-func (rcv *SignalUpdateRaw) MutateDropMax(j int, n uint32) bool {
+func (rcv *SignalUpdateRaw) MutateDropMax(j int, n uint64) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
 	}
 	return false
 }
@@ -2068,13 +2068,13 @@ func SignalUpdateRawAddNewMax(builder *flatbuffers.Builder, newMax flatbuffers.U
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(newMax), 0)
 }
 func SignalUpdateRawStartNewMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+	return builder.StartVector(8, numElems, 8)
 }
 func SignalUpdateRawAddDropMax(builder *flatbuffers.Builder, dropMax flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(dropMax), 0)
 }
 func SignalUpdateRawStartDropMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+	return builder.StartVector(8, numElems, 8)
 }
 func SignalUpdateRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
@@ -2212,8 +2212,8 @@ func ExecutingMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 type CallInfoRawT struct {
 	Flags  CallFlag          `json:"flags"`
 	Error  int32             `json:"error"`
-	Signal []uint32          `json:"signal"`
-	Cover  []uint32          `json:"cover"`
+	Signal []uint64          `json:"signal"`
+	Cover  []uint64          `json:"cover"`
 	Comps  []*ComparisonRawT `json:"comps"`
 }
 
@@ -2226,7 +2226,7 @@ func (t *CallInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		signalLength := len(t.Signal)
 		CallInfoRawStartSignalVector(builder, signalLength)
 		for j := signalLength - 1; j >= 0; j-- {
-			builder.PrependUint32(t.Signal[j])
+			builder.PrependUint64(t.Signal[j])
 		}
 		signalOffset = builder.EndVector(signalLength)
 	}
@@ -2235,7 +2235,7 @@ func (t *CallInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		coverLength := len(t.Cover)
 		CallInfoRawStartCoverVector(builder, coverLength)
 		for j := coverLength - 1; j >= 0; j-- {
-			builder.PrependUint32(t.Cover[j])
+			builder.PrependUint64(t.Cover[j])
 		}
 		coverOffset = builder.EndVector(coverLength)
 	}
@@ -2261,12 +2261,12 @@ func (rcv *CallInfoRaw) UnPackTo(t *CallInfoRawT) {
 	t.Flags = rcv.Flags()
 	t.Error = rcv.Error()
 	signalLength := rcv.SignalLength()
-	t.Signal = make([]uint32, signalLength)
+	t.Signal = make([]uint64, signalLength)
 	for j := 0; j < signalLength; j++ {
 		t.Signal[j] = rcv.Signal(j)
 	}
 	coverLength := rcv.CoverLength()
-	t.Cover = make([]uint32, coverLength)
+	t.Cover = make([]uint64, coverLength)
 	for j := 0; j < coverLength; j++ {
 		t.Cover[j] = rcv.Cover(j)
 	}
@@ -2339,11 +2339,11 @@ func (rcv *CallInfoRaw) MutateError(n int32) bool {
 	return rcv._tab.MutateInt32Slot(6, n)
 }
 
-func (rcv *CallInfoRaw) Signal(j int) uint32 {
+func (rcv *CallInfoRaw) Signal(j int) uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
 	}
 	return 0
 }
@@ -2356,20 +2356,20 @@ func (rcv *CallInfoRaw) SignalLength() int {
 	return 0
 }
 
-func (rcv *CallInfoRaw) MutateSignal(j int, n uint32) bool {
+func (rcv *CallInfoRaw) MutateSignal(j int, n uint64) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
 	}
 	return false
 }
 
-func (rcv *CallInfoRaw) Cover(j int) uint32 {
+func (rcv *CallInfoRaw) Cover(j int) uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
 	}
 	return 0
 }
@@ -2382,11 +2382,11 @@ func (rcv *CallInfoRaw) CoverLength() int {
 	return 0
 }
 
-func (rcv *CallInfoRaw) MutateCover(j int, n uint32) bool {
+func (rcv *CallInfoRaw) MutateCover(j int, n uint64) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
 	}
 	return false
 }
@@ -2423,13 +2423,13 @@ func CallInfoRawAddSignal(builder *flatbuffers.Builder, signal flatbuffers.UOffs
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(signal), 0)
 }
 func CallInfoRawStartSignalVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+	return builder.StartVector(8, numElems, 8)
 }
 func CallInfoRawAddCover(builder *flatbuffers.Builder, cover flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(cover), 0)
 }
 func CallInfoRawStartCoverVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+	return builder.StartVector(8, numElems, 8)
 }
 func CallInfoRawAddComps(builder *flatbuffers.Builder, comps flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(comps), 0)

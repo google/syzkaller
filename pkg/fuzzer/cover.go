@@ -34,7 +34,7 @@ func (cover *Cover) AddMaxSignal(sign signal.Signal) {
 	cover.dropSignal.Subtract(sign)
 }
 
-func (cover *Cover) addRawMaxSignal(signal []uint32, prio uint8) signal.Signal {
+func (cover *Cover) addRawMaxSignal(signal []uint64, prio uint8) signal.Signal {
 	cover.mu.Lock()
 	defer cover.mu.Unlock()
 	diff := cover.maxSignal.DiffRaw(signal, prio)

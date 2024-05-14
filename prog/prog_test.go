@@ -294,12 +294,12 @@ fallback$0()
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  42,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{},
 			},
@@ -318,32 +318,32 @@ fallback$1(0x0)
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  1,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 2),
+					Signal: make([]uint64, 2),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 2),
+					Signal: make([]uint64, 2),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  2,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 			},
 		},
@@ -362,17 +362,17 @@ fallback$0()
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  1,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags: CallExecuted,
@@ -402,12 +402,12 @@ fallback$0()
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  1,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags: CallExecuted,

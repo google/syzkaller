@@ -144,9 +144,9 @@ func TestRotate(t *testing.T) {
 	}, rand.New(testutil.RandSource(t)), target)
 
 	fakeSignal := func(size int) signal.Signal {
-		var pc []uint32
+		var pc []uint64
 		for i := 0; i < size; i++ {
-			pc = append(pc, uint32(i))
+			pc = append(pc, uint64(i))
 		}
 		return signal.FromRaw(pc, 0)
 	}
@@ -188,8 +188,8 @@ func emulateExec(req *queue.Request) (*queue.Result, string, error) {
 	serializedLines := bytes.Split(req.Prog.Serialize(), []byte("\n"))
 	var info flatrpc.ProgInfo
 	for i, call := range req.Prog.Calls {
-		cover := []uint32{uint32(call.Meta.ID*1024) +
-			crc32.Checksum(serializedLines[i], crc32q)%4}
+		cover := []uint64{uint64(call.Meta.ID*1024) +
+			uint64(crc32.Checksum(serializedLines[i], crc32q)%4)}
 		callInfo := &flatrpc.CallInfo{}
 		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0 {
 			callInfo.Cover = cover

@@ -30,8 +30,6 @@ type Prog struct {
 
 type KernelModule = backend.KernelModule
 
-var RestorePC = backend.RestorePC
-
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
 	modules []KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,

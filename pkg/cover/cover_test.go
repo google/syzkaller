@@ -14,35 +14,35 @@ import (
 
 func TestMergeDiff(t *testing.T) {
 	type Test struct {
-		init   []uint32
-		merge  []uint32
-		diff   []uint32
-		result []uint32
+		init   []uint64
+		merge  []uint64
+		diff   []uint64
+		result []uint64
 	}
 	tests := []Test{
 		{
 			init:   nil,
 			merge:  nil,
 			diff:   nil,
-			result: []uint32{},
+			result: []uint64{},
 		},
 		{
-			init:   []uint32{0, 1, 3, 4},
+			init:   []uint64{0, 1, 3, 4},
 			merge:  nil,
 			diff:   nil,
-			result: []uint32{0, 1, 3, 4},
+			result: []uint64{0, 1, 3, 4},
 		},
 		{
 			init:   nil,
-			merge:  []uint32{0, 1, 3, 4},
-			diff:   []uint32{0, 1, 3, 4},
-			result: []uint32{0, 1, 3, 4},
+			merge:  []uint64{0, 1, 3, 4},
+			diff:   []uint64{0, 1, 3, 4},
+			result: []uint64{0, 1, 3, 4},
 		},
 		{
-			init:   []uint32{0, 1, 3, 4},
-			merge:  []uint32{4, 7, 1, 9},
-			diff:   []uint32{7, 9},
-			result: []uint32{0, 1, 3, 4, 7, 9},
+			init:   []uint64{0, 1, 3, 4},
+			merge:  []uint64{4, 7, 1, 9},
+			diff:   []uint64{7, 9},
+			result: []uint64{0, 1, 3, 4, 7, 9},
 		},
 	}
 	for i, test := range tests {

@@ -20,7 +20,7 @@ import (
 )
 
 func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
-	map[uint32]uint32, map[uint32]uint32, error) {
+	map[uint64]uint32, map[uint64]uint32, error) {
 	if !cfg.HasCovFilter() {
 		return nil, nil, nil
 	}
@@ -29,7 +29,7 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	if err != nil {
 		return nil, nil, err
 	}
-	pcs := make(map[uint32]uint32)
+	pcs := make(map[uint64]uint32)
 	foreachSymbol := func(apply func(*backend.ObjectUnit)) {
 		for _, sym := range rg.Symbols {
 			apply(&sym.ObjectUnit)
@@ -56,7 +56,7 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 		return nil, nil, fmt.Errorf("coverage filter is only supported for targets that use shmem")
 	}
 	// Copy pcs into execPCs. This is used to filter coverage in the executor.
-	execPCs := make(map[uint32]uint32)
+	execPCs := make(map[uint64]uint32)
 	for pc, val := range pcs {
 		execPCs[pc] = val
 	}
@@ -64,13 +64,13 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	// in syz-manager.
 	for _, sym := range rg.Symbols {
 		for _, pc := range sym.CMPs {
-			delete(pcs, uint32(pc))
+			delete(pcs, pc)
 		}
 	}
 	return execPCs, pcs, nil
 }
 
-func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(func(*backend.ObjectUnit))) error {
+func covFilterAddFilter(pcs map[uint64]uint32, filters []string, foreach func(func(*backend.ObjectUnit))) error {
 	res, err := compileRegexps(filters)
 	if err != nil {
 		return err
@@ -82,10 +82,10 @@ func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(fu
 				// We add both coverage points and comparison interception points
 				// because executor filters comparisons as well.
 				for _, pc := range unit.PCs {
-					pcs[uint32(pc)] = 1
+					pcs[pc] = 1
 				}
 				for _, pc := range unit.CMPs {
-					pcs[uint32(pc)] = 1
+					pcs[pc] = 1
 				}
 				used[re] = append(used[re], unit.Name)
 				break
@@ -102,7 +102,7 @@ func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(fu
 	return nil
 }
 
-func covFilterAddRawPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
+func covFilterAddRawPCs(pcs map[uint64]uint32, rawPCsFiles []string) error {
 	re := regexp.MustCompile(`(0x[0-9a-f]+)(?:: (0x[0-9a-f]+))?`)
 	for _, f := range rawPCsFiles {
 		rawFile, err := os.Open(f)
@@ -128,7 +128,7 @@ func covFilterAddRawPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
 			if match[2] == "" || weight < 1 {
 				weight = 1
 			}
-			pcs[uint32(pc)] = uint32(weight)
+			pcs[pc] = uint32(weight)
 		}
 		if err := s.Err(); err != nil {
 			return err
@@ -137,36 +137,36 @@ func covFilterAddRawPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
 	return nil
 }
 
-func createCoverageBitmap(target *targets.Target, pcs map[uint32]uint32) []byte {
+func createCoverageBitmap(target *targets.Target, pcs map[uint64]uint32) []byte {
 	// Return nil if filtering is not used.
 	if len(pcs) == 0 {
 		return nil
 	}
 	start, size := coverageFilterRegion(pcs)
-	log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+size, size, len(pcs))
+	log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+uint64(size), size, len(pcs))
 	// The file starts with two uint32: covFilterStart and covFilterSize,
 	// and a bitmap with size ((covFilterSize>>4)/8+2 bytes follow them.
 	// 8-bit = 1-byte
-	data := make([]byte, 8+((size>>4)/8+2))
+	data := make([]byte, 12+((size>>4)/8+2))
 	order := binary.ByteOrder(binary.BigEndian)
 	if target.LittleEndian {
 		order = binary.LittleEndian
 	}
-	order.PutUint32(data, start)
-	order.PutUint32(data[4:], size)
+	order.PutUint64(data, start)
+	order.PutUint32(data[8:], size)
 
-	bitmap := data[8:]
+	bitmap := data[12:]
 	for pc := range pcs {
 		// The lowest 4-bit is dropped.
-		pc = uint32(backend.NextInstructionPC(target, uint64(pc)))
+		pc = backend.NextInstructionPC(target, pc)
 		pc = (pc - start) >> 4
 		bitmap[pc/8] |= (1 << (pc % 8))
 	}
 	return data
 }
 
-func coverageFilterRegion(pcs map[uint32]uint32) (uint32, uint32) {
-	start, end := ^uint32(0), uint32(0)
+func coverageFilterRegion(pcs map[uint64]uint32) (uint64, uint32) {
+	start, end := ^uint64(0), uint64(0)
 	for pc := range pcs {
 		if start > pc {
 			start = pc
@@ -175,7 +175,7 @@ func coverageFilterRegion(pcs map[uint32]uint32) (uint32, uint32) {
 			end = pc
 		}
 	}
-	return start, end - start
+	return start, uint32(end - start)
 }
 
 func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {

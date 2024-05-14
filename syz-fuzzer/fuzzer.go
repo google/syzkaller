@@ -264,7 +264,7 @@ func diffMaxSignal(info *flatrpc.ProgInfo, max, mask signal.Signal, maskCall int
 	}
 }
 
-func diffCallSignal(raw []uint32, max, mask signal.Signal, call, maskCall int) []uint32 {
+func diffCallSignal(raw []uint64, max, mask signal.Signal, call, maskCall int) []uint64 {
 	if mask != nil && call == maskCall {
 		return signal.FilterRaw(raw, max, mask)
 	}

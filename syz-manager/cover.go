@@ -36,7 +36,7 @@ func resetReportGenerator() {
 	cachedRepGen = nil
 }
 
-func coverToPCs(rg *cover.ReportGenerator, cov []uint32) []uint64 {
+func coverToPCs(rg *cover.ReportGenerator, cov []uint64) []uint64 {
 	pcs := make([]uint64, 0, len(cov))
 	for _, pc := range cov {
 		pcs = append(pcs, rg.RestorePC(pc))

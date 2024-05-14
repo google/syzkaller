@@ -7,7 +7,7 @@ package signal
 import "math/rand"
 
 type (
-	elemType uint32
+	elemType uint64
 	prioType int8
 )
 
@@ -50,7 +50,7 @@ func (s *Signal) Split(n int) Signal {
 	return c
 }
 
-func FromRaw(raw []uint32, prio uint8) Signal {
+func FromRaw(raw []uint64, prio uint8) Signal {
 	if len(raw) == 0 {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (s Signal) Diff(s1 Signal) Signal {
 	return res
 }
 
-func (s Signal) DiffRaw(raw []uint32, prio uint8) Signal {
+func (s Signal) DiffRaw(raw []uint64, prio uint8) Signal {
 	var res Signal
 	for _, e := range raw {
 		if p, ok := s[elemType(e)]; ok && p >= prioType(prio) {
@@ -161,8 +161,8 @@ func (s Signal) RandomSubset(r *rand.Rand, size int) Signal {
 
 // FilterRaw returns a subset of original raw elements that either are not present in ignore,
 // or coincides with the one in alwaysTake.
-func FilterRaw(raw []uint32, ignore, alwaysTake Signal) []uint32 {
-	var ret []uint32
+func FilterRaw(raw []uint64, ignore, alwaysTake Signal) []uint64 {
+	var ret []uint64
 	for _, e := range raw {
 		if _, ok := alwaysTake[elemType(e)]; ok {
 			ret = append(ret, e)
@@ -174,8 +174,8 @@ func FilterRaw(raw []uint32, ignore, alwaysTake Signal) []uint32 {
 }
 
 // DiffFromRaw returns a subset of the raw elements that is not present in Signal.
-func (s Signal) DiffFromRaw(raw []uint32) []uint32 {
-	var ret []uint32
+func (s Signal) DiffFromRaw(raw []uint64) []uint64 {
+	var ret []uint64
 	for _, e := range raw {
 		if _, ok := s[elemType(e)]; !ok {
 			ret = append(ret, e)
@@ -184,10 +184,10 @@ func (s Signal) DiffFromRaw(raw []uint32) []uint32 {
 	return ret
 }
 
-func (s Signal) ToRaw() []uint32 {
-	var raw []uint32
+func (s Signal) ToRaw() []uint64 {
+	var raw []uint64
 	for e := range s {
-		raw = append(raw, uint32(e))
+		raw = append(raw, uint64(e))
 	}
 	return raw
 }

@@ -13,12 +13,10 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
@@ -125,7 +123,6 @@ func main() {
 		choiceTable = target.BuildChoiceTable(progs, syscalls)
 	}
 	sysTarget := targets.Get(*flagOS, *flagArch)
-	upperBase := getKernelUpperBase(sysTarget)
 	ctx := &Context{
 		target:      target,
 		progs:       progs,
@@ -137,7 +134,6 @@ func main() {
 		stress:      *flagStress,
 		repeat:      *flagRepeat,
 		sysTarget:   sysTarget,
-		upperBase:   upperBase,
 	}
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
@@ -167,7 +163,6 @@ type Context struct {
 	pos         int
 	lastPrint   time.Time
 	sysTarget   *targets.Target
-	upperBase   uint32
 }
 
 func (ctx *Context) run(pid int) {
@@ -296,39 +291,13 @@ func (ctx *Context) printHints(p *prog.Prog, info *flatrpc.ProgInfo) {
 	log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
 }
 
-func getKernelUpperBase(target *targets.Target) uint32 {
-	defaultRet := uint32(0xffffffff)
-	if target.OS == targets.Linux {
-		// Read the first 8 bytes from /proc/kallsyms.
-		f, err := os.Open("/proc/kallsyms")
-		if err != nil {
-			log.Logf(1, "could not get kernel fixup address: %v", err)
-			return defaultRet
-		}
-		defer f.Close()
-		data := make([]byte, 8)
-		_, err = f.ReadAt(data, 0)
-		if err != nil {
-			log.Logf(1, "could not get kernel fixup address: %v", err)
-			return defaultRet
-		}
-		value, err := strconv.ParseUint(string(data), 16, 32)
-		if err != nil {
-			log.Logf(1, "could not get kernel fixup address: %v", err)
-			return defaultRet
-		}
-		return uint32(value)
-	}
-	return defaultRet
-}
-
 func (ctx *Context) dumpCallCoverage(coverFile string, info *flatrpc.CallInfo) {
 	if info == nil || len(info.Cover) == 0 {
 		return
 	}
 	buf := new(bytes.Buffer)
 	for _, pc := range info.Cover {
-		prev := backend.PreviousInstructionPC(ctx.sysTarget, cover.RestorePC(pc, ctx.upperBase))
+		prev := backend.PreviousInstructionPC(ctx.sysTarget, pc)
 		fmt.Fprintf(buf, "0x%x\n", prev)
 	}
 	err := osutil.WriteFile(coverFile, buf.Bytes())

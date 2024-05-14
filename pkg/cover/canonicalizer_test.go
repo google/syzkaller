@@ -20,12 +20,12 @@ type RPCServer struct {
 
 type Fuzzer struct {
 	instModules *CanonicalizerInstance
-	cov         []uint32
-	goalCov     []uint32
-	bitmap      map[uint32]uint32
-	goalBitmap  map[uint32]uint32
-	sign        []uint32
-	goalSign    []uint32
+	cov         []uint64
+	goalCov     []uint64
+	bitmap      map[uint64]uint32
+	goalBitmap  map[uint64]uint32
+	sign        []uint64
+	goalSign    []uint64
 }
 
 type canonicalizeValue int
@@ -43,31 +43,31 @@ func TestNilModules(t *testing.T) {
 	serv.connect("f1", nil, true)
 	serv.connect("f2", nil, true)
 
-	serv.fuzzers["f1"].cov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	serv.fuzzers["f1"].cov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	serv.fuzzers["f1"].goalCov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 
-	serv.fuzzers["f2"].cov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
-	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	serv.fuzzers["f2"].cov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 
-	serv.fuzzers["f1"].bitmap = map[uint32]uint32{
+	serv.fuzzers["f1"].bitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
 		0x00040000: 4,
 	}
-	serv.fuzzers["f1"].goalBitmap = map[uint32]uint32{
+	serv.fuzzers["f1"].goalBitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
 		0x00040000: 4,
 	}
-	serv.fuzzers["f2"].bitmap = map[uint32]uint32{
+	serv.fuzzers["f2"].bitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
 		0x00040000: 4,
 	}
-	serv.fuzzers["f2"].goalBitmap = map[uint32]uint32{
+	serv.fuzzers["f2"].goalBitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
@@ -78,9 +78,9 @@ func TestNilModules(t *testing.T) {
 		t.Fatalf("failed in canonicalization: %v", err)
 	}
 
-	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	serv.fuzzers["f1"].goalCov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f1"].goalSign = serv.fuzzers["f1"].goalCov
-	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f2"].goalSign = serv.fuzzers["f2"].goalCov
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
@@ -103,7 +103,7 @@ func TestDisabledSignals(t *testing.T) {
 	f2Modules := initModules(f2ModuleAddresses, f2ModuleSizes)
 	serv.connect("f2", f2Modules, false)
 
-	pcs := []uint32{0x00010000, 0x00020000, 0x00030000, 0x00040000}
+	pcs := []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f1"].cov = pcs
 	serv.fuzzers["f1"].goalCov = pcs
 
@@ -140,37 +140,37 @@ func TestModules(t *testing.T) {
 
 	// f1 is the "canonical" fuzzer as it is first one instantiated.
 	// This means that all coverage output should be the same as the inputs.
-	serv.fuzzers["f1"].cov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
+	serv.fuzzers["f1"].cov = []uint64{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
-	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
+	serv.fuzzers["f1"].goalCov = []uint64{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
 
 	// The modules addresss are inverted between: (2 and 4), (3 and 5),
 	// affecting the output canonical coverage values in these ranges.
-	serv.fuzzers["f2"].cov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
+	serv.fuzzers["f2"].cov = []uint64{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
-	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00040000, 0x00025000, 0x00045000,
+	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00015000, 0x00040000, 0x00025000, 0x00045000,
 		0x0004a000, 0x00020000, 0x00030000, 0x0003b000, 0x00055000}
 
-	serv.fuzzers["f1"].bitmap = map[uint32]uint32{
+	serv.fuzzers["f1"].bitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
 		0x00040000: 4,
 	}
-	serv.fuzzers["f1"].goalBitmap = map[uint32]uint32{
+	serv.fuzzers["f1"].goalBitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
 		0x00040000: 4,
 	}
-	serv.fuzzers["f2"].bitmap = map[uint32]uint32{
+	serv.fuzzers["f2"].bitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00020FFF: 2,
 		0x00030000: 3,
 		0x00040000: 4,
 	}
-	serv.fuzzers["f2"].goalBitmap = map[uint32]uint32{
+	serv.fuzzers["f2"].goalBitmap = map[uint64]uint32{
 		0x00010011: 1,
 		0x00040FFF: 2,
 		0x00045000: 3,
@@ -181,9 +181,9 @@ func TestModules(t *testing.T) {
 		t.Fatalf("failed in canonicalization: %v", err)
 	}
 
-	serv.fuzzers["f1"].goalCov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
+	serv.fuzzers["f1"].goalCov = []uint64{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
-	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
+	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00015000, 0x00020000, 0x00025000, 0x00030000,
 		0x00035000, 0x00040000, 0x00045000, 0x00050000, 0x00055000}
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
@@ -209,21 +209,21 @@ func TestChangingModules(t *testing.T) {
 
 	// Module 2 is not present in the "canonical" fuzzer, so coverage values
 	// in this range should be deleted.
-	serv.fuzzers["f2"].cov = []uint32{0x00010000, 0x00015000, 0x00020000, 0x00025000}
-	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00025000}
+	serv.fuzzers["f2"].cov = []uint64{0x00010000, 0x00015000, 0x00020000, 0x00025000}
+	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00015000, 0x00025000}
 
 	if err := serv.runTest(Canonicalize); err != "" {
 		t.Fatalf("failed in canonicalization: %v", err)
 	}
 
-	serv.fuzzers["f2"].goalCov = []uint32{0x00010000, 0x00015000, 0x00025000}
+	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00015000, 0x00025000}
 	if err := serv.runTest(Decanonicalize); err != "" {
 		t.Fatalf("failed in decanonicalization: %v", err)
 	}
 }
 
 func (serv *RPCServer) runTest(val canonicalizeValue) string {
-	var cov []uint32
+	var cov []uint64
 	for name, fuzzer := range serv.fuzzers {
 		if val == Canonicalize {
 			cov = fuzzer.instModules.Canonicalize(fuzzer.cov)

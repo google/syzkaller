@@ -152,7 +152,6 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	var allSymbols []*Symbol
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
-	var pcBase uint64
 	preciseCoverage := true
 	for _, module := range modules {
 		errc := make(chan error, 1)
@@ -169,9 +168,6 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 				return
 			}
 			allSymbols = append(allSymbols, result.Symbols...)
-			if module.Name == "" {
-				pcBase = info.textAddr
-			}
 			allCoverPoints[0] = append(allCoverPoints[0], result.CoverPoints[0]...)
 			allCoverPoints[1] = append(allCoverPoints[1], result.CoverPoints[1]...)
 			if module.Name == "" && len(result.CoverPoints[0]) == 0 {
@@ -220,10 +216,6 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	if len(allSymbols) == 0 || len(allUnits) == 0 {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y on linux)")
 	}
-	if target.OS == targets.FreeBSD {
-		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
-		pcBase = ^uint64(0)
-	}
 	var interner symbolizer.Interner
 	impl := &Impl{
 		Units:   allUnits,
@@ -231,16 +223,16 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, &interner, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
-		RestorePC:       makeRestorePC(params, pcBase),
+		RestorePC:       makeRestorePC(params),
 		CallbackPoints:  allCoverPoints[0],
 		PreciseCoverage: preciseCoverage,
 	}
 	return impl, nil
 }
 
-func makeRestorePC(params *dwarfParams, pcBase uint64) func(pc uint32) uint64 {
-	return func(pcLow uint32) uint64 {
-		return PreviousInstructionPC(params.target, RestorePC(pcLow, uint32(pcBase>>32)))
+func makeRestorePC(params *dwarfParams) func(pc uint64) uint64 {
+	return func(pc uint64) uint64 {
+		return PreviousInstructionPC(params.target, pc)
 	}
 }
 

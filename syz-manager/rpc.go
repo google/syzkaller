@@ -42,8 +42,8 @@ type RPCServer struct {
 	setupFeatures    flatrpc.Feature
 	modules          []cover.KernelModule
 	canonicalModules *cover.Canonicalizer
-	execCoverFilter  map[uint32]uint32
-	coverFilter      map[uint32]uint32
+	execCoverFilter  map[uint64]uint32
+	coverFilter      map[uint64]uint32
 
 	mu         sync.Mutex
 	runners    map[string]*Runner
@@ -554,7 +554,7 @@ func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	}
 }
 
-func (runner *Runner) sendSignalUpdate(plus, minus []uint32) error {
+func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawSignalUpdate,
@@ -567,7 +567,7 @@ func (runner *Runner) sendSignalUpdate(plus, minus []uint32) error {
 	return flatrpc.Send(runner.conn, msg)
 }
 
-func (serv *RPCServer) updateCoverFilter(newCover []uint32) {
+func (serv *RPCServer) updateCoverFilter(newCover []uint64) {
 	if len(newCover) == 0 || serv.coverFilter == nil {
 		return
 	}
@@ -577,7 +577,7 @@ func (serv *RPCServer) updateCoverFilter(newCover []uint32) {
 	}
 	filtered := 0
 	for _, pc := range newCover {
-		if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
+		if serv.coverFilter[rg.RestorePC(pc)] != 0 {
 			filtered++
 		}
 	}
