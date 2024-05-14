@@ -220,6 +220,31 @@ func elfGetCompilerVersion(path string) string {
 	return string(data[:])
 }
 
+func elfReadTextSecRange(module KernelModule) (*SecRange, error) {
+	text, err := elfReadTextSec(module)
+	if err != nil {
+		return nil, err
+	}
+	r := &SecRange{
+		Start: text.Addr,
+		End:   text.Addr + text.Size,
+	}
+	return r, nil
+}
+
+func elfReadTextSec(module KernelModule) (*elf.Section, error) {
+	file, err := elf.Open(module.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	text := file.Section(".text")
+	if text == nil {
+		return nil, fmt.Errorf("no .text section in the object file")
+	}
+	return text, nil
+}
+
 func getPCBase(cfg *mgrconfig.Config) (uint64, error) {
 	bin := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
 	file, err := elf.Open(bin)
