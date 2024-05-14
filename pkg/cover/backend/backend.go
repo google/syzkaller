@@ -67,7 +67,7 @@ type SecRange struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm string, kernelDirs *mgrconfig.KernelDirs, splitBuild bool,
-	moduleObj []string, modules []*vminfo.KernelModule) (*Impl, error) {
+	moduleObj []string, modules []*vminfo.KernelModule, cleanRules []string) (*Impl, error) {
 	if kernelDirs.Obj == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
@@ -84,7 +84,7 @@ func Make(target *targets.Target, vm string, kernelDirs *mgrconfig.KernelDirs, s
 		// details.
 		delimiters = []string{"/aosp/", "/private/"}
 	}
-	return makeELF(target, kernelDirs, delimiters, moduleObj, modules)
+	return makeELF(target, kernelDirs, delimiters, moduleObj, modules, cleanRules)
 }
 
 func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {

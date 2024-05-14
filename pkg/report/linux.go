@@ -487,7 +487,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	}
 	var symbolized []byte
 	for _, frame := range frames {
-		path, _ := backend.CleanPath(frame.File, &ctx.kernelDirs, nil)
+		path, _ := backend.CleanPath(frame.File, &ctx.kernelDirs, nil, ctx.config.cleanRules)
 		info := fmt.Sprintf(" %v:%v", path, frame.Line)
 		modified := append([]byte{}, line...)
 		if buildID != "" {
