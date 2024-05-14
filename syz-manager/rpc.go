@@ -353,6 +353,11 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		}
 		if req, ok := serv.newRequest(runner, inp); ok {
 			r.Requests = append(r.Requests, req)
+			if inp.Risky() {
+				// We give crashed inputs only one more chance, so if we resend many of them at once,
+				// we'll never figure out the actual problematic input.
+				break
+			}
 		} else {
 			// It's bad if we systematically fail to serialize programs,
 			// but so far we don't have a better handling than counting this.

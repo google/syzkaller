@@ -70,6 +70,7 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) (*queue.Request, ProgType
 		Prog:       input.Prog,
 		NeedSignal: queue.NewSignal,
 		Stat:       fuzzer.statExecCandidate,
+		Important:  true,
 	}, flags
 }
 
@@ -88,6 +89,7 @@ type triageJob struct {
 }
 
 func (job *triageJob) execute(req *queue.Request, opts ...execOpt) *queue.Result {
+	req.Important = true // All triage executions are important.
 	return job.fuzzer.execute(job.queue, req, opts...)
 }
 
