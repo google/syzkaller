@@ -220,7 +220,7 @@ func elfGetCompilerVersion(path string) string {
 	return string(data[:])
 }
 
-func elfReadTextSecRange(module KernelModule) (*SecRange, error) {
+func elfReadTextSecRange(module *KernelModule) (*SecRange, error) {
 	text, err := elfReadTextSec(module)
 	if err != nil {
 		return nil, err
@@ -232,7 +232,7 @@ func elfReadTextSecRange(module KernelModule) (*SecRange, error) {
 	return r, nil
 }
 
-func elfReadTextSec(module KernelModule) (*elf.Section, error) {
+func elfReadTextSec(module *KernelModule) (*elf.Section, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err
