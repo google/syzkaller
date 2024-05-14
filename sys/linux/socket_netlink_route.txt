@@ -1110,6 +1110,12 @@ lwtunnel_policy [
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
 
+# 5832c4a77d693 ("ip_tunnel: convert __be16 tunnel flags to bitmaps") put the constants below
+# behind #ifndef __KERNEL__, so they cannot be extracted anymore.
+define TUNNEL_GENEVE_OPT	__cpu_to_be16(0x0800)
+define TUNNEL_VXLAN_OPT	__cpu_to_be16(0x1000)
+define TUNNEL_ERSPAN_OPT	__cpu_to_be16(0x4000)
+
 lwtunnel_ip_flags = TUNNEL_GENEVE_OPT, TUNNEL_VXLAN_OPT, TUNNEL_ERSPAN_OPT
 
 ip_opts_policy [
