@@ -4,9 +4,9 @@
 // Package cover provides types for working with coverage information (arrays of covered PCs).
 package cover
 
-type Cover map[uint32]struct{}
+type Cover map[uint64]struct{}
 
-func (cov *Cover) Merge(raw []uint32) {
+func (cov *Cover) Merge(raw []uint64) {
 	c := *cov
 	if c == nil {
 		c = make(Cover)
@@ -18,7 +18,7 @@ func (cov *Cover) Merge(raw []uint32) {
 }
 
 // Merge merges raw into coverage and returns newly added PCs. Overwrites/mutates raw.
-func (cov *Cover) MergeDiff(raw []uint32) []uint32 {
+func (cov *Cover) MergeDiff(raw []uint64) []uint64 {
 	c := *cov
 	if c == nil {
 		c = make(Cover)
@@ -36,8 +36,8 @@ func (cov *Cover) MergeDiff(raw []uint32) []uint32 {
 	return raw[:n]
 }
 
-func (cov Cover) Serialize() []uint32 {
-	res := make([]uint32, 0, len(cov))
+func (cov Cover) Serialize() []uint64 {
+	res := make([]uint64, 0, len(cov))
 	for pc := range cov {
 		res = append(res, pc)
 	}

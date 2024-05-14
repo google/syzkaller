@@ -62,16 +62,16 @@ func TestCorpusCoverage(t *testing.T) {
 	rs := rand.NewSource(0)
 
 	inp := generateInput(target, rs, 5, 5)
-	inp.Cover = []uint32{10, 11}
+	inp.Cover = []uint64{10, 11}
 	go corpus.Save(inp)
 	event := <-ch
-	assert.Equal(t, []uint32{10, 11}, event.NewCover)
+	assert.Equal(t, []uint64{10, 11}, event.NewCover)
 
 	inp.Call = 1
-	inp.Cover = []uint32{11, 12}
+	inp.Cover = []uint64{11, 12}
 	go corpus.Save(inp)
 	event = <-ch
-	assert.Equal(t, []uint32{12}, event.NewCover)
+	assert.Equal(t, []uint64{12}, event.NewCover)
 
 	// Check the total corpus size.
 	assert.Equal(t, corpus.StatCover.Val(), 3)
@@ -101,9 +101,9 @@ func TestCorpusSaveConcurrency(t *testing.T) {
 
 func generateInput(target *prog.Target, rs rand.Source, ncalls, sizeSig int) NewInput {
 	p := target.Generate(rs, ncalls, target.DefaultChoiceTable())
-	var raw []uint32
+	var raw []uint64
 	for i := 1; i <= sizeSig; i++ {
-		raw = append(raw, uint32(i))
+		raw = append(raw, uint64(i))
 	}
 	return NewInput{
 		Prog:   p,

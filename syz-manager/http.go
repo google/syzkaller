@@ -312,7 +312,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	}
 	mgr.mu.Unlock()
 
-	var coverFilter map[uint32]uint32
+	var coverFilter map[uint64]uint32
 	if r.FormValue("filter") != "" || funcFlag == DoFilterPCs {
 		if mgr.serv.coverFilter == nil {
 			http.Error(w, "cover is not filtered in config", http.StatusInternalServerError)
@@ -359,7 +359,7 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	defer mgr.mu.Unlock()
 	calls := make(map[int][]int)
 	for s := range mgr.corpus.Signal() {
-		id, errno := prog.DecodeFallbackSignal(uint32(s))
+		id, errno := prog.DecodeFallbackSignal(uint64(s))
 		calls[id] = append(calls[id], errno)
 	}
 	data := &UIFallbackCoverData{}

@@ -136,7 +136,7 @@ type deflakedCover struct {
 	stableSignal    signal.Signal
 	newStableSignal signal.Signal
 	cover           cover.Cover
-	rawCover        []uint32
+	rawCover        []uint64
 }
 
 func (job *triageJob) deflake(exec func(*queue.Request, ProgTypes) *queue.Result, stat *stats.Val,
@@ -241,7 +241,7 @@ func reexecutionSuccess(info *flatrpc.ProgInfo, oldInfo *flatrpc.CallInfo, call 
 	return info.Extra != nil && len(info.Extra.Signal) != 0
 }
 
-func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) (signal.Signal, []uint32) {
+func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) (signal.Signal, []uint64) {
 	inf := info.Extra
 	if call != -1 {
 		inf = info.Calls[call]

@@ -149,15 +149,15 @@ table ExecRequestRaw {
 	prog_data		:[uint8];
 	exec_opts		:ExecOptsRaw;
 	flags			:RequestFlag;
-	signal_filter		:[uint32];
+	signal_filter		:[uint64];
 	signal_filter_call	:int32;
 	// Repeat the program that many times (0 means 1).
 	repeat			:int32;
 }
 
 table SignalUpdateRaw {
-	new_max			:[uint32];
-	drop_max		:[uint32];
+	new_max			:[uint64];
+	drop_max		:[uint64];
 }
 
 // Notification from the executor that it started executing the program 'id'.
@@ -184,10 +184,10 @@ table CallInfoRaw {
 	// Call errno (0 if the call was successful).
 	error			:int32;
 	// Feedback signal, filled if ExecFlag.CollectSignal is set.
-	signal			:[uint32];
+	signal			:[uint64];
 	// Code coverage, filled if ExecFlag.CollectCover is set.
 	// If ExecFlag.DedupCover is set, then duplicates are removed, otherwise it contains a trace.
-	cover			:[uint32];
+	cover			:[uint64];
 	// Comparison operands.
 	comps			:[ComparisonRaw];
 }

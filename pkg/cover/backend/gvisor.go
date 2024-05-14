@@ -48,8 +48,8 @@ func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules
 	impl := &Impl{
 		Units:  units,
 		Frames: frames,
-		RestorePC: func(pc uint32) uint64 {
-			return uint64(pc)
+		RestorePC: func(pc uint64) uint64 {
+			return pc
 		},
 	}
 	return impl, nil

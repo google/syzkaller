@@ -25,7 +25,7 @@ import (
 
 type CoverHandlerParams struct {
 	Progs       []Prog
-	CoverFilter map[uint32]uint32
+	CoverFilter map[uint64]uint32
 	Debug       bool
 	Force       bool
 }
@@ -297,7 +297,7 @@ func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params CoverHandlerParams) e
 				continue
 			}
 			uniquePCs[pc] = true
-			if params.CoverFilter[uint32(pc)] != 0 {
+			if params.CoverFilter[pc] != 0 {
 				pcs = append(pcs, pc)
 			}
 		}
@@ -620,12 +620,12 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, params CoverHandlerParams) error {
 	return writer.WriteAll(data)
 }
 
-func fixUpPCs(target string, progs []Prog, coverFilter map[uint32]uint32) []Prog {
+func fixUpPCs(target string, progs []Prog, coverFilter map[uint64]uint32) []Prog {
 	if coverFilter != nil {
 		for i, prog := range progs {
 			var nPCs []uint64
 			for _, pc := range prog.PCs {
-				if coverFilter[uint32(pc)] != 0 {
+				if coverFilter[pc] != 0 {
 					nPCs = append(nPCs, pc)
 				}
 			}

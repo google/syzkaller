@@ -15,7 +15,7 @@ type Canonicalizer struct {
 	modules map[string]KernelModule
 
 	// Contains a sorted list of the canonical module addresses.
-	moduleKeys []uint32
+	moduleKeys []uint64
 }
 
 type CanonicalizerInstance struct {
@@ -28,20 +28,20 @@ type CanonicalizerInstance struct {
 
 // Contains the current conversion maps used.
 type Convert struct {
-	conversionHash map[uint32]*canonicalizerModule
-	moduleKeys     []uint32
+	conversionHash map[uint64]*canonicalizerModule
+	moduleKeys     []uint64
 }
 
 type convertContext struct {
 	errCount int
-	errPC    uint32
+	errPC    uint64
 	convert  *Convert
 }
 
 // Contains the offset and final address of each module.
 type canonicalizerModule struct {
 	offset  int
-	endAddr uint32
+	endAddr uint64
 	// Discard coverage from current module.
 	// Set to true if module is not present in canonical.
 	discard bool
@@ -59,7 +59,7 @@ func NewCanonicalizer(modules []KernelModule, flagSignal bool) *Canonicalizer {
 	}
 
 	// Store sorted canonical address keys.
-	canonicalModuleKeys := make([]uint32, len(modules))
+	canonicalModuleKeys := make([]uint64, len(modules))
 	setModuleKeys(canonicalModuleKeys, modules)
 	return &Canonicalizer{
 		modules:    canonicalModules,
@@ -72,35 +72,35 @@ func (can *Canonicalizer) NewInstance(modules []KernelModule) *CanonicalizerInst
 		return &CanonicalizerInstance{}
 	}
 	// Save sorted list of module offsets.
-	moduleKeys := make([]uint32, len(modules))
+	moduleKeys := make([]uint64, len(modules))
 	setModuleKeys(moduleKeys, modules)
 
 	// Create a hash between the "canonical" module addresses and each VM instance.
-	instToCanonicalMap := make(map[uint32]*canonicalizerModule)
-	canonicalToInstMap := make(map[uint32]*canonicalizerModule)
+	instToCanonicalMap := make(map[uint64]*canonicalizerModule)
+	canonicalToInstMap := make(map[uint64]*canonicalizerModule)
 	for _, module := range modules {
 		discard := false
-		canonicalAddr := uint32(0)
+		canonicalAddr := uint64(0)
 		canonicalModule, found := can.modules[module.Name]
 		if !found || canonicalModule.Size != module.Size {
 			log.Errorf("kernel build has changed; instance module %v differs from canonical", module.Name)
 			discard = true
 		}
 		if found {
-			canonicalAddr = uint32(canonicalModule.Addr)
+			canonicalAddr = canonicalModule.Addr
 		}
 
-		instAddr := uint32(module.Addr)
+		instAddr := module.Addr
 
 		canonicalToInstMap[canonicalAddr] = &canonicalizerModule{
 			offset:  int(instAddr) - int(canonicalAddr),
-			endAddr: uint32(module.Size) + canonicalAddr,
+			endAddr: module.Size + canonicalAddr,
 			discard: discard,
 		}
 
 		instToCanonicalMap[instAddr] = &canonicalizerModule{
 			offset:  int(canonicalAddr) - int(instAddr),
-			endAddr: uint32(module.Size) + instAddr,
+			endAddr: module.Size + instAddr,
 			discard: discard,
 		}
 	}
@@ -118,26 +118,26 @@ func (can *Canonicalizer) NewInstance(modules []KernelModule) *CanonicalizerInst
 	}
 }
 
-func (ci *CanonicalizerInstance) Canonicalize(elems []uint32) []uint32 {
+func (ci *CanonicalizerInstance) Canonicalize(elems []uint64) []uint64 {
 	if ci.canonical.moduleKeys == nil {
 		return elems
 	}
 	return ci.canonicalize.convertPCs(elems)
 }
 
-func (ci *CanonicalizerInstance) Decanonicalize(elems []uint32) []uint32 {
+func (ci *CanonicalizerInstance) Decanonicalize(elems []uint64) []uint64 {
 	if ci.canonical.moduleKeys == nil {
 		return elems
 	}
 	return ci.decanonicalize.convertPCs(elems)
 }
 
-func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) map[uint32]uint32 {
+func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint64]uint32) map[uint64]uint32 {
 	// Skip conversion if modules or filter are not used.
 	if ci.canonical.moduleKeys == nil || len(bitmap) == 0 {
 		return bitmap
 	}
-	instBitmap := make(map[uint32]uint32)
+	instBitmap := make(map[uint64]uint32)
 	convCtx := &convertContext{convert: ci.decanonicalize}
 	for pc, val := range bitmap {
 		if newPC, ok := ci.decanonicalize.convertPC(pc); ok {
@@ -153,18 +153,16 @@ func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint32]uint32) 
 }
 
 // Store sorted list of addresses. Used to binary search when converting PCs.
-func setModuleKeys(moduleKeys []uint32, modules []KernelModule) {
+func setModuleKeys(moduleKeys []uint64, modules []KernelModule) {
 	for idx, module := range modules {
-		// Truncate PCs to uint32, assuming that they fit into 32 bits.
-		// True for x86_64 and arm64 without KASLR.
-		moduleKeys[idx] = uint32(module.Addr)
+		moduleKeys[idx] = module.Addr
 	}
 
 	// Sort modules by address.
 	sort.Slice(moduleKeys, func(i, j int) bool { return moduleKeys[i] < moduleKeys[j] })
 }
 
-func findModule(pc uint32, moduleKeys []uint32) (moduleIdx int) {
+func findModule(pc uint64, moduleKeys []uint64) (moduleIdx int) {
 	moduleIdx, _ = sort.Find(len(moduleKeys), func(moduleIdx int) int {
 		if pc < moduleKeys[moduleIdx] {
 			return -1
@@ -175,9 +173,9 @@ func findModule(pc uint32, moduleKeys []uint32) (moduleIdx int) {
 	return moduleIdx - 1
 }
 
-func (convert *Convert) convertPCs(pcs []uint32) []uint32 {
+func (convert *Convert) convertPCs(pcs []uint64) []uint64 {
 	// Convert coverage.
-	var ret []uint32
+	var ret []uint64
 	convCtx := &convertContext{convert: convert}
 	for _, pc := range pcs {
 		if newPC, ok := convert.convertPC(pc); ok {
@@ -192,7 +190,7 @@ func (convert *Convert) convertPCs(pcs []uint32) []uint32 {
 	return ret
 }
 
-func (convert *Convert) convertPC(pc uint32) (uint32, bool) {
+func (convert *Convert) convertPC(pc uint64) (uint64, bool) {
 	moduleIdx := findModule(pc, convert.moduleKeys)
 	// Check if address is above the first module offset.
 	if moduleIdx >= 0 {
@@ -205,7 +203,7 @@ func (convert *Convert) convertPC(pc uint32) (uint32, bool) {
 			if module.discard {
 				return pc, false
 			}
-			pc = uint32(int(pc) + module.offset)
+			pc = uint64(int(pc) + module.offset)
 		}
 	}
 	return pc, true
@@ -219,7 +217,7 @@ func (cc *convertContext) discarded() string {
 	return fmt.Sprintf("%v; not found in module map", errMsg)
 }
 
-func (cc *convertContext) discard(pc uint32) {
+func (cc *convertContext) discard(pc uint64) {
 	cc.errCount += 1
 	if cc.errPC == 0 {
 		cc.errPC = pc

@@ -245,7 +245,7 @@ const (
 type CallInfo struct {
 	Flags  CallFlags
 	Errno  int
-	Signal []uint32
+	Signal []uint64
 }
 
 const (
@@ -345,7 +345,7 @@ func extractArgSignal(arg Arg, callID, flags int, inf *CallInfo, resources map[*
 	return flags
 }
 
-func DecodeFallbackSignal(s uint32) (callID, errno int) {
+func DecodeFallbackSignal(s uint64) (callID, errno int) {
 	typ, id, aux := decodeFallbackSignal(s)
 	switch typ {
 	case fallbackSignalErrno, fallbackSignalErrnoBlocked:
@@ -357,15 +357,15 @@ func DecodeFallbackSignal(s uint32) (callID, errno int) {
 	}
 }
 
-func encodeFallbackSignal(typ, id, aux int) uint32 {
+func encodeFallbackSignal(typ, id, aux int) uint64 {
 	checkMaxCallID(id)
 	if typ & ^7 != 0 {
 		panic(fmt.Sprintf("bad fallback signal type %v", typ))
 	}
-	return uint32(typ) | uint32(id&fallbackCallMask)<<3 | uint32(aux)<<24
+	return uint64(typ) | uint64(id&fallbackCallMask)<<3 | uint64(aux)<<24
 }
 
-func decodeFallbackSignal(s uint32) (typ, id, aux int) {
+func decodeFallbackSignal(s uint64) (typ, id, aux int) {
 	return int(s & 7), int((s >> 3) & fallbackCallMask), int(s >> 24)
 }
 
