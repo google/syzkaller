@@ -18,7 +18,7 @@ import (
 )
 
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters, moduleObj []string,
-	hostModules []*vminfo.KernelModule) (*Impl, error) {
+	hostModules []*vminfo.KernelModule, cleanRules []string) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,
@@ -32,6 +32,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuild
 		readModuleCoverPoints: elfReadModuleCoverPoints,
 		readTextRanges:        elfReadTextRanges,
 		getCompilerVersion:    elfGetCompilerVersion,
+		cleanRules:            cleanRules,
 	})
 }
 

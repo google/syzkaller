@@ -230,6 +230,17 @@ type Config struct {
 
 	// Implementation details beyond this point. Filled after parsing.
 	Derived `json:"-"`
+
+	// cleanPath rules like "old_path:new_path" which replaces old_path by new_path
+	// it's especially useful for out-of-tree kernel modules symbol path
+	// old_path is relative path to kernel_src, for example in Android S
+	// "clean_rules" : [
+	//   "/proc/self/cwd/common:kernel_platform/common"
+	// ]
+	// in cleanPath function, if path in elf is /proc/self/cwd/common/drivers/something.c
+	// then path will be changed to kernel_platform/common/drivers/something.c,
+	// and filename will be kernel_src + /kernel_platform/common/drivers/something.c
+	CleanRules []string `json:"clean_rules,omitempty"`
 }
 
 // These options are not guaranteed to be backward/forward compatible and
