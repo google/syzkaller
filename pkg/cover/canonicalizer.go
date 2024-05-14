@@ -40,7 +40,8 @@ type convertContext struct {
 
 // Contains the offset and final address of each module.
 type canonicalizerModule struct {
-	offset  int
+	offset  int64
+	name    string
 	endAddr uint64
 	// Discard coverage from current module.
 	// Set to true if module is not present in canonical.
@@ -93,13 +94,15 @@ func (can *Canonicalizer) NewInstance(modules []KernelModule) *CanonicalizerInst
 		instAddr := module.Addr
 
 		canonicalToInstMap[canonicalAddr] = &canonicalizerModule{
-			offset:  int(instAddr) - int(canonicalAddr),
+			offset:  int64(instAddr - canonicalAddr),
+			name:    module.Name,
 			endAddr: module.Size + canonicalAddr,
 			discard: discard,
 		}
 
 		instToCanonicalMap[instAddr] = &canonicalizerModule{
-			offset:  int(canonicalAddr) - int(instAddr),
+			offset:  int64(canonicalAddr - instAddr),
+			name:    module.Name,
 			endAddr: module.Size + instAddr,
 			discard: discard,
 		}
@@ -203,7 +206,9 @@ func (convert *Convert) convertPC(pc uint64) (uint64, bool) {
 			if module.discard {
 				return pc, false
 			}
-			pc = uint64(int(pc) + module.offset)
+			if module.name != "" {
+				pc = uint64(int64(pc) + module.offset)
+			}
 		}
 	}
 	return pc, true
