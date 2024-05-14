@@ -116,9 +116,11 @@ type Timeouts struct {
 	Program time.Duration
 	// Timeout for "no output" detection.
 	NoOutput time.Duration
+	// Timeout for "executions stalled" detection.
+	NoExecutions time.Duration
 	// Limit on a single VM running time, after this time a VM is restarted.
 	VMRunningTime time.Duration
-	// How long we should test to get "no output" error (derivative of NoOutput, here to avoid duplication).
+	// How long we should test to get "no output" error (derivative of NoOutput, here to avoid duplication)
 	NoOutputRunningTime time.Duration
 }
 
@@ -821,7 +823,7 @@ func (target *Target) Timeouts(slowdown int) Timeouts {
 	if timeouts.Program == 0 {
 		timeouts.Program = 5 * time.Second
 	}
-	if timeouts.NoOutput == 0 {
+	if timeouts.NoExecutions == 0 {
 		// The timeout used to be 3 mins for a long time.
 		// But (1) we were seeing flakes on linux where net namespace
 		// destruction can be really slow, and (2) gVisor watchdog timeout
@@ -831,7 +833,12 @@ func (target *Target) Timeouts(slowdown int) Timeouts {
 		// in 140-280s detection delay.
 		// So the current timeout is 5 mins (300s).
 		// We don't want it to be too long too because it will waste time on real hangs.
-		timeouts.NoOutput = 5 * time.Minute
+		timeouts.NoExecutions = 5 * time.Minute
+	}
+	if timeouts.NoOutput == 0 {
+		// If the VM has neither printed anything to the serial port for 4 minutes
+		// not have we been able to ssh into it, something is definitely going wrong.
+		timeouts.NoOutput = 4 * time.Minute
 	}
 	if timeouts.VMRunningTime == 0 {
 		timeouts.VMRunningTime = time.Hour
@@ -840,7 +847,7 @@ func (target *Target) Timeouts(slowdown int) Timeouts {
 	timeouts.Program *= timeouts.Scale
 	timeouts.NoOutput *= timeouts.Scale
 	timeouts.VMRunningTime *= timeouts.Scale
-	timeouts.NoOutputRunningTime = timeouts.NoOutput + time.Minute
+	timeouts.NoOutputRunningTime = max(timeouts.NoOutput, timeouts.NoExecutions) + time.Minute
 	return timeouts
 }
 

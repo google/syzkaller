@@ -94,7 +94,7 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 	return ret, nil
 }
 
-func (inst *ExecProgInstance) runCommand(command string, duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) runCommand(command string, duration time.Duration, trackExecs bool) (*RunResult, error) {
 	var prefixOutput []byte
 	if inst.StraceBin != "" {
 		filterCalls := ""
@@ -108,7 +108,7 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
 		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
 	}
-	opts := []any{inst.ExitCondition}
+	opts := []any{inst.ExitCondition, vm.TrackExecutions(trackExecs)}
 	if inst.BeforeContextLen != 0 {
 		opts = append(opts, vm.OutputSize(inst.BeforeContextLen))
 	}
@@ -128,12 +128,12 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 	return result, nil
 }
 
-func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration, trackExecs bool) (*RunResult, error) {
 	bin, err := inst.VMInstance.Copy(bin)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy binary to VM: %v", err)}
 	}
-	return inst.runCommand(bin, duration)
+	return inst.runCommand(bin, duration, trackExecs)
 }
 
 func (inst *ExecProgInstance) RunCProg(p *prog.Prog, duration time.Duration,
@@ -153,7 +153,7 @@ func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
 		return nil, err
 	}
 	defer os.Remove(bin)
-	return inst.runBinary(bin, duration)
+	return inst.runBinary(bin, duration, false)
 }
 
 func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Duration,
@@ -170,7 +170,7 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, opts.Sandbox,
 		opts.SandboxArg, opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
 		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, duration)
+	return inst.runCommand(command, duration, true)
 }
 
 func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, duration time.Duration,

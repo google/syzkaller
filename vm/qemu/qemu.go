@@ -5,6 +5,7 @@ package qemu
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ import (
 
 func init() {
 	var _ vmimpl.Infoer = (*instance)(nil)
+	var _ vmimpl.Aliver = (*instance)(nil)
 	vmimpl.Register("qemu", ctor, true)
 }
 
@@ -738,6 +740,11 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 		}
 	}
 	return ret, false
+}
+
+func (inst *instance) Alive(ctx context.Context) (bool, error) {
+	_, err := osutil.RunCmd(30*time.Second, "", "ssh", inst.sshArgs()...)
+	return err == nil, nil
 }
 
 func (inst *instance) ssh(args ...string) ([]byte, error) {

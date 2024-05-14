@@ -8,6 +8,7 @@
 package vmimpl
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -70,6 +71,11 @@ type Infoer interface {
 // PprofPortProvider is used when the instance wants to define a custom pprof port.
 type PprofPortProvider interface {
 	PprofPort() int
+}
+
+// Aliver is an optional interface that allows to check whether the instance is alive.
+type Aliver interface {
+	Alive(ctx context.Context) (bool, error)
 }
 
 // Env contains global constant parameters for a pool of VMs.

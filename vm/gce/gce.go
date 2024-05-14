@@ -15,6 +15,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -35,6 +36,7 @@ import (
 )
 
 func init() {
+	var _ vmimpl.Aliver = (*instance)(nil)
 	vmimpl.Register("gce", ctor, true)
 }
 
@@ -426,6 +428,11 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 		return vmimpl.DiagnoseOpenBSD(inst.consolew)
 	}
 	return nil, false
+}
+
+func (inst *instance) Alive(ctx context.Context) (bool, error) {
+	_, err := osutil.RunCmd(30*time.Second, "", "ssh", inst.sshArgs()...)
+	return err == nil, nil
 }
 
 func (inst *instance) ssh(args ...string) ([]byte, error) {

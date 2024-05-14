@@ -447,10 +447,8 @@ func (inst *inst) testRepro() ([]byte, error) {
 			inst.cfg.Timeouts.NoOutputRunningTime, opts))
 	}
 	if err == nil && len(inst.reproC) > 0 {
-		// We should test for more than full "no output" timeout, but the problem is that C reproducers
-		// don't print anything, so we will get a false "no output" crash.
 		out, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
-			inst.cfg.Timeouts.NoOutput/2))
+			inst.cfg.Timeouts.NoOutputRunningTime))
 	}
 	return out, err
 }

@@ -10,6 +10,7 @@ package vm
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -136,7 +137,7 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 	}
 	workdir, err := osutil.ProcessTempDir(pool.workdir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create instance temp dir: %w", err)
+		return nil, fmt.Errorf("failed to create instance temp dir %s: %w", pool.workdir, err)
 	}
 	if pool.template != "" {
 		if err := osutil.CopyDirRecursively(pool.template, filepath.Join(workdir, "template")); err != nil {
@@ -197,6 +198,9 @@ type OutputSize int
 // An early notification that the command has finished / VM crashed.
 type EarlyFinishCb func()
 
+// If set to false, Run() won't expect seeing "executing program" messages.
+type TrackExecutions bool
+
 // Run runs cmd inside of the VM (think of ssh cmd) and monitors command execution
 // and the kernel console output. It detects kernel oopses in output, lost connections, hangs, etc.
 // Returns command+kernel output and a non-symbolized crash report (nil if no error happens).
@@ -211,6 +215,7 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 	var injected <-chan []byte
 	var finished func()
 	outputSize := beforeContextDefault
+	trackExecutions := true
 	for _, o := range opts {
 		switch opt := o.(type) {
 		case ExitCondition:
@@ -223,6 +228,8 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 			injected = (<-chan []byte)(opt)
 		case EarlyFinishCb:
 			finished = opt
+		case TrackExecutions:
+			trackExecutions = bool(opt)
 		default:
 			panic(fmt.Sprintf("unknown option %#v", opt))
 		}
@@ -241,6 +248,8 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 		beforeContext:   outputSize,
 		exit:            exit,
 		lastExecuteTime: time.Now(),
+		lastOutputTime:  time.Now(),
+		trackExecutions: trackExecutions,
 	}
 	rep := mon.monitorExecution()
 	return mon.output, rep, nil
@@ -263,6 +272,13 @@ func (inst *Instance) PprofPort() int {
 		return ii.PprofPort()
 	}
 	return vmimpl.PprofPort
+}
+
+func (inst *Instance) alive(ctx context.Context) (bool, error) {
+	if ii, ok := inst.impl.(vmimpl.Aliver); ok {
+		return ii.Alive(ctx)
+	}
+	return false, fmt.Errorf("alive checks are not implemented")
 }
 
 func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
@@ -289,12 +305,20 @@ type monitor struct {
 	output          []byte
 	beforeContext   int
 	matchPos        int
+	trackExecutions bool
 	lastExecuteTime time.Time
+	lastOutputTime  time.Time
 }
 
 func (mon *monitor) monitorExecution() *report.Report {
 	ticker := time.NewTicker(tickerPeriod * mon.inst.pool.timeouts.Scale)
 	defer ticker.Stop()
+
+	alive := make(chan bool)
+	ctx, cancel := context.WithCancel(context.Background())
+	go mon.instanceIsAlive(ctx, alive, mon.inst.pool.timeouts.NoOutput/4)
+	defer cancel()
+
 	for {
 		select {
 		case err := <-mon.errc:
@@ -334,14 +358,34 @@ func (mon *monitor) monitorExecution() *report.Report {
 			if rep := mon.appendOutput(out); rep != nil {
 				return rep
 			}
+		case <-alive:
+			mon.lastOutputTime = time.Now()
 		case <-ticker.C:
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
-			if time.Since(mon.lastExecuteTime) > mon.inst.pool.timeouts.NoOutput {
+			if mon.trackExecutions &&
+				time.Since(mon.lastExecuteTime) > mon.inst.pool.timeouts.NoExecutions {
+				return mon.extractError(executionStalledCrash)
+			}
+			if time.Since(mon.lastOutputTime) > mon.inst.pool.timeouts.NoOutput {
 				return mon.extractError(noOutputCrash)
 			}
 		case <-Shutdown:
 			return nil
+		}
+	}
+}
+
+func (mon *monitor) instanceIsAlive(ctx context.Context, alive chan bool, period time.Duration) {
+	for {
+		select {
+		case <-time.After(period):
+		case <-ctx.Done():
+			return
+		}
+		aliveResult, err := mon.inst.alive(ctx)
+		if err == nil && aliveResult {
+			alive <- true
 		}
 	}
 }
@@ -353,6 +397,7 @@ func (mon *monitor) appendOutput(out []byte) *report.Report {
 		bytes.Contains(mon.output[lastPos:], executingProgram2) {
 		mon.lastExecuteTime = time.Now()
 	}
+	mon.lastOutputTime = time.Now()
 	if mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
 		return mon.extractError("unknown error")
 	}
@@ -461,11 +506,12 @@ func (mon *monitor) waitForOutput() {
 const (
 	maxErrorLength = 256
 
-	lostConnectionCrash = "lost connection to test machine"
-	noOutputCrash       = "no output from test machine"
-	timeoutCrash        = "timed out"
-	fuzzerPreemptedStr  = "SYZ-FUZZER: PREEMPTED"
-	vmDiagnosisStart    = "\nVM DIAGNOSIS:\n"
+	lostConnectionCrash   = "lost connection to test machine"
+	noOutputCrash         = "no output from test machine"
+	executionStalledCrash = "execution stalled"
+	timeoutCrash          = "timed out"
+	fuzzerPreemptedStr    = "SYZ-FUZZER: PREEMPTED"
+	vmDiagnosisStart      = "\nVM DIAGNOSIS:\n"
 )
 
 var (
