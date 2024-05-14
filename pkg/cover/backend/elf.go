@@ -57,7 +57,7 @@ func getTraceCallbackType(name string) int {
 	return TraceCbNone
 }
 
-func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
+func elfReadSymbols(module *KernelModule, info *symbolInfo) ([]*Symbol, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	return symbols, nil
 }
 
-func elfReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
+func elfReadTextRanges(module *KernelModule) ([]pcRange, []*CompileUnit, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, nil, err
@@ -152,7 +152,7 @@ func elfReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
 	return readTextRanges(debugInfo, module, pcFix)
 }
 
-func elfReadTextData(module *Module) ([]byte, error) {
+func elfReadTextData(module *KernelModule) ([]byte, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func elfReadTextData(module *Module) ([]byte, error) {
 	return text.Data()
 }
 
-func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symbolInfo) ([2][]uint64, error) {
+func elfReadModuleCoverPoints(target *targets.Target, module *KernelModule, info *symbolInfo) ([2][]uint64, error) {
 	var pcs [2][]uint64
 	file, err := elf.Open(module.Path)
 	if err != nil {

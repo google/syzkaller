@@ -202,7 +202,7 @@ func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
 		return nil
 	}
 	symbolize := make(map[*backend.Symbol]bool)
-	pcs := make(map[*backend.Module][]uint64)
+	pcs := make(map[*backend.KernelModule][]uint64)
 	for _, pc := range PCs {
 		sym := rg.findSymbol(pc)
 		if sym == nil || sym.Symbolized || symbolize[sym] {
