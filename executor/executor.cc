@@ -1013,7 +1013,7 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		bool prev_filter = true;
 		for (uint32 i = 0; i < cov->size; i++) {
 			cover_data_t pc = cover_data[i] + cov->pc_offset;
-			uint32 sig = pc & 0xFFFFF000;
+			uint64 sig = pc & 0xFFFFFFFFFFFFF000;
 			if (use_cover_edges(pc)) {
 				// Only hash the lower 12 bits so the hash is
 				// independent of any module offsets.
@@ -1027,7 +1027,7 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 			prev_filter = filter;
 			if (ignore || dedup(sig))
 				continue;
-			write_output(sig);
+			write_output_64(sig);
 			nsig++;
 		}
 		// Write out number of signals.
@@ -1044,10 +1044,9 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 			cover_size = std::unique(cover_data, end) - cover_data;
 			cover_protect(cov);
 		}
-		// Truncate PCs to uint32 assuming that they fit into 32-bits.
-		// True for x86_64 and arm64 without KASLR.
+		// Always sent uint64 PCs.
 		for (uint32 i = 0; i < cover_size; i++)
-			write_output(cover_data[i] + cov->pc_offset);
+			write_output_64(cover_data[i] + cov->pc_offset);
 		*cover_count_pos = cover_size;
 	}
 }
@@ -1328,7 +1327,7 @@ static uint32 hash(uint32 a)
 }
 
 const uint32 dedup_table_size = 8 << 10;
-uint32 dedup_table[dedup_table_size];
+uint64 dedup_table[dedup_table_size];
 
 // Poorman's best-effort hashmap-based deduplication.
 // The hashmap is global which means that we deduplicate across different calls.
