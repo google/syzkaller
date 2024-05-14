@@ -68,6 +68,10 @@ func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 		modules = append(modules, &cover.KernelModule{
 			Name: name,
 			Addr: textAddr,
+			// The size is wrong as there is overlap in /proc/modules
+			// ex. module1['Addr'] + module1['Size'] > module2['Addr']
+			// runtime kernel doesn't export .text section size to /sys/module/*/sections/.text
+			// so we need to read it from elf
 			Size: modSize - offset,
 		})
 	}
@@ -75,7 +79,7 @@ func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 	if err != nil {
 		return nil, err
 	}
-	modules = append(modules, cover.KernelModule{
+	modules = append(modules, &cover.KernelModule{
 		Name: "",
 		Addr: _stext,
 		Size: _etext - _stext,

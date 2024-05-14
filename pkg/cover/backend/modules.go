@@ -25,9 +25,19 @@ type KernelModule struct {
 func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 	hostModules []*KernelModule) (
 	[]*KernelModule, error) {
+	module := &KernelModule{
+		Path: filepath.Join(objDir, target.KernelObject),
+	}
+	textRange, err := elfReadTextSecRange(module)
+	if err != nil {
+		return nil, err
+	}
 	modules := []*KernelModule{
 		// A dummy module representing the kernel itself.
-		{Path: filepath.Join(objDir, target.KernelObject)},
+		{
+			Path: module.Path,
+			Size: textRange.End - textRange.Start,
+		},
 	}
 	if target.OS == targets.Linux {
 		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...),
@@ -54,12 +64,18 @@ func discoverModulesLinux(dirs []string, hostModules []*KernelModule) ([]*Kernel
 			log.Logf(0, "failed to discover module %v", mod.Name)
 			continue
 		}
-		log.Logf(0, "module %v -> %v", mod.Name, path)
-		modules = append(modules, &KernelModule{
+		log.Logf(2, "module %v -> %v", mod.Name, path)
+		module := &KernelModule{
 			Name: mod.Name,
 			Addr: mod.Addr,
 			Path: path,
-		})
+		}
+		textRange, err := elfReadTextSecRange(module)
+		if err != nil {
+			return nil, err
+		}
+		module.Size = textRange.End - textRange.Start
+		modules = append(modules, module)
 	}
 	return modules, nil
 }
