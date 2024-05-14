@@ -47,6 +47,9 @@ vhci_vendor_pkt {
 	opcode	flags[vhci_vendor_pkt_opcode, int8]
 }
 
+define HCI_PRIMARY	0x00
+define HCI_AMP	0x01
+
 vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
 
 type hci_acl_hdr[DATA] {
@@ -84,6 +87,18 @@ hci_cis_params {
 	m_rtn	int8
 	s_rtn	int8
 } [packed]
+
+# TODO: remove these definitions when they are no more present in LTS kernels.
+define HCI_OP_CREATE_PHY_LINK	0x0435
+define HCI_OP_ACCEPT_PHY_LINK	0x0436
+define HCI_OP_DISCONN_PHY_LINK	0x0437
+define HCI_OP_CREATE_LOGICAL_LINK	0x0438
+define HCI_OP_ACCEPT_LOGICAL_LINK	0x0439
+define HCI_OP_DISCONN_LOGICAL_LINK	0x043a
+define HCI_OP_LOGICAL_LINK_CANCEL	0x043b
+define HCI_OP_READ_LOCAL_AMP_INFO	0x1409
+define HCI_OP_READ_LOCAL_AMP_ASSOC	0x140a
+define HCI_OP_WRITE_REMOTE_AMP_ASSOC	0x140b
 
 hci_command_hdr_un [
 	accept_conn_req			hci_command_packet_t[HCI_OP_ACCEPT_CONN_REQ, hci_cp_accept_conn_req]

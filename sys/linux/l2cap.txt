@@ -5,6 +5,15 @@ include <net/bluetooth/bluetooth.h>
 include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/l2cap.h>
 
+# The following constants were removed from upstream in e7b02296fb40 ("Bluetooth: Remove BT_HS").
+# TODO: delete them together with the corresponding structs once they are removed from LTS kernels.
+define L2CAP_CREATE_CHAN_REQ	0x0c
+define L2CAP_CREATE_CHAN_RSP	0x0d
+define L2CAP_MOVE_CHAN_REQ	0x0e
+define L2CAP_MOVE_CHAN_RSP	0x0f
+define L2CAP_MOVE_CHAN_CFM	0x10
+define L2CAP_MOVE_CHAN_CFM_RSP	0x11
+
 l2cap_hdr_un [
 	l2cap_cid_signaling	l2cap_hdr_t[L2CAP_CID_SIGNALING, array[l2cap_cid_signaling_un]]
 	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, l2cap_cid_le_signaling_un]
