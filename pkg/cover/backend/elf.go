@@ -81,7 +81,7 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 			continue
 		}
 		text := symb.Value >= text.Addr && symb.Value+symb.Size <= text.Addr+text.Size
-		if text {
+		if text && symb.Size != 0 {
 			start := symb.Value + module.Addr
 			symbols = append(symbols, &Symbol{
 				Module: module,
