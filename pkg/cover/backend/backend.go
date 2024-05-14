@@ -58,6 +58,11 @@ type Range struct {
 	EndCol    int
 }
 
+type SecRange struct {
+	Start uint64
+	End   uint64
+}
+
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuild bool,
