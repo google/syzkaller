@@ -13,26 +13,20 @@ type Impl struct {
 	Units           []*CompileUnit
 	Symbols         []*Symbol
 	Frames          []Frame
-	Symbolize       func(pcs map[*Module][]uint64) ([]Frame, error)
+	Symbolize       func(pcs map[*KernelModule][]uint64) ([]Frame, error)
 	CallbackPoints  []uint64
 	PreciseCoverage bool
-}
-
-type Module struct {
-	Name string
-	Path string
-	Addr uint64
 }
 
 type CompileUnit struct {
 	ObjectUnit
 	Path   string
-	Module *Module
+	Module *KernelModule
 }
 
 type Symbol struct {
 	ObjectUnit
-	Module     *Module
+	Module     *KernelModule
 	Unit       *CompileUnit
 	Start      uint64
 	End        uint64
@@ -47,7 +41,7 @@ type ObjectUnit struct {
 }
 
 type Frame struct {
-	Module   *Module
+	Module   *KernelModule
 	PC       uint64
 	Name     string
 	FuncName string
