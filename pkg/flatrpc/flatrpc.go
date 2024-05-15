@@ -954,7 +954,7 @@ func InfoRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type InfoReplyRawT struct {
-	CoverFilter []uint32 `json:"cover_filter"`
+	CoverFilter []byte `json:"cover_filter"`
 }
 
 func (t *InfoReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -963,12 +963,7 @@ func (t *InfoReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 	}
 	coverFilterOffset := flatbuffers.UOffsetT(0)
 	if t.CoverFilter != nil {
-		coverFilterLength := len(t.CoverFilter)
-		InfoReplyRawStartCoverFilterVector(builder, coverFilterLength)
-		for j := coverFilterLength - 1; j >= 0; j-- {
-			builder.PrependUint32(t.CoverFilter[j])
-		}
-		coverFilterOffset = builder.EndVector(coverFilterLength)
+		coverFilterOffset = builder.CreateByteString(t.CoverFilter)
 	}
 	InfoReplyRawStart(builder)
 	InfoReplyRawAddCoverFilter(builder, coverFilterOffset)
@@ -976,11 +971,7 @@ func (t *InfoReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 }
 
 func (rcv *InfoReplyRaw) UnPackTo(t *InfoReplyRawT) {
-	coverFilterLength := rcv.CoverFilterLength()
-	t.CoverFilter = make([]uint32, coverFilterLength)
-	for j := 0; j < coverFilterLength; j++ {
-		t.CoverFilter[j] = rcv.CoverFilter(j)
-	}
+	t.CoverFilter = rcv.CoverFilterBytes()
 }
 
 func (rcv *InfoReplyRaw) UnPack() *InfoReplyRawT {
@@ -1019,11 +1010,11 @@ func (rcv *InfoReplyRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *InfoReplyRaw) CoverFilter(j int) uint32 {
+func (rcv *InfoReplyRaw) CoverFilter(j int) byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
 	}
 	return 0
 }
@@ -1036,11 +1027,19 @@ func (rcv *InfoReplyRaw) CoverFilterLength() int {
 	return 0
 }
 
-func (rcv *InfoReplyRaw) MutateCoverFilter(j int, n uint32) bool {
+func (rcv *InfoReplyRaw) CoverFilterBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *InfoReplyRaw) MutateCoverFilter(j int, n byte) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
 	}
 	return false
 }
@@ -1052,7 +1051,7 @@ func InfoReplyRawAddCoverFilter(builder *flatbuffers.Builder, coverFilter flatbu
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(coverFilter), 0)
 }
 func InfoReplyRawStartCoverFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+	return builder.StartVector(1, numElems, 1)
 }
 func InfoReplyRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
