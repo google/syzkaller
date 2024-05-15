@@ -163,7 +163,13 @@ func main() {
 		checkReq = new(rpctype.CheckArgs)
 	}
 
-	for _, feat := range r.Features.Supported() {
+	suppFeatures := r.Features.Supported()
+
+	if suppFeatures == nil {
+		log.SyzFatalf("The currently running kernel image seems not to support any required feature, have you forgotten to mount debugfs?")
+	}
+
+	for _, feat := range suppFeatures {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
 
