@@ -26,46 +26,11 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Configuration flags for Config.Flags.
-type EnvFlags uint64
-
-// Note: New / changed flags should be added to parse_env_flags in executor.cc.
-const (
-	FlagDebug               EnvFlags = 1 << iota // debug output from executor
-	FlagSignal                                   // collect feedback signals (coverage)
-	FlagSandboxSetuid                            // impersonate nobody user
-	FlagSandboxNamespace                         // use namespaces for sandboxing
-	FlagSandboxAndroid                           // use Android sandboxing for the untrusted_app domain
-	FlagExtraCover                               // collect extra coverage
-	FlagEnableTun                                // setup and use /dev/tun for packet injection
-	FlagEnableNetDev                             // setup more network devices for testing
-	FlagEnableNetReset                           // reset network namespace between programs
-	FlagEnableCgroups                            // setup cgroups for testing
-	FlagEnableCloseFds                           // close fds after each program
-	FlagEnableDevlinkPCI                         // setup devlink PCI device
-	FlagEnableVhciInjection                      // setup and use /dev/vhci for hci packet injection
-	FlagEnableWifi                               // setup and use mac80211_hwsim for wifi emulation
-	FlagDelayKcovMmap                            // manage kcov memory in an optimized way
-	FlagEnableNicVF                              // setup NIC VF device
-)
-
-// Per-exec flags for ExecOpts.Flags.
-type ExecFlags uint64
-
-const (
-	FlagCollectSignal        ExecFlags = 1 << iota // collect feedback signals
-	FlagCollectCover                               // collect coverage
-	FlagDedupCover                                 // deduplicate coverage in executor
-	FlagCollectComps                               // collect KCOV comparisons
-	FlagThreaded                                   // use multiple threads to mitigate blocked syscalls
-	FlagEnableCoverageFilter                       // setup and use bitmap to do coverage filter
-)
-
 type ExecOpts struct {
-	// Changing ExecFlags between executions does not cause executor process restart.
-	// Changing EnvFlags/SandboxArg does cause process restart.
-	ExecFlags  ExecFlags
-	EnvFlags   EnvFlags
+	// Changing ExecFlag between executions does not cause executor process restart.
+	// Changing ExecEnv/SandboxArg does cause process restart.
+	ExecFlags  flatrpc.ExecFlag
+	EnvFlags   flatrpc.ExecEnv
 	SandboxArg int
 }
 
@@ -168,73 +133,72 @@ const (
 	extraReplyIndex = 0xffffffff // uint32(-1)
 )
 
-func SandboxToFlags(sandbox string) (EnvFlags, error) {
+func SandboxToFlags(sandbox string) (flatrpc.ExecEnv, error) {
 	switch sandbox {
 	case "none":
 		return 0, nil
 	case "setuid":
-		return FlagSandboxSetuid, nil
+		return flatrpc.ExecEnvSandboxSetuid, nil
 	case "namespace":
-		return FlagSandboxNamespace, nil
+		return flatrpc.ExecEnvSandboxNamespace, nil
 	case "android":
-		return FlagSandboxAndroid, nil
+		return flatrpc.ExecEnvSandboxAndroid, nil
 	default:
 		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace/android")
 	}
 }
 
-func FlagsToSandbox(flags EnvFlags) string {
-	if flags&FlagSandboxSetuid != 0 {
+func FlagsToSandbox(flags flatrpc.ExecEnv) string {
+	if flags&flatrpc.ExecEnvSandboxSetuid != 0 {
 		return "setuid"
-	} else if flags&FlagSandboxNamespace != 0 {
+	} else if flags&flatrpc.ExecEnvSandboxNamespace != 0 {
 		return "namespace"
-	} else if flags&FlagSandboxAndroid != 0 {
+	} else if flags&flatrpc.ExecEnvSandboxAndroid != 0 {
 		return "android"
 	}
 	return "none"
 }
 
-// nolint: gocyclo
-func FeaturesToFlags(features flatrpc.Feature, manual csource.Features) EnvFlags {
+func FeaturesToFlags(features flatrpc.Feature, manual csource.Features) flatrpc.ExecEnv {
 	for feat := range flatrpc.EnumNamesFeature {
 		opt := FlatRPCFeaturesToCSource[feat]
 		if opt != "" && manual != nil && !manual[opt].Enabled {
 			features &= ^feat
 		}
 	}
-	var flags EnvFlags
+	var flags flatrpc.ExecEnv
 	if manual == nil || manual["net_reset"].Enabled {
-		flags |= FlagEnableNetReset
+		flags |= flatrpc.ExecEnvEnableNetReset
 	}
 	if manual == nil || manual["cgroups"].Enabled {
-		flags |= FlagEnableCgroups
+		flags |= flatrpc.ExecEnvEnableCgroups
 	}
 	if manual == nil || manual["close_fds"].Enabled {
-		flags |= FlagEnableCloseFds
+		flags |= flatrpc.ExecEnvEnableCloseFds
 	}
 	if features&flatrpc.FeatureExtraCoverage != 0 {
-		flags |= FlagExtraCover
+		flags |= flatrpc.ExecEnvExtraCover
 	}
 	if features&flatrpc.FeatureDelayKcovMmap != 0 {
-		flags |= FlagDelayKcovMmap
+		flags |= flatrpc.ExecEnvDelayKcovMmap
 	}
 	if features&flatrpc.FeatureNetInjection != 0 {
-		flags |= FlagEnableTun
+		flags |= flatrpc.ExecEnvEnableTun
 	}
 	if features&flatrpc.FeatureNetDevices != 0 {
-		flags |= FlagEnableNetDev
+		flags |= flatrpc.ExecEnvEnableNetDev
 	}
 	if features&flatrpc.FeatureDevlinkPCI != 0 {
-		flags |= FlagEnableDevlinkPCI
+		flags |= flatrpc.ExecEnvEnableDevlinkPCI
 	}
 	if features&flatrpc.FeatureNicVF != 0 {
-		flags |= FlagEnableNicVF
+		flags |= flatrpc.ExecEnvEnableNicVF
 	}
 	if features&flatrpc.FeatureVhciInjection != 0 {
-		flags |= FlagEnableVhciInjection
+		flags |= flatrpc.ExecEnvEnableVhciInjection
 	}
 	if features&flatrpc.FeatureWifiEmulation != 0 {
-		flags |= FlagEnableWifi
+		flags |= flatrpc.ExecEnvEnableWifi
 	}
 	return flags
 }
@@ -481,7 +445,7 @@ func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 	if len(extraParts) == 0 {
 		return info, nil
 	}
-	info.Extra = convertExtra(extraParts, opts.ExecFlags&FlagDedupCover > 0)
+	info.Extra = convertExtra(extraParts, opts.ExecFlags&flatrpc.ExecFlagDedupCover != 0)
 	return info, nil
 }
 
@@ -593,7 +557,7 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 type command struct {
 	pid        int
 	config     *Config
-	flags      EnvFlags
+	flags      flatrpc.ExecEnv
 	sandboxArg int
 	timeout    time.Duration
 	cmd        *exec.Cmd
@@ -723,7 +687,7 @@ func (env *Env) makeCommand(opts *ExecOpts, tmpDir string) (*command, error) {
 	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
 	cmd.Stdin = outrp
 	cmd.Stdout = inwp
-	if c.flags&FlagDebug != 0 {
+	if c.flags&flatrpc.ExecEnvDebug != 0 {
 		close(c.readDone)
 		cmd.Stderr = os.Stdout
 	} else {

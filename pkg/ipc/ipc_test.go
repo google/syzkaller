@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/image"
 	. "github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
@@ -80,7 +81,7 @@ func TestExecute(t *testing.T) {
 
 	bin := csource.BuildExecutor(t, target, "../..")
 
-	flags := []ExecFlags{0, FlagThreaded}
+	flags := []flatrpc.ExecFlag{0, flatrpc.ExecFlagThreaded}
 	for _, flag := range flags {
 		t.Logf("testing flags 0x%x", flag)
 		cfg := &Config{
@@ -189,7 +190,7 @@ func TestZlib(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts.EnvFlags |= FlagDebug
+	opts.EnvFlags |= flatrpc.ExecEnvDebug
 	cfg.Executor = csource.BuildExecutor(t, target, "../..")
 	env, err := MakeEnv(cfg, 0)
 	if err != nil {
@@ -247,7 +248,7 @@ func TestExecutorCommonExt(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Executor = bin
-	opts.EnvFlags |= FlagDebug
+	opts.EnvFlags |= flatrpc.ExecEnvDebug
 	env, err := MakeEnv(cfg, 0)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)

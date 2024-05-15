@@ -6,6 +6,7 @@ package ipcconfig
 import (
 	"flag"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -32,19 +33,19 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	c.RateLimit = sysTarget.HostFuzzer && target.OS != targets.TestOS
 
 	opts := &ipc.ExecOpts{
-		ExecFlags: ipc.FlagDedupCover,
+		ExecFlags: flatrpc.ExecFlagDedupCover,
 	}
 	if *flagThreaded {
-		opts.ExecFlags |= ipc.FlagThreaded
+		opts.ExecFlags |= flatrpc.ExecFlagThreaded
 	}
 	if *flagSignal {
-		opts.ExecFlags |= ipc.FlagCollectSignal
+		opts.ExecFlags |= flatrpc.ExecFlagCollectSignal
 	}
 	if *flagSignal {
-		opts.EnvFlags |= ipc.FlagSignal
+		opts.EnvFlags |= flatrpc.ExecEnvSignal
 	}
 	if *flagDebug {
-		opts.EnvFlags |= ipc.FlagDebug
+		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
 	sandboxFlags, err := ipc.SandboxToFlags(*flagSandbox)
 	if err != nil {

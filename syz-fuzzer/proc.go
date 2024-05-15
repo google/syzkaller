@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -43,7 +44,8 @@ func (proc *Proc) loop() {
 		req := proc.nextRequest()
 		// Do not let too much state accumulate.
 		const restartIn = 600
-		if (req.ExecOpts.ExecFlags&(ipc.FlagCollectSignal|ipc.FlagCollectCover|ipc.FlagCollectComps) != 0 &&
+		resetFlags := flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectComps
+		if (req.ExecOpts.ExecFlags&resetFlags != 0 &&
 			rnd.Intn(restartIn) == 0) || req.ResetState {
 			proc.env.ForceRestart()
 		}

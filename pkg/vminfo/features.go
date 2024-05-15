@@ -118,24 +118,24 @@ func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Fe
 
 // featureToFlags creates ipc flags required to test the feature on a simple program.
 // For features that has setup procedure in the executor, we just execute with the default flags.
-func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (ipc.EnvFlags, ipc.ExecFlags) {
+func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (flatrpc.ExecEnv, flatrpc.ExecFlag) {
 	envFlags := ctx.sandbox
 	// These don't have a corresponding feature and are always enabled.
-	envFlags |= ipc.FlagEnableCloseFds | ipc.FlagEnableCgroups | ipc.FlagEnableNetReset
-	execFlags := ipc.FlagThreaded
+	envFlags |= flatrpc.ExecEnvEnableCloseFds | flatrpc.ExecEnvEnableCgroups | flatrpc.ExecEnvEnableNetReset
+	execFlags := flatrpc.ExecFlagThreaded
 	switch feat {
 	case flatrpc.FeatureCoverage:
-		envFlags |= ipc.FlagSignal
-		execFlags |= ipc.FlagCollectSignal | ipc.FlagCollectCover
+		envFlags |= flatrpc.ExecEnvSignal
+		execFlags |= flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover
 	case flatrpc.FeatureComparisons:
-		envFlags |= ipc.FlagSignal
-		execFlags |= ipc.FlagCollectComps
+		envFlags |= flatrpc.ExecEnvSignal
+		execFlags |= flatrpc.ExecFlagCollectComps
 	case flatrpc.FeatureExtraCoverage:
-		envFlags |= ipc.FlagSignal | ipc.FlagExtraCover
-		execFlags |= ipc.FlagCollectSignal | ipc.FlagCollectCover
+		envFlags |= flatrpc.ExecEnvSignal | flatrpc.ExecEnvExtraCover
+		execFlags |= flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover
 	case flatrpc.FeatureDelayKcovMmap:
-		envFlags |= ipc.FlagSignal | ipc.FlagDelayKcovMmap
-		execFlags |= ipc.FlagCollectSignal | ipc.FlagCollectCover
+		envFlags |= flatrpc.ExecEnvSignal | flatrpc.ExecEnvDelayKcovMmap
+		execFlags |= flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover
 	case flatrpc.FeatureSandboxSetuid:
 		// We use setuid sandbox feature to test that the simple program
 		// succeeds under the actual sandbox (not necessary setuid).
@@ -145,19 +145,19 @@ func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (ipc.EnvFlags, ipc
 	case flatrpc.FeatureFault:
 	case flatrpc.FeatureLeak:
 	case flatrpc.FeatureNetInjection:
-		envFlags |= ipc.FlagEnableTun
+		envFlags |= flatrpc.ExecEnvEnableTun
 	case flatrpc.FeatureNetDevices:
-		envFlags |= ipc.FlagEnableNetDev
+		envFlags |= flatrpc.ExecEnvEnableNetDev
 	case flatrpc.FeatureKCSAN:
 	case flatrpc.FeatureDevlinkPCI:
-		envFlags |= ipc.FlagEnableDevlinkPCI
+		envFlags |= flatrpc.ExecEnvEnableDevlinkPCI
 	case flatrpc.FeatureNicVF:
-		envFlags |= ipc.FlagEnableNicVF
+		envFlags |= flatrpc.ExecEnvEnableNicVF
 	case flatrpc.FeatureUSBEmulation:
 	case flatrpc.FeatureVhciInjection:
-		envFlags |= ipc.FlagEnableVhciInjection
+		envFlags |= flatrpc.ExecEnvEnableVhciInjection
 	case flatrpc.FeatureWifiEmulation:
-		envFlags |= ipc.FlagEnableWifi
+		envFlags |= flatrpc.ExecEnvEnableWifi
 	case flatrpc.FeatureLRWPANEmulation:
 	case flatrpc.FeatureBinFmtMisc:
 	case flatrpc.FeatureSwap:
