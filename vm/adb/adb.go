@@ -493,6 +493,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if _, err := inst.adb("push", hostSrc, vmDst); err != nil {
 		return "", err
 	}
+	inst.adb("shell", "chmod", "+x", vmDst)
 	return vmDst, nil
 }
 
