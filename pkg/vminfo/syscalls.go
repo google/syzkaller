@@ -33,7 +33,7 @@ type checkContext struct {
 	impl     checker
 	cfg      *mgrconfig.Config
 	target   *prog.Target
-	sandbox  ipc.EnvFlags
+	sandbox  flatrpc.ExecEnv
 	executor queue.Executor
 	fs       filesystem
 	// Once checking of a syscall is finished, the result is sent to syscalls.
@@ -222,7 +222,7 @@ func (ctx *checkContext) onlySandboxNone() string {
 }
 
 func (ctx *checkContext) onlySandboxNoneOrNamespace() string {
-	if ctx.sandbox != 0 && ctx.sandbox != ipc.FlagSandboxNamespace {
+	if ctx.sandbox != 0 && ctx.sandbox != flatrpc.ExecEnvSandboxNamespace {
 		return "only supported under root with sandbox=none/namespace"
 	}
 	return ""

@@ -424,16 +424,16 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	}
 	opts.EnvFlags |= sandboxFlags
 	if threaded {
-		opts.ExecFlags |= ipc.FlagThreaded
+		opts.ExecFlags |= flatrpc.ExecFlagThreaded
 	}
 	if cov {
-		opts.EnvFlags |= ipc.FlagSignal
-		opts.ExecFlags |= ipc.FlagCollectSignal
-		opts.ExecFlags |= ipc.FlagCollectCover
+		opts.EnvFlags |= flatrpc.ExecEnvSignal
+		opts.ExecFlags |= flatrpc.ExecFlagCollectSignal
+		opts.ExecFlags |= flatrpc.ExecFlagCollectCover
 	}
 	opts.EnvFlags |= ipc.FeaturesToFlags(ctx.Features, nil)
 	if ctx.Debug {
-		opts.EnvFlags |= ipc.FlagDebug
+		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
 	req := &runRequest{
 		Request: &queue.Request{
@@ -484,9 +484,9 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 	if err != nil {
 		return nil, fmt.Errorf("failed to build C program: %w", err)
 	}
-	var ipcFlags ipc.ExecFlags
+	var ipcFlags flatrpc.ExecFlag
 	if threaded {
-		ipcFlags |= ipc.FlagThreaded
+		ipcFlags |= flatrpc.ExecFlagThreaded
 	}
 	req := &runRequest{
 		Request: &queue.Request{
@@ -551,7 +551,7 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo
 				// C code does not detect blocked/non-finished calls.
 				continue
 			}
-			if req.ExecOpts.ExecFlags&ipc.FlagThreaded == 0 {
+			if req.ExecOpts.ExecFlags&flatrpc.ExecFlagThreaded == 0 {
 				// In non-threaded mode blocked syscalls will block main thread
 				// and we won't detect blocked/unfinished syscalls.
 				continue
@@ -577,7 +577,7 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo
 	if isC || inf.Flags&ipc.CallExecuted == 0 {
 		return nil
 	}
-	if req.ExecOpts.EnvFlags&ipc.FlagSignal != 0 {
+	if req.ExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 {
 		// Signal is always deduplicated, so we may not get any signal
 		// on a second invocation of the same syscall.
 		// For calls that are not meant to collect synchronous coverage we

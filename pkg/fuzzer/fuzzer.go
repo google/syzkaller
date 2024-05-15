@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/stats"
@@ -121,7 +122,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
 	// If we are already triaging this exact prog, this is flaky coverage.
-	if req.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0 && res.Info != nil && !inTriage {
+	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !inTriage {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, &info, call, flags)
 		}
@@ -325,7 +326,7 @@ func (fuzzer *Fuzzer) RotateMaxSignal(items int) {
 	fuzzer.Cover.subtract(delta)
 }
 
-func setFlags(execFlags ipc.ExecFlags) ipc.ExecOpts {
+func setFlags(execFlags flatrpc.ExecFlag) ipc.ExecOpts {
 	return ipc.ExecOpts{
 		ExecFlags: execFlags,
 	}

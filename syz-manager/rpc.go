@@ -584,10 +584,10 @@ func (serv *RPCServer) newRequest(runner *Runner, req *queue.Request) (rpctype.E
 func (serv *RPCServer) execOpts() ipc.ExecOpts {
 	env := ipc.FeaturesToFlags(serv.enabledFeatures, nil)
 	if *flagDebug {
-		env |= ipc.FlagDebug
+		env |= flatrpc.ExecEnvDebug
 	}
 	if serv.cfg.Cover {
-		env |= ipc.FlagSignal
+		env |= flatrpc.ExecEnvSignal
 	}
 	sandbox, err := ipc.SandboxToFlags(serv.cfg.Sandbox)
 	if err != nil {
@@ -595,12 +595,12 @@ func (serv *RPCServer) execOpts() ipc.ExecOpts {
 	}
 	env |= sandbox
 
-	exec := ipc.FlagThreaded
+	exec := flatrpc.ExecFlagThreaded
 	if !serv.cfg.RawCover {
-		exec |= ipc.FlagDedupCover
+		exec |= flatrpc.ExecFlagDedupCover
 	}
 	if serv.cfg.HasCovFilter() {
-		exec |= ipc.FlagEnableCoverageFilter
+		exec |= flatrpc.ExecFlagCoverFilter
 	}
 	return ipc.ExecOpts{
 		EnvFlags:   env,

@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
@@ -190,10 +191,10 @@ func emulateExec(req *queue.Request) (*queue.Result, string, error) {
 		cover := uint32(call.Meta.ID*1024) +
 			crc32.Checksum(serializedLines[i], crc32q)%4
 		callInfo := ipc.CallInfo{}
-		if req.ExecOpts.ExecFlags&ipc.FlagCollectCover > 0 {
+		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0 {
 			callInfo.Cover = []uint32{cover}
 		}
-		if req.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0 {
+		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 {
 			callInfo.Signal = []uint32{cover}
 		}
 		info.Calls = append(info.Calls, callInfo)
@@ -285,7 +286,7 @@ func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {
 		t.Fatal(err)
 	}
 	config.Executor = executor
-	execOpts.EnvFlags |= ipc.FlagSignal
+	execOpts.EnvFlags |= flatrpc.ExecEnvSignal
 	env, err := ipc.MakeEnv(config, 0)
 	if err != nil {
 		t.Fatal(err)

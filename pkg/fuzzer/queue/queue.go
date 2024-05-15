@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
@@ -102,15 +103,15 @@ func (r *Request) Risky() bool {
 }
 
 func (r *Request) Validate() error {
-	collectSignal := r.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0
+	collectSignal := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0
 	if r.ReturnAllSignal && !collectSignal {
 		return fmt.Errorf("ReturnAllSignal is set, but FlagCollectSignal is not")
 	}
 	if r.SignalFilter != nil && !collectSignal {
 		return fmt.Errorf("SignalFilter must be used with FlagCollectSignal")
 	}
-	collectComps := r.ExecOpts.ExecFlags&ipc.FlagCollectComps > 0
-	collectCover := r.ExecOpts.ExecFlags&ipc.FlagCollectCover > 0
+	collectComps := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectComps > 0
+	collectCover := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0
 	if (collectComps) && (collectSignal || collectCover) {
 		return fmt.Errorf("hint collection is mutually exclusive with signal/coverage")
 	}

@@ -215,7 +215,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 	for try := 0; ; try++ {
 		output, info, hanged, err := env.ExecProg(callOpts, progData)
 		if err != nil {
-			if ctx.execOpts.EnvFlags&ipc.FlagDebug != 0 {
+			if ctx.execOpts.EnvFlags&flatrpc.ExecEnvDebug != 0 {
 				log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
 			}
 			if try > 10 {
@@ -402,19 +402,19 @@ func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls 
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if execOpts.EnvFlags&ipc.FlagSignal != 0 {
-		execOpts.ExecFlags |= ipc.FlagCollectCover
+	if execOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 {
+		execOpts.ExecFlags |= flatrpc.ExecFlagCollectCover
 	}
 	if *flagCoverFile != "" {
-		execOpts.EnvFlags |= ipc.FlagSignal
-		execOpts.ExecFlags |= ipc.FlagCollectCover
-		execOpts.ExecFlags &^= ipc.FlagDedupCover
+		execOpts.EnvFlags |= flatrpc.ExecEnvSignal
+		execOpts.ExecFlags |= flatrpc.ExecFlagCollectCover
+		execOpts.ExecFlags &^= flatrpc.ExecFlagDedupCover
 	}
 	if *flagHints {
-		if execOpts.ExecFlags&ipc.FlagCollectCover != 0 {
-			execOpts.ExecFlags ^= ipc.FlagCollectCover
+		if execOpts.ExecFlags&flatrpc.ExecFlagCollectCover != 0 {
+			execOpts.ExecFlags ^= flatrpc.ExecFlagCollectCover
 		}
-		execOpts.ExecFlags |= ipc.FlagCollectComps
+		execOpts.ExecFlags |= flatrpc.ExecFlagCollectComps
 	}
 	cfg := &mgrconfig.Config{
 		Sandbox:    ipc.FlagsToSandbox(execOpts.EnvFlags),

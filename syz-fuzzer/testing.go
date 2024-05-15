@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -113,7 +114,7 @@ func checkSimpleProgram(args *checkArgs) error {
 	if info.Calls[0].Errno != 0 {
 		return fmt.Errorf("simple call failed: %+v\n%s", info.Calls[0], output)
 	}
-	if args.ipcExecOpts.EnvFlags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
+	if args.ipcExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 && len(info.Calls[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
 	}
 	return nil

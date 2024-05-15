@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
@@ -35,7 +36,7 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 		fuzzer.ChoiceTable())
 	return &queue.Request{
 		Prog:     p,
-		ExecOpts: setFlags(ipc.FlagCollectSignal),
+		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 		Stat:     fuzzer.statExecGenerate,
 	}
 }
@@ -54,7 +55,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	)
 	return &queue.Request{
 		Prog:     newP,
-		ExecOpts: setFlags(ipc.FlagCollectSignal),
+		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 		Stat:     fuzzer.statExecFuzz,
 	}
 }
@@ -69,7 +70,7 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) (*queue.Request, ProgType
 	}
 	return &queue.Request{
 		Prog:      input.Prog,
-		ExecOpts:  setFlags(ipc.FlagCollectSignal),
+		ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
 		Stat:      fuzzer.statExecCandidate,
 		Important: true,
 	}, flags
@@ -163,7 +164,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgTypes) *queue.Result
 		}
 		result := exec(&queue.Request{
 			Prog:            job.p,
-			ExecOpts:        setFlags(ipc.FlagCollectCover | ipc.FlagCollectSignal),
+			ExecOpts:        setFlags(flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectSignal),
 			ReturnAllSignal: true,
 			Stat:            stat,
 		}, progInTriage)
@@ -202,7 +203,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 			for i := 0; i < minimizeAttempts; i++ {
 				result := job.execute(&queue.Request{
 					Prog:             p1,
-					ExecOpts:         setFlags(ipc.FlagCollectSignal),
+					ExecOpts:         setFlags(flatrpc.ExecFlagCollectSignal),
 					SignalFilter:     newSignal,
 					SignalFilterCall: call1,
 					Stat:             job.fuzzer.statExecMinimize,
@@ -273,7 +274,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.Config.Corpus.Programs())
 		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 			Prog:     p,
-			ExecOpts: setFlags(ipc.FlagCollectSignal),
+			ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 			Stat:     fuzzer.statExecSmash,
 		})
 		if result.Stop() {
@@ -351,7 +352,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	for i := 0; i < 2; i++ {
 		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 			Prog:     p,
-			ExecOpts: setFlags(ipc.FlagCollectComps),
+			ExecOpts: setFlags(flatrpc.ExecFlagCollectComps),
 			Stat:     fuzzer.statExecSeed,
 		})
 		if result.Stop() || result.Info == nil {
@@ -374,7 +375,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		func(p *prog.Prog) bool {
 			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
 				Prog:     p,
-				ExecOpts: setFlags(ipc.FlagCollectSignal),
+				ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 				Stat:     fuzzer.statExecHint,
 			})
 			return !result.Stop()
