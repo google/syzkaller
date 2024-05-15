@@ -25,7 +25,7 @@ func TestLinuxSyscalls(t *testing.T) {
 		// Without sysfs, the checks would also disable mount().
 		"", "sysfs", "ext4", "binder", "",
 	}
-	files := []flatrpc.FileInfo{
+	files := []*flatrpc.FileInfo{
 		{
 			Name:   "/proc/version",
 			Exists: true,
@@ -136,7 +136,7 @@ func TestCannedCPUInfoLinux(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			files := createVirtualFilesystem([]flatrpc.FileInfo{{
+			files := createVirtualFilesystem([]*flatrpc.FileInfo{{
 				Name:   "/proc/cpuinfo",
 				Exists: true,
 				Data:   []byte(test.data),

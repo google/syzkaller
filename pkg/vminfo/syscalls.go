@@ -66,7 +66,7 @@ func newCheckContext(ctx context.Context, cfg *mgrconfig.Config, impl checker,
 	}
 }
 
-func (ctx *checkContext) start(fileInfos []flatrpc.FileInfo) {
+func (ctx *checkContext) start(fileInfos []*flatrpc.FileInfo) {
 	ctx.fs = createVirtualFilesystem(fileInfos)
 	for _, id := range ctx.cfg.Syscalls {
 		call := ctx.target.Syscalls[id]
@@ -101,7 +101,7 @@ func (ctx *checkContext) start(fileInfos []flatrpc.FileInfo) {
 	ctx.startFeaturesCheck()
 }
 
-func (ctx *checkContext) wait(featureInfos []flatrpc.FeatureInfo) (
+func (ctx *checkContext) wait(featureInfos []*flatrpc.FeatureInfo) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	enabled := make(map[*prog.Syscall]bool)
 	disabled := make(map[*prog.Syscall]string)

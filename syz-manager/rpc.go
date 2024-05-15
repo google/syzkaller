@@ -239,14 +239,14 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *rpctype.CheckRes) error {
 	return nil
 }
 
-func (serv *RPCServer) runCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatureInfo []flatrpc.FeatureInfo) {
+func (serv *RPCServer) runCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInfo []*flatrpc.FeatureInfo) {
 	if err := serv.finishCheck(checkFilesInfo, checkFeatureInfo); err != nil {
 		log.Fatalf("check failed: %v", err)
 	}
 	serv.checkDone.Store(true)
 }
 
-func (serv *RPCServer) finishCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatureInfo []flatrpc.FeatureInfo) error {
+func (serv *RPCServer) finishCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInfo []*flatrpc.FeatureInfo) error {
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
 

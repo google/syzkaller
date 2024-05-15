@@ -70,7 +70,7 @@ func (ctx *checkContext) startFeaturesCheck() {
 	}
 }
 
-func (ctx *checkContext) finishFeatures(featureInfos []flatrpc.FeatureInfo) (Features, error) {
+func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Features, error) {
 	// Feature checking consists of 2 parts:
 	//  - we ask executor to try to setup each feature (results are returned in featureInfos)
 	//  - we also try to run a simple program with feature-specific flags
