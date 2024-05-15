@@ -51,7 +51,7 @@ table InfoRequestRaw {
 }
 
 table InfoReplyRaw {
-	cover_filter		:[uint32];
+	cover_filter		:[uint8];
 }
 
 table FileInfoRaw {

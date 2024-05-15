@@ -958,7 +958,7 @@ flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(flatbuffers::FlatBuffer
 
 struct InfoReplyRawT : public flatbuffers::NativeTable {
   typedef InfoReplyRaw TableType;
-  std::vector<uint32_t> cover_filter{};
+  std::vector<uint8_t> cover_filter{};
 };
 
 struct InfoReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -967,8 +967,8 @@ struct InfoReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COVER_FILTER = 4
   };
-  const flatbuffers::Vector<uint32_t> *cover_filter() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_COVER_FILTER);
+  const flatbuffers::Vector<uint8_t> *cover_filter() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_COVER_FILTER);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -985,7 +985,7 @@ struct InfoReplyRawBuilder {
   typedef InfoReplyRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_cover_filter(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover_filter) {
+  void add_cover_filter(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> cover_filter) {
     fbb_.AddOffset(InfoReplyRaw::VT_COVER_FILTER, cover_filter);
   }
   explicit InfoReplyRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1001,7 +1001,7 @@ struct InfoReplyRawBuilder {
 
 inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> cover_filter = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> cover_filter = 0) {
   InfoReplyRawBuilder builder_(_fbb);
   builder_.add_cover_filter(cover_filter);
   return builder_.Finish();
@@ -1009,8 +1009,8 @@ inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(
 
 inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint32_t> *cover_filter = nullptr) {
-  auto cover_filter__ = cover_filter ? _fbb.CreateVector<uint32_t>(*cover_filter) : 0;
+    const std::vector<uint8_t> *cover_filter = nullptr) {
+  auto cover_filter__ = cover_filter ? _fbb.CreateVector<uint8_t>(*cover_filter) : 0;
   return rpc::CreateInfoReplyRaw(
       _fbb,
       cover_filter__);
@@ -2303,7 +2303,7 @@ inline InfoReplyRawT *InfoReplyRaw::UnPack(const flatbuffers::resolver_function_
 inline void InfoReplyRaw::UnPackTo(InfoReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = cover_filter(); if (_e) { _o->cover_filter.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cover_filter[_i] = _e->Get(_i); } } }
+  { auto _e = cover_filter(); if (_e) { _o->cover_filter.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->cover_filter.begin()); } }
 }
 
 inline flatbuffers::Offset<InfoReplyRaw> InfoReplyRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
