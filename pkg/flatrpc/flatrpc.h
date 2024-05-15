@@ -63,10 +63,6 @@ struct ExecutingMessageRaw;
 struct ExecutingMessageRawBuilder;
 struct ExecutingMessageRawT;
 
-struct StatsMessageRaw;
-struct StatsMessageRawBuilder;
-struct StatsMessageRawT;
-
 struct CallInfoRaw;
 struct CallInfoRawBuilder;
 struct CallInfoRawT;
@@ -271,34 +267,31 @@ enum class ExecutorMessagesRaw : uint8_t {
   NONE = 0,
   ExecResult = 1,
   Executing = 2,
-  Stats = 3,
   MIN = NONE,
-  MAX = Stats
+  MAX = Executing
 };
 
-inline const ExecutorMessagesRaw (&EnumValuesExecutorMessagesRaw())[4] {
+inline const ExecutorMessagesRaw (&EnumValuesExecutorMessagesRaw())[3] {
   static const ExecutorMessagesRaw values[] = {
     ExecutorMessagesRaw::NONE,
     ExecutorMessagesRaw::ExecResult,
-    ExecutorMessagesRaw::Executing,
-    ExecutorMessagesRaw::Stats
+    ExecutorMessagesRaw::Executing
   };
   return values;
 }
 
 inline const char * const *EnumNamesExecutorMessagesRaw() {
-  static const char * const names[5] = {
+  static const char * const names[4] = {
     "NONE",
     "ExecResult",
     "Executing",
-    "Stats",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameExecutorMessagesRaw(ExecutorMessagesRaw e) {
-  if (flatbuffers::IsOutRange(e, ExecutorMessagesRaw::NONE, ExecutorMessagesRaw::Stats)) return "";
+  if (flatbuffers::IsOutRange(e, ExecutorMessagesRaw::NONE, ExecutorMessagesRaw::Executing)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesExecutorMessagesRaw()[index];
 }
@@ -315,10 +308,6 @@ template<> struct ExecutorMessagesRawTraits<rpc::ExecutingMessageRaw> {
   static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Executing;
 };
 
-template<> struct ExecutorMessagesRawTraits<rpc::StatsMessageRaw> {
-  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Stats;
-};
-
 template<typename T> struct ExecutorMessagesRawUnionTraits {
   static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::NONE;
 };
@@ -329,10 +318,6 @@ template<> struct ExecutorMessagesRawUnionTraits<rpc::ExecResultRawT> {
 
 template<> struct ExecutorMessagesRawUnionTraits<rpc::ExecutingMessageRawT> {
   static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Executing;
-};
-
-template<> struct ExecutorMessagesRawUnionTraits<rpc::StatsMessageRawT> {
-  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Stats;
 };
 
 struct ExecutorMessagesRawUnion {
@@ -380,14 +365,6 @@ struct ExecutorMessagesRawUnion {
   const rpc::ExecutingMessageRawT *AsExecuting() const {
     return type == ExecutorMessagesRaw::Executing ?
       reinterpret_cast<const rpc::ExecutingMessageRawT *>(value) : nullptr;
-  }
-  rpc::StatsMessageRawT *AsStats() {
-    return type == ExecutorMessagesRaw::Stats ?
-      reinterpret_cast<rpc::StatsMessageRawT *>(value) : nullptr;
-  }
-  const rpc::StatsMessageRawT *AsStats() const {
-    return type == ExecutorMessagesRaw::Stats ?
-      reinterpret_cast<const rpc::StatsMessageRawT *>(value) : nullptr;
   }
 };
 
@@ -1392,9 +1369,6 @@ struct ExecutorMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const rpc::ExecutingMessageRaw *msg_as_Executing() const {
     return msg_type() == rpc::ExecutorMessagesRaw::Executing ? static_cast<const rpc::ExecutingMessageRaw *>(msg()) : nullptr;
   }
-  const rpc::StatsMessageRaw *msg_as_Stats() const {
-    return msg_type() == rpc::ExecutorMessagesRaw::Stats ? static_cast<const rpc::StatsMessageRaw *>(msg()) : nullptr;
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
@@ -1413,10 +1387,6 @@ template<> inline const rpc::ExecResultRaw *ExecutorMessageRaw::msg_as<rpc::Exec
 
 template<> inline const rpc::ExecutingMessageRaw *ExecutorMessageRaw::msg_as<rpc::ExecutingMessageRaw>() const {
   return msg_as_Executing();
-}
-
-template<> inline const rpc::StatsMessageRaw *ExecutorMessageRaw::msg_as<rpc::StatsMessageRaw>() const {
-  return msg_as_Stats();
 }
 
 struct ExecutorMessageRawBuilder {
@@ -1702,6 +1672,7 @@ struct ExecutingMessageRawT : public flatbuffers::NativeTable {
   int64_t id = 0;
   int32_t proc_id = 0;
   int32_t try_ = 0;
+  int64_t wait_duration = 0;
 };
 
 struct ExecutingMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1710,7 +1681,8 @@ struct ExecutingMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_PROC_ID = 6,
-    VT_TRY_ = 8
+    VT_TRY_ = 8,
+    VT_WAIT_DURATION = 10
   };
   int64_t id() const {
     return GetField<int64_t>(VT_ID, 0);
@@ -1721,11 +1693,15 @@ struct ExecutingMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   int32_t try_() const {
     return GetField<int32_t>(VT_TRY_, 0);
   }
+  int64_t wait_duration() const {
+    return GetField<int64_t>(VT_WAIT_DURATION, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyField<int32_t>(verifier, VT_PROC_ID, 4) &&
            VerifyField<int32_t>(verifier, VT_TRY_, 4) &&
+           VerifyField<int64_t>(verifier, VT_WAIT_DURATION, 8) &&
            verifier.EndTable();
   }
   ExecutingMessageRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1746,6 +1722,9 @@ struct ExecutingMessageRawBuilder {
   void add_try_(int32_t try_) {
     fbb_.AddElement<int32_t>(ExecutingMessageRaw::VT_TRY_, try_, 0);
   }
+  void add_wait_duration(int64_t wait_duration) {
+    fbb_.AddElement<int64_t>(ExecutingMessageRaw::VT_WAIT_DURATION, wait_duration, 0);
+  }
   explicit ExecutingMessageRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1761,8 +1740,10 @@ inline flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
     int32_t proc_id = 0,
-    int32_t try_ = 0) {
+    int32_t try_ = 0,
+    int64_t wait_duration = 0) {
   ExecutingMessageRawBuilder builder_(_fbb);
+  builder_.add_wait_duration(wait_duration);
   builder_.add_id(id);
   builder_.add_try_(try_);
   builder_.add_proc_id(proc_id);
@@ -1770,69 +1751,6 @@ inline flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(
 }
 
 flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct StatsMessageRawT : public flatbuffers::NativeTable {
-  typedef StatsMessageRaw TableType;
-  int64_t noexec_count = 0;
-  int64_t noexec_duration = 0;
-};
-
-struct StatsMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef StatsMessageRawT NativeTableType;
-  typedef StatsMessageRawBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NOEXEC_COUNT = 4,
-    VT_NOEXEC_DURATION = 6
-  };
-  int64_t noexec_count() const {
-    return GetField<int64_t>(VT_NOEXEC_COUNT, 0);
-  }
-  int64_t noexec_duration() const {
-    return GetField<int64_t>(VT_NOEXEC_DURATION, 0);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<int64_t>(verifier, VT_NOEXEC_COUNT, 8) &&
-           VerifyField<int64_t>(verifier, VT_NOEXEC_DURATION, 8) &&
-           verifier.EndTable();
-  }
-  StatsMessageRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(StatsMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<StatsMessageRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct StatsMessageRawBuilder {
-  typedef StatsMessageRaw Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_noexec_count(int64_t noexec_count) {
-    fbb_.AddElement<int64_t>(StatsMessageRaw::VT_NOEXEC_COUNT, noexec_count, 0);
-  }
-  void add_noexec_duration(int64_t noexec_duration) {
-    fbb_.AddElement<int64_t>(StatsMessageRaw::VT_NOEXEC_DURATION, noexec_duration, 0);
-  }
-  explicit StatsMessageRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<StatsMessageRaw> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<StatsMessageRaw>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<StatsMessageRaw> CreateStatsMessageRaw(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    int64_t noexec_count = 0,
-    int64_t noexec_duration = 0) {
-  StatsMessageRawBuilder builder_(_fbb);
-  builder_.add_noexec_duration(noexec_duration);
-  builder_.add_noexec_count(noexec_count);
-  return builder_.Finish();
-}
-
-flatbuffers::Offset<StatsMessageRaw> CreateStatsMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct CallInfoRawT : public flatbuffers::NativeTable {
   typedef CallInfoRaw TableType;
@@ -2564,6 +2482,7 @@ inline void ExecutingMessageRaw::UnPackTo(ExecutingMessageRawT *_o, const flatbu
   { auto _e = id(); _o->id = _e; }
   { auto _e = proc_id(); _o->proc_id = _e; }
   { auto _e = try_(); _o->try_ = _e; }
+  { auto _e = wait_duration(); _o->wait_duration = _e; }
 }
 
 inline flatbuffers::Offset<ExecutingMessageRaw> ExecutingMessageRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2577,40 +2496,13 @@ inline flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(flatbu
   auto _id = _o->id;
   auto _proc_id = _o->proc_id;
   auto _try_ = _o->try_;
+  auto _wait_duration = _o->wait_duration;
   return rpc::CreateExecutingMessageRaw(
       _fbb,
       _id,
       _proc_id,
-      _try_);
-}
-
-inline StatsMessageRawT *StatsMessageRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<StatsMessageRawT>(new StatsMessageRawT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void StatsMessageRaw::UnPackTo(StatsMessageRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = noexec_count(); _o->noexec_count = _e; }
-  { auto _e = noexec_duration(); _o->noexec_duration = _e; }
-}
-
-inline flatbuffers::Offset<StatsMessageRaw> StatsMessageRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateStatsMessageRaw(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<StatsMessageRaw> CreateStatsMessageRaw(flatbuffers::FlatBufferBuilder &_fbb, const StatsMessageRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StatsMessageRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _noexec_count = _o->noexec_count;
-  auto _noexec_duration = _o->noexec_duration;
-  return rpc::CreateStatsMessageRaw(
-      _fbb,
-      _noexec_count,
-      _noexec_duration);
+      _try_,
+      _wait_duration);
 }
 
 inline CallInfoRawT *CallInfoRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -2857,10 +2749,6 @@ inline bool VerifyExecutorMessagesRaw(flatbuffers::Verifier &verifier, const voi
       auto ptr = reinterpret_cast<const rpc::ExecutingMessageRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ExecutorMessagesRaw::Stats: {
-      auto ptr = reinterpret_cast<const rpc::StatsMessageRaw *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
     default: return true;
   }
 }
@@ -2888,10 +2776,6 @@ inline void *ExecutorMessagesRawUnion::UnPack(const void *obj, ExecutorMessagesR
       auto ptr = reinterpret_cast<const rpc::ExecutingMessageRaw *>(obj);
       return ptr->UnPack(resolver);
     }
-    case ExecutorMessagesRaw::Stats: {
-      auto ptr = reinterpret_cast<const rpc::StatsMessageRaw *>(obj);
-      return ptr->UnPack(resolver);
-    }
     default: return nullptr;
   }
 }
@@ -2907,10 +2791,6 @@ inline flatbuffers::Offset<void> ExecutorMessagesRawUnion::Pack(flatbuffers::Fla
       auto ptr = reinterpret_cast<const rpc::ExecutingMessageRawT *>(value);
       return CreateExecutingMessageRaw(_fbb, ptr, _rehasher).Union();
     }
-    case ExecutorMessagesRaw::Stats: {
-      auto ptr = reinterpret_cast<const rpc::StatsMessageRawT *>(value);
-      return CreateStatsMessageRaw(_fbb, ptr, _rehasher).Union();
-    }
     default: return 0;
   }
 }
@@ -2923,10 +2803,6 @@ inline ExecutorMessagesRawUnion::ExecutorMessagesRawUnion(const ExecutorMessages
     }
     case ExecutorMessagesRaw::Executing: {
       value = new rpc::ExecutingMessageRawT(*reinterpret_cast<rpc::ExecutingMessageRawT *>(u.value));
-      break;
-    }
-    case ExecutorMessagesRaw::Stats: {
-      value = new rpc::StatsMessageRawT(*reinterpret_cast<rpc::StatsMessageRawT *>(u.value));
       break;
     }
     default:
@@ -2943,11 +2819,6 @@ inline void ExecutorMessagesRawUnion::Reset() {
     }
     case ExecutorMessagesRaw::Executing: {
       auto ptr = reinterpret_cast<rpc::ExecutingMessageRawT *>(value);
-      delete ptr;
-      break;
-    }
-    case ExecutorMessagesRaw::Stats: {
-      auto ptr = reinterpret_cast<rpc::StatsMessageRawT *>(value);
       delete ptr;
       break;
     }

@@ -86,7 +86,6 @@ table HostMessageRaw {
 union ExecutorMessagesRaw {
 	ExecResult		:ExecResultRaw,
 	Executing		:ExecutingMessageRaw,
-	Stats			:StatsMessageRaw,
 }
 
 table ExecutorMessageRaw {
@@ -163,11 +162,8 @@ table ExecutingMessageRaw {
 	id			:int64;
 	proc_id			:int32;
 	try			:int32;
-}
-
-table StatsMessageRaw {
-	noexec_count		:int64;
-	noexec_duration		:int64;
+	// How long proc waited to receive the request (ns).
+	wait_duration		:int64;
 }
 
 enum CallFlag : uint8 (bit_flags) {
