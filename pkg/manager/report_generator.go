@@ -35,7 +35,7 @@ func (w *ReportGeneratorWrapper) Get() (*cover.ReportGenerator, error) {
 	}
 	if w.cached == nil {
 		log.Logf(0, "initializing coverage information...")
-		rg, err := cover.MakeReportGenerator(w.cfg, w.cfg.KernelSubsystem, w.modules, w.cfg.RawCover)
+		rg, err := cover.MakeReportGenerator(w.cfg, w.modules)
 		if err != nil {
 			return nil, err
 		}

@@ -33,14 +33,13 @@ func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
 	return backend.GetPCBase(cfg)
 }
 
-func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
-	modules []*vminfo.KernelModule, rawCover bool) (*ReportGenerator, error) {
+func MakeReportGenerator(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
 		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
 		return nil, err
 	}
-	subsystem = append(subsystem, mgrconfig.Subsystem{
+	cfg.KernelSubsystem = append(cfg.KernelSubsystem, mgrconfig.Subsystem{
 		Name:  "all",
 		Paths: []string{""},
 	})
@@ -48,8 +47,8 @@ func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
 		target:          cfg.SysTarget,
 		srcDir:          cfg.KernelSrc,
 		buildDir:        cfg.KernelBuildSrc,
-		subsystem:       subsystem,
-		rawCoverEnabled: rawCover,
+		subsystem:       cfg.KernelSubsystem,
+		rawCoverEnabled: cfg.RawCover,
 		Impl:            impl,
 	}
 	return rg, nil
