@@ -129,7 +129,7 @@ func main() {
 		tool.Fail(err)
 	}
 	modules := initModules(cfg)
-	rg, err := cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, false)
+	rg, err := cover.MakeReportGenerator(cfg, modules)
 	if err != nil {
 		tool.Fail(err)
 	}

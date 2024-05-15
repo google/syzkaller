@@ -309,7 +309,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		KernelBuildSrc: dir,
 		Type:           "",
 	}
-	subsystem := []mgrconfig.Subsystem{
+	cfg.KernelSubsystem = []mgrconfig.Subsystem{
 		{
 			Name: "sound",
 			Paths: []string{
@@ -330,7 +330,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: append([]uint64{}, p.PCs...)})
 	}
 
-	rg, err := MakeReportGenerator(cfg, subsystem, modules, false)
+	rg, err := MakeReportGenerator(cfg, modules)
 	if err != nil {
 		return nil, err
 	}
