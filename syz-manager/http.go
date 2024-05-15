@@ -278,10 +278,10 @@ func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
 
 const (
 	DoHTML int = iota
-	DoHTMLTable
+	DoSubsystemCover
 	DoModuleCover
-	DoCSV
-	DoCSVFiles
+	DoFuncCover
+	DoFileCover
 	DoRawCoverFiles
 	DoRawCover
 	DoFilterPCs
@@ -305,7 +305,7 @@ func (mgr *Manager) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
 		mgr.httpCoverFallback(w, r)
 		return
 	}
-	mgr.httpCoverCover(w, r, DoHTMLTable)
+	mgr.httpCoverCover(w, r, DoSubsystemCover)
 }
 
 func (mgr *Manager) httpModuleCover(w http.ResponseWriter, r *http.Request) {
@@ -407,15 +407,15 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		Do          handlerFuncType
 		contentType string
 	}{
-		DoHTML:          {rg.DoHTML, ""},
-		DoHTMLTable:     {rg.DoHTMLTable, ""},
-		DoModuleCover:   {rg.DoModuleCover, ""},
-		DoCSV:           {rg.DoCSV, ctTextPlain},
-		DoCSVFiles:      {rg.DoCSVFiles, ctTextPlain},
-		DoRawCoverFiles: {rg.DoRawCoverFiles, ctTextPlain},
-		DoRawCover:      {rg.DoRawCover, ctTextPlain},
-		DoFilterPCs:     {rg.DoFilterPCs, ctTextPlain},
-		DoCoverJSONL:    {rg.DoCoverJSONL, ctApplicationJSON},
+		DoHTML:           {rg.DoHTML, ""},
+		DoSubsystemCover: {rg.DoSubsystemCover, ""},
+		DoModuleCover:    {rg.DoModuleCover, ""},
+		DoFuncCover:      {rg.DoFuncCover, ctTextPlain},
+		DoFileCover:      {rg.DoFileCover, ctTextPlain},
+		DoRawCoverFiles:  {rg.DoRawCoverFiles, ctTextPlain},
+		DoRawCover:       {rg.DoRawCover, ctTextPlain},
+		DoFilterPCs:      {rg.DoFilterPCs, ctTextPlain},
+		DoCoverJSONL:     {rg.DoCoverJSONL, ctApplicationJSON},
 	}
 
 	if ct := flagToFunc[funcFlag].contentType; ct != "" {
@@ -458,11 +458,11 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoCSV)
+	mgr.httpCoverCover(w, r, DoFuncCover)
 }
 
 func (mgr *Manager) httpFileCover(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoCSVFiles)
+	mgr.httpCoverCover(w, r, DoFileCover)
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
