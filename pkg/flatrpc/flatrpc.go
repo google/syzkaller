@@ -2710,17 +2710,16 @@ func ProgInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type ExecResultRawT struct {
-	Executing *ExecutingMessageRawT `json:"executing"`
-	Output    []byte                `json:"output"`
-	Error     string                `json:"error"`
-	Info      *ProgInfoRawT         `json:"info"`
+	Id     int64         `json:"id"`
+	Output []byte        `json:"output"`
+	Error  string        `json:"error"`
+	Info   *ProgInfoRawT `json:"info"`
 }
 
 func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
-	executingOffset := t.Executing.Pack(builder)
 	outputOffset := flatbuffers.UOffsetT(0)
 	if t.Output != nil {
 		outputOffset = builder.CreateByteString(t.Output)
@@ -2728,7 +2727,7 @@ func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 	errorOffset := builder.CreateString(t.Error)
 	infoOffset := t.Info.Pack(builder)
 	ExecResultRawStart(builder)
-	ExecResultRawAddExecuting(builder, executingOffset)
+	ExecResultRawAddId(builder, t.Id)
 	ExecResultRawAddOutput(builder, outputOffset)
 	ExecResultRawAddError(builder, errorOffset)
 	ExecResultRawAddInfo(builder, infoOffset)
@@ -2736,7 +2735,7 @@ func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
 func (rcv *ExecResultRaw) UnPackTo(t *ExecResultRawT) {
-	t.Executing = rcv.Executing(nil).UnPack()
+	t.Id = rcv.Id()
 	t.Output = rcv.OutputBytes()
 	t.Error = string(rcv.Error())
 	t.Info = rcv.Info(nil).UnPack()
@@ -2778,17 +2777,16 @@ func (rcv *ExecResultRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ExecResultRaw) Executing(obj *ExecutingMessageRaw) *ExecutingMessageRaw {
+func (rcv *ExecResultRaw) Id() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(ExecutingMessageRaw)
-		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
 	}
-	return nil
+	return 0
+}
+
+func (rcv *ExecResultRaw) MutateId(n int64) bool {
+	return rcv._tab.MutateInt64Slot(4, n)
 }
 
 func (rcv *ExecResultRaw) Output(j int) byte {
@@ -2849,8 +2847,8 @@ func (rcv *ExecResultRaw) Info(obj *ProgInfoRaw) *ProgInfoRaw {
 func ExecResultRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func ExecResultRawAddExecuting(builder *flatbuffers.Builder, executing flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(executing), 0)
+func ExecResultRawAddId(builder *flatbuffers.Builder, id int64) {
+	builder.PrependInt64Slot(0, id, 0)
 }
 func ExecResultRawAddOutput(builder *flatbuffers.Builder, output flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(output), 0)

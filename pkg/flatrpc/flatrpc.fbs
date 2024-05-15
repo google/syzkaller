@@ -207,8 +207,8 @@ table ProgInfoRaw {
 
 // Result of executing a test program.
 table ExecResultRaw {
-	executing	:ExecutingMessageRaw;
-	output		:[uint8];
-	error		:string;
-	info		:ProgInfoRaw;
+	id			:int64;
+	output			:[uint8];
+	error			:string;
+	info			:ProgInfoRaw;
 }
