@@ -74,10 +74,10 @@ func TestSyscalls(t *testing.T) {
 	}
 }
 
-func allFeatures() []flatrpc.FeatureInfo {
-	var features []flatrpc.FeatureInfo
+func allFeatures() []*flatrpc.FeatureInfo {
+	var features []*flatrpc.FeatureInfo
 	for feat := range flatrpc.EnumNamesFeature {
-		features = append(features, flatrpc.FeatureInfo{
+		features = append(features, &flatrpc.FeatureInfo{
 			Id: feat,
 		})
 	}
@@ -120,7 +120,7 @@ func createSuccessfulResults(source queue.Source, stop chan struct{}) {
 	}
 }
 
-func hostChecker(t *testing.T) (*Checker, []flatrpc.FileInfo) {
+func hostChecker(t *testing.T) (*Checker, []*flatrpc.FileInfo) {
 	cfg := testConfig(t, runtime.GOOS, runtime.GOARCH)
 	checker := New(cfg)
 	files := host.ReadFiles(checker.RequiredFiles())

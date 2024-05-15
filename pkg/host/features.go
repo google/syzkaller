@@ -21,12 +21,12 @@ import (
 // SetupFeatures enables and does any one-time setup for the requested features on the host.
 // Note: this can be called multiple times and must be idempotent.
 func SetupFeatures(target *prog.Target, executor string, mask flatrpc.Feature, flags csource.Features) (
-	[]flatrpc.FeatureInfo, error) {
+	[]*flatrpc.FeatureInfo, error) {
 	if noHostChecks(target) {
 		return nil, nil
 	}
-	var results []flatrpc.FeatureInfo
-	resultC := make(chan flatrpc.FeatureInfo)
+	var results []*flatrpc.FeatureInfo
+	resultC := make(chan *flatrpc.FeatureInfo)
 	for feat := range flatrpc.EnumNamesFeature {
 		feat := feat
 		if mask&feat == 0 {
@@ -36,7 +36,7 @@ func SetupFeatures(target *prog.Target, executor string, mask flatrpc.Feature, f
 		if opt != "" && flags != nil && !flags["binfmt_misc"].Enabled {
 			continue
 		}
-		results = append(results, flatrpc.FeatureInfo{})
+		results = append(results, nil)
 		go setupFeature(executor, feat, resultC)
 	}
 	// Feature 0 setups common things that are not part of any feature.
@@ -47,7 +47,7 @@ func SetupFeatures(target *prog.Target, executor string, mask flatrpc.Feature, f
 	return results, nil
 }
 
-func setupFeature(executor string, feat flatrpc.Feature, resultC chan flatrpc.FeatureInfo) {
+func setupFeature(executor string, feat flatrpc.Feature, resultC chan *flatrpc.FeatureInfo) {
 	args := strings.Split(executor, " ")
 	executor = args[0]
 	args = append(args[1:], "setup", fmt.Sprint(uint64(feat)))
@@ -65,7 +65,7 @@ func setupFeature(executor string, feat flatrpc.Feature, resultC chan flatrpc.Fe
 		outputStr = ""
 	}
 	if resultC != nil {
-		resultC <- flatrpc.FeatureInfo{
+		resultC <- &flatrpc.FeatureInfo{
 			Id:        feat,
 			NeedSetup: needSetup,
 			Reason:    outputStr,

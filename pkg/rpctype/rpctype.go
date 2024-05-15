@@ -101,9 +101,9 @@ type ConnectRes struct {
 type CheckArgs struct {
 	Name     string
 	Error    string
-	Features []flatrpc.FeatureInfo
+	Features []*flatrpc.FeatureInfo
 	Globs    map[string][]string
-	Files    []flatrpc.FileInfo
+	Files    []*flatrpc.FileInfo
 }
 
 type CheckRes struct {
