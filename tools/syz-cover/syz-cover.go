@@ -161,7 +161,7 @@ func main() {
 		Progs: progs,
 	}
 	if *flagExportCSV != "" {
-		if err := rg.DoCSV(buf, params); err != nil {
+		if err := rg.DoFuncCover(buf, params); err != nil {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExportCSV, buf.Bytes()); err != nil {
