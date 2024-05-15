@@ -22,7 +22,6 @@ type ExecutorMessage = ExecutorMessageRawT
 type ExecRequest = ExecRequestRawT
 type SignalUpdate = SignalUpdateRawT
 type ExecutingMessage = ExecutingMessageRawT
-type StatsMessage = StatsMessageRawT
 type CallInfo = CallInfoRawT
 type Comparison = ComparisonRawT
 type ProgInfo = ProgInfoRawT

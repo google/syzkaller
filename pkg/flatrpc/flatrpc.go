@@ -149,21 +149,18 @@ const (
 	ExecutorMessagesRawNONE       ExecutorMessagesRaw = 0
 	ExecutorMessagesRawExecResult ExecutorMessagesRaw = 1
 	ExecutorMessagesRawExecuting  ExecutorMessagesRaw = 2
-	ExecutorMessagesRawStats      ExecutorMessagesRaw = 3
 )
 
 var EnumNamesExecutorMessagesRaw = map[ExecutorMessagesRaw]string{
 	ExecutorMessagesRawNONE:       "NONE",
 	ExecutorMessagesRawExecResult: "ExecResult",
 	ExecutorMessagesRawExecuting:  "Executing",
-	ExecutorMessagesRawStats:      "Stats",
 }
 
 var EnumValuesExecutorMessagesRaw = map[string]ExecutorMessagesRaw{
 	"NONE":       ExecutorMessagesRawNONE,
 	"ExecResult": ExecutorMessagesRawExecResult,
 	"Executing":  ExecutorMessagesRawExecuting,
-	"Stats":      ExecutorMessagesRawStats,
 }
 
 func (v ExecutorMessagesRaw) String() string {
@@ -187,8 +184,6 @@ func (t *ExecutorMessagesRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UO
 		return t.Value.(*ExecResultRawT).Pack(builder)
 	case ExecutorMessagesRawExecuting:
 		return t.Value.(*ExecutingMessageRawT).Pack(builder)
-	case ExecutorMessagesRawStats:
-		return t.Value.(*StatsMessageRawT).Pack(builder)
 	}
 	return 0
 }
@@ -201,9 +196,6 @@ func (rcv ExecutorMessagesRaw) UnPack(table flatbuffers.Table) *ExecutorMessages
 	case ExecutorMessagesRawExecuting:
 		x := ExecutingMessageRaw{_tab: table}
 		return &ExecutorMessagesRawT{Type: ExecutorMessagesRawExecuting, Value: x.UnPack()}
-	case ExecutorMessagesRawStats:
-		x := StatsMessageRaw{_tab: table}
-		return &ExecutorMessagesRawT{Type: ExecutorMessagesRawStats, Value: x.UnPack()}
 	}
 	return nil
 }
@@ -2054,9 +2046,10 @@ func SignalUpdateRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type ExecutingMessageRawT struct {
-	Id     int64 `json:"id"`
-	ProcId int32 `json:"proc_id"`
-	Try    int32 `json:"try"`
+	Id           int64 `json:"id"`
+	ProcId       int32 `json:"proc_id"`
+	Try          int32 `json:"try"`
+	WaitDuration int64 `json:"wait_duration"`
 }
 
 func (t *ExecutingMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -2067,6 +2060,7 @@ func (t *ExecutingMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UO
 	ExecutingMessageRawAddId(builder, t.Id)
 	ExecutingMessageRawAddProcId(builder, t.ProcId)
 	ExecutingMessageRawAddTry(builder, t.Try)
+	ExecutingMessageRawAddWaitDuration(builder, t.WaitDuration)
 	return ExecutingMessageRawEnd(builder)
 }
 
@@ -2074,6 +2068,7 @@ func (rcv *ExecutingMessageRaw) UnPackTo(t *ExecutingMessageRawT) {
 	t.Id = rcv.Id()
 	t.ProcId = rcv.ProcId()
 	t.Try = rcv.Try()
+	t.WaitDuration = rcv.WaitDuration()
 }
 
 func (rcv *ExecutingMessageRaw) UnPack() *ExecutingMessageRawT {
@@ -2148,8 +2143,20 @@ func (rcv *ExecutingMessageRaw) MutateTry(n int32) bool {
 	return rcv._tab.MutateInt32Slot(8, n)
 }
 
+func (rcv *ExecutingMessageRaw) WaitDuration() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ExecutingMessageRaw) MutateWaitDuration(n int64) bool {
+	return rcv._tab.MutateInt64Slot(10, n)
+}
+
 func ExecutingMessageRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(4)
 }
 func ExecutingMessageRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
@@ -2160,100 +2167,10 @@ func ExecutingMessageRawAddProcId(builder *flatbuffers.Builder, procId int32) {
 func ExecutingMessageRawAddTry(builder *flatbuffers.Builder, try int32) {
 	builder.PrependInt32Slot(2, try, 0)
 }
+func ExecutingMessageRawAddWaitDuration(builder *flatbuffers.Builder, waitDuration int64) {
+	builder.PrependInt64Slot(3, waitDuration, 0)
+}
 func ExecutingMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
-}
-
-type StatsMessageRawT struct {
-	NoexecCount    int64 `json:"noexec_count"`
-	NoexecDuration int64 `json:"noexec_duration"`
-}
-
-func (t *StatsMessageRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
-		return 0
-	}
-	StatsMessageRawStart(builder)
-	StatsMessageRawAddNoexecCount(builder, t.NoexecCount)
-	StatsMessageRawAddNoexecDuration(builder, t.NoexecDuration)
-	return StatsMessageRawEnd(builder)
-}
-
-func (rcv *StatsMessageRaw) UnPackTo(t *StatsMessageRawT) {
-	t.NoexecCount = rcv.NoexecCount()
-	t.NoexecDuration = rcv.NoexecDuration()
-}
-
-func (rcv *StatsMessageRaw) UnPack() *StatsMessageRawT {
-	if rcv == nil {
-		return nil
-	}
-	t := &StatsMessageRawT{}
-	rcv.UnPackTo(t)
-	return t
-}
-
-type StatsMessageRaw struct {
-	_tab flatbuffers.Table
-}
-
-func GetRootAsStatsMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *StatsMessageRaw {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &StatsMessageRaw{}
-	x.Init(buf, n+offset)
-	return x
-}
-
-func GetSizePrefixedRootAsStatsMessageRaw(buf []byte, offset flatbuffers.UOffsetT) *StatsMessageRaw {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &StatsMessageRaw{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
-}
-
-func (rcv *StatsMessageRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
-}
-
-func (rcv *StatsMessageRaw) Table() flatbuffers.Table {
-	return rcv._tab
-}
-
-func (rcv *StatsMessageRaw) NoexecCount() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *StatsMessageRaw) MutateNoexecCount(n int64) bool {
-	return rcv._tab.MutateInt64Slot(4, n)
-}
-
-func (rcv *StatsMessageRaw) NoexecDuration() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *StatsMessageRaw) MutateNoexecDuration(n int64) bool {
-	return rcv._tab.MutateInt64Slot(6, n)
-}
-
-func StatsMessageRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
-}
-func StatsMessageRawAddNoexecCount(builder *flatbuffers.Builder, noexecCount int64) {
-	builder.PrependInt64Slot(0, noexecCount, 0)
-}
-func StatsMessageRawAddNoexecDuration(builder *flatbuffers.Builder, noexecDuration int64) {
-	builder.PrependInt64Slot(1, noexecDuration, 0)
-}
-func StatsMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
