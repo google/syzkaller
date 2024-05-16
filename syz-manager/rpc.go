@@ -34,10 +34,12 @@ type RPCServer struct {
 	checker *vminfo.Checker
 	port    int
 
-	infoDone         bool
-	checkDone        atomic.Bool
-	checkFailures    int
+	infoDone      bool
+	checkDone     atomic.Bool
+	checkFailures int
+
 	checkerSource    *queue.DynamicSource
+	baseSource       *queue.DynamicSource
 	enabledFeatures  flatrpc.Feature
 	setupFeatures    flatrpc.Feature
 	modules          []cover.KernelModule
@@ -93,19 +95,20 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	currentBugFrames() BugFrames
-	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool, opts ipc.ExecOpts)
+	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
+		opts ipc.ExecOpts) queue.Source
 }
 
-func startRPCServer(mgr *Manager, source queue.Source) (*RPCServer, error) {
-	var checkSource queue.DynamicSource
+func startRPCServer(mgr *Manager) (*RPCServer, error) {
+	var baseSource queue.DynamicSource
 	serv := &RPCServer{
-		mgr:           mgr,
-		cfg:           mgr.cfg,
-		target:        mgr.target,
-		checker:       vminfo.New(mgr.cfg),
-		checkerSource: &checkSource,
-		execSource:    queue.Retry(queue.Order(&checkSource, source)),
-		statExecs:     mgr.statExecs,
+		mgr:        mgr,
+		cfg:        mgr.cfg,
+		target:     mgr.target,
+		checker:    vminfo.New(mgr.cfg),
+		baseSource: &baseSource,
+		execSource: queue.Retry(&baseSource),
+		statExecs:  mgr.statExecs,
 		statExecRetries: stats.Create("exec retries",
 			"Number of times a test program was restarted because the first run failed",
 			stats.Rate{}, stats.Graph("executor")),
@@ -129,7 +132,7 @@ func startRPCServer(mgr *Manager, source queue.Source) (*RPCServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	checkSource.Store(serv.checker)
+	baseSource.Store(serv.checker)
 
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	serv.port = s.Addr().(*net.TCPAddr).Port
@@ -241,7 +244,6 @@ func (serv *RPCServer) runCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatureI
 	if err := serv.finishCheck(checkFilesInfo, checkFeatureInfo); err != nil {
 		log.Fatalf("check failed: %v", err)
 	}
-	serv.checkerSource.Store(nil) // There's no sense in calling checker's Next() each time.
 	serv.checkDone.Store(true)
 }
 
@@ -305,7 +307,8 @@ func (serv *RPCServer) finishCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatu
 	}
 	serv.enabledFeatures = features.Enabled()
 	serv.setupFeatures = features.NeedSetup()
-	serv.mgr.machineChecked(serv.enabledFeatures, enabledCalls, serv.execOpts())
+	newSource := serv.mgr.machineChecked(serv.enabledFeatures, enabledCalls, serv.execOpts())
+	serv.baseSource.Store(newSource)
 	return nil
 }
 
