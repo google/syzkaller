@@ -1430,7 +1430,9 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 		newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
 		log.Logf(2, "distributing %d new signal, %d dropped signal",
 			len(newSignal), len(dropSignal))
-		mgr.serv.distributeSignalDelta(newSignal, dropSignal)
+		if len(newSignal)+len(dropSignal) != 0 {
+			mgr.serv.distributeSignalDelta(newSignal, dropSignal)
+		}
 
 		// Update the state machine.
 		if fuzzer.StatCandidates.Val() == 0 {
