@@ -125,7 +125,7 @@ func runTest(req *queue.Request, executor string) *queue.Result {
 			// Recreate Env every few iterations, this allows to cover more paths.
 			env.ForceRestart()
 		}
-		output, info, hanged, err := env.Exec(req.ExecOpts, req.Prog)
+		output, info, hanged, err := env.Exec(&req.ExecOpts, req.Prog)
 		ret.Output = append(ret.Output, output...)
 		if err != nil {
 			return &queue.Result{

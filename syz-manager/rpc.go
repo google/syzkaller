@@ -93,7 +93,7 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	currentBugFrames() BugFrames
-	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool)
+	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool, opts ipc.ExecOpts)
 }
 
 func startRPCServer(mgr *Manager, source queue.Source) (*RPCServer, error) {
@@ -305,7 +305,7 @@ func (serv *RPCServer) finishCheck(checkFilesInfo []flatrpc.FileInfo, checkFeatu
 	}
 	serv.enabledFeatures = features.Enabled()
 	serv.setupFeatures = features.NeedSetup()
-	serv.mgr.machineChecked(serv.enabledFeatures, enabledCalls)
+	serv.mgr.machineChecked(serv.enabledFeatures, enabledCalls, serv.execOpts())
 	return nil
 }
 
@@ -350,6 +350,9 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 		if inp == nil {
 			// It's unlikely that subsequent Next() calls will yield something.
 			break
+		}
+		if err := inp.Validate(); err != nil {
+			panic(fmt.Sprintf("invalid request: %v, req: %#v", err, inp))
 		}
 		if req, ok := serv.newRequest(runner, inp); ok {
 			r.Requests = append(r.Requests, req)
@@ -551,18 +554,11 @@ func (serv *RPCServer) newRequest(runner *Runner, req *queue.Request) (rpctype.E
 		}
 	}
 	runner.mu.Unlock()
-
-	var execOpts ipc.ExecOpts
-	if req.ExecOpts != nil {
-		execOpts = *req.ExecOpts
-	} else {
-		execOpts = serv.createExecOpts(req)
-	}
 	return rpctype.ExecutionRequest{
 		ID:               id,
 		ProgData:         progData,
-		ExecOpts:         execOpts,
-		NewSignal:        req.NeedSignal == queue.NewSignal,
+		ExecOpts:         req.ExecOpts,
+		NewSignal:        !req.ReturnAllSignal,
 		SignalFilter:     signalFilter,
 		SignalFilterCall: req.SignalFilterCall,
 		ResetState:       serv.cfg.Experimental.ResetAccState,
@@ -571,7 +567,7 @@ func (serv *RPCServer) newRequest(runner *Runner, req *queue.Request) (rpctype.E
 	}, true
 }
 
-func (serv *RPCServer) createExecOpts(req *queue.Request) ipc.ExecOpts {
+func (serv *RPCServer) execOpts() ipc.ExecOpts {
 	env := ipc.FeaturesToFlags(serv.enabledFeatures, nil)
 	if *flagDebug {
 		env |= ipc.FlagDebug
@@ -591,17 +587,6 @@ func (serv *RPCServer) createExecOpts(req *queue.Request) ipc.ExecOpts {
 	}
 	if serv.cfg.HasCovFilter() {
 		exec |= ipc.FlagEnableCoverageFilter
-	}
-	if serv.cfg.Cover {
-		if req.NeedSignal != queue.NoSignal {
-			exec |= ipc.FlagCollectSignal
-		}
-		if req.NeedCover {
-			exec |= ipc.FlagCollectCover
-		}
-		if req.NeedHints {
-			exec |= ipc.FlagCollectComps
-		}
 	}
 	return ipc.ExecOpts{
 		EnvFlags:   env,

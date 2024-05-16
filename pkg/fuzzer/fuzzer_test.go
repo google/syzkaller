@@ -44,10 +44,12 @@ func TestFuzz(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	_, opts, _ := ipcconfig.Default(target)
 	corpusUpdates := make(chan corpus.NewItemEvent)
 	fuzzer := NewFuzzer(ctx, &Config{
-		Debug:  true,
-		Corpus: corpus.NewMonitoredCorpus(ctx, corpusUpdates),
+		Debug:    true,
+		BaseOpts: *opts,
+		Corpus:   corpus.NewMonitoredCorpus(ctx, corpusUpdates),
 		Logf: func(level int, msg string, args ...interface{}) {
 			if level > 1 {
 				return
@@ -188,10 +190,10 @@ func emulateExec(req *queue.Request) (*queue.Result, string, error) {
 		cover := uint32(call.Meta.ID*1024) +
 			crc32.Checksum(serializedLines[i], crc32q)%4
 		callInfo := ipc.CallInfo{}
-		if req.NeedCover {
+		if req.ExecOpts.ExecFlags&ipc.FlagCollectCover > 0 {
 			callInfo.Cover = []uint32{cover}
 		}
-		if req.NeedSignal != queue.NoSignal {
+		if req.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0 {
 			callInfo.Signal = []uint32{cover}
 		}
 		info.Calls = append(info.Calls, callInfo)
@@ -298,16 +300,8 @@ func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {
 var crashRe = regexp.MustCompile(`{{CRASH: (.*?)}}`)
 
 func (proc *executorProc) execute(req *queue.Request) (*queue.Result, string, error) {
-	execOpts := proc.execOpts
-	// TODO: it's duplicated from fuzzer.go.
-	if req.NeedSignal != queue.NoSignal {
-		execOpts.ExecFlags |= ipc.FlagCollectSignal
-	}
-	if req.NeedCover {
-		execOpts.ExecFlags |= ipc.FlagCollectCover
-	}
-	// TODO: support req.NeedHints.
-	output, info, _, err := proc.env.Exec(&execOpts, req.Prog)
+	// TODO: support hints emulation.
+	output, info, _, err := proc.env.Exec(&req.ExecOpts, req.Prog)
 	ret := crashRe.FindStringSubmatch(string(output))
 	if ret != nil {
 		return nil, ret[1], nil
