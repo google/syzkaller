@@ -7,37 +7,6 @@ import (
 	"container/heap"
 )
 
-type priority []int64
-
-func (p priority) greaterThan(other priority) bool {
-	for i := range p {
-		if i >= len(other) || p[i] > other[i] {
-			return true
-		}
-		if p[i] < other[i] {
-			return false
-		}
-	}
-	for i := len(p); i < len(other); i++ {
-		if other[i] < 0 {
-			return true
-		}
-		if other[i] > 0 {
-			return false
-		}
-	}
-	return false
-}
-
-func (p priority) next() priority {
-	if len(p) == 0 {
-		return p
-	}
-	newPrio := append([]int64{}, p...)
-	newPrio[len(newPrio)-1]--
-	return newPrio
-}
-
 type priorityQueueOps[T any] struct {
 	impl priorityQueueImpl[T]
 }
@@ -46,7 +15,7 @@ func (pq *priorityQueueOps[T]) Len() int {
 	return pq.impl.Len()
 }
 
-func (pq *priorityQueueOps[T]) Push(item T, prio priority) {
+func (pq *priorityQueueOps[T]) Push(item T, prio int) {
 	heap.Push(&pq.impl, &priorityQueueItem[T]{item, prio})
 }
 
@@ -63,7 +32,7 @@ func (pq *priorityQueueOps[T]) Pop() T {
 
 type priorityQueueItem[T any] struct {
 	value T
-	prio  priority
+	prio  int
 }
 
 type priorityQueueImpl[T any] []*priorityQueueItem[T]
@@ -71,9 +40,8 @@ type priorityQueueImpl[T any] []*priorityQueueItem[T]
 func (pq priorityQueueImpl[T]) Len() int { return len(pq) }
 
 func (pq priorityQueueImpl[T]) Less(i, j int) bool {
-	// We want Pop to give us the highest, not lowest,
-	// priority so we use greater than here.
-	return pq[i].prio.greaterThan(pq[j].prio)
+	// We want Pop to give us the lowest priority.
+	return pq[i].prio < pq[j].prio
 }
 
 func (pq priorityQueueImpl[T]) Swap(i, j int) {
