@@ -354,7 +354,7 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 			// It's unlikely that subsequent Next() calls will yield something.
 			break
 		}
-		if err := inp.Validate(); err != nil {
+		if err := validateRequest(inp); err != nil {
 			panic(fmt.Sprintf("invalid request: %v, req: %#v", err, inp))
 		}
 		if req, ok := serv.newRequest(runner, inp); ok {
@@ -397,6 +397,18 @@ func (serv *RPCServer) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.E
 	serv.statExchangeProgs.Add(a.NeedProgs)
 	serv.statExchangeClientLatency.Add(int(a.Latency.Microseconds()))
 	serv.statExchangeServerLatency.Add(int(time.Since(start).Microseconds()))
+	return nil
+}
+
+func validateRequest(req *queue.Request) error {
+	err := req.Validate()
+	if err != nil {
+		return err
+	}
+	if req.BinaryFile != "" {
+		// Currnetly it should only be done in tools/syz-runtest.
+		return fmt.Errorf("binary file execution is not supported")
+	}
 	return nil
 }
 
