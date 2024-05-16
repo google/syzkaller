@@ -75,7 +75,6 @@ type Manager struct {
 
 	mu                    sync.Mutex
 	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
-	execSource            queue.DynamicSource
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
@@ -195,7 +194,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	go mgr.corpusInputHandler(corpusUpdates)
 
 	// Create RPC server for fuzzers.
-	mgr.serv, err = startRPCServer(mgr, &mgr.execSource)
+	mgr.serv, err = startRPCServer(mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -1342,7 +1341,7 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 }
 
 func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
-	opts ipc.ExecOpts) {
+	opts ipc.ExecOpts) queue.Source {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.checkDone {
@@ -1379,7 +1378,6 @@ func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map
 		},
 	}, rnd, mgr.target)
 	mgr.fuzzer.Store(fuzzerObj)
-	mgr.execSource.Store(fuzzerObj)
 
 	mgr.loadCorpus()
 	mgr.firstConnect.Store(time.Now().Unix())
@@ -1391,6 +1389,7 @@ func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map
 			go mgr.dashboardReproTasks()
 		}
 	}
+	return fuzzerObj
 }
 
 func (mgr *Manager) corpusMinimization() {
