@@ -521,9 +521,6 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult)
 	if req.try < resp.Try {
 		runner.logProgram(resp.ProcID, req.serialized)
 	}
-	if !serv.cfg.Cover {
-		addFallbackSignal(req.req.Prog, info)
-	}
 	for i := 0; i < len(info.Calls); i++ {
 		call := &info.Calls[i]
 		call.Cover = runner.instModules.Canonicalize(call.Cover)
@@ -531,15 +528,20 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult)
 	}
 	info.Extra.Cover = runner.instModules.Canonicalize(info.Extra.Cover)
 	info.Extra.Signal = runner.instModules.Canonicalize(info.Extra.Signal)
-	var err error
-	if resp.Error != "" {
-		err = fmt.Errorf("%s", resp.Error)
-	}
-	req.req.Done(&queue.Result{
+
+	result := &queue.Result{
+		Status: queue.Success,
 		Info:   info,
 		Output: resp.Output,
-		Err:    err,
-	})
+	}
+	if resp.Error != "" {
+		result.Status = queue.ExecFailure
+		result.Err = fmt.Errorf("%s", resp.Error)
+	} else if !serv.cfg.Cover && req.req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0 {
+		// Coverage collection is disabled, but signal was requested => use a substitute signal.
+		addFallbackSignal(req.req.Prog, info)
+	}
+	req.req.Done(result)
 }
 
 func (serv *RPCServer) newRequest(runner *Runner, req *queue.Request) (rpctype.ExecutionRequest, bool) {
