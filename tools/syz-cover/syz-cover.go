@@ -212,9 +212,7 @@ func main() {
 func initPCs(rg *cover.ReportGenerator) []uint64 {
 	var pcs []uint64
 	if len(flag.Args()) == 0 {
-		for _, s := range rg.Symbols {
-			pcs = append(pcs, s.PCs...)
-		}
+		pcs = rg.CallbackPoints
 		return pcs
 	}
 	pcs, err := readPCs(flag.Args())
