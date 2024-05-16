@@ -56,9 +56,9 @@ func (proc *Proc) loop() {
 			output:           output,
 			err:              err,
 		}
-		for i := 1; i < req.Repeat && res.err == ""; i++ {
+		for i := 1; i < req.Repeat && res.err == "" && !req.IsBinary; i++ {
 			// Recreate Env every few iterations, this allows to cover more paths.
-			if i%2 == 0 && !req.IsBinary {
+			if i%2 == 0 {
 				proc.env.ForceRestart()
 			}
 			info, output, err, _ := proc.execute(req)
