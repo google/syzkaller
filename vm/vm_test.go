@@ -401,7 +401,9 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.Body(testInst.outc, testInst.errc)
 		done <- true
 	}()
-	opts := []any{test.Exit}
+	finishCalled := 0
+	finishCb := EarlyFinishCb(func() { finishCalled++ })
+	opts := []any{test.Exit, finishCb}
 	if test.InjectOutput != "" {
 		c := make(chan []byte, 1)
 		c <- []byte(test.InjectOutput)
@@ -412,6 +414,9 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatal(err)
 	}
 	<-done
+	if finishCalled != 1 {
+		t.Fatalf("finish callback is called %v times", finishCalled)
+	}
 	if test.Report != nil && rep == nil {
 		t.Fatalf("got no report")
 	}

@@ -290,11 +290,17 @@ type monitor struct {
 	beforeContext   int
 	matchPos        int
 	lastExecuteTime time.Time
+	extractCalled   bool
 }
 
 func (mon *monitor) monitorExecution() *report.Report {
 	ticker := time.NewTicker(tickerPeriod * mon.inst.pool.timeouts.Scale)
 	defer ticker.Stop()
+	defer func() {
+		if mon.finished != nil {
+			mon.finished()
+		}
+	}()
 	for {
 		select {
 		case err := <-mon.errc:
@@ -327,11 +333,11 @@ func (mon *monitor) monitorExecution() *report.Report {
 				continue
 			}
 			mon.inst.pool.statOutputReceived.Add(len(out))
-			if rep := mon.appendOutput(out); rep != nil {
+			if rep, done := mon.appendOutput(out); done {
 				return rep
 			}
 		case out := <-mon.injected:
-			if rep := mon.appendOutput(out); rep != nil {
+			if rep, done := mon.appendOutput(out); done {
 				return rep
 			}
 		case <-ticker.C:
@@ -346,7 +352,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 	}
 }
 
-func (mon *monitor) appendOutput(out []byte) *report.Report {
+func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
 	lastPos := len(mon.output)
 	mon.output = append(mon.output, out...)
 	if bytes.Contains(mon.output[lastPos:], executingProgram1) ||
@@ -354,7 +360,7 @@ func (mon *monitor) appendOutput(out []byte) *report.Report {
 		mon.lastExecuteTime = time.Now()
 	}
 	if mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
-		return mon.extractError("unknown error")
+		return mon.extractError("unknown error"), true
 	}
 	if len(mon.output) > 2*mon.beforeContext {
 		copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
@@ -376,13 +382,18 @@ func (mon *monitor) appendOutput(out []byte) *report.Report {
 	if mon.matchPos < 0 {
 		mon.matchPos = 0
 	}
-	return nil
+	return nil, false
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
+	if mon.extractCalled {
+		panic("extractError called twice")
+	}
+	mon.extractCalled = true
 	if mon.finished != nil {
 		// If the caller wanted an early notification, provide it.
 		mon.finished()
+		mon.finished = nil
 	}
 	diagOutput, diagWait := []byte{}, false
 	if defaultError != "" {
