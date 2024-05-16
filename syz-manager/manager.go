@@ -30,6 +30,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -1340,7 +1341,8 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 	return frames
 }
 
-func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) {
+func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
+	opts ipc.ExecOpts) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.checkDone {
@@ -1356,6 +1358,7 @@ func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 		Corpus:         mgr.corpus,
+		BaseOpts:       opts,
 		Coverage:       mgr.cfg.Cover,
 		FaultInjection: features&flatrpc.FeatureFault != 0,
 		Comparisons:    features&flatrpc.FeatureComparisons != 0,

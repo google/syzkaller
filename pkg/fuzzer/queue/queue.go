@@ -19,19 +19,19 @@ import (
 )
 
 type Request struct {
-	Prog       *prog.Prog
-	NeedSignal SignalType
-	NeedCover  bool
-	NeedHints  bool
-	ExecOpts   *ipc.ExecOpts
+	Prog     *prog.Prog
+	ExecOpts ipc.ExecOpts
 
 	// If specified, the resulting signal for call SignalFilterCall
 	// will include subset of it even if it's not new.
 	SignalFilter     signal.Signal
 	SignalFilterCall int
 
-	ReturnError  bool
-	ReturnOutput bool
+	// By default, only the newly seen signal is returned.
+	// ReturnAllSignal tells the executor to return everything.
+	ReturnAllSignal bool
+	ReturnError     bool
+	ReturnOutput    bool
 
 	// This stat will be incremented on request completion.
 	Stat *stats.Val
@@ -101,20 +101,28 @@ func (r *Request) Risky() bool {
 	return r.onceCrashed
 }
 
+func (r *Request) Validate() error {
+	collectSignal := r.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0
+	if r.ReturnAllSignal && !collectSignal {
+		return fmt.Errorf("ReturnAllSignal is set, but FlagCollectSignal is not")
+	}
+	if r.SignalFilter != nil && !collectSignal {
+		return fmt.Errorf("SignalFilter must be used with FlagCollectSignal")
+	}
+	collectComps := r.ExecOpts.ExecFlags&ipc.FlagCollectComps > 0
+	collectCover := r.ExecOpts.ExecFlags&ipc.FlagCollectCover > 0
+	if (collectComps) && (collectSignal || collectCover) {
+		return fmt.Errorf("hint collection is mutually exclusive with signal/coverage")
+	}
+	return nil
+}
+
 func (r *Request) hash() hash.Sig {
 	buf := new(bytes.Buffer)
-	if r.ExecOpts != nil {
-		if err := gob.NewEncoder(buf).Encode(r.ExecOpts); err != nil {
-			panic(err)
-		}
+	if err := gob.NewEncoder(buf).Encode(r.ExecOpts); err != nil {
+		panic(err)
 	}
-	return hash.Hash(
-		[]byte(fmt.Sprint(r.NeedSignal)),
-		[]byte(fmt.Sprint(r.NeedCover)),
-		[]byte(fmt.Sprint(r.NeedHints)),
-		r.Prog.Serialize(),
-		buf.Bytes(),
-	)
+	return hash.Hash(r.Prog.Serialize(), buf.Bytes())
 }
 
 func (r *Request) initChannel() {
@@ -124,14 +132,6 @@ func (r *Request) initChannel() {
 	}
 	r.mu.Unlock()
 }
-
-type SignalType int
-
-const (
-	NoSignal  SignalType = iota // we don't need any signal
-	NewSignal                   // we need the newly seen signal
-	AllSignal                   // we need all signal
-)
 
 type Result struct {
 	Info   *ipc.ProgInfo

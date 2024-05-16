@@ -96,17 +96,7 @@ type execOpt any
 type dontTriage struct{}
 type progFlags ProgTypes
 
-func (fuzzer *Fuzzer) validateRequest(req *queue.Request) {
-	if req.NeedHints && (req.NeedCover || req.NeedSignal != queue.NoSignal) {
-		panic("Request.NeedHints is mutually exclusive with other fields")
-	}
-	if req.SignalFilter != nil && req.NeedSignal != queue.NewSignal {
-		panic("SignalFilter must be used with NewSignal")
-	}
-}
-
 func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request, opts ...execOpt) *queue.Result {
-	fuzzer.validateRequest(req)
 	executor.Submit(req)
 	res := req.Wait(fuzzer.ctx)
 	fuzzer.processResult(req, res, opts...)
@@ -114,7 +104,6 @@ func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request, opts 
 }
 
 func (fuzzer *Fuzzer) prepare(req *queue.Request, opts ...execOpt) {
-	fuzzer.validateRequest(req)
 	req.OnDone(func(req *queue.Request, res *queue.Result) bool {
 		fuzzer.processResult(req, res, opts...)
 		return true
@@ -141,7 +130,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, opts 
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
 	// If we are already triaging this exact prog, this is flaky coverage.
-	if req.NeedSignal != queue.NoSignal && res.Info != nil && !noTriage {
+	if req.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0 && res.Info != nil && !noTriage {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, &info, call, flags)
 		}
@@ -155,6 +144,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, opts 
 type Config struct {
 	Debug          bool
 	Corpus         *corpus.Corpus
+	BaseOpts       ipc.ExecOpts // Fuzzer will use BaseOpts as a base for all requests.
 	Logf           func(level int, msg string, args ...interface{})
 	Coverage       bool
 	FaultInjection bool
@@ -236,7 +226,13 @@ func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
 }
 
 func (fuzzer *Fuzzer) Next() *queue.Request {
-	return fuzzer.source.Next()
+	req := fuzzer.source.Next()
+	if req == nil {
+		// The fuzzer is not supposed to issue nil requests.
+		panic("nil request from the fuzzer")
+	}
+	req.ExecOpts = fuzzer.Config.BaseOpts.MergeFlags(req.ExecOpts)
+	return req
 }
 
 func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
@@ -336,4 +332,10 @@ func (fuzzer *Fuzzer) RotateMaxSignal(items int) {
 
 	delta := pureMaxSignal.RandomSubset(fuzzer.rand(), items)
 	fuzzer.Cover.subtract(delta)
+}
+
+func setFlags(execFlags ipc.ExecFlags) ipc.ExecOpts {
+	return ipc.ExecOpts{
+		ExecFlags: execFlags,
+	}
 }

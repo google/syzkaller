@@ -479,7 +479,7 @@ func checkerExecutor(ctx context.Context, source queue.Source, config *ipc.Confi
 		if err != nil {
 			log.Fatalf("failed to serialize %s: %v", req.Prog.Serialize(), err)
 		}
-		output, info, hanged, err := env.ExecProg(req.ExecOpts, progData)
+		output, info, hanged, err := env.ExecProg(&req.ExecOpts, progData)
 		res := &queue.Result{
 			Status: queue.Success,
 			Info:   info,

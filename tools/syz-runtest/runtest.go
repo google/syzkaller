@@ -301,7 +301,7 @@ func (mgr *Manager) ExchangeInfo(a *rpctype.ExchangeInfoRequest, r *rpctype.Exch
 		r.Requests = append(r.Requests, rpctype.ExecutionRequest{
 			ID:           mgr.reqSeq,
 			ProgData:     progData,
-			ExecOpts:     *req.ExecOpts,
+			ExecOpts:     req.ExecOpts,
 			IsBinary:     req.BinaryFile != "",
 			ResetState:   req.BinaryFile == "",
 			ReturnOutput: true,

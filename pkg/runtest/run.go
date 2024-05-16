@@ -438,7 +438,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	req := &runRequest{
 		Request: &queue.Request{
 			Prog:     p,
-			ExecOpts: &opts,
+			ExecOpts: opts,
 			Repeat:   times,
 		},
 	}
@@ -492,7 +492,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		Request: &queue.Request{
 			Prog:       p,
 			BinaryFile: bin,
-			ExecOpts: &ipc.ExecOpts{
+			ExecOpts: ipc.ExecOpts{
 				ExecFlags: ipcFlags,
 			},
 			Repeat: times,

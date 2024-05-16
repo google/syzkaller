@@ -56,7 +56,7 @@ func (ctx *checkContext) startFeaturesCheck() {
 				Prog:         testProg,
 				ReturnOutput: true,
 				ReturnError:  true,
-				ExecOpts: &ipc.ExecOpts{
+				ExecOpts: ipc.ExecOpts{
 					EnvFlags:   envFlags,
 					ExecFlags:  execFlags,
 					SandboxArg: ctx.cfg.SandboxArg,

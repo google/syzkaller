@@ -69,6 +69,13 @@ type ExecOpts struct {
 	SandboxArg int
 }
 
+func (eo ExecOpts) MergeFlags(diff ExecOpts) ExecOpts {
+	ret := eo
+	ret.ExecFlags |= diff.ExecFlags
+	ret.EnvFlags |= diff.EnvFlags
+	return ret
+}
+
 // Config is the configuration for Env.
 type Config struct {
 	// Path to executor binary.

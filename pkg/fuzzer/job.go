@@ -33,9 +33,9 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 		prog.RecommendedCalls,
 		fuzzer.ChoiceTable())
 	return &queue.Request{
-		Prog:       p,
-		NeedSignal: queue.NewSignal,
-		Stat:       fuzzer.statExecGenerate,
+		Prog:     p,
+		ExecOpts: setFlags(ipc.FlagCollectSignal),
+		Stat:     fuzzer.statExecGenerate,
 	}
 }
 
@@ -52,9 +52,9 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 		fuzzer.Config.Corpus.Programs(),
 	)
 	return &queue.Request{
-		Prog:       newP,
-		NeedSignal: queue.NewSignal,
-		Stat:       fuzzer.statExecFuzz,
+		Prog:     newP,
+		ExecOpts: setFlags(ipc.FlagCollectSignal),
+		Stat:     fuzzer.statExecFuzz,
 	}
 }
 
@@ -67,10 +67,10 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) (*queue.Request, ProgType
 		flags |= progSmashed
 	}
 	return &queue.Request{
-		Prog:       input.Prog,
-		NeedSignal: queue.NewSignal,
-		Stat:       fuzzer.statExecCandidate,
-		Important:  true,
+		Prog:      input.Prog,
+		ExecOpts:  setFlags(ipc.FlagCollectSignal),
+		Stat:      fuzzer.statExecCandidate,
+		Important: true,
 	}, flags
 }
 
@@ -161,10 +161,10 @@ func (job *triageJob) deflake(exec func(*queue.Request, ...execOpt) *queue.Resul
 			break
 		}
 		result := exec(&queue.Request{
-			Prog:       job.p,
-			NeedSignal: queue.AllSignal,
-			NeedCover:  true,
-			Stat:       stat,
+			Prog:            job.p,
+			ExecOpts:        setFlags(ipc.FlagCollectCover | ipc.FlagCollectSignal),
+			ReturnAllSignal: true,
+			Stat:            stat,
 		}, &dontTriage{})
 		if result.Stop() {
 			stop = true
@@ -201,7 +201,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 			for i := 0; i < minimizeAttempts; i++ {
 				result := job.execute(&queue.Request{
 					Prog:             p1,
-					NeedSignal:       queue.NewSignal,
+					ExecOpts:         setFlags(ipc.FlagCollectSignal),
 					SignalFilter:     newSignal,
 					SignalFilterCall: call1,
 					Stat:             job.fuzzer.statExecMinimize,
@@ -271,9 +271,9 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.Config.NoMutateCalls,
 			fuzzer.Config.Corpus.Programs())
 		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
-			Prog:       p,
-			NeedSignal: queue.NewSignal,
-			Stat:       fuzzer.statExecSmash,
+			Prog:     p,
+			ExecOpts: setFlags(ipc.FlagCollectSignal),
+			Stat:     fuzzer.statExecSmash,
 		})
 		if result.Stop() {
 			return
@@ -349,9 +349,9 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	var comps prog.CompMap
 	for i := 0; i < 2; i++ {
 		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
-			Prog:      p,
-			NeedHints: true,
-			Stat:      fuzzer.statExecSeed,
+			Prog:     p,
+			ExecOpts: setFlags(ipc.FlagCollectComps),
+			Stat:     fuzzer.statExecSeed,
 		})
 		if result.Stop() || result.Info == nil {
 			return
@@ -372,9 +372,9 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	p.MutateWithHints(job.call, comps,
 		func(p *prog.Prog) bool {
 			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
-				Prog:       p,
-				NeedSignal: queue.NewSignal,
-				Stat:       fuzzer.statExecHint,
+				Prog:     p,
+				ExecOpts: setFlags(ipc.FlagCollectSignal),
+				Stat:     fuzzer.statExecHint,
 			})
 			return !result.Stop()
 		})
