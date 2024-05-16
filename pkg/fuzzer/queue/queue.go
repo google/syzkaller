@@ -296,51 +296,53 @@ func (a *alternate) Next() *Request {
 	return a.base.Next()
 }
 
-type PriorityQueue struct {
-	mu       *sync.Mutex
+type DynamicOrderer struct {
+	mu       sync.Mutex
+	currPrio int
 	ops      *priorityQueueOps[*Request]
-	currPrio priority
 }
 
-func Priority() *PriorityQueue {
-	return &PriorityQueue{
-		mu:       &sync.Mutex{},
-		ops:      &priorityQueueOps[*Request]{},
-		currPrio: priority{0},
-	}
-}
-
-// AppendQueue() can be used to form nested queues.
+// DynamicOrder() can be used to form nested queues dynamically.
 // That is, if
-// q1 := pq.AppendQueue()
-// q2 := pq.AppendQueue()
+// q1 := pq.Append()
+// q2 := pq.Append()
 // All elements added via q2.Submit() will always have a *lower* priority
 // than all elements added via q1.Submit().
-func (pq *PriorityQueue) AppendQueue() *PriorityQueue {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
-	pq.currPrio = pq.currPrio.next()
-	nextPrio := append(priority{}, pq.currPrio...)
-	return &PriorityQueue{
-		// We use the same queue, therefore the same mutex.
-		mu:       pq.mu,
-		ops:      pq.ops,
-		currPrio: append(nextPrio, 0),
+func DynamicOrder() *DynamicOrderer {
+	return &DynamicOrderer{
+		ops: &priorityQueueOps[*Request]{},
 	}
 }
 
-// Each subsequent element added via Submit() will have a lower priority.
-func (pq *PriorityQueue) Submit(req *Request) {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
-	pq.currPrio = pq.currPrio.next()
-	pq.ops.Push(req, pq.currPrio)
+func (do *DynamicOrderer) Append() Executor {
+	do.mu.Lock()
+	defer do.mu.Unlock()
+	do.currPrio++
+	return &dynamicOrdererItem{
+		parent: do,
+		prio:   do.currPrio,
+	}
 }
 
-func (pq *PriorityQueue) Next() *Request {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
-	return pq.ops.Pop()
+func (do *DynamicOrderer) submit(req *Request, prio int) {
+	do.mu.Lock()
+	defer do.mu.Unlock()
+	do.ops.Push(req, prio)
+}
+
+func (do *DynamicOrderer) Next() *Request {
+	do.mu.Lock()
+	defer do.mu.Unlock()
+	return do.ops.Pop()
+}
+
+type dynamicOrdererItem struct {
+	parent *DynamicOrderer
+	prio   int
+}
+
+func (doi *dynamicOrdererItem) Submit(req *Request) {
+	doi.parent.submit(req, doi.prio)
 }
 
 type DynamicSourceCtl struct {

@@ -67,17 +67,17 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 
 type execQueues struct {
 	smashQueue           *queue.PlainQueue
-	triageQueue          *queue.PriorityQueue
+	triageQueue          *queue.DynamicOrderer
 	candidateQueue       *queue.PlainQueue
-	triageCandidateQueue *queue.PriorityQueue
+	triageCandidateQueue *queue.DynamicOrderer
 	source               queue.Source
 }
 
 func newExecQueues(fuzzer *Fuzzer) execQueues {
 	ret := execQueues{
-		triageCandidateQueue: queue.Priority(),
+		triageCandidateQueue: queue.DynamicOrder(),
 		candidateQueue:       queue.PlainWithStat(fuzzer.StatCandidates),
-		triageQueue:          queue.Priority(),
+		triageQueue:          queue.DynamicOrder(),
 		smashQueue:           queue.Plain(),
 	}
 	// Sources are listed in the order, in which they will be polled.
@@ -168,7 +168,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 		info:      *info,
 		newSignal: newMaxSignal,
 		flags:     flags,
-		queue:     queue.AppendQueue(),
+		queue:     queue.Append(),
 	})
 }
 

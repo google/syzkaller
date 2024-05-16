@@ -36,19 +36,20 @@ func TestPlainQueue(t *testing.T) {
 func TestPrioQueue(t *testing.T) {
 	req1, req2, req3, req4 :=
 		&Request{}, &Request{}, &Request{}, &Request{}
-	pq := Priority()
+	pq := DynamicOrder()
 
-	pq1 := pq.AppendQueue()
-	pq2 := pq.AppendQueue()
-	pq3 := pq.AppendQueue()
+	pq1 := pq.Append()
+	pq2 := pq.Append()
+	pq3 := pq.Append()
 
 	pq2.Submit(req2)
 	pq3.Submit(req3)
-	pq3.Submit(req4)
-	pq1.Submit(req1)
-
-	assert.Equal(t, req1, pq.Next())
 	assert.Equal(t, req2, pq.Next())
-	assert.Equal(t, req3, pq.Next())
+
+	pq1.Submit(req1)
+	assert.Equal(t, req1, pq.Next())
+
+	pq2.Submit(req4)
 	assert.Equal(t, req4, pq.Next())
+	assert.Equal(t, req3, pq.Next())
 }
