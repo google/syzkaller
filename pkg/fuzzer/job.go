@@ -26,6 +26,7 @@ const (
 	progCandidate ProgTypes = 1 << iota
 	progMinimized
 	progSmashed
+	progInTriage
 )
 
 func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
@@ -88,9 +89,9 @@ type triageJob struct {
 	queue     queue.Executor
 }
 
-func (job *triageJob) execute(req *queue.Request, opts ...execOpt) *queue.Result {
+func (job *triageJob) execute(req *queue.Request, flags ProgTypes) *queue.Result {
 	req.Important = true // All triage executions are important.
-	return job.fuzzer.execute(job.queue, req, opts...)
+	return job.fuzzer.executeWithFlags(job.queue, req, flags)
 }
 
 func (job *triageJob) run(fuzzer *Fuzzer) {
@@ -138,7 +139,7 @@ type deflakedCover struct {
 	rawCover        []uint32
 }
 
-func (job *triageJob) deflake(exec func(*queue.Request, ...execOpt) *queue.Result, stat *stats.Val,
+func (job *triageJob) deflake(exec func(*queue.Request, ProgTypes) *queue.Result, stat *stats.Val,
 	rawCover bool) (info deflakedCover, stop bool) {
 	// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
 	// The triage algorithm must tolerate this, so let's pick the signal that is common
@@ -165,7 +166,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ...execOpt) *queue.Resul
 			ExecOpts:        setFlags(ipc.FlagCollectCover | ipc.FlagCollectSignal),
 			ReturnAllSignal: true,
 			Stat:            stat,
-		}, &dontTriage{})
+		}, progInTriage)
 		if result.Stop() {
 			stop = true
 			return
@@ -205,7 +206,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 					SignalFilter:     newSignal,
 					SignalFilterCall: call1,
 					Stat:             job.fuzzer.statExecMinimize,
-				})
+				}, 0)
 				if result.Stop() {
 					stop = true
 					return false

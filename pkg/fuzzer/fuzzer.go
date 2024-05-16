@@ -92,45 +92,36 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 	return ret
 }
 
-type execOpt any
-type dontTriage struct{}
-type progFlags ProgTypes
+func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queue.Result {
+	return fuzzer.executeWithFlags(executor, req, 0)
+}
 
-func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request, opts ...execOpt) *queue.Result {
+func (fuzzer *Fuzzer) executeWithFlags(executor queue.Executor, req *queue.Request, flags ProgTypes) *queue.Result {
 	executor.Submit(req)
 	res := req.Wait(fuzzer.ctx)
-	fuzzer.processResult(req, res, opts...)
+	fuzzer.processResult(req, res, flags)
 	return res
 }
 
-func (fuzzer *Fuzzer) prepare(req *queue.Request, opts ...execOpt) {
+func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgTypes) {
 	req.OnDone(func(req *queue.Request, res *queue.Result) bool {
-		fuzzer.processResult(req, res, opts...)
+		fuzzer.processResult(req, res, flags)
 		return true
 	})
 }
 
-func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, opts ...execOpt) {
-	fuzzer.prepare(req, opts...)
+func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgTypes) {
+	fuzzer.prepare(req, flags)
 	executor.Submit(req)
 }
 
-func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, opts ...execOpt) {
-	var flags ProgTypes
-	var noTriage bool
-	for _, opt := range opts {
-		switch v := opt.(type) {
-		case progFlags:
-			flags = ProgTypes(v)
-		case dontTriage:
-			noTriage = true
-		}
-	}
+func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgTypes) {
+	inTriage := flags&progInTriage > 0
 	// Triage individual calls.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
 	// If we are already triaging this exact prog, this is flaky coverage.
-	if req.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0 && res.Info != nil && !noTriage {
+	if req.ExecOpts.ExecFlags&ipc.FlagCollectSignal > 0 && res.Info != nil && !inTriage {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, &info, call, flags)
 		}
@@ -210,7 +201,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
 	}
-	fuzzer.prepare(req)
+	fuzzer.prepare(req, 0)
 	return req
 }
 
@@ -251,7 +242,7 @@ type Candidate struct {
 func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 	for _, candidate := range candidates {
 		req, flags := candidateRequest(fuzzer, candidate)
-		fuzzer.enqueue(fuzzer.candidateQueue, req, progFlags(flags))
+		fuzzer.enqueue(fuzzer.candidateQueue, req, flags)
 	}
 }
 
