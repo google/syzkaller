@@ -34,12 +34,10 @@ type RPCServer struct {
 	checker *vminfo.Checker
 	port    int
 
-	infoDone      bool
-	checkDone     atomic.Bool
-	checkFailures int
-
-	checkerSource    *queue.DynamicSource
-	baseSource       *queue.DynamicSource
+	infoDone         bool
+	checkDone        atomic.Bool
+	checkFailures    int
+	baseSource       *queue.DynamicSourceCtl
 	enabledFeatures  flatrpc.Feature
 	setupFeatures    flatrpc.Feature
 	modules          []cover.KernelModule
@@ -100,14 +98,15 @@ type RPCManagerView interface {
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
-	var baseSource queue.DynamicSource
+	checker := vminfo.New(mgr.cfg)
+	baseSource := queue.DynamicSource(checker)
 	serv := &RPCServer{
 		mgr:        mgr,
 		cfg:        mgr.cfg,
 		target:     mgr.target,
-		checker:    vminfo.New(mgr.cfg),
-		baseSource: &baseSource,
-		execSource: queue.Retry(&baseSource),
+		checker:    checker,
+		baseSource: baseSource,
+		execSource: queue.Retry(baseSource),
 		statExecs:  mgr.statExecs,
 		statExecRetries: stats.Create("exec retries",
 			"Number of times a test program was restarted because the first run failed",

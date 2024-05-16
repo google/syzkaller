@@ -66,6 +66,7 @@ func main() {
 		pending:      make(map[string]map[int64]bool),
 	}
 	mgr.checkFiles = mgr.checker.RequiredFiles()
+	mgr.source = queue.DynamicSource(mgr.checker)
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Manager", mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
@@ -96,7 +97,6 @@ func main() {
 		}()
 	}
 	checkResult := <-mgr.checkResultC
-	mgr.source.Store(mgr.checker)
 	calls, _, features, err := mgr.checker.Run(checkResult.Files, checkResult.Features)
 	if err != nil {
 		log.Fatalf("failed to detect enabled syscalls: %v", err)
@@ -146,7 +146,7 @@ type Manager struct {
 	vmStop       chan bool
 	port         int
 	debug        bool
-	source       queue.DynamicSource
+	source       *queue.DynamicSourceCtl
 
 	reqMu   sync.Mutex
 	reqSeq  int64
