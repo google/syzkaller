@@ -343,24 +343,23 @@ func (pq *PriorityQueue) Next() *Request {
 	return pq.ops.Pop()
 }
 
-type DynamicSource struct {
-	value atomic.Pointer[wrapSource]
+type DynamicSourceCtl struct {
+	value atomic.Pointer[Source]
 }
 
-type wrapSource struct {
-	source Source
+// DynamicSource is assumed never to point to nil.
+func DynamicSource(source Source) *DynamicSourceCtl {
+	var ret DynamicSourceCtl
+	ret.Store(source)
+	return &ret
 }
 
-func (ds *DynamicSource) Store(source Source) {
-	ds.value.Store(&wrapSource{source})
+func (ds *DynamicSourceCtl) Store(source Source) {
+	ds.value.Store(&source)
 }
 
-func (ds *DynamicSource) Next() *Request {
-	val := ds.value.Load()
-	if val == nil || val.source == nil {
-		return nil
-	}
-	return val.source.Next()
+func (ds *DynamicSourceCtl) Next() *Request {
+	return (*ds.value.Load()).Next()
 }
 
 // Deduplicator() keeps track of the previously run requests to avoid re-running them.
