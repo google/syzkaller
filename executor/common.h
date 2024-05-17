@@ -553,10 +553,8 @@ static void execute_one(void)
 static void loop(void)
 #endif
 {
-#if SYZ_REPRO
 	if (write(1, "executing program\n", sizeof("executing program\n") - 1)) {
 	}
-#endif
 #if SYZ_TRACE
 	fprintf(stderr, "### start\n");
 #endif

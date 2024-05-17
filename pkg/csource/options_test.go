@@ -47,7 +47,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        true,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     true,
@@ -72,7 +71,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        true,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     true,
@@ -98,7 +96,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        true,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     true,
@@ -118,7 +115,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -138,7 +134,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -158,7 +153,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -179,7 +173,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
