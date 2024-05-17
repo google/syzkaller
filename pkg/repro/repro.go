@@ -235,11 +235,6 @@ func (ctx *context) repro() (*Result, error) {
 	if res == nil {
 		return nil, nil
 	}
-	defer func() {
-		if res != nil {
-			res.Opts.Repro = false
-		}
-	}()
 	res, err = ctx.minimizeProg(res)
 	if err != nil {
 		return nil, err
