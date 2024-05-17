@@ -23,6 +23,7 @@ func (linux) RequiredFiles() []string {
 	return []string{
 		"/proc/cpuinfo",
 		"/proc/modules",
+		"/proc/kallsyms",
 		"/sys/module/*/sections/.text",
 		"/sys/module/kvm*/parameters/*",
 	}
