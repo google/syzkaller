@@ -91,7 +91,6 @@ func TestSimplifies(t *testing.T) {
 		Cgroups:      true,
 		UseTmpDir:    true,
 		HandleSegv:   true,
-		Repro:        true,
 	}
 	var check func(opts csource.Options, i int)
 	check = func(opts csource.Options, i int) {

@@ -123,7 +123,6 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_VHCI_INJECTION":            opts.VhciInjection,
 		"SYZ_USE_TMP_DIR":               opts.UseTmpDir,
 		"SYZ_HANDLE_SEGV":               opts.HandleSegv,
-		"SYZ_REPRO":                     opts.Repro,
 		"SYZ_TRACE":                     opts.Trace,
 		"SYZ_WIFI":                      opts.Wifi,
 		"SYZ_802154":                    opts.IEEE802154,

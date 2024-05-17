@@ -48,9 +48,6 @@ type Options struct {
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
 
-	// Generate code for use with repro package to prints log messages,
-	// which allows to detect hangs.
-	Repro bool `json:"repro,omitempty"`
 	Trace bool `json:"trace,omitempty"`
 	LegacyOptions
 }
@@ -169,7 +166,6 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		Sandbox:    cfg.Sandbox,
 		UseTmpDir:  true,
 		HandleSegv: true,
-		Repro:      true,
 	}
 	if cfg.TargetOS == targets.Linux {
 		opts.NetInjection = true
@@ -222,7 +218,7 @@ func deserializeLegacyOptions(data string, opts *Options) (int, error) {
 		"HandleSegv":    &opts.HandleSegv,
 		"WaitRepeat":    &ignoreBool,
 		"Debug":         &ignoreBool,
-		"Repro":         &opts.Repro,
+		"Repro":         &ignoreBool,
 	}
 
 	data = strings.TrimSpace(data)
@@ -366,6 +362,5 @@ var ExecutorOpts = Options{
 	Procs:     2,
 	Slowdown:  1,
 	Sandbox:   "none",
-	Repro:     true,
 	UseTmpDir: true,
 }

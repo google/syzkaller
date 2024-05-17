@@ -188,9 +188,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 		if len(calls) > 0 && (hasVars || opts.Trace) {
 			fmt.Fprintf(buf, "\tintptr_t res = 0;\n")
 		}
-		if opts.Repro {
-			fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
-		}
+		fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
 		if opts.Trace {
 			fmt.Fprintf(buf, "\tfprintf(stderr, \"### start\\n\");\n")
 		}
