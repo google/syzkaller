@@ -124,12 +124,12 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 	// If we are already triaging this exact prog, this is flaky coverage.
 	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !inTriage {
 		for call, info := range res.Info.Calls {
-			fuzzer.triageProgCall(req.Prog, &info, call, flags)
+			fuzzer.triageProgCall(req.Prog, info, call, flags)
 		}
-		fuzzer.triageProgCall(req.Prog, &res.Info.Extra, -1, flags)
+		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, flags)
 	}
 	if res.Info != nil {
-		fuzzer.statExecTime.Add(int(res.Info.Elapsed.Milliseconds()))
+		fuzzer.statExecTime.Add(int(res.Info.Elapsed / 1e6))
 	}
 }
 
@@ -148,7 +148,10 @@ type Config struct {
 	NewInputFilter func(call string) bool
 }
 
-func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int, flags ProgTypes) {
+func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, flags ProgTypes) {
+	if info == nil {
+		return
+	}
 	prio := signalPrio(p, info, call)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
@@ -166,18 +169,18 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *ipc.CallInfo, call int,
 	fuzzer.startJob(fuzzer.statJobsTriage, &triageJob{
 		p:         p.Clone(),
 		call:      call,
-		info:      *info,
+		info:      info,
 		newSignal: newMaxSignal,
 		flags:     flags,
 		queue:     queue.Append(),
 	})
 }
 
-func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
+func signalPrio(p *prog.Prog, info *flatrpc.CallInfo, call int) (prio uint8) {
 	if call == -1 {
 		return 0
 	}
-	if info.Errno == 0 {
+	if info.Error == 0 {
 		prio |= 1 << 1
 	}
 	if !p.Target.CallContainsAny(p.Calls[call]) {

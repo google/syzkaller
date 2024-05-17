@@ -111,8 +111,8 @@ func TestExecute(t *testing.T) {
 			if len(info.Calls) != len(p.Calls) {
 				t.Fatalf("executed less calls (%v) than prog len(%v):\n%s", len(info.Calls), len(p.Calls), output)
 			}
-			if info.Calls[0].Errno != 0 {
-				t.Fatalf("simple call failed: %v\n%s", info.Calls[0].Errno, output)
+			if info.Calls[0].Error != 0 {
+				t.Fatalf("simple call failed: %v\n%s", info.Calls[0].Error, output)
 			}
 			if len(output) != 0 {
 				t.Fatalf("output on empty program")
@@ -159,8 +159,8 @@ func TestParallel(t *testing.T) {
 				err = fmt.Errorf("no calls executed:\n%s", output)
 				return
 			}
-			if info.Calls[0].Errno != 0 {
-				err = fmt.Errorf("simple call failed: %v\n%s", info.Calls[0].Errno, output)
+			if info.Calls[0].Error != 0 {
+				err = fmt.Errorf("simple call failed: %v\n%s", info.Calls[0].Error, output)
 				return
 			}
 			if len(output) != 0 {
@@ -211,8 +211,8 @@ func TestZlib(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run executor: %v", err)
 		}
-		if info.Calls[0].Errno != 0 {
-			t.Fatalf("data comparison failed: %v\n%s", info.Calls[0].Errno, output)
+		if info.Calls[0].Error != 0 {
+			t.Fatalf("data comparison failed: %v\n%s", info.Calls[0].Error, output)
 		}
 	}
 }
@@ -258,7 +258,7 @@ func TestExecutorCommonExt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if call := info.Calls[0]; (call.Flags&CallFinished) == 0 || call.Errno != 0 {
-		t.Fatalf("bad call result: flags=%x errno=%v", call.Flags, call.Errno)
+	if call := info.Calls[0]; call.Flags&flatrpc.CallFlagFinished == 0 || call.Error != 0 {
+		t.Fatalf("bad call result: flags=%x errno=%v", call.Flags, call.Error)
 	}
 }

@@ -186,16 +186,16 @@ var crc32q = crc32.MakeTable(0xD5828281)
 
 func emulateExec(req *queue.Request) (*queue.Result, string, error) {
 	serializedLines := bytes.Split(req.Prog.Serialize(), []byte("\n"))
-	var info ipc.ProgInfo
+	var info flatrpc.ProgInfo
 	for i, call := range req.Prog.Calls {
-		cover := uint32(call.Meta.ID*1024) +
-			crc32.Checksum(serializedLines[i], crc32q)%4
-		callInfo := ipc.CallInfo{}
+		cover := []uint32{uint32(call.Meta.ID*1024) +
+			crc32.Checksum(serializedLines[i], crc32q)%4}
+		callInfo := &flatrpc.CallInfo{}
 		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0 {
-			callInfo.Cover = []uint32{cover}
+			callInfo.Cover = cover
 		}
 		if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 {
-			callInfo.Signal = []uint32{cover}
+			callInfo.Signal = cover
 		}
 		info.Calls = append(info.Calls, callInfo)
 	}

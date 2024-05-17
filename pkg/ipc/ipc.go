@@ -6,14 +6,12 @@ package ipc
 import (
 	"fmt"
 	"io"
-	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 	"unsafe"
 
@@ -51,60 +49,6 @@ type Config struct {
 	RateLimit     bool // rate limit start of new processes for host fuzzer mode
 
 	Timeouts targets.Timeouts
-}
-
-type CallFlags uint32
-
-const (
-	CallExecuted      CallFlags = 1 << iota // was started at all
-	CallFinished                            // finished executing (rather than blocked forever)
-	CallBlocked                             // finished but blocked during execution
-	CallFaultInjected                       // fault was injected into this call
-)
-
-type CallInfo struct {
-	Flags  CallFlags
-	Signal []uint32 // feedback signal, filled if FlagSignal is set
-	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
-	// if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Comps prog.CompMap // per-call comparison operands
-	Errno int          // call errno (0 if the call was successful)
-}
-
-func (ci *CallInfo) Clone() CallInfo {
-	ret := *ci
-	ret.Signal = slices.Clone(ret.Signal)
-	ret.Cover = slices.Clone(ret.Cover)
-	ret.Comps = maps.Clone(ret.Comps)
-	return ret
-}
-
-type ProgInfo struct {
-	Calls     []CallInfo
-	Extra     CallInfo      // stores Signal and Cover collected from background threads
-	Elapsed   time.Duration // total execution time of the program
-	Freshness int           // number of programs executed in the same process before this one
-}
-
-func (pi *ProgInfo) Clone() *ProgInfo {
-	ret := *pi
-	ret.Extra = ret.Extra.Clone()
-	ret.Calls = slices.Clone(ret.Calls)
-	for i, call := range ret.Calls {
-		ret.Calls[i] = call.Clone()
-	}
-	return &ret
-}
-
-func EmptyProgInfo(calls int) *ProgInfo {
-	info := &ProgInfo{Calls: make([]CallInfo, calls)}
-	for i := range info.Calls {
-		// Store some unsuccessful errno in the case we won't get any result.
-		// It also won't have CallExecuted flag, but it's handy to make it
-		// look failed based on errno as well.
-		info.Calls[i].Errno = int(syscall.ENOSYS)
-	}
-	return info
 }
 
 type Env struct {
@@ -312,7 +256,8 @@ func (env *Env) Close() error {
 // info: per-call info
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
-func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (
+	output []byte, info *flatrpc.ProgInfo, hanged bool, err0 error) {
 	ncalls, err := prog.ExecCallCount(progData)
 	if err != nil {
 		err0 = err
@@ -345,7 +290,7 @@ func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *
 
 	info, err0 = env.parseOutput(opts, ncalls)
 	if info != nil {
-		info.Elapsed = elapsed
+		info.Elapsed = uint64(elapsed)
 		info.Freshness = env.cmd.freshness
 	}
 	env.cmd.freshness++
@@ -356,7 +301,7 @@ func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (output []byte, info *
 	return
 }
 
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *flatrpc.ProgInfo, hanged bool, err0 error) {
 	progData, err := p.SerializeForExec()
 	if err != nil {
 		err0 = err
@@ -396,21 +341,21 @@ var (
 	rateLimiter     <-chan time.Time
 )
 
-func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
+func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*flatrpc.ProgInfo, error) {
 	out := env.out
 	ncmd, ok := readUint32(&out)
 	if !ok {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
-	info := EmptyProgInfo(ncalls)
-	extraParts := make([]CallInfo, 0)
+	info := flatrpc.EmptyProgInfo(ncalls)
+	extraParts := make([]flatrpc.CallInfo, 0)
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
 			return nil, fmt.Errorf("failed to read call %v reply", i)
 		}
 		reply := *(*callReply)(unsafe.Pointer(&out[0]))
 		out = out[unsafe.Sizeof(callReply{}):]
-		var inf *CallInfo
+		var inf *flatrpc.CallInfo
 		if reply.magic != outMagic {
 			return nil, fmt.Errorf("bad reply magic 0x%x", reply.magic)
 		}
@@ -418,14 +363,14 @@ func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 			if int(reply.index) >= len(info.Calls) {
 				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
 			}
-			inf = &info.Calls[reply.index]
+			inf = info.Calls[reply.index]
 			if inf.Flags != 0 || inf.Signal != nil {
 				return nil, fmt.Errorf("duplicate reply for call %v/%v/%v", i, reply.index, reply.num)
 			}
-			inf.Errno = int(reply.errno)
-			inf.Flags = CallFlags(reply.flags)
+			inf.Error = int32(reply.errno)
+			inf.Flags = flatrpc.CallFlag(reply.flags)
 		} else {
-			extraParts = append(extraParts, CallInfo{})
+			extraParts = append(extraParts, flatrpc.CallInfo{})
 			inf = &extraParts[len(extraParts)-1]
 		}
 		if inf.Signal, ok = readUint32Array(&out, reply.signalSize); !ok {
@@ -449,8 +394,8 @@ func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*ProgInfo, error) {
 	return info, nil
 }
 
-func convertExtra(extraParts []CallInfo, dedupCover bool) CallInfo {
-	var extra CallInfo
+func convertExtra(extraParts []flatrpc.CallInfo, dedupCover bool) *flatrpc.CallInfo {
+	var extra flatrpc.CallInfo
 	if dedupCover {
 		extraCover := make(cover.Cover)
 		for _, part := range extraParts {
@@ -472,14 +417,11 @@ func convertExtra(extraParts []CallInfo, dedupCover bool) CallInfo {
 		extra.Signal[i] = uint32(s)
 		i++
 	}
-	return extra
+	return &extra
 }
 
-func readComps(outp *[]byte, compsSize uint32) (prog.CompMap, error) {
-	if compsSize == 0 {
-		return nil, nil
-	}
-	compMap := make(prog.CompMap)
+func readComps(outp *[]byte, compsSize uint32) ([]*flatrpc.Comparison, error) {
+	comps := make([]*flatrpc.Comparison, 0, 2*compsSize)
 	for i := uint32(0); i < compsSize; i++ {
 		typ, ok := readUint32(outp)
 		if !ok {
@@ -505,7 +447,7 @@ func readComps(outp *[]byte, compsSize uint32) (prog.CompMap, error) {
 		if op1 == op2 {
 			continue // it's useless to store such comparisons
 		}
-		compMap.AddComp(op2, op1)
+		comps = append(comps, &flatrpc.Comparison{Op1: op2, Op2: op1})
 		if (typ & compConstMask) != 0 {
 			// If one of the operands was const, then this operand is always
 			// placed first in the instrumented callbacks. Such an operand
@@ -513,9 +455,9 @@ func readComps(outp *[]byte, compsSize uint32) (prog.CompMap, error) {
 			// it wouldn't be const), thus we simply ignore it.
 			continue
 		}
-		compMap.AddComp(op1, op2)
+		comps = append(comps, &flatrpc.Comparison{Op1: op1, Op2: op2})
 	}
-	return compMap, nil
+	return comps, nil
 }
 
 func readUint32(outp *[]byte) (uint32, bool) {
@@ -567,7 +509,7 @@ type command struct {
 	inrp       *os.File
 	outwp      *os.File
 	outmem     []byte
-	freshness  int
+	freshness  uint64
 }
 
 const (

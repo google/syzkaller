@@ -11,7 +11,6 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
@@ -83,7 +82,7 @@ func candidateRequest(fuzzer *Fuzzer, input Candidate) (*queue.Request, ProgType
 type triageJob struct {
 	p         *prog.Prog
 	call      int
-	info      ipc.CallInfo
+	info      *flatrpc.CallInfo
 	newSignal signal.Signal
 	flags     ProgTypes
 	fuzzer    *Fuzzer
@@ -172,7 +171,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgTypes) *queue.Result
 			stop = true
 			return
 		}
-		if !reexecutionSuccess(result.Info, &job.info, job.call) {
+		if !reexecutionSuccess(result.Info, job.info, job.call) {
 			// The call was not executed or failed.
 			continue
 		}
@@ -213,7 +212,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 					return false
 				}
 				info := result.Info
-				if !reexecutionSuccess(info, &job.info, call1) {
+				if !reexecutionSuccess(info, job.info, call1) {
 					// The call was not executed or failed.
 					continue
 				}
@@ -227,25 +226,28 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 	return stop
 }
 
-func reexecutionSuccess(info *ipc.ProgInfo, oldInfo *ipc.CallInfo, call int) bool {
+func reexecutionSuccess(info *flatrpc.ProgInfo, oldInfo *flatrpc.CallInfo, call int) bool {
 	if info == nil || len(info.Calls) == 0 {
 		return false
 	}
 	if call != -1 {
 		// Don't minimize calls from successful to unsuccessful.
 		// Successful calls are much more valuable.
-		if oldInfo.Errno == 0 && info.Calls[call].Errno != 0 {
+		if oldInfo.Error == 0 && info.Calls[call].Error != 0 {
 			return false
 		}
 		return len(info.Calls[call].Signal) != 0
 	}
-	return len(info.Extra.Signal) != 0
+	return info.Extra != nil && len(info.Extra.Signal) != 0
 }
 
-func getSignalAndCover(p *prog.Prog, info *ipc.ProgInfo, call int) (signal.Signal, []uint32) {
-	inf := &info.Extra
+func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) (signal.Signal, []uint32) {
+	inf := info.Extra
 	if call != -1 {
-		inf = &info.Calls[call]
+		inf = info.Calls[call]
+	}
+	if inf == nil {
+		return nil, nil
 	}
 	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call)), inf.Cover
 }
@@ -332,7 +334,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 		}
 		info := result.Info
 		if info != nil && len(info.Calls) > job.call &&
-			info.Calls[job.call].Flags&ipc.CallFaultInjected == 0 {
+			info.Calls[job.call].Flags&flatrpc.CallFlagFaultInjected == 0 {
 			break
 		}
 	}
@@ -358,13 +360,17 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		if result.Stop() || result.Info == nil {
 			return
 		}
+		got := make(prog.CompMap)
+		for _, cmp := range result.Info.Calls[job.call].Comps {
+			got.AddComp(cmp.Op1, cmp.Op2)
+		}
+		if len(got) == 0 {
+			return
+		}
 		if i == 0 {
-			comps = result.Info.Calls[job.call].Comps
-			if len(comps) == 0 {
-				return
-			}
+			comps = got
 		} else {
-			comps.InplaceIntersect(result.Info.Calls[job.call].Comps)
+			comps.InplaceIntersect(got)
 		}
 	}
 

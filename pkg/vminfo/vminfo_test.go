@@ -103,14 +103,12 @@ func createSuccessfulResults(source queue.Source, stop chan struct{}) {
 			// Currently we have 641 (when we failed to properly dedup syscall tests, it was 4349).
 			panic("too many test programs")
 		}
-		info := &ipc.ProgInfo{}
+		info := &flatrpc.ProgInfo{}
 		for range req.Prog.Calls {
-			info.Calls = append(info.Calls, ipc.CallInfo{
+			info.Calls = append(info.Calls, &flatrpc.CallInfo{
 				Cover:  []uint32{1},
 				Signal: []uint32{1},
-				Comps: map[uint64]map[uint64]bool{
-					1: {2: true},
-				},
+				Comps:  []*flatrpc.Comparison{{Op1: 1, Op2: 2}},
 			})
 		}
 		req.Done(&queue.Result{

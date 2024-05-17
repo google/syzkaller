@@ -251,43 +251,40 @@ func (ctx *Context) logProgram(pid int, p *prog.Prog, callOpts *ipc.ExecOpts) {
 	ctx.logMu.Unlock()
 }
 
-func (ctx *Context) printCallResults(info *ipc.ProgInfo) {
+func (ctx *Context) printCallResults(info *flatrpc.ProgInfo) {
 	for i, inf := range info.Calls {
-		if inf.Flags&ipc.CallExecuted == 0 {
+		if inf.Flags&flatrpc.CallFlagExecuted == 0 {
 			continue
 		}
 		flags := ""
-		if inf.Flags&ipc.CallFinished == 0 {
+		if inf.Flags&flatrpc.CallFlagFinished == 0 {
 			flags += " unfinished"
 		}
-		if inf.Flags&ipc.CallBlocked != 0 {
+		if inf.Flags&flatrpc.CallFlagBlocked != 0 {
 			flags += " blocked"
 		}
-		if inf.Flags&ipc.CallFaultInjected != 0 {
+		if inf.Flags&flatrpc.CallFlagFaultInjected != 0 {
 			flags += " faulted"
 		}
 		log.Logf(1, "CALL %v: signal %v, coverage %v errno %v%v",
-			i, len(inf.Signal), len(inf.Cover), inf.Errno, flags)
+			i, len(inf.Signal), len(inf.Cover), inf.Error, flags)
 	}
 }
 
-func (ctx *Context) printHints(p *prog.Prog, info *ipc.ProgInfo) {
+func (ctx *Context) printHints(p *prog.Prog, info *flatrpc.ProgInfo) {
 	ncomps, ncandidates := 0, 0
 	for i := range p.Calls {
 		if *flagOutput {
 			fmt.Printf("call %v:\n", i)
 		}
-		comps := info.Calls[i].Comps
-		for v, args := range comps {
-			ncomps += len(args)
+		comps := make(prog.CompMap)
+		for _, cmp := range info.Calls[i].Comps {
+			comps.AddComp(cmp.Op1, cmp.Op2)
 			if *flagOutput {
-				fmt.Printf("comp 0x%x:", v)
-				for arg := range args {
-					fmt.Printf(" 0x%x", arg)
-				}
-				fmt.Printf("\n")
+				fmt.Printf("comp 0x%x ? 0x%x\n", cmp.Op1, cmp.Op2)
 			}
 		}
+		ncomps += len(comps)
 		p.MutateWithHints(i, comps, func(p *prog.Prog) bool {
 			ncandidates++
 			if *flagOutput {
@@ -325,8 +322,8 @@ func getKernelUpperBase(target *targets.Target) uint32 {
 	return defaultRet
 }
 
-func (ctx *Context) dumpCallCoverage(coverFile string, info *ipc.CallInfo) {
-	if len(info.Cover) == 0 {
+func (ctx *Context) dumpCallCoverage(coverFile string, info *flatrpc.CallInfo) {
+	if info == nil || len(info.Cover) == 0 {
 		return
 	}
 	buf := new(bytes.Buffer)
@@ -340,13 +337,13 @@ func (ctx *Context) dumpCallCoverage(coverFile string, info *ipc.CallInfo) {
 	}
 }
 
-func (ctx *Context) dumpCoverage(coverFile string, info *ipc.ProgInfo) {
+func (ctx *Context) dumpCoverage(coverFile string, info *flatrpc.ProgInfo) {
 	for i, inf := range info.Calls {
 		log.Logf(0, "call #%v: signal %v, coverage %v", i, len(inf.Signal), len(inf.Cover))
-		ctx.dumpCallCoverage(fmt.Sprintf("%v.%v", coverFile, i), &inf)
+		ctx.dumpCallCoverage(fmt.Sprintf("%v.%v", coverFile, i), inf)
 	}
 	log.Logf(0, "extra: signal %v, coverage %v", len(info.Extra.Signal), len(info.Extra.Cover))
-	ctx.dumpCallCoverage(fmt.Sprintf("%v.extra", coverFile), &info.Extra)
+	ctx.dumpCallCoverage(fmt.Sprintf("%v.extra", coverFile), info.Extra)
 }
 
 func (ctx *Context) getProgramIndex() int {

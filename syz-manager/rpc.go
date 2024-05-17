@@ -383,8 +383,10 @@ func (serv *RPCServer) handleExecResult(runner *Runner, msg *flatrpc.ExecResult)
 			call.Cover = runner.canonicalizer.Canonicalize(call.Cover)
 			call.Signal = runner.canonicalizer.Canonicalize(call.Signal)
 		}
-		msg.Info.Extra.Cover = runner.canonicalizer.Canonicalize(msg.Info.Extra.Cover)
-		msg.Info.Extra.Signal = runner.canonicalizer.Canonicalize(msg.Info.Extra.Signal)
+		if msg.Info.Extra != nil {
+			msg.Info.Extra.Cover = runner.canonicalizer.Canonicalize(msg.Info.Extra.Cover)
+			msg.Info.Extra.Signal = runner.canonicalizer.Canonicalize(msg.Info.Extra.Signal)
+		}
 	}
 	status := queue.Success
 	var resErr error
@@ -394,7 +396,7 @@ func (serv *RPCServer) handleExecResult(runner *Runner, msg *flatrpc.ExecResult)
 	}
 	req.Done(&queue.Result{
 		Status: status,
-		Info:   convertProgInfo(msg.Info),
+		Info:   msg.Info,
 		Output: slices.Clone(msg.Output),
 		Err:    resErr,
 	})
@@ -621,39 +623,5 @@ func addFallbackSignal(p *prog.Prog, info *flatrpc.ProgInfo) {
 	p.FallbackSignal(callInfos)
 	for i, inf := range callInfos {
 		info.Calls[i].Signal = inf.Signal
-	}
-}
-
-func convertProgInfo(info *flatrpc.ProgInfo) *ipc.ProgInfo {
-	if info == nil {
-		return nil
-	}
-	return &ipc.ProgInfo{
-		Elapsed:   time.Duration(info.Elapsed),
-		Freshness: int(info.Freshness),
-		Extra:     convertCallInfo(info.Extra),
-		Calls:     convertCalls(info),
-	}
-}
-
-func convertCalls(info *flatrpc.ProgInfo) []ipc.CallInfo {
-	var calls []ipc.CallInfo
-	for _, call := range info.Calls {
-		calls = append(calls, convertCallInfo(call))
-	}
-	return calls
-}
-
-func convertCallInfo(info *flatrpc.CallInfo) ipc.CallInfo {
-	comps := make(prog.CompMap)
-	for _, comp := range info.Comps {
-		comps.AddComp(comp.Op1, comp.Op2)
-	}
-	return ipc.CallInfo{
-		Flags:  ipc.CallFlags(info.Flags),
-		Errno:  int(info.Error),
-		Cover:  info.Cover,
-		Signal: info.Signal,
-		Comps:  comps,
 	}
 }

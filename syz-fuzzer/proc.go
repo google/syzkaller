@@ -52,7 +52,7 @@ func (proc *Proc) loop() {
 		info, output, err := proc.execute(req, wait)
 		res := &flatrpc.ExecResult{
 			Id:     req.Id,
-			Info:   convertProgInfo(info),
+			Info:   info,
 			Output: output,
 			Error:  err,
 		}
@@ -63,9 +63,9 @@ func (proc *Proc) loop() {
 			}
 			info, output, err := proc.execute(req, 0)
 			if res.Info == nil {
-				res.Info = convertProgInfo(info)
+				res.Info = info
 			} else if info != nil {
-				res.Info.Calls = append(res.Info.Calls, convertCalls(info)...)
+				res.Info.Calls = append(res.Info.Calls, info.Calls...)
 			}
 			res.Output = append(res.Output, output...)
 			res.Error = err
@@ -101,7 +101,7 @@ func (proc *Proc) nextRequest() (*flatrpc.ExecRequest, time.Duration) {
 }
 
 func (proc *Proc) execute(req *flatrpc.ExecRequest, wait time.Duration) (
-	info *ipc.ProgInfo, output []byte, errStr string) {
+	info *flatrpc.ProgInfo, output []byte, errStr string) {
 	var err error
 	if req.Flags&flatrpc.RequestFlagIsBinary != 0 {
 		output, err = executeBinary(req)
@@ -117,7 +117,7 @@ func (proc *Proc) execute(req *flatrpc.ExecRequest, wait time.Duration) (
 	return
 }
 
-func (proc *Proc) executeProgram(req *flatrpc.ExecRequest, wait time.Duration) (*ipc.ProgInfo, []byte, error) {
+func (proc *Proc) executeProgram(req *flatrpc.ExecRequest, wait time.Duration) (*flatrpc.ProgInfo, []byte, error) {
 	returnError := req.Flags&flatrpc.RequestFlagReturnError != 0
 	execOpts := &ipc.ExecOpts{
 		EnvFlags:   req.ExecEnv,
@@ -126,7 +126,7 @@ func (proc *Proc) executeProgram(req *flatrpc.ExecRequest, wait time.Duration) (
 	}
 	for try := 0; ; try++ {
 		var output []byte
-		var info *ipc.ProgInfo
+		var info *flatrpc.ProgInfo
 		var hanged bool
 		// On a heavily loaded VM, syz-executor may take significant time to start.
 		// Let's do it outside of the gate ticket.
@@ -179,40 +179,4 @@ func executeBinary(req *flatrpc.ExecRequest) ([]byte, error) {
 		return verr.Output, nil
 	}
 	return output, err
-}
-
-func convertProgInfo(info *ipc.ProgInfo) *flatrpc.ProgInfo {
-	if info == nil {
-		return nil
-	}
-	return &flatrpc.ProgInfo{
-		Elapsed:   uint64(info.Elapsed),
-		Freshness: uint64(info.Freshness),
-		Extra:     convertCallInfo(info.Extra),
-		Calls:     convertCalls(info),
-	}
-}
-
-func convertCalls(info *ipc.ProgInfo) []*flatrpc.CallInfo {
-	var calls []*flatrpc.CallInfo
-	for _, call := range info.Calls {
-		calls = append(calls, convertCallInfo(call))
-	}
-	return calls
-}
-
-func convertCallInfo(info ipc.CallInfo) *flatrpc.CallInfo {
-	var comps []*flatrpc.Comparison
-	for op1, ops := range info.Comps {
-		for op2 := range ops {
-			comps = append(comps, &flatrpc.Comparison{Op1: op1, Op2: op2})
-		}
-	}
-	return &flatrpc.CallInfo{
-		Flags:  flatrpc.CallFlag(info.Flags),
-		Error:  int32(info.Errno),
-		Cover:  info.Cover,
-		Signal: info.Signal,
-		Comps:  comps,
-	}
 }
