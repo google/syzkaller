@@ -186,8 +186,8 @@ func (ctx *checkContext) featureSucceeded(feat flatrpc.Feature, testProg *prog.P
 			len(res.Info.Calls), len(testProg.Calls))
 	}
 	for i, call := range res.Info.Calls {
-		if call.Errno != 0 {
-			return fmt.Sprintf("call %v failed with errno %v", i, call.Errno)
+		if call.Error != 0 {
+			return fmt.Sprintf("call %v failed with errno %v", i, call.Error)
 		}
 	}
 	call := res.Info.Calls[0]

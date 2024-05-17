@@ -140,7 +140,7 @@ func (ctx *checkContext) canOpenImpl(file string, modes []uint64, root bool) str
 	}
 	info := ctx.execRaw(calls, prog.StrictUnsafe, root)
 	for _, call := range info.Calls {
-		if call.Errno == 0 {
+		if call.Error == 0 {
 			return ""
 		}
 	}
@@ -148,7 +148,7 @@ func (ctx *checkContext) canOpenImpl(file string, modes []uint64, root bool) str
 	if root {
 		who = "root "
 	}
-	return fmt.Sprintf("%vfailed to open %s: %v", who, file, syscall.Errno(info.Calls[0].Errno))
+	return fmt.Sprintf("%vfailed to open %s: %v", who, file, syscall.Errno(info.Calls[0].Error))
 }
 
 func (ctx *checkContext) supportedSyscalls(names []string) string {
@@ -161,7 +161,7 @@ func (ctx *checkContext) supportedSyscalls(names []string) string {
 	}
 	info := ctx.execRaw(calls, prog.NonStrictUnsafe, false)
 	for i, res := range info.Calls {
-		if res.Errno == int(syscall.ENOSYS) {
+		if res.Error == int32(syscall.ENOSYS) {
 			return fmt.Sprintf("syscall %v is not present", names[i])
 		}
 	}
@@ -201,17 +201,17 @@ func (ctx *checkContext) callSucceeds(call string) string {
 
 func (ctx *checkContext) execCall(call string) syscall.Errno {
 	info := ctx.execRaw([]string{call}, prog.StrictUnsafe, false)
-	return syscall.Errno(info.Calls[0].Errno)
+	return syscall.Errno(info.Calls[0].Error)
 }
 
 func (ctx *checkContext) anyCallSucceeds(calls []string, msg string) string {
 	info := ctx.execRaw(calls, prog.StrictUnsafe, false)
 	for _, call := range info.Calls {
-		if call.Errno == 0 {
+		if call.Error == 0 {
 			return ""
 		}
 	}
-	return fmt.Sprintf("%s: %v", msg, syscall.Errno(info.Calls[0].Errno))
+	return fmt.Sprintf("%s: %v", msg, syscall.Errno(info.Calls[0].Error))
 }
 
 func (ctx *checkContext) onlySandboxNone() string {
@@ -236,12 +236,12 @@ func (ctx *checkContext) val(name string) uint64 {
 	return val
 }
 
-func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root bool) *ipc.ProgInfo {
+func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root bool) *flatrpc.ProgInfo {
 	sandbox := ctx.sandbox
 	if root {
 		sandbox = 0
 	}
-	info := &ipc.ProgInfo{}
+	info := &flatrpc.ProgInfo{}
 	for remain := calls; len(remain) != 0; {
 		// Don't put too many syscalls into a single program,
 		// it will have higher chances to time out.
@@ -267,7 +267,7 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 			info.Calls = append(info.Calls, res.Info.Calls...)
 		} else if res.Status == queue.Crashed {
 			// Pretend these calls were not executed.
-			info.Calls = append(info.Calls, ipc.EmptyProgInfo(ncalls).Calls...)
+			info.Calls = append(info.Calls, flatrpc.EmptyProgInfo(ncalls).Calls...)
 		} else {
 			// The program must have been either executed or not due to a crash.
 			panic(fmt.Sprintf("got unexpected execution status (%d) for the prog %s",

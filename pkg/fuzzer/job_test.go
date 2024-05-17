@@ -6,8 +6,8 @@ package fuzzer
 import (
 	"testing"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -24,7 +24,7 @@ func TestDeflakeFail(t *testing.T) {
 
 	testJob := &triageJob{
 		p:         prog,
-		info:      ipc.CallInfo{},
+		info:      &flatrpc.CallInfo{},
 		newSignal: signal.FromRaw([]uint32{0, 1, 2, 3, 4}, 0),
 	}
 
@@ -50,7 +50,7 @@ func TestDeflakeSuccess(t *testing.T) {
 
 	testJob := &triageJob{
 		p:         prog,
-		info:      ipc.CallInfo{},
+		info:      &flatrpc.CallInfo{},
 		newSignal: signal.FromRaw([]uint32{0, 1, 2}, 0),
 	}
 	run := 0
@@ -80,12 +80,12 @@ func TestDeflakeSuccess(t *testing.T) {
 	assert.ElementsMatch(t, []uint32{0, 2}, ret.newStableSignal.ToRaw())
 }
 
-func fakeResult(errno int, signal, cover []uint32) *queue.Result {
+func fakeResult(errno int32, signal, cover []uint32) *queue.Result {
 	return &queue.Result{
-		Info: &ipc.ProgInfo{
-			Calls: []ipc.CallInfo{
+		Info: &flatrpc.ProgInfo{
+			Calls: []*flatrpc.CallInfo{
 				{
-					Errno:  errno,
+					Error:  errno,
 					Signal: signal,
 					Cover:  cover,
 				},

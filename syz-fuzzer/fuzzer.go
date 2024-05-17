@@ -268,7 +268,9 @@ func (tool *FuzzerTool) diffMaxSignal(info *flatrpc.ProgInfo, mask signal.Signal
 }
 
 func diffMaxSignal(info *flatrpc.ProgInfo, max, mask signal.Signal, maskCall int) {
-	info.Extra.Signal = diffCallSignal(info.Extra.Signal, max, mask, -1, maskCall)
+	if info.Extra != nil {
+		info.Extra.Signal = diffCallSignal(info.Extra.Signal, max, mask, -1, maskCall)
+	}
 	for i := 0; i < len(info.Calls); i++ {
 		info.Calls[i].Signal = diffCallSignal(info.Calls[i].Signal, max, mask, i, maskCall)
 	}

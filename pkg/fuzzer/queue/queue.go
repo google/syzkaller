@@ -135,7 +135,7 @@ func (r *Request) initChannel() {
 }
 
 type Result struct {
-	Info   *ipc.ProgInfo
+	Info   *flatrpc.ProgInfo
 	Output []byte
 	Status Status
 	Err    error // More details in case of ExecFailure.
@@ -143,9 +143,7 @@ type Result struct {
 
 func (r *Result) clone() *Result {
 	ret := *r
-	if ret.Info != nil {
-		ret.Info = ret.Info.Clone()
-	}
+	ret.Info = ret.Info.Clone()
 	return &ret
 }
 

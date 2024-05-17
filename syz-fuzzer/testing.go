@@ -111,7 +111,7 @@ func checkSimpleProgram(args *checkArgs) error {
 	if len(info.Calls) == 0 {
 		return fmt.Errorf("no calls executed:\n%s", output)
 	}
-	if info.Calls[0].Errno != 0 {
+	if info.Calls[0].Error != 0 {
 		return fmt.Errorf("simple call failed: %+v\n%s", info.Calls[0], output)
 	}
 	if args.ipcExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 && len(info.Calls[0].Signal) < 2 {

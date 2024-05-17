@@ -38,7 +38,7 @@ type runRequest struct {
 
 	err     error
 	result  *queue.Result
-	results *ipc.ProgInfo // the expected results
+	results *flatrpc.ProgInfo // the expected results
 
 	name   string
 	broken string
@@ -291,7 +291,7 @@ nextSandbox:
 	return nil
 }
 
-func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
+func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *flatrpc.ProgInfo, error) {
 	data, err := os.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %w", filename, err)
@@ -306,7 +306,7 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %w", filename, err)
 	}
-	errnos := map[string]int{
+	errnos := map[string]int32{
 		"":           0,
 		"EPERM":      1,
 		"ENOENT":     2,
@@ -332,24 +332,27 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"ZX_ERR_ALREADY_EXISTS": 26,
 		"ZX_ERR_ACCESS_DENIED":  30,
 	}
-	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
-	for i, call := range p.Calls {
-		info.Calls[i].Flags |= ipc.CallExecuted | ipc.CallFinished
+	info := &flatrpc.ProgInfo{}
+	for _, call := range p.Calls {
+		ci := &flatrpc.CallInfo{
+			Flags: flatrpc.CallFlagExecuted | flatrpc.CallFlagFinished,
+		}
 		switch call.Comment {
 		case "blocked":
-			info.Calls[i].Flags |= ipc.CallBlocked
+			ci.Flags |= flatrpc.CallFlagBlocked
 		case "unfinished":
-			info.Calls[i].Flags &^= ipc.CallFinished
+			ci.Flags &^= flatrpc.CallFlagFinished
 		case "unexecuted":
-			info.Calls[i].Flags &^= ipc.CallExecuted | ipc.CallFinished
+			ci.Flags &^= flatrpc.CallFlagExecuted | flatrpc.CallFlagFinished
 		default:
 			res, ok := errnos[call.Comment]
 			if !ok {
 				return nil, nil, nil, fmt.Errorf("%v: unknown call comment %q",
 					filename, call.Comment)
 			}
-			info.Calls[i].Errno = res
+			ci.Error = res
 		}
+		info.Calls = append(info.Calls, ci)
 	}
 	return p, requires, info, nil
 }
@@ -386,7 +389,7 @@ func checkArch(requires map[string]bool, arch string) bool {
 }
 
 func (ctx *Context) produceTest(progs chan *runRequest, req *runRequest, name string,
-	properties, requires map[string]bool, results *ipc.ProgInfo) {
+	properties, requires map[string]bool, results *flatrpc.ProgInfo) {
 	req.name = name
 	req.results = results
 	if !match(properties, requires) {
@@ -505,7 +508,7 @@ func checkResult(req *runRequest) error {
 	if req.result.Status != queue.Success {
 		return fmt.Errorf("non-successful result status (%v)", req.result.Status)
 	}
-	var infos []ipc.ProgInfo
+	var infos []*flatrpc.ProgInfo
 	isC := req.BinaryFile != ""
 	if isC {
 		var err error
@@ -516,7 +519,7 @@ func checkResult(req *runRequest) error {
 		raw := req.result.Info
 		for len(raw.Calls) != 0 {
 			ncalls := min(len(raw.Calls), len(req.Prog.Calls))
-			infos = append(infos, ipc.ProgInfo{
+			infos = append(infos, &flatrpc.ProgInfo{
 				Extra: raw.Extra,
 				Calls: raw.Calls[:ncalls],
 			})
@@ -538,15 +541,11 @@ func checkResult(req *runRequest) error {
 	return nil
 }
 
-func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo, calls map[string]bool) error {
+func checkCallResult(req *runRequest, isC bool, run, call int, info *flatrpc.ProgInfo, calls map[string]bool) error {
 	inf := info.Calls[call]
 	want := req.results.Calls[call]
-	for flag, what := range map[ipc.CallFlags]string{
-		ipc.CallExecuted: "executed",
-		ipc.CallBlocked:  "blocked",
-		ipc.CallFinished: "finished",
-	} {
-		if flag != ipc.CallFinished {
+	for flag, what := range flatrpc.EnumNamesCallFlag {
+		if flag != flatrpc.CallFlagFinished {
 			if isC {
 				// C code does not detect blocked/non-finished calls.
 				continue
@@ -557,7 +556,7 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo
 				continue
 			}
 		}
-		if runtime.GOOS == targets.FreeBSD && flag == ipc.CallBlocked {
+		if runtime.GOOS == targets.FreeBSD && flag == flatrpc.CallFlagBlocked {
 			// Blocking detection is flaky on freebsd.
 			// TODO(dvyukov): try to increase the timeout in executor to make it non-flaky.
 			continue
@@ -570,11 +569,11 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo
 			return fmt.Errorf("run %v: call %v is%v %v", run, call, not, what)
 		}
 	}
-	if inf.Flags&ipc.CallFinished != 0 && inf.Errno != want.Errno {
+	if inf.Flags&flatrpc.CallFlagFinished != 0 && inf.Error != want.Error {
 		return fmt.Errorf("run %v: wrong call %v result %v, want %v",
-			run, call, inf.Errno, want.Errno)
+			run, call, inf.Error, want.Error)
 	}
-	if isC || inf.Flags&ipc.CallExecuted == 0 {
+	if isC || inf.Flags&flatrpc.CallFlagExecuted == 0 {
 		return nil
 	}
 	if req.ExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 {
@@ -600,13 +599,17 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info ipc.ProgInfo
 	return nil
 }
 
-func parseBinOutput(req *runRequest) ([]ipc.ProgInfo, error) {
-	var infos []ipc.ProgInfo
+func parseBinOutput(req *runRequest) ([]*flatrpc.ProgInfo, error) {
+	var infos []*flatrpc.ProgInfo
 	s := bufio.NewScanner(bytes.NewReader(req.result.Output))
 	re := regexp.MustCompile("^### call=([0-9]+) errno=([0-9]+)$")
 	for s.Scan() {
 		if s.Text() == "### start" {
-			infos = append(infos, ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(req.Prog.Calls))})
+			pi := &flatrpc.ProgInfo{}
+			for range req.Prog.Calls {
+				pi.Calls = append(pi.Calls, &flatrpc.CallInfo{})
+			}
+			infos = append(infos, pi)
 		}
 		match := re.FindSubmatch(s.Bytes())
 		if match == nil {
@@ -625,15 +628,15 @@ func parseBinOutput(req *runRequest) ([]ipc.ProgInfo, error) {
 			return nil, fmt.Errorf("failed to parse errno %q in %q",
 				string(match[2]), s.Text())
 		}
-		info := &infos[len(infos)-1]
+		info := infos[len(infos)-1]
 		if call >= uint64(len(info.Calls)) {
 			return nil, fmt.Errorf("bad call index %v", call)
 		}
 		if info.Calls[call].Flags != 0 {
 			return nil, fmt.Errorf("double result for call %v", call)
 		}
-		info.Calls[call].Flags |= ipc.CallExecuted | ipc.CallFinished
-		info.Calls[call].Errno = int(errno)
+		info.Calls[call].Flags |= flatrpc.CallFlagExecuted | flatrpc.CallFlagFinished
+		info.Calls[call].Error = int32(errno)
 	}
 	return infos, nil
 }
