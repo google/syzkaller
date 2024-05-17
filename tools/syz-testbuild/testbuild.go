@@ -76,7 +76,7 @@ func main() {
 		KernelObj:  *flagKernelSrc,
 		Syzkaller:  *flagSyzkaller,
 		Sandbox:    *flagSandbox,
-		SandboxArg: *flagSandboxArg,
+		SandboxArg: int64(*flagSandboxArg),
 		SSHUser:    "root",
 		Procs:      1,
 		Cover:      false,

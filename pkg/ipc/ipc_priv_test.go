@@ -5,6 +5,8 @@ package ipc
 
 import (
 	"testing"
+
+	"github.com/google/syzkaller/pkg/flatrpc"
 )
 
 func TestOutputDeadline(t *testing.T) {
@@ -18,7 +20,7 @@ func TestOutputDeadline(t *testing.T) {
 		pid:    1,
 		config: &Config{},
 	}
-	c, err := env.makeCommand(&ExecOpts{}, t.TempDir())
+	c, err := env.makeCommand(&flatrpc.ExecOpts{}, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -82,7 +82,7 @@ type RPCManagerView interface {
 	currentBugFrames() BugFrames
 	maxSignal() signal.Signal
 	machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
-		opts ipc.ExecOpts) queue.Source
+		opts flatrpc.ExecOpts) queue.Source
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -325,9 +325,7 @@ func (serv *RPCServer) sendRequest(runner *Runner, req *queue.Request) error {
 				Id:               id,
 				ProgData:         progData,
 				Flags:            flags,
-				ExecEnv:          req.ExecOpts.EnvFlags,
-				ExecFlags:        req.ExecOpts.ExecFlags,
-				SandboxArg:       int64(req.ExecOpts.SandboxArg),
+				ExecOpts:         &req.ExecOpts,
 				SignalFilter:     signalFilter,
 				SignalFilterCall: int32(req.SignalFilterCall),
 			},
@@ -575,7 +573,7 @@ func (serv *RPCServer) updateCoverFilter(newCover []uint32) {
 	serv.statCoverFiltered.Add(filtered)
 }
 
-func (serv *RPCServer) execOpts() ipc.ExecOpts {
+func (serv *RPCServer) execOpts() flatrpc.ExecOpts {
 	env := ipc.FeaturesToFlags(serv.enabledFeatures, nil)
 	if *flagDebug {
 		env |= flatrpc.ExecEnvDebug
@@ -596,7 +594,7 @@ func (serv *RPCServer) execOpts() ipc.ExecOpts {
 	if serv.cfg.HasCovFilter() {
 		exec |= flatrpc.ExecFlagCoverFilter
 	}
-	return ipc.ExecOpts{
+	return flatrpc.ExecOpts{
 		EnvFlags:   env,
 		ExecFlags:  exec,
 		SandboxArg: serv.cfg.SandboxArg,

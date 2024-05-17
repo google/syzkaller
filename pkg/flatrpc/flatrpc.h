@@ -51,6 +51,8 @@ struct ExecutorMessageRaw;
 struct ExecutorMessageRawBuilder;
 struct ExecutorMessageRawT;
 
+struct ExecOptsRaw;
+
 struct ExecRequestRaw;
 struct ExecRequestRawBuilder;
 struct ExecRequestRawT;
@@ -564,6 +566,35 @@ inline const char *EnumNameCallFlag(CallFlag e) {
   const size_t index = static_cast<size_t>(e) - static_cast<size_t>(CallFlag::Executed);
   return EnumNamesCallFlag()[index];
 }
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ExecOptsRaw FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint64_t env_flags_;
+  uint64_t exec_flags_;
+  int64_t sandbox_arg_;
+
+ public:
+  ExecOptsRaw()
+      : env_flags_(0),
+        exec_flags_(0),
+        sandbox_arg_(0) {
+  }
+  ExecOptsRaw(rpc::ExecEnv _env_flags, rpc::ExecFlag _exec_flags, int64_t _sandbox_arg)
+      : env_flags_(flatbuffers::EndianScalar(static_cast<uint64_t>(_env_flags))),
+        exec_flags_(flatbuffers::EndianScalar(static_cast<uint64_t>(_exec_flags))),
+        sandbox_arg_(flatbuffers::EndianScalar(_sandbox_arg)) {
+  }
+  rpc::ExecEnv env_flags() const {
+    return static_cast<rpc::ExecEnv>(flatbuffers::EndianScalar(env_flags_));
+  }
+  rpc::ExecFlag exec_flags() const {
+    return static_cast<rpc::ExecFlag>(flatbuffers::EndianScalar(exec_flags_));
+  }
+  int64_t sandbox_arg() const {
+    return flatbuffers::EndianScalar(sandbox_arg_);
+  }
+};
+FLATBUFFERS_STRUCT_END(ExecOptsRaw, 24);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ComparisonRaw FLATBUFFERS_FINAL_CLASS {
  private:
@@ -1426,13 +1457,15 @@ struct ExecRequestRawT : public flatbuffers::NativeTable {
   typedef ExecRequestRaw TableType;
   int64_t id = 0;
   std::vector<uint8_t> prog_data{};
+  std::unique_ptr<rpc::ExecOptsRaw> exec_opts{};
   rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0);
-  rpc::ExecEnv exec_env = static_cast<rpc::ExecEnv>(0);
-  rpc::ExecFlag exec_flags = static_cast<rpc::ExecFlag>(0);
-  int64_t sandbox_arg = 0;
   std::vector<uint32_t> signal_filter{};
   int32_t signal_filter_call = 0;
   int32_t repeat = 0;
+  ExecRequestRawT() = default;
+  ExecRequestRawT(const ExecRequestRawT &o);
+  ExecRequestRawT(ExecRequestRawT&&) FLATBUFFERS_NOEXCEPT = default;
+  ExecRequestRawT &operator=(ExecRequestRawT o) FLATBUFFERS_NOEXCEPT;
 };
 
 struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1441,13 +1474,11 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_PROG_DATA = 6,
-    VT_FLAGS = 8,
-    VT_EXEC_ENV = 10,
-    VT_EXEC_FLAGS = 12,
-    VT_SANDBOX_ARG = 14,
-    VT_SIGNAL_FILTER = 16,
-    VT_SIGNAL_FILTER_CALL = 18,
-    VT_REPEAT = 20
+    VT_EXEC_OPTS = 8,
+    VT_FLAGS = 10,
+    VT_SIGNAL_FILTER = 12,
+    VT_SIGNAL_FILTER_CALL = 14,
+    VT_REPEAT = 16
   };
   int64_t id() const {
     return GetField<int64_t>(VT_ID, 0);
@@ -1455,17 +1486,11 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<uint8_t> *prog_data() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_PROG_DATA);
   }
+  const rpc::ExecOptsRaw *exec_opts() const {
+    return GetStruct<const rpc::ExecOptsRaw *>(VT_EXEC_OPTS);
+  }
   rpc::RequestFlag flags() const {
     return static_cast<rpc::RequestFlag>(GetField<uint64_t>(VT_FLAGS, 0));
-  }
-  rpc::ExecEnv exec_env() const {
-    return static_cast<rpc::ExecEnv>(GetField<uint64_t>(VT_EXEC_ENV, 0));
-  }
-  rpc::ExecFlag exec_flags() const {
-    return static_cast<rpc::ExecFlag>(GetField<uint64_t>(VT_EXEC_FLAGS, 0));
-  }
-  int64_t sandbox_arg() const {
-    return GetField<int64_t>(VT_SANDBOX_ARG, 0);
   }
   const flatbuffers::Vector<uint32_t> *signal_filter() const {
     return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_SIGNAL_FILTER);
@@ -1481,10 +1506,8 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyOffset(verifier, VT_PROG_DATA) &&
            verifier.VerifyVector(prog_data()) &&
+           VerifyField<rpc::ExecOptsRaw>(verifier, VT_EXEC_OPTS, 8) &&
            VerifyField<uint64_t>(verifier, VT_FLAGS, 8) &&
-           VerifyField<uint64_t>(verifier, VT_EXEC_ENV, 8) &&
-           VerifyField<uint64_t>(verifier, VT_EXEC_FLAGS, 8) &&
-           VerifyField<int64_t>(verifier, VT_SANDBOX_ARG, 8) &&
            VerifyOffset(verifier, VT_SIGNAL_FILTER) &&
            verifier.VerifyVector(signal_filter()) &&
            VerifyField<int32_t>(verifier, VT_SIGNAL_FILTER_CALL, 4) &&
@@ -1506,17 +1529,11 @@ struct ExecRequestRawBuilder {
   void add_prog_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data) {
     fbb_.AddOffset(ExecRequestRaw::VT_PROG_DATA, prog_data);
   }
+  void add_exec_opts(const rpc::ExecOptsRaw *exec_opts) {
+    fbb_.AddStruct(ExecRequestRaw::VT_EXEC_OPTS, exec_opts);
+  }
   void add_flags(rpc::RequestFlag flags) {
     fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_FLAGS, static_cast<uint64_t>(flags), 0);
-  }
-  void add_exec_env(rpc::ExecEnv exec_env) {
-    fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_EXEC_ENV, static_cast<uint64_t>(exec_env), 0);
-  }
-  void add_exec_flags(rpc::ExecFlag exec_flags) {
-    fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_EXEC_FLAGS, static_cast<uint64_t>(exec_flags), 0);
-  }
-  void add_sandbox_arg(int64_t sandbox_arg) {
-    fbb_.AddElement<int64_t>(ExecRequestRaw::VT_SANDBOX_ARG, sandbox_arg, 0);
   }
   void add_signal_filter(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal_filter) {
     fbb_.AddOffset(ExecRequestRaw::VT_SIGNAL_FILTER, signal_filter);
@@ -1542,22 +1559,18 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data = 0,
+    const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
-    rpc::ExecEnv exec_env = static_cast<rpc::ExecEnv>(0),
-    rpc::ExecFlag exec_flags = static_cast<rpc::ExecFlag>(0),
-    int64_t sandbox_arg = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> signal_filter = 0,
     int32_t signal_filter_call = 0,
     int32_t repeat = 0) {
   ExecRequestRawBuilder builder_(_fbb);
-  builder_.add_sandbox_arg(sandbox_arg);
-  builder_.add_exec_flags(exec_flags);
-  builder_.add_exec_env(exec_env);
   builder_.add_flags(flags);
   builder_.add_id(id);
   builder_.add_repeat(repeat);
   builder_.add_signal_filter_call(signal_filter_call);
   builder_.add_signal_filter(signal_filter);
+  builder_.add_exec_opts(exec_opts);
   builder_.add_prog_data(prog_data);
   return builder_.Finish();
 }
@@ -1566,10 +1579,8 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
     const std::vector<uint8_t> *prog_data = nullptr,
+    const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
-    rpc::ExecEnv exec_env = static_cast<rpc::ExecEnv>(0),
-    rpc::ExecFlag exec_flags = static_cast<rpc::ExecFlag>(0),
-    int64_t sandbox_arg = 0,
     const std::vector<uint32_t> *signal_filter = nullptr,
     int32_t signal_filter_call = 0,
     int32_t repeat = 0) {
@@ -1579,10 +1590,8 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
       _fbb,
       id,
       prog_data__,
+      exec_opts,
       flags,
-      exec_env,
-      exec_flags,
-      sandbox_arg,
       signal_filter__,
       signal_filter_call,
       repeat);
@@ -2391,6 +2400,27 @@ inline flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(flatbuff
       _msg);
 }
 
+inline ExecRequestRawT::ExecRequestRawT(const ExecRequestRawT &o)
+      : id(o.id),
+        prog_data(o.prog_data),
+        exec_opts((o.exec_opts) ? new rpc::ExecOptsRaw(*o.exec_opts) : nullptr),
+        flags(o.flags),
+        signal_filter(o.signal_filter),
+        signal_filter_call(o.signal_filter_call),
+        repeat(o.repeat) {
+}
+
+inline ExecRequestRawT &ExecRequestRawT::operator=(ExecRequestRawT o) FLATBUFFERS_NOEXCEPT {
+  std::swap(id, o.id);
+  std::swap(prog_data, o.prog_data);
+  std::swap(exec_opts, o.exec_opts);
+  std::swap(flags, o.flags);
+  std::swap(signal_filter, o.signal_filter);
+  std::swap(signal_filter_call, o.signal_filter_call);
+  std::swap(repeat, o.repeat);
+  return *this;
+}
+
 inline ExecRequestRawT *ExecRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<ExecRequestRawT>(new ExecRequestRawT());
   UnPackTo(_o.get(), _resolver);
@@ -2402,10 +2432,8 @@ inline void ExecRequestRaw::UnPackTo(ExecRequestRawT *_o, const flatbuffers::res
   (void)_resolver;
   { auto _e = id(); _o->id = _e; }
   { auto _e = prog_data(); if (_e) { _o->prog_data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->prog_data.begin()); } }
+  { auto _e = exec_opts(); if (_e) _o->exec_opts = std::unique_ptr<rpc::ExecOptsRaw>(new rpc::ExecOptsRaw(*_e)); }
   { auto _e = flags(); _o->flags = _e; }
-  { auto _e = exec_env(); _o->exec_env = _e; }
-  { auto _e = exec_flags(); _o->exec_flags = _e; }
-  { auto _e = sandbox_arg(); _o->sandbox_arg = _e; }
   { auto _e = signal_filter(); if (_e) { _o->signal_filter.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->signal_filter[_i] = _e->Get(_i); } } }
   { auto _e = signal_filter_call(); _o->signal_filter_call = _e; }
   { auto _e = repeat(); _o->repeat = _e; }
@@ -2421,10 +2449,8 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::Fla
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _o->id;
   auto _prog_data = _o->prog_data.size() ? _fbb.CreateVector(_o->prog_data) : 0;
+  auto _exec_opts = _o->exec_opts ? _o->exec_opts.get() : nullptr;
   auto _flags = _o->flags;
-  auto _exec_env = _o->exec_env;
-  auto _exec_flags = _o->exec_flags;
-  auto _sandbox_arg = _o->sandbox_arg;
   auto _signal_filter = _o->signal_filter.size() ? _fbb.CreateVector(_o->signal_filter) : 0;
   auto _signal_filter_call = _o->signal_filter_call;
   auto _repeat = _o->repeat;
@@ -2432,10 +2458,8 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::Fla
       _fbb,
       _id,
       _prog_data,
+      _exec_opts,
       _flags,
-      _exec_env,
-      _exec_flags,
-      _sandbox_arg,
       _signal_filter,
       _signal_filter_call,
       _repeat);

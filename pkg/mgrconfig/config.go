@@ -131,7 +131,7 @@ type Config struct {
 	// This value is passed as an argument to executor and allows to adjust sandbox behavior
 	// via manager config. For example you can switch between system and user accounts based
 	// on this value.
-	SandboxArg int `json:"sandbox_arg"`
+	SandboxArg int64 `json:"sandbox_arg"`
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`

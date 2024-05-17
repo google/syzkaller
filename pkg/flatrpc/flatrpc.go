@@ -1614,16 +1614,83 @@ func ExecutorMessageRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
+type ExecOptsRawT struct {
+	EnvFlags   ExecEnv  `json:"env_flags"`
+	ExecFlags  ExecFlag `json:"exec_flags"`
+	SandboxArg int64    `json:"sandbox_arg"`
+}
+
+func (t *ExecOptsRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	return CreateExecOptsRaw(builder, t.EnvFlags, t.ExecFlags, t.SandboxArg)
+}
+func (rcv *ExecOptsRaw) UnPackTo(t *ExecOptsRawT) {
+	t.EnvFlags = rcv.EnvFlags()
+	t.ExecFlags = rcv.ExecFlags()
+	t.SandboxArg = rcv.SandboxArg()
+}
+
+func (rcv *ExecOptsRaw) UnPack() *ExecOptsRawT {
+	if rcv == nil {
+		return nil
+	}
+	t := &ExecOptsRawT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type ExecOptsRaw struct {
+	_tab flatbuffers.Struct
+}
+
+func (rcv *ExecOptsRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *ExecOptsRaw) Table() flatbuffers.Table {
+	return rcv._tab.Table
+}
+
+func (rcv *ExecOptsRaw) EnvFlags() ExecEnv {
+	return ExecEnv(rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(0)))
+}
+func (rcv *ExecOptsRaw) MutateEnvFlags(n ExecEnv) bool {
+	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(0), uint64(n))
+}
+
+func (rcv *ExecOptsRaw) ExecFlags() ExecFlag {
+	return ExecFlag(rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(8)))
+}
+func (rcv *ExecOptsRaw) MutateExecFlags(n ExecFlag) bool {
+	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(8), uint64(n))
+}
+
+func (rcv *ExecOptsRaw) SandboxArg() int64 {
+	return rcv._tab.GetInt64(rcv._tab.Pos + flatbuffers.UOffsetT(16))
+}
+func (rcv *ExecOptsRaw) MutateSandboxArg(n int64) bool {
+	return rcv._tab.MutateInt64(rcv._tab.Pos+flatbuffers.UOffsetT(16), n)
+}
+
+func CreateExecOptsRaw(builder *flatbuffers.Builder, envFlags ExecEnv, execFlags ExecFlag, sandboxArg int64) flatbuffers.UOffsetT {
+	builder.Prep(8, 24)
+	builder.PrependInt64(sandboxArg)
+	builder.PrependUint64(uint64(execFlags))
+	builder.PrependUint64(uint64(envFlags))
+	return builder.Offset()
+}
+
 type ExecRequestRawT struct {
-	Id               int64       `json:"id"`
-	ProgData         []byte      `json:"prog_data"`
-	Flags            RequestFlag `json:"flags"`
-	ExecEnv          ExecEnv     `json:"exec_env"`
-	ExecFlags        ExecFlag    `json:"exec_flags"`
-	SandboxArg       int64       `json:"sandbox_arg"`
-	SignalFilter     []uint32    `json:"signal_filter"`
-	SignalFilterCall int32       `json:"signal_filter_call"`
-	Repeat           int32       `json:"repeat"`
+	Id               int64         `json:"id"`
+	ProgData         []byte        `json:"prog_data"`
+	ExecOpts         *ExecOptsRawT `json:"exec_opts"`
+	Flags            RequestFlag   `json:"flags"`
+	SignalFilter     []uint32      `json:"signal_filter"`
+	SignalFilterCall int32         `json:"signal_filter_call"`
+	Repeat           int32         `json:"repeat"`
 }
 
 func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -1646,10 +1713,9 @@ func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 	ExecRequestRawStart(builder)
 	ExecRequestRawAddId(builder, t.Id)
 	ExecRequestRawAddProgData(builder, progDataOffset)
+	execOptsOffset := t.ExecOpts.Pack(builder)
+	ExecRequestRawAddExecOpts(builder, execOptsOffset)
 	ExecRequestRawAddFlags(builder, t.Flags)
-	ExecRequestRawAddExecEnv(builder, t.ExecEnv)
-	ExecRequestRawAddExecFlags(builder, t.ExecFlags)
-	ExecRequestRawAddSandboxArg(builder, t.SandboxArg)
 	ExecRequestRawAddSignalFilter(builder, signalFilterOffset)
 	ExecRequestRawAddSignalFilterCall(builder, t.SignalFilterCall)
 	ExecRequestRawAddRepeat(builder, t.Repeat)
@@ -1659,10 +1725,8 @@ func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 func (rcv *ExecRequestRaw) UnPackTo(t *ExecRequestRawT) {
 	t.Id = rcv.Id()
 	t.ProgData = rcv.ProgDataBytes()
+	t.ExecOpts = rcv.ExecOpts(nil).UnPack()
 	t.Flags = rcv.Flags()
-	t.ExecEnv = rcv.ExecEnv()
-	t.ExecFlags = rcv.ExecFlags()
-	t.SandboxArg = rcv.SandboxArg()
 	signalFilterLength := rcv.SignalFilterLength()
 	t.SignalFilter = make([]uint32, signalFilterLength)
 	for j := 0; j < signalFilterLength; j++ {
@@ -1754,8 +1818,21 @@ func (rcv *ExecRequestRaw) MutateProgData(j int, n byte) bool {
 	return false
 }
 
-func (rcv *ExecRequestRaw) Flags() RequestFlag {
+func (rcv *ExecRequestRaw) ExecOpts(obj *ExecOptsRaw) *ExecOptsRaw {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		x := o + rcv._tab.Pos
+		if obj == nil {
+			obj = new(ExecOptsRaw)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
+func (rcv *ExecRequestRaw) Flags() RequestFlag {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return RequestFlag(rcv._tab.GetUint64(o + rcv._tab.Pos))
 	}
@@ -1763,47 +1840,11 @@ func (rcv *ExecRequestRaw) Flags() RequestFlag {
 }
 
 func (rcv *ExecRequestRaw) MutateFlags(n RequestFlag) bool {
-	return rcv._tab.MutateUint64Slot(8, uint64(n))
-}
-
-func (rcv *ExecRequestRaw) ExecEnv() ExecEnv {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		return ExecEnv(rcv._tab.GetUint64(o + rcv._tab.Pos))
-	}
-	return 0
-}
-
-func (rcv *ExecRequestRaw) MutateExecEnv(n ExecEnv) bool {
 	return rcv._tab.MutateUint64Slot(10, uint64(n))
 }
 
-func (rcv *ExecRequestRaw) ExecFlags() ExecFlag {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
-	if o != 0 {
-		return ExecFlag(rcv._tab.GetUint64(o + rcv._tab.Pos))
-	}
-	return 0
-}
-
-func (rcv *ExecRequestRaw) MutateExecFlags(n ExecFlag) bool {
-	return rcv._tab.MutateUint64Slot(12, uint64(n))
-}
-
-func (rcv *ExecRequestRaw) SandboxArg() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *ExecRequestRaw) MutateSandboxArg(n int64) bool {
-	return rcv._tab.MutateInt64Slot(14, n)
-}
-
 func (rcv *ExecRequestRaw) SignalFilter(j int) uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
@@ -1812,7 +1853,7 @@ func (rcv *ExecRequestRaw) SignalFilter(j int) uint32 {
 }
 
 func (rcv *ExecRequestRaw) SignalFilterLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -1820,7 +1861,7 @@ func (rcv *ExecRequestRaw) SignalFilterLength() int {
 }
 
 func (rcv *ExecRequestRaw) MutateSignalFilter(j int, n uint32) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
@@ -1829,7 +1870,7 @@ func (rcv *ExecRequestRaw) MutateSignalFilter(j int, n uint32) bool {
 }
 
 func (rcv *ExecRequestRaw) SignalFilterCall() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
 	}
@@ -1837,11 +1878,11 @@ func (rcv *ExecRequestRaw) SignalFilterCall() int32 {
 }
 
 func (rcv *ExecRequestRaw) MutateSignalFilterCall(n int32) bool {
-	return rcv._tab.MutateInt32Slot(18, n)
+	return rcv._tab.MutateInt32Slot(14, n)
 }
 
 func (rcv *ExecRequestRaw) Repeat() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
 	}
@@ -1849,11 +1890,11 @@ func (rcv *ExecRequestRaw) Repeat() int32 {
 }
 
 func (rcv *ExecRequestRaw) MutateRepeat(n int32) bool {
-	return rcv._tab.MutateInt32Slot(20, n)
+	return rcv._tab.MutateInt32Slot(16, n)
 }
 
 func ExecRequestRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(7)
 }
 func ExecRequestRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
@@ -1864,29 +1905,23 @@ func ExecRequestRawAddProgData(builder *flatbuffers.Builder, progData flatbuffer
 func ExecRequestRawStartProgDataVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
+func ExecRequestRawAddExecOpts(builder *flatbuffers.Builder, execOpts flatbuffers.UOffsetT) {
+	builder.PrependStructSlot(2, flatbuffers.UOffsetT(execOpts), 0)
+}
 func ExecRequestRawAddFlags(builder *flatbuffers.Builder, flags RequestFlag) {
-	builder.PrependUint64Slot(2, uint64(flags), 0)
-}
-func ExecRequestRawAddExecEnv(builder *flatbuffers.Builder, execEnv ExecEnv) {
-	builder.PrependUint64Slot(3, uint64(execEnv), 0)
-}
-func ExecRequestRawAddExecFlags(builder *flatbuffers.Builder, execFlags ExecFlag) {
-	builder.PrependUint64Slot(4, uint64(execFlags), 0)
-}
-func ExecRequestRawAddSandboxArg(builder *flatbuffers.Builder, sandboxArg int64) {
-	builder.PrependInt64Slot(5, sandboxArg, 0)
+	builder.PrependUint64Slot(3, uint64(flags), 0)
 }
 func ExecRequestRawAddSignalFilter(builder *flatbuffers.Builder, signalFilter flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(signalFilter), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(signalFilter), 0)
 }
 func ExecRequestRawStartSignalFilterVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ExecRequestRawAddSignalFilterCall(builder *flatbuffers.Builder, signalFilterCall int32) {
-	builder.PrependInt32Slot(7, signalFilterCall, 0)
+	builder.PrependInt32Slot(5, signalFilterCall, 0)
 }
 func ExecRequestRawAddRepeat(builder *flatbuffers.Builder, repeat int32) {
-	builder.PrependInt32Slot(8, repeat, 0)
+	builder.PrependInt32Slot(6, repeat, 0)
 }
 func ExecRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

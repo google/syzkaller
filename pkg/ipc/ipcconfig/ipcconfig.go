@@ -22,7 +22,7 @@ var (
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
 )
 
-func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
+func Default(target *prog.Target) (*ipc.Config, *flatrpc.ExecOpts, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	c := &ipc.Config{
 		Executor: *flagExecutor,
@@ -32,7 +32,7 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	c.UseForkServer = sysTarget.ExecutorUsesForkServer
 	c.RateLimit = sysTarget.HostFuzzer && target.OS != targets.TestOS
 
-	opts := &ipc.ExecOpts{
+	opts := &flatrpc.ExecOpts{
 		ExecFlags: flatrpc.ExecFlagDedupCover,
 	}
 	if *flagThreaded {
@@ -51,7 +51,7 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	opts.SandboxArg = *flagSandboxArg
+	opts.SandboxArg = int64(*flagSandboxArg)
 	opts.EnvFlags |= sandboxFlags
 	return c, opts, nil
 }

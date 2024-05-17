@@ -98,7 +98,7 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < 10; i++ {
 			p := prepareTestProgram(target)
-			opts := &ExecOpts{
+			opts := &flatrpc.ExecOpts{
 				ExecFlags: flag,
 			}
 			output, info, hanged, err := env.Exec(opts, p)
@@ -145,7 +145,7 @@ func TestParallel(t *testing.T) {
 				errs <- err
 			}()
 			p := target.DataMmapProg()
-			opts := &ExecOpts{}
+			opts := &flatrpc.ExecOpts{}
 			output, info, hanged, err := env.Exec(opts, p)
 			if err != nil {
 				err = fmt.Errorf("failed to run executor: %w", err)

@@ -14,7 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
@@ -136,7 +135,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 type Config struct {
 	Debug          bool
 	Corpus         *corpus.Corpus
-	BaseOpts       ipc.ExecOpts // Fuzzer will use BaseOpts as a base for all requests.
+	BaseOpts       flatrpc.ExecOpts // Fuzzer will use BaseOpts as a base for all requests.
 	Logf           func(level int, msg string, args ...interface{})
 	Coverage       bool
 	FaultInjection bool
@@ -329,8 +328,8 @@ func (fuzzer *Fuzzer) RotateMaxSignal(items int) {
 	fuzzer.Cover.subtract(delta)
 }
 
-func setFlags(execFlags flatrpc.ExecFlag) ipc.ExecOpts {
-	return ipc.ExecOpts{
+func setFlags(execFlags flatrpc.ExecFlag) flatrpc.ExecOpts {
+	return flatrpc.ExecOpts{
 		ExecFlags: execFlags,
 	}
 }

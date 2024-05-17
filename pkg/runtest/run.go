@@ -420,7 +420,7 @@ func match(props, requires map[string]bool) bool {
 }
 
 func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool, times int) (*runRequest, error) {
-	var opts ipc.ExecOpts
+	var opts flatrpc.ExecOpts
 	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
 	if err != nil {
 		return nil, err
@@ -495,7 +495,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		Request: &queue.Request{
 			Prog:       p,
 			BinaryFile: bin,
-			ExecOpts: ipc.ExecOpts{
+			ExecOpts: flatrpc.ExecOpts{
 				ExecFlags: ipcFlags,
 			},
 			Repeat: times,

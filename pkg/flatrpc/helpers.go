@@ -29,6 +29,7 @@ type SignalUpdate = SignalUpdateRawT
 type ExecutingMessage = ExecutingMessageRawT
 type CallInfo = CallInfoRawT
 type Comparison = ComparisonRawT
+type ExecOpts = ExecOptsRawT
 type ProgInfo = ProgInfoRawT
 type ExecResult = ExecResultRawT
 
@@ -67,4 +68,11 @@ func EmptyProgInfo(calls int) *ProgInfo {
 		})
 	}
 	return info
+}
+
+func (eo ExecOpts) MergeFlags(diff ExecOpts) ExecOpts {
+	ret := eo
+	ret.ExecFlags |= diff.ExecFlags
+	ret.EnvFlags |= diff.EnvFlags
+	return ret
 }

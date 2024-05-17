@@ -157,7 +157,7 @@ type Context struct {
 	progs       []*prog.Prog
 	choiceTable *prog.ChoiceTable
 	config      *ipc.Config
-	execOpts    *ipc.ExecOpts
+	execOpts    *flatrpc.ExecOpts
 	gate        *ipc.Gate
 	shutdown    chan struct{}
 	logMu       sync.Mutex
@@ -204,7 +204,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 
 	callOpts := ctx.execOpts
 	if *flagOutput {
-		ctx.logProgram(pid, p, callOpts)
+		ctx.logProgram(pid, p)
 	}
 	progData, err := p.SerializeForExec()
 	if err != nil {
@@ -244,7 +244,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog, progIndex int) 
 	}
 }
 
-func (ctx *Context) logProgram(pid int, p *prog.Prog, callOpts *ipc.ExecOpts) {
+func (ctx *Context) logProgram(pid int, p *prog.Prog) {
 	data := p.Serialize()
 	ctx.logMu.Lock()
 	log.Logf(0, "executing program %v:\n%s", pid, data)
@@ -394,7 +394,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 }
 
 func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls []int) (
-	*ipc.Config, *ipc.ExecOpts, map[*prog.Syscall]bool, flatrpc.Feature) {
+	*ipc.Config, *flatrpc.ExecOpts, map[*prog.Syscall]bool, flatrpc.Feature) {
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.Fatalf("%v", err)

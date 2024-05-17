@@ -254,7 +254,7 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 		}
 		req := &queue.Request{
 			Prog: p,
-			ExecOpts: ipc.ExecOpts{
+			ExecOpts: flatrpc.ExecOpts{
 				EnvFlags:   sandbox,
 				ExecFlags:  0,
 				SandboxArg: ctx.cfg.SandboxArg,
