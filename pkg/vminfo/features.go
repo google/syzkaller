@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -56,7 +55,7 @@ func (ctx *checkContext) startFeaturesCheck() {
 				Prog:         testProg,
 				ReturnOutput: true,
 				ReturnError:  true,
-				ExecOpts: ipc.ExecOpts{
+				ExecOpts: flatrpc.ExecOpts{
 					EnvFlags:   envFlags,
 					ExecFlags:  execFlags,
 					SandboxArg: ctx.cfg.SandboxArg,

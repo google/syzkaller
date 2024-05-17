@@ -24,21 +24,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type ExecOpts struct {
-	// Changing ExecFlag between executions does not cause executor process restart.
-	// Changing ExecEnv/SandboxArg does cause process restart.
-	ExecFlags  flatrpc.ExecFlag
-	EnvFlags   flatrpc.ExecEnv
-	SandboxArg int
-}
-
-func (eo ExecOpts) MergeFlags(diff ExecOpts) ExecOpts {
-	ret := eo
-	ret.ExecFlags |= diff.ExecFlags
-	ret.EnvFlags |= diff.EnvFlags
-	return ret
-}
-
 // Config is the configuration for Env.
 type Config struct {
 	// Path to executor binary.
@@ -256,7 +241,7 @@ func (env *Env) Close() error {
 // info: per-call info
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
-func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (
+func (env *Env) ExecProg(opts *flatrpc.ExecOpts, progData []byte) (
 	output []byte, info *flatrpc.ProgInfo, hanged bool, err0 error) {
 	ncalls, err := prog.ExecCallCount(progData)
 	if err != nil {
@@ -301,7 +286,8 @@ func (env *Env) ExecProg(opts *ExecOpts, progData []byte) (
 	return
 }
 
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *flatrpc.ProgInfo, hanged bool, err0 error) {
+func (env *Env) Exec(opts *flatrpc.ExecOpts, p *prog.Prog) (
+	output []byte, info *flatrpc.ProgInfo, hanged bool, err0 error) {
 	progData, err := p.SerializeForExec()
 	if err != nil {
 		err0 = err
@@ -318,7 +304,7 @@ func (env *Env) ForceRestart() {
 }
 
 // RestartIfNeeded brings up an executor process if it was stopped.
-func (env *Env) RestartIfNeeded(opts *ExecOpts) error {
+func (env *Env) RestartIfNeeded(opts *flatrpc.ExecOpts) error {
 	if env.cmd != nil {
 		if env.cmd.flags == opts.EnvFlags && env.cmd.sandboxArg == opts.SandboxArg {
 			return nil
@@ -341,7 +327,7 @@ var (
 	rateLimiter     <-chan time.Time
 )
 
-func (env *Env) parseOutput(opts *ExecOpts, ncalls int) (*flatrpc.ProgInfo, error) {
+func (env *Env) parseOutput(opts *flatrpc.ExecOpts, ncalls int) (*flatrpc.ProgInfo, error) {
 	out := env.out
 	ncmd, ok := readUint32(&out)
 	if !ok {
@@ -500,7 +486,7 @@ type command struct {
 	pid        int
 	config     *Config
 	flags      flatrpc.ExecEnv
-	sandboxArg int
+	sandboxArg int64
 	timeout    time.Duration
 	cmd        *exec.Cmd
 	dir        string
@@ -561,7 +547,7 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func (env *Env) makeCommand(opts *ExecOpts, tmpDir string) (*command, error) {
+func (env *Env) makeCommand(opts *flatrpc.ExecOpts, tmpDir string) (*command, error) {
 	dir, err := os.MkdirTemp(tmpDir, "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
@@ -752,7 +738,7 @@ func (c *command) wait() error {
 	return <-c.exited
 }
 
-func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
+func (c *command) exec(opts *flatrpc.ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
 	if c.flags != opts.EnvFlags || c.sandboxArg != opts.SandboxArg {
 		panic("wrong command")
 	}

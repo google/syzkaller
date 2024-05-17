@@ -23,7 +23,7 @@ type checkArgs struct {
 	gitRevision    string
 	targetRevision string
 	ipcConfig      *ipc.Config
-	ipcExecOpts    *ipc.ExecOpts
+	ipcExecOpts    *flatrpc.ExecOpts
 }
 
 func testImage(hostAddr string, args *checkArgs) {

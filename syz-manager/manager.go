@@ -30,7 +30,6 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -1337,7 +1336,7 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 }
 
 func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
-	opts ipc.ExecOpts) queue.Source {
+	opts flatrpc.ExecOpts) queue.Source {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.checkDone {

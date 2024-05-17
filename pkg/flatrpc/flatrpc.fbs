@@ -135,14 +135,20 @@ enum ExecFlag : uint64 (bit_flags) {
 	CoverFilter,		// setup and use bitmap to do coverage filter
 }
 
+struct ExecOptsRaw {
+	// Changing exec_flags between executions does not cause executor process restart.
+	// Changing env_flags/sandbox_arg does cause process restart.
+	env_flags		:ExecEnv;
+	exec_flags		:ExecFlag;
+	sandbox_arg		:int64;
+}
+
 // Request to execute a test program.
 table ExecRequestRaw {
 	id			:int64;
 	prog_data		:[uint8];
+	exec_opts		:ExecOptsRaw;
 	flags			:RequestFlag;
-	exec_env		:ExecEnv;
-	exec_flags		:ExecFlag;
-	sandbox_arg		:int64;
 	signal_filter		:[uint32];
 	signal_filter_call	:int32;
 	// Repeat the program that many times (0 means 1).

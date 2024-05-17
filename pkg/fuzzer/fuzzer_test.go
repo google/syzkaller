@@ -277,7 +277,7 @@ func (f *testFuzzer) wait() {
 // Looks like it's time to factor out this functionality.
 type executorProc struct {
 	env      *ipc.Env
-	execOpts ipc.ExecOpts
+	execOpts flatrpc.ExecOpts
 }
 
 func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {

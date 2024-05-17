@@ -457,7 +457,7 @@ func (inst *inst) testRepro() ([]byte, error) {
 
 type OptionalFuzzerArgs struct {
 	Slowdown   int
-	SandboxArg int
+	SandboxArg int64
 	PprofPort  int
 }
 
@@ -504,7 +504,7 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 		args.Procs, args.Cover, args.Debug, args.Test, verbosityArg, optionalArg)
 }
 
-func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, sandboxArg, procs int,
+func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, sandboxArg int64, procs int,
 	cover, test, optionalFlags bool, slowdown int) string {
 	var optional *OptionalFuzzerArgs
 	if optionalFlags {

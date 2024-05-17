@@ -13,7 +13,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
@@ -21,7 +20,7 @@ import (
 
 type Request struct {
 	Prog     *prog.Prog
-	ExecOpts ipc.ExecOpts
+	ExecOpts flatrpc.ExecOpts
 
 	// If specified, the resulting signal for call SignalFilterCall
 	// will include subset of it even if it's not new.
