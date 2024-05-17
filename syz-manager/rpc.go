@@ -537,7 +537,7 @@ func (serv *RPCServer) doneRequest(runner *Runner, resp rpctype.ExecutionResult)
 	if resp.Error != "" {
 		result.Status = queue.ExecFailure
 		result.Err = fmt.Errorf("%s", resp.Error)
-	} else if !serv.cfg.Cover && req.req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0 {
+	} else if !serv.cfg.Cover && req.req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 {
 		// Coverage collection is disabled, but signal was requested => use a substitute signal.
 		addFallbackSignal(req.req.Prog, info)
 	}
