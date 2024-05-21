@@ -445,60 +445,63 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to create manager config: %w", err)
 	}
-	defer os.RemoveAll(mgrcfg.Workdir)
 	if !vm.AllowsOvercommit(mgrcfg.Type) {
 		return nil // No support for creating machines out of thin air.
 	}
-	env, err := instance.NewEnv(mgrcfg, buildSem, testSem)
-	if err != nil {
+	osutil.MkdirAll(mgrcfg.Workdir)
+	configFile := filepath.Join(mgrcfg.Workdir, "manager.cfg")
+	if err := config.SaveFile(configFile, mgrcfg); err != nil {
 		return err
 	}
-	const (
-		testVMs     = 3
-		maxFailures = 1
-	)
-	results, err := env.Test(testVMs, nil, nil, nil)
-	if err != nil {
-		return err
+
+	testSem.Wait()
+	defer testSem.Signal()
+
+	timeout := 30 * time.Minute * mgrcfg.Timeouts.Scale
+	bin := filepath.Join(mgrcfg.Syzkaller, "bin", "syz-manager")
+	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test")
+	if retErr == nil {
+		return nil
 	}
-	failures := 0
-	var failureErr error
-	for _, res := range results {
-		if res.Error == nil {
-			continue
-		}
-		failures++
-		var err *instance.TestError
-		switch {
-		case errors.As(res.Error, &err):
-			if rep := err.Report; rep != nil {
-				what := "test"
-				if err.Boot {
-					what = "boot"
-				}
-				rep.Title = fmt.Sprintf("%v %v error: %v",
-					mgr.mgrcfg.RepoAlias, what, rep.Title)
-				// There are usually no duplicates for boot errors, so we reset AltTitles.
-				// But if we pass them, we would need to add the same prefix as for Title
-				// in order to avoid duping boot bugs with non-boot bugs.
-				rep.AltTitles = nil
-				if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-					mgr.Errorf("failed to report image error: %v", err)
-				}
-			}
-			if err.Boot {
-				failureErr = fmt.Errorf("VM boot failed with: %w", err)
+
+	var verboseErr *osutil.VerboseError
+	if errors.As(retErr, &verboseErr) {
+		// Caller will log the error, so don't include full output.
+		retErr = errors.New(verboseErr.Title)
+	}
+	// If there was a kernel bug, report it to dashboard.
+	// Otherwise just save the output in a temp file and log an error, unclear what else we can do.
+	reportData, err := os.ReadFile(filepath.Join(mgrcfg.Workdir, "report.json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			mgr.Errorf("image testing failed w/o kernel bug")
+			tmp, err := os.CreateTemp(mgr.workDir, "smoke-test-error")
+			if err != nil {
+				mgr.Errorf("failed to create smoke test error file: %v", err)
 			} else {
-				failureErr = fmt.Errorf("VM testing failed with: %w", err)
+				tmp.Write(output)
+				tmp.Close()
 			}
-		default:
-			failureErr = res.Error
+		} else {
+			mgr.Errorf("failed to read smoke test report: %v", err)
+		}
+	} else {
+		rep := new(report.Report)
+		if err := json.Unmarshal(reportData, rep); err != nil {
+			mgr.Errorf("failed to unmarshal smoke test report: %v", err)
+		} else {
+			rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
+			retErr = errors.New(rep.Title)
+			// There are usually no duplicates for boot errors, so we reset AltTitles.
+			// But if we pass them, we would need to add the same prefix as for Title
+			// in order to avoid duping boot bugs with non-boot bugs.
+			rep.AltTitles = nil
+			if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+				mgr.Errorf("failed to report image error: %v", err)
+			}
 		}
 	}
-	if failures > maxFailures {
-		return failureErr
-	}
-	return nil
+	return retErr
 }
 
 func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
@@ -548,6 +551,9 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Tag = info.KernelCommit
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
 	if err := instance.SetConfigImage(mgrcfg, imageDir, true); err != nil {
+		return nil, err
+	}
+	if err := instance.OverrideVMCount(mgrcfg, 3); err != nil {
 		return nil, err
 	}
 	mgrcfg.KernelSrc = mgr.kernelSrcDir

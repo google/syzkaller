@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -47,10 +48,19 @@ var (
 	flagConfig = flag.String("config", "", "configuration file")
 	flagDebug  = flag.Bool("debug", false, "dump all VM output to console")
 	flagBench  = flag.String("bench", "", "write execution statistics into this file periodically")
+
+	flagMode = flag.String("mode", "fuzzing", "mode of operation, one of:\n"+
+		" - fuzzing: the default continuous fuzzing mode\n"+
+		" - smoke-test: run smoke test for syzkaller+kernel\n"+
+		"	The test consists of booting VMs and running some simple test programs\n"+
+		"	to ensure that fuzzing can proceed in general. After completing the test\n"+
+		"	the process exits and the exit status indicates success/failure.\n"+
+		"	If the kernel oopses during testing, the report is saved to workdir/report.json.\n")
 )
 
 type Manager struct {
 	cfg             *mgrconfig.Config
+	mode            Mode
 	vmPool          *vm.Pool
 	target          *prog.Target
 	sysTarget       *targets.Target
@@ -100,6 +110,14 @@ type Manager struct {
 	Stats
 }
 
+type Mode int
+
+// For description of modes see flagMode help.
+const (
+	ModeFuzzing Mode = iota
+	ModeSmokeTest
+)
+
 const (
 	// Just started, nothing done yet.
 	phaseInit = iota
@@ -122,7 +140,6 @@ type Crash struct {
 	fromHub       bool // this crash was created based on a repro from syz-hub
 	fromDashboard bool // .. or from dashboard
 	*report.Report
-	machineInfo []byte
 }
 
 func main() {
@@ -143,6 +160,19 @@ func main() {
 }
 
 func RunManager(cfg *mgrconfig.Config) {
+	var mode Mode
+	switch *flagMode {
+	case "fuzzing":
+		mode = ModeFuzzing
+	case "smoke-test":
+		mode = ModeSmokeTest
+		cfg.DashboardClient = ""
+		cfg.HubClient = ""
+	default:
+		flag.PrintDefaults()
+		log.Fatalf("unknown mode: %v", *flagMode)
+	}
+
 	var vmPool *vm.Pool
 	// Type "none" is a special case for debugging/development when manager
 	// does not start any VMs, but instead you start them manually
@@ -166,6 +196,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	corpusUpdates := make(chan corpus.NewItemEvent, 32)
 	mgr := &Manager{
 		cfg:                cfg,
+		mode:               mode,
 		vmPool:             vmPool,
 		corpus:             corpus.NewMonitoredCorpus(context.Background(), corpusUpdates),
 		corpusPreloaded:    make(chan bool),
@@ -217,7 +248,9 @@ func RunManager(cfg *mgrconfig.Config) {
 	}
 
 	go mgr.heartbeatLoop()
-	osutil.HandleInterrupts(vm.Shutdown)
+	if mgr.mode != ModeSmokeTest {
+		osutil.HandleInterrupts(vm.Shutdown)
+	}
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-fuzzer manually as:")
@@ -730,8 +763,11 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 
 	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectLog)
 	machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
-	if len(vmInfo) != 0 {
-		machineInfo = append(append(vmInfo, '\n'), machineInfo...)
+	if rep != nil {
+		if len(vmInfo) != 0 {
+			machineInfo = append(append(vmInfo, '\n'), machineInfo...)
+		}
+		rep.MachineInfo = machineInfo
 	}
 
 	// Error that is not a VM crash.
@@ -745,7 +781,6 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	crash := &Crash{
 		instanceName: instanceName,
 		Report:       rep,
-		machineInfo:  machineInfo,
 	}
 	return crash, nil
 }
@@ -756,6 +791,22 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
+		var bootErr vm.BootErrorer
+		if errors.As(err, &bootErr) {
+			title, output := bootErr.BootError()
+			rep := mgr.reporter.Parse(output)
+			if rep != nil && rep.Type == crash_pkg.UnexpectedReboot {
+				// Avoid detecting any boot crash as "unexpected kernel reboot".
+				rep = mgr.reporter.ParseFrom(output, rep.SkipPos)
+			}
+			if rep == nil {
+				rep = &report.Report{
+					Title:  title,
+					Output: output,
+				}
+			}
+			return rep, nil, nil
+		}
 		return nil, nil, fmt.Errorf("failed to create instance: %w", err)
 	}
 	defer inst.Close()
@@ -873,6 +924,17 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	}
 	log.Logf(0, "%s: crash: %v%v", crash.instanceName, crash.Title, flags)
 
+	if mgr.mode == ModeSmokeTest {
+		data, err := json.Marshal(crash.Report)
+		if err != nil {
+			log.Fatalf("failed to serialize crash report: %v", err)
+		}
+		if err := osutil.WriteFile(filepath.Join(mgr.cfg.Workdir, "report.json"), data); err != nil {
+			log.Fatal(err)
+		}
+		log.Fatalf("kernel crashed in smoke testing mode, exiting")
+	}
+
 	if crash.Suppressed {
 		// Collect all of them into a single bucket so that it's possible to control and assess them,
 		// e.g. if there are some spikes in suppressed reports.
@@ -901,7 +963,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			Recipients:  crash.Recipients.ToDash(),
 			Log:         crash.Output,
 			Report:      crash.Report.Report,
-			MachineInfo: crash.machineInfo,
+			MachineInfo: crash.MachineInfo,
 		}
 		setGuiltyFiles(dc, crash.Report)
 		resp, err := mgr.dash.ReportCrash(dc)
@@ -952,7 +1014,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	writeOrRemove("log", crash.Output)
 	writeOrRemove("tag", []byte(mgr.cfg.Tag))
 	writeOrRemove("report", crash.Report.Report)
-	writeOrRemove("machineInfo", crash.machineInfo)
+	writeOrRemove("machineInfo", crash.MachineInfo)
 	return mgr.needLocalRepro(crash)
 }
 
@@ -1335,6 +1397,13 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 
 func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
 	opts flatrpc.ExecOpts) queue.Source {
+	if mgr.mode == ModeSmokeTest {
+		log.Logf(0, "smoke test succeeded, shutting down...")
+		close(vm.Shutdown)
+		time.Sleep(10 * time.Second)
+		os.Exit(0)
+	}
+
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.checkDone {
