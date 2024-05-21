@@ -236,7 +236,7 @@ func (mgr *Manager) heartbeatLoop() {
 		if mgr.firstConnect.Load() == 0 {
 			continue
 		}
-		mgr.statFuzzingTime.Add(diff * mgr.statNumFuzzing.Val())
+		mgr.statFuzzingTime.Add(diff * mgr.serv.statNumFuzzing.Val())
 		buf := new(bytes.Buffer)
 		for _, stat := range stats.Collect(stats.Console) {
 			fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
@@ -790,8 +790,6 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 	// Run the fuzzer binary.
 	mgr.bootTime.Save(time.Since(start))
 	start = time.Now()
-	mgr.statNumFuzzing.Add(1)
-	defer mgr.statNumFuzzing.Add(-1)
 
 	args := &instance.FuzzerCmdArgs{
 		Fuzzer:    fuzzerBin,
