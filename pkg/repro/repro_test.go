@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/vm"
 )
 
 func initTest(t *testing.T) (*rand.Rand, int) {
@@ -133,11 +134,11 @@ func (tei *testExecInterface) Close() {}
 
 func (tei *testExecInterface) RunCProg(p *prog.Prog, duration time.Duration,
 	opts csource.Options) (*instance.RunResult, error) {
-	return tei.RunSyzProg(p.Serialize(), duration, opts)
+	return tei.RunSyzProg(p.Serialize(), duration, opts, instance.SyzExitConditions)
 }
 
 func (tei *testExecInterface) RunSyzProg(syzProg []byte, duration time.Duration,
-	opts csource.Options) (*instance.RunResult, error) {
+	opts csource.Options, exitCondition vm.ExitCondition) (*instance.RunResult, error) {
 	return tei.run(syzProg)
 }
 

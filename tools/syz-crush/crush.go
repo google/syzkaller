@@ -178,7 +178,7 @@ func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	if runType == LogFile {
 		opts := csource.DefaultOpts(cfg)
 		opts.Repeat, opts.Threaded = true, true
-		res, err = inst.RunSyzProgFile(file, timeout, opts)
+		res, err = inst.RunSyzProgFile(file, timeout, opts, instance.SyzExitConditions)
 	} else {
 		var src []byte
 		src, err = os.ReadFile(file)

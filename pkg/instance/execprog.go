@@ -43,7 +43,7 @@ type RunResult struct {
 const (
 	// It's reasonable to expect that tools/syz-execprog should not normally
 	// return a non-zero exit code.
-	syzExitConditions = vm.ExitTimeout | vm.ExitNormal
+	SyzExitConditions = vm.ExitTimeout | vm.ExitNormal
 	binExitConditions = vm.ExitTimeout | vm.ExitNormal | vm.ExitError
 )
 
@@ -161,7 +161,7 @@ func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
 }
 
 func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Duration,
-	opts csource.Options) (*RunResult, error) {
+	opts csource.Options, exitCondition vm.ExitCondition) (*RunResult, error) {
 	vmProgFile, err := inst.VMInstance.Copy(progFile)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy prog to VM: %v", err)}
@@ -174,17 +174,17 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, opts.Sandbox,
 		opts.SandboxArg, opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
 		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, duration, syzExitConditions)
+	return inst.runCommand(command, duration, exitCondition)
 }
 
 func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, duration time.Duration,
-	opts csource.Options) (*RunResult, error) {
+	opts csource.Options, exitCondition vm.ExitCondition) (*RunResult, error) {
 	progFile, err := osutil.WriteTempFile(syzProg)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(progFile)
-	return inst.RunSyzProgFile(progFile, duration, opts)
+	return inst.RunSyzProgFile(progFile, duration, opts, exitCondition)
 }
 
 func (inst *ExecProgInstance) Close() {
