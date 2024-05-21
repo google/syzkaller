@@ -65,6 +65,8 @@ type Report struct {
 	Recipients vcs.Recipients
 	// GuiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
 	GuiltyFile string
+	// Arbitrary information about the test VM, may be attached to the report by users of the package.
+	MachineInfo []byte
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized.
