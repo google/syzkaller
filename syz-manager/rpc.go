@@ -48,6 +48,7 @@ type RPCServer struct {
 	runners    map[string]*Runner
 	execSource queue.Source
 
+	statNumFuzzing         *stats.Val
 	statExecs              *stats.Val
 	statExecRetries        *stats.Val
 	statExecutorRestarts   *stats.Val
@@ -97,6 +98,8 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 		baseSource: baseSource,
 		execSource: queue.Retry(baseSource),
 		statExecs:  mgr.statExecs,
+		statNumFuzzing: stats.Create("fuzzing VMs", "Number of VMs that are currently fuzzing",
+			stats.Console),
 		statExecRetries: stats.Create("exec retries",
 			"Number of times a test program was restarted because the first run failed",
 			stats.Rate{}, stats.Graph("executor")),
@@ -255,6 +258,8 @@ func (serv *RPCServer) connectionLoop(runner *Runner) error {
 		}
 	}
 
+	serv.statNumFuzzing.Add(1)
+	defer serv.statNumFuzzing.Add(-1)
 	for {
 		for len(runner.requests)-len(runner.executing) < 2*serv.cfg.Procs {
 			req := serv.execSource.Next()

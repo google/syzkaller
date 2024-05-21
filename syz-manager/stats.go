@@ -12,7 +12,6 @@ import (
 )
 
 type Stats struct {
-	statNumFuzzing     *stats.Val
 	statNumReproducing *stats.Val
 	statExecs          *stats.Val
 	statCrashes        *stats.Val
@@ -24,8 +23,6 @@ type Stats struct {
 }
 
 func (mgr *Manager) initStats() {
-	mgr.statNumFuzzing = stats.Create("VMs", "Number of VMs that are currently fuzzing",
-		stats.Console, stats.NoGraph)
 	mgr.statNumReproducing = stats.Create("reproducing", "Number of crashes being reproduced",
 		stats.Console, stats.NoGraph)
 	mgr.statExecs = stats.Create("exec total", "Total test program executions",
