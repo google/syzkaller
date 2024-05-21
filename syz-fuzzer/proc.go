@@ -6,7 +6,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -39,14 +38,9 @@ func startProc(tool *FuzzerTool, pid int, config *ipc.Config) {
 }
 
 func (proc *Proc) loop() {
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + int64(proc.pid)))
 	for {
 		req, wait := proc.nextRequest()
-		// Do not let too much state accumulate.
-		const restartIn = 600
-		resetFlags := flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectComps
-		if (req.ExecOpts.ExecFlags&resetFlags != 0 &&
-			rnd.Intn(restartIn) == 0) || req.Flags&flatrpc.RequestFlagResetState != 0 {
+		if req.Flags&flatrpc.RequestFlagResetState != 0 {
 			proc.env.ForceRestart()
 		}
 		info, output, err := proc.execute(req, wait)

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
 	"slices"
 	"sort"
 	"strings"
@@ -71,6 +72,7 @@ type Runner struct {
 	nextRequestID int64
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
+	rnd           *rand.Rand
 }
 
 type BugFrames struct {
@@ -319,7 +321,10 @@ func (serv *RPCServer) sendRequest(runner *Runner, req *queue.Request) error {
 	if req.ReturnError {
 		flags |= flatrpc.RequestFlagReturnError
 	}
-	if serv.cfg.Experimental.ResetAccState {
+	// Do not let too much state accumulate.
+	const restartIn = 600
+	resetFlags := flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectComps
+	if serv.cfg.Experimental.ResetAccState || req.ExecOpts.ExecFlags&resetFlags != 0 && runner.rnd.Intn(restartIn) == 0 {
 		flags |= flatrpc.RequestFlagResetState
 	}
 	signalFilter := runner.canonicalizer.Decanonicalize(req.SignalFilter.ToRaw())
@@ -504,6 +509,7 @@ func (serv *RPCServer) createInstance(name string, injectLog chan<- []byte) {
 		shutdown:   make(chan bool, 1),
 		requests:   make(map[int64]*queue.Request),
 		executing:  make(map[int64]bool),
+		rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	serv.mu.Lock()
 	if serv.runners[name] != nil {
