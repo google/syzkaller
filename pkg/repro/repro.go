@@ -69,7 +69,8 @@ type context struct {
 type execInterface interface {
 	Close()
 	RunCProg(p *prog.Prog, duration time.Duration, opts csource.Options) (*instance.RunResult, error)
-	RunSyzProg(syzProg []byte, duration time.Duration, opts csource.Options) (*instance.RunResult, error)
+	RunSyzProg(syzProg []byte, duration time.Duration, opts csource.Options, exitCondition vm.ExitCondition) (
+		*instance.RunResult, error)
 }
 
 var ErrNoPrograms = errors.New("crash log does not contain any programs")
@@ -604,7 +605,7 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 	ctx.reproLogf(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	ctx.reproLogf(3, "detailed listing:\n%s", pstr)
 	return ctx.testWithInstance(func(exec execInterface) (*instance.RunResult, error) {
-		return exec.RunSyzProg(pstr, duration, opts)
+		return exec.RunSyzProg(pstr, duration, opts, instance.SyzExitConditions)
 	})
 }
 

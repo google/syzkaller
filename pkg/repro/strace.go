@@ -44,7 +44,8 @@ func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
 		runRes, err = inst.RunCProg(result.Prog, result.Duration, result.Opts)
 	} else {
 		log.Logf(1, "running syz repro under strace")
-		runRes, err = inst.RunSyzProg(result.Prog.Serialize(), result.Duration, result.Opts)
+		runRes, err = inst.RunSyzProg(result.Prog.Serialize(), result.Duration,
+			result.Opts, instance.SyzExitConditions)
 	}
 	if err != nil {
 		return straceFailed(fmt.Errorf("failed to generate strace log: %w", err))
