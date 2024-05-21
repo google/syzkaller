@@ -854,7 +854,6 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 		Verbosity: fuzzerV,
 		Cover:     mgr.cfg.Cover,
 		Debug:     *flagDebug,
-		Test:      false,
 		Optional: &instance.OptionalFuzzerArgs{
 			Slowdown:   mgr.cfg.Timeouts.Slowdown,
 			SandboxArg: mgr.cfg.SandboxArg,

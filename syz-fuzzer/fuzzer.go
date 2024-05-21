@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -62,7 +64,6 @@ func main() {
 		flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 		flagManager   = flag.String("manager", "", "manager rpc address")
 		flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
-		flagTest      = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
 		flagPprofPort = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
 	)
 	defer tool.Init()()
@@ -73,7 +74,7 @@ func main() {
 		log.SyzFatal(err)
 	}
 
-	config, execOpts, err := ipcconfig.Default(target)
+	config, _, err := ipcconfig.Default(target)
 	if err != nil {
 		log.SyzFatalf("failed to create default ipc config: %v", err)
 	}
@@ -90,19 +91,6 @@ func main() {
 
 	if *flagPprofPort != 0 {
 		setupPprofHandler(*flagPprofPort)
-	}
-
-	if *flagTest {
-		checkArgs := &checkArgs{
-			target:         target,
-			sandbox:        ipc.FlagsToSandbox(execOpts.EnvFlags),
-			ipcConfig:      config,
-			ipcExecOpts:    execOpts,
-			gitRevision:    prog.GitRevision,
-			targetRevision: target.Revision,
-		}
-		testImage(*flagManager, checkArgs)
-		return
 	}
 
 	executorArch, executorSyzRevision, executorGitRevision, err := executorVersion(executor)
@@ -298,4 +286,24 @@ func setupPprofHandler(port int) {
 			log.SyzFatalf("failed to setup a server: %v", err)
 		}
 	}()
+}
+
+func executorVersion(bin string) (string, string, string, error) {
+	args := strings.Split(bin, " ")
+	args = append(args, "version")
+	cmd := osutil.Command(args[0], args[1:]...)
+	cmd.Stderr = io.Discard
+	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
+		return "", "", "", err
+	}
+	out, err := osutil.Run(time.Minute, cmd)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to run executor version: %w", err)
+	}
+	// Executor returns OS, arch, descriptions hash, git revision.
+	vers := strings.Split(strings.TrimSpace(string(out)), " ")
+	if len(vers) != 4 {
+		return "", "", "", fmt.Errorf("executor version returned bad result: %q", string(out))
+	}
+	return vers[1], vers[2], vers[3], nil
 }

@@ -358,7 +358,7 @@ func (inst *inst) testInstance() error {
 		return err
 	}
 	// Note: we create the test program on a newer syzkaller revision and pass it to the old execprog.
-	// We rely on the non-strict program parsing to parse it successfuly.
+	// We rely on the non-strict program parsing to parse it successfully.
 	testProg := inst.cfg.Target.DataMmapProg().Serialize()
 	// Use the same options as the target reproducer.
 	// E.g. if it does not use wifi, we won't test it, which reduces changes of unrelated kernel bugs.
@@ -403,8 +403,11 @@ func (inst *inst) testRepro() ([]byte, error) {
 		}
 		out, err = transformError(execProg.RunSyzProg(inst.reproSyz,
 			inst.cfg.Timeouts.NoOutputRunningTime, opts, SyzExitConditions))
+		if err != nil {
+			return out, err
+		}
 	}
-	if err == nil && len(inst.reproC) > 0 {
+	if len(inst.reproC) > 0 {
 		// We should test for more than full "no output" timeout, but the problem is that C reproducers
 		// don't print anything, so we will get a false "no output" crash.
 		out, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
@@ -453,7 +456,6 @@ type FuzzerCmdArgs struct {
 	Verbosity int
 	Cover     bool
 	Debug     bool
-	Test      bool
 	Optional  *OptionalFuzzerArgs
 }
 
@@ -479,9 +481,9 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 		optionalArg = " " + tool.OptionalFlags(flags)
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -cover=%v -debug=%v -test=%v%v%v",
+		" -procs=%v -cover=%v -debug=%v %v%v",
 		args.Fuzzer, args.Executor, args.Name, args.Arch, osArg, args.FwdAddr, args.Sandbox,
-		args.Procs, args.Cover, args.Debug, args.Test, verbosityArg, optionalArg)
+		args.Procs, args.Cover, args.Debug, verbosityArg, optionalArg)
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, repeat, threaded, collide bool,
