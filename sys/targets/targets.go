@@ -27,8 +27,10 @@ type Target struct {
 	Int64Alignment   uint64
 	LittleEndian     bool
 	CFlags           []string
+	CxxFlags         []string
 	Triple           string
 	CCompiler        string
+	CxxCompiler      string
 	Objdump          string // name of objdump executable
 	KernelCompiler   string // override CC when running kernel make
 	KernelLinker     string // override LD when running kernel make
@@ -584,9 +586,6 @@ var oses = map[string]osCommon{
 
 var (
 	commonCFlags = []string{
-		"-std=c++11",
-		"-I.",
-		"-Iexecutor/_include",
 		"-O2",
 		"-pthread",
 		"-Wall",
@@ -613,6 +612,13 @@ var (
 	}
 	fallbackCFlags = map[string]string{
 		"-static-pie": "-static", // if an ASLR static binary is impossible, build just a static one
+	}
+	// These are used only when building executor.
+	// For C repros and syz-extract, we build C source files.
+	commonCxxFlags = []string{
+		"-std=c++14",
+		"-I.",
+		"-Iexecutor/_include",
 	}
 )
 
@@ -646,9 +652,6 @@ func init() {
 	}
 	arch32, arch64 := splitArch(runtime.GOARCH)
 	goos := runtime.GOOS
-	if goos == "android" {
-		goos = Linux
-	}
 	for _, target := range List[TestOS] {
 		if List[goos] == nil {
 			continue
@@ -662,6 +665,7 @@ func init() {
 			continue
 		}
 		target.CCompiler = host.CCompiler
+		target.CxxCompiler = host.CxxCompiler
 		target.CPP = host.CPP
 		target.CFlags = append(append([]string{}, host.CFlags...), target.CFlags...)
 		target.CFlags = processMergedFlags(target.CFlags)
@@ -719,6 +723,9 @@ func initTarget(target *Target, OS, arch string) {
 	if target.CCompiler == "" {
 		target.setCompiler(useClang)
 	}
+	if target.CxxCompiler == "" {
+		target.CxxCompiler = strings.TrimSuffix(strings.TrimSuffix(target.CCompiler, "cc"), "++") + "++"
+	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
 	}
@@ -734,6 +741,7 @@ func initTarget(target *Target, OS, arch string) {
 	if runtime.GOOS != target.BuildOS {
 		// Spoil native binaries if they are not usable, so that nobody tries to use them later.
 		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
+		target.CxxCompiler = target.CCompiler
 		target.CPP = target.CCompiler
 	}
 	for _, flags := range [][]string{commonCFlags, target.osCommon.cflags} {
@@ -945,6 +953,7 @@ func (target *Target) lazyInit() {
 		}
 	}
 	target.CFlags = newCFlags
+	target.CxxFlags = append(target.CFlags, commonCxxFlags...)
 	// Check that the compiler is actually functioning. It may be present, but still broken.
 	// Common for Linux distros, over time we've seen:
 	//	Error: alignment too large: 15 assumed

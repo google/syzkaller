@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"testing"
 
@@ -46,8 +45,6 @@ func BuildExecutor(t *testing.T, target *prog.Target, rootDir string, cflags ...
 }
 
 func build(target *prog.Target, src []byte, dir, file string, cflags ...string) (string, error) {
-	sysTarget := targets.Get(target.OS, target.Arch)
-	compiler := sysTarget.CCompiler
 	// We call the binary syz-executor because it sometimes shows in bug titles,
 	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
 	bin, err := osutil.TempFile("syz-executor")
@@ -66,17 +63,16 @@ func build(target *prog.Target, src []byte, dir, file string, cflags ...string) 
 	} else {
 		flags = append(flags, file)
 	}
-	flags = append(flags, sysTarget.CFlags...)
+	sysTarget := targets.Get(target.OS, target.Arch)
+	compiler, targetCFlags := sysTarget.CCompiler, sysTarget.CFlags
+	if file != "" && !strings.HasSuffix(file, ".c") {
+		compiler, targetCFlags = sysTarget.CxxCompiler, sysTarget.CxxFlags
+	}
+	flags = append(flags, targetCFlags...)
+	flags = append(flags, cflags...)
 	if sysTarget.PtrSize == 4 {
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
-	}
-	flags = append(flags, cflags...)
-	if file == "" || strings.HasSuffix(file, ".c") {
-		// Building C source, so remove C++ flags.
-		flags = slices.DeleteFunc(flags, func(flag string) bool {
-			return strings.HasPrefix(flag, "-std=c++")
-		})
 	}
 	cmd := osutil.Command(compiler, flags...)
 	cmd.Dir = dir
