@@ -549,6 +549,9 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
+	// Use random free ports to not collide with the actual manager.
+	mgrcfg.HTTP = fmt.Sprintf("localhost:%v", mgr.mgrcfg.testHTTPPort)
+	mgrcfg.RPC = fmt.Sprintf("localhost:%v", mgr.mgrcfg.testRPCPort)
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
 	if err := instance.SetConfigImage(mgrcfg, imageDir, true); err != nil {
 		return nil, err
