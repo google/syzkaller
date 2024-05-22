@@ -86,8 +86,10 @@ type Config struct {
 	Name string `json:"name"`
 	HTTP string `json:"http"`
 	// If manager http address is not specified, give it an address starting from this port. Optional.
+	// This is also used to auto-assign ports for test instances.
 	ManagerPort int `json:"manager_port_start"`
 	// If manager rpc address is not specified, give it addresses starting from this port. By default 30000.
+	// This is also used to auto-assign ports for test instances.
 	RPCPort         int    `json:"rpc_port_start"`
 	DashboardAddr   string `json:"dashboard_addr"`   // Optional.
 	DashboardClient string `json:"dashboard_client"` // Optional.
@@ -208,6 +210,10 @@ type ManagerConfig struct {
 	// By default it's 30 days.
 	MaxKernelLagDays int `json:"max_kernel_lag_days"`
 	managercfg       *mgrconfig.Config
+
+	// Auto-assigned ports used by test instances.
+	testHTTPPort int
+	testRPCPort  int
 }
 
 type ManagerJobs struct {
@@ -440,6 +446,10 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 		managercfg.RPC = fmt.Sprintf(":%v", cfg.RPCPort)
 		cfg.RPCPort++
 	}
+	mgr.testHTTPPort = cfg.ManagerPort
+	cfg.ManagerPort++
+	mgr.testRPCPort = cfg.RPCPort
+	cfg.RPCPort++
 	// Note: we don't change Compiler/Ccache because it may be just "gcc" referring
 	// to the system binary, or pkg/build/netbsd.go uses "g++" and "clang++" as special marks.
 	mgr.Userspace = osutil.Abs(mgr.Userspace)
