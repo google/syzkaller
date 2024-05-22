@@ -20,7 +20,6 @@ import (
 type ExecutorLogger func(int, string, ...interface{})
 
 type OptionalConfig struct {
-	ExitCondition      vm.ExitCondition
 	Logf               ExecutorLogger
 	OldFlagsCompatMode bool
 	BeforeContextLen   int
@@ -40,6 +39,13 @@ type RunResult struct {
 	Output []byte
 	Report *report.Report
 }
+
+const (
+	// It's reasonable to expect that tools/syz-execprog should not normally
+	// return a non-zero exit code.
+	syzExitConditions = vm.ExitTimeout | vm.ExitNormal
+	binExitConditions = vm.ExitTimeout | vm.ExitNormal | vm.ExitError
+)
 
 func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *report.Reporter,
 	opt *OptionalConfig) (*ExecProgInstance, error) {
@@ -74,9 +80,6 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	if ret.Logf == nil {
 		ret.Logf = func(int, string, ...interface{}) {}
 	}
-	if ret.ExitCondition == 0 {
-		ret.ExitCondition = vm.ExitTimeout | vm.ExitNormal | vm.ExitError
-	}
 	return ret, nil
 }
 
@@ -94,7 +97,8 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 	return ret, nil
 }
 
-func (inst *ExecProgInstance) runCommand(command string, duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
+	exitCondition vm.ExitCondition) (*RunResult, error) {
 	var prefixOutput []byte
 	if inst.StraceBin != "" {
 		filterCalls := ""
@@ -108,7 +112,7 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
 		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
 	}
-	opts := []any{inst.ExitCondition}
+	opts := []any{exitCondition}
 	if inst.BeforeContextLen != 0 {
 		opts = append(opts, vm.OutputSize(inst.BeforeContextLen))
 	}
@@ -133,7 +137,7 @@ func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*Ru
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy binary to VM: %v", err)}
 	}
-	return inst.runCommand(bin, duration)
+	return inst.runCommand(bin, duration, binExitConditions)
 }
 
 func (inst *ExecProgInstance) RunCProg(p *prog.Prog, duration time.Duration,
@@ -170,7 +174,7 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, opts.Sandbox,
 		opts.SandboxArg, opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
 		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, duration)
+	return inst.runCommand(command, duration, syzExitConditions)
 }
 
 func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, duration time.Duration,

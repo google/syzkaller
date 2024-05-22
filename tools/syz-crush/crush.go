@@ -162,9 +162,7 @@ func storeCrash(cfg *mgrconfig.Config, res *instance.RunResult) {
 func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *instance.RunResult {
 	log.Printf("vm-%v: starting", index)
-	optArgs := &instance.OptionalConfig{
-		ExitCondition: vm.ExitTimeout,
-	}
+	optArgs := &instance.OptionalConfig{}
 	if *flagStrace {
 		optArgs.StraceBin = cfg.StraceBin
 	}
