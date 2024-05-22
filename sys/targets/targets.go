@@ -732,11 +732,6 @@ func initTarget(target *Target, OS, arch string) {
 	if target.BigEndian {
 		target.HostEndian = binary.BigEndian
 	}
-	// Temporal hack.
-	if OS == Linux && os.Getenv("SYZ_STARNIX_HACK") != "" {
-		target.ExecutorUsesForkServer = false
-		target.HostFuzzer = true
-	}
 	target.initAddr2Line()
 }
 

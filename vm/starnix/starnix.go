@@ -49,12 +49,12 @@ type instance struct {
 	debug            bool
 	workdir          string
 	port             int
+	forwardPort      int
 	rpipe            io.ReadCloser
 	wpipe            io.WriteCloser
 	fuchsiaLogs      *exec.Cmd
 	sshPubKey        string
 	sshPrivKey       string
-	executor         string
 	merger           *vmimpl.OutputMerger
 	diagnose         chan bool
 }
@@ -90,8 +90,6 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		cfg:              pool.cfg,
 		debug:            pool.env.Debug,
 		workdir:          workdir,
-		// This file is auto-generated inside createExecutorScript.
-		executor: filepath.Join(workdir, "executor.sh"),
 	}
 	closeInst := inst
 	defer func() {
@@ -153,9 +151,6 @@ func (inst *instance) boot() error {
 	}
 	if inst.debug {
 		log.Logf(0, "instance %s: setting up...", inst.name)
-	}
-	if err := inst.createExecutorScript(); err != nil {
-		return fmt.Errorf("instance %s: could not create executor script: %w", inst.name, err)
 	}
 	if err := inst.startFuchsiaLogs(); err != nil {
 		return fmt.Errorf("instance %s: could not start fuchsia logs: %w", inst.name, err)
@@ -301,17 +296,6 @@ func (inst *instance) connect() error {
 	return nil
 }
 
-// Script for telling syz-fuzzer how to connect to syz-executor.
-func (inst *instance) createExecutorScript() error {
-	script := fmt.Sprintf(
-		`#!/usr/bin/env bash
-                 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes \
-                 -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/syzkaller-ssh-control \
-                 -o ControlPersist=10m -i %s -p $1 root@127.0.0.1 "cd %s; exec ./syz-executor ${@:2}"`,
-		inst.sshPrivKey, targetDir)
-	return os.WriteFile(inst.executor, []byte(script), 0777)
-}
-
 func (inst *instance) ffx(args ...string) error {
 	return inst.runCommand(inst.ffxBinary, args...)
 }
@@ -332,14 +316,15 @@ func (inst *instance) Forward(port int) (string, error) {
 	if port == 0 {
 		return "", fmt.Errorf("vm/starnix: forward port is zero")
 	}
+	if inst.forwardPort != 0 {
+		return "", fmt.Errorf("vm/starnix: forward port already set")
+	}
+	inst.forwardPort = port
 	return fmt.Sprintf("localhost:%v", port), nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
-	if base == "syz-fuzzer" || base == "syz-execprog" {
-		return hostSrc, nil // we will run these on host.
-	}
 	vmDst := filepath.Join(targetDir, base)
 	if inst.debug {
 		log.Logf(1, "instance %s: attempting to push binary %s to instance over scp", inst.name, base)
@@ -367,20 +352,17 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := strings.Split(command, " ")
-	if bin := filepath.Base(args[0]); bin == "syz-fuzzer" || bin == "syz-execprog" {
-		for i, arg := range args {
-			if strings.HasPrefix(arg, "-executor=") {
-				args[i] = fmt.Sprintf("-executor=%s %d", inst.executor, inst.port)
-				// TODO(fxbug.dev/120202): reenable threaded mode once clone3 is fixed.
-				args = append(args, "-threaded=0")
-			}
-		}
-	}
+	// Run `command` on the instance over ssh.
+	const useSystemSSHCfg = false
+	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.sshPrivKey, inst.port, inst.forwardPort, useSystemSSHCfg)
+	sshCmd := []string{"ssh"}
+	sshCmd = append(sshCmd, sshArgs...)
+	sshCmd = append(sshCmd, "root@localhost", "cd "+targetDir+" && ", command)
 	if inst.debug {
-		log.Logf(1, "instance %s: running command: %#v", inst.name, args)
+		log.Logf(1, "instance %s: running command: %#v", inst.name, sshCmd)
 	}
-	cmd := osutil.Command(args[0], args[1:]...)
+
+	cmd := osutil.Command(sshCmd[0], sshCmd[1:]...)
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
