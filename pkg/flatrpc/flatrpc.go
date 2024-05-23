@@ -89,21 +89,24 @@ func (v Feature) String() string {
 type HostMessagesRaw byte
 
 const (
-	HostMessagesRawNONE         HostMessagesRaw = 0
-	HostMessagesRawExecRequest  HostMessagesRaw = 1
-	HostMessagesRawSignalUpdate HostMessagesRaw = 2
+	HostMessagesRawNONE            HostMessagesRaw = 0
+	HostMessagesRawExecRequest     HostMessagesRaw = 1
+	HostMessagesRawSignalUpdate    HostMessagesRaw = 2
+	HostMessagesRawStartLeakChecks HostMessagesRaw = 3
 )
 
 var EnumNamesHostMessagesRaw = map[HostMessagesRaw]string{
-	HostMessagesRawNONE:         "NONE",
-	HostMessagesRawExecRequest:  "ExecRequest",
-	HostMessagesRawSignalUpdate: "SignalUpdate",
+	HostMessagesRawNONE:            "NONE",
+	HostMessagesRawExecRequest:     "ExecRequest",
+	HostMessagesRawSignalUpdate:    "SignalUpdate",
+	HostMessagesRawStartLeakChecks: "StartLeakChecks",
 }
 
 var EnumValuesHostMessagesRaw = map[string]HostMessagesRaw{
-	"NONE":         HostMessagesRawNONE,
-	"ExecRequest":  HostMessagesRawExecRequest,
-	"SignalUpdate": HostMessagesRawSignalUpdate,
+	"NONE":            HostMessagesRawNONE,
+	"ExecRequest":     HostMessagesRawExecRequest,
+	"SignalUpdate":    HostMessagesRawSignalUpdate,
+	"StartLeakChecks": HostMessagesRawStartLeakChecks,
 }
 
 func (v HostMessagesRaw) String() string {
@@ -127,6 +130,8 @@ func (t *HostMessagesRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 		return t.Value.(*ExecRequestRawT).Pack(builder)
 	case HostMessagesRawSignalUpdate:
 		return t.Value.(*SignalUpdateRawT).Pack(builder)
+	case HostMessagesRawStartLeakChecks:
+		return t.Value.(*StartLeakChecksRawT).Pack(builder)
 	}
 	return 0
 }
@@ -139,6 +144,9 @@ func (rcv HostMessagesRaw) UnPack(table flatbuffers.Table) *HostMessagesRawT {
 	case HostMessagesRawSignalUpdate:
 		x := SignalUpdateRaw{_tab: table}
 		return &HostMessagesRawT{Type: HostMessagesRawSignalUpdate, Value: x.UnPack()}
+	case HostMessagesRawStartLeakChecks:
+		x := StartLeakChecksRaw{_tab: table}
+		return &HostMessagesRawT{Type: HostMessagesRawStartLeakChecks, Value: x.UnPack()}
 	}
 	return nil
 }
@@ -2077,6 +2085,63 @@ func SignalUpdateRawStartDropMaxVector(builder *flatbuffers.Builder, numElems in
 	return builder.StartVector(8, numElems, 8)
 }
 func SignalUpdateRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
+type StartLeakChecksRawT struct {
+}
+
+func (t *StartLeakChecksRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	StartLeakChecksRawStart(builder)
+	return StartLeakChecksRawEnd(builder)
+}
+
+func (rcv *StartLeakChecksRaw) UnPackTo(t *StartLeakChecksRawT) {
+}
+
+func (rcv *StartLeakChecksRaw) UnPack() *StartLeakChecksRawT {
+	if rcv == nil {
+		return nil
+	}
+	t := &StartLeakChecksRawT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type StartLeakChecksRaw struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsStartLeakChecksRaw(buf []byte, offset flatbuffers.UOffsetT) *StartLeakChecksRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &StartLeakChecksRaw{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsStartLeakChecksRaw(buf []byte, offset flatbuffers.UOffsetT) *StartLeakChecksRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &StartLeakChecksRaw{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func (rcv *StartLeakChecksRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *StartLeakChecksRaw) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func StartLeakChecksRawStart(builder *flatbuffers.Builder) {
+	builder.StartObject(0)
+}
+func StartLeakChecksRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 

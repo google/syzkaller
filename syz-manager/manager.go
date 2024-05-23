@@ -1508,6 +1508,9 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 		if fuzzer.StatCandidates.Val() == 0 {
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
+				if mgr.enabledFeatures&flatrpc.FeatureLeak != 0 {
+					mgr.serv.startLeakChecking()
+				}
 				go mgr.fuzzerSignalRotation()
 				if mgr.cfg.HubClient != "" {
 					mgr.phase = phaseTriagedCorpus

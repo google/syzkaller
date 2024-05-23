@@ -76,6 +76,7 @@ table FeatureInfoRaw {
 union HostMessagesRaw {
 	ExecRequest		:ExecRequestRaw,
 	SignalUpdate		:SignalUpdateRaw,
+	StartLeakChecks		:StartLeakChecksRaw
 }
 
 table HostMessageRaw {
@@ -158,6 +159,12 @@ table ExecRequestRaw {
 table SignalUpdateRaw {
 	new_max			:[uint64];
 	drop_max		:[uint64];
+}
+
+// Leak checking is very slow so we don't do it while triaging the corpus
+// (otherwise it takes infinity). This message serves as a signal that
+// the corpus was triaged and the fuzzer can start leak checking.
+table StartLeakChecksRaw {
 }
 
 // Notification from the executor that it started executing the program 'id'.

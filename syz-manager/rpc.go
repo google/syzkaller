@@ -48,6 +48,7 @@ type RPCServer struct {
 	mu         sync.Mutex
 	runners    map[string]*Runner
 	execSource queue.Source
+	checkLeaks bool
 
 	statNumFuzzing         *stats.Val
 	statExecs              *stats.Val
@@ -145,7 +146,15 @@ func (serv *RPCServer) handleConn(conn *flatrpc.Conn) {
 	runner.conn = conn
 	runner.machineInfo = machineInfo
 	runner.canonicalizer = canonicalizer
+	checkLeaks := serv.checkLeaks
 	serv.mu.Unlock()
+
+	if checkLeaks {
+		if err := runner.sendStartLeakChecks(); err != nil {
+			log.Logf(2, "%v", err)
+			return
+		}
+	}
 
 	err = serv.connectionLoop(runner)
 	log.Logf(2, "runner %v: %v", name, err)
@@ -562,6 +571,27 @@ func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
 				NewMax:  runner.canonicalizer.Decanonicalize(plus),
 				DropMax: runner.canonicalizer.Decanonicalize(minus),
 			},
+		},
+	}
+	return flatrpc.Send(runner.conn, msg)
+}
+
+func (serv *RPCServer) startLeakChecking() {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+	serv.checkLeaks = true
+	for _, runner := range serv.runners {
+		if runner.conn != nil {
+			runner.sendStartLeakChecks()
+		}
+	}
+}
+
+func (runner *Runner) sendStartLeakChecks() error {
+	msg := &flatrpc.HostMessage{
+		Msg: &flatrpc.HostMessages{
+			Type:  flatrpc.HostMessagesRawStartLeakChecks,
+			Value: &flatrpc.StartLeakChecks{},
 		},
 	}
 	return flatrpc.Send(runner.conn, msg)
