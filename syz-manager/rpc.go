@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -63,16 +64,15 @@ type RPCServer struct {
 
 type Runner struct {
 	stopped       bool
-	shutdown      chan bool
-	injectLog     chan<- []byte
-	injectStop    chan bool
-	injectBuf     bytes.Buffer
+	finished      chan bool
+	injectExec    chan<- bool
 	conn          *flatrpc.Conn
 	machineInfo   []byte
 	canonicalizer *cover.CanonicalizerInstance
 	nextRequestID int64
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
+	lastExec      *LastExecuting
 	rnd           *rand.Rand
 }
 
@@ -148,6 +148,7 @@ func (serv *RPCServer) handleConn(conn *flatrpc.Conn) {
 	runner.canonicalizer = canonicalizer
 	checkLeaks := serv.checkLeaks
 	serv.mu.Unlock()
+	defer close(runner.finished)
 
 	if checkLeaks {
 		if err := runner.sendStartLeakChecks(); err != nil {
@@ -158,15 +159,6 @@ func (serv *RPCServer) handleConn(conn *flatrpc.Conn) {
 
 	err = serv.connectionLoop(runner)
 	log.Logf(2, "runner %v: %v", name, err)
-
-	crashed := <-runner.shutdown
-	for id, req := range runner.requests {
-		status := queue.Restarted
-		if crashed && runner.executing[id] {
-			status = queue.Crashed
-		}
-		req.Done(&queue.Result{Status: status})
-	}
 }
 
 func (serv *RPCServer) handshake(conn *flatrpc.Conn) (string, []byte, *cover.CanonicalizerInstance, error) {
@@ -359,6 +351,10 @@ func (serv *RPCServer) handleExecutingMessage(runner *Runner, msg *flatrpc.Execu
 	if req == nil {
 		return fmt.Errorf("can't find executing request %v", msg.Id)
 	}
+	proc := int(msg.ProcId)
+	if proc < 0 || proc >= serv.cfg.Procs {
+		return fmt.Errorf("got bad proc id %v", proc)
+	}
 	serv.statExecs.Add(1)
 	if msg.Try == 0 {
 		if msg.WaitDuration != 0 {
@@ -370,12 +366,11 @@ func (serv *RPCServer) handleExecutingMessage(runner *Runner, msg *flatrpc.Execu
 	} else {
 		serv.statExecRetries.Add(1)
 	}
-	fmt.Fprintf(&runner.injectBuf, "executing program %v:\n%s\n", msg.ProcId, req.Prog.Serialize())
+	runner.lastExec.Note(proc, req.Prog.Serialize(), osutil.MonotonicNano())
 	select {
-	case runner.injectLog <- runner.injectBuf.Bytes():
-	case <-runner.injectStop:
+	case runner.injectExec <- true:
+	default:
 	}
-	runner.injectBuf.Reset()
 	runner.executing[msg.Id] = true
 	return nil
 }
@@ -511,13 +506,13 @@ func validateRequest(req *queue.Request) error {
 	return nil
 }
 
-func (serv *RPCServer) createInstance(name string, injectLog chan<- []byte) {
+func (serv *RPCServer) createInstance(name string, injectExec chan<- bool) {
 	runner := &Runner{
-		injectLog:  injectLog,
-		injectStop: make(chan bool),
-		shutdown:   make(chan bool, 1),
+		injectExec: injectExec,
+		finished:   make(chan bool),
 		requests:   make(map[int64]*queue.Request),
 		executing:  make(map[int64]bool),
+		lastExec:   MakeLastExecuting(serv.cfg.Procs, 6),
 		rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	serv.mu.Lock()
@@ -536,19 +531,29 @@ func (serv *RPCServer) stopFuzzing(name string) {
 	runner.stopped = true
 	conn := runner.conn
 	serv.mu.Unlock()
-	close(runner.injectStop)
 	if conn != nil {
 		conn.Close()
 	}
 }
 
-func (serv *RPCServer) shutdownInstance(name string, crashed bool) []byte {
+func (serv *RPCServer) shutdownInstance(name string, crashed bool) ([]ExecRecord, []byte) {
 	serv.mu.Lock()
 	runner := serv.runners[name]
 	delete(serv.runners, name)
 	serv.mu.Unlock()
-	runner.shutdown <- crashed
-	return runner.machineInfo
+	if runner.conn != nil {
+		// Wait for the connection goroutine to finish and stop touching data.
+		// If conn is nil before we removed the runner, then it won't touch anything.
+		<-runner.finished
+	}
+	for id, req := range runner.requests {
+		status := queue.Restarted
+		if crashed && runner.executing[id] {
+			status = queue.Crashed
+		}
+		req.Done(&queue.Result{Status: status})
+	}
+	return runner.lastExec.Collect(), runner.machineInfo
 }
 
 func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {

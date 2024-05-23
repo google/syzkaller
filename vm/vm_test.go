@@ -88,8 +88,8 @@ type Test struct {
 	Exit           ExitCondition
 	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash.
 	DiagnoseNoWait bool // Diagnose returns output directly rather than to console.
-	InjectOutput   string
 	Body           func(outc chan []byte, errc chan error)
+	BodyExecuting  func(outc chan []byte, errc chan error, inject chan<- bool)
 	Report         *report.Report
 }
 
@@ -325,29 +325,14 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name:         "inject-error",
-		Exit:         ExitNormal,
-		InjectOutput: "BUG: foo\n",
-		Body: func(outc chan []byte, errc chan error) {
-			time.Sleep(time.Second)
+		Name: "inject-executing",
+		Exit: ExitNormal,
+		BodyExecuting: func(outc chan []byte, errc chan error, inject chan<- bool) {
+			for i := 0; i < 6; i++ {
+				time.Sleep(time.Second)
+				inject <- true
+			}
 			errc <- nil
-		},
-		Report: &report.Report{
-			Title:  "BUG: foo",
-			Report: []byte("BUG: foo\nDIAGNOSE\n"),
-		},
-	},
-	{
-		Name:         "inject-output",
-		Exit:         ExitNormal,
-		InjectOutput: "INJECTED\n",
-		Body: func(outc chan []byte, errc chan error) {
-			time.Sleep(time.Second)
-			outc <- []byte("BUG: foo\n")
-		},
-		Report: &report.Report{
-			Title:  "BUG: foo",
-			Report: []byte("INJECTED\nBUG: foo\nDIAGNOSE\n"),
 		},
 	},
 }
@@ -397,18 +382,22 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	testInst.diagnoseBug = test.DiagnoseBug
 	testInst.diagnoseNoWait = test.DiagnoseNoWait
 	done := make(chan bool)
-	go func() {
-		test.Body(testInst.outc, testInst.errc)
-		done <- true
-	}()
 	finishCalled := 0
 	finishCb := EarlyFinishCb(func() { finishCalled++ })
 	opts := []any{test.Exit, finishCb}
-	if test.InjectOutput != "" {
-		c := make(chan []byte, 1)
-		c <- []byte(test.InjectOutput)
-		opts = append(opts, InjectOutput(c))
+	var inject chan bool
+	if test.BodyExecuting != nil {
+		inject = make(chan bool, 10)
+		opts = append(opts, InjectExecuting(inject))
+	} else {
+		test.BodyExecuting = func(outc chan []byte, errc chan error, inject chan<- bool) {
+			test.Body(outc, errc)
+		}
 	}
+	go func() {
+		test.BodyExecuting(testInst.outc, testInst.errc, inject)
+		done <- true
+	}()
 	_, rep, err := inst.Run(time.Second, reporter, "", opts...)
 	if err != nil {
 		t.Fatal(err)

@@ -191,7 +191,7 @@ const (
 )
 
 type StopChan <-chan bool
-type InjectOutput <-chan []byte
+type InjectExecuting <-chan bool
 type OutputSize int
 
 // An early notification that the command has finished / VM crashed.
@@ -208,7 +208,7 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 	[]byte, *report.Report, error) {
 	exit := ExitNormal
 	var stop <-chan bool
-	var injected <-chan []byte
+	var injected <-chan bool
 	var finished func()
 	outputSize := beforeContextDefault
 	for _, o := range opts {
@@ -219,8 +219,8 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 			stop = opt
 		case OutputSize:
 			outputSize = int(opt)
-		case InjectOutput:
-			injected = (<-chan []byte)(opt)
+		case InjectExecuting:
+			injected = (<-chan bool)(opt)
 		case EarlyFinishCb:
 			finished = opt
 		default:
@@ -281,7 +281,7 @@ func (inst *Instance) Close() {
 type monitor struct {
 	inst            *Instance
 	outc            <-chan []byte
-	injected        <-chan []byte
+	injected        <-chan bool
 	finished        func()
 	errc            <-chan error
 	reporter        *report.Reporter
@@ -336,10 +336,8 @@ func (mon *monitor) monitorExecution() *report.Report {
 			if rep, done := mon.appendOutput(out); done {
 				return rep
 			}
-		case out := <-mon.injected:
-			if rep, done := mon.appendOutput(out); done {
-				return rep
-			}
+		case <-mon.injected:
+			mon.lastExecuteTime = time.Now()
 		case <-ticker.C:
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
@@ -483,7 +481,7 @@ var (
 	executingProgram1 = []byte("executing program")  // syz-fuzzer, syz-runner output
 	executingProgram2 = []byte("executed programs:") // syz-execprog output
 
-	beforeContextDefault = 1024 << 10
+	beforeContextDefault = 128 << 10
 	afterContext         = 128 << 10
 
 	tickerPeriod         = 10 * time.Second
