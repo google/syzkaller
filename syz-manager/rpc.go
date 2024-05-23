@@ -136,6 +136,15 @@ func (serv *RPCServer) handleConn(conn *flatrpc.Conn) {
 		return
 	}
 
+	if serv.cfg.VMLess {
+		// There is no VM loop, so minic what it would do.
+		serv.createInstance(name, nil)
+		defer func() {
+			serv.stopFuzzing(name)
+			serv.shutdownInstance(name, false)
+		}()
+	}
+
 	serv.mu.Lock()
 	runner := serv.runners[name]
 	if runner == nil || runner.stopped {
@@ -168,7 +177,9 @@ func (serv *RPCServer) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Can
 	}
 	connectReq := connectReqRaw.UnPack()
 	log.Logf(1, "fuzzer %v connected", connectReq.Name)
-	checkRevisions(connectReq, serv.cfg.Target)
+	if !serv.cfg.VMLess {
+		checkRevisions(connectReq, serv.cfg.Target)
+	}
 	serv.statVMRestarts.Add(1)
 
 	bugFrames := serv.mgr.currentBugFrames()
