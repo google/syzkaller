@@ -36,6 +36,11 @@ type Derived struct {
 	Syscalls      []int
 	NoMutateCalls map[int]bool // Set of IDs of syscalls which should not be mutated.
 	Timeouts      targets.Timeouts
+
+	// Special debugging/development mode specified by VM type "none".
+	// In this mode syz-manager does not start any VMs, but instead a user is supposed
+	// to start syz-fuzzer process in a VM manually.
+	VMLess bool
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -191,6 +196,7 @@ func Complete(cfg *Config) error {
 		}
 	}
 	cfg.initTimeouts()
+	cfg.VMLess = cfg.Type == "none"
 	return nil
 }
 

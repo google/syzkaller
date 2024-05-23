@@ -174,10 +174,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	}
 
 	var vmPool *vm.Pool
-	// Type "none" is a special case for debugging/development when manager
-	// does not start any VMs, but instead you start them manually
-	// and start syz-fuzzer there.
-	if cfg.Type != "none" {
+	if !cfg.VMLess {
 		var err error
 		vmPool, err = vm.Create(cfg, *flagDebug)
 		if err != nil {
