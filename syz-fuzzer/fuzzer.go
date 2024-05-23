@@ -33,13 +33,12 @@ import (
 )
 
 type FuzzerTool struct {
-	conn     *flatrpc.Conn
-	executor string
-	gate     *ipc.Gate
-	// TODO: repair triagedCandidates logic, it's broken now.
-	triagedCandidates uint32
-	timeouts          targets.Timeouts
-	leakFrames        []string
+	conn       *flatrpc.Conn
+	executor   string
+	gate       *ipc.Gate
+	checkLeaks atomic.Int32
+	timeouts   targets.Timeouts
+	leakFrames []string
 
 	requests  chan *flatrpc.ExecRequest
 	signalMu  sync.RWMutex
@@ -181,25 +180,25 @@ func main() {
 func (tool *FuzzerTool) leakGateCallback() {
 	// Leak checking is very slow so we don't do it while triaging the corpus
 	// (otherwise it takes infinity). When we have presumably triaged the corpus
-	// (triagedCandidates == 1), we run leak checking bug ignore the result
-	// to flush any previous leaks. After that (triagedCandidates == 2)
+	// (checkLeaks == 1), we run leak checking bug ignore the result
+	// to flush any previous leaks. After that (checkLeaks == 2)
 	// we do actual leak checking and report leaks.
-	triagedCandidates := atomic.LoadUint32(&tool.triagedCandidates)
-	if triagedCandidates == 0 {
+	checkLeaks := tool.checkLeaks.Load()
+	if checkLeaks == 0 {
 		return
 	}
 	args := append([]string{"leak"}, tool.leakFrames...)
 	timeout := tool.timeouts.NoOutput * 9 / 10
 	output, err := osutil.RunCmd(timeout, "", tool.executor, args...)
-	if err != nil && triagedCandidates == 2 {
+	if err != nil && checkLeaks == 2 {
 		// If we exit right away, dying executors will dump lots of garbage to console.
 		os.Stdout.Write(output)
 		fmt.Printf("BUG: leak checking failed\n")
 		time.Sleep(time.Hour)
 		os.Exit(1)
 	}
-	if triagedCandidates == 1 {
-		atomic.StoreUint32(&tool.triagedCandidates, 2)
+	if checkLeaks == 1 {
+		tool.checkLeaks.Store(2)
 	}
 }
 
@@ -245,6 +244,8 @@ func (tool *FuzzerTool) handleConn() {
 			tool.requests <- msg
 		case *flatrpc.SignalUpdate:
 			tool.handleSignalUpdate(msg)
+		case *flatrpc.StartLeakChecks:
+			tool.checkLeaks.Store(1)
 		}
 	}
 }

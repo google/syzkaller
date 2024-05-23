@@ -26,6 +26,7 @@ type ExecutorMessages = ExecutorMessagesRawT
 type ExecutorMessage = ExecutorMessageRawT
 type ExecRequest = ExecRequestRawT
 type SignalUpdate = SignalUpdateRawT
+type StartLeakChecks = StartLeakChecksRawT
 type ExecutingMessage = ExecutingMessageRawT
 type CallInfo = CallInfoRawT
 type Comparison = ComparisonRawT
