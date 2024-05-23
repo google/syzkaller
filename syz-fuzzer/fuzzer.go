@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/host"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -35,7 +34,6 @@ import (
 type FuzzerTool struct {
 	conn       *flatrpc.Conn
 	executor   string
-	gate       *ipc.Gate
 	checkLeaks atomic.Int32
 	timeouts   targets.Timeouts
 	leakFrames []string
@@ -44,13 +42,6 @@ type FuzzerTool struct {
 	signalMu  sync.RWMutex
 	maxSignal signal.Signal
 }
-
-// Gate size controls how deep in the log the last executed by every proc
-// program may be. The intent is to make sure that, given the output log,
-// we always understand what was happening.
-// Judging by the logs collected on syzbot, 32 should be a reasonable figure.
-// It coincides with prog.MaxPids.
-const gateSize = prog.MaxPids
 
 // TODO: split into smaller methods.
 // nolint: funlen, gocyclo
@@ -161,13 +152,8 @@ func main() {
 		requests: make(chan *flatrpc.ExecRequest, *flagProcs*4),
 	}
 	fuzzerTool.filterDataRaceFrames(connectReply.RaceFrames)
-	var gateCallback func()
-	for _, feat := range features {
-		if feat.Id == flatrpc.FeatureLeak && feat.Reason == "" {
-			gateCallback = fuzzerTool.leakGateCallback
-		}
-	}
-	fuzzerTool.gate = ipc.NewGate(gateSize, gateCallback)
+	// TODO: repair leak checking.
+	_ = fuzzerTool.leakGateCallback
 
 	log.Logf(0, "starting %v executor processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {

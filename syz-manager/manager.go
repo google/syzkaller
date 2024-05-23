@@ -758,12 +758,13 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
 	// Use unique instance names to prevent name collisions in case of untimely RPC messages.
 	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
-	injectLog := make(chan []byte, 10)
-	mgr.serv.createInstance(instanceName, injectLog)
+	injectExec := make(chan bool, 10)
+	mgr.serv.createInstance(instanceName, injectExec)
 
-	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectLog)
-	machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
+	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectExec)
+	lastExec, machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
 	if rep != nil {
+		prependExecuting(rep, lastExec)
 		if len(vmInfo) != 0 {
 			machineInfo = append(append(vmInfo, '\n'), machineInfo...)
 		}
@@ -785,7 +786,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	return crash, nil
 }
 
-func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <-chan []byte) (
+func (mgr *Manager) runInstanceInner(index int, instanceName string, injectExec <-chan bool) (
 	*report.Report, []byte, error) {
 	start := time.Now()
 
@@ -862,7 +863,7 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 	}
 	cmd := instance.FuzzerCmd(args)
 	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
-		vm.ExitTimeout, vm.StopChan(mgr.vmStop), vm.InjectOutput(injectLog),
+		vm.ExitTimeout, vm.StopChan(mgr.vmStop), vm.InjectExecuting(injectExec),
 		vm.EarlyFinishCb(func() {
 			// Depending on the crash type and kernel config, fuzzing may continue
 			// running for several seconds even after kernel has printed a crash report.
@@ -883,6 +884,20 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectLog <
 		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
 	}
 	return rep, vmInfo, nil
+}
+
+func prependExecuting(rep *report.Report, lastExec []ExecRecord) {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "last executing test programs:\n\n")
+	for _, exec := range lastExec {
+		fmt.Fprintf(buf, "%v ago: executing program %v:\n%s\n", exec.Time, exec.Proc, exec.Prog)
+	}
+	fmt.Fprintf(buf, "kernel console output (not intermixed with test programs):\n\n")
+	rep.Output = append(buf.Bytes(), rep.Output...)
+	n := len(buf.Bytes())
+	rep.StartPos += n
+	rep.EndPos += n
+	rep.SkipPos += n
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {

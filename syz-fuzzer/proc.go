@@ -117,15 +117,10 @@ func (proc *Proc) executeProgram(req *flatrpc.ExecRequest, wait time.Duration) (
 		var output []byte
 		var info *flatrpc.ProgInfo
 		var hanged bool
-		// On a heavily loaded VM, syz-executor may take significant time to start.
-		// Let's do it outside of the gate ticket.
 		err := proc.env.RestartIfNeeded(req.ExecOpts)
 		if err == nil {
-			// Limit concurrency.
-			ticket := proc.tool.gate.Enter()
 			proc.tool.startExecutingCall(req.Id, proc.pid, try, wait)
 			output, info, hanged, err = proc.env.ExecProg(req.ExecOpts, req.ProgData)
-			proc.tool.gate.Leave(ticket)
 			// Don't print output if returning error b/c it may contain SYZFAIL.
 			if !returnError {
 				log.Logf(2, "result hanged=%v err=%v: %s", hanged, err, output)
