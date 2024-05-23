@@ -203,6 +203,17 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		allRanges = append(allRanges, result.ranges...)
 		allUnits = append(allUnits, result.units...)
 	}
+	// TODO: need better way to remove symbols having the same Start
+	uniqSymbs := make(map[uint64]*Symbol)
+	for _, sym := range allSymbols {
+		if _, ok := uniqSymbs[sym.Start]; !ok {
+			uniqSymbs[sym.Start] = sym
+		}
+	}
+	allSymbols = []*Symbol{}
+	for _, sym := range uniqSymbs {
+		allSymbols = append(allSymbols, sym)
+	}
 	sort.Slice(allSymbols, func(i, j int) bool {
 		return allSymbols[i].Start < allSymbols[j].Start
 	})
