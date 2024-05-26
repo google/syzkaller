@@ -333,7 +333,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	sshargs := []string{}
+	var sshargs []string
 	if inst.forwardPort != 0 {
 		sshargs = vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort, false)
 	} else {
