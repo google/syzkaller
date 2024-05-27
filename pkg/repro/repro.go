@@ -379,29 +379,70 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	ctx.reproLogf(3, "bisect: trying to concatenate")
 
 	// Concatenate all programs into one.
-	prog := &prog.Prog{
+	dur := duration(len(entries)) * 3 / 2
+	return ctx.concatenateProgs(entries, dur)
+}
+
+// The bisected progs may exceed the prog.MaxCalls limit.
+// So let's first try to drop unneeded calls.
+func (ctx *context) concatenateProgs(entries []*prog.LogEntry, dur time.Duration) (*Result, error) {
+	ctx.reproLogf(3, "bisect: concatenate %d entries", len(entries))
+	if len(entries) > 1 {
+		// There's a risk of exceeding prog.MaxCalls, so let's first minimize
+		// all entries separately.
+		for i := 0; i < len(entries); i++ {
+			ctx.reproLogf(1, "minimizing program #%d before concatenation", i)
+			callsBefore := len(entries[i].P.Calls)
+			entries[i].P, _ = prog.Minimize(entries[i].P, -1, prog.MinimizeParams{
+				RemoveCallsOnly: true,
+			},
+				func(p1 *prog.Prog, _ int) bool {
+					var newEntries []*prog.LogEntry
+					if i > 0 {
+						newEntries = append(newEntries, entries[:i]...)
+					}
+					newEntries = append(newEntries, &prog.LogEntry{
+						P: p1,
+					})
+					if i+1 < len(entries) {
+						newEntries = append(newEntries, entries[i+1:]...)
+					}
+					crashed, err := ctx.testProgs(newEntries, dur, ctx.startOpts)
+					if err != nil {
+						ctx.reproLogf(0, "concatenation step failed with %v", err)
+						return false
+					}
+					return crashed
+				})
+			ctx.reproLogf(1, "minimized %d calls -> %d calls", callsBefore, len(entries[i].P.Calls))
+		}
+	}
+	p := &prog.Prog{
 		Target: entries[0].P.Target,
 	}
 	for _, entry := range entries {
-		prog.Calls = append(prog.Calls, entry.P.Calls...)
+		p.Calls = append(p.Calls, entry.P.Calls...)
 	}
-	dur := duration(len(entries)) * 3 / 2
-	crashed, err := ctx.testProg(prog, dur, opts)
+	if len(p.Calls) > prog.MaxCalls {
+		ctx.reproLogf(2, "bisect: concatenated prog still exceeds %d calls", prog.MaxCalls)
+		return nil, nil
+	}
+	crashed, err := ctx.testProg(p, dur, ctx.startOpts)
 	if err != nil {
+		ctx.reproLogf(3, "bisect: error during concatenation testing: %v", err)
 		return nil, err
 	}
-	if crashed {
-		res := &Result{
-			Prog:     prog,
-			Duration: dur,
-			Opts:     opts,
-		}
-		ctx.reproLogf(3, "bisect: concatenation succeeded")
-		return res, nil
+	if !crashed {
+		ctx.reproLogf(3, "bisect: concatenated prog does not crash")
+		return nil, nil
 	}
-
-	ctx.reproLogf(3, "bisect: concatenation failed")
-	return nil, nil
+	res := &Result{
+		Prog:     p,
+		Duration: dur,
+		Opts:     ctx.startOpts,
+	}
+	ctx.reproLogf(3, "bisect: concatenation succeeded")
+	return res, nil
 }
 
 // Minimize calls and arguments.
@@ -580,6 +621,9 @@ func (ctx *context) runOnInstance(callback func(execInterface) (rep *instance.Ru
 func encodeEntries(entries []*prog.LogEntry) []byte {
 	buf := new(bytes.Buffer)
 	for _, ent := range entries {
+		if len(ent.P.Calls) > prog.MaxCalls {
+			panic("prog.MaxCalls is exceeded")
+		}
 		fmt.Fprintf(buf, "executing program %v:\n%v", ent.Proc, string(ent.P.Serialize()))
 	}
 	return buf.Bytes()

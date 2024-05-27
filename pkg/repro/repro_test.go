@@ -259,3 +259,38 @@ func TestTooManyErrors(t *testing.T) {
 		t.Fatalf("expected an error")
 	}
 }
+
+func TestProgConcatenation(t *testing.T) {
+	// Since the crash condition is alarm() after pause(), the code
+	// would have to work around the prog.MaxCall limitation.
+	execLog := "2015/12/21 12:18:05 executing program 1:\n"
+	for i := 0; i < prog.MaxCalls; i++ {
+		if i == 10 {
+			execLog += "pause()\n"
+		} else {
+			execLog += "getpid()\n"
+		}
+	}
+	execLog += "2015/12/21 12:18:10 executing program 2:\n"
+	for i := 0; i < prog.MaxCalls; i++ {
+		if i == 10 {
+			execLog += "alarm(0xa)\n"
+		} else {
+			execLog += "getpid()\n"
+		}
+	}
+	ctx := prepareTestCtx(t, execLog)
+	go generateTestInstances(ctx, 3, &testExecInterface{
+		t:   t,
+		run: testExecRunner,
+	})
+	result, _, err := ctx.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(`pause()
+alarm(0xa)
+`, string(result.Prog.Serialize())); diff != "" {
+		t.Fatal(diff)
+	}
+}
