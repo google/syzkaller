@@ -360,6 +360,7 @@ type Crash struct {
 	ReproSyz        int64               // reference to ReproSyz text entity
 	ReproC          int64               // reference to ReproC text entity
 	ReproIsRevoked  bool                // the repro no longer triggers the bug on HEAD
+	ReproLog        int64               // reference to ReproLog text entity
 	LastReproRetest time.Time           // the last time when the repro was re-checked
 	MachineInfo     int64               // Reference to MachineInfo text entity.
 	// Custom crash priority for reporting (greater values are higher priority).

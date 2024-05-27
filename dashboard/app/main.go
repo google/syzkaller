@@ -385,6 +385,7 @@ type uiCrash struct {
 	ReproSyzLink    string
 	ReproCLink      string
 	ReproIsRevoked  bool
+	ReproLogLink    string
 	MachineInfoLink string
 	Assets          []*uiAsset
 	*uiBuild
@@ -2012,6 +2013,7 @@ func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
 		ReportLink:      textLink(textCrashReport, crash.Report),
 		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
 		ReproCLink:      textLink(textReproC, crash.ReproC),
+		ReproLogLink:    textLink(textReproLog, crash.ReproLog),
 		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
 		Assets:          makeUIAssets(build, crash, true),

@@ -963,6 +963,9 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, true); err != nil {
 		return err
 	}
+	if crash.ReproLog, err = putText(c, ns, textReproLog, req.ReproLog, false); err != nil {
+		return err
+	}
 	crash.UpdateReportingPriority(c, build, bug)
 	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
 	if _, err = db.Put(c, crashKey, crash); err != nil {
