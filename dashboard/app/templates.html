@@ -237,6 +237,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th>Execs</th>
 		<th colspan="4">Kernel build</th>
 		<th colspan="3">syzkaller build</th>
+		<th colspan="2" title="Show subset of bugs that happened on this instance">Bugs</th>
 	</tr>
 	<tr>
 		<th></th>
@@ -253,6 +254,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th>Commit</th>
 		<th>Freshness</th>
 		<th>Status</th>
+		<th title="Subset of bugs that happened on this instance">All</th>
+		<th title="Subset of bugs that happened only on this instance">Only</th>
 	</tr>
 	</thead>
 	<tbody>
@@ -294,6 +297,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<td></td>
 				<td></td>
 			{{end}}
+			<td><a href="?manager={{$mgr.Name}}">all</a></td>
+			<td><a href="?only_manager={{$mgr.Name}}">only</a></td>
 		</tr>
 	{{end}}
 	</tbody>
