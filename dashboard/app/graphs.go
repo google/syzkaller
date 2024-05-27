@@ -271,39 +271,50 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]*Job) []uiBugLifetime {
 	var res []uiBugLifetime
 	for i, bug := range bugs {
-		ui := uiBugLifetime{
-			// TODO: this is not the time when it was reported to the final reporting.
-			Reported: bug.FirstTime,
-		}
 		if bug.Status >= BugStatusInvalid {
 			continue
 		}
+		reported := bug.FirstTime
+		// Find reporting date to the last reporting stage (where it was reported),
+		// it's a more meaningful date b/c the bug could not be fixed before that.
+		for _, reporting := range bug.Reporting {
+			if reported.Before(reporting.Reported) {
+				reported = reporting.Reported
+			}
+		}
+		ui := uiBugLifetime{}
 		fixed := bug.FixTime
 		if fixed.IsZero() || bug.Status == BugStatusFixed && bug.Closed.Before(fixed) {
 			fixed = bug.Closed
 		}
+		fixedDaysAgo := max(0, float32(fixed.Sub(reported))/float32(24*time.Hour))
 		if !fixed.IsZero() {
-			days := float32(fixed.Sub(ui.Reported)) / float32(24*time.Hour)
-			if days > 365 {
+			// We use fixed date as the X coordiate (date) for fixed bugs to show
+			// how lifetime of bugs fixed at the given date (e.g. lately).
+			ui.Reported = fixed
+			if fixedDaysAgo > 365 {
+				// Cap Y coordinate to 365 to make Y coordinates with the first year
+				// distinguishable in presence of very large Y coordinates
+				// (e.g. if something was fixed/introduced in 5 years).
+				// Add small jitter to min/max values to make close dots distinguishable.
 				ui.Fixed1y = 365 + float32(i%7)
 			} else {
-				if days <= 0 {
-					days = 0.1
-				}
-				ui.Fixed = days
+				ui.Fixed = max(0.2*(1+float32(i%5)), fixedDaysAgo)
 			}
 		} else {
-			ui.NotFixed = 400 - float32(i%7)
+			ui.Reported = reported
+			ui.NotFixed = 400 - float32(i%10)
+		}
+		res = append(res, ui)
+		ui = uiBugLifetime{
+			Reported: reported,
 		}
 		if job := causeBisects[bug.keyHash(c)]; job != nil {
 			days := float32(job.Commits[0].Date.Sub(ui.Reported)) / float32(24*time.Hour)
 			if days < -365 {
 				ui.Introduced1y = -365 - float32(i%7)
 			} else {
-				if days >= 0 {
-					days = -0.1
-				}
-				ui.Introduced = days
+				ui.Introduced = min(-0.2*(1+float32(i%5)), days)
 			}
 		}
 		res = append(res, ui)
