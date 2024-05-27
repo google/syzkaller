@@ -348,7 +348,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 			if err != nil {
 				t.Fatal(err)
 			}
-			pcs = append(pcs, backend.PreviousInstructionPC(target, pc))
+			pcs = append(pcs, backend.PreviousInstructionPC(target, "", pc))
 			t.Logf("using exact coverage PC 0x%x", pcs[0])
 		} else if target.OS == runtime.GOOS && (target.Arch == runtime.GOARCH || target.VMArch == runtime.GOARCH) {
 			t.Fatal(err)

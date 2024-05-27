@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
@@ -249,7 +250,7 @@ func (serv *RPCServer) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Can
 	canonicalizer := serv.canonicalModules.NewInstance(modules)
 	instCoverFilter := canonicalizer.DecanonicalizeFilter(serv.execCoverFilter)
 	infoReply := &flatrpc.InfoReply{
-		CoverFilter: createCoverageBitmap(serv.cfg.SysTarget, instCoverFilter),
+		CoverFilter: createCoverageBitmap(serv.cfg, instCoverFilter),
 	}
 	if err := flatrpc.Send(conn, infoReply); err != nil {
 		return "", nil, nil, err
@@ -621,13 +622,10 @@ func (serv *RPCServer) updateCoverFilter(newCover []uint64) {
 	if len(newCover) == 0 || serv.coverFilter == nil {
 		return
 	}
-	rg, _ := getReportGenerator(serv.cfg, serv.modules)
-	if rg == nil {
-		return
-	}
 	filtered := 0
 	for _, pc := range newCover {
-		if serv.coverFilter[rg.RestorePC(pc)] != 0 {
+		pc = backend.PreviousInstructionPC(serv.cfg.SysTarget, serv.cfg.Type, pc)
+		if serv.coverFilter[pc] != 0 {
 			filtered++
 		}
 	}

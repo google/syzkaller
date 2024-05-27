@@ -297,7 +297,7 @@ func (ctx *Context) dumpCallCoverage(coverFile string, info *flatrpc.CallInfo) {
 	}
 	buf := new(bytes.Buffer)
 	for _, pc := range info.Cover {
-		prev := backend.PreviousInstructionPC(ctx.sysTarget, pc)
+		prev := backend.PreviousInstructionPC(ctx.sysTarget, "", pc)
 		fmt.Fprintf(buf, "0x%x\n", prev)
 	}
 	err := osutil.WriteFile(coverFile, buf.Bytes())

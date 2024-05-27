@@ -6,6 +6,7 @@ package main
 import (
 	"testing"
 
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -16,7 +17,12 @@ func TestCreateBitmap(t *testing.T) {
 	}
 	target := targets.Get("test", "64")
 	order := target.HostEndian
-	bitmap := createCoverageBitmap(target, pcs)
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			SysTarget: target,
+		},
+	}
+	bitmap := createCoverageBitmap(cfg, pcs)
 	start := order.Uint64(bitmap[0:])
 	size := order.Uint32(bitmap[8:])
 	if start != 0x81000002 || size != 0x20001b {
@@ -38,24 +44,28 @@ func TestCreateBitmap(t *testing.T) {
 		0:          1,
 		0xffffffff: 1,
 	}
-	createCoverageBitmap(target, pcs)
+	createCoverageBitmap(cfg, pcs)
 	pcs = map[uint64]uint32{
 		0x81000000: 1,
 		0x81000100: 1,
 	}
-	createCoverageBitmap(target, pcs)
+	createCoverageBitmap(cfg, pcs)
 	pcs = map[uint64]uint32{
 		0x81000002: 1,
 		0x81000010: 1,
 		0x81000102: 1,
 	}
-	createCoverageBitmap(target, pcs)
+	createCoverageBitmap(cfg, pcs)
 }
 
 func TestNilCoverageBitmap(t *testing.T) {
 	pcs := map[uint64]uint32(nil)
-	target := targets.Get("test", "64")
-	bitmap := createCoverageBitmap(target, pcs)
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			SysTarget: targets.Get("test", "64"),
+		},
+	}
+	bitmap := createCoverageBitmap(cfg, pcs)
 	if bitmap != nil {
 		t.Errorf("created a bitmap on nil pcs")
 	}

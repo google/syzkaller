@@ -288,13 +288,13 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
 				Data: string(inp.ProgData),
-				PCs:  coverToPCs(rg, inp.Updates[updateID].RawCover),
+				PCs:  coverToPCs(mgr.cfg, inp.Updates[updateID].RawCover),
 			})
 		} else {
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
 				Data: string(inp.ProgData),
-				PCs:  coverToPCs(rg, inp.Cover),
+				PCs:  coverToPCs(mgr.cfg, inp.Cover),
 			})
 		}
 	} else {
@@ -306,7 +306,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			progs = append(progs, cover.Prog{
 				Sig:  inp.Sig,
 				Data: string(inp.ProgData),
-				PCs:  coverToPCs(rg, inp.Cover),
+				PCs:  coverToPCs(mgr.cfg, inp.Cover),
 			})
 		}
 	}

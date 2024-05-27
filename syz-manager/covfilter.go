@@ -5,7 +5,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"regexp"
@@ -16,7 +15,6 @@ import (
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
@@ -137,7 +135,7 @@ func covFilterAddRawPCs(pcs map[uint64]uint32, rawPCsFiles []string) error {
 	return nil
 }
 
-func createCoverageBitmap(target *targets.Target, pcs map[uint64]uint32) []byte {
+func createCoverageBitmap(cfg *mgrconfig.Config, pcs map[uint64]uint32) []byte {
 	// Return nil if filtering is not used.
 	if len(pcs) == 0 {
 		return nil
@@ -148,17 +146,14 @@ func createCoverageBitmap(target *targets.Target, pcs map[uint64]uint32) []byte 
 	// and a bitmap with size ((covFilterSize>>4)/8+2 bytes follow them.
 	// 8-bit = 1-byte
 	data := make([]byte, 12+((size>>4)/8+2))
-	order := binary.ByteOrder(binary.BigEndian)
-	if target.LittleEndian {
-		order = binary.LittleEndian
-	}
+	order := cfg.SysTarget.HostEndian
 	order.PutUint64(data, start)
 	order.PutUint32(data[8:], size)
 
 	bitmap := data[12:]
 	for pc := range pcs {
 		// The lowest 4-bit is dropped.
-		pc = backend.NextInstructionPC(target, pc)
+		pc = backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
 		pc = (pc - start) >> 4
 		bitmap[pc/8] |= (1 << (pc % 8))
 	}

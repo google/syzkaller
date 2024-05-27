@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
@@ -36,10 +37,11 @@ func resetReportGenerator() {
 	cachedRepGen = nil
 }
 
-func coverToPCs(rg *cover.ReportGenerator, cov []uint64) []uint64 {
+func coverToPCs(cfg *mgrconfig.Config, cov []uint64) []uint64 {
 	pcs := make([]uint64, 0, len(cov))
 	for _, pc := range cov {
-		pcs = append(pcs, rg.RestorePC(pc))
+		prev := backend.PreviousInstructionPC(cfg.SysTarget, cfg.Type, pc)
+		pcs = append(pcs, prev)
 	}
 	return pcs
 }
