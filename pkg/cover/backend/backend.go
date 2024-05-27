@@ -70,10 +70,10 @@ func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuil
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
-	if target.OS == "darwin" {
+	if target.OS == targets.Darwin {
 		return makeMachO(target, objDir, srcDir, buildDir, moduleObj, modules)
 	}
-	if vm == "gvisor" {
+	if vm == targets.GVisor {
 		return makeGvisor(target, objDir, srcDir, buildDir, modules)
 	}
 	var delimiters []string

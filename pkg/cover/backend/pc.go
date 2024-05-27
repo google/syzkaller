@@ -10,7 +10,7 @@ import (
 )
 
 func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
-	if vm == "gvisor" {
+	if vm == targets.GVisor {
 		// gVisor coverage returns real PCs that don't need adjustment.
 		return pc
 	}
@@ -25,7 +25,7 @@ func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 
 }
 
 func NextInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
-	if vm == "gvisor" {
+	if vm == targets.GVisor {
 		return pc
 	}
 	offset := instructionLen(target.Arch)

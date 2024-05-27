@@ -431,7 +431,7 @@ func TestVMType(t *testing.T) {
 		in   string
 		want string
 	}{
-		{"gvisor", "gvisor"},
+		{targets.GVisor, targets.GVisor},
 		{"proxyapp:android", "proxyapp"},
 	}
 

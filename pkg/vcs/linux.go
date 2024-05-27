@@ -193,7 +193,7 @@ func linuxGCCPath(tags map[string]bool, binDir, defaultCompiler string) string {
 }
 
 func (ctx *linux) PrepareBisect() error {
-	if ctx.vmType != "gvisor" {
+	if ctx.vmType != targets.GVisor {
 		// Some linux repos we fuzz don't import the upstream release git tags. We need tags
 		// to decide which compiler versions to use. Let's fetch upstream for its tags.
 		err := ctx.git.fetchRemote("https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git", "")
