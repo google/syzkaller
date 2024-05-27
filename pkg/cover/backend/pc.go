@@ -9,7 +9,11 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
+func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
+	if vm == "gvisor" {
+		// gVisor coverage returns real PCs that don't need adjustment.
+		return pc
+	}
 	offset := instructionLen(target.Arch)
 	pc -= offset
 	// THUMB instructions are 2 or 4 bytes with low bit set.
@@ -20,7 +24,10 @@ func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
 	return pc
 }
 
-func NextInstructionPC(target *targets.Target, pc uint64) uint64 {
+func NextInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
+	if vm == "gvisor" {
+		return pc
+	}
 	offset := instructionLen(target.Arch)
 	pc += offset
 	// THUMB instructions are 2 or 4 bytes with low bit set.

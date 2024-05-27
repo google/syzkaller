@@ -14,7 +14,6 @@ type Impl struct {
 	Symbols         []*Symbol
 	Frames          []Frame
 	Symbolize       func(pcs map[*Module][]uint64) ([]Frame, error)
-	RestorePC       func(pc uint64) uint64
 	CallbackPoints  []uint64
 	PreciseCoverage bool
 }
