@@ -251,7 +251,7 @@ func TestMinimize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
 		}
-		p1, ci := Minimize(p, test.callIndex, false, test.pred)
+		p1, ci := Minimize(p, test.callIndex, MinimizeParams{}, test.pred)
 		res := p1.Serialize()
 		if string(res) != test.result {
 			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v",
@@ -273,7 +273,7 @@ func TestMinimizeRandom(t *testing.T) {
 		for _, crash := range []bool{false, true} {
 			p := target.Generate(rs, 5, ct)
 			copyP := p.Clone()
-			minP, _ := Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
+			minP, _ := Minimize(p, len(p.Calls)-1, MinimizeParams{Light: crash}, func(p1 *Prog, callIndex int) bool {
 				if r.Intn(2) == 0 {
 					return false
 				}
@@ -296,7 +296,7 @@ func TestMinimizeCallIndex(t *testing.T) {
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 5, ct)
 		ci := r.Intn(len(p.Calls))
-		p1, ci1 := Minimize(p, ci, r.Intn(2) == 0, func(p1 *Prog, callIndex int) bool {
+		p1, ci1 := Minimize(p, ci, MinimizeParams{Light: r.Intn(2) == 0}, func(p1 *Prog, callIndex int) bool {
 			return r.Intn(2) == 0
 		})
 		if ci1 < 0 || ci1 >= len(p1.Calls) || p.Calls[ci].Meta.Name != p1.Calls[ci1].Meta.Name {

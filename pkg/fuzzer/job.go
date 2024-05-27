@@ -194,7 +194,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgTypes) *queue.Result
 
 func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 	const minimizeAttempts = 3
-	job.p, job.call = prog.Minimize(job.p, job.call, false,
+	job.p, job.call = prog.Minimize(job.p, job.call, prog.MinimizeParams{},
 		func(p1 *prog.Prog, call1 int) bool {
 			if stop {
 				return false

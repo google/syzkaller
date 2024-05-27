@@ -73,7 +73,7 @@ func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable,
 		})
 	}
 	for _, crash := range []bool{false, true} {
-		p, _ = Minimize(p, -1, crash, func(*Prog, int) bool {
+		p, _ = Minimize(p, -1, MinimizeParams{Light: crash}, func(*Prog, int) bool {
 			return rs.Int63()%10 == 0
 		})
 	}
