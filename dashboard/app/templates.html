@@ -76,6 +76,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{end}}
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/bugs'>
 						<span style="color:DarkOrange;">📈</span> Kernel Health</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/found-bugs'>
+						<span style="color:DarkOrange;">📈</span> Bugs/Month</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/lifetimes'>
 						<span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/fuzzing'>

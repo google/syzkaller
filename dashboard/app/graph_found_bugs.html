@@ -1,0 +1,44 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Number of found bugs per month.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} bugs found per month</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(function() {
+			new google.visualization.ColumnChart (
+				document.getElementById('graph_div')).
+				draw(google.visualization.arrayToDataTable([
+					["-", {{range $.Graph.Headers}}"{{.Name}}", {{end}}],
+					{{range $.Graph.Columns}}["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}}],{{end}}
+				]), {
+					width: "100%",
+					chartArea: {width: '90%', height: '85%'},
+					legend: {position: 'in'},
+					focusTarget: "category",
+					isStacked: true,
+					vAxis: {minValue: 1, textPosition: 'out', gridlines: {multiple: 1}, minorGridlines: {multiple: 1}},
+					hAxis: {minValue: 1, textPosition: 'out', maxAlternation: 1, gridlines: {multiple: 1}, minorGridlines: {multiple: 1}},
+					series: {
+						{{range $idx, $hdr := $.Graph.Headers}}
+							{{$idx}}: {color: "{{$hdr.Color}}"},
+						{{end}}
+					},
+				})
+		});
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<div id="graph_div"></div>
+</body>
+</html>
