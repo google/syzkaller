@@ -403,6 +403,9 @@ func convertExtra(extraParts []flatrpc.CallInfo, dedupCover bool) *flatrpc.CallI
 		extra.Signal[i] = uint64(s)
 		i++
 	}
+	for _, part := range extraParts {
+		extra.Comps = append(extra.Comps, part.Comps...)
+	}
 	return &extra
 }
 

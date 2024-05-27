@@ -259,7 +259,7 @@ type smashJob struct {
 
 func (job *smashJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(2, "smashing the program %s (call=%d):", job.p, job.call)
-	if fuzzer.Config.Comparisons && job.call >= 0 {
+	if fuzzer.Config.Comparisons {
 		fuzzer.startJob(fuzzer.statJobsHints, &hintsJob{
 			p:    job.p.Clone(),
 			call: job.call,
@@ -360,8 +360,15 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		if result.Stop() || result.Info == nil {
 			return
 		}
+		call := result.Info.Extra
+		if job.call >= 0 {
+			call = result.Info.Calls[job.call]
+		}
+		if call == nil {
+			return
+		}
 		got := make(prog.CompMap)
-		for _, cmp := range result.Info.Calls[job.call].Comps {
+		for _, cmp := range call.Comps {
 			got.AddComp(cmp.Op1, cmp.Op2)
 		}
 		if len(got) == 0 {
@@ -377,13 +384,19 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
-	p.MutateWithHints(job.call, comps,
-		func(p *prog.Prog) bool {
-			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
-				Prog:     p,
-				ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
-				Stat:     fuzzer.statExecHint,
-			})
-			return !result.Stop()
-		})
+
+	for i := 0; i < len(p.Calls); i++ {
+		// For .extra coverage, substitute arguments to all calls with remote_cover.
+		if i == job.call || job.call < 0 && job.p.Calls[i].Meta.Attrs.RemoteCover {
+			p.MutateWithHints(i, comps,
+				func(p *prog.Prog) bool {
+					result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
+						Prog:     p,
+						ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
+						Stat:     fuzzer.statExecHint,
+					})
+					return !result.Stop()
+				})
+		}
+	}
 }

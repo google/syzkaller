@@ -508,10 +508,6 @@ int main(int argc, char** argv)
 		cover_open(&extra_cov, true);
 		cover_mmap(&extra_cov);
 		cover_protect(&extra_cov);
-		if (flag_extra_coverage) {
-			// Don't enable comps because we don't use them in the fuzzer yet.
-			cover_enable(&extra_cov, false, true);
-		}
 		char sep = '/';
 #if GOOS_windows
 		sep = '\\';
@@ -753,7 +749,7 @@ void execute_one()
 		if (!flag_threaded)
 			cover_enable(&threads[0].cov, flag_comparisons, false);
 		if (flag_extra_coverage)
-			cover_reset(&extra_cov);
+			cover_enable(&extra_cov, flag_comparisons, true);
 	}
 
 	int call_index = 0;
@@ -1110,20 +1106,12 @@ void copyout_call_results(thread_t* th)
 	}
 }
 
-void write_call_output(thread_t* th, bool finished)
-{
-	uint32 reserrno = ENOSYS;
-	const bool blocked = finished && th != last_scheduled;
-	uint32 call_flags = call_flag_executed | (blocked ? call_flag_blocked : 0);
-	if (finished) {
-		reserrno = th->res != -1 ? 0 : th->reserrno;
-		call_flags |= call_flag_finished |
-			      (th->fault_injected ? call_flag_fault_injected : 0);
-	}
 #if SYZ_EXECUTOR_USES_SHMEM
+void write_call_shmem_output(int call_index, int call_num, uint32 reserrno, uint32 call_flags, cover_t* cov)
+{
 	write_output(kOutMagic);
-	write_output(th->call_index);
-	write_output(th->call_num);
+	write_output(call_index);
+	write_output(call_num);
 	write_output(reserrno);
 	write_output(call_flags);
 	uint32* signal_count_pos = write_output(0); // filled in later
@@ -1132,15 +1120,15 @@ void write_call_output(thread_t* th, bool finished)
 
 	if (flag_comparisons) {
 		// Collect only the comparisons
-		uint32 ncomps = th->cov.size;
-		kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
+		uint32 ncomps = cov->size;
+		kcov_comparison_t* start = (kcov_comparison_t*)(cov->data + sizeof(uint64));
 		kcov_comparison_t* end = start + ncomps;
-		if ((char*)end > th->cov.data_end)
+		if ((char*)end > cov->data_end)
 			failmsg("too many comparisons", "ncomps=%u", ncomps);
-		cover_unprotect(&th->cov);
+		cover_unprotect(cov);
 		std::sort(start, end);
 		ncomps = std::unique(start, end) - start;
-		cover_protect(&th->cov);
+		cover_protect(cov);
 		uint32 comps_size = 0;
 		for (uint32 i = 0; i < ncomps; ++i) {
 			if (start[i].ignore())
@@ -1152,15 +1140,30 @@ void write_call_output(thread_t* th, bool finished)
 		*comps_count_pos = comps_size;
 	} else if (flag_collect_signal || flag_collect_cover) {
 		if (is_kernel_64_bit)
-			write_coverage_signal<uint64>(&th->cov, signal_count_pos, cover_count_pos);
+			write_coverage_signal<uint64>(cov, signal_count_pos, cover_count_pos);
 		else
-			write_coverage_signal<uint32>(&th->cov, signal_count_pos, cover_count_pos);
+			write_coverage_signal<uint32>(cov, signal_count_pos, cover_count_pos);
 	}
 	debug_verbose("out #%u: index=%u num=%u errno=%d finished=%d blocked=%d sig=%u cover=%u comps=%u\n",
-		      completed, th->call_index, th->call_num, reserrno, finished, blocked,
+		      completed, call_index, call_num, reserrno, finished, blocked,
 		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
 	completed++;
 	write_completed(completed);
+}
+#endif // if SYZ_EXECUTOR_USES_SHMEM
+
+void write_call_output(thread_t* th, bool finished)
+{
+	uint32 reserrno = ENOSYS;
+	const bool blocked = finished && th != last_scheduled;
+	uint32 call_flags = call_flag_executed | (blocked ? call_flag_blocked : 0);
+	if (finished) {
+		reserrno = th->res != -1 ? 0 : th->reserrno;
+		call_flags |= call_flag_finished |
+			      (th->fault_injected ? call_flag_fault_injected : 0);
+	}
+#if SYZ_EXECUTOR_USES_SHMEM
+	write_call_shmem_output(th->call_index, th->call_num, reserrno, call_flags, &th->cov);
 #else
 	call_reply reply;
 	reply.header.magic = kOutMagic;
@@ -1184,27 +1187,13 @@ void write_call_output(thread_t* th, bool finished)
 void write_extra_output()
 {
 #if SYZ_EXECUTOR_USES_SHMEM
-	if (!cover_collection_required() || !flag_extra_coverage || flag_comparisons)
+	if (!cover_collection_required() || !flag_extra_coverage)
 		return;
 	cover_collect(&extra_cov);
 	if (!extra_cov.size)
 		return;
-	write_output(kOutMagic);
-	write_output(-1); // call index
-	write_output(-1); // call num
-	write_output(999); // errno
-	write_output(0); // call flags
-	uint32* signal_count_pos = write_output(0); // filled in later
-	uint32* cover_count_pos = write_output(0); // filled in later
-	write_output(0); // comps_count_pos
-	if (is_kernel_64_bit)
-		write_coverage_signal<uint64>(&extra_cov, signal_count_pos, cover_count_pos);
-	else
-		write_coverage_signal<uint32>(&extra_cov, signal_count_pos, cover_count_pos);
+	write_call_shmem_output(-1, -1, 999, 0, &extra_cov);
 	cover_reset(&extra_cov);
-	debug_verbose("extra: sig=%u cover=%u\n", *signal_count_pos, *cover_count_pos);
-	completed++;
-	write_completed(completed);
 #endif // if SYZ_EXECUTOR_USES_SHMEM
 }
 
