@@ -570,13 +570,9 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) ([]ExecRecord
 func (serv *RPCServer) distributeSignalDelta(plus, minus signal.Signal) {
 	plusRaw := plus.ToRaw()
 	minusRaw := minus.ToRaw()
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-	for _, runner := range serv.runners {
-		if runner.conn != nil {
-			runner.sendSignalUpdate(plusRaw, minusRaw)
-		}
-	}
+	serv.foreachRunnerAsync(func(runner *Runner) {
+		runner.sendSignalUpdate(plusRaw, minusRaw)
+	})
 }
 
 func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
@@ -593,14 +589,9 @@ func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
 }
 
 func (serv *RPCServer) startLeakChecking() {
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-	serv.checkLeaks = true
-	for _, runner := range serv.runners {
-		if runner.conn != nil {
-			runner.sendStartLeakChecks()
-		}
-	}
+	serv.foreachRunnerAsync(func(runner *Runner) {
+		runner.sendStartLeakChecks()
+	})
 }
 
 func (runner *Runner) sendStartLeakChecks() error {
@@ -611,6 +602,19 @@ func (runner *Runner) sendStartLeakChecks() error {
 		},
 	}
 	return flatrpc.Send(runner.conn, msg)
+}
+
+// foreachRunnerAsync runs callback fn for each connected runner asynchronously.
+// If a VM has hanged w/o reading out the socket, we want to avoid blocking
+// important goroutines on the send operations.
+func (serv *RPCServer) foreachRunnerAsync(fn func(runner *Runner)) {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+	for _, runner := range serv.runners {
+		if runner.conn != nil {
+			go fn(runner)
+		}
+	}
 }
 
 func (serv *RPCServer) updateCoverFilter(newCover []uint64) {
