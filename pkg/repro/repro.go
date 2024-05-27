@@ -412,7 +412,7 @@ func (ctx *context) minimizeProg(res *Result) (*Result, error) {
 		ctx.stats.MinimizeProgTime = time.Since(start)
 	}()
 
-	res.Prog, _ = prog.Minimize(res.Prog, -1, true,
+	res.Prog, _ = prog.Minimize(res.Prog, -1, prog.MinimizeParams{Light: true},
 		func(p1 *prog.Prog, callIndex int) bool {
 			crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
 			if err != nil {
