@@ -101,6 +101,7 @@ Call attributes are:
 "breaks_returns": ignore return values of all subsequent calls in the program in fallback feedback (can't be trusted).
 "no_generate": do not try to generate this syscall, i.e. use only seed descriptions to produce it.
 "no_minimize": do not modify instances of this syscall when trying to minimize a crashing program.
+"remote_cover": wait longer to collect remote coverage for this call.
 ```
 
 ## Ints

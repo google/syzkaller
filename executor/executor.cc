@@ -873,10 +873,8 @@ void execute_one()
 		const call_t* call = &syscalls[call_num];
 		if (prog_extra_timeout < call->attrs.prog_timeout)
 			prog_extra_timeout = call->attrs.prog_timeout * slowdown_scale;
-		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
-			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, 500 * slowdown_scale);
-		if (strncmp(syscalls[call_num].name, "syz_80211_inject_frame", strlen("syz_80211_inject_frame")) == 0)
-			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, 300 * slowdown_scale);
+		if (call->attrs.remote_cover)
+			prog_extra_cover_timeout = 500 * slowdown_scale; // 500 ms
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)

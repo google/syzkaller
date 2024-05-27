@@ -48,7 +48,7 @@ ieee80211_bssid [
 # mac_addr -- mac address of the device that will receive the message (actually it determines
 #   the network interface that will receive this message).
 # buf -- raw 802.11 frame. It should neither include an FCS, nor leave space for it at the end of the frame.
-syz_80211_inject_frame(mac_addr ptr[in, ieee80211_mac_addr], buf ptr[in, ieee80211_frame], buf_len len[buf])
+syz_80211_inject_frame(mac_addr ptr[in, ieee80211_mac_addr], buf ptr[in, ieee80211_frame], buf_len len[buf]) (remote_cover)
 
 # Pseudo system call that puts a specific interface into IBSS state and joins an IBSS network.
 # Although it is done for all interfaces at executor initialization and the nl80211 commands that it executes

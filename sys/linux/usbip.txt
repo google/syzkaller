@@ -5,7 +5,7 @@ include <drivers/usb/usbip/usbip_common.h>
 
 resource fd_usbip_server[fd]
 
-syz_usbip_server_init(speed flags[usbip_device_speed]) fd_usbip_server
+syz_usbip_server_init(speed flags[usbip_device_speed]) fd_usbip_server (remote_cover)
 write$usbip_server(fd fd_usbip_server, buffer ptr[in, usbip_packet], len bytesize[buffer])
 
 type usbip_header_basic[PACKET_TYPE] {
