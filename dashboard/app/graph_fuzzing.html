@@ -19,7 +19,7 @@ Manager statistics graphs.
 			var data = new google.visualization.DataTable();
 			data.addColumn({type: 'string'});
 			{{range $.Graph.Headers}}
-				data.addColumn({type: 'number', label: '{{.}}'});
+				data.addColumn({type: 'number', label: '{{.Name}}'});
 				data.addColumn({type: 'string', role: 'tooltip'});
 			{{- end}}
 			data.addRows([ {{range $.Graph.Columns}}

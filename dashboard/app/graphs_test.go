@@ -110,6 +110,11 @@ func TestManagersGraphs(t *testing.T) {
 	c.expectOK(err)
 	// TODO: check reply
 	_ = reply
+
+	reply, err = c.AuthGET(AccessAdmin, "/test2/graph/found-bugs")
+	c.expectOK(err)
+	// TODO: check reply
+	_ = reply
 }
 
 func managersGraphFixture(t *testing.T) *Ctx {

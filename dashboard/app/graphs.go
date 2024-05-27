@@ -26,6 +26,11 @@ type uiBugLifetimesPage struct {
 	Lifetimes []uiBugLifetime
 }
 
+type uiReportedBugsPage struct {
+	Header *uiHeader
+	Graph  *uiGraph
+}
+
 type uiBugLifetime struct {
 	Reported     time.Time
 	Fixed        float32
@@ -53,8 +58,13 @@ type uiCrashesPage struct {
 }
 
 type uiGraph struct {
-	Headers []string
+	Headers []uiGraphHeader
 	Columns []uiGraphColumn
+}
+
+type uiGraphHeader struct {
+	Name  string
+	Color string
 }
 
 type uiGraphColumn struct {
@@ -114,7 +124,7 @@ func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.R
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace)
+	bugs, err := loadGraphBugs(c, hdr.Namespace, true)
 	if err != nil {
 		return err
 	}
@@ -131,7 +141,7 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace)
+	bugs, err := loadGraphBugs(c, hdr.Namespace, true)
 	if err != nil {
 		return err
 	}
@@ -158,7 +168,24 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_lifetimes.html", data)
 }
 
-func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
+// nolint: dupl
+func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	bugs, err := loadGraphBugs(c, hdr.Namespace, false)
+	if err != nil {
+		return err
+	}
+	data := &uiReportedBugsPage{
+		Header: hdr,
+		Graph:  createFoundBugs(c, bugs),
+	}
+	return serveTemplate(w, "graph_found_bugs.html", data)
+}
+
+func loadGraphBugs(c context.Context, ns string, removeDupInvalid bool) ([]*Bug, error) {
 	filter := func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns)
 	}
@@ -176,20 +203,23 @@ func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 				continue
 			}
 			bugReporting := lastReportedReporting(bug)
-			if bugReporting == nil || bugReporting.Auto && bug.Status == BugStatusInvalid {
+			if removeDupInvalid &&
+				(bugReporting == nil || bugReporting.Auto && bug.Status == BugStatusInvalid) {
 				// These bugs were auto-obsoleted before getting released.
 				continue
 			}
 		}
-		dup := false
-		for _, com := range bug.Commits {
-			if fixes[com] {
-				dup = true
+		if removeDupInvalid {
+			dup := false
+			for _, com := range bug.Commits {
+				if fixes[com] {
+					dup = true
+				}
+				fixes[com] = true
 			}
-			fixes[com] = true
-		}
-		if dup {
-			continue
+			if dup {
+				continue
+			}
 		}
 		bugs[n] = bug
 		n++
@@ -263,7 +293,78 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 		columns = append(columns, col)
 	}
 	return &uiGraph{
-		Headers: []string{"open bugs", "total reported", "total fixed"},
+		Headers: []uiGraphHeader{{Name: "open bugs"}, {Name: "total reported"}, {Name: "total fixed"}},
+		Columns: columns,
+	}
+}
+
+func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
+	const projected = "projected"
+	// This is linux-specific at the moment, potentially can move to pkg/report/crash
+	// and extend to other OSes.
+	// nolint: lll
+	types := []struct {
+		name  string
+		color string
+		re    *regexp.Regexp
+	}{
+		{"KASAN", "Red", regexp.MustCompile(`^KASAN:`)},
+		{"KMSAN", "Gold", regexp.MustCompile(`^KMSAN:`)},
+		{"KCSAN", "Fuchsia", regexp.MustCompile(`^KCSAN:`)},
+		{"mem safety", "OrangeRed", regexp.MustCompile(`^(WARNING: refcount bug|UBSAN: array-index|BUG: corrupted list|BUG: unable to handle kernel paging request)`)},
+		{"mem leak", "MediumSeaGreen", regexp.MustCompile(`^memory leak`)},
+		{"locking", "DodgerBlue", regexp.MustCompile(`^(BUG: sleeping function|BUG: spinlock recursion|BUG: using ([a-z_]+)\\(\\) in preemptible|inconsistent lock state|WARNING: still has locks held|possible deadlock|WARNING: suspicious RCU usage)`)},
+		{"hangs/stalls", "LightSalmon", regexp.MustCompile(`^(BUG: soft lockup|INFO: rcu .* stall|INFO: task hung)`)},
+		// This must be at the end, otherwise "BUG:" will match other error types.
+		{"DoS", "Violet", regexp.MustCompile(`^(BUG:|kernel BUG|divide error|Internal error in|kernel panic:|general protection fault)`)},
+		{"other", "Gray", regexp.MustCompile(`.*`)},
+		{projected, "LightGray", nil},
+	}
+	var sorted []time.Time
+	months := make(map[time.Time]map[string]int)
+	for _, bug := range bugs {
+		for _, typ := range types {
+			if !typ.re.MatchString(bug.Title) {
+				continue
+			}
+			t := bug.FirstTime
+			m := time.Date(t.Year(), t.Month(), 0, 0, 0, 0, 0, time.UTC)
+			if months[m] == nil {
+				months[m] = make(map[string]int)
+				sorted = append(sorted, m)
+			}
+			months[m][typ.name]++
+			break
+		}
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Before(sorted[j])
+	})
+	now := timeNow(c)
+	thisMonth := time.Date(now.Year(), now.Month(), 0, 0, 0, 0, 0, time.UTC)
+	if m := months[thisMonth]; m != nil {
+		total := 0
+		for _, c := range m {
+			total += c
+		}
+		nextMonth := thisMonth.AddDate(0, 1, 0)
+		m[projected] = int(float64(total) / float64(now.Sub(thisMonth)) * float64(nextMonth.Sub(now)))
+	}
+	var headers []uiGraphHeader
+	for _, typ := range types {
+		headers = append(headers, uiGraphHeader{Name: typ.name, Color: typ.color})
+	}
+	var columns []uiGraphColumn
+	for _, month := range sorted {
+		col := uiGraphColumn{Hint: month.Format("Jan-06")}
+		stats := months[month]
+		for _, typ := range types {
+			col.Vals = append(col.Vals, uiGraphValue{Val: float32(stats[typ.name])})
+		}
+		columns = append(columns, col)
+	}
+	return &uiGraph{
+		Headers: headers,
 		Columns: columns,
 	}
 }
@@ -361,7 +462,7 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 	graph := &uiGraph{}
 	for _, mgr := range selManagers {
 		for _, metric := range selMetrics {
-			graph.Headers = append(graph.Headers, mgr+"-"+metric)
+			graph.Headers = append(graph.Headers, uiGraphHeader{Name: mgr + "-" + metric})
 		}
 	}
 	now := timeNow(c)
@@ -603,7 +704,10 @@ func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *ui
 
 func createCrashesGraph(c context.Context, ns string, regexps []string, days int, bugs []*Bug) (*uiGraph, error) {
 	const dayDuration = 24 * time.Hour
-	graph := &uiGraph{Headers: regexps}
+	graph := &uiGraph{}
+	for _, re := range regexps {
+		graph.Headers = append(graph.Headers, uiGraphHeader{Name: re})
+	}
 	startDay := timeNow(c).Add(time.Duration(-days) * dayDuration)
 	// Step 1: fill the whole table with empty values.
 	dateToIdx := make(map[int]int)
