@@ -135,6 +135,10 @@ const (
 	Trusty  = "trusty"
 	Windows = "windows"
 
+	// These are VM types, but we put them here to prevent string duplication.
+	GVisor  = "gvisor"
+	Starnix = "starnix"
+
 	AMD64               = "amd64"
 	ARM64               = "arm64"
 	ARM                 = "arm"

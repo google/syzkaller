@@ -83,7 +83,7 @@ const unspecifiedType = crash.Type("UNSPECIFIED")
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	typ := cfg.TargetOS
-	if cfg.Type == "gvisor" || cfg.Type == "starnix" {
+	if cfg.Type == targets.GVisor || cfg.Type == targets.Starnix {
 		typ = cfg.Type
 	}
 	ctor := ctors[typ]
@@ -139,8 +139,8 @@ const (
 
 var ctors = map[string]fn{
 	targets.Linux:   ctorLinux,
-	"starnix":       ctorFuchsia,
-	"gvisor":        ctorGvisor,
+	targets.Starnix: ctorFuchsia,
+	targets.GVisor:  ctorGvisor,
 	targets.FreeBSD: ctorFreebsd,
 	targets.Darwin:  ctorDarwin,
 	targets.NetBSD:  ctorNetbsd,

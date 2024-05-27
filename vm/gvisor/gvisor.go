@@ -21,11 +21,12 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func init() {
-	vmimpl.Register("gvisor", ctor, true)
+	vmimpl.Register(targets.GVisor, ctor, true)
 }
 
 type Config struct {
@@ -146,8 +147,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("gvisor", rpipe)
-	merger.Add("gvisor-goruntime", panicLogReadFD)
+	merger.Add("runsc", rpipe)
+	merger.Add("runsc-goruntime", panicLogReadFD)
 
 	inst := &instance{
 		cfg:      pool.cfg,
