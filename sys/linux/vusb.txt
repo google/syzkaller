@@ -22,11 +22,11 @@ resource fd_usb[int32]: -1
 
 # These are generic pseudo-syscalls for emulating arbitrary USB devices.
 # They are mostly targeted to cover the enumeration process.
-syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000])
-syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses]) (timeout[300])
-syz_usb_ep_write(fd fd_usb, ep int8, len len[data], data ptr[in, array[int8, 0:256]]) (timeout[300])
-syz_usb_ep_read(fd fd_usb, ep int8, len len[data], data buffer[out]) (timeout[300])
-syz_usb_disconnect(fd fd_usb) (timeout[300])
+syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses]) (timeout[300], remote_cover)
+syz_usb_ep_write(fd fd_usb, ep int8, len len[data], data ptr[in, array[int8, 0:256]]) (timeout[300], remote_cover)
+syz_usb_ep_read(fd fd_usb, ep int8, len len[data], data buffer[out]) (timeout[300], remote_cover)
+syz_usb_disconnect(fd fd_usb) (timeout[300], remote_cover)
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
@@ -498,8 +498,8 @@ usb_hub_change_flags = HUB_CHANGE_LOCAL_POWER, HUB_CHANGE_OVERCURRENT
 
 resource fd_usb_hid[fd_usb]
 
-syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid (timeout[3000], prog_timeout[3000])
-syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid]) (timeout[300])
+syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid]) (timeout[300], remote_cover)
 
 # idVendor and idProduct are patched by Go code, see sys/linux/init_vusb.go.
 usb_device_descriptor_hid {
@@ -638,8 +638,8 @@ define USBLP_LAST_PROTOCOL	3
 
 resource fd_usb_printer[fd_usb]
 
-syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer (timeout[3000], prog_timeout[3000])
-syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer]) (timeout[300])
+syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer]) (timeout[300], remote_cover)
 
 usb_device_descriptor_printer {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x525, 0xa4a8, 64, array[usb_config_descriptor_printer, 1]]
@@ -711,8 +711,8 @@ usb_printer_get_id_response {
 
 resource fd_usb_cdc_ecm[fd_usb]
 
-syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm (timeout[3000], prog_timeout[3000])
-syz_usb_control_io$cdc_ecm(fd fd_usb_cdc_ecm, descs ptr[in, vusb_descriptors_cdc_ecm], resps ptr[in, vusb_responses_cdc_ecm]) (timeout[300])
+syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$cdc_ecm(fd fd_usb_cdc_ecm, descs ptr[in, vusb_descriptors_cdc_ecm], resps ptr[in, vusb_responses_cdc_ecm]) (timeout[300], remote_cover)
 
 usb_device_descriptor_cdc_ecm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ecm, 1]]
@@ -960,8 +960,8 @@ vusb_responses_cdc_ecm {
 
 resource fd_usb_cdc_ncm[fd_usb]
 
-syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm (timeout[3000], prog_timeout[3000])
-syz_usb_control_io$cdc_ncm(fd fd_usb_cdc_ncm, descs ptr[in, vusb_descriptors_cdc_ncm], resps ptr[in, vusb_responses_cdc_ncm]) (timeout[300])
+syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$cdc_ncm(fd fd_usb_cdc_ncm, descs ptr[in, vusb_descriptors_cdc_ncm], resps ptr[in, vusb_responses_cdc_ncm]) (timeout[300], remote_cover)
 
 usb_device_descriptor_cdc_ncm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ncm, 1]]
@@ -1058,8 +1058,8 @@ usb_cdc_ncm_ntb_parameters {
 
 resource fd_usb_uac1[fd_usb]
 
-syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac1 (timeout[3000], prog_timeout[3000])
-syz_usb_control_io$uac1(fd fd_usb_uac1, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1]) (timeout[300])
+syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac1 (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$uac1(fd fd_usb_uac1, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1]) (timeout[300], remote_cover)
 
 usb_device_descriptor_uac1 {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x1d6b, 0x101, 64, array[usb_config_descriptor_uac1, 1]]
@@ -1343,9 +1343,9 @@ define USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS	(6)
 
 resource fd_usb_ath9k[fd_usb]
 
-syz_usb_connect_ath9k(speed const[USB_SPEED_HIGH], dev_len len[dev], dev ptr[in, usb_device_descriptor_ath9k], conn_descs const[0]) fd_usb_ath9k (timeout[3000], prog_timeout[3000])
-syz_usb_ep_write$ath9k_ep1(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS], len bytesize[data], data ptr[in, ath9k_bulk_frame]) (timeout[300])
-syz_usb_ep_write$ath9k_ep2(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_INT_IN_ADDRESS], len bytesize[data], data ptr[in, htc_frame]) (timeout[300])
+syz_usb_connect_ath9k(speed const[USB_SPEED_HIGH], dev_len len[dev], dev ptr[in, usb_device_descriptor_ath9k], conn_descs const[0]) fd_usb_ath9k (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_ep_write$ath9k_ep1(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS], len bytesize[data], data ptr[in, ath9k_bulk_frame]) (timeout[300], remote_cover)
+syz_usb_ep_write$ath9k_ep2(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_INT_IN_ADDRESS], len bytesize[data], data ptr[in, htc_frame]) (timeout[300], remote_cover)
 
 usb_device_descriptor_ath9k {
 	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0xcf3, 0x9271, 0x108, array[usb_config_descriptor_ath9k, 1]]

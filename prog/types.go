@@ -44,6 +44,7 @@ type SyscallAttrs struct {
 	BreaksReturns bool
 	NoGenerate    bool
 	NoMinimize    bool
+	RemoteCover   bool
 }
 
 // MaxArgs is maximum number of syscall arguments.
