@@ -141,16 +141,16 @@ func createCoverageBitmap(cfg *mgrconfig.Config, pcs map[uint64]uint32) []byte {
 		return nil
 	}
 	start, size := coverageFilterRegion(pcs)
-	log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+uint64(size), size, len(pcs))
-	// The file starts with two uint32: covFilterStart and covFilterSize,
+	log.Logf(2, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+size, size, len(pcs))
+	// The file starts with two uint64: covFilterStart and covFilterSize,
 	// and a bitmap with size ((covFilterSize>>4)/8+2 bytes follow them.
 	// 8-bit = 1-byte
-	data := make([]byte, 12+((size>>4)/8+2))
+	data := make([]byte, 16+((size>>4)/8+2))
 	order := cfg.SysTarget.HostEndian
 	order.PutUint64(data, start)
-	order.PutUint32(data[8:], size)
+	order.PutUint64(data[8:], size)
 
-	bitmap := data[12:]
+	bitmap := data[16:]
 	for pc := range pcs {
 		// The lowest 4-bit is dropped.
 		pc = backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
@@ -160,7 +160,7 @@ func createCoverageBitmap(cfg *mgrconfig.Config, pcs map[uint64]uint32) []byte {
 	return data
 }
 
-func coverageFilterRegion(pcs map[uint64]uint32) (uint64, uint32) {
+func coverageFilterRegion(pcs map[uint64]uint32) (uint64, uint64) {
 	start, end := ^uint64(0), uint64(0)
 	for pc := range pcs {
 		if start > pc {
@@ -170,7 +170,7 @@ func coverageFilterRegion(pcs map[uint64]uint32) (uint64, uint32) {
 			end = pc
 		}
 	}
-	return start, uint32(end - start)
+	return start, end - start
 }
 
 func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {

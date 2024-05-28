@@ -205,30 +205,29 @@ static int test_csum_inet_acc()
 static int test_coverage_filter()
 {
 	struct tmp_cov_filter_t {
-		uint32 pcstart;
-		uint32 pcsize;
+		uint64 pcstart;
+		uint64 pcsize;
 		uint8 bitmap[((0x1000 >> 4) + 7) / 8];
 	};
 	static struct tmp_cov_filter_t tmp_cov_filter;
-	tmp_cov_filter.pcstart = 0x81000000;
+	tmp_cov_filter.pcstart = 0xffffffff81000000;
 	tmp_cov_filter.pcsize = 0x1000;
 	cov_filter = (cov_filter_t*)&tmp_cov_filter;
 	flag_coverage_filter = true;
 
-	uint64 full_enable_pc = 0xffffffff81000765;
-	uint64 full_disable_pc = 0xffffffff81000627;
-	uint64 full_out_pc = 0xffffffff82000000;
+	uint64 enable_pc = 0xffffffff81000765;
+	uint64 disable_pc = 0xffffffff81000627;
+	uint64 out_pc = 0xffffffff82000000;
 
-	uint32 enable_pc = (uint32)full_enable_pc & 0xffffffff;
 	uint32 idx = ((enable_pc - cov_filter->pcstart) >> 4) / 8;
 	uint32 shift = ((enable_pc - cov_filter->pcstart) >> 4) % 8;
 	cov_filter->bitmap[idx] |= (1 << shift);
 
-	if (!coverage_filter(full_enable_pc))
+	if (!coverage_filter(enable_pc))
 		return 1;
-	if (coverage_filter(full_disable_pc))
+	if (coverage_filter(disable_pc))
 		return 1;
-	if (coverage_filter(full_out_pc))
+	if (coverage_filter(out_pc))
 		return 1;
 
 	cov_filter = NULL;

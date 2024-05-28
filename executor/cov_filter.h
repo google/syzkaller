@@ -7,8 +7,8 @@
 #include <sys/stat.h>
 
 struct cov_filter_t {
-	uint32 pcstart;
-	uint32 pcsize;
+	uint64 pcstart;
+	uint64 pcsize;
 	uint8 bitmap[];
 };
 
@@ -31,7 +31,7 @@ static void init_coverage_filter(char* filename)
 	cov_filter = (cov_filter_t*)mmap(preferred, st.st_size, PROT_READ, MAP_PRIVATE, f, 0);
 	if (cov_filter != preferred)
 		failmsg("failed to mmap coverage filter bitmap", "want=%p, got=%p", preferred, cov_filter);
-	if ((uint32)st.st_size != sizeof(uint32) * 2 + ((cov_filter->pcsize >> 4) / 8 + 2))
+	if ((uint32)st.st_size != sizeof(uint64) * 2 + ((cov_filter->pcsize >> 4) / 8 + 2))
 		fail("bad coverage filter bitmap size");
 	close(f);
 }
@@ -43,14 +43,13 @@ static bool coverage_filter(uint64 pc)
 	if (cov_filter == NULL)
 		fail("coverage filter was enabled but bitmap initialization failed");
 	// Prevent out of bound while searching bitmap.
-	uint32 pc32 = (uint32)(pc & 0xffffffff);
-	if (pc32 < cov_filter->pcstart || pc32 > cov_filter->pcstart + cov_filter->pcsize)
+	if (pc < cov_filter->pcstart || pc > cov_filter->pcstart + cov_filter->pcsize)
 		return false;
 	// For minimizing the size of bitmap, the lowest 4-bit will be dropped.
-	pc32 -= cov_filter->pcstart;
-	pc32 = pc32 >> 4;
-	uint32 idx = pc32 / 8;
-	uint32 shift = pc32 % 8;
+	pc -= cov_filter->pcstart;
+	pc = pc >> 4;
+	uint64 idx = pc / 8;
+	uint64 shift = pc % 8;
 	return (cov_filter->bitmap[idx] & (1 << shift)) > 0;
 }
 
