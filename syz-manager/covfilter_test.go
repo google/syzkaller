@@ -28,7 +28,7 @@ func TestCreateBitmap(t *testing.T) {
 	if start != 0x81000002 || size != 0x20001b {
 		t.Fatalf("bad region 0x%x/0x%x", start, size)
 	}
-	for i, byte := range bitmap[12:] {
+	for i, byte := range bitmap[16:] {
 		var expect uint8
 		switch i {
 		case 0:
