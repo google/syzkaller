@@ -646,7 +646,7 @@ func (mgr *Manager) loadCorpus() {
 	// By default we don't re-minimize/re-smash programs from corpus,
 	// it takes lots of time on start and is unnecessary.
 	// However, on version bumps we can selectively re-minimize/re-smash.
-	flags := fuzzer.ProgMinimized | fuzzer.ProgSmashed
+	flags := fuzzer.ProgFromCorpus | fuzzer.ProgMinimized | fuzzer.ProgSmashed
 	switch mgr.corpusDB.Version {
 	case 0:
 		// Version 0 had broken minimization, so we need to re-minimize.
@@ -681,7 +681,7 @@ func (mgr *Manager) loadCorpus() {
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
 	seeds := 0
 	for _, seed := range mgr.seeds {
-		_, item := mgr.loadProg(seed, fuzzer.ProgMinimized)
+		_, item := mgr.loadProg(seed, fuzzer.ProgFromCorpus|fuzzer.ProgMinimized)
 		if item != nil {
 			candidates = append(candidates, *item)
 			seeds++
@@ -690,16 +690,6 @@ func (mgr *Manager) loadCorpus() {
 	log.Logf(0, "%-24v: %v (%v broken, %v seeds)", "corpus", len(candidates), broken, seeds)
 	mgr.seeds = nil
 
-	// We duplicate all inputs in the corpus and shuffle the second part.
-	// This solves the following problem. A fuzzer can crash while triaging candidates,
-	// in such case it will also lost all cached candidates. Or, the input can be somewhat flaky
-	// and doesn't give the coverage on first try. So we give each input the second chance.
-	// Shuffling should alleviate deterministically losing the same inputs on fuzzer crashing.
-	candidates = append(candidates, candidates...)
-	shuffle := candidates[len(candidates)/2:]
-	rand.Shuffle(len(shuffle), func(i, j int) {
-		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
-	})
 	if mgr.phase != phaseInit {
 		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
 	}
