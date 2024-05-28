@@ -101,42 +101,56 @@ func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queu
 }
 
 func (fuzzer *Fuzzer) executeWithFlags(executor queue.Executor, req *queue.Request, flags ProgFlags) *queue.Result {
-	executor.Submit(req)
-	res := req.Wait(fuzzer.ctx)
-	fuzzer.processResult(req, res, flags)
-	return res
+	fuzzer.enqueue(executor, req, flags, 0)
+	return req.Wait(fuzzer.ctx)
 }
 
-func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgFlags) {
+func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgFlags, attempt int) {
 	req.OnDone(func(req *queue.Request, res *queue.Result) bool {
-		fuzzer.processResult(req, res, flags)
-		return true
+		return fuzzer.processResult(req, res, flags, attempt)
 	})
 }
 
-func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgFlags) {
-	fuzzer.prepare(req, flags)
+func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgFlags, attempt int) {
+	fuzzer.prepare(req, flags, attempt)
 	executor.Submit(req)
 }
 
-func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags) {
+func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags, attempt int) bool {
 	inTriage := flags&progInTriage > 0
 	// Triage individual calls.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
 	// If we are already triaging this exact prog, this is flaky coverage.
+	triaging := false
 	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !inTriage {
 		for call, info := range res.Info.Calls {
-			fuzzer.triageProgCall(req.Prog, info, call, flags)
+			if fuzzer.triageProgCall(req.Prog, info, call, flags) {
+				triaging = true
+			}
 		}
-		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, flags)
+		if fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, flags) {
+			triaging = true
+		}
 	}
+
 	if res.Info != nil {
 		fuzzer.statExecTime.Add(int(res.Info.Elapsed / 1e6))
+	}
+
+	// Corpus candidates may have flaky coverage, so we give them a second chance.
+	maxCandidateAttempts := 3
+	if req.Risky() {
+		maxCandidateAttempts = 2
+	}
+	if !triaging && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
+		fuzzer.enqueue(fuzzer.candidateQueue, req, flags, attempt+1)
+		return false
 	}
 	if flags&progCandidate != 0 {
 		fuzzer.statCandidates.Add(-1)
 	}
+	return true
 }
 
 type Config struct {
@@ -154,17 +168,17 @@ type Config struct {
 	NewInputFilter func(call string) bool
 }
 
-func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, flags ProgFlags) {
+func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, flags ProgFlags) bool {
 	if info == nil {
-		return
+		return false
 	}
 	prio := signalPrio(p, info, call)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
-		return
+		return false
 	}
 	if !fuzzer.Config.NewInputFilter(p.CallName(call)) {
-		return
+		return false
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
 
@@ -180,6 +194,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 		flags:     flags,
 		queue:     queue.Append(),
 	})
+	return true
 }
 
 func signalPrio(p *prog.Prog, info *flatrpc.CallInfo, call int) (prio uint8) {
@@ -211,7 +226,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
 	}
-	fuzzer.prepare(req, 0)
+	fuzzer.prepare(req, 0, 0)
 	return req
 }
 
@@ -246,7 +261,9 @@ func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
 type ProgFlags int
 
 const (
-	ProgMinimized ProgFlags = 1 << iota
+	// The candidate was loaded from our local corpus rather than come from hub.
+	ProgFromCorpus ProgFlags = 1 << iota
+	ProgMinimized
 	ProgSmashed
 
 	progCandidate
@@ -267,7 +284,7 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			Stat:      fuzzer.statExecCandidate,
 			Important: true,
 		}
-		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate)
+		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate, 0)
 	}
 }
 
