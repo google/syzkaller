@@ -29,7 +29,7 @@ func TestDeflakeFail(t *testing.T) {
 	}
 
 	run := 0
-	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgTypes) *queue.Result {
+	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgFlags) *queue.Result {
 		run++
 		// For first, we return 0 and 1. For second, 1 and 2. And so on.
 		return fakeResult(0, []uint64{uint64(run), uint64(run + 1)}, []uint64{10, 20})
@@ -54,7 +54,7 @@ func TestDeflakeSuccess(t *testing.T) {
 		newSignal: signal.FromRaw([]uint64{0, 1, 2}, 0),
 	}
 	run := 0
-	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgTypes) *queue.Result {
+	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgFlags) *queue.Result {
 		run++
 		switch run {
 		case 1:
