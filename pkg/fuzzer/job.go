@@ -77,7 +77,7 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", callName, job.newSignal.Len())
 
 	// Compute input coverage and non-flaky signal for minimization.
-	info, stop := job.deflake(job.execute, fuzzer.statExecTriage, fuzzer.Config.FetchRawCover)
+	info, stop := job.deflake(job.execute, fuzzer.Cover, fuzzer.statExecTriage, fuzzer.Config.FetchRawCover)
 	if stop || info.newStableSignal.Empty() {
 		return
 	}
@@ -114,8 +114,8 @@ type deflakedCover struct {
 	rawCover        []uint64
 }
 
-func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result, stat *stats.Val,
-	rawCover bool) (info deflakedCover, stop bool) {
+func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result, cover *Cover,
+	stat *stats.Val, rawCover bool) (info deflakedCover, stop bool) {
 	// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
 	// The triage algorithm must tolerate this, so let's pick the signal that is common
 	// to 3 out of 5 runs.
@@ -126,7 +126,8 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 		maxRuns  = 5
 	)
 	signals := make([]signal.Signal, needRuns)
-	for i := 0; i < maxRuns; i++ {
+	signals[0] = job.newSignal.Copy()
+	for i := 1; i < maxRuns; i++ {
 		if job.newSignal.IntersectsWith(signals[needRuns-1]) {
 			// We already have the right deflaked signal.
 			break
@@ -150,11 +151,16 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			// The call was not executed or failed.
 			continue
 		}
-		thisSignal, thisCover := getSignalAndCover(job.p, result.Info, job.call)
+		inf, thisSignal, prio := getSignalAndCover(job.p, result.Info, job.call)
 		if len(info.rawCover) == 0 && rawCover {
-			info.rawCover = thisCover
+			info.rawCover = inf.Cover
 		}
-		info.cover.Merge(thisCover)
+		newMaxSignal := cover.addRawMaxSignal(inf.Signal, prio)
+		// Since signal may be flaky, update the new signal we are chasing.
+		// It's possible that we won't get any of the orignal new signal,
+		// but instead will get some other stable new signal.
+		job.newSignal.Merge(newMaxSignal)
+		info.cover.Merge(inf.Cover)
 		for j := len(signals) - 1; j > 0; j-- {
 			intersect := signals[j-1].Intersection(thisSignal)
 			signals[j].Merge(intersect)
@@ -191,7 +197,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 					// The call was not executed or failed.
 					continue
 				}
-				thisSignal, _ := getSignalAndCover(p1, info, call1)
+				_, thisSignal, _ := getSignalAndCover(p1, info, call1)
 				if newSignal.Intersection(thisSignal).Len() == newSignal.Len() {
 					return true
 				}
@@ -216,15 +222,16 @@ func reexecutionSuccess(info *flatrpc.ProgInfo, oldInfo *flatrpc.CallInfo, call 
 	return info.Extra != nil && len(info.Extra.Signal) != 0
 }
 
-func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) (signal.Signal, []uint64) {
+func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) (*flatrpc.CallInfo, signal.Signal, uint8) {
 	inf := info.Extra
 	if call != -1 {
 		inf = info.Calls[call]
 	}
 	if inf == nil {
-		return nil, nil
+		return nil, nil, 0
 	}
-	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call)), inf.Cover
+	prio := signalPrio(p, inf, call)
+	return inf, signal.FromRaw(inf.Signal, prio), prio
 }
 
 type smashJob struct {
