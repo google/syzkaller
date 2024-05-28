@@ -646,30 +646,30 @@ func (mgr *Manager) loadCorpus() {
 	// By default we don't re-minimize/re-smash programs from corpus,
 	// it takes lots of time on start and is unnecessary.
 	// However, on version bumps we can selectively re-minimize/re-smash.
-	minimized, smashed := true, true
+	flags := fuzzer.ProgMinimized | fuzzer.ProgSmashed
 	switch mgr.corpusDB.Version {
 	case 0:
 		// Version 0 had broken minimization, so we need to re-minimize.
-		minimized = false
+		flags &= ^fuzzer.ProgMinimized
 		fallthrough
 	case 1:
 		// Version 1->2: memory is preallocated so lots of mmaps become unnecessary.
-		minimized = false
+		flags &= ^fuzzer.ProgMinimized
 		fallthrough
 	case 2:
 		// Version 2->3: big-endian hints.
-		smashed = false
+		flags &= ^fuzzer.ProgSmashed
 		fallthrough
 	case 3:
 		// Version 3->4: to shake things up.
-		minimized = false
+		flags &= ^fuzzer.ProgMinimized
 		fallthrough
 	case currentDBVersion:
 	}
 	var candidates []fuzzer.Candidate
 	broken := 0
 	for key, rec := range mgr.corpusDB.Records {
-		drop, item := mgr.loadProg(rec.Val, minimized, smashed)
+		drop, item := mgr.loadProg(rec.Val, flags)
 		if drop {
 			mgr.corpusDB.Delete(key)
 			broken++
@@ -681,7 +681,7 @@ func (mgr *Manager) loadCorpus() {
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
 	seeds := 0
 	for _, seed := range mgr.seeds {
-		_, item := mgr.loadProg(seed, true, false)
+		_, item := mgr.loadProg(seed, fuzzer.ProgMinimized)
 		if item != nil {
 			candidates = append(candidates, *item)
 			seeds++
@@ -708,7 +708,7 @@ func (mgr *Manager) loadCorpus() {
 }
 
 // Returns (delete item from the corpus, a fuzzer.Candidate object).
-func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) (drop bool, candidate *fuzzer.Candidate) {
+func (mgr *Manager) loadProg(data []byte, flags fuzzer.ProgFlags) (drop bool, candidate *fuzzer.Candidate) {
 	p, disabled, bad := parseProgram(mgr.target, mgr.targetEnabledSyscalls, data)
 	if bad != nil {
 		return true, nil
@@ -726,18 +726,16 @@ func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) (drop bool, c
 			leftover := programLeftover(mgr.target, mgr.targetEnabledSyscalls, data)
 			if leftover != nil {
 				candidate = &fuzzer.Candidate{
-					Prog:      leftover,
-					Minimized: false,
-					Smashed:   smashed,
+					Prog:  leftover,
+					Flags: flags & ^fuzzer.ProgMinimized,
 				}
 			}
 		}
 		return false, candidate
 	}
 	return false, &fuzzer.Candidate{
-		Prog:      p,
-		Minimized: minimized,
-		Smashed:   smashed,
+		Prog:  p,
+		Flags: flags,
 	}
 }
 

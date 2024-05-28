@@ -245,16 +245,18 @@ func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smas
 			continue
 		}
 		min, smash := matchDomains(hc.domain, inp.Domain)
+		var flags fuzzer.ProgFlags
 		if min {
 			minimized++
+			flags |= fuzzer.ProgMinimized
 		}
 		if smash {
 			smashed++
+			flags |= fuzzer.ProgSmashed
 		}
 		candidates = append(candidates, fuzzer.Candidate{
-			Prog:      p,
-			Minimized: min,
-			Smashed:   smash,
+			Prog:  p,
+			Flags: flags,
 		})
 	}
 	hc.mgr.addNewCandidates(candidates)

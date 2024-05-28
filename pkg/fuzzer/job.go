@@ -20,15 +20,6 @@ type job interface {
 	run(fuzzer *Fuzzer)
 }
 
-type ProgTypes int
-
-const (
-	progCandidate ProgTypes = 1 << iota
-	progMinimized
-	progSmashed
-	progInTriage
-)
-
 func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
 		prog.RecommendedCalls,
@@ -59,22 +50,6 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	}
 }
 
-func candidateRequest(fuzzer *Fuzzer, input Candidate) (*queue.Request, ProgTypes) {
-	flags := progCandidate
-	if input.Minimized {
-		flags |= progMinimized
-	}
-	if input.Smashed {
-		flags |= progSmashed
-	}
-	return &queue.Request{
-		Prog:      input.Prog,
-		ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
-		Stat:      fuzzer.statExecCandidate,
-		Important: true,
-	}, flags
-}
-
 // triageJob are programs for which we noticed potential new coverage during
 // first execution. But we are not sure yet if the coverage is real or not.
 // During triage we understand if these programs in fact give new coverage,
@@ -84,12 +59,12 @@ type triageJob struct {
 	call      int
 	info      *flatrpc.CallInfo
 	newSignal signal.Signal
-	flags     ProgTypes
+	flags     ProgFlags
 	fuzzer    *Fuzzer
 	queue     queue.Executor
 }
 
-func (job *triageJob) execute(req *queue.Request, flags ProgTypes) *queue.Result {
+func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result {
 	req.Important = true // All triage executions are important.
 	return job.fuzzer.executeWithFlags(job.queue, req, flags)
 }
@@ -106,7 +81,7 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	if stop || info.newStableSignal.Empty() {
 		return
 	}
-	if job.flags&progMinimized == 0 {
+	if job.flags&ProgMinimized == 0 {
 		stop = job.minimize(info.newStableSignal)
 		if stop {
 			return
@@ -116,7 +91,7 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 		return
 	}
 	fuzzer.Logf(2, "added new input for %v to the corpus: %s", callName, job.p)
-	if job.flags&progSmashed == 0 {
+	if job.flags&ProgSmashed == 0 {
 		fuzzer.startJob(fuzzer.statJobsSmash, &smashJob{
 			p:    job.p.Clone(),
 			call: job.call,
@@ -139,7 +114,7 @@ type deflakedCover struct {
 	rawCover        []uint64
 }
 
-func (job *triageJob) deflake(exec func(*queue.Request, ProgTypes) *queue.Result, stat *stats.Val,
+func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result, stat *stats.Val,
 	rawCover bool) (info deflakedCover, stop bool) {
 	// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
 	// The triage algorithm must tolerate this, so let's pick the signal that is common

@@ -100,26 +100,26 @@ func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queu
 	return fuzzer.executeWithFlags(executor, req, 0)
 }
 
-func (fuzzer *Fuzzer) executeWithFlags(executor queue.Executor, req *queue.Request, flags ProgTypes) *queue.Result {
+func (fuzzer *Fuzzer) executeWithFlags(executor queue.Executor, req *queue.Request, flags ProgFlags) *queue.Result {
 	executor.Submit(req)
 	res := req.Wait(fuzzer.ctx)
 	fuzzer.processResult(req, res, flags)
 	return res
 }
 
-func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgTypes) {
+func (fuzzer *Fuzzer) prepare(req *queue.Request, flags ProgFlags) {
 	req.OnDone(func(req *queue.Request, res *queue.Result) bool {
 		fuzzer.processResult(req, res, flags)
 		return true
 	})
 }
 
-func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgTypes) {
+func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags ProgFlags) {
 	fuzzer.prepare(req, flags)
 	executor.Submit(req)
 }
 
-func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgTypes) {
+func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags) {
 	inTriage := flags&progInTriage > 0
 	// Triage individual calls.
 	// We do it before unblocking the waiting threads because
@@ -154,7 +154,7 @@ type Config struct {
 	NewInputFilter func(call string) bool
 }
 
-func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, flags ProgTypes) {
+func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, flags ProgFlags) {
 	if info == nil {
 		return
 	}
@@ -243,17 +243,31 @@ func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
 	fuzzer.Config.Logf(level, msg, args...)
 }
 
+type ProgFlags int
+
+const (
+	ProgMinimized ProgFlags = 1 << iota
+	ProgSmashed
+
+	progCandidate
+	progInTriage
+)
+
 type Candidate struct {
-	Prog      *prog.Prog
-	Smashed   bool
-	Minimized bool
+	Prog  *prog.Prog
+	Flags ProgFlags
 }
 
 func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 	fuzzer.statCandidates.Add(len(candidates))
 	for _, candidate := range candidates {
-		req, flags := candidateRequest(fuzzer, candidate)
-		fuzzer.enqueue(fuzzer.candidateQueue, req, flags)
+		req := &queue.Request{
+			Prog:      candidate.Prog,
+			ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
+			Stat:      fuzzer.statExecCandidate,
+			Important: true,
+		}
+		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate)
 	}
 }
 
