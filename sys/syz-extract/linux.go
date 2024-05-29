@@ -81,9 +81,9 @@ func (*linux) prepareArch(arch *Arch) error {
 	kernelDir := arch.sourceDir
 	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir)
 	if arch.configFile != "" {
-		out, err := osutil.RunCmd(time.Hour, kernelDir, "cp", "-f", arch.configFile, arch.buildDir)
+		err := osutil.CopyFile(arch.configFile, filepath.Join(arch.buildDir, ".config"))
 		if err != nil {
-			return fmt.Errorf("cp config failed: %w\n%s", err, out)
+			return fmt.Errorf("failed to copy config file: %w", err)
 		}
 	} else {
 		out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
