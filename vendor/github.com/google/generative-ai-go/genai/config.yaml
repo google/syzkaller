@@ -1,0 +1,186 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Configuration for the protoveneer tool.
+
+package: genai
+
+protoImportPath: cloud.google.com/go/ai/generativelanguage/apiv1beta/generativelanguagepb
+supportImportPath: github.com/google/generative-ai-go/internal/support
+
+types:
+    HarmCategory:
+      protoPrefix: HarmCategory_HARM_CATEGORY_
+      docVerb: specifies
+
+    SafetySetting_HarmBlockThreshold:
+      name: HarmBlockThreshold
+      protoPrefix: SafetySetting_BLOCK_
+      veneerPrefix: HarmBlock
+      docVerb: specifies
+      valueNames:
+        SafetySetting_HARM_BLOCK_THRESHOLD_UNSPECIFIED: HarmBlockUnspecified
+
+    SafetyRating_HarmProbability:
+      name: HarmProbability
+      protoPrefix: SafetyRating_
+      docVerb: specifies
+      valueNames:
+        SafetyRating_HARM_PROBABILITY_UNSPECIFIED: HarmProbabilityUnspecified
+
+    Candidate_FinishReason:
+      name: FinishReason
+      protoPrefix: Candidate_
+
+    GenerateContentResponse:
+      doc: 'is the response from a GenerateContent or GenerateContentStream call.'
+
+    GenerateContentResponse_PromptFeedback_BlockReason:
+      name: BlockReason
+      protoPrefix: GenerateContentResponse_PromptFeedback_
+
+    Content:
+      fields:
+        Parts:
+          type: '[]Part'
+
+    Blob:
+      fields:
+        MimeType:
+          name: MIMEType
+      docVerb: contains
+
+    FileData:
+      fields:
+        MimeType:
+          name: MIMEType
+        FileUri:
+          name: URI
+          # TODO(jba): support field doc in protoveneer
+          # doc: 'The URI returned from UploadFile or GetFile.'
+
+    GenerationConfig:
+      fields:
+        ResponseMimeType:
+          name: ResponseMIMEType
+
+    SafetySetting:
+
+    SafetyRating:
+      docVerb: 'is the'
+
+    CitationMetadata:
+
+    CitationSource:
+      docVerb: contains
+      fields:
+        Uri:
+          name: URI
+        License:
+          type: string
+
+    Candidate:
+      fields:
+        Index:
+          type: int32
+        GroundingAttributions:
+          omit: true
+
+    GenerateContentResponse_PromptFeedback:
+      name: PromptFeedback
+      docVerb: contains
+
+    CountTokensResponse:
+
+    TaskType:
+      protoPrefix: TaskType
+      valueNames:
+        TaskType_TASK_TYPE_UNSPECIFIED: TaskTypeUnspecified
+
+    EmbedContentResponse:
+    BatchEmbedContentsResponse:
+
+    ContentEmbedding:
+
+    Model:
+      name: ModelInfo
+      doc: 'is information about a language model.'
+      fields:
+        BaseModelId:
+          name: BaseModelID
+        Temperature:
+          type: float32
+        TopP:
+          type: float32
+        TopK:
+          type: int32
+
+    # Types for function calling
+    Tool:
+    ToolConfig:
+    FunctionDeclaration:
+    FunctionCall:
+    FunctionResponse:
+    Schema:
+
+    Type:
+      protoPrefix: Type_
+      veneerPrefix: ''
+
+    FunctionCallingConfig:
+      doc: 'holds configuration for function calling.'
+
+    FunctionCallingConfig_Mode:
+      name: FunctionCallingMode
+      protoPrefix: FunctionCallingConfig
+      veneerPrefix: FunctionCalling
+      valueNames:
+        FunctionCallingConfig_MODE_UNSPECIFIED: FunctionCallingUnspecified
+
+    File:
+      fields:
+        Uri:
+          name: URI
+        MimeType:
+          name: MIMEType
+        Error:
+          # TODO(jba): support or convert status.Status
+          omit: true
+        Metadata:
+          # TODO(jba): support
+          omit: true
+    File_State:
+      name: FileState
+      docVerb: represents
+      protoPrefix: File
+      veneerPrefix: FileState
+      valueNames:
+        File_STATE_UNSPECIFIED: FileStateUnspecified
+      
+    GenerateContentResponse_UsageMetadata:
+      name: UsageMetadata
+      fields:
+        PromptTokenCount:
+          type: int32
+        CandidatesTokenCount:
+          type: int32
+        TotalTokenCount:
+          type: int32
+
+# Omit everything not explicitly configured.
+omitTypes:
+  - '*'
+
+converters:
+  Part: partToProto, partFromProto

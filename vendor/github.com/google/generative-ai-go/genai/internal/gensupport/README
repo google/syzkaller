@@ -1,0 +1,12 @@
+This directory was copied from github.com/googleapis/google-api-go-client/internal/gensupport.
+It is needed for the discovery client in ../generativelanguage.
+
+To update, first clone github.com/googleapis/google-api-go-client
+into a directory we will call DIR below.
+Then, from the repo root:
+```
+rm genai/internal/gensupport/*.go
+cp $DIR/internal/gensupport/*.go genai/internal/gensupport
+```
+Then edit the params.go and resumable.go files to replace the reference to `internal.Version`
+with the literal string from $DIR/internal/version.go, and remove the import of `internal`.
