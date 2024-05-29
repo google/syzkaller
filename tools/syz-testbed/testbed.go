@@ -40,6 +40,7 @@ type TestbedConfig struct {
 	Workdir       string           `json:"workdir"`        // instances will be checked out there
 	ReproConfig   ReproTestConfig  `json:"repro_config"`   // syz-repro benchmarking config
 	ManagerConfig json.RawMessage  `json:"manager_config"` // base manager config
+	ManagerMode   string           `json:"manager_mode"`   // manager mode flag
 	Checkouts     []CheckoutConfig `json:"checkouts"`
 }
 
@@ -81,6 +82,7 @@ func main() {
 		ReproConfig: ReproTestConfig{
 			CrashesPerBug: 1,
 		},
+		ManagerMode: "fuzzing",
 	}
 	err := config.LoadFile(*flagConfig, &cfg)
 	if err != nil {

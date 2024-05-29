@@ -76,7 +76,7 @@ type execQueues struct {
 func newExecQueues(fuzzer *Fuzzer) execQueues {
 	ret := execQueues{
 		triageCandidateQueue: queue.DynamicOrder(),
-		candidateQueue:       queue.PlainWithStat(fuzzer.StatCandidates),
+		candidateQueue:       queue.Plain(),
 		triageQueue:          queue.DynamicOrder(),
 		smashQueue:           queue.Plain(),
 	}
@@ -90,6 +90,10 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 		queue.Callback(fuzzer.genFuzz),
 	)
 	return ret
+}
+
+func (fuzzer *Fuzzer) CandidateTriageFinished() bool {
+	return fuzzer.statCandidates.Val()+fuzzer.statJobsTriageCandidate.Val() == 0
 }
 
 func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queue.Result {
@@ -130,6 +134,9 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 	if res.Info != nil {
 		fuzzer.statExecTime.Add(int(res.Info.Elapsed / 1e6))
 	}
+	if flags&progCandidate != 0 {
+		fuzzer.statCandidates.Add(-1)
+	}
 }
 
 type Config struct {
@@ -161,11 +168,11 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
 
-	queue := fuzzer.triageQueue
+	queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
 	if flags&progCandidate > 0 {
-		queue = fuzzer.triageCandidateQueue
+		queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
 	}
-	fuzzer.startJob(fuzzer.statJobsTriage, &triageJob{
+	fuzzer.startJob(stat, &triageJob{
 		p:         p.Clone(),
 		call:      call,
 		info:      info,
@@ -243,6 +250,7 @@ type Candidate struct {
 }
 
 func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
+	fuzzer.statCandidates.Add(len(candidates))
 	for _, candidate := range candidates {
 		req, flags := candidateRequest(fuzzer, candidate)
 		fuzzer.enqueue(fuzzer.candidateQueue, req, flags)

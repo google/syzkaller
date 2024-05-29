@@ -6,35 +6,38 @@ package fuzzer
 import "github.com/google/syzkaller/pkg/stats"
 
 type Stats struct {
-	StatCandidates    *stats.Val
-	statNewInputs     *stats.Val
-	statJobs          *stats.Val
-	statJobsTriage    *stats.Val
-	statJobsSmash     *stats.Val
-	statJobsHints     *stats.Val
-	statExecTime      *stats.Val
-	statExecGenerate  *stats.Val
-	statExecFuzz      *stats.Val
-	statExecCandidate *stats.Val
-	statExecTriage    *stats.Val
-	statExecMinimize  *stats.Val
-	statExecSmash     *stats.Val
-	statExecHint      *stats.Val
-	statExecSeed      *stats.Val
-	statExecCollide   *stats.Val
+	statCandidates          *stats.Val
+	statNewInputs           *stats.Val
+	statJobs                *stats.Val
+	statJobsTriage          *stats.Val
+	statJobsTriageCandidate *stats.Val
+	statJobsSmash           *stats.Val
+	statJobsHints           *stats.Val
+	statExecTime            *stats.Val
+	statExecGenerate        *stats.Val
+	statExecFuzz            *stats.Val
+	statExecCandidate       *stats.Val
+	statExecTriage          *stats.Val
+	statExecMinimize        *stats.Val
+	statExecSmash           *stats.Val
+	statExecHint            *stats.Val
+	statExecSeed            *stats.Val
+	statExecCollide         *stats.Val
 }
 
 func newStats() Stats {
 	return Stats{
-		StatCandidates: stats.Create("candidates", "Number of candidate programs in triage queue",
+		statCandidates: stats.Create("candidates", "Number of candidate programs in triage queue",
 			stats.Console, stats.Graph("corpus")),
 		statNewInputs: stats.Create("new inputs", "Potential untriaged corpus candidates",
 			stats.Graph("corpus")),
 		statJobs:       stats.Create("fuzzer jobs", "Total running fuzzer jobs", stats.NoGraph),
 		statJobsTriage: stats.Create("triage jobs", "Running triage jobs", stats.StackedGraph("jobs")),
-		statJobsSmash:  stats.Create("smash jobs", "Running smash jobs", stats.StackedGraph("jobs")),
-		statJobsHints:  stats.Create("hints jobs", "Running hints jobs", stats.StackedGraph("jobs")),
-		statExecTime:   stats.Create("prog exec time", "Test program execution time (ms)", stats.Distribution{}),
+		statJobsTriageCandidate: stats.Create("candidate triage jobs", "Running candidate triage jobs",
+			stats.StackedGraph("jobs")),
+		statJobsSmash: stats.Create("smash jobs", "Running smash jobs", stats.StackedGraph("jobs")),
+		statJobsHints: stats.Create("hints jobs", "Running hints jobs", stats.StackedGraph("jobs")),
+		statExecTime:  stats.Create("prog exec time", "Test program execution time (ms)", stats.Distribution{}),
 		statExecGenerate: stats.Create("exec gen", "Executions of generated programs", stats.Rate{},
 			stats.StackedGraph("exec")),
 		statExecFuzz: stats.Create("exec fuzz", "Executions of mutated programs",

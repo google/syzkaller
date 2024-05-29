@@ -118,9 +118,10 @@ func (inst *SyzManagerInstance) Run() error {
 
 	select {
 	case err := <-ret:
-		// Syz-managers are not supposed to stop themselves under normal circumstances.
-		// If one of them did stop, there must have been a very good reason to do so.
-		return fmt.Errorf("[%s] stopped: %w", inst.Name, err)
+		if err != nil {
+			return fmt.Errorf("[%s] stopped: %w", inst.Name, err)
+		}
+		return nil
 	case <-time.After(inst.RunTime):
 		inst.Stop()
 		<-ret
@@ -131,6 +132,7 @@ func (inst *SyzManagerInstance) Run() error {
 type SyzkallerInfo struct {
 	Workdir   string
 	CfgFile   string
+	Mode      string
 	BenchFile string
 }
 
@@ -162,7 +164,8 @@ func SetupSyzkallerInstance(mgrName, folder string, checkout *Checkout) (*Syzkal
 	}, nil
 }
 
-func (t *SyzManagerTarget) newSyzManagerInstance(slotName, uniqName string, checkout *Checkout) (Instance, error) {
+func (t *SyzManagerTarget) newSyzManagerInstance(slotName, uniqName, mode string, checkout *Checkout) (
+	Instance, error) {
 	folder := filepath.Join(checkout.Path, fmt.Sprintf("run-%s", uniqName))
 	common, err := SetupSyzkallerInstance(slotName, folder, checkout)
 	if err != nil {
@@ -178,11 +181,15 @@ func (t *SyzManagerTarget) newSyzManagerInstance(slotName, uniqName string, chec
 	}
 	return &SyzManagerInstance{
 		InstanceCommon: InstanceCommon{
-			Name:            uniqName,
-			LogFile:         filepath.Join(folder, "log.txt"),
-			ExecCommand:     filepath.Join(checkout.Path, "bin", "syz-manager"),
-			ExecCommandArgs: []string{"-config", common.CfgFile, "-bench", common.BenchFile},
-			stopChannel:     make(chan bool, 1),
+			Name:        uniqName,
+			LogFile:     filepath.Join(folder, "log.txt"),
+			ExecCommand: filepath.Join(checkout.Path, "bin", "syz-manager"),
+			ExecCommandArgs: []string{
+				"-config", common.CfgFile,
+				"-mode", mode,
+				"-bench", common.BenchFile,
+			},
+			stopChannel: make(chan bool, 1),
 		},
 		SyzkallerInfo: *common,
 		RunTime:       t.config.RunTime.Duration,

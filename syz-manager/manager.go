@@ -55,7 +55,9 @@ var (
 		"	The test consists of booting VMs and running some simple test programs\n"+
 		"	to ensure that fuzzing can proceed in general. After completing the test\n"+
 		"	the process exits and the exit status indicates success/failure.\n"+
-		"	If the kernel oopses during testing, the report is saved to workdir/report.json.\n")
+		"	If the kernel oopses during testing, the report is saved to workdir/report.json.\n"+
+		" - corpus-triage: triage corpus and exit\n"+
+		"	This is useful mostly for benchmarking with testbed.\n")
 )
 
 type Manager struct {
@@ -103,6 +105,9 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
+	benchMu   sync.Mutex
+	benchFile *os.File
+
 	assetStorage *asset.Storage
 
 	bootTime stats.AverageValue[time.Duration]
@@ -116,6 +121,7 @@ type Mode int
 const (
 	ModeFuzzing Mode = iota
 	ModeSmokeTest
+	ModeCorpusTriage
 )
 
 const (
@@ -166,6 +172,10 @@ func RunManager(cfg *mgrconfig.Config) {
 		mode = ModeFuzzing
 	case "smoke-test":
 		mode = ModeSmokeTest
+		cfg.DashboardClient = ""
+		cfg.HubClient = ""
+	case "corpus-triage":
+		mode = ModeCorpusTriage
 		cfg.DashboardClient = ""
 		cfg.HubClient = ""
 	default:
@@ -258,6 +268,15 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.vmLoop()
 }
 
+// Exit successfully in special operation modes.
+func (mgr *Manager) exit(reason string) {
+	log.Logf(0, "%v finished, shutting down...", reason)
+	mgr.writeBench()
+	close(vm.Shutdown)
+	time.Sleep(10 * time.Second)
+	os.Exit(0)
+}
+
 func (mgr *Manager) heartbeatLoop() {
 	lastTime := time.Now()
 	for now := range time.NewTicker(10 * time.Second).C {
@@ -280,21 +299,31 @@ func (mgr *Manager) initBench() {
 	if err != nil {
 		log.Fatalf("failed to open bench file: %v", err)
 	}
+	mgr.benchFile = f
 	go func() {
 		for range time.NewTicker(time.Minute).C {
-			vals := make(map[string]int)
-			for _, stat := range stats.Collect(stats.All) {
-				vals[stat.Name] = stat.V
-			}
-			data, err := json.MarshalIndent(vals, "", "  ")
-			if err != nil {
-				log.Fatalf("failed to serialize bench data")
-			}
-			if _, err := f.Write(append(data, '\n')); err != nil {
-				log.Fatalf("failed to write bench data")
-			}
+			mgr.writeBench()
 		}
 	}()
+}
+
+func (mgr *Manager) writeBench() {
+	if mgr.benchFile == nil {
+		return
+	}
+	mgr.benchMu.Lock()
+	defer mgr.benchMu.Unlock()
+	vals := make(map[string]int)
+	for _, stat := range stats.Collect(stats.All) {
+		vals[stat.Name] = stat.V
+	}
+	data, err := json.MarshalIndent(vals, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to serialize bench data")
+	}
+	if _, err := mgr.benchFile.Write(append(data, '\n')); err != nil {
+		log.Fatalf("failed to write bench data")
+	}
 }
 
 type RunResult struct {
@@ -1409,10 +1438,7 @@ func (mgr *Manager) currentBugFrames() BugFrames {
 func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool,
 	opts flatrpc.ExecOpts) queue.Source {
 	if mgr.mode == ModeSmokeTest {
-		log.Logf(0, "smoke test succeeded, shutting down...")
-		close(vm.Shutdown)
-		time.Sleep(10 * time.Second)
-		os.Exit(0)
+		mgr.exit("smoke test")
 	}
 
 	mgr.mu.Lock()
@@ -1517,7 +1543,10 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 		}
 
 		// Update the state machine.
-		if fuzzer.StatCandidates.Val() == 0 {
+		if fuzzer.CandidateTriageFinished() {
+			if mgr.mode == ModeCorpusTriage {
+				mgr.exit("corpus triage")
+			}
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
 				if mgr.enabledFeatures&flatrpc.FeatureLeak != 0 {
