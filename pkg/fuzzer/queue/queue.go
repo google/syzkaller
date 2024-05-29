@@ -173,7 +173,6 @@ type Source interface {
 
 // PlainQueue is a straighforward thread-safe Request queue implementation.
 type PlainQueue struct {
-	stat  *stats.Val
 	mu    sync.Mutex
 	queue []*Request
 	pos   int
@@ -183,10 +182,6 @@ func Plain() *PlainQueue {
 	return &PlainQueue{}
 }
 
-func PlainWithStat(val *stats.Val) *PlainQueue {
-	return &PlainQueue{stat: val}
-}
-
 func (pq *PlainQueue) Len() int {
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
@@ -194,9 +189,6 @@ func (pq *PlainQueue) Len() int {
 }
 
 func (pq *PlainQueue) Submit(req *Request) {
-	if pq.stat != nil {
-		pq.stat.Add(1)
-	}
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
 
@@ -235,9 +227,6 @@ func (pq *PlainQueue) nextLocked() *Request {
 	ret := pq.queue[pq.pos]
 	pq.queue[pq.pos] = nil
 	pq.pos++
-	if pq.stat != nil {
-		pq.stat.Add(-1)
-	}
 	return ret
 }
 

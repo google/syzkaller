@@ -113,7 +113,7 @@ func (t *SyzManagerTarget) NewJob(slotName string, checkouts []*Checkout) (*Chec
 	t.nextInstanceID++
 	t.mu.Unlock()
 	uniqName := fmt.Sprintf("%s-%d", checkout.Name, instanceID)
-	instance, err := t.newSyzManagerInstance(slotName, uniqName, checkout)
+	instance, err := t.newSyzManagerInstance(slotName, uniqName, t.config.ManagerMode, checkout)
 	if err != nil {
 		return nil, nil, err
 	}
