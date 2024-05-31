@@ -24,13 +24,16 @@ func TestFilterProgInfo(t *testing.T) {
 				Signal: []uint64{2, 3, 4, 6, 7},
 				Cover:  []uint64{2, 3, 4},
 			},
+			{
+				Signal: []uint64{1, 2, 3, 4, 5, 6, 7, 8},
+			},
 		},
 		Extra: &flatrpc.CallInfo{
 			Signal: []uint64{3, 4, 5},
 			Cover:  []uint64{3, 4, 5},
 		},
 	}
-	diffMaxSignal(&info, max, mask, 1)
+	diffMaxSignal(&info, max, mask, 1, []int32{2})
 	assert.Equal(t, flatrpc.ProgInfo{
 		Calls: []*flatrpc.CallInfo{
 			{
@@ -40,6 +43,9 @@ func TestFilterProgInfo(t *testing.T) {
 			{
 				Signal: []uint64{2, 3, 4, 6},
 				Cover:  []uint64{2, 3, 4},
+			},
+			{
+				Signal: []uint64{1, 2, 3, 4, 5, 6, 7, 8},
 			},
 		},
 		Extra: &flatrpc.CallInfo{

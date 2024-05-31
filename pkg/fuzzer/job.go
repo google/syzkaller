@@ -4,7 +4,6 @@
 package fuzzer
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/google/syzkaller/pkg/corpus"
@@ -12,7 +11,6 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -55,14 +53,36 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 // During triage we understand if these programs in fact give new coverage,
 // and if yes, minimize them and add to corpus.
 type triageJob struct {
-	p         *prog.Prog
-	call      int
+	p      *prog.Prog
+	flags  ProgFlags
+	fuzzer *Fuzzer
+	queue  queue.Executor
+	// Set of calls that gave potential new coverage.
+	calls map[int]*triageCall
+}
+
+type triageCall struct {
 	errno     int32
 	newSignal signal.Signal
-	flags     ProgFlags
-	fuzzer    *Fuzzer
-	queue     queue.Executor
+
+	// Filled after deflake:
+	signals         [deflakeNeedRuns]signal.Signal
+	stableSignal    signal.Signal
+	newStableSignal signal.Signal
+	cover           cover.Cover
+	rawCover        []uint64
 }
+
+// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
+// The triage algorithm must tolerate this, so let's pick the signal that is common
+// to 3 out of 5 runs.
+// By binomial distribution, a program that reproduces 80% of time will pass deflake()
+// with a 94% probability. If it reproduces 90% of time, it passes in 99% of cases.
+const (
+	deflakeNeedRuns      = 3
+	deflakeMaxRuns       = 5
+	deflakeMaxCorpusRuns = 20
+)
 
 func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result {
 	req.Important = true // All triage executions are important.
@@ -73,113 +93,147 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	fuzzer.statNewInputs.Add(1)
 	job.fuzzer = fuzzer
 
-	callName := fmt.Sprintf("call #%v %v", job.call, job.p.CallName(job.call))
-	fuzzer.Logf(3, "triaging input for %v (new signal=%v)", callName, job.newSignal.Len())
-
 	// Compute input coverage and non-flaky signal for minimization.
-	info, stop := job.deflake(job.execute, fuzzer.Cover, fuzzer.statExecTriage, fuzzer.Config.FetchRawCover)
-	if stop || info.newStableSignal.Empty() {
+	stop := job.deflake(job.execute)
+	if stop {
 		return
 	}
+	for call, info := range job.calls {
+		job.handleCall(call, info)
+	}
+}
+
+func (job *triageJob) handleCall(call int, info *triageCall) {
+	if info.newStableSignal.Empty() {
+		return
+	}
+
+	p := job.p.Clone()
 	if job.flags&ProgMinimized == 0 {
-		stop = job.minimize(info.newStableSignal)
-		if stop {
+		p, call = job.minimize(call, info)
+		if p == nil {
 			return
 		}
 	}
-	if !fuzzer.Config.NewInputFilter(job.p.CallName(job.call)) {
+	callName := p.CallName(call)
+	if !job.fuzzer.Config.NewInputFilter(callName) {
 		return
 	}
-	fuzzer.Logf(2, "added new input for %v to the corpus: %s", callName, job.p)
 	if job.flags&ProgSmashed == 0 {
-		fuzzer.startJob(fuzzer.statJobsSmash, &smashJob{
-			p:    job.p.Clone(),
-			call: job.call,
+		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
+			p:    p.Clone(),
+			call: call,
 		})
 	}
+	job.fuzzer.Logf(2, "added new input for %v to the corpus: %s", callName, p)
 	input := corpus.NewInput{
-		Prog:     job.p,
-		Call:     job.call,
+		Prog:     p,
+		Call:     call,
 		Signal:   info.stableSignal,
 		Cover:    info.cover.Serialize(),
 		RawCover: info.rawCover,
 	}
-	fuzzer.Config.Corpus.Save(input)
+	job.fuzzer.Config.Corpus.Save(input)
 }
 
-type deflakedCover struct {
-	stableSignal    signal.Signal
-	newStableSignal signal.Signal
-	cover           cover.Cover
-	rawCover        []uint64
-}
-
-func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result, cover *Cover,
-	stat *stats.Val, rawCover bool) (info deflakedCover, stop bool) {
-	// As demonstrated in #4639, programs reproduce with a very high, but not 100% probability.
-	// The triage algorithm must tolerate this, so let's pick the signal that is common
-	// to 3 out of 5 runs.
-	// By binomial distribution, a program that reproduces 80% of time will pass deflake()
-	// with a 94% probability. If it reproduces 90% of time, it passes in 99% of cases.
-	const (
-		needRuns = 3
-		maxRuns  = 5
-	)
-	signals := make([]signal.Signal, needRuns)
-	signals[0] = job.newSignal.Copy()
-	for i := 1; i < maxRuns; i++ {
-		if job.newSignal.IntersectsWith(signals[needRuns-1]) {
-			// We already have the right deflaked signal.
+func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result) (stop bool) {
+	prevTotalNewSignal := 0
+	for run := 1; ; run++ {
+		totalNewSignal := 0
+		indices := make([]int, 0, len(job.calls))
+		for call, info := range job.calls {
+			indices = append(indices, call)
+			totalNewSignal += len(info.newSignal)
+		}
+		// For fuzzing programs we stop if we already have the right deflaked signal for all calls,
+		// or there's no chance to get coverage common to needRuns for all calls.
+		if job.flags&ProgFromCorpus == 0 {
+			if run >= deflakeMaxRuns {
+				break
+			}
+			haveSignal, noChance := true, true
+			for _, call := range job.calls {
+				if !call.newSignal.IntersectsWith(call.signals[deflakeNeedRuns-1]) {
+					haveSignal = false
+				}
+				if left := deflakeMaxRuns - run; left >= deflakeNeedRuns ||
+					call.newSignal.IntersectsWith(call.signals[deflakeNeedRuns-left-1]) {
+					noChance = false
+				}
+			}
+			if haveSignal || noChance {
+				break
+			}
+		} else if run >= deflakeMaxCorpusRuns ||
+			run >= deflakeMaxRuns && prevTotalNewSignal == totalNewSignal {
+			// For programs from the corpus we use a different condition b/c we want to extract
+			// as much flaky signal from them as possible. They have large coverage and run
+			// in the beginning, gathering flaky signal on them allows to grow max signal quickly
+			// and avoid lots of useless executions later. Any bit of flaky coverage discovered
+			// later will lead to triage, and if we are unlucky to conclude it's stable also
+			// to minimization+smash+hints (potentially thousands of runs).
+			// So we run them at least 5 times, or while we are still getting any new signal.
 			break
 		}
-		if left := maxRuns - i; left < needRuns &&
-			!job.newSignal.IntersectsWith(signals[needRuns-left-1]) {
-			// There's no chance to get coverage common to needRuns.
-			break
-		}
+		prevTotalNewSignal = totalNewSignal
 		result := exec(&queue.Request{
 			Prog:            job.p,
 			ExecOpts:        setFlags(flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectSignal),
-			ReturnAllSignal: true,
-			Stat:            stat,
+			ReturnAllSignal: indices,
+			Stat:            job.fuzzer.statExecTriage,
 		}, progInTriage)
 		if result.Stop() {
-			stop = true
-			return
+			return true
 		}
-		if !reexecutionSuccess(result.Info, job.errno, job.call) {
-			// The call was not executed or failed.
-			continue
+		if result.Info == nil {
+			continue // the program has failed
 		}
-		inf, thisSignal, prio := getSignalAndCover(job.p, result.Info, job.call)
-		if len(info.rawCover) == 0 && rawCover {
-			info.rawCover = inf.Cover
+		deflakeCall := func(call int, res *flatrpc.CallInfo) {
+			info := job.calls[call]
+			if info == nil {
+				job.fuzzer.triageProgCall(job.p, res, call, &job.calls)
+				info = job.calls[call]
+			}
+			if info == nil || res == nil {
+				return
+			}
+			if len(info.rawCover) == 0 && job.fuzzer.Config.FetchRawCover {
+				info.rawCover = res.Cover
+			}
+			// Since the signal is frequently flaky, we may get some new new max signal.
+			// Merge it into the new signal we are chasing.
+			// Most likely we won't conclude it's stable signal b/c we already have at least one
+			// initial run w/o this signal, so if we exit after 3 (deflakeNeedRuns) runs,
+			// it won't be stable. However, it's still possible if we do more than deflakeNeedRuns runs.
+			// But also we already observed it and we know it's flaky, so at least doing
+			// cover.addRawMaxSignal for it looks useful.
+			prio := signalPrio(job.p, res, call)
+			newMaxSignal := job.fuzzer.Cover.addRawMaxSignal(res.Signal, prio)
+			info.newSignal.Merge(newMaxSignal)
+			info.cover.Merge(res.Cover)
+			thisSignal := signal.FromRaw(res.Signal, prio)
+			for j := len(info.signals) - 1; j > 0; j-- {
+				intersect := info.signals[j-1].Intersection(thisSignal)
+				info.signals[j].Merge(intersect)
+			}
+			info.signals[0].Merge(thisSignal)
 		}
-		newMaxSignal := cover.addRawMaxSignal(inf.Signal, prio)
-		// Since the signal is frequently flaky, we may get some new new max signal.
-		// Merge it into the new signal we are chasing.
-		// Most likely we won't conclude it's stable signal b/c we already have at least one
-		// initial run w/o this signal, so if we exit after 3 (needRuns) runs, it won't be stable.
-		// However, it's still possible if we do more than needRuns runs.
-		// But also we already observed it and we know it's flaky, so at least doing
-		// cover.addRawMaxSignal for it looks useful.
-		job.newSignal.Merge(newMaxSignal)
-		info.cover.Merge(inf.Cover)
-		for j := len(signals) - 1; j > 0; j-- {
-			intersect := signals[j-1].Intersection(thisSignal)
-			signals[j].Merge(intersect)
+		for i, callInfo := range result.Info.Calls {
+			deflakeCall(i, callInfo)
 		}
-		signals[0].Merge(thisSignal)
+		deflakeCall(-1, result.Info.Extra)
 	}
-
-	info.stableSignal = signals[needRuns-1]
-	info.newStableSignal = job.newSignal.Intersection(info.stableSignal)
-	return
+	for _, info := range job.calls {
+		info.stableSignal = info.signals[deflakeNeedRuns-1]
+		info.newStableSignal = info.newSignal.Intersection(info.stableSignal)
+	}
+	return false
 }
 
-func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
+func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 	const minimizeAttempts = 3
-	job.p, job.call = prog.Minimize(job.p, job.call, prog.MinimizeParams{},
+	stop := false
+	p, call := prog.Minimize(job.p, call, prog.MinimizeParams{},
 		func(p1 *prog.Prog, call1 int) bool {
 			if stop {
 				return false
@@ -188,7 +242,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 				result := job.execute(&queue.Request{
 					Prog:             p1,
 					ExecOpts:         setFlags(flatrpc.ExecFlagCollectSignal),
-					SignalFilter:     newSignal,
+					SignalFilter:     info.newStableSignal,
 					SignalFilterCall: call1,
 					Stat:             job.fuzzer.statExecMinimize,
 				}, 0)
@@ -196,19 +250,21 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 					stop = true
 					return false
 				}
-				info := result.Info
-				if !reexecutionSuccess(info, job.errno, call1) {
+				if !reexecutionSuccess(result.Info, info.errno, call1) {
 					// The call was not executed or failed.
 					continue
 				}
-				_, thisSignal, _ := getSignalAndCover(p1, info, call1)
-				if newSignal.Intersection(thisSignal).Len() == newSignal.Len() {
+				thisSignal := getSignalAndCover(p1, result.Info, call1)
+				if info.newStableSignal.Intersection(thisSignal).Len() == info.newStableSignal.Len() {
 					return true
 				}
 			}
 			return false
 		})
-	return stop
+	if stop {
+		return nil, 0
+	}
+	return p, call
 }
 
 func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {
@@ -226,16 +282,15 @@ func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {
 	return info.Extra != nil && len(info.Extra.Signal) != 0
 }
 
-func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) (*flatrpc.CallInfo, signal.Signal, uint8) {
+func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) signal.Signal {
 	inf := info.Extra
 	if call != -1 {
 		inf = info.Calls[call]
 	}
 	if inf == nil {
-		return nil, nil, 0
+		return nil
 	}
-	prio := signalPrio(p, inf, call)
-	return inf, signal.FromRaw(inf.Signal, prio), prio
+	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call))
 }
 
 type smashJob struct {

@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 )
@@ -118,19 +119,28 @@ func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags
 
 func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags, attempt int) bool {
 	inTriage := flags&progInTriage > 0
-	// Triage individual calls.
+	// Triage the program.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
 	// If we are already triaging this exact prog, this is flaky coverage.
-	triaging := false
+	var triage map[int]*triageCall
 	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !inTriage {
 		for call, info := range res.Info.Calls {
-			if fuzzer.triageProgCall(req.Prog, info, call, flags) {
-				triaging = true
-			}
+			fuzzer.triageProgCall(req.Prog, info, call, &triage)
 		}
-		if fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, flags) {
-			triaging = true
+		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
+
+		if len(triage) != 0 {
+			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
+			if flags&progCandidate > 0 {
+				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
+			}
+			fuzzer.startJob(stat, &triageJob{
+				p:     req.Prog.Clone(),
+				flags: flags,
+				queue: queue.Append(),
+				calls: triage,
+			})
 		}
 	}
 
@@ -143,7 +153,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 	if req.Risky() {
 		maxCandidateAttempts = 2
 	}
-	if !triaging && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
+	if len(triage) == 0 && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
 		fuzzer.enqueue(fuzzer.candidateQueue, req, flags, attempt+1)
 		return false
 	}
@@ -168,33 +178,27 @@ type Config struct {
 	NewInputFilter func(call string) bool
 }
 
-func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, flags ProgFlags) bool {
+func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
 	if info == nil {
-		return false
+		return
 	}
 	prio := signalPrio(p, info, call)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
-		return false
+		return
 	}
 	if !fuzzer.Config.NewInputFilter(p.CallName(call)) {
-		return false
+		return
 	}
 	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
-
-	queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
-	if flags&progCandidate > 0 {
-		queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
+	if *triage == nil {
+		*triage = make(map[int]*triageCall)
 	}
-	fuzzer.startJob(stat, &triageJob{
-		p:         p.Clone(),
-		call:      call,
+	(*triage)[call] = &triageCall{
 		errno:     info.Error,
 		newSignal: newMaxSignal,
-		flags:     flags,
-		queue:     queue.Append(),
-	})
-	return true
+		signals:   [deflakeNeedRuns]signal.Signal{signal.FromRaw(info.Signal, prio)},
+	}
 }
 
 func signalPrio(p *prog.Prog, info *flatrpc.CallInfo, call int) (prio uint8) {

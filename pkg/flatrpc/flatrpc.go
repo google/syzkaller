@@ -212,15 +212,13 @@ type RequestFlag uint64
 
 const (
 	RequestFlagIsBinary     RequestFlag = 1
-	RequestFlagNewSignal    RequestFlag = 2
-	RequestFlagResetState   RequestFlag = 4
-	RequestFlagReturnOutput RequestFlag = 8
-	RequestFlagReturnError  RequestFlag = 16
+	RequestFlagResetState   RequestFlag = 2
+	RequestFlagReturnOutput RequestFlag = 4
+	RequestFlagReturnError  RequestFlag = 8
 )
 
 var EnumNamesRequestFlag = map[RequestFlag]string{
 	RequestFlagIsBinary:     "IsBinary",
-	RequestFlagNewSignal:    "NewSignal",
 	RequestFlagResetState:   "ResetState",
 	RequestFlagReturnOutput: "ReturnOutput",
 	RequestFlagReturnError:  "ReturnError",
@@ -228,7 +226,6 @@ var EnumNamesRequestFlag = map[RequestFlag]string{
 
 var EnumValuesRequestFlag = map[string]RequestFlag{
 	"IsBinary":     RequestFlagIsBinary,
-	"NewSignal":    RequestFlagNewSignal,
 	"ResetState":   RequestFlagResetState,
 	"ReturnOutput": RequestFlagReturnOutput,
 	"ReturnError":  RequestFlagReturnError,
@@ -1698,6 +1695,7 @@ type ExecRequestRawT struct {
 	Flags            RequestFlag   `json:"flags"`
 	SignalFilter     []uint64      `json:"signal_filter"`
 	SignalFilterCall int32         `json:"signal_filter_call"`
+	AllSignal        []int32       `json:"all_signal"`
 	Repeat           int32         `json:"repeat"`
 }
 
@@ -1718,6 +1716,15 @@ func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 		}
 		signalFilterOffset = builder.EndVector(signalFilterLength)
 	}
+	allSignalOffset := flatbuffers.UOffsetT(0)
+	if t.AllSignal != nil {
+		allSignalLength := len(t.AllSignal)
+		ExecRequestRawStartAllSignalVector(builder, allSignalLength)
+		for j := allSignalLength - 1; j >= 0; j-- {
+			builder.PrependInt32(t.AllSignal[j])
+		}
+		allSignalOffset = builder.EndVector(allSignalLength)
+	}
 	ExecRequestRawStart(builder)
 	ExecRequestRawAddId(builder, t.Id)
 	ExecRequestRawAddProgData(builder, progDataOffset)
@@ -1726,6 +1733,7 @@ func (t *ExecRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffset
 	ExecRequestRawAddFlags(builder, t.Flags)
 	ExecRequestRawAddSignalFilter(builder, signalFilterOffset)
 	ExecRequestRawAddSignalFilterCall(builder, t.SignalFilterCall)
+	ExecRequestRawAddAllSignal(builder, allSignalOffset)
 	ExecRequestRawAddRepeat(builder, t.Repeat)
 	return ExecRequestRawEnd(builder)
 }
@@ -1741,6 +1749,11 @@ func (rcv *ExecRequestRaw) UnPackTo(t *ExecRequestRawT) {
 		t.SignalFilter[j] = rcv.SignalFilter(j)
 	}
 	t.SignalFilterCall = rcv.SignalFilterCall()
+	allSignalLength := rcv.AllSignalLength()
+	t.AllSignal = make([]int32, allSignalLength)
+	for j := 0; j < allSignalLength; j++ {
+		t.AllSignal[j] = rcv.AllSignal(j)
+	}
 	t.Repeat = rcv.Repeat()
 }
 
@@ -1889,8 +1902,34 @@ func (rcv *ExecRequestRaw) MutateSignalFilterCall(n int32) bool {
 	return rcv._tab.MutateInt32Slot(14, n)
 }
 
-func (rcv *ExecRequestRaw) Repeat() int32 {
+func (rcv *ExecRequestRaw) AllSignal(j int) int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetInt32(a + flatbuffers.UOffsetT(j*4))
+	}
+	return 0
+}
+
+func (rcv *ExecRequestRaw) AllSignalLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *ExecRequestRaw) MutateAllSignal(j int, n int32) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateInt32(a+flatbuffers.UOffsetT(j*4), n)
+	}
+	return false
+}
+
+func (rcv *ExecRequestRaw) Repeat() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
 	}
@@ -1898,11 +1937,11 @@ func (rcv *ExecRequestRaw) Repeat() int32 {
 }
 
 func (rcv *ExecRequestRaw) MutateRepeat(n int32) bool {
-	return rcv._tab.MutateInt32Slot(16, n)
+	return rcv._tab.MutateInt32Slot(18, n)
 }
 
 func ExecRequestRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func ExecRequestRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
@@ -1928,8 +1967,14 @@ func ExecRequestRawStartSignalFilterVector(builder *flatbuffers.Builder, numElem
 func ExecRequestRawAddSignalFilterCall(builder *flatbuffers.Builder, signalFilterCall int32) {
 	builder.PrependInt32Slot(5, signalFilterCall, 0)
 }
+func ExecRequestRawAddAllSignal(builder *flatbuffers.Builder, allSignal flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(allSignal), 0)
+}
+func ExecRequestRawStartAllSignalVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
 func ExecRequestRawAddRepeat(builder *flatbuffers.Builder, repeat int32) {
-	builder.PrependInt32Slot(6, repeat, 0)
+	builder.PrependInt32Slot(7, repeat, 0)
 }
 func ExecRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

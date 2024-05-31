@@ -97,8 +97,6 @@ enum RequestFlag : uint64 (bit_flags) {
 	// If set, prog_data contains compiled executable binary
 	// that needs to be written to disk and executed.
 	IsBinary,
-	// Return only new signal rather than all signal.
-	NewSignal,
 	// If set, fully reset executor state befor executing the test.
 	ResetState,
 	// If set, collect program output and return in output field.
@@ -152,6 +150,8 @@ table ExecRequestRaw {
 	flags			:RequestFlag;
 	signal_filter		:[uint64];
 	signal_filter_call	:int32;
+	// Return all signal for these calls.
+	all_signal		:[int32];
 	// Repeat the program that many times (0 means 1).
 	repeat			:int32;
 }

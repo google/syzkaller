@@ -236,27 +236,37 @@ func (tool *FuzzerTool) handleConn() {
 	}
 }
 
-func (tool *FuzzerTool) diffMaxSignal(info *flatrpc.ProgInfo, mask signal.Signal, maskCall int) {
+func (tool *FuzzerTool) diffMaxSignal(info *flatrpc.ProgInfo, mask signal.Signal, maskCall int, allSignal []int32) {
 	tool.signalMu.RLock()
 	defer tool.signalMu.RUnlock()
-	diffMaxSignal(info, tool.maxSignal, mask, maskCall)
+	diffMaxSignal(info, tool.maxSignal, mask, maskCall, allSignal)
 }
 
-func diffMaxSignal(info *flatrpc.ProgInfo, max, mask signal.Signal, maskCall int) {
+func diffMaxSignal(info *flatrpc.ProgInfo, max, mask signal.Signal, maskCall int, allSignal []int32) {
+	numCalls := int32(len(info.Calls))
+	all := make([]bool, numCalls+1)
+	for _, c := range allSignal {
+		if c < 0 {
+			c = numCalls
+		}
+		if c <= numCalls {
+			all[c] = true
+		}
+	}
 	if info.Extra != nil {
-		info.Extra.Signal = diffCallSignal(info.Extra.Signal, max, mask, -1, maskCall)
+		info.Extra.Signal = diffCallSignal(info.Extra.Signal, max, mask, -1, maskCall, all[numCalls])
 	}
 	for i := 0; i < len(info.Calls); i++ {
-		info.Calls[i].Signal = diffCallSignal(info.Calls[i].Signal, max, mask, i, maskCall)
+		info.Calls[i].Signal = diffCallSignal(info.Calls[i].Signal, max, mask, i, maskCall, all[i])
 	}
 }
 
-func diffCallSignal(raw []uint64, max, mask signal.Signal, call, maskCall int) []uint64 {
+func diffCallSignal(raw []uint64, max, mask signal.Signal, call, maskCall int, all bool) []uint64 {
 	if mask != nil && call == maskCall {
 		return signal.FilterRaw(raw, max, mask)
 	}
 	// If there is any new signal, we return whole signal, since the fuzzer will need it for triage.
-	if max.HasNew(raw) {
+	if all || max.HasNew(raw) {
 		return raw
 	}
 	return nil
