@@ -124,7 +124,7 @@ func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.R
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace, true)
+	bugs, err := loadGraphBugs(c, hdr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace, true)
+	bugs, err := loadGraphBugs(c, hdr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace, false)
+	bugs, err := loadStableGraphBugs(c, hdr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_found_bugs.html", data)
 }
 
-func loadGraphBugs(c context.Context, ns string, removeDupInvalid bool) ([]*Bug, error) {
+func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	filter := func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns)
 	}
@@ -198,31 +198,52 @@ func loadGraphBugs(c context.Context, ns string, removeDupInvalid bool) ([]*Bug,
 	lastReporting := getNsConfig(c, ns).lastActiveReporting()
 	for _, bug := range bugs {
 		if bug.Reporting[lastReporting].Reported.IsZero() {
-			if bug.Status == BugStatusOpen {
+			// Bugs with fixing commits are considered public (see Bug.sanitizeAccess).
+			if bug.Status == BugStatusOpen && len(bug.Commits) == 0 {
 				// These bugs are not released yet.
 				continue
 			}
 			bugReporting := lastReportedReporting(bug)
-			if removeDupInvalid &&
-				(bugReporting == nil || bugReporting.Auto && bug.Status == BugStatusInvalid) {
+			if bugReporting == nil || bugReporting.Auto && bug.Status == BugStatusInvalid {
 				// These bugs were auto-obsoleted before getting released.
 				continue
 			}
 		}
-		if removeDupInvalid {
-			dup := false
-			for _, com := range bug.Commits {
-				if fixes[com] {
-					dup = true
-				}
-				fixes[com] = true
+		dup := false
+		for _, com := range bug.Commits {
+			if fixes[com] {
+				dup = true
 			}
-			if dup {
-				continue
-			}
+			fixes[com] = true
+		}
+		if dup {
+			continue
 		}
 		bugs[n] = bug
 		n++
+	}
+	return bugs[:n], nil
+}
+
+// loadStableGraphBugs is similar to loadGraphBugs, but it does not remove duplicates and auto-invalidated bugs.
+// This ensures that the set of bugs does not change much over time.
+func loadStableGraphBugs(c context.Context, ns string) ([]*Bug, error) {
+	filter := func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", ns)
+	}
+	bugs, _, err := loadAllBugs(c, filter)
+	if err != nil {
+		return nil, err
+	}
+	n := 0
+	lastReporting := getNsConfig(c, ns).lastActiveReporting()
+	for _, bug := range bugs {
+		// Bugs with fixing commits are considered public (see Bug.sanitizeAccess).
+		if !bug.Reporting[lastReporting].Reported.IsZero() ||
+			bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
+			bugs[n] = bug
+			n++
+		}
 	}
 	return bugs[:n], nil
 }
@@ -328,7 +349,7 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 				continue
 			}
 			t := bug.FirstTime
-			m := time.Date(t.Year(), t.Month(), 0, 0, 0, 0, 0, time.UTC)
+			m := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
 			if months[m] == nil {
 				months[m] = make(map[string]int)
 				sorted = append(sorted, m)
@@ -341,7 +362,7 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 		return sorted[i].Before(sorted[j])
 	})
 	now := timeNow(c)
-	thisMonth := time.Date(now.Year(), now.Month(), 0, 0, 0, 0, 0, time.UTC)
+	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	if m := months[thisMonth]; m != nil {
 		total := 0
 		for _, c := range m {
