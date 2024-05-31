@@ -184,6 +184,16 @@ func (s Signal) DiffFromRaw(raw []uint64) []uint64 {
 	return ret
 }
 
+// HasNew returns true if raw has any new signal that is not present in Signal.
+func (s Signal) HasNew(raw []uint64) bool {
+	for _, e := range raw {
+		if _, ok := s[elemType(e)]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (s Signal) ToRaw() []uint64 {
 	var raw []uint64
 	for e := range s {

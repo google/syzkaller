@@ -34,7 +34,7 @@ func TestFilterProgInfo(t *testing.T) {
 	assert.Equal(t, flatrpc.ProgInfo{
 		Calls: []*flatrpc.CallInfo{
 			{
-				Signal: []uint64{1, 2, 3},
+				Signal: []uint64{1, 2, 3, 5, 6},
 				Cover:  []uint64{1, 2, 3},
 			},
 			{
@@ -43,7 +43,7 @@ func TestFilterProgInfo(t *testing.T) {
 			},
 		},
 		Extra: &flatrpc.CallInfo{
-			Signal: []uint64{3, 4},
+			Signal: []uint64{3, 4, 5},
 			Cover:  []uint64{3, 4, 5},
 		},
 	}, info)

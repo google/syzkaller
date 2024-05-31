@@ -255,7 +255,11 @@ func diffCallSignal(raw []uint64, max, mask signal.Signal, call, maskCall int) [
 	if mask != nil && call == maskCall {
 		return signal.FilterRaw(raw, max, mask)
 	}
-	return max.DiffFromRaw(raw)
+	// If there is any new signal, we return whole signal, since the fuzzer will need it for triage.
+	if max.HasNew(raw) {
+		return raw
+	}
+	return nil
 }
 
 func (tool *FuzzerTool) handleSignalUpdate(msg *flatrpc.SignalUpdate) {
