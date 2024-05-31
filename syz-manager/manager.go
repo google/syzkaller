@@ -681,7 +681,9 @@ func (mgr *Manager) loadCorpus() {
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
 	seeds := 0
 	for _, seed := range mgr.seeds {
-		_, item := mgr.loadProg(seed, fuzzer.ProgFromCorpus|fuzzer.ProgMinimized)
+		// Seeds are not considered "from corpus" (won't be rerun multiple times)
+		// b/c they are tried on every start anyway.
+		_, item := mgr.loadProg(seed, fuzzer.ProgMinimized)
 		if item == nil {
 			continue
 		}
