@@ -620,7 +620,7 @@ var (
 	// These are used only when building executor.
 	// For C repros and syz-extract, we build C source files.
 	commonCxxFlags = []string{
-		"-std=c++14",
+		"-std=c++17",
 		"-I.",
 		"-Iexecutor/_include",
 	}
