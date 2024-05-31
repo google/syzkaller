@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sync"
@@ -71,10 +72,12 @@ type TestbedContext struct {
 
 func main() {
 	flag.Parse()
+	benchcmp, _ := exec.LookPath("syz-benchcmp")
 	cfg := &TestbedConfig{
-		Name:    "testbed",
-		Target:  "syz-manager",
-		RunTime: DurationConfig{24 * time.Hour},
+		Name:     "testbed",
+		Target:   "syz-manager",
+		BenchCmp: benchcmp,
+		RunTime:  DurationConfig{24 * time.Hour},
 		ReproConfig: ReproTestConfig{
 			CrashesPerBug: 1,
 		},
