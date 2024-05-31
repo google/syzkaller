@@ -85,7 +85,6 @@ func TestDeflake(t *testing.T) {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			testJob := &triageJob{
 				p:         prog,
-				info:      &flatrpc.CallInfo{},
 				newSignal: test.NewSignal,
 			}
 

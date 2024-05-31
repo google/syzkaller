@@ -57,7 +57,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 type triageJob struct {
 	p         *prog.Prog
 	call      int
-	info      *flatrpc.CallInfo
+	errno     int32
 	newSignal signal.Signal
 	flags     ProgFlags
 	fuzzer    *Fuzzer
@@ -147,7 +147,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			stop = true
 			return
 		}
-		if !reexecutionSuccess(result.Info, job.info, job.call) {
+		if !reexecutionSuccess(result.Info, job.errno, job.call) {
 			// The call was not executed or failed.
 			continue
 		}
@@ -197,7 +197,7 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 					return false
 				}
 				info := result.Info
-				if !reexecutionSuccess(info, job.info, call1) {
+				if !reexecutionSuccess(info, job.errno, call1) {
 					// The call was not executed or failed.
 					continue
 				}
@@ -211,14 +211,14 @@ func (job *triageJob) minimize(newSignal signal.Signal) (stop bool) {
 	return stop
 }
 
-func reexecutionSuccess(info *flatrpc.ProgInfo, oldInfo *flatrpc.CallInfo, call int) bool {
+func reexecutionSuccess(info *flatrpc.ProgInfo, oldErrno int32, call int) bool {
 	if info == nil || len(info.Calls) == 0 {
 		return false
 	}
 	if call != -1 {
 		// Don't minimize calls from successful to unsuccessful.
 		// Successful calls are much more valuable.
-		if oldInfo.Error == 0 && info.Calls[call].Error != 0 {
+		if oldErrno == 0 && info.Calls[call].Error != 0 {
 			return false
 		}
 		return len(info.Calls[call].Signal) != 0
