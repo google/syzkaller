@@ -251,12 +251,35 @@ func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
 	return groupSamples(records)
 }
 
+func (group RunResultGroup) groupLastRecord() map[string]*stats.Sample {
+	records := []StatRecord{}
+	for _, result := range group.SyzManagerResults() {
+		n := len(result.StatRecords)
+		if n == 0 {
+			continue
+		}
+		records = append(records, result.StatRecords[n-1])
+	}
+	return groupSamples(records)
+}
+
 func (view StatView) StatsTable() (*Table, error) {
 	return view.AlignedStatsTable("uptime")
 }
 
 func (view StatView) AlignedStatsTable(field string) (*Table, error) {
 	// We assume that the stats values are nonnegative.
+	table := NewTable("Property")
+	if field == "" {
+		// Unaligned last records.
+		for _, group := range view.Groups {
+			table.AddColumn(group.Name)
+			for key, sample := range group.groupLastRecord() {
+				table.Set(key, group.Name, NewValueCell(sample))
+			}
+		}
+		return table, nil
+	}
 	var commonValue float64
 	for _, group := range view.Groups {
 		minLen := group.minResultLength()
@@ -273,7 +296,6 @@ func (view StatView) AlignedStatsTable(field string) (*Table, error) {
 			commonValue = currValue
 		}
 	}
-	table := NewTable("Property")
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
 		minLen := group.minResultLength()

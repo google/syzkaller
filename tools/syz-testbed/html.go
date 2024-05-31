@@ -203,9 +203,6 @@ func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (
 
 func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
 	alignBy := r.FormValue("align")
-	if alignBy == "" {
-		alignBy = "fuzzing"
-	}
 	table, err := view.AlignedStatsTable(alignBy)
 	if err != nil {
 		return nil, fmt.Errorf("stat table generation failed: %w", err)
