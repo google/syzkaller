@@ -329,14 +329,15 @@ func (serv *RPCServer) sendRequest(runner *Runner, req *queue.Request) error {
 	runner.nextRequestID++
 	id := runner.nextRequestID
 	var flags flatrpc.RequestFlag
-	if !req.ReturnAllSignal {
-		flags |= flatrpc.RequestFlagNewSignal
-	}
 	if req.ReturnOutput {
 		flags |= flatrpc.RequestFlagReturnOutput
 	}
 	if req.ReturnError {
 		flags |= flatrpc.RequestFlagReturnError
+	}
+	allSignal := make([]int32, len(req.ReturnAllSignal))
+	for i, call := range req.ReturnAllSignal {
+		allSignal[i] = int32(call)
 	}
 	// Do not let too much state accumulate.
 	const restartIn = 600
@@ -355,6 +356,7 @@ func (serv *RPCServer) sendRequest(runner *Runner, req *queue.Request) error {
 				ExecOpts:         &req.ExecOpts,
 				SignalFilter:     signalFilter,
 				SignalFilterCall: int32(req.SignalFilterCall),
+				AllSignal:        allSignal,
 			},
 		},
 	}

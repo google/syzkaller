@@ -64,9 +64,9 @@ func (proc *Proc) loop() {
 			res.Output = append(res.Output, output...)
 			res.Error = err
 		}
-		if res.Info != nil && req.Flags&flatrpc.RequestFlagNewSignal != 0 {
+		if res.Info != nil {
 			filter := signal.FromRaw(req.SignalFilter, 0)
-			proc.tool.diffMaxSignal(res.Info, filter, int(req.SignalFilterCall))
+			proc.tool.diffMaxSignal(res.Info, filter, int(req.SignalFilterCall), req.AllSignal)
 		}
 		msg := &flatrpc.ExecutorMessage{
 			Msg: &flatrpc.ExecutorMessages{

@@ -27,9 +27,8 @@ type Request struct {
 	SignalFilter     signal.Signal
 	SignalFilterCall int
 
-	// By default, only the newly seen signal is returned.
-	// ReturnAllSignal tells the executor to return everything.
-	ReturnAllSignal bool
+	// Return all signal for these calls instead of new signal.
+	ReturnAllSignal []int
 	ReturnError     bool
 	ReturnOutput    bool
 
@@ -103,7 +102,7 @@ func (r *Request) Risky() bool {
 
 func (r *Request) Validate() error {
 	collectSignal := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0
-	if r.ReturnAllSignal && !collectSignal {
+	if len(r.ReturnAllSignal) != 0 && !collectSignal {
 		return fmt.Errorf("ReturnAllSignal is set, but FlagCollectSignal is not")
 	}
 	if r.SignalFilter != nil && !collectSignal {
