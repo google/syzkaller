@@ -256,7 +256,27 @@ NORETURN void doexit_thread(int status)
 	}
 }
 
-static void setup_nicvf()
+#define SYZ_HAVE_KCSAN 1
+static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
+{
+	int fd = open("/sys/kernel/debug/kcsan", O_WRONLY);
+	if (fd == -1)
+		fail("failed to open kcsan debugfs file");
+
+	printf("%s KCSAN reports in functions: ",
+	       suppress ? "suppressing" : "only showing");
+	if (!suppress)
+		dprintf(fd, "whitelist\n");
+	for (int i = 0; i < nframes; ++i) {
+		printf("'%s' ", frames[i]);
+		dprintf(fd, "!%s\n", frames[i]);
+	}
+	printf("\n");
+
+	close(fd);
+}
+
+static const char* setup_nicvf()
 {
 	// This feature has custom checking precedure rather than just rely on running
 	// a simple program with this feature enabled b/c find_vf_interface cannot be made
@@ -266,29 +286,51 @@ static void setup_nicvf()
 	// can find the same device and then moving it will fail for all but one).
 	// So we have to make find_vf_interface non-failing in case of failures,
 	// which means we cannot use it for feature checking.
-	if (open("/sys/bus/pci/devices/0000:00:11.0/", O_RDONLY | O_NONBLOCK) == -1)
-		fail("PCI device 0000:00:11.0 is not available");
+	int fd = open("/sys/bus/pci/devices/0000:00:11.0/", O_RDONLY | O_NONBLOCK);
+	if (fd == -1)
+		return "PCI device 0000:00:11.0 is not available";
+	close(fd);
+	return NULL;
 }
 
-static void setup_devlink_pci()
+static const char* setup_devlink_pci()
 {
 	// See comment in setup_nicvf.
-	if (open("/sys/bus/pci/devices/0000:00:10.0/", O_RDONLY | O_NONBLOCK) == -1)
-		fail("PCI device 0000:00:10.0 is not available");
+	int fd = open("/sys/bus/pci/devices/0000:00:10.0/", O_RDONLY | O_NONBLOCK);
+	if (fd == -1)
+		return "PCI device 0000:00:10.0 is not available";
+	close(fd);
+	return NULL;
 }
 
-static void setup_delay_kcov()
+static const char* setup_delay_kcov()
 {
-	is_kernel_64_bit = detect_kernel_bitness();
+	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
+	if (fd == -1)
+		return "open of /sys/kernel/debug/kcov failed";
+	close(fd);
 	cover_t cov = {};
 	cov.fd = kCoverFd;
 	cover_open(&cov, false);
 	cover_mmap(&cov);
+	char* first = cov.data;
 	cov.data = nullptr;
 	cover_mmap(&cov);
 	// If delayed kcov mmap is not supported by the kernel,
 	// accesses to the second mapping will crash.
-	const_cast<volatile char*>(cov.data)[0] = 1;
+	// Use clock_gettime to check if it's mapped w/o crashing the process.
+	const char* error = NULL;
+	timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts)) {
+		if (errno != EFAULT)
+			fail("clock_gettime failed");
+		error = "kernel commit b3d7fe86fbd0 is not present";
+	} else {
+		munmap(cov.data - SYZ_PAGE_SIZE, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
+	}
+	munmap(first - SYZ_PAGE_SIZE, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
+	close(cov.fd);
+	return error;
 }
 
 #define SYZ_HAVE_FEATURES 1

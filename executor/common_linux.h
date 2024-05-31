@@ -4837,16 +4837,16 @@ static void close_fds()
 #if SYZ_EXECUTOR || SYZ_FAULT
 #include <errno.h>
 
-static void setup_fault()
+static const char* setup_fault()
 {
 	int fd = open("/proc/self/make-it-fail", O_WRONLY);
 	if (fd == -1)
-		fail("CONFIG_FAULT_INJECTION is not enabled");
+		return "CONFIG_FAULT_INJECTION is not enabled";
 	close(fd);
 
 	fd = open("/proc/thread-self/fail-nth", O_WRONLY);
 	if (fd == -1)
-		fail("kernel does not have systematic fault injection support");
+		return "kernel does not have systematic fault injection support";
 	close(fd);
 
 	static struct {
@@ -4867,9 +4867,10 @@ static void setup_fault()
 		if (!write_file(files[i].file, files[i].val)) {
 			debug("failed to write %s: %d\n", files[i].file, errno);
 			if (files[i].fatal)
-				failmsg("failed to write fault injection file", "file=%s", files[i].file);
+				return "failed to write fault injection file";
 		}
 	}
+	return NULL;
 }
 #endif
 
@@ -4882,22 +4883,23 @@ static void setup_fault()
 
 #define KMEMLEAK_FILE "/sys/kernel/debug/kmemleak"
 
-static void setup_leak()
+static const char* setup_leak()
 {
 	if (!write_file(KMEMLEAK_FILE, "scan=off")) {
 		if (errno == EBUSY)
-			fail("KMEMLEAK disabled: increase CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE"
-			     " or unset CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF");
-		fail("failed to write(kmemleak, \"scan=off\")");
+			return "KMEMLEAK disabled: increase CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE"
+			       " or unset CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF";
+		return "failed to write(kmemleak, \"scan=off\")";
 	}
 	// Flush boot leaks.
 	if (!write_file(KMEMLEAK_FILE, "scan"))
-		fail("failed to write(kmemleak, \"scan\")");
+		return "failed to write(kmemleak, \"scan\")";
 	sleep(5); // account for MSECS_MIN_AGE
 	if (!write_file(KMEMLEAK_FILE, "scan"))
-		fail("failed to write(kmemleak, \"scan\")");
+		return "failed to write(kmemleak, \"scan\")";
 	if (!write_file(KMEMLEAK_FILE, "clear"))
-		fail("failed to write(kmemleak, \"clear\")");
+		return "failed to write(kmemleak, \"clear\")";
+	return NULL;
 }
 
 #define SYZ_HAVE_LEAK_CHECK 1
@@ -4984,56 +4986,34 @@ static void check_leaks(void)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static void setup_binfmt_misc()
+static const char* setup_binfmt_misc()
 {
 	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
 		debug("mount(binfmt_misc) failed: %d\n", errno);
-		return;
+		return NULL;
 	}
 	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:") ||
 	    !write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC"))
-		fail("write(/proc/sys/fs/binfmt_misc/register) failed");
+		return "write(/proc/sys/fs/binfmt_misc/register) failed";
+	return NULL;
 }
 #endif
 
 #if SYZ_EXECUTOR || SYZ_KCSAN
-#define KCSAN_DEBUGFS_FILE "/sys/kernel/debug/kcsan"
-
-static void setup_kcsan()
+static const char* setup_kcsan()
 {
-	if (!write_file(KCSAN_DEBUGFS_FILE, "on"))
-		fail("write(/sys/kernel/debug/kcsan, on) failed");
+	if (!write_file("/sys/kernel/debug/kcsan", "on"))
+		return "write(/sys/kernel/debug/kcsan, on) failed";
+	return NULL;
 }
-
-#if SYZ_EXECUTOR // currently only used by executor
-static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
-{
-	int fd = open(KCSAN_DEBUGFS_FILE, O_WRONLY);
-	if (fd == -1)
-		fail("failed to open kcsan debugfs file");
-
-	printf("%s KCSAN reports in functions: ",
-	       suppress ? "suppressing" : "only showing");
-	if (!suppress)
-		dprintf(fd, "whitelist\n");
-	for (int i = 0; i < nframes; ++i) {
-		printf("'%s' ", frames[i]);
-		dprintf(fd, "!%s\n", frames[i]);
-	}
-	printf("\n");
-
-	close(fd);
-}
-
-#define SYZ_HAVE_KCSAN 1
-#endif
 #endif
 
 #if SYZ_EXECUTOR || SYZ_USB
-static void setup_usb()
+static const char* setup_usb()
 {
 	if (chmod("/dev/raw-gadget", 0666))
-		fail("failed to chmod /dev/raw-gadget");
+		return "failed to chmod /dev/raw-gadget";
+	return NULL;
 }
 #endif
 
@@ -5090,8 +5070,9 @@ static void setup_sysctl()
 		{"/proc/sys/kernel/cad_pid", mypid},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
-		if (!write_file(files[i].name, files[i].data))
-			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
+		if (!write_file(files[i].name, files[i].data)) {
+			debug("write to %s failed: %s\n", files[i].name, strerror(errno));
+		}
 	}
 }
 #endif
@@ -5106,44 +5087,56 @@ static void setup_sysctl()
 #define NL802154_ATTR_IFINDEX 3
 #define NL802154_ATTR_SHORT_ADDR 10
 
-static void setup_802154()
+static const char* setup_802154()
 {
+	const char* error = NULL;
+	int sock_generic = -1;
 	int sock_route = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-	if (sock_route == -1)
-		fail("socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE) failed");
-	int sock_generic = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-	if (sock_generic < 0)
-		fail("socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC) failed");
-	int nl802154_family_id = netlink_query_family_id(&nlmsg, sock_generic, "nl802154", true);
-	for (int i = 0; i < 2; i++) {
-		// wpan0/1 are created by CONFIG_IEEE802154_HWSIM.
-		// sys/linux/socket_ieee802154.txt knowns about these names and consts.
-		char devname[] = "wpan0";
-		devname[strlen(devname) - 1] += i;
-		uint64 hwaddr = 0xaaaaaaaaaaaa0002 + (i << 8);
-		uint16 shortaddr = 0xaaa0 + i;
-		int ifindex = if_nametoindex(devname);
-		struct genlmsghdr genlhdr;
-		memset(&genlhdr, 0, sizeof(genlhdr));
-		genlhdr.cmd = NL802154_CMD_SET_SHORT_ADDR;
-		netlink_init(&nlmsg, nl802154_family_id, 0, &genlhdr, sizeof(genlhdr));
-		netlink_attr(&nlmsg, NL802154_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
-		netlink_attr(&nlmsg, NL802154_ATTR_SHORT_ADDR, &shortaddr, sizeof(shortaddr));
-		int err = netlink_send(&nlmsg, sock_generic);
-		if (err < 0)
-			fail("NL802154_CMD_SET_SHORT_ADDR failed");
-		netlink_device_change(&nlmsg, sock_route, devname, true, 0, &hwaddr, sizeof(hwaddr), 0);
-		if (i == 0) {
-			netlink_add_device_impl(&nlmsg, "lowpan", "lowpan0", false);
-			netlink_done(&nlmsg);
-			netlink_attr(&nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
-			int err = netlink_send(&nlmsg, sock_route);
-			if (err < 0)
-				fail("netlink: adding device lowpan0 type lowpan link wpan0");
+	if (sock_route == -1) {
+		error = "socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE) failed";
+		goto fail;
+	}
+	sock_generic = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock_generic == -1) {
+		error = "socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC) failed";
+		goto fail;
+	}
+	{
+		int nl802154_family_id = netlink_query_family_id(&nlmsg, sock_generic, "nl802154", true);
+		for (int i = 0; i < 2; i++) {
+			// wpan0/1 are created by CONFIG_IEEE802154_HWSIM.
+			// sys/linux/socket_ieee802154.txt knowns about these names and consts.
+			char devname[] = "wpan0";
+			devname[strlen(devname) - 1] += i;
+			uint64 hwaddr = 0xaaaaaaaaaaaa0002 + (i << 8);
+			uint16 shortaddr = 0xaaa0 + i;
+			int ifindex = if_nametoindex(devname);
+			struct genlmsghdr genlhdr;
+			memset(&genlhdr, 0, sizeof(genlhdr));
+			genlhdr.cmd = NL802154_CMD_SET_SHORT_ADDR;
+			netlink_init(&nlmsg, nl802154_family_id, 0, &genlhdr, sizeof(genlhdr));
+			netlink_attr(&nlmsg, NL802154_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
+			netlink_attr(&nlmsg, NL802154_ATTR_SHORT_ADDR, &shortaddr, sizeof(shortaddr));
+			if (netlink_send(&nlmsg, sock_generic) < 0) {
+				error = "NL802154_CMD_SET_SHORT_ADDR failed";
+				goto fail;
+			}
+			netlink_device_change(&nlmsg, sock_route, devname, true, 0, &hwaddr, sizeof(hwaddr), 0);
+			if (i == 0) {
+				netlink_add_device_impl(&nlmsg, "lowpan", "lowpan0", false);
+				netlink_done(&nlmsg);
+				netlink_attr(&nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
+				if (netlink_send(&nlmsg, sock_route) < 0) {
+					error = "netlink: adding device lowpan0 type lowpan link wpan0";
+					goto fail;
+				}
+			}
 		}
 	}
+fail:
 	close(sock_route);
 	close(sock_generic);
+	return error;
 }
 #endif
 
@@ -5694,7 +5687,7 @@ static long syz_pkey_set(volatile long pkey, volatile long val)
 #define SWAP_FILE "./swap-file"
 #define SWAP_FILE_SIZE (128 * 1000 * 1000) // 128 MB.
 
-static void setup_swap()
+static const char* setup_swap()
 {
 	// The call must be idempotent, so first disable swap and remove the swap file.
 	swapoff(SWAP_FILE);
@@ -5702,7 +5695,7 @@ static void setup_swap()
 	// Zero-fill the file.
 	int fd = open(SWAP_FILE, O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
 	if (fd == -1)
-		failmsg("swap file open failed", "file: %s", SWAP_FILE);
+		return "swap file open failed";
 	// We cannot do ftruncate -- swapon complains about this. Do fallocate instead.
 	fallocate(fd, FALLOC_FL_ZERO_RANGE, 0, SWAP_FILE_SIZE);
 	close(fd);
@@ -5710,11 +5703,11 @@ static void setup_swap()
 	char cmdline[64];
 	sprintf(cmdline, "mkswap %s", SWAP_FILE);
 	if (runcmdline(cmdline))
-		fail("mkswap failed");
+		return "mkswap failed";
 	if (swapon(SWAP_FILE, SWAP_FLAG_PREFER) == 1)
-		failmsg("swapon failed", "file: %s", SWAP_FILE);
+		return "swapon failed";
+	return NULL;
 }
-
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_pidfd_open
