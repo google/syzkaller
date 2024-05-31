@@ -6,6 +6,12 @@ package cover
 
 type Cover map[uint64]struct{}
 
+func FromRaw(raw []uint64) Cover {
+	var c Cover
+	c.Merge(raw)
+	return c
+}
+
 func (cov *Cover) Merge(raw []uint64) {
 	c := *cov
 	if c == nil {
