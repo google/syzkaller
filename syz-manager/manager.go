@@ -682,10 +682,14 @@ func (mgr *Manager) loadCorpus() {
 	seeds := 0
 	for _, seed := range mgr.seeds {
 		_, item := mgr.loadProg(seed, fuzzer.ProgFromCorpus|fuzzer.ProgMinimized)
-		if item != nil {
-			candidates = append(candidates, *item)
-			seeds++
+		if item == nil {
+			continue
 		}
+		if _, ok := mgr.corpusDB.Records[hash.String(item.Prog.Serialize())]; ok {
+			continue
+		}
+		candidates = append(candidates, *item)
+		seeds++
 	}
 	log.Logf(0, "%-24v: %v (%v broken, %v seeds)", "corpus", len(candidates), broken, seeds)
 	mgr.seeds = nil
