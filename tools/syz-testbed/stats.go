@@ -274,7 +274,6 @@ func (view StatView) AlignedStatsTable(field string) (*Table, error) {
 		}
 	}
 	table := NewTable("Property")
-	cells := make(map[string]map[string]string)
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
 		minLen := group.minResultLength()
@@ -294,9 +293,6 @@ func (view StatView) AlignedStatsTable(field string) (*Table, error) {
 			}
 		}
 		for key, sample := range samples {
-			if _, ok := cells[key]; !ok {
-				cells[key] = make(map[string]string)
-			}
 			table.Set(key, group.Name, NewValueCell(sample))
 		}
 	}
