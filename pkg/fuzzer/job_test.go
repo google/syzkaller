@@ -4,8 +4,10 @@
 package fuzzer
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/signal"
@@ -14,110 +16,99 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDeflakeFail(t *testing.T) {
-	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
-	if err != nil {
-		t.Fatal(err)
+func TestDeflake(t *testing.T) {
+	type Test struct {
+		NewSignal signal.Signal
+		Exec      func(run uint64) (errno int32, signal []uint64, cover []uint64)
+		Runs      uint64
+		Result    deflakedCover
 	}
-	prog, err := target.Deserialize([]byte(anyTestProg), prog.NonStrict)
-	assert.NoError(t, err)
-
-	testJob := &triageJob{
-		p:         prog,
-		info:      &flatrpc.CallInfo{},
-		newSignal: signal.FromRaw([]uint64{0, 1, 2, 3, 4}, 0),
-	}
-
-	run := 0
-	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgFlags) *queue.Result {
-		run++
-		// For first, we return 0. For second, 2. And so on.
-		return fakeResult(0, []uint64{uint64(run)}, []uint64{10, 20})
-	}, newCover(), nil, false)
-	assert.False(t, stop)
-	assert.Equal(t, 3, run)
-	assert.Empty(t, ret.stableSignal.ToRaw())
-	assert.Empty(t, ret.newStableSignal.ToRaw())
-}
-
-func TestDeflakeSuccess1(t *testing.T) {
-	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
-	if err != nil {
-		t.Fatal(err)
-	}
-	prog, err := target.Deserialize([]byte(anyTestProg), prog.NonStrict)
-	assert.NoError(t, err)
-
-	testJob := &triageJob{
-		p:         prog,
-		info:      &flatrpc.CallInfo{},
-		newSignal: signal.FromRaw([]uint64{0, 1, 2}, 0),
-	}
-	run := 0
-	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgFlags) *queue.Result {
-		run++
-		switch run {
-		case 1:
-			return fakeResult(0, []uint64{0, 2, 4, 6, 8}, []uint64{10, 20})
-		case 2:
-			// This one should be ignored -- it has a different errno.
-			return fakeResult(1, []uint64{0, 1, 2}, []uint64{100})
-		case 3:
-			return fakeResult(0, []uint64{0, 2, 4, 6, 8}, []uint64{20, 30})
-		case 4:
-			return fakeResult(0, []uint64{0, 2, 6}, []uint64{30, 40})
-		}
-		// We expect it to have finished earlier.
-		t.Fatal("only 4 runs were expected")
-		return nil
-	}, newCover(), nil, false)
-	assert.False(t, stop)
-	assert.Equal(t, run, 4)
-	// Cover is a union of all coverages.
-	assert.ElementsMatch(t, []uint64{10, 20, 30, 40}, ret.cover.Serialize())
-	// 0, 2, 6 were in three resuls.
-	assert.ElementsMatch(t, []uint64{0, 2, 6}, ret.stableSignal.ToRaw())
-	// 0, 2 were also in newSignal.
-	assert.ElementsMatch(t, []uint64{0, 2, 6}, ret.newStableSignal.ToRaw())
-}
-
-func TestDeflakeSuccess2(t *testing.T) {
-	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
-	if err != nil {
-		t.Fatal(err)
-	}
-	prog, err := target.Deserialize([]byte(anyTestProg), prog.NonStrict)
-	assert.NoError(t, err)
-
-	testJob := &triageJob{
-		p:         prog,
-		info:      &flatrpc.CallInfo{},
-		newSignal: signal.FromRaw([]uint64{0, 1, 2, 3, 4}, 3),
-	}
-
-	run := 0
-	ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgFlags) *queue.Result {
-		run++
-		// For first, we return 0 and 1. For second, 1 and 2. And so on.
-		return fakeResult(0, []uint64{uint64(run), uint64(run + 1)}, []uint64{10, 20})
-	}, newCover(), nil, false)
-	assert.False(t, stop)
-	assert.Equal(t, 2, run)
-	assert.ElementsMatch(t, []uint64{10, 20}, ret.cover.Serialize())
-	assert.ElementsMatch(t, []uint64{2}, ret.stableSignal.ToRaw())
-	assert.ElementsMatch(t, []uint64{2}, ret.newStableSignal.ToRaw())
-}
-
-func fakeResult(errno int32, signal, cover []uint64) *queue.Result {
-	return &queue.Result{
-		Info: &flatrpc.ProgInfo{
-			Calls: []*flatrpc.CallInfo{
-				{
-					Error:  errno,
-					Signal: signal,
-					Cover:  cover,
-				},
+	tests := []Test{
+		{
+			NewSignal: signal.FromRaw([]uint64{0, 1, 2, 3, 4}, 0),
+			Exec: func(run uint64) (int32, []uint64, []uint64) {
+				// For first, we return 1. For second, 2. And so on.
+				return 0, []uint64{run}, []uint64{10, 20}
+			},
+			Runs: 3,
+			Result: deflakedCover{
+				cover: cover.FromRaw([]uint64{10, 20}),
 			},
 		},
+		{
+			NewSignal: signal.FromRaw([]uint64{0, 1, 2}, 0),
+			Exec: func(run uint64) (int32, []uint64, []uint64) {
+				switch run {
+				case 1:
+					return 0, []uint64{0, 2, 4, 6, 8}, []uint64{10, 20}
+				case 2:
+					// This one should be ignored -- it has a different errno.
+					return 1, []uint64{0, 1, 2}, []uint64{100}
+				case 3:
+					return 0, []uint64{0, 2, 4, 6, 8}, []uint64{20, 30}
+				case 4:
+					return 0, []uint64{0, 2, 6}, []uint64{30, 40}
+				}
+				panic("unrechable")
+			},
+			Runs: 4,
+			Result: deflakedCover{
+				// Cover is a union of all coverages.
+				cover: cover.FromRaw([]uint64{10, 20, 30, 40}),
+				// 0, 2, 6 were in three resuls.
+				stableSignal: signal.FromRaw([]uint64{0, 2, 6}, 0),
+				// 0, 2 were also in newSignal.
+				newStableSignal: signal.FromRaw([]uint64{0, 2, 6}, 0),
+			},
+		},
+		{
+			NewSignal: signal.FromRaw([]uint64{0, 1, 2, 3, 4}, 3),
+			Exec: func(run uint64) (int32, []uint64, []uint64) {
+				// For first, we return 0 and 1. For second, 1 and 2. And so on.
+				return 0, []uint64{run, run + 1}, []uint64{10, 20}
+			},
+			Runs: 2,
+			Result: deflakedCover{
+				cover:           cover.FromRaw([]uint64{10, 20}),
+				stableSignal:    signal.FromRaw([]uint64{2}, 0),
+				newStableSignal: signal.FromRaw([]uint64{2}, 0),
+			},
+		},
+	}
+
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
+	assert.NoError(t, err)
+	prog, err := target.Deserialize([]byte(anyTestProg), prog.NonStrict)
+	assert.NoError(t, err)
+
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			testJob := &triageJob{
+				p:         prog,
+				info:      &flatrpc.CallInfo{},
+				newSignal: test.NewSignal,
+			}
+
+			var run uint64
+			ret, stop := testJob.deflake(func(_ *queue.Request, _ ProgFlags) *queue.Result {
+				run++
+				errno, signal, cover := test.Exec(run)
+				return &queue.Result{
+					Info: &flatrpc.ProgInfo{
+						Calls: []*flatrpc.CallInfo{{
+							Error:  errno,
+							Signal: signal,
+							Cover:  cover,
+						}},
+					},
+				}
+			}, newCover(), nil, false)
+
+			assert.False(t, stop)
+			assert.Equal(t, run, test.Runs)
+			assert.ElementsMatch(t, ret.cover.Serialize(), test.Result.cover.Serialize())
+			assert.ElementsMatch(t, ret.stableSignal.ToRaw(), test.Result.stableSignal.ToRaw())
+			assert.ElementsMatch(t, ret.newStableSignal.ToRaw(), test.Result.newStableSignal.ToRaw())
+		})
 	}
 }
