@@ -156,9 +156,13 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			info.rawCover = inf.Cover
 		}
 		newMaxSignal := cover.addRawMaxSignal(inf.Signal, prio)
-		// Since signal may be flaky, update the new signal we are chasing.
-		// It's possible that we won't get any of the orignal new signal,
-		// but instead will get some other stable new signal.
+		// Since the signal is frequently flaky, we may get some new new max signal.
+		// Merge it into the new signal we are chasing.
+		// Most likely we won't conclude it's stable signal b/c we already have at least one
+		// initial run w/o this signal, so if we exit after 3 (needRuns) runs, it won't be stable.
+		// However, it's still possible if we do more than needRuns runs.
+		// But also we already observed it and we know it's flaky, so at least doing
+		// cover.addRawMaxSignal for it looks useful.
 		job.newSignal.Merge(newMaxSignal)
 		info.cover.Merge(inf.Cover)
 		for j := len(signals) - 1; j > 0; j-- {
