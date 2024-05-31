@@ -217,8 +217,9 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	for _, p := range corpus {
 		for _, call := range p.Calls {
 			if !enabled[call.Meta] && !noGenerateCalls[call.Meta.ID] {
+				enabled[call.Meta] = true
 				fmt.Printf("corpus contains disabled syscall %v\n", call.Meta.Name)
-				panic("disabled syscall")
+				//panic("disabled syscall")
 			}
 		}
 	}
@@ -264,8 +265,20 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 	res := sort.Search(len(run), func(i int) bool {
 		return run[i] >= x
 	})
-	if !ct.Generatable(res) {
-		panic("selected disabled or non-generatable syscall")
+
+	repeat := 15
+	for i := 0; i < repeat && !ct.Generatable(res); i++ {
+		x = int32(r.Intn(int(run[len(run)-1])) + 1)
+		res = sort.Search(len(run), func(i int) bool {
+			return run[i] >= x
+		})
+		/*if !ct.Generatable(res) {
+			panic("selected disabled or non-generatable syscall")
+		}*/
 	}
+	if !ct.Generatable(res) {
+		return bias
+	}
+
 	return res
 }

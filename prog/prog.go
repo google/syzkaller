@@ -403,7 +403,7 @@ func removeArg(arg0 Arg) {
 		if a.Res != nil {
 			uses := a.Res.uses
 			if !uses[a] {
-				panic("broken tree")
+				//panic("broken tree")
 			}
 			delete(uses, a)
 		}

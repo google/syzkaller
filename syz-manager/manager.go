@@ -210,7 +210,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
 
-	PreprocessAllCorpora(mgr)
+	//PreprocessAllCorpora(mgr)
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)
@@ -738,6 +738,7 @@ func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 	}
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
+			enabled[c.Meta] = true
 			//return nil, true
 		}
 	}

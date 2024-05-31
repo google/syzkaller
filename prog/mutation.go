@@ -46,11 +46,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[
 		case r.nOutOf(1, 100):
 			ok = ctx.splice()
 		case r.nOutOf(20, 31):
-			if len(p.Calls) < 5 {
+			ok = ctx.insertCall()
+			/*if len(p.Calls) < 5 {
 				ok = ctx.insertCall()
 			} else {
 				ok = ctx.insertCall_SyzLLM()
-			}
+			}*/
 		case r.nOutOf(10, 11):
 			ok = ctx.mutateArg()
 		default:
@@ -167,8 +168,7 @@ func (ctx *mutator) insertCall_SyzLLM() bool {
 		return false
 	}
 	idx := r.biasedRand(len(p.Calls)+1, 5)
-	//calls := requestNewCall(p, idx, ctx.ct)
-	calls := requestNewCallAsync(p, idx, ctx.ct)
+	calls := ctx.requestNewCallAsync(p, idx, ctx.ct)
 	if len(calls) == len(p.Calls) || len(calls) <= 0 {
 		return false
 	}

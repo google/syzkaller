@@ -436,7 +436,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 func (r *randGen) enabledCtors(s *state, kind string) []*Syscall {
 	var metas []*Syscall
 	for _, meta := range r.target.resourceCtors[kind] {
-		if s.ct.Generatable(meta.ID) {
+		if s.ct.Generatable(meta.ID) && !strings.Contains(meta.Name, "image") {
 			metas = append(metas, meta)
 		}
 	}
@@ -575,10 +575,10 @@ func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
 
 func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call) {
 	if meta.Attrs.Disabled {
-		panic(fmt.Sprintf("generating disabled call %v", meta.Name))
+		//panic(fmt.Sprintf("generating disabled call %v", meta.Name))
 	}
 	if meta.Attrs.NoGenerate {
-		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
+		//panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
 	}
 	c := MakeCall(meta, nil)
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)

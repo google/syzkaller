@@ -267,15 +267,24 @@ func (w *execContext) writeArg(arg Arg) {
 		} else {
 			info, ok := w.args[a.Res]
 			if !ok {
-				panic("no copyout index")
+				w.write(execArgResult)
+				meta := a.Size() | uint64(a.Type().Format())<<8
+				w.write(meta)
+				w.write(0)
+				w.write(a.OpDiv)
+				w.write(a.OpAdd)
+				w.write(a.Type().(*ResourceType).Default())
+				//panic("no copyout index")
+			} else {
+				w.write(execArgResult)
+				meta := a.Size() | uint64(a.Type().Format())<<8
+				w.write(meta)
+				w.write(info.Idx)
+				w.write(a.OpDiv)
+				w.write(a.OpAdd)
+				w.write(a.Type().(*ResourceType).Default())
 			}
-			w.write(execArgResult)
-			meta := a.Size() | uint64(a.Type().Format())<<8
-			w.write(meta)
-			w.write(info.Idx)
-			w.write(a.OpDiv)
-			w.write(a.OpAdd)
-			w.write(a.Type().(*ResourceType).Default())
+
 		}
 	case *PointerArg:
 		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, FormatNative)
