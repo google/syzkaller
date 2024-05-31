@@ -189,7 +189,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 	fuzzer.startJob(stat, &triageJob{
 		p:         p.Clone(),
 		call:      call,
-		info:      info,
+		errno:     info.Error,
 		newSignal: newMaxSignal,
 		flags:     flags,
 		queue:     queue.Append(),
