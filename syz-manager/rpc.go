@@ -295,13 +295,17 @@ func (serv *RPCServer) connectionLoop(runner *Runner) error {
 		if err != nil {
 			return err
 		}
+		unpacked := raw.UnPack()
+		if unpacked.Msg == nil || unpacked.Msg.Value == nil {
+			return errors.New("received no message")
+		}
 		switch msg := raw.UnPack().Msg.Value.(type) {
 		case *flatrpc.ExecutingMessage:
 			err = serv.handleExecutingMessage(runner, msg)
 		case *flatrpc.ExecResult:
 			err = serv.handleExecResult(runner, msg)
 		default:
-			panic(fmt.Sprintf("unknown message %T", msg))
+			return fmt.Errorf("received unknown message type %T", msg)
 		}
 		if err != nil {
 			return err
