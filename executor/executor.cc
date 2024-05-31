@@ -370,7 +370,7 @@ typedef char kcov_comparison_size[sizeof(kcov_comparison_t) == 4 * sizeof(uint64
 
 struct feature_t {
 	rpc::Feature id;
-	void (*setup)();
+	const char* (*setup)();
 };
 
 static thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint8* pos, call_props_t call_props);
@@ -408,6 +408,10 @@ static void setup_features(char** enable, int n);
 #include "executor_test.h"
 #else
 #error "unknown OS"
+#endif
+
+#if !SYZ_HAVE_FEATURES
+static feature_t features[] = {};
 #endif
 
 #include "cov_filter.h"
@@ -1655,10 +1659,6 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 }
 #endif // if SYZ_EXECUTOR_USES_SHMEM
 
-#if !SYZ_HAVE_FEATURES
-static feature_t features[] = {};
-#endif
-
 void setup_features(char** enable, int n)
 {
 	// This does any one-time setup for the requested features on the machine.
@@ -1684,7 +1684,9 @@ void setup_features(char** enable, int n)
 	}
 	for (size_t i = 0; i < sizeof(features) / sizeof(features[0]); i++) {
 		if (features[i].id == feature) {
-			features[i].setup();
+			const char* reason = features[i].setup();
+			if (reason)
+				fail(reason);
 			return;
 		}
 	}

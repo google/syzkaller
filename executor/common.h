@@ -319,8 +319,9 @@ static int inject_fault(int nth)
 #endif
 
 #if SYZ_FAULT
-static void setup_fault()
+static const char* setup_fault()
 {
+	return NULL;
 }
 #endif
 
@@ -771,26 +772,35 @@ int main(void)
 #if SYZ_CGROUPS
 	setup_cgroups();
 #endif
+	const char* reason;
+	(void)reason;
 #if SYZ_BINFMT_MISC
-	setup_binfmt_misc();
+	if ((reason = setup_binfmt_misc()))
+		printf("the reproducer may not work as expected: binfmt_misc setup failed: %s\n", reason);
 #endif
 #if SYZ_LEAK
-	setup_leak();
+	if ((reason = setup_leak()))
+		printf("the reproducer may not work as expected: leak checking setup failed: %s\n", reason);
 #endif
 #if SYZ_FAULT
-	setup_fault();
+	if ((reason = setup_fault()))
+		printf("the reproducer may not work as expected: fault injection setup failed: %s\n", reason);
 #endif
 #if SYZ_KCSAN
-	setup_kcsan();
+	if ((reason = setup_kcsan()))
+		printf("the reproducer may not work as expected: KCSAN setup failed: %s\n", reason);
 #endif
 #if SYZ_USB
-	setup_usb();
+	if ((reason = setup_usb()))
+		printf("the reproducer may not work as expected: USB injection setup failed: %s\n", reason);
 #endif
 #if SYZ_802154
-	setup_802154();
+	if ((reason = setup_802154()))
+		printf("the reproducer may not work as expected: 802154 injection setup failed: %s\n", reason);
 #endif
 #if SYZ_SWAP
-	setup_swap();
+	if ((reason = setup_swap()))
+		printf("the reproducer may not work as expected: swap setup failed: %s\n", reason);
 #endif
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
