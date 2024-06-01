@@ -12,12 +12,6 @@
         "advisorynotifications": {
             "component": "advisorynotifications"
         },
-        "ai": {
-            "component": "ai"
-        },
-        "aiplatform": {
-            "component": "aiplatform"
-        },
         "alloydb": {
             "component": "alloydb"
         },
@@ -60,6 +54,9 @@
         "automl": {
             "component": "automl"
         },
+        "backupdr": {
+            "component": "backupdr"
+        },
         "baremetalsolution": {
             "component": "baremetalsolution"
         },
@@ -80,6 +77,9 @@
         },
         "channel": {
             "component": "channel"
+        },
+        "chat": {
+            "component": "chat"
         },
         "cloudbuild": {
             "component": "cloudbuild"
@@ -209,6 +209,9 @@
         },
         "iap": {
             "component": "iap"
+        },
+        "identitytoolkit": {
+            "component": "identitytoolkit"
         },
         "ids": {
             "component": "ids"
@@ -363,9 +366,6 @@
         "shopping": {
             "component": "shopping"
         },
-        "spanner/test/opentelemetry/test": {
-            "component": "spanner/test/opentelemetry/test"
-        },
         "speech": {
             "component": "speech"
         },
@@ -374,6 +374,9 @@
         },
         "storagetransfer": {
             "component": "storagetransfer"
+        },
+        "streetview": {
+            "component": "streetview"
         },
         "support": {
             "component": "support"

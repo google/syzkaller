@@ -1,5 +1,25 @@
 # Changes
 
+## [0.113.0](https://github.com/googleapis/google-cloud-go/compare/v0.112.2...v0.113.0) (2024-05-08)
+
+
+### Features
+
+* **civil:** Add Compare method to Date, Time, and DateTime ([#10010](https://github.com/googleapis/google-cloud-go/issues/10010)) ([34455c1](https://github.com/googleapis/google-cloud-go/commit/34455c15d62b089f3281ff4c663245e72b257f37))
+
+
+### Bug Fixes
+
+* **all:** Bump x/net to v0.24.0 ([#10000](https://github.com/googleapis/google-cloud-go/issues/10000)) ([ba31ed5](https://github.com/googleapis/google-cloud-go/commit/ba31ed5fda2c9664f2e1cf972469295e63deb5b4))
+* **debugger:** Add internaloption.WithDefaultEndpointTemplate ([3b41408](https://github.com/googleapis/google-cloud-go/commit/3b414084450a5764a0248756e95e13383a645f90))
+* **internal/aliasfix:** Handle import paths correctly ([#10097](https://github.com/googleapis/google-cloud-go/issues/10097)) ([fafaf0d](https://github.com/googleapis/google-cloud-go/commit/fafaf0d0a293096559a4655ea61062cb896f1568))
+* **rpcreplay:** Properly unmarshal dynamic message ([#9774](https://github.com/googleapis/google-cloud-go/issues/9774)) ([53ccb20](https://github.com/googleapis/google-cloud-go/commit/53ccb20d925ccb00f861958d9658b55738097dc6)), refs [#9773](https://github.com/googleapis/google-cloud-go/issues/9773)
+
+
+### Documentation
+
+* **testing:** Switch deprecated WithInsecure to WithTransportCredentials ([#10091](https://github.com/googleapis/google-cloud-go/issues/10091)) ([2b576ab](https://github.com/googleapis/google-cloud-go/commit/2b576abd1c3bfca2f962de0e024524f72d3652c0))
+
 ## [0.112.2](https://github.com/googleapis/google-cloud-go/compare/v0.112.1...v0.112.2) (2024-03-27)
 
 

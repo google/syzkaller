@@ -1993,7 +1993,7 @@ type AccessConfig struct {
 	// PublicPtrDomainName: The DNS domain name for the public PTR record. You can
 	// set this field only if the `setPublicPtr` field is enabled in accessConfig.
 	// If this field is unspecified in ipv6AccessConfig, a default PTR record will
-	// be createc for first IP in associated external IPv6 range.
+	// be created for first IP in associated external IPv6 range.
 	PublicPtrDomainName string `json:"publicPtrDomainName,omitempty"`
 	// SecurityPolicy: [Output Only] The resource URL for the security policy
 	// associated with this access config.
@@ -7125,6 +7125,7 @@ type Commitment struct {
 	// Possible values:
 	//   "ACCELERATOR_OPTIMIZED"
 	//   "ACCELERATOR_OPTIMIZED_A3"
+	//   "ACCELERATOR_OPTIMIZED_A3_MEGA"
 	//   "COMPUTE_OPTIMIZED"
 	//   "COMPUTE_OPTIMIZED_C2D"
 	//   "COMPUTE_OPTIMIZED_C3"
@@ -12414,7 +12415,7 @@ type HTTP2HealthCheck struct {
 	//   "PROXY_V1"
 	ProxyHeader string `json:"proxyHeader,omitempty"`
 	// RequestPath: The request path of the HTTP/2 health check request. The
-	// default value is /.
+	// default value is /. Must comply with RFC3986.
 	RequestPath string `json:"requestPath,omitempty"`
 	// Response: Creates a content-based HTTP/2 health check. In addition to the
 	// required HTTP 200 (OK) status code, you can configure the health check to
@@ -12491,7 +12492,7 @@ type HTTPHealthCheck struct {
 	//   "PROXY_V1"
 	ProxyHeader string `json:"proxyHeader,omitempty"`
 	// RequestPath: The request path of the HTTP health check request. The default
-	// value is /.
+	// value is /. Must comply with RFC3986.
 	RequestPath string `json:"requestPath,omitempty"`
 	// Response: Creates a content-based HTTP health check. In addition to the
 	// required HTTP 200 (OK) status code, you can configure the health check to
@@ -12567,7 +12568,7 @@ type HTTPSHealthCheck struct {
 	//   "PROXY_V1"
 	ProxyHeader string `json:"proxyHeader,omitempty"`
 	// RequestPath: The request path of the HTTPS health check request. The default
-	// value is /.
+	// value is /. Must comply with RFC3986.
 	RequestPath string `json:"requestPath,omitempty"`
 	// Response: Creates a content-based HTTPS health check. In addition to the
 	// required HTTP 200 (OK) status code, you can configure the health check to
@@ -33249,6 +33250,7 @@ type Quota struct {
 	//   "TPU_LITE_PODSLICE_V5"
 	//   "TPU_PODSLICE_V4"
 	//   "URL_MAPS"
+	//   "VARIABLE_IPV6_PUBLIC_DELEGATED_PREFIXES"
 	//   "VPN_GATEWAYS"
 	//   "VPN_TUNNELS"
 	//   "XPN_SERVICE_PROJECTS"
@@ -42175,16 +42177,17 @@ func (s *SnapshotSettings) MarshalJSON() ([]byte, error) {
 
 type SnapshotSettingsStorageLocationSettings struct {
 	// Locations: When the policy is SPECIFIC_LOCATIONS, snapshots will be stored
-	// in the locations listed in this field. Keys are GCS bucket locations.
+	// in the locations listed in this field. Keys are Cloud Storage bucket
+	// locations. Only one location can be specified.
 	Locations map[string]SnapshotSettingsStorageLocationSettingsStorageLocationPreference `json:"locations,omitempty"`
 	// Policy: The chosen location policy.
 	//
 	// Possible values:
 	//   "LOCAL_REGION" - Store snapshot in the same region as with the originating
 	// disk. No additional parameters are needed.
-	//   "NEAREST_MULTI_REGION" - Store snapshot to the nearest multi region GCS
-	// bucket, relative to the originating disk. No additional parameters are
-	// needed.
+	//   "NEAREST_MULTI_REGION" - Store snapshot in the nearest multi region Cloud
+	// Storage bucket, relative to the originating disk. No additional parameters
+	// are needed.
 	//   "SPECIFIC_LOCATIONS" - Store snapshot in the specific locations, as
 	// specified by the user. The list of regions to store must be defined under
 	// the `locations` field.
@@ -42211,7 +42214,8 @@ func (s *SnapshotSettingsStorageLocationSettings) MarshalJSON() ([]byte, error) 
 // SnapshotSettingsStorageLocationSettingsStorageLocationPreference: A
 // structure for specifying storage locations.
 type SnapshotSettingsStorageLocationSettingsStorageLocationPreference struct {
-	// Name: Name of the location. It should be one of the GCS buckets.
+	// Name: Name of the location. It should be one of the Cloud Storage buckets.
+	// Only one location can be specified.
 	Name string `json:"name,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Name") to unconditionally
 	// include in API requests. By default, fields with empty or default values are

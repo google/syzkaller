@@ -37,7 +37,6 @@ import (
 	vkit "cloud.google.com/go/logging/apiv2"
 	logpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"cloud.google.com/go/logging/internal"
-	"github.com/golang/protobuf/ptypes"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -138,10 +137,10 @@ func toHTTPRequest(p *logtypepb.HttpRequest) (*logging.HTTPRequest, error) {
 	}
 	var dur time.Duration
 	if p.Latency != nil {
-		dur, err = ptypes.Duration(p.Latency)
-		if err != nil {
+		if err := p.GetLatency().CheckValid(); err != nil {
 			return nil, err
 		}
+		dur = p.GetLatency().AsDuration()
 	}
 	hr := &http.Request{
 		Method: p.RequestMethod,
@@ -222,6 +221,13 @@ func NewestFirst() EntriesOption { return newestFirst{} }
 type newestFirst struct{}
 
 func (newestFirst) set(r *logpb.ListLogEntriesRequest) { r.OrderBy = "timestamp desc" }
+
+// PageSize provide a way to override number of results to return from each request.
+func PageSize(p int32) EntriesOption { return pageSize(p) }
+
+type pageSize int32
+
+func (p pageSize) set(r *logpb.ListLogEntriesRequest) { r.PageSize = int32(p) }
 
 // Entries returns an EntryIterator for iterating over log entries. By default,
 // the log entries will be restricted to those from the project passed to
@@ -304,21 +310,21 @@ func (it *EntryIterator) fetch(pageSize int, pageToken string) (string, error) {
 var slashUnescaper = strings.NewReplacer("%2F", "/", "%2f", "/")
 
 func fromLogEntry(le *logpb.LogEntry) (*logging.Entry, error) {
-	time, err := ptypes.Timestamp(le.Timestamp)
-	if err != nil {
+	if err := le.GetTimestamp().CheckValid(); err != nil {
 		return nil, err
 	}
+	time := le.GetTimestamp().AsTime()
 	var payload interface{}
 	switch x := le.Payload.(type) {
 	case *logpb.LogEntry_TextPayload:
 		payload = x.TextPayload
 
 	case *logpb.LogEntry_ProtoPayload:
-		var d ptypes.DynamicAny
-		if err := ptypes.UnmarshalAny(x.ProtoPayload, &d); err != nil {
+		msg, err := x.ProtoPayload.UnmarshalNew()
+		if err != nil {
 			return nil, fmt.Errorf("logging: unmarshalling proto payload: %w", err)
 		}
-		payload = d.Message
+		payload = msg
 
 	case *logpb.LogEntry_JsonPayload:
 		// Leave this as a Struct.
