@@ -44,9 +44,6 @@ import (
 	vkit "cloud.google.com/go/logging/apiv2"
 	logpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"cloud.google.com/go/logging/internal"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/support/bundler"
@@ -55,7 +52,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -83,6 +83,9 @@ const (
 
 	// DefaultEntryByteThreshold is the default value for the EntryByteThreshold LoggerOption.
 	DefaultEntryByteThreshold = 1 << 23 // 8MiB
+
+	// DefaultBundleByteLimit is the default value for the BundleByteLimit LoggerOption.
+	DefaultBundleByteLimit = 9437184 // 9.5 MiB
 
 	// DefaultBufferedByteLimit is the default value for the BufferedByteLimit LoggerOption.
 	DefaultBufferedByteLimit = 1 << 30 // 1GiB
@@ -225,16 +228,13 @@ func makeParent(parent string) (string, error) {
 // authentication configuration are valid. To accomplish this, Ping writes a
 // log entry "ping" to a log named "ping".
 func (c *Client) Ping(ctx context.Context) error {
-	unixZeroTimestamp, err := ptypes.TimestampProto(time.Unix(0, 0))
-	if err != nil {
-		return err
-	}
+	unixZeroTimestamp := timestamppb.New(time.Unix(0, 0))
 	ent := &logpb.LogEntry{
 		Payload:   &logpb.LogEntry_TextPayload{TextPayload: "ping"},
 		Timestamp: unixZeroTimestamp, // Identical timestamps and insert IDs are both
 		InsertId:  "ping",            // necessary for the service to dedup these entries.
 	}
-	_, err = c.client.WriteLogEntries(ctx, &logpb.WriteLogEntriesRequest{
+	_, err := c.client.WriteLogEntries(ctx, &logpb.WriteLogEntriesRequest{
 		LogName:  internal.LogPath(c.parent, "ping"),
 		Resource: monitoredResource(c.parent),
 		Entries:  []*logpb.LogEntry{ent},
@@ -340,6 +340,7 @@ func (c *Client) Logger(logID string, opts ...LoggerOption) *Logger {
 	l.bundler.DelayThreshold = DefaultDelayThreshold
 	l.bundler.BundleCountThreshold = DefaultEntryCountThreshold
 	l.bundler.BundleByteThreshold = DefaultEntryByteThreshold
+	l.bundler.BundleByteLimit = DefaultBundleByteLimit
 	l.bundler.BufferedByteLimit = DefaultBufferedByteLimit
 	for _, opt := range opts {
 		opt.set(l)
@@ -604,7 +605,7 @@ func fromHTTPRequest(r *HTTPRequest) (*logtypepb.HttpRequest, error) {
 		CacheLookup:                    r.CacheLookup,
 	}
 	if r.Latency != 0 {
-		pb.Latency = ptypes.DurationProto(r.Latency)
+		pb.Latency = durationpb.New(r.Latency)
 	}
 	return pb, nil
 }

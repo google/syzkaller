@@ -5,6 +5,9 @@
   "separate-pull-requests": true,
   "tag-separator": "/",
   "packages": {
+    "aiplatform": {
+      "component": "aiplatform"
+    },
     "auth": {
       "component": "auth"
     },

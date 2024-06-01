@@ -1,5 +1,20 @@
 # Changes
 
+## [1.10.0](https://github.com/googleapis/google-cloud-go/compare/logging/v1.9.0...logging/v1.10.0) (2024-05-15)
+
+
+### Features
+
+* **logging/logadmin:** Allow logging PageSize to override ([#9409](https://github.com/googleapis/google-cloud-go/issues/9409)) ([5ca0271](https://github.com/googleapis/google-cloud-go/commit/5ca0271f4354d51a968cf5819322d1c093944d1c))
+
+
+### Bug Fixes
+
+* **logging:** Bump x/net to v0.24.0 ([ba31ed5](https://github.com/googleapis/google-cloud-go/commit/ba31ed5fda2c9664f2e1cf972469295e63deb5b4))
+* **logging:** Enable universe domain resolution options ([fd1d569](https://github.com/googleapis/google-cloud-go/commit/fd1d56930fa8a747be35a224611f4797b8aeb698))
+* **logging:** Set default value for BundleByteLimit to 9.5 MiB to avoid payload size limits. ([#9662](https://github.com/googleapis/google-cloud-go/issues/9662)) ([d5815da](https://github.com/googleapis/google-cloud-go/commit/d5815da84dfb3fedd67bce4c7a24e2f0ab235811))
+* **logging:** Update protobuf dep to v1.33.0 ([30b038d](https://github.com/googleapis/google-cloud-go/commit/30b038d8cac0b8cd5dd4761c87f3f298760dd33a))
+
 ## [1.9.0](https://github.com/googleapis/google-cloud-go/compare/logging/v1.8.1...logging/v1.9.0) (2023-12-12)
 
 

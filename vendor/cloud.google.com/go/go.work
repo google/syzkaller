@@ -23,6 +23,7 @@ use (
 	./auth
 	./auth/oauth2adapt
 	./automl
+	./backupdr
 	./baremetalsolution
 	./batch
 	./beyondcorp
@@ -32,6 +33,7 @@ use (
 	./binaryauthorization
 	./certificatemanager
 	./channel
+	./chat
 	./cloudbuild
 	./cloudcontrolspartner
 	./clouddms
@@ -78,6 +80,7 @@ use (
 	./gsuiteaddons
 	./iam
 	./iap
+	./identitytoolkit
 	./ids
 	./internal/actions
 	./internal/aliasfix
@@ -148,8 +151,10 @@ use (
 	./spanner/test/opentelemetry/test
 	./speech
 	./storage
+	./storage/internal/benchmarks
 	./storageinsights
 	./storagetransfer
+	./streetview
 	./support
 	./talent
 	./telcoautomation
