@@ -83,7 +83,6 @@ static void cover_mmap(cover_t* cov)
 	cov->pc_offset = 0;
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 static void cover_unprotect(cover_t* cov)
 {
 }
@@ -92,4 +91,3 @@ static bool use_cover_edges(uint64 pc)
 {
 	return true;
 }
-#endif

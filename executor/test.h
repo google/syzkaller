@@ -201,7 +201,6 @@ static int test_csum_inet_acc()
 	return 0;
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 static int test_coverage_filter()
 {
 	struct tmp_cov_filter_t {
@@ -234,7 +233,6 @@ static int test_coverage_filter()
 	flag_coverage_filter = false;
 	return 0;
 }
-#endif
 
 static struct {
 	const char* name;
@@ -246,9 +244,7 @@ static struct {
 #if GOOS_linux && (GOARCH_amd64 || GOARCH_ppc64 || GOARCH_ppc64le)
     {"test_kvm", test_kvm},
 #endif
-#if SYZ_EXECUTOR_USES_SHMEM
     {"test_coverage_filter", test_coverage_filter},
-#endif
 };
 
 static int run_tests()

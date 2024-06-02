@@ -125,7 +125,6 @@ static void receive_handshake();
 static void reply_handshake();
 #endif
 
-#if SYZ_EXECUTOR_USES_SHMEM
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 // Allocating (and forking) virtual memory for each executed process is expensive, so we only mmap
 // the amount we might possibly need for the specific received prog.
@@ -153,7 +152,6 @@ static uint32* write_output_64(uint64 v);
 static void write_completed(uint32 completed);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 uint64 start_time_ms = 0;
 
@@ -318,7 +316,6 @@ struct execute_req {
 	uint64 syscall_timeout_ms;
 	uint64 program_timeout_ms;
 	uint64 slowdown_scale;
-	uint64 prog_size;
 };
 
 struct execute_reply {
@@ -463,16 +460,11 @@ int main(int argc, char** argv)
 	os_init(argc, argv, (char*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);
 	current_thread = &threads[0];
 
-#if SYZ_EXECUTOR_USES_SHMEM
 	void* mmap_out = mmap(NULL, kMaxInput, PROT_READ, MAP_PRIVATE, kInFd, 0);
-#else
-	void* mmap_out = mmap(NULL, kMaxInput, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-#endif
 	if (mmap_out == MAP_FAILED)
 		fail("mmap of input file failed");
 	input_data = static_cast<uint8*>(mmap_out);
 
-#if SYZ_EXECUTOR_USES_SHMEM
 	mmap_output(kInitialOutput);
 	// Prevent test programs to mess with these fds.
 	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
@@ -483,7 +475,6 @@ int main(int argc, char** argv)
 #endif
 	// For SYZ_EXECUTOR_USES_FORK_SERVER, close(kOutFd) is invoked in the forked child,
 	// after the program has been received.
-#endif // if  SYZ_EXECUTOR_USES_SHMEM
 
 	use_temporary_dir();
 	install_segv_handler();
@@ -569,7 +560,6 @@ int main(int argc, char** argv)
 #endif
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 // This method can be invoked as many times as one likes - MMAP_FIXED can overwrite the previous
 // mapping without any problems. The only precondition - kOutFd must not be closed.
 static void mmap_output(int size)
@@ -609,7 +599,6 @@ static void mmap_output(int size)
 		output_data = static_cast<uint32*>(result);
 	output_size = size;
 }
-#endif
 
 void setup_control_pipes()
 {
@@ -685,8 +674,6 @@ void receive_execute()
 		fail("control pipe read failed");
 	if (req.magic != kInMagic)
 		failmsg("bad execute request magic", "magic=0x%llx", req.magic);
-	if (req.prog_size > kMaxInput)
-		failmsg("bad execute prog size", "size=0x%llx", req.prog_size);
 	parse_env_flags(req.env_flags);
 	procid = req.pid;
 	syscall_timeout_ms = req.syscall_timeout_ms;
@@ -700,31 +687,13 @@ void receive_execute()
 	flag_coverage_filter = req.exec_flags & (1 << 5);
 
 	debug("[%llums] exec opts: procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d"
-	      " timeouts=%llu/%llu/%llu prog=%llu filter=%d\n",
+	      " timeouts=%llu/%llu/%llu filter=%d\n",
 	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collect_cover,
 	      flag_comparisons, flag_dedup_cover, flag_collect_signal, syscall_timeout_ms,
-	      program_timeout_ms, slowdown_scale, req.prog_size, flag_coverage_filter);
+	      program_timeout_ms, slowdown_scale, flag_coverage_filter);
 	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
 		failmsg("bad timeouts", "syscall=%llu, program=%llu, scale=%llu",
 			syscall_timeout_ms, program_timeout_ms, slowdown_scale);
-	if (SYZ_EXECUTOR_USES_SHMEM) {
-		if (req.prog_size)
-			fail("need_prog: no program");
-		return;
-	}
-	if (req.prog_size == 0)
-		fail("need_prog: no program");
-	uint64 pos = 0;
-	for (;;) {
-		ssize_t rv = read(kInPipeFd, input_data + pos, kMaxInput - pos);
-		if (rv < 0)
-			fail("read failed");
-		pos += rv;
-		if (rv == 0 || pos >= req.prog_size)
-			break;
-	}
-	if (pos != req.prog_size)
-		failmsg("bad input size", "size=%lld, want=%lld", pos, req.prog_size);
 }
 
 bool cover_collection_required()
@@ -742,7 +711,6 @@ void reply_execute(int status)
 		fail("control pipe write failed");
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 void realloc_output_data()
 {
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -756,17 +724,14 @@ void realloc_output_data()
 		fail("failed to close kOutFd");
 #endif
 }
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 // execute_one executes program stored in input_data.
 void execute_one()
 {
 	in_execute_one = true;
-#if SYZ_EXECUTOR_USES_SHMEM
 	realloc_output_data();
 	output_pos = output_data;
 	write_output(0); // Number of executed syscalls (updated later).
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 	uint64 start = current_time_ms();
 	uint8* input_pos = input_data;
 
@@ -1019,7 +984,6 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 	return th;
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 template <typename cover_data_t>
 void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover_count_pos)
 {
@@ -1069,7 +1033,6 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		*cover_count_pos = cover_size;
 	}
 }
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 void handle_completion(thread_t* th)
 {
@@ -1141,7 +1104,6 @@ void write_call_output(thread_t* th, bool finished)
 		call_flags |= call_flag_finished |
 			      (th->fault_injected ? call_flag_fault_injected : 0);
 	}
-#if SYZ_EXECUTOR_USES_SHMEM
 	write_output(kOutMagic);
 	write_output(th->call_index);
 	write_output(th->call_num);
@@ -1182,29 +1144,10 @@ void write_call_output(thread_t* th, bool finished)
 		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
 	completed++;
 	write_completed(completed);
-#else
-	call_reply reply;
-	reply.header.magic = kOutMagic;
-	reply.header.done = 0;
-	reply.header.status = 0;
-	reply.magic = kOutMagic;
-	reply.call_index = th->call_index;
-	reply.call_num = th->call_num;
-	reply.reserrno = reserrno;
-	reply.flags = call_flags;
-	reply.signal_size = 0;
-	reply.cover_size = 0;
-	reply.comps_size = 0;
-	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
-		fail("control pipe call write failed");
-	debug_verbose("out: index=%u num=%u errno=%d finished=%d blocked=%d\n",
-		      th->call_index, th->call_num, reserrno, finished, blocked);
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 }
 
 void write_extra_output()
 {
-#if SYZ_EXECUTOR_USES_SHMEM
 	if (!cover_collection_required() || !flag_extra_coverage || flag_comparisons)
 		return;
 	cover_collect(&extra_cov);
@@ -1226,7 +1169,6 @@ void write_extra_output()
 	debug_verbose("extra: sig=%u cover=%u\n", *signal_count_pos, *cover_count_pos);
 	completed++;
 	write_completed(completed);
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 }
 
 void thread_create(thread_t* th, int id, bool need_coverage)
@@ -1334,7 +1276,6 @@ void execute_call(thread_t* th)
 	debug("\n");
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 static uint32 hash(uint32 a)
 {
 	a = (a ^ 61) ^ (a >> 16);
@@ -1365,7 +1306,6 @@ static bool dedup(uint32 sig)
 	dedup_table[sig % dedup_table_size] = sig;
 	return false;
 }
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 template <typename T>
 void copyin_int(char* addr, uint64 val, uint64 bf, uint64 bf_off, uint64 bf_len)
@@ -1560,7 +1500,6 @@ uint64 read_input(uint8** input_posp, bool peek)
 	return v;
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 uint32* write_output(uint32 v)
 {
 	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + output_size)
@@ -1584,9 +1523,7 @@ void write_completed(uint32 completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 }
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 
-#if SYZ_EXECUTOR_USES_SHMEM
 void kcov_comparison_t::write()
 {
 	if (type > (KCOV_CMP_CONST | KCOV_CMP_SIZE_MASK))
@@ -1674,7 +1611,6 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 	// We don't check for PC equality now, because it is not used.
 	return arg2 < other.arg2;
 }
-#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 void setup_features(char** enable, int n)
 {

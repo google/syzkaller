@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool, targets.Timeouts) {
+func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, targets.Timeouts) {
 	t.Parallel()
 	iters := 100
 	if testing.Short() {
@@ -38,7 +38,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool, targets
 		t.Fatal(err)
 	}
 	rs := testutil.RandSource(t)
-	return target, rs, iters, cfg.UseShmem, cfg.UseForkServer, cfg.Timeouts
+	return target, rs, iters, cfg.UseForkServer, cfg.Timeouts
 }
 
 // TestExecutor runs all internal executor unit tests.
@@ -77,7 +77,7 @@ func prepareTestProgram(target *prog.Target) *prog.Prog {
 }
 
 func TestExecute(t *testing.T) {
-	target, _, _, useShmem, useForkServer, timeouts := initTest(t)
+	target, _, _, useForkServer, timeouts := initTest(t)
 
 	bin := csource.BuildExecutor(t, target, "../..")
 
@@ -86,7 +86,6 @@ func TestExecute(t *testing.T) {
 		t.Logf("testing flags 0x%x", flag)
 		cfg := &Config{
 			Executor:      bin,
-			UseShmem:      useShmem,
 			UseForkServer: useForkServer,
 			Timeouts:      timeouts,
 		}
@@ -122,11 +121,10 @@ func TestExecute(t *testing.T) {
 }
 
 func TestParallel(t *testing.T) {
-	target, _, _, useShmem, useForkServer, timeouts := initTest(t)
+	target, _, _, useForkServer, timeouts := initTest(t)
 	bin := csource.BuildExecutor(t, target, "../..")
 	cfg := &Config{
 		Executor:      bin,
-		UseShmem:      useShmem,
 		UseForkServer: useForkServer,
 		Timeouts:      timeouts,
 	}

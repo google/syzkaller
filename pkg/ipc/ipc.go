@@ -29,7 +29,6 @@ type Config struct {
 	// Path to executor binary.
 	Executor string
 
-	UseShmem      bool // use shared memory instead of pipes for communication
 	UseForkServer bool // use extended protocol with handshake
 	RateLimit     bool // rate limit start of new processes for host fuzzer mode
 
@@ -152,29 +151,25 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 	}
 	var inf, outf *os.File
 	var inmem, outmem []byte
-	if config.UseShmem {
-		var err error
-		inf, inmem, err = osutil.CreateMemMappedFile(prog.ExecBufferSize)
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			if inf != nil {
-				osutil.CloseMemMappedFile(inf, inmem)
-			}
-		}()
-		outf, outmem, err = osutil.CreateMemMappedFile(outputSize)
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			if outf != nil {
-				osutil.CloseMemMappedFile(outf, outmem)
-			}
-		}()
-	} else {
-		outmem = make([]byte, outputSize)
+	var err error
+	inf, inmem, err = osutil.CreateMemMappedFile(prog.ExecBufferSize)
+	if err != nil {
+		return nil, err
 	}
+	defer func() {
+		if inf != nil {
+			osutil.CloseMemMappedFile(inf, inmem)
+		}
+	}()
+	outf, outmem, err = osutil.CreateMemMappedFile(outputSize)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if outf != nil {
+			osutil.CloseMemMappedFile(outf, outmem)
+		}
+	}()
 	env := &Env{
 		in:      inmem,
 		out:     outmem,
@@ -249,10 +244,7 @@ func (env *Env) ExecProg(opts *flatrpc.ExecOpts, progData []byte) (
 		return
 	}
 	// Copy-in serialized program.
-	if env.config.UseShmem {
-		copy(env.in, progData)
-		progData = nil
-	}
+	copy(env.in, progData)
 	// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
 	// if executor crashes before writing non-garbage there.
 	for i := 0; i < 4; i++ {
@@ -265,7 +257,7 @@ func (env *Env) ExecProg(opts *flatrpc.ExecOpts, progData []byte) (
 	}
 
 	start := osutil.MonotonicNano()
-	output, hanged, err0 = env.cmd.exec(opts, progData)
+	output, hanged, err0 = env.cmd.exec(opts)
 	elapsed := osutil.MonotonicNano() - start
 	if err0 != nil {
 		env.cmd.close()
@@ -521,9 +513,6 @@ type executeReq struct {
 	syscallTimeoutMS uint64
 	programTimeoutMS uint64
 	slowdownScale    uint64
-	progSize         uint64
-	// This structure is followed by a serialized test program in encodingexec format.
-	// Both when sent over a pipe or in shared memory.
 }
 
 type executeReply struct {
@@ -737,7 +726,7 @@ func (c *command) wait() error {
 	return <-c.exited
 }
 
-func (c *command) exec(opts *flatrpc.ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
+func (c *command) exec(opts *flatrpc.ExecOpts) (output []byte, hanged bool, err0 error) {
 	if c.flags != opts.EnvFlags || c.sandboxArg != opts.SandboxArg {
 		panic("wrong command")
 	}
@@ -749,20 +738,12 @@ func (c *command) exec(opts *flatrpc.ExecOpts, progData []byte) (output []byte, 
 		syscallTimeoutMS: uint64(c.config.Timeouts.Syscall / time.Millisecond),
 		programTimeoutMS: uint64(c.config.Timeouts.Program / time.Millisecond),
 		slowdownScale:    uint64(c.config.Timeouts.Scale),
-		progSize:         uint64(len(progData)),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
 		output = <-c.readDone
 		err0 = fmt.Errorf("executor %v: failed to write control pipe: %w", c.pid, err)
 		return
-	}
-	if progData != nil {
-		if _, err := c.outwp.Write(progData); err != nil {
-			output = <-c.readDone
-			err0 = fmt.Errorf("executor %v: failed to write control pipe: %w", c.pid, err)
-			return
-		}
 	}
 	// At this point program is executing.
 

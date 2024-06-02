@@ -66,8 +66,6 @@ type osCommon struct {
 	// E.g. "__NR_" or "SYS_".
 	SyscallPrefix string
 	// ipc<->executor communication tuning.
-	// If ExecutorUsesShmem, programs and coverage are passed through shmem, otherwise via pipes.
-	ExecutorUsesShmem bool
 	// If ExecutorUsesForkServer, executor uses extended protocol with handshake.
 	ExecutorUsesForkServer bool
 	// Special mode for OSes that do not have support for building Go binaries.
@@ -139,19 +137,19 @@ const (
 	GVisor  = "gvisor"
 	Starnix = "starnix"
 
-	AMD64               = "amd64"
-	ARM64               = "arm64"
-	ARM                 = "arm"
-	I386                = "386"
-	MIPS64LE            = "mips64le"
-	PPC64LE             = "ppc64le"
-	S390x               = "s390x"
-	RiscV64             = "riscv64"
-	TestArch64          = "64"
-	TestArch64Fuzz      = "64_fuzz"
-	TestArch64Fork      = "64_fork"
-	TestArch32Shmem     = "32_shmem"
-	TestArch32ForkShmem = "32_fork_shmem"
+	AMD64          = "amd64"
+	ARM64          = "arm64"
+	ARM            = "arm"
+	I386           = "386"
+	MIPS64LE       = "mips64le"
+	PPC64LE        = "ppc64le"
+	S390x          = "s390x"
+	RiscV64        = "riscv64"
+	TestArch64     = "64"
+	TestArch64Fuzz = "64_fuzz"
+	TestArch64Fork = "64_fork"
+	TestArch32     = "32"
+	TestArch32Fork = "32_fork"
 )
 
 func Get(OS, arch string) *Target {
@@ -193,7 +191,6 @@ var List = map[string]map[string]*Target{
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
-				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: false,
 			},
 		},
@@ -205,7 +202,6 @@ var List = map[string]map[string]*Target{
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
-				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: true,
 			},
 		},
@@ -222,11 +218,10 @@ var List = map[string]map[string]*Target{
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
-				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: true,
 			},
 		},
-		TestArch32Shmem: {
+		TestArch32: {
 			PtrSize:        4,
 			PageSize:       8 << 10,
 			Int64Alignment: 4,
@@ -235,11 +230,10 @@ var List = map[string]map[string]*Target{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
 				SyscallPrefix:          "SYS_",
-				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: false,
 			},
 		},
-		TestArch32ForkShmem: {
+		TestArch32Fork: {
 			PtrSize:  4,
 			PageSize: 4 << 10,
 			CFlags:   []string{"-static-pie"},
@@ -247,7 +241,6 @@ var List = map[string]map[string]*Target{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
 				SyscallPrefix:          "SYS_",
-				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: true,
 				HostFuzzer:             true,
 			},
@@ -498,7 +491,6 @@ var oses = map[string]osCommon{
 	Linux: {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",
-		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
 		PseudoSyscallDeps: map[string][]string{
@@ -515,7 +507,6 @@ var oses = map[string]osCommon{
 		SyscallNumbers:         true,
 		Int64SyscallArgs:       true,
 		SyscallPrefix:          "SYS_",
-		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "kernel.full",
 		CPP:                    "g++",
@@ -530,10 +521,9 @@ var oses = map[string]osCommon{
 		},
 	},
 	Darwin: {
-		SyscallNumbers:    true,
-		Int64SyscallArgs:  true,
-		SyscallPrefix:     "SYS_",
-		ExecutorUsesShmem: true,
+		SyscallNumbers:   true,
+		Int64SyscallArgs: true,
+		SyscallPrefix:    "SYS_",
 		// FIXME(HerrSpace): ForkServer is b0rked in a peculiar way. I did some
 		// printf debugging in parseOutput in ipc.go. It usually works for a
 		// few executions. Eventually the reported ncmd stops making sense and
@@ -553,14 +543,12 @@ var oses = map[string]osCommon{
 		BuildOS:                Linux,
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
-		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "netbsd.gdb",
 	},
 	OpenBSD: {
 		SyscallNumbers:         false,
 		SyscallPrefix:          "SYS_",
-		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "bsd.gdb",
 		CPP:                    "ecpp",
@@ -568,7 +556,6 @@ var oses = map[string]osCommon{
 	Fuchsia: {
 		BuildOS:                Linux,
 		SyscallNumbers:         false,
-		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		HostFuzzer:             true,
 		ExecutorBin:            "syz-executor",
@@ -576,7 +563,6 @@ var oses = map[string]osCommon{
 	},
 	Windows: {
 		SyscallNumbers:         false,
-		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
@@ -765,7 +751,6 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	// Temporal hack.
 	if OS == Linux && os.Getenv("SYZ_STARNIX_HACK") != "" {
-		target.ExecutorUsesShmem = false
 		target.ExecutorUsesForkServer = false
 		target.HostFuzzer = true
 	}
