@@ -25,7 +25,6 @@ static void cover_mmap(cover_t* cov)
 {
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 static void cover_unprotect(cover_t* cov)
 {
 }
@@ -34,4 +33,3 @@ static bool use_cover_edges(uint64 pc)
 {
 	return true;
 }
-#endif

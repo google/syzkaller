@@ -28,7 +28,6 @@ func Default(target *prog.Target) (*ipc.Config, *flatrpc.ExecOpts, error) {
 		Executor: *flagExecutor,
 		Timeouts: sysTarget.Timeouts(*flagSlowdown),
 	}
-	c.UseShmem = sysTarget.ExecutorUsesShmem
 	c.UseForkServer = sysTarget.ExecutorUsesForkServer
 	c.RateLimit = sysTarget.HostFuzzer && target.OS != targets.TestOS
 

@@ -50,9 +50,6 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	if len(pcs) == 0 {
 		return nil, nil, nil
 	}
-	if !cfg.SysTarget.ExecutorUsesShmem {
-		return nil, nil, fmt.Errorf("coverage filter is only supported for targets that use shmem")
-	}
 	// Copy pcs into execPCs. This is used to filter coverage in the executor.
 	execPCs := make(map[uint64]uint32)
 	for pc, val := range pcs {

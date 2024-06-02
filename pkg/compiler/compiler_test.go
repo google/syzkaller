@@ -67,7 +67,7 @@ func TestData(t *testing.T) {
 	// E.g. if we failed to parse descriptions, we won't run type checking at all.
 	// Because of this we have one file per phase.
 	for _, name := range []string{"errors.txt", "errors2.txt", "errors3.txt", "warnings.txt", "all.txt"} {
-		for _, arch := range []string{targets.TestArch32Shmem, targets.TestArch64} {
+		for _, arch := range []string{targets.TestArch32, targets.TestArch64} {
 			name, arch := name, arch
 			t.Run(fmt.Sprintf("%v/%v", name, arch), func(t *testing.T) {
 				t.Parallel()

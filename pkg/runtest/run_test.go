@@ -107,7 +107,6 @@ func test(t *testing.T, sysTarget *targets.Target) {
 func runTest(req *queue.Request, executor string) *queue.Result {
 	cfg := new(ipc.Config)
 	sysTarget := targets.Get(req.Prog.Target.OS, req.Prog.Target.Arch)
-	cfg.UseShmem = sysTarget.ExecutorUsesShmem
 	cfg.UseForkServer = sysTarget.ExecutorUsesForkServer
 	cfg.Timeouts = sysTarget.Timeouts(1)
 	cfg.Executor = executor

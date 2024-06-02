@@ -1,7 +1,6 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#if SYZ_EXECUTOR_USES_SHMEM
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -52,9 +51,3 @@ static bool coverage_filter(uint64 pc)
 	uint64 shift = pc % 8;
 	return (cov_filter->bitmap[idx] & (1 << shift)) > 0;
 }
-
-#else
-static void init_coverage_filter(char* filename)
-{
-}
-#endif

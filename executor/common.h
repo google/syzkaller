@@ -654,7 +654,7 @@ static void loop(void)
 #if SYZ_EXECUTOR
 			close(kInPipeFd);
 #endif
-#if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+#if SYZ_EXECUTOR
 			close(kOutPipeFd);
 #endif
 			execute_one();
@@ -672,7 +672,7 @@ static void loop(void)
 		// should be as efficient as sigtimedwait.
 		int status = 0;
 		uint64 start = current_time_ms();
-#if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+#if SYZ_EXECUTOR
 		uint64 last_executed = start;
 		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 #endif
@@ -681,7 +681,6 @@ static void loop(void)
 				break;
 			sleep_ms(1);
 #if SYZ_EXECUTOR
-#if SYZ_EXECUTOR_USES_SHMEM
 			// Even though the test process executes exit at the end
 			// and execution time of each syscall is bounded by syscall_timeout_ms (~50ms),
 			// this backup watchdog is necessary and its performance is important.
@@ -704,10 +703,6 @@ static void loop(void)
 			if ((now - start < program_timeout_ms) &&
 			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
 				continue;
-#else
-			if (current_time_ms() - start < program_timeout_ms)
-				continue;
-#endif
 #else
 			if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
 				continue;

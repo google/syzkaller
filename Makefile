@@ -363,12 +363,8 @@ presubmit_arch_executor: descriptions
 	TARGETOS=fuchsia TARGETARCH=arm64 TARGETVMARCH=arm64 $(MAKE) executor
 	TARGETOS=test TARGETARCH=64 TARGETVMARCH=64 $(MAKE) executor
 	TARGETOS=test TARGETARCH=64_fork TARGETVMARCH=64_fork $(MAKE) executor
-	TARGETOS=test TARGETARCH=32_shmem TARGETVMARCH=32_shmem $(MAKE) executor
-	TARGETOS=test TARGETARCH=32_fork_shmem TARGETVMARCH=32_fork_shmem $(MAKE) executor
-	TARGETOS=test TARGETARCH=64 TARGETVMARCH=64 $(MAKE) executor
-	TARGETOS=test TARGETARCH=64_fork TARGETVMARCH=64_fork $(MAKE) executor
-	TARGETOS=test TARGETARCH=32_shmem TARGETVMARCH=32_shmem $(MAKE) executor
-	TARGETOS=test TARGETARCH=32_fork_shmem TARGETVMARCH=32_fork_shmem $(MAKE) executor
+	TARGETOS=test TARGETARCH=32 TARGETVMARCH=32 $(MAKE) executor
+	TARGETOS=test TARGETARCH=32_fork TARGETVMARCH=32_fork $(MAKE) executor
 
 presubmit_dashboard: descriptions
 	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app
