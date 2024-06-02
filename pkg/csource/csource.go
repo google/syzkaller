@@ -409,11 +409,11 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 				panic("bitfield+string format")
 			}
 			htobe := ""
-			if ctx.target.LittleEndian && arg.Format == prog.FormatBigEndian {
+			if !ctx.target.BigEndian && arg.Format == prog.FormatBigEndian {
 				htobe = fmt.Sprintf("htobe%v", arg.Size*8)
 			}
 			bitfieldOffset := arg.BitfieldOffset
-			if !ctx.target.LittleEndian {
+			if ctx.target.BigEndian {
 				bitfieldOffset = arg.Size*8 - arg.BitfieldOffset - arg.BitfieldLength
 			}
 			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",

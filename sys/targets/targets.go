@@ -25,7 +25,7 @@ type Target struct {
 	NumPages         uint64
 	DataOffset       uint64
 	Int64Alignment   uint64
-	LittleEndian     bool
+	BigEndian        bool
 	CFlags           []string
 	CxxFlags         []string
 	Triple           string
@@ -250,7 +250,6 @@ var List = map[string]map[string]*Target{
 		AMD64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			CFlags:           []string{"-m64"},
 			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "x86_64",
@@ -266,7 +265,6 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
-			LittleEndian:     true,
 			CFlags:           []string{"-m32"},
 			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "i386",
@@ -275,7 +273,6 @@ var List = map[string]map[string]*Target{
 		ARM64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			Triple:           "aarch64-linux-gnu",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
@@ -284,7 +281,6 @@ var List = map[string]map[string]*Target{
 			VMArch:           ARM64,
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
@@ -293,7 +289,6 @@ var List = map[string]map[string]*Target{
 		MIPS64LE: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
 			Triple:           "mips64el-linux-gnuabi64",
 			KernelArch:       "mips",
@@ -302,7 +297,6 @@ var List = map[string]map[string]*Target{
 		PPC64LE: {
 			PtrSize:          8,
 			PageSize:         64 << 10,
-			LittleEndian:     true,
 			CFlags:           []string{"-D__powerpc64__"},
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
@@ -313,7 +307,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			DataOffset:       0xfffff000,
 			CFlags:           []string{"-fPIE"},
-			LittleEndian:     false,
+			BigEndian:        true,
 			Triple:           "s390x-linux-gnu",
 			KernelArch:       "s390",
 			KernelHeaderArch: "s390",
@@ -328,7 +322,6 @@ var List = map[string]map[string]*Target{
 		RiscV64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			Triple:           "riscv64-linux-gnu",
 			KernelArch:       "riscv",
 			KernelHeaderArch: "riscv",
@@ -336,22 +329,20 @@ var List = map[string]map[string]*Target{
 	},
 	FreeBSD: {
 		AMD64: {
-			PtrSize:      8,
-			PageSize:     4 << 10,
-			LittleEndian: true,
-			CCompiler:    "clang",
-			CFlags:       []string{"-m64", "--target=x86_64-unknown-freebsd14.0"},
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CCompiler: "clang",
+			CFlags:    []string{"-m64", "--target=x86_64-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
 			},
 		},
 		ARM64: {
-			PtrSize:      8,
-			PageSize:     4 << 10,
-			LittleEndian: true,
-			CCompiler:    "clang",
-			CFlags:       []string{"-m64", "--target=aarch64-unknown-freebsd14.0"},
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CCompiler: "clang",
+			CFlags:    []string{"-m64", "--target=aarch64-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
@@ -365,7 +356,6 @@ var List = map[string]map[string]*Target{
 			// FreeBSD and using ld.lld due to collisions.
 			DataOffset:     256 << 20,
 			Int64Alignment: 4,
-			LittleEndian:   true,
 			CCompiler:      "clang",
 			CFlags:         []string{"-m32", "--target=i386-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
@@ -374,11 +364,10 @@ var List = map[string]map[string]*Target{
 			},
 		},
 		RiscV64: {
-			PtrSize:      8,
-			PageSize:     4 << 10,
-			LittleEndian: true,
-			CCompiler:    "clang",
-			CFlags:       []string{"-m64", "--target=riscv64-unknown-freebsd14.0"},
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CCompiler: "clang",
+			CFlags:    []string{"-m64", "--target=riscv64-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
@@ -387,11 +376,10 @@ var List = map[string]map[string]*Target{
 	},
 	Darwin: {
 		AMD64: {
-			PtrSize:      8,
-			PageSize:     4 << 10,
-			DataOffset:   512 << 24,
-			LittleEndian: true,
-			CCompiler:    "clang",
+			PtrSize:    8,
+			PageSize:   4 << 10,
+			DataOffset: 512 << 24,
+			CCompiler:  "clang",
 			CFlags: []string{
 				"-m64",
 				"-I", sourceDirVar + "/san",
@@ -403,9 +391,8 @@ var List = map[string]map[string]*Target{
 	},
 	NetBSD: {
 		AMD64: {
-			PtrSize:      8,
-			PageSize:     4 << 10,
-			LittleEndian: true,
+			PtrSize:  8,
+			PageSize: 4 << 10,
 			CFlags: []string{
 				"-m64",
 				"-static-pie",
@@ -416,10 +403,9 @@ var List = map[string]map[string]*Target{
 	},
 	OpenBSD: {
 		AMD64: {
-			PtrSize:      8,
-			PageSize:     4 << 10,
-			LittleEndian: true,
-			CCompiler:    "c++",
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CCompiler: "c++",
 			// PIE is enabled on OpenBSD by default, so no need for -static-pie.
 			CFlags: []string{"-m64", "-static", "-lutil"},
 			NeedSyscallDefine: func(nr uint64) bool {
@@ -453,7 +439,6 @@ var List = map[string]map[string]*Target{
 		AMD64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			KernelHeaderArch: "x64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
@@ -462,7 +447,6 @@ var List = map[string]map[string]*Target{
 		ARM64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			LittleEndian:     true,
 			KernelHeaderArch: ARM64,
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
@@ -473,15 +457,13 @@ var List = map[string]map[string]*Target{
 		AMD64: {
 			PtrSize: 8,
 			// TODO(dvyukov): what should we do about 4k vs 64k?
-			PageSize:     4 << 10,
-			LittleEndian: true,
+			PageSize: 4 << 10,
 		},
 	},
 	Trusty: {
 		ARM: {
 			PtrSize:           4,
 			PageSize:          4 << 10,
-			LittleEndian:      true,
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
@@ -738,15 +720,12 @@ func initTarget(target *Target, OS, arch string) {
 		target.CFlags = append(target.CFlags, flags...)
 	}
 	if OS == TestOS {
-		if runtime.GOARCH != S390x {
-			target.LittleEndian = true
-		} else {
-			target.LittleEndian = false
+		if runtime.GOARCH == S390x {
+			target.BigEndian = true
 		}
 	}
-	if target.LittleEndian {
-		target.HostEndian = binary.LittleEndian
-	} else {
+	target.HostEndian = binary.LittleEndian
+	if target.BigEndian {
 		target.HostEndian = binary.BigEndian
 	}
 	// Temporal hack.
