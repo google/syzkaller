@@ -1,4 +1,4 @@
-# requires: littleendian
+# requires: -bigendian
 
 syz_compare(&AUTO="1111111122222222", AUTO, &AUTO=@overlay0={0x11111111, 0x22222222, <r0=>0x0, <r1=>0x0}, AUTO)
 syz_compare(&AUTO="11111111", AUTO, &AUTO=@overlayres=@res32=r0, AUTO)

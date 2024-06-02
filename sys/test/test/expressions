@@ -1,4 +1,4 @@
-# requires: littleendian
+# requires: -bigendian
 
 syz_compare(&AUTO="00000000", 0x4, &AUTO=@conditional={0x0, @void, @void}, AUTO)
 syz_compare(&AUTO="02000000ffffffff", 0x8, &AUTO=@conditional={0x2, @value={AUTO}, @void}, AUTO)

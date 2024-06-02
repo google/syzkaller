@@ -232,7 +232,7 @@ nextSandbox:
 		properties := map[string]bool{
 			"manual":             ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
 			"sandbox=" + sandbox: true,
-			"littleendian":       ctx.Target.LittleEndian,
+			"bigendian":          sysTarget.BigEndian,
 		}
 		for _, threaded := range []bool{false, true} {
 			name := name

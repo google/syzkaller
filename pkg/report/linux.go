@@ -5,7 +5,6 @@ package report
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -580,11 +579,6 @@ func (ctx *linux) decompileWithOffset(parsed parsedOpcodes) (*decompiledOpcodes,
 }
 
 func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
-	binaryOps := binary.ByteOrder(binary.BigEndian)
-	if ctx.target.LittleEndian {
-		binaryOps = binary.LittleEndian
-	}
-
 	width := 0
 	bytes := []byte{}
 	trapOffset := -1
@@ -620,11 +614,11 @@ func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
 		case 1:
 			extraBytes[0] = byte(number)
 		case 2:
-			binaryOps.PutUint16(extraBytes, uint16(number))
+			ctx.target.HostEndian.PutUint16(extraBytes, uint16(number))
 		case 4:
-			binaryOps.PutUint32(extraBytes, uint32(number))
+			ctx.target.HostEndian.PutUint32(extraBytes, uint32(number))
 		case 8:
-			binaryOps.PutUint64(extraBytes, number)
+			ctx.target.HostEndian.PutUint64(extraBytes, number)
 		default:
 			return parsedOpcodes{}, fmt.Errorf("invalid opcodes string: invalid width %v", width)
 		}
