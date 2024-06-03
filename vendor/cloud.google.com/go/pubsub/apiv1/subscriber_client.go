@@ -19,6 +19,7 @@ package pubsub
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -1795,7 +1796,7 @@ func (c *subscriberRESTClient) Pull(ctx context.Context, req *pubsubpb.PullReque
 //
 // This method is not supported for the REST transport.
 func (c *subscriberRESTClient) StreamingPull(ctx context.Context, opts ...gax.CallOption) (pubsubpb.Subscriber_StreamingPullClient, error) {
-	return nil, fmt.Errorf("StreamingPull not yet supported for REST clients")
+	return nil, errors.New("StreamingPull not yet supported for REST clients")
 }
 
 // ModifyPushConfig modifies the PushConfig for a specified subscription.
