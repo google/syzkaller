@@ -24,7 +24,7 @@ func TestCreateBitmap(t *testing.T) {
 	}
 	bitmap := createCoverageBitmap(cfg, pcs)
 	start := order.Uint64(bitmap[0:])
-	size := order.Uint32(bitmap[8:])
+	size := order.Uint64(bitmap[8:])
 	if start != 0x81000002 || size != 0x20001b {
 		t.Fatalf("bad region 0x%x/0x%x", start, size)
 	}
