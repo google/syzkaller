@@ -96,6 +96,12 @@ type messageIterator struct {
 	eoMu                      sync.RWMutex
 	enableExactlyOnceDelivery bool
 	sendNewAckDeadline        bool
+
+	orderingMu sync.RWMutex
+	// enableOrdering determines if messages should be processed in order. This is populated
+	// by the response in StreamingPull and can change mid Receive. Must be accessed
+	// with the lock held.
+	enableOrdering bool
 }
 
 // newMessageIterator starts and returns a new messageIterator.
@@ -352,12 +358,30 @@ func (it *messageIterator) recvMessages() ([]*pb.ReceivedMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	it.eoMu.Lock()
-	if got := res.GetSubscriptionProperties().GetExactlyOnceDeliveryEnabled(); got != it.enableExactlyOnceDelivery {
+
+	// If the new exactly once settings are different than the current settings, update it.
+	it.eoMu.RLock()
+	enableEOD := it.enableExactlyOnceDelivery
+	it.eoMu.RUnlock()
+
+	subProp := res.GetSubscriptionProperties()
+	if got := subProp.GetExactlyOnceDeliveryEnabled(); got != enableEOD {
+		it.eoMu.Lock()
 		it.sendNewAckDeadline = true
 		it.enableExactlyOnceDelivery = got
+		it.eoMu.Unlock()
 	}
-	it.eoMu.Unlock()
+
+	// Also update the subscriber's ordering setting if stale.
+	it.orderingMu.RLock()
+	enableOrdering := it.enableOrdering
+	it.orderingMu.RUnlock()
+
+	if got := subProp.GetMessageOrderingEnabled(); got != enableOrdering {
+		it.orderingMu.Lock()
+		it.enableOrdering = got
+		it.orderingMu.Unlock()
+	}
 	return res.ReceivedMessages, nil
 }
 
