@@ -906,9 +906,11 @@ func (target *Target) lazyInit() {
 	// On CI we want to fail loudly if cross-compilation breaks.
 	// Also fail if SOURCEDIR_GOOS is set b/c in that case user probably assumes it will work.
 	if (target.OS != runtime.GOOS || !runningOnCI) && getSourceDir(target) == "" {
-		if _, err := exec.LookPath(target.CCompiler); err != nil {
-			target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", target.CCompiler, err)
-			return
+		for _, comp := range []string{target.CCompiler, target.CxxCompiler} {
+			if _, err := exec.LookPath(comp); err != nil {
+				target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", comp, err)
+				return
+			}
 		}
 	}
 
@@ -967,13 +969,19 @@ func (target *Target) lazyInit() {
 	if runningOnCI || getSourceDir(target) != "" {
 		return // On CI all compilers are expected to work, so we don't do the following check.
 	}
-	args := []string{"-x", "c++", "-", "-o", "/dev/null"}
-	args = append(args, target.CFlags...)
-	cmd := exec.Command(target.CCompiler, args...)
-	cmd.Stdin = strings.NewReader(simpleProg)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		target.BrokenCompiler = string(out)
-		return
+	for _, cxx := range []bool{false, true} {
+		lang, comp, flags := "c", target.CCompiler, target.CFlags
+		if cxx {
+			lang, comp, flags = "c++", target.CxxCompiler, target.CxxFlags
+		}
+		args := []string{"-x", lang, "-", "-o", "/dev/null"}
+		args = append(args, flags...)
+		cmd := exec.Command(comp, args...)
+		cmd.Stdin = strings.NewReader(simpleProg)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			target.BrokenCompiler = string(out)
+			return
+		}
 	}
 }
 
