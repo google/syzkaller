@@ -199,7 +199,7 @@ void* aslr_base() {
               dlinfo(handle, RTLD_DI_LINKMAP, &map);
               dlclose(handle);
        }
-       return map ? map->l_addr : NULL;
+       return map ? (void *)map->l_addr : NULL;
 }
 #else
 void* aslr_base() { return NULL; }
