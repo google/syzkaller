@@ -25,7 +25,7 @@ require (
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
 	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.20.0
-	golang.org/x/tools v0.20.0
+	golang.org/x/tools v0.21.0
 	google.golang.org/api v0.182.0
 	google.golang.org/appengine/v2 v2.0.5
 	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda
