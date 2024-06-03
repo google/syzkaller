@@ -970,14 +970,14 @@ func (target *Target) lazyInit() {
 		return // On CI all compilers are expected to work, so we don't do the following check.
 	}
 	for _, cxx := range []bool{false, true} {
-		lang, comp, flags := "c", target.CCompiler, target.CFlags
+		lang, prog, comp, flags := "c", simpleCProg, target.CCompiler, target.CFlags
 		if cxx {
-			lang, comp, flags = "c++", target.CxxCompiler, target.CxxFlags
+			lang, prog, comp, flags = "c++", simpleCxxProg, target.CxxCompiler, target.CxxFlags
 		}
 		args := []string{"-x", lang, "-", "-o", "/dev/null"}
 		args = append(args, flags...)
 		cmd := exec.Command(comp, args...)
-		cmd.Stdin = strings.NewReader(simpleProg)
+		cmd.Stdin = strings.NewReader(prog)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			target.BrokenCompiler = string(out)
 			return
@@ -989,7 +989,7 @@ func checkFlagSupported(target *Target, targetCFlags []string, flag string) bool
 	args := []string{"-x", "c++", "-", "-o", "/dev/null", "-Werror", flag}
 	args = append(args, targetCFlags...)
 	cmd := exec.Command(target.CCompiler, args...)
-	cmd.Stdin = strings.NewReader(simpleProg)
+	cmd.Stdin = strings.NewReader(simpleCProg)
 	return cmd.Run() == nil
 }
 
@@ -1082,10 +1082,14 @@ var (
 
 const (
 	sourceDirVar = "${SOURCEDIR}"
-	simpleProg   = `
+	simpleCProg  = `
 #include <stdio.h>
 #include <dirent.h> // ensures that system headers are installed
-#include <algorithm> // ensures that C++ headers are installed
 int main() { printf("Hello, World!\n"); }
+`
+	simpleCxxProg = `
+#include <algorithm> // ensures that C++ headers are installed
+#include <vector>
+int main() { std::vector<int> v(10); }
 `
 )
