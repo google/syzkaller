@@ -63,8 +63,8 @@ cloud.google.com/go/pubsub/apiv1/pubsubpb
 cloud.google.com/go/pubsub/internal
 cloud.google.com/go/pubsub/internal/distribution
 cloud.google.com/go/pubsub/internal/scheduler
-# cloud.google.com/go/secretmanager v1.12.0
-## explicit; go 1.19
+# cloud.google.com/go/secretmanager v1.13.1
+## explicit; go 1.20
 cloud.google.com/go/secretmanager/apiv1
 cloud.google.com/go/secretmanager/apiv1/secretmanagerpb
 cloud.google.com/go/secretmanager/internal
@@ -1099,6 +1099,7 @@ google.golang.org/appengine/v2/user
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/appengine/logging/v1
 google.golang.org/genproto/googleapis/cloud/audit
+google.golang.org/genproto/googleapis/cloud/location
 google.golang.org/genproto/googleapis/devtools/cloudprofiler/v2
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/logging/type
