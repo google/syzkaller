@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/logging v1.10.0
 	cloud.google.com/go/profiler v0.4.0
 	cloud.google.com/go/pubsub v1.37.0
-	cloud.google.com/go/secretmanager v1.12.0
+	cloud.google.com/go/secretmanager v1.13.1
 	cloud.google.com/go/storage v1.40.0
 	github.com/bsm/histogram/v3 v3.0.2
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
