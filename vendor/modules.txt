@@ -1080,7 +1080,7 @@ google.golang.org/api/transport
 google.golang.org/api/transport/grpc
 google.golang.org/api/transport/http
 google.golang.org/api/transport/http/internal/propagation
-# google.golang.org/appengine/v2 v2.0.5
+# google.golang.org/appengine/v2 v2.0.6
 ## explicit; go 1.11
 google.golang.org/appengine/v2
 google.golang.org/appengine/v2/aetest
