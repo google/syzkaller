@@ -150,6 +150,7 @@ descriptions:
 
 .descriptions: sys/*/*.txt sys/*/*.const bin/syz-sysgen
 	bin/syz-sysgen
+	$(GO) fmt ./sys/... >/dev/null
 	touch .descriptions
 
 manager: descriptions
