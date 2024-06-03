@@ -1,5 +1,17 @@
 # Changes
 
+## [0.114.0](https://github.com/googleapis/google-cloud-go/compare/v0.113.0...v0.114.0) (2024-05-23)
+
+
+### Features
+
+* **civil:** Add Compare method to Date, Time, and DateTime ([#10193](https://github.com/googleapis/google-cloud-go/issues/10193)) ([c2920d7](https://github.com/googleapis/google-cloud-go/commit/c2920d7c9007a11d9232c628fba5496197deeba4))
+
+
+### Bug Fixes
+
+* **internal/postprocessor:** Add scopes to all appropriate commit lines ([#10192](https://github.com/googleapis/google-cloud-go/issues/10192)) ([c21399b](https://github.com/googleapis/google-cloud-go/commit/c21399bdc362c6c646c2c0f8c2c55903898e0eab))
+
 ## [0.113.0](https://github.com/googleapis/google-cloud-go/compare/v0.112.2...v0.113.0) (2024-05-08)
 
 
