@@ -91,6 +91,18 @@ func main() {
 		}
 		osutil.MkdirAll(filepath.Join(*outDir, "sys", OS, "gen"))
 
+		// Cleanup old files in the case set of architectures has chnaged.
+		allFiles, err := filepath.Glob(filepath.Join(*outDir, "sys", OS, "gen", "*.go"))
+		if err != nil {
+			tool.Failf("failed to glob: %v", err)
+		}
+		for _, file := range allFiles {
+			if strings.HasSuffix(file, "empty.go") {
+				continue
+			}
+			os.Remove(file)
+		}
+
 		var archs []string
 		for arch := range targets.List[OS] {
 			archs = append(archs, arch)
