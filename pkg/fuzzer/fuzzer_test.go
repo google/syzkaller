@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,14 +21,13 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
+	"github.com/google/syzkaller/pkg/rpcserver"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/sync/errgroup"
 )
 
 func TestFuzz(t *testing.T) {
@@ -42,15 +42,14 @@ func TestFuzz(t *testing.T) {
 		t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 	}
 	executor := csource.BuildExecutor(t, target, "../..", "-fsanitize-coverage=trace-pc", "-g")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	_, opts, _ := ipcconfig.Default(target)
 	corpusUpdates := make(chan corpus.NewItemEvent)
 	fuzzer := NewFuzzer(ctx, &Config{
-		Debug:    true,
-		BaseOpts: *opts,
-		Corpus:   corpus.NewMonitoredCorpus(ctx, corpusUpdates),
+		Debug:  true,
+		Corpus: corpus.NewMonitoredCorpus(ctx, corpusUpdates),
 		Logf: func(level int, msg string, args ...interface{}) {
 			if level > 1 {
 				return
@@ -74,24 +73,24 @@ func TestFuzz(t *testing.T) {
 		}
 	}()
 
-	tf := newTestFuzzer(t, fuzzer, map[string]bool{
-		"first bug":  true,
-		"second bug": true,
-	}, 10000)
-
-	for i := 0; i < 2; i++ {
-		tf.registerExecutor(newProc(t, target, executor))
+	tf := &testFuzzer{
+		t:         t,
+		target:    target,
+		fuzzer:    fuzzer,
+		executor:  executor,
+		iterLimit: 10000,
+		expectedCrashes: map[string]bool{
+			"first bug":  true,
+			"second bug": true,
+		},
 	}
-	tf.wait()
+	tf.run()
 
 	t.Logf("resulting corpus:")
 	for _, p := range fuzzer.Config.Corpus.Programs() {
 		t.Logf("-----")
 		t.Logf("%s", p.Serialize())
 	}
-
-	assert.Equal(t, len(tf.expectedCrashes), len(tf.crashes),
-		"not all expected crashes were found")
 }
 
 func BenchmarkFuzzer(b *testing.B) {
@@ -204,113 +203,86 @@ func emulateExec(req *queue.Request) (*queue.Result, string, error) {
 
 type testFuzzer struct {
 	t               testing.TB
-	eg              errgroup.Group
+	target          *prog.Target
 	fuzzer          *Fuzzer
+	executor        string
 	mu              sync.Mutex
 	crashes         map[string]int
 	expectedCrashes map[string]bool
 	iter            int
 	iterLimit       int
+	done            func()
+	finished        atomic.Bool
 }
 
-func newTestFuzzer(t testing.TB, fuzzer *Fuzzer, expectedCrashes map[string]bool, iterLimit int) *testFuzzer {
-	return &testFuzzer{
-		t:               t,
-		fuzzer:          fuzzer,
-		expectedCrashes: expectedCrashes,
-		crashes:         map[string]int{},
-		iterLimit:       iterLimit,
+func (f *testFuzzer) run() {
+	f.crashes = make(map[string]int)
+	ctx, done := context.WithCancel(context.Background())
+	f.done = done
+	cfg := &rpcserver.LocalConfig{
+		Config: rpcserver.Config{
+			Config: vminfo.Config{
+				Target:   f.target,
+				Features: flatrpc.FeatureSandboxNone,
+				Sandbox:  flatrpc.ExecEnvSandboxNone,
+			},
+			Procs:    4,
+			Slowdown: 1,
+		},
+		Executor: f.executor,
+		Dir:      f.t.TempDir(),
+		Context:  ctx,
 	}
+	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
+		cfg.Cover = true
+		return f
+	}
+	if err := rpcserver.RunLocal(cfg); err != nil {
+		f.t.Fatal(err)
+	}
+	assert.Equal(f.t, len(f.expectedCrashes), len(f.crashes), "not all expected crashes were found")
 }
 
-func (f *testFuzzer) oneMore() bool {
+func (f *testFuzzer) Next() *queue.Request {
+	if f.finished.Load() {
+		return nil
+	}
+	req := f.fuzzer.Next()
+	req.ExecOpts.EnvFlags |= flatrpc.ExecEnvSignal | flatrpc.ExecEnvSandboxNone
+	req.ReturnOutput = true
+	req.ReturnError = true
+	req.OnDone(f.OnDone)
+	return req
+}
+
+func (f *testFuzzer) OnDone(req *queue.Request, res *queue.Result) bool {
+	// TODO: support hints emulation.
+	match := crashRe.FindSubmatch(res.Output)
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if match != nil {
+		crash := string(match[1])
+		f.t.Logf("CRASH: %s", crash)
+		res.Status = queue.Crashed
+		if !f.expectedCrashes[crash] {
+			f.t.Errorf("unexpected crash: %q", crash)
+		}
+		f.crashes[crash]++
+	}
 	f.iter++
 	if f.iter%100 == 0 {
 		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d, running jobs %d",
 			f.iter, f.fuzzer.Config.Corpus.StatProgs.Val(), f.fuzzer.Config.Corpus.StatSignal.Val(),
 			len(f.fuzzer.Cover.maxSignal), len(f.crashes), f.fuzzer.statJobs.Val())
 	}
-	return f.iter < f.iterLimit &&
-		(f.expectedCrashes == nil || len(f.crashes) != len(f.expectedCrashes))
-}
-
-func (f *testFuzzer) registerExecutor(proc *executorProc) {
-	f.eg.Go(func() error {
-		for f.oneMore() {
-			req := f.fuzzer.Next()
-			res, crash, err := proc.execute(req)
-			if err != nil {
-				return err
-			}
-			if crash != "" {
-				res = &queue.Result{Status: queue.Crashed}
-				if !f.expectedCrashes[crash] {
-					return fmt.Errorf("unexpected crash: %q", crash)
-				}
-				f.mu.Lock()
-				f.t.Logf("CRASH: %s", crash)
-				f.crashes[crash]++
-				f.mu.Unlock()
-			}
-			req.Done(res)
-		}
-		return nil
-	})
-}
-
-func (f *testFuzzer) wait() {
-	t := f.t
-	err := f.eg.Wait()
-	if err != nil {
-		t.Fatal(err)
+	if !f.finished.Load() && (f.iter > f.iterLimit || len(f.crashes) == len(f.expectedCrashes)) {
+		f.done()
+		f.finished.Store(true)
 	}
-	t.Logf("crashes:")
-	for title, cnt := range f.crashes {
-		t.Logf("%s: %d", title, cnt)
-	}
-}
-
-// TODO: it's already implemented in syz-fuzzer/proc.go,
-// pkg/runtest and tools/syz-execprog.
-// Looks like it's time to factor out this functionality.
-type executorProc struct {
-	env      *ipc.Env
-	execOpts flatrpc.ExecOpts
-}
-
-func newProc(t *testing.T, target *prog.Target, executor string) *executorProc {
-	config, execOpts, err := ipcconfig.Default(target)
-	if err != nil {
-		t.Fatal(err)
-	}
-	config.Executor = executor
-	execOpts.EnvFlags |= flatrpc.ExecEnvSignal
-	env, err := ipc.MakeEnv(config, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { env.Close() })
-	return &executorProc{
-		env:      env,
-		execOpts: *execOpts,
-	}
+	return true
 }
 
 var crashRe = regexp.MustCompile(`{{CRASH: (.*?)}}`)
-
-func (proc *executorProc) execute(req *queue.Request) (*queue.Result, string, error) {
-	// TODO: support hints emulation.
-	output, info, _, err := proc.env.Exec(&req.ExecOpts, req.Prog)
-	ret := crashRe.FindStringSubmatch(string(output))
-	if ret != nil {
-		return nil, ret[1], nil
-	} else if err != nil {
-		return nil, "", err
-	}
-	return &queue.Result{Info: info}, "", nil
-}
 
 func checkGoroutineLeaks() {
 	// Inspired by src/net/http/main_test.go.

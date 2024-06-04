@@ -4,6 +4,7 @@
 package flatrpc
 
 import (
+	"fmt"
 	"slices"
 	"syscall"
 )
@@ -25,6 +26,7 @@ type HostMessage = HostMessageRawT
 type ExecutorMessages = ExecutorMessagesRawT
 type ExecutorMessage = ExecutorMessageRawT
 type ExecRequest = ExecRequestRawT
+type StateRequest = StateRequestRawT
 type SignalUpdate = SignalUpdateRawT
 type StartLeakChecks = StartLeakChecksRawT
 type ExecutingMessage = ExecutingMessageRawT
@@ -33,6 +35,7 @@ type Comparison = ComparisonRawT
 type ExecOpts = ExecOptsRawT
 type ProgInfo = ProgInfoRawT
 type ExecResult = ExecResultRawT
+type StateResult = StateResultRawT
 
 func (pi *ProgInfo) Clone() *ProgInfo {
 	if pi == nil {
@@ -71,9 +74,30 @@ func EmptyProgInfo(calls int) *ProgInfo {
 	return info
 }
 
-func (eo ExecOpts) MergeFlags(diff ExecOpts) ExecOpts {
-	ret := eo
-	ret.ExecFlags |= diff.ExecFlags
-	ret.EnvFlags |= diff.EnvFlags
-	return ret
+func SandboxToFlags(sandbox string) (ExecEnv, error) {
+	switch sandbox {
+	case "none":
+		return ExecEnvSandboxNone, nil
+	case "setuid":
+		return ExecEnvSandboxSetuid, nil
+	case "namespace":
+		return ExecEnvSandboxNamespace, nil
+	case "android":
+		return ExecEnvSandboxAndroid, nil
+	default:
+		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace/android")
+	}
+}
+
+func FlagsToSandbox(flags ExecEnv) string {
+	if flags&ExecEnvSandboxNone != 0 {
+		return "none"
+	} else if flags&ExecEnvSandboxSetuid != 0 {
+		return "setuid"
+	} else if flags&ExecEnvSandboxNamespace != 0 {
+		return "namespace"
+	} else if flags&ExecEnvSandboxAndroid != 0 {
+		return "android"
+	}
+	panic("no sandbox flags present")
 }

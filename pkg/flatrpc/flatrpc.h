@@ -65,6 +65,10 @@ struct StartLeakChecksRaw;
 struct StartLeakChecksRawBuilder;
 struct StartLeakChecksRawT;
 
+struct StateRequestRaw;
+struct StateRequestRawBuilder;
+struct StateRequestRawT;
+
 struct ExecutingMessageRaw;
 struct ExecutingMessageRawBuilder;
 struct ExecutingMessageRawT;
@@ -83,38 +87,44 @@ struct ExecResultRaw;
 struct ExecResultRawBuilder;
 struct ExecResultRawT;
 
+struct StateResultRaw;
+struct StateResultRawBuilder;
+struct StateResultRawT;
+
 enum class Feature : uint64_t {
   Coverage = 1ULL,
   Comparisons = 2ULL,
   ExtraCoverage = 4ULL,
   DelayKcovMmap = 8ULL,
-  SandboxSetuid = 16ULL,
-  SandboxNamespace = 32ULL,
-  SandboxAndroid = 64ULL,
-  Fault = 128ULL,
-  Leak = 256ULL,
-  NetInjection = 512ULL,
-  NetDevices = 1024ULL,
-  KCSAN = 2048ULL,
-  DevlinkPCI = 4096ULL,
-  NicVF = 8192ULL,
-  USBEmulation = 16384ULL,
-  VhciInjection = 32768ULL,
-  WifiEmulation = 65536ULL,
-  LRWPANEmulation = 131072ULL,
-  BinFmtMisc = 262144ULL,
-  Swap = 524288ULL,
+  SandboxNone = 16ULL,
+  SandboxSetuid = 32ULL,
+  SandboxNamespace = 64ULL,
+  SandboxAndroid = 128ULL,
+  Fault = 256ULL,
+  Leak = 512ULL,
+  NetInjection = 1024ULL,
+  NetDevices = 2048ULL,
+  KCSAN = 4096ULL,
+  DevlinkPCI = 8192ULL,
+  NicVF = 16384ULL,
+  USBEmulation = 32768ULL,
+  VhciInjection = 65536ULL,
+  WifiEmulation = 131072ULL,
+  LRWPANEmulation = 262144ULL,
+  BinFmtMisc = 524288ULL,
+  Swap = 1048576ULL,
   NONE = 0,
-  ANY = 1048575ULL
+  ANY = 2097151ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(Feature, uint64_t)
 
-inline const Feature (&EnumValuesFeature())[20] {
+inline const Feature (&EnumValuesFeature())[21] {
   static const Feature values[] = {
     Feature::Coverage,
     Feature::Comparisons,
     Feature::ExtraCoverage,
     Feature::DelayKcovMmap,
+    Feature::SandboxNone,
     Feature::SandboxSetuid,
     Feature::SandboxNamespace,
     Feature::SandboxAndroid,
@@ -141,6 +151,7 @@ inline const char *EnumNameFeature(Feature e) {
     case Feature::Comparisons: return "Comparisons";
     case Feature::ExtraCoverage: return "ExtraCoverage";
     case Feature::DelayKcovMmap: return "DelayKcovMmap";
+    case Feature::SandboxNone: return "SandboxNone";
     case Feature::SandboxSetuid: return "SandboxSetuid";
     case Feature::SandboxNamespace: return "SandboxNamespace";
     case Feature::SandboxAndroid: return "SandboxAndroid";
@@ -166,33 +177,36 @@ enum class HostMessagesRaw : uint8_t {
   ExecRequest = 1,
   SignalUpdate = 2,
   StartLeakChecks = 3,
+  StateRequest = 4,
   MIN = NONE,
-  MAX = StartLeakChecks
+  MAX = StateRequest
 };
 
-inline const HostMessagesRaw (&EnumValuesHostMessagesRaw())[4] {
+inline const HostMessagesRaw (&EnumValuesHostMessagesRaw())[5] {
   static const HostMessagesRaw values[] = {
     HostMessagesRaw::NONE,
     HostMessagesRaw::ExecRequest,
     HostMessagesRaw::SignalUpdate,
-    HostMessagesRaw::StartLeakChecks
+    HostMessagesRaw::StartLeakChecks,
+    HostMessagesRaw::StateRequest
   };
   return values;
 }
 
 inline const char * const *EnumNamesHostMessagesRaw() {
-  static const char * const names[5] = {
+  static const char * const names[6] = {
     "NONE",
     "ExecRequest",
     "SignalUpdate",
     "StartLeakChecks",
+    "StateRequest",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameHostMessagesRaw(HostMessagesRaw e) {
-  if (flatbuffers::IsOutRange(e, HostMessagesRaw::NONE, HostMessagesRaw::StartLeakChecks)) return "";
+  if (flatbuffers::IsOutRange(e, HostMessagesRaw::NONE, HostMessagesRaw::StateRequest)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesHostMessagesRaw()[index];
 }
@@ -213,6 +227,10 @@ template<> struct HostMessagesRawTraits<rpc::StartLeakChecksRaw> {
   static const HostMessagesRaw enum_value = HostMessagesRaw::StartLeakChecks;
 };
 
+template<> struct HostMessagesRawTraits<rpc::StateRequestRaw> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::StateRequest;
+};
+
 template<typename T> struct HostMessagesRawUnionTraits {
   static const HostMessagesRaw enum_value = HostMessagesRaw::NONE;
 };
@@ -227,6 +245,10 @@ template<> struct HostMessagesRawUnionTraits<rpc::SignalUpdateRawT> {
 
 template<> struct HostMessagesRawUnionTraits<rpc::StartLeakChecksRawT> {
   static const HostMessagesRaw enum_value = HostMessagesRaw::StartLeakChecks;
+};
+
+template<> struct HostMessagesRawUnionTraits<rpc::StateRequestRawT> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::StateRequest;
 };
 
 struct HostMessagesRawUnion {
@@ -283,6 +305,14 @@ struct HostMessagesRawUnion {
     return type == HostMessagesRaw::StartLeakChecks ?
       reinterpret_cast<const rpc::StartLeakChecksRawT *>(value) : nullptr;
   }
+  rpc::StateRequestRawT *AsStateRequest() {
+    return type == HostMessagesRaw::StateRequest ?
+      reinterpret_cast<rpc::StateRequestRawT *>(value) : nullptr;
+  }
+  const rpc::StateRequestRawT *AsStateRequest() const {
+    return type == HostMessagesRaw::StateRequest ?
+      reinterpret_cast<const rpc::StateRequestRawT *>(value) : nullptr;
+  }
 };
 
 bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type);
@@ -292,31 +322,34 @@ enum class ExecutorMessagesRaw : uint8_t {
   NONE = 0,
   ExecResult = 1,
   Executing = 2,
+  State = 3,
   MIN = NONE,
-  MAX = Executing
+  MAX = State
 };
 
-inline const ExecutorMessagesRaw (&EnumValuesExecutorMessagesRaw())[3] {
+inline const ExecutorMessagesRaw (&EnumValuesExecutorMessagesRaw())[4] {
   static const ExecutorMessagesRaw values[] = {
     ExecutorMessagesRaw::NONE,
     ExecutorMessagesRaw::ExecResult,
-    ExecutorMessagesRaw::Executing
+    ExecutorMessagesRaw::Executing,
+    ExecutorMessagesRaw::State
   };
   return values;
 }
 
 inline const char * const *EnumNamesExecutorMessagesRaw() {
-  static const char * const names[4] = {
+  static const char * const names[5] = {
     "NONE",
     "ExecResult",
     "Executing",
+    "State",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameExecutorMessagesRaw(ExecutorMessagesRaw e) {
-  if (flatbuffers::IsOutRange(e, ExecutorMessagesRaw::NONE, ExecutorMessagesRaw::Executing)) return "";
+  if (flatbuffers::IsOutRange(e, ExecutorMessagesRaw::NONE, ExecutorMessagesRaw::State)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesExecutorMessagesRaw()[index];
 }
@@ -333,6 +366,10 @@ template<> struct ExecutorMessagesRawTraits<rpc::ExecutingMessageRaw> {
   static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Executing;
 };
 
+template<> struct ExecutorMessagesRawTraits<rpc::StateResultRaw> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::State;
+};
+
 template<typename T> struct ExecutorMessagesRawUnionTraits {
   static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::NONE;
 };
@@ -343,6 +380,10 @@ template<> struct ExecutorMessagesRawUnionTraits<rpc::ExecResultRawT> {
 
 template<> struct ExecutorMessagesRawUnionTraits<rpc::ExecutingMessageRawT> {
   static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::Executing;
+};
+
+template<> struct ExecutorMessagesRawUnionTraits<rpc::StateResultRawT> {
+  static const ExecutorMessagesRaw enum_value = ExecutorMessagesRaw::State;
 };
 
 struct ExecutorMessagesRawUnion {
@@ -391,6 +432,14 @@ struct ExecutorMessagesRawUnion {
     return type == ExecutorMessagesRaw::Executing ?
       reinterpret_cast<const rpc::ExecutingMessageRawT *>(value) : nullptr;
   }
+  rpc::StateResultRawT *AsState() {
+    return type == ExecutorMessagesRaw::State ?
+      reinterpret_cast<rpc::StateResultRawT *>(value) : nullptr;
+  }
+  const rpc::StateResultRawT *AsState() const {
+    return type == ExecutorMessagesRaw::State ?
+      reinterpret_cast<const rpc::StateResultRawT *>(value) : nullptr;
+  }
 };
 
 bool VerifyExecutorMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, ExecutorMessagesRaw type);
@@ -398,18 +447,16 @@ bool VerifyExecutorMessagesRawVector(flatbuffers::Verifier &verifier, const flat
 
 enum class RequestFlag : uint64_t {
   IsBinary = 1ULL,
-  ResetState = 2ULL,
-  ReturnOutput = 4ULL,
-  ReturnError = 8ULL,
+  ReturnOutput = 2ULL,
+  ReturnError = 4ULL,
   NONE = 0,
-  ANY = 15ULL
+  ANY = 7ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(RequestFlag, uint64_t)
 
-inline const RequestFlag (&EnumValuesRequestFlag())[4] {
+inline const RequestFlag (&EnumValuesRequestFlag())[3] {
   static const RequestFlag values[] = {
     RequestFlag::IsBinary,
-    RequestFlag::ResetState,
     RequestFlag::ReturnOutput,
     RequestFlag::ReturnError
   };
@@ -417,13 +464,9 @@ inline const RequestFlag (&EnumValuesRequestFlag())[4] {
 }
 
 inline const char * const *EnumNamesRequestFlag() {
-  static const char * const names[9] = {
+  static const char * const names[5] = {
     "IsBinary",
-    "ResetState",
-    "",
     "ReturnOutput",
-    "",
-    "",
     "",
     "ReturnError",
     nullptr
@@ -440,29 +483,33 @@ inline const char *EnumNameRequestFlag(RequestFlag e) {
 enum class ExecEnv : uint64_t {
   Debug = 1ULL,
   Signal = 2ULL,
-  SandboxSetuid = 4ULL,
-  SandboxNamespace = 8ULL,
-  SandboxAndroid = 16ULL,
-  ExtraCover = 32ULL,
-  EnableTun = 64ULL,
-  EnableNetDev = 128ULL,
-  EnableNetReset = 256ULL,
-  EnableCgroups = 512ULL,
-  EnableCloseFds = 1024ULL,
-  EnableDevlinkPCI = 2048ULL,
-  EnableVhciInjection = 4096ULL,
-  EnableWifi = 8192ULL,
-  DelayKcovMmap = 16384ULL,
-  EnableNicVF = 32768ULL,
+  ResetState = 4ULL,
+  SandboxNone = 8ULL,
+  SandboxSetuid = 16ULL,
+  SandboxNamespace = 32ULL,
+  SandboxAndroid = 64ULL,
+  ExtraCover = 128ULL,
+  EnableTun = 256ULL,
+  EnableNetDev = 512ULL,
+  EnableNetReset = 1024ULL,
+  EnableCgroups = 2048ULL,
+  EnableCloseFds = 4096ULL,
+  EnableDevlinkPCI = 8192ULL,
+  EnableVhciInjection = 16384ULL,
+  EnableWifi = 32768ULL,
+  DelayKcovMmap = 65536ULL,
+  EnableNicVF = 131072ULL,
   NONE = 0,
-  ANY = 65535ULL
+  ANY = 262143ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(ExecEnv, uint64_t)
 
-inline const ExecEnv (&EnumValuesExecEnv())[16] {
+inline const ExecEnv (&EnumValuesExecEnv())[18] {
   static const ExecEnv values[] = {
     ExecEnv::Debug,
     ExecEnv::Signal,
+    ExecEnv::ResetState,
+    ExecEnv::SandboxNone,
     ExecEnv::SandboxSetuid,
     ExecEnv::SandboxNamespace,
     ExecEnv::SandboxAndroid,
@@ -485,6 +532,8 @@ inline const char *EnumNameExecEnv(ExecEnv e) {
   switch (e) {
     case ExecEnv::Debug: return "Debug";
     case ExecEnv::Signal: return "Signal";
+    case ExecEnv::ResetState: return "ResetState";
+    case ExecEnv::SandboxNone: return "SandboxNone";
     case ExecEnv::SandboxSetuid: return "SandboxSetuid";
     case ExecEnv::SandboxNamespace: return "SandboxNamespace";
     case ExecEnv::SandboxAndroid: return "SandboxAndroid";
@@ -757,8 +806,11 @@ flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffers::Flat
 struct ConnectReplyRawT : public flatbuffers::NativeTable {
   typedef ConnectReplyRaw TableType;
   bool debug = false;
+  bool cover = false;
   int32_t procs = 0;
   int32_t slowdown = 0;
+  int32_t syscall_timeout_ms = 0;
+  int32_t program_timeout_ms = 0;
   std::vector<std::string> leak_frames{};
   std::vector<std::string> race_frames{};
   rpc::Feature features = static_cast<rpc::Feature>(0);
@@ -771,22 +823,34 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ConnectReplyRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DEBUG = 4,
-    VT_PROCS = 6,
-    VT_SLOWDOWN = 8,
-    VT_LEAK_FRAMES = 10,
-    VT_RACE_FRAMES = 12,
-    VT_FEATURES = 14,
-    VT_FILES = 16,
-    VT_GLOBS = 18
+    VT_COVER = 6,
+    VT_PROCS = 8,
+    VT_SLOWDOWN = 10,
+    VT_SYSCALL_TIMEOUT_MS = 12,
+    VT_PROGRAM_TIMEOUT_MS = 14,
+    VT_LEAK_FRAMES = 16,
+    VT_RACE_FRAMES = 18,
+    VT_FEATURES = 20,
+    VT_FILES = 22,
+    VT_GLOBS = 24
   };
   bool debug() const {
     return GetField<uint8_t>(VT_DEBUG, 0) != 0;
+  }
+  bool cover() const {
+    return GetField<uint8_t>(VT_COVER, 0) != 0;
   }
   int32_t procs() const {
     return GetField<int32_t>(VT_PROCS, 0);
   }
   int32_t slowdown() const {
     return GetField<int32_t>(VT_SLOWDOWN, 0);
+  }
+  int32_t syscall_timeout_ms() const {
+    return GetField<int32_t>(VT_SYSCALL_TIMEOUT_MS, 0);
+  }
+  int32_t program_timeout_ms() const {
+    return GetField<int32_t>(VT_PROGRAM_TIMEOUT_MS, 0);
   }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_LEAK_FRAMES);
@@ -806,8 +870,11 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
+           VerifyField<uint8_t>(verifier, VT_COVER, 1) &&
            VerifyField<int32_t>(verifier, VT_PROCS, 4) &&
            VerifyField<int32_t>(verifier, VT_SLOWDOWN, 4) &&
+           VerifyField<int32_t>(verifier, VT_SYSCALL_TIMEOUT_MS, 4) &&
+           VerifyField<int32_t>(verifier, VT_PROGRAM_TIMEOUT_MS, 4) &&
            VerifyOffset(verifier, VT_LEAK_FRAMES) &&
            verifier.VerifyVector(leak_frames()) &&
            verifier.VerifyVectorOfStrings(leak_frames()) &&
@@ -835,11 +902,20 @@ struct ConnectReplyRawBuilder {
   void add_debug(bool debug) {
     fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_DEBUG, static_cast<uint8_t>(debug), 0);
   }
+  void add_cover(bool cover) {
+    fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_COVER, static_cast<uint8_t>(cover), 0);
+  }
   void add_procs(int32_t procs) {
     fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_PROCS, procs, 0);
   }
   void add_slowdown(int32_t slowdown) {
     fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_SLOWDOWN, slowdown, 0);
+  }
+  void add_syscall_timeout_ms(int32_t syscall_timeout_ms) {
+    fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_SYSCALL_TIMEOUT_MS, syscall_timeout_ms, 0);
+  }
+  void add_program_timeout_ms(int32_t program_timeout_ms) {
+    fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_PROGRAM_TIMEOUT_MS, program_timeout_ms, 0);
   }
   void add_leak_frames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames) {
     fbb_.AddOffset(ConnectReplyRaw::VT_LEAK_FRAMES, leak_frames);
@@ -870,8 +946,11 @@ struct ConnectReplyRawBuilder {
 inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     bool debug = false,
+    bool cover = false,
     int32_t procs = 0,
     int32_t slowdown = 0,
+    int32_t syscall_timeout_ms = 0,
+    int32_t program_timeout_ms = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> race_frames = 0,
     rpc::Feature features = static_cast<rpc::Feature>(0),
@@ -883,8 +962,11 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
   builder_.add_files(files);
   builder_.add_race_frames(race_frames);
   builder_.add_leak_frames(leak_frames);
+  builder_.add_program_timeout_ms(program_timeout_ms);
+  builder_.add_syscall_timeout_ms(syscall_timeout_ms);
   builder_.add_slowdown(slowdown);
   builder_.add_procs(procs);
+  builder_.add_cover(cover);
   builder_.add_debug(debug);
   return builder_.Finish();
 }
@@ -892,8 +974,11 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
 inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     bool debug = false,
+    bool cover = false,
     int32_t procs = 0,
     int32_t slowdown = 0,
+    int32_t syscall_timeout_ms = 0,
+    int32_t program_timeout_ms = 0,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *race_frames = nullptr,
     rpc::Feature features = static_cast<rpc::Feature>(0),
@@ -906,8 +991,11 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
   return rpc::CreateConnectReplyRaw(
       _fbb,
       debug,
+      cover,
       procs,
       slowdown,
+      syscall_timeout_ms,
+      program_timeout_ms,
       leak_frames__,
       race_frames__,
       features,
@@ -1392,6 +1480,9 @@ struct HostMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const rpc::StartLeakChecksRaw *msg_as_StartLeakChecks() const {
     return msg_type() == rpc::HostMessagesRaw::StartLeakChecks ? static_cast<const rpc::StartLeakChecksRaw *>(msg()) : nullptr;
   }
+  const rpc::StateRequestRaw *msg_as_StateRequest() const {
+    return msg_type() == rpc::HostMessagesRaw::StateRequest ? static_cast<const rpc::StateRequestRaw *>(msg()) : nullptr;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
@@ -1414,6 +1505,10 @@ template<> inline const rpc::SignalUpdateRaw *HostMessageRaw::msg_as<rpc::Signal
 
 template<> inline const rpc::StartLeakChecksRaw *HostMessageRaw::msg_as<rpc::StartLeakChecksRaw>() const {
   return msg_as_StartLeakChecks();
+}
+
+template<> inline const rpc::StateRequestRaw *HostMessageRaw::msg_as<rpc::StateRequestRaw>() const {
+  return msg_as_StateRequest();
 }
 
 struct HostMessageRawBuilder {
@@ -1474,6 +1569,9 @@ struct ExecutorMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const rpc::ExecutingMessageRaw *msg_as_Executing() const {
     return msg_type() == rpc::ExecutorMessagesRaw::Executing ? static_cast<const rpc::ExecutingMessageRaw *>(msg()) : nullptr;
   }
+  const rpc::StateResultRaw *msg_as_State() const {
+    return msg_type() == rpc::ExecutorMessagesRaw::State ? static_cast<const rpc::StateResultRaw *>(msg()) : nullptr;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
@@ -1492,6 +1590,10 @@ template<> inline const rpc::ExecResultRaw *ExecutorMessageRaw::msg_as<rpc::Exec
 
 template<> inline const rpc::ExecutingMessageRaw *ExecutorMessageRaw::msg_as<rpc::ExecutingMessageRaw>() const {
   return msg_as_Executing();
+}
+
+template<> inline const rpc::StateResultRaw *ExecutorMessageRaw::msg_as<rpc::StateResultRaw>() const {
+  return msg_as_State();
 }
 
 struct ExecutorMessageRawBuilder {
@@ -1533,10 +1635,7 @@ struct ExecRequestRawT : public flatbuffers::NativeTable {
   std::vector<uint8_t> prog_data{};
   std::unique_ptr<rpc::ExecOptsRaw> exec_opts{};
   rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0);
-  std::vector<uint64_t> signal_filter{};
-  int32_t signal_filter_call = 0;
   std::vector<int32_t> all_signal{};
-  int32_t repeat = 0;
   ExecRequestRawT() = default;
   ExecRequestRawT(const ExecRequestRawT &o);
   ExecRequestRawT(ExecRequestRawT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -1551,10 +1650,7 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PROG_DATA = 6,
     VT_EXEC_OPTS = 8,
     VT_FLAGS = 10,
-    VT_SIGNAL_FILTER = 12,
-    VT_SIGNAL_FILTER_CALL = 14,
-    VT_ALL_SIGNAL = 16,
-    VT_REPEAT = 18
+    VT_ALL_SIGNAL = 12
   };
   int64_t id() const {
     return GetField<int64_t>(VT_ID, 0);
@@ -1568,17 +1664,8 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   rpc::RequestFlag flags() const {
     return static_cast<rpc::RequestFlag>(GetField<uint64_t>(VT_FLAGS, 0));
   }
-  const flatbuffers::Vector<uint64_t> *signal_filter() const {
-    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_SIGNAL_FILTER);
-  }
-  int32_t signal_filter_call() const {
-    return GetField<int32_t>(VT_SIGNAL_FILTER_CALL, 0);
-  }
   const flatbuffers::Vector<int32_t> *all_signal() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ALL_SIGNAL);
-  }
-  int32_t repeat() const {
-    return GetField<int32_t>(VT_REPEAT, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1587,12 +1674,8 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(prog_data()) &&
            VerifyField<rpc::ExecOptsRaw>(verifier, VT_EXEC_OPTS, 8) &&
            VerifyField<uint64_t>(verifier, VT_FLAGS, 8) &&
-           VerifyOffset(verifier, VT_SIGNAL_FILTER) &&
-           verifier.VerifyVector(signal_filter()) &&
-           VerifyField<int32_t>(verifier, VT_SIGNAL_FILTER_CALL, 4) &&
            VerifyOffset(verifier, VT_ALL_SIGNAL) &&
            verifier.VerifyVector(all_signal()) &&
-           VerifyField<int32_t>(verifier, VT_REPEAT, 4) &&
            verifier.EndTable();
   }
   ExecRequestRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1616,17 +1699,8 @@ struct ExecRequestRawBuilder {
   void add_flags(rpc::RequestFlag flags) {
     fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_FLAGS, static_cast<uint64_t>(flags), 0);
   }
-  void add_signal_filter(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> signal_filter) {
-    fbb_.AddOffset(ExecRequestRaw::VT_SIGNAL_FILTER, signal_filter);
-  }
-  void add_signal_filter_call(int32_t signal_filter_call) {
-    fbb_.AddElement<int32_t>(ExecRequestRaw::VT_SIGNAL_FILTER_CALL, signal_filter_call, 0);
-  }
   void add_all_signal(flatbuffers::Offset<flatbuffers::Vector<int32_t>> all_signal) {
     fbb_.AddOffset(ExecRequestRaw::VT_ALL_SIGNAL, all_signal);
-  }
-  void add_repeat(int32_t repeat) {
-    fbb_.AddElement<int32_t>(ExecRequestRaw::VT_REPEAT, repeat, 0);
   }
   explicit ExecRequestRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1645,17 +1719,11 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data = 0,
     const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> signal_filter = 0,
-    int32_t signal_filter_call = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> all_signal = 0,
-    int32_t repeat = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> all_signal = 0) {
   ExecRequestRawBuilder builder_(_fbb);
   builder_.add_flags(flags);
   builder_.add_id(id);
-  builder_.add_repeat(repeat);
   builder_.add_all_signal(all_signal);
-  builder_.add_signal_filter_call(signal_filter_call);
-  builder_.add_signal_filter(signal_filter);
   builder_.add_exec_opts(exec_opts);
   builder_.add_prog_data(prog_data);
   return builder_.Finish();
@@ -1667,12 +1735,8 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
     const std::vector<uint8_t> *prog_data = nullptr,
     const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
-    const std::vector<uint64_t> *signal_filter = nullptr,
-    int32_t signal_filter_call = 0,
-    const std::vector<int32_t> *all_signal = nullptr,
-    int32_t repeat = 0) {
+    const std::vector<int32_t> *all_signal = nullptr) {
   auto prog_data__ = prog_data ? _fbb.CreateVector<uint8_t>(*prog_data) : 0;
-  auto signal_filter__ = signal_filter ? _fbb.CreateVector<uint64_t>(*signal_filter) : 0;
   auto all_signal__ = all_signal ? _fbb.CreateVector<int32_t>(*all_signal) : 0;
   return rpc::CreateExecRequestRaw(
       _fbb,
@@ -1680,10 +1744,7 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
       prog_data__,
       exec_opts,
       flags,
-      signal_filter__,
-      signal_filter_call,
-      all_signal__,
-      repeat);
+      all_signal__);
 }
 
 flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1803,6 +1864,45 @@ inline flatbuffers::Offset<StartLeakChecksRaw> CreateStartLeakChecksRaw(
 }
 
 flatbuffers::Offset<StartLeakChecksRaw> CreateStartLeakChecksRaw(flatbuffers::FlatBufferBuilder &_fbb, const StartLeakChecksRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct StateRequestRawT : public flatbuffers::NativeTable {
+  typedef StateRequestRaw TableType;
+};
+
+struct StateRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef StateRequestRawT NativeTableType;
+  typedef StateRequestRawBuilder Builder;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  StateRequestRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(StateRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<StateRequestRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct StateRequestRawBuilder {
+  typedef StateRequestRaw Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  explicit StateRequestRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<StateRequestRaw> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<StateRequestRaw>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<StateRequestRaw> CreateStateRequestRaw(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  StateRequestRawBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<StateRequestRaw> CreateStateRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct ExecutingMessageRawT : public flatbuffers::NativeTable {
   typedef ExecutingMessageRaw TableType;
@@ -2010,6 +2110,7 @@ flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(flatbuffers::FlatBufferBuilde
 struct ProgInfoRawT : public flatbuffers::NativeTable {
   typedef ProgInfoRaw TableType;
   std::vector<std::unique_ptr<rpc::CallInfoRawT>> calls{};
+  std::vector<std::unique_ptr<rpc::CallInfoRawT>> extra_raw{};
   std::unique_ptr<rpc::CallInfoRawT> extra{};
   uint64_t elapsed = 0;
   uint64_t freshness = 0;
@@ -2024,12 +2125,16 @@ struct ProgInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ProgInfoRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_CALLS = 4,
-    VT_EXTRA = 6,
-    VT_ELAPSED = 8,
-    VT_FRESHNESS = 10
+    VT_EXTRA_RAW = 6,
+    VT_EXTRA = 8,
+    VT_ELAPSED = 10,
+    VT_FRESHNESS = 12
   };
   const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>> *calls() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>> *>(VT_CALLS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>> *extra_raw() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>> *>(VT_EXTRA_RAW);
   }
   const rpc::CallInfoRaw *extra() const {
     return GetPointer<const rpc::CallInfoRaw *>(VT_EXTRA);
@@ -2045,6 +2150,9 @@ struct ProgInfoRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLS) &&
            verifier.VerifyVector(calls()) &&
            verifier.VerifyVectorOfTables(calls()) &&
+           VerifyOffset(verifier, VT_EXTRA_RAW) &&
+           verifier.VerifyVector(extra_raw()) &&
+           verifier.VerifyVectorOfTables(extra_raw()) &&
            VerifyOffset(verifier, VT_EXTRA) &&
            verifier.VerifyTable(extra()) &&
            VerifyField<uint64_t>(verifier, VT_ELAPSED, 8) &&
@@ -2062,6 +2170,9 @@ struct ProgInfoRawBuilder {
   flatbuffers::uoffset_t start_;
   void add_calls(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>>> calls) {
     fbb_.AddOffset(ProgInfoRaw::VT_CALLS, calls);
+  }
+  void add_extra_raw(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>>> extra_raw) {
+    fbb_.AddOffset(ProgInfoRaw::VT_EXTRA_RAW, extra_raw);
   }
   void add_extra(flatbuffers::Offset<rpc::CallInfoRaw> extra) {
     fbb_.AddOffset(ProgInfoRaw::VT_EXTRA, extra);
@@ -2086,6 +2197,7 @@ struct ProgInfoRawBuilder {
 inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>>> calls = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::CallInfoRaw>>> extra_raw = 0,
     flatbuffers::Offset<rpc::CallInfoRaw> extra = 0,
     uint64_t elapsed = 0,
     uint64_t freshness = 0) {
@@ -2093,6 +2205,7 @@ inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(
   builder_.add_freshness(freshness);
   builder_.add_elapsed(elapsed);
   builder_.add_extra(extra);
+  builder_.add_extra_raw(extra_raw);
   builder_.add_calls(calls);
   return builder_.Finish();
 }
@@ -2100,13 +2213,16 @@ inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(
 inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> *calls = nullptr,
+    const std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> *extra_raw = nullptr,
     flatbuffers::Offset<rpc::CallInfoRaw> extra = 0,
     uint64_t elapsed = 0,
     uint64_t freshness = 0) {
   auto calls__ = calls ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfoRaw>>(*calls) : 0;
+  auto extra_raw__ = extra_raw ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfoRaw>>(*extra_raw) : 0;
   return rpc::CreateProgInfoRaw(
       _fbb,
       calls__,
+      extra_raw__,
       extra,
       elapsed,
       freshness);
@@ -2222,6 +2338,68 @@ inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRawDirect(
 
 flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct StateResultRawT : public flatbuffers::NativeTable {
+  typedef StateResultRaw TableType;
+  std::vector<uint8_t> data{};
+};
+
+struct StateResultRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef StateResultRawT NativeTableType;
+  typedef StateResultRawBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_DATA = 4
+  };
+  const flatbuffers::Vector<uint8_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyVector(data()) &&
+           verifier.EndTable();
+  }
+  StateResultRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(StateResultRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<StateResultRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct StateResultRawBuilder {
+  typedef StateResultRaw Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
+    fbb_.AddOffset(StateResultRaw::VT_DATA, data);
+  }
+  explicit StateResultRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<StateResultRaw> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<StateResultRaw>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
+  StateResultRawBuilder builder_(_fbb);
+  builder_.add_data(data);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<StateResultRaw> CreateStateResultRawDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<uint8_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
+  return rpc::CreateStateResultRaw(
+      _fbb,
+      data__);
+}
+
+flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 inline ConnectRequestRawT *ConnectRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<ConnectRequestRawT>(new ConnectRequestRawT());
   UnPackTo(_o.get(), _resolver);
@@ -2267,8 +2445,11 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::r
   (void)_o;
   (void)_resolver;
   { auto _e = debug(); _o->debug = _e; }
+  { auto _e = cover(); _o->cover = _e; }
   { auto _e = procs(); _o->procs = _e; }
   { auto _e = slowdown(); _o->slowdown = _e; }
+  { auto _e = syscall_timeout_ms(); _o->syscall_timeout_ms = _e; }
+  { auto _e = program_timeout_ms(); _o->program_timeout_ms = _e; }
   { auto _e = leak_frames(); if (_e) { _o->leak_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->leak_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = race_frames(); if (_e) { _o->race_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->race_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = features(); _o->features = _e; }
@@ -2285,8 +2466,11 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _debug = _o->debug;
+  auto _cover = _o->cover;
   auto _procs = _o->procs;
   auto _slowdown = _o->slowdown;
+  auto _syscall_timeout_ms = _o->syscall_timeout_ms;
+  auto _program_timeout_ms = _o->program_timeout_ms;
   auto _leak_frames = _o->leak_frames.size() ? _fbb.CreateVectorOfStrings(_o->leak_frames) : 0;
   auto _race_frames = _o->race_frames.size() ? _fbb.CreateVectorOfStrings(_o->race_frames) : 0;
   auto _features = _o->features;
@@ -2295,8 +2479,11 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   return rpc::CreateConnectReplyRaw(
       _fbb,
       _debug,
+      _cover,
       _procs,
       _slowdown,
+      _syscall_timeout_ms,
+      _program_timeout_ms,
       _leak_frames,
       _race_frames,
       _features,
@@ -2542,10 +2729,7 @@ inline ExecRequestRawT::ExecRequestRawT(const ExecRequestRawT &o)
         prog_data(o.prog_data),
         exec_opts((o.exec_opts) ? new rpc::ExecOptsRaw(*o.exec_opts) : nullptr),
         flags(o.flags),
-        signal_filter(o.signal_filter),
-        signal_filter_call(o.signal_filter_call),
-        all_signal(o.all_signal),
-        repeat(o.repeat) {
+        all_signal(o.all_signal) {
 }
 
 inline ExecRequestRawT &ExecRequestRawT::operator=(ExecRequestRawT o) FLATBUFFERS_NOEXCEPT {
@@ -2553,10 +2737,7 @@ inline ExecRequestRawT &ExecRequestRawT::operator=(ExecRequestRawT o) FLATBUFFER
   std::swap(prog_data, o.prog_data);
   std::swap(exec_opts, o.exec_opts);
   std::swap(flags, o.flags);
-  std::swap(signal_filter, o.signal_filter);
-  std::swap(signal_filter_call, o.signal_filter_call);
   std::swap(all_signal, o.all_signal);
-  std::swap(repeat, o.repeat);
   return *this;
 }
 
@@ -2573,10 +2754,7 @@ inline void ExecRequestRaw::UnPackTo(ExecRequestRawT *_o, const flatbuffers::res
   { auto _e = prog_data(); if (_e) { _o->prog_data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->prog_data.begin()); } }
   { auto _e = exec_opts(); if (_e) _o->exec_opts = std::unique_ptr<rpc::ExecOptsRaw>(new rpc::ExecOptsRaw(*_e)); }
   { auto _e = flags(); _o->flags = _e; }
-  { auto _e = signal_filter(); if (_e) { _o->signal_filter.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->signal_filter[_i] = _e->Get(_i); } } }
-  { auto _e = signal_filter_call(); _o->signal_filter_call = _e; }
   { auto _e = all_signal(); if (_e) { _o->all_signal.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->all_signal[_i] = _e->Get(_i); } } }
-  { auto _e = repeat(); _o->repeat = _e; }
 }
 
 inline flatbuffers::Offset<ExecRequestRaw> ExecRequestRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2591,20 +2769,14 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::Fla
   auto _prog_data = _o->prog_data.size() ? _fbb.CreateVector(_o->prog_data) : 0;
   auto _exec_opts = _o->exec_opts ? _o->exec_opts.get() : nullptr;
   auto _flags = _o->flags;
-  auto _signal_filter = _o->signal_filter.size() ? _fbb.CreateVector(_o->signal_filter) : 0;
-  auto _signal_filter_call = _o->signal_filter_call;
   auto _all_signal = _o->all_signal.size() ? _fbb.CreateVector(_o->all_signal) : 0;
-  auto _repeat = _o->repeat;
   return rpc::CreateExecRequestRaw(
       _fbb,
       _id,
       _prog_data,
       _exec_opts,
       _flags,
-      _signal_filter,
-      _signal_filter_call,
-      _all_signal,
-      _repeat);
+      _all_signal);
 }
 
 inline SignalUpdateRawT *SignalUpdateRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -2656,6 +2828,29 @@ inline flatbuffers::Offset<StartLeakChecksRaw> CreateStartLeakChecksRaw(flatbuff
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StartLeakChecksRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   return rpc::CreateStartLeakChecksRaw(
+      _fbb);
+}
+
+inline StateRequestRawT *StateRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<StateRequestRawT>(new StateRequestRawT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void StateRequestRaw::UnPackTo(StateRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<StateRequestRaw> StateRequestRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateStateRequestRaw(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<StateRequestRaw> CreateStateRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StateRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return rpc::CreateStateRequestRaw(
       _fbb);
 }
 
@@ -2738,10 +2933,13 @@ inline ProgInfoRawT::ProgInfoRawT(const ProgInfoRawT &o)
         freshness(o.freshness) {
   calls.reserve(o.calls.size());
   for (const auto &calls_ : o.calls) { calls.emplace_back((calls_) ? new rpc::CallInfoRawT(*calls_) : nullptr); }
+  extra_raw.reserve(o.extra_raw.size());
+  for (const auto &extra_raw_ : o.extra_raw) { extra_raw.emplace_back((extra_raw_) ? new rpc::CallInfoRawT(*extra_raw_) : nullptr); }
 }
 
 inline ProgInfoRawT &ProgInfoRawT::operator=(ProgInfoRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(calls, o.calls);
+  std::swap(extra_raw, o.extra_raw);
   std::swap(extra, o.extra);
   std::swap(elapsed, o.elapsed);
   std::swap(freshness, o.freshness);
@@ -2758,6 +2956,7 @@ inline void ProgInfoRaw::UnPackTo(ProgInfoRawT *_o, const flatbuffers::resolver_
   (void)_o;
   (void)_resolver;
   { auto _e = calls(); if (_e) { _o->calls.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->calls[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = extra_raw(); if (_e) { _o->extra_raw.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->extra_raw[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = extra(); if (_e) _o->extra = std::unique_ptr<rpc::CallInfoRawT>(_e->UnPack(_resolver)); }
   { auto _e = elapsed(); _o->elapsed = _e; }
   { auto _e = freshness(); _o->freshness = _e; }
@@ -2772,12 +2971,14 @@ inline flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(flatbuffers::FlatBuffe
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ProgInfoRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _calls = _o->calls.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfoRaw>> (_o->calls.size(), [](size_t i, _VectorArgs *__va) { return CreateCallInfoRaw(*__va->__fbb, __va->__o->calls[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _extra_raw = _o->extra_raw.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::CallInfoRaw>> (_o->extra_raw.size(), [](size_t i, _VectorArgs *__va) { return CreateCallInfoRaw(*__va->__fbb, __va->__o->extra_raw[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _extra = _o->extra ? CreateCallInfoRaw(_fbb, _o->extra.get(), _rehasher) : 0;
   auto _elapsed = _o->elapsed;
   auto _freshness = _o->freshness;
   return rpc::CreateProgInfoRaw(
       _fbb,
       _calls,
+      _extra_raw,
       _extra,
       _elapsed,
       _freshness);
@@ -2833,6 +3034,32 @@ inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(flatbuffers::FlatB
       _info);
 }
 
+inline StateResultRawT *StateResultRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<StateResultRawT>(new StateResultRawT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void StateResultRaw::UnPackTo(StateResultRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
+}
+
+inline flatbuffers::Offset<StateResultRaw> StateResultRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateStateResultRaw(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StateResultRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
+  return rpc::CreateStateResultRaw(
+      _fbb,
+      _data);
+}
+
 inline bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type) {
   switch (type) {
     case HostMessagesRaw::NONE: {
@@ -2848,6 +3075,10 @@ inline bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *o
     }
     case HostMessagesRaw::StartLeakChecks: {
       auto ptr = reinterpret_cast<const rpc::StartLeakChecksRaw *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case HostMessagesRaw::StateRequest: {
+      auto ptr = reinterpret_cast<const rpc::StateRequestRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
@@ -2881,6 +3112,10 @@ inline void *HostMessagesRawUnion::UnPack(const void *obj, HostMessagesRaw type,
       auto ptr = reinterpret_cast<const rpc::StartLeakChecksRaw *>(obj);
       return ptr->UnPack(resolver);
     }
+    case HostMessagesRaw::StateRequest: {
+      auto ptr = reinterpret_cast<const rpc::StateRequestRaw *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -2900,6 +3135,10 @@ inline flatbuffers::Offset<void> HostMessagesRawUnion::Pack(flatbuffers::FlatBuf
       auto ptr = reinterpret_cast<const rpc::StartLeakChecksRawT *>(value);
       return CreateStartLeakChecksRaw(_fbb, ptr, _rehasher).Union();
     }
+    case HostMessagesRaw::StateRequest: {
+      auto ptr = reinterpret_cast<const rpc::StateRequestRawT *>(value);
+      return CreateStateRequestRaw(_fbb, ptr, _rehasher).Union();
+    }
     default: return 0;
   }
 }
@@ -2916,6 +3155,10 @@ inline HostMessagesRawUnion::HostMessagesRawUnion(const HostMessagesRawUnion &u)
     }
     case HostMessagesRaw::StartLeakChecks: {
       value = new rpc::StartLeakChecksRawT(*reinterpret_cast<rpc::StartLeakChecksRawT *>(u.value));
+      break;
+    }
+    case HostMessagesRaw::StateRequest: {
+      value = new rpc::StateRequestRawT(*reinterpret_cast<rpc::StateRequestRawT *>(u.value));
       break;
     }
     default:
@@ -2940,6 +3183,11 @@ inline void HostMessagesRawUnion::Reset() {
       delete ptr;
       break;
     }
+    case HostMessagesRaw::StateRequest: {
+      auto ptr = reinterpret_cast<rpc::StateRequestRawT *>(value);
+      delete ptr;
+      break;
+    }
     default: break;
   }
   value = nullptr;
@@ -2957,6 +3205,10 @@ inline bool VerifyExecutorMessagesRaw(flatbuffers::Verifier &verifier, const voi
     }
     case ExecutorMessagesRaw::Executing: {
       auto ptr = reinterpret_cast<const rpc::ExecutingMessageRaw *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ExecutorMessagesRaw::State: {
+      auto ptr = reinterpret_cast<const rpc::StateResultRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
@@ -2986,6 +3238,10 @@ inline void *ExecutorMessagesRawUnion::UnPack(const void *obj, ExecutorMessagesR
       auto ptr = reinterpret_cast<const rpc::ExecutingMessageRaw *>(obj);
       return ptr->UnPack(resolver);
     }
+    case ExecutorMessagesRaw::State: {
+      auto ptr = reinterpret_cast<const rpc::StateResultRaw *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -3001,6 +3257,10 @@ inline flatbuffers::Offset<void> ExecutorMessagesRawUnion::Pack(flatbuffers::Fla
       auto ptr = reinterpret_cast<const rpc::ExecutingMessageRawT *>(value);
       return CreateExecutingMessageRaw(_fbb, ptr, _rehasher).Union();
     }
+    case ExecutorMessagesRaw::State: {
+      auto ptr = reinterpret_cast<const rpc::StateResultRawT *>(value);
+      return CreateStateResultRaw(_fbb, ptr, _rehasher).Union();
+    }
     default: return 0;
   }
 }
@@ -3013,6 +3273,10 @@ inline ExecutorMessagesRawUnion::ExecutorMessagesRawUnion(const ExecutorMessages
     }
     case ExecutorMessagesRaw::Executing: {
       value = new rpc::ExecutingMessageRawT(*reinterpret_cast<rpc::ExecutingMessageRawT *>(u.value));
+      break;
+    }
+    case ExecutorMessagesRaw::State: {
+      value = new rpc::StateResultRawT(*reinterpret_cast<rpc::StateResultRawT *>(u.value));
       break;
     }
     default:
@@ -3029,6 +3293,11 @@ inline void ExecutorMessagesRawUnion::Reset() {
     }
     case ExecutorMessagesRaw::Executing: {
       auto ptr = reinterpret_cast<rpc::ExecutingMessageRawT *>(value);
+      delete ptr;
+      break;
+    }
+    case ExecutorMessagesRaw::State: {
+      auto ptr = reinterpret_cast<rpc::StateResultRawT *>(value);
       delete ptr;
       break;
     }

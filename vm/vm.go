@@ -253,18 +253,6 @@ func (inst *Instance) Info() ([]byte, error) {
 	return nil, nil
 }
 
-func (inst *Instance) PprofPort() int {
-	if inst.pool.hostFuzzer {
-		// In the fuzzing on host mode, fuzzers are always on the same network.
-		// Don't set up pprof endpoints in this case.
-		return 0
-	}
-	if ii, ok := inst.impl.(vmimpl.PprofPortProvider); ok {
-		return ii.PprofPort()
-	}
-	return vmimpl.PprofPort
-}
-
 func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
 	if rep == nil {
 		panic("rep is nil")
@@ -353,8 +341,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
 	lastPos := len(mon.output)
 	mon.output = append(mon.output, out...)
-	if bytes.Contains(mon.output[lastPos:], executingProgram1) ||
-		bytes.Contains(mon.output[lastPos:], executingProgram2) {
+	if bytes.Contains(mon.output[lastPos:], executingProgram) {
 		mon.lastExecuteTime = time.Now()
 	}
 	if mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
@@ -402,7 +389,7 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	if defaultError != noOutputCrash || diagWait {
 		mon.waitForOutput()
 	}
-	if bytes.Contains(mon.output, []byte(fuzzerPreemptedStr)) {
+	if bytes.Contains(mon.output, []byte(executorPreemptedStr)) {
 		return nil
 	}
 	if defaultError == "" && mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
@@ -470,16 +457,15 @@ func (mon *monitor) waitForOutput() {
 const (
 	maxErrorLength = 256
 
-	lostConnectionCrash = "lost connection to test machine"
-	noOutputCrash       = "no output from test machine"
-	timeoutCrash        = "timed out"
-	fuzzerPreemptedStr  = "SYZ-FUZZER: PREEMPTED"
-	vmDiagnosisStart    = "\nVM DIAGNOSIS:\n"
+	lostConnectionCrash  = "lost connection to test machine"
+	noOutputCrash        = "no output from test machine"
+	timeoutCrash         = "timed out"
+	executorPreemptedStr = "SYZ-EXECUTOR: PREEMPTED"
+	vmDiagnosisStart     = "\nVM DIAGNOSIS:\n"
 )
 
 var (
-	executingProgram1 = []byte("executing program")  // syz-fuzzer, syz-runner output
-	executingProgram2 = []byte("executed programs:") // syz-execprog output
+	executingProgram = []byte("executed programs:") // syz-execprog output
 
 	beforeContextDefault = 128 << 10
 	afterContext         = 128 << 10

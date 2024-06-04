@@ -121,6 +121,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 	}
 	if job.flags&ProgSmashed == 0 {
 		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
+			exec: job.fuzzer.smashQueue,
 			p:    p.Clone(),
 			call: call,
 		})
@@ -240,11 +241,10 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			}
 			for i := 0; i < minimizeAttempts; i++ {
 				result := job.execute(&queue.Request{
-					Prog:             p1,
-					ExecOpts:         setFlags(flatrpc.ExecFlagCollectSignal),
-					SignalFilter:     info.newStableSignal,
-					SignalFilterCall: call1,
-					Stat:             job.fuzzer.statExecMinimize,
+					Prog:            p1,
+					ExecOpts:        setFlags(flatrpc.ExecFlagCollectSignal),
+					ReturnAllSignal: []int{call1},
+					Stat:            job.fuzzer.statExecMinimize,
 				}, 0)
 				if result.Stop() {
 					stop = true
@@ -294,6 +294,7 @@ func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) signal.Si
 }
 
 type smashJob struct {
+	exec queue.Executor
 	p    *prog.Prog
 	call int
 }
@@ -302,6 +303,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(2, "smashing the program %s (call=%d):", job.p, job.call)
 	if fuzzer.Config.Comparisons && job.call >= 0 {
 		fuzzer.startJob(fuzzer.statJobsHints, &hintsJob{
+			exec: fuzzer.smashQueue,
 			p:    job.p.Clone(),
 			call: job.call,
 		})
@@ -315,7 +317,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.ChoiceTable(),
 			fuzzer.Config.NoMutateCalls,
 			fuzzer.Config.Corpus.Programs())
-		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
+		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 			Stat:     fuzzer.statExecSmash,
@@ -324,7 +326,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			return
 		}
 		if fuzzer.Config.Collide {
-			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
+			result := fuzzer.execute(job.exec, &queue.Request{
 				Prog: randomCollide(p, rnd),
 				Stat: fuzzer.statExecCollide,
 			})
@@ -366,7 +368,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 			job.call, nth)
 		newProg := job.p.Clone()
 		newProg.Calls[job.call].Props.FailNth = nth
-		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
+		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog: newProg,
 			Stat: fuzzer.statExecFaultInject,
 		})
@@ -382,6 +384,7 @@ func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
 }
 
 type hintsJob struct {
+	exec queue.Executor
 	p    *prog.Prog
 	call int
 }
@@ -393,7 +396,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 
 	var comps prog.CompMap
 	for i := 0; i < 2; i++ {
-		result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
+		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectComps),
 			Stat:     fuzzer.statExecSeed,
@@ -420,7 +423,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(job.call, comps,
 		func(p *prog.Prog) bool {
-			result := fuzzer.execute(fuzzer.smashQueue, &queue.Request{
+			result := fuzzer.execute(job.exec, &queue.Request{
 				Prog:     p,
 				ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 				Stat:     fuzzer.statExecHint,

@@ -3,6 +3,7 @@
 
 #include <fcntl.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -10,20 +11,22 @@
 class ShmemFile
 {
 public:
-	// Maps shared memory region of size 'size' from a new file 'file', preferably at the address 'preferred'.
-	ShmemFile(const char* file, void* preferred, size_t size)
+	// Maps shared memory region of size 'size' from a new temp file.
+	ShmemFile(size_t size)
 	{
-		fd_ = open(file, O_RDWR | O_CREAT | O_TRUNC, 0600);
+		char file_name[] = "syz.XXXXXX";
+		fd_ = mkstemp(file_name);
 		if (fd_ == -1)
-			failmsg("shmem open failed", "file=%s", file);
-		if (fallocate(fd_, 0, 0, size))
+			failmsg("shmem open failed", "file=%s", file_name);
+		if (posix_fallocate(fd_, 0, size))
 			failmsg("shmem fallocate failed", "size=%zu", size);
-		Mmap(fd_, preferred, size, true);
-		if (unlink(file))
+		Mmap(fd_, nullptr, size, true);
+		if (unlink(file_name))
 			fail("shmem unlink failed");
 	}
 
-	// Maps shared memory region from the file 'fd' in read/write or write-only mode.
+	// Maps shared memory region from the file 'fd' in read/write or write-only mode,
+	// preferably at the address 'preferred'.
 	ShmemFile(int fd, void* preferred, size_t size, bool write)
 	{
 		Mmap(fd, preferred, size, write);

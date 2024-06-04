@@ -11,8 +11,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -31,9 +29,8 @@ import (
 type checkContext struct {
 	ctx      context.Context
 	impl     checker
-	cfg      *mgrconfig.Config
+	cfg      *Config
 	target   *prog.Target
-	sandbox  flatrpc.ExecEnv
 	executor queue.Executor
 	fs       filesystem
 	// Once checking of a syscall is finished, the result is sent to syscalls.
@@ -48,18 +45,12 @@ type syscallResult struct {
 	reason string
 }
 
-func newCheckContext(ctx context.Context, cfg *mgrconfig.Config, impl checker,
-	executor queue.Executor) *checkContext {
-	sandbox, err := ipc.SandboxToFlags(cfg.Sandbox)
-	if err != nil {
-		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
-	}
+func newCheckContext(ctx context.Context, cfg *Config, impl checker, executor queue.Executor) *checkContext {
 	return &checkContext{
 		ctx:      ctx,
 		impl:     impl,
 		cfg:      cfg,
 		target:   cfg.Target,
-		sandbox:  sandbox,
 		executor: executor,
 		syscalls: make(chan syscallResult),
 		features: make(chan featureResult, 100),
@@ -67,6 +58,7 @@ func newCheckContext(ctx context.Context, cfg *mgrconfig.Config, impl checker,
 }
 
 func (ctx *checkContext) start(fileInfos []*flatrpc.FileInfo) {
+	sysTarget := targets.Get(ctx.cfg.Target.OS, ctx.cfg.Target.Arch)
 	ctx.fs = createVirtualFilesystem(fileInfos)
 	for _, id := range ctx.cfg.Syscalls {
 		call := ctx.target.Syscalls[id]
@@ -82,12 +74,12 @@ func (ctx *checkContext) start(fileInfos []*flatrpc.FileInfo) {
 		}
 		// HostFuzzer targets can't run Go binaries on the targets,
 		// so we actually run on the host on another OS. The same for targets.TestOS OS.
-		if ctx.cfg.SysTarget.HostFuzzer || ctx.target.OS == targets.TestOS {
+		if sysTarget.HostFuzzer || ctx.target.OS == targets.TestOS {
 			syscallCheck = alwaysSupported
 		}
 		go func() {
 			var reason string
-			deps := ctx.cfg.SysTarget.PseudoSyscallDeps[call.CallName]
+			deps := sysTarget.PseudoSyscallDeps[call.CallName]
 			if len(deps) != 0 {
 				reason = ctx.supportedSyscalls(deps)
 			}
@@ -215,14 +207,14 @@ func (ctx *checkContext) anyCallSucceeds(calls []string, msg string) string {
 }
 
 func (ctx *checkContext) onlySandboxNone() string {
-	if ctx.sandbox != 0 {
+	if ctx.cfg.Sandbox != flatrpc.ExecEnvSandboxNone {
 		return "only supported under root with sandbox=none"
 	}
 	return ""
 }
 
 func (ctx *checkContext) onlySandboxNoneOrNamespace() string {
-	if ctx.sandbox != 0 && ctx.sandbox != flatrpc.ExecEnvSandboxNamespace {
+	if ctx.cfg.Sandbox != flatrpc.ExecEnvSandboxNone && ctx.cfg.Sandbox != flatrpc.ExecEnvSandboxNamespace {
 		return "only supported under root with sandbox=none/namespace"
 	}
 	return ""
@@ -237,9 +229,9 @@ func (ctx *checkContext) val(name string) uint64 {
 }
 
 func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root bool) *flatrpc.ProgInfo {
-	sandbox := ctx.sandbox
+	sandbox := ctx.cfg.Sandbox
 	if root {
-		sandbox = 0
+		sandbox = flatrpc.ExecEnvSandboxNone
 	}
 	info := &flatrpc.ProgInfo{}
 	for remain := calls; len(remain) != 0; {
@@ -265,13 +257,9 @@ func (ctx *checkContext) execRaw(calls []string, mode prog.DeserializeMode, root
 		res := req.Wait(ctx.ctx)
 		if res.Status == queue.Success {
 			info.Calls = append(info.Calls, res.Info.Calls...)
-		} else if res.Status == queue.Crashed {
+		} else {
 			// Pretend these calls were not executed.
 			info.Calls = append(info.Calls, flatrpc.EmptyProgInfo(ncalls).Calls...)
-		} else {
-			// The program must have been either executed or not due to a crash.
-			panic(fmt.Sprintf("got unexpected execution status (%d) for the prog %s",
-				res.Status, progStr))
 		}
 	}
 	if len(info.Calls) != len(calls) {

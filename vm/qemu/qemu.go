@@ -436,13 +436,9 @@ func (inst *instance) boot() error {
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
 
-	forwardedPort := vmimpl.UnusedTCPPort()
-	pprofExt := fmt.Sprintf(",hostfwd=tcp::%v-:%v", forwardedPort, vmimpl.PprofPort)
-	log.Logf(3, "instance %s's pprof is available at 127.0.0.1:%v", instanceName, forwardedPort)
-
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
-		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22%s", inst.port, pprofExt),
+		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.port),
 	)
 	if inst.image == "9p" {
 		args = append(args,
@@ -617,7 +613,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.targetDir(), base)
 	if inst.target.HostFuzzer {
-		if base == "syz-fuzzer" || base == "syz-execprog" {
+		if base == "syz-execprog" {
 			return hostSrc, nil // we will run these on host
 		}
 		if inst.files == nil {
@@ -648,8 +644,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort, false)
 	args := strings.Split(command, " ")
-	if bin := filepath.Base(args[0]); inst.target.HostFuzzer &&
-		(bin == "syz-fuzzer" || bin == "syz-execprog") {
+	if bin := filepath.Base(args[0]); inst.target.HostFuzzer && bin == "syz-execprog" {
 		// Weird mode for Fuchsia.
 		// Fuzzer and execprog are on host (we did not copy them), so we will run them as is,
 		// but we will also wrap executor with ssh invocation.

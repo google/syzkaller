@@ -22,25 +22,25 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
-	"golang.org/x/sync/errgroup"
 )
 
 type runRequest struct {
 	*queue.Request
+	sourceOpts *csource.Options
+	executor   queue.Executor
 
 	ok      int
 	failed  int
 	err     error
 	result  *queue.Result
 	results *flatrpc.ProgInfo // the expected results
+	repeat  int               // only relevant for C tests
 
 	name   string
 	broken string
@@ -58,7 +58,9 @@ type Context struct {
 	Debug        bool
 	Tests        string // prefix to match test file names
 
-	executor queue.PlainQueue
+	executor *queue.DynamicOrderer
+	requests []*runRequest
+	buildSem chan bool
 }
 
 func (ctx *Context) log(msg string, args ...interface{}) {
@@ -66,87 +68,11 @@ func (ctx *Context) log(msg string, args ...interface{}) {
 }
 
 func (ctx *Context) Run() error {
-	if ctx.Retries%2 == 0 {
-		ctx.Retries++
-	}
-	progs := make(chan *runRequest, 1000)
-	var eg errgroup.Group
-	eg.Go(func() error {
-		defer close(progs)
-		return ctx.generatePrograms(progs)
-	})
-	done := make(chan *runRequest)
-	eg.Go(func() error {
-		return ctx.processResults(done)
-	})
-
-	var wg sync.WaitGroup
-	for req := range progs {
-		req := req
-		if req.broken != "" || req.skip != "" {
-			done <- req
-			continue
-		}
-		var retry queue.DoneCallback
-		retry = func(_ *queue.Request, res *queue.Result) bool {
-			// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
-			// We don't want to fix this by significantly bumping all timeouts,
-			// because if a program fails all the time with the default timeouts,
-			// it will also fail during fuzzing. And we want to ensure that it's not the case.
-			// So what we want is to tolerate episodic failures with the default timeouts.
-			// To achieve this we run each test several times and ensure that it passes
-			// in 50+% of cases (i.e. 1/1, 2/3, 3/5, 4/7, etc).
-			// In the best case this allows to get off with just 1 test run.
-
-			if res.Err != nil {
-				req.err = res.Err
-				return true
-			}
-			req.result = res
-			err := checkResult(req)
-			if err == nil {
-				req.ok++
-			} else {
-				req.failed++
-				req.err = err
-			}
-			if req.ok > req.failed {
-				// There are more successful than failed runs.
-				req.err = nil
-				return true
-			}
-			// We need at least `failed - ok + 1` more runs <=> `failed + ok + need` in total,
-			// which simplifies to `failed * 2 + 1`.
-			if req.failed*2+1 <= ctx.Retries {
-				// We can still retry the execution.
-				req.OnDone(retry)
-				ctx.executor.Submit(req.Request)
-				return false
-			}
-			// Give up and fail on this request.
-			return true
-		}
-		req.Request.OnDone(retry)
-		ctx.executor.Submit(req.Request)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			req.Request.Wait(context.Background())
-			done <- req
-		}()
-	}
-	wg.Wait()
-	close(done)
-	return eg.Wait()
-}
-
-func (ctx *Context) Next() *queue.Request {
-	return ctx.executor.Next()
-}
-
-func (ctx *Context) processResults(requests chan *runRequest) error {
+	ctx.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
+	ctx.executor = queue.DynamicOrder()
+	ctx.generatePrograms()
 	var ok, fail, broken, skip int
-	for req := range requests {
+	for _, req := range ctx.requests {
 		result := ""
 		verbose := false
 		if req.broken != "" {
@@ -158,14 +84,14 @@ func (ctx *Context) processResults(requests chan *runRequest) error {
 			result = fmt.Sprintf("SKIP (%v)", req.skip)
 			verbose = true
 		} else {
+			req.Request.Wait(context.Background())
 			if req.err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
 					strings.Replace(req.err.Error(), "\n", "\n\t", -1))
-				res := req.result
-				if len(res.Output) != 0 {
+				if req.result != nil && len(req.result.Output) != 0 {
 					result += fmt.Sprintf("\n\t%s",
-						strings.Replace(string(res.Output), "\n", "\n\t", -1))
+						strings.Replace(string(req.result.Output), "\n", "\n\t", -1))
 				}
 			} else {
 				ok++
@@ -186,7 +112,52 @@ func (ctx *Context) processResults(requests chan *runRequest) error {
 	return nil
 }
 
-func (ctx *Context) generatePrograms(progs chan *runRequest) error {
+func (ctx *Context) Next() *queue.Request {
+	return ctx.executor.Next()
+}
+
+func (ctx *Context) onDone(req *runRequest, res *queue.Result) bool {
+	// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
+	// We don't want to fix this by significantly bumping all timeouts,
+	// because if a program fails all the time with the default timeouts,
+	// it will also fail during fuzzing. And we want to ensure that it's not the case.
+	// So what we want is to tolerate episodic failures with the default timeouts.
+	// To achieve this we run each test several times and ensure that it passes
+	// in 50+% of cases (i.e. 1/1, 2/3, 3/5, 4/7, etc).
+	// In the best case this allows to get off with just 1 test run.
+	if res.Err != nil {
+		req.err = res.Err
+		return true
+	}
+	req.result = res
+	err := checkResult(req)
+	if err == nil {
+		req.ok++
+	} else {
+		req.failed++
+		req.err = err
+	}
+	if req.ok > req.failed {
+		// There are more successful than failed runs.
+		req.err = nil
+		return true
+	}
+	// We need at least `failed - ok + 1` more runs <=> `failed + ok + need` in total,
+	// which simplifies to `failed * 2 + 1`.
+	retries := ctx.Retries
+	if retries%2 == 0 {
+		retries++
+	}
+	if req.failed*2+1 <= retries {
+		// We can still retry the execution.
+		ctx.submit(req)
+		return false
+	}
+	// Give up and fail on this request.
+	return true
+}
+
+func (ctx *Context) generatePrograms() error {
 	cover := []bool{false}
 	if ctx.Features&flatrpc.FeatureCoverage != 0 {
 		cover = append(cover, true)
@@ -201,7 +172,7 @@ func (ctx *Context) generatePrograms(progs chan *runRequest) error {
 		return err
 	}
 	for _, file := range files {
-		if err := ctx.generateFile(progs, sandboxes, cover, file); err != nil {
+		if err := ctx.generateFile(sandboxes, cover, file); err != nil {
 			return err
 		}
 	}
@@ -225,7 +196,7 @@ func progFileList(dir, filter string) ([]string, error) {
 	return res, nil
 }
 
-func (ctx *Context) generateFile(progs chan *runRequest, sandboxes []string, cover []bool, filename string) error {
+func (ctx *Context) generateFile(sandboxes []string, cover []bool, filename string) error {
 	p, requires, results, err := parseProg(ctx.Target, ctx.Dir, filename)
 	if err != nil {
 		return err
@@ -239,10 +210,10 @@ nextSandbox:
 		name := fmt.Sprintf("%v %v", filename, sandbox)
 		for _, call := range p.Calls {
 			if !ctx.EnabledCalls[sandbox][call.Meta] {
-				progs <- &runRequest{
+				ctx.createTest(&runRequest{
 					name: name,
 					skip: fmt.Sprintf("unsupported call %v", call.Meta.Name),
-				}
+				})
 				continue nextSandbox
 			}
 		}
@@ -267,6 +238,9 @@ nextSandbox:
 					if sandbox == "" {
 						break // executor does not support empty sandbox
 					}
+					if times != 1 {
+						break
+					}
 					name := name
 					if cov {
 						name += "/cover"
@@ -274,11 +248,11 @@ nextSandbox:
 					properties["cover"] = cov
 					properties["C"] = false
 					properties["executor"] = true
-					req, err := ctx.createSyzTest(p, sandbox, threaded, cov, times)
+					req, err := ctx.createSyzTest(p, sandbox, threaded, cov)
 					if err != nil {
 						return err
 					}
-					ctx.produceTest(progs, req, name, properties, requires, results)
+					ctx.produceTest(req, name, properties, requires, results)
 				}
 				if sysTarget.HostFuzzer {
 					// For HostFuzzer mode, we need to cross-compile
@@ -291,17 +265,17 @@ nextSandbox:
 				name += " C"
 				if !sysTarget.ExecutorUsesForkServer && times > 1 {
 					// Non-fork loop implementation does not support repetition.
-					progs <- &runRequest{
+					ctx.createTest(&runRequest{
 						name:   name,
 						broken: "non-forking loop",
-					}
+					})
 					continue
 				}
 				req, err := ctx.createCTest(p, sandbox, threaded, times)
 				if err != nil {
 					return err
 				}
-				ctx.produceTest(progs, req, name, properties, requires, results)
+				ctx.produceTest(req, name, properties, requires, results)
 			}
 		}
 	}
@@ -405,14 +379,52 @@ func checkArch(requires map[string]bool, arch string) bool {
 	return true
 }
 
-func (ctx *Context) produceTest(progs chan *runRequest, req *runRequest, name string,
-	properties, requires map[string]bool, results *flatrpc.ProgInfo) {
+func (ctx *Context) produceTest(req *runRequest, name string, properties,
+	requires map[string]bool, results *flatrpc.ProgInfo) {
 	req.name = name
 	req.results = results
 	if !match(properties, requires) {
 		req.skip = "excluded by constraints"
 	}
-	progs <- req
+	ctx.createTest(req)
+}
+
+func (ctx *Context) createTest(req *runRequest) {
+	req.executor = ctx.executor.Append()
+	ctx.requests = append(ctx.requests, req)
+	if req.skip != "" || req.broken != "" {
+		return
+	}
+	if req.sourceOpts == nil {
+		ctx.submit(req)
+		return
+	}
+	go func() {
+		ctx.buildSem <- true
+		defer func() {
+			<-ctx.buildSem
+		}()
+		src, err := csource.Write(req.Prog, *req.sourceOpts)
+		if err != nil {
+			req.err = fmt.Errorf("failed to create C source: %w", err)
+			req.Request.Done(&queue.Result{})
+		}
+		bin, err := csource.Build(ctx.Target, src)
+		if err != nil {
+			req.err = fmt.Errorf("failed to build C program: %w", err)
+			req.Request.Done(&queue.Result{})
+			return
+		}
+		req.BinaryFile = bin
+		ctx.submit(req)
+	}()
+}
+
+func (ctx *Context) submit(req *runRequest) {
+	req.OnDone(func(_ *queue.Request, res *queue.Result) bool {
+		return ctx.onDone(req, res)
+	})
+	req.executor.Submit(req.Request)
 }
 
 func match(props, requires map[string]bool) bool {
@@ -436,9 +448,9 @@ func match(props, requires map[string]bool) bool {
 	return true
 }
 
-func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool, times int) (*runRequest, error) {
+func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool) (*runRequest, error) {
 	var opts flatrpc.ExecOpts
-	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
+	sandboxFlags, err := flatrpc.SandboxToFlags(sandbox)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +463,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		opts.ExecFlags |= flatrpc.ExecFlagCollectSignal
 		opts.ExecFlags |= flatrpc.ExecFlagCollectCover
 	}
-	opts.EnvFlags |= ipc.FeaturesToFlags(ctx.Features, nil)
+	opts.EnvFlags |= csource.FeaturesToFlags(ctx.Features, nil)
 	if ctx.Debug {
 		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
@@ -459,7 +471,6 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		Request: &queue.Request{
 			Prog:     p,
 			ExecOpts: opts,
-			Repeat:   times,
 		},
 	}
 	return req, nil
@@ -496,27 +507,19 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 			opts.IEEE802154 = true
 		}
 	}
-	src, err := csource.Write(p, opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create C source: %w", err)
-	}
-	bin, err := csource.Build(p.Target, src)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build C program: %w", err)
-	}
 	var ipcFlags flatrpc.ExecFlag
 	if threaded {
 		ipcFlags |= flatrpc.ExecFlagThreaded
 	}
 	req := &runRequest{
+		sourceOpts: &opts,
 		Request: &queue.Request{
-			Prog:       p,
-			BinaryFile: bin,
+			Prog: p,
 			ExecOpts: flatrpc.ExecOpts{
 				ExecFlags: ipcFlags,
 			},
-			Repeat: times,
 		},
+		repeat: times,
 	}
 	return req, nil
 }
@@ -525,27 +528,17 @@ func checkResult(req *runRequest) error {
 	if req.result.Status != queue.Success {
 		return fmt.Errorf("non-successful result status (%v)", req.result.Status)
 	}
-	var infos []*flatrpc.ProgInfo
+	infos := []*flatrpc.ProgInfo{req.result.Info}
 	isC := req.BinaryFile != ""
 	if isC {
 		var err error
 		if infos, err = parseBinOutput(req); err != nil {
 			return err
 		}
-	} else {
-		raw := req.result.Info
-		for len(raw.Calls) != 0 {
-			ncalls := min(len(raw.Calls), len(req.Prog.Calls))
-			infos = append(infos, &flatrpc.ProgInfo{
-				Extra: raw.Extra,
-				Calls: raw.Calls[:ncalls],
-			})
-			raw.Calls = raw.Calls[ncalls:]
+		if req.repeat != len(infos) {
+			return fmt.Errorf("should repeat %v times, but repeated %v, prog calls %v, info calls %v\n%s",
+				req.repeat, len(infos), req.Prog.Calls, len(req.result.Info.Calls), req.result.Output)
 		}
-	}
-	if req.Repeat != len(infos) {
-		return fmt.Errorf("should repeat %v times, but repeated %v, prog calls %v, info calls %v\n%s",
-			req.Repeat, len(infos), req.Prog.Calls, len(req.result.Info.Calls), req.result.Output)
 	}
 	calls := make(map[string]bool)
 	for run, info := range infos {

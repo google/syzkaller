@@ -17,6 +17,16 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
+func (mgr *Manager) CoverageFilter(modules []*cover.KernelModule) []uint64 {
+	execFilter, filter, err := createCoverageFilter(mgr.cfg, modules)
+	if err != nil {
+		log.Fatalf("failed to init coverage filter: %v", err)
+	}
+	mgr.modules = modules
+	mgr.coverFilter = filter
+	return execFilter
+}
+
 func createCoverageFilter(cfg *mgrconfig.Config, modules []*cover.KernelModule) ([]uint64, map[uint64]struct{}, error) {
 	if !cfg.HasCovFilter() {
 		return nil, nil, nil

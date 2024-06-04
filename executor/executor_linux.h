@@ -279,22 +279,15 @@ NORETURN void doexit_thread(int status)
 }
 
 #define SYZ_HAVE_KCSAN 1
-static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
+static void setup_kcsan_filter(const std::vector<std::string>& frames)
 {
+	if (frames.empty())
+		return;
 	int fd = open("/sys/kernel/debug/kcsan", O_WRONLY);
 	if (fd == -1)
 		fail("failed to open kcsan debugfs file");
-
-	printf("%s KCSAN reports in functions: ",
-	       suppress ? "suppressing" : "only showing");
-	if (!suppress)
-		dprintf(fd, "whitelist\n");
-	for (int i = 0; i < nframes; ++i) {
-		printf("'%s' ", frames[i]);
-		dprintf(fd, "!%s\n", frames[i]);
-	}
-	printf("\n");
-
+	for (const auto& frame : frames)
+		dprintf(fd, "!%s\n", frame.c_str());
 	close(fd);
 }
 

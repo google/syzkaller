@@ -8,6 +8,7 @@ enum Feature : uint64 (bit_flags) {
 	Comparisons,
 	ExtraCoverage,
 	DelayKcovMmap,
+	SandboxNone,
 	SandboxSetuid,
 	SandboxNamespace,
 	SandboxAndroid,
@@ -35,8 +36,11 @@ table ConnectRequestRaw {
 
 table ConnectReplyRaw {
 	debug			:bool;
+	cover			:bool;
 	procs			:int32;
 	slowdown		:int32;
+	syscall_timeout_ms	:int32;
+	program_timeout_ms	:int32;
 	leak_frames		:[string];
 	race_frames		:[string];
 	// Fuzzer sets up these features and returns results in InfoRequest.features.
@@ -79,7 +83,8 @@ table FeatureInfoRaw {
 union HostMessagesRaw {
 	ExecRequest		:ExecRequestRaw,
 	SignalUpdate		:SignalUpdateRaw,
-	StartLeakChecks		:StartLeakChecksRaw
+	StartLeakChecks		:StartLeakChecksRaw,
+	StateRequest		:StateRequestRaw,
 }
 
 table HostMessageRaw {
@@ -90,6 +95,7 @@ table HostMessageRaw {
 union ExecutorMessagesRaw {
 	ExecResult		:ExecResultRaw,
 	Executing		:ExecutingMessageRaw,
+	State			:StateResultRaw,
 }
 
 table ExecutorMessageRaw {
@@ -100,8 +106,6 @@ enum RequestFlag : uint64 (bit_flags) {
 	// If set, prog_data contains compiled executable binary
 	// that needs to be written to disk and executed.
 	IsBinary,
-	// If set, fully reset executor state befor executing the test.
-	ResetState,
 	// If set, collect program output and return in output field.
 	ReturnOutput,
 	// If set, don't fail on program failures, instead return the error in error field.
@@ -112,6 +116,8 @@ enum RequestFlag : uint64 (bit_flags) {
 enum ExecEnv : uint64 (bit_flags) {
 	Debug,			// debug output from executor
 	Signal,			// collect feedback signals (coverage)
+	ResetState,    		// fully reset executor state befor executing the test
+	SandboxNone,		// minimal sandboxing
 	SandboxSetuid,		// impersonate nobody user
 	SandboxNamespace,	// use namespaces for sandboxing
 	SandboxAndroid,		// use Android sandboxing for the untrusted_app domain
@@ -150,12 +156,8 @@ table ExecRequestRaw {
 	prog_data		:[uint8];
 	exec_opts		:ExecOptsRaw;
 	flags			:RequestFlag;
-	signal_filter		:[uint64];
-	signal_filter_call	:int32;
 	// Return all signal for these calls.
 	all_signal		:[int32];
-	// Repeat the program that many times (0 means 1).
-	repeat			:int32;
 }
 
 table SignalUpdateRaw {
@@ -167,6 +169,9 @@ table SignalUpdateRaw {
 // (otherwise it takes infinity). This message serves as a signal that
 // the corpus was triaged and the fuzzer can start leak checking.
 table StartLeakChecksRaw {
+}
+
+table StateRequestRaw {
 }
 
 // Notification from the executor that it started executing the program 'id'.
@@ -209,6 +214,8 @@ struct ComparisonRaw {
 table ProgInfoRaw {
 	calls			:[CallInfoRaw];
 	// Contains signal and cover collected from background threads.
+	// The raw version is exported by executor, and them merged into extra on the host.
+	extra_raw		:[CallInfoRaw];
 	extra			:CallInfoRaw;
 	// Total execution time of the program in nanoseconds.
 	elapsed			:uint64;
@@ -222,4 +229,8 @@ table ExecResultRaw {
 	output			:[uint8];
 	error			:string;
 	info			:ProgInfoRaw;
+}
+
+table StateResultRaw {
+	data			:[uint8];
 }

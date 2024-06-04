@@ -107,10 +107,3 @@ ERRNO mismatches found for program:
 The order of the results is given by the order in which configuration files
 were passed so `Pool: 0 ` reports results for the kernel created using
 `kernel0.cfg` and so on.
-
-The [Flags](/pkg/ipc/ipc.go#L82) can be used to determine the state reached by
-the system call:
-* `0` = syscall not even started
-* `1` = syscall started
-* `3` = syscall finished executing
-* `7` = syscall blocked

@@ -18,14 +18,13 @@ red labels indicate corresponding configuration options.
 
 It runs on a host with a stable kernel which does not experience white-noise fuzzer load.
 
-`syz-manager` starts `syz-fuzzer` processes (one inside each VM).
-`syz-fuzzer`s comminucate with `syz-manager` over RPC to receive the programs
+`syz-manager` starts `syz-executor` processes (one inside each VM).
+`syz-executor`s comminucate with `syz-manager` over RPC to receive the programs
 that must be executed and to report back the results (error statuses, collected coverage, etc.).
 
-To execute programs, `syz-fuzzer` starts transient `syz-executor` processes.
+To execute programs, `syz-executor` starts transient subprocesses.
 
-Each `syz-executor` process executes a single input (a sequence of syscalls).
-It accepts the program to execute from the `syz-fuzzer` process and sends results back.
+Each transient subprocess executes a single input (a sequence of syscalls).
 It is designed to be as simple as possible (to not interfere with fuzzing process),
 written in C++, compiled as static binary and uses shared memory for communication.
 

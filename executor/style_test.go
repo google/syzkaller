@@ -90,9 +90,10 @@ if (foo) {
 			// This detects C89-style variable declarations in the beginning of block in a best-effort manner.
 			// Struct fields look exactly as C89 variable declarations, to filter them out we look for "{"
 			// at the beginning of the line.
+			// nolint: lll
 			pattern: `
 {[^{]*
-\s+((unsigned )?[a-zA-Z][a-zA-Z0-9_]+\s*\*?|(struct )?[a-zA-Z][a-zA-Z0-9_]+\*)\s+([a-zA-Z][a-zA-Z0-9_]*(,\s*)?)+;
+\s+((unsigned )?([A-Z][A-Z0-9_]+|[a-z][a-z0-9_]+)\s*\*?|(struct )?[a-zA-Z][a-zA-Z0-9_]+\*)\s+([a-zA-Z][a-zA-Z0-9_]*(,\s*)?)+;
 `,
 			suppression: `return |goto |va_list |pthread_|zx_`,
 			message:     "Don't use C89 var declarations. Declare vars where they are needed and combine with initialization",
@@ -155,7 +156,7 @@ if (foo) {
 		re := regexp.MustCompile(check.pattern)
 		for _, test := range check.tests {
 			if !re.MatchString(test) {
-				t.Fatalf("patter %q does not match test %q", check.pattern, test)
+				t.Fatalf("pattern %q does not match test %q", check.pattern, test)
 			}
 		}
 	}

@@ -4,7 +4,9 @@ This doc will be useful to you:
 - should you wish to hack on user interface bits like the dashboard / mailing list integration or
 - should you wish to continuously run a separate syzbot dashboard for your own kernels
 
-Note: For most development purposes you don't need a full syzbot setup. The meat of syzkaller is really located in syz-manager, syz-fuzzer and syz-executor. You can run syz-manager directly which is usually what you will want to do during fuzzer development. [See this documentation for syz-manager setup instructions](setup.md).
+Note: For most development purposes you don't need a full syzbot setup. The meat of syzkaller is really located
+in syz-manager and syz-executor. You can run syz-manager directly which is usually what you will want to do during
+fuzzer development. [See this documentation for syz-manager setup instructions](setup.md).
 
 This doc assumes that you:
 - have a GCP account and billing setup

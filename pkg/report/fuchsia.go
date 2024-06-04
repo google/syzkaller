@@ -54,7 +54,7 @@ func ctorFuchsia(cfg *config) (reporterImpl, []string, error) {
 		ctx.obj = filepath.Join(ctx.kernelObj, ctx.target.KernelObject)
 	}
 	suppressions := []string{
-		"fatal exception: process /tmp/syz-fuzzer", // OOM presumably
+		"fatal exception: process /tmp/syz-executor", // OOM presumably
 	}
 	return ctx, suppressions, nil
 }

@@ -81,7 +81,6 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		mgrcfg := mgr.managercfg
 		os, vmarch, arch := mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.TargetArch
 		targets[os+"/"+vmarch+"/"+arch] = true
-		syzFiles[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
 		syzFiles[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
 		if mgrcfg.SysTarget.ExecutorBin == "" {
 			syzFiles[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true

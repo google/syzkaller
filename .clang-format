@@ -12,4 +12,5 @@ AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 ColumnLimit: 0
 AccessModifierOffset: -8
+PackConstructorInitializers: Never
 

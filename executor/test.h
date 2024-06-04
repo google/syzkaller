@@ -204,7 +204,7 @@ static int test_csum_inet_acc()
 static int test_cover_filter()
 {
 	char* tmp = tempnam(nullptr, "syz-test-cover-filter");
-	CoverFilter filter(tmp);
+	CoverFilter filter;
 	CoverFilter child(filter.FD());
 	free(tmp);
 

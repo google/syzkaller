@@ -98,8 +98,7 @@ ifeq ("$(TARGETOS)", "trusty")
 endif
 
 .PHONY: all clean host target \
-	manager runtest fuzzer executor \
-	ci hub \
+	manager executor ci hub \
 	execprog mutate prog2c trace2syz repro upgrade db \
 	usbgen symbolize cover kconf syz-build crush \
 	bin/syz-extract bin/syz-fmt \
@@ -112,8 +111,8 @@ endif
 	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old
 
 all: host target
-host: manager runtest repro mutate prog2c db upgrade
-target: fuzzer execprog executor
+host: manager repro mutate prog2c db upgrade
+target: execprog executor
 
 executor: descriptions
 ifeq ($(TARGETOS),fuchsia)
@@ -155,13 +154,6 @@ descriptions:
 
 manager: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
-
-runtest: descriptions
-	# TODO: fold syz-runtest into syz-manager.
-	# GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-runtest github.com/google/syzkaller/tools/syz-runtest
-
-fuzzer: descriptions
-	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
 
 execprog: descriptions
 	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog
@@ -215,12 +207,8 @@ bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
 
 verifier: descriptions
-	# TODO: switch syz-verifier to use syz-fuzzer.
+	# TODO: switch syz-verifier to use syz-executor.
 	# GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-verifier github.com/google/syzkaller/syz-verifier
-
-runner:  descriptions
-	# TODO: switch syz-verifier to use syz-fuzzer.
-	# GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-runner$(EXE) github.com/google/syzkaller/syz-runner
 
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.

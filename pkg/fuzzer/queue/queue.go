@@ -37,7 +37,6 @@ type Request struct {
 
 	// Options needed by runtest.
 	BinaryFile string // If set, it's executed instead of Prog.
-	Repeat     int    // Repeats in addition to the first run.
 
 	// Important requests will be retried even from crashed VMs.
 	Important bool
@@ -112,6 +111,11 @@ func (r *Request) Validate() error {
 	collectCover := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0
 	if (collectComps) && (collectSignal || collectCover) {
 		return fmt.Errorf("hint collection is mutually exclusive with signal/coverage")
+	}
+	sandboxes := flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSandboxSetuid |
+		flatrpc.ExecEnvSandboxNamespace | flatrpc.ExecEnvSandboxAndroid
+	if r.BinaryFile == "" && r.ExecOpts.EnvFlags&sandboxes == 0 {
+		return fmt.Errorf("no sandboxes set")
 	}
 	return nil
 }
@@ -414,4 +418,25 @@ func (d *Deduplicator) onDone(req *Request, res *Result) bool {
 		waitingReq.Done(res.clone())
 	}
 	return true
+}
+
+// DefaultOpts applies opts to all requests in source.
+func DefaultOpts(source Source, opts flatrpc.ExecOpts) Source {
+	return &defaultOpts{source, opts}
+}
+
+type defaultOpts struct {
+	source Source
+	opts   flatrpc.ExecOpts
+}
+
+func (do *defaultOpts) Next() *Request {
+	req := do.source.Next()
+	if req == nil {
+		return nil
+	}
+	req.ExecOpts.ExecFlags |= do.opts.ExecFlags
+	req.ExecOpts.EnvFlags |= do.opts.EnvFlags
+	req.ExecOpts.SandboxArg = do.opts.SandboxArg
+	return req
 }

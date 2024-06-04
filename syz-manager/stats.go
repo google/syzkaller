@@ -13,20 +13,18 @@ import (
 
 type Stats struct {
 	statNumReproducing *stats.Val
-	statExecs          *stats.Val
 	statCrashes        *stats.Val
 	statCrashTypes     *stats.Val
 	statSuppressed     *stats.Val
 	statUptime         *stats.Val
 	statFuzzingTime    *stats.Val
 	statAvgBootTime    *stats.Val
+	statCoverFiltered  *stats.Val
 }
 
 func (mgr *Manager) initStats() {
 	mgr.statNumReproducing = stats.Create("reproducing", "Number of crashes being reproduced",
 		stats.Console, stats.NoGraph)
-	mgr.statExecs = stats.Create("exec total", "Total test program executions",
-		stats.Console, stats.Rate{}, stats.Prometheus("syz_exec_total"))
 	mgr.statCrashes = stats.Create("crashes", "Total number of VM crashes",
 		stats.Simple, stats.Prometheus("syz_crash_total"))
 	mgr.statCrashTypes = stats.Create("crash types", "Number of unique crashes types",
@@ -70,4 +68,5 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
+	mgr.statCoverFiltered = stats.Create("filtered coverage", "", stats.NoGraph)
 }
