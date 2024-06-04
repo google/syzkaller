@@ -42,6 +42,16 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
+#if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+constexpr bool kAddressSanitizer = true;
+#else
+constexpr bool kAddressSanitizer = false;
+#endif
+
 // uint64 is impossible to printf without using the clumsy and verbose "%" PRId64.
 // So we define and use uint64. Note: pkg/csource does s/uint64/uint64/.
 // Also define uint32/16/8 for consistency.
@@ -116,14 +126,6 @@ static void reply_handshake();
 #endif
 
 #if SYZ_EXECUTOR_USES_SHMEM
-// The output region is the only thing in executor process for which consistency matters.
-// If it is corrupted ipc package will fail to parse its contents and panic.
-// But fuzzer constantly invents new ways of how to corrupt the region,
-// so we map the region at a (hopefully) hard to guess address with random offset,
-// surrounded by unmapped pages.
-// The address chosen must also work on 32-bit kernels with 1GB user address space.
-const uint64 kOutputBase = 0x1b2bc20000ull;
-
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 // Allocating (and forking) virtual memory for each executed process is expensive, so we only mmap
 // the amount we might possibly need for the specific received prog.
@@ -577,9 +579,22 @@ static void mmap_output(int size)
 	if (size % SYZ_PAGE_SIZE != 0)
 		failmsg("trying to mmap output area that is not divisible by page size", "page=%d,area=%d", SYZ_PAGE_SIZE, size);
 	uint32* mmap_at = NULL;
+	int fixed_flag = MAP_FIXED;
 	if (output_data == NULL) {
-		// It's the first time we map output region - generate its location.
-		output_data = mmap_at = (uint32*)(kOutputBase + (1 << 20) * (getpid() % 128));
+		if (kAddressSanitizer) {
+			// Don't use fixed address under ASAN b/c it may overlap with shadow.
+			fixed_flag = 0;
+		} else {
+			// It's the first time we map output region - generate its location.
+			// The output region is the only thing in executor process for which consistency matters.
+			// If it is corrupted ipc package will fail to parse its contents and panic.
+			// But fuzzer constantly invents new ways of how to corrupt the region,
+			// so we map the region at a (hopefully) hard to guess address with random offset,
+			// surrounded by unmapped pages.
+			// The address chosen must also work on 32-bit kernels with 1GB user address space.
+			const uint64 kOutputBase = 0x1b2bc20000ull;
+			mmap_at = (uint32*)(kOutputBase + (1 << 20) * (getpid() % 128));
+		}
 	} else {
 		// We are expanding the mmapped region. Adjust the parameters to avoid mmapping already
 		// mmapped area as much as possible.
@@ -587,9 +602,11 @@ static void mmap_output(int size)
 		mmap_at = (uint32*)((char*)(output_data) + output_size);
 	}
 	void* result = mmap(mmap_at, size - output_size,
-			    PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, output_size);
-	if (result != mmap_at)
+			    PROT_READ | PROT_WRITE, MAP_SHARED | fixed_flag, kOutFd, output_size);
+	if (result == MAP_FAILED || (mmap_at && result != mmap_at))
 		failmsg("mmap of output file failed", "want %p, got %p", mmap_at, result);
+	if (output_data == NULL)
+		output_data = static_cast<uint32*>(result);
 	output_size = size;
 }
 #endif
