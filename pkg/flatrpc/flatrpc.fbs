@@ -34,6 +34,9 @@ table ConnectRequestRaw {
 }
 
 table ConnectReplyRaw {
+	debug			:bool;
+	procs			:int32;
+	slowdown		:int32;
 	leak_frames		:[string];
 	race_frames		:[string];
 	// Fuzzer sets up these features and returns results in InfoRequest.features.

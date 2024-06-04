@@ -53,7 +53,6 @@ func main() {
 		flagOS        = flag.String("os", runtime.GOOS, "target OS")
 		flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 		flagManager   = flag.String("manager", "", "manager rpc address")
-		flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
 		flagPprofPort = flag.Int("pprof_port", 0, "HTTP port for the pprof endpoint (disabled if 0)")
 	)
 	defer tool.Init()()
@@ -149,14 +148,14 @@ func main() {
 		timeouts:   timeouts,
 		leakFrames: connectReply.LeakFrames,
 
-		requests: make(chan *flatrpc.ExecRequest, *flagProcs*4),
+		requests: make(chan *flatrpc.ExecRequest, connectReply.Procs*4),
 	}
 	fuzzerTool.filterDataRaceFrames(connectReply.RaceFrames)
 	// TODO: repair leak checking.
 	_ = fuzzerTool.leakGateCallback
 
-	log.Logf(0, "starting %v executor processes", *flagProcs)
-	for pid := 0; pid < *flagProcs; pid++ {
+	log.Logf(0, "starting %v executor processes", connectReply.Procs)
+	for pid := 0; pid < int(connectReply.Procs); pid++ {
 		startProc(fuzzerTool, pid, config)
 	}
 
