@@ -17,8 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
-	map[uint64]uint32, map[uint64]uint32, error) {
+func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) ([]uint64, map[uint64]struct{}, error) {
 	if !cfg.HasCovFilter() {
 		return nil, nil, nil
 	}
@@ -27,7 +26,7 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	if err != nil {
 		return nil, nil, err
 	}
-	pcs := make(map[uint64]uint32)
+	pcs := make(map[uint64]struct{})
 	foreachSymbol := func(apply func(*backend.ObjectUnit)) {
 		for _, sym := range rg.Symbols {
 			apply(&sym.ObjectUnit)
@@ -47,16 +46,12 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	if err := covFilterAddRawPCs(pcs, cfg.CovFilter.RawPCs); err != nil {
 		return nil, nil, err
 	}
-	if len(pcs) == 0 {
-		return nil, nil, nil
-	}
 	// Copy pcs into execPCs. This is used to filter coverage in the executor.
-	execPCs := make(map[uint64]uint32)
-	for pc, val := range pcs {
-		execPCs[pc] = val
+	execPCs := make([]uint64, 0, len(pcs))
+	for pc := range pcs {
+		execPCs = append(execPCs, pc)
 	}
-	// PCs from CMPs are deleted to calculate `filtered coverage` statistics
-	// in syz-manager.
+	// PCs from CMPs are deleted to calculate `filtered coverage` statistics.
 	for _, sym := range rg.Symbols {
 		for _, pc := range sym.CMPs {
 			delete(pcs, pc)
@@ -65,7 +60,7 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) (
 	return execPCs, pcs, nil
 }
 
-func covFilterAddFilter(pcs map[uint64]uint32, filters []string, foreach func(func(*backend.ObjectUnit))) error {
+func covFilterAddFilter(pcs map[uint64]struct{}, filters []string, foreach func(func(*backend.ObjectUnit))) error {
 	res, err := compileRegexps(filters)
 	if err != nil {
 		return err
@@ -77,10 +72,10 @@ func covFilterAddFilter(pcs map[uint64]uint32, filters []string, foreach func(fu
 				// We add both coverage points and comparison interception points
 				// because executor filters comparisons as well.
 				for _, pc := range unit.PCs {
-					pcs[pc] = 1
+					pcs[pc] = struct{}{}
 				}
 				for _, pc := range unit.CMPs {
-					pcs[pc] = 1
+					pcs[pc] = struct{}{}
 				}
 				used[re] = append(used[re], unit.Name)
 				break
@@ -97,7 +92,7 @@ func covFilterAddFilter(pcs map[uint64]uint32, filters []string, foreach func(fu
 	return nil
 }
 
-func covFilterAddRawPCs(pcs map[uint64]uint32, rawPCsFiles []string) error {
+func covFilterAddRawPCs(pcs map[uint64]struct{}, rawPCsFiles []string) error {
 	re := regexp.MustCompile(`(0x[0-9a-f]+)(?:: (0x[0-9a-f]+))?`)
 	for _, f := range rawPCsFiles {
 		rawFile, err := os.Open(f)
@@ -123,7 +118,8 @@ func covFilterAddRawPCs(pcs map[uint64]uint32, rawPCsFiles []string) error {
 			if match[2] == "" || weight < 1 {
 				weight = 1
 			}
-			pcs[pc] = uint32(weight)
+			_ = weight // currently unused
+			pcs[pc] = struct{}{}
 		}
 		if err := s.Err(); err != nil {
 			return err
@@ -132,7 +128,7 @@ func covFilterAddRawPCs(pcs map[uint64]uint32, rawPCsFiles []string) error {
 	return nil
 }
 
-func createCoverageBitmap(cfg *mgrconfig.Config, pcs map[uint64]uint32) []byte {
+func createCoverageBitmap(cfg *mgrconfig.Config, pcs []uint64) []byte {
 	// Return nil if filtering is not used.
 	if len(pcs) == 0 {
 		return nil
@@ -148,7 +144,7 @@ func createCoverageBitmap(cfg *mgrconfig.Config, pcs map[uint64]uint32) []byte {
 	order.PutUint64(data[8:], size)
 
 	bitmap := data[16:]
-	for pc := range pcs {
+	for _, pc := range pcs {
 		// The lowest 4-bit is dropped.
 		pc = backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
 		pc = (pc - start) >> 4
@@ -157,9 +153,9 @@ func createCoverageBitmap(cfg *mgrconfig.Config, pcs map[uint64]uint32) []byte {
 	return data
 }
 
-func coverageFilterRegion(pcs map[uint64]uint32) (uint64, uint64) {
+func coverageFilterRegion(pcs []uint64) (uint64, uint64) {
 	start, end := ^uint64(0), uint64(0)
-	for pc := range pcs {
+	for _, pc := range pcs {
 		if start > pc {
 			start = pc
 		}

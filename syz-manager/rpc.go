@@ -44,8 +44,8 @@ type RPCServer struct {
 	setupFeatures    flatrpc.Feature
 	modules          []cover.KernelModule
 	canonicalModules *cover.Canonicalizer
-	execCoverFilter  map[uint64]uint32
-	coverFilter      map[uint64]uint32
+	execCoverFilter  []uint64            // includes both coverage and comparison PCs
+	coverFilter      map[uint64]struct{} // includes only coverage PCs
 
 	mu         sync.Mutex
 	runners    map[string]*Runner
@@ -248,7 +248,7 @@ func (serv *RPCServer) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Can
 	})
 
 	canonicalizer := serv.canonicalModules.NewInstance(modules)
-	instCoverFilter := canonicalizer.DecanonicalizeFilter(serv.execCoverFilter)
+	instCoverFilter := canonicalizer.Decanonicalize(serv.execCoverFilter)
 	infoReply := &flatrpc.InfoReply{
 		CoverFilter: createCoverageBitmap(serv.cfg, instCoverFilter),
 	}
@@ -631,7 +631,7 @@ func (serv *RPCServer) updateCoverFilter(newCover []uint64) {
 	filtered := 0
 	for _, pc := range newCover {
 		pc = backend.PreviousInstructionPC(serv.cfg.SysTarget, serv.cfg.Type, pc)
-		if serv.coverFilter[pc] != 0 {
+		if _, ok := serv.coverFilter[pc]; ok {
 			filtered++
 		}
 	}

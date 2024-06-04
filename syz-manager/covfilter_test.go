@@ -11,9 +11,9 @@ import (
 )
 
 func TestCreateBitmap(t *testing.T) {
-	pcs := map[uint64]uint32{
-		0x81000002: 1,
-		0x8120001d: 1,
+	pcs := []uint64{
+		0x81000002,
+		0x8120001d,
 	}
 	target := targets.Get("test", "64")
 	order := target.HostEndian
@@ -40,26 +40,26 @@ func TestCreateBitmap(t *testing.T) {
 			t.Errorf("bad bitmap byte 0x%x: 0x%x, expect 0x%x", i, byte, expect)
 		}
 	}
-	pcs = map[uint64]uint32{
-		0:          1,
-		0xffffffff: 1,
+	pcs = []uint64{
+		0,
+		0xffffffff,
 	}
 	createCoverageBitmap(cfg, pcs)
-	pcs = map[uint64]uint32{
-		0x81000000: 1,
-		0x81000100: 1,
+	pcs = []uint64{
+		0x81000000,
+		0x81000100,
 	}
 	createCoverageBitmap(cfg, pcs)
-	pcs = map[uint64]uint32{
-		0x81000002: 1,
-		0x81000010: 1,
-		0x81000102: 1,
+	pcs = []uint64{
+		0x81000002,
+		0x81000010,
+		0x81000102,
 	}
 	createCoverageBitmap(cfg, pcs)
 }
 
 func TestNilCoverageBitmap(t *testing.T) {
-	pcs := map[uint64]uint32(nil)
+	var pcs []uint64
 	cfg := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			SysTarget: targets.Get("test", "64"),

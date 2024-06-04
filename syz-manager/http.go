@@ -312,7 +312,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	}
 	mgr.mu.Unlock()
 
-	var coverFilter map[uint64]uint32
+	var coverFilter map[uint64]struct{}
 	if r.FormValue("filter") != "" || funcFlag == DoFilterPCs {
 		if mgr.serv.coverFilter == nil {
 			http.Error(w, "cover is not filtered in config", http.StatusInternalServerError)
