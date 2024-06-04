@@ -311,8 +311,10 @@ func (ctx *Context) dumpCoverage(coverFile string, info *flatrpc.ProgInfo) {
 		log.Logf(0, "call #%v: signal %v, coverage %v", i, len(inf.Signal), len(inf.Cover))
 		ctx.dumpCallCoverage(fmt.Sprintf("%v.%v", coverFile, i), inf)
 	}
-	log.Logf(0, "extra: signal %v, coverage %v", len(info.Extra.Signal), len(info.Extra.Cover))
-	ctx.dumpCallCoverage(fmt.Sprintf("%v.extra", coverFile), info.Extra)
+	if info.Extra != nil {
+		log.Logf(0, "extra: signal %v, coverage %v", len(info.Extra.Signal), len(info.Extra.Cover))
+		ctx.dumpCallCoverage(fmt.Sprintf("%v.extra", coverFile), info.Extra)
+	}
 }
 
 func (ctx *Context) getProgramIndex() int {
