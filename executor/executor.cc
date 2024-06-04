@@ -149,7 +149,6 @@ static void mmap_output(int size);
 static uint32* write_output(uint32 v);
 static uint32* write_output_64(uint64 v);
 static void write_completed(uint32 completed);
-static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
 #endif // if SYZ_EXECUTOR_USES_SHMEM
 
@@ -1011,25 +1010,11 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
 	if (flag_collect_signal) {
 		uint32 nsig = 0;
-		cover_data_t prev_pc = 0;
-		bool prev_filter = true;
 		for (uint32 i = 0; i < cov->size; i++) {
 			cover_data_t pc = cover_data[i] + cov->pc_offset;
-			uint64 sig = pc;
-			if (use_cover_edges(pc)) {
-				// Only hash the lower 12 bits so the hash is independent of any module offsets.
-				const uint64 mask = (1 << 12) - 1;
-				sig ^= hash(prev_pc & mask) & mask;
-			}
-			bool filter = coverage_filter(pc);
-			// Ignore the edge only if both current and previous PCs are filtered out
-			// to capture all incoming and outcoming edges into the interesting code.
-			bool ignore = !filter && !prev_filter;
-			prev_pc = pc;
-			prev_filter = filter;
-			if (ignore || dedup(sig))
+			if (!coverage_filter(pc) || dedup(pc))
 				continue;
-			write_output_64(sig);
+			write_output_64(pc);
 			nsig++;
 		}
 		// Write out number of signals.
@@ -1318,16 +1303,6 @@ void execute_call(thread_t* th)
 }
 
 #if SYZ_EXECUTOR_USES_SHMEM
-static uint32 hash(uint32 a)
-{
-	a = (a ^ 61) ^ (a >> 16);
-	a = a + (a << 3);
-	a = a ^ (a >> 4);
-	a = a * 0x27d4eb2d;
-	a = a ^ (a >> 15);
-	return a;
-}
-
 const uint32 dedup_table_size = 8 << 10;
 uint64 dedup_table[dedup_table_size];
 
