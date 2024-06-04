@@ -805,8 +805,8 @@ github.com/ultraware/whitespace
 # github.com/uudashr/gocognit v1.1.2
 ## explicit; go 1.16
 github.com/uudashr/gocognit
-# github.com/vektra/mockery/v2 v2.40.3
-## explicit; go 1.21
+# github.com/vektra/mockery/v2 v2.43.2
+## explicit; go 1.22
 github.com/vektra/mockery/v2
 github.com/vektra/mockery/v2/cmd
 github.com/vektra/mockery/v2/pkg
