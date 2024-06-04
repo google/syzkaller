@@ -23,15 +23,15 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-type CoverHandlerParams struct {
-	Progs       []Prog
-	CoverFilter map[uint64]uint32
-	Debug       bool
-	Force       bool
+type HandlerParams struct {
+	Progs  []Prog
+	Filter map[uint64]uint32
+	Debug  bool
+	Force  bool
 }
 
-func (rg *ReportGenerator) DoHTML(w io.Writer, params CoverHandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoHTML(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
@@ -126,8 +126,8 @@ type lineCoverExport struct {
 	Both      []int `json:",omitempty"`
 }
 
-func (rg *ReportGenerator) DoLineJSON(w io.Writer, params CoverHandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoLineJSON(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
@@ -178,8 +178,8 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 	return lce
 }
 
-func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params CoverHandlerParams) error {
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return err
 	}
@@ -218,13 +218,13 @@ type CoverageInfo struct {
 }
 
 // DoCoverJSONL is a handler for "/cover?jsonl=1".
-func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) error {
+func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error {
 	if rg.CallbackPoints != nil {
 		if err := rg.symbolizePCs(rg.CallbackPoints); err != nil {
 			return fmt.Errorf("failed to symbolize PCs(): %w", err)
 		}
 	}
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return err
 	}
@@ -258,8 +258,8 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params CoverHandlerParams) 
 	return nil
 }
 
-func (rg *ReportGenerator) DoRawCover(w io.Writer, params CoverHandlerParams) error {
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	var pcs []uint64
 	if len(progs) == 1 && rg.rawCoverEnabled {
 		pcs = append([]uint64{}, progs[0].PCs...)
@@ -287,8 +287,8 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params CoverHandlerParams) er
 	return nil
 }
 
-func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params CoverHandlerParams) error {
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params HandlerParams) error {
+	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	var pcs []uint64
 	uniquePCs := make(map[uint64]bool)
 	for _, prog := range progs {
@@ -297,7 +297,7 @@ func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params CoverHandlerParams) e
 				continue
 			}
 			uniquePCs[pc] = true
-			if params.CoverFilter[pc] != 0 {
+			if params.Filter[pc] != 0 {
 				pcs = append(pcs, pc)
 			}
 		}
@@ -392,8 +392,8 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 	return data, nil
 }
 
-func (rg *ReportGenerator) DoCSVFiles(w io.Writer, params CoverHandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoCSVFiles(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -492,8 +492,8 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 	return d
 }
 
-func (rg *ReportGenerator) DoHTMLTable(w io.Writer, params CoverHandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoHTMLTable(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -568,8 +568,8 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 	return d
 }
 
-func (rg *ReportGenerator) DoModuleCover(w io.Writer, params CoverHandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoModuleCover(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -588,8 +588,8 @@ var csvHeader = []string{
 	"Total PCs",
 }
 
-func (rg *ReportGenerator) DoCSV(w io.Writer, params CoverHandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.CoverFilter)
+func (rg *ReportGenerator) DoCSV(w io.Writer, params HandlerParams) error {
+	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err

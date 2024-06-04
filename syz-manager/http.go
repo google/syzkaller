@@ -321,14 +321,14 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		coverFilter = mgr.serv.coverFilter
 	}
 
-	params := cover.CoverHandlerParams{
-		Progs:       progs,
-		CoverFilter: coverFilter,
-		Debug:       r.FormValue("debug") != "",
-		Force:       r.FormValue("force") != "",
+	params := cover.HandlerParams{
+		Progs:  progs,
+		Filter: coverFilter,
+		Debug:  r.FormValue("debug") != "",
+		Force:  r.FormValue("force") != "",
 	}
 
-	type handlerFuncType func(w io.Writer, params cover.CoverHandlerParams) error
+	type handlerFuncType func(w io.Writer, params cover.HandlerParams) error
 	flagToFunc := map[int]struct {
 		Do          handlerFuncType
 		contentType string
