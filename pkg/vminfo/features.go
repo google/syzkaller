@@ -49,6 +49,10 @@ func (ctx *checkContext) startFeaturesCheck() {
 	testProg := ctx.target.DataMmapProg()
 	for feat := range flatrpc.EnumNamesFeature {
 		feat := feat
+		if ctx.cfg.Features&feat == 0 {
+			ctx.features <- featureResult{feat, "disabled by user"}
+			continue
+		}
 		go func() {
 			envFlags, execFlags := ctx.featureToFlags(feat)
 			req := &queue.Request{
@@ -106,7 +110,7 @@ func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Fe
 		feat.Reason = strings.TrimSpace(outputReplacer.Replace(feat.Reason))
 		features[res.id] = feat
 	}
-	if feat := features[flatrpc.FeatureSandboxSetuid]; !feat.Enabled {
+	if feat := features[flatrpc.FeatureSandboxNone]; !feat.Enabled {
 		return features, fmt.Errorf("execution of simple program fails: %v", feat.Reason)
 	}
 	if feat := features[flatrpc.FeatureCoverage]; ctx.cfg.Cover && !feat.Enabled {
@@ -118,7 +122,7 @@ func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Fe
 // featureToFlags creates ipc flags required to test the feature on a simple program.
 // For features that has setup procedure in the executor, we just execute with the default flags.
 func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (flatrpc.ExecEnv, flatrpc.ExecFlag) {
-	envFlags := ctx.sandbox
+	envFlags := ctx.cfg.Sandbox
 	// These don't have a corresponding feature and are always enabled.
 	envFlags |= flatrpc.ExecEnvEnableCloseFds | flatrpc.ExecEnvEnableCgroups | flatrpc.ExecEnvEnableNetReset
 	execFlags := flatrpc.ExecFlagThreaded
@@ -135,12 +139,18 @@ func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (flatrpc.ExecEnv, 
 	case flatrpc.FeatureDelayKcovMmap:
 		envFlags |= flatrpc.ExecEnvSignal | flatrpc.ExecEnvDelayKcovMmap
 		execFlags |= flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover
+	case flatrpc.FeatureSandboxNone:
+		envFlags &= ^ctx.cfg.Sandbox
+		envFlags |= flatrpc.ExecEnvSandboxNone
 	case flatrpc.FeatureSandboxSetuid:
-		// We use setuid sandbox feature to test that the simple program
-		// succeeds under the actual sandbox (not necessary setuid).
-		// We do this because we don't have a feature for sandbox 'none'.
+		envFlags &= ^ctx.cfg.Sandbox
+		envFlags |= flatrpc.ExecEnvSandboxSetuid
 	case flatrpc.FeatureSandboxNamespace:
+		envFlags &= ^ctx.cfg.Sandbox
+		envFlags |= flatrpc.ExecEnvSandboxNamespace
 	case flatrpc.FeatureSandboxAndroid:
+		envFlags &= ^ctx.cfg.Sandbox
+		envFlags |= flatrpc.ExecEnvSandboxAndroid
 	case flatrpc.FeatureFault:
 	case flatrpc.FeatureLeak:
 	case flatrpc.FeatureNetInjection:

@@ -25,7 +25,6 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -36,9 +35,21 @@ type Checker struct {
 	checkContext *checkContext
 }
 
-func New(cfg *mgrconfig.Config) *Checker {
+type Config struct {
+	Target *prog.Target
+	// Set of features to check, missing features won't be checked/enabled after Run.
+	Features flatrpc.Feature
+	// Set of syscalls to check.
+	Syscalls   []int
+	Debug      bool
+	Cover      bool
+	Sandbox    flatrpc.ExecEnv
+	SandboxArg int64
+}
+
+func New(cfg *Config) *Checker {
 	var impl checker
-	switch cfg.TargetOS {
+	switch cfg.Target.OS {
 	case targets.Linux:
 		impl = new(linux)
 	case targets.NetBSD:

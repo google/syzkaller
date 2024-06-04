@@ -126,11 +126,11 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		"panic: failed to create temp dir",
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
 		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
-		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
+		"Out of memory: Kill process .* \\(syz-executor\\)",
 		"Out of memory: Kill process .* \\(sshd\\)",
-		"Killed process .* \\(syz-fuzzer\\)",
+		"Killed process .* \\(syz-executor\\)",
 		"Killed process .* \\(sshd\\)",
-		"lowmemorykiller: Killing 'syz-fuzzer'",
+		"lowmemorykiller: Killing 'syz-executor'",
 		"lowmemorykiller: Killing 'sshd'",
 		"INIT: PANIC: segmentation violation!",
 		"\\*\\*\\* stack smashing detected \\*\\*\\*: terminated",

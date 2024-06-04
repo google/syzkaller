@@ -191,7 +191,7 @@ var tests = []*Test{
 		Name: "fuzzer-is-preempted",
 		Body: func(outc chan []byte, errc chan error) {
 			outc <- []byte("BUG: bad\n")
-			outc <- []byte(fuzzerPreemptedStr + "\n")
+			outc <- []byte(executorPreemptedStr + "\n")
 		},
 	},
 	{
@@ -263,23 +263,12 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name: "no-no-output-1",
+		Name: "no-no-output",
 		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
-				outc <- append(executingProgram1, '\n')
-			}
-			errc <- nil
-		},
-	},
-	{
-		Name: "no-no-output-2",
-		Exit: ExitNormal,
-		Body: func(outc chan []byte, errc chan error) {
-			for i := 0; i < 5; i++ {
-				time.Sleep(time.Second)
-				outc <- append(executingProgram2, '\n')
+				outc <- append(executingProgram, '\n')
 			}
 			errc <- nil
 		},

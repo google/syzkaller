@@ -1,7 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package rpcserver
 
 import (
 	"sort"
@@ -17,6 +17,7 @@ type LastExecuting struct {
 }
 
 type ExecRecord struct {
+	ID   int
 	Proc int
 	Prog []byte
 	Time time.Duration
@@ -31,9 +32,10 @@ func MakeLastExecuting(procs, count int) *LastExecuting {
 }
 
 // Note execution of the 'prog' on 'proc' at time 'now'.
-func (last *LastExecuting) Note(proc int, prog []byte, now time.Duration) {
+func (last *LastExecuting) Note(id, proc int, prog []byte, now time.Duration) {
 	pos := &last.positions[proc]
 	last.procs[proc*last.count+*pos] = ExecRecord{
+		ID:   id,
 		Proc: proc,
 		Prog: prog,
 		Time: now,

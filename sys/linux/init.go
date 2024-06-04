@@ -4,8 +4,6 @@
 package linux
 
 import (
-	"runtime"
-
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -109,26 +107,7 @@ func InitTarget(target *prog.Target) {
 		int(target.GetConst("XENSTORE_REL_PATH_MAX")),
 		1 << 16, // gVisor's MaxFilenameLen
 	}
-
-	if target.Arch == runtime.GOARCH {
-		KCOV_INIT_TRACE = uintptr(target.GetConst("KCOV_INIT_TRACE"))
-		KCOV_ENABLE = uintptr(target.GetConst("KCOV_ENABLE"))
-		KCOV_REMOTE_ENABLE = uintptr(target.GetConst("KCOV_REMOTE_ENABLE"))
-		KCOV_DISABLE = uintptr(target.GetConst("KCOV_DISABLE"))
-		KCOV_TRACE_PC = uintptr(target.GetConst("KCOV_TRACE_PC"))
-		KCOV_TRACE_CMP = uintptr(target.GetConst("KCOV_TRACE_CMP"))
-	}
 }
-
-var (
-	// This should not be here, but for now we expose this for syz-fuzzer.
-	KCOV_INIT_TRACE    uintptr
-	KCOV_ENABLE        uintptr
-	KCOV_REMOTE_ENABLE uintptr
-	KCOV_DISABLE       uintptr
-	KCOV_TRACE_PC      uintptr
-	KCOV_TRACE_CMP     uintptr
-)
 
 type arch struct {
 	unix *targets.UnixNeutralizer

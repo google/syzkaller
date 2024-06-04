@@ -9,7 +9,7 @@ syz_compare(want ptr[in, string], want_len bytesize[want], got ptr[in, compare_d
 syz_compare_int$2(n const[2], v0 intptr, v1 intptr)
 syz_compare_int$3(n const[3], v0 intptr, v1 intptr, v2 intptr)
 syz_compare_int$4(n const[4], v0 intptr, v1 intptr, v2 intptr, v3 intptr)
-syz_compare_zlib(data ptr[in, array[int8]], size bytesize[data], zdata ptr[in, compressed_image], zsize bytesize[zdata]) (no_generate, no_minimize)
+syz_compare_zlib(data ptr[in, array[int8]], size bytesize[data], zdata ptr[in, compressed_image], zsize bytesize[zdata]) (timeout[4000], no_generate, no_minimize)
 
 # Copies the data into KCOV buffer verbatim and sets assumed kernel bitness.
 syz_inject_cover(is64 bool8, ptr ptr[in, array[int8]], size bytesize[ptr])

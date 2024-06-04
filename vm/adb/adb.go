@@ -323,7 +323,7 @@ func (inst *instance) adbWithTimeout(timeout time.Duration, args ...string) ([]b
 }
 
 func (inst *instance) waitForBootCompletion() {
-	// ADB connects to a phone and starts syz-fuzzer while the phone is still booting.
+	// ADB connects to a phone and starts syz-executor while the phone is still booting.
 	// This enables syzkaller to create a race condition which in certain cases doesn't
 	// allow the phone to finalize initialization.
 	// To determine whether a system has booted and started all system processes and

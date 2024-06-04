@@ -166,7 +166,6 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 type Config struct {
 	Debug          bool
 	Corpus         *corpus.Corpus
-	BaseOpts       flatrpc.ExecOpts // Fuzzer will use BaseOpts as a base for all requests.
 	Logf           func(level int, msg string, args ...interface{})
 	Coverage       bool
 	FaultInjection bool
@@ -251,7 +250,6 @@ func (fuzzer *Fuzzer) Next() *queue.Request {
 		// The fuzzer is not supposed to issue nil requests.
 		panic("nil request from the fuzzer")
 	}
-	req.ExecOpts = fuzzer.Config.BaseOpts.MergeFlags(req.ExecOpts)
 	return req
 }
 

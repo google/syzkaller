@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -237,10 +238,9 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smashed, dropped int) {
 	candidates := make([]fuzzer.Candidate, 0, len(inputs))
 	for _, inp := range inputs {
-		p, disabled, bad := parseProgram(hc.target, hc.enabledCalls, inp.Prog)
-		if bad != nil || disabled {
-			log.Logf(0, "rejecting program from hub (bad=%v, disabled=%v):\n%s",
-				bad, disabled, inp)
+		p, err := hc.parseProgram(inp.Prog)
+		if err != nil {
+			log.Logf(0, "rejecting program from hub: %v\n%s", err, inp.Prog)
 			dropped++
 			continue
 		}
@@ -292,10 +292,9 @@ func splitDomains(domain string) (string, string) {
 func (hc *HubConnector) processRepros(repros [][]byte) int {
 	dropped := 0
 	for _, repro := range repros {
-		_, disabled, bad := parseProgram(hc.target, hc.enabledCalls, repro)
-		if bad != nil || disabled {
-			log.Logf(0, "rejecting repro from hub (bad=%v, disabled=%v):\n%s",
-				bad, disabled, repro)
+		_, err := hc.parseProgram(repro)
+		if err != nil {
+			log.Logf(0, "rejecting repro from hub: %v\n%s", err, repro)
 			dropped++
 			continue
 		}
@@ -316,4 +315,15 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		}
 	}
 	return dropped
+}
+
+func (hc *HubConnector) parseProgram(data []byte) (*prog.Prog, error) {
+	p, err := loadProg(hc.target, data)
+	if err != nil {
+		return nil, err
+	}
+	if containsDisabled(p, hc.enabledCalls) {
+		return nil, fmt.Errorf("contains disabled calls")
+	}
+	return p, nil
 }

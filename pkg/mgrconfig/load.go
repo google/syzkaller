@@ -29,7 +29,6 @@ type Derived struct {
 	TargetVMArch string
 
 	// Full paths to binaries we are going to use:
-	FuzzerBin   string
 	ExecprogBin string
 	ExecutorBin string
 
@@ -39,7 +38,7 @@ type Derived struct {
 
 	// Special debugging/development mode specified by VM type "none".
 	// In this mode syz-manager does not start any VMs, but instead a user is supposed
-	// to start syz-fuzzer process in a VM manually.
+	// to start syz-executor process in a VM manually.
 	VMLess bool
 }
 
@@ -263,15 +262,11 @@ func (cfg *Config) completeBinaries() error {
 	targetBin := func(name, arch string) string {
 		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
 	}
-	cfg.FuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
 	cfg.ExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
 	cfg.ExecutorBin = targetBin("syz-executor", cfg.TargetArch)
 	// If the target already provides an executor binary, we don't need to copy it.
 	if cfg.SysTarget.ExecutorBin != "" {
 		cfg.ExecutorBin = ""
-	}
-	if !osutil.IsExist(cfg.FuzzerBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.FuzzerBin)
 	}
 	if !osutil.IsExist(cfg.ExecprogBin) {
 		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecprogBin)

@@ -226,7 +226,7 @@ static void use_temporary_dir(void)
 #endif
 
 #if GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
-#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
@@ -594,10 +594,6 @@ static void loop(void)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
 static void execute_one(void);
-#if SYZ_EXECUTOR_USES_FORK_SERVER
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 #if GOOS_linux
 #define WAIT_FLAGS __WALL
@@ -605,9 +601,10 @@ static void execute_one(void);
 #define WAIT_FLAGS 0
 #endif
 
-#if SYZ_EXECUTOR
-static void reply_handshake();
-#endif
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 static void loop(void)
 {
@@ -616,7 +613,7 @@ static void loop(void)
 #endif
 #if SYZ_EXECUTOR
 	// Tell parent that we are ready to serve.
-	reply_handshake();
+	reply_execute(0);
 #endif
 	int iter = 0;
 #if SYZ_REPEAT_TIMES
@@ -675,7 +672,7 @@ static void loop(void)
 		uint64 start = current_time_ms();
 #if SYZ_EXECUTOR
 		uint64 last_executed = start;
-		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+		uint32 executed_calls = output_data->completed.load(std::memory_order_relaxed);
 #endif
 		for (;;) {
 			sleep_ms(10);
@@ -695,7 +692,7 @@ static void loop(void)
 			uint64 min_timeout_ms = program_timeout_ms * 3 / 5;
 			uint64 inactive_timeout_ms = syscall_timeout_ms * 20;
 			uint64 now = current_time_ms();
-			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+			uint32 now_executed = output_data->completed.load(std::memory_order_relaxed);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;

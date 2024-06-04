@@ -26,13 +26,15 @@
 class CoverFilter
 {
 public:
-	CoverFilter(const char* file, void* preferred = nullptr)
-	    : shmem_(file, preferred, kMemSize), tab_(static_cast<Table*>(shmem_.Mem()))
+	CoverFilter()
+	    : shmem_(kMemSize),
+	      tab_(static_cast<Table*>(shmem_.Mem()))
 	{
 	}
 
 	CoverFilter(int fd, void* preferred = nullptr)
-	    : shmem_(fd, preferred, kMemSize, false), tab_(static_cast<Table*>(shmem_.Mem()))
+	    : shmem_(fd, preferred, kMemSize, false),
+	      tab_(static_cast<Table*>(shmem_.Mem()))
 	{
 	}
 

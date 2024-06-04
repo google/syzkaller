@@ -3,11 +3,11 @@
 Here are some things to check if there are problems running syzkaller.
 
  - Use the `-debug` command line option to make syzkaller print all possible debug output,
-   from both the `syz-manager` top-level program and the `syz-fuzzer` instances. With this option
-   syzkaller will only run one VM instance.
+   from both the `syz-manager` top-level program and the `syz-executor` instances.
+   With this option syzkaller will only run one VM instance.
 
  - Use the `-vv N` command line option to increase the amount of logging output, from both
-   the `syz-manager` top-level program and the `syz-fuzzer` instances (which go to the
+   the `syz-manager` top-level program and the `syz-executor` instances (which go to the
    output files in the `crashes` subdirectory of the working directory). Higher values of
    N give more output.
 

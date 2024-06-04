@@ -91,7 +91,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 		return "", fmt.Errorf("failed to checkout syzkaller repo: %w", err)
 	}
 	// The following commit ("syz-fuzzer: support optional flags") adds support for optional flags
-	// in syz-fuzzer and syz-execprog. This is required to invoke older binaries with newer flags
+	// in syz-execprog. This is required to invoke older binaries with newer flags
 	// without failing due to unknown flags.
 	optionalFlags, err := repo.Contains("64435345f0891706a7e0c7885f5f7487581e6005")
 	if err != nil {
@@ -436,53 +436,6 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	}
 	opts.Repeat, opts.Threaded = true, true
 	return opts, nil
-}
-
-type OptionalFuzzerArgs struct {
-	Slowdown   int
-	SandboxArg int64
-	PprofPort  int
-}
-
-type FuzzerCmdArgs struct {
-	Fuzzer    string
-	Executor  string
-	Name      string
-	OS        string
-	Arch      string
-	FwdAddr   string
-	Sandbox   string
-	Verbosity int
-	Cover     bool
-	Debug     bool
-	Optional  *OptionalFuzzerArgs
-}
-
-func FuzzerCmd(args *FuzzerCmdArgs) string {
-	osArg := ""
-	if targets.Get(args.OS, args.Arch).HostFuzzer {
-		// Only these OSes need the flag, because the rest assume host OS.
-		// But speciying OS for all OSes breaks patch testing on syzbot
-		// because old execprog does not have os flag.
-		osArg = " -os=" + args.OS
-	}
-	verbosityArg := ""
-	if args.Verbosity != 0 {
-		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
-	}
-	optionalArg := ""
-	if args.Optional != nil {
-		flags := []tool.Flag{
-			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
-			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
-			{Name: "pprof_port", Value: fmt.Sprint(args.Optional.PprofPort)},
-		}
-		optionalArg = " " + tool.OptionalFlags(flags)
-	}
-	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -cover=%v -debug=%v %v%v",
-		args.Fuzzer, args.Executor, args.Name, args.Arch, osArg, args.FwdAddr, args.Sandbox,
-		args.Cover, args.Debug, verbosityArg, optionalArg)
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, repeat, threaded, collide bool,

@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/rpcserver"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
@@ -40,6 +41,8 @@ func (mgr *Manager) initHTTP() {
 	handle("/config", mgr.httpConfig)
 	handle("/expert_mode", mgr.httpExpertMode)
 	handle("/stats", mgr.httpStats)
+	handle("/vms", mgr.httpVMs)
+	handle("/vm", mgr.httpVM)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
 	handle("/corpus", mgr.httpCorpus)
@@ -163,6 +166,51 @@ func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func (mgr *Manager) httpVMs(w http.ResponseWriter, r *http.Request) {
+	data := &UIVMData{
+		Name: mgr.cfg.Name,
+	}
+	// TODO: we could also query vmLoop for VMs that are idle (waiting to start reproducing),
+	// and query the exact bug that is being reproduced by a VM.
+	for name, state := range mgr.serv.VMState() {
+		info := UIVMInfo{
+			Name:  name,
+			State: "unknown",
+			Since: time.Since(state.Timestamp),
+		}
+		switch state.State {
+		case rpcserver.StateOffline:
+			info.State = "reproducing"
+		case rpcserver.StateBooting:
+			info.State = "booting"
+		case rpcserver.StateFuzzing:
+			info.State = "fuzzing"
+			info.MachineInfo = fmt.Sprintf("/vm?type=machine-info&name=%v", name)
+			info.RunnerStatus = fmt.Sprintf("/vm?type=runner-status&name=%v", name)
+		case rpcserver.StateStopping:
+			info.State = "crashed"
+		}
+		data.VMs = append(data.VMs, info)
+	}
+	sort.Slice(data.VMs, func(i, j int) bool {
+		return data.VMs[i].Name < data.VMs[j].Name
+	})
+	executeTemplate(w, vmsTemplate, data)
+}
+
+func (mgr *Manager) httpVM(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", ctTextPlain)
+	vm := r.FormValue("name")
+	switch r.FormValue("type") {
+	case "machine-info":
+		w.Write(mgr.serv.MachineInfo(vm))
+	case "runner-status":
+		w.Write(mgr.serv.RunnerStatus(vm))
+	default:
+		w.Write([]byte("unknown info type"))
+	}
+}
+
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
 	crash := readCrash(mgr.cfg.Workdir, crashID, nil, mgr.firstConnect.Load(), true)
@@ -268,12 +316,12 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 
 	// Don't hold the mutex while creating report generator and generating the report,
 	// these operations take lots of time.
-	if !mgr.serv.checkDone.Load() {
+	if !mgr.checkDone.Load() {
 		http.Error(w, "coverage is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
 
-	rg, err := getReportGenerator(mgr.cfg, mgr.serv.modules)
+	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
@@ -329,11 +377,11 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 
 	var coverFilter map[uint64]struct{}
 	if r.FormValue("filter") != "" || funcFlag == DoFilterPCs {
-		if mgr.serv.coverFilter == nil {
+		if mgr.coverFilter == nil {
 			http.Error(w, "cover is not filtered in config", http.StatusInternalServerError)
 			return
 		}
-		coverFilter = mgr.serv.coverFilter
+		coverFilter = mgr.coverFilter
 	}
 
 	params := cover.HandlerParams{
@@ -503,12 +551,7 @@ func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) modulesInfo(w http.ResponseWriter, r *http.Request) {
-	if mgr.serv.canonicalModules == nil {
-		fmt.Fprintf(w, "module information not retrieved yet, please retry after fuzzing starts\n")
-		return
-	}
-	// NewCanonicalizer() is initialized with serv.modules.
-	modules, err := json.MarshalIndent(mgr.serv.modules, "", "\t")
+	modules, err := json.MarshalIndent(mgr.modules, "", "\t")
 	if err != nil {
 		fmt.Fprintf(w, "unable to create JSON modules info: %v", err)
 		return
@@ -728,6 +771,19 @@ type UISummaryData struct {
 	Log          string
 }
 
+type UIVMData struct {
+	Name string
+	VMs  []UIVMInfo
+}
+
+type UIVMInfo struct {
+	Name         string
+	State        string
+	Since        time.Duration
+	MachineInfo  string
+	RunnerStatus string
+}
+
 type UISyscallsData struct {
 	Name  string
 	Calls []UICallType
@@ -843,6 +899,37 @@ var summaryTemplate = pages.Create(`
 	var textarea = document.getElementById("log_textarea");
 	textarea.scrollTop = textarea.scrollHeight;
 </script>
+</body></html>
+`)
+
+var vmsTemplate = pages.Create(`
+<!doctype html>
+<html>
+<head>
+	<title>{{.Name }} syzkaller</title>
+	{{HEAD}}
+</head>
+<body>
+
+<table class="list_table">
+	<caption>VM Info:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Name', textSort)" href="#">Name</a></th>
+		<th><a onclick="return sortTable(this, 'State', textSort)" href="#">State</a></th>
+		<th><a onclick="return sortTable(this, 'Since', timeSort)" href="#">Since</a></th>
+		<th><a onclick="return sortTable(this, 'Machine Info', timeSort)" href="#">Machine Info</a></th>
+		<th><a onclick="return sortTable(this, 'Runner Status', timeSort)" href="#">Runner Status</a></th>
+	</tr>
+	{{range $vm := $.VMs}}
+	<tr>
+		<td>{{$vm.Name}}</td>
+		<td>{{$vm.State}}</td>
+		<td>{{formatDuration $vm.Since}}</td>
+		<td>{{optlink $vm.MachineInfo "info"}}</td>
+		<td>{{optlink $vm.RunnerStatus "status"}}</td>
+	</tr>
+	{{end}}
+</table>
 </body></html>
 `)
 
