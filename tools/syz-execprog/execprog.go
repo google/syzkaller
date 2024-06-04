@@ -405,7 +405,8 @@ func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls 
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go checkerExecutor(ctx, checker, config)
+	debug := execOpts.EnvFlags&flatrpc.ExecEnvDebug != 0
+	go checkerExecutor(ctx, checker, config, debug)
 
 	enabledSyscalls, disabledSyscalls, features, err := checker.Run(fileInfos, featureInfos)
 	if err != nil {
@@ -427,7 +428,7 @@ func createConfig(target *prog.Target, featuresFlags csource.Features, syscalls 
 	return config, execOpts, enabledSyscalls, features.Enabled()
 }
 
-func checkerExecutor(ctx context.Context, source queue.Source, config *ipc.Config) {
+func checkerExecutor(ctx context.Context, source queue.Source, config *ipc.Config, debug bool) {
 	env, err := ipc.MakeEnv(config, 0)
 	if err != nil {
 		log.Fatalf("failed to create ipc env: %v", err)
@@ -447,7 +448,11 @@ func checkerExecutor(ctx context.Context, source queue.Source, config *ipc.Confi
 		if err != nil {
 			log.Fatalf("failed to serialize %s: %v", req.Prog.Serialize(), err)
 		}
-		output, info, hanged, err := env.ExecProg(&req.ExecOpts, progData)
+		execOpts := req.ExecOpts
+		if debug {
+			execOpts.EnvFlags |= flatrpc.ExecEnvDebug
+		}
+		output, info, hanged, err := env.ExecProg(&execOpts, progData)
 		res := &queue.Result{
 			Status: queue.Success,
 			Info:   info,
