@@ -121,8 +121,3 @@ static void cover_collect(cover_t* cov)
 	cov->data_offset = ((int64_t) & (trace->pcs)) - ((int64_t)(cov->data));
 	cov->pc_offset = trace->offset;
 }
-
-static bool use_cover_edges(uint64 pc)
-{
-	return true;
-}

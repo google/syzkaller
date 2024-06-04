@@ -174,11 +174,6 @@ static void cover_collect(cover_t* cov)
 	cov->size = *(uint64*)cov->data;
 }
 
-static bool use_cover_edges(uint64 pc)
-{
-	return true;
-}
-
 #if GOOS_netbsd
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {

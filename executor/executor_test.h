@@ -87,9 +87,4 @@ static void cover_mmap(cover_t* cov)
 static void cover_unprotect(cover_t* cov)
 {
 }
-
-static bool use_cover_edges(uint64 pc)
-{
-	return true;
-}
 #endif
