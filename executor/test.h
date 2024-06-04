@@ -247,11 +247,13 @@ static struct {
     {"test_coverage_filter", test_coverage_filter},
 };
 
-static int run_tests()
+static int run_tests(const char* test)
 {
 	int ret = 0;
 	for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
 		const char* name = tests[i].name;
+		if (test && strcmp(test, name))
+			continue;
 		printf("=== RUN  %s\n", name);
 		int res = tests[i].f();
 		ret |= res > 0;
