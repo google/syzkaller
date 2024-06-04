@@ -135,12 +135,7 @@ func main() {
 		log.SyzFatal(err)
 	}
 	infoReply := infoReplyRaw.UnPack()
-
-	if len(infoReply.CoverFilter) != 0 {
-		if err := osutil.WriteFile("syz-cover-bitmap", infoReply.CoverFilter); err != nil {
-			log.SyzFatalf("failed to write syz-cover-bitmap: %v", err)
-		}
-	}
+	config.CoverFilter = infoReply.CoverFilter
 
 	fuzzerTool := &FuzzerTool{
 		conn:       conn,

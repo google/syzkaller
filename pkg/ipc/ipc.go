@@ -33,6 +33,8 @@ type Config struct {
 	RateLimit     bool // rate limit start of new processes for host fuzzer mode
 
 	Timeouts targets.Timeouts
+
+	CoverFilter []uint64
 }
 
 type Env struct {
@@ -495,10 +497,12 @@ const (
 )
 
 type handshakeReq struct {
-	magic      uint64
-	flags      uint64 // env flags
-	pid        uint64
-	sandboxArg uint64
+	magic           uint64
+	flags           uint64 // env flags
+	pid             uint64
+	sandboxArg      uint64
+	coverFilterSize uint64
+	// Followed by [coverFilterSize]uint64 filter.
 }
 
 type handshakeReply struct {
@@ -676,14 +680,23 @@ func (c *command) close() {
 // handshake sends handshakeReq and waits for handshakeReply.
 func (c *command) handshake() error {
 	req := &handshakeReq{
-		magic:      inMagic,
-		flags:      uint64(c.flags),
-		pid:        uint64(c.pid),
-		sandboxArg: uint64(c.sandboxArg),
+		magic:           inMagic,
+		flags:           uint64(c.flags),
+		pid:             uint64(c.pid),
+		sandboxArg:      uint64(c.sandboxArg),
+		coverFilterSize: uint64(len(c.config.CoverFilter)),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
 		return c.handshakeError(fmt.Errorf("failed to write control pipe: %w", err))
+	}
+	if req.coverFilterSize != 0 {
+		ptr := (*byte)(unsafe.Pointer(&c.config.CoverFilter[0]))
+		size := uintptr(req.coverFilterSize) * unsafe.Sizeof(c.config.CoverFilter[0])
+		coverFilter := unsafe.Slice(ptr, size)
+		if _, err := c.outwp.Write(coverFilter); err != nil {
+			return c.handshakeError(fmt.Errorf("failed to write control pipe: %w", err))
+		}
 	}
 
 	read := make(chan error, 1)
