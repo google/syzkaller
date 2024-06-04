@@ -122,37 +122,11 @@ func (can *Canonicalizer) NewInstance(modules []KernelModule) *CanonicalizerInst
 }
 
 func (ci *CanonicalizerInstance) Canonicalize(elems []uint64) []uint64 {
-	if ci.canonical.moduleKeys == nil {
-		return elems
-	}
 	return ci.canonicalize.convertPCs(elems)
 }
 
 func (ci *CanonicalizerInstance) Decanonicalize(elems []uint64) []uint64 {
-	if ci.canonical.moduleKeys == nil {
-		return elems
-	}
 	return ci.decanonicalize.convertPCs(elems)
-}
-
-func (ci *CanonicalizerInstance) DecanonicalizeFilter(bitmap map[uint64]uint32) map[uint64]uint32 {
-	// Skip conversion if modules or filter are not used.
-	if ci.canonical.moduleKeys == nil || len(bitmap) == 0 {
-		return bitmap
-	}
-	instBitmap := make(map[uint64]uint32)
-	convCtx := &convertContext{convert: ci.decanonicalize}
-	for pc, val := range bitmap {
-		if newPC, ok := ci.decanonicalize.convertPC(pc); ok {
-			instBitmap[newPC] = val
-		} else {
-			convCtx.discard(pc)
-		}
-	}
-	if msg := convCtx.discarded(); msg != "" {
-		log.Logf(4, "error in bitmap conversion: %v", msg)
-	}
-	return instBitmap
 }
 
 // Store sorted list of addresses. Used to binary search when converting PCs.
@@ -177,7 +151,9 @@ func findModule(pc uint64, moduleKeys []uint64) (moduleIdx int) {
 }
 
 func (convert *Convert) convertPCs(pcs []uint64) []uint64 {
-	// Convert coverage.
+	if convert == nil {
+		return pcs
+	}
 	var ret []uint64
 	convCtx := &convertContext{convert: convert}
 	for _, pc := range pcs {

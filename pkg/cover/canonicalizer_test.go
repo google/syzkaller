@@ -22,8 +22,8 @@ type Fuzzer struct {
 	instModules *CanonicalizerInstance
 	cov         []uint64
 	goalCov     []uint64
-	bitmap      map[uint64]uint32
-	goalBitmap  map[uint64]uint32
+	bitmap      []uint64
+	goalBitmap  []uint64
 	sign        []uint64
 	goalSign    []uint64
 }
@@ -49,29 +49,29 @@ func TestNilModules(t *testing.T) {
 	serv.fuzzers["f2"].cov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00020000, 0x00030000, 0x00040000}
 
-	serv.fuzzers["f1"].bitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f1"].bitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
-	serv.fuzzers["f1"].goalBitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f1"].goalBitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
-	serv.fuzzers["f2"].bitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f2"].bitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
-	serv.fuzzers["f2"].goalBitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f2"].goalBitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
 
 	if err := serv.runTest(Canonicalize); err != "" {
@@ -152,29 +152,29 @@ func TestModules(t *testing.T) {
 	serv.fuzzers["f2"].goalCov = []uint64{0x00010000, 0x00015000, 0x00040000, 0x00025000, 0x00045000,
 		0x0004a000, 0x00020000, 0x00030000, 0x0003b000, 0x00055000}
 
-	serv.fuzzers["f1"].bitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f1"].bitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
-	serv.fuzzers["f1"].goalBitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f1"].goalBitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
-	serv.fuzzers["f2"].bitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00020FFF: 2,
-		0x00030000: 3,
-		0x00040000: 4,
+	serv.fuzzers["f2"].bitmap = []uint64{
+		0x00010011,
+		0x00020FFF,
+		0x00030000,
+		0x00040000,
 	}
-	serv.fuzzers["f2"].goalBitmap = map[uint64]uint32{
-		0x00010011: 1,
-		0x00040FFF: 2,
-		0x00045000: 3,
-		0x00020000: 4,
+	serv.fuzzers["f2"].goalBitmap = []uint64{
+		0x00010011,
+		0x00040FFF,
+		0x00045000,
+		0x00020000,
 	}
 
 	if err := serv.runTest(Canonicalize); err != "" {
@@ -229,7 +229,7 @@ func (serv *RPCServer) runTest(val canonicalizeValue) string {
 			cov = fuzzer.instModules.Canonicalize(fuzzer.cov)
 		} else {
 			cov = fuzzer.instModules.Decanonicalize(fuzzer.cov)
-			instBitmap := fuzzer.instModules.DecanonicalizeFilter(fuzzer.bitmap)
+			instBitmap := fuzzer.instModules.Decanonicalize(fuzzer.bitmap)
 			if !reflect.DeepEqual(instBitmap, fuzzer.goalBitmap) {
 				return fmt.Sprintf("failed in bitmap conversion. Fuzzer %v.\nExpected: 0x%x.\nReturned: 0x%x",
 					name, fuzzer.goalBitmap, instBitmap)
