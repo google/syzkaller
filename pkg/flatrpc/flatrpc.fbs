@@ -54,7 +54,7 @@ table InfoRequestRaw {
 }
 
 table InfoReplyRaw {
-	cover_filter		:[uint8];
+	cover_filter		:[uint64];
 }
 
 table FileInfoRaw {
@@ -134,7 +134,6 @@ enum ExecFlag : uint64 (bit_flags) {
 	DedupCover,		// deduplicate coverage in executor
 	CollectComps,		// collect KCOV comparisons
 	Threaded,		// use multiple threads to mitigate blocked syscalls
-	CoverFilter,		// setup and use bitmap to do coverage filter
 }
 
 struct ExecOptsRaw {

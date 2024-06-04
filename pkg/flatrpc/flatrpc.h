@@ -509,34 +509,49 @@ enum class ExecFlag : uint64_t {
   DedupCover = 4ULL,
   CollectComps = 8ULL,
   Threaded = 16ULL,
-  CoverFilter = 32ULL,
   NONE = 0,
-  ANY = 63ULL
+  ANY = 31ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(ExecFlag, uint64_t)
 
-inline const ExecFlag (&EnumValuesExecFlag())[6] {
+inline const ExecFlag (&EnumValuesExecFlag())[5] {
   static const ExecFlag values[] = {
     ExecFlag::CollectSignal,
     ExecFlag::CollectCover,
     ExecFlag::DedupCover,
     ExecFlag::CollectComps,
-    ExecFlag::Threaded,
-    ExecFlag::CoverFilter
+    ExecFlag::Threaded
   };
   return values;
 }
 
+inline const char * const *EnumNamesExecFlag() {
+  static const char * const names[17] = {
+    "CollectSignal",
+    "CollectCover",
+    "",
+    "DedupCover",
+    "",
+    "",
+    "",
+    "CollectComps",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "Threaded",
+    nullptr
+  };
+  return names;
+}
+
 inline const char *EnumNameExecFlag(ExecFlag e) {
-  switch (e) {
-    case ExecFlag::CollectSignal: return "CollectSignal";
-    case ExecFlag::CollectCover: return "CollectCover";
-    case ExecFlag::DedupCover: return "DedupCover";
-    case ExecFlag::CollectComps: return "CollectComps";
-    case ExecFlag::Threaded: return "Threaded";
-    case ExecFlag::CoverFilter: return "CoverFilter";
-    default: return "";
-  }
+  if (flatbuffers::IsOutRange(e, ExecFlag::CollectSignal, ExecFlag::Threaded)) return "";
+  const size_t index = static_cast<size_t>(e) - static_cast<size_t>(ExecFlag::CollectSignal);
+  return EnumNamesExecFlag()[index];
 }
 
 enum class CallFlag : uint8_t {
@@ -1018,7 +1033,7 @@ flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(flatbuffers::FlatBuffer
 
 struct InfoReplyRawT : public flatbuffers::NativeTable {
   typedef InfoReplyRaw TableType;
-  std::vector<uint8_t> cover_filter{};
+  std::vector<uint64_t> cover_filter{};
 };
 
 struct InfoReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1027,8 +1042,8 @@ struct InfoReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COVER_FILTER = 4
   };
-  const flatbuffers::Vector<uint8_t> *cover_filter() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_COVER_FILTER);
+  const flatbuffers::Vector<uint64_t> *cover_filter() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_COVER_FILTER);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1045,7 +1060,7 @@ struct InfoReplyRawBuilder {
   typedef InfoReplyRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_cover_filter(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> cover_filter) {
+  void add_cover_filter(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> cover_filter) {
     fbb_.AddOffset(InfoReplyRaw::VT_COVER_FILTER, cover_filter);
   }
   explicit InfoReplyRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1061,7 +1076,7 @@ struct InfoReplyRawBuilder {
 
 inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> cover_filter = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> cover_filter = 0) {
   InfoReplyRawBuilder builder_(_fbb);
   builder_.add_cover_filter(cover_filter);
   return builder_.Finish();
@@ -1069,8 +1084,8 @@ inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(
 
 inline flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint8_t> *cover_filter = nullptr) {
-  auto cover_filter__ = cover_filter ? _fbb.CreateVector<uint8_t>(*cover_filter) : 0;
+    const std::vector<uint64_t> *cover_filter = nullptr) {
+  auto cover_filter__ = cover_filter ? _fbb.CreateVector<uint64_t>(*cover_filter) : 0;
   return rpc::CreateInfoReplyRaw(
       _fbb,
       cover_filter__);
@@ -2351,7 +2366,7 @@ inline InfoReplyRawT *InfoReplyRaw::UnPack(const flatbuffers::resolver_function_
 inline void InfoReplyRaw::UnPackTo(InfoReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = cover_filter(); if (_e) { _o->cover_filter.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->cover_filter.begin()); } }
+  { auto _e = cover_filter(); if (_e) { _o->cover_filter.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cover_filter[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<InfoReplyRaw> InfoReplyRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {

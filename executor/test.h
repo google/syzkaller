@@ -201,37 +201,82 @@ static int test_csum_inet_acc()
 	return 0;
 }
 
-static int test_coverage_filter()
+static int test_cover_filter()
 {
-	struct tmp_cov_filter_t {
-		uint64 pcstart;
-		uint64 pcsize;
-		uint8 bitmap[((0x1000 >> 4) + 7) / 8];
+	char* tmp = tempnam(nullptr, "syz-test-cover-filter");
+	CoverFilter filter(tmp);
+	CoverFilter child(filter.FD());
+	free(tmp);
+
+	std::vector<uint64> pcs = {
+	    100,
+	    111,
+	    200,
+	    (1 << 20) - 1,
+	    1 << 20,
+	    (1 << 30) - 1,
+	    100ull << 30,
+	    (100ull << 30) + 100,
+	    200ull << 30,
+	    (1ull << 62) + 100,
 	};
-	static struct tmp_cov_filter_t tmp_cov_filter;
-	tmp_cov_filter.pcstart = 0xffffffff81000000;
-	tmp_cov_filter.pcsize = 0x1000;
-	cov_filter = (cov_filter_t*)&tmp_cov_filter;
-	flag_coverage_filter = true;
 
-	uint64 enable_pc = 0xffffffff81000765;
-	uint64 disable_pc = 0xffffffff81000627;
-	uint64 out_pc = 0xffffffff82000000;
+	// These we don't insert, but they are also present due to truncation of low 3 bits.
+	std::vector<uint64> also_contain = {
+	    96,
+	    103,
+	    104,
+	    207,
+	    (1 << 20) - 7,
+	    (1 << 20) + 7,
+	    (1ull << 62) + 96,
+	    (1ull << 62) + 103,
+	};
 
-	uint32 idx = ((enable_pc - cov_filter->pcstart) >> 4) / 8;
-	uint32 shift = ((enable_pc - cov_filter->pcstart) >> 4) % 8;
-	cov_filter->bitmap[idx] |= (1 << shift);
+	std::vector<uint64> dont_contain = {
+	    0,
+	    1,
+	    95,
+	    112,
+	    199,
+	    208,
+	    100 << 10,
+	    (1 << 20) - 9,
+	    (1 << 20) + 8,
+	    (2ull << 30) - 1,
+	    2ull << 30,
+	    (2ull << 30) + 1,
+	    (100ull << 30) + 108,
+	    150ull << 30,
+	    1ull << 40,
+	    1ull << 63,
+	    ~0ull,
+	};
 
-	if (!coverage_filter(enable_pc))
-		return 1;
-	if (coverage_filter(disable_pc))
-		return 1;
-	if (coverage_filter(out_pc))
-		return 1;
+	int ret = 0;
+	for (auto pc : pcs)
+		filter.Insert(pc);
+	pcs.insert(pcs.end(), also_contain.begin(), also_contain.end());
+	for (auto pc : pcs) {
+		if (!filter.Contains(pc) || !child.Contains(pc)) {
+			printf("filter doesn't contain %llu (0x%llx)\n", pc, pc);
+			ret = 1;
+		}
+	}
+	for (auto pc : dont_contain) {
+		if (filter.Contains(pc) || child.Contains(pc)) {
+			printf("filter contains %llu (0x%llx)\n", pc, pc);
+			ret = 1;
+		}
+	}
 
-	cov_filter = NULL;
-	flag_coverage_filter = false;
-	return 0;
+	filter.Remove(105);
+	if (filter.Contains(104) || filter.Contains(105) || filter.Contains(111))
+		printf("filter contains 105 after removal\n");
+	if (!filter.Contains(103))
+		printf("filter doesn't contains 103 after 105 removal\n");
+
+	return ret;
 }
 
 static struct {
@@ -244,7 +289,7 @@ static struct {
 #if GOOS_linux && (GOARCH_amd64 || GOARCH_ppc64 || GOARCH_ppc64le)
     {"test_kvm", test_kvm},
 #endif
-    {"test_coverage_filter", test_coverage_filter},
+    {"test_cover_filter", test_cover_filter},
 };
 
 static int run_tests(const char* test)

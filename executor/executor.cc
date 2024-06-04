@@ -177,7 +177,6 @@ static bool flag_collect_cover;
 static bool flag_collect_signal;
 static bool flag_dedup_cover;
 static bool flag_threaded;
-static bool flag_coverage_filter;
 
 // If true, then executor should write the comparisons data to fuzzer.
 static bool flag_comparisons;
@@ -302,6 +301,8 @@ struct handshake_req {
 	uint64 flags; // env flags
 	uint64 pid;
 	uint64 sandbox_arg;
+	uint64 cover_filter_size;
+	// Followed by uint64[cover_filter_size] filter.
 };
 
 struct handshake_reply {
@@ -390,6 +391,7 @@ static void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off
 static bool copyout(char* addr, uint64 size, uint64* res);
 static void setup_control_pipes();
 static void setup_features(char** enable, int n);
+static bool coverage_filter(uint64 pc);
 
 #include "syscalls.h"
 
@@ -413,9 +415,13 @@ static void setup_features(char** enable, int n);
 static feature_t features[] = {};
 #endif
 
-#include "cov_filter.h"
+#include "shmem.h"
+
+#include "cover_filter.h"
 
 #include "test.h"
+
+static std::optional<CoverFilter> cover_filter;
 
 #if SYZ_HAVE_SANDBOX_ANDROID
 static uint64 sandbox_arg = 0;
@@ -509,17 +515,6 @@ int main(int argc, char** argv)
 			// Don't enable comps because we don't use them in the fuzzer yet.
 			cover_enable(&extra_cov, false, true);
 		}
-		char sep = '/';
-#if GOOS_windows
-		sep = '\\';
-#endif
-		char filename[1024] = {0};
-		char* end = strrchr(argv[0], sep);
-		size_t len = end - argv[0];
-		strncpy(filename, argv[0], len + 1);
-		strncat(filename, "syz-cover-bitmap", 17);
-		filename[sizeof(filename) - 1] = '\0';
-		init_coverage_filter(filename);
 	}
 
 	int status = 0;
@@ -644,9 +639,9 @@ void parse_env_flags(uint64 flags)
 void receive_handshake()
 {
 	handshake_req req = {};
-	int n = read(kInPipeFd, &req, sizeof(req));
+	ssize_t n = read(kInPipeFd, &req, sizeof(req));
 	if (n != sizeof(req))
-		failmsg("handshake read failed", "read=%d", n);
+		failmsg("handshake read failed", "read=%zu", n);
 	if (req.magic != kInMagic)
 		failmsg("bad handshake magic", "magic=0x%llx", req.magic);
 #if SYZ_HAVE_SANDBOX_ANDROID
@@ -654,6 +649,18 @@ void receive_handshake()
 #endif
 	parse_env_flags(req.flags);
 	procid = req.pid;
+	if (!req.cover_filter_size)
+		return;
+	// A random address for bitmap. Don't corrupt output_data.
+	cover_filter.emplace("syz-cover-filer", reinterpret_cast<void*>(0x110f230000ull));
+	std::vector<uint64> pcs(req.cover_filter_size);
+	const ssize_t filter_size = req.cover_filter_size * sizeof(uint64);
+	n = read(kInPipeFd, &pcs[0], filter_size);
+	if (n != filter_size)
+		failmsg("failed to read cover filter", "read=%zu", n);
+	for (auto pc : pcs)
+		cover_filter->Insert(pc);
+	cover_filter->Seal();
 }
 
 void reply_handshake()
@@ -684,13 +691,12 @@ void receive_execute()
 	flag_dedup_cover = req.exec_flags & (1 << 2);
 	flag_comparisons = req.exec_flags & (1 << 3);
 	flag_threaded = req.exec_flags & (1 << 4);
-	flag_coverage_filter = req.exec_flags & (1 << 5);
 
-	debug("[%llums] exec opts: procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d"
-	      " timeouts=%llu/%llu/%llu filter=%d\n",
+	debug("[%llums] exec opts: procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d "
+	      " timeouts=%llu/%llu/%llu\n",
 	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collect_cover,
 	      flag_comparisons, flag_dedup_cover, flag_collect_signal, syscall_timeout_ms,
-	      program_timeout_ms, slowdown_scale, flag_coverage_filter);
+	      program_timeout_ms, slowdown_scale);
 	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
 		failmsg("bad timeouts", "syscall=%llu, program=%llu, scale=%llu",
 			syscall_timeout_ms, program_timeout_ms, slowdown_scale);
@@ -1034,6 +1040,13 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 			write_output_64(cover_data[i] + cov->pc_offset);
 		*cover_count_pos = cover_size;
 	}
+}
+
+bool coverage_filter(uint64 pc)
+{
+	if (!cover_filter)
+		return true;
+	return cover_filter->Contains(pc);
 }
 
 void handle_completion(thread_t* th)

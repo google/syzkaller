@@ -251,9 +251,8 @@ func (serv *RPCServer) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Can
 	})
 
 	canonicalizer := serv.canonicalModules.NewInstance(modules)
-	instCoverFilter := canonicalizer.Decanonicalize(serv.execCoverFilter)
 	infoReply := &flatrpc.InfoReply{
-		CoverFilter: createCoverageBitmap(serv.cfg, instCoverFilter),
+		CoverFilter: canonicalizer.Decanonicalize(serv.execCoverFilter),
 	}
 	if err := flatrpc.Send(conn, infoReply); err != nil {
 		return "", nil, nil, err
@@ -658,9 +657,6 @@ func (serv *RPCServer) execOpts() flatrpc.ExecOpts {
 	exec := flatrpc.ExecFlagThreaded
 	if !serv.cfg.RawCover {
 		exec |= flatrpc.ExecFlagDedupCover
-	}
-	if serv.cfg.HasCovFilter() {
-		exec |= flatrpc.ExecFlagCoverFilter
 	}
 	return flatrpc.ExecOpts{
 		EnvFlags:   env,
