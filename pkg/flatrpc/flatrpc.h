@@ -741,6 +741,9 @@ flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffers::Flat
 
 struct ConnectReplyRawT : public flatbuffers::NativeTable {
   typedef ConnectReplyRaw TableType;
+  bool debug = false;
+  int32_t procs = 0;
+  int32_t slowdown = 0;
   std::vector<std::string> leak_frames{};
   std::vector<std::string> race_frames{};
   rpc::Feature features = static_cast<rpc::Feature>(0);
@@ -752,12 +755,24 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ConnectReplyRawT NativeTableType;
   typedef ConnectReplyRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LEAK_FRAMES = 4,
-    VT_RACE_FRAMES = 6,
-    VT_FEATURES = 8,
-    VT_FILES = 10,
-    VT_GLOBS = 12
+    VT_DEBUG = 4,
+    VT_PROCS = 6,
+    VT_SLOWDOWN = 8,
+    VT_LEAK_FRAMES = 10,
+    VT_RACE_FRAMES = 12,
+    VT_FEATURES = 14,
+    VT_FILES = 16,
+    VT_GLOBS = 18
   };
+  bool debug() const {
+    return GetField<uint8_t>(VT_DEBUG, 0) != 0;
+  }
+  int32_t procs() const {
+    return GetField<int32_t>(VT_PROCS, 0);
+  }
+  int32_t slowdown() const {
+    return GetField<int32_t>(VT_SLOWDOWN, 0);
+  }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_LEAK_FRAMES);
   }
@@ -775,6 +790,9 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
+           VerifyField<int32_t>(verifier, VT_PROCS, 4) &&
+           VerifyField<int32_t>(verifier, VT_SLOWDOWN, 4) &&
            VerifyOffset(verifier, VT_LEAK_FRAMES) &&
            verifier.VerifyVector(leak_frames()) &&
            verifier.VerifyVectorOfStrings(leak_frames()) &&
@@ -799,6 +817,15 @@ struct ConnectReplyRawBuilder {
   typedef ConnectReplyRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_debug(bool debug) {
+    fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_DEBUG, static_cast<uint8_t>(debug), 0);
+  }
+  void add_procs(int32_t procs) {
+    fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_PROCS, procs, 0);
+  }
+  void add_slowdown(int32_t slowdown) {
+    fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_SLOWDOWN, slowdown, 0);
+  }
   void add_leak_frames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames) {
     fbb_.AddOffset(ConnectReplyRaw::VT_LEAK_FRAMES, leak_frames);
   }
@@ -827,6 +854,9 @@ struct ConnectReplyRawBuilder {
 
 inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
+    bool debug = false,
+    int32_t procs = 0,
+    int32_t slowdown = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> race_frames = 0,
     rpc::Feature features = static_cast<rpc::Feature>(0),
@@ -838,11 +868,17 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
   builder_.add_files(files);
   builder_.add_race_frames(race_frames);
   builder_.add_leak_frames(leak_frames);
+  builder_.add_slowdown(slowdown);
+  builder_.add_procs(procs);
+  builder_.add_debug(debug);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    bool debug = false,
+    int32_t procs = 0,
+    int32_t slowdown = 0,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *race_frames = nullptr,
     rpc::Feature features = static_cast<rpc::Feature>(0),
@@ -854,6 +890,9 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
   auto globs__ = globs ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*globs) : 0;
   return rpc::CreateConnectReplyRaw(
       _fbb,
+      debug,
+      procs,
+      slowdown,
       leak_frames__,
       race_frames__,
       features,
@@ -2212,6 +2251,9 @@ inline ConnectReplyRawT *ConnectReplyRaw::UnPack(const flatbuffers::resolver_fun
 inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = debug(); _o->debug = _e; }
+  { auto _e = procs(); _o->procs = _e; }
+  { auto _e = slowdown(); _o->slowdown = _e; }
   { auto _e = leak_frames(); if (_e) { _o->leak_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->leak_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = race_frames(); if (_e) { _o->race_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->race_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = features(); _o->features = _e; }
@@ -2227,6 +2269,9 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _debug = _o->debug;
+  auto _procs = _o->procs;
+  auto _slowdown = _o->slowdown;
   auto _leak_frames = _o->leak_frames.size() ? _fbb.CreateVectorOfStrings(_o->leak_frames) : 0;
   auto _race_frames = _o->race_frames.size() ? _fbb.CreateVectorOfStrings(_o->race_frames) : 0;
   auto _features = _o->features;
@@ -2234,6 +2279,9 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   auto _globs = _o->globs.size() ? _fbb.CreateVectorOfStrings(_o->globs) : 0;
   return rpc::CreateConnectReplyRaw(
       _fbb,
+      _debug,
+      _procs,
+      _slowdown,
       _leak_frames,
       _race_frames,
       _features,

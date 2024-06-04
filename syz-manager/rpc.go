@@ -185,6 +185,9 @@ func (serv *RPCServer) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Can
 
 	bugFrames := serv.mgr.currentBugFrames()
 	connectReply := &flatrpc.ConnectReply{
+		Debug:      *flagDebug,
+		Procs:      int32(serv.cfg.Procs),
+		Slowdown:   int32(serv.cfg.Timeouts.Slowdown),
 		LeakFrames: bugFrames.memoryLeaks,
 		RaceFrames: bugFrames.dataRaces,
 	}

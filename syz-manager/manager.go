@@ -853,10 +853,9 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectExec 
 	}
 
 	fuzzerV := 0
-	procs := mgr.cfg.Procs
 	if *flagDebug {
 		fuzzerV = 100
-		procs = 1
+		mgr.cfg.Procs = 1
 	}
 
 	// Run the fuzzer binary.
@@ -871,7 +870,6 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectExec 
 		Arch:      mgr.cfg.TargetArch,
 		FwdAddr:   fwdAddr,
 		Sandbox:   mgr.cfg.Sandbox,
-		Procs:     procs,
 		Verbosity: fuzzerV,
 		Cover:     mgr.cfg.Cover,
 		Debug:     *flagDebug,
