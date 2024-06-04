@@ -447,8 +447,8 @@ int main(int argc, char** argv)
 #endif
 		return 0;
 	}
-	if (argc == 2 && strcmp(argv[1], "test") == 0)
-		return run_tests();
+	if (argc >= 2 && strcmp(argv[1], "test") == 0)
+		return run_tests(argc == 3 ? argv[2] : nullptr);
 
 	if (argc < 2 || strcmp(argv[1], "exec") != 0) {
 		fprintf(stderr, "unknown command");
