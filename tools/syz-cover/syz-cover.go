@@ -77,11 +77,8 @@ func main() {
 	}
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
-	params := cover.CoverHandlerParams{
-		Progs:       progs,
-		CoverFilter: nil,
-		Debug:       false,
-		Force:       false,
+	params := cover.HandlerParams{
+		Progs: progs,
 	}
 	if *flagExportCSV != "" {
 		if err := rg.DoCSV(buf, params); err != nil {

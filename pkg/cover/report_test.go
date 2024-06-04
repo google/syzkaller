@@ -378,7 +378,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		progs = append(progs, Prog{Data: "main", PCs: pcs})
 	}
 	html := new(bytes.Buffer)
-	params := CoverHandlerParams{
+	params := HandlerParams{
 		Progs: progs,
 	}
 	if err := rg.DoHTML(html, params); err != nil {
