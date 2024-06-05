@@ -139,7 +139,7 @@ if [ "$SYZ_SYSCTL_FILE" != "" ]; then
 fi
 
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee disk.mnt/etc/hosts
-echo "nameserver 8.8.8.8" | sudo tee -a disk.mnt/etc/resolve.conf
+echo "nameserver 8.8.8.8" | sudo tee -a disk.mnt/etc/resolv.conf
 echo "syzkaller" | sudo tee disk.mnt/etc/hostname
 sudo mkdir -p disk.mnt/boot/grub
 
