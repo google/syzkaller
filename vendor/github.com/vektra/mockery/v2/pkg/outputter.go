@@ -210,7 +210,6 @@ func parseConfigTemplates(ctx context.Context, c *config.Config, iface *Interfac
 	data := struct {
 		InterfaceDir            string
 		InterfaceDirRelative    string
-		InterfaceFile           string
 		InterfaceName           string
 		InterfaceNameCamel      string
 		InterfaceNameLowerCamel string
@@ -223,7 +222,6 @@ func parseConfigTemplates(ctx context.Context, c *config.Config, iface *Interfac
 	}{
 		InterfaceDir:         filepath.Dir(iface.FileName),
 		InterfaceDirRelative: interfaceDirRelative,
-		InterfaceFile:        iface.FileName,
 		InterfaceName:        iface.Name,
 		// Deprecated: All custom case variables of InterfaceName will be removed in the next major version
 		// Use the template functions instead
