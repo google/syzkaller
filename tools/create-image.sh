@@ -172,7 +172,7 @@ echo 'securityfs /sys/kernel/security securityfs defaults 0 0' | sudo tee -a $DI
 echo 'configfs /sys/kernel/config/ configfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee $DIR/etc/hosts
-echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolve.conf
+echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolv.conf
 echo "syzkaller" | sudo tee $DIR/etc/hostname
 ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
 sudo mkdir -p $DIR/root/.ssh/
