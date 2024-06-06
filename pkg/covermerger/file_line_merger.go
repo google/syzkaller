@@ -4,12 +4,12 @@
 package covermerger
 
 func makeFileLineCoverMerger(
-	fileVersions map[RepoBranchCommit]string, base RepoBranchCommit) FileCoverageMerger {
+	fvs fileVersions, base RepoBranchCommit) FileCoverageMerger {
 	baseFile := ""
 	baseFileExists := false
-	for rbc, fileContent := range fileVersions {
+	for rbc, fv := range fvs {
 		if rbc == base {
-			baseFile = fileContent
+			baseFile = fv.content
 			baseFileExists = true
 			break
 		}
@@ -18,33 +18,46 @@ func makeFileLineCoverMerger(
 		return &DeletedFileLineMerger{}
 	}
 	a := &FileLineCoverMerger{
-		rbcToFile: fileVersions,
-		baseFile:  baseFile,
-		hitCounts: make(map[int]int),
-		matchers:  make(map[RepoBranchCommit]*LineToLineMatcher),
+		rbcToFile:  fvs,
+		baseFile:   baseFile,
+		hitCounts:  make(map[int]int),
+		matchers:   make(map[RepoBranchCommit]*LineToLineMatcher),
+		lostFrames: map[RepoBranchCommit]int64{},
 	}
-	for rbc, fileVersion := range fileVersions {
-		a.matchers[rbc] = makeLineToLineMatcher(fileVersion, baseFile)
+	for rbc, fv := range fvs {
+		a.matchers[rbc] = makeLineToLineMatcher(fv.content, baseFile)
 	}
 	return a
 }
 
 type FileLineCoverMerger struct {
-	rbcToFile map[RepoBranchCommit]string
-	baseFile  string
-	hitCounts map[int]int
-	matchers  map[RepoBranchCommit]*LineToLineMatcher
+	rbcToFile  fileVersions
+	baseFile   string
+	hitCounts  map[int]int
+	matchers   map[RepoBranchCommit]*LineToLineMatcher
+	lostFrames map[RepoBranchCommit]int64
 }
 
-func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, arch string, f Frame, hitCount int) {
+func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, f *Frame, hitCount int) {
+	if a.matchers[rbc] == nil {
+		if hitCount > 0 {
+			a.lostFrames[rbc]++
+		}
+		return
+	}
 	if targetLine := a.matchers[rbc].SameLinePos(f.StartLine); targetLine != -1 {
 		a.hitCounts[f.StartLine] += hitCount
 	}
 }
 
 func (a *FileLineCoverMerger) Result() *MergeResult {
+	lostFrames := a.lostFrames
+	if len(lostFrames) == 0 {
+		lostFrames = nil
+	}
 	return &MergeResult{
 		HitCounts:  a.hitCounts,
 		FileExists: true,
+		LostFrames: lostFrames,
 	}
 }

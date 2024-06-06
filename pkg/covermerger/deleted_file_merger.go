@@ -6,7 +6,7 @@ package covermerger
 type DeletedFileLineMerger struct {
 }
 
-func (a *DeletedFileLineMerger) AddRecord(RepoBranchCommit, string, Frame, int) {
+func (a *DeletedFileLineMerger) AddRecord(RepoBranchCommit, *Frame, int) {
 }
 
 func (a *DeletedFileLineMerger) Result() *MergeResult {
