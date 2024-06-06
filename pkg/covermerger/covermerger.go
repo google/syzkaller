@@ -7,22 +7,20 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 
 	"golang.org/x/exp/maps"
 )
 
 const (
-	keyKernelRepo   = "kernel_repo"
-	keyKernelBranch = "kernel_branch"
-	keyKernelCommit = "kernel_commit"
-	keyFilePath     = "file_path"
-	keyStartLine    = "sl"
-	keyStartCol     = "sc"
-	keyEndLine      = "el"
-	keyEndCol       = "ec"
-	keyHitCount     = "hit_count"
-	keyArch         = "arch"
+	KeyKernelRepo   = "kernel_repo"
+	KeyKernelBranch = "kernel_branch"
+	KeyKernelCommit = "kernel_commit"
+	KeyFilePath     = "file_path"
+	KeyStartLine    = "sl"
+	KeyHitCount     = "hit_count"
+	KeyArch         = "arch"
 )
 
 type FileRecord map[string]string
@@ -35,9 +33,9 @@ type RepoBranchCommit struct {
 
 func (fr FileRecord) RepoBranchCommit() RepoBranchCommit {
 	return RepoBranchCommit{
-		fr[keyKernelRepo],
-		fr[keyKernelBranch],
-		fr[keyKernelCommit],
+		fr[KeyKernelRepo],
+		fr[KeyKernelBranch],
+		fr[KeyKernelCommit],
 	}
 }
 
@@ -51,31 +49,22 @@ type Frame struct {
 func (fr FileRecord) Frame() Frame {
 	f := Frame{}
 	var err error
-	if f.StartCol, err = strconv.Atoi(fr[keyStartCol]); err != nil {
-		panic(fmt.Sprintf("failed to Atoi(%s)", fr[keyStartCol]))
-	}
-	if f.StartLine, err = strconv.Atoi(fr[keyStartLine]); err != nil {
-		panic(fmt.Sprintf("failed to Atoi(%s)", fr[keyStartLine]))
-	}
-	if f.EndCol, err = strconv.Atoi(fr[keyEndCol]); err != nil {
-		panic(fmt.Sprintf("failed to Atoi(%s)", fr[keyEndCol]))
-	}
-	if f.EndLine, err = strconv.Atoi(fr[keyEndLine]); err != nil {
-		panic(fmt.Sprintf("failed to Atoi(%s)", fr[keyEndLine]))
+	if f.StartLine, err = strconv.Atoi(fr[KeyStartLine]); err != nil {
+		panic(fmt.Sprintf("failed to Atoi(%s)", fr[KeyStartLine]))
 	}
 	return f
 }
 
 func (fr FileRecord) HitCount() int {
-	if hitCount, err := strconv.Atoi(fr[keyHitCount]); err != nil {
-		panic(fmt.Sprintf("failed to Atoi(%s)", fr[keyHitCount]))
+	if hitCount, err := strconv.Atoi(fr[KeyHitCount]); err != nil {
+		panic(fmt.Sprintf("failed to Atoi(%s)", fr[KeyHitCount]))
 	} else {
 		return hitCount
 	}
 }
 
 func (fr FileRecord) Arch() string {
-	return fr[keyArch]
+	return fr[KeyArch]
 }
 
 type MergeResult struct {
@@ -88,19 +77,23 @@ type FileCoverageMerger interface {
 	Result() *MergeResult
 }
 
-func batchFileData(c *Config, targetFilePath string, records FileRecords, base RepoBranchCommit,
+func batchFileData(c *Config, targetFilePath string, records FileRecords,
 ) (*MergeResult, error) {
+	log.Printf("processing %d records for %s", len(records), targetFilePath)
 	repoBranchCommitsMap := make(map[RepoBranchCommit]bool)
 	for _, record := range records {
 		repoBranchCommitsMap[record.RepoBranchCommit()] = true
 	}
-	repoBranchCommitsMap[base] = true
+	if c.BaseType == BaseManual {
+		repoBranchCommitsMap[c.Base] = true
+	}
 	repoBranchCommits := maps.Keys(repoBranchCommitsMap)
-	fileVersions, err := getFileVersions(c, targetFilePath, repoBranchCommits)
+	fvs, err := getFileVersions(c, targetFilePath, repoBranchCommits)
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
-	merger := makeFileLineCoverMerger(fileVersions, base)
+	base := getBaseRBC(c, targetFilePath, fvs)
+	merger := makeFileLineCoverMerger(fvs, base)
 	for _, record := range records {
 		merger.AddRecord(
 			record.RepoBranchCommit(),
@@ -109,6 +102,23 @@ func batchFileData(c *Config, targetFilePath string, records FileRecords, base R
 			record.HitCount())
 	}
 	return merger.Result(), nil
+}
+
+// getBaseRBC is a base(target) file version selector.
+// The easiest strategy is to use some specified commit.
+// For the namespace level signals merging we'll select target dynamically.
+func getBaseRBC(c *Config, targetFilePath string, fvs fileVersions) RepoBranchCommit {
+	switch c.BaseType {
+	case BaseManual:
+		return c.Base
+	case BaseLastUpdated:
+		// If repo is not specifies use the much more expensive approach.
+		// The base commit is the commit where non-empty target file was last modified.
+		if res := freshestRBC(fvs); res != nil {
+			return *res
+		}
+	}
+	panic(fmt.Sprintf("failed searching best RBC for file %s", targetFilePath))
 }
 
 func makeRecord(fields, schema []string) FileRecord {
@@ -123,38 +133,80 @@ func makeRecord(fields, schema []string) FileRecord {
 	return record
 }
 
+const (
+	BaseManual = iota
+	BaseLastUpdated
+)
+
 type Config struct {
 	Workdir       string
 	skipRepoClone bool
+	BaseType      int              // BaseManual, BaseLastUpdated.
+	Base          RepoBranchCommit // used by BaseManual
 }
 
-func AggregateStreamData(c *Config, stream io.Reader, base RepoBranchCommit,
-) (map[string]*MergeResult, error) {
-	stat := make(map[string]*MergeResult)
+func isSchema(fields, schema []string) bool {
+	if len(fields) != len(schema) {
+		return false
+	}
+	for i := 0; i < len(fields); i++ {
+		if fields[i] != schema[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, error) {
 	var schema []string
-	targetFile := ""
-	var records FileRecords
-	csvReader := csv.NewReader(stream)
+	csvReader := csv.NewReader(reader)
 	if fields, err := csvReader.Read(); err != nil {
 		return nil, fmt.Errorf("failed to read schema: %w", err)
 	} else {
 		schema = fields
 	}
-	for {
-		fields, err := csvReader.Read()
-		if err == io.EOF {
-			break
+	errStdinReadChan := make(chan error, 1)
+	recordsChan := make(chan FileRecord)
+	go func() {
+		defer close(recordsChan)
+		for {
+			fields, err := csvReader.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				errStdinReadChan <- fmt.Errorf("failed to read CSV line: %w", err)
+				return
+			}
+			if isSchema(fields, schema) {
+				// The input may be the merged CVS files with multiple schemas.
+				continue
+			}
+			recordsChan <- makeRecord(fields, schema)
 		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to read CSV line: %w", err)
-		}
-		record := makeRecord(fields, schema)
-		curTargetFile := record[keyFilePath]
+		errStdinReadChan <- nil
+	}()
+	mergeResult, errMerging := MergeChanData(config, recordsChan)
+	errStdinRead := <-errStdinReadChan
+	if errMerging != nil || errStdinRead != nil {
+		return nil, fmt.Errorf("errors merging stdin data:\nmerger err: %w\nstdin reader err: %w",
+			errMerging, errStdinRead)
+	}
+	return mergeResult, nil
+}
+
+func MergeChanData(c *Config, recordsChan <-chan FileRecord) (map[string]*MergeResult, error) {
+	stat := make(map[string]*MergeResult)
+	targetFile := ""
+	var records []FileRecord
+	for record := range recordsChan {
+		curTargetFile := record[KeyFilePath]
 		if targetFile == "" {
 			targetFile = curTargetFile
 		}
 		if curTargetFile != targetFile {
-			if stat[targetFile], err = batchFileData(c, targetFile, records, base); err != nil {
+			var err error
+			if stat[targetFile], err = batchFileData(c, targetFile, records); err != nil {
 				return nil, fmt.Errorf("failed to batchFileData(%s): %w", targetFile, err)
 			}
 			records = nil
@@ -164,7 +216,7 @@ func AggregateStreamData(c *Config, stream io.Reader, base RepoBranchCommit,
 	}
 	if records != nil {
 		var err error
-		if stat[targetFile], err = batchFileData(c, targetFile, records, base); err != nil {
+		if stat[targetFile], err = batchFileData(c, targetFile, records); err != nil {
 			return nil, fmt.Errorf("failed to batchFileData(%s): %w", targetFile, err)
 		}
 	}

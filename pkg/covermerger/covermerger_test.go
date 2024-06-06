@@ -119,17 +119,19 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			aggregation, err := AggregateStreamData(
+			aggregation, err := MergeCSVData(
 				&Config{
 					Workdir:       test.workdir,
 					skipRepoClone: true,
+					BaseType:      BaseManual,
+					Base: RepoBranchCommit{
+						Repo:   test.baseRepo,
+						Branch: test.baseBranch,
+						Commit: test.baseCommit,
+					},
 				},
 				strings.NewReader(test.bqTable),
-				RepoBranchCommit{
-					Repo:   test.baseRepo,
-					Branch: test.baseBranch,
-					Commit: test.baseCommit,
-				})
+			)
 			assert.Nil(t, err)
 			var simpleAggregationJSON map[string]*MergeResult
 			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &simpleAggregationJSON))

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -102,4 +103,12 @@ func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {
 
 func (ctx *fuchsia) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) {
 	return ctx.repo.MergeBases(firstCommit, secondCommit)
+}
+
+func (ctx *fuchsia) FileEditTime(path string) (time.Time, error) {
+	return time.Time{}, fmt.Errorf("not implemented for fuchsia")
+}
+
+func (ctx *fuchsia) FileVersion(path, commit string) ([]byte, error) {
+	return nil, fmt.Errorf("not implemented for fuchsia")
 }

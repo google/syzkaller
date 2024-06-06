@@ -4,6 +4,7 @@
 package covermerger
 
 import (
+	"log"
 	"strings"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
@@ -43,5 +44,8 @@ type LineToLineMatcher struct {
 }
 
 func (lm *LineToLineMatcher) SameLinePos(line int) int {
+	if line < 0 || line > len(lm.lineToLine) {
+		log.Printf("wrong line number %d", line)
+	}
 	return lm.lineToLine[line]
 }
