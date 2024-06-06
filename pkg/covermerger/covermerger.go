@@ -88,7 +88,11 @@ func batchFileData(c *Config, targetFilePath string, records FileRecords,
 		repoBranchCommitsMap[c.Base] = true
 	}
 	repoBranchCommits := maps.Keys(repoBranchCommitsMap)
-	fvs, err := getFileVersions(c, targetFilePath, repoBranchCommits)
+	getFiles := getFileVersions
+	if c.getFileVersionsMock != nil {
+		getFiles = c.getFileVersionsMock
+	}
+	fvs, err := getFiles(c, targetFilePath, repoBranchCommits)
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
@@ -139,10 +143,11 @@ const (
 )
 
 type Config struct {
-	Workdir       string
-	skipRepoClone bool
-	BaseType      int              // BaseManual, BaseLastUpdated.
-	Base          RepoBranchCommit // used by BaseManual
+	Workdir             string
+	skipRepoClone       bool
+	BaseType            int              // BaseManual, BaseLastUpdated.
+	Base                RepoBranchCommit // used by BaseManual
+	getFileVersionsMock func(*Config, string, []RepoBranchCommit) (fileVersions, error)
 }
 
 func isSchema(fields, schema []string) bool {
