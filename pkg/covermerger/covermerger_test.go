@@ -119,23 +119,39 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			aggregation, err := AggregateStreamData(
+			aggregation, err := MergeCSVData(
 				&Config{
 					Workdir:       test.workdir,
 					skipRepoClone: true,
+					Base: RepoBranchCommit{
+						Repo:   test.baseRepo,
+						Branch: test.baseBranch,
+						Commit: test.baseCommit,
+					},
+					getFileVersionsMock: mockGetFileVersions,
 				},
 				strings.NewReader(test.bqTable),
-				RepoBranchCommit{
-					Repo:   test.baseRepo,
-					Branch: test.baseBranch,
-					Commit: test.baseCommit,
-				})
+			)
 			assert.Nil(t, err)
-			var simpleAggregationJSON map[string]*MergeResult
-			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &simpleAggregationJSON))
-			assert.Equal(t, simpleAggregationJSON, aggregation)
+			var expectedAggregation map[string]*MergeResult
+			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &expectedAggregation))
+			assert.Equal(t, expectedAggregation, aggregation)
 		})
 	}
+}
+
+func mockGetFileVersions(c *Config, targetFilePath string, rbcs []RepoBranchCommit,
+) (fileVersions, error) {
+	res := make(fileVersions)
+	for _, rbc := range rbcs {
+		filePath := c.Workdir + "/repos/" + rbc.Commit + "/" + targetFilePath
+		if bytes, err := os.ReadFile(filePath); err == nil {
+			res[rbc] = fileVersion{
+				content: string(bytes),
+			}
+		}
+	}
+	return res, nil
 }
 
 func readFileOrFail(t *testing.T, path string) string {
