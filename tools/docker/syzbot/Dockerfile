@@ -69,3 +69,5 @@ RUN test "$(uname -m)" != x86_64 && exit 0 || \
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller
 RUN echo "export PS1='\n\W🤖 '" >> /root/.bashrc
+
+COPY run-syz-command.sh /run-syz-command.sh
