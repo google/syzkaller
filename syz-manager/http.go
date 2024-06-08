@@ -72,10 +72,11 @@ func (mgr *Manager) initHTTP() {
 }
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
+	revision, link := revisionAndLink()
 	data := &UISummaryData{
 		Name:         mgr.cfg.Name,
-		Revision:     prog.GitRevisionBase[:8],
-		RevisionLink: vcs.LogLink(vcs.SyzkallerRepo, prog.GitRevisionBase),
+		Revision:     revision,
+		RevisionLink: link,
 		Expert:       mgr.expertMode,
 		Log:          log.CachedLogOutput(),
 	}
@@ -99,6 +100,20 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	executeTemplate(w, summaryTemplate, data)
+}
+
+func revisionAndLink() (string, string) {
+	var revision string
+	var link string
+	if len(prog.GitRevisionBase) > 8 {
+		revision = prog.GitRevisionBase[:8]
+		link = vcs.LogLink(vcs.SyzkallerRepo, prog.GitRevisionBase)
+	} else {
+		revision = prog.GitRevisionBase
+		link = ""
+	}
+
+	return revision, link
 }
 
 func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
