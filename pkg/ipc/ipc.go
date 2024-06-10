@@ -417,7 +417,7 @@ func readComps(outp *[]byte, compsSize uint32) ([]*flatrpc.Comparison, error) {
 			var tmp1, tmp2 uint32
 			tmp1, ok1 = readUint32(outp)
 			tmp2, ok2 = readUint32(outp)
-			op1, op2 = uint64(tmp1), uint64(tmp2)
+			op1, op2 = uint64(int64(int32(tmp1))), uint64(int64(int32(tmp2)))
 		}
 		if !ok1 || !ok2 {
 			return nil, fmt.Errorf("failed to read comp %v op", i)
