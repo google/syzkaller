@@ -67,6 +67,11 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 	got = mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
 	if (data + data_size != got)
 		failmsg("mmap of right data PROT_NONE page failed", "want %p, got %p", data + data_size, got);
+
+	// A SIGCHLD handler makes sleep in loop exit immediately return with EINTR with a child exits.
+	struct sigaction act = {};
+	act.sa_handler = [](int) {};
+	sigaction(SIGCHLD, &act, nullptr);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
