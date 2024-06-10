@@ -193,18 +193,22 @@ static bool is_kernel_data(uint64 addr)
 #endif
 }
 
+// Returns >0 for yes, <0 for no, 0 for don't know.
+static int is_kernel_pc(uint64 pc)
+{
+#if GOARCH_386 || GOARCH_amd64
+	// Text/modules range for x86_64.
+	return pc >= 0xffffffff80000000ull && pc < 0xffffffffff000000ull ? 1 : -1;
+#else
+	return 0;
+#endif
+}
+
 static bool use_cover_edges(uint64 pc)
 {
 #if GOARCH_amd64 || GOARCH_arm64
 	if (is_gvisor)
 		return false; // gvisor coverage is not a trace, so producing edges won't work
-#endif
-#if GOARCH_386 || GOARCH_amd64
-	// Text/modules range for x86_64.
-	if (pc < 0xffffffff80000000ull || pc >= 0xffffffffff000000ull) {
-		debug("got bad pc: 0x%llx\n", pc);
-		doexit(0);
-	}
 #endif
 	return true;
 }

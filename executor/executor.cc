@@ -997,6 +997,8 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		for (uint32 i = 0; i < cov->size; i++) {
 			cover_data_t pc = cover_data[i] + cov->pc_offset;
 			uint64 sig = pc;
+			if (is_kernel_pc(pc) < 0)
+				exitf("got bad pc: 0x%llx", (uint64)pc);
 			if (use_cover_edges(pc)) {
 				// Only hash the lower 12 bits so the hash is independent of any module offsets.
 				const uint64 mask = (1 << 12) - 1;
@@ -1570,23 +1572,21 @@ bool kcov_comparison_t::ignore() const
 	// Comparisons with 0 are not interesting, fuzzer should be able to guess 0's without help.
 	if (arg1 == 0 && (arg2 == 0 || (type & KCOV_CMP_CONST)))
 		return true;
-	if ((type & KCOV_CMP_SIZE_MASK) == KCOV_CMP_SIZE8) {
-		// This can be a pointer (assuming 64-bit kernel).
-		// First of all, we want avert fuzzer from our output region.
-		// Without this fuzzer manages to discover and corrupt it.
-		uint64 out_start = (uint64)output_data;
-		uint64 out_end = out_start + output_size;
-		if (arg1 >= out_start && arg1 <= out_end)
-			return true;
-		if (arg2 >= out_start && arg2 <= out_end)
-			return true;
-		// Filter out kernel physical memory addresses.
-		// These are internal kernel comparisons and should not be interesting.
-		bool kptr1 = is_kernel_data(arg1) || arg1 == 0;
-		bool kptr2 = is_kernel_data(arg2) || arg2 == 0;
-		if (kptr1 && kptr2)
-			return true;
-	}
+	// This can be a pointer (assuming 64-bit kernel).
+	// First of all, we want avert fuzzer from our output region.
+	// Without this fuzzer manages to discover and corrupt it.
+	uint64 out_start = (uint64)output_data;
+	uint64 out_end = out_start + output_size;
+	if (arg1 >= out_start && arg1 <= out_end)
+		return true;
+	if (arg2 >= out_start && arg2 <= out_end)
+		return true;
+	// Filter out kernel physical memory addresses.
+	// These are internal kernel comparisons and should not be interesting.
+	bool kptr1 = is_kernel_data(arg1) || arg1 == 0;
+	bool kptr2 = is_kernel_data(arg2) || arg2 == 0;
+	if (kptr1 && kptr2)
+		return true;
 	return !coverage_filter(pc);
 }
 

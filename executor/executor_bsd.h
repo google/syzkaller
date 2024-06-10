@@ -184,6 +184,11 @@ static bool is_kernel_data(uint64 addr)
 	return false;
 }
 
+static int is_kernel_pc(uint64 pc)
+{
+	return 0;
+}
+
 static bool use_cover_edges(uint64 pc)
 {
 	return true;
