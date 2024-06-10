@@ -36,6 +36,8 @@ import (
 type runRequest struct {
 	*queue.Request
 
+	ok      int
+	failed  int
 	err     error
 	result  *queue.Result
 	results *flatrpc.ProgInfo // the expected results
@@ -85,9 +87,8 @@ func (ctx *Context) Run() error {
 			done <- req
 			continue
 		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		var retry queue.DoneCallback
+		retry = func(_ *queue.Request, res *queue.Result) bool {
 			// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
 			// We don't want to fix this by significantly bumping all timeouts,
 			// because if a program fails all the time with the default timeouts,
@@ -96,25 +97,41 @@ func (ctx *Context) Run() error {
 			// To achieve this we run each test several times and ensure that it passes
 			// in 50+% of cases (i.e. 1/1, 2/3, 3/5, 4/7, etc).
 			// In the best case this allows to get off with just 1 test run.
-			var resultErr error
-			for try, failed := 0, 0; try < ctx.Retries; try++ {
-				ctx.executor.Submit(req.Request)
-				req.result = req.Request.Wait(context.Background())
-				if req.result.Err != nil {
-					resultErr = req.result.Err
-					break
-				}
-				err := checkResult(req)
-				if err != nil {
-					failed++
-					resultErr = err
-				}
-				if ok := try + 1 - failed; ok > failed {
-					resultErr = nil
-					break
-				}
+
+			if res.Err != nil {
+				req.err = res.Err
+				return true
 			}
-			req.err = resultErr
+			req.result = res
+			err := checkResult(req)
+			if err == nil {
+				req.ok++
+			} else {
+				req.failed++
+				req.err = err
+			}
+			if req.ok > req.failed {
+				// There are more successful than failed runs.
+				req.err = nil
+				return true
+			}
+			// We need at least `failed - ok + 1` more runs <=> `failed + ok + need` in total,
+			// which simplifies to `failed * 2 + 1`.
+			if req.failed*2+1 <= ctx.Retries {
+				// We can still retry the execution.
+				req.OnDone(retry)
+				ctx.executor.Submit(req.Request)
+				return false
+			}
+			// Give up and fail on this request.
+			return true
+		}
+		req.Request.OnDone(retry)
+		ctx.executor.Submit(req.Request)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			req.Request.Wait(context.Background())
 			done <- req
 		}()
 	}
