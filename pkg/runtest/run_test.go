@@ -221,6 +221,17 @@ func testCover(t *testing.T, target *prog.Target) {
 			Signal: []uint64{0xc0dec0dec0011001, 0xc0dec0dec0022003, 0xc0dec0dec00330f2,
 				0xc0dec0dec0044bf0, 0xc0dec0dec0011b01},
 		},
+		// Invalid non-kernel PCs must fail test execution.
+		{
+			Is64Bit: 1,
+			Input:   makeCover64(0xc0dec0dec0000022, 0xc000000000000033),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+		},
+		{
+			Is64Bit: 0,
+			Input:   makeCover32(0x33),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+		},
 		// 64-bit comparisons.
 		{
 			Is64Bit: 1,
@@ -312,7 +323,7 @@ func testCover1(t *testing.T, target *prog.Target, executor string, test CoverTe
 		},
 	}
 	res := runTest(req, executor)
-	if res.Info == nil || len(res.Info.Calls) != 1 || res.Info.Calls[0] == nil {
+	if res.Err != nil || res.Info == nil || len(res.Info.Calls) != 1 || res.Info.Calls[0] == nil {
 		t.Fatalf("program execution failed: %v\n%s", res.Err, res.Output)
 	}
 	call := res.Info.Calls[0]

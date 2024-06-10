@@ -5,6 +5,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+static uint64 kernel_text_start = 0xc0dec0dec0000000;
+static uint64 kernel_text_mask = 0xffffff;
+
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 	void* got = mmap(data, data_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
@@ -18,9 +21,6 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 	return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 }
 
-static __thread unsigned long* local_cover_start = NULL;
-static __thread unsigned long* local_cover_end = NULL;
-
 #ifdef __clang__
 #define notrace
 #else
@@ -30,10 +30,12 @@ static __thread unsigned long* local_cover_end = NULL;
 extern "C" notrace void __sanitizer_cov_trace_pc(void)
 {
 	unsigned long ip = (unsigned long)__builtin_return_address(0);
-	unsigned long* start = local_cover_start;
-	unsigned long* end = local_cover_end;
-	if (start == NULL || end == NULL)
+	// Convert to what is_kernel_pc will accept as valid coverage;
+	ip = kernel_text_start | (ip & kernel_text_mask);
+	if (current_thread == nullptr || current_thread->cov.data == nullptr)
 		return;
+	unsigned long* start = (unsigned long*)current_thread->cov.data;
+	unsigned long* end = (unsigned long*)current_thread->cov.data_end;
 	int pos = start[0];
 	if (start + pos + 1 < end) {
 		start[0] = pos + 1;
@@ -48,8 +50,6 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
-	local_cover_start = (unsigned long*)cov->data;
-	local_cover_end = (unsigned long*)cov->data_end;
 }
 
 static void cover_reset(cover_t* cov)
@@ -93,6 +93,17 @@ static void cover_unprotect(cover_t* cov)
 static bool is_kernel_data(uint64 addr)
 {
 	return addr >= 0xda1a0000 && addr <= 0xda1a1000;
+}
+
+static int is_kernel_pc(uint64 pc)
+{
+	uint64 start = kernel_text_start;
+	uint64 end = kernel_text_start | kernel_text_mask;
+	if (!is_kernel_64_bit) {
+		start = (uint32)start;
+		end = (uint32)end;
+	}
+	return pc >= start && pc <= end ? 1 : -1;
 }
 
 static bool use_cover_edges(uint64 pc)
