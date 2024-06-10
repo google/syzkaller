@@ -1583,8 +1583,8 @@ bool kcov_comparison_t::ignore() const
 		return true;
 	// Filter out kernel physical memory addresses.
 	// These are internal kernel comparisons and should not be interesting.
-	bool kptr1 = is_kernel_data(arg1) || arg1 == 0;
-	bool kptr2 = is_kernel_data(arg2) || arg2 == 0;
+	bool kptr1 = is_kernel_data(arg1) || is_kernel_pc(arg1) > 0 || arg1 == 0;
+	bool kptr2 = is_kernel_data(arg2) || is_kernel_pc(arg2) > 0 || arg2 == 0;
 	if (kptr1 && kptr2)
 		return true;
 	return !coverage_filter(pc);

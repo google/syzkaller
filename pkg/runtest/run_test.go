@@ -272,7 +272,6 @@ func testCover(t *testing.T, target *prog.Target) {
 				{0x4321, 0xabcd1234},
 				{0x3333, 0},
 				{0, 0x3333},
-				{0xc0dec0dec0de1000, 0xc0dec0dec0de0000},
 				{0xabcd, 0xda1a0010},
 			},
 		},
@@ -292,8 +291,6 @@ func testCover(t *testing.T, target *prog.Target) {
 				{0x2222222222222222, 0x1111111111111111},
 				{0x4321, 0xffffabcd},
 				{0xc0dec0dec0de1000, 0xc0dec0dec0de0000},
-				{0xc0de1000, 0xc0de0000},
-				{0xc0de1022, 0xc0de0011},
 			},
 		},
 		// TODO: test max signal filtering and cover filter when syz-executor handles them.
