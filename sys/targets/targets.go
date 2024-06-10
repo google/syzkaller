@@ -225,7 +225,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:        4,
 			PageSize:       8 << 10,
 			Int64Alignment: 4,
-			CFlags:         []string{"-static"},
+			CFlags:         []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
@@ -236,7 +236,7 @@ var List = map[string]map[string]*Target{
 		TestArch32Fork: {
 			PtrSize:  4,
 			PageSize: 4 << 10,
-			CFlags:   []string{"-static-pie"},
+			CFlags:   []string{"-m32", "-static-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,

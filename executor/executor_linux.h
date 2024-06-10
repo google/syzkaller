@@ -182,6 +182,17 @@ static bool use_cover_edges(uint32 pc)
 	return true;
 }
 
+static bool is_kernel_data(uint64 addr)
+{
+#if GOARCH_386 || GOARCH_amd64
+	// This range corresponds to the first 1TB of the physical memory mapping,
+	// see Documentation/arch/x86/x86_64/mm.rst.
+	return addr >= 0xffff880000000000ull && addr < 0xffff890000000000ull;
+#else
+	return false;
+#endif
+}
+
 static bool use_cover_edges(uint64 pc)
 {
 #if GOARCH_amd64 || GOARCH_arm64

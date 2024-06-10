@@ -153,3 +153,14 @@ static long syz_test_fuzzer1(volatile long a, volatile long b, volatile long c)
 }
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_inject_cover
+static long syz_inject_cover(volatile long a, volatile long b, volatile long c)
+#if SYZ_EXECUTOR
+    ; // defined in executor_test.h
+#else
+{
+	return 0;
+}
+#endif
+#endif

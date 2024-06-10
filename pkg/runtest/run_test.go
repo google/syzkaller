@@ -4,7 +4,10 @@
 package runtest
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -15,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -22,6 +26,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	_ "github.com/google/syzkaller/sys/test/gen" // pull in the test target
+	"github.com/stretchr/testify/assert"
 )
 
 // Can be used as:
@@ -102,6 +107,250 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	if err := ctx.Run(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestCover(t *testing.T) {
+	// End-to-end test for coverage/signal/comparisons collection.
+	// We inject given blobs into KCOV buffer using syz_inject_cover,
+	// and then test what we get back.
+	t.Parallel()
+	for _, arch := range []string{targets.TestArch32, targets.TestArch64} {
+		sysTarget := targets.Get(targets.TestOS, arch)
+		t.Run(arch, func(t *testing.T) {
+			if sysTarget.BrokenCompiler != "" {
+				t.Skipf("skipping due to broken compiler:\n%v", sysTarget.BrokenCompiler)
+			}
+			target, err := prog.GetTarget(targets.TestOS, arch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Parallel()
+			testCover(t, target)
+		})
+	}
+}
+
+type CoverTest struct {
+	Is64Bit int
+	Input   []byte
+	Flags   flatrpc.ExecFlag
+	Cover   []uint64
+	Signal  []uint64
+	Comps   [][2]uint64
+}
+
+type Comparison struct {
+	Type uint64
+	Arg1 uint64
+	Arg2 uint64
+	PC   uint64
+}
+
+const (
+	CmpConst = 1
+	CmpSize1 = 0
+	CmpSize2 = 2
+	CmpSize4 = 4
+	CmpSize8 = 6
+)
+
+func testCover(t *testing.T, target *prog.Target) {
+	tests := []CoverTest{
+		// Empty coverage.
+		{
+			Is64Bit: 1,
+			Input:   makeCover64(),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+		},
+		{
+			Is64Bit: 0,
+			Input:   makeCover64(),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+		},
+		// Single 64-bit PC.
+		{
+			Is64Bit: 1,
+			Input:   makeCover64(0xc0dec0dec0112233),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover:   []uint64{0xc0dec0dec0112233},
+			Signal:  []uint64{0xc0dec0dec0112233},
+		},
+		// Single 32-bit PC.
+		{
+			Is64Bit: 0,
+			Input:   makeCover32(0xc0112233),
+			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover:   []uint64{0xc0112233},
+			Signal:  []uint64{0xc0112233},
+		},
+		// Ensure we don't sent cover/signal when not requested.
+		{
+			Is64Bit: 1,
+			Input:   makeCover64(0xc0dec0dec0112233),
+			Flags:   flatrpc.ExecFlagCollectCover,
+			Cover:   []uint64{0xc0dec0dec0112233},
+		},
+		{
+			Is64Bit: 1,
+			Input:   makeCover64(0xc0dec0dec0112233),
+			Flags:   flatrpc.ExecFlagCollectSignal,
+			Signal:  []uint64{0xc0dec0dec0112233},
+		},
+		// Coverage deduplication.
+		{
+			Is64Bit: 1,
+			Input: makeCover64(0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
+				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011),
+			Flags: flatrpc.ExecFlagCollectCover,
+			Cover: []uint64{0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
+				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011},
+		},
+		{
+			Is64Bit: 1,
+			Input: makeCover64(0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
+				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011),
+			Flags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
+			Cover: []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033},
+		},
+		// Signal hashing.
+		{
+			Is64Bit: 1,
+			Input: makeCover64(0xc0dec0dec0011001, 0xc0dec0dec0022002, 0xc0dec0dec00330f0,
+				0xc0dec0dec0044b00, 0xc0dec0dec0011001, 0xc0dec0dec0022002),
+			Flags: flatrpc.ExecFlagCollectSignal,
+			Signal: []uint64{0xc0dec0dec0011001, 0xc0dec0dec0022003, 0xc0dec0dec00330f2,
+				0xc0dec0dec0044bf0, 0xc0dec0dec0011b01},
+		},
+		// 64-bit comparisons.
+		{
+			Is64Bit: 1,
+			Input: makeComps(
+				// A normal 8-byte comparison must be returned in the output as is.
+				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
+				// Duplicate must be removed.
+				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
+				// Non-const comparisons must be duplicated both ways.
+				Comparison{CmpSize8, 0x30, 0x31, 0},
+				// Test sign-extension for smaller argument types.
+				Comparison{CmpSize1 | CmpConst, 0xa3, 0x77, 0},
+				Comparison{CmpSize1 | CmpConst, 0xff10, 0xffe1, 0},
+				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 0},
+				Comparison{CmpSize4 | CmpConst, 0xabcd1234, 0x4321, 0},
+				// Comparison with const 0 must be removed.
+				Comparison{CmpSize8 | CmpConst, 0, 0x2222222222222222, 0},
+				Comparison{CmpSize8, 0, 0x3333, 0},
+				// Comparison of equal values must be removed.
+				Comparison{CmpSize8, 0, 0, 0},
+				Comparison{CmpSize8, 0x1111, 0x1111, 0},
+				// Comparisons of kernel addresses must be removed.
+				Comparison{CmpSize8 | CmpConst, 0xda1a0000, 0xda1a1000, 0},
+				Comparison{CmpSize8, 0xda1a0000, 0, 0},
+				Comparison{CmpSize8, 0, 0xda1a0010, 0},
+				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 0},
+				// But not with something that's not a kernel address.
+				Comparison{CmpSize8 | CmpConst, 0xda1a0010, 0xabcd, 0},
+			),
+			Flags: flatrpc.ExecFlagCollectComps,
+			Comps: [][2]uint64{
+				{0x2222222222222222, 0x1111111111111111},
+				{0x30, 0x31},
+				{0x31, 0x30},
+				{0x77, 0xffffffa3},
+				{0xffffffe1, 0x10},
+				{0x4321, 0xffffabcd},
+				{0x4321, 0xabcd1234},
+				{0x3333, 0},
+				{0, 0x3333},
+				{0xc0dec0dec0de1000, 0xc0dec0dec0de0000},
+				{0xabcd, 0xda1a0010},
+			},
+		},
+		// 32-bit comparisons must be the same, so test only a subset.
+		{
+			Is64Bit: 0,
+			Input: makeComps(
+				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
+				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 0},
+				Comparison{CmpSize4 | CmpConst, 0xda1a0000, 0xda1a1000, 0},
+				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 0},
+				Comparison{CmpSize4 | CmpConst, 0xc0de0000, 0xc0de1000, 0},
+				Comparison{CmpSize8 | CmpConst, 0xc0de0011, 0xc0de1022, 0},
+			),
+			Flags: flatrpc.ExecFlagCollectComps,
+			Comps: [][2]uint64{
+				{0x2222222222222222, 0x1111111111111111},
+				{0x4321, 0xffffabcd},
+				{0xc0dec0dec0de1000, 0xc0dec0dec0de0000},
+				{0xc0de1000, 0xc0de0000},
+				{0xc0de1022, 0xc0de0011},
+			},
+		},
+		// TODO: test max signal filtering and cover filter when syz-executor handles them.
+	}
+	executor := csource.BuildExecutor(t, target, "../../")
+	for i, test := range tests {
+		test := test
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			t.Parallel()
+			testCover1(t, target, executor, test)
+		})
+	}
+}
+
+func testCover1(t *testing.T, target *prog.Target, executor string, test CoverTest) {
+	text := fmt.Sprintf(`syz_inject_cover(0x%v, &AUTO="%s", AUTO)`, test.Is64Bit, hex.EncodeToString(test.Input))
+	p, err := target.Deserialize([]byte(text), prog.Strict)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := &queue.Request{
+		Prog:   p,
+		Repeat: 1,
+		ExecOpts: flatrpc.ExecOpts{
+			EnvFlags:  flatrpc.ExecEnvSignal,
+			ExecFlags: test.Flags,
+		},
+	}
+	res := runTest(req, executor)
+	if res.Info == nil || len(res.Info.Calls) != 1 || res.Info.Calls[0] == nil {
+		t.Fatalf("program execution failed: %v\n%s", res.Err, res.Output)
+	}
+	call := res.Info.Calls[0]
+	var comps [][2]uint64
+	for _, cmp := range call.Comps {
+		comps = append(comps, [2]uint64{cmp.Op1, cmp.Op2})
+	}
+	assert.Equal(t, test.Cover, call.Cover)
+	assert.Equal(t, test.Signal, call.Signal)
+	// Comparisons are reordered and order does not matter, so compare without order.
+	assert.ElementsMatch(t, test.Comps, comps)
+}
+
+func makeCover64(pcs ...uint64) []byte {
+	w := new(bytes.Buffer)
+	binary.Write(w, binary.NativeEndian, uint64(len(pcs)))
+	for _, pc := range pcs {
+		binary.Write(w, binary.NativeEndian, pc)
+	}
+	return w.Bytes()
+}
+
+func makeCover32(pcs ...uint32) []byte {
+	w := new(bytes.Buffer)
+	binary.Write(w, binary.NativeEndian, uint32(len(pcs)))
+	for _, pc := range pcs {
+		binary.Write(w, binary.NativeEndian, pc)
+	}
+	return w.Bytes()
+}
+
+func makeComps(comps ...Comparison) []byte {
+	w := new(bytes.Buffer)
+	binary.Write(w, binary.NativeEndian, uint64(len(comps)))
+	for _, cmp := range comps {
+		binary.Write(w, binary.NativeEndian, cmp)
+	}
+	return w.Bytes()
 }
 
 func runTest(req *queue.Request, executor string) *queue.Result {

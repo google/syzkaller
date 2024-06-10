@@ -218,8 +218,8 @@ const uint64 binary_format_stroct = 4;
 const uint64 no_copyout = -1;
 
 static int running;
-uint32 completed;
-bool is_kernel_64_bit = true;
+static uint32 completed;
+static bool is_kernel_64_bit = true;
 
 static uint8* input_data;
 
@@ -1278,11 +1278,14 @@ void execute_call(thread_t* th)
 
 static uint32 hash(uint32 a)
 {
+	// For test OS we disable hashing for determinism and testability.
+#if !GOOS_test
 	a = (a ^ 61) ^ (a >> 16);
 	a = a + (a << 3);
 	a = a ^ (a >> 4);
 	a = a * 0x27d4eb2d;
 	a = a ^ (a >> 15);
+#endif
 	return a;
 }
 
@@ -1577,21 +1580,12 @@ bool kcov_comparison_t::ignore() const
 			return true;
 		if (arg2 >= out_start && arg2 <= out_end)
 			return true;
-#if defined(GOOS_linux)
 		// Filter out kernel physical memory addresses.
 		// These are internal kernel comparisons and should not be interesting.
-		// The range covers first 1TB of physical mapping.
-		uint64 kmem_start = (uint64)0xffff880000000000ull;
-		uint64 kmem_end = (uint64)0xffff890000000000ull;
-		bool kptr1 = arg1 >= kmem_start && arg1 <= kmem_end;
-		bool kptr2 = arg2 >= kmem_start && arg2 <= kmem_end;
+		bool kptr1 = is_kernel_data(arg1) || arg1 == 0;
+		bool kptr2 = is_kernel_data(arg2) || arg2 == 0;
 		if (kptr1 && kptr2)
 			return true;
-		if (kptr1 && arg2 == 0)
-			return true;
-		if (kptr2 && arg1 == 0)
-			return true;
-#endif
 	}
 	return !coverage_filter(pc);
 }

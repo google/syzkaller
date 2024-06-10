@@ -29,6 +29,11 @@ static void cover_unprotect(cover_t* cov)
 {
 }
 
+static bool is_kernel_data(uint64 addr)
+{
+	return false;
+}
+
 static bool use_cover_edges(uint64 pc)
 {
 	return true;
