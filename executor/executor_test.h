@@ -54,12 +54,15 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
-	*(unsigned long*)(cov->data) = 0;
+	*(uint64*)(cov->data) = 0;
 }
 
 static void cover_collect(cover_t* cov)
 {
-	cov->size = *(unsigned long*)(cov->data);
+	if (is_kernel_64_bit)
+		cov->size = *(uint64*)cov->data;
+	else
+		cov->size = *(uint32*)cov->data;
 }
 
 static void cover_protect(cover_t* cov)
@@ -87,7 +90,25 @@ static void cover_unprotect(cover_t* cov)
 {
 }
 
+static bool is_kernel_data(uint64 addr)
+{
+	return addr >= 0xda1a0000 && addr <= 0xda1a1000;
+}
+
 static bool use_cover_edges(uint64 pc)
 {
 	return true;
+}
+
+static long syz_inject_cover(volatile long a, volatile long b, volatile long c)
+{
+	cover_t* cov = &current_thread->cov;
+	if (cov->data == nullptr)
+		return ENOENT;
+	is_kernel_64_bit = a;
+	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	uint32 size = std::min((uint32)c, cov->mmap_alloc_size);
+	memcpy(cov->data, (void*)b, size);
+	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->mmap_alloc_size - size));
+	return 0;
 }

@@ -122,6 +122,11 @@ static void cover_collect(cover_t* cov)
 	cov->pc_offset = trace->offset;
 }
 
+static bool is_kernel_data(uint64 addr)
+{
+	return false;
+}
+
 static bool use_cover_edges(uint64 pc)
 {
 	return true;
