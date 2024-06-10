@@ -139,7 +139,7 @@ const (
 	phaseTriagedHub
 )
 
-const currentDBVersion = 4
+const currentDBVersion = 5
 
 type Crash struct {
 	instanceName  string
@@ -663,6 +663,10 @@ func (mgr *Manager) loadCorpus() {
 	case 3:
 		// Version 3->4: to shake things up.
 		flags &= ^fuzzer.ProgMinimized
+		fallthrough
+	case 4:
+		// Version 4->5: fix for comparison argument sign extension.
+		flags &= ^fuzzer.ProgSmashed
 		fallthrough
 	case currentDBVersion:
 	}
