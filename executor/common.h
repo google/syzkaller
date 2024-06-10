@@ -658,7 +658,8 @@ static void loop(void)
 			close(kOutPipeFd);
 #endif
 			execute_one();
-#if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED
+#if !SYZ_EXECUTOR && SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED
+			// Executor's execute_one has already called close_fds.
 			close_fds();
 #endif
 			doexit(0);
