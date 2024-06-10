@@ -678,9 +678,9 @@ static void loop(void)
 		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 #endif
 		for (;;) {
+			sleep_ms(10);
 			if (waitpid(-1, &status, WNOHANG | WAIT_FLAGS) == pid)
 				break;
-			sleep_ms(1);
 #if SYZ_EXECUTOR
 			// Even though the test process executes exit at the end
 			// and execution time of each syscall is bounded by syscall_timeout_ms (~50ms),
