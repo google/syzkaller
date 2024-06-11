@@ -17,7 +17,7 @@ var (
 	cachedRepGen   *cover.ReportGenerator
 )
 
-func getReportGenerator(cfg *mgrconfig.Config, modules []cover.KernelModule) (*cover.ReportGenerator, error) {
+func getReportGenerator(cfg *mgrconfig.Config, modules []*cover.KernelModule) (*cover.ReportGenerator, error) {
 	cachedRepGenMu.Lock()
 	defer cachedRepGenMu.Unlock()
 	if cachedRepGen == nil {

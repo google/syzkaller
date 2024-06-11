@@ -18,7 +18,7 @@ func (netbsd) checkFiles() []string {
 	return nil
 }
 
-func (netbsd) parseModules(files filesystem) ([]cover.KernelModule, error) {
+func (netbsd) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 	return nil, nil
 }
 

@@ -23,7 +23,7 @@ type KernelModule struct {
 }
 
 func discoverModules(target *targets.Target, objDir string, moduleObj []string,
-	hostModules []KernelModule) (
+	hostModules []*KernelModule) (
 	[]*KernelModule, error) {
 	modules := []*KernelModule{
 		// A dummy module representing the kernel itself.
@@ -42,7 +42,7 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []KernelModule) ([]*KernelModule, error) {
+func discoverModulesLinux(dirs []string, hostModules []*KernelModule) ([]*KernelModule, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err

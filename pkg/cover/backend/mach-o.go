@@ -14,7 +14,7 @@ import (
 )
 
 func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []KernelModule) (*Impl, error) {
+	moduleObj []string, hostModules []*KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,

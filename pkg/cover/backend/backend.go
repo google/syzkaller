@@ -60,7 +60,7 @@ type Range struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuild bool,
-	moduleObj []string, modules []KernelModule) (*Impl, error) {
+	moduleObj []string, modules []*KernelModule) (*Impl, error) {
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}

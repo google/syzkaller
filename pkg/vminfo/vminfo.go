@@ -57,7 +57,7 @@ func New(cfg *mgrconfig.Config) *Checker {
 	}
 }
 
-func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]cover.KernelModule, []byte, error) {
+func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*cover.KernelModule, []byte, error) {
 	files := createVirtualFilesystem(fileInfos)
 	modules, err := checker.parseModules(files)
 	if err != nil {
@@ -106,7 +106,7 @@ type machineInfoFunc func(files filesystem, w io.Writer) (string, error)
 type checker interface {
 	RequiredFiles() []string
 	checkFiles() []string
-	parseModules(files filesystem) ([]cover.KernelModule, error)
+	parseModules(files filesystem) ([]*cover.KernelModule, error)
 	machineInfos() []machineInfoFunc
 	syscallCheck(*checkContext, *prog.Syscall) string
 }
@@ -166,7 +166,7 @@ func (stub) checkFiles() []string {
 	return nil
 }
 
-func (stub) parseModules(files filesystem) ([]cover.KernelModule, error) {
+func (stub) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 	return nil, nil
 }
 

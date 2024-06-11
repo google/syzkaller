@@ -18,7 +18,7 @@ func (openbsd) checkFiles() []string {
 	return nil
 }
 
-func (openbsd) parseModules(files filesystem) ([]cover.KernelModule, error) {
+func (openbsd) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 	return nil, nil
 }
 

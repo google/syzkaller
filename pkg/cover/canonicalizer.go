@@ -12,7 +12,7 @@ import (
 
 type Canonicalizer struct {
 	// Map of modules stored as module name:kernel module.
-	modules map[string]KernelModule
+	modules map[string]*KernelModule
 
 	// Contains a sorted list of the canonical module addresses.
 	moduleKeys []uint64
@@ -48,13 +48,13 @@ type canonicalizerModule struct {
 	discard bool
 }
 
-func NewCanonicalizer(modules []KernelModule, flagSignal bool) *Canonicalizer {
+func NewCanonicalizer(modules []*KernelModule, flagSignal bool) *Canonicalizer {
 	// Return if not using canonicalization.
 	if len(modules) == 0 || !flagSignal {
 		return &Canonicalizer{}
 	}
 	// Create a map of canonical module offsets by name.
-	canonicalModules := make(map[string]KernelModule)
+	canonicalModules := make(map[string]*KernelModule)
 	for _, module := range modules {
 		canonicalModules[module.Name] = module
 	}
@@ -68,7 +68,7 @@ func NewCanonicalizer(modules []KernelModule, flagSignal bool) *Canonicalizer {
 	}
 }
 
-func (can *Canonicalizer) NewInstance(modules []KernelModule) *CanonicalizerInstance {
+func (can *Canonicalizer) NewInstance(modules []*KernelModule) *CanonicalizerInstance {
 	if can.moduleKeys == nil {
 		return &CanonicalizerInstance{}
 	}
@@ -130,7 +130,7 @@ func (ci *CanonicalizerInstance) Decanonicalize(elems []uint64) []uint64 {
 }
 
 // Store sorted list of addresses. Used to binary search when converting PCs.
-func setModuleKeys(moduleKeys []uint64, modules []KernelModule) {
+func setModuleKeys(moduleKeys []uint64, modules []*KernelModule) {
 	for idx, module := range modules {
 		moduleKeys[idx] = module.Addr
 	}

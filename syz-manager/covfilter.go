@@ -17,7 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-func createCoverageFilter(cfg *mgrconfig.Config, modules []cover.KernelModule) ([]uint64, map[uint64]struct{}, error) {
+func createCoverageFilter(cfg *mgrconfig.Config, modules []*cover.KernelModule) ([]uint64, map[uint64]struct{}, error) {
 	if !cfg.HasCovFilter() {
 		return nil, nil, nil
 	}

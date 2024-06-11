@@ -42,7 +42,7 @@ type RPCServer struct {
 	baseSource       *queue.DynamicSourceCtl
 	enabledFeatures  flatrpc.Feature
 	setupFeatures    flatrpc.Feature
-	modules          []cover.KernelModule
+	modules          []*cover.KernelModule
 	canonicalModules *cover.Canonicalizer
 	execCoverFilter  []uint64            // includes both coverage and comparison PCs
 	coverFilter      map[uint64]struct{} // includes only coverage PCs
