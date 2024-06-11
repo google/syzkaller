@@ -140,6 +140,15 @@ $ ./bin/syz-crush -config config.json repro.syz
 ```
 
 
+#### Reproducing ARM64 bugs
+
+If the bug was found on an ARM64 instance (e.g. the manager name is
+`ci-upstream-gce-arm64`), you may use the following qemu command as a reference:
+
+```
+$ qemu-system-aarch64 -machine virt -cpu cortex-a57 -smp 4 -m 4G -nographic -drive file=disk.raw,if=none,format=raw,id=hd0 -device virtio-blk-device,drive=hd0 -kernel Image -net user,hostfwd=tcp::10023-:22 -net nic -append "root=/dev/vda2" -accel tcg,thread=multi
+```
+
 ### Problems
 
 #### The bug doesn't reproduce
