@@ -9,7 +9,7 @@ arg = argname type
 argname = identifier
 type = typename [ "[" type-options "]" ]
 typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
-	   "string" | "strconst" | "filename" | "glob" | "len" |
+	   "string" | "filename" | "glob" | "len" |
 	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc" |
 	   "compressed_image"
 type-options = [type-opt ["," type-opt]]
