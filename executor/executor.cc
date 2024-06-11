@@ -460,7 +460,7 @@ int main(int argc, char** argv)
 	os_init(argc, argv, (char*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);
 	current_thread = &threads[0];
 
-	void* mmap_out = mmap(NULL, kMaxInput, PROT_READ, MAP_PRIVATE, kInFd, 0);
+	void* mmap_out = mmap(NULL, kMaxInput, PROT_READ, MAP_SHARED, kInFd, 0);
 	if (mmap_out == MAP_FAILED)
 		fail("mmap of input file failed");
 	input_data = static_cast<uint8*>(mmap_out);
