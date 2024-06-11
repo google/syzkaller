@@ -30,7 +30,7 @@ type dwarfParams struct {
 	buildDir              string
 	splitBuildDelimiters  []string
 	moduleObj             []string
-	hostModules           []KernelModule
+	hostModules           []*KernelModule
 	readSymbols           func(*KernelModule, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*KernelModule) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *KernelModule, *symbolInfo) ([2][]uint64, error)

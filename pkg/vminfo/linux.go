@@ -43,8 +43,8 @@ func (linux) machineInfos() []machineInfoFunc {
 	}
 }
 
-func (linux) parseModules(files filesystem) ([]cover.KernelModule, error) {
-	var modules []cover.KernelModule
+func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
+	var modules []*cover.KernelModule
 	re := regexp.MustCompile(`(\w+) ([0-9]+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	modulesText, _ := files.ReadFile("/proc/modules")
 	for _, match := range re.FindAllSubmatch(modulesText, -1) {
@@ -65,7 +65,7 @@ func (linux) parseModules(files filesystem) ([]cover.KernelModule, error) {
 			return nil, fmt.Errorf("module %v size parsing error: %w", name, err)
 		}
 		offset := modAddr - textAddr
-		modules = append(modules, cover.KernelModule{
+		modules = append(modules, &cover.KernelModule{
 			Name: name,
 			Addr: textAddr,
 			Size: modSize - offset,

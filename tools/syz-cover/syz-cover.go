@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	var modules []cover.KernelModule
+	var modules []*cover.KernelModule
 	if *flagModules != "" {
 		m, err := loadModules(*flagModules)
 		if err != nil {
@@ -151,12 +151,12 @@ func readPCs(files []string) ([]uint64, error) {
 	return pcs, nil
 }
 
-func loadModules(fname string) ([]cover.KernelModule, error) {
+func loadModules(fname string) ([]*cover.KernelModule, error) {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return nil, err
 	}
-	var modules []cover.KernelModule
+	var modules []*cover.KernelModule
 	err = json.Unmarshal(data, &modules)
 	if err != nil {
 		return nil, err

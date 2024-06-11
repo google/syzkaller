@@ -31,7 +31,7 @@ type Prog struct {
 type KernelModule = backend.KernelModule
 
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
-	modules []KernelModule, rawCover bool) (*ReportGenerator, error) {
+	modules []*KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
 		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
