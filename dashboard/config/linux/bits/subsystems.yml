@@ -70,7 +70,7 @@ config:
  - KVM_AMD: [x86_64]
  - KVM_XEN: [x86_64, v5.12]
  - KVM_PROVE_MMU: [x86_64, v6.6]
- - KVM_SW_PROTECTED_VM: [linux-next]
+ - KVM_SW_PROTECTED_VM: [x86_64, linux-next]
  - KVM_HYPERV: [x86_64, linux-next]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
  # which is required to enable this.

@@ -12,6 +12,7 @@ instances:
  - upstream-leak:		[upstream, timeouts_native, x86_64, gcc, bpfjit, lsm, apparmor, nonoise, kmemleak]
  - upstream-usb:		[upstream, timeouts_native, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
  - upstream-arm64-kasan:	[upstream, arm64, arm64_emu, timeouts_emu, clang, lsm, selinux, reduced, kasan, nokcov]
+ - upstream-arm64-kasan_sw-kcov: [linux-next, arm64, arm64_emu, timeouts_emu, clang, lsm, selinux, reduced, kasan_sw]
  - upstream-arm64-mte:		[upstream, arm64, arm64_emu, timeouts_emu, clang, bpfjit, lsm, smack, nonoise, reduced, kfence, mte, nokcov]
  # The full configs are used with syz-check to avoid no-such-struct warnings.
  - upstream-arm64-full:		[upstream, arm64, timeouts_native, clang, bpfjit, lsm, smack, kasan, kfence]
@@ -78,6 +79,7 @@ includes:
  - kmemleak.yml: [kmemleak]
  - kasan.yml: [kasan]
  - kasan_panic_on_write.yml: [kasan_panic_on_write]
+ - kasan_sw.yml: [kasan_sw]
  - mte.yml: [mte]
  - kcsan.yml: [kcsan]
  - kmsan.yml: [kmsan]
