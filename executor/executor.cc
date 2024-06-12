@@ -1117,11 +1117,11 @@ void write_call_output(thread_t* th, bool finished)
 
 	if (flag_comparisons) {
 		// Collect only the comparisons
-		uint32 ncomps = th->cov.size;
+		uint64 ncomps = *(uint64_t*)th->cov.data;
 		kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
 		kcov_comparison_t* end = start + ncomps;
 		if ((char*)end > th->cov.data_end)
-			failmsg("too many comparisons", "ncomps=%u", ncomps);
+			failmsg("too many comparisons", "ncomps=%llu", ncomps);
 		cover_unprotect(&th->cov);
 		std::sort(start, end);
 		ncomps = std::unique(start, end) - start;
@@ -1141,7 +1141,7 @@ void write_call_output(thread_t* th, bool finished)
 		else
 			write_coverage_signal<uint32>(&th->cov, signal_count_pos, cover_count_pos);
 	}
-	debug_verbose("out #%u: index=%u num=%u errno=%d finished=%d blocked=%d sig=%u cover=%u comps=%u\n",
+	debug_verbose("out #%u: index=%u num=%u errno=%d finished=%d blocked=%d sig=%u cover=%u comps=%llu\n",
 		      completed, th->call_index, th->call_num, reserrno, finished, blocked,
 		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
 	completed++;
