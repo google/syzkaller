@@ -164,7 +164,7 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		{
 			Is64Bit: 0,
-			Input:   makeCover64(),
+			Input:   makeCover32(),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 		},
 		// Single 64-bit PC.
