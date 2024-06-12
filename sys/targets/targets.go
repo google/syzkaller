@@ -654,7 +654,6 @@ func init() {
 		if runtime.GOOS == OpenBSD {
 			target.BrokenCompiler = "can't build TestOS on OpenBSD due to missing syscall function."
 		}
-		target.BuildOS = goos
 	}
 }
 
@@ -708,7 +707,11 @@ func initTarget(target *Target, OS, arch string) {
 		}
 	}
 	if target.BuildOS == "" {
-		target.BuildOS = OS
+		if OS == TestOS {
+			target.BuildOS = runtime.GOOS
+		} else {
+			target.BuildOS = OS
+		}
 	}
 	if runtime.GOOS != target.BuildOS {
 		// Spoil native binaries if they are not usable, so that nobody tries to use them later.
