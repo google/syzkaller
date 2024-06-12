@@ -302,7 +302,6 @@ func extractCommand(body string) (*SingleCommand, int) {
 		} else {
 			// For "#syz test", it's likely there won't be anything else, so let's only parse
 			// the first line.
-			fmt.Printf("line: %s", body[cmdPos+cmdEnd:])
 			args = extractArgsLine(body[cmdPos+cmdEnd:], false)
 		}
 	case CmdSet, CmdUnset:
