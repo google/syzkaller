@@ -1484,7 +1484,7 @@ uint64 read_input(uint8** input_posp, bool peek)
 	for (int i = 0;; i++, shift += 7) {
 		const int maxLen = 10;
 		if (i == maxLen)
-			failmsg("varint overflow", "pos=%zu", *input_posp - input_data);
+			failmsg("varint overflow", "pos=%zu", (size_t)(*input_posp - input_data));
 		if (input_pos >= input_data + kMaxInput)
 			failmsg("input command overflows input", "pos=%p: [%p:%p)",
 				input_pos, input_data, input_data + kMaxInput);
@@ -1492,7 +1492,7 @@ uint64 read_input(uint8** input_posp, bool peek)
 		v |= uint64(b & 0x7f) << shift;
 		if (b < 0x80) {
 			if (i == maxLen - 1 && b > 1)
-				failmsg("varint overflow", "pos=%zu", *input_posp - input_data);
+				failmsg("varint overflow", "pos=%zu", (size_t)(*input_posp - input_data));
 			break;
 		}
 	}
