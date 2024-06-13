@@ -1,0 +1,262 @@
+TITLE: starnix kernel panic in third_party/rust_crates/forks/netlink-packet-route-NUM.NUM.NUM/src/route/next_hops.rs: attempt t
+
+[00057.361327][139105][139155][core/starnix_runner/kernels:Uza8NaP][3119:3121[syz-executor.4],starnix] ERROR: [src/lib/diagnostics/log/rust/src/lib.rs(55)] 
+
+
+
+STARNIX KERNEL PANIC
+
+
+
+ info=panicked at ../../third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78:31:
+attempt to subtract with overflow
+2024/06/12 22:49:54 SYZFATAL: failed to recv *flatrpc.HostMessageRaw: EOF
+[00057.361910][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: thread 'user-thread' panicked at ../../third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78:31:
+[00057.361943][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: attempt to subtract with overflow
+[00057.361957][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: stack backtrace:
+[00057.361994][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x0 "" BuildID=438b6f0c849f9c49 0x42ec03602000]]]
+[00057.362060][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x1 "libstd-263b41307a68ec56.so" BuildID=a34eb3e95b8998a0 0x40c4c5c20000]]]
+[00057.362140][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x2 "librust-trace-provider.so" BuildID=b11033ec773fa831 0x4037238af000]]]
+[00057.362203][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x3 "libvulkan.so" BuildID=38c817de4a506e68 0x4039baae3000]]]
+[00057.362264][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x4 "librust-trace-observer.so" BuildID=fe1493e54dcdad5b 0x417399113000]]]
+[00057.362326][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x5 "libcrypto.so" BuildID=a66aa4c4d0a5a19c 0x40fdefa29000]]]
+[00057.362388][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x6 "libtrace-engine.so" BuildID=f6b508468254b4ef 0x41768ff8c000]]]
+[00057.362452][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x7 "<vDSO>" BuildID=e1787b5cac59ebbe 0x401b51f07000]]]
+[00057.362489][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x8 "libfdio.so" BuildID=f11ee6918383f751 0x438bc1121000]]]
+[00057.362562][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x9 "libc.so" BuildID=45311c613cd7c212 0x428efc7b4000]]]
+[00057.362621][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xa "libzxio_standalone.so" BuildID=299743d5a3eb2db5 0x43788eb90000]]]
+[00057.362682][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xb "libasync-default.so" BuildID=41fd191704cf5ffc 0x413675268000]]]
+[00057.362729][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xc "libc++.so.2" BuildID=0e4355ddda46510d 0x426f5b17b000]]]
+[00057.362800][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xd "libc++abi.so.1" BuildID=dbd9012ee8c091f2 0x43300e448000]]]
+[00057.362860][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xe "libunwind.so.1" BuildID=97b04625b308a998 0x409d860da000]]]
+[00057.362908][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #0 core::result::«impl»::branch<(), core::fmt::Error>() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/result.rs:1955
+  #1 std::sys_common::backtrace::_print_fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:135
+  #2 std::sys_common::backtrace::_print::«impl»::fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:44
+[00057.362919][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #3 core::fmt::rt::Argument::fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/fmt/rt.rs:165
+  #4 core::fmt::write(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/fmt/mod.rs:1169
+[00057.362931][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #5 std::io::Write::write_fmt<std::sys::pal::unix::stdio::Stderr>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/io/mod.rs:1835
+[00057.362943][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #6 std::sys_common::backtrace::_print(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:47
+  #7 std::sys_common::backtrace::print(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:34
+  #8 std::panicking::default_hook::λ(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:47
+[00057.362954][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #9 std::panicking::default_hook(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:298
+[00057.368050][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #10 alloc::boxed::«impl»::call<(&core::panic::panic_info::PanicInfo), (dyn core::ops::function::Fn<(&core::panic::panic_info::PanicInfo), Output=()>+core::marker::Send+core::marker::Sync), alloc::alloc::Global>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/alloc/src/boxed.rs:2077
+[00057.368082][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #11 diagnostics_log::install_panic_hook::λ(…) • src/lib/diagnostics/log/rust/src/lib.rs:56
+[00057.368105][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #12 alloc::boxed::«impl»::call<(&core::panic::panic_info::PanicInfo), (dyn core::ops::function::Fn<(&core::panic::panic_info::PanicInfo), Output=()>+core::marker::Send+core::marker::Sync), alloc::alloc::Global>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/alloc/src/boxed.rs:2077
+  #13 std::panicking::rust_panic_with_hook(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:799
+[00057.368118][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #14 std::panicking::begin_panic_handler::λ() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:656
+[00057.368130][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #15 std::sys_common::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::{closure_env#0}, !>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:171
+[00057.368141][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #16 std::panicking::begin_panic_handler(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:652
+[00057.368202][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #17 core::panicking::panic_fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/panicking.rs:72
+[00057.368216][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #18 core::panicking::panic_const::panic_const_sub_overflow() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/panicking.rs:179
+[00057.370470][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #19 netlink_packet_route::route::next_hops::RouteNextHopBuffer<&&[u8]>::attributes<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78
+[00057.370497][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #20 netlink_packet_route::route::next_hops::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:140
+[00057.370509][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #21 netlink_packet_route::route::next_hops::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:111
+[00057.370525][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #22 netlink_packet_route::route::attribute::«impl»::parse_with_param<[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/attribute.rs:376
+[00057.370536][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #23 netlink_packet_route::route::message::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/message.rs:82
+[00057.371568][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #24 netlink_packet_route::route::message::«impl»::parse<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/message.rs:43
+[00057.371605][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #25 netlink_packet_route::message::«impl»::parse_with_param<[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/message.rs:238
+[00057.371616][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #26 netlink_packet_route::message::«impl»::deserialize(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/message.rs:724
+[00057.372507][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #27 netlink_packet_core::message::«impl»::parse<&[u8], netlink_packet_route::message::RouteNetlinkMessage>(…) • third_party/rust_crates/forks/netlink-packet-core-0.7.0/src/message.rs:118
+[00057.372528][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #28 netlink_packet_core::message::NetlinkMessage<netlink_packet_route::message::RouteNetlinkMessage>::deserialize<netlink_packet_route::message::RouteNetlinkMessage>(…) • third_party/rust_crates/forks/netlink-packet-core-0.7.0/src/message.rs:45
+[00057.373291][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #29 starnix_core::vfs::socket::socket_netlink::«impl»::write(…) • src/starnix/kernel/vfs/socket/socket_netlink.rs:912
+[00057.374365][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #30 starnix_core::vfs::socket::socket::Socket::write<starnix_sync::lock_ordering::WriteOps>(…) • src/starnix/kernel/vfs/socket/socket.rs:741
+[00057.374417][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #31 starnix_core::vfs::socket::socket_file::«impl»::sendmsg::λ() • src/starnix/kernel/vfs/socket/socket_file.rs:142
+[00057.375131][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #32 starnix_core::vfs::file_object::FileObject::blocking_op<(), starnix_core::vfs::socket::socket_file::{impl#1}::sendmsg::{closure_env#0}<starnix_sync::lock_ordering::WriteOps>>(…) • src/starnix/kernel/vfs/file_object.rs:1226
+[00057.375150][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #33 starnix_core::vfs::socket::socket_file::SocketFile::sendmsg<starnix_sync::lock_ordering::WriteOps>(…) • src/starnix/kernel/vfs/socket/socket_file.rs:160
+[00057.376277][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #34 starnix_core::vfs::socket::syscalls::sendmsg_internal<starnix_sync::lock_sequence::Unlocked>(…) • src/starnix/kernel/vfs/socket/syscalls.rs:687
+[00057.376309][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #35 starnix_core::vfs::socket::syscalls::sys_sendmsg(…) • src/starnix/kernel/vfs/socket/syscalls.rs:709
+[00057.376321][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #36 starnix_core::syscalls::table::dispatch_syscall(…) • src/starnix/kernel/syscalls/table.rs:38
+[00057.376333][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #37 starnix_core::execution::shared::execute_syscall(…) • src/starnix/kernel/execution/shared.rs:94
+[00057.376344][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #38 starnix_core::execution::restricted_executor::run_task(…) • src/starnix/kernel/execution/restricted_executor.rs:291
+[00057.377060][2246][3115][klog] INFO: crashsvc: exception received, processing
+[00057.377084][2246][3115][klog] INFO: <== CRASH: process syz-executor.4[139105] thread syz-executor.4[139155]
+[00057.377086][2246][3115][klog] INFO: <== undefined instruction, PC at 0x428efc812e37
+[00057.377089][2246][3115][klog] INFO:  CS:                   0 RIP:     0x428efc812e37 EFL:            0x10202 CR2:                  0
+[00057.377092][2246][3115][klog] INFO:  RAX:     0x428efc7cb5a4 RBX:                0x1 RCX:                  0 RDX:                0x1
+[00057.377094][2246][3115][klog] INFO:  RSI:     0x40c4c5d2bda0 RDI:     0x4214645671d0 RBP:     0x421464567050 RSP:     0x421464567048
+[00057.377096][2246][3115][klog] INFO:   R8:                0x1  R9:     0x432ee34fb680 R10:             0x100c R11:              0x202
+[00057.377098][2246][3115][klog] INFO:  R12:     0x4326a34b5010 R13:     0x42ec04be7240 R14:     0x4076af10a310 R15:     0x40c4c5d32148
+[00057.377099][2246][3115][klog] INFO:  fs.base:     0x4076af10ab00 gs.base:                  0
+[00057.377101][2246][3115][klog] INFO:  vector:             0x6 errc:                 0
+[00057.377102][2246][3115][klog] INFO: bottom of user stack:
+[00057.377120][2246][3115][klog] INFO: 0x0000421464567048: c5cd7669 000040c4 64567060 00004214 |iv...@..`pVd.B..|
+[00057.377124][2246][3115][klog] INFO: 0x0000421464567058: c5cd7659 000040c4 645670c0 00004214 |Yv...@...pVd.B..|
+[00057.377128][2246][3115][klog] INFO: 0x0000421464567068: c5cc203d 000040c4 00000000 00000000 |= ...@..........|
+[00057.377132][2246][3115][klog] INFO: 0x0000421464567078: 64566d98 00004214 64566d98 00004214 |.mVd.B...mVd.B..|
+[00057.377136][2246][3115][klog] INFO: 0x0000421464567088: 00000004 00000000 03616070 000042ec |........p`a..B..|
+[00057.377139][2246][3115][klog] INFO: 0x0000421464567098: 03615738 000042ec 00000000 00000000 |8Wa..B..........|
+[00057.377143][2246][3115][klog] INFO: 0x00004214645670a8: 00000000 00000000 03615738 000042ec |........8Wa..B..|
+[00057.377147][2246][3115][klog] INFO: 0x00004214645670b8: 03615738 000042ec 645671c0 00004214 |8Wa..B...qVd.B..|
+[00057.377151][2246][3115][klog] INFO: 0x00004214645670c8: c5cc1e2d 000040c4 234b21d0 00004328 |-....@...!K#(C..|
+[00057.377154][2246][3115][klog] INFO: 0x00004214645670d8: 00000002 00000000 234b21d0 00004328 |.........!K#(C..|
+[00057.377158][2246][3115][klog] INFO: 0x00004214645670e8: 234b21d0 00004328 64567120 00004214 |.!K#(C.. qVd.B..|
+[00057.377162][2246][3115][klog] INFO: 0x00004214645670f8: 0438c0d5 000042ec 00000002 00000200 |..8..B..........|
+[00057.377166][2246][3115][klog] INFO: 0x0000421464567108: 234b21d0 00004328 00000002 00000000 |.!K#(C..........|
+[00057.377170][2246][3115][klog] INFO: 0x0000421464567118: 00020002 00020002 64567200 00004214 |.........rVd.B..|
+[00057.377173][2246][3115][klog] INFO: 0x0000421464567128: 042c188c 000042ec 00000002 00000000 |..,..B..........|
+[00057.377177][2246][3115][klog] INFO: 0x0000421464567138: 234b21d0 00004328 00000002 00000000 |.!K#(C..........|
+[00057.377178][2246][3115][klog] INFO: memory dump near pc:
+[00057.377197][2246][3115][klog] INFO: 0x0000428efc812e07: 24 75 18 64 4c 89 3c 25 18 00 00 00 48 83 c4 38 |$u.dL.<%....H..8
+[00057.377203][2246][3115][klog] INFO: 0x0000428efc812e17: 5b 41 5c 41 5d 41 5e 41 5f 5d c3 e8 89 ce 04 00 |[A\A]A^A_]......
+[00057.377209][2246][3115][klog] INFO: 0x0000428efc812e27: cc cc cc cc cc cc cc cc cc 48 8d 05 6d 87 fb ff |.........H..m...
+[00057.377215][2246][3115][klog] INFO: 0x0000428efc812e37: 0f 0b cc cc cc cc cc cc cc 55 48 89 e5 e8 07 00 |.........UH.....
+[00057.377217][2246][3115][klog] INFO: arch: x86_64
+[00057.382090][2246][3115][klog] INFO: [[[ELF module #0x0 "<VMO#139113>" BuildID=5f6ac44089fc254a4911e3b55cdaa6d10c4f8174 0x26d14314000]]]
+[00057.382119][2246][3115][klog] INFO: [[[ELF module #0x1 "libvdso.so" BuildID=af26159e6da026bf 0x29a08305000]]]
+[00057.384225][2246][3115][klog] INFO: [[[ELF module #0x2 "libzircon.so" BuildID=e1787b5cac59ebbe 0x401b51f07000]]]
+[00057.384267][2246][3115][klog] INFO: [[[ELF module #0x3 "librust-trace-provider.so" BuildID=b11033ec773fa831 0x4037238af000]]]
+[00057.384283][2246][3115][klog] INFO: [[[ELF module #0x4 "libvulkan.so" BuildID=38c817de4a506e68 0x4039baae3000]]]
+[00057.384312][2246][3115][klog] INFO: [[[ELF module #0x5 "libunwind.so.1" BuildID=97b04625b308a998 0x409d860da000]]]
+[00057.384704][2246][3115][klog] INFO: [[[ELF module #0x6 "<VMO#43250=uncompressed-bootfs>" BuildID=a34eb3e95b8998a0 0x40c4c5c20000]]]
+[00057.384728][2246][3115][klog] INFO: [[[ELF module #0x7 "libcrypto.so" BuildID=a66aa4c4d0a5a19c 0x40fdefa29000]]]
+[00057.384744][2246][3115][klog] INFO: [[[ELF module #0x8 "<VMO#139175=blob-2dbd617f>" BuildID=438b6f0c849f9c49 0x412442f65000]]]
+[00057.384771][2246][3115][klog] INFO: [[[ELF module #0x9 "libasync-default.so" BuildID=41fd191704cf5ffc 0x413675268000]]]
+[00057.384792][2246][3115][klog] INFO: [[[ELF module #0xa "librust-trace-observer.so" BuildID=fe1493e54dcdad5b 0x417399113000]]]
+[00057.384834][2246][3115][klog] INFO: [[[ELF module #0xb "libtrace-engine.so" BuildID=f6b508468254b4ef 0x41768ff8c000]]]
+[00057.384866][2246][3115][klog] INFO: [[[ELF module #0xc "libc++.so.2" BuildID=0e4355ddda46510d 0x426f5b17b000]]]
+[00057.384897][2246][3115][klog] INFO: [[[ELF module #0xd "libc.so" BuildID=45311c613cd7c212 0x428efc7b4000]]]
+[00057.384914][2246][3115][klog] INFO: [[[ELF module #0xe "<VMO#43210=blob-2dbd617f>" BuildID=438b6f0c849f9c49 0x42ec03602000]]]
+[00057.384947][2246][3115][klog] INFO: [[[ELF module #0xf "libc++abi.so.1" BuildID=dbd9012ee8c091f2 0x43300e448000]]]
+[00057.384962][2246][3115][klog] INFO: [[[ELF module #0x10 "libzxio_standalone.so" BuildID=299743d5a3eb2db5 0x43788eb90000]]]
+[00057.385002][2246][3115][klog] INFO: [[[ELF module #0x11 "libfdio.so" BuildID=f11ee6918383f751 0x438bc1121000]]]
+[00057.394345][2246][3115][klog] INFO:   #0…7 «Rust library»
+[00057.394361][2246][3115][klog] INFO:   #7 std::panicking::begin_panic_handler(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:652
+[00057.394362][2246][3115][klog] INFO:   #8 core::panicking::panic_fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/panicking.rs:72
+[00057.394364][2246][3115][klog] INFO:   #9 core::panicking::panic_const::panic_const_sub_overflow() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/panicking.rs:179
+[00057.394366][2246][3115][klog] INFO:   #10 netlink_packet_route::route::next_hops::RouteNextHopBuffer<&&[u8]>::attributes<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78
+[00057.394368][2246][3115][klog] INFO:   #11 netlink_packet_route::route::next_hops::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:140
+[00057.394370][2246][3115][klog] INFO:   #12 netlink_packet_route::route::next_hops::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:111
+[00057.394371][2246][3115][klog] INFO:   #13 netlink_packet_route::route::attribute::«impl»::parse_with_param<[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/attribute.rs:376
+[00057.394373][2246][3115][klog] INFO:   #14 netlink_packet_route::route::message::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/message.rs:82
+[00057.394375][2246][3115][klog] INFO:   #15 netlink_packet_route::route::message::«impl»::parse<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/message.rs:43
+[00057.394376][2246][3115][klog] INFO:   #16 netlink_packet_route::message::«impl»::parse_with_param<[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/message.rs:238
+[00057.394378][2246][3115][klog] INFO:   #17 netlink_packet_route::message::«impl»::deserialize(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/message.rs:724
+[00057.394380][2246][3115][klog] INFO:   #18 netlink_packet_core::message::«impl»::parse<&[u8], netlink_packet_route::message::RouteNetlinkMessage>(…) • third_party/rust_crates/forks/netlink-packet-core-0.7.0/src/message.rs:118
+[00057.394382][2246][3115][klog] INFO:   #19 netlink_packet_core::message::NetlinkMessage<netlink_packet_route::message::RouteNetlinkMessage>::deserialize<netlink_packet_route::message::RouteNetlinkMessage>(…) • third_party/rust_crates/forks/netlink-packet-core-0.7.0/src/message.rs:45
+[00057.394383][2246][3115][klog] INFO:   #20 starnix_core::vfs::socket::socket_netlink::«impl»::write(…) • src/starnix/kernel/vfs/socket/socket_netlink.rs:912
+[00057.394385][2246][3115][klog] INFO:   #21 starnix_core::vfs::socket::socket::Socket::write<starnix_sync::lock_ordering::WriteOps>(…) • src/starnix/kernel/vfs/socket/socket.rs:741
+[00057.394387][2246][3115][klog] INFO:   #22 starnix_core::vfs::socket::socket_file::«impl»::sendmsg::λ() • src/starnix/kernel/vfs/socket/socket_file.rs:142
+[00057.394389][2246][3115][klog] INFO:   #23 starnix_core::vfs::file_object::FileObject::blocking_op<(), starnix_core::vfs::socket::socket_file::{impl#1}::sendmsg::{closure_env#0}<starnix_sync::lock_ordering::WriteOps>>(…) • src/starnix/kernel/vfs/file_object.rs:1226
+[00057.394390][2246][3115][klog] INFO:   #24 starnix_core::vfs::socket::socket_file::SocketFile::sendmsg<starnix_sync::lock_ordering::WriteOps>(…) • src/starnix/kernel/vfs/socket/socket_file.rs:160
+[00057.394392][2246][3115][klog] INFO:   #25 starnix_core::vfs::socket::syscalls::sendmsg_internal<starnix_sync::lock_sequence::Unlocked>(…) • src/starnix/kernel/vfs/socket/syscalls.rs:687
+[00057.394394][2246][3115][klog] INFO:   #26 starnix_core::vfs::socket::syscalls::sys_sendmsg(…) • src/starnix/kernel/vfs/socket/syscalls.rs:709
+[00057.394395][2246][3115][klog] INFO:   #27 starnix_core::syscalls::table::dispatch_syscall(…) • src/starnix/kernel/syscalls/table.rs:38
+[00057.394397][2246][3115][klog] INFO:   #28 starnix_core::execution::shared::execute_syscall(…) • src/starnix/kernel/execution/shared.rs:94
+[00057.394399][2246][3115][klog] INFO:   #29 starnix_core::execution::restricted_executor::run_task(…) • src/starnix/kernel/execution/restricted_executor.rs:291
+[00057.394401][2246][3115][klog] INFO:   #30 0x026d14377e79 <VMO#139113>(5f6ac44089fc254a4911e3b55cdaa6d10c4f8174)+0x63e79
+[00057.394402][2246][3115][klog] INFO:   #31 0x026d1433e677 <VMO#139113>(5f6ac44089fc254a4911e3b55cdaa6d10c4f8174)+0x2a677
+[00057.394404][2246][3115][klog] INFO:   #32 0x026d14343e91 <VMO#139113>(5f6ac44089fc254a4911e3b55cdaa6d10c4f8174)+0x2fe91
+[00057.394406][2246][3115][klog] INFO:   #33 0x026d14347c96 <VMO#139113>(5f6ac44089fc254a4911e3b55cdaa6d10c4f8174)+0x33c96
+[00057.394408][2246][3115][klog] INFO:   #34 0x026d1435a646 <VMO#139113>(5f6ac44089fc254a4911e3b55cdaa6d10c4f8174)+0x46646
+[00057.394409][2246][3115][klog] INFO:   #35 0x026d143786ec <VMO#139113>(5f6ac44089fc254a4911e3b55cdaa6d10c4f8174)+0x646ec
+[00057.396849][23346][23348][core/exceptions][forensics,exception] INFO: [exception_broker.cc(62)] Received exception -- pid: 139105 tid: 139155
+[00057.415221][139105][139337][core/starnix_runner/kernels:Uza8NaP][3119:3122[syz-executor.4],netlink,starnix] INFO: Creating Generic Netlink Socket
+[00057.416845][139105][139337][core/starnix_runner/kernels:Uza8NaP][3119:3122[syz-executor.4],netlink,starnix] INFO: Creating Generic Netlink Socket
+[00057.429168][139244][139246][core/exceptions][forensics,exception,001,exception_handler_001] ERROR: [third_party/crashpad/src/snapshot/fuchsia/process_reader_fuchsia.cc(179)] zx_object_get_property ZX_PROP_PROCESS_DEBUG_ADDR
+[00057.434484][23225][23227][core/feedback][forensics,feedback,starnix_kernel, 0] INFO: [crash_reporter.cc(200)] Generating report
+[00057.437601][23225][23227][core/feedback][forensics,feedback,starnix_kernel, 0] INFO: [crash_reporter.cc(213)] Generated report
+[00057.446062][23225][23227][core/feedback][forensics,feedback,starnix_kernel, 0] INFO: [report_store.cc(215)] Successfully moved report to CACHE
+[00057.446076][23225][23227][core/feedback][forensics,feedback,starnix_kernel, 0] INFO: [report_store.cc(223)] Associated snapshot is not available
+[00057.448523][23225][23227][core/feedback][forensics,feedback,starnix_kernel, 0] INFO: [queue.cc(345)] Archived local report. Located under /tmp/reports or /cache/reports
+[00057.467806][139105][139557][core/starnix_runner/kernels:Uza8NaP][3119:3123[syz-executor.4],netlink,starnix] INFO: Creating Route Netlink Socket
+[00061.804621][1102][1184][bootstrap/fshost/fxfs] WARN: Tasks might be stalled!
+[00061.807384][15232][15496][bootstrap/fshost/fxfs] INFO: Stopping profile activity for volume object 9.
+[00062.304510][15232][15496][bootstrap/fshost/fxfs] INFO: Stopping profile activity for volume object 18.
+[00062.304538][1102][1190][bootstrap/fshost/fxfs] WARN: Tasks might be stalled!
+[00062.433466][139105][139155][klog] INFO: KERN: terminating process 'syz-executor.4' (139105)
+[00062.433553][139105][139155][klog] INFO: critical-process: process 'syz-executor.4' (139105) died, killing job '' (43192)
+[00062.433727][52957][52985][klog] INFO: critical-process: process 'syz-executor.4' (52957) died, killing job '' (43192)
+[00062.433728][52468][52542][klog] INFO: critical-process: process 'syz-executor.4' (52468) died, killing job '' (43192)
+[00062.433928][43868][43877][klog] INFO: critical-process: process 'init' (43868) died, killing job '' (43192)
+[00062.434306][43907][43916][klog] INFO: critical-process: process 'sshd' (43907) died, killing job '' (43192)
+[00062.436179][30776][30778][core/wlanix][wlanix,wlan,wlanix] WARN: Nl80211 stream terminated. Should only happen during shutdown.
+[00062.437805][23881][0][core/network/netstack][netstack,fuchsia.net.routes.WatcherV4] WARN: fuchsia_net_routes.go(248): serving terminated: cancelled: context canceled 
+[00062.438102][23881][0][core/network/netstack][netstack,fuchsia.net.interfaces/Watcher] WARN: fuchsia_net_interfaces.go(731): serving terminated: cancelled: context canceled 
+[00062.438256][23881][0][core/network/netstack][netstack,fuchsia.net.routes.WatcherV6] WARN: fuchsia_net_routes.go(295): serving terminated: cancelled: context canceled 
+[00062.442768][15232][15496][bootstrap/fshost/fxfs] INFO: Stopping profile activity for volume object 19.
+[00062.443902][43221][43836][klog] INFO: critical-process: process 'starnix_kernel.cm' (43221) died, killing job '' (43192)
+[00062.444319][1102][1190][klog] INFO: [component_manager] WARN: process terminated with abnormal return code url=starnix_kernel#meta/starnix_kernel.cm return_code=-1029
+[00062.773196][32154][32156][core/network/dhcpv6-client] WARN: ignoring Reply to Information-Request: missing Server Id option
+
+REPORT:
+STARNIX KERNEL PANIC
+ info=panicked at ../../third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78:31:
+attempt to subtract with overflow
+2024/06/12 22:49:54 SYZFATAL: failed to recv *flatrpc.HostMessageRaw: EOF
+[00057.361910][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: thread 'user-thread' panicked at ../../third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78:31:
+[00057.361943][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: attempt to subtract with overflow
+[00057.361957][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: stack backtrace:
+[00057.361994][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x0 "" BuildID=438b6f0c849f9c49 0x42ec03602000]]]
+[00057.362060][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x1 "libstd-263b41307a68ec56.so" BuildID=a34eb3e95b8998a0 0x40c4c5c20000]]]
+[00057.362140][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x2 "librust-trace-provider.so" BuildID=b11033ec773fa831 0x4037238af000]]]
+[00057.362203][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x3 "libvulkan.so" BuildID=38c817de4a506e68 0x4039baae3000]]]
+[00057.362264][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x4 "librust-trace-observer.so" BuildID=fe1493e54dcdad5b 0x417399113000]]]
+[00057.362326][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x5 "libcrypto.so" BuildID=a66aa4c4d0a5a19c 0x40fdefa29000]]]
+[00057.362388][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x6 "libtrace-engine.so" BuildID=f6b508468254b4ef 0x41768ff8c000]]]
+[00057.362452][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x7 "<vDSO>" BuildID=e1787b5cac59ebbe 0x401b51f07000]]]
+[00057.362489][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x8 "libfdio.so" BuildID=f11ee6918383f751 0x438bc1121000]]]
+[00057.362562][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0x9 "libc.so" BuildID=45311c613cd7c212 0x428efc7b4000]]]
+[00057.362621][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xa "libzxio_standalone.so" BuildID=299743d5a3eb2db5 0x43788eb90000]]]
+[00057.362682][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xb "libasync-default.so" BuildID=41fd191704cf5ffc 0x413675268000]]]
+[00057.362729][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xc "libc++.so.2" BuildID=0e4355ddda46510d 0x426f5b17b000]]]
+[00057.362800][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xd "libc++abi.so.1" BuildID=dbd9012ee8c091f2 0x43300e448000]]]
+[00057.362860][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN: [[[ELF module #0xe "libunwind.so.1" BuildID=97b04625b308a998 0x409d860da000]]]
+[00057.362908][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #0 core::result::«impl»::branch<(), core::fmt::Error>() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/result.rs:1955
+  #1 std::sys_common::backtrace::_print_fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:135
+  #2 std::sys_common::backtrace::_print::«impl»::fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:44
+[00057.362919][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #3 core::fmt::rt::Argument::fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/fmt/rt.rs:165
+  #4 core::fmt::write(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/fmt/mod.rs:1169
+[00057.362931][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #5 std::io::Write::write_fmt<std::sys::pal::unix::stdio::Stderr>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/io/mod.rs:1835
+[00057.362943][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #6 std::sys_common::backtrace::_print(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:47
+  #7 std::sys_common::backtrace::print(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:34
+  #8 std::panicking::default_hook::λ(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:47
+[00057.362954][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #9 std::panicking::default_hook(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:298
+[00057.368050][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #10 alloc::boxed::«impl»::call<(&core::panic::panic_info::PanicInfo), (dyn core::ops::function::Fn<(&core::panic::panic_info::PanicInfo), Output=()>+core::marker::Send+core::marker::Sync), alloc::alloc::Global>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/alloc/src/boxed.rs:2077
+[00057.368082][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #11 diagnostics_log::install_panic_hook::λ(…) • src/lib/diagnostics/log/rust/src/lib.rs:56
+[00057.368105][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #12 alloc::boxed::«impl»::call<(&core::panic::panic_info::PanicInfo), (dyn core::ops::function::Fn<(&core::panic::panic_info::PanicInfo), Output=()>+core::marker::Send+core::marker::Sync), alloc::alloc::Global>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/alloc/src/boxed.rs:2077
+  #13 std::panicking::rust_panic_with_hook(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:799
+[00057.368118][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #14 std::panicking::begin_panic_handler::λ() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:656
+[00057.368130][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #15 std::sys_common::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::{closure_env#0}, !>(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/sys_common/backtrace.rs:171
+[00057.368141][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #16 std::panicking::begin_panic_handler(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/std/src/panicking.rs:652
+[00057.368202][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #17 core::panicking::panic_fmt(…) • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/panicking.rs:72
+[00057.368216][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #18 core::panicking::panic_const::panic_const_sub_overflow() • prebuilt/third_party/rust/linux-x64/lib/rustlib/src/rust/library/core/src/panicking.rs:179
+[00057.370470][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #19 netlink_packet_route::route::next_hops::RouteNextHopBuffer<&&[u8]>::attributes<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:78
+[00057.370497][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #20 netlink_packet_route::route::next_hops::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:140
+[00057.370509][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #21 netlink_packet_route::route::next_hops::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/next_hops.rs:111
+[00057.370525][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #22 netlink_packet_route::route::attribute::«impl»::parse_with_param<[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/attribute.rs:376
+[00057.370536][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #23 netlink_packet_route::route::message::«impl»::parse_with_param<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/message.rs:82
+[00057.371568][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #24 netlink_packet_route::route::message::«impl»::parse<&[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/route/message.rs:43
+[00057.371605][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #25 netlink_packet_route::message::«impl»::parse_with_param<[u8]>(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/message.rs:238
+[00057.371616][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #26 netlink_packet_route::message::«impl»::deserialize(…) • third_party/rust_crates/forks/netlink-packet-route-0.20.0/src/message.rs:724
+[00057.372507][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #27 netlink_packet_core::message::«impl»::parse<&[u8], netlink_packet_route::message::RouteNetlinkMessage>(…) • third_party/rust_crates/forks/netlink-packet-core-0.7.0/src/message.rs:118
+[00057.372528][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #28 netlink_packet_core::message::NetlinkMessage<netlink_packet_route::message::RouteNetlinkMessage>::deserialize<netlink_packet_route::message::RouteNetlinkMessage>(…) • third_party/rust_crates/forks/netlink-packet-core-0.7.0/src/message.rs:45
+[00057.373291][1102][1184][core/starnix_runner/kernels:Uza8NaP] WARN:   #29 starnix_core::vfs::socket::socket_netlink::«impl»::write(…) • src/starnix/kernel/vfs/socket/socket_netlink.rs:912
+[00057.374365][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #30 starnix_core::vfs::socket::socket::Socket::write<starnix_sync::lock_ordering::WriteOps>(…) • src/starnix/kernel/vfs/socket/socket.rs:741
+[00057.374417][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #31 starnix_core::vfs::socket::socket_file::«impl»::sendmsg::λ() • src/starnix/kernel/vfs/socket/socket_file.rs:142
+[00057.375131][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #32 starnix_core::vfs::file_object::FileObject::blocking_op<(), starnix_core::vfs::socket::socket_file::{impl#1}::sendmsg::{closure_env#0}<starnix_sync::lock_ordering::WriteOps>>(…) • src/starnix/kernel/vfs/file_object.rs:1226
+[00057.375150][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #33 starnix_core::vfs::socket::socket_file::SocketFile::sendmsg<starnix_sync::lock_ordering::WriteOps>(…) • src/starnix/kernel/vfs/socket/socket_file.rs:160
+[00057.376277][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #34 starnix_core::vfs::socket::syscalls::sendmsg_internal<starnix_sync::lock_sequence::Unlocked>(…) • src/starnix/kernel/vfs/socket/syscalls.rs:687
+[00057.376309][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #35 starnix_core::vfs::socket::syscalls::sys_sendmsg(…) • src/starnix/kernel/vfs/socket/syscalls.rs:709
+[00057.376321][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #36 starnix_core::syscalls::table::dispatch_syscall(…) • src/starnix/kernel/syscalls/table.rs:38
+[00057.376333][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #37 starnix_core::execution::shared::execute_syscall(…) • src/starnix/kernel/execution/shared.rs:94
+[00057.376344][1102][1190][core/starnix_runner/kernels:Uza8NaP] WARN:   #38 starnix_core::execution::restricted_executor::run_task(…) • src/starnix/kernel/execution/restricted_executor.rs:291
+[00057.377060][2246][3115][klog] INFO: crashsvc: exception received, processing
+[00057.377084][2246][3115][klog] INFO: <== CRASH: process syz-executor.4[139105] thread syz-executor.4[139155]
+[00057.377086][2246][3115][klog] INFO: <== undefined instruction, PC at 0x428efc812e37
+[00057.377089][2246][3115][klog] INFO:  CS:                   0 RIP:     0x428efc812e37 EFL:            0x10202 CR2:                  0
+[00057.377092][2246][3115][klog] INFO:  RAX:     0x428efc7cb5a4 RBX:                0x1 RCX:                  0 RDX:                0x1
+[00057.377094][2246][3115][klog] INFO:  RSI:     0x40c4c5d2bda0 RDI:     0x4214645671d0 RBP:     0x421464567050 RSP:     0x421464567048
+[00057.377096][2246][3115][klog] INFO:   R8:                0x1  R9:     0x432ee34fb680 R10:             0x100c R11:              0x202
+[00057.377098][2246][3115][klog] INFO:  R12:     0x4326a34b5010 R13:     0x42ec04be7240 R14:     0x4076af10a310 R15:     0x40c4c5d32148
+[00057.377099][2246][3115][klog] INFO:  fs.base:     0x4076af10ab00 gs.base:                  0
+[00057.377101][2246][3115][klog] INFO:  vector:             0x6 errc:                 0
+[00057.377102][2246][3115][klog] INFO: bottom of user stack:
+[00057.377120][2246][3115][klog] INFO: 0x0000421464567048: c5cd7669 000040c4 64567060 00004214 |iv...@..`pVd.B..|
+[00057.377124][2246][3115][klog] INFO: 0x0000421464567058: c5cd7659 000040c4 645670c0 00004214 |Yv...@...pVd.B..|
+[00057.377128][2246][3115][klog] INFO: 0x0000421464567068: c5cc203d 000040c4 00000000 00000000 |= ...@..........|
+[00057.377132][2246][3115][klog] INFO: 0x0000421464567078: 64566d98 00004214 64566d98 00004214 |.mVd.B...mVd.B..|
+[00057.377136][2246][3115][klog] INFO: 0x0000421464567088: 00000004 00000000 03616070 000042ec |........p`a..B..|
+[00057.377139][2246][3115][klog] INFO: 0x0000421464567098: 03615738 000042ec 00000000 00000000 |8Wa..B..........|
+[00057.377143][2246][3115][klog] INFO: 0x00004214645670a8: 00000000 00000000 03615738 000042ec |........8Wa..B..|
+[00057.377147][2246][3115][klog] INFO: 0x00004214645670b8: 03615738 000042ec 645671c0 00004214 |8Wa..B...qVd.B..|
+[00057.377151][2246][3115][klog] INFO: 0x00004214645670c8: c5cc1e2d 000040c4 234b21d0 00004328 |-....@...!K#(C..|
