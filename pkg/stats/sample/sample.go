@@ -1,8 +1,8 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Package stats provides various statistical operations and algorithms.
-package stats
+// Package sample provides various statistical operations and algorithms.
+package sample
 
 import (
 	"math"

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stats/sample"
 )
 
 type BugInfo struct {
@@ -103,12 +103,12 @@ func readBenches(benchFile string) ([]StatRecord, error) {
 
 // The input are stat snapshots of different instances taken at the same time.
 // This function groups those data points per stat types (e.g. exec total, crashes, etc.).
-func groupSamples(records []StatRecord) map[string]*stats.Sample {
-	ret := make(map[string]*stats.Sample)
+func groupSamples(records []StatRecord) map[string]*sample.Sample {
+	ret := make(map[string]*sample.Sample)
 	for _, record := range records {
 		for key, value := range record {
 			if ret[key] == nil {
-				ret[key] = &stats.Sample{}
+				ret[key] = &sample.Sample{}
 			}
 			ret[key].Xs = append(ret[key].Xs, float64(value))
 		}
@@ -243,7 +243,7 @@ func (group RunResultGroup) minResultLength() int {
 	return ret
 }
 
-func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
+func (group RunResultGroup) groupNthRecord(i int) map[string]*sample.Sample {
 	records := []StatRecord{}
 	for _, result := range group.SyzManagerResults() {
 		records = append(records, result.StatRecords[i])
@@ -251,7 +251,7 @@ func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
 	return groupSamples(records)
 }
 
-func (group RunResultGroup) groupLastRecord() map[string]*stats.Sample {
+func (group RunResultGroup) groupLastRecord() map[string]*sample.Sample {
 	records := []StatRecord{}
 	for _, result := range group.SyzManagerResults() {
 		n := len(result.StatRecords)
@@ -304,7 +304,7 @@ func (view StatView) AlignedStatsTable(field string) (*Table, error) {
 			continue
 		}
 		// Unwind the samples so that they are aligned on the field value.
-		var samples map[string]*stats.Sample
+		var samples map[string]*sample.Sample
 		for i := minLen - 1; i >= 0; i-- {
 			candidate := group.groupNthRecord(i)
 			// TODO: consider data interpolation.
@@ -390,16 +390,16 @@ func (view StatView) GenerateReproDurationTable() (*Table, error) {
 		table.AddColumn(group.Name)
 	}
 	for _, group := range view.Groups {
-		samples := make(map[string]*stats.Sample)
+		samples := make(map[string]*sample.Sample)
 		for _, result := range group.SyzReproResults() {
 			title := result.Input.Title
-			var sample *stats.Sample
-			sample, ok := samples[title]
+			var sampleObj *sample.Sample
+			sampleObj, ok := samples[title]
 			if !ok {
-				sample = &stats.Sample{}
-				samples[title] = sample
+				sampleObj = &sample.Sample{}
+				samples[title] = sampleObj
 			}
-			sample.Xs = append(sample.Xs, result.Duration.Seconds())
+			sampleObj.Xs = append(sampleObj.Xs, result.Duration.Seconds())
 		}
 
 		for title, sample := range samples {

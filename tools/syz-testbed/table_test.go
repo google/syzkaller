@@ -6,16 +6,16 @@ package main
 import (
 	"testing"
 
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stats/sample"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRelativeValues(t *testing.T) {
 	table := NewTable("", "A", "B")
-	table.Set("row1", "A", NewValueCell(&stats.Sample{Xs: []float64{2, 2}}))
-	table.Set("row1", "B", NewValueCell(&stats.Sample{Xs: []float64{3, 3}}))
+	table.Set("row1", "A", NewValueCell(&sample.Sample{Xs: []float64{2, 2}}))
+	table.Set("row1", "B", NewValueCell(&sample.Sample{Xs: []float64{3, 3}}))
 	// Don't set row2/A.
-	table.Set("row2", "B", NewValueCell(&stats.Sample{Xs: []float64{1, 1}}))
+	table.Set("row2", "B", NewValueCell(&sample.Sample{Xs: []float64{1, 1}}))
 
 	err := table.SetRelativeValues("A")
 	assert.NoError(t, err)
