@@ -4,7 +4,6 @@
 package covermerger
 
 import (
-	"log"
 	"time"
 )
 
@@ -23,10 +22,11 @@ func makeFileLineCoverMerger(
 		return &DeletedFileLineMerger{}
 	}
 	a := &FileLineCoverMerger{
-		rbcToFile: fvs,
-		baseFile:  baseFile,
-		hitCounts: make(map[int]int),
-		matchers:  make(map[RepoBranchCommit]*LineToLineMatcher),
+		rbcToFile:  fvs,
+		baseFile:   baseFile,
+		hitCounts:  make(map[int]int),
+		matchers:   make(map[RepoBranchCommit]*LineToLineMatcher),
+		lostFrames: map[RepoBranchCommit]int64{},
 	}
 	for rbc, fv := range fvs {
 		a.matchers[rbc] = makeLineToLineMatcher(fv.content, baseFile)
@@ -51,17 +51,18 @@ func freshestRBC(fvs fileVersions) *RepoBranchCommit {
 }
 
 type FileLineCoverMerger struct {
-	rbcToFile fileVersions
-	baseFile  string
-	hitCounts map[int]int
-	matchers  map[RepoBranchCommit]*LineToLineMatcher
+	rbcToFile  fileVersions
+	baseFile   string
+	hitCounts  map[int]int
+	matchers   map[RepoBranchCommit]*LineToLineMatcher
+	lostFrames map[RepoBranchCommit]int64
 }
 
 func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, arch string, f Frame, hitCount int) {
 	if a.matchers[rbc] == nil {
-		log.Printf("[WARNING] rbc(%s, %s, %s)."+
-			"We have signals from the file but the file itself doesn't exist? Corrupted cache?",
-			rbc.Repo, rbc.Branch, rbc.Commit)
+		if hitCount > 0 {
+			a.lostFrames[rbc]++
+		}
 		return
 	}
 	if targetLine := a.matchers[rbc].SameLinePos(f.StartLine); targetLine != -1 {
@@ -70,8 +71,13 @@ func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, arch string, f Fra
 }
 
 func (a *FileLineCoverMerger) Result() *MergeResult {
+	lostFrames := a.lostFrames
+	if len(lostFrames) == 0 {
+		lostFrames = nil
+	}
 	return &MergeResult{
 		HitCounts:  a.hitCounts,
 		FileExists: true,
+		LostFrames: lostFrames,
 	}
 }

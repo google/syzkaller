@@ -115,6 +115,7 @@ func commandProcessStdin(config *covermerger.Config, flagRepo, flagBranch, flagC
 }
 
 func printMergeResult(mergedCoverage map[string]*covermerger.MergeResult) {
+	totalLostFrames := map[covermerger.RepoBranchCommit]int64{}
 	totalInstrumentedLines := 0
 	totalCoveredLines := 0
 	keys := maps.Keys(mergedCoverage)
@@ -132,11 +133,21 @@ func printMergeResult(mergedCoverage map[string]*covermerger.MergeResult) {
 				coveredLines++
 			}
 		}
+		for rbc, lostFrames := range lineStat.LostFrames {
+			log.Printf("\t[warn] lost %d frames from rbc(%s, %s, %s)",
+				lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
+			totalLostFrames[rbc] += lostFrames
+		}
 		printCoverage(fileName, instrumentedLines, coveredLines)
 		totalInstrumentedLines += instrumentedLines
 		totalCoveredLines += coveredLines
 	}
 	printCoverage("total", totalInstrumentedLines, totalCoveredLines)
+	for rbc, lostFrames := range totalLostFrames {
+		log.Printf("\t[warn] lost %d frames from rbc(%s, %s, %s)",
+			lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
+		totalLostFrames[rbc] += lostFrames
+	}
 }
 
 func printCoverage(target string, instrumented, covered int) {
