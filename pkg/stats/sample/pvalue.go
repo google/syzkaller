@@ -1,7 +1,7 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package stats
+package sample
 
 // TODO: I didn't find the substitution as of Feb 2023. Let's keep it as is while it works.
 import "golang.org/x/perf/benchstat" // nolint:all
