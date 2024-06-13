@@ -1121,6 +1121,8 @@ static void initialize_wifi_devices(void)
 		fail("initialize_wifi_devices: failed to create socket");
 	int hwsim_family_id = netlink_query_family_id(&nlmsg, sock, "MAC80211_HWSIM", true);
 	int nl80211_family_id = netlink_query_family_id(&nlmsg, sock, "nl80211", true);
+	if (hwsim_family_id < 0 || nl80211_family_id < 0)
+		fail("netlink_query_family_id failed");
 	uint8 ssid[] = WIFI_IBSS_SSID;
 	uint8 bssid[] = WIFI_IBSS_BSSID;
 	struct join_ibss_props ibss_props = {
@@ -5108,6 +5110,11 @@ static const char* setup_802154()
 	}
 	{
 		int nl802154_family_id = netlink_query_family_id(&nlmsg, sock_generic, "nl802154", true);
+		if (nl802154_family_id < 0) {
+			error = "netlink_query_family_id failed";
+			goto fail;
+		}
+
 		for (int i = 0; i < 2; i++) {
 			// wpan0/1 are created by CONFIG_IEEE802154_HWSIM.
 			// sys/linux/socket_ieee802154.txt knowns about these names and consts.
@@ -5504,6 +5511,11 @@ static long syz_80211_inject_frame(volatile long a0, volatile long a1, volatile 
 	}
 
 	int hwsim_family_id = netlink_query_family_id(&tmp_msg, sock, "MAC80211_HWSIM", false);
+	if (hwsim_family_id < 0) {
+		debug("syz_80211_inject_frame: failed to query family id\n");
+		close(sock);
+		return -1;
+	}
 	int ret = hwsim_register_socket(&tmp_msg, sock, hwsim_family_id);
 	if (ret < 0) {
 		debug("syz_80211_inject_frame: failed to register socket, ret %d\n", ret);
@@ -5558,6 +5570,11 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 	}
 
 	int nl80211_family_id = netlink_query_family_id(&tmp_msg, sock, "nl80211", false);
+	if (nl80211_family_id < 0) {
+		debug("syz_80211_join_ibss: netlink_query_family_id failed\n");
+		close(sock);
+		return -1;
+	}
 	struct join_ibss_props ibss_props = {
 	    .wiphy_freq = WIFI_DEFAULT_FREQUENCY,
 	    .wiphy_freq_fixed = (mode == WIFI_JOIN_IBSS_NO_SCAN || mode == WIFI_JOIN_IBSS_BG_NO_SCAN),
