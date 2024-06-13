@@ -1,4 +1,4 @@
-TITLE: starnix kernel panic: panic in third_party/rust_crates/vendor/netlink-packet-route-NUM.NUM.NUM/src/rtnl/link/nlas/link_i
+TITLE: starnix kernel panic in third_party/rust_crates/vendor/netlink-packet-route-NUM.NUM.NUM/src/rtnl/link/nlas/link_infos.rs
 
 [00226.914680][70377][70437][core/starnix_runner/kernels:Af9itZK][11:11[linkinfo2],netlink,starnix] INFO: Creating Route Netlink Socket
 [00226.916913][70377][70437][core/starnix_runner/kernels:Af9itZK][11:11[linkinfo2],starnix] ERROR: [src/starnix/lib/kill_job_on_panic/src/lib.rs(20)] 

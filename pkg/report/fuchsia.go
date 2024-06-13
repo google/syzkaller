@@ -242,9 +242,10 @@ var starnixStartRes = []*regexp.Regexp{
 }
 
 var starnixFramePatterns = []*regexp.Regexp{
-	compile(` \[\[\[ELF module #0x[\da-f]+ "(.*)" (BuildID=[\da-f]{16}) (0x[\da-f]{12})\]\]\]`),
-	compile(`#\d+\.?\d*[\s]+(0x[\da-f]{16}) in (.+):([\d]+)[\s]+<(.*)>\+(0x[\da-f]+)`),
-	compile(`#\d+\.?\d*[\s]+(0x[\da-f]{16}) in ([^\s]+)[\s]+<(.*)>\+(0x[\da-f]+)`),
+	compile(`\s*\[\[\[ELF module #0x[\da-f]+.*(BuildID=[\da-f]{16}) (0x[\da-f]+)\]\]\]`),
+	compile(`\[[\d.]+\]\[\d+\]\[\d+\]\[.*\]\s*\[\[\[ELF module #0x[\da-f]+.*(BuildID=[\da-f]{16}) (0x[\da-f]+)\]\]\]`),
+	compile(`\[[\d.]+\]\[\d+\]\[\d+\]\[.*\].*#\d+.*`),
+	compile(`\s*#\d.*(.+):([\d]+)[\s]+<(.*)>\+(0x[\da-f]+)`),
 }
 
 var starnixSkipPatterns = []string{}
@@ -400,8 +401,8 @@ var starnixOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:  compile("STARNIX KERNEL PANIC"),
-				report: compile("STARNIX KERNEL PANIC(?:.|\\n)*PANIC info=panicked at [./]*(.*):.*:.*:\\n(.*)\\n"),
-				fmt:    "starnix kernel panic: panic in %[1]v: %[2]v",
+				report: compile("STARNIX KERNEL PANIC(?:.|\\n)*info=panicked at [./]*(.*):.*:.*:\\n(.*)\\n"),
+				fmt:    "starnix kernel panic in %[1]v: %[2]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						rustBacktrace,

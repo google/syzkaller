@@ -1,4 +1,4 @@
-TITLE: starnix kernel panic: panic in src/starnix/kernel/runner/container.rs: failed to start container.: errno NUM, details: E
+TITLE: starnix kernel panic in src/starnix/kernel/runner/container.rs: failed to start container.: errno NUM, details: ENOENT (
 
 STARNIX KERNEL PANIC
 
