@@ -634,6 +634,7 @@ func init() {
 		}
 		host := List[goos][arch]
 		if host == nil {
+			target.BrokenCompiler = fmt.Sprintf("TestOS %v unsupported", target.PtrSize*8)
 			continue
 		}
 		target.CCompiler = host.CCompiler
