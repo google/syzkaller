@@ -238,14 +238,43 @@ func loadStableGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	n := 0
 	lastReporting := getNsConfig(c, ns).lastActiveReporting()
 	for _, bug := range bugs {
-		// Bugs with fixing commits are considered public (see Bug.sanitizeAccess).
-		if !bug.Reporting[lastReporting].Reported.IsZero() ||
-			bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
+		if isStableBug(c, bug, lastReporting) {
 			bugs[n] = bug
 			n++
 		}
 	}
 	return bugs[:n], nil
+}
+
+func isStableBug(c context.Context, bug *Bug, lastReporting int) bool {
+	// Bugs with fixing commits are considered public (see Bug.sanitizeAccess).
+	if !bug.Reporting[lastReporting].Reported.IsZero() ||
+		bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
+		return true
+	}
+	// Invalid/dup not in the final reporting.
+	if bug.Status != BugStatusOpen {
+		return false
+	}
+	// The bug is still open, but not in the final reporting.
+	// Check if it's delayed from reaching the final reporting only by embargo.
+	for i := range bug.Reporting {
+		if i == lastReporting {
+			return true
+		}
+		if !bug.Reporting[i].Closed.IsZero() {
+			continue
+		}
+		reporting := getNsConfig(c, bug.Namespace).ReportingByName(bug.Reporting[i].Name)
+		if !bug.Reporting[i].Reported.IsZero() && reporting.Embargo != 0 {
+			continue
+		}
+		if reporting.Filter(bug) == FilterSkip {
+			continue
+		}
+		return false
+	}
+	return false
 }
 
 func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
