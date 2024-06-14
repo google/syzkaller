@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/pubsub v1.38.0
 	cloud.google.com/go/secretmanager v1.13.1
 	cloud.google.com/go/storage v1.40.0
-	github.com/bsm/histogram/v3 v3.0.2
+	github.com/VividCortex/gohistogram v1.0.0
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golangci/golangci-lint v1.57.2
 	github.com/google/flatbuffers v24.3.25+incompatible
