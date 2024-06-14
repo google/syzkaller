@@ -1,0 +1,40 @@
+TITLE: WARNING in ext4_fileattr_get
+TYPE: WARNING
+
+[   86.958885][ T3004] ------------[ cut here ]------------
+[   86.960044][ T3004] WARNING: CPU: 0 PID: 3004 at lib/string_helpers.c:1029 __fortify_report+0x6c/0x74
+[   86.963321][ T3004] strnlen: detected buffer overflow: 17 byte read of buffer size 16
+[   86.963687][ T3004] Modules linked in:
+[   86.966106][ T3004] Kernel panic - not syncing: kernel: panic_on_warn set ...
+[   86.966702][ T3004] CPU: 0 PID: 3004 Comm: syz-executor296 Not tainted 6.9.0-syzkaller #0
+[   86.967049][ T3004] Hardware name: ARM-Versatile Express
+[   86.967326][ T3004] Call trace: 
+[   86.967605][ T3004] [<818df678>] (dump_backtrace) from [<818df774>] (show_stack+0x18/0x1c)
+[   86.968023][ T3004]  r7:00000000 r6:82622e04 r5:00000000 r4:81fe2534
+[   86.968227][ T3004] [<818df75c>] (show_stack) from [<818fcdd8>] (dump_stack_lvl+0x54/0x7c)
+[   86.968465][ T3004] [<818fcd84>] (dump_stack_lvl) from [<818fce18>] (dump_stack+0x18/0x1c)
+[   86.968721][ T3004]  r5:00000000 r4:82860d18
+[   86.968851][ T3004] [<818fce00>] (dump_stack) from [<818e021c>] (panic+0x120/0x358)
+[   86.969123][ T3004] [<818e00fc>] (panic) from [<80243d54>] (print_tainted+0x0/0xa0)
+[   86.969377][ T3004]  r3:8260c5c4 r2:00000001 r1:81fcb130 r0:81fd2d44
+[   86.969553][ T3004]  r7:8080fe7c
+[   86.969677][ T3004] [<80243ce0>] (check_panic_on_warn) from [<80243f48>] (__warn+0x7c/0x180)
+[   86.969897][ T3004] [<80243ecc>] (__warn) from [<80244234>] (warn_slowpath_fmt+0x1e8/0x1f4)
+[   86.970106][ T3004]  r8:00000009 r7:8202fe0c r6:df969db4 r5:836e6c00 r4:00000000
+[   86.970339][ T3004] [<80244050>] (warn_slowpath_fmt) from [<8080fe7c>] (__fortify_report+0x6c/0x74)
+[   86.970575][ T3004]  r10:8271c1c8 r9:00000005 r8:df969ec3 r7:8372e000 r6:00000000 r5:836be478
+[   86.970836][ T3004]  r4:82e27000
+[   86.970961][ T3004] [<8080fe10>] (__fortify_report) from [<818e9a40>] (__fortify_panic+0x10/0x14)
+[   86.971175][ T3004] [<818e9a30>] (__fortify_panic) from [<8062a3b0>] (ext4_fileattr_get+0x0/0x78)
+[   86.971403][ T3004] [<8062829c>] (__ext4_ioctl) from [<8062aaac>] (ext4_ioctl+0x10/0x14)
+[   86.971601][ T3004]  r10:836e6c00 r9:00000005 r8:845e7900 r7:00000000 r6:845e7900 r5:00000000
+[   86.971807][ T3004]  r4:81009431
+[   86.971893][ T3004] [<8062aa9c>] (ext4_ioctl) from [<80518930>] (sys_ioctl+0x134/0xda4)
+[   86.972140][ T3004] [<805187fc>] (sys_ioctl) from [<80200060>] (ret_fast_syscall+0x0/0x1c)
+[   86.972385][ T3004] Exception stack(0xdf969fa8 to 0xdf969ff0)
+[   86.972695][ T3004] 9fa0:                   00000000 00000000 00000005 81009431 00000000 00000000
+[   86.973050][ T3004] 9fc0: 00000000 00000000 0008e060 00000036 000f4240 00000000 00000001 00003a97
+[   86.973314][ T3004] 9fe0: 7e98ac70 7e98ac60 00010764 0002e8c0
+[   86.973550][ T3004]  r10:00000036 r9:836e6c00 r8:8020029c r7:00000036 r6:0008e060 r5:00000000
+[   86.973802][ T3004]  r4:00000000
+[   86.975662][ T3004] Rebooting in 86400 seconds..
