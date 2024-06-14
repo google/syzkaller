@@ -57,7 +57,8 @@ var (
 		"	the process exits and the exit status indicates success/failure.\n"+
 		"	If the kernel oopses during testing, the report is saved to workdir/report.json.\n"+
 		" - corpus-triage: triage corpus and exit\n"+
-		"	This is useful mostly for benchmarking with testbed.\n")
+		"	This is useful mostly for benchmarking with testbed.\n"+
+		" - corpus-run: continuously run the corpus programs.\n")
 )
 
 type Manager struct {
@@ -122,6 +123,7 @@ const (
 	ModeFuzzing Mode = iota
 	ModeSmokeTest
 	ModeCorpusTriage
+	ModeCorpusRun
 )
 
 const (
@@ -178,6 +180,10 @@ func RunManager(cfg *mgrconfig.Config) {
 		mode = ModeCorpusTriage
 		cfg.DashboardClient = ""
 		cfg.HubClient = ""
+	case "corpus-run":
+		mode = ModeCorpusRun
+		cfg.HubClient = ""
+		cfg.DashboardClient = ""
 	default:
 		flag.PrintDefaults()
 		log.Fatalf("unknown mode: %v", *flagMode)
@@ -641,7 +647,7 @@ func (mgr *Manager) preloadCorpus() {
 	close(mgr.corpusPreloaded)
 }
 
-func (mgr *Manager) loadCorpus() {
+func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 	<-mgr.corpusPreloaded
 	// By default we don't re-minimize/re-smash programs from corpus,
 	// it takes lots of time on start and is unnecessary.
@@ -700,11 +706,7 @@ func (mgr *Manager) loadCorpus() {
 	log.Logf(0, "%-24v: %v (%v broken, %v seeds)", "corpus", len(candidates), broken, seeds)
 	mgr.seeds = nil
 
-	if mgr.phase != phaseInit {
-		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
-	}
-	mgr.phase = phaseLoadedCorpus
-	mgr.fuzzer.Load().AddCandidates(candidates)
+	return candidates
 }
 
 // Returns (delete item from the corpus, a fuzzer.Candidate object).
@@ -1439,52 +1441,95 @@ func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map
 
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+	if mgr.phase != phaseInit {
+		panic("machineChecked() called not during phaseInit")
+	}
 	if mgr.checkDone {
 		panic("machineChecked() called twice")
 	}
 	mgr.checkDone = true
 	mgr.enabledFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
+	mgr.firstConnect.Store(time.Now().Unix())
 	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
 
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-		Corpus:         mgr.corpus,
-		BaseOpts:       opts,
-		Coverage:       mgr.cfg.Cover,
-		FaultInjection: features&flatrpc.FeatureFault != 0,
-		Comparisons:    features&flatrpc.FeatureComparisons != 0,
-		Collide:        true,
-		EnabledCalls:   enabledSyscalls,
-		NoMutateCalls:  mgr.cfg.NoMutateCalls,
-		FetchRawCover:  mgr.cfg.RawCover,
-		Logf: func(level int, msg string, args ...interface{}) {
-			if level != 0 {
-				return
-			}
-			log.Logf(level, msg, args...)
-		},
-		NewInputFilter: func(call string) bool {
-			mgr.mu.Lock()
-			defer mgr.mu.Unlock()
-			return !mgr.saturatedCalls[call]
-		},
-	}, rnd, mgr.target)
-	mgr.fuzzer.Store(fuzzerObj)
+	corpus := mgr.loadCorpus()
+	mgr.phase = phaseLoadedCorpus
 
-	mgr.loadCorpus()
-	mgr.firstConnect.Store(time.Now().Unix())
-	go mgr.corpusMinimization()
-	go mgr.fuzzerLoop(fuzzerObj)
-	if mgr.dash != nil {
-		go mgr.dashboardReporter()
-		if mgr.cfg.Reproduce {
-			go mgr.dashboardReproTasks()
+	if mgr.mode == ModeFuzzing {
+		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+			Corpus:         mgr.corpus,
+			BaseOpts:       opts,
+			Coverage:       mgr.cfg.Cover,
+			FaultInjection: features&flatrpc.FeatureFault != 0,
+			Comparisons:    features&flatrpc.FeatureComparisons != 0,
+			Collide:        true,
+			EnabledCalls:   enabledSyscalls,
+			NoMutateCalls:  mgr.cfg.NoMutateCalls,
+			FetchRawCover:  mgr.cfg.RawCover,
+			Logf: func(level int, msg string, args ...interface{}) {
+				if level != 0 {
+					return
+				}
+				log.Logf(level, msg, args...)
+			},
+			NewInputFilter: func(call string) bool {
+				mgr.mu.Lock()
+				defer mgr.mu.Unlock()
+				return !mgr.saturatedCalls[call]
+			},
+		}, rnd, mgr.target)
+		fuzzerObj.AddCandidates(corpus)
+		mgr.fuzzer.Store(fuzzerObj)
+
+		go mgr.corpusMinimization()
+		go mgr.fuzzerLoop(fuzzerObj)
+		if mgr.dash != nil {
+			go mgr.dashboardReporter()
+			if mgr.cfg.Reproduce {
+				go mgr.dashboardReproTasks()
+			}
+		}
+		return fuzzerObj
+	} else if mgr.mode == ModeCorpusRun {
+		return &corpusRunner{
+			candidates: corpus,
+			opts:       opts,
+			rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 	}
-	return fuzzerObj
+	panic(fmt.Sprintf("unexpected mode %q", mgr.mode))
+}
+
+type corpusRunner struct {
+	candidates []fuzzer.Candidate
+	opts       flatrpc.ExecOpts
+	mu         sync.Mutex
+	rnd        *rand.Rand
+	seq        int
+}
+
+func (cr *corpusRunner) Next() *queue.Request {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+
+	var p *prog.Prog
+	if cr.seq < len(cr.candidates) {
+		// First run all candidates sequentially.
+		p = cr.candidates[cr.seq].Prog
+		cr.seq++
+	} else {
+		// Then pick random progs.
+		p = cr.candidates[cr.rnd.Intn(len(cr.candidates))].Prog
+	}
+	return &queue.Request{
+		Prog:      p,
+		ExecOpts:  cr.opts,
+		Important: true,
+	}
 }
 
 func (mgr *Manager) corpusMinimization() {
