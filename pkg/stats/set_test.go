@@ -176,7 +176,7 @@ func TestSetHistoryDistribution(t *testing.T) {
 	a.Equal(step(1), [3][]float64{{3, 6, 1}, {3, 6, 1}, {3, 6, 1}})
 	a.Equal(step(2), [3][]float64{{3, 6, 1, 2}, {3, 6, 1, 2}, {3, 6, 1, 2}})
 	a.Equal(step(1), [3][]float64{{3, 1}, {3, 1}, {3, 1}})
-	a.Equal(step(10), [3][]float64{{3, 1, 1}, {3, 1, 10}, {3, 1, 10}})
+	a.Equal(step(10), [3][]float64{{3, 1, 1}, {3, 1, 1}, {3, 1, 10}})
 }
 
 func TestSetStress(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bsm/histogram/v3"
+	"github.com/VividCortex/gohistogram"
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -78,7 +78,7 @@ type line struct {
 	desc string
 	rate bool
 	data []float64
-	hist []*histogram.Histogram
+	hist []*gohistogram.NumericHistogram
 }
 
 const (
@@ -268,7 +268,7 @@ type Val struct {
 	hist    bool
 	prev    int
 	histMu  sync.Mutex
-	histVal *histogram.Histogram
+	histVal *gohistogram.NumericHistogram
 }
 
 func (v *Val) Add(val int) {
@@ -278,7 +278,7 @@ func (v *Val) Add(val int) {
 	if v.hist {
 		v.histMu.Lock()
 		if v.histVal == nil {
-			v.histVal = histogram.New(histogramBuckets)
+			v.histVal = gohistogram.NewHistogram(histogramBuckets)
 		}
 		v.histVal.Add(float64(val))
 		v.histMu.Unlock()
@@ -336,7 +336,7 @@ func (s *set) tick() {
 				rate: v.rate,
 			}
 			if v.hist {
-				ln.hist = make([]*histogram.Histogram, s.historySize)
+				ln.hist = make([]*gohistogram.NumericHistogram, s.historySize)
 			} else {
 				ln.data = make([]float64, s.historySize)
 			}
