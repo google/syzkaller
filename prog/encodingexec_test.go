@@ -10,14 +10,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bsm/histogram/v3"
+	"github.com/VividCortex/gohistogram"
 )
 
 func TestSerializeForExecRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	execSizes := histogram.New(1000)
-	textSizes := histogram.New(1000)
+	execSizes := gohistogram.NewHistogram(1000)
+	textSizes := gohistogram.NewHistogram(1000)
 	totalSize := 0
 	sizes := make(map[string]int)
 	for i := 0; i < iters; i++ {
