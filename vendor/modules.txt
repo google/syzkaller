@@ -119,6 +119,9 @@ github.com/Masterminds/semver
 ## explicit; go 1.20
 github.com/OpenPeeDeeP/depguard/v2
 github.com/OpenPeeDeeP/depguard/v2/internal/utils
+# github.com/VividCortex/gohistogram v1.0.0
+## explicit
+github.com/VividCortex/gohistogram
 # github.com/alecthomas/go-check-sumtype v0.1.4
 ## explicit; go 1.18
 github.com/alecthomas/go-check-sumtype
@@ -155,9 +158,6 @@ github.com/breml/bidichk/pkg/bidichk
 # github.com/breml/errchkjson v0.3.6
 ## explicit; go 1.20
 github.com/breml/errchkjson
-# github.com/bsm/histogram/v3 v3.0.2
-## explicit; go 1.14
-github.com/bsm/histogram/v3
 # github.com/butuzov/ireturn v0.3.0
 ## explicit; go 1.18
 github.com/butuzov/ireturn/analyzer
