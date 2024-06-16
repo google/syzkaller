@@ -557,7 +557,7 @@ If you want to reference a field's value, you can do it via
 sub_struct {
   f0 int
   # Reference a field in a parent struct.
-  f1 int (if[value[struct:f2]]) # Same as if[value[struct:f2] != 0]].
+  f1 int (if[value[struct:f2]]) # Same as if[value[struct:f2] != 0].
 }
 
 struct {
