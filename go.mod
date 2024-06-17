@@ -3,6 +3,7 @@ module github.com/google/syzkaller
 go 1.21
 
 require (
+	cloud.google.com/go v0.114.0
 	cloud.google.com/go/logging v1.10.0
 	cloud.google.com/go/profiler v0.4.0
 	cloud.google.com/go/pubsub v1.38.0
@@ -37,7 +38,6 @@ require (
 require (
 	4d63.com/gocheckcompilerdirectives v1.2.1 // indirect
 	4d63.com/gochecknoglobals v0.2.1 // indirect
-	cloud.google.com/go v0.114.0 // indirect
 	cloud.google.com/go/ai v0.5.0 // indirect
 	cloud.google.com/go/auth v0.4.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect

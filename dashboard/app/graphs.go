@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"cloud.google.com/go/civil"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -183,6 +184,45 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 		Title:  hdr.Namespace + " bugs found per month",
 		Header: hdr,
 		Graph:  createFoundBugs(c, bugs),
+	}
+	return serveTemplate(w, "graph_histogram.html", data)
+}
+
+func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	yesterday := civil.DateOf(time.Now().Add(-1 * 24 * time.Hour))
+	monthAgo := yesterday.AddDays(-31)
+	hist, err := MergedCoverage(c, hdr.Namespace, monthAgo, yesterday)
+	if err != nil {
+		return err
+	}
+	dates := []string{}
+	for i := 31; i >= 0; i-- {
+		dates = append(dates, yesterday.AddDays(-i).String())
+	}
+	cols := []uiGraphColumn{}
+	for _, date := range dates {
+		if _, ok := hist.covered[date]; !ok || hist.instrumented[date] == 0 {
+			cols = append(cols, uiGraphColumn{Hint: date, Vals: []uiGraphValue{{IsNull: true}}})
+		} else {
+			cols = append(cols, uiGraphColumn{
+				Vals: []uiGraphValue{{Val: float32(hist.covered[date]) / float32(hist.instrumented[date])}},
+				Hint: date,
+			})
+		}
+	}
+	data := &uiHistogramPage{
+		Title:  hdr.Namespace + " coverage",
+		Header: hdr,
+		Graph: &uiGraph{
+			Headers: []uiGraphHeader{
+				{Name: "Total", Color: "Red"},
+			},
+			Columns: cols,
+		},
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
 }
