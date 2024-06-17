@@ -144,9 +144,7 @@ func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
 		// but will be created by connected USB devices.
 		for _, prefix := range []string{"/dev/hidraw", "/dev/usb/hiddev", "/dev/input/"} {
 			if strings.HasPrefix(fname, prefix) {
-				// Note: ideally we use linuxSyzOpenDevSupported here,
-				// since we already issued test syscalls, we can't.
-				if _, err := ctx.readFile("/dev/raw-gadget"); !os.IsNotExist(err) {
+				if ctx.rootCanOpen("/dev/raw-gadget") == "" {
 					reason = ""
 				}
 			}
