@@ -32,7 +32,6 @@ func (linux) checkFiles() []string {
 		"/proc/version",
 		"/proc/filesystems",
 		"/sys/kernel/security/lsm",
-		"/dev/raw-gadget",
 	}
 }
 
