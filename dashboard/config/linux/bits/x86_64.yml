@@ -14,7 +14,7 @@ config:
 
  # Should be faster this way.
  - MCORE2
- - BASE_FULL
+ - BASE_FULL: [-v6.10]
 
  # 32-on-64 support (compat).
  - IA32_EMULATION
