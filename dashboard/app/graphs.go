@@ -26,7 +26,8 @@ type uiBugLifetimesPage struct {
 	Lifetimes []uiBugLifetime
 }
 
-type uiReportedBugsPage struct {
+type uiHistogramPage struct {
+	Title  string
 	Header *uiHeader
 	Graph  *uiGraph
 }
@@ -178,11 +179,12 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err
 	}
-	data := &uiReportedBugsPage{
+	data := &uiHistogramPage{
+		Title:  hdr.Namespace + " bugs found per month",
 		Header: hdr,
 		Graph:  createFoundBugs(c, bugs),
 	}
-	return serveTemplate(w, "graph_found_bugs.html", data)
+	return serveTemplate(w, "graph_histogram.html", data)
 }
 
 func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
