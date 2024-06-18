@@ -418,10 +418,10 @@ func (inst *inst) testRepro() ([]byte, error) {
 
 func (inst *inst) csourceOptions() (csource.Options, error) {
 	if len(inst.reproSyz) == 0 {
-		// This function is expected to be used only when we have a syz reproducer:
-		// either during syz reproducer testing, or during image testing
-		// for bisection or patch testing.
-		panic("no syz reproducer")
+		// If no syz repro is provided, the functionality is likely being used to test
+		// for the crashes that don't need a reproducer (e.g. kernel build/boot/test errors).
+		// Use the default options, that's the best we can do.
+		return csource.DefaultOpts(inst.cfg), nil
 	}
 	opts, err := csource.DeserializeOptions(inst.reproOpts)
 	if err != nil {
