@@ -189,7 +189,7 @@ config:
  - ATA
  - SATA_AHCI
  - ATA_PIIX
- - PATA_AMD
+ - PATA_AMD: [-s390]
  - PATA_OLDPIIX
  - PATA_SCH
  - ATA_SFF
@@ -285,7 +285,7 @@ config:
  # Workaround: select small driver that selects DRM_DISPLAY_HELPER required by
  # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
  - DRM_PANEL_EDP: [v5.16, -s390]
- - DRM_DP_AUX_CHARDEV: [x86_64, -linux-next]
+ - DRM_DP_AUX_CHARDEV: [x86_64, -v6.10]
  - DRM_DISPLAY_DP_AUX_BUS: [linux-next]
  - DRM_DISPLAY_DP_HELPER: [v5.19, -s390]
  - DRM_DEBUG_MM

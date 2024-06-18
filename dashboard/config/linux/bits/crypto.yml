@@ -59,7 +59,7 @@ config:
  - CRYPTO_USER_API_AEAD
  - CRYPTO_HW
  - CRYPTO_DEV_VIRTIO
- - CRYPTO_SM2: [v5.10]
+ - CRYPTO_SM2: [v5.10, -linux-next]
  - CRYPTO_DEV_CCP: [-arm, -riscv, -s390]
  - CRYPTO_DEV_CCP_DD: [-arm, -riscv, -s390]
  - CRYPTO_DEV_SP_CCP: n
