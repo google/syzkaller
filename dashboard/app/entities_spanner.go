@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
@@ -32,7 +31,7 @@ func MergedCoverage(ctx context.Context, ns string, fromDate, toDate civil.Date)
 
 	stmt := spanner.Statement{
 		SQL: `select
-			dateto targetdate,
+			dateto as targetdate,
 			cast(sum(instrumented) as INTEGER) as instrumented,
 			cast(sum(covered) as INTEGER) as covered
 		from "files"
@@ -60,15 +59,15 @@ func MergedCoverage(ctx context.Context, ns string, fromDate, toDate civil.Date)
 			return nil, fmt.Errorf("failed to iter.Next() spanner DB: %w", err)
 		}
 		var r struct {
-			Targetdate   time.Time
+			Targetdate   civil.Date
 			Instrumented int64
 			Covered      int64
 		}
 		if err = row.ToStruct(&r); err != nil {
 			return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
 		}
-		res.instrumented[r.Targetdate.Format(time.DateOnly)] = r.Instrumented
-		res.covered[r.Targetdate.Format(time.DateOnly)] = r.Covered
+		res.instrumented[r.Targetdate.String()] = r.Instrumented
+		res.covered[r.Targetdate.String()] = r.Covered
 	}
 	return res, nil
 }
