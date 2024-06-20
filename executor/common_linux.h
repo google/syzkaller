@@ -4528,13 +4528,20 @@ static void remove_dir(const char* dir)
 {
 	int iter = 0;
 	DIR* dp = 0;
-retry:
+
 #if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
 	// Starting from v6.9, it does no longer make sense to use MNT_DETACH, because
 	// a loop device may only be reused in RW mode if no mounted filesystem keeps a
 	// reference to it. So we have to umount them synchronously.
 	// MNT_FORCE should hopefully prevent hangs for filesystems that may require a complex cleanup.
+	//
+	// This declaration should not be moved under retry label, since label followed by a declaration
+	// is not supported by old compilers.
 	const int umount_flags = MNT_FORCE | UMOUNT_NOFOLLOW;
+#endif
+
+retry:
+#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
 #if SYZ_EXECUTOR
 	if (!flag_sandbox_android)
 #endif
