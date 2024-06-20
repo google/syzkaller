@@ -135,16 +135,30 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	data := &UISyscallsData{
 		Name: mgr.cfg.Name,
 	}
+	throttler := mgr.throttler.Load()
 	for c, cc := range mgr.collectSyscallInfo() {
+		syscall, ok := mgr.target.SyscallMap[c]
 		var syscallID *int
-		if syscall, ok := mgr.target.SyscallMap[c]; ok {
+		if ok {
 			syscallID = &syscall.ID
 		}
+
+		policy := ""
+		if throttler != nil && syscall != nil {
+			info := throttler.Info(syscall)
+			denied := ""
+			if info.Throttled {
+				denied = "[THROTTLED] "
+			}
+			policy = fmt.Sprintf("%s%d denied, %.2f%% crash rate, %d crashed",
+				denied, info.Denied, info.CrashRate*100.0, info.Crashed)
+		}
 		data.Calls = append(data.Calls, UICallType{
-			Name:   c,
-			ID:     syscallID,
-			Inputs: cc.Count,
-			Cover:  len(cc.Cover),
+			Name:       c,
+			ID:         syscallID,
+			Inputs:     cc.Count,
+			Cover:      len(cc.Cover),
+			PolicyInfo: policy,
 		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
@@ -761,10 +775,11 @@ type UIStat struct {
 }
 
 type UICallType struct {
-	Name   string
-	ID     *int
-	Inputs int
-	Cover  int
+	Name       string
+	ID         *int
+	Inputs     int
+	Cover      int
+	PolicyInfo string
 }
 
 type UICorpus struct {
@@ -862,6 +877,7 @@ var syscallsTemplate = pages.Create(`
 		<th><a onclick="return sortTable(this, 'Inputs', numSort)" href="#">Inputs</a></th>
 		<th><a onclick="return sortTable(this, 'Coverage', numSort)" href="#">Coverage</a></th>
 		<th>Prio</th>
+		<th><a onclick="return sortTable(this, 'Policy Info', textSort)" href="#">Policy Info</a></th>
 	</tr>
 	{{range $c := $.Calls}}
 	<tr>
@@ -869,6 +885,7 @@ var syscallsTemplate = pages.Create(`
 		<td><a href='/corpus?call={{$c.Name}}'>{{$c.Inputs}}</a></td>
 		<td><a href='/cover?call={{$c.Name}}'>{{$c.Cover}}</a></td>
 		<td><a href='/prio?call={{$c.Name}}'>prio</a></td>
+		<td>{{$c.PolicyInfo}}</td>
 	</tr>
 	{{end}}
 </table>

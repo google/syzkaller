@@ -28,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/fuzzer/throttler"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
@@ -87,6 +88,7 @@ type Manager struct {
 
 	mu                    sync.Mutex
 	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
+	throttler             atomic.Pointer[throttler.WrapperObject]
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
@@ -785,7 +787,11 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	// Use unique instance names to prevent name collisions in case of untimely RPC messages.
 	instanceName := fmt.Sprintf("vm-%d", mgr.nextInstanceID.Add(1))
 	injectExec := make(chan bool, 10)
-	mgr.serv.createInstance(instanceName, injectExec)
+	var monitor throttler.InstanceMonitor
+	if obj := mgr.throttler.Load(); obj != nil {
+		monitor = obj.InstanceMonitor()
+	}
+	mgr.serv.createInstance(instanceName, injectExec, monitor)
 
 	rep, vmInfo, err := mgr.runInstanceInner(index, instanceName, injectExec)
 	lastExec, machineInfo := mgr.serv.shutdownInstance(instanceName, rep != nil)
@@ -1493,7 +1499,13 @@ func (mgr *Manager) machineChecked(features flatrpc.Feature, enabledSyscalls map
 				go mgr.dashboardReproTasks()
 			}
 		}
-		return fuzzerObj
+		var syscalls []*prog.Syscall
+		for call := range enabledSyscalls {
+			syscalls = append(syscalls, call)
+		}
+		throttler := throttler.Wrapper(fuzzerObj, syscalls)
+		mgr.throttler.Store(throttler)
+		return throttler
 	} else if mgr.mode == ModeCorpusRun {
 		return &corpusRunner{
 			candidates: corpus,

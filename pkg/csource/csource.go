@@ -253,6 +253,10 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
+		if call.Props.Skip {
+			continue
+		}
+
 		w := new(bytes.Buffer)
 		// Copyin.
 		for _, copyin := range call.Copyin {

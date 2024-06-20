@@ -42,6 +42,9 @@ type Request struct {
 	// Important requests will be retried even from crashed VMs.
 	Important bool
 
+	// Risky requests will not be retried, even if they are important.
+	Risky bool
+
 	// The callback will be called on request completion in the LIFO order.
 	// If it returns false, all further processing will be stopped.
 	// It allows wrappers to intercept Done() requests.
@@ -93,11 +96,6 @@ func (r *Request) Wait(ctx context.Context) *Result {
 	case <-r.done:
 		return r.result
 	}
-}
-
-// Risky() returns true if there's a substantial risk of the input crashing the VM.
-func (r *Request) Risky() bool {
-	return r.onceCrashed
 }
 
 func (r *Request) Validate() error {

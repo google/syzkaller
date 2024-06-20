@@ -35,6 +35,7 @@ type CallProps struct {
 	FailNth int  `key:"fail_nth"`
 	Async   bool `key:"async"`
 	Rerun   int  `key:"rerun"`
+	Skip    bool `key:"skip"`
 }
 
 type Call struct {

@@ -90,6 +90,8 @@ type NewItemEvent struct {
 }
 
 func (corpus *Corpus) Save(inp NewInput) {
+	validateCorpusProg(inp.Prog)
+
 	progData := inp.Prog.Serialize()
 	sig := hash.String(progData)
 
@@ -150,6 +152,18 @@ func (corpus *Corpus) Save(inp NewInput) {
 		}
 	}
 }
+
+func validateCorpusProg(p *prog.Prog) {
+	for _, call := range p.Calls {
+		if call.Props.Async {
+			panic("attempting to save a Async=true prog to corpus")
+		}
+		if call.Props.Skip {
+			panic("attempting to save a Skip=true prog to corpus")
+		}
+	}
+}
+
 func (corpus *Corpus) Signal() signal.Signal {
 	corpus.mu.RLock()
 	defer corpus.mu.RUnlock()

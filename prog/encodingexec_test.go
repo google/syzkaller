@@ -578,13 +578,16 @@ func TestSerializeForExec(t *testing.T) {
 			`test() (fail_nth: 3)
 test() (fail_nth: 4)
 test() (async, rerun: 10)
+test() (skip)
 `,
 			[]any{
-				execInstrSetProps, 3, 0, 0,
+				execInstrSetProps, 3, 0, 0, 0,
 				callID("test"), ExecNoCopyout, 0,
-				execInstrSetProps, 4, 0, 0,
+				execInstrSetProps, 4, 0, 0, 0,
 				callID("test"), ExecNoCopyout, 0,
-				execInstrSetProps, 0, 1, 10,
+				execInstrSetProps, 0, 1, 10, 0,
+				callID("test"), ExecNoCopyout, 0,
+				execInstrSetProps, 0, 0, 0, 1,
 				callID("test"), ExecNoCopyout, 0,
 				execInstrEOF,
 			},
@@ -593,17 +596,22 @@ test() (async, rerun: 10)
 					{
 						Meta:  target.SyscallMap["test"],
 						Index: ExecNoCopyout,
-						Props: CallProps{3, false, 0},
+						Props: CallProps{3, false, 0, false},
 					},
 					{
 						Meta:  target.SyscallMap["test"],
 						Index: ExecNoCopyout,
-						Props: CallProps{4, false, 0},
+						Props: CallProps{4, false, 0, false},
 					},
 					{
 						Meta:  target.SyscallMap["test"],
 						Index: ExecNoCopyout,
-						Props: CallProps{0, true, 10},
+						Props: CallProps{0, true, 10, false},
+					},
+					{
+						Meta:  target.SyscallMap["test"],
+						Index: ExecNoCopyout,
+						Props: CallProps{0, false, 0, true},
 					},
 				},
 			},

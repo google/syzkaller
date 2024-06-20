@@ -131,12 +131,15 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
 
 		if len(triage) != 0 {
+			p := req.Prog.Clone()
+			triage = removeSkippedCalls(p, triage)
+
 			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
 			if flags&progCandidate > 0 {
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
 			}
 			fuzzer.startJob(stat, &triageJob{
-				p:     req.Prog.Clone(),
+				p:     p,
 				flags: flags,
 				queue: queue.Append(),
 				calls: triage,
@@ -150,7 +153,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 
 	// Corpus candidates may have flaky coverage, so we give them a second chance.
 	maxCandidateAttempts := 3
-	if req.Risky() {
+	if req.Risky {
 		maxCandidateAttempts = 2
 	}
 	if len(triage) == 0 && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
@@ -161,6 +164,26 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		fuzzer.statCandidates.Add(-1)
 	}
 	return true
+}
+
+func removeSkippedCalls(p *prog.Prog, triage map[int]*triageCall) map[int]*triageCall {
+	ret := map[int]*triageCall{}
+	if info := triage[-1]; info != nil {
+		ret[-1] = info
+	}
+	oldPos := 0
+	for i := 0; i < len(p.Calls); oldPos++ {
+		if p.Calls[i].Props.Skip {
+			p.RemoveCall(i)
+			continue
+		}
+		info := triage[oldPos]
+		if info != nil {
+			ret[i] = info
+		}
+		i++
+	}
+	return ret
 }
 
 type Config struct {
