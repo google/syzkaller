@@ -34,8 +34,8 @@ func (r *retryer) done(req *Request, res *Result) bool {
 		return false
 	}
 	// Retry important requests from crashed VMs once.
-	if res.Status == Crashed && req.Important && !req.onceCrashed {
-		req.onceCrashed = true
+	if res.Status == Crashed && req.Important && !req.Risky {
+		req.Risky = true
 		r.pq.Submit(req)
 		return false
 	}

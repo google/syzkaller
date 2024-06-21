@@ -1236,34 +1236,38 @@ void execute_call(thread_t* th)
 		th->soft_fail_state = true;
 	}
 
-	if (flag_coverage)
-		cover_reset(&th->cov);
-	// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning to th->res.
-	// Arrange for res = -1 and errno = EFAULT result for such case.
-	th->res = -1;
-	errno = EFAULT;
-	NONFAILING(th->res = execute_syscall(call, th->args));
-	th->reserrno = errno;
-	// Our pseudo-syscalls may misbehave.
-	if ((th->res == -1 && th->reserrno == 0) || call->attrs.ignore_return)
-		th->reserrno = EINVAL;
-	// Reset the flag before the first possible fail().
-	th->soft_fail_state = false;
+	if (th->call_props.skip > 0) {
+		th->reserrno = ENOSYS;
+	} else {
+		if (flag_coverage)
+			cover_reset(&th->cov);
+		// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning to th->res.
+		// Arrange for res = -1 and errno = EFAULT result for such case.
+		th->res = -1;
+		errno = EFAULT;
+		NONFAILING(th->res = execute_syscall(call, th->args));
+		th->reserrno = errno;
+		// Our pseudo-syscalls may misbehave.
+		if ((th->res == -1 && th->reserrno == 0) || call->attrs.ignore_return)
+			th->reserrno = EINVAL;
+		// Reset the flag before the first possible fail().
+		th->soft_fail_state = false;
 
-	if (flag_coverage) {
-		cover_collect(&th->cov);
-		if (th->cov.size >= kCoverSize)
-			failmsg("too much cover", "thr=%d, cov=%u", th->id, th->cov.size);
+		if (flag_coverage) {
+			cover_collect(&th->cov);
+			if (th->cov.size >= kCoverSize)
+				failmsg("too much cover", "thr=%d, cov=%u", th->id, th->cov.size);
+		}
+		th->fault_injected = false;
+
+		if (th->call_props.fail_nth > 0)
+			th->fault_injected = fault_injected(fail_fd);
+
+		// If required, run the syscall some more times.
+		// But let's still return res, errno and coverage from the first execution.
+		for (int i = 0; i < th->call_props.rerun; i++)
+			NONFAILING(execute_syscall(call, th->args));
 	}
-	th->fault_injected = false;
-
-	if (th->call_props.fail_nth > 0)
-		th->fault_injected = fault_injected(fail_fd);
-
-	// If required, run the syscall some more times.
-	// But let's still return res, errno and coverage from the first execution.
-	for (int i = 0; i < th->call_props.rerun; i++)
-		NONFAILING(execute_syscall(call, th->args));
 
 	debug("#%d [%llums] <- %s=0x%llx",
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res);
@@ -1275,6 +1279,8 @@ void execute_call(thread_t* th)
 		debug(" fault=%d", th->fault_injected);
 	if (th->call_props.rerun > 0)
 		debug(" rerun=%d", th->call_props.rerun);
+	if (th->call_props.skip > 0)
+		debug(" skipped");
 	debug("\n");
 }
 

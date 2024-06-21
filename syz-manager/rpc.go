@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/fuzzer/throttler"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -75,6 +76,7 @@ type Runner struct {
 	executing     map[int64]bool
 	lastExec      *LastExecuting
 	rnd           *rand.Rand
+	monitor       throttler.InstanceMonitor
 }
 
 type BugFrames struct {
@@ -139,7 +141,7 @@ func (serv *RPCServer) handleConn(conn *flatrpc.Conn) {
 
 	if serv.cfg.VMLess {
 		// There is no VM loop, so minic what it would do.
-		serv.createInstance(name, nil)
+		serv.createInstance(name, nil, nil)
 		defer func() {
 			serv.stopFuzzing(name)
 			serv.shutdownInstance(name, false)
@@ -387,7 +389,11 @@ func (serv *RPCServer) handleExecutingMessage(runner *Runner, msg *flatrpc.Execu
 	} else {
 		serv.statExecRetries.Add(1)
 	}
+	// TODO: LastExecuting may be better integrated with the InstanceMonitor interface.
 	runner.lastExec.Note(proc, req.Prog.Serialize(), osutil.MonotonicNano())
+	if runner.monitor != nil {
+		runner.monitor.Record(req)
+	}
 	select {
 	case runner.injectExec <- true:
 	default:
@@ -527,13 +533,14 @@ func validateRequest(req *queue.Request) error {
 	return nil
 }
 
-func (serv *RPCServer) createInstance(name string, injectExec chan<- bool) {
+func (serv *RPCServer) createInstance(name string, injectExec chan<- bool, monitor throttler.InstanceMonitor) {
 	runner := &Runner{
 		injectExec: injectExec,
 		finished:   make(chan bool),
 		requests:   make(map[int64]*queue.Request),
 		executing:  make(map[int64]bool),
 		lastExec:   MakeLastExecuting(serv.cfg.Procs, 6),
+		monitor:    monitor,
 		rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	serv.mu.Lock()
@@ -573,6 +580,9 @@ func (serv *RPCServer) shutdownInstance(name string, crashed bool) ([]ExecRecord
 			status = queue.Crashed
 		}
 		req.Done(&queue.Result{Status: status})
+	}
+	if runner.monitor != nil {
+		runner.monitor.Shutdown(crashed)
 	}
 	return runner.lastExec.Collect(), runner.machineInfo
 }

@@ -181,6 +181,32 @@ func TestRotate(t *testing.T) {
 	assert.Equal(t, 700, minus.Len())
 }
 
+func TestRemoveSkippedCalls(t *testing.T) {
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := target.Deserialize([]byte(`
+serialize0(&AUTO) (skip)
+serialize1(&AUTO)
+serialize2(&AUTO) (skip)
+serialize3(&AUTO)
+`), prog.NonStrict)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mm := map[int]*triageCall{
+		1: {},
+	}
+	newMm := removeSkippedCalls(p, mm)
+	assert.Len(t, newMm, 1)
+	assert.NotNil(t, newMm[0])
+
+	assert.Len(t, p.Calls, 2)
+	assert.Equal(t, "serialize1", p.Calls[0].Meta.Name)
+	assert.Equal(t, "serialize3", p.Calls[1].Meta.Name)
+}
+
 // Based on the example from Go documentation.
 var crc32q = crc32.MakeTable(0xD5828281)
 
