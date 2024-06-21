@@ -184,6 +184,8 @@ static bool use_cover_edges(uint32 pc)
 
 static bool is_kernel_data(uint64 addr)
 {
+	if (is_gvisor)
+		return false;
 #if GOARCH_386 || GOARCH_amd64
 	// This range corresponds to the first 1TB of the physical memory mapping,
 	// see Documentation/arch/x86/x86_64/mm.rst.
@@ -196,6 +198,8 @@ static bool is_kernel_data(uint64 addr)
 // Returns >0 for yes, <0 for no, 0 for don't know.
 static int is_kernel_pc(uint64 pc)
 {
+	if (is_gvisor)
+		return 0;
 #if GOARCH_386 || GOARCH_amd64
 	// Text/modules range for x86_64.
 	return pc >= 0xffffffff80000000ull && pc < 0xffffffffff000000ull ? 1 : -1;
