@@ -15,18 +15,19 @@ import (
 // TODO: move to dashAPI once tested? I'm not sure we'll benefit.
 
 type Coverage struct {
-	Namespace    string
-	FilePath     string
-	Repo         string
-	Commit       string
-	DateFrom     civil.Date
-	DateTo       civil.Date
-	Instrumented int64
-	Covered      int64
+	Namespace     string
+	FilePath      string
+	Repo          string
+	Commit        string
+	RowsProcessed int64
+	DateFrom      civil.Date
+	DateTo        civil.Date
+	Instrumented  int64
+	Covered       int64
 }
 
 func saveToSpanner(c context.Context, mergedCoverage map[string]*covermerger.MergeResult,
-	repo, commit, ns string, dateFrom, dateTo civil.Date) {
+	repo, commit, ns string, dateFrom, dateTo civil.Date, rowsCount int64) {
 	ctx := context.Background()
 	client, err := spanner.NewClient(ctx, "projects/syzkaller/instances/syzbot/databases/coverage")
 	if err != nil {
@@ -48,15 +49,16 @@ func saveToSpanner(c context.Context, mergedCoverage map[string]*covermerger.Mer
 			}
 		}
 		var insert *spanner.Mutation
-		if insert, err = spanner.InsertStruct("files", Coverage{
-			Namespace:    ns,
-			Repo:         repo,
-			Commit:       commit,
-			FilePath:     fileName,
-			DateFrom:     dateFrom,
-			DateTo:       dateTo,
-			Instrumented: instrumentedLines,
-			Covered:      coveredLines,
+		if insert, err = spanner.InsertOrUpdateStruct("files", Coverage{
+			Namespace:     ns,
+			Repo:          repo,
+			Commit:        commit,
+			RowsProcessed: rowsCount,
+			FilePath:      fileName,
+			DateFrom:      dateFrom,
+			DateTo:        dateTo,
+			Instrumented:  instrumentedLines,
+			Covered:       coveredLines,
 		}); err != nil {
 			panic(fmt.Sprintf("failed to spanner.InsertStruct(): %s", err.Error()))
 		}

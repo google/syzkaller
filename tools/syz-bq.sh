@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS
     "namespace" text,
     "repo" text,
     "commit" text,
+    "rowsprocessed" bigint,
     "filepath" text,
     "datefrom" date,
     "dateto" date,
@@ -81,6 +82,28 @@ echo The latest commit as of $to_date is $base_commit.
 
 # rm -rf $base_dir
 # echo Temp dir $base_dir deleted.
+
+# every partition covers 1 day. total_rows is a partition version here.
+query=$(cat <<-END
+SELECT
+  sum(total_rows) as total_rows,
+FROM
+  syzkaller.syzbot_coverage.INFORMATION_SCHEMA.PARTITIONS
+WHERE
+  table_name = '${namespace}' AND
+  PARSE_DATE('%Y%m%d', partition_id) >= '${from_date}' AND
+  PARSE_DATE('%Y%m%d', partition_id) <= '${to_date}';
+END
+)
+
+sourcerows=$(bq query --format=csv --use_legacy_sql=false "$query" | tail -n +2)
+if (( sourcerows <= 0 ))
+then
+  echo error: no source rows in bigquery available
+  exit
+else
+  echo $sourcerows rows in BQ are available for processing
+fi
 
 sessionID=$(uuidgen)
 gsURI=$(echo gs://syzbot-temp/bq-exports/${sessionID}/*.csv.gz)
@@ -118,7 +141,8 @@ go run ./tools/syz-covermerger/ -workdir $workdir \
   -save-to-spanner true \
   -namespace $namespace \
   -date-from $from_date \
-  -date-to $to_date
+  -date-to $to_date \
+  -rows-count $sourcerows
 
 echo Cleanup
 rm -rf $sessionDir

@@ -64,6 +64,7 @@ func main() {
 	flagDateFrom := flag.String("date-from", "", "[optional] used to mark DB records")
 	flagDateTo := flag.String("date-to", "", "[optional] used to mark DB records")
 	flagSaveToSpanner := flag.String("save-to-spanner", "", "[optional] save aggregation to spanner")
+	flagRowsCount := flag.Int64("rows-count", 0, "[optional] source size, is used as a version contol")
 
 	flag.Parse()
 	BaseIsWellSpecifiedOrExit(flagBaseType, flagRepo, flagBranch, flagCommit)
@@ -101,7 +102,7 @@ func main() {
 		if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
 			panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 		}
-		saveToSpanner(context.Background(), mergeResult, *flagRepo, *flagCommit, *flagNamespace, dateFrom, dateTo)
+		saveToSpanner(context.Background(), mergeResult, *flagRepo, *flagCommit, *flagNamespace, dateFrom, dateTo, *flagRowsCount)
 	}
 }
 
