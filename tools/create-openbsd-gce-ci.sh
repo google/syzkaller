@@ -66,11 +66,11 @@ EOF2
   echo "starting syz-ci"
   fsck -y /dev/sd1a
   mount /syzkaller
-  su -l syzkaller <<EOF2
+  su -c vmd -l syzkaller <<EOF2
     cd /syzkaller
     export HOME=/syzkaller
     set -eux
-    ulimit -d 8000000
+    ulimit -n 1024 -d 16000000
     mkdir -p /syzkaller/go-cache
     export GOCACHE=/syzkaller/go-cache
     test -d /syzkaller/gopath/src/github.com/google/syzkaller || (
