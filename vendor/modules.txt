@@ -41,6 +41,11 @@ cloud.google.com/go/auth/internal/transport/cert
 # cloud.google.com/go/auth/oauth2adapt v0.2.2
 ## explicit; go 1.19
 cloud.google.com/go/auth/oauth2adapt
+# cloud.google.com/go/batch v1.8.3
+## explicit; go 1.19
+cloud.google.com/go/batch/apiv1
+cloud.google.com/go/batch/apiv1/batchpb
+cloud.google.com/go/batch/internal
 # cloud.google.com/go/bigquery v1.60.0
 ## explicit; go 1.19
 cloud.google.com/go/bigquery
