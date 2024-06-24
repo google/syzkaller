@@ -330,6 +330,8 @@ foo_fmt6(a ptr[in, fmt[dec, flags[flags_with_one_value]]])
 
 struct$fmt0 {
 	f0	fmt[dec, int8]
+	f1	fmt[hex, proc[0, 1]]
+	f2	ptr[in, fmt[oct, proc[0, 1]]]
 }
 
 flags_with_one_value = 0
