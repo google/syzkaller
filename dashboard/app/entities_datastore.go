@@ -722,6 +722,15 @@ func (status BisectStatus) String() string {
 	}
 }
 
+// ReproTask is a manually requested reproduction attempt.
+type ReproTask struct {
+	Namespace    string
+	Manager      string
+	Log          int64 // Reference to CrashLog text entity.
+	AttemptsLeft int64
+	LastAttempt  time.Time
+}
+
 func mgrKey(c context.Context, ns, name string) *db.Key {
 	return db.NewKey(c, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
 }

@@ -211,9 +211,11 @@ type uiAdminPage struct {
 }
 
 type uiManagerPage struct {
-	Header  *uiHeader
-	Manager *uiManager
-	Builds  []*uiBuild
+	Header        *uiHeader
+	Manager       *uiManager
+	Message       string
+	ShowReproForm bool
+	Builds        []*uiBuild
 }
 
 type uiManager struct {
@@ -583,6 +585,18 @@ func handleManagerPage(c context.Context, w http.ResponseWriter, r *http.Request
 		return fmt.Errorf("failed to query builds: %w", err)
 	}
 	managerPage := &uiManagerPage{Manager: manager, Header: hdr}
+	accessLevel := accessLevel(c, r)
+	if accessLevel >= AccessUser {
+		managerPage.ShowReproForm = true
+		if repro := r.FormValue("send-repro"); repro != "" {
+			err := saveReproTask(c, hdr.Namespace, manager.Name, []byte(repro))
+			if err != nil {
+				return fmt.Errorf("failed to request reproduction: %w", err)
+			}
+			managerPage.Message = "Repro request was saved!"
+		}
+	}
+
 	for _, build := range builds {
 		managerPage.Builds = append(managerPage.Builds, makeUIBuild(c, build, false))
 	}

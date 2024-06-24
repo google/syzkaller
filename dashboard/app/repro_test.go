@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -484,4 +485,32 @@ func TestReproForDifferentCrash(t *testing.T) {
 	// Ensure that we have saved the reproduction log in this case.
 	dbBug, _, _ := c.loadBug(oldBug.ID)
 	c.expectEQ(len(dbBug.ReproAttempts), 1)
+}
+
+func TestReproTask(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.client
+
+	build := testBuild(1)
+	build.Manager = "test-manager"
+	client.UploadBuild(build)
+
+	form := url.Values{}
+	const reproValue = "Some repro text"
+	form.Add("send-repro", reproValue)
+
+	c.POSTForm("/test1/manager/test-manager", form)
+
+	// We run the reproducer request 2 times.
+	for i := 0; i < 2; i++ {
+		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(string(resp.CrashLog), reproValue)
+	}
+
+	// But no more.
+	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+	c.expectOK(err)
+	c.expectEQ(resp.CrashLog, []byte(nil))
 }

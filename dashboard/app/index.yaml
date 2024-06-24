@@ -256,3 +256,9 @@ indexes:
   properties:
   - name: Namespace
   - name: Type
+
+- kind: ReproTask
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: AttemptsLeft

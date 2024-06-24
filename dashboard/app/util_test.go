@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -292,7 +293,7 @@ func (c *Ctx) GET(url string) ([]byte, error) {
 
 // AuthGET sends HTTP GET request to the app with the specified authorization.
 func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
-	w, err := c.httpRequest("GET", url, "", access)
+	w, err := c.httpRequest("GET", url, "", "", access)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +302,17 @@ func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
 
 // POST sends admin-authorized HTTP POST requestd to the app.
 func (c *Ctx) POST(url, body string) ([]byte, error) {
-	w, err := c.httpRequest("POST", url, body, AccessAdmin)
+	w, err := c.httpRequest("POST", url, body, "", AccessAdmin)
+	if err != nil {
+		return nil, err
+	}
+	return w.Body.Bytes(), nil
+}
+
+// POST sends an admin-authorized HTTP POST form to the app.
+func (c *Ctx) POSTForm(url string, form url.Values) ([]byte, error) {
+	w, err := c.httpRequest("POST", url, form.Encode(),
+		"application/x-www-form-urlencoded", AccessAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +321,7 @@ func (c *Ctx) POST(url, body string) ([]byte, error) {
 
 // ContentType returns the response Content-Type header value.
 func (c *Ctx) ContentType(url string) (string, error) {
-	w, err := c.httpRequest("HEAD", url, "", AccessAdmin)
+	w, err := c.httpRequest("HEAD", url, "", "", AccessAdmin)
 	if err != nil {
 		return "", err
 	}
@@ -321,13 +332,17 @@ func (c *Ctx) ContentType(url string) (string, error) {
 	return values[0], nil
 }
 
-func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httptest.ResponseRecorder, error) {
+func (c *Ctx) httpRequest(method, url, body, contentType string,
+	access AccessLevel) (*httptest.ResponseRecorder, error) {
 	c.t.Logf("%v: %v", method, url)
 	r, err := c.inst.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
 		c.t.Fatal(err)
 	}
 	r.Header.Add("X-Appengine-User-IP", "127.0.0.1")
+	if contentType != "" {
+		r.Header.Add("Content-Type", contentType)
+	}
 	r = registerRequest(r, c)
 	r = r.WithContext(c.transformContext(r.Context()))
 	if access == AccessAdmin || access == AccessUser {
