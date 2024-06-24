@@ -11,7 +11,28 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 </head>
 <body>
 	{{template "header" .Header}}
-	{{optlink .Manager.Link "[Syz-Manager]"}}
+	<div>{{optlink .Manager.Link "[Syz-Manager]"}}</div><br>
+	{{if .Message}}<b>{{.Message}}</b><br>{{end}}
+	{{if .ShowReproForm}}
+	<div class="collapsible collapsible-hide">
+		<div class="head">
+			<span class="show-icon">▶</span>
+			<span class="hide-icon">▼</span>
+			<span>Send a reproducer to {{.Manager.Name}}</span>
+		</div>
+		<div class="content">
+			<div class="input-values">
+				<form method="POST">
+					<span class="input-group">
+					<textarea name="send-repro"></textarea>
+					</span>
+					<input type="submit" name="show-crashers" value="Submit"></div>
+				</form>
+			</div>
+		</div>
+	</div>
+	{{end}}
+	<br><b>Kernel images history:</b><br>
 	<table class="list_table">
 		<tr>
 			<th>Time</th>

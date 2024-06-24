@@ -465,3 +465,23 @@ func TestManagerPage(t *testing.T) {
 	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, http.StatusBadRequest)
 }
+
+func TestReproSubmitAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.makeClient(clientPublic, keyPublic, true)
+
+	build := testBuild(1)
+	build.Manager = "test-manager"
+	client.UploadBuild(build)
+
+	reply, err := c.AuthGET(AccessPublic, "/access-public/manager/test-manager")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), "Send a reproducer")
+
+	for _, access := range []AccessLevel{AccessUser, AccessAdmin} {
+		reply, err := c.AuthGET(access, "/access-public/manager/test-manager")
+		c.expectOK(err)
+		assert.Contains(t, string(reply), "Send a reproducer")
+	}
+}

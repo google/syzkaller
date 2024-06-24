@@ -1740,6 +1740,17 @@ func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload []
 	if err != nil {
 		return nil, err
 	}
+	// First check if there have been any manual requests.
+	log, err := takeReproTask(c, ns, build.Manager)
+	if err != nil {
+		return nil, err
+	}
+	if log != nil {
+		return &dashapi.LogToReproResp{
+			CrashLog: log,
+		}, nil
+	}
+
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("HappenedOn=", build.Manager).
@@ -1795,4 +1806,46 @@ func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.Log
 		}, nil
 	}
 	return nil, nil
+}
+
+func saveReproTask(c context.Context, ns, manager string, repro []byte) error {
+	log, err := putText(c, ns, textCrashLog, repro, false)
+	if err != nil {
+		return err
+	}
+	// We don't control the status of each attempt, so let's just try twice.
+	const attempts = 2
+	obj := &ReproTask{
+		Namespace:    ns,
+		Manager:      manager,
+		Log:          log,
+		AttemptsLeft: attempts,
+	}
+	key := db.NewIncompleteKey(c, "ReproTask", nil)
+	_, err = db.Put(c, key, obj)
+	return err
+}
+
+func takeReproTask(c context.Context, ns, manager string) ([]byte, error) {
+	var tasks []*ReproTask
+	keys, err := db.NewQuery("ReproTask").
+		Filter("Namespace=", ns).
+		Filter("Manager=", manager).
+		Filter("AttemptsLeft>", 0).
+		GetAll(c, &tasks)
+	if err != nil || len(keys) == 0 {
+		return nil, err
+	}
+
+	// Yes, it's possible that the entity will be modified simultaneously, and we
+	// ideall need a transaction, but let's just ignore this possibility  -- in the
+	// worst case we'd just try to reproduce it once more.
+	key, task := keys[0], tasks[0]
+	task.AttemptsLeft--
+	task.LastAttempt = timeNow(c)
+	if _, err := db.Put(c, key, task); err != nil {
+		return nil, err
+	}
+	log, _, err := getText(c, textCrashLog, task.Log)
+	return log, err
 }

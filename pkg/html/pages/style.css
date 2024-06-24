@@ -354,6 +354,11 @@ aside {
 	margin-bottom: 7px;
 }
 
+.input-values textarea {
+	width: 750pt;
+	height: 250pt;
+}
+
 .input-group {
 	margin-top: 7px;
 	margin-bottom: 7px;
