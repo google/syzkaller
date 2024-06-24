@@ -108,11 +108,11 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog) 
 			ctx.Stop = true
 			return
 		}
-		generateHints(comps, arg, execValidate)
+		generateHints(comps, arg, ctx.Field, execValidate)
 	})
 }
 
-func generateHints(compMap CompMap, arg Arg, exec func() bool) {
+func generateHints(compMap CompMap, arg Arg, field *Field, exec func() bool) {
 	typ := arg.Type()
 	if typ == nil || arg.Dir() == DirOut {
 		return
@@ -146,8 +146,17 @@ func generateHints(compMap CompMap, arg Arg, exec func() bool) {
 
 	switch a := arg.(type) {
 	case *ConstArg:
-		checkConstArg(a, compMap, exec)
+		if arg.Type().TypeBitSize() <= 8 {
+			// Very small arg, hopefully we can guess it w/o hints help.
+			return
+		}
+		checkConstArg(a, field, compMap, exec)
 	case *DataArg:
+		if arg.Size() <= 3 {
+			// Let's assume it either does not contain anything interesting,
+			// or we can guess everything eventually by brute force.
+			return
+		}
 		if typ.(*BufferType).Kind == BufferCompressed {
 			checkCompressedArg(a, compMap, exec)
 		} else {
@@ -156,11 +165,21 @@ func generateHints(compMap CompMap, arg Arg, exec func() bool) {
 	}
 }
 
-func checkConstArg(arg *ConstArg, compMap CompMap, exec func() bool) {
+func checkConstArg(arg *ConstArg, field *Field, compMap CompMap, exec func() bool) {
 	original := arg.Val
 	// Note: because shrinkExpand returns a map, order of programs is non-deterministic.
 	// This can affect test coverage reports.
+replacerLoop:
 	for _, replacer := range shrinkExpand(original, compMap, arg.Type().TypeBitSize(), false) {
+		if field != nil && len(field.relatedFields) != 0 {
+			for related := range field.relatedFields {
+				if related.(uselessHinter).uselessHint(replacer) {
+					continue replacerLoop
+				}
+			}
+		} else if arg.Type().(uselessHinter).uselessHint(replacer) {
+			continue
+		}
 		arg.Val = replacer
 		if !exec() {
 			break

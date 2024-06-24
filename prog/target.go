@@ -6,10 +6,13 @@ package prog
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/google/syzkaller/pkg/hash"
 )
 
 // Target describes target OS/arch pair.
@@ -130,6 +133,8 @@ func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.initTarget()
+	target.initUselessHints()
+	target.initRelatedFields()
 	target.initArch(target)
 	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
 	target.SpecialPointers = append([]uint64{
@@ -178,6 +183,113 @@ func (target *Target) initTarget() {
 	target.resourceCtors = make(map[string][]ResourceCtor)
 	for _, res := range target.Resources {
 		target.resourceCtors[res.Name] = target.calcResourceCtors(res, false)
+	}
+}
+
+func (target *Target) initUselessHints() {
+	// Pre-compute useless hints for each type and deduplicate resulting maps
+	// (there will be lots of duplicates).
+	computed := make(map[Type]bool)
+	dedup := make(map[string]map[uint64]struct{})
+	ForeachType(target.Syscalls, func(t Type, ctx *TypeCtx) {
+		hinter, ok := t.(uselessHinter)
+		if !ok || computed[t] {
+			return
+		}
+		computed[t] = true
+		hints := hinter.calcUselessHints()
+		if len(hints) == 0 {
+			return
+		}
+		slices.Sort(hints)
+		hints = slices.Compact(hints)
+		sig := hash.String(hints)
+		m := dedup[sig]
+		if m == nil {
+			m = make(map[uint64]struct{})
+			for _, v := range hints {
+				m[v] = struct{}{}
+			}
+			dedup[sig] = m
+		}
+		hinter.setUselessHints(m)
+	})
+}
+
+func (target *Target) initRelatedFields() {
+	// Compute sets of related fields that are used to reduce amount of produced hint replacements.
+	// Related fields are sets of arguments to the same syscall, in the same position, that operate
+	// on the same resource. The best example of related fields is a set of ioctl commands on the same fd:
+	//
+	//	ioctl$FOO1(fd fd_foo, cmd const[FOO1], ...)
+	//	ioctl$FOO2(fd fd_foo, cmd const[FOO2], ...)
+	//	ioctl$FOO3(fd fd_foo, cmd const[FOO3], ...)
+	//
+	// All cmd args related and we should not try to replace them with each other
+	// (e.g. try to morph ioctl$FOO1 into ioctl$FOO2). This is both unnecessary, leads to confusing reproducers,
+	// and in some cases to badly confused argument types, see e.g.:
+	// https://github.com/google/syzkaller/issues/502
+	// https://github.com/google/syzkaller/issues/4939
+	//
+	// However, notion of related fields is wider and includes e.g. socket syscall family/type/proto,
+	// setsockopt consts, and in some cases even openat flags/mode.
+	//
+	// Related fields can include const, flags and int types.
+	//
+	// Notion of "same resource" is also quite generic b/c syscalls can accept several resource types,
+	// and filenames/strings are also considered as a resource in this context. For example, openat syscalls
+	// that operate on the same file are related, but are not related to openat calls that operate on other files.
+	groups := make(map[string]map[Type]struct{})
+	for _, call := range target.Syscalls {
+		// Id is used to identify related syscalls.
+		// We first collect all resources/strings/files. This needs to be done first b/c e.g. mmap has
+		// fd resource at the end, so we need to do this before the next loop.
+		id := call.CallName
+		for i, field := range call.Args {
+			switch arg := field.Type.(type) {
+			case *ResourceType:
+				id += fmt.Sprintf("-%v:%v", i, arg.Name())
+			case *PtrType:
+				if typ, ok := arg.Elem.(*BufferType); ok && typ.Kind == BufferString && len(typ.Values) == 1 {
+					id += fmt.Sprintf("-%v:%v", i, typ.Values[0])
+				}
+			}
+		}
+		// Now we group const/flags args together.
+		// But also if we see a const, we update id to include it. This is required for e.g.
+		// socket/socketpair/setsockopt calls. For these calls all families can be groups, but types should be
+		// grouped only for the same family, and protocols should be grouped only for the same family+type.
+		// We assume the "more important" discriminating arguments come first (this is not necessary true,
+		// but seems to be the case in real syscalls as it's unreasonable to pass less important things first).
+		for i, field := range call.Args {
+			switch field.Type.(type) {
+			case *ConstType:
+			case *FlagsType:
+			case *IntType:
+			default:
+				continue
+			}
+			argID := fmt.Sprintf("%v/%v", id, i)
+			group := groups[argID]
+			if group == nil {
+				group = make(map[Type]struct{})
+				groups[argID] = group
+			}
+			call.Args[i].relatedFields = group
+			group[field.Type] = struct{}{}
+			switch arg := field.Type.(type) {
+			case *ConstType:
+				id += fmt.Sprintf("-%v:%v", i, arg.Val)
+			}
+		}
+	}
+	// Drop groups that consist of only a single field as they are not useful.
+	for _, call := range target.Syscalls {
+		for i := range call.Args {
+			if len(call.Args[i].relatedFields) == 1 {
+				call.Args[i].relatedFields = nil
+			}
+		}
 	}
 }
 
