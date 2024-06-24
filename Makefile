@@ -113,6 +113,9 @@ endif
 all: host target
 host: manager repro mutate prog2c db upgrade
 target: execprog executor
+	# Temporal hack to pre-created removed syz-fuzzer,
+	# since old version of syz-ci still wants to copy it.
+	touch ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer
 
 executor: descriptions
 ifeq ($(TARGETOS),fuchsia)
