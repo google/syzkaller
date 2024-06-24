@@ -50,7 +50,7 @@ rest of the type-options are type-specific:
 	(e.g. "/sys/" or "/sys/**/*"),
 	or include exclude glob too (e.g. "/sys/**/*:-/sys/power/state")
 "fmt": a string representation of an integer (not zero-terminated), type-options:
-	format (one of "dec", "hex", "oct") and the value (a resource, int, flags, const or proc)
+	format (one of "dec", "hex", "oct") and the value (a resource, int, flags or proc)
 	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)
 "len": length of another field (for array it is number of elements), type-options:
 	argname of the object
