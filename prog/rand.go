@@ -66,8 +66,8 @@ func (r *randGen) rand64() uint64 {
 var (
 	// Some potentially interesting integers.
 	specialInts = []uint64{
-		0, 1, 31, 32, 63, 64, 127, 128,
-		129, 255, 256, 257, 511, 512,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		64, 127, 128, 129, 255, 256, 257, 511, 512,
 		1023, 1024, 1025, 2047, 2048, 4095, 4096,
 		(1 << 15) - 1, (1 << 15), (1 << 15) + 1,
 		(1 << 16) - 1, (1 << 16), (1 << 16) + 1,
@@ -153,11 +153,12 @@ func (r *randGen) biasedRand(n, k int) int {
 	return int(bf)
 }
 
+const maxArrayLen = 10
+
 func (r *randGen) randArrayLen() uint64 {
-	const maxLen = 10
 	// biasedRand produces: 10, 9, ..., 1, 0,
 	// we want: 1, 2, ..., 9, 10, 0
-	return uint64(maxLen-r.biasedRand(maxLen+1, 10)+1) % (maxLen + 1)
+	return uint64(maxArrayLen-r.biasedRand(maxArrayLen+1, 10)+1) % (maxArrayLen + 1)
 }
 
 func (r *randGen) randBufLen() (n uint64) {
