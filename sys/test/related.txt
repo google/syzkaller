@@ -1,0 +1,32 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+ioctl(fd fd, cmd int32, arg intptr)
+ioctl$1(fd fd, cmd const[0x111], arg intptr)
+ioctl$2(fd fd, cmd const[0x222], arg intptr)
+ioctl$4(fd fd, cmd flags[ioctl_commands], arg intptr)
+
+ioctl_commands = 0x333, 0x444
+
+resource sock[fd]
+
+socket(domain flags[socket_domain], type flags[socket_type], protocol flags[socket_protocol]) sock
+socket$generic(domain int32, type int32, protocol int32) sock
+socket$inet6(domain const[0x111], type flags[socket_type], protocol const[0x10000]) sock
+socket$inet6_tcp(domain const[0x111], type const[0x1000], protocol const[0x10000]) sock
+socket$netlink(domain const[0x211], type const[0x1000], protocol flags[socket_protocol]) sock
+socket$netlink2(domain const[0x211], type const[0x1000], protocol int32) sock
+socket$netlink_foo(domain const[0x211], type const[0x1000], protocol const[0x10200]) sock
+socket$foo(domain const[0x311], type const[0x1000], protocol const[0x10200]) sock
+socket$foo2(domain const[0x311], type flags[socket_type], protocol const[0x10200]) sock
+socket$foo3(domain const[0x311], type int32, protocol const[0x10200]) sock
+socket$foo4(domain const[0x411], type int32, protocol const[0x10000]) sock
+socket$foo5(domain const[0x411], type int32, protocol int32) sock
+socket$foo6(domain int32, type int32, protocol int32) sock
+socket$foo7(domain int32, type int32, protocol int32) sock
+
+listen(fd sock)
+
+socket_domain = 0x111, 0x211, 0x311
+socket_type = 0x1000, 0x1100, 0x1200
+socket_protocol = 0x10000, 0x10100, 0x10200
