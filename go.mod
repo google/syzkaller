@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	cloud.google.com/go v0.114.0
+	cloud.google.com/go/batch v1.8.3
 	cloud.google.com/go/bigquery v1.60.0
 	cloud.google.com/go/logging v1.10.0
 	cloud.google.com/go/profiler v0.4.0
