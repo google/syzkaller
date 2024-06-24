@@ -830,7 +830,7 @@ var typeFmt = &typeDesc{
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		desc, _, _ := comp.getArgsBase(args[1], true)
 		switch desc {
-		case typeResource, typeInt, typeLen, typeFlags, typeProc:
+		case typeResource, typeInt, typeLen, typeFlags, typeProc, typeConst:
 		default:
 			comp.error(t.Pos, "bad fmt value %v, expect an integer", args[1].Ident)
 			return
