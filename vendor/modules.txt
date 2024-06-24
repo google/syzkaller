@@ -15,6 +15,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/protostruct
 cloud.google.com/go/internal/pubsub
 cloud.google.com/go/internal/trace
+cloud.google.com/go/internal/uid
 cloud.google.com/go/internal/version
 # cloud.google.com/go/ai v0.5.0
 ## explicit; go 1.19
@@ -40,6 +41,13 @@ cloud.google.com/go/auth/internal/transport/cert
 # cloud.google.com/go/auth/oauth2adapt v0.2.2
 ## explicit; go 1.19
 cloud.google.com/go/auth/oauth2adapt
+# cloud.google.com/go/bigquery v1.60.0
+## explicit; go 1.19
+cloud.google.com/go/bigquery
+cloud.google.com/go/bigquery/internal
+cloud.google.com/go/bigquery/internal/query
+cloud.google.com/go/bigquery/storage/apiv1
+cloud.google.com/go/bigquery/storage/apiv1/storagepb
 # cloud.google.com/go/compute/metadata v0.3.0
 ## explicit; go 1.19
 cloud.google.com/go/compute/metadata
@@ -142,6 +150,29 @@ github.com/alexkohler/prealloc/pkg
 # github.com/alingse/asasalint v0.0.11
 ## explicit; go 1.18
 github.com/alingse/asasalint
+# github.com/apache/arrow/go/v14 v14.0.2
+## explicit; go 1.20
+github.com/apache/arrow/go/v14/arrow
+github.com/apache/arrow/go/v14/arrow/array
+github.com/apache/arrow/go/v14/arrow/arrio
+github.com/apache/arrow/go/v14/arrow/bitutil
+github.com/apache/arrow/go/v14/arrow/decimal128
+github.com/apache/arrow/go/v14/arrow/decimal256
+github.com/apache/arrow/go/v14/arrow/encoded
+github.com/apache/arrow/go/v14/arrow/endian
+github.com/apache/arrow/go/v14/arrow/float16
+github.com/apache/arrow/go/v14/arrow/internal
+github.com/apache/arrow/go/v14/arrow/internal/debug
+github.com/apache/arrow/go/v14/arrow/internal/dictutils
+github.com/apache/arrow/go/v14/arrow/internal/flatbuf
+github.com/apache/arrow/go/v14/arrow/ipc
+github.com/apache/arrow/go/v14/arrow/memory
+github.com/apache/arrow/go/v14/arrow/memory/internal/cgoalloc
+github.com/apache/arrow/go/v14/arrow/memory/mallocator
+github.com/apache/arrow/go/v14/internal/bitutils
+github.com/apache/arrow/go/v14/internal/hashing
+github.com/apache/arrow/go/v14/internal/json
+github.com/apache/arrow/go/v14/internal/utils
 # github.com/ashanbrown/forbidigo v1.6.0
 ## explicit; go 1.13
 github.com/ashanbrown/forbidigo/forbidigo
@@ -363,6 +394,17 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
+# github.com/goccy/go-json v0.10.2
+## explicit; go 1.12
+github.com/goccy/go-json
+github.com/goccy/go-json/internal/decoder
+github.com/goccy/go-json/internal/encoder
+github.com/goccy/go-json/internal/encoder/vm
+github.com/goccy/go-json/internal/encoder/vm_color
+github.com/goccy/go-json/internal/encoder/vm_color_indent
+github.com/goccy/go-json/internal/encoder/vm_indent
+github.com/goccy/go-json/internal/errors
+github.com/goccy/go-json/internal/runtime
 # github.com/gofrs/flock v0.8.1
 ## explicit
 github.com/gofrs/flock
@@ -578,6 +620,18 @@ github.com/kisielk/errcheck/errcheck
 # github.com/kkHAIKE/contextcheck v1.1.5
 ## explicit; go 1.20
 github.com/kkHAIKE/contextcheck
+# github.com/klauspost/compress v1.16.7
+## explicit; go 1.18
+github.com/klauspost/compress
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/snapref
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/cpuid/v2 v2.2.5
+## explicit; go 1.15
+github.com/klauspost/cpuid/v2
 # github.com/kulti/thelper v0.6.3
 ## explicit; go 1.18
 github.com/kulti/thelper/pkg/analyzer
@@ -684,6 +738,13 @@ github.com/pelletier/go-toml/v2/internal/characters
 github.com/pelletier/go-toml/v2/internal/danger
 github.com/pelletier/go-toml/v2/internal/tracker
 github.com/pelletier/go-toml/v2/unstable
+# github.com/pierrec/lz4/v4 v4.1.18
+## explicit; go 1.14
+github.com/pierrec/lz4/v4
+github.com/pierrec/lz4/v4/internal/lz4block
+github.com/pierrec/lz4/v4/internal/lz4errors
+github.com/pierrec/lz4/v4/internal/lz4stream
+github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
@@ -907,6 +968,9 @@ github.com/yeya24/promlinter
 # github.com/ykadowak/zerologlint v0.1.5
 ## explicit; go 1.19
 github.com/ykadowak/zerologlint
+# github.com/zeebo/xxh3 v1.0.2
+## explicit; go 1.17
+github.com/zeebo/xxh3
 # gitlab.com/bosi/decorder v0.4.1
 ## explicit; go 1.20
 gitlab.com/bosi/decorder
@@ -1061,6 +1125,8 @@ golang.org/x/text/width
 golang.org/x/time/rate
 # golang.org/x/tools v0.21.0
 ## explicit; go 1.19
+golang.org/x/tools/cmd/goimports
+golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/analysistest
 golang.org/x/tools/go/analysis/internal/analysisflags
@@ -1154,6 +1220,7 @@ golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/api v0.182.0
 ## explicit; go 1.20
+google.golang.org/api/bigquery/v2
 google.golang.org/api/compute/v1
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
