@@ -78,6 +78,9 @@ type Field struct {
 	HasDirection bool
 	Direction    Dir
 	Condition    Expression
+
+	// See Target.initRelatedFields.
+	relatedFields map[Type]struct{}
 }
 
 func (f *Field) Dir(def Dir) Dir {
@@ -365,6 +368,11 @@ type IntTypeCommon struct {
 	BitfieldLen     uint64
 	BitfieldUnit    uint64
 	BitfieldUnitOff uint64
+
+	// Hint values that don't make sense to use for this type
+	// b/c they are expected to be easily guessed by generation/mutation.
+	// For example, flags values or combinations of few flags values.
+	uselessHints map[uint64]struct{}
 }
 
 func (t *IntTypeCommon) String() string {
@@ -411,6 +419,21 @@ func (t *IntTypeCommon) IsBitfield() bool {
 	return t.BitfieldLen != 0
 }
 
+func (t *IntTypeCommon) uselessHint(v uint64) bool {
+	_, ok := t.uselessHints[v]
+	return ok
+}
+
+func (t *IntTypeCommon) setUselessHints(m map[uint64]struct{}) {
+	t.uselessHints = m
+}
+
+type uselessHinter interface {
+	uselessHint(uint64) bool
+	calcUselessHints() []uint64
+	setUselessHints(map[uint64]struct{})
+}
+
 type ConstType struct {
 	IntTypeCommon
 	Val   uint64
@@ -430,6 +453,10 @@ func (t *ConstType) String() string {
 		return fmt.Sprintf("pad[%v]", t.Size())
 	}
 	return fmt.Sprintf("const[%v, %v]", t.Val, t.IntTypeCommon.String())
+}
+
+func (t *ConstType) calcUselessHints() []uint64 {
+	return []uint64{t.Val}
 }
 
 type IntKind int
@@ -455,6 +482,18 @@ func (t *IntType) isDefaultArg(arg Arg) bool {
 	return arg.(*ConstArg).Val == 0
 }
 
+func (t *IntType) calcUselessHints() []uint64 {
+	res := specialInts[:len(specialInts):len(specialInts)]
+	align := max(1, t.Align)
+	rangeVals := (t.RangeEnd - t.RangeBegin) / align
+	if rangeVals != 0 && rangeVals <= 100 {
+		for v := t.RangeBegin; v <= t.RangeEnd; v += align {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
 type FlagsType struct {
 	IntTypeCommon
 	Vals    []uint64 // compiler ensures that it's not empty
@@ -467,6 +506,29 @@ func (t *FlagsType) DefaultArg(dir Dir) Arg {
 
 func (t *FlagsType) isDefaultArg(arg Arg) bool {
 	return arg.(*ConstArg).Val == 0
+}
+
+func (t *FlagsType) calcUselessHints() []uint64 {
+	// Combinations of up to 3 flag values + 0.
+	res := []uint64{0}
+	vals := t.Vals
+	for i0 := 0; i0 < len(vals); i0++ {
+		v0 := vals[i0]
+		res = append(res, v0)
+		if len(vals) <= 10 {
+			for i1 := i0 + 1; i1 < len(vals); i1++ {
+				v1 := v0 | vals[i1]
+				res = append(res, v1)
+				if len(vals) <= 7 {
+					for i2 := i1 + 1; i2 < len(vals); i2++ {
+						v2 := v1 | vals[i2]
+						res = append(res, v2)
+					}
+				}
+			}
+		}
+	}
+	return res
 }
 
 type LenType struct {
@@ -482,6 +544,14 @@ func (t *LenType) DefaultArg(dir Dir) Arg {
 
 func (t *LenType) isDefaultArg(arg Arg) bool {
 	return arg.(*ConstArg).Val == 0
+}
+
+func (t *LenType) calcUselessHints() []uint64 {
+	return nil
+}
+
+func (t *LenType) uselessHint(v uint64) bool {
+	return v <= maxArrayLen || v > 1<<20
 }
 
 type ProcType struct {
@@ -775,6 +845,7 @@ type TypeCtx struct {
 	Meta     *Syscall
 	Dir      Dir
 	Ptr      *Type
+	Field    *Field // Set for syscall args and struct fields.
 	Optional bool
 	Stop     bool // If set by the callback, subtypes of this type are not visited.
 }
@@ -812,23 +883,23 @@ func foreachCallTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeC
 	// visit each struct per-syscall (e.g. prio, used resources).
 	seen := make(map[seenKey]bool)
 	for i := range meta.Args {
-		foreachTypeRec(f, meta, seen, &meta.Args[i].Type, DirIn, preorder, false)
+		foreachTypeRec(f, meta, seen, &meta.Args[i].Type, &meta.Args[i], DirIn, preorder, false)
 	}
 	if meta.Ret != nil {
-		foreachTypeRec(f, meta, seen, &meta.Ret, DirOut, preorder, false)
+		foreachTypeRec(f, meta, seen, &meta.Ret, nil, DirOut, preorder, false)
 	}
 }
 
 func ForeachArgType(typ Type, f func(t Type, ctx *TypeCtx)) {
-	foreachTypeRec(f, nil, make(map[seenKey]bool), &typ, DirIn, true, false)
+	foreachTypeRec(f, nil, make(map[seenKey]bool), &typ, nil, DirIn, true, false)
 }
 
 func foreachTypeRec(cb func(t Type, ctx *TypeCtx), meta *Syscall, seen map[seenKey]bool, ptr *Type,
-	dir Dir, preorder, optional bool) {
+	field *Field, dir Dir, preorder, optional bool) {
 	if _, ref := (*ptr).(Ref); !ref {
 		optional = optional || (*ptr).Optional()
 	}
-	ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr, Optional: optional}
+	ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr, Field: field, Optional: optional}
 	if preorder {
 		cb(*ptr, ctx)
 		if ctx.Stop {
@@ -837,9 +908,9 @@ func foreachTypeRec(cb func(t Type, ctx *TypeCtx), meta *Syscall, seen map[seenK
 	}
 	switch a := (*ptr).(type) {
 	case *PtrType:
-		foreachTypeRec(cb, meta, seen, &a.Elem, a.ElemDir, preorder, optional)
+		foreachTypeRec(cb, meta, seen, &a.Elem, nil, a.ElemDir, preorder, optional)
 	case *ArrayType:
-		foreachTypeRec(cb, meta, seen, &a.Elem, dir, preorder, optional)
+		foreachTypeRec(cb, meta, seen, &a.Elem, nil, dir, preorder, optional)
 	case *StructType:
 		key := seenKey{
 			t: a,
@@ -851,7 +922,7 @@ func foreachTypeRec(cb func(t Type, ctx *TypeCtx), meta *Syscall, seen map[seenK
 		}
 		seen[key] = true
 		for i, f := range a.Fields {
-			foreachTypeRec(cb, meta, seen, &a.Fields[i].Type, f.Dir(dir), preorder, optional)
+			foreachTypeRec(cb, meta, seen, &a.Fields[i].Type, &a.Fields[i], f.Dir(dir), preorder, optional)
 		}
 	case *UnionType:
 		key := seenKey{
@@ -864,7 +935,7 @@ func foreachTypeRec(cb func(t Type, ctx *TypeCtx), meta *Syscall, seen map[seenK
 		}
 		seen[key] = true
 		for i, f := range a.Fields {
-			foreachTypeRec(cb, meta, seen, &a.Fields[i].Type, f.Dir(dir), preorder, optional)
+			foreachTypeRec(cb, meta, seen, &a.Fields[i].Type, &a.Fields[i], f.Dir(dir), preorder, optional)
 		}
 	case *ResourceType, *BufferType, *VmaType, *LenType, *FlagsType,
 		*ConstType, *IntType, *ProcType, *CsumType:
