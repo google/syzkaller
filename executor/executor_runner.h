@@ -765,23 +765,11 @@ static void SigsegvHandler(int sig, siginfo_t* info, void* ucontext)
 
 static void runner(char** argv, int argc)
 {
-	const char* const usage_msg = "usage: syz-executor runner <name> <manager-addr> "
-				      "<manager-port> OR syz-executor runner <name> stdin";
-	if (argc < 4 || argc > 5)
-		fail(usage_msg);
-
+	if (argc != 5)
+		fail("usage: syz-executor runner <name> <manager-addr> <manager-port>");
 	const char* const name = argv[2];
 	const char* const manager_addr = argv[3];
-	const char* manager_port = NULL;
-
-	if (strcmp(manager_addr, "stdin") == 0) {
-		// Do not expect a port number for stdin.
-		if (argc == 5)
-			fail(usage_msg);
-	} else if (argc != 5)
-		fail(usage_msg);
-	else
-		manager_port = argv[4];
+	const char* const manager_port = argv[4];
 
 	struct rlimit rlim;
 	rlim.rlim_cur = rlim.rlim_max = kFdLimit;

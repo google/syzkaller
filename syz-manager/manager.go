@@ -905,12 +905,8 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string, injectExec 
 	mgr.bootTime.Save(time.Since(start))
 	start = time.Now()
 
-	addr := fwdAddr
-	if strings.Contains(fwdAddr, ":") {
-		addrPort := strings.Split(fwdAddr, ":")
-		addr = fmt.Sprintf("%v %v", addrPort[0], addrPort[1])
-	}
-	cmd := fmt.Sprintf("%v runner %v %v", executorBin, instanceName, addr)
+	addrPort := strings.Split(fwdAddr, ":")
+	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, instanceName, addrPort[0], addrPort[1])
 	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
 		vm.ExitTimeout, vm.StopChan(mgr.vmStop), vm.InjectExecuting(injectExec),
 		vm.EarlyFinishCb(func() {
