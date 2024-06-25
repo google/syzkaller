@@ -1791,10 +1791,14 @@ func (mgr *Manager) dashboardReproTasks() {
 			continue
 		}
 		if len(resp.CrashLog) > 0 {
+			title := resp.Title
+			if title == "" {
+				title = "repro from the dashboard"
+			}
 			mgr.externalReproQueue <- &Crash{
 				fromDashboard: true,
 				Report: &report.Report{
-					Title:  resp.Title,
+					Title:  title,
 					Output: resp.CrashLog,
 				},
 			}
