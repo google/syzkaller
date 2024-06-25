@@ -53,7 +53,7 @@ typedef signed int ssize_t;
 #endif
 NORETURN void doexit(int status)
 {
-	_exit(status);
+	_exit(status); // prevent linter warning: doexit()
 	for (;;) {
 	}
 }

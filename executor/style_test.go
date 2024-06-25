@@ -19,7 +19,8 @@ func TestExecutorMistakes(t *testing.T) {
 		suppression string
 		message     string
 		tests       []string
-		commonOnly  bool
+		commonOnly  bool // only applies to common*.h files
+		fuzzerOnly  bool // only applies to files used during fuzzing
 	}{
 		{
 			pattern:    `\)\n\t*(debug|debug_dump_data)\(`,
@@ -151,6 +152,36 @@ if (foo) {
 				`#ifdef SYZ_EXECUTOR_USES_FORK_SERVER`,
 			},
 		},
+		{
+			// Dynamic memory allocation reduces test reproducibility across
+			// different libc versions and kernels. Malloc will cause unspecified
+			// number of additional mmap's at unspecified locations.
+			// For small objects prefer stack allocations, for larger -- either global
+			// objects (this may have issues with concurrency), or controlled mmaps.
+			fuzzerOnly: true,
+			pattern:    `(malloc|calloc|operator new)\(|new [a-zA-Z]`,
+			message: "Don't use standard allocation functions," +
+				" they disturb address space and issued syscalls",
+			suppression: `// `,
+			tests: []string{
+				`malloc(10)`,
+				`malloc(sizeof(int))`,
+				`calloc(sizeof T, n)`,
+				`operator new(10)`,
+				`new int`,
+			},
+		},
+		{
+			// Exit/_exit do not necessary work (e.g. if fuzzer sets seccomp
+			// filter that prohibits exit_group). Use doexit instead.
+			pattern:     `exit\(`,
+			suppression: `doexit\(|syz_exit`,
+			message:     "Don't use [_]exit, use doexit/exitf/fail instead",
+			tests: []string{
+				`_exit(1)`,
+				`exit(FAILURE)`,
+			},
+		},
 	}
 	for _, check := range checks {
 		re := regexp.MustCompile(check.pattern)
@@ -160,6 +191,7 @@ if (foo) {
 			}
 		}
 	}
+	runnerFiles := regexp.MustCompile(`(executor_runner|conn|shmem|files)\.h`)
 	for _, file := range executorFiles(t) {
 		data, err := os.ReadFile(file)
 		if err != nil {
@@ -167,6 +199,9 @@ if (foo) {
 		}
 		for _, check := range checks {
 			if check.commonOnly && !strings.Contains(file, "common") {
+				continue
+			}
+			if check.fuzzerOnly && runnerFiles.MatchString(file) {
 				continue
 			}
 			re := regexp.MustCompile(check.pattern)

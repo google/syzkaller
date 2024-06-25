@@ -62,18 +62,6 @@ typedef unsigned int uint32;
 typedef unsigned short uint16;
 typedef unsigned char uint8;
 
-// exit/_exit do not necessary work (e.g. if fuzzer sets seccomp filter that prohibits exit_group).
-// Use doexit instead.  We must redefine exit to something that exists in stdlib,
-// because some standard libraries contain "using ::exit;", but has different signature.
-#define exit vsnprintf
-
-// Dynamic memory allocation reduces test reproducibility across different libc versions and kernels.
-// malloc will cause unspecified number of additional mmap's at unspecified locations.
-// For small objects prefer stack allocations, for larger -- either global objects (this may have
-// issues with concurrency), or controlled mmaps, or make the fuzzer allocate memory.
-#define malloc do_not_use_malloc
-#define calloc do_not_use_calloc
-
 // Note: zircon max fd is 256.
 // Some common_OS.h files know about this constant for RLIMIT_NOFILE.
 const int kMaxFd = 250;
@@ -1440,7 +1428,7 @@ void copyin_int(char* addr, uint64 val, uint64 bf, uint64 bf_off, uint64 bf_len)
 	const uint64 shift = bf_off;
 #endif
 	x = (x & ~BITMASK(shift, bf_len)) | ((val << shift) & BITMASK(shift, bf_len));
-	debug_verbose("copyin_int<%zu>: new x=0x%llx\n", sizeof(T), (uint64)x);
+	debug_verbose("copyin_int<%zu>: x=0x%llx\n", sizeof(T), (uint64)x);
 	*(T*)addr = swap(x, sizeof(T), bf);
 }
 
