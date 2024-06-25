@@ -619,3 +619,24 @@ func (git *git) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) 
 	}
 	return ret, nil
 }
+
+func (git *git) FileEditTime(path string) (time.Time, error) {
+	output, err := git.git("log", "-1", "--pretty=format:%cI", path)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to get time for %s: %w", path, err)
+	}
+	t, err := time.Parse(time.RFC3339, string(output))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse datatime %s: %w", output, err)
+	}
+	return t, nil
+}
+
+func (git *git) FileVersion(path, commit string) ([]byte, error) {
+	target := fmt.Sprintf("%s:%s", commit, path)
+	output, err := git.git("show", target)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get %s: %w", target, err)
+	}
+	return output, nil
+}

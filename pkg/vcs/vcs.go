@@ -69,6 +69,12 @@ type Repo interface {
 
 	// MergeBases returns good common ancestors of the two commits.
 	MergeBases(firstCommit, secondCommit string) ([]*Commit, error)
+
+	// FileEditTime returns the last file modification date.
+	FileEditTime(path string) (time.Time, error)
+
+	// FileVersion "git show" file. It is apx. 3 times slower than cat.
+	FileVersion(path, commit string) ([]byte, error)
 }
 
 // Bisecter may be optionally implemented by Repo.
