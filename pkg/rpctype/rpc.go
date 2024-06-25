@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"net/rpc"
-	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -58,22 +57,11 @@ type RPCClient struct {
 }
 
 func NewRPCClient(addr string) (*RPCClient, error) {
-	var conn net.Conn
-	var err error
-	if addr == "stdin" {
-		// This is used by vm/gvisor which passes us a unix socket connection in stdin.
-		// TODO: remove this once we switch to flatrpc for target communication.
-		conn, err = net.FileConn(os.Stdin)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		conn, err = net.DialTimeout("tcp", addr, 3*time.Minute)
-		if err != nil {
-			return nil, err
-		}
-		setupKeepAlive(conn, time.Minute)
+	conn, err := net.DialTimeout("tcp", addr, 3*time.Minute)
+	if err != nil {
+		return nil, err
 	}
+	setupKeepAlive(conn, time.Minute)
 	cli := &RPCClient{
 		conn: conn,
 		c:    rpc.NewClient(newFlateConn(conn)),
