@@ -93,10 +93,10 @@ private:
 	static int Connect(const char* addr, const char* ports)
 	{
 		int port = atoi(ports);
-		if (port == 0)
-			failmsg("failed to parse manager port", "port=%s", ports);
 		if (!strcmp(addr, "stdin"))
 			return STDIN_FILENO;
+		if (port == 0)
+			failmsg("failed to parse manager port", "port=%s", ports);
 		sockaddr_in saddr4 = {};
 		saddr4.sin_family = AF_INET;
 		saddr4.sin_port = htons(port);
