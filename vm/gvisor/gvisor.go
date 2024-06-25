@@ -272,7 +272,7 @@ func (inst *instance) Forward(port int) (string, error) {
 		return "", fmt.Errorf("forward port is already setup")
 	}
 	inst.port = port
-	return "stdin", nil
+	return "stdin:0", nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
