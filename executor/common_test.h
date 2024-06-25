@@ -31,7 +31,7 @@ static long syz_errno(volatile long v)
 // syz_exit(status int32)
 static long syz_exit(volatile long status)
 {
-	_exit(status);
+	doexit(status);
 	return 0;
 }
 #endif
