@@ -18,8 +18,9 @@ public:
 		fd_ = mkstemp(file_name);
 		if (fd_ == -1)
 			failmsg("shmem open failed", "file=%s", file_name);
-		if (posix_fallocate(fd_, 0, size))
-			failmsg("shmem fallocate failed", "size=%zu", size);
+		// OpenBSD has neither fallocate nor posix_fallocate.
+		if (ftruncate(fd_, size))
+			failmsg("shmem ftruncate failed", "size=%zu", size);
 		Mmap(fd_, nullptr, size, true);
 		if (unlink(file_name))
 			fail("shmem unlink failed");
