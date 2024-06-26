@@ -40,8 +40,10 @@ public:
 			fail("posix_spawnattr_setflags failed");
 
 		const char* child_envp[] = {
-		    // Tell ASAN to not mess with our NONFAILING.
-		    "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1",
+		    // Tell ASAN to not mess with our NONFAILING and disable leak checking
+		    // (somehow lsan is very slow in syzbot arm64 image and we are not very interested
+		    // in leaks in the exec subprocess, it does not use malloc/new anyway).
+		    "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1 detect_leaks=0",
 		    // Disable rseq since we don't use it and we want to [ab]use it ourselves for kernel testing.
 		    "GLIBC_TUNABLES=glibc.pthread.rseq=0",
 		    nullptr};
