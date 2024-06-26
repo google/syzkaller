@@ -2051,6 +2051,9 @@ static long syz_usbip_server_init(volatile long a0)
 	int available_port_num = __atomic_fetch_add(&port_alloc[usb3], 1, __ATOMIC_RELAXED);
 	if (available_port_num > VHCI_HC_PORTS) {
 		debug("syz_usbip_server_init : no more available port for : %d\n", available_port_num);
+		
+		close(client_fd);
+		close(server_fd);
 		return -1;
 	}
 
@@ -2067,6 +2070,8 @@ static long syz_usbip_server_init(volatile long a0)
 	sprintf(buffer, "%d %d %s %d", port_num, client_fd, "0", speed);
 
 	write_file("/sys/devices/platform/vhci_hcd.0/attach", buffer);
+	
+	close(client_fd);
 	return server_fd;
 }
 
