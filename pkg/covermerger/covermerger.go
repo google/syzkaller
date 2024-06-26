@@ -4,13 +4,16 @@
 package covermerger
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
 	"strconv"
+	"sync"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -23,7 +26,6 @@ const (
 )
 
 type FileRecord map[string]string
-type FileRecords []FileRecord
 type RepoBranchCommit struct {
 	Repo   string
 	Branch string
@@ -73,24 +75,15 @@ type FileCoverageMerger interface {
 	Result() *MergeResult
 }
 
-func batchFileData(c *Config, targetFilePath string, records FileRecords, processedFiles map[string]struct{},
-) (*MergeResult, error) {
+func batchFileData(c *Config, targetFilePath string, records []FileRecord) (*MergeResult, error) {
 	log.Printf("processing %d records for %s", len(records), targetFilePath)
-	if _, exists := processedFiles[targetFilePath]; exists {
-		return nil, fmt.Errorf("file was already processed, check the input ordering")
-	}
-	processedFiles[targetFilePath] = struct{}{}
 	repoBranchCommitsMap := make(map[RepoBranchCommit]bool)
 	for _, record := range records {
 		repoBranchCommitsMap[record.RepoBranchCommit()] = true
 	}
 	repoBranchCommitsMap[c.Base] = true
 	repoBranchCommits := maps.Keys(repoBranchCommitsMap)
-	getFiles := getFileVersions
-	if c.getFileVersionsMock != nil {
-		getFiles = c.getFileVersionsMock
-	}
-	fvs, err := getFiles(c, targetFilePath, repoBranchCommits)
+	fvs, err := c.FileVersProvider.GetFileVersions(c, targetFilePath, repoBranchCommits)
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
@@ -125,11 +118,11 @@ func makeRecord(fields, schema []string) FileRecord {
 }
 
 type Config struct {
-	Workdir             string
-	skipRepoClone       bool
-	Base                RepoBranchCommit
-	getFileVersionsMock func(*Config, string, []RepoBranchCommit) (fileVersions, error)
-	repoCache           repoCache
+	Jobs             int
+	Workdir          string
+	skipRepoClone    bool
+	Base             RepoBranchCommit
+	FileVersProvider fileVersProvider
 }
 
 func isSchema(fields, schema []string) bool {
@@ -182,32 +175,70 @@ func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, er
 	return mergeResult, nil
 }
 
-func mergeChanData(c *Config, recordsChan <-chan FileRecord) (map[string]*MergeResult, error) {
-	stat := make(map[string]*MergeResult)
-	targetFile := ""
-	var records []FileRecord
-	processedFiles := map[string]struct{}{}
-	for record := range recordsChan {
-		curTargetFile := record[KeyFilePath]
-		if targetFile == "" {
-			targetFile = curTargetFile
-		}
-		if curTargetFile != targetFile {
-			var err error
-			if stat[targetFile], err = batchFileData(c, targetFile, records, processedFiles); err != nil {
-				return nil, fmt.Errorf("failed to batchFileData(%s): %w", targetFile, err)
-			}
-			records = nil
-			targetFile = curTargetFile
-		}
-		records = append(records, record)
-	}
-	if records != nil {
-		var err error
-		if stat[targetFile], err = batchFileData(c, targetFile, records, processedFiles); err != nil {
-			return nil, fmt.Errorf("failed to batchFileData(%s): %w", targetFile, err)
-		}
-	}
+type FileRecords struct {
+	fileName string
+	records  []FileRecord
+}
 
+func mergeChanData(c *Config, recordChan <-chan FileRecord) (map[string]*MergeResult, error) {
+	g, ctx := errgroup.WithContext(context.Background())
+	frecordChan := groupFileRecords(recordChan, ctx)
+	stat := make(map[string]*MergeResult)
+	var mu sync.Mutex
+	for i := 0; i < c.Jobs; i++ {
+		g.Go(func() error {
+			for frecord := range frecordChan {
+				if mr, err := batchFileData(c, frecord.fileName, frecord.records); err != nil {
+					return fmt.Errorf("failed to batchFileData(%s): %w", frecord.fileName, err)
+				} else {
+					mu.Lock()
+					if _, exist := stat[frecord.fileName]; exist {
+						mu.Unlock()
+						return fmt.Errorf("file %s was already processed", frecord.fileName)
+					}
+					stat[frecord.fileName] = mr
+					mu.Unlock()
+				}
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
 	return stat, nil
+}
+
+func groupFileRecords(recordChan <-chan FileRecord, ctx context.Context) chan FileRecords {
+	frecordChan := make(chan FileRecords)
+	go func() {
+		defer close(frecordChan)
+		targetFile := ""
+		var records []FileRecord
+		for record := range recordChan {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			curTargetFile := record[KeyFilePath]
+			if targetFile == "" {
+				targetFile = curTargetFile
+			}
+			if curTargetFile != targetFile {
+				frecordChan <- FileRecords{
+					fileName: targetFile,
+					records:  records,
+				}
+				records = nil
+				targetFile = curTargetFile
+			}
+			records = append(records, record)
+		}
+		frecordChan <- FileRecords{
+			fileName: targetFile,
+			records:  records,
+		}
+	}()
+	return frecordChan
 }
