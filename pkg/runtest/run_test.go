@@ -414,7 +414,10 @@ func TestParsing(t *testing.T) {
 			t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
 				t.Parallel()
 				for _, file := range files {
-					p, requires, _, err := parseProg(target, dir, file)
+					// syz_mount_image tests are very large and this test takes too long.
+					// syz-imagegen that generates does some of this testing (Deserialize/SerializeForExec).
+					requires := map[string]bool{"manual": false}
+					p, _, _, err := parseProg(target, dir, file, requires)
 					if err != nil {
 						t.Errorf("failed to parse %v: %v", file, err)
 					}
@@ -423,11 +426,6 @@ func TestParsing(t *testing.T) {
 					}
 					if runtime.GOOS != sysTarget.BuildOS {
 						continue // we need at least preprocessor binary to generate sources
-					}
-					// syz_mount_image tests are very large and this test takes too long.
-					// syz-imagegen that generates does some of this testing (Deserialize/SerializeForExec).
-					if requires["manual"] {
-						continue
 					}
 					if _, err = csource.Write(p, csource.ExecutorOpts); err != nil {
 						t.Errorf("failed to generate C source for %v: %v", file, err)
