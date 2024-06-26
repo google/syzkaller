@@ -91,8 +91,11 @@ func createSuccessfulResults(source queue.Source, stop chan struct{}) {
 			return
 		case <-time.After(time.Millisecond):
 		}
-		req := source.Next()
+		req, stop := source.Next()
 		if req == nil {
+			if stop {
+				break
+			}
 			continue
 		}
 		count++

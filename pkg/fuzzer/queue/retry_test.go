@@ -18,13 +18,19 @@ func TestRetryerOnRestart(t *testing.T) {
 	q.Submit(&Request{Important: false})
 
 	// The requests must be retried forever.
-	req1 := retryerObj.Next()
-	req2 := retryerObj.Next()
+	req1, stop := retryerObj.Next()
+	assert.False(t, stop)
+	req2, stop := retryerObj.Next()
+	assert.False(t, stop)
 	for i := 0; i < 10; i++ {
 		req1.Done(&Result{Status: Restarted})
 		req2.Done(&Result{Status: Restarted})
-		assert.Equal(t, req1, retryerObj.Next())
-		assert.Equal(t, req2, retryerObj.Next())
+		req, stop := retryerObj.Next()
+		assert.Equal(t, req1, req)
+		assert.False(t, stop)
+		req, stop = retryerObj.Next()
+		assert.Equal(t, req2, req)
+		assert.False(t, stop)
 	}
 
 	// Once successful, requests should no longer appear.
@@ -34,8 +40,8 @@ func TestRetryerOnRestart(t *testing.T) {
 	assert.Equal(t, Success, req1.Wait(context.Background()).Status)
 	assert.Equal(t, Success, req2.Wait(context.Background()).Status)
 
-	assert.Nil(t, retryerObj.Next())
-	assert.Nil(t, retryerObj.Next())
+	req, _ := retryerObj.Next()
+	assert.Nil(t, req)
 }
 
 func TestRetryerOnCrash(t *testing.T) {
@@ -45,28 +51,36 @@ func TestRetryerOnCrash(t *testing.T) {
 	// Unimportant requests will not be retried.
 	req := &Request{Important: false}
 	q.Submit(req)
-	assert.Equal(t, req, retryerObj.Next())
+	nextReq, _ := retryerObj.Next()
+	assert.Equal(t, req, nextReq)
 	req.Done(&Result{Status: Crashed})
-	assert.Nil(t, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Nil(t, nextReq)
 	assert.Equal(t, Crashed, req.Wait(context.Background()).Status)
 
 	// Important requests will be retried once.
 	req = &Request{Important: true}
 	q.Submit(req)
-	assert.Equal(t, req, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Equal(t, req, nextReq)
 	req.Done(&Result{Status: Crashed})
-	assert.Equal(t, req, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Equal(t, req, nextReq)
 	req.Done(&Result{Status: Success})
-	assert.Nil(t, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Nil(t, nextReq)
 	assert.Equal(t, Success, req.Wait(context.Background()).Status)
 
 	// .. but not more than once.
 	req = &Request{Important: true}
 	q.Submit(req)
-	assert.Equal(t, req, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Equal(t, req, nextReq)
 	req.Done(&Result{Status: Crashed})
-	assert.Equal(t, req, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Equal(t, req, nextReq)
 	req.Done(&Result{Status: Crashed})
-	assert.Nil(t, retryerObj.Next())
+	nextReq, _ = retryerObj.Next()
+	assert.Nil(t, nextReq)
 	assert.Equal(t, Crashed, req.Wait(context.Background()).Status)
 }

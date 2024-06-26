@@ -171,7 +171,7 @@ type Executor interface {
 
 // Source describes the interface wanted by the consumers of requests.
 type Source interface {
-	Next() *Request
+	Next() (req *Request, stop bool)
 }
 
 // PlainQueue is a straighforward thread-safe Request queue implementation.
@@ -209,10 +209,10 @@ func (pq *PlainQueue) Submit(req *Request) {
 	pq.queue = append(pq.queue, req)
 }
 
-func (pq *PlainQueue) Next() *Request {
+func (pq *PlainQueue) Next() (*Request, bool) {
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
-	return pq.nextLocked()
+	return pq.nextLocked(), false
 }
 
 func (pq *PlainQueue) tryNext() *Request {
@@ -242,26 +242,30 @@ func Order(sources ...Source) Source {
 	return &orderImpl{sources: sources}
 }
 
-func (o *orderImpl) Next() *Request {
+func (o *orderImpl) Next() (*Request, bool) {
+	allStop := true
 	for _, s := range o.sources {
-		req := s.Next()
+		req, stop := s.Next()
 		if req != nil {
-			return req
+			return req, false
+		}
+		if !stop {
+			allStop = false
 		}
 	}
-	return nil
+	return nil, allStop
 }
 
 type callback struct {
-	cb func() *Request
+	cb func() (*Request, bool)
 }
 
 // Callback produces a source that calls the callback to serve every Next() request.
-func Callback(cb func() *Request) Source {
+func Callback(cb func() (*Request, bool)) Source {
 	return &callback{cb}
 }
 
-func (cb *callback) Next() *Request {
+func (cb *callback) Next() (*Request, bool) {
 	return cb.cb()
 }
 
@@ -279,9 +283,9 @@ func Alternate(base Source, nth int) Source {
 	}
 }
 
-func (a *alternate) Next() *Request {
+func (a *alternate) Next() (*Request, bool) {
 	if a.seq.Add(1)%int64(a.nth) == 0 {
-		return nil
+		return nil, false
 	}
 	return a.base.Next()
 }
@@ -320,10 +324,10 @@ func (do *DynamicOrderer) submit(req *Request, prio int) {
 	do.ops.Push(req, prio)
 }
 
-func (do *DynamicOrderer) Next() *Request {
+func (do *DynamicOrderer) Next() (*Request, bool) {
 	do.mu.Lock()
 	defer do.mu.Unlock()
-	return do.ops.Pop()
+	return do.ops.Pop(), false
 }
 
 type dynamicOrdererItem struct {
@@ -350,7 +354,7 @@ func (ds *DynamicSourceCtl) Store(source Source) {
 	ds.value.Store(&source)
 }
 
-func (ds *DynamicSourceCtl) Next() *Request {
+func (ds *DynamicSourceCtl) Next() (*Request, bool) {
 	return (*ds.value.Load()).Next()
 }
 
@@ -375,11 +379,11 @@ func Deduplicate(ctx context.Context, source Source) Source {
 	}
 }
 
-func (d *Deduplicator) Next() *Request {
+func (d *Deduplicator) Next() (*Request, bool) {
 	for {
-		req := d.source.Next()
+		req, stop := d.source.Next()
 		if req == nil {
-			return nil
+			return req, stop
 		}
 		hash := req.hash()
 		d.mu.Lock()
@@ -397,7 +401,7 @@ func (d *Deduplicator) Next() *Request {
 		if !ok {
 			// This is the first time we see such a request.
 			req.OnDone(d.onDone)
-			return req
+			return req, stop
 		}
 	}
 }
@@ -430,13 +434,13 @@ type defaultOpts struct {
 	opts   flatrpc.ExecOpts
 }
 
-func (do *defaultOpts) Next() *Request {
-	req := do.source.Next()
+func (do *defaultOpts) Next() (*Request, bool) {
+	req, stop := do.source.Next()
 	if req == nil {
-		return nil
+		return nil, stop
 	}
 	req.ExecOpts.ExecFlags |= do.opts.ExecFlags
 	req.ExecOpts.EnvFlags |= do.opts.EnvFlags
 	req.ExecOpts.SandboxArg = do.opts.SandboxArg
-	return req
+	return req, stop
 }

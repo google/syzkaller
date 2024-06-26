@@ -112,7 +112,8 @@ func (ctx *Context) Run() error {
 	return nil
 }
 
-func (ctx *Context) Next() *queue.Request {
+func (ctx *Context) Next() (*queue.Request, bool) {
+	// TODO: return stop=true when we've generated all requests.
 	return ctx.executor.Next()
 }
 

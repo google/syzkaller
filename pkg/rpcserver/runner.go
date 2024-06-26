@@ -56,6 +56,7 @@ func (runner *Runner) connectionLoop() error {
 			infoc <- []byte("VM has crashed")
 		}
 	}()
+	var stop bool
 	for {
 		if infoc == nil {
 			select {
@@ -72,8 +73,9 @@ func (runner *Runner) connectionLoop() error {
 			default:
 			}
 		}
-		for len(runner.requests)-len(runner.executing) < 2*runner.procs {
-			req := runner.source.Next()
+		for !stop && len(runner.requests)-len(runner.executing) < 2*runner.procs {
+			var req *queue.Request
+			req, stop = runner.source.Next()
 			if req == nil {
 				break
 			}
@@ -82,6 +84,10 @@ func (runner *Runner) connectionLoop() error {
 			}
 		}
 		if len(runner.requests) == 0 {
+			if stop {
+				// We've completed all requests from the source.
+				return nil
+			}
 			// The runner has not requests at all, so don't wait to receive anything from it.
 			time.Sleep(10 * time.Millisecond)
 			continue

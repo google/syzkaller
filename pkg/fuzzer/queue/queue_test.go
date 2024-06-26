@@ -16,11 +16,23 @@ func TestPlainQueue(t *testing.T) {
 
 	pq.Submit(req1)
 	pq.Submit(req2)
-	assert.Equal(t, req1, pq.Next())
-	assert.Equal(t, req2, pq.Next())
+
+	val, stop := pq.Next()
+	assert.Equal(t, req1, val)
+	assert.False(t, stop)
+
+	val, stop = pq.Next()
+	assert.Equal(t, req2, val)
+	assert.False(t, stop)
 	pq.Submit(req3)
-	assert.Equal(t, req3, pq.Next())
-	assert.Nil(t, pq.Next())
+
+	val, stop = pq.Next()
+	assert.Equal(t, req3, val)
+	assert.False(t, stop)
+
+	val, stop = pq.Next()
+	assert.Nil(t, val)
+	assert.False(t, stop)
 }
 
 func TestPrioQueue(t *testing.T) {
@@ -34,12 +46,22 @@ func TestPrioQueue(t *testing.T) {
 
 	pq2.Submit(req2)
 	pq3.Submit(req3)
-	assert.Equal(t, req2, pq.Next())
+
+	val, stop := pq.Next()
+	assert.Equal(t, req2, val)
+	assert.False(t, stop)
 
 	pq1.Submit(req1)
-	assert.Equal(t, req1, pq.Next())
+	val, stop = pq.Next()
+	assert.Equal(t, req1, val)
+	assert.False(t, stop)
 
 	pq2.Submit(req4)
-	assert.Equal(t, req4, pq.Next())
-	assert.Equal(t, req3, pq.Next())
+	val, stop = pq.Next()
+	assert.Equal(t, req4, val)
+	assert.False(t, stop)
+
+	val, stop = pq.Next()
+	assert.Equal(t, req3, val)
+	assert.False(t, stop)
 }

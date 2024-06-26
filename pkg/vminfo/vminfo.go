@@ -106,7 +106,8 @@ func (checker *Checker) Run(files []*flatrpc.FileInfo, featureInfos []*flatrpc.F
 }
 
 // Implementation of the queue.Source interface.
-func (checker *Checker) Next() *queue.Request {
+func (checker *Checker) Next() (*queue.Request, bool) {
+	// TODO: return stop=true when we've generated all requests.
 	return checker.source.Next()
 }
 
