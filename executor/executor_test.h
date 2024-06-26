@@ -5,11 +5,22 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
+
 static uint64 kernel_text_start = 0xc0dec0dec0000000;
 static uint64 kernel_text_mask = 0xffffff;
 
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
+#ifdef __linux__
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
+	// There's a risk that the parent has exited before we get to call prctl().
+	// In that case, let's assume that the child must have been reassigned to PID=1.
+	if (getppid() == 1)
+		exitf("the parent process was killed");
+#endif
 	void* got = mmap(data, data_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
 	if (data != got)
 		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
