@@ -33,6 +33,10 @@ func BuildNoWarn(target *prog.Target, src []byte) (string, error) {
 // BuildExecutor builds the executor binary for tests.
 // rootDir must point to syzkaller root directory in slash notation.
 func BuildExecutor(t *testing.T, target *prog.Target, rootDir string, cflags ...string) string {
+	// Build w/o optimizations for tests. Tests can build lots of versions of executor in parallel,
+	// and on overloaded machines it can be slow. On my machine this reduces executor build time
+	// from ~7.5 to ~3.5 secs.
+	cflags = append(cflags, "-O0")
 	bin, err := build(target, nil, filepath.FromSlash(rootDir),
 		filepath.FromSlash("executor/executor.cc"), cflags...)
 	if err != nil {
