@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"sort"
 
 	"cloud.google.com/go/civil"
@@ -32,12 +33,14 @@ var (
 func main() {
 	flag.Parse()
 	config := &covermerger.Config{
+		Jobs:    runtime.NumCPU(),
 		Workdir: *flagWorkdir,
 		Base: covermerger.RepoBranchCommit{
 			Repo:   *flagRepo,
 			Branch: *flagBranch,
 			Commit: *flagCommit,
 		},
+		FileVersProvider: covermerger.MakeMonoRepo(*flagWorkdir),
 	}
 	mergeResult, err := covermerger.MergeCSVData(config, os.Stdin)
 	if err != nil {

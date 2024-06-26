@@ -9,7 +9,7 @@ func makeFileLineCoverMerger(
 	baseFileExists := false
 	for rbc, fv := range fvs {
 		if rbc == base {
-			baseFile = fv.content
+			baseFile = fv
 			baseFileExists = true
 			break
 		}
@@ -25,7 +25,7 @@ func makeFileLineCoverMerger(
 		lostFrames: map[RepoBranchCommit]int64{},
 	}
 	for rbc, fv := range fvs {
-		a.matchers[rbc] = makeLineToLineMatcher(fv.content, baseFile)
+		a.matchers[rbc] = makeLineToLineMatcher(fv, baseFile)
 	}
 	return a
 }
