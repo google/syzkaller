@@ -197,7 +197,7 @@ func progFileList(dir, filter string) ([]string, error) {
 }
 
 func (ctx *Context) generateFile(sandboxes []string, cover []bool, filename string) error {
-	p, requires, results, err := parseProg(ctx.Target, ctx.Dir, filename)
+	p, requires, results, err := parseProg(ctx.Target, ctx.Dir, filename, nil)
 	if err != nil {
 		return err
 	}
@@ -282,15 +282,16 @@ nextSandbox:
 	return nil
 }
 
-func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *flatrpc.ProgInfo, error) {
+func parseProg(target *prog.Target, dir, filename string, requires map[string]bool) (
+	*prog.Prog, map[string]bool, *flatrpc.ProgInfo, error) {
 	data, err := os.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %w", filename, err)
 	}
-	requires := parseRequires(data)
+	properties := parseRequires(data)
 	// Need to check arch requirement early as some programs
 	// may fail to deserialize on some arches due to missing syscalls.
-	if !checkArch(requires, target.Arch) {
+	if !checkArch(properties, target.Arch) || !match(properties, requires) {
 		return nil, nil, nil, nil
 	}
 	p, err := target.Deserialize(data, prog.Strict)
@@ -345,7 +346,7 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		}
 		info.Calls = append(info.Calls, ci)
 	}
-	return p, requires, info, nil
+	return p, properties, info, nil
 }
 
 func parseRequires(data []byte) map[string]bool {
