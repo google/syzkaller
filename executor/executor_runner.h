@@ -747,10 +747,10 @@ static void SigchldHandler(int sig)
 static void SigsegvHandler(int sig, siginfo_t* info, void* ucontext)
 {
 	// Print minimal debugging info we can extract reasonably easy.
-	auto& mctx = static_cast<ucontext_t*>(ucontext)->uc_mcontext;
-	(void)mctx;
 	uintptr_t pc = 0xdeadbeef;
 #if GOOS_linux
+	auto& mctx = static_cast<ucontext_t*>(ucontext)->uc_mcontext;
+	(void)mctx;
 #if GOARCH_amd64
 	pc = mctx.gregs[REG_RIP];
 #elif GOARCH_arm64
