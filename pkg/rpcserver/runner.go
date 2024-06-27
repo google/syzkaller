@@ -311,13 +311,12 @@ func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	}
 }
 
-func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
+func (runner *Runner) sendSignalUpdate(plus []uint64) error {
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawSignalUpdate,
 			Value: &flatrpc.SignalUpdate{
-				NewMax:  runner.canonicalizer.Decanonicalize(plus),
-				DropMax: runner.canonicalizer.Decanonicalize(minus),
+				NewMax: runner.canonicalizer.Decanonicalize(plus),
 			},
 		},
 	}

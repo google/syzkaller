@@ -164,7 +164,6 @@ table ExecRequestRaw {
 
 table SignalUpdateRaw {
 	new_max			:[uint64];
-	drop_max		:[uint64];
 }
 
 // This message serves as a signal that the corpus was triaged and the fuzzer
