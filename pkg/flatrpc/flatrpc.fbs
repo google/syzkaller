@@ -162,7 +162,6 @@ table ExecRequestRaw {
 
 table SignalUpdateRaw {
 	new_max			:[uint64];
-	drop_max		:[uint64];
 }
 
 // Leak checking is very slow so we don't do it while triaging the corpus

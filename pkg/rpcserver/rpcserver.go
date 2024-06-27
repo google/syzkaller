@@ -323,7 +323,7 @@ func (serv *Server) connectionLoop(runner *Runner) error {
 			// buffer too much (we don't want to grow it larger than what will be needed
 			// to send programs).
 			n := min(len(maxSignal), 50000)
-			if err := runner.sendSignalUpdate(maxSignal[:n], nil); err != nil {
+			if err := runner.sendSignalUpdate(maxSignal[:n]); err != nil {
 				return err
 			}
 			maxSignal = maxSignal[n:]
@@ -466,11 +466,10 @@ func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, [
 	return runner.shutdown(crashed)
 }
 
-func (serv *Server) DistributeSignalDelta(plus, minus signal.Signal) {
+func (serv *Server) DistributeSignalDelta(plus signal.Signal) {
 	plusRaw := plus.ToRaw()
-	minusRaw := minus.ToRaw()
 	serv.foreachRunnerAsync(func(runner *Runner) {
-		runner.sendSignalUpdate(plusRaw, minusRaw)
+		runner.sendSignalUpdate(plusRaw)
 	})
 }
 

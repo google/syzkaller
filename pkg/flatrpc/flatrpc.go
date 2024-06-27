@@ -2025,8 +2025,7 @@ func ExecRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type SignalUpdateRawT struct {
-	NewMax  []uint64 `json:"new_max"`
-	DropMax []uint64 `json:"drop_max"`
+	NewMax []uint64 `json:"new_max"`
 }
 
 func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -2042,18 +2041,8 @@ func (t *SignalUpdateRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 		}
 		newMaxOffset = builder.EndVector(newMaxLength)
 	}
-	dropMaxOffset := flatbuffers.UOffsetT(0)
-	if t.DropMax != nil {
-		dropMaxLength := len(t.DropMax)
-		SignalUpdateRawStartDropMaxVector(builder, dropMaxLength)
-		for j := dropMaxLength - 1; j >= 0; j-- {
-			builder.PrependUint64(t.DropMax[j])
-		}
-		dropMaxOffset = builder.EndVector(dropMaxLength)
-	}
 	SignalUpdateRawStart(builder)
 	SignalUpdateRawAddNewMax(builder, newMaxOffset)
-	SignalUpdateRawAddDropMax(builder, dropMaxOffset)
 	return SignalUpdateRawEnd(builder)
 }
 
@@ -2062,11 +2051,6 @@ func (rcv *SignalUpdateRaw) UnPackTo(t *SignalUpdateRawT) {
 	t.NewMax = make([]uint64, newMaxLength)
 	for j := 0; j < newMaxLength; j++ {
 		t.NewMax[j] = rcv.NewMax(j)
-	}
-	dropMaxLength := rcv.DropMaxLength()
-	t.DropMax = make([]uint64, dropMaxLength)
-	for j := 0; j < dropMaxLength; j++ {
-		t.DropMax[j] = rcv.DropMax(j)
 	}
 }
 
@@ -2132,45 +2116,13 @@ func (rcv *SignalUpdateRaw) MutateNewMax(j int, n uint64) bool {
 	return false
 }
 
-func (rcv *SignalUpdateRaw) DropMax(j int) uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
-	}
-	return 0
-}
-
-func (rcv *SignalUpdateRaw) DropMaxLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
-func (rcv *SignalUpdateRaw) MutateDropMax(j int, n uint64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
-	}
-	return false
-}
-
 func SignalUpdateRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+	builder.StartObject(1)
 }
 func SignalUpdateRawAddNewMax(builder *flatbuffers.Builder, newMax flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(newMax), 0)
 }
 func SignalUpdateRawStartNewMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 8)
-}
-func SignalUpdateRawAddDropMax(builder *flatbuffers.Builder, dropMax flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(dropMax), 0)
-}
-func SignalUpdateRawStartDropMaxVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(8, numElems, 8)
 }
 func SignalUpdateRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

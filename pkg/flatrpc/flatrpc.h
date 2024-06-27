@@ -1752,28 +1752,21 @@ flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::FlatBuffer
 struct SignalUpdateRawT : public flatbuffers::NativeTable {
   typedef SignalUpdateRaw TableType;
   std::vector<uint64_t> new_max{};
-  std::vector<uint64_t> drop_max{};
 };
 
 struct SignalUpdateRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SignalUpdateRawT NativeTableType;
   typedef SignalUpdateRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NEW_MAX = 4,
-    VT_DROP_MAX = 6
+    VT_NEW_MAX = 4
   };
   const flatbuffers::Vector<uint64_t> *new_max() const {
     return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_NEW_MAX);
-  }
-  const flatbuffers::Vector<uint64_t> *drop_max() const {
-    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_DROP_MAX);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NEW_MAX) &&
            verifier.VerifyVector(new_max()) &&
-           VerifyOffset(verifier, VT_DROP_MAX) &&
-           verifier.VerifyVector(drop_max()) &&
            verifier.EndTable();
   }
   SignalUpdateRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1788,9 +1781,6 @@ struct SignalUpdateRawBuilder {
   void add_new_max(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> new_max) {
     fbb_.AddOffset(SignalUpdateRaw::VT_NEW_MAX, new_max);
   }
-  void add_drop_max(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> drop_max) {
-    fbb_.AddOffset(SignalUpdateRaw::VT_DROP_MAX, drop_max);
-  }
   explicit SignalUpdateRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1804,24 +1794,19 @@ struct SignalUpdateRawBuilder {
 
 inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> new_max = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> drop_max = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> new_max = 0) {
   SignalUpdateRawBuilder builder_(_fbb);
-  builder_.add_drop_max(drop_max);
   builder_.add_new_max(new_max);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint64_t> *new_max = nullptr,
-    const std::vector<uint64_t> *drop_max = nullptr) {
+    const std::vector<uint64_t> *new_max = nullptr) {
   auto new_max__ = new_max ? _fbb.CreateVector<uint64_t>(*new_max) : 0;
-  auto drop_max__ = drop_max ? _fbb.CreateVector<uint64_t>(*drop_max) : 0;
   return rpc::CreateSignalUpdateRaw(
       _fbb,
-      new_max__,
-      drop_max__);
+      new_max__);
 }
 
 flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -2789,7 +2774,6 @@ inline void SignalUpdateRaw::UnPackTo(SignalUpdateRawT *_o, const flatbuffers::r
   (void)_o;
   (void)_resolver;
   { auto _e = new_max(); if (_e) { _o->new_max.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->new_max[_i] = _e->Get(_i); } } }
-  { auto _e = drop_max(); if (_e) { _o->drop_max.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->drop_max[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<SignalUpdateRaw> SignalUpdateRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2801,11 +2785,9 @@ inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(flatbuffers::F
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SignalUpdateRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _new_max = _o->new_max.size() ? _fbb.CreateVector(_o->new_max) : 0;
-  auto _drop_max = _o->drop_max.size() ? _fbb.CreateVector(_o->drop_max) : 0;
   return rpc::CreateSignalUpdateRaw(
       _fbb,
-      _new_max,
-      _drop_max);
+      _new_max);
 }
 
 inline StartLeakChecksRawT *StartLeakChecksRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

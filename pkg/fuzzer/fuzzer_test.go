@@ -22,7 +22,6 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/rpcserver"
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
@@ -119,65 +118,6 @@ func BenchmarkFuzzer(b *testing.B) {
 			req.Done(res)
 		}
 	})
-}
-
-const anyTestProg = `syz_compare(&AUTO="00000000", 0x4, &AUTO=@conditional={0x0, @void, @void}, AUTO)`
-
-func TestRotate(t *testing.T) {
-	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64Fuzz)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	corpusObj := corpus.NewCorpus(ctx)
-	fuzzer := NewFuzzer(ctx, &Config{
-		Debug:    true,
-		Corpus:   corpusObj,
-		Coverage: true,
-		EnabledCalls: map[*prog.Syscall]bool{
-			target.SyscallMap["syz_compare"]: true,
-		},
-	}, rand.New(testutil.RandSource(t)), target)
-
-	fakeSignal := func(size int) signal.Signal {
-		var pc []uint64
-		for i := 0; i < size; i++ {
-			pc = append(pc, uint64(i))
-		}
-		return signal.FromRaw(pc, 0)
-	}
-
-	prog, err := target.Deserialize([]byte(anyTestProg), prog.NonStrict)
-	assert.NoError(t, err)
-	corpusObj.Save(corpus.NewInput{
-		Prog:   prog,
-		Call:   0,
-		Signal: fakeSignal(100),
-	})
-	fuzzer.Cover.AddMaxSignal(fakeSignal(1000))
-
-	assert.Equal(t, 1000, len(fuzzer.Cover.maxSignal))
-	assert.Equal(t, 100, corpusObj.StatSignal.Val())
-
-	// Rotate some of the signal.
-	fuzzer.RotateMaxSignal(200)
-	assert.Equal(t, 800, len(fuzzer.Cover.maxSignal))
-	assert.Equal(t, 100, corpusObj.StatSignal.Val())
-
-	plus, minus := fuzzer.Cover.GrabSignalDelta()
-	assert.Equal(t, 0, plus.Len())
-	assert.Equal(t, 200, minus.Len())
-
-	// Rotate the rest.
-	fuzzer.RotateMaxSignal(1000)
-	assert.Equal(t, 100, len(fuzzer.Cover.maxSignal))
-	assert.Equal(t, 100, corpusObj.StatSignal.Val())
-	plus, minus = fuzzer.Cover.GrabSignalDelta()
-	assert.Equal(t, 0, plus.Len())
-	assert.Equal(t, 700, minus.Len())
 }
 
 // Based on the example from Go documentation.

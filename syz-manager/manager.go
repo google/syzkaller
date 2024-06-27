@@ -1616,39 +1616,14 @@ func (mgr *Manager) MaxSignal() signal.Signal {
 	return nil
 }
 
-func (mgr *Manager) fuzzerSignalRotation() {
-	const (
-		rotateSignals      = 1000
-		timeBetweenRotates = 15 * time.Minute
-		// Every X dropped signals may in the worst case lead up to 3 * X
-		// additional triage executions, which is in this case constitutes
-		// 3000/60000 = 5%.
-		execsBetweenRotates = 60000
-	)
-	lastExecTotal := 0
-	lastRotation := time.Now()
-	for range time.NewTicker(5 * time.Minute).C {
-		if mgr.serv.StatExecs.Val()-lastExecTotal < execsBetweenRotates {
-			continue
-		}
-		if time.Since(lastRotation) < timeBetweenRotates {
-			continue
-		}
-		mgr.fuzzer.Load().RotateMaxSignal(rotateSignals)
-		lastRotation = time.Now()
-		lastExecTotal = mgr.serv.StatExecs.Val()
-	}
-}
-
 func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 	for ; ; time.Sleep(time.Second / 2) {
 		if mgr.cfg.Cover {
 			// Distribute new max signal over all instances.
-			newSignal, dropSignal := fuzzer.Cover.GrabSignalDelta()
-			log.Logf(2, "distributing %d new signal, %d dropped signal",
-				len(newSignal), len(dropSignal))
-			if len(newSignal)+len(dropSignal) != 0 {
-				mgr.serv.DistributeSignalDelta(newSignal, dropSignal)
+			newSignal := fuzzer.Cover.GrabSignalDelta()
+			log.Logf(2, "distributing %d new signal", len(newSignal))
+			if len(newSignal) != 0 {
+				mgr.serv.DistributeSignalDelta(newSignal)
 			}
 		}
 
@@ -1662,7 +1637,6 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 				if mgr.enabledFeatures&flatrpc.FeatureLeak != 0 {
 					mgr.serv.TriagedCorpus()
 				}
-				go mgr.fuzzerSignalRotation()
 				if mgr.cfg.HubClient != "" {
 					mgr.phase = phaseTriagedCorpus
 					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))

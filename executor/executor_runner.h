@@ -628,13 +628,11 @@ private:
 
 	void Handle(const rpc::SignalUpdateRawT& msg)
 	{
-		debug("recv signal update: new=%zu drop=%zu\n", msg.new_max.size(), msg.drop_max.size());
+		debug("recv signal update: new=%zu\n", msg.new_max.size());
 		if (!max_signal_)
 			fail("signal update when no signal filter installed");
 		for (auto pc : msg.new_max)
 			max_signal_->Insert(pc);
-		for (auto pc : msg.drop_max)
-			max_signal_->Remove(pc);
 	}
 
 	void Handle(const rpc::StartLeakChecksRawT& msg)

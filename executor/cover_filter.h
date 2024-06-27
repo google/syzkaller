@@ -44,12 +44,6 @@ public:
 		byte |= bit;
 	}
 
-	void Remove(uint64 pc)
-	{
-		auto [byte, bit] = FindByte(pc, true);
-		byte &= ~bit;
-	}
-
 	bool Contains(uint64 pc)
 	{
 		auto [byte, bit] = FindByte(pc, false);
