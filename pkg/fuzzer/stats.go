@@ -12,6 +12,7 @@ type Stats struct {
 	statJobsTriage          *stats.Val
 	statJobsTriageCandidate *stats.Val
 	statJobsSmash           *stats.Val
+	statJobsFaultInjection  *stats.Val
 	statJobsHints           *stats.Val
 	statExecTime            *stats.Val
 	statExecGenerate        *stats.Val
@@ -36,9 +37,10 @@ func newStats() Stats {
 		statJobsTriage: stats.Create("triage jobs", "Running triage jobs", stats.StackedGraph("jobs")),
 		statJobsTriageCandidate: stats.Create("candidate triage jobs", "Running candidate triage jobs",
 			stats.StackedGraph("jobs")),
-		statJobsSmash: stats.Create("smash jobs", "Running smash jobs", stats.StackedGraph("jobs")),
-		statJobsHints: stats.Create("hints jobs", "Running hints jobs", stats.StackedGraph("jobs")),
-		statExecTime:  stats.Create("prog exec time", "Test program execution time (ms)", stats.Distribution{}),
+		statJobsSmash:          stats.Create("smash jobs", "Running smash jobs", stats.StackedGraph("jobs")),
+		statJobsFaultInjection: stats.Create("fault jobs", "Running fault injection jobs", stats.StackedGraph("jobs")),
+		statJobsHints:          stats.Create("hints jobs", "Running hints jobs", stats.StackedGraph("jobs")),
+		statExecTime:           stats.Create("prog exec time", "Test program execution time (ms)", stats.Distribution{}),
 		statExecGenerate: stats.Create("exec gen", "Executions of generated programs", stats.Rate{},
 			stats.StackedGraph("exec")),
 		statExecFuzz: stats.Create("exec fuzz", "Executions of mutated programs",

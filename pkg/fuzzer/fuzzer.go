@@ -67,10 +67,11 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 }
 
 type execQueues struct {
-	smashQueue           *queue.PlainQueue
-	triageQueue          *queue.DynamicOrderer
-	candidateQueue       *queue.PlainQueue
 	triageCandidateQueue *queue.DynamicOrderer
+	candidateQueue       *queue.PlainQueue
+	triageQueue          *queue.DynamicOrderer
+	hintsQueue           *queue.DynamicOrderer
+	smashQueue           *queue.PlainQueue
 	source               queue.Source
 }
 
@@ -79,6 +80,7 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 		triageCandidateQueue: queue.DynamicOrder(),
 		candidateQueue:       queue.Plain(),
 		triageQueue:          queue.DynamicOrder(),
+		hintsQueue:           queue.DynamicOrder(),
 		smashQueue:           queue.Plain(),
 	}
 	// Sources are listed in the order, in which they will be polled.
@@ -86,8 +88,9 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 		ret.triageCandidateQueue,
 		ret.candidateQueue,
 		ret.triageQueue,
-		// Alternate smash jobs with exec/fuzz once in 3 times.
-		queue.Alternate(ret.smashQueue, 3),
+		queue.Alternate(ret.hintsQueue, 2),
+		// Alternate smash jobs with exec/fuzz every other time.
+		queue.Alternate(ret.smashQueue, 2),
 		queue.Callback(fuzzer.genFuzz),
 	)
 	return ret
@@ -228,6 +231,12 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	}
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
+	}
+	if fuzzer.Config.Collide && rnd.Intn(3) == 0 {
+		req = &queue.Request{
+			Prog: randomCollide(req.Prog, rnd),
+			Stat: fuzzer.statExecCollide,
+		}
 	}
 	fuzzer.prepare(req, 0, 0)
 	return req
