@@ -203,7 +203,7 @@ private:
 	bool FailCurrentRequest(bool failed)
 	{
 		if (state_ == State::Handshaking)
-			return failed && IsSet(msg_->flags, rpc::RequestFlag::ReturnError);
+			return IsSet(msg_->flags, rpc::RequestFlag::ReturnError);
 		if (state_ == State::Executing)
 			return !failed || IsSet(msg_->flags, rpc::RequestFlag::ReturnError);
 		return false;
