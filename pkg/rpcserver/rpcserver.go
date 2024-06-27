@@ -62,9 +62,7 @@ type Server struct {
 	checkDone        atomic.Bool
 	checkFailures    int
 	baseSource       *queue.DynamicSourceCtl
-	enabledFeatures  flatrpc.Feature
 	setupFeatures    flatrpc.Feature
-	modules          []*cover.KernelModule
 	canonicalModules *cover.Canonicalizer
 	coverFilter      []uint64
 
@@ -318,7 +316,6 @@ func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Canoni
 	}
 
 	serv.infoOnce.Do(func() {
-		serv.modules = modules
 		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
 		serv.coverFilter = serv.mgr.CoverageFilter(modules)
 		globs := make(map[string][]string)
@@ -609,9 +606,9 @@ func (serv *Server) runCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInf
 	if checkErr != nil {
 		return checkErr
 	}
-	serv.enabledFeatures = features.Enabled()
+	enabledFeatures := features.Enabled()
 	serv.setupFeatures = features.NeedSetup()
-	newSource := serv.mgr.MachineChecked(serv.enabledFeatures, enabledCalls)
+	newSource := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
 	serv.baseSource.Store(newSource)
 	serv.checkDone.Store(true)
 	return nil
