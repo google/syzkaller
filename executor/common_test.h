@@ -129,6 +129,21 @@ static long syz_compare_zlib(volatile long data, volatile long size, volatile lo
 static void loop();
 static int do_sandbox_none(void)
 {
+	// Test various ways how feature setup can fail.
+	// We don't care about these features for test OS,
+	// this is just to test the feature support detection code.
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
+#if SYZ_EXECUTOR
+	if (flag_net_injection)
+#endif
+		fail("net injection is not supported");
+#endif
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR
+	if (flag_devlink_pci)
+#endif
+		exitf("devlink_pci is not supported");
+#endif
 	loop();
 	return 0;
 }
@@ -163,4 +178,16 @@ static long syz_inject_cover(volatile long a, volatile long b, volatile long c)
 	return 0;
 }
 #endif
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SYSCTL
+static void setup_sysctl()
+{
+}
+#endif
+
+#if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID))
+static void setup_cgroups()
+{
+}
 #endif

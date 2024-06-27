@@ -134,3 +134,22 @@ static long syz_inject_cover(volatile long a, volatile long b, volatile long c)
 	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->mmap_alloc_size - size));
 	return 0;
 }
+
+static const char* setup_fault()
+{
+	return nullptr;
+}
+
+static const char* setup_leak()
+{
+	return "leak detection is not supported";
+}
+
+// Test various ways how feature setup can fail.
+// We don't care about these features for test OS,
+// this is just to test the feature support detection code.
+#define SYZ_HAVE_FEATURES 1
+static feature_t features[] = {
+    {rpc::Feature::Fault, setup_fault},
+    {rpc::Feature::Leak, setup_leak},
+};

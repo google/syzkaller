@@ -83,7 +83,34 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
-	startRpcserver(t, target, executor, ctx)
+	startRpcserver(t, target, executor, ctx, func(features flatrpc.Feature) {
+		// Features we expect to be enabled on the test OS.
+		// All sandboxes except for none are not implemented, coverage is not returned,
+		// and setup for few features is failing specifically to test feature detection.
+		want := flatrpc.FeatureCoverage |
+			flatrpc.FeatureExtraCoverage |
+			flatrpc.FeatureDelayKcovMmap |
+			flatrpc.FeatureSandboxNone |
+			flatrpc.FeatureFault |
+			flatrpc.FeatureNetDevices |
+			flatrpc.FeatureKCSAN |
+			flatrpc.FeatureNicVF |
+			flatrpc.FeatureUSBEmulation |
+			flatrpc.FeatureVhciInjection |
+			flatrpc.FeatureWifiEmulation |
+			flatrpc.FeatureLRWPANEmulation |
+			flatrpc.FeatureBinFmtMisc |
+			flatrpc.FeatureSwap
+		for feat, name := range flatrpc.EnumNamesFeature {
+			if features&feat != want&feat {
+				t.Errorf("expect featue %v to be %v, but it is %v",
+					name, want&feat != 0, features&feat != 0)
+			}
+		}
+	})
+	if t.Failed() {
+		return
+	}
 	if err := ctx.Run(); err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +304,7 @@ func testCover(t *testing.T, target *prog.Target) {
 	}
 	executor := csource.BuildExecutor(t, target, "../../")
 	source := queue.Plain()
-	startRpcserver(t, target, executor, source)
+	startRpcserver(t, target, executor, source, nil)
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -352,14 +379,15 @@ func makeComps(comps ...Comparison) []byte {
 	return w.Bytes()
 }
 
-func startRpcserver(t *testing.T, target *prog.Target, executor string, source queue.Source) {
+func startRpcserver(t *testing.T, target *prog.Target, executor string, source queue.Source,
+	machineChecked func(features flatrpc.Feature)) {
 	ctx, done := context.WithCancel(context.Background())
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
 				Target:   target,
 				Debug:    *flagDebug,
-				Features: flatrpc.FeatureSandboxNone,
+				Features: flatrpc.AllFeatures,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
 			},
 			Procs:    runtime.GOMAXPROCS(0),
@@ -371,6 +399,9 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 		GDB:      *flagGDB,
 	}
 	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
+		if machineChecked != nil {
+			machineChecked(features)
+		}
 		cfg.Cover = true
 		return source
 	}
