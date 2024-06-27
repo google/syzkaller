@@ -4,8 +4,6 @@
 // Package signal provides types for working with feedback signal.
 package signal
 
-import "math/rand"
-
 type (
 	elemType uint64
 	prioType int8
@@ -140,23 +138,6 @@ func (s *Signal) Subtract(s1 Signal) {
 			delete(s0, e)
 		}
 	}
-}
-
-func (s Signal) RandomSubset(r *rand.Rand, size int) Signal {
-	if size > len(s) {
-		size = len(s)
-	}
-	keys := make([]elemType, 0, len(s))
-	for e := range s {
-		keys = append(keys, e)
-	}
-	r.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
-
-	ret := make(Signal, size)
-	for _, e := range keys[:size] {
-		ret[e] = s[e]
-	}
-	return ret
 }
 
 // FilterRaw returns a subset of original raw elements that either are not present in ignore,
