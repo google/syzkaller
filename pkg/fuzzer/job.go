@@ -123,8 +123,21 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
 			exec: job.fuzzer.smashQueue,
 			p:    p.Clone(),
-			call: call,
 		})
+		if job.fuzzer.Config.Comparisons && call >= 0 {
+			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
+				exec: job.fuzzer.smashQueue,
+				p:    p.Clone(),
+				call: call,
+			})
+		}
+		if job.fuzzer.Config.FaultInjection && call >= 0 {
+			job.fuzzer.startJob(job.fuzzer.statJobsFaultInjection, &faultInjectionJob{
+				exec: job.fuzzer.smashQueue,
+				p:    p.Clone(),
+				call: call,
+			})
+		}
 	}
 	job.fuzzer.Logf(2, "added new input for %v to the corpus: %s", callName, p)
 	input := corpus.NewInput{
@@ -301,15 +314,8 @@ type smashJob struct {
 
 func (job *smashJob) run(fuzzer *Fuzzer) {
 	fuzzer.Logf(2, "smashing the program %s (call=%d):", job.p, job.call)
-	if fuzzer.Config.Comparisons && job.call >= 0 {
-		fuzzer.startJob(fuzzer.statJobsHints, &hintsJob{
-			exec: fuzzer.smashQueue,
-			p:    job.p.Clone(),
-			call: job.call,
-		})
-	}
 
-	const iters = 75
+	const iters = 25
 	rnd := fuzzer.rand()
 	for i := 0; i < iters; i++ {
 		p := job.p.Clone()
@@ -325,18 +331,6 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 		if result.Stop() {
 			return
 		}
-		if fuzzer.Config.Collide {
-			result := fuzzer.execute(job.exec, &queue.Request{
-				Prog: randomCollide(p, rnd),
-				Stat: fuzzer.statExecCollide,
-			})
-			if result.Stop() {
-				return
-			}
-		}
-	}
-	if fuzzer.Config.FaultInjection && job.call >= 0 {
-		job.faultInjection(fuzzer)
 	}
 }
 
@@ -362,7 +356,13 @@ func randomCollide(origP *prog.Prog, rnd *rand.Rand) *prog.Prog {
 	return p
 }
 
-func (job *smashJob) faultInjection(fuzzer *Fuzzer) {
+type faultInjectionJob struct {
+	exec queue.Executor
+	p    *prog.Prog
+	call int
+}
+
+func (job *faultInjectionJob) run(fuzzer *Fuzzer) {
 	for nth := 1; nth <= 100; nth++ {
 		fuzzer.Logf(2, "injecting fault into call %v, step %v",
 			job.call, nth)
