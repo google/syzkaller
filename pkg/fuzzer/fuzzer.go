@@ -67,10 +67,10 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 }
 
 type execQueues struct {
-	smashQueue           *queue.PlainQueue
-	triageQueue          *queue.DynamicOrderer
-	candidateQueue       *queue.PlainQueue
 	triageCandidateQueue *queue.DynamicOrderer
+	candidateQueue       *queue.PlainQueue
+	triageQueue          *queue.DynamicOrderer
+	smashQueue           *queue.PlainQueue
 	source               queue.Source
 }
 
@@ -228,6 +228,12 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	}
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
+	}
+	if fuzzer.Config.Collide && rnd.Intn(3) == 0 {
+		req = &queue.Request{
+			Prog: randomCollide(req.Prog, rnd),
+			Stat: fuzzer.statExecCollide,
+		}
 	}
 	fuzzer.prepare(req, 0, 0)
 	return req
