@@ -340,6 +340,8 @@ struct cover_t {
 	uint32 mmap_alloc_size;
 	char* data;
 	char* data_end;
+	// Currently collecting comparisons.
+	bool collect_comps;
 	// Note: On everything but darwin the first value in data is the count of
 	// recorded PCs, followed by the PCs. We therefore set data_offset to the
 	// size of one PC.
