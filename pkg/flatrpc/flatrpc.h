@@ -807,6 +807,8 @@ struct ConnectReplyRawT : public flatbuffers::NativeTable {
   typedef ConnectReplyRaw TableType;
   bool debug = false;
   bool cover = false;
+  bool cover_edges = false;
+  bool kernel_64_bit = false;
   int32_t procs = 0;
   int32_t slowdown = 0;
   int32_t syscall_timeout_ms = 0;
@@ -824,21 +826,29 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DEBUG = 4,
     VT_COVER = 6,
-    VT_PROCS = 8,
-    VT_SLOWDOWN = 10,
-    VT_SYSCALL_TIMEOUT_MS = 12,
-    VT_PROGRAM_TIMEOUT_MS = 14,
-    VT_LEAK_FRAMES = 16,
-    VT_RACE_FRAMES = 18,
-    VT_FEATURES = 20,
-    VT_FILES = 22,
-    VT_GLOBS = 24
+    VT_COVER_EDGES = 8,
+    VT_KERNEL_64_BIT = 10,
+    VT_PROCS = 12,
+    VT_SLOWDOWN = 14,
+    VT_SYSCALL_TIMEOUT_MS = 16,
+    VT_PROGRAM_TIMEOUT_MS = 18,
+    VT_LEAK_FRAMES = 20,
+    VT_RACE_FRAMES = 22,
+    VT_FEATURES = 24,
+    VT_FILES = 26,
+    VT_GLOBS = 28
   };
   bool debug() const {
     return GetField<uint8_t>(VT_DEBUG, 0) != 0;
   }
   bool cover() const {
     return GetField<uint8_t>(VT_COVER, 0) != 0;
+  }
+  bool cover_edges() const {
+    return GetField<uint8_t>(VT_COVER_EDGES, 0) != 0;
+  }
+  bool kernel_64_bit() const {
+    return GetField<uint8_t>(VT_KERNEL_64_BIT, 0) != 0;
   }
   int32_t procs() const {
     return GetField<int32_t>(VT_PROCS, 0);
@@ -871,6 +881,8 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
            VerifyField<uint8_t>(verifier, VT_COVER, 1) &&
+           VerifyField<uint8_t>(verifier, VT_COVER_EDGES, 1) &&
+           VerifyField<uint8_t>(verifier, VT_KERNEL_64_BIT, 1) &&
            VerifyField<int32_t>(verifier, VT_PROCS, 4) &&
            VerifyField<int32_t>(verifier, VT_SLOWDOWN, 4) &&
            VerifyField<int32_t>(verifier, VT_SYSCALL_TIMEOUT_MS, 4) &&
@@ -904,6 +916,12 @@ struct ConnectReplyRawBuilder {
   }
   void add_cover(bool cover) {
     fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_COVER, static_cast<uint8_t>(cover), 0);
+  }
+  void add_cover_edges(bool cover_edges) {
+    fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_COVER_EDGES, static_cast<uint8_t>(cover_edges), 0);
+  }
+  void add_kernel_64_bit(bool kernel_64_bit) {
+    fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_KERNEL_64_BIT, static_cast<uint8_t>(kernel_64_bit), 0);
   }
   void add_procs(int32_t procs) {
     fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_PROCS, procs, 0);
@@ -947,6 +965,8 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     bool debug = false,
     bool cover = false,
+    bool cover_edges = false,
+    bool kernel_64_bit = false,
     int32_t procs = 0,
     int32_t slowdown = 0,
     int32_t syscall_timeout_ms = 0,
@@ -966,6 +986,8 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
   builder_.add_syscall_timeout_ms(syscall_timeout_ms);
   builder_.add_slowdown(slowdown);
   builder_.add_procs(procs);
+  builder_.add_kernel_64_bit(kernel_64_bit);
+  builder_.add_cover_edges(cover_edges);
   builder_.add_cover(cover);
   builder_.add_debug(debug);
   return builder_.Finish();
@@ -975,6 +997,8 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     bool debug = false,
     bool cover = false,
+    bool cover_edges = false,
+    bool kernel_64_bit = false,
     int32_t procs = 0,
     int32_t slowdown = 0,
     int32_t syscall_timeout_ms = 0,
@@ -992,6 +1016,8 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
       _fbb,
       debug,
       cover,
+      cover_edges,
+      kernel_64_bit,
       procs,
       slowdown,
       syscall_timeout_ms,
@@ -2446,6 +2472,8 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::r
   (void)_resolver;
   { auto _e = debug(); _o->debug = _e; }
   { auto _e = cover(); _o->cover = _e; }
+  { auto _e = cover_edges(); _o->cover_edges = _e; }
+  { auto _e = kernel_64_bit(); _o->kernel_64_bit = _e; }
   { auto _e = procs(); _o->procs = _e; }
   { auto _e = slowdown(); _o->slowdown = _e; }
   { auto _e = syscall_timeout_ms(); _o->syscall_timeout_ms = _e; }
@@ -2467,6 +2495,8 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _debug = _o->debug;
   auto _cover = _o->cover;
+  auto _cover_edges = _o->cover_edges;
+  auto _kernel_64_bit = _o->kernel_64_bit;
   auto _procs = _o->procs;
   auto _slowdown = _o->slowdown;
   auto _syscall_timeout_ms = _o->syscall_timeout_ms;
@@ -2480,6 +2510,8 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
       _fbb,
       _debug,
       _cover,
+      _cover_edges,
+      _kernel_64_bit,
       _procs,
       _slowdown,
       _syscall_timeout_ms,

@@ -18,13 +18,16 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Runner struct {
 	source        queue.Source
 	procs         int
 	cover         bool
+	filterSignal  bool
 	debug         bool
+	sysTarget     *targets.Target
 	stats         *runnerStats
 	stopped       bool
 	finished      chan bool
@@ -235,10 +238,8 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 			// Coverage collection is disabled, but signal was requested => use a substitute signal.
 			addFallbackSignal(req.Prog, msg.Info)
 		}
-		for i := 0; i < len(msg.Info.Calls); i++ {
-			call := msg.Info.Calls[i]
-			call.Cover = runner.canonicalizer.Canonicalize(call.Cover)
-			call.Signal = runner.canonicalizer.Canonicalize(call.Signal)
+		for _, call := range msg.Info.Calls {
+			runner.convertCallInfo(call)
 		}
 		if len(msg.Info.ExtraRaw) != 0 {
 			msg.Info.Extra = msg.Info.ExtraRaw[0]
@@ -248,9 +249,8 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 				msg.Info.Extra.Cover = append(msg.Info.Extra.Cover, info.Cover...)
 				msg.Info.Extra.Signal = append(msg.Info.Extra.Signal, info.Signal...)
 			}
-			msg.Info.Extra.Cover = runner.canonicalizer.Canonicalize(msg.Info.Extra.Cover)
-			msg.Info.Extra.Signal = runner.canonicalizer.Canonicalize(msg.Info.Extra.Signal)
 			msg.Info.ExtraRaw = nil
+			runner.convertCallInfo(msg.Info.Extra)
 		}
 	}
 	status := queue.Success
@@ -266,6 +266,49 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 		Err:    resErr,
 	})
 	return nil
+}
+
+func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
+	call.Cover = runner.canonicalizer.Canonicalize(call.Cover)
+	call.Signal = runner.canonicalizer.Canonicalize(call.Signal)
+
+	// Check signal belongs to kernel addresses.
+	// Mismatching addresses can mean either corrupted VM memory, or that the fuzzer somehow
+	// managed to inject output signal. If we see any bogus signal, drop whole signal
+	// (we don't want programs that can inject bogus coverage to end up in the corpus).
+	var kernelAddresses targets.KernelAddresses
+	if runner.filterSignal {
+		kernelAddresses = runner.sysTarget.KernelAddresses
+	}
+	textStart, textEnd := kernelAddresses.TextStart, kernelAddresses.TextEnd
+	if textStart != 0 {
+		for _, sig := range call.Signal {
+			if sig < textStart || sig > textEnd {
+				call.Signal = []uint64{}
+				call.Cover = []uint64{}
+				break
+			}
+		}
+	}
+
+	// Filter out kernel physical memory addresses.
+	// These are internal kernel comparisons and should not be interesting.
+	dataStart, dataEnd := kernelAddresses.DataStart, kernelAddresses.DataEnd
+	if len(call.Comps) != 0 && (textStart != 0 || dataStart != 0) {
+		if runner.sysTarget.PtrSize == 4 {
+			// These will appear sign-extended in comparison operands.
+			textStart = uint64(int64(int32(textStart)))
+			textEnd = uint64(int64(int32(textEnd)))
+			dataStart = uint64(int64(int32(dataStart)))
+			dataEnd = uint64(int64(int32(dataEnd)))
+		}
+		isKptr := func(val uint64) bool {
+			return val >= textStart && val <= textEnd || val >= dataStart && val <= dataEnd || val == 0
+		}
+		call.Comps = slices.DeleteFunc(call.Comps, func(cmp *flatrpc.Comparison) bool {
+			return isKptr(cmp.Op1) && isKptr(cmp.Op2)
+		})
+	}
 }
 
 func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
