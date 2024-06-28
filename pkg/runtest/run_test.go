@@ -83,7 +83,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
-	startRpcserver(t, target, executor, ctx, nil, nil, func(features flatrpc.Feature) {
+	startRPCServer(t, target, executor, "", ctx, nil, nil, func(features flatrpc.Feature) {
 		// Features we expect to be enabled on the test OS.
 		// All sandboxes except for none are not implemented, coverage is not returned,
 		// and setup for few features is failing specifically to test feature detection.
@@ -138,7 +138,7 @@ func TestCover(t *testing.T) {
 }
 
 type CoverTest struct {
-	Is64Bit         int
+	Is64Bit         bool
 	Input           []byte
 	MaxSignal       []uint64
 	CoverFilter     []uint64
@@ -168,18 +168,18 @@ func testCover(t *testing.T, target *prog.Target) {
 	tests := []CoverTest{
 		// Empty coverage.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input:   makeCover64(),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 		},
 		{
-			Is64Bit: 0,
+			Is64Bit: false,
 			Input:   makeCover32(),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 		},
 		// Single 64-bit PC.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input:   makeCover64(0xc0dec0dec0112233),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 			Cover:   []uint64{0xc0dec0dec0112233},
@@ -187,7 +187,7 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// Single 32-bit PC.
 		{
-			Is64Bit: 0,
+			Is64Bit: false,
 			Input:   makeCover32(0xc0112233),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 			Cover:   []uint64{0xc0112233},
@@ -195,20 +195,20 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// Ensure we don't sent cover/signal when not requested.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input:   makeCover64(0xc0dec0dec0112233),
 			Flags:   flatrpc.ExecFlagCollectCover,
 			Cover:   []uint64{0xc0dec0dec0112233},
 		},
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input:   makeCover64(0xc0dec0dec0112233),
 			Flags:   flatrpc.ExecFlagCollectSignal,
 			Signal:  []uint64{0xc0dec0dec0112233},
 		},
 		// Coverage deduplication.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeCover64(0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
 				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011),
 			Flags: flatrpc.ExecFlagCollectCover,
@@ -216,7 +216,7 @@ func testCover(t *testing.T, target *prog.Target) {
 				0xc0dec0dec0000011, 0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033},
 		},
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeCover64(0xc0dec0dec0000033, 0xc0dec0dec0000022, 0xc0dec0dec0000011,
 				0xc0dec0dec0000011, 0xc0dec0dec0000022, 0xc0dec0dec0000033, 0xc0dec0dec0000011),
 			Flags: flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagDedupCover,
@@ -224,7 +224,7 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// Signal hashing.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeCover64(0xc0dec0dec0011001, 0xc0dec0dec0022002, 0xc0dec0dec00330f0,
 				0xc0dec0dec0044b00, 0xc0dec0dec0011001, 0xc0dec0dec0022002),
 			Flags: flatrpc.ExecFlagCollectSignal,
@@ -233,18 +233,18 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// Invalid non-kernel PCs must fail test execution.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input:   makeCover64(0xc0dec0dec0000022, 0xc000000000000033),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 		},
 		{
-			Is64Bit: 0,
+			Is64Bit: false,
 			Input:   makeCover32(0x33),
 			Flags:   flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
 		},
 		// 64-bit comparisons.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeComps(
 				// A normal 8-byte comparison must be returned in the output as is.
 				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
@@ -287,14 +287,14 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// 32-bit comparisons must be the same, so test only a subset.
 		{
-			Is64Bit: 0,
+			Is64Bit: false,
 			Input: makeComps(
 				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
 				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 0},
 				Comparison{CmpSize4 | CmpConst, 0xda1a0000, 0xda1a1000, 0},
 				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 0},
 				Comparison{CmpSize4 | CmpConst, 0xc0de0000, 0xc0de1000, 0},
-				Comparison{CmpSize8 | CmpConst, 0xc0de0011, 0xc0de1022, 0},
+				Comparison{CmpSize4 | CmpConst, 0xc0de0011, 0xc0de1022, 0},
 			),
 			Flags: flatrpc.ExecFlagCollectComps,
 			Comps: [][2]uint64{
@@ -305,7 +305,7 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// Test max signal.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010, 0xc0dec0dec0000002,
 				0xc0dec0dec0000100, 0xc0dec0dec0001000),
 			MaxSignal: []uint64{0xc0dec0dec0000001, 0xc0dec0dec0000013, 0xc0dec0dec0000abc},
@@ -315,7 +315,7 @@ func testCover(t *testing.T, target *prog.Target) {
 			Signal: []uint64{0xc0dec0dec0001100, 0xc0dec0dec0000102},
 		},
 		{
-			Is64Bit:   0,
+			Is64Bit:   false,
 			Input:     makeCover32(0xc0000001, 0xc0000010, 0xc0000002, 0xc0000100, 0xc0001000),
 			MaxSignal: []uint64{0xc0000001, 0xc0000013, 0xc0000abc},
 			Flags:     flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
@@ -323,7 +323,7 @@ func testCover(t *testing.T, target *prog.Target) {
 			Signal:    []uint64{0xc0001100, 0xc0000102},
 		},
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010, 0xc0dec0dec0000002,
 				0xc0dec0dec0000100, 0xc0dec0dec0001000),
 			MaxSignal:       []uint64{0xc0dec0dec0000001, 0xc0dec0dec0000013, 0xc0dec0dec0000abc},
@@ -334,7 +334,7 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 		// Test cover filter.
 		{
-			Is64Bit: 1,
+			Is64Bit: true,
 			Input: makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010, 0xc0dec0dec0000020,
 				0xc0dec0dec0000040, 0xc0dec0dec0000100, 0xc0dec0dec0001000, 0xc0dec0dec0002000),
 			CoverFilter: []uint64{0xc0dec0dec0000002, 0xc0dec0dec0000100},
@@ -344,7 +344,7 @@ func testCover(t *testing.T, target *prog.Target) {
 			Signal: []uint64{0xc0dec0dec0001100, 0xc0dec0dec0000140, 0xc0dec0dec0000011, 0xc0dec0dec0000001},
 		},
 		{
-			Is64Bit: 0,
+			Is64Bit: false,
 			Input: makeCover32(0xc0000001, 0xc0000010, 0xc0000020, 0xc0000040,
 				0xc0000100, 0xc0001000, 0xc0002000),
 			CoverFilter: []uint64{0xc0000002, 0xc0000100},
@@ -355,24 +355,23 @@ func testCover(t *testing.T, target *prog.Target) {
 		},
 	}
 	executor := csource.BuildExecutor(t, target, "../../")
-	source := queue.Plain()
-	startRpcserver(t, target, executor, source, nil, nil, nil)
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			t.Parallel()
-			mysource := source
-			if len(test.MaxSignal)+len(test.CoverFilter) != 0 {
-				mysource = queue.Plain()
-				startRpcserver(t, target, executor, mysource, test.MaxSignal, test.CoverFilter, nil)
+			source := queue.Plain()
+			vmArch := targets.TestArch32
+			if test.Is64Bit {
+				vmArch = targets.TestArch64
 			}
-			testCover1(t, target, test, mysource)
+			startRPCServer(t, target, executor, vmArch, source, test.MaxSignal, test.CoverFilter, nil)
+			testCover1(t, target, test, source)
 		})
 	}
 }
 
 func testCover1(t *testing.T, target *prog.Target, test CoverTest, source *queue.PlainQueue) {
-	text := fmt.Sprintf(`syz_inject_cover(0x%v, &AUTO="%s", AUTO)`, test.Is64Bit, hex.EncodeToString(test.Input))
+	text := fmt.Sprintf(`syz_inject_cover(&AUTO="%s", AUTO)`, hex.EncodeToString(test.Input))
 	p, err := target.Deserialize([]byte(text), prog.Strict)
 	if err != nil {
 		t.Fatal(err)
@@ -436,7 +435,7 @@ func makeComps(comps ...Comparison) []byte {
 	return w.Bytes()
 }
 
-func startRpcserver(t *testing.T, target *prog.Target, executor string, source queue.Source,
+func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, source queue.Source,
 	maxSignal, coverFilter []uint64, machineChecked func(features flatrpc.Feature)) {
 	ctx, done := context.WithCancel(context.Background())
 	cfg := &rpcserver.LocalConfig{
@@ -448,6 +447,7 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 				Features: flatrpc.AllFeatures,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
 			},
+			VMArch:   vmArch,
 			Procs:    runtime.GOMAXPROCS(0),
 			Slowdown: 10, // to deflake slower tests
 		},

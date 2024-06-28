@@ -33,12 +33,14 @@ class Proc
 {
 public:
 	Proc(Connection& conn, const char* bin, int id, int max_signal_fd, int cover_filter_fd,
-	     uint32 slowdown, uint32 syscall_timeout_ms, uint32 program_timeout_ms)
+	     bool use_cover_edges, bool is_kernel_64_bit, uint32 slowdown, uint32 syscall_timeout_ms, uint32 program_timeout_ms)
 	    : conn_(conn),
 	      bin_(bin),
 	      id_(id),
 	      max_signal_fd_(max_signal_fd),
 	      cover_filter_fd_(cover_filter_fd),
+	      use_cover_edges_(use_cover_edges),
+	      is_kernel_64_bit_(is_kernel_64_bit),
 	      slowdown_(slowdown),
 	      syscall_timeout_ms_(syscall_timeout_ms),
 	      program_timeout_ms_(program_timeout_ms),
@@ -129,6 +131,8 @@ private:
 	const int id_;
 	const int max_signal_fd_;
 	const int cover_filter_fd_;
+	const bool use_cover_edges_;
+	const bool is_kernel_64_bit_;
 	const uint32 slowdown_;
 	const uint32 syscall_timeout_ms_;
 	const uint32 program_timeout_ms_;
@@ -265,9 +269,14 @@ private:
 		sandbox_arg_ = msg_->exec_opts->sandbox_arg();
 		handshake_req req = {
 		    .magic = kInMagic,
+		    .use_cover_edges = use_cover_edges_,
+		    .is_kernel_64_bit = is_kernel_64_bit_,
 		    .flags = exec_env_,
 		    .pid = static_cast<uint64>(id_),
 		    .sandbox_arg = static_cast<uint64>(sandbox_arg_),
+		    .syscall_timeout_ms = syscall_timeout_ms_,
+		    .program_timeout_ms = program_timeout_ms_,
+		    .slowdown_scale = slowdown_,
 		};
 		if (write(req_pipe_, &req, sizeof(req)) != sizeof(req)) {
 			debug("request pipe write failed (errno=%d)\n", errno);
@@ -312,12 +321,7 @@ private:
 		execute_req req{
 		    .magic = kInMagic,
 		    .id = static_cast<uint64>(msg_->id),
-		    .env_flags = exec_env_,
 		    .exec_flags = static_cast<uint64>(msg_->exec_opts->exec_flags()),
-		    .pid = static_cast<uint64>(id_),
-		    .syscall_timeout_ms = syscall_timeout_ms_,
-		    .program_timeout_ms = program_timeout_ms_,
-		    .slowdown_scale = slowdown_,
 		    .all_call_signal = all_call_signal,
 		    .all_extra_signal = all_extra_signal,
 		};
@@ -461,7 +465,7 @@ public:
 		int cover_filter_fd = cover_filter_ ? cover_filter_->FD() : -1;
 		for (size_t i = 0; i < num_procs; i++)
 			procs_.emplace_back(new Proc(conn, bin, i, max_signal_fd, cover_filter_fd,
-						     slowdown_, syscall_timeout_ms_, program_timeout_ms_));
+						     use_cover_edges_, is_kernel_64_bit_, slowdown_, syscall_timeout_ms_, program_timeout_ms_));
 
 		for (;;)
 			Loop();
@@ -475,6 +479,8 @@ private:
 	std::vector<std::unique_ptr<Proc>> procs_;
 	std::deque<rpc::ExecRequestRawT> requests_;
 	std::vector<std::string> leak_frames_;
+	bool use_cover_edges_ = false;
+	bool is_kernel_64_bit_ = false;
 	uint32 slowdown_ = 0;
 	uint32 syscall_timeout_ms_ = 0;
 	uint32 program_timeout_ms_ = 0;
@@ -538,11 +544,14 @@ private:
 		conn_.Recv(conn_reply);
 		if (conn_reply.debug)
 			flag_debug = true;
-		debug("connected to manager: procs=%d slowdown=%d syscall_timeout=%u"
+		debug("connected to manager: procs=%d cover_edges=%d kernel_64_bit=%d slowdown=%d syscall_timeout=%u"
 		      " program_timeout=%u features=0x%llx\n",
-		      conn_reply.procs, conn_reply.slowdown, conn_reply.syscall_timeout_ms,
+		      conn_reply.procs, conn_reply.cover_edges, conn_reply.kernel_64_bit,
+		      conn_reply.slowdown, conn_reply.syscall_timeout_ms,
 		      conn_reply.program_timeout_ms, static_cast<uint64>(conn_reply.features));
 		leak_frames_ = conn_reply.leak_frames;
+		use_cover_edges_ = conn_reply.cover_edges;
+		is_kernel_64_bit_ = is_kernel_64_bit = conn_reply.kernel_64_bit;
 		slowdown_ = conn_reply.slowdown;
 		syscall_timeout_ms_ = conn_reply.syscall_timeout_ms;
 		program_timeout_ms_ = conn_reply.program_timeout_ms;
@@ -555,7 +564,6 @@ private:
 
 		// This does any one-time setup for the requested features on the machine.
 		// Note: this can be called multiple times and must be idempotent.
-		// is_kernel_64_bit = detect_kernel_bitness();
 #if SYZ_HAVE_FEATURES
 		setup_sysctl();
 		setup_cgroups();

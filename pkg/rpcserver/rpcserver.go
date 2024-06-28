@@ -30,8 +30,14 @@ import (
 
 type Config struct {
 	vminfo.Config
-	RPC               string
-	VMLess            bool
+	VMArch string
+	RPC    string
+	VMLess bool
+	// Hash adjacent PCs to form fuzzing feedback signal (otherwise just use coverage PCs as signal).
+	UseCoverEdges bool
+	// Filter signal/comparisons against target kernel text/data ranges.
+	// Disabled for gVisor/Starnix which are not Linux.
+	FilterSignal      bool
 	PrintMachineCheck bool
 	Procs             int
 	Slowdown          int
@@ -49,12 +55,14 @@ type Server struct {
 	StatExecs      *stats.Val
 	StatNumFuzzing *stats.Val
 
-	cfg      *Config
-	mgr      Manager
-	serv     *flatrpc.Serv
-	target   *prog.Target
-	timeouts targets.Timeouts
-	checker  *vminfo.Checker
+	cfg             *Config
+	mgr             Manager
+	serv            *flatrpc.Serv
+	target          *prog.Target
+	timeouts        targets.Timeouts
+	kernelAddresses targets.KernelAddresses
+	isKernel64Bit   bool
+	checker         *vminfo.Checker
 
 	infoOnce         sync.Once
 	checkDone        atomic.Bool
@@ -88,8 +96,13 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 			Sandbox:    sandbox,
 			SandboxArg: cfg.SandboxArg,
 		},
-		RPC:               cfg.RPC,
-		VMLess:            cfg.VMLess,
+		VMArch: cfg.TargetVMArch,
+		RPC:    cfg.RPC,
+		VMLess: cfg.VMLess,
+		// gVisor coverage is not a trace, so producing edges won't work.
+		UseCoverEdges: cfg.Type != targets.GVisor,
+		// gVisor/Starnix are not Linux, so filtering against Linux ranges won't work.
+		FilterSignal:      cfg.Type != targets.GVisor && cfg.Type != targets.Starnix,
 		PrintMachineCheck: true,
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
@@ -100,16 +113,24 @@ func newImpl(cfg *Config, mgr Manager) (*Server, error) {
 	cfg.Procs = min(cfg.Procs, prog.MaxPids)
 	checker := vminfo.New(&cfg.Config)
 	baseSource := queue.DynamicSource(checker)
+	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
+	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)
+	var kernelAddresses targets.KernelAddresses
+	if cfg.FilterSignal {
+		kernelAddresses = sysTarget.KernelAddresses
+	}
 	serv := &Server{
-		cfg:        cfg,
-		mgr:        mgr,
-		target:     cfg.Target,
-		timeouts:   targets.Get(cfg.Target.OS, cfg.Target.Arch).Timeouts(cfg.Slowdown),
-		runners:    make(map[string]*Runner),
-		info:       make(map[string]VMState),
-		checker:    checker,
-		baseSource: baseSource,
-		execSource: queue.Retry(baseSource),
+		cfg:             cfg,
+		mgr:             mgr,
+		target:          cfg.Target,
+		timeouts:        sysTarget.Timeouts(cfg.Slowdown),
+		kernelAddresses: kernelAddresses,
+		isKernel64Bit:   sysTarget.PtrSize == 8,
+		runners:         make(map[string]*Runner),
+		info:            make(map[string]VMState),
+		checker:         checker,
+		baseSource:      baseSource,
+		execSource:      queue.Retry(baseSource),
 
 		StatExecs: stats.Create("exec total", "Total test program executions",
 			stats.Console, stats.Rate{}, stats.Prometheus("syz_exec_total")),
@@ -245,6 +266,8 @@ func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Canoni
 	connectReply := &flatrpc.ConnectReply{
 		Debug:            serv.cfg.Debug,
 		Cover:            serv.cfg.Cover,
+		CoverEdges:       serv.cfg.UseCoverEdges,
+		Kernel64Bit:      serv.isKernel64Bit,
 		Procs:            int32(serv.cfg.Procs),
 		Slowdown:         int32(serv.timeouts.Slowdown),
 		SyscallTimeoutMs: int32(serv.timeouts.Syscall / time.Millisecond),
@@ -421,18 +444,20 @@ func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 
 func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 	runner := &Runner{
-		source:     serv.baseSource,
-		cover:      serv.cfg.Cover,
-		debug:      serv.cfg.Debug,
-		injectExec: injectExec,
-		infoc:      make(chan chan []byte),
-		finished:   make(chan bool),
-		requests:   make(map[int64]*queue.Request),
-		executing:  make(map[int64]bool),
-		lastExec:   MakeLastExecuting(serv.cfg.Procs, 6),
-		rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
-		stats:      serv.runnerStats,
-		procs:      serv.cfg.Procs,
+		source:          serv.baseSource,
+		kernelAddresses: serv.kernelAddresses,
+		isKernel64Bit:   serv.isKernel64Bit,
+		cover:           serv.cfg.Cover,
+		debug:           serv.cfg.Debug,
+		injectExec:      injectExec,
+		infoc:           make(chan chan []byte),
+		finished:        make(chan bool),
+		requests:        make(map[int64]*queue.Request),
+		executing:       make(map[int64]bool),
+		lastExec:        MakeLastExecuting(serv.cfg.Procs, 6),
+		rnd:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		stats:           serv.runnerStats,
+		procs:           serv.cfg.Procs,
 	}
 	serv.mu.Lock()
 	if serv.runners[name] != nil {
