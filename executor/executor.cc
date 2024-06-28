@@ -314,7 +314,8 @@ const uint64 no_copyout = -1;
 
 static int running;
 static uint32 completed;
-static bool is_kernel_64_bit = true;
+static bool is_kernel_64_bit;
+static bool use_cover_edges;
 
 static uint8* input_data;
 
@@ -395,20 +396,20 @@ const uint64 kInMagic = 0xbadc0ffeebadface;
 
 struct handshake_req {
 	uint64 magic;
+	bool use_cover_edges;
+	bool is_kernel_64_bit;
 	rpc::ExecEnv flags;
 	uint64 pid;
 	uint64 sandbox_arg;
+	uint64 syscall_timeout_ms;
+	uint64 program_timeout_ms;
+	uint64 slowdown_scale;
 };
 
 struct execute_req {
 	uint64 magic;
 	uint64 id;
-	rpc::ExecEnv env_flags;
 	uint64 exec_flags;
-	uint64 pid;
-	uint64 syscall_timeout_ms;
-	uint64 program_timeout_ms;
-	uint64 slowdown_scale;
 	uint64 all_call_signal;
 	bool all_extra_signal;
 };
@@ -681,28 +682,6 @@ void setup_control_pipes()
 		fail("dup2(2, 0) failed");
 }
 
-void parse_env_flags(rpc::ExecEnv flags)
-{
-	// Note: Values correspond to ordering in pkg/ipc/ipc.go, e.g. FlagSandboxNamespace
-	flag_debug = (bool)(flags & rpc::ExecEnv::Debug);
-	flag_coverage = (bool)(flags & rpc::ExecEnv::Signal);
-	flag_sandbox_none = (bool)(flags & rpc::ExecEnv::SandboxNone);
-	flag_sandbox_setuid = (bool)(flags & rpc::ExecEnv::SandboxSetuid);
-	flag_sandbox_namespace = (bool)(flags & rpc::ExecEnv::SandboxNamespace);
-	flag_sandbox_android = (bool)(flags & rpc::ExecEnv::SandboxAndroid);
-	flag_extra_coverage = (bool)(flags & rpc::ExecEnv::ExtraCover);
-	flag_net_injection = (bool)(flags & rpc::ExecEnv::EnableTun);
-	flag_net_devices = (bool)(flags & rpc::ExecEnv::EnableNetDev);
-	flag_net_reset = (bool)(flags & rpc::ExecEnv::EnableNetReset);
-	flag_cgroups = (bool)(flags & rpc::ExecEnv::EnableCgroups);
-	flag_close_fds = (bool)(flags & rpc::ExecEnv::EnableCloseFds);
-	flag_devlink_pci = (bool)(flags & rpc::ExecEnv::EnableDevlinkPCI);
-	flag_vhci_injection = (bool)(flags & rpc::ExecEnv::EnableVhciInjection);
-	flag_wifi = (bool)(flags & rpc::ExecEnv::EnableWifi);
-	flag_delay_kcov_mmap = (bool)(flags & rpc::ExecEnv::DelayKcovMmap);
-	flag_nic_vf = (bool)(flags & rpc::ExecEnv::EnableNicVF);
-}
-
 void receive_handshake()
 {
 	handshake_req req = {};
@@ -714,27 +693,40 @@ void receive_handshake()
 #if SYZ_HAVE_SANDBOX_ANDROID
 	sandbox_arg = req.sandbox_arg;
 #endif
-	parse_env_flags(req.flags);
+	is_kernel_64_bit = req.is_kernel_64_bit;
+	use_cover_edges = req.use_cover_edges;
 	procid = req.pid;
+	syscall_timeout_ms = req.syscall_timeout_ms;
+	program_timeout_ms = req.program_timeout_ms;
+	slowdown_scale = req.slowdown_scale;
+	flag_debug = (bool)(req.flags & rpc::ExecEnv::Debug);
+	flag_coverage = (bool)(req.flags & rpc::ExecEnv::Signal);
+	flag_sandbox_none = (bool)(req.flags & rpc::ExecEnv::SandboxNone);
+	flag_sandbox_setuid = (bool)(req.flags & rpc::ExecEnv::SandboxSetuid);
+	flag_sandbox_namespace = (bool)(req.flags & rpc::ExecEnv::SandboxNamespace);
+	flag_sandbox_android = (bool)(req.flags & rpc::ExecEnv::SandboxAndroid);
+	flag_extra_coverage = (bool)(req.flags & rpc::ExecEnv::ExtraCover);
+	flag_net_injection = (bool)(req.flags & rpc::ExecEnv::EnableTun);
+	flag_net_devices = (bool)(req.flags & rpc::ExecEnv::EnableNetDev);
+	flag_net_reset = (bool)(req.flags & rpc::ExecEnv::EnableNetReset);
+	flag_cgroups = (bool)(req.flags & rpc::ExecEnv::EnableCgroups);
+	flag_close_fds = (bool)(req.flags & rpc::ExecEnv::EnableCloseFds);
+	flag_devlink_pci = (bool)(req.flags & rpc::ExecEnv::EnableDevlinkPCI);
+	flag_vhci_injection = (bool)(req.flags & rpc::ExecEnv::EnableVhciInjection);
+	flag_wifi = (bool)(req.flags & rpc::ExecEnv::EnableWifi);
+	flag_delay_kcov_mmap = (bool)(req.flags & rpc::ExecEnv::DelayKcovMmap);
+	flag_nic_vf = (bool)(req.flags & rpc::ExecEnv::EnableNicVF);
 }
-
-static execute_req last_execute_req;
 
 void receive_execute()
 {
-	execute_req& req = last_execute_req;
+	execute_req req = {};
 	ssize_t n = read(kInPipeFd, &req, sizeof(req));
 	if (n != (ssize_t)sizeof(req))
 		failmsg("control pipe read failed", "read=%zd want=%zd", n, sizeof(req));
 	if (req.magic != kInMagic)
 		failmsg("bad execute request magic", "magic=0x%llx", req.magic);
 	request_id = req.id;
-	parse_env_flags(req.env_flags);
-	procid = req.pid;
-	request_id = req.id;
-	syscall_timeout_ms = req.syscall_timeout_ms;
-	program_timeout_ms = req.program_timeout_ms;
-	slowdown_scale = req.slowdown_scale;
 	flag_collect_signal = req.exec_flags & (1 << 0);
 	flag_collect_cover = req.exec_flags & (1 << 1);
 	flag_dedup_cover = req.exec_flags & (1 << 2);
@@ -744,10 +736,11 @@ void receive_execute()
 	all_extra_signal = req.all_extra_signal;
 
 	debug("[%llums] exec opts: procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d "
-	      " sandbox=%d/%d/%d/%d timeouts=%llu/%llu/%llu\n",
+	      " sandbox=%d/%d/%d/%d timeouts=%llu/%llu/%llu kernel_64_bit=%d\n",
 	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collect_cover,
 	      flag_comparisons, flag_dedup_cover, flag_collect_signal, flag_sandbox_none, flag_sandbox_setuid,
-	      flag_sandbox_namespace, flag_sandbox_android, syscall_timeout_ms, program_timeout_ms, slowdown_scale);
+	      flag_sandbox_namespace, flag_sandbox_android, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
+	      is_kernel_64_bit);
 	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
 		failmsg("bad timeouts", "syscall=%llu, program=%llu, scale=%llu",
 			syscall_timeout_ms, program_timeout_ms, slowdown_scale);
@@ -1055,10 +1048,8 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov, bool all)
 	bool prev_filter = true;
 	for (uint32 i = 0; i < cov->size; i++) {
 		cover_data_t pc = cover_data[i] + cov->pc_offset;
-		if (is_kernel_pc(pc) < 0)
-			exitf("got bad pc: 0x%llx", (uint64)pc);
 		uint64 sig = pc;
-		if (use_cover_edges(pc)) {
+		if (use_cover_edges) {
 			// Only hash the lower 12 bits so the hash is independent of any module offsets.
 			const uint64 mask = (1 << 12) - 1;
 			sig ^= hash(prev_pc & mask) & mask;
@@ -1629,12 +1620,6 @@ std::tuple<rpc::ComparisonRaw, bool, bool> convert(const kcov_comparison_t& cmp)
 	if (arg1 >= out_start && arg1 <= out_end)
 		return {};
 	if (arg2 >= out_start && arg2 <= out_end)
-		return {};
-	// Filter out kernel physical memory addresses.
-	// These are internal kernel comparisons and should not be interesting.
-	bool kptr1 = is_kernel_data(arg1) || is_kernel_pc(arg1) > 0 || arg1 == 0;
-	bool kptr2 = is_kernel_data(arg2) || is_kernel_pc(arg2) > 0 || arg2 == 0;
-	if (kptr1 && kptr2)
 		return {};
 	if (!coverage_filter(cmp.pc))
 		return {};

@@ -38,6 +38,11 @@ type LocalConfig struct {
 }
 
 func RunLocal(cfg *LocalConfig) error {
+	if cfg.VMArch == "" {
+		cfg.VMArch = cfg.Target.Arch
+	}
+	cfg.UseCoverEdges = true
+	cfg.FilterSignal = true
 	cfg.RPC = ":0"
 	cfg.VMLess = true
 	cfg.PrintMachineCheck = log.V(1)

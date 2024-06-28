@@ -9,6 +9,7 @@
 #include <sys/prctl.h>
 #endif
 
+// sys/targets also know about these consts.
 static uint64 kernel_text_start = 0xc0dec0dec0000000;
 static uint64 kernel_text_mask = 0xffffff;
 
@@ -35,17 +36,30 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 
 extern "C" notrace void __sanitizer_cov_trace_pc(void)
 {
-	unsigned long ip = (unsigned long)__builtin_return_address(0);
-	// Convert to what is_kernel_pc will accept as valid coverage;
-	ip = kernel_text_start | (ip & kernel_text_mask);
 	if (current_thread == nullptr || current_thread->cov.data == nullptr || current_thread->cov.collect_comps)
 		return;
-	unsigned long* start = (unsigned long*)current_thread->cov.data;
-	unsigned long* end = (unsigned long*)current_thread->cov.data_end;
-	int pos = start[0];
-	if (start + pos + 1 < end) {
-		start[0] = pos + 1;
-		start[pos + 1] = ip;
+	uint64 pc = (uint64)__builtin_return_address(0);
+	// Convert to what is_kernel_pc will accept as valid coverage;
+	pc = kernel_text_start | (pc & kernel_text_mask);
+	// Note: we duplicate the following code instead of using a template function
+	// because it must not be instrumented which is hard to achieve for all compiler
+	// if the code is in a separate function.
+	if (is_kernel_64_bit) {
+		uint64* start = (uint64*)current_thread->cov.data;
+		uint64* end = (uint64*)current_thread->cov.data_end;
+		uint64 pos = start[0];
+		if (start + pos + 1 < end) {
+			start[0] = pos + 1;
+			start[pos + 1] = pc;
+		}
+	} else {
+		uint32* start = (uint32*)current_thread->cov.data;
+		uint32* end = (uint32*)current_thread->cov.data_end;
+		uint32 pos = start[0];
+		if (start + pos + 1 < end) {
+			start[0] = pos + 1;
+			start[pos + 1] = pc;
+		}
 	}
 }
 
@@ -97,7 +111,7 @@ static void cover_mmap(cover_t* cov)
 	if (cov->data == MAP_FAILED)
 		exitf("cover mmap failed");
 	cov->data_end = cov->data + cov->mmap_alloc_size;
-	cov->data_offset = sizeof(unsigned long);
+	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	// We don't care about the specific PC values for now.
 	// Once we do, we might want to consider ASLR here.
 	cov->pc_offset = 0;
@@ -107,36 +121,13 @@ static void cover_unprotect(cover_t* cov)
 {
 }
 
-static bool is_kernel_data(uint64 addr)
-{
-	return addr >= 0xda1a0000 && addr <= 0xda1a1000;
-}
-
-static int is_kernel_pc(uint64 pc)
-{
-	uint64 start = kernel_text_start;
-	uint64 end = kernel_text_start | kernel_text_mask;
-	if (!is_kernel_64_bit) {
-		start = (uint32)start;
-		end = (uint32)end;
-	}
-	return pc >= start && pc <= end ? 1 : -1;
-}
-
-static bool use_cover_edges(uint64 pc)
-{
-	return true;
-}
-
-static long syz_inject_cover(volatile long a, volatile long b, volatile long c)
+static long syz_inject_cover(volatile long a, volatile long b)
 {
 	cover_t* cov = &current_thread->cov;
 	if (cov->data == nullptr)
 		return ENOENT;
-	is_kernel_64_bit = a;
-	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
-	uint32 size = std::min((uint32)c, cov->mmap_alloc_size);
-	memcpy(cov->data, (void*)b, size);
+	uint32 size = std::min((uint32)b, cov->mmap_alloc_size);
+	memcpy(cov->data, (void*)a, size);
 	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->mmap_alloc_size - size));
 	return 0;
 }
