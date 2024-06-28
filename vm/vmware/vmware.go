@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -45,6 +46,7 @@ type instance struct {
 	sshuser     string
 	sshkey      string
 	forwardPort int
+	timeouts    targets.Timeouts
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -82,13 +84,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	sshkey := pool.env.SSHKey
 	sshuser := pool.env.SSHUser
 	inst := &instance{
-		cfg:     pool.cfg,
-		debug:   pool.env.Debug,
-		baseVMX: pool.cfg.BaseVMX,
-		vmx:     vmx,
-		sshkey:  sshkey,
-		sshuser: sshuser,
-		closed:  make(chan bool),
+		cfg:      pool.cfg,
+		debug:    pool.env.Debug,
+		baseVMX:  pool.cfg.BaseVMX,
+		vmx:      vmx,
+		sshkey:   sshkey,
+		sshuser:  sshuser,
+		closed:   make(chan bool),
+		timeouts: pool.env.Timeouts,
 	}
 	if err := inst.clone(); err != nil {
 		return nil, err
@@ -215,7 +218,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("dmesg", dmesg)
 	merger.Add("ssh", rpipe)
 
-	return vmimpl.Multiplex(cmd, merger, dmesg, timeout, stop, inst.closed, inst.debug)
+	return vmimpl.Multiplex(cmd, merger, timeout, vmimpl.MultiplexConfig{
+		Console: dmesg,
+		Stop:    stop,
+		Close:   inst.closed,
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
+	})
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

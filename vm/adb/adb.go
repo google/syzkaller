@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -57,12 +58,13 @@ type Pool struct {
 }
 
 type instance struct {
-	cfg     *Config
-	adbBin  string
-	device  string
-	console string
-	closed  chan bool
-	debug   bool
+	cfg      *Config
+	adbBin   string
+	device   string
+	console  string
+	closed   chan bool
+	debug    bool
+	timeouts targets.Timeouts
 }
 
 var (
@@ -131,12 +133,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	inst := &instance{
-		cfg:     pool.cfg,
-		adbBin:  pool.cfg.Adb,
-		device:  device.Serial,
-		console: device.Console,
-		closed:  make(chan bool),
-		debug:   pool.env.Debug,
+		cfg:      pool.cfg,
+		adbBin:   pool.cfg.Adb,
+		device:   device.Serial,
+		console:  device.Console,
+		closed:   make(chan bool),
+		debug:    pool.env.Debug,
+		timeouts: pool.env.Timeouts,
 	}
 	closeInst := inst
 	defer func() {
@@ -552,7 +555,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("console", tty)
 	merger.Add("adb", adbRpipe)
 
-	return vmimpl.Multiplex(adb, merger, tty, timeout, stop, inst.closed, inst.debug)
+	return vmimpl.Multiplex(adb, merger, timeout, vmimpl.MultiplexConfig{
+		Console: tty,
+		Stop:    stop,
+		Close:   inst.closed,
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
+	})
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
