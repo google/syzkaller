@@ -75,7 +75,7 @@ func (inst *testInstance) Close() {
 func init() {
 	beforeContextDefault = maxErrorLength + 100
 	tickerPeriod = 1 * time.Second
-	waitForOutputTimeout = 3 * time.Second
+	vmimpl.WaitForOutputTimeout = 3 * time.Second
 
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return &testPool{}, nil
