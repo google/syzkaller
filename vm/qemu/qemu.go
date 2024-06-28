@@ -672,34 +672,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 	wpipe.Close()
-	errc := make(chan error, 1)
-	signal := func(err error) {
-		select {
-		case errc <- err:
-		default:
-		}
-	}
-
-	go func() {
-		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
-			signal(vmimpl.ErrTimeout)
-		case err := <-inst.merger.Err:
-			cmd.Process.Kill()
-			if cmdErr := cmd.Wait(); cmdErr == nil {
-				// If the command exited successfully, we got EOF error from merger.
-				// But in this case no error has happened and the EOF is expected.
-				err = nil
-			}
-			signal(err)
-			return
-		}
-		cmd.Process.Kill()
-		cmd.Wait()
-	}()
-	return inst.merger.Output, errc, nil
+	return vmimpl.Multiplex(cmd, inst.merger, nil, timeout, stop, nil, inst.debug)
 }
 
 func (inst *instance) Info() ([]byte, error) {
