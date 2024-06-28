@@ -114,7 +114,7 @@ func BenchmarkFuzzer(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := fuzzer.Next()
+			req, _ := fuzzer.Next()
 			res, _, _ := emulateExec(req)
 			req.Done(res)
 		}
@@ -243,16 +243,16 @@ func (f *testFuzzer) run() {
 	assert.Equal(f.t, len(f.expectedCrashes), len(f.crashes), "not all expected crashes were found")
 }
 
-func (f *testFuzzer) Next() *queue.Request {
+func (f *testFuzzer) Next() (*queue.Request, bool) {
 	if f.finished.Load() {
-		return nil
+		return nil, true
 	}
-	req := f.fuzzer.Next()
+	req, stop := f.fuzzer.Next()
 	req.ExecOpts.EnvFlags |= flatrpc.ExecEnvSignal | flatrpc.ExecEnvSandboxNone
 	req.ReturnOutput = true
 	req.ReturnError = true
 	req.OnDone(f.OnDone)
-	return req
+	return req, stop
 }
 
 func (f *testFuzzer) OnDone(req *queue.Request, res *queue.Result) bool {

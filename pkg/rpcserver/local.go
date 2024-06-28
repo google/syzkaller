@@ -99,8 +99,14 @@ func RunLocal(cfg *LocalConfig) error {
 		// If the executor has crashed early, reply to all remaining requests to unblock tests.
 	loop:
 		for {
-			req := serv.execSource.Next()
-			if req == nil {
+			req, stop := serv.execSource.Next()
+			if req != nil {
+				req.Done(&queue.Result{Status: queue.ExecFailure, Err: errors.New("executor crashed")})
+			}
+			if stop {
+				break loop
+			} else if req == nil {
+				// No new requests so far, but there might be.
 				select {
 				case <-cfg.Context.Done():
 					break loop
@@ -109,7 +115,6 @@ func RunLocal(cfg *LocalConfig) error {
 					continue loop
 				}
 			}
-			req.Done(&queue.Result{Status: queue.ExecFailure, Err: errors.New("executor crashed")})
 		}
 	}
 	return cmdErr

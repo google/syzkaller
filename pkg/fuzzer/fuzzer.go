@@ -213,7 +213,7 @@ func signalPrio(p *prog.Prog, info *flatrpc.CallInfo, call int) (prio uint8) {
 	return
 }
 
-func (fuzzer *Fuzzer) genFuzz() *queue.Request {
+func (fuzzer *Fuzzer) genFuzz() (*queue.Request, bool) {
 	// Either generate a new input or mutate an existing one.
 	mutateRate := 0.95
 	if !fuzzer.Config.Coverage {
@@ -230,7 +230,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 		req = genProgRequest(fuzzer, rnd)
 	}
 	fuzzer.prepare(req, 0, 0)
-	return req
+	return req, false
 }
 
 func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
@@ -244,13 +244,13 @@ func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
 	}()
 }
 
-func (fuzzer *Fuzzer) Next() *queue.Request {
-	req := fuzzer.source.Next()
-	if req == nil {
-		// The fuzzer is not supposed to issue nil requests.
-		panic("nil request from the fuzzer")
+func (fuzzer *Fuzzer) Next() (*queue.Request, bool) {
+	req, stop := fuzzer.source.Next()
+	if req == nil || stop {
+		// The fuzzer is not supposed to issue nil requests or stop.
+		panic("req=nil or stop=true from the fuzzer")
 	}
-	return req
+	return req, false
 }
 
 func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
