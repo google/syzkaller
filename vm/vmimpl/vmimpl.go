@@ -148,8 +148,19 @@ var (
 
 var WaitForOutputTimeout = 10 * time.Second
 
-func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout time.Duration,
-	stop, closed <-chan bool, debug bool) (<-chan []byte, <-chan error, error) {
+type MultiplexConfig struct {
+	Console io.Closer
+	Stop    <-chan bool
+	Close   <-chan bool
+	Debug   bool
+	Scale   time.Duration
+}
+
+func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, config MultiplexConfig) (
+	<-chan []byte, <-chan error, error) {
+	if config.Scale <= 0 {
+		panic("slowdown must be set")
+	}
 	errc := make(chan error, 1)
 	signal := func(err error) {
 		select {
@@ -161,10 +172,10 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 		select {
 		case <-time.After(timeout):
 			signal(ErrTimeout)
-		case <-stop:
+		case <-config.Stop:
 			signal(ErrTimeout)
-		case <-closed:
-			if debug {
+		case <-config.Close:
+			if config.Debug {
 				log.Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
@@ -172,10 +183,10 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 			cmd.Process.Kill()
 			// Once the command has exited, we might want to let the full console
 			// output accumulate before we abort the console connection too.
-			time.Sleep(WaitForOutputTimeout)
-			if console != nil {
+			time.Sleep(WaitForOutputTimeout * config.Scale)
+			if config.Console != nil {
 				// Only wait for the merger if we're able to control the console stream.
-				console.Close()
+				config.Console.Close()
 				merger.Wait()
 			}
 			if cmdErr := cmd.Wait(); cmdErr == nil {
@@ -187,8 +198,8 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 			return
 		}
 		cmd.Process.Kill()
-		if console != nil {
-			console.Close()
+		if config.Console != nil {
+			config.Console.Close()
 			merger.Wait()
 		}
 		cmd.Wait()

@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -53,6 +54,7 @@ type instance struct {
 	sshUser     string
 	sshKey      string
 	forwardPort int
+	timeouts    targets.Timeouts
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -109,6 +111,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		debug:      pool.env.Debug,
 		sshUser:    pool.env.SSHUser,
 		sshKey:     pool.env.SSHKey,
+		timeouts:   pool.env.Timeouts,
 	}
 	closeInst := inst
 	defer func() {
@@ -357,7 +360,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("dmesg", dmesg)
 	merger.Add("ssh", rpipe)
 
-	return vmimpl.Multiplex(cmd, merger, dmesg, timeout, stop, inst.closed, inst.debug)
+	return vmimpl.Multiplex(cmd, merger, timeout, vmimpl.MultiplexConfig{
+		Console: dmesg,
+		Stop:    stop,
+		Close:   inst.closed,
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
+	})
 }
 
 func (inst *instance) readPstoreContents() ([]byte, error) {

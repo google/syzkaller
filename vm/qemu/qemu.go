@@ -672,7 +672,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 	wpipe.Close()
-	return vmimpl.Multiplex(cmd, inst.merger, nil, timeout, stop, nil, inst.debug)
+	return vmimpl.Multiplex(cmd, inst.merger, timeout, vmimpl.MultiplexConfig{
+		Stop:  stop,
+		Debug: inst.debug,
+		Scale: inst.timeouts.Scale,
+	})
 }
 
 func (inst *instance) Info() ([]byte, error) {
