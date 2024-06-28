@@ -385,12 +385,10 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
-				Target:     target,
-				Debug:      *flagDebug,
-				Features:   flatrpc.AllFeatures,
-				Sandbox:    flatrpc.ExecEnvSandboxNone,
-				Cover:      true,
-				ForceCover: true,
+				Target:   target,
+				Debug:    *flagDebug,
+				Features: flatrpc.AllFeatures,
+				Sandbox:  flatrpc.ExecEnvSandboxNone,
 			},
 			Procs:    runtime.GOMAXPROCS(0),
 			Slowdown: 10, // to deflake slower tests
@@ -404,6 +402,7 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 		if machineChecked != nil {
 			machineChecked(features)
 		}
+		cfg.Cover = true
 		return source
 	}
 	errc := make(chan error)

@@ -43,7 +43,6 @@ type Config struct {
 	Syscalls   []int
 	Debug      bool
 	Cover      bool
-	ForceCover bool // Pretend that the coverage is supported. We need it in pkg/runtest.
 	Sandbox    flatrpc.ExecEnv
 	SandboxArg int64
 }
