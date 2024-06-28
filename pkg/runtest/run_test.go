@@ -386,6 +386,7 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
 				Target:   target,
+				Cover:    true,
 				Debug:    *flagDebug,
 				Features: flatrpc.AllFeatures,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
@@ -402,7 +403,6 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 		if machineChecked != nil {
 			machineChecked(features)
 		}
-		cfg.Cover = true
 		return source
 	}
 	errc := make(chan error)

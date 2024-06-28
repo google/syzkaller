@@ -27,11 +27,6 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	is_kernel_64_bit = sizeof(unsigned long) == 8;
 }
 
-static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
-{
-	return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
-}
-
 #ifdef __clang__
 #define notrace
 #else
@@ -52,6 +47,16 @@ extern "C" notrace void __sanitizer_cov_trace_pc(void)
 		start[0] = pos + 1;
 		start[pos + 1] = ip;
 	}
+}
+
+static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
+{
+	// Inject coverage PC even when built w/o coverage instrumentation.
+	// This allows to pass machine check with coverage enabled.
+	// pkg/fuzzer tests with coverage instrumentation shouldn't be distracted by the additional PC,
+	// and syz_inject_cover overwrites the whole array so will remote it.
+	__sanitizer_cov_trace_pc();
+	return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 }
 
 static void cover_open(cover_t* cov, bool extra)
