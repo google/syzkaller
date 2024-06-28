@@ -797,5 +797,11 @@ static void runner(char** argv, int argc)
 		fail("signal(SIGBUS) failed");
 
 	Connection conn(manager_addr, manager_port);
+
+	// This is required to make Subprocess fd remapping logic work.
+	// kCoverFilterFd is the largest fd we set in the child processes.
+	for (int fd = conn.FD(); fd < kCoverFilterFd;)
+		fd = dup(fd);
+
 	Runner(conn, name, argv[0]);
 }

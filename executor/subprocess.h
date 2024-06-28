@@ -17,9 +17,17 @@ public:
 		if (posix_spawn_file_actions_init(&actions))
 			fail("posix_spawn_file_actions_init failed");
 		int max_fd = 0;
-		for (auto pair : fds) {
+		for (auto pair : fds)
 			max_fd = std::max(max_fd, pair.second);
+		for (auto pair : fds) {
 			if (pair.first != -1) {
+				// Remapping won't work if fd's overlap with the target range:
+				// we can dup something onto fd we need to dup later, in such case the later fd
+				// will be wrong. Resolving this would require some tricky multi-pass remapping.
+				// So we just require the caller to not do that.
+				if (pair.first <= max_fd)
+					failmsg("bad subprocess fd", "%d->%d max_fd=%d",
+						pair.first, pair.second, max_fd);
 				if (posix_spawn_file_actions_adddup2(&actions, pair.first, pair.second))
 					fail("posix_spawn_file_actions_adddup2 failed");
 			} else {
