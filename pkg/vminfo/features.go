@@ -113,7 +113,7 @@ func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Fe
 	if feat := features[flatrpc.FeatureSandboxNone]; !feat.Enabled {
 		return features, fmt.Errorf("execution of simple program fails: %v", feat.Reason)
 	}
-	if feat := features[flatrpc.FeatureCoverage]; ctx.cfg.Cover && !feat.Enabled {
+	if feat := features[flatrpc.FeatureCoverage]; ctx.cfg.Cover && !ctx.cfg.ForceCover && !feat.Enabled {
 		return features, fmt.Errorf("coverage is not supported: %v", feat.Reason)
 	}
 	return features, nil
