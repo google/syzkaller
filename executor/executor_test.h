@@ -43,7 +43,7 @@ extern "C" notrace void __sanitizer_cov_trace_pc(void)
 	unsigned long ip = (unsigned long)__builtin_return_address(0);
 	// Convert to what is_kernel_pc will accept as valid coverage;
 	ip = kernel_text_start | (ip & kernel_text_mask);
-	if (current_thread == nullptr || current_thread->cov.data == nullptr)
+	if (current_thread == nullptr || current_thread->cov.data == nullptr || current_thread->cov.collect_comps)
 		return;
 	unsigned long* start = (unsigned long*)current_thread->cov.data;
 	unsigned long* end = (unsigned long*)current_thread->cov.data_end;
@@ -61,6 +61,7 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
+	cov->collect_comps = collect_comps;
 }
 
 static void cover_reset(cover_t* cov)
