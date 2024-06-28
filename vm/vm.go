@@ -437,7 +437,7 @@ func (mon *monitor) createReport(defaultError string) *report.Report {
 }
 
 func (mon *monitor) waitForOutput() {
-	timer := time.NewTimer(waitForOutputTimeout * mon.inst.pool.timeouts.Scale)
+	timer := time.NewTimer(vmimpl.WaitForOutputTimeout * mon.inst.pool.timeouts.Scale)
 	defer timer.Stop()
 	for {
 		select {
@@ -470,6 +470,5 @@ var (
 	beforeContextDefault = 128 << 10
 	afterContext         = 128 << 10
 
-	tickerPeriod         = 10 * time.Second
-	waitForOutputTimeout = 10 * time.Second
+	tickerPeriod = 10 * time.Second
 )

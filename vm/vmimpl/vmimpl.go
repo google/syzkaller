@@ -146,6 +146,8 @@ var (
 	Types = make(map[string]Type)
 )
 
+var WaitForOutputTimeout = 10 * time.Second
+
 func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout time.Duration,
 	stop, closed <-chan bool, debug bool) (<-chan []byte, <-chan error, error) {
 	errc := make(chan error, 1)
@@ -168,6 +170,9 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
 			cmd.Process.Kill()
+			// Once the command has exited, we might want to let the full console
+			// output accumulate before we abort the console connection too.
+			time.Sleep(WaitForOutputTimeout)
 			if console != nil {
 				// Only wait for the merger if we're able to control the console stream.
 				console.Close()
