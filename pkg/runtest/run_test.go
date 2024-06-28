@@ -83,7 +83,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
-	startRpcserver(t, target, executor, ctx, func(features flatrpc.Feature) {
+	startRpcserver(t, target, executor, ctx, nil, nil, func(features flatrpc.Feature) {
 		// Features we expect to be enabled on the test OS.
 		// All sandboxes except for none are not implemented, coverage is not returned,
 		// and setup for few features is failing specifically to test feature detection.
@@ -138,12 +138,15 @@ func TestCover(t *testing.T) {
 }
 
 type CoverTest struct {
-	Is64Bit int
-	Input   []byte
-	Flags   flatrpc.ExecFlag
-	Cover   []uint64
-	Signal  []uint64
-	Comps   [][2]uint64
+	Is64Bit         int
+	Input           []byte
+	MaxSignal       []uint64
+	CoverFilter     []uint64
+	ReturnAllSignal bool
+	Flags           flatrpc.ExecFlag
+	Cover           []uint64
+	Signal          []uint64
+	Comps           [][2]uint64
 }
 
 type Comparison struct {
@@ -300,16 +303,70 @@ func testCover(t *testing.T, target *prog.Target) {
 				{0xc0dec0dec0de1000, 0xc0dec0dec0de0000},
 			},
 		},
-		// TODO: test max signal filtering and cover filter when syz-executor handles them.
+		// Test max signal.
+		{
+			Is64Bit: 1,
+			Input: makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010, 0xc0dec0dec0000002,
+				0xc0dec0dec0000100, 0xc0dec0dec0001000),
+			MaxSignal: []uint64{0xc0dec0dec0000001, 0xc0dec0dec0000013, 0xc0dec0dec0000abc},
+			Flags:     flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover: []uint64{0xc0dec0dec0001000, 0xc0dec0dec0000100, 0xc0dec0dec0000002,
+				0xc0dec0dec0000010, 0xc0dec0dec0000001},
+			Signal: []uint64{0xc0dec0dec0001100, 0xc0dec0dec0000102},
+		},
+		{
+			Is64Bit:   0,
+			Input:     makeCover32(0xc0000001, 0xc0000010, 0xc0000002, 0xc0000100, 0xc0001000),
+			MaxSignal: []uint64{0xc0000001, 0xc0000013, 0xc0000abc},
+			Flags:     flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover:     []uint64{0xc0001000, 0xc0000100, 0xc0000002, 0xc0000010, 0xc0000001},
+			Signal:    []uint64{0xc0001100, 0xc0000102},
+		},
+		{
+			Is64Bit: 1,
+			Input: makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010, 0xc0dec0dec0000002,
+				0xc0dec0dec0000100, 0xc0dec0dec0001000),
+			MaxSignal:       []uint64{0xc0dec0dec0000001, 0xc0dec0dec0000013, 0xc0dec0dec0000abc},
+			ReturnAllSignal: true,
+			Flags:           flatrpc.ExecFlagCollectSignal,
+			Signal: []uint64{0xc0dec0dec0001100, 0xc0dec0dec0000102, 0xc0dec0dec0000012,
+				0xc0dec0dec0000011, 0xc0dec0dec0000001},
+		},
+		// Test cover filter.
+		{
+			Is64Bit: 1,
+			Input: makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010, 0xc0dec0dec0000020,
+				0xc0dec0dec0000040, 0xc0dec0dec0000100, 0xc0dec0dec0001000, 0xc0dec0dec0002000),
+			CoverFilter: []uint64{0xc0dec0dec0000002, 0xc0dec0dec0000100},
+			Flags:       flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover: []uint64{0xc0dec0dec0002000, 0xc0dec0dec0001000, 0xc0dec0dec0000100, 0xc0dec0dec0000040,
+				0xc0dec0dec0000020, 0xc0dec0dec0000010, 0xc0dec0dec0000001},
+			Signal: []uint64{0xc0dec0dec0001100, 0xc0dec0dec0000140, 0xc0dec0dec0000011, 0xc0dec0dec0000001},
+		},
+		{
+			Is64Bit: 0,
+			Input: makeCover32(0xc0000001, 0xc0000010, 0xc0000020, 0xc0000040,
+				0xc0000100, 0xc0001000, 0xc0002000),
+			CoverFilter: []uint64{0xc0000002, 0xc0000100},
+			Flags:       flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover: []uint64{0xc0002000, 0xc0001000, 0xc0000100, 0xc0000040,
+				0xc0000020, 0xc0000010, 0xc0000001},
+			Signal: []uint64{0xc0001100, 0xc0000140, 0xc0000011, 0xc0000001},
+		},
 	}
 	executor := csource.BuildExecutor(t, target, "../../")
 	source := queue.Plain()
-	startRpcserver(t, target, executor, source, nil)
+	startRpcserver(t, target, executor, source, nil, nil, nil)
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			t.Parallel()
-			testCover1(t, target, test, source)
+			mysource := source
+			if len(test.MaxSignal)+len(test.CoverFilter) != 0 {
+				mysource = queue.Plain()
+				startRpcserver(t, target, executor, mysource, test.MaxSignal, test.CoverFilter, nil)
+			}
+			testCover1(t, target, test, mysource)
 		})
 	}
 }
@@ -327,7 +384,7 @@ func testCover1(t *testing.T, target *prog.Target, test CoverTest, source *queue
 			ExecFlags: test.Flags,
 		},
 	}
-	if test.Flags&flatrpc.ExecFlagCollectSignal != 0 {
+	if test.ReturnAllSignal {
 		req.ReturnAllSignal = []int{0}
 	}
 	source.Submit(req)
@@ -380,7 +437,7 @@ func makeComps(comps ...Comparison) []byte {
 }
 
 func startRpcserver(t *testing.T, target *prog.Target, executor string, source queue.Source,
-	machineChecked func(features flatrpc.Feature)) {
+	maxSignal, coverFilter []uint64, machineChecked func(features flatrpc.Feature)) {
 	ctx, done := context.WithCancel(context.Background())
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
@@ -394,10 +451,12 @@ func startRpcserver(t *testing.T, target *prog.Target, executor string, source q
 			Procs:    runtime.GOMAXPROCS(0),
 			Slowdown: 10, // to deflake slower tests
 		},
-		Executor: executor,
-		Dir:      t.TempDir(),
-		Context:  ctx,
-		GDB:      *flagGDB,
+		Executor:    executor,
+		Dir:         t.TempDir(),
+		Context:     ctx,
+		GDB:         *flagGDB,
+		MaxSignal:   maxSignal,
+		CoverFilter: coverFilter,
 	}
 	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 		if machineChecked != nil {

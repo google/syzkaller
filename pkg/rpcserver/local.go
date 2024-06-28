@@ -29,7 +29,9 @@ type LocalConfig struct {
 	// Handle ctrl+C and exit.
 	HandleInterrupts bool
 	// Run executor under gdb.
-	GDB bool
+	GDB         bool
+	MaxSignal   []uint64
+	CoverFilter []uint64
 	// RunLocal exits when the context is cancelled.
 	Context        context.Context
 	MachineChecked func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
@@ -130,9 +132,9 @@ func (ctx *local) BugFrames() ([]string, []string) {
 }
 
 func (ctx *local) MaxSignal() signal.Signal {
-	return nil
+	return signal.FromRaw(ctx.cfg.MaxSignal, 0)
 }
 
 func (ctx *local) CoverageFilter(modules []*cover.KernelModule) []uint64 {
-	return nil
+	return ctx.cfg.CoverFilter
 }
