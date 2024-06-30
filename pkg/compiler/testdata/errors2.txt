@@ -508,3 +508,19 @@ conditional_non_packed2 {
 }
 
 foo$conditional3(a ptr[in, conditional_non_packed2])
+
+# If we only have an optional constructor for the resource, it's invalid to
+# use it in the non-optional contexts.
+
+resource r_opt[intptr] ### resource r_opt is used in non-optional contexts, but is created in only optional ones
+
+r_opt_struct {
+	f	r_opt[opt]
+}
+
+r_non_opt_struct {
+	f	r_opt
+}
+
+test$r_opt_out(p ptr[out, r_opt_struct])
+test$r_non_opt_in(p ptr[in, r_non_opt_struct])
