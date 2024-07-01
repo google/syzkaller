@@ -146,14 +146,24 @@ var (
 	Types = make(map[string]Type)
 )
 
+type CmdCloser struct {
+	*exec.Cmd
+}
+
+func (cc CmdCloser) Close() error {
+	cc.Process.Kill()
+	return cc.Wait()
+}
+
 var WaitForOutputTimeout = 10 * time.Second
 
 type MultiplexConfig struct {
-	Console io.Closer
-	Stop    <-chan bool
-	Close   <-chan bool
-	Debug   bool
-	Scale   time.Duration
+	Console     io.Closer
+	Stop        <-chan bool
+	Close       <-chan bool
+	Debug       bool
+	Scale       time.Duration
+	IgnoreError func(err error) bool
 }
 
 func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, config MultiplexConfig) (
@@ -193,6 +203,8 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, confi
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
+			} else if config.IgnoreError != nil && config.IgnoreError(err) {
+				err = ErrTimeout
 			}
 			signal(err)
 			return
