@@ -77,6 +77,7 @@ type instance struct {
 	closed         chan bool
 	consolew       io.WriteCloser
 	consoleReadCmd string // optional: command to read non-standard kernel console
+	timeouts       targets.Timeouts
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -226,6 +227,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshUser:        sshUser,
 		closed:         make(chan bool),
 		consoleReadCmd: pool.consoleReadCmd,
+		timeouts:       pool.env.Timeouts,
 	}
 	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
 		sshKey, sshUser, pool.env.OS, 22, nil, false); err != nil {
@@ -329,55 +331,31 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	sshWpipe.Close()
 	merger.Add("ssh", sshRpipe)
 
-	errc := make(chan error, 1)
-	signal := func(err error) {
-		select {
-		case errc <- err:
-		default:
-		}
-	}
-
-	go func() {
-		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
-			signal(vmimpl.ErrTimeout)
-		case <-inst.closed:
-			signal(fmt.Errorf("instance closed"))
-		case err := <-merger.Err:
-			con.Process.Kill()
-			ssh.Process.Kill()
-			merger.Wait()
-			con.Wait()
+	return vmimpl.Multiplex(ssh, merger, timeout, vmimpl.MultiplexConfig{
+		Console: vmimpl.CmdCloser{Cmd: con},
+		Stop:    stop,
+		Close:   inst.closed,
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
+		IgnoreError: func(err error) bool {
 			var mergeError *vmimpl.MergerError
-			if cmdErr := ssh.Wait(); cmdErr == nil {
-				// If the command exited successfully, we got EOF error from merger.
-				// But in this case no error has happened and the EOF is expected.
-				err = nil
-			} else if errors.As(err, &mergeError) && mergeError.R == conRpipe {
+			if errors.As(err, &mergeError) && mergeError.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
 				log.Logf(0, "%v: gce console connection failed with %v", inst.name, mergeError.Err)
-				err = vmimpl.ErrTimeout
+				return true
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
-				time.Sleep(5 * time.Second) // just to avoid any GCE races
+				// vmimpl.Multiplex() already adds a delay, so we've already waited enough
+				// to let GCE VM status updates propagate.
 				if !inst.GCE.IsInstanceRunning(inst.name) {
 					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
-					err = vmimpl.ErrTimeout
+					return true
 				}
 			}
-			signal(err)
-			return
-		}
-		con.Process.Kill()
-		ssh.Process.Kill()
-		merger.Wait()
-		con.Wait()
-		ssh.Wait()
-	}()
-	return merger.Output, errc, nil
+			return false
+		},
+	})
 }
 
 func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
