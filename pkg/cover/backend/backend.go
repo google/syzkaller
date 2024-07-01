@@ -6,6 +6,7 @@ package backend
 import (
 	"fmt"
 
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -78,4 +79,11 @@ func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuil
 		delimiters = []string{"/aosp/", "/private/"}
 	}
 	return makeELF(target, objDir, srcDir, buildDir, delimiters, moduleObj, modules)
+}
+
+func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
+	if cfg.Target.OS == targets.Linux {
+		return getPCBase(cfg)
+	}
+	return 0, nil
 }

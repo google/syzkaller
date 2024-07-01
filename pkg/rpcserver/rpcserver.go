@@ -41,6 +41,7 @@ type Config struct {
 	PrintMachineCheck bool
 	Procs             int
 	Slowdown          int
+	PCBase            uint64
 }
 
 type Manager interface {
@@ -81,6 +82,10 @@ type Server struct {
 }
 
 func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
+	pcBase, err := cover.GetPCBase(cfg)
+	if err != nil {
+		return nil, err
+	}
 	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
 	if err != nil {
 		return nil, err
@@ -109,6 +114,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 		PrintMachineCheck: true,
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
+		PCBase:            pcBase,
 	}, mgr)
 }
 
