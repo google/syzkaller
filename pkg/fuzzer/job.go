@@ -79,10 +79,29 @@ type triageCall struct {
 // to 3 out of 5 runs.
 // By binomial distribution, a program that reproduces 80% of time will pass deflake()
 // with a 94% probability. If it reproduces 90% of time, it passes in 99% of cases.
+//
+// During corpus triage we are more permissive and require only 2/6 to produce new stable signal.
+// Such parameters make 80% flakiness to pass 99% of time, and even 60% flakiness passes 96% of time.
+// First, we don't need to be strict during corpus triage since the program has already passed
+// the stricter check when it was added to the corpus. So we can do fewer runs during triage,
+// and finish it sooner. If the program does not produce any stable signal any more, just flakes,
+// (if the kernel code was changed, or configs disabled), then it still should be phased out
+// of the corpus eventually.
+// Second, even if small percent of programs are dropped from the corpus due to flaky signal,
+// later after several restarts we will add them to the corpus again, and it will create lots
+// of duplicate work for minimization/hints/smash/fault injection. For example, a program with
+// 60% flakiness has 68% chance to pass 3/5 criteria, but it's also likely to be dropped from
+// the corpus if we use the same 3/5 criteria during triage. With a large corpus this effect
+// can cause re-addition of thousands of programs to the corpus, and hundreds of thousands
+// of runs for the additional work. With 2/6 criteria, a program with 60% flakiness has
+// 96% chance to be kept in the corpus after retriage.
 const (
-	deflakeNeedRuns      = 3
-	deflakeMaxRuns       = 5
-	deflakeMaxCorpusRuns = 20
+	deflakeNeedRuns        = 3
+	deflakeMaxRuns         = 5
+	deflakeNeedCorpusRuns  = 2
+	deflakeMinCorpusRuns   = 4
+	deflakeMaxCorpusRuns   = 6
+	deflakeTotalCorpusRuns = 20
 )
 
 func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result {
@@ -159,6 +178,10 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 }
 
 func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result) (stop bool) {
+	needRuns := deflakeNeedCorpusRuns
+	if job.flags&ProgFromCorpus == 0 {
+		needRuns = deflakeNeedRuns
+	}
 	prevTotalNewSignal := 0
 	for run := 1; ; run++ {
 		totalNewSignal := 0
@@ -167,34 +190,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			indices = append(indices, call)
 			totalNewSignal += len(info.newSignal)
 		}
-		// For fuzzing programs we stop if we already have the right deflaked signal for all calls,
-		// or there's no chance to get coverage common to needRuns for all calls.
-		if job.flags&ProgFromCorpus == 0 {
-			if run >= deflakeMaxRuns {
-				break
-			}
-			haveSignal, noChance := true, true
-			for _, call := range job.calls {
-				if !call.newSignal.IntersectsWith(call.signals[deflakeNeedRuns-1]) {
-					haveSignal = false
-				}
-				if left := deflakeMaxRuns - run; left >= deflakeNeedRuns ||
-					call.newSignal.IntersectsWith(call.signals[deflakeNeedRuns-left-1]) {
-					noChance = false
-				}
-			}
-			if haveSignal || noChance {
-				break
-			}
-		} else if run >= deflakeMaxCorpusRuns ||
-			run >= deflakeMaxRuns && prevTotalNewSignal == totalNewSignal {
-			// For programs from the corpus we use a different condition b/c we want to extract
-			// as much flaky signal from them as possible. They have large coverage and run
-			// in the beginning, gathering flaky signal on them allows to grow max signal quickly
-			// and avoid lots of useless executions later. Any bit of flaky coverage discovered
-			// later will lead to triage, and if we are unlucky to conclude it's stable also
-			// to minimization+smash+hints (potentially thousands of runs).
-			// So we run them at least 5 times, or while we are still getting any new signal.
+		if job.stopDeflake(run, needRuns, prevTotalNewSignal == totalNewSignal) {
 			break
 		}
 		prevTotalNewSignal = totalNewSignal
@@ -225,8 +221,8 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			// Since the signal is frequently flaky, we may get some new new max signal.
 			// Merge it into the new signal we are chasing.
 			// Most likely we won't conclude it's stable signal b/c we already have at least one
-			// initial run w/o this signal, so if we exit after 3 (deflakeNeedRuns) runs,
-			// it won't be stable. However, it's still possible if we do more than deflakeNeedRuns runs.
+			// initial run w/o this signal, so if we exit after needRuns runs,
+			// it won't be stable. However, it's still possible if we do more than needRuns runs.
 			// But also we already observed it and we know it's flaky, so at least doing
 			// cover.addRawMaxSignal for it looks useful.
 			prio := signalPrio(job.p, res, call)
@@ -234,7 +230,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			info.newSignal.Merge(newMaxSignal)
 			info.cover.Merge(res.Cover)
 			thisSignal := signal.FromRaw(res.Signal, prio)
-			for j := len(info.signals) - 1; j > 0; j-- {
+			for j := needRuns - 1; j > 0; j-- {
 				intersect := info.signals[j-1].Intersection(thisSignal)
 				info.signals[j].Merge(intersect)
 			}
@@ -246,8 +242,45 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 		deflakeCall(-1, result.Info.Extra)
 	}
 	for _, info := range job.calls {
-		info.stableSignal = info.signals[deflakeNeedRuns-1]
+		info.stableSignal = info.signals[needRuns-1]
 		info.newStableSignal = info.newSignal.Intersection(info.stableSignal)
+	}
+	return false
+}
+
+func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
+	haveSignal := true
+	for _, call := range job.calls {
+		if !call.newSignal.IntersectsWith(call.signals[needRuns-1]) {
+			haveSignal = false
+		}
+	}
+	if job.flags&ProgFromCorpus == 0 {
+		// For fuzzing programs we stop if we already have the right deflaked signal for all calls,
+		// or there's no chance to get coverage common to needRuns for all calls.
+		if run >= deflakeMaxRuns {
+			return true
+		}
+		noChance := true
+		for _, call := range job.calls {
+			if left := deflakeMaxRuns - run; left >= needRuns ||
+				call.newSignal.IntersectsWith(call.signals[needRuns-left-1]) {
+				noChance = false
+			}
+		}
+		if haveSignal || noChance {
+			return true
+		}
+	} else if run >= deflakeTotalCorpusRuns ||
+		noNewSignal && (run >= deflakeMaxCorpusRuns || run >= deflakeMinCorpusRuns && haveSignal) {
+		// For programs from the corpus we use a different condition b/c we want to extract
+		// as much flaky signal from them as possible. They have large coverage and run
+		// in the beginning, gathering flaky signal on them allows to grow max signal quickly
+		// and avoid lots of useless executions later. Any bit of flaky coverage discovered
+		// later will lead to triage, and if we are unlucky to conclude it's stable also
+		// to minimization+smash+hints (potentially thousands of runs).
+		// So we run them at least 5 times, or while we are still getting any new signal.
+		return true
 	}
 	return false
 }
