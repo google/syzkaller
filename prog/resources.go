@@ -157,7 +157,7 @@ func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 		}
 		switch typ1 := typ.(type) {
 		case *ResourceType:
-			if !ctx.Optional && !dedup[typ1.Desc] {
+			if !ctx.Optional && !dedup[typ1.Desc] && !typ1.Desc.Optional {
 				dedup[typ1.Desc] = true
 				resources = append(resources, typ1.Desc)
 			}

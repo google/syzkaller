@@ -264,6 +264,31 @@ Each resource type must be "produced" (used as an output) by at least one syscal
 (outside of unions and optional pointers) and "consumed" (used as an input)
 by at least one syscall.
 
+This restriction helps automatically determine the dependent syscalls there's no reason
+to fuzz. But in some cases one might not need such a strict validation. For example,
+consider the following minimalistic syzlang description:
+
+```
+resource inout_resource[int32]: 0
+
+test$use_resource(a ptr[inout, inout_resource_struct])
+
+inout_resource_struct {
+  field inout_resource
+}
+```
+
+Syzkaller would conclude that there's no way to construct `inout_resource` (which is
+necessary to generate `inout_resource_struct`) and disable the `test$use_resource` call.
+However, the resource is obviously not mandatory here.
+
+To indicate this to syzkaller, you may mark the resource as optional:
+
+```
+resource inout_resource[int32, opt]
+```
+
+
 ## Type Aliases
 
 Complex types that are often repeated can be given short type aliases using the
