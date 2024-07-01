@@ -141,10 +141,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	srcDir := params.srcDir
 	buildDir := params.buildDir
 	splitBuildDelimiters := params.splitBuildDelimiters
-	modules, err := discoverModules(target, objDir, params.moduleObj, params.hostModules)
-	if err != nil {
-		return nil, err
-	}
+	modules := params.hostModules
 
 	// Here and below index 0 refers to coverage callbacks (__sanitizer_cov_trace_pc(_guard))
 	// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
