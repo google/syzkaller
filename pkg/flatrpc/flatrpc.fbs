@@ -83,7 +83,7 @@ table FeatureInfoRaw {
 union HostMessagesRaw {
 	ExecRequest		:ExecRequestRaw,
 	SignalUpdate		:SignalUpdateRaw,
-	StartLeakChecks		:StartLeakChecksRaw,
+	CorpusTriaged		:CorpusTriagedRaw,
 	StateRequest		:StateRequestRaw,
 }
 
@@ -165,10 +165,10 @@ table SignalUpdateRaw {
 	drop_max		:[uint64];
 }
 
-// Leak checking is very slow so we don't do it while triaging the corpus
-// (otherwise it takes infinity). This message serves as a signal that
-// the corpus was triaged and the fuzzer can start leak checking.
-table StartLeakChecksRaw {
+// This message serves as a signal that the corpus was triaged and the fuzzer
+// can start activities that only make sense after corpus triage
+// (leak checking, restarting procs, etc).
+table CorpusTriagedRaw {
 }
 
 table StateRequestRaw {

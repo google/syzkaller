@@ -508,7 +508,7 @@ private:
 				Handle(*msg);
 			else if (auto* msg = raw.msg.AsSignalUpdate())
 				Handle(*msg);
-			else if (auto* msg = raw.msg.AsStartLeakChecks())
+			else if (auto* msg = raw.msg.AsCorpusTriaged())
 				Handle(*msg);
 			else if (auto* msg = raw.msg.AsStateRequest())
 				Handle(*msg);
@@ -637,10 +637,10 @@ private:
 			max_signal_->Remove(pc);
 	}
 
-	void Handle(const rpc::StartLeakChecksRawT& msg)
+	void Handle(const rpc::CorpusTriagedRawT& msg)
 	{
 		// TODO: repair leak checking (#4728).
-		debug("recv start leak checks\n");
+		debug("recv corpus triaged\n");
 	}
 
 	void Handle(const rpc::StateRequestRawT& msg)

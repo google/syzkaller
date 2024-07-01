@@ -61,9 +61,9 @@ struct SignalUpdateRaw;
 struct SignalUpdateRawBuilder;
 struct SignalUpdateRawT;
 
-struct StartLeakChecksRaw;
-struct StartLeakChecksRawBuilder;
-struct StartLeakChecksRawT;
+struct CorpusTriagedRaw;
+struct CorpusTriagedRawBuilder;
+struct CorpusTriagedRawT;
 
 struct StateRequestRaw;
 struct StateRequestRawBuilder;
@@ -176,7 +176,7 @@ enum class HostMessagesRaw : uint8_t {
   NONE = 0,
   ExecRequest = 1,
   SignalUpdate = 2,
-  StartLeakChecks = 3,
+  CorpusTriaged = 3,
   StateRequest = 4,
   MIN = NONE,
   MAX = StateRequest
@@ -187,7 +187,7 @@ inline const HostMessagesRaw (&EnumValuesHostMessagesRaw())[5] {
     HostMessagesRaw::NONE,
     HostMessagesRaw::ExecRequest,
     HostMessagesRaw::SignalUpdate,
-    HostMessagesRaw::StartLeakChecks,
+    HostMessagesRaw::CorpusTriaged,
     HostMessagesRaw::StateRequest
   };
   return values;
@@ -198,7 +198,7 @@ inline const char * const *EnumNamesHostMessagesRaw() {
     "NONE",
     "ExecRequest",
     "SignalUpdate",
-    "StartLeakChecks",
+    "CorpusTriaged",
     "StateRequest",
     nullptr
   };
@@ -223,8 +223,8 @@ template<> struct HostMessagesRawTraits<rpc::SignalUpdateRaw> {
   static const HostMessagesRaw enum_value = HostMessagesRaw::SignalUpdate;
 };
 
-template<> struct HostMessagesRawTraits<rpc::StartLeakChecksRaw> {
-  static const HostMessagesRaw enum_value = HostMessagesRaw::StartLeakChecks;
+template<> struct HostMessagesRawTraits<rpc::CorpusTriagedRaw> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::CorpusTriaged;
 };
 
 template<> struct HostMessagesRawTraits<rpc::StateRequestRaw> {
@@ -243,8 +243,8 @@ template<> struct HostMessagesRawUnionTraits<rpc::SignalUpdateRawT> {
   static const HostMessagesRaw enum_value = HostMessagesRaw::SignalUpdate;
 };
 
-template<> struct HostMessagesRawUnionTraits<rpc::StartLeakChecksRawT> {
-  static const HostMessagesRaw enum_value = HostMessagesRaw::StartLeakChecks;
+template<> struct HostMessagesRawUnionTraits<rpc::CorpusTriagedRawT> {
+  static const HostMessagesRaw enum_value = HostMessagesRaw::CorpusTriaged;
 };
 
 template<> struct HostMessagesRawUnionTraits<rpc::StateRequestRawT> {
@@ -297,13 +297,13 @@ struct HostMessagesRawUnion {
     return type == HostMessagesRaw::SignalUpdate ?
       reinterpret_cast<const rpc::SignalUpdateRawT *>(value) : nullptr;
   }
-  rpc::StartLeakChecksRawT *AsStartLeakChecks() {
-    return type == HostMessagesRaw::StartLeakChecks ?
-      reinterpret_cast<rpc::StartLeakChecksRawT *>(value) : nullptr;
+  rpc::CorpusTriagedRawT *AsCorpusTriaged() {
+    return type == HostMessagesRaw::CorpusTriaged ?
+      reinterpret_cast<rpc::CorpusTriagedRawT *>(value) : nullptr;
   }
-  const rpc::StartLeakChecksRawT *AsStartLeakChecks() const {
-    return type == HostMessagesRaw::StartLeakChecks ?
-      reinterpret_cast<const rpc::StartLeakChecksRawT *>(value) : nullptr;
+  const rpc::CorpusTriagedRawT *AsCorpusTriaged() const {
+    return type == HostMessagesRaw::CorpusTriaged ?
+      reinterpret_cast<const rpc::CorpusTriagedRawT *>(value) : nullptr;
   }
   rpc::StateRequestRawT *AsStateRequest() {
     return type == HostMessagesRaw::StateRequest ?
@@ -1477,8 +1477,8 @@ struct HostMessageRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const rpc::SignalUpdateRaw *msg_as_SignalUpdate() const {
     return msg_type() == rpc::HostMessagesRaw::SignalUpdate ? static_cast<const rpc::SignalUpdateRaw *>(msg()) : nullptr;
   }
-  const rpc::StartLeakChecksRaw *msg_as_StartLeakChecks() const {
-    return msg_type() == rpc::HostMessagesRaw::StartLeakChecks ? static_cast<const rpc::StartLeakChecksRaw *>(msg()) : nullptr;
+  const rpc::CorpusTriagedRaw *msg_as_CorpusTriaged() const {
+    return msg_type() == rpc::HostMessagesRaw::CorpusTriaged ? static_cast<const rpc::CorpusTriagedRaw *>(msg()) : nullptr;
   }
   const rpc::StateRequestRaw *msg_as_StateRequest() const {
     return msg_type() == rpc::HostMessagesRaw::StateRequest ? static_cast<const rpc::StateRequestRaw *>(msg()) : nullptr;
@@ -1503,8 +1503,8 @@ template<> inline const rpc::SignalUpdateRaw *HostMessageRaw::msg_as<rpc::Signal
   return msg_as_SignalUpdate();
 }
 
-template<> inline const rpc::StartLeakChecksRaw *HostMessageRaw::msg_as<rpc::StartLeakChecksRaw>() const {
-  return msg_as_StartLeakChecks();
+template<> inline const rpc::CorpusTriagedRaw *HostMessageRaw::msg_as<rpc::CorpusTriagedRaw>() const {
+  return msg_as_CorpusTriaged();
 }
 
 template<> inline const rpc::StateRequestRaw *HostMessageRaw::msg_as<rpc::StateRequestRaw>() const {
@@ -1826,44 +1826,44 @@ inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRawDirect(
 
 flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct StartLeakChecksRawT : public flatbuffers::NativeTable {
-  typedef StartLeakChecksRaw TableType;
+struct CorpusTriagedRawT : public flatbuffers::NativeTable {
+  typedef CorpusTriagedRaw TableType;
 };
 
-struct StartLeakChecksRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef StartLeakChecksRawT NativeTableType;
-  typedef StartLeakChecksRawBuilder Builder;
+struct CorpusTriagedRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef CorpusTriagedRawT NativeTableType;
+  typedef CorpusTriagedRawBuilder Builder;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  StartLeakChecksRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(StartLeakChecksRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<StartLeakChecksRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StartLeakChecksRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  CorpusTriagedRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(CorpusTriagedRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<CorpusTriagedRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct StartLeakChecksRawBuilder {
-  typedef StartLeakChecksRaw Table;
+struct CorpusTriagedRawBuilder {
+  typedef CorpusTriagedRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  explicit StartLeakChecksRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit CorpusTriagedRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<StartLeakChecksRaw> Finish() {
+  flatbuffers::Offset<CorpusTriagedRaw> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<StartLeakChecksRaw>(end);
+    auto o = flatbuffers::Offset<CorpusTriagedRaw>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<StartLeakChecksRaw> CreateStartLeakChecksRaw(
+inline flatbuffers::Offset<CorpusTriagedRaw> CreateCorpusTriagedRaw(
     flatbuffers::FlatBufferBuilder &_fbb) {
-  StartLeakChecksRawBuilder builder_(_fbb);
+  CorpusTriagedRawBuilder builder_(_fbb);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<StartLeakChecksRaw> CreateStartLeakChecksRaw(flatbuffers::FlatBufferBuilder &_fbb, const StartLeakChecksRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<CorpusTriagedRaw> CreateCorpusTriagedRaw(flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct StateRequestRawT : public flatbuffers::NativeTable {
   typedef StateRequestRaw TableType;
@@ -2808,26 +2808,26 @@ inline flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(flatbuffers::F
       _drop_max);
 }
 
-inline StartLeakChecksRawT *StartLeakChecksRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<StartLeakChecksRawT>(new StartLeakChecksRawT());
+inline CorpusTriagedRawT *CorpusTriagedRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<CorpusTriagedRawT>(new CorpusTriagedRawT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void StartLeakChecksRaw::UnPackTo(StartLeakChecksRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void CorpusTriagedRaw::UnPackTo(CorpusTriagedRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
 }
 
-inline flatbuffers::Offset<StartLeakChecksRaw> StartLeakChecksRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StartLeakChecksRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateStartLeakChecksRaw(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<CorpusTriagedRaw> CorpusTriagedRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateCorpusTriagedRaw(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<StartLeakChecksRaw> CreateStartLeakChecksRaw(flatbuffers::FlatBufferBuilder &_fbb, const StartLeakChecksRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<CorpusTriagedRaw> CreateCorpusTriagedRaw(flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StartLeakChecksRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return rpc::CreateStartLeakChecksRaw(
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CorpusTriagedRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return rpc::CreateCorpusTriagedRaw(
       _fbb);
 }
 
@@ -3073,8 +3073,8 @@ inline bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *o
       auto ptr = reinterpret_cast<const rpc::SignalUpdateRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case HostMessagesRaw::StartLeakChecks: {
-      auto ptr = reinterpret_cast<const rpc::StartLeakChecksRaw *>(obj);
+    case HostMessagesRaw::CorpusTriaged: {
+      auto ptr = reinterpret_cast<const rpc::CorpusTriagedRaw *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case HostMessagesRaw::StateRequest: {
@@ -3108,8 +3108,8 @@ inline void *HostMessagesRawUnion::UnPack(const void *obj, HostMessagesRaw type,
       auto ptr = reinterpret_cast<const rpc::SignalUpdateRaw *>(obj);
       return ptr->UnPack(resolver);
     }
-    case HostMessagesRaw::StartLeakChecks: {
-      auto ptr = reinterpret_cast<const rpc::StartLeakChecksRaw *>(obj);
+    case HostMessagesRaw::CorpusTriaged: {
+      auto ptr = reinterpret_cast<const rpc::CorpusTriagedRaw *>(obj);
       return ptr->UnPack(resolver);
     }
     case HostMessagesRaw::StateRequest: {
@@ -3131,9 +3131,9 @@ inline flatbuffers::Offset<void> HostMessagesRawUnion::Pack(flatbuffers::FlatBuf
       auto ptr = reinterpret_cast<const rpc::SignalUpdateRawT *>(value);
       return CreateSignalUpdateRaw(_fbb, ptr, _rehasher).Union();
     }
-    case HostMessagesRaw::StartLeakChecks: {
-      auto ptr = reinterpret_cast<const rpc::StartLeakChecksRawT *>(value);
-      return CreateStartLeakChecksRaw(_fbb, ptr, _rehasher).Union();
+    case HostMessagesRaw::CorpusTriaged: {
+      auto ptr = reinterpret_cast<const rpc::CorpusTriagedRawT *>(value);
+      return CreateCorpusTriagedRaw(_fbb, ptr, _rehasher).Union();
     }
     case HostMessagesRaw::StateRequest: {
       auto ptr = reinterpret_cast<const rpc::StateRequestRawT *>(value);
@@ -3153,8 +3153,8 @@ inline HostMessagesRawUnion::HostMessagesRawUnion(const HostMessagesRawUnion &u)
       value = new rpc::SignalUpdateRawT(*reinterpret_cast<rpc::SignalUpdateRawT *>(u.value));
       break;
     }
-    case HostMessagesRaw::StartLeakChecks: {
-      value = new rpc::StartLeakChecksRawT(*reinterpret_cast<rpc::StartLeakChecksRawT *>(u.value));
+    case HostMessagesRaw::CorpusTriaged: {
+      value = new rpc::CorpusTriagedRawT(*reinterpret_cast<rpc::CorpusTriagedRawT *>(u.value));
       break;
     }
     case HostMessagesRaw::StateRequest: {
@@ -3178,8 +3178,8 @@ inline void HostMessagesRawUnion::Reset() {
       delete ptr;
       break;
     }
-    case HostMessagesRaw::StartLeakChecks: {
-      auto ptr = reinterpret_cast<rpc::StartLeakChecksRawT *>(value);
+    case HostMessagesRaw::CorpusTriaged: {
+      auto ptr = reinterpret_cast<rpc::CorpusTriagedRawT *>(value);
       delete ptr;
       break;
     }
