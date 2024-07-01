@@ -90,6 +90,10 @@ func defaultValues() *Config {
 		MaxCrashLogs:   100,
 		Procs:          6,
 		PreserveCorpus: true,
+		Experimental: Experimental{
+			RemoteCover: true,
+			CoverEdges:  true,
+		},
 	}
 }
 
