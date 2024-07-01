@@ -287,21 +287,28 @@ func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
 func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 	const minimizeAttempts = 3
 	stop := false
+	results := make(chan *queue.Result)
 	p, call := prog.Minimize(job.p, call, prog.MinimizeParams{},
 		func(p1 *prog.Prog, call1 int) bool {
 			if stop {
 				return false
 			}
+			// Issue all requests in parallel, median run uses all 3 attempts.
 			for i := 0; i < minimizeAttempts; i++ {
-				result := job.execute(&queue.Request{
-					Prog:            p1,
-					ExecOpts:        setFlags(flatrpc.ExecFlagCollectSignal),
-					ReturnAllSignal: []int{call1},
-					Stat:            job.fuzzer.statExecMinimize,
-				}, 0)
+				go func() {
+					results <- job.execute(&queue.Request{
+						Prog:            p1,
+						ExecOpts:        setFlags(flatrpc.ExecFlagCollectSignal),
+						ReturnAllSignal: []int{call1},
+						Stat:            job.fuzzer.statExecMinimize,
+					}, 0)
+				}()
+			}
+			success := false
+			for i := 0; i < minimizeAttempts; i++ {
+				result := <-results
 				if result.Stop() {
 					stop = true
-					return false
 				}
 				if !reexecutionSuccess(result.Info, info.errno, call1) {
 					// The call was not executed or failed.
@@ -309,10 +316,10 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 				}
 				thisSignal := getSignalAndCover(p1, result.Info, call1)
 				if info.newStableSignal.Intersection(thisSignal).Len() == info.newStableSignal.Len() {
-					return true
+					success = true
 				}
 			}
-			return false
+			return success
 		})
 	if stop {
 		return nil, 0
