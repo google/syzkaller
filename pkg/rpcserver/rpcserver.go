@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"math/rand"
 	"slices"
 	"sort"
 	"strings"
@@ -453,7 +452,6 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 		requests:     make(map[int64]*queue.Request),
 		executing:    make(map[int64]bool),
 		lastExec:     MakeLastExecuting(serv.cfg.Procs, 6),
-		rnd:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		stats:        serv.runnerStats,
 		procs:        serv.cfg.Procs,
 	}
