@@ -148,3 +148,43 @@ func searchModuleName(data []byte) string {
 	}
 	return string(data[pos+len(key) : end])
 }
+
+func GetKaslrOffset(modules []*KernelModule, pcBase uint64) uint64 {
+	for _, mod := range modules {
+		if mod.Name == "" {
+			return mod.Addr - pcBase
+		}
+	}
+	return 0
+}
+
+// when CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
+func FixModules(localModules, modules []*KernelModule, kaslrOffset uint64) []*KernelModule {
+	var modules1 []*KernelModule
+	for _, mod := range modules {
+		size := uint64(0)
+		path := ""
+		for _, modA := range localModules {
+			if modA.Name == mod.Name {
+				size = modA.Size
+				path = modA.Path
+				break
+			}
+		}
+		if path == "" {
+			continue
+		}
+		addr := mod.Addr - kaslrOffset
+		if mod.Name == "" {
+			// mod.Addr for core kernel from target is _stext addr
+			addr = 0
+		}
+		modules1 = append(modules1, &KernelModule{
+			Name: mod.Name,
+			Size: size,
+			Addr: addr,
+			Path: path,
+		})
+	}
+	return modules1
+}

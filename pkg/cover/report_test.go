@@ -318,6 +318,10 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 			},
 		},
 	}
+	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+	if err != nil {
+		return nil, err
+	}
 
 	// Deep copy, as we are going to modify progs. Our test generate multiple reports from the same
 	// test object in parallel. Without copying we have a datarace here.
@@ -326,7 +330,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: append([]uint64{}, p.PCs...)})
 	}
 
-	rg, err := MakeReportGenerator(cfg, subsystem, nil, false)
+	rg, err := MakeReportGenerator(cfg, subsystem, modules, false)
 	if err != nil {
 		return nil, err
 	}

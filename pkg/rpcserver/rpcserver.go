@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
@@ -36,6 +37,7 @@ type Config struct {
 	Procs             int
 	Slowdown          int
 	PCBase            uint64
+	LocalModules      []*cover.KernelModule
 }
 
 type Manager interface {
@@ -50,12 +52,14 @@ type Server struct {
 	StatExecs      *stats.Val
 	StatNumFuzzing *stats.Val
 
-	cfg      *Config
-	mgr      Manager
-	serv     *flatrpc.Serv
-	target   *prog.Target
-	timeouts targets.Timeouts
-	checker  *vminfo.Checker
+	cfg          *Config
+	mgr          Manager
+	serv         *flatrpc.Serv
+	target       *prog.Target
+	timeouts     targets.Timeouts
+	checker      *vminfo.Checker
+	PCBase       uint64
+	LocalModules []*cover.KernelModule
 
 	infoOnce         sync.Once
 	checkDone        atomic.Bool
@@ -79,6 +83,10 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+	if err != nil {
+		return nil, err
+	}
 	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
 	if err != nil {
 		return nil, err
@@ -99,6 +107,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
 		PCBase:            pcBase,
+		LocalModules:      modules,
 	}, mgr)
 }
 
@@ -107,15 +116,17 @@ func newImpl(cfg *Config, mgr Manager) (*Server, error) {
 	checker := vminfo.New(&cfg.Config)
 	baseSource := queue.DynamicSource(checker)
 	serv := &Server{
-		cfg:        cfg,
-		mgr:        mgr,
-		target:     cfg.Target,
-		timeouts:   targets.Get(cfg.Target.OS, cfg.Target.Arch).Timeouts(cfg.Slowdown),
-		runners:    make(map[string]*Runner),
-		info:       make(map[string]VMState),
-		checker:    checker,
-		baseSource: baseSource,
-		execSource: queue.Retry(baseSource),
+		cfg:          cfg,
+		mgr:          mgr,
+		target:       cfg.Target,
+		timeouts:     targets.Get(cfg.Target.OS, cfg.Target.Arch).Timeouts(cfg.Slowdown),
+		runners:      make(map[string]*Runner),
+		info:         make(map[string]VMState),
+		checker:      checker,
+		baseSource:   baseSource,
+		execSource:   queue.Retry(baseSource),
+		PCBase:       cfg.PCBase,
+		LocalModules: cfg.LocalModules,
 
 		StatExecs: stats.Create("exec total", "Total test program executions",
 			stats.Console, stats.Rate{}, stats.Prometheus("syz_exec_total")),
@@ -281,6 +292,8 @@ func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Canoni
 			infoReq.Error = err.Error()
 		}
 	}
+	kaslrOffset := backend.GetKaslrOffset(modules, serv.PCBase)
+	modules = backend.FixModules(serv.LocalModules, modules, kaslrOffset)
 	if infoReq.Error != "" {
 		log.Logf(0, "machine check failed: %v", infoReq.Error)
 		serv.checkFailures++
