@@ -959,25 +959,29 @@ func (comp *compiler) checkStructRecursion(checked map[string]bool, n *ast.Struc
 			Struct: name,
 			Field:  f.Name.Name,
 		})
-		comp.recurseField(checked, f.Type, path)
+		isArg := false
+		if f.Type.Ident == "fmt" {
+			isArg = true
+		}
+		comp.recurseField(checked, f.Type, path, isArg)
 		path = path[:len(path)-1]
 	}
 	checked[name] = true
 }
 
-func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []pathElem) {
+func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []pathElem, isArg bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeStruct {
 		comp.checkStructRecursion(checked, comp.structs[t.Ident], path)
 		return
 	}
-	_, args, base := comp.getArgsBase(t, false)
+	_, args, base := comp.getArgsBase(t, isArg)
 	if desc == typePtr && base.IsOptional {
 		return // optional pointers prune recursion
 	}
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.recurseField(checked, arg, path)
+			comp.recurseField(checked, arg, path, isArg)
 		}
 	}
 }
