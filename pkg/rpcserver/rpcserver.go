@@ -8,13 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -404,7 +402,6 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo 
 		requests:      make(map[int64]*queue.Request),
 		executing:     make(map[int64]bool),
 		lastExec:      MakeLastExecuting(serv.cfg.Procs, 6),
-		rnd:           rand.New(rand.NewSource(time.Now().UnixNano())),
 		stats:         serv.runnerStats,
 		procs:         serv.cfg.Procs,
 		updInfo:       updInfo,

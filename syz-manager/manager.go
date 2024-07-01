@@ -1502,7 +1502,7 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 			}
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
-				if !mgr.cfg.Snapshot && mgr.enabledFeatures&flatrpc.FeatureLeak != 0 {
+				if !mgr.cfg.Snapshot {
 					mgr.serv.TriagedCorpus()
 				}
 				if mgr.cfg.HubClient != "" {

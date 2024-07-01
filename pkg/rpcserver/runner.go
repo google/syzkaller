@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"slices"
 	"sync"
@@ -43,7 +42,6 @@ type Runner struct {
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
 	lastExec      *LastExecuting
-	rnd           *rand.Rand
 	updInfo       dispatcher.UpdateInfo
 	resultCh      chan error
 
@@ -287,13 +285,7 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 	for i, call := range req.ReturnAllSignal {
 		allSignal[i] = int32(call)
 	}
-	// Do not let too much state accumulate.
-	const restartIn = 600
-	resetFlags := flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectComps
 	opts := req.ExecOpts
-	if req.ExecOpts.ExecFlags&resetFlags != 0 && runner.rnd.Intn(restartIn) == 0 {
-		opts.EnvFlags |= flatrpc.ExecEnvResetState
-	}
 	if runner.debug {
 		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
