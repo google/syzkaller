@@ -421,7 +421,7 @@ func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 
 func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 	runner := &Runner{
-		source:     serv.baseSource,
+		source:     serv.execSource,
 		cover:      serv.cfg.Cover,
 		debug:      serv.cfg.Debug,
 		injectExec: injectExec,
