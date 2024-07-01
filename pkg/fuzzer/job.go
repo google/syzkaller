@@ -456,7 +456,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		}
 		got := make(prog.CompMap)
 		for _, cmp := range result.Info.Calls[job.call].Comps {
-			got.AddComp(cmp.Op1, cmp.Op2)
+			got.Add(cmp.Pc, cmp.Op1, cmp.Op2, cmp.IsConst)
 		}
 		if i == 0 {
 			comps = got
@@ -464,6 +464,8 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 			comps.InplaceIntersect(got)
 		}
 	}
+
+	fuzzer.hintsLimiter.Limit(comps)
 
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.

@@ -208,8 +208,12 @@ table CallInfoRaw {
 }
 
 struct ComparisonRaw {
+	pc			:uint64;
 	op1			:uint64;
 	op2			:uint64;
+	// If is_const is set, op2 was a source code const (could not come from the input),
+	// otherwise both operands were dynamic and could come from the input.
+	is_const		:bool;
 }
 
 table ProgInfoRaw {

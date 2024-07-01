@@ -288,7 +288,7 @@ func (ctx *Context) printHints(p *prog.Prog, info *flatrpc.ProgInfo) {
 		}
 		comps := make(prog.CompMap)
 		for _, cmp := range info.Calls[i].Comps {
-			comps.AddComp(cmp.Op1, cmp.Op2)
+			comps.Add(cmp.Pc, cmp.Op1, cmp.Op2, cmp.IsConst)
 			if ctx.output {
 				fmt.Printf("comp 0x%x ? 0x%x\n", cmp.Op1, cmp.Op2)
 			}
