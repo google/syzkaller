@@ -3863,7 +3863,7 @@ static void setup_cgroups_test()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
 static void initialize_cgroups()
 {
 #if SYZ_EXECUTOR
@@ -3890,6 +3890,66 @@ static void initialize_cgroups()
 	}
 }
 #endif
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
+// Mount tmpfs and chroot into it in sandbox=none and sandbox=namespace.
+// This is to prevent persistent changes to the root file system (e.g. setting attributes) that may
+// hinder fuzzing.
+// See https://github.com/google/syzkaller/issues/4939 for more details.
+static void sandbox_common_mount_tmpfs(void)
+{
+	if (mkdir("./syz-tmp", 0777))
+		fail("mkdir(syz-tmp) failed");
+	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
+		fail("mount(tmpfs) failed");
+	if (mkdir("./syz-tmp/newroot", 0777))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/dev", 0700))
+		fail("mkdir failed");
+	unsigned bind_mount_flags = MS_BIND | MS_REC | MS_PRIVATE;
+	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, bind_mount_flags, NULL))
+		fail("mount(dev) failed");
+	if (mkdir("./syz-tmp/newroot/proc", 0700))
+		fail("mkdir failed");
+	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
+		fail("mount(proc) failed");
+	if (mkdir("./syz-tmp/newroot/selinux", 0700))
+		fail("mkdir failed");
+	// selinux mount used to be at /selinux, but then moved to /sys/fs/selinux.
+	const char* selinux_path = "./syz-tmp/newroot/selinux";
+	if (mount("/selinux", selinux_path, NULL, bind_mount_flags, NULL)) {
+		if (errno != ENOENT)
+			fail("mount(/selinux) failed");
+		if (mount("/sys/fs/selinux", selinux_path, NULL, bind_mount_flags, NULL) && errno != ENOENT)
+			fail("mount(/sys/fs/selinux) failed");
+	}
+	if (mkdir("./syz-tmp/newroot/sys", 0700))
+		fail("mkdir failed");
+	if (mount("/sys", "./syz-tmp/newroot/sys", 0, bind_mount_flags, NULL))
+		fail("mount(sysfs) failed");
+#if SYZ_EXECUTOR || SYZ_CGROUPS
+	initialize_cgroups();
+#endif
+	if (mkdir("./syz-tmp/pivot", 0777))
+		fail("mkdir failed");
+	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
+		debug("pivot_root failed\n");
+		if (chdir("./syz-tmp"))
+			fail("chdir failed");
+	} else {
+		debug("pivot_root OK\n");
+		if (chdir("/"))
+			fail("chdir failed");
+		if (umount2("./pivot", MNT_DETACH))
+			fail("umount failed");
+	}
+	if (chroot("./newroot"))
+		fail("chroot failed");
+	if (chdir("/"))
+		fail("chdir failed");
+}
+
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
@@ -4104,6 +4164,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || SYZ_WIFI
 	initialize_wifi_devices();
 #endif
+	sandbox_common_mount_tmpfs();
 	setup_binderfs();
 	loop();
 	doexit(1);
@@ -4217,55 +4278,7 @@ static int namespace_sandbox_proc(void* arg)
 	initialize_wifi_devices();
 #endif
 
-	if (mkdir("./syz-tmp", 0777))
-		fail("mkdir(syz-tmp) failed");
-	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
-		fail("mount(tmpfs) failed");
-	if (mkdir("./syz-tmp/newroot", 0777))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/dev", 0700))
-		fail("mkdir failed");
-	unsigned bind_mount_flags = MS_BIND | MS_REC | MS_PRIVATE;
-	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, bind_mount_flags, NULL))
-		fail("mount(dev) failed");
-	if (mkdir("./syz-tmp/newroot/proc", 0700))
-		fail("mkdir failed");
-	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
-		fail("mount(proc) failed");
-	if (mkdir("./syz-tmp/newroot/selinux", 0700))
-		fail("mkdir failed");
-	// selinux mount used to be at /selinux, but then moved to /sys/fs/selinux.
-	const char* selinux_path = "./syz-tmp/newroot/selinux";
-	if (mount("/selinux", selinux_path, NULL, bind_mount_flags, NULL)) {
-		if (errno != ENOENT)
-			fail("mount(/selinux) failed");
-		if (mount("/sys/fs/selinux", selinux_path, NULL, bind_mount_flags, NULL) && errno != ENOENT)
-			fail("mount(/sys/fs/selinux) failed");
-	}
-	if (mkdir("./syz-tmp/newroot/sys", 0700))
-		fail("mkdir failed");
-	if (mount("/sys", "./syz-tmp/newroot/sys", 0, bind_mount_flags, NULL))
-		fail("mount(sysfs) failed");
-#if SYZ_EXECUTOR || SYZ_CGROUPS
-	initialize_cgroups();
-#endif
-	if (mkdir("./syz-tmp/pivot", 0777))
-		fail("mkdir failed");
-	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
-		debug("pivot_root failed\n");
-		if (chdir("./syz-tmp"))
-			fail("chdir failed");
-	} else {
-		debug("pivot_root OK\n");
-		if (chdir("/"))
-			fail("chdir failed");
-		if (umount2("./pivot", MNT_DETACH))
-			fail("umount failed");
-	}
-	if (chroot("./newroot"))
-		fail("chroot failed");
-	if (chdir("/"))
-		fail("chdir failed");
+	sandbox_common_mount_tmpfs();
 	setup_binderfs();
 	drop_caps();
 
