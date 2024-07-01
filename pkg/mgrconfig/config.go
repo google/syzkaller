@@ -217,6 +217,12 @@ type Experimental struct {
 	// Don't let the VM state accumulate too much by restarting
 	// syz-executor before most prog executions.
 	ResetAccState bool `json:"reset_acc_state"`
+
+	// Use KCOV remote coverage feature (default: true).
+	RemoteCover bool `json:"remote_cover"`
+
+	// Hash adjacent PCs to form fuzzing feedback signal, otherwise use PCs as signal (default: true).
+	CoverEdges bool `json:"cover_edges"`
 }
 
 type Subsystem struct {
