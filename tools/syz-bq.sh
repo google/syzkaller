@@ -92,7 +92,7 @@ echo The latest commit as of $to_date is $base_commit.
 # echo Temp dir $base_dir deleted.
 
 from_date=$(date -d "$to_date - $duration days" +%Y-%m-%d)
-sessionID=$(uuidgen)
+sessionID=$(cat /proc/sys/kernel/random/uuid)
 gsURI=$(echo gs://syzbot-temp/bq-exports/${sessionID}/*.csv.gz)
 echo fetching data from bigquery
 query=$( echo -n '
@@ -119,7 +119,7 @@ AS (
 bq query --format=csv --use_legacy_sql=false "$query"
 sessionDir="$workdir/sessions/$sessionID"
 mkdir -p $sessionDir
-gcloud storage cp $gsURI $sessionDir
+gsutil -m cp $gsURI $sessionDir
 cat $sessionDir/*.csv.gz | gunzip | \
 go run ./tools/syz-covermerger/ -workdir $workdir \
   -repo $repo \
