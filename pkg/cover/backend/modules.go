@@ -22,44 +22,55 @@ type KernelModule struct {
 	Path string
 }
 
-func discoverModules(target *targets.Target, objDir string, moduleObj []string,
-	hostModules []*KernelModule) (
+func DiscoverModules(target *targets.Target, objDir string, moduleObj []string) (
 	[]*KernelModule, error) {
+	module := &KernelModule{
+		Path: filepath.Join(objDir, target.KernelObject),
+	}
+	textRange, err := elfReadTextSecRange(module)
+	if err != nil {
+		return nil, err
+	}
 	modules := []*KernelModule{
 		// A dummy module representing the kernel itself.
-		{Path: filepath.Join(objDir, target.KernelObject)},
+		{
+			Path: module.Path,
+			Size: textRange.End - textRange.Start,
+		},
 	}
 	if target.OS == targets.Linux {
-		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...),
-			hostModules)
+		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...))
 		if err != nil {
 			return nil, err
 		}
 		modules = append(modules, modules1...)
-	} else if len(hostModules) != 0 {
+	} else if len(modules) != 1 {
 		return nil, fmt.Errorf("%v coverage does not support modules", target.OS)
 	}
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []*KernelModule) ([]*KernelModule, error) {
+func discoverModulesLinux(dirs []string) ([]*KernelModule, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
 	}
 	var modules []*KernelModule
-	for _, mod := range hostModules {
-		path := paths[mod.Name]
+	for name, path := range paths {
 		if path == "" {
-			log.Logf(0, "failed to discover module %v", mod.Name)
 			continue
 		}
-		log.Logf(0, "module %v -> %v", mod.Name, path)
-		modules = append(modules, &KernelModule{
-			Name: mod.Name,
-			Addr: mod.Addr,
+		log.Logf(2, "module %v -> %v", name, path)
+		module := &KernelModule{
+			Name: name,
 			Path: path,
-		})
+		}
+		textRange, err := elfReadTextSecRange(module)
+		if err != nil {
+			return nil, err
+		}
+		module.Size = textRange.End - textRange.Start
+		modules = append(modules, module)
 	}
 	return modules, nil
 }
@@ -136,4 +147,44 @@ func searchModuleName(data []byte) string {
 		return ""
 	}
 	return string(data[pos+len(key) : end])
+}
+
+func GetKaslrOffset(modules []*KernelModule, pcBase uint64) uint64 {
+	for _, mod := range modules {
+		if mod.Name == "" {
+			return mod.Addr - pcBase
+		}
+	}
+	return 0
+}
+
+// when CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
+func FixModules(localModules, modules []*KernelModule, kaslrOffset uint64) []*KernelModule {
+	var modules1 []*KernelModule
+	for _, mod := range modules {
+		size := uint64(0)
+		path := ""
+		for _, modA := range localModules {
+			if modA.Name == mod.Name {
+				size = modA.Size
+				path = modA.Path
+				break
+			}
+		}
+		if path == "" {
+			continue
+		}
+		addr := mod.Addr - kaslrOffset
+		if mod.Name == "" {
+			// mod.Addr for core kernel from target is _stext addr
+			addr = 0
+		}
+		modules1 = append(modules1, &KernelModule{
+			Name: mod.Name,
+			Size: size,
+			Addr: addr,
+			Path: path,
+		})
+	}
+	return modules1
 }
