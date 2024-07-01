@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -30,18 +31,21 @@ type Runner struct {
 	debug         bool
 	sysTarget     *targets.Target
 	stats         *runnerStats
-	stopped       bool
 	finished      chan bool
 	injectExec    chan<- bool
 	infoc         chan chan []byte
-	conn          *flatrpc.Conn
-	machineInfo   []byte
 	canonicalizer *cover.CanonicalizerInstance
 	nextRequestID int64
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
 	lastExec      *LastExecuting
 	rnd           *rand.Rand
+
+	// The mutex protects all the fields below.
+	mu          sync.Mutex
+	conn        *flatrpc.Conn
+	stopped     bool
+	machineInfo []byte
 }
 
 type runnerStats struct {
@@ -106,13 +110,28 @@ func (runner *Runner) handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error 
 	if err := flatrpc.Send(conn, infoReply); err != nil {
 		return err
 	}
+	runner.mu.Lock()
 	runner.conn = conn
 	runner.machineInfo = ret.MachineInfo
 	runner.canonicalizer = ret.Canonicalizer
+	runner.mu.Unlock()
 	return nil
 }
 
 func (runner *Runner) connectionLoop() error {
+	runner.mu.Lock()
+	stopped := runner.stopped
+	if !stopped {
+		runner.finished = make(chan bool)
+	}
+	runner.mu.Unlock()
+
+	if stopped {
+		// The instance was shut down in between, see the shutdown code.
+		return nil
+	}
+	defer close(runner.finished)
+
 	var infoc chan []byte
 	defer func() {
 		if infoc != nil {
@@ -393,11 +412,25 @@ func (runner *Runner) sendCorpusTriaged() error {
 	return flatrpc.Send(runner.conn, msg)
 }
 
-func (runner *Runner) shutdown(crashed bool) ([]ExecRecord, []byte) {
-	if runner.conn != nil {
+func (runner *Runner) stop() {
+	runner.mu.Lock()
+	runner.stopped = true
+	conn := runner.conn
+	runner.mu.Unlock()
+	if conn != nil {
+		conn.Close()
+	}
+}
+
+func (runner *Runner) shutdown(crashed bool) []ExecRecord {
+	runner.mu.Lock()
+	runner.stopped = true
+	finished := runner.finished
+	runner.mu.Unlock()
+
+	if finished != nil {
 		// Wait for the connection goroutine to finish and stop touching data.
-		// If conn is nil before we removed the runner, then it won't touch anything.
-		<-runner.finished
+		<-finished
 	}
 	for id, req := range runner.requests {
 		status := queue.Restarted
@@ -406,7 +439,13 @@ func (runner *Runner) shutdown(crashed bool) ([]ExecRecord, []byte) {
 		}
 		req.Done(&queue.Result{Status: status})
 	}
-	return runner.lastExec.Collect(), runner.machineInfo
+	return runner.lastExec.Collect()
+}
+
+func (runner *Runner) getMachineInfo() []byte {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+	return runner.machineInfo
 }
 
 func (runner *Runner) queryStatus() []byte {
@@ -423,6 +462,12 @@ func (runner *Runner) queryStatus() []byte {
 	case <-timeout:
 		return []byte("VM is not responding")
 	}
+}
+
+func (runner *Runner) alive() bool {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+	return runner.conn != nil && !runner.stopped
 }
 
 // addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
