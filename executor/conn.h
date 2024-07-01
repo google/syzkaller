@@ -2,6 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 #include <arpa/inet.h>
+#include <endian.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -44,6 +45,7 @@ public:
 		typedef typename Msg::TableType Raw;
 		flatbuffers::uoffset_t size;
 		Recv(&size, sizeof(size));
+		size = le32toh(size);
 		recv_buf_.resize(size);
 		Recv(recv_buf_.data(), size);
 		auto raw = flatbuffers::GetRoot<Raw>(recv_buf_.data());
