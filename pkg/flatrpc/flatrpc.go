@@ -92,27 +92,27 @@ func (v Feature) String() string {
 type HostMessagesRaw byte
 
 const (
-	HostMessagesRawNONE            HostMessagesRaw = 0
-	HostMessagesRawExecRequest     HostMessagesRaw = 1
-	HostMessagesRawSignalUpdate    HostMessagesRaw = 2
-	HostMessagesRawStartLeakChecks HostMessagesRaw = 3
-	HostMessagesRawStateRequest    HostMessagesRaw = 4
+	HostMessagesRawNONE          HostMessagesRaw = 0
+	HostMessagesRawExecRequest   HostMessagesRaw = 1
+	HostMessagesRawSignalUpdate  HostMessagesRaw = 2
+	HostMessagesRawCorpusTriaged HostMessagesRaw = 3
+	HostMessagesRawStateRequest  HostMessagesRaw = 4
 )
 
 var EnumNamesHostMessagesRaw = map[HostMessagesRaw]string{
-	HostMessagesRawNONE:            "NONE",
-	HostMessagesRawExecRequest:     "ExecRequest",
-	HostMessagesRawSignalUpdate:    "SignalUpdate",
-	HostMessagesRawStartLeakChecks: "StartLeakChecks",
-	HostMessagesRawStateRequest:    "StateRequest",
+	HostMessagesRawNONE:          "NONE",
+	HostMessagesRawExecRequest:   "ExecRequest",
+	HostMessagesRawSignalUpdate:  "SignalUpdate",
+	HostMessagesRawCorpusTriaged: "CorpusTriaged",
+	HostMessagesRawStateRequest:  "StateRequest",
 }
 
 var EnumValuesHostMessagesRaw = map[string]HostMessagesRaw{
-	"NONE":            HostMessagesRawNONE,
-	"ExecRequest":     HostMessagesRawExecRequest,
-	"SignalUpdate":    HostMessagesRawSignalUpdate,
-	"StartLeakChecks": HostMessagesRawStartLeakChecks,
-	"StateRequest":    HostMessagesRawStateRequest,
+	"NONE":          HostMessagesRawNONE,
+	"ExecRequest":   HostMessagesRawExecRequest,
+	"SignalUpdate":  HostMessagesRawSignalUpdate,
+	"CorpusTriaged": HostMessagesRawCorpusTriaged,
+	"StateRequest":  HostMessagesRawStateRequest,
 }
 
 func (v HostMessagesRaw) String() string {
@@ -136,8 +136,8 @@ func (t *HostMessagesRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 		return t.Value.(*ExecRequestRawT).Pack(builder)
 	case HostMessagesRawSignalUpdate:
 		return t.Value.(*SignalUpdateRawT).Pack(builder)
-	case HostMessagesRawStartLeakChecks:
-		return t.Value.(*StartLeakChecksRawT).Pack(builder)
+	case HostMessagesRawCorpusTriaged:
+		return t.Value.(*CorpusTriagedRawT).Pack(builder)
 	case HostMessagesRawStateRequest:
 		return t.Value.(*StateRequestRawT).Pack(builder)
 	}
@@ -152,9 +152,9 @@ func (rcv HostMessagesRaw) UnPack(table flatbuffers.Table) *HostMessagesRawT {
 	case HostMessagesRawSignalUpdate:
 		x := SignalUpdateRaw{_tab: table}
 		return &HostMessagesRawT{Type: HostMessagesRawSignalUpdate, Value: x.UnPack()}
-	case HostMessagesRawStartLeakChecks:
-		x := StartLeakChecksRaw{_tab: table}
-		return &HostMessagesRawT{Type: HostMessagesRawStartLeakChecks, Value: x.UnPack()}
+	case HostMessagesRawCorpusTriaged:
+		x := CorpusTriagedRaw{_tab: table}
+		return &HostMessagesRawT{Type: HostMessagesRawCorpusTriaged, Value: x.UnPack()}
 	case HostMessagesRawStateRequest:
 		x := StateRequestRaw{_tab: table}
 		return &HostMessagesRawT{Type: HostMessagesRawStateRequest, Value: x.UnPack()}
@@ -2177,60 +2177,60 @@ func SignalUpdateRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
-type StartLeakChecksRawT struct {
+type CorpusTriagedRawT struct {
 }
 
-func (t *StartLeakChecksRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func (t *CorpusTriagedRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
-	StartLeakChecksRawStart(builder)
-	return StartLeakChecksRawEnd(builder)
+	CorpusTriagedRawStart(builder)
+	return CorpusTriagedRawEnd(builder)
 }
 
-func (rcv *StartLeakChecksRaw) UnPackTo(t *StartLeakChecksRawT) {
+func (rcv *CorpusTriagedRaw) UnPackTo(t *CorpusTriagedRawT) {
 }
 
-func (rcv *StartLeakChecksRaw) UnPack() *StartLeakChecksRawT {
+func (rcv *CorpusTriagedRaw) UnPack() *CorpusTriagedRawT {
 	if rcv == nil {
 		return nil
 	}
-	t := &StartLeakChecksRawT{}
+	t := &CorpusTriagedRawT{}
 	rcv.UnPackTo(t)
 	return t
 }
 
-type StartLeakChecksRaw struct {
+type CorpusTriagedRaw struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsStartLeakChecksRaw(buf []byte, offset flatbuffers.UOffsetT) *StartLeakChecksRaw {
+func GetRootAsCorpusTriagedRaw(buf []byte, offset flatbuffers.UOffsetT) *CorpusTriagedRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &StartLeakChecksRaw{}
+	x := &CorpusTriagedRaw{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func GetSizePrefixedRootAsStartLeakChecksRaw(buf []byte, offset flatbuffers.UOffsetT) *StartLeakChecksRaw {
+func GetSizePrefixedRootAsCorpusTriagedRaw(buf []byte, offset flatbuffers.UOffsetT) *CorpusTriagedRaw {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &StartLeakChecksRaw{}
+	x := &CorpusTriagedRaw{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func (rcv *StartLeakChecksRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *CorpusTriagedRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *StartLeakChecksRaw) Table() flatbuffers.Table {
+func (rcv *CorpusTriagedRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func StartLeakChecksRawStart(builder *flatbuffers.Builder) {
+func CorpusTriagedRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(0)
 }
-func StartLeakChecksRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func CorpusTriagedRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 

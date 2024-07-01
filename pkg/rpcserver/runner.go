@@ -281,11 +281,11 @@ func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
 	return flatrpc.Send(runner.conn, msg)
 }
 
-func (runner *Runner) sendStartLeakChecks() error {
+func (runner *Runner) sendCorpusTriaged() error {
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
-			Type:  flatrpc.HostMessagesRawStartLeakChecks,
-			Value: &flatrpc.StartLeakChecks{},
+			Type:  flatrpc.HostMessagesRawCorpusTriaged,
+			Value: &flatrpc.CorpusTriaged{},
 		},
 	}
 	return flatrpc.Send(runner.conn, msg)
