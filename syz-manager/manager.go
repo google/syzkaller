@@ -669,7 +669,13 @@ func (mgr *Manager) preloadCorpus() {
 		fallthrough
 	case 4:
 		// Version 4->5: fix for comparison argument sign extension.
-		corpusFlags &= ^fuzzer.ProgSmashed
+		// Introduced in 1ba0279d74a35e96e81de87073212d2b20256e8f.
+
+		// Update (July 2024):
+		// We used to reset the fuzzer.ProgSmashed flag here, but it has led to
+		// perpetual corpus retriage on slow syzkaller instances. By now, all faster
+		// instances must have already bumped their corpus versions, so let's just
+		// increase the version to let all others go past the corpus triage stage.
 		fallthrough
 	case currentDBVersion:
 	}
