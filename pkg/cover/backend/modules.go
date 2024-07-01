@@ -22,8 +22,7 @@ type KernelModule struct {
 	Path string
 }
 
-func discoverModules(target *targets.Target, objDir string, moduleObj []string,
-	hostModules []*KernelModule) (
+func DiscoverModules(target *targets.Target, objDir string, moduleObj []string) (
 	[]*KernelModule, error) {
 	module := &KernelModule{
 		Path: filepath.Join(objDir, target.KernelObject),
@@ -40,34 +39,30 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string,
 		},
 	}
 	if target.OS == targets.Linux {
-		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...),
-			hostModules)
+		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...))
 		if err != nil {
 			return nil, err
 		}
 		modules = append(modules, modules1...)
-	} else if len(hostModules) != 0 {
+	} else if len(modules) != 1 {
 		return nil, fmt.Errorf("%v coverage does not support modules", target.OS)
 	}
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []*KernelModule) ([]*KernelModule, error) {
+func discoverModulesLinux(dirs []string) ([]*KernelModule, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
 	}
 	var modules []*KernelModule
-	for _, mod := range hostModules {
-		path := paths[mod.Name]
+	for name, path := range paths {
 		if path == "" {
-			log.Logf(0, "failed to discover module %v", mod.Name)
 			continue
 		}
-		log.Logf(2, "module %v -> %v", mod.Name, path)
+		log.Logf(2, "module %v -> %v", name, path)
 		module := &KernelModule{
-			Name: mod.Name,
-			Addr: mod.Addr,
+			Name: name,
 			Path: path,
 		}
 		textRange, err := elfReadTextSecRange(module)
