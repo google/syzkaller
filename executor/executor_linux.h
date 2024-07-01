@@ -150,8 +150,16 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	    .area_size = kExtraCoverSize,
 	    .num_handles = 1,
 	};
-	arg.common_handle = kcov_remote_handle(KCOV_SUBSYSTEM_COMMON, procid + 1);
-	arg.handles[0] = kcov_remote_handle(KCOV_SUBSYSTEM_USB, procid + 1);
+
+	// Let's use a different kcov remote handle each restart -- we don't want to
+	// see the remote coverage triggered by the already exited executors.
+	struct timeval curr_time;
+	gettimeofday(&curr_time, NULL);
+	uint64 current_usec = curr_time.tv_sec * 1000000 + curr_time.tv_usec;
+	// Combine procid with the current time.
+	uint64 instance_id = (current_usec & KCOV_INSTANCE_MASK & ~0xF) | (procid & 0xF);
+	arg.common_handle = kcov_remote_handle(KCOV_SUBSYSTEM_COMMON, instance_id);
+	arg.handles[0] = kcov_remote_handle(KCOV_SUBSYSTEM_USB, instance_id);
 	if (ioctl(cov->fd, KCOV_REMOTE_ENABLE, &arg))
 		exitf("remote cover enable write trace failed");
 }
