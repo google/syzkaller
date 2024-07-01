@@ -181,24 +181,18 @@ func (serv *Server) VMState() map[string]VMState {
 func (serv *Server) MachineInfo(name string) []byte {
 	serv.mu.Lock()
 	runner := serv.runners[name]
-	if runner != nil && (runner.conn == nil || runner.stopped) {
-		runner = nil
-	}
 	serv.mu.Unlock()
-	if runner == nil {
+	if runner == nil || !runner.alive() {
 		return []byte("VM is not alive")
 	}
-	return runner.machineInfo
+	return runner.getMachineInfo()
 }
 
 func (serv *Server) RunnerStatus(name string) []byte {
 	serv.mu.Lock()
 	runner := serv.runners[name]
-	if runner != nil && (runner.conn == nil || runner.stopped) {
-		runner = nil
-	}
 	serv.mu.Unlock()
-	if runner == nil {
+	if runner == nil || !runner.alive() {
 		return []byte("VM is not alive")
 	}
 	return runner.queryStatus()
@@ -227,13 +221,11 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 
 	serv.mu.Lock()
 	runner := serv.runners[name]
-	if runner == nil || runner.stopped {
-		serv.mu.Unlock()
-		log.Logf(2, "VM %v shut down before connect", name)
+	serv.mu.Unlock()
+	if runner == nil {
+		log.Logf(2, "unknown VM %v tries to connect", name)
 		return
 	}
-	serv.mu.Unlock()
-	defer close(runner.finished)
 
 	opts := &handshakeConfig{
 		VMLess:   serv.cfg.VMLess,
@@ -451,13 +443,9 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 func (serv *Server) StopFuzzing(name string) {
 	serv.mu.Lock()
 	runner := serv.runners[name]
-	runner.stopped = true
-	conn := runner.conn
 	serv.info[name] = VMState{StateStopping, time.Now()}
 	serv.mu.Unlock()
-	if conn != nil {
-		conn.Close()
-	}
+	runner.stop()
 }
 
 func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, []byte) {
@@ -466,7 +454,7 @@ func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, [
 	delete(serv.runners, name)
 	serv.info[name] = VMState{StateOffline, time.Now()}
 	serv.mu.Unlock()
-	return runner.shutdown(crashed)
+	return runner.shutdown(crashed), runner.getMachineInfo()
 }
 
 func (serv *Server) DistributeSignalDelta(plus, minus signal.Signal) {
@@ -491,7 +479,7 @@ func (serv *Server) foreachRunnerAsync(fn func(runner *Runner)) {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 	for _, runner := range serv.runners {
-		if runner.conn != nil {
+		if runner.alive() {
 			go fn(runner)
 		}
 	}
