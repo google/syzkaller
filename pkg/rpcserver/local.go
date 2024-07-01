@@ -104,7 +104,7 @@ func RunLocal(cfg *LocalConfig) error {
 		// If the executor has crashed early, reply to all remaining requests to unblock tests.
 	loop:
 		for {
-			req := serv.execSource.Next()
+			req := serv.execSource.Next(-1)
 			if req == nil {
 				select {
 				case <-cfg.Context.Done():

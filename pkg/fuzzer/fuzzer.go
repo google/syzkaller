@@ -136,10 +136,11 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
 			}
 			fuzzer.startJob(stat, &triageJob{
-				p:     req.Prog.Clone(),
-				flags: flags,
-				queue: queue.Append(),
-				calls: triage,
+				p:        req.Prog.Clone(),
+				executor: res.Executor,
+				flags:    flags,
+				queue:    queue.Append(),
+				calls:    triage,
 			})
 		}
 	}

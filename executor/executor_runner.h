@@ -55,6 +55,8 @@ public:
 	{
 		if (state_ != State::Started && state_ != State::Idle)
 			return false;
+		if (msg.avoid & (1ull << id_))
+			return false;
 		if (msg_)
 			fail("already have pending msg");
 		if (wait_start_)
@@ -382,7 +384,7 @@ private:
 			}
 			output_off = fbb.CreateVector(output_);
 		}
-		auto exec_off = rpc::CreateExecResultRaw(fbb, msg_->id, output_off, error_off, prog_info_off);
+		auto exec_off = rpc::CreateExecResultRaw(fbb, msg_->id, id_, output_off, error_off, prog_info_off);
 		auto msg_off = rpc::CreateExecutorMessageRaw(fbb, rpc::ExecutorMessagesRaw::ExecResult,
 							     flatbuffers::Offset<void>(exec_off.o));
 		fbb.FinishSizePrefixed(msg_off);
