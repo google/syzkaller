@@ -25,6 +25,7 @@ type Runner struct {
 	source        queue.Source
 	procs         int
 	cover         bool
+	coverEdges    bool
 	filterSignal  bool
 	debug         bool
 	sysTarget     *targets.Target
@@ -50,6 +51,65 @@ type runnerStats struct {
 	statExecBufferTooSmall *stats.Val
 	statNoExecRequests     *stats.Val
 	statNoExecDuration     *stats.Val
+}
+
+type handshakeConfig struct {
+	VMLess     bool
+	Timeouts   targets.Timeouts
+	LeakFrames []string
+	RaceFrames []string
+	Files      []string
+	Globs      []string
+	Features   flatrpc.Feature
+
+	// Callback() is called in the middle of the handshake process.
+	// The return arguments are the coverage filter and the (possible) error.
+	Callback func(*flatrpc.InfoRequestRawT) (handshakeResult, error)
+}
+
+type handshakeResult struct {
+	CovFilter     []uint64
+	MachineInfo   []byte
+	Canonicalizer *cover.CanonicalizerInstance
+}
+
+func (runner *Runner) handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error {
+	connectReply := &flatrpc.ConnectReply{
+		Debug:            runner.debug,
+		Cover:            runner.cover,
+		CoverEdges:       runner.coverEdges,
+		Kernel64Bit:      runner.sysTarget.PtrSize == 8,
+		Procs:            int32(runner.procs),
+		Slowdown:         int32(cfg.Timeouts.Slowdown),
+		SyscallTimeoutMs: int32(cfg.Timeouts.Syscall / time.Millisecond),
+		ProgramTimeoutMs: int32(cfg.Timeouts.Program / time.Millisecond),
+		LeakFrames:       cfg.LeakFrames,
+		RaceFrames:       cfg.RaceFrames,
+		Files:            cfg.Files,
+		Globs:            cfg.Globs,
+		Features:         cfg.Features,
+	}
+	if err := flatrpc.Send(conn, connectReply); err != nil {
+		return err
+	}
+	infoReq, err := flatrpc.Recv[*flatrpc.InfoRequestRaw](conn)
+	if err != nil {
+		return err
+	}
+	ret, err := cfg.Callback(infoReq)
+	if err != nil {
+		return err
+	}
+	infoReply := &flatrpc.InfoReply{
+		CoverFilter: ret.CovFilter,
+	}
+	if err := flatrpc.Send(conn, infoReply); err != nil {
+		return err
+	}
+	runner.conn = conn
+	runner.machineInfo = ret.MachineInfo
+	runner.canonicalizer = ret.Canonicalizer
+	return nil
 }
 
 func (runner *Runner) connectionLoop() error {
