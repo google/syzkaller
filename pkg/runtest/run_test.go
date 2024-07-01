@@ -151,7 +151,7 @@ type CoverTest struct {
 	Flags           flatrpc.ExecFlag
 	Cover           []uint64
 	Signal          []uint64
-	Comps           [][2]uint64
+	Comps           []*flatrpc.Comparison
 }
 
 type Comparison struct {
@@ -252,60 +252,58 @@ func testCover(t *testing.T, target *prog.Target) {
 			Is64Bit: true,
 			Input: makeComps(
 				// A normal 8-byte comparison must be returned in the output as is.
-				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
+				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 1},
 				// Duplicate must be removed.
-				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
+				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 1},
 				// Non-const comparisons must be duplicated both ways.
-				Comparison{CmpSize8, 0x30, 0x31, 0},
+				Comparison{CmpSize8, 0x30, 0x31, 1},
 				// Test sign-extension for smaller argument types.
-				Comparison{CmpSize1 | CmpConst, 0xa3, 0x77, 0},
-				Comparison{CmpSize1 | CmpConst, 0xff10, 0xffe1, 0},
-				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 0},
-				Comparison{CmpSize4 | CmpConst, 0xabcd1234, 0x4321, 0},
+				Comparison{CmpSize1 | CmpConst, 0xa3, 0x77, 1},
+				Comparison{CmpSize1 | CmpConst, 0xff10, 0xffe1, 1},
+				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 1},
+				Comparison{CmpSize4 | CmpConst, 0xabcd1234, 0x4321, 1},
 				// Comparison with const 0 must be removed.
-				Comparison{CmpSize8 | CmpConst, 0, 0x2222222222222222, 0},
-				Comparison{CmpSize8, 0, 0x3333, 0},
+				Comparison{CmpSize8 | CmpConst, 0, 0x2222222222222222, 1},
+				Comparison{CmpSize8, 0, 0x3333, 1},
 				// Comparison of equal values must be removed.
-				Comparison{CmpSize8, 0, 0, 0},
-				Comparison{CmpSize8, 0x1111, 0x1111, 0},
+				Comparison{CmpSize8, 0, 0, 1},
+				Comparison{CmpSize8, 0x1111, 0x1111, 1},
 				// Comparisons of kernel addresses must be removed.
-				Comparison{CmpSize8 | CmpConst, 0xda1a0000, 0xda1a1000, 0},
-				Comparison{CmpSize8, 0xda1a0000, 0, 0},
-				Comparison{CmpSize8, 0, 0xda1a0010, 0},
-				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 0},
+				Comparison{CmpSize8 | CmpConst, 0xda1a0000, 0xda1a1000, 1},
+				Comparison{CmpSize8, 0xda1a0000, 0, 1},
+				Comparison{CmpSize8, 0, 0xda1a0010, 1},
+				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 1},
 				// But not with something that's not a kernel address.
-				Comparison{CmpSize8 | CmpConst, 0xda1a0010, 0xabcd, 0},
+				Comparison{CmpSize8 | CmpConst, 0xda1a0010, 0xabcd, 1},
 			),
 			Flags: flatrpc.ExecFlagCollectComps,
-			Comps: [][2]uint64{
-				{0x2222222222222222, 0x1111111111111111},
-				{0x30, 0x31},
-				{0x31, 0x30},
-				{0x77, 0xffffffffffffffa3},
-				{0xffffffffffffffe1, 0x10},
-				{0x4321, 0xffffffffffffabcd},
-				{0x4321, 0xffffffffabcd1234},
-				{0x3333, 0},
-				{0, 0x3333},
-				{0xabcd, 0xda1a0010},
+			Comps: []*flatrpc.Comparison{
+				{Pc: 1, Op1: 0x2222222222222222, Op2: 0x1111111111111111, IsConst: true},
+				{Pc: 1, Op1: 0x31, Op2: 0x30, IsConst: false},
+				{Pc: 1, Op1: 0x77, Op2: 0xffffffffffffffa3, IsConst: true},
+				{Pc: 1, Op1: 0xffffffffffffffe1, Op2: 0x10, IsConst: true},
+				{Pc: 1, Op1: 0x4321, Op2: 0xffffffffffffabcd, IsConst: true},
+				{Pc: 1, Op1: 0x4321, Op2: 0xffffffffabcd1234, IsConst: true},
+				{Pc: 1, Op1: 0x3333, Op2: 0, IsConst: false},
+				{Pc: 1, Op1: 0xabcd, Op2: 0xda1a0010, IsConst: true},
 			},
 		},
 		// 32-bit comparisons must be the same, so test only a subset.
 		{
 			Is64Bit: false,
 			Input: makeComps(
-				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 0},
-				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 0},
-				Comparison{CmpSize4 | CmpConst, 0xda1a0000, 0xda1a1000, 0},
-				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 0},
-				Comparison{CmpSize4 | CmpConst, 0xc0de0000, 0xc0de1000, 0},
-				Comparison{CmpSize4 | CmpConst, 0xc0de0011, 0xc0de1022, 0},
+				Comparison{CmpSize8 | CmpConst, 0x1111111111111111, 0x2222222222222222, 1},
+				Comparison{CmpSize2 | CmpConst, 0xabcd, 0x4321, 2},
+				Comparison{CmpSize4 | CmpConst, 0xda1a0000, 0xda1a1000, 1},
+				Comparison{CmpSize8 | CmpConst, 0xc0dec0dec0de0000, 0xc0dec0dec0de1000, 3},
+				Comparison{CmpSize4 | CmpConst, 0xc0de0000, 0xc0de1000, 1},
+				Comparison{CmpSize4 | CmpConst, 0xc0de0011, 0xc0de1022, 1},
 			),
 			Flags: flatrpc.ExecFlagCollectComps,
-			Comps: [][2]uint64{
-				{0x2222222222222222, 0x1111111111111111},
-				{0x4321, 0xffffffffffffabcd},
-				{0xc0dec0dec0de1000, 0xc0dec0dec0de0000},
+			Comps: []*flatrpc.Comparison{
+				{Pc: 1, Op1: 0x2222222222222222, Op2: 0x1111111111111111, IsConst: true},
+				{Pc: 2, Op1: 0x4321, Op2: 0xffffffffffffabcd, IsConst: true},
+				{Pc: 3, Op1: 0xc0dec0dec0de1000, Op2: 0xc0dec0dec0de0000, IsConst: true},
 			},
 		},
 		// Test max signal.
@@ -405,10 +403,6 @@ func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test Cov
 		t.Fatalf("program execution failed: status=%v err=%v\n%s", res.Status, res.Err, res.Output)
 	}
 	call := res.Info.Calls[0]
-	var comps [][2]uint64
-	for _, cmp := range call.Comps {
-		comps = append(comps, [2]uint64{cmp.Op1, cmp.Op2})
-	}
 	if test.Cover == nil {
 		test.Cover = []uint64{}
 	}
@@ -418,7 +412,7 @@ func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test Cov
 	assert.Equal(t, test.Cover, call.Cover)
 	assert.Equal(t, test.Signal, call.Signal)
 	// Comparisons are reordered and order does not matter, so compare without order.
-	assert.ElementsMatch(t, test.Comps, comps)
+	assert.ElementsMatch(t, test.Comps, call.Comps)
 }
 
 func makeCover64(pcs ...uint64) []byte {

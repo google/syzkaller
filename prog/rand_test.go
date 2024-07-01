@@ -60,8 +60,8 @@ func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable,
 	for i, c := range p.Calls {
 		comps := make(CompMap)
 		for v := range extractValues(c) {
-			comps.AddComp(v, v+1)
-			comps.AddComp(v, v+10)
+			comps.Add(1, v, v+1, true)
+			comps.Add(1, v, v+10, true)
 		}
 		// If unbounded, this code may take O(N^2) time to complete.
 		// Since large programs are not uncommon, let's limit the number of hint iterations.

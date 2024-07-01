@@ -662,7 +662,7 @@ func TestHintsRandom(t *testing.T) {
 			}
 			comps := make(CompMap)
 			for v := range vals {
-				comps.AddComp(v, r.randInt64())
+				comps.Add(1, v, r.randInt64(), true)
 			}
 			p.MutateWithHints(i, comps, func(p1 *Prog) bool { return true })
 		}
@@ -772,7 +772,7 @@ func BenchmarkHints(b *testing.B) {
 		}
 		comps[i] = make(CompMap)
 		for v := range vals {
-			comps[i].AddComp(v, r.randInt64())
+			comps[i].Add(1, v, r.randInt64(), true)
 		}
 	}
 	b.RunParallel(func(pb *testing.PB) {
@@ -784,10 +784,82 @@ func BenchmarkHints(b *testing.B) {
 	})
 }
 
-func compSet(vals ...uint64) map[uint64]bool {
-	m := make(map[uint64]bool)
+func TestHintsLimiter(t *testing.T) {
+	var limiter HintsLimiter
+
+	// Base case.
+	comps := make(CompMap)
+	comps.Add(1000, 1000, 1100, true)
+	for i := uint64(0); i < 9; i++ {
+		comps.Add(2000, 2000+i, 2100+i, true)
+	}
+	for i := uint64(0); i < 10; i++ {
+		comps.Add(3000, 3000+i, 3100+i, true)
+	}
+	for i := uint64(0); i < 11; i++ {
+		comps.Add(4000, 4000+i, 4100+i, true)
+	}
+	for i := uint64(0); i < 20; i++ {
+		comps.Add(5000, 5000+i, 5100+i, true)
+	}
+	assert.Equal(t, perPCCount(comps), map[uint64]int{
+		1000: 1,
+		2000: 9,
+		3000: 10,
+		4000: 11,
+		5000: 20,
+	})
+	limiter.Limit(comps)
+	assert.Equal(t, perPCCount(comps), map[uint64]int{
+		1000: 1,
+		2000: 9,
+		3000: 10,
+		4000: 10,
+		5000: 10,
+	})
+
+	// Test that counts are accumulated in the limiter.
+	comps = make(CompMap)
+	for i := uint64(0); i < 3; i++ {
+		comps.Add(1000, 1000+i, 1100+i, true)
+	}
+	for i := uint64(0); i < 3; i++ {
+		comps.Add(2000, 2000+i, 2100+i, true)
+	}
+	for i := uint64(0); i < 3; i++ {
+		comps.Add(3000, 3000+i, 3100+i, true)
+	}
+	assert.Equal(t, perPCCount(comps), map[uint64]int{
+		1000: 3,
+		2000: 3,
+		3000: 3,
+	})
+	limiter.Limit(comps)
+	assert.Equal(t, perPCCount(comps), map[uint64]int{
+		1000: 3,
+		2000: 1,
+	})
+}
+
+func perPCCount(comps CompMap) map[uint64]int {
+	res := make(map[uint64]int)
+	for _, ops2 := range comps {
+		for _, pcs := range ops2 {
+			for pc := range pcs {
+				res[pc]++
+			}
+		}
+	}
+	return res
+}
+
+func compSet(vals ...uint64) map[uint64]map[uint64]bool {
+	m := make(map[uint64]map[uint64]bool)
 	for _, v := range vals {
-		m[v] = true
+		if m[v] == nil {
+			m[v] = make(map[uint64]bool)
+		}
+		m[v][1] = true
 	}
 	return m
 }

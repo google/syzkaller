@@ -420,6 +420,15 @@ func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	call.Cover = runner.canonicalizer.Canonicalize(call.Cover)
 	call.Signal = runner.canonicalizer.Canonicalize(call.Signal)
 
+	call.Comps = slices.DeleteFunc(call.Comps, func(cmp *flatrpc.Comparison) bool {
+		converted := runner.canonicalizer.Canonicalize([]uint64{cmp.Pc})
+		if len(converted) == 0 {
+			return true
+		}
+		cmp.Pc = converted[0]
+		return false
+	})
+
 	// Check signal belongs to kernel addresses.
 	// Mismatching addresses can mean either corrupted VM memory, or that the fuzzer somehow
 	// managed to inject output signal. If we see any bogus signal, drop whole signal

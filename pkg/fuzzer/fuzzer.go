@@ -24,10 +24,11 @@ type Fuzzer struct {
 	Config *Config
 	Cover  *Cover
 
-	ctx    context.Context
-	mu     sync.Mutex
-	rnd    *rand.Rand
-	target *prog.Target
+	ctx          context.Context
+	mu           sync.Mutex
+	rnd          *rand.Rand
+	target       *prog.Target
+	hintsLimiter prog.HintsLimiter
 
 	ct           *prog.ChoiceTable
 	ctProgs      int

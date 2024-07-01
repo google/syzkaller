@@ -2594,7 +2594,7 @@ func (rcv *CallInfoRaw) Comps(obj *ComparisonRaw, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 16
+		x += flatbuffers.UOffsetT(j) * 32
 		obj.Init(rcv._tab.Bytes, x)
 		return true
 	}
@@ -2634,26 +2634,30 @@ func CallInfoRawAddComps(builder *flatbuffers.Builder, comps flatbuffers.UOffset
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(comps), 0)
 }
 func CallInfoRawStartCompsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(16, numElems, 8)
+	return builder.StartVector(32, numElems, 8)
 }
 func CallInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
 
 type ComparisonRawT struct {
-	Op1 uint64 `json:"op1"`
-	Op2 uint64 `json:"op2"`
+	Pc      uint64 `json:"pc"`
+	Op1     uint64 `json:"op1"`
+	Op2     uint64 `json:"op2"`
+	IsConst bool   `json:"is_const"`
 }
 
 func (t *ComparisonRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil {
 		return 0
 	}
-	return CreateComparisonRaw(builder, t.Op1, t.Op2)
+	return CreateComparisonRaw(builder, t.Pc, t.Op1, t.Op2, t.IsConst)
 }
 func (rcv *ComparisonRaw) UnPackTo(t *ComparisonRawT) {
+	t.Pc = rcv.Pc()
 	t.Op1 = rcv.Op1()
 	t.Op2 = rcv.Op2()
+	t.IsConst = rcv.IsConst()
 }
 
 func (rcv *ComparisonRaw) UnPack() *ComparisonRawT {
@@ -2678,24 +2682,41 @@ func (rcv *ComparisonRaw) Table() flatbuffers.Table {
 	return rcv._tab.Table
 }
 
-func (rcv *ComparisonRaw) Op1() uint64 {
+func (rcv *ComparisonRaw) Pc() uint64 {
 	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *ComparisonRaw) MutateOp1(n uint64) bool {
+func (rcv *ComparisonRaw) MutatePc(n uint64) bool {
 	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
 }
 
-func (rcv *ComparisonRaw) Op2() uint64 {
+func (rcv *ComparisonRaw) Op1() uint64 {
 	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(8))
 }
-func (rcv *ComparisonRaw) MutateOp2(n uint64) bool {
+func (rcv *ComparisonRaw) MutateOp1(n uint64) bool {
 	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(8), n)
 }
 
-func CreateComparisonRaw(builder *flatbuffers.Builder, op1 uint64, op2 uint64) flatbuffers.UOffsetT {
-	builder.Prep(8, 16)
+func (rcv *ComparisonRaw) Op2() uint64 {
+	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(16))
+}
+func (rcv *ComparisonRaw) MutateOp2(n uint64) bool {
+	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(16), n)
+}
+
+func (rcv *ComparisonRaw) IsConst() bool {
+	return rcv._tab.GetBool(rcv._tab.Pos + flatbuffers.UOffsetT(24))
+}
+func (rcv *ComparisonRaw) MutateIsConst(n bool) bool {
+	return rcv._tab.MutateBool(rcv._tab.Pos+flatbuffers.UOffsetT(24), n)
+}
+
+func CreateComparisonRaw(builder *flatbuffers.Builder, pc uint64, op1 uint64, op2 uint64, isConst bool) flatbuffers.UOffsetT {
+	builder.Prep(8, 32)
+	builder.Pad(7)
+	builder.PrependBool(isConst)
 	builder.PrependUint64(op2)
 	builder.PrependUint64(op1)
+	builder.PrependUint64(pc)
 	return builder.Offset()
 }
 
