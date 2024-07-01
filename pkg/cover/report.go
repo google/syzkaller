@@ -30,6 +30,10 @@ type Prog struct {
 
 type KernelModule = backend.KernelModule
 
+func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
+	return backend.GetPCBase(cfg)
+}
+
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
 	modules []*KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,

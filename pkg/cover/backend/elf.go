@@ -8,9 +8,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -216,4 +218,23 @@ func elfGetCompilerVersion(path string) string {
 		return ""
 	}
 	return string(data[:])
+}
+
+func getPCBase(cfg *mgrconfig.Config) (uint64, error) {
+	bin := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
+	file, err := elf.Open(bin)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+	allSymbols, err := file.Symbols()
+	if err != nil {
+		return 0, err
+	}
+	for _, sym := range allSymbols {
+		if sym.Name == "_stext" {
+			return sym.Value, nil
+		}
+	}
+	return 0, fmt.Errorf("no _stext symbol")
 }
