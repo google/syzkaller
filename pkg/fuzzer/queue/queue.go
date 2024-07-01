@@ -41,16 +41,26 @@ type Request struct {
 	// Important requests will be retried even from crashed VMs.
 	Important bool
 
+	// Avoid specifies set of executors that are preferable to avoid when executing this request.
+	// The restriction is soft since there can be only one executor at all or available right now.
+	Avoid []ExecutorID
+
 	// The callback will be called on request completion in the LIFO order.
 	// If it returns false, all further processing will be stopped.
 	// It allows wrappers to intercept Done() requests.
 	callback DoneCallback
 
-	onceCrashed bool
+	onceCrashed  bool
+	delayedSince uint64
 
 	mu     sync.Mutex
 	result *Result
 	done   chan struct{}
+}
+
+type ExecutorID struct {
+	VM   int
+	Proc int
 }
 
 type DoneCallback func(*Request, *Result) bool
@@ -137,10 +147,11 @@ func (r *Request) initChannel() {
 }
 
 type Result struct {
-	Info   *flatrpc.ProgInfo
-	Output []byte
-	Status Status
-	Err    error // More details in case of ExecFailure.
+	Info     *flatrpc.ProgInfo
+	Executor ExecutorID
+	Output   []byte
+	Status   Status
+	Err      error // More details in case of ExecFailure.
 }
 
 func (r *Result) clone() *Result {

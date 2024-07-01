@@ -163,6 +163,8 @@ struct ExecOptsRaw {
 // Request to execute a test program.
 table ExecRequestRaw {
 	id			:int64;
+	// Bitmask of procs to avoid when executing this request, if possible.
+	avoid			:uint64;
 	prog_data		:[uint8];
 	exec_opts		:ExecOptsRaw;
 	flags			:RequestFlag;
@@ -239,6 +241,7 @@ table ProgInfoRaw {
 // Result of executing a test program.
 table ExecResultRaw {
 	id			:int64;
+	proc			:int32;
 	output			:[uint8];
 	error			:string;
 	info			:ProgInfoRaw;

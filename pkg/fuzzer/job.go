@@ -54,10 +54,11 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 // During triage we understand if these programs in fact give new coverage,
 // and if yes, minimize them and add to corpus.
 type triageJob struct {
-	p      *prog.Prog
-	flags  ProgFlags
-	fuzzer *Fuzzer
-	queue  queue.Executor
+	p        *prog.Prog
+	executor queue.ExecutorID
+	flags    ProgFlags
+	fuzzer   *Fuzzer
+	queue    queue.Executor
 	// Set of calls that gave potential new coverage.
 	calls map[int]*triageCall
 }
@@ -179,6 +180,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 }
 
 func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result) (stop bool) {
+	avoid := []queue.ExecutorID{job.executor}
 	needRuns := deflakeNeedCorpusRuns
 	if job.fuzzer.Config.Snapshot {
 		needRuns = deflakeNeedSnapshotRuns
@@ -201,11 +203,13 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			Prog:            job.p,
 			ExecOpts:        setFlags(flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectSignal),
 			ReturnAllSignal: indices,
+			Avoid:           avoid,
 			Stat:            job.fuzzer.statExecTriage,
 		}, progInTriage)
 		if result.Stop() {
 			return true
 		}
+		avoid = append(avoid, result.Executor)
 		if result.Info == nil {
 			continue // the program has failed
 		}

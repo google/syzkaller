@@ -76,9 +76,12 @@ type Server struct {
 	canonicalModules *cover.Canonicalizer
 	coverFilter      []uint64
 
-	mu             sync.Mutex
-	runners        map[string]*Runner
-	execSource     queue.Source
+	mu         sync.Mutex
+	runners    map[string]*Runner
+	execSource *queue.Distributor
+	// TODO: replace names with indices.
+	ids            map[string]int
+	idSeq          int
 	triagedCorpus  atomic.Bool
 	statVMRestarts *stat.Val
 	*runnerStats
@@ -140,9 +143,10 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 		sysTarget:  sysTarget,
 		timeouts:   sysTarget.Timeouts(cfg.Slowdown),
 		runners:    make(map[string]*Runner),
+		ids:        make(map[string]int),
 		checker:    checker,
 		baseSource: baseSource,
-		execSource: queue.Retry(baseSource),
+		execSource: queue.Distribute(queue.Retry(baseSource)),
 
 		statVMRestarts: stat.New("vm restarts", "Total number of VM starts",
 			stat.Rate{}, stat.NoGraph),
@@ -412,6 +416,13 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo 
 		panic(fmt.Sprintf("duplicate instance %s", name))
 	}
 	serv.runners[name] = runner
+	id, ok := serv.ids[name]
+	if !ok {
+		id = serv.idSeq
+		serv.idSeq++
+		serv.ids[name] = id
+	}
+	runner.id = id
 	return runner.resultCh
 }
 

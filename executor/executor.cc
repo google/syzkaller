@@ -1334,7 +1334,7 @@ flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64
 	flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output_off = 0;
 	if (process_output)
 		output_off = fbb.CreateVector(*process_output);
-	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, output_off, error_off, prog_info_off);
+	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, proc_id, output_off, error_off, prog_info_off);
 	auto msg_off = rpc::CreateExecutorMessageRaw(fbb, rpc::ExecutorMessagesRaw::ExecResult,
 						     flatbuffers::Offset<void>(exec_off.o));
 	fbb.FinishSizePrefixed(msg_off);

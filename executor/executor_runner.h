@@ -55,6 +55,8 @@ public:
 	{
 		if (state_ != State::Started && state_ != State::Idle)
 			return false;
+		if (msg.avoid & (1ull << id_))
+			return false;
 		if (msg_)
 			fail("already have pending msg");
 		if (wait_start_)
