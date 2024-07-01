@@ -27,14 +27,8 @@ import (
 	"github.com/google/syzkaller/pkg/image"
 )
 
-// Example: for comparisons {(op1, op2), (op1, op3), (op1, op4), (op2, op1)}
-// this map will store the following:
-//
-//	m = {
-//			op1: {map[op2]: true, map[op3]: true, map[op4]: true},
-//			op2: {map[op1]: true}
-//	}.
-type CompMap map[uint64]map[uint64]bool
+// CompMap maps comparison operand that could come from the input to the second operand to the PC.
+type CompMap map[uint64]map[uint64]map[uint64]bool
 
 const (
 	maxDataLength = 100
@@ -42,11 +36,18 @@ const (
 
 var specialIntsSet map[uint64]bool
 
-func (m CompMap) AddComp(arg1, arg2 uint64) {
+func (m CompMap) Add(pc, arg1, arg2 uint64, isConst bool) {
 	if _, ok := m[arg1]; !ok {
-		m[arg1] = make(map[uint64]bool)
+		m[arg1] = make(map[uint64]map[uint64]bool)
 	}
-	m[arg1][arg2] = true
+	if _, ok := m[arg1][arg2]; !ok {
+		m[arg1][arg2] = make(map[uint64]bool)
+	}
+	m[arg1][arg2][pc] = true
+	if !isConst {
+		// Both operands could come from the input.
+		m.Add(pc, arg2, arg1, true)
+	}
 }
 
 func (m CompMap) String() string {
@@ -66,8 +67,13 @@ func (m CompMap) String() string {
 // InplaceIntersect() only leaves the value pairs that are also present in other.
 func (m CompMap) InplaceIntersect(other CompMap) {
 	for val1, nested := range m {
-		for val2 := range nested {
-			if !other[val1][val2] {
+		for val2, pcs := range nested {
+			for pc := range pcs {
+				if !other[val1][val2][pc] {
+					delete(pcs, pc)
+				}
+			}
+			if len(pcs) == 0 {
 				delete(nested, val2)
 			}
 		}
@@ -77,11 +83,41 @@ func (m CompMap) InplaceIntersect(other CompMap) {
 	}
 }
 
+// limitAttempts restricts hints to at most 10 attempts per single kernel PC.
+// We are getting too many generated candidates, the fuzzer may not keep up
+// with them at all (hints jobs keep growing infinitely). If a hint indeed came
+// from the input w/o transformation, then we should guess it on the first
+// attempt (or at least after few attempts). If it did not come from the input,
+// or came with a non-trivial transformation, then any number of attempts won't
+// help. So limit the total number of attempts (until the next restart).
+func (m CompMap) limitAttempts(attempts map[uint64]int) {
+	for op1, ops2 := range m {
+		for op2, pcs := range ops2 {
+			for pc := range pcs {
+				attempts[pc]++
+				if attempts[pc] > 10 {
+					delete(pcs, pc)
+				}
+			}
+			if len(pcs) == 0 {
+				delete(ops2, op2)
+			}
+		}
+		if len(ops2) == 0 {
+			delete(m, op1)
+		}
+	}
+}
+
 // Mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
 // The callback must return whether we should continue substitution (true)
 // or abort the process (false).
 func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog) bool) {
+	p.Target.hintAttemptsMu.Lock()
+	comps.limitAttempts(p.Target.hintAttempts)
+	p.Target.hintAttemptsMu.Unlock()
+
 	p = p.Clone()
 	c := p.Calls[callIndex]
 	doMore := true

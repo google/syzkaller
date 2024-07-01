@@ -675,17 +675,39 @@ FLATBUFFERS_STRUCT_END(ExecOptsRaw, 24);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ComparisonRaw FLATBUFFERS_FINAL_CLASS {
  private:
+  uint64_t pc_;
   uint64_t op1_;
   uint64_t op2_;
+  uint8_t is_const_;
+  int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
 
  public:
   ComparisonRaw()
-      : op1_(0),
-        op2_(0) {
+      : pc_(0),
+        op1_(0),
+        op2_(0),
+        is_const_(0),
+        padding0__(0),
+        padding1__(0),
+        padding2__(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
   }
-  ComparisonRaw(uint64_t _op1, uint64_t _op2)
-      : op1_(flatbuffers::EndianScalar(_op1)),
-        op2_(flatbuffers::EndianScalar(_op2)) {
+  ComparisonRaw(uint64_t _pc, uint64_t _op1, uint64_t _op2, bool _is_const)
+      : pc_(flatbuffers::EndianScalar(_pc)),
+        op1_(flatbuffers::EndianScalar(_op1)),
+        op2_(flatbuffers::EndianScalar(_op2)),
+        is_const_(flatbuffers::EndianScalar(static_cast<uint8_t>(_is_const))),
+        padding0__(0),
+        padding1__(0),
+        padding2__(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+  }
+  uint64_t pc() const {
+    return flatbuffers::EndianScalar(pc_);
   }
   uint64_t op1() const {
     return flatbuffers::EndianScalar(op1_);
@@ -693,8 +715,11 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ComparisonRaw FLATBUFFERS_FINAL_CLASS {
   uint64_t op2() const {
     return flatbuffers::EndianScalar(op2_);
   }
+  bool is_const() const {
+    return flatbuffers::EndianScalar(is_const_) != 0;
+  }
 };
-FLATBUFFERS_STRUCT_END(ComparisonRaw, 16);
+FLATBUFFERS_STRUCT_END(ComparisonRaw, 32);
 
 struct ConnectRequestRawT : public flatbuffers::NativeTable {
   typedef ConnectRequestRaw TableType;

@@ -80,6 +80,9 @@ type Target struct {
 	// The default ChoiceTable is used only by tests and utilities, so we initialize it lazily.
 	defaultOnce        sync.Once
 	defaultChoiceTable *ChoiceTable
+
+	hintAttemptsMu sync.Mutex
+	hintAttempts   map[uint64]int
 }
 
 const maxSpecialPointers = 16
@@ -184,6 +187,8 @@ func (target *Target) initTarget() {
 	for _, res := range target.Resources {
 		target.resourceCtors[res.Name] = target.calcResourceCtors(res, false)
 	}
+
+	target.hintAttempts = make(map[uint64]int)
 }
 
 func (target *Target) initUselessHints() {
