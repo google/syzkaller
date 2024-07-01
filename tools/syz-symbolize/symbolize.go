@@ -68,6 +68,7 @@ func main() {
 		}
 		fmt.Printf("TITLE: %v\n", rep.Title)
 		fmt.Printf("CORRUPTED: %v (%v)\n", rep.Corrupted, rep.CorruptedReason)
+		fmt.Printf("SUPPRESSED: %v\n", rep.Suppressed)
 		fmt.Printf("MAINTAINERS (TO): %v\n", rep.Recipients.GetEmails(vcs.To))
 		fmt.Printf("MAINTAINERS (CC): %v\n", rep.Recipients.GetEmails(vcs.Cc))
 		fmt.Printf("\n")

@@ -126,6 +126,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		"panic: failed to create temp dir",
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
 		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
+		"SYZFAIL: SIGBUS",
 		"Out of memory: Kill process .* \\(syz-executor\\)",
 		"Out of memory: Kill process .* \\(sshd\\)",
 		"Killed process .* \\(syz-executor\\)",
