@@ -390,26 +390,26 @@ type hintsJob struct {
 }
 
 func (job *hintsJob) run(fuzzer *Fuzzer) {
-	// First execute the original program twice to get comparisons from KCOV.
-	// The second execution lets us filter out flaky values, which seem to constitute ~30-40%.
+	// First execute the original program several times to get comparisons from KCOV.
+	// Additional executions lets us filter out flaky values, which seem to constitute ~30-40%.
 	p := job.p
 
 	var comps prog.CompMap
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectComps),
 			Stat:     fuzzer.statExecSeed,
 		})
-		if result.Stop() || result.Info == nil {
+		if result.Stop() {
 			return
+		}
+		if result.Info == nil || len(result.Info.Calls[job.call].Comps) == 0 {
+			continue
 		}
 		got := make(prog.CompMap)
 		for _, cmp := range result.Info.Calls[job.call].Comps {
 			got.AddComp(cmp.Op1, cmp.Op2)
-		}
-		if len(got) == 0 {
-			return
 		}
 		if i == 0 {
 			comps = got
