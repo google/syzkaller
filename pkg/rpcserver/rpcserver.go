@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
@@ -41,7 +42,8 @@ type Config struct {
 	PrintMachineCheck bool
 	Procs             int
 	Slowdown          int
-	PCBase            uint64
+	pcBase            uint64
+	localModules      []*cover.KernelModule
 }
 
 type Manager interface {
@@ -86,6 +88,10 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+	if err != nil {
+		return nil, err
+	}
 	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
 	if err != nil {
 		return nil, err
@@ -114,7 +120,8 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 		PrintMachineCheck: true,
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
-		PCBase:            pcBase,
+		pcBase:            pcBase,
+		localModules:      modules,
 	}, mgr)
 }
 
@@ -302,6 +309,7 @@ func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Canoni
 			infoReq.Error = err.Error()
 		}
 	}
+	modules = backend.FixModules(serv.cfg.localModules, modules, serv.cfg.pcBase)
 	if infoReq.Error != "" {
 		log.Logf(0, "machine check failed: %v", infoReq.Error)
 		serv.checkFailures++
