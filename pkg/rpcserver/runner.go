@@ -25,7 +25,8 @@ import (
 )
 
 type Runner struct {
-	source        queue.Source
+	id            int
+	source        *queue.Distributor
 	procs         int
 	cover         bool
 	coverEdges    bool
@@ -174,7 +175,7 @@ func (runner *Runner) ConnectionLoop() error {
 			}
 		}
 		for len(runner.requests)-len(runner.executing) < 2*runner.procs {
-			req := runner.source.Next()
+			req := runner.source.Next(runner.id)
 			if req == nil {
 				break
 			}
@@ -320,11 +321,21 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 		}
 		data = fileData
 	}
+	var avoid uint64
+	for _, id := range req.Avoid {
+		if id.VM == runner.id {
+			avoid |= uint64(1 << id.Proc)
+		}
+	}
+	if avoid == (uint64(1)<<runner.procs)-1 {
+		avoid = 0
+	}
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawExecRequest,
 			Value: &flatrpc.ExecRequest{
 				Id:        id,
+				Avoid:     avoid,
 				ProgData:  data,
 				Flags:     flags,
 				ExecOpts:  &opts,
@@ -408,6 +419,10 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 		resErr = errors.New(msg.Error)
 	}
 	req.Done(&queue.Result{
+		Executor: queue.ExecutorID{
+			VM:   runner.id,
+			Proc: int(msg.Proc),
+		},
 		Status: status,
 		Info:   msg.Info,
 		Output: slices.Clone(msg.Output),

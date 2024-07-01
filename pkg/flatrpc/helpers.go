@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"unsafe"
+
+	"github.com/google/syzkaller/prog"
 )
 
 const AllFeatures = ^Feature(0)
@@ -38,6 +40,13 @@ type ExecOpts = ExecOptsRawT
 type ProgInfo = ProgInfoRawT
 type ExecResult = ExecResultRawT
 type StateResult = StateResultRawT
+
+func init() {
+	var req ExecRequest
+	if prog.MaxPids > unsafe.Sizeof(req.Avoid)*8 {
+		panic("all procs won't fit ito ExecRequest.Avoid")
+	}
+}
 
 func (pi *ProgInfo) Clone() *ProgInfo {
 	if pi == nil {
