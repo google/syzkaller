@@ -759,8 +759,9 @@ static void SigsegvHandler(int sig, siginfo_t* info, void* ucontext)
 #endif
 	// Print the current function PC so that it's possible to map the failing PC
 	// to a symbol in the binary offline (we usually compile as PIE).
-	failmsg("SIGSEGV", "sig:%d handler:%p pc:%p addr:%p",
-		sig, SigsegvHandler, reinterpret_cast<void*>(pc), info->si_addr);
+	failmsg(sig == SIGSEGV ? "SIGSEGV" : "SIGBUS", "handler:0x%zx pc:%p addr:%p",
+		reinterpret_cast<uintptr_t>(reinterpret_cast<void*>(SigsegvHandler)) - pc,
+		reinterpret_cast<void*>(pc), info->si_addr);
 }
 
 static void runner(char** argv, int argc)
