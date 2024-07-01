@@ -77,7 +77,7 @@ type handshakeResult struct {
 	Canonicalizer *cover.CanonicalizerInstance
 }
 
-func (runner *Runner) handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error {
+func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error {
 	connectReply := &flatrpc.ConnectReply{
 		Debug:            runner.debug,
 		Cover:            runner.cover,
@@ -118,7 +118,7 @@ func (runner *Runner) handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error 
 	return nil
 }
 
-func (runner *Runner) connectionLoop() error {
+func (runner *Runner) ConnectionLoop() error {
 	runner.mu.Lock()
 	conn := runner.conn
 	runner.mu.Unlock()
@@ -131,7 +131,7 @@ func (runner *Runner) connectionLoop() error {
 			infoc <- []byte("VM has crashed")
 		}
 	}()
-	for runner.alive() {
+	for runner.Alive() {
 		if infoc == nil {
 			select {
 			case infoc = <-runner.infoc:
@@ -389,7 +389,7 @@ func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	}
 }
 
-func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
+func (runner *Runner) SendSignalUpdate(plus, minus []uint64) error {
 	runner.mu.Lock()
 	conn := runner.conn
 	runner.mu.Unlock()
@@ -410,7 +410,7 @@ func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
 	return flatrpc.Send(conn, msg)
 }
 
-func (runner *Runner) sendCorpusTriaged() error {
+func (runner *Runner) SendCorpusTriaged() error {
 	runner.mu.Lock()
 	conn := runner.conn
 	runner.mu.Unlock()
@@ -428,7 +428,7 @@ func (runner *Runner) sendCorpusTriaged() error {
 	return flatrpc.Send(conn, msg)
 }
 
-func (runner *Runner) stop() {
+func (runner *Runner) Stop() {
 	runner.mu.Lock()
 	runner.stopped = true
 	conn := runner.conn
@@ -438,7 +438,7 @@ func (runner *Runner) stop() {
 	}
 }
 
-func (runner *Runner) shutdown(crashed bool) []ExecRecord {
+func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
 	runner.mu.Lock()
 	conn := runner.conn
 	runner.mu.Unlock()
@@ -458,13 +458,13 @@ func (runner *Runner) shutdown(crashed bool) []ExecRecord {
 	return runner.lastExec.Collect()
 }
 
-func (runner *Runner) getMachineInfo() []byte {
+func (runner *Runner) MachineInfo() []byte {
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 	return runner.machineInfo
 }
 
-func (runner *Runner) queryStatus() []byte {
+func (runner *Runner) QueryStatus() []byte {
 	resc := make(chan []byte, 1)
 	timeout := time.After(time.Minute)
 	select {
@@ -480,7 +480,7 @@ func (runner *Runner) queryStatus() []byte {
 	}
 }
 
-func (runner *Runner) alive() bool {
+func (runner *Runner) Alive() bool {
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 	return runner.conn != nil && !runner.stopped

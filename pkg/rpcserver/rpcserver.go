@@ -182,20 +182,20 @@ func (serv *Server) MachineInfo(name string) []byte {
 	serv.mu.Lock()
 	runner := serv.runners[name]
 	serv.mu.Unlock()
-	if runner == nil || !runner.alive() {
+	if runner == nil || !runner.Alive() {
 		return []byte("VM is not alive")
 	}
-	return runner.getMachineInfo()
+	return runner.MachineInfo()
 }
 
 func (serv *Server) RunnerStatus(name string) []byte {
 	serv.mu.Lock()
 	runner := serv.runners[name]
 	serv.mu.Unlock()
-	if runner == nil || !runner.alive() {
+	if runner == nil || !runner.Alive() {
 		return []byte("VM is not alive")
 	}
-	return runner.queryStatus()
+	return runner.QueryStatus()
 }
 
 func (serv *Server) handleConn(conn *flatrpc.Conn) {
@@ -242,7 +242,7 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 		opts.Features = serv.cfg.Features
 	}
 
-	err = runner.handshake(conn, opts)
+	err = runner.Handshake(conn, opts)
 	if err != nil {
 		log.Logf(1, "%v", err)
 		return
@@ -253,7 +253,7 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 	serv.mu.Unlock()
 
 	if serv.triagedCorpus.Load() {
-		if err := runner.sendCorpusTriaged(); err != nil {
+		if err := runner.SendCorpusTriaged(); err != nil {
 			log.Logf(2, "%v", err)
 			return
 		}
@@ -315,7 +315,7 @@ func (serv *Server) connectionLoop(runner *Runner) error {
 			// buffer too much (we don't want to grow it larger than what will be needed
 			// to send programs).
 			n := min(len(maxSignal), 50000)
-			if err := runner.sendSignalUpdate(maxSignal[:n], nil); err != nil {
+			if err := runner.SendSignalUpdate(maxSignal[:n], nil); err != nil {
 				return err
 			}
 			maxSignal = maxSignal[n:]
@@ -325,7 +325,7 @@ func (serv *Server) connectionLoop(runner *Runner) error {
 	serv.StatNumFuzzing.Add(1)
 	defer serv.StatNumFuzzing.Add(-1)
 
-	return runner.connectionLoop()
+	return runner.ConnectionLoop()
 }
 
 func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) {
@@ -445,7 +445,7 @@ func (serv *Server) StopFuzzing(name string) {
 	runner := serv.runners[name]
 	serv.info[name] = VMState{StateStopping, time.Now()}
 	serv.mu.Unlock()
-	runner.stop()
+	runner.Stop()
 }
 
 func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, []byte) {
@@ -454,21 +454,21 @@ func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, [
 	delete(serv.runners, name)
 	serv.info[name] = VMState{StateOffline, time.Now()}
 	serv.mu.Unlock()
-	return runner.shutdown(crashed), runner.getMachineInfo()
+	return runner.Shutdown(crashed), runner.MachineInfo()
 }
 
 func (serv *Server) DistributeSignalDelta(plus, minus signal.Signal) {
 	plusRaw := plus.ToRaw()
 	minusRaw := minus.ToRaw()
 	serv.foreachRunnerAsync(func(runner *Runner) {
-		runner.sendSignalUpdate(plusRaw, minusRaw)
+		runner.SendSignalUpdate(plusRaw, minusRaw)
 	})
 }
 
 func (serv *Server) TriagedCorpus() {
 	serv.triagedCorpus.Store(true)
 	serv.foreachRunnerAsync(func(runner *Runner) {
-		runner.sendCorpusTriaged()
+		runner.SendCorpusTriaged()
 	})
 }
 
@@ -479,7 +479,7 @@ func (serv *Server) foreachRunnerAsync(fn func(runner *Runner)) {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 	for _, runner := range serv.runners {
-		if runner.alive() {
+		if runner.Alive() {
 			go fn(runner)
 		}
 	}
