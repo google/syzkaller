@@ -42,12 +42,23 @@ type Target struct {
 	HostEndian         binary.ByteOrder
 	SyscallTrampolines map[string]string
 	Addr2Line          func() (string, error)
+	KernelAddresses    KernelAddresses
 
 	init      *sync.Once
 	initOther *sync.Once
 	// Target for the other compiler. If SYZ_CLANG says to use gcc, this will be clang. Or the other way around.
 	other    *Target
 	timeouts Timeouts
+}
+
+// KernelAddresses contain approximate rounded up kernel text/data ranges
+// that are used to filter signal and comparisons for bogus/unuseful entries.
+// Zero values mean no filtering.
+type KernelAddresses struct {
+	TextStart uint64
+	TextEnd   uint64
+	DataStart uint64
+	DataEnd   uint64
 }
 
 func (target *Target) HasCallNumber(callName string) bool {
@@ -258,6 +269,15 @@ var List = map[string]map[string]*Target{
 				// Only generate defines for new syscalls
 				// (added after commit 8a1ab3155c2ac on 2012-10-04).
 				return nr >= 313
+			},
+			KernelAddresses: KernelAddresses{
+				// Text/modules range for x86_64.
+				TextStart: 0xffffffff80000000,
+				TextEnd:   0xffffffffff000000,
+				// This range corresponds to the first 1TB of the physical memory mapping,
+				// see Documentation/arch/x86/x86_64/mm.rst.
+				DataStart: 0xffff880000000000,
+				DataEnd:   0xffff890000000000,
 			},
 		},
 		I386: {
@@ -655,6 +675,15 @@ func init() {
 		if runtime.GOOS == OpenBSD {
 			target.BrokenCompiler = "can't build TestOS on OpenBSD due to missing syscall function."
 		}
+		// These are used only for pkg/runtest tests, executor also knows about these values.
+		target.KernelAddresses.TextStart = 0xc0dec0dec0000000
+		target.KernelAddresses.TextEnd = 0xc0dec0dec1000000
+		if target.PtrSize == 4 {
+			target.KernelAddresses.TextStart = uint64(uint32(target.KernelAddresses.TextStart))
+			target.KernelAddresses.TextEnd = uint64(uint32(target.KernelAddresses.TextEnd))
+		}
+		target.KernelAddresses.DataStart = 0xda1a0000
+		target.KernelAddresses.DataEnd = 0xda1a1000
 	}
 }
 

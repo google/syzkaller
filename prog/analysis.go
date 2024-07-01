@@ -125,6 +125,7 @@ func popStack(ps parentStack) (parentStack, Arg) {
 type ArgCtx struct {
 	Parent      *[]Arg      // GroupArg.Inner (for structs) or Call.Args containing this arg.
 	Fields      []Field     // Fields of the parent struct/syscall.
+	Field       *Field      // Syscall field for this arg, nil if there it's not a field.
 	Base        *PointerArg // Pointer to the base of the heap object containing this arg.
 	Offset      uint64      // Offset of this arg from the base.
 	Stop        bool        // If set by the callback, subargs of this arg are not visited.
@@ -132,26 +133,26 @@ type ArgCtx struct {
 }
 
 func ForeachSubArg(arg Arg, f func(Arg, *ArgCtx)) {
-	foreachArgImpl(arg, &ArgCtx{}, f)
+	foreachArgImpl(arg, nil, &ArgCtx{}, f)
 }
 
 func foreachSubArgWithStack(arg Arg, f func(Arg, *ArgCtx)) {
-	foreachArgImpl(arg, &ArgCtx{parentStack: allocStack()}, f)
+	foreachArgImpl(arg, nil, &ArgCtx{parentStack: allocStack()}, f)
 }
 
 func ForeachArg(c *Call, f func(Arg, *ArgCtx)) {
 	ctx := &ArgCtx{}
 	if c.Ret != nil {
-		foreachArgImpl(c.Ret, ctx, f)
+		foreachArgImpl(c.Ret, nil, ctx, f)
 	}
 	ctx.Parent = &c.Args
 	ctx.Fields = c.Meta.Args
-	for _, arg := range c.Args {
-		foreachArgImpl(arg, ctx, f)
+	for i, arg := range c.Args {
+		foreachArgImpl(arg, &ctx.Fields[i], ctx, f)
 	}
 }
 
-func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
+func foreachArgImpl(arg Arg, field *Field, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
 	ctx0 := *ctx
 	defer func() { *ctx = ctx0 }()
 
@@ -161,6 +162,7 @@ func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
 			ctx.parentStack = pushStack(ctx.parentStack, arg)
 		}
 	}
+	ctx.Field = field
 	f(arg, ctx)
 	if ctx.Stop {
 		return
@@ -178,7 +180,7 @@ func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
 			if i == overlayField {
 				ctx.Offset = ctx0.Offset
 			}
-			foreachArgImpl(arg1, ctx, f)
+			foreachArgImpl(arg1, nil, ctx, f)
 			size := arg1.Size()
 			ctx.Offset += size
 			if totalSize < ctx.Offset {
@@ -197,10 +199,10 @@ func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
 		if a.Res != nil {
 			ctx.Base = a
 			ctx.Offset = 0
-			foreachArgImpl(a.Res, ctx, f)
+			foreachArgImpl(a.Res, nil, ctx, f)
 		}
 	case *UnionArg:
-		foreachArgImpl(a.Option, ctx, f)
+		foreachArgImpl(a.Option, nil, ctx, f)
 	}
 }
 

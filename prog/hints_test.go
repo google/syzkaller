@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -50,16 +51,16 @@ func TestHintsCheckConstArg(t *testing.T) {
 			name:  "multiple-replacers-test",
 			in:    0xabcd,
 			size:  2,
-			comps: CompMap{0xabcd: compSet(0x2, 0x3)},
-			res:   []uint64{0x2, 0x3},
+			comps: CompMap{0xabcd: compSet(0x32, 0x33)},
+			res:   []uint64{0x32, 0x33},
 		},
 		// Checks that special ints are not used.
 		{
 			name:  "special-ints-test",
 			in:    0xabcd,
 			size:  2,
-			comps: CompMap{0xabcd: compSet(0x1, 0x2)},
-			res:   []uint64{0x2},
+			comps: CompMap{0xabcd: compSet(0x1, 0x2, 0x42)},
+			res:   []uint64{0x42},
 		},
 
 		// The following tests check the size limits for each replacer and for the initial value
@@ -125,7 +126,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 				0xffffffffffffffab: compSet(0x12, 0xffffffffffffff0a),
 				0xfffffffffffff8ab: compSet(0x13, 0xffffffffffffff00),
 			},
-			res: []uint64{0x11, 0x13, 0x80a, 0x812, 0xf00},
+			res: []uint64{0x11, 0x13, 0x812, 0xf00},
 		},
 		{
 			name:    "int16-negative-invalid-value-bitsize-12",
@@ -165,7 +166,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			var res []uint64
 			typ := types[fmt.Sprintf("int%v_%v", test.size, test.bitsize)]
 			constArg := MakeConstArg(typ, DirIn, test.in)
-			checkConstArg(constArg, test.comps, func() bool {
+			checkConstArg(constArg, nil, test.comps, func() bool {
 				res = append(res, constArg.Val)
 				return true
 			})
@@ -198,19 +199,19 @@ func TestHintsCheckDataArg(t *testing.T) {
 		// Checks that for every such operand a program is generated.
 		{
 			"multiple-replacers-test",
-			"\xcd\xab",
-			CompMap{0xabcd: compSet(0x2, 0x3)},
+			"\xcd\xab\x42\x42",
+			CompMap{0xabcd: compSet(0x44, 0x45)},
 			map[string]bool{
-				"\x02\x00": true, "\x03\x00": true,
+				"\x44\x00\x42\x42": true, "\x45\x00\x42\x42": true,
 			},
 		},
 		// Checks that special ints are not used.
 		{
 			"special-ints-test",
-			"\xcd\xab",
-			CompMap{0xabcd: compSet(0x1, 0x2)},
+			"\xcd\xab\x42\x42",
+			CompMap{0xabcd: compSet(0x1, 0x45)},
 			map[string]bool{
-				"\x02\x00": true,
+				"\x45\x00\x42\x42": true,
 			},
 		},
 		// Checks that ints of various sizes are extracted.
@@ -393,7 +394,7 @@ func TestHintsCompressedImage(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			var res []string
 			arg := MakeDataArg(typ, DirIn, image.Compress([]byte(test.input)))
-			generateHints(test.comps, arg, func() bool {
+			generateHints(test.comps, arg, nil, func() bool {
 				res = append(res, string(arg.Data()))
 				return true
 			})
@@ -576,6 +577,77 @@ func TestHintsShrinkExpand(t *testing.T) {
 	}
 }
 
+func TestHintsCall(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	type Test struct {
+		in    string
+		comps CompMap
+		out   []string
+	}
+	tests := []Test{
+		{
+			in:    `ioctl$1(0x0, 0x111, 0x0)`,
+			comps: CompMap{0x111: compSet(0x0, 0x111, 0x222, 0x333, 0x444, 0x666)},
+			out: []string{
+				`ioctl$1(0x0, 0x666, 0x0)`,
+			},
+		},
+		{
+			// For the generic syscall mutations should not be restricted by related calls.
+			// But we won't have 0x1000 and 0x10000 because they are special ints.
+			in: `socket$generic(0x1, 0x2, 0x3)`,
+			comps: CompMap{
+				0x1: compSet(0x111, 0x333),
+				0x2: compSet(0x1000, 0x1100, 0x1200),
+				0x3: compSet(0x10000, 0x10100, 0x10200),
+			},
+			out: []string{
+				`socket$generic(0x333, 0x2, 0x3)`,
+			},
+		},
+		{
+			in: `socket$inet6(0x111, 0x222, 0x333)`,
+			comps: CompMap{
+				0x111: compSet(0x211),
+				0x222: compSet(0x1100, 0x1200, 0x1300),
+				0x333: compSet(0x10000, 0x10100, 0x10200, 0x10300),
+			},
+			out: []string{
+				`socket$inet6(0x111, 0x222, 0x10100)`,
+				`socket$inet6(0x111, 0x222, 0x10200)`,
+				`socket$inet6(0x111, 0x222, 0x10300)`,
+			},
+		},
+		{
+			in: `socket$netlink(0x111, 0x222, 0x333)`,
+			comps: CompMap{
+				0x111: compSet(0x211),
+				0x222: compSet(0x1100, 0x1200, 0x1300),
+				0x333: compSet(0x10000, 0x10100, 0x10200, 0x10300),
+			},
+			out: []string{
+				`socket$netlink(0x111, 0x1100, 0x333)`,
+				`socket$netlink(0x111, 0x1200, 0x333)`,
+				`socket$netlink(0x111, 0x1300, 0x333)`,
+			},
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			p, err := target.Deserialize([]byte(test.in), Strict)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			p.MutateWithHints(0, test.comps, func(newP *Prog) bool {
+				got = append(got, strings.TrimSpace(string(newP.Serialize())))
+				return true
+			})
+			assert.ElementsMatch(t, test.out, got)
+		})
+	}
+}
+
 func TestHintsRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
@@ -643,8 +715,8 @@ func TestHintsData(t *testing.T) {
 	tests := []Test{
 		{
 			in:    "0809101112131415",
-			comps: CompMap{0x12111009: compSet(0x10)},
-			out:   []string{"0810000000131415"},
+			comps: CompMap{0x12111009: compSet(0x42)},
+			out:   []string{"0842000000131415"},
 		},
 	}
 	for _, test := range tests {

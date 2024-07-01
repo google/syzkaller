@@ -269,13 +269,6 @@ static int test_cover_filter()
 			ret = 1;
 		}
 	}
-
-	filter.Remove(105);
-	if (filter.Contains(104) || filter.Contains(105) || filter.Contains(111))
-		printf("filter contains 105 after removal\n");
-	if (!filter.Contains(103))
-		printf("filter doesn't contains 103 after 105 removal\n");
-
 	return ret;
 }
 

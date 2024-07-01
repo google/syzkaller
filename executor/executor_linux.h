@@ -36,8 +36,6 @@ struct kcov_remote_arg {
 #define KCOV_SUBSYSTEM_MASK (0xffull << 56)
 #define KCOV_INSTANCE_MASK (0xffffffffull)
 
-static bool is_gvisor;
-
 static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 {
 	if (subsys & ~KCOV_SUBSYSTEM_MASK || inst & ~KCOV_INSTANCE_MASK)
@@ -45,14 +43,9 @@ static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 	return subsys | inst;
 }
 
-static bool detect_kernel_bitness();
-static bool detect_gvisor();
-
 static void os_init(int argc, char** argv, char* data, size_t data_size)
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	is_kernel_64_bit = detect_kernel_bitness();
-	is_gvisor = detect_gvisor();
 	// Surround the main data mapping with PROT_NONE pages to make virtual address layout more consistent
 	// across different configurations (static/non-static build) and C repros.
 	// One observed case before: executor had a mapping above the data mapping (output region),
@@ -175,77 +168,6 @@ static void cover_collect(cover_t* cov)
 		cov->size = *(uint64*)cov->data;
 	else
 		cov->size = *(uint32*)cov->data;
-}
-
-static bool use_cover_edges(uint32 pc)
-{
-	return true;
-}
-
-static bool is_kernel_data(uint64 addr)
-{
-	if (is_gvisor)
-		return false;
-#if GOARCH_386 || GOARCH_amd64
-	// This range corresponds to the first 1TB of the physical memory mapping,
-	// see Documentation/arch/x86/x86_64/mm.rst.
-	return addr >= 0xffff880000000000ull && addr < 0xffff890000000000ull;
-#else
-	return false;
-#endif
-}
-
-// Returns >0 for yes, <0 for no, 0 for don't know.
-static int is_kernel_pc(uint64 pc)
-{
-	if (is_gvisor)
-		return 0;
-#if GOARCH_386 || GOARCH_amd64
-	// Text/modules range for x86_64.
-	return pc >= 0xffffffff80000000ull && pc < 0xffffffffff000000ull ? 1 : -1;
-#else
-	return 0;
-#endif
-}
-
-static bool use_cover_edges(uint64 pc)
-{
-#if GOARCH_amd64 || GOARCH_arm64
-	if (is_gvisor)
-		return false; // gvisor coverage is not a trace, so producing edges won't work
-#endif
-	return true;
-}
-
-static bool detect_kernel_bitness()
-{
-	if (sizeof(void*) == 8)
-		return true;
-	// It turns out to be surprisingly hard to understand if the kernel underneath is 64-bits.
-	// A common method is to look at uname.machine. But it is produced in some involved ways,
-	// and we will need to know about all strings it returns and in the end it can be overriden
-	// during build and lie (and there are known precedents of this).
-	// So instead we look at size of addresses in /proc/kallsyms.
-	bool wide = true;
-	int fd = open("/proc/kallsyms", O_RDONLY);
-	if (fd != -1) {
-		char buf[16];
-		if (read(fd, buf, sizeof(buf)) == sizeof(buf) &&
-		    (buf[8] == ' ' || buf[8] == '\t'))
-			wide = false;
-		close(fd);
-	}
-	debug("detected %d-bit kernel\n", wide ? 64 : 32);
-	return wide;
-}
-
-static bool detect_gvisor()
-{
-	char buf[64] = {};
-	// 3 stands for undeclared SYSLOG_ACTION_READ_ALL.
-	syscall(__NR_syslog, 3, buf, sizeof(buf) - 1);
-	// This is a first line of gvisor dmesg.
-	return strstr(buf, "Starting gVisor");
 }
 
 // One does not simply exit.

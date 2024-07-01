@@ -37,6 +37,8 @@ table ConnectRequestRaw {
 table ConnectReplyRaw {
 	debug			:bool;
 	cover			:bool;
+	cover_edges		:bool;
+	kernel_64_bit		:bool;
 	procs			:int32;
 	slowdown		:int32;
 	syscall_timeout_ms	:int32;
@@ -162,7 +164,6 @@ table ExecRequestRaw {
 
 table SignalUpdateRaw {
 	new_max			:[uint64];
-	drop_max		:[uint64];
 }
 
 // This message serves as a signal that the corpus was triaged and the fuzzer

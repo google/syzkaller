@@ -12,10 +12,9 @@ import (
 
 // Cover keeps track of the signal known to the fuzzer.
 type Cover struct {
-	mu         sync.RWMutex
-	maxSignal  signal.Signal // max signal ever observed (including flakes)
-	newSignal  signal.Signal // newly identified max signal
-	dropSignal signal.Signal // the newly dropped max signal
+	mu        sync.RWMutex
+	maxSignal signal.Signal // max signal ever observed (including flakes)
+	newSignal signal.Signal // newly identified max signal
 }
 
 func newCover() *Cover {
@@ -31,7 +30,6 @@ func (cover *Cover) AddMaxSignal(sign signal.Signal) {
 	cover.mu.Lock()
 	defer cover.mu.Unlock()
 	cover.maxSignal.Merge(sign)
-	cover.dropSignal.Subtract(sign)
 }
 
 func (cover *Cover) addRawMaxSignal(signal []uint64, prio uint8) signal.Signal {
@@ -43,14 +41,7 @@ func (cover *Cover) addRawMaxSignal(signal []uint64, prio uint8) signal.Signal {
 	}
 	cover.maxSignal.Merge(diff)
 	cover.newSignal.Merge(diff)
-	cover.dropSignal.Subtract(diff)
 	return diff
-}
-
-func (cover *Cover) pureMaxSignal(corpus signal.Signal) signal.Signal {
-	cover.mu.RLock()
-	defer cover.mu.RUnlock()
-	return corpus.Diff(cover.maxSignal)
 }
 
 func (cover *Cover) CopyMaxSignal() signal.Signal {
@@ -59,20 +50,10 @@ func (cover *Cover) CopyMaxSignal() signal.Signal {
 	return cover.maxSignal.Copy()
 }
 
-func (cover *Cover) GrabSignalDelta() (plus, minus signal.Signal) {
+func (cover *Cover) GrabSignalDelta() signal.Signal {
 	cover.mu.Lock()
 	defer cover.mu.Unlock()
-	plus = cover.newSignal
+	plus := cover.newSignal
 	cover.newSignal = nil
-	minus = cover.dropSignal
-	cover.dropSignal = nil
-	return
-}
-
-func (cover *Cover) subtract(delta signal.Signal) {
-	cover.mu.Lock()
-	defer cover.mu.Unlock()
-	cover.maxSignal.Subtract(delta)
-	cover.newSignal.Subtract(delta)
-	cover.dropSignal.Merge(delta)
+	return plus
 }
