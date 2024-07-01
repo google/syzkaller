@@ -222,11 +222,13 @@ func (serv *Server) RunnerStatus(name string) []byte {
 }
 
 func (serv *Server) handleConn(conn *flatrpc.Conn) {
-	name, machineInfo, canonicalizer, err := serv.handshake(conn)
+	connectReq, err := flatrpc.Recv[*flatrpc.ConnectRequestRaw](conn)
 	if err != nil {
-		log.Logf(1, "%v", err)
+		log.Logf(1, "%s", err)
 		return
 	}
+	name := connectReq.Name
+	log.Logf(1, "runner %v connected", name)
 
 	if serv.cfg.VMLess {
 		// There is no VM loop, so minic what it would do.
@@ -235,7 +237,10 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 			serv.StopFuzzing(name)
 			serv.ShutdownInstance(name, true)
 		}()
+	} else {
+		checkRevisions(connectReq, serv.cfg.Target)
 	}
+	serv.statVMRestarts.Add(1)
 
 	serv.mu.Lock()
 	runner := serv.runners[name]
@@ -244,12 +249,33 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 		log.Logf(2, "VM %v shut down before connect", name)
 		return
 	}
-	serv.info[name] = VMState{StateFuzzing, time.Now()}
-	runner.conn = conn
-	runner.machineInfo = machineInfo
-	runner.canonicalizer = canonicalizer
 	serv.mu.Unlock()
 	defer close(runner.finished)
+
+	opts := &handshakeConfig{
+		VMLess:   serv.cfg.VMLess,
+		Files:    serv.checker.RequiredFiles(),
+		Timeouts: serv.timeouts,
+		Callback: serv.handleMachineInfo,
+	}
+	opts.LeakFrames, opts.RaceFrames = serv.mgr.BugFrames()
+	if serv.checkDone.Load() {
+		opts.Features = serv.setupFeatures
+	} else {
+		opts.Files = append(opts.Files, serv.checker.CheckFiles()...)
+		opts.Globs = serv.target.RequiredGlobs()
+		opts.Features = serv.cfg.Features
+	}
+
+	err = runner.handshake(conn, opts)
+	if err != nil {
+		log.Logf(1, "%v", err)
+		return
+	}
+
+	serv.mu.Lock()
+	serv.info[name] = VMState{StateFuzzing, time.Now()}
+	serv.mu.Unlock()
 
 	if serv.triagedCorpus.Load() {
 		if err := runner.sendCorpusTriaged(); err != nil {
@@ -262,46 +288,7 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 	log.Logf(2, "runner %v: %v", name, err)
 }
 
-func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.CanonicalizerInstance, error) {
-	connectReq, err := flatrpc.Recv[*flatrpc.ConnectRequestRaw](conn)
-	if err != nil {
-		return "", nil, nil, err
-	}
-	log.Logf(1, "runner %v connected", connectReq.Name)
-	if !serv.cfg.VMLess {
-		checkRevisions(connectReq, serv.cfg.Target)
-	}
-	serv.statVMRestarts.Add(1)
-
-	leaks, races := serv.mgr.BugFrames()
-	connectReply := &flatrpc.ConnectReply{
-		Debug:            serv.cfg.Debug,
-		Cover:            serv.cfg.Cover,
-		CoverEdges:       serv.cfg.UseCoverEdges,
-		Kernel64Bit:      serv.sysTarget.PtrSize == 8,
-		Procs:            int32(serv.cfg.Procs),
-		Slowdown:         int32(serv.timeouts.Slowdown),
-		SyscallTimeoutMs: int32(serv.timeouts.Syscall / time.Millisecond),
-		ProgramTimeoutMs: int32(serv.timeouts.Program / time.Millisecond),
-		LeakFrames:       leaks,
-		RaceFrames:       races,
-	}
-	connectReply.Files = serv.checker.RequiredFiles()
-	if serv.checkDone.Load() {
-		connectReply.Features = serv.setupFeatures
-	} else {
-		connectReply.Files = append(connectReply.Files, serv.checker.CheckFiles()...)
-		connectReply.Globs = serv.target.RequiredGlobs()
-		connectReply.Features = serv.cfg.Features
-	}
-	if err := flatrpc.Send(conn, connectReply); err != nil {
-		return "", nil, nil, err
-	}
-
-	infoReq, err := flatrpc.Recv[*flatrpc.InfoRequestRaw](conn)
-	if err != nil {
-		return "", nil, nil, err
-	}
+func (serv *Server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
 	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files)
 	if err != nil {
 		log.Logf(0, "parsing of machine info failed: %v", err)
@@ -316,9 +303,8 @@ func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Canoni
 		if serv.checkFailures == 10 {
 			log.Fatalf("machine check failing")
 		}
-		return "", nil, nil, errors.New("machine check failed")
+		return handshakeResult{}, errors.New("machine check failed")
 	}
-
 	serv.infoOnce.Do(func() {
 		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
 		serv.coverFilter = serv.mgr.CoverageFilter(modules)
@@ -339,15 +325,12 @@ func (serv *Server) handshake(conn *flatrpc.Conn) (string, []byte, *cover.Canoni
 			}
 		}()
 	})
-
 	canonicalizer := serv.canonicalModules.NewInstance(modules)
-	infoReply := &flatrpc.InfoReply{
-		CoverFilter: canonicalizer.Decanonicalize(serv.coverFilter),
-	}
-	if err := flatrpc.Send(conn, infoReply); err != nil {
-		return "", nil, nil, err
-	}
-	return connectReq.Name, machineInfo, canonicalizer, nil
+	return handshakeResult{
+		CovFilter:     canonicalizer.Decanonicalize(serv.coverFilter),
+		MachineInfo:   machineInfo,
+		Canonicalizer: canonicalizer,
+	}, nil
 }
 
 func (serv *Server) connectionLoop(runner *Runner) error {
@@ -458,6 +441,7 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 	runner := &Runner{
 		source:       serv.execSource,
 		cover:        serv.cfg.Cover,
+		coverEdges:   serv.cfg.UseCoverEdges,
 		filterSignal: serv.cfg.FilterSignal,
 		debug:        serv.cfg.Debug,
 		sysTarget:    serv.sysTarget,
