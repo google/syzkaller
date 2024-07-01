@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -25,22 +26,26 @@ type Runner struct {
 	source        queue.Source
 	procs         int
 	cover         bool
+	coverEdges    bool
 	filterSignal  bool
 	debug         bool
 	sysTarget     *targets.Target
 	stats         *runnerStats
-	stopped       bool
 	finished      chan bool
 	injectExec    chan<- bool
 	infoc         chan chan []byte
-	conn          *flatrpc.Conn
-	machineInfo   []byte
 	canonicalizer *cover.CanonicalizerInstance
 	nextRequestID int64
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
 	lastExec      *LastExecuting
 	rnd           *rand.Rand
+
+	// The mutex protects all the fields below.
+	mu          sync.Mutex
+	conn        *flatrpc.Conn
+	stopped     bool
+	machineInfo []byte
 }
 
 type runnerStats struct {
@@ -52,14 +57,81 @@ type runnerStats struct {
 	statNoExecDuration     *stats.Val
 }
 
-func (runner *Runner) connectionLoop() error {
+type handshakeConfig struct {
+	VMLess     bool
+	Timeouts   targets.Timeouts
+	LeakFrames []string
+	RaceFrames []string
+	Files      []string
+	Globs      []string
+	Features   flatrpc.Feature
+
+	// Callback() is called in the middle of the handshake process.
+	// The return arguments are the coverage filter and the (possible) error.
+	Callback func(*flatrpc.InfoRequestRawT) (handshakeResult, error)
+}
+
+type handshakeResult struct {
+	CovFilter     []uint64
+	MachineInfo   []byte
+	Canonicalizer *cover.CanonicalizerInstance
+}
+
+func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error {
+	connectReply := &flatrpc.ConnectReply{
+		Debug:            runner.debug,
+		Cover:            runner.cover,
+		CoverEdges:       runner.coverEdges,
+		Kernel64Bit:      runner.sysTarget.PtrSize == 8,
+		Procs:            int32(runner.procs),
+		Slowdown:         int32(cfg.Timeouts.Slowdown),
+		SyscallTimeoutMs: int32(cfg.Timeouts.Syscall / time.Millisecond),
+		ProgramTimeoutMs: int32(cfg.Timeouts.Program / time.Millisecond),
+		LeakFrames:       cfg.LeakFrames,
+		RaceFrames:       cfg.RaceFrames,
+		Files:            cfg.Files,
+		Globs:            cfg.Globs,
+		Features:         cfg.Features,
+	}
+	if err := flatrpc.Send(conn, connectReply); err != nil {
+		return err
+	}
+	infoReq, err := flatrpc.Recv[*flatrpc.InfoRequestRaw](conn)
+	if err != nil {
+		return err
+	}
+	ret, err := cfg.Callback(infoReq)
+	if err != nil {
+		return err
+	}
+	infoReply := &flatrpc.InfoReply{
+		CoverFilter: ret.CovFilter,
+	}
+	if err := flatrpc.Send(conn, infoReply); err != nil {
+		return err
+	}
+	runner.mu.Lock()
+	runner.conn = conn
+	runner.machineInfo = ret.MachineInfo
+	runner.canonicalizer = ret.Canonicalizer
+	runner.mu.Unlock()
+	return nil
+}
+
+func (runner *Runner) ConnectionLoop() error {
+	runner.mu.Lock()
+	conn := runner.conn
+	runner.mu.Unlock()
+
+	defer close(runner.finished)
+
 	var infoc chan []byte
 	defer func() {
 		if infoc != nil {
 			infoc <- []byte("VM has crashed")
 		}
 	}()
-	for {
+	for runner.Alive() {
 		if infoc == nil {
 			select {
 			case infoc = <-runner.infoc:
@@ -69,7 +141,7 @@ func (runner *Runner) connectionLoop() error {
 						Value: &flatrpc.StateRequest{},
 					},
 				}
-				if err := flatrpc.Send(runner.conn, msg); err != nil {
+				if err := flatrpc.Send(conn, msg); err != nil {
 					return err
 				}
 			default:
@@ -89,7 +161,7 @@ func (runner *Runner) connectionLoop() error {
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
-		raw, err := flatrpc.Recv[*flatrpc.ExecutorMessageRaw](runner.conn)
+		raw, err := flatrpc.Recv[*flatrpc.ExecutorMessageRaw](conn)
 		if err != nil {
 			return err
 		}
@@ -119,9 +191,15 @@ func (runner *Runner) connectionLoop() error {
 			return err
 		}
 	}
+
+	return nil
 }
 
 func (runner *Runner) sendRequest(req *queue.Request) error {
+	runner.mu.Lock()
+	conn := runner.conn
+	runner.mu.Unlock()
+
 	if err := req.Validate(); err != nil {
 		panic(err)
 	}
@@ -185,7 +263,7 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 		},
 	}
 	runner.requests[id] = req
-	return flatrpc.Send(runner.conn, msg)
+	return flatrpc.Send(conn, msg)
 }
 
 func (runner *Runner) handleExecutingMessage(msg *flatrpc.ExecutingMessage) error {
@@ -311,7 +389,15 @@ func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	}
 }
 
-func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
+func (runner *Runner) SendSignalUpdate(plus, minus []uint64) error {
+	runner.mu.Lock()
+	conn := runner.conn
+	runner.mu.Unlock()
+
+	if conn == nil {
+		panic("no handshake is done yet")
+	}
+
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawSignalUpdate,
@@ -321,21 +407,43 @@ func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
 			},
 		},
 	}
-	return flatrpc.Send(runner.conn, msg)
+	return flatrpc.Send(conn, msg)
 }
 
-func (runner *Runner) sendCorpusTriaged() error {
+func (runner *Runner) SendCorpusTriaged() error {
+	runner.mu.Lock()
+	conn := runner.conn
+	runner.mu.Unlock()
+
+	if conn == nil {
+		panic("no handshake is done yet")
+	}
+
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type:  flatrpc.HostMessagesRawCorpusTriaged,
 			Value: &flatrpc.CorpusTriaged{},
 		},
 	}
-	return flatrpc.Send(runner.conn, msg)
+	return flatrpc.Send(conn, msg)
 }
 
-func (runner *Runner) shutdown(crashed bool) ([]ExecRecord, []byte) {
-	if runner.conn != nil {
+func (runner *Runner) Stop() {
+	runner.mu.Lock()
+	runner.stopped = true
+	conn := runner.conn
+	runner.mu.Unlock()
+	if conn != nil {
+		conn.Close()
+	}
+}
+
+func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
+	runner.mu.Lock()
+	conn := runner.conn
+	runner.mu.Unlock()
+
+	if conn != nil {
 		// Wait for the connection goroutine to finish and stop touching data.
 		// If conn is nil before we removed the runner, then it won't touch anything.
 		<-runner.finished
@@ -347,10 +455,16 @@ func (runner *Runner) shutdown(crashed bool) ([]ExecRecord, []byte) {
 		}
 		req.Done(&queue.Result{Status: status})
 	}
-	return runner.lastExec.Collect(), runner.machineInfo
+	return runner.lastExec.Collect()
 }
 
-func (runner *Runner) queryStatus() []byte {
+func (runner *Runner) MachineInfo() []byte {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+	return runner.machineInfo
+}
+
+func (runner *Runner) QueryStatus() []byte {
 	resc := make(chan []byte, 1)
 	timeout := time.After(time.Minute)
 	select {
@@ -364,6 +478,12 @@ func (runner *Runner) queryStatus() []byte {
 	case <-timeout:
 		return []byte("VM is not responding")
 	}
+}
+
+func (runner *Runner) Alive() bool {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+	return runner.conn != nil && !runner.stopped
 }
 
 // addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
