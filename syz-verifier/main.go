@@ -3,7 +3,7 @@
 
 // TODO: switch syz-verifier to use syz-fuzzer.
 
-//go:build never
+//go:build ignore
 
 // package main starts the syz-verifier tool. High-level documentation can be
 // found in docs/syz_verifier.md.
