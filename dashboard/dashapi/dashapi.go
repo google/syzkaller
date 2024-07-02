@@ -30,8 +30,25 @@ type Dashboard struct {
 	errorHandler func(error)
 }
 
-func New(client, addr, key string) (*Dashboard, error) {
-	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
+type DashboardOpts any
+type UserAgent string
+
+func New(client, addr, key string, opts ...DashboardOpts) (*Dashboard, error) {
+	ctor := http.NewRequest
+	for _, o := range opts {
+		switch opt := o.(type) {
+		case UserAgent:
+			ctor = func(method, url string, body io.Reader) (*http.Request, error) {
+				req, err := http.NewRequest(method, url, body)
+				if err != nil {
+					return nil, err
+				}
+				req.Header.Add("User-Agent", string(opt))
+				return req, nil
+			}
+		}
+	}
+	return NewCustom(client, addr, key, ctor, http.DefaultClient.Do, nil, nil)
 }
 
 type (
