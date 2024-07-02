@@ -68,7 +68,7 @@ gcloud spanner databases ddl update coverage --instance=syzbot --project=syzkall
  --ddl="$create_table"
 
 echo "Workdir: $workdir"
-base_dir="${workdir}repos/base"
+base_dir="${workdir}repos/linux_kernels"
 if [ ! -d $base_dir ]; then
   echo "base dir doesn't exist, cloning"
   git clone $repo $base_dir
