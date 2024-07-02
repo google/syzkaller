@@ -96,9 +96,10 @@ type Config struct {
 	// Mailx is the only supported mailer. Please set it up prior to using this function.
 	EmailAddrs []string `json:"email_addrs,omitempty"`
 
-	DashboardClient string `json:"dashboard_client,omitempty"`
-	DashboardAddr   string `json:"dashboard_addr,omitempty"`
-	DashboardKey    string `json:"dashboard_key,omitempty"`
+	DashboardClient    string `json:"dashboard_client,omitempty"`
+	DashboardAddr      string `json:"dashboard_addr,omitempty"`
+	DashboardKey       string `json:"dashboard_key,omitempty"`
+	DashboardUserAgent string `json:"dashboard_user_agent,omitempty"`
 	// If set, only consult dashboard if it needs reproducers for crashes,
 	// but otherwise don't send any info to dashboard (default: false).
 	DashboardOnlyRepro bool `json:"dashboard_only_repro,omitempty"`
