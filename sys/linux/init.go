@@ -23,8 +23,6 @@ func InitTarget(target *prog.Target) {
 		FITHAW:                      target.GetConst("FITHAW"),
 		SNAPSHOT_FREEZE:             target.GetConst("SNAPSHOT_FREEZE"),
 		SNAPSHOT_POWER_OFF:          target.GetConst("SNAPSHOT_POWER_OFF"),
-		EXT4_IOC_SHUTDOWN:           target.GetConst("EXT4_IOC_SHUTDOWN"),
-		EXT4_IOC_RESIZE_FS:          target.GetConst("EXT4_IOC_RESIZE_FS"),
 		EXT4_IOC_MIGRATE:            target.GetConst("EXT4_IOC_MIGRATE"),
 		FAN_OPEN_PERM:               target.GetConst("FAN_OPEN_PERM"),
 		FAN_ACCESS_PERM:             target.GetConst("FAN_ACCESS_PERM"),
@@ -125,8 +123,6 @@ type arch struct {
 	FITHAW                      uint64
 	SNAPSHOT_FREEZE             uint64
 	SNAPSHOT_POWER_OFF          uint64
-	EXT4_IOC_SHUTDOWN           uint64
-	EXT4_IOC_RESIZE_FS          uint64
 	EXT4_IOC_MIGRATE            uint64
 	FAN_OPEN_PERM               uint64
 	FAN_ACCESS_PERM             uint64
@@ -308,16 +304,6 @@ func (arch *arch) neutralizeIoctl(c *prog.Call) {
 	case arch.SNAPSHOT_POWER_OFF:
 		// SNAPSHOT_POWER_OFF shuts down the machine.
 		cmd.Val = arch.FITHAW
-	case arch.EXT4_IOC_SHUTDOWN:
-		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
-		// Fortunately, the value does not conflict with any other ioctl commands for now.
-		cmd.Val = arch.EXT4_IOC_MIGRATE
-	case arch.EXT4_IOC_RESIZE_FS:
-		// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
-		// and then creation of new temp dirs for tests will fail.
-		// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
-		// and/or if we mount tmpfs for sandbox=none (#971).
-		cmd.Val = arch.EXT4_IOC_MIGRATE
 	case arch.TIOCSSERIAL:
 		// TIOCSSERIAL can do nasty things under root, like causing writes to random memory
 		// pretty much like /dev/mem, but this is also working as intended.
