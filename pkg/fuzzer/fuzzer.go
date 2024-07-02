@@ -67,10 +67,10 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 }
 
 type execQueues struct {
-	smashQueue           *queue.PlainQueue
-	triageQueue          *queue.DynamicOrderer
-	candidateQueue       *queue.PlainQueue
 	triageCandidateQueue *queue.DynamicOrderer
+	candidateQueue       *queue.PlainQueue
+	triageQueue          *queue.DynamicOrderer
+	smashQueue           *queue.PlainQueue
 	source               queue.Source
 }
 
@@ -136,10 +136,11 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
 			}
 			fuzzer.startJob(stat, &triageJob{
-				p:     req.Prog.Clone(),
-				flags: flags,
-				queue: queue.Append(),
-				calls: triage,
+				p:        req.Prog.Clone(),
+				executor: res.Executor,
+				flags:    flags,
+				queue:    queue.Append(),
+				calls:    triage,
 			})
 		}
 	}
@@ -228,6 +229,12 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	}
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
+	}
+	if fuzzer.Config.Collide && rnd.Intn(3) == 0 {
+		req = &queue.Request{
+			Prog: randomCollide(req.Prog, rnd),
+			Stat: fuzzer.statExecCollide,
+		}
 	}
 	fuzzer.prepare(req, 0, 0)
 	return req
@@ -355,18 +362,6 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 			fuzzer.statJobs.Val(), m.Alloc/1000/1000)
 		fuzzer.Logf(0, "%s", str)
 	}
-}
-
-func (fuzzer *Fuzzer) RotateMaxSignal(items int) {
-	corpusSignal := fuzzer.Config.Corpus.Signal()
-	pureMaxSignal := fuzzer.Cover.pureMaxSignal(corpusSignal)
-	if pureMaxSignal.Len() < items {
-		items = pureMaxSignal.Len()
-	}
-	fuzzer.Logf(1, "rotate %d max signal elements", items)
-
-	delta := pureMaxSignal.RandomSubset(fuzzer.rand(), items)
-	fuzzer.Cover.subtract(delta)
 }
 
 func setFlags(execFlags flatrpc.ExecFlag) flatrpc.ExecOpts {

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"slices"
 	"time"
@@ -22,7 +21,8 @@ import (
 )
 
 type Runner struct {
-	source        queue.Source
+	id            int
+	source        *queue.Avoider
 	procs         int
 	cover         bool
 	filterSignal  bool
@@ -40,7 +40,6 @@ type Runner struct {
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
 	lastExec      *LastExecuting
-	rnd           *rand.Rand
 }
 
 type runnerStats struct {
@@ -76,7 +75,7 @@ func (runner *Runner) connectionLoop() error {
 			}
 		}
 		for len(runner.requests)-len(runner.executing) < 2*runner.procs {
-			req := runner.source.Next()
+			req := runner.source.Next(runner.id)
 			if req == nil {
 				break
 			}
@@ -138,13 +137,7 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 	for i, call := range req.ReturnAllSignal {
 		allSignal[i] = int32(call)
 	}
-	// Do not let too much state accumulate.
-	const restartIn = 600
-	resetFlags := flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectComps
 	opts := req.ExecOpts
-	if req.ExecOpts.ExecFlags&resetFlags != 0 && runner.rnd.Intn(restartIn) == 0 {
-		opts.EnvFlags |= flatrpc.ExecEnvResetState
-	}
 	if runner.debug {
 		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
@@ -172,11 +165,21 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 		}
 		data = fileData
 	}
+	var avoid uint64
+	for _, id := range req.Avoid {
+		if id.VM == runner.id {
+			avoid |= uint64(1 << id.Proc)
+		}
+	}
+	if avoid == (uint64(1)<<runner.procs)-1 {
+		avoid = 0
+	}
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawExecRequest,
 			Value: &flatrpc.ExecRequest{
 				Id:        id,
+				Avoid:     avoid,
 				ProgData:  data,
 				Flags:     flags,
 				ExecOpts:  &opts,
@@ -260,6 +263,10 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 		resErr = errors.New(msg.Error)
 	}
 	req.Done(&queue.Result{
+		Executor: queue.ExecutorID{
+			VM:   runner.id,
+			Proc: int(msg.Proc),
+		},
 		Status: status,
 		Info:   msg.Info,
 		Output: slices.Clone(msg.Output),
@@ -271,6 +278,15 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	call.Cover = runner.canonicalizer.Canonicalize(call.Cover)
 	call.Signal = runner.canonicalizer.Canonicalize(call.Signal)
+
+	call.Comps = slices.DeleteFunc(call.Comps, func(cmp *flatrpc.Comparison) bool {
+		converted := runner.canonicalizer.Canonicalize([]uint64{cmp.Pc})
+		if len(converted) == 0 {
+			return true
+		}
+		cmp.Pc = converted[0]
+		return false
+	})
 
 	// Check signal belongs to kernel addresses.
 	// Mismatching addresses can mean either corrupted VM memory, or that the fuzzer somehow
@@ -311,13 +327,12 @@ func (runner *Runner) convertCallInfo(call *flatrpc.CallInfo) {
 	}
 }
 
-func (runner *Runner) sendSignalUpdate(plus, minus []uint64) error {
+func (runner *Runner) sendSignalUpdate(plus []uint64) error {
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawSignalUpdate,
 			Value: &flatrpc.SignalUpdate{
-				NewMax:  runner.canonicalizer.Decanonicalize(plus),
-				DropMax: runner.canonicalizer.Decanonicalize(minus),
+				NewMax: runner.canonicalizer.Decanonicalize(plus),
 			},
 		},
 	}

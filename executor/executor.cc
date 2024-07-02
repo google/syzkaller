@@ -462,7 +462,7 @@ static void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off
 static bool copyout(char* addr, uint64 size, uint64* res);
 static void setup_control_pipes();
 static bool coverage_filter(uint64 pc);
-static std::tuple<rpc::ComparisonRaw, bool, bool> convert(const kcov_comparison_t& cmp);
+static rpc::ComparisonRaw convert(const kcov_comparison_t& cmp);
 
 #include "syscalls.h"
 
@@ -1100,29 +1100,23 @@ uint32 write_comparisons(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 	cover_unprotect(cov);
 	rpc::ComparisonRaw* start = (rpc::ComparisonRaw*)cov_start;
 	rpc::ComparisonRaw* end = start;
-	// We will convert kcov_comparison_t to ComparisonRaw inplace
-	// and potentially double number of elements, so ensure we have space.
-	static_assert(sizeof(kcov_comparison_t) >= 2 * sizeof(rpc::ComparisonRaw));
+	// We will convert kcov_comparison_t to ComparisonRaw inplace.
+	static_assert(sizeof(kcov_comparison_t) >= sizeof(rpc::ComparisonRaw));
 	for (uint32 i = 0; i < ncomps; i++) {
-		auto [raw, swap, ok] = convert(cov_start[i]);
-		if (!ok)
+		auto raw = convert(cov_start[i]);
+		if (!raw.pc())
 			continue;
 		*end++ = raw;
-		// Compiler marks comparisons with a const with KCOV_CMP_CONST flag.
-		// If the flag is set, then we need to export only one order of operands
-		// (because only one of them could potentially come from the input).
-		// If the flag is not set, then we export both orders as both operands
-		// could come from the input.
-		if (swap)
-			*end++ = {raw.op2(), raw.op1()};
 	}
 	std::sort(start, end, [](rpc::ComparisonRaw a, rpc::ComparisonRaw b) -> bool {
+		if (a.pc() != b.pc())
+			return a.pc() < b.pc();
 		if (a.op1() != b.op1())
 			return a.op1() < b.op1();
 		return a.op2() < b.op2();
 	});
 	ncomps = std::unique(start, end, [](rpc::ComparisonRaw a, rpc::ComparisonRaw b) -> bool {
-			 return a.op1() == b.op1() && a.op2() == b.op2();
+			 return a.pc() == b.pc() && a.op1() == b.op1() && a.op2() == b.op2();
 		 }) -
 		 start;
 	cover_protect(cov);
@@ -1601,7 +1595,7 @@ uint64 read_input(uint8** input_posp, bool peek)
 	return v;
 }
 
-std::tuple<rpc::ComparisonRaw, bool, bool> convert(const kcov_comparison_t& cmp)
+rpc::ComparisonRaw convert(const kcov_comparison_t& cmp)
 {
 	if (cmp.type > (KCOV_CMP_CONST | KCOV_CMP_SIZE_MASK))
 		failmsg("invalid kcov comp type", "type=%llx", cmp.type);
@@ -1647,7 +1641,7 @@ std::tuple<rpc::ComparisonRaw, bool, bool> convert(const kcov_comparison_t& cmp)
 
 	// Prog package expects operands in the opposite order (first operand may come from the input,
 	// the second operand was computed in the kernel), so swap operands.
-	return {{arg2, arg1}, !(cmp.type & KCOV_CMP_CONST), true};
+	return {cmp.pc, arg2, arg1, !!(cmp.type & KCOV_CMP_CONST)};
 }
 
 void failmsg(const char* err, const char* msg, ...)

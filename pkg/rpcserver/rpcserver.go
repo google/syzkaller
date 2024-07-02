@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"math/rand"
 	"slices"
 	"sort"
 	"strings"
@@ -71,10 +70,13 @@ type Server struct {
 	canonicalModules *cover.Canonicalizer
 	coverFilter      []uint64
 
-	mu             sync.Mutex
-	runners        map[string]*Runner
-	info           map[string]VMState
-	execSource     queue.Source
+	mu      sync.Mutex
+	runners map[string]*Runner
+	info    map[string]VMState
+	// TODO: replace names with indices.
+	ids            map[string]int
+	idSeq          int
+	execSource     *queue.Avoider
 	triagedCorpus  atomic.Bool
 	statVMRestarts *stats.Val
 	*runnerStats
@@ -126,9 +128,10 @@ func newImpl(cfg *Config, mgr Manager) (*Server, error) {
 		timeouts:   sysTarget.Timeouts(cfg.Slowdown),
 		runners:    make(map[string]*Runner),
 		info:       make(map[string]VMState),
+		ids:        make(map[string]int),
 		checker:    checker,
 		baseSource: baseSource,
-		execSource: queue.Retry(baseSource),
+		execSource: queue.Avoid(queue.Retry(baseSource)),
 
 		StatExecs: stats.Create("exec total", "Total test program executions",
 			stats.Console, stats.Rate{}, stats.Prometheus("syz_exec_total")),
@@ -344,7 +347,7 @@ func (serv *Server) connectionLoop(runner *Runner) error {
 			// buffer too much (we don't want to grow it larger than what will be needed
 			// to send programs).
 			n := min(len(maxSignal), 50000)
-			if err := runner.sendSignalUpdate(maxSignal[:n], nil); err != nil {
+			if err := runner.sendSignalUpdate(maxSignal[:n]); err != nil {
 				return err
 			}
 			maxSignal = maxSignal[n:]
@@ -453,7 +456,6 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 		requests:     make(map[int64]*queue.Request),
 		executing:    make(map[int64]bool),
 		lastExec:     MakeLastExecuting(serv.cfg.Procs, 6),
-		rnd:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		stats:        serv.runnerStats,
 		procs:        serv.cfg.Procs,
 	}
@@ -463,6 +465,13 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 	}
 	serv.runners[name] = runner
 	serv.info[name] = VMState{StateBooting, time.Now()}
+	id, ok := serv.ids[name]
+	if !ok {
+		id = serv.idSeq
+		serv.idSeq++
+		serv.ids[name] = id
+	}
+	runner.id = id
 	serv.mu.Unlock()
 }
 
@@ -489,11 +498,10 @@ func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, [
 	return runner.shutdown(crashed)
 }
 
-func (serv *Server) DistributeSignalDelta(plus, minus signal.Signal) {
+func (serv *Server) DistributeSignalDelta(plus signal.Signal) {
 	plusRaw := plus.ToRaw()
-	minusRaw := minus.ToRaw()
 	serv.foreachRunnerAsync(func(runner *Runner) {
-		runner.sendSignalUpdate(plusRaw, minusRaw)
+		runner.sendSignalUpdate(plusRaw)
 	})
 }
 
