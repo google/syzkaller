@@ -261,7 +261,11 @@ func RunManager(cfg *mgrconfig.Config) {
 	log.Logf(0, "serving rpc on tcp://%v", mgr.serv.Port)
 
 	if cfg.DashboardAddr != "" {
-		dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+		opts := []dashapi.DashboardOpts{}
+		if cfg.DashboardUserAgent != "" {
+			opts = append(opts, dashapi.UserAgent(cfg.DashboardUserAgent))
+		}
+		dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey, opts...)
 		if err != nil {
 			log.Fatalf("failed to create dashapi connection: %v", err)
 		}
