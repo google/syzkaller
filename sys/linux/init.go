@@ -23,7 +23,6 @@ func InitTarget(target *prog.Target) {
 		FITHAW:                      target.GetConst("FITHAW"),
 		SNAPSHOT_FREEZE:             target.GetConst("SNAPSHOT_FREEZE"),
 		SNAPSHOT_POWER_OFF:          target.GetConst("SNAPSHOT_POWER_OFF"),
-		EXT4_IOC_MIGRATE:            target.GetConst("EXT4_IOC_MIGRATE"),
 		FAN_OPEN_PERM:               target.GetConst("FAN_OPEN_PERM"),
 		FAN_ACCESS_PERM:             target.GetConst("FAN_ACCESS_PERM"),
 		FAN_OPEN_EXEC_PERM:          target.GetConst("FAN_OPEN_EXEC_PERM"),
@@ -40,7 +39,6 @@ func InitTarget(target *prog.Target) {
 		AF_NETLINK:                  target.GetConst("AF_NETLINK"),
 		SOCK_RAW:                    target.GetConst("SOCK_RAW"),
 		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
-		USB_MAJOR:                   target.GetConst("USB_MAJOR"),
 		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
 		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
 		// These are not present on all arches.
@@ -123,7 +121,6 @@ type arch struct {
 	FITHAW                      uint64
 	SNAPSHOT_FREEZE             uint64
 	SNAPSHOT_POWER_OFF          uint64
-	EXT4_IOC_MIGRATE            uint64
 	FAN_OPEN_PERM               uint64
 	FAN_ACCESS_PERM             uint64
 	FAN_OPEN_EXEC_PERM          uint64
@@ -142,7 +139,6 @@ type arch struct {
 	AF_NETLINK                  uint64
 	SOCK_RAW                    uint64
 	NETLINK_GENERIC             uint64
-	USB_MAJOR                   uint64
 	TIOCSSERIAL                 uint64
 	TIOCGSERIAL                 uint64
 }
