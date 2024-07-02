@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/vm/dispatcher"
 	"github.com/google/syzkaller/vm/vmimpl"
 
 	// Import all VM implementations, so that users only need to import vm.
@@ -271,6 +272,14 @@ func (inst *Instance) Close() error {
 	}
 	inst.onClose()
 	return err
+}
+
+func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *dispatcher.Pool[*Instance] {
+	return dispatcher.NewPool(pool.Count(),
+		func(idx int) (*Instance, error) {
+			return pool.Create(idx)
+		},
+		def)
 }
 
 type monitor struct {

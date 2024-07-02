@@ -183,17 +183,17 @@ func (serv *Server) Close() error {
 	return serv.serv.Close()
 }
 
-type VMState struct {
-	State     int
-	Timestamp time.Time
-}
-
 const (
 	StateOffline = iota
 	StateBooting
 	StateFuzzing
 	StateStopping
 )
+
+type VMState struct {
+	State     int
+	Timestamp time.Time
+}
 
 func (serv *Server) VMState() map[string]VMState {
 	serv.mu.Lock()
