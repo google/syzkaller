@@ -308,6 +308,7 @@ presubmit:
 presubmit_aux:
 	$(MAKE) generate
 	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_shebang tidy
+	$(GO) mod tidy
 
 presubmit_build: descriptions
 	# Run go build before lint for better error messages if build is broken.
