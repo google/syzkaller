@@ -171,7 +171,9 @@ func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {
-	cfg.KernelObj = filepath.Join(imageDir, "obj")
+	if cfg.Type != targets.Starnix {
+		cfg.KernelObj = filepath.Join(imageDir, "obj")
+	}
 	cfg.Image = filepath.Join(imageDir, "image")
 	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
 		cfg.SSHKey = keyFile
