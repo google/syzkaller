@@ -1037,7 +1037,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		} else {
 			// Don't store the crash locally, if we've successfully
 			// uploaded it to the dashboard. These will just eat disk space.
-			return resp.NeedRepro
+			return mgr.cfg.Reproduce && resp.NeedRepro
 		}
 	}
 
@@ -1103,6 +1103,9 @@ func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 }
 
 func (mgr *Manager) needRepro(crash *Crash) bool {
+	if !mgr.cfg.Reproduce {
+		return false
+	}
 	if crash.fromHub || crash.fromDashboard {
 		return true
 	}
