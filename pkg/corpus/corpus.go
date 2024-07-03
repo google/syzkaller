@@ -60,14 +60,13 @@ type ItemUpdate struct {
 // too hard to synchonize accesses to them across the whole project.
 // When Corpus updates one of its items, it saves a copy of it.
 type Item struct {
-	Sig      string
-	Call     int
-	Prog     *prog.Prog
-	ProgData []byte // to save some Serialize() calls
-	HasAny   bool   // whether the prog contains squashed arguments
-	Signal   signal.Signal
-	Cover    []uint64
-	Updates  []ItemUpdate
+	Sig     string
+	Call    int
+	Prog    *prog.Prog
+	HasAny  bool // whether the prog contains squashed arguments
+	Signal  signal.Signal
+	Cover   []uint64
+	Updates []ItemUpdate
 }
 
 func (item Item) StringCall() string {
@@ -109,14 +108,13 @@ func (corpus *Corpus) Save(inp NewInput) {
 		newCover.Merge(old.Cover)
 		newCover.Merge(inp.Cover)
 		newItem := &Item{
-			Sig:      sig,
-			Prog:     old.Prog,
-			ProgData: progData,
-			Call:     old.Call,
-			HasAny:   old.HasAny,
-			Signal:   newSignal,
-			Cover:    newCover.Serialize(),
-			Updates:  append([]ItemUpdate{}, old.Updates...),
+			Sig:     sig,
+			Prog:    old.Prog,
+			Call:    old.Call,
+			HasAny:  old.HasAny,
+			Signal:  newSignal,
+			Cover:   newCover.Serialize(),
+			Updates: append([]ItemUpdate{}, old.Updates...),
 		}
 		const maxUpdates = 32
 		if len(newItem.Updates) < maxUpdates {
@@ -125,14 +123,13 @@ func (corpus *Corpus) Save(inp NewInput) {
 		corpus.progs[sig] = newItem
 	} else {
 		corpus.progs[sig] = &Item{
-			Sig:      sig,
-			Call:     inp.Call,
-			Prog:     inp.Prog,
-			ProgData: progData,
-			HasAny:   inp.Prog.ContainsAny(),
-			Signal:   inp.Signal,
-			Cover:    inp.Cover,
-			Updates:  []ItemUpdate{update},
+			Sig:     sig,
+			Call:    inp.Call,
+			Prog:    inp.Prog,
+			HasAny:  inp.Prog.ContainsAny(),
+			Signal:  inp.Signal,
+			Cover:   inp.Cover,
+			Updates: []ItemUpdate{update},
 		}
 		corpus.saveProgram(inp.Prog, inp.Signal)
 	}

@@ -1353,15 +1353,11 @@ func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	}
 }
 
-func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
+func (mgr *Manager) getMinimizedCorpus() (corpus []*corpus.Item, repros [][]byte) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	mgr.minimizeCorpusLocked()
-	items := mgr.corpus.Items()
-	corpus = make([][]byte, 0, len(items))
-	for _, inp := range items {
-		corpus = append(corpus, inp.ProgData)
-	}
+	corpus = mgr.corpus.Items()
 	repros = mgr.newRepros
 	mgr.newRepros = nil
 	return
