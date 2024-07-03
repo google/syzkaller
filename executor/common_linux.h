@@ -3912,7 +3912,7 @@ static void sandbox_common_mount_tmpfs(void)
 		fail("mount(dev) failed");
 	if (mkdir("./syz-tmp/newroot/proc", 0700))
 		fail("mkdir failed");
-	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
+	if (mount("syz-proc", "./syz-tmp/newroot/proc", "proc", 0, NULL))
 		fail("mount(proc) failed");
 	if (mkdir("./syz-tmp/newroot/selinux", 0700))
 		fail("mkdir failed");
