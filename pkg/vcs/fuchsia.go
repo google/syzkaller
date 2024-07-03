@@ -24,9 +24,12 @@ func newFuchsia(dir string, opts []RepoOpt) *fuchsia {
 }
 
 func (ctx *fuchsia) Poll(repo, branch string) (*Commit, error) {
-	if repo != "https://fuchsia.googlesource.com" || branch != "master" {
-		// Fuchsia ecosystem is hard-wired to the main repo.
-		return nil, fmt.Errorf("fuchsia: can only check out https://fuchsia.googlesource.com/master")
+	if repo != "https://fuchsia.googlesource.com/fuchsia" || (branch != "main" && branch != "master") {
+		// Fuchsia ecosystem is hard-wired to the main repo + branch.
+		// The 'master' branch is a mirror of 'main'.
+		return nil, fmt.Errorf(
+			"fuchsia: can only check out 'main' or 'master' branch of https://fuchsia.googlesource.com/fuchsia",
+		)
 	}
 	if _, err := runSandboxed(ctx.dir, "./.jiri_root/bin/jiri", "update"); err != nil {
 		if err := ctx.initRepo(); err != nil {
@@ -48,7 +51,7 @@ func (ctx *fuchsia) initRepo() error {
 	if err := osutil.SandboxChown(tmpDir); err != nil {
 		return err
 	}
-	cmd := "curl -s 'https://fuchsia.googlesource.com/fuchsia/+/master/scripts/bootstrap?format=TEXT' |" +
+	cmd := "curl -s 'https://fuchsia.googlesource.com/fuchsia/+/main/scripts/bootstrap?format=TEXT' |" +
 		"base64 --decode | bash"
 	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
 		return err
