@@ -87,8 +87,8 @@ func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuil
 }
 
 func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
-	if cfg.Target.OS == targets.Linux {
-		return getPCBase(cfg)
+	if cfg.Target.OS == targets.Linux && cfg.Type != targets.GVisor && cfg.Type != targets.Starnix {
+		return getLinuxPCBase(cfg)
 	}
 	return 0, nil
 }

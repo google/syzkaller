@@ -245,7 +245,7 @@ func elfReadTextSec(module *KernelModule) (*elf.Section, error) {
 	return text, nil
 }
 
-func getPCBase(cfg *mgrconfig.Config) (uint64, error) {
+func getLinuxPCBase(cfg *mgrconfig.Config) (uint64, error) {
 	bin := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
 	file, err := elf.Open(bin)
 	if err != nil {
