@@ -200,6 +200,11 @@ func (f *testFuzzer) OnDone(req *queue.Request, res *queue.Result) bool {
 	match := crashRe.FindSubmatch(res.Output)
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.finished.Load() {
+		// Don't touch f.crashes in this case b/c it can cause races with the main goroutine,
+		// and logging can cause "Log in goroutine after TestFuzz has completed" panic.
+		return true
+	}
 	if match != nil {
 		crash := string(match[1])
 		f.t.Logf("CRASH: %s", crash)
@@ -215,7 +220,7 @@ func (f *testFuzzer) OnDone(req *queue.Request, res *queue.Result) bool {
 			f.iter, f.fuzzer.Config.Corpus.StatProgs.Val(), f.fuzzer.Config.Corpus.StatSignal.Val(),
 			len(f.fuzzer.Cover.maxSignal), len(f.crashes), f.fuzzer.statJobs.Val())
 	}
-	if !f.finished.Load() && (f.iter > f.iterLimit || len(f.crashes) == len(f.expectedCrashes)) {
+	if f.iter > f.iterLimit || len(f.crashes) == len(f.expectedCrashes) {
 		f.done()
 		f.finished.Store(true)
 	}
