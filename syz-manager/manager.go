@@ -1378,6 +1378,12 @@ func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
 }
 
 func (mgr *Manager) minimizeCorpusLocked() {
+	// Don't minimize corpus until we have triaged all inputs from it.
+	// During corpus triage it would happen very often since we are actively adding inputs,
+	// and presumably the persistent corpus was reasonably minimial, and we don't use it for fuzzing yet.
+	if mgr.phase < phaseTriagedCorpus {
+		return
+	}
 	currSize := mgr.corpus.StatProgs.Val()
 	if currSize <= mgr.lastMinCorpus*103/100 {
 		return
@@ -1421,10 +1427,6 @@ func (mgr *Manager) minimizeCorpusLocked() {
 		log.Logf(0, "coverage for %v has saturated, not accepting more inputs", call)
 	}
 
-	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
-	if mgr.phase < phaseTriagedCorpus {
-		return
-	}
 	mgr.corpusDBMu.Lock()
 	defer mgr.corpusDBMu.Unlock()
 	for key := range mgr.corpusDB.Records {
