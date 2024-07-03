@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
-	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
@@ -72,7 +72,7 @@ type HubConnector struct {
 	enabledCalls   map[*prog.Syscall]bool
 	leak           bool
 	fresh          bool
-	hubCorpus      map[hash.Sig]bool
+	hubCorpus      map[string]bool
 	newRepros      [][]byte
 	hubReproQueue  chan *Crash
 	needMoreRepros chan chan bool
@@ -89,7 +89,7 @@ type HubConnector struct {
 
 // HubManagerView restricts interface between HubConnector and Manager.
 type HubManagerView interface {
-	getMinimizedCorpus() (corpus, repros [][]byte)
+	getMinimizedCorpus() (corpus []*corpus.Item, repros [][]byte)
 	addNewCandidates(candidates []fuzzer.Candidate)
 	hubIsUnreachable()
 }
@@ -125,7 +125,7 @@ func (hc *HubConnector) loop() {
 	}
 }
 
-func (hc *HubConnector) connect(corpus [][]byte) (*rpctype.RPCClient, error) {
+func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, error) {
 	key, err := hc.keyGet()
 	if err != nil {
 		return nil, err
@@ -144,10 +144,10 @@ func (hc *HubConnector) connect(corpus [][]byte) (*rpctype.RPCClient, error) {
 	for call := range hc.enabledCalls {
 		a.Calls = append(a.Calls, call.Name)
 	}
-	hubCorpus := make(map[hash.Sig]bool)
+	hubCorpus := make(map[string]bool)
 	for _, inp := range corpus {
-		hubCorpus[hash.Hash(inp)] = true
-		a.Corpus = append(a.Corpus, inp)
+		hubCorpus[inp.Sig] = true
+		a.Corpus = append(a.Corpus, inp.Prog.Serialize())
 	}
 	// Never send more than this, this is never healthy but happens episodically
 	// due to various reasons: problems with fallback coverage, bugs in kcov,
@@ -172,7 +172,7 @@ func (hc *HubConnector) connect(corpus [][]byte) (*rpctype.RPCClient, error) {
 	return hub, nil
 }
 
-func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
+func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus []*corpus.Item) error {
 	key, err := hc.keyGet()
 	if err != nil {
 		return err
@@ -182,22 +182,21 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 		Key:     key,
 		Manager: hc.cfg.Name,
 	}
-	sigs := make(map[hash.Sig]bool)
+	sigs := make(map[string]bool)
 	for _, inp := range corpus {
-		sig := hash.Hash(inp)
-		sigs[sig] = true
-		if hc.hubCorpus[sig] {
+		sigs[inp.Sig] = true
+		if hc.hubCorpus[inp.Sig] {
 			continue
 		}
-		hc.hubCorpus[sig] = true
-		a.Add = append(a.Add, inp)
+		hc.hubCorpus[inp.Sig] = true
+		a.Add = append(a.Add, inp.Prog.Serialize())
 	}
 	for sig := range hc.hubCorpus {
 		if sigs[sig] {
 			continue
 		}
 		delete(hc.hubCorpus, sig)
-		a.Del = append(a.Del, sig.String())
+		a.Del = append(a.Del, sig)
 	}
 	if hc.needMoreRepros != nil {
 		needReproReply := make(chan bool)

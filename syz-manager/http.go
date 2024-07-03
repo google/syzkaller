@@ -350,13 +350,13 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			}
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
-				Data: string(inp.ProgData),
+				Data: string(inp.Prog.Serialize()),
 				PCs:  coverToPCs(mgr.cfg, inp.Updates[updateID].RawCover),
 			})
 		} else {
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
-				Data: string(inp.ProgData),
+				Data: string(inp.Prog.Serialize()),
 				PCs:  coverToPCs(mgr.cfg, inp.Cover),
 			})
 		}
@@ -368,7 +368,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			}
 			progs = append(progs, cover.Prog{
 				Sig:  inp.Sig,
-				Data: string(inp.ProgData),
+				Data: string(inp.Prog.Serialize()),
 				PCs:  coverToPCs(mgr.cfg, inp.Cover),
 			})
 		}
@@ -507,7 +507,7 @@ func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write(inp.ProgData)
+	w.Write(inp.Prog.Serialize())
 }
 
 func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
@@ -528,7 +528,7 @@ func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 		return ret
 	}
 	data := []UIRawCallCover{}
-	for pos, line := range strings.Split(string(inp.ProgData), "\n") {
+	for pos, line := range strings.Split(string(inp.Prog.Serialize()), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
