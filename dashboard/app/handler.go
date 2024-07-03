@@ -206,6 +206,7 @@ type uiHeader struct {
 	MissingBackports    int
 	Namespaces          []uiNamespace
 	ShowSubsystems      bool
+	ShowCoverageMenu    bool
 }
 
 type uiNamespace struct {
@@ -290,6 +291,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		}
 		h.BugCounts = &cached.Total
 		h.MissingBackports = cached.MissingBackports
+		h.ShowCoverageMenu = getNsConfig(c, ns).Coverage != nil
 	}
 	return h, nil
 }

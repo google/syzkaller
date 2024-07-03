@@ -121,6 +121,13 @@ type Config struct {
 	DisplayDiscussions bool
 	// Cache what we display on the web dashboard.
 	CacheUIPages bool
+	// Enables coverage aggregation.
+	Coverage *CoverageConfig
+}
+
+type CoverageConfig struct {
+	BatchProject        string
+	BatchServiceAccount string
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.

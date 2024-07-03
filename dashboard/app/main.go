@@ -55,7 +55,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
-	for ns := range getConfig(context.Background()).Namespaces {
+	for ns, nsConfig := range getConfig(context.Background()).Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed)) // nolint: goconst // remove it with goconst 1.7.0+
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
@@ -64,7 +64,9 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
-		http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
+		if nsConfig.Coverage != nil {
+			http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
+		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
