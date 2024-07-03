@@ -24,8 +24,17 @@ type DBRecord struct {
 	Covered      int64
 }
 
+type DBHistoryRecord struct {
+	Namespace string
+	Repo      string
+	Commit    string
+	Duration  int64
+	DateTo    civil.Date
+	TotalRows int64
+}
+
 func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*Coverage,
-	template *DBRecord) {
+	template *DBRecord, totalRows int64) {
 	client, err := spanner.NewClient(ctx, "projects/"+projectID+"/instances/syzbot/databases/coverage")
 	if err != nil {
 		panic(fmt.Sprintf("spanner.NewClient() failed: %s", err.Error()))
@@ -58,6 +67,20 @@ func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*C
 			mutations = nil
 		}
 	}
+
+	var historyInsert *spanner.Mutation
+	if historyInsert, err = spanner.InsertOrUpdateStruct("merge_history", &DBHistoryRecord{
+		Namespace: template.Namespace,
+		Repo:      template.Repo,
+		Commit:    template.Commit,
+		Duration:  template.Duration,
+		DateTo:    template.DateTo,
+		TotalRows: totalRows,
+	}); err != nil {
+		panic(fmt.Sprintf("failed to spanner.InsertStruct(): %s", err.Error()))
+	}
+	mutations = append(mutations, historyInsert)
+
 	if _, err = client.Apply(ctx, mutations); err != nil {
 		panic(fmt.Sprintf("failed to spanner.Apply(inserts): %s", err.Error()))
 	}
