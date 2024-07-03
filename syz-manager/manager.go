@@ -92,6 +92,9 @@ type Manager struct {
 	coverFilter     map[uint64]struct{} // includes only coverage PCs
 
 	dash *dashapi.Dashboard
+	// This is specifically separated from dash, so that we can keep dash = nil when
+	// cfg.DashboardOnlyRepro is set, so that we don't accidentially use dash for anything.
+	dashRepro *dashapi.Dashboard
 
 	mu                    sync.Mutex
 	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
@@ -258,9 +261,13 @@ func RunManager(cfg *mgrconfig.Config) {
 	log.Logf(0, "serving rpc on tcp://%v", mgr.serv.Port)
 
 	if cfg.DashboardAddr != "" {
-		mgr.dash, err = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+		dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
 		if err != nil {
 			log.Fatalf("failed to create dashapi connection: %v", err)
+		}
+		mgr.dashRepro = dash
+		if !cfg.DashboardOnlyRepro {
+			mgr.dash = dash
 		}
 	}
 
@@ -1080,7 +1087,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	writeOrRemove("tag", []byte(mgr.cfg.Tag))
 	writeOrRemove("report", crash.Report.Report)
 	writeOrRemove("machineInfo", crash.MachineInfo)
-	return mgr.needLocalRepro(crash)
+	return mgr.needRepro(crash)
 }
 
 const maxReproAttempts = 3
@@ -1111,17 +1118,19 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
 	}
-	if mgr.dash == nil {
+	if mgr.dashRepro == nil {
 		return mgr.needLocalRepro(crash)
 	}
 	cid := &dashapi.CrashID{
-		BuildID:      mgr.cfg.Tag,
-		Title:        crash.Title,
-		Corrupted:    crash.Corrupted,
-		Suppressed:   crash.Suppressed,
-		MayBeMissing: crash.Type == crash_pkg.MemoryLeak, // we did not send the original crash w/o repro
+		BuildID:    mgr.cfg.Tag,
+		Title:      crash.Title,
+		Corrupted:  crash.Corrupted,
+		Suppressed: crash.Suppressed,
+		// When cfg.DashboardOnlyRepro is enabled, we don't sent any reports to dashboard.
+		// We also don't send leak reports w/o reproducers to dashboard, so they may be missing.
+		MayBeMissing: mgr.dash == nil || crash.Type == crash_pkg.MemoryLeak,
 	}
-	needRepro, err := mgr.dash.NeedRepro(cid)
+	needRepro, err := mgr.dashRepro.NeedRepro(cid)
 	if err != nil {
 		log.Logf(0, "dashboard.NeedRepro failed: %v", err)
 	}

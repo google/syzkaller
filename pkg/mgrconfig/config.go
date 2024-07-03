@@ -99,6 +99,9 @@ type Config struct {
 	DashboardClient string `json:"dashboard_client,omitempty"`
 	DashboardAddr   string `json:"dashboard_addr,omitempty"`
 	DashboardKey    string `json:"dashboard_key,omitempty"`
+	// If set, only consult dashboard if it needs reproducers for crashes,
+	// but otherwise don't send any info to dashboard (default: false).
+	DashboardOnlyRepro bool `json:"dashboard_only_repro,omitempty"`
 
 	// Location of the syzkaller checkout, syz-manager will look
 	// for binaries in bin subdir (does not have to be syzkaller checkout as
