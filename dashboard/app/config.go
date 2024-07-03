@@ -392,6 +392,7 @@ func installConfig(cfg *GlobalConfig) {
 	initHTTPHandlers()
 	initAPIHandlers()
 	initKcidb()
+	initCoverageBatches()
 }
 
 var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"
