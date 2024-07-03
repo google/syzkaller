@@ -67,6 +67,21 @@ CREATE TABLE IF NOT EXISTS
 gcloud spanner databases ddl update coverage --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
+echo "making sure spanner table 'merge_history' exists"
+create_table=$( echo -n '
+CREATE TABLE IF NOT EXISTS
+  merge_history (
+    "namespace" text,
+    "repo" text,
+    "commit" text,
+    "duration" bigint,
+    "dateto" date,
+    "totalrows" bigint,
+  PRIMARY KEY
+    (duration, dateto, commit) );')
+gcloud spanner databases ddl update coverage --instance=syzbot --project=syzkaller \
+ --ddl="$create_table"
+
 echo "Workdir: $workdir"
 base_dir="${workdir}repos/linux_kernels"
 if [ ! -d $base_dir ]; then
@@ -89,10 +104,29 @@ then
 fi
 echo The latest commit as of $to_date is $base_commit.
 
-# rm -rf $base_dir
-# echo Temp dir $base_dir deleted.
-
 from_date=$(date -d "$to_date - $duration days" +%Y-%m-%d)
+# every partition covers 1 day
+query=$(cat <<-END
+SELECT
+  sum(total_rows) as total_rows,
+FROM
+  syzkaller.syzbot_coverage.INFORMATION_SCHEMA.PARTITIONS
+WHERE
+  table_name = '${namespace}' AND
+  PARSE_DATE('%Y%m%d', partition_id) >= '${from_date}' AND
+  PARSE_DATE('%Y%m%d', partition_id) <= '${to_date}';
+END
+)
+
+total_rows=$(bq query --format=csv --use_legacy_sql=false "$query" | tail -n +2)
+if (( total_rows <= 0 ))
+then
+  echo error: no source rows in bigquery available
+  exit
+else
+  echo $total_rows rows are available for processing
+fi
+
 sessionID=$(cat /proc/sys/kernel/random/uuid)
 gsURI=$(echo gs://syzbot-temp/bq-exports/${sessionID}/*.csv.gz)
 echo fetching data from bigquery
@@ -129,7 +163,8 @@ go run ./tools/syz-covermerger/ -workdir $workdir \
   -save-to-spanner true \
   -namespace $namespace \
   -duration $duration \
-  -date-to $to_date
+  -date-to $to_date \
+  -total-rows $total_rows
 
 echo Cleanup
 rm -rf $sessionDir

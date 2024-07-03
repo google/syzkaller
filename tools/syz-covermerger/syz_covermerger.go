@@ -28,6 +28,7 @@ var (
 	flagDateTo        = flag.String("date-to", "", "[optional] used to mark DB records")
 	flagSaveToSpanner = flag.String("save-to-spanner", "", "[optional] save aggregation to spanner")
 	flagProjectID     = flag.String("project-id", "syzkaller", "[optional] target spanner db project")
+	flagTotalRows     = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
 )
 
 func main() {
@@ -65,6 +66,7 @@ func main() {
 				Duration:  *flagDuration,
 				DateTo:    dateTo,
 			},
+			*flagTotalRows,
 		)
 	}
 }
