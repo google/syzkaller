@@ -116,7 +116,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}()
 
 	var err error
-	inst.ffxBinary, err = getToolPath(inst.fuchsiaDir, "ffx")
+	inst.ffxBinary, err = GetToolPath(inst.fuchsiaDir, "ffx")
 	if err != nil {
 		return nil, err
 	}
@@ -478,7 +478,7 @@ type toolMetadata struct {
 }
 
 // Resolve a tool by name using tool_paths.json in the build dir.
-func getToolPath(fuchsiaDir, toolName string) (string, error) {
+func GetToolPath(fuchsiaDir, toolName string) (string, error) {
 	buildDir, err := getFuchsiaBuildDir(fuchsiaDir)
 	if err != nil {
 		return "", err
