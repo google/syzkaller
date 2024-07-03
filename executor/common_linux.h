@@ -3899,6 +3899,9 @@ static void initialize_cgroups()
 // See https://github.com/google/syzkaller/issues/4939 for more details.
 static void sandbox_common_mount_tmpfs(void)
 {
+	// Android systems set fs.mount-max to a very low value, causing ENOSPC when doing the mounts below
+	// (see https://github.com/google/syzkaller/issues/4972). 100K mounts should be enough for everyone.
+	write_file("/proc/sys/fs/mount-max", "100000");
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
 	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
