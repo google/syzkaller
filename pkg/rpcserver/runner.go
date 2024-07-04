@@ -164,7 +164,10 @@ func (runner *Runner) ConnectionLoop() error {
 			}
 		}
 		if len(runner.requests) == 0 {
-			// The runner has not requests at all, so don't wait to receive anything from it.
+			if !runner.Alive() {
+				return nil
+			}
+			// The runner has no new requests, so don't wait to receive anything from it.
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
