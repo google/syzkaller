@@ -5,11 +5,9 @@ package rpcserver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -99,23 +97,6 @@ func RunLocal(cfg *LocalConfig) error {
 	if cmdErr == nil {
 		cmd.Process.Kill()
 		<-res
-	}
-	if !cfg.HandleInterrupts {
-		// If the executor has crashed early, reply to all remaining requests to unblock tests.
-	loop:
-		for {
-			req := serv.execSource.Next()
-			if req == nil {
-				select {
-				case <-cfg.Context.Done():
-					break loop
-				default:
-					time.Sleep(time.Millisecond)
-					continue loop
-				}
-			}
-			req.Done(&queue.Result{Status: queue.ExecFailure, Err: errors.New("executor crashed")})
-		}
 	}
 	return cmdErr
 }
