@@ -764,6 +764,10 @@ func (cfg *Config) lastActiveReporting() int {
 	return last
 }
 
+func (cfg *Config) mainRepoBranch() (repo, branch string) {
+	return cfg.Repos[0].URL, cfg.Repos[0].Branch
+}
+
 func (gCfg *GlobalConfig) marshalJSON() string {
 	ret, err := json.MarshalIndent(gCfg, "", " ")
 	if err != nil {
