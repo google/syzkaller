@@ -382,6 +382,9 @@ presubmit_old: descriptions
 	TARGETARCH=mips64le TARGETVMARCH=mips64le $(MAKE) target
 	TARGETARCH=s390x TARGETVMARCH=s390x $(MAKE) target
 
+presubmit_gvisor: host target
+	./tools/gvisor-smoke-test.sh
+
 test: descriptions
 	$(GO) test -short -coverprofile=.coverage.txt ./...
 

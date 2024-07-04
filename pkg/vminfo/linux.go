@@ -34,6 +34,7 @@ func (linux) checkFiles() []string {
 		"/proc/version",
 		"/proc/filesystems",
 		"/sys/kernel/security/lsm",
+		"/proc/sentry-meminfo",
 	}
 }
 
@@ -45,6 +46,11 @@ func (linux) machineInfos() []machineInfoFunc {
 }
 
 func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
+	_, err := files.ReadFile("/proc/sentry-meminfo")
+	if err == nil {
+		// This is gVisor.
+		return nil, nil
+	}
 	var modules []*cover.KernelModule
 	re := regexp.MustCompile(`(\w+) ([0-9]+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	modulesText, _ := files.ReadFile("/proc/modules")
