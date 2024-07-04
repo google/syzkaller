@@ -85,15 +85,10 @@ type Server struct {
 }
 
 func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
-	var modules []*vminfo.KernelModule
 	var pcBase uint64
 	if cfg.KernelObj != "" {
 		var err error
 		pcBase, err = cover.GetPCBase(cfg)
-		if err != nil {
-			return nil, err
-		}
-		modules, err = backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +122,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
 		pcBase:            pcBase,
-		localModules:      modules,
+		localModules:      cfg.LocalModules,
 	}, mgr)
 }
 

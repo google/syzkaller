@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
 	"github.com/google/syzkaller/sys/targets"
@@ -40,6 +41,8 @@ type Derived struct {
 	// In this mode syz-manager does not start any VMs, but instead a user is supposed
 	// to start syz-executor process in a VM manually.
 	VMLess bool
+
+	LocalModules []*vminfo.KernelModule
 }
 
 func LoadData(data []byte) (*Config, error) {
