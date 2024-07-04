@@ -27,9 +27,10 @@ type DB struct {
 	Version uint64            // arbitrary user version (0 for new database)
 	Records map[string]Record // in-memory cache, must not be modified directly
 
-	filename    string
-	uncompacted int           // number of records in the file
-	pending     *bytes.Buffer // pending writes to the file
+	filename      string
+	uncompacted   int           // number of records in the file
+	pending       *bytes.Buffer // pending writes to the file
+	dataDiscarded bool
 }
 
 type Record struct {
@@ -44,19 +45,13 @@ func Open(filename string, repair bool) (*DB, error) {
 	db := &DB{
 		filename: filename,
 	}
-	f, err := os.OpenFile(db.filename, os.O_RDONLY|os.O_CREATE, osutil.DefaultFilePerm)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
 	var deserializeErr error
-	db.Version, db.Records, db.uncompacted, deserializeErr = deserializeDB(bufio.NewReader(f))
+	db.Version, db.Records, db.uncompacted, deserializeErr = deserializeFile(db.filename)
 	// Deserialization error is considered a "soft" error if repair == true,
 	// but compact below ensures that the file is at least writable.
 	if deserializeErr != nil && !repair {
 		return nil, deserializeErr
 	}
-	f.Close() // compact will rewrite the file, so close our descriptor
 	if err := db.compact(); err != nil {
 		return nil, err
 	}
@@ -67,11 +62,15 @@ func (db *DB) Save(key string, val []byte, seq uint64) {
 	if seq == seqDeleted {
 		panic("reserved seq")
 	}
-	if rec, ok := db.Records[key]; ok && seq == rec.Seq && bytes.Equal(val, rec.Val) {
+	// If data is discarded, we assume key identifies data (data hash).
+	if rec, ok := db.Records[key]; ok && seq == rec.Seq && (db.dataDiscarded || bytes.Equal(val, rec.Val)) {
 		return
 	}
-	db.Records[key] = Record{val, seq}
 	db.serialize(key, val, seq)
+	if db.dataDiscarded {
+		val = nil
+	}
+	db.Records[key] = Record{val, seq}
 	db.uncompacted++
 }
 
@@ -84,10 +83,18 @@ func (db *DB) Delete(key string) {
 	db.uncompacted++
 }
 
-func (db *DB) Flush() error {
-	if db.uncompacted/10*9 > len(db.Records) {
-		return db.compact()
+// DiscardData discards all record's values from memory.
+// This allows to save memory if values are not needed anymore,
+// but in exchange every compaction will need to re-read all data from disk.
+func (db *DB) DiscardData() {
+	db.dataDiscarded = true
+	for key, rec := range db.Records {
+		rec.Val = nil
+		db.Records[key] = rec
 	}
+}
+
+func (db *DB) Flush() error {
 	if db.pending == nil {
 		return nil
 	}
@@ -100,21 +107,38 @@ func (db *DB) Flush() error {
 		return err
 	}
 	db.pending = nil
-	return nil
+	if db.uncompacted/10*9 < len(db.Records) {
+		return nil
+	}
+	return db.compact()
 }
 
 func (db *DB) BumpVersion(version uint64) error {
+	if err := db.Flush(); err != nil {
+		return err
+	}
 	if db.Version == version {
-		return db.Flush()
+		return nil
 	}
 	db.Version = version
 	return db.compact()
 }
 
 func (db *DB) compact() error {
+	if db.pending != nil {
+		panic("compacting with pending records")
+	}
+	records := db.Records
+	if db.dataDiscarded {
+		var err error
+		_, records, _, err = deserializeFile(db.filename)
+		if err != nil {
+			return err
+		}
+	}
 	buf := new(bytes.Buffer)
 	serializeHeader(buf, db.Version)
-	for key, rec := range db.Records {
+	for key, rec := range records {
 		serializeRecord(buf, key, rec.Val, rec.Seq)
 	}
 	f, err := os.Create(db.filename + ".tmp")
@@ -129,8 +153,7 @@ func (db *DB) compact() error {
 	if err := osutil.Rename(f.Name(), db.filename); err != nil {
 		return err
 	}
-	db.uncompacted = len(db.Records)
-	db.pending = nil
+	db.uncompacted = len(records)
 	return nil
 }
 
@@ -181,6 +204,15 @@ func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64) {
 		fw.Close()
 		binary.Write(bytes.NewBuffer(w.Bytes()[lenPos:lenPos:lenPos+8]), binary.LittleEndian, uint32(len(w.Bytes())-startPos))
 	}
+}
+
+func deserializeFile(filename string) (version uint64, records map[string]Record, uncompacted int, err error) {
+	f, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, osutil.DefaultFilePerm)
+	if err != nil {
+		return 0, nil, 0, err
+	}
+	defer f.Close()
+	return deserializeDB(bufio.NewReader(f))
 }
 
 func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, uncompacted int, err0 error) {

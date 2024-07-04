@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBasic(t *testing.T) {
@@ -115,6 +116,64 @@ func TestLarge(t *testing.T) {
 	}
 	if len(db.Records) != nrec {
 		t.Fatalf("wrong record count: %v, want %v", len(db.Records), nrec)
+	}
+}
+
+func TestDiscardData(t *testing.T) {
+	fn := tempFile(t)
+	defer os.Remove(fn)
+	db, err := Open(fn, false)
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	db.DiscardData()
+
+	db.Save("1", []byte("11"), 1)
+	db.Save("2", []byte("22"), 2)
+	db.Save("3", []byte("33"), 3)
+	db.Delete("2")
+	if err := db.Flush(); err != nil {
+		t.Fatalf("failed to flush db: %v", err)
+	}
+	assert.Nil(t, db.Records["1"].Val)
+	assert.Nil(t, db.Records["2"].Val)
+	assert.Nil(t, db.Records["3"].Val)
+
+	db, err = Open(fn, false)
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	want := map[string]Record{
+		"1": {Val: []byte("11"), Seq: 1},
+		"3": {Val: []byte("33"), Seq: 3},
+	}
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after save: %v, want: %v", db.Records, want)
+	}
+	db.Save("3", []byte("333"), 33)
+	db.Save("4", []byte("44"), 4)
+	db.Delete("1")
+	db.DiscardData()
+	assert.Nil(t, db.Records["3"].Val)
+	assert.Nil(t, db.Records["4"].Val)
+	// Force compaction.
+	for i := 0; i < 200; i++ {
+		db.Save("5", []byte("55"), 5)
+	}
+	if err := db.Flush(); err != nil {
+		t.Fatalf("failed to flush db: %v", err)
+	}
+	db, err = Open(fn, false)
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	want = map[string]Record{
+		"3": {Val: []byte("333"), Seq: 33},
+		"4": {Val: []byte("44"), Seq: 4},
+		"5": {Val: []byte("55"), Seq: 5},
+	}
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after save: %v, want: %v", db.Records, want)
 	}
 }
 
