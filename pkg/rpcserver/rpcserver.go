@@ -5,6 +5,7 @@ package rpcserver
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -105,7 +106,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 	if !cfg.Experimental.RemoteCover {
 		features &= ^flatrpc.FeatureExtraCoverage
 	}
-	return newImpl(&Config{
+	return newImpl(context.Background(), &Config{
 		Config: vminfo.Config{
 			Target:     cfg.Target,
 			Features:   features,
@@ -130,9 +131,9 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 	}, mgr)
 }
 
-func newImpl(cfg *Config, mgr Manager) (*Server, error) {
+func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 	cfg.Procs = min(cfg.Procs, prog.MaxPids)
-	checker := vminfo.New(&cfg.Config)
+	checker := vminfo.New(ctx, &cfg.Config)
 	baseSource := queue.DynamicSource(checker)
 	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
 	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)

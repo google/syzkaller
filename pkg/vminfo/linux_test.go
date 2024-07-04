@@ -6,6 +6,7 @@ package vminfo
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -20,7 +21,7 @@ import (
 
 func TestLinuxSyscalls(t *testing.T) {
 	cfg := testConfig(t, targets.Linux, targets.AMD64)
-	checker := New(cfg)
+	checker := New(context.Background(), cfg)
 	filesystems := []string{
 		// Without sysfs, the checks would also disable mount().
 		"", "sysfs", "ext4", "binder", "",
