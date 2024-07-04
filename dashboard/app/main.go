@@ -1911,14 +1911,14 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
 		for i, com := range bug.Commits {
-			cfg := getNsConfig(c, bug.Namespace)
+			mainNsRepo, mainNsBranch := getNsConfig(c, bug.Namespace).mainRepoBranch()
 			info := bug.getCommitInfo(i)
 			uiBug.Commits = append(uiBug.Commits, &uiCommit{
 				Hash:   info.Hash,
 				Title:  com,
-				Link:   vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
-				Repo:   cfg.Repos[0].URL,
-				Branch: cfg.Repos[0].Branch,
+				Link:   vcs.CommitLink(mainNsRepo, info.Hash),
+				Repo:   mainNsRepo,
+				Branch: mainNsBranch,
 			})
 		}
 		for _, mgr := range managers {
