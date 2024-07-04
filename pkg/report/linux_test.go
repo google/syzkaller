@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -145,21 +146,61 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 			"[<ffffffff82d1b1d9>] baz+0x101/0x200\n",
 			"[<ffffffff82d1b1d9>] baz+0x101/0x200 baz.c:100\n",
 		},
+		// Frame format with module+offset.
+		{
+			"[   50.419727][ T3822] baz+0x101/0x200 [beep]\n",
+			"[   50.419727][ T3822] baz+0x101/0x200 baz.c:100 [beep]\n",
+		},
+		// Frame format with module+offset for invalid module.
+		{
+			"[   50.419727][ T3822] baz+0x101/0x200 [invalid_module]\n",
+			"[   50.419727][ T3822] baz+0x101/0x200 [invalid_module]\n",
+		},
+		// Frame format with module+offset for missing symbol.
+		{
+			"[   50.419727][ T3822] missing_symbol+0x101/0x200 [beep]\n",
+			"[   50.419727][ T3822] missing_symbol+0x101/0x200 [beep]\n",
+		},
+		// Frame format with module+offset for invalid offset.
+		{
+			"[   50.419727][ T3822] baz+0x300/0x200 [beep]\n",
+			"[   50.419727][ T3822] baz+0x300/0x200 [beep]\n",
+		},
 	}
-	symbols := map[string][]symbolizer.Symbol{
-		"foo": {
-			{Addr: 0x1000000, Size: 0x190},
+	symbols := map[string]map[string][]symbolizer.Symbol{
+		"": {
+			"foo": {
+				{Addr: 0x1000000, Size: 0x190},
+			},
+			"do_ipv6_setsockopt.isra.7.part.3": {
+				{Addr: 0x2000000, Size: 0x2830},
+			},
+			"baz": {
+				{Addr: 0x3000000, Size: 0x100},
+				{Addr: 0x4000000, Size: 0x200},
+				{Addr: 0x5000000, Size: 0x300},
+			},
 		},
-		"do_ipv6_setsockopt.isra.7.part.3": {
-			{Addr: 0x2000000, Size: 0x2830},
-		},
-		"baz": {
-			{Addr: 0x3000000, Size: 0x100},
-			{Addr: 0x4000000, Size: 0x200},
-			{Addr: 0x5000000, Size: 0x300},
+		"beep": {
+			"baz": {
+				{Addr: 0x4000000, Size: 0x200},
+			},
 		},
 	}
 	symb := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
+		if bin == "beep" {
+			switch pc {
+			case 0x4000100:
+				return []symbolizer.Frame{
+					{
+						File: "/linux/baz.c",
+						Line: 100,
+					},
+				}, nil
+			default:
+				return nil, fmt.Errorf("unknown pc 0x%x", pc)
+			}
+		}
 		if bin != "vmlinux" {
 			return nil, fmt.Errorf("unknown pc 0x%x", pc)
 		}
@@ -228,9 +269,29 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 			return nil, fmt.Errorf("unknown pc 0x%x", pc)
 		}
 	}
+	modules := []*vminfo.KernelModule{
+		{
+			Name: "",
+			Path: "vmlinux",
+		},
+		{
+			Name: "beep",
+			Path: "beep",
+		},
+	}
+
+	cfg := &config{
+		kernelObj:     "/linux",
+		kernelModules: modules,
+	}
+	ctx := &linux{
+		config:  cfg,
+		vmlinux: "vmlinux",
+		symbols: symbols,
+	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			result := symbolizeLine(symb, symbols, "vmlinux", "/linux", []byte(test.line))
+			result := symbolizeLine(symb, symbols, modules, "/linux", ctx, []byte(test.line))
 			if test.result != string(result) {
 				t.Errorf("want %q\n\t     get %q", test.result, string(result))
 			}
