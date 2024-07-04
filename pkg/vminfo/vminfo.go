@@ -47,7 +47,7 @@ type Config struct {
 	SandboxArg int64
 }
 
-func New(cfg *Config) *Checker {
+func New(ctx context.Context, cfg *Config) *Checker {
 	var impl checker
 	switch cfg.Target.OS {
 	case targets.Linux:
@@ -59,7 +59,6 @@ func New(cfg *Config) *Checker {
 	default:
 		impl = new(stub)
 	}
-	ctx := context.Background()
 	executor := queue.Plain()
 	return &Checker{
 		checker:      impl,

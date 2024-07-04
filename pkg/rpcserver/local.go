@@ -50,7 +50,7 @@ func RunLocal(cfg *LocalConfig) error {
 		cfg:       cfg,
 		setupDone: make(chan bool),
 	}
-	serv, err := newImpl(&cfg.Config, ctx)
+	serv, err := newImpl(cfg.Context, &cfg.Config, ctx)
 	if err != nil {
 		return err
 	}
