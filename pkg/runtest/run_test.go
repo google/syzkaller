@@ -366,13 +366,13 @@ func testCover(t *testing.T, target *prog.Target) {
 			if test.Is64Bit {
 				vmArch = targets.TestArch64
 			}
-			startRPCServer(t, target, executor, vmArch, source, test.MaxSignal, test.CoverFilter, nil)
-			testCover1(t, target, test, source)
+			ctx := startRPCServer(t, target, executor, vmArch, source, test.MaxSignal, test.CoverFilter, nil)
+			testCover1(t, ctx, target, test, source)
 		})
 	}
 }
 
-func testCover1(t *testing.T, target *prog.Target, test CoverTest, source *queue.PlainQueue) {
+func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test CoverTest, source *queue.PlainQueue) {
 	text := fmt.Sprintf(`syz_inject_cover(&AUTO="%s", AUTO)`, hex.EncodeToString(test.Input))
 	p, err := target.Deserialize([]byte(text), prog.Strict)
 	if err != nil {
@@ -389,7 +389,7 @@ func testCover1(t *testing.T, target *prog.Target, test CoverTest, source *queue
 		req.ReturnAllSignal = []int{0}
 	}
 	source.Submit(req)
-	res := req.Wait(context.Background())
+	res := req.Wait(ctx)
 	if res.Err != nil || res.Info == nil || len(res.Info.Calls) != 1 || res.Info.Calls[0] == nil {
 		t.Fatalf("program execution failed: status=%v err=%v\n%s", res.Status, res.Err, res.Output)
 	}
@@ -438,7 +438,7 @@ func makeComps(comps ...Comparison) []byte {
 }
 
 func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, source queue.Source,
-	maxSignal, coverFilter []uint64, machineChecked func(features flatrpc.Feature)) {
+	maxSignal, coverFilter []uint64, machineChecked func(features flatrpc.Feature)) context.Context {
 	dir, err := os.MkdirTemp("", "syz-runtest")
 	if err != nil {
 		t.Fatal(err)
@@ -472,7 +472,9 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 	}
 	errc := make(chan error)
 	go func() {
-		errc <- rpcserver.RunLocal(cfg)
+		err := rpcserver.RunLocal(cfg)
+		done()
+		errc <- err
 	}()
 	t.Cleanup(func() {
 		done()
@@ -492,6 +494,7 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 			t.Fatalf("failed to remove temp dir %v: %v", dir, err)
 		}
 	})
+	return ctx
 }
 
 func TestParsing(t *testing.T) {
