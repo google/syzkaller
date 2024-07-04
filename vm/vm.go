@@ -260,6 +260,10 @@ func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
 	return inst.impl.Diagnose(rep)
 }
 
+func (inst *Instance) Index() int {
+	return inst.index
+}
+
 func (inst *Instance) Close() {
 	inst.impl.Close()
 	os.RemoveAll(inst.workdir)
