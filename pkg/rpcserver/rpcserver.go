@@ -84,13 +84,18 @@ type Server struct {
 }
 
 func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
-	pcBase, err := cover.GetPCBase(cfg)
-	if err != nil {
-		return nil, err
-	}
-	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
-	if err != nil {
-		return nil, err
+	var modules []*cover.KernelModule
+	var pcBase uint64
+	if cfg.KernelObj != "" {
+		var err error
+		pcBase, err = cover.GetPCBase(cfg)
+		if err != nil {
+			return nil, err
+		}
+		modules, err = backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+		if err != nil {
+			return nil, err
+		}
 	}
 	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
 	if err != nil {
