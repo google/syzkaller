@@ -358,7 +358,6 @@ func testCover(t *testing.T, target *prog.Target) {
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			t.Parallel()
 			source := queue.Plain()
 			vmArch := targets.TestArch32
 			if test.Is64Bit {
