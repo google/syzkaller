@@ -11,9 +11,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -82,6 +84,15 @@ const unspecifiedType = crash.Type("UNSPECIFIED")
 
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
+	var localModules []*vminfo.KernelModule
+	if cfg.KernelObj != "" {
+		var err error
+		localModules, err = backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+		if err != nil {
+			return nil, err
+		}
+		cfg.LocalModules = localModules
+	}
 	typ := cfg.TargetOS
 	if cfg.Type == targets.GVisor || cfg.Type == targets.Starnix {
 		typ = cfg.Type
@@ -105,6 +116,7 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 		kernelBuildSrc: cfg.KernelBuildSrc,
 		kernelObj:      cfg.KernelObj,
 		ignores:        ignores,
+		kernelModules:  localModules,
 	}
 	rep, suppressions, err := ctor(config)
 	if err != nil {
@@ -156,6 +168,7 @@ type config struct {
 	kernelBuildSrc string
 	kernelObj      string
 	ignores        []*regexp.Regexp
+	kernelModules  []*vminfo.KernelModule
 }
 
 type fn func(cfg *config) (reporterImpl, []string, error)
