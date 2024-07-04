@@ -74,7 +74,8 @@ if [ ! -d $base_dir ]; then
   git clone $repo $base_dir
 fi
 cd $base_dir
-git checkout $branch
+remote=$(git remote -v | grep $repo | head -n1 | awk '{print $1;}')
+git checkout $remote/$branch
 cd -
 
 # get the last merged commit at to_date
