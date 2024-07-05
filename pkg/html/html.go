@@ -25,9 +25,9 @@ import (
 // When you deploy AppEngine in the  GOMOD, CWD is syzkaller/.
 var globSearchPath = func() string {
 	if appengine.IsAppEngine() {
-		return "dashboard/app/"
+		return "dashboard/app/templates/"
 	}
-	return ""
+	return "templates/"
 }()
 
 // SetGlobSearchPath overrides the default path where syzkaller looks for templates.
