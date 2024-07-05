@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
@@ -59,7 +60,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		statRecvReproDrop: stats.Create("hub recv repro drop", "", stats.NoGraph),
 	}
 	if mgr.cfg.Reproduce && mgr.dash != nil {
-		hc.needMoreRepros = mgr.needMoreRepros
+		hc.needMoreRepros = mgr.reproMgr.CanReproMore
 	}
 	hc.loop()
 }
@@ -75,8 +76,9 @@ type HubConnector struct {
 	hubCorpus      map[string]bool
 	newRepros      [][]byte
 	hubReproQueue  chan *Crash
-	needMoreRepros chan chan bool
+	needMoreRepros func() bool
 	keyGet         keyGetter
+	reproSeq       atomic.Int64
 
 	statSendProgAdd   *stats.Val
 	statSendProgDel   *stats.Val
@@ -199,9 +201,7 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus []*corpus.Item) erro
 		a.Del = append(a.Del, sig)
 	}
 	if hc.needMoreRepros != nil {
-		needReproReply := make(chan bool)
-		hc.needMoreRepros <- needReproReply
-		a.NeedRepros = <-needReproReply
+		a.NeedRepros = hc.needMoreRepros()
 	}
 	a.Repros = hc.newRepros
 	for {
@@ -307,7 +307,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		hc.hubReproQueue <- &Crash{
 			fromHub: true,
 			Report: &report.Report{
-				Title:  "external repro",
+				Title:  fmt.Sprintf("external repro #%d", hc.reproSeq.Add(1)),
 				Type:   typ,
 				Output: repro,
 			},

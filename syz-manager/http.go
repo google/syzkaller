@@ -24,10 +24,10 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/rpcserver"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/vm/dispatcher"
 	"github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -172,40 +172,55 @@ func (mgr *Manager) httpVMs(w http.ResponseWriter, r *http.Request) {
 	}
 	// TODO: we could also query vmLoop for VMs that are idle (waiting to start reproducing),
 	// and query the exact bug that is being reproduced by a VM.
-	for name, state := range mgr.serv.VMState() {
+	for id, state := range mgr.pool.State() {
+		name := fmt.Sprintf("#%d", id)
 		info := UIVMInfo{
 			Name:  name,
 			State: "unknown",
-			Since: time.Since(state.Timestamp),
+			Since: time.Since(state.LastUpdate),
 		}
 		switch state.State {
-		case rpcserver.StateOffline:
-			info.State = "reproducing"
-		case rpcserver.StateBooting:
+		case dispatcher.StateOffline:
+			info.State = "offline"
+		case dispatcher.StateBooting:
 			info.State = "booting"
-		case rpcserver.StateFuzzing:
-			info.State = "fuzzing"
-			info.MachineInfo = fmt.Sprintf("/vm?type=machine-info&name=%v", name)
-			info.RunnerStatus = fmt.Sprintf("/vm?type=runner-status&name=%v", name)
-		case rpcserver.StateStopping:
-			info.State = "crashed"
+		case dispatcher.StateWaiting:
+			info.State = "waiting"
+		case dispatcher.StateRunning:
+			info.State = "running: " + state.Status
+		}
+		if state.Reserved {
+			info.State = "[reserved] " + info.State
+		}
+		if state.MachineInfo != nil {
+			info.MachineInfo = fmt.Sprintf("/vm?type=machine-info&id=%d", id)
+		}
+		if state.DetailedStatus != nil {
+			info.DetailedStatus = fmt.Sprintf("/vm?type=detailed-status&id=%v", id)
 		}
 		data.VMs = append(data.VMs, info)
 	}
-	sort.Slice(data.VMs, func(i, j int) bool {
-		return data.VMs[i].Name < data.VMs[j].Name
-	})
 	executeTemplate(w, vmsTemplate, data)
 }
 
 func (mgr *Manager) httpVM(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ctTextPlain)
-	vm := r.FormValue("name")
+	id, err := strconv.Atoi(r.FormValue("id"))
+	infos := mgr.pool.State()
+	if err != nil || id < 0 || id >= len(infos) {
+		http.Error(w, "invalid instance id", http.StatusBadRequest)
+		return
+	}
+	info := infos[id]
 	switch r.FormValue("type") {
 	case "machine-info":
-		w.Write(mgr.serv.MachineInfo(vm))
-	case "runner-status":
-		w.Write(mgr.serv.RunnerStatus(vm))
+		if info.MachineInfo != nil {
+			w.Write(info.MachineInfo())
+		}
+	case "detailed-status":
+		if info.DetailedStatus != nil {
+			w.Write(info.DetailedStatus())
+		}
 	default:
 		w.Write([]byte("unknown info type"))
 	}
@@ -619,10 +634,8 @@ func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	// Note: mu is not locked here.
 	var repros map[string]bool
-	if !mgr.cfg.VMLess {
-		reproReply := make(chan map[string]bool)
-		mgr.reproRequest <- reproReply
-		repros = <-reproReply
+	if !mgr.cfg.VMLess && mgr.reproMgr != nil {
+		repros = mgr.reproMgr.Reproducing()
 	}
 
 	crashdir := filepath.Join(workdir, "crashes")
@@ -777,11 +790,11 @@ type UIVMData struct {
 }
 
 type UIVMInfo struct {
-	Name         string
-	State        string
-	Since        time.Duration
-	MachineInfo  string
-	RunnerStatus string
+	Name           string
+	State          string
+	Since          time.Duration
+	MachineInfo    string
+	DetailedStatus string
 }
 
 type UISyscallsData struct {
@@ -918,7 +931,7 @@ var vmsTemplate = pages.Create(`
 		<th><a onclick="return sortTable(this, 'State', textSort)" href="#">State</a></th>
 		<th><a onclick="return sortTable(this, 'Since', timeSort)" href="#">Since</a></th>
 		<th><a onclick="return sortTable(this, 'Machine Info', timeSort)" href="#">Machine Info</a></th>
-		<th><a onclick="return sortTable(this, 'Runner Status', timeSort)" href="#">Runner Status</a></th>
+		<th><a onclick="return sortTable(this, 'Status', timeSort)" href="#">Status</a></th>
 	</tr>
 	{{range $vm := $.VMs}}
 	<tr>
@@ -926,7 +939,7 @@ var vmsTemplate = pages.Create(`
 		<td>{{$vm.State}}</td>
 		<td>{{formatDuration $vm.Since}}</td>
 		<td>{{optlink $vm.MachineInfo "info"}}</td>
-		<td>{{optlink $vm.RunnerStatus "status"}}</td>
+		<td>{{optlink $vm.DetailedStatus "status"}}</td>
 	</tr>
 	{{end}}
 </table>

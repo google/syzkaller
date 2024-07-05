@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
-	"sync"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 }
 
 func TestBisect(t *testing.T) {
-	ctx := &context{
+	ctx := &reproContext{
 		stats: new(Stats),
 		logf:  t.Logf,
 	}
@@ -109,28 +108,10 @@ func TestSimplifies(t *testing.T) {
 	check(opts, 0)
 }
 
-func generateTestInstances(ctx *context, count int, execInterface execInterface) {
-	for i := 0; i < count; i++ {
-		ctx.bootRequests <- i
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for vmIndex := range ctx.bootRequests {
-			ctx.instances <- &reproInstance{execProg: execInterface, index: vmIndex}
-		}
-	}()
-	wg.Wait()
-}
-
 type testExecInterface struct {
-	t *testing.T
 	// For now only do the simplest imitation.
 	run func([]byte) (*instance.RunResult, error)
 }
-
-func (tei *testExecInterface) Close() {}
 
 func (tei *testExecInterface) RunCProg(p *prog.Prog, duration time.Duration,
 	opts csource.Options) (*instance.RunResult, error) {
@@ -142,7 +123,7 @@ func (tei *testExecInterface) RunSyzProg(syzProg []byte, duration time.Duration,
 	return tei.run(syzProg)
 }
 
-func prepareTestCtx(t *testing.T, log string) *context {
+func prepareTestCtx(t *testing.T, log string, exec execInterface) *reproContext {
 	mgrConfig := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
@@ -159,7 +140,7 @@ func prepareTestCtx(t *testing.T, log string) *context {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, err := prepareCtx([]byte(log), mgrConfig, flatrpc.AllFeatures, reporter, 3)
+	ctx, err := prepareCtx([]byte(log), mgrConfig, flatrpc.AllFeatures, reporter, exec)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,9 +180,7 @@ func testExecRunner(log []byte) (*instance.RunResult, error) {
 // Just a pkg/repro smoke test: check that we can extract a two-call reproducer.
 // No focus on error handling and minor corner cases.
 func TestPlainRepro(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog)
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t:   t,
+	ctx := prepareTestCtx(t, testReproLog, &testExecInterface{
 		run: testExecRunner,
 	})
 	result, _, err := ctx.run()
@@ -218,10 +197,8 @@ alarm(0xa)
 // There happen to be transient errors like ssh/scp connection failures.
 // Ensure that the code just retries.
 func TestVMErrorResilience(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog)
 	fail := false
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t: t,
+	ctx := prepareTestCtx(t, testReproLog, &testExecInterface{
 		run: func(log []byte) (*instance.RunResult, error) {
 			fail = !fail
 			if fail {
@@ -242,10 +219,8 @@ alarm(0xa)
 }
 
 func TestTooManyErrors(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog)
 	counter := 0
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t: t,
+	ctx := prepareTestCtx(t, testReproLog, &testExecInterface{
 		run: func(log []byte) (*instance.RunResult, error) {
 			counter++
 			if counter%4 != 0 {
@@ -279,9 +254,7 @@ func TestProgConcatenation(t *testing.T) {
 			execLog += "getpid()\n"
 		}
 	}
-	ctx := prepareTestCtx(t, execLog)
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t:   t,
+	ctx := prepareTestCtx(t, execLog, &testExecInterface{
 		run: testExecRunner,
 	})
 	result, _, err := ctx.run()

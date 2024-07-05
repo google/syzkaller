@@ -4,6 +4,7 @@
 package repro
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/instance"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/vm/dispatcher"
 )
 
 type StraceResult struct {
@@ -24,31 +26,36 @@ const (
 )
 
 func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
-	vmPool *vm.Pool, vmIndex int) *StraceResult {
+	pool *dispatcher.Pool[*vm.Instance]) *StraceResult {
 	if cfg.StraceBin == "" {
 		return straceFailed(fmt.Errorf("strace binary is not set in the config"))
 	}
-	inst, err := instance.CreateExecProgInstance(vmPool, vmIndex, cfg, reporter,
-		&instance.OptionalConfig{
-			StraceBin:        cfg.StraceBin,
-			BeforeContextLen: straceOutputLogSize,
-		})
-	if err != nil {
-		return straceFailed(fmt.Errorf("failed to set up instance: %w", err))
-	}
-	defer inst.VMInstance.Close()
-
 	var runRes *instance.RunResult
-	if result.CRepro {
-		log.Logf(1, "running C repro under strace")
-		runRes, err = inst.RunCProg(result.Prog, result.Duration, result.Opts)
-	} else {
-		log.Logf(1, "running syz repro under strace")
-		runRes, err = inst.RunSyzProg(result.Prog.Serialize(), result.Duration,
-			result.Opts, instance.SyzExitConditions)
-	}
+	var err error
+	pool.Run(func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
+		updInfo(func(info *dispatcher.Info) {
+			info.Status = "running strace"
+		})
+		ret, setupErr := instance.SetupExecProg(inst, cfg, reporter,
+			&instance.OptionalConfig{
+				StraceBin:        cfg.StraceBin,
+				BeforeContextLen: straceOutputLogSize,
+			})
+		if setupErr != nil {
+			err = fmt.Errorf("failed to set up instance: %w", setupErr)
+			return
+		}
+		if result.CRepro {
+			log.Logf(1, "running C repro under strace")
+			runRes, err = ret.RunCProg(result.Prog, result.Duration, result.Opts)
+		} else {
+			log.Logf(1, "running syz repro under strace")
+			runRes, err = ret.RunSyzProg(result.Prog.Serialize(), result.Duration,
+				result.Opts, instance.SyzExitConditions)
+		}
+	})
 	if err != nil {
-		return straceFailed(fmt.Errorf("failed to generate strace log: %w", err))
+		return straceFailed(err)
 	}
 	return &StraceResult{
 		Report: runRes.Report,
