@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/symbolizer"
@@ -485,10 +486,8 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	}
 	var symbolized []byte
 	for _, frame := range frames {
-		file := frame.File
-		file = strings.TrimPrefix(file, strip)
-		file = strings.TrimLeft(file, "./")
-		info := fmt.Sprintf(" %v:%v", file, frame.Line)
+		path, _ := backend.CleanPath(frame.File, ctx.kernelObj, ctx.kernelSrc, ctx.kernelBuildSrc, nil)
+		info := fmt.Sprintf(" %v:%v", path, frame.Line)
 		modified := append([]byte{}, line...)
 		modified = replace(modified, match[7], match[7], []byte(info))
 		if frame.Inline {
