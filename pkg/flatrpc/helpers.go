@@ -6,7 +6,9 @@ package flatrpc
 import (
 	"fmt"
 	"slices"
+	"sync/atomic"
 	"syscall"
+	"unsafe"
 )
 
 const AllFeatures = ^Feature(0)
@@ -100,4 +102,12 @@ func FlagsToSandbox(flags ExecEnv) string {
 		return "android"
 	}
 	panic("no sandbox flags present")
+}
+
+func (hdr *SnapshotHeaderT) UpdateState(state SnapshotState) {
+	atomic.StoreUint64((*uint64)(unsafe.Pointer(&hdr.State)), uint64(state))
+}
+
+func (hdr *SnapshotHeaderT) LoadState() SnapshotState {
+	return SnapshotState(atomic.LoadUint64((*uint64)(unsafe.Pointer(&hdr.State))))
 }

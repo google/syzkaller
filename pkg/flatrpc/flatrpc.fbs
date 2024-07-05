@@ -3,6 +3,14 @@
 
 namespace rpc;
 
+// Various consts shared between Go and C++ code.
+enum Const : uint64 {
+	MaxInputSize		= 4198400,	// 4<<20 + 4<<10
+	MaxOutputSize		= 14680064,	// 14<<20
+	SnapshotShmemSize	= 33554432,	// Must be power-of-2 and >=MaxInputSize+MaxOutputSize
+	SnapshotDoorbellSize	= 4096,		// 4<<10
+}
+
 enum Feature : uint64 (bit_flags) {
 	Coverage,
 	Comparisons,
@@ -238,4 +246,49 @@ table ExecResultRaw {
 
 table StateResultRaw {
 	data			:[uint8];
+}
+
+// SnapshotState is used for synchronization between host/target parts during snapshot execution.
+enum SnapshotState : uint64 {
+	// Initial 0 state.
+	Initial,
+	// Host wrote handshake request data and is ready to take snapshot.
+	Handshake,
+	// Target received handshake request and is ready to be snapshotted.
+	Ready,
+	// Host has taken snapshot.
+	Snapshotted,
+	// Host wrote request data and resumed the target from snapshot.
+	Execute,
+	// Target has finished executing a request and is ready to be reset.
+	Executed,
+	// Target has failed to execute a request.
+	Failed,
+}
+
+// SnapshotHeader is located at the beginning of the snapshot output shared memory region.
+table SnapshotHeader {
+	state			:SnapshotState;
+	// Offset and size of the output data after program execution.
+	output_offset		:uint32;
+	output_size		:uint32;
+}
+
+table SnapshotHandshake {
+	cover_edges		:bool;
+	kernel_64_bit		:bool;
+	slowdown		:int32;
+	syscall_timeout_ms	:int32;
+	program_timeout_ms	:int32;
+	features		:Feature;
+	env_flags		:ExecEnv;
+	sandbox_arg		:int64;
+}
+
+table SnapshotRequest {
+	exec_flags		:ExecFlag;
+	num_calls		:int32;
+	all_call_signal		:uint64;
+	all_extra_signal	:bool;
+	prog_data		:[uint8];
 }

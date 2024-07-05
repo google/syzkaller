@@ -352,7 +352,8 @@ private:
 				output_.insert(output_.end(), tmp, tmp + strlen(tmp));
 			}
 		}
-		auto data = finish_output(resp_mem_, id_, msg_->id, elapsed, freshness_++, status, output);
+		uint32 num_calls = read_input(&prog_data);
+		auto data = finish_output(resp_mem_, id_, msg_->id, num_calls, elapsed, freshness_++, status, output);
 		conn_.Send(data.data(), data.size());
 
 		resp_mem_->Reset();

@@ -84,6 +84,7 @@ type Manager struct {
 	corpusPreload   chan []fuzzer.Candidate
 	firstConnect    atomic.Int64 // unix time, or 0 if not connected
 	crashTypes      map[string]bool
+	loopStop        func()
 	enabledFeatures flatrpc.Feature
 	checkDone       atomic.Bool
 	fresh           bool
@@ -98,6 +99,7 @@ type Manager struct {
 
 	mu                    sync.Mutex
 	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
+	source                queue.Source
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
@@ -310,12 +312,19 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		<-vm.Shutdown
 		return
 	}
-	ctx := vm.ShutdownCtx()
+	ctx, cancel := context.WithCancel(vm.ShutdownCtx())
+	mgr.loopStop = cancel
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
 	mgr.reproMgr = newReproManager(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	go mgr.processFuzzingResults(ctx)
 	go mgr.reproMgr.Loop(ctx)
 	mgr.pool.Loop(ctx)
+	if cfg.Snapshot {
+		log.Logf(0, "starting VMs for snapshot mode")
+		mgr.serv.Close()
+		mgr.serv = nil
+		mgr.snapshotLoop()
+	}
 }
 
 // Exit successfully in special operation modes.
@@ -1370,7 +1379,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 				go mgr.dashboardReproTasks()
 			}
 		}
-		return queue.DefaultOpts(fuzzerObj, opts)
+		source := queue.DefaultOpts(fuzzerObj, opts)
+		if mgr.cfg.Snapshot {
+			log.Logf(0, "stopping VMs for snapshot mode")
+			mgr.source = source
+			mgr.loopStop()
+			return queue.Callback(func() *queue.Request {
+				return nil
+			})
+		}
+		return source
 	} else if mgr.mode == ModeCorpusRun {
 		ctx := &corpusRunner{
 			candidates: corpus,
@@ -1430,6 +1448,9 @@ func (cr *corpusRunner) Next() *queue.Request {
 
 func (mgr *Manager) defaultExecOpts() flatrpc.ExecOpts {
 	env := csource.FeaturesToFlags(mgr.enabledFeatures, nil)
+	if *flagDebug {
+		env |= flatrpc.ExecEnvDebug
+	}
 	if mgr.cfg.Experimental.ResetAccState {
 		env |= flatrpc.ExecEnvResetState
 	}
@@ -1470,7 +1491,7 @@ func (mgr *Manager) MaxSignal() signal.Signal {
 
 func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 	for ; ; time.Sleep(time.Second / 2) {
-		if mgr.cfg.Cover {
+		if mgr.cfg.Cover && !mgr.cfg.Snapshot {
 			// Distribute new max signal over all instances.
 			newSignal := fuzzer.Cover.GrabSignalDelta()
 			log.Logf(3, "distributing %d new signal", len(newSignal))
@@ -1486,7 +1507,7 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 			}
 			mgr.mu.Lock()
 			if mgr.phase == phaseLoadedCorpus {
-				if mgr.enabledFeatures&flatrpc.FeatureLeak != 0 {
+				if !mgr.cfg.Snapshot && mgr.enabledFeatures&flatrpc.FeatureLeak != 0 {
 					mgr.serv.TriagedCorpus()
 				}
 				if mgr.cfg.HubClient != "" {

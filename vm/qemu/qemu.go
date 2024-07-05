@@ -111,6 +111,7 @@ type instance struct {
 	qemu        *exec.Cmd
 	merger      *vmimpl.OutputMerger
 	files       map[string]string
+	*snapshot
 }
 
 type archConfig struct {
@@ -371,6 +372,9 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (*instance, e
 		sshkey:     sshkey,
 		sshuser:    sshuser,
 	}
+	if pool.env.Snapshot {
+		inst.snapshot = new(snapshot)
+	}
 	if st, err := os.Stat(inst.image); err == nil && st.Size() == 0 {
 		// Some kernels may not need an image, however caller may still
 		// want to pass us a fake empty image because the rest of syzkaller
@@ -414,6 +418,9 @@ func (inst *instance) Close() error {
 	}
 	if inst.mon != nil {
 		inst.mon.Close()
+	}
+	if inst.snapshot != nil {
+		inst.snapshotClose()
 	}
 	return nil
 }
@@ -462,6 +469,12 @@ func (inst *instance) boot() error {
 			}
 		}
 	}()
+
+	if inst.snapshot != nil {
+		if err := inst.snapshotHandshake(); err != nil {
+			return err
+		}
+	}
 
 	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute*inst.timeouts.Scale, "localhost",
 		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err, false); err != nil {
@@ -554,6 +567,13 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 		args = append(args,
 			"-device", "isa-applesmc,osk="+inst.cfg.AppleSmcOsk,
 		)
+	}
+	if inst.snapshot != nil {
+		snapshotArgs, err := inst.snapshotEnable()
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, snapshotArgs...)
 	}
 	return args, nil
 }

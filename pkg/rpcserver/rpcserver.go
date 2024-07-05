@@ -147,9 +147,9 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 		runnerStats: &runnerStats{
 			statExecRetries: stat.New("exec retries",
 				"Number of times a test program was restarted because the first run failed",
-				stats.Rate{}, stats.Graph("executor")),
-			statExecutorRestarts: stats.Create("executor restarts",
-				"Number of times executor process was restarted", stats.Rate{}, stats.Graph("executor")),
+				stat.Rate{}, stat.Graph("executor")),
+			statExecutorRestarts: stat.New("executor restarts",
+				"Number of times executor process was restarted", stat.Rate{}, stat.Graph("executor")),
 			statExecBufferTooSmall: queue.StatExecBufferTooSmall,
 			statExecs:              queue.StatExecs,
 			statNoExecRequests:     queue.StatNoExecRequests,
