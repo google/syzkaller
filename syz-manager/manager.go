@@ -1566,7 +1566,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 			Debug:   *flagDebug,
 		}
 		go func() {
-			err := ctx.Run()
+			err := ctx.Run(context.Background())
 			if err != nil {
 				log.Fatal(err)
 			}

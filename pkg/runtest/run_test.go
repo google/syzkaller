@@ -85,7 +85,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
-	startRPCServer(t, target, executor, "", ctx, nil, nil, func(features flatrpc.Feature) {
+	waitCtx := startRPCServer(t, target, executor, "", ctx, nil, nil, func(features flatrpc.Feature) {
 		// Features we expect to be enabled on the test OS.
 		// All sandboxes except for none are not implemented, coverage is not returned,
 		// and setup for few features is failing specifically to test feature detection.
@@ -113,7 +113,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	if t.Failed() {
 		return
 	}
-	if err := ctx.Run(); err != nil {
+	if err := ctx.Run(waitCtx); err != nil {
 		t.Fatal(err)
 	}
 }
