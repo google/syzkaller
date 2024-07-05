@@ -210,7 +210,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
 
-	//PreprocessAllCorpora(mgr)
+	//PreprocessAllCorpora(mgr, AllocateConstant)
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)

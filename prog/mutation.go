@@ -46,12 +46,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[
 		case r.nOutOf(1, 100):
 			ok = ctx.splice()
 		case r.nOutOf(20, 31):
-			ok = ctx.insertCall()
-			/*if len(p.Calls) < 5 {
+			//ok = ctx.insertCall()
+			if len(p.Calls) < 5 {
 				ok = ctx.insertCall()
 			} else {
 				ok = ctx.insertCall_SyzLLM()
-			}*/
+			}
 		case r.nOutOf(10, 11):
 			ok = ctx.mutateArg()
 		default:

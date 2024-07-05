@@ -1,61 +1,62 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
-	"io"
 	"os"
+	"strconv"
 	"strings"
 )
 
 func BuildTable(target *prog.Target) {
-	file, err := os.Open(VocabPath)
+	file, err := os.Open(AddrPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 
-	// Read the file content
-	content, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	addrGenerator := *prog.GetAddrGeneratorInstance()
 	addrCnt := 0
 
-	textCalls := strings.Split(string(content), "[SEP]\n")
-	for _, textC := range textCalls {
-		program, err := target.Deserialize([]byte(textC), prog.NonStrict)
-		if err != nil {
-			log.Fatalf("Deserialize failed: %v", textC)
+	maxAddr := uint64(0)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Split the line into key and value based on space
+		parts := strings.Split(line, " ")
+		if len(parts) != 2 {
+			fmt.Println("Invalid line:", line)
+			continue
 		}
 
-		addrGenerator.ResetCounter()
-		for _, call := range program.Calls {
-			_, ok := addrGenerator.AddrBase[call.Meta.Name]
-			if !ok {
-				fields := call.Meta.Args
-				for j, _arg := range call.Args {
-					switch arg := _arg.(type) {
-					case *prog.ResultArg:
-						continue
-					default:
-						argReplacer := *prog.NewArgReplacer(call.Meta.Name, true)
-						argReplacer.DFSArgs(arg, fields[j])
-						addrCnt += argReplacer.InitAddrCnt
-					}
-				}
-			}
+		// Parse the string value to uint64
+		value, err := strconv.ParseUint(parts[1], 10, 64)
+		if err != nil {
+			fmt.Println("Error parsing value for key", parts[0], ":", err)
+			continue
 		}
+
+		if maxAddr < value {
+			maxAddr = value
+		}
+
+		addrGenerator.AddrBase[parts[0]] = value
+		addrGenerator.AddrCounter[parts[0]] = 0
+		addrCnt += 1
 	}
+	addrGenerator.AddrBase["[UNK]"] = maxAddr + 0x80
+	addrGenerator.AddrCounter["[UNK]"] = 0
 
 	BuildCallMeta(target)
 
 	log.Logf(0, "Build arg table done: %v", addrCnt)
 }
 
-const VocabPath = "/root/data/"
+const AddrPath = "/root/data/addr.txt"
 
 func BuildCallMeta(target *prog.Target) {
 	callMetaInstance := prog.GetCallMetaInstance()

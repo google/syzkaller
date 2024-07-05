@@ -104,7 +104,6 @@ func (ctx *mutator) requestNewCallAsync(program *Prog, insertPosition int, choic
 		newSyscallSequence += call
 	}
 	newSyscallBytes := []byte(newSyscallSequence)
-	// todo: convert inline resource
 	newProg, err := program.Target.Deserialize(newSyscallBytes, NonStrict)
 	if err != nil {
 		return program.Calls
@@ -450,7 +449,7 @@ func PickAddr(addr uint64, currentCallName string) {
 // 1. for all the addrs in each program, mapping them to symbols in order
 // 2. for addrs in each call, mapping...
 func GetAddr(callName string) uint64 {
-	addrGenerator := *GetAddrGeneratorInstance()
+	addrGenerator := GetAddrGeneratorInstance()
 	cnt, ok := addrGenerator.AddrCounter[callName]
 	if !ok {
 		addrGenerator.AddrCounter[callName] = 0
@@ -474,17 +473,17 @@ type CallMeta struct {
 	m  map[string]*Syscall
 }
 
-var CallMetaInstance *CallMeta
-var CallMetaOnce sync.Once // Used to ensure the singleton is only initialized once.
+var _CallMetaInstance *CallMeta
+var _CallMetaOnce sync.Once
 
 func GetCallMetaInstance() *CallMeta {
-	CallMetaOnce.Do(func() {
-		CallMetaInstance = &CallMeta{
+	_CallMetaOnce.Do(func() {
+		_CallMetaInstance = &CallMeta{
 			m: make(map[string]*Syscall),
 		}
 	})
 
-	return CallMetaInstance
+	return _CallMetaInstance
 }
 
 func (s *CallMeta) Set(key string, value *Syscall) {

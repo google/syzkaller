@@ -40,6 +40,10 @@ func PreprocessAllCorpora(manager *Manager, preprocessorType PreprocessorType) {
 		return nil
 	})
 
+	if preprocessorType == AllocateConstant {
+		SaveAddr()
+	}
+
 	if err != nil {
 		fmt.Println("filepath.Walk Error:", err)
 	}
@@ -66,8 +70,11 @@ func (p *PreprocessorBase) ParseCorpusToFile() {
 	buffer := ""
 	programCount := 0
 	for _, rec := range p.corpusDB.Records {
-		buffer += string(rec.Val[:]) + "[SEP]\n"
-		//buffer += ConvertResource(rec.Val[:]) + "SEP\n"
+		if IsDuplication(string(rec.Val[:])) {
+			continue
+		}
+		//buffer += string(rec.Val[:]) + "[SEP]\n"
+		buffer += ConvertResource(rec.Val[:]) + "[SEP]\n"
 		programCount += 1
 		p.logCollector.TotalProgramsCnt += 1
 
@@ -370,6 +377,30 @@ func (a *AddrGenerator) ResetCounter() {
 	}
 }
 
+func SaveAddr() {
+	const AddrPath = "./syz-manager/data/addr.txt"
+	file, err := os.Create(AddrPath)
+	if err != nil {
+		fmt.Println("Error creating addr.txt:", err)
+		return
+	}
+	defer file.Close()
+
+	cnt := 0
+	addrGenerator := GetAddrGeneratorInstance()
+	for key, value := range addrGenerator.addrBase {
+		cnt += 1
+		line := fmt.Sprintf("%s %d\n", key, value)
+		_, err := file.WriteString(line)
+		if err != nil {
+			fmt.Println("Error writing to addr.txt:", err)
+			return
+		}
+	}
+
+	log.Logf(0, "addr.txt saved %v", cnt)
+}
+
 func ParseCallsText(prog []byte) []string {
 	calls := strings.Split(string(prog[:]), "\n")
 	callsCopy := make([]string, len(calls))
@@ -652,6 +683,49 @@ func ConvertResource(prog []byte, args ...bool) string {
 	}
 
 	return str
+}
+
+func IsDuplication(prog string) bool {
+	instance := GetDeduplicatorInstance()
+	if instance.ItemExists(prog) {
+		return true
+	}
+	instance.AddItem(prog)
+	return false
+}
+
+type Deduplicator struct {
+	Set map[interface{}]struct{}
+}
+
+var (
+	_DeduplicatorInstance *Deduplicator
+	_DeduplicatorOnce     sync.Once
+)
+
+func GetDeduplicatorInstance() *Deduplicator {
+	_DeduplicatorOnce.Do(func() {
+		_DeduplicatorInstance = &Deduplicator{
+			Set: map[interface{}]struct{}{},
+		}
+	})
+	return _DeduplicatorInstance
+}
+
+func (d *Deduplicator) AddItem(item interface{}) {
+	_, found := d.Set[item]
+	if !found {
+		d.Set[item] = struct{}{}
+	}
+}
+
+func (d *Deduplicator) ItemExists(item interface{}) bool {
+	_, exists := d.Set[item]
+	return exists
+}
+
+func (d *Deduplicator) ClearSet() {
+	d.Set = make(map[interface{}]struct{})
 }
 
 const ResPrefix = "@RSTART@"
