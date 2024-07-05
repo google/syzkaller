@@ -10,9 +10,11 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -437,6 +439,10 @@ func makeComps(comps ...Comparison) []byte {
 
 func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, source queue.Source,
 	maxSignal, coverFilter []uint64, machineChecked func(features flatrpc.Feature)) {
+	dir, err := os.MkdirTemp("", "syz-runtest")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx, done := context.WithCancel(context.Background())
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
@@ -452,7 +458,7 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 			Slowdown: 10, // to deflake slower tests
 		},
 		Executor:    executor,
-		Dir:         t.TempDir(),
+		Dir:         dir,
 		Context:     ctx,
 		GDB:         *flagGDB,
 		MaxSignal:   maxSignal,
@@ -472,6 +478,18 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 		done()
 		if err := <-errc; err != nil {
 			t.Fatal(err)
+		}
+		// We need to retry b/c we don't wait for all executor subprocesses (only set PR_SET_PDEATHSIG),
+		// so t.TempDir() leads to episodic "directory not empty" failures.
+		for i := 0; ; i++ {
+			if err := os.RemoveAll(dir); err == nil {
+				break
+			}
+			if i < 100 {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			t.Fatalf("failed to remove temp dir %v: %v", dir, err)
 		}
 	})
 }
