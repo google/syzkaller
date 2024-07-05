@@ -219,7 +219,8 @@ func checkCompressedArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	// numbers and checksums. We also ignore 0 and ^uint64(0) source bytes,
 	// because there are too many of these in lots of images.
 	bytes := make([]byte, 8)
-	for i := 0; i < len(data); i += 4 {
+	doMore := true
+	for i := 0; i < len(data) && doMore; i += 4 {
 		original := make([]byte, 8)
 		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)
@@ -231,7 +232,7 @@ func checkCompressedArg(arg *DataArg, compMap CompMap, exec func() bool) {
 			// Execution can take a while and uncompressed images are large,
 			// since hints jobs are executed round-robin, we can have thousands of them running.
 			dtor()
-			doMore := exec()
+			doMore = exec()
 			data, dtor = image.MustDecompress(data0)
 			if !doMore {
 				break
