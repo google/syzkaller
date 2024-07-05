@@ -13,19 +13,16 @@ import (
 )
 
 type Stats struct {
-	statNumReproducing *stats.Val
-	statCrashes        *stats.Val
-	statCrashTypes     *stats.Val
-	statSuppressed     *stats.Val
-	statUptime         *stats.Val
-	statFuzzingTime    *stats.Val
-	statAvgBootTime    *stats.Val
-	statCoverFiltered  *stats.Val
+	statCrashes       *stats.Val
+	statCrashTypes    *stats.Val
+	statSuppressed    *stats.Val
+	statUptime        *stats.Val
+	statFuzzingTime   *stats.Val
+	statAvgBootTime   *stats.Val
+	statCoverFiltered *stats.Val
 }
 
 func (mgr *Manager) initStats() {
-	mgr.statNumReproducing = stats.Create("reproducing", "Number of crashes being reproduced",
-		stats.Console, stats.NoGraph)
 	mgr.statCrashes = stats.Create("crashes", "Total number of VM crashes",
 		stats.Simple, stats.Prometheus("syz_crash_total"))
 	mgr.statCrashTypes = stats.Create("crash types", "Number of unique crashes types",

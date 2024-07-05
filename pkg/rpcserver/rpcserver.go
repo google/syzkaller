@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"math/rand"
 	"slices"
 	"sort"
@@ -28,6 +27,7 @@ import (
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/vm/dispatcher"
 )
 
 type Config struct {
@@ -77,7 +77,6 @@ type Server struct {
 
 	mu             sync.Mutex
 	runners        map[string]*Runner
-	info           map[string]VMState
 	execSource     queue.Source
 	triagedCorpus  atomic.Bool
 	statVMRestarts *stats.Val
@@ -144,7 +143,6 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 		sysTarget:  sysTarget,
 		timeouts:   sysTarget.Timeouts(cfg.Slowdown),
 		runners:    make(map[string]*Runner),
-		info:       make(map[string]VMState),
 		checker:    checker,
 		baseSource: baseSource,
 		execSource: queue.Retry(baseSource),
@@ -183,44 +181,6 @@ func (serv *Server) Close() error {
 	return serv.serv.Close()
 }
 
-const (
-	StateOffline = iota
-	StateBooting
-	StateFuzzing
-	StateStopping
-)
-
-type VMState struct {
-	State     int
-	Timestamp time.Time
-}
-
-func (serv *Server) VMState() map[string]VMState {
-	serv.mu.Lock()
-	defer serv.mu.Unlock()
-	return maps.Clone(serv.info)
-}
-
-func (serv *Server) MachineInfo(name string) []byte {
-	serv.mu.Lock()
-	runner := serv.runners[name]
-	serv.mu.Unlock()
-	if runner == nil || !runner.Alive() {
-		return []byte("VM is not alive")
-	}
-	return runner.MachineInfo()
-}
-
-func (serv *Server) RunnerStatus(name string) []byte {
-	serv.mu.Lock()
-	runner := serv.runners[name]
-	serv.mu.Unlock()
-	if runner == nil || !runner.Alive() {
-		return []byte("VM is not alive")
-	}
-	return runner.QueryStatus()
-}
-
 func (serv *Server) handleConn(conn *flatrpc.Conn) {
 	connectReq, err := flatrpc.Recv[*flatrpc.ConnectRequestRaw](conn)
 	if err != nil {
@@ -232,7 +192,7 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 
 	if serv.cfg.VMLess {
 		// There is no VM loop, so minic what it would do.
-		serv.CreateInstance(name, nil)
+		serv.CreateInstance(name, nil, nil)
 		defer func() {
 			serv.StopFuzzing(name)
 			serv.ShutdownInstance(name, true)
@@ -270,10 +230,6 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 		log.Logf(1, "%v", err)
 		return
 	}
-
-	serv.mu.Lock()
-	serv.info[name] = VMState{StateFuzzing, time.Now()}
-	serv.mu.Unlock()
 
 	if serv.triagedCorpus.Load() {
 		if err := runner.SendCorpusTriaged(); err != nil {
@@ -435,7 +391,7 @@ func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
 }
 
-func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
+func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) {
 	runner := &Runner{
 		source:       serv.execSource,
 		cover:        serv.cfg.Cover,
@@ -451,14 +407,14 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 		rnd:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		stats:        serv.runnerStats,
 		procs:        serv.cfg.Procs,
+		updInfo:      updInfo,
 	}
 	serv.mu.Lock()
+	defer serv.mu.Unlock()
 	if serv.runners[name] != nil {
 		panic(fmt.Sprintf("duplicate instance %s", name))
 	}
 	serv.runners[name] = runner
-	serv.info[name] = VMState{StateBooting, time.Now()}
-	serv.mu.Unlock()
 }
 
 // stopInstance prevents further request exchange requests.
@@ -466,8 +422,12 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool) {
 func (serv *Server) StopFuzzing(name string) {
 	serv.mu.Lock()
 	runner := serv.runners[name]
-	serv.info[name] = VMState{StateStopping, time.Now()}
 	serv.mu.Unlock()
+	if runner.updInfo != nil {
+		runner.updInfo(func(info *dispatcher.Info) {
+			info.Status = "fuzzing is stopped"
+		})
+	}
 	runner.Stop()
 }
 
@@ -475,7 +435,6 @@ func (serv *Server) ShutdownInstance(name string, crashed bool) ([]ExecRecord, [
 	serv.mu.Lock()
 	runner := serv.runners[name]
 	delete(serv.runners, name)
-	serv.info[name] = VMState{StateOffline, time.Now()}
 	serv.mu.Unlock()
 	return runner.Shutdown(crashed), runner.MachineInfo()
 }

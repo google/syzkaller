@@ -48,24 +48,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	vmCount := vmPool.Count()
-	if *flagCount > 0 && *flagCount < vmCount {
-		vmCount = *flagCount
-	}
-	if vmCount > 4 {
-		vmCount = 4
-	}
-	vmIndexes := make([]int, vmCount)
-	for i := range vmIndexes {
-		vmIndexes[i] = i
-	}
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	osutil.HandleInterrupts(vm.Shutdown)
 
-	res, stats, err := repro.Run(data, cfg, flatrpc.AllFeatures, reporter, vmPool, vmIndexes)
+	count := vmPool.Count()
+	if *flagCount > 0 {
+		count = *flagCount
+	}
+	pool := vm.NewDispatcher(vmPool, nil)
+	pool.ReserveForRun(count)
+	res, stats, err := repro.Run(data, cfg, flatrpc.AllFeatures, reporter, pool)
 	if err != nil {
 		log.Logf(0, "reproduction failed: %v", err)
 	}
@@ -97,7 +92,7 @@ func main() {
 		recordCRepro(res, *flagCRepro)
 	}
 	if *flagStrace != "" {
-		result := repro.RunStrace(res, cfg, reporter, vmPool, vmIndexes[0])
+		result := repro.RunStrace(res, cfg, reporter, pool)
 		recordStraceResult(result, *flagStrace)
 	}
 }

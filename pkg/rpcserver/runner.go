@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/vm/dispatcher"
 )
 
 type Runner struct {
@@ -40,6 +41,7 @@ type Runner struct {
 	executing     map[int64]bool
 	lastExec      *LastExecuting
 	rnd           *rand.Rand
+	updInfo       dispatcher.UpdateInfo
 
 	// The mutex protects all the fields below.
 	mu          sync.Mutex
@@ -78,6 +80,12 @@ type handshakeResult struct {
 }
 
 func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error {
+	if runner.updInfo != nil {
+		runner.updInfo(func(info *dispatcher.Info) {
+			info.Status = "handshake"
+		})
+	}
+
 	connectReply := &flatrpc.ConnectReply{
 		Debug:            runner.debug,
 		Cover:            runner.cover,
@@ -115,10 +123,23 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error 
 	runner.machineInfo = ret.MachineInfo
 	runner.canonicalizer = ret.Canonicalizer
 	runner.mu.Unlock()
+
+	if runner.updInfo != nil {
+		runner.updInfo(func(info *dispatcher.Info) {
+			info.MachineInfo = runner.MachineInfo
+			info.DetailedStatus = runner.QueryStatus
+		})
+	}
 	return nil
 }
 
 func (runner *Runner) ConnectionLoop() error {
+	if runner.updInfo != nil {
+		runner.updInfo(func(info *dispatcher.Info) {
+			info.Status = "executing"
+		})
+	}
+
 	runner.mu.Lock()
 	stopped := runner.stopped
 	if !stopped {

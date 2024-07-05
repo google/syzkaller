@@ -10,6 +10,7 @@ package vm
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -64,6 +65,15 @@ var (
 	_          BootErrorer  = vmimpl.BootError{}
 	_          InfraErrorer = vmimpl.InfraError{}
 )
+
+func ShutdownCtx() context.Context {
+	ctx, done := context.WithCancel(context.Background())
+	go func() {
+		<-Shutdown
+		done()
+	}()
+	return ctx
+}
 
 type BootErrorer interface {
 	BootError() (string, []byte)
@@ -191,7 +201,7 @@ const (
 	ExitError
 )
 
-type StopChan <-chan bool
+type StopContext context.Context
 type InjectExecuting <-chan bool
 type OutputSize int
 
@@ -202,7 +212,7 @@ type EarlyFinishCb func()
 // and the kernel console output. It detects kernel oopses in output, lost connections, hangs, etc.
 // Returns command+kernel output and a non-symbolized crash report (nil if no error happens).
 // Accepted options:
-//   - StopChan: stop channel can be used to prematurely stop the command
+//   - StopContext: the context to be used to prematurely stop the command
 //   - ExitCondition: says which exit modes should be considered as errors/OK
 //   - OutputSize: how much output to keep/return
 func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, command string, opts ...any) (
@@ -216,8 +226,13 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 		switch opt := o.(type) {
 		case ExitCondition:
 			exit = opt
-		case StopChan:
-			stop = opt
+		case StopContext:
+			stopCh := make(chan bool)
+			go func() {
+				<-opt.Done()
+				close(stopCh)
+			}()
+			stop = stopCh
 		case OutputSize:
 			outputSize = int(opt)
 		case InjectExecuting:
