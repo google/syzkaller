@@ -213,7 +213,6 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func() bool) {
 func checkCompressedArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	data0 := arg.Data()
 	data, dtor := image.MustDecompress(data0)
-	defer dtor()
 	// Images are very large so the generic algorithm for data arguments
 	// can produce too many mutants. For images we consider only
 	// 4/8-byte aligned ints. This is enough to handle all magic
@@ -228,12 +227,19 @@ func checkCompressedArg(arg *DataArg, compMap CompMap, exec func() bool) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
 			arg.SetData(image.Compress(data))
-			if !exec() {
+			// Unmap the image for the duration of the execution.
+			// Execution can take a while and uncompressed images are large,
+			// since hints jobs are executed round-robin, we can have thousands of them running.
+			dtor()
+			doMore := exec()
+			data, dtor = image.MustDecompress(data0)
+			if !doMore {
 				break
 			}
 		}
 		copy(data[i:], original)
 	}
+	dtor()
 	arg.SetData(data0)
 }
 
