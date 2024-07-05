@@ -67,7 +67,7 @@ func (ctx *Context) log(msg string, args ...interface{}) {
 	ctx.LogFunc(fmt.Sprintf(msg, args...))
 }
 
-func (ctx *Context) Run() error {
+func (ctx *Context) Run(waitCtx context.Context) error {
 	ctx.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
 	ctx.executor = queue.DynamicOrder()
 	ctx.generatePrograms()
@@ -84,7 +84,7 @@ func (ctx *Context) Run() error {
 			result = fmt.Sprintf("SKIP (%v)", req.skip)
 			verbose = true
 		} else {
-			req.Request.Wait(context.Background())
+			req.Request.Wait(waitCtx)
 			if req.err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
