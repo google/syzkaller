@@ -387,6 +387,7 @@ func (mgr *Manager) vmLoop() {
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
+	attemptedRepros := make(map[string]bool)
 	var reproQueue []*Crash
 	reproDone := make(chan *ReproResult, 1)
 	stopPending := false
@@ -404,7 +405,15 @@ func (mgr *Manager) vmLoop() {
 			if !mgr.needRepro(crash) {
 				continue
 			}
+			if mgr.cfg.DashboardOnlyRepro && attemptedRepros[crash.Title] {
+				// Try to reproduce each bug at most 1 time in this mode.
+				// Since we don't upload bugs/repros to dashboard, it likely won't have
+				// the reproducer even if we succeeded last time, and will repeatedly
+				// say it needs a repro.
+				continue
+			}
 			log.Logf(1, "loop: add to repro queue '%v'", crash.Title)
+			attemptedRepros[crash.Title] = true
 			reproducing[crash.Title] = true
 			reproQueue = append(reproQueue, crash)
 		}
