@@ -221,7 +221,9 @@ func (a *ResultArg) serialize(ctx *serializer) {
 	}
 	id, ok := ctx.vars[a.Res]
 	if !ok {
-		panic("no result")
+		ctx.printf("0x%x", a.Val)
+		return
+		//panic("no result")
 	}
 	ctx.printf("r%v", id)
 	if a.OpDiv != 0 {

@@ -46,7 +46,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[
 		case r.nOutOf(1, 100):
 			ok = ctx.splice()
 		case r.nOutOf(20, 31):
-			ok = ctx.insertCall()
+			//ok = ctx.insertCall()
+			if len(p.Calls) < 5 {
+				ok = ctx.insertCall()
+			} else {
+				ok = ctx.insertCall_SyzLLM()
+			}
 		case r.nOutOf(10, 11):
 			ok = ctx.mutateArg()
 		default:
@@ -151,6 +156,23 @@ func (ctx *mutator) insertCall() bool {
 	s := analyze(ctx.ct, ctx.corpus, p, c)
 	calls := r.generateCall(s, p, idx)
 	p.insertBefore(c, calls)
+	for len(p.Calls) > ctx.ncalls {
+		p.RemoveCall(idx)
+	}
+	return true
+}
+
+func (ctx *mutator) insertCall_SyzLLM() bool {
+	p, r := ctx.p, ctx.r
+	if len(p.Calls) >= ctx.ncalls {
+		return false
+	}
+	idx := r.biasedRand(len(p.Calls)+1, 5)
+	calls := ctx.requestNewCallAsync(p, idx, ctx.ct)
+	if len(calls) == len(p.Calls) || len(calls) <= 0 {
+		return false
+	}
+	p.Calls = calls
 	for len(p.Calls) > ctx.ncalls {
 		p.RemoveCall(idx)
 	}

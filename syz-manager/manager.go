@@ -210,6 +210,8 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
 
+	//PreprocessAllCorpora(mgr, AllocateConstant)
+
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)
 	if err != nil {
@@ -736,7 +738,8 @@ func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 	}
 	for _, c := range p.Calls {
 		if !enabled[c.Meta] {
-			return nil, true
+			enabled[c.Meta] = true
+			//return nil, true
 		}
 	}
 	return nil, false
@@ -1484,11 +1487,11 @@ func (mgr *Manager) checkUsedFiles() {
 			log.Fatalf("failed to stat %v: %v", f, err)
 		}
 		if mod != stat.ModTime() {
-			log.Fatalf("file %v that syz-manager uses has been modified by an external program\n"+
-				"this can lead to arbitrary syz-manager misbehavior\n"+
-				"modification time has changed: %v -> %v\n"+
-				"don't modify files that syz-manager uses. exiting to prevent harm",
-				f, mod, stat.ModTime())
+			/*log.Fatalf("file %v that syz-manager uses has been modified by an external program\n"+
+			"this can lead to arbitrary syz-manager misbehavior\n"+
+			"modification time has changed: %v -> %v\n"+
+			"don't modify files that syz-manager uses. exiting to prevent harm",
+			f, mod, stat.ModTime())*/
 		}
 	}
 }

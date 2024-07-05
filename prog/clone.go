@@ -77,7 +77,7 @@ func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
 		arg1 = a1
 		if a1.Res != nil {
 			r := a1.Res
-			if newargs != nil {
+			if newargs != nil && newargs[a1.Res] != nil {
 				r = newargs[a1.Res]
 				a1.Res = r
 			}
