@@ -231,7 +231,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir, splitBuildDelimiters)
+		unit.Name, unit.Path = CleanPath(unit.Name, objDir, srcDir, buildDir, splitBuildDelimiters)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -455,7 +455,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := cleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
+			name, path := CleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
 			frames = append(frames, Frame{
 				Module:   mod,
 				PC:       frame.PC + mod.Addr,
@@ -583,7 +583,7 @@ func cleanPathAndroid(path, srcDir string, delimiters []string, existFn func(str
 	return "", ""
 }
 
-func cleanPath(path, objDir, srcDir, buildDir string, splitBuildDelimiters []string) (string, string) {
+func CleanPath(path, objDir, srcDir, buildDir string, splitBuildDelimiters []string) (string, string) {
 	filename := ""
 
 	path = filepath.Clean(path)
