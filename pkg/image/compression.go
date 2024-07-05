@@ -9,6 +9,15 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"sync/atomic"
+)
+
+var (
+	// Total amount of images in memory and consumed memory (in bytes).
+	// Currently maintained only by the optimized implementation.
+	// Cannot import stats package due to import cycles.
+	StatImages atomic.Int64
+	StatMemory atomic.Int64
 )
 
 func Compress(rawData []byte) []byte {

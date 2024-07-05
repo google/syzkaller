@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/pkg/stats"
 )
 
@@ -67,6 +68,16 @@ func (mgr *Manager) initStats() {
 			return int(ms.Sys - ms.HeapReleased)
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
+		})
+	stats.Create("images memory", "Uncompressed images memory (bytes)", stats.Graph("memory"),
+		func() int {
+			return int(image.StatMemory.Load())
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v MB", v>>20)
+		})
+	stats.Create("uncompressed images", "Total number of uncompressed images in memory",
+		func() int {
+			return int(image.StatImages.Load())
 		})
 	mgr.statCoverFiltered = stats.Create("filtered coverage", "", stats.NoGraph)
 }
