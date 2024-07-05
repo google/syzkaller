@@ -130,6 +130,9 @@ func Complete(cfg *Config) error {
 	); err != nil {
 		return err
 	}
+	if cfg.Snapshot && cfg.Reproduce {
+		return fmt.Errorf("reproduction is not (yet) supported in snapshot mode")
+	}
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	if cfg.WorkdirTemplate != "" {
 		cfg.WorkdirTemplate = osutil.Abs(cfg.WorkdirTemplate)
@@ -159,6 +162,29 @@ func Complete(cfg *Config) error {
 	}
 	cfg.CompleteKernelDirs()
 
+	if err := cfg.completeServices(); err != nil {
+		return nil
+	}
+
+	if cfg.FuzzingVMs < 0 {
+		return fmt.Errorf("fuzzing_vms cannot be less than 0")
+	}
+
+	var err error
+	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
+	if err != nil {
+		return err
+	}
+	cfg.NoMutateCalls, err = ParseNoMutateSyscalls(cfg.Target, cfg.NoMutateSyscalls)
+	if err != nil {
+		return err
+	}
+	cfg.initTimeouts()
+	cfg.VMLess = cfg.Type == "none"
+	return nil
+}
+
+func (cfg *Config) completeServices() error {
 	if cfg.HubClient != "" {
 		if err := checkNonEmpty(
 			cfg.Name, "name",
@@ -179,30 +205,14 @@ func Complete(cfg *Config) error {
 			return err
 		}
 	}
-	if cfg.FuzzingVMs < 0 {
-		return fmt.Errorf("fuzzing_vms cannot be less than 0")
-	}
-
-	var err error
-	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
-	if err != nil {
-		return err
-	}
-	cfg.NoMutateCalls, err = ParseNoMutateSyscalls(cfg.Target, cfg.NoMutateSyscalls)
-	if err != nil {
-		return err
-	}
 	if !cfg.AssetStorage.IsEmpty() {
 		if cfg.DashboardClient == "" {
 			return fmt.Errorf("asset storage also requires dashboard client")
 		}
-		err = cfg.AssetStorage.Validate()
-		if err != nil {
+		if err := cfg.AssetStorage.Validate(); err != nil {
 			return err
 		}
 	}
-	cfg.initTimeouts()
-	cfg.VMLess = cfg.Type == "none"
 	return nil
 }
 

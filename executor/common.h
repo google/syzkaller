@@ -613,7 +613,8 @@ static void loop(void)
 #endif
 #if SYZ_EXECUTOR
 	// Tell parent that we are ready to serve.
-	reply_execute(0);
+	if (!flag_snapshot)
+		reply_execute(0);
 #endif
 	int iter = 0;
 #if SYZ_REPEAT_TIMES
@@ -632,7 +633,8 @@ static void loop(void)
 		reset_loop();
 #endif
 #if SYZ_EXECUTOR
-		receive_execute();
+		if (!flag_snapshot)
+			receive_execute();
 #endif
 		int pid = fork();
 		if (pid < 0)
@@ -662,6 +664,11 @@ static void loop(void)
 			doexit(0);
 		}
 		debug("spawned worker pid %d\n", pid);
+
+#if SYZ_EXECUTOR
+		if (flag_snapshot)
+			SnapshotPrepareParent();
+#endif
 
 		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
 		// But SIGCHLD is also delivered when a process stops/continues,

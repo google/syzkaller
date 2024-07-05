@@ -8,6 +8,36 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
+type Const uint64
+
+const (
+	ConstSnapshotDoorbellSize Const = 4096
+	ConstMaxInputSize         Const = 4198400
+	ConstMaxOutputSize        Const = 14680064
+	ConstSnapshotShmemSize    Const = 33554432
+)
+
+var EnumNamesConst = map[Const]string{
+	ConstSnapshotDoorbellSize: "SnapshotDoorbellSize",
+	ConstMaxInputSize:         "MaxInputSize",
+	ConstMaxOutputSize:        "MaxOutputSize",
+	ConstSnapshotShmemSize:    "SnapshotShmemSize",
+}
+
+var EnumValuesConst = map[string]Const{
+	"SnapshotDoorbellSize": ConstSnapshotDoorbellSize,
+	"MaxInputSize":         ConstMaxInputSize,
+	"MaxOutputSize":        ConstMaxOutputSize,
+	"SnapshotShmemSize":    ConstSnapshotShmemSize,
+}
+
+func (v Const) String() string {
+	if s, ok := EnumNamesConst[v]; ok {
+		return s
+	}
+	return "Const(" + strconv.FormatInt(int64(v), 10) + ")"
+}
+
 type Feature uint64
 
 const (
@@ -387,6 +417,45 @@ func (v CallFlag) String() string {
 		return s
 	}
 	return "CallFlag(" + strconv.FormatInt(int64(v), 10) + ")"
+}
+
+type SnapshotState uint64
+
+const (
+	SnapshotStateInitial     SnapshotState = 0
+	SnapshotStateHandshake   SnapshotState = 1
+	SnapshotStateReady       SnapshotState = 2
+	SnapshotStateSnapshotted SnapshotState = 3
+	SnapshotStateExecute     SnapshotState = 4
+	SnapshotStateExecuted    SnapshotState = 5
+	SnapshotStateFailed      SnapshotState = 6
+)
+
+var EnumNamesSnapshotState = map[SnapshotState]string{
+	SnapshotStateInitial:     "Initial",
+	SnapshotStateHandshake:   "Handshake",
+	SnapshotStateReady:       "Ready",
+	SnapshotStateSnapshotted: "Snapshotted",
+	SnapshotStateExecute:     "Execute",
+	SnapshotStateExecuted:    "Executed",
+	SnapshotStateFailed:      "Failed",
+}
+
+var EnumValuesSnapshotState = map[string]SnapshotState{
+	"Initial":     SnapshotStateInitial,
+	"Handshake":   SnapshotStateHandshake,
+	"Ready":       SnapshotStateReady,
+	"Snapshotted": SnapshotStateSnapshotted,
+	"Execute":     SnapshotStateExecute,
+	"Executed":    SnapshotStateExecuted,
+	"Failed":      SnapshotStateFailed,
+}
+
+func (v SnapshotState) String() string {
+	if s, ok := EnumNamesSnapshotState[v]; ok {
+		return s
+	}
+	return "SnapshotState(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
 type ConnectRequestRawT struct {
@@ -3187,5 +3256,493 @@ func StateResultRawStartDataVector(builder *flatbuffers.Builder, numElems int) f
 	return builder.StartVector(1, numElems, 1)
 }
 func StateResultRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
+type SnapshotHeaderT struct {
+	State        SnapshotState `json:"state"`
+	OutputOffset uint32        `json:"output_offset"`
+	OutputSize   uint32        `json:"output_size"`
+}
+
+func (t *SnapshotHeaderT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	SnapshotHeaderStart(builder)
+	SnapshotHeaderAddState(builder, t.State)
+	SnapshotHeaderAddOutputOffset(builder, t.OutputOffset)
+	SnapshotHeaderAddOutputSize(builder, t.OutputSize)
+	return SnapshotHeaderEnd(builder)
+}
+
+func (rcv *SnapshotHeader) UnPackTo(t *SnapshotHeaderT) {
+	t.State = rcv.State()
+	t.OutputOffset = rcv.OutputOffset()
+	t.OutputSize = rcv.OutputSize()
+}
+
+func (rcv *SnapshotHeader) UnPack() *SnapshotHeaderT {
+	if rcv == nil {
+		return nil
+	}
+	t := &SnapshotHeaderT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type SnapshotHeader struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsSnapshotHeader(buf []byte, offset flatbuffers.UOffsetT) *SnapshotHeader {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &SnapshotHeader{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsSnapshotHeader(buf []byte, offset flatbuffers.UOffsetT) *SnapshotHeader {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &SnapshotHeader{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func (rcv *SnapshotHeader) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *SnapshotHeader) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func (rcv *SnapshotHeader) State() SnapshotState {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return SnapshotState(rcv._tab.GetUint64(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *SnapshotHeader) MutateState(n SnapshotState) bool {
+	return rcv._tab.MutateUint64Slot(4, uint64(n))
+}
+
+func (rcv *SnapshotHeader) OutputOffset() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotHeader) MutateOutputOffset(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(6, n)
+}
+
+func (rcv *SnapshotHeader) OutputSize() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotHeader) MutateOutputSize(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(8, n)
+}
+
+func SnapshotHeaderStart(builder *flatbuffers.Builder) {
+	builder.StartObject(3)
+}
+func SnapshotHeaderAddState(builder *flatbuffers.Builder, state SnapshotState) {
+	builder.PrependUint64Slot(0, uint64(state), 0)
+}
+func SnapshotHeaderAddOutputOffset(builder *flatbuffers.Builder, outputOffset uint32) {
+	builder.PrependUint32Slot(1, outputOffset, 0)
+}
+func SnapshotHeaderAddOutputSize(builder *flatbuffers.Builder, outputSize uint32) {
+	builder.PrependUint32Slot(2, outputSize, 0)
+}
+func SnapshotHeaderEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
+type SnapshotHandshakeT struct {
+	CoverEdges       bool    `json:"cover_edges"`
+	Kernel64Bit      bool    `json:"kernel_64_bit"`
+	Slowdown         int32   `json:"slowdown"`
+	SyscallTimeoutMs int32   `json:"syscall_timeout_ms"`
+	ProgramTimeoutMs int32   `json:"program_timeout_ms"`
+	Features         Feature `json:"features"`
+	EnvFlags         ExecEnv `json:"env_flags"`
+	SandboxArg       int64   `json:"sandbox_arg"`
+}
+
+func (t *SnapshotHandshakeT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	SnapshotHandshakeStart(builder)
+	SnapshotHandshakeAddCoverEdges(builder, t.CoverEdges)
+	SnapshotHandshakeAddKernel64Bit(builder, t.Kernel64Bit)
+	SnapshotHandshakeAddSlowdown(builder, t.Slowdown)
+	SnapshotHandshakeAddSyscallTimeoutMs(builder, t.SyscallTimeoutMs)
+	SnapshotHandshakeAddProgramTimeoutMs(builder, t.ProgramTimeoutMs)
+	SnapshotHandshakeAddFeatures(builder, t.Features)
+	SnapshotHandshakeAddEnvFlags(builder, t.EnvFlags)
+	SnapshotHandshakeAddSandboxArg(builder, t.SandboxArg)
+	return SnapshotHandshakeEnd(builder)
+}
+
+func (rcv *SnapshotHandshake) UnPackTo(t *SnapshotHandshakeT) {
+	t.CoverEdges = rcv.CoverEdges()
+	t.Kernel64Bit = rcv.Kernel64Bit()
+	t.Slowdown = rcv.Slowdown()
+	t.SyscallTimeoutMs = rcv.SyscallTimeoutMs()
+	t.ProgramTimeoutMs = rcv.ProgramTimeoutMs()
+	t.Features = rcv.Features()
+	t.EnvFlags = rcv.EnvFlags()
+	t.SandboxArg = rcv.SandboxArg()
+}
+
+func (rcv *SnapshotHandshake) UnPack() *SnapshotHandshakeT {
+	if rcv == nil {
+		return nil
+	}
+	t := &SnapshotHandshakeT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type SnapshotHandshake struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsSnapshotHandshake(buf []byte, offset flatbuffers.UOffsetT) *SnapshotHandshake {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &SnapshotHandshake{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsSnapshotHandshake(buf []byte, offset flatbuffers.UOffsetT) *SnapshotHandshake {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &SnapshotHandshake{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func (rcv *SnapshotHandshake) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *SnapshotHandshake) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func (rcv *SnapshotHandshake) CoverEdges() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *SnapshotHandshake) MutateCoverEdges(n bool) bool {
+	return rcv._tab.MutateBoolSlot(4, n)
+}
+
+func (rcv *SnapshotHandshake) Kernel64Bit() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *SnapshotHandshake) MutateKernel64Bit(n bool) bool {
+	return rcv._tab.MutateBoolSlot(6, n)
+}
+
+func (rcv *SnapshotHandshake) Slowdown() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotHandshake) MutateSlowdown(n int32) bool {
+	return rcv._tab.MutateInt32Slot(8, n)
+}
+
+func (rcv *SnapshotHandshake) SyscallTimeoutMs() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotHandshake) MutateSyscallTimeoutMs(n int32) bool {
+	return rcv._tab.MutateInt32Slot(10, n)
+}
+
+func (rcv *SnapshotHandshake) ProgramTimeoutMs() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotHandshake) MutateProgramTimeoutMs(n int32) bool {
+	return rcv._tab.MutateInt32Slot(12, n)
+}
+
+func (rcv *SnapshotHandshake) Features() Feature {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return Feature(rcv._tab.GetUint64(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *SnapshotHandshake) MutateFeatures(n Feature) bool {
+	return rcv._tab.MutateUint64Slot(14, uint64(n))
+}
+
+func (rcv *SnapshotHandshake) EnvFlags() ExecEnv {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return ExecEnv(rcv._tab.GetUint64(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *SnapshotHandshake) MutateEnvFlags(n ExecEnv) bool {
+	return rcv._tab.MutateUint64Slot(16, uint64(n))
+}
+
+func (rcv *SnapshotHandshake) SandboxArg() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotHandshake) MutateSandboxArg(n int64) bool {
+	return rcv._tab.MutateInt64Slot(18, n)
+}
+
+func SnapshotHandshakeStart(builder *flatbuffers.Builder) {
+	builder.StartObject(8)
+}
+func SnapshotHandshakeAddCoverEdges(builder *flatbuffers.Builder, coverEdges bool) {
+	builder.PrependBoolSlot(0, coverEdges, false)
+}
+func SnapshotHandshakeAddKernel64Bit(builder *flatbuffers.Builder, kernel64Bit bool) {
+	builder.PrependBoolSlot(1, kernel64Bit, false)
+}
+func SnapshotHandshakeAddSlowdown(builder *flatbuffers.Builder, slowdown int32) {
+	builder.PrependInt32Slot(2, slowdown, 0)
+}
+func SnapshotHandshakeAddSyscallTimeoutMs(builder *flatbuffers.Builder, syscallTimeoutMs int32) {
+	builder.PrependInt32Slot(3, syscallTimeoutMs, 0)
+}
+func SnapshotHandshakeAddProgramTimeoutMs(builder *flatbuffers.Builder, programTimeoutMs int32) {
+	builder.PrependInt32Slot(4, programTimeoutMs, 0)
+}
+func SnapshotHandshakeAddFeatures(builder *flatbuffers.Builder, features Feature) {
+	builder.PrependUint64Slot(5, uint64(features), 0)
+}
+func SnapshotHandshakeAddEnvFlags(builder *flatbuffers.Builder, envFlags ExecEnv) {
+	builder.PrependUint64Slot(6, uint64(envFlags), 0)
+}
+func SnapshotHandshakeAddSandboxArg(builder *flatbuffers.Builder, sandboxArg int64) {
+	builder.PrependInt64Slot(7, sandboxArg, 0)
+}
+func SnapshotHandshakeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
+type SnapshotRequestT struct {
+	ExecFlags      ExecFlag `json:"exec_flags"`
+	NumCalls       int32    `json:"num_calls"`
+	AllCallSignal  uint64   `json:"all_call_signal"`
+	AllExtraSignal bool     `json:"all_extra_signal"`
+	ProgData       []byte   `json:"prog_data"`
+}
+
+func (t *SnapshotRequestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	progDataOffset := flatbuffers.UOffsetT(0)
+	if t.ProgData != nil {
+		progDataOffset = builder.CreateByteString(t.ProgData)
+	}
+	SnapshotRequestStart(builder)
+	SnapshotRequestAddExecFlags(builder, t.ExecFlags)
+	SnapshotRequestAddNumCalls(builder, t.NumCalls)
+	SnapshotRequestAddAllCallSignal(builder, t.AllCallSignal)
+	SnapshotRequestAddAllExtraSignal(builder, t.AllExtraSignal)
+	SnapshotRequestAddProgData(builder, progDataOffset)
+	return SnapshotRequestEnd(builder)
+}
+
+func (rcv *SnapshotRequest) UnPackTo(t *SnapshotRequestT) {
+	t.ExecFlags = rcv.ExecFlags()
+	t.NumCalls = rcv.NumCalls()
+	t.AllCallSignal = rcv.AllCallSignal()
+	t.AllExtraSignal = rcv.AllExtraSignal()
+	t.ProgData = rcv.ProgDataBytes()
+}
+
+func (rcv *SnapshotRequest) UnPack() *SnapshotRequestT {
+	if rcv == nil {
+		return nil
+	}
+	t := &SnapshotRequestT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type SnapshotRequest struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsSnapshotRequest(buf []byte, offset flatbuffers.UOffsetT) *SnapshotRequest {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &SnapshotRequest{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsSnapshotRequest(buf []byte, offset flatbuffers.UOffsetT) *SnapshotRequest {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &SnapshotRequest{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func (rcv *SnapshotRequest) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *SnapshotRequest) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func (rcv *SnapshotRequest) ExecFlags() ExecFlag {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return ExecFlag(rcv._tab.GetUint64(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *SnapshotRequest) MutateExecFlags(n ExecFlag) bool {
+	return rcv._tab.MutateUint64Slot(4, uint64(n))
+}
+
+func (rcv *SnapshotRequest) NumCalls() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotRequest) MutateNumCalls(n int32) bool {
+	return rcv._tab.MutateInt32Slot(6, n)
+}
+
+func (rcv *SnapshotRequest) AllCallSignal() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *SnapshotRequest) MutateAllCallSignal(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(8, n)
+}
+
+func (rcv *SnapshotRequest) AllExtraSignal() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *SnapshotRequest) MutateAllExtraSignal(n bool) bool {
+	return rcv._tab.MutateBoolSlot(10, n)
+}
+
+func (rcv *SnapshotRequest) ProgData(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *SnapshotRequest) ProgDataLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *SnapshotRequest) ProgDataBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *SnapshotRequest) MutateProgData(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func SnapshotRequestStart(builder *flatbuffers.Builder) {
+	builder.StartObject(5)
+}
+func SnapshotRequestAddExecFlags(builder *flatbuffers.Builder, execFlags ExecFlag) {
+	builder.PrependUint64Slot(0, uint64(execFlags), 0)
+}
+func SnapshotRequestAddNumCalls(builder *flatbuffers.Builder, numCalls int32) {
+	builder.PrependInt32Slot(1, numCalls, 0)
+}
+func SnapshotRequestAddAllCallSignal(builder *flatbuffers.Builder, allCallSignal uint64) {
+	builder.PrependUint64Slot(2, allCallSignal, 0)
+}
+func SnapshotRequestAddAllExtraSignal(builder *flatbuffers.Builder, allExtraSignal bool) {
+	builder.PrependBoolSlot(3, allExtraSignal, false)
+}
+func SnapshotRequestAddProgData(builder *flatbuffers.Builder, progData flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(progData), 0)
+}
+func SnapshotRequestStartProgDataVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func SnapshotRequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }

@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -56,6 +57,21 @@ static std::unique_ptr<rpc::FileInfoRawT> ReadFile(const std::string& file)
 	debug("reading file %s: size=%zu exists=%d error=%s\n",
 	      info->name.c_str(), info->data.size(), info->exists, info->error.c_str());
 	return info;
+}
+
+static std::string ReadTextFile(const char* file_fmt, ...)
+{
+	char file[1024];
+	va_list args;
+	va_start(args, file_fmt);
+	vsnprintf(file, sizeof(file), file_fmt, args);
+	va_end(args);
+	file[sizeof(file) - 1] = 0;
+	auto data = ReadFile(file)->data;
+	std::string str(data.begin(), data.end());
+	while (!str.empty() && (str.back() == '\n' || str.back() == 0))
+		str.resize(str.size() - 1);
+	return str;
 }
 
 static std::vector<std::unique_ptr<rpc::FileInfoRawT>> ReadFiles(const std::vector<std::string>& files)

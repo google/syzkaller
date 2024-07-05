@@ -91,6 +91,47 @@ struct StateResultRaw;
 struct StateResultRawBuilder;
 struct StateResultRawT;
 
+struct SnapshotHeader;
+struct SnapshotHeaderBuilder;
+struct SnapshotHeaderT;
+
+struct SnapshotHandshake;
+struct SnapshotHandshakeBuilder;
+struct SnapshotHandshakeT;
+
+struct SnapshotRequest;
+struct SnapshotRequestBuilder;
+struct SnapshotRequestT;
+
+enum class Const : uint64_t {
+  SnapshotDoorbellSize = 4096ULL,
+  MaxInputSize = 4198400ULL,
+  MaxOutputSize = 14680064ULL,
+  SnapshotShmemSize = 33554432ULL,
+  MIN = SnapshotDoorbellSize,
+  MAX = SnapshotShmemSize
+};
+
+inline const Const (&EnumValuesConst())[4] {
+  static const Const values[] = {
+    Const::SnapshotDoorbellSize,
+    Const::MaxInputSize,
+    Const::MaxOutputSize,
+    Const::SnapshotShmemSize
+  };
+  return values;
+}
+
+inline const char *EnumNameConst(Const e) {
+  switch (e) {
+    case Const::SnapshotDoorbellSize: return "SnapshotDoorbellSize";
+    case Const::MaxInputSize: return "MaxInputSize";
+    case Const::MaxOutputSize: return "MaxOutputSize";
+    case Const::SnapshotShmemSize: return "SnapshotShmemSize";
+    default: return "";
+  }
+}
+
 enum class Feature : uint64_t {
   Coverage = 1ULL,
   Comparisons = 2ULL,
@@ -642,6 +683,51 @@ inline const char *EnumNameCallFlag(CallFlag e) {
   if (flatbuffers::IsOutRange(e, CallFlag::Executed, CallFlag::FaultInjected)) return "";
   const size_t index = static_cast<size_t>(e) - static_cast<size_t>(CallFlag::Executed);
   return EnumNamesCallFlag()[index];
+}
+
+enum class SnapshotState : uint64_t {
+  Initial = 0,
+  Handshake = 1ULL,
+  Ready = 2ULL,
+  Snapshotted = 3ULL,
+  Execute = 4ULL,
+  Executed = 5ULL,
+  Failed = 6ULL,
+  MIN = Initial,
+  MAX = Failed
+};
+
+inline const SnapshotState (&EnumValuesSnapshotState())[7] {
+  static const SnapshotState values[] = {
+    SnapshotState::Initial,
+    SnapshotState::Handshake,
+    SnapshotState::Ready,
+    SnapshotState::Snapshotted,
+    SnapshotState::Execute,
+    SnapshotState::Executed,
+    SnapshotState::Failed
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesSnapshotState() {
+  static const char * const names[8] = {
+    "Initial",
+    "Handshake",
+    "Ready",
+    "Snapshotted",
+    "Execute",
+    "Executed",
+    "Failed",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameSnapshotState(SnapshotState e) {
+  if (flatbuffers::IsOutRange(e, SnapshotState::Initial, SnapshotState::Failed)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesSnapshotState()[index];
 }
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ExecOptsRaw FLATBUFFERS_FINAL_CLASS {
@@ -2436,6 +2522,323 @@ inline flatbuffers::Offset<StateResultRaw> CreateStateResultRawDirect(
 
 flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct SnapshotHeaderT : public flatbuffers::NativeTable {
+  typedef SnapshotHeader TableType;
+  rpc::SnapshotState state = rpc::SnapshotState::Initial;
+  uint32_t output_offset = 0;
+  uint32_t output_size = 0;
+};
+
+struct SnapshotHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SnapshotHeaderT NativeTableType;
+  typedef SnapshotHeaderBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_STATE = 4,
+    VT_OUTPUT_OFFSET = 6,
+    VT_OUTPUT_SIZE = 8
+  };
+  rpc::SnapshotState state() const {
+    return static_cast<rpc::SnapshotState>(GetField<uint64_t>(VT_STATE, 0));
+  }
+  uint32_t output_offset() const {
+    return GetField<uint32_t>(VT_OUTPUT_OFFSET, 0);
+  }
+  uint32_t output_size() const {
+    return GetField<uint32_t>(VT_OUTPUT_SIZE, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_STATE, 8) &&
+           VerifyField<uint32_t>(verifier, VT_OUTPUT_OFFSET, 4) &&
+           VerifyField<uint32_t>(verifier, VT_OUTPUT_SIZE, 4) &&
+           verifier.EndTable();
+  }
+  SnapshotHeaderT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SnapshotHeaderT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SnapshotHeader> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SnapshotHeaderBuilder {
+  typedef SnapshotHeader Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_state(rpc::SnapshotState state) {
+    fbb_.AddElement<uint64_t>(SnapshotHeader::VT_STATE, static_cast<uint64_t>(state), 0);
+  }
+  void add_output_offset(uint32_t output_offset) {
+    fbb_.AddElement<uint32_t>(SnapshotHeader::VT_OUTPUT_OFFSET, output_offset, 0);
+  }
+  void add_output_size(uint32_t output_size) {
+    fbb_.AddElement<uint32_t>(SnapshotHeader::VT_OUTPUT_SIZE, output_size, 0);
+  }
+  explicit SnapshotHeaderBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SnapshotHeader> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SnapshotHeader>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SnapshotHeader> CreateSnapshotHeader(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    rpc::SnapshotState state = rpc::SnapshotState::Initial,
+    uint32_t output_offset = 0,
+    uint32_t output_size = 0) {
+  SnapshotHeaderBuilder builder_(_fbb);
+  builder_.add_state(state);
+  builder_.add_output_size(output_size);
+  builder_.add_output_offset(output_offset);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<SnapshotHeader> CreateSnapshotHeader(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct SnapshotHandshakeT : public flatbuffers::NativeTable {
+  typedef SnapshotHandshake TableType;
+  bool cover_edges = false;
+  bool kernel_64_bit = false;
+  int32_t slowdown = 0;
+  int32_t syscall_timeout_ms = 0;
+  int32_t program_timeout_ms = 0;
+  rpc::Feature features = static_cast<rpc::Feature>(0);
+  rpc::ExecEnv env_flags = static_cast<rpc::ExecEnv>(0);
+  int64_t sandbox_arg = 0;
+};
+
+struct SnapshotHandshake FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SnapshotHandshakeT NativeTableType;
+  typedef SnapshotHandshakeBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COVER_EDGES = 4,
+    VT_KERNEL_64_BIT = 6,
+    VT_SLOWDOWN = 8,
+    VT_SYSCALL_TIMEOUT_MS = 10,
+    VT_PROGRAM_TIMEOUT_MS = 12,
+    VT_FEATURES = 14,
+    VT_ENV_FLAGS = 16,
+    VT_SANDBOX_ARG = 18
+  };
+  bool cover_edges() const {
+    return GetField<uint8_t>(VT_COVER_EDGES, 0) != 0;
+  }
+  bool kernel_64_bit() const {
+    return GetField<uint8_t>(VT_KERNEL_64_BIT, 0) != 0;
+  }
+  int32_t slowdown() const {
+    return GetField<int32_t>(VT_SLOWDOWN, 0);
+  }
+  int32_t syscall_timeout_ms() const {
+    return GetField<int32_t>(VT_SYSCALL_TIMEOUT_MS, 0);
+  }
+  int32_t program_timeout_ms() const {
+    return GetField<int32_t>(VT_PROGRAM_TIMEOUT_MS, 0);
+  }
+  rpc::Feature features() const {
+    return static_cast<rpc::Feature>(GetField<uint64_t>(VT_FEATURES, 0));
+  }
+  rpc::ExecEnv env_flags() const {
+    return static_cast<rpc::ExecEnv>(GetField<uint64_t>(VT_ENV_FLAGS, 0));
+  }
+  int64_t sandbox_arg() const {
+    return GetField<int64_t>(VT_SANDBOX_ARG, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_COVER_EDGES, 1) &&
+           VerifyField<uint8_t>(verifier, VT_KERNEL_64_BIT, 1) &&
+           VerifyField<int32_t>(verifier, VT_SLOWDOWN, 4) &&
+           VerifyField<int32_t>(verifier, VT_SYSCALL_TIMEOUT_MS, 4) &&
+           VerifyField<int32_t>(verifier, VT_PROGRAM_TIMEOUT_MS, 4) &&
+           VerifyField<uint64_t>(verifier, VT_FEATURES, 8) &&
+           VerifyField<uint64_t>(verifier, VT_ENV_FLAGS, 8) &&
+           VerifyField<int64_t>(verifier, VT_SANDBOX_ARG, 8) &&
+           verifier.EndTable();
+  }
+  SnapshotHandshakeT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SnapshotHandshakeT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SnapshotHandshake> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SnapshotHandshakeBuilder {
+  typedef SnapshotHandshake Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_cover_edges(bool cover_edges) {
+    fbb_.AddElement<uint8_t>(SnapshotHandshake::VT_COVER_EDGES, static_cast<uint8_t>(cover_edges), 0);
+  }
+  void add_kernel_64_bit(bool kernel_64_bit) {
+    fbb_.AddElement<uint8_t>(SnapshotHandshake::VT_KERNEL_64_BIT, static_cast<uint8_t>(kernel_64_bit), 0);
+  }
+  void add_slowdown(int32_t slowdown) {
+    fbb_.AddElement<int32_t>(SnapshotHandshake::VT_SLOWDOWN, slowdown, 0);
+  }
+  void add_syscall_timeout_ms(int32_t syscall_timeout_ms) {
+    fbb_.AddElement<int32_t>(SnapshotHandshake::VT_SYSCALL_TIMEOUT_MS, syscall_timeout_ms, 0);
+  }
+  void add_program_timeout_ms(int32_t program_timeout_ms) {
+    fbb_.AddElement<int32_t>(SnapshotHandshake::VT_PROGRAM_TIMEOUT_MS, program_timeout_ms, 0);
+  }
+  void add_features(rpc::Feature features) {
+    fbb_.AddElement<uint64_t>(SnapshotHandshake::VT_FEATURES, static_cast<uint64_t>(features), 0);
+  }
+  void add_env_flags(rpc::ExecEnv env_flags) {
+    fbb_.AddElement<uint64_t>(SnapshotHandshake::VT_ENV_FLAGS, static_cast<uint64_t>(env_flags), 0);
+  }
+  void add_sandbox_arg(int64_t sandbox_arg) {
+    fbb_.AddElement<int64_t>(SnapshotHandshake::VT_SANDBOX_ARG, sandbox_arg, 0);
+  }
+  explicit SnapshotHandshakeBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SnapshotHandshake> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SnapshotHandshake>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SnapshotHandshake> CreateSnapshotHandshake(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    bool cover_edges = false,
+    bool kernel_64_bit = false,
+    int32_t slowdown = 0,
+    int32_t syscall_timeout_ms = 0,
+    int32_t program_timeout_ms = 0,
+    rpc::Feature features = static_cast<rpc::Feature>(0),
+    rpc::ExecEnv env_flags = static_cast<rpc::ExecEnv>(0),
+    int64_t sandbox_arg = 0) {
+  SnapshotHandshakeBuilder builder_(_fbb);
+  builder_.add_sandbox_arg(sandbox_arg);
+  builder_.add_env_flags(env_flags);
+  builder_.add_features(features);
+  builder_.add_program_timeout_ms(program_timeout_ms);
+  builder_.add_syscall_timeout_ms(syscall_timeout_ms);
+  builder_.add_slowdown(slowdown);
+  builder_.add_kernel_64_bit(kernel_64_bit);
+  builder_.add_cover_edges(cover_edges);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<SnapshotHandshake> CreateSnapshotHandshake(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct SnapshotRequestT : public flatbuffers::NativeTable {
+  typedef SnapshotRequest TableType;
+  rpc::ExecFlag exec_flags = static_cast<rpc::ExecFlag>(0);
+  int32_t num_calls = 0;
+  uint64_t all_call_signal = 0;
+  bool all_extra_signal = false;
+  std::vector<uint8_t> prog_data{};
+};
+
+struct SnapshotRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SnapshotRequestT NativeTableType;
+  typedef SnapshotRequestBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_EXEC_FLAGS = 4,
+    VT_NUM_CALLS = 6,
+    VT_ALL_CALL_SIGNAL = 8,
+    VT_ALL_EXTRA_SIGNAL = 10,
+    VT_PROG_DATA = 12
+  };
+  rpc::ExecFlag exec_flags() const {
+    return static_cast<rpc::ExecFlag>(GetField<uint64_t>(VT_EXEC_FLAGS, 0));
+  }
+  int32_t num_calls() const {
+    return GetField<int32_t>(VT_NUM_CALLS, 0);
+  }
+  uint64_t all_call_signal() const {
+    return GetField<uint64_t>(VT_ALL_CALL_SIGNAL, 0);
+  }
+  bool all_extra_signal() const {
+    return GetField<uint8_t>(VT_ALL_EXTRA_SIGNAL, 0) != 0;
+  }
+  const flatbuffers::Vector<uint8_t> *prog_data() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_PROG_DATA);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_EXEC_FLAGS, 8) &&
+           VerifyField<int32_t>(verifier, VT_NUM_CALLS, 4) &&
+           VerifyField<uint64_t>(verifier, VT_ALL_CALL_SIGNAL, 8) &&
+           VerifyField<uint8_t>(verifier, VT_ALL_EXTRA_SIGNAL, 1) &&
+           VerifyOffset(verifier, VT_PROG_DATA) &&
+           verifier.VerifyVector(prog_data()) &&
+           verifier.EndTable();
+  }
+  SnapshotRequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SnapshotRequestT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SnapshotRequest> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SnapshotRequestBuilder {
+  typedef SnapshotRequest Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_exec_flags(rpc::ExecFlag exec_flags) {
+    fbb_.AddElement<uint64_t>(SnapshotRequest::VT_EXEC_FLAGS, static_cast<uint64_t>(exec_flags), 0);
+  }
+  void add_num_calls(int32_t num_calls) {
+    fbb_.AddElement<int32_t>(SnapshotRequest::VT_NUM_CALLS, num_calls, 0);
+  }
+  void add_all_call_signal(uint64_t all_call_signal) {
+    fbb_.AddElement<uint64_t>(SnapshotRequest::VT_ALL_CALL_SIGNAL, all_call_signal, 0);
+  }
+  void add_all_extra_signal(bool all_extra_signal) {
+    fbb_.AddElement<uint8_t>(SnapshotRequest::VT_ALL_EXTRA_SIGNAL, static_cast<uint8_t>(all_extra_signal), 0);
+  }
+  void add_prog_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data) {
+    fbb_.AddOffset(SnapshotRequest::VT_PROG_DATA, prog_data);
+  }
+  explicit SnapshotRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SnapshotRequest> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SnapshotRequest>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    rpc::ExecFlag exec_flags = static_cast<rpc::ExecFlag>(0),
+    int32_t num_calls = 0,
+    uint64_t all_call_signal = 0,
+    bool all_extra_signal = false,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data = 0) {
+  SnapshotRequestBuilder builder_(_fbb);
+  builder_.add_all_call_signal(all_call_signal);
+  builder_.add_exec_flags(exec_flags);
+  builder_.add_prog_data(prog_data);
+  builder_.add_num_calls(num_calls);
+  builder_.add_all_extra_signal(all_extra_signal);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequestDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    rpc::ExecFlag exec_flags = static_cast<rpc::ExecFlag>(0),
+    int32_t num_calls = 0,
+    uint64_t all_call_signal = 0,
+    bool all_extra_signal = false,
+    const std::vector<uint8_t> *prog_data = nullptr) {
+  auto prog_data__ = prog_data ? _fbb.CreateVector<uint8_t>(*prog_data) : 0;
+  return rpc::CreateSnapshotRequest(
+      _fbb,
+      exec_flags,
+      num_calls,
+      all_call_signal,
+      all_extra_signal,
+      prog_data__);
+}
+
+flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 inline ConnectRequestRawT *ConnectRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<ConnectRequestRawT>(new ConnectRequestRawT());
   UnPackTo(_o.get(), _resolver);
@@ -3097,6 +3500,123 @@ inline flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(flatbuffers::Fla
   return rpc::CreateStateResultRaw(
       _fbb,
       _data);
+}
+
+inline SnapshotHeaderT *SnapshotHeader::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<SnapshotHeaderT>(new SnapshotHeaderT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void SnapshotHeader::UnPackTo(SnapshotHeaderT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = state(); _o->state = _e; }
+  { auto _e = output_offset(); _o->output_offset = _e; }
+  { auto _e = output_size(); _o->output_size = _e; }
+}
+
+inline flatbuffers::Offset<SnapshotHeader> SnapshotHeader::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSnapshotHeader(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SnapshotHeader> CreateSnapshotHeader(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SnapshotHeaderT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _state = _o->state;
+  auto _output_offset = _o->output_offset;
+  auto _output_size = _o->output_size;
+  return rpc::CreateSnapshotHeader(
+      _fbb,
+      _state,
+      _output_offset,
+      _output_size);
+}
+
+inline SnapshotHandshakeT *SnapshotHandshake::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<SnapshotHandshakeT>(new SnapshotHandshakeT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void SnapshotHandshake::UnPackTo(SnapshotHandshakeT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = cover_edges(); _o->cover_edges = _e; }
+  { auto _e = kernel_64_bit(); _o->kernel_64_bit = _e; }
+  { auto _e = slowdown(); _o->slowdown = _e; }
+  { auto _e = syscall_timeout_ms(); _o->syscall_timeout_ms = _e; }
+  { auto _e = program_timeout_ms(); _o->program_timeout_ms = _e; }
+  { auto _e = features(); _o->features = _e; }
+  { auto _e = env_flags(); _o->env_flags = _e; }
+  { auto _e = sandbox_arg(); _o->sandbox_arg = _e; }
+}
+
+inline flatbuffers::Offset<SnapshotHandshake> SnapshotHandshake::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSnapshotHandshake(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SnapshotHandshake> CreateSnapshotHandshake(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SnapshotHandshakeT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _cover_edges = _o->cover_edges;
+  auto _kernel_64_bit = _o->kernel_64_bit;
+  auto _slowdown = _o->slowdown;
+  auto _syscall_timeout_ms = _o->syscall_timeout_ms;
+  auto _program_timeout_ms = _o->program_timeout_ms;
+  auto _features = _o->features;
+  auto _env_flags = _o->env_flags;
+  auto _sandbox_arg = _o->sandbox_arg;
+  return rpc::CreateSnapshotHandshake(
+      _fbb,
+      _cover_edges,
+      _kernel_64_bit,
+      _slowdown,
+      _syscall_timeout_ms,
+      _program_timeout_ms,
+      _features,
+      _env_flags,
+      _sandbox_arg);
+}
+
+inline SnapshotRequestT *SnapshotRequest::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<SnapshotRequestT>(new SnapshotRequestT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void SnapshotRequest::UnPackTo(SnapshotRequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = exec_flags(); _o->exec_flags = _e; }
+  { auto _e = num_calls(); _o->num_calls = _e; }
+  { auto _e = all_call_signal(); _o->all_call_signal = _e; }
+  { auto _e = all_extra_signal(); _o->all_extra_signal = _e; }
+  { auto _e = prog_data(); if (_e) { _o->prog_data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->prog_data.begin()); } }
+}
+
+inline flatbuffers::Offset<SnapshotRequest> SnapshotRequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSnapshotRequest(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SnapshotRequestT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _exec_flags = _o->exec_flags;
+  auto _num_calls = _o->num_calls;
+  auto _all_call_signal = _o->all_call_signal;
+  auto _all_extra_signal = _o->all_extra_signal;
+  auto _prog_data = _o->prog_data.size() ? _fbb.CreateVector(_o->prog_data) : 0;
+  return rpc::CreateSnapshotRequest(
+      _fbb,
+      _exec_flags,
+      _num_calls,
+      _all_call_signal,
+      _all_extra_signal,
+      _prog_data);
 }
 
 inline bool VerifyHostMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type) {

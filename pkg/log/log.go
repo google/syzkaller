@@ -79,6 +79,10 @@ func Logf(v int, msg string, args ...interface{}) {
 	writeMessage(v, "", msg, args...)
 }
 
+func Error(err error) {
+	Errorf("%v", err)
+}
+
 func Errorf(msg string, args ...interface{}) {
 	writeMessage(0, "ERROR", msg, args...)
 }
