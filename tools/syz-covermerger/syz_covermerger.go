@@ -59,7 +59,7 @@ func main() {
 		}
 		coverage, _, _ := mergeResultsToCoverage(mergeResult)
 		saveToSpanner(context.Background(), *flagProjectID, coverage,
-			&DBRecord{
+			&DBHistoryRecord{
 				Namespace: *flagNamespace,
 				Repo:      *flagRepo,
 				Commit:    *flagCommit,

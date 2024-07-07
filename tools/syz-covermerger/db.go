@@ -6,25 +6,25 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
 
 // TODO: move to dashAPI once tested? I'm not sure we'll benefit.
 
-type DBRecord struct {
-	Namespace    string
-	Repo         string
-	Commit       string
-	Duration     int64
-	DateTo       civil.Date
+type DBFilesRecord struct {
+	Session      string
 	FilePath     string
 	Instrumented int64
 	Covered      int64
 }
 
 type DBHistoryRecord struct {
+	Session   string
+	Time      time.Time
 	Namespace string
 	Repo      string
 	Commit    string
@@ -34,22 +34,19 @@ type DBHistoryRecord struct {
 }
 
 func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*Coverage,
-	template *DBRecord, totalRows int64) {
+	template *DBHistoryRecord, totalRows int64) {
 	client, err := spanner.NewClient(ctx, "projects/"+projectID+"/instances/syzbot/databases/coverage")
 	if err != nil {
 		panic(fmt.Sprintf("spanner.NewClient() failed: %s", err.Error()))
 	}
 	defer client.Close()
 
+	session := uuid.New().String()
 	mutations := []*spanner.Mutation{}
 	for filePath, record := range coverage {
 		var insert *spanner.Mutation
-		if insert, err = spanner.InsertOrUpdateStruct("files", &DBRecord{
-			Namespace:    template.Namespace,
-			Repo:         template.Repo,
-			Commit:       template.Commit,
-			Duration:     template.Duration,
-			DateTo:       template.DateTo,
+		if insert, err = spanner.InsertOrUpdateStruct("files", &DBFilesRecord{
+			Session:      session,
 			FilePath:     filePath,
 			Instrumented: record.Instrumented,
 			Covered:      record.Covered,
@@ -57,10 +54,10 @@ func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*C
 			panic(fmt.Sprintf("failed to spanner.InsertStruct(): %s", err.Error()))
 		}
 		mutations = append(mutations, insert)
-		// 80k mutations is a DB limit. 7 fields * 1k records is apx 7k mutations
+		// 80k mutations is a DB limit. 4 fields * 2k records is apx 8k mutations
 		// let keep this value 10x lower to have a room for indexes
 		// indexes update are also counted
-		if len(mutations) > 1000 {
+		if len(mutations) > 2000 {
 			if _, err = client.Apply(ctx, mutations); err != nil {
 				panic(fmt.Sprintf("failed to spanner.Apply(inserts): %s", err.Error()))
 			}
@@ -70,6 +67,8 @@ func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*C
 
 	var historyInsert *spanner.Mutation
 	if historyInsert, err = spanner.InsertOrUpdateStruct("merge_history", &DBHistoryRecord{
+		Session:   session,
+		Time:      time.Now(),
 		Namespace: template.Namespace,
 		Repo:      template.Repo,
 		Commit:    template.Commit,
