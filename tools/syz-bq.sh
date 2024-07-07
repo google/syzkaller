@@ -49,22 +49,20 @@ then
   exit
 fi
 
+db="coverage"
+
 # it also allows to early check gcloud credentials
 echo "making sure spanner table 'files' exists"
 create_table=$( echo -n '
 CREATE TABLE IF NOT EXISTS
   files (
-    "namespace" text,
-    "repo" text,
-    "commit" text,
+    "session" text,
     "filepath" text,
-    "duration" bigint,
-    "dateto" date,
     "instrumented" bigint,
     "covered" bigint,
   PRIMARY KEY
-    (duration, dateto, commit, filepath) );')
-gcloud spanner databases ddl update coverage --instance=syzbot --project=syzkaller \
+    (session, filepath) );')
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
 echo "making sure spanner table 'merge_history' exists"
@@ -73,13 +71,15 @@ CREATE TABLE IF NOT EXISTS
   merge_history (
     "namespace" text,
     "repo" text,
-    "commit" text,
     "duration" bigint,
     "dateto" date,
+    "session" text,
+    "time" timestamptz,
+    "commit" text,
     "totalrows" bigint,
   PRIMARY KEY
-    (duration, dateto, commit) );')
-gcloud spanner databases ddl update coverage --instance=syzbot --project=syzkaller \
+    (namespace, repo, duration, dateto) );')
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
 echo "Workdir: $workdir"
