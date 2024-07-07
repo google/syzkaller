@@ -1584,7 +1584,7 @@ type corpusRunner struct {
 	seq        int
 }
 
-func (cr *corpusRunner) Next() *queue.Request {
+func (cr *corpusRunner) Next() (*queue.Request, bool) {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 
@@ -1600,7 +1600,7 @@ func (cr *corpusRunner) Next() *queue.Request {
 	return &queue.Request{
 		Prog:      p,
 		Important: true,
-	}
+	}, false
 }
 
 func (mgr *Manager) defaultExecOpts() flatrpc.ExecOpts {

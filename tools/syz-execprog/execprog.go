@@ -213,14 +213,14 @@ func (ctx *Context) machineChecked(features flatrpc.Feature, syscalls map[*prog.
 	return queue.DefaultOpts(ctx, ctx.defaultOpts)
 }
 
-func (ctx *Context) Next() *queue.Request {
+func (ctx *Context) Next() (*queue.Request, bool) {
 	var p *prog.Prog
 	if ctx.stress {
 		p = ctx.createStressProg()
 	} else {
 		idx := ctx.getProgramIndex()
 		if idx < 0 {
-			return nil
+			return nil, true
 		}
 		p = ctx.progs[idx]
 	}
@@ -240,7 +240,7 @@ func (ctx *Context) Next() *queue.Request {
 		req.ExecOpts.ExecFlags |= flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover
 	}
 	req.OnDone(ctx.Done)
-	return req
+	return req, false
 }
 
 func (ctx *Context) Done(req *queue.Request, res *queue.Result) bool {

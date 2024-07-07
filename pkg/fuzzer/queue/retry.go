@@ -16,15 +16,16 @@ func Retry(base Source) Source {
 	}
 }
 
-func (r *retryer) Next() *Request {
+func (r *retryer) Next() (*Request, bool) {
+	stop := false
 	req := r.pq.tryNext()
 	if req == nil {
-		req = r.base.Next()
+		req, stop = r.base.Next()
 	}
 	if req != nil {
 		req.OnDone(r.done)
 	}
-	return req
+	return req, stop && r.pq.Len() == 0
 }
 
 func (r *retryer) done(req *Request, res *Result) bool {
