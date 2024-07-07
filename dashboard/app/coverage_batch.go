@@ -197,11 +197,13 @@ func nsDatesToMerge(ctx context.Context, ns string, days, maxRecords int64) ([]c
 			LEFT JOIN
 				EXTERNAL_QUERY("syzkaller.us-central1.spanner-coverage", '''
 					SELECT
-						distinct namespace, duration, dateto, totalrows as total_rows_dest
+						distinct namespace, duration, dateto, max(totalrows) as total_rows_dest
 					FROM
 						merge_history
 					WHERE
-						duration = %d;''') AS sp
+						duration = %d
+					GROUP BY
+						namespace, duration, dateto;''') AS sp
 			ON
 				mainquery.partition_date = sp.dateto AND
 				mainquery.namespace = sp.namespace
