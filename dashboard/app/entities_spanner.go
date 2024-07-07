@@ -23,20 +23,23 @@ type CoverageHistory struct {
 // MergedCoverage uses dates, not time.
 func MergedCoverage(ctx context.Context, ns string, fromDate, toDate civil.Date) (*CoverageHistory, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	client, err := spanner.NewClient(ctx, "projects/"+projectID+"/instances/syzbot/databases/coverage")
+	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
+	client, err := spanner.NewClient(ctx, database)
 	if err != nil {
 		panic(fmt.Sprintf("spanner.NewClient() failed: %s", err.Error()))
 	}
 	defer client.Close()
 
 	stmt := spanner.Statement{
-		SQL: `select
-			dateto as targetdate,
-			cast(sum(instrumented) as INTEGER) as instrumented,
-			cast(sum(covered) as INTEGER) as covered
-		from "files"
-	where namespace=$1 and dateto>=$2 and dateto<=$3
-		group by targetdate`,
+		SQL: `
+select
+  dateto as targetdate,
+  cast(sum(instrumented) as INTEGER) as instrumented,
+  cast(sum(covered) as INTEGER) as covered
+from merge_history join files
+  on merge_history.session = files.session
+where namespace=$1 and dateto>=$2 and dateto<=$3
+group by dateto`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": fromDate,
