@@ -10,6 +10,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/pkg/spanner/coveragedb"
 	"google.golang.org/api/iterator"
 )
 
@@ -23,10 +24,9 @@ type CoverageHistory struct {
 // MergedCoverage uses dates, not time.
 func MergedCoverage(ctx context.Context, ns string, fromDate, toDate civil.Date) (*CoverageHistory, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
-	client, err := spanner.NewClient(ctx, database)
+	client, err := coveragedb.NewClient(ctx, projectID)
 	if err != nil {
-		panic(fmt.Sprintf("spanner.NewClient() failed: %s", err.Error()))
+		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
 	}
 	defer client.Close()
 
