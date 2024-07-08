@@ -105,17 +105,17 @@
 <div id="right_pane" class="split right">
   <button class="nested" id="close-btn" onclick="onCloseClick()">X</button>
   {{range $i, $f := .Contents}}
-  <pre class="file" id="contents_{{$i}}">{{$f}}</pre>
+    <pre class="file" id="contents_{{$i}}">{{$f}}</pre>
   {{end}}
   {{$base := .}}
   {{range $i, $p := .Progs}}
-  <pre class="file" id="prog_{{$i}}">
-{{if $base.RawCover}}<a href="/debuginput?sig={{$p.Sig}}">[raw coverage]</a><br />{{end}}
-{{$p.Content}}
-</pre>
+    <pre class="file" id="prog_{{$i}}">
+      {{if $base.RawCover}}<a href="/debuginput?sig={{$p.Sig}}">[raw coverage]</a><br />{{end}}
+      {{$p.Content}}
+    </pre>
   {{end}}
   {{range $i, $p := .Functions}}
-  <div class="function list" id="function_{{$i}}">{{$p}}</div>
+    <div class="function list" id="function_{{$i}}">{{$p}}</div>
   {{end}}
 </div>
 </body>
@@ -186,37 +186,40 @@
 </html>
 
 {{define "dir"}}
-{{range $dir := .Dirs}}
-<li>
-			<span id="path/{{$dir.Path}}" class="caret hover">
-				{{$dir.Name}}
-				<span class="cover hover">
-					{{if $dir.Covered}}{{$dir.Percent}}%{{else}}---{{end}}
-					<span class="cover-right">of {{$dir.Total}}</span>
-				</span>
-			</span>
-  <ul class="nested">
-    {{template "dir" $dir}}
-  </ul>
-</li>
-{{end}}
-{{range $file := .Files}}
-<li><span class="hover">
-			{{if $file.Covered}}
-				<a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
-					{{$file.Name}}
-				</a>
-				<span class="cover hover">
-					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
+  {{range $dir := .Dirs}}
+    <li>
+      <span id="path/{{$dir.Path}}" class="caret hover">
+        {{$dir.Name}}
+        <span class="cover hover">
+          {{if $dir.Covered}}{{$dir.Percent}}%{{else}}---{{end}}
+          <span class="cover-right">of {{$dir.Total}}</span>
+        </span>
+      </span>
+      <ul class="nested">
+        {{template "dir" $dir}}
+      </ul>
+    </li>
+  {{end}}
+  {{range $file := .Files}}
+    <li><span class="hover">
+      {{if $file.Covered}}
+        <a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
+          {{$file.Name}}
+        </a>
+        <span class="cover hover">
+          <a href="#{{$file.Path}}" id="path/{{$file.Path}}"
              onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
-                                                {{$file.Percent}}%
-					</a>
-					<span class="cover-right">of {{$file.Total}}</span>
-				</span>
-			{{else}}
-  {{$file.Name}}<span class="cover hover">---<span class="cover-right">
-						of {{$file.Total}}</span></span>
-			{{end}}
-		</span></li>
-{{end}}
+            {{$file.Percent}}%
+          </a>
+          <span class="cover-right">of {{$file.Total}}</span>
+        </span>
+      {{else}}
+        {{$file.Name}}
+          <span class="cover hover">
+            ---
+            <span class="cover-right">of {{$file.Total}}</span>
+          </span>
+      {{end}}
+    </span></li>
+  {{end}}
 {{end}}
