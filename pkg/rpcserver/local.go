@@ -9,12 +9,12 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -121,6 +121,6 @@ func (ctx *local) MaxSignal() signal.Signal {
 	return signal.FromRaw(ctx.cfg.MaxSignal, 0)
 }
 
-func (ctx *local) CoverageFilter(modules []*cover.KernelModule) []uint64 {
+func (ctx *local) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	return ctx.cfg.CoverFilter
 }

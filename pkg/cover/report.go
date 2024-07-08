@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/exp/maps"
 )
@@ -28,14 +29,12 @@ type Prog struct {
 	PCs  []uint64
 }
 
-type KernelModule = backend.KernelModule
-
 func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
 	return backend.GetPCBase(cfg)
 }
 
 func MakeReportGenerator(cfg *mgrconfig.Config, subsystem []mgrconfig.Subsystem,
-	modules []*KernelModule, rawCover bool) (*ReportGenerator, error) {
+	modules []*vminfo.KernelModule, rawCover bool) (*ReportGenerator, error) {
 	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
 		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
@@ -206,7 +205,7 @@ func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
 		return nil
 	}
 	symbolize := make(map[*backend.Symbol]bool)
-	pcs := make(map[*backend.KernelModule][]uint64)
+	pcs := make(map[*vminfo.KernelModule][]uint64)
 	for _, pc := range PCs {
 		sym := rg.findSymbol(pc)
 		if sym == nil || sym.Symbolized || symbolize[sym] {

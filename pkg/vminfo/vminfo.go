@@ -22,12 +22,18 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+type KernelModule struct {
+	Name string
+	Addr uint64
+	Size uint64
+	Path string
+}
 
 type Checker struct {
 	checker
@@ -67,7 +73,7 @@ func New(ctx context.Context, cfg *Config) *Checker {
 	}
 }
 
-func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*cover.KernelModule, []byte, error) {
+func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelModule, []byte, error) {
 	files := createVirtualFilesystem(fileInfos)
 	modules, err := checker.parseModules(files)
 	if err != nil {
@@ -116,7 +122,7 @@ type machineInfoFunc func(files filesystem, w io.Writer) (string, error)
 type checker interface {
 	RequiredFiles() []string
 	checkFiles() []string
-	parseModules(files filesystem) ([]*cover.KernelModule, error)
+	parseModules(files filesystem) ([]*KernelModule, error)
 	machineInfos() []machineInfoFunc
 	syscallCheck(*checkContext, *prog.Syscall) string
 }
@@ -176,7 +182,7 @@ func (stub) checkFiles() []string {
 	return nil
 }
 
-func (stub) parseModules(files filesystem) ([]*cover.KernelModule, error) {
+func (stub) parseModules(files filesystem) ([]*KernelModule, error) {
 	return nil, nil
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 
