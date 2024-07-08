@@ -721,11 +721,11 @@ void receive_handshake()
 void receive_execute()
 {
 	execute_req req = {};
-	ssize_t n = read(kInPipeFd, &req, sizeof(req));
+	ssize_t n = 0;
+	while ((n = read(kInPipeFd, &req, sizeof(req))) == -1 && errno == EINTR)
+		;
 	if (n != (ssize_t)sizeof(req))
 		failmsg("control pipe read failed", "read=%zd want=%zd", n, sizeof(req));
-	if (req.magic != kInMagic)
-		failmsg("bad execute request magic", "magic=0x%llx", req.magic);
 	request_id = req.id;
 	flag_collect_signal = req.exec_flags & (1 << 0);
 	flag_collect_cover = req.exec_flags & (1 << 1);
