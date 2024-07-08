@@ -188,7 +188,7 @@ func (ctx *checkContext) featureSucceeded(feat flatrpc.Feature, testProg *prog.P
 		if res.Err != nil {
 			return res.Err.Error()
 		}
-		return "test program execution failed"
+		return fmt.Sprintf("test program execution failed: status=%v", res.Status)
 	}
 	if len(res.Info.Calls) != len(testProg.Calls) {
 		return fmt.Sprintf("only %v calls are executed out of %v",
