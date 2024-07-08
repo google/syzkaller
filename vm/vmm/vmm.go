@@ -216,7 +216,7 @@ func (inst *instance) lookupSSHAddress() (string, error) {
 	return fmt.Sprintf("100.64.%s.3", matches[1]), nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	inst.vmctl("stop", "-f", inst.vmName)
 	if inst.consolew != nil {
 		inst.consolew.Close()
@@ -226,6 +226,7 @@ func (inst *instance) Close() {
 		inst.vmm.Wait()
 	}
 	inst.merger.Wait()
+	return nil
 }
 
 func (inst *instance) Forward(port int) (string, error) {

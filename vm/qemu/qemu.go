@@ -395,7 +395,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 	return inst, nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	if inst.qemu != nil {
 		inst.qemu.Process.Kill()
 		inst.qemu.Wait()
@@ -412,6 +412,7 @@ func (inst *instance) Close() {
 	if inst.mon != nil {
 		inst.mon.Close()
 	}
+	return nil
 }
 
 func (inst *instance) boot() error {

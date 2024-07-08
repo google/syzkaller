@@ -160,8 +160,8 @@ func (inst *instance) Forward(port int) (string, error) {
 	return "", fmt.Errorf("unable to forward port on device: %w", err)
 }
 
-func (inst *instance) Close() {
-	inst.gceInst.Close()
+func (inst *instance) Close() error {
+	return inst.gceInst.Close()
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (

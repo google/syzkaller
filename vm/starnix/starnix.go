@@ -165,7 +165,7 @@ func (inst *instance) boot() error {
 	return nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	inst.ffx("emu", "stop", inst.name)
 	if inst.fuchsiaLogs != nil {
 		inst.fuchsiaLogs.Process.Kill()
@@ -180,6 +180,7 @@ func (inst *instance) Close() {
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
 	}
+	return nil
 }
 
 func (inst *instance) startFuchsiaVM() error {

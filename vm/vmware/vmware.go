@@ -144,7 +144,7 @@ func (inst *instance) Forward(port int) (string, error) {
 	return fmt.Sprintf("127.0.0.1:%v", port), nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	if inst.debug {
 		log.Logf(0, "stopping %v", inst.vmx)
 	}
@@ -154,6 +154,7 @@ func (inst *instance) Close() {
 	}
 	osutil.RunCmd(2*time.Minute, "", "vmrun", "deleteVM", inst.vmx)
 	close(inst.closed)
+	return nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {

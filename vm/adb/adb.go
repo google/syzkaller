@@ -487,8 +487,9 @@ func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 	return val, nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	close(inst.closed)
+	return nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {

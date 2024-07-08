@@ -578,7 +578,7 @@ func (inst *instance) Diagnose(r *report.Report) (diagnosis []byte, wait bool) {
 	return []byte(reply.Diagnosis), false
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	var reply proxyrpc.CloseReply
 	err := inst.ProxyApp.Call(
 		"ProxyVM.Close",
@@ -589,6 +589,7 @@ func (inst *instance) Close() {
 	if err != nil {
 		log.Logf(0, "error closing instance %v: %v", inst.ID, err)
 	}
+	return err
 }
 
 type stdInOutCloser struct {

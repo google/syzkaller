@@ -282,8 +282,9 @@ func (inst *instance) waitForReboot(timeout int) error {
 	return fmt.Errorf("isolated: the machine did not reboot on repair")
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	close(inst.closed)
+	return nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {

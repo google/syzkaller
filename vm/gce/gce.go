@@ -241,12 +241,16 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	return inst, nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	close(inst.closed)
-	inst.GCE.DeleteInstance(inst.name, false)
+	err := inst.GCE.DeleteInstance(inst.name, false)
 	if inst.consolew != nil {
-		inst.consolew.Close()
+		err2 := inst.consolew.Close()
+		if err == nil {
+			err = err2
+		}
 	}
+	return err
 }
 
 func (inst *instance) Forward(port int) (string, error) {
