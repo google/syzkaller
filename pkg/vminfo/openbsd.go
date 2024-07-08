@@ -4,7 +4,6 @@
 package vminfo
 
 import (
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -18,7 +17,7 @@ func (openbsd) checkFiles() []string {
 	return nil
 }
 
-func (openbsd) parseModules(files filesystem) ([]*cover.KernelModule, error) {
+func (openbsd) parseModules(files filesystem) ([]*KernelModule, error) {
 	return nil, nil
 }
 

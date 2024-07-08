@@ -11,13 +11,13 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vminfo"
 )
 
-func (mgr *Manager) CoverageFilter(modules []*cover.KernelModule) []uint64 {
+func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	execFilter, filter, err := createCoverageFilter(mgr.cfg, modules)
 	if err != nil {
 		log.Fatalf("failed to init coverage filter: %v", err)
@@ -27,7 +27,8 @@ func (mgr *Manager) CoverageFilter(modules []*cover.KernelModule) []uint64 {
 	return execFilter
 }
 
-func createCoverageFilter(cfg *mgrconfig.Config, modules []*cover.KernelModule) ([]uint64, map[uint64]struct{}, error) {
+func createCoverageFilter(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) ([]uint64,
+	map[uint64]struct{}, error) {
 	if !cfg.HasCovFilter() {
 		return nil, nil, nil
 	}

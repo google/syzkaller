@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -14,7 +15,7 @@ type Impl struct {
 	Units           []*CompileUnit
 	Symbols         []*Symbol
 	Frames          []Frame
-	Symbolize       func(pcs map[*KernelModule][]uint64) ([]Frame, error)
+	Symbolize       func(pcs map[*vminfo.KernelModule][]uint64) ([]Frame, error)
 	CallbackPoints  []uint64
 	PreciseCoverage bool
 }
@@ -22,12 +23,12 @@ type Impl struct {
 type CompileUnit struct {
 	ObjectUnit
 	Path   string
-	Module *KernelModule
+	Module *vminfo.KernelModule
 }
 
 type Symbol struct {
 	ObjectUnit
-	Module     *KernelModule
+	Module     *vminfo.KernelModule
 	Unit       *CompileUnit
 	Start      uint64
 	End        uint64
@@ -42,7 +43,7 @@ type ObjectUnit struct {
 }
 
 type Frame struct {
-	Module   *KernelModule
+	Module   *vminfo.KernelModule
 	PC       uint64
 	Name     string
 	FuncName string
@@ -66,7 +67,7 @@ type SecRange struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string, splitBuild bool,
-	moduleObj []string, modules []*KernelModule) (*Impl, error) {
+	moduleObj []string, modules []*vminfo.KernelModule) (*Impl, error) {
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}

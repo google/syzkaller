@@ -11,10 +11,12 @@ import (
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules []*KernelModule) (*Impl, error) {
+func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules []*vminfo.KernelModule) (*Impl,
+	error) {
 	if len(modules) != 0 {
 		return nil, fmt.Errorf("gvisor coverage does not support modules")
 	}

@@ -44,14 +44,14 @@ type Config struct {
 	Procs             int
 	Slowdown          int
 	pcBase            uint64
-	localModules      []*cover.KernelModule
+	localModules      []*vminfo.KernelModule
 }
 
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
 	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
-	CoverageFilter(modules []*cover.KernelModule) []uint64
+	CoverageFilter(modules []*vminfo.KernelModule) []uint64
 }
 
 type Server struct {
@@ -85,7 +85,7 @@ type Server struct {
 }
 
 func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
-	var modules []*cover.KernelModule
+	var modules []*vminfo.KernelModule
 	var pcBase uint64
 	if cfg.KernelObj != "" {
 		var err error

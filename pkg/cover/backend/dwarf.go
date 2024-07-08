@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -30,11 +31,11 @@ type dwarfParams struct {
 	buildDir              string
 	splitBuildDelimiters  []string
 	moduleObj             []string
-	hostModules           []*KernelModule
-	readSymbols           func(*KernelModule, *symbolInfo) ([]*Symbol, error)
-	readTextData          func(*KernelModule) ([]byte, error)
-	readModuleCoverPoints func(*targets.Target, *KernelModule, *symbolInfo) ([2][]uint64, error)
-	readTextRanges        func(*KernelModule) ([]pcRange, []*CompileUnit, error)
+	hostModules           []*vminfo.KernelModule
+	readSymbols           func(*vminfo.KernelModule, *symbolInfo) ([]*Symbol, error)
+	readTextData          func(*vminfo.KernelModule) ([]byte, error)
+	readModuleCoverPoints func(*targets.Target, *vminfo.KernelModule, *symbolInfo) ([2][]uint64, error)
+	readTextRanges        func(*vminfo.KernelModule) ([]pcRange, []*CompileUnit, error)
 	getCompilerVersion    func(string) string
 }
 
@@ -104,7 +105,7 @@ type Result struct {
 	Symbols     []*Symbol
 }
 
-func processModule(params *dwarfParams, module *KernelModule, info *symbolInfo,
+func processModule(params *dwarfParams, module *vminfo.KernelModule, info *symbolInfo,
 	target *targets.Target) (*Result, error) {
 	symbols, err := params.readSymbols(module, info)
 	if err != nil {
@@ -159,7 +160,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	}
 	binC := make(chan binResult, len(modules))
 	for _, module := range modules {
-		go func(m *KernelModule) {
+		go func(m *vminfo.KernelModule) {
 			info := &symbolInfo{
 				tracePC:     make(map[uint64]bool),
 				traceCmp:    make(map[uint64]bool),
@@ -242,7 +243,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
-		Symbolize: func(pcs map[*KernelModule][]uint64) ([]Frame, error) {
+		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64) ([]Frame, error) {
 			return symbolize(target, &interner, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
 		CallbackPoints:  allCoverPoints[0],
@@ -350,7 +351,7 @@ type pcRange struct {
 
 type pcFixFn = (func([2]uint64) ([2]uint64, bool))
 
-func readTextRanges(debugInfo *dwarf.Data, module *KernelModule, pcFix pcFixFn) (
+func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pcFixFn) (
 	[]pcRange, []*CompileUnit, error) {
 	var ranges []pcRange
 	var units []*CompileUnit
@@ -397,7 +398,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *KernelModule, pcFix pcFixFn) 
 }
 
 func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
-	splitBuildDelimiters []string, mod *KernelModule, pcs []uint64) ([]Frame, error) {
+	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -478,7 +479,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 }
 
 func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
-	splitBuildDelimiters []string, pcs map[*KernelModule][]uint64) ([]Frame, error) {
+	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]Frame, error) {
 	var frames []Frame
 	type frameResult struct {
 		frames []Frame
@@ -486,7 +487,7 @@ func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, sr
 	}
 	frameC := make(chan frameResult, len(pcs))
 	for mod, pcs1 := range pcs {
-		go func(mod *KernelModule, pcs []uint64) {
+		go func(mod *vminfo.KernelModule, pcs []uint64) {
 			frames, err := symbolizeModule(target, interner, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs)
 			frameC <- frameResult{frames: frames, err: err}
 		}(mod, pcs1)
@@ -610,7 +611,7 @@ func cleanPath(path, objDir, srcDir, buildDir string, splitBuildDelimiters []str
 // objdump is an old, slow way of finding coverage points.
 // amd64 uses faster option of parsing binary directly (readCoverPoints).
 // TODO: use the faster approach for all other arches and drop this.
-func objdump(target *targets.Target, mod *KernelModule) ([2][]uint64, error) {
+func objdump(target *targets.Target, mod *vminfo.KernelModule) ([2][]uint64, error) {
 	var pcs [2][]uint64
 	cmd := osutil.Command(target.Objdump, "-d", "--no-show-raw-insn", mod.Path)
 	stdout, err := cmd.StdoutPipe()

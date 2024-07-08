@@ -12,26 +12,20 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type KernelModule struct {
-	Name string
-	Addr uint64
-	Size uint64
-	Path string
-}
-
 func DiscoverModules(target *targets.Target, objDir string, moduleObj []string) (
-	[]*KernelModule, error) {
-	module := &KernelModule{
+	[]*vminfo.KernelModule, error) {
+	module := &vminfo.KernelModule{
 		Path: filepath.Join(objDir, target.KernelObject),
 	}
 	textRange, err := elfReadTextSecRange(module)
 	if err != nil {
 		return nil, err
 	}
-	modules := []*KernelModule{
+	modules := []*vminfo.KernelModule{
 		// A dummy module representing the kernel itself.
 		{
 			Path: module.Path,
@@ -50,18 +44,18 @@ func DiscoverModules(target *targets.Target, objDir string, moduleObj []string) 
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string) ([]*KernelModule, error) {
+func discoverModulesLinux(dirs []string) ([]*vminfo.KernelModule, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
 	}
-	var modules []*KernelModule
+	var modules []*vminfo.KernelModule
 	for name, path := range paths {
 		if path == "" {
 			continue
 		}
 		log.Logf(2, "module %v -> %v", name, path)
-		module := &KernelModule{
+		module := &vminfo.KernelModule{
 			Name: name,
 			Path: path,
 		}
@@ -149,7 +143,7 @@ func searchModuleName(data []byte) string {
 	return string(data[pos+len(key) : end])
 }
 
-func getKaslrOffset(modules []*KernelModule, pcBase uint64) uint64 {
+func getKaslrOffset(modules []*vminfo.KernelModule, pcBase uint64) uint64 {
 	for _, mod := range modules {
 		if mod.Name == "" {
 			return mod.Addr - pcBase
@@ -159,9 +153,9 @@ func getKaslrOffset(modules []*KernelModule, pcBase uint64) uint64 {
 }
 
 // when CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
-func FixModules(localModules, modules []*KernelModule, pcBase uint64) []*KernelModule {
+func FixModules(localModules, modules []*vminfo.KernelModule, pcBase uint64) []*vminfo.KernelModule {
 	kaslrOffset := getKaslrOffset(modules, pcBase)
-	var modules1 []*KernelModule
+	var modules1 []*vminfo.KernelModule
 	for _, mod := range modules {
 		size := uint64(0)
 		path := ""
@@ -180,7 +174,7 @@ func FixModules(localModules, modules []*KernelModule, pcBase uint64) []*KernelM
 			// mod.Addr for core kernel from target is _stext addr
 			addr = 0
 		}
-		modules1 = append(modules1, &KernelModule{
+		modules1 = append(modules1, &vminfo.KernelModule{
 			Name: mod.Name,
 			Size: size,
 			Addr: addr,

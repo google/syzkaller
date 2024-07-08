@@ -10,11 +10,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []*KernelModule) (*Impl, error) {
+	moduleObj []string, hostModules []*vminfo.KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,
@@ -29,7 +30,7 @@ func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
 	})
 }
 
-func machoReadSymbols(module *KernelModule, info *symbolInfo) ([]*Symbol, error) {
+func machoReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, error) {
 	file, err := macho.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -87,7 +88,7 @@ func machoReadSymbols(module *KernelModule, info *symbolInfo) ([]*Symbol, error)
 	return symbols, nil
 }
 
-func machoReadTextRanges(module *KernelModule) ([]pcRange, []*CompileUnit, error) {
+func machoReadTextRanges(module *vminfo.KernelModule) ([]pcRange, []*CompileUnit, error) {
 	dir, kernel := filepath.Split(module.Path)
 	dSYMPath := filepath.Join(dir, fmt.Sprintf(
 		"%[1]s.dSYM/Contents/Resources/DWARF/%[1]s", kernel))
@@ -102,7 +103,7 @@ func machoReadTextRanges(module *KernelModule) ([]pcRange, []*CompileUnit, error
 	return readTextRanges(debugInfo, module, nil)
 }
 
-func machoReadTextData(module *KernelModule) ([]byte, error) {
+func machoReadTextData(module *vminfo.KernelModule) ([]byte, error) {
 	file, err := macho.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -114,7 +115,8 @@ func machoReadTextData(module *KernelModule) ([]byte, error) {
 	return text.Data()
 }
 
-func machoReadModuleCoverPoints(target *targets.Target, module *KernelModule, info *symbolInfo) ([2][]uint64, error) {
+func machoReadModuleCoverPoints(target *targets.Target, module *vminfo.KernelModule, info *symbolInfo) ([2][]uint64,
+	error) {
 	// TODO: Linux/ELF supports module symbols. We should probably also do that
 	// for XNU/Mach-O. To maximize code re-use we already have a lot of the
 	// plumbing for module support. I think we mainly miss an equivalent to
