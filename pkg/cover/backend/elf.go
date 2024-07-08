@@ -13,11 +13,12 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string, splitBuildDelimiters, moduleObj []string,
-	hostModules []*KernelModule) (*Impl, error) {
+	hostModules []*vminfo.KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		objDir:                objDir,
@@ -59,7 +60,7 @@ func getTraceCallbackType(name string) int {
 	return TraceCbNone
 }
 
-func elfReadSymbols(module *KernelModule, info *symbolInfo) ([]*Symbol, error) {
+func elfReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -110,7 +111,7 @@ func elfReadSymbols(module *KernelModule, info *symbolInfo) ([]*Symbol, error) {
 	return symbols, nil
 }
 
-func elfReadTextRanges(module *KernelModule) ([]pcRange, []*CompileUnit, error) {
+func elfReadTextRanges(module *vminfo.KernelModule) ([]pcRange, []*CompileUnit, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, nil, err
@@ -154,7 +155,7 @@ func elfReadTextRanges(module *KernelModule) ([]pcRange, []*CompileUnit, error) 
 	return readTextRanges(debugInfo, module, pcFix)
 }
 
-func elfReadTextData(module *KernelModule) ([]byte, error) {
+func elfReadTextData(module *vminfo.KernelModule) ([]byte, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -167,7 +168,8 @@ func elfReadTextData(module *KernelModule) ([]byte, error) {
 	return text.Data()
 }
 
-func elfReadModuleCoverPoints(target *targets.Target, module *KernelModule, info *symbolInfo) ([2][]uint64, error) {
+func elfReadModuleCoverPoints(target *targets.Target, module *vminfo.KernelModule, info *symbolInfo) ([2][]uint64,
+	error) {
 	var pcs [2][]uint64
 	file, err := elf.Open(module.Path)
 	if err != nil {
@@ -220,7 +222,7 @@ func elfGetCompilerVersion(path string) string {
 	return string(data[:])
 }
 
-func elfReadTextSecRange(module *KernelModule) (*SecRange, error) {
+func elfReadTextSecRange(module *vminfo.KernelModule) (*SecRange, error) {
 	text, err := elfReadTextSec(module)
 	if err != nil {
 		return nil, err
@@ -232,7 +234,7 @@ func elfReadTextSecRange(module *KernelModule) (*SecRange, error) {
 	return r, nil
 }
 
-func elfReadTextSec(module *KernelModule) (*elf.Section, error) {
+func elfReadTextSec(module *vminfo.KernelModule) (*elf.Section, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err

@@ -13,8 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/google/syzkaller/pkg/cover"
 )
 
 type linux int
@@ -45,13 +43,13 @@ func (linux) machineInfos() []machineInfoFunc {
 	}
 }
 
-func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
+func (linux) parseModules(files filesystem) ([]*KernelModule, error) {
 	_, err := files.ReadFile("/proc/sentry-meminfo")
 	if err == nil {
 		// This is gVisor.
 		return nil, nil
 	}
-	var modules []*cover.KernelModule
+	var modules []*KernelModule
 	re := regexp.MustCompile(`(\w+) ([0-9]+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	modulesText, _ := files.ReadFile("/proc/modules")
 	for _, match := range re.FindAllSubmatch(modulesText, -1) {
@@ -72,7 +70,7 @@ func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 			return nil, fmt.Errorf("module %v size parsing error: %w", name, err)
 		}
 		offset := modAddr - textAddr
-		modules = append(modules, &cover.KernelModule{
+		modules = append(modules, &KernelModule{
 			Name: name,
 			Addr: textAddr,
 			// The size is wrong as there is overlap in /proc/modules
@@ -86,7 +84,7 @@ func (linux) parseModules(files filesystem) ([]*cover.KernelModule, error) {
 	if err != nil {
 		return nil, err
 	}
-	modules = append(modules, &cover.KernelModule{
+	modules = append(modules, &KernelModule{
 		Name: "",
 		Addr: _stext,
 		Size: _etext - _stext,

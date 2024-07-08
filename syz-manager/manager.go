@@ -25,7 +25,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
@@ -44,6 +43,7 @@ import (
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
@@ -88,7 +88,7 @@ type Manager struct {
 	checkDone       atomic.Bool
 	fresh           bool
 	expertMode      bool
-	modules         []*cover.KernelModule
+	modules         []*vminfo.KernelModule
 	coverFilter     map[uint64]struct{} // includes only coverage PCs
 
 	dash *dashapi.Dashboard

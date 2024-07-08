@@ -10,6 +10,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vminfo"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 	cachedRepGen   *cover.ReportGenerator
 )
 
-func getReportGenerator(cfg *mgrconfig.Config, modules []*cover.KernelModule) (*cover.ReportGenerator, error) {
+func getReportGenerator(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*cover.ReportGenerator, error) {
 	cachedRepGenMu.Lock()
 	defer cachedRepGenMu.Unlock()
 	if cachedRepGen == nil {

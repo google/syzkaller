@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/vminfo"
 )
 
 type RPCServer struct {
@@ -244,7 +246,7 @@ func (serv *RPCServer) runTest(val canonicalizeValue) string {
 	return ""
 }
 
-func (serv *RPCServer) connect(name string, modules []*KernelModule, flagSignal bool) {
+func (serv *RPCServer) connect(name string, modules []*vminfo.KernelModule, flagSignal bool) {
 	if !serv.modulesInitialized {
 		serv.canonicalModules = NewCanonicalizer(modules, flagSignal)
 		serv.modulesInitialized = true
@@ -255,10 +257,10 @@ func (serv *RPCServer) connect(name string, modules []*KernelModule, flagSignal 
 	}
 }
 
-func initModules(addrs, sizes []uint64) []*KernelModule {
-	var modules []*KernelModule
+func initModules(addrs, sizes []uint64) []*vminfo.KernelModule {
+	var modules []*vminfo.KernelModule
 	for idx, addr := range addrs {
-		modules = append(modules, &KernelModule{
+		modules = append(modules, &vminfo.KernelModule{
 			Name: strconv.FormatInt(int64(idx), 10),
 			Addr: addr,
 			Size: sizes[idx],
