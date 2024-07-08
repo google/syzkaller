@@ -264,10 +264,13 @@ func (inst *Instance) Index() int {
 	return inst.index
 }
 
-func (inst *Instance) Close() {
-	inst.impl.Close()
-	os.RemoveAll(inst.workdir)
+func (inst *Instance) Close() error {
+	err := inst.impl.Close()
+	if retErr := os.RemoveAll(inst.workdir); err == nil {
+		err = retErr
+	}
 	inst.onClose()
+	return err
 }
 
 type monitor struct {

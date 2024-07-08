@@ -58,7 +58,7 @@ type Instance interface {
 	Diagnose(rep *report.Report) (diagnosis []byte, wait bool)
 
 	// Close stops and destroys the VM.
-	Close()
+	io.Closer
 }
 
 // Infoer is an optional interface that can be implemented by Instance.

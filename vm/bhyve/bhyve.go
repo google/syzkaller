@@ -276,7 +276,7 @@ func (inst *instance) Boot() error {
 	return nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	if inst.consolew != nil {
 		inst.consolew.Close()
 	}
@@ -294,6 +294,7 @@ func (inst *instance) Close() {
 		osutil.RunCmd(time.Minute, "", "ifconfig", inst.tapdev, "destroy")
 		inst.tapdev = ""
 	}
+	return nil
 }
 
 func (inst *instance) Forward(port int) (string, error) {

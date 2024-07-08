@@ -69,7 +69,8 @@ func (inst *testInstance) Diagnose(rep *report.Report) ([]byte, bool) {
 	return nil, true
 }
 
-func (inst *testInstance) Close() {
+func (inst *testInstance) Close() error {
+	return nil
 }
 
 func init() {

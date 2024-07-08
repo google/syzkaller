@@ -257,7 +257,7 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	return cmd
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	time.Sleep(3 * time.Second)
 	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	inst.cmd.Process.Kill()
@@ -265,6 +265,7 @@ func (inst *instance) Close() {
 	inst.cmd.Wait()
 	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	time.Sleep(3 * time.Second)
+	return nil
 }
 
 func (inst *instance) Forward(port int) (string, error) {
