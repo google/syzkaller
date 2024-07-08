@@ -8,34 +8,16 @@ import (
 	"fmt"
 	"time"
 
-	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/pkg/spanner/coveragedb"
 	"github.com/google/uuid"
 )
 
 // TODO: move to dashAPI once tested? I'm not sure we'll benefit.
 
-type DBFilesRecord struct {
-	Session      string
-	FilePath     string
-	Instrumented int64
-	Covered      int64
-}
-
-type DBHistoryRecord struct {
-	Session   string
-	Time      time.Time
-	Namespace string
-	Repo      string
-	Commit    string
-	Duration  int64
-	DateTo    civil.Date
-	TotalRows int64
-}
-
-func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*Coverage,
-	template *DBHistoryRecord, totalRows int64) {
-	client, err := spanner.NewClient(ctx, "projects/"+projectID+"/instances/syzbot/databases/coverage")
+func saveToSpanner(ctx context.Context, projectID string, covMap map[string]*Coverage,
+	template *coveragedb.HistoryRecord, totalRows int64) {
+	client, err := coveragedb.NewClient(ctx, projectID)
 	if err != nil {
 		panic(fmt.Sprintf("spanner.NewClient() failed: %s", err.Error()))
 	}
@@ -43,9 +25,9 @@ func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*C
 
 	session := uuid.New().String()
 	mutations := []*spanner.Mutation{}
-	for filePath, record := range coverage {
+	for filePath, record := range covMap {
 		var insert *spanner.Mutation
-		if insert, err = spanner.InsertOrUpdateStruct("files", &DBFilesRecord{
+		if insert, err = spanner.InsertOrUpdateStruct("files", &coveragedb.FilesRecord{
 			Session:      session,
 			FilePath:     filePath,
 			Instrumented: record.Instrumented,
@@ -66,7 +48,7 @@ func saveToSpanner(ctx context.Context, projectID string, coverage map[string]*C
 	}
 
 	var historyInsert *spanner.Mutation
-	if historyInsert, err = spanner.InsertOrUpdateStruct("merge_history", &DBHistoryRecord{
+	if historyInsert, err = spanner.InsertOrUpdateStruct("merge_history", &coveragedb.HistoryRecord{
 		Session:   session,
 		Time:      time.Now(),
 		Namespace: template.Namespace,

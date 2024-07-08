@@ -14,6 +14,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/spanner/coveragedb"
 	"golang.org/x/exp/maps"
 )
 
@@ -59,7 +60,7 @@ func main() {
 		}
 		coverage, _, _ := mergeResultsToCoverage(mergeResult)
 		saveToSpanner(context.Background(), *flagProjectID, coverage,
-			&DBHistoryRecord{
+			&coveragedb.HistoryRecord{
 				Namespace: *flagNamespace,
 				Repo:      *flagRepo,
 				Commit:    *flagCommit,
