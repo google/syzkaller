@@ -390,7 +390,11 @@ func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pc
 					continue
 				}
 			}
-			ranges = append(ranges, pcRange{r[0] + module.Addr, r[1] + module.Addr, unit})
+			if module.Name == "" {
+				ranges = append(ranges, pcRange{r[0], r[1], unit})
+			} else {
+				ranges = append(ranges, pcRange{r[0] + module.Addr, r[1] + module.Addr, unit})
+			}
 		}
 		r.SkipChildren()
 	}
@@ -427,7 +431,11 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 			var res symbolizerResult
 			for pcs := range pcchan {
 				for i, pc := range pcs {
-					pcs[i] = pc - mod.Addr
+					if mod.Name == "" {
+						pcs[i] = pc
+					} else {
+						pcs[i] = pc - mod.Addr
+					}
 				}
 				frames, err := symb.SymbolizeArray(mod.Path, pcs)
 				if err != nil {
@@ -456,9 +464,13 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 		}
 		for _, frame := range res.frames {
 			name, path := CleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
+			pc := frame.PC
+			if mod.Name != "" {
+				pc = frame.PC + mod.Addr
+			}
 			frames = append(frames, Frame{
 				Module:   mod,
-				PC:       frame.PC + mod.Addr,
+				PC:       pc,
 				Name:     interner.Do(name),
 				FuncName: frame.Func,
 				Path:     interner.Do(path),
