@@ -74,9 +74,7 @@ func elfReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to read ELF symbols: %w", err)
 	}
-	if module.Name == "" {
-		info.textAddr = text.Addr
-	}
+	info.textAddr = text.Addr
 	var symbols []*Symbol
 	for i, symb := range allSymbols {
 		if symb.Info&0xf != uint8(elf.STT_FUNC) && symb.Info&0xf != uint8(elf.STT_NOTYPE) {
@@ -85,7 +83,10 @@ func elfReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, e
 		}
 		text := symb.Value >= text.Addr && symb.Value+symb.Size <= text.Addr+text.Size
 		if text && symb.Size != 0 {
-			start := symb.Value + module.Addr
+			start := symb.Value
+			if module.Name != "" {
+				start += module.Addr
+			}
 			symbols = append(symbols, &Symbol{
 				Module: module,
 				ObjectUnit: ObjectUnit{
