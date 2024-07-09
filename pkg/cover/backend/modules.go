@@ -170,10 +170,6 @@ func FixModules(localModules, modules []*vminfo.KernelModule, pcBase uint64) []*
 			continue
 		}
 		addr := mod.Addr - kaslrOffset
-		if mod.Name == "" {
-			// mod.Addr for core kernel from target is _stext addr
-			addr = 0
-		}
 		modules1 = append(modules1, &vminfo.KernelModule{
 			Name: mod.Name,
 			Size: size,
