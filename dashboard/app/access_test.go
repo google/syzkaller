@@ -226,6 +226,17 @@ func TestAccess(t *testing.T) {
 					strconv.FormatUint(uint64(crash.ReproSyz), 16)),
 			},
 			{
+				level: level,
+				ref:   fmt.Sprint(crash.ReproLog),
+				url:   fmt.Sprintf("/text?tag=ReproLog&id=%v", crash.ReproLog),
+			},
+			{
+				level: level,
+				ref:   fmt.Sprint(crash.ReproLog),
+				url: fmt.Sprintf("/text?tag=ReproLog&x=%v",
+					strconv.FormatUint(uint64(crash.ReproLog), 16)),
+			},
+			{
 				level: nsLevel,
 				ref:   fmt.Sprint(crash.MachineInfo),
 				url:   fmt.Sprintf("/text?tag=MachineInfo&id=%v", crash.MachineInfo),
@@ -326,6 +337,7 @@ func TestAccess(t *testing.T) {
 			crashOpen.Report = []byte(accessPrefix + "report")
 			crashOpen.ReproC = []byte(accessPrefix + "repro c")
 			crashOpen.ReproSyz = []byte(accessPrefix + "repro syz")
+			crashOpen.ReproLog = []byte(accessPrefix + "repro log")
 			crashOpen.MachineInfo = []byte(ns + "machine info")
 			client.ReportCrash(crashOpen)
 			repOpen := client.pollBug()

@@ -99,6 +99,15 @@ func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (
 		return checkCrashTextAccess(c, r, "ReproSyz", id)
 	case textReproC:
 		return checkCrashTextAccess(c, r, "ReproC", id)
+	case textReproLog:
+		bug, crash, err := checkCrashTextAccess(c, r, "ReproLog", id)
+		if err == nil || err == ErrAccess {
+			return bug, crash, err
+		}
+		// ReproLog might also be referenced from Bug.ReproAttempts.Log
+		// for failed repro attempts, but those are not exposed to non-admins
+		// as of yet, so fallback to normal admin access check.
+		return nil, nil, checkAccessLevel(c, r, AccessAdmin)
 	case textMachineInfo:
 		// MachineInfo is deduplicated, so we can't find the exact crash/bug.
 		// But since machine info is usually the same for all bugs and is not secret,
