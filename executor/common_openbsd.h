@@ -299,7 +299,7 @@ static void sandbox_common()
 #if SYZ_EXECUTOR
 	if (!flag_threaded)
 #endif
-		if (setsid() == -1)
+		if (setsid() == -1 && errno != EPERM)
 			fail("setsid failed");
 #endif
 
