@@ -89,7 +89,7 @@ private:
 				sleep_ms(1);
 				continue;
 			}
-			failmsg("failed to recv rpc", "fd=%d want=%zu sent=%zu n=%zd", fd_, size, recv, n);
+			failmsg("failed to recv rpc", "fd=%d want=%zu recv=%zu n=%zd", fd_, size, recv, n);
 		}
 	}
 
