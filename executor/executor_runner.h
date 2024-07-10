@@ -403,7 +403,11 @@ private:
 	bool ReadResponse(bool out_of_requests)
 	{
 		uint32 status;
-		ssize_t n = read(resp_pipe_, &status, sizeof(status));
+		ssize_t n;
+		while ((n = read(resp_pipe_, &status, sizeof(status))) == -1) {
+			if (errno != EINTR && errno != EAGAIN)
+				break;
+		}
 		if (n == 0) {
 			debug("proc %d: response pipe EOF\n", id_);
 			return false;
