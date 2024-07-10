@@ -29,7 +29,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -37,18 +39,45 @@ import (
 	"github.com/google/syzkaller/pkg/vminfo"
 )
 
-func main() {
-	var (
-		flagConfig  = flag.String("config", "", "configuration file")
-		flagModules = flag.String("modules", "",
-			"modules JSON info obtained from /modules (optional)")
-		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
-		flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
-		flagExportJSONL    = flag.String("jsonl", "", "export jsonl coverage data (optional)")
-		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
-	)
-	defer tool.Init()()
+var (
+	flagConfig  = flag.String("config", "", "configuration file")
+	flagModules = flag.String("modules", "",
+		"modules JSON info obtained from /modules (optional)")
+	flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
+	flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
+	flagExportJSONL    = flag.String("jsonl", "", "export jsonl coverage data (optional)")
+	flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
+	flagNsHeatmap      = flag.String("heatmap", "", "generate namespace heatmap")
+	flagDateFrom       = flag.String("from",
+		civil.DateOf(time.Now().Add(-14*24*time.Hour)).String(), "heatmap date from(optional)")
+	flagDateTo = flag.String("to",
+		civil.DateOf(time.Now()).String(), "heatmap date to(optional)")
+)
 
+func toolBuildNsHeatmap() {
+	buf := new(bytes.Buffer)
+	var dateFrom, dateTo civil.Date
+	var err error
+	if dateFrom, err = civil.ParseDate(*flagDateFrom); err != nil {
+		tool.Failf("failed to parse date from: %v", err.Error())
+	}
+	if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
+		tool.Failf("failed to parse date to: %v", err.Error())
+	}
+	if err = cover.DoHeatMap(buf, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+		tool.Fail(err)
+	}
+	if err = osutil.WriteFile(*flagNsHeatmap+".html", buf.Bytes()); err != nil {
+		tool.Fail(err)
+	}
+}
+
+func main() {
+	defer tool.Init()()
+	if *flagNsHeatmap != "" {
+		toolBuildNsHeatmap()
+		return
+	}
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		tool.Fail(err)
