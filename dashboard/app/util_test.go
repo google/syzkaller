@@ -107,23 +107,19 @@ func (c *Ctx) expectFail(msg string, err error) {
 	}
 }
 
-func (c *Ctx) expectFailureStatus(err error, code int) {
-	c.t.Helper()
+func expectFailureStatus(t *testing.T, err error, code int) {
+	t.Helper()
 	if err == nil {
-		c.t.Fatalf("expected to fail as %d, but it does not", code)
+		t.Fatalf("expected to fail as %d, but it does not", code)
 	}
 	var httpErr *HTTPError
 	if !errors.As(err, &httpErr) || httpErr.Code != code {
-		c.t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
+		t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
 	}
 }
 
-func (c *Ctx) expectForbidden(err error) {
-	c.expectFailureStatus(err, http.StatusForbidden)
-}
-
 func (c *Ctx) expectBadReqest(err error) {
-	c.expectFailureStatus(err, http.StatusBadRequest)
+	expectFailureStatus(c.t, err, http.StatusBadRequest)
 }
 
 func (c *Ctx) expectEQ(got, want interface{}) {

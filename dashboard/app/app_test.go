@@ -693,6 +693,7 @@ func testCrashWithRepro(build *dashapi.Build, id int) *dashapi.Crash {
 	crash.ReproOpts = []byte(fmt.Sprintf("repro opts %v", id))
 	crash.ReproSyz = []byte(fmt.Sprintf("syncfs(%v)", id))
 	crash.ReproC = []byte(fmt.Sprintf("int main() { return %v; }", id))
+	crash.ReproLog = []byte(fmt.Sprintf("repro log %d", id))
 	return crash
 }
 
