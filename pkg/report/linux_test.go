@@ -291,7 +291,7 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			result := symbolizeLine(symb, symbols, modules, "/linux", ctx, []byte(test.line))
+			result := symbolizeLine(symb, ctx, []byte(test.line))
 			if test.result != string(result) {
 				t.Errorf("want %q\n\t     get %q", test.result, string(result))
 			}

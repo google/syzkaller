@@ -17,7 +17,6 @@ import (
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -417,7 +416,7 @@ func (ctx *linux) symbolize(rep *Report) error {
 	prefix := rep.reportPrefixLen
 	for _, line := range bytes.SplitAfter(rep.Report, []byte("\n")) {
 		line := bytes.Clone(line)
-		newLine := symbolizeLine(symbFunc, ctx.symbols, ctx.config.kernelModules, ctx.kernelBuildSrc, ctx, line)
+		newLine := symbolizeLine(symbFunc, ctx, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
 		}
@@ -437,9 +436,7 @@ func (ctx *linux) symbolize(rep *Report) error {
 	return nil
 }
 
-func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
-	symbols map[string]map[string][]symbolizer.Symbol, modules []*vminfo.KernelModule, strip string,
-	ctx *linux, line []byte) []byte {
+func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error), ctx *linux, line []byte) []byte {
 	match := linuxSymbolizeRe.FindSubmatchIndex(line)
 	if match == nil {
 		return line
@@ -457,7 +454,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	if match[10] != -1 && match[11] != -1 {
 		modName = string(line[match[10]:match[11]])
 	}
-	symb := symbols[modName][string(fn)]
+	symb := ctx.symbols[modName][string(fn)]
 	if len(symb) == 0 {
 		return line
 	}
@@ -474,7 +471,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 		pc--
 	}
 	var bin string
-	for _, mod := range modules {
+	for _, mod := range ctx.config.kernelModules {
 		if mod.Name == modName {
 			bin = mod.Path
 			break
