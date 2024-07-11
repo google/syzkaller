@@ -14,6 +14,7 @@ import (
 func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix:             targets.MakeUnixNeutralizer(target),
+		BIOCSETIF:        target.GetConst("BIOCSETIF"),
 		CLOCK_REALTIME:   target.GetConst("CLOCK_REALTIME"),
 		CTL_KERN:         target.GetConst("CTL_KERN"),
 		DIOCCLRSTATES:    target.GetConst("DIOCCLRSTATES"),
@@ -37,6 +38,7 @@ func InitTarget(target *prog.Target) {
 
 type arch struct {
 	unix             *targets.UnixNeutralizer
+	BIOCSETIF        uint64
 	CLOCK_REALTIME   uint64
 	CTL_KERN         uint64
 	DIOCCLRSTATES    uint64
@@ -113,6 +115,14 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 		if request.Val == arch.DIOCCLRSTATES || request.Val == arch.DIOCKILLSTATES {
 			request.Val = 0
 		}
+		// BIOCSETIF on tap leads to "tun: read failed"
+		if request.Val == arch.BIOCSETIF {
+			// Ideally this should also check Args[2] against "tap" as
+			// we only want to prevent the following from happening:
+			// ioctl$BIOCSETIF(-1, 0x8020426c, &(0x...)={'tap', 0x0})
+			request.Val = 0
+		}
+
 	case "mknodat":
 		argStart = 2
 		fallthrough
