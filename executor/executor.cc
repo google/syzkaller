@@ -463,6 +463,8 @@ static bool copyout(char* addr, uint64 size, uint64* res);
 static void setup_control_pipes();
 static bool coverage_filter(uint64 pc);
 static std::tuple<rpc::ComparisonRaw, bool, bool> convert(const kcov_comparison_t& cmp);
+static flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id,
+						uint64 elapsed, uint64 freshness, uint32 status, const std::vector<uint8_t>* process_output);
 
 #include "syscalls.h"
 
@@ -1267,6 +1269,47 @@ void write_extra_output()
 	if (!extra_cov.size)
 		return;
 	write_output(-1, &extra_cov, rpc::CallFlag::NONE, 997, all_extra_signal);
+}
+
+flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id, uint64 elapsed,
+					 uint64 freshness, uint32 status, const std::vector<uint8_t>* process_output)
+{
+	uint8* prog_data = input_data;
+	uint32 num_calls = read_input(&prog_data);
+	int output_size = output->size.load(std::memory_order_relaxed) ?: kMaxOutput;
+	uint32 completed = output->completed.load(std::memory_order_relaxed);
+	completed = std::min(completed, kMaxCalls);
+	debug("handle completion: completed=%u output_size=%u\n", completed, output_size);
+	ShmemBuilder fbb(output, output_size);
+	auto empty_call = rpc::CreateCallInfoRawDirect(fbb, rpc::CallFlag::NONE, 998);
+	std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> calls(num_calls, empty_call);
+	std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> extra;
+	for (uint32_t i = 0; i < completed; i++) {
+		const auto& call = output->calls[i];
+		if (call.index == -1) {
+			extra.push_back(call.offset);
+			continue;
+		}
+		if (call.index < 0 || call.index >= static_cast<int>(num_calls) || call.offset.o > kMaxOutput) {
+			debug("bad call index/offset: proc=%d req=%llu call=%d/%d completed=%d offset=%u",
+			      proc_id, req_id, call.index, num_calls,
+			      completed, call.offset.o);
+			continue;
+		}
+		calls[call.index] = call.offset;
+	}
+	auto prog_info_off = rpc::CreateProgInfoRawDirect(fbb, &calls, &extra, 0, elapsed, freshness);
+	flatbuffers::Offset<flatbuffers::String> error_off = 0;
+	if (status == kFailStatus)
+		error_off = fbb.CreateString("process failed");
+	flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output_off = 0;
+	if (process_output)
+		output_off = fbb.CreateVector(*process_output);
+	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, output_off, error_off, prog_info_off);
+	auto msg_off = rpc::CreateExecutorMessageRaw(fbb, rpc::ExecutorMessagesRaw::ExecResult,
+						     flatbuffers::Offset<void>(exec_off.o));
+	fbb.FinishSizePrefixed(msg_off);
+	return fbb.GetBufferSpan();
 }
 
 void thread_create(thread_t* th, int id, bool need_coverage)
