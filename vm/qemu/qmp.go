@@ -91,7 +91,7 @@ func (inst *instance) qmpRecv() (*qmpResponse, error) {
 		if err != nil || qmp.Event == "" {
 			return qmp, err
 		}
-		log.Logf(1, "event: %v", qmp)
+		log.Logf(3, "event: %v", qmp)
 	}
 }
 
