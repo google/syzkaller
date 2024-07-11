@@ -191,20 +191,22 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, confi
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
 			cmd.Process.Kill()
-			// Once the command has exited, we might want to let the full console
-			// output accumulate before we abort the console connection too.
-			time.Sleep(WaitForOutputTimeout * config.Scale)
-			if config.Console != nil {
-				// Only wait for the merger if we're able to control the console stream.
-				config.Console.Close()
-				merger.Wait()
-			}
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
 			} else if config.IgnoreError != nil && config.IgnoreError(err) {
 				err = ErrTimeout
+			}
+			// Once the command has failed, we might want to let the full console
+			// output accumulate before we abort the console connection too.
+			if err != nil {
+				time.Sleep(WaitForOutputTimeout * config.Scale)
+			}
+			if config.Console != nil {
+				// Only wait for the merger if we're able to control the console stream.
+				config.Console.Close()
+				merger.Wait()
 			}
 			signal(err)
 			return
