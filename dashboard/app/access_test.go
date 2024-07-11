@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -44,9 +45,6 @@ func TestAccessConfig(t *testing.T) {
 // TestAccess checks that all UIs respect access levels.
 // nolint: funlen, goconst
 func TestAccess(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -379,7 +377,7 @@ func TestAccess(t *testing.T) {
 
 	// checkReferences checks that page contents do not contain
 	// references to entities that must not be visible.
-	checkReferences := func(url string, requestLevel AccessLevel, reply []byte) {
+	checkReferences := func(t *testing.T, url string, requestLevel AccessLevel, reply []byte) {
 		for _, ent := range entities {
 			if requestLevel >= ent.level || ent.ref == "" {
 				continue
@@ -392,22 +390,22 @@ func TestAccess(t *testing.T) {
 	}
 
 	// checkPage checks that the page at url is accessible/not accessible as required.
-	checkPage := func(requestLevel, pageLevel AccessLevel, url string) []byte {
+	checkPage := func(t *testing.T, requestLevel, pageLevel AccessLevel, url string) []byte {
 		reply, err := c.AuthGET(requestLevel, url)
 		if requestLevel >= pageLevel {
-			c.expectOK(err)
+			assert.NoError(t, err)
 		} else if requestLevel == AccessPublic {
 			loginURL, err1 := user.LoginURL(c.ctx, url)
 			if err1 != nil {
 				t.Fatal(err1)
 			}
-			c.expectNE(err, nil)
+			assert.NotNil(t, err)
 			var httpErr *HTTPError
-			c.expectTrue(errors.As(err, &httpErr))
-			c.expectEQ(httpErr.Code, http.StatusTemporaryRedirect)
-			c.expectEQ(httpErr.Headers["Location"], []string{loginURL})
+			assert.True(t, errors.As(err, &httpErr))
+			assert.Equal(t, httpErr.Code, http.StatusTemporaryRedirect)
+			assert.Equal(t, httpErr.Headers["Location"], []string{loginURL})
 		} else {
-			c.expectForbidden(err)
+			expectFailureStatus(t, err, http.StatusForbidden)
 		}
 		return reply
 	}
@@ -415,12 +413,19 @@ func TestAccess(t *testing.T) {
 	// Finally, request all entities at all access levels and
 	// check that we see only what we need to see.
 	for requestLevel := AccessPublic; requestLevel < AccessAdmin; requestLevel++ {
-		for _, ent := range entities {
+		for i, ent := range entities {
 			if ent.url == "" {
 				continue
 			}
-			reply := checkPage(requestLevel, ent.level, ent.url)
-			checkReferences(ent.url, requestLevel, reply)
+			if testing.Short() && (requestLevel != AccessPublic || ent.level == AccessPublic) {
+				// In the short mode, only test that there's no public access to non-public URLs.
+				continue
+			}
+			ent := ent
+			t.Run(fmt.Sprintf("level%d_%d", requestLevel, i), func(t *testing.T) {
+				reply := checkPage(t, requestLevel, ent.level, ent.url)
+				checkReferences(t, ent.url, requestLevel, reply)
+			})
 		}
 	}
 }
