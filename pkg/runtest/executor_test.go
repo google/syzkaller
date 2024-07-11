@@ -61,7 +61,7 @@ func TestZlib(t *testing.T) {
 	}
 	executor := csource.BuildExecutor(t, target, "../..")
 	source := queue.Plain()
-	startRPCServer(t, target, executor, "", source, nil, nil, nil)
+	startRPCServer(t, target, executor, source, rpcParams{manyProcs: true})
 	r := rand.New(testutil.RandSource(t))
 	for i := 0; i < 10; i++ {
 		data := testutil.RandMountImage(r)
@@ -111,7 +111,7 @@ func TestExecutorCommonExt(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := queue.Plain()
-	startRPCServer(t, target, executor, "", source, nil, nil, nil)
+	startRPCServer(t, target, executor, source, rpcParams{})
 	req := &queue.Request{
 		Prog:         p,
 		ReturnError:  true,

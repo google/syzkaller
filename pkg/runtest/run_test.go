@@ -85,30 +85,33 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
-	waitCtx := startRPCServer(t, target, executor, "", ctx, nil, nil, func(features flatrpc.Feature) {
-		// Features we expect to be enabled on the test OS.
-		// All sandboxes except for none are not implemented, coverage is not returned,
-		// and setup for few features is failing specifically to test feature detection.
-		want := flatrpc.FeatureCoverage |
-			flatrpc.FeatureExtraCoverage |
-			flatrpc.FeatureDelayKcovMmap |
-			flatrpc.FeatureSandboxNone |
-			flatrpc.FeatureFault |
-			flatrpc.FeatureNetDevices |
-			flatrpc.FeatureKCSAN |
-			flatrpc.FeatureNicVF |
-			flatrpc.FeatureUSBEmulation |
-			flatrpc.FeatureVhciInjection |
-			flatrpc.FeatureWifiEmulation |
-			flatrpc.FeatureLRWPANEmulation |
-			flatrpc.FeatureBinFmtMisc |
-			flatrpc.FeatureSwap
-		for feat, name := range flatrpc.EnumNamesFeature {
-			if features&feat != want&feat {
-				t.Errorf("expect featue %v to be %v, but it is %v",
-					name, want&feat != 0, features&feat != 0)
+	waitCtx := startRPCServer(t, target, executor, ctx, rpcParams{
+		manyProcs: true,
+		machineChecked: func(features flatrpc.Feature) {
+			// Features we expect to be enabled on the test OS.
+			// All sandboxes except for none are not implemented, coverage is not returned,
+			// and setup for few features is failing specifically to test feature detection.
+			want := flatrpc.FeatureCoverage |
+				flatrpc.FeatureExtraCoverage |
+				flatrpc.FeatureDelayKcovMmap |
+				flatrpc.FeatureSandboxNone |
+				flatrpc.FeatureFault |
+				flatrpc.FeatureNetDevices |
+				flatrpc.FeatureKCSAN |
+				flatrpc.FeatureNicVF |
+				flatrpc.FeatureUSBEmulation |
+				flatrpc.FeatureVhciInjection |
+				flatrpc.FeatureWifiEmulation |
+				flatrpc.FeatureLRWPANEmulation |
+				flatrpc.FeatureBinFmtMisc |
+				flatrpc.FeatureSwap
+			for feat, name := range flatrpc.EnumNamesFeature {
+				if features&feat != want&feat {
+					t.Errorf("expect featue %v to be %v, but it is %v",
+						name, want&feat != 0, features&feat != 0)
+				}
 			}
-		}
+		},
 	})
 	if t.Failed() {
 		return
@@ -366,7 +369,11 @@ func testCover(t *testing.T, target *prog.Target) {
 			if test.Is64Bit {
 				vmArch = targets.TestArch64
 			}
-			ctx := startRPCServer(t, target, executor, vmArch, source, test.MaxSignal, test.CoverFilter, nil)
+			ctx := startRPCServer(t, target, executor, source, rpcParams{
+				vmArch:      vmArch,
+				maxSignal:   test.MaxSignal,
+				coverFilter: test.CoverFilter,
+			})
 			testCover1(t, ctx, target, test, source)
 		})
 	}
@@ -437,13 +444,27 @@ func makeComps(comps ...Comparison) []byte {
 	return w.Bytes()
 }
 
-func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, source queue.Source,
-	maxSignal, coverFilter []uint64, machineChecked func(features flatrpc.Feature)) context.Context {
+type rpcParams struct {
+	manyProcs      bool
+	vmArch         string
+	maxSignal      []uint64
+	coverFilter    []uint64
+	machineChecked func(features flatrpc.Feature)
+}
+
+func startRPCServer(t *testing.T, target *prog.Target, executor string,
+	source queue.Source, extra rpcParams) context.Context {
 	dir, err := os.MkdirTemp("", "syz-runtest")
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, done := context.WithCancel(context.Background())
+
+	procs := runtime.GOMAXPROCS(0)
+	if !extra.manyProcs {
+		// We don't need many procs for this test.
+		procs = min(procs, 4)
+	}
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
@@ -453,8 +474,8 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 				Features: flatrpc.AllFeatures,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
 			},
-			VMArch:        vmArch,
-			Procs:         runtime.GOMAXPROCS(0),
+			VMArch:        extra.vmArch,
+			Procs:         procs,
 			Slowdown:      10, // to deflake slower tests
 			DebugTimeouts: true,
 		},
@@ -462,12 +483,12 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 		Dir:         dir,
 		Context:     ctx,
 		GDB:         *flagGDB,
-		MaxSignal:   maxSignal,
-		CoverFilter: coverFilter,
+		MaxSignal:   extra.maxSignal,
+		CoverFilter: extra.coverFilter,
 	}
 	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
-		if machineChecked != nil {
-			machineChecked(features)
+		if extra.machineChecked != nil {
+			extra.machineChecked(features)
 		}
 		return source
 	}
