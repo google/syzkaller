@@ -150,7 +150,7 @@ func (m *reproManager) Loop(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			}
-			if !m.mgr.needRepro(crash) {
+			if crash == nil || !m.mgr.needRepro(crash) {
 				continue
 			}
 		}
