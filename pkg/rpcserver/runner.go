@@ -44,6 +44,7 @@ type Runner struct {
 	lastExec      *LastExecuting
 	rnd           *rand.Rand
 	updInfo       dispatcher.UpdateInfo
+	resultCh      chan error
 
 	// The mutex protects all the fields below.
 	mu          sync.Mutex

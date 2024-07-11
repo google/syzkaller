@@ -212,6 +212,12 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 		return
 	}
 
+	err = serv.handleRunnerConn(runner, conn)
+	log.Logf(2, "runner %v: %v", name, err)
+	runner.resultCh <- err
+}
+
+func (serv *Server) handleRunnerConn(runner *Runner, conn *flatrpc.Conn) error {
 	opts := &handshakeConfig{
 		VMLess:   serv.cfg.VMLess,
 		Files:    serv.checker.RequiredFiles(),
@@ -227,21 +233,20 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 		opts.Features = serv.cfg.Features
 	}
 
-	err = runner.Handshake(conn, opts)
+	err := runner.Handshake(conn, opts)
 	if err != nil {
 		log.Logf(1, "%v", err)
-		return
+		return err
 	}
 
 	if serv.triagedCorpus.Load() {
 		if err := runner.SendCorpusTriaged(); err != nil {
 			log.Logf(2, "%v", err)
-			return
+			return err
 		}
 	}
 
-	err = serv.connectionLoop(runner)
-	log.Logf(2, "runner %v: %v", name, err)
+	return serv.connectionLoop(runner)
 }
 
 func (serv *Server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
@@ -393,7 +398,7 @@ func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
 }
 
-func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) {
+func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error {
 	runner := &Runner{
 		source:        serv.execSource,
 		cover:         serv.cfg.Cover,
@@ -411,6 +416,7 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo 
 		stats:         serv.runnerStats,
 		procs:         serv.cfg.Procs,
 		updInfo:       updInfo,
+		resultCh:      make(chan error, 1),
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -418,6 +424,7 @@ func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo 
 		panic(fmt.Sprintf("duplicate instance %s", name))
 	}
 	serv.runners[name] = runner
+	return runner.resultCh
 }
 
 // stopInstance prevents further request exchange requests.

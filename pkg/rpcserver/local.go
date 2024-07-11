@@ -42,7 +42,6 @@ func RunLocal(cfg *LocalConfig) error {
 	cfg.UseCoverEdges = true
 	cfg.FilterSignal = true
 	cfg.RPC = ":0"
-	cfg.VMLess = true
 	cfg.PrintMachineCheck = log.V(1)
 	ctx := &local{
 		cfg:       cfg,
@@ -58,8 +57,12 @@ func RunLocal(cfg *LocalConfig) error {
 	// for the race detector b/c it does not understand the synchronization via TCP socket connect/accept.
 	close(ctx.setupDone)
 
+	name := "local"
+	connErr := serv.CreateInstance(name, nil, nil)
+	defer serv.ShutdownInstance(name, true)
+
 	bin := cfg.Executor
-	args := []string{"runner", "local", "localhost", fmt.Sprint(serv.Port)}
+	args := []string{"runner", name, "localhost", fmt.Sprint(serv.Port)}
 	if cfg.GDB {
 		bin = "gdb"
 		args = append([]string{
@@ -91,6 +94,7 @@ func RunLocal(cfg *LocalConfig) error {
 	select {
 	case <-shutdown:
 	case <-cfg.Context.Done():
+	case <-connErr:
 	case err := <-res:
 		cmdErr = fmt.Errorf("executor process exited: %w", err)
 	}
