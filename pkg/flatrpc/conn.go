@@ -109,14 +109,16 @@ func Send[T sendMsg](c *Conn, msg T) error {
 	return nil
 }
 
+type RecvType[T any] interface {
+	UnPack() *T
+	flatbuffers.FlatBuffer
+}
+
 // Recv receives an RPC message.
 // The type T is supposed to be a pointer to a normal flatbuffers type (not ending with T, e.g. *ConnectRequestRaw).
 // Receiving should be done from a single goroutine, the received message is valid
 // only until the next Recv call (messages share the same underlying receive buffer).
-func Recv[Raw interface {
-	UnPack() *T
-	flatbuffers.FlatBuffer
-}, T any](c *Conn) (res *T, err0 error) {
+func Recv[Raw RecvType[T], T any](c *Conn) (res *T, err0 error) {
 	defer func() {
 		if err1 := recover(); err1 != nil {
 			if err2, ok := err1.(error); ok {

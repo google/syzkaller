@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/stats"
 	"github.com/google/syzkaller/prog"
@@ -30,6 +31,7 @@ type Runner struct {
 	coverEdges    bool
 	filterSignal  bool
 	debug         bool
+	debugTimeouts bool
 	sysTarget     *targets.Target
 	stats         *runnerStats
 	finished      chan bool
@@ -163,13 +165,8 @@ func (runner *Runner) ConnectionLoop() error {
 		if infoc == nil {
 			select {
 			case infoc = <-runner.infoc:
-				msg := &flatrpc.HostMessage{
-					Msg: &flatrpc.HostMessages{
-						Type:  flatrpc.HostMessagesRawStateRequest,
-						Value: &flatrpc.StateRequest{},
-					},
-				}
-				if err := flatrpc.Send(runner.conn, msg); err != nil {
+				err := runner.sendStateRequest()
+				if err != nil {
 					return err
 				}
 			default:
@@ -192,7 +189,7 @@ func (runner *Runner) ConnectionLoop() error {
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
-		raw, err := flatrpc.Recv[*flatrpc.ExecutorMessageRaw](runner.conn)
+		raw, err := wrappedRecv[*flatrpc.ExecutorMessageRaw](runner)
 		if err != nil {
 			return err
 		}
@@ -205,15 +202,19 @@ func (runner *Runner) ConnectionLoop() error {
 		case *flatrpc.ExecResult:
 			err = runner.handleExecResult(msg)
 		case *flatrpc.StateResult:
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "pending requests on the VM:")
+			for id := range runner.requests {
+				fmt.Fprintf(buf, " %v", id)
+			}
+			fmt.Fprintf(buf, "\n\n")
+			result := append(buf.Bytes(), msg.Data...)
 			if infoc != nil {
-				buf := new(bytes.Buffer)
-				fmt.Fprintf(buf, "pending requests on the VM:")
-				for id := range runner.requests {
-					fmt.Fprintf(buf, " %v", id)
-				}
-				fmt.Fprintf(buf, "\n\n")
-				infoc <- append(buf.Bytes(), msg.Data...)
+				infoc <- result
 				infoc = nil
+			} else {
+				// The request was solicited in detectTimeout().
+				log.Logf(0, "status result: %s", result)
 			}
 		default:
 			return fmt.Errorf("received unknown message type %T", msg)
@@ -222,6 +223,49 @@ func (runner *Runner) ConnectionLoop() error {
 			return err
 		}
 	}
+}
+
+func wrappedRecv[Raw flatrpc.RecvType[T], T any](runner *Runner) (*T, error) {
+	if runner.debugTimeouts {
+		abort := runner.detectTimeout()
+		defer close(abort)
+	}
+	return flatrpc.Recv[Raw](runner.conn)
+}
+
+func (runner *Runner) detectTimeout() chan struct{} {
+	abort := make(chan struct{})
+	go func() {
+		select {
+		case <-time.After(time.Minute):
+			log.Logf(0, "timed out waiting for executor reply, aborting the connection in 1 minute")
+			go func() {
+				time.Sleep(time.Minute)
+				runner.conn.Close()
+			}()
+			err := runner.sendStateRequest()
+			if err != nil {
+				log.Logf(0, "failed to send state request: %v", err)
+				return
+			}
+
+		case <-abort:
+			return
+		case <-runner.finished:
+			return
+		}
+	}()
+	return abort
+}
+
+func (runner *Runner) sendStateRequest() error {
+	msg := &flatrpc.HostMessage{
+		Msg: &flatrpc.HostMessages{
+			Type:  flatrpc.HostMessagesRawStateRequest,
+			Value: &flatrpc.StateRequest{},
+		},
+	}
+	return flatrpc.Send(runner.conn, msg)
 }
 
 func (runner *Runner) sendRequest(req *queue.Request) error {

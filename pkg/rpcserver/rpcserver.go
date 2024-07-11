@@ -41,10 +41,12 @@ type Config struct {
 	// Disabled for gVisor/Starnix which are not Linux.
 	FilterSignal      bool
 	PrintMachineCheck bool
-	Procs             int
-	Slowdown          int
-	pcBase            uint64
-	localModules      []*vminfo.KernelModule
+	// Abort early on syz-executor not replying to requests and print extra debugging information.
+	DebugTimeouts bool
+	Procs         int
+	Slowdown      int
+	pcBase        uint64
+	localModules  []*vminfo.KernelModule
 }
 
 type Manager interface {
@@ -393,21 +395,22 @@ func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 
 func (serv *Server) CreateInstance(name string, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) {
 	runner := &Runner{
-		source:       serv.execSource,
-		cover:        serv.cfg.Cover,
-		coverEdges:   serv.cfg.UseCoverEdges,
-		filterSignal: serv.cfg.FilterSignal,
-		debug:        serv.cfg.Debug,
-		sysTarget:    serv.sysTarget,
-		injectExec:   injectExec,
-		infoc:        make(chan chan []byte),
-		requests:     make(map[int64]*queue.Request),
-		executing:    make(map[int64]bool),
-		lastExec:     MakeLastExecuting(serv.cfg.Procs, 6),
-		rnd:          rand.New(rand.NewSource(time.Now().UnixNano())),
-		stats:        serv.runnerStats,
-		procs:        serv.cfg.Procs,
-		updInfo:      updInfo,
+		source:        serv.execSource,
+		cover:         serv.cfg.Cover,
+		coverEdges:    serv.cfg.UseCoverEdges,
+		filterSignal:  serv.cfg.FilterSignal,
+		debug:         serv.cfg.Debug,
+		debugTimeouts: serv.cfg.DebugTimeouts,
+		sysTarget:     serv.sysTarget,
+		injectExec:    injectExec,
+		infoc:         make(chan chan []byte),
+		requests:      make(map[int64]*queue.Request),
+		executing:     make(map[int64]bool),
+		lastExec:      MakeLastExecuting(serv.cfg.Procs, 6),
+		rnd:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		stats:         serv.runnerStats,
+		procs:         serv.cfg.Procs,
+		updInfo:       updInfo,
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
