@@ -34,6 +34,7 @@ type reproManager struct {
 	mu          sync.Mutex
 	queue       []*Crash
 	reproducing map[string]bool
+	attempted   map[string]bool
 }
 
 func newReproManager(mgr reproManagerView, reproVMs int, onlyOnce bool) *reproManager {
@@ -46,6 +47,7 @@ func newReproManager(mgr reproManagerView, reproVMs int, onlyOnce bool) *reproMa
 		reproVMs:    reproVMs,
 		reproducing: map[string]bool{},
 		pingQueue:   make(chan struct{}, 1),
+		attempted:   map[string]bool{},
 	}
 	ret.statNumReproducing = stats.Create("reproducing", "Number of crashes being reproduced",
 		stats.Console, stats.NoGraph, func() int {
@@ -102,18 +104,15 @@ func (m *reproManager) Enqueue(crash *Crash) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.onlyOnce {
+	if m.onlyOnce && m.attempted[crash.Title] {
 		// Try to reproduce each bug at most 1 time in this mode.
 		// Since we don't upload bugs/repros to dashboard, it likely won't have
 		// the reproducer even if we succeeded last time, and will repeatedly
 		// say it needs a repro.
-		for _, queued := range m.queue {
-			if queued.Title == crash.Title {
-				return
-			}
-		}
+		return
 	}
 	log.Logf(1, "scheduled a reproduction of '%v'", crash.Title)
+	m.attempted[crash.Title] = true
 	m.queue = append(m.queue, crash)
 
 	// Ping the loop.
