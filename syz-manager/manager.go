@@ -155,6 +155,7 @@ type Crash struct {
 	instanceName  string
 	fromHub       bool // this crash was created based on a repro from syz-hub
 	fromDashboard bool // .. or from dashboard
+	manual        bool
 	*report.Report
 }
 
@@ -1614,6 +1615,7 @@ func (mgr *Manager) dashboardReproTasks() {
 		if len(resp.CrashLog) > 0 {
 			mgr.externalReproQueue <- &Crash{
 				fromDashboard: true,
+				manual:        resp.Type == dashapi.ManualLog,
 				Report: &report.Report{
 					Title:  resp.Title,
 					Output: resp.CrashLog,

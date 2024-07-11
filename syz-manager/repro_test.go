@@ -67,6 +67,44 @@ func TestReproManager(t *testing.T) {
 	t.Fatal("reserved VMs must have dropped to 0")
 }
 
+func TestReproOrder(t *testing.T) {
+	mock := &reproMgrMock{
+		run: make(chan runCallback),
+	}
+	obj := newReproManager(mock, 3, false)
+
+	// The right order is A B C.
+	crashes := []*Crash{
+		{
+			Report:        &report.Report{Title: "A"},
+			fromDashboard: true,
+			manual:        true,
+		},
+		{
+			Report:        &report.Report{Title: "B"},
+			fromDashboard: true,
+		},
+		{
+			Report:  &report.Report{Title: "C"},
+			fromHub: true,
+		},
+	}
+
+	obj.Enqueue(crashes[2])
+	obj.Enqueue(crashes[1])
+	obj.Enqueue(crashes[0])
+	assert.Equal(t, crashes[0], obj.popCrash())
+	assert.Equal(t, crashes[1], obj.popCrash())
+	assert.Equal(t, crashes[2], obj.popCrash())
+
+	obj.Enqueue(crashes[1])
+	obj.Enqueue(crashes[0])
+	obj.Enqueue(crashes[2])
+	assert.Equal(t, crashes[0], obj.popCrash())
+	assert.Equal(t, crashes[1], obj.popCrash())
+	assert.Equal(t, crashes[2], obj.popCrash())
+}
+
 type reproMgrMock struct {
 	reserved atomic.Int64
 	run      chan runCallback

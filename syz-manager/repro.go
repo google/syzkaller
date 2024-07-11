@@ -127,14 +127,33 @@ func (m *reproManager) popCrash() *Crash {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	newBetter := func(base, new *Crash) bool {
+		// First, serve manual requests.
+		if new.manual != base.manual {
+			return new.manual
+		}
+		// Then, deprioritize hub reproducers.
+		if new.fromHub != base.fromHub {
+			return !new.fromHub
+		}
+		return false
+	}
+
+	idx := -1
 	for i, crash := range m.queue {
 		if m.reproducing[crash.FullTitle()] {
 			continue
 		}
-		m.queue = slices.Delete(m.queue, i, i+1)
-		return crash
+		if idx == -1 || newBetter(m.queue[idx], m.queue[i]) {
+			idx = i
+		}
 	}
-	return nil
+	if idx == -1 {
+		return nil
+	}
+	crash := m.queue[idx]
+	m.queue = slices.Delete(m.queue, idx, idx+1)
+	return crash
 }
 
 func (m *reproManager) Loop(ctx context.Context) {
