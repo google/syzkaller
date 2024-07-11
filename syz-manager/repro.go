@@ -91,6 +91,13 @@ func (m *reproManager) Reproducing() map[string]bool {
 	return maps.Clone(m.reproducing)
 }
 
+// Empty returns true if there are neither running nor planned bug reproductions.
+func (m *reproManager) Empty() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.reproducing) == 0 && len(m.queue) == 0
+}
+
 func (m *reproManager) Enqueue(crash *Crash) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

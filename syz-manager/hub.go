@@ -60,7 +60,8 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		statRecvReproDrop: stats.Create("hub recv repro drop", "", stats.NoGraph),
 	}
 	if mgr.cfg.Reproduce && mgr.dash != nil {
-		hc.needMoreRepros = mgr.reproMgr.CanReproMore
+		// Request reproducers from hub only if there is nothing else to reproduce.
+		hc.needMoreRepros = mgr.reproMgr.Empty
 	}
 	hc.loop()
 }
