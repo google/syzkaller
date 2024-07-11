@@ -6,10 +6,13 @@ package flatrpc
 import (
 	"net"
 	"os"
+	"runtime/debug"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
 
+	"github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -147,9 +150,36 @@ func dial(t testing.TB, addr string) *Conn {
 	return NewConn(conn)
 }
 
+var memoryLimitOnce sync.Once
+
 func FuzzRecv(f *testing.F) {
+	msg := &ExecutorMessage{
+		Msg: &ExecutorMessages{
+			Type: ExecutorMessagesRawExecResult,
+			Value: &ExecResult{
+				Id:     1,
+				Output: []byte("aaa"),
+				Error:  "bbb",
+				Info: &ProgInfo{
+					ExtraRaw: []*CallInfo{
+						{
+							Signal: []uint64{1, 2},
+						},
+					},
+				},
+			},
+		},
+	}
+	builder := flatbuffers.NewBuilder(0)
+	builder.FinishSizePrefixed(msg.Pack(builder))
+	f.Add(builder.FinishedBytes())
 	f.Fuzz(func(t *testing.T, data []byte) {
-		data = data[:min(len(data), 1<<10)]
+		memoryLimitOnce.Do(func() {
+			debug.SetMemoryLimit(64 << 20)
+		})
+		if len(data) > 1<<10 {
+			t.Skip()
+		}
 		fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM, 0)
 		if err != nil {
 			t.Fatal(err)
