@@ -205,12 +205,12 @@ func (m *reproManager) adjustPoolSizeLocked() {
 	// Avoid the +-1 jitter by considering the repro queue size as well.
 
 	// We process same-titled crashes sequentially, so only count unique ones.
-	uniqueTitles := make(map[string]bool)
+	uniqueTitles := maps.Clone(m.reproducing)
 	for _, crash := range m.queue {
 		uniqueTitles[crash.Title] = true
 	}
 
-	needRepros := len(m.reproducing) + len(uniqueTitles)
+	needRepros := len(uniqueTitles)
 	VMs := min(m.reproVMs, m.calculateReproVMs(needRepros))
 	m.mgr.resizeReproPool(VMs)
 }
