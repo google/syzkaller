@@ -85,7 +85,6 @@ type Manager struct {
 	corpusPreload   chan []fuzzer.Candidate
 	firstConnect    atomic.Int64 // unix time, or 0 if not connected
 	crashTypes      map[string]bool
-	vmStop          chan bool
 	enabledFeatures flatrpc.Feature
 	checkDone       atomic.Bool
 	fresh           bool
@@ -240,7 +239,6 @@ func RunManager(cfg *mgrconfig.Config) {
 		memoryLeakFrames:   make(map[string]bool),
 		dataRaceFrames:     make(map[string]bool),
 		fresh:              true,
-		vmStop:             make(chan bool),
 		externalReproQueue: make(chan *Crash, 10),
 		crashes:            make(chan *Crash, 10),
 		usedFiles:          make(map[string]time.Time),
