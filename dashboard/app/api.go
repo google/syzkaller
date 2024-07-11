@@ -1748,6 +1748,7 @@ func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload []
 	if log != nil {
 		return &dashapi.LogToReproResp{
 			CrashLog: log,
+			Type:     dashapi.ManualLog,
 		}, nil
 	}
 
@@ -1803,6 +1804,7 @@ func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.Log
 		return &dashapi.LogToReproResp{
 			Title:    bug.Title,
 			CrashLog: crashLog,
+			Type:     dashapi.RetryReproLog,
 		}, nil
 	}
 	return nil, nil

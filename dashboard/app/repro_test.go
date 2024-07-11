@@ -437,6 +437,7 @@ func TestLogToReproduce(t *testing.T) {
 	c.expectOK(err)
 	c.expectEQ(resp.Title, "title2")
 	c.expectEQ(resp.CrashLog, []byte("log2"))
+	c.expectEQ(resp.Type, dashapi.RetryReproLog)
 
 	// Suppose we tried to find a repro, but failed.
 	err = client.ReportFailedRepro(&dashapi.CrashID{
@@ -507,6 +508,7 @@ func TestReproTask(t *testing.T) {
 		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
 		c.expectOK(err)
 		c.expectEQ(string(resp.CrashLog), reproValue)
+		c.expectEQ(resp.Type, dashapi.ManualLog)
 	}
 
 	// But no more.

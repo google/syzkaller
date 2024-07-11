@@ -380,9 +380,17 @@ type LogToReproReq struct {
 	BuildID string
 }
 
+type LogToReproType string
+
+const (
+	ManualLog     LogToReproType = "manual"
+	RetryReproLog LogToReproType = "retry"
+)
+
 type LogToReproResp struct {
 	Title    string
 	CrashLog []byte
+	Type     LogToReproType
 }
 
 // LogToRepro are crash logs for older bugs that need to be reproduced on the
