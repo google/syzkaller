@@ -453,9 +453,10 @@ func startRPCServer(t *testing.T, target *prog.Target, executor, vmArch string, 
 				Features: flatrpc.AllFeatures,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
 			},
-			VMArch:   vmArch,
-			Procs:    runtime.GOMAXPROCS(0),
-			Slowdown: 10, // to deflake slower tests
+			VMArch:        vmArch,
+			Procs:         runtime.GOMAXPROCS(0),
+			Slowdown:      10, // to deflake slower tests
+			DebugTimeouts: true,
 		},
 		Executor:    executor,
 		Dir:         dir,
