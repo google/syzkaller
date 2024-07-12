@@ -392,7 +392,7 @@ clean:
 # For a tupical Ubuntu/Debian distribution.
 # We use "|| true" for apt-get install because packages are all different on different distros.
 # Also see tools/syz-env for container approach.
-install_prerequisites:
+install_prerequisites: act
 	uname -a
 	sudo apt-get update
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
@@ -437,3 +437,6 @@ check_diff:
 
 check_shebang:
 	./tools/check-shebang.sh
+
+act:
+	curl https://raw.githubusercontent.com/nektos/act/master/install.sh | bash

@@ -150,3 +150,16 @@ and then pull the image and retag it to the name expected by `syz-env`:
 docker pull docker.pkg.github.com/google/syzkaller/env
 docker tag docker.pkg.github.com/google/syzkaller/env gcr.io/syzkaller/env
 ```
+
+### Using [act](https://github.com/nektos/act)
+.github/workflows has more tests compared to `syz-env make presubmit`. To have the same tests as the workflow, we can run these workflow jobs locally.
+```
+# install act
+make act
+# list all jobs
+bin/act -l
+# run all jobs
+bin/act
+# run job with name build
+bin/act -j build
+```
