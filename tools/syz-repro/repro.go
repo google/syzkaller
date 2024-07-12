@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -60,6 +61,10 @@ func main() {
 	}
 	pool := vm.NewDispatcher(vmPool, nil)
 	pool.ReserveForRun(count)
+	ctx, done := context.WithCancel(context.Background())
+	go pool.Loop(ctx)
+	defer done()
+
 	res, stats, err := repro.Run(data, cfg, flatrpc.AllFeatures, reporter, pool)
 	if err != nil {
 		log.Logf(0, "reproduction failed: %v", err)
