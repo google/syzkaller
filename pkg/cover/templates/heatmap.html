@@ -15,6 +15,11 @@
       display: inline-block;
       width: 50px;
     }
+    .instrumented_column {
+      display: inline-block;
+      width: 70px;
+      text-align: right;
+    }
     .tree_depth_0 {width: 0px;}
     .tree_depth_1 {width: 20px;}
     .tree_depth_2 {width: 40px;}
@@ -64,13 +69,16 @@
     </li>
     <li>
       <div class="first_column bold">
-        total
+        total covered
       </div>
       {{ range $cov := .Root.Coverage }}
         <div class="date_column">
           {{ $cov }}%
         </div>
       {{ end }}
+      <div class="instrumented_column">
+        of {{ approxInstr .Root.LastDayInstrumented }} blocks
+      </div>
     </li>
     <br>
     {{template "dir" .Root}}
@@ -105,6 +113,9 @@
             {{ $cov }}%
           </div>
         {{ end }}
+        <div class="instrumented_column">
+          {{ approxInstr $child.LastDayInstrumented }}
+        </div>
       </div>
       {{ if $child.IsDir }}
         <ul class="nested">
