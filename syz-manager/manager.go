@@ -1191,17 +1191,17 @@ func (mgr *Manager) getMinimizedCorpus() (corpus []*corpus.Item, repros [][]byte
 }
 
 func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
+	mgr.mu.Lock()
+	if mgr.phase == phaseTriagedCorpus {
+		mgr.phase = phaseQueriedHub
+	}
+	mgr.mu.Unlock()
 	if mgr.cfg.Experimental.ResetAccState {
 		// Don't accept new candidates -- the execution is already very slow,
 		// syz-hub will just overwhelm us.
 		return
 	}
 	mgr.fuzzer.Load().AddCandidates(candidates)
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	if mgr.phase == phaseTriagedCorpus {
-		mgr.phase = phaseQueriedHub
-	}
 }
 
 func (mgr *Manager) minimizeCorpusLocked() {
