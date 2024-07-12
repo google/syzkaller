@@ -94,6 +94,7 @@ type HubConnector struct {
 type HubManagerView interface {
 	getMinimizedCorpus() (corpus []*corpus.Item, repros [][]byte)
 	addNewCandidates(candidates []fuzzer.Candidate)
+	needMoreCandidates() bool
 	hubIsUnreachable()
 }
 
@@ -111,7 +112,7 @@ func (hc *HubConnector) loop() {
 				log.Logf(0, "connected to hub at %v, corpus %v", hc.cfg.HubAddr, len(corpus))
 			}
 		}
-		if hub != nil {
+		if hub != nil && hc.mgr.needMoreCandidates() {
 			if err := hc.sync(hub, corpus); err != nil {
 				log.Logf(0, "hub sync failed: %v", err)
 				hub.Close()

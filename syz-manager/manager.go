@@ -1499,6 +1499,10 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 	}
 }
 
+func (mgr *Manager) needMoreCandidates() bool {
+	return mgr.fuzzer.Load().CandidateTriageFinished()
+}
+
 func (mgr *Manager) hubIsUnreachable() {
 	var dash *dashapi.Dashboard
 	mgr.mu.Lock()
