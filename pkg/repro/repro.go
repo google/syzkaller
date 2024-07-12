@@ -434,6 +434,11 @@ func (ctx *reproContext) minimizeProg(res *Result) (*Result, error) {
 
 	res.Prog, _ = prog.Minimize(res.Prog, -1, prog.MinimizeParams{Light: true},
 		func(p1 *prog.Prog, callIndex int) bool {
+			if len(p1.Calls) == 0 {
+				// We do want to keep at least one call, otherwise tools/syz-execprog
+				// will immediately exit.
+				return false
+			}
 			crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
 			if err != nil {
 				ctx.reproLogf(0, "minimization failed with %v", err)
