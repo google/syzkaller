@@ -67,11 +67,11 @@ func newReproManager(mgr reproManagerView, reproVMs int, onlyOnce bool) *reproMa
 // startReproduction() is assumed to be called only once.
 // The agument is the maximum number of VMs dedicated to the bug reproduction.
 func (m *reproManager) StartReproduction() {
-	log.Logf(1, "starting reproductions (max %d VMs)", m.reproVMs)
-
-	for count := 1; m.calculateReproVMs(count) <= m.reproVMs; count++ {
+	count := 0
+	for ; m.calculateReproVMs(count+1) <= m.reproVMs; count++ {
 		m.parallel <- struct{}{}
 	}
+	log.Logf(0, "starting bug reproductions (max %d VMs, %d repros)", m.reproVMs, count)
 }
 
 func (m *reproManager) calculateReproVMs(repros int) int {
