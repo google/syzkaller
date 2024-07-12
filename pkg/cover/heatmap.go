@@ -20,11 +20,12 @@ import (
 )
 
 type templateHeatmapRow struct {
-	Items    []*templateHeatmapRow
-	Name     string
-	Coverage []int64
-	IsDir    bool
-	Depth    int
+	Items               []*templateHeatmapRow
+	Name                string
+	Coverage            []int64
+	IsDir               bool
+	Depth               int
+	LastDayInstrumented int64
 
 	builder      map[string]*templateHeatmapRow
 	instrumented map[civil.Date]int64
@@ -71,6 +72,10 @@ func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
 			dateCoverage = 100 * thm.covered[d] / thm.instrumented[d]
 		}
 		thm.Coverage = append(thm.Coverage, dateCoverage)
+	}
+	if len(dates) > 0 {
+		lastDate := dates[len(dates)-1]
+		thm.LastDayInstrumented = thm.instrumented[lastDate]
 	}
 	for _, item := range thm.builder {
 		item.prepareDataFor(dates)
@@ -169,6 +174,18 @@ func DoHeatMap(w io.Writer, ns string, dateFrom, dateTo civil.Date) error {
 	return heatmapTemplate.Execute(w, templateData)
 }
 
+func approximateInstrumented(points int64) string {
+	dim := "_"
+	if points > 10000 {
+		dim = "K"
+		points /= 1000
+	}
+	return fmt.Sprintf("%d%s", points, dim)
+}
+
 //go:embed templates/heatmap.html
 var templatesHeatmap string
-var heatmapTemplate = template.Must(template.New("").Parse(templatesHeatmap))
+var templateHeatmapFuncs = template.FuncMap{
+	"approxInstr": approximateInstrumented,
+}
+var heatmapTemplate = template.Must(template.New("").Funcs(templateHeatmapFuncs).Parse(templatesHeatmap))
