@@ -2,7 +2,7 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-set -xe -o pipefail
+set -xeuo pipefail
 
 workdir="$(mktemp -d /tmp/syzkaller-gvisor-test.XXXXXX)"
 
@@ -32,10 +32,14 @@ cat > "$workdir/config" <<EOF
 }
 EOF
 
-arch="$(uname -m)"
-url="https://storage.googleapis.com/gvisor/releases/release/latest/${arch}"
 mkdir "$workdir/kernel"
-curl --output "$workdir/kernel/vmlinux" "${url}/runsc"
-chmod a+rx "$workdir/kernel/vmlinux"
+if [[ -z "${GVISOR_VMLINUX_PATH:-}" ]]; then
+  arch="$(uname -m)"
+  url="https://storage.googleapis.com/gvisor/releases/release/latest/${arch}"
+  curl --output "$workdir/kernel/vmlinux" "${url}/runsc"
+  chmod a+rx "$workdir/kernel/vmlinux"
+else
+  install -m555 "$GVISOR_VMLINUX_PATH" "$workdir/kernel/vmlinux"
+fi
 
 sudo -E ./bin/syz-manager -config "$workdir/config" --mode smoke-test
