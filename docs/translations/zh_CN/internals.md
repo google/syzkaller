@@ -66,4 +66,7 @@ Syzkaller 是一种覆盖率导向的模糊测试器。有关覆盖率收集的�
 
 遇到这几种崩溃时，你大概率看不到 `reportN` 文件（例如，如果测试机器没有输出，就没有东西可放入报告中）。
 有时这些崩溃表明 `syzkaller` 本身存在错误（特别是如果在日志中看到 Go 的应急消息）。
+
 然而，大部分情况下这些崩溃表明内核死机或类似的严重问题（以下是通过这种方式发现的一些漏洞示例：[1](https://groups.google.com/d/msg/syzkaller/zfuHHRXL7Zg/Tc5rK8bdCAAJ)，[2](https://groups.google.com/d/msg/syzkaller/kY_ml6TCm9A/wDd5fYFXBQAJ)，[3](https://groups.google.com/d/msg/syzkaller/OM7CXieBCoY/etzvFPX3AQAJ)）。
+
+**请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/internals.md](/docs/internals.md) 找到。**
