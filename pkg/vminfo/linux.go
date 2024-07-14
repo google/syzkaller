@@ -22,6 +22,7 @@ func (linux) RequiredFiles() []string {
 		"/proc/cpuinfo",
 		"/proc/modules",
 		"/proc/kallsyms",
+		"/proc/sentry-meminfo",
 		"/sys/module/*/sections/.text",
 		"/sys/module/kvm*/parameters/*",
 	}
@@ -32,7 +33,6 @@ func (linux) checkFiles() []string {
 		"/proc/version",
 		"/proc/filesystems",
 		"/sys/kernel/security/lsm",
-		"/proc/sentry-meminfo",
 	}
 }
 
