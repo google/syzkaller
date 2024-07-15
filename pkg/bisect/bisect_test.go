@@ -105,7 +105,8 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
 		introduced && !fixed {
 		if env.test.flaky {
-			ret = crashErrors(1, numVMs-1, "crash occurs", env.test.reportType)
+			crashed := max(2, numVMs/6)
+			ret = crashErrors(crashed, numVMs-crashed, "crash occurs", env.test.reportType)
 		} else {
 			ret = crashErrors(numVMs, 0, "crash occurs", env.test.reportType)
 		}
@@ -352,10 +353,10 @@ var bisectionTests = []BisectionTest{
 		flaky:       true,
 		introduced:  "605",
 		extraTest: func(t *testing.T, res *Result) {
-			// False negative probability of each run is ~35%.
-			// We get three "good" results, so our accumulated confidence is ~27%.
-			assert.Less(t, res.Confidence, 0.3)
-			assert.Greater(t, res.Confidence, 0.2)
+			// False negative probability of each run is ~4%.
+			// We get three "good" results, so our accumulated confidence is ~85%.
+			assert.Less(t, res.Confidence, 0.9)
+			assert.Greater(t, res.Confidence, 0.8)
 		},
 	},
 	// Test bisection returns correct cause with different baseline/config combinations.
@@ -797,8 +798,8 @@ func TestBisectVerdict(t *testing.T) {
 		{
 			name:    "many-total-and-infra",
 			total:   10,
-			good:    5,
-			bad:     1,
+			good:    4,
+			bad:     2,
 			infra:   2,
 			skip:    2,
 			verdict: vcs.BisectBad,
@@ -846,11 +847,20 @@ func TestBisectVerdict(t *testing.T) {
 			name:    "flaky-many-skips",
 			flaky:   true,
 			total:   20,
-			good:    9,
-			bad:     1,
+			good:    7,
+			bad:     3,
 			infra:   0,
 			skip:    10,
 			verdict: vcs.BisectBad,
+		},
+		{
+			name:    "outlier-bad",
+			total:   10,
+			good:    9,
+			bad:     1,
+			infra:   0,
+			skip:    0,
+			verdict: vcs.BisectSkip,
 		},
 	}
 

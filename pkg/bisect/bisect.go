@@ -830,6 +830,7 @@ func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult
 	// Boot errors, image test errors, skipped crashes.
 	skip := total - bad - good - infra
 
+	wantBadRuns := max(2, (total-infra)/6) // For 10 runs, require 2 crashes. For 20, require 3.
 	wantGoodRuns := total / 2
 	wantTotalRuns := total / 2
 	if env.flaky {
@@ -840,7 +841,7 @@ func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult
 		// We need a big enough number of good results, otherwise the chance of a false
 		// positive is too high.
 		return vcs.BisectGood, nil
-	} else if bad > 0 && (good+bad) >= wantTotalRuns {
+	} else if bad >= wantBadRuns && (good+bad) >= wantTotalRuns {
 		// We need enough (good+bad) results to conclude that the kernel revision itself
 		// is not too broken.
 		return vcs.BisectBad, nil
