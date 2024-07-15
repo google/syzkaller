@@ -145,7 +145,7 @@ with your Github account with:
 ```
 docker login https://docker.pkg.github.com
 ```
-and then pull the image and retag it to the name expacted by `syz-env`:
+and then pull the image and retag it to the name expected by `syz-env`:
 ```
 docker pull docker.pkg.github.com/google/syzkaller/env
 docker tag docker.pkg.github.com/google/syzkaller/env gcr.io/syzkaller/env
