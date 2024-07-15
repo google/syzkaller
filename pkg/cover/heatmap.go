@@ -119,9 +119,9 @@ func filesCoverageToTemplateData(fCov []*fileCoverageAndDate) *templateHeatmap {
 	return &res
 }
 
-func filesCoverageAndDates(ctx context.Context, ns string, fromDate, toDate civil.Date,
+func filesCoverageAndDates(ctx context.Context, projectID, ns string, fromDate, toDate civil.Date,
 ) ([]*fileCoverageAndDate, error) {
-	client, err := coveragedb.NewClient(ctx, "syzkaller")
+	client, err := coveragedb.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
 	}
@@ -165,8 +165,8 @@ where namespace=$1 and dateto>=$2 and dateto<=$3
 	return res, nil
 }
 
-func DoHeatMap(w io.Writer, ns string, dateFrom, dateTo civil.Date) error {
-	covAndDates, err := filesCoverageAndDates(context.Background(), ns, dateFrom, dateTo)
+func DoHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
+	covAndDates, err := filesCoverageAndDates(context.Background(), projectID, ns, dateFrom, dateTo)
 	if err != nil {
 		panic(err)
 	}
