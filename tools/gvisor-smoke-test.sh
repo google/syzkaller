@@ -27,7 +27,7 @@ cat > "$workdir/config" <<EOF
         "type": "gvisor",
         "vm": {
                 "count": 1,
-                "runsc_args": "--ignore-cgroups --network none"
+                "runsc_args": "--ignore-cgroups --network none --debug --debug-log=$workdir/logs/"
         }
 }
 EOF
@@ -42,4 +42,17 @@ else
   install -m555 "$GVISOR_VMLINUX_PATH" "$workdir/kernel/vmlinux"
 fi
 
+set +e
 sudo -E ./bin/syz-manager -config "$workdir/config" --mode smoke-test
+return_code="$?"
+set -e
+
+if [[ "$return_code" -ne 0 ]] && [[ "$(ls -1 "$workdir/logs" | wc -l)" -gt 0 ]]; then
+        for log_file in "$workdir/logs/"*; do
+                echo "-------- Log: $log_file --------" >&2
+                cat "$log_file" >&2
+                echo "-------- End: $log_file --------" >&2
+        done
+fi
+
+exit "$return_code"
