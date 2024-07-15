@@ -52,6 +52,7 @@ var (
 		civil.DateOf(time.Now().Add(-14*24*time.Hour)).String(), "heatmap date from(optional)")
 	flagDateTo = flag.String("to",
 		civil.DateOf(time.Now()).String(), "heatmap date to(optional)")
+	flagProjectID = flag.String("project", "syzkaller", "spanner db project name")
 )
 
 func toolBuildNsHeatmap() {
@@ -64,7 +65,7 @@ func toolBuildNsHeatmap() {
 	if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
 		tool.Failf("failed to parse date to: %v", err.Error())
 	}
-	if err = cover.DoHeatMap(buf, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+	if err = cover.DoHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
 		tool.Fail(err)
 	}
 	if err = osutil.WriteFile(*flagNsHeatmap+".html", buf.Bytes()); err != nil {
