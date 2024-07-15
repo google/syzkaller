@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -741,8 +740,11 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, ins
 	mgr.bootTime.Save(time.Since(start))
 	start = time.Now()
 
-	addrPort := strings.Split(fwdAddr, ":")
-	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, instanceName, addrPort[0], addrPort[1])
+	host, port, err := net.SplitHostPort(fwdAddr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse manager's address")
+	}
+	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, instanceName, host, port)
 	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
 		vm.ExitTimeout, vm.StopContext(ctx), vm.InjectExecuting(injectExec),
 		vm.EarlyFinishCb(func() {
