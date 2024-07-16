@@ -104,15 +104,16 @@ func (m *reproManager) Enqueue(crash *Crash) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.onlyOnce && m.attempted[crash.Title] {
+	title := crash.FullTitle()
+	if m.onlyOnce && m.attempted[title] {
 		// Try to reproduce each bug at most 1 time in this mode.
 		// Since we don't upload bugs/repros to dashboard, it likely won't have
 		// the reproducer even if we succeeded last time, and will repeatedly
 		// say it needs a repro.
 		return
 	}
-	log.Logf(1, "scheduled a reproduction of '%v'", crash.Title)
-	m.attempted[crash.Title] = true
+	log.Logf(1, "scheduled a reproduction of '%v'", title)
+	m.attempted[title] = true
 	m.queue = append(m.queue, crash)
 
 	// Ping the loop.
@@ -127,7 +128,7 @@ func (m *reproManager) popCrash() *Crash {
 	defer m.mu.Unlock()
 
 	for i, crash := range m.queue {
-		if m.reproducing[crash.Title] {
+		if m.reproducing[crash.FullTitle()] {
 			continue
 		}
 		m.queue = slices.Delete(m.queue, i, i+1)
@@ -162,7 +163,7 @@ func (m *reproManager) Loop(ctx context.Context) {
 		}
 
 		m.mu.Lock()
-		m.reproducing[crash.Title] = true
+		m.reproducing[crash.FullTitle()] = true
 		m.adjustPoolSizeLocked()
 		m.mu.Unlock()
 
@@ -173,7 +174,7 @@ func (m *reproManager) Loop(ctx context.Context) {
 			m.handle(crash)
 
 			m.mu.Lock()
-			delete(m.reproducing, crash.Title)
+			delete(m.reproducing, crash.FullTitle())
 			m.adjustPoolSizeLocked()
 			m.mu.Unlock()
 
@@ -184,7 +185,7 @@ func (m *reproManager) Loop(ctx context.Context) {
 }
 
 func (m *reproManager) handle(crash *Crash) {
-	log.Logf(0, "start reproducing '%v'", crash.Title)
+	log.Logf(0, "start reproducing '%v'", crash.FullTitle())
 
 	res := m.mgr.runRepro(crash)
 
@@ -195,7 +196,7 @@ func (m *reproManager) handle(crash *Crash) {
 		title = res.repro.Report.Title
 	}
 	log.Logf(0, "repro finished '%v', repro=%v crepro=%v desc='%v' hub=%v from_dashboard=%v",
-		res.report0.Title, res.repro != nil, crepro, title, res.fromHub, res.fromDashboard,
+		crash.FullTitle(), res.repro != nil, crepro, title, crash.fromHub, crash.fromDashboard,
 	)
 	m.Done <- res
 }
@@ -206,7 +207,7 @@ func (m *reproManager) adjustPoolSizeLocked() {
 	// We process same-titled crashes sequentially, so only count unique ones.
 	uniqueTitles := maps.Clone(m.reproducing)
 	for _, crash := range m.queue {
-		uniqueTitles[crash.Title] = true
+		uniqueTitles[crash.FullTitle()] = true
 	}
 
 	needRepros := len(uniqueTitles)

@@ -53,8 +53,8 @@ func TestReproManager(t *testing.T) {
 	assert.EqualValues(t, 3, mock.reserved.Load())
 
 	// Pretend that reproducers have finished.
-	called.ret <- &ReproResult{report0: &report.Report{}}
-	called2.ret <- &ReproResult{report0: &report.Report{}}
+	called.ret <- &ReproResult{crash: &Crash{fromHub: true}}
+	called2.ret <- &ReproResult{crash: &Crash{fromHub: true}}
 
 	// Wait until the number of reserved VMs goes to 0.
 	for i := 0; i < 100; i++ {
