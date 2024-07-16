@@ -252,6 +252,7 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			if stop {
 				return false
 			}
+			var mergedSignal signal.Signal
 			for i := 0; i < minimizeAttempts; i++ {
 				result := job.execute(&queue.Request{
 					Prog:            p1,
@@ -268,7 +269,12 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 					continue
 				}
 				thisSignal := getSignalAndCover(p1, result.Info, call1)
-				if info.newStableSignal.Intersection(thisSignal).Len() == info.newStableSignal.Len() {
+				if mergedSignal.Len() == 0 {
+					mergedSignal = thisSignal
+				} else {
+					mergedSignal.Merge(thisSignal)
+				}
+				if info.newStableSignal.Intersection(mergedSignal).Len() == info.newStableSignal.Len() {
 					return true
 				}
 			}
