@@ -5049,13 +5049,23 @@ static const char* setup_usb()
 
 #if SYZ_EXECUTOR || SYZ_SYSCTL
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/wait.h>
 
 static void setup_sysctl()
 {
-	char mypid[32];
-	snprintf(mypid, sizeof(mypid), "%d", getpid());
+	// See ctrl-alt-del comment below.
+	int cad_pid = fork();
+	if (cad_pid < 0)
+		fail("fork failed");
+	if (cad_pid == 0) {
+		for (;;)
+			sleep(100);
+	}
+	char tmppid[32];
+	snprintf(tmppid, sizeof(tmppid), "%d", cad_pid);
 
 	// TODO: consider moving all sysctl's into CMDLINE config later.
 	// Kernel has support for setting sysctl's via command line since 3db978d480e28 (v5.8).
@@ -5093,17 +5103,22 @@ static void setup_sysctl()
 		// (sshd or another random test process).
 		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
 		// This blocks some of the ways the fuzzer can trigger a reboot.
-		// ctrl-alt-del=0 tells kernel to signal cad_pid instead of rebooting
-		// and setting cad_pid to the current pid (transient "syz-executor setup") makes it a no-op.
+		// ctrl-alt-del=0 tells kernel to signal cad_pid instead of rebooting.
+		// We set cad_pid to a transient process pid ctrl-alt-del a no-op.
+		// Note: we need to write a live process pid.
 		// For context see: https://groups.google.com/g/syzkaller-bugs/c/WqOY4TiRnFg/m/6P9u8lWZAQAJ
 		{"/proc/sys/kernel/ctrl-alt-del", "0"},
-		{"/proc/sys/kernel/cad_pid", mypid},
+		{"/proc/sys/kernel/cad_pid", tmppid},
+
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data)) {
 			debug("write to %s failed: %s\n", files[i].name, strerror(errno));
 		}
 	}
+	kill(cad_pid, SIGKILL);
+	while (waitpid(cad_pid, NULL, 0) != cad_pid)
+		;
 }
 #endif
 
