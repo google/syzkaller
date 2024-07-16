@@ -57,46 +57,75 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</tr>
 		</table>
 		{{if not (eq .URLPath "/admin")}}
-		<table class="position_table">
-			<tr>
-				<td class="navigation">
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}'>
-						<span style="color:DeepPink;">🐞</span> Open [{{$.BugCounts.Open}}]</a>
-					{{if .ShowSubsystems}}
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/subsystems" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/subsystems'>
-						<span style="color:DeepPink;">≡</span> Subsystems</a>
-					{{end}}
-                                        <a class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/fixed'>
-						<span style="color:ForestGreen;">🐞</span> Fixed [{{$.BugCounts.Fixed}}]</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
-						<span style="color:RoyalBlue;">🐞</span> Invalid [{{$.BugCounts.Invalid}}]</a>
-					{{if gt .MissingBackports 0}}
-                                        <a class="navigation_tab{{if eq .URLPath (printf "/%v/backports" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/backports'>
-						<span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]</a>
-					{{end}}
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/bugs'>
-						<span style="color:DarkOrange;">📈</span> Kernel Health</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/found-bugs'>
-						<span style="color:DarkOrange;">📈</span> Bugs/Month</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/lifetimes'>
-						<span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/fuzzing'>
-					  <span style="color:DarkOrange;">📈</span> Fuzzing</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/crashes'>
-						<span style="color:DarkOrange;">📈</span> Crashes</a>
-          {{if .ShowCoverageMenu}}
-          <a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/coverage'>
-            <span style="color:DarkOrange;">📈</span> Coverage</a>
-          {{end}}
-				</td>
-                                {{if .ContactEmail}}
-				<td class="navigation-right">
-					<a class="navigation_tab" href='mailto:{{.ContactEmail}}'>
-						<span style="color:ForestGreen;">💬</span> Send us feedback</a>
-				</td>
-                                {{end}}
-			</tr>
-		</table>
+      <div class="navigation">
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}'>
+            <span style="color:DeepPink;">🐞</span> Open [{{$.BugCounts.Open}}]</a>
+        </div>
+
+        {{if .ShowSubsystems}}
+          <div class="navigation_tab{{if eq .URLPath (printf "/%v/subsystems" $.Namespace)}}_selected{{end}}">
+            <a href='/{{$.Namespace}}/subsystems'>
+              <span style="color:DeepPink;">≡</span> Subsystems</a>
+          </div>
+        {{end}}
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/fixed'>
+            <span style="color:ForestGreen;">🐞</span> Fixed [{{$.BugCounts.Fixed}}]</a>
+        </div>
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
+          <a href='/{{$.Namespace}}/invalid'>
+            <span style="color:RoyalBlue;">🐞</span> Invalid [{{$.BugCounts.Invalid}}]</a>
+        </div>
+
+        {{if gt .MissingBackports 0}}
+          <div class="navigation_tab{{if eq .URLPath (printf "/%v/backports" $.Namespace)}}_selected{{end}}">
+            <a href='/{{$.Namespace}}/backports'>
+              <span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]</a>
+          </div>
+        {{end}}
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/graph/bugs'>
+            <span style="color:DarkOrange;">📈</span> Kernel Health</a>
+        </div>
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/graph/found-bugs'>
+            <span style="color:DarkOrange;">📈</span> Bugs/Month</a>
+        </div>
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/graph/lifetimes'>
+            <span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
+        </div>
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/graph/fuzzing'>
+            <span style="color:DarkOrange;">📈</span> Fuzzing</a>
+        </div>
+
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/graph/crashes'>
+            <span style="color:DarkOrange;">📈</span> Crashes</a>
+        </div>
+        {{if .ShowCoverageMenu}}
+          <div class="dropdown navigation_tab">
+            <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
+            <div class="dropdown-content navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}">
+              <a href="/{{$.Namespace}}/graph/coverage">Total</a>
+            </div>
+          </div>
+        {{end}}
+        {{if .ContactEmail}}
+          <div class="navigation_tab navigation_right">
+            <a href='mailto:{{.ContactEmail}}'>
+              <span style="color:ForestGreen;">💬</span> Send us feedback</a>
+          </div>
+        {{end}}
+      </div>
 		{{end}}
 	</header>
 	<br>
