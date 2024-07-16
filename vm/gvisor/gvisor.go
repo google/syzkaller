@@ -117,6 +117,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err := osutil.CopyFile(bin, filepath.Join(imageDir, "init")); err != nil {
 		return nil, err
 	}
+	path := filepath.Join(imageDir, "etc")
+	osutil.MkdirAll(path)
+	hostsData := []byte("127.0.0.1	localhost\n")
+	path = filepath.Join(path, "hosts")
+	if err := os.WriteFile(path, hostsData, 0644); err != nil {
+		return nil, err
+	}
 
 	panicLog := filepath.Join(bundleDir, "panic.fifo")
 	if err := syscall.Mkfifo(panicLog, 0666); err != nil {
