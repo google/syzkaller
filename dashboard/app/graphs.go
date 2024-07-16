@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
+	"github.com/google/syzkaller/pkg/cover"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -186,6 +188,31 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 		Graph:  createFoundBugs(c, bugs),
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
+}
+
+func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	dateFrom := civil.DateOf(time.Now().Add(-14 * 24 * time.Hour))
+	dateTo := civil.DateOf(time.Now())
+	var style template.CSS
+	var body, js template.HTML
+	if style, body, js, err = cover.DoHeatMapStyleBodyJS("syzkaller", hdr.Namespace, dateFrom, dateTo); err != nil {
+		return fmt.Errorf("failed to generate heatmap: %w", err)
+	}
+	return serveTemplate(w, "custom_content.html", struct {
+		Header *uiHeader
+		Style  template.CSS
+		Body   template.HTML
+		JS     template.HTML
+	}{
+		Header: hdr,
+		Style:  style,
+		Body:   body,
+		JS:     js,
+	})
 }
 
 func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
