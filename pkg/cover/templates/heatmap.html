@@ -3,88 +3,16 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style>
-    ul {
-      list-style-type: none;
-      padding-left: 0px;
-    }
-    .first_column {
-      display: inline-block;
-      width: 250px;
-    }
-    .date_column {
-      display: inline-block;
-      width: 50px;
-    }
-    .instrumented_column {
-      display: inline-block;
-      width: 70px;
-      text-align: right;
-    }
-    .tree_depth_0 {width: 0px;}
-    .tree_depth_1 {width: 20px;}
-    .tree_depth_2 {width: 40px;}
-    .tree_depth_3 {width: 60px;}
-    .tree_depth_4 {width: 80px;}
-    .tree_depth_5 {width: 100px;}
-    .tree_depth_6 {width: 120px;}
-    .tree_depth_7 {width: 140px;}
-
-    .bold {font-weight: bold;}
-    .hover:hover {
-      background: #ffff99;
-    }
-    .caret {
-      cursor: pointer;
-      user-select: none;
-    }
-    .caret::before {
-      color: black;
-      content: "\25B6";
-      display: inline-block;
-      margin-right: 3px;
-    }
-    .caret-down::before {
-      transform: rotate(90deg);
-    }
-    .nested {
-      display: none;
-    }
-    .active {
-      display: block;
-    }
+    {{ .Style }}
   </style>
 </head>
 <body>
-<div>
-  <ul id="collapsible-list">
-    <li>
-      <div class="first_column bold">
-        date
-      </div>
-      {{ range $date := .Dates }}
-        <div class="date_column bold">
-          {{ $date }}
-        </div>
-      {{ end }}
-    </li>
-    <li>
-      <div class="first_column bold">
-        total covered
-      </div>
-      {{ range $cov := .Root.Coverage }}
-        <div class="date_column">
-          {{ $cov }}%
-        </div>
-      {{ end }}
-      <div class="instrumented_column">
-        of {{ approxInstr .Root.LastDayInstrumented }} blocks
-      </div>
-    </li>
-    <br>
-    {{template "dir" .Root}}
-  </ul>
-</div>
+  {{ .Body }}
 </body>
+{{ .JS }}
+</html>
+
+{{ define "js" }}
 <script>
   var togglers = document.getElementsByClassName("caret");
   for (var i = 0; i < togglers.length; i++) {
@@ -93,8 +21,92 @@
       this.parentElement.parentElement.parentElement.querySelector(".nested").classList.toggle("active");
     });
   }
-	</script>
-</html>
+</script>
+{{ end }}
+
+{{ define "style" }}
+  ul {
+    list-style-type: none;
+    padding-left: 0px;
+  }
+  .first_column {
+    display: inline-block;
+    width: 250px;
+  }
+  .date_column {
+    display: inline-block;
+    width: 50px;
+  }
+  .instrumented_column {
+    display: inline-block;
+    width: 70px;
+    text-align: right;
+  }
+  .tree_depth_0 {width: 0px;}
+  .tree_depth_1 {width: 20px;}
+  .tree_depth_2 {width: 40px;}
+  .tree_depth_3 {width: 60px;}
+  .tree_depth_4 {width: 80px;}
+  .tree_depth_5 {width: 100px;}
+  .tree_depth_6 {width: 120px;}
+  .tree_depth_7 {width: 140px;}
+
+  .bold {font-weight: bold;}
+  .hover:hover {
+    background: #ffff99;
+  }
+  .caret {
+    cursor: pointer;
+    user-select: none;
+  }
+  .caret::before {
+    color: black;
+    content: "\25B6";
+    display: inline-block;
+    margin-right: 3px;
+  }
+  .caret-down::before {
+    transform: rotate(90deg);
+  }
+  .nested {
+    display: none;
+  }
+  .active {
+    display: block;
+  }
+{{ end }}
+
+{{ define "body" }}
+  <div>
+    <ul id="collapsible-list">
+      <li>
+        <div class="first_column bold">
+          date
+        </div>
+        {{ range $date := .Dates }}
+        <div class="date_column bold">
+          {{ $date }}
+        </div>
+        {{ end }}
+      </li>
+      <li>
+        <div class="first_column bold">
+          total covered
+        </div>
+        {{ range $cov := .Root.Coverage }}
+        <div class="date_column">
+          {{ $cov }}%
+        </div>
+        {{ end }}
+        <div class="instrumented_column">
+          of {{ approxInstr .Root.LastDayInstrumented }} blocks
+        </div>
+      </li>
+      <br>
+      {{template "dir" .Root}}
+    </ul>
+  </div>
+{{ end }}
 
 {{define "dir"}}
   {{range $child := .Items}}
