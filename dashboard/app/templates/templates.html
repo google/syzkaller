@@ -116,6 +116,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
             <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
             <div class="dropdown-content navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}">
               <a href="/{{$.Namespace}}/graph/coverage">Total</a>
+              <a href="/{{$.Namespace}}/graph/coverage_heatmap">Heatmap</a>
             </div>
           </div>
         {{end}}
