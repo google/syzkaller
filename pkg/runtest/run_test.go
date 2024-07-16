@@ -369,6 +369,10 @@ func testCover(t *testing.T, target *prog.Target) {
 			if test.Is64Bit {
 				vmArch = targets.TestArch64
 			}
+			sysTarget := targets.Get(targets.TestOS, vmArch)
+			if sysTarget.BrokenCompiler != "" {
+				t.Skipf("skipping due to broken compiler:\n%v", sysTarget.BrokenCompiler)
+			}
 			ctx := startRPCServer(t, target, executor, source, rpcParams{
 				vmArch:      vmArch,
 				maxSignal:   test.MaxSignal,
