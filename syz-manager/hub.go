@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
@@ -79,7 +78,6 @@ type HubConnector struct {
 	hubReproQueue  chan *Crash
 	needMoreRepros func() bool
 	keyGet         keyGetter
-	reproSeq       atomic.Int64
 
 	statSendProgAdd   *stats.Val
 	statSendProgDel   *stats.Val
@@ -309,7 +307,6 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		hc.hubReproQueue <- &Crash{
 			fromHub: true,
 			Report: &report.Report{
-				Title:  fmt.Sprintf("external repro #%d", hc.reproSeq.Add(1)),
 				Type:   typ,
 				Output: repro,
 			},

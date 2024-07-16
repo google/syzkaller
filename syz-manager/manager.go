@@ -163,6 +163,19 @@ type Crash struct {
 	*report.Report
 }
 
+func (c *Crash) FullTitle() string {
+	if c.Report.Title != "" {
+		return c.Report.Title
+	}
+	// Just use some unique, but stable titles.
+	if c.fromDashboard {
+		return fmt.Sprintf("dashboard crash %p", c)
+	} else if c.fromHub {
+		return fmt.Sprintf("crash from hub %p", c)
+	}
+	panic("the crash is expected to have a report")
+}
+
 func main() {
 	if prog.GitRevision == "" {
 		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
@@ -369,14 +382,11 @@ func (mgr *Manager) writeBench() {
 }
 
 type ReproResult struct {
-	report0       *report.Report // the original report we started reproducing
-	repro         *repro.Result
-	strace        *repro.StraceResult
-	stats         *repro.Stats
-	err           error
-	fromHub       bool
-	fromDashboard bool
-	originalTitle string // crash title before we started bug reproduction
+	crash  *Crash // the original crash
+	repro  *repro.Result
+	strace *repro.StraceResult
+	stats  *repro.Stats
+	err    error
 }
 
 func (mgr *Manager) processFuzzingResults(ctx context.Context) {
@@ -399,12 +409,12 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 				reportReproError(res.err)
 			}
 			if res.repro == nil {
-				if res.fromHub {
-					log.Logf(1, "repro '%v' came from syz-hub, not reporting the failure",
-						res.report0.Title)
+				if res.crash.Title == "" {
+					log.Logf(1, "repro '%v' not from dashboard, so not reporting the failure",
+						res.crash.FullTitle())
 				} else {
-					log.Logf(1, "report repro failure of '%v'", res.report0.Title)
-					mgr.saveFailedRepro(res.report0, res.stats)
+					log.Logf(1, "report repro failure of '%v'", res.crash.Title)
+					mgr.saveFailedRepro(res.crash.Report, res.stats)
 				}
 			} else {
 				mgr.saveRepro(res)
@@ -465,13 +475,10 @@ func reportReproError(err error) {
 func (mgr *Manager) runRepro(crash *Crash) *ReproResult {
 	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.enabledFeatures, mgr.reporter, mgr.pool)
 	ret := &ReproResult{
-		report0:       crash.Report,
-		repro:         res,
-		stats:         stats,
-		err:           err,
-		fromHub:       crash.fromHub,
-		fromDashboard: crash.fromDashboard,
-		originalTitle: crash.Title,
+		crash: crash,
+		repro: res,
+		stats: stats,
+		err:   err,
 	}
 	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
 		const straceAttempts = 2
@@ -1010,7 +1017,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 	progText := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
-	if !res.fromHub {
+	if !res.crash.fromHub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
 			repro.Opts, repro.Report.Title, mgr.cfg.Tag, progText))
 		mgr.mu.Lock()
@@ -1065,7 +1072,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			ReproC:        cprogText,
 			ReproLog:      truncateReproLog(fullReproLog(res.stats)),
 			Assets:        mgr.uploadReproAssets(repro),
-			OriginalTitle: res.originalTitle,
+			OriginalTitle: res.crash.Title,
 		}
 		setGuiltyFiles(dc, report)
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
@@ -1603,7 +1610,6 @@ func (mgr *Manager) dashboardReporter() {
 }
 
 func (mgr *Manager) dashboardReproTasks() {
-	seq := 0
 	for range time.NewTicker(20 * time.Minute).C {
 		if !mgr.reproMgr.CanReproMore() {
 			// We don't need reproducers at the moment.
@@ -1615,15 +1621,10 @@ func (mgr *Manager) dashboardReproTasks() {
 			continue
 		}
 		if len(resp.CrashLog) > 0 {
-			title := resp.Title
-			if title == "" {
-				seq++
-				title = fmt.Sprintf("repro #%d from the dashboard", seq)
-			}
 			mgr.externalReproQueue <- &Crash{
 				fromDashboard: true,
 				Report: &report.Report{
-					Title:  title,
+					Title:  resp.Title,
 					Output: resp.CrashLog,
 				},
 			}
