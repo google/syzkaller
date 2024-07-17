@@ -182,9 +182,15 @@ func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civ
 		panic(err)
 	}
 	ssMatcher := subsystem.MakePathMatcher(subsystem.GetList("linux"))
+	ssCache := make(map[string][]*subsystem.Subsystem)
 	var ssCovAndDates []*fileCoverageAndDate
 	for _, cad := range covAndDates {
-		for _, ss := range ssMatcher.Match(cad.Filepath) {
+		sss := ssCache[cad.Filepath]
+		if sss == nil {
+			sss = ssMatcher.Match(cad.Filepath)
+			ssCache[cad.Filepath] = sss
+		}
+		for _, ss := range sss {
 			newRecord := fileCoverageAndDate{
 				Filepath:     ss.Name + "/" + cad.Filepath,
 				Instrumented: cad.Instrumented,
