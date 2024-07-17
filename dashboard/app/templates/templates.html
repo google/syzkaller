@@ -87,30 +87,22 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
           </div>
         {{end}}
 
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}/graph/bugs'>
-            <span style="color:DarkOrange;">📈</span> Kernel Health</a>
+        <div class="dropdown navigation_tab">
+          <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
+          <div class="dropdown-content">
+            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}"
+                href='/{{$.Namespace}}/graph/bugs'>Kernel&nbsp;Health</>
+            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}"
+                href='/{{$.Namespace}}/graph/found-bugs'>Bugs/Month</a>
+            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}"
+                href='/{{$.Namespace}}/graph/lifetimes'>Bug&nbsp;Lifetimes</a>
+            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}"
+                href='/{{$.Namespace}}/graph/fuzzing'>Fuzzing</a>
+            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}"
+                href='/{{$.Namespace}}/graph/crashes'>Crashes</a>
+          </div>
         </div>
 
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}/graph/found-bugs'>
-            <span style="color:DarkOrange;">📈</span> Bugs/Month</a>
-        </div>
-
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}/graph/lifetimes'>
-            <span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
-        </div>
-
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}/graph/fuzzing'>
-            <span style="color:DarkOrange;">📈</span> Fuzzing</a>
-        </div>
-
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}/graph/crashes'>
-            <span style="color:DarkOrange;">📈</span> Crashes</a>
-        </div>
         {{if .ShowCoverageMenu}}
           <div class="dropdown navigation_tab">
             <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
