@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"sort"
 	"strings"
 
@@ -174,12 +173,28 @@ where
 	return res, nil
 }
 
-func DoHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
-	style, body, js, err := DoHeatMapStyleBodyJS(projectID, ns, dateFrom, dateTo)
-	if err != nil {
-		return fmt.Errorf("failed to DoHeatMapStyleAndBody() %w", err)
+func DoDirHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
+	return DoHeatMap(w, projectID, ns, dateFrom, dateTo, "dir")
+}
+
+func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
+	return DoHeatMap(w, projectID, ns, dateFrom, dateTo, "subsystems")
+}
+
+func DoHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date, hmType string) error {
+	var style template.CSS
+	var body, js template.HTML
+	var err error
+	f := DoHeatMapStyleBodyJS
+	switch hmType {
+	case "dir":
+	case "subsystems":
+		f = DoSubsystemsHeatMapStyleBodyJS
 	}
-	log.Printf("%s", js)
+	style, body, js, err = f(projectID, ns, dateFrom, dateTo)
+	if err != nil {
+		return fmt.Errorf("failed to get heatMapStyleBodyJS() %w", err)
+	}
 	return heatmapTemplate.Execute(w, struct {
 		Style template.CSS
 		Body  template.HTML
@@ -213,7 +228,8 @@ func DoHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
 		template.HTML(js.Bytes()), nil
 }
 
-func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
+func DoSubsystemsHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
+) (template.CSS, template.HTML, template.HTML, error) {
 	covWithDetails, err := filesCoverageWithDetails(context.Background(), projectID, ns, dateFrom, dateTo)
 	if err != nil {
 		panic(err)
@@ -231,7 +247,19 @@ func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civ
 		}
 	}
 	templateData := filesCoverageToTemplateData(ssCovAndDates)
-	return heatmapTemplate.Execute(w, templateData)
+	var styles, body, js bytes.Buffer
+	if err := heatmapTemplate.ExecuteTemplate(&styles, "style", templateData); err != nil {
+		return "", "", "", fmt.Errorf("failed to get styles: %w", err)
+	}
+	if err := heatmapTemplate.ExecuteTemplate(&body, "body", templateData); err != nil {
+		return "", "", "", fmt.Errorf("failed to get body: %w", err)
+	}
+	if err := heatmapTemplate.ExecuteTemplate(&js, "js", templateData); err != nil {
+		return "", "", "", fmt.Errorf("failed to get js: %w", err)
+	}
+	return template.CSS(styles.String()),
+		template.HTML(body.String()),
+		template.HTML(js.Bytes()), nil
 }
 
 func approximateInstrumented(points int64) string {
