@@ -91,7 +91,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
           <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
           <div class="dropdown-content">
             <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/bugs'>Kernel&nbsp;Health</>
+                href='/{{$.Namespace}}/graph/bugs'>Kernel&nbsp;Health</a>
             <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}"
                 href='/{{$.Namespace}}/graph/found-bugs'>Bugs/Month</a>
             <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}"
@@ -106,9 +106,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
         {{if .ShowCoverageMenu}}
           <div class="dropdown navigation_tab">
             <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
-            <div class="dropdown-content navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}">
-              <a href="/{{$.Namespace}}/graph/coverage">Total</a>
-              <a href="/{{$.Namespace}}/graph/coverage_heatmap">Heatmap</a>
+            <div class="dropdown-content">
+              <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}"
+                  href="/{{$.Namespace}}/graph/coverage">Total</a>
+              <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_heatmap" $.Namespace)}}_selected{{end}}"
+                  href="/{{$.Namespace}}/graph/coverage_heatmap">Heatmap</a>
             </div>
           </div>
         {{end}}
