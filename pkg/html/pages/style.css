@@ -450,6 +450,7 @@ aside {
 /* Dropdown Content (Hidden by Default) */
 .dropdown-content {
 	display: none;
+	flex-direction: column;
 	position: absolute;
 	background-color: #f1f1f1;
 	z-index: 1;
@@ -466,7 +467,7 @@ aside {
 .dropdown-content a:hover {background-color: #ddd;}
 
 /* Show the dropdown menu on hover */
-.dropdown:hover .dropdown-content {display: block;}
+.dropdown:hover .dropdown-content {display: flex;}
 
 /* Change the background color of the dropdown button when the dropdown content is shown */
 .dropdown:hover .dropbtn {background-color: #ddd;}
