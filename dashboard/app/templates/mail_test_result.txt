@@ -15,7 +15,12 @@ Error text is too large and was truncated, full error text is at:
 {{else}}
 syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-Reported-and-tested-by: {{.CreditEmail}}
+{{/* Note: kernel prefers separate reported/tested tags rather than a single
+Reported-and-tested-by, see:
+https://lore.kernel.org/all/Zpb30HMt6jXtonhr@google.com/
+*/ -}}
+Reported-by: {{.CreditEmail}}
+Tested-by: {{.CreditEmail}}
 {{end}}
 Tested on:
 

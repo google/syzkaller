@@ -258,7 +258,8 @@ patch:          %[3]v
 
 syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@testapp.appspotmail.com
+Tested-by: syzbot+%[1]v@testapp.appspotmail.com
 
 Tested on:
 
@@ -372,7 +373,8 @@ func TestJobWithoutPatch(t *testing.T) {
 
 syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@testapp.appspotmail.com
+Tested-by: syzbot+%[1]v@testapp.appspotmail.com
 
 Tested on:
 
