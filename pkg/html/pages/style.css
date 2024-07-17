@@ -456,7 +456,7 @@ aside {
 }
 
 /* Links inside the dropdown */
-.dropdown-content a {
+.dropdown-content div a {
 	color: black;
 	text-decoration: none;
 	display: block;
