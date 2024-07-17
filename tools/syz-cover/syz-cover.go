@@ -43,12 +43,13 @@ var (
 	flagConfig  = flag.String("config", "", "configuration file")
 	flagModules = flag.String("modules", "",
 		"modules JSON info obtained from /modules (optional)")
-	flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
-	flagExportLineJSON = flag.String("json", "", "export coverage data with source line info in json format (optional)")
-	flagExportJSONL    = flag.String("jsonl", "", "export jsonl coverage data (optional)")
-	flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
-	flagNsHeatmap      = flag.String("heatmap", "", "generate namespace heatmap")
-	flagDateFrom       = flag.String("from",
+	flagExportCSV        = flag.String("csv", "", "export coverage data in csv format (optional)")
+	flagExportLineJSON   = flag.String("json", "", "export coverage data with source line info in json format (optional)")
+	flagExportJSONL      = flag.String("jsonl", "", "export jsonl coverage data (optional)")
+	flagExportHTML       = flag.String("html", "", "save coverage HTML report to file (optional)")
+	flagNsHeatmap        = flag.String("heatmap", "", "generate namespace heatmap")
+	flagNsHeatmapGroupBy = flag.String("group-by", "dir", "dir or subsystem")
+	flagDateFrom         = flag.String("from",
 		civil.DateOf(time.Now().Add(-14*24*time.Hour)).String(), "heatmap date from(optional)")
 	flagDateTo = flag.String("to",
 		civil.DateOf(time.Now()).String(), "heatmap date to(optional)")
@@ -65,8 +66,17 @@ func toolBuildNsHeatmap() {
 	if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
 		tool.Failf("failed to parse date to: %v", err.Error())
 	}
-	if err = cover.DoHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
-		tool.Fail(err)
+	switch *flagNsHeatmapGroupBy {
+	case "dir":
+		if err = cover.DoHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+			tool.Fail(err)
+		}
+	case "subsystem":
+		if err = cover.DoSubsystemsHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+			tool.Fail(err)
+		}
+	default:
+		tool.Failf("group by %s not supported", *flagNsHeatmapGroupBy)
 	}
 	if err = osutil.WriteFile(*flagNsHeatmap+".html", buf.Bytes()); err != nil {
 		tool.Fail(err)
