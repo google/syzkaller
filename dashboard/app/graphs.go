@@ -190,15 +190,18 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
+type funcStyleBodyJS func(projectID string, ns string, dateFrom civil.Date, dateTo civil.Date,
+) (template.CSS, template.HTML, template.HTML, error)
+
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	return handleHeatmap(c, w, r, "dir")
+	return handleHeatmap(c, w, r, cover.DoHeatMapStyleBodyJS)
 }
 
 func handleSubsystemsCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	return handleHeatmap(c, w, r, "subsystems")
+	return handleHeatmap(c, w, r, cover.DoSubsystemsHeatMapStyleBodyJS)
 }
 
-func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, heatmapType string) error {
+func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f funcStyleBodyJS) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -207,25 +210,19 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, he
 	dateTo := civil.DateOf(time.Now())
 	var style template.CSS
 	var body, js template.HTML
-	f := cover.DoHeatMapStyleBodyJS
-	switch heatmapType {
-	case "dir":
-	case "subsystems":
-		f = cover.DoSubsystemsHeatMapStyleBodyJS
-	}
 	if style, body, js, err = f("syzkaller", hdr.Namespace, dateFrom, dateTo); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
 		Header *uiHeader
-		Style  template.CSS
-		Body   template.HTML
-		JS     template.HTML
+		*cover.StyleBodyJS
 	}{
 		Header: hdr,
-		Style:  style,
-		Body:   body,
-		JS:     js,
+		StyleBodyJS: &cover.StyleBodyJS{
+			Style: style,
+			Body:  body,
+			JS:    js,
+		},
 	})
 }
 
