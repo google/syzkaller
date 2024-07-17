@@ -727,7 +727,7 @@ static void SigchldHandler(int sig)
 	// We need just blocking syscall preemption.
 }
 
-static void SigsegvHandler(int sig, siginfo_t* info, void* ucontext)
+static void FatalHandler(int sig, siginfo_t* info, void* ucontext)
 {
 	// Print minimal debugging info we can extract reasonably easy.
 	uintptr_t pc = 0xdeadbeef;
@@ -740,11 +740,26 @@ static void SigsegvHandler(int sig, siginfo_t* info, void* ucontext)
 	pc = mctx.pc;
 #endif
 #endif
+	const char* name = "unknown signal";
+	switch (sig) {
+	case SIGSEGV:
+		name = "SIGSEGV";
+		break;
+	case SIGBUS:
+		name = "SIGBUS";
+		break;
+	case SIGILL:
+		name = "SIGILL";
+		break;
+	case SIGFPE:
+		name = "SIGFPE";
+		break;
+	}
 	// Print the current function PC so that it's possible to map the failing PC
 	// to a symbol in the binary offline (we usually compile as PIE).
-	failmsg(sig == SIGSEGV ? "SIGSEGV" : "SIGBUS", "handler:0x%zx pc:%p addr:%p",
-		reinterpret_cast<uintptr_t>(reinterpret_cast<void*>(SigsegvHandler)) - pc,
-		reinterpret_cast<void*>(pc), info->si_addr);
+	failmsg(name, "pc-offset:0x%zx pc:%p addr:%p code=%d",
+		reinterpret_cast<uintptr_t>(reinterpret_cast<void*>(FatalHandler)) - pc,
+		reinterpret_cast<void*>(pc), info->si_addr, info->si_code);
 }
 
 static void runner(char** argv, int argc)
@@ -774,11 +789,11 @@ static void runner(char** argv, int argc)
 		fail("signal(SIGCHLD) failed");
 	struct sigaction act = {};
 	act.sa_flags = SA_SIGINFO;
-	act.sa_sigaction = SigsegvHandler;
-	if (sigaction(SIGSEGV, &act, nullptr))
-		fail("signal(SIGSEGV) failed");
-	if (sigaction(SIGBUS, &act, nullptr))
-		fail("signal(SIGBUS) failed");
+	act.sa_sigaction = FatalHandler;
+	for (auto sig : {SIGSEGV, SIGBUS, SIGILL, SIGFPE}) {
+		if (sigaction(sig, &act, nullptr))
+			failmsg("sigaction failed", "sig=%d", sig);
+	}
 
 	Connection conn(manager_addr, manager_port);
 
