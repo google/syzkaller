@@ -5,6 +5,7 @@ package fuzzer
 
 import (
 	"math/rand"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
@@ -98,9 +99,16 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	if stop {
 		return
 	}
+	var wg sync.WaitGroup
 	for call, info := range job.calls {
-		job.handleCall(call, info)
+		call, info := call, info
+		wg.Add(1)
+		go func() {
+			job.handleCall(call, info)
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 }
 
 func (job *triageJob) handleCall(call int, info *triageCall) {
