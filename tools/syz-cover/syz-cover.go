@@ -68,7 +68,7 @@ func toolBuildNsHeatmap() {
 	}
 	switch *flagNsHeatmapGroupBy {
 	case "dir":
-		if err = cover.DoHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+		if err = cover.DoDirHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
 			tool.Fail(err)
 		}
 	case "subsystem":

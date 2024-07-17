@@ -191,6 +191,14 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 }
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	return handleHeatmap(c, w, r, "dir")
+}
+
+func handleSubsystemsCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	return handleHeatmap(c, w, r, "subsystems")
+}
+
+func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, heatmapType string) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -199,7 +207,13 @@ func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Req
 	dateTo := civil.DateOf(time.Now())
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = cover.DoHeatMapStyleBodyJS("syzkaller", hdr.Namespace, dateFrom, dateTo); err != nil {
+	f := cover.DoHeatMapStyleBodyJS
+	switch heatmapType {
+	case "dir":
+	case "subsystems":
+		f = cover.DoSubsystemsHeatMapStyleBodyJS
+	}
+	if style, body, js, err = f("syzkaller", hdr.Namespace, dateFrom, dateTo); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
