@@ -96,6 +96,7 @@ private:
 	static int Connect(const char* addr, const char* ports)
 	{
 		int port = atoi(ports);
+		bool localhost = !strcmp(addr, "localhost");
 		if (!strcmp(addr, "stdin"))
 			return STDIN_FILENO;
 		if (port == 0)
@@ -103,11 +104,15 @@ private:
 		sockaddr_in saddr4 = {};
 		saddr4.sin_family = AF_INET;
 		saddr4.sin_port = htons(port);
+		if (localhost)
+			addr = "127.0.0.1";
 		if (inet_pton(AF_INET, addr, &saddr4.sin_addr))
 			return Connect(&saddr4, &saddr4.sin_addr, port);
 		sockaddr_in6 saddr6 = {};
 		saddr6.sin6_family = AF_INET6;
 		saddr6.sin6_port = htons(port);
+		if (localhost)
+			addr = "0:0:0:0:0:0:0:1";
 		if (inet_pton(AF_INET6, addr, &saddr6.sin6_addr))
 			return Connect(&saddr6, &saddr6.sin6_addr, port);
 		auto* hostent = gethostbyname(addr);
