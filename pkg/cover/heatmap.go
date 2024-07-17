@@ -15,6 +15,8 @@ import (
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/spanner/coveragedb"
+	"github.com/google/syzkaller/pkg/subsystem"
+	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 	"google.golang.org/api/iterator"
 )
@@ -171,6 +173,28 @@ func DoHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) e
 		panic(err)
 	}
 	templateData := filesCoverageToTemplateData(covAndDates)
+	return heatmapTemplate.Execute(w, templateData)
+}
+
+func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
+	covAndDates, err := filesCoverageAndDates(context.Background(), projectID, ns, dateFrom, dateTo)
+	if err != nil {
+		panic(err)
+	}
+	ssMatcher := subsystem.MakePathMatcher(subsystem.GetList("linux"))
+	var ssCovAndDates []*fileCoverageAndDate
+	for _, cad := range covAndDates {
+		for _, ss := range ssMatcher.Match(cad.Filepath) {
+			newRecord := fileCoverageAndDate{
+				Filepath:     ss.Name + "/" + cad.Filepath,
+				Instrumented: cad.Instrumented,
+				Covered:      cad.Covered,
+				Dateto:       cad.Dateto,
+			}
+			ssCovAndDates = append(ssCovAndDates, &newRecord)
+		}
+	}
+	templateData := filesCoverageToTemplateData(ssCovAndDates)
 	return heatmapTemplate.Execute(w, templateData)
 }
 
