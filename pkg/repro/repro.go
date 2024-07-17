@@ -81,11 +81,13 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, repor
 	return ctx.run()
 }
 
+var ErrEmptyCrashLog = errors.New("no programs")
+
 func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, reporter *report.Reporter,
 	exec execInterface) (*reproContext, error) {
 	entries := cfg.Target.ParseLog(crashLog)
 	if len(entries) == 0 {
-		return nil, fmt.Errorf("crash log (%d bytes) does not contain any programs", len(crashLog))
+		return nil, fmt.Errorf("log (%d bytes) parse failed: %w", len(crashLog), ErrEmptyCrashLog)
 	}
 	crashStart := len(crashLog)
 	crashTitle, crashType := "", crash.UnknownType
