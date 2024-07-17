@@ -112,10 +112,6 @@ type Manager struct {
 	externalReproQueue chan *Crash
 	crashes            chan *Crash
 
-	// For checking that files that we are using are not changing under us.
-	// Maps file name to modification time.
-	usedFiles map[string]time.Time
-
 	benchMu   sync.Mutex
 	benchFile *os.File
 
@@ -254,7 +250,6 @@ func RunManager(cfg *mgrconfig.Config) {
 		fresh:              true,
 		externalReproQueue: make(chan *Crash, 10),
 		crashes:            make(chan *Crash, 10),
-		usedFiles:          make(map[string]time.Time),
 		saturatedCalls:     make(map[string]bool),
 	}
 
@@ -267,8 +262,8 @@ func RunManager(cfg *mgrconfig.Config) {
 		go mgr.preloadCorpus()
 	}
 	mgr.initHTTP() // Creates HTTP server.
-	mgr.collectUsedFiles()
 	go mgr.corpusInputHandler(corpusUpdates)
+	go mgr.trackUsedFiles()
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = rpcserver.New(mgr.cfg, mgr, *flagDebug)
@@ -318,7 +313,6 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
 	mgr.reproMgr = newReproManager(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	go mgr.processFuzzingResults(ctx)
-	go mgr.checkUsedFiles()
 	go mgr.reproMgr.Loop(ctx)
 	mgr.pool.Loop(ctx)
 }
@@ -1524,10 +1518,9 @@ func (mgr *Manager) hubIsUnreachable() {
 	}
 }
 
-func (mgr *Manager) collectUsedFiles() {
-	if mgr.vmPool == nil {
-		return
-	}
+// trackUsedFiles() is checking that the files that syz-manager needs are not changed while it's running.
+func (mgr *Manager) trackUsedFiles() {
+	usedFiles := make(map[string]time.Time) // file name to modification time
 	addUsedFile := func(f string) {
 		if f == "" {
 			return
@@ -1536,7 +1529,7 @@ func (mgr *Manager) collectUsedFiles() {
 		if err != nil {
 			log.Fatalf("failed to stat %v: %v", f, err)
 		}
-		mgr.usedFiles[f] = stat.ModTime()
+		usedFiles[f] = stat.ModTime()
 	}
 	cfg := mgr.cfg
 	addUsedFile(cfg.ExecprogBin)
@@ -1548,11 +1541,8 @@ func (mgr *Manager) collectUsedFiles() {
 	if cfg.Image != "9p" {
 		addUsedFile(cfg.Image)
 	}
-}
-
-func (mgr *Manager) checkUsedFiles() {
 	for range time.NewTicker(30 * time.Second).C {
-		for f, mod := range mgr.usedFiles {
+		for f, mod := range usedFiles {
 			stat, err := os.Stat(f)
 			if err != nil {
 				log.Fatalf("failed to stat %v: %v", f, err)
