@@ -66,8 +66,6 @@ type execInterface interface {
 		*instance.RunResult, error)
 }
 
-var ErrNoPrograms = errors.New("crash log does not contain any programs")
-
 func Run(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, reporter *report.Reporter,
 	pool *dispatcher.Pool[*vm.Instance]) (*Result, *Stats, error) {
 	exec := &poolWrapper{
@@ -87,7 +85,7 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature
 	exec execInterface) (*reproContext, error) {
 	entries := cfg.Target.ParseLog(crashLog)
 	if len(entries) == 0 {
-		return nil, ErrNoPrograms
+		return nil, fmt.Errorf("crash log (%d bytes) does not contain any programs", len(crashLog))
 	}
 	crashStart := len(crashLog)
 	crashTitle, crashType := "", crash.UnknownType

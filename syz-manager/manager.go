@@ -458,10 +458,6 @@ func reportReproError(err error) {
 	}
 
 	switch err {
-	case repro.ErrNoPrograms:
-		// This is not extraordinary as programs are collected via SSH.
-		log.Logf(0, "repro failed: %v", err)
-		return
 	case repro.ErrNoVMs:
 		// This error is to be expected if we're shutting down.
 		if shutdown {
