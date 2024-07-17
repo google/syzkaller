@@ -97,6 +97,7 @@ private:
 	{
 		int port = atoi(ports);
 		bool localhost = !strcmp(addr, "localhost");
+		int fd;
 		if (!strcmp(addr, "stdin"))
 			return STDIN_FILENO;
 		if (port == 0)
@@ -106,20 +107,25 @@ private:
 		saddr4.sin_port = htons(port);
 		if (localhost)
 			addr = "127.0.0.1";
-		if (inet_pton(AF_INET, addr, &saddr4.sin_addr))
-			return Connect(&saddr4, &saddr4.sin_addr, port);
+		if (inet_pton(AF_INET, addr, &saddr4.sin_addr)) {
+			fd = Connect(&saddr4, &saddr4.sin_addr, port);
+			if (fd != -1 || !localhost)
+				return fd;
+		}
 		sockaddr_in6 saddr6 = {};
 		saddr6.sin6_family = AF_INET6;
 		saddr6.sin6_port = htons(port);
 		if (localhost)
 			addr = "0:0:0:0:0:0:0:1";
-		if (inet_pton(AF_INET6, addr, &saddr6.sin6_addr))
-			return Connect(&saddr6, &saddr6.sin6_addr, port);
+		if (inet_pton(AF_INET6, addr, &saddr6.sin6_addr)) {
+			fd = Connect(&saddr6, &saddr6.sin6_addr, port);
+			if (fd != -1 || !localhost)
+				return fd;
+		}
 		auto* hostent = gethostbyname(addr);
 		if (!hostent)
 			failmsg("failed to resolve manager addr", "addr=%s h_errno=%d", addr, h_errno);
 		for (char** addr = hostent->h_addr_list; *addr; addr++) {
-			int fd;
 			if (hostent->h_addrtype == AF_INET) {
 				memcpy(&saddr4.sin_addr, *addr, std::min<size_t>(hostent->h_length, sizeof(saddr4.sin_addr)));
 				fd = Connect(&saddr4, &saddr4.sin_addr, port);
@@ -140,8 +146,10 @@ private:
 	{
 		auto* saddr = reinterpret_cast<sockaddr*>(addr);
 		int fd = socket(saddr->sa_family, SOCK_STREAM, IPPROTO_TCP);
-		if (fd == -1)
-			fail("failed to create socket");
+		if (fd == -1) {
+			printf("failed to create socket for address family %d", saddr->sa_family);
+			return -1;
+		}
 		char str[128] = {};
 		inet_ntop(saddr->sa_family, ip, str, sizeof(str));
 		if (connect(fd, saddr, sizeof(*addr))) {
