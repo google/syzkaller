@@ -244,7 +244,7 @@ static std::optional<ShmemBuilder> output_builder;
 static uint32 output_size;
 static void mmap_output(uint32 size);
 static uint32 hash(uint32 a);
-static bool dedup(uint32 sig);
+static bool dedup(uint8 index, uint64 sig);
 
 static uint64 start_time_ms = 0;
 static bool flag_debug;
@@ -1041,7 +1041,7 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 }
 
 template <typename cover_data_t>
-uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov, bool all)
+uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov, bool all)
 {
 	// Write out feedback signals.
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
@@ -1064,7 +1064,7 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov, bool all)
 		bool ignore = !filter && !prev_filter;
 		prev_pc = pc;
 		prev_filter = filter;
-		if (ignore || dedup(sig))
+		if (ignore || dedup(index, sig))
 			continue;
 		if (!all && max_signal && max_signal->Contains(sig))
 			continue;
@@ -1211,9 +1211,9 @@ void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bo
 	} else {
 		if (flag_collect_signal) {
 			if (is_kernel_64_bit)
-				signal_off = write_signal<uint64>(fbb, cov, all_signal);
+				signal_off = write_signal<uint64>(fbb, index, cov, all_signal);
 			else
-				signal_off = write_signal<uint32>(fbb, cov, all_signal);
+				signal_off = write_signal<uint32>(fbb, index, cov, all_signal);
 		}
 		if (flag_collect_cover) {
 			if (is_kernel_64_bit)
@@ -1431,23 +1431,25 @@ static uint32 hash(uint32 a)
 }
 
 const uint32 dedup_table_size = 8 << 10;
-uint64 dedup_table[dedup_table_size];
+uint64 dedup_table_sig[dedup_table_size];
+uint8 dedup_table_index[dedup_table_size];
 
 // Poorman's best-effort hashmap-based deduplication.
-// The hashmap is global which means that we deduplicate across different calls.
-// This is OK because we are interested only in new signals.
-static bool dedup(uint32 sig)
+static bool dedup(uint8 index, uint64 sig)
 {
 	for (uint32 i = 0; i < 4; i++) {
 		uint32 pos = (sig + i) % dedup_table_size;
-		if (dedup_table[pos] == sig)
+		if (dedup_table_sig[pos] == sig && dedup_table_index[pos] == index)
 			return true;
-		if (dedup_table[pos] == 0) {
-			dedup_table[pos] = sig;
+		if (dedup_table_sig[pos] == 0 || dedup_table_index[pos] != index) {
+			dedup_table_index[pos] = index;
+			dedup_table_sig[pos] = sig;
 			return false;
 		}
 	}
-	dedup_table[sig % dedup_table_size] = sig;
+	uint32 pos = sig % dedup_table_size;
+	dedup_table_sig[pos] = sig;
+	dedup_table_index[pos] = index;
 	return false;
 }
 
