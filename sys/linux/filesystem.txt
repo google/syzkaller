@@ -679,6 +679,7 @@ ext4_options [
 	noinit_itable		stringnoz["noinit_itable"]
 	test_dummy_encryption	stringnoz["test_dummy_encryption"]
 	nombcache		stringnoz["nombcache"]
+	verity                  stringnoz["verity"]
 	resgid			fs_opt_hex["resgid", gid]
 	resuid			fs_opt_hex["resuid", uid]
 	sb			fs_opt_hex["sb", int32]
