@@ -297,8 +297,7 @@ ifla_info_policy [
 	ip6vti		ifla_info_policy$t["ip6vti", IFLA_INFO_DATA, array[vti6_policy]]
 # TODO: this should be a net device fd. How does one even obtain these?
 	ppp		ifla_info_policy$t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
-# This is not an array[gtp_policy] intentionally, gtp_policy is a struct.
-	gtp		ifla_info_policy$t["gtp", IFLA_INFO_DATA, gtp_policy]
+	gtp		ifla_info_policy$t["gtp", IFLA_INFO_DATA, array[gtp_policy]]
 	hsr		ifla_info_policy$t["hsr", IFLA_INFO_DATA, array[hsr_policy]]
 	xfrm		ifla_info_policy$t["xfrm", IFLA_INFO_DATA, array[xfrmi_policy]]
 	vcan		ifla_info_policy$t["vcan", IFLA_INFO_DATA, void]
