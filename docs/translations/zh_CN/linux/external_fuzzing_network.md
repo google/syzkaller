@@ -1,3 +1,7 @@
+> [!WARNING]
+>
+> **请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/linux/external_fuzzing_network.md](/docs/linux/external_fuzzing_network.md) 找到。**
+
 Linux 内核的外部网络模糊测试
 =========================================
 
@@ -63,5 +67,3 @@ Proto Recv-Q Send-Q Local Address           Foreign Address         State       
 tcp6       0      0 :::20001                :::*                    LISTEN      5527/a.out
 tcp6       0      0 fe80::aa:20001          fe80::bb:20000          ESTABLISHED 5527/a.out
 ```
-
-**请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/linux/external_fuzzing_network.md](/docs/linux/external_fuzzing_network.md) 找到。**

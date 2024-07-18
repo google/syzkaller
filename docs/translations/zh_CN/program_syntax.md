@@ -1,3 +1,7 @@
+> [!WARNING]
+>
+> **请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/program_syntax.md](/docs/program_syntax.md) 中找到。**
+
 # 程序语法
 
 Syzkaller 使用一种紧凑的的领域特定语言（DSL）来记录其执行的程序（如记录到 log0 等输出文件）、测试其代码并将程序持久化地存储在语料库中（指 corpus.db）。此页面提供了对相关程序语法的简要描述。一些有用的信息也可以在[样例程序](/sys/linux/test)和程序的[反序列化](/prog/encoding.go)中找到。
@@ -88,5 +92,3 @@ close(r0)
 * 带有 `async` 属性的程序只能在线程模式下执行（即必须将 `-threaded` 标志传递给 `syz-executor`）。
 * 每个带有 `async` 属性的调用都在单独的线程中执行，并且有一个可用线程数量上限（`kMaxThreads = 16`）。
 * 如果一个带有 `async` 属性的调用生成了资源，请记住其他的调用可能会将其作为输入。如果届时生成资源的调用尚未执行完毕，`syz-executor` 将会将 0 作为参数传入依赖该资源的调用。
-
-**请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/program_syntax.md](/docs/program_syntax.md) 中找到。**
