@@ -94,6 +94,18 @@
     .active {
       display: block;
     }
+    .total-left {
+      padding-left: 16px;
+    }
+    .total {
+      float: right;
+      width: 250px;
+      padding-right: 4px;
+    }
+    .total-right {
+      float: right;
+    }
+
   </style>
 </head>
 <body>
@@ -101,6 +113,12 @@
   <ul id="dir_list">
     {{template "dir" .Root}}
   </ul>
+  <br />
+  <hr />
+  <div id="total_coverage">
+    <span class="total-left">Total coverage:</span>
+    <span class="total"> {{.Root.Covered}} ({{.Root.Percent}}%)<span class="total-right">of {{.Root.Total}}</span></span>
+  </div>
 </div>
 <div id="right_pane" class="split right">
   <button class="nested" id="close-btn" onclick="onCloseClick()">X</button>
