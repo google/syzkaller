@@ -65,7 +65,7 @@ PC values associated to the line are not instrumented or source line doesn't gen
 There is small utility in syzkaller repository to generate coverage report based on raw coverage data. This is available in [syz-cover](/tools/syz-cover) and can be built by:
 
 ``` bash
-GOOS=linux GOARCH=amd64 go build "-ldflags=-s -w" -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
 ```
 
 Raw coverage data can be obtained from running `syz-manager` by:
