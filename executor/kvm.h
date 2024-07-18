@@ -75,3 +75,6 @@
 
 #define NEXT_INSN $0xbadc0de
 #define PREFIX_SIZE 0xba1d
+
+#define ARM64_ADDR_USER_CODE 0xeeee0000
+#define ARM64_ADDR_EL1_STACK_BOTTOM 0xffff1000
