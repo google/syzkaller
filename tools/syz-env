@@ -81,4 +81,4 @@ docker run \
 	--env GITHUB_PR_COMMITS \
 	--env CI \
 	${DOCKERARGS[@]} \
-	gcr.io/syzkaller/${IMAGE} -c "$COMMAND"
+	gcr.io/syzkaller/${IMAGE} -c '$COMMAND'
