@@ -1,3 +1,7 @@
+> [!WARNING]
+>
+> **请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/usage.md](/docs/usage.md) 找到。**
+
 # 如何使用 syzkaller
 
 ## 运行方式
@@ -31,5 +35,3 @@ Syzkaller 总是尝试生成更用户友好的 C 语言复现程序，但有时�
 ## 报告错误
 
 查看[此处](/docs/linux/reporting_kernel_bugs.md)说明，了解如何报告 Linux 内核错误。
-
-**请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/usage.md](/docs/usage.md) 找到。**

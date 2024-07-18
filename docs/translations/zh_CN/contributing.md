@@ -1,3 +1,7 @@
+> [!WARNING]
+>
+> **请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/contributing.md](/docs/contributing.md) 中找到。**
+
 # 如何为 syzkaller 项目做贡献
 
 如果你想为本项目做出贡献，请按照下面的[指南](contributing.md#guidelines)提交拉取请求。
@@ -139,5 +143,3 @@ docker login https://docker.pkg.github.com
 docker pull docker.pkg.github.com/google/syzkaller/env
 docker tag docker.pkg.github.com/google/syzkaller/env gcr.io/syzkaller/env
 ```
-
-**请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/contributing.md](/docs/contributing.md) 中找到。**
