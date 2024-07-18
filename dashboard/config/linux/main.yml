@@ -8,6 +8,7 @@ instances:
  - upstream-kasan-badwrites:	[linux-next, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan, kasan_panic_on_write, kfence]
  - upstream-unmaintained:	[upstream, x86_64, timeouts_native, clang, baseline, unmaintained, kasan, kfence]
  - upstream-kmsan:		[upstream, timeouts_native, x86_64, clang, lsm, apparmor, nonoise, kmsan]
+ - upstream-kmsan-next:		[linux-next, timeouts_native, x86_64, clang, lsm, smack, nonoise, kmsan]
  - upstream-kcsan:		[upstream, timeouts_native, x86_64, clang, onlynet, nonoise, kcsan]
  - upstream-leak:		[upstream, timeouts_native, x86_64, gcc, bpfjit, lsm, apparmor, nonoise, kmemleak]
  - upstream-usb:		[upstream, timeouts_native, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
