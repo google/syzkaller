@@ -30,7 +30,7 @@ config:
  - CRYPTO_TGR192: [-v5.12]
  - CRYPTO_SALSA20: [-v5.12]
  - CRYPTO_SHA3
- - CRYPTO_SM3
+ - CRYPTO_SM3: [-kmsan]
  - CRYPTO_SM3_AVX_X86_64: [v6.1, x86_64, -kmsan]
  - CRYPTO_WP512
  - CRYPTO_AES_TI
