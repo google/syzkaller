@@ -18,6 +18,12 @@ type FilesRecord struct {
 	Covered      int64
 }
 
+type FileSubsystems struct {
+	Namespace  string
+	FilePath   string
+	Subsystems []string
+}
+
 type HistoryRecord struct {
 	Session   string
 	Time      time.Time

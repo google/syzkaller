@@ -17,7 +17,6 @@ import (
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/spanner/coveragedb"
-	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 	"google.golang.org/api/iterator"
@@ -86,14 +85,15 @@ func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
 	}
 }
 
-type fileCoverageAndDate struct {
+type fileCoverageWithDetails struct {
 	Filepath     string
 	Instrumented int64
 	Covered      int64
 	Dateto       civil.Date
+	Subsystems   []string
 }
 
-func filesCoverageToTemplateData(fCov []*fileCoverageAndDate) *templateHeatmap {
+func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatmap {
 	res := templateHeatmap{
 		Root: &templateHeatmapRow{
 			builder:      map[string]*templateHeatmapRow{},
@@ -123,8 +123,8 @@ func filesCoverageToTemplateData(fCov []*fileCoverageAndDate) *templateHeatmap {
 	return &res
 }
 
-func filesCoverageAndDates(ctx context.Context, projectID, ns string, fromDate, toDate civil.Date,
-) ([]*fileCoverageAndDate, error) {
+func filesCoverageWithDetails(ctx context.Context, projectID, ns string, fromDate, toDate civil.Date,
+) ([]*fileCoverageWithDetails, error) {
 	client, err := coveragedb.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
@@ -137,10 +137,15 @@ select
   dateto,
   instrumented,
   covered,
-  filepath
-from merge_history join files
-  on merge_history.session = files.session
-where namespace=$1 and dateto>=$2 and dateto<=$3
+  files.filepath,
+  subsystems
+from merge_history
+  join files
+    on merge_history.session = files.session
+  join file_subsystems
+    on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
+where
+  merge_history.namespace=$1 and dateto>=$2 and dateto<=$3
 `,
 		Params: map[string]interface{}{
 			"p1": ns,
@@ -151,7 +156,7 @@ where namespace=$1 and dateto>=$2 and dateto<=$3
 
 	iter := client.Single().Query(ctx, stmt)
 	defer iter.Stop()
-	res := []*fileCoverageAndDate{}
+	res := []*fileCoverageWithDetails{}
 	for {
 		row, err := iter.Next()
 		if err == iterator.Done {
@@ -160,7 +165,7 @@ where namespace=$1 and dateto>=$2 and dateto<=$3
 		if err != nil {
 			return nil, fmt.Errorf("failed to iter.Next() spanner DB: %w", err)
 		}
-		var r fileCoverageAndDate
+		var r fileCoverageWithDetails
 		if err = row.ToStruct(&r); err != nil {
 			return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
 		}
@@ -188,9 +193,9 @@ func DoHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) e
 
 func DoHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
 ) (template.CSS, template.HTML, template.HTML, error) {
-	covAndDates, err := filesCoverageAndDates(context.Background(), projectID, ns, dateFrom, dateTo)
+	covAndDates, err := filesCoverageWithDetails(context.Background(), projectID, ns, dateFrom, dateTo)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to filesCoverageAndDates: %w", err)
+		return "", "", "", fmt.Errorf("failed to filesCoverageWithDetails: %w", err)
 	}
 	templateData := filesCoverageToTemplateData(covAndDates)
 	var styles, body, js bytes.Buffer
@@ -209,25 +214,18 @@ func DoHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
 }
 
 func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
-	covAndDates, err := filesCoverageAndDates(context.Background(), projectID, ns, dateFrom, dateTo)
+	covWithDetails, err := filesCoverageWithDetails(context.Background(), projectID, ns, dateFrom, dateTo)
 	if err != nil {
 		panic(err)
 	}
-	ssMatcher := subsystem.MakePathMatcher(subsystem.GetList("linux"))
-	ssCache := make(map[string][]*subsystem.Subsystem)
-	var ssCovAndDates []*fileCoverageAndDate
-	for _, cad := range covAndDates {
-		sss := ssCache[cad.Filepath]
-		if sss == nil {
-			sss = ssMatcher.Match(cad.Filepath)
-			ssCache[cad.Filepath] = sss
-		}
-		for _, ss := range sss {
-			newRecord := fileCoverageAndDate{
-				Filepath:     ss.Name + "/" + cad.Filepath,
-				Instrumented: cad.Instrumented,
-				Covered:      cad.Covered,
-				Dateto:       cad.Dateto,
+	var ssCovAndDates []*fileCoverageWithDetails
+	for _, cwd := range covWithDetails {
+		for _, ssName := range cwd.Subsystems {
+			newRecord := fileCoverageWithDetails{
+				Filepath:     ssName + "/" + cwd.Filepath,
+				Instrumented: cwd.Instrumented,
+				Covered:      cwd.Covered,
+				Dateto:       cwd.Dateto,
 			}
 			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}

@@ -14,12 +14,12 @@ import (
 func TestFilesCoverageToTemplateData(t *testing.T) {
 	tests := []struct {
 		name  string
-		input []*fileCoverageAndDate
+		input []*fileCoverageWithDetails
 		want  *templateHeatmap
 	}{
 		{
 			name:  "empty input",
-			input: []*fileCoverageAndDate{},
+			input: []*fileCoverageWithDetails{},
 			want: &templateHeatmap{
 				Root: &templateHeatmapRow{
 					Items: []*templateHeatmapRow{},
@@ -28,7 +28,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 		},
 		{
 			name: "single file",
-			input: []*fileCoverageAndDate{
+			input: []*fileCoverageWithDetails{
 				{
 					Filepath:     "file1",
 					Instrumented: 1,
@@ -59,7 +59,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 		},
 		{
 			name: "tree data",
-			input: []*fileCoverageAndDate{
+			input: []*fileCoverageWithDetails{
 				{
 					Filepath:     "dir/file2",
 					Instrumented: 1,
