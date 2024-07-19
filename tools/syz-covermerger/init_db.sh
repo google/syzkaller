@@ -35,3 +35,15 @@ CREATE TABLE IF NOT EXISTS
     (namespace, repo, duration, dateto) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
+
+echo "making sure spanner table 'file_subsystems' exists"
+create_table=$( echo -n '
+CREATE TABLE IF NOT EXISTS
+  file_subsystems (
+    "namespace" text,
+    "filepath" text,
+    "subsystems" text[],
+  PRIMARY KEY
+    (namespace, filepath) );')
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+ --ddl="$create_table"
