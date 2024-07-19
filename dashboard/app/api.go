@@ -1774,6 +1774,9 @@ func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload []
 			// finished a bug reproduction process.
 			continue
 		}
+		if !crashNeedsRepro(bug.Title) || !needReproForBug(c, bug) {
+			continue
+		}
 		checkedBugs++
 		if checkedBugs > bugsToConsider {
 			break
