@@ -79,6 +79,7 @@ type Env struct {
 	SSHKey    string
 	SSHUser   string
 	Timeouts  targets.Timeouts
+	Snapshot  bool
 	Debug     bool
 	Config    []byte // json-serialized VM-type-specific config
 	KernelSrc string

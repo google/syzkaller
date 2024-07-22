@@ -11,6 +11,7 @@ package vm
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -48,16 +49,18 @@ type Pool struct {
 	template           string
 	timeouts           targets.Timeouts
 	activeCount        int32
+	snapshot           bool
 	hostFuzzer         bool
 	statOutputReceived *stat.Val
 }
 
 type Instance struct {
-	pool    *Pool
-	impl    vmimpl.Instance
-	workdir string
-	index   int
-	onClose func()
+	pool          *Pool
+	impl          vmimpl.Instance
+	workdir       string
+	index         int
+	snapshotSetup bool
+	onClose       func()
 }
 
 var (
@@ -119,6 +122,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		SSHKey:    cfg.SSHKey,
 		SSHUser:   cfg.SSHUser,
 		Timeouts:  cfg.Timeouts,
+		Snapshot:  cfg.Snapshot,
 		Debug:     debug,
 		Config:    cfg.VM,
 		KernelSrc: cfg.KernelSrc,
@@ -133,6 +137,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		workdir:    env.Workdir,
 		template:   cfg.WorkdirTemplate,
 		timeouts:   cfg.Timeouts,
+		snapshot:   cfg.Snapshot,
 		hostFuzzer: cfg.SysTarget.HostFuzzer,
 		statOutputReceived: stat.New("vm output", "Bytes of VM console output received",
 			stat.Graph("traffic"), stat.Rate{}, stat.FormatMB),
@@ -182,6 +187,42 @@ func (pool *Pool) Close() error {
 		return closer.Close()
 	}
 	return nil
+}
+
+// SetupSnapshot must be called once before calling RunSnapshot.
+// Input is copied into the VM in an implementation defined way and is interpreted by executor.
+func (inst *Instance) SetupSnapshot(input []byte) error {
+	impl, ok := inst.impl.(snapshotter)
+	if !ok {
+		return errors.New("this VM type does not support snapshot mode")
+	}
+	if inst.snapshotSetup {
+		return fmt.Errorf("SetupSnapshot called twice")
+	}
+	inst.snapshotSetup = true
+	return impl.SetupSnapshot(input)
+}
+
+// RunSnapshot runs one input in snapshotting mode.
+// Input is copied into the VM in an implementation defined way and is interpreted by executor.
+// Result is the result provided by the executor.
+// Output is the kernel console output during execution of the input.
+func (inst *Instance) RunSnapshot(input []byte) (result, output []byte, err error) {
+	impl, ok := inst.impl.(snapshotter)
+	if !ok {
+		return nil, nil, errors.New("this VM type does not support snapshot mode")
+	}
+	if !inst.snapshotSetup {
+		return nil, nil, fmt.Errorf("RunSnapshot without SetupSnapshot")
+	}
+	// Executor has own timeout logic, so use a slightly larger timeout here.
+	timeout := inst.pool.timeouts.Program / 5 * 7
+	return impl.RunSnapshot(timeout, input)
+}
+
+type snapshotter interface {
+	SetupSnapshot([]byte) error
+	RunSnapshot(time.Duration, []byte) ([]byte, []byte, error)
 }
 
 func (inst *Instance) Copy(hostSrc string) (string, error) {
