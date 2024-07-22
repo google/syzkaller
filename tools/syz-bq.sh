@@ -108,7 +108,7 @@ EXPORT DATA
 AS (
   SELECT
     kernel_repo, kernel_branch, kernel_commit, file_path, sl, SUM(hit_count) as hit_count
-  FROM syzkaller.syzbot_coverage.'$namespace'
+  FROM syzkaller.syzbot_coverage.`'$namespace'`
   WHERE
     TIMESTAMP_TRUNC(timestamp, DAY) >= "'$from_date'" AND
     TIMESTAMP_TRUNC(timestamp, DAY) <= "'$to_date'" AND
