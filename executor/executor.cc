@@ -508,11 +508,15 @@ static uint64 sandbox_arg = 0;
 
 int main(int argc, char** argv)
 {
-	if (argc >= 2 && strcmp(argv[1], "runner") == 0) {
+	if (argc == 1) {
+		fprintf(stderr, "no command");
+		return 1;
+	}
+	if (strcmp(argv[1], "runner") == 0) {
 		runner(argv, argc);
 		fail("runner returned");
 	}
-	if (argc >= 2 && strcmp(argv[1], "leak") == 0) {
+	if (strcmp(argv[1], "leak") == 0) {
 #if SYZ_HAVE_LEAK_CHECK
 		check_leaks(argv + 2, argc - 2);
 #else
@@ -520,10 +524,10 @@ int main(int argc, char** argv)
 #endif
 		return 0;
 	}
-	if (argc >= 2 && strcmp(argv[1], "test") == 0)
+	if (strcmp(argv[1], "test") == 0)
 		return run_tests(argc == 3 ? argv[2] : nullptr);
 
-	if (argc < 2 || strcmp(argv[1], "exec") != 0) {
+	if (strcmp(argv[1], "exec") != 0) {
 		fprintf(stderr, "unknown command");
 		return 1;
 	}
