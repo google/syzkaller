@@ -74,6 +74,23 @@
   .active {
     display: block;
   }
+  .data_row {
+    width: fit-content;
+  }
+  ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
 {{ end }}
 
 {{ define "body" }}
@@ -111,7 +128,7 @@
 {{define "dir"}}
   {{range $child := .Items}}
     <li>
-      <div>
+      <div class="data_row">
         <div class="first_column" style="display: inline-block">
           <div class="tree_depth_{{ $child.Depth }}" style="display: inline-block">
           </div>
