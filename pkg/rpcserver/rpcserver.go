@@ -57,9 +57,7 @@ type Manager interface {
 }
 
 type Server struct {
-	Port           int
-	StatExecs      *stat.Val
-	StatNumFuzzing *stat.Val
+	Port int
 
 	cfg       *Config
 	mgr       Manager
@@ -144,27 +142,20 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 		baseSource: baseSource,
 		execSource: queue.Retry(baseSource),
 
-		StatExecs: stat.New("exec total", "Total test program executions",
-			stat.Console, stat.Rate{}, stat.Prometheus("syz_exec_total")),
-		StatNumFuzzing: stat.New("fuzzing VMs", "Number of VMs that are currently fuzzing",
-			stat.Console, stat.Link("/vms")),
 		statVMRestarts: stat.New("vm restarts", "Total number of VM starts",
 			stat.Rate{}, stat.NoGraph),
 		runnerStats: &runnerStats{
 			statExecRetries: stat.New("exec retries",
 				"Number of times a test program was restarted because the first run failed",
-				stat.Rate{}, stat.Graph("executor")),
-			statExecutorRestarts: stat.New("executor restarts",
-				"Number of times executor process was restarted", stat.Rate{}, stat.Graph("executor")),
-			statExecBufferTooSmall: stat.New("buffer too small",
-				"Program serialization overflowed exec buffer", stat.NoGraph),
-			statNoExecRequests: stat.New("no exec requests",
-				"Number of times fuzzer was stalled with no exec requests", stat.Rate{}),
-			statNoExecDuration: stat.New("no exec duration",
-				"Total duration fuzzer was stalled with no exec requests (ns/sec)", stat.Rate{}),
+				stats.Rate{}, stats.Graph("executor")),
+			statExecutorRestarts: stats.Create("executor restarts",
+				"Number of times executor process was restarted", stats.Rate{}, stats.Graph("executor")),
+			statExecBufferTooSmall: queue.StatExecBufferTooSmall,
+			statExecs:              queue.StatExecs,
+			statNoExecRequests:     queue.StatNoExecRequests,
+			statNoExecDuration:     queue.StatNoExecDuration,
 		},
 	}
-	serv.runnerStats.statExecs = serv.StatExecs
 	s, err := flatrpc.ListenAndServe(cfg.RPC, serv.handleConn)
 	if err != nil {
 		return nil, err
@@ -304,8 +295,8 @@ func (serv *Server) connectionLoop(runner *Runner) error {
 		}
 	}
 
-	serv.StatNumFuzzing.Add(1)
-	defer serv.StatNumFuzzing.Add(-1)
+	queue.StatNumFuzzing.Add(1)
+	defer queue.StatNumFuzzing.Add(-1)
 
 	return runner.ConnectionLoop()
 }
