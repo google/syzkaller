@@ -186,10 +186,6 @@ func main() {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
 	}
-	RunManager(cfg)
-}
-
-func RunManager(cfg *mgrconfig.Config) {
 	var mode Mode
 	switch *flagMode {
 	case "fuzzing":
@@ -214,7 +210,10 @@ func RunManager(cfg *mgrconfig.Config) {
 		flag.PrintDefaults()
 		log.Fatalf("unknown mode: %v", *flagMode)
 	}
+	RunManager(mode, cfg)
+}
 
+func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	var vmPool *vm.Pool
 	if !cfg.VMLess {
 		var err error
