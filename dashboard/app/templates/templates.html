@@ -111,8 +111,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
                   href="/{{$.Namespace}}/graph/coverage">Total</a>
               <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_heatmap" $.Namespace)}}_selected{{end}}"
                   href="/{{$.Namespace}}/graph/coverage_heatmap">Repo&nbsp;Heatmap</a>
-              <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_subsystems_heatmap" $.Namespace)}}_selected{{end}}"
-                  href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap">Subsystems&nbsp;Heatmap</a>
+              {{ if .ShowSubsystems }}
+                <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_subsystems_heatmap" $.Namespace)}}_selected{{end}}"
+                    href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap">Subsystems&nbsp;Heatmap</a>
+              {{ end }}
             </div>
           </div>
         {{end}}

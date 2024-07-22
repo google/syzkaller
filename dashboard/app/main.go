@@ -67,7 +67,9 @@ func initHTTPHandlers() {
 		if nsConfig.Coverage != nil {
 			http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
 			http.Handle("/"+ns+"/graph/coverage_heatmap", handlerWrapper(handleCoverageHeatmap))
-			http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap", handlerWrapper(handleSubsystemsCoverageHeatmap))
+			if nsConfig.Subsystems.Service != nil {
+				http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap", handlerWrapper(handleSubsystemsCoverageHeatmap))
+			}
 		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
