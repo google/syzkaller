@@ -11,7 +11,7 @@ instances:
  - upstream-kmsan-next:		[linux-next, timeouts_native, x86_64, clang, lsm, smack, nonoise, kmsan]
  - upstream-kcsan:		[upstream, timeouts_native, x86_64, clang, onlynet, nonoise, kcsan]
  - upstream-leak:		[upstream, timeouts_native, x86_64, gcc, bpfjit, lsm, apparmor, nonoise, kmemleak]
- - upstream-usb:		[upstream, timeouts_native, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
+ - upstream-usb:		[upstream, timeouts_native, x86_64, gcc, onlyusb, kasan]
  - upstream-arm64-kasan:	[upstream, arm64, arm64_emu, timeouts_emu, clang, lsm, selinux, reduced, kasan, nokcov]
  - upstream-arm64-kasan_sw-kcov: [linux-next, arm64, arm64_emu, timeouts_emu, clang, lsm, selinux, reduced, kasan_sw]
  - upstream-arm64-mte:		[upstream, arm64, arm64_emu, timeouts_emu, clang, bpfjit, lsm, smack, nonoise, reduced, kfence, mte, nokcov]
