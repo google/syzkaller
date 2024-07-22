@@ -356,7 +356,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 }
 
-func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (*instance, error) {
 	inst := &instance{
 		index:      index,
 		cfg:        pool.cfg,
@@ -421,7 +421,59 @@ func (inst *instance) Close() error {
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
 	inst.monport = vmimpl.UnusedTCPPort()
-	instanceName := fmt.Sprintf("VM-%v", inst.index)
+	args, err := inst.buildQemuArgs()
+	if err != nil {
+		return err
+	}
+	if inst.debug {
+		log.Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
+	}
+	inst.args = args
+	qemu := osutil.Command(inst.cfg.Qemu, args...)
+	qemu.Stdout = inst.wpipe
+	qemu.Stderr = inst.wpipe
+	if err := qemu.Start(); err != nil {
+		return fmt.Errorf("failed to start %v %+v: %w", inst.cfg.Qemu, args, err)
+	}
+	inst.wpipe.Close()
+	inst.wpipe = nil
+	inst.qemu = qemu
+	// Qemu has started.
+
+	// Start output merger.
+	var tee io.Writer
+	if inst.debug {
+		tee = os.Stdout
+	}
+	inst.merger = vmimpl.NewOutputMerger(tee)
+	inst.merger.Add("qemu", inst.rpipe)
+	inst.rpipe = nil
+
+	var bootOutput []byte
+	bootOutputStop := make(chan bool)
+	go func() {
+		for {
+			select {
+			case out := <-inst.merger.Output:
+				bootOutput = append(bootOutput, out...)
+			case <-bootOutputStop:
+				close(bootOutputStop)
+				return
+			}
+		}
+	}()
+
+	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute*inst.timeouts.Scale, "localhost",
+		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err, false); err != nil {
+		bootOutputStop <- true
+		<-bootOutputStop
+		return vmimpl.MakeBootError(err, bootOutput)
+	}
+	bootOutputStop <- true
+	return nil
+}
+
+func (inst *instance) buildQemuArgs() ([]string, error) {
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
@@ -430,14 +482,13 @@ func (inst *instance) boot() error {
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
-		"-name", instanceName,
+		"-name", fmt.Sprintf("VM-%v", inst.index),
 	}
 	if inst.archConfig.RngDev != "" {
 		args = append(args, "-device", inst.archConfig.RngDev)
 	}
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
-
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
 		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.port),
@@ -504,51 +555,7 @@ func (inst *instance) boot() error {
 			"-device", "isa-applesmc,osk="+inst.cfg.AppleSmcOsk,
 		)
 	}
-	if inst.debug {
-		log.Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
-	}
-	inst.args = args
-	qemu := osutil.Command(inst.cfg.Qemu, args...)
-	qemu.Stdout = inst.wpipe
-	qemu.Stderr = inst.wpipe
-	if err := qemu.Start(); err != nil {
-		return fmt.Errorf("failed to start %v %+v: %w", inst.cfg.Qemu, args, err)
-	}
-	inst.wpipe.Close()
-	inst.wpipe = nil
-	inst.qemu = qemu
-	// Qemu has started.
-
-	// Start output merger.
-	var tee io.Writer
-	if inst.debug {
-		tee = os.Stdout
-	}
-	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("qemu", inst.rpipe)
-	inst.rpipe = nil
-
-	var bootOutput []byte
-	bootOutputStop := make(chan bool)
-	go func() {
-		for {
-			select {
-			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
-			case <-bootOutputStop:
-				close(bootOutputStop)
-				return
-			}
-		}
-	}()
-	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute*inst.timeouts.Scale, "localhost",
-		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err, false); err != nil {
-		bootOutputStop <- true
-		<-bootOutputStop
-		return vmimpl.MakeBootError(err, bootOutput)
-	}
-	bootOutputStop <- true
-	return nil
+	return args, nil
 }
 
 // "vfio-pci,host=BN:DN.{{FN%8}},addr=0x11".
