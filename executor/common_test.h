@@ -180,6 +180,17 @@ static long syz_inject_cover(volatile long a, volatile long b)
 #endif
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_inject_remote_cover
+static long syz_inject_remote_cover(volatile long a, volatile long b)
+#if SYZ_EXECUTOR
+    ; // defined in executor_test.h
+#else
+{
+	return 0;
+}
+#endif
+#endif
+
 #if SYZ_EXECUTOR || SYZ_SYSCTL
 static void setup_sysctl()
 {

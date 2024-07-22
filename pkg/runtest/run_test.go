@@ -144,6 +144,7 @@ func TestCover(t *testing.T) {
 
 type CoverTest struct {
 	Is64Bit         bool
+	ExtraCoverage   bool
 	Input           []byte
 	MaxSignal       []uint64
 	CoverFilter     []uint64
@@ -356,6 +357,15 @@ func testCover(t *testing.T, target *prog.Target) {
 				0xc0000020, 0xc0000010, 0xc0000001},
 			Signal: []uint64{0xc0001100, 0xc0000140, 0xc0000011, 0xc0000001},
 		},
+		// Extra coverage.
+		{
+			Is64Bit:       true,
+			ExtraCoverage: true,
+			Input:         makeCover64(0xc0dec0dec0000001, 0xc0dec0dec0000010),
+			Flags:         flatrpc.ExecFlagCollectSignal | flatrpc.ExecFlagCollectCover,
+			Cover:         []uint64{0xc0dec0dec0000010, 0xc0dec0dec0000001},
+			Signal:        []uint64{0xc0dec0dec0000011, 0xc0dec0dec0000001},
+		},
 	}
 	executor := csource.BuildExecutor(t, target, "../../")
 	for i, test := range tests {
@@ -382,7 +392,11 @@ func testCover(t *testing.T, target *prog.Target) {
 }
 
 func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test CoverTest, source *queue.PlainQueue) {
-	text := fmt.Sprintf(`syz_inject_cover(&AUTO="%s", AUTO)`, hex.EncodeToString(test.Input))
+	callName := "syz_inject_cover"
+	if test.ExtraCoverage {
+		callName = "syz_inject_remote_cover"
+	}
+	text := fmt.Sprintf(`%s(&AUTO="%s", AUTO)`, callName, hex.EncodeToString(test.Input))
 	p, err := target.Deserialize([]byte(text), prog.Strict)
 	if err != nil {
 		t.Fatal(err)
@@ -390,7 +404,7 @@ func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test Cov
 	req := &queue.Request{
 		Prog: p,
 		ExecOpts: flatrpc.ExecOpts{
-			EnvFlags:  flatrpc.ExecEnvSignal | flatrpc.ExecEnvSandboxNone,
+			EnvFlags:  flatrpc.ExecEnvSignal | flatrpc.ExecEnvExtraCover | flatrpc.ExecEnvSandboxNone,
 			ExecFlags: test.Flags,
 		},
 	}
@@ -403,6 +417,12 @@ func testCover1(t *testing.T, ctx context.Context, target *prog.Target, test Cov
 		t.Fatalf("program execution failed: status=%v err=%v\n%s", res.Status, res.Err, res.Output)
 	}
 	call := res.Info.Calls[0]
+	if test.ExtraCoverage {
+		call = res.Info.Extra
+		if call == nil {
+			t.Fatalf("got no extra coverage info")
+		}
+	}
 	if test.Cover == nil {
 		test.Cover = []uint64{}
 	}

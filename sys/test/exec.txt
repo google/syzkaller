@@ -13,6 +13,7 @@ syz_compare_zlib(data ptr[in, array[int8]], size bytesize[data], zdata ptr[in, c
 
 # Copies the data into KCOV buffer verbatim.
 syz_inject_cover(ptr ptr[in, array[int8]], size bytesize[ptr])
+syz_inject_remote_cover(ptr ptr[in, array[int8]], size bytesize[ptr]) (prog_timeout[1000], remote_cover)
 
 compare_data [
 	align0		align0

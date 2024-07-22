@@ -121,15 +121,24 @@ static void cover_unprotect(cover_t* cov)
 {
 }
 
-static long syz_inject_cover(volatile long a, volatile long b)
+static long inject_cover(cover_t* cov, long a, long b)
 {
-	cover_t* cov = &current_thread->cov;
 	if (cov->data == nullptr)
 		return ENOENT;
 	uint32 size = std::min((uint32)b, cov->mmap_alloc_size);
 	memcpy(cov->data, (void*)a, size);
 	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->mmap_alloc_size - size));
 	return 0;
+}
+
+static long syz_inject_cover(volatile long a, volatile long b)
+{
+	return inject_cover(&current_thread->cov, a, b);
+}
+
+static long syz_inject_remote_cover(volatile long a, volatile long b)
+{
+	return inject_cover(&extra_cov, a, b);
 }
 
 static const char* setup_fault()

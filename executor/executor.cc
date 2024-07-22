@@ -1001,7 +1001,9 @@ void execute_one()
 		// that we were killed on timeout before we write any.
 		// Check for extra coverage is very cheap, effectively a memory load.
 		const uint64 kSleepMs = 100;
-		for (uint64 i = 0; i < prog_extra_cover_timeout / kSleepMs; i++) {
+		for (uint64 i = 0; i < prog_extra_cover_timeout / kSleepMs &&
+				   output_data->completed.load(std::memory_order_relaxed) < kMaxCalls;
+		     i++) {
 			sleep_ms(kSleepMs);
 			write_extra_output();
 		}
@@ -1267,6 +1269,7 @@ void write_extra_output()
 	if (!extra_cov.size)
 		return;
 	write_output(-1, &extra_cov, rpc::CallFlag::NONE, 997, all_extra_signal);
+	cover_reset(&extra_cov);
 }
 
 flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id, uint64 elapsed,
