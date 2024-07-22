@@ -1339,6 +1339,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 			Corpus:         mgr.corpus,
+			Snapshot:       mgr.cfg.Snapshot,
 			Coverage:       mgr.cfg.Cover,
 			FaultInjection: features&flatrpc.FeatureFault != 0,
 			Comparisons:    features&flatrpc.FeatureComparisons != 0,
