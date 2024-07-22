@@ -137,6 +137,11 @@ type Config struct {
 	// on this value.
 	SandboxArg int64 `json:"sandbox_arg"`
 
+	// Enables snapshotting mode. In this mode VM is snapshotted and restarted from the snapshot
+	// before executing each test program. This provides better reproducibility and avoids global
+	// accumulated state. Currently only qemu VMs and Linux support this mode.
+	Snapshot bool `json:"snapshot"`
+
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
 	// Use coverage filter. Supported types of filter:
