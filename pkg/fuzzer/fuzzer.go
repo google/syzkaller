@@ -168,6 +168,7 @@ type Config struct {
 	Debug          bool
 	Corpus         *corpus.Corpus
 	Logf           func(level int, msg string, args ...interface{})
+	Snapshot       bool
 	Coverage       bool
 	FaultInjection bool
 	Comparisons    bool

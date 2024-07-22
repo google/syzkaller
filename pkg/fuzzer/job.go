@@ -96,12 +96,13 @@ type triageCall struct {
 // of runs for the additional work. With 2/6 criteria, a program with 60% flakiness has
 // 96% chance to be kept in the corpus after retriage.
 const (
-	deflakeNeedRuns        = 3
-	deflakeMaxRuns         = 5
-	deflakeNeedCorpusRuns  = 2
-	deflakeMinCorpusRuns   = 4
-	deflakeMaxCorpusRuns   = 6
-	deflakeTotalCorpusRuns = 20
+	deflakeNeedRuns         = 3
+	deflakeMaxRuns          = 5
+	deflakeNeedCorpusRuns   = 2
+	deflakeMinCorpusRuns    = 4
+	deflakeMaxCorpusRuns    = 6
+	deflakeTotalCorpusRuns  = 20
+	deflakeNeedSnapshotRuns = 2
 )
 
 func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result {
@@ -179,7 +180,9 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 
 func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result) (stop bool) {
 	needRuns := deflakeNeedCorpusRuns
-	if job.flags&ProgFromCorpus == 0 {
+	if job.fuzzer.Config.Snapshot {
+		needRuns = deflakeNeedSnapshotRuns
+	} else if job.flags&ProgFromCorpus == 0 {
 		needRuns = deflakeNeedRuns
 	}
 	prevTotalNewSignal := 0
@@ -249,6 +252,9 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 }
 
 func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
+	if job.fuzzer.Config.Snapshot {
+		return run >= needRuns+1
+	}
 	haveSignal := true
 	for _, call := range job.calls {
 		if !call.newSignal.IntersectsWith(call.signals[needRuns-1]) {
@@ -286,7 +292,10 @@ func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
 }
 
 func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
-	const minimizeAttempts = 3
+	minimizeAttempts := 3
+	if job.fuzzer.Config.Snapshot {
+		minimizeAttempts = 2
+	}
 	stop := false
 	p, call := prog.Minimize(job.p, call, prog.MinimizeParams{},
 		func(p1 *prog.Prog, call1 int) bool {
