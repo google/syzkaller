@@ -79,17 +79,14 @@ func TestPoolSplit(t *testing.T) {
 
 	startedRuns := make(chan bool)
 	stopRuns := make(chan bool)
-	for i := 0; i < 10; i++ {
-		go func() {
-			mgr.Run(func(ctx context.Context, _ *testInstance, _ UpdateInfo) {
-				startedRuns <- true
-				select {
-				case <-ctx.Done():
-				case <-stopRuns:
-				}
-			})
-		}()
+	job := func(ctx context.Context, _ *testInstance, _ UpdateInfo) {
+		startedRuns <- true
+		select {
+		case <-ctx.Done():
+		case <-stopRuns:
+		}
 	}
+	go mgr.Run(job)
 
 	// So far, there are no reserved instances.
 	for i := 0; i < count; i++ {
@@ -113,9 +110,12 @@ func TestPoolSplit(t *testing.T) {
 	}
 	assert.EqualValues(t, 3, defaultCount.Load())
 
-	// Now let's finish all jobs.
+	// Now let's create and finish more jobs.
+	for i := 0; i < 10; i++ {
+		go mgr.Run(job)
+	}
 	mgr.ReserveForRun(2)
-	for i := 0; i < 9; i++ {
+	for i := 0; i < 10; i++ {
 		<-startedRuns
 		stopRuns <- true
 	}
