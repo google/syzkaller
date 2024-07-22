@@ -52,9 +52,6 @@
   .tree_depth_7 {width: 140px;}
 
   .bold {font-weight: bold;}
-  .hover:hover {
-    background: #ffff99;
-  }
   .caret {
     cursor: pointer;
     user-select: none;
@@ -91,6 +88,9 @@
   ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
   ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
   ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  .data_row:hover {
+    background-color: #ffff99 !important;
+  }
 {{ end }}
 
 {{ define "body" }}
@@ -132,7 +132,7 @@
         <div class="first_column" style="display: inline-block">
           <div class="tree_depth_{{ $child.Depth }}" style="display: inline-block">
           </div>
-          <div class="{{ if $child.IsDir }}caret hover{{ end }}"
+          <div class="{{ if $child.IsDir }}caret{{ end }}"
                style="display: inline-block">
             {{$child.Name}}
           </div>
