@@ -17,7 +17,9 @@ import (
 	"reflect"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/spanner/coveragedb"
 )
 
 type Dashboard struct {
@@ -683,6 +685,24 @@ type SaveDiscussionReq struct {
 }
 
 func (dash *Dashboard) SaveDiscussion(req *SaveDiscussionReq) error {
+	return dash.Query("save_discussion", req, nil)
+}
+
+type MergedCoverage struct {
+	Namespace string
+	Repo      string
+	Commit    string
+	Duration  int64
+	DateTo    civil.Date
+	TotalRows int64
+	FileData  map[string]*coveragedb.Coverage
+}
+
+type SaveCoverageReq struct {
+	Coverage *MergedCoverage
+}
+
+func (dash *Dashboard) SaveCoverage(req *SaveCoverageReq) error {
 	return dash.Query("save_discussion", req, nil)
 }
 
