@@ -76,6 +76,10 @@
 #define NEXT_INSN $0xbadc0de
 #define PREFIX_SIZE 0xba1d
 
+// Write to this page to trigger a page fault and stop KVM_RUN.
+#define ARM64_ADDR_EXIT 0xdddd0000
+// Dedicated address within the exit page for the uexit command.
+#define ARM64_ADDR_UEXIT (ARM64_ADDR_EXIT + 256)
 #define ARM64_ADDR_USER_CODE 0xeeee0000
 #define ARM64_ADDR_EXECUTOR_CODE 0xeeee8000
 #define ARM64_ADDR_EL1_STACK_BOTTOM 0xffff1000

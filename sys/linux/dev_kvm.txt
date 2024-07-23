@@ -232,11 +232,31 @@ kvm_text_x86_64 {
 	size	len[text, intptr]
 }
 
+# Unlike on other architectures, ARM64 text is a sequence of commands, each starting with
+# the call number and the command length.
 kvm_text_arm64 {
 	typ	const[0, intptr]
-	text	ptr[in, text[arm64]]
-	size	len[text, intptr]
+	text	ptr[in, array[syzos_api_call, 1:32]]
+	size	bytesize[text, int64]
 }
+
+syzos_api_uexit {
+	call		const[0, int64]
+	size		bytesize[parent, int64]
+	exit_code	intptr
+}
+
+syzos_api_code {
+	call	const[1, int64]
+	size	bytesize[parent, int64]
+	insns	text[arm64]
+	ret	const[0xd65f03c0, int32]
+} [packed]
+
+syzos_api_call [
+	uexit	syzos_api_uexit
+	code	syzos_api_code
+] [varlen]
 
 kvm_text_ppc64 {
 	typ	const[0, intptr]
