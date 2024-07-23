@@ -703,7 +703,7 @@ type SaveCoverageReq struct {
 }
 
 func (dash *Dashboard) SaveCoverage(req *SaveCoverageReq) error {
-	return dash.Query("save_discussion", req, nil)
+	return dash.Query("save_coverage", req, nil)
 }
 
 type TestPatchRequest struct {
