@@ -9,6 +9,7 @@
 #include "kvm.h"
 
 // Register encodings from https://docs.kernel.org/virt/kvm/api.html.
+#define KVM_ARM64_REGS_X0 0x6030000000100000UL
 #define KVM_ARM64_REGS_PC 0x6030000000100040UL
 #define KVM_ARM64_REGS_SP_EL1 0x6030000000100044UL
 
@@ -60,13 +61,10 @@ static struct addr_size alloc_guest_mem(struct addr_size* free, size_t size)
 	return ret;
 }
 
-static void fill_with_ret(void* addr, int size)
-{
-	uint32* insn = (uint32*)addr;
-
-	for (int i = 0; i < size / 4; i++)
-		insn[i] = 0xd65f03c0; // RET
-}
+struct api_fn {
+	int index;
+	void* fn;
+};
 
 // syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
 static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
@@ -108,6 +106,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	// Guest physical memory layout:
 	// 0x00000000 - unused pages
+	// 0xdddd0000 - unmapped region to trigger a page faults for uexits etc. (1 page)
 	// 0xeeee0000 - user code (1 page)
 	// 0xeeee8000 - executor guest code (4 pages)
 	// 0xffff1000 - EL1 stack (1 page)
@@ -119,12 +118,11 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	struct addr_size next = alloc_guest_mem(&allocator, page_size);
-	// Fill the guest code page with RET instructions to be on the safe side.
-	fill_with_ret(next.addr, next.size);
 	if (text_size > next.size)
 		text_size = next.size;
 	memcpy(next.addr, text, text_size);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
+
 	next = alloc_guest_mem(&allocator, page_size);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
 
@@ -143,6 +141,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	// PC points to the relative offset of guest_main() within the guest code.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + page_size - 128);
+	// Pass parameters to guest_main().
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_X0, text_size);
 
 	return 0;
 }
