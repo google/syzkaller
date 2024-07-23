@@ -36,8 +36,9 @@ import (
 
 func init() {
 	vmimpl.Register("gce", vmimpl.Type{
-		Ctor:       ctor,
-		Overcommit: true,
+		Ctor:        ctor,
+		Overcommit:  true,
+		Preemptible: true,
 	})
 }
 

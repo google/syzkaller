@@ -43,6 +43,7 @@ import (
 
 type Pool struct {
 	impl               vmimpl.Pool
+	typ                vmimpl.Type
 	workdir            string
 	template           string
 	timeouts           targets.Timeouts
@@ -128,6 +129,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 	}
 	return &Pool{
 		impl:       impl,
+		typ:        typ,
 		workdir:    env.Workdir,
 		template:   cfg.WorkdirTemplate,
 		timeouts:   cfg.Timeouts,
@@ -420,7 +422,9 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	if defaultError != noOutputCrash || diagWait {
 		mon.waitForOutput()
 	}
-	if bytes.Contains(mon.output, []byte(executorPreemptedStr)) {
+	// Check the executorPreemptedStr only for preemptible instances since executor can print
+	// the string spuriously in some cases (gets SIGTERM from test program somehow).
+	if mon.inst.pool.typ.Preemptible && bytes.Contains(mon.output, []byte(executorPreemptedStr)) {
 		return nil
 	}
 	if defaultError == "" && mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
