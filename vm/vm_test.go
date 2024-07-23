@@ -82,7 +82,8 @@ func init() {
 		return &testPool{}, nil
 	}
 	vmimpl.Register("test", vmimpl.Type{
-		Ctor: ctor,
+		Ctor:        ctor,
+		Preemptible: true,
 	})
 }
 

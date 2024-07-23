@@ -133,6 +133,10 @@ type Type struct {
 	// It's possible to create out-of-thin-air instances of this type.
 	// Out-of-thin-air instances are used by syz-ci for image testing, patch testing, bisection, etc.
 	Overcommit bool
+	// Instances of this type can be preempted and lost connection as the result.
+	// For preempted instances executor prints "SYZ-EXECUTOR: PREEMPTED" and then
+	// the host understands that the lost connection was expected and is not a bug.
+	Preemptible bool
 }
 
 type ctorFunc func(env *Env) (Pool, error)
