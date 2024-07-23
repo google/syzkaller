@@ -149,10 +149,13 @@ var archConfigs = map[string]*archConfig{
 		},
 	},
 	"linux/arm64": {
-		Qemu:     "qemu-system-aarch64",
-		QemuArgs: "-machine virt,virtualization=on,gic-version=max -cpu cortex-a57 -accel tcg,thread=multi",
-		NetDev:   "virtio-net-pci",
-		RngDev:   "virtio-rng-pci",
+		Qemu: "qemu-system-aarch64",
+		// Disable SVE and pointer authentication for now, they significantly slow down
+		// the emulation and are unlikely to bring a lot of new coverage.
+		QemuArgs: strings.Join([]string{"-machine virt,virtualization=on,gic-version=max ",
+			"-cpu max,sve=off,pauth=off -accel tcg,thread=multi"}, ""),
+		NetDev: "virtio-net-pci",
+		RngDev: "virtio-rng-pci",
 		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyAMA0",
