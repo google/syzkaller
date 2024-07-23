@@ -24,7 +24,9 @@ import (
 const pstoreConsoleFile = "/sys/fs/pstore/console-ramoops-0"
 
 func init() {
-	vmimpl.Register("isolated", ctor, false)
+	vmimpl.Register("isolated", vmimpl.Type{
+		Ctor: ctor,
+	})
 }
 
 type Config struct {

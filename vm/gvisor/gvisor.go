@@ -26,7 +26,10 @@ import (
 )
 
 func init() {
-	vmimpl.Register(targets.GVisor, ctor, true)
+	vmimpl.Register(targets.GVisor, vmimpl.Type{
+		Ctor:       ctor,
+		Overcommit: true,
+	})
 }
 
 type Config struct {

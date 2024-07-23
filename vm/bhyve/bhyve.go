@@ -21,7 +21,10 @@ import (
 )
 
 func init() {
-	vmimpl.Register("bhyve", ctor, true)
+	vmimpl.Register("bhyve", vmimpl.Type{
+		Ctor:       ctor,
+		Overcommit: true,
+	})
 }
 
 type Config struct {

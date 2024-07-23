@@ -124,15 +124,14 @@ func (err InfraError) InfraError() (string, []byte) {
 }
 
 // Register registers a new VM type within the package.
-func Register(typ string, ctor ctorFunc, allowsOvercommit bool) {
-	Types[typ] = Type{
-		Ctor:       ctor,
-		Overcommit: allowsOvercommit,
-	}
+func Register(typ string, desc Type) {
+	Types[typ] = desc
 }
 
 type Type struct {
-	Ctor       ctorFunc
+	Ctor ctorFunc
+	// It's possible to create out-of-thin-air instances of this type.
+	// Out-of-thin-air instances are used by syz-ci for image testing, patch testing, bisection, etc.
 	Overcommit bool
 }
 
