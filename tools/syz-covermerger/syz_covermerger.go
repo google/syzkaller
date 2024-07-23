@@ -13,8 +13,11 @@ import (
 	"sort"
 
 	"cloud.google.com/go/civil"
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/spanner/coveragedb"
+	"github.com/google/syzkaller/pkg/subsystem"
+	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 )
 
@@ -30,6 +33,7 @@ var (
 	flagSaveToSpanner = flag.String("save-to-spanner", "", "[optional] save aggregation to spanner")
 	flagProjectID     = flag.String("project-id", "syzkaller", "[optional] target spanner db project")
 	flagTotalRows     = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
+	flagToDashAPI     = flag.String("to-dashapi", "", "[optional] dashapi address")
 )
 
 func main() {
@@ -59,7 +63,7 @@ func main() {
 			panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 		}
 		coverage, _, _ := mergeResultsToCoverage(mergeResult)
-		saveToSpanner(context.Background(), *flagProjectID, coverage,
+		coveragedb.SaveMergeResult(context.Background(), *flagProjectID, coverage,
 			&coveragedb.HistoryRecord{
 				Namespace: *flagNamespace,
 				Repo:      *flagRepo,
@@ -68,8 +72,22 @@ func main() {
 				DateTo:    dateTo,
 			},
 			*flagTotalRows,
+			subsystem.GetList("linux"),
 		)
 	}
+	if *flagToDashAPI != "" {
+		saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{})
+	}
+}
+
+func saveCoverage(dashboard string, d *dashapi.MergedCoverage) error {
+	dash, err := dashapi.New("coverage-merger", dashboard, "")
+	if err != nil {
+		log.Panicf("failed dashapi.New(): %v", err)
+	}
+	return dash.SaveCoverage(&dashapi.SaveCoverageReq{
+		Coverage: d,
+	})
 }
 
 func printMergeResult(mergeResult map[string]*covermerger.MergeResult) {
@@ -103,14 +121,9 @@ func printCoverage(target string, instrumented, covered int64) {
 		target, instrumented, covered, coverage*100)
 }
 
-type Coverage struct {
-	Instrumented int64
-	Covered      int64
-}
-
 func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
-) (map[string]*Coverage, int64, int64) {
-	res := make(map[string]*Coverage)
+) (map[string]*coveragedb.Coverage, int64, int64) {
+	res := make(map[string]*coveragedb.Coverage)
 	var totalInstrumented, totalCovered int64
 	for fileName, lineStat := range mergedCoverage {
 		if !lineStat.FileExists {
@@ -123,7 +136,7 @@ func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
 				covered++
 			}
 		}
-		res[fileName] = &Coverage{
+		res[fileName] = &coveragedb.Coverage{
 			Instrumented: instrumented,
 			Covered:      covered,
 		}

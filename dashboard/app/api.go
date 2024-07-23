@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/spanner/coveragedb"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/sys/targets"
 	"google.golang.org/appengine/v2"
@@ -51,6 +52,7 @@ var apiHandlers = map[string]APIHandler{
 	"needed_assets":         apiNeededAssetsList,
 	"load_full_bug":         apiLoadFullBug,
 	"save_discussion":       apiSaveDiscussion,
+	"save_coverage":         apiSaveCoverage,
 }
 
 var apiNamespaceHandlers = map[string]APINamespaceHandler{
@@ -1853,4 +1855,39 @@ func takeReproTask(c context.Context, ns, manager string) ([]byte, error) {
 	}
 	log, _, err := getText(c, textCrashLog, task.Log)
 	return log, err
+}
+
+func apiSaveCoverage(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.SaveCoverageReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
+	}
+	coverage := req.Coverage
+	var sss []*subsystem.Subsystem
+	if service := getNsConfig(c, coverage.Namespace).Subsystems.Service; service != nil {
+		sss = service.List()
+		log.Infof(c, "found %d subsystems for %s namespace", len(sss), coverage.Namespace)
+	}
+	err := coveragedb.SaveMergeResult(
+		context.Background(),
+		appengine.AppID(context.Background()),
+		coverage.FileData,
+		&coveragedb.HistoryRecord{
+			Namespace: coverage.Namespace,
+			Repo:      coverage.Repo,
+			Commit:    coverage.Commit,
+			Duration:  coverage.Duration,
+			DateTo:    coverage.DateTo,
+		},
+		coverage.TotalRows,
+		sss,
+	)
+	if err != nil {
+		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
+			coverage.Namespace, coverage.DateTo.String(), err)
+	} else {
+		log.Infof(c, "updated coverage for ns %s, date %s to %d rows",
+			coverage.Namespace, coverage.DateTo.String(), coverage.TotalRows)
+	}
+	return nil, err
 }
