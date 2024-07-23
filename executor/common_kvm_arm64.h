@@ -5,6 +5,7 @@
 
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
 
+#include "common_kvm_arm64_syzos.h"
 #include "kvm.h"
 
 // Register encodings from https://docs.kernel.org/virt/kvm/api.html.
@@ -108,9 +109,14 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	// Guest physical memory layout:
 	// 0x00000000 - unused pages
 	// 0xeeee0000 - user code (1 page)
+	// 0xeeee8000 - executor guest code (4 pages)
 	// 0xffff1000 - EL1 stack (1 page)
 	struct addr_size allocator = {.addr = host_mem, .size = guest_mem_size};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
+
+	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * page_size);
+	memcpy(host_text.addr, &__start_guest, (char*)&__stop_guest - (char*)&__start_guest);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	struct addr_size next = alloc_guest_mem(&allocator, page_size);
 	// Fill the guest code page with RET instructions to be on the safe side.
@@ -134,7 +140,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
 
 	// Set up CPU registers.
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_USER_CODE);
+	// PC points to the relative offset of guest_main() within the guest code.
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + page_size - 128);
 
 	return 0;
