@@ -25,7 +25,10 @@ import (
 
 func init() {
 	var _ vmimpl.Infoer = (*instance)(nil)
-	vmimpl.Register(targets.Starnix, ctor, true)
+	vmimpl.Register(targets.Starnix, vmimpl.Type{
+		Ctor:       ctor,
+		Overcommit: true,
+	})
 }
 
 type Config struct {

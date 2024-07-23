@@ -28,7 +28,10 @@ const (
 )
 
 func init() {
-	vmimpl.Register("cuttlefish", ctor, true)
+	vmimpl.Register("cuttlefish", vmimpl.Type{
+		Ctor:       ctor,
+		Overcommit: true,
+	})
 }
 
 type Pool struct {

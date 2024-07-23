@@ -27,12 +27,11 @@ func makeDefaultParams() *proxyAppParams {
 }
 
 func init() {
-	vmimpl.Register(
-		"proxyapp",
-		func(env *vmimpl.Env) (vmimpl.Pool, error) {
+	vmimpl.Register("proxyapp", vmimpl.Type{
+		Ctor: func(env *vmimpl.Env) (vmimpl.Pool, error) {
 			return ctor(makeDefaultParams(), env)
 		},
-		false)
+	})
 }
 
 // Package configuration VARs are mostly needed for tests.

@@ -23,7 +23,9 @@ import (
 )
 
 func init() {
-	vmimpl.Register("vmware", ctor, false)
+	vmimpl.Register("vmware", vmimpl.Type{
+		Ctor: ctor,
+	})
 }
 
 type Config struct {
