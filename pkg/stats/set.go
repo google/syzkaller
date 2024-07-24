@@ -51,10 +51,6 @@ func RenderHTML() ([]byte, error) {
 	return global.RenderHTML()
 }
 
-func Import(named map[string]uint64) {
-	global.Import(named)
-}
-
 var global = newSet(256, true)
 
 type set struct {
@@ -132,18 +128,6 @@ func (s *set) Collect(level Level) []UI {
 		return res[i].Name < res[j].Name
 	})
 	return res
-}
-
-func (s *set) Import(named map[string]uint64) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for name, val := range named {
-		v := s.vals[name]
-		if v == nil {
-			panic(fmt.Sprintf("imported stat %v is missing", name))
-		}
-		v.Add(int(val))
-	}
 }
 
 // Additional options for Val metrics.
