@@ -1389,6 +1389,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 			Verbose: true,
 			Debug:   *flagDebug,
 		}
+		ctx.Init()
 		go func() {
 			err := ctx.Run(context.Background())
 			if err != nil {

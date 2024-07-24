@@ -63,13 +63,18 @@ type Context struct {
 	buildSem chan bool
 }
 
+func (ctx *Context) Init() {
+	// Run usually runs in a separate goroutine concurrently with request consumer (Next calls),
+	// so at least executor needs to be initialized before Run.
+	ctx.executor = queue.DynamicOrder()
+	ctx.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
+}
+
 func (ctx *Context) log(msg string, args ...interface{}) {
 	ctx.LogFunc(fmt.Sprintf(msg, args...))
 }
 
 func (ctx *Context) Run(waitCtx context.Context) error {
-	ctx.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
-	ctx.executor = queue.DynamicOrder()
 	ctx.generatePrograms()
 	var ok, fail, broken, skip int
 	for _, req := range ctx.requests {
