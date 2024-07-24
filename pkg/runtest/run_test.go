@@ -85,6 +85,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		Verbose: true,
 		Debug:   *flagDebug,
 	}
+	ctx.Init()
 	waitCtx := startRPCServer(t, target, executor, ctx, rpcParams{
 		manyProcs: true,
 		machineChecked: func(features flatrpc.Feature) {
