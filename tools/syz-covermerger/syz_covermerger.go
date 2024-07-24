@@ -53,16 +53,16 @@ func main() {
 		panic(err)
 	}
 	printMergeResult(mergeResult)
+	var dateTo civil.Date
+	if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
+		panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
+	}
+	coverage, _, _ := mergeResultsToCoverage(mergeResult)
 	if *flagSaveToSpanner != "" {
 		log.Print("saving to spanner")
 		if *flagDuration == 0 || *flagDateTo == "" {
 			panic("duration and date-to are required to store to DB")
 		}
-		var dateTo civil.Date
-		if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
-			panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
-		}
-		coverage, _, _ := mergeResultsToCoverage(mergeResult)
 		coveragedb.SaveMergeResult(context.Background(), *flagProjectID, coverage,
 			&coveragedb.HistoryRecord{
 				Namespace: *flagNamespace,
@@ -76,7 +76,15 @@ func main() {
 		)
 	}
 	if *flagToDashAPI != "" {
-		if err := saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{}); err != nil {
+		if err := saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{
+			Namespace: *flagNamespace,
+			Repo:      *flagRepo,
+			Commit:    *flagCommit,
+			Duration:  *flagDuration,
+			DateTo:    dateTo,
+			TotalRows: *flagTotalRows,
+			FileData:  coverage,
+		}); err != nil {
 			log.Panicf("failed to saveCoverage: %v", err)
 		}
 	}
