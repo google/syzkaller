@@ -20,7 +20,7 @@ func TestSet(t *testing.T) {
 	_, err := set.RenderHTML()
 	a.NoError(err)
 
-	v0 := set.Create("v0", "desc0")
+	v0 := set.New("v0", "desc0")
 	a.Equal(v0.Val(), 0)
 	v0.Add(1)
 	a.Equal(v0.Val(), 1)
@@ -28,18 +28,18 @@ func TestSet(t *testing.T) {
 	a.Equal(v0.Val(), 2)
 
 	vv1 := 0
-	v1 := set.Create("v1", "desc1", Simple, func() int { return vv1 })
+	v1 := set.New("v1", "desc1", Simple, func() int { return vv1 })
 	a.Equal(v1.Val(), 0)
 	vv1 = 11
 	a.Equal(v1.Val(), 11)
 	a.Panics(func() { v1.Add(1) })
 
-	v2 := set.Create("v2", "desc2", Console, func(v int, period time.Duration) string {
+	v2 := set.New("v2", "desc2", Console, func(v int, period time.Duration) string {
 		return fmt.Sprintf("v2 %v %v", v, period)
 	})
 	v2.Add(100)
 
-	v3 := set.Create("v3", "desc3", Link("/v3"), NoGraph, Distribution{})
+	v3 := set.New("v3", "desc3", Link("/v3"), NoGraph, Distribution{})
 	a.Equal(v3.Val(), 0)
 	v3.Add(10)
 	a.Equal(v3.Val(), 10)
@@ -55,13 +55,13 @@ func TestSet(t *testing.T) {
 	v3.Add(30)
 	a.Equal(v3.Val(), 24)
 
-	v4 := set.Create("v4", "desc4", Rate{}, Graph("graph"))
+	v4 := set.New("v4", "desc4", Rate{}, Graph("graph"))
 	v4.Add(10)
 	a.Equal(v4.Val(), 10)
 	v4.Add(10)
 	a.Equal(v4.Val(), 20)
 
-	a.Panics(func() { set.Create("v0", "desc0", float64(1)) })
+	a.Panics(func() { set.New("v0", "desc0", float64(1)) })
 
 	ui := set.Collect(All)
 	a.Equal(len(ui), 5)
@@ -87,7 +87,7 @@ func TestSet(t *testing.T) {
 func TestSetRateFormat(t *testing.T) {
 	a := assert.New(t)
 	set := newSet(4, false)
-	v := set.Create("v", "desc", Rate{})
+	v := set.New("v", "desc", Rate{})
 	a.Equal(set.Collect(All)[0].Value, "0 (0/hour)")
 	v.Add(1)
 	a.Equal(set.Collect(All)[0].Value, "1 (60/min)")
@@ -98,7 +98,7 @@ func TestSetRateFormat(t *testing.T) {
 func TestSetHistoryCounter(t *testing.T) {
 	a := assert.New(t)
 	set := newSet(4, false)
-	v := set.Create("v0", "desc0")
+	v := set.New("v0", "desc0")
 	set.tick()
 	hist := func() []float64 { return set.graphs["v0"].lines["v0"].data[:set.historyPos] }
 	step := func(n int) []float64 {
@@ -132,7 +132,7 @@ func TestSetHistoryCounter(t *testing.T) {
 func TestSetHistoryRate(t *testing.T) {
 	a := assert.New(t)
 	set := newSet(4, false)
-	v := set.Create("v0", "desc0", Rate{})
+	v := set.New("v0", "desc0", Rate{})
 	step := func(n int) []float64 {
 		v.Add(n)
 		set.tick()
@@ -155,7 +155,7 @@ func TestSetHistoryRate(t *testing.T) {
 func TestSetHistoryDistribution(t *testing.T) {
 	a := assert.New(t)
 	set := newSet(4, false)
-	v := set.Create("v0", "desc0", Distribution{})
+	v := set.New("v0", "desc0", Distribution{})
 	step := func(n int) [3][]float64 {
 		v.Add(n)
 		set.tick()
@@ -194,7 +194,7 @@ func TestSetStress(t *testing.T) {
 		for _, opt := range []any{Link(""), NoGraph, Rate{}, Distribution{}} {
 			opt := opt
 			go func() {
-				v := set.Create(fmt.Sprintf("v%v", seq.Add(1)), "desc", opt)
+				v := set.New(fmt.Sprintf("v%v", seq.Add(1)), "desc", opt)
 				for p1 := 0; p1 < 2; p1++ {
 					start(func() { v.Val() })
 					start(func() { v.Add(rand.Intn(10000)) })
@@ -203,7 +203,7 @@ func TestSetStress(t *testing.T) {
 		}
 		go func() {
 			var vv atomic.Uint64
-			v := set.Create(fmt.Sprintf("v%v", seq.Add(1)), "desc",
+			v := set.New(fmt.Sprintf("v%v", seq.Add(1)), "desc",
 				func() int { return int(vv.Load()) })
 			for p1 := 0; p1 < 2; p1++ {
 				start(func() { v.Val() })

@@ -23,15 +23,15 @@ type Stats struct {
 }
 
 func (mgr *Manager) initStats() {
-	mgr.statCrashes = stats.Create("crashes", "Total number of VM crashes",
+	mgr.statCrashes = stats.New("crashes", "Total number of VM crashes",
 		stats.Simple, stats.Prometheus("syz_crash_total"))
-	mgr.statCrashTypes = stats.Create("crash types", "Number of unique crashes types",
+	mgr.statCrashTypes = stats.New("crash types", "Number of unique crashes types",
 		stats.Simple, stats.NoGraph)
-	mgr.statSuppressed = stats.Create("suppressed", "Total number of suppressed VM crashes",
+	mgr.statSuppressed = stats.New("suppressed", "Total number of suppressed VM crashes",
 		stats.Simple, stats.Graph("crashes"))
-	mgr.statFuzzingTime = stats.Create("fuzzing", "Total fuzzing time in all VMs (seconds)",
+	mgr.statFuzzingTime = stats.New("fuzzing", "Total fuzzing time in all VMs (seconds)",
 		stats.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
-	mgr.statUptime = stats.Create("uptime", "Total uptime (seconds)", stats.Simple, stats.NoGraph,
+	mgr.statUptime = stats.New("uptime", "Total uptime (seconds)", stats.Simple, stats.NoGraph,
 		func() int {
 			firstConnect := mgr.firstConnect.Load()
 			if firstConnect == 0 {
@@ -41,7 +41,7 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v sec", v)
 		})
-	mgr.statAvgBootTime = stats.Create("instance restart", "Average VM restart time (sec)",
+	mgr.statAvgBootTime = stats.New("instance restart", "Average VM restart time (sec)",
 		stats.NoGraph,
 		func() int {
 			return int(mgr.bootTime.Value().Seconds())
@@ -50,7 +50,7 @@ func (mgr *Manager) initStats() {
 			return fmt.Sprintf("%v sec", v)
 		})
 
-	stats.Create("heap", "Process heap size (bytes)", stats.Graph("memory"),
+	stats.New("heap", "Process heap size (bytes)", stats.Graph("memory"),
 		func() int {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
@@ -58,7 +58,7 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-	stats.Create("VM", "Process VM size (bytes)", stats.Graph("memory"),
+	stats.New("VM", "Process VM size (bytes)", stats.Graph("memory"),
 		func() int {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
@@ -66,15 +66,15 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-	stats.Create("images memory", "Uncompressed images memory (bytes)", stats.Graph("memory"),
+	stats.New("images memory", "Uncompressed images memory (bytes)", stats.Graph("memory"),
 		func() int {
 			return int(image.StatMemory.Load())
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-	stats.Create("uncompressed images", "Total number of uncompressed images in memory",
+	stats.New("uncompressed images", "Total number of uncompressed images in memory",
 		func() int {
 			return int(image.StatImages.Load())
 		})
-	mgr.statCoverFiltered = stats.Create("filtered coverage", "", stats.NoGraph)
+	mgr.statCoverFiltered = stats.New("filtered coverage", "", stats.NoGraph)
 }
