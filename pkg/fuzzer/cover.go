@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 )
 
 // Cover keeps track of the signal known to the fuzzer.
@@ -19,8 +19,8 @@ type Cover struct {
 
 func newCover() *Cover {
 	cover := new(Cover)
-	stats.New("max signal", "Maximum fuzzing signal (including flakes)",
-		stats.Graph("signal"), stats.LenOf(&cover.maxSignal, &cover.mu))
+	stat.New("max signal", "Maximum fuzzing signal (including flakes)",
+		stat.Graph("signal"), stat.LenOf(&cover.maxSignal, &cover.mu))
 	return cover
 }
 

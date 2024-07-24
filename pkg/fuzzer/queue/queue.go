@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -33,7 +33,7 @@ type Request struct {
 	ReturnOutput    bool
 
 	// This stat will be incremented on request completion.
-	Stat *stats.Val
+	Stat *stat.Val
 
 	// Options needed by runtest.
 	BinaryFile string // If set, it's executed instead of Prog.

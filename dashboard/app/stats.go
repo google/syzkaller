@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/stats/syzbotstats"
+	"github.com/google/syzkaller/pkg/stat/syzbotstats"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )

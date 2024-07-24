@@ -24,7 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm/dispatcher"
@@ -84,11 +84,11 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		Log:          log.CachedLogOutput(),
 	}
 
-	level := stats.Simple
+	level := stat.Simple
 	if mgr.expertMode {
-		level = stats.All
+		level = stat.All
 	}
-	for _, stat := range stats.Collect(level) {
+	for _, stat := range stat.Collect(level) {
 		data.Stats = append(data.Stats, UIStat{
 			Name:  stat.Name,
 			Value: stat.Value,
@@ -157,7 +157,7 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
-	data, err := stats.RenderHTML()
+	data, err := stat.RenderHTML()
 	if err != nil {
 		log.Logf(0, "failed to execute template: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

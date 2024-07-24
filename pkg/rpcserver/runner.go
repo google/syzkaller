@@ -18,7 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/dispatcher"
@@ -54,12 +54,12 @@ type Runner struct {
 }
 
 type runnerStats struct {
-	statExecs              *stats.Val
-	statExecRetries        *stats.Val
-	statExecutorRestarts   *stats.Val
-	statExecBufferTooSmall *stats.Val
-	statNoExecRequests     *stats.Val
-	statNoExecDuration     *stats.Val
+	statExecs              *stat.Val
+	statExecRetries        *stat.Val
+	statExecutorRestarts   *stat.Val
+	statExecBufferTooSmall *stat.Val
+	statNoExecRequests     *stat.Val
+	statNoExecDuration     *stat.Val
 }
 
 type handshakeConfig struct {

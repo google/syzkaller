@@ -1,7 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package stats
+package stat
 
 import (
 	"bytes"
@@ -23,10 +23,10 @@ import (
 //
 // Simple uses of metrics:
 //
-//	statFoo := stats.New("metric name", "metric description")
+//	statFoo := stat.New("metric name", "metric description")
 //	statFoo.Add(1)
 //
-//	stats.New("metric name", "metric description", LenOf(mySlice, rwMutex))
+//	stat.New("metric name", "metric description", LenOf(mySlice, rwMutex))
 //
 // Metric visualization code uses Collect/RenderHTML functions to obtain values of all registered metrics.
 

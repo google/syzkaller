@@ -10,7 +10,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/stats/sample"
+	"github.com/google/syzkaller/pkg/stat/sample"
 )
 
 type Cell = interface{}

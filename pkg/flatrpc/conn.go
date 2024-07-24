@@ -15,14 +15,14 @@ import (
 
 	"github.com/google/flatbuffers/go"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 )
 
 var (
-	statSent = stats.New("rpc sent", "Outbound RPC traffic",
-		stats.Graph("traffic"), stats.Rate{}, stats.FormatMB)
-	statRecv = stats.New("rpc recv", "Inbound RPC traffic",
-		stats.Graph("traffic"), stats.Rate{}, stats.FormatMB)
+	statSent = stat.New("rpc sent", "Outbound RPC traffic",
+		stat.Graph("traffic"), stat.Rate{}, stat.FormatMB)
+	statRecv = stat.New("rpc recv", "Inbound RPC traffic",
+		stat.Graph("traffic"), stat.Rate{}, stat.FormatMB)
 )
 
 type Serv struct {

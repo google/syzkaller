@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -240,7 +240,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	return req
 }
 
-func (fuzzer *Fuzzer) startJob(stat *stats.Val, newJob job) {
+func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
 	go func() {
 		stat.Add(1)

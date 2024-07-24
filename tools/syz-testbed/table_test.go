@@ -6,7 +6,7 @@ package main
 import (
 	"testing"
 
-	"github.com/google/syzkaller/pkg/stats/sample"
+	"github.com/google/syzkaller/pkg/stat/sample"
 	"github.com/stretchr/testify/assert"
 )
 

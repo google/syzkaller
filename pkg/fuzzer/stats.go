@@ -3,63 +3,63 @@
 
 package fuzzer
 
-import "github.com/google/syzkaller/pkg/stats"
+import "github.com/google/syzkaller/pkg/stat"
 
 type Stats struct {
-	statCandidates          *stats.Val
-	statNewInputs           *stats.Val
-	statJobs                *stats.Val
-	statJobsTriage          *stats.Val
-	statJobsTriageCandidate *stats.Val
-	statJobsSmash           *stats.Val
-	statJobsFaultInjection  *stats.Val
-	statJobsHints           *stats.Val
-	statExecTime            *stats.Val
-	statExecGenerate        *stats.Val
-	statExecFuzz            *stats.Val
-	statExecCandidate       *stats.Val
-	statExecTriage          *stats.Val
-	statExecMinimize        *stats.Val
-	statExecSmash           *stats.Val
-	statExecFaultInject     *stats.Val
-	statExecHint            *stats.Val
-	statExecSeed            *stats.Val
-	statExecCollide         *stats.Val
+	statCandidates          *stat.Val
+	statNewInputs           *stat.Val
+	statJobs                *stat.Val
+	statJobsTriage          *stat.Val
+	statJobsTriageCandidate *stat.Val
+	statJobsSmash           *stat.Val
+	statJobsFaultInjection  *stat.Val
+	statJobsHints           *stat.Val
+	statExecTime            *stat.Val
+	statExecGenerate        *stat.Val
+	statExecFuzz            *stat.Val
+	statExecCandidate       *stat.Val
+	statExecTriage          *stat.Val
+	statExecMinimize        *stat.Val
+	statExecSmash           *stat.Val
+	statExecFaultInject     *stat.Val
+	statExecHint            *stat.Val
+	statExecSeed            *stat.Val
+	statExecCollide         *stat.Val
 }
 
 func newStats() Stats {
 	return Stats{
-		statCandidates: stats.New("candidates", "Number of candidate programs in triage queue",
-			stats.Console, stats.Graph("corpus")),
-		statNewInputs: stats.New("new inputs", "Potential untriaged corpus candidates",
-			stats.Graph("corpus")),
-		statJobs:       stats.New("fuzzer jobs", "Total running fuzzer jobs", stats.NoGraph),
-		statJobsTriage: stats.New("triage jobs", "Running triage jobs", stats.StackedGraph("jobs")),
-		statJobsTriageCandidate: stats.New("candidate triage jobs", "Running candidate triage jobs",
-			stats.StackedGraph("jobs")),
-		statJobsSmash:          stats.New("smash jobs", "Running smash jobs", stats.StackedGraph("jobs")),
-		statJobsFaultInjection: stats.New("fault jobs", "Running fault injection jobs", stats.StackedGraph("jobs")),
-		statJobsHints:          stats.New("hints jobs", "Running hints jobs", stats.StackedGraph("jobs")),
-		statExecTime:           stats.New("prog exec time", "Test program execution time (ms)", stats.Distribution{}),
-		statExecGenerate: stats.New("exec gen", "Executions of generated programs", stats.Rate{},
-			stats.StackedGraph("exec")),
-		statExecFuzz: stats.New("exec fuzz", "Executions of mutated programs",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecCandidate: stats.New("exec candidate", "Executions of candidate programs",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecTriage: stats.New("exec triage", "Executions of corpus triage programs",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecMinimize: stats.New("exec minimize", "Executions of programs during minimization",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecSmash: stats.New("exec smash", "Executions of smashed programs",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecFaultInject: stats.New("exec inject", "Executions of fault injection",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecHint: stats.New("exec hints", "Executions of programs generated using hints",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecSeed: stats.New("exec seeds", "Executions of programs for hints extraction",
-			stats.Rate{}, stats.StackedGraph("exec")),
-		statExecCollide: stats.New("exec collide", "Executions of programs in collide mode",
-			stats.Rate{}, stats.StackedGraph("exec")),
+		statCandidates: stat.New("candidates", "Number of candidate programs in triage queue",
+			stat.Console, stat.Graph("corpus")),
+		statNewInputs: stat.New("new inputs", "Potential untriaged corpus candidates",
+			stat.Graph("corpus")),
+		statJobs:       stat.New("fuzzer jobs", "Total running fuzzer jobs", stat.NoGraph),
+		statJobsTriage: stat.New("triage jobs", "Running triage jobs", stat.StackedGraph("jobs")),
+		statJobsTriageCandidate: stat.New("candidate triage jobs", "Running candidate triage jobs",
+			stat.StackedGraph("jobs")),
+		statJobsSmash:          stat.New("smash jobs", "Running smash jobs", stat.StackedGraph("jobs")),
+		statJobsFaultInjection: stat.New("fault jobs", "Running fault injection jobs", stat.StackedGraph("jobs")),
+		statJobsHints:          stat.New("hints jobs", "Running hints jobs", stat.StackedGraph("jobs")),
+		statExecTime:           stat.New("prog exec time", "Test program execution time (ms)", stat.Distribution{}),
+		statExecGenerate: stat.New("exec gen", "Executions of generated programs", stat.Rate{},
+			stat.StackedGraph("exec")),
+		statExecFuzz: stat.New("exec fuzz", "Executions of mutated programs",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecCandidate: stat.New("exec candidate", "Executions of candidate programs",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecTriage: stat.New("exec triage", "Executions of corpus triage programs",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecMinimize: stat.New("exec minimize", "Executions of programs during minimization",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecSmash: stat.New("exec smash", "Executions of smashed programs",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecFaultInject: stat.New("exec inject", "Executions of fault injection",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecHint: stat.New("exec hints", "Executions of programs generated using hints",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecSeed: stat.New("exec seeds", "Executions of programs for hints extraction",
+			stat.Rate{}, stat.StackedGraph("exec")),
+		statExecCollide: stat.New("exec collide", "Executions of programs in collide mode",
+			stat.Rate{}, stat.StackedGraph("exec")),
 	}
 }
