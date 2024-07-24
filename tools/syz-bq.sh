@@ -127,7 +127,7 @@ go run ./tools/syz-covermerger/ -workdir $workdir \
   -repo $repo \
   -branch $branch \
   -commit $base_commit \
-  -save-to-spanner true \
+  -to-dashapi https://syzkaller.appspot.com \
   -namespace $namespace \
   -duration $duration \
   -date-to $to_date \
