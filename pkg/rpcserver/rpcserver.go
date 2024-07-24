@@ -33,6 +33,7 @@ import (
 type Config struct {
 	vminfo.Config
 	VMArch string
+	VMType string
 	RPC    string
 	VMLess bool
 	// Hash adjacent PCs to form fuzzing feedback signal (otherwise just use coverage PCs as signal).
@@ -103,6 +104,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 	return newImpl(context.Background(), &Config{
 		Config: vminfo.Config{
 			Target:     cfg.Target,
+			VMType:     cfg.Type,
 			Features:   features,
 			Syscalls:   cfg.Syscalls,
 			Debug:      debug,

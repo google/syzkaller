@@ -37,12 +37,14 @@ type KernelModule struct {
 
 type Checker struct {
 	checker
+	vmType       string
 	source       queue.Source
 	checkContext *checkContext
 }
 
 type Config struct {
 	Target *prog.Target
+	VMType string
 	// Set of features to check, missing features won't be checked/enabled after Run.
 	Features flatrpc.Feature
 	// Set of syscalls to check.
@@ -68,6 +70,7 @@ func New(ctx context.Context, cfg *Config) *Checker {
 	executor := queue.Plain()
 	return &Checker{
 		checker:      impl,
+		vmType:       cfg.VMType,
 		source:       queue.Deduplicate(ctx, executor),
 		checkContext: newCheckContext(ctx, cfg, impl, executor),
 	}
@@ -75,7 +78,11 @@ func New(ctx context.Context, cfg *Config) *Checker {
 
 func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelModule, []byte, error) {
 	files := createVirtualFilesystem(fileInfos)
-	modules, err := checker.parseModules(files)
+	var modules []*KernelModule
+	var err error
+	if checker.vmType != targets.GVisor && checker.vmType != targets.Starnix {
+		modules, err = checker.parseModules(files)
+	}
 	if err != nil {
 		return nil, nil, err
 	}

@@ -466,6 +466,7 @@ func makeComps(comps ...Comparison) []byte {
 type rpcParams struct {
 	manyProcs      bool
 	vmArch         string
+	vmType         string
 	maxSignal      []uint64
 	coverFilter    []uint64
 	machineChecked func(features flatrpc.Feature)
@@ -488,6 +489,7 @@ func startRPCServer(t *testing.T, target *prog.Target, executor string,
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
 				Target:   target,
+				VMType:   extra.vmType,
 				Cover:    true,
 				Debug:    *flagDebug,
 				Features: flatrpc.AllFeatures,
