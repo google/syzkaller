@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -16,7 +15,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/spanner/coveragedb"
-	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 )
@@ -24,16 +22,14 @@ import (
 var (
 	flagWorkdir = flag.String("workdir", "workdir-cover-aggregation",
 		"[optional] used to clone repos")
-	flagRepo          = flag.String("repo", "", "[required] repo to be used as an aggregation point")
-	flagBranch        = flag.String("branch", "", "[required] branch to be used as an aggregation point")
-	flagCommit        = flag.String("commit", "", "[required] commit hash to be used as an aggregation point")
-	flagNamespace     = flag.String("namespace", "upstream", "[optional] target namespace")
-	flagDuration      = flag.Int64("duration", 0, "[optional] used to mark DB records")
-	flagDateTo        = flag.String("date-to", "", "[optional] used to mark DB records")
-	flagSaveToSpanner = flag.String("save-to-spanner", "", "[optional] save aggregation to spanner")
-	flagProjectID     = flag.String("project-id", "syzkaller", "[optional] target spanner db project")
-	flagTotalRows     = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
-	flagToDashAPI     = flag.String("to-dashapi", "", "[optional] dashapi address")
+	flagRepo      = flag.String("repo", "", "[required] repo to be used as an aggregation point")
+	flagBranch    = flag.String("branch", "", "[required] branch to be used as an aggregation point")
+	flagCommit    = flag.String("commit", "", "[required] commit hash to be used as an aggregation point")
+	flagNamespace = flag.String("namespace", "upstream", "[optional] target namespace")
+	flagDuration  = flag.Int64("duration", 0, "[optional] used to mark DB records")
+	flagDateTo    = flag.String("date-to", "", "[optional] used to mark DB records")
+	flagTotalRows = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
+	flagToDashAPI = flag.String("to-dashapi", "", "[optional] dashapi address")
 )
 
 func main() {
@@ -58,23 +54,6 @@ func main() {
 		panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 	}
 	coverage, _, _ := mergeResultsToCoverage(mergeResult)
-	if *flagSaveToSpanner != "" {
-		log.Print("saving to spanner")
-		if *flagDuration == 0 || *flagDateTo == "" {
-			panic("duration and date-to are required to store to DB")
-		}
-		coveragedb.SaveMergeResult(context.Background(), *flagProjectID, coverage,
-			&coveragedb.HistoryRecord{
-				Namespace: *flagNamespace,
-				Repo:      *flagRepo,
-				Commit:    *flagCommit,
-				Duration:  *flagDuration,
-				DateTo:    dateTo,
-			},
-			*flagTotalRows,
-			subsystem.GetList("linux"),
-		)
-	}
 	if *flagToDashAPI != "" {
 		if err := saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{
 			Namespace: *flagNamespace,

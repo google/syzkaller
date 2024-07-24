@@ -44,8 +44,6 @@ func NewClient(ctx context.Context, projectID string) (*spanner.Client, error) {
 	return spanner.NewClient(ctx, database)
 }
 
-// TODO: move to dashAPI once tested? I'm not sure we'll benefit.
-
 type Coverage struct {
 	Instrumented int64
 	Covered      int64
