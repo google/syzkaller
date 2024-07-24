@@ -19,7 +19,7 @@ type Cover struct {
 
 func newCover() *Cover {
 	cover := new(Cover)
-	stats.Create("max signal", "Maximum fuzzing signal (including flakes)",
+	stats.New("max signal", "Maximum fuzzing signal (including flakes)",
 		stats.Graph("signal"), stats.LenOf(&cover.maxSignal, &cover.mu))
 	return cover
 }

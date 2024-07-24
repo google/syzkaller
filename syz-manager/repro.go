@@ -49,13 +49,13 @@ func newReproManager(mgr reproManagerView, reproVMs int, onlyOnce bool) *reproMa
 		pingQueue:   make(chan struct{}, 1),
 		attempted:   map[string]bool{},
 	}
-	ret.statNumReproducing = stats.Create("reproducing", "Number of crashes being reproduced",
+	ret.statNumReproducing = stats.New("reproducing", "Number of crashes being reproduced",
 		stats.Console, stats.NoGraph, func() int {
 			ret.mu.Lock()
 			defer ret.mu.Unlock()
 			return len(ret.reproducing)
 		})
-	ret.statPending = stats.Create("pending", "Number of pending repro tasks",
+	ret.statPending = stats.New("pending", "Number of pending repro tasks",
 		stats.Console, stats.NoGraph, func() int {
 			ret.mu.Lock()
 			defer ret.mu.Unlock()

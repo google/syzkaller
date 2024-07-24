@@ -23,10 +23,10 @@ import (
 //
 // Simple uses of metrics:
 //
-//	statFoo := stats.Create("metric name", "metric description")
+//	statFoo := stats.New("metric name", "metric description")
 //	statFoo.Add(1)
 //
-//	stats.Create("metric name", "metric description", LenOf(mySlice, rwMutex))
+//	stats.New("metric name", "metric description", LenOf(mySlice, rwMutex))
 //
 // Metric visualization code uses Collect/RenderHTML functions to obtain values of all registered metrics.
 
@@ -39,8 +39,8 @@ type UI struct {
 	V     int
 }
 
-func Create(name, desc string, opts ...any) *Val {
-	return global.Create(name, desc, opts...)
+func New(name, desc string, opts ...any) *Val {
+	return global.New(name, desc, opts...)
 }
 
 func Collect(level Level) []UI {
@@ -182,7 +182,7 @@ func FormatMB(v int, period time.Duration) string {
 // Addittionally a custom 'func() int' can be passed to read the metric value from the function.
 // and 'func(int, time.Duration) string' can be passed for custom formatting of the metric value.
 
-func (s *set) Create(name, desc string, opts ...any) *Val {
+func (s *set) New(name, desc string, opts ...any) *Val {
 	v := &Val{
 		name:  name,
 		desc:  desc,

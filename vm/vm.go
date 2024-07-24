@@ -134,7 +134,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		template:   cfg.WorkdirTemplate,
 		timeouts:   cfg.Timeouts,
 		hostFuzzer: cfg.SysTarget.HostFuzzer,
-		statOutputReceived: stats.Create("vm output", "Bytes of VM console output received",
+		statOutputReceived: stats.New("vm output", "Bytes of VM console output received",
 			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
 	}, nil
 }

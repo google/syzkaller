@@ -50,13 +50,13 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
 
-		statSendProgAdd:   stats.Create("hub send prog add", "", stats.Graph("hub progs")),
-		statSendProgDel:   stats.Create("hub send prog del", "", stats.Graph("hub progs")),
-		statRecvProg:      stats.Create("hub recv prog", "", stats.Graph("hub progs")),
-		statRecvProgDrop:  stats.Create("hub recv prog drop", "", stats.NoGraph),
-		statSendRepro:     stats.Create("hub send repro", "", stats.Graph("hub repros")),
-		statRecvRepro:     stats.Create("hub recv repro", "", stats.Graph("hub repros")),
-		statRecvReproDrop: stats.Create("hub recv repro drop", "", stats.NoGraph),
+		statSendProgAdd:   stats.New("hub send prog add", "", stats.Graph("hub progs")),
+		statSendProgDel:   stats.New("hub send prog del", "", stats.Graph("hub progs")),
+		statRecvProg:      stats.New("hub recv prog", "", stats.Graph("hub progs")),
+		statRecvProgDrop:  stats.New("hub recv prog drop", "", stats.NoGraph),
+		statSendRepro:     stats.New("hub send repro", "", stats.Graph("hub repros")),
+		statRecvRepro:     stats.New("hub recv repro", "", stats.Graph("hub repros")),
+		statRecvReproDrop: stats.New("hub recv repro drop", "", stats.NoGraph),
 	}
 	if mgr.cfg.Reproduce && mgr.dash != nil {
 		// Request reproducers from hub only if there is nothing else to reproduce.

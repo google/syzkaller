@@ -1329,7 +1329,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	mgr.enabledFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	mgr.firstConnect.Store(time.Now().Unix())
-	statSyscalls := stats.Create("syscalls", "Number of enabled syscalls",
+	statSyscalls := stats.New("syscalls", "Number of enabled syscalls",
 		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
 	corpus := mgr.loadCorpus()

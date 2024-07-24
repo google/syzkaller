@@ -19,9 +19,9 @@ import (
 )
 
 var (
-	statSent = stats.Create("rpc sent", "Outbound RPC traffic",
+	statSent = stats.New("rpc sent", "Outbound RPC traffic",
 		stats.Graph("traffic"), stats.Rate{}, stats.FormatMB)
-	statRecv = stats.Create("rpc recv", "Inbound RPC traffic",
+	statRecv = stats.New("rpc recv", "Inbound RPC traffic",
 		stats.Graph("traffic"), stats.Rate{}, stats.FormatMB)
 )
 

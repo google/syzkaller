@@ -40,11 +40,11 @@ func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpu
 		updates:      updates,
 		ProgramsList: &ProgramsList{},
 	}
-	corpus.StatProgs = stats.Create("corpus", "Number of test programs in the corpus", stats.Console,
+	corpus.StatProgs = stats.New("corpus", "Number of test programs in the corpus", stats.Console,
 		stats.Link("/corpus"), stats.Graph("corpus"), stats.LenOf(&corpus.progs, &corpus.mu))
-	corpus.StatSignal = stats.Create("signal", "Fuzzing signal in the corpus",
+	corpus.StatSignal = stats.New("signal", "Fuzzing signal in the corpus",
 		stats.LenOf(&corpus.signal, &corpus.mu))
-	corpus.StatCover = stats.Create("coverage", "Source coverage in the corpus", stats.Console,
+	corpus.StatCover = stats.New("coverage", "Source coverage in the corpus", stats.Console,
 		stats.Link("/cover"), stats.Prometheus("syz_corpus_cover"), stats.LenOf(&corpus.cover, &corpus.mu))
 	return corpus
 }
