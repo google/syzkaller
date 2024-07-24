@@ -17,8 +17,7 @@ func TestSet(t *testing.T) {
 	a := assert.New(t)
 	set := newSet(4, false)
 	a.Empty(set.Collect(All))
-	_, err := set.RenderHTML()
-	a.NoError(err)
+	set.RenderGraphs()
 
 	v0 := set.New("v0", "desc0")
 	a.Equal(v0.Val(), 0)
@@ -80,8 +79,7 @@ func TestSet(t *testing.T) {
 	a.Equal(len(ui2), 1)
 	a.Equal(ui2[0].Name, "v2")
 
-	_, err = set.RenderHTML()
-	a.NoError(err)
+	set.RenderGraphs()
 }
 
 func TestSetRateFormat(t *testing.T) {
@@ -211,7 +209,7 @@ func TestSetStress(t *testing.T) {
 			}
 		}()
 		start(func() { set.Collect(All) })
-		start(func() { set.RenderHTML() })
+		start(func() { set.RenderGraphs() })
 		start(func() { set.tick() })
 	}
 	time.Sleep(time.Second)

@@ -4,7 +4,6 @@
 package stat
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/VividCortex/gohistogram"
-	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -28,7 +26,7 @@ import (
 //
 //	stat.New("metric name", "metric description", LenOf(mySlice, rwMutex))
 //
-// Metric visualization code uses Collect/RenderHTML functions to obtain values of all registered metrics.
+// Metric visualization code uses Collect/RenderGraphs functions to obtain values of all registered metrics.
 
 type UI struct {
 	Name  string
@@ -47,8 +45,8 @@ func Collect(level Level) []UI {
 	return global.Collect(level)
 }
 
-func RenderHTML() ([]byte, error) {
-	return global.RenderHTML()
+func RenderGraphs() []UIGraph {
+	return global.RenderGraphs()
 }
 
 var global = newSet(256, true)
@@ -391,22 +389,24 @@ func (s *set) compress() {
 	}
 }
 
-func (s *set) RenderHTML() ([]byte, error) {
+type UIGraph struct {
+	ID      int
+	Title   string
+	Stacked bool
+	Level   Level
+	Lines   []string
+	Points  []UIPoint
+}
+
+type UIPoint struct {
+	X int
+	Y []float64
+}
+
+func (s *set) RenderGraphs() []UIGraph {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	type Point struct {
-		X int
-		Y []float64
-	}
-	type Graph struct {
-		ID      int
-		Title   string
-		Stacked bool
-		Level   Level
-		Lines   []string
-		Points  []Point
-	}
-	var graphs []Graph
+	var graphs []UIGraph
 	tick := s.historyScale * int(tickPeriod.Seconds())
 	for title, graph := range s.graphs {
 		if len(graph.lines) == 0 {
@@ -419,12 +419,12 @@ func (s *set) RenderHTML() ([]byte, error) {
 		sort.Slice(lines, func(i, j int) bool {
 			return lines[i].order < lines[j].order
 		})
-		g := Graph{
+		g := UIGraph{
 			ID:      len(graphs),
 			Title:   title,
 			Stacked: graph.stacked,
 			Level:   graph.level,
-			Points:  make([]Point, s.historyPos),
+			Points:  make([]UIPoint, s.historyPos),
 		}
 		for i := 0; i < s.historyPos; i++ {
 			g.Points[i].X = i * tick
@@ -456,53 +456,5 @@ func (s *set) RenderHTML() ([]byte, error) {
 		}
 		return graphs[i].Title < graphs[j].Title
 	})
-	buf := new(bytes.Buffer)
-	err := htmlTemplate.Execute(buf, graphs)
-	return buf.Bytes(), err
+	return graphs
 }
-
-var htmlTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>syzkaller stats</title>
-	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
-	<script type="text/javascript">
-		google.load("visualization", "1", {packages:["corechart"]});
-		google.setOnLoadCallback(function() {
-			{{range $g := .}}
-			new google.visualization. {{if $g.Stacked}} AreaChart {{else}} LineChart {{end}} (
-				document.getElementById('div_{{$g.ID}}')).
-				draw(google.visualization.arrayToDataTable([
-					["-" {{range $line := $g.Lines}} , '{{$line}}' {{end}}],
-					{{range $p := $g.Points}} [ {{$p.X}} {{range $y := $p.Y}} , {{$y}} {{end}} ], {{end}}
-				]), {
-					title: '{{$g.Title}}',
-					titlePosition: 'in',
-					width: "95%",
-					height: "400",
-					chartArea: {width: '95%', height: '85%'},
-					legend: {position: 'in'},
-					lineWidth: 2,
-					focusTarget: "category",
-					{{if $g.Stacked}} isStacked: true, {{end}}
-					vAxis: {minValue: 1, textPosition: 'in', gridlines: {multiple: 1}, minorGridlines: {multiple: 1}},
-					hAxis: {minValue: 1, textPosition: 'out', maxAlternation: 1, gridlines: {multiple: 1},
-						minorGridlines: {multiple: 1}},
-				})
-			{{end}}
-
-			{{/* Preserve vertical scroll position after page reloads. Otherwise it's random. */}}
-			window.scroll(0, window.location.hash.substring(1));
-			document.onscroll = function(e) { window.location.hash = Math.round(window.scrollY); };
-		});
-	</script>
-	{{HEAD}}
-</head>
-<body>
-{{range $g := .}}
-	<div id="div_{{$g.ID}}"></div>
-{{end}}
-</body>
-</html>
-`)

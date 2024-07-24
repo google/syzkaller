@@ -157,13 +157,7 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
-	data, err := stat.RenderHTML()
-	if err != nil {
-		log.Logf(0, "failed to execute template: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write(data)
+	executeTemplate(w, pages.StatsTemplate, stat.RenderGraphs())
 }
 
 func (mgr *Manager) httpVMs(w http.ResponseWriter, r *http.Request) {
