@@ -76,7 +76,9 @@ func main() {
 		)
 	}
 	if *flagToDashAPI != "" {
-		saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{})
+		if err := saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{}); err != nil {
+			log.Panicf("failed to saveCoverage: %v", err)
+		}
 	}
 }
 
