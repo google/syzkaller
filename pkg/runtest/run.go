@@ -537,8 +537,12 @@ func checkResult(req *runRequest) error {
 			return err
 		}
 		if req.repeat != len(infos) {
+			infoCalls := -1
+			if req.result.Info != nil {
+				infoCalls = len(req.result.Info.Calls)
+			}
 			return fmt.Errorf("should repeat %v times, but repeated %v, prog calls %v, info calls %v\n%s",
-				req.repeat, len(infos), req.Prog.Calls, len(req.result.Info.Calls), req.result.Output)
+				req.repeat, len(infos), req.Prog.Calls, infoCalls, req.result.Output)
 		}
 	}
 	calls := make(map[string]bool)
