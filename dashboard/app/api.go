@@ -104,11 +104,8 @@ func handleJSON(fn JSONHandler) http.Handler {
 		c := appengine.NewContext(r)
 		reply, err := fn(c, r)
 		if err != nil {
-			// ErrAccess is logged earlier.
-			if err != ErrAccess {
-				log.Errorf(c, "%v", err)
-			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			status := logErrorPrepareStatus(c, err)
+			http.Error(w, err.Error(), status)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -131,6 +128,10 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	client := r.PostFormValue("client")
 	method := r.PostFormValue("method")
 	log.Infof(c, "api %q from %q", method, client)
+	if client == "" {
+		// Don't log as error if somebody just invokes /api.
+		return nil, fmt.Errorf("client is empty: %w", ErrClientBadRequest)
+	}
 	auth := auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint)
 	subj, err := auth.DetermineAuthSubj(timeNow(c), r.Header["Authorization"])
 	if err != nil {
@@ -139,13 +140,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	password := r.PostFormValue("key")
 	ns, err := checkClient(getConfig(c), client, password, subj)
 	if err != nil {
-		if client != "" {
-			log.Errorf(c, "checkClient('%s') error: %v", client, err)
-		} else {
-			// Don't log as error if somebody just invokes /api.
-			log.Infof(c, "checkClient('%s') error: %v", client, err)
-		}
-		return nil, err
+		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
 	var payload []byte
 	if str := r.PostFormValue("payload"); str != "" {

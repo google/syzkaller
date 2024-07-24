@@ -60,16 +60,7 @@ func handleContext(fn contextHandler) http.Handler {
 				return
 			}
 
-			status := http.StatusInternalServerError
-			logf := log.Errorf
-			var clientError *ErrClient
-			if errors.As(err, &clientError) {
-				// We don't log these as errors because they can be provoked
-				// by invalid user requests, so we don't wan't to pollute error log.
-				logf = log.Warningf
-				status = clientError.HTTPStatus()
-			}
-			logf(c, "%v", err)
+			status := logErrorPrepareStatus(c, err)
 			w.WriteHeader(status)
 			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
 				combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
@@ -77,6 +68,20 @@ func handleContext(fn contextHandler) http.Handler {
 			}
 		}
 	})
+}
+
+func logErrorPrepareStatus(c context.Context, err error) int {
+	status := http.StatusInternalServerError
+	logf := log.Errorf
+	var clientError *ErrClient
+	if errors.As(err, &clientError) {
+		// We don't log these as errors because they can be provoked
+		// by invalid user requests, so we don't wan't to pollute error log.
+		logf = log.Warningf
+		status = clientError.HTTPStatus()
+	}
+	logf(c, "%v", err)
+	return status
 }
 
 func isRobot(r *http.Request) bool {
