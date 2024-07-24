@@ -57,6 +57,7 @@ type set struct {
 	mu           sync.Mutex
 	vals         map[string]*Val
 	graphs       map[string]*graph
+	nextOrder    atomic.Uint64
 	totalTicks   int
 	historySize  int
 	historyTicks int
@@ -71,10 +72,12 @@ type graph struct {
 }
 
 type line struct {
-	desc string
-	rate bool
-	data []float64
-	hist []*gohistogram.NumericHistogram
+	name  string
+	desc  string
+	order uint64
+	rate  bool
+	data  []float64
+	hist  []*gohistogram.NumericHistogram
 }
 
 const (
@@ -187,6 +190,7 @@ func (s *set) New(name, desc string, opts ...any) *Val {
 		name:  name,
 		desc:  desc,
 		graph: name,
+		order: s.nextOrder.Add(1),
 		fmt:   func(v int, period time.Duration) string { return strconv.Itoa(v) },
 	}
 	stacked := false
@@ -245,6 +249,7 @@ type Val struct {
 	link    string
 	graph   string
 	level   Level
+	order   uint64
 	val     atomic.Uint64
 	ext     func() int
 	fmt     func(int, time.Duration) string
@@ -316,8 +321,10 @@ func (s *set) tick() {
 		ln := graph.lines[v.name]
 		if ln == nil {
 			ln = &line{
-				desc: v.desc,
-				rate: v.rate,
+				name:  v.name,
+				desc:  v.desc,
+				order: v.order,
+				rate:  v.rate,
 			}
 			if v.hist {
 				ln.hist = make([]*gohistogram.NumericHistogram, s.historySize)
@@ -405,6 +412,13 @@ func (s *set) RenderHTML() ([]byte, error) {
 		if len(graph.lines) == 0 {
 			continue
 		}
+		var lines []*line
+		for _, ln := range graph.lines {
+			lines = append(lines, ln)
+		}
+		sort.Slice(lines, func(i, j int) bool {
+			return lines[i].order < lines[j].order
+		})
 		g := Graph{
 			ID:      len(graphs),
 			Title:   title,
@@ -415,9 +429,9 @@ func (s *set) RenderHTML() ([]byte, error) {
 		for i := 0; i < s.historyPos; i++ {
 			g.Points[i].X = i * tick
 		}
-		for name, ln := range graph.lines {
+		for _, ln := range lines {
 			if ln.hist == nil {
-				g.Lines = append(g.Lines, name+": "+ln.desc)
+				g.Lines = append(g.Lines, ln.name+": "+ln.desc)
 				for i := 0; i < s.historyPos; i++ {
 					g.Points[i].Y = append(g.Points[i].Y, ln.data[i])
 				}
