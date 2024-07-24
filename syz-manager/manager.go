@@ -260,6 +260,8 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initStats()
 	if mode == ModeFuzzing || mode == ModeCorpusTriage {
 		go mgr.preloadCorpus()
+	} else {
+		close(mgr.corpusPreload)
 	}
 	mgr.initHTTP() // Creates HTTP server.
 	go mgr.corpusInputHandler(corpusUpdates)
