@@ -467,14 +467,10 @@ var htmlTemplate = pages.Create(`
 <head>
 	<title>syzkaller stats</title>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
-	{{HEAD}}
-</head>
-<body>
-{{range $g := .}}
-	<div id="div_{{$g.ID}}"></div>
 	<script type="text/javascript">
 		google.load("visualization", "1", {packages:["corechart"]});
 		google.setOnLoadCallback(function() {
+			{{range $g := .}}
 			new google.visualization. {{if $g.Stacked}} AreaChart {{else}} LineChart {{end}} (
 				document.getElementById('div_{{$g.ID}}')).
 				draw(google.visualization.arrayToDataTable([
@@ -494,8 +490,18 @@ var htmlTemplate = pages.Create(`
 					hAxis: {minValue: 1, textPosition: 'out', maxAlternation: 1, gridlines: {multiple: 1},
 						minorGridlines: {multiple: 1}},
 				})
+			{{end}}
+
+			{{/* Preserve vertical scroll position after page reloads. Otherwise it's random. */}}
+			window.scroll(0, window.location.hash.substring(1));
+			document.onscroll = function(e) { window.location.hash = Math.round(window.scrollY); };
 		});
 	</script>
+	{{HEAD}}
+</head>
+<body>
+{{range $g := .}}
+	<div id="div_{{$g.ID}}"></div>
 {{end}}
 </body>
 </html>
