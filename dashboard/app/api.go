@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1656,10 +1657,11 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 // corresponding namespace.
 func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string) (string, error) {
 	checkAuth := func(ns, a string) (string, error) {
-		if strings.HasPrefix(a, auth.OauthMagic) && a == oauthSubject {
+		if strings.HasPrefix(a, auth.OauthMagic) &&
+			subtle.ConstantTimeCompare([]byte(a), []byte(oauthSubject)) == 1 {
 			return ns, nil
 		}
-		if a != secretPassword {
+		if subtle.ConstantTimeCompare([]byte(a), []byte(secretPassword)) == 0 {
 			return ns, ErrAccess
 		}
 		return ns, nil
