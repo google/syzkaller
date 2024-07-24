@@ -56,7 +56,7 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 	for _, bug := range bugs {
 		rep, err := handleReportBug(c, typ, state, bug)
 		if err != nil {
-			log.Errorf(c, "%v: failed to report bug %v: %v", bug.Namespace, bug.Title, err)
+			log.Errorf(c, "%v: failed to report bug '%v': %v", bug.Namespace, bug.Title, err)
 			continue
 		}
 		if rep == nil {
