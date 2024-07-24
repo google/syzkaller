@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 )
 
 type reproManagerView interface {
@@ -22,8 +22,8 @@ type reproManagerView interface {
 type reproManager struct {
 	Done chan *ReproResult
 
-	statNumReproducing *stats.Val
-	statPending        *stats.Val
+	statNumReproducing *stat.Val
+	statPending        *stat.Val
 
 	onlyOnce  bool
 	mgr       reproManagerView
@@ -49,14 +49,14 @@ func newReproManager(mgr reproManagerView, reproVMs int, onlyOnce bool) *reproMa
 		pingQueue:   make(chan struct{}, 1),
 		attempted:   map[string]bool{},
 	}
-	ret.statNumReproducing = stats.New("reproducing", "Number of crashes being reproduced",
-		stats.Console, stats.NoGraph, func() int {
+	ret.statNumReproducing = stat.New("reproducing", "Number of crashes being reproduced",
+		stat.Console, stat.NoGraph, func() int {
 			ret.mu.Lock()
 			defer ret.mu.Unlock()
 			return len(ret.reproducing)
 		})
-	ret.statPending = stats.New("pending", "Number of pending repro tasks",
-		stats.Console, stats.NoGraph, func() int {
+	ret.statPending = stat.New("pending", "Number of pending repro tasks",
+		stat.Console, stat.NoGraph, func() int {
 			ret.mu.Lock()
 			defer ret.mu.Unlock()
 			return len(ret.queue)

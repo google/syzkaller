@@ -18,7 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -50,13 +50,13 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
 
-		statSendProgAdd:   stats.New("hub send prog add", "", stats.Graph("hub progs")),
-		statSendProgDel:   stats.New("hub send prog del", "", stats.Graph("hub progs")),
-		statRecvProg:      stats.New("hub recv prog", "", stats.Graph("hub progs")),
-		statRecvProgDrop:  stats.New("hub recv prog drop", "", stats.NoGraph),
-		statSendRepro:     stats.New("hub send repro", "", stats.Graph("hub repros")),
-		statRecvRepro:     stats.New("hub recv repro", "", stats.Graph("hub repros")),
-		statRecvReproDrop: stats.New("hub recv repro drop", "", stats.NoGraph),
+		statSendProgAdd:   stat.New("hub send prog add", "", stat.Graph("hub progs")),
+		statSendProgDel:   stat.New("hub send prog del", "", stat.Graph("hub progs")),
+		statRecvProg:      stat.New("hub recv prog", "", stat.Graph("hub progs")),
+		statRecvProgDrop:  stat.New("hub recv prog drop", "", stat.NoGraph),
+		statSendRepro:     stat.New("hub send repro", "", stat.Graph("hub repros")),
+		statRecvRepro:     stat.New("hub recv repro", "", stat.Graph("hub repros")),
+		statRecvReproDrop: stat.New("hub recv repro drop", "", stat.NoGraph),
 	}
 	if mgr.cfg.Reproduce && mgr.dash != nil {
 		// Request reproducers from hub only if there is nothing else to reproduce.
@@ -79,13 +79,13 @@ type HubConnector struct {
 	needMoreRepros func() bool
 	keyGet         keyGetter
 
-	statSendProgAdd   *stats.Val
-	statSendProgDel   *stats.Val
-	statRecvProg      *stats.Val
-	statRecvProgDrop  *stats.Val
-	statSendRepro     *stats.Val
-	statRecvRepro     *stats.Val
-	statRecvReproDrop *stats.Val
+	statSendProgAdd   *stat.Val
+	statSendProgDel   *stat.Val
+	statRecvProg      *stat.Val
+	statRecvProgDrop  *stat.Val
+	statSendRepro     *stat.Val
+	statRecvRepro     *stat.Val
+	statRecvReproDrop *stat.Val
 }
 
 // HubManagerView restricts interface between HubConnector and Manager.

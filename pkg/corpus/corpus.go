@@ -10,7 +10,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -24,9 +24,9 @@ type Corpus struct {
 	cover   cover.Cover   // total coverage of all items
 	updates chan<- NewItemEvent
 	*ProgramsList
-	StatProgs  *stats.Val
-	StatSignal *stats.Val
-	StatCover  *stats.Val
+	StatProgs  *stat.Val
+	StatSignal *stat.Val
+	StatCover  *stat.Val
 }
 
 func NewCorpus(ctx context.Context) *Corpus {
@@ -40,12 +40,12 @@ func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpu
 		updates:      updates,
 		ProgramsList: &ProgramsList{},
 	}
-	corpus.StatProgs = stats.New("corpus", "Number of test programs in the corpus", stats.Console,
-		stats.Link("/corpus"), stats.Graph("corpus"), stats.LenOf(&corpus.progs, &corpus.mu))
-	corpus.StatSignal = stats.New("signal", "Fuzzing signal in the corpus",
-		stats.LenOf(&corpus.signal, &corpus.mu))
-	corpus.StatCover = stats.New("coverage", "Source coverage in the corpus", stats.Console,
-		stats.Link("/cover"), stats.Prometheus("syz_corpus_cover"), stats.LenOf(&corpus.cover, &corpus.mu))
+	corpus.StatProgs = stat.New("corpus", "Number of test programs in the corpus", stat.Console,
+		stat.Link("/corpus"), stat.Graph("corpus"), stat.LenOf(&corpus.progs, &corpus.mu))
+	corpus.StatSignal = stat.New("signal", "Fuzzing signal in the corpus",
+		stat.LenOf(&corpus.signal, &corpus.mu))
+	corpus.StatCover = stat.New("coverage", "Source coverage in the corpus", stat.Console,
+		stat.Link("/cover"), stat.Prometheus("syz_corpus_cover"), stat.LenOf(&corpus.cover, &corpus.mu))
 	return corpus
 }
 

@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -58,8 +58,8 @@ type Manager interface {
 
 type Server struct {
 	Port           int
-	StatExecs      *stats.Val
-	StatNumFuzzing *stats.Val
+	StatExecs      *stat.Val
+	StatNumFuzzing *stat.Val
 
 	cfg       *Config
 	mgr       Manager
@@ -81,7 +81,7 @@ type Server struct {
 	runners        map[string]*Runner
 	execSource     queue.Source
 	triagedCorpus  atomic.Bool
-	statVMRestarts *stats.Val
+	statVMRestarts *stat.Val
 	*runnerStats
 }
 
@@ -144,24 +144,24 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 		baseSource: baseSource,
 		execSource: queue.Retry(baseSource),
 
-		StatExecs: stats.New("exec total", "Total test program executions",
-			stats.Console, stats.Rate{}, stats.Prometheus("syz_exec_total")),
-		StatNumFuzzing: stats.New("fuzzing VMs", "Number of VMs that are currently fuzzing",
-			stats.Console, stats.Link("/vms")),
-		statVMRestarts: stats.New("vm restarts", "Total number of VM starts",
-			stats.Rate{}, stats.NoGraph),
+		StatExecs: stat.New("exec total", "Total test program executions",
+			stat.Console, stat.Rate{}, stat.Prometheus("syz_exec_total")),
+		StatNumFuzzing: stat.New("fuzzing VMs", "Number of VMs that are currently fuzzing",
+			stat.Console, stat.Link("/vms")),
+		statVMRestarts: stat.New("vm restarts", "Total number of VM starts",
+			stat.Rate{}, stat.NoGraph),
 		runnerStats: &runnerStats{
-			statExecRetries: stats.New("exec retries",
+			statExecRetries: stat.New("exec retries",
 				"Number of times a test program was restarted because the first run failed",
-				stats.Rate{}, stats.Graph("executor")),
-			statExecutorRestarts: stats.New("executor restarts",
-				"Number of times executor process was restarted", stats.Rate{}, stats.Graph("executor")),
-			statExecBufferTooSmall: stats.New("buffer too small",
-				"Program serialization overflowed exec buffer", stats.NoGraph),
-			statNoExecRequests: stats.New("no exec requests",
-				"Number of times fuzzer was stalled with no exec requests", stats.Rate{}),
-			statNoExecDuration: stats.New("no exec duration",
-				"Total duration fuzzer was stalled with no exec requests (ns/sec)", stats.Rate{}),
+				stat.Rate{}, stat.Graph("executor")),
+			statExecutorRestarts: stat.New("executor restarts",
+				"Number of times executor process was restarted", stat.Rate{}, stat.Graph("executor")),
+			statExecBufferTooSmall: stat.New("buffer too small",
+				"Program serialization overflowed exec buffer", stat.NoGraph),
+			statNoExecRequests: stat.New("no exec requests",
+				"Number of times fuzzer was stalled with no exec requests", stat.Rate{}),
+			statNoExecDuration: stat.New("no exec duration",
+				"Total duration fuzzer was stalled with no exec requests (ns/sec)", stat.Rate{}),
 		},
 	}
 	serv.runnerStats.statExecs = serv.StatExecs

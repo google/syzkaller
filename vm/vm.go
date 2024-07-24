@@ -22,7 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/dispatcher"
 	"github.com/google/syzkaller/vm/vmimpl"
@@ -49,7 +49,7 @@ type Pool struct {
 	timeouts           targets.Timeouts
 	activeCount        int32
 	hostFuzzer         bool
-	statOutputReceived *stats.Val
+	statOutputReceived *stat.Val
 }
 
 type Instance struct {
@@ -134,8 +134,8 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		template:   cfg.WorkdirTemplate,
 		timeouts:   cfg.Timeouts,
 		hostFuzzer: cfg.SysTarget.HostFuzzer,
-		statOutputReceived: stats.New("vm output", "Bytes of VM console output received",
-			stats.Graph("traffic"), stats.Rate{}, stats.FormatMB),
+		statOutputReceived: stat.New("vm output", "Bytes of VM console output received",
+			stat.Graph("traffic"), stat.Rate{}, stat.FormatMB),
 	}, nil
 }
 

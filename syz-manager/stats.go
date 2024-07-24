@@ -9,29 +9,29 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/image"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 )
 
 type Stats struct {
-	statCrashes       *stats.Val
-	statCrashTypes    *stats.Val
-	statSuppressed    *stats.Val
-	statUptime        *stats.Val
-	statFuzzingTime   *stats.Val
-	statAvgBootTime   *stats.Val
-	statCoverFiltered *stats.Val
+	statCrashes       *stat.Val
+	statCrashTypes    *stat.Val
+	statSuppressed    *stat.Val
+	statUptime        *stat.Val
+	statFuzzingTime   *stat.Val
+	statAvgBootTime   *stat.Val
+	statCoverFiltered *stat.Val
 }
 
 func (mgr *Manager) initStats() {
-	mgr.statCrashes = stats.New("crashes", "Total number of VM crashes",
-		stats.Simple, stats.Prometheus("syz_crash_total"))
-	mgr.statCrashTypes = stats.New("crash types", "Number of unique crashes types",
-		stats.Simple, stats.NoGraph)
-	mgr.statSuppressed = stats.New("suppressed", "Total number of suppressed VM crashes",
-		stats.Simple, stats.Graph("crashes"))
-	mgr.statFuzzingTime = stats.New("fuzzing", "Total fuzzing time in all VMs (seconds)",
-		stats.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
-	mgr.statUptime = stats.New("uptime", "Total uptime (seconds)", stats.Simple, stats.NoGraph,
+	mgr.statCrashes = stat.New("crashes", "Total number of VM crashes",
+		stat.Simple, stat.Prometheus("syz_crash_total"))
+	mgr.statCrashTypes = stat.New("crash types", "Number of unique crashes types",
+		stat.Simple, stat.NoGraph)
+	mgr.statSuppressed = stat.New("suppressed", "Total number of suppressed VM crashes",
+		stat.Simple, stat.Graph("crashes"))
+	mgr.statFuzzingTime = stat.New("fuzzing", "Total fuzzing time in all VMs (seconds)",
+		stat.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
+	mgr.statUptime = stat.New("uptime", "Total uptime (seconds)", stat.Simple, stat.NoGraph,
 		func() int {
 			firstConnect := mgr.firstConnect.Load()
 			if firstConnect == 0 {
@@ -41,8 +41,8 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v sec", v)
 		})
-	mgr.statAvgBootTime = stats.New("instance restart", "Average VM restart time (sec)",
-		stats.NoGraph,
+	mgr.statAvgBootTime = stat.New("instance restart", "Average VM restart time (sec)",
+		stat.NoGraph,
 		func() int {
 			return int(mgr.bootTime.Value().Seconds())
 		},
@@ -50,7 +50,7 @@ func (mgr *Manager) initStats() {
 			return fmt.Sprintf("%v sec", v)
 		})
 
-	stats.New("heap", "Process heap size (bytes)", stats.Graph("memory"),
+	stat.New("heap", "Process heap size (bytes)", stat.Graph("memory"),
 		func() int {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
@@ -58,7 +58,7 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-	stats.New("VM", "Process VM size (bytes)", stats.Graph("memory"),
+	stat.New("VM", "Process VM size (bytes)", stat.Graph("memory"),
 		func() int {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
@@ -66,15 +66,15 @@ func (mgr *Manager) initStats() {
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-	stats.New("images memory", "Uncompressed images memory (bytes)", stats.Graph("memory"),
+	stat.New("images memory", "Uncompressed images memory (bytes)", stat.Graph("memory"),
 		func() int {
 			return int(image.StatMemory.Load())
 		}, func(v int, period time.Duration) string {
 			return fmt.Sprintf("%v MB", v>>20)
 		})
-	stats.New("uncompressed images", "Total number of uncompressed images in memory",
+	stat.New("uncompressed images", "Total number of uncompressed images in memory",
 		func() int {
 			return int(image.StatImages.Load())
 		})
-	mgr.statCoverFiltered = stats.New("filtered coverage", "", stats.NoGraph)
+	mgr.statCoverFiltered = stat.New("filtered coverage", "", stat.NoGraph)
 }

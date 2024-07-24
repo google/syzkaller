@@ -41,7 +41,7 @@ import (
 	"github.com/google/syzkaller/pkg/rpcserver"
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -116,7 +116,7 @@ type Manager struct {
 
 	assetStorage *asset.Storage
 
-	bootTime stats.AverageValue[time.Duration]
+	bootTime stat.AverageValue[time.Duration]
 
 	reproMgr *reproManager
 
@@ -338,7 +338,7 @@ func (mgr *Manager) heartbeatLoop() {
 		}
 		mgr.statFuzzingTime.Add(diff * mgr.serv.StatNumFuzzing.Val())
 		buf := new(bytes.Buffer)
-		for _, stat := range stats.Collect(stats.Console) {
+		for _, stat := range stat.Collect(stat.Console) {
 			fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
 		}
 		log.Logf(0, "%s", buf.String())
@@ -365,7 +365,7 @@ func (mgr *Manager) writeBench() {
 	mgr.benchMu.Lock()
 	defer mgr.benchMu.Unlock()
 	vals := make(map[string]int)
-	for _, stat := range stats.Collect(stats.All) {
+	for _, stat := range stat.Collect(stat.All) {
 		vals[stat.Name] = stat.V
 	}
 	data, err := json.MarshalIndent(vals, "", "  ")
@@ -1329,8 +1329,8 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	mgr.enabledFeatures = features
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	mgr.firstConnect.Store(time.Now().Unix())
-	statSyscalls := stats.New("syscalls", "Number of enabled syscalls",
-		stats.Simple, stats.NoGraph, stats.Link("/syscalls"))
+	statSyscalls := stat.New("syscalls", "Number of enabled syscalls",
+		stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
 	corpus := mgr.loadCorpus()
 	mgr.phase = phaseLoadedCorpus

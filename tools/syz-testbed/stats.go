@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/stats/sample"
+	"github.com/google/syzkaller/pkg/stat/sample"
 )
 
 type BugInfo struct {
