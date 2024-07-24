@@ -134,16 +134,16 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	auth := auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint)
 	subj, err := auth.DetermineAuthSubj(timeNow(c), r.Header["Authorization"])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to auth.DetermineAuthSubj(): %w", err)
 	}
-	// Somewhat confusingly the "key" parameter is the password.
-	ns, err := checkClient(getConfig(c), client, r.PostFormValue("key"), subj)
+	password := r.PostFormValue("key")
+	ns, err := checkClient(getConfig(c), client, password, subj)
 	if err != nil {
 		if client != "" {
-			log.Errorf(c, "%v", err)
+			log.Errorf(c, "checkClient('%s') error: %v", client, err)
 		} else {
 			// Don't log as error if somebody just invokes /api.
-			log.Infof(c, "%v", err)
+			log.Infof(c, "checkClient('%s') error: %v", client, err)
 		}
 		return nil, err
 	}
