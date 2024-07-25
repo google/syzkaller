@@ -37,7 +37,7 @@ func Insert(sequence []string, target string, position int) []string {
 	if position < 0 || position >= len(sequence) {
 		position = len(sequence)
 	}
-	// todo! not working
+
 	result := append(sequence[:position], append([]string{target}, sequence[position:]...)...)
 	return result
 }
