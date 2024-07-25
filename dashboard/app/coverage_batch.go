@@ -50,22 +50,28 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 			log.Infof(ctx, "there is no new coverage for merging available in %s", ns)
 			continue
 		}
+		nsCovConfig := nsConfig.Coverage
 		if err := createScriptJob(
 			ctx,
-			nsConfig.Coverage.BatchProject,
-			nsConfig.Coverage.BatchServiceAccount,
-			batchScript(ns, repo, branch, 7, dates),
-			nsConfig.Coverage.BatchScopes); err != nil {
-			log.Errorf(ctx, "failed to batchScript(): %s", err.Error())
+			nsCovConfig.BatchProject,
+			nsCovConfig.BatchServiceAccount,
+			batchScript(ns, repo, branch, 7, dates, nsCovConfig.JobInitScript, nsCovConfig.SyzEnvInitScript),
+			nsCovConfig.BatchScopes); err != nil {
+			log.Errorf(ctx, "failed to batchScript: %s", err.Error())
 		}
 	}
 }
 
-func batchScript(ns, repo, branch string, days int, datesTo []civil.Date) string {
-	script := "git clone --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
+func batchScript(ns, repo, branch string, days int, datesTo []civil.Date,
+	jobInitScript, syzEnvInitScript string) string {
+	script := jobInitScript + "\n"
+	script += "git clone --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
 		"export CI=1\n" +
 		"./tools/syz-env \""
+	if syzEnvInitScript != "" {
+		script += syzEnvInitScript + "; "
+	}
 	for _, dateTo := range datesTo {
 		script += "./tools/syz-bq.sh" +
 			" -w ../workdir-cover-aggregation/" +
