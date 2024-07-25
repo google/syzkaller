@@ -351,8 +351,8 @@ type AddrGenerator struct {
 }
 
 const BaseAddr = uint64(0x0)
-const AddrSameCallStep = uint64(0x800)
-const AddrDiffCallStep = AddrSameCallStep * 32
+const AddrSameCallStep = uint64(0x400)
+const AddrDiffCallStep = AddrSameCallStep * 4
 
 // GetAddr todo:
 // check two strategies, current is 2:

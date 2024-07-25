@@ -259,6 +259,11 @@ func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
 	}
 	var bitfield, fieldsSize uint64
 	for _, fld := range arg.Inner {
+		// IF SyzLLM
+		if fieldsSize+fld.Size() > arg.Size() {
+			continue
+		}
+		// ENDIF
 		fieldsSize += fld.Size()
 		// Squash bitfields separately.
 		if fld.Type().IsBitfield() {

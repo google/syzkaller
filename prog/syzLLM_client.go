@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/google/syzkaller/pkg/log"
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -27,12 +29,17 @@ func getServerConfig() ServerConfig {
 	return parallel
 }
 
-func insertMaskToSequence(sequence []string, target string, position int) []string {
+func InsertMaskToSequence(sequence []string, position int) []string {
+	return Insert(sequence, MASK, position)
+}
+
+func Insert(sequence []string, target string, position int) []string {
 	if position < 0 || position >= len(sequence) {
 		position = len(sequence)
 	}
-	maskedSequence := append(sequence[:position], append([]string{target}, sequence[position:]...)...)
-	return maskedSequence
+	// todo! not working
+	result := append(sequence[:position], append([]string{target}, sequence[position:]...)...)
+	return result
 }
 
 const MASK = "[MASK]"
@@ -60,8 +67,8 @@ func enableCalls(program *Prog, table *ChoiceTable) {
 }
 
 func (ctx *mutator) requestNewCallAsync(program *Prog, insertPosition int, choiceTable *ChoiceTable) []*Call {
-	maskedSyscallList := addMaskToCalls(program, insertPosition)
-	jsonData, err := json.Marshal(SyscallData{Syscalls: maskedSyscallList})
+	normalizedMaskedSyscallList, maskedSyscallList := addMaskToCalls(program, insertPosition)
+	jsonData, err := json.Marshal(SyscallData{Syscalls: normalizedMaskedSyscallList})
 	if err != nil {
 		fmt.Println("Error marshaling JSON:", err)
 		return program.Calls
@@ -95,9 +102,9 @@ func (ctx *mutator) requestNewCallAsync(program *Prog, insertPosition int, choic
 	}
 
 	newCall := syzLLMResponse.Syscall
-	ParseResource(newCall, maskedSyscallList, insertPosition, ctx.r)
+	calls := ParseResource(newCall, maskedSyscallList, insertPosition)
 	newSyscallSequence := ""
-	for _, call := range maskedSyscallList {
+	for _, call := range calls {
 		if len(newSyscallSequence) > 0 {
 			newSyscallSequence += "\n"
 		}
@@ -155,25 +162,34 @@ const (
 
 var re = regexp.MustCompile(regexp.QuoteMeta(RPrefix) + "(.*?)" + regexp.QuoteMeta(RSuffix))
 
-func ParseResource(call string, calls []string, insertPosition int, r *randGen) {
-	var resProviders []string
-	ParseInner := func(prefixedName string, name string) string {
+// ParseResource
+// replace Prefix-Call-Suffix to r-
+func ParseResource(call string, calls []string, insertPosition int) []string {
+	var providerText string
+	ParseInner := func(prefixedName string, name string, extractedCall string) string {
+		resCount := 0
 		for i, c := range calls {
+			if HasResource(c) {
+				resCount += 1
+			}
 			startIdx := strings.Index(c, prefixedName)
 			if startIdx != -1 && i < insertPosition {
 				res := c[0:startIdx]
 				return res
 			}
 			if i >= insertPosition {
-				s := newState(r.target, r.target.DefaultChoiceTable(), nil)
+				res := "r" + strconv.Itoa(resCount)
+				providerText = res + " = " + extractedCall
+				return res
+				/*s := newState(r.target, r.target.DefaultChoiceTable(), nil)
 				meta, exist := GetCallMetaInstance().Get(name)
 				if !exist {
 					return ""
 				}
-				provider := r.generateParticularCall(s, meta)
+				resProvider := r.generateParticularCall(s, meta)
 				p := &Prog{
 					Target:   r.target,
-					Calls:    provider,
+					Calls:    resProvider,
 					Comments: nil,
 				}
 				providerText := strings.Split(string(p.Serialize()[:]), "\n")
@@ -185,7 +201,7 @@ func ParseResource(call string, calls []string, insertPosition int, r *randGen) 
 						return res
 					}
 				}
-				return ""
+				return ""*/
 			}
 		}
 		return ""
@@ -196,27 +212,135 @@ func ParseResource(call string, calls []string, insertPosition int, r *randGen) 
 		if submatch == nil || len(submatch) < 2 {
 			return match
 		}
-
-		return ParseInner(" = "+submatch[1], submatch[1])
+		// submatch should look like open$at(0x111, ...)
+		callName := ExtractCallName(submatch[1])
+		return ParseInner(" = "+callName, callName, submatch[1])
 	})
+	parsedCall = UpdateResourceCount(parsedCall, calls, insertPosition, len(providerText) > 0)
 
 	calls[insertPosition] = parsedCall
-	calls = append(calls[:insertPosition], append(resProviders, calls[insertPosition:]...)...)
+	if len(providerText) > 0 {
+		calls = append(calls[:insertPosition], append([]string{providerText}, calls[insertPosition:]...)...)
+	}
+	return calls
 }
 
-func addMaskToCalls(program *Prog, insertPosition int) []string {
+var CallNamePattern = regexp.MustCompile(`^([a-zA-Z0-9_$]+)\(`)
+
+func ExtractCallName(call string) string {
+	match := CallNamePattern.FindStringSubmatch(call)
+
+	if len(match) > 1 {
+		return match[1]
+	} else {
+		log.Fatalf("wrong resource call")
+	}
+	return ""
+}
+
+func HasResource(call string) bool {
+	if call[0] != 'r' {
+		return false
+	}
+	for _, c := range call {
+		switch c {
+		case '(':
+			return false
+		case '=':
+			return true
+		default:
+			continue
+		}
+	}
+	return false
+}
+
+func UpdateResourceCount(call string, calls []string, insertPosition int, hasProvider bool) string {
+	resCount := 0
+	for i, c := range calls {
+		if i >= insertPosition {
+			break
+		}
+		if HasResource(c) {
+			resCount += 1
+		}
+	}
+
+	offset := 0
+	if hasProvider {
+		resCount += 1
+		offset += 1
+	}
+
+	if HasResource(call) {
+		call = AssignResource(call, resCount)
+		offset += 1
+	}
+
+	for i := insertPosition + 1; offset > 0 && i < len(calls); i++ {
+		resNumber, hasRes := ExtractResourceNumber(calls[i])
+		if hasRes {
+			calls[i] = AssignResource(calls[i], resNumber+offset)
+			for j := i + 1; j < len(calls); j++ {
+				calls[j] = strings.Replace(calls[j], "r"+strconv.Itoa(resNumber)+",", "r"+strconv.Itoa(resNumber+offset)+",", -1)
+				calls[j] = strings.Replace(calls[j], "r"+strconv.Itoa(resNumber)+")", "r"+strconv.Itoa(resNumber+offset)+")", -1)
+				calls[j] = strings.Replace(calls[j], "r"+strconv.Itoa(resNumber)+"}", "r"+strconv.Itoa(resNumber+offset)+"}", -1)
+			}
+		}
+	}
+
+	return call
+}
+
+var ResourcePattern = regexp.MustCompile(`^r\d+`)
+
+func AssignResource(call string, resNumber int) string {
+	newNumberStr := "r" + strconv.Itoa(resNumber)
+	result := ResourcePattern.ReplaceAllString(call, newNumberStr)
+
+	return result
+}
+
+var ResNumberPattern = regexp.MustCompile(`^r(\d+)`)
+
+func ExtractResourceNumber(call string) (int, bool) {
+	match := ResNumberPattern.FindStringSubmatch(call)
+
+	hasRes := true
+	if len(match) < 2 {
+		hasRes = false
+		return 0, hasRes
+	}
+
+	number, err := strconv.Atoi(match[1])
+	if err != nil {
+		log.Fatalf("failed to convert number: %v", err)
+	}
+
+	return number, hasRes
+}
+
+func addMaskToCalls(program *Prog, insertPosition int) ([]string, []string) {
+	syscallList := parseProgToSlice(program)
+
 	TryNormalizeArgs(program)
+	normalizedSyscallList := parseProgToSlice(program)
+
+	for i, call := range normalizedSyscallList {
+		normalizedSyscallList[i] = ConvertAnyBlob(call)
+	}
+
+	return InsertMaskToSequence(normalizedSyscallList, insertPosition), InsertMaskToSequence(syscallList, insertPosition)
+}
+
+func parseProgToSlice(program *Prog) []string {
 	syscallBytes := program.Serialize()
 	syscallList := strings.Split(string(syscallBytes[:]), "\n")
 	if syscallList[len(syscallList)-1] == "" {
 		syscallList = syscallList[:len(syscallList)-1]
 	}
 
-	for i, call := range syscallList {
-		syscallList[i] = ConvertAnyBlob(call)
-	}
-
-	return insertMaskToSequence(syscallList, MASK, insertPosition)
+	return syscallList
 }
 
 func max(a int, b int) int {
@@ -237,11 +361,14 @@ func GetAddrGeneratorInstance() *AddrGenerator {
 }
 
 type AddrGenerator struct {
+	mu          sync.RWMutex
 	AddrCounter map[string]uint64
 	AddrBase    map[string]uint64
 }
 
 func (a *AddrGenerator) ResetCounter() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	for key := range a.AddrCounter {
 		a.AddrCounter[key] = 0
 	}
@@ -275,18 +402,11 @@ func TryNormalizeArgs(program *Prog) {
 
 type ArgReplacer struct {
 	currentCallName string
-	buildAddrTable  bool
 	InitAddrCnt     int
 }
 
 func NewArgReplacer(callName string, args ...bool) *ArgReplacer {
-	build := false
-	if len(args) != 0 {
-		build = args[0]
-	}
-
 	argReplacer := new(ArgReplacer)
-	argReplacer.buildAddrTable = build
 	argReplacer.currentCallName = callName
 	argReplacer.InitAddrCnt = 0
 	return argReplacer
@@ -402,12 +522,10 @@ func (a *ArgReplacer) GenerateGroupArg(groupArg *GroupArg, fieldType Type) Arg {
 }
 
 func (a *ArgReplacer) GeneratePtrArg(ptrArg *PointerArg, fieldType Type) Arg {
-	if a.buildAddrTable {
-		PickAddr(ptrArg.Address, a.currentCallName)
-		a.InitAddrCnt += 1
-		return ptrArg
+	addr := GetAddr(a.currentCallName)
+	if addr != 0 {
+		ptrArg.Address = addr
 	}
-	ptrArg.Address = GetAddr(a.currentCallName)
 
 	switch ft := fieldType.(type) {
 	case *PtrType:
@@ -431,30 +549,15 @@ func (a *ArgReplacer) GeneratePtrArg(ptrArg *PointerArg, fieldType Type) Arg {
 const (
 	// defined in encoding.go
 	BaseAddr         = uint64(0x0)
-	AddrSameCallStep = uint64(0x800)
-	AddrDiffCallStep = AddrSameCallStep * 32
+	AddrSameCallStep = uint64(0x400)
+	AddrDiffCallStep = AddrSameCallStep * 4
 )
 
-func PickAddr(addr uint64, currentCallName string) {
-	addrGenerator := *GetAddrGeneratorInstance()
-	_, ok := addrGenerator.AddrBase[currentCallName]
-	if !ok {
-		addrGenerator.AddrBase[currentCallName] = addr - encodingAddrBase
-		addrGenerator.AddrCounter[currentCallName] = 0
-	}
-}
-
-// GetAddr todo:
-// check two strategies, current is 2:
-// 1. for all the addrs in each program, mapping them to symbols in order
-// 2. for addrs in each call, mapping...
 func GetAddr(callName string) uint64 {
 	addrGenerator := GetAddrGeneratorInstance()
 	cnt, ok := addrGenerator.AddrCounter[callName]
 	if !ok {
-		addrGenerator.AddrCounter[callName] = 0
-		addrGenerator.AddrBase[callName] = BaseAddr + AddrDiffCallStep*uint64(len(addrGenerator.AddrCounter))
-		cnt = addrGenerator.AddrCounter[callName]
+		return 0
 	}
 	addrGenerator.AddrCounter[callName] += 1
 
