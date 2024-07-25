@@ -42,9 +42,10 @@ type runRequest struct {
 	results *flatrpc.ProgInfo // the expected results
 	repeat  int               // only relevant for C tests
 
-	name   string
-	broken string
-	skip   string
+	name    string
+	broken  string
+	failing string
+	skip    string
 }
 
 type Context struct {
@@ -83,6 +84,10 @@ func (ctx *Context) Run(waitCtx context.Context) error {
 		if req.broken != "" {
 			broken++
 			result = fmt.Sprintf("BROKEN (%v)", req.broken)
+			verbose = true
+		} else if req.failing != "" {
+			fail++
+			result = fmt.Sprintf("FAIL (%v)", req.failing)
 			verbose = true
 		} else if req.skip != "" {
 			skip++
@@ -178,7 +183,12 @@ func (ctx *Context) generatePrograms() error {
 	}
 	for _, file := range files {
 		if err := ctx.generateFile(sandboxes, cover, file); err != nil {
-			return err
+			// Treat invalid programs as failing.
+			ctx.createTest(&runRequest{
+				name:    file,
+				failing: err.Error(),
+			})
+			continue
 		}
 	}
 	return nil
@@ -398,7 +408,7 @@ func (ctx *Context) produceTest(req *runRequest, name string, properties,
 func (ctx *Context) createTest(req *runRequest) {
 	req.executor = ctx.executor.Append()
 	ctx.requests = append(ctx.requests, req)
-	if req.skip != "" || req.broken != "" {
+	if req.skip != "" || req.broken != "" || req.failing != "" {
 		return
 	}
 	if req.sourceOpts == nil {
