@@ -128,6 +128,7 @@ type Config struct {
 type CoverageConfig struct {
 	BatchProject        string
 	BatchServiceAccount string
+	BatchScopes         []string
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.

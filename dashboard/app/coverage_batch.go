@@ -54,7 +54,8 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 			ctx,
 			nsConfig.Coverage.BatchProject,
 			nsConfig.Coverage.BatchServiceAccount,
-			batchScript(ns, repo, branch, 7, dates)); err != nil {
+			batchScript(ns, repo, branch, 7, dates),
+			nsConfig.Coverage.BatchScopes); err != nil {
 			log.Errorf(ctx, "failed to batchScript(): %s", err.Error())
 		}
 	}
@@ -80,7 +81,7 @@ func batchScript(ns, repo, branch string, days int, datesTo []civil.Date) string
 }
 
 // from https://cloud.google.com/batch/docs/samples/batch-create-script-job
-func createScriptJob(ctx context.Context, projectID, serviceAccount, script string) error {
+func createScriptJob(ctx context.Context, projectID, serviceAccount, script string, scopes []string) error {
 	region := "us-central1"
 	jobName := fmt.Sprintf("coverage-merge-%s", uuid.New().String())
 
@@ -126,7 +127,8 @@ func createScriptJob(ctx context.Context, projectID, serviceAccount, script stri
 			},
 		}},
 		ServiceAccount: &batchpb.ServiceAccount{
-			Email: serviceAccount,
+			Email:  serviceAccount,
+			Scopes: scopes,
 		},
 	}
 
