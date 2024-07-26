@@ -22,14 +22,15 @@ import (
 var (
 	flagWorkdir = flag.String("workdir", "workdir-cover-aggregation",
 		"[optional] used to clone repos")
-	flagRepo      = flag.String("repo", "", "[required] repo to be used as an aggregation point")
-	flagBranch    = flag.String("branch", "", "[required] branch to be used as an aggregation point")
-	flagCommit    = flag.String("commit", "", "[required] commit hash to be used as an aggregation point")
-	flagNamespace = flag.String("namespace", "upstream", "[optional] target namespace")
-	flagDuration  = flag.Int64("duration", 0, "[optional] used to mark DB records")
-	flagDateTo    = flag.String("date-to", "", "[optional] used to mark DB records")
-	flagTotalRows = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
-	flagToDashAPI = flag.String("to-dashapi", "", "[optional] dashapi address")
+	flagRepo                = flag.String("repo", "", "[required] repo to be used as an aggregation point")
+	flagBranch              = flag.String("branch", "", "[required] branch to be used as an aggregation point")
+	flagCommit              = flag.String("commit", "", "[required] commit hash to be used as an aggregation point")
+	flagNamespace           = flag.String("namespace", "upstream", "[optional] target namespace")
+	flagDuration            = flag.Int64("duration", 0, "[optional] used to mark DB records")
+	flagDateTo              = flag.String("date-to", "", "[optional] used to mark DB records")
+	flagTotalRows           = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
+	flagToDashAPI           = flag.String("to-dashapi", "", "[optional] dashapi address")
+	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
 )
 
 func main() {
@@ -55,7 +56,7 @@ func main() {
 	}
 	coverage, _, _ := mergeResultsToCoverage(mergeResult)
 	if *flagToDashAPI != "" {
-		if err := saveCoverage(*flagToDashAPI, &dashapi.MergedCoverage{
+		if err := saveCoverage(*flagToDashAPI, *flagDashboardClientName, &dashapi.MergedCoverage{
 			Namespace: *flagNamespace,
 			Repo:      *flagRepo,
 			Commit:    *flagCommit,
@@ -69,8 +70,8 @@ func main() {
 	}
 }
 
-func saveCoverage(dashboard string, d *dashapi.MergedCoverage) error {
-	dash, err := dashapi.New("coverage-merger", dashboard, "")
+func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error {
+	dash, err := dashapi.New(clientName, dashboard, "")
 	if err != nil {
 		log.Panicf("failed dashapi.New(): %v", err)
 	}

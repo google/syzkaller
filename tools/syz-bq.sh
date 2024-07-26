@@ -5,7 +5,7 @@
 set -e # exit on any problem
 set -o pipefail
 
-while getopts w:d:t:n:r:b: option
+while getopts w:d:t:n:r:b:c: option
 do
     case "${option}"
         in
@@ -15,6 +15,7 @@ do
         n)namespace=${OPTARG};;
         r)repo=${OPTARG};;
         b)branch=${OPTARG};;
+        c)client_name=${OPTARG};;
     esac
 done
 
@@ -128,6 +129,7 @@ go run ./tools/syz-covermerger/ -workdir $workdir \
   -branch $branch \
   -commit $base_commit \
   -to-dashapi https://syzkaller.appspot.com \
+  -dashboard-client-name $client_name \
   -namespace $namespace \
   -duration $duration \
   -date-to $to_date \

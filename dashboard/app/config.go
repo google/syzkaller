@@ -125,12 +125,15 @@ type Config struct {
 	Coverage *CoverageConfig
 }
 
+const defaultDashboardClientName = "coverage-merger"
+
 type CoverageConfig struct {
 	BatchProject        string
 	BatchServiceAccount string
 	BatchScopes         []string
 	JobInitScript       string
 	SyzEnvInitScript    string
+	DashboardClientName string
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
