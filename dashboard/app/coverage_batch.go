@@ -55,7 +55,10 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 			ctx,
 			nsCovConfig.BatchProject,
 			nsCovConfig.BatchServiceAccount,
-			batchScript(ns, repo, branch, 7, dates, nsCovConfig.JobInitScript, nsCovConfig.SyzEnvInitScript),
+			batchScript(ns, repo, branch, 7, dates,
+				nsCovConfig.JobInitScript,
+				nsCovConfig.SyzEnvInitScript,
+				nsCovConfig.DashboardClientName),
 			nsCovConfig.BatchScopes); err != nil {
 			log.Errorf(ctx, "failed to batchScript: %s", err.Error())
 		}
@@ -63,7 +66,10 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 }
 
 func batchScript(ns, repo, branch string, days int, datesTo []civil.Date,
-	jobInitScript, syzEnvInitScript string) string {
+	jobInitScript, syzEnvInitScript, clientName string) string {
+	if clientName == "" {
+		clientName = defaultDashboardClientName
+	}
 	script := jobInitScript + "\n"
 	script += "git clone --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
@@ -80,6 +86,7 @@ func batchScript(ns, repo, branch string, days int, datesTo []civil.Date,
 			" -b " + branch +
 			" -d " + strconv.Itoa(days) +
 			" -t " + dateTo.String() +
+			" -c " + clientName +
 			" 2>&1; " // we don't want stderr output to be logged as errors
 	}
 	script += "\""
