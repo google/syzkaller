@@ -109,7 +109,6 @@ func createScriptJob(ctx context.Context, projectID, serviceAccount, script stri
 				MaxRunDuration: &durationpb.Duration{
 					Seconds: batchTimeoutSeconds,
 				},
-				MaxRetryCount: 2,
 			},
 		},
 	}
