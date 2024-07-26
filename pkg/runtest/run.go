@@ -233,9 +233,10 @@ nextSandbox:
 			}
 		}
 		properties := map[string]bool{
-			"manual":             ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
-			"sandbox=" + sandbox: true,
-			"bigendian":          sysTarget.BigEndian,
+			"manual":                  ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
+			"sandbox=" + sandbox:      true,
+			"bigendian":               sysTarget.BigEndian,
+			"arch=" + ctx.Target.Arch: true,
 		}
 		for _, threaded := range []bool{false, true} {
 			name := name
