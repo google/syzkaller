@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/stat"
 )
 
 type Instance interface {
@@ -26,6 +27,7 @@ type CreateInstance[T Instance] func(int) (T, error)
 // dynamically controlled sub-pool might be reserved for the arbitrary Runners.
 type Pool[T Instance] struct {
 	BootErrors chan error
+	BootTime   stat.AverageValue[time.Duration]
 
 	creator    CreateInstance[T]
 	defaultJob Runner[T]
@@ -80,6 +82,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 	inst.reset(cancel)
 	p.mu.Unlock()
 
+	start := time.Now()
 	inst.status(StateBooting)
 	defer inst.status(StateOffline)
 
@@ -89,6 +92,8 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 		return
 	}
 	defer obj.Close()
+
+	p.BootTime.Save(time.Since(start))
 
 	inst.status(StateWaiting)
 	// The job and jobChan fields are subject to concurrent updates.

@@ -118,8 +118,6 @@ type Manager struct {
 
 	assetStorage *asset.Storage
 
-	bootTime stat.AverageValue[time.Duration]
-
 	reproMgr *reproManager
 
 	Stats
@@ -730,8 +728,6 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 
 func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, instanceName string,
 	injectExec <-chan bool) (*report.Report, []byte, error) {
-	start := time.Now()
-
 	fwdAddr, err := inst.Forward(mgr.serv.Port)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
@@ -748,8 +744,7 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, ins
 	}
 
 	// Run the fuzzer binary.
-	mgr.bootTime.Save(time.Since(start))
-	start = time.Now()
+	start := time.Now()
 
 	host, port, err := net.SplitHostPort(fwdAddr)
 	if err != nil {
