@@ -451,9 +451,9 @@ private:
 class Runner
 {
 public:
-	Runner(Connection& conn, const char* name, const char* bin)
+	Runner(Connection& conn, int vm_index, const char* bin)
 	    : conn_(conn),
-	      name_(name)
+	      vm_index_(vm_index)
 	{
 		size_t num_procs = Handshake();
 		int max_signal_fd = max_signal_ ? max_signal_->FD() : -1;
@@ -468,7 +468,7 @@ public:
 
 private:
 	Connection& conn_;
-	const char* const name_;
+	const int vm_index_;
 	std::optional<CoverFilter> max_signal_;
 	std::optional<CoverFilter> cover_filter_;
 	std::vector<std::unique_ptr<Proc>> procs_;
@@ -484,7 +484,7 @@ private:
 
 	friend std::ostream& operator<<(std::ostream& ss, const Runner& runner)
 	{
-		ss << "name=" << runner.name_
+		ss << "vm_index=" << runner.vm_index_
 		   << " max_signal=" << !!runner.max_signal_
 		   << " cover_filter=" << !!runner.cover_filter_
 		   << " restarting=" << runner.restarting_
@@ -545,7 +545,7 @@ private:
 	size_t Handshake()
 	{
 		rpc::ConnectRequestRawT conn_req;
-		conn_req.name = name_;
+		conn_req.id = vm_index_;
 		conn_req.arch = GOARCH;
 		conn_req.git_revision = GIT_REVISION;
 		conn_req.syz_revision = SYZ_REVISION;
@@ -800,8 +800,11 @@ static void FatalHandler(int sig, siginfo_t* info, void* ucontext)
 static void runner(char** argv, int argc)
 {
 	if (argc != 5)
-		fail("usage: syz-executor runner <name> <manager-addr> <manager-port>");
-	const char* const name = argv[2];
+		fail("usage: syz-executor runner <index> <manager-addr> <manager-port>");
+	char* endptr = nullptr;
+	int vm_index = strtol(argv[2], &endptr, 10);
+	if (vm_index < 0 || *endptr != 0)
+		failmsg("failed to parse VM index", "str='%s'", argv[2]);
 	const char* const manager_addr = argv[3];
 	const char* const manager_port = argv[4];
 
@@ -837,5 +840,5 @@ static void runner(char** argv, int argc)
 	for (int fd = conn.FD(); fd < kCoverFilterFd;)
 		fd = dup(fd);
 
-	Runner(conn, name, argv[0]);
+	Runner(conn, vm_index, argv[0]);
 }

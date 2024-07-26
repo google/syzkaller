@@ -36,7 +36,7 @@ enum Feature : uint64 (bit_flags) {
 }
  
 table ConnectRequestRaw {
-	name			:string;
+	id			:int64;
 	arch			:string;
 	git_revision		:string;
 	syz_revision		:string;

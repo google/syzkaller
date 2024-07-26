@@ -57,12 +57,12 @@ func RunLocal(cfg *LocalConfig) error {
 	// for the race detector b/c it does not understand the synchronization via TCP socket connect/accept.
 	close(ctx.setupDone)
 
-	name := "local"
-	connErr := serv.CreateInstance(name, nil, nil)
-	defer serv.ShutdownInstance(name, true)
+	id := 0
+	connErr := serv.CreateInstance(id, nil, nil)
+	defer serv.ShutdownInstance(id, true)
 
 	bin := cfg.Executor
-	args := []string{"runner", name, "localhost", fmt.Sprint(serv.Port)}
+	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(serv.Port)}
 	if cfg.GDB {
 		bin = "gdb"
 		args = append([]string{

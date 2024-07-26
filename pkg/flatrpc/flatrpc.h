@@ -809,7 +809,7 @@ FLATBUFFERS_STRUCT_END(ComparisonRaw, 32);
 
 struct ConnectRequestRawT : public flatbuffers::NativeTable {
   typedef ConnectRequestRaw TableType;
-  std::string name{};
+  int64_t id = 0;
   std::string arch{};
   std::string git_revision{};
   std::string syz_revision{};
@@ -819,13 +819,13 @@ struct ConnectRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ConnectRequestRawT NativeTableType;
   typedef ConnectRequestRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
+    VT_ID = 4,
     VT_ARCH = 6,
     VT_GIT_REVISION = 8,
     VT_SYZ_REVISION = 10
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  int64_t id() const {
+    return GetField<int64_t>(VT_ID, 0);
   }
   const flatbuffers::String *arch() const {
     return GetPointer<const flatbuffers::String *>(VT_ARCH);
@@ -838,8 +838,7 @@ struct ConnectRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyOffset(verifier, VT_ARCH) &&
            verifier.VerifyString(arch()) &&
            VerifyOffset(verifier, VT_GIT_REVISION) &&
@@ -857,8 +856,8 @@ struct ConnectRequestRawBuilder {
   typedef ConnectRequestRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(ConnectRequestRaw::VT_NAME, name);
+  void add_id(int64_t id) {
+    fbb_.AddElement<int64_t>(ConnectRequestRaw::VT_ID, id, 0);
   }
   void add_arch(flatbuffers::Offset<flatbuffers::String> arch) {
     fbb_.AddOffset(ConnectRequestRaw::VT_ARCH, arch);
@@ -882,31 +881,30 @@ struct ConnectRequestRawBuilder {
 
 inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    int64_t id = 0,
     flatbuffers::Offset<flatbuffers::String> arch = 0,
     flatbuffers::Offset<flatbuffers::String> git_revision = 0,
     flatbuffers::Offset<flatbuffers::String> syz_revision = 0) {
   ConnectRequestRawBuilder builder_(_fbb);
+  builder_.add_id(id);
   builder_.add_syz_revision(syz_revision);
   builder_.add_git_revision(git_revision);
   builder_.add_arch(arch);
-  builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
+    int64_t id = 0,
     const char *arch = nullptr,
     const char *git_revision = nullptr,
     const char *syz_revision = nullptr) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto arch__ = arch ? _fbb.CreateString(arch) : 0;
   auto git_revision__ = git_revision ? _fbb.CreateString(git_revision) : 0;
   auto syz_revision__ = syz_revision ? _fbb.CreateString(syz_revision) : 0;
   return rpc::CreateConnectRequestRaw(
       _fbb,
-      name__,
+      id,
       arch__,
       git_revision__,
       syz_revision__);
@@ -2874,7 +2872,7 @@ inline ConnectRequestRawT *ConnectRequestRaw::UnPack(const flatbuffers::resolver
 inline void ConnectRequestRaw::UnPackTo(ConnectRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = id(); _o->id = _e; }
   { auto _e = arch(); if (_e) _o->arch = _e->str(); }
   { auto _e = git_revision(); if (_e) _o->git_revision = _e->str(); }
   { auto _e = syz_revision(); if (_e) _o->syz_revision = _e->str(); }
@@ -2888,13 +2886,13 @@ inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffer
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
+  auto _id = _o->id;
   auto _arch = _o->arch.empty() ? 0 : _fbb.CreateString(_o->arch);
   auto _git_revision = _o->git_revision.empty() ? 0 : _fbb.CreateString(_o->git_revision);
   auto _syz_revision = _o->syz_revision.empty() ? 0 : _fbb.CreateString(_o->syz_revision);
   return rpc::CreateConnectRequestRaw(
       _fbb,
-      _name,
+      _id,
       _arch,
       _git_revision,
       _syz_revision);
