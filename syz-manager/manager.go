@@ -152,7 +152,7 @@ const (
 const currentDBVersion = 5
 
 type Crash struct {
-	instanceName  string
+	instanceIndex int
 	fromHub       bool // this crash was created based on a repro from syz-hub
 	fromDashboard bool // .. or from dashboard
 	manual        bool
@@ -701,13 +701,11 @@ func containsDisabled(p *prog.Prog, enabled map[*prog.Syscall]bool) bool {
 }
 
 func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
-	index := inst.Index()
-	instanceName := fmt.Sprintf("vm-%d", index)
 	injectExec := make(chan bool, 10)
-	mgr.serv.CreateInstance(instanceName, injectExec, updInfo)
+	mgr.serv.CreateInstance(inst.Index(), injectExec, updInfo)
 
-	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst, instanceName, injectExec)
-	lastExec, machineInfo := mgr.serv.ShutdownInstance(instanceName, rep != nil)
+	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst, injectExec)
+	lastExec, machineInfo := mgr.serv.ShutdownInstance(inst.Index(), rep != nil)
 	if rep != nil {
 		prependExecuting(rep, lastExec)
 		if len(vmInfo) != 0 {
@@ -717,16 +715,16 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	}
 	if err == nil && rep != nil {
 		mgr.crashes <- &Crash{
-			instanceName: instanceName,
-			Report:       rep,
+			instanceIndex: inst.Index(),
+			Report:        rep,
 		}
 	}
 	if err != nil {
-		log.Logf(1, "%s: failed with error: %v", instanceName, err)
+		log.Logf(1, "VM %v: failed with error: %v", inst.Index(), err)
 	}
 }
 
-func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, instanceName string,
+func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance,
 	injectExec <-chan bool) (*report.Report, []byte, error) {
 	fwdAddr, err := inst.Forward(mgr.serv.Port)
 	if err != nil {
@@ -750,14 +748,14 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, ins
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse manager's address")
 	}
-	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, instanceName, host, port)
+	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
 		vm.ExitTimeout, vm.StopContext(ctx), vm.InjectExecuting(injectExec),
 		vm.EarlyFinishCb(func() {
 			// Depending on the crash type and kernel config, fuzzing may continue
 			// running for several seconds even after kernel has printed a crash report.
 			// This litters the log and we want to prevent it.
-			mgr.serv.StopFuzzing(instanceName)
+			mgr.serv.StopFuzzing(inst.Index())
 		}),
 	)
 	if err != nil {
@@ -765,7 +763,7 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, ins
 	}
 	if rep == nil {
 		// This is the only "OK" outcome.
-		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
+		log.Logf(0, "VM %v: running for %v, restarting", inst.Index(), time.Since(start))
 		return nil, nil, nil
 	}
 	vmInfo, err := inst.Info()
@@ -825,7 +823,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if crash.Suppressed {
 		flags += " [suppressed]"
 	}
-	log.Logf(0, "%s: crash: %v%v", crash.instanceName, crash.Title, flags)
+	log.Logf(0, "VM %v: crash: %v%v", crash.instanceIndex, crash.Title, flags)
 
 	if mgr.mode == ModeSmokeTest {
 		data, err := json.Marshal(crash.Report)

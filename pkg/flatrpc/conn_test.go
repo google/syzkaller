@@ -18,7 +18,7 @@ import (
 
 func TestConn(t *testing.T) {
 	connectReq := &ConnectRequest{
-		Name:        "foo",
+		Id:          1,
 		Arch:        "arch",
 		GitRevision: "rev1",
 		SyzRevision: "rev2",
@@ -92,7 +92,7 @@ func TestConn(t *testing.T) {
 
 func BenchmarkConn(b *testing.B) {
 	connectReq := &ConnectRequest{
-		Name:        "foo",
+		Id:          1,
 		Arch:        "arch",
 		GitRevision: "rev1",
 		SyzRevision: "rev2",

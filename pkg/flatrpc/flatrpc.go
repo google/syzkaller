@@ -459,7 +459,7 @@ func (v SnapshotState) String() string {
 }
 
 type ConnectRequestRawT struct {
-	Name        string `json:"name"`
+	Id          int64  `json:"id"`
 	Arch        string `json:"arch"`
 	GitRevision string `json:"git_revision"`
 	SyzRevision string `json:"syz_revision"`
@@ -469,12 +469,11 @@ func (t *ConnectRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOff
 	if t == nil {
 		return 0
 	}
-	nameOffset := builder.CreateString(t.Name)
 	archOffset := builder.CreateString(t.Arch)
 	gitRevisionOffset := builder.CreateString(t.GitRevision)
 	syzRevisionOffset := builder.CreateString(t.SyzRevision)
 	ConnectRequestRawStart(builder)
-	ConnectRequestRawAddName(builder, nameOffset)
+	ConnectRequestRawAddId(builder, t.Id)
 	ConnectRequestRawAddArch(builder, archOffset)
 	ConnectRequestRawAddGitRevision(builder, gitRevisionOffset)
 	ConnectRequestRawAddSyzRevision(builder, syzRevisionOffset)
@@ -482,7 +481,7 @@ func (t *ConnectRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOff
 }
 
 func (rcv *ConnectRequestRaw) UnPackTo(t *ConnectRequestRawT) {
-	t.Name = string(rcv.Name())
+	t.Id = rcv.Id()
 	t.Arch = string(rcv.Arch())
 	t.GitRevision = string(rcv.GitRevision())
 	t.SyzRevision = string(rcv.SyzRevision())
@@ -524,12 +523,16 @@ func (rcv *ConnectRequestRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ConnectRequestRaw) Name() []byte {
+func (rcv *ConnectRequestRaw) Id() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
 	}
-	return nil
+	return 0
+}
+
+func (rcv *ConnectRequestRaw) MutateId(n int64) bool {
+	return rcv._tab.MutateInt64Slot(4, n)
 }
 
 func (rcv *ConnectRequestRaw) Arch() []byte {
@@ -559,8 +562,8 @@ func (rcv *ConnectRequestRaw) SyzRevision() []byte {
 func ConnectRequestRawStart(builder *flatbuffers.Builder) {
 	builder.StartObject(4)
 }
-func ConnectRequestRawAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
+func ConnectRequestRawAddId(builder *flatbuffers.Builder, id int64) {
+	builder.PrependInt64Slot(0, id, 0)
 }
 func ConnectRequestRawAddArch(builder *flatbuffers.Builder, arch flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(arch), 0)
