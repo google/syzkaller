@@ -704,7 +704,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 // on commit buildCommit.
 func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit, error) {
 	resp, err := mgr.dash.BuilderPoll(mgr.name)
-	if err != nil || len(resp.PendingCommits) == 0 && resp.ReportEmail == "" {
+	if err != nil || resp == nil || len(resp.PendingCommits) == 0 && resp.ReportEmail == "" {
 		return nil, nil, err
 	}
 
