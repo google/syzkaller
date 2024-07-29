@@ -4,6 +4,7 @@
 // This file provides guest code running inside the ARM64 KVM.
 
 #include "kvm.h"
+#include <linux/kvm.h>
 
 // Host will map the code in this section into the guest address space.
 #define GUEST_CODE __attribute__((section("guest")))
@@ -14,6 +15,7 @@ extern char *__start_guest, *__stop_guest;
 typedef enum {
 	SYZOS_API_UEXIT,
 	SYZOS_API_CODE,
+	SYZOS_API_MSR,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -27,6 +29,11 @@ struct api_call_uexit {
 	uint64 exit_code;
 };
 
+struct api_call_2 {
+	struct api_call_header header;
+	uint64 args[2];
+};
+
 struct api_call_code {
 	struct api_call_header header;
 	uint32 insns[];
@@ -34,6 +41,7 @@ struct api_call_code {
 
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint32* insns, uint64 size);
+static void guest_handle_msr(uint64 reg, uint64 val);
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
@@ -58,6 +66,11 @@ GUEST_CODE static void guest_main(uint64 size)
 			guest_execute_code(ccmd->insns, cmd->size - sizeof(struct api_call_header));
 			break;
 		}
+		case SYZOS_API_MSR: {
+			struct api_call_2* ccmd = (struct api_call_2*)cmd;
+			guest_handle_msr(ccmd->args[0], ccmd->args[1]);
+			break;
+		}
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -78,4 +91,33 @@ GUEST_CODE static void guest_uexit(uint64 exit_code)
 {
 	volatile uint64* ptr = (volatile uint64*)ARM64_ADDR_UEXIT;
 	*ptr = exit_code;
+}
+
+#define MSR_REG_OPCODE 0xd5100000
+
+// Generate an `MSR register, x0` instruction based on the register ID.
+// Luckily for us, the five operands, Op0, Op1, CRn, CRm, and Op2 are laid out sequentially in
+// both the register ID and the MSR instruction encoding (see
+// https://developer.arm.com/documentation/ddi0602/2024-06/Base-Instructions/MSR--register---Move-general-purpose-register-to-System-register-),
+// so we can just extract the lower 16 bits and put them into the opcode.
+GUEST_CODE static uint32 reg_to_msr(uint64 reg)
+{
+	return MSR_REG_OPCODE | ((reg & 0xffff) << 5);
+}
+
+// Write value to a system register using an MSR instruction.
+// The word "MSR" here has nothing to do with the x86 MSR registers.
+__attribute__((noinline))
+GUEST_CODE static void
+guest_handle_msr(uint64 reg, uint64 val)
+{
+	uint32 msr = reg_to_msr(reg);
+	uint32* insn = (uint32*)ARM64_ADDR_SCRATCH_CODE;
+	insn[0] = msr;
+	insn[1] = 0xd65f03c0; // RET
+	// Put `val` into x0 and make a call to the generated MSR instruction.
+	asm("mov x0, %[val]\nblr %[pc]\n"
+	    :
+	    : [val] "r"(val), [pc] "r"(insn)
+	    : "x0", "x30", "memory");
 }
