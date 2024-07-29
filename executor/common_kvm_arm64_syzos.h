@@ -32,8 +32,8 @@ struct api_call_code {
 	uint32 insns[];
 };
 
-void guest_uexit(uint64 exit_code);
-void guest_execute_code(uint32* insns, uint64 size);
+static void guest_uexit(uint64 exit_code);
+static void guest_execute_code(uint32* insns, uint64 size);
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
@@ -64,7 +64,7 @@ GUEST_CODE static void guest_main(uint64 size)
 	};
 }
 
-GUEST_CODE void guest_execute_code(uint32* insns, uint64 size)
+GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size)
 {
 	volatile void (*fn)() = (volatile void (*)())insns;
 	fn();
@@ -73,7 +73,7 @@ GUEST_CODE void guest_execute_code(uint32* insns, uint64 size)
 // Perform a userspace exit that can be handled by the host.
 // The host returns from ioctl(KVM_RUN) with kvm_run.exit_reason=KVM_EXIT_MMIO,
 // and can handle the call depending on the data passed as exit code.
-GUEST_CODE void guest_uexit(uint64 exit_code)
+GUEST_CODE static void guest_uexit(uint64 exit_code)
 {
 	volatile uint64* ptr = (volatile uint64*)ARM64_ADDR_UEXIT;
 	*ptr = exit_code;
