@@ -254,9 +254,17 @@ syzos_api_code {
 	ret	const[0xd65f03c0, int32]
 } [packed]
 
+syzos_api_msr {
+	call		const[2, int64]
+	size		bytesize[parent, int64]
+	arg_reg		flags[kvm_regs_arm64_sys, int64]
+	arg_value	int64
+}
+
 syzos_api_call [
 	uexit	syzos_api_uexit
 	code	syzos_api_code
+	msr	syzos_api_msr
 ] [varlen]
 
 kvm_text_ppc64 {

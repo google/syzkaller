@@ -126,6 +126,9 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	next = alloc_guest_mem(&allocator, page_size);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
 
+	next = alloc_guest_mem(&allocator, page_size);
+	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
+
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
