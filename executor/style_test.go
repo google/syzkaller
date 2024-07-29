@@ -174,7 +174,7 @@ if (foo) {
 		{
 			// Exit/_exit do not necessary work (e.g. if fuzzer sets seccomp
 			// filter that prohibits exit_group). Use doexit instead.
-			pattern:     `exit\(`,
+			pattern:     `\b[_]?exit\(`,
 			suppression: `doexit\(|syz_exit`,
 			message:     "Don't use [_]exit, use doexit/exitf/fail instead",
 			tests: []string{
