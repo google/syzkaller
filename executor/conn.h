@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <string.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -152,7 +153,11 @@ private:
 		}
 		char str[128] = {};
 		inet_ntop(saddr->sa_family, ip, str, sizeof(str));
-		if (connect(fd, saddr, sizeof(*addr))) {
+		int retcode = connect(fd, saddr, sizeof(*addr));
+		while (retcode == -1 && errno == EINTR)
+			retcode = ConnectWait(fd);
+
+		if (retcode != 0) {
 			printf("failed to connect to manager at %s:%d: %s\n", str, port, strerror(errno));
 			close(fd);
 			return -1;
@@ -162,6 +167,23 @@ private:
 
 	Connection(const Connection&) = delete;
 	Connection& operator=(const Connection&) = delete;
+
+	static int ConnectWait(int s)
+	{
+		struct pollfd pfd[1] = {{.fd = s, .events = POLLOUT}};
+		int error = 0;
+		socklen_t len = sizeof(error);
+
+		if (poll(pfd, 1, -1) == -1)
+			return -1;
+		if (getsockopt(s, SOL_SOCKET, SO_ERROR, &error, &len) == -1)
+			return -1;
+		if (error != 0) {
+			errno = error;
+			return -1;
+		}
+		return 0;
+	}
 };
 
 // Select is a wrapper around select system call.
