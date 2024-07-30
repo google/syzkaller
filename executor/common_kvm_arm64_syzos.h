@@ -62,6 +62,7 @@ GUEST_CODE static void guest_main(uint64 size)
 		addr += cmd->size;
 		size -= cmd->size;
 	};
+	guest_uexit((uint64)-1);
 }
 
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size)
