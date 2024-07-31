@@ -257,7 +257,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	}
 
 	mgr.initStats()
-	if mode == ModeFuzzing || mode == ModeCorpusTriage {
+	if mode == ModeFuzzing || mode == ModeCorpusTriage || mode == ModeCorpusRun {
 		go mgr.preloadCorpus()
 	} else {
 		close(mgr.corpusPreload)
