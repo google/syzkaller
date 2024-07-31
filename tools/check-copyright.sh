@@ -4,7 +4,7 @@
 
 FILES=0
 FAILED=""
-for F in $(find . -name "*.go" -o -name "*.sh" -o -name "*.cc" -o -name "*.h" \
+for F in $(find . -name "*.go" -o -name "*.sh" -o -name "*.cpp" -o -name "*.cc" -o -name "*.h" \
 	-o -name "*.S" -o -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.fbs" \
 	-o \( -path "./sys/*/*.txt" \) | egrep -v "/_include/|/vendor/|/gen/|/testdata/"); do
 	((FILES+=1))

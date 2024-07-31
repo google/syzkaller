@@ -35,3 +35,9 @@ make -j`nproc` syz-declextract
 ```
 ./bin/syz-declextract $KERNEL/fs/read_write.c | less # or any other .c file
 ```
+## Running the tool
+Download `run.go`, build it and run it
+```
+go build run.go
+./run -p $KERNEL/compile_commands.json -b $SYZ/bin/syz-declextract
+```
