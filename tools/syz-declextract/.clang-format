@@ -1,2 +1,3 @@
 BasedOnStyle: LLVM
 ColumnLimit: 120
+CommentPragmas: '^[^ ]'
