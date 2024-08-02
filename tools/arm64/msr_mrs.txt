@@ -1,0 +1,355 @@
+# Table from https://developer.arm.com/documentation/ddi0595/2021-06/Index-by-Encoding?lang=en#mrs_msr_64
+#op0	op1	CRn	CRm	op2	Name	Description
+0b10	0b000	0b0000	0b0000	0b010	OSDTRRX_EL1	OS Lock Data Transfer Register, Receive
+0b10	0b000	0b0000	0b0010	0b000	MDCCINT_EL1	Monitor DCC Interrupt Enable Register
+0b10	0b000	0b0000	0b0010	0b010	MDSCR_EL1	Monitor Debug System Control Register
+0b10	0b000	0b0000	0b0011	0b010	OSDTRTX_EL1	OS Lock Data Transfer Register, Transmit
+0b10	0b000	0b0000	0b0110	0b010	OSECCR_EL1	OS Lock Exception Catch Control Register
+0b10	0b000	0b0000	n[3:0]	0b100	DBGBVR<n>_EL1	Debug Breakpoint Value Registers
+0b10	0b000	0b0000	n[3:0]	0b101	DBGBCR<n>_EL1	Debug Breakpoint Control Registers
+0b10	0b000	0b0000	n[3:0]	0b110	DBGWVR<n>_EL1	Debug Watchpoint Value Registers
+0b10	0b000	0b0000	n[3:0]	0b111	DBGWCR<n>_EL1	Debug Watchpoint Control Registers
+0b10	0b000	0b0001	0b0000	0b000	MDRAR_EL1	Monitor Debug ROM Address Register
+0b10	0b000	0b0001	0b0000	0b100	OSLAR_EL1	OS Lock Access Register
+0b10	0b000	0b0001	0b0001	0b100	OSLSR_EL1	OS Lock Status Register
+0b10	0b000	0b0001	0b0011	0b100	OSDLR_EL1	OS Double Lock Register
+0b10	0b000	0b0001	0b0100	0b100	DBGPRCR_EL1	Debug Power Control Register
+0b10	0b000	0b0111	0b1000	0b110	DBGCLAIMSET_EL1	Debug CLAIM Tag Set register
+0b10	0b000	0b0111	0b1001	0b110	DBGCLAIMCLR_EL1	Debug CLAIM Tag Clear register
+0b10	0b000	0b0111	0b1110	0b110	DBGAUTHSTATUS_EL1	Debug Authentication Status register
+0b10	0b011	0b0000	0b0001	0b000	MDCCSR_EL0	Monitor DCC Status Register
+0b10	0b011	0b0000	0b0100	0b000	DBGDTR_EL0	Debug Data Transfer Register, half-duplex
+0b10	0b011	0b0000	0b0101	0b000	DBGDTRRX_EL0	Debug Data Transfer Register, Receive
+0b10	0b011	0b0000	0b0101	0b000	DBGDTRTX_EL0	Debug Data Transfer Register, Transmit
+0b10	0b100	0b0000	0b0111	0b000	DBGVCR32_EL2	Debug Vector Catch Register
+0b11	0b000	0b0000	0b0000	0b000	MIDR_EL1	Main ID Register
+0b11	0b000	0b0000	0b0000	0b101	MPIDR_EL1	Multiprocessor Affinity Register
+0b11	0b000	0b0000	0b0000	0b110	REVIDR_EL1	Revision ID Register
+0b11	0b000	0b0000	0b0001	0b000	ID_PFR0_EL1	AArch32 Processor Feature Register 0
+0b11	0b000	0b0000	0b0001	0b001	ID_PFR1_EL1	AArch32 Processor Feature Register 1
+0b11	0b000	0b0000	0b0001	0b010	ID_DFR0_EL1	AArch32 Debug Feature Register 0
+0b11	0b000	0b0000	0b0001	0b011	ID_AFR0_EL1	AArch32 Auxiliary Feature Register 0
+0b11	0b000	0b0000	0b0001	0b100	ID_MMFR0_EL1	AArch32 Memory Model Feature Register 0
+0b11	0b000	0b0000	0b0001	0b101	ID_MMFR1_EL1	AArch32 Memory Model Feature Register 1
+0b11	0b000	0b0000	0b0001	0b110	ID_MMFR2_EL1	AArch32 Memory Model Feature Register 2
+0b11	0b000	0b0000	0b0001	0b111	ID_MMFR3_EL1	AArch32 Memory Model Feature Register 3
+0b11	0b000	0b0000	0b0010	0b000	ID_ISAR0_EL1	AArch32 Instruction Set Attribute Register 0
+0b11	0b000	0b0000	0b0010	0b001	ID_ISAR1_EL1	AArch32 Instruction Set Attribute Register 1
+0b11	0b000	0b0000	0b0010	0b010	ID_ISAR2_EL1	AArch32 Instruction Set Attribute Register 2
+0b11	0b000	0b0000	0b0010	0b011	ID_ISAR3_EL1	AArch32 Instruction Set Attribute Register 3
+0b11	0b000	0b0000	0b0010	0b100	ID_ISAR4_EL1	AArch32 Instruction Set Attribute Register 4
+0b11	0b000	0b0000	0b0010	0b101	ID_ISAR5_EL1	AArch32 Instruction Set Attribute Register 5
+0b11	0b000	0b0000	0b0010	0b110	ID_MMFR4_EL1	AArch32 Memory Model Feature Register 4
+0b11	0b000	0b0000	0b0010	0b111	ID_ISAR6_EL1	AArch32 Instruction Set Attribute Register 6
+0b11	0b000	0b0000	0b0011	0b000	MVFR0_EL1	AArch32 Media and VFP Feature Register 0
+0b11	0b000	0b0000	0b0011	0b001	MVFR1_EL1	AArch32 Media and VFP Feature Register 1
+0b11	0b000	0b0000	0b0011	0b010	MVFR2_EL1	AArch32 Media and VFP Feature Register 2
+0b11	0b000	0b0000	0b0011	0b100	ID_PFR2_EL1	AArch32 Processor Feature Register 2
+0b11	0b000	0b0000	0b0011	0b101	ID_DFR1_EL1	Debug Feature Register 1
+0b11	0b000	0b0000	0b0011	0b110	ID_MMFR5_EL1	AArch32 Memory Model Feature Register 5
+0b11	0b000	0b0000	0b0100	0b000	ID_AA64PFR0_EL1	AArch64 Processor Feature Register 0
+0b11	0b000	0b0000	0b0100	0b001	ID_AA64PFR1_EL1	AArch64 Processor Feature Register 1
+0b11	0b000	0b0000	0b0100	0b100	ID_AA64ZFR0_EL1	SVE Feature ID register 0
+0b11	0b000	0b0000	0b0101	0b000	ID_AA64DFR0_EL1	AArch64 Debug Feature Register 0
+0b11	0b000	0b0000	0b0101	0b001	ID_AA64DFR1_EL1	AArch64 Debug Feature Register 1
+0b11	0b000	0b0000	0b0101	0b100	ID_AA64AFR0_EL1	AArch64 Auxiliary Feature Register 0
+0b11	0b000	0b0000	0b0101	0b101	ID_AA64AFR1_EL1	AArch64 Auxiliary Feature Register 1
+0b11	0b000	0b0000	0b0110	0b000	ID_AA64ISAR0_EL1	AArch64 Instruction Set Attribute Register 0
+0b11	0b000	0b0000	0b0110	0b001	ID_AA64ISAR1_EL1	AArch64 Instruction Set Attribute Register 1
+0b11	0b000	0b0000	0b0110	0b010	ID_AA64ISAR2_EL1	AArch64 Instruction Set Attribute Register 2
+0b11	0b000	0b0000	0b0111	0b000	ID_AA64MMFR0_EL1	AArch64 Memory Model Feature Register 0
+0b11	0b000	0b0000	0b0111	0b001	ID_AA64MMFR1_EL1	AArch64 Memory Model Feature Register 1
+0b11	0b000	0b0000	0b0111	0b010	ID_AA64MMFR2_EL1	AArch64 Memory Model Feature Register 2
+0b11	0b000	0b0001	0b0000	0b000	SCTLR_EL1	System Control Register (EL1)
+0b11	0b000	0b0001	0b0000	0b001	ACTLR_EL1	Auxiliary Control Register (EL1)
+0b11	0b000	0b0001	0b0000	0b010	CPACR_EL1	Architectural Feature Access Control Register
+0b11	0b000	0b0001	0b0000	0b101	RGSR_EL1	Random Allocation Tag Seed Register.
+0b11	0b000	0b0001	0b0000	0b110	GCR_EL1	Tag Control Register.
+0b11	0b000	0b0001	0b0010	0b000	ZCR_EL1	SVE Control Register (EL1)
+0b11	0b000	0b0001	0b0010	0b001	TRFCR_EL1	Trace Filter Control Register (EL1)
+0b11	0b000	0b0010	0b0000	0b000	TTBR0_EL1	Translation Table Base Register 0 (EL1)
+0b11	0b000	0b0010	0b0000	0b001	TTBR1_EL1	Translation Table Base Register 1 (EL1)
+0b11	0b000	0b0010	0b0000	0b010	TCR_EL1	Translation Control Register (EL1)
+0b11	0b000	0b0010	0b0001	0b000	APIAKeyLo_EL1	Pointer Authentication Key A for Instruction (bits[63:0])
+0b11	0b000	0b0010	0b0001	0b001	APIAKeyHi_EL1	Pointer Authentication Key A for Instruction (bits[127:64])
+0b11	0b000	0b0010	0b0001	0b010	APIBKeyLo_EL1	Pointer Authentication Key B for Instruction (bits[63:0])
+0b11	0b000	0b0010	0b0001	0b011	APIBKeyHi_EL1	Pointer Authentication Key B for Instruction (bits[127:64])
+0b11	0b000	0b0010	0b0010	0b000	APDAKeyLo_EL1	Pointer Authentication Key A for Data (bits[63:0])
+0b11	0b000	0b0010	0b0010	0b001	APDAKeyHi_EL1	Pointer Authentication Key A for Data (bits[127:64])
+0b11	0b000	0b0010	0b0010	0b010	APDBKeyLo_EL1	Pointer Authentication Key B for Data (bits[63:0])
+0b11	0b000	0b0010	0b0010	0b011	APDBKeyHi_EL1	Pointer Authentication Key B for Data (bits[127:64])
+0b11	0b000	0b0010	0b0011	0b000	APGAKeyLo_EL1	Pointer Authentication Key A for Code (bits[63:0])
+0b11	0b000	0b0010	0b0011	0b001	APGAKeyHi_EL1	Pointer Authentication Key A for Code (bits[127:64])
+0b11	0b000	0b0100	0b0000	0b000	SPSR_EL1	Saved Program Status Register (EL1)
+0b11	0b000	0b0100	0b0000	0b001	ELR_EL1	Exception Link Register (EL1)
+0b11	0b000	0b0100	0b0001	0b000	SP_EL0	Stack Pointer (EL0)
+0b11	0b000	0b0100	0b0010	0b000	SPSel	Stack Pointer Select
+0b00	0b000	0b0100	-	0b101	SPSel	Stack Pointer Select
+0b11	0b000	0b0100	0b0010	0b010	CurrentEL	Current Exception Level
+0b11	0b000	0b0100	0b0010	0b011	PAN	Privileged Access Never
+0b00	0b000	0b0100	-	0b100	PAN	Privileged Access Never
+0b11	0b000	0b0100	0b0010	0b100	UAO	User Access Override
+0b00	0b000	0b0100	-	0b011	UAO	User Access Override
+0b11	0b000	0b0100	0b0110	0b000	ICC_PMR_EL1	Interrupt Controller Interrupt Priority Mask Register
+0b11	0b000	0b0101	0b0001	0b000	AFSR0_EL1	Auxiliary Fault Status Register 0 (EL1)
+0b11	0b000	0b0101	0b0001	0b001	AFSR1_EL1	Auxiliary Fault Status Register 1 (EL1)
+0b11	0b000	0b0101	0b0010	0b000	ESR_EL1	Exception Syndrome Register (EL1)
+0b11	0b000	0b0101	0b0011	0b000	ERRIDR_EL1	Error Record ID Register
+0b11	0b000	0b0101	0b0011	0b001	ERRSELR_EL1	Error Record Select Register
+0b11	0b000	0b0101	0b0100	0b000	ERXFR_EL1	Selected Error Record Feature Register
+0b11	0b000	0b0101	0b0100	0b001	ERXCTLR_EL1	Selected Error Record Control Register
+0b11	0b000	0b0101	0b0100	0b010	ERXSTATUS_EL1	Selected Error Record Primary Status Register
+0b11	0b000	0b0101	0b0100	0b011	ERXADDR_EL1	Selected Error Record Address Register
+0b11	0b000	0b0101	0b0100	0b100	ERXPFGF_EL1	Selected Pseudo-fault Generation Feature register
+0b11	0b000	0b0101	0b0100	0b101	ERXPFGCTL_EL1	Selected Pseudo-fault Generation Control register
+0b11	0b000	0b0101	0b0100	0b110	ERXPFGCDN_EL1	Selected Pseudo-fault Generation Countdown register
+0b11	0b000	0b0101	0b0101	0b000	ERXMISC0_EL1	Selected Error Record Miscellaneous Register 0
+0b11	0b000	0b0101	0b0101	0b001	ERXMISC1_EL1	Selected Error Record Miscellaneous Register 1
+0b11	0b000	0b0101	0b0101	0b010	ERXMISC2_EL1	Selected Error Record Miscellaneous Register 2
+0b11	0b000	0b0101	0b0101	0b011	ERXMISC3_EL1	Selected Error Record Miscellaneous Register 3
+0b11	0b000	0b0101	0b0110	0b000	TFSR_EL1	Tag Fault Status Register (EL1)
+0b11	0b000	0b0101	0b0110	0b001	TFSRE0_EL1	Tag Fault Status Register (EL0).
+0b11	0b000	0b0110	0b0000	0b000	FAR_EL1	Fault Address Register (EL1)
+0b11	0b000	0b0111	0b0100	0b000	PAR_EL1	Physical Address Register
+0b11	0b000	0b1001	0b1001	0b000	PMSCR_EL1	Statistical Profiling Control Register (EL1)
+0b11	0b000	0b1001	0b1001	0b001	PMSNEVFR_EL1	Sampling Inverted Event Filter Register
+0b11	0b000	0b1001	0b1001	0b010	PMSICR_EL1	Sampling Interval Counter Register
+0b11	0b000	0b1001	0b1001	0b011	PMSIRR_EL1	Sampling Interval Reload Register
+0b11	0b000	0b1001	0b1001	0b100	PMSFCR_EL1	Sampling Filter Control Register
+0b11	0b000	0b1001	0b1001	0b101	PMSEVFR_EL1	Sampling Event Filter Register
+0b11	0b000	0b1001	0b1001	0b110	PMSLATFR_EL1	Sampling Latency Filter Register
+0b11	0b000	0b1001	0b1001	0b111	PMSIDR_EL1	Sampling Profiling ID Register
+0b11	0b000	0b1001	0b1010	0b000	PMBLIMITR_EL1	Profiling Buffer Limit Address Register
+0b11	0b000	0b1001	0b1010	0b001	PMBPTR_EL1	Profiling Buffer Write Pointer Register
+0b11	0b000	0b1001	0b1010	0b011	PMBSR_EL1	Profiling Buffer Status/syndrome Register
+0b11	0b000	0b1001	0b1010	0b111	PMBIDR_EL1	Profiling Buffer ID Register
+0b11	0b000	0b1001	0b1110	0b001	PMINTENSET_EL1	Performance Monitors Interrupt Enable Set register
+0b11	0b000	0b1001	0b1110	0b010	PMINTENCLR_EL1	Performance Monitors Interrupt Enable Clear register
+0b11	0b000	0b1001	0b1110	0b110	PMMIR_EL1	Performance Monitors Machine Identification Register
+0b11	0b000	0b1010	0b0010	0b000	MAIR_EL1	Memory Attribute Indirection Register (EL1)
+0b11	0b000	0b1010	0b0011	0b000	AMAIR_EL1	Auxiliary Memory Attribute Indirection Register (EL1)
+0b11	0b000	0b1010	0b0100	0b000	LORSA_EL1	LORegion Start Address (EL1)
+0b11	0b000	0b1010	0b0100	0b001	LOREA_EL1	LORegion End Address (EL1)
+0b11	0b000	0b1010	0b0100	0b010	LORN_EL1	LORegion Number (EL1)
+0b11	0b000	0b1010	0b0100	0b011	LORC_EL1	LORegion Control (EL1)
+0b11	0b000	0b1010	0b0100	0b100	MPAMIDR_EL1	MPAM ID Register (EL1)
+0b11	0b000	0b1010	0b0100	0b111	LORID_EL1	LORegionID (EL1)
+0b11	0b000	0b1010	0b0101	0b000	MPAM1_EL1	MPAM1 Register (EL1)
+0b11	0b000	0b1010	0b0101	0b001	MPAM0_EL1	MPAM0 Register (EL1)
+0b11	0b000	0b1100	0b0000	0b000	VBAR_EL1	Vector Base Address Register (EL1)
+0b11	0b000	0b1100	0b0000	0b001	RVBAR_EL1	Reset Vector Base Address Register (if EL2 and EL3 not implemented)
+0b11	0b000	0b1100	0b0000	0b010	RMR_EL1	Reset Management Register (EL1)
+0b11	0b000	0b1100	0b0001	0b000	ISR_EL1	Interrupt Status Register
+0b11	0b000	0b1100	0b0001	0b001	DISR_EL1	Deferred Interrupt Status Register
+0b11	0b000	0b1100	0b1000	0b000	ICC_IAR0_EL1	Interrupt Controller Interrupt Acknowledge Register 0
+0b11	0b000	0b1100	0b1000	0b001	ICC_EOIR0_EL1	Interrupt Controller End Of Interrupt Register 0
+0b11	0b000	0b1100	0b1000	0b010	ICC_HPPIR0_EL1	Interrupt Controller Highest Priority Pending Interrupt Register 0
+0b11	0b000	0b1100	0b1000	0b011	ICC_BPR0_EL1	Interrupt Controller Binary Point Register 0
+0b11	0b000	0b1100	0b1000	0b1:n[1:0]	ICC_AP0R<n>_EL1	Interrupt Controller Active Priorities Group 0 Registers
+0b11	0b000	0b1100	0b1001	0b0:n[1:0]	ICC_AP1R<n>_EL1	Interrupt Controller Active Priorities Group 1 Registers
+0b11	0b000	0b1100	0b1011	0b001	ICC_DIR_EL1	Interrupt Controller Deactivate Interrupt Register
+0b11	0b000	0b1100	0b1011	0b011	ICC_RPR_EL1	Interrupt Controller Running Priority Register
+0b11	0b000	0b1100	0b1011	0b101	ICC_SGI1R_EL1	Interrupt Controller Software Generated Interrupt Group 1 Register
+0b11	0b000	0b1100	0b1011	0b110	ICC_ASGI1R_EL1	Interrupt Controller Alias Software Generated Interrupt Group 1 Register
+0b11	0b000	0b1100	0b1011	0b111	ICC_SGI0R_EL1	Interrupt Controller Software Generated Interrupt Group 0 Register
+0b11	0b000	0b1100	0b1100	0b000	ICC_IAR1_EL1	Interrupt Controller Interrupt Acknowledge Register 1
+0b11	0b000	0b1100	0b1100	0b001	ICC_EOIR1_EL1	Interrupt Controller End Of Interrupt Register 1
+0b11	0b000	0b1100	0b1100	0b010	ICC_HPPIR1_EL1	Interrupt Controller Highest Priority Pending Interrupt Register 1
+0b11	0b000	0b1100	0b1100	0b011	ICC_BPR1_EL1	Interrupt Controller Binary Point Register 1
+0b11	0b000	0b1100	0b1100	0b100	ICC_CTLR_EL1	Interrupt Controller Control Register (EL1)
+0b11	0b000	0b1100	0b1100	0b101	ICC_SRE_EL1	Interrupt Controller System Register Enable register (EL1)
+0b11	0b000	0b1100	0b1100	0b110	ICC_IGRPEN0_EL1	Interrupt Controller Interrupt Group 0 Enable register
+0b11	0b000	0b1100	0b1100	0b111	ICC_IGRPEN1_EL1	Interrupt Controller Interrupt Group 1 Enable register
+0b11	0b000	0b1101	0b0000	0b001	CONTEXTIDR_EL1	Context ID Register (EL1)
+0b11	0b000	0b1101	0b0000	0b100	TPIDR_EL1	EL1 Software Thread ID Register
+0b11	0b000	0b1101	0b0000	0b101	ACCDATA_EL1	Accelerator Data
+0b11	0b000	0b1101	0b0000	0b111	SCXTNUM_EL1	EL1 Read/Write Software Context Number
+0b11	0b000	0b1110	0b0001	0b000	CNTKCTL_EL1	Counter-timer Kernel Control register
+0b11	0b001	0b0000	0b0000	0b000	CCSIDR_EL1	Current Cache Size ID Register
+0b11	0b001	0b0000	0b0000	0b001	CLIDR_EL1	Cache Level ID Register
+0b11	0b001	0b0000	0b0000	0b010	CCSIDR2_EL1	Current Cache Size ID Register 2
+0b11	0b001	0b0000	0b0000	0b100	GMID_EL1	Multiple tag transfer ID register
+0b11	0b001	0b0000	0b0000	0b111	AIDR_EL1	Auxiliary ID Register
+0b11	0b010	0b0000	0b0000	0b000	CSSELR_EL1	Cache Size Selection Register
+0b11	0b011	0b0000	0b0000	0b001	CTR_EL0	Cache Type Register
+0b11	0b011	0b0000	0b0000	0b111	DCZID_EL0	Data Cache Zero ID register
+0b11	0b011	0b0010	0b0100	0b000	RNDR	Random Number
+0b11	0b011	0b0010	0b0100	0b001	RNDRRS	Reseeded Random Number
+0b11	0b011	0b0100	0b0010	0b000	NZCV	Condition Flags
+0b11	0b011	0b0100	0b0010	0b001	DAIF	Interrupt Mask Bits
+0b11	0b011	0b0100	0b0010	0b101	DIT	Data Independent Timing
+0b00	0b011	0b0100	-	0b010	DIT	Data Independent Timing
+0b11	0b011	0b0100	0b0010	0b110	SSBS	Speculative Store Bypass Safe
+0b00	0b011	0b0100	-	0b001	SSBS	Speculative Store Bypass Safe
+0b11	0b011	0b0100	0b0010	0b111	TCO	Tag Check Override
+0b00	0b011	0b0100	-	0b100	TCO	Tag Check Override
+0b11	0b011	0b0100	0b0100	0b000	FPCR	Floating-point Control Register
+0b11	0b011	0b0100	0b0100	0b001	FPSR	Floating-point Status Register
+0b11	0b011	0b0100	0b0101	0b000	DSPSR_EL0	Debug Saved Program Status Register
+0b11	0b011	0b0100	0b0101	0b001	DLR_EL0	Debug Link Register
+0b11	0b011	0b1001	0b1100	0b000	PMCR_EL0	Performance Monitors Control Register
+0b11	0b011	0b1001	0b1100	0b001	PMCNTENSET_EL0	Performance Monitors Count Enable Set register
+0b11	0b011	0b1001	0b1100	0b010	PMCNTENCLR_EL0	Performance Monitors Count Enable Clear register
+0b11	0b011	0b1001	0b1100	0b011	PMOVSCLR_EL0	Performance Monitors Overflow Flag Status Clear Register
+0b11	0b011	0b1001	0b1100	0b100	PMSWINC_EL0	Performance Monitors Software Increment register
+0b11	0b011	0b1001	0b1100	0b101	PMSELR_EL0	Performance Monitors Event Counter Selection Register
+0b11	0b011	0b1001	0b1100	0b110	PMCEID0_EL0	Performance Monitors Common Event Identification register 0
+0b11	0b011	0b1001	0b1100	0b111	PMCEID1_EL0	Performance Monitors Common Event Identification register 1
+0b11	0b011	0b1001	0b1101	0b000	PMCCNTR_EL0	Performance Monitors Cycle Count Register
+0b11	0b011	0b1001	0b1101	0b001	PMXEVTYPER_EL0	Performance Monitors Selected Event Type Register
+0b11	0b011	0b1001	0b1101	0b010	PMXEVCNTR_EL0	Performance Monitors Selected Event Count Register
+0b11	0b011	0b1001	0b1110	0b000	PMUSERENR_EL0	Performance Monitors User Enable Register
+0b11	0b011	0b1001	0b1110	0b011	PMOVSSET_EL0	Performance Monitors Overflow Flag Status Set register
+0b11	0b011	0b1101	0b0000	0b010	TPIDR_EL0	EL0 Read/Write Software Thread ID Register
+0b11	0b011	0b1101	0b0000	0b011	TPIDRRO_EL0	EL0 Read-Only Software Thread ID Register
+0b11	0b011	0b1101	0b0000	0b111	SCXTNUM_EL0	EL0 Read/Write Software Context Number
+0b11	0b011	0b1101	0b0010	0b000	AMCR_EL0	Activity Monitors Control Register
+0b11	0b011	0b1101	0b0010	0b001	AMCFGR_EL0	Activity Monitors Configuration Register
+0b11	0b011	0b1101	0b0010	0b010	AMCGCR_EL0	Activity Monitors Counter Group Configuration Register
+0b11	0b011	0b1101	0b0010	0b011	AMUSERENR_EL0	Activity Monitors User Enable Register
+0b11	0b011	0b1101	0b0010	0b100	AMCNTENCLR0_EL0	Activity Monitors Count Enable Clear Register 0
+0b11	0b011	0b1101	0b0010	0b101	AMCNTENSET0_EL0	Activity Monitors Count Enable Set Register 0
+0b11	0b011	0b1101	0b0010	0b110	AMCG1IDR_EL0	Activity Monitors Counter Group 1 Identification Register
+0b11	0b011	0b1101	0b0011	0b000	AMCNTENCLR1_EL0	Activity Monitors Count Enable Clear Register 1
+0b11	0b011	0b1101	0b0011	0b001	AMCNTENSET1_EL0	Activity Monitors Count Enable Set Register 1
+0b11	0b011	0b1101	0b010:n[3]	n[2:0]	AMEVCNTR0<n>_EL0	Activity Monitors Event Counter Registers 0
+0b11	0b011	0b1101	0b011:n[3]	n[2:0]	AMEVTYPER0<n>_EL0	Activity Monitors Event Type Registers 0
+0b11	0b011	0b1101	0b110:n[3]	n[2:0]	AMEVCNTR1<n>_EL0	Activity Monitors Event Counter Registers 1
+0b11	0b011	0b1101	0b111:n[3]	n[2:0]	AMEVTYPER1<n>_EL0	Activity Monitors Event Type Registers 1
+0b11	0b011	0b1110	0b0000	0b000	CNTFRQ_EL0	Counter-timer Frequency register
+0b11	0b011	0b1110	0b0000	0b001	CNTPCT_EL0	Counter-timer Physical Count register
+0b11	0b011	0b1110	0b0000	0b010	CNTVCT_EL0	Counter-timer Virtual Count register
+0b11	0b011	0b1110	0b0000	0b101	CNTPCTSS_EL0	Counter-timer Self-Synchronized Physical Count register
+0b11	0b011	0b1110	0b0000	0b110	CNTVCTSS_EL0	Counter-timer Self-Synchronized Virtual Count register
+0b11	0b011	0b1110	0b0010	0b000	CNTP_TVAL_EL0	Counter-timer Physical Timer TimerValue register
+0b11	0b011	0b1110	0b0010	0b001	CNTP_CTL_EL0	Counter-timer Physical Timer Control register
+0b11	0b011	0b1110	0b0010	0b010	CNTP_CVAL_EL0	Counter-timer Physical Timer CompareValue register
+0b11	0b011	0b1110	0b0011	0b000	CNTV_TVAL_EL0	Counter-timer Virtual Timer TimerValue register
+0b11	0b011	0b1110	0b0011	0b001	CNTV_CTL_EL0	Counter-timer Virtual Timer Control register
+0b11	0b011	0b1110	0b0011	0b010	CNTV_CVAL_EL0	Counter-timer Virtual Timer CompareValue register
+0b11	0b011	0b1110	0b10:n[4:3]	n[2:0]	PMEVCNTR<n>_EL0	Performance Monitors Event Count Registers
+0b11	0b011	0b1110	0b1111	0b111	PMCCFILTR_EL0	Performance Monitors Cycle Count Filter Register
+0b11	0b011	0b1110	0b11:n[4:3]	n[2:0]	PMEVTYPER<n>_EL0	Performance Monitors Event Type Registers
+0b11	0b100	0b0000	0b0000	0b000	VPIDR_EL2	Virtualization Processor ID Register
+0b11	0b100	0b0000	0b0000	0b101	VMPIDR_EL2	Virtualization Multiprocessor ID Register
+0b11	0b100	0b0001	0b0000	0b000	SCTLR_EL2	System Control Register (EL2)
+0b11	0b100	0b0001	0b0000	0b001	ACTLR_EL2	Auxiliary Control Register (EL2)
+0b11	0b100	0b0001	0b0001	0b000	HCR_EL2	Hypervisor Configuration Register
+0b11	0b100	0b0001	0b0001	0b001	MDCR_EL2	Monitor Debug Configuration Register (EL2)
+0b11	0b100	0b0001	0b0001	0b010	CPTR_EL2	Architectural Feature Trap Register (EL2)
+0b11	0b100	0b0001	0b0001	0b011	HSTR_EL2	Hypervisor System Trap Register
+0b11	0b100	0b0001	0b0001	0b100	HFGRTR_EL2	Hypervisor Fine-Grained Read Trap Register
+0b11	0b100	0b0001	0b0001	0b101	HFGWTR_EL2	Hypervisor Fine-Grained Write Trap Register
+0b11	0b100	0b0001	0b0001	0b110	HFGITR_EL2	Hypervisor Fine-Grained Instruction Trap Register
+0b11	0b100	0b0001	0b0001	0b111	HACR_EL2	Hypervisor Auxiliary Control Register
+0b11	0b100	0b0001	0b0010	0b000	ZCR_EL2	SVE Control Register (EL2)
+0b11	0b100	0b0001	0b0010	0b001	TRFCR_EL2	Trace Filter Control Register (EL2)
+0b11	0b100	0b0001	0b0010	0b010	HCRX_EL2	Extended Hypervisor Configuration Register
+0b11	0b100	0b0001	0b0011	0b001	SDER32_EL2	AArch32 Secure Debug Enable Register
+0b11	0b100	0b0010	0b0000	0b000	TTBR0_EL2	Translation Table Base Register 0 (EL2)
+0b11	0b100	0b0010	0b0000	0b001	TTBR1_EL2	Translation Table Base Register 1 (EL2)
+0b11	0b100	0b0010	0b0000	0b010	TCR_EL2	Translation Control Register (EL2)
+0b11	0b100	0b0010	0b0001	0b000	VTTBR_EL2	Virtualization Translation Table Base Register
+0b11	0b100	0b0010	0b0001	0b010	VTCR_EL2	Virtualization Translation Control Register
+0b11	0b100	0b0010	0b0010	0b000	VNCR_EL2	Virtual Nested Control Register
+0b11	0b100	0b0010	0b0110	0b000	VSTTBR_EL2	Virtualization Secure Translation Table Base Register
+0b11	0b100	0b0010	0b0110	0b010	VSTCR_EL2	Virtualization Secure Translation Control Register
+0b11	0b100	0b0011	0b0000	0b000	DACR32_EL2	Domain Access Control Register
+0b11	0b100	0b0011	0b0001	0b100	HDFGRTR_EL2	Hypervisor Debug Fine-Grained Read Trap Register
+0b11	0b100	0b0011	0b0001	0b101	HDFGWTR_EL2	Hypervisor Debug Fine-Grained Write Trap Register
+0b11	0b100	0b0011	0b0001	0b110	HAFGRTR_EL2	Hypervisor Activity Monitors Fine-Grained Read Trap Register
+0b11	0b100	0b0100	0b0000	0b000	SPSR_EL2	Saved Program Status Register (EL2)
+0b11	0b100	0b0100	0b0000	0b001	ELR_EL2	Exception Link Register (EL2)
+0b11	0b100	0b0100	0b0001	0b000	SP_EL1	Stack Pointer (EL1)
+0b11	0b100	0b0100	0b0011	0b000	SPSR_irq	Saved Program Status Register (IRQ mode)
+0b11	0b100	0b0100	0b0011	0b001	SPSR_abt	Saved Program Status Register (Abort mode)
+0b11	0b100	0b0100	0b0011	0b010	SPSR_und	Saved Program Status Register (Undefined mode)
+0b11	0b100	0b0100	0b0011	0b011	SPSR_fiq	Saved Program Status Register (FIQ mode)
+0b11	0b100	0b0101	0b0000	0b001	IFSR32_EL2	Instruction Fault Status Register (EL2)
+0b11	0b100	0b0101	0b0001	0b000	AFSR0_EL2	Auxiliary Fault Status Register 0 (EL2)
+0b11	0b100	0b0101	0b0001	0b001	AFSR1_EL2	Auxiliary Fault Status Register 1 (EL2)
+0b11	0b100	0b0101	0b0010	0b000	ESR_EL2	Exception Syndrome Register (EL2)
+0b11	0b100	0b0101	0b0010	0b011	VSESR_EL2	Virtual SError Exception Syndrome Register
+0b11	0b100	0b0101	0b0011	0b000	FPEXC32_EL2	Floating-Point Exception Control register
+0b11	0b100	0b0101	0b0110	0b000	TFSR_EL2	Tag Fault Status Register (EL2)
+0b11	0b100	0b0110	0b0000	0b000	FAR_EL2	Fault Address Register (EL2)
+0b11	0b100	0b0110	0b0000	0b100	HPFAR_EL2	Hypervisor IPA Fault Address Register
+0b11	0b100	0b1001	0b1001	0b000	PMSCR_EL2	Statistical Profiling Control Register (EL2)
+0b11	0b100	0b1010	0b0010	0b000	MAIR_EL2	Memory Attribute Indirection Register (EL2)
+0b11	0b100	0b1010	0b0011	0b000	AMAIR_EL2	Auxiliary Memory Attribute Indirection Register (EL2)
+0b11	0b100	0b1010	0b0100	0b000	MPAMHCR_EL2	MPAM Hypervisor Control Register (EL2)
+0b11	0b100	0b1010	0b0100	0b001	MPAMVPMV_EL2	MPAM Virtual Partition Mapping Valid Register
+0b11	0b100	0b1010	0b0101	0b000	MPAM2_EL2	MPAM2 Register (EL2)
+0b11	0b100	0b1010	0b0110	0b000	MPAMVPM0_EL2	MPAM Virtual PARTID Mapping Register 0
+0b11	0b100	0b1010	0b0110	0b001	MPAMVPM1_EL2	MPAM Virtual PARTID Mapping Register 1
+0b11	0b100	0b1010	0b0110	0b010	MPAMVPM2_EL2	MPAM Virtual PARTID Mapping Register 2
+0b11	0b100	0b1010	0b0110	0b011	MPAMVPM3_EL2	MPAM Virtual PARTID Mapping Register 3
+0b11	0b100	0b1010	0b0110	0b100	MPAMVPM4_EL2	MPAM Virtual PARTID Mapping Register 4
+0b11	0b100	0b1010	0b0110	0b101	MPAMVPM5_EL2	MPAM Virtual PARTID Mapping Register 5
+0b11	0b100	0b1010	0b0110	0b110	MPAMVPM6_EL2	MPAM Virtual PARTID Mapping Register 6
+0b11	0b100	0b1010	0b0110	0b111	MPAMVPM7_EL2	MPAM Virtual PARTID Mapping Register 7
+0b11	0b100	0b1100	0b0000	0b000	VBAR_EL2	Vector Base Address Register (EL2)
+0b11	0b100	0b1100	0b0000	0b001	RVBAR_EL2	Reset Vector Base Address Register (if EL3 not implemented)
+0b11	0b100	0b1100	0b0000	0b010	RMR_EL2	Reset Management Register (EL2)
+0b11	0b100	0b1100	0b0001	0b001	VDISR_EL2	Virtual Deferred Interrupt Status Register
+0b11	0b100	0b1100	0b1000	0b0:n[1:0]	ICH_AP0R<n>_EL2	Interrupt Controller Hyp Active Priorities Group 0 Registers
+0b11	0b100	0b1100	0b1001	0b0:n[1:0]	ICH_AP1R<n>_EL2	Interrupt Controller Hyp Active Priorities Group 1 Registers
+0b11	0b100	0b1100	0b1001	0b101	ICC_SRE_EL2	Interrupt Controller System Register Enable register (EL2)
+0b11	0b100	0b1100	0b1011	0b000	ICH_HCR_EL2	Interrupt Controller Hyp Control Register
+0b11	0b100	0b1100	0b1011	0b001	ICH_VTR_EL2	Interrupt Controller VGIC Type Register
+0b11	0b100	0b1100	0b1011	0b010	ICH_MISR_EL2	Interrupt Controller Maintenance Interrupt State Register
+0b11	0b100	0b1100	0b1011	0b011	ICH_EISR_EL2	Interrupt Controller End of Interrupt Status Register
+0b11	0b100	0b1100	0b1011	0b101	ICH_ELRSR_EL2	Interrupt Controller Empty List Register Status Register
+0b11	0b100	0b1100	0b1011	0b111	ICH_VMCR_EL2	Interrupt Controller Virtual Machine Control Register
+0b11	0b100	0b1100	0b110:n[3]	n[2:0]	ICH_LR<n>_EL2	Interrupt Controller List Registers
+0b11	0b100	0b1101	0b0000	0b001	CONTEXTIDR_EL2	Context ID Register (EL2)
+0b11	0b100	0b1101	0b0000	0b010	TPIDR_EL2	EL2 Software Thread ID Register
+0b11	0b100	0b1101	0b0000	0b111	SCXTNUM_EL2	EL2 Read/Write Software Context Number
+0b11	0b100	0b1101	0b100:n[3]	n[2:0]	AMEVCNTVOFF0<n>_EL2	Activity Monitors Event Counter Virtual Offset Registers 0
+0b11	0b100	0b1101	0b101:n[3]	n[2:0]	AMEVCNTVOFF1<n>_EL2	Activity Monitors Event Counter Virtual Offset Registers 1
+0b11	0b100	0b1110	0b0000	0b011	CNTVOFF_EL2	Counter-timer Virtual Offset register
+0b11	0b100	0b1110	0b0000	0b110	CNTPOFF_EL2	Counter-timer Physical Offset register
+0b11	0b100	0b1110	0b0001	0b000	CNTHCTL_EL2	Counter-timer Hypervisor Control register
+0b11	0b100	0b1110	0b0010	0b000	CNTHP_TVAL_EL2	Counter-timer Physical Timer TimerValue register (EL2)
+0b11	0b100	0b1110	0b0010	0b001	CNTHP_CTL_EL2	Counter-timer Hypervisor Physical Timer Control register
+0b11	0b100	0b1110	0b0010	0b010	CNTHP_CVAL_EL2	Counter-timer Physical Timer CompareValue register (EL2)
+0b11	0b100	0b1110	0b0011	0b000	CNTHV_TVAL_EL2	Counter-timer Virtual Timer TimerValue Register (EL2)
+0b11	0b100	0b1110	0b0011	0b001	CNTHV_CTL_EL2	Counter-timer Virtual Timer Control register (EL2)
+0b11	0b100	0b1110	0b0011	0b010	CNTHV_CVAL_EL2	Counter-timer Virtual Timer CompareValue register (EL2)
+0b11	0b100	0b1110	0b0100	0b000	CNTHVS_TVAL_EL2	Counter-timer Secure Virtual Timer TimerValue register (EL2)
+0b11	0b100	0b1110	0b0100	0b001	CNTHVS_CTL_EL2	Counter-timer Secure Virtual Timer Control register (EL2)
+0b11	0b100	0b1110	0b0100	0b010	CNTHVS_CVAL_EL2	Counter-timer Secure Virtual Timer CompareValue register (EL2)
+0b11	0b100	0b1110	0b0101	0b000	CNTHPS_TVAL_EL2	Counter-timer Secure Physical Timer TimerValue register (EL2)
+0b11	0b100	0b1110	0b0101	0b001	CNTHPS_CTL_EL2	Counter-timer Secure Physical Timer Control register (EL2)
+0b11	0b100	0b1110	0b0101	0b010	CNTHPS_CVAL_EL2	Counter-timer Secure Physical Timer CompareValue register (EL2)
+0b11	0b110	0b0001	0b0000	0b000	SCTLR_EL3	System Control Register (EL3)
+0b11	0b110	0b0001	0b0000	0b001	ACTLR_EL3	Auxiliary Control Register (EL3)
+0b11	0b110	0b0001	0b0001	0b000	SCR_EL3	Secure Configuration Register
+0b11	0b110	0b0001	0b0001	0b001	SDER32_EL3	AArch32 Secure Debug Enable Register
+0b11	0b110	0b0001	0b0001	0b010	CPTR_EL3	Architectural Feature Trap Register (EL3)
+0b11	0b110	0b0001	0b0010	0b000	ZCR_EL3	SVE Control Register (EL3)
+0b11	0b110	0b0001	0b0011	0b001	MDCR_EL3	Monitor Debug Configuration Register (EL3)
+0b11	0b110	0b0010	0b0000	0b000	TTBR0_EL3	Translation Table Base Register 0 (EL3)
+0b11	0b110	0b0010	0b0000	0b010	TCR_EL3	Translation Control Register (EL3)
+0b11	0b110	0b0100	0b0000	0b000	SPSR_EL3	Saved Program Status Register (EL3)
+0b11	0b110	0b0100	0b0000	0b001	ELR_EL3	Exception Link Register (EL3)
+0b11	0b110	0b0100	0b0001	0b000	SP_EL2	Stack Pointer (EL2)
+0b11	0b110	0b0101	0b0001	0b000	AFSR0_EL3	Auxiliary Fault Status Register 0 (EL3)
+0b11	0b110	0b0101	0b0001	0b001	AFSR1_EL3	Auxiliary Fault Status Register 1 (EL3)
+0b11	0b110	0b0101	0b0010	0b000	ESR_EL3	Exception Syndrome Register (EL3)
+0b11	0b110	0b0101	0b0110	0b000	TFSR_EL3	Tag Fault Status Register (EL3)
+0b11	0b110	0b0110	0b0000	0b000	FAR_EL3	Fault Address Register (EL3)
+0b11	0b110	0b1010	0b0010	0b000	MAIR_EL3	Memory Attribute Indirection Register (EL3)
+0b11	0b110	0b1010	0b0011	0b000	AMAIR_EL3	Auxiliary Memory Attribute Indirection Register (EL3)
+0b11	0b110	0b1010	0b0101	0b000	MPAM3_EL3	MPAM3 Register (EL3)
+0b11	0b110	0b1100	0b0000	0b000	VBAR_EL3	Vector Base Address Register (EL3)
+0b11	0b110	0b1100	0b0000	0b001	RVBAR_EL3	Reset Vector Base Address Register (if EL3 implemented)
+0b11	0b110	0b1100	0b0000	0b010	RMR_EL3	Reset Management Register (EL3)
+0b11	0b110	0b1100	0b1100	0b100	ICC_CTLR_EL3	Interrupt Controller Control Register (EL3)
+0b11	0b110	0b1100	0b1100	0b101	ICC_SRE_EL3	Interrupt Controller System Register Enable register (EL3)
+0b11	0b110	0b1100	0b1100	0b111	ICC_IGRPEN1_EL3	Interrupt Controller Interrupt Group 1 Enable register (EL3)
+0b11	0b110	0b1101	0b0000	0b010	TPIDR_EL3	EL3 Software Thread ID Register
+0b11	0b110	0b1101	0b0000	0b111	SCXTNUM_EL3	EL3 Read/Write Software Context Number
+0b11	0b111	0b1110	0b0010	0b000	CNTPS_TVAL_EL1	Counter-timer Physical Secure Timer TimerValue register
+0b11	0b111	0b1110	0b0010	0b001	CNTPS_CTL_EL1	Counter-timer Physical Secure Timer Control register
+0b11	0b111	0b1110	0b0010	0b010	CNTPS_CVAL_EL1	Counter-timer Physical Secure Timer CompareValue register
