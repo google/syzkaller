@@ -77,10 +77,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 
 	log.Logf(2, "pool: booting instance %d", inst.idx)
 
-	p.mu.Lock()
-	// Avoid races with ReserveForRun().
 	inst.reset(cancel)
-	p.mu.Unlock()
 
 	start := time.Now()
 	inst.status(StateBooting)
@@ -246,24 +243,25 @@ func (pi *poolInstance[T]) getInfo() Info {
 }
 
 func (pi *poolInstance[T]) reserve(ch chan Runner[T]) {
+	pi.mu.Lock()
+	// If we don't take the lock, it's possible that instance restart would race with job/jobChan update.
 	pi.stop()
 	pi.jobChan = ch
 	pi.job = nil
-	pi.updateInfo(func(info *Info) {
-		info.Reserved = true
-	})
+	pi.info.Reserved = true
+	pi.mu.Unlock()
 }
 
 func (pi *poolInstance[T]) free(job Runner[T]) {
+	pi.mu.Lock()
 	pi.job = job
 	pi.jobChan = nil
-
-	pi.updateInfo(func(info *Info) {
-		info.Reserved = false
-	})
+	switchToJob := pi.switchToJob
+	pi.info.Reserved = false
+	pi.mu.Unlock()
 
 	select {
-	case pi.switchToJob <- job:
+	case switchToJob <- job:
 		// Just in case the instance has been waiting.
 		return
 	default:
