@@ -124,6 +124,33 @@ func TestPoolSplit(t *testing.T) {
 	<-done
 }
 
+func TestPoolStress(t *testing.T) {
+	// The test to aid the race detector.
+	mgr := NewPool[*nilInstance](
+		10,
+		func(idx int) (*nilInstance, error) {
+			return &nilInstance{}, nil
+		},
+		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+			<-ctx.Done()
+		},
+	)
+	done := make(chan bool)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		mgr.Loop(ctx)
+		close(done)
+	}()
+	for i := 0; i < 128; i++ {
+		go mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+		})
+		mgr.ReserveForRun(5 + i%5)
+	}
+
+	cancel()
+	<-done
+}
+
 func makePool(count int) []testInstance {
 	var ret []testInstance
 	for i := 0; i < count; i++ {
@@ -167,5 +194,12 @@ func (ti *testInstance) Index() int {
 }
 
 func (ti *testInstance) Close() error {
+	return nil
+}
+
+type nilInstance struct {
+}
+
+func (ni *nilInstance) Close() error {
 	return nil
 }
