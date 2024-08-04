@@ -242,6 +242,10 @@ func (p *parser) parseResource() *Resource {
 	name := p.parseIdent()
 	p.consume(tokLBrack)
 	base := p.parseType()
+	var args []*Type
+	if p.tryConsume(tokComma) {
+		args = append(args, p.parseType())
+	}
 	p.consume(tokRBrack)
 	var values []*Int
 	if p.tryConsume(tokColon) {
@@ -254,6 +258,7 @@ func (p *parser) parseResource() *Resource {
 		Pos:    pos0,
 		Name:   name,
 		Base:   base,
+		Args:   args,
 		Values: values,
 	}
 }
