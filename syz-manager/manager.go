@@ -687,7 +687,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst, injectExec)
 	lastExec, machineInfo := mgr.serv.ShutdownInstance(inst.Index(), rep != nil)
 	if rep != nil {
-		prependExecuting(rep, lastExec)
+		rpcserver.PrependExecuting(rep, lastExec)
 		if len(vmInfo) != 0 {
 			machineInfo = append(append(vmInfo, '\n'), machineInfo...)
 		}
@@ -751,20 +751,6 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance,
 		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
 	}
 	return rep, vmInfo, nil
-}
-
-func prependExecuting(rep *report.Report, lastExec []rpcserver.ExecRecord) {
-	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "last executing test programs:\n\n")
-	for _, exec := range lastExec {
-		fmt.Fprintf(buf, "%v ago: executing program %v (id=%v):\n%s\n", exec.Time, exec.Proc, exec.ID, exec.Prog)
-	}
-	fmt.Fprintf(buf, "kernel console output (not intermixed with test programs):\n\n")
-	rep.Output = append(buf.Bytes(), rep.Output...)
-	n := len(buf.Bytes())
-	rep.StartPos += n
-	rep.EndPos += n
-	rep.SkipPos += n
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {

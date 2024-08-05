@@ -4,8 +4,12 @@
 package rpcserver
 
 import (
+	"bytes"
+	"fmt"
 	"sort"
 	"time"
+
+	"github.com/google/syzkaller/pkg/report"
 )
 
 // LastExecuting keeps the given number of last executed programs
@@ -65,4 +69,18 @@ func (last *LastExecuting) Collect() []ExecRecord {
 		procs[i].Time = max - procs[i].Time
 	}
 	return procs
+}
+
+func PrependExecuting(rep *report.Report, lastExec []ExecRecord) {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "last executing test programs:\n\n")
+	for _, exec := range lastExec {
+		fmt.Fprintf(buf, "%v ago: executing program %v (id=%v):\n%s\n", exec.Time, exec.Proc, exec.ID, exec.Prog)
+	}
+	fmt.Fprintf(buf, "kernel console output (not intermixed with test programs):\n\n")
+	rep.Output = append(buf.Bytes(), rep.Output...)
+	n := len(buf.Bytes())
+	rep.StartPos += n
+	rep.EndPos += n
+	rep.SkipPos += n
 }
