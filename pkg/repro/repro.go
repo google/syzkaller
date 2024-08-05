@@ -886,3 +886,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 }...)
+
+func (stats *Stats) FullLog() []byte {
+	if stats == nil {
+		return nil
+	}
+	return []byte(fmt.Sprintf("Extracting prog: %v\nMinimizing prog: %v\n"+
+		"Simplifying prog options: %v\nExtracting C: %v\nSimplifying C: %v\n\n\n%s",
+		stats.ExtractProgTime, stats.MinimizeProgTime,
+		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
+}
