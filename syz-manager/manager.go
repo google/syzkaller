@@ -638,7 +638,7 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 	seeds := 0
 	var candidates []fuzzer.Candidate
 	for _, item := range <-mgr.corpusPreload {
-		if containsDisabled(item.Prog, mgr.targetEnabledSyscalls) {
+		if !item.Prog.OnlyContains(mgr.targetEnabledSyscalls) {
 			if mgr.cfg.PreserveCorpus {
 				// This program contains a disabled syscall.
 				// We won't execute it, but remember its hash so
@@ -649,7 +649,7 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 			// We cut out the disabled syscalls and retriage/minimize what remains from the prog.
 			// The original prog will be deleted from the corpus.
 			item.Flags &= ^fuzzer.ProgMinimized
-			programLeftover(mgr.target, mgr.targetEnabledSyscalls, item.Prog)
+			item.Prog.FilterInplace(mgr.targetEnabledSyscalls)
 			if len(item.Prog.Calls) == 0 {
 				continue
 			}
@@ -661,17 +661,6 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 	}
 	log.Logf(0, "%-24v: %v (%v seeds)", "corpus", len(candidates), seeds)
 	return candidates
-}
-
-func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, p *prog.Prog) {
-	for i := 0; i < len(p.Calls); {
-		c := p.Calls[i]
-		if !enabled[c.Meta] {
-			p.RemoveCall(i)
-			continue
-		}
-		i++
-	}
 }
 
 func loadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
@@ -689,15 +678,6 @@ func loadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
 		}
 	}
 	return p, nil
-}
-
-func containsDisabled(p *prog.Prog, enabled map[*prog.Syscall]bool) bool {
-	for _, c := range p.Calls {
-		if !enabled[c.Meta] {
-			return true
-		}
-	}
-	return false
 }
 
 func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {

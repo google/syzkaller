@@ -320,7 +320,7 @@ func (hc *HubConnector) parseProgram(data []byte) (*prog.Prog, error) {
 	if err != nil {
 		return nil, err
 	}
-	if containsDisabled(p, hc.enabledCalls) {
+	if !p.OnlyContains(hc.enabledCalls) {
 		return nil, fmt.Errorf("contains disabled calls")
 	}
 	return p, nil

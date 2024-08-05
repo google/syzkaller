@@ -27,6 +27,28 @@ func (p *Prog) CallName(call int) string {
 	return p.Calls[call].Meta.Name
 }
 
+// OnlyContains determines whether the program only consists of the syscalls from the first argument.
+func (p *Prog) OnlyContains(syscalls map[*Syscall]bool) bool {
+	for _, c := range p.Calls {
+		if !syscalls[c.Meta] {
+			return false
+		}
+	}
+	return true
+}
+
+// FilterInplace only leaves the allowed system calls and deletes all remaining ones.
+func (p *Prog) FilterInplace(allowed map[*Syscall]bool) {
+	for i := 0; i < len(p.Calls); {
+		c := p.Calls[i]
+		if !allowed[c.Meta] {
+			p.RemoveCall(i)
+			continue
+		}
+		i++
+	}
+}
+
 // These properties are parsed and serialized according to the tag and the type
 // of the corresponding fields.
 // IMPORTANT: keep the exact values of "key" tag for existing props unchanged,
