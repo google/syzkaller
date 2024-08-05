@@ -808,10 +808,18 @@ func (comp *compiler) checkConstructors() {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkTypeCtors(arg.Type, prog.DirIn, true, true, ctors, inputs, checked, nil)
+				comp.checkTypeCtors(arg.Type,
+					checkTypeCtorsCtx{
+						dir: prog.DirIn, isArg: true, canCreate: true,
+						ctors: ctors, inputs: inputs, checked: checked,
+					})
 			}
 			if n.Ret != nil {
-				comp.checkTypeCtors(n.Ret, prog.DirOut, true, true, ctors, inputs, checked, nil)
+				comp.checkTypeCtors(n.Ret,
+					checkTypeCtorsCtx{
+						dir: prog.DirOut, isArg: true, canCreate: true,
+						ctors: ctors, inputs: inputs, checked: checked,
+					})
 			}
 		}
 	}
@@ -822,11 +830,17 @@ func (comp *compiler) checkConstructors() {
 			if !comp.used[name] {
 				continue
 			}
-			if !ctors[name] {
+			if _, haveCtor := ctors[name]; !haveCtor {
+				// We don't have any way to generate the resource. Even optionally.
 				comp.error(n.Pos, "resource %v can't be created"+
 					" (never mentioned as a syscall return value or output argument/field)", name)
+			} else if inputs[name] && !ctors[name] {
+				// There are cases when we need the resource, but there's no reliable
+				// way to construct it.
+				comp.error(n.Pos, "resource %v is used in non-optional contexts, but is "+
+					"created in only optional ones", name)
 			}
-			if !inputs[name] {
+			if _, haveUsages := inputs[name]; !haveUsages {
 				comp.error(n.Pos, "resource %v is never used as an input"+
 					" (such resources are not useful)", name)
 			}
@@ -834,14 +848,24 @@ func (comp *compiler) checkConstructors() {
 	}
 }
 
-func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate bool,
-	ctors, inputs map[string]bool, checked map[structDir]bool, neverOutAt *ast.Pos) {
-	desc, args, base := comp.getArgsBase(t, isArg)
+type checkTypeCtorsCtx struct {
+	dir        prog.Dir
+	isArg      bool
+	canCreate  bool
+	optional   bool
+	ctors      map[string]bool // true if we can always create the constructor, false if sometimes
+	inputs     map[string]bool // true if the resource value is mandatory, false if it's optional
+	checked    map[structDir]bool
+	neverOutAt *ast.Pos
+}
+
+func (comp *compiler) checkTypeCtors(t *ast.Type, ctx checkTypeCtorsCtx) {
+	desc, args, base := comp.getArgsBase(t, ctx.isArg)
 	if base.IsOptional {
-		canCreate = false
+		ctx.optional = true
 	}
 	if desc.CantHaveOut {
-		neverOutAt = &t.Pos
+		ctx.neverOutAt = &t.Pos
 	}
 	if desc == typeResource {
 		// TODO(dvyukov): consider changing this to "dir == prog.DirOut".
@@ -849,20 +873,27 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate
 		// only by inout struct fields. These structs should be split
 		// into two different structs: one is in and second is out.
 		// But that will require attaching dir to individual fields.
-		if dir != prog.DirIn && neverOutAt != nil {
-			comp.error(*neverOutAt, "resource %s cannot be created in fmt", t.Ident)
+		if ctx.dir != prog.DirIn && ctx.neverOutAt != nil {
+			comp.error(*ctx.neverOutAt, "resource %s cannot be created in fmt", t.Ident)
 		}
-		if canCreate && dir != prog.DirIn {
+		if ctx.canCreate && ctx.dir != prog.DirIn {
 			r := comp.resources[t.Ident]
-			for r != nil && !ctors[r.Name.Name] {
-				ctors[r.Name.Name] = true
+			// It it's a way to reliably create the constructor, let's propagate
+			// the info to all the parents.
+			canConstruct := !ctx.optional
+			for r != nil {
+				ctx.ctors[r.Name.Name] = ctx.ctors[r.Name.Name] || canConstruct
 				r = comp.resources[r.Base.Ident]
 			}
 		}
-		if dir != prog.DirOut {
+		if ctx.dir != prog.DirOut {
 			r := comp.resources[t.Ident]
-			for r != nil && !inputs[r.Name.Name] {
-				inputs[r.Name.Name] = true
+			for r != nil {
+				_, ok := ctx.inputs[r.Name.Name]
+				if ok {
+					break
+				}
+				ctx.inputs[r.Name.Name] = ctx.inputs[r.Name.Name] || !ctx.optional
 				r = comp.resources[r.Base.Ident]
 			}
 		}
@@ -871,29 +902,34 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate
 	if desc == typeStruct {
 		s := comp.structs[t.Ident]
 		if s.IsUnion {
-			canCreate = false
+			ctx.canCreate = false
 		}
 		name := s.Name.Name
-		key := structDir{name, dir}
-		if checked[key] {
+		key := structDir{name, ctx.dir}
+		if ctx.checked[key] {
 			return
 		}
-		checked[key] = true
+		ctx.checked[key] = true
 		for _, fld := range s.Fields {
 			fldDir, fldHasDir := comp.genFieldDir(comp.parseIntAttrs(structFieldAttrs, fld, fld.Attrs))
 			if !fldHasDir {
-				fldDir = dir
+				fldDir = ctx.dir
 			}
-			comp.checkTypeCtors(fld.Type, fldDir, false, canCreate, ctors, inputs, checked, neverOutAt)
+			newCtx := ctx
+			newCtx.dir = fldDir
+			newCtx.isArg = false
+			comp.checkTypeCtors(fld.Type, newCtx)
 		}
 		return
 	}
 	if desc == typePtr {
-		dir = genDir(t.Args[0])
+		ctx.dir = genDir(t.Args[0])
 	}
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, canCreate, ctors, inputs, checked, neverOutAt)
+			newCtx := ctx
+			newCtx.isArg = desc.Args[i].IsArg
+			comp.checkTypeCtors(arg, newCtx)
 		}
 	}
 }
