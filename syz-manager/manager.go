@@ -956,7 +956,7 @@ func truncateReproLog(log []byte) []byte {
 }
 
 func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
-	reproLog := fullReproLog(stats)
+	reproLog := stats.FullLog()
 	if mgr.dash != nil {
 		if rep.Type == crash_pkg.MemoryLeak {
 			// Don't send failed leak repro attempts to dashboard
@@ -1049,7 +1049,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			ReproOpts:     repro.Opts.Serialize(),
 			ReproSyz:      progText,
 			ReproC:        cprogText,
-			ReproLog:      truncateReproLog(fullReproLog(res.stats)),
+			ReproLog:      truncateReproLog(res.stats.FullLog()),
 			Assets:        mgr.uploadReproAssets(repro),
 			OriginalTitle: res.crash.Title,
 		}
@@ -1099,7 +1099,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.strace.Output)
 		}
 	}
-	if reproLog := fullReproLog(res.stats); len(reproLog) > 0 {
+	if reproLog := res.stats.FullLog(); len(reproLog) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.stats"), reproLog)
 	}
 }
@@ -1129,16 +1129,6 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 		ret = append(ret, asset)
 	})
 	return ret
-}
-
-func fullReproLog(stats *repro.Stats) []byte {
-	if stats == nil {
-		return nil
-	}
-	return []byte(fmt.Sprintf("Extracting prog: %v\nMinimizing prog: %v\n"+
-		"Simplifying prog options: %v\nExtracting C: %v\nSimplifying C: %v\n\n\n%s",
-		stats.ExtractProgTime, stats.MinimizeProgTime,
-		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
 }
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
