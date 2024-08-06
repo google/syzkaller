@@ -78,7 +78,7 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				comp.error(arg.Pos, "%v arg %v is larger than pointer size", n.Name.Name, arg.Name.Name)
 				continue
 			}
-			argID := fmt.Sprintf("%v|%v", n.CallName, i)
+			argID := fmt.Sprintf("%v|%v", getCallName(n), i)
 			if _, ok := argPos[argID]; !ok {
 				argSizes[i] = typ.Size()
 				argPos[argID] = arg.Pos
@@ -90,9 +90,18 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				continue
 			}
 		}
-		callArgSizes[n.CallName] = argSizes
+		callArgSizes[getCallName(n)] = argSizes
 	}
 	return callArgSizes
+}
+
+func getCallName(n *ast.Call) string {
+	for _, attr := range n.Attrs {
+		if attr.Ident == "automatic" {
+			return n.Name.Name
+		}
+	}
+	return n.CallName
 }
 
 func (comp *compiler) genSyscalls() []*prog.Syscall {
@@ -100,7 +109,7 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
-			calls = append(calls, comp.genSyscall(n, callArgSizes[n.CallName]))
+			calls = append(calls, comp.genSyscall(n, callArgSizes[getCallName(n)]))
 		}
 	}
 	// We assign SquashableElem here rather than during pointer type generation

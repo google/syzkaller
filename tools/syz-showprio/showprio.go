@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 	enabled := strings.Split(*flagEnable, ",")
-	_, err = mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
+	_, err = mgrconfig.ParseEnabledSyscalls(target, enabled, nil, mgrconfig.AnyDescriptions)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 		os.Exit(1)

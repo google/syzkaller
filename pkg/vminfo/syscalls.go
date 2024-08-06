@@ -161,7 +161,7 @@ func (ctx *checkContext) supportedSyscalls(names []string) string {
 }
 
 func supportedOpenat(ctx *checkContext, call *prog.Syscall) string {
-	fname, ok := extractStringConst(call.Args[1].Type)
+	fname, ok := extractStringConst(call.Args[1].Type, call.Attrs.Automatic)
 	if !ok || fname[0] != '/' {
 		return ""
 	}
@@ -277,7 +277,10 @@ func alwaysSupported(ctx *checkContext, call *prog.Syscall) string {
 	return ""
 }
 
-func extractStringConst(typ prog.Type) (string, bool) {
+func extractStringConst(typ prog.Type, isAutomatic bool) (string, bool) {
+	if isAutomatic {
+		return "", false
+	}
 	ptr, ok := typ.(*prog.PtrType)
 	if !ok {
 		panic("first open arg is not a pointer to string const")
