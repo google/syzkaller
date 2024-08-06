@@ -66,6 +66,8 @@ var (
 		" - corpus-run: continuously run the corpus programs.\n"+
 		" - run-tests: run unit tests\n"+
 		"	Run sys/os/test/* tests in various modes and print results.\n")
+
+	flagTests = flag.String("tests", "", "prefix to match test file names (for -mode run-tests)")
 )
 
 type Manager struct {
@@ -1355,6 +1357,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 			LogFunc: func(text string) { fmt.Println(text) },
 			Verbose: true,
 			Debug:   *flagDebug,
+			Tests:   *flagTests,
 		}
 		ctx.Init()
 		go func() {
