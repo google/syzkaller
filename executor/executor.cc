@@ -1372,11 +1372,13 @@ void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
 	current_thread = th;
-	if (cover_collection_required())
-		cover_enable(&th->cov, flag_comparisons, false);
-	for (;;) {
+	for (bool first = true;; first = false) {
 		event_wait(&th->ready);
 		event_reset(&th->ready);
+		// Setup coverage only after receiving the first ready event
+		// because in snapshot mode we don't know coverage mode for precreated threads.
+		if (first && cover_collection_required())
+			cover_enable(&th->cov, flag_comparisons, false);
 		execute_call(th);
 		event_set(&th->done);
 	}
