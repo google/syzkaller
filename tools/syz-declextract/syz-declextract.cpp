@@ -31,6 +31,14 @@ struct Param {
 };
 
 class Printer : public MatchFinder::MatchCallback {
+private:
+  const std::string getSyzType(const Param &arg) { return "intptr"; }
+  const std::string swapIfReservedKeyword(const std::string &word) {
+    if (word == "resource")
+      return "rsrc";
+    return word;
+  }
+
 public:
   virtual void run(const MatchFinder::MatchResult &Result) override {
     const auto *varDecl = Result.Nodes.getNodeAs<VarDecl>("Struct");
@@ -66,11 +74,13 @@ public:
       }
     }
 
-    printf("==========SYSCALL Found==========\n");
-    printf("%s\n", values[0]->tryEvaluateString(*context).value().c_str());
+    printf("%s$auto(", values[0]->tryEvaluateString(*context).value().c_str() + 4); // name
+    const char *sep = "";
     for (const auto &arg : args) {
-      printf("%s %s\n", arg.type.c_str(), arg.name.c_str());
+      printf("%s%s %s", sep, swapIfReservedKeyword(arg.name).c_str(), getSyzType(arg).c_str());
+      sep = ", ";
     }
+    puts(") (automatic)");
   }
 };
 

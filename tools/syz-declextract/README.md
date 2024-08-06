@@ -8,7 +8,7 @@ make CC=clang defconfig # Having clang as the compiler is optional but removes e
 ./scripts/config -e FTRACE_SYSCALLS
 make CC=clang olddefconfig
 make CC=clang -j`nproc` # kernel has to be built at least once for the script to work
-./scripts/clang/gen_compile_commands.py
+./scripts/clang-tools/gen_compile_commands.py
 ```
 ## LLVM Project
 ```
@@ -39,5 +39,5 @@ make -j`nproc` syz-declextract
 Download `run.go`, build it and run it
 ```
 go build run.go
-./run -p $KERNEL/compile_commands.json -b $SYZ/bin/syz-declextract
+./run -compile_commands $KERNEL/compile_commands.json -binary $SYZ/bin/syz-declextract -output auto.txt -kernel $KERNEL
 ```
