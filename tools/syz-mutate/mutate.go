@@ -42,7 +42,7 @@ func main() {
 	var syscalls map[*prog.Syscall]bool
 	if *flagEnable != "" {
 		enabled := strings.Split(*flagEnable, ",")
-		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
+		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil, mgrconfig.AnyDescriptions)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 			os.Exit(1)
