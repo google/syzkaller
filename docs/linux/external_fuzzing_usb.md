@@ -36,7 +36,7 @@ These pseudo-syscalls targeted at a few different layers:
 There are [runtests](/sys/linux/test/) for USB pseudo-syscalls. They are named starting with the `vusb` prefix and can be run with:
 
 ```
-./bin/syz-runtest -config=usb-manager.cfg -tests=vusb
+./bin/syz-manager -config usb-manager.cfg -mode run-tests -tests vusb
 ```
 
 
