@@ -680,6 +680,7 @@ ext4_options [
 	noinit_itable		stringnoz["noinit_itable"]
 	test_dummy_encryption	stringnoz["test_dummy_encryption"]
 	nombcache		stringnoz["nombcache"]
+	inlinecrypt		stringnoz["inlinecrypt"]
 	resgid			fs_opt_hex["resgid", gid]
 	resuid			fs_opt_hex["resuid", uid]
 	sb			fs_opt_hex["sb", int32]
@@ -762,6 +763,7 @@ f2fs_options [
 	test_dummy_encryption	stringnoz["test_dummy_encryption"]
 	errors_continue		stringnoz["errors=continue"]
 	errors_remount		stringnoz["errors=remount-ro"]
+	inlinecrypt		stringnoz["inlinecrypt"]
 ] [varlen]
 
 bpf_options [
