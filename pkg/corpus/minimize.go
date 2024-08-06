@@ -25,10 +25,16 @@ func (corpus *Corpus) Minimize(cover bool) {
 	// This gives some intentional non-determinism during minimization.
 	// However, we want to give preference to non-squashed inputs,
 	// so let's sort by this criteria.
+	// We also want to give preference to smaller corpus programs:
+	// - they are faster to execute,
+	// - minimization occasionally fails, so we need to clean it up over time.
 	sort.SliceStable(inputs, func(i, j int) bool {
-		firstAny := inputs[i].Context.(*Item).HasAny
-		secondAny := inputs[j].Context.(*Item).HasAny
-		return !firstAny && secondAny
+		first := inputs[i].Context.(*Item)
+		second := inputs[j].Context.(*Item)
+		if first.HasAny != second.HasAny {
+			return !first.HasAny
+		}
+		return len(first.Prog.Calls) < len(second.Prog.Calls)
 	})
 
 	corpus.progs = make(map[string]*Item)
