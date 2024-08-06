@@ -102,11 +102,12 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 }
 
 func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
-	if _, ok := call.Args[0].Type.(*prog.ConstType); ok {
+	if _, ok := call.Args[0].Type.(*prog.ConstType); ok || call.Attrs.Automatic {
 		// This is for syz_open_dev$char/block.
+		// second operand for when we have an automatically generated description
 		return ""
 	}
-	fname, ok := extractStringConst(call.Args[0].Type)
+	fname, ok := extractStringConst(call.Args[0].Type, call.Attrs.Automatic)
 	if !ok {
 		panic("first open arg is not a pointer to string const")
 	}
@@ -192,7 +193,10 @@ func linuxSyzMountImageSupported(ctx *checkContext, call *prog.Syscall) string {
 }
 
 func linuxSupportedFilesystem(ctx *checkContext, call *prog.Syscall, fsarg int) string {
-	fstype, ok := extractStringConst(call.Args[fsarg].Type)
+	if call.Attrs.Automatic {
+		return ""
+	}
+	fstype, ok := extractStringConst(call.Args[fsarg].Type, call.Attrs.Automatic)
 	if !ok {
 		panic(fmt.Sprintf("%v: filesystem is not string const", call.Name))
 	}
@@ -224,7 +228,7 @@ func linuxSyzReadPartTableSupported(ctx *checkContext, call *prog.Syscall) strin
 }
 
 func linuxSupportedSocket(ctx *checkContext, call *prog.Syscall) string {
-	if call.Name == "socket" || call.Name == "socketpair" {
+	if call.Name == "socket" || call.Name == "socketpair" || call.Attrs.Automatic {
 		return "" // generic versions are always supported
 	}
 	af := uint64(0)

@@ -109,7 +109,7 @@ func main() {
 		if *flagSyscalls == "" {
 			syscallList = nil
 		}
-		requestedSyscalls, err = mgrconfig.ParseEnabledSyscalls(target, syscallList, nil)
+		requestedSyscalls, err = mgrconfig.ParseEnabledSyscalls(target, syscallList, nil, mgrconfig.AnyDescriptions)
 		if err != nil {
 			tool.Failf("failed to parse enabled syscalls: %v", err)
 		}

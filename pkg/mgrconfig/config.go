@@ -232,6 +232,9 @@ type Experimental struct {
 
 	// Hash adjacent PCs to form fuzzing feedback signal, otherwise use PCs as signal (default: true).
 	CoverEdges bool `json:"cover_edges"`
+
+	// Use automatically (auto) generated or manually (manual) written descriptions or any (any) (default: manual)
+	DescriptionsMode string `json:"descriptions_mode"`
 }
 
 type Subsystem struct {

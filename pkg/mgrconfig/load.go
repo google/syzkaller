@@ -94,11 +94,31 @@ func defaultValues() *Config {
 		Procs:          6,
 		PreserveCorpus: true,
 		Experimental: Experimental{
-			RemoteCover: true,
-			CoverEdges:  true,
+			RemoteCover:      true,
+			CoverEdges:       true,
+			DescriptionsMode: manualDescriptions,
 		},
 	}
 }
+
+type DescriptionsMode int
+
+const (
+	invalidDescriptions = iota
+	ManualDescriptions
+	AutoDescriptions
+	AnyDescriptions
+)
+
+const manualDescriptions = "manual"
+
+var (
+	strToDescriptionsMode = map[string]DescriptionsMode{
+		manualDescriptions: ManualDescriptions,
+		"auto":             AutoDescriptions,
+		"any":              AnyDescriptions,
+	}
+)
 
 func loadPartial(cfg *Config) (*Config, error) {
 	var err error
@@ -171,7 +191,8 @@ func Complete(cfg *Config) error {
 	}
 
 	var err error
-	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
+	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls,
+		strToDescriptionsMode[cfg.Experimental.DescriptionsMode])
 	if err != nil {
 		return err
 	}
@@ -317,7 +338,12 @@ func splitTarget(target string) (string, string, string, error) {
 	return os, vmarch, arch, nil
 }
 
-func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]int, error) {
+func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
+	descriptionsMode DescriptionsMode) ([]int, error) {
+	if descriptionsMode == invalidDescriptions {
+		return nil, fmt.Errorf("config param descriptions_mode must contain one of auto/manual/any")
+	}
+
 	syscalls := make(map[int]bool)
 	if len(enabled) != 0 {
 		for _, c := range enabled {
@@ -337,8 +363,11 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 			syscalls[call.ID] = true
 		}
 	}
+
 	for call := range syscalls {
-		if target.Syscalls[call].Attrs.Disabled {
+		if target.Syscalls[call].Attrs.Disabled ||
+			descriptionsMode == ManualDescriptions && target.Syscalls[call].Attrs.Automatic ||
+			descriptionsMode == AutoDescriptions && !target.Syscalls[call].Attrs.Automatic {
 			delete(syscalls, call)
 		}
 	}
