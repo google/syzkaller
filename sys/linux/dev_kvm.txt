@@ -258,16 +258,16 @@ syzos_api_msr {
 	arg_value	int64
 }
 
-# Based on the "SMC Calling Convention" doc, https://documentation-service.arm.com/static/5f8ea482f86e16515cdbe3c6
+# Based on the "SMC Calling Convention" doc, https://documentation-service.arm.com/static/5f8edaeff86e16515cdbe4c6
 # Bit 31 is Standard (0) / Fast Call (1)
 # Bit 30 is SMC32 (0) / SMC64 (1)
 # Bits 29:24 denote the owning entity (relevant constants below are 0x01000000-0x3f000000
 # Bits 23:16 are ignored (must be zero in most cases)
 # Bits 15:0 denote the function number (0-0xffff) within the specified range, so we list all the possible bit values
 # here and hope that the fuzzer will be able to combine them into a number.
-kvm_smc_id = 0x80000000, 0x40000000, 0x1000000, 0x2000000, 0x3000000, 0x4000000, 0x30000000, 0x31000000, 0x32000000, 0x3f000000, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0xffff
+kvm_smc_id = 0x80000000, 0x40000000, 0x1000000, 0x2000000, 0x3000000, 0x4000000, 0x5000000, 0x6000000, 0x30000000, 0x31000000, 0x32000000, 0x3f000000, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0xffff
 
-syzos_api_smc {
+syzos_api_smccc {
 	arg_id		flags[kvm_smc_id, int32]
 	arg_params	array[int64, 5]
 }
@@ -282,7 +282,8 @@ syzos_api_call [
 	uexit	syzos_api[0, intptr]
 	code	syzos_api[1, syzos_api_code]
 	msr	syzos_api[2, syzos_api_msr]
-	smc	syzos_api[3, syzos_api_smc]
+	smc	syzos_api[3, syzos_api_smccc]
+	hvc	syzos_api[4, syzos_api_smccc]
 ] [varlen]
 
 kvm_text_ppc64 {
