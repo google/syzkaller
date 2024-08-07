@@ -312,13 +312,16 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		<-vm.Shutdown
 		return
 	}
-	ctx, cancel := context.WithCancel(vm.ShutdownCtx())
-	mgr.loopStop = cancel
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
 	mgr.reproMgr = newReproManager(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
+	ctx := vm.ShutdownCtx()
 	go mgr.processFuzzingResults(ctx)
 	go mgr.reproMgr.Loop(ctx)
-	mgr.pool.Loop(ctx)
+
+	loopCtx, cancel := context.WithCancel(ctx)
+	mgr.loopStop = cancel
+	mgr.pool.Loop(loopCtx)
+
 	if cfg.Snapshot {
 		log.Logf(0, "starting VMs for snapshot mode")
 		mgr.serv.Close()
