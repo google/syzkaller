@@ -86,7 +86,6 @@ type Manager struct {
 	corpusPreload   chan []fuzzer.Candidate
 	firstConnect    atomic.Int64 // unix time, or 0 if not connected
 	crashTypes      map[string]bool
-	loopStop        func()
 	enabledFeatures flatrpc.Feature
 	checkDone       atomic.Bool
 	fresh           bool
@@ -317,17 +316,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	ctx := vm.ShutdownCtx()
 	go mgr.processFuzzingResults(ctx)
 	go mgr.reproMgr.Loop(ctx)
-
-	loopCtx, cancel := context.WithCancel(ctx)
-	mgr.loopStop = cancel
-	mgr.pool.Loop(loopCtx)
-
-	if cfg.Snapshot {
-		log.Logf(0, "starting VMs for snapshot mode")
-		mgr.serv.Close()
-		mgr.serv = nil
-		mgr.snapshotLoop()
-	}
+	mgr.pool.Loop(ctx)
 }
 
 // Exit successfully in special operation modes.
@@ -686,11 +675,23 @@ func loadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
 }
 
 func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
+	mgr.mu.Lock()
+	serv := mgr.serv
+	mgr.mu.Unlock()
+	if serv == nil {
+		// We're in the process of switching off the RPCServer.
+		return
+	}
 	injectExec := make(chan bool, 10)
-	mgr.serv.CreateInstance(inst.Index(), injectExec, updInfo)
+	serv.CreateInstance(inst.Index(), injectExec, updInfo)
 
-	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst, injectExec)
-	lastExec, machineInfo := mgr.serv.ShutdownInstance(inst.Index(), rep != nil)
+	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst, injectExec, vm.EarlyFinishCb(func() {
+		// Depending on the crash type and kernel config, fuzzing may continue
+		// running for several seconds even after kernel has printed a crash report.
+		// This litters the log and we want to prevent it.
+		serv.StopFuzzing(inst.Index())
+	}))
+	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), rep != nil)
 	if rep != nil {
 		rpcserver.PrependExecuting(rep, lastExec)
 		if len(vmInfo) != 0 {
@@ -709,8 +710,8 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	}
 }
 
-func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance,
-	injectExec <-chan bool) (*report.Report, []byte, error) {
+func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, injectExec <-chan bool,
+	finishCb vm.EarlyFinishCb) (*report.Report, []byte, error) {
 	fwdAddr, err := inst.Forward(mgr.serv.Port)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
@@ -736,12 +737,7 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance,
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
 		vm.ExitTimeout, vm.StopContext(ctx), vm.InjectExecuting(injectExec),
-		vm.EarlyFinishCb(func() {
-			// Depending on the crash type and kernel config, fuzzing may continue
-			// running for several seconds even after kernel has printed a crash report.
-			// This litters the log and we want to prevent it.
-			mgr.serv.StopFuzzing(inst.Index())
-		}),
+		finishCb,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
@@ -1335,9 +1331,11 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		}
 		source := queue.DefaultOpts(fuzzerObj, opts)
 		if mgr.cfg.Snapshot {
-			log.Logf(0, "stopping VMs for snapshot mode")
+			log.Logf(0, "restarting VMs for snapshot mode")
 			mgr.source = source
-			mgr.loopStop()
+			mgr.pool.SetDefault(mgr.snapshotInstance)
+			mgr.serv.Close()
+			mgr.serv = nil
 			return queue.Callback(func() *queue.Request {
 				return nil
 			})
