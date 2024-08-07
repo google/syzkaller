@@ -915,8 +915,8 @@ ubifs_options [
 ] [varlen]
 
 adfs_options [
-	uid			fs_opt_hex["uid", uid]
-	gid			fs_opt_hex["gid", gid]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
 	ownmask		fs_opt_oct["ownmask", int32]
 	othmask		fs_opt_oct["othmask", int32]
 	ftsuffix	fs_opt_dec["ftsuffix", int32]
