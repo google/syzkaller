@@ -280,13 +280,13 @@ It's always good to add a test at least for "the main successful scenario" for t
 It will ensure that the descriptions are actually correct and that it's possible for the fuzzer
 to come up with the successful scenario. See [io_uring test](/sys/linux/test/io_uring) as a good example.
 
-The tests can be run with the `syz-runtest` utility as:
+The tests can be run with the `run-tests` functionality of `syz-manager`:
 ```
-make runtest && bin/syz-runtest -config manager.config
+make && bin/syz-manager -config manager.config -mode run-tests
 ```
-`syz-runtest` boots multiple VMs and runs these tests in different execution modes inside of the VMs.
+It will boot multiple VMs and runs these tests in different execution modes inside of the VMs.
 
-However, full `syz-runtest` run takes time, so while developing the test, it's more handy to run it
+However, the full run takes significant time, so while developing the test, it's more handy to run it
 using the `syz-execprog` utility. To run the test, copy `syz-execprog`, `syz-executor` and the test
 into a manually booted VM and then run the following command inside of the VM:
 ```
