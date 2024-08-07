@@ -39,6 +39,9 @@ const (
 	// Minimize crash reproducer.
 	// This mode assumes each test is expensive (need to reboot), so tries fewer things.
 	MinimizeCrash
+	// Minimize crash reproducer in snapshot mode.
+	// This mode does not assume that tests are expensive, and tries to minimize for reproducer readability.
+	MinimizeCrashSnapshot
 	// Only try to remove calls.
 	MinimizeCallsOnly
 )
@@ -264,7 +267,7 @@ func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 		elem := a.Inner[i]
 		elemPath := fmt.Sprintf("%v-%v", path, i)
 		// Try to remove individual elements one-by-one.
-		if ctx.mode == MinimizeCorpus && !ctx.triedPaths[elemPath] &&
+		if ctx.mode != MinimizeCrash && !ctx.triedPaths[elemPath] &&
 			(typ.Kind == ArrayRandLen ||
 				typ.Kind == ArrayRangeLen && uint64(len(a.Inner)) > typ.RangeBegin) {
 			ctx.triedPaths[elemPath] = true
@@ -307,7 +310,7 @@ func (typ *ProcType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	// TODO: try to reset bits in ints
 	// TODO: try to set separate flags
-	if ctx.mode == MinimizeCrash {
+	if ctx.mode != MinimizeCrashSnapshot {
 		return false
 	}
 	a := arg.(*ConstArg)
@@ -335,7 +338,7 @@ func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 }
 
 func (typ *ResourceType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
-	if ctx.mode == MinimizeCrash {
+	if ctx.mode != MinimizeCrashSnapshot {
 		return false
 	}
 	a := arg.(*ResultArg)
