@@ -149,7 +149,7 @@ syz_mount_image$zonefs(fs ptr[in, string["zonefs"]], dir ptr[in, filename], flag
 syz_mount_image$ubifs(fs ptr[in, string["ubifs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ubifs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 
 # TODO: add mount options for the following file systems.
-syz_mount_image$adfs(fs ptr[in, string["adfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$adfs(fs ptr[in, string["adfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[adfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$affs(fs ptr[in, string["affs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$befs(fs ptr[in, string["befs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$vxfs(fs ptr[in, string["vxfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
@@ -910,6 +910,14 @@ ubifs_options [
 	compr_zstd	stringnoz["compr=zstd"]
 	auth_key	fs_opt_str["auth_key"]
 	auth_hash_name	fs_opt["auth_hash_name", stringnoz[ubifs_auth_hash_name]]
+] [varlen]
+
+adfs_options [
+	uid			fs_opt_hex["uid", uid]
+	gid			fs_opt_hex["gid", gid]
+	ownmask		fs_opt_oct["ownmask", int32]
+	othmask		fs_opt_oct["othmask", int32]
+	ftsuffix	fs_opt_dec["ftsuffix", int32]adfs
 ] [varlen]
 
 # We could use more hash names, but the problem is that alg_hash_name is 0-terminated.
