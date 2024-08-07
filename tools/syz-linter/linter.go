@@ -303,6 +303,8 @@ func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
 		return 1, true, true
 	case "t.Errorf", "t.Fatalf":
 		return 0, false, true
+	case "tool.Failf":
+		return 0, false, true
 	}
 	if fun.Sel.String() == "Logf" {
 		return 0, false, true
