@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -14,27 +15,24 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/vm/dispatcher"
 )
 
-func (mgr *Manager) snapshotLoop() {
-	queue.StatNumFuzzing.Add(mgr.vmPool.Count())
-	for index := 0; index < mgr.vmPool.Count(); index++ {
-		index := index
-		go func() {
-			for {
-				log.Error(mgr.snapshotVM(index))
-			}
-		}()
+func (mgr *Manager) snapshotInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
+	queue.StatNumFuzzing.Add(1)
+	defer queue.StatNumFuzzing.Add(-1)
+
+	updInfo(func(info *dispatcher.Info) {
+		info.Status = "snapshot fuzzing"
+	})
+
+	err := mgr.snapshotLoop(ctx, inst)
+	if err != nil {
+		log.Error(err)
 	}
-	select {}
 }
 
-func (mgr *Manager) snapshotVM(index int) error {
-	inst, err := mgr.vmPool.Create(index)
-	if err != nil {
-		return err
-	}
-	defer inst.Close()
+func (mgr *Manager) snapshotLoop(ctx context.Context, inst *vm.Instance) error {
 	executor, err := inst.Copy(mgr.cfg.ExecutorBin)
 	if err != nil {
 		return err
@@ -48,7 +46,7 @@ func (mgr *Manager) snapshotVM(index int) error {
 
 	builder := flatbuffers.NewBuilder(0)
 	var envFlags flatrpc.ExecEnv
-	for first := true; ; first = false {
+	for first := true; ctx.Err() == nil; first = false {
 		queue.StatExecs.Add(1)
 		req := mgr.source.Next()
 		if first {
@@ -81,6 +79,7 @@ func (mgr *Manager) snapshotVM(index int) error {
 
 		req.Done(res)
 	}
+	return nil
 }
 
 func (mgr *Manager) snapshotSetup(inst *vm.Instance, builder *flatbuffers.Builder, env flatrpc.ExecEnv) error {
