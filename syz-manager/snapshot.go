@@ -160,16 +160,16 @@ func (mgr *Manager) snapshotRun(inst *vm.Instance, builder *flatbuffers.Builder,
 			execError = msg.Error
 		}
 	}
-	status := queue.Success
-	var resErr error
-	if execError != "" {
-		status = queue.ExecFailure
-		resErr = errors.New(execError)
-	}
-	return &queue.Result{
-		Status: status,
+	ret := &queue.Result{
+		Status: queue.Success,
 		Info:   info,
-		Output: output,
-		Err:    resErr,
-	}, nil, nil
+	}
+	if execError != "" {
+		ret.Status = queue.ExecFailure
+		ret.Err = errors.New(execError)
+	}
+	if req.ReturnOutput {
+		ret.Output = output
+	}
+	return ret, output, nil
 }
