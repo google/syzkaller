@@ -94,6 +94,9 @@ RUN cd /tmp/Python-2.7.18 && ./configure
 RUN cd /tmp/Python-2.7.18 && make -j2 && make altinstall
 RUN ln -s /usr/local/bin/python2.7 /usr/bin/python2
 
+# Install node to pass act jobs (https://github.com/nektos/act)
+RUN apt-get install -y -q nodejs
+
 # Install gcloud sdk for dashboard/app tests.
 # The newest version (as of 07/10/23) is 437, however, it seems to expect to be run with python3
 # (but still requires python2). But Go's aetest package still runs dev_appserver.py with python2.7.
