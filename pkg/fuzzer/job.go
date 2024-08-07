@@ -301,39 +301,38 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 		minimizeAttempts = 2
 	}
 	stop := false
-	p, call := prog.Minimize(job.p, call, prog.MinimizeParams{},
-		func(p1 *prog.Prog, call1 int) bool {
-			if stop {
+	p, call := prog.Minimize(job.p, call, prog.MinimizeCorpus, func(p1 *prog.Prog, call1 int) bool {
+		if stop {
+			return false
+		}
+		var mergedSignal signal.Signal
+		for i := 0; i < minimizeAttempts; i++ {
+			result := job.execute(&queue.Request{
+				Prog:            p1,
+				ExecOpts:        setFlags(flatrpc.ExecFlagCollectSignal),
+				ReturnAllSignal: []int{call1},
+				Stat:            job.fuzzer.statExecMinimize,
+			}, 0)
+			if result.Stop() {
+				stop = true
 				return false
 			}
-			var mergedSignal signal.Signal
-			for i := 0; i < minimizeAttempts; i++ {
-				result := job.execute(&queue.Request{
-					Prog:            p1,
-					ExecOpts:        setFlags(flatrpc.ExecFlagCollectSignal),
-					ReturnAllSignal: []int{call1},
-					Stat:            job.fuzzer.statExecMinimize,
-				}, 0)
-				if result.Stop() {
-					stop = true
-					return false
-				}
-				if !reexecutionSuccess(result.Info, info.errno, call1) {
-					// The call was not executed or failed.
-					continue
-				}
-				thisSignal := getSignalAndCover(p1, result.Info, call1)
-				if mergedSignal.Len() == 0 {
-					mergedSignal = thisSignal
-				} else {
-					mergedSignal.Merge(thisSignal)
-				}
-				if info.newStableSignal.Intersection(mergedSignal).Len() == info.newStableSignal.Len() {
-					return true
-				}
+			if !reexecutionSuccess(result.Info, info.errno, call1) {
+				// The call was not executed or failed.
+				continue
 			}
-			return false
-		})
+			thisSignal := getSignalAndCover(p1, result.Info, call1)
+			if mergedSignal.Len() == 0 {
+				mergedSignal = thisSignal
+			} else {
+				mergedSignal.Merge(thisSignal)
+			}
+			if info.newStableSignal.Intersection(mergedSignal).Len() == info.newStableSignal.Len() {
+				return true
+			}
+		}
+		return false
+	})
 	if stop {
 		return nil, 0
 	}

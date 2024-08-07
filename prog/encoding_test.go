@@ -408,7 +408,7 @@ func TestSerializeDeserializeRandom(t *testing.T) {
 			if _, _, ok := testSerializeDeserialize(t, p0); ok {
 				continue
 			}
-			p0, _ = Minimize(p0, -1, MinimizeParams{}, func(p1 *Prog, _ int) bool {
+			p0, _ = Minimize(p0, -1, MinimizeCorpus, func(p1 *Prog, _ int) bool {
 				_, _, ok := testSerializeDeserialize(t, p1)
 				return !ok
 			})

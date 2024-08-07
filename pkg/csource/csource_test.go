@@ -91,7 +91,7 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 		opts = allOptionsSingle(target.OS)
 		opts = append(opts, ExecutorOpts)
 	} else {
-		minimized, _ := prog.Minimize(syzProg, -1, prog.MinimizeParams{}, func(p *prog.Prog, call int) bool {
+		minimized, _ := prog.Minimize(syzProg, -1, prog.MinimizeCorpus, func(p *prog.Prog, call int) bool {
 			return len(p.Calls) == len(syzProg.Calls)
 		})
 		p.Calls = append(p.Calls, minimized.Calls...)
