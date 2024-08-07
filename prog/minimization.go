@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/stat"
 )
 
@@ -51,11 +52,19 @@ const (
 // whether it is equal to the original program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
 func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int) bool) (*Prog, int) {
-	pred := func(p *Prog, callIndex int, what *stat.Val) bool {
+	// Generally we try to avoid generating duplicates, but in some cases they are hard to avoid.
+	// For example, if we have an array with several equal elements, removing them leads to the same program.
+	dedup := make(map[string]bool)
+	pred := func(p *Prog, callIndex int, what *stat.Val, path string) bool {
+		// Note: path is unused, but is useful for manual debugging.
 		what.Add(1)
 		p.sanitizeFix()
 		p.debugValidate()
-		return pred0(p, callIndex)
+		id := hash.String(p.Serialize())
+		if _, ok := dedup[id]; !ok {
+			dedup[id] = pred0(p, callIndex)
+		}
+		return dedup[id]
 	}
 	name0 := ""
 	if callIndex0 != -1 {
@@ -89,7 +98,7 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 			ctx.p = p0.Clone()
 			ctx.call = ctx.p.Calls[i]
 			for j, field := range ctx.call.Meta.Args {
-				if ctx.do(ctx.call.Args[j], field.Name, "") {
+				if ctx.do(ctx.call.Args[j], field.Name, fmt.Sprintf("call%v", i)) {
 					goto again
 				}
 			}
@@ -106,7 +115,7 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 	return p0, callIndex0
 }
 
-type minimizePred func(*Prog, int, *stat.Val) bool
+type minimizePred func(*Prog, int, *stat.Val, string) bool
 
 func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 	if callIndex0 >= 0 && callIndex0+2 < len(p0.Calls) {
@@ -116,7 +125,7 @@ func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 		for i := len(p0.Calls) - 1; i > callIndex0; i-- {
 			p.RemoveCall(i)
 		}
-		if pred(p, callIndex0, statMinRemoveCall) {
+		if pred(p, callIndex0, statMinRemoveCall, "trailing calls") {
 			p0 = p
 		}
 	}
@@ -130,7 +139,7 @@ func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 		}
 		p := p0.Clone()
 		p.RemoveCall(i)
-		if !pred(p, callIndex, statMinRemoveCall) {
+		if !pred(p, callIndex, statMinRemoveCall, fmt.Sprintf("call %v", i)) {
 			continue
 		}
 		p0 = p
@@ -150,7 +159,7 @@ func resetCallProps(p0 *Prog, callIndex0 int, pred minimizePred) *Prog {
 			anyDifferent = true
 		}
 	}
-	if anyDifferent && pred(p, callIndex0, statMinRemoveProps) {
+	if anyDifferent && pred(p, callIndex0, statMinRemoveProps, "props") {
 		return p
 	}
 	return p0
@@ -163,7 +172,7 @@ func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred minimizePred) *
 	if props.FailNth > 0 {
 		p := p0.Clone()
 		p.Calls[callIndex].Props.FailNth = 0
-		if pred(p, callIndex0, statMinRemoveProps) {
+		if pred(p, callIndex0, statMinRemoveProps, "props") {
 			p0 = p
 		}
 	}
@@ -172,7 +181,7 @@ func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred minimizePred) *
 	if props.Async {
 		p := p0.Clone()
 		p.Calls[callIndex].Props.Async = false
-		if pred(p, callIndex0, statMinRemoveProps) {
+		if pred(p, callIndex0, statMinRemoveProps, "props") {
 			p0 = p
 		}
 	}
@@ -181,7 +190,7 @@ func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred minimizePred) *
 	if props.Rerun > 0 {
 		p := p0.Clone()
 		p.Calls[callIndex].Props.Rerun = 0
-		if pred(p, callIndex0, statMinRemoveProps) {
+		if pred(p, callIndex0, statMinRemoveProps, "props") {
 			p0 = p
 		}
 	}
@@ -252,7 +261,7 @@ func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 		removeArg(a.Res)
 		replaceArg(a, MakeSpecialPointerArg(a.Type(), a.Dir(), 0))
 		ctx.target.assignSizesCall(ctx.call)
-		if ctx.pred(ctx.p, ctx.callIndex0, statMinPtr) {
+		if ctx.pred(ctx.p, ctx.callIndex0, statMinPtr, path1) {
 			*ctx.p0 = ctx.p
 		}
 		ctx.triedPaths[path1] = true
@@ -275,7 +284,7 @@ func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 			a.Inner = a.Inner[:len(a.Inner)-1]
 			removeArg(elem)
 			ctx.target.assignSizesCall(ctx.call)
-			if ctx.pred(ctx.p, ctx.callIndex0, statMinArray) {
+			if ctx.pred(ctx.p, ctx.callIndex0, statMinArray, elemPath) {
 				*ctx.p0 = ctx.p
 			}
 			return true
@@ -324,7 +333,7 @@ func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	// By mutating an integer, we risk violating conditional fields.
 	// If the fields are patched, the minimization process must be restarted.
 	patched := ctx.call.setDefaultConditions(ctx.p.Target, false)
-	if ctx.pred(ctx.p, ctx.callIndex0, statMinInt) {
+	if ctx.pred(ctx.p, ctx.callIndex0, statMinInt, path) {
 		*ctx.p0 = ctx.p
 		ctx.triedPaths[path] = true
 		return true
@@ -348,7 +357,7 @@ func (typ *ResourceType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bo
 	r0 := a.Res
 	delete(a.Res.uses, a)
 	a.Res, a.Val = nil, typ.Default()
-	if ctx.pred(ctx.p, ctx.callIndex0, statMinResource) {
+	if ctx.pred(ctx.p, ctx.callIndex0, statMinResource, path) {
 		*ctx.p0 = ctx.p
 	} else {
 		a.Res, a.Val = r0, 0
@@ -375,7 +384,8 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 			if len(a.Data())-step >= minLen {
 				a.data = a.Data()[:len(a.Data())-step]
 				ctx.target.assignSizesCall(ctx.call)
-				if ctx.pred(ctx.p, ctx.callIndex0, statMinBuffer) {
+				if ctx.pred(ctx.p, ctx.callIndex0, statMinBuffer, path) {
+					step /= 2
 					continue
 				}
 				a.data = a.Data()[:len(a.Data())+step]
@@ -406,7 +416,7 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 			return false
 		}
 		ctx.target.assignSizesCall(ctx.call)
-		if ctx.pred(ctx.p, ctx.callIndex0, statMinFilename) {
+		if ctx.pred(ctx.p, ctx.callIndex0, statMinFilename, path) {
 			*ctx.p0 = ctx.p
 		}
 		ctx.triedPaths[path] = true
