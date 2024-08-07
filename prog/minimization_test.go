@@ -6,6 +6,8 @@ package prog
 import (
 	"math/rand"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/hash"
 )
 
 // nolint:gocyclo
@@ -273,7 +275,15 @@ func TestMinimizeRandom(t *testing.T) {
 		for _, mode := range []MinimizeMode{MinimizeCorpus, MinimizeCrash} {
 			p := target.Generate(rs, 5, ct)
 			copyP := p.Clone()
+			seen := make(map[string]bool)
+			seen[hash.String(p.Serialize())] = true
 			minP, _ := Minimize(p, len(p.Calls)-1, mode, func(p1 *Prog, callIndex int) bool {
+				id := hash.String(p1.Serialize())
+				if seen[id] {
+					t.Fatalf("program:\n%s\nobserved the same candidate twice:\n%s",
+						p.Serialize(), p1.Serialize())
+				}
+				seen[id] = true
 				if r.Intn(2) == 0 {
 					return false
 				}
@@ -283,7 +293,7 @@ func TestMinimizeRandom(t *testing.T) {
 			got := string(minP.Serialize())
 			want := string(copyP.Serialize())
 			if got != want {
-				t.Fatalf("program:\n%s\ngot:\n%v\nwant:\n%s", string(p.Serialize()), got, want)
+				t.Fatalf("program:\n%s\ngot:\n%s\nwant:\n%s", p.Serialize(), got, want)
 			}
 		}
 	}
