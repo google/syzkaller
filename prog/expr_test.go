@@ -135,6 +135,7 @@ func TestEvaluateConditionalFields(t *testing.T) {
 
 func TestConditionalMinimize(t *testing.T) {
 	tests := []struct {
+		mode   MinimizeMode
 		input  string
 		pred   func(*Prog, int) bool
 		output string
@@ -156,6 +157,7 @@ func TestConditionalMinimize(t *testing.T) {
 			output: `test$conditional_struct(&(0x7f0000000040)={0x6, @value, @value=0x123})`,
 		},
 		{
+			mode:  MinimizeCrashSnapshot,
 			input: `test$conditional_struct_minimize(&(0x7f0000000040)={0x1, @value=0xaa, 0x1, @value=0xbb})`,
 			pred: func(p *Prog, _ int) bool {
 				return bytes.Contains(p.Serialize(), []byte("0xaa"))
@@ -163,6 +165,7 @@ func TestConditionalMinimize(t *testing.T) {
 			output: `test$conditional_struct_minimize(&(0x7f0000000040)={0x1, @value=0xaa})`,
 		},
 		{
+			mode:  MinimizeCrashSnapshot,
 			input: `test$conditional_struct_minimize(&(0x7f0000000040)={0x1, @value=0xaa, 0x1, @value=0xbb})`,
 			pred: func(p *Prog, _ int) bool {
 				return bytes.Contains(p.Serialize(), []byte("0xbb"))
@@ -186,7 +189,7 @@ func TestConditionalMinimize(t *testing.T) {
 			assert.NoError(tt, err)
 			p, err := target.Deserialize([]byte(test.input), Strict)
 			assert.NoError(tt, err)
-			p1, _ := Minimize(p, 0, MinimizeCorpus, test.pred)
+			p1, _ := Minimize(p, 0, test.mode, test.pred)
 			res := p1.Serialize()
 			assert.Equal(tt, test.output, strings.TrimSpace(string(res)))
 		})
