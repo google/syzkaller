@@ -186,7 +186,7 @@ func TestConditionalMinimize(t *testing.T) {
 			assert.NoError(tt, err)
 			p, err := target.Deserialize([]byte(test.input), Strict)
 			assert.NoError(tt, err)
-			p1, _ := Minimize(p, 0, MinimizeParams{}, test.pred)
+			p1, _ := Minimize(p, 0, MinimizeCorpus, test.pred)
 			res := p1.Serialize()
 			assert.Equal(tt, test.output, strings.TrimSpace(string(res)))
 		})

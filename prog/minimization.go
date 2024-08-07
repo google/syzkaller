@@ -30,25 +30,24 @@ var (
 		"Total number of filename minimization attempts", stat.StackedGraph("minimize"))
 )
 
-type MinimizeParams struct {
-	// CallIndex was intentionally not included in this struct, since its
-	// default value should be -1, while the default value of 0 would introduce a bug.
+type MinimizeMode int
 
-	// If RemoveCallsOnly is set to true, Minimize() focuses only on removing whole calls.
-	RemoveCallsOnly bool
-
-	// Light speeds up the minimization by
-	// 1. Not removing array elements one by one.
-	// 2. Not bisecting blobs too much.
-	// 3. Not minimizing integer values.
-	Light bool
-}
+const (
+	// Minimize for inclusion into corpus.
+	// This generally tries to reduce number of arguments for future mutation.
+	MinimizeCorpus MinimizeMode = iota
+	// Minimize crash reproducer.
+	// This mode assumes each test is expensive (need to reboot), so tries fewer things.
+	MinimizeCrash
+	// Only try to remove calls.
+	MinimizeCallsOnly
+)
 
 // Minimize minimizes program p into an equivalent program using the equivalence
 // predicate pred. It iteratively generates simpler programs and asks pred
 // whether it is equal to the original program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
-func Minimize(p0 *Prog, callIndex0 int, params MinimizeParams, pred0 func(*Prog, int) bool) (*Prog, int) {
+func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int) bool) (*Prog, int) {
 	pred := func(p *Prog, callIndex int, what *stat.Val) bool {
 		what.Add(1)
 		p.sanitizeFix()
@@ -66,7 +65,7 @@ func Minimize(p0 *Prog, callIndex0 int, params MinimizeParams, pred0 func(*Prog,
 	// Try to remove all calls except the last one one-by-one.
 	p0, callIndex0 = removeCalls(p0, callIndex0, pred)
 
-	if !params.RemoveCallsOnly {
+	if mode != MinimizeCallsOnly {
 		// Try to reset all call props to their default values.
 		p0 = resetCallProps(p0, callIndex0, pred)
 
@@ -79,7 +78,7 @@ func Minimize(p0 *Prog, callIndex0 int, params MinimizeParams, pred0 func(*Prog,
 				target:     p0.Target,
 				p0:         &p0,
 				callIndex0: callIndex0,
-				params:     params,
+				mode:       mode,
 				pred:       pred,
 				triedPaths: make(map[string]bool),
 			}
@@ -193,7 +192,7 @@ type minimizeArgsCtx struct {
 	p          *Prog
 	call       *Call
 	callIndex0 int
-	params     MinimizeParams
+	mode       MinimizeMode
 	pred       minimizePred
 	triedPaths map[string]bool
 }
@@ -265,7 +264,7 @@ func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 		elem := a.Inner[i]
 		elemPath := fmt.Sprintf("%v-%v", path, i)
 		// Try to remove individual elements one-by-one.
-		if !ctx.params.Light && !ctx.triedPaths[elemPath] &&
+		if ctx.mode == MinimizeCorpus && !ctx.triedPaths[elemPath] &&
 			(typ.Kind == ArrayRandLen ||
 				typ.Kind == ArrayRangeLen && uint64(len(a.Inner)) > typ.RangeBegin) {
 			ctx.triedPaths[elemPath] = true
@@ -308,7 +307,7 @@ func (typ *ProcType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	// TODO: try to reset bits in ints
 	// TODO: try to set separate flags
-	if ctx.params.Light {
+	if ctx.mode == MinimizeCrash {
 		return false
 	}
 	a := arg.(*ConstArg)
@@ -336,7 +335,7 @@ func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 }
 
 func (typ *ResourceType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
-	if ctx.params.Light {
+	if ctx.mode == MinimizeCrash {
 		return false
 	}
 	a := arg.(*ResultArg)
@@ -380,7 +379,7 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 				ctx.target.assignSizesCall(ctx.call)
 			}
 			step /= 2
-			if ctx.params.Light {
+			if ctx.mode == MinimizeCrash {
 				break
 			}
 		}
