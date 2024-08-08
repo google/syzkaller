@@ -16,6 +16,7 @@ func TestMinimize(t *testing.T) {
 	tests := []struct {
 		os              string
 		arch            string
+		mode            MinimizeMode
 		orig            string
 		callIndex       int
 		pred            func(*Prog, int) bool
@@ -24,7 +25,7 @@ func TestMinimize(t *testing.T) {
 	}{
 		// Predicate always returns false, so must get the same program.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
 				"pipe2(&(0x7f0000000000), 0x0)\n",
@@ -45,7 +46,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove a call.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
 				"pipe2(&(0x7f0000000000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
@@ -60,7 +61,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove two dependent calls.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n" +
 				"sched_yield()\n",
@@ -80,7 +81,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove a call and replace results.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"pipe2(&(0x7f0000000000)={<r0=>0x0, 0x0}, 0x0)\n" +
 				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
@@ -96,7 +97,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove a call and replace results.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"r0=open(&(0x7f0000000000)=\"1155\", 0x0, 0x0)\n" +
 				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
@@ -112,7 +113,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Minimize pointer.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(&(0x7f0000001000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -123,7 +124,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Minimize pointee.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(&(0x7f0000001000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -134,7 +135,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Make sure we don't hang when minimizing resources.
 		{
-			"test", "64",
+			"test", "64", MinimizeCorpus,
 			"r0 = test$res0()\n" +
 				"test$res1(r0)\n",
 			-1,
@@ -146,7 +147,7 @@ func TestMinimize(t *testing.T) {
 			-1,
 		},
 		{
-			"test", "64",
+			"test", "64", MinimizeCorpus,
 			"minimize$0(0x1, 0x1)\n",
 			-1,
 			func(p *Prog, callIndex int) bool { return len(p.Calls) == 1 },
@@ -155,7 +156,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Clear unneeded fault injection.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(0x0, 0x0) (fail_nth: 5)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -166,7 +167,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Keep important fault injection.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(0x0, 0x0) (fail_nth: 5)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -177,7 +178,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Clear unneeded async flag.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(0x0, 0x0) (async)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -188,7 +189,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Keep important async flag.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(0x0, 0x0) (async)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -199,7 +200,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Clear unneeded rerun.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(0x0, 0x0) (rerun: 100)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -210,7 +211,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Keep important rerun.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"pipe2(0x0, 0x0) (rerun: 100)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -221,7 +222,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Undo target.SpecialFileLenghts mutation (reduce file name length).
 		{
-			"test", "64",
+			"test", "64", MinimizeCrash,
 			"mutate9(&(0x7f0000000000)='./file0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\x00')\n",
 			0,
 			func(p *Prog, callIndex int) bool {
@@ -232,7 +233,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Ensure `no_minimize` calls are untouched.
 		{
-			"linux", "amd64",
+			"linux", "amd64", MinimizeCorpus,
 			"syz_mount_image$ext4(&(0x7f0000000000)='ext4\\x00', &(0x7f0000000100)='./file0\\x00', 0x0, &(0x7f0000010020), 0x1, 0x15, &(0x7f0000000200)=\"$eJwqrqzKTszJSS0CBAAA//8TyQPi\")\n",
 			0,
 			func(p *Prog, callIndex int) bool {
@@ -253,7 +254,7 @@ func TestMinimize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
 		}
-		p1, ci := Minimize(p, test.callIndex, MinimizeCorpus, test.pred)
+		p1, ci := Minimize(p, test.callIndex, test.mode, test.pred)
 		res := p1.Serialize()
 		if string(res) != test.result {
 			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v",

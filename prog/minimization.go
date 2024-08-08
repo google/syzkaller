@@ -399,6 +399,9 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 			return true
 		}
 	case BufferFilename:
+		if ctx.mode == MinimizeCorpus {
+			return false
+		}
 		// Try to undo target.SpecialFileLenghts mutation
 		// and reduce file name length.
 		if !typ.Varlen() {
