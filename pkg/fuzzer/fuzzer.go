@@ -153,7 +153,12 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 	// Corpus candidates may have flaky coverage, so we give them a second chance.
 	maxCandidateAttempts := 3
 	if req.Risky() {
+		// In non-snapshot mode usually we are not sure which exactly input caused the crash,
+		// so give it one more chance. In snapshot mode we know for sure, so don't retry.
 		maxCandidateAttempts = 2
+		if fuzzer.Config.Snapshot {
+			maxCandidateAttempts = 0
+		}
 	}
 	if len(triage) == 0 && flags&ProgFromCorpus != 0 && attempt < maxCandidateAttempts {
 		fuzzer.enqueue(fuzzer.candidateQueue, req, flags, attempt+1)
