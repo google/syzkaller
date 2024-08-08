@@ -122,14 +122,7 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 	return &res
 }
 
-func filesCoverageWithDetails(ctx context.Context, projectID, ns string, fromDate, toDate civil.Date,
-) ([]*fileCoverageWithDetails, error) {
-	client, err := coveragedb.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
-	}
-	defer client.Close()
-
+func filesCoverageWithDetailsStmt(ns, subsystem string, fromDate, toDate civil.Date) spanner.Statement {
 	stmt := spanner.Statement{
 		SQL: `
 select
@@ -144,15 +137,29 @@ from merge_history
   join file_subsystems
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
-  merge_history.namespace=$1 and dateto>=$2 and dateto<=$3
-`,
+  merge_history.namespace=$1 and dateto>=$2 and dateto<=$3`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": fromDate,
 			"p3": toDate,
 		},
 	}
+	if subsystem != "" {
+		stmt.SQL += " and $4=ANY(subsystems)"
+		stmt.Params["p4"] = subsystem
+	}
+	return stmt
+}
 
+func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem string, fromDate, toDate civil.Date,
+) ([]*fileCoverageWithDetails, error) {
+	client, err := coveragedb.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
+	}
+	defer client.Close()
+
+	stmt := filesCoverageWithDetailsStmt(ns, subsystem, fromDate, toDate)
 	iter := client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 	res := []*fileCoverageWithDetails{}
@@ -181,7 +188,7 @@ type StyleBodyJS struct {
 
 // nolint: dupl
 func DoDirHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
-	style, body, js, err := DoHeatMapStyleBodyJS(projectID, ns, dateFrom, dateTo)
+	style, body, js, err := DoHeatMapStyleBodyJS(context.Background(), projectID, ns, "", dateFrom, dateTo)
 	if err != nil {
 		return fmt.Errorf("failed to DoHeatMapStyleBodyJS() %w", err)
 	}
@@ -194,7 +201,7 @@ func DoDirHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date
 
 // nolint: dupl
 func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
-	style, body, js, err := DoSubsystemsHeatMapStyleBodyJS(projectID, ns, dateFrom, dateTo)
+	style, body, js, err := DoSubsystemsHeatMapStyleBodyJS(context.Background(), projectID, ns, "", dateFrom, dateTo)
 	if err != nil {
 		return fmt.Errorf("failed to DoSubsystemsHeatMapStyleBodyJS() %w", err)
 	}
@@ -222,9 +229,9 @@ func stylesBodyJSTemplate(templData *templateHeatmap,
 		template.HTML(js.Bytes()), nil
 }
 
-func DoHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
+func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
 ) (template.CSS, template.HTML, template.HTML, error) {
-	covAndDates, err := filesCoverageWithDetails(context.Background(), projectID, ns, dateFrom, dateTo)
+	covAndDates, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, dateFrom, dateTo)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to filesCoverageWithDetails: %w", err)
 	}
@@ -232,9 +239,9 @@ func DoHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
 	return stylesBodyJSTemplate(templData)
 }
 
-func DoSubsystemsHeatMapStyleBodyJS(projectID, ns string, dateFrom, dateTo civil.Date,
+func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
 ) (template.CSS, template.HTML, template.HTML, error) {
-	covWithDetails, err := filesCoverageWithDetails(context.Background(), projectID, ns, dateFrom, dateTo)
+	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, dateFrom, dateTo)
 	if err != nil {
 		panic(err)
 	}
