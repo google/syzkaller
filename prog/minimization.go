@@ -129,6 +129,11 @@ func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 			p0 = p
 		}
 	}
+
+	if callIndex0 != -1 {
+		p0, callIndex0 = removeUnrelatedCalls(p0, callIndex0, pred)
+	}
+
 	for i := len(p0.Calls) - 1; i >= 0; i-- {
 		if i == callIndex0 {
 			continue
@@ -146,6 +151,87 @@ func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 		callIndex0 = callIndex
 	}
 	return p0, callIndex0
+}
+
+// removeUnrelatedCalls tries to remove all "unrelated" calls at once.
+// Unrelated calls are the calls that don't use any resources/files from
+// the transitive closure of the resources/files used by the target call.
+// This may significantly reduce large generated programs in a single step.
+func removeUnrelatedCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
+	keepCalls := relatedCalls(p0, callIndex0)
+	if len(p0.Calls)-len(keepCalls) < 3 {
+		return p0, callIndex0
+	}
+	p, callIndex := p0.Clone(), callIndex0
+	for i := len(p0.Calls) - 1; i >= 0; i-- {
+		if keepCalls[i] {
+			continue
+		}
+		p.RemoveCall(i)
+		if i < callIndex {
+			callIndex--
+		}
+	}
+	if !pred(p, callIndex, statMinRemoveCall, "unrelated calls") {
+		return p0, callIndex0
+	}
+	return p, callIndex
+}
+
+func relatedCalls(p0 *Prog, callIndex0 int) map[int]bool {
+	keepCalls := map[int]bool{callIndex0: true}
+	used := uses(p0.Calls[callIndex0])
+	for {
+		n := len(used)
+		for i, call := range p0.Calls {
+			if keepCalls[i] {
+				continue
+			}
+			used1 := uses(call)
+			if intersects(used, used1) {
+				keepCalls[i] = true
+				for what := range used1 {
+					used[what] = true
+				}
+			}
+		}
+		if n == len(used) {
+			return keepCalls
+		}
+	}
+}
+
+func uses(call *Call) map[any]bool {
+	used := make(map[any]bool)
+	ForeachArg(call, func(arg Arg, _ *ArgCtx) {
+		switch typ := arg.Type().(type) {
+		case *ResourceType:
+			a := arg.(*ResultArg)
+			used[a] = true
+			if a.Res != nil {
+				used[a.Res] = true
+			}
+			for use := range a.uses {
+				used[use] = true
+			}
+		case *BufferType:
+			a := arg.(*DataArg)
+			if a.Dir() != DirOut && typ.Kind == BufferFilename {
+				val := string(bytes.TrimRight(a.Data(), "\x00"))
+				used[val] = true
+			}
+		}
+	})
+	return used
+}
+
+func intersects(list, list1 map[any]bool) bool {
+	for what := range list1 {
+		if list[what] {
+			return true
+		}
+	}
+	return false
 }
 
 func resetCallProps(p0 *Prog, callIndex0 int, pred minimizePred) *Prog {

@@ -4,7 +4,9 @@
 package prog
 
 import (
+	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/hash"
@@ -12,6 +14,7 @@ import (
 
 // nolint:gocyclo
 func TestMinimize(t *testing.T) {
+	attempt := 0
 	// nolint: lll
 	tests := []struct {
 		os              string
@@ -243,27 +246,107 @@ func TestMinimize(t *testing.T) {
 			"syz_mount_image$ext4(&(0x7f0000000000)='ext4\\x00', &(0x7f0000000100)='./file0\\x00', 0x0, &(0x7f0000010020), 0x1, 0x15, &(0x7f0000000200)=\"$eJwqrqzKTszJSS0CBAAA//8TyQPi\")\n",
 			0,
 		},
+		// Test for removeUnrelatedCalls.
+		// We test exact candidates we get on each step.
+		// First candidate should be removal of the trailing calls, which we reject.
+		// Next candidate is removal of unrelated calls, which we accept.
+		{
+			"linux", "amd64", MinimizeCorpus,
+			`
+getpid()
+r0 = open(&(0x7f0000000040)='./file0', 0x0, 0x0)
+r1 = open(&(0x7f0000000040)='./file1', 0x0, 0x0)
+getuid()
+read(r1, &(0x7f0000000040), 0x10)
+read(r0, &(0x7f0000000040), 0x10)
+pipe(&(0x7f0000000040)={<r2=>0x0, <r3=>0x0})
+creat(&(0x7f0000000040)='./file0', 0x0)
+close(r1)
+sendfile(r0, r2, &(0x7f0000000040), 0x1)
+getgid()
+fcntl$getflags(r0, 0x0)
+getpid()
+close(r3)
+getuid()
+			`,
+			11,
+			func(p *Prog, callIndex int) bool {
+				pp := strings.TrimSpace(string(p.Serialize()))
+				if attempt == 0 {
+					if pp == strings.TrimSpace(`
+getpid()
+r0 = open(&(0x7f0000000040)='./file0', 0x0, 0x0)
+r1 = open(&(0x7f0000000040)='./file1', 0x0, 0x0)
+getuid()
+read(r1, &(0x7f0000000040), 0x10)
+read(r0, &(0x7f0000000040), 0x10)
+pipe(&(0x7f0000000040)={<r2=>0x0, 0x0})
+creat(&(0x7f0000000040)='./file0', 0x0)
+close(r1)
+sendfile(r0, r2, &(0x7f0000000040), 0x1)
+getgid()
+fcntl$getflags(r0, 0x0)
+					`) {
+						return false
+					}
+				} else if attempt == 1 {
+					if pp == strings.TrimSpace(`
+r0 = open(&(0x7f0000000040)='./file0', 0x0, 0x0)
+read(r0, &(0x7f0000000040), 0x10)
+pipe(&(0x7f0000000040)={<r1=>0x0, <r2=>0x0})
+creat(&(0x7f0000000040)='./file0', 0x0)
+sendfile(r0, r1, &(0x7f0000000040), 0x1)
+fcntl$getflags(r0, 0x0)
+close(r2)
+					`) {
+						return true
+					}
+				} else {
+					return false
+				}
+				panic(fmt.Sprintf("unexpected candidate on attempt %v:\n%v", attempt, pp))
+			},
+			`
+r0 = open(&(0x7f0000000040)='./file0', 0x0, 0x0)
+read(r0, &(0x7f0000000040), 0x10)
+pipe(&(0x7f0000000040)={<r1=>0x0, <r2=>0x0})
+creat(&(0x7f0000000040)='./file0', 0x0)
+sendfile(r0, r1, &(0x7f0000000040), 0x1)
+fcntl$getflags(r0, 0x0)
+close(r2)
+			`,
+			5,
+		},
 	}
 	t.Parallel()
 	for ti, test := range tests {
-		target, err := GetTarget(test.os, test.arch)
-		if err != nil {
-			t.Fatal(err)
-		}
-		p, err := target.Deserialize([]byte(test.orig), Strict)
-		if err != nil {
-			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
-		}
-		p1, ci := Minimize(p, test.callIndex, test.mode, test.pred)
-		res := p1.Serialize()
-		if string(res) != test.result {
-			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v",
-				ti, test.orig, test.result, string(res))
-		}
-		if ci != test.resultCallIndex {
-			t.Fatalf("minimization broke call index #%v: got %v, want %v",
-				ti, ci, test.resultCallIndex)
-		}
+		t.Run(fmt.Sprint(ti), func(t *testing.T) {
+			target, err := GetTarget(test.os, test.arch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p, err := target.Deserialize([]byte(strings.TrimSpace(test.orig)), Strict)
+			if err != nil {
+				t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
+			}
+			attempt = 0
+			pred := func(p *Prog, callIndex int) bool {
+				res := test.pred(p, callIndex)
+				attempt++
+				return res
+			}
+			p1, ci := Minimize(p, test.callIndex, test.mode, pred)
+			res := strings.TrimSpace(string(p1.Serialize()))
+			expect := strings.TrimSpace(test.result)
+			if res != expect {
+				t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v",
+					ti, test.orig, expect, res)
+			}
+			if ci != test.resultCallIndex {
+				t.Fatalf("minimization broke call index #%v: got %v, want %v",
+					ti, ci, test.resultCallIndex)
+			}
+		})
 	}
 }
 
