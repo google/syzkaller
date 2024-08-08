@@ -5,14 +5,16 @@
 
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
 
-#include "common_kvm_arm64_syzos.h"
 #include "kvm.h"
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 
 // Register encodings from https://docs.kernel.org/virt/kvm/api.html.
 #define KVM_ARM64_REGS_X0 0x6030000000100000UL
 #define KVM_ARM64_REGS_PC 0x6030000000100040UL
 #define KVM_ARM64_REGS_SP_EL1 0x6030000000100044UL
 
+#include "common_kvm_arm64_syzos.h"
 struct kvm_text {
 	uintptr_t typ;
 	const void* text;
@@ -149,3 +151,79 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	return 0;
 }
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_vgic_v3_setup
+static int kvm_set_device_attr(int dev_fd, uint32 group, uint64 attr, void* val)
+{
+	struct kvm_device_attr kvmattr = {
+	    .flags = 0,
+	    .group = group,
+	    .attr = attr,
+	    .addr = (uintptr_t)val,
+	};
+
+	return ioctl(dev_fd, KVM_SET_DEVICE_ATTR, &kvmattr);
+}
+
+static int kvm_create_device(int vm_fd, int type)
+{
+	struct kvm_create_device create_dev = {
+	    .type = (uint32)type,
+	    .fd = (uint32)-1,
+	    .flags = 0,
+	};
+
+	if (ioctl(vm_fd, KVM_CREATE_DEVICE, &create_dev) != -1)
+		return create_dev.fd;
+	else
+		return -1;
+}
+
+#define REDIST_REGION_ATTR_ADDR(count, base, flags, index) \
+	(((uint64)(count) << 52) |                         \
+	 ((uint64)((base) >> 16) << 16) |                  \
+	 ((uint64)(flags) << 12) |                         \
+	 index)
+
+// Set up the VGICv3 interrupt controller.
+// syz_kvm_vgic_v3_setup(fd fd_kvmvm, ncpus flags[kvm_num_cpus], nirqs flags[kvm_num_irqs])
+static long syz_kvm_vgic_v3_setup(volatile long a0, volatile long a1, volatile long a2)
+{
+	const int vm_fd = a0;
+	const int nr_vcpus = a1;
+	const int want_nr_irq = a2;
+
+	int vgic_fd = kvm_create_device(vm_fd, KVM_DEV_TYPE_ARM_VGIC_V3);
+	if (vgic_fd == -1)
+		return -1;
+
+	uint32 nr_irq = want_nr_irq;
+	int ret = kvm_set_device_attr(vgic_fd, KVM_DEV_ARM_VGIC_GRP_NR_IRQS, 0, &nr_irq);
+	if (ret == -1) {
+		close(vgic_fd);
+		return -1;
+	}
+
+	uint64 gicd_base_gpa = ARM64_ADDR_GICD_BASE;
+	ret = kvm_set_device_attr(vgic_fd, KVM_DEV_ARM_VGIC_GRP_ADDR, KVM_VGIC_V3_ADDR_TYPE_DIST, &gicd_base_gpa);
+	if (ret == -1) {
+		close(vgic_fd);
+		return -1;
+	}
+	uint64 redist_attr = REDIST_REGION_ATTR_ADDR(nr_vcpus, ARM64_ADDR_GICR_BASE, 0, 0);
+	ret = kvm_set_device_attr(vgic_fd, KVM_DEV_ARM_VGIC_GRP_ADDR, KVM_VGIC_V3_ADDR_TYPE_REDIST_REGION, &redist_attr);
+	if (ret == -1) {
+		close(vgic_fd);
+		return -1;
+	}
+
+	ret = kvm_set_device_attr(vgic_fd, KVM_DEV_ARM_VGIC_GRP_CTRL, KVM_DEV_ARM_VGIC_CTRL_INIT, NULL);
+	if (ret == -1) {
+		close(vgic_fd);
+		return -1;
+	}
+
+	return vgic_fd;
+}
+#endif
