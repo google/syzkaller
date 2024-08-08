@@ -147,6 +147,13 @@ ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[
 ioctl$KVM_GET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 ioctl$KVM_HAS_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 
+# From https://docs.kernel.org/virt/kvm/devices/vcpu.html:
+# The virtual cpu “device” also accepts the ioctls KVM_SET_DEVICE_ATTR, KVM_GET_DEVICE_ATTR, and KVM_HAS_DEVICE_ATTR.
+# The interface uses the same struct kvm_device_attr as other devices, but targets VCPU-wide settings and controls.
+ioctl$KVM_SET_DEVICE_ATTR_vcpu(fd fd_kvmcpu, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu])
+ioctl$KVM_GET_DEVICE_ATTR_vcpu(fd fd_kvmcpu, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu])
+ioctl$KVM_HAS_DEVICE_ATTR_vcpu(fd fd_kvmcpu, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vcpu])
+
 # From https://docs.kernel.org/virt/kvm/devices/vm.html:
 # The virtual machine “device” also accepts the ioctls KVM_SET_DEVICE_ATTR, KVM_GET_DEVICE_ATTR, and KVM_HAS_DEVICE_ATTR.
 # The interface uses the same struct kvm_device_attr as other devices, but targets VM-wide settings and controls.
@@ -440,6 +447,16 @@ kvm_device_attr_vm [
 	attr_other	kvm_device_attr
 ]
 
+kvm_device_attr_vcpu [
+	attr_pmu_irq	kvm_vcpu_attr_pmu_irq
+	attr_pmu_init	kvm_vcpu_attr_pmu_init
+	attr_pmu_filter	kvm_vcpu_attr_pmu_filter
+	attr_set_pmu	kvm_vcpu_attr_set_pmu
+	attr_irq_timer	kvm_vcpu_attr_irq_timer
+	attr_pvtime_ipa	kvm_vcpu_attr_pvtime_ipa
+	attr_other	kvm_device_attr
+]
+
 kvm_vm_attr_group_arm64 = KVM_ARM_VM_SMCCC_CTRL
 kvm_vm_attr_attr_arm64 = KVM_ARM_VM_SMCCC_FILTER
 
@@ -450,6 +467,59 @@ kvm_device_attr_vm_arm64 {
 	group	flags[kvm_vm_attr_group_arm64, int32]
 	attr	flags[kvm_vm_attr_attr_arm64, int64]
 	addr	ptr64[in, kvm_smccc_filter]
+}
+
+kvm_vcpu_attr_pmu_irq {
+	flags	const[0, int32]
+	group	const[KVM_ARM_VCPU_PMU_V3_CTRL, int32]
+	attr	const[KVM_ARM_VCPU_PMU_V3_IRQ, int64]
+	addr	ptr64[in, int32]
+}
+
+kvm_vcpu_attr_pmu_init {
+	flags	const[0, int32]
+	group	const[KVM_ARM_VCPU_PMU_V3_CTRL, int32]
+	attr	const[KVM_ARM_VCPU_PMU_V3_INIT, int64]
+	addr	const[0, int64]
+}
+
+kvm_vcpu_attr_pmu_filter {
+	flags	const[0, int32]
+	group	const[KVM_ARM_VCPU_PMU_V3_CTRL, int32]
+	attr	const[KVM_ARM_VCPU_PMU_V3_FILTER, int64]
+	addr	ptr64[in, kvm_pmu_event_filter]
+}
+
+kvm_vcpu_attr_set_pmu {
+	flags	const[0, int32]
+	group	const[KVM_ARM_VCPU_PMU_V3_CTRL, int32]
+	attr	const[KVM_ARM_VCPU_PMU_V3_SET_PMU, int64]
+	addr	ptr64[in, int32]
+}
+
+kvm_vcpu_timer_attributes = KVM_ARM_VCPU_TIMER_IRQ_VTIMER, KVM_ARM_VCPU_TIMER_IRQ_PTIMER
+
+kvm_vcpu_attr_irq_timer {
+	flags	const[0, int32]
+	group	const[KVM_ARM_VCPU_TIMER_CTRL, int32]
+	attr	flags[kvm_vcpu_timer_attributes, int64]
+	addr	ptr64[in, int32[16:31]]
+}
+
+kvm_vcpu_attr_pvtime_ipa {
+	flags	const[0, int32]
+	group	const[KVM_ARM_VCPU_PVTIME_CTRL, int32]
+	attr	const[KVM_ARM_VCPU_PVTIME_IPA, int64]
+	addr	int64
+}
+
+kvm_pmu_event_filter = KVM_PMU_EVENT_ALLOW, KVM_PMU_EVENT_DENY
+
+kvm_pmu_event_filter {
+	base_event	int16
+	nevents		int16
+	action		flags[kvm_pmu_event_filter, int8]
+	pad		array[const[0, int8], 3]
 }
 
 kvm_smccc_filter_action = KVM_SMCCC_FILTER_HANDLE, KVM_SMCCC_FILTER_DENY, KVM_SMCCC_FILTER_FWD_TO_USER
