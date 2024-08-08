@@ -1,0 +1,18 @@
+#
+# requires: arch=arm64
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = ioctl$KVM_CREATE_VCPU(r1, AUTO, 0x0)
+#
+# syz_kvm_setup_cpu$arm64(r1, r2, &(0x7f0000e8a000/0x18000), &AUTO=[{0x0, &AUTO=[@code={AUTO, AUTO, {"1f2003d5", 0xd65f03c0}}], AUTO}], 0x1, 0x0, 0x0, 0x0)
+#
+syz_kvm_setup_cpu$arm64(r1, r2, &(0x7f0000e8a000/0x18000), &AUTO=[{0x0, &AUTO=[@irq_setup={AUTO, AUTO, {0x1, 0x20}}], AUTO}], 0x1, 0x0, 0x0, 0x0)
+syz_kvm_vgic_v3_setup(r1, 0x1, 0x100)
+ioctl$KVM_RUN(r2, AUTO, 0x0)
+#
+# Calling KVM_RUN here again would result in infinite loop.
+# Instead, signal SPI 32 (0x1000020), so that the guest can execute another uexit in the IRQ handler.
+#
+ioctl$KVM_IRQ_LINE(r1, AUTO, &AUTO={0x1000020, 0x1})
+ioctl$KVM_RUN(r2, AUTO, 0x0)
