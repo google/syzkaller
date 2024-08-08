@@ -131,7 +131,7 @@ syz_mount_image$romfs(fs ptr[in, string["romfs"]], dir ptr[in, filename], flags 
 syz_mount_image$efs(fs ptr[in, string["efs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$jffs2(fs ptr[in, string["jffs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[jffs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$nilfs2(fs ptr[in, string["nilfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[nilfs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$squashfs(fs ptr[in, string["squashfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$squashfs(fs ptr[in, string["squashfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[squashfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$udf(fs ptr[in, string["udf"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[udf_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$bcachefs(fs ptr[in, string["bcachefs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[bcachefs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 
@@ -931,6 +931,14 @@ nilfs2_options [
 	order_relaxed	stringnoz["order=relaxed"]
 	order_strict	stringnoz["order=strict"]
 ] [varlen]
+
+squashfs_options [
+	errors		stringnoz["errors=continue"]
+	threads_str	fs_opt["threads", stringnoz[squashfs_thread]]
+	threads_num	fs_opt_dec["threads", int32]
+] [varlen]
+
+squashfs_thread = "single", "multi", "percpu"
 
 ubifs_options [
 	fast_unmount	stringnoz["fast_unmount"]
