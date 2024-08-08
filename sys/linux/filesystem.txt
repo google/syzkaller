@@ -767,6 +767,8 @@ f2fs_options [
 ] [varlen]
 
 bpf_options [
+	uid	fs_opt_hex["uid", uid]
+	gid	fs_opt_hex["gid", gid]
 	mode	fs_opt_oct["mode", int32]
 ] [varlen]
 
