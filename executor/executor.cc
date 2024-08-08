@@ -808,6 +808,12 @@ void realloc_output_data()
 void execute_one()
 {
 	in_execute_one = true;
+#if GOOS_linux
+	char buf[64];
+	// Linux TASK_COMM_LEN is only 16, so the name needs to be compact.
+	snprintf(buf, sizeof(buf), "syz.%llu.%llu", procid, request_id);
+	prctl(PR_SET_NAME, buf);
+#endif
 	if (flag_snapshot)
 		SnapshotStart();
 	else
@@ -815,13 +821,6 @@ void execute_one()
 	output_builder.emplace(output_data, output_size);
 	uint64 start = current_time_ms();
 	uint8* input_pos = input_data;
-
-#if GOOS_linux
-	char buf[64];
-	// Linux TASK_COMM_LEN is only 16, so the name needs to be compact.
-	snprintf(buf, sizeof(buf), "syz.%llu.%llu", procid, request_id);
-	prctl(PR_SET_NAME, buf);
-#endif
 
 	if (cover_collection_required()) {
 		if (!flag_threaded)
