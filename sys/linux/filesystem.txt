@@ -123,7 +123,7 @@ syz_mount_image$ntfs(fs ptr[in, string["ntfs"]], dir ptr[in, filename], flags fl
 syz_mount_image$ntfs3(fs ptr[in, string["ntfs3"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ntfs3_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ocfs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$cramfs(fs ptr[in, string["cramfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
@@ -764,6 +764,37 @@ f2fs_options [
 	errors_continue		stringnoz["errors=continue"]
 	errors_remount		stringnoz["errors=remount-ro"]
 	inlinecrypt		stringnoz["inlinecrypt"]
+] [varlen]
+
+ocfs2_options [
+	barrier			fs_opt_dec["barrier", int32]
+	err_ro			stringnoz["errors=remount-ro"]
+	intr			stringnoz["intr"]
+	nointr			stringnoz["nointr"]
+	heartbeat_none		stringnoz["heartbeat=none"]
+	heartbeat_local		stringnoz["heartbeat=local"]
+	heartbeat_global	stringnoz["heartbeat=global"]
+	data_ordered		stringnoz["data=ordered"]
+	data_writeback		stringnoz["data=writeback"]
+	atime_quantum		fs_opt_dec["atime_quantum", int32]
+	preferred_slot		fs_opt_dec["preferred_slot", int32]
+	commit			fs_opt_dec["commit", int32]
+	localalloc		fs_opt_dec["localalloc", int32]
+	localflocks		stringnoz["localflocks"]
+	cluster_stack		stringnoz["cluster_stack=o2cb"]
+	user_xattr		stringnoz["user_xattr"]
+	nouser_xattr		stringnoz["nouser_xattr"]
+	inode64			stringnoz["inode64"]
+	acl			stringnoz["acl"]
+	noacl			stringnoz["noacl"]
+	usrquota		stringnoz["usrquota"]
+	grpquota		stringnoz["grpquota"]
+	coherency_buffered	stringnoz["coherency=buffered"]
+	coherency_full		stringnoz["coherency=full"]
+	resv_level		fs_opt_dec["resv_level", int32[0:9]]
+	dir_resv_level		fs_opt_dec["dir_resv_level", int32[0:9]]
+	journal_async_commit	stringnoz["journal_async_commit"]
+	err_cont		stringnoz["errors=continue"]
 ] [varlen]
 
 bpf_options [
