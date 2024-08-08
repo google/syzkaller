@@ -272,10 +272,24 @@ func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 
 func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	a := arg.(*GroupArg)
+	// If there are at least 3 elements, try to remove all at once first.
+	// If will be faster than removing them one-by-one if all of them are not needed.
+	if allPath := path + "-all"; len(a.Inner) >= 3 && typ.RangeBegin == 0 && !ctx.triedPaths[allPath] {
+		ctx.triedPaths[allPath] = true
+		for _, elem := range a.Inner {
+			removeArg(elem)
+		}
+		a.Inner = nil
+		ctx.target.assignSizesCall(ctx.call)
+		if ctx.pred(ctx.p, ctx.callIndex0, statMinArray, allPath) {
+			*ctx.p0 = ctx.p
+		}
+		return true
+	}
+	// Try to remove individual elements one-by-one.
 	for i := len(a.Inner) - 1; i >= 0; i-- {
 		elem := a.Inner[i]
 		elemPath := fmt.Sprintf("%v-%v", path, i)
-		// Try to remove individual elements one-by-one.
 		if ctx.mode != MinimizeCrash && !ctx.triedPaths[elemPath] &&
 			(typ.Kind == ArrayRandLen ||
 				typ.Kind == ArrayRangeLen && uint64(len(a.Inner)) > typ.RangeBegin) {
