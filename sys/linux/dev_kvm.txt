@@ -276,6 +276,11 @@ syzos_api_smccc {
 	arg_params	array[int64, 5]
 }
 
+syzos_api_irq_setup {
+	nr_cpus	int32[0:4]
+	nr_spis	int32[0:987]
+}
+
 type syzos_api[NUM, PAYLOAD] {
 	call	const[NUM, int64]
 	size	bytesize[parent, int64]
@@ -283,11 +288,12 @@ type syzos_api[NUM, PAYLOAD] {
 }
 
 syzos_api_call [
-	uexit	syzos_api[0, intptr]
-	code	syzos_api[1, syzos_api_code]
-	msr	syzos_api[2, syzos_api_msr]
-	smc	syzos_api[3, syzos_api_smccc]
-	hvc	syzos_api[4, syzos_api_smccc]
+	uexit		syzos_api[0, intptr]
+	code		syzos_api[1, syzos_api_code]
+	msr		syzos_api[2, syzos_api_msr]
+	smc		syzos_api[3, syzos_api_smccc]
+	hvc		syzos_api[4, syzos_api_smccc]
+	irq_setup	syzos_api[5, syzos_api_irq_setup]
 ] [varlen]
 
 kvm_text_ppc64 {
