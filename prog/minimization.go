@@ -317,8 +317,6 @@ func (typ *ProcType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 }
 
 func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
-	// TODO: try to reset bits in ints
-	// TODO: try to set separate flags
 	if ctx.mode != MinimizeCrashSnapshot {
 		return false
 	}
@@ -377,7 +375,6 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 	a := arg.(*DataArg)
 	switch typ.Kind {
 	case BufferBlobRand, BufferBlobRange:
-		// TODO: try to set individual bytes to 0
 		len0 := len(a.Data())
 		minLen := int(typ.RangeBegin)
 		for step := len(a.Data()) - minLen; len(a.Data()) > minLen && step > 0; {
