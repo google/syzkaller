@@ -190,7 +190,7 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
-type funcStyleBodyJS func(projectID string, ns string, dateFrom civil.Date, dateTo civil.Date,
+type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -206,11 +206,12 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	if err != nil {
 		return err
 	}
+	ss := r.FormValue("subsystem")
 	dateFrom := civil.DateOf(time.Now().Add(-14 * 24 * time.Hour))
 	dateTo := civil.DateOf(time.Now())
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f("syzkaller", hdr.Namespace, dateFrom, dateTo); err != nil {
+	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, dateFrom, dateTo); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
