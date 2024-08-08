@@ -80,6 +80,7 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_usb_ep_write":            linuxCheckUSBEmulation,
 	"syz_usb_ep_read":             linuxCheckUSBEmulation,
 	"syz_kvm_setup_cpu":           linuxSyzKvmSetupCPUSupported,
+	"syz_kvm_vgic_v3_setup":       linuxSyzKvmVgicV3SetupSupported,
 	"syz_emit_vhci":               linuxVhciInjectionSupported,
 	"syz_init_net_socket":         linuxSyzInitNetSocketSupported,
 	"syz_genetlink_get_family_id": linuxSyzGenetlinkGetFamilyIDSupported,
@@ -180,6 +181,13 @@ func linuxSyzKvmSetupCPUSupported(ctx *checkContext, call *prog.Syscall) string 
 		if ctx.target.Arch == targets.PPC64LE {
 			return ""
 		}
+	}
+	return "unsupported arch"
+}
+
+func linuxSyzKvmVgicV3SetupSupported(ctx *checkContext, call *prog.Syscall) string {
+	if ctx.target.Arch == targets.ARM64 {
+		return ""
 	}
 	return "unsupported arch"
 }
