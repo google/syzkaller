@@ -127,7 +127,6 @@ func (mgr *Manager) snapshotRun(inst *vm.Instance, builder *flatbuffers.Builder,
 		return nil, nil, err
 	}
 	elapsed := time.Since(start)
-	queue.StatExecs.Add(1)
 
 	execError := ""
 	var info *flatrpc.ProgInfo
