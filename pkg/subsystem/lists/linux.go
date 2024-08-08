@@ -2372,7 +2372,7 @@ func subsystems_linux() []*Subsystem {
 
 	kvm = Subsystem{
 		Name:     "kvm",
-		Syscalls: []string{"syz_kvm_setup_cpu"},
+		Syscalls: []string{"syz_kvm_setup_cpu", "syz_kvm_vgic_v3_setup"},
 		Lists:    []string{"kvm@vger.kernel.org"},
 		Parents:  []*Subsystem{&kernel},
 		PathRules: []PathRule{

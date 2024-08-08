@@ -49,7 +49,7 @@ var (
 			"isofs":    {"syz_mount_image$iso9660"},
 			"jffs2":    {"syz_mount_image$jffs2"},
 			"jfs":      {"syz_mount_image$jfs"},
-			"kvm":      {"syz_kvm_setup_cpu"},
+			"kvm":      {"syz_kvm_setup_cpu", "syz_kvm_vgic_v3_setup"},
 			"minix":    {"syz_mount_image$minix"},
 			"nilfs":    {"syz_mount_image$nilfs2"},
 			"ntfs3":    {"syz_mount_image$ntfs", "syz_mount_image$ntfs3"},
