@@ -241,7 +241,8 @@ func (inst *instance) startFuchsiaLogs() error {
 	// trigger a false positive from the unexpected reboot check. To avoid this,
 	// only request logs from now on.
 	cmd := inst.ffxCommand("--target", inst.name, "log", "--since", "now",
-		"--show-metadata", "--show-full-moniker", "--no-color")
+		"--show-metadata", "--show-full-moniker", "--no-color",
+		"--exclude-tags", "netlink")
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
 	inst.merger.Add("fuchsia", inst.rpipe)
