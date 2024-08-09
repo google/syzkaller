@@ -33,7 +33,7 @@ type Pool[T Instance] struct {
 	defaultJob Runner[T]
 	jobs       chan Runner[T]
 
-	// The mutex serializes ReserveForRun() calls.
+	// The mutex serializes ReserveForRun() and SetDefault() calls.
 	mu        sync.Mutex
 	instances []*poolInstance[T]
 }
@@ -54,6 +54,19 @@ func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *P
 		defaultJob: def,
 		instances:  instances,
 		jobs:       make(chan Runner[T]),
+	}
+}
+
+// UpdateDefault forces all VMs to restart.
+func (p *Pool[T]) SetDefault(def Runner[T]) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.defaultJob = def
+	for _, inst := range p.instances {
+		if inst.reserved() {
+			continue
+		}
+		inst.free(def)
 	}
 }
 
@@ -254,6 +267,10 @@ func (pi *poolInstance[T]) reserve(ch chan Runner[T]) {
 
 func (pi *poolInstance[T]) free(job Runner[T]) {
 	pi.mu.Lock()
+	if pi.job != nil {
+		// A change of a default job, let's force restart the instance.
+		pi.stop()
+	}
 	pi.job = job
 	pi.jobChan = nil
 	switchToJob := pi.switchToJob

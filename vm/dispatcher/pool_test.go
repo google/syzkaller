@@ -151,6 +151,48 @@ func TestPoolStress(t *testing.T) {
 	<-done
 }
 
+func TestPoolNewDefault(t *testing.T) {
+	var originalCount atomic.Int64
+
+	// The test to aid the race detector.
+	mgr := NewPool[*nilInstance](
+		10,
+		func(idx int) (*nilInstance, error) {
+			return &nilInstance{}, nil
+		},
+		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+			originalCount.Add(1)
+			<-ctx.Done()
+			originalCount.Add(-1)
+		},
+	)
+	done := make(chan bool)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		mgr.Loop(ctx)
+		close(done)
+	}()
+
+	for originalCount.Load() != 10 {
+		time.Sleep(time.Second / 10)
+	}
+
+	var newCount atomic.Int64
+	mgr.SetDefault(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+		newCount.Add(1)
+		<-ctx.Done()
+		newCount.Add(-1)
+	})
+
+	for newCount.Load() != 10 {
+		time.Sleep(time.Second / 10)
+	}
+	assert.Equal(t, int64(0), originalCount.Load())
+
+	cancel()
+	<-done
+}
+
 func makePool(count int) []testInstance {
 	var ret []testInstance
 	for i := 0; i < count; i++ {

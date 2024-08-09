@@ -130,9 +130,6 @@ func Complete(cfg *Config) error {
 	); err != nil {
 		return err
 	}
-	if cfg.Snapshot && cfg.Reproduce {
-		return fmt.Errorf("reproduction is not (yet) supported in snapshot mode")
-	}
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	if cfg.WorkdirTemplate != "" {
 		cfg.WorkdirTemplate = osutil.Abs(cfg.WorkdirTemplate)
