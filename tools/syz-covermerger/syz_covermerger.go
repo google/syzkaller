@@ -31,7 +31,19 @@ var (
 	flagTotalRows           = flag.Int64("total-rows", 0, "[optional] source size, is used for version contol")
 	flagToDashAPI           = flag.String("to-dashapi", "", "[optional] dashapi address")
 	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
+	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
 )
+
+func makeProvider() covermerger.FileVersProvider {
+	switch *flagSrcProvider {
+	case "git-clone":
+		return covermerger.MakeMonoRepo(*flagWorkdir)
+	case "web-git":
+		return covermerger.MakeWebGit()
+	default:
+		panic(fmt.Sprintf("unknown provider %v", *flagSrcProvider))
+	}
+}
 
 func main() {
 	flag.Parse()
@@ -43,7 +55,7 @@ func main() {
 			Branch: *flagBranch,
 			Commit: *flagCommit,
 		},
-		FileVersProvider: covermerger.MakeMonoRepo(*flagWorkdir),
+		FileVersProvider: makeProvider(),
 	}
 	mergeResult, err := covermerger.MergeCSVData(config, os.Stdin)
 	if err != nil {
