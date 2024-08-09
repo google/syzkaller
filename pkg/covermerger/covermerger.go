@@ -122,7 +122,7 @@ type Config struct {
 	Workdir          string
 	skipRepoClone    bool
 	Base             RepoBranchCommit
-	FileVersProvider fileVersProvider
+	FileVersProvider FileVersProvider
 }
 
 func isSchema(fields, schema []string) bool {

@@ -12,7 +12,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type fileVersProvider interface {
+type FileVersProvider interface {
 	GetFileVersions(c *Config, targetFilePath string, rbcs []RepoBranchCommit,
 	) (fileVersions, error)
 }
@@ -77,7 +77,7 @@ func (mr *monoRepo) addRepoBranch(rbc RepoBranchCommit) error {
 	return nil
 }
 
-func MakeMonoRepo(workdir string) fileVersProvider {
+func MakeMonoRepo(workdir string) FileVersProvider {
 	rbcPath := workdir + "/repos/linux_kernels"
 	mr := &monoRepo{
 		branches: map[RepoBranchCommit]struct{}{},
