@@ -152,11 +152,11 @@ syz_mount_image$ubifs(fs ptr[in, string["ubifs"]], dir ptr[in, filename], flags 
 syz_mount_image$adfs(fs ptr[in, string["adfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[adfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$affs(fs ptr[in, string["affs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$befs(fs ptr[in, string["befs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$vxfs(fs ptr[in, string["vxfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$omfs(fs ptr[in, string["omfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$hpfs(fs ptr[in, string["hpfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$vxfs(fs ptr[in, string["vxfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[vxfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$omfs(fs ptr[in, string["omfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[omfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$hpfs(fs ptr[in, string["hpfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[hpfs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$qnx4(fs ptr[in, string["qnx4"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$qnx6(fs ptr[in, string["qnx6"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+syz_mount_image$qnx6(fs ptr[in, string["qnx6"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[qnx6_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$sysv(fs ptr[in, string["sysv"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$ufs(fs ptr[in, string["ufs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ufs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$gfs2meta(fs ptr[in, string["gfs2meta"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
@@ -662,6 +662,9 @@ ext4_options [
 	nobarrier		stringnoz["nobarrier"]
 	i_version		stringnoz["i_version"]
 	dax			stringnoz["dax"]
+	dax_always		stringnoz["dax=always"]
+	dax_inode		stringnoz["dax=inode"]
+	dax_never		stringnoz["dax=never"]
 	delalloc		stringnoz["delalloc"]
 	lazytime		stringnoz["lazytime"]
 	nolazytime		stringnoz["nolazytime"]
@@ -673,6 +676,7 @@ ext4_options [
 	auto_da_alloc		stringnoz["auto_da_alloc"]
 	noauto_da_alloc		stringnoz["noauto_da_alloc"]
 	dioread_nolock		stringnoz["dioread_nolock"]
+	nodioread_nolock	stringnoz["nodioread_nolock"]
 	dioread_lock		stringnoz["dioread_lock"]
 	discard			stringnoz["discard"]
 	nodiscard		stringnoz["nodiscard"]
@@ -681,6 +685,7 @@ ext4_options [
 	test_dummy_encryption	stringnoz["test_dummy_encryption"]
 	nombcache		stringnoz["nombcache"]
 	inlinecrypt		stringnoz["inlinecrypt"]
+	mb_optimize_scan	fs_opt_hex["mb_optimize_scan", int32[0:1]]
 	resgid			fs_opt_hex["resgid", gid]
 	resuid			fs_opt_hex["resuid", uid]
 	sb			fs_opt_hex["sb", int32]
@@ -712,7 +717,7 @@ f2fs_options [
 	norecovery		stringnoz["norecovery"]
 	discard			stringnoz["discard"]
 	nodiscard		stringnoz["nodiscard"]
-	noheap			stringnoz["noheap"]
+	noheap			stringnoz["no_heap"]
 	heap			stringnoz["heap"]
 	user_xattr		stringnoz["user_xattr"]
 	nouser_xattr		stringnoz["nouser_xattr"]
@@ -731,13 +736,20 @@ f2fs_options [
 	noinline_dentry		stringnoz["noinline_dentry"]
 	flush_merge		stringnoz["flush_merge"]
 	noflush_merge		stringnoz["noflush_merge"]
+	barrier			stringnoz["barrier"]
 	nobarrier		stringnoz["nobarrier"]
 	fastboot		stringnoz["fastboot"]
 	extent_cache		stringnoz["extent_cache"]
 	noextent_cache		stringnoz["noextent_cache"]
 	data_flush		stringnoz["data_flush"]
+	reserve_root		fs_opt_dec["reserver_root", int32]
 	adaptive_mode		stringnoz["mode=adaptive"]
 	lfs_mode		stringnoz["mode=lfs"]
+	segment_mode		stringnoz["mode=fragment:segment"]
+	block_mode		stringnoz["mode=fragment:block"]
+	io_bits			fs_opt_dec["io_bits", int32[0:256]]
+	fault_injection		fs_opt_dec["fault_injection", int32]
+	fault_type		fs_opt_dec["fault_type", int32]
 	resgid			fs_opt_hex["resgid", gid]
 	resuid			fs_opt_hex["resuid", uid]
 	lazytime		stringnoz["lazytime"]
@@ -764,6 +776,21 @@ f2fs_options [
 	errors_continue		stringnoz["errors=continue"]
 	errors_remount		stringnoz["errors=remount-ro"]
 	inlinecrypt		stringnoz["inlinecrypt"]
+	checkpoint_diasble	stringnoz["checkpoint=disable"]
+	checkpoint_enable	stringnoz["checkpoint=enable"]
+	checkpoint_merge	stringnoz["checkpoint=merge"]
+	nocheckpoint_merge	stringnoz["nocheckpoint_merge"]
+	compress_chksum		stringnoz["compress_chksum"]
+	compress_cache		stringnoz["compress_cache"]
+	atgc			stringnoz["atgc"]
+	gc_merge		stringnoz["gc_merge"]
+	nogc_merge		stringnoz["nogc_merge"]
+	discard_unit_block	stringnoz["discard_unit=block"]
+	discard_unit_segment	stringnoz["discard_unit=segment"]
+	discard_unit_section	stringnoz["discard_unit=section"]
+	memory_normal		stringnoz["memory=normal"]
+	memory_low		stringnoz["memory=low"]
+	age_extent_cache	stringnoz["age_extent_cache"]
 ] [varlen]
 
 ocfs2_options [
@@ -807,17 +834,29 @@ overlay_options [
 	lowerdir		fs_opt_filename["lowerdir"]
 	upperdir		fs_opt_filename["upperdir"]
 	workdir			fs_opt_filename["workdir"]
-	redirect_dir		fs_opt_filename["redirect_dir"]
+	redirect_dir_on		stringnoz["redirect_dir=on"]
+	redirect_dir_off	stringnoz["redirect_dir=off"]
+	redirect_dir_follow	stringnoz["redirect_dir=follow"]
+	redirect_dir_nofollow	stringnoz["redirect_dir=nofollow"]
 	default_permissions	stringnoz["default_permissions"]
 	index_on		stringnoz["index=on"]
 	index_off		stringnoz["index=off"]
+	uuid_on			stringnoz["uuid=on"]
+	uuid_off		stringnoz["uuid=off"]
+	uuid_auto		stringnoz["uuid=auto"]
+	uuid_null		stringnoz["uuid=null"]
 	nfs_export_on		stringnoz["nfs_export=on"]
 	nfs_export_off		stringnoz["nfs_export=off"]
+	userxattr		stringnoz["userxattr"]
 	xino_on			stringnoz["xino=on"]
 	xino_off		stringnoz["xino=off"]
 	xino_auto		stringnoz["xino=auto"]
 	metacopy_on		stringnoz["metacopy=on"]
 	metacopy_off		stringnoz["metacopy=off"]
+	verity_on		stringnoz["verity=on"]
+	verity_off		stringnoz["verity=off"]
+	verity_require		stringnoz["verity=require"]
+	volatile		stringnoz["volatile"]
 ] [varlen]
 
 binder_options [
@@ -961,6 +1000,46 @@ adfs_options [
 	ownmask		fs_opt_oct["ownmask", int32]
 	othmask		fs_opt_oct["othmask", int32]
 	ftsuffix	fs_opt_dec["ftsuffix", int32]
+] [varlen]
+
+vxfs_options [
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	iocharset	fs_opt_codepage["iocharset"]
+	debug		stringnoz["debug"]
+] [varlen]
+
+omfs_options [
+	uid	fs_opt_hex["uid", uid]
+	gid	fs_opt_hex["gid", gid]
+	umask	fs_opt_oct["umask", int32]
+	dmask	fs_opt_oct["dmask", int32]
+	fmask	fs_opt_oct["fmask", int32]
+] [varlen]
+
+hpfs_options [
+	help		stringnoz["help"]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	umask		fs_opt_oct["umask", int32]
+	case_lower	stringnoz["case=lower"]
+	case_asis	stringnoz["case=asis"]
+	check_none	stringnoz["check=none"]
+	check_normal	stringnoz["check=normal"]
+	check_strict	stringnoz["check=strict"]
+	err_cont	stringnoz["errors=continue"]
+	err_ro		stringnoz["errors=remount-ro"]
+	eas_no		stringnoz["eas=no"]
+	eas_ro		stringnoz["ear=ro"]
+	eas_rw		stringnoz["eas=rw"]
+	chkdsk_no	stringnoz["chkdsk=no"]
+	chkdsk_errors	stringnoz["chkdsk=errors"]
+	chkdsk_always	stringnoz["chkdsk=always"]
+	timeshift	fs_opt_dec["timeshift", int32]
+] [varlen]
+
+qnx6_options [
+	mmi_fs	stringnoz["mmi_fs"]
 ] [varlen]
 
 # We could use more hash names, but the problem is that alg_hash_name is 0-terminated.
