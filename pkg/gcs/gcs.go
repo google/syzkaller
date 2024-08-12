@@ -38,8 +38,7 @@ func (file *File) Reader() (io.ReadCloser, error) {
 	return file.handle.NewReader(file.ctx)
 }
 
-func NewClient() (*Client, error) {
-	ctx := context.Background()
+func NewClient(ctx context.Context) (*Client, error) {
 	storageClient, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err

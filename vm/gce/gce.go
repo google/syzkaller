@@ -15,6 +15,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -491,7 +492,7 @@ func (inst *instance) getSerialPortOutput() ([]byte, error) {
 }
 
 func uploadImageToGCS(localImage, gcsImage string) error {
-	GCS, err := gcs.NewClient()
+	GCS, err := gcs.NewClient(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to create GCS client: %w", err)
 	}
