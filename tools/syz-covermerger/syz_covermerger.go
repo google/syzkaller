@@ -4,10 +4,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"runtime"
 	"sort"
 
@@ -57,15 +57,32 @@ func main() {
 		},
 		FileVersProvider: makeProvider(),
 	}
-	mergeResult, err := covermerger.MergeCSVData(config, os.Stdin)
-	if err != nil {
-		panic(err)
-	}
-	printMergeResult(mergeResult)
-	var dateTo civil.Date
+	var dateFrom, dateTo civil.Date
+	var err error
 	if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
 		panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 	}
+	dateFrom = dateTo.AddDays(-int(*flagDuration))
+	dbReader := covermerger.MakeBQCSVReader()
+	if err = dbReader.InitNsRecords(context.Background(),
+		*flagNamespace,
+		"",
+		dateFrom,
+		dateTo,
+	); err != nil {
+		panic(fmt.Sprintf("failed to dbReader.InitNsRecords: %v", err.Error()))
+	}
+	defer dbReader.Close()
+	csvReader, errReader := dbReader.Reader()
+	if errReader != nil {
+		panic(fmt.Sprintf("failed to dbReader.Reader: %v", errReader.Error()))
+	}
+	mergeResult, errMerge := covermerger.MergeCSVData(config, csvReader)
+	if errMerge != nil {
+		panic(errMerge)
+	}
+	printMergeResult(mergeResult)
+
 	coverage, _, _ := mergeResultsToCoverage(mergeResult)
 	if *flagToDashAPI != "" {
 		if err := saveCoverage(*flagToDashAPI, *flagDashboardClientName, &dashapi.MergedCoverage{

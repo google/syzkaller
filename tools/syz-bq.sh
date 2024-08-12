@@ -95,35 +95,6 @@ else
   echo $total_rows rows are available for processing
 fi
 
-sessionID=$(cat /proc/sys/kernel/random/uuid)
-gsURI=$(echo gs://syzbot-temp/bq-exports/${sessionID}/*.csv.gz)
-echo fetching data from bigquery
-query=$( echo -n '
-EXPORT DATA
-  OPTIONS (
-    uri = "'$gsURI'",
-    format = "CSV",
-    overwrite = true,
-    header = true,
-    compression = "GZIP")
-AS (
-  SELECT
-    kernel_repo, kernel_branch, kernel_commit, file_path, sl, SUM(hit_count) as hit_count
-  FROM syzkaller.syzbot_coverage.`'$namespace'`
-  WHERE
-    TIMESTAMP_TRUNC(timestamp, DAY) >= "'$from_date'" AND
-    TIMESTAMP_TRUNC(timestamp, DAY) <= "'$to_date'" AND
-    version = 1
-  GROUP BY file_path, kernel_commit, kernel_repo, kernel_branch, sl
-  ORDER BY file_path
-);
-')
-
-bq query --format=csv --use_legacy_sql=false "$query"
-sessionDir="$workdir/sessions/$sessionID"
-mkdir -p $sessionDir
-gsutil -m cp $gsURI $sessionDir
-cat $sessionDir/*.csv.gz | gunzip | \
 go run ./tools/syz-covermerger/ -workdir $workdir \
   -repo $repo \
   -branch $branch \
