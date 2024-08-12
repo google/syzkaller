@@ -175,8 +175,14 @@ type Object struct {
 	CreatedAt time.Time
 }
 
-func (client *Client) ListObjects(bucket string) ([]*Object, error) {
-	it := client.client.Bucket(bucket).Objects(client.ctx, nil)
+// ListObjects expects "bucket/path" or "bucket" as input.
+func (client *Client) ListObjects(bucketObjectPath string) ([]*Object, error) {
+	bucket, objectPath, err := split(bucketObjectPath)
+	if err != nil { // no path specified
+		bucket = bucketObjectPath
+	}
+	query := &storage.Query{Prefix: objectPath}
+	it := client.client.Bucket(bucket).Objects(client.ctx, query)
 	ret := []*Object{}
 	for {
 		objAttrs, err := it.Next()
