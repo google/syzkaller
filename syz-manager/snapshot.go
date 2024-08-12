@@ -122,53 +122,59 @@ func (mgr *Manager) snapshotRun(inst *vm.Instance, builder *flatbuffers.Builder,
 	builder.Finish(msg.Pack(builder))
 
 	start := time.Now()
-	res, output, err := inst.RunSnapshot(builder.FinishedBytes())
+	resData, output, err := inst.RunSnapshot(builder.FinishedBytes())
 	if err != nil {
 		return nil, nil, err
 	}
 	elapsed := time.Since(start)
 
-	execError := ""
-	var info *flatrpc.ProgInfo
-	if len(res) > 4 {
-		res = res[4:]
-		// TODO: use more robust parsing from pkg/flatrpc/conn.go.
-		var raw flatrpc.ExecutorMessageRaw
-		raw.Init(res, flatbuffers.GetUOffsetT(res))
-		union := raw.UnPack()
-		if union.Msg != nil && union.Msg.Value != nil {
-			msg := union.Msg.Value.(*flatrpc.ExecResult)
-			if msg.Info != nil {
-				msg.Info.Elapsed = uint64(elapsed)
-				for len(msg.Info.Calls) < len(req.Prog.Calls) {
-					msg.Info.Calls = append(msg.Info.Calls, &flatrpc.CallInfo{
-						Error: 999,
-					})
-				}
-				msg.Info.Calls = msg.Info.Calls[:len(req.Prog.Calls)]
-				if len(msg.Info.ExtraRaw) != 0 {
-					msg.Info.Extra = msg.Info.ExtraRaw[0]
-					for _, info := range msg.Info.ExtraRaw[1:] {
-						msg.Info.Extra.Cover = append(msg.Info.Extra.Cover, info.Cover...)
-						msg.Info.Extra.Signal = append(msg.Info.Extra.Signal, info.Signal...)
-					}
-					msg.Info.ExtraRaw = nil
-				}
+	res := parseExecResult(resData)
+	if res.Info != nil {
+		res.Info.Elapsed = uint64(elapsed)
+		for len(res.Info.Calls) < len(req.Prog.Calls) {
+			res.Info.Calls = append(res.Info.Calls, &flatrpc.CallInfo{
+				Error: 999,
+			})
+		}
+		res.Info.Calls = res.Info.Calls[:len(req.Prog.Calls)]
+		if len(res.Info.ExtraRaw) != 0 {
+			res.Info.Extra = res.Info.ExtraRaw[0]
+			for _, info := range res.Info.ExtraRaw[1:] {
+				res.Info.Extra.Cover = append(res.Info.Extra.Cover, info.Cover...)
+				res.Info.Extra.Signal = append(res.Info.Extra.Signal, info.Signal...)
 			}
-			info = msg.Info
-			execError = msg.Error
+			res.Info.ExtraRaw = nil
 		}
 	}
+
 	ret := &queue.Result{
 		Status: queue.Success,
-		Info:   info,
+		Info:   res.Info,
 	}
-	if execError != "" {
+	if res.Error != "" {
 		ret.Status = queue.ExecFailure
-		ret.Err = errors.New(execError)
+		ret.Err = errors.New(res.Error)
 	}
 	if req.ReturnOutput {
 		ret.Output = output
 	}
 	return ret, output, nil
+}
+
+func parseExecResult(data []byte) *flatrpc.ExecResult {
+	raw, err := flatrpc.Parse[*flatrpc.ExecutorMessageRaw](data[flatbuffers.SizeUint32:])
+	if err != nil {
+		// Don't consider result parsing error as an infrastructure error,
+		// it's just the test program corrupted memory.
+		return &flatrpc.ExecResult{
+			Error: err.Error(),
+		}
+	}
+	res, ok := raw.Msg.Value.(*flatrpc.ExecResult)
+	if !ok {
+		return &flatrpc.ExecResult{
+			Error: "result is not ExecResult",
+		}
+	}
+	return res
 }
