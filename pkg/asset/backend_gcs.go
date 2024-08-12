@@ -4,6 +4,7 @@
 package asset
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -22,7 +23,7 @@ type cloudStorageBackend struct {
 
 func makeCloudStorageBackend(bucket string, tracer debugtracer.DebugTracer) (*cloudStorageBackend, error) {
 	tracer.Log("created gcs backend for bucket '%s'", bucket)
-	client, err := gcs.NewClient()
+	client, err := gcs.NewClient(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("the call to NewClient failed: %w", err)
 	}

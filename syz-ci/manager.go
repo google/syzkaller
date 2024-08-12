@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -969,7 +970,7 @@ func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader, allowPublis
 
 func uploadFileGCS(URL string, file io.Reader, publish bool) error {
 	URL = strings.TrimPrefix(URL, "gs://")
-	GCS, err := gcs.NewClient()
+	GCS, err := gcs.NewClient(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to create GCS client: %w", err)
 	}
