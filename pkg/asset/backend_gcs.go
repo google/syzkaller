@@ -103,19 +103,8 @@ func (csb *cloudStorageBackend) getPath(downloadURL string) (string, error) {
 	return u.Path[len(prefix):], nil
 }
 
-func (csb *cloudStorageBackend) list() ([]storedObject, error) {
-	list, err := csb.client.ListObjects(csb.bucket)
-	if err != nil {
-		return nil, err
-	}
-	ret := []storedObject{}
-	for _, obj := range list {
-		ret = append(ret, storedObject{
-			path:      obj.Path,
-			createdAt: obj.CreatedAt,
-		})
-	}
-	return ret, nil
+func (csb *cloudStorageBackend) list() ([]*gcs.Object, error) {
+	return csb.client.ListObjects(csb.bucket)
 }
 
 func (csb *cloudStorageBackend) remove(path string) error {
