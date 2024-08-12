@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/google/syzkaller/pkg/gcs"
 )
 
 type objectUploadCallback func(req *uploadRequest) (*uploadResponse, error)
@@ -69,12 +71,12 @@ func (be *dummyStorageBackend) getPath(url string) (string, error) {
 	return "", fmt.Errorf("unknown URL format")
 }
 
-func (be *dummyStorageBackend) list() ([]storedObject, error) {
-	ret := []storedObject{}
+func (be *dummyStorageBackend) list() ([]*gcs.Object, error) {
+	ret := []*gcs.Object{}
 	for path, obj := range be.objects {
-		ret = append(ret, storedObject{
-			path:      path,
-			createdAt: obj.createdAt,
+		ret = append(ret, &gcs.Object{
+			Path:      path,
+			CreatedAt: obj.createdAt,
 		})
 	}
 	return ret, nil

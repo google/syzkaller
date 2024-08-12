@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/ulikunitz/xz"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -245,18 +246,18 @@ func (storage *Storage) DeprecateAssets() error {
 	intersection := 0
 	for _, obj := range existing {
 		keep := false
-		if time.Since(obj.createdAt) < deletionEmbargo {
+		if time.Since(obj.CreatedAt) < deletionEmbargo {
 			// To avoid races between object upload and object deletion, we don't delete
 			// newly uploaded files for a while after they're uploaded.
 			keep = true
 		}
-		if val, ok := needed[obj.path]; ok && val {
+		if val, ok := needed[obj.Path]; ok && val {
 			keep = true
 			intersection++
 		}
-		storage.tracer.Log("-- object %v, %v: keep %t", obj.path, obj.createdAt, keep)
+		storage.tracer.Log("-- object %v, %v: keep %t", obj.Path, obj.CreatedAt, keep)
 		if !keep {
-			toDelete = append(toDelete, obj.path)
+			toDelete = append(toDelete, obj.Path)
 		}
 	}
 	const intersectionCheckCutOff = 4
@@ -290,14 +291,9 @@ type uploadResponse struct {
 	writer io.WriteCloser
 }
 
-type storedObject struct {
-	path      string
-	createdAt time.Time
-}
-
 type StorageBackend interface {
 	upload(req *uploadRequest) (*uploadResponse, error)
-	list() ([]storedObject, error)
+	list() ([]*gcs.Object, error)
 	remove(path string) error
 	downloadURL(path string, publicURL bool) (string, error)
 	getPath(url string) (string, error)

@@ -177,8 +177,7 @@ type Object struct {
 }
 
 func (client *Client) ListObjects(bucket string) ([]*Object, error) {
-	ctx := context.Background()
-	it := client.client.Bucket(bucket).Objects(ctx, nil)
+	it := client.client.Bucket(bucket).Objects(client.ctx, nil)
 	ret := []*Object{}
 	for {
 		objAttrs, err := it.Next()
