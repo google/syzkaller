@@ -161,6 +161,11 @@ func (mgr *Manager) snapshotRun(inst *vm.Instance, builder *flatbuffers.Builder,
 }
 
 func parseExecResult(data []byte) *flatrpc.ExecResult {
+	if len(data) < flatbuffers.SizeUint32 {
+		return &flatrpc.ExecResult{
+			Error: "the buffer is too small",
+		}
+	}
 	raw, err := flatrpc.Parse[*flatrpc.ExecutorMessageRaw](data[flatbuffers.SizeUint32:])
 	if err != nil {
 		// Don't consider result parsing error as an infrastructure error,
