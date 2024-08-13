@@ -23,8 +23,10 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -54,18 +56,29 @@ var (
 	flagDateTo = flag.String("to",
 		civil.DateOf(time.Now()).String(), "heatmap date to(optional)")
 	flagProjectID = flag.String("project", "syzkaller", "spanner db project name")
+	flagForFile   = flag.String("for-file", "", "[optional]show file coverage")
+	flagRepo      = flag.String("repo", "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+		"[optional] repo to be used by -for-file")
+	flagCommit    = flag.String("commit", "", "commit to be used by -for-file")
+	flagNamespace = flag.String("namespace", "upstream", "[optional] used by -for-file")
 )
+
+func parseDates() (civil.Date, civil.Date) {
+	dateFrom, errDateFrom := civil.ParseDate(*flagDateFrom)
+	if errDateFrom != nil {
+		tool.Failf("failed to parse date from: %v", errDateFrom.Error())
+	}
+	dateTo, errDateTo := civil.ParseDate(*flagDateTo)
+	if errDateTo != nil {
+		tool.Failf("failed to parse date to: %v", errDateTo.Error())
+	}
+	return dateFrom, dateTo
+}
 
 func toolBuildNsHeatmap() {
 	buf := new(bytes.Buffer)
-	var dateFrom, dateTo civil.Date
+	dateFrom, dateTo := parseDates()
 	var err error
-	if dateFrom, err = civil.ParseDate(*flagDateFrom); err != nil {
-		tool.Failf("failed to parse date from: %v", err.Error())
-	}
-	if dateTo, err = civil.ParseDate(*flagDateTo); err != nil {
-		tool.Failf("failed to parse date to: %v", err.Error())
-	}
 	switch *flagNsHeatmapGroupBy {
 	case "dir":
 		if err = cover.DoDirHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
@@ -83,8 +96,30 @@ func toolBuildNsHeatmap() {
 	}
 }
 
+func toolFileCover() {
+	dateFrom, dateTo := parseDates()
+	details, err := cover.RendFileCoverage(
+		context.Background(),
+		*flagNamespace,
+		*flagRepo,
+		*flagCommit,
+		*flagForFile,
+		dateFrom,
+		dateTo,
+		cover.RendTextLine,
+	)
+	if err != nil {
+		tool.Fail(err)
+	}
+	fmt.Println(details)
+}
+
 func main() {
 	defer tool.Init()()
+	if *flagForFile != "" {
+		toolFileCover()
+		return
+	}
 	if *flagNsHeatmap != "" {
 		toolBuildNsHeatmap()
 		return
