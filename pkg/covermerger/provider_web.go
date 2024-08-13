@@ -63,3 +63,14 @@ func loadFile(filePath, repo, commit string) ([]byte, error) {
 func MakeWebGit() FileVersProvider {
 	return &webGit{}
 }
+
+func GetFileVersion(filePath, repo, commit string) (string, error) {
+	rbc := RepoBranchCommit{repo, "", commit}
+	files, err := MakeWebGit().GetFileVersions(nil,
+		filePath,
+		[]RepoBranchCommit{rbc})
+	if err != nil {
+		return "", fmt.Errorf("failed to GetFileVersions: %w", err)
+	}
+	return files[rbc], nil
+}
