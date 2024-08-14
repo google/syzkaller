@@ -164,7 +164,7 @@ func (inst *instance) SetupSnapshot(input []byte) error {
 	// Tell executor that we are ready to snapshot and wait for an ack.
 	inst.header.UpdateState(flatrpc.SnapshotStateHandshake)
 	if !inst.waitSnapshotStateChange(flatrpc.SnapshotStateHandshake, 10*time.Minute) {
-		return fmt.Errorf("executor does not start snapshot handshake")
+		return fmt.Errorf("executor does not start snapshot handshake\n%s", inst.readOutput())
 	}
 	if _, err := inst.hmp("migrate_set_capability x-ignore-shared on", 0); err != nil {
 		return err
@@ -177,7 +177,7 @@ func (inst *instance) SetupSnapshot(input []byte) error {
 	}
 	inst.header.UpdateState(flatrpc.SnapshotStateSnapshotted)
 	if !inst.waitSnapshotStateChange(flatrpc.SnapshotStateSnapshotted, time.Minute) {
-		return fmt.Errorf("executor has not confirmed snapshot handshake")
+		return fmt.Errorf("executor has not confirmed snapshot handshake\n%s", inst.readOutput())
 	}
 	return nil
 }
@@ -188,7 +188,7 @@ func (inst *instance) RunSnapshot(timeout time.Duration, input []byte) (result, 
 	inst.header.OutputSize = 0
 	inst.header.UpdateState(flatrpc.SnapshotStateExecute)
 	if _, err := inst.hmp("loadvm syz", 0); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("%w\n%s", err, inst.readOutput())
 	}
 	inst.waitSnapshotStateChange(flatrpc.SnapshotStateExecute, timeout)
 	resStart := int(flatrpc.ConstMaxInputSize) + int(atomic.LoadUint32(&inst.header.OutputOffset))
