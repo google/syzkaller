@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -654,6 +655,10 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 		candidates = append(candidates, item)
 	}
 	log.Logf(0, "%-24v: %v (%v seeds)", "corpus", len(candidates), seeds)
+	// Let's favorize smaller programs, otherwise the poorly minimized ones may overshadow the rest.
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return len(candidates[i].Prog.Calls) < len(candidates[j].Prog.Calls)
+	})
 	return candidates
 }
 
