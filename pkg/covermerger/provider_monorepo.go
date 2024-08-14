@@ -5,9 +5,9 @@ package covermerger
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -66,7 +66,7 @@ func (mr *monoRepo) repoBranchPresent(rbc RepoBranchCommit) bool {
 func (mr *monoRepo) addRepoBranch(rbc RepoBranchCommit) error {
 	rbc.Commit = ""
 	mr.branches[rbc] = struct{}{}
-	log.Printf("cloning repo: %s, branch: %s", rbc.Repo, rbc.Branch)
+	log.Logf(0, "cloning repo: %s, branch: %s", rbc.Repo, rbc.Branch)
 	if rbc.Repo == "" || rbc.Branch == "" {
 		panic("repo and branch are needed")
 	}
