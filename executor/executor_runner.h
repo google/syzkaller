@@ -431,13 +431,16 @@ private:
 		}
 		if (flag_debug) {
 			output_.resize(output_.size() + 1);
-			const char* output = reinterpret_cast<char*>(output_.data()) + debug_output_pos_;
+			char* output = reinterpret_cast<char*>(output_.data()) + debug_output_pos_;
 			// During machine check we can execute some requests that legitimately fail.
 			// These requests have ReturnError flag, so that the failure is returned
 			// to the caller for analysis. Don't print SYZFAIL in these requests,
 			// otherwise it will be detected as a bug.
-			if (msg_ && IsSet(msg_->flags, rpc::RequestFlag::ReturnError) && strstr(output, "SYZFAIL"))
-				output = "REDACTED-CONTAINS-FAIL";
+			if (msg_ && IsSet(msg_->flags, rpc::RequestFlag::ReturnError)) {
+				char* syzfail = strstr(output, "SYZFAIL");
+				if (syzfail)
+					memcpy(syzfail, "NOTFAIL", strlen("NOTFAIL"));
+			}
 			debug("proc %d: got output: %s\n", id_, output);
 			output_.resize(output_.size() - 1);
 			debug_output_pos_ = output_.size();
