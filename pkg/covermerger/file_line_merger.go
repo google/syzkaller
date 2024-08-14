@@ -6,7 +6,7 @@ package covermerger
 import "github.com/google/syzkaller/pkg/log"
 
 func makeFileLineCoverMerger(
-	fvs fileVersions, base RepoBranchCommit) FileCoverageMerger {
+	fvs fileVersions, base RepoBranchCommit, storeDetails bool) FileCoverageMerger {
 	baseFile := ""
 	baseFileExists := false
 	for rbc, fv := range fvs {
@@ -20,11 +20,17 @@ func makeFileLineCoverMerger(
 		return &DeletedFileLineMerger{}
 	}
 	a := &FileLineCoverMerger{
+		MergeResult: &MergeResult{
+			HitCounts:  make(map[int]int),
+			FileExists: true,
+		},
 		rbcToFile:  fvs,
 		baseFile:   baseFile,
-		hitCounts:  make(map[int]int),
 		matchers:   make(map[RepoBranchCommit]*LineToLineMatcher),
 		lostFrames: map[RepoBranchCommit]int64{},
+	}
+	if storeDetails {
+		a.MergeResult.LineDetails = make(map[int][]*FileRecord)
 	}
 	for rbc, fv := range fvs {
 		a.matchers[rbc] = makeLineToLineMatcher(fv, baseFile)
@@ -33,9 +39,9 @@ func makeFileLineCoverMerger(
 }
 
 type FileLineCoverMerger struct {
+	*MergeResult
 	rbcToFile  fileVersions
 	baseFile   string
-	hitCounts  map[int]int
 	matchers   map[RepoBranchCommit]*LineToLineMatcher
 	lostFrames map[RepoBranchCommit]int64
 }
@@ -48,7 +54,10 @@ func (a *FileLineCoverMerger) Add(record *FileRecord) {
 		return
 	}
 	if targetLine := a.matchers[record.RepoBranchCommit].SameLinePos(record.StartLine); targetLine != -1 {
-		a.hitCounts[targetLine] += record.HitCount
+		a.HitCounts[targetLine] += record.HitCount
+		if a.LineDetails != nil {
+			a.LineDetails[targetLine] = append(a.LineDetails[record.StartLine], record)
+		}
 	}
 }
 
@@ -57,8 +66,5 @@ func (a *FileLineCoverMerger) Result() *MergeResult {
 		log.Logf(1, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
 			lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
 	}
-	return &MergeResult{
-		HitCounts:  a.hitCounts,
-		FileExists: true,
-	}
+	return a.MergeResult
 }
