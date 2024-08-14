@@ -46,9 +46,11 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath string, fr
 	gsPath := fmt.Sprintf("bq-exports/%s", sessionUUID)
 	gsURI := "gs://" + gsBucket + "/" + gsPath + "/*.csv.gz"
 	client, err := bigquery.NewClient(ctx, "syzkaller")
-	client.EnableStorageReadClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to initialize bigquery client: %w", err)
+	}
+	if err := client.EnableStorageReadClient(ctx); err != nil {
+		return fmt.Errorf("failed to client.EnableStorageReadClient: %w", err)
 	}
 	q := client.Query(fmt.Sprintf(`
 		EXPORT DATA
