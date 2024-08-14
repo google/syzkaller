@@ -105,17 +105,9 @@ static void cover_mmap(cover_t* cov)
 		fail("cover_t structure is corrupted");
 	// Allocate kcov buffer plus two guard pages surrounding it.
 	char* mapped = (char*)mmap(NULL, cov->mmap_alloc_size + 2 * SYZ_PAGE_SIZE,
-				   PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+				   PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (mapped == MAP_FAILED)
 		exitf("failed to preallocate kcov buffer");
-	// Protect the guard pages.
-	int res = mprotect(mapped, SYZ_PAGE_SIZE, PROT_NONE);
-	if (res == -1)
-		exitf("failed to protect kcov guard page");
-	res = mprotect(mapped + SYZ_PAGE_SIZE + cov->mmap_alloc_size,
-		       SYZ_PAGE_SIZE, PROT_NONE);
-	if (res == -1)
-		exitf("failed to protect kcov guard page");
 	// Now map the kcov buffer to the file, overwriting the existing mapping above.
 	cov->data = (char*)mmap(mapped + SYZ_PAGE_SIZE, cov->mmap_alloc_size,
 				PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, 0);
