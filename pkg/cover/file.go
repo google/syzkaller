@@ -12,10 +12,26 @@ import (
 	"github.com/google/syzkaller/pkg/covermerger"
 )
 
-type lineRender func(string, bool, int, int) string
+type lineRender func(string, int, *covermerger.MergeResult, *CoverageRenderConfig) string
+
+type CoverageRenderConfig struct {
+	Render                    lineRender
+	ShowLineCoverage          bool
+	ShowLineNumbers           bool
+	ShowLineSourceExplanation bool
+}
+
+func DefaultTextRenderConfig() *CoverageRenderConfig {
+	return &CoverageRenderConfig{
+		Render:                    RendTextLine,
+		ShowLineCoverage:          true,
+		ShowLineNumbers:           true,
+		ShowLineSourceExplanation: true,
+	}
+}
 
 func RendFileCoverage(c context.Context, ns, repo, commit, filePath string,
-	fromDate, toDate civil.Date, render lineRender) (string, error) {
+	fromDate, toDate civil.Date, renderConfig *CoverageRenderConfig) (string, error) {
 	fileContent, err := covermerger.GetFileVersion(filePath, repo, commit)
 	if err != nil {
 		return "", fmt.Errorf("failed to GetFileVersion for file %s, commit %s from repo %s: %w",
@@ -28,6 +44,7 @@ func RendFileCoverage(c context.Context, ns, repo, commit, filePath string,
 			Commit: commit,
 		},
 		FileVersProvider: covermerger.MakeWebGit(),
+		StoreDetails:     true,
 	}
 
 	dbReader := covermerger.MakeBQCSVReader()
@@ -50,24 +67,51 @@ func RendFileCoverage(c context.Context, ns, repo, commit, filePath string,
 		return "", fmt.Errorf("error merging coverage: %w", err)
 	}
 
-	return rendResult(fileContent, mergeResult[filePath], render), nil
+	return rendResult(fileContent, mergeResult[filePath], renderConfig), nil
 }
 
-func rendResult(content string, coverage *covermerger.MergeResult, render lineRender) string {
-	srclines := strings.Split(content, "\n")
+func rendResult(content string, coverage *covermerger.MergeResult, renderConfig *CoverageRenderConfig) string {
+	srcLines := strings.Split(content, "\n")
 	var htmlLines []string
-	for i, srcLine := range srclines {
-		lineNum := i + 1
-		covered, instrumented := coverage.HitCounts[lineNum]
-		htmlLines = append(htmlLines, render(srcLine, instrumented, covered, lineNum))
+	for i, srcLine := range srcLines {
+		htmlLines = append(htmlLines, renderConfig.Render(srcLine, i+1, coverage, renderConfig))
 	}
 	return strings.Join(htmlLines, "\n")
 }
 
-func RendTextLine(code string, instrumented bool, covered, num int) string {
-	covStr := fmt.Sprintf("%6d", covered)
-	if !instrumented {
-		covStr = strings.Repeat(" ", 6)
+func RendTextLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
+	res := ""
+	if config.ShowLineSourceExplanation {
+		explanation := ""
+		lineDetails, exist := coverage.LineDetails[line]
+		if exist {
+			explanation = fmt.Sprintf("(%d)%s ", len(lineDetails), mainSignalSource(lineDetails))
+		}
+		res += fmt.Sprintf("%50s", explanation)
 	}
-	return fmt.Sprintf("%s %6d %s", covStr, num, code)
+	covered, instrumented := coverage.HitCounts[line]
+	if config.ShowLineCoverage {
+		covStr := fmt.Sprintf("%6d", covered)
+		if !instrumented {
+			covStr = strings.Repeat(" ", 6)
+		}
+		res += fmt.Sprintf("%s ", covStr)
+	}
+	if config.ShowLineNumbers {
+		res += fmt.Sprintf("%6d ", line)
+	}
+	res += code
+	return res
+}
+
+func mainSignalSource(sources []*covermerger.FileRecord) string {
+	res := ""
+	prevMax := -1
+	for _, source := range sources {
+		if source.HitCount > prevMax {
+			prevMax = source.HitCount
+			res = fmt.Sprintf("%s:%d", source.Commit, source.StartLine)
+		}
+	}
+	return res
 }

@@ -106,7 +106,7 @@ func toolFileCover() {
 		*flagForFile,
 		dateFrom,
 		dateTo,
-		cover.RendTextLine,
+		cover.DefaultTextRenderConfig(),
 	)
 	if err != nil {
 		tool.Fail(err)
