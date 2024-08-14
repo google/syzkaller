@@ -212,6 +212,7 @@ func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 		return fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 	cfg.VM = vmCfg
+	cfg.FuzzingVMs = min(cfg.FuzzingVMs, n)
 	return nil
 }
 
