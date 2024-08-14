@@ -25,43 +25,17 @@ const (
 	KeyHitCount     = "hit_count"
 )
 
-type FileRecord map[string]string
+type FileRecord struct {
+	FilePath string
+	RepoBranchCommit
+	StartLine int
+	HitCount  int
+}
+
 type RepoBranchCommit struct {
 	Repo   string
 	Branch string
 	Commit string
-}
-
-func (fr FileRecord) RepoBranchCommit() RepoBranchCommit {
-	return RepoBranchCommit{
-		fr[KeyKernelRepo],
-		fr[KeyKernelBranch],
-		fr[KeyKernelCommit],
-	}
-}
-
-type Frame struct {
-	StartLine int
-	StartCol  int
-	EndLine   int
-	EndCol    int
-}
-
-func (fr FileRecord) Frame() (*Frame, error) {
-	f := &Frame{}
-	var err error
-	if f.StartLine, err = strconv.Atoi(fr[KeyStartLine]); err != nil {
-		return nil, fmt.Errorf("failed to Atoi(%s): %w", fr[KeyStartLine], err)
-	}
-	return f, nil
-}
-
-func (fr FileRecord) HitCount() (int, error) {
-	if hitCount, err := strconv.Atoi(fr[KeyHitCount]); err != nil {
-		return 0, fmt.Errorf("failed to Atoi(%s): %w", fr[KeyHitCount], err)
-	} else {
-		return hitCount, nil
-	}
 }
 
 type MergeResult struct {
@@ -70,15 +44,15 @@ type MergeResult struct {
 }
 
 type FileCoverageMerger interface {
-	AddRecord(rbc RepoBranchCommit, f *Frame, hitCount int)
+	Add(record *FileRecord)
 	Result() *MergeResult
 }
 
-func batchFileData(c *Config, targetFilePath string, records []FileRecord) (*MergeResult, error) {
+func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
 	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
 	repoBranchCommitsMap := make(map[RepoBranchCommit]bool)
 	for _, record := range records {
-		repoBranchCommitsMap[record.RepoBranchCommit()] = true
+		repoBranchCommitsMap[record.RepoBranchCommit] = true
 	}
 	repoBranchCommitsMap[c.Base] = true
 	repoBranchCommits := maps.Keys(repoBranchCommitsMap)
@@ -88,32 +62,42 @@ func batchFileData(c *Config, targetFilePath string, records []FileRecord) (*Mer
 	}
 	merger := makeFileLineCoverMerger(fvs, c.Base)
 	for _, record := range records {
-		var f *Frame
-		if f, err = record.Frame(); err != nil {
-			return nil, fmt.Errorf("error parsing records: %w", err)
-		}
-		var hitCount int
-		if hitCount, err = record.HitCount(); err != nil {
-			return nil, fmt.Errorf("error parsing records: %w", err)
-		}
-		merger.AddRecord(
-			record.RepoBranchCommit(),
-			f,
-			hitCount)
+		merger.Add(record)
 	}
 	return merger.Result(), nil
 }
 
-func makeRecord(fields, schema []string) FileRecord {
-	record := make(FileRecord)
+func makeRecord(fields, schema []string) *FileRecord {
 	if len(fields) != len(schema) {
 		panic("fields size and schema size are not equal")
 	}
-	for i, v := range fields {
-		k := schema[i]
-		record[k] = v
+	record := &FileRecord{}
+	for i, val := range fields {
+		key := schema[i]
+		switch key {
+		case KeyFilePath:
+			record.FilePath = val
+		case KeyKernelRepo:
+			record.Repo = val
+		case KeyKernelBranch:
+			record.Branch = val
+		case KeyKernelCommit:
+			record.Commit = val
+		case KeyStartLine:
+			record.StartLine = readIntField(key, val)
+		case KeyHitCount:
+			record.HitCount = readIntField(key, val)
+		}
 	}
 	return record
+}
+
+func readIntField(field, val string) int {
+	res, err := strconv.Atoi(val)
+	if err != nil {
+		panic(fmt.Errorf("failed to Atoi(%s) %s: %w", val, field, err))
+	}
+	return res
 }
 
 type Config struct {
@@ -145,7 +129,7 @@ func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, er
 		schema = fields
 	}
 	errStdinReadChan := make(chan error, 1)
-	recordsChan := make(chan FileRecord)
+	recordsChan := make(chan *FileRecord)
 	go func() {
 		defer close(recordsChan)
 		for {
@@ -176,10 +160,10 @@ func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, er
 
 type FileRecords struct {
 	fileName string
-	records  []FileRecord
+	records  []*FileRecord
 }
 
-func mergeChanData(c *Config, recordChan <-chan FileRecord) (map[string]*MergeResult, error) {
+func mergeChanData(c *Config, recordChan <-chan *FileRecord) (map[string]*MergeResult, error) {
 	g, ctx := errgroup.WithContext(context.Background())
 	frecordChan := groupFileRecords(recordChan, ctx)
 	stat := make(map[string]*MergeResult)
@@ -208,19 +192,19 @@ func mergeChanData(c *Config, recordChan <-chan FileRecord) (map[string]*MergeRe
 	return stat, nil
 }
 
-func groupFileRecords(recordChan <-chan FileRecord, ctx context.Context) chan FileRecords {
+func groupFileRecords(recordChan <-chan *FileRecord, ctx context.Context) chan FileRecords {
 	frecordChan := make(chan FileRecords)
 	go func() {
 		defer close(frecordChan)
 		targetFile := ""
-		var records []FileRecord
+		var records []*FileRecord
 		for record := range recordChan {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			curTargetFile := record[KeyFilePath]
+			curTargetFile := record.FilePath
 			if targetFile == "" {
 				targetFile = curTargetFile
 			}
