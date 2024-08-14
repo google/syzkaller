@@ -175,9 +175,11 @@ func createScriptJob(ctx context.Context, projectID, serviceAccount, script stri
 
 func nsDatesToMerge(ctx context.Context, ns string, days, maxRecords int64) ([]civil.Date, error) {
 	client, err := bigquery.NewClient(ctx, "syzkaller")
-	client.EnableStorageReadClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize bigquery client: %w", err)
+	}
+	if err := client.EnableStorageReadClient(ctx); err != nil {
+		return nil, fmt.Errorf("failed to client.EnableStorageReadClient: %w", err)
 	}
 	q := client.Query(fmt.Sprintf(`
 		WITH data AS (
