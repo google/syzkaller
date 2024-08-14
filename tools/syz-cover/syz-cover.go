@@ -95,27 +95,15 @@ func main() {
 	}
 	var modules []*vminfo.KernelModule
 	if *flagModules != "" {
-		m, err := loadModules(*flagModules)
-		if err != nil {
+		if modules, err = loadModules(*flagModules); err != nil {
 			tool.Fail(err)
 		}
-		modules = m
 	}
 	rg, err := cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, false)
 	if err != nil {
 		tool.Fail(err)
 	}
-	var pcs []uint64
-	if len(flag.Args()) == 0 {
-		for _, s := range rg.Symbols {
-			pcs = append(pcs, s.PCs...)
-		}
-	} else {
-		pcs, err = readPCs(flag.Args())
-		if err != nil {
-			tool.Fail(err)
-		}
-	}
+	pcs := initPCs(rg)
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
 	params := cover.HandlerParams{
@@ -168,6 +156,21 @@ func main() {
 	if err := exec.Command("xdg-open", fn).Start(); err != nil {
 		tool.Failf("failed to start browser: %v", err)
 	}
+}
+
+func initPCs(rg *cover.ReportGenerator) []uint64 {
+	var pcs []uint64
+	if len(flag.Args()) == 0 {
+		for _, s := range rg.Symbols {
+			pcs = append(pcs, s.PCs...)
+		}
+		return pcs
+	}
+	pcs, err := readPCs(flag.Args())
+	if err != nil {
+		tool.Fail(err)
+	}
+	return pcs
 }
 
 func readPCs(files []string) ([]uint64, error) {
