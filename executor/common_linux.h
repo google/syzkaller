@@ -5712,10 +5712,16 @@ static long syz_clone3(volatile long a0, volatile long a1)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_pkey_set
+#include <errno.h>
+#define RESERVED_PKEY 15
 // syz_pkey_set(key pkey, val flags[pkey_flags])
 static long syz_pkey_set(volatile long pkey, volatile long val)
 {
 #if GOARCH_amd64 || GOARCH_386
+	if (pkey == RESERVED_PKEY) {
+		errno = EINVAL;
+		return -1;
+	}
 	uint32 eax = 0;
 	uint32 ecx = 0;
 	asm volatile("rdpkru"

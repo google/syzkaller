@@ -11,6 +11,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+static bool pkeys_enabled;
+
 const unsigned long KCOV_TRACE_PC = 0;
 const unsigned long KCOV_TRACE_CMP = 1;
 
@@ -65,6 +67,22 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 	struct sigaction act = {};
 	act.sa_handler = [](int) {};
 	sigaction(SIGCHLD, &act, nullptr);
+
+	// Use the last available pkey so that C reproducers get the the same keys from pkey_alloc.
+	int pkeys[RESERVED_PKEY + 1];
+	int npkey = 0;
+	for (; npkey <= RESERVED_PKEY; npkey++) {
+		int pk = pkey_alloc(0, 0);
+		if (pk == -1)
+			break;
+		if (pk == RESERVED_PKEY) {
+			pkeys_enabled = true;
+			break;
+		}
+		pkeys[npkey] = pk;
+	}
+	while (npkey--)
+		pkey_free(pkeys[npkey]);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
@@ -87,14 +105,20 @@ static void cover_open(cover_t* cov, bool extra)
 	if (ioctl(cov->fd, kcov_init_trace, cover_size))
 		fail("cover init trace write failed");
 	cov->mmap_alloc_size = cover_size * (is_kernel_64_bit ? 8 : 4);
+	if (pkeys_enabled)
+		debug("pkey protection enabled\n");
 }
 
 static void cover_protect(cover_t* cov)
 {
+	if (pkeys_enabled && pkey_set(RESERVED_PKEY, PKEY_DISABLE_WRITE))
+		debug("pkey_set failed: %d\n", errno);
 }
 
 static void cover_unprotect(cover_t* cov)
 {
+	if (pkeys_enabled && pkey_set(RESERVED_PKEY, 0))
+		debug("pkey_set failed: %d\n", errno);
 }
 
 static void cover_mmap(cover_t* cov)
@@ -113,6 +137,8 @@ static void cover_mmap(cover_t* cov)
 				PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, 0);
 	if (cov->data == MAP_FAILED)
 		exitf("cover mmap failed");
+	if (pkeys_enabled && pkey_mprotect(cov->data, cov->mmap_alloc_size, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+		exitf("failed to pkey_mprotect kcov buffer");
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
@@ -151,7 +177,9 @@ static void cover_reset(cover_t* cov)
 			fail("cover_reset: current_thread == 0");
 		cov = &current_thread->cov;
 	}
+	cover_unprotect(cov);
 	*(uint64*)cov->data = 0;
+	cover_protect(cov);
 }
 
 static void cover_collect(cover_t* cov)

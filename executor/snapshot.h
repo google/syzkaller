@@ -87,6 +87,11 @@ static void FindIvshmemDevices()
 			      input, static_cast<uint64>(rpc::Const::MaxInputSize));
 			debug("mapped shmem output at at %p/%llu\n",
 			      output, static_cast<uint64>(rpc::Const::MaxOutputSize));
+#if GOOS_linux
+			if (pkeys_enabled && pkey_mprotect(output, static_cast<uint64>(rpc::Const::MaxOutputSize),
+							   PROT_READ | PROT_WRITE, RESERVED_PKEY))
+				exitf("failed to pkey_mprotect output buffer");
+#endif
 		}
 		close(res2);
 	}
@@ -175,6 +180,8 @@ static void TouchMemory(void* ptr, size_t size)
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 static void SnapshotPrepareParent()
 {
+	// This allows access to the output region.
+	CoverAccessScope scope(nullptr);
 	TouchMemory((char*)output_data + output_size - kOutputPopulate, kOutputPopulate);
 	// Notify SnapshotStart that we finished prefaulting memory in the parent.
 	output_data->completed = 1;
@@ -188,6 +195,7 @@ static void SnapshotPrepareParent()
 static void SnapshotStart()
 {
 	debug("SnapshotStart\n");
+	CoverAccessScope scope(nullptr);
 	// Prefault as much memory as we can before the snapshot is taken.
 	// Also pre-create some threads and let them block.
 	// This is intended to make execution after each snapshot restore faster,
@@ -241,6 +249,7 @@ static void SnapshotStart()
 NORETURN static void SnapshotDone(bool failed)
 {
 	debug("SnapshotDone\n");
+	CoverAccessScope scope(nullptr);
 	uint32 num_calls = output_data->num_calls.load(std::memory_order_relaxed);
 	auto data = finish_output(output_data, 0, 0, num_calls, 0, 0, failed ? kFailStatus : 0, nullptr);
 	ivs.hdr->output_offset = data.data() - reinterpret_cast<volatile uint8_t*>(ivs.hdr);
