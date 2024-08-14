@@ -6,6 +6,7 @@ package covermerger
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -67,13 +68,14 @@ func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*Me
 	return merger.Result(), nil
 }
 
-func makeRecord(fields, schema []string) *FileRecord {
+func makeRecord(fields, schema []string) (*FileRecord, error) {
 	if len(fields) != len(schema) {
-		panic("fields size and schema size are not equal")
+		return nil, errors.New("fields size and schema size are not equal")
 	}
 	record := &FileRecord{}
 	for i, val := range fields {
 		key := schema[i]
+		var err error
 		switch key {
 		case KeyFilePath:
 			record.FilePath = val
@@ -84,20 +86,23 @@ func makeRecord(fields, schema []string) *FileRecord {
 		case KeyKernelCommit:
 			record.Commit = val
 		case KeyStartLine:
-			record.StartLine = readIntField(key, val)
+			record.StartLine, err = readIntField(key, val)
 		case KeyHitCount:
-			record.HitCount = readIntField(key, val)
+			record.HitCount, err = readIntField(key, val)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
-	return record
+	return record, nil
 }
 
-func readIntField(field, val string) int {
+func readIntField(field, val string) (int, error) {
 	res, err := strconv.Atoi(val)
 	if err != nil {
-		panic(fmt.Errorf("failed to Atoi(%s) %s: %w", val, field, err))
+		return -1, fmt.Errorf("failed to Atoi(%s) %s: %w", val, field, err)
 	}
-	return res
+	return res, nil
 }
 
 type Config struct {
@@ -128,7 +133,7 @@ func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, er
 	} else {
 		schema = fields
 	}
-	errStdinReadChan := make(chan error, 1)
+	errStreamChan := make(chan error, 1)
 	recordsChan := make(chan *FileRecord)
 	go func() {
 		defer close(recordsChan)
@@ -138,22 +143,27 @@ func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, er
 				break
 			}
 			if err != nil {
-				errStdinReadChan <- fmt.Errorf("failed to read CSV line: %w", err)
+				errStreamChan <- fmt.Errorf("failed to read CSV line: %w", err)
 				return
 			}
 			if isSchema(fields, schema) {
 				// The input may be the merged CVS files with multiple schemas.
 				continue
 			}
-			recordsChan <- makeRecord(fields, schema)
+			record, err := makeRecord(fields, schema)
+			if err != nil {
+				errStreamChan <- fmt.Errorf("makeRecord: %w", err)
+				return
+			}
+			recordsChan <- record
 		}
-		errStdinReadChan <- nil
+		errStreamChan <- nil
 	}()
 	mergeResult, errMerging := mergeChanData(config, recordsChan)
-	errStdinRead := <-errStdinReadChan
-	if errMerging != nil || errStdinRead != nil {
-		return nil, fmt.Errorf("errors merging stdin data:\nmerger err: %w\nstdin reader err: %w",
-			errMerging, errStdinRead)
+	errStream := <-errStreamChan
+	if errMerging != nil || errStream != nil {
+		return nil, fmt.Errorf("errors merging stream data:\nmerger err: %w\nstream reader err: %w",
+			errMerging, errStream)
 	}
 	return mergeResult, nil
 }
