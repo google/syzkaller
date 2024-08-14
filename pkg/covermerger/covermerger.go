@@ -67,7 +67,6 @@ func (fr FileRecord) HitCount() (int, error) {
 type MergeResult struct {
 	HitCounts  map[int]int
 	FileExists bool
-	LostFrames map[RepoBranchCommit]int64
 }
 
 type FileCoverageMerger interface {
