@@ -654,12 +654,42 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 		}
 		candidates = append(candidates, item)
 	}
-	log.Logf(0, "%-24v: %v (%v seeds)", "corpus", len(candidates), seeds)
 	// Let's favorize smaller programs, otherwise the poorly minimized ones may overshadow the rest.
 	sort.SliceStable(candidates, func(i, j int) bool {
 		return len(candidates[i].Prog.Calls) < len(candidates[j].Prog.Calls)
 	})
+	reminimized := reminimizeSubset(candidates)
+	log.Logf(0, "%-24v: %v (%v seeds), %d will be reminimized",
+		"corpus", len(candidates), seeds, reminimized)
 	return candidates
+}
+
+// reminimizeSubset clears the fuzzer.ProgMinimized flag of a small subset of seeds.
+// The ultimate objective is to gradually clean up the poorly minimized corpus programs.
+// reminimizeSubset assumes that candidates are sorted in the order of ascending len(Prog.Calls).
+func reminimizeSubset(candidates []fuzzer.Candidate) int {
+	if len(candidates) == 0 {
+		return 0
+	}
+	// Only consider the top 10% of the largest programs.
+	threshold := len(candidates[len(candidates)*9/10].Prog.Calls)
+	var resetIndices []int
+	for i, info := range candidates {
+		if info.Flags&fuzzer.ProgMinimized == 0 {
+			continue
+		}
+		if len(info.Prog.Calls) >= threshold {
+			resetIndices = append(resetIndices, i)
+		}
+	}
+	// Reset ProgMinimized for up to 1% of the seed programs.
+	reset := min(50, len(resetIndices), max(1, len(candidates)/100))
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for _, i := range rnd.Perm(len(resetIndices))[:reset] {
+		idx := resetIndices[i]
+		candidates[idx].Flags &= ^fuzzer.ProgMinimized
+	}
+	return reset
 }
 
 func loadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
