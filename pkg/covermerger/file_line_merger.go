@@ -3,6 +3,8 @@
 
 package covermerger
 
+import "github.com/google/syzkaller/pkg/log"
+
 func makeFileLineCoverMerger(
 	fvs fileVersions, base RepoBranchCommit) FileCoverageMerger {
 	baseFile := ""
@@ -51,13 +53,12 @@ func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, f *Frame, hitCount
 }
 
 func (a *FileLineCoverMerger) Result() *MergeResult {
-	lostFrames := a.lostFrames
-	if len(lostFrames) == 0 {
-		lostFrames = nil
+	for rbc, lostFrames := range a.lostFrames {
+		log.Logf(1, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
+			lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
 	}
 	return &MergeResult{
 		HitCounts:  a.hitCounts,
 		FileExists: true,
-		LostFrames: lostFrames,
 	}
 }

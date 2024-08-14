@@ -110,25 +110,13 @@ func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error
 }
 
 func printMergeResult(mergeResult map[string]*covermerger.MergeResult) {
-	totalLostFrames := map[covermerger.RepoBranchCommit]int64{}
 	coverage, totalInstrumentedLines, totalCoveredLines := mergeResultsToCoverage(mergeResult)
 	keys := maps.Keys(coverage)
 	sort.Strings(keys)
 	for _, fileName := range keys {
-		lineStat := mergeResult[fileName]
-		for rbc, lostFrames := range lineStat.LostFrames {
-			log.Logf(1, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
-				lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
-			totalLostFrames[rbc] += lostFrames
-		}
 		printCoverage(fileName, coverage[fileName].Instrumented, coverage[fileName].Covered)
 	}
 	printCoverage("total", totalInstrumentedLines, totalCoveredLines)
-	for rbc, lostFrames := range totalLostFrames {
-		log.Logf(0, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
-			lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
-		totalLostFrames[rbc] += lostFrames
-	}
 }
 
 func printCoverage(target string, instrumented, covered int64) {
