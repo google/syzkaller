@@ -34,7 +34,10 @@ func (mr *webGit) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoB
 var errFileNotFound = errors.New("file not found")
 
 func loadFile(filePath, repo, commit string) ([]byte, error) {
-	uri := fmt.Sprintf("%s/plain/%s?id=%s", repo, filePath, commit)
+	uri := fmt.Sprintf("%s/plain/%s", repo, filePath)
+	if commit != "latest" {
+		uri += "?id=" + commit
+	}
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse %v: %w", uri, err)
