@@ -8,10 +8,10 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"strconv"
 	"sync"
 
+	"github.com/google/syzkaller/pkg/log"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 )
@@ -76,7 +76,7 @@ type FileCoverageMerger interface {
 }
 
 func batchFileData(c *Config, targetFilePath string, records []FileRecord) (*MergeResult, error) {
-	log.Printf("processing %d records for %s", len(records), targetFilePath)
+	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
 	repoBranchCommitsMap := make(map[RepoBranchCommit]bool)
 	for _, record := range records {
 		repoBranchCommitsMap[record.RepoBranchCommit()] = true

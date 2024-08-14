@@ -7,13 +7,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"runtime"
 	"sort"
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/spanner/coveragedb"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
@@ -94,7 +94,7 @@ func main() {
 			TotalRows: *flagTotalRows,
 			FileData:  coverage,
 		}); err != nil {
-			log.Panicf("failed to saveCoverage: %v", err)
+			log.Fatalf("failed to saveCoverage: %v", err)
 		}
 	}
 }
@@ -102,7 +102,7 @@ func main() {
 func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error {
 	dash, err := dashapi.New(clientName, dashboard, "")
 	if err != nil {
-		log.Panicf("failed dashapi.New(): %v", err)
+		log.Fatalf("failed dashapi.New(): %v", err)
 	}
 	return dash.SaveCoverage(&dashapi.SaveCoverageReq{
 		Coverage: d,
@@ -117,7 +117,7 @@ func printMergeResult(mergeResult map[string]*covermerger.MergeResult) {
 	for _, fileName := range keys {
 		lineStat := mergeResult[fileName]
 		for rbc, lostFrames := range lineStat.LostFrames {
-			log.Printf("\t[warn] lost %d frames from rbc(%s, %s, %s)",
+			log.Logf(1, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
 				lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
 			totalLostFrames[rbc] += lostFrames
 		}
@@ -125,7 +125,7 @@ func printMergeResult(mergeResult map[string]*covermerger.MergeResult) {
 	}
 	printCoverage("total", totalInstrumentedLines, totalCoveredLines)
 	for rbc, lostFrames := range totalLostFrames {
-		log.Printf("\t[warn] lost %d frames from rbc(%s, %s, %s)",
+		log.Logf(0, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
 			lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
 		totalLostFrames[rbc] += lostFrames
 	}
