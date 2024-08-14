@@ -61,6 +61,7 @@ var (
 		"[optional] repo to be used by -for-file")
 	flagCommit    = flag.String("commit", "latest", "[optional] commit to be used by -for-file")
 	flagNamespace = flag.String("namespace", "upstream", "[optional] used by -for-file")
+	flagDebug     = flag.Bool("debug", false, "[optional] enables detailed output")
 )
 
 func parseDates() (civil.Date, civil.Date) {
@@ -98,6 +99,8 @@ func toolBuildNsHeatmap() {
 
 func toolFileCover() {
 	dateFrom, dateTo := parseDates()
+	config := cover.DefaultTextRenderConfig()
+	config.ShowLineSourceExplanation = *flagDebug
 	details, err := cover.RendFileCoverage(
 		context.Background(),
 		*flagNamespace,
@@ -106,7 +109,7 @@ func toolFileCover() {
 		*flagForFile,
 		dateFrom,
 		dateTo,
-		cover.RendTextLine,
+		config,
 	)
 	if err != nil {
 		tool.Fail(err)
