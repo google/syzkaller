@@ -40,8 +40,9 @@ type RepoBranchCommit struct {
 }
 
 type MergeResult struct {
-	HitCounts  map[int]int
-	FileExists bool
+	HitCounts   map[int]int
+	FileExists  bool
+	LineDetails map[int][]*FileRecord
 }
 
 type FileCoverageMerger interface {
@@ -61,7 +62,7 @@ func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*Me
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
-	merger := makeFileLineCoverMerger(fvs, c.Base)
+	merger := makeFileLineCoverMerger(fvs, c.Base, c.StoreDetails)
 	for _, record := range records {
 		merger.Add(record)
 	}
@@ -111,6 +112,7 @@ type Config struct {
 	skipRepoClone    bool
 	Base             RepoBranchCommit
 	FileVersProvider FileVersProvider
+	StoreDetails     bool
 }
 
 func isSchema(fields, schema []string) bool {
