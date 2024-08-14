@@ -226,11 +226,12 @@ private:
 class ShmemBuilder : ShmemAllocator, public flatbuffers::FlatBufferBuilder
 {
 public:
-	ShmemBuilder(OutputData* data, size_t size)
+	ShmemBuilder(OutputData* data, size_t size, bool store_size)
 	    : ShmemAllocator(data + 1, size - sizeof(*data)),
 	      FlatBufferBuilder(size - sizeof(*data), this)
 	{
-		data->size.store(size, std::memory_order_relaxed);
+		if (store_size)
+			data->size.store(size, std::memory_order_relaxed);
 		size_t consumed = data->consumed.load(std::memory_order_relaxed);
 		if (consumed >= size - sizeof(*data))
 			failmsg("ShmemBuilder: too large output offset", "size=%zd consumed=%zd", size, consumed);
@@ -490,6 +491,35 @@ static void parse_handshake(const handshake_req& req);
 #else
 #error "unknown OS"
 #endif
+
+class CoverAccessScope final
+{
+public:
+	CoverAccessScope(cover_t* cov)
+	    : cov_(cov)
+	{
+		// CoverAccessScope must not be used recursively b/c on Linux pkeys protection is global,
+		// so cover_protect for one cov overrides previous cover_unprotect for another cov.
+		if (used_)
+			fail("recursion in CoverAccessScope");
+		used_ = true;
+		cover_unprotect(cov_);
+	}
+	~CoverAccessScope()
+	{
+		cover_protect(cov_);
+		used_ = false;
+	}
+
+private:
+	cover_t* const cov_;
+	static bool used_;
+
+	CoverAccessScope(const CoverAccessScope&) = delete;
+	CoverAccessScope& operator=(const CoverAccessScope&) = delete;
+};
+
+bool CoverAccessScope::used_;
 
 #if !SYZ_HAVE_FEATURES
 static feature_t features[] = {};
@@ -818,7 +848,9 @@ void execute_one()
 		SnapshotStart();
 	else
 		realloc_output_data();
-	output_builder.emplace(output_data, output_size);
+	// Output buffer may be pkey-protected in snapshot mode, so don't write the output size
+	// (it's fixed and known anyway).
+	output_builder.emplace(output_data, output_size, !flag_snapshot);
 	uint64 start = current_time_ms();
 	uint8* input_pos = input_data;
 
@@ -1116,10 +1148,8 @@ uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
 	if (flag_dedup_cover) {
 		cover_data_t* end = cover_data + cover_size;
-		cover_unprotect(cov);
 		std::sort(cover_data, end);
 		cover_size = std::unique(cover_data, end) - cover_data;
-		cover_protect(cov);
 	}
 	fbb.StartVector(cover_size, sizeof(uint64));
 	for (uint32 i = 0; i < cover_size; i++)
@@ -1134,7 +1164,6 @@ uint32 write_comparisons(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 	kcov_comparison_t* cov_start = (kcov_comparison_t*)(cov->data + sizeof(uint64));
 	if ((char*)(cov_start + ncomps) > cov->data_end)
 		failmsg("too many comparisons", "ncomps=%llu", ncomps);
-	cover_unprotect(cov);
 	rpc::ComparisonRaw* start = (rpc::ComparisonRaw*)cov_start;
 	rpc::ComparisonRaw* end = start;
 	// We will convert kcov_comparison_t to ComparisonRaw inplace.
@@ -1156,7 +1185,6 @@ uint32 write_comparisons(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 			 return a.pc() == b.pc() && a.op1() == b.op1() && a.op2() == b.op2();
 		 }) -
 		 start;
-	cover_protect(cov);
 	return fbb.CreateVectorOfStructs(start, ncomps).o;
 }
 
@@ -1229,6 +1257,7 @@ void copyout_call_results(thread_t* th)
 
 void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bool all_signal)
 {
+	CoverAccessScope scope(cov);
 	auto& fbb = *output_builder;
 	const uint32 start_size = output_builder->GetSize();
 	(void)start_size;
@@ -1304,11 +1333,13 @@ void write_extra_output()
 flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id, uint32 num_calls, uint64 elapsed,
 					 uint64 freshness, uint32 status, const std::vector<uint8_t>* process_output)
 {
-	int output_size = output->size.load(std::memory_order_relaxed) ?: kMaxOutput;
+	// In snapshot mode the output size is fixed and output_size is always initialized, so use it.
+	int out_size = flag_snapshot ? output_size : output->size.load(std::memory_order_relaxed) ?
+												  : kMaxOutput;
 	uint32 completed = output->completed.load(std::memory_order_relaxed);
 	completed = std::min(completed, kMaxCalls);
-	debug("handle completion: completed=%u output_size=%u\n", completed, output_size);
-	ShmemBuilder fbb(output, output_size);
+	debug("handle completion: completed=%u output_size=%u\n", completed, out_size);
+	ShmemBuilder fbb(output, out_size, false);
 	auto empty_call = rpc::CreateCallInfoRawDirect(fbb, rpc::CallFlag::NONE, 998);
 	std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> calls(num_calls, empty_call);
 	std::vector<flatbuffers::Offset<rpc::CallInfoRaw>> extra;
