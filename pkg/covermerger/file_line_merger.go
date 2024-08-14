@@ -40,15 +40,15 @@ type FileLineCoverMerger struct {
 	lostFrames map[RepoBranchCommit]int64
 }
 
-func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, f *Frame, hitCount int) {
-	if a.matchers[rbc] == nil {
-		if hitCount > 0 {
-			a.lostFrames[rbc]++
+func (a *FileLineCoverMerger) Add(record *FileRecord) {
+	if a.matchers[record.RepoBranchCommit] == nil {
+		if record.HitCount > 0 {
+			a.lostFrames[record.RepoBranchCommit]++
 		}
 		return
 	}
-	if targetLine := a.matchers[rbc].SameLinePos(f.StartLine); targetLine != -1 {
-		a.hitCounts[f.StartLine] += hitCount
+	if targetLine := a.matchers[record.RepoBranchCommit].SameLinePos(record.StartLine); targetLine != -1 {
+		a.hitCounts[record.StartLine] += record.HitCount
 	}
 }
 
