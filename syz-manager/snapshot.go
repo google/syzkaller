@@ -48,7 +48,7 @@ func (mgr *Manager) snapshotLoop(ctx context.Context, inst *vm.Instance) error {
 	var envFlags flatrpc.ExecEnv
 	for first := true; ctx.Err() == nil; first = false {
 		queue.StatExecs.Add(1)
-		req := mgr.source.Next()
+		req := mgr.snapshotSource.Next(inst.Index())
 		if first {
 			envFlags = req.ExecOpts.EnvFlags
 			if err := mgr.snapshotSetup(inst, builder, envFlags); err != nil {

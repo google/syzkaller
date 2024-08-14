@@ -101,7 +101,7 @@ type Manager struct {
 
 	mu                    sync.Mutex
 	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
-	source                queue.Source
+	snapshotSource        *queue.Distributor
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
@@ -1367,7 +1367,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		source := queue.DefaultOpts(fuzzerObj, opts)
 		if mgr.cfg.Snapshot {
 			log.Logf(0, "restarting VMs for snapshot mode")
-			mgr.source = source
+			mgr.snapshotSource = queue.Distribute(source)
 			mgr.pool.SetDefault(mgr.snapshotInstance)
 			mgr.serv.Close()
 			mgr.serv = nil
