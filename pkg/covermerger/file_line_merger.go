@@ -48,7 +48,7 @@ func (a *FileLineCoverMerger) AddRecord(rbc RepoBranchCommit, f *Frame, hitCount
 		return
 	}
 	if targetLine := a.matchers[rbc].SameLinePos(f.StartLine); targetLine != -1 {
-		a.hitCounts[f.StartLine] += hitCount
+		a.hitCounts[targetLine] += hitCount
 	}
 }
 
