@@ -54,9 +54,9 @@ func (a *FileLineCoverMerger) Add(record *FileRecord) {
 		return
 	}
 	if targetLine := a.matchers[record.RepoBranchCommit].SameLinePos(record.StartLine); targetLine != -1 {
-		a.HitCounts[record.StartLine] += record.HitCount
+		a.HitCounts[targetLine] += record.HitCount
 		if a.LineDetails != nil {
-			a.LineDetails[record.StartLine] = append(a.LineDetails[record.StartLine], record)
+			a.LineDetails[targetLine] = append(a.LineDetails[record.StartLine], record)
 		}
 	}
 }
