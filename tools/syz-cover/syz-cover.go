@@ -35,6 +35,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -128,7 +129,11 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	var modules []*vminfo.KernelModule
+
+	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+	if err != nil {
+		tool.Fail(err)
+	}
 	if *flagModules != "" {
 		if modules, err = loadModules(*flagModules); err != nil {
 			tool.Fail(err)
