@@ -37,7 +37,7 @@ func MakeBQCSVReader() *bqCSVReader {
 	return &bqCSVReader{}
 }
 
-func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath string, from, to civil.Date) error {
+func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit string, from, to civil.Date) error {
 	if !isAllowedFilePath(filePath) {
 		return fmt.Errorf("wrong file path '%s'", filePath)
 	}
@@ -51,6 +51,10 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath string, fr
 	}
 	if err := client.EnableStorageReadClient(ctx); err != nil {
 		return fmt.Errorf("failed to client.EnableStorageReadClient: %w", err)
+	}
+	selectCommit := ""
+	if commit != "" {
+		selectCommit = fmt.Sprintf("AND\n\t\t\t\t\tkernel_commit = \"%s\"", commit)
 	}
 	q := client.Query(fmt.Sprintf(`
 		EXPORT DATA
@@ -68,11 +72,11 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath string, fr
 					TIMESTAMP_TRUNC(timestamp, DAY) >= "%s" AND
 					TIMESTAMP_TRUNC(timestamp, DAY) <= "%s" AND
 					version = 1 AND
-					starts_with(file_path, "%s")
+					starts_with(file_path, "%s") %s
 				GROUP BY file_path, kernel_commit, kernel_repo, kernel_branch, sl
 				ORDER BY file_path
 			);
-	`, gsURI, ns, from.String(), to.String(), filePath))
+	`, gsURI, ns, from.String(), to.String(), filePath, selectCommit))
 	job, err := q.Run(ctx)
 	if err != nil {
 		return fmt.Errorf("err during bigquery.Run: %w", err)

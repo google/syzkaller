@@ -67,6 +67,7 @@ func main() {
 	if err = dbReader.InitNsRecords(context.Background(),
 		*flagNamespace,
 		"",
+		"",
 		dateFrom,
 		dateTo,
 	); err != nil {
