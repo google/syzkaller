@@ -30,18 +30,18 @@ func DefaultTextRenderConfig() *CoverageRenderConfig {
 	}
 }
 
-func RendFileCoverage(c context.Context, ns, repo, commit, filePath string,
+func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, filePath string,
 	fromDate, toDate civil.Date, renderConfig *CoverageRenderConfig) (string, error) {
-	fileContent, err := covermerger.GetFileVersion(filePath, repo, commit)
+	fileContent, err := covermerger.GetFileVersion(filePath, repo, forCommit)
 	if err != nil {
 		return "", fmt.Errorf("failed to GetFileVersion for file %s, commit %s from repo %s: %w",
-			filePath, commit, repo, err)
+			filePath, forCommit, repo, err)
 	}
 	config := &covermerger.Config{
 		Jobs: 1,
 		Base: covermerger.RepoBranchCommit{
 			Repo:   repo,
-			Commit: commit,
+			Commit: forCommit,
 		},
 		FileVersProvider: covermerger.MakeWebGit(),
 		StoreDetails:     true,
@@ -51,6 +51,7 @@ func RendFileCoverage(c context.Context, ns, repo, commit, filePath string,
 	if err := dbReader.InitNsRecords(c,
 		ns,
 		filePath,
+		sourceCommit,
 		fromDate,
 		toDate,
 	); err != nil {

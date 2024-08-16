@@ -59,9 +59,10 @@ var (
 	flagForFile   = flag.String("for-file", "", "[optional]show file coverage")
 	flagRepo      = flag.String("repo", "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
 		"[optional] repo to be used by -for-file")
-	flagCommit    = flag.String("commit", "latest", "[optional] commit to be used by -for-file")
-	flagNamespace = flag.String("namespace", "upstream", "[optional] used by -for-file")
-	flagDebug     = flag.Bool("debug", false, "[optional] enables detailed output")
+	flagCommit       = flag.String("commit", "latest", "[optional] commit to be used by -for-file")
+	flagNamespace    = flag.String("namespace", "upstream", "[optional] used by -for-file")
+	flagDebug        = flag.Bool("debug", false, "[optional] enables detailed output")
+	flagSourceCommit = flag.String("source-commit", "", "[optional] filter input commit")
 )
 
 func parseDates() (civil.Date, civil.Date) {
@@ -106,6 +107,7 @@ func toolFileCover() {
 		*flagNamespace,
 		*flagRepo,
 		*flagCommit,
+		*flagSourceCommit,
 		*flagForFile,
 		dateFrom,
 		dateTo,
