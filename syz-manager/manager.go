@@ -664,6 +664,9 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 	return candidates
 }
 
+// Programs that do more than 15 system calls are to be treated with suspicion and re-minimized.
+const reminimizeThreshold = 15
+
 // reminimizeSubset clears the fuzzer.ProgMinimized flag of a small subset of seeds.
 // The ultimate objective is to gradually clean up the poorly minimized corpus programs.
 // reminimizeSubset assumes that candidates are sorted in the order of ascending len(Prog.Calls).
@@ -671,8 +674,8 @@ func reminimizeSubset(candidates []fuzzer.Candidate) int {
 	if len(candidates) == 0 {
 		return 0
 	}
-	// Only consider the top 10% of the largest programs.
-	threshold := len(candidates[len(candidates)*9/10].Prog.Calls)
+	// Focus on the top 10% of the largest programs in the corpus.
+	threshold := max(reminimizeThreshold, len(candidates[len(candidates)*9/10].Prog.Calls))
 	var resetIndices []int
 	for i, info := range candidates {
 		if info.Flags&fuzzer.ProgMinimized == 0 {

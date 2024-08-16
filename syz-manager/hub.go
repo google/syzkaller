@@ -245,7 +245,7 @@ func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smas
 		}
 		min, smash := matchDomains(hc.domain, inp.Domain)
 		var flags fuzzer.ProgFlags
-		if min {
+		if min && len(p.Calls) < reminimizeThreshold {
 			minimized++
 			flags |= fuzzer.ProgMinimized
 		}
