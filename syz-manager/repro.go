@@ -20,8 +20,6 @@ type reproManagerView interface {
 }
 
 type reproManager struct {
-	Done chan *ReproResult
-
 	statNumReproducing *stat.Val
 	statPending        *stat.Val
 
@@ -39,8 +37,6 @@ type reproManager struct {
 
 func newReproManager(mgr reproManagerView, reproVMs int, onlyOnce bool) *reproManager {
 	ret := &reproManager{
-		Done: make(chan *ReproResult, 10),
-
 		mgr:         mgr,
 		onlyOnce:    onlyOnce,
 		parallel:    make(chan struct{}, reproVMs),
@@ -217,7 +213,6 @@ func (m *reproManager) handle(crash *Crash) {
 	log.Logf(0, "repro finished '%v', repro=%v crepro=%v desc='%v' hub=%v from_dashboard=%v",
 		crash.FullTitle(), res.repro != nil, crepro, title, crash.fromHub, crash.fromDashboard,
 	)
-	m.Done <- res
 }
 
 func (m *reproManager) adjustPoolSizeLocked() {

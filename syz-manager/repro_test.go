@@ -56,15 +56,7 @@ func TestReproManager(t *testing.T) {
 	called.ret <- &ReproResult{crash: &Crash{fromHub: true}}
 	called2.ret <- &ReproResult{crash: &Crash{fromHub: true}}
 
-	// Wait until the number of reserved VMs goes to 0.
-	for i := 0; i < 100; i++ {
-		if mock.reserved.Load() == 0 {
-			assert.True(t, obj.CanReproMore())
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	t.Fatal("reserved VMs must have dropped to 0")
+	mock.onVMShutdown(t, obj)
 }
 
 func TestReproOrder(t *testing.T) {
@@ -105,14 +97,66 @@ func TestReproOrder(t *testing.T) {
 	assert.Equal(t, crashes[2], obj.popCrash())
 }
 
+func TestReproRWRace(t *testing.T) {
+	mock := &reproMgrMock{
+		run: make(chan runCallback),
+	}
+	obj := newReproManager(mock, 3, false)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		obj.Loop(ctx) // calls runRepro()
+	}()
+
+	assert.False(t, obj.CanReproMore())
+	obj.StartReproduction()
+	assert.True(t, obj.CanReproMore())
+
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
+
+	assert.True(t, mock.needRepro(nil))
+	called := <-mock.run
+	called.ret <- &ReproResult{}
+	// Pretend that processRepro() is finished and
+	// we've written "repro.prog" to the disk.
+	mock.reproProgExist.Store(true)
+	assert.False(t, mock.needRepro(nil))
+	assert.True(t, obj.CanReproMore())
+
+	called2 := <-mock.run
+	called2.ret <- &ReproResult{}
+	assert.False(t, mock.needRepro(nil))
+	assert.True(t, obj.CanReproMore())
+
+	// Reproducers may be still running.
+	mock.onVMShutdown(t, obj)
+}
+
 type reproMgrMock struct {
-	reserved atomic.Int64
-	run      chan runCallback
+	reserved       atomic.Int64
+	run            chan runCallback
+	reproProgExist atomic.Bool
 }
 
 type runCallback struct {
 	crash *Crash
 	ret   chan *ReproResult
+}
+
+// Wait until the number of reserved VMs goes to 0.
+func (m *reproMgrMock) onVMShutdown(t *testing.T, reproMgr *reproManager) {
+	for i := 0; i < 100; i++ {
+		if m.reserved.Load() == 0 {
+			assert.True(t, reproMgr.CanReproMore())
+			assert.True(t, reproMgr.Empty())
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("reserved VMs must have dropped to 0")
 }
 
 func (m *reproMgrMock) runRepro(crash *Crash) *ReproResult {
@@ -124,7 +168,7 @@ func (m *reproMgrMock) runRepro(crash *Crash) *ReproResult {
 }
 
 func (m *reproMgrMock) needRepro(crash *Crash) bool {
-	return true
+	return !m.reproProgExist.Load()
 }
 
 func (m *reproMgrMock) resizeReproPool(VMs int) {
