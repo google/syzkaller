@@ -35,6 +35,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -114,6 +115,21 @@ func toolFileCover() {
 	fmt.Println(details)
 }
 
+func initModules(cfg *mgrconfig.Config) []*vminfo.KernelModule {
+	modules, err := backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+	if err != nil {
+		tool.Fail(err)
+	}
+	if *flagModules != "" {
+		m, err := loadModules(*flagModules)
+		if err != nil {
+			tool.Fail(err)
+		}
+		modules = m
+	}
+	return modules
+}
+
 func main() {
 	defer tool.Init()()
 	if *flagForFile != "" {
@@ -128,12 +144,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	var modules []*vminfo.KernelModule
-	if *flagModules != "" {
-		if modules, err = loadModules(*flagModules); err != nil {
-			tool.Fail(err)
-		}
-	}
+	modules := initModules(cfg)
 	rg, err := cover.MakeReportGenerator(cfg, cfg.KernelSubsystem, modules, false)
 	if err != nil {
 		tool.Fail(err)
