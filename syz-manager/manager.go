@@ -401,21 +401,6 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 			if crash != nil {
 				mgr.saveCrash(crash)
 			}
-		case res := <-mgr.reproMgr.Done:
-			if res.err != nil {
-				reportReproError(res.err)
-			}
-			if res.repro == nil {
-				if res.crash.Title == "" {
-					log.Logf(1, "repro '%v' not from dashboard, so not reporting the failure",
-						res.crash.FullTitle())
-				} else {
-					log.Logf(1, "report repro failure of '%v'", res.crash.Title)
-					mgr.saveFailedRepro(res.crash.Report, res.stats)
-				}
-			} else {
-				mgr.saveRepro(res)
-			}
 		case crash := <-mgr.externalReproQueue:
 			if mgr.needRepro(crash) {
 				mgr.reproMgr.Enqueue(crash)
@@ -491,7 +476,27 @@ func (mgr *Manager) runRepro(crash *Crash) *ReproResult {
 			}
 		}
 	}
+
+	mgr.processRepro(ret)
+
 	return ret
+}
+
+func (mgr *Manager) processRepro(res *ReproResult) {
+	if res.err != nil {
+		reportReproError(res.err)
+	}
+	if res.repro == nil {
+		if res.crash.Title == "" {
+			log.Logf(1, "repro '%v' not from dashboard, so not reporting the failure",
+				res.crash.FullTitle())
+		} else {
+			log.Logf(1, "report repro failure of '%v'", res.crash.Title)
+			mgr.saveFailedRepro(res.crash.Report, res.stats)
+		}
+	} else {
+		mgr.saveRepro(res)
+	}
 }
 
 func (mgr *Manager) preloadCorpus() {
