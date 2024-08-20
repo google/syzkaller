@@ -67,7 +67,7 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit st
 			AS (
 				SELECT
 					kernel_repo, kernel_branch, kernel_commit, file_path, sl, SUM(hit_count) as hit_count
-				FROM syzkaller.syzbot_coverage.%s
+				FROM syzkaller.syzbot_coverage.`+"`%s`"+`
 				WHERE
 					TIMESTAMP_TRUNC(timestamp, DAY) >= "%s" AND
 					TIMESTAMP_TRUNC(timestamp, DAY) <= "%s" AND
