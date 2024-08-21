@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -24,8 +25,8 @@ import (
 func main() {
 	var (
 		flagVersion = flag.Uint64("version", 0, "database version")
-		flagOS      = flag.String("os", "", "target OS")
-		flagArch    = flag.String("arch", "", "target arch")
+		flagOS      = flag.String("os", runtime.GOOS, "target OS")
+		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
 	)
 	flag.Parse()
 	args := flag.Args()
@@ -88,7 +89,7 @@ offered:
     syz-db unpack corpus.db dir
   merging databases. No additional file will be created: The first file will be replaced by the merged result:
     syz-db merge dst-corpus.db add-corpus.db* add-prog*
-  running a deserialization benchmark:
+  running a deserialization benchmark and printing corpus stats:
     syz-db bench corpus.db
 `)
 	os.Exit(1)
@@ -205,8 +206,18 @@ func bench(target *prog.Target, file string) {
 		stats.Alloc>>20,
 		(stats.Mallocs-stats.Frees)>>20,
 		time.Since(start))
-	sink = corpus
-	_ = sink
+	n := len(corpus)
+	fmt.Printf("corpus size: %v\n", n)
+	if n == 0 {
+		return
+	}
+	sum := 0
+	lens := make([]int, n)
+	for i, p := range corpus {
+		sum += len(p.Calls)
+		lens[i] = len(p.Calls)
+	}
+	sort.Ints(lens)
+	fmt.Printf("program size: min=%v avg=%v max=%v 10%%=%v 50%%=%v 90%%=%v\n",
+		lens[0], sum/n, lens[n-1], lens[n/10], lens[n/2], lens[n*9/10])
 }
-
-var sink interface{}
