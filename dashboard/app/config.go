@@ -14,9 +14,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/google/syzkaller/pkg/validator"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -336,12 +336,6 @@ func (t ThrottleConfig) Empty() bool {
 	return t.Window == 0 || t.Limit == 0
 }
 
-var (
-	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
-	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
-	clientKeyRe     = regexp.MustCompile("^([a-zA-Z0-9]{16,128})|(" + regexp.QuoteMeta(auth.OauthMagic) + ".*)$")
-)
-
 type (
 	FilterResult    int
 	ReportingFilter func(bug *Bug) FilterResult
@@ -499,7 +493,7 @@ func checkObsoleting(o *ObsoletingConfig) {
 }
 
 func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]bool) {
-	if !namespaceNameRe.MatchString(ns) {
+	if !validator.NamespaceName(ns).Ok {
 		panic(fmt.Sprintf("bad namespace name: %q", ns))
 	}
 	if namespaces[ns] {
@@ -516,7 +510,7 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	for name, mgr := range cfg.Managers {
 		checkManager(ns, name, mgr)
 	}
-	if !clientKeyRe.MatchString(cfg.Key) {
+	if !validator.DashClientKey(cfg.Key).Ok {
 		panic(fmt.Sprintf("bad namespace %q key: %q", ns, cfg.Key))
 	}
 	if len(cfg.Reporting) == 0 {
@@ -750,10 +744,10 @@ func checkConfigAccessLevel(current *AccessLevel, parent AccessLevel, what strin
 
 func checkClients(clientNames map[string]bool, clients map[string]string) {
 	for name, key := range clients {
-		if !clientNameRe.MatchString(name) {
+		if !validator.DashClientName(name).Ok {
 			panic(fmt.Sprintf("bad client name: %v", name))
 		}
-		if !clientKeyRe.MatchString(key) {
+		if !validator.DashClientKey(key).Ok {
 			panic(fmt.Sprintf("bad client key: %v", key))
 		}
 		if clientNames[name] {
