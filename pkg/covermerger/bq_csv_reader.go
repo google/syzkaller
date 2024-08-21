@@ -8,19 +8,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"regexp"
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/google/syzkaller/pkg/validator"
 	"github.com/google/uuid"
 )
-
-var allowedFilePath = regexp.MustCompile(`^[./_a-zA-Z0-9]*$`)
-
-func isAllowedFilePath(s string) bool {
-	return allowedFilePath.MatchString(s)
-}
 
 type bqCSVReader struct {
 	closers  []io.Closer
@@ -38,8 +32,12 @@ func MakeBQCSVReader() *bqCSVReader {
 }
 
 func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit string, from, to civil.Date) error {
-	if !isAllowedFilePath(filePath) {
-		return fmt.Errorf("wrong file path '%s'", filePath)
+	if err := validator.AnyError("input validation failed",
+		validator.NamespaceName(ns),
+		validator.KernelFilePath(filePath),
+		validator.AnyOk(validator.EmptyStr(commit), validator.CommitHash(commit)),
+	); err != nil {
+		return err
 	}
 	sessionUUID := uuid.New().String()
 	gsBucket := "syzbot-temp"
