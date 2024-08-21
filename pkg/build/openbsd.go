@@ -6,7 +6,6 @@ package build
 import (
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -32,7 +31,7 @@ func (ctx openbsd) build(params Params) (ImageDetails, error) {
 		return ImageDetails{}, err
 	}
 	for _, tgt := range []string{"clean", "obj", "config", "all"} {
-		if err := ctx.make(compileDir, tgt); err != nil {
+		if err := ctx.make(compileDir, params.BuildJobs, tgt); err != nil {
 			return ImageDetails{}, err
 		}
 	}
@@ -63,8 +62,8 @@ func (ctx openbsd) clean(kernelDir, targetArch string) error {
 	return nil
 }
 
-func (ctx openbsd) make(kernelDir string, args ...string) error {
-	args = append([]string{"-j", strconv.Itoa(runtime.NumCPU())}, args...)
+func (ctx openbsd) make(kernelDir string, jobs int, args ...string) error {
+	args = append([]string{"-j", strconv.Itoa(jobs)}, args...)
 	_, err := osutil.RunCmd(10*time.Minute, kernelDir, "make", args...)
 	return err
 }

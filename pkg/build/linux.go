@@ -142,7 +142,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	return runMakeImpl(targetArch, "", "", "", kernelDir, []string{"distclean"})
+	return runMakeImpl(targetArch, "", "", "", kernelDir, runtime.NumCPU(), []string{"distclean"})
 }
 
 func (linux) writeFile(file string, data []byte) error {
@@ -152,9 +152,9 @@ func (linux) writeFile(file string, data []byte) error {
 	return osutil.SandboxChown(file)
 }
 
-func runMakeImpl(arch, compiler, linker, ccache, kernelDir string, extraArgs []string) error {
+func runMakeImpl(arch, compiler, linker, ccache, kernelDir string, jobs int, extraArgs []string) error {
 	target := targets.Get(targets.Linux, arch)
-	args := LinuxMakeArgs(target, compiler, linker, ccache, "")
+	args := LinuxMakeArgs(target, compiler, linker, ccache, "", jobs)
 	args = append(args, extraArgs...)
 	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
@@ -179,12 +179,13 @@ func runMakeImpl(arch, compiler, linker, ccache, kernelDir string, extraArgs []s
 }
 
 func runMake(params Params, extraArgs ...string) error {
-	return runMakeImpl(params.TargetArch, params.Compiler, params.Linker, params.Ccache, params.KernelDir, extraArgs)
+	return runMakeImpl(params.TargetArch, params.Compiler, params.Linker, params.Ccache,
+		params.KernelDir, params.BuildJobs, extraArgs)
 }
 
-func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string) []string {
+func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string, jobs int) []string {
 	args := []string{
-		"-j", fmt.Sprint(runtime.NumCPU()),
+		"-j", fmt.Sprint(jobs),
 		"ARCH=" + target.KernelArch,
 	}
 	if target.Triple != "" {
