@@ -79,7 +79,7 @@ func (*linux) prepareArch(arch *Arch) error {
 		return nil
 	}
 	kernelDir := arch.sourceDir
-	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir)
+	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir, runtime.NumCPU())
 	if arch.configFile != "" {
 		err := osutil.CopyFile(arch.configFile, filepath.Join(arch.buildDir, ".config"))
 		if err != nil {

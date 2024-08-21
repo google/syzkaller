@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ type Params struct {
 	SysctlFile   string
 	Config       []byte
 	Tracer       debugtracer.DebugTracer
+	BuildJobs    int // If 0, all CPUs will be used.
 	Build        json.RawMessage
 }
 
@@ -70,6 +72,9 @@ type ImageDetails struct {
 func Image(params Params) (details ImageDetails, err error) {
 	if params.Tracer == nil {
 		params.Tracer = &debugtracer.NullTracer{}
+	}
+	if params.BuildJobs == 0 {
+		params.BuildJobs = runtime.NumCPU()
 	}
 	var builder builder
 	builder, err = getBuilder(params.TargetOS, params.TargetArch, params.VMType)
