@@ -356,6 +356,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		Config:       mgr.configData,
 		Build:        mgr.mgrcfg.Build,
+		BuildJobs:    mgr.cfg.BuildJobs,
 	}
 	details, err := build.Image(params)
 	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)

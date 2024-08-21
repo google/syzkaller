@@ -493,6 +493,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		BinDir:          jp.cfg.BisectBinDir,
 		Linker:          mgr.mgrcfg.Linker,
 		Ccache:          jp.cfg.Ccache,
+		BuildJobs:       jp.cfg.BuildJobs,
 		Kernel: bisect.KernelConfig{
 			Repo:           req.KernelRepo,
 			Branch:         req.KernelBranch,

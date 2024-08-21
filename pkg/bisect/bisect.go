@@ -37,6 +37,7 @@ type Config struct {
 	Manager         *mgrconfig.Config
 	BuildSemaphore  *instance.Semaphore
 	TestSemaphore   *instance.Semaphore
+	BuildJobs       int
 	// CrossTree specifies whether a cross tree bisection is to take place, i.e.
 	// Kernel.Commit is not reachable from Kernel.Branch.
 	// In this case, bisection starts from their merge base.
@@ -625,6 +626,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		CmdlineFile:  kern.Cmdline,
 		SysctlFile:   kern.Sysctl,
 		KernelConfig: bisectEnv.KernelConfig,
+		BuildJobs:    env.cfg.BuildJobs,
 	})
 	if imageDetails.CompilerID != "" {
 		env.log("compiler: %v", imageDetails.CompilerID)
