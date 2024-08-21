@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/flatbuffers/go"
+	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
@@ -40,7 +40,7 @@ func (mgr *Manager) snapshotLoop(ctx context.Context, inst *vm.Instance) error {
 	// All network connections (including ssh) will break once we start restoring snapshots.
 	// So we start a background process and log to /dev/kmsg.
 	cmd := fmt.Sprintf("nohup %v exec snapshot 1>/dev/null 2>/dev/kmsg </dev/null &", executor)
-	if _, _, err := inst.Run(time.Hour, mgr.reporter, cmd); err != nil {
+	if _, _, err := inst.Run(time.Hour, mgr.impl.reporter, cmd); err != nil {
 		return err
 	}
 
@@ -67,9 +67,9 @@ func (mgr *Manager) snapshotLoop(ctx context.Context, inst *vm.Instance) error {
 			return err
 		}
 
-		if mgr.reporter.ContainsCrash(output) {
+		if mgr.impl.reporter.ContainsCrash(output) {
 			res.Status = queue.Crashed
-			rep := mgr.reporter.Parse(output)
+			rep := mgr.impl.reporter.Parse(output)
 			buf := new(bytes.Buffer)
 			fmt.Fprintf(buf, "program:\n%s\n", req.Prog.Serialize())
 			buf.Write(rep.Output)

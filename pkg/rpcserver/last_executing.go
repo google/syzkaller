@@ -57,6 +57,9 @@ func (last *LastExecuting) Note(id, proc int, prog []byte, now time.Duration) {
 func (last *LastExecuting) Collect() []ExecRecord {
 	procs := last.procs
 	last.procs = nil // The type must not be used after this.
+	if len(procs) == 0 {
+		return procs
+	}
 	sort.Slice(procs, func(i, j int) bool {
 		return procs[i].Time < procs[j].Time
 	})

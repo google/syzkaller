@@ -14,6 +14,11 @@ func TestLastExecutingEmpty(t *testing.T) {
 	assert.Empty(t, last.Collect())
 }
 
+func TestCollectEmpty(t *testing.T) {
+	last := MakeLastExecuting(0, 0)
+	assert.Empty(t, last.Collect())
+}
+
 func TestLastExecuting(t *testing.T) {
 	last := MakeLastExecuting(10, 3)
 	last.Note(1, 0, []byte("prog1"), 1)

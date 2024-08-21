@@ -4,11 +4,16 @@
 package backend
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
+)
+
+var (
+	ErrUnknownPCBase = errors.New("unknown PCBase")
 )
 
 type Impl struct {
@@ -91,5 +96,5 @@ func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
 	if cfg.Target.OS == targets.Linux && cfg.Type != targets.GVisor && cfg.Type != targets.Starnix {
 		return getLinuxPCBase(cfg)
 	}
-	return 0, nil
+	return 0, ErrUnknownPCBase
 }

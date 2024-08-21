@@ -628,8 +628,8 @@ func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	// Note: mu is not locked here.
 	var repros map[string]bool
-	if !mgr.cfg.VMLess && mgr.reproMgr != nil {
-		repros = mgr.reproMgr.Reproducing()
+	if !mgr.cfg.VMLess && mgr.impl.reproMgr != nil {
+		repros = mgr.impl.reproMgr.Reproducing()
 	}
 
 	crashdir := filepath.Join(workdir, "crashes")

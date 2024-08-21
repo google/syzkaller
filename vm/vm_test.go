@@ -13,65 +13,8 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
+	"github.com/google/syzkaller/vm/vmtest"
 )
-
-type testPool struct {
-}
-
-func (pool *testPool) Count() int {
-	return 1
-}
-
-func (pool *testPool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	return &testInstance{
-		outc: make(chan []byte, 10),
-		errc: make(chan error, 1),
-	}, nil
-}
-
-func (pool *testPool) Close() error {
-	return nil
-}
-
-type testInstance struct {
-	outc           chan []byte
-	errc           chan error
-	diagnoseBug    bool
-	diagnoseNoWait bool
-}
-
-func (inst *testInstance) Copy(hostSrc string) (string, error) {
-	return "", nil
-}
-
-func (inst *testInstance) Forward(port int) (string, error) {
-	return "", nil
-}
-
-func (inst *testInstance) Run(timeout time.Duration, stop <-chan bool, command string) (
-	outc <-chan []byte, errc <-chan error, err error) {
-	return inst.outc, inst.errc, nil
-}
-
-func (inst *testInstance) Diagnose(rep *report.Report) ([]byte, bool) {
-	var diag []byte
-	if inst.diagnoseBug {
-		diag = []byte("BUG: DIAGNOSE\n")
-	} else {
-		diag = []byte("DIAGNOSE\n")
-	}
-
-	if inst.diagnoseNoWait {
-		return diag, false
-	}
-
-	inst.outc <- diag
-	return nil, true
-}
-
-func (inst *testInstance) Close() error {
-	return nil
-}
 
 func init() {
 	beforeContextDefault = maxErrorLength + 100
@@ -79,7 +22,7 @@ func init() {
 	vmimpl.WaitForOutputTimeout = 3 * time.Second
 
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
-		return &testPool{}, nil
+		return &vmtest.TestPool{}, nil
 	}
 	vmimpl.Register("test", vmimpl.Type{
 		Ctor:        ctor,
@@ -371,9 +314,9 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatal(err)
 	}
 	defer inst.Close()
-	testInst := inst.impl.(*testInstance)
-	testInst.diagnoseBug = test.DiagnoseBug
-	testInst.diagnoseNoWait = test.DiagnoseNoWait
+	testInst := inst.impl.(*vmtest.TestInstance)
+	testInst.DiagnoseBug = test.DiagnoseBug
+	testInst.DiagnoseNoWait = test.DiagnoseNoWait
 	done := make(chan bool)
 	finishCalled := 0
 	finishCb := EarlyFinishCb(func() { finishCalled++ })
@@ -388,7 +331,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		}
 	}
 	go func() {
-		test.BodyExecuting(testInst.outc, testInst.errc, inject)
+		test.BodyExecuting(testInst.Outc, testInst.Errc, inject)
 		done <- true
 	}()
 	_, rep, err := inst.Run(time.Second, reporter, "", opts...)

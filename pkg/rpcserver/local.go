@@ -51,6 +51,9 @@ func RunLocal(cfg *LocalConfig) error {
 	if err != nil {
 		return err
 	}
+	if err := serv.Start(); err != nil {
+		return err
+	}
 	defer serv.Close()
 	ctx.serv = serv
 	// setupDone synchronizes assignment to ctx.serv and read of ctx.serv in MachineChecked

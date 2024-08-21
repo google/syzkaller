@@ -82,7 +82,23 @@ type Server struct {
 	*runnerStats
 }
 
+// validateCfg checks required fields to be set
+// to avoid unexpected panics during Server creation.
+func validateCfg(cfg *mgrconfig.Config) error {
+	if cfg.Target == nil {
+		return fmt.Errorf("empty Target")
+	}
+	if cfg.Timeouts.Slowdown <= 0 {
+		return fmt.Errorf("bad slowdown")
+	}
+	return nil
+}
+
 func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
+	if err := validateCfg(cfg); err != nil {
+		return nil, err
+	}
+
 	var pcBase uint64
 	if cfg.KernelObj != "" {
 		var err error
@@ -126,11 +142,14 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 }
 
 func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
+	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
+	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)
+	if sysTarget == nil {
+		return nil, fmt.Errorf("unknown target OS and VMArch")
+	}
 	cfg.Procs = min(cfg.Procs, prog.MaxPids)
 	checker := vminfo.New(ctx, &cfg.Config)
 	baseSource := queue.DynamicSource(checker)
-	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
-	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)
 	serv := &Server{
 		cfg:        cfg,
 		mgr:        mgr,
@@ -156,17 +175,25 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 			statNoExecDuration:     queue.StatNoExecDuration,
 		},
 	}
-	s, err := flatrpc.ListenAndServe(cfg.RPC, serv.handleConn)
+	return serv, nil
+}
+
+func (serv *Server) Start() error {
+	s, err := flatrpc.ListenAndServe(serv.cfg.RPC, serv.handleConn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	serv.serv = s
 	serv.Port = s.Addr.Port
-	return serv, nil
+	return nil
 }
 
 func (serv *Server) Close() error {
 	return serv.serv.Close()
+}
+
+func (serv *Server) GetPort() int {
+	return serv.serv.Addr.Port
 }
 
 func (serv *Server) handleConn(conn *flatrpc.Conn) {
