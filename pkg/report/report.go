@@ -69,10 +69,17 @@ type Report struct {
 	GuiltyFile string
 	// Arbitrary information about the test VM, may be attached to the report by users of the package.
 	MachineInfo []byte
+	// If the crash happened in the context of the syz-executor process, Executor will hold more info.
+	Executor *ExecutorInfo
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized.
 	symbolized bool
+}
+
+type ExecutorInfo struct {
+	ProcID int // ID of the syz-executor proc mentioned in the crash report.
+	ExecID int // The program the syz-executor was executing.
 }
 
 func (r Report) String() string {
