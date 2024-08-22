@@ -42,6 +42,34 @@ func TestBisectSliceFull(t *testing.T) {
 	assert.Equal(t, ret, array)
 }
 
+func TestBisectSliceWithFixed(t *testing.T) {
+	t.Parallel()
+	array := make([]int, 100)
+	for i := 0; i < 100; i++ {
+		array[i] = i
+	}
+	ret, err := SliceWithFixed(Config[int]{
+		Pred: func(arr []int) (bool, error) {
+			// Let's ensure that there are always fixed elements.
+			values := map[int]bool{}
+			for _, v := range arr {
+				values[v] = true
+			}
+			if !values[0] || !values[20] || !values[40] {
+				t.Fatal("predicate step without fixed elements")
+			}
+			// And also require the elements 25 and 50.
+			return values[25] && values[50], nil
+		},
+		Logf: t.Logf,
+	}, array, func(elem int) bool {
+		// Let's keep these 3 elements.
+		return elem == 0 || elem == 20 || elem == 40
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []int{0, 20, 25, 40, 50}, ret)
+}
+
 func TestBisectRandomSlice(t *testing.T) {
 	t.Parallel()
 	r := rand.New(testutil.RandSource(t))
