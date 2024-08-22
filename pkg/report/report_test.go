@@ -43,6 +43,7 @@ type ParseTest struct {
 	Suppressed bool
 	HasReport  bool
 	Report     []byte
+	Executor   string
 }
 
 func testParseFile(t *testing.T, reporter *Reporter, fn string) {
@@ -105,6 +106,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		endPrefix        = "END: "
 		corruptedPrefix  = "CORRUPTED: "
 		suppressedPrefix = "SUPPRESSED: "
+		executorPrefix   = "EXECUTOR: "
 	)
 	switch {
 	case strings.HasPrefix(ln, "#"):
@@ -138,6 +140,8 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		default:
 			t.Fatalf("unknown SUPPRESSED value %q", v)
 		}
+	case strings.HasPrefix(ln, executorPrefix):
+		test.Executor = ln[len(executorPrefix):]
 	default:
 		t.Fatalf("unknown header field %q", ln)
 	}
@@ -159,7 +163,8 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	if rep != nil && rep.Type == unspecifiedType {
 		t.Fatalf("unspecifiedType leaked outside")
 	}
-	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, crash.UnknownType, ""
+	title, corrupted, corruptedReason := "", false, ""
+	suppressed, typ, frame, executor := false, crash.UnknownType, "", ""
 	var altTitles []string
 	if rep != nil {
 		title = rep.Title
@@ -169,11 +174,15 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 		suppressed = rep.Suppressed
 		typ = rep.Type
 		frame = rep.Frame
+		if rep.Executor != nil {
+			executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
+		}
 	}
 	sort.Strings(altTitles)
 	sort.Strings(test.AltTitles)
 	if title != test.Title || !reflect.DeepEqual(altTitles, test.AltTitles) || corrupted != test.Corrupted ||
-		suppressed != test.Suppressed || typ != test.Type || test.Frame != "" && frame != test.Frame {
+		suppressed != test.Suppressed || typ != test.Type || test.Frame != "" && frame != test.Frame ||
+		test.Executor != executor {
 		if *flagUpdate && test.StartLine+test.EndLine == "" {
 			updateReportTest(t, test, title, altTitles, corrupted, suppressed, typ, frame)
 		}
@@ -184,10 +193,10 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 		for _, t := range test.AltTitles {
 			wantAltTitles += "ALT: " + t + "\n"
 		}
-		t.Fatalf("want:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
-			"got:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v (%v)\nSUPPRESSED: %v",
-			test.Title, wantAltTitles, test.Type, test.Frame, test.Corrupted, test.Suppressed,
-			title, gotAltTitles, typ, frame, corrupted, corruptedReason, suppressed)
+		t.Fatalf("want:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v\nSUPPRESSED: %v\nEXECUTOR: %v\n"+
+			"got:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\nEXECUTOR: %v\n",
+			test.Title, wantAltTitles, test.Type, test.Frame, test.Corrupted, test.Suppressed, test.Executor,
+			title, gotAltTitles, typ, frame, corrupted, corruptedReason, suppressed, executor)
 	}
 	if title != "" && len(rep.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")

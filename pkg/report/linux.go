@@ -189,6 +189,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 		rep.reportPrefixLen = len(rep.Report)
 		rep.Report = append(rep.Report, report...)
 		setReportType(rep, oops, format)
+		ctx.setExecutorInfo(rep)
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
 		}
@@ -888,6 +889,26 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 		return true, "no stack trace in report"
 	}
 	return false, ""
+}
+
+var syzLinuxCommRe = regexp.MustCompile(` Comm: syz\.(\d+)\.(\d+) `)
+
+func (ctx *linux) setExecutorInfo(rep *Report) {
+	match := syzLinuxCommRe.FindSubmatch(rep.Report)
+	if match == nil {
+		return
+	}
+	info := &ExecutorInfo{}
+	var err error
+	info.ProcID, err = strconv.Atoi(string(match[1]))
+	if err != nil {
+		return
+	}
+	info.ExecID, err = strconv.Atoi(string(match[2]))
+	if err != nil {
+		return
+	}
+	rep.Executor = info
 }
 
 func linuxStallFrameExtractor(frames []string) string {

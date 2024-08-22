@@ -2,6 +2,7 @@ TITLE: INFO: rcu detected stall in corrupted
 ALT: stall in corrupted
 TYPE: HANG
 CORRUPTED: Y
+EXECUTOR: proc=2, id=4572
 
 [  576.777151][    C0] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
 [  576.778800][    C0] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P30749/1:b..l P22934/1:b..l
