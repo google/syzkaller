@@ -126,8 +126,8 @@ type Config struct {
 	// The list is concatenated with the similar parameter from ManagerConfig.
 	BisectBackports []vcs.BackportCommit `json:"bisect_backports"`
 	Ccache          string               `json:"ccache"`
-	// BuildJobs defines the maximum number of parallel kernel build threads.
-	BuildJobs int              `json:"build_jobs"`
+	// BuildCPUs defines the maximum number of parallel kernel build threads.
+	BuildCPUs int              `json:"build_cpus"`
 	Managers  []*ManagerConfig `json:"managers"`
 	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
 	JobPollPeriod int `json:"job_poll_period"`

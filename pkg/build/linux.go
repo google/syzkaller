@@ -180,7 +180,7 @@ func runMakeImpl(arch, compiler, linker, ccache, kernelDir string, jobs int, ext
 
 func runMake(params Params, extraArgs ...string) error {
 	return runMakeImpl(params.TargetArch, params.Compiler, params.Linker, params.Ccache,
-		params.KernelDir, params.BuildJobs, extraArgs)
+		params.KernelDir, params.BuildCPUs, extraArgs)
 }
 
 func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string, jobs int) []string {

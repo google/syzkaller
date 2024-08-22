@@ -49,7 +49,7 @@ type BuildKernelConfig struct {
 	CmdlineFile  string
 	SysctlFile   string
 	KernelConfig []byte
-	BuildJobs    int
+	BuildCPUs    int
 }
 
 func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *Semaphore) (Env, error) {
@@ -154,7 +154,7 @@ func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
 		CmdlineFile:  buildCfg.CmdlineFile,
 		SysctlFile:   buildCfg.SysctlFile,
 		Config:       buildCfg.KernelConfig,
-		BuildJobs:    buildCfg.BuildJobs,
+		BuildCPUs:    buildCfg.BuildCPUs,
 	}
 	details, err := build.Image(params)
 	if err != nil {

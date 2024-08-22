@@ -31,7 +31,7 @@ func (ctx openbsd) build(params Params) (ImageDetails, error) {
 		return ImageDetails{}, err
 	}
 	for _, tgt := range []string{"clean", "obj", "config", "all"} {
-		if err := ctx.make(compileDir, params.BuildJobs, tgt); err != nil {
+		if err := ctx.make(compileDir, params.BuildCPUs, tgt); err != nil {
 			return ImageDetails{}, err
 		}
 	}
