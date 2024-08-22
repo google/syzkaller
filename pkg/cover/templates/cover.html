@@ -46,7 +46,7 @@
     }
     .cover {
       float: right;
-      width: 250px;
+      width: 150px;
       padding-right: 4px;
     }
     .cover-right {
@@ -105,7 +105,10 @@
     .total-right {
       float: right;
     }
-
+    .flex-column {
+      display: flex;
+      flex-direction: column;
+    }
   </style>
 </head>
 <body>
@@ -205,7 +208,7 @@
 
 {{define "dir"}}
   {{range $dir := .Dirs}}
-    <li>
+    <li class="flex-column">
       <span id="path/{{$dir.Path}}" class="caret hover">
         {{$dir.Name}}
         <span class="cover hover">
@@ -219,25 +222,27 @@
     </li>
   {{end}}
   {{range $file := .Files}}
-    <li><span class="hover">
-      {{if $file.Covered}}
-        <a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
-          {{$file.Name}}
-        </a>
-        <span class="cover hover">
-          <a href="#{{$file.Path}}" id="path/{{$file.Path}}"
-             onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
-            {{$file.Percent}}%
+    <li class="flex-column">
+      <span class="hover">
+        {{if $file.Covered}}
+          <a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
+            {{$file.Name}}
           </a>
-          <span class="cover-right">of {{$file.Total}}</span>
-        </span>
-      {{else}}
-        {{$file.Name}}
           <span class="cover hover">
-            ---
+            <a href="#{{$file.Path}}" id="path/{{$file.Path}}"
+               onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
+              {{$file.Percent}}%
+            </a>
             <span class="cover-right">of {{$file.Total}}</span>
           </span>
-      {{end}}
-    </span></li>
+        {{else}}
+          {{$file.Name}}
+            <span class="cover hover">
+              ---
+              <span class="cover-right">of {{$file.Total}}</span>
+            </span>
+        {{end}}
+      </span>
+    </li>
   {{end}}
 {{end}}
