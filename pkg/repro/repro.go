@@ -45,18 +45,19 @@ type Stats struct {
 }
 
 type reproContext struct {
-	exec         execInterface
-	logf         func(string, ...interface{})
-	target       *targets.Target
-	crashTitle   string
-	crashType    crash.Type
-	crashStart   int
-	entries      []*prog.LogEntry
-	testTimeouts []time.Duration
-	startOpts    csource.Options
-	stats        *Stats
-	report       *report.Report
-	timeouts     targets.Timeouts
+	exec          execInterface
+	logf          func(string, ...interface{})
+	target        *targets.Target
+	crashTitle    string
+	crashType     crash.Type
+	crashStart    int
+	crashExecutor *report.ExecutorInfo
+	entries       []*prog.LogEntry
+	testTimeouts  []time.Duration
+	startOpts     csource.Options
+	stats         *Stats
+	report        *report.Report
+	timeouts      targets.Timeouts
 }
 
 // execInterface describes the interfaces needed by pkg/repro.
@@ -91,10 +92,12 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature
 	}
 	crashStart := len(crashLog)
 	crashTitle, crashType := "", crash.UnknownType
+	var crashExecutor *report.ExecutorInfo
 	if rep := reporter.Parse(crashLog); rep != nil {
 		crashStart = rep.StartPos
 		crashTitle = rep.Title
 		crashType = rep.Type
+		crashExecutor = rep.Executor
 	}
 	testTimeouts := []time.Duration{
 		3 * cfg.Timeouts.Program, // to catch simpler crashes (i.e. no races and no hangs)
@@ -116,11 +119,13 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature
 		testTimeouts = testTimeouts[2:]
 	}
 	ctx := &reproContext{
-		exec:         exec,
-		target:       cfg.SysTarget,
-		crashTitle:   crashTitle,
-		crashType:    crashType,
-		crashStart:   crashStart,
+		exec:          exec,
+		target:        cfg.SysTarget,
+		crashTitle:    crashTitle,
+		crashType:     crashType,
+		crashStart:    crashStart,
+		crashExecutor: crashExecutor,
+
 		entries:      entries,
 		testTimeouts: testTimeouts,
 		startOpts:    createStartOptions(cfg, features, crashType),
@@ -252,24 +257,26 @@ func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) 
 		ctx.stats.ExtractProgTime = time.Since(start)
 	}()
 
-	// Extract last program on every proc.
-	procs := make(map[int]int)
-	for i, ent := range entries {
-		procs[ent.Proc] = i
+	var toTest []*prog.LogEntry
+	if ctx.crashExecutor != nil {
+		for _, entry := range entries {
+			if entry.ID == ctx.crashExecutor.ExecID {
+				toTest = append(toTest, entry)
+				ctx.reproLogf(3, "first checking the prog from the crash report")
+				break
+			}
+		}
 	}
-	var indices []int
-	for _, idx := range procs {
-		indices = append(indices, idx)
+
+	if len(toTest) == 0 {
+		ctx.reproLogf(3, "testing a last program of every proc")
+		toTest = lastEntries(entries)
 	}
-	sort.Ints(indices)
-	var lastEntries []*prog.LogEntry
-	for i := len(indices) - 1; i >= 0; i-- {
-		lastEntries = append(lastEntries, entries[indices[i]])
-	}
+
 	for _, timeout := range ctx.testTimeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
 		// Programs are executed in reverse order, usually the last program is the guilty one.
-		res, err := ctx.extractProgSingle(lastEntries, timeout)
+		res, err := ctx.extractProgSingle(toTest, timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -296,6 +303,24 @@ func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) 
 
 	ctx.reproLogf(0, "failed to extract reproducer")
 	return nil, nil
+}
+
+// Extract last program on every proc.
+func lastEntries(entries []*prog.LogEntry) []*prog.LogEntry {
+	procs := make(map[int]int)
+	for i, ent := range entries {
+		procs[ent.Proc] = i
+	}
+	var indices []int
+	for _, idx := range procs {
+		indices = append(indices, idx)
+	}
+	sort.Ints(indices)
+	var lastEntries []*prog.LogEntry
+	for i := len(indices) - 1; i >= 0; i-- {
+		lastEntries = append(lastEntries, entries[indices[i]])
+	}
+	return lastEntries
 }
 
 func (ctx *reproContext) extractProgSingle(entries []*prog.LogEntry, duration time.Duration) (*Result, error) {
@@ -651,7 +676,7 @@ func (ctx *reproContext) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.L
 		}
 		return pred(progs)
 	}
-	ret, err := minimize.Slice(minimize.Config[*prog.LogEntry]{
+	ret, err := minimize.SliceWithFixed(minimize.Config[*prog.LogEntry]{
 		Pred: minimizePred,
 		// For flaky crashes we usually end up with too many chunks.
 		// Continuing bisection would just take a lot of time and likely produce no result.
@@ -659,7 +684,13 @@ func (ctx *reproContext) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.L
 		Logf: func(msg string, args ...interface{}) {
 			ctx.reproLogf(3, "bisect: "+msg, args...)
 		},
-	}, progs)
+	}, progs, func(elem *prog.LogEntry) bool {
+		if ctx.crashExecutor == nil {
+			return false
+		}
+		// If the program was mentioned in the crash report, always keep it during bisection.
+		return elem.ID == ctx.crashExecutor.ExecID
+	})
 	if err == minimize.ErrTooManyChunks {
 		ctx.reproLogf(3, "bisect: too many guilty chunks, aborting")
 		return nil, nil
