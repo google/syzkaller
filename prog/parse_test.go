@@ -5,6 +5,8 @@ package prog
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseSingle(t *testing.T) {
@@ -48,6 +50,13 @@ func TestParseMulti(t *testing.T) {
 	}
 	entries := target.ParseLog([]byte(execLogNew))
 	validateProgs(t, entries, len(execLogNew))
+	if entries[0].ID != -1 ||
+		entries[1].ID != 70 ||
+		entries[2].ID != 75 ||
+		entries[3].ID != 80 ||
+		entries[4].ID != 85 {
+		t.Fatalf("bad IDs")
+	}
 }
 
 func TestParseMultiLegacy(t *testing.T) {
@@ -58,6 +67,9 @@ func TestParseMultiLegacy(t *testing.T) {
 	}
 	entries := target.ParseLog([]byte(execLogOld))
 	validateProgs(t, entries, len(execLogOld))
+	for _, ent := range entries {
+		assert.Equal(t, -1, ent.ID)
+	}
 }
 
 func validateProgs(t *testing.T, entries []*LogEntry, logLen int) {
