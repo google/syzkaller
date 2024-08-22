@@ -45,11 +45,11 @@ options 	DIAGNOSTIC
 		return ImageDetails{}, err
 	}
 	objPrefix := filepath.Join(params.KernelDir, "obj")
-	output, err := ctx.make(params.KernelDir, objPrefix, params.BuildJobs, "kernel-toolchain")
+	output, err := ctx.make(params.KernelDir, objPrefix, params.BuildCPUs, "kernel-toolchain")
 	if err != nil {
 		return ImageDetails{}, err
 	}
-	if _, err := ctx.make(params.KernelDir, objPrefix, params.BuildJobs, "buildkernel",
+	if _, err := ctx.make(params.KernelDir, objPrefix, params.BuildCPUs, "buildkernel",
 		"WITH_EXTRA_TCP_STACKS=", fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
 		// The kernel-toolchain make target has to be built separately
 		// because FreeBSD's build doesn't correctly order the two
