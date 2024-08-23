@@ -209,7 +209,10 @@ public:
 	void Wait(int ms)
 	{
 		timespec timeout = {.tv_sec = ms / 1000, .tv_nsec = (ms % 1000) * 1000 * 1000};
-		if (pselect(max_fd_ + 1, &rdset_, nullptr, nullptr, &timeout, nullptr) < 0) {
+		for (;;) {
+			if (pselect(max_fd_ + 1, &rdset_, nullptr, nullptr, &timeout, nullptr) >= 0)
+				break;
+
 			if (errno != EINTR && errno != EAGAIN)
 				fail("pselect failed");
 		}
