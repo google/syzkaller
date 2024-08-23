@@ -100,8 +100,8 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature
 		crashExecutor = rep.Executor
 	}
 	testTimeouts := []time.Duration{
-		3 * cfg.Timeouts.Program, // to catch simpler crashes (i.e. no races and no hangs)
-		20 * cfg.Timeouts.Program,
+		max(30*time.Second, 3*cfg.Timeouts.Program), // to catch simpler crashes (i.e. no races and no hangs)
+		max(100*time.Second, 20*cfg.Timeouts.Program),
 		cfg.Timeouts.NoOutputRunningTime, // to catch "no output", races and hangs
 	}
 	switch {
