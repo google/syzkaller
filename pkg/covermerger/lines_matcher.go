@@ -11,6 +11,7 @@ import (
 
 func makeLineToLineMatcher(textFrom, textTo string) *LineToLineMatcher {
 	diffMatcher := dmp.New()
+	diffMatcher.DiffTimeout = 0
 	diffs := diffMatcher.DiffMain(textFrom, textTo, false)
 	curToLinePos := 0
 	textDestPosToLine := map[int]int{}
