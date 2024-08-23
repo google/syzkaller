@@ -328,14 +328,14 @@ func (ctx *reproContext) extractProgSingle(entries []*prog.LogEntry, duration ti
 
 	opts := ctx.startOpts
 	for _, ent := range entries {
-		crashed, err := ctx.testProg(ent.P, duration, opts)
+		ret, err := ctx.testProg(ent.P, duration, opts)
 		if err != nil {
 			return nil, err
 		}
-		if crashed {
+		if ret.Crashed {
 			res := &Result{
 				Prog:     ent.P,
-				Duration: duration * 3 / 2,
+				Duration: max(duration, ret.Duration*3/2),
 				Opts:     opts,
 			}
 			ctx.reproLogf(3, "single: successfully extracted reproducer")
@@ -357,7 +357,7 @@ func (ctx *reproContext) extractProgBisect(entries []*prog.LogEntry, baseDuratio
 
 	// First check if replaying the log may crash the kernel at all.
 	ret, err := ctx.testProgs(entries, duration(len(entries)), opts)
-	if !ret {
+	if !ret.Crashed {
 		ctx.reproLogf(3, "replaying the whole log did not cause a kernel crash")
 		return nil, nil
 	}
@@ -367,7 +367,8 @@ func (ctx *reproContext) extractProgBisect(entries []*prog.LogEntry, baseDuratio
 
 	// Bisect the log to find multiple guilty programs.
 	entries, err = ctx.bisectProgs(entries, func(progs []*prog.LogEntry) (bool, error) {
-		return ctx.testProgs(progs, duration(len(progs)), opts)
+		ret, err := ctx.testProgs(progs, duration(len(progs)), opts)
+		return ret.Crashed, err
 	})
 	if err != nil {
 		return nil, err
@@ -409,12 +410,12 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 					if i+1 < len(entries) {
 						newEntries = append(newEntries, entries[i+1:]...)
 					}
-					crashed, err := ctx.testProgs(newEntries, dur, ctx.startOpts)
+					ret, err := ctx.testProgs(newEntries, dur, ctx.startOpts)
 					if err != nil {
 						ctx.reproLogf(0, "concatenation step failed with %v", err)
 						return false
 					}
-					return crashed
+					return ret.Crashed
 				})
 			ctx.reproLogf(1, "minimized %d calls -> %d calls", callsBefore, len(entries[i].P.Calls))
 		}
@@ -429,18 +430,18 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 		ctx.reproLogf(2, "bisect: concatenated prog still exceeds %d calls", prog.MaxCalls)
 		return nil, nil
 	}
-	crashed, err := ctx.testProg(p, dur, ctx.startOpts)
+	ret, err := ctx.testProg(p, dur, ctx.startOpts)
 	if err != nil {
 		ctx.reproLogf(3, "bisect: error during concatenation testing: %v", err)
 		return nil, err
 	}
-	if !crashed {
+	if !ret.Crashed {
 		ctx.reproLogf(3, "bisect: concatenated prog does not crash")
 		return nil, nil
 	}
 	res := &Result{
 		Prog:     p,
-		Duration: dur,
+		Duration: min(dur, ret.Duration*2),
 		Opts:     ctx.startOpts,
 	}
 	ctx.reproLogf(3, "bisect: concatenation succeeded")
@@ -461,12 +462,12 @@ func (ctx *reproContext) minimizeProg(res *Result) (*Result, error) {
 			// will immediately exit.
 			return false
 		}
-		crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
+		ret, err := ctx.testProg(p1, res.Duration, res.Opts)
 		if err != nil {
 			ctx.reproLogf(0, "minimization failed with %v", err)
 			return false
 		}
-		return crashed
+		return ret.Crashed
 	})
 
 	return res, nil
@@ -486,11 +487,11 @@ func (ctx *reproContext) simplifyProg(res *Result) (*Result, error) {
 		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
 			continue
 		}
-		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
+		ret, err := ctx.testProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return nil, err
 		}
-		if !crashed {
+		if !ret.Crashed {
 			continue
 		}
 		res.Opts = opts
@@ -515,11 +516,11 @@ func (ctx *reproContext) extractC(res *Result) (*Result, error) {
 		ctx.stats.ExtractCTime = time.Since(start)
 	}()
 
-	crashed, err := ctx.testCProg(res.Prog, res.Duration, res.Opts)
+	ret, err := ctx.testCProg(res.Prog, res.Duration, res.Opts)
 	if err != nil {
 		return nil, err
 	}
-	res.CRepro = crashed
+	res.CRepro = ret.Crashed
 	return res, nil
 }
 
@@ -536,11 +537,11 @@ func (ctx *reproContext) simplifyC(res *Result) (*Result, error) {
 		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
 			continue
 		}
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
+		ret, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return nil, err
 		}
-		if !crashed {
+		if !ret.Crashed {
 			continue
 		}
 		res.Opts = opts
@@ -572,13 +573,18 @@ func checkOpts(opts *csource.Options, timeouts targets.Timeouts, timeout time.Du
 }
 
 func (ctx *reproContext) testProg(p *prog.Prog, duration time.Duration,
-	opts csource.Options) (crashed bool, err error) {
+	opts csource.Options) (ret verdict, err error) {
 	entry := prog.LogEntry{P: p}
 	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts)
 }
 
+type verdict struct {
+	Crashed  bool
+	Duration time.Duration
+}
+
 func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, err error)) (
-	bool, error) {
+	verdict, error) {
 	var result *instance.RunResult
 	var err error
 
@@ -594,22 +600,22 @@ func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, er
 		}
 	}
 	if err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	rep := result.Report
 	if rep == nil {
-		return false, nil
+		return verdict{false, result.Duration}, nil
 	}
 	if rep.Suppressed {
 		ctx.reproLogf(2, "suppressed program crash: %v", rep.Title)
-		return false, nil
+		return verdict{false, result.Duration}, nil
 	}
 	if ctx.crashType == crash.MemoryLeak && rep.Type != crash.MemoryLeak {
 		ctx.reproLogf(2, "not a leak crash: %v", rep.Title)
-		return false, nil
+		return verdict{false, result.Duration}, nil
 	}
 	ctx.report = rep
-	return true, nil
+	return verdict{true, result.Duration}, nil
 }
 
 var ErrNoVMs = errors.New("all VMs failed to boot")
@@ -626,9 +632,9 @@ func encodeEntries(entries []*prog.LogEntry) []byte {
 }
 
 func (ctx *reproContext) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options) (
-	crashed bool, err error) {
+	ret verdict, err error) {
 	if len(entries) == 0 {
-		return false, fmt.Errorf("no programs to execute")
+		return ret, fmt.Errorf("no programs to execute")
 	}
 	pstr := encodeEntries(entries)
 	program := entries[0].P.String()
@@ -650,7 +656,7 @@ func (ctx *reproContext) testProgs(entries []*prog.LogEntry, duration time.Durat
 }
 
 func (ctx *reproContext) testCProg(p *prog.Prog, duration time.Duration,
-	opts csource.Options) (crashed bool, err error) {
+	opts csource.Options) (ret verdict, err error) {
 	return ctx.getVerdict(func() (*instance.RunResult, error) {
 		return ctx.exec.RunCProg(p, duration, opts)
 	})

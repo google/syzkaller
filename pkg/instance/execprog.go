@@ -36,8 +36,9 @@ type ExecProgInstance struct {
 }
 
 type RunResult struct {
-	Output []byte
-	Report *report.Report
+	Output   []byte
+	Report   *report.Report
+	Duration time.Duration
 }
 
 const (
@@ -99,6 +100,8 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 
 func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 	exitCondition vm.ExitCondition) (*RunResult, error) {
+	start := time.Now()
+
 	var prefixOutput []byte
 	if inst.StraceBin != "" {
 		filterCalls := ""
@@ -128,8 +131,11 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 		}
 		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
-	result := &RunResult{append(prefixOutput, output...), rep}
-	return result, nil
+	return &RunResult{
+		Output:   append(prefixOutput, output...),
+		Report:   rep,
+		Duration: time.Since(start),
+	}, nil
 }
 
 func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*RunResult, error) {
