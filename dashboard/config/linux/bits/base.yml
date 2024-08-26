@@ -62,7 +62,7 @@ config:
  # For detection of supported syscalls
  - KALLSYMS
  - KALLSYMS_ALL
- - KALLSYMS_BASE_RELATIVE
+ - KALLSYMS_BASE_RELATIVE: [-v6.11]
 
  # For namespace sandbox.
  - NAMESPACES
@@ -76,6 +76,7 @@ config:
  # Control groups are needed for better sandboxing of test processes.
  - CGROUP_PIDS
  - MEMCG
+ - MEMCG_V1: [v6.11]
 
  # Debugging features (from kernel_configs.md, do not alpha sort).
  - DEBUG_BUGVERBOSE
@@ -130,6 +131,7 @@ config:
  - KCOV_INSTRUMENT_ALL: [-arm, -s390, -nokcov]
  # Doesn't boot with KCOV_ENABLE_COMPARISONS on Cuttlefish.
  - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov, -cuttlefish]
+ - KCOV_SELFTEST: [linux-next, -baseline, -arm, -s390, -nokcov]
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.

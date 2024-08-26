@@ -16,6 +16,8 @@ config:
  # This allows to get alloc/free stacks for UAFs on freed pages.
  # This also needs page_owner=on in cmdline.
  - PAGE_OWNER
+ # Allow to catch more use after free cases.
+ - SLUB_RCU_DEBUG: [linux-next]
 
  - UBSAN: [v5.8]
  - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv, -v6.9]
