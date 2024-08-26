@@ -84,6 +84,7 @@ config:
  - ARCH_S32: n
  - ARCH_SEATTLE: n
  - ARCH_STRATIX10: n
+ - ARCH_STM32: n
  - ARCH_SYNQUACER: n
  - ARCH_TEGRA: n
  - ARCH_SPRD: n
