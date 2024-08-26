@@ -91,6 +91,25 @@
   .data_row:hover {
     background-color: #ffff99 !important;
   }
+  .cover_percent {
+    position: relative;
+    display: inline-block;
+  }
+  .cover_percent .tooltiptext {
+    visibility: hidden;
+    background-color: black;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 5px 0;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+  }
+  .cover_percent:hover .tooltiptext {
+    visibility: visible;
+  }
 {{ end }}
 
 {{ define "body" }}
@@ -137,9 +156,10 @@
             {{$child.Name}}
           </div>
         </div>
-        {{ range $cov := $child.Coverage }}
-          <div class="date_column">
-            {{ $cov }}%
+        {{ range $i, $cov := $child.Coverage }}
+          <div class="date_column cover_percent">
+            {{$cov}}%
+            <pre class="tooltiptext">{{ index $child.Tooltips $i }}</pre>
           </div>
         {{ end }}
         <div class="instrumented_column">
