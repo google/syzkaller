@@ -32,6 +32,7 @@ var (
 	flagToDashAPI           = flag.String("to-dashapi", "", "[optional] dashapi address")
 	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
 	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
+	flagFilePathPrefix      = flag.String("file-path-prefix", "", "[optional] kernel file path prefix")
 )
 
 func makeProvider() covermerger.FileVersProvider {
@@ -66,7 +67,7 @@ func main() {
 	dbReader := covermerger.MakeBQCSVReader()
 	if err = dbReader.InitNsRecords(context.Background(),
 		*flagNamespace,
-		"",
+		*flagFilePathPrefix,
 		"",
 		dateFrom,
 		dateTo,
