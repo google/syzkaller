@@ -115,6 +115,7 @@ var (
 		"bcm-kernel-feedback-list@broadcom.com":     "broadcom",
 		"linux@ew.tq-group.com":                     "tq-systems",
 		"linux-imx@nxp.com":                         "nxp",
+		"kernel-list@raspberrypi.com":               "raspberry",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
