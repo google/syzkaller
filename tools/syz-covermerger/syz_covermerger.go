@@ -83,7 +83,6 @@ func main() {
 	if errMerge != nil {
 		panic(errMerge)
 	}
-	printMergeResult(mergeResult)
 
 	coverage, _, _ := mergeResultsToCoverage(mergeResult)
 	if *flagToDashAPI != "" {
@@ -99,6 +98,8 @@ func main() {
 			log.Fatalf("failed to saveCoverage: %v", err)
 		}
 	}
+	printOnlyTotal := *flagToDashAPI != ""
+	printMergeResult(mergeResult, printOnlyTotal)
 }
 
 func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error {
@@ -111,12 +112,14 @@ func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error
 	})
 }
 
-func printMergeResult(mergeResult map[string]*covermerger.MergeResult) {
+func printMergeResult(mergeResult map[string]*covermerger.MergeResult, totalOnly bool) {
 	coverage, totalInstrumentedLines, totalCoveredLines := mergeResultsToCoverage(mergeResult)
-	keys := maps.Keys(coverage)
-	sort.Strings(keys)
-	for _, fileName := range keys {
-		printCoverage(fileName, coverage[fileName].Instrumented, coverage[fileName].Covered)
+	if !totalOnly {
+		keys := maps.Keys(coverage)
+		sort.Strings(keys)
+		for _, fileName := range keys {
+			printCoverage(fileName, coverage[fileName].Instrumented, coverage[fileName].Covered)
+		}
 	}
 	printCoverage("total", totalInstrumentedLines, totalCoveredLines)
 }
