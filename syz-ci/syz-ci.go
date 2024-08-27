@@ -114,6 +114,9 @@ type Config struct {
 	CorpusUploadPath string `json:"corpus_upload_path"`
 	// Make files uploaded via CoverUploadPath and CorpusUploadPath public.
 	PublishGCS bool `json:"publish_gcs"`
+	// Path to upload bench data from instances (optional).
+	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
+	BenchUploadPath string `json:"bench_upload_path"`
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.

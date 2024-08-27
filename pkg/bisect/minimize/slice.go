@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 )
 
@@ -43,6 +44,50 @@ func Slice[T any](config Config[T], slice []T) ([]T, error) {
 		},
 	}
 	return ctx.bisect()
+}
+
+// SliceWithFixed behaves like Slice, but also allows to designate the elements that
+// must always remain (the "fixed" ones).
+func SliceWithFixed[T any](config Config[T], slice []T, fixed func(T) bool) ([]T, error) {
+	var freeIdx, fixedIdx []int
+	for i := 0; i < len(slice); i++ {
+		if fixed(slice[i]) {
+			fixedIdx = append(fixedIdx, i)
+		} else {
+			freeIdx = append(freeIdx, i)
+		}
+	}
+	if len(freeIdx) == 0 {
+		return slice, nil
+	}
+	convert := func(idx []int) []T {
+		ret := make([]T, 0, len(idx)+len(fixedIdx))
+		idx, fixedIdx := slices.Clone(idx), slices.Clone(fixedIdx)
+		for len(idx)+len(fixedIdx) > 0 {
+			if len(idx) > 0 && (len(fixedIdx) == 0 ||
+				len(fixedIdx) > 0 && idx[0] < fixedIdx[0]) {
+				ret = append(ret, slice[idx[0]])
+				idx = idx[1:]
+			} else {
+				ret = append(ret, slice[fixedIdx[0]])
+				fixedIdx = fixedIdx[1:]
+			}
+		}
+		return ret
+	}
+	newConfig := Config[int]{
+		MaxSteps:  config.MaxSteps,
+		MaxChunks: config.MaxChunks,
+		Pred: func(idx []int) (bool, error) {
+			return config.Pred(convert(idx))
+		},
+		Logf: config.Logf,
+	}
+	result, err := Slice[int](newConfig, freeIdx)
+	if err != nil {
+		return nil, err
+	}
+	return convert(result), nil
 }
 
 type sliceCtx[T any] struct {
