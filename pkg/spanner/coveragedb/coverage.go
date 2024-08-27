@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/uuid"
+	"google.golang.org/api/iterator"
 )
 
 type FilesRecord struct {
@@ -134,4 +135,50 @@ func fileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache m
 		ssCache[filePath] = sss
 	}
 	return sss
+}
+
+func NsDataMerged(ctx context.Context, projectID, ns string) ([]TimePeriod, []int64, error) {
+	client, err := NewClient(ctx, projectID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
+	}
+	defer client.Close()
+
+	stmt := spanner.Statement{
+		SQL: `
+			select
+				dateto,
+				duration as days,
+				totalrows
+			from merge_history
+			where
+				namespace=$1`,
+		Params: map[string]interface{}{
+			"p1": ns,
+		},
+	}
+	iter := client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	var periods []TimePeriod
+	var totalRows []int64
+	for {
+		row, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to iter.Next() spanner DB: %w", err)
+		}
+		var r struct {
+			Days      int64
+			DateTo    civil.Date
+			TotalRows int64
+		}
+		if err = row.ToStruct(&r); err != nil {
+			return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+		}
+		periods = append(periods, TimePeriod{DateTo: r.DateTo, Days: int(r.Days)})
+		totalRows = append(totalRows, r.TotalRows)
+	}
+	return periods, totalRows, nil
 }
