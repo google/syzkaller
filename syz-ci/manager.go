@@ -92,6 +92,7 @@ type Manager struct {
 	debug          bool
 	lastBuild      *dashapi.Build
 	buildFailed    bool
+	lastRestarted  time.Time
 }
 
 type ManagerDashapi interface {
@@ -175,11 +176,12 @@ var buildSem = instance.NewSemaphore(1)
 var testSem = instance.NewSemaphore(1)
 
 const fuzzingMinutesBeforeCover = 360
+const benchUploadPeriod = 30 * time.Minute
 
 func (mgr *Manager) loop() {
 	lastCommit := ""
 	nextBuildTime := time.Now()
-	var managerRestartTime, artifactUploadTime time.Time
+	var managerRestartTime, artifactUploadTime, benchUploadTime time.Time
 	latestInfo := mgr.checkLatest()
 	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 &&
 		mgr.managercfg.TargetOS != targets.Fuchsia {
@@ -194,6 +196,8 @@ func (mgr *Manager) loop() {
 	} else if latestInfo != nil {
 		log.Logf(0, "%v: latest image is on %v", mgr.name, latestInfo.KernelCommit)
 	}
+
+	benchUploadTime = time.Now().Add(benchUploadPeriod)
 
 	ticker := time.NewTicker(buildRetryPeriod)
 	defer ticker.Stop()
@@ -215,6 +219,12 @@ loop:
 			}
 			if err := mgr.uploadCorpus(); err != nil {
 				mgr.Errorf("failed to upload corpus: %v", err)
+			}
+		}
+		if mgr.cfg.BenchUploadPath != "" && time.Now().After(benchUploadTime) {
+			benchUploadTime = time.Now().Add(benchUploadPeriod)
+			if err := mgr.uploadBenchData(); err != nil {
+				mgr.Errorf("failed to upload bench: %v", err)
 			}
 		}
 
@@ -398,6 +408,8 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	return osutil.Rename(tmpDir, mgr.latestDir)
 }
 
+const benchFileName = "bench.json"
+
 func (mgr *Manager) restartManager() {
 	if !osutil.FilesExist(mgr.latestDir, imageFiles) {
 		mgr.Errorf("can't start manager, image files missing")
@@ -434,11 +446,15 @@ func (mgr *Manager) restartManager() {
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
-	args := []string{"-config", cfgFile, "-vv", "1"}
+	benchFile := filepath.Join(mgr.currentDir, benchFileName)
+	os.Remove(benchFile) // or else syz-manager will complain
+
+	args := []string{"-config", cfgFile, "-vv", "1", "-bench", benchFile}
 	if mgr.debug {
 		args = append(args, "-debug")
 	}
 	mgr.cmd = NewManagerCmd(mgr.name, logFile, mgr.Errorf, bin, args...)
+	mgr.lastRestarted = time.Now()
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
@@ -952,6 +968,29 @@ func (mgr *Manager) uploadCorpus() error {
 	}
 	defer f.Close()
 	return mgr.uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f, true)
+}
+
+func (mgr *Manager) uploadBenchData() error {
+	if mgr.lastRestarted.IsZero() {
+		return nil
+	}
+	const minUptime = 30 * time.Minute
+	if time.Since(mgr.lastRestarted) < minUptime {
+		// Let's guard against uploading too many benches in case if the instance constantly
+		// restarts.
+		return nil
+	}
+	f, err := os.Open(filepath.Join(mgr.currentDir, benchFileName))
+	if err != nil {
+		return fmt.Errorf("failed to open bench file: %w", err)
+	}
+	defer f.Close()
+	err = mgr.uploadFile(mgr.cfg.BenchUploadPath+"/"+mgr.name,
+		mgr.lastRestarted.Format("2006-01-02_15h.json"), f, false)
+	if err != nil {
+		return fmt.Errorf("failed to upload the bench file: %w", err)
+	}
+	return nil
 }
 
 func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader, allowPublishing bool) error {
