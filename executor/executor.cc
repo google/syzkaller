@@ -1095,6 +1095,18 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 	th->copyout_pos = pos;
 	th->copyout_index = copyout_index;
 	event_reset(&th->done);
+	// We do this both right before execute_syscall in the thread and here because:
+	// the former is useful to reset all unrelated coverage from our syscalls (e.g. futex in event_wait),
+	// while the reset here is useful to avoid the following scenario that the fuzzer was able to trigger.
+	// If the test program contains seccomp syscall that kills the worker thread on the next syscall,
+	// then it won't receive this next syscall and won't do cover_reset. If we are collecting comparions
+	// then we've already transformed comparison data from the previous syscall into rpc::ComparisonRaw
+	// in write_comparisons. That data is still in the buffer. The first word of rpc::ComparisonRaw is PC
+	// which overlaps with comparison type in kernel exposed records. As the result write_comparisons
+	// that will try to write out data from unfinished syscalls will see these rpc::ComparisonRaw records,
+	// mis-interpret PC as type, and fail as: SYZFAIL: invalid kcov comp type (type=ffffffff8100b4e0).
+	if (flag_coverage)
+		cover_reset(&th->cov);
 	th->executing = true;
 	th->call_index = call_index;
 	th->call_num = call_num;
