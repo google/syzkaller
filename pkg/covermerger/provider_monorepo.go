@@ -18,9 +18,9 @@ type FileVersProvider interface {
 }
 
 type monoRepo struct {
-	branches map[RepoBranchCommit]struct{}
-	mu       sync.RWMutex
-	repo     vcs.Repo
+	repoCommits map[RepoBranchCommit]struct{}
+	mu          sync.RWMutex
+	repo        vcs.Repo
 }
 
 type fileVersions map[RepoBranchCommit]string
@@ -28,11 +28,9 @@ type fileVersions map[RepoBranchCommit]string
 func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoBranchCommit,
 ) (fileVersions, error) {
 	mr.mu.RLock()
-	if !mr.allRepoBranchesPresent(rbcs) {
+	if !mr.allRepoCommitsPresent(rbcs) {
 		mr.mu.RUnlock()
-		if err := mr.cloneBranches(rbcs); err != nil {
-			return nil, fmt.Errorf("failed to clone repos: %w", err)
-		}
+		mr.cloneCommits(rbcs)
 		mr.mu.RLock()
 	}
 	defer mr.mu.RUnlock()
@@ -40,7 +38,9 @@ func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, rbcs []Rep
 	for _, rbc := range rbcs {
 		fileBytes, err := mr.repo.Object(targetFilePath, rbc.Commit)
 		// It is ok if some file doesn't exist. It means we have repo FS diff.
+		// Or the upstream commit doesn't exist anymore
 		if err != nil {
+			log.Logf(1, "repo.Object(%s, %s) error: %s", targetFilePath, rbc.Commit, err.Error())
 			continue
 		}
 		res[rbc] = string(fileBytes)
@@ -48,39 +48,38 @@ func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, rbcs []Rep
 	return res, nil
 }
 
-func (mr *monoRepo) allRepoBranchesPresent(rbcs []RepoBranchCommit) bool {
+func (mr *monoRepo) allRepoCommitsPresent(rbcs []RepoBranchCommit) bool {
 	for _, rbc := range rbcs {
-		if !mr.repoBranchPresent(rbc) {
+		if !mr.repoCommitPresent(rbc) {
 			return false
 		}
 	}
 	return true
 }
 
-func (mr *monoRepo) repoBranchPresent(rbc RepoBranchCommit) bool {
-	rbc.Commit = ""
-	_, ok := mr.branches[rbc]
+func (mr *monoRepo) repoCommitPresent(rbc RepoBranchCommit) bool {
+	rbc.Branch = ""
+	_, ok := mr.repoCommits[rbc]
 	return ok
 }
 
-func (mr *monoRepo) addRepoBranch(rbc RepoBranchCommit) error {
-	rbc.Commit = ""
-	mr.branches[rbc] = struct{}{}
-	log.Logf(0, "cloning repo: %s, branch: %s", rbc.Repo, rbc.Branch)
-	if rbc.Repo == "" || rbc.Branch == "" {
-		panic("repo and branch are needed")
+func (mr *monoRepo) addRepoCommit(rbc RepoBranchCommit) {
+	log.Logf(0, "cloning repo: %s, branch: %s, commit %s", rbc.Repo, rbc.Branch, rbc.Commit)
+	rbc.Branch = ""
+	mr.repoCommits[rbc] = struct{}{}
+	if rbc.Repo == "" || rbc.Commit == "" {
+		panic("repo and commit are needed")
 	}
-	if _, err := mr.repo.CheckoutBranch(rbc.Repo, rbc.Branch); err != nil {
-		return fmt.Errorf("failed to CheckoutBranch(repo %s, branch %s): %w",
-			rbc.Repo, rbc.Branch, err)
+	if _, err := mr.repo.CheckoutCommit(rbc.Repo, rbc.Commit); err != nil {
+		log.Logf(0, "failed to CheckoutCommit(repo %s, commit %s): %s",
+			rbc.Repo, rbc.Commit, err.Error())
 	}
-	return nil
 }
 
 func MakeMonoRepo(workdir string) FileVersProvider {
 	rbcPath := workdir + "/repos/linux_kernels"
 	mr := &monoRepo{
-		branches: map[RepoBranchCommit]struct{}{},
+		repoCommits: map[RepoBranchCommit]struct{}{},
 	}
 	var err error
 	if mr.repo, err = vcs.NewRepo(targets.Linux, "none", rbcPath); err != nil {
@@ -89,16 +88,13 @@ func MakeMonoRepo(workdir string) FileVersProvider {
 	return mr
 }
 
-func (mr *monoRepo) cloneBranches(rbcs []RepoBranchCommit) error {
+func (mr *monoRepo) cloneCommits(rbcs []RepoBranchCommit) {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 	for _, rbc := range rbcs {
-		if mr.repoBranchPresent(rbc) {
+		if mr.repoCommitPresent(rbc) {
 			continue
 		}
-		if err := mr.addRepoBranch(rbc); err != nil {
-			return err
-		}
+		mr.addRepoCommit(rbc)
 	}
-	return nil
 }
