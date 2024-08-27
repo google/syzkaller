@@ -46,6 +46,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 							IsDir:               false,
 							Depth:               0,
 							LastDayInstrumented: 1,
+							Tooltips: []string{
+								"Instrumented:\t1 blocks\nCovered:\t1 blocks",
+							},
 						},
 					},
 					Name:                "",
@@ -53,6 +56,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 					IsDir:               false,
 					Depth:               0,
 					LastDayInstrumented: 1,
+					Tooltips: []string{
+						"Instrumented:\t1 blocks\nCovered:\t1 blocks",
+					},
 				},
 				Dates: []string{"2024-07-01"},
 			},
@@ -85,6 +91,10 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 									IsDir:               false,
 									Depth:               1,
 									LastDayInstrumented: 0,
+									Tooltips: []string{
+										"Instrumented:\t1 blocks\nCovered:\t1 blocks",
+										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
+									},
 								},
 								{
 									Items:               []*templateHeatmapRow{},
@@ -93,6 +103,10 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 									IsDir:               false,
 									Depth:               1,
 									LastDayInstrumented: 1,
+									Tooltips: []string{
+										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
+										"Instrumented:\t1 blocks\nCovered:\t0 blocks",
+									},
 								},
 							},
 							Name:                "dir",
@@ -100,11 +114,19 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 							IsDir:               true,
 							Depth:               0,
 							LastDayInstrumented: 1,
+							Tooltips: []string{
+								"Instrumented:\t1 blocks\nCovered:\t1 blocks",
+								"Instrumented:\t1 blocks\nCovered:\t0 blocks",
+							},
 						},
 					},
 					Name:                "",
 					Coverage:            []int64{100, 0},
 					LastDayInstrumented: 1,
+					Tooltips: []string{
+						"Instrumented:\t1 blocks\nCovered:\t1 blocks",
+						"Instrumented:\t1 blocks\nCovered:\t0 blocks",
+					},
 				},
 				Dates: []string{"2024-07-01", "2024-07-02"},
 			},

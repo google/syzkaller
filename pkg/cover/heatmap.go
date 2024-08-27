@@ -28,6 +28,7 @@ type templateHeatmapRow struct {
 	IsDir               bool
 	Depth               int
 	LastDayInstrumented int64
+	Tooltips            []string
 
 	builder      map[string]*templateHeatmapRow
 	instrumented map[civil.Date]int64
@@ -74,6 +75,8 @@ func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
 			dateCoverage = 100 * thm.covered[d] / thm.instrumented[d]
 		}
 		thm.Coverage = append(thm.Coverage, dateCoverage)
+		thm.Tooltips = append(thm.Tooltips, fmt.Sprintf("Instrumented:\t%d blocks\nCovered:\t%d blocks",
+			thm.instrumented[d], thm.covered[d]))
 	}
 	if len(dates) > 0 {
 		lastDate := dates[len(dates)-1]
