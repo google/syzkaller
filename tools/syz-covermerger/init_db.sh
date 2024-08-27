@@ -6,9 +6,12 @@ set -e # exit on any problem
 set -o pipefail
 
 db="coverage"
-echo "making sure spanner table 'files' exists"
+echo "drop table 'files' if exists"
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+--ddl="DROP TABLE IF EXISTS files"
+echo "create table 'files'"
 create_table=$( echo -n '
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
   files (
     "session" text,
     "filepath" text,
@@ -19,9 +22,12 @@ CREATE TABLE IF NOT EXISTS
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
-echo "making sure spanner table 'merge_history' exists"
+echo "drop table 'merge_history' if exists"
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+--ddl="DROP TABLE IF EXISTS merge_history"
+echo "create table 'merge_history'"
 create_table=$( echo -n '
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
   merge_history (
     "namespace" text,
     "repo" text,
@@ -36,9 +42,12 @@ CREATE TABLE IF NOT EXISTS
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
-echo "making sure spanner table 'file_subsystems' exists"
+echo "drop table 'file_subsystems' if exists"
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+--ddl="DROP TABLE IF EXISTS file_subsystems"
+echo "create table 'file_subsystems'"
 create_table=$( echo -n '
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
   file_subsystems (
     "namespace" text,
     "filepath" text,
