@@ -29,6 +29,7 @@ type Fuzzer struct {
 	rnd          *rand.Rand
 	target       *prog.Target
 	hintsLimiter prog.HintsLimiter
+	runningJobs  map[jobIntrospector]struct{}
 
 	ct           *prog.ChoiceTable
 	ctProgs      int
@@ -50,9 +51,10 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		Config: cfg,
 		Cover:  newCover(),
 
-		ctx:    ctx,
-		rnd:    rnd,
-		target: target,
+		ctx:         ctx,
+		rnd:         rnd,
+		target:      target,
+		runningJobs: map[jobIntrospector]struct{}{},
 
 		// We're okay to lose some of the messages -- if we are already
 		// regenerating the table, we don't want to repeat it right away.
@@ -251,10 +253,24 @@ func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
 	fuzzer.Logf(2, "started %T", newJob)
 	go func() {
 		stat.Add(1)
+		defer stat.Add(-1)
+
 		fuzzer.statJobs.Add(1)
+		defer fuzzer.statJobs.Add(-1)
+
+		if obj, ok := newJob.(jobIntrospector); ok {
+			fuzzer.mu.Lock()
+			fuzzer.runningJobs[obj] = struct{}{}
+			fuzzer.mu.Unlock()
+
+			defer func() {
+				fuzzer.mu.Lock()
+				delete(fuzzer.runningJobs, obj)
+				fuzzer.mu.Unlock()
+			}()
+		}
+
 		newJob.run(fuzzer)
-		fuzzer.statJobs.Add(-1)
-		stat.Add(-1)
 	}()
 }
 
@@ -352,6 +368,17 @@ func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
 		}
 	}
 	return fuzzer.ct
+}
+
+func (fuzzer *Fuzzer) RunningJobs() []JobInfo {
+	fuzzer.mu.Lock()
+	defer fuzzer.mu.Unlock()
+
+	var ret []JobInfo
+	for item := range fuzzer.runningJobs {
+		ret = append(ret, item.info())
+	}
+	return ret
 }
 
 func (fuzzer *Fuzzer) logCurrentStats() {
