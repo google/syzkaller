@@ -106,5 +106,4 @@ go run ./tools/syz-covermerger/ -workdir $workdir \
   -date-to $to_date \
   -total-rows $total_rows
 
-echo Cleanup
-rm -rf $sessionDir
+echo Done
