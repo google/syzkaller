@@ -4,8 +4,11 @@
 package fuzzer
 
 import (
+	"fmt"
 	"math/rand"
+	"sort"
 	"sync"
+	"sync/atomic"
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
@@ -17,6 +20,18 @@ import (
 
 type job interface {
 	run(fuzzer *Fuzzer)
+}
+
+type jobIntrospector interface {
+	info() JobInfo
+}
+
+type JobInfo struct {
+	ID    string
+	Calls []string
+	Type  string
+	Prog  *prog.Prog
+	Execs int
 }
 
 func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
@@ -61,6 +76,7 @@ type triageJob struct {
 	queue    queue.Executor
 	// Set of calls that gave potential new coverage.
 	calls map[int]*triageCall
+	execs atomic.Int32
 }
 
 type triageCall struct {
@@ -107,6 +123,7 @@ const (
 )
 
 func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result {
+	defer job.execs.Add(1)
 	req.Important = true // All triage executions are important.
 	return job.fuzzer.executeWithFlags(job.queue, req, flags)
 }
@@ -365,10 +382,25 @@ func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) signal.Si
 	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call))
 }
 
+func (job *triageJob) info() JobInfo {
+	ret := JobInfo{
+		ID:    fmt.Sprintf("%p", job),
+		Type:  "triage",
+		Execs: int(job.execs.Load()),
+		Prog:  job.p,
+	}
+	for id := range job.calls {
+		ret.Calls = append(ret.Calls, job.p.CallName(id))
+	}
+	sort.Strings(ret.Calls)
+	return ret
+}
+
 type smashJob struct {
-	exec queue.Executor
-	p    *prog.Prog
-	call int
+	exec  queue.Executor
+	p     *prog.Prog
+	call  int
+	execs atomic.Int32
 }
 
 func (job *smashJob) run(fuzzer *Fuzzer) {
@@ -390,6 +422,17 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 		if result.Stop() {
 			return
 		}
+		job.execs.Add(1)
+	}
+}
+
+func (job *smashJob) info() JobInfo {
+	return JobInfo{
+		ID:    fmt.Sprintf("%p", job),
+		Type:  "smash",
+		Execs: int(job.execs.Load()),
+		Prog:  job.p,
+		Calls: []string{job.p.CallName(job.call)},
 	}
 }
 

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -62,6 +63,7 @@ func (mgr *Manager) initHTTP() {
 	handle("/input", mgr.httpInput)
 	handle("/debuginput", mgr.httpDebugInput)
 	handle("/modules", mgr.modulesInfo)
+	handle("/jobs", mgr.httpJobs)
 	// Browsers like to request this, without special handler this goes to / handler.
 	handle("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -650,6 +652,50 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	return crashTypes, nil
 }
 
+func (mgr *Manager) httpJobs(w http.ResponseWriter, r *http.Request) {
+	var list []fuzzer.JobInfo
+	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
+		list = fuzzer.RunningJobs()
+	}
+	if key := r.FormValue("id"); key != "" {
+		for _, item := range list {
+			if item.ID == key {
+				w.Write(item.Prog.Serialize())
+				return
+			}
+		}
+		http.Error(w, "invalid job id (the job has likely already finished)", http.StatusBadRequest)
+		return
+	}
+	jobType := r.FormValue("type")
+	data := UIJobList{}
+	switch jobType {
+	case "triage":
+		data.Title = "triage jobs"
+	case "smash":
+		data.Title = "smash jobs"
+	default:
+		http.Error(w, "unknown job type", http.StatusBadRequest)
+		return
+	}
+	for _, item := range list {
+		if item.Type != jobType {
+			continue
+		}
+		data.Jobs = append(data.Jobs, UIJobInfo{
+			ID:    item.ID,
+			Short: item.Prog.String(),
+			Execs: item.Execs,
+			Calls: strings.Join(item.Calls, ", "),
+		})
+	}
+	sort.Slice(data.Jobs, func(i, j int) bool {
+		a, b := data.Jobs[i], data.Jobs[j]
+		return a.Short < b.Short
+	})
+	executeTemplate(w, jobListTemplate, data)
+}
+
 func readCrash(workdir, dir string, repros map[string]bool, start int64, full bool) *UICrashType {
 	if len(dir) != 40 {
 		return nil
@@ -1136,6 +1182,53 @@ var rawCoverTemplate = pages.Create(`
 		<a href="/rawcover?input={{$line.Sig}}&update_id={{$id}}">[{{$id}}]</a>
 		{{end}}
 </td>
+	</tr>
+	{{end}}
+</table>
+</body></html>
+`)
+
+type UIJobList struct {
+	Title string
+	Jobs  []UIJobInfo
+}
+
+type UIJobInfo struct {
+	ID    string
+	Short string
+	Calls string
+	Execs int
+}
+
+var jobListTemplate = pages.Create(`
+<!doctype html>
+<html>
+<head>
+	<title>{{.Title}}</title>
+	{{HEAD}}
+<style>
+table td {
+	max-width: 600pt;
+	word-break: break-all;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+</style>
+</head>
+<body>
+
+<table class="list_table">
+	<caption>{{.Title}} ({{len .Jobs}}):</caption>
+	<tr>
+		<th>Program</th>
+		<th>Calls</th>
+		<th>Execs</th>
+	</tr>
+	{{range $job := $.Jobs}}
+	<tr>
+		<td><a href='/jobs?id={{$job.ID}}'>{{$job.Short}}</a></td>
+		<td>{{$job.Calls}}</td>
+		<td>{{$job.Execs}}</td>
 	</tr>
 	{{end}}
 </table>
