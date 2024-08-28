@@ -103,3 +103,7 @@ func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {
 func (ctx *fuchsia) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) {
 	return ctx.repo.MergeBases(firstCommit, secondCommit)
 }
+
+func (ctx *fuchsia) CommitExists(string) (bool, error) {
+	return false, fmt.Errorf("not implemented for fuchsia")
+}
