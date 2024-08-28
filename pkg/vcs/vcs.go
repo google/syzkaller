@@ -69,6 +69,9 @@ type Repo interface {
 
 	// MergeBases returns good common ancestors of the two commits.
 	MergeBases(firstCommit, secondCommit string) ([]*Commit, error)
+
+	// CommitExists check for the commit presence in local checkout.
+	CommitExists(commit string) (bool, error)
 }
 
 // Bisecter may be optionally implemented by Repo.

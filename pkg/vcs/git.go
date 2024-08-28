@@ -619,3 +619,19 @@ func (git *git) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) 
 	}
 	return ret, nil
 }
+
+// CommitExists relies on 'git cat-file -e'.
+// If object exists its exit status is 0.
+// If object doesn't exist its exit status is 1 (not documented).
+// Otherwise, the exit status is 128 (not documented).
+func (git *git) CommitExists(commit string) (bool, error) {
+	_, err := git.git("cat-file", "-e", commit)
+	var vErr *osutil.VerboseError
+	if errors.As(err, &vErr) && vErr.ExitCode == 1 {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
