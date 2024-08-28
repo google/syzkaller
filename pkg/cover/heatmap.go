@@ -15,7 +15,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/spanner/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 	"google.golang.org/api/iterator"

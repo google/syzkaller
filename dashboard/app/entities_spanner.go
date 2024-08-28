@@ -10,7 +10,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/spanner/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"google.golang.org/api/iterator"
 )
 
