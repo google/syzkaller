@@ -1322,6 +1322,7 @@ var linuxStackParams = &stackParams{
 		"__phys_addr",
 		"__fortify_report",
 		"cleanup_srcu_struct",
+		"rhashtable_lookup",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

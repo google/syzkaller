@@ -1,0 +1,319 @@
+TITLE: KASAN: use-after-free Read in ila_nf_input
+ALT: bad-access in ila_nf_input
+TYPE: KASAN
+EXECUTOR: proc=4, id=2288
+
+
+[  296.673932][T11409] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[  297.125134][    C1] ==================================================================
+[  297.133327][    C1] BUG: KASAN: use-after-free in rhashtable_lookup_fast+0x77a/0x9b0
+[  297.141294][    C1] Read of size 4 at addr ffff888068fe8008 by task syz.4.2288/11617
+[  297.149233][    C1] 
+[  297.151593][    C1] CPU: 1 PID: 11617 Comm: syz.4.2288 Not tainted 6.10.0-syzkaller-04483-g0be9ae5486cd #0
+[  297.161424][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 06/27/2024
+[  297.171514][    C1] Call Trace:
+[  297.174821][    C1]  <IRQ>
+[  297.177693][    C1]  dump_stack_lvl+0x241/0x360
+[  297.182413][    C1]  ? __pfx_dump_stack_lvl+0x10/0x10
+[  297.187665][    C1]  ? __pfx__printk+0x10/0x10
+[  297.192297][    C1]  ? _printk+0xd5/0x120
+[  297.196491][    C1]  ? __virt_addr_valid+0x183/0x530
+[  297.201612][    C1]  ? __virt_addr_valid+0x183/0x530
+[  297.206740][    C1]  print_report+0x169/0x550
+[  297.211291][    C1]  ? __virt_addr_valid+0x183/0x530
+[  297.216498][    C1]  ? __virt_addr_valid+0x183/0x530
+[  297.221630][    C1]  ? __virt_addr_valid+0x45f/0x530
+[  297.226754][    C1]  ? __phys_addr+0xba/0x170
+[  297.231371][    C1]  ? rhashtable_lookup_fast+0x77a/0x9b0
+[  297.236925][    C1]  kasan_report+0x143/0x180
+[  297.241456][    C1]  ? rhashtable_lookup_fast+0x77a/0x9b0
+[  297.247018][    C1]  rhashtable_lookup_fast+0x77a/0x9b0
+[  297.252400][    C1]  ? rhashtable_lookup_fast+0xe9/0x9b0
+[  297.257961][    C1]  ? __pfx_ila_cmpfn+0x10/0x10
+[  297.262736][    C1]  ? __pfx_rhashtable_lookup_fast+0x10/0x10
+[  297.268638][    C1]  ? __pfx_ila_cmpfn+0x10/0x10
+[  297.273427][    C1]  ila_nf_input+0x1fe/0x3c0
+[  297.277947][    C1]  ? __pfx_ila_cmpfn+0x10/0x10
+[  297.282733][    C1]  ? ila_nf_input+0xe4/0x3c0
+[  297.287353][    C1]  ? __pfx_ila_nf_input+0x10/0x10
+[  297.292418][    C1]  nf_hook_slow+0xc3/0x220
+[  297.296935][    C1]  ? __pfx_ip6_rcv_finish+0x10/0x10
+[  297.302230][    C1]  ? __pfx_ip6_rcv_finish+0x10/0x10
+[  297.307431][    C1]  NF_HOOK+0x29e/0x450
+[  297.311501][    C1]  ? skb_orphan+0x4b/0xd0
+[  297.315831][    C1]  ? NF_HOOK+0x9a/0x450
+[  297.320007][    C1]  ? __pfx_NF_HOOK+0x10/0x10
+[  297.324619][    C1]  ? __pfx_ip6_rcv_finish+0x10/0x10
+[  297.329924][    C1]  ? __pfx_ipv6_rcv+0x10/0x10
+[  297.334698][    C1]  __netif_receive_skb+0x1ea/0x650
+[  297.339822][    C1]  ? __pfx_lock_acquire+0x10/0x10
+[  297.344850][    C1]  ? __pfx___netif_receive_skb+0x10/0x10
+[  297.350484][    C1]  ? __pfx_lock_release+0x10/0x10
+[  297.355522][    C1]  process_backlog+0x662/0x15b0
+[  297.360378][    C1]  ? process_backlog+0x33b/0x15b0
+[  297.365414][    C1]  ? __pfx_process_backlog+0x10/0x10
+[  297.370728][    C1]  ? kasan_save_free_info+0x40/0x50
+[  297.375943][    C1]  ? poison_slab_object+0xe0/0x150
+[  297.381061][    C1]  __napi_poll+0xcb/0x490
+[  297.385401][    C1]  net_rx_action+0x89b/0x1240
+[  297.390178][    C1]  ? __pfx_net_rx_action+0x10/0x10
+[  297.395459][    C1]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  297.401809][    C1]  handle_softirqs+0x2c4/0x970
+[  297.406578][    C1]  ? __irq_exit_rcu+0xf4/0x1c0
+[  297.411344][    C1]  ? __pfx_handle_softirqs+0x10/0x10
+[  297.416627][    C1]  ? irqtime_account_irq+0xd4/0x1e0
+[  297.421832][    C1]  __irq_exit_rcu+0xf4/0x1c0
+[  297.426438][    C1]  ? __pfx___irq_exit_rcu+0x10/0x10
+[  297.431650][    C1]  irq_exit_rcu+0x9/0x30
+[  297.435906][    C1]  sysvec_apic_timer_interrupt+0xa6/0xc0
+[  297.441560][    C1]  </IRQ>
+[  297.444485][    C1]  <TASK>
+[  297.447475][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  297.453522][    C1] RIP: 0010:preempt_schedule_irq+0xf6/0x1c0
+[  297.459439][    C1] Code: 89 f5 49 c1 ed 03 eb 0d 48 f7 03 08 00 00 00 0f 84 8b 00 00 00 bf 01 00 00 00 e8 25 59 d0 f5 e8 00 57 08 f6 fb bf 01 00 00 00 <e8> 55 ad ff ff 43 80 7c 3d 00 00 74 08 4c 89 f7 e8 25 29 67 f6 48
+[  297.479094][    C1] RSP: 0018:ffffc90002d4f280 EFLAGS: 00000282
+[  297.485214][    C1] RAX: cde7e63586631000 RBX: 1ffff920005a9e58 RCX: ffffffff8173011a
+[  297.493247][    C1] RDX: dffffc0000000000 RSI: ffffffff8bcac920 RDI: 0000000000000001
+[  297.501221][    C1] RBP: ffffc90002d4f340 R08: ffffffff92fcf65f R09: 1ffffffff25f9ecb
+[  297.509193][    C1] R10: dffffc0000000000 R11: fffffbfff25f9ecc R12: 1ffff920005a9e50
+[  297.517173][    C1] R13: 1ffff920005a9e54 R14: ffffc90002d4f2a0 R15: dffffc0000000000
+[  297.525221][    C1]  ? mark_lock+0x9a/0x350
+[  297.529559][    C1]  ? __pfx_preempt_schedule_irq+0x10/0x10
+[  297.535315][    C1]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  297.541651][    C1]  irqentry_exit+0x5e/0x90
+[  297.546070][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  297.552056][    C1] RIP: 0010:__memcg_slab_post_alloc_hook+0x45c/0x7e0
+[  297.558861][    C1] Code: 83 f8 20 0f 83 c1 01 00 00 89 d1 41 d3 ed 45 89 ef be 01 00 00 00 48 8b 7c 24 10 e8 0e b2 00 00 48 b8 00 00 00 00 00 fc ff df <80> 3c 03 00 74 08 4c 89 e7 e8 46 f7 f7 ff 49 8b 04 24 48 85 c0 4c
+[  297.578477][    C1] RSP: 0018:ffffc90002d4f408 EFLAGS: 00000287
+[  297.584616][    C1] RAX: dffffc0000000000 RBX: 1ffffd4000329cc7 RCX: ffffc90002d4f303
+[  297.592608][    C1] RDX: 0000000000000001 RSI: ffffffff8bcadaa0 RDI: ffffffff8c2045a0
+[  297.600750][    C1] RBP: 0000000000000ac0 R08: ffffffff8fae37af R09: 1ffffffff1f5c6f5
+[  297.608718][    C1] R10: dffffc0000000000 R11: fffffbfff1f5c6f6 R12: ffffea000194e638
+[  297.616689][    C1] R13: 0000000000000004 R14: ffffea000194e600 R15: 0000000000000004
+[  297.624673][    C1]  ? __memcg_slab_post_alloc_hook+0x452/0x7e0
+[  297.630764][    C1]  ? proc_alloc_inode+0x2a/0xc0
+[  297.635618][    C1]  kmem_cache_alloc_lru_noprof+0x1e6/0x2b0
+[  297.641433][    C1]  proc_alloc_inode+0x2a/0xc0
+[  297.646120][    C1]  ? __pfx_proc_alloc_inode+0x10/0x10
+[  297.651509][    C1]  new_inode+0x6e/0x310
+[  297.655665][    C1]  ? __pfx_d_alloc_parallel+0x10/0x10
+[  297.661052][    C1]  proc_get_inode+0x22/0x660
+[  297.665665][    C1]  proc_lookup_de+0x24e/0x300
+[  297.670377][    C1]  __lookup_slow+0x28c/0x3f0
+[  297.674995][    C1]  ? __pfx___lookup_slow+0x10/0x10
+[  297.680119][    C1]  lookup_slow+0x53/0x70
+[  297.684362][    C1]  link_path_walk+0x99b/0xea0
+[  297.689066][    C1]  path_lookupat+0xa9/0x450
+[  297.693599][    C1]  do_o_path+0x95/0x230
+[  297.697764][    C1]  ? __pfx_do_o_path+0x10/0x10
+[  297.702533][    C1]  ? init_file+0x15c/0x200
+[  297.706956][    C1]  path_openat+0x2d90/0x3470
+[  297.711561][    C1]  ? mark_lock+0x9a/0x350
+[  297.715899][    C1]  ? __lock_acquire+0x1346/0x1fd0
+[  297.720933][    C1]  ? perf_trace_lock+0x136/0x490
+[  297.725881][    C1]  ? __lock_acquire+0x1346/0x1fd0
+[  297.730909][    C1]  ? __pfx_path_openat+0x10/0x10
+[  297.735850][    C1]  ? __pfx_perf_trace_lock+0x10/0x10
+[  297.741198][    C1]  do_filp_open+0x235/0x490
+[  297.745888][    C1]  ? __pfx_do_filp_open+0x10/0x10
+[  297.751022][    C1]  ? _raw_spin_unlock+0x28/0x50
+[  297.755964][    C1]  ? alloc_fd+0x5a1/0x640
+[  297.760327][    C1]  do_sys_openat2+0x13e/0x1d0
+[  297.765291][    C1]  ? __pfx_do_sys_openat2+0x10/0x10
+[  297.770507][    C1]  ? lockdep_hardirqs_on_prepare+0x43d/0x780
+[  297.776499][    C1]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  297.782863][    C1]  __x64_sys_openat+0x247/0x2a0
+[  297.787734][    C1]  ? __pfx___x64_sys_openat+0x10/0x10
+[  297.793156][    C1]  do_syscall_64+0xf3/0x230
+[  297.797669][    C1]  ? clear_bhb_loop+0x35/0x90
+[  297.802361][    C1]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  297.808262][    C1] RIP: 0033:0x7fc56c775b59
+[  297.812712][    C1] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[  297.832337][    C1] RSP: 002b:00007fc56d545048 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
+[  297.840755][    C1] RAX: ffffffffffffffda RBX: 00007fc56c905f60 RCX: 00007fc56c775b59
+[  297.848725][    C1] RDX: 0000000000200002 RSI: 0000000020000000 RDI: ffffffffffffff9c
+[  297.856800][    C1] RBP: 00007fc56c7e4e5d R08: 0000000000000000 R09: 0000000000000000
+[  297.864787][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  297.872784][    C1] R13: 000000000000000b R14: 00007fc56c905f60 R15: 00007ffd1a0c1a48
+[  297.880766][    C1]  </TASK>
+[  297.883779][    C1] 
+[  297.886095][    C1] The buggy address belongs to the physical page:
+[  297.892517][    C1] page: refcount:0 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x68fe8
+[  297.901273][    C1] flags: 0xfff00000000000(node=0|zone=1|lastcpupid=0x7ff)
+[  297.908386][    C1] page_type: 0xffffff7f(buddy)
+[  297.913176][    C1] raw: 00fff00000000000 ffffea0001629408 ffffea0000ba1e08 0000000000000000
+[  297.921755][    C1] raw: 0000000000000000 0000000000000003 00000000ffffff7f 0000000000000000
+[  297.930328][    C1] page dumped because: kasan: bad access detected
+[  297.936753][    C1] page_owner tracks the page as freed
+[  297.942215][    C1] page last allocated via order 3, migratetype Unmovable, gfp_mask 0x52dc0(GFP_KERNEL|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP|__GFP_ZERO), pid 5097, tgid 5097 (syz-executor), ts 72961949866, free_ts 296416587781
+[  297.962734][    C1]  post_alloc_hook+0x1f3/0x230
+[  297.967502][    C1]  get_page_from_freelist+0x2e4c/0x2f10
+[  297.973222][    C1]  __alloc_pages_noprof+0x256/0x6c0
+[  297.978455][    C1]  __kmalloc_large_node+0x8b/0x1d0
+[  297.983569][    C1]  __kmalloc_node_noprof+0x2d2/0x440
+[  297.988854][    C1]  kvmalloc_node_noprof+0x72/0x190
+[  297.993970][    C1]  rhashtable_init_noprof+0x534/0xa60
+[  297.999352][    C1]  ila_xlat_init_net+0xa0/0x110
+[  298.004208][    C1]  ops_init+0x359/0x610
+[  298.008362][    C1]  setup_net+0x515/0xca0
+[  298.012597][    C1]  copy_net_ns+0x4e2/0x7b0
+[  298.017012][    C1]  create_new_namespaces+0x425/0x7b0
+[  298.022333][    C1]  unshare_nsproxy_namespaces+0x124/0x180
+[  298.028052][    C1]  ksys_unshare+0x619/0xc10
+[  298.032547][    C1]  __x64_sys_unshare+0x38/0x40
+[  298.037307][    C1]  do_syscall_64+0xf3/0x230
+[  298.041809][    C1] page last free pid 35 tgid 35 stack trace:
+[  298.047780][    C1]  free_unref_page+0xd22/0xea0
+[  298.052539][    C1]  __folio_put+0x3b9/0x620
+[  298.056957][    C1]  free_large_kmalloc+0x105/0x1c0
+[  298.061999][    C1]  kfree+0x1c4/0x360
+[  298.065891][    C1]  rhashtable_free_and_destroy+0x7c6/0x920
+[  298.071697][    C1]  ila_xlat_exit_net+0x55/0x110
+[  298.076580][    C1]  cleanup_net+0x802/0xcc0
+[  298.081007][    C1]  process_scheduled_works+0xa2c/0x1830
+[  298.086648][    C1]  worker_thread+0x86d/0xd40
+[  298.091249][    C1]  kthread+0x2f0/0x390
+[  298.095343][    C1]  ret_from_fork+0x4b/0x80
+[  298.099756][    C1]  ret_from_fork_asm+0x1a/0x30
+[  298.104516][    C1] 
+[  298.106836][    C1] Memory state around the buggy address:
+[  298.112463][    C1]  ffff888068fe7f00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  298.120535][    C1]  ffff888068fe7f80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  298.128612][    C1] >ffff888068fe8000: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[  298.136659][    C1]                       ^
+[  298.141010][    C1]  ffff888068fe8080: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[  298.149059][    C1]  ffff888068fe8100: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[  298.157130][    C1] ==================================================================
+[  298.165435][    C1] Kernel panic - not syncing: KASAN: panic_on_warn set ...
+[  298.172645][    C1] CPU: 1 PID: 11617 Comm: syz.4.2288 Not tainted 6.10.0-syzkaller-04483-g0be9ae5486cd #0
+[  298.182454][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 06/27/2024
+[  298.192505][    C1] Call Trace:
+[  298.195780][    C1]  <IRQ>
+[  298.198616][    C1]  dump_stack_lvl+0x241/0x360
+[  298.203294][    C1]  ? __pfx_dump_stack_lvl+0x10/0x10
+[  298.208487][    C1]  ? __pfx__printk+0x10/0x10
+[  298.213072][    C1]  ? vscnprintf+0x5d/0x90
+[  298.217401][    C1]  panic+0x349/0x860
+[  298.221295][    C1]  ? check_panic_on_warn+0x21/0xb0
+[  298.226413][    C1]  ? __pfx_panic+0x10/0x10
+[  298.230820][    C1]  ? mark_lock+0x9a/0x350
+[  298.235153][    C1]  ? _raw_spin_unlock_irqrestore+0xd8/0x140
+[  298.241073][    C1]  ? _raw_spin_unlock_irqrestore+0xdd/0x140
+[  298.246968][    C1]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[  298.253300][    C1]  ? print_report+0x502/0x550
+[  298.258009][    C1]  check_panic_on_warn+0x86/0xb0
+[  298.262960][    C1]  ? rhashtable_lookup_fast+0x77a/0x9b0
+[  298.268594][    C1]  end_report+0x77/0x160
+[  298.272837][    C1]  kasan_report+0x154/0x180
+[  298.277440][    C1]  ? rhashtable_lookup_fast+0x77a/0x9b0
+[  298.283103][    C1]  rhashtable_lookup_fast+0x77a/0x9b0
+[  298.288503][    C1]  ? rhashtable_lookup_fast+0xe9/0x9b0
+[  298.293971][    C1]  ? __pfx_ila_cmpfn+0x10/0x10
+[  298.298740][    C1]  ? __pfx_rhashtable_lookup_fast+0x10/0x10
+[  298.304657][    C1]  ? __pfx_ila_cmpfn+0x10/0x10
+[  298.309434][    C1]  ila_nf_input+0x1fe/0x3c0
+[  298.313956][    C1]  ? __pfx_ila_cmpfn+0x10/0x10
+[  298.318727][    C1]  ? ila_nf_input+0xe4/0x3c0
+[  298.323314][    C1]  ? __pfx_ila_nf_input+0x10/0x10
+[  298.328344][    C1]  nf_hook_slow+0xc3/0x220
+[  298.332781][    C1]  ? __pfx_ip6_rcv_finish+0x10/0x10
+[  298.338015][    C1]  ? __pfx_ip6_rcv_finish+0x10/0x10
+[  298.343215][    C1]  NF_HOOK+0x29e/0x450
+[  298.347388][    C1]  ? skb_orphan+0x4b/0xd0
+[  298.351726][    C1]  ? NF_HOOK+0x9a/0x450
+[  298.355880][    C1]  ? __pfx_NF_HOOK+0x10/0x10
+[  298.360473][    C1]  ? __pfx_ip6_rcv_finish+0x10/0x10
+[  298.365680][    C1]  ? __pfx_ipv6_rcv+0x10/0x10
+[  298.370362][    C1]  __netif_receive_skb+0x1ea/0x650
+[  298.375486][    C1]  ? __pfx_lock_acquire+0x10/0x10
+[  298.380521][    C1]  ? __pfx___netif_receive_skb+0x10/0x10
+[  298.386272][    C1]  ? __pfx_lock_release+0x10/0x10
+[  298.391396][    C1]  process_backlog+0x662/0x15b0
+[  298.396247][    C1]  ? process_backlog+0x33b/0x15b0
+[  298.401277][    C1]  ? __pfx_process_backlog+0x10/0x10
+[  298.406565][    C1]  ? kasan_save_free_info+0x40/0x50
+[  298.411900][    C1]  ? poison_slab_object+0xe0/0x150
+[  298.417025][    C1]  __napi_poll+0xcb/0x490
+[  298.421455][    C1]  net_rx_action+0x89b/0x1240
+[  298.426149][    C1]  ? __pfx_net_rx_action+0x10/0x10
+[  298.431276][    C1]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  298.437719][    C1]  handle_softirqs+0x2c4/0x970
+[  298.442490][    C1]  ? __irq_exit_rcu+0xf4/0x1c0
+[  298.447260][    C1]  ? __pfx_handle_softirqs+0x10/0x10
+[  298.452639][    C1]  ? irqtime_account_irq+0xd4/0x1e0
+[  298.457846][    C1]  __irq_exit_rcu+0xf4/0x1c0
+[  298.462454][    C1]  ? __pfx___irq_exit_rcu+0x10/0x10
+[  298.467660][    C1]  irq_exit_rcu+0x9/0x30
+[  298.471912][    C1]  sysvec_apic_timer_interrupt+0xa6/0xc0
+[  298.477561][    C1]  </IRQ>
+[  298.480493][    C1]  <TASK>
+[  298.483427][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  298.489419][    C1] RIP: 0010:preempt_schedule_irq+0xf6/0x1c0
+[  298.495324][    C1] Code: 89 f5 49 c1 ed 03 eb 0d 48 f7 03 08 00 00 00 0f 84 8b 00 00 00 bf 01 00 00 00 e8 25 59 d0 f5 e8 00 57 08 f6 fb bf 01 00 00 00 <e8> 55 ad ff ff 43 80 7c 3d 00 00 74 08 4c 89 f7 e8 25 29 67 f6 48
+[  298.514937][    C1] RSP: 0018:ffffc90002d4f280 EFLAGS: 00000282
+[  298.521005][    C1] RAX: cde7e63586631000 RBX: 1ffff920005a9e58 RCX: ffffffff8173011a
+[  298.528994][    C1] RDX: dffffc0000000000 RSI: ffffffff8bcac920 RDI: 0000000000000001
+[  298.536995][    C1] RBP: ffffc90002d4f340 R08: ffffffff92fcf65f R09: 1ffffffff25f9ecb
+[  298.544966][    C1] R10: dffffc0000000000 R11: fffffbfff25f9ecc R12: 1ffff920005a9e50
+[  298.552937][    C1] R13: 1ffff920005a9e54 R14: ffffc90002d4f2a0 R15: dffffc0000000000
+[  298.560919][    C1]  ? mark_lock+0x9a/0x350
+[  298.565275][    C1]  ? __pfx_preempt_schedule_irq+0x10/0x10
+[  298.571010][    C1]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  298.577370][    C1]  irqentry_exit+0x5e/0x90
+[  298.581815][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  298.587817][    C1] RIP: 0010:__memcg_slab_post_alloc_hook+0x45c/0x7e0
+[  298.594506][    C1] Code: 83 f8 20 0f 83 c1 01 00 00 89 d1 41 d3 ed 45 89 ef be 01 00 00 00 48 8b 7c 24 10 e8 0e b2 00 00 48 b8 00 00 00 00 00 fc ff df <80> 3c 03 00 74 08 4c 89 e7 e8 46 f7 f7 ff 49 8b 04 24 48 85 c0 4c
+[  298.614115][    C1] RSP: 0018:ffffc90002d4f408 EFLAGS: 00000287
+[  298.620190][    C1] RAX: dffffc0000000000 RBX: 1ffffd4000329cc7 RCX: ffffc90002d4f303
+[  298.628163][    C1] RDX: 0000000000000001 RSI: ffffffff8bcadaa0 RDI: ffffffff8c2045a0
+[  298.636217][    C1] RBP: 0000000000000ac0 R08: ffffffff8fae37af R09: 1ffffffff1f5c6f5
+[  298.644275][    C1] R10: dffffc0000000000 R11: fffffbfff1f5c6f6 R12: ffffea000194e638
+[  298.652247][    C1] R13: 0000000000000004 R14: ffffea000194e600 R15: 0000000000000004
+[  298.660334][    C1]  ? __memcg_slab_post_alloc_hook+0x452/0x7e0
+[  298.666430][    C1]  ? proc_alloc_inode+0x2a/0xc0
+[  298.671298][    C1]  kmem_cache_alloc_lru_noprof+0x1e6/0x2b0
+[  298.677114][    C1]  proc_alloc_inode+0x2a/0xc0
+[  298.681800][    C1]  ? __pfx_proc_alloc_inode+0x10/0x10
+[  298.687181][    C1]  new_inode+0x6e/0x310
+[  298.691423][    C1]  ? __pfx_d_alloc_parallel+0x10/0x10
+[  298.696849][    C1]  proc_get_inode+0x22/0x660
+[  298.701450][    C1]  proc_lookup_de+0x24e/0x300
+[  298.706227][    C1]  __lookup_slow+0x28c/0x3f0
+[  298.710837][    C1]  ? __pfx___lookup_slow+0x10/0x10
+[  298.715957][    C1]  lookup_slow+0x53/0x70
+[  298.720203][    C1]  link_path_walk+0x99b/0xea0
+[  298.724887][    C1]  path_lookupat+0xa9/0x450
+[  298.729486][    C1]  do_o_path+0x95/0x230
+[  298.733648][    C1]  ? __pfx_do_o_path+0x10/0x10
+[  298.738421][    C1]  ? init_file+0x15c/0x200
+[  298.742836][    C1]  path_openat+0x2d90/0x3470
+[  298.747529][    C1]  ? mark_lock+0x9a/0x350
+[  298.751900][    C1]  ? __lock_acquire+0x1346/0x1fd0
+[  298.756938][    C1]  ? perf_trace_lock+0x136/0x490
+[  298.761883][    C1]  ? __lock_acquire+0x1346/0x1fd0
+[  298.766917][    C1]  ? __pfx_path_openat+0x10/0x10
+[  298.771882][    C1]  ? __pfx_perf_trace_lock+0x10/0x10
+[  298.777181][    C1]  do_filp_open+0x235/0x490
+[  298.781713][    C1]  ? __pfx_do_filp_open+0x10/0x10
+[  298.786758][    C1]  ? _raw_spin_unlock+0x28/0x50
+[  298.791629][    C1]  ? alloc_fd+0x5a1/0x640
+[  298.796166][    C1]  do_sys_openat2+0x13e/0x1d0
+[  298.800844][    C1]  ? __pfx_do_sys_openat2+0x10/0x10
+[  298.806053][    C1]  ? lockdep_hardirqs_on_prepare+0x43d/0x780
+[  298.812057][    C1]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  298.818470][    C1]  __x64_sys_openat+0x247/0x2a0
+[  298.823317][    C1]  ? __pfx___x64_sys_openat+0x10/0x10
+[  298.828803][    C1]  do_syscall_64+0xf3/0x230
+[  298.833309][    C1]  ? clear_bhb_loop+0x35/0x90
+[  298.838003][    C1]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  298.843981][    C1] RIP: 0033:0x7fc56c775b59
+[  298.848390][    C1] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[  298.868088][    C1] RSP: 002b:00007fc56d545048 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
+[  298.876500][    C1] RAX: ffffffffffffffda RBX: 00007fc56c905f60 RCX: 00007fc56c775b59
+[  298.884551][    C1] RDX: 0000000000200002 RSI: 0000000020000000 RDI: ffffffffffffff9c
+[  298.892528][    C1] RBP: 00007fc56c7e4e5d R08: 0000000000000000 R09: 0000000000000000
+[  298.900522][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  298.908667][    C1] R13: 000000000000000b R14: 00007fc56c905f60 R15: 00007ffd1a0c1a48
+[  298.916650][    C1]  </TASK>
+[  298.919960][    C1] Kernel Offset: disabled
+[  298.924280][    C1] Rebooting in 86400 seconds..
