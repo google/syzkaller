@@ -19,7 +19,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/auth"
-	"github.com/google/syzkaller/pkg/spanner/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
 type Dashboard struct {

@@ -13,7 +13,7 @@ import (
 	"cloud.google.com/go/batch/apiv1/batchpb"
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/pkg/spanner/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2"
