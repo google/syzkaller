@@ -160,7 +160,9 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	}
 	binC := make(chan binResult, len(modules))
 	for _, module := range modules {
-		go func(m *vminfo.KernelModule) {
+		// check https://go.dev/blog/loopvar-preview for loopvar bug
+		module := module
+		go func() {
 			info := &symbolInfo{
 				tracePC:     make(map[uint64]bool),
 				traceCmp:    make(map[uint64]bool),
@@ -185,7 +187,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 				return
 			}
 			binC <- binResult{symbols: result.Symbols, coverPoints: result.CoverPoints, ranges: ranges, units: units}
-		}(module)
+		}()
 		if isKcovBrokenInCompiler(params.getCompilerVersion(module.Path)) {
 			preciseCoverage = false
 		}
