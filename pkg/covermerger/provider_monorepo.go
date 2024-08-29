@@ -51,16 +51,11 @@ func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, repoCommit
 
 func (mr *monoRepo) allRepoCommitsPresent(repoCommits []RepoCommit) bool {
 	for _, repoCommit := range repoCommits {
-		if !mr.repoCommitPresent(repoCommit) {
+		if _, exists := mr.repoCommits[repoCommit]; !exists {
 			return false
 		}
 	}
 	return true
-}
-
-func (mr *monoRepo) repoCommitPresent(repoCommit RepoCommit) bool {
-	_, ok := mr.repoCommits[repoCommit]
-	return ok
 }
 
 func (mr *monoRepo) addRepoCommit(repoCommit RepoCommit) {
@@ -91,7 +86,7 @@ func (mr *monoRepo) cloneCommits(repoCommits []RepoCommit) {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 	for _, repoCommit := range repoCommits {
-		if mr.repoCommitPresent(repoCommit) {
+		if _, exists := mr.repoCommits[repoCommit]; exists {
 			continue
 		}
 		commitExistsInRepo, err := mr.repo.CommitExists(repoCommit.Commit)
