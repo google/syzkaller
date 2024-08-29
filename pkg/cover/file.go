@@ -39,7 +39,7 @@ func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, file
 	}
 	config := &covermerger.Config{
 		Jobs: 1,
-		Base: covermerger.RepoBranchCommit{
+		Base: covermerger.RepoCommit{
 			Repo:   repo,
 			Commit: forCommit,
 		},

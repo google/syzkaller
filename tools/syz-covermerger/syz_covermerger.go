@@ -23,7 +23,6 @@ var (
 	flagWorkdir = flag.String("workdir", "workdir-cover-aggregation",
 		"[optional] used to clone repos")
 	flagRepo                = flag.String("repo", "", "[required] repo to be used as an aggregation point")
-	flagBranch              = flag.String("branch", "", "[required] branch to be used as an aggregation point")
 	flagCommit              = flag.String("commit", "", "[required] commit hash to be used as an aggregation point")
 	flagNamespace           = flag.String("namespace", "upstream", "[optional] target namespace")
 	flagDuration            = flag.Int64("duration", 0, "[optional] used to mark DB records")
@@ -51,9 +50,8 @@ func main() {
 	config := &covermerger.Config{
 		Jobs:    runtime.NumCPU(),
 		Workdir: *flagWorkdir,
-		Base: covermerger.RepoBranchCommit{
+		Base: covermerger.RepoCommit{
 			Repo:   *flagRepo,
-			Branch: *flagBranch,
 			Commit: *flagCommit,
 		},
 		FileVersProvider: makeProvider(),
