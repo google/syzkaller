@@ -22,7 +22,6 @@ func TestAggregateStreamData(t *testing.T) {
 		bqTable           string
 		simpleAggregation string
 		baseRepo          string
-		baseBranch        string
 		baseCommit        string
 	}
 	tests := []Test{
@@ -32,7 +31,6 @@ func TestAggregateStreamData(t *testing.T) {
 			bqTable:           readFileOrFail(t, testsPath+"/aesni-intel_glue/bqTable.txt"),
 			simpleAggregation: readFileOrFail(t, testsPath+"/aesni-intel_glue/merge_result.txt"),
 			baseRepo:          "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
-			baseBranch:        "master",
 			baseCommit:        "fe46a7dd189e25604716c03576d05ac8a5209743",
 		},
 		{
@@ -48,7 +46,6 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_code.c,func1,2,
   }
 }`,
 			baseRepo:   "git://repo",
-			baseBranch: "master",
 			baseCommit: "commit2",
 		},
 		{
@@ -63,7 +60,6 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_file.c,func1,2,
   }
 }`,
 			baseRepo:   "git://repo",
-			baseBranch: "master",
 			baseCommit: "commit2",
 		},
 		{
@@ -80,7 +76,6 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,change_line.c,func1,3,
   }
 }`,
 			baseRepo:   "git://repo",
-			baseBranch: "master",
 			baseCommit: "commit2",
 		},
 		{
@@ -96,7 +91,6 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,add_line.c,func1,2,0,2
   }
 }`,
 			baseRepo:   "git://repo",
-			baseBranch: "master",
 			baseCommit: "commit2",
 		},
 		{
@@ -113,7 +107,6 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
   }
 }`,
 			baseRepo:   "git://repo",
-			baseBranch: "master",
 			baseCommit: "commit2",
 		},
 	}
@@ -124,9 +117,8 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 					Jobs:          2,
 					Workdir:       test.workdir,
 					skipRepoClone: true,
-					Base: RepoBranchCommit{
+					Base: RepoCommit{
 						Repo:   test.baseRepo,
-						Branch: test.baseBranch,
 						Commit: test.baseCommit,
 					},
 					FileVersProvider: &fileVersProviderMock{},
@@ -143,7 +135,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 
 type fileVersProviderMock struct{}
 
-func (m *fileVersProviderMock) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoBranchCommit,
+func (m *fileVersProviderMock) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoCommit,
 ) (fileVersions, error) {
 	res := make(fileVersions)
 	for _, rbc := range rbcs {

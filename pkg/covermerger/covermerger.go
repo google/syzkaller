@@ -28,14 +28,13 @@ const (
 
 type FileRecord struct {
 	FilePath string
-	RepoBranchCommit
+	RepoCommit
 	StartLine int
 	HitCount  int
 }
 
-type RepoBranchCommit struct {
+type RepoCommit struct {
 	Repo   string
-	Branch string
 	Commit string
 }
 
@@ -52,9 +51,9 @@ type FileCoverageMerger interface {
 
 func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
 	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
-	repoBranchCommitsMap := make(map[RepoBranchCommit]bool)
+	repoBranchCommitsMap := make(map[RepoCommit]bool)
 	for _, record := range records {
-		repoBranchCommitsMap[record.RepoBranchCommit] = true
+		repoBranchCommitsMap[record.RepoCommit] = true
 	}
 	repoBranchCommitsMap[c.Base] = true
 	repoBranchCommits := maps.Keys(repoBranchCommitsMap)
@@ -82,8 +81,6 @@ func makeRecord(fields, schema []string) (*FileRecord, error) {
 			record.FilePath = val
 		case KeyKernelRepo:
 			record.Repo = val
-		case KeyKernelBranch:
-			record.Branch = val
 		case KeyKernelCommit:
 			record.Commit = val
 		case KeyStartLine:
@@ -110,7 +107,7 @@ type Config struct {
 	Jobs             int
 	Workdir          string
 	skipRepoClone    bool
-	Base             RepoBranchCommit
+	Base             RepoCommit
 	FileVersProvider FileVersProvider
 	StoreDetails     bool
 }

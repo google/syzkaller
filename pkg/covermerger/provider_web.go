@@ -14,7 +14,7 @@ import (
 type webGit struct {
 }
 
-func (mr *webGit) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoBranchCommit,
+func (mr *webGit) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoCommit,
 ) (fileVersions, error) {
 	res := make(fileVersions)
 	for _, rbc := range rbcs {
@@ -68,12 +68,12 @@ func MakeWebGit() FileVersProvider {
 }
 
 func GetFileVersion(filePath, repo, commit string) (string, error) {
-	rbc := RepoBranchCommit{repo, "", commit}
+	repoCommit := RepoCommit{repo, commit}
 	files, err := MakeWebGit().GetFileVersions(nil,
 		filePath,
-		[]RepoBranchCommit{rbc})
+		[]RepoCommit{repoCommit})
 	if err != nil {
 		return "", fmt.Errorf("failed to GetFileVersions: %w", err)
 	}
-	return files[rbc], nil
+	return files[repoCommit], nil
 }

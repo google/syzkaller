@@ -6,7 +6,7 @@ package covermerger
 import "github.com/google/syzkaller/pkg/log"
 
 func makeFileLineCoverMerger(
-	fvs fileVersions, base RepoBranchCommit, storeDetails bool) FileCoverageMerger {
+	fvs fileVersions, base RepoCommit, storeDetails bool) FileCoverageMerger {
 	baseFile := ""
 	baseFileExists := false
 	for rbc, fv := range fvs {
@@ -26,8 +26,8 @@ func makeFileLineCoverMerger(
 		},
 		rbcToFile:  fvs,
 		baseFile:   baseFile,
-		matchers:   make(map[RepoBranchCommit]*LineToLineMatcher),
-		lostFrames: map[RepoBranchCommit]int64{},
+		matchers:   make(map[RepoCommit]*LineToLineMatcher),
+		lostFrames: map[RepoCommit]int64{},
 	}
 	if storeDetails {
 		a.MergeResult.LineDetails = make(map[int][]*FileRecord)
@@ -42,18 +42,18 @@ type FileLineCoverMerger struct {
 	*MergeResult
 	rbcToFile  fileVersions
 	baseFile   string
-	matchers   map[RepoBranchCommit]*LineToLineMatcher
-	lostFrames map[RepoBranchCommit]int64
+	matchers   map[RepoCommit]*LineToLineMatcher
+	lostFrames map[RepoCommit]int64
 }
 
 func (a *FileLineCoverMerger) Add(record *FileRecord) {
-	if a.matchers[record.RepoBranchCommit] == nil {
+	if a.matchers[record.RepoCommit] == nil {
 		if record.HitCount > 0 {
-			a.lostFrames[record.RepoBranchCommit]++
+			a.lostFrames[record.RepoCommit]++
 		}
 		return
 	}
-	if targetLine := a.matchers[record.RepoBranchCommit].SameLinePos(record.StartLine); targetLine != -1 {
+	if targetLine := a.matchers[record.RepoCommit].SameLinePos(record.StartLine); targetLine != -1 {
 		a.HitCounts[targetLine] += record.HitCount
 		if a.LineDetails != nil {
 			a.LineDetails[targetLine] = append(a.LineDetails[targetLine], record)
@@ -63,8 +63,8 @@ func (a *FileLineCoverMerger) Add(record *FileRecord) {
 
 func (a *FileLineCoverMerger) Result() *MergeResult {
 	for rbc, lostFrames := range a.lostFrames {
-		log.Logf(1, "\t[warn] lost %d frames from rbc(%s, %s, %s)",
-			lostFrames, rbc.Repo, rbc.Branch, rbc.Commit)
+		log.Logf(1, "\t[warn] lost %d frames from repoCommit(%s, %s)",
+			lostFrames, rbc.Repo, rbc.Commit)
 	}
 	return a.MergeResult
 }
