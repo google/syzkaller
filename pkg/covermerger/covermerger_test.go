@@ -135,13 +135,13 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 
 type fileVersProviderMock struct{}
 
-func (m *fileVersProviderMock) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoCommit,
+func (m *fileVersProviderMock) GetFileVersions(c *Config, targetFilePath string, repoCommits []RepoCommit,
 ) (fileVersions, error) {
 	res := make(fileVersions)
-	for _, rbc := range rbcs {
-		filePath := filepath.Join(c.Workdir, "repos", rbc.Commit, targetFilePath)
+	for _, repoCommit := range repoCommits {
+		filePath := filepath.Join(c.Workdir, "repos", repoCommit.Commit, targetFilePath)
 		if bytes, err := os.ReadFile(filePath); err == nil {
-			res[rbc] = string(bytes)
+			res[repoCommit] = string(bytes)
 		}
 	}
 	return res, nil

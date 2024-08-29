@@ -9,8 +9,8 @@ func makeFileLineCoverMerger(
 	fvs fileVersions, base RepoCommit, storeDetails bool) FileCoverageMerger {
 	baseFile := ""
 	baseFileExists := false
-	for rbc, fv := range fvs {
-		if rbc == base {
+	for repoCommit, fv := range fvs {
+		if repoCommit == base {
 			baseFile = fv
 			baseFileExists = true
 			break
@@ -24,7 +24,6 @@ func makeFileLineCoverMerger(
 			HitCounts:  make(map[int]int),
 			FileExists: true,
 		},
-		rbcToFile:  fvs,
 		baseFile:   baseFile,
 		matchers:   make(map[RepoCommit]*LineToLineMatcher),
 		lostFrames: map[RepoCommit]int64{},
@@ -32,15 +31,14 @@ func makeFileLineCoverMerger(
 	if storeDetails {
 		a.MergeResult.LineDetails = make(map[int][]*FileRecord)
 	}
-	for rbc, fv := range fvs {
-		a.matchers[rbc] = makeLineToLineMatcher(fv, baseFile)
+	for repoBranch, fv := range fvs {
+		a.matchers[repoBranch] = makeLineToLineMatcher(fv, baseFile)
 	}
 	return a
 }
 
 type FileLineCoverMerger struct {
 	*MergeResult
-	rbcToFile  fileVersions
 	baseFile   string
 	matchers   map[RepoCommit]*LineToLineMatcher
 	lostFrames map[RepoCommit]int64
@@ -62,9 +60,9 @@ func (a *FileLineCoverMerger) Add(record *FileRecord) {
 }
 
 func (a *FileLineCoverMerger) Result() *MergeResult {
-	for rbc, lostFrames := range a.lostFrames {
+	for repoBranch, lostFrames := range a.lostFrames {
 		log.Logf(1, "\t[warn] lost %d frames from repoCommit(%s, %s)",
-			lostFrames, rbc.Repo, rbc.Commit)
+			lostFrames, repoBranch.Repo, repoBranch.Commit)
 	}
 	return a.MergeResult
 }

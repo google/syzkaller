@@ -14,7 +14,7 @@ import (
 )
 
 type FileVersProvider interface {
-	GetFileVersions(c *Config, targetFilePath string, rbcs []RepoCommit,
+	GetFileVersions(c *Config, targetFilePath string, repoCommits []RepoCommit,
 	) (fileVersions, error)
 }
 
@@ -26,83 +26,83 @@ type monoRepo struct {
 
 type fileVersions map[RepoCommit]string
 
-func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, rbcs []RepoCommit,
+func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, repoCommits []RepoCommit,
 ) (fileVersions, error) {
 	mr.mu.RLock()
-	if !mr.allRepoCommitsPresent(rbcs) {
+	if !mr.allRepoCommitsPresent(repoCommits) {
 		mr.mu.RUnlock()
-		mr.cloneCommits(rbcs)
+		mr.cloneCommits(repoCommits)
 		mr.mu.RLock()
 	}
 	defer mr.mu.RUnlock()
 	res := make(fileVersions)
-	for _, rbc := range rbcs {
-		fileBytes, err := mr.repo.Object(targetFilePath, rbc.Commit)
+	for _, repoCommit := range repoCommits {
+		fileBytes, err := mr.repo.Object(targetFilePath, repoCommit.Commit)
 		// It is ok if some file doesn't exist. It means we have repo FS diff.
 		// Or the upstream commit doesn't exist anymore
 		if err != nil {
-			log.Logf(1, "repo.Object(%s, %s) error: %s", targetFilePath, rbc.Commit, err.Error())
+			log.Logf(1, "repo.Object(%s, %s) error: %s", targetFilePath, repoCommit.Commit, err.Error())
 			continue
 		}
-		res[rbc] = string(fileBytes)
+		res[repoCommit] = string(fileBytes)
 	}
 	return res, nil
 }
 
-func (mr *monoRepo) allRepoCommitsPresent(rbcs []RepoCommit) bool {
-	for _, rbc := range rbcs {
-		if !mr.repoCommitPresent(rbc) {
+func (mr *monoRepo) allRepoCommitsPresent(repoCommits []RepoCommit) bool {
+	for _, repoCommit := range repoCommits {
+		if !mr.repoCommitPresent(repoCommit) {
 			return false
 		}
 	}
 	return true
 }
 
-func (mr *monoRepo) repoCommitPresent(rbc RepoCommit) bool {
-	_, ok := mr.repoCommits[rbc]
+func (mr *monoRepo) repoCommitPresent(repoCommit RepoCommit) bool {
+	_, ok := mr.repoCommits[repoCommit]
 	return ok
 }
 
-func (mr *monoRepo) addRepoCommit(rbc RepoCommit) {
-	log.Logf(0, "cloning repo: %s, commit %s", rbc.Repo, rbc.Commit)
-	mr.repoCommits[rbc] = struct{}{}
-	if rbc.Repo == "" || rbc.Commit == "" {
+func (mr *monoRepo) addRepoCommit(repoCommit RepoCommit) {
+	log.Logf(0, "cloning repo: %s, commit %s", repoCommit.Repo, repoCommit.Commit)
+	mr.repoCommits[repoCommit] = struct{}{}
+	repo, commit := repoCommit.Repo, repoCommit.Commit
+	if repo == "" || commit == "" {
 		panic("repo and commit are needed")
 	}
-	if _, err := mr.repo.CheckoutCommit(rbc.Repo, rbc.Commit); err != nil {
-		log.Logf(0, "failed to CheckoutCommit(repo %s, commit %s): %s",
-			rbc.Repo, rbc.Commit, err.Error())
+	if _, err := mr.repo.CheckoutCommit(repo, commit); err != nil {
+		log.Logf(0, "failed to CheckoutCommit(repo %s, commit %s): %s", repo, commit, err.Error())
 	}
 }
 
 func MakeMonoRepo(workdir string) FileVersProvider {
-	rbcPath := filepath.Join(workdir, "repos", "linux_kernels")
+	repoPath := filepath.Join(workdir, "repos", "linux_kernels")
 	mr := &monoRepo{
 		repoCommits: map[RepoCommit]struct{}{},
 	}
 	var err error
-	if mr.repo, err = vcs.NewRepo(targets.Linux, "none", rbcPath); err != nil {
-		panic(fmt.Sprintf("failed to create/open repo at %s: %s", rbcPath, err.Error()))
+	if mr.repo, err = vcs.NewRepo(targets.Linux, "none", repoPath); err != nil {
+		panic(fmt.Sprintf("failed to create/open repo at %s: %s", repoPath, err.Error()))
 	}
 	return mr
 }
 
-func (mr *monoRepo) cloneCommits(rbcs []RepoCommit) {
+func (mr *monoRepo) cloneCommits(repoCommits []RepoCommit) {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
-	for _, rbc := range rbcs {
-		if mr.repoCommitPresent(rbc) {
+	for _, repoCommit := range repoCommits {
+		if mr.repoCommitPresent(repoCommit) {
 			continue
 		}
-		commitExistsInRepo, err := mr.repo.CommitExists(rbc.Commit)
+		commitExistsInRepo, err := mr.repo.CommitExists(repoCommit.Commit)
 		if err != nil {
 			log.Logf(0, "can't check CommitExists: %s", err.Error())
 		}
 		if commitExistsInRepo {
-			log.Logf(0, "commit %s exists in local repo, no need to clone", rbc.Commit)
-			mr.repoCommits[rbc] = struct{}{}
+			log.Logf(0, "commit %s exists in local repo, no need to clone", repoCommit.Commit)
+			mr.repoCommits[repoCommit] = struct{}{}
 			continue
 		}
-		mr.addRepoCommit(rbc)
+		mr.addRepoCommit(repoCommit)
 	}
 }
