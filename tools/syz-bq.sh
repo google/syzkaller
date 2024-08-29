@@ -52,6 +52,7 @@ if [ ! -d $base_dir ]; then
 fi
 cd $base_dir
 remote=$(git remote -v | grep $repo | head -n1 | awk '{print $1;}')
+git fetch --tags $remote
 git checkout $remote/$branch
 cd -
 
