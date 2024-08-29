@@ -5,6 +5,7 @@ package covermerger
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -75,7 +76,7 @@ func (mr *monoRepo) addRepoCommit(rbc RepoCommit) {
 }
 
 func MakeMonoRepo(workdir string) FileVersProvider {
-	rbcPath := workdir + "/repos/linux_kernels"
+	rbcPath := filepath.Join(workdir, "repos", "linux_kernels")
 	mr := &monoRepo{
 		repoCommits: map[RepoCommit]struct{}{},
 	}

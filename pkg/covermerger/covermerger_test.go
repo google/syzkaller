@@ -139,7 +139,7 @@ func (m *fileVersProviderMock) GetFileVersions(c *Config, targetFilePath string,
 ) (fileVersions, error) {
 	res := make(fileVersions)
 	for _, rbc := range rbcs {
-		filePath := c.Workdir + "/repos/" + rbc.Commit + "/" + targetFilePath
+		filePath := filepath.Join(c.Workdir, "repos", rbc.Commit, targetFilePath)
 		if bytes, err := os.ReadFile(filePath); err == nil {
 			res[rbc] = string(bytes)
 		}
