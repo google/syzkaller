@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -203,6 +204,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		allRanges = append(allRanges, result.ranges...)
 		allUnits = append(allUnits, result.units...)
 	}
+	log.Logf(1, "discovered %v source files, %v symbols", len(allUnits), len(allSymbols))
 	// TODO: need better way to remove symbols having the same Start
 	uniqSymbs := make(map[uint64]*Symbol)
 	for _, sym := range allSymbols {
