@@ -653,14 +653,14 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 }
 
 func (mgr *Manager) httpJobs(w http.ResponseWriter, r *http.Request) {
-	var list []fuzzer.JobInfo
+	var list []*fuzzer.JobInfo
 	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
 		list = fuzzer.RunningJobs()
 	}
 	if key := r.FormValue("id"); key != "" {
 		for _, item := range list {
-			if item.ID == key {
-				w.Write(item.Prog.Serialize())
+			if item.ID() == key {
+				w.Write(item.Bytes())
 				return
 			}
 		}
@@ -683,9 +683,9 @@ func (mgr *Manager) httpJobs(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		data.Jobs = append(data.Jobs, UIJobInfo{
-			ID:    item.ID,
-			Short: item.Prog.String(),
-			Execs: item.Execs,
+			ID:    item.ID(),
+			Short: item.Name,
+			Execs: item.Execs.Load(),
 			Calls: strings.Join(item.Calls, ", "),
 		})
 	}
@@ -1197,7 +1197,7 @@ type UIJobInfo struct {
 	ID    string
 	Short string
 	Calls string
-	Execs int
+	Execs int32
 }
 
 var jobListTemplate = pages.Create(`

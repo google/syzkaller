@@ -95,6 +95,7 @@ func TestDeflake(t *testing.T) {
 					Cover:  newCover(),
 					Config: &Config{},
 				},
+				info: &JobInfo{},
 			}
 
 			var run uint64

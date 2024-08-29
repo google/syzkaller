@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 
@@ -138,13 +139,22 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 			if flags&progCandidate > 0 {
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
 			}
-			fuzzer.startJob(stat, &triageJob{
+			job := &triageJob{
 				p:        req.Prog.Clone(),
 				executor: res.Executor,
 				flags:    flags,
 				queue:    queue.Append(),
 				calls:    triage,
-			})
+				info: &JobInfo{
+					Name: req.Prog.String(),
+					Type: "triage",
+				},
+			}
+			for id := range triage {
+				job.info.Calls = append(job.info.Calls, job.p.CallName(id))
+			}
+			sort.Strings(job.info.Calls)
+			fuzzer.startJob(stat, job)
 		}
 	}
 
@@ -370,13 +380,13 @@ func (fuzzer *Fuzzer) ChoiceTable() *prog.ChoiceTable {
 	return fuzzer.ct
 }
 
-func (fuzzer *Fuzzer) RunningJobs() []JobInfo {
+func (fuzzer *Fuzzer) RunningJobs() []*JobInfo {
 	fuzzer.mu.Lock()
 	defer fuzzer.mu.Unlock()
 
-	var ret []JobInfo
+	var ret []*JobInfo
 	for item := range fuzzer.runningJobs {
-		ret = append(ret, item.info())
+		ret = append(ret, item.getInfo())
 	}
 	return ret
 }

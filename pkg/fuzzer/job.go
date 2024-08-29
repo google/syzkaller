@@ -4,11 +4,12 @@
 package fuzzer
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
-	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
@@ -23,15 +24,20 @@ type job interface {
 }
 
 type jobIntrospector interface {
-	info() JobInfo
+	getInfo() *JobInfo
 }
 
 type JobInfo struct {
-	ID    string
+	Name  string
 	Calls []string
 	Type  string
-	Prog  *prog.Prog
-	Execs int
+	Execs atomic.Int32
+
+	syncBuffer
+}
+
+func (ji *JobInfo) ID() string {
+	return fmt.Sprintf("%p", ji)
 }
 
 func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
@@ -76,7 +82,8 @@ type triageJob struct {
 	queue    queue.Executor
 	// Set of calls that gave potential new coverage.
 	calls map[int]*triageCall
-	execs atomic.Int32
+
+	info *JobInfo
 }
 
 type triageCall struct {
@@ -123,7 +130,7 @@ const (
 )
 
 func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result {
-	defer job.execs.Add(1)
+	defer job.info.Execs.Add(1)
 	req.Important = true // All triage executions are important.
 	return job.fuzzer.executeWithFlags(job.queue, req, flags)
 }
@@ -131,6 +138,11 @@ func (job *triageJob) execute(req *queue.Request, flags ProgFlags) *queue.Result
 func (job *triageJob) run(fuzzer *Fuzzer) {
 	fuzzer.statNewInputs.Add(1)
 	job.fuzzer = fuzzer
+	job.info.Logf("\n%s", job.p.Serialize())
+	for call, info := range job.calls {
+		job.info.Logf("call #%d [%s]: |new signal|=%d",
+			call, job.p.CallName(call), info.newSignal.Len())
+	}
 
 	// Compute input coverage and non-flaky signal for minimization.
 	stop := job.deflake(job.execute)
@@ -169,6 +181,11 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 		job.fuzzer.startJob(job.fuzzer.statJobsSmash, &smashJob{
 			exec: job.fuzzer.smashQueue,
 			p:    p.Clone(),
+			info: &JobInfo{
+				Name:  p.String(),
+				Type:  "smash",
+				Calls: []string{p.CallName(call)},
+			},
 		})
 		if job.fuzzer.Config.Comparisons && call >= 0 {
 			job.fuzzer.startJob(job.fuzzer.statJobsHints, &hintsJob{
@@ -197,6 +214,8 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 }
 
 func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result) (stop bool) {
+	job.info.Logf("deflake started")
+
 	avoid := []queue.ExecutorID{job.executor}
 	needRuns := deflakeNeedCorpusRuns
 	if job.fuzzer.Config.Snapshot {
@@ -265,9 +284,12 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 		}
 		deflakeCall(-1, result.Info.Extra)
 	}
-	for _, info := range job.calls {
+	job.info.Logf("deflake complete")
+	for call, info := range job.calls {
 		info.stableSignal = info.signals[needRuns-1]
 		info.newStableSignal = info.newSignal.Intersection(info.stableSignal)
+		job.info.Logf("call #%d [%s]: |stable signal|=%d, |new stable signal|=%d",
+			call, job.p.CallName(call), info.stableSignal.Len(), info.newStableSignal.Len())
 	}
 	return false
 }
@@ -313,6 +335,7 @@ func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
 }
 
 func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
+	job.info.Logf("minimize started")
 	minimizeAttempts := 3
 	if job.fuzzer.Config.Snapshot {
 		minimizeAttempts = 2
@@ -345,9 +368,11 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 				mergedSignal.Merge(thisSignal)
 			}
 			if info.newStableSignal.Intersection(mergedSignal).Len() == info.newStableSignal.Len() {
+				job.info.Logf("minimization step success (|calls| = %d)", len(p1.Calls))
 				return true
 			}
 		}
+		job.info.Logf("minimization step failure")
 		return false
 	})
 	if stop {
@@ -382,29 +407,19 @@ func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) signal.Si
 	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call))
 }
 
-func (job *triageJob) info() JobInfo {
-	ret := JobInfo{
-		ID:    fmt.Sprintf("%p", job),
-		Type:  "triage",
-		Execs: int(job.execs.Load()),
-		Prog:  job.p,
-	}
-	for id := range job.calls {
-		ret.Calls = append(ret.Calls, job.p.CallName(id))
-	}
-	sort.Strings(ret.Calls)
-	return ret
+func (job *triageJob) getInfo() *JobInfo {
+	return job.info
 }
 
 type smashJob struct {
-	exec  queue.Executor
-	p     *prog.Prog
-	call  int
-	execs atomic.Int32
+	exec queue.Executor
+	p    *prog.Prog
+	info *JobInfo
 }
 
 func (job *smashJob) run(fuzzer *Fuzzer) {
-	fuzzer.Logf(2, "smashing the program %s (call=%d):", job.p, job.call)
+	fuzzer.Logf(2, "smashing the program %s:", job.p)
+	job.info.Logf("\n%s", job.p.Serialize())
 
 	const iters = 25
 	rnd := fuzzer.rand()
@@ -422,18 +437,12 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 		if result.Stop() {
 			return
 		}
-		job.execs.Add(1)
+		job.info.Execs.Add(1)
 	}
 }
 
-func (job *smashJob) info() JobInfo {
-	return JobInfo{
-		ID:    fmt.Sprintf("%p", job),
-		Type:  "smash",
-		Execs: int(job.execs.Load()),
-		Prog:  job.p,
-		Calls: []string{job.p.CallName(job.call)},
-	}
+func (job *smashJob) getInfo() *JobInfo {
+	return job.info
 }
 
 func randomCollide(origP *prog.Prog, rnd *rand.Rand) *prog.Prog {
@@ -534,4 +543,24 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 			})
 			return !result.Stop()
 		})
+}
+
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (sb *syncBuffer) Logf(logFmt string, args ...any) {
+	sb.mu.Lock()
+	defer sb.mu.Unlock()
+
+	fmt.Fprintf(&sb.buf, "%s: ", time.Now().Format(time.DateTime))
+	fmt.Fprintf(&sb.buf, logFmt, args...)
+	sb.buf.WriteByte('\n')
+}
+
+func (sb *syncBuffer) Bytes() []byte {
+	sb.mu.Lock()
+	defer sb.mu.Unlock()
+	return sb.buf.Bytes()
 }
