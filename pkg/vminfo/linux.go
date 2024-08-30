@@ -27,6 +27,8 @@ func (linux) RequiredFiles() []string {
 		"/proc/modules",
 		"/proc/kallsyms",
 		"/sys/module/*/sections/.text",
+		"/sys/module/*/sections/.init.text",
+		"/sys/module/*/sections/.init.plt",
 		"/sys/module/kvm*/parameters/*",
 	}
 }
@@ -97,16 +99,27 @@ func (linux linux) parseModules(files filesystem) ([]*KernelModule, error) {
 }
 
 func linuxModuleTextAddr(files filesystem, module string) (uint64, error) {
-	data, err := files.ReadFile("/sys/module/" + module + "/sections/.text")
-	if err != nil {
-		return 0, fmt.Errorf("could not read module %v .text address file: %w", module, err)
+	sections := []string{
+		".text",
+		".init.text",
+		".init.plt",
 	}
-	addrString := strings.TrimSpace(string(data))
-	addr, err := strconv.ParseUint(addrString, 0, 64)
-	if err != nil {
-		return 0, fmt.Errorf("address parsing error in %v: %w", module, err)
+	for i, sec := range sections {
+		data, err := files.ReadFile("/sys/module/" + module + "/sections/" + sec)
+		if err != nil {
+			if i == len(sections)-1 {
+				return 0, fmt.Errorf("could not read module %v %v address file: %w", module, sec, err)
+			}
+			continue
+		}
+		addrString := strings.TrimSpace(string(data))
+		addr, err := strconv.ParseUint(addrString, 0, 64)
+		if err != nil {
+			return 0, fmt.Errorf("address parsing error in %v: %w", module, err)
+		}
+		return addr, nil
 	}
-	return addr, nil
+	return 0, nil
 }
 
 func linuxParseCoreKernel(files filesystem) (uint64, uint64, error) {
