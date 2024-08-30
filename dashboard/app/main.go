@@ -65,6 +65,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
 		if nsConfig.Coverage != nil {
+			http.Handle("/"+ns+"/graph/coverage/file", handlerWrapper(handleFileCoverage))
 			http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
 			http.Handle("/"+ns+"/graph/coverage_heatmap", handlerWrapper(handleCoverageHeatmap))
 			if nsConfig.Subsystems.Service != nil {

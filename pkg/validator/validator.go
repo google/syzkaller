@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
 type Result struct {
@@ -50,11 +51,14 @@ var (
 	EmptyStr       = makeStrLenFunc("not empty", 0)
 	AlphaNumeric   = makeStrReFunc("not an alphanum", "^[a-zA-Z0-9]*$")
 	CommitHash     = makeCombinedStrFunc("not a hash", AlphaNumeric, makeStrLenFunc("len is not 40", 40))
-	KernelFilePath = makeStrReFunc("not a kernel file path", "^[./_a-zA-Z0-9]*$")
+	KernelFilePath = makeStrReFunc("not a kernel file path", "^[./-_a-zA-Z0-9]*$")
 	NamespaceName  = makeStrReFunc("not a namespace name", "^[a-zA-Z0-9-_.]{4,32}$")
 	DashClientName = makeStrReFunc("not a dashboard client name", "^[a-zA-Z0-9-_.]{4,100}$")
 	DashClientKey  = makeStrReFunc("not a dashboard client key",
 		"^([a-zA-Z0-9]{16,128})|("+regexp.QuoteMeta(auth.OauthMagic)+".*)$")
+	TimePeriodType = makeStrReFunc(fmt.Sprintf("bad time period, use (%s|%s|%s)",
+		coveragedb.DayPeriod, coveragedb.MonthPeriod, coveragedb.QuarterPeriod),
+		fmt.Sprintf("^(%s|%s|%s)$", coveragedb.DayPeriod, coveragedb.MonthPeriod, coveragedb.QuarterPeriod))
 )
 
 type strValidationFunc func(string, ...string) Result

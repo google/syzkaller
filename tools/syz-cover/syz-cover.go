@@ -125,6 +125,7 @@ func toolFileCover() {
 		*flagCommit,
 		*flagSourceCommit,
 		*flagForFile,
+		nil, // no proxy - get files directly from WebGits
 		dateFrom,
 		dateTo,
 		config,
