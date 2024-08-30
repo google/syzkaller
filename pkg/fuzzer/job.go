@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -140,8 +141,8 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	job.fuzzer = fuzzer
 	job.info.Logf("\n%s", job.p.Serialize())
 	for call, info := range job.calls {
-		job.info.Logf("call #%d [%s]: |new signal|=%d",
-			call, job.p.CallName(call), info.newSignal.Len())
+		job.info.Logf("call #%d [%s]: |new signal|=%d%s",
+			call, job.p.CallName(call), info.newSignal.Len(), signalPreview(info.newSignal))
 	}
 
 	// Compute input coverage and non-flaky signal for minimization.
@@ -288,8 +289,9 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 	for call, info := range job.calls {
 		info.stableSignal = info.signals[needRuns-1]
 		info.newStableSignal = info.newSignal.Intersection(info.stableSignal)
-		job.info.Logf("call #%d [%s]: |stable signal|=%d, |new stable signal|=%d",
-			call, job.p.CallName(call), info.stableSignal.Len(), info.newStableSignal.Len())
+		job.info.Logf("call #%d [%s]: |stable signal|=%d, |new stable signal|=%d%s",
+			call, job.p.CallName(call), info.stableSignal.Len(), info.newStableSignal.Len(),
+			signalPreview(info.newStableSignal))
 	}
 	return false
 }
@@ -335,7 +337,7 @@ func (job *triageJob) stopDeflake(run, needRuns int, noNewSignal bool) bool {
 }
 
 func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
-	job.info.Logf("minimize started")
+	job.info.Logf("[call #%d] minimize started", call)
 	minimizeAttempts := 3
 	if job.fuzzer.Config.Snapshot {
 		minimizeAttempts = 2
@@ -368,11 +370,12 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 				mergedSignal.Merge(thisSignal)
 			}
 			if info.newStableSignal.Intersection(mergedSignal).Len() == info.newStableSignal.Len() {
-				job.info.Logf("minimization step success (|calls| = %d)", len(p1.Calls))
+				job.info.Logf("[call #%d] minimization step success (|calls| = %d)",
+					call, len(p1.Calls))
 				return true
 			}
 		}
-		job.info.Logf("minimization step failure")
+		job.info.Logf("[call #%d] minimization step failure", call)
 		return false
 	})
 	if stop {
@@ -405,6 +408,22 @@ func getSignalAndCover(p *prog.Prog, info *flatrpc.ProgInfo, call int) signal.Si
 		return nil
 	}
 	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call))
+}
+
+func signalPreview(s signal.Signal) string {
+	if s.Len() > 0 && s.Len() <= 3 {
+		var sb strings.Builder
+		sb.WriteString(" (")
+		for i, x := range s.ToRaw() {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			fmt.Fprintf(&sb, "0x%x", x)
+		}
+		sb.WriteByte(')')
+		return sb.String()
+	}
+	return ""
 }
 
 func (job *triageJob) getInfo() *JobInfo {
