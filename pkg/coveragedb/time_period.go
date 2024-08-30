@@ -4,6 +4,8 @@
 package coveragedb
 
 import (
+	"errors"
+	"slices"
 	"sort"
 
 	"cloud.google.com/go/civil"
@@ -14,10 +16,50 @@ type TimePeriod struct {
 	Days   int
 }
 
+const (
+	MonthPeriod   = "month"
+	QuarterPeriod = "quarter"
+)
+
+var errUnknownTimePeriodType = errors.New("unknown time period type")
+
+func MinMaxDays(periodType string) (int, int, error) {
+	switch periodType {
+	case MonthPeriod:
+		return 28, 31, nil
+	case QuarterPeriod:
+		return 31 + 28 + 31, 31 + 30 + 31, nil
+	default:
+		return 0, 0, errUnknownTimePeriodType
+	}
+}
+
+func PeriodOps(periodType string) (periodOps, error) {
+	switch periodType {
+	case MonthPeriod:
+		return &MonthPeriodOps{}, nil
+	case QuarterPeriod:
+		return &QuarterPeriodOps{}, nil
+	default:
+		return nil, errUnknownTimePeriodType
+	}
+}
+
 type periodOps interface {
-	isValidPeriod(p TimePeriod) bool
+	IsValidPeriod(p TimePeriod) bool
 	lastPeriodDate(d civil.Date) civil.Date
 	pointedPeriodDays(d civil.Date) int
+}
+
+func GenNPeriodEndDatesTill(n int, d civil.Date, po periodOps) []civil.Date {
+	var res []civil.Date
+	for i := 0; i < n; i++ {
+		d = po.lastPeriodDate(d)
+		res = append(res, d)
+		d = d.AddDays(-po.pointedPeriodDays(d))
+	}
+	slices.Reverse(res)
+	return res
 }
 
 type DayPeriodOps struct{}
@@ -26,7 +68,7 @@ func (dpo *DayPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
 	return d
 }
 
-func (dpo *DayPeriodOps) isValidPeriod(p TimePeriod) bool {
+func (dpo *DayPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	return p.Days == 1
 }
 
@@ -43,7 +85,7 @@ func (m *MonthPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
 	return d.AddDays(-1)
 }
 
-func (m *MonthPeriodOps) isValidPeriod(p TimePeriod) bool {
+func (m *MonthPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	lmd := m.lastPeriodDate(p.DateTo)
 	return lmd == p.DateTo && p.Days == lmd.Day
 }
@@ -54,7 +96,7 @@ func (m *MonthPeriodOps) pointedPeriodDays(d civil.Date) int {
 
 type QuarterPeriodOps struct{}
 
-func (q *QuarterPeriodOps) isValidPeriod(p TimePeriod) bool {
+func (q *QuarterPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	lmd := q.lastPeriodDate(p.DateTo)
 	return lmd == p.DateTo && p.Days == q.pointedPeriodDays(lmd)
 }
@@ -83,7 +125,7 @@ func PeriodsToMerge(srcDates, mergedPeriods []TimePeriod, srcRows, mergedRows []
 		periodRows[periodID] += srcRows[i]
 	}
 	for i, period := range mergedPeriods {
-		if !ops.isValidPeriod(period) {
+		if !ops.IsValidPeriod(period) {
 			continue
 		}
 		mergerPeriodID := period.DateTo
