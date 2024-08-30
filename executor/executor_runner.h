@@ -760,11 +760,6 @@ static void SigintHandler(int sig)
 	exitf("SYZ-EXECUTOR: PREEMPTED");
 }
 
-static void SigchldHandler(int sig)
-{
-	// We need just blocking syscall preemption.
-}
-
 static void FatalHandler(int sig, siginfo_t* info, void* ucontext)
 {
 	// Print minimal debugging info we can extract reasonably easy.
@@ -826,8 +821,6 @@ static void runner(char** argv, int argc)
 		fail("signal(SIGINT) failed");
 	if (signal(SIGTERM, SigintHandler) == SIG_ERR)
 		fail("signal(SIGTERM) failed");
-	if (signal(SIGCHLD, SigchldHandler) == SIG_ERR)
-		fail("signal(SIGCHLD) failed");
 	struct sigaction act = {};
 	act.sa_flags = SA_SIGINFO;
 	act.sa_sigaction = FatalHandler;
