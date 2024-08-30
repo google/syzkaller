@@ -246,7 +246,7 @@ func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smas
 		}
 		min, smash := matchDomains(hc.domain, inp.Domain)
 		var flags fuzzer.ProgFlags
-		if min && len(p.Calls) < reminimizeThreshold {
+		if min && len(p.Calls) < manager.ReminimizeThreshold {
 			minimized++
 			flags |= fuzzer.ProgMinimized
 		}
@@ -317,7 +317,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 }
 
 func (hc *HubConnector) parseProgram(data []byte) (*prog.Prog, error) {
-	p, err := loadProg(hc.target, data)
+	p, err := manager.LoadProg(hc.target, data)
 	if err != nil {
 		return nil, err
 	}
