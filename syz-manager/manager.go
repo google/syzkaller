@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -151,8 +150,6 @@ const (
 	// This is when we start reproducing crashes.
 	phaseTriagedHub
 )
-
-const currentDBVersion = 5
 
 func main() {
 	if prog.GitRevision == "" {
@@ -472,244 +469,31 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 }
 
 func (mgr *Manager) preloadCorpus() {
-	corpusDB, err := db.Open(filepath.Join(mgr.cfg.Workdir, "corpus.db"), true)
-	if err != nil {
-		if corpusDB == nil {
-			log.Fatalf("failed to open corpus database: %v", err)
-		}
-		log.Errorf("read %v inputs from corpus and got error: %v", len(corpusDB.Records), err)
-	}
-	mgr.corpusDB = corpusDB
-	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	// By default we don't re-minimize/re-smash programs from corpus,
-	// it takes lots of time on start and is unnecessary.
-	// However, on version bumps we can selectively re-minimize/re-smash.
-	corpusFlags := fuzzer.ProgFromCorpus | fuzzer.ProgMinimized | fuzzer.ProgSmashed
-	switch mgr.corpusDB.Version {
-	case 0:
-		// Version 0 had broken minimization, so we need to re-minimize.
-		corpusFlags &= ^fuzzer.ProgMinimized
-		fallthrough
-	case 1:
-		// Version 1->2: memory is preallocated so lots of mmaps become unnecessary.
-		corpusFlags &= ^fuzzer.ProgMinimized
-		fallthrough
-	case 2:
-		// Version 2->3: big-endian hints.
-		corpusFlags &= ^fuzzer.ProgSmashed
-		fallthrough
-	case 3:
-		// Version 3->4: to shake things up.
-		corpusFlags &= ^fuzzer.ProgMinimized
-		fallthrough
-	case 4:
-		// Version 4->5: fix for comparison argument sign extension.
-		// Introduced in 1ba0279d74a35e96e81de87073212d2b20256e8f.
-
-		// Update (July 2024):
-		// We used to reset the fuzzer.ProgSmashed flag here, but it has led to
-		// perpetual corpus retriage on slow syzkaller instances. By now, all faster
-		// instances must have already bumped their corpus versions, so let's just
-		// increase the version to let all others go past the corpus triage stage.
-		fallthrough
-	case currentDBVersion:
-	}
-	type Input struct {
-		IsSeed bool
-		Key    string
-		Data   []byte
-		Prog   *prog.Prog
-	}
-	procs := runtime.GOMAXPROCS(0)
-	inputs := make(chan *Input, procs)
-	outputs := make(chan *Input, procs)
-	var wg sync.WaitGroup
-	wg.Add(procs)
-	for p := 0; p < procs; p++ {
-		go func() {
-			defer wg.Done()
-			for inp := range inputs {
-				inp.Prog, _ = loadProg(mgr.target, inp.Data)
-				outputs <- inp
-			}
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(outputs)
-	}()
-	go func() {
-		for key, rec := range mgr.corpusDB.Records {
-			inputs <- &Input{
-				Key:  key,
-				Data: rec.Val,
-			}
-		}
-		seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, "test")
-		if osutil.IsExist(seedDir) {
-			seeds, err := os.ReadDir(seedDir)
-			if err != nil {
-				log.Fatalf("failed to read seeds dir: %v", err)
-			}
-			for _, seed := range seeds {
-				data, err := os.ReadFile(filepath.Join(seedDir, seed.Name()))
-				if err != nil {
-					log.Fatalf("failed to read seed %v: %v", seed.Name(), err)
-				}
-				inputs <- &Input{
-					IsSeed: true,
-					Data:   data,
-				}
-			}
-		}
-		close(inputs)
-	}()
-	brokenSeeds := 0
-	var brokenCorpus []string
-	var candidates []fuzzer.Candidate
-	for inp := range outputs {
-		if inp.Prog == nil {
-			if inp.IsSeed {
-				brokenSeeds++
-			} else {
-				brokenCorpus = append(brokenCorpus, inp.Key)
-			}
-			continue
-		}
-		flags := corpusFlags
-		if inp.IsSeed {
-			if _, ok := mgr.corpusDB.Records[hash.String(inp.Prog.Serialize())]; ok {
-				continue
-			}
-			// Seeds are not considered "from corpus" (won't be rerun multiple times)
-			// b/c they are tried on every start anyway.
-			flags = fuzzer.ProgMinimized
-		}
-		candidates = append(candidates, fuzzer.Candidate{
-			Prog:  inp.Prog,
-			Flags: flags,
-		})
-	}
-	if len(brokenCorpus)+brokenSeeds != 0 {
-		log.Logf(0, "broken programs in the corpus: %v, broken seeds: %v", len(brokenCorpus), brokenSeeds)
-	}
-	// This needs to be done outside of the loop above to not race with mgr.corpusDB reads.
-	for _, sig := range brokenCorpus {
-		mgr.corpusDB.Delete(sig)
-	}
-	if err := mgr.corpusDB.Flush(); err != nil {
-		log.Fatalf("failed to save corpus database: %v", err)
-	}
-	// Switch database to the mode when it does not keep records in memory.
-	// We don't need them anymore and they consume lots of memory.
-	mgr.corpusDB.DiscardData()
-	mgr.corpusPreload <- candidates
+	info := manager.LoadSeeds(mgr.cfg, false)
+	mgr.fresh = info.Fresh
+	mgr.corpusDB = info.CorpusDB
+	mgr.corpusPreload <- info.Candidates
 }
 
 func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
-	seeds := 0
-	var candidates []fuzzer.Candidate
-	for _, item := range <-mgr.corpusPreload {
-		if !item.Prog.OnlyContains(mgr.targetEnabledSyscalls) {
-			if mgr.cfg.PreserveCorpus {
-				// This program contains a disabled syscall.
-				// We won't execute it, but remember its hash so
-				// it is not deleted during minimization.
-				mgr.disabledHashes[hash.String(item.Prog.Serialize())] = struct{}{}
-				continue
-			}
-			// We cut out the disabled syscalls and retriage/minimize what remains from the prog.
-			// The original prog will be deleted from the corpus.
-			item.Flags &= ^fuzzer.ProgMinimized
-			item.Prog.FilterInplace(mgr.targetEnabledSyscalls)
-			if len(item.Prog.Calls) == 0 {
-				continue
-			}
+	ret := manager.FilterCandidates(<-mgr.corpusPreload, mgr.targetEnabledSyscalls, true)
+	if mgr.cfg.PreserveCorpus {
+		for _, hash := range ret.ModifiedHashes {
+			// This program contains a disabled syscall.
+			// We won't execute it, but remember its hash so
+			// it is not deleted during minimization.
+			mgr.disabledHashes[hash] = struct{}{}
 		}
-		if item.Flags&fuzzer.ProgFromCorpus == 0 {
-			seeds++
-		}
-		candidates = append(candidates, item)
 	}
 	// Let's favorize smaller programs, otherwise the poorly minimized ones may overshadow the rest.
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return len(candidates[i].Prog.Calls) < len(candidates[j].Prog.Calls)
+	sort.SliceStable(ret.Candidates, func(i, j int) bool {
+		return len(ret.Candidates[i].Prog.Calls) < len(ret.Candidates[j].Prog.Calls)
 	})
-	reminimized := reminimizeSubset(candidates)
-	resmashed := resmashSubset(candidates)
+	reminimized := ret.ReminimizeSubset()
+	resmashed := ret.ResmashSubset()
 	log.Logf(0, "%-24v: %v (%v seeds), %d to be reminimized, %d to be resmashed",
-		"corpus", len(candidates), seeds, reminimized, resmashed)
-	return candidates
-}
-
-// Programs that do more than 15 system calls are to be treated with suspicion and re-minimized.
-const reminimizeThreshold = 15
-
-// reminimizeSubset clears the fuzzer.ProgMinimized flag of a small subset of seeds.
-// The ultimate objective is to gradually clean up the poorly minimized corpus programs.
-// reminimizeSubset assumes that candidates are sorted in the order of ascending len(Prog.Calls).
-func reminimizeSubset(candidates []fuzzer.Candidate) int {
-	if len(candidates) == 0 {
-		return 0
-	}
-	// Focus on the top 10% of the largest programs in the corpus.
-	threshold := max(reminimizeThreshold, len(candidates[len(candidates)*9/10].Prog.Calls))
-	var resetIndices []int
-	for i, info := range candidates {
-		if info.Flags&fuzzer.ProgMinimized == 0 {
-			continue
-		}
-		if len(info.Prog.Calls) >= threshold {
-			resetIndices = append(resetIndices, i)
-		}
-	}
-	// Reset ProgMinimized for up to 1% of the seed programs.
-	reset := min(50, len(resetIndices), max(1, len(candidates)/100))
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for _, i := range rnd.Perm(len(resetIndices))[:reset] {
-		candidates[resetIndices[i]].Flags &= ^fuzzer.ProgMinimized
-	}
-	return reset
-}
-
-// resmashSubset clears fuzzer.ProgSmashes for a subset of seeds.
-// We smash the program only once after we add it to the corpus, but it can be that
-// either it did not finish before the instance was restarted, or the fuzzing algorithms
-// have become smarter over time, or just that kernel code changed over time.
-// It would be best to track it in pkg/db, but until it's capable of that, let's just
-// re-smash some corpus subset on each syz-manager restart.
-func resmashSubset(candidates []fuzzer.Candidate) int {
-	var indices []int
-	for i, info := range candidates {
-		if info.Flags&fuzzer.ProgSmashed == 0 {
-			continue
-		}
-		indices = append(indices, i)
-	}
-	// Reset ProgSmashed for up to 0.5% of the seed programs.
-	reset := min(25, len(indices), max(1, len(candidates)/200))
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for _, i := range rnd.Perm(len(indices))[:reset] {
-		candidates[indices[i]].Flags &= ^fuzzer.ProgSmashed
-	}
-	return reset
-}
-
-func loadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
-	p, err := target.Deserialize(data, prog.NonStrict)
-	if err != nil {
-		return nil, err
-	}
-	if len(p.Calls) > prog.MaxCalls {
-		return nil, fmt.Errorf("longer than %d calls", prog.MaxCalls)
-	}
-	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
-	for _, call := range p.Calls {
-		if call.Props.FailNth > 0 {
-			return nil, fmt.Errorf("input has fail_nth > 0")
-		}
-	}
-	return p, nil
+		"corpus", len(ret.Candidates), ret.SeedCount, reminimized, resmashed)
+	return ret.Candidates
 }
 
 func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
@@ -1267,7 +1051,7 @@ func (mgr *Manager) minimizeCorpusLocked() {
 	if err := mgr.corpusDB.Flush(); err != nil {
 		log.Fatalf("failed to save corpus database: %v", err)
 	}
-	mgr.corpusDB.BumpVersion(currentDBVersion)
+	mgr.corpusDB.BumpVersion(manager.CurrentDBVersion)
 }
 
 func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
