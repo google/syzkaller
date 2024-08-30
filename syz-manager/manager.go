@@ -664,8 +664,9 @@ func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
 		return len(candidates[i].Prog.Calls) < len(candidates[j].Prog.Calls)
 	})
 	reminimized := reminimizeSubset(candidates)
-	log.Logf(0, "%-24v: %v (%v seeds), %d will be reminimized",
-		"corpus", len(candidates), seeds, reminimized)
+	resmashed := resmashSubset(candidates)
+	log.Logf(0, "%-24v: %v (%v seeds), %d to be reminimized, %d to be resmashed",
+		"corpus", len(candidates), seeds, reminimized, resmashed)
 	return candidates
 }
 
@@ -694,8 +695,30 @@ func reminimizeSubset(candidates []fuzzer.Candidate) int {
 	reset := min(50, len(resetIndices), max(1, len(candidates)/100))
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for _, i := range rnd.Perm(len(resetIndices))[:reset] {
-		idx := resetIndices[i]
-		candidates[idx].Flags &= ^fuzzer.ProgMinimized
+		candidates[resetIndices[i]].Flags &= ^fuzzer.ProgMinimized
+	}
+	return reset
+}
+
+// resmashSubset clears fuzzer.ProgSmashes for a subset of seeds.
+// We smash the program only once after we add it to the corpus, but it can be that
+// either it did not finish before the instance was restarted, or the fuzzing algorithms
+// have become smarter over time, or just that kernel code changed over time.
+// It would be best to track it in pkg/db, but until it's capable of that, let's just
+// re-smash some corpus subset on each syz-manager restart.
+func resmashSubset(candidates []fuzzer.Candidate) int {
+	var indices []int
+	for i, info := range candidates {
+		if info.Flags&fuzzer.ProgSmashed == 0 {
+			continue
+		}
+		indices = append(indices, i)
+	}
+	// Reset ProgSmashed for up to 0.5% of the seed programs.
+	reset := min(25, len(indices), max(1, len(candidates)/200))
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for _, i := range rnd.Perm(len(indices))[:reset] {
+		candidates[indices[i]].Flags &= ^fuzzer.ProgSmashed
 	}
 	return reset
 }
