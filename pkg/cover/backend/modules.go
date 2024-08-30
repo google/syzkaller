@@ -64,6 +64,14 @@ func discoverModulesLinux(dirs []string) ([]*vminfo.KernelModule, error) {
 			return nil, err
 		}
 		module.Size = textRange.End - textRange.Start
+		if module.Size == 0 {
+			textRange, err := elfReadSecRange(module, ".init.text")
+			if err != nil {
+				module.Size = 0
+			} else {
+				module.Size = textRange.End - textRange.Start
+			}
+		}
 		modules = append(modules, module)
 	}
 	return modules, nil
