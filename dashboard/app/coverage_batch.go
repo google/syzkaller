@@ -37,9 +37,9 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 		if nsConfig.Coverage == nil {
 			continue
 		}
-		repo, _ := nsConfig.mainRepoBranch()
-		if repo == "" {
-			log.Errorf(ctx, "can't find default repo for ns %s", ns)
+		repo, branch := nsConfig.mainRepoBranch()
+		if repo == "" || branch == "" {
+			log.Errorf(ctx, "can't find default repo or branch for ns %s", ns)
 			continue
 		}
 		periods, err := nsDatesToMerge(ctx, ns, daysToMerge, runsPerBatch)
@@ -70,7 +70,7 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 			ctx,
 			nsCovConfig.BatchProject,
 			nsCovConfig.BatchServiceAccount,
-			batchScript(ns, repo, periods,
+			batchScript(ns, repo, branch, periods,
 				nsCovConfig.JobInitScript,
 				nsCovConfig.SyzEnvInitScript,
 				nsCovConfig.DashboardClientName),
@@ -80,7 +80,7 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func batchScript(ns, repo string, periods []coveragedb.TimePeriod,
+func batchScript(ns, repo, branch string, periods []coveragedb.TimePeriod,
 	jobInitScript, syzEnvInitScript, clientName string) string {
 	if clientName == "" {
 		clientName = defaultDashboardClientName
@@ -98,6 +98,7 @@ func batchScript(ns, repo string, periods []coveragedb.TimePeriod,
 			" -w ../workdir-cover-aggregation/" +
 			" -n " + ns +
 			" -r " + repo +
+			" -b " + branch +
 			" -d " + strconv.Itoa(period.Days) +
 			" -t " + period.DateTo.String() +
 			" -c " + clientName +
