@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/report/crash"
@@ -60,7 +61,7 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 	}
 	if mgr.cfg.Reproduce && mgr.dash != nil {
 		// Request reproducers from hub only if there is nothing else to reproduce.
-		hc.needMoreRepros = mgr.reproMgr.Empty
+		hc.needMoreRepros = mgr.reproLoop.Empty
 	}
 	hc.loop()
 }
@@ -75,7 +76,7 @@ type HubConnector struct {
 	fresh          bool
 	hubCorpus      map[string]bool
 	newRepros      [][]byte
-	hubReproQueue  chan *Crash
+	hubReproQueue  chan *manager.Crash
 	needMoreRepros func() bool
 	keyGet         keyGetter
 
@@ -304,8 +305,8 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 		if hc.leak {
 			typ = crash.MemoryLeak
 		}
-		hc.hubReproQueue <- &Crash{
-			fromHub: true,
+		hc.hubReproQueue <- &manager.Crash{
+			FromHub: true,
 			Report: &report.Report{
 				Type:   typ,
 				Output: repro,

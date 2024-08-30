@@ -1,7 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package manager
 
 import (
 	"context"
@@ -17,7 +17,7 @@ func TestReproManager(t *testing.T) {
 	mock := &reproMgrMock{
 		run: make(chan runCallback),
 	}
-	obj := newReproManager(mock, 3, false)
+	obj := NewReproLoop(mock, 3, false)
 
 	ctx, done := context.WithCancel(context.Background())
 	complete := make(chan struct{})
@@ -53,8 +53,8 @@ func TestReproManager(t *testing.T) {
 	assert.EqualValues(t, 3, mock.reserved.Load())
 
 	// Pretend that reproducers have finished.
-	called.ret <- &ReproResult{crash: &Crash{fromHub: true}}
-	called2.ret <- &ReproResult{crash: &Crash{fromHub: true}}
+	called.ret <- &ReproResult{Crash: &Crash{FromHub: true}}
+	called2.ret <- &ReproResult{Crash: &Crash{FromHub: true}}
 
 	mock.onVMShutdown(t, obj)
 }
@@ -63,22 +63,22 @@ func TestReproOrder(t *testing.T) {
 	mock := &reproMgrMock{
 		run: make(chan runCallback),
 	}
-	obj := newReproManager(mock, 3, false)
+	obj := NewReproLoop(mock, 3, false)
 
 	// The right order is A B C.
 	crashes := []*Crash{
 		{
 			Report:        &report.Report{Title: "A"},
-			fromDashboard: true,
-			manual:        true,
+			FromDashboard: true,
+			Manual:        true,
 		},
 		{
 			Report:        &report.Report{Title: "B"},
-			fromDashboard: true,
+			FromDashboard: true,
 		},
 		{
 			Report:  &report.Report{Title: "C"},
-			fromHub: true,
+			FromHub: true,
 		},
 	}
 
@@ -101,7 +101,7 @@ func TestReproRWRace(t *testing.T) {
 	mock := &reproMgrMock{
 		run: make(chan runCallback),
 	}
-	obj := newReproManager(mock, 3, false)
+	obj := NewReproLoop(mock, 3, false)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -117,18 +117,18 @@ func TestReproRWRace(t *testing.T) {
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
 
-	assert.True(t, mock.needRepro(nil))
+	assert.True(t, mock.NeedRepro(nil))
 	called := <-mock.run
 	called.ret <- &ReproResult{}
 	// Pretend that processRepro() is finished and
 	// we've written "repro.prog" to the disk.
 	mock.reproProgExist.Store(true)
-	assert.False(t, mock.needRepro(nil))
+	assert.False(t, mock.NeedRepro(nil))
 	assert.True(t, obj.CanReproMore())
 
 	called2 := <-mock.run
 	called2.ret <- &ReproResult{}
-	assert.False(t, mock.needRepro(nil))
+	assert.False(t, mock.NeedRepro(nil))
 	assert.True(t, obj.CanReproMore())
 
 	// Reproducers may be still running.
@@ -147,11 +147,11 @@ type runCallback struct {
 }
 
 // Wait until the number of reserved VMs goes to 0.
-func (m *reproMgrMock) onVMShutdown(t *testing.T, reproMgr *reproManager) {
+func (m *reproMgrMock) onVMShutdown(t *testing.T, reproLoop *ReproLoop) {
 	for i := 0; i < 100; i++ {
 		if m.reserved.Load() == 0 {
-			assert.True(t, reproMgr.CanReproMore())
-			assert.True(t, reproMgr.Empty())
+			assert.True(t, reproLoop.CanReproMore())
+			assert.True(t, reproLoop.Empty())
 			return
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -159,7 +159,7 @@ func (m *reproMgrMock) onVMShutdown(t *testing.T, reproMgr *reproManager) {
 	t.Fatal("reserved VMs must have dropped to 0")
 }
 
-func (m *reproMgrMock) runRepro(crash *Crash) *ReproResult {
+func (m *reproMgrMock) RunRepro(crash *Crash) *ReproResult {
 	retCh := make(chan *ReproResult)
 	m.run <- runCallback{crash: crash, ret: retCh}
 	ret := <-retCh
@@ -167,10 +167,10 @@ func (m *reproMgrMock) runRepro(crash *Crash) *ReproResult {
 	return ret
 }
 
-func (m *reproMgrMock) needRepro(crash *Crash) bool {
+func (m *reproMgrMock) NeedRepro(crash *Crash) bool {
 	return !m.reproProgExist.Load()
 }
 
-func (m *reproMgrMock) resizeReproPool(VMs int) {
+func (m *reproMgrMock) ResizeReproPool(VMs int) {
 	m.reserved.Store(int64(VMs))
 }
