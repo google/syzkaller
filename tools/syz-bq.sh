@@ -5,7 +5,7 @@
 set -e # exit on any problem
 set -o pipefail
 
-while getopts w:d:t:n:r:c: option
+while getopts w:d:t:n:r:b:c: option
 do
     case "${option}"
         in
@@ -14,6 +14,7 @@ do
         t)to_date=${OPTARG};;
         n)namespace=${OPTARG};;
         r)repo=${OPTARG};;
+        b)branch=${OPTARG};;
         c)client_name=${OPTARG};;
     esac
 done
@@ -41,6 +42,11 @@ fi
 if [ -z "$repo" ]
 then
   echo "-r is required to specify the merging repo base"
+  exit
+fi
+if [ -z "$branch" ]
+then
+  echo "-b is required to specify the merging branch base"
   exit
 fi
 
