@@ -34,6 +34,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -112,15 +113,15 @@ type Manager struct {
 	dataRaceFrames   map[string]bool
 	saturatedCalls   map[string]bool
 
-	externalReproQueue chan *Crash
-	crashes            chan *Crash
+	externalReproQueue chan *manager.Crash
+	crashes            chan *manager.Crash
 
 	benchMu   sync.Mutex
 	benchFile *os.File
 
 	assetStorage *asset.Storage
 
-	reproMgr *reproManager
+	reproLoop *manager.ReproLoop
 
 	Stats
 }
@@ -152,27 +153,6 @@ const (
 )
 
 const currentDBVersion = 5
-
-type Crash struct {
-	instanceIndex int
-	fromHub       bool // this crash was created based on a repro from syz-hub
-	fromDashboard bool // .. or from dashboard
-	manual        bool
-	*report.Report
-}
-
-func (c *Crash) FullTitle() string {
-	if c.Report.Title != "" {
-		return c.Report.Title
-	}
-	// Just use some unique, but stable titles.
-	if c.fromDashboard {
-		return fmt.Sprintf("dashboard crash %p", c)
-	} else if c.fromHub {
-		return fmt.Sprintf("crash from hub %p", c)
-	}
-	panic("the crash is expected to have a report")
-}
 
 func main() {
 	if prog.GitRevision == "" {
@@ -249,8 +229,8 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		memoryLeakFrames:   make(map[string]bool),
 		dataRaceFrames:     make(map[string]bool),
 		fresh:              true,
-		externalReproQueue: make(chan *Crash, 10),
-		crashes:            make(chan *Crash, 10),
+		externalReproQueue: make(chan *manager.Crash, 10),
+		crashes:            make(chan *manager.Crash, 10),
 		saturatedCalls:     make(map[string]bool),
 	}
 
@@ -313,10 +293,10 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		return
 	}
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
-	mgr.reproMgr = newReproManager(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
+	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	ctx := vm.ShutdownCtx()
 	go mgr.processFuzzingResults(ctx)
-	go mgr.reproMgr.Loop(ctx)
+	go mgr.reproLoop.Loop(ctx)
 	mgr.pool.Loop(ctx)
 }
 
@@ -378,14 +358,6 @@ func (mgr *Manager) writeBench() {
 	}
 }
 
-type ReproResult struct {
-	crash  *Crash // the original crash
-	repro  *repro.Result
-	strace *repro.StraceResult
-	stats  *repro.Stats
-	err    error
-}
-
 func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 	for {
 		select {
@@ -394,7 +366,7 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 		case crash := <-mgr.crashes:
 			needRepro := mgr.saveCrash(crash)
 			if mgr.cfg.Reproduce && needRepro {
-				mgr.reproMgr.Enqueue(crash)
+				mgr.reproLoop.Enqueue(crash)
 			}
 		case err := <-mgr.pool.BootErrors:
 			crash := mgr.convertBootError(err)
@@ -402,14 +374,14 @@ func (mgr *Manager) processFuzzingResults(ctx context.Context) {
 				mgr.saveCrash(crash)
 			}
 		case crash := <-mgr.externalReproQueue:
-			if mgr.needRepro(crash) {
-				mgr.reproMgr.Enqueue(crash)
+			if mgr.NeedRepro(crash) {
+				mgr.reproLoop.Enqueue(crash)
 			}
 		}
 	}
 }
 
-func (mgr *Manager) convertBootError(err error) *Crash {
+func (mgr *Manager) convertBootError(err error) *manager.Crash {
 	var bootErr vm.BootErrorer
 	if errors.As(err, &bootErr) {
 		title, output := bootErr.BootError()
@@ -424,7 +396,7 @@ func (mgr *Manager) convertBootError(err error) *Crash {
 				Output: output,
 			}
 		}
-		return &Crash{
+		return &manager.Crash{
 			Report: rep,
 		}
 	}
@@ -453,13 +425,13 @@ func reportReproError(err error) {
 	log.Errorf("repro failed: %v", err)
 }
 
-func (mgr *Manager) runRepro(crash *Crash) *ReproResult {
+func (mgr *Manager) RunRepro(crash *manager.Crash) *manager.ReproResult {
 	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.enabledFeatures, mgr.reporter, mgr.pool)
-	ret := &ReproResult{
-		crash: crash,
-		repro: res,
-		stats: stats,
-		err:   err,
+	ret := &manager.ReproResult{
+		Crash: crash,
+		Repro: res,
+		Stats: stats,
+		Err:   err,
 	}
 	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
 		const straceAttempts = 2
@@ -471,7 +443,7 @@ func (mgr *Manager) runRepro(crash *Crash) *ReproResult {
 			// We only want to save strace output if it resulted in the same bug.
 			// Otherwise, it will be hard to reproduce on syzbot and will confuse users.
 			if sameBug {
-				ret.strace = strace
+				ret.Strace = strace
 				break
 			}
 		}
@@ -482,17 +454,17 @@ func (mgr *Manager) runRepro(crash *Crash) *ReproResult {
 	return ret
 }
 
-func (mgr *Manager) processRepro(res *ReproResult) {
-	if res.err != nil {
-		reportReproError(res.err)
+func (mgr *Manager) processRepro(res *manager.ReproResult) {
+	if res.Err != nil {
+		reportReproError(res.Err)
 	}
-	if res.repro == nil {
-		if res.crash.Title == "" {
+	if res.Repro == nil {
+		if res.Crash.Title == "" {
 			log.Logf(1, "repro '%v' not from dashboard, so not reporting the failure",
-				res.crash.FullTitle())
+				res.Crash.FullTitle())
 		} else {
-			log.Logf(1, "report repro failure of '%v'", res.crash.Title)
-			mgr.saveFailedRepro(res.crash.Report, res.stats)
+			log.Logf(1, "report repro failure of '%v'", res.Crash.Title)
+			mgr.saveFailedRepro(res.Crash.Report, res.Stats)
 		}
 	} else {
 		mgr.saveRepro(res)
@@ -766,8 +738,8 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 		rep.MachineInfo = machineInfo
 	}
 	if err == nil && rep != nil {
-		mgr.crashes <- &Crash{
-			instanceIndex: inst.Index(),
+		mgr.crashes <- &manager.Crash{
+			InstanceIndex: inst.Index(),
 			Report:        rep,
 		}
 	}
@@ -820,7 +792,7 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, inj
 	return rep, vmInfo, nil
 }
 
-func (mgr *Manager) emailCrash(crash *Crash) {
+func (mgr *Manager) emailCrash(crash *manager.Crash) {
 	if len(mgr.cfg.EmailAddrs) == 0 {
 		return
 	}
@@ -835,7 +807,7 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 	}
 }
 
-func (mgr *Manager) saveCrash(crash *Crash) bool {
+func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
 		log.Errorf("failed to symbolize report: %v", err)
 	}
@@ -856,7 +828,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if crash.Suppressed {
 		flags += " [suppressed]"
 	}
-	log.Logf(0, "VM %v: crash: %v%v", crash.instanceIndex, crash.Title, flags)
+	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Title, flags)
 
 	if mgr.mode == ModeSmokeTest {
 		data, err := json.Marshal(crash.Report)
@@ -949,12 +921,12 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	writeOrRemove("tag", []byte(mgr.cfg.Tag))
 	writeOrRemove("report", crash.Report.Report)
 	writeOrRemove("machineInfo", crash.MachineInfo)
-	return mgr.needRepro(crash)
+	return mgr.NeedRepro(crash)
 }
 
 const maxReproAttempts = 3
 
-func (mgr *Manager) needLocalRepro(crash *Crash) bool {
+func (mgr *Manager) needLocalRepro(crash *manager.Crash) bool {
 	if !mgr.cfg.Reproduce || crash.Corrupted || crash.Suppressed {
 		return false
 	}
@@ -971,11 +943,11 @@ func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 	return false
 }
 
-func (mgr *Manager) needRepro(crash *Crash) bool {
+func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
 	if !mgr.cfg.Reproduce {
 		return false
 	}
-	if crash.fromHub || crash.fromDashboard {
+	if crash.FromHub || crash.FromDashboard {
 		return true
 	}
 	if !mgr.checkDone.Load() || (mgr.enabledFeatures&flatrpc.FeatureLeak != 0 &&
@@ -1043,13 +1015,13 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 	}
 }
 
-func (mgr *Manager) saveRepro(res *ReproResult) {
-	repro := res.repro
+func (mgr *Manager) saveRepro(res *manager.ReproResult) {
+	repro := res.Repro
 	opts := fmt.Sprintf("# %+v\n", repro.Opts)
 	progText := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
-	if !res.crash.fromHub {
+	if !res.Crash.FromHub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
 			repro.Opts, repro.Report.Title, mgr.cfg.Tag, progText))
 		mgr.mu.Lock()
@@ -1082,11 +1054,11 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		output := report.Output
 
 		var crashFlags dashapi.CrashFlags
-		if res.strace != nil {
+		if res.Strace != nil {
 			// If syzkaller managed to successfully run the repro with strace, send
 			// the report and the output generated under strace.
-			report = res.strace.Report
-			output = res.strace.Output
+			report = res.Strace.Report
+			output = res.Strace.Output
 			crashFlags = dashapi.CrashUnderStrace
 		}
 
@@ -1102,9 +1074,9 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			ReproOpts:     repro.Opts.Serialize(),
 			ReproSyz:      progText,
 			ReproC:        cprogText,
-			ReproLog:      truncateReproLog(res.stats.FullLog()),
+			ReproLog:      truncateReproLog(res.Stats.FullLog()),
 			Assets:        mgr.uploadReproAssets(repro),
-			OriginalTitle: res.crash.Title,
+			OriginalTitle: res.Crash.Title,
 		}
 		setGuiltyFiles(dc, report)
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
@@ -1142,22 +1114,22 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			log.Logf(0, "failed to write crash asset: type %d, write error %v", typ, err)
 		}
 	})
-	if res.strace != nil {
+	if res.Strace != nil {
 		// Unlike dashboard reporting, we save strace output separately from the original log.
-		if res.strace.Error != nil {
+		if res.Strace.Error != nil {
 			osutil.WriteFile(filepath.Join(dir, "strace.error"),
-				[]byte(fmt.Sprintf("%v", res.strace.Error)))
+				[]byte(fmt.Sprintf("%v", res.Strace.Error)))
 		}
-		if len(res.strace.Output) > 0 {
-			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.strace.Output)
+		if len(res.Strace.Output) > 0 {
+			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.Strace.Output)
 		}
 	}
-	if reproLog := res.stats.FullLog(); len(reproLog) > 0 {
+	if reproLog := res.Stats.FullLog(); len(reproLog) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.stats"), reproLog)
 	}
 }
 
-func (mgr *Manager) resizeReproPool(size int) {
+func (mgr *Manager) ResizeReproPool(size int) {
 	mgr.pool.ReserveForRun(size)
 }
 
@@ -1534,11 +1506,11 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
 				} else {
 					mgr.phase = phaseTriagedHub
-					mgr.reproMgr.StartReproduction()
+					mgr.reproLoop.StartReproduction()
 				}
 			} else if mgr.phase == phaseQueriedHub {
 				mgr.phase = phaseTriagedHub
-				mgr.reproMgr.StartReproduction()
+				mgr.reproLoop.StartReproduction()
 			}
 			mgr.mu.Unlock()
 		}
@@ -1555,7 +1527,7 @@ func (mgr *Manager) hubIsUnreachable() {
 	if mgr.phase == phaseTriagedCorpus {
 		dash = mgr.dash
 		mgr.phase = phaseTriagedHub
-		mgr.reproMgr.StartReproduction()
+		mgr.reproLoop.StartReproduction()
 		log.Errorf("did not manage to connect to syz-hub; moving forward")
 	}
 	mgr.mu.Unlock()
@@ -1646,7 +1618,7 @@ func (mgr *Manager) dashboardReporter() {
 
 func (mgr *Manager) dashboardReproTasks() {
 	for range time.NewTicker(20 * time.Minute).C {
-		if !mgr.reproMgr.CanReproMore() {
+		if !mgr.reproLoop.CanReproMore() {
 			// We don't need reproducers at the moment.
 			continue
 		}
@@ -1656,9 +1628,9 @@ func (mgr *Manager) dashboardReproTasks() {
 			continue
 		}
 		if len(resp.CrashLog) > 0 {
-			mgr.externalReproQueue <- &Crash{
-				fromDashboard: true,
-				manual:        resp.Type == dashapi.ManualLog,
+			mgr.externalReproQueue <- &manager.Crash{
+				FromDashboard: true,
+				Manual:        resp.Type == dashapi.ManualLog,
 				Report: &report.Report{
 					Title:  resp.Title,
 					Output: resp.CrashLog,
