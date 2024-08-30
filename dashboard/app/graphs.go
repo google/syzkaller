@@ -16,6 +16,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -232,18 +233,26 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
-	yesterday := civil.DateOf(time.Now().Add(-1 * 24 * time.Hour))
-	monthAgo := yesterday.AddDays(-31)
-	hist, err := MergedCoverage(c, hdr.Namespace, monthAgo, yesterday)
+	periodType := r.FormValue("period")
+	if periodType == "" {
+		periodType = coveragedb.QuarterPeriod
+	}
+	if periodType != coveragedb.QuarterPeriod && periodType != coveragedb.MonthPeriod {
+		return fmt.Errorf("only quarter and month are allowed, but received %s instead", periodType)
+	}
+	hist, err := MergedCoverage(c, hdr.Namespace, periodType)
 	if err != nil {
 		return err
 	}
-	dates := []string{}
-	for i := 31; i >= 0; i-- {
-		dates = append(dates, yesterday.AddDays(-i).String())
+	pOps, err := coveragedb.PeriodOps(periodType)
+	if err != nil {
+		return err
 	}
+	periodEndDates := coveragedb.GenNPeriodEndDatesTill(12, civil.DateOf(time.Now()), pOps)
+
 	cols := []uiGraphColumn{}
-	for _, date := range dates {
+	for _, periodEndDate := range periodEndDates {
+		date := periodEndDate.String()
 		if _, ok := hist.covered[date]; !ok || hist.instrumented[date] == 0 {
 			cols = append(cols, uiGraphColumn{Hint: date, Vals: []uiGraphValue{{IsNull: true}}})
 		} else {

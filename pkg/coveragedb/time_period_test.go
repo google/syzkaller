@@ -19,10 +19,14 @@ func TestDayPeriodOps(t *testing.T) {
 
 	assert.Equal(t, "2024-02-20", ops.lastPeriodDate(d).String())
 
-	assert.True(t, ops.isValidPeriod(goodPeriod))
-	assert.False(t, ops.isValidPeriod(badPeriod))
+	assert.True(t, ops.IsValidPeriod(goodPeriod))
+	assert.False(t, ops.IsValidPeriod(badPeriod))
 
 	assert.Equal(t, 1, ops.pointedPeriodDays(d))
+
+	assert.Equal(t,
+		[]civil.Date{{Year: 2024, Month: time.February, Day: 19}, {Year: 2024, Month: time.February, Day: 20}},
+		GenNPeriodEndDatesTill(2, d, ops))
 }
 
 func TestMonthPeriodOps(t *testing.T) {
@@ -37,11 +41,15 @@ func TestMonthPeriodOps(t *testing.T) {
 
 	assert.Equal(t, "2024-02-29", ops.lastPeriodDate(midMonthDate).String())
 
-	assert.True(t, ops.isValidPeriod(goodPeriod))
-	assert.False(t, ops.isValidPeriod(badPeriod1))
-	assert.False(t, ops.isValidPeriod(badPeriod2))
+	assert.True(t, ops.IsValidPeriod(goodPeriod))
+	assert.False(t, ops.IsValidPeriod(badPeriod1))
+	assert.False(t, ops.IsValidPeriod(badPeriod2))
 
 	assert.Equal(t, 29, ops.pointedPeriodDays(midMonthDate))
+
+	assert.Equal(t,
+		[]civil.Date{{Year: 2024, Month: time.January, Day: 31}, {Year: 2024, Month: time.February, Day: 29}},
+		GenNPeriodEndDatesTill(2, goodPeriod.DateTo, ops))
 }
 
 func TestQuarterPeriodOps(t *testing.T) {
@@ -57,11 +65,15 @@ func TestQuarterPeriodOps(t *testing.T) {
 
 	assert.Equal(t, "2024-03-31", ops.lastPeriodDate(midQuarterDate).String())
 
-	assert.True(t, ops.isValidPeriod(goodPeriod))
-	assert.False(t, ops.isValidPeriod(badPeriod1))
-	assert.False(t, ops.isValidPeriod(badPeriod2))
+	assert.True(t, ops.IsValidPeriod(goodPeriod))
+	assert.False(t, ops.IsValidPeriod(badPeriod1))
+	assert.False(t, ops.IsValidPeriod(badPeriod2))
 
 	assert.Equal(t, 31+29+31, ops.pointedPeriodDays(midQuarterDate))
+
+	assert.Equal(t,
+		[]civil.Date{{Year: 2023, Month: time.December, Day: 31}, {Year: 2024, Month: time.March, Day: 31}},
+		GenNPeriodEndDatesTill(2, goodPeriod.DateTo, ops))
 }
 
 func TestPeriodsToMerge(t *testing.T) {
