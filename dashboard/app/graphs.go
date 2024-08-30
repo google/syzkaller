@@ -17,6 +17,8 @@ import (
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/validator"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -237,6 +239,57 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 			JS:    js,
 		},
 	})
+}
+
+func githubTorvaldsLinuxURI(filePath string, rc covermerger.RepoCommit) string {
+	return fmt.Sprintf("https://raw.githubusercontent.com/torvalds/linux/%s/%s", rc.Commit, filePath)
+}
+
+func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	accessLevel := accessLevel(c, r)
+	if accessLevel != AccessAdmin {
+		return ErrAccess
+	}
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	dateToStr := r.FormValue("dateto")
+	periodType := r.FormValue("period")
+	targetCommit := r.FormValue("commit")
+	kernelFilePath := r.FormValue("filepath")
+	if err := validator.AnyError("input validation failed",
+		validator.TimePeriodType(periodType, "period"),
+		validator.CommitHash(targetCommit, "commit"),
+		validator.KernelFilePath(kernelFilePath, "filepath"),
+	); err != nil {
+		return err
+	}
+	targetDate, err := civil.ParseDate(dateToStr)
+	if err != nil {
+		return fmt.Errorf("civil.ParseDate(%s): %w", dateToStr, err)
+	}
+	tp, err := coveragedb.MakeTimePeriod(targetDate, periodType)
+	if err != nil {
+		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
+	}
+	dateFrom, dateTo := tp.DatesFromTo()
+	mainNsRepo, _ := getNsConfig(c, hdr.Namespace).mainRepoBranch()
+	content, err := cover.RendFileCoverage(
+		c, hdr.Namespace, mainNsRepo,
+		targetCommit, "", // merge all commits to targetCommit
+		kernelFilePath,
+		githubTorvaldsLinuxURI,
+		dateFrom,
+		dateTo,
+		cover.DefaultHTMLRenderConfig(),
+	)
+	if err != nil {
+		return fmt.Errorf("cover.RendFileCoverage: %w", err)
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(content))
+	return nil
 }
 
 func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {

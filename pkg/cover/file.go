@@ -6,6 +6,7 @@ package cover
 import (
 	"context"
 	"fmt"
+	"html"
 	"strings"
 
 	"cloud.google.com/go/civil"
@@ -15,7 +16,7 @@ import (
 type lineRender func(string, int, *covermerger.MergeResult, *CoverageRenderConfig) string
 
 type CoverageRenderConfig struct {
-	Render                    lineRender
+	RendLine                  lineRender
 	ShowLineCoverage          bool
 	ShowLineNumbers           bool
 	ShowLineSourceExplanation bool
@@ -23,7 +24,16 @@ type CoverageRenderConfig struct {
 
 func DefaultTextRenderConfig() *CoverageRenderConfig {
 	return &CoverageRenderConfig{
-		Render:                    RendTextLine,
+		RendLine:                  RendTextLine,
+		ShowLineCoverage:          true,
+		ShowLineNumbers:           true,
+		ShowLineSourceExplanation: false,
+	}
+}
+
+func DefaultHTMLRenderConfig() *CoverageRenderConfig {
+	return &CoverageRenderConfig{
+		RendLine:                  RendHTMLLine,
 		ShowLineCoverage:          true,
 		ShowLineNumbers:           true,
 		ShowLineSourceExplanation: false,
@@ -31,6 +41,7 @@ func DefaultTextRenderConfig() *CoverageRenderConfig {
 }
 
 func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, filePath string,
+	proxy covermerger.FuncProxyURI,
 	fromDate, toDate civil.Date, renderConfig *CoverageRenderConfig) (string, error) {
 	fileContent, err := covermerger.GetFileVersion(filePath, repo, forCommit)
 	if err != nil {
@@ -43,7 +54,7 @@ func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, file
 			Repo:   repo,
 			Commit: forCommit,
 		},
-		FileVersProvider: covermerger.MakeWebGit(),
+		FileVersProvider: covermerger.MakeWebGit(proxy),
 		StoreDetails:     true,
 	}
 
@@ -67,6 +78,9 @@ func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, file
 	if err != nil {
 		return "", fmt.Errorf("error merging coverage: %w", err)
 	}
+	if _, exist := mergeResult[filePath]; !exist {
+		return "", fmt.Errorf("no merge result for file %s(fileSize %d)", filePath, len(fileContent))
+	}
 
 	return rendResult(fileContent, mergeResult[filePath], renderConfig), nil
 }
@@ -79,11 +93,11 @@ func rendResult(content string, coverage *covermerger.MergeResult, renderConfig 
 		}
 	}
 	srcLines := strings.Split(content, "\n")
-	var htmlLines []string
+	var resLines []string
 	for i, srcLine := range srcLines {
-		htmlLines = append(htmlLines, renderConfig.Render(srcLine, i+1, coverage, renderConfig))
+		resLines = append(resLines, renderConfig.RendLine(srcLine, i+1, coverage, renderConfig))
 	}
-	return strings.Join(htmlLines, "\n")
+	return strings.Join(resLines, "\n")
 }
 
 func RendTextLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
@@ -109,6 +123,11 @@ func RendTextLine(code string, line int, coverage *covermerger.MergeResult, conf
 	}
 	res += code
 	return res
+}
+
+func RendHTMLLine(code string, line int, coverage *covermerger.MergeResult, config *CoverageRenderConfig) string {
+	textLine := RendTextLine(code, line, coverage, config)
+	return `<pre style="margin: 0">` + html.EscapeString(textLine) + "</pre>"
 }
 
 func mainSignalSource(sources []*covermerger.FileRecord) string {

@@ -39,7 +39,7 @@ func makeProvider() covermerger.FileVersProvider {
 	case "git-clone":
 		return covermerger.MakeMonoRepo(*flagWorkdir)
 	case "web-git":
-		return covermerger.MakeWebGit()
+		return covermerger.MakeWebGit(nil)
 	default:
 		panic(fmt.Sprintf("unknown provider %v", *flagSrcProvider))
 	}

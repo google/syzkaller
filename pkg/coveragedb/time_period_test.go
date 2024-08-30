@@ -22,7 +22,7 @@ func TestDayPeriodOps(t *testing.T) {
 	assert.True(t, ops.IsValidPeriod(goodPeriod))
 	assert.False(t, ops.IsValidPeriod(badPeriod))
 
-	assert.Equal(t, 1, ops.pointedPeriodDays(d))
+	assert.Equal(t, 1, ops.PointedPeriodDays(d))
 
 	assert.Equal(t,
 		[]TimePeriod{
@@ -47,7 +47,7 @@ func TestMonthPeriodOps(t *testing.T) {
 	assert.False(t, ops.IsValidPeriod(badPeriod1))
 	assert.False(t, ops.IsValidPeriod(badPeriod2))
 
-	assert.Equal(t, 29, ops.pointedPeriodDays(midMonthDate))
+	assert.Equal(t, 29, ops.PointedPeriodDays(midMonthDate))
 
 	assert.Equal(t,
 		[]TimePeriod{
@@ -73,7 +73,7 @@ func TestQuarterPeriodOps(t *testing.T) {
 	assert.False(t, ops.IsValidPeriod(badPeriod1))
 	assert.False(t, ops.IsValidPeriod(badPeriod2))
 
-	assert.Equal(t, 31+29+31, ops.pointedPeriodDays(midQuarterDate))
+	assert.Equal(t, 31+29+31, ops.PointedPeriodDays(midQuarterDate))
 
 	assert.Equal(t,
 		[]TimePeriod{
@@ -278,4 +278,14 @@ func TestAtMostNLatestPeriods(t *testing.T) {
 	}
 	assert.Equal(t, []TimePeriod{makeTimePeriod("2024-06-06", 1)}, AtMostNLatestPeriods(sampleDays, 1))
 	assert.Equal(t, sampleDays, AtMostNLatestPeriods(sampleDays, 100))
+}
+
+func TestMakeTimePeriod(t *testing.T) {
+	tp, err := MakeTimePeriod(civil.Date{Year: 2024, Month: time.March, Day: 31}, QuarterPeriod)
+	assert.NoError(t, err)
+	assert.NotEqual(t, TimePeriod{}, tp)
+
+	tp, err = MakeTimePeriod(civil.Date{Year: 2024, Month: time.March, Day: 30}, QuarterPeriod)
+	assert.Error(t, err)
+	assert.Equal(t, TimePeriod{}, tp)
 }
