@@ -21,7 +21,7 @@ func DiscoverModules(target *targets.Target, objDir string, moduleObj []string) 
 	module := &vminfo.KernelModule{
 		Path: filepath.Join(objDir, target.KernelObject),
 	}
-	textRange, err := elfReadTextSecRange(module)
+	textRange, err := elfReadSecRange(module, ".text")
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func discoverModulesLinux(dirs []string) ([]*vminfo.KernelModule, error) {
 			Name: name,
 			Path: path,
 		}
-		textRange, err := elfReadTextSecRange(module)
+		textRange, err := elfReadSecRange(module, ".text")
 		if err != nil {
 			return nil, err
 		}
