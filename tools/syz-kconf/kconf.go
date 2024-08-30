@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -204,10 +205,16 @@ func (ctx *Context) generate() error {
 	}
 	// Set all configs that are not present (actually not present, rather than "is not set") to "is not set".
 	// This avoids olddefconfig turning on random things we did not ask for.
+	var missing []string
 	for _, cfg := range ctx.Kconf.Configs {
 		if (cfg.Type == kconfig.TypeTristate || cfg.Type == kconfig.TypeBool) && cf.Map[cfg.Name] == nil {
-			cf.Set(cfg.Name, kconfig.No)
+			missing = append(missing, cfg.Name)
 		}
+	}
+	// Without sorting we can get random changes in the config after olddefconfig.
+	sort.Strings(missing)
+	for _, name := range missing {
+		cf.Set(name, kconfig.No)
 	}
 	original := cf.Serialize()
 	if err := osutil.WriteFile(configFile, original); err != nil {
