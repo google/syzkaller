@@ -540,6 +540,10 @@ func (mgr *Manager) preloadCorpus() {
 		// instances must have already bumped their corpus versions, so let's just
 		// increase the version to let all others go past the corpus triage stage.
 		fallthrough
+	case 4:
+		// To re-trigger fault injection for copy_to/from_user.
+		smashed = false
+		fallthrough
 	case currentDBVersion:
 	}
 	type Input struct {
