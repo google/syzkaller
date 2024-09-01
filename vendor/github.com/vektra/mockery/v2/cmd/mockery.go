@@ -83,6 +83,7 @@ func NewRootCmd() *cobra.Command {
 	pFlags.Bool("exported", false, "Generates public mocks for private interfaces.")
 	pFlags.Bool("with-expecter", false, "Generate expecter utility around mock's On, Run and Return methods with explicit types. This option is NOT compatible with -unroll-variadic=false")
 	pFlags.StringArray("replace-type", nil, "Replace types")
+	pFlags.Bool("disable-func-mocks", false, "Disable generation of function mocks.")
 
 	if err := viperCfg.BindPFlags(pFlags); err != nil {
 		panic(fmt.Sprintf("failed to bind PFlags: %v", err))
@@ -238,16 +239,11 @@ func (r *RootApp) Run() error {
 		if err != nil {
 			return fmt.Errorf("failed to get package from config: %w", err)
 		}
-		parser := pkg.NewParser(buildTags)
+		parser := pkg.NewParser(buildTags, pkg.ParserDisableFuncMocks(r.Config.DisableFuncMocks))
 
 		if err := parser.ParsePackages(ctx, configuredPackages); err != nil {
 			log.Error().Err(err).Msg("unable to parse packages")
 			return err
-		}
-		log.Info().Msg("done parsing, loading")
-		if err := parser.Load(); err != nil {
-			log.Err(err).Msgf("failed to load parser")
-			return nil
 		}
 		log.Info().Msg("done loading, visiting interface nodes")
 		for _, iface := range parser.Interfaces() {
@@ -269,7 +265,7 @@ func (r *RootApp) Run() error {
 			}
 			ifaceLog.Debug().Msg("config specifies to generate this interface")
 
-			outputter := pkg.NewOutputter(&r.Config, boilerplate, true)
+			outputter := pkg.NewOutputter(&r.Config, boilerplate, r.Config.DryRun)
 			if err := outputter.Generate(ifaceCtx, iface); err != nil {
 				return err
 			}
@@ -316,7 +312,7 @@ func (r *RootApp) Run() error {
 		if err != nil {
 			return stackerr.NewStackErrf(err, "Failed to create profile file")
 		}
-
+		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
 			return fmt.Errorf("failed to start CPU profile: %w", err)
 		}
