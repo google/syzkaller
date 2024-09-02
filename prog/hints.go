@@ -65,6 +65,16 @@ func (m CompMap) String() string {
 	return buf.String()
 }
 
+func (m CompMap) Len() int {
+	var count int
+	for _, nested := range m {
+		for _, nested2 := range nested {
+			count += len(nested2)
+		}
+	}
+	return count
+}
+
 // InplaceIntersect() only leaves the value pairs that are also present in other.
 func (m CompMap) InplaceIntersect(other CompMap) {
 	for val1, nested := range m {
