@@ -668,12 +668,13 @@ func (mgr *Manager) httpJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jobType := r.FormValue("type")
-	data := UIJobList{}
+	data := UIJobList{
+		Title: fmt.Sprintf("%s jobs", jobType),
+	}
 	switch jobType {
 	case "triage":
-		data.Title = "triage jobs"
 	case "smash":
-		data.Title = "smash jobs"
+	case "hints":
 	default:
 		http.Error(w, "unknown job type", http.StatusBadRequest)
 		return

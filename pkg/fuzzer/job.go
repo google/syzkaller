@@ -193,6 +193,11 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 				exec: job.fuzzer.smashQueue,
 				p:    p.Clone(),
 				call: call,
+				info: &JobInfo{
+					Name:  p.String(),
+					Type:  "hints",
+					Calls: []string{p.CallName(call)},
+				},
 			})
 		}
 		if job.fuzzer.Config.FaultInjection && call >= 0 {
@@ -517,12 +522,14 @@ type hintsJob struct {
 	exec queue.Executor
 	p    *prog.Prog
 	call int
+	info *JobInfo
 }
 
 func (job *hintsJob) run(fuzzer *Fuzzer) {
 	// First execute the original program several times to get comparisons from KCOV.
 	// Additional executions lets us filter out flaky values, which seem to constitute ~30-40%.
 	p := job.p
+	job.info.Logf("\n%s", p.Serialize())
 
 	var comps prog.CompMap
 	for i := 0; i < 3; i++ {
@@ -534,6 +541,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		if result.Stop() {
 			return
 		}
+		job.info.Execs.Add(1)
 		if result.Info == nil || len(result.Info.Calls[job.call].Comps) == 0 {
 			continue
 		}
@@ -548,13 +556,16 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 		}
 	}
 
+	job.info.Logf("stable comps: %d", comps.Len())
 	fuzzer.hintsLimiter.Limit(comps)
+	job.info.Logf("stable comps (after the hints limiter): %d", comps.Len())
 
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(job.call, comps,
 		func(p *prog.Prog) bool {
+			defer job.info.Execs.Add(1)
 			result := fuzzer.execute(job.exec, &queue.Request{
 				Prog:     p,
 				ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
@@ -562,6 +573,10 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 			})
 			return !result.Stop()
 		})
+}
+
+func (job *hintsJob) getInfo() *JobInfo {
+	return job.info
 }
 
 type syncBuffer struct {
