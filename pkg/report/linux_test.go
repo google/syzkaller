@@ -151,6 +151,12 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 			"[   50.419727][ T3822] baz+0x101/0x200 [beep]\n",
 			"[   50.419727][ T3822] baz+0x101/0x200 baz.c:100 [beep]\n",
 		},
+		// Frame format with module+offset and stracktrace_build_id.
+		{
+			"[   50.419727][ T3822] baz+0x101/0x200 [beep b31b29679ab712c360bddd861f655ab24898b4db]\n",
+			"[   50.419727][ T3822] baz+0x101/0x200 baz.c:100 [beep]\n",
+		},
+
 		// Frame format with module+offset for invalid module.
 		{
 			"[   50.419727][ T3822] baz+0x101/0x200 [invalid_module]\n",

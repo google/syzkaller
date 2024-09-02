@@ -455,6 +455,10 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	if match[10] != -1 && match[11] != -1 {
 		modName = string(line[match[10]:match[11]])
 	}
+	buildID := ""
+	if match[12] != -1 && match[13] != -1 {
+		buildID = string(line[match[12]:match[13]])
+	}
 	symb := ctx.symbols[modName][string(fn)]
 	if len(symb) == 0 {
 		return line
@@ -487,6 +491,9 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 		path, _ := backend.CleanPath(frame.File, ctx.kernelObj, ctx.kernelSrc, ctx.kernelBuildSrc, nil)
 		info := fmt.Sprintf(" %v:%v", path, frame.Line)
 		modified := append([]byte{}, line...)
+		if buildID != "" {
+			modified = replace(modified, match[8], match[9], []byte(" ["+modName+"]"))
+		}
 		modified = replace(modified, match[7], match[7], []byte(info))
 		if frame.Inline {
 			end := match[7] + len(info)
@@ -1063,7 +1070,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 
 // nolint: lll
 var (
-	linuxSymbolizeRe     = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)( ?\[([a-zA-Z0-9_.]+)\])?\)?`)
+	linuxSymbolizeRe     = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)( ?\[([a-zA-Z0-9_.]+)( .*)?\])?\)?`)
 	linuxRipFrame        = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|(?:[0-9]+:)?0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 	linuxCallTrace       = compile(`(?:Call (?:T|t)race:)|(?:Backtrace:)`)
 	linuxCodeRe          = regexp.MustCompile(`(?m)^\s*Code\:\s+((?:[A-Fa-f0-9\(\)\<\>]{2,8}\s*)*)\s*$`)
