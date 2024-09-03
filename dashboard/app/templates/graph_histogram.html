@@ -15,12 +15,20 @@ Number of found bugs per month.
 	<script type="text/javascript">
 		google.load("visualization", "1", {packages:["corechart"]});
 		google.setOnLoadCallback(function() {
+			var data = new google.visualization.DataTable();
+			data.addColumn({type: 'string'});
+			{{range $.Graph.Headers}}
+				data.addColumn({type: 'number', label: "{{.Name}}"});
+			{{end}}
+			data.addColumn({type: 'number', role: 'annotation'});
+			data.addRows([
+					{{range $.Graph.Columns}}
+						["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}} {{.Annotation}}],
+					{{end}}
+			]);
 			new google.visualization.ColumnChart (
 				document.getElementById('graph_div')).
-				draw(google.visualization.arrayToDataTable([
-					["-", {{range $.Graph.Headers}}"{{.Name}}", {{end}}],
-					{{range $.Graph.Columns}}["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}}],{{end}}
-				]), {
+				draw(data, {
 					width: "100%",
 					chartArea: {width: '90%', height: '85%'},
 					legend: {position: 'in'},
@@ -33,6 +41,7 @@ Number of found bugs per month.
 							{{$idx}}: {color: "{{$hdr.Color}}"},
 						{{end}}
 					},
+					annotations: { textStyle: { color: 'black', bold: true }},
 				})
 		});
 	</script>
