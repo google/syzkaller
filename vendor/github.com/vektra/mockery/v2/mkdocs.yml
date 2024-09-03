@@ -83,12 +83,10 @@ extra:
     property: G-0ZGMQGZGRN
 
 plugins:
-- glightbox
 - mike:
     alias_type: symlink
     canonical_version: latest
-- open-in-new-tab
-- search
+- glightbox
 - social
-- typeset:
-    enabled: true
+- search
+- open-in-new-tab

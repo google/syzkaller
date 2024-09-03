@@ -25,7 +25,7 @@ import (
 
 const mockConstructorParamTypeNamePrefix = "mockConstructorTestingT"
 
-var invalidIdentifierChar = regexp.MustCompile("^[[:digit:]]|[^[:digit:][:alpha:]_]")
+var invalidIdentifierChar = regexp.MustCompile("[^[:digit:][:alpha:]_]")
 
 func DetermineOutputPackageName(
 	interfaceFileName string,
@@ -196,7 +196,7 @@ func (g *Generator) addPackageImportWithName(ctx context.Context, path, name str
 	log := zerolog.Ctx(ctx)
 	replaced := false
 	g.checkReplaceType(ctx, func(from *replaceType, to *replaceType) bool {
-		if o != nil && path == from.pkg && (from.typ == "" || o.Name() == from.typ || o.Name() == from.param) {
+		if o != nil && path == from.pkg && (from.typ == "" || o.Name() == from.typ) {
 			log.Debug().Str("from", path).Str("to", to.pkg).Msg("changing package path")
 			replaced = true
 			path = to.pkg
@@ -326,32 +326,10 @@ func (g *Generator) getTypeConstraintString(ctx context.Context) string {
 		return ""
 	}
 	qualifiedParams := make([]string, 0, tp.Len())
-param:
 	for i := 0; i < tp.Len(); i++ {
 		param := tp.At(i)
-		str := param.String()
-		typ := g.renderType(ctx, param.Constraint())
-
-		for _, t := range g.replaceTypeCache {
-			if str == t.from.param {
-				// Skip removed generic constraints
-				if t.from.rmvParam {
-					continue param
-				}
-
-				// Import replaced generic constraints
-				pkg := g.addPackageImportWithName(ctx, t.to.pkg, t.to.alias, param.Obj())
-				typ = pkg + "." + t.to.typ
-			}
-		}
-
-		qualifiedParams = append(qualifiedParams, fmt.Sprintf("%s %s", str, typ))
+		qualifiedParams = append(qualifiedParams, fmt.Sprintf("%s %s", param.String(), g.renderType(ctx, param.Constraint())))
 	}
-
-	if len(qualifiedParams) == 0 {
-		return ""
-	}
-
 	return fmt.Sprintf("[%s]", strings.Join(qualifiedParams, ", "))
 }
 
@@ -364,21 +342,8 @@ func (g *Generator) getInstantiatedTypeString() string {
 		return ""
 	}
 	params := make([]string, 0, tp.Len())
-param:
 	for i := 0; i < tp.Len(); i++ {
-		str := tp.At(i).String()
-
-		// Skip replaced generic types
-		for _, t := range g.replaceTypeCache {
-			if str == t.from.param && t.from.rmvParam {
-				continue param
-			}
-		}
-
-		params = append(params, str)
-	}
-	if len(params) == 0 {
-		return ""
+		params = append(params, tp.At(i).String())
 	}
 	return fmt.Sprintf("[%s]", strings.Join(params, ", "))
 }
@@ -510,25 +475,7 @@ func (g *Generator) renderType(ctx context.Context, typ types.Type) string {
 		return fmt.Sprintf("%s[%s]", name, strings.Join(args, ","))
 	case *types.TypeParam:
 		if t.Constraint() != nil {
-			name := t.Obj().Name()
-			pkg := ""
-
-			g.checkReplaceType(ctx, func(from *replaceType, to *replaceType) bool {
-				// Replace with the new type if it is being removed as a constraint
-				if t.Obj().Pkg().Path() == from.pkg && name == from.param && from.rmvParam {
-					name = to.typ
-					if to.pkg != from.pkg {
-						pkg = g.addPackageImport(ctx, t.Obj().Pkg(), t.Obj())
-					}
-					return false
-				}
-				return true
-			})
-
-			if pkg != "" {
-				return pkg + "." + name
-			}
-			return name
+			return t.Obj().Name()
 		}
 		return g.getPackageScopedType(ctx, t.Obj())
 	case *types.Basic:
@@ -559,7 +506,7 @@ func (g *Generator) renderType(ctx context.Context, typ types.Type) string {
 			return fmt.Sprintf(
 				"func(%s)(%s)",
 				g.renderTypeTuple(ctx, t.Params(), t.Variadic()),
-				g.renderTypeTuple(ctx, t.Results(), false),
+				g.renderTypeTuple(ctx, t.Results(), t.Variadic()),
 			)
 		}
 	case *types.Map:
@@ -730,7 +677,7 @@ func (g *Generator) genList(ctx context.Context, list *types.Tuple, variadic boo
 		params.Params = append(params.Params, fmt.Sprintf("%s %s", pname, ts))
 		params.Nilable = append(params.Nilable, isNillable(v.Type()))
 
-		if variadic && i == list.Len()-1 {
+		if strings.Contains(ts, "...") {
 			params.ParamsIntf = append(params.ParamsIntf, fmt.Sprintf("%s ...interface{}", pname))
 		} else {
 			params.ParamsIntf = append(params.ParamsIntf, fmt.Sprintf("%s interface{}", pname))
@@ -1141,11 +1088,9 @@ func resolveCollision(names []string, variable string) string {
 }
 
 type replaceType struct {
-	alias    string
-	pkg      string
-	typ      string
-	param    string
-	rmvParam bool
+	alias string
+	pkg   string
+	typ   string
 }
 
 type replaceTypeItem struct {
@@ -1160,14 +1105,6 @@ func parseReplaceType(t string) *replaceType {
 		ret.alias = r[0]
 		t = r[1]
 	}
-
-	// Match type parameter substitution
-	match := regexp.MustCompile(`\[(.*?)\]$`).FindStringSubmatch(t)
-	if len(match) >= 2 {
-		ret.param, ret.rmvParam = strings.CutPrefix(match[1], "-")
-		t = strings.ReplaceAll(t, match[0], "")
-	}
-
 	lastDot := strings.LastIndex(t, ".")
 	lastSlash := strings.LastIndex(t, "/")
 	if lastDot == -1 || (lastSlash > -1 && lastDot < lastSlash) {
