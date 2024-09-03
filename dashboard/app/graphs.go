@@ -73,8 +73,9 @@ type uiGraphHeader struct {
 }
 
 type uiGraphColumn struct {
-	Hint string
-	Vals []uiGraphValue
+	Hint       string
+	Annotation float32
+	Vals       []uiGraphValue
 }
 
 type uiGraphValue struct {
@@ -499,7 +500,9 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 		col := uiGraphColumn{Hint: month.Format("Jan-06")}
 		stats := months[month]
 		for _, typ := range types {
-			col.Vals = append(col.Vals, uiGraphValue{Val: float32(stats[typ.name])})
+			val := float32(stats[typ.name])
+			col.Vals = append(col.Vals, uiGraphValue{Val: val})
+			col.Annotation += val
 		}
 		columns = append(columns, col)
 	}
