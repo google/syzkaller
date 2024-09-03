@@ -26,6 +26,7 @@
 
 COMMAND=""
 DOCKERARGS=()
+[ -n $https_proxy ] && DOCKERARGS+=" --env https_proxy=$https_proxy"
 for ARG in "$@"; do
 	while IFS='=' read KEY VAL; do
 		# If we have a kernel path passed in, we mount it in the container
