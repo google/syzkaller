@@ -1,7 +1,7 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package manager
 
 import (
 	"bufio"
@@ -14,26 +14,14 @@ import (
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/vminfo"
 )
 
-func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
-	execFilter, filter, err := createCoverageFilter(mgr.cfg, modules)
-	if err != nil {
-		log.Fatalf("failed to init coverage filter: %v", err)
-	}
-	mgr.modules = modules
-	mgr.coverFilter = filter
-	return execFilter
-}
-
-func createCoverageFilter(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) ([]uint64,
+func CreateCoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg) ([]uint64,
 	map[uint64]struct{}, error) {
-	if !cfg.HasCovFilter() {
+	if covCfg.Empty() {
 		return nil, nil, nil
 	}
-	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.
-	rg, err := getReportGenerator(cfg, modules)
+	rg, err := source.Get()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -43,7 +31,7 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []*vminfo.KernelModule)
 			apply(&sym.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, cfg.CovFilter.Functions, foreachSymbol); err != nil {
+	if err := covFilterAddFilter(pcs, covCfg.Functions, foreachSymbol); err != nil {
 		return nil, nil, err
 	}
 	foreachUnit := func(apply func(*backend.ObjectUnit)) {
@@ -51,10 +39,10 @@ func createCoverageFilter(cfg *mgrconfig.Config, modules []*vminfo.KernelModule)
 			apply(&unit.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, cfg.CovFilter.Files, foreachUnit); err != nil {
+	if err := covFilterAddFilter(pcs, covCfg.Files, foreachUnit); err != nil {
 		return nil, nil, err
 	}
-	if err := covFilterAddRawPCs(pcs, cfg.CovFilter.RawPCs); err != nil {
+	if err := covFilterAddRawPCs(pcs, covCfg.RawPCs); err != nil {
 		return nil, nil, err
 	}
 	// Copy pcs into execPCs. This is used to filter coverage in the executor.

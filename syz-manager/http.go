@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -332,7 +333,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		return
 	}
 
-	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
+	rg, err := mgr.reportGenerator.Get()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
@@ -340,7 +341,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 
 	if r.FormValue("flush") != "" {
 		defer func() {
-			resetReportGenerator()
+			mgr.reportGenerator.Reset()
 			debug.FreeOSMemory()
 		}()
 	}
@@ -362,13 +363,13 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
 				Data: string(inp.Prog.Serialize()),
-				PCs:  coverToPCs(mgr.cfg, inp.Updates[updateID].RawCover),
+				PCs:  manager.CoverToPCs(mgr.cfg, inp.Updates[updateID].RawCover),
 			})
 		} else {
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
 				Data: string(inp.Prog.Serialize()),
-				PCs:  coverToPCs(mgr.cfg, inp.Cover),
+				PCs:  manager.CoverToPCs(mgr.cfg, inp.Cover),
 			})
 		}
 	} else {
@@ -380,7 +381,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			progs = append(progs, cover.Prog{
 				Sig:  inp.Sig,
 				Data: string(inp.Prog.Serialize()),
-				PCs:  coverToPCs(mgr.cfg, inp.Cover),
+				PCs:  manager.CoverToPCs(mgr.cfg, inp.Cover),
 			})
 		}
 	}
@@ -562,6 +563,10 @@ func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) modulesInfo(w http.ResponseWriter, r *http.Request) {
+	if !mgr.checkDone.Load() {
+		http.Error(w, "info is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
+		return
+	}
 	modules, err := json.MarshalIndent(mgr.modules, "", "\t")
 	if err != nil {
 		fmt.Fprintf(w, "unable to create JSON modules info: %v", err)
