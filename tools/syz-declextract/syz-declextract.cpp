@@ -68,7 +68,63 @@ public:
   }
 };
 
-class Matcher : public MatchFinder::MatchCallback {
+class SyscallMatcher : public MatchFinder::MatchCallback {
+private:
+  const std::string getSyzType(const std::string &type) { return "intptr"; }
+  const std::string swapIfReservedKeyword(const std::string &word) {
+    if (word == "resource")
+      return "rsrc";
+    return word;
+  }
+  unsigned int nameIndex{0}, argcIndex{0}, typesIndex{0}, argsIndex{0};
+  bool isInitialized{false};
+  llvm::ArrayRef<Expr *> getVarDeclInitList(Expr *init, const ASTContext *context) {
+    return llvm::dyn_cast<InitListExpr>(
+               llvm::dyn_cast<VarDecl>(init->getAsBuiltinConstantDeclRef(*context)->getUnderlyingDecl())->getInit())
+        ->inits();
+  }
+
+  std::vector<Param> getArgs(Expr *types, Expr *names, int argc, ASTContext *context) {
+    std::vector<Param> args(argc);
+    if (argc) {
+      int i = 0;
+      for (const auto *type : getVarDeclInitList(types, context)) { // get parameter types.
+        args[i++].type = std::move(*type->tryEvaluateString(*context));
+      }
+
+      i = 0;
+      for (const auto *name : getVarDeclInitList(names, context)) { // get parameter names
+        args[i++].name = std::move(*name->tryEvaluateString(*context));
+      }
+    }
+    return args;
+  }
+
+public:
+  void virtual run(const MatchFinder::MatchResult &Result) override {
+    ASTContext *context = Result.Context;
+    const auto *initList = Result.Nodes.getNodeAs<InitListExpr>("initList");
+    if (!isInitialized) {
+      argcIndex = Result.Nodes.getNodeAs<FieldDecl>("nb_args")->getFieldIndex();
+      typesIndex = Result.Nodes.getNodeAs<FieldDecl>("types")->getFieldIndex();
+      argsIndex = Result.Nodes.getNodeAs<FieldDecl>("args")->getFieldIndex();
+      nameIndex = Result.Nodes.getNodeAs<FieldDecl>("name")->getFieldIndex();
+    }
+    // values contains the initializer list for the struct `syscall_metadata`
+    auto values = initList->inits();
+    int argc = values[argcIndex]->getIntegerConstantExpr(*context)->getSExtValue();
+
+    printf("%s$auto(", values[nameIndex]->tryEvaluateString(*context)->c_str() + 4); // name
+    const char *sep = "";
+    for (const auto &arg : getArgs(values[typesIndex], values[argsIndex], argc, context)) {
+      printf("%s%s %s", sep, swapIfReservedKeyword(arg.name).c_str(), getSyzType(arg.type).c_str());
+      sep = ", ";
+    }
+    puts(") (automatic)");
+  }
+};
+
+class NetlinkPolicyMatcher : public MatchFinder::MatchCallback {
 private:
   const std::string nlaToSyz(const Expr *const policyType) {
     // NOTE:This check is for when the policy is missing the field `type`.
@@ -114,59 +170,9 @@ private:
     fprintf(stderr, "Unsupported netlink type %s\n", type.c_str());
     exit(1);
   }
-  const std::string getSyzType(const std::string &type) { return "intptr"; }
-  const std::string swapIfReservedKeyword(const std::string &word) {
-    if (word == "resource")
-      return "rsrc";
-    return word;
-  }
-
-  void syscall(const MatchFinder::MatchResult &Result) {
-    ASTContext *context = Result.Context;
-    const auto *varDecl = Result.Nodes.getNodeAs<VarDecl>("syscall");
-    if (!varDecl || !varDecl->getInit())
-      return;
-
-    // values contains the initializer list for the struct `syscall_metadata`
-    auto values = llvm::dyn_cast<InitListExpr>(varDecl->getInit())->inits();
-    if (values.empty())
-      return;
-
-    int argc = *values[2]->getIntegerConstantExpr(*context)->getRawData();
-
-    std::vector<Param> args(argc);
-    if (argc) {
-      int i = 0;
-      for (const auto *type : // get parameter types
-           llvm::dyn_cast<InitListExpr>(
-               llvm::dyn_cast<VarDecl>(values[3]->getAsBuiltinConstantDeclRef(*context)->getUnderlyingDecl())
-                   ->getInit())
-               ->inits()) {
-        args[i++].type = std::move(*type->tryEvaluateString(*context));
-      }
-
-      i = 0;
-      for (const auto *name : // get parameter names
-           llvm::dyn_cast<InitListExpr>(
-               llvm::dyn_cast<VarDecl>(values[4]->getAsBuiltinConstantDeclRef(*context)->getUnderlyingDecl())
-                   ->getInit())
-               ->inits()) {
-        args[i++].name = std::move(*name->tryEvaluateString(*context));
-      }
-    }
-
-    printf("%s$auto(", values[0]->tryEvaluateString(*context)->c_str() + 4); // name
-    const char *sep = "";
-    for (const auto &arg : args) {
-      printf("%s%s %s", sep, swapIfReservedKeyword(arg.name).c_str(), getSyzType(arg.type).c_str());
-      sep = ", ";
-    }
-    puts(") (automatic)");
-  }
 
   void netlink(const MatchFinder::MatchResult &Result) {
     ASTContext *context = Result.Context;
-    std::string output;
     const auto *netlinkDecl = Result.Nodes.getNodeAs<VarDecl>("netlink");
     if (!netlinkDecl) {
       return;
@@ -279,16 +285,15 @@ private:
 
   void genlFamily(const MatchFinder::MatchResult &Result) {
     ASTContext *context = Result.Context;
-    const auto *genlFamily = Result.Nodes.getNodeAs<RecordDecl>("genl_family");
-    if (!genlFamily) {
-      return;
-    }
-    for (const auto &field : genlFamily->fields()) {
-      genlFamilyMember[field->getNameAsString()] = field->getFieldIndex();
-    }
     const auto *genlFamilyInit = Result.Nodes.getNodeAs<InitListExpr>("genl_family_init");
     if (!genlFamilyInit) {
       return;
+    }
+    if (genlFamilyMember.empty()) {
+      const auto *genlFamily = Result.Nodes.getNodeAs<RecordDecl>("genl_family");
+      for (const auto &field : genlFamily->fields()) {
+        genlFamilyMember[field->getNameAsString()] = field->getFieldIndex();
+      }
     }
 
     auto name = llvm::dyn_cast<StringLiteral>(genlFamilyInit->getInit(genlFamilyMember["name"]))->getString().str();
@@ -332,7 +337,6 @@ private:
 
 public:
   virtual void run(const MatchFinder::MatchResult &Result) override {
-    syscall(Result);
     netlink(Result);
     genlFamily(Result);
   };
@@ -350,22 +354,32 @@ int main(int argc, const char **argv) {
   clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
 
-  Matcher Printer;
+  NetlinkPolicyMatcher NetlinkPolicyMatcher;
+  SyscallMatcher SyscallMatcher;
   MatchFinder Finder;
+
   Finder.addMatcher(
-      varDecl(isExpandedFromMacro("SYSCALL_METADATA"), hasType(recordDecl(hasName("syscall_metadata"))), isDefinition())
+      varDecl(
+          isExpandedFromMacro("SYSCALL_METADATA"),
+          hasType(recordDecl(hasName("syscall_metadata"), has(fieldDecl(hasName("nb_args")).bind("nb_args")),
+                             has(fieldDecl(hasName("types")).bind("types")),
+                             has(fieldDecl(hasName("name")).bind("name")), has(fieldDecl(hasName("args")).bind("args")))
+                      .bind("syscall_metadata")),
+          has(initListExpr().bind("initList")))
           .bind("syscall"),
-      &Printer);
+      &SyscallMatcher);
+
   Finder.addMatcher(varDecl(hasType(constantArrayType(hasElementType(hasDeclaration(
                                                           recordDecl(hasName("nla_policy")).bind("nla_policy"))))
                                         .bind("nla_policy_array")),
                             isDefinition())
                         .bind("netlink"),
-                    &Printer);
+                    &NetlinkPolicyMatcher);
+
   Finder.addMatcher(varDecl(hasType(recordDecl(hasName("genl_family")).bind("genl_family")),
                             has(initListExpr().bind("genl_family_init")))
                         .bind("genl_family_decl"),
-                    &Printer);
+                    &NetlinkPolicyMatcher);
 
   return Tool.run(clang::tooling::newFrontendActionFactory(&Finder).get());
 }
