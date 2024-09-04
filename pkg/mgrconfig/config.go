@@ -152,7 +152,7 @@ type Config struct {
 	// "pcs": specify raw PC table files name.
 	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
 	// eg. "0xffffffff81000000:0x10\n"
-	CovFilter covFilterCfg `json:"cover_filter,omitempty"`
+	CovFilter CovFilterCfg `json:"cover_filter,omitempty"`
 
 	// For each prog in the corpus, remember the raw array of PCs obtained from the kernel.
 	// It can be useful for debugging syzkaller descriptions and syzkaller itself.
@@ -242,7 +242,7 @@ type Subsystem struct {
 	Paths []string `json:"path"`
 }
 
-type covFilterCfg struct {
+type CovFilterCfg struct {
 	Files     []string `json:"files,omitempty"`
 	Functions []string `json:"functions,omitempty"`
 	RawPCs    []string `json:"pcs,omitempty"`

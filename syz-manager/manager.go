@@ -89,6 +89,7 @@ type Manager struct {
 	crashTypes      map[string]bool
 	enabledFeatures flatrpc.Feature
 	checkDone       atomic.Bool
+	reportGenerator *manager.ReportGeneratorWrapper
 	fresh           bool
 	expertMode      bool
 	modules         []*vminfo.KernelModule
@@ -229,6 +230,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		externalReproQueue: make(chan *manager.Crash, 10),
 		crashes:            make(chan *manager.Crash, 10),
 		saturatedCalls:     make(map[string]bool),
+		reportGenerator:    manager.ReportGeneratorCache(cfg),
 	}
 
 	if *flagDebug {
@@ -1422,6 +1424,17 @@ func (mgr *Manager) dashboardReproTasks() {
 			}
 		}
 	}
+}
+
+func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
+	mgr.reportGenerator.Init(modules)
+	execFilter, filter, err := manager.CreateCoverageFilter(mgr.reportGenerator, mgr.cfg.CovFilter)
+	if err != nil {
+		log.Fatalf("failed to init coverage filter: %v", err)
+	}
+	mgr.modules = modules
+	mgr.coverFilter = filter
+	return execFilter
 }
 
 func publicWebAddr(addr string) string {

@@ -260,8 +260,8 @@ func checkNonEmpty(fields ...string) error {
 	return nil
 }
 
-func (cfg *Config) HasCovFilter() bool {
-	return len(cfg.CovFilter.Functions)+len(cfg.CovFilter.Files)+len(cfg.CovFilter.RawPCs) != 0
+func (cov *CovFilterCfg) Empty() bool {
+	return len(cov.Functions)+len(cov.Files)+len(cov.RawPCs) == 0
 }
 
 func (cfg *Config) CompleteKernelDirs() {
