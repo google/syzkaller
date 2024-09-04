@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -36,6 +37,7 @@ import (
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -46,10 +48,8 @@ var (
 	flagConfig  = flag.String("config", "", "configuration file")
 	flagModules = flag.String("modules", "",
 		"modules JSON info obtained from /modules (optional)")
-	flagExportCSV        = flag.String("csv", "", "export coverage data in csv format (optional)")
 	flagExportLineJSON   = flag.String("json", "", "export coverage data with source line info in json format (optional)")
 	flagExportJSONL      = flag.String("jsonl", "", "export jsonl coverage data (optional)")
-	flagExportHTML       = flag.String("html", "", "save coverage HTML report to file (optional)")
 	flagNsHeatmap        = flag.String("heatmap", "", "generate namespace heatmap")
 	flagNsHeatmapGroupBy = flag.String("group-by", "dir", "dir or subsystem")
 	flagDateFrom         = flag.String("from",
@@ -156,57 +156,49 @@ func main() {
 	}
 	pcs := initPCs(rg)
 	progs := []cover.Prog{{PCs: pcs}}
-	buf := new(bytes.Buffer)
 	params := cover.HandlerParams{
 		Progs: progs,
 	}
-	if *flagExportCSV != "" {
-		if err := rg.DoFuncCover(buf, params); err != nil {
-			tool.Fail(err)
-		}
-		if err := osutil.WriteFile(*flagExportCSV, buf.Bytes()); err != nil {
-			tool.Fail(err)
-		}
-		return
-	}
+
 	if *flagExportLineJSON != "" {
-		if err := rg.DoLineJSON(buf, params); err != nil {
-			tool.Fail(err)
-		}
-		if err := osutil.WriteFile(*flagExportLineJSON, buf.Bytes()); err != nil {
-			tool.Fail(err)
-		}
+		doReport(params, *flagExportLineJSON, rg.DoLineJSON)
 		return
 	}
 	if *flagExportJSONL != "" {
-		if err := rg.DoCoverJSONL(buf, params); err != nil {
-			tool.Fail(err)
-		}
-		if err := osutil.WriteFile(*flagExportJSONL, buf.Bytes()); err != nil {
-			tool.Fail(err)
-		}
+		doReport(params, *flagExportJSONL, rg.DoCoverJSONL)
 		return
 	}
-	if err := rg.DoHTML(buf, params); err != nil {
+
+	log.Logf(1, "start DoHTML")
+	doReport(params, "syz-cover.html", rg.DoHTML)
+
+	log.Logf(1, "start DoSubsystemCover")
+	doReport(params, "syz-cover-subsystem.html", rg.DoSubsystemCover)
+
+	log.Logf(1, "start DoModuleCover")
+	doReport(params, "syz-cover-module.html", rg.DoModuleCover)
+
+	log.Logf(1, "start DoFuncCover")
+	doReport(params, "syz-cover-funccover.csv", rg.DoFuncCover)
+
+	log.Logf(1, "start DoRawCover")
+	doReport(params, "rawcoverpcs", rg.DoRawCover)
+
+	log.Logf(1, "start DoRawCoverFiles")
+	doReport(params, "rawcoverfiles", rg.DoRawCoverFiles)
+}
+
+func doReport(params cover.HandlerParams, fname string,
+	fn func(w io.Writer, params cover.HandlerParams) error) {
+	buf := new(bytes.Buffer)
+	if err := fn(buf, params); err != nil {
 		tool.Fail(err)
 	}
-	if *flagExportHTML != "" {
-		if err := osutil.WriteFile(*flagExportHTML, buf.Bytes()); err != nil {
-			tool.Fail(err)
-		}
-		return
-	}
-	fn, err := osutil.TempFile("syz-cover")
-	if err != nil {
+	log.Logf(0, "write to %v", fname)
+	if err := osutil.WriteFile(fname, buf.Bytes()); err != nil {
 		tool.Fail(err)
 	}
-	fn += ".html"
-	if err := osutil.WriteFile(fn, buf.Bytes()); err != nil {
-		tool.Fail(err)
-	}
-	if err := exec.Command("xdg-open", fn).Start(); err != nil {
-		tool.Failf("failed to start browser: %v", err)
-	}
+	exec.Command("xdg-open", fname).Start()
 }
 
 func initPCs(rg *cover.ReportGenerator) []uint64 {
