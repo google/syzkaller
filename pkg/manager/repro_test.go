@@ -119,19 +119,14 @@ func TestReproRWRace(t *testing.T) {
 
 	assert.True(t, mock.NeedRepro(nil))
 	called := <-mock.run
-	called.ret <- &ReproResult{}
 	// Pretend that processRepro() is finished and
 	// we've written "repro.prog" to the disk.
 	mock.reproProgExist.Store(true)
 	assert.False(t, mock.NeedRepro(nil))
+	called.ret <- &ReproResult{}
 	assert.True(t, obj.CanReproMore())
 
-	called2 := <-mock.run
-	called2.ret <- &ReproResult{}
-	assert.False(t, mock.NeedRepro(nil))
-	assert.True(t, obj.CanReproMore())
-
-	// Reproducers may be still running.
+	// The second repro process will never be started.
 	mock.onVMShutdown(t, obj)
 }
 
