@@ -35,7 +35,9 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	core_relos		ptr64[in, array[bpf_core_relo], opt]
 	core_relo_rec_size	const[BPF_CORE_RELO_SIZE, int32]
 	log_true_size		int32
-}
+	prog_token_fd		fd_bpf_token	(if[value[flags] & BPF_F_TOKEN_FD != 0])
+	pad			const[0, int32]	(if[value[flags] & BPF_F_TOKEN_FD == 0])
+} [packed]
 
 type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
 
