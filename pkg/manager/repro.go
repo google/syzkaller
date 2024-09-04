@@ -197,8 +197,12 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			}
-			if crash == nil || !r.mgr.NeedRepro(crash) {
-				continue
+			if crash != nil && !r.mgr.NeedRepro(crash) {
+				crash = nil
+				// Now we might not need that many VMs.
+				r.mu.Lock()
+				r.adjustPoolSizeLocked()
+				r.mu.Unlock()
 			}
 		}
 
