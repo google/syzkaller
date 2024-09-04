@@ -17,17 +17,20 @@
 #include "clang/Sema/Ownership.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <stdio.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace clang;
@@ -48,6 +51,18 @@ struct NetlinkOps {
   std::string cmd;
   std::optional<std::string> policy;
 };
+
+bool endsWith(const std::string_view &str, const std::string_view end) {
+  size_t substrBegin = str.find(end);
+  return substrBegin != std::string::npos && str.substr(substrBegin) == end;
+}
+
+bool beginsWith(const std::string_view &str, const std::string_view begin) {
+  size_t substrBegin = str.find(begin);
+  return substrBegin != std::string::npos && str.substr(0, begin.size()) == begin;
+}
+
+bool contains(const std::string_view &str, const std::string_view sub) { return str.find(sub) != std::string::npos; }
 
 class EnumMatcher : public MatchFinder::MatchCallback {
 private:
@@ -126,25 +141,102 @@ public:
 
 class NetlinkPolicyMatcher : public MatchFinder::MatchCallback {
 private:
-  const std::string nlaToSyz(const Expr *const policyType) {
-    // NOTE:This check is for when the policy is missing the field `type`.
-    // TODO:Gather information from other defined fields to better specify a type.
-    if (!policyType->getEnumConstantDecl()) {
-      return "intptr";
+  // u8ToNlaEnum stores the Enum values to string conversions. This is later used to transfer types from an unnamed
+  // integer to a readable form. E.g. 1 -> NLA_U8
+  // See: https://elixir.bootlin.com/linux/v6.10/source/include/net/netlink.h#L172
+  std::unordered_map<uint8_t, std::string> u8ToNlaEnum;
+  void nlaEnum(const MatchFinder::MatchResult &Result) {
+    const auto &num = Result.Nodes.getNodeAs<EnumDecl>("NLA_ENUM");
+    if (!num || !u8ToNlaEnum.empty()) { // Don't evaluate the Enum twice
+      return;
     }
-    const auto type = policyType->getEnumConstantDecl()->getNameAsString().substr(4); // remove the NLA_ prefix
+    for (const auto &enumerator : num->enumerators()) {
+      const auto &name = enumerator->getNameAsString();
+      const auto val = uint8_t(enumerator->getValue().getZExtValue());
+      u8ToNlaEnum[val] = name.substr(4); // Remove NLA_ prefix
+    }
+  }
+
+  const std::string nlaInt8Subtype(const std::string &name) {
+    if (endsWith(name, "ENABLED") || endsWith(name, "ENABLE")) {
+      return "bool8";
+    }
+    return "int8";
+  }
+  const std::string nlaInt16Subtype(const std::string &name) {
+    if (contains(name, "PORT")) {
+      return "sock_port";
+    }
+    return "int16";
+  }
+  const std::string nlaInt32Subtype(const std::string &name) {
+    if (contains(name, "IPV4")) {
+      return "ipv4_addr";
+    }
+    if (endsWith(name, "FD")) {
+      if (endsWith(name, "NS_FD")) {
+        return "fd_namespace";
+      }
+      return "fd";
+    }
+    if (contains(name, "IFINDEX")) {
+      return "ifindex";
+    }
+    if (endsWith(name, "ENABLED") || endsWith(name, "ENABLE")) {
+      return "bool32";
+    }
+    return "int32";
+  }
+
+  const std::string nlaStringSubtype(const std::string &name) {
+    if (contains(name, "IFNAME") || endsWith(name, "DEV_NAME")) {
+      return "devname";
+    }
+    return "string";
+  }
+
+  const std::string nlaInt64Subtype() { return "int64"; }
+
+  const std::string nlaArraySubtype(const std::string &name, const std::string &type, const size_t len) {
+    switch (len) {
+    case 0:
+      return "array[int8]";
+    case 1:
+      return nlaInt8Subtype(name);
+    case 2:
+      return nlaInt16Subtype(name);
+    case 4:
+      return nlaInt32Subtype(name);
+    case 8:
+      return nlaInt64Subtype();
+    default:
+      if (contains(name, "IPV6")) {
+        return "ipv6_addr";
+      }
+      if (type == "BINARY") {
+        return "array[int8, 0:" + std::to_string(len) + "]";
+      }
+      return "array[int8, " + std::to_string(len) + "]";
+    }
+  }
+
+  const std::string nlaToSyz(const std::string &name, const std::string &type, const size_t len) {
+    // TODO:Gather information from other defined fields to better specify a type.
     // Loosely based on https://elixir.bootlin.com/linux/v6.10/source/lib/nlattr.c
     if (type == "U8" || type == "S8") {
-      return "int8";
+      return nlaInt8Subtype(name);
     }
-    if (type == "U16" || type == "S16" || type == "BINARY") {
-      return "int16";
+    if (type == "U16" || type == "S16") {
+      return nlaInt16Subtype(name);
+    }
+    if (type == "BINARY") {
+      return nlaArraySubtype(name, type, len);
     }
     if (type == "BE16") {
       return "int16be";
     }
     if (type == "U32" || type == "S32") {
-      return "int32";
+      return nlaInt32Subtype(name);
     }
     if (type == "BE32") {
       return "int32be";
@@ -159,13 +251,13 @@ private:
       return "stringnoz";
     }
     if (type == "NUL_STRING") {
-      return "string";
+      return nlaStringSubtype(name);
     }
     if (type == "BITFIELD32") { // TODO:Extract valued values from NLA_POLICY_BITFIELD32 macro.
       return "int32";
     }
     if (type == "UNSPEC" || type == "NESTED" || type == "NESTED_ARRAY" || type == "REJECT" || type == "TYPE_MAX") {
-      return "intptr";
+      return nlaArraySubtype(name, type, len);
     }
     fprintf(stderr, "Unsupported netlink type %s\n", type.c_str());
     exit(1);
@@ -224,8 +316,13 @@ private:
       if (fields[i].empty() || enumData[i].name.empty()) {
         continue;
       }
+      Expr::EvalResult type; // value for the field type
+      Expr::EvalResult len;  // value for the field type
+      fields[i][0]->EvaluateAsConstantExpr(type, *context);
+      fields[i][2]->EvaluateAsConstantExpr(len, *context);
       printf("\t%s nlattr[%s, %s]\n", enumData[i].name.c_str(), enumData[i].name.c_str(),
-             nlaToSyz(fields[i][0]).c_str());
+             nlaToSyz(enumData[i].name, u8ToNlaEnum[type.Val.getInt().getZExtValue()], len.Val.getInt().getZExtValue())
+                 .c_str());
     }
     puts("] [varlen]");
   }
@@ -337,6 +434,7 @@ private:
 
 public:
   virtual void run(const MatchFinder::MatchResult &Result) override {
+    nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
     netlink(Result);
     genlFamily(Result);
   };
@@ -369,12 +467,16 @@ int main(int argc, const char **argv) {
           .bind("syscall"),
       &SyscallMatcher);
 
-  Finder.addMatcher(varDecl(hasType(constantArrayType(hasElementType(hasDeclaration(
-                                                          recordDecl(hasName("nla_policy")).bind("nla_policy"))))
-                                        .bind("nla_policy_array")),
-                            isDefinition())
-                        .bind("netlink"),
-                    &NetlinkPolicyMatcher);
+  Finder.addMatcher(
+      translationUnitDecl(
+          hasDescendant(enumDecl(has(enumConstantDecl(hasName("__NLA_TYPE_MAX")))).bind("NLA_ENUM")),
+          forEachDescendant(
+              varDecl(hasType(constantArrayType(
+                                  hasElementType(hasDeclaration(recordDecl(hasName("nla_policy")).bind("nla_policy"))))
+                                  .bind("nla_policy_array")),
+                      isDefinition())
+                  .bind("netlink"))),
+      &NetlinkPolicyMatcher);
 
   Finder.addMatcher(varDecl(hasType(recordDecl(hasName("genl_family")).bind("genl_family")),
                             has(initListExpr().bind("genl_family_init")))
