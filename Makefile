@@ -232,7 +232,7 @@ generate:
 	$(MAKE) format
 
 generate_go: format_cpp
-	$(GO) generate ./executor ./pkg/ifuzz ./pkg/build
+	$(GO) generate ./executor ./pkg/ifuzz ./pkg/build ./pkg/rpcserver
 	$(GO) generate ./vm/proxyapp
 
 generate_rpc:
