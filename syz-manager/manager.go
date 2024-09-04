@@ -80,7 +80,7 @@ type Manager struct {
 	sysTarget       *targets.Target
 	reporter        *report.Reporter
 	crashdir        string
-	serv            *rpcserver.Server
+	serv            rpcserver.Server
 	corpus          *corpus.Corpus
 	corpusDB        *db.DB
 	corpusDBMu      sync.Mutex // for concurrent operations on corpusDB
@@ -250,7 +250,10 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
-	log.Logf(0, "serving rpc on tcp://%v", mgr.serv.Port)
+	if err := mgr.serv.Listen(); err != nil {
+		log.Fatalf("failed to start rpc server: %v", err)
+	}
+	log.Logf(0, "serving rpc on tcp://%v", mgr.serv.Port())
 
 	if cfg.DashboardAddr != "" {
 		opts := []dashapi.DashboardOpts{}
@@ -285,7 +288,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-executor manually as:")
-		log.Logf(0, "syz-executor runner local manager.ip %v", mgr.serv.Port)
+		log.Logf(0, "syz-executor runner local manager.ip %v", mgr.serv.Port())
 		<-vm.Shutdown
 		return
 	}
@@ -534,7 +537,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 
 func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, injectExec <-chan bool,
 	finishCb vm.EarlyFinishCb) (*report.Report, []byte, error) {
-	fwdAddr, err := inst.Forward(mgr.serv.Port)
+	fwdAddr, err := inst.Forward(mgr.serv.Port())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
 	}
