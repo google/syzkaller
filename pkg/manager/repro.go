@@ -64,7 +64,8 @@ type ReproLoop struct {
 	mu          sync.Mutex
 	queue       []*Crash
 	reproducing map[string]bool
-	attempted   map[string]bool
+	enqueued    map[string]bool
+	attempts    map[string]int
 }
 
 func NewReproLoop(mgr ReproManagerView, reproVMs int, onlyOnce bool) *ReproLoop {
@@ -75,7 +76,8 @@ func NewReproLoop(mgr ReproManagerView, reproVMs int, onlyOnce bool) *ReproLoop 
 		reproVMs:    reproVMs,
 		reproducing: map[string]bool{},
 		pingQueue:   make(chan struct{}, 1),
-		attempted:   map[string]bool{},
+		enqueued:    map[string]bool{},
+		attempts:    map[string]int{},
 	}
 	ret.statNumReproducing = stat.New("reproducing", "Number of crashes being reproduced",
 		stat.Console, stat.NoGraph, func() int {
@@ -133,7 +135,7 @@ func (r *ReproLoop) Enqueue(crash *Crash) {
 	defer r.mu.Unlock()
 
 	title := crash.FullTitle()
-	if r.onlyOnce && r.attempted[title] {
+	if r.onlyOnce && r.enqueued[title] {
 		// Try to reproduce each bug at most 1 time in this mode.
 		// Since we don't upload bugs/repros to dashboard, it likely won't have
 		// the reproducer even if we succeeded last time, and will repeatedly
@@ -141,7 +143,7 @@ func (r *ReproLoop) Enqueue(crash *Crash) {
 		return
 	}
 	log.Logf(1, "scheduled a reproduction of '%v'", title)
-	r.attempted[title] = true
+	r.enqueued[title] = true
 	r.queue = append(r.queue, crash)
 
 	// Ping the loop.
@@ -156,6 +158,12 @@ func (r *ReproLoop) popCrash() *Crash {
 	defer r.mu.Unlock()
 
 	newBetter := func(base, new *Crash) bool {
+		// The more times we failed, the less likely we are to actually
+		// find a reproducer. Give preference to not yet attempted repro runs.
+		baseTitle, newTitle := base.FullTitle(), new.FullTitle()
+		if r.attempts[baseTitle] != r.attempts[newTitle] {
+			return r.attempts[newTitle] < r.attempts[baseTitle]
+		}
 		// First, serve manual requests.
 		if new.Manual != base.Manual {
 			return new.Manual
@@ -209,8 +217,10 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			return
 		}
 
+		title := crash.FullTitle()
 		r.mu.Lock()
-		r.reproducing[crash.FullTitle()] = true
+		r.attempts[title]++
+		r.reproducing[title] = true
 		r.adjustPoolSizeLocked()
 		r.mu.Unlock()
 
@@ -221,7 +231,7 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			r.handle(crash)
 
 			r.mu.Lock()
-			delete(r.reproducing, crash.FullTitle())
+			delete(r.reproducing, title)
 			r.adjustPoolSizeLocked()
 			r.mu.Unlock()
 
