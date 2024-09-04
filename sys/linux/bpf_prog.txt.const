@@ -22,6 +22,7 @@ BPF_FUNC_ringbuf_submit = 132
 BPF_FUNC_snprintf = 165
 BPF_FUNC_tail_call = 12
 BPF_FUNC_trace_printk = 6
+BPF_F_TOKEN_FD = 65536
 BPF_H0 = 1
 BPF_IMM0 = 0
 BPF_IND0 = 2
