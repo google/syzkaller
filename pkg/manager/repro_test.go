@@ -63,7 +63,12 @@ func TestReproOrder(t *testing.T) {
 	mock := &reproMgrMock{
 		run: make(chan runCallback),
 	}
-	obj := NewReproLoop(mock, 3, false)
+	obj := NewReproLoop(mock, 1, false)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		obj.Loop(ctx)
+	}()
 
 	// The right order is A B C.
 	crashes := []*Crash{
@@ -85,16 +90,16 @@ func TestReproOrder(t *testing.T) {
 	obj.Enqueue(crashes[2])
 	obj.Enqueue(crashes[1])
 	obj.Enqueue(crashes[0])
-	assert.Equal(t, crashes[0], obj.popCrash())
-	assert.Equal(t, crashes[1], obj.popCrash())
-	assert.Equal(t, crashes[2], obj.popCrash())
-
 	obj.Enqueue(crashes[1])
 	obj.Enqueue(crashes[0])
 	obj.Enqueue(crashes[2])
-	assert.Equal(t, crashes[0], obj.popCrash())
-	assert.Equal(t, crashes[1], obj.popCrash())
-	assert.Equal(t, crashes[2], obj.popCrash())
+
+	obj.StartReproduction()
+	for i := 0; i < len(crashes)*2; i++ {
+		called := <-mock.run
+		assert.Equal(t, crashes[i%len(crashes)], called.crash)
+		called.ret <- &ReproResult{}
+	}
 }
 
 func TestReproRWRace(t *testing.T) {
