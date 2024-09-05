@@ -93,7 +93,7 @@ linters-settings:
     # TODO: consider reducing this value.
     min-complexity: 70
   funlen:
-    # TODO: consider reducing these value.
+    # TODO: consider reducing this value.
     lines: 140
     statements: 80
   custom:
