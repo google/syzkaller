@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessTempDir(t *testing.T) {
@@ -59,4 +61,18 @@ func TestProcessTempDir(t *testing.T) {
 			}
 		}()
 	}
+}
+
+func TestTruncate(t *testing.T) {
+	assert.Equal(t, []byte(`01234
+
+<<cut 11 bytes out>>`), Truncate([]byte(`0123456789ABCDEF`), 5, 0))
+	assert.Equal(t, []byte(`<<cut 11 bytes out>>
+
+BCDEF`), Truncate([]byte(`0123456789ABCDEF`), 0, 5))
+	assert.Equal(t, []byte(`0123
+
+<<cut 9 bytes out>>
+
+DEF`), Truncate([]byte(`0123456789ABCDEF`), 4, 3))
 }

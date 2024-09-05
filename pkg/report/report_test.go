@@ -21,7 +21,6 @@ import (
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/stretchr/testify/assert"
 )
 
 var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
@@ -459,18 +458,4 @@ func TestFuzz(t *testing.T) {
 	} {
 		Fuzz([]byte(data)[:len(data):len(data)])
 	}
-}
-
-func TestTruncate(t *testing.T) {
-	assert.Equal(t, []byte(`01234
-
-<<cut 11 bytes out>>`), Truncate([]byte(`0123456789ABCDEF`), 5, 0))
-	assert.Equal(t, []byte(`<<cut 11 bytes out>>
-
-BCDEF`), Truncate([]byte(`0123456789ABCDEF`), 0, 5))
-	assert.Equal(t, []byte(`0123
-
-<<cut 9 bytes out>>
-
-DEF`), Truncate([]byte(`0123456789ABCDEF`), 4, 3))
 }
