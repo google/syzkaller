@@ -48,8 +48,6 @@ var (
 	flagConfig  = flag.String("config", "", "configuration file")
 	flagModules = flag.String("modules", "",
 		"modules JSON info obtained from /modules (optional)")
-	flagExportLineJSON   = flag.String("json", "", "export coverage data with source line info in json format (optional)")
-	flagExportJSONL      = flag.String("jsonl", "", "export jsonl coverage data (optional)")
 	flagNsHeatmap        = flag.String("heatmap", "", "generate namespace heatmap")
 	flagNsHeatmapGroupBy = flag.String("group-by", "dir", "dir or subsystem")
 	flagDateFrom         = flag.String("from",
@@ -64,6 +62,9 @@ var (
 	flagNamespace    = flag.String("namespace", "upstream", "[optional] used by -for-file")
 	flagDebug        = flag.Bool("debug", false, "[optional] enables detailed output")
 	flagSourceCommit = flag.String("source-commit", "", "[optional] filter input commit")
+	flagExports      = flag.String("exports", "cover",
+		"[optional] comma separated list of exports for which we want to generate coverage, "+
+			"possible values are: cover, subsystem, module, funccover, json, jsonl, rawcover, rawcoverfiles, all")
 )
 
 func parseDates() (civil.Date, civil.Date) {
@@ -160,32 +161,33 @@ func main() {
 		Progs: progs,
 	}
 
-	if *flagExportLineJSON != "" {
-		doReport(params, *flagExportLineJSON, rg.DoLineJSON)
-		return
+	if *flagExports == "all" {
+		*flagExports = "cover,subsystem,module,funccover,rawcover,rawcoverfiles"
 	}
-	if *flagExportJSONL != "" {
-		doReport(params, *flagExportJSONL, rg.DoCoverJSONL)
-		return
+	exports := strings.Split(*flagExports, ",")
+	for _, export := range exports {
+		log.Logf(1, "start generate %v", export)
+		switch export {
+		case "cover":
+			doReport(params, "syz-cover.html", rg.DoHTML)
+		case "subsystem":
+			doReport(params, "syz-cover-subsystem.html", rg.DoSubsystemCover)
+		case "module":
+			doReport(params, "syz-cover-module.html", rg.DoModuleCover)
+		case "funccover":
+			doReport(params, "syz-cover-funccover.csv", rg.DoFuncCover)
+		case "rawcover":
+			doReport(params, "rawcoverpcs", rg.DoRawCover)
+		case "rawcoverfiles":
+			doReport(params, "rawcoverfiles", rg.DoRawCoverFiles)
+		case "json":
+			doReport(params, "json", rg.DoLineJSON)
+		case "jsonl":
+			doReport(params, "jsonl", rg.DoCoverJSONL)
+		default:
+			tool.Failf("unknown export type: %q", export)
+		}
 	}
-
-	log.Logf(1, "start DoHTML")
-	doReport(params, "syz-cover.html", rg.DoHTML)
-
-	log.Logf(1, "start DoSubsystemCover")
-	doReport(params, "syz-cover-subsystem.html", rg.DoSubsystemCover)
-
-	log.Logf(1, "start DoModuleCover")
-	doReport(params, "syz-cover-module.html", rg.DoModuleCover)
-
-	log.Logf(1, "start DoFuncCover")
-	doReport(params, "syz-cover-funccover.csv", rg.DoFuncCover)
-
-	log.Logf(1, "start DoRawCover")
-	doReport(params, "rawcoverpcs", rg.DoRawCover)
-
-	log.Logf(1, "start DoRawCoverFiles")
-	doReport(params, "rawcoverfiles", rg.DoRawCoverFiles)
 }
 
 func doReport(params cover.HandlerParams, fname string,
