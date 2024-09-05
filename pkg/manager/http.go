@@ -81,6 +81,7 @@ func (serv *HTTPServer) Serve() {
 	handle("/vms", serv.httpVMs)
 	handle("/vm", serv.httpVM)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
+	handle("/addcandidate", serv.httpAddCandidate)
 	handle("/syscalls", serv.httpSyscalls)
 	handle("/corpus", serv.httpCorpus)
 	handle("/corpus.db", serv.httpDownloadCorpus)
@@ -732,6 +733,46 @@ func (serv *HTTPServer) modulesInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	serv.jsonPage(w, r, "modules", cover.Modules)
+}
+
+func (serv *HTTPServer) httpAddCandidate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "only POST method supported", http.StatusMethodNotAllowed)
+		return
+	}
+	err := r.ParseMultipartForm(20 << 20)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse form: %v", err), http.StatusBadRequest)
+		return
+	}
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve file from form-data: %v", err), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to read file: %v", err), http.StatusBadRequest)
+		return
+	}
+	prog, err := ParseSeed(serv.Cfg.Target, data)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse seed: %v", err), http.StatusBadRequest)
+		return
+	}
+	if !prog.OnlyContains(serv.Fuzzer.Load().Config.EnabledCalls) {
+		http.Error(w, "contains disabled syscall", http.StatusBadRequest)
+		return
+	}
+	var flags fuzzer.ProgFlags
+	flags |= fuzzer.ProgMinimized
+	flags |= fuzzer.ProgSmashed
+	candidates := []fuzzer.Candidate{{
+		Prog:  prog,
+		Flags: flags,
+	}}
+	serv.Fuzzer.Load().AddCandidates(candidates)
 }
 
 var alphaNumRegExp = regexp.MustCompile(`^[a-zA-Z0-9]*$`)
