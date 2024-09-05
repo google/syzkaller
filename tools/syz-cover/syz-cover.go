@@ -65,6 +65,8 @@ var (
 	flagExports      = flag.String("exports", "cover",
 		"[optional] comma separated list of exports for which we want to generate coverage, "+
 			"possible values are: cover, subsystem, module, funccover, json, jsonl, rawcover, rawcoverfiles, all")
+	flagForce = flag.Bool("force", false, "[optional] create coverage report when "+
+		"there are missing coverage callbacks")
 )
 
 func parseDates() (civil.Date, civil.Date) {
@@ -159,6 +161,8 @@ func main() {
 	progs := []cover.Prog{{PCs: pcs}}
 	params := cover.HandlerParams{
 		Progs: progs,
+		Debug: *flagDebug,
+		Force: *flagForce,
 	}
 
 	if *flagExports == "all" {
