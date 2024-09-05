@@ -637,8 +637,8 @@ kvm_dirty_tlb {
 }
 
 kvm_ioeventfd {
-	datam	flags[kvm_guest_addrs, int64]
-	addr	ptr64[out, int64]
+	datam	int64
+	addr	flags[kvm_guest_addrs, int64]
 	len	flags[kvm_ioeventfd_len, int32]
 	fd	fd_event
 	flags	flags[kvm_ioeventfd_flags, int32]
