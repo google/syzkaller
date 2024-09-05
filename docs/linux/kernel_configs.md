@@ -25,8 +25,14 @@ CONFIG_DEBUG_KMEMLEAK=y
 ```
 
 To show code coverage in web interface:
+
+For Linux < 5.12
 ```
 CONFIG_DEBUG_INFO=y
+```
+For Linux >= 5.12
+```
+CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
 ```
 
 For detection of enabled syscalls and kernel bitness:
