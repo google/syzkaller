@@ -4,10 +4,15 @@
 package main
 
 import (
+	"context"
+	"slices"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClientSecretOK(t *testing.T) {
@@ -201,4 +206,99 @@ func TestEmergentlyStoppedCrashReport(t *testing.T) {
 	listResp, err := client.BugList()
 	c.expectOK(err)
 	c.expectEQ(len(listResp.List), 0)
+}
+
+func TestUpdateReportingPriority(t *testing.T) {
+	bug := &Bug{
+		Namespace: testConfig.DefaultNamespace,
+		Title:     "bug",
+	}
+	build := Build{
+		Namespace:    testConfig.DefaultNamespace,
+		KernelRepo:   "git://syzkaller.org",
+		KernelBranch: "branch10",
+	}
+
+	crashes := []*Crash{
+		// This group of crashes should have the same priority.
+		// Revoked and no repro.
+		{
+			BuildID:        "0",
+			ReproIsRevoked: true,
+		},
+		// Non-revoked and no repro.
+		{
+			BuildID: "1",
+		},
+		// Revoked but has syz repro.
+		{
+			BuildID:        "2",
+			ReproIsRevoked: true,
+			ReproSyz:       1,
+		},
+		// Revoked but has C repro.
+		{
+			BuildID:        "3",
+			ReproIsRevoked: true,
+			ReproC:         1,
+		},
+
+		// This group of crashes should have the same priority.
+		// Non-revoked and no repro but title matches with bug.
+		{
+			BuildID: "4",
+			Title:   bug.Title,
+		},
+		// Revoked and has C repro and title matches with bug.
+		{
+			BuildID:        "5",
+			ReproC:         1,
+			Title:          bug.Title,
+			ReproIsRevoked: true,
+		},
+
+		// Non-revoked and has syz repro.
+		{
+			BuildID:  "6",
+			ReproSyz: 1,
+		},
+		// Non-revoked and has C repro.
+		{
+			BuildID: "7",
+			ReproC:  1,
+		},
+		// Non-revoked and has C repro and title matches with bug.
+		{
+			BuildID: "8",
+			ReproC:  1,
+			Title:   bug.Title,
+		},
+		// Last. Non-revoked, has C repro, title matches with bug and arch is AMD64.
+		{
+			BuildID: "9",
+			ReproC:  1,
+			Title:   bug.Title,
+		},
+	}
+
+	ctx := context.Background()
+	for i, crash := range crashes {
+		crash.Manager = "special-obsoleting"
+		if i == len(crashes)-1 {
+			build.Arch = targets.AMD64
+		}
+		crash.UpdateReportingPriority(ctx, &build, bug)
+	}
+
+	assert.True(t, sort.SliceIsSorted(crashes, func(i, j int) bool {
+		return crashes[i].BuildID < crashes[j].BuildID
+	}))
+
+	var prios []int64
+	for _, crash := range crashes {
+		prios = append(prios, crash.ReportLen)
+	}
+
+	// "0-3", "4-5" have the same priority (repro revoked as no repro).
+	assert.Equal(t, len(slices.Compact(prios)), len(prios)-4)
 }

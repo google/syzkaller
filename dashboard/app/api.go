@@ -905,14 +905,10 @@ func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
 
 func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug *Bug) {
 	prio := int64(kernelRepoInfo(c, build).ReportingPriority) * 1e6
-	divReproPrio := int64(1)
-	if crash.ReproIsRevoked {
-		divReproPrio = 10
-	}
-	if crash.ReproC > 0 {
-		prio += 4e12 / divReproPrio
-	} else if crash.ReproSyz > 0 {
-		prio += 2e12 / divReproPrio
+	if crash.ReproC > 0 && !crash.ReproIsRevoked {
+		prio += 4e12
+	} else if crash.ReproSyz > 0 && !crash.ReproIsRevoked {
+		prio += 2e12
 	}
 	if crash.Title == bug.Title {
 		prio += 1e8 // prefer reporting crash that matches bug title
