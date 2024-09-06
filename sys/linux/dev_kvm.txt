@@ -132,6 +132,7 @@ ioctl$KVM_SET_VAPIC_ADDR(fd fd_kvmcpu, cmd const[KVM_SET_VAPIC_ADDR], arg ptr[in
 ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, kvm_mce_cap])
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
+ioctl$KVM_ARM_VCPU_FINALIZE(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_FINALIZE], arg ptr[in, flags[kvm_vcpu_features_arm64, int32]])
 ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
 ioctl$KVM_GET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_GET_NESTED_STATE], arg ptr[out, kvm_nested_state_arg])
 ioctl$KVM_SET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_SET_NESTED_STATE], arg ptr[in, kvm_nested_state_arg])
