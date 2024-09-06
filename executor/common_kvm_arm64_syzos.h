@@ -19,6 +19,7 @@ typedef enum {
 	SYZOS_API_SMC,
 	SYZOS_API_HVC,
 	SYZOS_API_IRQ_SETUP,
+	SYZOS_API_MEMWRITE,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -54,12 +55,21 @@ struct api_call_irq_setup {
 	uint32 nr_spis;
 };
 
+struct api_call_memwrite {
+	struct api_call_header header;
+	uint64 base_addr;
+	uint64 offset;
+	uint64 value;
+	uint64 len;
+};
+
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint32* insns, uint64 size);
 static void guest_handle_msr(uint64 reg, uint64 val);
 static void guest_handle_smc(struct api_call_smccc* cmd);
 static void guest_handle_hvc(struct api_call_smccc* cmd);
 static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
+static void guest_handle_memwrite(struct api_call_memwrite* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -105,6 +115,10 @@ GUEST_CODE static void guest_main(uint64 size)
 		}
 		case SYZOS_API_IRQ_SETUP: {
 			guest_handle_irq_setup((struct api_call_irq_setup*)cmd);
+			break;
+		}
+		case SYZOS_API_MEMWRITE: {
+			guest_handle_memwrite((struct api_call_memwrite*)cmd);
 			break;
 		}
 		}
@@ -465,6 +479,35 @@ GUEST_CODE static void guest_handle_irq_setup(struct api_call_irq_setup* cmd)
 	    :
 	    :
 	    : "x1");
+}
+
+GUEST_CODE static void guest_handle_memwrite(struct api_call_memwrite* cmd)
+{
+	uint64 dest = cmd->base_addr + cmd->offset;
+	switch (cmd->len) {
+	case 1: {
+		volatile uint8* p = (uint8*)dest;
+		*p = (uint8)cmd->value;
+		break;
+	}
+
+	case 2: {
+		volatile uint16* p = (uint16*)dest;
+		*p = (uint16)cmd->value;
+		break;
+	}
+	case 4: {
+		volatile uint32* p = (uint32*)dest;
+		*p = (uint32)cmd->value;
+		break;
+	}
+	case 8:
+	default: {
+		volatile uint64* p = (uint64*)dest;
+		*p = (uint64)cmd->value;
+		break;
+	}
+	}
 }
 
 // Registers saved by one_irq_handler() and received by guest_irq_handler().
