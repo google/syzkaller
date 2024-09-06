@@ -14,6 +14,7 @@ resource fd_kvmvm[fd]
 resource fd_kvmcpu[fd]
 resource fd_kvmdev[fd]
 resource fd_sgx_provision[fd]
+resource fd_kvm_guest_memfd[fd]
 resource vcpu_mmap_size[int64]
 
 openat$kvm(fd const[AT_FDCWD], file ptr[in, string["/dev/kvm"]], flags flags[open_flags], mode const[0]) fd_kvm
@@ -166,6 +167,7 @@ ioctl$KVM_SET_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_SET_DEVICE_ATTR], arg pt
 ioctl$KVM_GET_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vm])
 ioctl$KVM_HAS_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vm])
 
+ioctl$KVM_CREATE_GUEST_MEMFD(fd fd_kvmvm, cmd const[KVM_CREATE_GUEST_MEMFD], arg ptr[in, kvm_create_guest_memfd]) fd_kvm_guest_memfd
 ioctl$KVM_PRE_FAULT_MEMORY(fd fd_kvmcpu, cmd const[KVM_PRE_FAULT_MEMORY], arg ptr[inout, kvm_pre_fault_memory])
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY
@@ -570,6 +572,12 @@ kvm_smccc_filter {
 	nr_functions	int32
 	action		flags[kvm_smccc_filter_action, int8]
 	pad		array[const[0, int8], 15]
+}
+
+kvm_create_guest_memfd {
+	size		int64
+	flags		int64
+	reserved	array[const[0, int64], 6]
 }
 
 kvm_pre_fault_memory {
