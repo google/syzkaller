@@ -749,7 +749,8 @@ kvm_userspace_memory_region {
 	addr	vma64[1:2]
 }
 
-kvm_vcpu_events {
+# https://docs.kernel.org/virt/kvm/api.html#kvm-get-vcpu-events
+kvm_vcpu_events_x86 {
 	exinjec			int8
 	exnr			int8
 	exhec			int8
@@ -778,6 +779,20 @@ kvm_vcpu_events {
 	exception_has_payload	int8
 	exception_payload	int64
 }
+
+kvm_vcpu_events_arm64 {
+	serror_pending		int8
+	serror_has_esr		int8
+	ext_dabt_pending	int8
+	pad			array[const[0, int8], 5]
+	serror_esr		int64
+	reserved		array[const[0, int32], 12]
+}
+
+kvm_vcpu_events [
+	x86	kvm_vcpu_events_x86
+	arm64	kvm_vcpu_events_arm64
+]
 
 kvm_clock_data {
 	clock		int64
