@@ -166,6 +166,8 @@ ioctl$KVM_SET_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_SET_DEVICE_ATTR], arg pt
 ioctl$KVM_GET_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vm])
 ioctl$KVM_HAS_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr_vm])
 
+ioctl$KVM_PRE_FAULT_MEMORY(fd fd_kvmcpu, cmd const[KVM_PRE_FAULT_MEMORY], arg ptr[inout, kvm_pre_fault_memory])
+
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
 kvm_irq_routing_entry_type = KVM_IRQ_ROUTING_IRQCHIP, KVM_IRQ_ROUTING_MSI, KVM_IRQ_ROUTING_S390_ADAPTER, KVM_IRQ_ROUTING_HV_SINT
@@ -568,6 +570,13 @@ kvm_smccc_filter {
 	nr_functions	int32
 	action		flags[kvm_smccc_filter_action, int8]
 	pad		array[const[0, int8], 15]
+}
+
+kvm_pre_fault_memory {
+	gpa	flags[kvm_guest_addrs, int64]
+	size	flags[kvm_guest_addr_size, int64]
+	flags	const[0, int64]
+	pad	array[const[0, int64], 5]
 }
 
 kvm_create_device {
