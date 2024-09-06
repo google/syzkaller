@@ -31,6 +31,7 @@ ioctl$KVM_GET_API_VERSION(fd fd_kvm, cmd const[KVM_GET_API_VERSION], type const[
 ioctl$KVM_CREATE_VCPU(fd fd_kvmvm, cmd const[KVM_CREATE_VCPU], id intptr[0:2]) fd_kvmcpu
 ioctl$KVM_CHECK_EXTENSION_VM(fd fd_kvmvm, cmd const[KVM_CHECK_EXTENSION], arg intptr)
 ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[in, kvm_dirty_log])
+ioctl$KVM_CLEAR_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_CLEAR_DIRTY_LOG], arg ptr[in, kvm_clear_dirty_log])
 ioctl$KVM_CREATE_IRQCHIP(fd fd_kvmvm, cmd const[KVM_CREATE_IRQCHIP])
 ioctl$KVM_IRQ_LINE(fd fd_kvmvm, cmd const[KVM_IRQ_LINE], arg ptr[in, kvm_irq_level])
 ioctl$KVM_IRQ_LINE_STATUS(fd fd_kvmvm, cmd const[KVM_IRQ_LINE_STATUS], arg ptr[in, kvm_irq_level])
@@ -868,6 +869,16 @@ kvm_dirty_log {
 	slot	flags[kvm_mem_slots, int32]
 	pad	const[0, int32]
 	bitmap	vma64
+}
+
+# num_pages and first_page must be multiples of 64,
+# see https://docs.kernel.org/virt/kvm/api.html#kvm-clear-dirty-log-vm-ioctl
+kvm_clear_dirty_log {
+	slot		flags[kvm_mem_slots, int32]
+	num_pages	int32[0:1024, 64]
+	first_page	int32[0:1024, 64]
+# Allocate 1024 bits regardless of num_pages.
+	bitmap		ptr[in, array[int64, 128]]
 }
 
 kvm_msr_list {
