@@ -100,7 +100,7 @@ bpf_map_const_str_freeze {
 bpf_map_create_arg [
 	base		bpf_map_create_arg_base
 	bloom_filter	bpf_map_create_arg_bf
-]
+] [varlen]
 
 type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
 	type			TYPE
@@ -117,7 +117,10 @@ type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
 	btf_value_type_id	btf_opt_type_id
 	btf_vmlinux_type_id	btf_opt_type_id
 	map_extra		MAP_EXTRA
-}
+# NEED: value_type_btf_obj_fd should also depend on the map type but AND operators are not yet supported in conditional fields.
+	value_type_btf_obj_fd	fd_btf	(if[value[flags] & BPF_F_VTYPE_BTF_OBJ_FD != 0])
+	pad1			const[0, int32]	(if[value[flags] & BPF_F_VTYPE_BTF_OBJ_FD == 0])
+} [packed]
 
 type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], int32, int32, int32, flags[map_flags, int32], const[0, int64]]
 type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], int32, int32, int32, flags[map_flags, int32], int64[0:15]]
