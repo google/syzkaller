@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -62,7 +63,7 @@ type Server interface {
 	Port() int
 	TriagedCorpus()
 	CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error
-	ShutdownInstance(id int, crashed bool) ([]ExecRecord, []byte)
+	ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte)
 	StopFuzzing(id int)
 	DistributeSignalDelta(plus signal.Signal)
 }
@@ -444,12 +445,12 @@ func (serv *server) StopFuzzing(id int) {
 	runner.Stop()
 }
 
-func (serv *server) ShutdownInstance(id int, crashed bool) ([]ExecRecord, []byte) {
+func (serv *server) ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte) {
 	serv.mu.Lock()
 	runner := serv.runners[id]
 	delete(serv.runners, id)
 	serv.mu.Unlock()
-	return runner.Shutdown(crashed), runner.MachineInfo()
+	return runner.Shutdown(crashed, extraExecs...), runner.MachineInfo()
 }
 
 func (serv *server) DistributeSignalDelta(plus signal.Signal) {

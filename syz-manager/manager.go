@@ -518,7 +518,11 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 		// This litters the log and we want to prevent it.
 		serv.StopFuzzing(inst.Index())
 	}))
-	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), rep != nil)
+	var extraExecs []report.ExecutorInfo
+	if rep != nil && rep.Executor != nil {
+		extraExecs = []report.ExecutorInfo{*rep.Executor}
+	}
+	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), rep != nil, extraExecs...)
 	if rep != nil {
 		rpcserver.PrependExecuting(rep, lastExec)
 		if len(vmInfo) != 0 {

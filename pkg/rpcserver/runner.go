@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -507,7 +508,7 @@ func (runner *Runner) Stop() {
 	}
 }
 
-func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
+func (runner *Runner) Shutdown(crashed bool, extraExecs ...report.ExecutorInfo) []ExecRecord {
 	runner.mu.Lock()
 	runner.stopped = true
 	finished := runner.finished
@@ -517,6 +518,18 @@ func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
 		// Wait for the connection goroutine to finish and stop touching data.
 		<-finished
 	}
+	records := runner.lastExec.Collect()
+	for _, info := range extraExecs {
+		req := runner.requests[int64(info.ExecID)]
+		// If the request is in executing, it's also already in the records slice.
+		if req != nil && !runner.executing[int64(info.ExecID)] {
+			records = append(records, ExecRecord{
+				ID:   info.ExecID,
+				Proc: info.ProcID,
+				Prog: req.Prog.Serialize(),
+			})
+		}
+	}
 	for id, req := range runner.requests {
 		status := queue.Restarted
 		if crashed && runner.executing[id] {
@@ -524,7 +537,7 @@ func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
 		}
 		req.Done(&queue.Result{Status: status})
 	}
-	return runner.lastExec.Collect()
+	return records
 }
 
 func (runner *Runner) MachineInfo() []byte {
