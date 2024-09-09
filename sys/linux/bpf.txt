@@ -396,10 +396,32 @@ bpf_obj_get_o_path {
 	path_fd		fd
 }
 
+# These defines should match the mapping implemented by attach_type_to_prog_type in the kernel.
+define EXP_TYPE_CGROUP_SKB	BPF_CGROUP_INET_INGRESS | BPF_CGROUP_INET_EGRESS
+define EXP_TYPE_CGROUP_SOCK	BPF_CGROUP_INET_SOCK_CREATE | BPF_CGROUP_INET_SOCK_RELEASE | BPF_CGROUP_INET4_POST_BIND | BPF_CGROUP_INET6_POST_BIND
+define EXP_TYPE_CGROUP_SOCK_ADDR	BPF_CGROUP_INET4_BIND | BPF_CGROUP_INET6_BIND | BPF_CGROUP_INET4_CONNECT | BPF_CGROUP_INET6_CONNECT | BPF_CGROUP_UNIX_CONNECT | BPF_CGROUP_INET4_GETPEERNAME | BPF_CGROUP_INET6_GETPEERNAME | BPF_CGROUP_UNIX_GETPEERNAME | BPF_CGROUP_INET4_GETSOCKNAME | BPF_CGROUP_INET6_GETSOCKNAME | BPF_CGROUP_UNIX_GETSOCKNAME | BPF_CGROUP_UDP4_SENDMSG | BPF_CGROUP_UDP6_SENDMSG | BPF_CGROUP_UNIX_SENDMSG | BPF_CGROUP_UDP4_RECVMSG | BPF_CGROUP_UDP6_RECVMSG | BPF_CGROUP_UNIX_RECVMSG
+define EXP_TYPE_SOCK_OPS	BPF_CGROUP_SOCK_OPS
+define EXP_TYPE_CGROUP_DEVICE	BPF_CGROUP_DEVICE
+define EXP_TYPE_SK_MSG	BPF_SK_MSG_VERDICT
+define EXP_TYPE_SK_SKB	BPF_SK_SKB_STREAM_PARSER | BPF_SK_SKB_STREAM_VERDICT | BPF_SK_SKB_VERDICT
+define EXP_TYPE_LIRC_MODE2	BPF_LIRC_MODE2
+define EXP_TYPE_FLOW_DISSECTOR	BPF_FLOW_DISSECTOR
+define EXP_TYPE_CGROUP_SYSCTL	BPF_CGROUP_SYSCTL
+define EXP_TYPE_CGROUP_SOCKOPT	BPF_CGROUP_GETSOCKOPT | BPF_CGROUP_SETSOCKOPT
+define EXP_TYPE_TRACING	BPF_TRACE_ITER | BPF_TRACE_RAW_TP | BPF_TRACE_FENTRY | BPF_TRACE_FEXIT | BPF_MODIFY_RETURN
+define EXP_TYPE_LSM	BPF_LSM_MAC | BPF_LSM_CGROUP
+define EXP_TYPE_SK_LOOKUP	BPF_SK_LOOKUP
+define EXP_TYPE_XDP	BPF_XDP
+define EXP_TYPE_SCHED_CLS	BPF_TCX_INGRESS | BPF_TCX_EGRESS | BPF_NETKIT_PRIMARY | BPF_NETKIT_PEER
+
+define EXP_MAP	EXP_TYPE_SK_MSG | EXP_TYPE_SK_SKB
+define EXP_CGROUP	EXP_TYPE_CGROUP_DEVICE | EXP_TYPE_CGROUP_SKB | EXP_TYPE_CGROUP_SOCK | EXP_TYPE_CGROUP_SOCK_ADDR | EXP_TYPE_CGROUP_SOCKOPT | EXP_TYPE_CGROUP_SYSCTL | EXP_TYPE_SOCK_OPS | EXP_TYPE_LSM
+
 bpf_attach_targets [
-	cgroup	fd_cgroup[opt]
-	map	fd_bpf_map[opt]
-	ifindex	ifindex
+	cgroup		fd_cgroup	(if[value[parent:parent:type] & EXP_CGROUP != 0])
+	map		fd_bpf_map	(if[value[parent:parent:type] & EXP_MAP != 0])
+	ifindex		ifindex	(if[value[parent:parent:type] & BPF_PROG_TYPE_SCHED_CLS != 0])
+	fallback	fd
 ]
 
 define BPF_F_LINK_OR_ID	BPF_F_LINK | BPF_F_ID
@@ -592,7 +614,7 @@ bpf_btf_info {
 
 bpf_prog_query {
 	target_fd		bpf_attach_targets
-	attach_type		flags[bpf_prog_query_attach_type, int32]
+	type			flags[bpf_prog_query_attach_type, int32]
 	query_flags		flags[bpf_prog_query_flags, int32]
 	attach_flags		int32
 	prog_ids		ptr64[out, array[int32]]
@@ -602,7 +624,7 @@ bpf_prog_query {
 	link_ids		ptr64[out, array[int32]]
 	link_attach_flags	ptr64[out, array[int32]]
 	revision		bpf_revision	(out)
-} [align[8]]
+} [packed, align[8]]
 
 bpf_btf_load {
 	btf			ptr64[in, bpf_btf_program]
