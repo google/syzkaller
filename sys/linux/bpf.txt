@@ -272,9 +272,12 @@ link_create_netfilter {
 }
 
 link_create_tcx {
-	relative	id_or_fd
-	exp_revision	bpf_revision
-}
+	relative_link_fd	fd_bpf_link	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == BPF_F_LINK])
+	relative_prog_fd	fd_bpf_prog	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == 0])
+	relative_link_id	bpf_link_id	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == BPF_F_LINK_OR_ID])
+	relative_prog_id	bpf_prog_id	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == BPF_F_ID])
+	exp_revision		bpf_revision
+} [packed]
 
 link_create_uprobe_multi {
 	path		ptr64[in, filename]
@@ -287,9 +290,12 @@ link_create_uprobe_multi {
 }
 
 link_create_netkit {
-	relative	id_or_fd
-	exp_revision	bpf_revision
-}
+	relative_link_fd	fd_bpf_link	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == BPF_F_LINK])
+	relative_prog_fd	fd_bpf_prog	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == 0])
+	relative_link_id	bpf_link_id	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == BPF_F_LINK_OR_ID])
+	relative_prog_id	bpf_prog_id	(if[value[bpf_link_create_arg_t:flags] & BPF_F_LINK_OR_ID == BPF_F_ID])
+	exp_revision		bpf_revision
+} [packed]
 
 link_create_arg_extra [
 	target_btf_id	bpf_btf_id
@@ -301,7 +307,7 @@ link_create_arg_extra [
 	tcx		link_create_tcx
 	uprobe_multi	link_create_uprobe_multi
 	netkit		link_create_netkit
-]
+] [varlen]
 
 type bpf_link_create_arg_t[PROG_FD, TARGET_FD, ATTACH_TYPE, FLAGS] {
 	prog_fd		PROG_FD
@@ -396,32 +402,33 @@ bpf_attach_targets [
 	ifindex	ifindex
 ]
 
-id_or_fd [
-	link_fd	fd_bpf_link
-	prog_fd	fd_bpf_prog
-	link_id	bpf_link_id
-	prog_id	bpf_prog_id
-]
+define BPF_F_LINK_OR_ID	BPF_F_LINK | BPF_F_ID
 
 bpf_attach_arg {
-	target		bpf_attach_targets
-	attach_bpf_fd	fd_bpf_prog
-	type		flags[bpf_attach_type, int32]
-	flags		flags[bpf_attach_flags, int32]
-	replace_bpf_fd	fd_bpf_prog
-	relative_obj	id_or_fd
-	exp_revision	bpf_revision
-}
+	target			bpf_attach_targets
+	attach_bpf_fd		fd_bpf_prog
+	type			flags[bpf_attach_type, int32]
+	flags			flags[bpf_attach_flags, int32]
+	replace_bpf_fd		fd_bpf_prog
+	relative_link_fd	fd_bpf_link	(if[value[flags] & BPF_F_LINK_OR_ID == BPF_F_LINK])
+	relative_prog_fd	fd_bpf_prog	(if[value[flags] & BPF_F_LINK_OR_ID == 0])
+	relative_link_id	bpf_link_id	(if[value[flags] & BPF_F_LINK_OR_ID == BPF_F_LINK_OR_ID])
+	relative_prog_id	bpf_prog_id	(if[value[flags] & BPF_F_LINK_OR_ID == BPF_F_ID])
+	exp_revision		bpf_revision
+} [packed]
 
 bpf_detach_arg {
-	target		bpf_attach_targets
-	prog		fd_bpf_prog
-	type		flags[bpf_attach_type, int32]
-	flags		flags[bpf_mprog_attach_flags, int32]
-	replace_bpf_fd	const[0, int32]
-	relative_obj	id_or_fd
-	exp_revision	bpf_revision
-}
+	target			bpf_attach_targets
+	prog			fd_bpf_prog
+	type			flags[bpf_attach_type, int32]
+	flags			flags[bpf_mprog_attach_flags, int32]
+	replace_bpf_fd		const[0, int32]
+	relative_link_fd	fd_bpf_link	(if[value[flags] & BPF_F_LINK_OR_ID == BPF_F_LINK])
+	relative_prog_fd	fd_bpf_prog	(if[value[flags] & BPF_F_LINK_OR_ID == 0])
+	relative_link_id	bpf_link_id	(if[value[flags] & BPF_F_LINK_OR_ID == BPF_F_LINK_OR_ID])
+	relative_prog_id	bpf_prog_id	(if[value[flags] & BPF_F_LINK_OR_ID == BPF_F_ID])
+	exp_revision		bpf_revision
+} [packed]
 
 bpf_test_prog_arg {
 	prog		fd_bpf_prog
