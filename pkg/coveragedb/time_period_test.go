@@ -25,8 +25,10 @@ func TestDayPeriodOps(t *testing.T) {
 	assert.Equal(t, 1, ops.pointedPeriodDays(d))
 
 	assert.Equal(t,
-		[]civil.Date{{Year: 2024, Month: time.February, Day: 19}, {Year: 2024, Month: time.February, Day: 20}},
-		GenNPeriodEndDatesTill(2, d, ops))
+		[]TimePeriod{
+			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 19}, Days: 1},
+			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 20}, Days: 1}},
+		GenNPeriodsTill(2, d, ops))
 }
 
 func TestMonthPeriodOps(t *testing.T) {
@@ -48,8 +50,10 @@ func TestMonthPeriodOps(t *testing.T) {
 	assert.Equal(t, 29, ops.pointedPeriodDays(midMonthDate))
 
 	assert.Equal(t,
-		[]civil.Date{{Year: 2024, Month: time.January, Day: 31}, {Year: 2024, Month: time.February, Day: 29}},
-		GenNPeriodEndDatesTill(2, goodPeriod.DateTo, ops))
+		[]TimePeriod{
+			{DateTo: civil.Date{Year: 2024, Month: time.January, Day: 31}, Days: 31},
+			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 29}, Days: 29}},
+		GenNPeriodsTill(2, goodPeriod.DateTo, ops))
 }
 
 func TestQuarterPeriodOps(t *testing.T) {
@@ -72,8 +76,10 @@ func TestQuarterPeriodOps(t *testing.T) {
 	assert.Equal(t, 31+29+31, ops.pointedPeriodDays(midQuarterDate))
 
 	assert.Equal(t,
-		[]civil.Date{{Year: 2023, Month: time.December, Day: 31}, {Year: 2024, Month: time.March, Day: 31}},
-		GenNPeriodEndDatesTill(2, goodPeriod.DateTo, ops))
+		[]TimePeriod{
+			{DateTo: civil.Date{Year: 2023, Month: time.December, Day: 31}, Days: 31 + 30 + 31},
+			{DateTo: civil.Date{Year: 2024, Month: time.March, Day: 31}, Days: 31 + 29 + 31}},
+		GenNPeriodsTill(2, goodPeriod.DateTo, ops))
 }
 
 func TestPeriodsToMerge(t *testing.T) {

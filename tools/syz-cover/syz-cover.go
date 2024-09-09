@@ -37,6 +37,7 @@ import (
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -81,17 +82,28 @@ func parseDates() (civil.Date, civil.Date) {
 	return dateFrom, dateTo
 }
 
+func periodsFromDays(from, to civil.Date) []coveragedb.TimePeriod {
+	if to.Before(from) {
+		panic("toDay can't be less than fromDay")
+	}
+	res := []coveragedb.TimePeriod{{DateTo: from, Days: 1}}
+	for ; from.Before(to); from = from.AddDays(1) {
+		res = append(res, coveragedb.TimePeriod{DateTo: from, Days: 1})
+	}
+	return res
+}
+
 func toolBuildNsHeatmap() {
 	buf := new(bytes.Buffer)
-	dateFrom, dateTo := parseDates()
+	periods := periodsFromDays(parseDates())
 	var err error
 	switch *flagNsHeatmapGroupBy {
 	case "dir":
-		if err = cover.DoDirHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+		if err = cover.DoDirHeatMap(buf, *flagProjectID, *flagNsHeatmap, periods); err != nil {
 			tool.Fail(err)
 		}
 	case "subsystem":
-		if err = cover.DoSubsystemsHeatMap(buf, *flagProjectID, *flagNsHeatmap, dateFrom, dateTo); err != nil {
+		if err = cover.DoSubsystemsHeatMap(buf, *flagProjectID, *flagNsHeatmap, periods); err != nil {
 			tool.Fail(err)
 		}
 	default:
