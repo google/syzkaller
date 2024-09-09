@@ -1085,9 +1085,9 @@ kvm_reinject_control {
 }
 
 kvm_coalesced_mmio_zone {
-	addr	flags[kvm_guest_addrs, int64]
-	size	flags[kvm_guest_addr_size, int32]
-	pad	const[0, int32]
+	addr		flags[kvm_guest_addrs, int64]
+	size		flags[kvm_guest_addr_size, int32]
+	pio_or_pad	int32[0:1]
 }
 
 kvm_vcpu_init {
