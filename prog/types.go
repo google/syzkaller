@@ -37,15 +37,16 @@ type Syscall struct {
 //
 // See docs/syscall_descriptions_syntax.md for description of individual attributes.
 type SyscallAttrs struct {
-	Disabled      bool
-	Timeout       uint64
-	ProgTimeout   uint64
-	IgnoreReturn  bool
-	BreaksReturns bool
-	NoGenerate    bool
-	NoMinimize    bool
-	RemoteCover   bool
-	Automatic     bool
+	Disabled        bool
+	Timeout         uint64
+	ProgTimeout     uint64
+	IgnoreReturn    bool
+	BreaksReturns   bool
+	NoGenerate      bool
+	NoMinimize      bool
+	RemoteCover     bool
+	Automatic       bool
+	AutomaticHelper bool
 }
 
 // MaxArgs is maximum number of syscall arguments.

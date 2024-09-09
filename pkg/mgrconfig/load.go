@@ -364,7 +364,8 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 	for call := range syscalls {
 		if target.Syscalls[call].Attrs.Disabled ||
 			descriptionsMode == ManualDescriptions && target.Syscalls[call].Attrs.Automatic ||
-			descriptionsMode == AutoDescriptions && !target.Syscalls[call].Attrs.Automatic {
+			descriptionsMode == AutoDescriptions &&
+				!target.Syscalls[call].Attrs.Automatic && !target.Syscalls[call].Attrs.AutomaticHelper {
 			delete(syscalls, call)
 		}
 	}

@@ -112,7 +112,7 @@ syz_execute_func(text ptr[in, text[target]]) (disabled)
 # Exclude /sys/power/state as reported in https://lkml.org/lkml/2021/5/27/653
 openat$sysfs(fd const[AT_FDCWD], dir ptr[in, glob["/sys/**/*:-/sys/power/state"]], flags flags[open_flags], mode flags[open_mode]) fd
 
-open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd (automatic_helper)
 # Just so that we have something that creates fd_dir resources.
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
 openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
@@ -400,7 +400,7 @@ geteuid() uid
 setpgid(pid pid, pgid pid)
 getpgid(pid pid) pid
 getpgrp(pid pid) pid
-getpid() pid
+getpid() pid (automatic_helper)
 gettid() pid
 setreuid(ruid uid, euid uid)
 setregid(rgid gid, egid gid)
