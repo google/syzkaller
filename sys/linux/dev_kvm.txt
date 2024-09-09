@@ -286,7 +286,10 @@ syzos_api_msr {
 # Bits 23:16 are ignored (must be zero in most cases)
 # Bits 15:0 denote the function number (0-0xffff) within the specified range, so we list all the possible bit values
 # here and hope that the fuzzer will be able to combine them into a number.
-kvm_smc_id = 0x80000000, 0x40000000, 0x1000000, 0x2000000, 0x3000000, 0x4000000, 0x5000000, 0x6000000, 0x30000000, 0x31000000, 0x32000000, 0x3f000000, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0xffff
+#
+# Numeric constants are used to help the fuzzer construct arbitrary SMC function IDs.
+# We also include IDs from include/linux/arm-smccc.h here.
+kvm_smc_id = 0x80000000, 0x40000000, 0x1000000, 0x2000000, 0x3000000, 0x4000000, 0x5000000, 0x6000000, 0x30000000, 0x31000000, 0x32000000, 0x3f000000, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0xffff, ARM_SMCCC_VERSION_FUNC_ID, ARM_SMCCC_ARCH_FEATURES_FUNC_ID, ARM_SMCCC_ARCH_SOC_ID, ARM_SMCCC_ARCH_WORKAROUND_1, ARM_SMCCC_ARCH_WORKAROUND_2, ARM_SMCCC_ARCH_WORKAROUND_3, ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID, ARM_SMCCC_VENDOR_HYP_KVM_FEATURES_FUNC_ID, ARM_SMCCC_VENDOR_HYP_KVM_PTP_FUNC_ID, ARM_SMCCC_HV_PV_TIME_FEATURES, ARM_SMCCC_HV_PV_TIME_ST, ARM_SMCCC_TRNG_VERSION, ARM_SMCCC_TRNG_FEATURES, ARM_SMCCC_TRNG_GET_UUID, ARM_SMCCC_TRNG_RND32, ARM_SMCCC_TRNG_RND64
 
 syzos_api_smccc {
 	arg_id		flags[kvm_smc_id, int32]
