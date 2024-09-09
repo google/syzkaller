@@ -26,13 +26,20 @@ func initCoverageBatches() {
 }
 
 const (
-	runsPerBatch        = 5
 	daysToMerge         = 7
 	batchTimeoutSeconds = 60 * 60 * 6
 )
 
 func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
+	doQuarters := r.FormValue("quarters") == "true"
+	doMonths := r.FormValue("months") == "true"
+	doDays := r.FormValue("days") == "true"
+	maxSteps, err := strconv.Atoi(r.FormValue("steps"))
+	if err != nil {
+		log.Errorf(ctx, "failed to convert &steps= into maxSteps: %s", err.Error())
+		return
+	}
 	for ns, nsConfig := range getConfig(ctx).Namespaces {
 		if nsConfig.Coverage == nil {
 			continue
@@ -42,7 +49,7 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "can't find default repo or branch for ns %s", ns)
 			continue
 		}
-		periods, err := nsDatesToMerge(ctx, ns, daysToMerge, runsPerBatch)
+		periods, err := nsDatesToMerge(ctx, ns, daysToMerge, maxSteps)
 		if err != nil {
 			log.Errorf(ctx, "failed nsDatesToMerge(): %s", err)
 		}
@@ -54,17 +61,23 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Errorf(ctx, "failed coveragedb.NsDataMerged(%s): %s", ns, err)
 		}
-		periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
-			&coveragedb.DayPeriodOps{})...)
-		periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
-			&coveragedb.MonthPeriodOps{})...)
-		periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
-			&coveragedb.QuarterPeriodOps{})...)
+		if doDays {
+			periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
+				&coveragedb.DayPeriodOps{})...)
+		}
+		if doMonths {
+			periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
+				&coveragedb.MonthPeriodOps{})...)
+		}
+		if doQuarters {
+			periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
+				&coveragedb.QuarterPeriodOps{})...)
+		}
 		if len(periods) == 0 {
 			log.Infof(ctx, "there is no new coverage for merging available in %s", ns)
 			continue
 		}
-		periods = coveragedb.AtMostNLatestPeriods(periods, runsPerBatch)
+		periods = coveragedb.AtMostNLatestPeriods(periods, maxSteps)
 		nsCovConfig := nsConfig.Coverage
 		if err := createScriptJob(
 			ctx,
