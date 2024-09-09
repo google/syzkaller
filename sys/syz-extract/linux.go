@@ -122,7 +122,6 @@ func (*linux) prepareArch(arch *Arch) error {
 	return nil
 }
 
-// nolint: goconst
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
 	headerArch := arch.target.KernelHeaderArch
 	sourceDir := arch.sourceDir
