@@ -192,7 +192,7 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
-type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
+type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem string, periods []coveragedb.TimePeriod,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -209,11 +209,21 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return err
 	}
 	ss := r.FormValue("subsystem")
-	dateFrom := civil.DateOf(time.Now().Add(-14 * 24 * time.Hour))
-	dateTo := civil.DateOf(time.Now())
+	periodType := r.FormValue("period")
+	if periodType == "" {
+		periodType = coveragedb.DayPeriod
+	}
+	if periodType != coveragedb.DayPeriod && periodType != coveragedb.MonthPeriod {
+		return fmt.Errorf("only day and month are allowed, but received %s instead", periodType)
+	}
+	pOps, err := coveragedb.PeriodOps(periodType)
+	if err != nil {
+		return err
+	}
+	periods := coveragedb.GenNPeriodsTill(12, civil.DateOf(time.Now()), pOps)
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, dateFrom, dateTo); err != nil {
+	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, periods); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
@@ -249,11 +259,11 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
-	periodEndDates := coveragedb.GenNPeriodEndDatesTill(12, civil.DateOf(time.Now()), pOps)
+	periodEndDates := coveragedb.GenNPeriodsTill(12, civil.DateOf(time.Now()), pOps)
 
 	cols := []uiGraphColumn{}
 	for _, periodEndDate := range periodEndDates {
-		date := periodEndDate.String()
+		date := periodEndDate.DateTo.String()
 		if _, ok := hist.covered[date]; !ok || hist.instrumented[date] == 0 {
 			cols = append(cols, uiGraphColumn{Hint: date, Vals: []uiGraphValue{{IsNull: true}}})
 		} else {

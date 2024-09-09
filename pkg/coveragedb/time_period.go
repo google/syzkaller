@@ -17,6 +17,7 @@ type TimePeriod struct {
 }
 
 const (
+	DayPeriod     = "day"
 	MonthPeriod   = "month"
 	QuarterPeriod = "quarter"
 )
@@ -25,6 +26,8 @@ var errUnknownTimePeriodType = errors.New("unknown time period type")
 
 func MinMaxDays(periodType string) (int, int, error) {
 	switch periodType {
+	case DayPeriod:
+		return 1, 1, nil
 	case MonthPeriod:
 		return 28, 31, nil
 	case QuarterPeriod:
@@ -36,6 +39,8 @@ func MinMaxDays(periodType string) (int, int, error) {
 
 func PeriodOps(periodType string) (periodOps, error) {
 	switch periodType {
+	case DayPeriod:
+		return &DayPeriodOps{}, nil
 	case MonthPeriod:
 		return &MonthPeriodOps{}, nil
 	case QuarterPeriod:
@@ -51,11 +56,11 @@ type periodOps interface {
 	pointedPeriodDays(d civil.Date) int
 }
 
-func GenNPeriodEndDatesTill(n int, d civil.Date, po periodOps) []civil.Date {
-	var res []civil.Date
+func GenNPeriodsTill(n int, d civil.Date, po periodOps) []TimePeriod {
+	var res []TimePeriod
 	for i := 0; i < n; i++ {
 		d = po.lastPeriodDate(d)
-		res = append(res, d)
+		res = append(res, TimePeriod{DateTo: d, Days: po.pointedPeriodDays(d)})
 		d = d.AddDays(-po.pointedPeriodDays(d))
 	}
 	slices.Reverse(res)
