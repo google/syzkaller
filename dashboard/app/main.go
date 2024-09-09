@@ -57,7 +57,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
 	for ns, nsConfig := range getConfig(context.Background()).Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
-		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed)) // nolint: goconst // remove it with goconst 1.7.0+
+		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
 		http.Handle("/"+ns+"/graph/bugs", handlerWrapper(handleKernelHealthGraph))
 		http.Handle("/"+ns+"/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
@@ -555,7 +555,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	return handleTerminalBugList(c, w, r, &TerminalBug{
 		Status:      BugStatusFixed,
-		Subpage:     "/fixed", // nolint: goconst // TODO: remove it once goconst 1.7.0+ landed
+		Subpage:     "/fixed",
 		ShowPatch:   true,
 		ShowPatched: true,
 	})
@@ -1418,7 +1418,7 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		},
 		Fixed: uiSubsystemStats{
 			Count: cached.NoSubsystem.Fixed,
-			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"), // nolint: goconst
+			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
 		},
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -1443,7 +1443,7 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 		},
 		Fixed: uiSubsystemStats{
 			Count: stats.Fixed,
-			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{ // nolint: goconst
+			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{
 				Label: SubsystemLabel,
 				Value: item.Name,
 			}.String()),
