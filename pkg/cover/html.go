@@ -181,26 +181,37 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+	pcs := uniquePCs(progs)
+	if err := rg.symbolizePCs(pcs); err != nil {
 		return err
 	}
 
-	resFrames := rg.Frames
-
-	sort.Slice(resFrames, func(i, j int) bool {
-		fl, fr := resFrames[i], resFrames[j]
-		if fl.PC == fr.PC {
+	resFrames := make(map[uint64][]backend.Frame)
+	for _, frame := range rg.Frames {
+		resFrames[frame.PC] = append(resFrames[frame.PC], frame)
+	}
+	for pc := range resFrames {
+		sort.Slice(resFrames[pc], func(i, j int) bool {
+			fl, fr := resFrames[pc][i], resFrames[pc][j]
 			return !fl.Inline && fr.Inline // non-inline first
-		}
-		return fl.PC < fr.PC
-	})
+		})
+	}
 
 	buf := bufio.NewWriter(w)
 	fmt.Fprintf(buf, "PC,Module,Offset,Filename,Inline,StartLine,EndLine\n")
-	for _, frame := range resFrames {
-		offset := frame.PC - frame.Module.Addr
-		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v,%v,%v\n",
-			frame.PC, frame.Module.Name, offset, frame.Name, frame.Inline, frame.StartLine, frame.EndLine)
+	var output []string
+	for _, pc := range pcs {
+		for _, frame := range resFrames[pc] {
+			offset := frame.PC - frame.Module.Addr
+			if frame.Module.Name == "" {
+				offset = frame.PC
+			}
+			output = append(output, fmt.Sprintf("0x%x,%v,0x%x,%v,%v,%v,%v\n",
+				frame.PC, frame.Module.Name, offset, frame.Name, frame.Inline, frame.StartLine, frame.EndLine))
+		}
+	}
+	for _, line := range output {
+		buf.WriteString(line)
 	}
 	buf.Flush()
 	return nil
