@@ -39,7 +39,49 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	pad			const[0, int32]	(if[value[flags] & BPF_F_TOKEN_FD == 0])
 } [packed]
 
-type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
+# These flags should match the mappings in bpf_prog_load_check_attach and attach_type_to_prog_type upstream.
+cgroup_sock_attach_types = BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_INET_SOCK_RELEASE, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND
+cgroup_sock_addr_attach_types = BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_UNIX_CONNECT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_UNIX_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_CGROUP_UNIX_GETSOCKNAME, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_CGROUP_UNIX_SENDMSG, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_UNIX_RECVMSG
+cgroup_skb_attach_types = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS
+cgroup_sockopt_attach_types = BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_GETSOCKOPT
+sk_lookup_attach_types = BPF_SK_LOOKUP
+sk_reuseport_attach_types = BPF_SK_REUSEPORT_SELECT, BPF_SK_REUSEPORT_SELECT_OR_MIGRATE
+netfilter_attach_types = BPF_NETFILTER
+sock_ops_attach_types = BPF_CGROUP_SOCK_OPS
+cgroup_device_attach_types = BPF_CGROUP_DEVICE
+sk_msg_attach_types = BPF_SK_MSG_VERDICT
+sk_skb_attach_types = BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_SK_SKB_VERDICT
+lirc_mode2_attach_types = BPF_LIRC_MODE2
+flow_dissector_attach_types = BPF_FLOW_DISSECTOR
+cgroup_sysctl_attach_types = BPF_CGROUP_SYSCTL
+tracing_attach_types = BPF_TRACE_ITER, BPF_TRACE_RAW_TP, BPF_TRACE_FENTRY, BPF_TRACE_FEXIT, BPF_MODIFY_RETURN
+lsm_attach_types = BPF_LSM_MAC, BPF_LSM_CGROUP
+xdp_attach_types = BPF_XDP
+sched_cls_attach_types = BPF_TCX_INGRESS, BPF_TCX_EGRESS, BPF_NETKIT_PRIMARY, BPF_NETKIT_PEER
+
+bpf_prog_attach_types [
+	cgroup_sock		flags[cgroup_sock_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_CGROUP_SOCK])
+	cgroup_sock_addr	flags[cgroup_sock_addr_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_CGROUP_SOCK_ADDR])
+	cgroup_skb		flags[cgroup_skb_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_CGROUP_SKB])
+	cgroup_sockopt		flags[cgroup_sockopt_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_CGROUP_SOCKOPT])
+	sk_lookup		flags[sk_lookup_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_SK_LOOKUP])
+	sk_reuseport		flags[sk_reuseport_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_SK_REUSEPORT])
+	netfilter		flags[netfilter_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_NETFILTER])
+	sock_ops		flags[sock_ops_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_SOCK_OPS])
+	cgroup_device		flags[cgroup_device_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_CGROUP_DEVICE])
+	sk_msg			flags[sk_msg_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_SK_MSG])
+	sk_skb			flags[sk_skb_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_SK_SKB])
+	lirc_mode2		flags[lirc_mode2_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_LIRC_MODE2])
+	flow_dissector		flags[flow_dissector_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_FLOW_DISSECTOR])
+	cgroup_sysctl		flags[cgroup_sysctl_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_CGROUP_SYSCTL])
+	tracing			flags[tracing_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_TRACING])
+	lsm			flags[lsm_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_LSM])
+	xdp			flags[xdp_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_XDP])
+	sched_cls		flags[sched_cls_attach_types, int32]	(if[value[bpf_prog_t:type] == BPF_PROG_TYPE_SCHED_CLS])
+	fallback		flags[bpf_attach_types, int32]
+]
+
+type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], bpf_prog_attach_types, bpf_btf_id[opt], fd_bpf_prog[opt]]
 
 bpf_licenses = "GPL", "syzkaller"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100
