@@ -19,7 +19,7 @@ type sock_port int16be[20000:20004]
 
 # TODO: describe socketcall syscall
 
-socket(domain flags[socket_domain], type flags[socket_type], proto int32) sock
+socket(domain flags[socket_domain], type flags[socket_type], proto int32) sock (automatic_helper)
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int32, fds ptr[out, sock_pair])
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
@@ -283,7 +283,7 @@ ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR
 
 ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
 
-ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_t[ifindex]])
+ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_t[ifindex]]) (automatic_helper)
 
 ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
 ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCSIFBR], arg ptr[inout, brctl_arg])

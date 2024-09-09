@@ -11,7 +11,7 @@ include <uapi/linux/genetlink.h>
 
 resource sock_nl_generic[sock_netlink]
 
-socket$nl_generic(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_GENERIC]) sock_nl_generic
+socket$nl_generic(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_GENERIC]) sock_nl_generic (automatic_helper)
 
 # This is NETLINK_GENERIC created in init_net namespace. Use with extreme care.
 # It's very dangerous to use as it allows the fuzzer to bring down network connectivity
