@@ -23,10 +23,10 @@ import (
 	"math/big"
 
 	"cloud.google.com/go/civil"
-	"github.com/apache/arrow/go/v14/arrow"
-	"github.com/apache/arrow/go/v14/arrow/array"
-	"github.com/apache/arrow/go/v14/arrow/ipc"
-	"github.com/apache/arrow/go/v14/arrow/memory"
+	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v15/arrow/array"
+	"github.com/apache/arrow/go/v15/arrow/ipc"
+	"github.com/apache/arrow/go/v15/arrow/memory"
 	"google.golang.org/api/iterator"
 )
 
@@ -272,6 +272,21 @@ func convertArrowValue(col arrow.Array, i int, ft arrow.DataType, fs *FieldSchem
 		arr := col.(*array.Struct)
 		nestedValues := []Value{}
 		fields := ft.(*arrow.StructType).Fields()
+		if fs.Type == RangeFieldType {
+			rangeFieldSchema := &FieldSchema{
+				Type: fs.RangeElementType.Type,
+			}
+			start, err := convertArrowValue(arr.Field(0), i, fields[0].Type, rangeFieldSchema)
+			if err != nil {
+				return nil, err
+			}
+			end, err := convertArrowValue(arr.Field(1), i, fields[1].Type, rangeFieldSchema)
+			if err != nil {
+				return nil, err
+			}
+			rangeValue := &RangeValue{Start: start, End: end}
+			return Value(rangeValue), nil
+		}
 		for fIndex, f := range fields {
 			v, err := convertArrowValue(arr.Field(fIndex), i, f.Type, fs.Schema[fIndex])
 			if err != nil {

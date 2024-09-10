@@ -334,10 +334,13 @@ func (c *Checker) linesChanged() map[string][]pos {
 	return changes
 }
 
-// GitPatch returns a patch from a git repository,
-// if no git repository was found and no errors occurred, nil is returned, else an error is returned revisionFrom and revisionTo defines the git diff parameters,
-// if left blank and there are unstaged changes or untracked files, only those will be returned else only check changes since HEAD~.
-// If revisionFrom is set but revisionTo is not, untracked files will be included, to exclude untracked files set revisionTo to HEAD~.
+// GitPatch returns a patch from a git repository.
+// If no git repository was found and no errors occurred, nil is returned,
+// else an error is returned revisionFrom and revisionTo defines the git diff parameters,
+// if left blank and there are unstaged changes or untracked files,
+// only those will be returned else only check changes since HEAD~.
+// If revisionFrom is set but revisionTo is not,
+// untracked files will be included, to exclude untracked files set revisionTo to HEAD~.
 // It's incorrect to specify revisionTo without a revisionFrom.
 func GitPatch(revisionFrom, revisionTo string) (io.Reader, []string, error) {
 	// check if git repo exists
@@ -356,59 +359,59 @@ func GitPatch(revisionFrom, revisionTo string) (io.Reader, []string, error) {
 	for _, file := range bytes.Split(ls, []byte{'\n'}) {
 		if len(file) == 0 || bytes.HasSuffix(file, []byte{'/'}) {
 			// ls-files was sometimes showing directories when they were ignored
-			// I couldn't create a test case for this as I couldn't reproduce correctly
-			// for the moment, just exclude files with trailing /
+			// I couldn't create a test case for this as I couldn't reproduce correctly for the moment,
+			// just exclude files with trailing /
 			continue
 		}
+
 		newFiles = append(newFiles, string(file))
 	}
 
-	var patch bytes.Buffer
 	if revisionFrom != "" {
-		cmd := gitDiff(revisionFrom)
-		if revisionTo != "" {
-			cmd.Args = append(cmd.Args, revisionTo)
-		}
-		cmd.Args = append(cmd.Args, "--")
+		args := []string{revisionFrom}
 
-		cmd.Stdout = &patch
-		if err := cmd.Run(); err != nil {
-			return nil, nil, fmt.Errorf("error executing git diff %q %q: %w", revisionFrom, revisionTo, err)
+		if revisionTo != "" {
+			args = append(args, revisionTo)
+		}
+
+		args = append(args, "--")
+
+		patch, errDiff := gitDiff(args...)
+		if errDiff != nil {
+			return nil, nil, errDiff
 		}
 
 		if revisionTo == "" {
-			return &patch, newFiles, nil
+			return patch, newFiles, nil
 		}
 
-		return &patch, nil, nil
+		return patch, nil, nil
 	}
 
 	// make a patch for unstaged changes
-	cmd := gitDiff("--")
-	cmd.Stdout = &patch
-	if err := cmd.Run(); err != nil {
-		return nil, nil, fmt.Errorf("error executing git diff: %w", err)
+	patch, err := gitDiff("--")
+	if err != nil {
+		return nil, nil, err
 	}
+
 	unstaged := patch.Len() > 0
 
-	// If there's unstaged changes OR untracked changes (or both), then this is
-	// a suitable patch
+	// If there's unstaged changes OR untracked changes (or both),
+	// then this is a suitable patch
 	if unstaged || newFiles != nil {
-		return &patch, newFiles, nil
+		return patch, newFiles, nil
 	}
 
 	// check for changes in recent commit
-
-	cmd = gitDiff("HEAD~", "--")
-	cmd.Stdout = &patch
-	if err := cmd.Run(); err != nil {
-		return nil, nil, fmt.Errorf("error executing git diff HEAD~: %w", err)
+	patch, err = gitDiff("HEAD~", "--")
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return &patch, nil, nil
+	return patch, nil, nil
 }
 
-func gitDiff(extraArgs ...string) *exec.Cmd {
+func gitDiff(extraArgs ...string) (*bytes.Buffer, error) {
 	cmd := exec.Command("git", "diff", "--color=never", "--no-ext-diff")
 
 	if isSupportedByGit(2, 41, 0) {
@@ -418,7 +421,26 @@ func gitDiff(extraArgs ...string) *exec.Cmd {
 	cmd.Args = append(cmd.Args, "--relative")
 	cmd.Args = append(cmd.Args, extraArgs...)
 
-	return cmd
+	patch := new(bytes.Buffer)
+	errBuff := new(bytes.Buffer)
+
+	cmd.Stdout = patch
+	cmd.Stderr = errBuff
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("error executing %q: %w: %w", strings.Join(cmd.Args, " "), err, readAsError(errBuff))
+	}
+
+	return patch, nil
+}
+
+func readAsError(buff io.Reader) error {
+	output, err := io.ReadAll(buff)
+	if err != nil {
+		return fmt.Errorf("read stderr: %w", err)
+	}
+
+	return errors.New(string(output))
 }
 
 func isSupportedByGit(major, minor, patch int) bool {

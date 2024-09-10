@@ -152,6 +152,11 @@ type FieldSchema struct {
 	// Information about the range.
 	// If the type is RANGE, this field is required.
 	RangeElementType *RangeElementType
+
+	// RoundingMode specifies the rounding mode to be used when storing
+	// values of NUMERIC and BIGNUMERIC type.
+	// If unspecified, default value is RoundHalfAwayFromZero.
+	RoundingMode RoundingMode
 }
 
 func (fs *FieldSchema) toBQ() *bq.TableFieldSchema {
@@ -166,6 +171,7 @@ func (fs *FieldSchema) toBQ() *bq.TableFieldSchema {
 		DefaultValueExpression: fs.DefaultValueExpression,
 		Collation:              string(fs.Collation),
 		RangeElementType:       fs.RangeElementType.toBQ(),
+		RoundingMode:           string(fs.RoundingMode),
 	}
 
 	if fs.Repeated {
@@ -253,6 +259,7 @@ func bqToFieldSchema(tfs *bq.TableFieldSchema) *FieldSchema {
 		DefaultValueExpression: tfs.DefaultValueExpression,
 		Collation:              tfs.Collation,
 		RangeElementType:       bqToRangeElementType(tfs.RangeElementType),
+		RoundingMode:           RoundingMode(tfs.RoundingMode),
 	}
 
 	for _, f := range tfs.Fields {
@@ -363,6 +370,7 @@ var typeOfByteSlice = reflect.TypeOf([]byte{})
 //	TIME        civil.Time
 //	DATETIME    civil.DateTime
 //	NUMERIC     *big.Rat
+//	JSON        map[string]interface{}
 //
 // The big.Rat type supports numbers of arbitrary size and precision. Values
 // will be rounded to 9 digits after the decimal point before being transmitted
@@ -374,6 +382,15 @@ var typeOfByteSlice = reflect.TypeOf([]byte{})
 //
 // Due to lack of unique native Go type for GEOGRAPHY, there is no schema
 // inference to GEOGRAPHY at this time.
+//
+// This package also provides some value types for expressing the corresponding SQL types.
+//
+// INTERVAL		*IntervalValue
+// RANGE    	*RangeValue
+//
+// In the case of RANGE types, a RANGE represents a continuous set of values of a given
+// element type (DATE, DATETIME, or TIMESTAMP).  InferSchema does not attempt to determine
+// the element type, as it uses generic Value types to denote the start/end of the range.
 //
 // Nullable fields are inferred from the NullXXX types, declared in this package:
 //
@@ -420,6 +437,21 @@ var typeOfByteSlice = reflect.TypeOf([]byte{})
 func InferSchema(st interface{}) (Schema, error) {
 	return inferSchemaReflectCached(reflect.TypeOf(st))
 }
+
+// RoundingMode  represents the rounding mode to be used when storing
+// values of NUMERIC and BIGNUMERIC type.
+type RoundingMode string
+
+const (
+	// RoundHalfAwayFromZero rounds half values away from zero when applying
+	// precision and scale upon writing of NUMERIC and BIGNUMERIC values.
+	// For Scale: 0 1.1, 1.2, 1.3, 1.4 => 1 1.5, 1.6, 1.7, 1.8, 1.9 => 2
+	RoundHalfAwayFromZero RoundingMode = "ROUND_HALF_AWAY_FROM_ZERO"
+	// RoundHalfEven rounds half values to the nearest even value when applying
+	// precision and scale upon writing of NUMERIC and BIGNUMERIC values.
+	// For Scale: 0 1.1, 1.2, 1.3, 1.4 => 1 1.5 => 2 1.6, 1.7, 1.8, 1.9 => 2 2.5 => 2
+	RoundHalfEven RoundingMode = "ROUND_HALF_EVEN"
+)
 
 var schemaCache sync.Map
 
@@ -469,10 +501,14 @@ func inferStruct(t reflect.Type) (Schema, error) {
 }
 
 // inferFieldSchema infers the FieldSchema for a Go type
-func inferFieldSchema(fieldName string, rt reflect.Type, nullable bool) (*FieldSchema, error) {
+func inferFieldSchema(fieldName string, rt reflect.Type, nullable, json bool) (*FieldSchema, error) {
 	// Only []byte and struct pointers can be tagged nullable.
 	if nullable && !(rt == typeOfByteSlice || rt.Kind() == reflect.Ptr && rt.Elem().Kind() == reflect.Struct) {
 		return nil, badNullableError{fieldName, rt}
+	}
+	// Only structs and struct pointers can be tagged as json.
+	if json && !(rt.Kind() == reflect.Struct || rt.Kind() == reflect.Ptr && rt.Elem().Kind() == reflect.Struct) {
+		return nil, badJSONError{fieldName, rt}
 	}
 	switch rt {
 	case typeOfByteSlice:
@@ -491,6 +527,12 @@ func inferFieldSchema(fieldName string, rt reflect.Type, nullable bool) (*FieldS
 		// larger precision of BIGNUMERIC need to manipulate the inferred
 		// schema.
 		return &FieldSchema{Required: !nullable, Type: NumericFieldType}, nil
+	case typeOfIntervalValue:
+		return &FieldSchema{Required: !nullable, Type: IntervalFieldType}, nil
+	case typeOfRangeValue:
+		// We can't fully infer the element type of a range without additional
+		// information, and don't set the RangeElementType when inferred.
+		return &FieldSchema{Required: !nullable, Type: RangeFieldType}, nil
 	}
 	if ft := nullableFieldType(rt); ft != "" {
 		return &FieldSchema{Required: false, Type: ft}, nil
@@ -509,7 +551,7 @@ func inferFieldSchema(fieldName string, rt reflect.Type, nullable bool) (*FieldS
 			// Repeated nullable types are not supported by BigQuery.
 			return nil, unsupportedFieldTypeError{fieldName, rt}
 		}
-		f, err := inferFieldSchema(fieldName, et, false)
+		f, err := inferFieldSchema(fieldName, et, false, false)
 		if err != nil {
 			return nil, err
 		}
@@ -522,6 +564,10 @@ func inferFieldSchema(fieldName string, rt reflect.Type, nullable bool) (*FieldS
 		}
 		fallthrough
 	case reflect.Struct:
+		if json {
+			return &FieldSchema{Required: !nullable, Type: JSONFieldType}, nil
+		}
+
 		nested, err := inferStruct(rt)
 		if err != nil {
 			return nil, err
@@ -533,6 +579,11 @@ func inferFieldSchema(fieldName string, rt reflect.Type, nullable bool) (*FieldS
 		return &FieldSchema{Required: !nullable, Type: BooleanFieldType}, nil
 	case reflect.Float32, reflect.Float64:
 		return &FieldSchema{Required: !nullable, Type: FloatFieldType}, nil
+	case reflect.Map:
+		if rt.Key().Kind() != reflect.String {
+			return nil, unsupportedFieldTypeError{fieldName, rt}
+		}
+		return &FieldSchema{Required: !nullable, Type: JSONFieldType}, nil
 	default:
 		return nil, unsupportedFieldTypeError{fieldName, rt}
 	}
@@ -546,14 +597,16 @@ func inferFields(rt reflect.Type) (Schema, error) {
 		return nil, err
 	}
 	for _, field := range fields {
-		var nullable bool
+		var nullable, json bool
 		for _, opt := range field.ParsedTag.([]string) {
 			if opt == nullableTagOption {
 				nullable = true
-				break
+			}
+			if opt == jsonTagOption {
+				json = true
 			}
 		}
-		f, err := inferFieldSchema(field.Name, field.Type, nullable)
+		f, err := inferFieldSchema(field.Name, field.Type, nullable, json)
 		if err != nil {
 			return nil, err
 		}
@@ -692,6 +745,15 @@ type badNullableError struct {
 
 func (e badNullableError) Error() string {
 	return fmt.Sprintf(`bigquery: field %q of type %s: use "nullable" only for []byte and struct pointers; for all other types, use a NullXXX type`, e.name, e.typ)
+}
+
+type badJSONError struct {
+	name string
+	typ  reflect.Type
+}
+
+func (e badJSONError) Error() string {
+	return fmt.Sprintf(`bigquery: field %q of type %s: use "json" only for struct and struct pointers`, e.name, e.typ)
 }
 
 type unsupportedFieldTypeError struct {

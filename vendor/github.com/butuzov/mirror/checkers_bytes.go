@@ -14,7 +14,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `NewBuffer($0)`,
-				Returns: 1,
+				Returns: []string{"*bytes.Buffer"},
 			},
 		},
 		{ // bytes.NewBufferString
@@ -27,7 +27,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `NewBufferString($0)`,
-				Returns: 1,
+				Returns: []string{"*bytes.Buffer"},
 			},
 		},
 		{ // bytes.Compare:
@@ -41,7 +41,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `Compare($0, $1)`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.Contains:
@@ -55,7 +55,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `Contains($0, $1)`,
-				Returns: 1,
+				Returns: []string{"bool"},
 			},
 		},
 		{ // bytes.ContainsAny
@@ -69,7 +69,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `ContainsAny($0, "f")`,
-				Returns: 1,
+				Returns: []string{"bool"},
 			},
 		},
 		{ // bytes.ContainsRune
@@ -83,7 +83,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `ContainsRune($0, 'ф')`,
-				Returns: 1,
+				Returns: []string{"bool"},
 			},
 		},
 		{ // bytes.Count
@@ -97,7 +97,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `Count($0, $1)`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.EqualFold
@@ -111,7 +111,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `EqualFold($0, $1)`,
-				Returns: 1,
+				Returns: []string{"bool"},
 			},
 		},
 
@@ -126,7 +126,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `HasPrefix($0, $1)`,
-				Returns: 1,
+				Returns: []string{"bool"},
 			},
 		},
 		{ // bytes.HasSuffix
@@ -140,7 +140,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `HasSuffix($0, $1)`,
-				Returns: 1,
+				Returns: []string{"bool"},
 			},
 		},
 		{ // bytes.Index
@@ -154,7 +154,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `Index($0, $1)`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.IndexAny
@@ -168,7 +168,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `IndexAny($0, "f")`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.IndexByte
@@ -182,7 +182,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `IndexByte($0, 'f')`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.IndexFunc
@@ -196,7 +196,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `IndexFunc($0, func(rune) bool {return true })`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.IndexRune
@@ -210,7 +210,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `IndexRune($0, rune('ф'))`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.LastIndex
@@ -224,7 +224,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `LastIndex($0, $1)`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.LastIndexAny
@@ -238,7 +238,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `LastIndexAny($0, "ф")`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.LastIndexByte
@@ -252,7 +252,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `LastIndexByte($0, 'f')`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 		{ // bytes.LastIndexFunc
@@ -266,7 +266,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `LastIndexFunc($0, func(rune) bool {return true })`,
-				Returns: 1,
+				Returns: []string{"int"},
 			},
 		},
 	}
@@ -284,7 +284,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `bb := bytes.Buffer{}`,
 				Pattern:      `Write($0)`,
-				Returns:      2,
+				Returns:      []string{"int", "error"},
 			},
 		},
 		{ // (*bytes.Buffer).WriteString
@@ -299,7 +299,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `bb := bytes.Buffer{}`,
 				Pattern:      `WriteString($0)`,
-				Returns:      2,
+				Returns:      []string{"int", "error"},
 			},
 		},
 		{ // (*bytes.Buffer).WriteString -> (*bytes.Buffer).WriteRune
@@ -311,6 +311,11 @@ var (
 			Args:      []int{0},
 			ArgsType:  checker.Rune,
 			AltCaller: "WriteRune",
+			Generate: &checker.Generate{
+				SkipGenerate: true,
+				Pattern:      `WriteString($0)`,
+				Returns:      []string{"int", "error"},
+			},
 		},
 		// { // (*bytes.Buffer).WriteString -> (*bytes.Buffer).WriteByte
 		// 	Targets:   checker.Strings,

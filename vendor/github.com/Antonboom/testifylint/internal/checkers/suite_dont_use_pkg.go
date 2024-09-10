@@ -3,15 +3,11 @@ package checkers
 import (
 	"fmt"
 	"go/ast"
-	"go/types"
 
 	"golang.org/x/tools/go/analysis"
-
-	"github.com/Antonboom/testifylint/internal/analysisutil"
-	"github.com/Antonboom/testifylint/internal/testify"
 )
 
-// SuiteDontUsePkg detects situation like
+// SuiteDontUsePkg detects situations like
 //
 //	func (s *MySuite) TestSomething() {
 //		assert.Equal(s.T(), 42, value)
@@ -47,7 +43,7 @@ func (checker SuiteDontUsePkg) Check(pass *analysis.Pass, call *CallMeta) *analy
 	if !ok {
 		return nil
 	}
-	if se.X == nil || !implementsTestifySuiteIface(pass, se.X) {
+	if se.X == nil || !implementsTestifySuite(pass, se.X) {
 		return nil
 	}
 	if se.Sel == nil || se.Sel.Name != "T" {
@@ -81,16 +77,4 @@ func (checker SuiteDontUsePkg) Check(pass *analysis.Pass, call *CallMeta) *analy
 			},
 		},
 	})
-}
-
-func implementsTestifySuiteIface(pass *analysis.Pass, rcv ast.Expr) bool {
-	suiteIface := analysisutil.ObjectOf(pass.Pkg, testify.SuitePkgPath, "TestingSuite")
-	if suiteIface == nil {
-		return false
-	}
-
-	return types.Implements(
-		pass.TypesInfo.TypeOf(rcv),
-		suiteIface.Type().Underlying().(*types.Interface),
-	)
 }

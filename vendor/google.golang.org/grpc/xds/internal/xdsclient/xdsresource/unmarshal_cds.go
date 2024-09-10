@@ -89,16 +89,25 @@ func validateClusterAndConstructClusterUpdate(cluster *v3clusterpb.Cluster, serv
 			if fields := val.GetFields(); fields != nil {
 				if val, ok := fields["service_name"]; ok {
 					if _, ok := val.GetKind().(*structpb.Value_StringValue); ok {
-						telemetryLabels["service_name"] = val.GetStringValue()
+						telemetryLabels["csm.service_name"] = val.GetStringValue()
 					}
 				}
 				if val, ok := fields["service_namespace"]; ok {
 					if _, ok := val.GetKind().(*structpb.Value_StringValue); ok {
-						telemetryLabels["service_namespace"] = val.GetStringValue()
+						telemetryLabels["csm.service_namespace_name"] = val.GetStringValue()
 					}
 				}
 			}
 		}
+	}
+	// "The values for the service labels csm.service_name and
+	// csm.service_namespace_name come from xDS, “unknown” if not present." -
+	// CSM Design.
+	if _, ok := telemetryLabels["csm.service_name"]; !ok {
+		telemetryLabels["csm.service_name"] = "unknown"
+	}
+	if _, ok := telemetryLabels["csm.service_namespace_name"]; !ok {
+		telemetryLabels["csm.service_namespace_name"] = "unknown"
 	}
 
 	var lbPolicy json.RawMessage
@@ -269,7 +278,7 @@ func dnsHostNameFromCluster(cluster *v3clusterpb.Cluster) (string, error) {
 // the received Cluster resource.
 func securityConfigFromCluster(cluster *v3clusterpb.Cluster) (*SecurityConfig, error) {
 	if tsm := cluster.GetTransportSocketMatches(); len(tsm) != 0 {
-		return nil, fmt.Errorf("unsupport transport_socket_matches field is non-empty: %+v", tsm)
+		return nil, fmt.Errorf("unsupported transport_socket_matches field is non-empty: %+v", tsm)
 	}
 	// The Cluster resource contains a `transport_socket` field, which contains
 	// a oneof `typed_config` field of type `protobuf.Any`. The any proto
@@ -468,7 +477,7 @@ func securityConfigFromCommonTLSContextUsingNewFields(common *v3tlspb.CommonTlsC
 	case len(validationCtx.GetVerifyCertificateHash()) != 0:
 		return nil, fmt.Errorf("unsupported verify_certificate_hash field in CommonTlsContext message: %+v", common)
 	case validationCtx.GetRequireSignedCertificateTimestamp().GetValue():
-		return nil, fmt.Errorf("unsupported require_sugned_ceritificate_timestamp field in CommonTlsContext message: %+v", common)
+		return nil, fmt.Errorf("unsupported require_signed_certificate_timestamp field in CommonTlsContext message: %+v", common)
 	case validationCtx.GetCrl() != nil:
 		return nil, fmt.Errorf("unsupported crl field in CommonTlsContext message: %+v", common)
 	case validationCtx.GetCustomValidatorConfig() != nil:

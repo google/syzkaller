@@ -356,8 +356,8 @@ func (j *Job) waitForQuery(ctx context.Context, projectID string) (Schema, uint6
 	call = call.FormatOptionsUseInt64Timestamp(true)
 	setClientHeader(call.Header())
 	backoff := gax.Backoff{
-		Initial:    1 * time.Second,
-		Multiplier: 2,
+		Initial:    50 * time.Millisecond,
+		Multiplier: 1.3,
 		Max:        60 * time.Second,
 	}
 	var res *bq.GetQueryResultsResponse

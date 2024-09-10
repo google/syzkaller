@@ -223,6 +223,8 @@ var goBuiltins = map[string]bool{
 	"imag":    true,
 	"len":     true,
 	"make":    true,
+	"min":     true,
+	"max":     true,
 	"new":     true,
 	"panic":   true,
 	"print":   true,

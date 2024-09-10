@@ -30,16 +30,27 @@ import (
 
 // UploadFileOptions are options for [Client.UploadFile].
 type UploadFileOptions struct {
-	DisplayName string // a more readable name for the file
-	MIMEType    string // the MIME type of the file; if omitted, it will be inferred
+	// A more readable name for the file.
+	DisplayName string
+
+	// The IANA standard MIME type of the file. It will be stored with the file as metadata.
+	// If omitted, the service will try to infer it. You may instead wish to use
+	// [http.DetectContentType].
+	// The supported MIME types are documented on [this page].
+	//
+	// [this page]: https://ai.google.dev/gemini-api/docs/prompting_with_media?lang=go#supported_file_formats
+	MIMEType string
 }
 
 // UploadFile copies the contents of the given io.Reader to file storage associated
 // with the service, and returns information about the resulting file.
 //
-// The name may be empty, in which case a unique name will be generated.
+// The name is a relatively short, unique identifier for the file (rather than a typical
+// filename).
+// Typically it should be left empty, in which case a unique name will be generated.
 // Otherwise, it can contain up to 40 characters that are lowercase
 // alphanumeric or dashes (-), not starting or ending with a dash.
+// To generate your own unique names, consider a cryptographic hash algorithm like SHA-1.
 // The string "files/" is prepended to the name if it does not contain a '/'.
 //
 // Use the returned file's URI field with a [FileData] Part to use it for generation.
@@ -74,7 +85,9 @@ func (c *Client) UploadFile(ctx context.Context, name string, r io.Reader, opts 
 
 // GetFile returns the named file.
 func (c *Client) GetFile(ctx context.Context, name string) (*File, error) {
-	pf, err := c.fc.GetFile(ctx, &pb.GetFileRequest{Name: userNameToServiceName(name)})
+	req := &pb.GetFileRequest{Name: userNameToServiceName(name)}
+	debugPrint(req)
+	pf, err := c.fc.GetFile(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +97,9 @@ func (c *Client) GetFile(ctx context.Context, name string) (*File, error) {
 // DeleteFile deletes the file with the given name.
 // It is an error to delete a file that does not exist.
 func (c *Client) DeleteFile(ctx context.Context, name string) error {
-	return c.fc.DeleteFile(ctx, &pb.DeleteFileRequest{Name: userNameToServiceName(name)})
+	req := &pb.DeleteFileRequest{Name: userNameToServiceName(name)}
+	debugPrint(req)
+	return c.fc.DeleteFile(ctx, req)
 }
 
 // userNameToServiceName converts a name supplied by the user to a name required by the service.
@@ -120,4 +135,41 @@ func (it *FileIterator) Next() (*File, error) {
 // PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
 func (it *FileIterator) PageInfo() *iterator.PageInfo {
 	return it.it.PageInfo()
+}
+
+// FileMetadata holds metadata about a file.
+type FileMetadata struct {
+	// Set if the file contains video.
+	Video *VideoMetadata
+}
+
+func populateFileTo(p *pb.File, f *File) {
+	p.Metadata = nil
+	if f == nil || f.Metadata == nil {
+		return
+	}
+	if f.Metadata.Video != nil {
+		p.Metadata = &pb.File_VideoMetadata{
+			VideoMetadata: f.Metadata.Video.toProto(),
+		}
+	}
+}
+
+func populateFileFrom(f *File, p *pb.File) {
+	f.Metadata = nil
+	if p == nil || p.Metadata == nil {
+		return
+	}
+
+	if p.Metadata != nil {
+		switch m := p.Metadata.(type) {
+		case *pb.File_VideoMetadata:
+			f.Metadata = &FileMetadata{
+				Video: (VideoMetadata{}).fromProto(m.VideoMetadata),
+			}
+		default:
+			// ignore other types
+			// TODO: signal a problem
+		}
+	}
 }

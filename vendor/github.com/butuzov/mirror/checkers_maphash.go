@@ -15,7 +15,7 @@ var MaphashMethods = []checker.Violation{
 		Generate: &checker.Generate{
 			PreCondition: `h := maphash.Hash{}`,
 			Pattern:      `Write($0)`,
-			Returns:      2,
+			Returns:      []string{"int", "error"},
 		},
 	},
 	{ // (*hash/maphash).WriteString
@@ -30,7 +30,7 @@ var MaphashMethods = []checker.Violation{
 		Generate: &checker.Generate{
 			PreCondition: `h := maphash.Hash{}`,
 			Pattern:      `WriteString($0)`,
-			Returns:      2,
+			Returns:      []string{"int", "error"},
 		},
 	},
 }

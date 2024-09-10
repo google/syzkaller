@@ -13,7 +13,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `Valid($0)`,
-			Returns: 1,
+			Returns: []string{"bool"},
 		},
 	},
 	{ // utf8.ValidString
@@ -26,7 +26,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `ValidString($0)`,
-			Returns: 1,
+			Returns: []string{"bool"},
 		},
 	},
 	{ // utf8.FullRune
@@ -39,7 +39,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `FullRune($0)`,
-			Returns: 1,
+			Returns: []string{"bool"},
 		},
 	},
 	{ // utf8.FullRuneInString
@@ -52,7 +52,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `FullRuneInString($0)`,
-			Returns: 1,
+			Returns: []string{"bool"},
 		},
 	},
 
@@ -66,7 +66,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `RuneCount($0)`,
-			Returns: 1,
+			Returns: []string{"int"},
 		},
 	},
 	{ // bytes.RuneCountInString
@@ -79,7 +79,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `RuneCountInString($0)`,
-			Returns: 1,
+			Returns: []string{"int"},
 		},
 	},
 
@@ -93,7 +93,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `DecodeLastRune($0)`,
-			Returns: 2,
+			Returns: []string{"rune", "int"},
 		},
 	},
 	{ // utf8.DecodeLastRuneInString
@@ -106,7 +106,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `DecodeLastRuneInString($0)`,
-			Returns: 2,
+			Returns: []string{"rune", "int"},
 		},
 	},
 	{ // utf8.DecodeRune
@@ -119,7 +119,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `DecodeRune($0)`,
-			Returns: 2,
+			Returns: []string{"rune", "int"},
 		},
 	},
 	{ // utf8.DecodeRuneInString
@@ -132,7 +132,7 @@ var UTF8Functions = []checker.Violation{
 
 		Generate: &checker.Generate{
 			Pattern: `DecodeRuneInString($0)`,
-			Returns: 2,
+			Returns: []string{"rune", "int"},
 		},
 	},
 }

@@ -1,5 +1,24 @@
 # Changes
 
+## [0.115.1](https://github.com/googleapis/google-cloud-go/compare/v0.115.0...v0.115.1) (2024-08-13)
+
+
+### Bug Fixes
+
+* **cloud.google.com/go:** Bump google.golang.org/grpc@v1.64.1 ([8ecc4e9](https://github.com/googleapis/google-cloud-go/commit/8ecc4e9622e5bbe9b90384d5848ab816027226c5))
+
+## [0.115.0](https://github.com/googleapis/google-cloud-go/compare/v0.114.0...v0.115.0) (2024-06-12)
+
+
+### Features
+
+* **internal/trace:** Deprecate OpenCensus support ([#10287](https://github.com/googleapis/google-cloud-go/issues/10287)) ([430ce8a](https://github.com/googleapis/google-cloud-go/commit/430ce8adea2d0be43461e2ca783b7c17794e983f)), refs [#2205](https://github.com/googleapis/google-cloud-go/issues/2205) [#8655](https://github.com/googleapis/google-cloud-go/issues/8655)
+
+
+### Bug Fixes
+
+* **internal/postprocessor:** Use approved image tag ([#10341](https://github.com/googleapis/google-cloud-go/issues/10341)) ([a388fe5](https://github.com/googleapis/google-cloud-go/commit/a388fe5cf075d0af986861c70dcb7b9f97c31019))
+
 ## [0.114.0](https://github.com/googleapis/google-cloud-go/compare/v0.113.0...v0.114.0) (2024-05-23)
 
 

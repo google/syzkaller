@@ -7,106 +7,135 @@ import (
 	"strings"
 )
 
-var allowedErrors = []struct {
-	err string
-	fun string
-}{
-	// pkg/archive/tar
-	{err: "io.EOF", fun: "(*archive/tar.Reader).Next"},
-	{err: "io.EOF", fun: "(*archive/tar.Reader).Read"},
-	// pkg/bufio
-	{err: "io.EOF", fun: "(*bufio.Reader).Discard"},
-	{err: "io.EOF", fun: "(*bufio.Reader).Peek"},
-	{err: "io.EOF", fun: "(*bufio.Reader).Read"},
-	{err: "io.EOF", fun: "(*bufio.Reader).ReadByte"},
-	{err: "io.EOF", fun: "(*bufio.Reader).ReadBytes"},
-	{err: "io.EOF", fun: "(*bufio.Reader).ReadLine"},
-	{err: "io.EOF", fun: "(*bufio.Reader).ReadSlice"},
-	{err: "io.EOF", fun: "(*bufio.Reader).ReadString"},
-	{err: "io.EOF", fun: "(*bufio.Scanner).Scan"},
-	// pkg/bytes
-	{err: "io.EOF", fun: "(*bytes.Buffer).Read"},
-	{err: "io.EOF", fun: "(*bytes.Buffer).ReadByte"},
-	{err: "io.EOF", fun: "(*bytes.Buffer).ReadBytes"},
-	{err: "io.EOF", fun: "(*bytes.Buffer).ReadRune"},
-	{err: "io.EOF", fun: "(*bytes.Buffer).ReadString"},
-	{err: "io.EOF", fun: "(*bytes.Reader).Read"},
-	{err: "io.EOF", fun: "(*bytes.Reader).ReadAt"},
-	{err: "io.EOF", fun: "(*bytes.Reader).ReadByte"},
-	{err: "io.EOF", fun: "(*bytes.Reader).ReadRune"},
-	{err: "io.EOF", fun: "(*bytes.Reader).ReadString"},
-	// pkg/database/sql
-	{err: "database/sql.ErrNoRows", fun: "(*database/sql.Row).Scan"},
-	// pkg/debug/elf
-	{err: "io.EOF", fun: "debug/elf.Open"},
-	{err: "io.EOF", fun: "debug/elf.NewFile"},
-	// pkg/io
-	{err: "io.EOF", fun: "(io.ReadCloser).Read"},
-	{err: "io.EOF", fun: "(io.Reader).Read"},
-	{err: "io.EOF", fun: "(io.ReaderAt).ReadAt"},
-	{err: "io.EOF", fun: "(*io.LimitedReader).Read"},
-	{err: "io.EOF", fun: "(*io.SectionReader).Read"},
-	{err: "io.EOF", fun: "(*io.SectionReader).ReadAt"},
-	{err: "io.ErrClosedPipe", fun: "(*io.PipeWriter).Write"},
-	{err: "io.ErrShortBuffer", fun: "io.ReadAtLeast"},
-	{err: "io.ErrUnexpectedEOF", fun: "io.ReadAtLeast"},
-	{err: "io.EOF", fun: "io.ReadFull"},
-	{err: "io.ErrUnexpectedEOF", fun: "io.ReadFull"},
-	// pkg/net/http
-	{err: "net/http.ErrServerClosed", fun: "(*net/http.Server).ListenAndServe"},
-	{err: "net/http.ErrServerClosed", fun: "(*net/http.Server).ListenAndServeTLS"},
-	{err: "net/http.ErrServerClosed", fun: "(*net/http.Server).Serve"},
-	{err: "net/http.ErrServerClosed", fun: "(*net/http.Server).ServeTLS"},
-	{err: "net/http.ErrServerClosed", fun: "net/http.ListenAndServe"},
-	{err: "net/http.ErrServerClosed", fun: "net/http.ListenAndServeTLS"},
-	{err: "net/http.ErrServerClosed", fun: "net/http.Serve"},
-	{err: "net/http.ErrServerClosed", fun: "net/http.ServeTLS"},
-	// pkg/os
-	{err: "io.EOF", fun: "(*os.File).Read"},
-	{err: "io.EOF", fun: "(*os.File).ReadAt"},
-	{err: "io.EOF", fun: "(*os.File).ReadDir"},
-	{err: "io.EOF", fun: "(*os.File).Readdir"},
-	{err: "io.EOF", fun: "(*os.File).Readdirnames"},
-	// pkg/strings
-	{err: "io.EOF", fun: "(*strings.Reader).Read"},
-	{err: "io.EOF", fun: "(*strings.Reader).ReadAt"},
-	{err: "io.EOF", fun: "(*strings.Reader).ReadByte"},
-	{err: "io.EOF", fun: "(*strings.Reader).ReadRune"},
-	// pkg/context
-	{err: "context.DeadlineExceeded", fun: "(context.Context).Err"},
-	{err: "context.Canceled", fun: "(context.Context).Err"},
+type AllowPair struct {
+	Err string
+	Fun string
 }
 
-var allowedErrorWildcards = []struct {
-	err string
-	fun string
-}{
+var allowedErrorsMap = make(map[string]map[string]struct{})
+
+func setDefaultAllowedErrors() {
+	allowedMapAppend([]AllowPair{
+		// pkg/archive/tar
+		{Err: "io.EOF", Fun: "(*archive/tar.Reader).Next"},
+		{Err: "io.EOF", Fun: "(*archive/tar.Reader).Read"},
+		// pkg/bufio
+		{Err: "io.EOF", Fun: "(*bufio.Reader).Discard"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).Peek"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).Read"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).ReadByte"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).ReadBytes"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).ReadLine"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).ReadSlice"},
+		{Err: "io.EOF", Fun: "(*bufio.Reader).ReadString"},
+		{Err: "io.EOF", Fun: "(*bufio.Scanner).Scan"},
+		// pkg/bytes
+		{Err: "io.EOF", Fun: "(*bytes.Buffer).Read"},
+		{Err: "io.EOF", Fun: "(*bytes.Buffer).ReadByte"},
+		{Err: "io.EOF", Fun: "(*bytes.Buffer).ReadBytes"},
+		{Err: "io.EOF", Fun: "(*bytes.Buffer).ReadRune"},
+		{Err: "io.EOF", Fun: "(*bytes.Buffer).ReadString"},
+		{Err: "io.EOF", Fun: "(*bytes.Reader).Read"},
+		{Err: "io.EOF", Fun: "(*bytes.Reader).ReadAt"},
+		{Err: "io.EOF", Fun: "(*bytes.Reader).ReadByte"},
+		{Err: "io.EOF", Fun: "(*bytes.Reader).ReadRune"},
+		{Err: "io.EOF", Fun: "(*bytes.Reader).ReadString"},
+		// pkg/database/sql
+		{Err: "database/sql.ErrNoRows", Fun: "(*database/sql.Row).Scan"},
+		// pkg/debug/elf
+		{Err: "io.EOF", Fun: "debug/elf.Open"},
+		{Err: "io.EOF", Fun: "debug/elf.NewFile"},
+		// pkg/io
+		{Err: "io.EOF", Fun: "(io.ReadCloser).Read"},
+		{Err: "io.EOF", Fun: "(io.Reader).Read"},
+		{Err: "io.EOF", Fun: "(io.ReaderAt).ReadAt"},
+		{Err: "io.EOF", Fun: "(*io.LimitedReader).Read"},
+		{Err: "io.EOF", Fun: "(*io.SectionReader).Read"},
+		{Err: "io.EOF", Fun: "(*io.SectionReader).ReadAt"},
+		{Err: "io.ErrClosedPipe", Fun: "(*io.PipeWriter).Write"},
+		{Err: "io.ErrShortBuffer", Fun: "io.ReadAtLeast"},
+		{Err: "io.ErrUnexpectedEOF", Fun: "io.ReadAtLeast"},
+		{Err: "io.EOF", Fun: "io.ReadFull"},
+		{Err: "io.ErrUnexpectedEOF", Fun: "io.ReadFull"},
+		// pkg/mime
+		{Err: "mime.ErrInvalidMediaParameter", Fun: "mime.ParseMediaType"},
+		// pkg/net/http
+		{Err: "net/http.ErrServerClosed", Fun: "(*net/http.Server).ListenAndServe"},
+		{Err: "net/http.ErrServerClosed", Fun: "(*net/http.Server).ListenAndServeTLS"},
+		{Err: "net/http.ErrServerClosed", Fun: "(*net/http.Server).Serve"},
+		{Err: "net/http.ErrServerClosed", Fun: "(*net/http.Server).ServeTLS"},
+		{Err: "net/http.ErrServerClosed", Fun: "net/http.ListenAndServe"},
+		{Err: "net/http.ErrServerClosed", Fun: "net/http.ListenAndServeTLS"},
+		{Err: "net/http.ErrServerClosed", Fun: "net/http.Serve"},
+		{Err: "net/http.ErrServerClosed", Fun: "net/http.ServeTLS"},
+		// pkg/os
+		{Err: "io.EOF", Fun: "(*os.File).Read"},
+		{Err: "io.EOF", Fun: "(*os.File).ReadAt"},
+		{Err: "io.EOF", Fun: "(*os.File).ReadDir"},
+		{Err: "io.EOF", Fun: "(*os.File).Readdir"},
+		{Err: "io.EOF", Fun: "(*os.File).Readdirnames"},
+		// pkg/strings
+		{Err: "io.EOF", Fun: "(*strings.Reader).Read"},
+		{Err: "io.EOF", Fun: "(*strings.Reader).ReadAt"},
+		{Err: "io.EOF", Fun: "(*strings.Reader).ReadByte"},
+		{Err: "io.EOF", Fun: "(*strings.Reader).ReadRune"},
+		// pkg/context
+		{Err: "context.DeadlineExceeded", Fun: "(context.Context).Err"},
+		{Err: "context.Canceled", Fun: "(context.Context).Err"},
+		// pkg/encoding/json
+		{Err: "io.EOF", Fun: "(*encoding/json.Decoder).Decode"},
+		// pkg/encoding/csv
+		{Err: "io.EOF", Fun: "(*encoding/csv.Reader).Read"},
+		// pkg/mime/multipart
+		{Err: "io.EOF", Fun: "(*mime/multipart.Reader).NextPart"},
+		{Err: "io.EOF", Fun: "(*mime/multipart.Reader).NextRawPart"},
+		{Err: "mime/multipart.ErrMessageTooLarge", Fun: "(*mime/multipart.Reader).ReadForm"},
+	})
+}
+
+func allowedMapAppend(ap []AllowPair) {
+	for _, pair := range ap {
+		if _, ok := allowedErrorsMap[pair.Err]; !ok {
+			allowedErrorsMap[pair.Err] = make(map[string]struct{})
+		}
+		allowedErrorsMap[pair.Err][pair.Fun] = struct{}{}
+	}
+}
+
+var allowedErrorWildcards = []AllowPair{
+	// pkg/syscall
+	{Err: "syscall.E", Fun: "syscall."},
 	// golang.org/x/sys/unix
-	{err: "golang.org/x/sys/unix.E", fun: "golang.org/x/sys/unix."},
+	{Err: "golang.org/x/sys/unix.E", Fun: "golang.org/x/sys/unix."},
+}
+
+func allowedWildcardAppend(ap []AllowPair) {
+	allowedErrorWildcards = append(allowedErrorWildcards, ap...)
 }
 
 func isAllowedErrAndFunc(err, fun string) bool {
-	for _, allow := range allowedErrorWildcards {
-		if strings.HasPrefix(fun, allow.fun) && strings.HasPrefix(err, allow.err) {
+	if allowedFuncs, allowErr := allowedErrorsMap[err]; allowErr {
+		if _, allow := allowedFuncs[fun]; allow {
 			return true
 		}
 	}
 
-	for _, allow := range allowedErrors {
-		if allow.fun == fun && allow.err == err {
+	for _, allow := range allowedErrorWildcards {
+		if strings.HasPrefix(fun, allow.Fun) && strings.HasPrefix(err, allow.Err) {
 			return true
 		}
 	}
+
 	return false
 }
 
-func isAllowedErrorComparison(pass *TypesInfoExt, binExpr *ast.BinaryExpr) bool {
+func isAllowedErrorComparison(pass *TypesInfoExt, a, b ast.Expr) bool {
 	var errName string // `<package>.<name>`, e.g. `io.EOF`
 	var callExprs []*ast.CallExpr
 
 	// Figure out which half of the expression is the returned error and which
 	// half is the presumed error declaration.
-	for _, expr := range []ast.Expr{binExpr.X, binExpr.Y} {
+	for _, expr := range []ast.Expr{a, b} {
 		switch t := expr.(type) {
 		case *ast.SelectorExpr:
 			// A selector which we assume refers to a staticaly declared error

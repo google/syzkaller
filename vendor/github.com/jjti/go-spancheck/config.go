@@ -22,6 +22,18 @@ const (
 	RecordErrorCheck
 )
 
+var (
+	startSpanSignatureCols     = 2
+	defaultStartSpanSignatures = []string{
+		// https://github.com/open-telemetry/opentelemetry-go/blob/98b32a6c3a87fbee5d34c063b9096f416b250897/trace/trace.go#L523
+		`\(go.opentelemetry.io/otel/trace.Tracer\).Start:opentelemetry`,
+		// https://pkg.go.dev/go.opencensus.io/trace#StartSpan
+		`go.opencensus.io/trace.StartSpan:opencensus`,
+		// https://github.com/census-instrumentation/opencensus-go/blob/v0.24.0/trace/trace_api.go#L66
+		`go.opencensus.io/trace.StartSpanWithRemoteParent:opencensus`,
+	}
+)
+
 func (c Check) String() string {
 	switch c {
 	case EndCheck:
@@ -35,14 +47,17 @@ func (c Check) String() string {
 	}
 }
 
-var (
-	// Checks is a list of all checks by name.
-	Checks = map[string]Check{
-		EndCheck.String():         EndCheck,
-		SetStatusCheck.String():   SetStatusCheck,
-		RecordErrorCheck.String(): RecordErrorCheck,
-	}
-)
+// Checks is a list of all checks by name.
+var Checks = map[string]Check{
+	EndCheck.String():         EndCheck,
+	SetStatusCheck.String():   SetStatusCheck,
+	RecordErrorCheck.String(): RecordErrorCheck,
+}
+
+type spanStartMatcher struct {
+	signature *regexp.Regexp
+	spanType  spanType
+}
 
 // Config is a configuration for the spancheck analyzer.
 type Config struct {
@@ -55,6 +70,8 @@ type Config struct {
 	// the IgnoreSetStatusCheckSignatures regex.
 	IgnoreChecksSignaturesSlice []string
 
+	StartSpanMatchersSlice []string
+
 	endCheckEnabled    bool
 	setStatusEnabled   bool
 	recordErrorEnabled bool
@@ -62,12 +79,16 @@ type Config struct {
 	// ignoreChecksSignatures is a regex that, if matched, disables the
 	// SetStatus and RecordError checks on error.
 	ignoreChecksSignatures *regexp.Regexp
+
+	startSpanMatchers            []spanStartMatcher
+	startSpanMatchersCustomRegex *regexp.Regexp
 }
 
 // NewDefaultConfig returns a new Config with default values.
 func NewDefaultConfig() *Config {
 	return &Config{
-		EnabledChecks: []string{EndCheck.String()},
+		EnabledChecks:          []string{EndCheck.String()},
+		StartSpanMatchersSlice: defaultStartSpanSignatures,
 	}
 }
 
@@ -83,6 +104,11 @@ func (c *Config) finalize() {
 
 // parseSignatures sets the Ignore*CheckSignatures regex from the string slices.
 func (c *Config) parseSignatures() {
+	c.parseIgnoreSignatures()
+	c.parseStartSpanSignatures()
+}
+
+func (c *Config) parseIgnoreSignatures() {
 	if c.ignoreChecksSignatures == nil && len(c.IgnoreChecksSignaturesSlice) > 0 {
 		if len(c.IgnoreChecksSignaturesSlice) == 1 && c.IgnoreChecksSignaturesSlice[0] == "" {
 			return
@@ -90,6 +116,62 @@ func (c *Config) parseSignatures() {
 
 		c.ignoreChecksSignatures = createRegex(c.IgnoreChecksSignaturesSlice)
 	}
+}
+
+func (c *Config) parseStartSpanSignatures() {
+	if c.startSpanMatchers != nil {
+		return
+	}
+
+	customMatchers := []string{}
+	for i, sig := range c.StartSpanMatchersSlice {
+		parts := strings.Split(sig, ":")
+
+		// Make sure we have both a signature and a telemetry type
+		if len(parts) != startSpanSignatureCols {
+			log.Default().Printf("[WARN] invalid start span signature \"%s\". expected regex:telemetry-type\n", sig)
+
+			continue
+		}
+
+		sig, sigType := parts[0], parts[1]
+		if len(sig) < 1 {
+			log.Default().Print("[WARN] invalid start span signature, empty pattern")
+
+			continue
+		}
+
+		spanType, ok := SpanTypes[sigType]
+		if !ok {
+			validSpanTypes := make([]string, 0, len(SpanTypes))
+			for k := range SpanTypes {
+				validSpanTypes = append(validSpanTypes, k)
+			}
+
+			log.Default().
+				Printf("[WARN] invalid start span type \"%s\". expected one of %s\n", sigType, strings.Join(validSpanTypes, ", "))
+
+			continue
+		}
+
+		regex, err := regexp.Compile(sig)
+		if err != nil {
+			log.Default().Printf("[WARN] failed to compile regex from signature %s: %v\n", sig, err)
+
+			continue
+		}
+
+		c.startSpanMatchers = append(c.startSpanMatchers, spanStartMatcher{
+			signature: regex,
+			spanType:  spanType,
+		})
+
+		if i >= len(defaultStartSpanSignatures) {
+			customMatchers = append(customMatchers, sig)
+		}
+	}
+
+	c.startSpanMatchersCustomRegex = createRegex(customMatchers)
 }
 
 func parseChecks(checksSlice []string) []Check {

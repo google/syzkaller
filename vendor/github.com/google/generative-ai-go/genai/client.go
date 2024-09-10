@@ -12,17 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// For the following go:generate line to work, do the following:
-// Install the protoveener tool:
+// For the following go:generate line to work, install the protoveener tool:
 //    git clone https://github.com/googleapis/google-cloud-go
 //    cd google-cloud-go
 //    go install ./internal/protoveneer/cmd/protoveneer
 //
-// Set the environment variable GOOGLE_CLOUD_GO to the path to the above repo on your machine.
-// For example:
-//     export GOOGLE_CLOUD_GO=$HOME/repos/google-cloud-go
-
-//go:generate protoveneer -license license.txt config.yaml $GOOGLE_CLOUD_GO/ai/generativelanguage/apiv1beta/generativelanguagepb
+//go:generate ./generate.sh
 
 package genai
 
@@ -39,16 +34,16 @@ import (
 	"github.com/google/generative-ai-go/genai/internal"
 	gld "github.com/google/generative-ai-go/genai/internal/generativelanguage/v1beta" // discovery client
 
-	"github.com/google/generative-ai-go/internal/support"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
 // A Client is a Google generative AI client.
 type Client struct {
-	c  *gl.GenerativeClient
+	gc *gl.GenerativeClient
 	mc *gl.ModelClient
 	fc *gl.FileClient
+	cc *gl.CacheClient
 	ds *gld.Service
 }
 
@@ -68,24 +63,40 @@ then pass it as an option:
 (If you're doing that already, then maybe the environment variable is empty or unset.)
 Import the option package as "google.golang.org/api/option".`)
 	}
-	c, err := gl.NewGenerativeRESTClient(ctx, opts...)
+	gc, err := gl.NewGenerativeRESTClient(ctx, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating generative client: %w", err)
 	}
 	mc, err := gl.NewModelRESTClient(ctx, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating model client: %w", err)
 	}
 	fc, err := gl.NewFileRESTClient(ctx, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating file client: %w", err)
 	}
+
+	// Workaround for https://github.com/google/generative-ai-go/issues/151
+	optsForCache := removeHTTPClientOption(opts)
+	cc, err := gl.NewCacheClient(ctx, optsForCache...)
+	if err != nil {
+		return nil, fmt.Errorf("creating cache client: %w", err)
+	}
+
 	ds, err := gld.NewService(ctx, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating discovery client: %w", err)
 	}
-	c.SetGoogleClientInfo("gccl", "v"+internal.Version, "genai-go", internal.Version)
-	return &Client{c, mc, fc, ds}, nil
+
+	kvs := []string{"gccl", "v" + internal.Version, "genai-go", internal.Version}
+	if a, ok := optionOfType[*clientInfo](opts); ok {
+		kvs = append(kvs, a.key, a.value)
+	}
+	gc.SetGoogleClientInfo(kvs...)
+	mc.SetGoogleClientInfo(kvs...)
+	fc.SetGoogleClientInfo(kvs...)
+
+	return &Client{gc, mc, fc, cc, ds}, nil
 }
 
 // hasAuthOption reports whether an authentication-related option was provided.
@@ -101,7 +112,7 @@ func hasAuthOption(opts []option.ClientOption) bool {
 		case "option.withAPIKey":
 			return v.String() != ""
 
-		case "option.withHttpClient",
+		case "option.withHTTPClient",
 			"option.withTokenSource",
 			"option.withCredentialsFile",
 			"option.withCredentialsJSON":
@@ -111,9 +122,22 @@ func hasAuthOption(opts []option.ClientOption) bool {
 	return false
 }
 
+// removeHTTPClientOption removes option.withHTTPClient from the given list
+// of options, if it exists; it returns the new (filtered) list.
+func removeHTTPClientOption(opts []option.ClientOption) []option.ClientOption {
+	var newOpts []option.ClientOption
+	for _, opt := range opts {
+		ts := reflect.ValueOf(opt).Type().String()
+		if ts != "option.withHTTPClient" {
+			newOpts = append(newOpts, opt)
+		}
+	}
+	return newOpts
+}
+
 // Close closes the client.
 func (c *Client) Close() error {
-	return errors.Join(c.c.Close(), c.mc.Close(), c.fc.Close())
+	return errors.Join(c.gc.Close(), c.mc.Close(), c.fc.Close())
 }
 
 // GenerativeModel is a model that can generate text.
@@ -130,6 +154,9 @@ type GenerativeModel struct {
 	// SystemInstruction (also known as "system prompt") is a more forceful prompt to the model.
 	// The model will adhere the instructions more strongly than if they appeared in a normal prompt.
 	SystemInstruction *Content
+	// The name of the CachedContent to use.
+	// Must have already been created with [Client.CreateCachedContent].
+	CachedContentName string
 }
 
 // GenerativeModel creates a new instance of the named generative model.
@@ -152,9 +179,12 @@ func fullModelName(name string) string {
 
 // GenerateContent produces a single request and response.
 func (m *GenerativeModel) GenerateContent(ctx context.Context, parts ...Part) (*GenerateContentResponse, error) {
-	content := newUserContent(parts)
-	req := m.newGenerateContentRequest(content)
-	res, err := m.c.c.GenerateContent(ctx, req)
+	content := NewUserContent(parts...)
+	req, err := m.newGenerateContentRequest(content)
+	if err != nil {
+		return nil, err
+	}
+	res, err := m.c.gc.GenerateContent(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -163,15 +193,18 @@ func (m *GenerativeModel) GenerateContent(ctx context.Context, parts ...Part) (*
 
 // GenerateContentStream returns an iterator that enumerates responses.
 func (m *GenerativeModel) GenerateContentStream(ctx context.Context, parts ...Part) *GenerateContentResponseIterator {
-	streamClient, err := m.c.c.StreamGenerateContent(ctx, m.newGenerateContentRequest(newUserContent(parts)))
-	return &GenerateContentResponseIterator{
-		sc:  streamClient,
-		err: err,
+	iter := &GenerateContentResponseIterator{}
+	req, err := m.newGenerateContentRequest(NewUserContent(parts...))
+	if err != nil {
+		iter.err = err
+	} else {
+		iter.sc, iter.err = m.c.gc.StreamGenerateContent(ctx, req)
 	}
+	return iter
 }
 
 func (m *GenerativeModel) generateContent(ctx context.Context, req *pb.GenerateContentRequest) (*GenerateContentResponse, error) {
-	streamClient, err := m.c.c.StreamGenerateContent(ctx, req)
+	streamClient, err := m.c.gc.StreamGenerateContent(ctx, req)
 	iter := &GenerateContentResponseIterator{
 		sc:  streamClient,
 		err: err,
@@ -179,7 +212,7 @@ func (m *GenerativeModel) generateContent(ctx context.Context, req *pb.GenerateC
 	for {
 		_, err := iter.Next()
 		if err == iterator.Done {
-			return iter.merged, nil
+			return iter.MergedResponse(), nil
 		}
 		if err != nil {
 			return nil, err
@@ -187,20 +220,25 @@ func (m *GenerativeModel) generateContent(ctx context.Context, req *pb.GenerateC
 	}
 }
 
-func (m *GenerativeModel) newGenerateContentRequest(contents ...*Content) *pb.GenerateContentRequest {
-	return &pb.GenerateContentRequest{
-		Model:             m.fullName,
-		Contents:          support.TransformSlice(contents, (*Content).toProto),
-		SafetySettings:    support.TransformSlice(m.SafetySettings, (*SafetySetting).toProto),
-		Tools:             support.TransformSlice(m.Tools, (*Tool).toProto),
-		ToolConfig:        m.ToolConfig.toProto(),
-		GenerationConfig:  m.GenerationConfig.toProto(),
-		SystemInstruction: m.SystemInstruction.toProto(),
-	}
-}
-
-func newUserContent(parts []Part) *Content {
-	return &Content{Role: roleUser, Parts: parts}
+func (m *GenerativeModel) newGenerateContentRequest(contents ...*Content) (*pb.GenerateContentRequest, error) {
+	return pvCatchPanic(func() *pb.GenerateContentRequest {
+		var cc *string
+		if m.CachedContentName != "" {
+			cc = &m.CachedContentName
+		}
+		req := &pb.GenerateContentRequest{
+			Model:             m.fullName,
+			Contents:          transformSlice(contents, (*Content).toProto),
+			SafetySettings:    transformSlice(m.SafetySettings, (*SafetySetting).toProto),
+			Tools:             transformSlice(m.Tools, (*Tool).toProto),
+			ToolConfig:        m.ToolConfig.toProto(),
+			GenerationConfig:  m.GenerationConfig.toProto(),
+			SystemInstruction: m.SystemInstruction.toProto(),
+			CachedContent:     cc,
+		}
+		debugPrint(req)
+		return req
+	})
 }
 
 // GenerateContentResponseIterator is an iterator over GnerateContentResponse.
@@ -239,7 +277,10 @@ func (iter *GenerateContentResponseIterator) Next() (*GenerateContentResponse, e
 }
 
 func protoToResponse(resp *pb.GenerateContentResponse) (*GenerateContentResponse, error) {
-	gcp := (GenerateContentResponse{}).fromProto(resp)
+	gcp, err := fromProto[GenerateContentResponse](resp)
+	if err != nil {
+		return nil, err
+	}
 	if gcp == nil {
 		return nil, errors.New("empty response from model")
 	}
@@ -259,22 +300,37 @@ func protoToResponse(resp *pb.GenerateContentResponse) (*GenerateContentResponse
 	return gcp, nil
 }
 
+// MergedResponse returns the result of combining all the streamed responses seen so far.
+// After iteration completes, the merged response should match the response obtained without streaming
+// (that is, if [GenerativeModel.GenerateContent] were called).
+func (iter *GenerateContentResponseIterator) MergedResponse() *GenerateContentResponse {
+	return iter.merged
+}
+
 // CountTokens counts the number of tokens in the content.
 func (m *GenerativeModel) CountTokens(ctx context.Context, parts ...Part) (*CountTokensResponse, error) {
-	req := m.newCountTokensRequest(newUserContent(parts))
-	res, err := m.c.c.CountTokens(ctx, req)
+	req, err := m.newCountTokensRequest(NewUserContent(parts...))
 	if err != nil {
 		return nil, err
 	}
-
-	return (CountTokensResponse{}).fromProto(res), nil
+	res, err := m.c.gc.CountTokens(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return fromProto[CountTokensResponse](res)
 }
 
-func (m *GenerativeModel) newCountTokensRequest(contents ...*Content) *pb.CountTokensRequest {
-	return &pb.CountTokensRequest{
-		Model:    m.fullName,
-		Contents: support.TransformSlice(contents, (*Content).toProto),
+func (m *GenerativeModel) newCountTokensRequest(contents ...*Content) (*pb.CountTokensRequest, error) {
+	gcr, err := m.newGenerateContentRequest(contents...)
+	if err != nil {
+		return nil, err
 	}
+	req := &pb.CountTokensRequest{
+		Model:                  m.fullName,
+		GenerateContentRequest: gcr,
+	}
+	debugPrint(req)
+	return req, nil
 }
 
 // Info returns information about the model.
@@ -284,11 +340,12 @@ func (m *GenerativeModel) Info(ctx context.Context) (*ModelInfo, error) {
 
 func (c *Client) modelInfo(ctx context.Context, fullName string) (*ModelInfo, error) {
 	req := &pb.GetModelRequest{Name: fullName}
+	debugPrint(req)
 	res, err := c.mc.GetModel(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	return (ModelInfo{}).fromProto(res), nil
+	return fromProto[ModelInfo](res)
 }
 
 // A BlockedError indicates that the model's response was blocked.
@@ -398,4 +455,22 @@ func mergeTexts(in []Part) []Part {
 		}
 	}
 	return out
+}
+
+// transformSlice applies f to each element of from and returns
+// a new slice with the results.
+func transformSlice[From, To any](from []From, f func(From) To) []To {
+	if from == nil {
+		return nil
+	}
+	to := make([]To, len(from))
+	for i, e := range from {
+		to[i] = f(e)
+	}
+	return to
+}
+
+func fromProto[V interface{ fromProto(P) *V }, P any](p P) (*V, error) {
+	var v V
+	return pvCatchPanic(func() *V { return v.fromProto(p) })
 }

@@ -93,6 +93,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = gax.Version
 
 const apiId = "storage:v1"
 const apiName = "storage"
@@ -133,6 +134,7 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	opts = append(opts, internaloption.WithDefaultEndpoint(basePath))
 	opts = append(opts, internaloption.WithDefaultEndpointTemplate(basePathTemplate))
 	opts = append(opts, internaloption.WithDefaultMTLSEndpoint(mtlsBasePath))
+	opts = append(opts, internaloption.EnableNewAuthLibrary())
 	client, endpoint, err := htransport.NewClient(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -388,9 +390,9 @@ type AnywhereCache struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnywhereCache) MarshalJSON() ([]byte, error) {
+func (s AnywhereCache) MarshalJSON() ([]byte, error) {
 	type NoMethod AnywhereCache
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnywhereCaches: A list of Anywhere Caches.
@@ -420,9 +422,9 @@ type AnywhereCaches struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnywhereCaches) MarshalJSON() ([]byte, error) {
+func (s AnywhereCaches) MarshalJSON() ([]byte, error) {
 	type NoMethod AnywhereCaches
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Bucket: A bucket.
@@ -459,6 +461,10 @@ type Bucket struct {
 	Encryption *BucketEncryption `json:"encryption,omitempty"`
 	// Etag: HTTP 1.1 Entity tag for the bucket.
 	Etag string `json:"etag,omitempty"`
+	// Generation: The generation of this bucket.
+	Generation int64 `json:"generation,omitempty,string"`
+	// HardDeleteTime: The hard delete time of the bucket in RFC 3339 format.
+	HardDeleteTime string `json:"hardDeleteTime,omitempty"`
 	// HierarchicalNamespace: The bucket's hierarchical namespace configuration.
 	HierarchicalNamespace *BucketHierarchicalNamespace `json:"hierarchicalNamespace,omitempty"`
 	// IamConfiguration: The bucket's IAM configuration.
@@ -466,16 +472,21 @@ type Bucket struct {
 	// Id: The ID of the bucket. For buckets, the id and name properties are the
 	// same.
 	Id string `json:"id,omitempty"`
+	// IpFilter: The bucket's IP filter configuration. Specifies the network
+	// sources that are allowed to access the operations on the bucket, as well as
+	// its underlying objects. Only enforced when the mode is set to 'Enabled'.
+	IpFilter *BucketIpFilter `json:"ipFilter,omitempty"`
 	// Kind: The kind of item this is. For buckets, this is always storage#bucket.
 	Kind string `json:"kind,omitempty"`
 	// Labels: User-provided labels, in key/value pairs.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Lifecycle: The bucket's lifecycle configuration. See lifecycle management
-	// for more information.
+	// Lifecycle: The bucket's lifecycle configuration. See Lifecycle Management
+	// (https://cloud.google.com/storage/docs/lifecycle) for more information.
 	Lifecycle *BucketLifecycle `json:"lifecycle,omitempty"`
 	// Location: The location of the bucket. Object data for objects in the bucket
 	// resides in physical storage within this region. Defaults to US. See the
-	// developer's guide for the authoritative list.
+	// Developer's Guide (https://cloud.google.com/storage/docs/locations) for the
+	// authoritative list.
 	Location string `json:"location,omitempty"`
 	// LocationType: The type of the bucket location.
 	LocationType string `json:"locationType,omitempty"`
@@ -506,6 +517,8 @@ type Bucket struct {
 	// Rpo: The Recovery Point Objective (RPO) of this bucket. Set to ASYNC_TURBO
 	// to turn on Turbo Replication on a bucket.
 	Rpo string `json:"rpo,omitempty"`
+	// SatisfiesPZI: Reserved for future use.
+	SatisfiesPZI bool `json:"satisfiesPZI,omitempty"`
 	// SatisfiesPZS: Reserved for future use.
 	SatisfiesPZS bool `json:"satisfiesPZS,omitempty"`
 	// SelfLink: The URI of this bucket.
@@ -514,13 +527,16 @@ type Bucket struct {
 	// of time that soft-deleted objects will be retained, and cannot be
 	// permanently deleted.
 	SoftDeletePolicy *BucketSoftDeletePolicy `json:"softDeletePolicy,omitempty"`
+	// SoftDeleteTime: The soft delete time of the bucket in RFC 3339 format.
+	SoftDeleteTime string `json:"softDeleteTime,omitempty"`
 	// StorageClass: The bucket's default storage class, used whenever no
 	// storageClass is specified for a newly-created object. This defines how
 	// objects in the bucket are stored and determines the SLA and the cost of
 	// storage. Values include MULTI_REGIONAL, REGIONAL, STANDARD, NEARLINE,
 	// COLDLINE, ARCHIVE, and DURABLE_REDUCED_AVAILABILITY. If this value is not
 	// specified when the bucket is created, it will default to STANDARD. For more
-	// information, see storage classes.
+	// information, see Storage Classes
+	// (https://cloud.google.com/storage/docs/storage-classes).
 	StorageClass string `json:"storageClass,omitempty"`
 	// TimeCreated: The creation time of the bucket in RFC 3339 format.
 	TimeCreated string `json:"timeCreated,omitempty"`
@@ -530,7 +546,8 @@ type Bucket struct {
 	Versioning *BucketVersioning `json:"versioning,omitempty"`
 	// Website: The bucket's website configuration, controlling how the service
 	// behaves when accessing bucket contents as a web site. See the Static Website
-	// Examples for more information.
+	// Examples (https://cloud.google.com/storage/docs/static-website) for more
+	// information.
 	Website *BucketWebsite `json:"website,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -548,9 +565,9 @@ type Bucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bucket) MarshalJSON() ([]byte, error) {
+func (s Bucket) MarshalJSON() ([]byte, error) {
 	type NoMethod Bucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketAutoclass: The bucket's Autoclass configuration.
@@ -580,9 +597,9 @@ type BucketAutoclass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketAutoclass) MarshalJSON() ([]byte, error) {
+func (s BucketAutoclass) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketAutoclass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketBilling: The bucket's billing configuration.
@@ -602,9 +619,9 @@ type BucketBilling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketBilling) MarshalJSON() ([]byte, error) {
+func (s BucketBilling) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketBilling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BucketCors struct {
@@ -634,9 +651,9 @@ type BucketCors struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketCors) MarshalJSON() ([]byte, error) {
+func (s BucketCors) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketCors
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketCustomPlacementConfig: The bucket's custom placement configuration for
@@ -657,9 +674,9 @@ type BucketCustomPlacementConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketCustomPlacementConfig) MarshalJSON() ([]byte, error) {
+func (s BucketCustomPlacementConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketCustomPlacementConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketEncryption: Encryption configuration for a bucket.
@@ -680,9 +697,9 @@ type BucketEncryption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketEncryption) MarshalJSON() ([]byte, error) {
+func (s BucketEncryption) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketEncryption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketHierarchicalNamespace: The bucket's hierarchical namespace
@@ -704,9 +721,9 @@ type BucketHierarchicalNamespace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketHierarchicalNamespace) MarshalJSON() ([]byte, error) {
+func (s BucketHierarchicalNamespace) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketHierarchicalNamespace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketIamConfiguration: The bucket's IAM configuration.
@@ -736,9 +753,9 @@ type BucketIamConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketIamConfiguration) MarshalJSON() ([]byte, error) {
+func (s BucketIamConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketIamConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketIamConfigurationBucketPolicyOnly: The bucket's uniform bucket-level
@@ -768,9 +785,9 @@ type BucketIamConfigurationBucketPolicyOnly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketIamConfigurationBucketPolicyOnly) MarshalJSON() ([]byte, error) {
+func (s BucketIamConfigurationBucketPolicyOnly) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketIamConfigurationBucketPolicyOnly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketIamConfigurationUniformBucketLevelAccess: The bucket's uniform
@@ -798,13 +815,92 @@ type BucketIamConfigurationUniformBucketLevelAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketIamConfigurationUniformBucketLevelAccess) MarshalJSON() ([]byte, error) {
+func (s BucketIamConfigurationUniformBucketLevelAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketIamConfigurationUniformBucketLevelAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// BucketLifecycle: The bucket's lifecycle configuration. See lifecycle
-// management for more information.
+// BucketIpFilter: The bucket's IP filter configuration. Specifies the network
+// sources that are allowed to access the operations on the bucket, as well as
+// its underlying objects. Only enforced when the mode is set to 'Enabled'.
+type BucketIpFilter struct {
+	// Mode: The mode of the IP filter. Valid values are 'Enabled' and 'Disabled'.
+	Mode string `json:"mode,omitempty"`
+	// PublicNetworkSource: The public network source of the bucket's IP filter.
+	PublicNetworkSource *BucketIpFilterPublicNetworkSource `json:"publicNetworkSource,omitempty"`
+	// VpcNetworkSources: The list of VPC network
+	// (https://cloud.google.com/vpc/docs/vpc) sources of the bucket's IP filter.
+	VpcNetworkSources []*BucketIpFilterVpcNetworkSources `json:"vpcNetworkSources,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Mode") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Mode") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BucketIpFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod BucketIpFilter
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BucketIpFilterPublicNetworkSource: The public network source of the bucket's
+// IP filter.
+type BucketIpFilterPublicNetworkSource struct {
+	// AllowedIpCidrRanges: The list of public IPv4, IPv6 cidr ranges that are
+	// allowed to access the bucket.
+	AllowedIpCidrRanges []string `json:"allowedIpCidrRanges,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AllowedIpCidrRanges") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AllowedIpCidrRanges") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BucketIpFilterPublicNetworkSource) MarshalJSON() ([]byte, error) {
+	type NoMethod BucketIpFilterPublicNetworkSource
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type BucketIpFilterVpcNetworkSources struct {
+	// AllowedIpCidrRanges: The list of IPv4, IPv6 cidr ranges subnetworks that are
+	// allowed to access the bucket.
+	AllowedIpCidrRanges []string `json:"allowedIpCidrRanges,omitempty"`
+	// Network: Name of the network. Format:
+	// projects/{PROJECT_ID}/global/networks/{NETWORK_NAME}
+	Network string `json:"network,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AllowedIpCidrRanges") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AllowedIpCidrRanges") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BucketIpFilterVpcNetworkSources) MarshalJSON() ([]byte, error) {
+	type NoMethod BucketIpFilterVpcNetworkSources
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BucketLifecycle: The bucket's lifecycle configuration. See Lifecycle
+// Management (https://cloud.google.com/storage/docs/lifecycle) for more
+// information.
 type BucketLifecycle struct {
 	// Rule: A lifecycle management rule, which is made of an action to take and
 	// the condition(s) under which the action will be taken.
@@ -822,9 +918,9 @@ type BucketLifecycle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketLifecycle) MarshalJSON() ([]byte, error) {
+func (s BucketLifecycle) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketLifecycle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BucketLifecycleRule struct {
@@ -845,9 +941,9 @@ type BucketLifecycleRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketLifecycleRule) MarshalJSON() ([]byte, error) {
+func (s BucketLifecycleRule) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketLifecycleRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketLifecycleRuleAction: The action to take.
@@ -871,9 +967,9 @@ type BucketLifecycleRuleAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketLifecycleRuleAction) MarshalJSON() ([]byte, error) {
+func (s BucketLifecycleRuleAction) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketLifecycleRuleAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketLifecycleRuleCondition: The condition(s) under which the action will
@@ -947,9 +1043,9 @@ type BucketLifecycleRuleCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketLifecycleRuleCondition) MarshalJSON() ([]byte, error) {
+func (s BucketLifecycleRuleCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketLifecycleRuleCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketLogging: The bucket's logging configuration, which defines the
@@ -973,9 +1069,9 @@ type BucketLogging struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketLogging) MarshalJSON() ([]byte, error) {
+func (s BucketLogging) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketLogging
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketObjectRetention: The bucket's object retention config.
@@ -995,9 +1091,9 @@ type BucketObjectRetention struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketObjectRetention) MarshalJSON() ([]byte, error) {
+func (s BucketObjectRetention) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketObjectRetention
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketOwner: The owner of the bucket. This is always the project team's
@@ -1020,9 +1116,9 @@ type BucketOwner struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketOwner) MarshalJSON() ([]byte, error) {
+func (s BucketOwner) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketOwner
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketRetentionPolicy: The bucket's retention policy. The retention policy
@@ -1058,9 +1154,9 @@ type BucketRetentionPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketRetentionPolicy) MarshalJSON() ([]byte, error) {
+func (s BucketRetentionPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketRetentionPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketSoftDeletePolicy: The bucket's soft delete policy, which defines the
@@ -1087,9 +1183,9 @@ type BucketSoftDeletePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketSoftDeletePolicy) MarshalJSON() ([]byte, error) {
+func (s BucketSoftDeletePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketSoftDeletePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketVersioning: The bucket's versioning configuration.
@@ -1109,14 +1205,15 @@ type BucketVersioning struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketVersioning) MarshalJSON() ([]byte, error) {
+func (s BucketVersioning) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketVersioning
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketWebsite: The bucket's website configuration, controlling how the
 // service behaves when accessing bucket contents as a web site. See the Static
-// Website Examples for more information.
+// Website Examples (https://cloud.google.com/storage/docs/static-website) for
+// more information.
 type BucketWebsite struct {
 	// MainPageSuffix: If the requested object path is missing, the service will
 	// ensure the path has a trailing '/', append this suffix, and attempt to
@@ -1140,9 +1237,9 @@ type BucketWebsite struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketWebsite) MarshalJSON() ([]byte, error) {
+func (s BucketWebsite) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketWebsite
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketAccessControl: An access-control entry.
@@ -1199,9 +1296,9 @@ type BucketAccessControl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketAccessControl) MarshalJSON() ([]byte, error) {
+func (s BucketAccessControl) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketAccessControl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketAccessControlProjectTeam: The project team associated with the entity,
@@ -1224,9 +1321,9 @@ type BucketAccessControlProjectTeam struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketAccessControlProjectTeam) MarshalJSON() ([]byte, error) {
+func (s BucketAccessControlProjectTeam) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketAccessControlProjectTeam
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketAccessControls: An access-control list.
@@ -1252,9 +1349,9 @@ type BucketAccessControls struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketAccessControls) MarshalJSON() ([]byte, error) {
+func (s BucketAccessControls) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketAccessControls
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketStorageLayout: The storage layout configuration of a bucket.
@@ -1289,9 +1386,9 @@ type BucketStorageLayout struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketStorageLayout) MarshalJSON() ([]byte, error) {
+func (s BucketStorageLayout) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketStorageLayout
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketStorageLayoutCustomPlacementConfig: The bucket's custom placement
@@ -1312,9 +1409,9 @@ type BucketStorageLayoutCustomPlacementConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketStorageLayoutCustomPlacementConfig) MarshalJSON() ([]byte, error) {
+func (s BucketStorageLayoutCustomPlacementConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketStorageLayoutCustomPlacementConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketStorageLayoutHierarchicalNamespace: The bucket's hierarchical
@@ -1336,9 +1433,9 @@ type BucketStorageLayoutHierarchicalNamespace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketStorageLayoutHierarchicalNamespace) MarshalJSON() ([]byte, error) {
+func (s BucketStorageLayoutHierarchicalNamespace) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketStorageLayoutHierarchicalNamespace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Buckets: A list of buckets.
@@ -1368,9 +1465,9 @@ type Buckets struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Buckets) MarshalJSON() ([]byte, error) {
+func (s Buckets) MarshalJSON() ([]byte, error) {
 	type NoMethod Buckets
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkRestoreObjectsRequest: A bulk restore objects request.
@@ -1409,9 +1506,9 @@ type BulkRestoreObjectsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkRestoreObjectsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkRestoreObjectsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkRestoreObjectsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Channel: An notification channel used to watch for resource changes.
@@ -1457,9 +1554,9 @@ type Channel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Channel) MarshalJSON() ([]byte, error) {
+func (s Channel) MarshalJSON() ([]byte, error) {
 	type NoMethod Channel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComposeRequest: A Compose request.
@@ -1484,9 +1581,9 @@ type ComposeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComposeRequest) MarshalJSON() ([]byte, error) {
+func (s ComposeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ComposeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ComposeRequestSourceObjects struct {
@@ -1511,9 +1608,9 @@ type ComposeRequestSourceObjects struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComposeRequestSourceObjects) MarshalJSON() ([]byte, error) {
+func (s ComposeRequestSourceObjects) MarshalJSON() ([]byte, error) {
 	type NoMethod ComposeRequestSourceObjects
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComposeRequestSourceObjectsObjectPreconditions: Conditions that must be met
@@ -1537,9 +1634,9 @@ type ComposeRequestSourceObjectsObjectPreconditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComposeRequestSourceObjectsObjectPreconditions) MarshalJSON() ([]byte, error) {
+func (s ComposeRequestSourceObjectsObjectPreconditions) MarshalJSON() ([]byte, error) {
 	type NoMethod ComposeRequestSourceObjectsObjectPreconditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents an expression text. Example: title: "User account presence"
@@ -1573,9 +1670,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Folder: A folder. Only available in buckets with hierarchical namespace
@@ -1618,9 +1715,9 @@ type Folder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Folder) MarshalJSON() ([]byte, error) {
+func (s Folder) MarshalJSON() ([]byte, error) {
 	type NoMethod Folder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FolderPendingRenameInfo: Only present if the folder is part of an ongoing
@@ -1642,9 +1739,9 @@ type FolderPendingRenameInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FolderPendingRenameInfo) MarshalJSON() ([]byte, error) {
+func (s FolderPendingRenameInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod FolderPendingRenameInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Folders: A list of folders.
@@ -1674,14 +1771,17 @@ type Folders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Folders) MarshalJSON() ([]byte, error) {
+func (s Folders) MarshalJSON() ([]byte, error) {
 	type NoMethod Folders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningListOperationsResponse: The response message for
 // storage.buckets.operations.list.
 type GoogleLongrunningListOperationsResponse struct {
+	// Kind: The kind of item this is. For lists of operations, this is always
+	// storage#operations.
+	Kind string `json:"kind,omitempty"`
 	// NextPageToken: The continuation token, used to page through large result
 	// sets. Provide this value in a subsequent request to return the next page of
 	// results.
@@ -1692,22 +1792,22 @@ type GoogleLongrunningListOperationsResponse struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Kind") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Kind") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -1719,6 +1819,9 @@ type GoogleLongrunningOperation struct {
 	Done bool `json:"done,omitempty"`
 	// Error: The error result of the operation in case of failure or cancellation.
 	Error *GoogleRpcStatus `json:"error,omitempty"`
+	// Kind: The kind of item this is. For operations, this is always
+	// storage#operation.
+	Kind string `json:"kind,omitempty"`
 	// Metadata: Service-specific metadata associated with the operation. It
 	// typically contains progress information and common metadata such as create
 	// time. Some services might not provide such metadata. Any method that returns
@@ -1736,6 +1839,8 @@ type GoogleLongrunningOperation struct {
 	// method name. For example, if the original method name is "TakeSnapshot()",
 	// the inferred response type is "TakeSnapshotResponse".
 	Response googleapi.RawMessage `json:"response,omitempty"`
+	// SelfLink: The link to this long running operation.
+	SelfLink string `json:"selfLink,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -1752,9 +1857,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleRpcStatus: The "Status" type defines a logical error model that is
@@ -1784,9 +1889,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HmacKey: JSON template to produce a JSON-style HMAC Key resource for Create
@@ -1815,9 +1920,9 @@ type HmacKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HmacKey) MarshalJSON() ([]byte, error) {
+func (s HmacKey) MarshalJSON() ([]byte, error) {
 	type NoMethod HmacKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HmacKeyMetadata: JSON template to produce a JSON-style HMAC Key metadata
@@ -1863,9 +1968,9 @@ type HmacKeyMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HmacKeyMetadata) MarshalJSON() ([]byte, error) {
+func (s HmacKeyMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod HmacKeyMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HmacKeysMetadata: A list of hmacKeys.
@@ -1895,9 +2000,9 @@ type HmacKeysMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HmacKeysMetadata) MarshalJSON() ([]byte, error) {
+func (s HmacKeysMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod HmacKeysMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedFolder: A managed folder.
@@ -1939,9 +2044,9 @@ type ManagedFolder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedFolder) MarshalJSON() ([]byte, error) {
+func (s ManagedFolder) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedFolder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedFolders: A list of managed folders.
@@ -1971,9 +2076,9 @@ type ManagedFolders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedFolders) MarshalJSON() ([]byte, error) {
+func (s ManagedFolders) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedFolders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Notification: A subscription to receive Google PubSub notifications.
@@ -2018,9 +2123,9 @@ type Notification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notification) MarshalJSON() ([]byte, error) {
+func (s Notification) MarshalJSON() ([]byte, error) {
 	type NoMethod Notification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Notifications: A list of notification subscriptions.
@@ -2046,9 +2151,9 @@ type Notifications struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notifications) MarshalJSON() ([]byte, error) {
+func (s Notifications) MarshalJSON() ([]byte, error) {
 	type NoMethod Notifications
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Object: An object.
@@ -2075,7 +2180,8 @@ type Object struct {
 	ContentType string `json:"contentType,omitempty"`
 	// Crc32c: CRC32c checksum, as described in RFC 4960, Appendix B; encoded using
 	// base64 in big-endian byte order. For more information about using the CRC32c
-	// checksum, see Hashes and ETags: Best Practices.
+	// checksum, see Data Validation and Change Detection
+	// (https://cloud.google.com/storage/docs/data-validation).
 	Crc32c string `json:"crc32c,omitempty"`
 	// CustomTime: A timestamp in RFC 3339 format specified by the user for an
 	// object.
@@ -2113,7 +2219,8 @@ type Object struct {
 	// request to fail with status code 400 - Bad Request.
 	KmsKeyName string `json:"kmsKeyName,omitempty"`
 	// Md5Hash: MD5 hash of the data; encoded using base64. For more information
-	// about using the MD5 hash, see Hashes and ETags: Best Practices.
+	// about using the MD5 hash, see Data Validation and Change Detection
+	// (https://cloud.google.com/storage/docs/data-validation).
 	Md5Hash string `json:"md5Hash,omitempty"`
 	// MediaLink: Media download link.
 	MediaLink string `json:"mediaLink,omitempty"`
@@ -2188,9 +2295,9 @@ type Object struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Object) MarshalJSON() ([]byte, error) {
+func (s Object) MarshalJSON() ([]byte, error) {
 	type NoMethod Object
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectCustomerEncryption: Metadata of customer-supplied encryption key, if
@@ -2213,9 +2320,9 @@ type ObjectCustomerEncryption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectCustomerEncryption) MarshalJSON() ([]byte, error) {
+func (s ObjectCustomerEncryption) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectCustomerEncryption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectOwner: The owner of the object. This will always be the uploader of
@@ -2238,9 +2345,9 @@ type ObjectOwner struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectOwner) MarshalJSON() ([]byte, error) {
+func (s ObjectOwner) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectOwner
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectRetention: A collection of object level retention parameters.
@@ -2263,9 +2370,9 @@ type ObjectRetention struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectRetention) MarshalJSON() ([]byte, error) {
+func (s ObjectRetention) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectRetention
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectAccessControl: An access-control entry.
@@ -2326,9 +2433,9 @@ type ObjectAccessControl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectAccessControl) MarshalJSON() ([]byte, error) {
+func (s ObjectAccessControl) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectAccessControl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectAccessControlProjectTeam: The project team associated with the entity,
@@ -2351,9 +2458,9 @@ type ObjectAccessControlProjectTeam struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectAccessControlProjectTeam) MarshalJSON() ([]byte, error) {
+func (s ObjectAccessControlProjectTeam) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectAccessControlProjectTeam
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectAccessControls: An access-control list.
@@ -2379,9 +2486,9 @@ type ObjectAccessControls struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectAccessControls) MarshalJSON() ([]byte, error) {
+func (s ObjectAccessControls) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectAccessControls
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Objects: A list of objects.
@@ -2414,9 +2521,9 @@ type Objects struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Objects) MarshalJSON() ([]byte, error) {
+func (s Objects) MarshalJSON() ([]byte, error) {
 	type NoMethod Objects
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: A bucket/object/managedFolder IAM policy.
@@ -2455,9 +2562,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PolicyBindings struct {
@@ -2527,9 +2634,9 @@ type PolicyBindings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyBindings) MarshalJSON() ([]byte, error) {
+func (s PolicyBindings) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyBindings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RewriteResponse: A rewrite response.
@@ -2569,9 +2676,9 @@ type RewriteResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RewriteResponse) MarshalJSON() ([]byte, error) {
+func (s RewriteResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RewriteResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServiceAccount: A subscription to receive Google PubSub notifications.
@@ -2597,9 +2704,9 @@ type ServiceAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceAccount) MarshalJSON() ([]byte, error) {
+func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: A
@@ -2648,9 +2755,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AnywhereCachesDisableCall struct {
@@ -4082,7 +4189,8 @@ type BucketsDeleteCall struct {
 	header_    http.Header
 }
 
-// Delete: Permanently deletes an empty bucket.
+// Delete: Deletes an empty bucket. Deletions are permanent unless soft delete
+// is enabled on the bucket.
 //
 // - bucket: Name of a bucket.
 func (r *BucketsService) Delete(bucket string) *BucketsDeleteCall {
@@ -4186,6 +4294,13 @@ func (r *BucketsService) Get(bucket string) *BucketsGetCall {
 	return c
 }
 
+// Generation sets the optional parameter "generation": If present, specifies
+// the generation of the bucket. This is required if softDeleted is true.
+func (c *BucketsGetCall) Generation(generation int64) *BucketsGetCall {
+	c.urlParams_.Set("generation", fmt.Sprint(generation))
+	return c
+}
+
 // IfMetagenerationMatch sets the optional parameter "ifMetagenerationMatch":
 // Makes the return of the bucket metadata conditional on whether the bucket's
 // current metageneration matches the given value.
@@ -4212,6 +4327,15 @@ func (c *BucketsGetCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch int64
 //	"noAcl" - Omit owner, acl and defaultObjectAcl properties.
 func (c *BucketsGetCall) Projection(projection string) *BucketsGetCall {
 	c.urlParams_.Set("projection", projection)
+	return c
+}
+
+// SoftDeleted sets the optional parameter "softDeleted": If true, return the
+// soft-deleted version of this bucket. The default is false. For more
+// information, see Soft Delete
+// (https://cloud.google.com/storage/docs/soft-delete).
+func (c *BucketsGetCall) SoftDeleted(softDeleted bool) *BucketsGetCall {
+	c.urlParams_.Set("softDeleted", fmt.Sprint(softDeleted))
 	return c
 }
 
@@ -4783,6 +4907,15 @@ func (c *BucketsListCall) Projection(projection string) *BucketsListCall {
 	return c
 }
 
+// SoftDeleted sets the optional parameter "softDeleted": If true, only
+// soft-deleted bucket versions will be returned. The default is false. For
+// more information, see Soft Delete
+// (https://cloud.google.com/storage/docs/soft-delete).
+func (c *BucketsListCall) SoftDeleted(softDeleted bool) *BucketsListCall {
+	c.urlParams_.Set("softDeleted", fmt.Sprint(softDeleted))
+	return c
+}
+
 // UserProject sets the optional parameter "userProject": The project to be
 // billed for this request.
 func (c *BucketsListCall) UserProject(userProject string) *BucketsListCall {
@@ -5195,6 +5328,87 @@ func (c *BucketsPatchCall) Do(opts ...googleapi.CallOption) (*Bucket, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+type BucketsRestoreCall struct {
+	s          *Service
+	bucket     string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Restore: Restores a soft-deleted bucket.
+//
+// - bucket: Name of a bucket.
+// - generation: Generation of a bucket.
+func (r *BucketsService) Restore(bucket string, generation int64) *BucketsRestoreCall {
+	c := &BucketsRestoreCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.bucket = bucket
+	c.urlParams_.Set("generation", fmt.Sprint(generation))
+	return c
+}
+
+// UserProject sets the optional parameter "userProject": The project to be
+// billed for this request. Required for Requester Pays buckets.
+func (c *BucketsRestoreCall) UserProject(userProject string) *BucketsRestoreCall {
+	c.urlParams_.Set("userProject", userProject)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *BucketsRestoreCall) Fields(s ...googleapi.Field) *BucketsRestoreCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *BucketsRestoreCall) Context(ctx context.Context) *BucketsRestoreCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *BucketsRestoreCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *BucketsRestoreCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/restore")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"bucket": c.bucket,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "storage.buckets.restore" call.
+func (c *BucketsRestoreCall) Do(opts ...googleapi.CallOption) error {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if err != nil {
+		return err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return gensupport.WrapError(err)
+	}
+	return nil
 }
 
 type BucketsSetIamPolicyCall struct {
@@ -9749,7 +9963,8 @@ func (c *ObjectsGetCall) Projection(projection string) *ObjectsGetCall {
 
 // SoftDeleted sets the optional parameter "softDeleted": If true, only
 // soft-deleted object versions will be listed. The default is false. For more
-// information, see Soft Delete.
+// information, see Soft Delete
+// (https://cloud.google.com/storage/docs/soft-delete).
 func (c *ObjectsGetCall) SoftDeleted(softDeleted bool) *ObjectsGetCall {
 	c.urlParams_.Set("softDeleted", fmt.Sprint(softDeleted))
 	return c
@@ -10412,7 +10627,8 @@ func (c *ObjectsListCall) Projection(projection string) *ObjectsListCall {
 
 // SoftDeleted sets the optional parameter "softDeleted": If true, only
 // soft-deleted object versions will be listed. The default is false. For more
-// information, see Soft Delete.
+// information, see Soft Delete
+// (https://cloud.google.com/storage/docs/soft-delete).
 func (c *ObjectsListCall) SoftDeleted(softDeleted bool) *ObjectsListCall {
 	c.urlParams_.Set("softDeleted", fmt.Sprint(softDeleted))
 	return c
@@ -10436,7 +10652,8 @@ func (c *ObjectsListCall) UserProject(userProject string) *ObjectsListCall {
 
 // Versions sets the optional parameter "versions": If true, lists all versions
 // of an object as distinct results. The default is false. For more
-// information, see Object Versioning.
+// information, see Object Versioning
+// (https://cloud.google.com/storage/docs/object-versioning).
 func (c *ObjectsListCall) Versions(versions bool) *ObjectsListCall {
 	c.urlParams_.Set("versions", fmt.Sprint(versions))
 	return c
@@ -10774,7 +10991,8 @@ type ObjectsRestoreCall struct {
 //   - bucket: Name of the bucket in which the object resides.
 //   - generation: Selects a specific revision of this object.
 //   - object: Name of the object. For information about how to URL encode object
-//     names to be path safe, see Encoding URI Path Parts.
+//     names to be path safe, see Encoding URI Path Parts
+//     (https://cloud.google.com/storage/docs/request-endpoints#encoding).
 func (r *ObjectsService) Restore(bucket string, object string, generation int64) *ObjectsRestoreCall {
 	c := &ObjectsRestoreCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.bucket = bucket
@@ -11767,7 +11985,8 @@ func (c *ObjectsWatchAllCall) UserProject(userProject string) *ObjectsWatchAllCa
 
 // Versions sets the optional parameter "versions": If true, lists all versions
 // of an object as distinct results. The default is false. For more
-// information, see Object Versioning.
+// information, see Object Versioning
+// (https://cloud.google.com/storage/docs/object-versioning).
 func (c *ObjectsWatchAllCall) Versions(versions bool) *ObjectsWatchAllCall {
 	c.urlParams_.Set("versions", fmt.Sprint(versions))
 	return c
@@ -12683,7 +12902,9 @@ type ProjectsHmacKeysUpdateCall struct {
 }
 
 // Update: Updates the state of an HMAC key. See the HMAC Key resource
-// descriptor for valid states.
+// descriptor
+// (https://cloud.google.com/storage/docs/json_api/v1/projects/hmacKeys/update#request-body)
+// for valid states.
 //
 // - accessId: Name of the HMAC key being updated.
 // - projectId: Project ID owning the service account of the updated key.

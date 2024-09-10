@@ -7,7 +7,7 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-var _ Processor = InvalidIssue{}
+var _ Processor = (*InvalidIssue)(nil)
 
 type InvalidIssue struct {
 	log logutils.Log
@@ -17,21 +17,25 @@ func NewInvalidIssue(log logutils.Log) *InvalidIssue {
 	return &InvalidIssue{log: log}
 }
 
-func (p InvalidIssue) Process(issues []result.Issue) ([]result.Issue, error) {
-	return filterIssuesErr(issues, p.shouldPassIssue)
-}
-
-func (p InvalidIssue) Name() string {
+func (InvalidIssue) Name() string {
 	return "invalid_issue"
 }
 
-func (p InvalidIssue) Finish() {}
+func (p InvalidIssue) Process(issues []result.Issue) ([]result.Issue, error) {
+	tcIssues := filterIssuesUnsafe(issues, func(issue *result.Issue) bool {
+		return issue.FromLinter == typeCheckName
+	})
 
-func (p InvalidIssue) shouldPassIssue(issue *result.Issue) (bool, error) {
-	if issue.FromLinter == "typecheck" {
-		return true, nil
+	if len(tcIssues) > 0 {
+		return tcIssues, nil
 	}
 
+	return filterIssuesErr(issues, p.shouldPassIssue)
+}
+
+func (InvalidIssue) Finish() {}
+
+func (p InvalidIssue) shouldPassIssue(issue *result.Issue) (bool, error) {
 	if issue.FilePath() == "" {
 		p.log.Warnf("no file path for the issue: probably a bug inside the linter %q: %#v", issue.FromLinter, issue)
 
@@ -49,4 +53,8 @@ func (p InvalidIssue) shouldPassIssue(issue *result.Issue) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func isGoFile(name string) bool {
+	return filepath.Ext(name) == ".go"
 }

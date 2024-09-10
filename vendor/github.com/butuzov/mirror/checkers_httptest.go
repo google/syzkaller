@@ -15,7 +15,7 @@ var HTTPTestMethods = []checker.Violation{
 		Generate: &checker.Generate{
 			PreCondition: `h := httptest.ResponseRecorder{}`,
 			Pattern:      `Write($0)`,
-			Returns:      2,
+			Returns:      []string{"int", "error"},
 		},
 	},
 	{ // (*net/http/httptest.ResponseRecorder).WriteString
@@ -30,7 +30,7 @@ var HTTPTestMethods = []checker.Violation{
 		Generate: &checker.Generate{
 			PreCondition: `h := httptest.ResponseRecorder{}`,
 			Pattern:      `WriteString($0)`,
-			Returns:      2,
+			Returns:      []string{"int", "error"},
 		},
 	},
 }

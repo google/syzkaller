@@ -18,11 +18,15 @@ package genai
 
 import (
 	"fmt"
+	"time"
 
 	pb "cloud.google.com/go/ai/generativelanguage/apiv1beta/generativelanguagepb"
-	"github.com/google/generative-ai-go/internal/support"
+	"github.com/googleapis/gax-go/v2/apierror"
+	spb "google.golang.org/genproto/googleapis/rpc/status"
+	gstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 // BatchEmbedContentsResponse is the response to a `BatchEmbedContentsRequest`.
@@ -37,7 +41,7 @@ func (v *BatchEmbedContentsResponse) toProto() *pb.BatchEmbedContentsResponse {
 		return nil
 	}
 	return &pb.BatchEmbedContentsResponse{
-		Embeddings: support.TransformSlice(v.Embeddings, (*ContentEmbedding).toProto),
+		Embeddings: pvTransformSlice(v.Embeddings, (*ContentEmbedding).toProto),
 	}
 }
 
@@ -46,7 +50,7 @@ func (BatchEmbedContentsResponse) fromProto(p *pb.BatchEmbedContentsResponse) *B
 		return nil
 	}
 	return &BatchEmbedContentsResponse{
-		Embeddings: support.TransformSlice(p.Embeddings, (ContentEmbedding{}).fromProto),
+		Embeddings: pvTransformSlice(p.Embeddings, (ContentEmbedding{}).fromProto),
 	}
 }
 
@@ -96,7 +100,7 @@ const (
 	// BlockReasonSafety means prompt was blocked due to safety reasons. You can inspect
 	// `safety_ratings` to understand which safety category blocked it.
 	BlockReasonSafety BlockReason = 1
-	// BlockReasonOther means prompt was blocked due to unknown reaasons.
+	// BlockReasonOther means prompt was blocked due to unknown reasons.
 	BlockReasonOther BlockReason = 2
 )
 
@@ -111,6 +115,110 @@ func (v BlockReason) String() string {
 		return n
 	}
 	return fmt.Sprintf("BlockReason(%d)", v)
+}
+
+// CachedContent is content that has been preprocessed and can be used in subsequent request
+// to GenerativeService.
+//
+// Cached content can be only used with model it was created for.
+type CachedContent struct {
+	// Specifies when this resource will expire.
+	//
+	// Types that are assignable to Expiration:
+	//
+	//	*CachedContent_ExpireTime
+	//	*CachedContent_Ttl
+	Expiration ExpireTimeOrTTL
+	// Optional. Identifier. The resource name referring to the cached content.
+	// Format: `cachedContents/{id}`
+	Name string
+	// Optional. Immutable. The user-generated meaningful display name of the
+	// cached content. Maximum 128 Unicode characters.
+	DisplayName string
+	// Required. Immutable. The name of the `Model` to use for cached content
+	// Format: `models/{model}`
+	Model string
+	// Optional. Input only. Immutable. Developer set system instruction.
+	// Currently text only.
+	SystemInstruction *Content
+	// Optional. Input only. Immutable. The content to cache.
+	Contents []*Content
+	// Optional. Input only. Immutable. A list of `Tools` the model may use to
+	// generate the next response
+	Tools []*Tool
+	// Optional. Input only. Immutable. Tool config. This config is shared for all
+	// tools.
+	ToolConfig *ToolConfig
+	// Output only. Creation time of the cache entry.
+	CreateTime time.Time
+	// Output only. When the cache entry was last updated in UTC time.
+	UpdateTime time.Time
+	// Output only. Metadata on the usage of the cached content.
+	UsageMetadata *CachedContentUsageMetadata
+}
+
+func (v *CachedContent) toProto() *pb.CachedContent {
+	if v == nil {
+		return nil
+	}
+	p := &pb.CachedContent{
+		Name:              pvAddrOrNil(v.Name),
+		DisplayName:       pvAddrOrNil(v.DisplayName),
+		Model:             pvAddrOrNil(v.Model),
+		SystemInstruction: v.SystemInstruction.toProto(),
+		Contents:          pvTransformSlice(v.Contents, (*Content).toProto),
+		Tools:             pvTransformSlice(v.Tools, (*Tool).toProto),
+		ToolConfig:        v.ToolConfig.toProto(),
+		CreateTime:        pvTimeToProto(v.CreateTime),
+		UpdateTime:        pvTimeToProto(v.UpdateTime),
+		UsageMetadata:     v.UsageMetadata.toProto(),
+	}
+	populateCachedContentTo(p, v)
+	return p
+}
+
+func (CachedContent) fromProto(p *pb.CachedContent) *CachedContent {
+	if p == nil {
+		return nil
+	}
+	v := &CachedContent{
+		Name:              pvDerefOrZero(p.Name),
+		DisplayName:       pvDerefOrZero(p.DisplayName),
+		Model:             pvDerefOrZero(p.Model),
+		SystemInstruction: (Content{}).fromProto(p.SystemInstruction),
+		Contents:          pvTransformSlice(p.Contents, (Content{}).fromProto),
+		Tools:             pvTransformSlice(p.Tools, (Tool{}).fromProto),
+		ToolConfig:        (ToolConfig{}).fromProto(p.ToolConfig),
+		CreateTime:        pvTimeFromProto(p.CreateTime),
+		UpdateTime:        pvTimeFromProto(p.UpdateTime),
+		UsageMetadata:     (CachedContentUsageMetadata{}).fromProto(p.UsageMetadata),
+	}
+	populateCachedContentFrom(v, p)
+	return v
+}
+
+// CachedContentUsageMetadata is metadata on the usage of the cached content.
+type CachedContentUsageMetadata struct {
+	// Total number of tokens that the cached content consumes.
+	TotalTokenCount int32
+}
+
+func (v *CachedContentUsageMetadata) toProto() *pb.CachedContent_UsageMetadata {
+	if v == nil {
+		return nil
+	}
+	return &pb.CachedContent_UsageMetadata{
+		TotalTokenCount: v.TotalTokenCount,
+	}
+}
+
+func (CachedContentUsageMetadata) fromProto(p *pb.CachedContent_UsageMetadata) *CachedContentUsageMetadata {
+	if p == nil {
+		return nil
+	}
+	return &CachedContentUsageMetadata{
+		TotalTokenCount: p.TotalTokenCount,
+	}
 }
 
 // Candidate is a response candidate generated from the model.
@@ -142,10 +250,10 @@ func (v *Candidate) toProto() *pb.Candidate {
 		return nil
 	}
 	return &pb.Candidate{
-		Index:            support.AddrOrNil(v.Index),
+		Index:            pvAddrOrNil(v.Index),
 		Content:          v.Content.toProto(),
 		FinishReason:     pb.Candidate_FinishReason(v.FinishReason),
-		SafetyRatings:    support.TransformSlice(v.SafetyRatings, (*SafetyRating).toProto),
+		SafetyRatings:    pvTransformSlice(v.SafetyRatings, (*SafetyRating).toProto),
 		CitationMetadata: v.CitationMetadata.toProto(),
 		TokenCount:       v.TokenCount,
 	}
@@ -156,10 +264,10 @@ func (Candidate) fromProto(p *pb.Candidate) *Candidate {
 		return nil
 	}
 	return &Candidate{
-		Index:            support.DerefOrZero(p.Index),
+		Index:            pvDerefOrZero(p.Index),
 		Content:          (Content{}).fromProto(p.Content),
 		FinishReason:     FinishReason(p.FinishReason),
-		SafetyRatings:    support.TransformSlice(p.SafetyRatings, (SafetyRating{}).fromProto),
+		SafetyRatings:    pvTransformSlice(p.SafetyRatings, (SafetyRating{}).fromProto),
 		CitationMetadata: (CitationMetadata{}).fromProto(p.CitationMetadata),
 		TokenCount:       p.TokenCount,
 	}
@@ -176,7 +284,7 @@ func (v *CitationMetadata) toProto() *pb.CitationMetadata {
 		return nil
 	}
 	return &pb.CitationMetadata{
-		CitationSources: support.TransformSlice(v.CitationSources, (*CitationSource).toProto),
+		CitationSources: pvTransformSlice(v.CitationSources, (*CitationSource).toProto),
 	}
 }
 
@@ -185,7 +293,7 @@ func (CitationMetadata) fromProto(p *pb.CitationMetadata) *CitationMetadata {
 		return nil
 	}
 	return &CitationMetadata{
-		CitationSources: support.TransformSlice(p.CitationSources, (CitationSource{}).fromProto),
+		CitationSources: pvTransformSlice(p.CitationSources, (CitationSource{}).fromProto),
 	}
 }
 
@@ -215,7 +323,7 @@ func (v *CitationSource) toProto() *pb.CitationSource {
 		StartIndex: v.StartIndex,
 		EndIndex:   v.EndIndex,
 		Uri:        v.URI,
-		License:    support.AddrOrNil(v.License),
+		License:    pvAddrOrNil(v.License),
 	}
 }
 
@@ -227,8 +335,92 @@ func (CitationSource) fromProto(p *pb.CitationSource) *CitationSource {
 		StartIndex: p.StartIndex,
 		EndIndex:   p.EndIndex,
 		URI:        p.Uri,
-		License:    support.DerefOrZero(p.License),
+		License:    pvDerefOrZero(p.License),
 	}
+}
+
+// CodeExecution is tool that executes code generated by the model, and automatically returns
+// the result to the model.
+//
+// See also `ExecutableCode` and `CodeExecutionResult` which are only generated
+// when using this tool.
+type CodeExecution struct {
+}
+
+func (v *CodeExecution) toProto() *pb.CodeExecution {
+	if v == nil {
+		return nil
+	}
+	return &pb.CodeExecution{}
+}
+
+func (CodeExecution) fromProto(p *pb.CodeExecution) *CodeExecution {
+	if p == nil {
+		return nil
+	}
+	return &CodeExecution{}
+}
+
+// CodeExecutionResult is result of executing the `ExecutableCode`.
+//
+// Only generated when using the `CodeExecution`, and always follows a `part`
+// containing the `ExecutableCode`.
+type CodeExecutionResult struct {
+	// Required. Outcome of the code execution.
+	Outcome CodeExecutionResultOutcome
+	// Optional. Contains stdout when code execution is successful, stderr or
+	// other description otherwise.
+	Output string
+}
+
+func (v *CodeExecutionResult) toProto() *pb.CodeExecutionResult {
+	if v == nil {
+		return nil
+	}
+	return &pb.CodeExecutionResult{
+		Outcome: pb.CodeExecutionResult_Outcome(v.Outcome),
+		Output:  v.Output,
+	}
+}
+
+func (CodeExecutionResult) fromProto(p *pb.CodeExecutionResult) *CodeExecutionResult {
+	if p == nil {
+		return nil
+	}
+	return &CodeExecutionResult{
+		Outcome: CodeExecutionResultOutcome(p.Outcome),
+		Output:  p.Output,
+	}
+}
+
+// CodeExecutionResultOutcome is enumeration of possible outcomes of the code execution.
+type CodeExecutionResultOutcome int32
+
+const (
+	// CodeExecutionResultOutcomeUnspecified means unspecified status. This value should not be used.
+	CodeExecutionResultOutcomeUnspecified CodeExecutionResultOutcome = 0
+	// CodeExecutionResultOutcomeOK means code execution completed successfully.
+	CodeExecutionResultOutcomeOK CodeExecutionResultOutcome = 1
+	// CodeExecutionResultOutcomeFailed means code execution finished but with a failure. `stderr` should contain the
+	// reason.
+	CodeExecutionResultOutcomeFailed CodeExecutionResultOutcome = 2
+	// CodeExecutionResultOutcomeDeadlineExceeded means code execution ran for too long, and was cancelled. There may or may not
+	// be a partial output present.
+	CodeExecutionResultOutcomeDeadlineExceeded CodeExecutionResultOutcome = 3
+)
+
+var namesForCodeExecutionResultOutcome = map[CodeExecutionResultOutcome]string{
+	CodeExecutionResultOutcomeUnspecified:      "CodeExecutionResultOutcomeUnspecified",
+	CodeExecutionResultOutcomeOK:               "CodeExecutionResultOutcomeOK",
+	CodeExecutionResultOutcomeFailed:           "CodeExecutionResultOutcomeFailed",
+	CodeExecutionResultOutcomeDeadlineExceeded: "CodeExecutionResultOutcomeDeadlineExceeded",
+}
+
+func (v CodeExecutionResultOutcome) String() string {
+	if n, ok := namesForCodeExecutionResultOutcome[v]; ok {
+		return n
+	}
+	return fmt.Sprintf("CodeExecutionResultOutcome(%d)", v)
 }
 
 // Content is the base structured datatype containing multi-part content of a message.
@@ -252,7 +444,7 @@ func (v *Content) toProto() *pb.Content {
 		return nil
 	}
 	return &pb.Content{
-		Parts: support.TransformSlice(v.Parts, partToProto),
+		Parts: pvTransformSlice(v.Parts, partToProto),
 		Role:  v.Role,
 	}
 }
@@ -262,7 +454,7 @@ func (Content) fromProto(p *pb.Content) *Content {
 		return nil
 	}
 	return &Content{
-		Parts: support.TransformSlice(p.Parts, partFromProto),
+		Parts: pvTransformSlice(p.Parts, partFromProto),
 		Role:  p.Role,
 	}
 }
@@ -297,8 +489,13 @@ func (ContentEmbedding) fromProto(p *pb.ContentEmbedding) *ContentEmbedding {
 type CountTokensResponse struct {
 	// The number of tokens that the `model` tokenizes the `prompt` into.
 	//
-	// Always non-negative.
+	// Always non-negative. When cached_content is set, this is still the total
+	// effective prompt size. I.e. this includes the number of tokens in the
+	// cached content.
 	TotalTokens int32
+	// Number of tokens in the cached part of the prompt, i.e. in the cached
+	// content.
+	CachedContentTokenCount int32
 }
 
 func (v *CountTokensResponse) toProto() *pb.CountTokensResponse {
@@ -306,7 +503,8 @@ func (v *CountTokensResponse) toProto() *pb.CountTokensResponse {
 		return nil
 	}
 	return &pb.CountTokensResponse{
-		TotalTokens: v.TotalTokens,
+		TotalTokens:             v.TotalTokens,
+		CachedContentTokenCount: v.CachedContentTokenCount,
 	}
 }
 
@@ -315,7 +513,8 @@ func (CountTokensResponse) fromProto(p *pb.CountTokensResponse) *CountTokensResp
 		return nil
 	}
 	return &CountTokensResponse{
-		TotalTokens: p.TotalTokens,
+		TotalTokens:             p.TotalTokens,
+		CachedContentTokenCount: p.CachedContentTokenCount,
 	}
 }
 
@@ -343,8 +542,65 @@ func (EmbedContentResponse) fromProto(p *pb.EmbedContentResponse) *EmbedContentR
 	}
 }
 
+// ExecutableCode is code generated by the model that is meant to be executed, and the result
+// returned to the model.
+//
+// Only generated when using the `CodeExecution` tool, in which the code will
+// be automatically executed, and a corresponding `CodeExecutionResult` will
+// also be generated.
+type ExecutableCode struct {
+	// Required. Programming language of the `code`.
+	Language ExecutableCodeLanguage
+	// Required. The code to be executed.
+	Code string
+}
+
+func (v *ExecutableCode) toProto() *pb.ExecutableCode {
+	if v == nil {
+		return nil
+	}
+	return &pb.ExecutableCode{
+		Language: pb.ExecutableCode_Language(v.Language),
+		Code:     v.Code,
+	}
+}
+
+func (ExecutableCode) fromProto(p *pb.ExecutableCode) *ExecutableCode {
+	if p == nil {
+		return nil
+	}
+	return &ExecutableCode{
+		Language: ExecutableCodeLanguage(p.Language),
+		Code:     p.Code,
+	}
+}
+
+// ExecutableCodeLanguage is supported programming languages for the generated code.
+type ExecutableCodeLanguage int32
+
+const (
+	// ExecutableCodeLanguageUnspecified means unspecified language. This value should not be used.
+	ExecutableCodeLanguageUnspecified ExecutableCodeLanguage = 0
+	// ExecutableCodePython means python >= 3.10, with numpy and simpy available.
+	ExecutableCodePython ExecutableCodeLanguage = 1
+)
+
+var namesForExecutableCodeLanguage = map[ExecutableCodeLanguage]string{
+	ExecutableCodeLanguageUnspecified: "ExecutableCodeLanguageUnspecified",
+	ExecutableCodePython:              "ExecutableCodePython",
+}
+
+func (v ExecutableCodeLanguage) String() string {
+	if n, ok := namesForExecutableCodeLanguage[v]; ok {
+		return n
+	}
+	return fmt.Sprintf("ExecutableCodeLanguage(%d)", v)
+}
+
 // File is a file uploaded to the API.
 type File struct {
+	// Metadata for the File.
+	Metadata *FileMetadata
 	// Immutable. Identifier. The `File` resource name. The ID (name excluding the
 	// "files/" prefix) can contain up to 40 characters that are lowercase
 	// alphanumeric or dashes (-). The ID cannot start or end with a dash. If the
@@ -372,49 +628,62 @@ type File struct {
 	URI string
 	// Output only. Processing state of the File.
 	State FileState
+	// Output only. Error status if File processing failed.
+	Error *apierror.APIError
 }
 
 func (v *File) toProto() *pb.File {
 	if v == nil {
 		return nil
 	}
-	return &pb.File{
+	p := &pb.File{
 		Name:           v.Name,
 		DisplayName:    v.DisplayName,
 		MimeType:       v.MIMEType,
 		SizeBytes:      v.SizeBytes,
-		CreateTime:     timestamppb.New(v.CreateTime),
-		UpdateTime:     timestamppb.New(v.UpdateTime),
-		ExpirationTime: timestamppb.New(v.ExpirationTime),
+		CreateTime:     pvTimeToProto(v.CreateTime),
+		UpdateTime:     pvTimeToProto(v.UpdateTime),
+		ExpirationTime: pvTimeToProto(v.ExpirationTime),
 		Sha256Hash:     v.Sha256Hash,
 		Uri:            v.URI,
 		State:          pb.File_State(v.State),
+		Error:          pvAPIErrorToProto(v.Error),
 	}
+	populateFileTo(p, v)
+	return p
 }
 
 func (File) fromProto(p *pb.File) *File {
 	if p == nil {
 		return nil
 	}
-	return &File{
+	v := &File{
 		Name:           p.Name,
 		DisplayName:    p.DisplayName,
 		MIMEType:       p.MimeType,
 		SizeBytes:      p.SizeBytes,
-		CreateTime:     support.TimeFromProto(p.CreateTime),
-		UpdateTime:     support.TimeFromProto(p.UpdateTime),
-		ExpirationTime: support.TimeFromProto(p.ExpirationTime),
+		CreateTime:     pvTimeFromProto(p.CreateTime),
+		UpdateTime:     pvTimeFromProto(p.UpdateTime),
+		ExpirationTime: pvTimeFromProto(p.ExpirationTime),
 		Sha256Hash:     p.Sha256Hash,
 		URI:            p.Uri,
 		State:          FileState(p.State),
+		Error:          pvAPIErrorFromProto(p.Error),
 	}
+	populateFileFrom(v, p)
+	return v
 }
 
 // FileData is URI based data.
 type FileData struct {
-	// Optional. The IANA standard MIME type of the source data.
+	// The IANA standard MIME type of the source data.
+	// If present, this overrides the MIME type specified or inferred
+	// when the file was uploaded.
+	// The supported MIME types are documented on [this page].
+	//
+	// [this page]: https://ai.google.dev/gemini-api/docs/prompting_with_media?lang=go#supported_file_formats
 	MIMEType string
-	// Required. URI.
+	// The URI returned from UploadFile or GetFile.
 	URI string
 }
 
@@ -518,7 +787,7 @@ func (v *FunctionCall) toProto() *pb.FunctionCall {
 	}
 	return &pb.FunctionCall{
 		Name: v.Name,
-		Args: support.MapToStructPB(v.Args),
+		Args: pvMapToStructPB(v.Args),
 	}
 }
 
@@ -528,7 +797,7 @@ func (FunctionCall) fromProto(p *pb.FunctionCall) *FunctionCall {
 	}
 	return &FunctionCall{
 		Name: p.Name,
-		Args: support.MapFromStructPB(p.Args),
+		Args: pvMapFromStructPB(p.Args),
 	}
 }
 
@@ -574,7 +843,7 @@ const (
 	// FunctionCallingUnspecified means unspecified function calling mode. This value should not be used.
 	FunctionCallingUnspecified FunctionCallingMode = 0
 	// FunctionCallingAuto means default model behavior, model decides to predict either a function call
-	// or a natural language repspose.
+	// or a natural language response.
 	FunctionCallingAuto FunctionCallingMode = 1
 	// FunctionCallingAny means model is constrained to always predicting a function call only.
 	// If "allowed_function_names" are set, the predicted function call will be
@@ -661,7 +930,7 @@ func (v *FunctionResponse) toProto() *pb.FunctionResponse {
 	}
 	return &pb.FunctionResponse{
 		Name:     v.Name,
-		Response: support.MapToStructPB(v.Response),
+		Response: pvMapToStructPB(v.Response),
 	}
 }
 
@@ -671,7 +940,7 @@ func (FunctionResponse) fromProto(p *pb.FunctionResponse) *FunctionResponse {
 	}
 	return &FunctionResponse{
 		Name:     p.Name,
-		Response: support.MapFromStructPB(p.Response),
+		Response: pvMapFromStructPB(p.Response),
 	}
 }
 
@@ -699,7 +968,7 @@ func (v *GenerateContentResponse) toProto() *pb.GenerateContentResponse {
 		return nil
 	}
 	return &pb.GenerateContentResponse{
-		Candidates:     support.TransformSlice(v.Candidates, (*Candidate).toProto),
+		Candidates:     pvTransformSlice(v.Candidates, (*Candidate).toProto),
 		PromptFeedback: v.PromptFeedback.toProto(),
 		UsageMetadata:  v.UsageMetadata.toProto(),
 	}
@@ -710,7 +979,7 @@ func (GenerateContentResponse) fromProto(p *pb.GenerateContentResponse) *Generat
 		return nil
 	}
 	return &GenerateContentResponse{
-		Candidates:     support.TransformSlice(p.Candidates, (Candidate{}).fromProto),
+		Candidates:     pvTransformSlice(p.Candidates, (Candidate{}).fromProto),
 		PromptFeedback: (PromptFeedback{}).fromProto(p.PromptFeedback),
 		UsageMetadata:  (UsageMetadata{}).fromProto(p.UsageMetadata),
 	}
@@ -971,12 +1240,14 @@ type ModelInfo struct {
 	SupportedGenerationMethods []string
 	// Controls the randomness of the output.
 	//
-	// Values can range over `[0.0,1.0]`, inclusive. A value closer to `1.0` will
-	// produce responses that are more varied, while a value closer to `0.0` will
-	// typically result in less surprising responses from the model.
+	// Values can range over `[0.0,max_temperature]`, inclusive. A higher value
+	// will produce responses that are more varied, while a value closer to `0.0`
+	// will typically result in less surprising responses from the model.
 	// This value specifies default to be used by the backend while making the
 	// call to the model.
 	Temperature float32
+	// The maximum temperature this model can use.
+	MaxTemperature *float32
 	// For Nucleus sampling.
 	//
 	// Nucleus sampling considers the smallest set of tokens whose probability
@@ -1007,9 +1278,10 @@ func (v *ModelInfo) toProto() *pb.Model {
 		InputTokenLimit:            v.InputTokenLimit,
 		OutputTokenLimit:           v.OutputTokenLimit,
 		SupportedGenerationMethods: v.SupportedGenerationMethods,
-		Temperature:                support.AddrOrNil(v.Temperature),
-		TopP:                       support.AddrOrNil(v.TopP),
-		TopK:                       support.AddrOrNil(v.TopK),
+		Temperature:                pvAddrOrNil(v.Temperature),
+		MaxTemperature:             v.MaxTemperature,
+		TopP:                       pvAddrOrNil(v.TopP),
+		TopK:                       pvAddrOrNil(v.TopK),
 	}
 }
 
@@ -1026,9 +1298,10 @@ func (ModelInfo) fromProto(p *pb.Model) *ModelInfo {
 		InputTokenLimit:            p.InputTokenLimit,
 		OutputTokenLimit:           p.OutputTokenLimit,
 		SupportedGenerationMethods: p.SupportedGenerationMethods,
-		Temperature:                support.DerefOrZero(p.Temperature),
-		TopP:                       support.DerefOrZero(p.TopP),
-		TopK:                       support.DerefOrZero(p.TopK),
+		Temperature:                pvDerefOrZero(p.Temperature),
+		MaxTemperature:             p.MaxTemperature,
+		TopP:                       pvDerefOrZero(p.TopP),
+		TopK:                       pvDerefOrZero(p.TopK),
 	}
 }
 
@@ -1049,7 +1322,7 @@ func (v *PromptFeedback) toProto() *pb.GenerateContentResponse_PromptFeedback {
 	}
 	return &pb.GenerateContentResponse_PromptFeedback{
 		BlockReason:   pb.GenerateContentResponse_PromptFeedback_BlockReason(v.BlockReason),
-		SafetyRatings: support.TransformSlice(v.SafetyRatings, (*SafetyRating).toProto),
+		SafetyRatings: pvTransformSlice(v.SafetyRatings, (*SafetyRating).toProto),
 	}
 }
 
@@ -1059,7 +1332,7 @@ func (PromptFeedback) fromProto(p *pb.GenerateContentResponse_PromptFeedback) *P
 	}
 	return &PromptFeedback{
 		BlockReason:   BlockReason(p.BlockReason),
-		SafetyRatings: support.TransformSlice(p.SafetyRatings, (SafetyRating{}).fromProto),
+		SafetyRatings: pvTransformSlice(p.SafetyRatings, (SafetyRating{}).fromProto),
 	}
 }
 
@@ -1173,7 +1446,7 @@ func (v *Schema) toProto() *pb.Schema {
 		Nullable:    v.Nullable,
 		Enum:        v.Enum,
 		Items:       v.Items.toProto(),
-		Properties:  support.TransformMapValues(v.Properties, (*Schema).toProto),
+		Properties:  pvTransformMapValues(v.Properties, (*Schema).toProto),
 		Required:    v.Required,
 	}
 }
@@ -1189,7 +1462,7 @@ func (Schema) fromProto(p *pb.Schema) *Schema {
 		Nullable:    p.Nullable,
 		Enum:        p.Enum,
 		Items:       (Schema{}).fromProto(p.Items),
-		Properties:  support.TransformMapValues(p.Properties, (Schema{}).fromProto),
+		Properties:  pvTransformMapValues(p.Properties, (Schema{}).fromProto),
 		Required:    p.Required,
 	}
 }
@@ -1240,19 +1513,15 @@ func (v TaskType) String() string {
 // external systems to perform an action, or set of actions, outside of
 // knowledge and scope of the model.
 type Tool struct {
-	// Optional. A list of `FunctionDeclarations` available to the model that can
-	// be used for function calling.
-	//
-	// The model or system does not execute the function. Instead the defined
-	// function may be returned as a [FunctionCall][content.part.function_call]
-	// with arguments to the client side for execution. The model may decide to
-	// call a subset of these functions by populating
-	// [FunctionCall][content.part.function_call] in the response. The next
-	// conversation turn may contain a
-	// [FunctionResponse][content.part.function_response]
-	// with the [content.role] "function" generation context for the next model
-	// turn.
+	// Optional. A list of FunctionDeclarations available to the model that
+	// can be used for function calling. The model or system does not execute
+	// the function. Instead the defined function may be returned as a [FunctionCall]
+	// part with arguments to the client side for execution. The next conversation
+	// turn may contain a [FunctionResponse] with the role "function" generation
+	// context for the next model turn.
 	FunctionDeclarations []*FunctionDeclaration
+	// Optional. Enables the model to execute code as part of generation.
+	CodeExecution *CodeExecution
 }
 
 func (v *Tool) toProto() *pb.Tool {
@@ -1260,7 +1529,8 @@ func (v *Tool) toProto() *pb.Tool {
 		return nil
 	}
 	return &pb.Tool{
-		FunctionDeclarations: support.TransformSlice(v.FunctionDeclarations, (*FunctionDeclaration).toProto),
+		FunctionDeclarations: pvTransformSlice(v.FunctionDeclarations, (*FunctionDeclaration).toProto),
+		CodeExecution:        v.CodeExecution.toProto(),
 	}
 }
 
@@ -1269,7 +1539,8 @@ func (Tool) fromProto(p *pb.Tool) *Tool {
 		return nil
 	}
 	return &Tool{
-		FunctionDeclarations: support.TransformSlice(p.FunctionDeclarations, (FunctionDeclaration{}).fromProto),
+		FunctionDeclarations: pvTransformSlice(p.FunctionDeclarations, (FunctionDeclaration{}).fromProto),
+		CodeExecution:        (CodeExecution{}).fromProto(p.CodeExecution),
 	}
 }
 
@@ -1338,8 +1609,13 @@ func (v Type) String() string {
 
 // UsageMetadata is metadata on the generation request's token usage.
 type UsageMetadata struct {
-	// Number of tokens in the prompt.
+	// Number of tokens in the prompt. When cached_content is set, this is still
+	// the total effective prompt size. I.e. this includes the number of tokens
+	// in the cached content.
 	PromptTokenCount int32
+	// Number of tokens in the cached part of the prompt, i.e. in the cached
+	// content.
+	CachedContentTokenCount int32
 	// Total number of tokens across the generated candidates.
 	CandidatesTokenCount int32
 	// Total token count for the generation request (prompt + candidates).
@@ -1351,9 +1627,10 @@ func (v *UsageMetadata) toProto() *pb.GenerateContentResponse_UsageMetadata {
 		return nil
 	}
 	return &pb.GenerateContentResponse_UsageMetadata{
-		PromptTokenCount:     v.PromptTokenCount,
-		CandidatesTokenCount: v.CandidatesTokenCount,
-		TotalTokenCount:      v.TotalTokenCount,
+		PromptTokenCount:        v.PromptTokenCount,
+		CachedContentTokenCount: v.CachedContentTokenCount,
+		CandidatesTokenCount:    v.CandidatesTokenCount,
+		TotalTokenCount:         v.TotalTokenCount,
 	}
 }
 
@@ -1362,8 +1639,147 @@ func (UsageMetadata) fromProto(p *pb.GenerateContentResponse_UsageMetadata) *Usa
 		return nil
 	}
 	return &UsageMetadata{
-		PromptTokenCount:     p.PromptTokenCount,
-		CandidatesTokenCount: p.CandidatesTokenCount,
-		TotalTokenCount:      p.TotalTokenCount,
+		PromptTokenCount:        p.PromptTokenCount,
+		CachedContentTokenCount: p.CachedContentTokenCount,
+		CandidatesTokenCount:    p.CandidatesTokenCount,
+		TotalTokenCount:         p.TotalTokenCount,
 	}
+}
+
+// VideoMetadata is metadata for a video `File`.
+type VideoMetadata struct {
+	// Duration of the video.
+	Duration time.Duration
+}
+
+func (v *VideoMetadata) toProto() *pb.VideoMetadata {
+	if v == nil {
+		return nil
+	}
+	return &pb.VideoMetadata{
+		VideoDuration: durationpb.New(v.Duration),
+	}
+}
+
+func (VideoMetadata) fromProto(p *pb.VideoMetadata) *VideoMetadata {
+	if p == nil {
+		return nil
+	}
+	return &VideoMetadata{
+		Duration: pvDurationFromProto(p.VideoDuration),
+	}
+}
+
+func pvTransformSlice[From, To any](from []From, f func(From) To) []To {
+	if from == nil {
+		return nil
+	}
+	to := make([]To, len(from))
+	for i, e := range from {
+		to[i] = f(e)
+	}
+	return to
+}
+
+func pvTransformMapValues[K comparable, VFrom, VTo any](from map[K]VFrom, f func(VFrom) VTo) map[K]VTo {
+	if from == nil {
+		return nil
+	}
+	to := map[K]VTo{}
+	for k, v := range from {
+		to[k] = f(v)
+	}
+	return to
+}
+
+func pvAddrOrNil[T comparable](x T) *T {
+	var z T
+	if x == z {
+		return nil
+	}
+	return &x
+}
+
+func pvDerefOrZero[T any](x *T) T {
+	if x == nil {
+		var z T
+		return z
+	}
+	return *x
+}
+
+func pvMapToStructPB(m map[string]any) *structpb.Struct {
+	if m == nil {
+		return nil
+	}
+	s, err := structpb.NewStruct(m)
+	if err != nil {
+		panic(pvPanic(fmt.Errorf("pvMapToStructPB: %w", err)))
+	}
+	return s
+}
+
+func pvMapFromStructPB(p *structpb.Struct) map[string]any {
+	if p == nil {
+		return nil
+	}
+	return p.AsMap()
+}
+
+func pvTimeToProto(t time.Time) *timestamppb.Timestamp {
+	if t.IsZero() {
+		return nil
+	}
+	return timestamppb.New(t)
+}
+
+func pvTimeFromProto(ts *timestamppb.Timestamp) time.Time {
+	if ts == nil {
+		return time.Time{}
+	}
+	return ts.AsTime()
+}
+
+func pvAPIErrorToProto(ae *apierror.APIError) *spb.Status {
+	if ae == nil {
+		return nil
+	}
+	return ae.GRPCStatus().Proto()
+}
+
+func pvAPIErrorFromProto(s *spb.Status) *apierror.APIError {
+	err := gstatus.ErrorProto(s)
+	aerr, ok := apierror.ParseError(err, true)
+	if !ok {
+		// Should be impossible.
+		return nil
+	}
+	return aerr
+}
+
+func pvDurationFromProto(d *durationpb.Duration) time.Duration {
+	if d == nil {
+		return 0
+	}
+	return d.AsDuration()
+}
+
+// pvPanic wraps panics from support functions.
+// User-provided functions in the same package can also use it.
+// It allows callers to distinguish conversion function panics from other panics.
+type pvPanic error
+
+// pvCatchPanic recovers from panics of type pvPanic and
+// returns an error instead.
+func pvCatchPanic[T any](f func() T) (_ T, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(pvPanic); ok {
+				err = r.(error)
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	return f(), nil
 }

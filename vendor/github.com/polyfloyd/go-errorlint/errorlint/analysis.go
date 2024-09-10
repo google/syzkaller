@@ -1,7 +1,6 @@
 package errorlint
 
 import (
-	"flag"
 	"go/ast"
 	"go/types"
 	"sort"
@@ -9,32 +8,36 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-func NewAnalyzer() *analysis.Analyzer {
-	return &analysis.Analyzer{
-		Name:  "errorlint",
-		Doc:   "Source code linter for Go software that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.",
-		Run:   run,
-		Flags: flagSet,
+func NewAnalyzer(opts ...Option) *analysis.Analyzer {
+	for _, o := range opts {
+		o()
 	}
+
+	setDefaultAllowedErrors()
+
+	a := &analysis.Analyzer{
+		Name: "errorlint",
+		Doc:  "Source code linter for Go software that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.",
+		Run:  run,
+	}
+
+	a.Flags.BoolVar(&checkComparison, "comparison", true, "Check for plain error comparisons")
+	a.Flags.BoolVar(&checkAsserts, "asserts", true, "Check for plain type assertions and type switches")
+	a.Flags.BoolVar(&checkErrorf, "errorf", false, "Check whether fmt.Errorf uses the %w verb for formatting errors. See the readme for caveats")
+	a.Flags.BoolVar(&checkErrorfMulti, "errorf-multi", true, "Permit more than 1 %w verb, valid per Go 1.20 (Requires -errorf=true)")
+
+	return a
 }
 
 var (
-	flagSet          flag.FlagSet
 	checkComparison  bool
 	checkAsserts     bool
 	checkErrorf      bool
 	checkErrorfMulti bool
 )
 
-func init() {
-	flagSet.BoolVar(&checkComparison, "comparison", true, "Check for plain error comparisons")
-	flagSet.BoolVar(&checkAsserts, "asserts", true, "Check for plain type assertions and type switches")
-	flagSet.BoolVar(&checkErrorf, "errorf", false, "Check whether fmt.Errorf uses the %w verb for formatting errors. See the readme for caveats")
-	flagSet.BoolVar(&checkErrorfMulti, "errorf-multi", true, "Permit more than 1 %w verb, valid per Go 1.20 (Requires -errorf=true)")
-}
-
 func run(pass *analysis.Pass) (interface{}, error) {
-	lints := []analysis.Diagnostic{}
+	var lints []analysis.Diagnostic
 	extInfo := newTypesInfoExt(pass)
 	if checkComparison {
 		l := LintErrorComparisons(extInfo)

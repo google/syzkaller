@@ -17,7 +17,6 @@
 package: genai
 
 protoImportPath: cloud.google.com/go/ai/generativelanguage/apiv1beta/generativelanguagepb
-supportImportPath: github.com/google/generative-ai-go/internal/support
 
 types:
     HarmCategory:
@@ -65,10 +64,16 @@ types:
       fields:
         MimeType:
           name: MIMEType
+          doc: |
+            The IANA standard MIME type of the source data.
+            If present, this overrides the MIME type specified or inferred
+            when the file was uploaded.
+            The supported MIME types are documented on [this page].
+            
+            [this page]: https://ai.google.dev/gemini-api/docs/prompting_with_media?lang=go#supported_file_formats
         FileUri:
           name: URI
-          # TODO(jba): support field doc in protoveneer
-          # doc: 'The URI returned from UploadFile or GetFile.'
+          doc: 'The URI returned from UploadFile or GetFile.'
 
     GenerationConfig:
       fields:
@@ -128,6 +133,15 @@ types:
 
     # Types for function calling
     Tool:
+      fields:
+        FunctionDeclarations:
+          doc: |
+            Optional. A list of FunctionDeclarations available to the model that
+            can be used for function calling. The model or system does not execute
+            the function. Instead the defined function may be returned as a [FunctionCall]
+            part with arguments to the client side for execution. The next conversation
+            turn may contain a [FunctionResponse] with the role "function" generation
+            context for the next model turn.
     ToolConfig:
     FunctionDeclaration:
     FunctionCall:
@@ -149,17 +163,22 @@ types:
         FunctionCallingConfig_MODE_UNSPECIFIED: FunctionCallingUnspecified
 
     File:
+      populateToFrom: populateFileTo, populateFileFrom
       fields:
         Uri:
           name: URI
         MimeType:
           name: MIMEType
-        Error:
-          # TODO(jba): support or convert status.Status
-          omit: true
         Metadata:
-          # TODO(jba): support
-          omit: true
+          type: '*FileMetadata'
+          noConvert: true
+          doc: 'Metadata for the File.'
+
+    VideoMetadata:
+      fields:
+        VideoDuration:
+          name: Duration
+
     File_State:
       name: FileState
       docVerb: represents
@@ -177,6 +196,38 @@ types:
           type: int32
         TotalTokenCount:
           type: int32
+
+    CachedContent:
+      populateToFrom: populateCachedContentTo, populateCachedContentFrom
+      fields:
+        Expiration:
+          type: ExpireTimeOrTTL
+          noConvert: true
+        Name:
+          type: string
+        Model:
+          type: string
+        DisplayName:
+          type: string
+
+    CachedContent_UsageMetadata:
+      name: CachedContentUsageMetadata
+
+    CodeExecution:
+    ExecutableCode:
+    CodeExecutionResult:
+
+    ExecutableCode_Language:
+      name: ExecutableCodeLanguage
+      protoPrefix: ExecutableCode
+      veneerPrefix: ExecutableCode
+
+    CodeExecutionResult_Outcome:
+      name: CodeExecutionResultOutcome
+      protoPrefix: CodeExecutionResult
+      veneerPrefix: CodeExecutionResult
+      valueNames:
+        CodeExecutionResult_OUTCOME_OK: CodeExecutionResultOutcomeOK
 
 # Omit everything not explicitly configured.
 omitTypes:
