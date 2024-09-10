@@ -1628,45 +1628,46 @@ func uniqueBugs(c context.Context, inBugs []*Bug, inKeys []*db.Key) ([]*Bug, []*
 	return bugs, keys
 }
 
-func relevantBackportJobs(c context.Context) (
-	bugs []*Bug, jobs []*Job, jobKeys []*db.Key, err error) {
+type backportInfo struct {
+	bug    *Bug
+	job    *Job
+	jobKey *db.Key
+}
+
+func relevantBackportJobs(c context.Context) ([]backportInfo, error) {
 	allBugs, _, bugsErr := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("FixCandidateJob>", "").Filter("Status=", BugStatusOpen)
 	})
 	if bugsErr != nil {
-		err = bugsErr
-		return
+		return nil, bugsErr
 	}
 	var allJobKeys []*db.Key
 	for _, bug := range allBugs {
 		jobKey, decodeErr := db.DecodeKey(bug.FixCandidateJob)
 		if decodeErr != nil {
-			err = decodeErr
-			return
+			return nil, decodeErr
 		}
 		allJobKeys = append(allJobKeys, jobKey)
 	}
 	allJobs := make([]*Job, len(allJobKeys))
-	err = db.GetMulti(c, allJobKeys, allJobs)
+	err := db.GetMulti(c, allJobKeys, allJobs)
 	if err != nil {
-		return
+		return nil, err
 	}
+	var list []backportInfo
 	for i, job := range allJobs {
 		// Some assertions just in case.
 		jobKey := allJobKeys[i]
 		if !job.IsCrossTree() {
-			err = fmt.Errorf("job %s: expected to be cross-tree", jobKey)
-			return
+			return nil, fmt.Errorf("job %s: expected to be cross-tree", jobKey)
 		}
 		if len(job.Commits) != 1 || job.InvalidatedBy != "" ||
 			job.BackportedCommit.Title != "" {
 			continue
 		}
-		bugs = append(bugs, allBugs[i])
-		jobs = append(jobs, job)
-		jobKeys = append(jobKeys, jobKey)
+		list = append(list, backportInfo{bug: allBugs[i], job: job, jobKey: jobKey})
 	}
-	return
+	return list, nil
 }
 
 func updateBackportCommits(c context.Context, ns string, commits []dashapi.Commit) error {
@@ -1677,16 +1678,16 @@ func updateBackportCommits(c context.Context, ns string, commits []dashapi.Commi
 	for _, commit := range commits {
 		perTitle[commit.Title] = commit
 	}
-	bugs, jobs, jobKeys, err := relevantBackportJobs(c)
+	list, err := relevantBackportJobs(c)
 	if err != nil {
 		return fmt.Errorf("failed to query backport jobs: %w", err)
 	}
-	for i, job := range jobs {
-		rawCommit, ok := perTitle[job.Commits[0].Title]
+	for _, info := range list {
+		rawCommit, ok := perTitle[info.job.Commits[0].Title]
 		if !ok {
 			continue
 		}
-		if bugs[i].Namespace != ns {
+		if info.bug.Namespace != ns {
 			continue
 		}
 		commit := Commit{
@@ -1696,7 +1697,7 @@ func updateBackportCommits(c context.Context, ns string, commits []dashapi.Commi
 			AuthorName: rawCommit.AuthorName,
 			Date:       rawCommit.Date,
 		}
-		err := commitBackported(c, jobKeys[i], commit)
+		err := commitBackported(c, info.jobKey, commit)
 		if err != nil {
 			return fmt.Errorf("failed to update backport job: %w", err)
 		}
