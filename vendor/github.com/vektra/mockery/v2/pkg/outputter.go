@@ -210,6 +210,7 @@ func parseConfigTemplates(ctx context.Context, c *config.Config, iface *Interfac
 	data := struct {
 		InterfaceDir            string
 		InterfaceDirRelative    string
+		InterfaceFile           string
 		InterfaceName           string
 		InterfaceNameCamel      string
 		InterfaceNameLowerCamel string
@@ -222,6 +223,7 @@ func parseConfigTemplates(ctx context.Context, c *config.Config, iface *Interfac
 	}{
 		InterfaceDir:         filepath.Dir(iface.FileName),
 		InterfaceDirRelative: interfaceDirRelative,
+		InterfaceFile:        iface.FileName,
 		InterfaceName:        iface.Name,
 		// Deprecated: All custom case variables of InterfaceName will be removed in the next major version
 		// Use the template functions instead
@@ -351,13 +353,19 @@ func (m *Outputter) Generate(ctx context.Context, iface *Interface) error {
 			return err
 		}
 
+		// Log where the file would be written to before checking whether to create the directories and files
 		outputPath := pathlib.NewPath(interfaceConfig.Dir).Join(interfaceConfig.FileName)
+		fileLog := log.With().Stringer(logging.LogKeyFile, outputPath).Logger()
+		fileLog.Info().Msg("writing to file")
+
+		if m.dryRun {
+			continue
+		}
+
 		if err := outputPath.Parent().MkdirAll(); err != nil {
 			return stackerr.NewStackErrf(err, "failed to mkdir parents of: %v", outputPath)
 		}
 
-		fileLog := log.With().Stringer(logging.LogKeyFile, outputPath).Logger()
-		fileLog.Info().Msg("writing to file")
 		file, err := outputPath.OpenFile(os.O_RDWR | os.O_CREATE | os.O_TRUNC)
 		if err != nil {
 			return stackerr.NewStackErrf(err, "failed to open output file for mock: %v", outputPath)
