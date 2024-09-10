@@ -2387,7 +2387,7 @@ var linuxOopses = append([]*oops{
 		[]byte("Booting the kernel."),
 		[]oopsFormat{
 			{
-				title:        compile("Booting the kernel."),
+				title:        compile("^Booting the kernel"),
 				fmt:          "unexpected kernel reboot",
 				noStackTrace: true,
 				reportType:   crash.UnexpectedReboot,
@@ -2397,7 +2397,7 @@ var linuxOopses = append([]*oops{
 			// These may appear on the same line when the fuzzer reads from the console the existing
 			// boot message and then pass it as mount option, kernel then prints it back
 			// as an invalid mount option and we detect false reboot.
-			compile("Parsing ELF|Decompressing Linux"),
+			compile("Parsing ELF|Decompressing Linux|Unknown parameter '"),
 		},
 		crash.UnknownType,
 	},
