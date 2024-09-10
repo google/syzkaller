@@ -49,10 +49,6 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "can't find default repo or branch for ns %s", ns)
 			continue
 		}
-		periods, err := nsDatesToMerge(ctx, ns, daysToMerge, maxSteps)
-		if err != nil {
-			log.Errorf(ctx, "failed nsDatesToMerge(): %s", err)
-		}
 		daysAvailable, rowsAvailable, err := nsDataAvailable(ctx, ns)
 		if err != nil {
 			log.Errorf(ctx, "failed nsDataAvailable(%s): %s", ns, err)
@@ -61,6 +57,7 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Errorf(ctx, "failed coveragedb.NsDataMerged(%s): %s", ns, err)
 		}
+		var periods []coveragedb.TimePeriod
 		if doDays {
 			periods = append(periods, coveragedb.PeriodsToMerge(daysAvailable, periodsMerged, rowsAvailable, rowsMerged,
 				&coveragedb.DayPeriodOps{})...)
@@ -199,85 +196,6 @@ func createScriptJob(ctx context.Context, projectID, serviceAccount, script stri
 	log.Infof(ctx, "job created: %v\n", createdJob)
 
 	return nil
-}
-
-// TODO: remove once coverage is switched to months and quarters
-// Reason: SQL is hard to craft, hard to reuse and hard to test.
-func nsDatesToMerge(ctx context.Context, ns string, days, maxRecords int) ([]coveragedb.TimePeriod, error) {
-	client, err := bigquery.NewClient(ctx, "syzkaller")
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize bigquery client: %w", err)
-	}
-	if err := client.EnableStorageReadClient(ctx); err != nil {
-		return nil, fmt.Errorf("failed to client.EnableStorageReadClient: %w", err)
-	}
-	q := client.Query(fmt.Sprintf(`
-		WITH data AS (
-		  SELECT
-		    table_name as namespace,
-		    PARSE_DATE('%%Y%%m%%d', partition_id) as partition_date,
-		    total_rows
-		  FROM
-		    syzkaller.syzbot_coverage.INFORMATION_SCHEMA.PARTITIONS
-			WHERE table_name LIKE '%s'
-		)
-
-		SELECT * from (
-		  SELECT
-		    mainquery.namespace as namespace,
-		    partition_date as dateto,
-		    sp.total_rows_dest,
-		    (
-		      select
-		        sum(total_rows)
-		      FROM
-		        data as subquery
-		      WHERE
-		        subquery.partition_date
-		          BETWEEN
-		          DATE_SUB(mainquery.partition_date, INTERVAL %d DAY) AND
-		          mainquery.partition_date AND
-		        subquery.namespace = mainquery.namespace
-		      ) as total_rows_src
-		  FROM data as mainquery
-			LEFT JOIN
-				EXTERNAL_QUERY("syzkaller.us-central1.spanner-coverage", '''
-					SELECT
-						distinct namespace, duration, dateto, totalrows as total_rows_dest
-					FROM
-						merge_history
-					WHERE
-						duration = %d;''') AS sp
-			ON
-				mainquery.partition_date = sp.dateto AND
-				mainquery.namespace = sp.namespace
-			ORDER BY dateto DESC
-		)
-		WHERE
-		  total_rows_dest IS NULL OR total_rows_dest != total_rows_src
-		LIMIT %d
-	`, ns, days, days, maxRecords))
-	it, err := q.Read(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to Read() from bigquery: %w", err)
-	}
-
-	var periods []coveragedb.TimePeriod
-	for {
-		var values struct {
-			Dateto civil.Date
-		}
-		err = it.Next(&values)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to it.Next() bigquery records: %w", err)
-		}
-		periods = append(periods, coveragedb.TimePeriod{DateTo: values.Dateto, Days: days})
-	}
-
-	return periods, nil
 }
 
 func nsDataAvailable(ctx context.Context, ns string) ([]coveragedb.TimePeriod, []int64, error) {
