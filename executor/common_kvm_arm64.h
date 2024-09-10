@@ -106,11 +106,15 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		}
 	}
 
-	// Guest physical memory layout:
+	// Guest physical memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - unused pages
+	// 0x08000000 - GICv3 distributor region (MMIO, no memory allocated)
+	// 0x080a0000 - GICv3 redistributor region (MMIO, no memory allocated)
 	// 0xdddd0000 - unmapped region to trigger a page faults for uexits etc. (1 page)
+	// 0xdddd1000 - writable region with KVM_MEM_LOG_DIRTY_PAGES to fuzz dirty ring (2 pages)
 	// 0xeeee0000 - user code (1 page)
 	// 0xeeee8000 - executor guest code (4 pages)
+	// 0xeeef0000 - scratch memory for code generated at runtime (1 page)
 	// 0xffff1000 - EL1 stack (1 page)
 	struct addr_size allocator = {.addr = host_mem, .size = guest_mem_size};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
@@ -119,7 +123,10 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	memcpy(host_text.addr, &__start_guest, (char*)&__stop_guest - (char*)&__start_guest);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
-	struct addr_size next = alloc_guest_mem(&allocator, page_size);
+	struct addr_size next = alloc_guest_mem(&allocator, 2 * page_size);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
+
+	next = alloc_guest_mem(&allocator, page_size);
 	if (text_size > next.size)
 		text_size = next.size;
 	memcpy(next.addr, text, text_size);
