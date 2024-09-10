@@ -15,7 +15,7 @@ output:
 linters:
   enable:
     - lll
-    - vet
+    - govet
     - gofmt
     - revive
     - unconvert
@@ -24,7 +24,6 @@ linters:
     - gosimple
     - misspell
     - gocyclo
-    - vetshadow
     - megacheck
     - stylecheck
     - govet
