@@ -78,11 +78,13 @@
 
 // GICv3 distributor/redistributor addresses.
 #define ARM64_ADDR_GICD_BASE 0x08000000
-#define ARM64_ADDR_GICR_BASE 0x080A0000
+#define ARM64_ADDR_GICR_BASE 0x080a0000
 // Write to this page to trigger a page fault and stop KVM_RUN.
 #define ARM64_ADDR_EXIT 0xdddd0000
 // Dedicated address within the exit page for the uexit command.
 #define ARM64_ADDR_UEXIT (ARM64_ADDR_EXIT + 256)
+// Two writable pages with KVM_MEM_LOG_DIRTY_PAGES explicitly set.
+#define ARM64_ADDR_DIRTY_PAGES 0xdddd1000
 #define ARM64_ADDR_USER_CODE 0xeeee0000
 #define ARM64_ADDR_EXECUTOR_CODE 0xeeee8000
 #define ARM64_ADDR_SCRATCH_CODE 0xeeef0000
