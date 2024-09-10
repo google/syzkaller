@@ -24,7 +24,6 @@ linters:
     - gosimple
     - misspell
     - gocyclo
-    - megacheck
     - stylecheck
     - govet
     - whitespace
