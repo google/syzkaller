@@ -283,7 +283,7 @@ func (inst *instance) connect() error {
 		return err
 	}
 	if inst.debug {
-		log.Logf(0, fmt.Sprintf("instance %s: the fuchsia instance's address is %s", inst.name, address))
+		log.Logf(0, "instance %s: the fuchsia instance's address is %s", inst.name, address)
 	}
 	cmd := osutil.Command(
 		"ssh",

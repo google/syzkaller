@@ -79,7 +79,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		EnabledCalls: enabledCalls,
 		LogFunc: func(text string) {
 			t.Helper()
-			t.Logf(text)
+			t.Log(text)
 		},
 		Retries: 7, // empirical number that seem to reduce flakes to zero
 		Verbose: true,

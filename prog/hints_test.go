@@ -319,7 +319,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 					s += fmt.Sprintf("0x%x, ", x)
 				}
 				s += "]\n"
-				t.Fatalf(s)
+				t.Fatal(s)
 			}
 		})
 	}
