@@ -49,18 +49,15 @@ linters:
     - gomnd
     - gomodguard
     - gosec
-    - maligned
     - rowserrcheck
     - testpackage
     - typecheck
     - ineffassign
     # errcheck would be good to enable, but we need to fix existing warnings first.
     - errcheck
-    - interfacer
     - unparam
     - nakedret
     - prealloc
-    - scopelint
     - gocritic
     - wsl
 
