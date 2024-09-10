@@ -108,12 +108,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
             <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
             <div class="dropdown-content">
               <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}"
-                  href="/{{$.Namespace}}/graph/coverage">Total</a>
+                  href="/{{$.Namespace}}/graph/coverage?period=quarter">Total</a>
               <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_heatmap" $.Namespace)}}_selected{{end}}"
-                  href="/{{$.Namespace}}/graph/coverage_heatmap">Repo&nbsp;Heatmap</a>
+                  href="/{{$.Namespace}}/graph/coverage_heatmap?period=month">Repo&nbsp;Heatmap</a>
               {{ if .ShowSubsystems }}
                 <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_subsystems_heatmap" $.Namespace)}}_selected{{end}}"
-                    href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap">Subsystems&nbsp;Heatmap</a>
+                    href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap?period=month">Subsystems&nbsp;Heatmap</a>
               {{ end }}
             </div>
           </div>
