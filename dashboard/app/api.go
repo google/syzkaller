@@ -274,16 +274,16 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 
 func pollBackportCommits(c context.Context, ns string, count int) ([]string, error) {
 	// Let's assume that there won't be too many pending backports.
-	bugs, jobs, _, err := relevantBackportJobs(c)
+	list, err := relevantBackportJobs(c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query backport: %w", err)
 	}
 	var backportTitles []string
-	for i, bug := range bugs {
-		if bug.Namespace != ns {
+	for _, info := range list {
+		if info.bug.Namespace != ns {
 			continue
 		}
-		backportTitles = append(backportTitles, jobs[i].Commits[0].Title)
+		backportTitles = append(backportTitles, info.job.Commits[0].Title)
 	}
 	randomizer := rand.New(rand.NewSource(timeNow(c).UnixNano()))
 	randomizer.Shuffle(len(backportTitles), func(i, j int) {

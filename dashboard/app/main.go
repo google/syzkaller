@@ -771,13 +771,14 @@ type rawBackport struct {
 }
 
 func loadAllBackports(c context.Context) ([]*rawBackport, error) {
-	bugs, jobs, _, err := relevantBackportJobs(c)
+	list, err := relevantBackportJobs(c)
 	if err != nil {
 		return nil, err
 	}
 	var ret []*rawBackport
 	perCommit := map[string]*rawBackport{}
-	for i, job := range jobs {
+	for _, info := range list {
+		job := info.job
 		jobCommit := job.Commits[0]
 		to := &uiRepo{URL: job.MergeBaseRepo, Branch: job.MergeBaseBranch}
 		from := &uiRepo{URL: job.KernelRepo, Branch: job.KernelBranch}
@@ -800,7 +801,7 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 			ret = append(ret, backport)
 			perCommit[hash] = backport
 		}
-		backport.Bugs = append(backport.Bugs, bugs[i])
+		backport.Bugs = append(backport.Bugs, info.bug)
 	}
 	return ret, nil
 }
