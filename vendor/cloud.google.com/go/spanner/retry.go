@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/internal/trace"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -86,7 +85,7 @@ func (r *spannerRetryer) Retry(err error) (time.Duration, bool) {
 // a minimum of 10ms and maximum of 32s. There is no delay before the retry if
 // the error was Session not found or failed inline begin transaction.
 func runWithRetryOnAbortedOrFailedInlineBeginOrSessionNotFound(ctx context.Context, f func(context.Context) error) error {
-	retryer := onCodes(DefaultRetryBackoff, codes.Aborted, codes.Internal)
+	retryer := onCodes(DefaultRetryBackoff, codes.Aborted, codes.ResourceExhausted, codes.Internal)
 	funcWithRetry := func(ctx context.Context) error {
 		for {
 			err := f(ctx)
@@ -147,11 +146,10 @@ func ExtractRetryDelay(err error) (time.Duration, bool) {
 	}
 	for _, detail := range s.Details() {
 		if retryInfo, ok := detail.(*errdetails.RetryInfo); ok {
-			delay, err := ptypes.Duration(retryInfo.RetryDelay)
-			if err != nil {
+			if !retryInfo.GetRetryDelay().IsValid() {
 				return 0, false
 			}
-			return delay, true
+			return retryInfo.GetRetryDelay().AsDuration(), true
 		}
 	}
 	return 0, false

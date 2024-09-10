@@ -41,6 +41,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"go.opentelemetry.io/otel/trace"
+
 	vkit "cloud.google.com/go/logging/apiv2"
 	logpb "cloud.google.com/go/logging/apiv2/loggingpb"
 	"cloud.google.com/go/logging/internal"
@@ -277,6 +279,7 @@ type Logger struct {
 
 	// Options
 	commonResource         *mrpb.MonitoredResource
+	commonResourceSet      bool
 	commonLabels           map[string]string
 	ctxFunc                func() (context.Context, func())
 	populateSourceLocation int
@@ -321,14 +324,11 @@ func (r *loggerRetryer) Retry(err error) (pause time.Duration, shouldRetry bool)
 // characters: [A-Za-z0-9]; and punctuation characters: forward-slash,
 // underscore, hyphen, and period.
 func (c *Client) Logger(logID string, opts ...LoggerOption) *Logger {
-	r := detectResourceInternal()
-	if r == nil {
-		r = monitoredResource(c.parent)
-	}
 	l := &Logger{
 		client:                 c,
 		logName:                internal.LogPath(c.parent, logID),
-		commonResource:         r,
+		commonResource:         nil,
+		commonResourceSet:      false,
 		ctxFunc:                func() (context.Context, func()) { return context.Background(), nil },
 		populateSourceLocation: DoNotPopulateSourceLocation,
 		partialSuccess:         false,
@@ -342,9 +342,20 @@ func (c *Client) Logger(logID string, opts ...LoggerOption) *Logger {
 	l.bundler.BundleByteThreshold = DefaultEntryByteThreshold
 	l.bundler.BundleByteLimit = DefaultBundleByteLimit
 	l.bundler.BufferedByteLimit = DefaultBufferedByteLimit
+
 	for _, opt := range opts {
 		opt.set(l)
 	}
+
+	// Set common resource here so that we skip automatic resource detection
+	// if a user has provided a common resource.
+	if !l.commonResourceSet {
+		l.commonResource = detectResourceInternal()
+		if l.commonResource == nil {
+			l.commonResource = monitoredResource(c.parent)
+		}
+	}
+
 	l.stdLoggers = map[Severity]*log.Logger{}
 	for s := range severityName {
 		e := Entry{Severity: s}
@@ -812,6 +823,13 @@ func populateTraceInfo(e *Entry, req *http.Request) bool {
 		} else {
 			return false
 		}
+	}
+	otelSpanContext := trace.SpanContextFromContext(req.Context())
+	if otelSpanContext.IsValid() {
+		e.Trace = otelSpanContext.TraceID().String()
+		e.SpanID = otelSpanContext.SpanID().String()
+		e.TraceSampled = otelSpanContext.IsSampled()
+		return true
 	}
 	header := req.Header.Get("Traceparent")
 	if header != "" {

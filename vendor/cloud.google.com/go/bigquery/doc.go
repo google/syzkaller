@@ -260,6 +260,21 @@ it as well, and call its Run method.
 To upload, first define a type that implements the ValueSaver interface, which has a single method named Save.
 Then create an Inserter, and call its Put method with a slice of values.
 
+	type Item struct {
+		Name  string
+		Size  float64
+		Count int
+	}
+
+	// Save implements the ValueSaver interface.
+	func (i *Item) Save() (map[string]bigquery.Value, string, error) {
+		return map[string]bigquery.Value{
+			"Name":  i.Name,
+			"Size":  i.Size,
+			"Count": i.Count,
+		}, "", nil
+	}
+
 	u := table.Inserter()
 	// Item implements the ValueSaver interface.
 	items := []*Item{
@@ -272,15 +287,33 @@ Then create an Inserter, and call its Put method with a slice of values.
 	}
 
 You can also upload a struct that doesn't implement ValueSaver. Use the StructSaver type
-to specify the schema and insert ID by hand, or just supply the struct or struct pointer
-directly and the schema will be inferred:
+to specify the schema and insert ID by hand:
+
+	type item struct {
+		Name string
+		Num  int
+	}
+
+	// Assume schema holds the table's schema.
+	savers := []*bigquery.StructSaver{
+		{Struct: score{Name: "n1", Num: 12}, Schema: schema, InsertID: "id1"},
+		{Struct: score{Name: "n2", Num: 31}, Schema: schema, InsertID: "id2"},
+		{Struct: score{Name: "n3", Num: 7}, Schema: schema, InsertID: "id3"},
+	}
+
+	if err := u.Put(ctx, savers); err != nil {
+	    // TODO: Handle error.
+	}
+
+Lastly, but not least, you can just supply the struct or struct pointer directly and the schema will be inferred:
 
 	type Item2 struct {
 	    Name  string
 	    Size  float64
 	    Count int
 	}
-	// Item implements the ValueSaver interface.
+
+	// Item2 doesn't implement ValueSaver interface, so schema will be inferred.
 	items2 := []*Item2{
 	    {Name: "n1", Size: 32.6, Count: 7},
 	    {Name: "n2", Size: 4, Count: 2},

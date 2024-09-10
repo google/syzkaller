@@ -13,6 +13,7 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/golangci/golangci-lint/internal/pkgcache"
+	"github.com/golangci/golangci-lint/pkg/goanalysis/pkgerrors"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/result"
@@ -74,7 +75,7 @@ func runAnalyzers(cfg runAnalyzersConfig, lintCtx *linter.Context) ([]result.Iss
 		return retIssues
 	}
 
-	errIssues, err := buildIssuesFromIllTypedError(errs, lintCtx)
+	errIssues, err := pkgerrors.BuildIssuesFromIllTypedError(errs, lintCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func saveIssuesToCache(allPkgs []*packages.Package, pkgsFromCache map[*packages.
 		perPkgIssues[i.Pkg] = append(perPkgIssues[i.Pkg], *i)
 	}
 
-	savedIssuesCount := int32(0)
+	var savedIssuesCount int64 = 0
 	lintResKey := getIssuesCacheKey(analyzers)
 
 	workerCount := runtime.GOMAXPROCS(-1)
@@ -161,7 +162,7 @@ func saveIssuesToCache(allPkgs []*packages.Package, pkgsFromCache map[*packages.
 					})
 				}
 
-				atomic.AddInt32(&savedIssuesCount, int32(len(encodedIssues)))
+				atomic.AddInt64(&savedIssuesCount, int64(len(encodedIssues)))
 				if err := lintCtx.PkgCache.Put(pkg, pkgcache.HashModeNeedAllDeps, lintResKey, encodedIssues); err != nil {
 					lintCtx.Log.Infof("Failed to save package %s issues (%d) to cache: %s", pkg, len(pkgIssues), err)
 				} else {
@@ -204,7 +205,7 @@ func loadIssuesFromCache(pkgs []*packages.Package, lintCtx *linter.Context,
 	wg.Add(workerCount)
 
 	pkgCh := make(chan *packages.Package, len(pkgs))
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		go func() {
 			defer wg.Done()
 			for pkg := range pkgCh {

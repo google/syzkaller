@@ -53,9 +53,9 @@ func (b Builder) Build(ctx context.Context) error {
 
 	b.log.Infof("Adding replace directives")
 
-	err = b.addReplaceDirectives(ctx)
+	err = b.addToGoMod(ctx)
 	if err != nil {
-		return fmt.Errorf("add replace directives: %w", err)
+		return fmt.Errorf("add to go.mod: %w", err)
 	}
 
 	b.log.Infof("Running go mod tidy")
@@ -95,7 +95,7 @@ func (b Builder) clone(ctx context.Context) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		b.log.Infof(string(output))
+		b.log.Infof("%s", string(output))
 
 		return fmt.Errorf("%s: %w", strings.Join(cmd.Args, " "), err)
 	}
@@ -103,25 +103,56 @@ func (b Builder) clone(ctx context.Context) error {
 	return nil
 }
 
-func (b Builder) addReplaceDirectives(ctx context.Context) error {
+func (b Builder) addToGoMod(ctx context.Context) error {
 	for _, plugin := range b.cfg.Plugins {
-		if plugin.Path == "" {
+		if plugin.Path != "" {
+			err := b.addReplaceDirective(ctx, plugin)
+			if err != nil {
+				return err
+			}
+
 			continue
 		}
 
-		replace := fmt.Sprintf("%s=%s", plugin.Module, plugin.Path)
-
-		cmd := exec.CommandContext(ctx, "go", "mod", "edit", "-replace", replace)
-		cmd.Dir = b.repo
-
-		b.log.Infof("run: %s", strings.Join(cmd.Args, " "))
-
-		output, err := cmd.CombinedOutput()
+		err := b.goGet(ctx, plugin)
 		if err != nil {
-			b.log.Warnf(string(output))
-
-			return fmt.Errorf("%s: %w", strings.Join(cmd.Args, " "), err)
+			return err
 		}
+	}
+
+	return nil
+}
+
+func (b Builder) goGet(ctx context.Context, plugin *Plugin) error {
+	//nolint:gosec // the variables are user related.
+	cmd := exec.CommandContext(ctx, "go", "get", plugin.Module+"@"+plugin.Version)
+	cmd.Dir = b.repo
+
+	b.log.Infof("run: %s", strings.Join(cmd.Args, " "))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		b.log.Warnf("%s", string(output))
+
+		return fmt.Errorf("%s: %w", strings.Join(cmd.Args, " "), err)
+	}
+
+	return nil
+}
+
+func (b Builder) addReplaceDirective(ctx context.Context, plugin *Plugin) error {
+	replace := fmt.Sprintf("%s=%s", plugin.Module, plugin.Path)
+
+	cmd := exec.CommandContext(ctx, "go", "mod", "edit", "-replace", replace)
+	cmd.Dir = b.repo
+
+	b.log.Infof("run: %s", strings.Join(cmd.Args, " "))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		b.log.Warnf("%s", string(output))
+
+		return fmt.Errorf("%s: %w", strings.Join(cmd.Args, " "), err)
 	}
 
 	return nil
@@ -133,7 +164,7 @@ func (b Builder) goModTidy(ctx context.Context) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		b.log.Warnf(string(output))
+		b.log.Warnf("%s", string(output))
 
 		return fmt.Errorf("%s: %w", strings.Join(cmd.Args, " "), err)
 	}
@@ -156,7 +187,7 @@ func (b Builder) goBuild(ctx context.Context, binaryName string) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		b.log.Warnf(string(output))
+		b.log.Warnf("%s", string(output))
 
 		return fmt.Errorf("%s: %w", strings.Join(cmd.Args, " "), err)
 	}

@@ -35,6 +35,9 @@ func Parse(data []string) (SectionList, error) {
 			list = append(list, Blank{})
 		} else if s == "alias" {
 			list = append(list, Alias{})
+		} else if s == "localmodule" {
+			// pointer because we need to mutate the section at configuration time
+			list = append(list, &LocalModule{})
 		} else {
 			errString += fmt.Sprintf(" %s", s)
 		}

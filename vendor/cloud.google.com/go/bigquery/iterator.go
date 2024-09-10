@@ -140,8 +140,12 @@ type pageFetcher func(ctx context.Context, _ *rowSource, _ Schema, startIndex ui
 // See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#numeric-type
 // for more on NUMERIC.
 //
-// A repeated field corresponds to a slice or array of the element type. A STRUCT
-// type (RECORD or nested schema) corresponds to a nested struct or struct pointer.
+// A repeated field corresponds to a slice or array of the element type. BigQuery translates
+// NULL arrays into an empty array, so we follow that behavior.
+// See https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_nulls
+// for more about NULL and empty arrays.
+//
+// A STRUCT type (RECORD or nested schema) corresponds to a nested struct or struct pointer.
 // All calls to Next on the same iterator must use the same struct type.
 //
 // It is an error to attempt to read a BigQuery NULL value into a struct field,

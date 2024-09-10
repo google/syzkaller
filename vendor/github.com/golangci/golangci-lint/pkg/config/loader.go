@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/mitchellh/go-homedir"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
+	"github.com/golangci/golangci-lint/pkg/goutil"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
@@ -25,6 +25,11 @@ type LoaderOptions struct {
 	NoConfig bool   // Flag only.
 }
 
+type LoadOptions struct {
+	CheckDeprecation bool
+	Validation       bool
+}
+
 type Loader struct {
 	opts LoaderOptions
 
@@ -33,20 +38,22 @@ type Loader struct {
 
 	log logutils.Log
 
-	cfg *Config
+	cfg  *Config
+	args []string
 }
 
-func NewLoader(log logutils.Log, v *viper.Viper, fs *pflag.FlagSet, opts LoaderOptions, cfg *Config) *Loader {
+func NewLoader(log logutils.Log, v *viper.Viper, fs *pflag.FlagSet, opts LoaderOptions, cfg *Config, args []string) *Loader {
 	return &Loader{
 		opts:  opts,
 		viper: v,
 		fs:    fs,
 		log:   log,
 		cfg:   cfg,
+		args:  args,
 	}
 }
 
-func (l *Loader) Load() error {
+func (l *Loader) Load(opts LoadOptions) error {
 	err := l.setConfigFile()
 	if err != nil {
 		return err
@@ -59,16 +66,30 @@ func (l *Loader) Load() error {
 
 	l.applyStringSliceHack()
 
-	err = l.handleDeprecation()
-	if err != nil {
-		return err
+	if opts.CheckDeprecation {
+		err = l.handleDeprecation()
+		if err != nil {
+			return err
+		}
 	}
 
 	l.handleGoVersion()
 
+	err = goutil.CheckGoVersion(l.cfg.Run.Go)
+	if err != nil {
+		return err
+	}
+
 	err = l.handleEnableOnlyOption()
 	if err != nil {
 		return err
+	}
+
+	if opts.Validation {
+		err = l.cfg.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -116,50 +137,59 @@ func (l *Loader) evaluateOptions() (string, error) {
 }
 
 func (l *Loader) setupConfigFileSearch() {
-	firstArg := extractFirstPathArg()
+	l.viper.SetConfigName(".golangci")
 
-	absStartPath, err := filepath.Abs(firstArg)
-	if err != nil {
-		l.log.Warnf("Can't make abs path for %q: %s", firstArg, err)
-		absStartPath = filepath.Clean(firstArg)
-	}
-
-	// start from it
-	var curDir string
-	if fsutils.IsDir(absStartPath) {
-		curDir = absStartPath
-	} else {
-		curDir = filepath.Dir(absStartPath)
-	}
-
-	// find all dirs from it up to the root
-	configSearchPaths := []string{"./"}
-
-	for {
-		configSearchPaths = append(configSearchPaths, curDir)
-
-		newCurDir := filepath.Dir(curDir)
-		if curDir == newCurDir || newCurDir == "" {
-			break
-		}
-
-		curDir = newCurDir
-	}
-
-	// find home directory for global config
-	if home, err := homedir.Dir(); err != nil {
-		l.log.Warnf("Can't get user's home directory: %s", err.Error())
-	} else if !slices.Contains(configSearchPaths, home) {
-		configSearchPaths = append(configSearchPaths, home)
-	}
+	configSearchPaths := l.getConfigSearchPaths()
 
 	l.log.Infof("Config search paths: %s", configSearchPaths)
-
-	l.viper.SetConfigName(".golangci")
 
 	for _, p := range configSearchPaths {
 		l.viper.AddConfigPath(p)
 	}
+}
+
+func (l *Loader) getConfigSearchPaths() []string {
+	firstArg := "./..."
+	if len(l.args) > 0 {
+		firstArg = l.args[0]
+	}
+
+	absPath, err := filepath.Abs(firstArg)
+	if err != nil {
+		l.log.Warnf("Can't make abs path for %q: %s", firstArg, err)
+		absPath = filepath.Clean(firstArg)
+	}
+
+	// start from it
+	var currentDir string
+	if fsutils.IsDir(absPath) {
+		currentDir = absPath
+	} else {
+		currentDir = filepath.Dir(absPath)
+	}
+
+	// find all dirs from it up to the root
+	searchPaths := []string{"./"}
+
+	for {
+		searchPaths = append(searchPaths, currentDir)
+
+		parent := filepath.Dir(currentDir)
+		if currentDir == parent || parent == "" {
+			break
+		}
+
+		currentDir = parent
+	}
+
+	// find home directory for global config
+	if home, err := homedir.Dir(); err != nil {
+		l.log.Warnf("Can't get user's home directory: %v", err)
+	} else if !slices.Contains(searchPaths, home) {
+		searchPaths = append(searchPaths, home)
+	}
+
+	return searchPaths
 }
 
 func (l *Loader) parseConfig() error {
@@ -266,7 +296,9 @@ func (l *Loader) handleGoVersion() {
 		l.cfg.LintersSettings.Gofumpt.LangVersion = l.cfg.Run.Go
 	}
 
-	trimmedGoVersion := trimGoVersion(l.cfg.Run.Go)
+	trimmedGoVersion := goutil.TrimGoVersion(l.cfg.Run.Go)
+
+	l.cfg.LintersSettings.Revive.Go = trimmedGoVersion
 
 	l.cfg.LintersSettings.Gocritic.Go = trimmedGoVersion
 
@@ -280,38 +312,44 @@ func (l *Loader) handleGoVersion() {
 	if l.cfg.LintersSettings.Stylecheck.GoVersion == "" {
 		l.cfg.LintersSettings.Stylecheck.GoVersion = trimmedGoVersion
 	}
+
+	os.Setenv("GOSECGOVERSION", l.cfg.Run.Go)
 }
 
 func (l *Loader) handleDeprecation() error {
+	if l.cfg.InternalTest || l.cfg.InternalCmdTest || os.Getenv(logutils.EnvTestRun) == "1" {
+		return nil
+	}
+
 	// Deprecated since v1.57.0
 	if len(l.cfg.Run.SkipFiles) > 0 {
-		l.warn("The configuration option `run.skip-files` is deprecated, please use `issues.exclude-files`.")
+		l.log.Warnf("The configuration option `run.skip-files` is deprecated, please use `issues.exclude-files`.")
 		l.cfg.Issues.ExcludeFiles = l.cfg.Run.SkipFiles
 	}
 
 	// Deprecated since v1.57.0
 	if len(l.cfg.Run.SkipDirs) > 0 {
-		l.warn("The configuration option `run.skip-dirs` is deprecated, please use `issues.exclude-dirs`.")
+		l.log.Warnf("The configuration option `run.skip-dirs` is deprecated, please use `issues.exclude-dirs`.")
 		l.cfg.Issues.ExcludeDirs = l.cfg.Run.SkipDirs
 	}
 
 	// The 2 options are true by default.
 	// Deprecated since v1.57.0
 	if !l.cfg.Run.UseDefaultSkipDirs {
-		l.warn("The configuration option `run.skip-dirs-use-default` is deprecated, please use `issues.exclude-dirs-use-default`.")
+		l.log.Warnf("The configuration option `run.skip-dirs-use-default` is deprecated, please use `issues.exclude-dirs-use-default`.")
 	}
 	l.cfg.Issues.UseDefaultExcludeDirs = l.cfg.Run.UseDefaultSkipDirs && l.cfg.Issues.UseDefaultExcludeDirs
 
 	// The 2 options are false by default.
 	// Deprecated since v1.57.0
 	if l.cfg.Run.ShowStats {
-		l.warn("The configuration option `run.show-stats` is deprecated, please use `output.show-stats`")
+		l.log.Warnf("The configuration option `run.show-stats` is deprecated, please use `output.show-stats`")
 	}
 	l.cfg.Output.ShowStats = l.cfg.Run.ShowStats || l.cfg.Output.ShowStats
 
 	// Deprecated since v1.57.0
 	if l.cfg.Output.Format != "" {
-		l.warn("The configuration option `output.format` is deprecated, please use `output.formats`")
+		l.log.Warnf("The configuration option `output.format` is deprecated, please use `output.formats`")
 
 		var f OutputFormats
 		err := f.UnmarshalText([]byte(l.cfg.Output.Format))
@@ -322,58 +360,106 @@ func (l *Loader) handleDeprecation() error {
 		l.cfg.Output.Formats = f
 	}
 
+	for _, format := range l.cfg.Output.Formats {
+		if format.Format == OutFormatGithubActions {
+			l.log.Warnf("The output format `%s` is deprecated, please use `%s`", OutFormatGithubActions, OutFormatColoredLineNumber)
+			break // To avoid repeating the message if there are several usages of github-actions format.
+		}
+	}
+
+	// Deprecated since v1.59.0
+	if l.cfg.Issues.ExcludeGeneratedStrict {
+		l.log.Warnf("The configuration option `issues.exclude-generated-strict` is deprecated, please use `issues.exclude-generated`")
+		l.cfg.Issues.ExcludeGenerated = "strict" // Don't use the constants to avoid cyclic dependencies.
+	}
+
 	l.handleLinterOptionDeprecations()
 
 	return nil
 }
 
+//nolint:gocyclo // the complexity cannot be reduced.
 func (l *Loader) handleLinterOptionDeprecations() {
 	// Deprecated since v1.57.0,
 	// but it was unofficially deprecated since v1.19 (2019) (https://github.com/golangci/golangci-lint/pull/697).
 	if l.cfg.LintersSettings.Govet.CheckShadowing {
-		l.warn("The configuration option `linters.govet.check-shadowing` is deprecated. " +
+		l.log.Warnf("The configuration option `linters.govet.check-shadowing` is deprecated. " +
 			"Please enable `shadow` instead, if you are not using `enable-all`.")
+	}
+
+	if l.cfg.LintersSettings.CopyLoopVar.IgnoreAlias {
+		l.log.Warnf("The configuration option `linters.copyloopvar.ignore-alias` is deprecated and ignored," +
+			"please use `linters.copyloopvar.check-alias`.")
 	}
 
 	// Deprecated since v1.42.0.
 	if l.cfg.LintersSettings.Errcheck.Exclude != "" {
-		l.warn("The configuration option `linters.errcheck.exclude` is deprecated, please use `linters.errcheck.exclude-functions`.")
+		l.log.Warnf("The configuration option `linters.errcheck.exclude` is deprecated, please use `linters.errcheck.exclude-functions`.")
+	}
+
+	// Deprecated since v1.59.0,
+	// but it was unofficially deprecated since v1.13 (2018) (https://github.com/golangci/golangci-lint/pull/332).
+	if l.cfg.LintersSettings.Errcheck.Ignore != "" {
+		l.log.Warnf("The configuration option `linters.errcheck.ignore` is deprecated, please use `linters.errcheck.exclude-functions`.")
 	}
 
 	// Deprecated since v1.44.0.
 	if l.cfg.LintersSettings.Gci.LocalPrefixes != "" {
-		l.warn("The configuration option `linters.gci.local-prefixes` is deprecated, please use `prefix()` inside `linters.gci.sections`.")
+		l.log.Warnf("The configuration option `linters.gci.local-prefixes` is deprecated, please use `prefix()` inside `linters.gci.sections`.")
 	}
 
 	// Deprecated since v1.33.0.
 	if l.cfg.LintersSettings.Godot.CheckAll {
-		l.warn("The configuration option `linters.godot.check-all` is deprecated, please use `linters.godot.scope: all`.")
+		l.log.Warnf("The configuration option `linters.godot.check-all` is deprecated, please use `linters.godot.scope: all`.")
 	}
 
 	// Deprecated since v1.44.0.
 	if len(l.cfg.LintersSettings.Gomnd.Settings) > 0 {
-		l.warn("The configuration option `linters.gomnd.settings` is deprecated. Please use the options " +
+		l.log.Warnf("The configuration option `linters.gomnd.settings` is deprecated. Please use the options " +
 			"`linters.gomnd.checks`,`linters.gomnd.ignored-numbers`,`linters.gomnd.ignored-files`,`linters.gomnd.ignored-functions`.")
 	}
 
 	// Deprecated since v1.47.0
 	if l.cfg.LintersSettings.Gofumpt.LangVersion != "" {
-		l.warn("The configuration option `linters.gofumpt.lang-version` is deprecated, please use global `run.go`.")
+		l.log.Warnf("The configuration option `linters.gofumpt.lang-version` is deprecated, please use global `run.go`.")
 	}
 
 	// Deprecated since v1.47.0
 	if l.cfg.LintersSettings.Staticcheck.GoVersion != "" {
-		l.warn("The configuration option `linters.staticcheck.go` is deprecated, please use global `run.go`.")
+		l.log.Warnf("The configuration option `linters.staticcheck.go` is deprecated, please use global `run.go`.")
 	}
 
 	// Deprecated since v1.47.0
 	if l.cfg.LintersSettings.Gosimple.GoVersion != "" {
-		l.warn("The configuration option `linters.gosimple.go` is deprecated, please use global `run.go`.")
+		l.log.Warnf("The configuration option `linters.gosimple.go` is deprecated, please use global `run.go`.")
 	}
 
 	// Deprecated since v1.47.0
 	if l.cfg.LintersSettings.Stylecheck.GoVersion != "" {
-		l.warn("The configuration option `linters.stylecheck.go` is deprecated, please use global `run.go`.")
+		l.log.Warnf("The configuration option `linters.stylecheck.go` is deprecated, please use global `run.go`.")
+	}
+
+	// Deprecated since v1.60.0
+	if !l.cfg.LintersSettings.Unused.ExportedIsUsed {
+		l.log.Warnf("The configuration option `linters.unused.exported-is-used` is deprecated.")
+	}
+
+	// Deprecated since v1.58.0
+	if l.cfg.LintersSettings.SlogLint.ContextOnly {
+		l.log.Warnf("The configuration option `linters.sloglint.context-only` is deprecated, please use `linters.sloglint.context`.")
+		if l.cfg.LintersSettings.SlogLint.Context == "" {
+			l.cfg.LintersSettings.SlogLint.Context = "all"
+		}
+	}
+
+	// Deprecated since v1.51.0
+	if l.cfg.LintersSettings.UseStdlibVars.OSDevNull {
+		l.log.Warnf("The configuration option `linters.usestdlibvars.os-dev-null` is deprecated.")
+	}
+
+	// Deprecated since v1.51.0
+	if l.cfg.LintersSettings.UseStdlibVars.SyslogPriority {
+		l.log.Warnf("The configuration option `linters.usestdlibvars.syslog-priority` is deprecated.")
 	}
 }
 
@@ -398,14 +484,6 @@ func (l *Loader) handleEnableOnlyOption() error {
 	return nil
 }
 
-func (l *Loader) warn(format string) {
-	if l.cfg.InternalTest || l.cfg.InternalCmdTest || os.Getenv(logutils.EnvTestRun) == "1" {
-		return
-	}
-
-	l.log.Warnf(format)
-}
-
 func customDecoderHook() viper.DecoderConfigOption {
 	return viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
 		// Default hooks (https://github.com/spf13/viper/blob/518241257478c557633ab36e474dfcaeb9a3c623/viper.go#L135-L138).
@@ -415,29 +493,4 @@ func customDecoderHook() viper.DecoderConfigOption {
 		// Needed for forbidigo, and output.formats.
 		mapstructure.TextUnmarshallerHookFunc(),
 	))
-}
-
-func extractFirstPathArg() string {
-	args := os.Args
-
-	// skip all args ([golangci-lint, run/linters]) before files/dirs list
-	for len(args) != 0 {
-		if args[0] == "run" {
-			args = args[1:]
-			break
-		}
-
-		args = args[1:]
-	}
-
-	// find first file/dir arg
-	firstArg := "./..."
-	for _, arg := range args {
-		if !strings.HasPrefix(arg, "-") {
-			firstArg = arg
-			break
-		}
-	}
-
-	return firstArg
 }

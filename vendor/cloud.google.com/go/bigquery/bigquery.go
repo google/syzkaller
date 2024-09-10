@@ -84,7 +84,7 @@ const DetectProjectID = "*detect-project-id*"
 // variables.  By setting the environment variable QUERY_PREVIEW_ENABLED to the string
 // "TRUE", the client will enable preview features, though behavior may still be
 // controlled via the bigquery service as well.  Currently, the feature(s) in scope
-// include: stateless queries (query execution without corresponding job metadata).
+// include: short mode queries (query execution without corresponding job metadata).
 func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*Client, error) {
 	o := []option.ClientOption{
 		option.WithScopes(Scope),
@@ -249,8 +249,12 @@ func runWithRetryExplicit(ctx context.Context, call func() error, allowedReasons
 
 var (
 	defaultRetryReasons = []string{"backendError", "rateLimitExceeded"}
-	jobRetryReasons     = []string{"backendError", "rateLimitExceeded", "internalError"}
-	retry5xxCodes       = []int{
+
+	// These reasons are used exclusively for enqueuing jobs (jobs.insert and jobs.query).
+	// Using them for polling may cause unwanted retries until context deadline/cancellation/etc.
+	jobRetryReasons = []string{"backendError", "rateLimitExceeded", "jobRateLimitExceeded", "internalError"}
+
+	retry5xxCodes = []int{
 		http.StatusInternalServerError,
 		http.StatusBadGateway,
 		http.StatusServiceUnavailable,

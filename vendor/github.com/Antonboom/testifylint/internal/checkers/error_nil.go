@@ -3,7 +3,6 @@ package checkers
 import (
 	"go/ast"
 	"go/token"
-	"go/types"
 
 	"golang.org/x/tools/go/analysis"
 
@@ -90,24 +89,4 @@ func (checker ErrorNil) Check(pass *analysis.Pass, call *CallMeta) *analysis.Dia
 		)
 	}
 	return nil
-}
-
-var (
-	errorType  = types.Universe.Lookup("error").Type()
-	errorIface = errorType.Underlying().(*types.Interface)
-)
-
-func isError(pass *analysis.Pass, expr ast.Expr) bool {
-	t := pass.TypesInfo.TypeOf(expr)
-	if t == nil {
-		return false
-	}
-
-	_, ok := t.Underlying().(*types.Interface)
-	return ok && types.Implements(t, errorIface)
-}
-
-func isNil(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	return ok && ident.Name == "nil"
 }

@@ -14,7 +14,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `Match("foo", $0)`,
-				Returns: 2,
+				Returns: []string{"bool", "error"},
 			},
 		},
 		{ // regexp.MatchString
@@ -27,7 +27,7 @@ var (
 
 			Generate: &checker.Generate{
 				Pattern: `MatchString("foo", $0)`,
-				Returns: 2,
+				Returns: []string{"bool", "error"},
 			},
 		},
 	}
@@ -45,7 +45,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `Match($0)`,
-				Returns:      1,
+				Returns:      []string{"bool"},
 			},
 		},
 		{ // (*regexp.Regexp).MatchString
@@ -60,7 +60,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `MatchString($0)`,
-				Returns:      1,
+				Returns:      []string{"bool"},
 			},
 		},
 		{ // (*regexp.Regexp).FindAllIndex
@@ -75,7 +75,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindAllIndex($0, 1)`,
-				Returns:      1,
+				Returns:      []string{"[][]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindAllStringIndex
@@ -90,7 +90,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindAllStringIndex($0, 1)`,
-				Returns:      1,
+				Returns:      []string{"[][]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindAllSubmatchIndex
@@ -105,7 +105,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindAllSubmatchIndex($0, 1)`,
-				Returns:      1,
+				Returns:      []string{"[][]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindAllStringSubmatchIndex
@@ -120,7 +120,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindAllStringSubmatchIndex($0, 1)`,
-				Returns:      1,
+				Returns:      []string{"[][]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindIndex
@@ -135,7 +135,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindIndex($0)`,
-				Returns:      1,
+				Returns:      []string{"[]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindStringIndex
@@ -150,7 +150,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindStringIndex($0)`,
-				Returns:      1,
+				Returns:      []string{"[]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindSubmatchIndex
@@ -165,7 +165,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindSubmatchIndex($0)`,
-				Returns:      1,
+				Returns:      []string{"[]int"},
 			},
 		},
 		{ // (*regexp.Regexp).FindStringSubmatchIndex
@@ -180,7 +180,7 @@ var (
 			Generate: &checker.Generate{
 				PreCondition: `re := regexp.MustCompile(".*")`,
 				Pattern:      `FindStringSubmatchIndex($0)`,
-				Returns:      1,
+				Returns:      []string{"[]int"},
 			},
 		},
 	}

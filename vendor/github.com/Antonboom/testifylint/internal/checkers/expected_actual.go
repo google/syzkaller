@@ -3,7 +3,6 @@ package checkers
 import (
 	"go/ast"
 	"go/token"
-	"go/types"
 	"regexp"
 
 	"golang.org/x/tools/go/analysis"
@@ -15,7 +14,7 @@ import (
 var DefaultExpectedVarPattern = regexp.MustCompile(
 	`(^(exp(ected)?|want(ed)?)([A-Z]\w*)?$)|(^(\w*[a-z])?(Exp(ected)?|Want(ed)?)$)`)
 
-// ExpectedActual detects situation like
+// ExpectedActual detects situations like
 //
 //	assert.Equal(t, result, expected)
 //	assert.EqualExportedValues(t, resultObj, User{Name: "Anton"})
@@ -131,9 +130,9 @@ func (checker ExpectedActual) isExpectedValueCandidate(pass *analysis.Pass, expr
 	return isBasicLit(expr) ||
 		isUntypedConst(pass, expr) ||
 		isTypedConst(pass, expr) ||
-		isIdentNamedAsExpected(checker.expVarPattern, expr) ||
-		isStructVarNamedAsExpected(checker.expVarPattern, expr) ||
-		isStructFieldNamedAsExpected(checker.expVarPattern, expr)
+		isIdentNamedAfterPattern(checker.expVarPattern, expr) ||
+		isStructVarNamedAfterPattern(checker.expVarPattern, expr) ||
+		isStructFieldNamedAfterPattern(checker.expVarPattern, expr)
 }
 
 func isParenExpr(ce *ast.CallExpr) bool {
@@ -159,7 +158,7 @@ func isCastedBasicLitOrExpectedValue(ce *ast.CallExpr, pattern *regexp.Regexp) b
 		"int", "int8", "int16", "int32", "int64",
 		"float32", "float64",
 		"rune", "string":
-		return isBasicLit(ce.Args[0]) || isIdentNamedAsExpected(pattern, ce.Args[0])
+		return isBasicLit(ce.Args[0]) || isIdentNamedAfterPattern(pattern, ce.Args[0])
 	}
 	return false
 }
@@ -177,39 +176,4 @@ func isExpectedValueFactory(pass *analysis.Pass, ce *ast.CallExpr, pattern *rege
 		return pattern.MatchString(fn.Sel.Name)
 	}
 	return false
-}
-
-func isBasicLit(e ast.Expr) bool {
-	_, ok := e.(*ast.BasicLit)
-	return ok
-}
-
-func isUntypedConst(p *analysis.Pass, e ast.Expr) bool {
-	t := p.TypesInfo.TypeOf(e)
-	if t == nil {
-		return false
-	}
-
-	b, ok := t.(*types.Basic)
-	return ok && b.Info()&types.IsUntyped > 0
-}
-
-func isTypedConst(p *analysis.Pass, e ast.Expr) bool {
-	tt, ok := p.TypesInfo.Types[e]
-	return ok && tt.IsValue() && tt.Value != nil
-}
-
-func isIdentNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
-	id, ok := e.(*ast.Ident)
-	return ok && pattern.MatchString(id.Name)
-}
-
-func isStructVarNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
-	s, ok := e.(*ast.SelectorExpr)
-	return ok && isIdentNamedAsExpected(pattern, s.X)
-}
-
-func isStructFieldNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
-	s, ok := e.(*ast.SelectorExpr)
-	return ok && isIdentNamedAsExpected(pattern, s.Sel)
 }

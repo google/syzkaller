@@ -4,12 +4,22 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
+
+var _ Processor = (*SkipDirs)(nil)
+
+var StdExcludeDirRegexps = []string{
+	normalizePathRegex("vendor"),
+	normalizePathRegex("third_party"),
+	normalizePathRegex("testdata"),
+	normalizePathRegex("examples"),
+	normalizePathRegex("Godeps"),
+	normalizePathRegex("builtin"),
+}
 
 type skipStat struct {
 	pattern string
@@ -25,11 +35,7 @@ type SkipDirs struct {
 	pathPrefix       string
 }
 
-var _ Processor = (*SkipDirs)(nil)
-
-const goFileSuffix = ".go"
-
-func NewSkipDirs(patterns []string, log logutils.Log, runArgs []string, pathPrefix string) (*SkipDirs, error) {
+func NewSkipDirs(log logutils.Log, patterns, args []string, pathPrefix string) (*SkipDirs, error) {
 	var patternsRe []*regexp.Regexp
 	for _, p := range patterns {
 		p = fsutils.NormalizePathInRegex(p)
@@ -40,21 +46,9 @@ func NewSkipDirs(patterns []string, log logutils.Log, runArgs []string, pathPref
 		patternsRe = append(patternsRe, patternRe)
 	}
 
-	if len(runArgs) == 0 {
-		runArgs = append(runArgs, "./...")
-	}
-	var absArgsDirs []string
-	for _, arg := range runArgs {
-		base := filepath.Base(arg)
-		if base == "..." || strings.HasSuffix(base, goFileSuffix) {
-			arg = filepath.Dir(arg)
-		}
-
-		absArg, err := filepath.Abs(arg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to abs-ify arg %q: %w", arg, err)
-		}
-		absArgsDirs = append(absArgsDirs, absArg)
+	absArgsDirs, err := absDirs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return &SkipDirs{
@@ -67,7 +61,7 @@ func NewSkipDirs(patterns []string, log logutils.Log, runArgs []string, pathPref
 	}, nil
 }
 
-func (p *SkipDirs) Name() string {
+func (*SkipDirs) Name() string {
 	return "skip_dirs"
 }
 
@@ -77,6 +71,12 @@ func (p *SkipDirs) Process(issues []result.Issue) ([]result.Issue, error) {
 	}
 
 	return filterIssues(issues, p.shouldPassIssue), nil
+}
+
+func (p *SkipDirs) Finish() {
+	for dir, stat := range p.skippedDirs {
+		p.log.Infof("Skipped %d issues from dir %s by pattern %s", stat.count, dir, stat.pattern)
+	}
 }
 
 func (p *SkipDirs) shouldPassIssue(issue *result.Issue) bool {
@@ -139,8 +139,34 @@ func (p *SkipDirs) shouldPassIssueDirs(issueRelDir, issueAbsDir string) bool {
 	return true
 }
 
-func (p *SkipDirs) Finish() {
-	for dir, stat := range p.skippedDirs {
-		p.log.Infof("Skipped %d issues from dir %s by pattern %s", stat.count, dir, stat.pattern)
+func absDirs(args []string) ([]string, error) {
+	if len(args) == 0 {
+		args = append(args, "./...")
 	}
+
+	var absArgsDirs []string
+	for _, arg := range args {
+		base := filepath.Base(arg)
+		if base == "..." || isGoFile(base) {
+			arg = filepath.Dir(arg)
+		}
+
+		absArg, err := filepath.Abs(arg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to abs-ify arg %q: %w", arg, err)
+		}
+
+		absArgsDirs = append(absArgsDirs, absArg)
+	}
+
+	return absArgsDirs, nil
+}
+
+func normalizePathRegex(e string) string {
+	return createPathRegex(e, filepath.Separator)
+}
+
+func createPathRegex(e string, sep rune) string {
+	escapedSep := regexp.QuoteMeta(string(sep)) // needed for windows sep '\\'
+	return fmt.Sprintf(`(^|%[1]s)%[2]s($|%[1]s)`, escapedSep, e)
 }

@@ -27,11 +27,11 @@ import (
 	"cloud.google.com/go/internal/protostruct"
 	"cloud.google.com/go/internal/trace"
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
-	"github.com/golang/protobuf/proto"
-	proto3 "github.com/golang/protobuf/ptypes/struct"
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
+	proto3 "google.golang.org/protobuf/types/known/structpb"
 )
 
 // streamingReceiver is the interface for receiving data from a client side
@@ -498,7 +498,7 @@ var (
 )
 
 func (d *resumableStreamDecoder) next() bool {
-	retryer := onCodes(d.backoff, codes.Unavailable, codes.Internal)
+	retryer := onCodes(d.backoff, codes.Unavailable, codes.ResourceExhausted, codes.Internal)
 	for {
 		switch d.state {
 		case unConnected:

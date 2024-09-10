@@ -102,7 +102,7 @@ func (lnt *Linter) allAnalyzerNames() []string {
 	return ret
 }
 
-func (lnt *Linter) configureAnalyzer(a *analysis.Analyzer, cfg map[string]any) error {
+func (*Linter) configureAnalyzer(a *analysis.Analyzer, cfg map[string]any) error {
 	for k, v := range cfg {
 		f := a.Flags.Lookup(k)
 		if f == nil {
@@ -116,7 +116,7 @@ func (lnt *Linter) configureAnalyzer(a *analysis.Analyzer, cfg map[string]any) e
 		}
 
 		if err := f.Value.Set(valueToString(v)); err != nil {
-			return fmt.Errorf("failed to set analyzer setting %q with value %v: %w", k, v, err)
+			return fmt.Errorf("failed to set analyzer setting %q with value %q: %w", k, v, err)
 		}
 	}
 

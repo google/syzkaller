@@ -15,7 +15,7 @@ var BufioMethods = []checker.Violation{
 		Generate: &checker.Generate{
 			PreCondition: `b := bufio.Writer{}`,
 			Pattern:      `Write($0)`,
-			Returns:      2,
+			Returns:      []string{"int", "error"},
 		},
 	},
 	{ // (*bufio.Writer).WriteString
@@ -30,7 +30,7 @@ var BufioMethods = []checker.Violation{
 		Generate: &checker.Generate{
 			PreCondition: `b := bufio.Writer{}`,
 			Pattern:      `WriteString($0)`,
-			Returns:      2,
+			Returns:      []string{"int", "error"},
 		},
 	},
 	{ // (*bufio.Writer).WriteString -> (*bufio.Writer).WriteRune
@@ -42,15 +42,11 @@ var BufioMethods = []checker.Violation{
 		Args:      []int{0},
 		ArgsType:  checker.Rune,
 		AltCaller: "WriteRune",
+
+		Generate: &checker.Generate{
+			SkipGenerate: true,
+			Pattern:      `WriteString($0)`,
+			Returns:      []string{"int", "error"},
+		},
 	},
-	// { // (*bufio.Writer).WriteString -> (*bufio.Writer).WriteByte
-	// 	Targets:   checker.Strings,
-	// 	Type:      checker.Method,
-	// 	Package:   "strings",
-	// 	Struct:    "Builder",
-	// 	Caller:    "WriteString",
-	// 	Args:      []int{0},
-	// 	ArgsType:  checker.Byte,
-	// 	AltCaller: "WriteByte", // byte
-	// },
 }

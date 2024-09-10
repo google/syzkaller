@@ -15,8 +15,18 @@ func NewDefault() Config {
 		DisabledCheckers: nil,
 		DisableAll:       false,
 		EnabledCheckers:  nil,
+		BoolCompare: BoolCompareConfig{
+			IgnoreCustomTypes: false,
+		},
 		ExpectedActual: ExpectedActualConfig{
 			ExpVarPattern: RegexpValue{checkers.DefaultExpectedVarPattern},
+		},
+		Formatter: FormatterConfig{
+			CheckFormatString: true,
+			RequireFFuncs:     false,
+		},
+		GoRequire: GoRequireConfig{
+			IgnoreHTTPHandlers: false,
 		},
 		RequireError: RequireErrorConfig{
 			FnPattern: RegexpValue{nil},
@@ -36,6 +46,8 @@ type Config struct {
 
 	BoolCompare          BoolCompareConfig
 	ExpectedActual       ExpectedActualConfig
+	Formatter            FormatterConfig
+	GoRequire            GoRequireConfig
 	RequireError         RequireErrorConfig
 	SuiteExtraAssertCall SuiteExtraAssertCallConfig
 }
@@ -48,6 +60,17 @@ type BoolCompareConfig struct {
 // ExpectedActualConfig implements configuration of checkers.ExpectedActual.
 type ExpectedActualConfig struct {
 	ExpVarPattern RegexpValue
+}
+
+// FormatterConfig implements configuration of checkers.Formatter.
+type FormatterConfig struct {
+	CheckFormatString bool
+	RequireFFuncs     bool
+}
+
+// GoRequireConfig implements configuration of checkers.GoRequire.
+type GoRequireConfig struct {
+	IgnoreHTTPHandlers bool
 }
 
 // RequireErrorConfig implements configuration of checkers.RequireError.
@@ -97,12 +120,32 @@ func BindToFlags(cfg *Config, fs *flag.FlagSet) {
 	fs.BoolVar(&cfg.DisableAll, "disable-all", false, "disable all checkers")
 	fs.Var(&cfg.EnabledCheckers, "enable", "comma separated list of enabled checkers (in addition to enabled by default)")
 
-	fs.BoolVar(&cfg.BoolCompare.IgnoreCustomTypes, "bool-compare.ignore-custom-types", false,
-		"ignore user defined types (over builtin bool)")
-	fs.Var(&cfg.ExpectedActual.ExpVarPattern, "expected-actual.pattern", "regexp for expected variable name")
-	fs.Var(&cfg.RequireError.FnPattern, "require-error.fn-pattern", "regexp for error assertions that should only be analyzed")
+	fs.BoolVar(&cfg.BoolCompare.IgnoreCustomTypes,
+		"bool-compare.ignore-custom-types", false,
+		"to ignore user defined types (over builtin bool)")
+
+	fs.Var(&cfg.ExpectedActual.ExpVarPattern,
+		"expected-actual.pattern",
+		"regexp for expected variable name")
+
+	fs.BoolVar(&cfg.Formatter.CheckFormatString,
+		"formatter.check-format-string", true,
+		"to enable go vet's printf checks")
+	fs.BoolVar(&cfg.Formatter.RequireFFuncs,
+		"formatter.require-f-funcs", false,
+		"to require f-assertions if format string is used")
+
+	fs.BoolVar(&cfg.GoRequire.IgnoreHTTPHandlers,
+		"go-require.ignore-http-handlers", false,
+		"to ignore HTTP handlers (like http.HandlerFunc)")
+
+	fs.Var(&cfg.RequireError.FnPattern,
+		"require-error.fn-pattern",
+		"regexp for error assertions that should only be analyzed")
+
 	fs.Var(NewEnumValue(suiteExtraAssertCallModeAsString, &cfg.SuiteExtraAssertCall.Mode),
-		"suite-extra-assert-call.mode", "to require or remove extra Assert() call")
+		"suite-extra-assert-call.mode",
+		"to require or remove extra Assert() call")
 }
 
 var suiteExtraAssertCallModeAsString = map[string]checkers.SuiteExtraAssertCallMode{

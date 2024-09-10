@@ -19,7 +19,7 @@ const (
 
 const DefaultSuiteExtraAssertCallMode = SuiteExtraAssertCallModeRemove
 
-// SuiteExtraAssertCall detects situation like
+// SuiteExtraAssertCall detects situations like
 //
 //	func (s *MySuite) TestSomething() {
 //		s.Assert().Equal(42, value)
@@ -56,7 +56,7 @@ func (checker SuiteExtraAssertCall) Check(pass *analysis.Pass, call *CallMeta) *
 	switch checker.mode {
 	case SuiteExtraAssertCallModeRequire:
 		x, ok := call.Selector.X.(*ast.Ident) // s.True
-		if !ok || x == nil || !implementsTestifySuiteIface(pass, x) {
+		if !ok || x == nil || !implementsTestifySuite(pass, x) {
 			return nil
 		}
 
@@ -77,7 +77,7 @@ func (checker SuiteExtraAssertCall) Check(pass *analysis.Pass, call *CallMeta) *
 		}
 
 		se, ok := x.Fun.(*ast.SelectorExpr)
-		if !ok || se == nil || !implementsTestifySuiteIface(pass, se.X) {
+		if !ok || se == nil || !implementsTestifySuite(pass, se.X) {
 			return nil
 		}
 		if se.Sel == nil || se.Sel.Name != "Assert" {

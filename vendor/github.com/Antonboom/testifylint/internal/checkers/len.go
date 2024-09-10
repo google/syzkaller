@@ -1,9 +1,6 @@
 package checkers
 
 import (
-	"go/ast"
-	"go/token"
-
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -64,34 +61,4 @@ func (checker Len) Check(pass *analysis.Pass, call *CallMeta) *analysis.Diagnost
 		}
 	}
 	return nil
-}
-
-func xorLenCall(pass *analysis.Pass, a, b ast.Expr) (lenArg ast.Expr, expectedLen ast.Expr, ok bool) {
-	arg1, ok1 := isBuiltinLenCall(pass, a)
-	arg2, ok2 := isBuiltinLenCall(pass, b)
-
-	if xor(ok1, ok2) {
-		if ok1 {
-			return arg1, b, true
-		}
-		return arg2, a, true
-	}
-	return nil, nil, false
-}
-
-func isLenEquality(pass *analysis.Pass, e ast.Expr) (ast.Expr, ast.Expr, bool) {
-	be, ok := e.(*ast.BinaryExpr)
-	if !ok {
-		return nil, nil, false
-	}
-
-	if be.Op != token.EQL {
-		return nil, nil, false
-	}
-	return xorLenCall(pass, be.X, be.Y)
-}
-
-func isIntBasicLit(e ast.Expr) bool {
-	bl, ok := e.(*ast.BasicLit)
-	return ok && bl.Kind == token.INT
 }

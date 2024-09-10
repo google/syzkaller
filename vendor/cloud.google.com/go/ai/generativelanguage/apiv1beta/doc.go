@@ -49,7 +49,7 @@
 //	// - It may require correct/in-range values for request initialization.
 //	// - It may require specifying regional endpoints when creating the service client as shown in:
 //	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-//	c, err := generativelanguage.NewDiscussClient(ctx)
+//	c, err := generativelanguage.NewCacheClient(ctx)
 //	if err != nil {
 //		// TODO: Handle error.
 //	}
@@ -69,17 +69,17 @@
 //	// - It may require correct/in-range values for request initialization.
 //	// - It may require specifying regional endpoints when creating the service client as shown in:
 //	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-//	c, err := generativelanguage.NewDiscussClient(ctx)
+//	c, err := generativelanguage.NewCacheClient(ctx)
 //	if err != nil {
 //		// TODO: Handle error.
 //	}
 //	defer c.Close()
 //
-//	req := &generativelanguagepb.CountMessageTokensRequest{
+//	req := &generativelanguagepb.CreateCachedContentRequest{
 //		// TODO: Fill request struct fields.
-//		// See https://pkg.go.dev/cloud.google.com/go/ai/generativelanguage/apiv1beta/generativelanguagepb#CountMessageTokensRequest.
+//		// See https://pkg.go.dev/cloud.google.com/go/ai/generativelanguage/apiv1beta/generativelanguagepb#CreateCachedContentRequest.
 //	}
-//	resp, err := c.CountMessageTokens(ctx, req)
+//	resp, err := c.CreateCachedContent(ctx, req)
 //	if err != nil {
 //		// TODO: Handle error.
 //	}
@@ -88,7 +88,7 @@
 //
 // # Use of Context
 //
-// The ctx passed to NewDiscussClient is used for authentication requests and
+// The ctx passed to NewCacheClient is used for authentication requests and
 // for creating the underlying connection, but is not used for subsequent calls.
 // Individual methods on the client use the ctx given to them.
 //

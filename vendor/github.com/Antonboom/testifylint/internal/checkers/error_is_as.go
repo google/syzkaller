@@ -6,8 +6,6 @@ import (
 	"go/types"
 
 	"golang.org/x/tools/go/analysis"
-
-	"github.com/Antonboom/testifylint/internal/analysisutil"
 )
 
 // ErrorIsAs detects situations like
@@ -141,26 +139,4 @@ func (checker ErrorIsAs) Check(pass *analysis.Pass, call *CallMeta) *analysis.Di
 		}
 	}
 	return nil
-}
-
-func isErrorsIsCall(pass *analysis.Pass, ce *ast.CallExpr) bool {
-	return isErrorsPkgFnCall(pass, ce, "Is")
-}
-
-func isErrorsAsCall(pass *analysis.Pass, ce *ast.CallExpr) bool {
-	return isErrorsPkgFnCall(pass, ce, "As")
-}
-
-func isErrorsPkgFnCall(pass *analysis.Pass, ce *ast.CallExpr, fn string) bool {
-	se, ok := ce.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-
-	errorsIsObj := analysisutil.ObjectOf(pass.Pkg, "errors", fn)
-	if errorsIsObj == nil {
-		return false
-	}
-
-	return analysisutil.IsObj(pass.TypesInfo, se.Sel, errorsIsObj)
 }

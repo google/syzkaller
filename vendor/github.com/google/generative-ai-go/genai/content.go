@@ -25,7 +25,14 @@ const (
 	roleModel = "model"
 )
 
-// A Part is either a Text, a Blob or a FunctionResponse.
+// A Part is a piece of model content.
+// A Part can be one of the following types:
+//   - Text
+//   - Blob
+//   - FunctionCall
+//   - FunctionResponse
+//   - ExecutableCode
+//   - CodeExecutionResult
 type Part interface {
 	toPart() *pb.Part
 }
@@ -52,6 +59,10 @@ func partFromProto(p *pb.Part) Part {
 	case *pb.Part_FunctionResponse:
 		panic("FunctionResponse unimplemented")
 
+	case *pb.Part_ExecutableCode:
+		return (ExecutableCode{}).fromProto(d.ExecutableCode)
+	case *pb.Part_CodeExecutionResult:
+		return (CodeExecutionResult{}).fromProto(d.CodeExecutionResult)
 	default:
 		panic(fmt.Errorf("unknown Part.Data type %T", p.Data))
 	}
@@ -109,6 +120,22 @@ func (fd FileData) toPart() *pb.Part {
 	}
 }
 
+func (ec ExecutableCode) toPart() *pb.Part {
+	return &pb.Part{
+		Data: &pb.Part_ExecutableCode{
+			ExecutableCode: ec.toProto(),
+		},
+	}
+}
+
+func (c CodeExecutionResult) toPart() *pb.Part {
+	return &pb.Part{
+		Data: &pb.Part_CodeExecutionResult{
+			CodeExecutionResult: c.toProto(),
+		},
+	}
+}
+
 // Ptr returns a pointer to its argument.
 // It can be used to initialize pointer fields:
 //
@@ -142,4 +169,14 @@ func (c *Candidate) FunctionCalls() []FunctionCall {
 		}
 	}
 	return fcs
+}
+
+// NewUserContent returns a *Content with a "user" role set and one or more
+// parts.
+func NewUserContent(parts ...Part) *Content {
+	content := &Content{Role: roleUser, Parts: []Part{}}
+	for _, part := range parts {
+		content.Parts = append(content.Parts, part)
+	}
+	return content
 }

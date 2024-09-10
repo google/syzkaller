@@ -25,9 +25,6 @@ var defaultLintersSettings = LintersSettings{
 	Dupl: DuplSettings{
 		Threshold: 150,
 	},
-	Errcheck: ErrcheckSettings{
-		Ignore: "fmt:.*",
-	},
 	ErrorLint: ErrorLintSettings{
 		Errorf:      true,
 		ErrorfMulti: true,
@@ -144,10 +141,12 @@ var defaultLintersSettings = LintersSettings{
 		NoMixedArgs:    true,
 		KVOnly:         false,
 		AttrOnly:       false,
-		ContextOnly:    false,
+		NoGlobal:       "",
+		Context:        "",
 		StaticMsg:      false,
 		NoRawKeys:      false,
 		KeyNamingCase:  "",
+		ForbiddenKeys:  nil,
 		ArgsOnSepLines: false,
 	},
 	TagAlign: TagAlignSettings{
@@ -243,6 +242,7 @@ type LintersSettings struct {
 	MaintIdx        MaintIdxSettings
 	Makezero        MakezeroSettings
 	Misspell        MisspellSettings
+	Mnd             MndSettings
 	MustTag         MustTagSettings
 	Nakedret        NakedretSettings
 	Nestif          NestifSettings
@@ -314,7 +314,8 @@ type BiDiChkSettings struct {
 }
 
 type CopyLoopVarSettings struct {
-	IgnoreAlias bool `mapstructure:"ignore-alias"`
+	IgnoreAlias bool `mapstructure:"ignore-alias"` // Deprecated: use CheckAlias
+	CheckAlias  bool `mapstructure:"check-alias"`
 }
 
 type Cyclop struct {
@@ -367,11 +368,13 @@ type ErrcheckSettings struct {
 	DisableDefaultExclusions bool     `mapstructure:"disable-default-exclusions"`
 	CheckTypeAssertions      bool     `mapstructure:"check-type-assertions"`
 	CheckAssignToBlank       bool     `mapstructure:"check-blank"`
-	Ignore                   string   `mapstructure:"ignore"`
 	ExcludeFunctions         []string `mapstructure:"exclude-functions"`
 
 	// Deprecated: use ExcludeFunctions instead
 	Exclude string `mapstructure:"exclude"`
+
+	// Deprecated: use ExcludeFunctions instead
+	Ignore string `mapstructure:"ignore"`
 }
 
 type ErrChkJSONSettings struct {
@@ -380,10 +383,17 @@ type ErrChkJSONSettings struct {
 }
 
 type ErrorLintSettings struct {
-	Errorf      bool `mapstructure:"errorf"`
-	ErrorfMulti bool `mapstructure:"errorf-multi"`
-	Asserts     bool `mapstructure:"asserts"`
-	Comparison  bool `mapstructure:"comparison"`
+	Errorf                bool                 `mapstructure:"errorf"`
+	ErrorfMulti           bool                 `mapstructure:"errorf-multi"`
+	Asserts               bool                 `mapstructure:"asserts"`
+	Comparison            bool                 `mapstructure:"comparison"`
+	AllowedErrors         []ErrorLintAllowPair `mapstructure:"allowed-errors"`
+	AllowedErrorsWildcard []ErrorLintAllowPair `mapstructure:"allowed-errors-wildcard"`
+}
+
+type ErrorLintAllowPair struct {
+	Err string `mapstructure:"err"`
+	Fun string `mapstructure:"fun"`
 }
 
 type ExhaustiveSettings struct {
@@ -455,6 +465,7 @@ type GciSettings struct {
 	Sections      []string `mapstructure:"sections"`
 	SkipGenerated bool     `mapstructure:"skip-generated"`
 	CustomOrder   bool     `mapstructure:"custom-order"`
+	NoLexOrder    bool     `mapstructure:"no-lex-order"`
 
 	// Deprecated: use Sections instead.
 	LocalPrefixes string `mapstructure:"local-prefixes"`
@@ -549,11 +560,9 @@ type GoImportsSettings struct {
 	LocalPrefixes string `mapstructure:"local-prefixes"`
 }
 
+// Deprecated: use MndSettings.
 type GoMndSettings struct {
-	Checks           []string `mapstructure:"checks"`
-	IgnoredNumbers   []string `mapstructure:"ignored-numbers"`
-	IgnoredFiles     []string `mapstructure:"ignored-files"`
-	IgnoredFunctions []string `mapstructure:"ignored-functions"`
+	MndSettings `mapstructure:",squash"`
 
 	// Deprecated: use root level settings instead.
 	Settings map[string]map[string]any
@@ -708,7 +717,7 @@ type MustTagSettings struct {
 }
 
 type NakedretSettings struct {
-	MaxFuncLines int `mapstructure:"max-func-lines"`
+	MaxFuncLines uint `mapstructure:"max-func-lines"`
 }
 
 type NestifSettings struct {
@@ -721,6 +730,13 @@ type NilNilSettings struct {
 
 type NlreturnSettings struct {
 	BlockSize int `mapstructure:"block-size"`
+}
+
+type MndSettings struct {
+	Checks           []string `mapstructure:"checks"`
+	IgnoredNumbers   []string `mapstructure:"ignored-numbers"`
+	IgnoredFiles     []string `mapstructure:"ignored-files"`
+	IgnoredFunctions []string `mapstructure:"ignored-functions"`
 }
 
 type NoLintLintSettings struct {
@@ -776,8 +792,9 @@ type ReassignSettings struct {
 }
 
 type ReviveSettings struct {
-	MaxOpenFiles          int  `mapstructure:"max-open-files"`
-	IgnoreGeneratedHeader bool `mapstructure:"ignore-generated-header"`
+	Go                    string `mapstructure:"-"`
+	MaxOpenFiles          int    `mapstructure:"max-open-files"`
+	IgnoreGeneratedHeader bool   `mapstructure:"ignore-generated-header"`
 	Confidence            float64
 	Severity              string
 	EnableAllRules        bool `mapstructure:"enable-all-rules"`
@@ -801,20 +818,25 @@ type RowsErrCheckSettings struct {
 }
 
 type SlogLintSettings struct {
-	NoMixedArgs    bool   `mapstructure:"no-mixed-args"`
-	KVOnly         bool   `mapstructure:"kv-only"`
-	NoGlobal       string `mapstructure:"no-global"`
-	AttrOnly       bool   `mapstructure:"attr-only"`
-	ContextOnly    bool   `mapstructure:"context-only"`
-	StaticMsg      bool   `mapstructure:"static-msg"`
-	NoRawKeys      bool   `mapstructure:"no-raw-keys"`
-	KeyNamingCase  string `mapstructure:"key-naming-case"`
-	ArgsOnSepLines bool   `mapstructure:"args-on-sep-lines"`
+	NoMixedArgs    bool     `mapstructure:"no-mixed-args"`
+	KVOnly         bool     `mapstructure:"kv-only"`
+	AttrOnly       bool     `mapstructure:"attr-only"`
+	NoGlobal       string   `mapstructure:"no-global"`
+	Context        string   `mapstructure:"context"`
+	StaticMsg      bool     `mapstructure:"static-msg"`
+	NoRawKeys      bool     `mapstructure:"no-raw-keys"`
+	KeyNamingCase  string   `mapstructure:"key-naming-case"`
+	ForbiddenKeys  []string `mapstructure:"forbidden-keys"`
+	ArgsOnSepLines bool     `mapstructure:"args-on-sep-lines"`
+
+	// Deprecated: use Context instead.
+	ContextOnly bool `mapstructure:"context-only"`
 }
 
 type SpancheckSettings struct {
-	Checks                []string `mapstructure:"checks"`
-	IgnoreCheckSignatures []string `mapstructure:"ignore-check-signatures"`
+	Checks                   []string `mapstructure:"checks"`
+	IgnoreCheckSignatures    []string `mapstructure:"ignore-check-signatures"`
+	ExtraStartSpanSignatures []string `mapstructure:"extra-start-span-signatures"`
 }
 
 type StaticCheckSettings struct {
@@ -859,6 +881,15 @@ type TestifylintSettings struct {
 		ExpVarPattern string `mapstructure:"pattern"`
 	} `mapstructure:"expected-actual"`
 
+	Formatter struct {
+		CheckFormatString *bool `mapstructure:"check-format-string"`
+		RequireFFuncs     bool  `mapstructure:"require-f-funcs"`
+	} `mapstructure:"formatter"`
+
+	GoRequire struct {
+		IgnoreHTTPHandlers bool `mapstructure:"ignore-http-handlers"`
+	} `mapstructure:"go-require"`
+
 	RequireError struct {
 		FnPattern string `mapstructure:"fn-pattern"`
 	} `mapstructure:"require-error"`
@@ -898,11 +929,11 @@ type UseStdlibVarsSettings struct {
 	TimeLayout         bool `mapstructure:"time-layout"`
 	CryptoHash         bool `mapstructure:"crypto-hash"`
 	DefaultRPCPath     bool `mapstructure:"default-rpc-path"`
-	OSDevNull          bool `mapstructure:"os-dev-null"`
+	OSDevNull          bool `mapstructure:"os-dev-null"` // Deprecated
 	SQLIsolationLevel  bool `mapstructure:"sql-isolation-level"`
 	TLSSignatureScheme bool `mapstructure:"tls-signature-scheme"`
 	ConstantKind       bool `mapstructure:"constant-kind"`
-	SyslogPriority     bool `mapstructure:"syslog-priority"`
+	SyslogPriority     bool `mapstructure:"syslog-priority"` // Deprecated
 }
 
 type UnconvertSettings struct {
@@ -918,7 +949,7 @@ type UnparamSettings struct {
 type UnusedSettings struct {
 	FieldWritesAreUses     bool `mapstructure:"field-writes-are-uses"`
 	PostStatementsAreReads bool `mapstructure:"post-statements-are-reads"`
-	ExportedIsUsed         bool `mapstructure:"exported-is-used"`
+	ExportedIsUsed         bool `mapstructure:"exported-is-used"` // Deprecated
 	ExportedFieldsAreUsed  bool `mapstructure:"exported-fields-are-used"`
 	ParametersAreUsed      bool `mapstructure:"parameters-are-used"`
 	LocalVariablesAreUsed  bool `mapstructure:"local-variables-are-used"`

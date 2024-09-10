@@ -1,2 +1,0 @@
---platform ubuntu-latest=butuzov/act-go:latest
---env DRY_RUN=1
