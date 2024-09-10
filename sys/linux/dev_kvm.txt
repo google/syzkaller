@@ -71,9 +71,11 @@ ioctl$KVM_HYPERV_EVENTFD(fd fd_kvmvm, cmd const[KVM_HYPERV_EVENTFD], arg ptr[in,
 ioctl$KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2, flags[kvm_dirty_log_protect, int64]]])
 ioctl$KVM_CAP_HALT_POLL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HALT_POLL, int64]])
 ioctl$KVM_CAP_DIRTY_LOG_RING(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING, flags[kvm_dirty_log_sizes, int64]]])
+ioctl$KVM_CAP_DIRTY_LOG_RING_ACQ_REL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING_ACQ_REL, flags[kvm_dirty_log_sizes, int64]]])
 
 # NEED: arch constraints for syscalls. These are amd64/386-specific, but consts are present on all arches, so they are not disabled on other arches.
 ioctl$KVM_CAP_DISABLE_QUIRKS(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DISABLE_QUIRKS, flags[kvm_x86_quirks, int64]]])
+ioctl$KVM_CAP_DISABLE_QUIRKS2(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DISABLE_QUIRKS2, flags[kvm_x86_quirks, int64]]])
 ioctl$KVM_CAP_SPLIT_IRQCHIP(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_SPLIT_IRQCHIP, int64[0:KVM_MAX_IRQ_ROUTES]]])
 ioctl$KVM_CAP_X2APIC_API(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_X2APIC_API, flags[kvm_x2apic_apis, int64]]])
 ioctl$KVM_CAP_X86_DISABLE_EXITS(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_X86_DISABLE_EXITS, flags[kvm_x86_exits, int64]]])
@@ -85,6 +87,30 @@ ioctl$KVM_CAP_SGX_ATTRIBUTE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, 
 ioctl$KVM_CAP_VM_COPY_ENC_CONTEXT_FROM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_VM_COPY_ENC_CONTEXT_FROM, fd_kvmvm]])
 ioctl$KVM_CAP_EXIT_HYPERCALL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_EXIT_HYPERCALL, flags[kvm_hypercall_exits, int64]]])
 ioctl$KVM_CAP_EXIT_ON_EMULATION_FAILURE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_EXIT_ON_EMULATION_FAILURE, bool64]])
+ioctl$KVM_CAP_VM_MOVE_ENC_CONTEXT_FROM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_VM_MOVE_ENC_CONTEXT_FROM, fd_kvmvm]])
+ioctl$KVM_CAP_MEMORY_FAULT_INFO(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_MEMORY_FAULT_INFO, void]])
+ioctl$KVM_CAP_X86_GUEST_MODE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_X86_GUEST_MODE, void]])
+ioctl$KVM_CAP_HYPERV_VP_INDEX(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_VP_INDEX, void]])
+ioctl$KVM_CAP_HYPERV_TLBFLUSH(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_TLBFLUSH, void]])
+ioctl$KVM_CAP_HYPERV_SEND_IPI(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_SEND_IPI, void]])
+ioctl$KVM_CAP_STEAL_TIME(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_STEAL_TIME, void]])
+ioctl$KVM_CAP_XEN_HVM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_XEN_HVM, flags[kvm_xen_hvm_configs, int64]]])
+ioctl$KVM_CAP_VM_DISABLE_NX_HUGE_PAGES(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_VM_DISABLE_NX_HUGE_PAGES, const[0, int64]]])
+ioctl$KVM_CAP_VM_TYPES(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_VM_TYPES, flags[kvm_x86_vm_types, int64]]])
+
+# TODO: need more precise handling for arguments below
+ioctl$KVM_CAP_MAX_VCPU_ID(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_MAX_VCPU_ID, int64]])
+ioctl$KVM_CAP_X86_NOTIFY_VMEXIT(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_X86_NOTIFY_VMEXIT, int64]])
+ioctl$KVM_CAP_X86_APIC_BUS_CYCLES_NS(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_X86_APIC_BUS_CYCLES_NS, int64]])
+ioctl$KVM_CAP_PMU_CAPABILITY(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_PMU_CAPABILITY, int64]])
+
+# ARM-specific VM capabilities.
+ioctl$KVM_CAP_ARM_MTE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_MTE, void]])
+ioctl$KVM_CAP_ARM_USER_IRQ(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_USER_IRQ, void]])
+ioctl$KVM_CAP_ARM_INJECT_SERROR_ESR(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_INJECT_SERROR_ESR, void]])
+ioctl$KVM_CAP_ARM_SYSTEM_SUSPEND(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_SYSTEM_SUSPEND, void]])
+ioctl$KVM_CAP_ARM_EAGER_SPLIT_CHUNK_SIZE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_EAGER_SPLIT_CHUNK_SIZE, int64]])
+ioctl$KVM_CAP_PTP_KVM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_PTP_KVM, void]])
 
 ioctl$KVM_RUN(fd fd_kvmcpu, cmd const[KVM_RUN], arg const[0])
 ioctl$KVM_GET_REGS(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs])
@@ -149,6 +175,7 @@ ioctl$KVM_CAP_HYPERV_ENLIGHTENED_VMCS(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], a
 ioctl$KVM_CAP_HYPERV_DIRECT_TLBFLUSH(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_DIRECT_TLBFLUSH, void]])
 ioctl$KVM_CAP_HYPERV_ENFORCE_CPUID(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HYPERV_ENFORCE_CPUID, bool64]])
 ioctl$KVM_CAP_ENFORCE_PV_FEATURE_CPUID(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ENFORCE_PV_FEATURE_CPUID, bool64]])
+ioctl$KVM_CAP_SYNC_REGS(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_SYNC_REGS, void]])
 
 ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 ioctl$KVM_GET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
@@ -191,12 +218,19 @@ kvm_vcpu_features_arm64 = KVM_ARM_VCPU_POWER_OFF, KVM_ARM_VCPU_EL1_32BIT, KVM_AR
 
 kvm_dirty_log_protect = KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE, KVM_DIRTY_LOG_INITIALLY_SET
 kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536
-kvm_x86_quirks = KVM_X86_QUIRK_LINT0_REENABLED, KVM_X86_QUIRK_CD_NW_CLEARED, KVM_X86_QUIRK_LAPIC_MMIO_HOLE, KVM_X86_QUIRK_OUT_7E_INC_RIP, KVM_X86_QUIRK_MISC_ENABLE_NO_MWAIT
+kvm_x86_quirks = KVM_X86_QUIRK_LINT0_REENABLED, KVM_X86_QUIRK_CD_NW_CLEARED, KVM_X86_QUIRK_LAPIC_MMIO_HOLE, KVM_X86_QUIRK_OUT_7E_INC_RIP, KVM_X86_QUIRK_MISC_ENABLE_NO_MWAIT, KVM_X86_QUIRK_FIX_HYPERCALL_INSN, KVM_X86_QUIRK_MWAIT_NEVER_UD_FAULTS
 kvm_x2apic_apis = KVM_X2APIC_API_USE_32BIT_IDS, KVM_X2APIC_API_DISABLE_BROADCAST_QUIRK
 kvm_x86_exits = KVM_X86_DISABLE_EXITS_MWAIT, KVM_X86_DISABLE_EXITS_HLT, KVM_X86_DISABLE_EXITS_PAUSE, KVM_X86_DISABLE_EXITS_CSTATE
 kvm_msr_exit_reasons = KVM_MSR_EXIT_REASON_INVAL, KVM_MSR_EXIT_REASON_UNKNOWN, KVM_MSR_EXIT_REASON_FILTER
 kvm_bus_lock_exits = KVM_BUS_LOCK_DETECTION_OFF, KVM_BUS_LOCK_DETECTION_EXIT
 kvm_hypercall_exits = KVM_HC_MAP_GPA_RANGE
+kvm_xen_hvm_configs = KVM_XEN_HVM_CONFIG_HYPERCALL_MSR, KVM_XEN_HVM_CONFIG_INTERCEPT_HCALL, KVM_XEN_HVM_CONFIG_SHARED_INFO, KVM_XEN_HVM_CONFIG_RUNSTATE, KVM_XEN_HVM_CONFIG_EVTCHN_2LEVEL, KVM_XEN_HVM_CONFIG_EVTCHN_SEND, KVM_XEN_HVM_CONFIG_RUNSTATE_UPDATE_FLAG, KVM_XEN_HVM_CONFIG_PVCLOCK_TSC_UNSTABLE
+
+define KVM_X86_DEFAULT_VM_BIT	(1 << KVM_X86_DEFAULT_VM)
+define KVM_X86_SW_PROTECTED_VM_BIT	(1 << KVM_X86_SW_PROTECTED_VM)
+define KVM_X86_SEV_VM_BIT	(1 << KVM_X86_SEV_VM)
+define KVM_X86_SEV_ES_VM_BIT	(1 << KVM_X86_SEV_ES_VM)
+kvm_x86_vm_types = KVM_X86_DEFAULT_VM_BIT, KVM_X86_SW_PROTECTED_VM_BIT, KVM_X86_SEV_VM_BIT, KVM_X86_SEV_ES_VM_BIT
 
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
 kvm_guest_addr_size = 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
