@@ -84,7 +84,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 		switch a := t.(type) {
 		case *ResourceType:
 			if target.AuxResources[a.Desc.Name] {
-				noteUsage(uses, c, 1, ctx.Dir, "res%v", a.Desc.Name)
+				noteUsagef(uses, c, 1, ctx.Dir, "res%v", a.Desc.Name)
 			} else {
 				str := "res"
 				for i, k := range a.Desc.Kind {
@@ -98,20 +98,20 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 			}
 		case *PtrType:
 			if _, ok := a.Elem.(*StructType); ok {
-				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
+				noteUsagef(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
 			}
 			if _, ok := a.Elem.(*UnionType); ok {
-				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
+				noteUsagef(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
 			}
 			if arr, ok := a.Elem.(*ArrayType); ok {
-				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", arr.Elem.Name())
+				noteUsagef(uses, c, 10, ctx.Dir, "ptrto-%v", arr.Elem.Name())
 			}
 		case *BufferType:
 			switch a.Kind {
 			case BufferBlobRand, BufferBlobRange, BufferText, BufferCompressed:
 			case BufferString, BufferGlob:
 				if a.SubKind != "" {
-					noteUsage(uses, c, 2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
+					noteUsagef(uses, c, 2, ctx.Dir, "str-%v", a.SubKind)
 				}
 			case BufferFilename:
 				noteUsage(uses, c, 10, DirIn, "filename")
@@ -137,7 +137,11 @@ type weights struct {
 	inout int32
 }
 
-func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...interface{}) {
+func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string) {
+	noteUsagef(uses, c, weight, dir, "%v", str)
+}
+
+func noteUsagef(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...interface{}) {
 	id := fmt.Sprintf(str, args...)
 	if uses[id] == nil {
 		uses[id] = make(map[int]weights)

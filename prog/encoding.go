@@ -56,6 +56,10 @@ type serializer struct {
 	verbose bool
 }
 
+func (ctx *serializer) print(text string) {
+	ctx.printf("%v", text)
+}
+
 func (ctx *serializer) printf(text string, args ...interface{}) {
 	fmt.Fprintf(ctx.buf, text, args...)
 }
@@ -81,7 +85,7 @@ func (ctx *serializer) call(c *Call) {
 		}
 		ctx.arg(a)
 	}
-	ctx.printf(")")
+	ctx.print(")")
 
 	anyChangedProps := false
 	c.Props.ForeachProp(func(name, key string, value reflect.Value) {
@@ -91,13 +95,13 @@ func (ctx *serializer) call(c *Call) {
 		}
 
 		if !anyChangedProps {
-			ctx.printf(" (")
+			ctx.print(" (")
 			anyChangedProps = true
 		} else {
-			ctx.printf(", ")
+			ctx.print(", ")
 		}
 
-		ctx.printf(key)
+		ctx.print(key)
 		switch kind := value.Kind(); kind {
 		case reflect.Int:
 			ctx.printf(": %d", value.Int())

@@ -180,7 +180,7 @@ func (p *parser) expect(tokens ...token) {
 	for _, tok := range tokens {
 		str = append(str, tok.String())
 	}
-	p.s.Error(p.pos, fmt.Sprintf("unexpected %v, expecting %v", p.tok, strings.Join(str, ", ")))
+	p.s.Errorf(p.pos, "unexpected %v, expecting %v", p.tok, strings.Join(str, ", "))
 	panic(errSkipLine)
 }
 

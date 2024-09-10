@@ -75,6 +75,10 @@ func V(level int) bool {
 	return level <= *flagV
 }
 
+func Log(v int, msg string) {
+	Logf(v, "%v", msg)
+}
+
 func Logf(v int, msg string, args ...interface{}) {
 	writeMessage(v, "", msg, args...)
 }
@@ -92,7 +96,7 @@ func Fatal(err error) {
 }
 
 func Fatalf(msg string, args ...interface{}) {
-	golog.Fatalf(message("FATAL", msg, args...))
+	golog.Fatal(message("FATAL", msg, args...))
 }
 
 // SyzFatalf-reported errors are parsed by syzkaller as if they were kernel bugs.
