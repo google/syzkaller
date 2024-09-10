@@ -197,6 +197,12 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 	defer wg.Wait()
 
 	for {
+		select {
+		case <-r.parallel:
+		case <-ctx.Done():
+			return
+		}
+
 		crash := r.popCrash()
 		for crash == nil {
 			select {
@@ -212,13 +218,6 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 				r.adjustPoolSizeLocked()
 				r.mu.Unlock()
 			}
-		}
-
-		// Now wait until we can schedule another runner.
-		select {
-		case <-r.parallel:
-		case <-ctx.Done():
-			return
 		}
 
 		title := crash.FullTitle()
