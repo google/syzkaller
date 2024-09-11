@@ -200,6 +200,7 @@ ioctl$KVM_HAS_DEVICE_ATTR_vm(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg pt
 ioctl$KVM_SET_MEMORY_ATTRIBUTES(fd fd_kvmvm, cmd const[KVM_SET_MEMORY_ATTRIBUTES], arg ptr[in, kvm_memory_attributes])
 ioctl$KVM_CREATE_GUEST_MEMFD(fd fd_kvmvm, cmd const[KVM_CREATE_GUEST_MEMFD], arg ptr[in, kvm_create_guest_memfd]) fd_kvm_guest_memfd
 ioctl$KVM_PRE_FAULT_MEMORY(fd fd_kvmcpu, cmd const[KVM_PRE_FAULT_MEMORY], arg ptr[inout, kvm_pre_fault_memory])
+ioctl$KVM_GET_XSAVE2(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE2], arg vma)
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEM_GUEST_MEMFD
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
@@ -627,6 +628,7 @@ kvm_smccc_filter {
 }
 
 kvm_memory_attribute_flags = KVM_MEMORY_ATTRIBUTE_PRIVATE
+
 kvm_memory_attributes {
 	address		flags[kvm_guest_addrs, int64]
 	size		flags[kvm_guest_addr_size, int64]
