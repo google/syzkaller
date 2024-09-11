@@ -68,43 +68,10 @@ struct api_fn {
 	void* fn;
 };
 
-// syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
-static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+static void setup_vm(int vmfd, void* host_mem, const void* text, size_t text_size)
 {
-	const int vmfd = a0;
-	const int cpufd = a1;
-	char* const host_mem = (char*)a2;
-	const struct kvm_text* const text_array_ptr = (struct kvm_text*)a3;
-	const uintptr_t text_count = a4;
-	const uintptr_t flags = a5;
-	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a6;
-	uintptr_t opt_count = a7;
-
-	(void)flags;
-	(void)opt_count;
-
 	const uintptr_t page_size = 4 << 10;
 	const uintptr_t guest_mem_size = 24 * page_size;
-
-	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
-	int text_type = text_array_ptr[0].typ;
-	const void* text = text_array_ptr[0].text;
-	size_t text_size = text_array_ptr[0].size;
-	(void)text_type;
-	(void)opt_array_ptr;
-
-	uint32 features = 0;
-	if (opt_count > 1)
-		opt_count = 1;
-	for (uintptr_t i = 0; i < opt_count; i++) {
-		uint64 typ = opt_array_ptr[i].typ;
-		uint64 val = opt_array_ptr[i].val;
-		switch (typ) {
-		case 1:
-			features = val;
-			break;
-		}
-	}
 
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - unused pages
@@ -141,6 +108,46 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+}
+
+// syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
+static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+{
+	const int vmfd = a0;
+	const int cpufd = a1;
+	void* const host_mem = (void*)a2;
+	const struct kvm_text* const text_array_ptr = (struct kvm_text*)a3;
+	const uintptr_t text_count = a4;
+	const uintptr_t flags = a5;
+	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a6;
+	uintptr_t opt_count = a7;
+
+	(void)flags;
+	(void)opt_count;
+
+	const uintptr_t page_size = 4 << 10;
+
+	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
+	int text_type = text_array_ptr[0].typ;
+	const void* text = text_array_ptr[0].text;
+	size_t text_size = text_array_ptr[0].size;
+	(void)text_type;
+	(void)opt_array_ptr;
+
+	uint32 features = 0;
+	if (opt_count > 1)
+		opt_count = 1;
+	for (uintptr_t i = 0; i < opt_count; i++) {
+		uint64 typ = opt_array_ptr[i].typ;
+		uint64 val = opt_array_ptr[i].val;
+		switch (typ) {
+		case 1:
+			features = val;
+			break;
+		}
+	}
+
+	setup_vm(vmfd, host_mem, text, text_size);
 
 	struct kvm_vcpu_init init;
 	// Queries KVM for preferred CPU target type.
