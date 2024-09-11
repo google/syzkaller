@@ -663,10 +663,12 @@ kvm_s390_interrupt {
 	parm64	int64
 }
 
+kvm_irqfd_flags = KVM_IRQFD_FLAG_DEASSIGN, KVM_IRQFD_FLAG_RESAMPLE
+
 kvm_irqfd {
 	fd	fd_event
 	gsi	int32
-	flags	int32
+	flags	flags[kvm_irqfd_flags, int32]
 	rfd	fd_event
 	pad	array[const[0, int8], 16]
 }
