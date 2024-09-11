@@ -162,6 +162,7 @@ ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, 
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
+# KVM_ARM_VCPU_FINALIZE accepts a single CPU feature encoded as a bit number: https://docs.kernel.org/virt/kvm/api.html#kvm-arm-vcpu-finalize.
 ioctl$KVM_ARM_VCPU_FINALIZE(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_FINALIZE], arg ptr[in, flags[kvm_vcpu_features_arm64, int32]])
 ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
 ioctl$KVM_ARM_SET_COUNTER_OFFSET(fd fd_kvmvm, cmd const[KVM_ARM_SET_COUNTER_OFFSET], arg ptr[in, kvm_arm_counter_offset])
@@ -215,7 +216,17 @@ kvm_mcg_status = MCG_STATUS_RIPV, MCG_STATUS_EIPV, MCG_STATUS_MCIP, MCG_STATUS_L
 kvm_mce_status = MCI_STATUS_VAL, MCI_STATUS_OVER, MCI_STATUS_UC, MCI_STATUS_EN, MCI_STATUS_MISCV, MCI_STATUS_ADDRV, MCI_STATUS_PCC, MCI_STATUS_S, MCI_STATUS_AR
 kvm_cpuid_flags = KVM_CPUID_FLAG_SIGNIFCANT_INDEX, KVM_CPUID_FLAG_STATEFUL_FUNC, KVM_CPUID_FLAG_STATE_READ_NEXT
 kvm_vcpu_target = KVM_ARM_TARGET_CORTEX_A53, KVM_ARM_TARGET_AEM_V8, KVM_ARM_TARGET_FOUNDATION_V8, KVM_ARM_TARGET_CORTEX_A57, KVM_ARM_TARGET_XGENE_POTENZA, KVM_ARM_TARGET_GENERIC_V8
+
+# Some ioctls accept single CPU features as `bitnr`, whereas others take a set of `1 << bitnr`.
+define KVM_ARM_VCPU_POWER_OFF_BIT	(1 << KVM_ARM_VCPU_POWER_OFF)
+define KVM_ARM_VCPU_EL1_32BIT_BIT	(1 << KVM_ARM_VCPU_EL1_32BIT)
+define KVM_ARM_VCPU_PSCI_0_2_BIT	(1 << KVM_ARM_VCPU_PSCI_0_2)
+define KVM_ARM_VCPU_PMU_V3_BIT	(1 << KVM_ARM_VCPU_PMU_V3)
+define KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT	(1 << KVM_ARM_VCPU_PTRAUTH_ADDRESS)
+define KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT	(1 << KVM_ARM_VCPU_PTRAUTH_GENERIC)
+define KVM_ARM_VCPU_SVE_BIT	(1 << KVM_ARM_VCPU_SVE)
 kvm_vcpu_features_arm64 = KVM_ARM_VCPU_POWER_OFF, KVM_ARM_VCPU_EL1_32BIT, KVM_ARM_VCPU_PSCI_0_2, KVM_ARM_VCPU_PMU_V3, KVM_ARM_VCPU_PTRAUTH_ADDRESS, KVM_ARM_VCPU_PTRAUTH_GENERIC, KVM_ARM_VCPU_SVE
+kvm_vcpu_feature_bits_arm64 = KVM_ARM_VCPU_POWER_OFF_BIT, KVM_ARM_VCPU_EL1_32BIT_BIT, KVM_ARM_VCPU_PSCI_0_2_BIT, KVM_ARM_VCPU_PMU_V3_BIT, KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT, KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT, KVM_ARM_VCPU_SVE_BIT
 
 kvm_dirty_log_protect = KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE, KVM_DIRTY_LOG_INITIALLY_SET
 kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536
@@ -438,9 +449,10 @@ kvm_setup_opt_arm64 [
 	featur2	kvm_setup_opt_feature
 ]
 
+# syz_kvm_setup_cpu$arm64 takes the same feature bitmap as ioctl$KVM_ARM_VCPU_INIT.
 kvm_setup_opt_feature {
 	typ	const[1, int64]
-	val	flags[kvm_vcpu_features_arm64, int64]
+	val	flags[kvm_vcpu_feature_bits_arm64, int64]
 }
 
 kvm_setup_opt_ppc64 [
@@ -1128,9 +1140,10 @@ kvm_coalesced_mmio_zone {
 	pio_or_pad	int32[0:1]
 }
 
+# `feature` is a set of feature bits: https://docs.kernel.org/virt/kvm/api.html#kvm-arm-vcpu-init
 kvm_vcpu_init {
 	target	flags[kvm_vcpu_target, int32]
-	feature	flags[kvm_vcpu_features_arm64, int32]
+	feature	flags[kvm_vcpu_feature_bits_arm64, int32]
 	pad	array[const[0, int32], 6]
 }
 
