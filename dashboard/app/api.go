@@ -530,7 +530,7 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	if len(req.KernelCommit) > MaxStringLen {
 		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
 	}
-	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig, true)
+	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig)
 	if err != nil {
 		return nil, false, err
 	}
@@ -942,22 +942,22 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 		},
 	}
 	var err error
-	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
+	if crash.Log, err = putText(c, ns, textCrashLog, req.Log); err != nil {
 		return err
 	}
-	if crash.Report, err = putText(c, ns, textCrashReport, req.Report, false); err != nil {
+	if crash.Report, err = putText(c, ns, textCrashReport, req.Report); err != nil {
 		return err
 	}
-	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz, false); err != nil {
+	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz); err != nil {
 		return err
 	}
-	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
+	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC); err != nil {
 		return err
 	}
-	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, true); err != nil {
+	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo); err != nil {
 		return err
 	}
-	if crash.ReproLog, err = putText(c, ns, textReproLog, req.ReproLog, false); err != nil {
+	if crash.ReproLog, err = putText(c, ns, textReproLog, req.ReproLog); err != nil {
 		return err
 	}
 	crash.UpdateReportingPriority(c, build, bug)
@@ -1108,7 +1108,7 @@ func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) err
 		Manager: build.Manager,
 	}
 	var err error
-	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log, false); err != nil {
+	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log); err != nil {
 		return err
 	}
 	if len(deleteKeys) > 0 {
@@ -1551,7 +1551,12 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 	return timeSince(c, bug.LastReproTime) >= reproStalePeriod
 }
 
-func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {
+var dedupTextFor = map[string]bool{
+	textKernelConfig: true,
+	textMachineInfo:  true,
+}
+
+func putText(c context.Context, ns, tag string, data []byte) (int64, error) {
 	if ns == "" {
 		return 0, fmt.Errorf("putting text outside of namespace")
 	}
@@ -1561,7 +1566,7 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 	const (
 		// Kernel crash log is capped at ~1MB, but vm.Diagnose can add more.
 		// These text files usually compress very well.
-		maxTextLen       = 10 << 20
+		maxTextLen       = 10 << 20   // 10 MB
 		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
 	)
 	if len(data) > maxTextLen {
@@ -1575,11 +1580,14 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 		if len(b.Bytes()) < maxCompressedLen {
 			break
 		}
-		data = data[:len(data)/10*9]
+		// For crash logs, it's better to preserve the end of the log - that is,
+		// where the panic message resides.
+		// Other types of data are not really assumed to be larger than 1MB compressed.
+		data = data[len(data)/10:]
 		b.Reset()
 	}
 	var key *db.Key
-	if dedup {
+	if dedupTextFor[tag] {
 		h := hash.Hash([]byte(ns), b.Bytes())
 		key = db.NewKey(c, tag, "", h.Truncate64(), nil)
 	} else {
@@ -1809,7 +1817,7 @@ func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.Log
 }
 
 func saveReproTask(c context.Context, ns, manager string, repro []byte) error {
-	log, err := putText(c, ns, textCrashLog, repro, false)
+	log, err := putText(c, ns, textCrashLog, repro)
 	if err != nil {
 		return err
 	}
