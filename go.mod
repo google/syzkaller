@@ -33,7 +33,7 @@ require (
 	golang.org/x/sys v0.25.0
 	golang.org/x/tools v0.25.0
 	google.golang.org/api v0.196.0
-	google.golang.org/appengine/v2 v2.0.5
+	google.golang.org/appengine/v2 v2.0.6
 	google.golang.org/genproto v0.0.0-20240903143218-8af14fe29dc1
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
