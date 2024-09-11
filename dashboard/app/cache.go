@@ -46,7 +46,7 @@ func CacheGet(c context.Context, r *http.Request, ns string) (*Cached, error) {
 	if err != nil {
 		return nil, err
 	}
-	backports, err := loadAllBackports(c)
+	backports, err := loadAllBackports(c, false)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ var cacheAccessLevels = []AccessLevel{AccessPublic, AccessUser, AccessAdmin}
 // Cache update is slow and we don't want to slow down user requests.
 func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	backports, err := loadAllBackports(c)
+	backports, err := loadAllBackports(c, false)
 	if err != nil {
 		log.Errorf(c, "failed load backports: %v", err)
 		return
@@ -102,11 +102,11 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackpor
 	}
 	for _, backport := range backports {
 		outgoing := stringInList(backport.FromNs, ns)
-		for _, bug := range backport.Bugs {
-			if accessLevel < bug.sanitizeAccess(c, accessLevel) {
+		for _, info := range backport.Bugs {
+			if accessLevel < info.bug.sanitizeAccess(c, accessLevel) {
 				continue
 			}
-			if bug.Namespace == ns || outgoing {
+			if info.bug.Namespace == ns || outgoing {
 				v.MissingBackports++
 			}
 		}

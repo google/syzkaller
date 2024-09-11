@@ -133,6 +133,72 @@ func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *publicAPIBugGroup {
 	}
 }
 
+type publicKernelTree struct {
+	Repo   string `json:"repo"`
+	Branch string `json:"branch"`
+}
+
+type publicBackportBug struct {
+	Namespace    string `json:"Namespace"`
+	Title        string `json:"title"`
+	ConfigLink   string `json:"config_link"`
+	SyzReproLink string `json:"syz_repro_link"`
+	CReproLink   string `json:"c_repro_link"`
+}
+
+type publicMissingBackport struct {
+	From   publicKernelTree    `json:"from"`
+	To     publicKernelTree    `json:"to"`
+	Commit string              `json:"commit"`
+	Title  string              `json:"title"`
+	Bugs   []publicBackportBug `json:"bugs"`
+}
+
+type publicAPIBackports struct {
+	Version int `json:"version"`
+	List    []publicMissingBackport
+}
+
+func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
+	return &publicAPIBackports{
+		Version: 1,
+		List: func() []publicMissingBackport {
+			var res []publicMissingBackport
+			for _, group := range groups {
+				from := publicKernelTree{
+					Repo:   group.From.URL,
+					Branch: group.From.Branch,
+				}
+				to := publicKernelTree{
+					Repo:   group.To.URL,
+					Branch: group.To.Branch,
+				}
+				for _, backport := range group.List {
+					record := publicMissingBackport{
+						From:   from,
+						To:     to,
+						Commit: backport.Commit.Hash,
+						Title:  backport.Commit.Title,
+					}
+					for ns, bugs := range backport.Bugs {
+						for _, info := range bugs {
+							record.Bugs = append(record.Bugs, publicBackportBug{
+								Namespace:    ns,
+								Title:        info.Bug.Title,
+								ConfigLink:   info.Crash.KernelConfigLink,
+								CReproLink:   info.Crash.ReproCLink,
+								SyzReproLink: info.Crash.ReproSyzLink,
+							})
+						}
+					}
+					res = append(res, record)
+				}
+			}
+			return res
+		}(),
+	}
+}
+
 func GetJSONDescrFor(page interface{}) ([]byte, error) {
 	var res interface{}
 	switch i := page.(type) {
@@ -142,6 +208,8 @@ func GetJSONDescrFor(page interface{}) ([]byte, error) {
 		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
 	case *uiMainPage:
 		res = getExtAPIDescrForBugGroups(i.Groups)
+	case *uiBackportsPage:
+		res = getExtAPIDescrForBackports(i.Groups)
 	default:
 		return nil, ErrClientNotFound
 	}
