@@ -72,6 +72,12 @@ func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, file
 }
 
 func rendResult(content string, coverage *covermerger.MergeResult, renderConfig *CoverageRenderConfig) string {
+	if coverage == nil {
+		coverage = &covermerger.MergeResult{
+			HitCounts:   map[int]int{},
+			LineDetails: map[int][]*covermerger.FileRecord{},
+		}
+	}
 	srcLines := strings.Split(content, "\n")
 	var htmlLines []string
 	for i, srcLine := range srcLines {
