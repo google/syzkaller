@@ -18,6 +18,8 @@ func TestReproManager(t *testing.T) {
 		run: make(chan runCallback),
 	}
 	obj := NewReproLoop(mock, 3, false)
+	// No reproductions until we've started.
+	assert.False(t, obj.CanReproMore())
 
 	ctx, done := context.WithCancel(context.Background())
 	complete := make(chan struct{})
@@ -31,12 +33,6 @@ func TestReproManager(t *testing.T) {
 		<-complete
 	}()
 
-	// No reproductions until we've signaled to start.
-	assert.False(t, obj.CanReproMore())
-	obj.StartReproduction()
-
-	// No reproducers -- we can definitely take more.
-	assert.True(t, obj.CanReproMore())
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
 	called := <-mock.run
 	assert.Equal(t, "A", called.crash.Title)
@@ -64,11 +60,6 @@ func TestReproOrder(t *testing.T) {
 		run: make(chan runCallback),
 	}
 	obj := NewReproLoop(mock, 1, false)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		obj.Loop(ctx)
-	}()
 
 	// The right order is A B C.
 	crashes := []*Crash{
@@ -94,7 +85,10 @@ func TestReproOrder(t *testing.T) {
 	obj.Enqueue(crashes[0])
 	obj.Enqueue(crashes[2])
 
-	obj.StartReproduction()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go obj.Loop(ctx)
+
 	for i := 0; i < len(crashes)*2; i++ {
 		called := <-mock.run
 		assert.Equal(t, crashes[i%len(crashes)], called.crash)
@@ -111,13 +105,7 @@ func TestReproRWRace(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go func() {
-		obj.Loop(ctx) // calls runRepro()
-	}()
-
-	assert.False(t, obj.CanReproMore())
-	obj.StartReproduction()
-	assert.True(t, obj.CanReproMore())
+	go obj.Loop(ctx) // calls runRepro()
 
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})

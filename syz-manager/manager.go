@@ -298,7 +298,6 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	ctx := vm.ShutdownCtx()
 	go mgr.processFuzzingResults(ctx)
-	go mgr.reproLoop.Loop(ctx)
 	mgr.pool.Loop(ctx)
 }
 
@@ -992,7 +991,7 @@ func (mgr *Manager) getNewRepros() [][]byte {
 func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
 	mgr.mu.Lock()
 	if mgr.phase == phaseTriagedCorpus {
-		mgr.phase = phaseQueriedHub
+		mgr.setPhaseLocked(phaseQueriedHub)
 	}
 	mgr.mu.Unlock()
 	if mgr.cfg.Experimental.ResetAccState {
@@ -1127,7 +1126,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
 	corpus := mgr.loadCorpus()
-	mgr.phase = phaseLoadedCorpus
+	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := mgr.defaultExecOpts()
 
 	if mgr.mode == ModeFuzzing {
@@ -1300,19 +1299,28 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 					mgr.serv.TriagedCorpus()
 				}
 				if mgr.cfg.HubClient != "" {
-					mgr.phase = phaseTriagedCorpus
+					mgr.setPhaseLocked(phaseTriagedCorpus)
 					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
 				} else {
-					mgr.phase = phaseTriagedHub
-					mgr.reproLoop.StartReproduction()
+					mgr.setPhaseLocked(phaseTriagedHub)
 				}
 			} else if mgr.phase == phaseQueriedHub {
-				mgr.phase = phaseTriagedHub
-				mgr.reproLoop.StartReproduction()
+				mgr.setPhaseLocked(phaseTriagedHub)
 			}
 			mgr.mu.Unlock()
 		}
 	}
+}
+
+func (mgr *Manager) setPhaseLocked(newPhase int) {
+	if mgr.phase == newPhase {
+		panic("repeated phase update")
+	}
+	if newPhase == phaseTriagedHub {
+		// Start reproductions.
+		go mgr.reproLoop.Loop(vm.ShutdownCtx())
+	}
+	mgr.phase = newPhase
 }
 
 func (mgr *Manager) needMoreCandidates() bool {
@@ -1324,8 +1332,7 @@ func (mgr *Manager) hubIsUnreachable() {
 	mgr.mu.Lock()
 	if mgr.phase == phaseTriagedCorpus {
 		dash = mgr.dash
-		mgr.phase = phaseTriagedHub
-		mgr.reproLoop.StartReproduction()
+		mgr.setPhaseLocked(phaseTriagedHub)
 		log.Errorf("did not manage to connect to syz-hub; moving forward")
 	}
 	mgr.mu.Unlock()

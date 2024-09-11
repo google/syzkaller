@@ -94,25 +94,6 @@ func NewReproLoop(mgr ReproManagerView, reproVMs int, onlyOnce bool) *ReproLoop 
 	return ret
 }
 
-// startReproduction() is assumed to be called only once.
-// The agument is the maximum number of VMs dedicated to the bug reproduction.
-func (r *ReproLoop) StartReproduction() {
-	count := 0
-	for ; r.calculateReproVMs(count+1) <= r.reproVMs; count++ {
-		r.parallel <- struct{}{}
-	}
-	log.Logf(0, "starting bug reproductions (max %d VMs, %d repros)", r.reproVMs, count)
-}
-
-func (r *ReproLoop) calculateReproVMs(repros int) int {
-	// Let's allocate 1.33 VMs per a reproducer thread.
-	if r.reproVMs == 1 && repros == 1 {
-		// With one exception -- if we have only one VM, let's still do one repro.
-		return 1
-	}
-	return (repros*4 + 2) / 3
-}
-
 func (r *ReproLoop) CanReproMore() bool {
 	return len(r.parallel) != 0
 }
@@ -193,6 +174,12 @@ func (r *ReproLoop) popCrash() *Crash {
 }
 
 func (r *ReproLoop) Loop(ctx context.Context) {
+	count := 0
+	for ; r.calculateReproVMs(count+1) <= r.reproVMs; count++ {
+		r.parallel <- struct{}{}
+	}
+	log.Logf(0, "starting bug reproductions (max %d VMs, %d repros)", r.reproVMs, count)
+
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -246,6 +233,15 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			r.pingQueue <- struct{}{}
 		}()
 	}
+}
+
+func (r *ReproLoop) calculateReproVMs(repros int) int {
+	// Let's allocate 1.33 VMs per a reproducer thread.
+	if r.reproVMs == 1 && repros == 1 {
+		// With one exception -- if we have only one VM, let's still do one repro.
+		return 1
+	}
+	return (repros*4 + 2) / 3
 }
 
 func (r *ReproLoop) handle(crash *Crash) {
