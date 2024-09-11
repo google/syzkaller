@@ -34,6 +34,7 @@ ioctl$KVM_CREATE_VCPU(fd fd_kvmvm, cmd const[KVM_CREATE_VCPU], id intptr[0:2]) f
 ioctl$KVM_CHECK_EXTENSION_VM(fd fd_kvmvm, cmd const[KVM_CHECK_EXTENSION], arg intptr)
 ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[in, kvm_dirty_log])
 ioctl$KVM_CLEAR_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_CLEAR_DIRTY_LOG], arg ptr[in, kvm_clear_dirty_log])
+ioctl$KVM_RESET_DIRTY_RINGS(fd fd_kvmvm, cmd const[KVM_RESET_DIRTY_RINGS])
 ioctl$KVM_CREATE_IRQCHIP(fd fd_kvmvm, cmd const[KVM_CREATE_IRQCHIP])
 ioctl$KVM_IRQ_LINE(fd fd_kvmvm, cmd const[KVM_IRQ_LINE], arg ptr[in, kvm_irq_level])
 ioctl$KVM_IRQ_LINE_STATUS(fd fd_kvmvm, cmd const[KVM_IRQ_LINE_STATUS], arg ptr[in, kvm_irq_level])
