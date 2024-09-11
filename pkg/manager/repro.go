@@ -198,19 +198,22 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 
 	for {
 		crash := r.popCrash()
-		for crash == nil {
-			select {
-			case <-r.pingQueue:
-				crash = r.popCrash()
-			case <-ctx.Done():
-				return
-			}
+		for {
 			if crash != nil && !r.mgr.NeedRepro(crash) {
 				crash = nil
 				// Now we might not need that many VMs.
 				r.mu.Lock()
 				r.adjustPoolSizeLocked()
 				r.mu.Unlock()
+			}
+			if crash != nil {
+				break
+			}
+			select {
+			case <-r.pingQueue:
+				crash = r.popCrash()
+			case <-ctx.Done():
+				return
 			}
 		}
 
