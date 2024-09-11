@@ -19,6 +19,7 @@ include <net/xfrm.h>
 type msghdr_nf_tables[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, CMD, POLICY]]
 # TODO: we should obtain them from somewhere, probably from other netlink messages,
 # but we can't extract output netlink attributes.
+# for now let's just manually limit it to 4 possible ids to allow lookups
 type nft_chain_id int32be[1:4]
 
 sendmsg$NFT_MSG_GETTABLE(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_tables[NFT_MSG_GETTABLE, nft_table_policy]], f flags[send_flags])
