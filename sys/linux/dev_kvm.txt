@@ -206,7 +206,7 @@ ioctl$KVM_GET_XSAVE2(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE2], arg vma)
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEM_GUEST_MEMFD
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
-kvm_irq_routing_entry_type = KVM_IRQ_ROUTING_IRQCHIP, KVM_IRQ_ROUTING_MSI, KVM_IRQ_ROUTING_S390_ADAPTER, KVM_IRQ_ROUTING_HV_SINT
+kvm_irq_routing_entry_type = KVM_IRQ_ROUTING_IRQCHIP, KVM_IRQ_ROUTING_MSI, KVM_IRQ_ROUTING_S390_ADAPTER, KVM_IRQ_ROUTING_HV_SINT, KVM_IRQ_ROUTING_XEN_EVTCHN
 kvm_ioeventfd_flags = KVM_IOEVENTFD_FLAG_DATAMATCH, KVM_IOEVENTFD_FLAG_PIO, KVM_IOEVENTFD_FLAG_DEASSIGN, KVM_IOEVENTFD_FLAG_VIRTIO_CCW_NOTIFY
 kvm_ioeventfd_len = 0, 1, 2, 4, 8
 kvm_device_type = KVM_DEV_TYPE_FSL_MPIC_20, KVM_DEV_TYPE_FSL_MPIC_42, KVM_DEV_TYPE_XICS, KVM_DEV_TYPE_VFIO, KVM_DEV_TYPE_ARM_VGIC_V2, KVM_DEV_TYPE_FLIC, KVM_DEV_TYPE_ARM_VGIC_V3, KVM_DEV_TYPE_ARM_VGIC_ITS, KVM_DEV_TYPE_XIVE, KVM_DEV_TYPE_ARM_PV_TIME, KVM_DEV_TYPE_RISCV_AIA
@@ -698,11 +698,13 @@ kvm_pit_config {
 	pad	array[const[0, int32], 15]
 }
 
+kvm_msi_flags = 0, KVM_MSI_VALID_DEVID
+
 kvm_msi {
 	addrlo	flags[kvm_guest_addrs, int32]
 	addrhi	flags[kvm_guest_addrs, int32]
 	data	int32
-	flags	int32
+	flags	flags[kvm_msi_flags, int32]
 	devid	int32
 	pad	array[const[0, int8], 12]
 }
@@ -771,7 +773,7 @@ kvm_irq_routing {
 kvm_irq_routing_entry {
 	gsi	int32
 	type	flags[kvm_irq_routing_entry_type, int32]
-	flags	const[0, int32]
+	flags	flags[kvm_msi_flags, int32]
 	pad	const[0, int32]
 	u	kvm_irq_routing_entry_u
 }
