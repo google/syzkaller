@@ -897,9 +897,11 @@ kvm_vcpu_events [
 	arm64	kvm_vcpu_events_arm64
 ]
 
+kvm_clock_flags = KVM_CLOCK_TSC_STABLE, KVM_CLOCK_REALTIME, KVM_CLOCK_HOST_TSC
+
 kvm_clock_data {
 	clock		int64
-	flags		int32
+	flags		flags[kvm_clock_flags, int32]
 	pad0		int32
 	realtime	int64
 	host_tsc	int64
