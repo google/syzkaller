@@ -1118,3 +1118,52 @@ func mergeStringList(list, add []string) []string {
 func dateTime(date int) time.Time {
 	return time.Date(date/10000, time.Month(date/100%100), date%100, 0, 0, 0, 0, time.UTC)
 }
+
+// dependencyLoader encapsulates the repetitive logic of mass loading referenced entities.
+type dependencyLoader[T any] struct {
+	keys      []*db.Key
+	callbacks []func(*T)
+}
+
+func (dl *dependencyLoader[T]) add(key *db.Key, upd func(*T)) {
+	dl.keys = append(dl.keys, key)
+	dl.callbacks = append(dl.callbacks, upd)
+}
+
+func (dl *dependencyLoader[T]) load(c context.Context) error {
+	type info struct {
+		key *db.Key
+		cbs []func(*T)
+	}
+	unique := map[string]*info{}
+	for i, key := range dl.keys {
+		str := key.String()
+		val := unique[str]
+		if val == nil {
+			val = &info{key: key}
+			unique[str] = val
+		}
+		val.cbs = append(val.cbs, dl.callbacks[i])
+	}
+	if len(unique) == 0 {
+		return nil
+	}
+
+	var keys []*db.Key
+	var infos []*info
+	for _, info := range unique {
+		keys = append(keys, info.key)
+		infos = append(infos, info)
+	}
+	objects := make([]*T, len(keys))
+	if badKey, err := getAllMulti(c, keys, objects); err != nil {
+		return fmt.Errorf("%v: %w", badKey, err)
+	}
+	for i := range keys {
+		info := infos[i]
+		for _, cb := range info.cbs {
+			cb(objects[i])
+		}
+	}
+	return nil
+}

@@ -64,9 +64,7 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	crashKeys := []*db.Key{}
-	crashToInput := map[*db.Key]*bugInput{}
+	crashLoader := &dependencyLoader[Crash]{}
 	for i, bug := range bugs {
 		bugReporting := lastReportedReporting(bug)
 		input := &bugInput{
@@ -75,42 +73,27 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 		}
 		if bugReporting.CrashID != 0 {
 			crashKey := db.NewKey(c, "Crash", "", bugReporting.CrashID, bugKeys[i])
-			crashKeys = append(crashKeys, crashKey)
-			crashToInput[crashKey] = input
+			crashLoader.add(crashKey, func(crash *Crash) {
+				input.reportedCrash = crash
+			})
 		}
 		inputs = append(inputs, input)
 	}
-	// Fetch crashes.
-	buildKeys := []*db.Key{}
-	buildToInput := map[*db.Key]*bugInput{}
-	if len(crashKeys) > 0 {
-		crashes := make([]*Crash, len(crashKeys))
-		if badKey, err := getAllMulti(c, crashKeys, crashes); err != nil {
-			return nil, fmt.Errorf("failed to fetch crashes for %v: %w", badKey, err)
-		}
-		for i, crash := range crashes {
-			if crash == nil {
-				continue
-			}
-			input := crashToInput[crashKeys[i]]
-			input.reportedCrash = crash
-
-			buildKey := buildKey(c, ns, crash.BuildID)
-			buildKeys = append(buildKeys, buildKey)
-			buildToInput[buildKey] = input
-		}
+	if err := crashLoader.load(c); err != nil {
+		return nil, fmt.Errorf("failed to fetch crashes: %w", err)
 	}
-	// Fetch builds.
-	if len(buildKeys) > 0 {
-		builds := make([]*Build, len(buildKeys))
-		if badKey, err := getAllMulti(c, buildKeys, builds); err != nil {
-			return nil, fmt.Errorf("failed to fetch builds for %v: %w", badKey, err)
+	buildLoader := &dependencyLoader[Build]{}
+	for _, input := range inputs {
+		input := input
+		if input.reportedCrash == nil {
+			continue
 		}
-		for i, build := range builds {
-			if build != nil {
-				buildToInput[buildKeys[i]].build = build
-			}
-		}
+		buildLoader.add(buildKey(c, ns, input.reportedCrash.BuildID), func(build *Build) {
+			input.build = build
+		})
+	}
+	if err := buildLoader.load(c); err != nil {
+		return nil, fmt.Errorf("failed to fetch builds: %w", err)
 	}
 	return inputs, nil
 }
