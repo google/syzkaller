@@ -280,3 +280,25 @@ func TestConditionalUnionFields(t *testing.T) {
 	assert.Greater(t, zeroU2, 0)
 	assert.Greater(t, nonzeroU2, 0)
 }
+
+func TestNestedConditionalCall(t *testing.T) {
+	// Ensure that we reach different combinations of conditional fields.
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	ct := target.DefaultChoiceTable()
+	r := newRand(target, rs)
+
+	for i := 0; i < 100; i++ {
+		for _, name := range []string{"test$conditional_struct_nested", "test$conditional_struct_nested2"} {
+			s := newState(target, ct, nil)
+			calls := r.generateParticularCall(s, target.SyscallMap[name])
+			p := &Prog{
+				Target: target,
+				Calls:  calls,
+			}
+			err := p.checkConditions()
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}

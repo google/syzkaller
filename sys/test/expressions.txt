@@ -16,7 +16,28 @@ conditional_struct {
 	f2	int64	(if[value[mask] & FIELD_FLAG2])
 } [packed]
 
-test$conditional_struct(a ptr[in, conditional_struct])
+resource some_res[int32]
+
+test$conditional_struct(a ptr[in, conditional_struct]) some_res
+
+# To generate this call, we need to recursively also generate a test$conditional_struct() call.
+
+needs_some_res {
+	switch	int32
+	field	some_res	(if[value[switch] != 0])
+}
+
+resource some_res_nested[int32]
+test$conditional_struct_nested(a ptr[in, needs_some_res]) some_res_nested
+
+# .. and one more level.
+
+needs_some_res_nested {
+	switch	int32
+	field	some_res_nested	(if[value[switch] != 0])
+}
+
+test$conditional_struct_nested2(a ptr[in, needs_some_res_nested])
 
 parent_conditions {
 	mask	int32
