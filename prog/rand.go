@@ -25,10 +25,10 @@ const (
 
 type randGen struct {
 	*rand.Rand
-	target             *Target
-	inGenerateResource bool
-	inPatchConditional bool
-	recDepth           map[string]int
+	target                *Target
+	inGenerateResource    bool
+	patchConditionalDepth int
+	recDepth              map[string]int
 }
 
 func newRand(target *Target, rs rand.Source) *randGen {
