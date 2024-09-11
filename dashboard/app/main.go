@@ -426,9 +426,14 @@ type uiBackportGroup struct {
 	List       []*uiBackport
 }
 
+type uiBackportBug struct {
+	Bug   *uiBug
+	Crash *uiCrash
+}
+
 type uiBackport struct {
 	Commit *uiCommit
-	Bugs   map[string][]*uiBug // namespace -> list of related bugs in it
+	Bugs   map[string][]uiBackportBug // namespace -> list of related bugs in it
 }
 
 type uiBackportsPage struct {
@@ -685,7 +690,8 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return err
 	}
-	backports, err := loadAllBackports(c)
+	json := r.FormValue("json") == "1"
+	backports, err := loadAllBackports(c, json)
 	if err != nil {
 		return err
 	}
@@ -695,10 +701,11 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		outgoing := stringInList(backport.FromNs, hdr.Namespace)
 		ui := &uiBackport{
 			Commit: backport.Commit,
-			Bugs:   map[string][]*uiBug{},
+			Bugs:   map[string][]uiBackportBug{},
 		}
 		incoming := false
-		for _, bug := range backport.Bugs {
+		for _, bugInfo := range backport.Bugs {
+			bug := bugInfo.bug
 			if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 				continue
 			}
@@ -709,8 +716,10 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 			if bug.Namespace == hdr.Namespace {
 				incoming = true
 			}
-			ui.Bugs[bug.Namespace] = append(ui.Bugs[bug.Namespace],
-				createUIBug(c, bug, nil, nil))
+			ui.Bugs[bug.Namespace] = append(ui.Bugs[bug.Namespace], uiBackportBug{
+				Bug:   bugInfo.Bug,
+				Crash: bugInfo.Crash,
+			})
 		}
 		if len(ui.Bugs) == 0 {
 			continue
@@ -753,13 +762,24 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		return groups[i].From.String()+groups[i].To.String() <
 			groups[j].From.String()+groups[j].To.String()
 	})
-	return serveTemplate(w, "backports.html", &uiBackportsPage{
+	page := &uiBackportsPage{
 		Header: hdr,
 		Groups: groups,
 		DisplayNamespace: func(ns string) string {
 			return getNsConfig(c, ns).DisplayTitle
 		},
-	})
+	}
+	if json {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, page)
+	}
+	return serveTemplate(w, "backports.html", page)
+}
+
+type rawBackportBug struct {
+	Bug   *uiBug
+	Crash *uiCrash
+	bug   *Bug
 }
 
 type rawBackport struct {
@@ -767,13 +787,18 @@ type rawBackport struct {
 	From   *uiRepo
 	FromNs []string // namespaces that correspond to From
 	To     *uiRepo
-	Bugs   []*Bug
+	Bugs   []rawBackportBug
 }
 
-func loadAllBackports(c context.Context) ([]*rawBackport, error) {
+func loadAllBackports(c context.Context, loadCrashes bool) ([]*rawBackport, error) {
 	list, err := relevantBackportJobs(c)
 	if err != nil {
 		return nil, err
+	}
+	if loadCrashes {
+		if err := fullBackportInfo(c, list); err != nil {
+			return nil, err
+		}
 	}
 	var ret []*rawBackport
 	perCommit := map[string]*rawBackport{}
@@ -801,7 +826,14 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 			ret = append(ret, backport)
 			perCommit[hash] = backport
 		}
-		backport.Bugs = append(backport.Bugs, info.bug)
+		bug := rawBackportBug{
+			Bug: createUIBug(c, info.bug, nil, nil),
+			bug: info.bug,
+		}
+		if info.crashBuild != nil {
+			bug.Crash = makeUICrash(c, info.crash, info.crashBuild)
+		}
+		backport.Bugs = append(backport.Bugs, bug)
 	}
 	return ret, nil
 }

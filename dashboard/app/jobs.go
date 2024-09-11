@@ -1632,9 +1632,13 @@ type backportInfo struct {
 	bug    *Bug
 	job    *Job
 	jobKey *db.Key
+
+	// These are not filled by default.
+	crash      *Crash
+	crashBuild *Build
 }
 
-func relevantBackportJobs(c context.Context) ([]backportInfo, error) {
+func relevantBackportJobs(c context.Context) ([]*backportInfo, error) {
 	allBugs, _, bugsErr := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("FixCandidateJob>", "").Filter("Status=", BugStatusOpen)
 	})
@@ -1654,7 +1658,7 @@ func relevantBackportJobs(c context.Context) ([]backportInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	var list []backportInfo
+	var list []*backportInfo
 	for i, job := range allJobs {
 		// Some assertions just in case.
 		jobKey := allJobKeys[i]
@@ -1665,7 +1669,7 @@ func relevantBackportJobs(c context.Context) ([]backportInfo, error) {
 			job.BackportedCommit.Title != "" {
 			continue
 		}
-		list = append(list, backportInfo{bug: allBugs[i], job: job, jobKey: jobKey})
+		list = append(list, &backportInfo{bug: allBugs[i], job: job, jobKey: jobKey})
 	}
 	return list, nil
 }
@@ -1845,6 +1849,37 @@ func (j *bugJob) loadBuild(c context.Context) error {
 	j.build, err = loadBuild(c, j.bug.Namespace, j.crash.BuildID)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func fullBackportInfo(c context.Context, list []*backportInfo) error {
+	crashLoader := &dependencyLoader[Crash]{}
+	for _, info := range list {
+		info := info
+		if info.job.CrashID == 0 {
+			continue
+		}
+		bugKey := info.bug.key(c)
+		crashLoader.add(db.NewKey(c, "Crash", "", info.job.CrashID, bugKey), func(crash *Crash) {
+			info.crash = crash
+		})
+	}
+	if err := crashLoader.load(c); err != nil {
+		return fmt.Errorf("failed to load crashes: %w", err)
+	}
+	buildLoader := &dependencyLoader[Build]{}
+	for _, info := range list {
+		info := info
+		if info.crash == nil {
+			continue
+		}
+		buildLoader.add(buildKey(c, info.bug.Namespace, info.crash.BuildID), func(build *Build) {
+			info.crashBuild = build
+		})
+	}
+	if err := buildLoader.load(c); err != nil {
+		return fmt.Errorf("failed to load builds: %w", err)
 	}
 	return nil
 }
