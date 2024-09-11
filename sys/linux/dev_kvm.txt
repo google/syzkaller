@@ -163,6 +163,7 @@ ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, 
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
+ioctl$KVM_ARM_PREFERRED_TARGET(fd fd_kvmcpu, cmd const[KVM_ARM_PREFERRED_TARGET], arg ptr[out, kvm_vcpu_init])
 # KVM_ARM_VCPU_FINALIZE accepts a single CPU feature encoded as a bit number: https://docs.kernel.org/virt/kvm/api.html#kvm-arm-vcpu-finalize.
 ioctl$KVM_ARM_VCPU_FINALIZE(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_FINALIZE], arg ptr[in, flags[kvm_vcpu_features_arm64, int32]])
 ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
