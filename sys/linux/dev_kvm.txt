@@ -523,14 +523,14 @@ kvm_device_attr_generic {
 	flags	const[0, int32]
 	group	int32
 	attr	int64
-	addr	ptr64[in, int64]
+	addr	ptr64[inout, int64]
 }
 
 kvm_device_attr_arm64 {
 	flags	const[0, int32]
 	group	flags[kvm_device_attr_arm64_groups, int32]
 	attr	flags[kvm_device_attr_arm64_attrs, int64]
-	addr	ptr64[in, int64]
+	addr	ptr64[inout, int64]
 }
 
 # Assorted device attributes from
