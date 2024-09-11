@@ -109,7 +109,7 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 		args.repo != mgrConfig.RestrictedTestingRepo {
 		return nil, nil, &BadTestRequestError{mgrConfig.RestrictedTestingReason}
 	}
-	patchID, err := putText(c, args.bug.Namespace, textPatch, args.patch, false)
+	patchID, err := putText(c, args.bug.Namespace, textPatch, args.patch)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,7 +120,7 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 			return nil, nil, err
 		}
 		configRef, err = putText(c, args.bug.Namespace, textKernelConfig,
-			append(kernelConfig, []byte(args.configAppend)...), true)
+			append(kernelConfig, []byte(args.configAppend)...))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1073,16 +1073,16 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 				log.Errorf(c, "job %v: duplicate build %v", jobID, req.Build.ID)
 			}
 		}
-		if job.Log, err = putText(c, ns, textLog, req.Log, false); err != nil {
+		if job.Log, err = putText(c, ns, textLog, req.Log); err != nil {
 			return err
 		}
-		if job.Error, err = putText(c, ns, textError, req.Error, false); err != nil {
+		if job.Error, err = putText(c, ns, textError, req.Error); err != nil {
 			return err
 		}
-		if job.CrashLog, err = putText(c, ns, textCrashLog, req.CrashLog, false); err != nil {
+		if job.CrashLog, err = putText(c, ns, textCrashLog, req.CrashLog); err != nil {
 			return err
 		}
-		if job.CrashReport, err = putText(c, ns, textCrashReport, req.CrashReport, false); err != nil {
+		if job.CrashReport, err = putText(c, ns, textCrashReport, req.CrashReport); err != nil {
 			return err
 		}
 		for _, com := range req.Commits {
