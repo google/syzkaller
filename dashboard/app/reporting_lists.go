@@ -564,19 +564,18 @@ func makeSubsystemReportRegistry(c context.Context) (*subsystemReportRegistry, e
 	if err != nil {
 		return nil, err
 	}
-	var subsystemKeys []*db.Key
-	for _, key := range reportKeys {
-		subsystemKeys = append(subsystemKeys, key.Parent())
-	}
-	subsystems := make([]*Subsystem, len(subsystemKeys))
-	if err := db.GetMulti(c, subsystemKeys, subsystems); err != nil {
-		return nil, fmt.Errorf("failed to query subsystems: %w", err)
-	}
 	ret := &subsystemReportRegistry{
 		entities: map[string]map[string][]*SubsystemReport{},
 	}
-	for i, item := range reports {
-		ret.store(subsystems[i].Namespace, subsystems[i].Name, item)
+	loader := &dependencyLoader[Subsystem]{}
+	for i, key := range reportKeys {
+		report := reports[i]
+		loader.add(key.Parent(), func(subsystem *Subsystem) {
+			ret.store(subsystem.Namespace, subsystem.Name, report)
+		})
+	}
+	if err := loader.load(c); err != nil {
+		return nil, err
 	}
 	return ret, nil
 }
