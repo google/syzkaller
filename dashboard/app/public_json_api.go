@@ -139,11 +139,12 @@ type publicKernelTree struct {
 }
 
 type publicBackportBug struct {
-	Namespace    string `json:"Namespace"`
-	Title        string `json:"title"`
-	ConfigLink   string `json:"config_link"`
-	SyzReproLink string `json:"syz_repro_link"`
-	CReproLink   string `json:"c_repro_link"`
+	Namespace       string `json:"namespace"`
+	Title           string `json:"title"`
+	ConfigLink      string `json:"config_link"`
+	SyzReproLink    string `json:"syz_repro_link"`
+	CReproLink      string `json:"c_repro_link"`
+	SyzkallerCommit string `json:"syzkaller_commit"`
 }
 
 type publicMissingBackport struct {
@@ -155,8 +156,8 @@ type publicMissingBackport struct {
 }
 
 type publicAPIBackports struct {
-	Version int `json:"version"`
-	List    []publicMissingBackport
+	Version int                     `json:"version"`
+	List    []publicMissingBackport `json:"list"`
 }
 
 func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
@@ -183,11 +184,12 @@ func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
 					for ns, bugs := range backport.Bugs {
 						for _, info := range bugs {
 							record.Bugs = append(record.Bugs, publicBackportBug{
-								Namespace:    ns,
-								Title:        info.Bug.Title,
-								ConfigLink:   info.Crash.KernelConfigLink,
-								CReproLink:   info.Crash.ReproCLink,
-								SyzReproLink: info.Crash.ReproSyzLink,
+								Namespace:       ns,
+								Title:           info.Bug.Title,
+								ConfigLink:      info.Crash.KernelConfigLink,
+								CReproLink:      info.Crash.ReproCLink,
+								SyzReproLink:    info.Crash.ReproSyzLink,
+								SyzkallerCommit: info.Crash.SyzkallerCommit,
 							})
 						}
 					}
