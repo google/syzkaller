@@ -153,6 +153,9 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	if err := osutil.CopyFile(config, filepath.Join(params.OutputDir, "kernel.config")); err != nil {
 		return details, err
 	}
+	if err := copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
+		return details, err
+	}
 
 	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
