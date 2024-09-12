@@ -107,7 +107,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 	defer imageFile.Close()
 
-	if err := a.copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
+	if err := copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
 		return details, fmt.Errorf("failed copying module files: %w", err)
 	}
 
@@ -124,7 +124,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	return details, nil
 }
 
-func (a android) copyModuleFiles(srcDir, dstDir string) error {
+func copyModuleFiles(srcDir, dstDir string) error {
 	err := filepath.Walk(srcDir,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
