@@ -79,9 +79,9 @@ typedef enum {
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
-GUEST_CODE static void guest_main(uint64 size)
+GUEST_CODE static void guest_main(uint64 size, uint64 cpu)
 {
-	uint64 addr = ARM64_ADDR_USER_CODE;
+	uint64 addr = ARM64_ADDR_USER_CODE + cpu * 0x1000;
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
