@@ -102,6 +102,12 @@ func (hc *HubConnector) loop() {
 	var doneOnce bool
 	for query := 0; ; time.Sleep(10 * time.Minute) {
 		corpus, repros := hc.mgr.getMinimizedCorpus()
+		if !hc.cfg.Cover {
+			// If we are using fake coverage, don't send our corpus to the hub.
+			// It should be lower quality than coverage-guided corpus.
+			// However still send repros and accept new inputs.
+			corpus = nil
+		}
 		hc.newRepros = append(hc.newRepros, repros...)
 		if hub == nil {
 			var err error
