@@ -11,6 +11,7 @@
 
 // Register encodings from https://docs.kernel.org/virt/kvm/api.html.
 #define KVM_ARM64_REGS_X0 0x6030000000100000UL
+#define KVM_ARM64_REGS_X1 0x6030000000100002UL
 #define KVM_ARM64_REGS_PC 0x6030000000100040UL
 #define KVM_ARM64_REGS_SP_EL1 0x6030000000100044UL
 
@@ -68,10 +69,12 @@ struct api_fn {
 	void* fn;
 };
 
-static void setup_vm(int vmfd, void* host_mem, const void* text, size_t text_size)
+#define SYZ_KVM_MAX_VCPU 4
+#define SYZ_KVM_PAGE_SIZE (4 << 10)
+
+static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 {
-	const uintptr_t page_size = 4 << 10;
-	const uintptr_t guest_mem_size = 24 * page_size;
+	const uintptr_t guest_mem_size = 24 * SYZ_KVM_PAGE_SIZE;
 
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - unused pages
@@ -79,35 +82,58 @@ static void setup_vm(int vmfd, void* host_mem, const void* text, size_t text_siz
 	// 0x080a0000 - GICv3 redistributor region (MMIO, no memory allocated)
 	// 0xdddd0000 - unmapped region to trigger a page faults for uexits etc. (1 page)
 	// 0xdddd1000 - writable region with KVM_MEM_LOG_DIRTY_PAGES to fuzz dirty ring (2 pages)
-	// 0xeeee0000 - user code (1 page)
+	// 0xeeee0000 - user code (4 pages)
 	// 0xeeee8000 - executor guest code (4 pages)
 	// 0xeeef0000 - scratch memory for code generated at runtime (1 page)
 	// 0xffff1000 - EL1 stack (1 page)
 	struct addr_size allocator = {.addr = host_mem, .size = guest_mem_size};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
-	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * page_size);
+	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * SYZ_KVM_PAGE_SIZE);
 	memcpy(host_text.addr, &__start_guest, (char*)&__stop_guest - (char*)&__start_guest);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
-	struct addr_size next = alloc_guest_mem(&allocator, 2 * page_size);
+	struct addr_size next = alloc_guest_mem(&allocator, 2 * SYZ_KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
 
-	next = alloc_guest_mem(&allocator, page_size);
-	if (text_size > next.size)
-		text_size = next.size;
-	memcpy(next.addr, text, text_size);
+	next = alloc_guest_mem(&allocator, SYZ_KVM_MAX_VCPU * SYZ_KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
+	if (text_slot)
+		*text_slot = next.addr;
 
-	next = alloc_guest_mem(&allocator, page_size);
+	next = alloc_guest_mem(&allocator, SYZ_KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
 
-	next = alloc_guest_mem(&allocator, page_size);
+	next = alloc_guest_mem(&allocator, SYZ_KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
 
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+}
+
+// Set up CPU registers.
+static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
+{
+	// PC points to the relative offset of guest_main() within the guest code.
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + SYZ_KVM_PAGE_SIZE - 128);
+	// Pass parameters to guest_main().
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_X0, text_size);
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_X1, cpu_id);
+}
+
+static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const void* text, size_t text_size)
+{
+	if ((cpu_id < 0) || (cpu_id >= SYZ_KVM_MAX_VCPU))
+		return;
+	if (!user_text_slot)
+		return;
+	if (text_size > SYZ_KVM_PAGE_SIZE)
+		text_size = SYZ_KVM_PAGE_SIZE;
+	void* target = (void*)((uint64)user_text_slot + (SYZ_KVM_PAGE_SIZE * cpu_id));
+	memcpy(target, text, text_size);
+	reset_cpu_regs(cpufd, cpu_id, text_size);
 }
 
 // syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
@@ -124,8 +150,6 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	(void)flags;
 	(void)opt_count;
-
-	const uintptr_t page_size = 4 << 10;
 
 	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
 	int text_type = text_array_ptr[0].typ;
@@ -147,7 +171,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		}
 	}
 
-	setup_vm(vmfd, host_mem, text, text_size);
+	void* user_text_slot = NULL;
+	setup_vm(vmfd, host_mem, &user_text_slot);
 
 	struct kvm_vcpu_init init;
 	// Queries KVM for preferred CPU target type.
@@ -156,13 +181,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	// Use the modified struct kvm_vcpu_init to initialize the virtual CPU.
 	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
 
-	// Set up CPU registers.
-	// PC points to the relative offset of guest_main() within the guest code.
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + page_size - 128);
-	// Pass parameters to guest_main().
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_X0, text_size);
-
+	// Assume CPU is 0.
+	install_user_code(cpufd, user_text_slot, 0, text, text_size);
 	return 0;
 }
 #endif
