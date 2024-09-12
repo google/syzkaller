@@ -42,6 +42,7 @@ type MergeResult struct {
 	HitCounts   map[int]int
 	FileExists  bool
 	LineDetails map[int][]*FileRecord
+	RepoCommits []RepoCommit
 }
 
 type FileCoverageMerger interface {
@@ -51,13 +52,13 @@ type FileCoverageMerger interface {
 
 func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
 	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
-	repoBranchCommitsMap := make(map[RepoCommit]bool)
+	repoCommitsMap := make(map[RepoCommit]bool)
 	for _, record := range records {
-		repoBranchCommitsMap[record.RepoCommit] = true
+		repoCommitsMap[record.RepoCommit] = true
 	}
-	repoBranchCommitsMap[c.Base] = true
-	repoBranchCommits := maps.Keys(repoBranchCommitsMap)
-	fvs, err := c.FileVersProvider.GetFileVersions(c, targetFilePath, repoBranchCommits)
+	repoCommitsMap[c.Base] = true
+	repoCommits := maps.Keys(repoCommitsMap)
+	fvs, err := c.FileVersProvider.GetFileVersions(targetFilePath, repoCommits...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
@@ -65,7 +66,9 @@ func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*Me
 	for _, record := range records {
 		merger.Add(record)
 	}
-	return merger.Result(), nil
+	res := merger.Result()
+	res.RepoCommits = repoCommits
+	return res, nil
 }
 
 func makeRecord(fields, schema []string) (*FileRecord, error) {

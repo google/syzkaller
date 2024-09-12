@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/log"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
@@ -32,6 +33,7 @@ var (
 	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
 	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
 	flagFilePathPrefix      = flag.String("file-path-prefix", "", "[optional] kernel file path prefix")
+	flagSourceToGCS         = flag.String("save-source-to", "", "[optional] gcs path to store source code")
 )
 
 func makeProvider() covermerger.FileVersProvider {
@@ -47,6 +49,7 @@ func makeProvider() covermerger.FileVersProvider {
 
 func main() {
 	flag.Parse()
+	sourceFilesProvider := makeProvider()
 	config := &covermerger.Config{
 		Jobs:    runtime.NumCPU(),
 		Workdir: *flagWorkdir,
@@ -54,7 +57,7 @@ func main() {
 			Repo:   *flagRepo,
 			Commit: *flagCommit,
 		},
-		FileVersProvider: makeProvider(),
+		FileVersProvider: sourceFilesProvider,
 	}
 	var dateFrom, dateTo civil.Date
 	var err error
@@ -96,6 +99,12 @@ func main() {
 			log.Fatalf("failed to saveCoverage: %v", err)
 		}
 	}
+	if *flagSourceToGCS != "" {
+		uploadList := mergedFiles(mergeResult)
+		if err := uploadSourceCodeToGCS(*flagSourceToGCS, uploadList, sourceFilesProvider); err != nil {
+			log.Fatalf("failed to uploadSourceCodeToGCS: %v", err)
+		}
+	}
 	printOnlyTotal := *flagToDashAPI != ""
 	printMergeResult(mergeResult, printOnlyTotal)
 }
@@ -108,6 +117,62 @@ func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error
 	return dash.SaveCoverage(&dashapi.SaveCoverageReq{
 		Coverage: d,
 	})
+}
+
+func uploadSourceCodeToGCS(
+	uploadPath string, sourcesToSave map[covermerger.RepoCommit][]string, fvp covermerger.FileVersProvider,
+) error {
+	gcsClient, err := gcs.NewClient(context.Background())
+	if err != nil {
+		return fmt.Errorf("gcs.NewClient: %w", err)
+	}
+	defer gcsClient.Close()
+	for RCToSave, filesToSave := range sourcesToSave {
+		commitUploadPath := uploadPath + "/" + RCToSave.Commit + "/"
+		objectsInGCS, err := gcsClient.ListObjects(commitUploadPath)
+		if err != nil {
+			return fmt.Errorf("gcsClient.ListObjects(%s): %w", commitUploadPath, err)
+		}
+		filesNeedUpload := missingGCSFiles(commitUploadPath, objectsInGCS, filesToSave)
+		if err := uploadFiles(uploadPath, RCToSave, filesNeedUpload, fvp, gcsClient); err != nil {
+			return fmt.Errorf("uploadFiles(%s, %s, len=%d): %w",
+				commitUploadPath, RCToSave, len(filesNeedUpload), err)
+		}
+	}
+	return nil
+}
+
+func uploadFiles(
+	gcsPath string, rc covermerger.RepoCommit, files []string, fvp covermerger.FileVersProvider, gcsClient *gcs.Client,
+) error {
+	for _, filePath := range files {
+		fvs, err := fvp.GetFileVersions(filePath, rc)
+		if err != nil {
+			return fmt.Errorf("fvp.GetFileVersions(%s, %s, %s): %w", filePath, rc.Repo, rc.Commit, err)
+		}
+		fileContent := fvs[rc]
+		wc, err := gcsClient.FileWriter(gcsPath)
+		if err != nil {
+			return fmt.Errorf("gcsClient.FileWriter(%s): %w", gcsPath, err)
+		}
+		defer wc.Close()
+		if _, err := wc.Write([]byte(fileContent)); err != nil {
+			return fmt.Errorf("wc.Write: %w", err)
+		}
+	}
+	return nil
+}
+
+func missingGCSFiles(gcsLocation string, uploadedObjects []*gcs.Object, availableFiles []string) []string {
+	toUpload := map[string]bool{}
+	for _, f := range availableFiles {
+		toUpload[f] = true
+	}
+	for _, obj := range uploadedObjects {
+		uploadedFileName := obj.Path[:len(gcsLocation)]
+		delete(toUpload, uploadedFileName)
+	}
+	return maps.Keys(toUpload)
 }
 
 func printMergeResult(mergeResult map[string]*covermerger.MergeResult, totalOnly bool) {
@@ -129,6 +194,17 @@ func printCoverage(target string, instrumented, covered int64) {
 	}
 	fmt.Printf("%s,%d,%d,%.2f%%\n",
 		target, instrumented, covered, coverage*100)
+}
+
+// mergedFiles returns RepoCommits and the corresponding commit files
+func mergedFiles(mrs map[string]*covermerger.MergeResult) map[covermerger.RepoCommit][]string {
+	res := map[covermerger.RepoCommit][]string{}
+	for file, mr := range mrs {
+		for _, commit := range mr.RepoCommits {
+			res[commit] = append(res[commit], file)
+		}
+	}
+	return res
 }
 
 func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,

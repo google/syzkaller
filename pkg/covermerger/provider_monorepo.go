@@ -14,7 +14,7 @@ import (
 )
 
 type FileVersProvider interface {
-	GetFileVersions(c *Config, targetFilePath string, repoCommits []RepoCommit,
+	GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
 	) (fileVersions, error)
 }
 
@@ -26,7 +26,7 @@ type monoRepo struct {
 
 type fileVersions map[RepoCommit]string
 
-func (mr *monoRepo) GetFileVersions(c *Config, targetFilePath string, repoCommits []RepoCommit,
+func (mr *monoRepo) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
 ) (fileVersions, error) {
 	mr.mu.RLock()
 	if !mr.allRepoCommitsPresent(repoCommits) {
