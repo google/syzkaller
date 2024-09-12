@@ -115,13 +115,12 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 			aggregation, err := MergeCSVData(
 				&Config{
 					Jobs:          2,
-					Workdir:       test.workdir,
 					skipRepoClone: true,
 					Base: RepoCommit{
 						Repo:   test.baseRepo,
 						Commit: test.baseCommit,
 					},
-					FileVersProvider: &fileVersProviderMock{},
+					FileVersProvider: &fileVersProviderMock{Workdir: test.workdir},
 				},
 				strings.NewReader(test.bqTable),
 			)
@@ -133,13 +132,15 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 	}
 }
 
-type fileVersProviderMock struct{}
+type fileVersProviderMock struct {
+	Workdir string
+}
 
-func (m *fileVersProviderMock) GetFileVersions(c *Config, targetFilePath string, repoCommits []RepoCommit,
+func (m *fileVersProviderMock) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
 ) (fileVersions, error) {
 	res := make(fileVersions)
 	for _, repoCommit := range repoCommits {
-		filePath := filepath.Join(c.Workdir, "repos", repoCommit.Commit, targetFilePath)
+		filePath := filepath.Join(m.Workdir, "repos", repoCommit.Commit, targetFilePath)
 		if bytes, err := os.ReadFile(filePath); err == nil {
 			res[repoCommit] = string(bytes)
 		}
