@@ -60,6 +60,7 @@ func main() {
 	}
 
 	hub.initHTTP(cfg.HTTP)
+	go hub.purgeOldManagers()
 
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Hub", hub)
 	if err != nil {
@@ -124,6 +125,16 @@ func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
 	log.Logf(0, "sync from %v: recv: add=%v del=%v repros=%v; send: progs=%v repros=%v pending=%v",
 		name, len(a.Add), len(a.Del), len(a.Repros), len(inputs), len(r.Repros), more)
 	return nil
+}
+
+func (hub *Hub) purgeOldManagers() {
+	for range time.NewTicker(time.Hour).C {
+		hub.mu.Lock()
+		if err := hub.st.PurgeOldManagers(); err != nil {
+			log.Logf(0, "failed to purge managers: %v", err)
+		}
+		hub.mu.Unlock()
+	}
 }
 
 func (hub *Hub) verifyKey(key, expectedKey string) error {
