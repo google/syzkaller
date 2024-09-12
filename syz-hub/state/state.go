@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/db"
@@ -34,6 +35,7 @@ type State struct {
 // Manager represents one syz-manager instance.
 type Manager struct {
 	name          string
+	dir           string
 	Domain        string
 	corpusSeq     uint64
 	reproSeq      uint64
@@ -77,10 +79,16 @@ func Make(dir string) (*State, error) {
 		return nil, fmt.Errorf("failed to read %v dir: %w", managersDir, err)
 	}
 	for _, manager := range managers {
+		if strings.HasSuffix(manager.Name(), purgedSuffix) {
+			continue
+		}
 		_, err := st.createManager(manager.Name())
 		if err != nil {
 			return nil, err
 		}
+	}
+	if err := st.PurgeOldManagers(); err != nil {
+		return nil, err
 	}
 	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
@@ -141,6 +149,7 @@ func (st *State) createManager(name string) (*Manager, error) {
 	osutil.MkdirAll(dir)
 	mgr := &Manager{
 		name:          name,
+		dir:           dir,
 		corpusFile:    filepath.Join(dir, "corpus.db"),
 		corpusSeqFile: filepath.Join(dir, "seq"),
 		reproSeqFile:  filepath.Join(dir, "repro.seq"),
@@ -169,6 +178,40 @@ func (st *State) createManager(name string) (*Manager, error) {
 		mgr.name, mgr.Domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
 	st.Managers[name] = mgr
 	return mgr, nil
+}
+
+const purgedSuffix = ".purged"
+
+func (st *State) PurgeOldManagers() error {
+	const (
+		timeDay     = 24 * time.Hour
+		purgePeriod = 30 * timeDay
+	)
+	purgedSomething := false
+	for _, mgr := range st.Managers {
+		info, err := os.Stat(mgr.corpusSeqFile)
+		if err != nil {
+			return err
+		}
+		if time.Since(info.ModTime()) < purgePeriod {
+			continue
+		}
+		log.Logf(0, "purging manager %v as it was inactive for %v days", mgr.name, int(purgePeriod/timeDay))
+		oldDir := mgr.dir + purgedSuffix
+		os.RemoveAll(oldDir)
+		if err := os.Rename(mgr.dir, oldDir); err != nil {
+			return err
+		}
+		delete(st.Managers, mgr.name)
+		purgedSomething = true
+	}
+	if !purgedSomething {
+		return nil
+	}
+	corpus := len(st.Corpus.Records)
+	st.purgeCorpus()
+	log.Logf(0, "reduced corpus from %v to %v programs", corpus, len(st.Corpus.Records))
+	return nil
 }
 
 func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) error {
@@ -226,6 +269,8 @@ func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctyp
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
 	mgr.New += len(progs)
+	// Update seq file b/c PurgeOldManagers looks at it to detect inactive managers.
+	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
 	return mgr.Domain, progs, more, err
 }
 
