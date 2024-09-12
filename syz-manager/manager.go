@@ -974,14 +974,19 @@ func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	}
 }
 
-func (mgr *Manager) getMinimizedCorpus() (corpus []*corpus.Item, repros [][]byte) {
+func (mgr *Manager) getMinimizedCorpus() []*corpus.Item {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	mgr.minimizeCorpusLocked()
-	corpus = mgr.corpus.Items()
-	repros = mgr.newRepros
+	return mgr.corpus.Items()
+}
+
+func (mgr *Manager) getNewRepros() [][]byte {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	repros := mgr.newRepros
 	mgr.newRepros = nil
-	return
+	return repros
 }
 
 func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
