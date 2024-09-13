@@ -51,8 +51,6 @@ func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
 		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
 
-		statSendProgAdd:   stat.New("hub send prog add", "", stat.Graph("hub progs")),
-		statSendProgDel:   stat.New("hub send prog del", "", stat.Graph("hub progs")),
 		statRecvProg:      stat.New("hub recv prog", "", stat.Graph("hub progs")),
 		statRecvProgDrop:  stat.New("hub recv prog drop", "", stat.NoGraph),
 		statSendRepro:     stat.New("hub send repro", "", stat.Graph("hub repros")),
@@ -79,8 +77,6 @@ type HubConnector struct {
 	needMoreRepros func() bool
 	keyGet         keyGetter
 
-	statSendProgAdd   *stat.Val
-	statSendProgDel   *stat.Val
 	statRecvProg      *stat.Val
 	statRecvProgDrop  *stat.Val
 	statSendRepro     *stat.Val
@@ -215,17 +211,14 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient) error {
 		}
 		minimized, smashed, progDropped := hc.processProgs(r.Inputs)
 		reproDropped := hc.processRepros(r.Repros)
-		hc.statSendProgAdd.Add(len(a.Add))
-		hc.statSendProgDel.Add(len(a.Del))
 		hc.statSendRepro.Add(len(a.Repros))
 		hc.statRecvProg.Add(len(r.Inputs) - progDropped)
 		hc.statRecvProgDrop.Add(progDropped)
 		hc.statRecvRepro.Add(len(r.Repros) - reproDropped)
 		hc.statRecvReproDrop.Add(reproDropped)
-		log.Logf(0, "hub sync: send: add %v, del %v, repros %v;"+
+		log.Logf(0, "hub sync: repros %v;"+
 			" recv: progs %v (min %v, smash %v), repros %v; more %v",
-			len(a.Add), len(a.Del), len(a.Repros),
-			len(r.Inputs)-progDropped, minimized, smashed,
+			len(a.Repros), len(r.Inputs)-progDropped, minimized, smashed,
 			len(r.Repros)-reproDropped, r.More)
 		a.Add = nil
 		a.Del = nil
