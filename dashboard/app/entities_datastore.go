@@ -841,7 +841,7 @@ func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
 }
 
 func loadBuilds(c context.Context, ns, manager string, typ BuildType) ([]*Build, error) {
-	const limit = 500
+	const limit = 1000
 	var builds []*Build
 	_, err := db.NewQuery("Build").
 		Filter("Namespace=", ns).
