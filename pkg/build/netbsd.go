@@ -123,6 +123,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	if err != nil {
 		return fmt.Errorf("failed to create a VM Pool: %w", err)
 	}
+	defer pool.Close()
 	// Create a new reporter instance.
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {

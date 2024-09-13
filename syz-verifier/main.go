@@ -61,6 +61,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
+		// TODO: call pi.pool.Close() on exit.
 		pi.pool, err = vm.Create(pi.cfg, *flagDebug)
 		if err != nil {
 			log.Fatalf("%v", err)

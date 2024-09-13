@@ -201,6 +201,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
+		defer vmPool.Close()
 	}
 
 	crashdir := filepath.Join(cfg.Workdir, "crashes")

@@ -257,6 +257,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM pool: %w", err)
 	}
+	defer vmPool.Close()
 	if n := vmPool.Count(); numVMs > n {
 		numVMs = n
 	}
