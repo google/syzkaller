@@ -24,6 +24,7 @@ func TestIsCommitHash(t *testing.T) {
 		validator.CommitHash("!311c1b497e51a628aa89e7cb954481e5f9dced2", "valName").Err.Error())
 }
 
+// nolint: dupl
 func TestIsNamespaceName(t *testing.T) {
 	assert.True(t, validator.NamespaceName("upstream").Ok)
 	assert.False(t, validator.NamespaceName("up").Ok)
@@ -58,6 +59,7 @@ func TestIsDashboardClientKey(t *testing.T) {
 func TestIsKernelFilePath(t *testing.T) {
 	assert.True(t, validator.KernelFilePath("io_uring/advise.c").Ok)
 	assert.False(t, validator.KernelFilePath("io-uring/advise.c").Ok)
+	assert.False(t, validator.KernelFilePath("").Ok)
 
 	assert.Equal(t, "not a kernel file path", validator.KernelFilePath("io-uring").Err.Error())
 	assert.Equal(t, "kernelPath: not a kernel file path",
