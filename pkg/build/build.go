@@ -131,6 +131,18 @@ func (err *KernelError) Error() string {
 	return string(err.Report)
 }
 
+type InfraError struct {
+	Title  string
+	Output []byte
+}
+
+func (e InfraError) Error() string {
+	if len(e.Output) > 0 {
+		return fmt.Sprintf("%s: %s", e.Title, e.Output)
+	}
+	return e.Title
+}
+
 type builder interface {
 	build(params Params) (ImageDetails, error)
 	clean(kernelDir, targetArch string) error
@@ -207,6 +219,13 @@ func extractRootCause(err error, OS, kernelSrc string) error {
 	reason, file := extractCauseInner(verr.Output, kernelSrc)
 	if len(reason) == 0 {
 		return err
+	}
+	// Don't report upon SIGKILL for Linux builds.
+	if OS == targets.Linux && string(reason) == "Killed" && verr.ExitCode == 137 {
+		return &InfraError{
+			Title:  string(reason),
+			Output: verr.Output,
+		}
 	}
 	kernelErr := &KernelError{
 		Report:     reason,
@@ -313,6 +332,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)?.*(error|invalid|fatal|wrong)`)},
 	{pattern: regexp.MustCompile(`FAILED unresolved symbol`)},
 	{pattern: regexp.MustCompile(`No rule to make target`)},
+	{pattern: regexp.MustCompile(`^Killed$`)},
 	{weak: true, pattern: regexp.MustCompile(`: not found`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},

@@ -524,7 +524,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	res, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
-		var infraErr *bisect.InfraError
+		var infraErr *build.InfraError
 		if errors.As(err, &infraErr) {
 			resp.Flags |= dashapi.BisectResultInfraError
 		}
