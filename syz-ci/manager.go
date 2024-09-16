@@ -384,6 +384,8 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		case errors.As(err, &verboseError):
 			rep.Report = []byte(verboseError.Title)
 			rep.Output = verboseError.Output
+		case errors.As(err, &build.InfraError{}):
+			return err
 		default:
 			rep.Report = []byte(err.Error())
 		}

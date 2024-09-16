@@ -651,7 +651,7 @@ var bisectionTests = []BisectionTest{
 		startCommit:   905,
 		expectRep:     false,
 		expectErr:     true,
-		expectErrType: &InfraError{},
+		expectErrType: &build.InfraError{},
 		infraErrStart: 600,
 		infraErrEnd:   800,
 		introduced:    "602",

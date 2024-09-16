@@ -134,14 +134,6 @@ type Result struct {
 	Confidence float64
 }
 
-type InfraError struct {
-	Title string
-}
-
-func (e InfraError) Error() string {
-	return e.Title
-}
-
 // Run does the bisection and returns either the Result,
 // or, if the crash is not reproduced on the start commit, an error.
 func Run(cfg *Config) (*Result, error) {
@@ -158,7 +150,7 @@ func Run(cfg *Config) (*Result, error) {
 		return nil, err
 	}
 	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
-		return nil, &InfraError{Title: fmt.Sprintf("%v", err)}
+		return nil, &build.InfraError{Title: fmt.Sprintf("%v", err)}
 	}
 	return runImpl(cfg, repo, inst)
 }
@@ -692,7 +684,7 @@ func (env *env) test() (*testResult, error) {
 	if err != nil {
 		problem := fmt.Sprintf("repro testing failure: %v", err)
 		env.log(problem)
-		return res, &InfraError{Title: problem}
+		return res, &build.InfraError{Title: problem}
 	}
 	bad, good, infra, rep, types := env.processResults(current, results)
 	res.verdict, err = env.bisectionDecision(len(results), bad, good, infra)
@@ -851,7 +843,7 @@ func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult
 		// We have been unable to determine a verdict mostly because of infra errors.
 		// Abort the bisection.
 		return vcs.BisectSkip,
-			&InfraError{Title: "unable to determine the verdict because of infra errors"}
+			&build.InfraError{Title: "unable to determine the verdict because of infra errors"}
 	}
 	env.logf("unable to determine the verdict: %d good runs (wanted %d), for bad wanted %d in total, got %d",
 		good, wantGoodRuns, wantTotalRuns, good+bad)
