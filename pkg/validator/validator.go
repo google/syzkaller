@@ -66,6 +66,9 @@ type strValidationFunc func(string, ...string) Result
 func makeStrReFunc(errStr, reStr string) strValidationFunc {
 	matchRe := regexp.MustCompile(reStr)
 	return func(s string, objName ...string) Result {
+		if s == "" {
+			return Result{false, wrapError(errStr + ": can't be empty")}
+		}
 		if !matchRe.MatchString(s) {
 			return Result{false, wrapError(errStr, objName...)}
 		}
