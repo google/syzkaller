@@ -153,7 +153,7 @@ var archConfigs = map[string]*archConfig{
 		// Disable SVE and pointer authentication for now, they significantly slow down
 		// the emulation and are unlikely to bring a lot of new coverage.
 		QemuArgs: strings.Join([]string{"-machine virt,virtualization=on,gic-version=max ",
-			"-cpu max,sve=off,pauth=off -accel tcg,thread=multi"}, ""),
+			"-cpu max,sve128=on,pauth=off -accel tcg,thread=multi"}, ""),
 		NetDev: "virtio-net-pci",
 		RngDev: "virtio-rng-pci",
 		CmdLine: []string{
