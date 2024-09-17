@@ -442,8 +442,9 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	return opts, nil
 }
 
-func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, repeat, threaded, collide bool,
-	procs, faultCall, faultNth int, optionalFlags bool, slowdown int, progFile string) string {
+func ExecprogCmd(execprog, executor, OS, arch, vmType, sandbox string, sandboxArg int, repeat,
+	threaded, collide bool, procs, faultCall, faultNth int, optionalFlags bool, slowdown int,
+	progFile string) string {
 	repeatCount := 1
 	if repeat {
 		repeatCount = 0
@@ -463,6 +464,7 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, r
 		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
 			{Name: "sandboxArg", Value: fmt.Sprint(sandboxArg)},
+			{Name: "type", Value: fmt.Sprint(vmType)},
 		})
 	}
 
