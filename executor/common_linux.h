@@ -5024,7 +5024,8 @@ static void check_leaks(void)
 
 static const char* setup_binfmt_misc()
 {
-	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
+	// EBUSY means it's already mounted here.
+	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0) && errno != EBUSY) {
 		debug("mount(binfmt_misc) failed: %d\n", errno);
 		return NULL;
 	}
