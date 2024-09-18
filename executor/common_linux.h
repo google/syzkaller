@@ -2277,6 +2277,19 @@ static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2,
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_create_resource
+// syz_create_resource(val intptr) intptr
+// Variants of this pseudo-syscall are used to create resources from arbitrary values.
+// For example:
+//   syz_create_resource$foo(x int32) resource_foo
+// allows the fuzzer to use the same random int32 value in multiple syscalls,
+// and should increase probability of generation of syscalls related to foo.
+static long syz_create_resource(volatile long val)
+{
+	return val;
+}
+#endif
+
 #if (SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION) && SYZ_EXECUTOR_USES_FORK_SERVER
 static void flush_tun()
 {

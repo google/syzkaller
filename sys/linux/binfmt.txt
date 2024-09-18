@@ -3,15 +3,33 @@
 
 include <uapi/linux/a.out.h>
 include <uapi/linux/elf.h>
+include <linux/fcntl.h>
 
-execve(file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]])
-execveat(dirfd fd_dir, file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]], flags flags[at_flags])
+resource fd_binfmt[fd]
+resource ptr_binfmt_file[intptr]
 
-write$binfmt_script(fd fd, data ptr[in, binfmt_script], len bytesize[data])
-write$binfmt_misc(fd fd, data ptr[in, binfmt_misc], len bytesize[data])
-write$binfmt_aout(fd fd, data ptr[in, binfmt_aout], len bytesize[data])
-write$binfmt_elf32(fd fd, data ptr[in, binfmt_elf32], len bytesize[data])
-write$binfmt_elf64(fd fd, data ptr[in, binfmt_elf64], len bytesize[data])
+syz_create_resource$binfmt(file ptr[in, filename]) ptr_binfmt_file
+
+execve(file ptr[in, filename], argv ptr[in, argv_array], envp ptr[in, argv_array])
+execveat(dirfd fd_dir, file ptr[in, filename], argv ptr[in, argv_array], envp ptr[in, argv_array], flags flags[at_flags])
+execveat$binfmt(dirfd fd_dir, file ptr_binfmt_file, argv ptr[in, argv_array], envp ptr[in, argv_array], flags flags[at_flags])
+
+openat$binfmt(fd const[AT_FDCWD], file ptr_binfmt_file, flags const[BINFMT_OPEN_FLAGS], mode const[0x1ff]) fd_binfmt
+
+write$binfmt_script(fd fd_binfmt, data ptr[in, binfmt_script], len bytesize[data])
+write$binfmt_misc(fd fd_binfmt, data ptr[in, binfmt_misc], len bytesize[data])
+write$binfmt_aout(fd fd_binfmt, data ptr[in, binfmt_aout], len bytesize[data])
+write$binfmt_elf32(fd fd_binfmt, data ptr[in, binfmt_elf32], len bytesize[data])
+write$binfmt_elf64(fd fd_binfmt, data ptr[in, binfmt_elf64], len bytesize[data])
+
+close$binfmt(fd fd_binfmt)
+
+define BINFMT_OPEN_FLAGS	O_WRONLY | O_CREAT
+
+argv_array {
+	args	array[ptr[in, string]]
+	z	const[0, intptr]
+} [packed]
 
 binfmt_script {
 	hdr	stringnoz["#! "]
