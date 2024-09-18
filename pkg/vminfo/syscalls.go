@@ -283,7 +283,7 @@ func extractStringConst(typ prog.Type, isAutomatic bool) (string, bool) {
 	}
 	ptr, ok := typ.(*prog.PtrType)
 	if !ok {
-		panic("first open arg is not a pointer to string const")
+		return "", false
 	}
 	str, ok := ptr.Elem.(*prog.BufferType)
 	if !ok || str.Kind != prog.BufferString || len(str.Values) == 0 {
