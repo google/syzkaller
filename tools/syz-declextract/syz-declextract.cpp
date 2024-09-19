@@ -351,57 +351,30 @@ public:
 
 class SyscallMatcher : public MatchFinder::MatchCallback {
 private:
-  const std::string getSyzType(const std::string &type) { return "intptr"; }
   const std::string swapIfReservedKeyword(const std::string &word) {
     if (word == "resource")
       return "rsrc";
     return word;
   }
-  unsigned int nameIndex{0}, argcIndex{0}, typesIndex{0}, argsIndex{0};
-  bool isInitialized{false};
-  llvm::ArrayRef<Expr *> getVarDeclInitList(Expr *init, const ASTContext *context) {
-    return llvm::dyn_cast<InitListExpr>(
-               llvm::dyn_cast<VarDecl>(init->getAsBuiltinConstantDeclRef(*context)->getUnderlyingDecl())->getInit())
-        ->inits();
-  }
-
-  std::vector<Param> getArgs(Expr *types, Expr *names, int argc, ASTContext *context) {
-    std::vector<Param> args(argc);
-    if (argc) {
-      int i = 0;
-      for (const auto *type : getVarDeclInitList(types, context)) { // get parameter types.
-        args[i++].type = std::move(*type->tryEvaluateString(*context));
-      }
-
-      i = 0;
-      for (const auto *name : getVarDeclInitList(names, context)) { // get parameter names
-        args[i++].name = std::move(*name->tryEvaluateString(*context));
-      }
-    }
-    return args;
-  }
 
 public:
   void virtual run(const MatchFinder::MatchResult &Result) override {
     ASTContext *context = Result.Context;
-    const auto *initList = Result.Nodes.getNodeAs<InitListExpr>("initList");
-    if (!isInitialized) {
-      argcIndex = Result.Nodes.getNodeAs<FieldDecl>("nb_args")->getFieldIndex();
-      typesIndex = Result.Nodes.getNodeAs<FieldDecl>("types")->getFieldIndex();
-      argsIndex = Result.Nodes.getNodeAs<FieldDecl>("args")->getFieldIndex();
-      nameIndex = Result.Nodes.getNodeAs<FieldDecl>("name")->getFieldIndex();
-    }
-    // values contains the initializer list for the struct `syscall_metadata`
-    auto values = initList->inits();
-    int argc = values[argcIndex]->getIntegerConstantExpr(*context)->getSExtValue();
+    const auto *syscall = Result.Nodes.getNodeAs<FunctionDecl>("syscall");
+    RecordExtractor recordExtractor(Result.SourceManager);
 
-    printf("%s$auto(", values[nameIndex]->tryEvaluateString(*context)->c_str() + 4); // name
     const char *sep = "";
-    for (const auto &arg : getArgs(values[typesIndex], values[argsIndex], argc, context)) {
-      printf("%s%s %s", sep, swapIfReservedKeyword(arg.name).c_str(), getSyzType(arg.type).c_str());
+    printf("%s$auto(", syscall->getNameAsString().substr(9).c_str()); // Remove "__do_sys_" prefix.
+    for (const auto &param : syscall->parameters()) {
+      const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
+      const auto &name = param->getNameAsString();
+      printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
       sep = ", ";
     }
     puts(") (automatic)");
+    recordExtractor.print();
+
+    return;
   }
 };
 
@@ -788,16 +761,8 @@ int main(int argc, const char **argv) {
   SyscallMatcher SyscallMatcher;
   MatchFinder Finder;
 
-  Finder.addMatcher(
-      varDecl(
-          isExpandedFromMacro("SYSCALL_METADATA"),
-          hasType(recordDecl(hasName("syscall_metadata"), has(fieldDecl(hasName("nb_args")).bind("nb_args")),
-                             has(fieldDecl(hasName("types")).bind("types")),
-                             has(fieldDecl(hasName("name")).bind("name")), has(fieldDecl(hasName("args")).bind("args")))
-                      .bind("syscall_metadata")),
-          has(initListExpr().bind("initList")))
-          .bind("syscall"),
-      &SyscallMatcher);
+  Finder.addMatcher(functionDecl(isExpandedFromMacro("SYSCALL_DEFINEx"), matchesName("__do_sys_.*")).bind("syscall"),
+                    &SyscallMatcher);
 
   Finder.addMatcher(
       translationUnitDecl(
