@@ -864,6 +864,7 @@ var groupGoRuntimeErrors = oops{
 	},
 	[]*regexp.Regexp{
 		compile("ALSA"),
+		compile("fatal error: cannot create timer"),
 	},
 	crash.UnknownType,
 }
