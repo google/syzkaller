@@ -442,11 +442,10 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	return opts, nil
 }
 
-func ExecprogCmd(execprog, executor, OS, arch, vmType, sandbox string, sandboxArg int, repeat,
-	threaded, collide bool, procs, faultCall, faultNth int, optionalFlags bool, slowdown int,
-	progFile string) string {
+func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
+	optionalFlags bool, slowdown int, progFile string) string {
 	repeatCount := 1
-	if repeat {
+	if opts.Repeat {
 		repeatCount = 0
 	}
 	osArg := ""
@@ -454,24 +453,21 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType, sandbox string, sandboxAr
 		osArg = " -os=" + OS
 	}
 	optionalArg := ""
-
-	if faultCall >= 0 {
+	if opts.Fault && opts.FaultCall >= 0 {
 		optionalArg = fmt.Sprintf(" -fault_call=%v -fault_nth=%v",
-			faultCall, faultNth)
+			opts.FaultCall, opts.FaultNth)
 	}
-
 	if optionalFlags {
 		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
-			{Name: "sandboxArg", Value: fmt.Sprint(sandboxArg)},
+			{Name: "sandboxArg", Value: fmt.Sprint(opts.SandboxArg)},
 			{Name: "type", Value: fmt.Sprint(vmType)},
 		})
 	}
-
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
 		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0%v %v",
-		execprog, executor, arch, osArg, sandbox,
-		procs, repeatCount, threaded, collide,
+		execprog, executor, arch, osArg, opts.Sandbox,
+		opts.Procs, repeatCount, opts.Threaded, opts.Collide,
 		optionalArg, progFile)
 }
 
