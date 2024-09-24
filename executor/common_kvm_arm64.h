@@ -4,18 +4,26 @@
 // This file is shared between executor and csource package.
 
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
+#include <sys/mman.h>
 
 #include "kvm.h"
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_syzos_vm
+#include "common_kvm_arm64_syzos.h"
 
+#define SYZ_KVM_MAX_VCPU 4
+#define SYZ_KVM_PAGE_SIZE (4 << 10)
+#define SYZ_KVM_GUEST_MEM_SIZE (24 * SYZ_KVM_PAGE_SIZE)
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
 // Register encodings from https://docs.kernel.org/virt/kvm/api.html.
 #define KVM_ARM64_REGS_X0 0x6030000000100000UL
 #define KVM_ARM64_REGS_X1 0x6030000000100002UL
 #define KVM_ARM64_REGS_PC 0x6030000000100040UL
 #define KVM_ARM64_REGS_SP_EL1 0x6030000000100044UL
 
-#include "common_kvm_arm64_syzos.h"
 struct kvm_text {
 	uintptr_t typ;
 	const void* text;
@@ -26,26 +34,9 @@ struct kvm_opt {
 	uint64 typ;
 	uint64 val;
 };
+#endif
 
-// Call KVM_SET_USER_MEMORY_REGION for the given pages.
-static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
-{
-	struct kvm_userspace_memory_region memreg;
-	memreg.slot = slot;
-	memreg.flags = flags;
-	memreg.guest_phys_addr = guest_phys_addr;
-	memreg.memory_size = memory_size;
-	memreg.userspace_addr = userspace_addr;
-	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
-}
-
-// Set the value of the specified register.
-static void vcpu_set_reg(int vcpu_fd, uint64 id, uint64 val)
-{
-	struct kvm_one_reg reg = {.id = id, .addr = (uint64)&val};
-	ioctl(vcpu_fd, KVM_SET_ONE_REG, &reg);
-}
-
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm
 struct addr_size {
 	void* addr;
 	size_t size;
@@ -64,18 +55,20 @@ static struct addr_size alloc_guest_mem(struct addr_size* free, size_t size)
 	return ret;
 }
 
-struct api_fn {
-	int index;
-	void* fn;
-};
-
-#define SYZ_KVM_MAX_VCPU 4
-#define SYZ_KVM_PAGE_SIZE (4 << 10)
+// Call KVM_SET_USER_MEMORY_REGION for the given pages.
+static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
+{
+	struct kvm_userspace_memory_region memreg;
+	memreg.slot = slot;
+	memreg.flags = flags;
+	memreg.guest_phys_addr = guest_phys_addr;
+	memreg.memory_size = memory_size;
+	memreg.userspace_addr = userspace_addr;
+	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
+}
 
 static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 {
-	const uintptr_t guest_mem_size = 24 * SYZ_KVM_PAGE_SIZE;
-
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - unused pages
 	// 0x08000000 - GICv3 distributor region (MMIO, no memory allocated)
@@ -86,7 +79,7 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	// 0xeeee8000 - executor guest code (4 pages)
 	// 0xeeef0000 - scratch memory for code generated at runtime (1 page)
 	// 0xffff1000 - EL1 stack (1 page)
-	struct addr_size allocator = {.addr = host_mem, .size = guest_mem_size};
+	struct addr_size allocator = {.addr = host_mem, .size = SYZ_KVM_GUEST_MEM_SIZE};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * SYZ_KVM_PAGE_SIZE);
@@ -110,6 +103,15 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
+// Set the value of the specified register.
+static void vcpu_set_reg(int vcpu_fd, uint64 id, uint64 val)
+{
+	struct kvm_one_reg reg = {.id = id, .addr = (uint64)&val};
+	ioctl(vcpu_fd, KVM_SET_ONE_REG, &reg);
 }
 
 // Set up CPU registers.
@@ -136,6 +138,32 @@ static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const
 	reset_cpu_regs(cpufd, cpu_id, text_size);
 }
 
+static void setup_cpu_with_opts(int vmfd, int cpufd, const struct kvm_opt* opt, int opt_count)
+{
+	uint32 features = 0;
+	if (opt_count > 1)
+		opt_count = 1;
+	for (int i = 0; i < opt_count; i++) {
+		uint64 typ = opt[i].typ;
+		uint64 val = opt[i].val;
+		switch (typ) {
+		case 1:
+			features = val;
+			break;
+		}
+	}
+
+	struct kvm_vcpu_init init;
+	// Queries KVM for preferred CPU target type.
+	ioctl(vmfd, KVM_ARM_PREFERRED_TARGET, &init);
+	init.features[0] = features;
+	// Use the modified struct kvm_vcpu_init to initialize the virtual CPU.
+	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 // syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
 static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
@@ -156,34 +184,73 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	const void* text = text_array_ptr[0].text;
 	size_t text_size = text_array_ptr[0].size;
 	(void)text_type;
-	(void)opt_array_ptr;
-
-	uint32 features = 0;
-	if (opt_count > 1)
-		opt_count = 1;
-	for (uintptr_t i = 0; i < opt_count; i++) {
-		uint64 typ = opt_array_ptr[i].typ;
-		uint64 val = opt_array_ptr[i].val;
-		switch (typ) {
-		case 1:
-			features = val;
-			break;
-		}
-	}
 
 	void* user_text_slot = NULL;
 	setup_vm(vmfd, host_mem, &user_text_slot);
-
-	struct kvm_vcpu_init init;
-	// Queries KVM for preferred CPU target type.
-	ioctl(vmfd, KVM_ARM_PREFERRED_TARGET, &init);
-	init.features[0] = features;
-	// Use the modified struct kvm_vcpu_init to initialize the virtual CPU.
-	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
+	setup_cpu_with_opts(vmfd, cpufd, opt_array_ptr, opt_count);
 
 	// Assume CPU is 0.
 	install_user_code(cpufd, user_text_slot, 0, text, text_size);
 	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_add_vcpu
+struct kvm_syz_vm {
+	int vmfd;
+	int next_cpu_id;
+	void* user_text;
+};
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
+
+// Allocate a page using a syscall, as we may not have malloc().
+// This page will be leaked, its address will be used as an opaque resource ID.
+static void* leaky_alloc_page()
+{
+	return mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+}
+
+static long syz_kvm_setup_syzos_vm(volatile long a0)
+{
+	const int vmfd = a0;
+
+	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)leaky_alloc_page();
+	if ((long)ret == -1)
+		return -1;
+
+	void* user_text_slot = NULL;
+	void* host_mem = mmap(NULL, SYZ_KVM_GUEST_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	setup_vm(vmfd, host_mem, &user_text_slot);
+	ret->vmfd = vmfd;
+	ret->next_cpu_id = 0;
+	ret->user_text = user_text_slot;
+	return (long)ret;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	struct kvm_syz_vm* vm = (struct kvm_syz_vm*)a0;
+	struct kvm_text* utext = (struct kvm_text*)a1;
+	const void* text = utext->text;
+	size_t text_size = utext->size;
+	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a2;
+	uintptr_t opt_count = a3;
+
+	if (vm->next_cpu_id == SYZ_KVM_MAX_VCPU)
+		return -1;
+	int cpu_id = vm->next_cpu_id;
+	int cpufd = ioctl(vm->vmfd, KVM_CREATE_VCPU, cpu_id);
+	if (cpufd == -1)
+		return -1;
+	// Only increment next_cpu_id if CPU creation succeeded.
+	vm->next_cpu_id++;
+	setup_cpu_with_opts(vm->vmfd, cpufd, opt_array_ptr, opt_count);
+	install_user_code(cpufd, vm->user_text, cpu_id, text, text_size);
+	return cpufd;
 }
 #endif
 

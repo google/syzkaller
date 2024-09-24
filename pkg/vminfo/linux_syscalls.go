@@ -81,6 +81,8 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_usb_ep_read":             linuxCheckUSBEmulation,
 	"syz_kvm_setup_cpu":           linuxSyzKvmSetupCPUSupported,
 	"syz_kvm_vgic_v3_setup":       linuxSyzKvmVgicV3SetupSupported,
+	"syz_kvm_setup_syzos_vm":      linuxSyzKvmSetupSyzosVMSupported,
+	"syz_kvm_add_vcpu":            linuxSyzKvmAddVcpuSupported,
 	"syz_emit_vhci":               linuxVhciInjectionSupported,
 	"syz_init_net_socket":         linuxSyzInitNetSocketSupported,
 	"syz_genetlink_get_family_id": linuxSyzGenetlinkGetFamilyIDSupported,
@@ -168,6 +170,8 @@ func linuxCheckUSBEmulation(ctx *checkContext, call *prog.Syscall) string {
 	return ctx.rootCanOpen("/dev/raw-gadget")
 }
 
+const unsupportedArch = "unsupported arch"
+
 func linuxSyzKvmSetupCPUSupported(ctx *checkContext, call *prog.Syscall) string {
 	switch call.Name {
 	case "syz_kvm_setup_cpu$x86":
@@ -183,14 +187,28 @@ func linuxSyzKvmSetupCPUSupported(ctx *checkContext, call *prog.Syscall) string 
 			return ""
 		}
 	}
-	return "unsupported arch"
+	return unsupportedArch
 }
 
 func linuxSyzKvmVgicV3SetupSupported(ctx *checkContext, call *prog.Syscall) string {
 	if ctx.target.Arch == targets.ARM64 {
 		return ""
 	}
-	return "unsupported arch"
+	return unsupportedArch
+}
+
+func linuxSyzKvmSetupSyzosVMSupported(ctx *checkContext, call *prog.Syscall) string {
+	if ctx.target.Arch == targets.ARM64 {
+		return ""
+	}
+	return unsupportedArch
+}
+
+func linuxSyzKvmAddVcpuSupported(ctx *checkContext, call *prog.Syscall) string {
+	if ctx.target.Arch == targets.ARM64 {
+		return ""
+	}
+	return unsupportedArch
 }
 
 func linuxSupportedMount(ctx *checkContext, call *prog.Syscall) string {
