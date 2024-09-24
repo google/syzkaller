@@ -266,6 +266,9 @@ syz_kvm_setup_cpu$ppc64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[
 kvm_num_irqs = 32, 64, 128, 256, 512
 # This pseudo-syscall is ARM64-specific.
 syz_kvm_vgic_v3_setup(fd fd_kvmvm, ncpus intptr[0:4], nirqs flags[kvm_num_irqs])
+resource kvm_syz_vm[int64]
+syz_kvm_setup_syzos_vm(fd fd_kvmvm) kvm_syz_vm
+syz_kvm_add_vcpu(vm kvm_syz_vm, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu
 
 resource kvm_run_ptr[int64]
 define KVM_RUN_SIZE	sizeof(struct kvm_run)

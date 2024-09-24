@@ -46,8 +46,10 @@ func TestLinuxSyscalls(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectDisabled := map[string]bool{
+		"syz_kvm_add_vcpu":        true,
 		"syz_kvm_setup_cpu$arm64": true,
 		"syz_kvm_setup_cpu$ppc64": true,
+		"syz_kvm_setup_syzos_vm":  true,
 		"syz_kvm_vgic_v3_setup":   true,
 	}
 	// All mount and syz_mount_image calls except for ext4 and binder will be disabled.

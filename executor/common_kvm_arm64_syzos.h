@@ -79,7 +79,9 @@ typedef enum {
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
-GUEST_CODE static void guest_main(uint64 size, uint64 cpu)
+__attribute__((used))
+GUEST_CODE static void
+guest_main(uint64 size, uint64 cpu)
 {
 	uint64 addr = ARM64_ADDR_USER_CODE + cpu * 0x1000;
 
