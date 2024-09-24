@@ -430,6 +430,13 @@ func (mgr *Manager) restartManager() {
 		mgr.Errorf("failed to load build info: %v", err)
 		return
 	}
+	// HEAD might be pointing to a different commit now e.g. due to a recent failed kernel
+	// build attempt, so let's always reset it to the commit the current kernel was built at.
+	_, err = mgr.repo.CheckoutCommit(mgr.mgrcfg.Repo, info.KernelCommit)
+	if err != nil {
+		mgr.Errorf("failed to check out the last kernel commit %q: %v", info.KernelCommit, err)
+		return
+	}
 	buildTag, err := mgr.uploadBuild(info, mgr.currentDir)
 	if err != nil {
 		mgr.Errorf("failed to upload build: %v", err)
