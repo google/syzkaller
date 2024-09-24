@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -36,7 +37,19 @@ func TestExecprogCmd(t *testing.T) {
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
 	flagSlowdown := flags.Int("slowdown", 1, "")
 	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386, "vmtype",
-		"namespace", 3, true, false, true, 7, 2, 3, true, 10, "myprog")
+		csource.Options{
+			Sandbox:    "namespace",
+			SandboxArg: 3,
+			Repeat:     true,
+			Threaded:   false,
+			Procs:      7,
+			LegacyOptions: csource.LegacyOptions{
+				Collide:   true,
+				Fault:     true,
+				FaultCall: 2,
+				FaultNth:  3,
+			},
+		}, true, 10, "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := tool.ParseFlags(flags, args); err != nil {
 		t.Fatal(err)
