@@ -23,6 +23,7 @@
 #define KVM_ARM64_REGS_X1 0x6030000000100002UL
 #define KVM_ARM64_REGS_PC 0x6030000000100040UL
 #define KVM_ARM64_REGS_SP_EL1 0x6030000000100044UL
+#define KVM_ARM64_REGS_TPIDR_EL1 0x603000000013c684
 
 struct kvm_text {
 	uintptr_t typ;
@@ -120,6 +121,8 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 	// PC points to the relative offset of guest_main() within the guest code.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + SYZ_KVM_PAGE_SIZE - 128);
+	// Store the CPU ID in TPIDR_EL1.
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_TPIDR_EL1, cpu_id);
 	// Pass parameters to guest_main().
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_X0, text_size);
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_X1, cpu_id);
