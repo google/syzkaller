@@ -157,6 +157,18 @@ GUEST_CODE static uint32 reg_to_msr(uint64 reg)
 	return MSR_REG_OPCODE | ((reg & 0xffff) << 5);
 }
 
+// Host sets TPIDR_EL1 to contain the virtual CPU id.
+GUEST_CODE static uint32 get_cpu_id()
+{
+	uint64 val = 0; // Suppress lint warning.
+	asm volatile("mrs %0, tpidr_el1"
+		     : "=r"(val));
+	return (uint32)val;
+}
+
+// Some ARM chips use 128-byte cache lines. Pick 256 to be on the safe side.
+#define MAX_CACHE_LINE_SIZE 256
+
 // Write value to a system register using an MSR instruction.
 // The word "MSR" here has nothing to do with the x86 MSR registers.
 __attribute__((noinline))
@@ -164,7 +176,9 @@ GUEST_CODE static void
 guest_handle_msr(uint64 reg, uint64 val)
 {
 	uint32 msr = reg_to_msr(reg);
-	uint32* insn = (uint32*)ARM64_ADDR_SCRATCH_CODE;
+	uint32 cpu_id = get_cpu_id();
+	// Make sure CPUs use different cache lines for scratch code.
+	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
 	insn[0] = msr;
 	insn[1] = 0xd65f03c0; // RET
 	// Put `val` into x0 and make a call to the generated MSR instruction.
@@ -448,10 +462,9 @@ GUEST_CODE void gicv3_cpu_init(uint32 cpu)
 #define VGICV3_MAX_SPI 1019
 
 // https://developer.arm.com/documentation/ihi0048/b/Programmers--Model/Distributor-register-descriptions/Interrupt-Set-Enable-Registers--GICD-ISENABLERn
-GUEST_CODE void gicv3_irq_enable(uint32 intid)
+GUEST_CODE static void gicv3_irq_enable(uint32 intid)
 {
-	// TODO(glider): support multiple CPUs. E.g. KVM selftests store CPU ID in TPIDR_EL1.
-	uint32 cpu = 0;
+	uint32 cpu = get_cpu_id();
 
 	writel(1 << (intid % 32), ARM64_ADDR_GICD_BASE + GICD_ISENABLER + (intid / 32) * 4);
 	if ((intid >= VGICV3_MIN_SPI) && (intid <= VGICV3_MAX_SPI))
