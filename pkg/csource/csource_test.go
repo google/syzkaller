@@ -164,6 +164,9 @@ func TestExecutorMacros(t *testing.T) {
 	expected["SYZ_HAVE_RESET_LOOP"] = true
 	expected["SYZ_HAVE_SETUP_TEST"] = true
 	expected["SYZ_TEST_COMMON_EXT_EXAMPLE"] = true
+	expected["SYZ_KVM_MAX_VCPU"] = true
+	expected["SYZ_KVM_PAGE_SIZE"] = true
+	expected["SYZ_KVM_GUEST_MEM_SIZE"] = true
 	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(string(executor.CommonHeader), -1)
 	for _, macro := range macros {
 		if strings.HasPrefix(macro, "SYZ_HAVE_") {
