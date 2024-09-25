@@ -11,9 +11,9 @@
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_syzos_vm
 #include "common_kvm_arm64_syzos.h"
 
-#define SYZ_KVM_MAX_VCPU 4
-#define SYZ_KVM_PAGE_SIZE (4 << 10)
-#define SYZ_KVM_GUEST_MEM_SIZE (24 * SYZ_KVM_PAGE_SIZE)
+#define KVM_MAX_VCPU 4
+#define KVM_PAGE_SIZE (4 << 10)
+#define KVM_GUEST_MEM_SIZE (24 * KVM_PAGE_SIZE)
 
 #endif
 
@@ -80,25 +80,25 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	// 0xeeee8000 - executor guest code (4 pages)
 	// 0xeeef0000 - scratch memory for code generated at runtime (1 page)
 	// 0xffff1000 - EL1 stack (1 page)
-	struct addr_size allocator = {.addr = host_mem, .size = SYZ_KVM_GUEST_MEM_SIZE};
+	struct addr_size allocator = {.addr = host_mem, .size = KVM_GUEST_MEM_SIZE};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
-	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * SYZ_KVM_PAGE_SIZE);
+	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
 	memcpy(host_text.addr, &__start_guest, (char*)&__stop_guest - (char*)&__start_guest);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
-	struct addr_size next = alloc_guest_mem(&allocator, 2 * SYZ_KVM_PAGE_SIZE);
+	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
 
-	next = alloc_guest_mem(&allocator, SYZ_KVM_MAX_VCPU * SYZ_KVM_PAGE_SIZE);
+	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
 	if (text_slot)
 		*text_slot = next.addr;
 
-	next = alloc_guest_mem(&allocator, SYZ_KVM_PAGE_SIZE);
+	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_EL1_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
 
-	next = alloc_guest_mem(&allocator, SYZ_KVM_PAGE_SIZE);
+	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
 
 	// Map the remaining pages at address 0.
@@ -120,7 +120,7 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	// PC points to the relative offset of guest_main() within the guest code.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + SYZ_KVM_PAGE_SIZE - 128);
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + KVM_PAGE_SIZE - 128);
 	// Store the CPU ID in TPIDR_EL1.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_TPIDR_EL1, cpu_id);
 	// Pass parameters to guest_main().
@@ -130,13 +130,13 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 
 static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const void* text, size_t text_size)
 {
-	if ((cpu_id < 0) || (cpu_id >= SYZ_KVM_MAX_VCPU))
+	if ((cpu_id < 0) || (cpu_id >= KVM_MAX_VCPU))
 		return;
 	if (!user_text_slot)
 		return;
-	if (text_size > SYZ_KVM_PAGE_SIZE)
-		text_size = SYZ_KVM_PAGE_SIZE;
-	void* target = (void*)((uint64)user_text_slot + (SYZ_KVM_PAGE_SIZE * cpu_id));
+	if (text_size > KVM_PAGE_SIZE)
+		text_size = KVM_PAGE_SIZE;
+	void* target = (void*)((uint64)user_text_slot + (KVM_PAGE_SIZE * cpu_id));
 	memcpy(target, text, text_size);
 	reset_cpu_regs(cpufd, cpu_id, text_size);
 }
@@ -224,7 +224,7 @@ static long syz_kvm_setup_syzos_vm(volatile long a0)
 		return -1;
 
 	void* user_text_slot = NULL;
-	void* host_mem = mmap(NULL, SYZ_KVM_GUEST_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	void* host_mem = mmap(NULL, KVM_GUEST_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 	setup_vm(vmfd, host_mem, &user_text_slot);
 	ret->vmfd = vmfd;
 	ret->next_cpu_id = 0;
@@ -243,7 +243,7 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a2;
 	uintptr_t opt_count = a3;
 
-	if (vm->next_cpu_id == SYZ_KVM_MAX_VCPU)
+	if (vm->next_cpu_id == KVM_MAX_VCPU)
 		return -1;
 	int cpu_id = vm->next_cpu_id;
 	int cpufd = ioctl(vm->vmfd, KVM_CREATE_VCPU, cpu_id);
