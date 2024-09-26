@@ -131,7 +131,10 @@ config:
  - KCOV_INSTRUMENT_ALL: [-arm, -s390, -nokcov]
  # Doesn't boot with KCOV_ENABLE_COMPARISONS on Cuttlefish.
  - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov, -cuttlefish]
- - KCOV_SELFTEST: [linux-next, -baseline, -arm, -s390, -nokcov]
+ # As of Sep 2024, the test does not pass (at least) on gcc-built kernels.
+ # https://lore.kernel.org/all/66eb52dc.050a0220.92ef1.0006.GAE@google.com/T/
+ # TODO: re-enable the option once the problem is addressed.
+ - KCOV_SELFTEST: n
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
