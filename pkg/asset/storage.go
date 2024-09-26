@@ -217,12 +217,19 @@ var ErrUnknownBucket = errors.New("the asset is not in the currently managed buc
 
 const deletionEmbargo = time.Hour * 24 * 7
 
+type DeprecateStats struct {
+	Needed   int // The count of assets currently needed in the dashboard.
+	Existing int // The number of assets currently stored.
+	Deleted  int // How many were deleted during DeprecateAssets().
+}
+
 // Best way: convert download URLs to paths.
 // We don't want to risk killing all assets after a slight domain change.
-func (storage *Storage) DeprecateAssets() error {
+func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
+	var stats DeprecateStats
 	resp, err := storage.dash.NeededAssetsList()
 	if err != nil {
-		return fmt.Errorf("failed to query needed assets: %w", err)
+		return stats, fmt.Errorf("failed to query needed assets: %w", err)
 	}
 	needed := map[string]bool{}
 	for _, url := range resp.DownloadURLs {
@@ -233,15 +240,18 @@ func (storage *Storage) DeprecateAssets() error {
 		} else if err != nil {
 			// If we failed to parse just one URL, let's stop the entire process.
 			// Otherwise we'll start deleting still needed files we couldn't recognize.
-			return fmt.Errorf("failed to parse '%s': %w", url, err)
+			return stats, fmt.Errorf("failed to parse '%s': %w", url, err)
 		}
 		needed[path] = true
 	}
+	stats.Needed = len(needed)
 	storage.tracer.Log("queried needed assets: %#v", needed)
+
 	existing, err := storage.backend.list()
 	if err != nil {
-		return fmt.Errorf("failed to query object list: %w", err)
+		return stats, fmt.Errorf("failed to query object list: %w", err)
 	}
+	stats.Existing = len(existing)
 	toDelete := []string{}
 	intersection := 0
 	for _, obj := range existing {
@@ -265,7 +275,7 @@ func (storage *Storage) DeprecateAssets() error {
 		// This is a last-resort protection against possible dashboard bugs.
 		// If the needed assets have no intersection with the existing assets,
 		// don't delete anything. Otherwise, if it was a bug, we will lose all files.
-		return fmt.Errorf("needed assets have almost no intersection with the existing ones")
+		return stats, fmt.Errorf("needed assets have almost no intersection with the existing ones")
 	}
 	for _, path := range toDelete {
 		err := storage.backend.remove(path)
@@ -273,10 +283,11 @@ func (storage *Storage) DeprecateAssets() error {
 		// Several syz-ci's might be sharing the same storage. So let's tolerate
 		// races during file deletion.
 		if err != nil && err != ErrAssetDoesNotExist {
-			return fmt.Errorf("asset deletion failure: %w", err)
+			return stats, fmt.Errorf("asset deletion failure: %w", err)
 		}
 	}
-	return nil
+	stats.Deleted = len(toDelete)
+	return stats, nil
 }
 
 type uploadRequest struct {

@@ -355,11 +355,13 @@ loop:
 			break loop
 		case <-time.After(sleepDuration):
 		}
-		log.Logf(0, "deprecating assets")
-		err := storage.DeprecateAssets()
+		log.Logf(1, "start asset deprecation")
+		stats, err := storage.DeprecateAssets()
 		if err != nil {
 			log.Errorf("asset deprecation failed: %v", err)
 		}
+		log.Logf(0, "asset deprecation: needed=%d, existing=%d, deleted=%d",
+			stats.Needed, stats.Existing, stats.Deleted)
 	}
 }
 
