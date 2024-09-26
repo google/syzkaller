@@ -182,14 +182,14 @@ func TestUploadBuildAsset(t *testing.T) {
 
 	// Pretend there's an asset deletion error.
 	be.objectRemove = func(string) error { return fmt.Errorf("not now") }
-	err = storage.DeprecateAssets()
+	_, err = storage.DeprecateAssets()
 	if err == nil {
 		t.Fatalf("DeprecateAssets should have failed")
 	}
 
 	// Let the deletion be successful.
 	be.objectRemove = nil
-	err = storage.DeprecateAssets()
+	_, err = storage.DeprecateAssets()
 	if err != nil {
 		t.Fatalf("DeprecateAssets was expected to be successful, got %s", err)
 	}
@@ -204,7 +204,7 @@ func TestUploadBuildAsset(t *testing.T) {
 
 	// Delete the rest.
 	dashMock.downloadURLs = map[string]bool{}
-	err = storage.DeprecateAssets()
+	_, err = storage.DeprecateAssets()
 	if err != nil || len(be.objects) != 0 {
 		t.Fatalf("second DeprecateAssets failed: %s, len %d",
 			err, len(be.objects))
@@ -270,7 +270,7 @@ func TestRecentAssetDeletionProtection(t *testing.T) {
 
 	// Try to delete a recent file.
 	dashMock.downloadURLs = map[string]bool{}
-	err = storage.DeprecateAssets()
+	_, err = storage.DeprecateAssets()
 	if err != nil {
 		t.Fatalf("DeprecateAssets failed: %v", err)
 	} else if len(be.objects) == 0 {
@@ -368,7 +368,7 @@ func TestTwoBucketDeprecation(t *testing.T) {
 		t.Fatalf("unexpected removal")
 		return nil
 	}
-	err := storage.DeprecateAssets()
+	_, err := storage.DeprecateAssets()
 	assert.NoError(t, err)
 }
 
@@ -392,6 +392,6 @@ func TestInvalidAssetURLs(t *testing.T) {
 		t.Fatalf("unexpected removal")
 		return nil
 	}
-	err := storage.DeprecateAssets()
+	_, err := storage.DeprecateAssets()
 	assert.Error(t, err)
 }
