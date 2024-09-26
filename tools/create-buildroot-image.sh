@@ -161,6 +161,9 @@ esac
 cat >rootfs_script.sh <<'EOFEOF'
 set -eux
 
+# Mount /dev right after / is mounted.
+sed -Ei '/\/dev\/pts/i ::sysinit:/bin/mount -t devtmpfs devtmpfs /dev' $1/etc/inittab
+
 # Mount debugfs for KCOV and other filesystems.
 cat >>$1/etc/fstab <<EOF
 debugfs /sys/kernel/debug debugfs defaults 0 0
