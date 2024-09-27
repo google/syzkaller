@@ -114,10 +114,10 @@ openat$sysfs(fd const[AT_FDCWD], dir ptr[in, glob["/sys/**/*:-/sys/power/state"]
 
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd (automatic_helper)
 # Just so that we have something that creates fd_dir resources.
-open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
-openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
+open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
+openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
 openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
-openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir
+openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir (automatic_helper)
 openat2(fd fd_dir[opt], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd
 creat(file ptr[in, filename], mode flags[open_mode]) fd
 close(fd fd)
@@ -270,7 +270,7 @@ fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
 fcntl$setflags(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])
 fcntl$setstatus(fd fd, cmd const[F_SETFL], flags flags[fcntl_status])
 fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
-fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
+fcntl$getown(fd fd, cmd const[F_GETOWN]) pid (automatic_helper)
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 fcntl$getownex(fd fd, cmd const[F_GETOWN_EX], arg ptr[out, f_owner_ex])
 fcntl$setownex(fd fd, cmd const[F_SETOWN_EX], arg ptr[in, f_owner_ex])
@@ -369,9 +369,9 @@ futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 # Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
-syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
+syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid (automatic_helper)
 
-syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid
+syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid (automatic_helper)
 
 # We need these disabled definitions to simplify the presence and the NR checking.
 clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns, disabled)
@@ -395,17 +395,17 @@ resource pid[int32]: 0, -1
 resource uid[int32]: 0, -1, 0xee00, 0xee01
 resource gid[int32]: 0, -1, 0xee00, 0xee01
 
-getgid() gid
-getegid() gid
+getgid() gid (automatic_helper)
+getegid() gid (automatic_helper)
 setuid(uid uid)
 setgid(gid gid)
-getuid() uid
-geteuid() uid
+getuid() uid (automatic_helper)
+geteuid() uid (automatic_helper)
 setpgid(pid pid, pgid pid)
-getpgid(pid pid) pid
-getpgrp(pid pid) pid
+getpgid(pid pid) pid (automatic_helper)
+getpgrp(pid pid) pid (automatic_helper)
 getpid() pid (automatic_helper)
-gettid() pid
+gettid() pid (automatic_helper)
 setreuid(ruid uid, euid uid)
 setregid(rgid gid, egid gid)
 setresuid(ruid uid, euid uid, suid uid)
