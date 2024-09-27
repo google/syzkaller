@@ -277,8 +277,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse qemu vm config: %w", err)
 	}
-	if cfg.Count < 1 || cfg.Count > 128 {
-		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
+	if cfg.Count < 1 || cfg.Count > 1024 {
+		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1024]", cfg.Count)
 	}
 	if env.Debug && cfg.Count > 1 {
 		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
