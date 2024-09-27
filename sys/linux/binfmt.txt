@@ -6,6 +6,8 @@ include <uapi/linux/elf.h>
 include <linux/fcntl.h>
 
 resource fd_binfmt[fd]
+resource fd_binfmt_register[fd]
+resource fd_binfmt_format[fd]
 resource ptr_binfmt_file[intptr]
 
 syz_create_resource$binfmt(file ptr[in, filename]) ptr_binfmt_file
@@ -24,12 +26,44 @@ write$binfmt_elf64(fd fd_binfmt, data ptr[in, binfmt_elf64], len bytesize[data])
 
 close$binfmt(fd fd_binfmt)
 
+openat$binfmt_register(fd const[AT_FDCWD], file ptr[in, string["/proc/sys/fs/binfmt_misc/register"]], flags const[O_WRONLY], mode const[0]) fd_binfmt_register
+write$binfmt_register(fd fd_binfmt_register, data ptr[in, binfmt_register], len bytesize[data])
+
+openat$binfmt_format(fd const[AT_FDCWD], file ptr[in, string[binfmt_format_files]], flags const[O_RDWR], mode const[0]) fd_binfmt_format
+write$binfmt_format(fd fd_binfmt_format, data ptr[in, string[binfmt_format_cmd]], len bytesize[data])
+
 define BINFMT_OPEN_FLAGS	O_WRONLY | O_CREAT
 
 argv_array {
 	args	array[ptr[in, string]]
 	z	const[0, intptr]
 } [packed]
+
+# For details of the format see:
+# Documentation/admin-guide/binfmt-misc.rst
+binfmt_register {
+	colon0		const[':', int8]
+	name		stringnoz[binfmt_names]
+	colon1		const[':', int8]
+	type		stringnoz[binfmt_types]
+	colon2		const[':', int8]
+	offset		fmt[dec, int64]
+	colon3		const[':', int8]
+	magic		stringnoz
+	colon4		const[':', int8]
+	mask		stringnoz
+	colon5		const[':', int8]
+	interpreter	stringnoz[filename]
+	colon6		const[':', int8]
+	flags		array[flags[binfmt_flags, int8]]
+} [packed]
+
+# syz0/1 are pre-registered by executor, but we can delete them and them re-create.
+binfmt_names = "syz0", "syz1", "syz2", "syz3"
+binfmt_types = "M", "E"
+binfmt_flags = 'P', 'O', 'C', 'F'
+binfmt_format_cmd = "0", "1", "-1"
+binfmt_format_files = "/proc/sys/fs/binfmt_misc/syz0", "/proc/sys/fs/binfmt_misc/syz1", "/proc/sys/fs/binfmt_misc/syz2", "/proc/sys/fs/binfmt_misc/syz3"
 
 binfmt_script {
 	hdr	stringnoz["#! "]
