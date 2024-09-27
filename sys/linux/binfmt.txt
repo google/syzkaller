@@ -105,7 +105,7 @@ type binfmt_elf64 binfmt_elf[int64, elf64_phdr, ELF64_PHDR_SIZE]
 
 type binfmt_elf[ADDR, PHDR, PHENTSIZE] {
 	hdr	elf_hdr[ADDR, PHENTSIZE]
-	phdr	array[PHDR, 1:2]
+	phdr	array[PHDR, 1:4]
 	data	array[int8]
 # Just to make the file of a non-trivial size.
 	pad	array[array[const[0, int64], 32], 0:10]
@@ -130,7 +130,7 @@ type elf_hdr[ADDR, PHENTSIZE] {
 	e_flags		int32
 	e_ehsize	int16
 	e_phentsize	const[PHENTSIZE, int16]
-	e_phnum		int16[1:2]
+	e_phnum		len[binfmt_elf:phdr, int16]
 	e_shentsize	int16
 	e_shnum		int16
 	e_shstrndx	int16
