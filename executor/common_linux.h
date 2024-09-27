@@ -3924,6 +3924,8 @@ static void initialize_cgroups()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
+static void setup_binderfs();
+static void setup_fusectl();
 // Mount tmpfs and chroot into it in sandbox=none and sandbox=namespace.
 // This is to prevent persistent changes to the root file system (e.g. setting attributes) that may
 // hinder fuzzing.
@@ -3959,9 +3961,15 @@ static void sandbox_common_mount_tmpfs(void)
 			fail("mount(/sys/fs/selinux) failed");
 	}
 	if (mkdir("./syz-tmp/newroot/sys", 0700))
-		fail("mkdir failed");
+		fail("mkdir(/sys) failed");
 	if (mount("/sys", "./syz-tmp/newroot/sys", 0, bind_mount_flags, NULL))
 		fail("mount(sysfs) failed");
+	if (mount("/sys/kernel/debug", "./syz-tmp/newroot/sys/kernel/debug", NULL, bind_mount_flags, NULL) && errno != ENOENT)
+		fail("mount(debug) failed");
+	if (mount("/sys/fs/smackfs", "./syz-tmp/newroot/sys/fs/smackfs", NULL, bind_mount_flags, NULL) && errno != ENOENT)
+		fail("mount(smackfs) failed");
+	if (mount("/proc/sys/fs/binfmt_misc", "./syz-tmp/newroot/proc/sys/fs/binfmt_misc", NULL, bind_mount_flags, NULL) && errno != ENOENT)
+		fail("mount(binfmt_misc) failed");
 #if SYZ_EXECUTOR || SYZ_CGROUPS
 	initialize_cgroups();
 #endif
@@ -3982,8 +3990,9 @@ static void sandbox_common_mount_tmpfs(void)
 		fail("chroot failed");
 	if (chdir("/"))
 		fail("chdir failed");
+	setup_binderfs();
+	setup_fusectl();
 }
-
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
@@ -3992,7 +4001,7 @@ static void sandbox_common_mount_tmpfs(void)
 #include <sys/stat.h>
 #include <unistd.h>
 
-static void setup_common()
+static void setup_fusectl()
 {
 	if (mount(0, "/sys/fs/fuse/connections", "fusectl", 0, 0)) {
 		debug("mount(fusectl) failed: %d\n", errno);
@@ -4172,7 +4181,6 @@ static int do_sandbox_none(void)
 	if (pid != 0)
 		return wait_for_loop(pid);
 
-	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	initialize_vhci();
 #endif
@@ -4199,7 +4207,6 @@ static int do_sandbox_none(void)
 	initialize_wifi_devices();
 #endif
 	sandbox_common_mount_tmpfs();
-	setup_binderfs();
 	loop();
 	doexit(1);
 }
@@ -4220,7 +4227,6 @@ static int do_sandbox_setuid(void)
 	if (pid != 0)
 		return wait_for_loop(pid);
 
-	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	initialize_vhci();
 #endif
@@ -4244,6 +4250,7 @@ static int do_sandbox_setuid(void)
 	initialize_wifi_devices();
 #endif
 	setup_binderfs();
+	setup_fusectl();
 
 	const int nobody = 65534;
 	if (setgroups(0, NULL))
@@ -4313,7 +4320,6 @@ static int namespace_sandbox_proc(void* arg)
 #endif
 
 	sandbox_common_mount_tmpfs();
-	setup_binderfs();
 	drop_caps();
 
 	loop();
@@ -4323,7 +4329,6 @@ static int namespace_sandbox_proc(void* arg)
 #define SYZ_HAVE_SANDBOX_NAMESPACE 1
 static int do_sandbox_namespace(void)
 {
-	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	// HCIDEVUP requires CAP_ADMIN, so this needs to happen early.
 	initialize_vhci();
@@ -4481,7 +4486,7 @@ static void setfilecon(const char* path, const char* context)
 
 static int do_sandbox_android(uint64 sandbox_arg)
 {
-	setup_common();
+	setup_fusectl();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	initialize_vhci();
 #endif
