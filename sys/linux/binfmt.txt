@@ -17,7 +17,7 @@ execveat$binfmt(dirfd fd_dir, file ptr_binfmt_file, argv ptr[in, argv_array], en
 openat$binfmt(fd const[AT_FDCWD], file ptr_binfmt_file, flags const[BINFMT_OPEN_FLAGS], mode const[0x1ff]) fd_binfmt
 
 write$binfmt_script(fd fd_binfmt, data ptr[in, binfmt_script], len bytesize[data])
-write$binfmt_misc(fd fd_binfmt, data ptr[in, binfmt_misc], len bytesize[data])
+write$binfmt_misc(fd fd_binfmt, data ptr[in, array[int8]], len bytesize[data])
 write$binfmt_aout(fd fd_binfmt, data ptr[in, binfmt_aout], len bytesize[data])
 write$binfmt_elf32(fd fd_binfmt, data ptr[in, binfmt_elf32], len bytesize[data])
 write$binfmt_elf64(fd fd_binfmt, data ptr[in, binfmt_elf64], len bytesize[data])
@@ -43,13 +43,6 @@ binfmt_script_arg {
 	sp	const[0x20, int8]
 	arg	stringnoz
 }
-
-binfmt_misc {
-	hdr	stringnoz[binfmt_misc_headers]
-	data	array[int8]
-}
-
-binfmt_misc_headers = "syz0", "syz1"
 
 binfmt_aout {
 	exec	exec
