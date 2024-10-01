@@ -28,7 +28,7 @@ func MakeTimePeriod(targetDate civil.Date, periodType string) (TimePeriod, error
 	if err != nil {
 		return TimePeriod{}, err
 	}
-	tp := TimePeriod{DateTo: targetDate, Days: pOps.PointedPeriodDays(targetDate), Type: periodType}
+	tp := TimePeriod{DateTo: targetDate, Days: pOps.pointedPeriodDays(targetDate), Type: periodType}
 	if !pOps.IsValidPeriod(tp) {
 		return TimePeriod{}, fmt.Errorf("date %s doesn't point the period(%s) end", targetDate.String(), periodType)
 	}
@@ -72,18 +72,22 @@ func PeriodOps(periodType string) (periodOps, error) {
 type periodOps interface {
 	IsValidPeriod(p TimePeriod) bool
 	lastPeriodDate(d civil.Date) civil.Date
-	PointedPeriodDays(d civil.Date) int
+	pointedPeriodDays(d civil.Date) int
 }
 
-func GenNPeriodsTill(n int, d civil.Date, po periodOps) []TimePeriod {
+func GenNPeriodsTill(n int, d civil.Date, periodType string) ([]TimePeriod, error) {
+	pOps, err := PeriodOps(periodType)
+	if err != nil {
+		return nil, err
+	}
 	var res []TimePeriod
 	for i := 0; i < n; i++ {
-		d = po.lastPeriodDate(d)
-		res = append(res, TimePeriod{DateTo: d, Days: po.PointedPeriodDays(d)})
-		d = d.AddDays(-po.PointedPeriodDays(d))
+		d = pOps.lastPeriodDate(d)
+		res = append(res, TimePeriod{DateTo: d, Days: pOps.pointedPeriodDays(d), Type: periodType})
+		d = d.AddDays(-pOps.pointedPeriodDays(d))
 	}
 	slices.Reverse(res)
-	return res
+	return res, nil
 }
 
 type DayPeriodOps struct{}
@@ -96,7 +100,7 @@ func (dpo *DayPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	return p.Days == 1
 }
 
-func (dpo *DayPeriodOps) PointedPeriodDays(d civil.Date) int {
+func (dpo *DayPeriodOps) pointedPeriodDays(d civil.Date) int {
 	return 1
 }
 
@@ -114,7 +118,7 @@ func (m *MonthPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	return lmd == p.DateTo && p.Days == lmd.Day
 }
 
-func (m *MonthPeriodOps) PointedPeriodDays(d civil.Date) int {
+func (m *MonthPeriodOps) pointedPeriodDays(d civil.Date) int {
 	return m.lastPeriodDate(d).Day
 }
 
@@ -122,7 +126,7 @@ type QuarterPeriodOps struct{}
 
 func (q *QuarterPeriodOps) IsValidPeriod(p TimePeriod) bool {
 	lmd := q.lastPeriodDate(p.DateTo)
-	return lmd == p.DateTo && p.Days == q.PointedPeriodDays(lmd)
+	return lmd == p.DateTo && p.Days == q.pointedPeriodDays(lmd)
 }
 
 func (q *QuarterPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
@@ -131,12 +135,12 @@ func (q *QuarterPeriodOps) lastPeriodDate(d civil.Date) civil.Date {
 	return (&MonthPeriodOps{}).lastPeriodDate(d)
 }
 
-func (q *QuarterPeriodOps) PointedPeriodDays(d civil.Date) int {
+func (q *QuarterPeriodOps) pointedPeriodDays(d civil.Date) int {
 	d = q.lastPeriodDate(d)
 	d.Day = 1
 	res := 0
 	for i := 0; i < 3; i++ {
-		res += (&MonthPeriodOps{}).PointedPeriodDays(d)
+		res += (&MonthPeriodOps{}).pointedPeriodDays(d)
 		d.Month--
 	}
 	return res
@@ -160,7 +164,7 @@ func PeriodsToMerge(srcDates, mergedPeriods []TimePeriod, srcRows, mergedRows []
 	periods := []TimePeriod{}
 	for periodEndDate := range periodRows {
 		periods = append(periods,
-			TimePeriod{DateTo: periodEndDate, Days: ops.PointedPeriodDays(periodEndDate)})
+			TimePeriod{DateTo: periodEndDate, Days: ops.pointedPeriodDays(periodEndDate)})
 	}
 	sort.Slice(periods, func(i, j int) bool {
 		return periods[i].DateTo.After(periods[j].DateTo)
