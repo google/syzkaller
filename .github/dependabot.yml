@@ -15,3 +15,11 @@ updates:
     prefix: "mod:"
   assignees:
     - "tarasmadan"
+  groups:
+    stable-enough:
+      patterns:
+        - "*"
+      exclude-patterns:
+        - "mockery"
+        - "golangci-lint"
+        - "appengine"
