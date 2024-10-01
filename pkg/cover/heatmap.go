@@ -68,7 +68,7 @@ func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, filePath s
 	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], filePath, instrumented, covered, timePeriod)
 }
 
-func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePeriod) {
+func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget) {
 	thm.Items = maps.Values(thm.builder)
 	sort.Slice(thm.Items, func(i, j int) bool {
 		if thm.Items[i].IsDir != thm.Items[j].IsDir {
@@ -76,8 +76,9 @@ func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePerio
 		}
 		return thm.Items[i].Name < thm.Items[j].Name
 	})
-	for _, tp := range timePeriods {
+	for _, pageColumn := range pageColumns {
 		var dateCoverage int64
+		tp := pageColumn.TimePeriod
 		if thm.instrumented[tp] != 0 {
 			dateCoverage = 100 * thm.covered[tp] / thm.instrumented[tp]
 		}
@@ -89,16 +90,16 @@ func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePerio
 				fmt.Sprintf("/upstream/graph/coverage/file?dateto=%s&period=%s&commit=%s&filepath=%s",
 					tp.DateTo.String(),
 					tp.Type,
-					"commit",
+					pageColumn.Commit,
 					thm.filePath))
 		}
 	}
-	if len(timePeriods) > 0 {
-		lastDate := timePeriods[len(timePeriods)-1]
+	if len(pageColumns) > 0 {
+		lastDate := pageColumns[len(pageColumns)-1].TimePeriod
 		thm.LastDayInstrumented = thm.instrumented[lastDate]
 	}
 	for _, item := range thm.builder {
-		item.prepareDataFor(timePeriods)
+		item.prepareDataFor(pageColumns)
 	}
 }
 
@@ -108,7 +109,13 @@ type fileCoverageWithDetails struct {
 	Instrumented int64
 	Covered      int64
 	TimePeriod   coveragedb.TimePeriod `spanner:"-"`
+	Commit       string
 	Subsystems   []string
+}
+
+type pageColumnTarget struct {
+	TimePeriod coveragedb.TimePeriod
+	Commit     string
 }
 
 func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatmap {
@@ -120,7 +127,7 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 			covered:      map[coveragedb.TimePeriod]int64{},
 		},
 	}
-	timePeriods := map[coveragedb.TimePeriod]struct{}{}
+	columns := map[pageColumnTarget]struct{}{}
 	for _, fc := range fCov {
 		var pathLeft []string
 		if fc.Subsystem != "" {
@@ -133,17 +140,18 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 			fc.Instrumented,
 			fc.Covered,
 			fc.TimePeriod)
-		timePeriods[fc.TimePeriod] = struct{}{}
+		columns[pageColumnTarget{TimePeriod: fc.TimePeriod, Commit: fc.Commit}] = struct{}{}
 	}
-	sortedTimePeriods := maps.Keys(timePeriods)
-	sort.Slice(sortedTimePeriods, func(i, j int) bool {
-		return sortedTimePeriods[i].DateTo.Before(sortedTimePeriods[j].DateTo)
+	targetDateAndCommits := maps.Keys(columns)
+	sort.Slice(targetDateAndCommits, func(i, j int) bool {
+		return targetDateAndCommits[i].TimePeriod.DateTo.Before(targetDateAndCommits[j].TimePeriod.DateTo)
 	})
-	for _, tp := range sortedTimePeriods {
+	for _, tdc := range targetDateAndCommits {
+		tp := tdc.TimePeriod
 		res.Periods = append(res.Periods, fmt.Sprintf("%s(%d)", tp.DateTo.String(), tp.Days))
 	}
 
-	res.Root.prepareDataFor(sortedTimePeriods)
+	res.Root.prepareDataFor(targetDateAndCommits)
 	return &res
 }
 
@@ -151,6 +159,7 @@ func filesCoverageWithDetailsStmt(ns, subsystem string, timePeriod coveragedb.Ti
 	stmt := spanner.Statement{
 		SQL: `
 select
+  commit,
   instrumented,
   covered,
   files.filepath,
