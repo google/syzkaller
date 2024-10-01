@@ -49,8 +49,8 @@ cloud.google.com/go/auth/oauth2adapt
 cloud.google.com/go/batch/apiv1
 cloud.google.com/go/batch/apiv1/batchpb
 cloud.google.com/go/batch/internal
-# cloud.google.com/go/bigquery v1.62.0
-## explicit; go 1.20
+# cloud.google.com/go/bigquery v1.63.0
+## explicit; go 1.21
 cloud.google.com/go/bigquery
 cloud.google.com/go/bigquery/internal
 cloud.google.com/go/bigquery/internal/query
@@ -1346,7 +1346,7 @@ golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
 golang.org/x/tools/txtar
-# golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9
+# golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal

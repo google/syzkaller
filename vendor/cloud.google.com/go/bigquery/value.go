@@ -900,7 +900,7 @@ func convertRow(r *bq.TableRow, schema Schema) ([]Value, error) {
 			if fs.RangeElementType == nil {
 				return nil, errors.New("bigquery: incomplete range schema for conversion")
 			}
-			v, err = convertRangeValue(cell.V.(string), fs.RangeElementType.Type)
+			v, err = convertRangeTableCell(cell, fs)
 		} else {
 			v, err = convertValue(cell.V, fs.Type, fs.Schema)
 		}
@@ -1057,4 +1057,22 @@ func convertRangeValue(val string, elementType FieldType) (Value, error) {
 		rv.End = ev
 	}
 	return rv, nil
+}
+
+// convertRangeTableCell handles parsing of the API representation of the RANGE type,
+// which can come as a single value or array.
+func convertRangeTableCell(cell *bq.TableCell, fs *FieldSchema) (Value, error) {
+	if fs.Repeated {
+		rangeValues := []Value{}
+		for _, val := range cell.V.([]interface{}) {
+			rawRangeValue := val.(map[string]interface{})["v"]
+			rangeVal, err := convertRangeValue(rawRangeValue.(string), fs.RangeElementType.Type)
+			if err != nil {
+				return nil, err
+			}
+			rangeValues = append(rangeValues, rangeVal)
+		}
+		return rangeValues, nil
+	}
+	return convertRangeValue(cell.V.(string), fs.RangeElementType.Type)
 }
