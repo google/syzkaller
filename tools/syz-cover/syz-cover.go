@@ -86,9 +86,9 @@ func periodsFromDays(from, to civil.Date) []coveragedb.TimePeriod {
 	if to.Before(from) {
 		panic("toDay can't be less than fromDay")
 	}
-	res := []coveragedb.TimePeriod{{DateTo: from, Days: 1}}
+	res := []coveragedb.TimePeriod{{DateTo: from, Days: 1, Type: coveragedb.DayPeriod}}
 	for ; from.Before(to); from = from.AddDays(1) {
-		res = append(res, coveragedb.TimePeriod{DateTo: from, Days: 1})
+		res = append(res, coveragedb.TimePeriod{DateTo: from, Days: 1, Type: coveragedb.DayPeriod})
 	}
 	return res
 }

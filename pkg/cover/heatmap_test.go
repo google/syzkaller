@@ -53,7 +53,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 								"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 							},
 							FileCoverageLink: []string{
-								"/upstream/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=file1"},
+								"/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=file1"},
 						},
 					},
 					Name:                "",
@@ -103,8 +103,8 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
 									},
 									FileCoverageLink: []string{
-										"/upstream/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file1",
-										"/upstream/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file1"},
+										"/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file1",
+										"/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file1"},
 								},
 								{
 									Items:               []*templateHeatmapRow{},
@@ -118,8 +118,8 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 									},
 									FileCoverageLink: []string{
-										"/upstream/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file2",
-										"/upstream/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file2"},
+										"/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file2",
+										"/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file2"},
 								},
 							},
 							Name:                "dir",
