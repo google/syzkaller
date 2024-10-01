@@ -88,7 +88,7 @@ func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePerio
 			thm.FileCoverageLink = append(thm.FileCoverageLink,
 				fmt.Sprintf("/upstream/graph/coverage/file?dateto=%s&period=%s&commit=%s&filepath=%s",
 					tp.DateTo.String(),
-					"day",
+					tp.Type,
 					"commit",
 					thm.filePath))
 		}
