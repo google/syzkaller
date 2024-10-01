@@ -15,6 +15,7 @@ import (
 type TimePeriod struct {
 	DateTo civil.Date
 	Days   int
+	Type   string // DayPeriod, MonthPeriod, QuarterPeriod.
 }
 
 // DatesFromTo returns the closed range [fromDate, toDate].
@@ -27,7 +28,7 @@ func MakeTimePeriod(targetDate civil.Date, periodType string) (TimePeriod, error
 	if err != nil {
 		return TimePeriod{}, err
 	}
-	tp := TimePeriod{DateTo: targetDate, Days: pOps.PointedPeriodDays(targetDate)}
+	tp := TimePeriod{DateTo: targetDate, Days: pOps.PointedPeriodDays(targetDate), Type: periodType}
 	if !pOps.IsValidPeriod(tp) {
 		return TimePeriod{}, fmt.Errorf("date %s doesn't point the period(%s) end", targetDate.String(), periodType)
 	}
