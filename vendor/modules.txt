@@ -75,8 +75,8 @@ cloud.google.com/go/logging/logadmin
 cloud.google.com/go/longrunning
 cloud.google.com/go/longrunning/autogen
 cloud.google.com/go/longrunning/autogen/longrunningpb
-# cloud.google.com/go/profiler v0.4.0
-## explicit; go 1.19
+# cloud.google.com/go/profiler v0.4.1
+## explicit; go 1.20
 cloud.google.com/go/profiler
 cloud.google.com/go/profiler/internal
 # cloud.google.com/go/pubsub v1.43.0
