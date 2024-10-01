@@ -216,11 +216,12 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		periodType = coveragedb.DayPeriod
 	}
 	if periodType != coveragedb.DayPeriod && periodType != coveragedb.MonthPeriod {
-		return fmt.Errorf("only day and month are allowed, but received %s instead", periodType)
+		return fmt.Errorf("only day and month are allowed, but received %s instead, %w",
+			periodType, ErrClientBadRequest)
 	}
 	pOps, err := coveragedb.PeriodOps(periodType)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
 	periods := coveragedb.GenNPeriodsTill(12, civil.DateOf(time.Now()), pOps)
 	var style template.CSS
