@@ -19,6 +19,7 @@ package genai
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 
 	gl "cloud.google.com/go/ai/generativelanguage/apiv1beta"
@@ -81,6 +82,19 @@ func (c *Client) UploadFile(ctx context.Context, name string, r io.Reader, opts 
 	// File type.
 	// Instead, make a GetFile call to get the proto file, which our generated code can convert.
 	return c.GetFile(ctx, res.File.Name)
+}
+
+// UploadFileFromPath is a convenience method wrapping [UploadFile]. It takes
+// a path to read the file from, and uses a default auto-generated ID for the
+// uploaded file.
+func (c *Client) UploadFileFromPath(ctx context.Context, path string, opts *UploadFileOptions) (*File, error) {
+	osf, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer osf.Close()
+
+	return c.UploadFile(ctx, "", osf, opts)
 }
 
 // GetFile returns the named file.
