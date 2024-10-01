@@ -37,13 +37,12 @@ type storageArrowIterator struct {
 	done        uint32 // atomic flag
 	initialized bool
 	errs        chan error
-	ctx         context.Context
 
 	schema    Schema
 	rawSchema []byte
 	records   chan *ArrowRecordBatch
 
-	session *readSession
+	rs *readSession
 }
 
 var _ ArrowIterator = &storageArrowIterator{}
@@ -123,8 +122,7 @@ func resolveLastChildSelectJob(ctx context.Context, job *Job) (*Job, error) {
 
 func newRawStorageRowIterator(rs *readSession, schema Schema) (*storageArrowIterator, error) {
 	arrowIt := &storageArrowIterator{
-		ctx:     rs.ctx,
-		session: rs,
+		rs:      rs,
 		schema:  schema,
 		records: make(chan *ArrowRecordBatch, rs.settings.maxWorkerCount+1),
 		errs:    make(chan error, rs.settings.maxWorkerCount+1),
@@ -144,7 +142,7 @@ func newStorageRowIterator(rs *readSession, schema Schema) (*RowIterator, error)
 	if err != nil {
 		return nil, err
 	}
-	totalRows := arrowIt.session.bqSession.EstimatedRowCount
+	totalRows := arrowIt.rs.bqSession.EstimatedRowCount
 	it := &RowIterator{
 		ctx:           rs.ctx,
 		arrowIterator: arrowIt,
@@ -191,7 +189,7 @@ func (it *storageArrowIterator) init() error {
 		return nil
 	}
 
-	bqSession := it.session.bqSession
+	bqSession := it.rs.bqSession
 	if bqSession == nil {
 		return errors.New("read session not initialized")
 	}
@@ -203,7 +201,7 @@ func (it *storageArrowIterator) init() error {
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(streams))
-	sem := semaphore.NewWeighted(int64(it.session.settings.maxWorkerCount))
+	sem := semaphore.NewWeighted(int64(it.rs.settings.maxWorkerCount))
 	go func() {
 		wg.Wait()
 		close(it.records)
@@ -213,7 +211,7 @@ func (it *storageArrowIterator) init() error {
 
 	go func() {
 		for _, readStream := range streams {
-			err := sem.Acquire(it.ctx, 1)
+			err := sem.Acquire(it.rs.ctx, 1)
 			if err != nil {
 				wg.Done()
 				continue
@@ -241,22 +239,15 @@ func (it *storageArrowIterator) processStream(readStream string) {
 	bo := gax.Backoff{}
 	var offset int64
 	for {
-		rowStream, err := it.session.readRows(&storagepb.ReadRowsRequest{
+		rowStream, err := it.rs.readRows(&storagepb.ReadRowsRequest{
 			ReadStream: readStream,
 			Offset:     offset,
 		})
 		if err != nil {
-			if it.session.ctx.Err() != nil { // context cancelled, don't try again
+			serr := it.handleProcessStreamError(readStream, bo, err)
+			if serr != nil {
 				return
 			}
-			backoff, shouldRetry := retryReadRows(bo, err)
-			if shouldRetry {
-				if err := gax.Sleep(it.ctx, backoff); err != nil {
-					return // context cancelled
-				}
-				continue
-			}
-			it.errs <- fmt.Errorf("failed to read rows on stream %s: %w", readStream, err)
 			continue
 		}
 		offset, err = it.consumeRowStream(readStream, rowStream, offset)
@@ -264,19 +255,35 @@ func (it *storageArrowIterator) processStream(readStream string) {
 			return
 		}
 		if err != nil {
-			if it.session.ctx.Err() != nil { // context cancelled, don't queue error
+			serr := it.handleProcessStreamError(readStream, bo, err)
+			if serr != nil {
 				return
 			}
-			backoff, shouldRetry := retryReadRows(bo, err)
-			if shouldRetry {
-				if err := gax.Sleep(it.ctx, backoff); err != nil {
-					return // context cancelled
-				}
-				continue
-			}
-			it.errs <- fmt.Errorf("failed to read rows on stream %s: %w", readStream, err)
 			// try to re-open row stream with updated offset
 		}
+	}
+}
+
+// handleProcessStreamError check if err is retryable,
+// waiting with exponential backoff in that scenario.
+// If error is not retryable, queue up err to be sent to user.
+// Return error if should exit the goroutine.
+func (it *storageArrowIterator) handleProcessStreamError(readStream string, bo gax.Backoff, err error) error {
+	if it.rs.ctx.Err() != nil { // context cancelled, don't try again
+		return it.rs.ctx.Err()
+	}
+	backoff, shouldRetry := retryReadRows(bo, err)
+	if shouldRetry {
+		if err := gax.Sleep(it.rs.ctx, backoff); err != nil {
+			return err // context cancelled
+		}
+		return nil
+	}
+	select {
+	case it.errs <- fmt.Errorf("failed to read rows on stream %s: %w", readStream, err):
+		return nil
+	case <-it.rs.ctx.Done():
+		return context.Canceled
 	}
 }
 
@@ -289,7 +296,6 @@ func retryReadRows(bo gax.Backoff, err error) (time.Duration, bool) {
 	case codes.Aborted,
 		codes.Canceled,
 		codes.DeadlineExceeded,
-		codes.FailedPrecondition,
 		codes.Internal,
 		codes.Unavailable:
 		return bo.Pause(), true
@@ -339,8 +345,8 @@ func (it *storageArrowIterator) Next() (*ArrowRecordBatch, error) {
 		return record, nil
 	case err := <-it.errs:
 		return nil, err
-	case <-it.ctx.Done():
-		return nil, it.ctx.Err()
+	case <-it.rs.ctx.Done():
+		return nil, it.rs.ctx.Err()
 	}
 }
 
