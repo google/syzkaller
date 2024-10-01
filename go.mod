@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/batch v1.11.0
 	cloud.google.com/go/bigquery v1.63.0
 	cloud.google.com/go/logging v1.11.0
-	cloud.google.com/go/profiler v0.4.0
+	cloud.google.com/go/profiler v0.4.1
 	cloud.google.com/go/pubsub v1.43.0
 	cloud.google.com/go/secretmanager v1.14.0
 	cloud.google.com/go/spanner v1.67.0
