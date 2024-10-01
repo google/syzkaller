@@ -44,7 +44,7 @@ cloud.google.com/go/auth/internal/transport/cert
 # cloud.google.com/go/auth/oauth2adapt v0.2.4
 ## explicit; go 1.20
 cloud.google.com/go/auth/oauth2adapt
-# cloud.google.com/go/batch v1.10.0
+# cloud.google.com/go/batch v1.11.0
 ## explicit; go 1.21
 cloud.google.com/go/batch/apiv1
 cloud.google.com/go/batch/apiv1/batchpb
