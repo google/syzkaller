@@ -22,13 +22,15 @@ func TestDayPeriodOps(t *testing.T) {
 	assert.True(t, ops.IsValidPeriod(goodPeriod))
 	assert.False(t, ops.IsValidPeriod(badPeriod))
 
-	assert.Equal(t, 1, ops.PointedPeriodDays(d))
+	assert.Equal(t, 1, ops.pointedPeriodDays(d))
 
+	periods, err := GenNPeriodsTill(2, d, DayPeriod)
+	assert.NoError(t, err)
 	assert.Equal(t,
 		[]TimePeriod{
-			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 19}, Days: 1},
-			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 20}, Days: 1}},
-		GenNPeriodsTill(2, d, ops))
+			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 19}, Days: 1, Type: DayPeriod},
+			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 20}, Days: 1, Type: DayPeriod}},
+		periods)
 }
 
 func TestMonthPeriodOps(t *testing.T) {
@@ -47,13 +49,16 @@ func TestMonthPeriodOps(t *testing.T) {
 	assert.False(t, ops.IsValidPeriod(badPeriod1))
 	assert.False(t, ops.IsValidPeriod(badPeriod2))
 
-	assert.Equal(t, 29, ops.PointedPeriodDays(midMonthDate))
+	assert.Equal(t, 29, ops.pointedPeriodDays(midMonthDate))
 
+	periods, err := GenNPeriodsTill(2, goodPeriod.DateTo, MonthPeriod)
+	assert.NoError(t, err)
 	assert.Equal(t,
 		[]TimePeriod{
-			{DateTo: civil.Date{Year: 2024, Month: time.January, Day: 31}, Days: 31},
-			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 29}, Days: 29}},
-		GenNPeriodsTill(2, goodPeriod.DateTo, ops))
+			{DateTo: civil.Date{Year: 2024, Month: time.January, Day: 31}, Days: 31, Type: MonthPeriod},
+			{DateTo: civil.Date{Year: 2024, Month: time.February, Day: 29}, Days: 29, Type: MonthPeriod}},
+		periods,
+	)
 }
 
 func TestQuarterPeriodOps(t *testing.T) {
@@ -73,13 +78,16 @@ func TestQuarterPeriodOps(t *testing.T) {
 	assert.False(t, ops.IsValidPeriod(badPeriod1))
 	assert.False(t, ops.IsValidPeriod(badPeriod2))
 
-	assert.Equal(t, 31+29+31, ops.PointedPeriodDays(midQuarterDate))
+	assert.Equal(t, 31+29+31, ops.pointedPeriodDays(midQuarterDate))
 
+	periods, err := GenNPeriodsTill(2, goodPeriod.DateTo, QuarterPeriod)
+	assert.NoError(t, err)
 	assert.Equal(t,
 		[]TimePeriod{
-			{DateTo: civil.Date{Year: 2023, Month: time.December, Day: 31}, Days: 31 + 30 + 31},
-			{DateTo: civil.Date{Year: 2024, Month: time.March, Day: 31}, Days: 31 + 29 + 31}},
-		GenNPeriodsTill(2, goodPeriod.DateTo, ops))
+			{DateTo: civil.Date{Year: 2023, Month: time.December, Day: 31}, Days: 31 + 30 + 31, Type: QuarterPeriod},
+			{DateTo: civil.Date{Year: 2024, Month: time.March, Day: 31}, Days: 31 + 29 + 31, Type: QuarterPeriod}},
+		periods,
+	)
 }
 
 func TestPeriodsToMerge(t *testing.T) {
