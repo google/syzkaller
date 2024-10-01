@@ -21,6 +21,17 @@
       this.parentElement.parentElement.parentElement.querySelector(".nested").classList.toggle("active");
     });
   }
+
+  function reqListener() {
+    document.getElementById("file-content").innerHTML = this.responseText;
+  }
+
+  function onShowFileContent(url){
+    const req = new XMLHttpRequest();
+    req.addEventListener("load", reqListener);
+    req.open("GET", url);
+    req.send();
+  }
 </script>
 {{ end }}
 
@@ -113,7 +124,7 @@
 {{ end }}
 
 {{ define "body" }}
-  <div>
+  <div style="display:inline-block">
     <ul id="collapsible-list">
       <li>
         <div class="first_column bold">
@@ -142,6 +153,8 @@
       {{template "dir" .Root}}
     </ul>
   </div>
+  <div id="file-content" style="display:inline-block; vertical-align: top">
+  </div>
 {{ end }}
 
 {{define "dir"}}
@@ -158,7 +171,11 @@
         </div>
         {{ range $i, $cov := $child.Coverage }}
           <div class="date_column cover_percent">
-            {{$cov}}%
+            {{ if $child.IsDir }}
+              {{ $cov }}%
+            {{ else }}
+              <a href="javascript:onShowFileContent('/upstream{{ index $child.FileCoverageLink $i }}');">{{ $cov }}%</a>
+            {{ end }}
             <pre class="tooltiptext">{{ index $child.Tooltips $i }}</pre>
           </div>
         {{ end }}
