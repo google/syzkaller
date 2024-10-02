@@ -86,8 +86,8 @@ func (ctx netbsd) build(params Params) (ImageDetails, error) {
 		filepath.Join(compileDir, "netbsd"))
 }
 
-func (ctx netbsd) clean(kernelDir, targetArch string) error {
-	_, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
+func (ctx netbsd) clean(params Params) error {
+	_, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 		"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "cleandir")
 	return err
 }

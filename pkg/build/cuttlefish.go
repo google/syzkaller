@@ -165,9 +165,9 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	return details, nil
 }
 
-func (c cuttlefish) clean(kernelDir, targetArch string) error {
-	if err := osutil.RemoveAll(filepath.Join(kernelDir, "out")); err != nil {
+func (c cuttlefish) clean(params Params) error {
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
 		return err
 	}
-	return osutil.RemoveAll(filepath.Join(kernelDir, "dist"))
+	return osutil.RemoveAll(filepath.Join(params.KernelDir, "dist"))
 }

@@ -101,7 +101,8 @@ type env struct {
 	// can allows us to.
 	flaky bool
 	// A cache of already performed revision tests.
-	results map[string]*testResult
+	results  map[string]*testResult
+	buildCfg instance.BuildKernelConfig
 }
 
 const MaxNumTests = 20 // number of tests we do per commit
@@ -173,6 +174,17 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		inst:       inst,
 		startTime:  time.Now(),
 		confidence: 1.0,
+		buildCfg: instance.BuildKernelConfig{
+			CompilerBin:  cfg.DefaultCompiler,
+			MakeBin:      cfg.Make,
+			LinkerBin:    cfg.Linker,
+			CcacheBin:    cfg.Ccache,
+			UserspaceDir: cfg.Kernel.Userspace,
+			CmdlineFile:  cfg.Kernel.Cmdline,
+			SysctlFile:   cfg.Kernel.Sysctl,
+			KernelConfig: cfg.Kernel.Config,
+			BuildCPUs:    cfg.BuildCPUs,
+		},
 	}
 	head, err := repo.HeadCommit()
 	if err != nil {
@@ -242,8 +254,7 @@ func (env *env) bisect() (*Result, error) {
 	}
 
 	cfg := env.cfg
-	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
-		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
+	if err := env.inst.CleanKernel(&env.buildCfg); err != nil {
 		return nil, fmt.Errorf("kernel clean failed: %w", err)
 	}
 	env.logf("building syzkaller on %v", cfg.Syzkaller.Commit)
@@ -606,22 +617,13 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	}
 	env.logf("testing commit %v %v", current.Hash, env.cfg.CompilerType)
 	buildStart := time.Now()
-	mgr := env.cfg.Manager
-	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
+	buildCfg := env.buildCfg
+	buildCfg.CompilerBin = bisectEnv.Compiler
+	buildCfg.KernelConfig = bisectEnv.KernelConfig
+	if err := env.inst.CleanKernel(&buildCfg); err != nil {
 		return current, "", fmt.Errorf("kernel clean failed: %w", err)
 	}
-	kern := &env.cfg.Kernel
-	_, imageDetails, err := env.inst.BuildKernel(&instance.BuildKernelConfig{
-		CompilerBin:  bisectEnv.Compiler,
-		MakeBin:      env.cfg.Make,
-		LinkerBin:    env.cfg.Linker,
-		CcacheBin:    env.cfg.Ccache,
-		UserspaceDir: kern.Userspace,
-		CmdlineFile:  kern.Cmdline,
-		SysctlFile:   kern.Sysctl,
-		KernelConfig: bisectEnv.KernelConfig,
-		BuildCPUs:    env.cfg.BuildCPUs,
-	})
+	_, imageDetails, err := env.inst.BuildKernel(&buildCfg)
 	if imageDetails.CompilerID != "" {
 		env.logf("compiler: %v", imageDetails.CompilerID)
 	}

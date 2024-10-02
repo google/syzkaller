@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Params is input arguments for the Image function.
+// Params is input arguments for the Image and Clean functions.
 type Params struct {
 	TargetOS     string
 	TargetArch   string
@@ -113,12 +113,12 @@ func Image(params Params) (details ImageDetails, err error) {
 	return
 }
 
-func Clean(targetOS, targetArch, vmType, kernelDir string) error {
-	builder, err := getBuilder(targetOS, targetArch, vmType)
+func Clean(params Params) error {
+	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
 		return err
 	}
-	return builder.clean(kernelDir, targetArch)
+	return builder.clean(params)
 }
 
 type KernelError struct {
@@ -146,7 +146,7 @@ func (e InfraError) Error() string {
 
 type builder interface {
 	build(params Params) (ImageDetails, error)
-	clean(kernelDir, targetArch string) error
+	clean(params Params) error
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {

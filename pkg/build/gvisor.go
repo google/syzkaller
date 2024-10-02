@@ -95,7 +95,7 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	return ImageDetails{}, osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
 }
 
-func (gvisor) clean(kernelDir, targetArch string) error {
+func (gvisor) clean(params Params) error {
 	// Let's assume that bazel always properly handles build without cleaning (until proven otherwise).
 	return nil
 }

@@ -30,7 +30,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -131,10 +130,7 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 		tool.Fail(err)
 	}
 	log.Printf("testing: %v %v using %v", com.Hash, com.Title, bisectEnv.Compiler)
-	if err := build.Clean(*flagOS, *flagArch, vmType, *flagKernelSrc); err != nil {
-		tool.Fail(err)
-	}
-	_, _, err = env.BuildKernel(&instance.BuildKernelConfig{
+	buildCfg := &instance.BuildKernelConfig{
 		CompilerBin:  bisectEnv.Compiler,
 		LinkerBin:    linker,
 		CcacheBin:    ccache,
@@ -142,7 +138,11 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 		CmdlineFile:  *flagKernelCmdline,
 		SysctlFile:   *flagKernelSysctl,
 		KernelConfig: bisectEnv.KernelConfig,
-	})
+	}
+	if err := env.CleanKernel(buildCfg); err != nil {
+		tool.Fail(err)
+	}
+	_, _, err = env.BuildKernel(buildCfg)
 	if err != nil {
 		var verr *osutil.VerboseError
 		if errors.As(err, &verr) {
