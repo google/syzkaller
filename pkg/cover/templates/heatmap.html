@@ -23,7 +23,8 @@
   }
 
   function reqListener() {
-    document.getElementById("file-content").innerHTML = this.responseText;
+    document.getElementById("file-content-prev").innerHTML = document.getElementById("file-content-curr").innerHTML;
+    document.getElementById("file-content-curr").innerHTML = this.responseText;
   }
 
   function onShowFileContent(url){
@@ -153,7 +154,9 @@
       {{template "dir" .Root}}
     </ul>
   </div>
-  <div id="file-content" style="display:inline-block; vertical-align: top">
+  <div id="file-content-curr" style="display:inline-block; vertical-align: top">
+  </div>
+  <div id="file-content-prev" style="display:inline-block; vertical-align: top">
   </div>
 {{ end }}
 
