@@ -27,6 +27,7 @@ type Config struct {
 	Fix             bool
 	DefaultCompiler string
 	CompilerType    string
+	Make            string
 	Linker          string
 	BinDir          string
 	Ccache          string
@@ -612,6 +613,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	kern := &env.cfg.Kernel
 	_, imageDetails, err := env.inst.BuildKernel(&instance.BuildKernelConfig{
 		CompilerBin:  bisectEnv.Compiler,
+		MakeBin:      env.cfg.Make,
 		LinkerBin:    env.cfg.Linker,
 		CcacheBin:    env.cfg.Ccache,
 		UserspaceDir: kern.Userspace,
