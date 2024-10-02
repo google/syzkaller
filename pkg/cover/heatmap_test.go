@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 					Filepath:     "file1",
 					Instrumented: 1,
 					Covered:      1,
-					Dateto:       civil.Date{Year: 2024, Month: time.July, Day: 1},
+					TimePeriod:   coveragedb.TimePeriod{DateTo: civil.Date{Year: 2024, Month: time.July, Day: 1}, Days: 1},
 				},
 			},
 			want: &templateHeatmap{
@@ -60,7 +61,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 						"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 					},
 				},
-				Dates: []string{"2024-07-01"},
+				Periods: []string{"2024-07-01(1)"},
 			},
 		},
 		{
@@ -70,13 +71,13 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 					Filepath:     "dir/file2",
 					Instrumented: 1,
 					Covered:      0,
-					Dateto:       civil.Date{Year: 2024, Month: time.July, Day: 2},
+					TimePeriod:   coveragedb.TimePeriod{DateTo: civil.Date{Year: 2024, Month: time.July, Day: 2}, Days: 1},
 				},
 				{
 					Filepath:     "dir/file1",
 					Instrumented: 1,
 					Covered:      1,
-					Dateto:       civil.Date{Year: 2024, Month: time.July, Day: 1},
+					TimePeriod:   coveragedb.TimePeriod{DateTo: civil.Date{Year: 2024, Month: time.July, Day: 1}, Days: 1},
 				},
 			},
 			want: &templateHeatmap{
@@ -128,7 +129,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 						"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 					},
 				},
-				Dates: []string{"2024-07-01", "2024-07-02"},
+				Periods: []string{"2024-07-01(1)", "2024-07-02(1)"},
 			},
 		},
 	}
