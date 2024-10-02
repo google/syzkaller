@@ -28,10 +28,12 @@ type templateHeatmapRow struct {
 	Depth               int
 	LastDayInstrumented int64
 	Tooltips            []string
+	FileCoverageLink    []string
 
 	builder      map[string]*templateHeatmapRow
 	instrumented map[coveragedb.TimePeriod]int64
 	covered      map[coveragedb.TimePeriod]int64
+	filePath     string
 }
 
 type templateHeatmap struct {
@@ -39,7 +41,7 @@ type templateHeatmap struct {
 	Periods []string
 }
 
-func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, instrumented, covered int64,
+func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, filePath string, instrumented, covered int64,
 	timePeriod coveragedb.TimePeriod) {
 	thm.instrumented[timePeriod] += instrumented
 	thm.covered[timePeriod] += covered
@@ -48,17 +50,22 @@ func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, instrument
 	}
 	nextElement := pathLeft[0]
 	isDir := len(pathLeft) > 1
+	fp := ""
+	if !isDir {
+		fp = filePath
+	}
 	if _, ok := thm.builder[nextElement]; !ok {
 		thm.builder[nextElement] = &templateHeatmapRow{
 			Name:         nextElement,
 			Depth:        depth,
 			IsDir:        isDir,
+			filePath:     fp,
 			builder:      make(map[string]*templateHeatmapRow),
 			instrumented: make(map[coveragedb.TimePeriod]int64),
 			covered:      make(map[coveragedb.TimePeriod]int64),
 		}
 	}
-	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], instrumented, covered, timePeriod)
+	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], filePath, instrumented, covered, timePeriod)
 }
 
 func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePeriod) {
@@ -77,6 +84,14 @@ func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePerio
 		thm.Coverage = append(thm.Coverage, dateCoverage)
 		thm.Tooltips = append(thm.Tooltips, fmt.Sprintf("Instrumented:\t%d blocks\nCovered:\t%d blocks",
 			thm.instrumented[tp], thm.covered[tp]))
+		if !thm.IsDir {
+			thm.FileCoverageLink = append(thm.FileCoverageLink,
+				fmt.Sprintf("/upstream/graph/coverage/file?dateto=%s&period=%s&commit=%s&filepath=%s",
+					tp.DateTo.String(),
+					"day",
+					"commit",
+					thm.filePath))
+		}
 	}
 	if len(timePeriods) > 0 {
 		lastDate := timePeriods[len(timePeriods)-1]
@@ -88,6 +103,7 @@ func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePerio
 }
 
 type fileCoverageWithDetails struct {
+	Subsystem    string
 	Filepath     string
 	Instrumented int64
 	Covered      int64
@@ -98,6 +114,7 @@ type fileCoverageWithDetails struct {
 func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatmap {
 	res := templateHeatmap{
 		Root: &templateHeatmapRow{
+			IsDir:        true,
 			builder:      map[string]*templateHeatmapRow{},
 			instrumented: map[coveragedb.TimePeriod]int64{},
 			covered:      map[coveragedb.TimePeriod]int64{},
@@ -105,9 +122,14 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 	}
 	timePeriods := map[coveragedb.TimePeriod]struct{}{}
 	for _, fc := range fCov {
+		var pathLeft []string
+		if fc.Subsystem != "" {
+			pathLeft = append(pathLeft, fc.Subsystem)
+		}
 		res.Root.addParts(
 			0,
-			strings.Split(fc.Filepath, "/"),
+			append(pathLeft, strings.Split(fc.Filepath, "/")...),
+			fc.Filepath,
 			fc.Instrumented,
 			fc.Covered,
 			fc.TimePeriod)
@@ -254,7 +276,8 @@ func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsyste
 	for _, cwd := range covWithDetails {
 		for _, ssName := range cwd.Subsystems {
 			newRecord := fileCoverageWithDetails{
-				Filepath:     ssName + "/" + cwd.Filepath,
+				Filepath:     cwd.Filepath,
+				Subsystem:    ssName,
 				Instrumented: cwd.Instrumented,
 				Covered:      cwd.Covered,
 				TimePeriod:   cwd.TimePeriod,

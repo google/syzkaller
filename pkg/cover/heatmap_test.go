@@ -24,6 +24,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 			want: &templateHeatmap{
 				Root: &templateHeatmapRow{
 					Items: []*templateHeatmapRow{},
+					IsDir: true,
 				},
 			},
 		},
@@ -50,11 +51,13 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 							Tooltips: []string{
 								"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 							},
+							FileCoverageLink: []string{
+								"/upstream/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit&filepath=file1"},
 						},
 					},
 					Name:                "",
 					Coverage:            []int64{100},
-					IsDir:               false,
+					IsDir:               true,
 					Depth:               0,
 					LastDayInstrumented: 1,
 					Tooltips: []string{
@@ -96,6 +99,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
 									},
+									FileCoverageLink: []string{
+										"/upstream/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit&filepath=dir/file1",
+										"/upstream/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit&filepath=dir/file1"},
 								},
 								{
 									Items:               []*templateHeatmapRow{},
@@ -108,6 +114,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
 										"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 									},
+									FileCoverageLink: []string{
+										"/upstream/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit&filepath=dir/file2",
+										"/upstream/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit&filepath=dir/file2"},
 								},
 							},
 							Name:                "dir",
@@ -128,6 +137,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 						"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 						"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 					},
+					IsDir: true,
 				},
 				Periods: []string{"2024-07-01(1)", "2024-07-02(1)"},
 			},
