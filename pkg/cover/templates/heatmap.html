@@ -47,11 +47,16 @@
   }
   .date_column {
     display: inline-block;
-    width: 50px;
+    width: 35px;
+  }
+  .vertical_text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    align-content: center;
   }
   .instrumented_column {
     display: inline-block;
-    width: 70px;
+    width: 50px;
     text-align: right;
   }
   .tree_depth_0 {width: 0px;}
@@ -133,10 +138,13 @@
             date
           </div>
           {{ range $period := .Periods }}
-          <div class="date_column bold">
+          <div class="date_column vertical_text bold">
             {{ $period }}
           </div>
           {{ end }}
+          <div class="instrumented_column vertical_text">
+            {{ approxInstr .Root.LastDayInstrumented }} blocks
+          </div>
         </li>
         <li>
           <div class="first_column bold">
@@ -147,8 +155,8 @@
             {{ $cov }}%
           </div>
           {{ end }}
-          <div class="instrumented_column">
-            of {{ approxInstr .Root.LastDayInstrumented }} blocks
+          <div class="instrumented_column vertical_text">
+            of
           </div>
         </li>
         <br>
