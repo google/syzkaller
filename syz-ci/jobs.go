@@ -418,8 +418,8 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	}
 	for _, req := range required {
 		if !req.ok {
-			job.resp.Error = []byte(req.name + " is empty")
-			jp.Errorf("%s", job.resp.Error)
+			job.resp.Error = []byte(req.name + " is invalid")
+			jp.Errorf("%s (job id=%q, type=%v)", job.resp.Error, job.req.ID, job.req.Type)
 			return job.resp
 		}
 	}
