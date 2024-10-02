@@ -125,38 +125,40 @@
 {{ end }}
 
 {{ define "body" }}
-  <div style="display:inline-block">
-    <ul id="collapsible-list">
-      <li>
-        <div class="first_column bold">
-          date
-        </div>
-        {{ range $period := .Periods }}
-        <div class="date_column bold">
-          {{ $period }}
-        </div>
-        {{ end }}
-      </li>
-      <li>
-        <div class="first_column bold">
-          total covered
-        </div>
-        {{ range $cov := .Root.Coverage }}
-        <div class="date_column">
-          {{ $cov }}%
-        </div>
-        {{ end }}
-        <div class="instrumented_column">
-          of {{ approxInstr .Root.LastDayInstrumented }} blocks
-        </div>
-      </li>
-      <br>
-      {{template "dir" .Root}}
-    </ul>
-  </div>
-  <div id="file-content-curr" style="display:inline-block; vertical-align: top">
-  </div>
-  <div id="file-content-prev" style="display:inline-block; vertical-align: top">
+  <div style="white-space: nowrap">
+    <div style="display:inline-block">
+      <ul id="collapsible-list">
+        <li>
+          <div class="first_column bold">
+            date
+          </div>
+          {{ range $period := .Periods }}
+          <div class="date_column bold">
+            {{ $period }}
+          </div>
+          {{ end }}
+        </li>
+        <li>
+          <div class="first_column bold">
+            total covered
+          </div>
+          {{ range $cov := .Root.Coverage }}
+          <div class="date_column">
+            {{ $cov }}%
+          </div>
+          {{ end }}
+          <div class="instrumented_column">
+            of {{ approxInstr .Root.LastDayInstrumented }} blocks
+          </div>
+        </li>
+        <br>
+        {{template "dir" .Root}}
+      </ul>
+    </div>
+    <div id="file-content-curr" style="display:inline-block; vertical-align: top">
+    </div>
+    <div id="file-content-prev" style="display:inline-block; vertical-align: top">
+    </div>
   </div>
 {{ end }}
 
