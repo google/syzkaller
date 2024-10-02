@@ -31,6 +31,7 @@ type Params struct {
 	KernelDir    string
 	OutputDir    string
 	Compiler     string
+	Make         string
 	Linker       string
 	Ccache       string
 	UserspaceDir string

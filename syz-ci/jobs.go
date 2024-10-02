@@ -645,6 +645,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	log.Logf(0, "job: building kernel...")
 	kernelConfig, details, err := env.BuildKernel(&instance.BuildKernelConfig{
 		CompilerBin:  mgr.mgrcfg.Compiler,
+		MakeBin:      mgr.mgrcfg.Make,
 		LinkerBin:    mgr.mgrcfg.Linker,
 		CcacheBin:    mgr.mgrcfg.Ccache,
 		UserspaceDir: mgr.mgrcfg.Userspace,
