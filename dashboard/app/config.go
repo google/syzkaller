@@ -26,8 +26,8 @@ import (
 type GlobalConfig struct {
 	// Min access levels specified hierarchically throughout the config.
 	AccessLevel AccessLevel
-	// Email suffix of authorized users (e.g. "@foobar.com").
-	AuthDomain string
+	// Email suffixes of authorized users (e.g. []string{"@foo.com","@bar.org"}).
+	AuthDomains []string
 	// Google Analytics Tracking ID.
 	AnalyticsTrackingID string
 	// URL prefix of source coverage reports.
