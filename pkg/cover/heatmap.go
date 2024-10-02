@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strings"
 
-	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
@@ -31,18 +30,19 @@ type templateHeatmapRow struct {
 	Tooltips            []string
 
 	builder      map[string]*templateHeatmapRow
-	instrumented map[civil.Date]int64
-	covered      map[civil.Date]int64
+	instrumented map[coveragedb.TimePeriod]int64
+	covered      map[coveragedb.TimePeriod]int64
 }
 
 type templateHeatmap struct {
-	Root  *templateHeatmapRow
-	Dates []string
+	Root    *templateHeatmapRow
+	Periods []string
 }
 
-func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, instrumented, covered int64, dateto civil.Date) {
-	thm.instrumented[dateto] += instrumented
-	thm.covered[dateto] += covered
+func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, instrumented, covered int64,
+	timePeriod coveragedb.TimePeriod) {
+	thm.instrumented[timePeriod] += instrumented
+	thm.covered[timePeriod] += covered
 	if len(pathLeft) == 0 {
 		return
 	}
@@ -54,14 +54,14 @@ func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, instrument
 			Depth:        depth,
 			IsDir:        isDir,
 			builder:      make(map[string]*templateHeatmapRow),
-			instrumented: make(map[civil.Date]int64),
-			covered:      make(map[civil.Date]int64),
+			instrumented: make(map[coveragedb.TimePeriod]int64),
+			covered:      make(map[coveragedb.TimePeriod]int64),
 		}
 	}
-	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], instrumented, covered, dateto)
+	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], instrumented, covered, timePeriod)
 }
 
-func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
+func (thm *templateHeatmapRow) prepareDataFor(timePeriods []coveragedb.TimePeriod) {
 	thm.Items = maps.Values(thm.builder)
 	sort.Slice(thm.Items, func(i, j int) bool {
 		if thm.Items[i].IsDir != thm.Items[j].IsDir {
@@ -69,21 +69,21 @@ func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
 		}
 		return thm.Items[i].Name < thm.Items[j].Name
 	})
-	for _, d := range dates {
+	for _, tp := range timePeriods {
 		var dateCoverage int64
-		if thm.instrumented[d] != 0 {
-			dateCoverage = 100 * thm.covered[d] / thm.instrumented[d]
+		if thm.instrumented[tp] != 0 {
+			dateCoverage = 100 * thm.covered[tp] / thm.instrumented[tp]
 		}
 		thm.Coverage = append(thm.Coverage, dateCoverage)
 		thm.Tooltips = append(thm.Tooltips, fmt.Sprintf("Instrumented:\t%d blocks\nCovered:\t%d blocks",
-			thm.instrumented[d], thm.covered[d]))
+			thm.instrumented[tp], thm.covered[tp]))
 	}
-	if len(dates) > 0 {
-		lastDate := dates[len(dates)-1]
+	if len(timePeriods) > 0 {
+		lastDate := timePeriods[len(timePeriods)-1]
 		thm.LastDayInstrumented = thm.instrumented[lastDate]
 	}
 	for _, item := range thm.builder {
-		item.prepareDataFor(dates)
+		item.prepareDataFor(timePeriods)
 	}
 }
 
@@ -91,7 +91,7 @@ type fileCoverageWithDetails struct {
 	Filepath     string
 	Instrumented int64
 	Covered      int64
-	Dateto       civil.Date
+	TimePeriod   coveragedb.TimePeriod `spanner:"-"`
 	Subsystems   []string
 }
 
@@ -99,29 +99,29 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 	res := templateHeatmap{
 		Root: &templateHeatmapRow{
 			builder:      map[string]*templateHeatmapRow{},
-			instrumented: map[civil.Date]int64{},
-			covered:      map[civil.Date]int64{},
+			instrumented: map[coveragedb.TimePeriod]int64{},
+			covered:      map[coveragedb.TimePeriod]int64{},
 		},
 	}
-	dates := map[civil.Date]struct{}{}
+	timePeriods := map[coveragedb.TimePeriod]struct{}{}
 	for _, fc := range fCov {
 		res.Root.addParts(
 			0,
 			strings.Split(fc.Filepath, "/"),
 			fc.Instrumented,
 			fc.Covered,
-			fc.Dateto)
-		dates[fc.Dateto] = struct{}{}
+			fc.TimePeriod)
+		timePeriods[fc.TimePeriod] = struct{}{}
 	}
-	sortedDates := maps.Keys(dates)
-	sort.Slice(sortedDates, func(i, j int) bool {
-		return sortedDates[i].Before(sortedDates[j])
+	sortedTimePeriods := maps.Keys(timePeriods)
+	sort.Slice(sortedTimePeriods, func(i, j int) bool {
+		return sortedTimePeriods[i].DateTo.Before(sortedTimePeriods[j].DateTo)
 	})
-	for _, d := range sortedDates {
-		res.Dates = append(res.Dates, d.String())
+	for _, tp := range sortedTimePeriods {
+		res.Periods = append(res.Periods, fmt.Sprintf("%s(%d)", tp.DateTo.String(), tp.Days))
 	}
 
-	res.Root.prepareDataFor(sortedDates)
+	res.Root.prepareDataFor(sortedTimePeriods)
 	return &res
 }
 
@@ -129,7 +129,6 @@ func filesCoverageWithDetailsStmt(ns, subsystem string, timePeriod coveragedb.Ti
 	stmt := spanner.Statement{
 		SQL: `
 select
-  dateto,
   instrumented,
   covered,
   files.filepath,
@@ -179,6 +178,7 @@ func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem stri
 			if err = row.ToStruct(&r); err != nil {
 				return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
 			}
+			r.TimePeriod = timePeriod
 			res = append(res, &r)
 		}
 	}
@@ -257,7 +257,7 @@ func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsyste
 				Filepath:     ssName + "/" + cwd.Filepath,
 				Instrumented: cwd.Instrumented,
 				Covered:      cwd.Covered,
-				Dateto:       cwd.Dateto,
+				TimePeriod:   cwd.TimePeriod,
 			}
 			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}
