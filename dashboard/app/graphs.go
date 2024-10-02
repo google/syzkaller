@@ -218,7 +218,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	if periodType != coveragedb.DayPeriod && periodType != coveragedb.MonthPeriod {
 		return fmt.Errorf("only day and month are allowed, but received %s instead", periodType)
 	}
-	periods, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(time.Now()), periodType)
+	periods, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(timeNow(c)), periodType)
 	if err != nil {
 		return err
 	}
@@ -307,7 +307,7 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
-	periodEndDates, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(time.Now()), periodType)
+	periodEndDates, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(timeNow(c)), periodType)
 	if err != nil {
 		return err
 	}
