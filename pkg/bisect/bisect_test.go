@@ -35,6 +35,10 @@ func (env *testEnv) BuildSyzkaller(repo, commit string) (string, error) {
 	return "", nil
 }
 
+func (env *testEnv) CleanKernel(buildCfg *instance.BuildKernelConfig) error {
+	return nil
+}
+
 func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, build.ImageDetails, error) {
 	commit := env.headCommit()
 	configHash := hash.String(buildCfg.KernelConfig)

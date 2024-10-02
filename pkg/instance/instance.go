@@ -30,6 +30,7 @@ import (
 
 type Env interface {
 	BuildSyzkaller(string, string) (string, error)
+	CleanKernel(*BuildKernelConfig) error
 	BuildKernel(*BuildKernelConfig) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
 }
@@ -135,19 +136,13 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	return buildLog, nil
 }
 
-func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
-	string, build.ImageDetails, error) {
-	if env.buildSem != nil {
-		env.buildSem.Wait()
-		defer env.buildSem.Signal()
-	}
-	imageDir := filepath.Join(env.cfg.Workdir, "image")
-	params := build.Params{
+func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
+	return build.Params{
 		TargetOS:     env.cfg.TargetOS,
 		TargetArch:   env.cfg.TargetVMArch,
 		VMType:       env.cfg.Type,
 		KernelDir:    env.cfg.KernelSrc,
-		OutputDir:    imageDir,
+		OutputDir:    filepath.Join(env.cfg.Workdir, "image"),
 		Make:         buildCfg.MakeBin,
 		Compiler:     buildCfg.CompilerBin,
 		Linker:       buildCfg.LinkerBin,
@@ -158,18 +153,36 @@ func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
 		Config:       buildCfg.KernelConfig,
 		BuildCPUs:    buildCfg.BuildCPUs,
 	}
+}
+
+func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
+	string, build.ImageDetails, error) {
+	if env.buildSem != nil {
+		env.buildSem.Wait()
+		defer env.buildSem.Signal()
+	}
+	params := env.buildParamsFromCfg(buildCfg)
 	details, err := build.Image(params)
 	if err != nil {
 		return "", details, err
 	}
-	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {
+	if err := SetConfigImage(env.cfg, params.OutputDir, true); err != nil {
 		return "", details, err
 	}
-	kernelConfigFile := filepath.Join(imageDir, "kernel.config")
+	kernelConfigFile := filepath.Join(params.OutputDir, "kernel.config")
 	if !osutil.IsExist(kernelConfigFile) {
 		kernelConfigFile = ""
 	}
 	return kernelConfigFile, details, nil
+}
+
+func (env *env) CleanKernel(buildCfg *BuildKernelConfig) error {
+	if env.buildSem != nil {
+		env.buildSem.Wait()
+		defer env.buildSem.Signal()
+	}
+	params := env.buildParamsFromCfg(buildCfg)
+	return build.Clean(params)
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {

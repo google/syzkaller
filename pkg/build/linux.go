@@ -14,7 +14,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -141,8 +140,8 @@ func (linux) createImage(params Params, kernelPath string) error {
 	return nil
 }
 
-func (linux) clean(kernelDir, targetArch string) error {
-	return runMakeImpl(targetArch, "", "", "", "", kernelDir, runtime.NumCPU(), []string{"distclean"})
+func (linux) clean(params Params) error {
+	return runMake(params, "distclean")
 }
 
 func (linux) writeFile(file string, data []byte) error {
@@ -152,10 +151,11 @@ func (linux) writeFile(file string, data []byte) error {
 	return osutil.SandboxChown(file)
 }
 
-func runMakeImpl(arch, compiler, linker, ccache, makeBin, kernelDir string, jobs int, extraArgs []string) error {
-	target := targets.Get(targets.Linux, arch)
-	args := LinuxMakeArgs(target, compiler, linker, ccache, "", jobs)
+func runMake(params Params, extraArgs ...string) error {
+	target := targets.Get(targets.Linux, params.TargetArch)
+	args := LinuxMakeArgs(target, params.Compiler, params.Linker, params.Ccache, "", params.BuildCPUs)
 	args = append(args, extraArgs...)
+	makeBin := params.Make
 	if makeBin == "" {
 		makeBin = "make"
 	}
@@ -163,7 +163,7 @@ func runMakeImpl(arch, compiler, linker, ccache, makeBin, kernelDir string, jobs
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
-	cmd.Dir = kernelDir
+	cmd.Dir = params.KernelDir
 	cmd.Env = append([]string{}, os.Environ()...)
 	// This makes the build [more] deterministic:
 	// 2 builds from the same sources should result in the same vmlinux binary.
@@ -179,11 +179,6 @@ func runMakeImpl(arch, compiler, linker, ccache, makeBin, kernelDir string, jobs
 	)
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
-}
-
-func runMake(params Params, extraArgs ...string) error {
-	return runMakeImpl(params.TargetArch, params.Compiler, params.Linker,
-		params.Ccache, params.Make, params.KernelDir, params.BuildCPUs, extraArgs)
 }
 
 func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string, jobs int) []string {

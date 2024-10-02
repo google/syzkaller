@@ -622,7 +622,17 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	resp.Build.KernelCommitTitle = kernelCommit.Title
 	resp.Build.KernelCommitDate = kernelCommit.CommitDate
 
-	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.Type, mgrcfg.KernelSrc); err != nil {
+	buildCfg := &instance.BuildKernelConfig{
+		CompilerBin:  mgr.mgrcfg.Compiler,
+		MakeBin:      mgr.mgrcfg.Make,
+		LinkerBin:    mgr.mgrcfg.Linker,
+		CcacheBin:    mgr.mgrcfg.Ccache,
+		UserspaceDir: mgr.mgrcfg.Userspace,
+		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
+		SysctlFile:   mgr.mgrcfg.KernelSysctl,
+		KernelConfig: req.KernelConfig,
+	}
+	if err := env.CleanKernel(buildCfg); err != nil {
 		return fmt.Errorf("kernel clean failed: %w", err)
 	}
 	if len(req.Patch) != 0 {
@@ -643,16 +653,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"), -1)
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, details, err := env.BuildKernel(&instance.BuildKernelConfig{
-		CompilerBin:  mgr.mgrcfg.Compiler,
-		MakeBin:      mgr.mgrcfg.Make,
-		LinkerBin:    mgr.mgrcfg.Linker,
-		CcacheBin:    mgr.mgrcfg.Ccache,
-		UserspaceDir: mgr.mgrcfg.Userspace,
-		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
-		SysctlFile:   mgr.mgrcfg.KernelSysctl,
-		KernelConfig: req.KernelConfig,
-	})
+	kernelConfig, details, err := env.BuildKernel(buildCfg)
 	resp.Build.CompilerID = details.CompilerID
 	if err != nil {
 		return err
