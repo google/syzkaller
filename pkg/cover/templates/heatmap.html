@@ -22,12 +22,19 @@
     });
   }
 
-  function reqListener() {
+  function setContent(url, htmlContent) {
     document.getElementById("file-content-prev").innerHTML = document.getElementById("file-content-curr").innerHTML;
-    document.getElementById("file-content-curr").innerHTML = this.responseText;
+    document.getElementById("file-details-prev").innerHTML = document.getElementById("file-details-curr").innerHTML;
+
+    document.getElementById("file-content-curr").innerHTML = htmlContent;
+    details = url.split("?")[1].split("&")
+    document.getElementById("file-details-curr").innerHTML = "Source information:\n" + details.join("\n");
   }
 
   function onShowFileContent(url){
+    var reqListener = function() {
+      setContent(url, this.responseText)
+    }
     const req = new XMLHttpRequest();
     req.addEventListener("load", reqListener);
     req.open("GET", url);
@@ -163,9 +170,15 @@
         {{template "dir" .Root}}
       </ul>
     </div>
-    <div id="file-content-curr" style="display:inline-block; vertical-align: top">
+    <div style="display:inline-block; vertical-align: top">
+      <pre id="file-details-curr"></pre>
+      <br>
+      <div id="file-content-curr"></div>
     </div>
-    <div id="file-content-prev" style="display:inline-block; vertical-align: top">
+    <div style="display:inline-block; vertical-align: top">
+      <pre id="file-details-prev"></pre>
+      <br>
+      <div id="file-content-prev"></div>
     </div>
   </div>
 {{ end }}
