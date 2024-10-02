@@ -1389,7 +1389,7 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 					// These frames are present in KASAN_HW_TAGS reports.
-					skip: []string{"kernel_fault", "tag_check", "mem_abort", "^el1_", "^el1h_"},
+					skip: []string{"kernel_fault", "tag_check", "mem_abort", "^el1_", "^el1h_", "copy_from_kernel_nofault"},
 				},
 				reportType: crash.KASAN,
 			},
