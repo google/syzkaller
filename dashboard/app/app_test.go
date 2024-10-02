@@ -42,7 +42,7 @@ func init() {
 // Config used in tests.
 var testConfig = &GlobalConfig{
 	AccessLevel: AccessPublic,
-	AuthDomain:  "@syzkaller.com",
+	AuthDomains: []string{"@syzkaller.com"},
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},
