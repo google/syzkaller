@@ -25,10 +25,7 @@ func initCoverageBatches() {
 	http.HandleFunc("/cron/batch_coverage", handleBatchCoverage)
 }
 
-const (
-	daysToMerge         = 7
-	batchTimeoutSeconds = 60 * 60 * 6
-)
+const batchTimeoutSeconds = 60 * 60 * 12
 
 func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
