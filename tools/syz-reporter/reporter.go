@@ -129,6 +129,7 @@ func collectCrashes(workdir string) ([]*UICrashType, error) {
 	return crashTypes, nil
 }
 
+// TODO: reuse manager.CrashStore.
 func readCrash(workdir, dir string) *UICrashType {
 	if len(dir) != 40 {
 		return nil
