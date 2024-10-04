@@ -72,6 +72,9 @@ type Repo interface {
 
 	// CommitExists check for the commit presence in local checkout.
 	CommitExists(commit string) (bool, error)
+
+	// PushCommit is used to store commit in remote repo.
+	PushCommit(repo, commit string) error
 }
 
 // Bisecter may be optionally implemented by Repo.

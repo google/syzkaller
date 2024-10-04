@@ -256,6 +256,16 @@ loop:
 	log.Logf(0, "%v: stopped", mgr.name)
 }
 
+func (mgr *Manager) archiveCommit(commit string) {
+	if mgr.cfg.GitArchive == "" || mgr.mgrcfg.DisableGitArchive {
+		return
+	}
+	if err := mgr.repo.PushCommit(mgr.cfg.GitArchive, commit); err != nil {
+		mgr.Errorf("%v: failed to archive commit %s from repo %s: %s",
+			mgr.name, commit, mgr.mgrcfg.Repo, err.Error())
+	}
+}
+
 func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
 	rebuildAfter := buildRetryPeriod
@@ -277,7 +287,9 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 				if err := mgr.build(commit); err != nil {
 					log.Logf(0, "%v: %v", mgr.name, err)
 				} else {
-					log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
+					log.Logf(0, "%v: build successful", mgr.name)
+					mgr.archiveCommit(lastCommit)
+					log.Logf(0, "%v: [re]starting manager", mgr.name)
 					mgr.buildFailed = false
 					rebuildAfter = kernelRebuildPeriod
 					latestInfo = mgr.checkLatest()
