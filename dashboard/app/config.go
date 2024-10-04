@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/mail"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -452,6 +453,15 @@ func checkConfig(cfg *GlobalConfig) {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
 	checkDiscussionEmails(cfg.DiscussionEmails)
+	checkAuthDomains(cfg.AuthDomains)
+}
+
+func checkAuthDomains(list []string) {
+	for _, domain := range list {
+		if !strings.HasPrefix(domain, "@") {
+			panic(fmt.Sprintf("authentication domain %s doesn't start with @", domain))
+		}
+	}
 }
 
 func checkDiscussionEmails(list []DiscussionEmailConfig) {
