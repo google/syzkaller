@@ -11,7 +11,7 @@ import (
 	"net/url"
 )
 
-type FuncProxyURI func(filePath string, rc RepoCommit) string
+type FuncProxyURI func(filePath, commit string) string
 
 type webGit struct {
 	funcProxy FuncProxyURI
@@ -39,7 +39,7 @@ var errFileNotFound = errors.New("file not found")
 func (mr *webGit) loadFile(filePath, repo, commit string) ([]byte, error) {
 	var uri string
 	if mr.funcProxy != nil {
-		uri = mr.funcProxy(filePath, RepoCommit{Repo: repo, Commit: commit})
+		uri = mr.funcProxy(filePath, commit)
 	} else {
 		uri = fmt.Sprintf("%s/plain/%s", repo, filePath)
 		if commit != "latest" {
