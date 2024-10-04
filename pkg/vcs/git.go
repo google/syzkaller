@@ -635,3 +635,12 @@ func (git *git) CommitExists(commit string) (bool, error) {
 	}
 	return true, nil
 }
+
+func (git *git) PushCommit(repo, commit string) error {
+	tagName := "tag-" + commit // assign tag to guarantee remote persistence
+	git.git("tag", tagName)    // ignore errors on re-tagging
+	if _, err := git.git("push", repo, "tag", tagName); err != nil {
+		return fmt.Errorf("git push %s tag %s: %w", repo, tagName, err)
+	}
+	return nil
+}

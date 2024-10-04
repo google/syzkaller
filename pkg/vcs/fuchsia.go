@@ -107,3 +107,7 @@ func (ctx *fuchsia) MergeBases(firstCommit, secondCommit string) ([]*Commit, err
 func (ctx *fuchsia) CommitExists(string) (bool, error) {
 	return false, fmt.Errorf("not implemented for fuchsia")
 }
+
+func (ctx *fuchsia) PushCommit(repo, commit string) error {
+	return ctx.repo.PushCommit(repo, commit)
+}
