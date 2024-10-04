@@ -241,14 +241,20 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	})
 }
 
-func githubTorvaldsLinuxURI(filePath string, rc covermerger.RepoCommit) string {
-	return fmt.Sprintf("https://raw.githubusercontent.com/torvalds/linux/%s/%s", rc.Commit, filePath)
+func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
+	return func(filePath, commit string) string {
+		return fmt.Sprintf("%s/%s/%s", url, commit, filePath)
+	}
 }
 
 func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
+	}
+	nsConfig := getNsConfig(c, hdr.Namespace)
+	if nsConfig.Coverage == nil || nsConfig.Coverage.WebGitURI == "" {
+		return ErrClientNotFound
 	}
 	dateToStr := r.FormValue("dateto")
 	periodType := r.FormValue("period")
@@ -270,12 +276,12 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
 	dateFrom, dateTo := tp.DatesFromTo()
-	mainNsRepo, _ := getNsConfig(c, hdr.Namespace).mainRepoBranch()
+	mainNsRepo, _ := nsConfig.mainRepoBranch()
 	content, err := cover.RendFileCoverage(
 		c, hdr.Namespace, mainNsRepo,
 		targetCommit, "", // merge all commits to targetCommit
 		kernelFilePath,
-		githubTorvaldsLinuxURI,
+		makeProxyURIProvider(nsConfig.Coverage.WebGitURI),
 		dateFrom,
 		dateTo,
 		cover.DefaultHTMLRenderConfig(),

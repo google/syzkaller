@@ -159,6 +159,9 @@ type CoverageConfig struct {
 	JobInitScript       string
 	SyzEnvInitScript    string
 	DashboardClientName string
+
+	// WebGitURI specifies where can we get the kernel file source code directly from AppEngine.
+	WebGitURI string
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
