@@ -6,8 +6,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html"
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -28,10 +32,103 @@ var (
 	flagOutputDir    = flag.String("output", "repros", "output dir")
 	flagSyzkallerDir = flag.String("syzkaller", ".", "syzkaller dir")
 	flagOS           = flag.String("os", runtime.GOOS, "target OS")
+	flagNamespace    = flag.String("namespace", "", "target namespace")
 )
+
+func getJSONBody(url string) ([]byte, error) {
+	if strings.Contains(url, "?") {
+		url = url + "&json=1"
+	} else {
+		url = url + "?json=1"
+	}
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("http.Get(%s): %w", url, err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if res.StatusCode > 299 {
+		return nil, fmt.Errorf("io.ReadAll failed with status code: %d and\nbody: %s", res.StatusCode, body)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("io.ReadAll(body): %s", err.Error())
+	}
+	time.Sleep(time.Second) // tolerate throttling
+	return body, nil
+}
+
+func saveRepro(bugID, reproID string, reproData []byte) error {
+	bugDir := path.Join(*flagOutputDir, bugID)
+	if err := os.MkdirAll(bugDir, 0777); err != nil {
+		return fmt.Errorf("os.MkdirAll: %w", err)
+	}
+	reproPath := path.Join(bugDir, reproID)
+	if err := os.WriteFile(reproPath, reproData, 0666); err != nil {
+		return fmt.Errorf("os.WriteFile: %w", err)
+	}
+	return nil
+}
+
+func getFullBugList() ([]string, error) {
+	bugLists := []string{
+		*flagDashboard + "/" + *flagNamespace,
+		*flagDashboard + "/" + *flagNamespace + "/fixed",
+	}
+	fullBugList := []string{}
+	for _, url := range bugLists {
+		fmt.Printf("loading bug list from %s\n", url)
+		body, err := getJSONBody(url)
+		if err != nil {
+			return nil, fmt.Errorf("getBody(%s): %w", url, err)
+		}
+		bugs, err := getBugList(body)
+		if err != nil {
+			return nil, fmt.Errorf("bugList: %w", err)
+		}
+		fullBugList = append(fullBugList, bugs...)
+	}
+	return fullBugList, nil
+}
+
+func exportNamespace() error {
+	bugURLs, err := getFullBugList()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("total %d bugs available\n", len(bugURLs))
+	for iBug, bugURLPath := range bugURLs {
+		bugURL := *flagDashboard + bugURLPath
+		bugBody, err := getJSONBody(bugURL)
+		if err != nil {
+			return fmt.Errorf("getBody(%s): %w", bugURL, err)
+		}
+		details, err := makeBugDetails(bugBody)
+		if err != nil {
+			return fmt.Errorf("makeBugDetails: %w", err)
+		}
+		if cReproURL := details.Crashes[0].CReproURL; cReproURL != "" { // export max 1 CRepro per bug
+			reproID := reproIDFromURL(cReproURL)
+			fmt.Printf("(%d/%d)saving c-repro %s for bug %s\n", iBug, len(bugURLs), reproID, details.ID)
+			cReproBody, err := getJSONBody(*flagDashboard + html.UnescapeString(cReproURL))
+			if err != nil {
+				return fmt.Errorf("getBody(%s): %w", cReproURL, err)
+			}
+			if err := saveRepro(details.ID, reproID, cReproBody); err != nil {
+				return fmt.Errorf("reproIDFromURL(%s): %w", cReproURL, err)
+			}
+		}
+	}
+	return nil
+}
 
 func main() {
 	flag.Parse()
+	if *flagNamespace != "" {
+		if err := exportNamespace(); err != nil {
+			log.Fatalf("error: %s", err.Error())
+		}
+		return
+	}
 	clients := strings.Split(*flagAPIClients, ",")
 	if len(clients) == 0 {
 		log.Fatalf("api client is required")
