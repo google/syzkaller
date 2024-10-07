@@ -124,6 +124,8 @@ type Config struct {
 	CacheUIPages bool
 	// Enables coverage aggregation.
 	Coverage *CoverageConfig
+	// Reproducers export path.
+	ReproExportPath string
 }
 
 const defaultDashboardClientName = "coverage-merger"
@@ -393,7 +395,7 @@ func installConfig(cfg *GlobalConfig) {
 	initHTTPHandlers()
 	initAPIHandlers()
 	initKcidb()
-	initCoverageBatches()
+	initBatchProcessors()
 }
 
 var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"
