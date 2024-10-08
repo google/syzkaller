@@ -9,23 +9,16 @@ import (
 	"net/http"
 	"strconv"
 
-	"cloud.google.com/go/batch/apiv1"
 	"cloud.google.com/go/batch/apiv1/batchpb"
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
-	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func initCoverageBatches() {
-	http.HandleFunc("/cron/batch_coverage", handleBatchCoverage)
-}
-
-const batchTimeoutSeconds = 60 * 60 * 12
+const batchCoverageTimeoutSeconds = 60 * 60 * 12
 
 func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
@@ -73,21 +66,24 @@ func handleBatchCoverage(w http.ResponseWriter, r *http.Request) {
 		}
 		periods = coveragedb.AtMostNLatestPeriods(periods, maxSteps)
 		nsCovConfig := nsConfig.Coverage
-		if err := createScriptJob(
-			ctx,
-			nsCovConfig.BatchProject,
-			nsCovConfig.BatchServiceAccount,
-			batchScript(ns, repo, branch, periods,
+		serviceAccount := &batchpb.ServiceAccount{
+			Email:  nsCovConfig.BatchServiceAccount,
+			Scopes: nsCovConfig.BatchScopes,
+		}
+		if err := createScriptJob(ctx, nsCovConfig.BatchProject, "coverage-merge",
+			batchCoverageScript(ns, repo, branch, periods,
 				nsCovConfig.JobInitScript,
 				nsCovConfig.SyzEnvInitScript,
 				nsCovConfig.DashboardClientName),
-			nsCovConfig.BatchScopes); err != nil {
-			log.Errorf(ctx, "failed to batchScript: %s", err.Error())
+			batchCoverageTimeoutSeconds,
+			serviceAccount,
+		); err != nil {
+			log.Errorf(ctx, "failed to batchCoverageScript: %s", err.Error())
 		}
 	}
 }
 
-func batchScript(ns, repo, branch string, periods []coveragedb.TimePeriod,
+func batchCoverageScript(ns, repo, branch string, periods []coveragedb.TimePeriod,
 	jobInitScript, syzEnvInitScript, clientName string) string {
 	if clientName == "" {
 		clientName = defaultDashboardClientName
@@ -113,86 +109,6 @@ func batchScript(ns, repo, branch string, periods []coveragedb.TimePeriod,
 	}
 	script += "\""
 	return script
-}
-
-// from https://cloud.google.com/batch/docs/samples/batch-create-script-job
-func createScriptJob(ctx context.Context, projectID, serviceAccount, script string, scopes []string) error {
-	region := "us-central1"
-	jobName := fmt.Sprintf("coverage-merge-%s", uuid.New().String())
-
-	batchClient, err := batch.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed NewClient: %w", err)
-	}
-	defer batchClient.Close()
-
-	taskGroups := []*batchpb.TaskGroup{
-		{
-			TaskSpec: &batchpb.TaskSpec{
-				Runnables: []*batchpb.Runnable{{
-					Executable: &batchpb.Runnable_Script_{
-						Script: &batchpb.Runnable_Script{Command: &batchpb.Runnable_Script_Text{
-							Text: script,
-						}},
-					},
-				}},
-				ComputeResource: &batchpb.ComputeResource{
-					// CpuMilli is milliseconds per cpu-second. This means the task requires 2 whole CPUs.
-					CpuMilli:  4000,
-					MemoryMib: 12 * 1024,
-				},
-				MaxRunDuration: &durationpb.Duration{
-					Seconds: batchTimeoutSeconds,
-				},
-			},
-		},
-	}
-
-	// Policies are used to define on what kind of virtual machines the tasks will run on.
-	// In this case, we tell the system to use "e2-standard-4" machine type.
-	// Read more about machine types here: https://cloud.google.com/compute/docs/machine-types
-	allocationPolicy := &batchpb.AllocationPolicy{
-		Instances: []*batchpb.AllocationPolicy_InstancePolicyOrTemplate{{
-			PolicyTemplate: &batchpb.AllocationPolicy_InstancePolicyOrTemplate_Policy{
-				Policy: &batchpb.AllocationPolicy_InstancePolicy{
-					ProvisioningModel: batchpb.AllocationPolicy_SPOT,
-					MachineType:       "c3-standard-4",
-				},
-			},
-		}},
-		ServiceAccount: &batchpb.ServiceAccount{
-			Email:  serviceAccount,
-			Scopes: scopes,
-		},
-	}
-
-	logsPolicy := &batchpb.LogsPolicy{
-		Destination: batchpb.LogsPolicy_CLOUD_LOGGING,
-	}
-
-	// The job's parent is the region in which the job will run.
-	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
-
-	job := batchpb.Job{
-		TaskGroups:       taskGroups,
-		AllocationPolicy: allocationPolicy,
-		LogsPolicy:       logsPolicy,
-	}
-
-	req := &batchpb.CreateJobRequest{
-		Parent: parent,
-		JobId:  jobName,
-		Job:    &job,
-	}
-
-	createdJob, err := batchClient.CreateJob(ctx, req)
-	if err != nil {
-		return fmt.Errorf("unable to create job: %w", err)
-	}
-
-	log.Infof(ctx, "job created: %v\n", createdJob)
-
-	return nil
 }
 
 func nsDataAvailable(ctx context.Context, ns string) ([]coveragedb.TimePeriod, []int64, error) {
