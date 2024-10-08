@@ -34,6 +34,9 @@ func (comp *compiler) genResource(n *ast.Resource) *prog.ResourceDesc {
 	res := &prog.ResourceDesc{
 		Name: n.Name.Name,
 	}
+	if _, opt := removeOpt(n.Args); opt != nil {
+		res.Optional = true
+	}
 	for n != nil {
 		res.Values = append(genIntArray(n.Values), res.Values...)
 		res.Kind = append([]string{n.Name.Name}, res.Kind...)
