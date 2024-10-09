@@ -33,6 +33,8 @@ var (
 	flagSyzkallerDir = flag.String("syzkaller", ".", "syzkaller dir")
 	flagOS           = flag.String("os", runtime.GOOS, "target OS")
 	flagNamespace    = flag.String("namespace", "", "target namespace")
+	flagToken        = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
+		"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth pring-access-token)")
 )
 
 func getJSONBody(url string) ([]byte, error) {
@@ -41,7 +43,14 @@ func getJSONBody(url string) ([]byte, error) {
 	} else {
 		url = url + "?json=1"
 	}
-	res, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if *flagToken != "" {
+		req.Header.Add("Authorization", "Bearer "+*flagToken)
+	} else {
+		time.Sleep(time.Second) // tolerate throttling
+	}
+	client := &http.Client{}
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("http.Get(%s): %w", url, err)
 	}
@@ -53,7 +62,6 @@ func getJSONBody(url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("io.ReadAll(body): %s", err.Error())
 	}
-	time.Sleep(time.Second) // tolerate throttling
 	return body, nil
 }
 
