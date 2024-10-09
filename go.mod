@@ -1,6 +1,7 @@
 module github.com/google/syzkaller
 
 go 1.22.1
+toolchain go1.23.1
 
 require (
 	cloud.google.com/go v0.115.1
@@ -25,7 +26,7 @@ require (
 	github.com/sergi/go-diff v1.3.1
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.12
-	github.com/vektra/mockery/v2 v2.45.1
+	github.com/vektra/mockery/v2 v2.46.1
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
