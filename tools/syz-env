@@ -25,8 +25,21 @@
 # (Googlers see go/docker).
 
 COMMAND=""
+BUILDARGS=()
 DOCKERARGS=()
-[ -n $https_proxy ] && DOCKERARGS+=" --env https_proxy=$https_proxy"
+if [ -n $http_proxy ]; then
+	BUILDARGS+=" --build-arg http_proxy=$http_proxy"
+	DOCKERARGS+=" --env http_proxy=$http_proxy"
+fi
+if [ -n $https_proxy ]; then
+	BUILDARGS+=" --build-arg https_proxy=$https_proxy"
+	DOCKERARGS+=" --env https_proxy=$https_proxy"
+fi
+if [ -n $no_proxy ]; then
+	BUILDARGS+=" --build-arg no_proxy=$no_proxy"
+	DOCKERARGS+=" --env no_proxy=$no_proxy"
+fi
+
 for ARG in "$@"; do
 	while IFS='=' read KEY VAL; do
 		# If we have a kernel path passed in, we mount it in the container
