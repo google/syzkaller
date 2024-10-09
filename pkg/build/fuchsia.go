@@ -94,7 +94,7 @@ func (fu fuchsia) build(params Params) (ImageDetails, error) {
 	return ImageDetails{}, nil
 }
 
-func (fu fuchsia) clean(kernelDir, targetArch string) error {
+func (fu fuchsia) clean(params Params) error {
 	// We always do clean build because incremental build is frequently broken.
 	// So no need to clean separately.
 	return nil
