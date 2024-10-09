@@ -777,7 +777,7 @@ btf_type_var {
 	info_pad	const[0, int8]
 	info_typ	const[BTF_KIND_VAR, int8]
 	type		btf_type_id
-	linkage		bool32
+	linkage		flags[btf_linkage_values, int32]
 }
 
 btf_type_datasec {
@@ -841,3 +841,4 @@ nf_dev_hooks = NF_NETDEV_INGRESS, NF_NETDEV_EGRESS
 bpf_link_create_netfilter_flags = BPF_F_NETFILTER_IP_DEFRAG
 bpf_link_create_uprobe_multi_flags = BPF_F_UPROBE_MULTI_RETURN
 btf_load_flags = BPF_F_TOKEN_FD
+btf_linkage_values = BTF_VAR_STATIC, BTF_VAR_GLOBAL_ALLOCATED, BTF_VAR_GLOBAL_EXTERN
