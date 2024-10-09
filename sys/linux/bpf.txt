@@ -671,6 +671,10 @@ btf_type [
 	func_proto	btf_type_func_proto
 	var		btf_type_var
 	datasec		btf_type_datasec
+	float		btf_type_float
+	decl_tag	btf_type_decl_tag
+	type_tag	btf_type_type_tag
+	enum64		btf_type_enum64
 ] [varlen]
 
 btf_type_int {
@@ -795,6 +799,52 @@ btf_var_secinfo {
 # NEED: offset/size are for btf_type_datasec:data and must be increasing and within bounds (see btf_datasec_check_meta)
 	offset	int32
 	size	int32
+}
+
+btf_float_size = 2, 4, 8, 12, 16
+
+btf_type_float {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FLOAT, int8]
+	size		flags[btf_float_size, int32]
+}
+
+btf_type_decl_tag {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_DECL_TAG, int8]
+	type		btf_type_id
+# -1 or the index of a struct field or function argument.
+	component_idx	int32[-1:10]
+}
+
+btf_type_type_tag {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_TYPE_TAG, int8]
+	type		btf_type_id
+}
+
+btf_enum64_sizes = 1, 2, 4, 8
+
+btf_type_enum64 {
+	name_off	btf_name_off
+	info_vlen	len[enum64, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_ENUM64, int8:7]
+	info_kflag	int8:1
+	size		flags[btf_enum64_sizes, int32]
+	enum64		array[btf_enum64]
+}
+
+btf_enum64 {
+	name_off	btf_name_off
+	val_lo32	int32
+	val_hi32	int32
 }
 
 bpf_btf_strings {
