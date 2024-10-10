@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"html"
@@ -16,6 +17,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -23,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -34,7 +37,8 @@ var (
 	flagOS           = flag.String("os", runtime.GOOS, "target OS")
 	flagNamespace    = flag.String("namespace", "", "target namespace")
 	flagToken        = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
-		"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth pring-access-token)")
+			"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth pring-access-token)")
+	flagParallel = flag.Int("j", 2, "number of parallel threads")
 )
 
 func getJSONBody(url string) ([]byte, error) {
@@ -98,35 +102,71 @@ func getFullBugList() ([]string, error) {
 	return fullBugList, nil
 }
 
+type reproInfo struct {
+	bugNum int32
+	bugID  string
+	id     string
+	url    string
+}
+
 func exportNamespace() error {
 	bugURLs, err := getFullBugList()
 	if err != nil {
 		return err
 	}
 	fmt.Printf("total %d bugs available\n", len(bugURLs))
-	for iBug, bugURLPath := range bugURLs {
+
+	iBug := int32(-1)
+	bugsChan := make(chan string)
+	g, _ := errgroup.WithContext(context.Background())
+	for i := 0; i < *flagParallel; i++ {
+		g.Go(func() error {
+			for bugURL := range bugsChan {
+				bugNum := atomic.AddInt32(&iBug, 1)
+				bugBody, err := getJSONBody(bugURL)
+				if err != nil {
+					return fmt.Errorf("getJSONBody(%s): %w", bugURL, err)
+				}
+				details, err := makeBugDetails(bugBody)
+				if err != nil {
+					return fmt.Errorf("makeBugDetails: %w", err)
+				}
+				if cReproURL := details.Crashes[0].CReproURL; cReproURL != "" { // export max 1 CRepro per bug
+					repro := &reproInfo{
+						bugNum: bugNum,
+						bugID:  details.ID,
+						id:     reproIDFromURL(cReproURL),
+						url:    cReproURL,
+					}
+					fmt.Printf("[%d](%d/%d)saving c-repro %s for bug %s\n",
+						i, repro.bugNum, len(bugURLs), repro.id, repro.bugID)
+					fullReproURL := *flagDashboard + html.UnescapeString(repro.url)
+					cReproBody, err := getJSONBody(fullReproURL)
+					if err != nil {
+						return fmt.Errorf("getJSONBody(%s): %w", fullReproURL, err)
+					}
+					if err := saveRepro(repro.bugID, repro.id, cReproBody); err != nil {
+						return fmt.Errorf("saveRepro(bugID=%s, reproID=%s): %w", repro.bugID, repro.id, err)
+					}
+				}
+			}
+			return nil
+		})
+	}
+	errChan := make(chan error)
+	go func() {
+		errChan <- g.Wait()
+	}()
+	for _, bugURLPath := range bugURLs {
 		bugURL := *flagDashboard + bugURLPath
-		bugBody, err := getJSONBody(bugURL)
-		if err != nil {
-			return fmt.Errorf("getBody(%s): %w", bugURL, err)
-		}
-		details, err := makeBugDetails(bugBody)
-		if err != nil {
-			return fmt.Errorf("makeBugDetails: %w", err)
-		}
-		if cReproURL := details.Crashes[0].CReproURL; cReproURL != "" { // export max 1 CRepro per bug
-			reproID := reproIDFromURL(cReproURL)
-			fmt.Printf("(%d/%d)saving c-repro %s for bug %s\n", iBug, len(bugURLs), reproID, details.ID)
-			cReproBody, err := getJSONBody(*flagDashboard + html.UnescapeString(cReproURL))
-			if err != nil {
-				return fmt.Errorf("getBody(%s): %w", cReproURL, err)
-			}
-			if err := saveRepro(details.ID, reproID, cReproBody); err != nil {
-				return fmt.Errorf("reproIDFromURL(%s): %w", cReproURL, err)
-			}
+		select {
+		case bugsChan <- bugURL:
+		case err := <-errChan:
+			return err
 		}
 	}
-	return nil
+	close(bugsChan)
+	return g.Wait()
 }
 
 func main() {
