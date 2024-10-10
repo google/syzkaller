@@ -74,6 +74,11 @@ func main() {
 			usage()
 		}
 		print(args[1])
+	case "rm":
+		if len(args) != 3 {
+			usage()
+		}
+		rm(args[1], args[2], target)
 	default:
 		usage()
 	}
@@ -99,6 +104,8 @@ offered:
     syz-db bench corpus.db
   print corpus db:
     syz-db print corpus.db
+  remove a syscall from db
+    syz-db rm corpus.db syscall_name
 `)
 	os.Exit(1)
 }
@@ -240,5 +247,32 @@ func print(file string) {
 	for _, key := range keys {
 		rec := db.Records[key]
 		fmt.Printf("%v\n%v\n", key, string(rec.Val))
+	}
+}
+
+func rm(file, syscall string, target *prog.Target) {
+	db, err := db.Open(file, false)
+	if err != nil {
+		tool.Failf("failed to open database: %w", err)
+	}
+	for key, rec := range db.Records {
+		p, err := target.Deserialize(rec.Val, prog.NonStrict)
+		if err != nil {
+			tool.Failf("failed to deserialize: %w\n%s", err, rec.Val)
+		}
+		for i := len(p.Calls) - 1; i >= 0; i-- {
+			if strings.Contains(p.Calls[i].Meta.Name, syscall) {
+				p.RemoveCall(i)
+			}
+		}
+		data := p.Serialize()
+		if len(data) > 0 {
+			db.Save(key, data, rec.Seq)
+		} else {
+			delete(db.Records, key)
+		}
+	}
+	if err := db.Flush(); err != nil {
+		tool.Fail(err)
 	}
 }
