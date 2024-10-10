@@ -65,6 +65,8 @@ type GlobalConfig struct {
 	DiscussionEmails []DiscussionEmailConfig
 	// Incoming request throttling.
 	Throttle ThrottleConfig
+	// Reproducers export path.
+	ReproExportPath string
 }
 
 // Per-namespace config.
@@ -393,7 +395,7 @@ func installConfig(cfg *GlobalConfig) {
 	initHTTPHandlers()
 	initAPIHandlers()
 	initKcidb()
-	initCoverageBatches()
+	initBatchProcessors()
 }
 
 var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"

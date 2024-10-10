@@ -4,14 +4,20 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"html"
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -19,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -28,10 +35,148 @@ var (
 	flagOutputDir    = flag.String("output", "repros", "output dir")
 	flagSyzkallerDir = flag.String("syzkaller", ".", "syzkaller dir")
 	flagOS           = flag.String("os", runtime.GOOS, "target OS")
+	flagNamespace    = flag.String("namespace", "", "target namespace")
+	flagToken        = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
+			"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth pring-access-token)")
+	flagParallel = flag.Int("j", 2, "number of parallel threads")
 )
+
+func getJSONBody(url string) ([]byte, error) {
+	if strings.Contains(url, "?") {
+		url = url + "&json=1"
+	} else {
+		url = url + "?json=1"
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if *flagToken != "" {
+		req.Header.Add("Authorization", "Bearer "+*flagToken)
+	} else {
+		time.Sleep(time.Second) // tolerate throttling
+	}
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http.Get(%s): %w", url, err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if res.StatusCode > 299 {
+		return nil, fmt.Errorf("io.ReadAll failed with status code: %d and\nbody: %s", res.StatusCode, body)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("io.ReadAll(body): %s", err.Error())
+	}
+	return body, nil
+}
+
+func saveRepro(bugID, reproID string, reproData []byte) error {
+	bugDir := path.Join(*flagOutputDir, bugID)
+	if err := os.MkdirAll(bugDir, 0777); err != nil {
+		return fmt.Errorf("os.MkdirAll: %w", err)
+	}
+	reproPath := path.Join(bugDir, reproID)
+	if err := os.WriteFile(reproPath, reproData, 0666); err != nil {
+		return fmt.Errorf("os.WriteFile: %w", err)
+	}
+	return nil
+}
+
+func getFullBugList() ([]string, error) {
+	bugLists := []string{
+		*flagDashboard + "/" + *flagNamespace,
+		*flagDashboard + "/" + *flagNamespace + "/fixed",
+	}
+	fullBugList := []string{}
+	for _, url := range bugLists {
+		fmt.Printf("loading bug list from %s\n", url)
+		body, err := getJSONBody(url)
+		if err != nil {
+			return nil, fmt.Errorf("getBody(%s): %w", url, err)
+		}
+		bugs, err := getBugList(body)
+		if err != nil {
+			return nil, fmt.Errorf("bugList: %w", err)
+		}
+		fullBugList = append(fullBugList, bugs...)
+	}
+	return fullBugList, nil
+}
+
+type reproInfo struct {
+	bugNum int32
+	bugID  string
+	id     string
+	url    string
+}
+
+func exportNamespace() error {
+	bugURLs, err := getFullBugList()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("total %d bugs available\n", len(bugURLs))
+
+	iBug := int32(-1)
+	bugsChan := make(chan string)
+	g, _ := errgroup.WithContext(context.Background())
+	for i := 0; i < *flagParallel; i++ {
+		g.Go(func() error {
+			for bugURL := range bugsChan {
+				bugNum := atomic.AddInt32(&iBug, 1)
+				bugBody, err := getJSONBody(bugURL)
+				if err != nil {
+					return fmt.Errorf("getJSONBody(%s): %w", bugURL, err)
+				}
+				details, err := makeBugDetails(bugBody)
+				if err != nil {
+					return fmt.Errorf("makeBugDetails: %w", err)
+				}
+				if cReproURL := details.Crashes[0].CReproURL; cReproURL != "" { // export max 1 CRepro per bug
+					repro := &reproInfo{
+						bugNum: bugNum,
+						bugID:  details.ID,
+						id:     reproIDFromURL(cReproURL),
+						url:    cReproURL,
+					}
+					fmt.Printf("[%d](%d/%d)saving c-repro %s for bug %s\n",
+						i, repro.bugNum, len(bugURLs), repro.id, repro.bugID)
+					fullReproURL := *flagDashboard + html.UnescapeString(repro.url)
+					cReproBody, err := getJSONBody(fullReproURL)
+					if err != nil {
+						return fmt.Errorf("getJSONBody(%s): %w", fullReproURL, err)
+					}
+					if err := saveRepro(repro.bugID, repro.id, cReproBody); err != nil {
+						return fmt.Errorf("saveRepro(bugID=%s, reproID=%s): %w", repro.bugID, repro.id, err)
+					}
+				}
+			}
+			return nil
+		})
+	}
+	errChan := make(chan error)
+	go func() {
+		errChan <- g.Wait()
+	}()
+	for _, bugURLPath := range bugURLs {
+		bugURL := *flagDashboard + bugURLPath
+		select {
+		case bugsChan <- bugURL:
+		case err := <-errChan:
+			return err
+		}
+	}
+	close(bugsChan)
+	return g.Wait()
+}
 
 func main() {
 	flag.Parse()
+	if *flagNamespace != "" {
+		if err := exportNamespace(); err != nil {
+			log.Fatalf("error: %s", err.Error())
+		}
+		return
+	}
 	clients := strings.Split(*flagAPIClients, ",")
 	if len(clients) == 0 {
 		log.Fatalf("api client is required")
