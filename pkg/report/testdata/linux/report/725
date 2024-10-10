@@ -1,0 +1,139 @@
+TITLE: KASAN: out-of-bounds Read in bpf_probe_read_kernel
+ALT: bad-access in bpf_probe_read_kernel
+TYPE: KASAN
+
+[   59.270916][ T5228] ==================================================================
+[   59.279030][ T5228] BUG: KASAN: out-of-bounds in copy_from_kernel_nofault+0x7a/0x2f0
+[   59.286932][ T5228] Read of size 6 at addr fffffffffffffffd by task syz-executor100/5228
+[   59.295158][ T5228] 
+[   59.297481][ T5228] CPU: 0 UID: 0 PID: 5228 Comm: syz-executor100 Not tainted 6.12.0-rc1-next-20240930-syzkaller #0
+[   59.308054][ T5228] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+[   59.318118][ T5228] Call Trace:
+[   59.321414][ T5228]  <TASK>
+[   59.324350][ T5228]  dump_stack_lvl+0x241/0x360
+[   59.329047][ T5228]  ? __pfx_dump_stack_lvl+0x10/0x10
+[   59.334240][ T5228]  ? __pfx__printk+0x10/0x10
+[   59.338822][ T5228]  ? _printk+0xd5/0x120
+[   59.342974][ T5228]  print_report+0x169/0x550
+[   59.347478][ T5228]  ? timekeeping_get_ns+0x5c/0x420
+[   59.352591][ T5228]  ? __virt_addr_valid+0x4bd/0x530
+[   59.357697][ T5228]  ? copy_from_kernel_nofault+0x7a/0x2f0
+[   59.363322][ T5228]  kasan_report+0x143/0x180
+[   59.367841][ T5228]  ? copy_from_kernel_nofault+0x7a/0x2f0
+[   59.373555][ T5228]  kasan_check_range+0x282/0x290
+[   59.378487][ T5228]  copy_from_kernel_nofault+0x7a/0x2f0
+[   59.383939][ T5228]  bpf_probe_read_kernel+0x2a/0x70
+[   59.389048][ T5228]  bpf_prog_fe7b69aea4fa28bf+0x43/0x45
+[   59.394524][ T5228]  bpf_test_run+0x4b1/0xa90
+[   59.399105][ T5228]  ? bpf_dispatcher_change_prog+0xd8b/0xf10
+[   59.404991][ T5228]  ? bpf_test_run+0x370/0xa90
+[   59.409750][ T5228]  ? __pfx_bpf_test_run+0x10/0x10
+[   59.414769][ T5228]  ? _copy_from_user+0xa6/0xe0
+[   59.419529][ T5228]  ? bpf_test_init+0x15a/0x180
+[   59.424298][ T5228]  ? xdp_convert_md_to_buff+0x5b/0x330
+[   59.429751][ T5228]  bpf_prog_test_run_xdp+0x7da/0x11e0
+[   59.435118][ T5228]  ? __pfx_bpf_prog_test_run_xdp+0x10/0x10
+[   59.440918][ T5228]  ? __pfx_bpf_prog_test_run_xdp+0x10/0x10
+[   59.446715][ T5228]  bpf_prog_test_run+0x2e4/0x360
+[   59.451650][ T5228]  __sys_bpf+0x48d/0x810
+[   59.455889][ T5228]  ? __pfx___sys_bpf+0x10/0x10
+[   59.460650][ T5228]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[   59.466997][ T5228]  ? do_syscall_64+0x100/0x230
+[   59.471755][ T5228]  __x64_sys_bpf+0x7c/0x90
+[   59.476169][ T5228]  do_syscall_64+0xf3/0x230
+[   59.480665][ T5228]  ? clear_bhb_loop+0x35/0x90
+[   59.485333][ T5228]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   59.491226][ T5228] RIP: 0033:0x7f56177654e9
+[   59.495633][ T5228] Code: 48 83 c4 28 c3 e8 37 17 00 00 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   59.515244][ T5228] RSP: 002b:00007ffe0d6b0b28 EFLAGS: 00000246 ORIG_RAX: 0000000000000141
+[   59.523652][ T5228] RAX: ffffffffffffffda RBX: 00007ffe0d6b0cf8 RCX: 00007f56177654e9
+[   59.531620][ T5228] RDX: 000000000000003b RSI: 0000000020000240 RDI: 000000000000000a
+[   59.539582][ T5228] RBP: 00007f56177d8610 R08: 0000000000000000 R09: 00007ffe0d6b0cf8
+[   59.547630][ T5228] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000001
+[   59.555592][ T5228] R13: 00007ffe0d6b0ce8 R14: 0000000000000001 R15: 0000000000000001
+[   59.563557][ T5228]  </TASK>
+[   59.566567][ T5228] 
+[   59.568879][ T5228] Memory state around the buggy address:
+[   59.574492][ T5228]  fffffffffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   59.582556][ T5228]  ffffffffffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   59.590606][ T5228] >ffffffffffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   59.598795][ T5228] Oops: general protection fault, probably for non-canonical address 0xdffffc0000000000: 0000 [#1] PREEMPT SMP KASAN PTI
+[   59.611365][ T5228] KASAN: null-ptr-deref in range [0x0000000000000000-0x0000000000000007]
+[   59.619762][ T5228] CPU: 0 UID: 0 PID: 5228 Comm: syz-executor100 Not tainted 6.12.0-rc1-next-20240930-syzkaller #0
+[   59.630332][ T5228] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+[   59.640376][ T5228] RIP: 0010:kasan_metadata_fetch_row+0x12/0x30
+[   59.646528][ T5228] Code: 0f 1f 84 00 00 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 66 0f 1f 00 48 c1 ee 03 48 b8 00 00 00 00 00 fc ff df <48> 8b 0c 06 48 8b 44 06 08 48 89 47 08 48 89 0f c3 cc cc cc cc 66
+[   59.666170][ T5228] RSP: 0018:ffffc90003ef76d8 EFLAGS: 00010046
+[   59.672225][ T5228] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: c6ed900456943a00
+[   59.680191][ T5228] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffffc90003ef7710
+[   59.688157][ T5228] RBP: ffffc90003ef7758 R08: ffffffff8bc0f2d3 R09: 0000000000000020
+[   59.696133][ T5228] R10: dffffc0000000000 R11: fffff520007deee1 R12: ffffc90003ef7710
+[   59.704111][ T5228] R13: 0000000000000080 R14: ffffffffffffff80 R15: ffffc90003ef76f0
+[   59.712074][ T5228] FS:  0000555592643380(0000) GS:ffff8880b8600000(0000) knlGS:0000000000000000
+[   59.721015][ T5228] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   59.727591][ T5228] CR2: 000056143cbc1000 CR3: 0000000079f80000 CR4: 00000000003526f0
+[   59.735677][ T5228] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   59.743636][ T5228] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   59.751594][ T5228] Call Trace:
+[   59.754865][ T5228]  <TASK>
+[   59.757801][ T5228]  ? __die_body+0x5f/0xb0
+[   59.762152][ T5228]  ? die_addr+0xb0/0xe0
+[   59.766313][ T5228]  ? exc_general_protection+0x3dd/0x5d0
+[   59.771869][ T5228]  ? asm_exc_general_protection+0x26/0x30
+[   59.777589][ T5228]  ? vsnprintf+0x1cc3/0x1da0
+[   59.782176][ T5228]  ? kasan_metadata_fetch_row+0x12/0x30
+[   59.787746][ T5228]  print_report+0x4df/0x550
+[   59.792245][ T5228]  ? __virt_addr_valid+0x4bd/0x530
+[   59.797348][ T5228]  ? copy_from_kernel_nofault+0x7a/0x2f0
+[   59.802992][ T5228]  kasan_report+0x143/0x180
+[   59.807491][ T5228]  ? copy_from_kernel_nofault+0x7a/0x2f0
+[   59.813207][ T5228]  kasan_check_range+0x282/0x290
+[   59.818140][ T5228]  copy_from_kernel_nofault+0x7a/0x2f0
+[   59.823589][ T5228]  bpf_probe_read_kernel+0x2a/0x70
+[   59.828697][ T5228]  bpf_prog_fe7b69aea4fa28bf+0x43/0x45
+[   59.834144][ T5228]  bpf_test_run+0x4b1/0xa90
+[   59.838638][ T5228]  ? bpf_dispatcher_change_prog+0xd8b/0xf10
+[   59.844522][ T5228]  ? bpf_test_run+0x370/0xa90
+[   59.849198][ T5228]  ? __pfx_bpf_test_run+0x10/0x10
+[   59.854219][ T5228]  ? _copy_from_user+0xa6/0xe0
+[   59.858969][ T5228]  ? bpf_test_init+0x15a/0x180
+[   59.863720][ T5228]  ? xdp_convert_md_to_buff+0x5b/0x330
+[   59.869170][ T5228]  bpf_prog_test_run_xdp+0x7da/0x11e0
+[   59.874544][ T5228]  ? __pfx_bpf_prog_test_run_xdp+0x10/0x10
+[   59.880345][ T5228]  ? __pfx_bpf_prog_test_run_xdp+0x10/0x10
+[   59.886141][ T5228]  bpf_prog_test_run+0x2e4/0x360
+[   59.891079][ T5228]  __sys_bpf+0x48d/0x810
+[   59.895315][ T5228]  ? __pfx___sys_bpf+0x10/0x10
+[   59.900075][ T5228]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[   59.906400][ T5228]  ? do_syscall_64+0x100/0x230
+[   59.911158][ T5228]  __x64_sys_bpf+0x7c/0x90
+[   59.915569][ T5228]  do_syscall_64+0xf3/0x230
+[   59.920066][ T5228]  ? clear_bhb_loop+0x35/0x90
+[   59.924733][ T5228]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   59.930614][ T5228] RIP: 0033:0x7f56177654e9
+[   59.935019][ T5228] Code: 48 83 c4 28 c3 e8 37 17 00 00 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   59.954628][ T5228] RSP: 002b:00007ffe0d6b0b28 EFLAGS: 00000246 ORIG_RAX: 0000000000000141
+[   59.963037][ T5228] RAX: ffffffffffffffda RBX: 00007ffe0d6b0cf8 RCX: 00007f56177654e9
+[   59.971004][ T5228] RDX: 000000000000003b RSI: 0000000020000240 RDI: 000000000000000a
+[   59.978969][ T5228] RBP: 00007f56177d8610 R08: 0000000000000000 R09: 00007ffe0d6b0cf8
+[   59.987017][ T5228] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000001
+[   59.995006][ T5228] R13: 00007ffe0d6b0ce8 R14: 0000000000000001 R15: 0000000000000001
+[   60.002971][ T5228]  </TASK>
+[   60.005993][ T5228] Modules linked in:
+[   60.009878][ T5228] ---[ end trace 0000000000000000 ]---
+[   60.015330][ T5228] RIP: 0010:kasan_metadata_fetch_row+0x12/0x30
+[   60.021480][ T5228] Code: 0f 1f 84 00 00 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 66 0f 1f 00 48 c1 ee 03 48 b8 00 00 00 00 00 fc ff df <48> 8b 0c 06 48 8b 44 06 08 48 89 47 08 48 89 0f c3 cc cc cc cc 66
+[   60.041076][ T5228] RSP: 0018:ffffc90003ef76d8 EFLAGS: 00010046
+[   60.047132][ T5228] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: c6ed900456943a00
+[   60.055092][ T5228] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffffc90003ef7710
+[   60.063047][ T5228] RBP: ffffc90003ef7758 R08: ffffffff8bc0f2d3 R09: 0000000000000020
+[   60.071009][ T5228] R10: dffffc0000000000 R11: fffff520007deee1 R12: ffffc90003ef7710
+[   60.078994][ T5228] R13: 0000000000000080 R14: ffffffffffffff80 R15: ffffc90003ef76f0
+[   60.087134][ T5228] FS:  0000555592643380(0000) GS:ffff8880b8600000(0000) knlGS:0000000000000000
+[   60.096060][ T5228] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   60.102641][ T5228] CR2: 000056143cbc1000 CR3: 0000000079f80000 CR4: 00000000003526f0
+[   60.110607][ T5228] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   60.118578][ T5228] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   60.126543][ T5228] Kernel panic - not syncing: Fatal exception in interrupt
+[   60.133841][ T5228] Kernel Offset: disabled
+[   60.138159][ T5228] Rebooting in 86400 seconds..
