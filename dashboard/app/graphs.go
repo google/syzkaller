@@ -246,10 +246,6 @@ func githubTorvaldsLinuxURI(filePath string, rc covermerger.RepoCommit) string {
 }
 
 func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	accessLevel := accessLevel(c, r)
-	if accessLevel != AccessAdmin {
-		return ErrAccess
-	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
