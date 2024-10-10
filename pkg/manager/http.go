@@ -1,7 +1,7 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package manager
 
 import (
 	"bytes"
@@ -18,77 +18,102 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/manager"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/vm"
 	"github.com/google/syzkaller/vm/dispatcher"
 	"github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func (mgr *Manager) initHTTP() {
+type CoverageInfo struct {
+	Modules         []*vminfo.KernelModule
+	ReportGenerator *ReportGeneratorWrapper
+	CoverFilter     map[uint64]struct{}
+}
+
+type HTTPServer struct {
+	// To be set once.
+	Cfg        *mgrconfig.Config
+	StartTime  time.Time
+	Corpus     *corpus.Corpus
+	CrashStore *CrashStore
+
+	// Set dynamically.
+	Fuzzer          atomic.Pointer[fuzzer.Fuzzer]
+	Cover           atomic.Pointer[CoverageInfo]
+	ReproLoop       atomic.Pointer[ReproLoop]
+	Pool            atomic.Pointer[dispatcher.Pool[*vm.Instance]]
+	EnabledSyscalls atomic.Value // map[*prog.Syscall]bool
+
+	// Internal state.
+	expertMode bool
+}
+
+func (serv *HTTPServer) Serve() {
 	handle := func(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
 	}
-	handle("/", mgr.httpSummary)
-	handle("/config", mgr.httpConfig)
-	handle("/expert_mode", mgr.httpExpertMode)
-	handle("/stats", mgr.httpStats)
-	handle("/vms", mgr.httpVMs)
-	handle("/vm", mgr.httpVM)
+	handle("/", serv.httpSummary)
+	handle("/config", serv.httpConfig)
+	handle("/expert_mode", serv.httpExpertMode)
+	handle("/stats", serv.httpStats)
+	handle("/vms", serv.httpVMs)
+	handle("/vm", serv.httpVM)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
-	handle("/syscalls", mgr.httpSyscalls)
-	handle("/corpus", mgr.httpCorpus)
-	handle("/corpus.db", mgr.httpDownloadCorpus)
-	handle("/crash", mgr.httpCrash)
-	handle("/cover", mgr.httpCover)
-	handle("/subsystemcover", mgr.httpSubsystemCover)
-	handle("/modulecover", mgr.httpModuleCover)
-	handle("/prio", mgr.httpPrio)
-	handle("/file", mgr.httpFile)
-	handle("/report", mgr.httpReport)
-	handle("/rawcover", mgr.httpRawCover)
-	handle("/rawcoverfiles", mgr.httpRawCoverFiles)
-	handle("/filterpcs", mgr.httpFilterPCs)
-	handle("/funccover", mgr.httpFuncCover)
-	handle("/filecover", mgr.httpFileCover)
-	handle("/input", mgr.httpInput)
-	handle("/debuginput", mgr.httpDebugInput)
-	handle("/modules", mgr.modulesInfo)
-	handle("/jobs", mgr.httpJobs)
+	handle("/syscalls", serv.httpSyscalls)
+	handle("/corpus", serv.httpCorpus)
+	handle("/corpus.db", serv.httpDownloadCorpus)
+	handle("/crash", serv.httpCrash)
+	handle("/cover", serv.httpCover)
+	handle("/subsystemcover", serv.httpSubsystemCover)
+	handle("/modulecover", serv.httpModuleCover)
+	handle("/prio", serv.httpPrio)
+	handle("/file", serv.httpFile)
+	handle("/report", serv.httpReport)
+	handle("/rawcover", serv.httpRawCover)
+	handle("/rawcoverfiles", serv.httpRawCoverFiles)
+	handle("/filterpcs", serv.httpFilterPCs)
+	handle("/funccover", serv.httpFuncCover)
+	handle("/filecover", serv.httpFileCover)
+	handle("/input", serv.httpInput)
+	handle("/debuginput", serv.httpDebugInput)
+	handle("/modules", serv.modulesInfo)
+	handle("/jobs", serv.httpJobs)
 	// Browsers like to request this, without special handler this goes to / handler.
 	handle("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
-	log.Logf(0, "serving http on http://%v", mgr.cfg.HTTP)
-	go func() {
-		err := http.ListenAndServe(mgr.cfg.HTTP, nil)
-		if err != nil {
-			log.Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
-		}
-	}()
+	log.Logf(0, "serving http on http://%v", serv.Cfg.HTTP)
+	err := http.ListenAndServe(serv.Cfg.HTTP, nil)
+	if err != nil {
+		log.Fatalf("failed to listen on %v: %v", serv.Cfg.HTTP, err)
+	}
 }
 
-func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 	revision, link := revisionAndLink()
 	data := &UISummaryData{
-		Name:         mgr.cfg.Name,
+		Name:         serv.Cfg.Name,
 		Revision:     revision,
 		RevisionLink: link,
-		Expert:       mgr.expertMode,
+		Expert:       serv.expertMode,
 		Log:          log.CachedLogOutput(),
 	}
 
 	level := stat.Simple
-	if mgr.expertMode {
+	if serv.expertMode {
 		level = stat.All
 	}
 	for _, stat := range stat.Collect(level) {
@@ -101,7 +126,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
-	if data.Crashes, err = mgr.collectCrashes(mgr.cfg.Workdir); err != nil {
+	if data.Crashes, err = serv.collectCrashes(serv.Cfg.Workdir); err != nil {
 		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -122,8 +147,8 @@ func revisionAndLink() (string, string) {
 	return revision, link
 }
 
-func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
-	data, err := json.MarshalIndent(mgr.cfg, "", "\t")
+func (serv *HTTPServer) httpConfig(w http.ResponseWriter, r *http.Request) {
+	data, err := json.MarshalIndent(serv.Cfg, "", "\t")
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
 			http.StatusInternalServerError)
@@ -132,18 +157,28 @@ func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (mgr *Manager) httpExpertMode(w http.ResponseWriter, r *http.Request) {
-	mgr.expertMode = !mgr.expertMode
+func (serv *HTTPServer) httpExpertMode(w http.ResponseWriter, r *http.Request) {
+	serv.expertMode = !serv.expertMode
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
-	data := &UISyscallsData{
-		Name: mgr.cfg.Name,
+func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
+	var calls map[string]*corpus.CallCov
+	if obj := serv.EnabledSyscalls.Load(); obj != nil {
+		calls = serv.Corpus.CallCover()
+		// Add enabled, but not yet covered calls.
+		for call := range obj.(map[*prog.Syscall]bool) {
+			if calls[call.Name] == nil {
+				calls[call.Name] = new(corpus.CallCov)
+			}
+		}
 	}
-	for c, cc := range mgr.collectSyscallInfo() {
+	data := &UISyscallsData{
+		Name: serv.Cfg.Name,
+	}
+	for c, cc := range calls {
 		var syscallID *int
-		if syscall, ok := mgr.target.SyscallMap[c]; ok {
+		if syscall, ok := serv.Cfg.Target.SyscallMap[c]; ok {
 			syscallID = &syscall.ID
 		}
 		data.Calls = append(data.Calls, UICallType{
@@ -159,17 +194,22 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, syscallsTemplate, data)
 }
 
-func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpStats(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, pages.StatsTemplate, stat.RenderGraphs())
 }
 
-func (mgr *Manager) httpVMs(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
+	pool := serv.Pool.Load()
+	if pool == nil {
+		http.Error(w, "no VM pool is present (yet)", http.StatusInternalServerError)
+		return
+	}
 	data := &UIVMData{
-		Name: mgr.cfg.Name,
+		Name: serv.Cfg.Name,
 	}
 	// TODO: we could also query vmLoop for VMs that are idle (waiting to start reproducing),
 	// and query the exact bug that is being reproduced by a VM.
-	for id, state := range mgr.pool.State() {
+	for id, state := range pool.State() {
 		name := fmt.Sprintf("#%d", id)
 		info := UIVMInfo{
 			Name:  name,
@@ -200,10 +240,16 @@ func (mgr *Manager) httpVMs(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, vmsTemplate, data)
 }
 
-func (mgr *Manager) httpVM(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpVM(w http.ResponseWriter, r *http.Request) {
+	pool := serv.Pool.Load()
+	if pool == nil {
+		http.Error(w, "no VM pool is present (yet)", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", ctTextPlain)
 	id, err := strconv.Atoi(r.FormValue("id"))
-	infos := mgr.pool.State()
+	infos := pool.State()
 	if err != nil || id < 0 || id >= len(infos) {
 		http.Error(w, "invalid instance id", http.StatusBadRequest)
 		return
@@ -223,25 +269,51 @@ func (mgr *Manager) httpVM(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
+func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool) *UICrashType {
+	var crashes []*UICrash
+	for _, crash := range info.Crashes {
+		crashes = append(crashes, &UICrash{
+			CrashInfo: crash,
+			Active:    crash.Time.After(startTime),
+		})
+	}
+	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
+		info.ReproAttempts >= MaxReproAttempts)
+	return &UICrashType{
+		Description: info.Title,
+		LastTime:    info.LastTime,
+		Active:      info.LastTime.After(startTime),
+		ID:          info.ID,
+		Count:       len(info.Crashes),
+		Triaged:     triaged,
+		Strace:      info.StraceFile,
+		Crashes:     crashes,
+	}
+}
+
+var crashIDRe = regexp.MustCompile(`^\w+$`)
+
+func (serv *HTTPServer) httpCrash(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
-	crash := readCrash(mgr.cfg.Workdir, crashID, nil, mgr.firstConnect.Load(), true)
-	if crash == nil {
+	if !crashIDRe.MatchString(crashID) {
+		http.Error(w, "invalid crash ID", http.StatusBadRequest)
+		return
+	}
+	info, err := serv.CrashStore.BugInfo(crashID, true)
+	if err != nil {
 		http.Error(w, "failed to read crash info", http.StatusInternalServerError)
 		return
 	}
+	crash := makeUICrashType(info, serv.StartTime, nil)
 	executeTemplate(w, crashTemplate, crash)
 }
 
-func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
+func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
 	data := UICorpus{
 		Call:     r.FormValue("call"),
-		RawCover: mgr.cfg.RawCover,
+		RawCover: serv.Cfg.RawCover,
 	}
-	for _, inp := range mgr.corpus.Items() {
+	for _, inp := range serv.Corpus.Items() {
 		if data.Call != "" && data.Call != inp.StringCall() {
 			continue
 		}
@@ -261,8 +333,8 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, corpusTemplate, data)
 }
 
-func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
-	corpus := filepath.Join(mgr.cfg.Workdir, "corpus.db")
+func (serv *HTTPServer) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
+	corpus := filepath.Join(serv.Cfg.Workdir, "corpus.db")
 	file, err := os.Open(corpus)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to open corpus : %v", err), http.StatusInternalServerError)
@@ -289,51 +361,50 @@ const (
 	DoCoverJSONL
 )
 
-func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
-	if !mgr.cfg.Cover {
-		mgr.httpCoverFallback(w, r)
+func (serv *HTTPServer) httpCover(w http.ResponseWriter, r *http.Request) {
+	if !serv.Cfg.Cover {
+		serv.httpCoverFallback(w, r)
 		return
 	}
 	if r.FormValue("jsonl") == "1" {
-		mgr.httpCoverCover(w, r, DoCoverJSONL)
+		serv.httpCoverCover(w, r, DoCoverJSONL)
 		return
 	}
-	mgr.httpCoverCover(w, r, DoHTML)
+	serv.httpCoverCover(w, r, DoHTML)
 }
 
-func (mgr *Manager) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
-	if !mgr.cfg.Cover {
-		mgr.httpCoverFallback(w, r)
+func (serv *HTTPServer) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
+	if !serv.Cfg.Cover {
+		serv.httpCoverFallback(w, r)
 		return
 	}
-	mgr.httpCoverCover(w, r, DoSubsystemCover)
+	serv.httpCoverCover(w, r, DoSubsystemCover)
 }
 
-func (mgr *Manager) httpModuleCover(w http.ResponseWriter, r *http.Request) {
-	if !mgr.cfg.Cover {
-		mgr.httpCoverFallback(w, r)
+func (serv *HTTPServer) httpModuleCover(w http.ResponseWriter, r *http.Request) {
+	if !serv.Cfg.Cover {
+		serv.httpCoverFallback(w, r)
 		return
 	}
-	mgr.httpCoverCover(w, r, DoModuleCover)
+	serv.httpCoverCover(w, r, DoModuleCover)
 }
 
 const ctTextPlain = "text/plain; charset=utf-8"
 const ctApplicationJSON = "application/json"
 
-func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcFlag int) {
-	if !mgr.cfg.Cover {
+func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, funcFlag int) {
+	if !serv.Cfg.Cover {
 		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
 		return
 	}
 
-	// Don't hold the mutex while creating report generator and generating the report,
-	// these operations take lots of time.
-	if !mgr.checkDone.Load() {
+	coverInfo := serv.Cover.Load()
+	if coverInfo == nil {
 		http.Error(w, "coverage is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
 
-	rg, err := mgr.reportGenerator.Get()
+	rg, err := coverInfo.ReportGenerator.Get()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
@@ -341,15 +412,14 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 
 	if r.FormValue("flush") != "" {
 		defer func() {
-			mgr.reportGenerator.Reset()
+			coverInfo.ReportGenerator.Reset()
 			debug.FreeOSMemory()
 		}()
 	}
 
-	mgr.mu.Lock()
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
-		inp := mgr.corpus.Item(sig)
+		inp := serv.Corpus.Item(sig)
 		if inp == nil {
 			http.Error(w, "unknown input hash", http.StatusInternalServerError)
 			return
@@ -363,37 +433,36 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
 				Data: string(inp.Prog.Serialize()),
-				PCs:  manager.CoverToPCs(mgr.cfg, inp.Updates[updateID].RawCover),
+				PCs:  CoverToPCs(serv.Cfg, inp.Updates[updateID].RawCover),
 			})
 		} else {
 			progs = append(progs, cover.Prog{
 				Sig:  sig,
 				Data: string(inp.Prog.Serialize()),
-				PCs:  manager.CoverToPCs(mgr.cfg, inp.Cover),
+				PCs:  CoverToPCs(serv.Cfg, inp.Cover),
 			})
 		}
 	} else {
 		call := r.FormValue("call")
-		for _, inp := range mgr.corpus.Items() {
+		for _, inp := range serv.Corpus.Items() {
 			if call != "" && call != inp.StringCall() {
 				continue
 			}
 			progs = append(progs, cover.Prog{
 				Sig:  inp.Sig,
 				Data: string(inp.Prog.Serialize()),
-				PCs:  manager.CoverToPCs(mgr.cfg, inp.Cover),
+				PCs:  CoverToPCs(serv.Cfg, inp.Cover),
 			})
 		}
 	}
-	mgr.mu.Unlock()
 
 	var coverFilter map[uint64]struct{}
 	if r.FormValue("filter") != "" || funcFlag == DoFilterPCs {
-		if mgr.coverFilter == nil {
+		if coverInfo.CoverFilter == nil {
 			http.Error(w, "cover is not filtered in config", http.StatusInternalServerError)
 			return
 		}
-		coverFilter = mgr.coverFilter
+		coverFilter = coverInfo.CoverFilter
 	}
 
 	params := cover.HandlerParams{
@@ -429,28 +498,28 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	}
 }
 
-func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+func (serv *HTTPServer) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	calls := make(map[int][]int)
-	for s := range mgr.corpus.Signal() {
+	for s := range serv.Corpus.Signal() {
 		id, errno := prog.DecodeFallbackSignal(uint64(s))
 		calls[id] = append(calls[id], errno)
 	}
 	data := &UIFallbackCoverData{}
-	for call := range mgr.targetEnabledSyscalls {
-		errnos := calls[call.ID]
-		sort.Ints(errnos)
-		successful := 0
-		for len(errnos) != 0 && errnos[0] == 0 {
-			successful++
-			errnos = errnos[1:]
+	if obj := serv.EnabledSyscalls.Load(); obj != nil {
+		for call := range obj.(map[*prog.Syscall]bool) {
+			errnos := calls[call.ID]
+			sort.Ints(errnos)
+			successful := 0
+			for len(errnos) != 0 && errnos[0] == 0 {
+				successful++
+				errnos = errnos[1:]
+			}
+			data.Calls = append(data.Calls, UIFallbackCall{
+				Name:       call.Name,
+				Successful: successful,
+				Errnos:     errnos,
+			})
 		}
-		data.Calls = append(data.Calls, UIFallbackCall{
-			Name:       call.Name,
-			Successful: successful,
-			Errnos:     errnos,
-		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
 		return data.Calls[i].Name < data.Calls[j].Name
@@ -458,34 +527,31 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, fallbackCoverTemplate, data)
 }
 
-func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoFuncCover)
+func (serv *HTTPServer) httpFuncCover(w http.ResponseWriter, r *http.Request) {
+	serv.httpCoverCover(w, r, DoFuncCover)
 }
 
-func (mgr *Manager) httpFileCover(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoFileCover)
+func (serv *HTTPServer) httpFileCover(w http.ResponseWriter, r *http.Request) {
+	serv.httpCoverCover(w, r, DoFileCover)
 }
 
-func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
+func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
 	callName := r.FormValue("call")
-	call := mgr.target.SyscallMap[callName]
+	call := serv.Cfg.Target.SyscallMap[callName]
 	if call == nil {
 		http.Error(w, fmt.Sprintf("unknown call: %v", callName), http.StatusInternalServerError)
 		return
 	}
 
 	var corpus []*prog.Prog
-	for _, inp := range mgr.corpus.Items() {
+	for _, inp := range serv.Corpus.Items() {
 		corpus = append(corpus, inp.Prog)
 	}
-	prios := mgr.target.CalculatePriorities(corpus)
+	prios := serv.Cfg.Target.CalculatePriorities(corpus)
 
 	data := &UIPrioData{Call: callName}
 	for i, p := range prios[call.ID] {
-		data.Prios = append(data.Prios, UIPrio{mgr.target.Syscalls[i].Name, p})
+		data.Prios = append(data.Prios, UIPrio{serv.Cfg.Target.Syscalls[i].Name, p})
 	}
 	sort.Slice(data.Prios, func(i, j int) bool {
 		return data.Prios[i].Prio > data.Prios[j].Prio
@@ -493,13 +559,13 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, prioTemplate, data)
 }
 
-func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpFile(w http.ResponseWriter, r *http.Request) {
 	file := filepath.Clean(r.FormValue("name"))
 	if !strings.HasPrefix(file, "crashes/") && !strings.HasPrefix(file, "corpus/") {
 		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)
 		return
 	}
-	file = filepath.Join(mgr.cfg.Workdir, file)
+	file = filepath.Join(serv.Cfg.Workdir, file)
 	f, err := os.Open(file)
 	if err != nil {
 		http.Error(w, "failed to open the file", http.StatusInternalServerError)
@@ -510,10 +576,8 @@ func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, f)
 }
 
-func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	inp := mgr.corpus.Item(r.FormValue("sig"))
+func (serv *HTTPServer) httpInput(w http.ResponseWriter, r *http.Request) {
+	inp := serv.Corpus.Item(r.FormValue("sig"))
 	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
@@ -522,10 +586,8 @@ func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
 	w.Write(inp.Prog.Serialize())
 }
 
-func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	inp := mgr.corpus.Item(r.FormValue("sig"))
+func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
+	inp := serv.Corpus.Item(r.FormValue("sig"))
 	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
@@ -562,18 +624,21 @@ func (mgr *Manager) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, rawCoverTemplate, data)
 }
 
-func (mgr *Manager) modulesInfo(w http.ResponseWriter, r *http.Request) {
-	if !mgr.checkDone.Load() {
+func (serv *HTTPServer) modulesInfo(w http.ResponseWriter, r *http.Request) {
+	var modules []*vminfo.KernelModule
+	if obj := serv.Cover.Load(); obj != nil {
+		modules = obj.Modules
+	} else {
 		http.Error(w, "info is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
-	modules, err := json.MarshalIndent(mgr.modules, "", "\t")
+	jsonModules, err := json.MarshalIndent(modules, "", "\t")
 	if err != nil {
 		fmt.Fprintf(w, "unable to create JSON modules info: %v", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(modules)
+	w.Write(jsonModules)
 }
 
 var alphaNumRegExp = regexp.MustCompile(`^[a-zA-Z0-9]*$`)
@@ -582,84 +647,68 @@ func isAlphanumeric(s string) bool {
 	return alphaNumRegExp.MatchString(s)
 }
 
-func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
+func (serv *HTTPServer) httpReport(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
 	if !isAlphanumeric(crashID) {
 		http.Error(w, "wrong id", http.StatusBadRequest)
 		return
 	}
 
-	desc, err := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "description"))
+	info, err := serv.CrashStore.Report(crashID)
 	if err != nil {
-		http.Error(w, "failed to read description file", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
 		return
 	}
-	tag, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.tag"))
-	prog, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
-	cprog, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
-	rep, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
 
 	commitDesc := ""
-	if len(tag) != 0 {
-		commitDesc = fmt.Sprintf(" on commit %s.", trimNewLines(tag))
+	if info.Tag != "" {
+		commitDesc = fmt.Sprintf(" on commit %s.", info.Tag)
 	}
-	fmt.Fprintf(w, "Syzkaller hit '%s' bug%s.\n\n", trimNewLines(desc), commitDesc)
-	if len(rep) != 0 {
-		fmt.Fprintf(w, "%s\n\n", rep)
+	fmt.Fprintf(w, "Syzkaller hit '%s' bug%s.\n\n", info.Title, commitDesc)
+	if len(info.Report) != 0 {
+		fmt.Fprintf(w, "%s\n\n", info.Report)
 	}
-	if len(prog) == 0 && len(cprog) == 0 {
+	if len(info.Prog) == 0 && len(info.CProg) == 0 {
 		fmt.Fprintf(w, "The bug is not reproducible.\n")
 	} else {
-		fmt.Fprintf(w, "Syzkaller reproducer:\n%s\n\n", prog)
-		if len(cprog) != 0 {
-			fmt.Fprintf(w, "C reproducer:\n%s\n\n", cprog)
+		fmt.Fprintf(w, "Syzkaller reproducer:\n%s\n\n", info.Prog)
+		if len(info.CProg) != 0 {
+			fmt.Fprintf(w, "C reproducer:\n%s\n\n", info.CProg)
 		}
 	}
 }
 
-func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoRawCover)
+func (serv *HTTPServer) httpRawCover(w http.ResponseWriter, r *http.Request) {
+	serv.httpCoverCover(w, r, DoRawCover)
 }
 
-func (mgr *Manager) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoRawCoverFiles)
+func (serv *HTTPServer) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
+	serv.httpCoverCover(w, r, DoRawCoverFiles)
 }
 
-func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
-	mgr.httpCoverCover(w, r, DoFilterPCs)
+func (serv *HTTPServer) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
+	serv.httpCoverCover(w, r, DoFilterPCs)
 }
 
-func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
-	// Note: mu is not locked here.
+func (serv *HTTPServer) collectCrashes(workdir string) ([]*UICrashType, error) {
 	var repros map[string]bool
-	if !mgr.cfg.VMLess && mgr.reproLoop != nil {
-		repros = mgr.reproLoop.Reproducing()
+	if reproLoop := serv.ReproLoop.Load(); reproLoop != nil {
+		repros = reproLoop.Reproducing()
 	}
-
-	crashdir := filepath.Join(workdir, "crashes")
-	dirs, err := osutil.ListDir(crashdir)
+	list, err := serv.CrashStore.BugList()
 	if err != nil {
 		return nil, err
 	}
-	var crashTypes []*UICrashType
-	for _, dir := range dirs {
-		crash := readCrash(workdir, dir, repros, mgr.firstConnect.Load(), false)
-		if crash != nil {
-			crashTypes = append(crashTypes, crash)
-		}
+	var ret []*UICrashType
+	for _, info := range list {
+		ret = append(ret, makeUICrashType(info, serv.StartTime, repros))
 	}
-	sort.Slice(crashTypes, func(i, j int) bool {
-		return strings.ToLower(crashTypes[i].Description) < strings.ToLower(crashTypes[j].Description)
-	})
-	return crashTypes, nil
+	return ret, nil
 }
 
-func (mgr *Manager) httpJobs(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpJobs(w http.ResponseWriter, r *http.Request) {
 	var list []*fuzzer.JobInfo
-	if fuzzer := mgr.fuzzer.Load(); fuzzer != nil {
+	if fuzzer := serv.Fuzzer.Load(); fuzzer != nil {
 		list = fuzzer.RunningJobs()
 	}
 	if key := r.FormValue("id"); key != "" {
@@ -702,92 +751,6 @@ func (mgr *Manager) httpJobs(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, jobListTemplate, data)
 }
 
-func readCrash(workdir, dir string, repros map[string]bool, start int64, full bool) *UICrashType {
-	if len(dir) != 40 {
-		return nil
-	}
-	crashdir := filepath.Join(workdir, "crashes")
-	descFile, err := os.Open(filepath.Join(crashdir, dir, "description"))
-	if err != nil {
-		return nil
-	}
-	defer descFile.Close()
-	descBytes, err := io.ReadAll(descFile)
-	if err != nil || len(descBytes) == 0 {
-		return nil
-	}
-	desc := string(trimNewLines(descBytes))
-	stat, err := descFile.Stat()
-	if err != nil {
-		return nil
-	}
-	modTime := stat.ModTime()
-	descFile.Close()
-
-	files, err := osutil.ListDir(filepath.Join(crashdir, dir))
-	if err != nil {
-		return nil
-	}
-	var crashes []*UICrash
-	reproAttempts := 0
-	hasRepro, hasCRepro := false, false
-	strace := ""
-	reports := make(map[string]bool)
-	for _, f := range files {
-		if strings.HasPrefix(f, "log") {
-			index, err := strconv.ParseUint(f[3:], 10, 64)
-			if err == nil {
-				crashes = append(crashes, &UICrash{
-					Index: int(index),
-				})
-			}
-		} else if strings.HasPrefix(f, "report") {
-			reports[f] = true
-		} else if f == "repro.prog" {
-			hasRepro = true
-		} else if f == "repro.cprog" {
-			hasCRepro = true
-		} else if f == "repro.report" {
-		} else if f == "repro0" || f == "repro1" || f == "repro2" {
-			reproAttempts++
-		} else if f == "strace.log" {
-			strace = filepath.Join("crashes", dir, f)
-		}
-	}
-
-	if full {
-		for _, crash := range crashes {
-			index := strconv.Itoa(crash.Index)
-			crash.Log = filepath.Join("crashes", dir, "log"+index)
-			if stat, err := os.Stat(filepath.Join(workdir, crash.Log)); err == nil {
-				crash.Time = stat.ModTime()
-				crash.Active = start != 0 && crash.Time.Unix() >= start
-			}
-			tag, _ := os.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
-			crash.Tag = string(tag)
-			reportFile := filepath.Join("crashes", dir, "report"+index)
-			if osutil.IsExist(filepath.Join(workdir, reportFile)) {
-				crash.Report = reportFile
-			}
-		}
-		sort.Slice(crashes, func(i, j int) bool {
-			return crashes[i].Time.After(crashes[j].Time)
-		})
-	}
-
-	triaged := reproStatus(hasRepro, hasCRepro, repros[desc], reproAttempts >= maxReproAttempts)
-	return &UICrashType{
-		Description: desc,
-		LastTime:    modTime,
-		Active:      start != 0 && modTime.Unix() >= start,
-		ID:          dir,
-		Count:       len(crashes),
-		Triaged:     triaged,
-		Strace:      strace,
-		Crashes:     crashes,
-	}
-}
-
 func reproStatus(hasRepro, hasCRepro, reproducing, nonReproducible bool) string {
 	status := ""
 	if hasRepro {
@@ -811,13 +774,6 @@ func executeTemplate(w http.ResponseWriter, templ *template.Template, data inter
 		return
 	}
 	w.Write(buf.Bytes())
-}
-
-func trimNewLines(data []byte) []byte {
-	for len(data) > 0 && data[len(data)-1] == '\n' {
-		data = data[:len(data)-1]
-	}
-	return data
 }
 
 type UISummaryData struct {
@@ -860,12 +816,8 @@ type UICrashType struct {
 }
 
 type UICrash struct {
-	Index  int
-	Time   time.Time
+	*CrashInfo
 	Active bool
-	Log    string
-	Report string
-	Tag    string
 }
 
 type UIStat struct {

@@ -39,13 +39,13 @@ func pickGetter(key string) keyGetter {
 	}
 }
 
-func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
+func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Syscall]bool) {
 	hc := &HubConnector{
 		mgr:           mgr,
 		cfg:           mgr.cfg,
 		target:        mgr.target,
 		domain:        mgr.cfg.TargetOS + "/" + mgr.cfg.HubDomain,
-		enabledCalls:  mgr.targetEnabledSyscalls,
+		enabledCalls:  enabledSyscalls,
 		leak:          mgr.enabledFeatures&flatrpc.FeatureLeak != 0,
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.externalReproQueue,

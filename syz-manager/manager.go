@@ -31,7 +31,6 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/gce"
-	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -79,8 +78,9 @@ type Manager struct {
 	target          *prog.Target
 	sysTarget       *targets.Target
 	reporter        *report.Reporter
-	crashdir        string
+	crashStore      *manager.CrashStore
 	serv            rpcserver.Server
+	http            *manager.HTTPServer
 	corpus          *corpus.Corpus
 	corpusDB        *db.DB
 	corpusDBMu      sync.Mutex // for concurrent operations on corpusDB
@@ -91,8 +91,6 @@ type Manager struct {
 	checkDone       atomic.Bool
 	reportGenerator *manager.ReportGeneratorWrapper
 	fresh           bool
-	expertMode      bool
-	modules         []*vminfo.KernelModule
 	coverFilter     map[uint64]struct{} // includes only coverage PCs
 
 	dash *dashapi.Dashboard
@@ -100,11 +98,10 @@ type Manager struct {
 	// cfg.DashboardOnlyRepro is set, so that we don't accidentially use dash for anything.
 	dashRepro *dashapi.Dashboard
 
-	mu                    sync.Mutex
-	fuzzer                atomic.Pointer[fuzzer.Fuzzer]
-	snapshotSource        *queue.Distributor
-	phase                 int
-	targetEnabledSyscalls map[*prog.Syscall]bool
+	mu             sync.Mutex
+	fuzzer         atomic.Pointer[fuzzer.Fuzzer]
+	snapshotSource *queue.Distributor
+	phase          int
 
 	disabledHashes   map[string]struct{}
 	newRepros        [][]byte
@@ -204,8 +201,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		defer vmPool.Close()
 	}
 
-	crashdir := filepath.Join(cfg.Workdir, "crashes")
-	osutil.MkdirAll(crashdir)
+	osutil.MkdirAll(cfg.Workdir)
 
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
@@ -222,7 +218,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		target:             cfg.Target,
 		sysTarget:          cfg.SysTarget,
 		reporter:           reporter,
-		crashdir:           crashdir,
+		crashStore:         manager.NewCrashStore(cfg),
 		crashTypes:         make(map[string]bool),
 		disabledHashes:     make(map[string]struct{}),
 		memoryLeakFrames:   make(map[string]bool),
@@ -233,9 +229,14 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		saturatedCalls:     make(map[string]bool),
 		reportGenerator:    manager.ReportGeneratorCache(cfg),
 	}
-
 	if *flagDebug {
 		mgr.cfg.Procs = 1
+	}
+	mgr.http = &manager.HTTPServer{
+		Cfg:        cfg,
+		StartTime:  time.Now(),
+		Corpus:     mgr.corpus,
+		CrashStore: mgr.crashStore,
 	}
 
 	mgr.initStats()
@@ -244,7 +245,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	} else {
 		close(mgr.corpusPreload)
 	}
-	mgr.initHTTP() // Creates HTTP server.
+	go mgr.http.Serve()
 	go mgr.corpusInputHandler(corpusUpdates)
 	go mgr.trackUsedFiles()
 
@@ -296,7 +297,10 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		return
 	}
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
+	mgr.http.Pool.Store(mgr.pool)
 	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
+	mgr.http.ReproLoop.Store(mgr.reproLoop)
+
 	ctx := vm.ShutdownCtx()
 	go mgr.processFuzzingResults(ctx)
 	mgr.pool.Loop(ctx)
@@ -480,8 +484,8 @@ func (mgr *Manager) preloadCorpus() {
 	mgr.corpusPreload <- info.Candidates
 }
 
-func (mgr *Manager) loadCorpus() []fuzzer.Candidate {
-	ret := manager.FilterCandidates(<-mgr.corpusPreload, mgr.targetEnabledSyscalls, true)
+func (mgr *Manager) loadCorpus(enabledSyscalls map[*prog.Syscall]bool) []fuzzer.Candidate {
+	ret := manager.FilterCandidates(<-mgr.corpusPreload, enabledSyscalls, true)
 	if mgr.cfg.PreserveCorpus {
 		for _, hash := range ret.ModifiedHashes {
 			// This program contains a disabled syscall.
@@ -674,66 +678,25 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 			return mgr.cfg.Reproduce && resp.NeedRepro
 		}
 	}
-
-	sig := hash.Hash([]byte(crash.Title))
-	id := sig.String()
-	dir := filepath.Join(mgr.crashdir, id)
-	osutil.MkdirAll(dir)
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.Title+"\n")); err != nil {
-		log.Logf(0, "failed to write crash: %v", err)
+	first, err := mgr.crashStore.SaveCrash(crash)
+	if err != nil {
+		log.Logf(0, "failed to save the cash: %v", err)
+		return false
 	}
-
-	// Save up to mgr.cfg.MaxCrashLogs reports, overwrite the oldest once we've reached that number.
-	// Newer reports are generally more useful. Overwriting is also needed
-	// to be able to understand if a particular bug still happens or already fixed.
-	oldestI := 0
-	var oldestTime time.Time
-	for i := 0; i < mgr.cfg.MaxCrashLogs; i++ {
-		info, err := os.Stat(filepath.Join(dir, fmt.Sprintf("log%v", i)))
-		if err != nil {
-			oldestI = i
-			if i == 0 {
-				go mgr.emailCrash(crash)
-			}
-			break
-		}
-		if oldestTime.IsZero() || info.ModTime().Before(oldestTime) {
-			oldestI = i
-			oldestTime = info.ModTime()
-		}
+	if first {
+		go mgr.emailCrash(crash)
 	}
-	writeOrRemove := func(name string, data []byte) {
-		filename := filepath.Join(dir, name+fmt.Sprint(oldestI))
-		if len(data) == 0 {
-			os.Remove(filename)
-			return
-		}
-		osutil.WriteFile(filename, data)
-	}
-	writeOrRemove("log", crash.Output)
-	writeOrRemove("tag", []byte(mgr.cfg.Tag))
-	writeOrRemove("report", crash.Report.Report)
-	writeOrRemove("machineInfo", crash.MachineInfo)
 	return mgr.NeedRepro(crash)
 }
-
-const maxReproAttempts = 3
 
 func (mgr *Manager) needLocalRepro(crash *manager.Crash) bool {
 	if !mgr.cfg.Reproduce || crash.Corrupted || crash.Suppressed {
 		return false
 	}
-	sig := hash.Hash([]byte(crash.Title))
-	dir := filepath.Join(mgr.crashdir, sig.String())
-	if osutil.IsExist(filepath.Join(dir, "repro.prog")) {
+	if mgr.crashStore.HasRepro(crash.Title) {
 		return false
 	}
-	for i := 0; i < maxReproAttempts; i++ {
-		if !osutil.IsExist(filepath.Join(dir, fmt.Sprintf("repro%v", i))) {
-			return true
-		}
-	}
-	return false
+	return mgr.crashStore.MoreReproAttempts(crash.Title)
 }
 
 func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
@@ -743,7 +706,10 @@ func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
 	if crash.FromHub || crash.FromDashboard {
 		return true
 	}
-	if !mgr.checkDone.Load() || (mgr.enabledFeatures&flatrpc.FeatureLeak != 0 &&
+	mgr.mu.Lock()
+	phase, features := mgr.phase, mgr.enabledFeatures
+	mgr.mu.Unlock()
+	if phase < phaseLoadedCorpus || (features&flatrpc.FeatureLeak != 0 &&
 		crash.Type != crash_pkg.MemoryLeak) {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
@@ -797,14 +763,9 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 			return
 		}
 	}
-	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
-	osutil.MkdirAll(dir)
-	for i := 0; i < maxReproAttempts; i++ {
-		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
-		if !osutil.IsExist(name) && len(reproLog) > 0 {
-			osutil.WriteFile(name, reproLog)
-			break
-		}
+	err := mgr.crashStore.SaveFailedRepro(rep.Title, reproLog)
+	if err != nil {
+		log.Logf(0, "failed to save repro log for %q: %v", rep.Title, err)
 	}
 }
 
@@ -880,45 +841,9 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 			return
 		}
 	}
-
-	rep := repro.Report
-	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
-	osutil.MkdirAll(dir)
-
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
-		log.Logf(0, "failed to write crash: %v", err)
-	}
-	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), progText...))
-	if mgr.cfg.Tag != "" {
-		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
-	}
-	if len(rep.Output) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.log"), rep.Output)
-	}
-	if len(rep.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.report"), rep.Report)
-	}
-	if len(cprogText) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
-	}
-	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader) {
-		fileName := filepath.Join(dir, name+".gz")
-		if err := osutil.WriteGzipStream(fileName, r); err != nil {
-			log.Logf(0, "failed to write crash asset: type %d, write error %v", typ, err)
-		}
-	})
-	if res.Strace != nil {
-		// Unlike dashboard reporting, we save strace output separately from the original log.
-		if res.Strace.Error != nil {
-			osutil.WriteFile(filepath.Join(dir, "strace.error"),
-				[]byte(fmt.Sprintf("%v", res.Strace.Error)))
-		}
-		if len(res.Strace.Output) > 0 {
-			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.Strace.Output)
-		}
-	}
-	if reproLog := res.Stats.FullLog(); len(reproLog) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.stats"), reproLog)
+	err := mgr.crashStore.SaveRepro(res, append([]byte(opts), progText...), cprogText)
+	if err != nil {
+		log.Logf(0, "%s", err)
 	}
 }
 
@@ -1074,24 +999,6 @@ func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
 	}
 }
 
-func (mgr *Manager) collectSyscallInfo() map[string]*corpus.CallCov {
-	mgr.mu.Lock()
-	enabledSyscalls := mgr.targetEnabledSyscalls
-	mgr.mu.Unlock()
-
-	if enabledSyscalls == nil {
-		return nil
-	}
-	calls := mgr.corpus.CallCover()
-	// Add enabled, but not yet covered calls.
-	for call := range enabledSyscalls {
-		if calls[call.Name] == nil {
-			calls[call.Name] = new(corpus.CallCov)
-		}
-	}
-	return calls
-}
-
 func (mgr *Manager) BugFrames() (leaks, races []string) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -1121,12 +1028,12 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		panic("MachineChecked called twice")
 	}
 	mgr.enabledFeatures = features
-	mgr.targetEnabledSyscalls = enabledSyscalls
+	mgr.http.EnabledSyscalls.Store(enabledSyscalls)
 	mgr.firstConnect.Store(time.Now().Unix())
 	statSyscalls := stat.New("syscalls", "Number of enabled syscalls",
 		stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
-	corpus := mgr.loadCorpus()
+	corpus := mgr.loadCorpus(enabledSyscalls)
 	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := mgr.defaultExecOpts()
 
@@ -1156,6 +1063,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		}, rnd, mgr.target)
 		fuzzerObj.AddCandidates(corpus)
 		mgr.fuzzer.Store(fuzzerObj)
+		mgr.http.Fuzzer.Store(fuzzerObj)
 
 		go mgr.corpusMinimization()
 		go mgr.fuzzerLoop(fuzzerObj)
@@ -1301,7 +1209,8 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 				}
 				if mgr.cfg.HubClient != "" {
 					mgr.setPhaseLocked(phaseTriagedCorpus)
-					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
+					go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey),
+						fuzzer.Config.EnabledCalls)
 				} else {
 					mgr.setPhaseLocked(phaseTriagedHub)
 				}
@@ -1452,8 +1361,12 @@ func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	if err != nil {
 		log.Fatalf("failed to init coverage filter: %v", err)
 	}
-	mgr.modules = modules
 	mgr.coverFilter = filter
+	mgr.http.Cover.Store(&manager.CoverageInfo{
+		Modules:         modules,
+		ReportGenerator: mgr.reportGenerator,
+		CoverFilter:     filter,
+	})
 	return execFilter
 }
 

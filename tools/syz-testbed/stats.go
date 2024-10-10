@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/stat/sample"
 )
 
@@ -51,33 +50,16 @@ type StatView struct {
 	Groups []RunResultGroup
 }
 
-// TODO: we're implementing this functionaity at least the 3rd time (see syz-manager/html
-// and tools/reporter). Create a more generic implementation and put it into a globally
-// visible package.
 func collectBugs(workdir string) ([]BugInfo, error) {
-	crashdir := filepath.Join(workdir, "crashes")
-	dirs, err := osutil.ListDir(crashdir)
+	list, err := manager.ReadCrashStore(workdir).BugList()
 	if err != nil {
 		return nil, err
 	}
-	bugs := []BugInfo{}
-	for _, dir := range dirs {
-		bugFolder := filepath.Join(crashdir, dir)
-		titleBytes, err := os.ReadFile(filepath.Join(bugFolder, "description"))
-		if err != nil {
-			return nil, err
-		}
-		bug := BugInfo{
-			Title: strings.TrimSpace(string(titleBytes)),
-		}
-		files, err := os.ReadDir(bugFolder)
-		if err != nil {
-			return nil, err
-		}
-		for _, f := range files {
-			if strings.HasPrefix(f.Name(), "log") {
-				bug.Logs = append(bug.Logs, filepath.Join(bugFolder, f.Name()))
-			}
+	var bugs []BugInfo
+	for _, info := range list {
+		bug := BugInfo{Title: info.Title}
+		for _, crash := range info.Crashes {
+			bug.Logs = append(bug.Logs, filepath.Join(workdir, crash.Log))
 		}
 		bugs = append(bugs, bug)
 	}
