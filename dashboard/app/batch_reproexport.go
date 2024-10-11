@@ -27,10 +27,11 @@ func handleBatchReproExport(w http.ResponseWriter, r *http.Request) {
 
 func exportReproScript(srcNamespace, archivePath string) string {
 	return "\n" +
-		"git clone --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
+		"git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
-		"./tools/syz-env \"" +
-		"go run ./tools/syz-reprolist/... -namespace " + srcNamespace + " && " +
+		"token=$(gcloud auth print-access-token)\n" +
+		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
+		"go run ./tools/syz-reprolist/... -namespace " + srcNamespace + " -token $token -j 10 && " +
 		"tar -czvf reproducers.tar.gz ./repros/ && " +
 		"gsutil -m cp reproducers.tar.gz " + archivePath +
 		"\""
