@@ -62,45 +62,47 @@ func main() {
 	}
 	pool := vm.NewDispatcher(vmPool, nil)
 	pool.ReserveForRun(count)
+
 	ctx, done := context.WithCancel(context.Background())
-	go pool.Loop(ctx)
-	defer done()
+	go func() {
+		defer done()
 
-	res, stats, err := repro.Run(data, cfg, flatrpc.AllFeatures, reporter, pool)
-	if err != nil {
-		log.Logf(0, "reproduction failed: %v", err)
-	}
-	if stats != nil {
-		fmt.Printf("extracting prog: %v\n", stats.ExtractProgTime)
-		fmt.Printf("minimizing prog: %v\n", stats.MinimizeProgTime)
-		fmt.Printf("simplifying prog options: %v\n", stats.SimplifyProgTime)
-		fmt.Printf("extracting C: %v\n", stats.ExtractCTime)
-		fmt.Printf("simplifying C: %v\n", stats.SimplifyCTime)
-	}
-	if res == nil {
-		return
-	}
+		res, stats, err := repro.Run(data, cfg, flatrpc.AllFeatures, reporter, pool)
+		if err != nil {
+			log.Logf(0, "reproduction failed: %v", err)
+		}
+		if stats != nil {
+			fmt.Printf("extracting prog: %v\n", stats.ExtractProgTime)
+			fmt.Printf("minimizing prog: %v\n", stats.MinimizeProgTime)
+			fmt.Printf("simplifying prog options: %v\n", stats.SimplifyProgTime)
+			fmt.Printf("extracting C: %v\n", stats.ExtractCTime)
+			fmt.Printf("simplifying C: %v\n", stats.SimplifyCTime)
+		}
+		if res == nil {
+			return
+		}
 
-	fmt.Printf("opts: %+v crepro: %v\n\n", res.Opts, res.CRepro)
+		fmt.Printf("opts: %+v crepro: %v\n\n", res.Opts, res.CRepro)
+		progSerialized := res.Prog.Serialize()
+		fmt.Printf("%s\n", progSerialized)
+		if err = osutil.WriteFile(*flagOutput, progSerialized); err == nil {
+			fmt.Printf("program saved to %s\n", *flagOutput)
+		} else {
+			log.Logf(0, "failed to write prog to file: %v", err)
+		}
 
-	progSerialized := res.Prog.Serialize()
-	fmt.Printf("%s\n", progSerialized)
-	if err = osutil.WriteFile(*flagOutput, progSerialized); err == nil {
-		fmt.Printf("program saved to %s\n", *flagOutput)
-	} else {
-		log.Logf(0, "failed to write prog to file: %v", err)
-	}
-
-	if res.Report != nil && *flagTitle != "" {
-		recordTitle(res, *flagTitle)
-	}
-	if res.CRepro {
-		recordCRepro(res, *flagCRepro)
-	}
-	if *flagStrace != "" {
-		result := repro.RunStrace(res, cfg, reporter, pool)
-		recordStraceResult(result, *flagStrace)
-	}
+		if res.Report != nil && *flagTitle != "" {
+			recordTitle(res, *flagTitle)
+		}
+		if res.CRepro {
+			recordCRepro(res, *flagCRepro)
+		}
+		if *flagStrace != "" {
+			result := repro.RunStrace(res, cfg, reporter, pool)
+			recordStraceResult(result, *flagStrace)
+		}
+	}()
+	pool.Loop(ctx)
 }
 
 func recordTitle(res *repro.Result, fileName string) {
