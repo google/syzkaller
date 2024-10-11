@@ -36,7 +36,7 @@ var (
 	flagOS           = flag.String("os", runtime.GOOS, "target OS")
 	flagNamespace    = flag.String("namespace", "", "target namespace")
 	flagToken        = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
-		"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth pring-access-token)")
+		"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth print-access-token)")
 	flagParallel = flag.Int("j", 2, "number of parallel threads")
 )
 
