@@ -35,7 +35,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		if info.CorpusDB == nil {
 			log.Fatalf("failed to open corpus database: %v", err)
 		}
-		log.Errorf("read %v inputs from corfpus and got error: %v", len(info.CorpusDB.Records), err)
+		log.Errorf("read %v inputs from corpus and got error: %v", len(info.CorpusDB.Records), err)
 	}
 	info.Fresh = len(info.CorpusDB.Records) == 0
 	corpusFlags := versionToFlags(info.CorpusDB.Version)
