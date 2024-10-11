@@ -8,14 +8,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
-)
 
-type bugList struct {
-	Version int
-	Bugs    []struct {
-		Link string
-	}
-}
+	"github.com/google/syzkaller/dashboard/api"
+)
 
 func reproIDFromURL(url string) string {
 	parts := strings.Split(url, "&")
@@ -30,7 +25,7 @@ func reproIDFromURL(url string) string {
 }
 
 func getBugList(jsonBugs []byte) ([]string, error) {
-	var bl bugList
+	var bl api.BugGroup
 	if err := json.Unmarshal(jsonBugs, &bl); err != nil {
 		return nil, fmt.Errorf("json.Unmarshal: %w", err)
 	}
@@ -44,17 +39,13 @@ func getBugList(jsonBugs []byte) ([]string, error) {
 	return res, nil
 }
 
-type BugDetails struct {
-	ID      string
-	Crashes []struct {
-		CReproURL string `json:"c-reproducer"`
-	}
-}
-
-func makeBugDetails(jsonDetails []byte) (*BugDetails, error) {
-	var bd BugDetails
+func makeBugDetails(jsonDetails []byte) (*api.Bug, error) {
+	var bd api.Bug
 	if err := json.Unmarshal(jsonDetails, &bd); err != nil {
 		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+	if bd.Version != 1 {
+		return nil, fmt.Errorf("unsupported export version %d", bd.Version)
 	}
 	return &bd, nil
 }
