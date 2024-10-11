@@ -31,7 +31,6 @@ func init() {
 	os.Setenv("GAE_MODULE_VERSION", "1")
 	os.Setenv("GAE_MINOR_VERSION", "1")
 
-	isBrokenAuthDomainInTest = true
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
 	ensureConfigImmutability = true
