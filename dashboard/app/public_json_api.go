@@ -5,45 +5,12 @@ package main
 
 import (
 	"encoding/json"
+
+	"github.com/google/syzkaller/dashboard/api"
 )
 
-// publicApiBugDescription is used to serve the /bug HTTP requests
-// and provide JSON description of the BUG. Backward compatible.
-type publicAPIBugDescription struct {
-	Version     int         `json:"version"`
-	Title       string      `json:"title,omitempty"`
-	ID          string      `json:"id"`
-	FixCommits  []vcsCommit `json:"fix-commits,omitempty"`
-	CauseCommit *vcsCommit  `json:"cause-commit,omitempty"`
-	// links to the discussions
-	Discussions []string                    `json:"discussions,omitempty"`
-	Crashes     []publicAPICrashDescription `json:"crashes,omitempty"`
-}
-
-type vcsCommit struct {
-	Title  string `json:"title"`
-	Link   string `json:"link,omitempty"`
-	Hash   string `json:"hash,omitempty"`
-	Repo   string `json:"repo,omitempty"`
-	Branch string `json:"branch,omitempty"`
-}
-
-type publicAPICrashDescription struct {
-	Title               string `json:"title"`
-	SyzReproducer       string `json:"syz-reproducer,omitempty"`
-	CReproducer         string `json:"c-reproducer,omitempty"`
-	KernelConfig        string `json:"kernel-config,omitempty"`
-	KernelSourceGit     string `json:"kernel-source-git,omitempty"`
-	KernelSourceCommit  string `json:"kernel-source-commit,omitempty"`
-	SyzkallerGit        string `json:"syzkaller-git,omitempty"`
-	SyzkallerCommit     string `json:"syzkaller-commit,omitempty"`
-	CompilerDescription string `json:"compiler-description,omitempty"`
-	Architecture        string `json:"architecture,omitempty"`
-	CrashReport         string `json:"crash-report-link,omitempty"`
-}
-
-func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
-	return &publicAPIBugDescription{
+func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
+	return &api.Bug{
 		Version: 1,
 		Title:   bugPage.Bug.Title,
 		ID:      bugPage.Bug.ID,
@@ -54,22 +21,22 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 			return []string{bugPage.Bug.ExternalLink}
 		}(),
 		FixCommits: getBugFixCommits(bugPage.Bug),
-		CauseCommit: func() *vcsCommit {
+		CauseCommit: func() *api.Commit {
 			if bugPage.BisectCause == nil || bugPage.BisectCause.Commit == nil {
 				return nil
 			}
 			bisectCause := bugPage.BisectCause
-			return &vcsCommit{
+			return &api.Commit{
 				Title:  bisectCause.Commit.Title,
 				Link:   bisectCause.Commit.Link,
 				Hash:   bisectCause.Commit.Hash,
 				Repo:   bisectCause.KernelRepo,
 				Branch: bisectCause.KernelBranch}
 		}(),
-		Crashes: func() []publicAPICrashDescription {
-			var res []publicAPICrashDescription
+		Crashes: func() []api.Crash {
+			var res []api.Crash
 			for _, crash := range bugPage.Crashes.Crashes {
-				res = append(res, publicAPICrashDescription{
+				res = append(res, api.Crash{
 					Title:              crash.Title,
 					SyzReproducer:      crash.ReproSyzLink,
 					CReproducer:        crash.ReproCLink,
@@ -88,10 +55,10 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *publicAPIBugDescription {
 	}
 }
 
-func getBugFixCommits(bug *uiBug) []vcsCommit {
-	var res []vcsCommit
+func getBugFixCommits(bug *uiBug) []api.Commit {
+	var res []api.Commit
 	for _, commit := range bug.Commits {
-		res = append(res, vcsCommit{
+		res = append(res, api.Commit{
 			Title:  commit.Title,
 			Link:   commit.Link,
 			Hash:   commit.Hash,
@@ -102,34 +69,20 @@ func getBugFixCommits(bug *uiBug) []vcsCommit {
 	return res
 }
 
-type publicAPIBugGroup struct {
-	Version int `json:"version"`
-	Bugs    []publicAPIBug
-}
-
-type publicAPIBug struct {
-	Title       string      `json:"title,omitempty"`
-	Link        string      `json:"link"`
-	LastUpdated string      `json:"last-updated,omitempty"`
-	FixCommits  []vcsCommit `json:"fix-commits,omitempty"`
-}
-
-func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *publicAPIBugGroup {
-	return &publicAPIBugGroup{
+func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *api.BugGroup {
+	var bugs []api.BugSummary
+	for _, group := range bugGroups {
+		for _, bug := range group.Bugs {
+			bugs = append(bugs, api.BugSummary{
+				Title:      bug.Title,
+				Link:       bug.Link,
+				FixCommits: getBugFixCommits(bug),
+			})
+		}
+	}
+	return &api.BugGroup{
 		Version: 1,
-		Bugs: func() []publicAPIBug {
-			var res []publicAPIBug
-			for _, group := range bugGroups {
-				for _, bug := range group.Bugs {
-					res = append(res, publicAPIBug{
-						Title:      bug.Title,
-						Link:       bug.Link,
-						FixCommits: getBugFixCommits(bug),
-					})
-				}
-			}
-			return res
-		}(),
+		Bugs:    bugs,
 	}
 }
 
