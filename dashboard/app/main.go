@@ -41,6 +41,13 @@ import (
 // This file contains web UI http handlers.
 
 func initHTTPHandlers() {
+	http.Handle("/mycreds", handlerWrapper(func(c context.Context, w http.ResponseWriter, r *http.Request) error {
+		if u := currentUser(c, r); u != nil {
+			w.Write([]byte(fmt.Sprintf("currentUser: u.Email=%s, u.AuthDomain=%s, u.FederatedProvider=%s, u.FederatedIdentity=%s, u.Admin=%t",
+				u.Email, u.AuthDomain, u.FederatedProvider, u.FederatedIdentity, u.Admin)))
+		}
+		return nil
+	}))
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
