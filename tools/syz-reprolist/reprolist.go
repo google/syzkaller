@@ -364,6 +364,8 @@ func getFullBugList() ([]string, error) {
 	return fullBugList, nil
 }
 
+var throttler = time.NewTicker(time.Second).C
+
 func getJSONBody(url string) ([]byte, error) {
 	if strings.Contains(url, "?") {
 		url = url + "&json=1"
@@ -377,7 +379,7 @@ func getJSONBody(url string) ([]byte, error) {
 	if *flagToken != "" {
 		req.Header.Add("Authorization", "Bearer "+*flagToken)
 	} else {
-		time.Sleep(time.Second) // tolerate throttling
+		<-throttler // tolerate throttling
 	}
 	client := &http.Client{}
 	res, err := client.Do(req)
