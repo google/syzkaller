@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -496,7 +497,30 @@ type apiClient struct {
 }
 
 func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
-	doer := func(r *http.Request) (*http.Response, error) {
+	logger := func(msg string, args ...interface{}) {
+		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
+	}
+	errorHandler := func(err error) {
+		if failOnErrors {
+			c.t.Fatalf("\n%v: %v", caller(2), err)
+		}
+	}
+	dash, err := dashapi.NewCustom(client, "", key, c.inst.NewRequest, c.httpDoer(), logger, errorHandler)
+	if err != nil {
+		panic(fmt.Sprintf("Impossible error: %v", err))
+	}
+	return &apiClient{
+		Ctx:       c,
+		Dashboard: dash,
+	}
+}
+
+func (c *Ctx) makeAPIClient() *api.Client {
+	return api.NewTestClient(c.inst.NewRequest, c.httpDoer())
+}
+
+func (c *Ctx) httpDoer() func(*http.Request) (*http.Response, error) {
+	return func(r *http.Request) (*http.Response, error) {
 		r = registerRequest(r, c)
 		r = r.WithContext(c.transformContext(r.Context()))
 		w := httptest.NewRecorder()
@@ -507,22 +531,6 @@ func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 			Body:       io.NopCloser(w.Result().Body),
 		}
 		return res, nil
-	}
-	logger := func(msg string, args ...interface{}) {
-		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
-	}
-	errorHandler := func(err error) {
-		if failOnErrors {
-			c.t.Fatalf("\n%v: %v", caller(2), err)
-		}
-	}
-	dash, err := dashapi.NewCustom(client, "", key, c.inst.NewRequest, doer, logger, errorHandler)
-	if err != nil {
-		panic(fmt.Sprintf("Impossible error: %v", err))
-	}
-	return &apiClient{
-		Ctx:       c,
-		Dashboard: dash,
 	}
 }
 

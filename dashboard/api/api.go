@@ -5,6 +5,8 @@
 // All structures in this package are backwards compatible.
 package api
 
+const Version = 1
+
 type BugGroup struct {
 	Version int `json:"version"`
 	Bugs    []BugSummary
