@@ -11,7 +11,7 @@ import (
 
 func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
 	return &api.Bug{
-		Version: 1,
+		Version: api.Version,
 		Title:   bugPage.Bug.Title,
 		ID:      bugPage.Bug.ID,
 		Discussions: func() []string {
@@ -81,7 +81,7 @@ func getExtAPIDescrForBugGroups(bugGroups []*uiBugGroup) *api.BugGroup {
 		}
 	}
 	return &api.BugGroup{
-		Version: 1,
+		Version: api.Version,
 		Bugs:    bugs,
 	}
 }
@@ -115,7 +115,7 @@ type publicAPIBackports struct {
 
 func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
 	return &publicAPIBackports{
-		Version: 1,
+		Version: api.Version,
 		List: func() []publicMissingBackport {
 			var res []publicMissingBackport
 			for _, group := range groups {

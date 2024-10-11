@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
@@ -221,4 +222,31 @@ func TestJSONAPICauseBisection(t *testing.T) {
 		}
 	]
 }`)
+}
+
+func TestPublicJSONAPI(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublic, keyPublic, true)
+	build := testBuild(1)
+	client.UploadBuild(build)
+	client.ReportCrash(testCrashWithRepro(build, 1))
+	rep := client.pollBug()
+	client.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
+	_ = client.pollBug()
+
+	cli := c.makeAPIClient()
+	bugs, err := cli.BugGroups("access-public", api.BugGroupAll)
+	c.expectOK(err)
+	c.expectEQ(len(bugs), 1)
+	c.expectEQ(bugs[0].Title, "title1")
+
+	bug, err := cli.Bug(bugs[0].Link)
+	c.expectOK(err)
+	c.expectEQ(bug.Title, "title1")
+
+	config, err := cli.Text(bug.Crashes[0].KernelConfigLink)
+	c.expectOK(err)
+	c.expectEQ(config, []byte("config1"))
 }
