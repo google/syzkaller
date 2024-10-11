@@ -8,9 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"html"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -290,11 +289,12 @@ func containsCommit(hash string) bool {
 }
 
 func exportNamespace() error {
-	bugURLs, err := getFullBugList()
+	cli := api.NewClient(*flagDashboard, *flagToken)
+	bugs, err := cli.BugGroups(*flagNamespace, api.BugGroupOpen|api.BugGroupFixed)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("total %d bugs available\n", len(bugURLs))
+	fmt.Printf("total %d bugs available\n", len(bugs))
 
 	iBugChan := make(chan int)
 	g, _ := errgroup.WithContext(context.Background())
@@ -302,28 +302,24 @@ func exportNamespace() error {
 		i := i
 		g.Go(func() error {
 			for iBug := range iBugChan {
-				bugURL := *flagDashboard + bugURLs[iBug]
-				bugBody, err := getJSONBody(bugURL)
+				bug, err := cli.Bug(bugs[iBug].Link)
 				if err != nil {
-					return fmt.Errorf("getJSONBody(%s): %w", bugURL, err)
+					return err
 				}
-				bugDetails, err := makeBugDetails(bugBody)
+				cReproURL := bug.Crashes[0].CReproducerLink // export max 1 CRepro per bug
+				if cReproURL == "" {
+					continue
+				}
+				reproID := reproIDFromURL(cReproURL)
+				fmt.Printf("[%v](%v/%v)saving c-repro %v for bug %v\n",
+					i, iBug, len(bugs), reproID, bug.ID)
+				fullReproURL := *flagDashboard + html.UnescapeString(cReproURL)
+				cReproBody, err := cli.Text(fullReproURL)
 				if err != nil {
-					return fmt.Errorf("makeBugDetails: %w", err)
+					return err
 				}
-				// Export max 1 CRepro per bug.
-				if cReproURL := bugDetails.Crashes[0].CReproducerLink; cReproURL != "" {
-					reproID := reproIDFromURL(cReproURL)
-					fmt.Printf("[%d](%d/%d)saving c-repro %s for bug %s\n",
-						i, iBug, len(bugURLs), reproID, bugDetails.ID)
-					fullReproURL := *flagDashboard + html.UnescapeString(cReproURL)
-					cReproBody, err := getJSONBody(fullReproURL)
-					if err != nil {
-						return fmt.Errorf("getJSONBody(%s): %w", fullReproURL, err)
-					}
-					if err := saveCRepro(reproID, cReproBody); err != nil {
-						return fmt.Errorf("saveRepro(bugID=%s, reproID=%s): %w", bugDetails.ID, reproID, err)
-					}
+				if err := saveCRepro(reproID, cReproBody); err != nil {
+					return fmt.Errorf("saveRepro(bugID=%s, reproID=%s): %w", bug.ID, reproID, err)
 				}
 			}
 			return nil
@@ -333,7 +329,7 @@ func exportNamespace() error {
 	go func() {
 		errChan <- g.Wait()
 	}()
-	for iBug := range bugURLs {
+	for iBug := range bugs {
 		select {
 		case iBugChan <- iBug:
 		case err := <-errChan:
@@ -344,64 +340,22 @@ func exportNamespace() error {
 	return g.Wait()
 }
 
-func getFullBugList() ([]string, error) {
-	bugLists := []string{
-		*flagDashboard + "/" + *flagNamespace,
-		*flagDashboard + "/" + *flagNamespace + "/fixed",
-	}
-	fullBugList := []string{}
-	for _, url := range bugLists {
-		fmt.Printf("loading bug list from %s\n", url)
-		body, err := getJSONBody(url)
-		if err != nil {
-			return nil, fmt.Errorf("getBody(%s): %w", url, err)
-		}
-		bugs, err := getBugList(body)
-		if err != nil {
-			return nil, fmt.Errorf("bugList: %w", err)
-		}
-		fullBugList = append(fullBugList, bugs...)
-	}
-	return fullBugList, nil
-}
-
-var throttler = time.NewTicker(time.Second).C
-
-func getJSONBody(url string) ([]byte, error) {
-	if strings.Contains(url, "?") {
-		url = url + "&json=1"
-	} else {
-		url = url + "?json=1"
-	}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest: %w", err)
-	}
-	if *flagToken != "" {
-		req.Header.Add("Authorization", "Bearer "+*flagToken)
-	} else {
-		<-throttler // tolerate throttling
-	}
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http.Get(%s): %w", url, err)
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if res.StatusCode > 299 {
-		return nil, fmt.Errorf("io.ReadAll failed with status code: %d and\nbody: %s", res.StatusCode, body)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("io.ReadAll(body): %w", err)
-	}
-	return body, nil
-}
-
 func saveCRepro(reproID string, reproData []byte) error {
 	reproPath := path.Join(*flagOutputDir, reproID+".c")
 	if err := os.WriteFile(reproPath, reproData, 0666); err != nil {
 		return fmt.Errorf("os.WriteFile: %w", err)
 	}
 	return nil
+}
+
+func reproIDFromURL(url string) string {
+	parts := strings.Split(url, "&")
+	if len(parts) != 2 {
+		log.Panicf("can't split %s in two parts by ?", url)
+	}
+	parts = strings.Split(parts[1], "=")
+	if len(parts) != 2 {
+		log.Panicf("can't split %s in two parts by =", url)
+	}
+	return parts[1]
 }
