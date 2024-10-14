@@ -117,6 +117,7 @@ type Commit struct {
 	Parents    []string
 	Date       time.Time
 	CommitDate time.Time
+	Patch      []byte
 }
 
 type RecipientType int

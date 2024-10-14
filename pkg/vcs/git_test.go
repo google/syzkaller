@@ -316,6 +316,23 @@ func TestObject(t *testing.T) {
 	if diff := cmp.Diff(data, secondRev); diff != "" {
 		t.Fatal(diff)
 	}
+	com, err := repo.repo.Commit(commits[0])
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	patch := []byte(`diff --git a/object.txt b/object.txt
+index 103167d..fbf7a68 100644
+--- a/object.txt
++++ b/object.txt
+@@ -1 +1 @@
+-First revision
+\ No newline at end of file
++Second revision
+\ No newline at end of file
+`)
+	if diff := cmp.Diff(com.Patch, patch); diff != "" {
+		t.Fatal(diff)
+	}
 }
 
 func TestMergeBase(t *testing.T) {

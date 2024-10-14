@@ -242,11 +242,25 @@ func (git *git) Contains(commit string) (bool, error) {
 }
 
 func (git *git) Commit(com string) (*Commit, error) {
-	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b", "-n", "1", com)
+	const patchSeparator = "---===syzkaller-patch-separator===---"
+	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b"+patchSeparator,
+		"-n", "1", "-p", "-U0", com)
 	if err != nil {
 		return nil, err
 	}
-	return gitParseCommit(output, nil, nil, git.ignoreCC)
+	pos := bytes.Index(output, []byte(patchSeparator))
+	if pos == -1 {
+		return nil, fmt.Errorf("git log output does not contain patch separator")
+	}
+	commit, err := gitParseCommit(output[:pos], nil, nil, git.ignoreCC)
+	if err != nil {
+		return nil, err
+	}
+	commit.Patch = output[pos+len(patchSeparator):]
+	for len(commit.Patch) != 0 && commit.Patch[0] == '\n' {
+		commit.Patch = commit.Patch[1:]
+	}
+	return commit, nil
 }
 
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
