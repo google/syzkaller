@@ -80,7 +80,7 @@ func TestNew(t *testing.T) {
 			cfg.Target, err = prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
 			assert.NoError(t, err)
 
-			serv, err := New(cfg, nil, tt.debug)
+			serv, err := New(cfg, nil, NewStats(), tt.debug)
 			if tt.expectedErr != nil {
 				assert.Equal(t, tt.expectedErr, err)
 			} else if tt.expectsErr {
@@ -195,7 +195,7 @@ func TestHandleConn(t *testing.T) {
 			cfg.Target.Revision = tt.req.SyzRevision
 			assert.NoError(t, err)
 
-			s, err := New(cfg, managerMock, debug)
+			s, err := New(cfg, managerMock, NewStats(), debug)
 			assert.NoError(t, err)
 			serv := s.(*server)
 
