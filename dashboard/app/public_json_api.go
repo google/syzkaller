@@ -38,16 +38,16 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
 			for _, crash := range bugPage.Crashes.Crashes {
 				res = append(res, api.Crash{
 					Title:              crash.Title,
-					SyzReproducer:      crash.ReproSyzLink,
-					CReproducer:        crash.ReproCLink,
-					KernelConfig:       crash.KernelConfigLink,
+					SyzReproducerLink:  crash.ReproSyzLink,
+					CReproducerLink:    crash.ReproCLink,
+					KernelConfigLink:   crash.KernelConfigLink,
 					KernelSourceGit:    crash.KernelCommitLink,
 					KernelSourceCommit: crash.KernelCommit,
 					SyzkallerGit:       crash.SyzkallerCommitLink,
 					SyzkallerCommit:    crash.SyzkallerCommit,
 					// TODO: add the CompilerDescription
 					// TODO: add the Architecture
-					CrashReport: crash.ReportLink,
+					CrashReportLink: crash.ReportLink,
 				})
 			}
 			return res

@@ -311,7 +311,8 @@ func exportNamespace() error {
 				if err != nil {
 					return fmt.Errorf("makeBugDetails: %w", err)
 				}
-				if cReproURL := bugDetails.Crashes[0].CReproducer; cReproURL != "" { // export max 1 CRepro per bug
+				// Export max 1 CRepro per bug.
+				if cReproURL := bugDetails.Crashes[0].CReproducerLink; cReproURL != "" {
 					reproID := reproIDFromURL(cReproURL)
 					fmt.Printf("[%d](%d/%d)saving c-repro %s for bug %s\n",
 						i, iBug, len(bugURLs), reproID, bugDetails.ID)
