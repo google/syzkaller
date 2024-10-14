@@ -37,6 +37,7 @@ type Result struct {
 
 type Stats struct {
 	Log              []byte
+	TotalTime        time.Duration
 	ExtractProgTime  time.Duration
 	MinimizeProgTime time.Duration
 	SimplifyProgTime time.Duration
@@ -59,6 +60,7 @@ type reproContext struct {
 	report         *report.Report
 	timeouts       targets.Timeouts
 	observedTitles map[string]bool
+	fast           bool
 }
 
 // execInterface describes the interfaces needed by pkg/repro.
@@ -68,8 +70,11 @@ type execInterface interface {
 		*instance.RunResult, error)
 }
 
+// The Fast repro mode restricts the repro log bisection, skips multiple simpifications and C repro generation.
+var Fast = &struct{}{}
+
 func Run(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, reporter *report.Reporter,
-	pool *dispatcher.Pool[*vm.Instance]) (*Result, *Stats, error) {
+	pool *dispatcher.Pool[*vm.Instance], opts ...any) (*Result, *Stats, error) {
 	exec := &poolWrapper{
 		cfg:      cfg,
 		reporter: reporter,
@@ -78,6 +83,12 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, repor
 	ctx, err := prepareCtx(crashLog, cfg, features, reporter, exec)
 	if err != nil {
 		return nil, nil, err
+	}
+	for _, opt := range opts {
+		if opt == Fast {
+			ctx.fast = true
+			ctx.testTimeouts = []time.Duration{30 * time.Second, 5 * time.Minute}
+		}
 	}
 	exec.logf = ctx.reproLogf
 	return ctx.run()
@@ -134,7 +145,6 @@ func prepareCtx(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature
 		timeouts:       cfg.Timeouts,
 		observedTitles: map[string]bool{},
 	}
-	ctx.reproLogf(0, "%v programs, timeouts %v", len(entries), testTimeouts)
 	return ctx, nil
 }
 
@@ -213,6 +223,7 @@ func (ctx *reproContext) repro() (*Result, error) {
 	reproStart := time.Now()
 	defer func() {
 		ctx.reproLogf(3, "reproducing took %s", time.Since(reproStart))
+		ctx.stats.TotalTime = time.Since(reproStart)
 	}()
 
 	res, err := ctx.extractProg(ctx.entries)
@@ -228,27 +239,28 @@ func (ctx *reproContext) repro() (*Result, error) {
 	}
 
 	// Try extracting C repro without simplifying options first.
-	res, err = ctx.extractC(res)
-	if err != nil {
-		return nil, err
-	}
-
-	// Simplify options and try extracting C repro.
-	if !res.CRepro {
-		res, err = ctx.simplifyProg(res)
+	if !ctx.fast {
+		res, err = ctx.extractC(res)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	// Simplify C related options.
-	if res.CRepro {
-		res, err = ctx.simplifyC(res)
-		if err != nil {
-			return nil, err
+		// Simplify options and try extracting C repro.
+		if !res.CRepro {
+			res, err = ctx.simplifyProg(res)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Simplify C related options.
+		if res.CRepro {
+			res, err = ctx.simplifyC(res)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
-
 	return res, nil
 }
 
@@ -277,7 +289,7 @@ func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) 
 		toTest = lastEntries(entries)
 	}
 
-	for _, timeout := range ctx.testTimeouts {
+	for i, timeout := range ctx.testTimeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
 		// Programs are executed in reverse order, usually the last program is the guilty one.
 		res, err := ctx.extractProgSingle(toTest, timeout)
@@ -291,6 +303,11 @@ func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) 
 
 		// Don't try bisecting if there's only one entry.
 		if len(entries) == 1 {
+			continue
+		}
+
+		if ctx.fast && i+1 < len(ctx.testTimeouts) {
+			// Bisect only under the biggest timeout.
 			continue
 		}
 
@@ -460,7 +477,11 @@ func (ctx *reproContext) minimizeProg(res *Result) (*Result, error) {
 		ctx.stats.MinimizeProgTime = time.Since(start)
 	}()
 
-	res.Prog, _ = prog.Minimize(res.Prog, -1, prog.MinimizeCrash, func(p1 *prog.Prog, callIndex int) bool {
+	mode := prog.MinimizeCrash
+	if ctx.fast {
+		mode = prog.MinimizeCallsOnly
+	}
+	res.Prog, _ = prog.Minimize(res.Prog, -1, mode, func(p1 *prog.Prog, callIndex int) bool {
 		if len(p1.Calls) == 0 {
 			// We do want to keep at least one call, otherwise tools/syz-execprog
 			// will immediately exit.
@@ -499,6 +520,9 @@ func (ctx *reproContext) simplifyProg(res *Result) (*Result, error) {
 			continue
 		}
 		res.Opts = opts
+		if ctx.fast {
+			continue
+		}
 		// Simplification successful, try extracting C repro.
 		res, err = ctx.extractC(res)
 		if err != nil {
@@ -694,11 +718,15 @@ func (ctx *reproContext) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.L
 		}
 		return pred(progs)
 	}
+	// For flaky crashes we usually end up with too many chunks.
+	// Continuing bisection would just take a lot of time and likely produce no result.
+	chunks := 6
+	if ctx.fast {
+		chunks = 2
+	}
 	ret, err := minimize.SliceWithFixed(minimize.Config[*prog.LogEntry]{
-		Pred: minimizePred,
-		// For flaky crashes we usually end up with too many chunks.
-		// Continuing bisection would just take a lot of time and likely produce no result.
-		MaxChunks: 6,
+		Pred:      minimizePred,
+		MaxChunks: chunks,
 		Logf: func(msg string, args ...interface{}) {
 			ctx.reproLogf(3, "bisect: "+msg, args...)
 		},
