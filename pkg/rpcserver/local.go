@@ -43,6 +43,7 @@ func RunLocal(cfg *LocalConfig) error {
 	cfg.FilterSignal = true
 	cfg.RPC = ":0"
 	cfg.PrintMachineCheck = log.V(1)
+	cfg.Stats = NewStats()
 	ctx := &local{
 		cfg:       cfg,
 		setupDone: make(chan bool),
