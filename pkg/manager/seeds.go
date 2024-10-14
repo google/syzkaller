@@ -42,8 +42,10 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 	type Input struct {
 		IsSeed bool
 		Key    string
+		Path   string
 		Data   []byte
 		Prog   *prog.Prog
+		Err    error
 	}
 	procs := runtime.GOMAXPROCS(0)
 	inputs := make(chan *Input, procs)
@@ -54,7 +56,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		go func() {
 			defer wg.Done()
 			for inp := range inputs {
-				inp.Prog, _ = LoadProg(cfg.Target, inp.Data)
+				inp.Prog, inp.Err = LoadProg(cfg.Target, inp.Data)
 				outputs <- inp
 			}
 		}()
@@ -70,7 +72,8 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 				Data: rec.Val,
 			}
 		}
-		seedDir := filepath.Join(cfg.Syzkaller, "sys", cfg.TargetOS, "test")
+		seedPath := filepath.Join("sys", cfg.TargetOS, "test")
+		seedDir := filepath.Join(cfg.Syzkaller, seedPath)
 		if osutil.IsExist(seedDir) {
 			seeds, err := os.ReadDir(seedDir)
 			if err != nil {
@@ -83,6 +86,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 				}
 				inputs <- &Input{
 					IsSeed: true,
+					Path:   filepath.Join(seedPath, seed.Name()),
 					Data:   data,
 				}
 			}
@@ -96,6 +100,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		if inp.Prog == nil {
 			if inp.IsSeed {
 				brokenSeeds++
+				log.Errorf("seed %s is broken: %s", inp.Path, inp.Err)
 			} else {
 				brokenCorpus = append(brokenCorpus, inp.Key)
 			}
