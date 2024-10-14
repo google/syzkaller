@@ -133,7 +133,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 }
 
 func (env *testEnv) headCommit() int {
-	com, err := env.r.HeadCommit()
+	com, err := env.r.Commit(vcs.HEAD)
 	if err != nil {
 		env.t.Fatal(err)
 	}

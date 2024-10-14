@@ -36,8 +36,9 @@ type Repo interface {
 	// SwitchCommit checkouts the specified commit without fetching.
 	SwitchCommit(commit string) (*Commit, error)
 
-	// HeadCommit returns info about the HEAD commit of the current branch of git repository.
-	HeadCommit() (*Commit, error)
+	// Commit returns info about the specified commit hash.
+	// The commit may be the special value HEAD for the current commit.
+	Commit(com string) (*Commit, error)
 
 	// GetCommitByTitle finds commit info by the title. If the commit is not found, nil is returned.
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched

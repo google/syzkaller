@@ -95,7 +95,7 @@ func main() {
 		tool.Fail(err)
 	}
 	bisecter := repo.(vcs.Bisecter)
-	head, err := repo.HeadCommit()
+	head, err := repo.Commit(vcs.HEAD)
 	if err != nil {
 		tool.Fail(err)
 	}

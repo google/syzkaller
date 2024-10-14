@@ -69,7 +69,7 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 	if repo.Commits[branch] == nil {
 		repo.Commits[branch] = make(map[string]*Commit)
 	}
-	com, err := repo.repo.HeadCommit()
+	com, err := repo.repo.Commit(HEAD)
 	if err != nil {
 		repo.t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 
 func (repo *TestRepo) CommitChange(description string) *Commit {
 	repo.Git("commit", "--allow-empty", "-m", description)
-	com, err := repo.repo.HeadCommit()
+	com, err := repo.repo.Commit(HEAD)
 	if err != nil {
 		repo.t.Fatal(err)
 	}
