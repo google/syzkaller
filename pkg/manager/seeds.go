@@ -56,7 +56,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		go func() {
 			defer wg.Done()
 			for inp := range inputs {
-				inp.Prog, inp.Err = LoadProg(cfg.Target, inp.Data)
+				inp.Prog, inp.Err = ParseSeed(cfg.Target, inp.Data)
 				outputs <- inp
 			}
 		}()
@@ -178,13 +178,21 @@ func versionToFlags(version uint64) fuzzer.ProgFlags {
 	return corpusFlags
 }
 
-func LoadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
-	p, err := target.Deserialize(data, prog.NonStrict)
+func ParseSeed(target *prog.Target, data []byte) (*prog.Prog, error) {
+	return parseProg(target, data, prog.NonStrict)
+}
+
+func ParseSeedStrict(target *prog.Target, data []byte) (*prog.Prog, error) {
+	return parseProg(target, data, prog.Strict)
+}
+
+func parseProg(target *prog.Target, data []byte, mode prog.DeserializeMode) (*prog.Prog, error) {
+	p, err := target.Deserialize(data, mode)
 	if err != nil {
 		return nil, err
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return nil, fmt.Errorf("longer than %d calls", prog.MaxCalls)
+		return nil, fmt.Errorf("longer than %d calls (%d)", prog.MaxCalls, len(p.Calls))
 	}
 	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
 	for _, call := range p.Calls {

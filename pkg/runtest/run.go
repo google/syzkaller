@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -310,7 +311,7 @@ func parseProg(target *prog.Target, dir, filename string, requires map[string]bo
 	if !checkArch(properties, target.Arch) || !match(properties, requires) {
 		return nil, nil, nil, nil
 	}
-	p, err := target.Deserialize(data, prog.Strict)
+	p, err := manager.ParseSeedStrict(target, data)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %w", filename, err)
 	}

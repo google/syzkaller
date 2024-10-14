@@ -313,7 +313,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 }
 
 func (hc *HubConnector) parseProgram(data []byte) (*prog.Prog, error) {
-	p, err := manager.LoadProg(hc.target, data)
+	p, err := manager.ParseSeed(hc.target, data)
 	if err != nil {
 		return nil, err
 	}
