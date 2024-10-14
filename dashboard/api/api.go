@@ -30,16 +30,16 @@ type Bug struct {
 
 type Crash struct {
 	Title               string `json:"title"`
-	SyzReproducer       string `json:"syz-reproducer,omitempty"`
-	CReproducer         string `json:"c-reproducer,omitempty"`
-	KernelConfig        string `json:"kernel-config,omitempty"`
+	SyzReproducerLink   string `json:"syz-reproducer,omitempty"`
+	CReproducerLink     string `json:"c-reproducer,omitempty"`
+	KernelConfigLink    string `json:"kernel-config,omitempty"`
 	KernelSourceGit     string `json:"kernel-source-git,omitempty"`
 	KernelSourceCommit  string `json:"kernel-source-commit,omitempty"`
 	SyzkallerGit        string `json:"syzkaller-git,omitempty"`
 	SyzkallerCommit     string `json:"syzkaller-commit,omitempty"`
 	CompilerDescription string `json:"compiler-description,omitempty"`
 	Architecture        string `json:"architecture,omitempty"`
-	CrashReport         string `json:"crash-report-link,omitempty"`
+	CrashReportLink     string `json:"crash-report-link,omitempty"`
 }
 
 type Commit struct {
