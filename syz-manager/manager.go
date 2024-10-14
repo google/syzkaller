@@ -1035,7 +1035,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	statSyscalls.Add(len(enabledSyscalls))
 	corpus := mgr.loadCorpus(enabledSyscalls)
 	mgr.setPhaseLocked(phaseLoadedCorpus)
-	opts := mgr.defaultExecOpts()
+	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
 
 	if mgr.mode == ModeFuzzing {
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -1140,34 +1140,6 @@ func (cr *corpusRunner) Next() *queue.Request {
 	return &queue.Request{
 		Prog:      p,
 		Important: true,
-	}
-}
-
-func (mgr *Manager) defaultExecOpts() flatrpc.ExecOpts {
-	env := csource.FeaturesToFlags(mgr.enabledFeatures, nil)
-	if *flagDebug {
-		env |= flatrpc.ExecEnvDebug
-	}
-	if mgr.cfg.Experimental.ResetAccState {
-		env |= flatrpc.ExecEnvResetState
-	}
-	if mgr.cfg.Cover {
-		env |= flatrpc.ExecEnvSignal
-	}
-	sandbox, err := flatrpc.SandboxToFlags(mgr.cfg.Sandbox)
-	if err != nil {
-		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
-	}
-	env |= sandbox
-
-	exec := flatrpc.ExecFlagThreaded
-	if !mgr.cfg.RawCover {
-		exec |= flatrpc.ExecFlagDedupCover
-	}
-	return flatrpc.ExecOpts{
-		EnvFlags:   env,
-		ExecFlags:  exec,
-		SandboxArg: mgr.cfg.SandboxArg,
 	}
 }
 

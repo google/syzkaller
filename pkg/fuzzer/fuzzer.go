@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
@@ -412,5 +414,35 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 func setFlags(execFlags flatrpc.ExecFlag) flatrpc.ExecOpts {
 	return flatrpc.ExecOpts{
 		ExecFlags: execFlags,
+	}
+}
+
+// TODO: This method belongs better to pkg/flatrpc, but we currently end up
+// having a cyclic dependency error.
+func DefaultExecOpts(cfg *mgrconfig.Config, features flatrpc.Feature, debug bool) flatrpc.ExecOpts {
+	env := csource.FeaturesToFlags(features, nil)
+	if debug {
+		env |= flatrpc.ExecEnvDebug
+	}
+	if cfg.Experimental.ResetAccState {
+		env |= flatrpc.ExecEnvResetState
+	}
+	if cfg.Cover {
+		env |= flatrpc.ExecEnvSignal
+	}
+	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
+	}
+	env |= sandbox
+
+	exec := flatrpc.ExecFlagThreaded
+	if !cfg.RawCover {
+		exec |= flatrpc.ExecFlagDedupCover
+	}
+	return flatrpc.ExecOpts{
+		EnvFlags:   env,
+		ExecFlags:  exec,
+		SandboxArg: cfg.SandboxArg,
 	}
 }
