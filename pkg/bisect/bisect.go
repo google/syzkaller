@@ -186,7 +186,7 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 			BuildCPUs:    cfg.BuildCPUs,
 		},
 	}
-	head, err := repo.HeadCommit()
+	head, err := repo.Commit(vcs.HEAD)
 	if err != nil {
 		return nil, err
 	}
@@ -602,7 +602,7 @@ type testResult struct {
 }
 
 func (env *env) build() (*vcs.Commit, string, error) {
-	current, err := env.repo.HeadCommit()
+	current, err := env.repo.Commit(vcs.HEAD)
 	if err != nil {
 		return nil, "", err
 	}
@@ -782,7 +782,7 @@ func (env *env) revisionHadBug() (bool, error) {
 	// But let's first see how many extra test() runs we get without it.
 
 	// We'll likely change the revision below. Ensure we get back to the original one.
-	curr, err := env.repo.HeadCommit()
+	curr, err := env.repo.Commit(vcs.HEAD)
 	if err != nil {
 		return false, err
 	}

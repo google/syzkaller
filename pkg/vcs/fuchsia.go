@@ -33,7 +33,7 @@ func (ctx *fuchsia) Poll(repo, branch string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	return ctx.repo.HeadCommit()
+	return ctx.repo.Commit(HEAD)
 }
 
 func (ctx *fuchsia) initRepo() error {
@@ -68,7 +68,7 @@ func (ctx *fuchsia) SwitchCommit(commit string) (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
-func (ctx *fuchsia) HeadCommit() (*Commit, error) {
+func (ctx *fuchsia) Commit(com string) (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 

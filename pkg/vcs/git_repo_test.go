@@ -130,7 +130,7 @@ func TestMetadata(t *testing.T) {
 	prevHash := ""
 	for i, test := range metadataTests {
 		repo.CommitChange(test.description)
-		com, err := repo.repo.HeadCommit()
+		com, err := repo.repo.Commit(HEAD)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -315,7 +315,7 @@ func TestBisect(t *testing.T) {
 	var commits []string
 	for i := 0; i < 5; i++ {
 		repo.CommitChange(fmt.Sprintf("commit %v", i))
-		com, err := repo.repo.HeadCommit()
+		com, err := repo.repo.Commit(HEAD)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -329,7 +329,7 @@ func TestBisect(t *testing.T) {
 	}
 	makePred := func(res1, res2, res3 BisectResult) predFunc {
 		return func() (BisectResult, error) {
-			current, err := repo.repo.HeadCommit()
+			current, err := repo.repo.Commit(HEAD)
 			if err != nil {
 				t.Fatal(err)
 			}

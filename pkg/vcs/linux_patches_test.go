@@ -26,7 +26,7 @@ func TestFixBackport(t *testing.T) {
 	}
 	repo.Git("add", "object.txt")
 	repo.Git("commit", "--no-edit", "-m", "fix title")
-	fixCommit, _ := repo.repo.HeadCommit()
+	fixCommit, _ := repo.repo.Commit(HEAD)
 
 	// Return to the original branch.
 	repo.Git("checkout", "main")
@@ -66,7 +66,7 @@ func TestConditionalFixBackport(t *testing.T) {
 	}
 	repo.Git("add", "object.txt")
 	repo.Git("commit", "--no-edit", "-m", "fix title")
-	fixCommit, _ := repo.repo.HeadCommit()
+	fixCommit, _ := repo.repo.Commit(HEAD)
 
 	// Create a branch without a bug.
 	repo.Git("checkout", "main")
@@ -76,7 +76,7 @@ func TestConditionalFixBackport(t *testing.T) {
 	// Create a branch with a bug.
 	repo.Git("checkout", "-b", "branch-with-bug")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "bad commit")
-	badCommit, _ := repo.repo.HeadCommit()
+	badCommit, _ := repo.repo.Commit(HEAD)
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "some other commit")
 
 	// Ensure we do not cherry-pick the fix when there's no bug.
