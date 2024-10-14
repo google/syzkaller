@@ -991,6 +991,9 @@ github.com/sonatard/noctx/reqwithoutctx
 # github.com/sourcegraph/go-diff v0.7.0
 ## explicit; go 1.14
 github.com/sourcegraph/go-diff/diff
+# github.com/speakeasy-api/git-diff-parser v0.0.3
+## explicit; go 1.21
+github.com/speakeasy-api/git-diff-parser
 # github.com/spf13/afero v1.11.0
 ## explicit; go 1.19
 github.com/spf13/afero

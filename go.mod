@@ -23,6 +23,7 @@ require (
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465
 	github.com/prometheus/client_golang v1.20.4
 	github.com/sergi/go-diff v1.3.1
+	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.12
 	github.com/vektra/mockery/v2 v2.45.1
