@@ -81,6 +81,7 @@ type Manager struct {
 	crashStore      *manager.CrashStore
 	serv            rpcserver.Server
 	http            *manager.HTTPServer
+	servStats       rpcserver.Stats
 	corpus          *corpus.Corpus
 	corpusDB        *db.DB
 	corpusDBMu      sync.Mutex // for concurrent operations on corpusDB
@@ -250,7 +251,8 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	go mgr.trackUsedFiles()
 
 	// Create RPC server for fuzzers.
-	mgr.serv, err = rpcserver.New(mgr.cfg, mgr, *flagDebug)
+	mgr.servStats = rpcserver.NewStats()
+	mgr.serv, err = rpcserver.New(mgr.cfg, mgr, mgr.servStats, *flagDebug)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -323,7 +325,7 @@ func (mgr *Manager) heartbeatLoop() {
 		if mgr.firstConnect.Load() == 0 {
 			continue
 		}
-		mgr.statFuzzingTime.Add(diff * queue.StatNumFuzzing.Val())
+		mgr.statFuzzingTime.Add(diff * mgr.servStats.StatNumFuzzing.Val())
 		buf := new(bytes.Buffer)
 		for _, stat := range stat.Collect(stat.Console) {
 			fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
@@ -1307,7 +1309,7 @@ func (mgr *Manager) dashboardReporter() {
 			FuzzingTime:       time.Duration(mgr.statFuzzingTime.Val()) - lastFuzzingTime,
 			Crashes:           uint64(mgr.statCrashes.Val()) - lastCrashes,
 			SuppressedCrashes: uint64(mgr.statSuppressed.Val()) - lastSuppressedCrashes,
-			Execs:             uint64(queue.StatExecs.Val()) - lastExecs,
+			Execs:             uint64(mgr.servStats.StatExecs.Val()) - lastExecs,
 		}
 		if mgr.phase >= phaseTriagedCorpus && !triageInfoSent {
 			triageInfoSent = true

@@ -31,6 +31,8 @@ import (
 
 type Config struct {
 	vminfo.Config
+	Stats
+
 	VMArch string
 	VMType string
 	RPC    string
@@ -85,15 +87,33 @@ type server struct {
 	canonicalModules *cover.Canonicalizer
 	coverFilter      []uint64
 
-	mu             sync.Mutex
-	runners        map[int]*Runner
-	execSource     *queue.Distributor
-	triagedCorpus  atomic.Bool
-	statVMRestarts *stat.Val
+	mu            sync.Mutex
+	runners       map[int]*Runner
+	execSource    *queue.Distributor
+	triagedCorpus atomic.Bool
+
+	Stats
 	*runnerStats
 }
 
-func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (Server, error) {
+type Stats struct {
+	StatExecs      *stat.Val
+	StatNumFuzzing *stat.Val
+	StatVMRestarts *stat.Val
+}
+
+func NewStats() Stats {
+	return Stats{
+		StatExecs: stat.New("exec total", "Total test program executions",
+			stat.Console, stat.Rate{}, stat.Prometheus("syz_exec_total")),
+		StatNumFuzzing: stat.New("fuzzing VMs",
+			"Number of VMs that are currently fuzzing", stat.Graph("fuzzing VMs")),
+		StatVMRestarts: stat.New("vm restarts", "Total number of VM starts",
+			stat.Rate{}, stat.NoGraph),
+	}
+}
+
+func New(cfg *mgrconfig.Config, mgr Manager, stats Stats, debug bool) (Server, error) {
 	var pcBase uint64
 	if cfg.KernelObj != "" {
 		var err error
@@ -121,6 +141,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (Server, error) {
 			Sandbox:    sandbox,
 			SandboxArg: cfg.SandboxArg,
 		},
+		Stats:  stats,
 		VMArch: cfg.TargetVMArch,
 		RPC:    cfg.RPC,
 		VMLess: cfg.VMLess,
@@ -153,8 +174,7 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) *server {
 		baseSource: baseSource,
 		execSource: queue.Distribute(queue.Retry(baseSource)),
 
-		statVMRestarts: stat.New("vm restarts", "Total number of VM starts",
-			stat.Rate{}, stat.NoGraph),
+		Stats: cfg.Stats,
 		runnerStats: &runnerStats{
 			statExecRetries: stat.New("exec retries",
 				"Number of times a test program was restarted because the first run failed",
@@ -162,7 +182,7 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) *server {
 			statExecutorRestarts: stat.New("executor restarts",
 				"Number of times executor process was restarted", stat.Rate{}, stat.Graph("executor")),
 			statExecBufferTooSmall: queue.StatExecBufferTooSmall,
-			statExecs:              queue.StatExecs,
+			statExecs:              cfg.Stats.StatExecs,
 			statNoExecRequests:     queue.StatNoExecRequests,
 			statNoExecDuration:     queue.StatNoExecDuration,
 		},
@@ -205,7 +225,7 @@ func (serv *server) handleConn(conn *flatrpc.Conn) {
 	} else if err := checkRevisions(connectReq, serv.cfg.Target); err != nil {
 		log.Fatal(err)
 	}
-	serv.statVMRestarts.Add(1)
+	serv.StatVMRestarts.Add(1)
 
 	serv.mu.Lock()
 	runner := serv.runners[id]
@@ -312,8 +332,8 @@ func (serv *server) connectionLoop(runner *Runner) error {
 		}
 	}
 
-	queue.StatNumFuzzing.Add(1)
-	defer queue.StatNumFuzzing.Add(-1)
+	serv.StatNumFuzzing.Add(1)
+	defer serv.StatNumFuzzing.Add(-1)
 
 	return runner.ConnectionLoop()
 }
