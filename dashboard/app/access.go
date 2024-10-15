@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	db "google.golang.org/appengine/v2/datastore"
@@ -52,7 +53,6 @@ func emailInAuthDomains(email string, authDomains []string) bool {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -75,29 +75,36 @@ func currentUser(c context.Context) *user.User {
 // OAuth2 token is expected to be present in "Authorization" header.
 // Example: "Authorization: Bearer $(gcloud auth print-access-token)".
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	return userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+	al, _ := userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+	return al
 }
 
 // trustedAuthDomain for the test environment is "".
 var trustedAuthDomain = "gmail.com"
 
-func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) AccessLevel {
+// userAccessLevel returns AccessLevel and throttling(speed) recommendation.
+// (AccessAdmin, True) means Admin access, full speed.
+// Note - authorize higher levels first.
+func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) (AccessLevel, bool) {
 	if u == nil || u.AuthDomain != trustedAuthDomain {
-		return AccessPublic
+		return AccessPublic, false
 	}
 	if u.Admin {
 		switch wantAccess {
 		case "public":
-			return AccessPublic
+			return AccessPublic, true
 		case "user":
-			return AccessUser
+			return AccessUser, true
 		}
-		return AccessAdmin
+		return AccessAdmin, true
 	}
-	if emailInAuthDomains(u.Email, config.AuthDomains) {
-		return AccessUser
+	if emailInAuthDomains(u.Email, config.AuthUserDomains) {
+		return AccessUser, true
 	}
-	return AccessPublic
+	if slices.Contains(config.AuthPublicEmails, u.Email) {
+		return AccessPublic, true
+	}
+	return AccessPublic, false
 }
 
 func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {

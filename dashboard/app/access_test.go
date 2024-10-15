@@ -472,6 +472,7 @@ func TestUserAccessLevel(t *testing.T) {
 		enforcedAccessLevel string
 		config              *GlobalConfig
 		wantAccessLevel     AccessLevel
+		wantFullSpeed       bool
 	}{
 		{
 			u:               makeUser(BadAuthDomain),
@@ -490,31 +491,38 @@ func TestUserAccessLevel(t *testing.T) {
 			u:               makeUser(AuthorizedAccessPublic),
 			config:          testConfig,
 			wantAccessLevel: AccessPublic,
+			wantFullSpeed: true,
 		},
 		{
 			u:               makeUser(AuthorizedUser),
 			config:          testConfig,
 			wantAccessLevel: AccessUser,
+			wantFullSpeed: true,
 		},
 		{
 			u:               makeUser(AuthorizedAdmin),
 			config:          testConfig,
 			wantAccessLevel: AccessAdmin,
+			wantFullSpeed: true,
 		},
 		{
 			u:                   makeUser(AuthorizedAdmin),
 			enforcedAccessLevel: "public",
 			config:              testConfig,
 			wantAccessLevel:     AccessPublic,
+			wantFullSpeed: true,
 		},
 		{
 			u:                   makeUser(AuthorizedAdmin),
 			enforcedAccessLevel: "user",
 			config:              testConfig,
 			wantAccessLevel:     AccessUser,
+			wantFullSpeed: true,
 		},
 	}
 	for _, test := range tests {
-		assert.Equal(t, test.wantAccessLevel, userAccessLevel(test.u, test.enforcedAccessLevel, test.config))
+		gotAccessLevel, gotFullSpeed := userAccessLevel(test.u, test.enforcedAccessLevel, test.config)
+		assert.Equal(t, test.wantAccessLevel, gotAccessLevel)
+		assert.Equal(t, test.wantFullSpeed, gotFullSpeed)
 	}
 }
