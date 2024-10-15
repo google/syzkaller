@@ -26,10 +26,9 @@ import (
 const sendmsg = "sendmsg"
 
 type compileCommand struct {
-	Arguments []string
+	Command   string
 	Directory string
 	File      string
-	Output    string
 }
 
 type output struct {
@@ -63,9 +62,17 @@ func main() {
 		go worker(outputs, files, *binary, *compilationDatabase)
 	}
 
-	for _, v := range cmds {
-		files <- v.File
+	for _, cmd := range cmds {
+		// Files compiled with gcc are not a part of the kernel
+		// (assuming compile commands were generated with make CC=clang).
+		// They are probably a part of some host tool.
+		if !strings.HasSuffix(cmd.File, ".c") || strings.HasPrefix(cmd.Command, "gcc") {
+			outputs <- output{}
+			continue
+		}
+		files <- cmd.File
 	}
+	close(files)
 
 	var nodes []ast.Node
 	syscallNames := readSyscallNames(filepath.Join(*kernelDir, "arch"))
@@ -83,7 +90,6 @@ func main() {
 		}
 		appendNodes(&nodes, parse.Nodes, syscallNames)
 	}
-	close(files)
 	writeOutput(nodes, *outFile)
 }
 
@@ -189,11 +195,6 @@ auto_union [
 
 func worker(outputs chan output, files chan string, binary, compilationDatabase string) {
 	for file := range files {
-		if !strings.HasSuffix(file, ".c") {
-			outputs <- output{}
-			continue
-		}
-
 		cmd := exec.Command(binary, "-p", compilationDatabase, file)
 		stdout, err := cmd.Output()
 		var stderr string
