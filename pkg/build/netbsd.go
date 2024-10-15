@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -88,7 +87,7 @@ func (ctx netbsd) build(params Params) (ImageDetails, error) {
 
 func (ctx netbsd) clean(params Params) error {
 	_, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
-		"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "cleandir")
+		"-U", "-j"+strconv.Itoa(params.BuildCPUs), "cleandir")
 	return err
 }
 
