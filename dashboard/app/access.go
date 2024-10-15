@@ -46,9 +46,6 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	return ErrAccess
 }
 
-// AuthDomain is broken in AppEngine tests.
-var isBrokenAuthDomainInTest = false
-
 func emailInAuthDomains(email string, authDomains []string) bool {
 	for _, authDomain := range authDomains {
 		if strings.HasSuffix(email, authDomain) {
@@ -59,7 +56,7 @@ func emailInAuthDomains(email string, authDomains []string) bool {
 	return false
 }
 
-func currentUser(c context.Context, r *http.Request) *user.User {
+func currentUser(c context.Context) *user.User {
 	u := user.Current(c)
 	if u != nil {
 		return u
@@ -78,8 +75,18 @@ func currentUser(c context.Context, r *http.Request) *user.User {
 // OAuth2 token is expected to be present in "Authorization" header.
 // Example: "Authorization: Bearer $(gcloud auth print-access-token)".
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	if user.IsAdmin(c) {
-		switch r.FormValue("access") {
+	return userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+}
+
+// trustedAuthDomain for the test environment is "".
+var trustedAuthDomain = "gmail.com"
+
+func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) AccessLevel {
+	if u == nil || u.AuthDomain != trustedAuthDomain {
+		return AccessPublic
+	}
+	if u.Admin {
+		switch wantAccess {
 		case "public":
 			return AccessPublic
 		case "user":
@@ -87,14 +94,10 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 		}
 		return AccessAdmin
 	}
-	u := currentUser(c, r)
-	if u == nil ||
-		// Devappserver does not pass AuthDomain.
-		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
-		!emailInAuthDomains(u.Email, getConfig(c).AuthDomains) {
-		return AccessPublic
+	if emailInAuthDomains(u.Email, config.AuthDomains) {
+		return AccessUser
 	}
-	return AccessUser
+	return AccessPublic
 }
 
 func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {
