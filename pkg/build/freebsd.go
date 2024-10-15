@@ -6,7 +6,6 @@ package build
 import (
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -121,7 +120,7 @@ sudo mdconfig -d -u ${md#md}
 
 func (ctx freebsd) clean(params Params) error {
 	objPrefix := filepath.Join(params.KernelDir, "obj")
-	_, err := ctx.make(params.KernelDir, objPrefix, runtime.NumCPU(), "cleanworld")
+	_, err := ctx.make(params.KernelDir, objPrefix, params.BuildCPUs, "cleanworld")
 	return err
 }
 
