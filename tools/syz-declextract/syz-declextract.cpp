@@ -42,6 +42,12 @@
 using namespace clang;
 using namespace clang::ast_matchers;
 
+llvm::cl::OptionCategory SyzDeclExtractOptionCategory("Syz-declextract options");
+llvm::cl::opt<bool> Final("final", llvm::cl::desc("Output descriptions following syzkaller syntax"),
+                          llvm::cl::cat(SyzDeclExtractOptionCategory));
+llvm::cl::opt<bool> Minimal("minimal", llvm::cl::desc("Output netlink commands and systemcall names only"),
+                            llvm::cl::cat(SyzDeclExtractOptionCategory));
+
 struct EnumData {
   std::string name;
   unsigned long long value;
@@ -481,15 +487,21 @@ public:
     RecordExtractor recordExtractor(Result.SourceManager);
 
     const char *sep = "";
-    printf("%s$auto(", syscall->getNameAsString().substr(9).c_str()); // Remove "__do_sys_" prefix.
-    for (const auto &param : syscall->parameters()) {
-      const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
-      const auto &name = param->getNameAsString();
-      printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
-      sep = ", ";
+    const auto &name = syscall->getNameAsString().substr(9); // Remove "__do_sys_" prefix.
+    if (Minimal) {
+      printf("SYSCALL\t%s\n", name.c_str());
     }
-    puts(") (automatic)");
-    recordExtractor.print();
+    if (Final) {
+      printf("%s$auto(", name.c_str());
+      for (const auto &param : syscall->parameters()) {
+        const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
+        const auto &name = param->getNameAsString();
+        printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
+        sep = ", ";
+      }
+      puts(") (automatic)");
+      recordExtractor.print();
+    }
 
     return;
   }
@@ -776,6 +788,7 @@ private:
     auto name = llvm::dyn_cast<StringLiteral>(genlFamilyInit->getInit(genlFamilyMember["name"]))->getString().str();
     std::replace(name.begin(), name.end(), '.', '_'); // Illegal character.
     std::replace(name.begin(), name.end(), ' ', '_'); // Don't leave space in name.
+    std::replace(name.begin(), name.end(), '-', '_'); // Not allowed in names
     const auto &globalPolicyName =
         genlFamilyInit->getInit(genlFamilyMember["policy"])->getAsBuiltinConstantDeclRef(*context);
 
@@ -796,12 +809,17 @@ private:
         } else {
           continue;
         }
-        printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
-               ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
+        if (Minimal) {
+          printf("NETLINK\t%s\n", ops.cmd.c_str());
+        }
+        if (Final) {
+          printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
+                 ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
+        }
         printedCmds = true;
       }
     }
-    if (!printedCmds) { // Do not print resources and types if they're not used in any cmds
+    if (!printedCmds || !Final) { // Do not print resources and types if they're not used in any cmds
       return;
     }
     std::string resourceName = "genl_" + name + "_family_id_auto";
@@ -814,22 +832,26 @@ private:
 
 public:
   virtual void run(const MatchFinder::MatchResult &Result) override {
-    nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
-    netlink(Result);
+    if (Final) {
+      nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
+      netlink(Result);
+    }
     genlFamily(Result);
   };
 };
 
 int main(int argc, const char **argv) {
-  llvm::cl::OptionCategory SyzDeclExtractOptionCategory("SyzDeclExtract options");
   auto ExpectedParser = clang::tooling::CommonOptionsParser::create(argc, argv, SyzDeclExtractOptionCategory);
-
   if (!ExpectedParser) {
     llvm::errs() << ExpectedParser.takeError();
     return 1;
   }
 
   clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
+  if (!Minimal) {
+    Final = true;
+  }
+
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
 
   NetlinkPolicyMatcher NetlinkPolicyMatcher;

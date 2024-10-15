@@ -36,12 +36,24 @@ type output struct {
 	stderr string
 }
 
+const ( // Output Format.
+	Final   = "final"
+	Minimal = "minimal"
+)
+
 func main() {
 	compilationDatabase := flag.String("compile_commands", "compile_commands.json", "path to compilation database")
 	binary := flag.String("binary", "syz-declextract", "path to binary")
 	outFile := flag.String("output", "out.txt", "output file")
 	kernelDir := flag.String("kernel", "", "kernel directory")
+	format := flag.String("output_format", Final, "format for output [minimal, final]")
 	flag.Parse()
+
+	switch *format {
+	case Final, Minimal:
+	default:
+		tool.Failf("invalid -output_format flag value [minimal, final]")
+	}
 	if *kernelDir == "" {
 		tool.Failf("path to kernel directory is required")
 	}
@@ -59,7 +71,7 @@ func main() {
 	outputs := make(chan output, len(cmds))
 	files := make(chan string, len(cmds))
 	for w := 0; w < runtime.NumCPU(); w++ {
-		go worker(outputs, files, *binary, *compilationDatabase)
+		go worker(outputs, files, *binary, *compilationDatabase, *format)
 	}
 
 	for _, cmd := range cmds {
@@ -77,23 +89,66 @@ func main() {
 	var nodes []ast.Node
 	syscallNames := readSyscallNames(filepath.Join(*kernelDir, "arch"))
 
+	var minimalOutput []string
 	eh := ast.LoggingHandler
 	for range cmds {
 		out := <-outputs
 		if out.stderr != "" {
 			tool.Failf("%s", out.stderr)
 		}
+		if *format == Minimal {
+			minimalOutput = append(minimalOutput, getMinimalOutput(out.stdout, syscallNames)...)
+			continue
+		}
 		parse := ast.Parse([]byte(out.stdout), "", eh)
 		if parse == nil {
-			fmt.Println(out.stdout)
 			tool.Failf("parsing error")
 		}
 		appendNodes(&nodes, parse.Nodes, syscallNames)
 	}
-	writeOutput(nodes, *outFile)
+
+	close(files)
+	var out []byte
+	if *format == Minimal {
+		slices.Sort(minimalOutput)
+		minimalOutput = slices.Compact(minimalOutput)
+		out = []byte(strings.Join(minimalOutput, "\n"))
+	} else {
+		out = makeOutput(nodes)
+	}
+
+	if err := os.WriteFile(*outFile, out, 0666); err != nil {
+		tool.Fail(err)
+	}
 }
 
-func writeOutput(nodes []ast.Node, outFile string) {
+func getMinimalOutput(out string, syscallNames map[string][]string) []string {
+	var minimalOutput []string
+	for _, line := range strings.Split(out, "\n") {
+		if line == "" {
+			continue
+		}
+		const SYSCALL = "SYSCALL"
+		if !strings.HasPrefix(line, SYSCALL) {
+			minimalOutput = append(minimalOutput, line)
+			continue
+		}
+		oldName := line[len(SYSCALL)+1:]
+		if !shouldRenameSyscall(oldName) {
+			minimalOutput = append(minimalOutput, line)
+			continue
+		}
+		for _, newName := range syscallNames[oldName] {
+			if isProhibited(newName) {
+				continue
+			}
+			minimalOutput = append(minimalOutput, strings.Replace(line, oldName, newName, 1))
+		}
+	}
+	return minimalOutput
+}
+
+func makeOutput(nodes []ast.Node) []byte {
 	slices.SortFunc(nodes, func(a, b ast.Node) int {
 		return strings.Compare(ast.SerializeNode(a), ast.SerializeNode(b))
 	})
@@ -185,17 +240,14 @@ auto_union [
 	}
 	desc.Nodes = append(desc.Nodes, netlinkUnionParsed.Nodes...)
 
-	err := os.WriteFile(outFile, ast.Format(ast.Parse(ast.Format(desc), "", eh)), 0666)
 	// New lines are added in the parsing step. This is why we need to Format (serialize the description), Parse, then
 	// Format again.
-	if err != nil {
-		tool.Fail(err)
-	}
+	return ast.Format(ast.Parse(ast.Format(desc), "", eh))
 }
 
-func worker(outputs chan output, files chan string, binary, compilationDatabase string) {
+func worker(outputs chan output, files chan string, binary, compilationDatabase, format string) {
 	for file := range files {
-		cmd := exec.Command(binary, "-p", compilationDatabase, file)
+		cmd := exec.Command(binary, "-p", compilationDatabase, file, fmt.Sprintf("--%s", format))
 		stdout, err := cmd.Output()
 		var stderr string
 		if err != nil {
