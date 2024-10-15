@@ -46,9 +46,6 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	return ErrAccess
 }
 
-// AuthDomain is broken in AppEngine tests.
-var isBrokenAuthDomainInTest = false
-
 func emailInAuthDomains(email string, authDomains []string) bool {
 	for _, authDomain := range authDomains {
 		if strings.HasSuffix(email, authDomain) {
@@ -88,13 +85,10 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 		return AccessAdmin
 	}
 	u := currentUser(c, r)
-	if u == nil ||
-		// Devappserver does not pass AuthDomain.
-		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
-		!emailInAuthDomains(u.Email, getConfig(c).AuthDomains) {
-		return AccessPublic
+	if u != nil && emailInAuthDomains(u.Email, getConfig(c).AuthDomains) {
+		return AccessUser
 	}
-	return AccessUser
+	return AccessPublic
 }
 
 func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {
