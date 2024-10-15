@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/appengine/v2/aetest"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -428,4 +429,90 @@ func TestAccess(t *testing.T) {
 			})
 		}
 	}
+}
+
+const (
+	BadAuthDomain = iota
+	Regular
+	Authenticated
+	AuthorizedAccessPublic
+	AuthorizedUser
+	AuthorizedAdmin
+)
+
+func makeUser(t int) *user.User {
+	u := &user.User{
+		AuthDomain:        "gmail.com",
+		Admin:             false,
+		FederatedIdentity: "",
+		FederatedProvider: "",
+	}
+	switch t {
+	case BadAuthDomain:
+		u.Email = "customer@syzkaller.com"
+		u.AuthDomain = "public.com"
+	case Regular:
+		u = nil
+	case Authenticated:
+		u.Email = "someuser@public.com"
+	case AuthorizedAccessPublic:
+		u.Email = "checked-email@public.com"
+	case AuthorizedUser:
+		u.Email = "customer@syzkaller.com"
+	case AuthorizedAdmin:
+		u.Email ="admin@syzkaller.com"
+		u.Admin = true
+	}
+	return u
+}
+
+func TestAuthorization(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// BadAuthDomain gives no access.
+	assert.False(t, isAuthorizedUserDomain(c.ctx, makeUser(BadAuthDomain)))
+	assert.False(t, isAuthorizedPublicEmail(c.ctx, makeUser(BadAuthDomain)))
+
+	// Authentication gives nothing too.
+	assert.False(t, isAuthorizedPublicEmail(c.ctx, makeUser(Regular)))
+	assert.False(t, isAuthorizedUserDomain(c.ctx, makeUser(Regular)))
+
+	assert.False(t, isAuthorizedUserDomain(c.ctx, makeUser(Authenticated)))
+	assert.False(t, isAuthorizedPublicEmail(c.ctx, makeUser(Authenticated)))
+
+	// Authenticated + allowlisted users access w/o throttling.
+	assert.False(t, isAuthorizedUserDomain(c.ctx, makeUser(AuthorizedAccessPublic)))
+	assert.True(t, isAuthorizedPublicEmail(c.ctx, makeUser(AuthorizedAccessPublic)))
+	assert.True(t, isAuthorized(c.ctx))
+
+	// AccessUser gives evetything except admin rights.
+	assert.True(t, isAuthorizedUserDomain(c.ctx, makeUser(AuthorizedUser)))
+	assert.True(t, isAuthorizedPublicEmail(c.ctx, makeUser(AuthorizedUser)))
+}
+
+func TestAccessLevel(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	req, err := c.inst.NewRequest("GET", "", nil)
+	assert.NoError(t, err)
+
+	aetest.Login(makeUser(BadAuthDomain), req)
+	assert.Equal(t, AccessPublic, accessLevel(c.ctx, req))
+
+	aetest.Login(makeUser(Regular), req)
+	assert.Equal(t, AccessPublic, accessLevel(c.ctx, req))
+
+	aetest.Login(makeUser(Authenticated), req)
+	assert.Equal(t, AccessPublic, accessLevel(c.ctx, req))
+
+	aetest.Login(makeUser(AuthorizedAccessPublic), req)
+	assert.Equal(t, AccessPublic, accessLevel(c.ctx, req))
+
+	aetest.Login(makeUser(AuthorizedUser), req)
+	assert.Equal(t, AccessUser, accessLevel(c.ctx, req))
+
+	aetest.Login(makeUser(AuthorizedAdmin), req)
+	assert.Equal(t, AccessAdmin, accessLevel(c.ctx, req))
+
 }

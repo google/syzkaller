@@ -31,7 +31,6 @@ func init() {
 	os.Setenv("GAE_MODULE_VERSION", "1")
 	os.Setenv("GAE_MINOR_VERSION", "1")
 
-	isBrokenAuthDomainInTest = true
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
 	ensureConfigImmutability = true
@@ -41,8 +40,9 @@ func init() {
 
 // Config used in tests.
 var testConfig = &GlobalConfig{
-	AccessLevel: AccessPublic,
-	AuthDomains: []string{"@syzkaller.com"},
+	AccessLevel:      AccessPublic,
+	AuthUserDomains:  []string{"@syzkaller.com"},
+	AuthPublicEmails: []string{makeUser(AuthorizedUser).Email},
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},

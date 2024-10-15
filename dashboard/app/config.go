@@ -27,8 +27,10 @@ import (
 type GlobalConfig struct {
 	// Min access levels specified hierarchically throughout the config.
 	AccessLevel AccessLevel
-	// Email suffixes of authorized users (e.g. []string{"@foo.com","@bar.org"}).
-	AuthDomains []string
+	// AuthUserDomains is a list of email prefixes authorized for UserAccess (e.g. []string{"@foo.com","@bar.org"}).
+	AuthUserDomains []string
+	// AuthPublicEmails is a list of emails authorized for PublicAccess w/o throttling.
+	AuthPublicEmails []string
 	// Google Analytics Tracking ID.
 	AnalyticsTrackingID string
 	// URL prefix of source coverage reports.
@@ -455,13 +457,22 @@ func checkConfig(cfg *GlobalConfig) {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
 	checkDiscussionEmails(cfg.DiscussionEmails)
-	checkAuthDomains(cfg.AuthDomains)
+	checkAuthDomains(cfg.AuthUserDomains)
+	checkAuthUsers(cfg.AuthPublicEmails)
 }
 
 func checkAuthDomains(list []string) {
 	for _, domain := range list {
 		if !strings.HasPrefix(domain, "@") {
 			panic(fmt.Sprintf("authentication domain %s doesn't start with @", domain))
+		}
+	}
+}
+
+func checkAuthUsers(list []string) {
+	for _, email := range list {
+		if strings.Count(email, "@") != 1 {
+			panic(fmt.Sprintf("%s is not an authorized user e-mail (no @ found)", email))
 		}
 	}
 }
