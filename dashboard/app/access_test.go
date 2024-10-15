@@ -429,3 +429,92 @@ func TestAccess(t *testing.T) {
 		}
 	}
 }
+
+type UserAuthorizationLevel int
+
+const (
+	BadAuthDomain UserAuthorizationLevel = iota
+	Regular
+	Authenticated
+	AuthorizedAccessPublic
+	AuthorizedUser
+	AuthorizedAdmin
+)
+
+func makeUser(a UserAuthorizationLevel) *user.User {
+	u := &user.User{
+		AuthDomain:        "",
+		Admin:             false,
+		FederatedIdentity: "",
+		FederatedProvider: "",
+	}
+	switch a {
+	case BadAuthDomain:
+		u.AuthDomain = "public.com"
+	case Regular:
+		u = nil
+	case Authenticated:
+		u.Email = "someuser@public.com"
+	case AuthorizedAccessPublic:
+		u.Email = "checked-email@public.com"
+	case AuthorizedUser:
+		u.Email = "customer@syzkaller.com"
+	case AuthorizedAdmin:
+		u.Email = "admin@syzkaller.com"
+		u.Admin = true
+	}
+	return u
+}
+
+func TestUserAccessLevel(t *testing.T) {
+	tests := []struct {
+		u                   *user.User
+		enforcedAccessLevel string
+		config              *GlobalConfig
+		wantAccessLevel     AccessLevel
+	}{
+		{
+			u:               makeUser(BadAuthDomain),
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			u:               makeUser(Regular),
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			u:               makeUser(Authenticated),
+			config:          testConfig,
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			u:               makeUser(AuthorizedAccessPublic),
+			config:          testConfig,
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			u:               makeUser(AuthorizedUser),
+			config:          testConfig,
+			wantAccessLevel: AccessUser,
+		},
+		{
+			u:               makeUser(AuthorizedAdmin),
+			config:          testConfig,
+			wantAccessLevel: AccessAdmin,
+		},
+		{
+			u:                   makeUser(AuthorizedAdmin),
+			enforcedAccessLevel: "public",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+		},
+		{
+			u:                   makeUser(AuthorizedAdmin),
+			enforcedAccessLevel: "user",
+			config:              testConfig,
+			wantAccessLevel:     AccessUser,
+		},
+	}
+	for _, test := range tests {
+		assert.Equal(t, test.wantAccessLevel, userAccessLevel(test.u, test.enforcedAccessLevel, test.config))
+	}
+}

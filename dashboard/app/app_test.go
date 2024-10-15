@@ -31,7 +31,7 @@ func init() {
 	os.Setenv("GAE_MODULE_VERSION", "1")
 	os.Setenv("GAE_MINOR_VERSION", "1")
 
-	isBrokenAuthDomainInTest = true
+	trustedAuthDomain = "" // Devappserver environment value is "", prod value is "gmail.com".
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
 	ensureConfigImmutability = true
