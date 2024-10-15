@@ -100,7 +100,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		if inp.Prog == nil {
 			if inp.IsSeed {
 				brokenSeeds++
-				log.Errorf("seed %s is broken: %s", inp.Path, inp.Err)
+				log.Logf(0, "seed %s is broken: %s", inp.Path, inp.Err)
 			} else {
 				brokenCorpus = append(brokenCorpus, inp.Key)
 			}
