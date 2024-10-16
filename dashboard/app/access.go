@@ -46,27 +46,45 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	return ErrAccess
 }
 
-// AuthDomain is broken in AppEngine tests.
-var isBrokenAuthDomainInTest = false
-
-func emailInAuthDomains(email string, authDomains []string) bool {
-	for _, authDomain := range authDomains {
-		if strings.HasSuffix(email, authDomain) {
+func isAuthorizedUserDomain(c context.Context, u *user.User) bool {
+	if u == nil {
+		return false
+	}
+	for _, authDomain := range getConfig(c).AuthUserDomains {
+		if strings.HasSuffix(u.Email, authDomain) {
 			return true
 		}
 	}
-
 	return false
 }
 
-func currentUser(c context.Context, r *http.Request) *user.User {
-	u := user.Current(c)
-	if u != nil {
-		return u
+func isAuthorizedPublicEmail(c context.Context, u *user.User) bool {
+	if u == nil {
+		return false
 	}
-	// Let's ignore err here. In case of the wrong token we'll return nil here (it means AccessPublic).
-	// Bad or expired tokens will also enable throttling and make the authorization problem visible.
-	u, _ = user.CurrentOAuth(c, "https://www.googleapis.com/auth/userinfo.email")
+	for _, authEmail := range getConfig(c).AuthPublicEmails {
+		if u.Email == authEmail {
+			return true
+		}
+	}
+	return false
+}
+
+func isAuthorized(c context.Context) bool {
+	u := user.Current(c)
+	return isAuthorizedUserDomain(c, u) || isAuthorizedPublicEmail(c, u)
+}
+
+func currentUser(c context.Context) *user.User {
+	u := user.Current(c)
+	if u == nil {
+		// Let's ignore err here. In case of the wrong token we'll return nil here (it means AccessPublic).
+		// Bad or expired tokens will also enable throttling and make the authorization problem visible.
+		u, _ = user.CurrentOAuth(c, "https://www.googleapis.com/auth/userinfo.email")
+	}
+	if u == nil || u.AuthDomain != "gmail.com" || u.FederatedIdentity != "" || u.FederatedProvider != "" {
+		u = nil
+	}
 	return u
 }
 
@@ -78,7 +96,11 @@ func currentUser(c context.Context, r *http.Request) *user.User {
 // OAuth2 token is expected to be present in "Authorization" header.
 // Example: "Authorization: Bearer $(gcloud auth print-access-token)".
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	if user.IsAdmin(c) {
+	u := currentUser(c)
+	if u == nil {
+		return AccessPublic
+	}
+	if u.Admin && r != nil {
 		switch r.FormValue("access") {
 		case "public":
 			return AccessPublic
@@ -87,14 +109,10 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 		}
 		return AccessAdmin
 	}
-	u := currentUser(c, r)
-	if u == nil ||
-		// Devappserver does not pass AuthDomain.
-		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
-		!emailInAuthDomains(u.Email, getConfig(c).AuthDomains) {
-		return AccessPublic
+	if isAuthorizedUserDomain(c, u) {
+		return AccessUser
 	}
-	return AccessUser
+	return AccessPublic
 }
 
 func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {

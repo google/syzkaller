@@ -33,7 +33,7 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		c = context.WithValue(c, &currentURLKey, r.URL.RequestURI())
-		if accessLevel(c, r) == AccessPublic {
+		if !isAuthorized(c) {
 			if !throttleRequest(c, w, r) {
 				return
 			}
