@@ -59,6 +59,9 @@ func (n *Resource) walk(cb func(Node)) {
 	for _, v := range n.Values {
 		cb(v)
 	}
+	for _, a := range n.Args {
+		cb(a)
+	}
 }
 
 func (n *TypeDef) walk(cb func(Node)) {
