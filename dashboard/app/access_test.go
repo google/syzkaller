@@ -429,3 +429,111 @@ func TestAccess(t *testing.T) {
 		}
 	}
 }
+
+type UserAuthorizationLevel int
+
+const (
+	BadAuthDomain UserAuthorizationLevel = iota
+	Regular
+	Authenticated
+	AuthorizedAccessPublic
+	AuthorizedUser
+	AuthorizedAdmin
+)
+
+func makeUser(a UserAuthorizationLevel) *user.User {
+	u := &user.User{
+		AuthDomain:        "",
+		Admin:             false,
+		FederatedIdentity: "",
+		FederatedProvider: "",
+	}
+	switch a {
+	case BadAuthDomain:
+		u.AuthDomain = "public.com"
+	case Regular:
+		u = nil
+	case Authenticated:
+		u.Email = "someuser@public.com"
+	case AuthorizedAccessPublic:
+		u.Email = "checked-email@public.com"
+	case AuthorizedUser:
+		u.Email = "customer@syzkaller.com"
+	case AuthorizedAdmin:
+		u.Email = "admin@syzkaller.com"
+		u.Admin = true
+	}
+	return u
+}
+
+func TestUserAccessLevel(t *testing.T) {
+	tests := []struct {
+		name                string
+		u                   *user.User
+		enforcedAccessLevel string
+		config              *GlobalConfig
+		wantAccessLevel     AccessLevel
+		wantFullSpeed       bool
+	}{
+		{
+			name:            "wrong auth domain",
+			u:               makeUser(BadAuthDomain),
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			name:            "regular not authenticated user",
+			u:               makeUser(Regular),
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			name:            "authenticated, not authorized user",
+			u:               makeUser(Authenticated),
+			config:          testConfig,
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			name:            "authorized for AccessPublic user",
+			u:               makeUser(AuthorizedAccessPublic),
+			config:          testConfig,
+			wantAccessLevel: AccessPublic,
+			wantFullSpeed:   true,
+		},
+		{
+			name:            "authorized for AccessUser user",
+			u:               makeUser(AuthorizedUser),
+			config:          testConfig,
+			wantAccessLevel: AccessUser,
+			wantFullSpeed:   true,
+		},
+		{
+			name:            "authorized admin wants AccessAdmin",
+			u:               makeUser(AuthorizedAdmin),
+			config:          testConfig,
+			wantAccessLevel: AccessAdmin,
+			wantFullSpeed:   true,
+		},
+		{
+			name:                "authorized admin wants AccessPublic",
+			u:                   makeUser(AuthorizedAdmin),
+			enforcedAccessLevel: "public",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+			wantFullSpeed:       true,
+		},
+		{
+			name:                "authorized admin wants AccessUser",
+			u:                   makeUser(AuthorizedAdmin),
+			enforcedAccessLevel: "user",
+			config:              testConfig,
+			wantAccessLevel:     AccessUser,
+			wantFullSpeed:       true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotAccessLevel, gotFullSpeed := userAccessLevel(test.u, test.enforcedAccessLevel, test.config)
+			assert.Equal(t, test.wantAccessLevel, gotAccessLevel)
+			assert.Equal(t, test.wantFullSpeed, gotFullSpeed)
+		})
+	}
+}
