@@ -107,7 +107,6 @@ func main() {
 		appendNodes(&nodes, parse.Nodes, syscallNames)
 	}
 
-	close(files)
 	var out []byte
 	if *format == Minimal {
 		slices.Sort(minimalOutput)
