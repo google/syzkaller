@@ -123,6 +123,9 @@ type Commit struct {
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
+	if dash == nil {
+		return nil
+	}
 	return dash.Query("upload_build", build, nil)
 }
 
@@ -144,6 +147,9 @@ type BuilderPollResp struct {
 }
 
 func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
+	if dash == nil {
+		return nil, nil
+	}
 	req := &BuilderPollReq{
 		Manager: manager,
 	}
@@ -282,6 +288,9 @@ type BuildErrorReq struct {
 }
 
 func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
+	if dash == nil {
+		return nil
+	}
 	return dash.Query("report_build_error", req, nil)
 }
 
@@ -301,12 +310,18 @@ type Repo struct {
 }
 
 func (dash *Dashboard) CommitPoll() (*CommitPollResp, error) {
+	if dash == nil {
+		return nil, nil
+	}
 	resp := new(CommitPollResp)
 	err := dash.Query("commit_poll", nil, resp)
 	return resp, err
 }
 
 func (dash *Dashboard) UploadCommits(commits []Commit) error {
+	if dash == nil {
+		return nil
+	}
 	if len(commits) == 0 {
 		return nil
 	}
@@ -410,6 +425,9 @@ type LogEntry struct {
 
 // Centralized logging on dashboard.
 func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
+	if dash == nil {
+		return
+	}
 	req := &LogEntry{
 		Name: name,
 		Text: fmt.Sprintf(msg, args...),
