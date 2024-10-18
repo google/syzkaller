@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	db "google.golang.org/appengine/v2/datastore"
@@ -46,20 +47,16 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	return ErrAccess
 }
 
-// AuthDomain is broken in AppEngine tests.
-var isBrokenAuthDomainInTest = false
-
 func emailInAuthDomains(email string, authDomains []string) bool {
 	for _, authDomain := range authDomains {
 		if strings.HasSuffix(email, authDomain) {
 			return true
 		}
 	}
-
 	return false
 }
 
-func currentUser(c context.Context, r *http.Request) *user.User {
+func currentUser(c context.Context) *user.User {
 	u := user.Current(c)
 	if u != nil {
 		return u
@@ -78,23 +75,36 @@ func currentUser(c context.Context, r *http.Request) *user.User {
 // OAuth2 token is expected to be present in "Authorization" header.
 // Example: "Authorization: Bearer $(gcloud auth print-access-token)".
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	if user.IsAdmin(c) {
-		switch r.FormValue("access") {
+	al, _ := userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+	return al
+}
+
+// trustedAuthDomain for the test environment is "".
+var trustedAuthDomain = "gmail.com"
+
+// userAccessLevel returns AccessLevel and throttling(speed) recommendation.
+// (AccessAdmin, True) means Admin access, full speed.
+// Note - authorize higher levels first.
+func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) (AccessLevel, bool) {
+	if u == nil || u.AuthDomain != trustedAuthDomain {
+		return AccessPublic, false
+	}
+	if u.Admin {
+		switch wantAccess {
 		case "public":
-			return AccessPublic
+			return AccessPublic, true
 		case "user":
-			return AccessUser
+			return AccessUser, true
 		}
-		return AccessAdmin
+		return AccessAdmin, true
 	}
-	u := currentUser(c, r)
-	if u == nil ||
-		// Devappserver does not pass AuthDomain.
-		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
-		!emailInAuthDomains(u.Email, getConfig(c).AuthDomains) {
-		return AccessPublic
+	if emailInAuthDomains(u.Email, config.AuthUserDomains) {
+		return AccessUser, true
 	}
-	return AccessUser
+	if slices.Contains(config.AuthPublicEmails, u.Email) {
+		return AccessPublic, true
+	}
+	return AccessPublic, false
 }
 
 func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {

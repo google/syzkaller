@@ -1117,7 +1117,7 @@ func TestBugBisectionInvalidation(t *testing.T) {
 	c.expectEQ(err, nil)
 	c.expectTrue(!bytes.Contains(content, []byte("Cause bisection: introduced by")))
 	c.expectTrue(!bytes.Contains(content, []byte("kernel: add a bug")))
-	c.expectEQ(job.InvalidatedBy, "user@syzkaller.com")
+	c.expectEQ(job.InvalidatedBy, makeUser(AuthorizedAdmin).Email)
 
 	// Wait 30 days, no new cause bisection jobs should be created.
 	c.advanceTime(24 * 30 * time.Hour)

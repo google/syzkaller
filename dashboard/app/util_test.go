@@ -34,7 +34,6 @@ import (
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
-	"google.golang.org/appengine/v2/user"
 )
 
 type Ctx struct {
@@ -342,15 +341,10 @@ func (c *Ctx) httpRequest(method, url, body, contentType string,
 	}
 	r = registerRequest(r, c)
 	r = r.WithContext(c.transformContext(r.Context()))
-	if access == AccessAdmin || access == AccessUser {
-		user := &user.User{
-			Email:      "user@syzkaller.com",
-			AuthDomain: "gmail.com",
-		}
-		if access == AccessAdmin {
-			user.Admin = true
-		}
-		aetest.Login(user, r)
+	if access == AccessAdmin {
+		aetest.Login(makeUser(AuthorizedAdmin), r)
+	} else if access == AccessUser {
+		aetest.Login(makeUser(AuthorizedUser), r)
 	}
 	w := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(w, r)
