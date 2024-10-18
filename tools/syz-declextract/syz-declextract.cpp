@@ -307,7 +307,7 @@ private:
   }
 
   std::string getStructAttr(const RecordDecl *const recordDecl, ASTContext *context) {
-    if (recordDecl->isStruct()) {
+    if (recordDecl->isStruct() && recordDecl->hasAttrs()) {
       for (const auto &item : recordDecl->getAttrs()) {
         if (item->getKind() == clang::attr::Aligned) {
           return "align[" + std::to_string(llvm::dyn_cast<AlignedAttr>(item)->getAlignment(*context) / 8) + "]";
