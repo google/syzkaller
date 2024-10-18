@@ -46,14 +46,14 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	return ErrAccess
 }
 
-func emailInAuthDomains(email string, authDomains []string) bool {
-	for _, authDomain := range authDomains {
-		if strings.HasSuffix(email, authDomain) {
-			return true
+func isEmailAuthorized(email string, acls []*ACLItem) (bool, AccessLevel) {
+	for _, acl := range acls {
+		if acl.Domain != "" && strings.HasSuffix(email, "@"+acl.Domain) ||
+			acl.Email != "" && email == acl.Email {
+			return true, acl.Access
 		}
 	}
-
-	return false
+	return false, AccessPublic
 }
 
 func currentUser(c context.Context) *user.User {
@@ -75,29 +75,30 @@ func currentUser(c context.Context) *user.User {
 // OAuth2 token is expected to be present in "Authorization" header.
 // Example: "Authorization: Bearer $(gcloud auth print-access-token)".
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	return userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+	_, al := userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+	return al
 }
 
 // trustedAuthDomain for the test environment is "".
 var trustedAuthDomain = "gmail.com"
 
-func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) AccessLevel {
+// userAccessLevel returns authorization flag and AccessLevel.
+// (True, AccessAdmin) means authorized, Admin access.
+// Note - authorize higher levels first.
+func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) (bool, AccessLevel) {
 	if u == nil || u.AuthDomain != trustedAuthDomain {
-		return AccessPublic
+		return false, AccessPublic
 	}
 	if u.Admin {
 		switch wantAccess {
 		case "public":
-			return AccessPublic
+			return true, AccessPublic
 		case "user":
-			return AccessUser
+			return true, AccessUser
 		}
-		return AccessAdmin
+		return true, AccessAdmin
 	}
-	if emailInAuthDomains(u.Email, config.AuthDomains) {
-		return AccessUser
-	}
-	return AccessPublic
+	return isEmailAuthorized(u.Email, config.ACL)
 }
 
 func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {
