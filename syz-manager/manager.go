@@ -299,7 +299,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		return
 	}
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
-	mgr.http.Pool.Store(mgr.pool)
+	mgr.http.Pools.Store(manager.DefaultPool, mgr.pool)
 	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	mgr.http.ReproLoop.Store(mgr.reproLoop)
 
