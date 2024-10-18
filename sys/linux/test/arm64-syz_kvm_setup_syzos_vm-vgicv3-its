@@ -1,0 +1,30 @@
+#
+# requires: arch=arm64
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm(r1)
+r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@irq_setup={AUTO, AUTO, {0x1, 0x20}}], AUTO}, 0x0, 0x0)
+syz_kvm_vgic_v3_setup(r1, 0x1, 0x100)
+
+#
+# Set up ITS device with redistributor at address 0x08080000 (declared at executor/kvm.h)
+# Create KVM_DEV_TYPE_ARM_VGIC_ITS.
+#
+ioctl$KVM_CREATE_DEVICE(r1, AUTO, &AUTO={0x8, <r4=>0xffffffffffffffff, 0x0})
+#
+# Set device attribute {KVM_DEV_ARM_VGIC_GRP_CTRL, KVM_DEV_ARM_VGIC_CTRL_INIT, 0}.
+#
+ioctl$KVM_SET_DEVICE_ATTR(r4, AUTO, &AUTO=@attr_arm64={0x0, 0x4, 0x0, 0x0})
+#
+# Set device attribute {KVM_DEV_ARM_VGIC_GRP_ADDR, KVM_VGIC_ITS_ADDR_TYPE, &addr=0x08080000}.
+#
+ioctl$KVM_SET_DEVICE_ATTR(r4, AUTO, &AUTO=@attr_arm64={0x0, 0x0, 0x4, &AUTO=0x08080000})
+
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+#
+# Calling KVM_RUN here again would result in infinite loop.
+# Instead, signal SPI 32 (0x1000020), so that the guest can execute another uexit in the IRQ handler.
+#
+ioctl$KVM_IRQ_LINE(r1, AUTO, &AUTO={0x1000020, 0x1})
+ioctl$KVM_RUN(r3, AUTO, 0x0)
