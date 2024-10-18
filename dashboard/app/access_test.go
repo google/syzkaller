@@ -468,6 +468,7 @@ func TestUserAccessLevel(t *testing.T) {
 		enforcedAccessLevel string
 		config              *GlobalConfig
 		wantAccessLevel     AccessLevel
+		wantIsAuthorized    bool
 	}{
 		{
 			name:            "wrong auth domain",
@@ -514,10 +515,11 @@ func TestUserAccessLevel(t *testing.T) {
 			wantAccessLevel:     AccessPublic,
 		},
 		{
-			name:            "authorized for AccessPublic user",
-			u:               makeUser(AuthorizedAccessPublic),
-			config:          testConfig,
-			wantAccessLevel: AccessPublic,
+			name:             "authorized for AccessPublic user",
+			u:                makeUser(AuthorizedAccessPublic),
+			config:           testConfig,
+			wantAccessLevel:  AccessPublic,
+			wantIsAuthorized: true,
 		},
 		{
 			name:                "authorized for AccessPublic user wants to be an admin",
@@ -525,6 +527,7 @@ func TestUserAccessLevel(t *testing.T) {
 			enforcedAccessLevel: "admin",
 			config:              testConfig,
 			wantAccessLevel:     AccessPublic,
+			wantIsAuthorized:    true,
 		},
 		{
 			name:                "authorized for AccessPublic user wants to be a user",
@@ -532,12 +535,14 @@ func TestUserAccessLevel(t *testing.T) {
 			enforcedAccessLevel: "user",
 			config:              testConfig,
 			wantAccessLevel:     AccessPublic,
+			wantIsAuthorized:    true,
 		},
 		{
-			name:            "authorized for AccessUser user",
-			u:               makeUser(AuthorizedUser),
-			config:          testConfig,
-			wantAccessLevel: AccessUser,
+			name:             "authorized for AccessUser user",
+			u:                makeUser(AuthorizedUser),
+			config:           testConfig,
+			wantAccessLevel:  AccessUser,
+			wantIsAuthorized: true,
 		},
 		{
 			name:                "authorized for AccessUser user wants to be an admin",
@@ -545,12 +550,14 @@ func TestUserAccessLevel(t *testing.T) {
 			enforcedAccessLevel: "admin",
 			config:              testConfig,
 			wantAccessLevel:     AccessUser,
+			wantIsAuthorized:    true,
 		},
 		{
-			name:            "authorized admin wants AccessAdmin",
-			u:               makeUser(AuthorizedAdmin),
-			config:          testConfig,
-			wantAccessLevel: AccessAdmin,
+			name:             "authorized admin wants AccessAdmin",
+			u:                makeUser(AuthorizedAdmin),
+			config:           testConfig,
+			wantAccessLevel:  AccessAdmin,
+			wantIsAuthorized: true,
 		},
 		{
 			name:                "authorized admin wants AccessPublic",
@@ -558,6 +565,7 @@ func TestUserAccessLevel(t *testing.T) {
 			enforcedAccessLevel: "public",
 			config:              testConfig,
 			wantAccessLevel:     AccessPublic,
+			wantIsAuthorized:    true,
 		},
 		{
 			name:                "authorized admin wants AccessUser",
@@ -565,11 +573,14 @@ func TestUserAccessLevel(t *testing.T) {
 			enforcedAccessLevel: "user",
 			config:              testConfig,
 			wantAccessLevel:     AccessUser,
+			wantIsAuthorized:    true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.wantAccessLevel, userAccessLevel(test.u, test.enforcedAccessLevel, test.config))
+			gotIsAuthorized, gotAccessLevel := userAccessLevel(test.u, test.enforcedAccessLevel, test.config)
+			assert.Equal(t, test.wantAccessLevel, gotAccessLevel)
+			assert.Equal(t, test.wantIsAuthorized, gotIsAuthorized)
 		})
 	}
 }

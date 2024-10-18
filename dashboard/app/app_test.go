@@ -42,7 +42,16 @@ func init() {
 // Config used in tests.
 var testConfig = &GlobalConfig{
 	AccessLevel: AccessPublic,
-	AuthDomains: []string{"@syzkaller.com"},
+	ACL: []*ACLItem{
+		{
+			Domain: "syzkaller.com",
+			Access: AccessUser,
+		},
+		{
+			Email:  makeUser(AuthorizedAccessPublic).Email,
+			Access: AccessPublic,
+		},
+	},
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},

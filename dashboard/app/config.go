@@ -27,8 +27,8 @@ import (
 type GlobalConfig struct {
 	// Min access levels specified hierarchically throughout the config.
 	AccessLevel AccessLevel
-	// Email suffixes of authorized users (e.g. []string{"@foo.com","@bar.org"}).
-	AuthDomains []string
+	// ACL is a list of authorized domains and e-mails.
+	ACL []*ACLItem
 	// Google Analytics Tracking ID.
 	AnalyticsTrackingID string
 	// URL prefix of source coverage reports.
@@ -126,6 +126,28 @@ type Config struct {
 	Coverage *CoverageConfig
 	// Reproducers export path.
 	ReproExportPath string
+}
+
+// ACLItem is an Access Control List item.
+// Authorization target may be Email or Domain, not both.
+//
+// Valid example 1:
+//
+//	ACLItem {
+//			Email: 			 "someuser@gmail.com",
+//			AccessLevel: AccessPublic,
+//	}
+//
+// Valid example 2:
+//
+//	ACLItem {
+//			Domain: 		 "kernel.org",
+//			AccessLevel: AccessPublic,
+//	}
+type ACLItem struct {
+	Email  string
+	Domain string
+	Access AccessLevel
 }
 
 const defaultDashboardClientName = "coverage-merger"
@@ -455,13 +477,23 @@ func checkConfig(cfg *GlobalConfig) {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
 	checkDiscussionEmails(cfg.DiscussionEmails)
-	checkAuthDomains(cfg.AuthDomains)
+	checkACL(cfg.ACL)
 }
 
-func checkAuthDomains(list []string) {
-	for _, domain := range list {
-		if !strings.HasPrefix(domain, "@") {
-			panic(fmt.Sprintf("authentication domain %s doesn't start with @", domain))
+func checkACL(acls []*ACLItem) {
+	for _, acl := range acls {
+		if acl.Domain != "" && acl.Email != "" {
+			panic(fmt.Sprintf("authorization domain(%s) AND e-mail(%s) can't be used together, remove one",
+				acl.Domain, acl.Email))
+		}
+		if acl.Domain == "" && acl.Email == "" {
+			panic("authorization domain OR e-mail are needed to init config.ACL")
+		}
+		if acl.Email != "" && strings.Count(acl.Email, "@") != 1 {
+			panic(fmt.Sprintf("authorization for %s isn't possible, need @", acl.Email))
+		}
+		if acl.Domain != "" && strings.Count(acl.Domain, "@") != 0 {
+			panic(fmt.Sprintf("authorization for %s isn't possible, delete @", acl.Domain))
 		}
 	}
 }
