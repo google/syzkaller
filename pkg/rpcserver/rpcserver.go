@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -103,12 +104,27 @@ type Stats struct {
 }
 
 func NewStats() Stats {
+	return NewNamedStats("")
+}
+
+func NewNamedStats(name string) Stats {
+	suffix := name
+	if suffix != "" {
+		suffix = " [" + suffix + "]"
+	}
+	vmsLink := "/vms"
+	if name != "" {
+		vmsLink += "?pool=" + url.QueryEscape(name)
+	}
 	return Stats{
-		StatExecs: stat.New("exec total", "Total test program executions",
-			stat.Console, stat.Rate{}, stat.Prometheus("syz_exec_total")),
-		StatNumFuzzing: stat.New("fuzzing VMs",
-			"Number of VMs that are currently fuzzing", stat.Graph("fuzzing VMs")),
-		StatVMRestarts: stat.New("vm restarts", "Total number of VM starts",
+		StatExecs: stat.New("exec total"+suffix, "Total test program executions",
+			stat.Console, stat.Rate{}, stat.Prometheus("syz_exec_total"+name),
+		),
+		StatNumFuzzing: stat.New("fuzzing VMs"+suffix,
+			"Number of VMs that are currently fuzzing", stat.Graph("fuzzing VMs"),
+			stat.Link(vmsLink),
+		),
+		StatVMRestarts: stat.New("vm restarts"+suffix, "Total number of VM starts",
 			stat.Rate{}, stat.NoGraph),
 	}
 }
