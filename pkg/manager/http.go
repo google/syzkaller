@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -55,7 +56,7 @@ type HTTPServer struct {
 	Fuzzer          atomic.Pointer[fuzzer.Fuzzer]
 	Cover           atomic.Pointer[CoverageInfo]
 	ReproLoop       atomic.Pointer[ReproLoop]
-	Pool            atomic.Pointer[dispatcher.Pool[*vm.Instance]]
+	Pools           sync.Map     // string => dispatcher.Pool[*vm.Instance]
 	EnabledSyscalls atomic.Value // map[*prog.Syscall]bool
 
 	// Internal state.
@@ -198,12 +199,15 @@ func (serv *HTTPServer) httpStats(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, pages.StatsTemplate, stat.RenderGraphs())
 }
 
+const DefaultPool = ""
+
 func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
-	pool := serv.Pool.Load()
-	if pool == nil {
-		http.Error(w, "no VM pool is present (yet)", http.StatusInternalServerError)
+	poolObj, ok := serv.Pools.Load(r.FormValue("pool"))
+	if !ok {
+		http.Error(w, "no such VM pool is known (yet)", http.StatusInternalServerError)
 		return
 	}
+	pool := poolObj.(*dispatcher.Pool[*vm.Instance])
 	data := &UIVMData{
 		Name: serv.Cfg.Name,
 	}
@@ -241,11 +245,12 @@ func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpVM(w http.ResponseWriter, r *http.Request) {
-	pool := serv.Pool.Load()
-	if pool == nil {
-		http.Error(w, "no VM pool is present (yet)", http.StatusInternalServerError)
+	poolObj, ok := serv.Pools.Load(r.FormValue("pool"))
+	if !ok {
+		http.Error(w, "no such VM pool is known (yet)", http.StatusInternalServerError)
 		return
 	}
+	pool := poolObj.(*dispatcher.Pool[*vm.Instance])
 
 	w.Header().Set("Content-Type", ctTextPlain)
 	id, err := strconv.Atoi(r.FormValue("id"))
