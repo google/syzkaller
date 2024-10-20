@@ -76,7 +76,7 @@ func TestMaxCrashLogs(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	info, err := crashStore.BugInfo(crashStore.titleToID("Title A"), false)
+	info, err := crashStore.BugInfo(crashHash("Title A"), false)
 	assert.NoError(t, err)
 	assert.Len(t, info.Crashes, 5)
 }
@@ -105,7 +105,7 @@ func TestCrashRepro(t *testing.T) {
 	}, []byte("prog text"), []byte("c prog text"))
 	assert.NoError(t, err)
 
-	report, err := crashStore.Report(crashStore.titleToID("Some title"))
+	report, err := crashStore.Report(crashHash("Some title"))
 	assert.NoError(t, err)
 	assert.Equal(t, "Some title", report.Title)
 	assert.Equal(t, "abcd", report.Tag)

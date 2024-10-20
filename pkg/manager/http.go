@@ -51,6 +51,7 @@ type HTTPServer struct {
 	StartTime  time.Time
 	Corpus     *corpus.Corpus
 	CrashStore *CrashStore
+	DiffStore  *DiffFuzzerStore
 
 	// Set dynamically.
 	Fuzzer          atomic.Pointer[fuzzer.Fuzzer]
@@ -77,13 +78,15 @@ func (serv *HTTPServer) Serve() {
 	handle("/syscalls", serv.httpSyscalls)
 	handle("/corpus", serv.httpCorpus)
 	handle("/corpus.db", serv.httpDownloadCorpus)
-	handle("/crash", serv.httpCrash)
+	if serv.CrashStore != nil {
+		handle("/crash", serv.httpCrash)
+		handle("/report", serv.httpReport)
+	}
 	handle("/cover", serv.httpCover)
 	handle("/subsystemcover", serv.httpSubsystemCover)
 	handle("/modulecover", serv.httpModuleCover)
 	handle("/prio", serv.httpPrio)
 	handle("/file", serv.httpFile)
-	handle("/report", serv.httpReport)
 	handle("/rawcover", serv.httpRawCover)
 	handle("/rawcoverfiles", serv.httpRawCoverFiles)
 	handle("/filterpcs", serv.httpFilterPCs)
@@ -125,11 +128,15 @@ func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 			Link:  stat.Link,
 		})
 	}
-
-	var err error
-	if data.Crashes, err = serv.collectCrashes(serv.Cfg.Workdir); err != nil {
-		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
-		return
+	if serv.CrashStore != nil {
+		var err error
+		if data.Crashes, err = serv.collectCrashes(serv.Cfg.Workdir); err != nil {
+			http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+	if serv.DiffStore != nil {
+		data.PatchedOnly, data.AffectsBoth, data.InProgress = serv.collectDiffCrashes()
 	}
 	executeTemplate(w, summaryTemplate, data)
 }
@@ -695,15 +702,61 @@ func (serv *HTTPServer) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 	serv.httpCoverCover(w, r, DoFilterPCs)
 }
 
-func (serv *HTTPServer) collectCrashes(workdir string) ([]*UICrashType, error) {
-	var repros map[string]bool
-	if reproLoop := serv.ReproLoop.Load(); reproLoop != nil {
-		repros = reproLoop.Reproducing()
+func (serv *HTTPServer) collectDiffCrashes() (patchedOnly, both, inProgress *UIDiffTable) {
+	for _, item := range serv.allDiffCrashes() {
+		if item.PatchedOnly() {
+			if patchedOnly == nil {
+				patchedOnly = &UIDiffTable{Title: "Patched-only"}
+			}
+			patchedOnly.List = append(patchedOnly.List, item)
+		} else if item.AffectsBoth() {
+			if both == nil {
+				both = &UIDiffTable{Title: "Affects both"}
+			}
+			both.List = append(both.List, item)
+		} else {
+			if inProgress == nil {
+				inProgress = &UIDiffTable{Title: "In Progress"}
+			}
+			inProgress.List = append(inProgress.List, item)
+		}
 	}
+	return
+}
+
+func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
+	repros := serv.nowReproducing()
+	var list []UIDiffBug
+	for _, bug := range serv.DiffStore.List() {
+		list = append(list, UIDiffBug{
+			DiffBug:     bug,
+			Reproducing: repros[bug.Title],
+		})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		first, second := list[i], list[j]
+		firstPatched, secondPatched := first.PatchedOnly(), second.PatchedOnly()
+		if firstPatched != secondPatched {
+			return firstPatched
+		}
+		return first.Title < second.Title
+	})
+	return list
+}
+
+func (serv *HTTPServer) nowReproducing() map[string]bool {
+	if reproLoop := serv.ReproLoop.Load(); reproLoop != nil {
+		return reproLoop.Reproducing()
+	}
+	return nil
+}
+
+func (serv *HTTPServer) collectCrashes(workdir string) ([]*UICrashType, error) {
 	list, err := serv.CrashStore.BugList()
 	if err != nil {
 		return nil, err
 	}
+	repros := serv.nowReproducing()
 	var ret []*UICrashType
 	for _, info := range list {
 		ret = append(ret, makeUICrashType(info, serv.StartTime, repros))
@@ -788,7 +841,15 @@ type UISummaryData struct {
 	Expert       bool
 	Stats        []UIStat
 	Crashes      []*UICrashType
+	PatchedOnly  *UIDiffTable
+	AffectsBoth  *UIDiffTable
+	InProgress   *UIDiffTable
 	Log          string
+}
+
+type UIDiffTable struct {
+	Title string
+	List  []UIDiffBug
 }
 
 type UIVMData struct {
@@ -823,6 +884,11 @@ type UICrashType struct {
 type UICrash struct {
 	*CrashInfo
 	Active bool
+}
+
+type UIDiffBug struct {
+	DiffBug
+	Reproducing bool
 }
 
 type UIStat struct {
@@ -881,6 +947,7 @@ var summaryTemplate = pages.Create(`
 	{{end}}
 </table>
 
+{{if .Crashes}}
 <table class="list_table">
 	<caption>Crashes:</caption>
 	<tr>
@@ -905,6 +972,63 @@ var summaryTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
+{{end}}
+
+{{define "diff_crashes"}}
+<table class="list_table">
+	<caption>{{.Title}}:</caption>
+	<tr>
+		<th>Description</th>
+		<th>Base</th>
+		<th>Patched</th>
+	</tr>
+	{{range $bug := .List}}
+	<tr>
+		<td class="title">{{$bug.Title}}</td>
+		<td class="title">
+		{{if gt $bug.Base.Crashes 0}}
+			{{$bug.Base.Crashes}} crashes
+		{{else if $bug.Base.NotCrashed}}
+			Not affected
+		{{else}} ? {{end}}
+		{{if $bug.Base.Report}}
+			<a href="/file?name={{$bug.Base.Report}}">[report]</a>
+		{{end}}
+		</td>
+		<td class="title">
+		{{if gt $bug.Patched.Crashes 0}}
+			{{$bug.Patched.Crashes}} crashes
+		{{else}} ? {{end}}
+		{{if $bug.Patched.Report}}
+			<a href="/file?name={{$bug.Patched.Report}}">[report]</a>
+		{{end}}
+		{{if $bug.Patched.CrashLog}}
+			<a href="/file?name={{$bug.Patched.CrashLog}}">[crash log]</a>
+		{{end}}
+		{{if $bug.Patched.Repro}}
+			<a href="/file?name={{$bug.Patched.Repro}}">[syz repro]</a>
+		{{end}}
+		{{if $bug.Patched.ReproLog}}
+			<a href="/file?name={{$bug.Patched.ReproLog}}">[repro log]</a>
+		{{end}}
+		{{if $bug.Reproducing}}[reproducing]{{end}}
+		</td>
+	</tr>
+	{{end}}
+</table>
+{{end}}
+
+{{if .PatchedOnly}}
+{{template "diff_crashes" .PatchedOnly}}
+{{end}}
+
+{{if .AffectsBoth}}
+{{template "diff_crashes" .AffectsBoth}}
+{{end}}
+
+{{if .InProgress}}
+{{template "diff_crashes" .InProgress}}
+{{end}}
 
 <b>Log:</b>
 <br>
