@@ -348,7 +348,11 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 		minimizeAttempts = 2
 	}
 	stop := false
-	p, call := prog.Minimize(job.p, call, prog.MinimizeCorpus, func(p1 *prog.Prog, call1 int) bool {
+	mode := prog.MinimizeCorpus
+	if job.fuzzer.Config.PatchTest {
+		mode = prog.MinimizeCallsOnly
+	}
+	p, call := prog.Minimize(job.p, call, mode, func(p1 *prog.Prog, call1 int) bool {
 		if stop {
 			return false
 		}
