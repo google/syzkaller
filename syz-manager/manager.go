@@ -151,7 +151,7 @@ const (
 )
 
 func main() {
-	if prog.GitRevision == "" {
+	if !prog.GitRevisionKnown() {
 		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
 	}
 	flag.Parse()
