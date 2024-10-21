@@ -122,13 +122,14 @@ func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags
 }
 
 func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags, attempt int) bool {
-	inTriage := flags&progInTriage > 0
+	// If we are already triaging this exact prog, this is flaky coverage.
+	// Hanged programs are harmful as they consume executor procs.
+	dontTriage := flags&progInTriage > 0 || res.Status == queue.Hanged
 	// Triage the program.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
-	// If we are already triaging this exact prog, this is flaky coverage.
 	var triage map[int]*triageCall
-	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !inTriage {
+	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !dontTriage {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, info, call, &triage)
 		}
@@ -168,7 +169,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		// In non-snapshot mode usually we are not sure which exactly input caused the crash,
 		// so give it one more chance. In snapshot mode we know for sure, so don't retry.
 		maxCandidateAttempts = 2
-		if fuzzer.Config.Snapshot {
+		if fuzzer.Config.Snapshot || res.Status == queue.Hanged {
 			maxCandidateAttempts = 0
 		}
 	}

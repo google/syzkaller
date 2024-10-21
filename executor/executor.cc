@@ -470,7 +470,8 @@ static void setup_control_pipes();
 static bool coverage_filter(uint64 pc);
 static rpc::ComparisonRaw convert(const kcov_comparison_t& cmp);
 static flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id, uint32 num_calls,
-						uint64 elapsed, uint64 freshness, uint32 status, const std::vector<uint8_t>* process_output);
+						uint64 elapsed, uint64 freshness, uint32 status, bool hanged,
+						const std::vector<uint8_t>* process_output);
 static void parse_execute(const execute_req& req);
 static void parse_handshake(const handshake_req& req);
 
@@ -1343,7 +1344,7 @@ void write_extra_output()
 }
 
 flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id, uint32 num_calls, uint64 elapsed,
-					 uint64 freshness, uint32 status, const std::vector<uint8_t>* process_output)
+					 uint64 freshness, uint32 status, bool hanged, const std::vector<uint8_t>* process_output)
 {
 	// In snapshot mode the output size is fixed and output_size is always initialized, so use it.
 	int out_size = flag_snapshot ? output_size : output->size.load(std::memory_order_relaxed) ?
@@ -1376,7 +1377,7 @@ flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64
 	flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output_off = 0;
 	if (process_output)
 		output_off = fbb.CreateVector(*process_output);
-	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, proc_id, output_off, error_off, prog_info_off);
+	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, proc_id, output_off, hanged, error_off, prog_info_off);
 	auto msg_off = rpc::CreateExecutorMessageRaw(fbb, rpc::ExecutorMessagesRaw::ExecResult,
 						     flatbuffers::Offset<void>(exec_off.o));
 	fbb.FinishSizePrefixed(msg_off);

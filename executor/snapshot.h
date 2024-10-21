@@ -251,7 +251,7 @@ NORETURN static void SnapshotDone(bool failed)
 	debug("SnapshotDone\n");
 	CoverAccessScope scope(nullptr);
 	uint32 num_calls = output_data->num_calls.load(std::memory_order_relaxed);
-	auto data = finish_output(output_data, 0, 0, num_calls, 0, 0, failed ? kFailStatus : 0, nullptr);
+	auto data = finish_output(output_data, 0, 0, num_calls, 0, 0, failed ? kFailStatus : 0, false, nullptr);
 	ivs.hdr->output_offset = data.data() - reinterpret_cast<volatile uint8_t*>(ivs.hdr);
 	ivs.hdr->output_size = data.size();
 	SnapshotSetState(failed ? rpc::SnapshotState::Failed : rpc::SnapshotState::Executed);
