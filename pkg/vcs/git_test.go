@@ -462,3 +462,25 @@ func TestGitFetchShortHash(t *testing.T) {
 	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash[:12])
 	assert.NoError(t, err)
 }
+
+func TestParseGitDiff(t *testing.T) {
+	files := ParseGitDiff([]byte(`diff --git a/a.txt b/a.txt
+index 4c5fd91..8fe1e32 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1 @@
+-First file
++First file!
+diff --git a/b.txt b/b.txt
+new file mode 100644
+index 0000000..f8a9677
+--- /dev/null
++++ b/b.txt
+@@ -0,0 +1 @@
++Second file.
+diff --git a/c/c.txt b/c/c.txt
+new file mode 100644
+index 0000000..e69de29
+`))
+	assert.ElementsMatch(t, files, []string{"a.txt", "b.txt", "c/c.txt"})
+}
