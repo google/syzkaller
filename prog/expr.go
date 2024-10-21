@@ -46,11 +46,21 @@ func (v *Value) Evaluate(finder ArgFinder) (uint64, bool) {
 	if found == nil {
 		panic(fmt.Sprintf("no argument was found by %v", v.Path))
 	}
-	constArg, ok := found.(*ConstArg)
-	if !ok {
+	val := uint64(0)
+iter:
+	switch arg := found.(type) {
+	case *ConstArg:
+		val = arg.Val
+	case *ResultArg:
+		if arg.Res != nil {
+			found = arg.Res
+			goto iter
+		}
+		val = arg.Val
+	default:
 		panic("value expressions must only rely on int fields")
 	}
-	return constArg.Val, true
+	return val, true
 }
 
 func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) ArgFinder {
