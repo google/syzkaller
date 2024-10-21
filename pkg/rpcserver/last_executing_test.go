@@ -15,7 +15,7 @@ func TestLastExecutingEmpty(t *testing.T) {
 }
 
 func TestLastExecuting(t *testing.T) {
-	last := MakeLastExecuting(10, 3)
+	last := MakeLastExecuting(21, 3)
 	last.Note(1, 0, []byte("prog1"), 1)
 
 	last.Note(2, 1, []byte("prog2"), 2)
@@ -52,5 +52,27 @@ func TestLastExecuting(t *testing.T) {
 		{ID: 12, Proc: 9, Prog: []byte("prog12"), Time: 1},
 
 		{ID: 13, Proc: 8, Prog: []byte("prog13"), Time: 0},
+	})
+}
+
+func TestLastExecutingHanged(t *testing.T) {
+	last := MakeLastExecuting(1, 3)
+	last.Note(1, 0, []byte("prog1"), 10)
+	last.Note(2, 0, []byte("prog2"), 20)
+	last.Hanged(2, 0, []byte("prog2"), 25)
+	last.Note(3, 0, []byte("prog3"), 30)
+	last.Note(4, 0, []byte("prog4"), 40)
+	last.Note(5, 0, []byte("prog5"), 50)
+	last.Hanged(5, 0, []byte("prog5"), 55)
+	last.Note(6, 0, []byte("prog6"), 60)
+	last.Note(7, 0, []byte("prog7"), 70)
+	last.Note(8, 0, []byte("prog8"), 80)
+	last.Note(9, 0, []byte("prog9"), 90)
+	assert.Equal(t, last.Collect(), []ExecRecord{
+		{ID: 2, Proc: 32, Prog: []byte("prog2"), Time: 65},
+		{ID: 5, Proc: 33, Prog: []byte("prog5"), Time: 35},
+		{ID: 7, Proc: 0, Prog: []byte("prog7"), Time: 20},
+		{ID: 8, Proc: 0, Prog: []byte("prog8"), Time: 10},
+		{ID: 9, Proc: 0, Prog: []byte("prog9"), Time: 0},
 	})
 }

@@ -3023,6 +3023,7 @@ type ExecResultRawT struct {
 	Id     int64         `json:"id"`
 	Proc   int32         `json:"proc"`
 	Output []byte        `json:"output"`
+	Hanged bool          `json:"hanged"`
 	Error  string        `json:"error"`
 	Info   *ProgInfoRawT `json:"info"`
 }
@@ -3041,6 +3042,7 @@ func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 	ExecResultRawAddId(builder, t.Id)
 	ExecResultRawAddProc(builder, t.Proc)
 	ExecResultRawAddOutput(builder, outputOffset)
+	ExecResultRawAddHanged(builder, t.Hanged)
 	ExecResultRawAddError(builder, errorOffset)
 	ExecResultRawAddInfo(builder, infoOffset)
 	return ExecResultRawEnd(builder)
@@ -3050,6 +3052,7 @@ func (rcv *ExecResultRaw) UnPackTo(t *ExecResultRawT) {
 	t.Id = rcv.Id()
 	t.Proc = rcv.Proc()
 	t.Output = rcv.OutputBytes()
+	t.Hanged = rcv.Hanged()
 	t.Error = string(rcv.Error())
 	t.Info = rcv.Info(nil).UnPack()
 }
@@ -3148,8 +3151,20 @@ func (rcv *ExecResultRaw) MutateOutput(j int, n byte) bool {
 	return false
 }
 
-func (rcv *ExecResultRaw) Error() []byte {
+func (rcv *ExecResultRaw) Hanged() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *ExecResultRaw) MutateHanged(n bool) bool {
+	return rcv._tab.MutateBoolSlot(10, n)
+}
+
+func (rcv *ExecResultRaw) Error() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -3157,7 +3172,7 @@ func (rcv *ExecResultRaw) Error() []byte {
 }
 
 func (rcv *ExecResultRaw) Info(obj *ProgInfoRaw) *ProgInfoRaw {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		x := rcv._tab.Indirect(o + rcv._tab.Pos)
 		if obj == nil {
@@ -3170,7 +3185,7 @@ func (rcv *ExecResultRaw) Info(obj *ProgInfoRaw) *ProgInfoRaw {
 }
 
 func ExecResultRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(6)
 }
 func ExecResultRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
@@ -3184,11 +3199,14 @@ func ExecResultRawAddOutput(builder *flatbuffers.Builder, output flatbuffers.UOf
 func ExecResultRawStartOutputVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
+func ExecResultRawAddHanged(builder *flatbuffers.Builder, hanged bool) {
+	builder.PrependBoolSlot(3, hanged, false)
+}
 func ExecResultRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(error), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(error), 0)
 }
 func ExecResultRawAddInfo(builder *flatbuffers.Builder, info flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(info), 0)
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(info), 0)
 }
 func ExecResultRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

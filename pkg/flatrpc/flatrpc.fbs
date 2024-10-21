@@ -243,6 +243,9 @@ table ExecResultRaw {
 	id			:int64;
 	proc			:int32;
 	output			:[uint8];
+	// The program has hanged and we were not able to properly join it.
+	// So in some sense it's still running (e.g. can trigger a delayed kernel hang report).
+	hanged			:bool;
 	error			:string;
 	info			:ProgInfoRaw;
 }

@@ -416,11 +416,13 @@ func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo dispa
 		infoc:         make(chan chan []byte),
 		requests:      make(map[int64]*queue.Request),
 		executing:     make(map[int64]bool),
-		lastExec:      MakeLastExecuting(serv.cfg.Procs, 6),
-		stats:         serv.runnerStats,
-		procs:         serv.cfg.Procs,
-		updInfo:       updInfo,
-		resultCh:      make(chan error, 1),
+		hanged:        make(map[int64]bool),
+		// Executor may report proc IDs that are larger than serv.cfg.Procs.
+		lastExec: MakeLastExecuting(prog.MaxPids, 6),
+		stats:    serv.runnerStats,
+		procs:    serv.cfg.Procs,
+		updInfo:  updInfo,
+		resultCh: make(chan error, 1),
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()

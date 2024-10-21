@@ -161,7 +161,14 @@ func (r *Result) clone() *Result {
 }
 
 func (r *Result) Stop() bool {
-	return r.Status == ExecFailure || r.Status == Crashed
+	switch r.Status {
+	case Success, Restarted:
+		return false
+	case ExecFailure, Crashed, Hanged:
+		return true
+	default:
+		panic(fmt.Sprintf("unhandled status %v", r.Status))
+	}
 }
 
 type Status int
@@ -171,6 +178,7 @@ const (
 	ExecFailure        // For e.g. serialization errors.
 	Crashed            // The VM crashed holding the request.
 	Restarted          // The VM was restarted holding the request.
+	Hanged             // The program has hanged (can't be killed/waited).
 )
 
 // Executor describes the interface wanted by the producers of requests.

@@ -262,6 +262,8 @@ func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) 
 	var toTest []*prog.LogEntry
 	if ctx.crashExecutor != nil {
 		for _, entry := range entries {
+			// Note: we don't check ProcID b/c hanged programs are assigned fake unique proc IDs
+			// that don't match "Comm" in the kernel panic message.
 			if entry.ID == ctx.crashExecutor.ExecID {
 				toTest = append(toTest, entry)
 				ctx.reproLogf(3, "first checking the prog from the crash report")
