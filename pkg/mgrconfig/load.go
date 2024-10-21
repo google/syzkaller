@@ -4,6 +4,7 @@
 package mgrconfig
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -237,6 +238,11 @@ func (cfg *Config) completeServices() error {
 func (cfg *Config) initTimeouts() {
 	slowdown := 1
 	switch {
+	case cfg.Type == "qemu" && (runtime.GOARCH == cfg.SysTarget.Arch || runtime.GOARCH == cfg.SysTarget.VMArch):
+		// If TCG is enabled for QEMU, increase the slowdown.
+		if bytes.Contains(cfg.VM, []byte("-accel tcg")) {
+			slowdown = 10
+		}
 	case cfg.Type == "qemu" && runtime.GOARCH != cfg.SysTarget.Arch && runtime.GOARCH != cfg.SysTarget.VMArch:
 		// Assuming qemu emulation.
 		// Quick tests of mmap syscall on arm64 show ~9x slowdown.
