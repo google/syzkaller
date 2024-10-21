@@ -322,7 +322,7 @@ func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) 
 		}
 	}
 
-	ctx.reproLogf(0, "failed to extract reproducer")
+	ctx.reproLogf(2, "failed to extract reproducer")
 	return nil, nil
 }
 
@@ -417,7 +417,7 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 		// There's a risk of exceeding prog.MaxCalls, so let's first minimize
 		// all entries separately.
 		for i := 0; i < len(entries); i++ {
-			ctx.reproLogf(1, "minimizing program #%d before concatenation", i)
+			ctx.reproLogf(2, "minimizing program #%d before concatenation", i)
 			callsBefore := len(entries[i].P.Calls)
 			entries[i].P, _ = prog.Minimize(entries[i].P, -1, prog.MinimizeCallsOnly,
 				func(p1 *prog.Prog, _ int) bool {
@@ -438,7 +438,7 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 					}
 					return ret.Crashed
 				})
-			ctx.reproLogf(1, "minimized %d calls -> %d calls", callsBefore, len(entries[i].P.Calls))
+			ctx.reproLogf(2, "minimized %d calls -> %d calls", callsBefore, len(entries[i].P.Calls))
 		}
 	}
 	p := &prog.Prog{
@@ -489,7 +489,7 @@ func (ctx *reproContext) minimizeProg(res *Result) (*Result, error) {
 		}
 		ret, err := ctx.testProg(p1, res.Duration, res.Opts, false)
 		if err != nil {
-			ctx.reproLogf(0, "minimization failed with %v", err)
+			ctx.reproLogf(2, "minimization failed with %v", err)
 			return false
 		}
 		return ret.Crashed
