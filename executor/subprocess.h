@@ -76,7 +76,6 @@ public:
 	{
 		if (!pid_)
 			fail("subprocess hasn't started or already waited");
-		kill(-pid_, SIGKILL);
 		kill(pid_, SIGKILL);
 		int pid = 0;
 		int wstatus = 0;
