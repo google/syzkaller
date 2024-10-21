@@ -654,3 +654,14 @@ func (git *git) PushCommit(repo, commit string) error {
 	}
 	return nil
 }
+
+var fileNameRe = regexp.MustCompile(`(?m)^diff.* b\/([^\s]+)`)
+
+// ParseGitDiff extracts the files modified in the git patch.
+func ParseGitDiff(patch []byte) []string {
+	var files []string
+	for _, match := range fileNameRe.FindAllStringSubmatch(string(patch), -1) {
+		files = append(files, match[1])
+	}
+	return files
+}
