@@ -57,15 +57,19 @@ RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2
 RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/7.1.2/release/bazel-7.1.2-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
 
 # Install qemu from the backports.
-# The currently stable version (7.4) cannot properly run arm64-MTE kernels.
+# The currently stable version (7.2) cannot properly run arm64-MTE kernels.
 RUN add-apt-repository "deb http://deb.debian.org/debian bookworm-backports main"
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
 # This is required to run alien arch binaries in pkg/cover tests:
 	qemu-user
+
+# QEMU packages required to run x86/arm64 kernels - install them for both x86 and arm64.
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
+    qemu-utils qemu-system-misc qemu-system-x86 qemu-system-arm qemu-system-aarch64
+
+# Install QEMU packages for other arches on x86 machines only.
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
     DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
-    # These are required to run foreign arch kernels:
-    qemu-utils qemu-system-misc qemu-system-x86 qemu-system-arm qemu-system-aarch64  \
     qemu-system-s390x qemu-system-mips qemu-system-ppc
 
 # Install gcloud https://cloud.google.com/sdk/docs/install#deb.
