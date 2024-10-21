@@ -4044,7 +4044,6 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setsid();
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || __NR_syz_socket_connect_nvme_tcp
 	int netns = open("/proc/self/ns/net", O_RDONLY);
