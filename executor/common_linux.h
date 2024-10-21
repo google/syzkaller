@@ -4044,6 +4044,8 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
+	if (getppid() == 1)
+		exitf("the sandbox parent process was killed");
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || __NR_syz_socket_connect_nvme_tcp
 	int netns = open("/proc/self/ns/net", O_RDONLY);
@@ -4857,6 +4859,8 @@ static void reset_loop()
 static void setup_test()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
+	// We don't check for getppid() == 1 here b/c of unshare(CLONE_NEWPID),
+	// our parent is normally pid 1.
 	setpgrp();
 #if SYZ_EXECUTOR || SYZ_CGROUPS
 	setup_cgroups_test();
