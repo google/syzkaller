@@ -288,7 +288,7 @@ func (cs *CrashStore) BugList() ([]*BugInfo, error) {
 	for _, dir := range dirs {
 		info, err := cs.BugInfo(dir, false)
 		if err != nil {
-			return nil, fmt.Errorf("failed to process crashes/%s", dir)
+			return nil, fmt.Errorf("failed to process crashes/%s: %w", dir, err)
 		}
 		ret = append(ret, info)
 	}
