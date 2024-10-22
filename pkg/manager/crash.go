@@ -278,6 +278,10 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 func (cs *CrashStore) BugList() ([]*BugInfo, error) {
 	dirs, err := osutil.ListDir(filepath.Join(cs.BaseDir, "crashes"))
 	if err != nil {
+		if os.IsNotExist(err) {
+			// If there were no crashes, it's okay that there's no such folder.
+			return nil, nil
+		}
 		return nil, err
 	}
 	var ret []*BugInfo
