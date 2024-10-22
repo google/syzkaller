@@ -42,6 +42,7 @@ sendmsg$DEVLINK_CMD_RATE_DEL(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[D
 
 devlink_devname {
 	prefix	stringnoz["netdevsim"]
+# NEED: this does not support formatting numbers larger than 9.
 	id	proc['0', 1, int8]
 	z	const[0, int8]
 } [packed]
