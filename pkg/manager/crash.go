@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -285,16 +286,23 @@ func (cs *CrashStore) BugList() ([]*BugInfo, error) {
 		return nil, err
 	}
 	var ret []*BugInfo
+	var lastErr error
+	errCount := 0
 	for _, dir := range dirs {
 		info, err := cs.BugInfo(dir, false)
 		if err != nil {
-			return nil, fmt.Errorf("failed to process crashes/%s: %w", dir, err)
+			errCount++
+			lastErr = err
+			continue
 		}
 		ret = append(ret, info)
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		return strings.ToLower(ret[i].Title) < strings.ToLower(ret[j].Title)
 	})
+	if lastErr != nil {
+		log.Logf(0, "some stored crashes are inconsistent: %d skipped, last error %v", errCount, lastErr)
+	}
 	return ret, nil
 }
 
