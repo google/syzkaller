@@ -57,19 +57,19 @@ func (ctx *fuchsia) initRepo() error {
 }
 
 func (ctx *fuchsia) CheckoutBranch(repo, branch string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
+	return nil, fmt.Errorf("not implemented for fuchsia: CheckoutBranch")
 }
 
 func (ctx *fuchsia) CheckoutCommit(repo, commit string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
+	return nil, fmt.Errorf("not implemented for fuchsia: CheckoutCommit")
 }
 
 func (ctx *fuchsia) SwitchCommit(commit string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
+	return nil, fmt.Errorf("not implemented for fuchsia: SwitchCommit")
 }
 
 func (ctx *fuchsia) Commit(com string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
+	return nil, fmt.Errorf("not implemented for fuchsia: Commit")
 }
 
 func (ctx *fuchsia) GetCommitByTitle(title string) (*Commit, error) {
@@ -85,11 +85,11 @@ func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Comm
 }
 
 func (ctx *fuchsia) ReleaseTag(commit string) (string, error) {
-	return "", fmt.Errorf("not implemented for fuchsia")
+	return "", fmt.Errorf("not implemented for fuchsia: ReleaseTag")
 }
 
 func (ctx *fuchsia) Contains(commit string) (bool, error) {
-	return false, fmt.Errorf("not implemented for fuchsia")
+	return false, fmt.Errorf("not implemented for fuchsia: Contains")
 }
 
 func (ctx *fuchsia) ListCommitHashes(base string) ([]string, error) {
@@ -105,9 +105,9 @@ func (ctx *fuchsia) MergeBases(firstCommit, secondCommit string) ([]*Commit, err
 }
 
 func (ctx *fuchsia) CommitExists(string) (bool, error) {
-	return false, fmt.Errorf("not implemented for fuchsia")
+	return false, fmt.Errorf("not implemented for fuchsia: CommitExists")
 }
 
 func (ctx *fuchsia) PushCommit(repo, commit string) error {
-	return ctx.repo.PushCommit(repo, commit)
+	return fmt.Errorf("not implemented for fuchsia: PushCommit")
 }
