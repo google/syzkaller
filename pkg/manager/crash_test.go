@@ -53,6 +53,15 @@ func TestCrashList(t *testing.T) {
 	assert.Len(t, list[2].Crashes, 3)
 }
 
+func TestEmptyCrashList(t *testing.T) {
+	crashStore := &CrashStore{
+		BaseDir:      t.TempDir(),
+		MaxCrashLogs: 10,
+	}
+	_, err := crashStore.BugList()
+	assert.NoError(t, err)
+}
+
 func TestMaxCrashLogs(t *testing.T) {
 	crashStore := &CrashStore{
 		BaseDir:      t.TempDir(),
