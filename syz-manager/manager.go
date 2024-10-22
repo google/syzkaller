@@ -672,11 +672,10 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		resp, err := mgr.dash.ReportCrash(dc)
 		if err != nil {
 			log.Logf(0, "failed to report crash to dashboard: %v", err)
-		} else {
-			// Don't store the crash locally, if we've successfully
-			// uploaded it to the dashboard. These will just eat disk space.
-			return mgr.cfg.Reproduce && resp.NeedRepro
 		}
+		// Don't store the crash locally even if we failed to upload it.
+		// There is 0 chance that one will ever look in the crashes/ folder of those instances.
+		return mgr.cfg.Reproduce && resp.NeedRepro
 	}
 	first, err := mgr.crashStore.SaveCrash(crash)
 	if err != nil {
@@ -759,9 +758,8 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard (log size %d): %v",
 				len(reproLog), err)
-		} else {
-			return
 		}
+		return
 	}
 	err := mgr.crashStore.SaveFailedRepro(rep.Title, reproLog)
 	if err != nil {
