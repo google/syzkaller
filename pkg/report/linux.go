@@ -1330,6 +1330,7 @@ var linuxStackParams = &stackParams{
 		"__fortify_report",
 		"cleanup_srcu_struct",
 		"rhashtable_lookup",
+		"extract_(user|iter)_to_sg",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -1634,8 +1635,21 @@ var linuxOopses = append([]*oops{
 				alt:    []string{"BUG: Dentry still in use [%[1]v of %[2]v]"},
 			},
 			{
-				title: compile("BUG: Bad page state"),
-				fmt:   "BUG: Bad page state",
+				title: compile("BUG: Bad page (state|cache)"),
+				fmt:   "BUG: Bad page %[1]v in %[2]v",
+				stack: &stackFmt{
+					// TODO: on arm64, for some reason we don't see the page origin backtrace.
+					// We see the stack trace where the bug was detected, but we consider it to be
+					// not sufficient to reliably group crashes.
+					// So Bad page reports on arm64 for now will end up marked as corrupted.
+					parts: []*regexp.Regexp{
+						compile(`page last allocated`),
+						parseStackTrace,
+					},
+					skip: []string{"(free|put|get|update|release)_page",
+						"free_unref", "^_*folio", "truncate_inode_pages",
+						"page_frag_free", "alloc", "vmap"},
+				},
 			},
 			{
 				title: compile("BUG: Bad page map"),

@@ -1,0 +1,91 @@
+TITLE: BUG: Bad page state in __get_metapage
+
+[   65.499023][ T5098] BUG: Bad page state in process syz-executor209  pfn:7deea
+[   65.506426][ T5098] page: refcount:0 mapcount:0 mapping:0000000000000000 index:0x2e pfn:0x7deea
+[   65.515426][ T5098] flags: 0xfff0000000400c(referenced|uptodate|private|node=0|zone=1|lastcpupid=0x7ff)
+[   65.525041][ T5098] raw: 00fff0000000400c dead000000000100 dead000000000122 0000000000000000
+[   65.534267][ T5098] raw: 000000000000002e ffff88807a2723e0 00000000ffffffff 0000000000000000
+[   65.544378][ T5098] page dumped because: PAGE_FLAGS_CHECK_AT_FREE flag(s) set
+[   65.552063][ T5098] page_owner tracks the page as allocated
+[   65.557890][ T5098] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x40c40(GFP_NOFS|__GFP_COMP), pid 5096, tgid 5096 (syz-executor209), ts 64771645974, free_ts 55604629154
+[   65.575967][ T5098]  post_alloc_hook+0x1f3/0x230
+[   65.581043][ T5098]  get_page_from_freelist+0x2e4c/0x2f10
+[   65.586581][ T5098]  __alloc_pages_noprof+0x256/0x6c0
+[   65.591814][ T5098]  alloc_pages_mpol_noprof+0x3e8/0x680
+[   65.597377][ T5098]  folio_alloc_noprof+0x128/0x180
+[   65.602555][ T5098]  filemap_alloc_folio_noprof+0xdf/0x500
+[   65.608226][ T5098]  __filemap_get_folio+0x44e/0xc10
+[   65.613415][ T5098]  pagecache_get_page+0x2c/0x200
+[   65.618395][ T5098]  __get_metapage+0x2b4/0x1050
+[   65.623241][ T5098]  diNewExt+0xacf/0x37e0
+[   65.627506][ T5098]  diAllocAG+0xbec/0x1e50
+[   65.631904][ T5098]  diAlloc+0x1d3/0x1760
+[   65.636073][ T5098]  ialloc+0x8f/0x900
+[   65.640305][ T5098]  jfs_mkdir+0x1c5/0xba0
+[   65.644572][ T5098]  vfs_mkdir+0x2f9/0x4f0
+[   65.649859][ T5098]  do_mkdirat+0x264/0x3a0
+[   65.654284][ T5098] page last free pid 5083 tgid 5083 stack trace:
+[   65.660639][ T5098]  free_unref_page+0xd19/0xea0
+[   65.665445][ T5098]  __folio_put+0x3b9/0x620
+[   65.669903][ T5098]  pipe_read+0x6f2/0x13e0
+[   65.674239][ T5098]  vfs_read+0x9bd/0xbc0
+[   65.678383][ T5098]  ksys_read+0x1a0/0x2c0
+[   65.682755][ T5098]  do_syscall_64+0xf3/0x230
+[   65.687248][ T5098]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   65.693191][ T5098] Modules linked in:
+[   65.697091][ T5098] CPU: 1 PID: 5098 Comm: syz-executor209 Tainted: G    B              6.10.0-syzkaller-11185-g2c9b3512402e #0
+[   65.708700][ T5098] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 06/27/2024
+[   65.718739][ T5098] Call Trace:
+[   65.722087][ T5098]  <TASK>
+[   65.725017][ T5098]  dump_stack_lvl+0x241/0x360
+[   65.729680][ T5098]  ? __pfx_dump_stack_lvl+0x10/0x10
+[   65.734999][ T5098]  ? __pfx_print_modules+0x10/0x10
+[   65.740186][ T5098]  bad_page+0x14c/0x170
+[   65.744419][ T5098]  free_unref_folios+0x1121/0x19c0
+[   65.749552][ T5098]  folios_put_refs+0x93a/0xa60
+[   65.754346][ T5098]  ? __pfx_folios_put_refs+0x10/0x10
+[   65.759645][ T5098]  ? _raw_spin_unlock_irqrestore+0xdd/0x140
+[   65.765650][ T5098]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[   65.772192][ T5098]  ? rcu_is_watching+0x15/0xb0
+[   65.776979][ T5098]  ? lru_add_fn+0xbb6/0x1a20
+[   65.781579][ T5098]  folio_batch_move_lru+0x5d7/0x690
+[   65.786782][ T5098]  ? __pfx_lru_add_fn+0x10/0x10
+[   65.791629][ T5098]  ? __pfx_folio_batch_move_lru+0x10/0x10
+[   65.797339][ T5098]  ? folio_batch_add_and_move+0x98/0x2b0
+[   65.802960][ T5098]  ? __pfx_lru_add_fn+0x10/0x10
+[   65.807805][ T5098]  folio_add_lru+0x39c/0x9e0
+[   65.812384][ T5098]  ? folio_add_lru+0x27b/0x9e0
+[   65.817222][ T5098]  shmem_alloc_and_add_folio+0xa49/0xdb0
+[   65.822859][ T5098]  ? __pfx_shmem_alloc_and_add_folio+0x10/0x10
+[   65.829010][ T5098]  shmem_get_folio_gfp+0x82d/0x1f50
+[   65.834508][ T5098]  ? __pfx_shmem_get_folio_gfp+0x10/0x10
+[   65.840231][ T5098]  ? __pfx_reacquire_held_locks+0x10/0x10
+[   65.846142][ T5098]  ? fault_in_readable+0x1a6/0x2b0
+[   65.851451][ T5098]  shmem_write_begin+0x170/0x4d0
+[   65.856709][ T5098]  ? __pfx_shmem_write_begin+0x10/0x10
+[   65.862359][ T5098]  ? fault_in_iov_iter_readable+0x229/0x280
+[   65.868247][ T5098]  generic_perform_write+0x399/0x840
+[   65.873536][ T5098]  ? __pfx_generic_perform_write+0x10/0x10
+[   65.879333][ T5098]  ? preempt_count_add+0x93/0x190
+[   65.884345][ T5098]  ? mnt_put_write_access_file+0xbb/0x100
+[   65.890052][ T5098]  ? file_update_time+0x3b8/0x430
+[   65.895067][ T5098]  shmem_file_write_iter+0xfc/0x120
+[   65.900278][ T5098]  vfs_write+0xa72/0xc90
+[   65.904612][ T5098]  ? __pfx_shmem_file_write_iter+0x10/0x10
+[   65.910413][ T5098]  ? __pfx_vfs_write+0x10/0x10
+[   65.915167][ T5098]  ? lockdep_hardirqs_on+0x99/0x150
+[   65.920365][ T5098]  ksys_write+0x1a0/0x2c0
+[   65.924692][ T5098]  ? __pfx_ksys_write+0x10/0x10
+[   65.929622][ T5098]  ? exc_page_fault+0x590/0x8c0
+[   65.934489][ T5098]  do_syscall_64+0xf3/0x230
+[   65.939067][ T5098]  ? clear_bhb_loop+0x35/0x90
+[   65.943734][ T5098]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   65.949988][ T5098] RIP: 0033:0x7f7b5710bee0
+[   65.954598][ T5098] Code: 40 00 48 c7 c2 b8 ff ff ff f7 d8 64 89 02 48 c7 c0 ff ff ff ff eb b7 0f 1f 00 80 3d c1 f1 07 00 00 74 17 b8 01 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 58 c3 0f 1f 80 00 00 00 00 48 83 ec 28 48 89
+[   65.974381][ T5098] RSP: 002b:00007fffc1930558 EFLAGS: 00000202 ORIG_RAX: 0000000000000001
+[   65.982795][ T5098] RAX: ffffffffffffffda RBX: 00007fffc1930570 RCX: 00007f7b5710bee0
+[   65.990759][ T5098] RDX: 0000000001000000 RSI: 00007f7b4ec00000 RDI: 0000000000000003
+[   65.998722][ T5098] RBP: 00007f7b4ec00000 R08: 0000000000005dd3 R09: 0000000000005dcf
+[   66.006680][ T5098] R10: 0000000000000774 R11: 0000000000000202 R12: 00007fffc1930710
+[   66.014645][ T5098] R13: 00007fffc19305b0 R14: 0000000000000003 R15: 0000000001000000
+[   66.022611][ T5098]  </TASK>
