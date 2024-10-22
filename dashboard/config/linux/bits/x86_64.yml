@@ -9,7 +9,7 @@ config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
  # to the builtin command line, so user can always override this.
  # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
- - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16"]
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=64 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=32 rose.rose_ndevs=32"]
  - CMDLINE_BOOL
 
  # Should be faster this way.

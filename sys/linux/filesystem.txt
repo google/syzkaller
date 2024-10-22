@@ -93,12 +93,14 @@ blockdev_filename [
 
 nbd_filename {
 	prefix	stringnoz["/dev/nbd"]
+# NEED: this does not support formatting numbers larger than 9.
 	id	proc['0', 1, int8]
 	z	const[0, int8]
 } [packed]
 
 loop_filename {
 	prefix	stringnoz["/dev/loop"]
+# NEED: this does not support formatting numbers larger than 9.
 	id	proc['0', 1, int8]
 	z	const[0, int8]
 } [packed]

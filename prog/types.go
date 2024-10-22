@@ -563,6 +563,8 @@ type ProcType struct {
 }
 
 const (
+	// Some aspects of the linux kernel configs also know about this const,
+	// e.g. they create that many devices of various types (usually these parameters are in CMDLINE).
 	MaxPids          = 32
 	procDefaultValue = 0xffffffffffffffff // special value denoting 0 for all procs
 )
