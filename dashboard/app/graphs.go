@@ -259,7 +259,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		validator.CommitHash(targetCommit, "commit"),
 		validator.KernelFilePath(kernelFilePath, "filepath"),
 	); err != nil {
-		return err
+		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
 	}
 	targetDate, err := civil.ParseDate(dateToStr)
 	if err != nil {
