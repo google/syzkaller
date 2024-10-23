@@ -17,7 +17,8 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg) (map[uint64]struct{}, error) {
+func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg,
+	strict bool) (map[uint64]struct{}, error) {
 	if covCfg.Empty() {
 		return nil, nil
 	}
@@ -31,7 +32,7 @@ func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCf
 			apply(&sym.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, covCfg.Functions, foreachSymbol); err != nil {
+	if err := covFilterAddFilter(pcs, covCfg.Functions, foreachSymbol, strict); err != nil {
 		return nil, err
 	}
 	foreachUnit := func(apply func(*backend.ObjectUnit)) {
@@ -39,7 +40,7 @@ func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCf
 			apply(&unit.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, covCfg.Files, foreachUnit); err != nil {
+	if err := covFilterAddFilter(pcs, covCfg.Files, foreachUnit, strict); err != nil {
 		return nil, err
 	}
 	if err := covFilterAddRawPCs(pcs, covCfg.RawPCs); err != nil {
@@ -49,7 +50,8 @@ func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCf
 	return pcs, nil
 }
 
-func covFilterAddFilter(pcs map[uint64]struct{}, filters []string, foreach func(func(*backend.ObjectUnit))) error {
+func covFilterAddFilter(pcs map[uint64]struct{}, filters []string, foreach func(func(*backend.ObjectUnit)),
+	strict bool) error {
 	res, err := compileRegexps(filters)
 	if err != nil {
 		return err
@@ -75,7 +77,7 @@ func covFilterAddFilter(pcs map[uint64]struct{}, filters []string, foreach func(
 		sort.Strings(used[re])
 		log.Logf(0, "coverage filter: %v: %v", re, used[re])
 	}
-	if len(res) != len(used) {
+	if strict && len(res) != len(used) {
 		return fmt.Errorf("some filters don't match anything")
 	}
 	return nil
@@ -134,11 +136,12 @@ type CoverageFilters struct {
 	ExecutorFilter map[uint64]struct{}
 }
 
-func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Config) (CoverageFilters, error) {
+func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Config,
+	strict bool) (CoverageFilters, error) {
 	var ret CoverageFilters
 	needExecutorFilter := true
 	for _, area := range cfg.Experimental.FocusAreas {
-		pcs, err := CoverageFilter(source, area.Filter)
+		pcs, err := CoverageFilter(source, area.Filter, strict)
 		if err != nil {
 			return ret, err
 		}
