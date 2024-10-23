@@ -1327,7 +1327,7 @@ func (mgr *Manager) dashboardReproTasks() {
 
 func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	mgr.reportGenerator.Init(modules)
-	filters, err := manager.PrepareCoverageFilters(mgr.reportGenerator, mgr.cfg)
+	filters, err := manager.PrepareCoverageFilters(mgr.reportGenerator, mgr.cfg, true)
 	if err != nil {
 		log.Fatalf("failed to init coverage filter: %v", err)
 	}
