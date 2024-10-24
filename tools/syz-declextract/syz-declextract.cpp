@@ -223,18 +223,18 @@ const std::string intNCommonSubtype(const std::string &name, const IntType len) 
   return "int" + byteLen;
 }
 
-const std::string intNSubtype(const std::string &lowerCaseName, const IntType len) {
+const std::string intNSubtype(const std::string &name, const IntType len) {
   switch (len) {
   case INT_8:
-    return int8Subtype(lowerCaseName);
+    return int8Subtype(name);
   case INT_16:
-    return int16Subtype(lowerCaseName);
+    return int16Subtype(name);
   case INT_32:
-    return int32Subtype(lowerCaseName);
+    return int32Subtype(name);
   case INT_64:
-    return int64Subtype(lowerCaseName);
+    return int64Subtype(name);
   default:
-    fprintf(stderr, "Invalid int type\n");
+    fprintf(stderr, "invalid int type: %d\n", static_cast<int>(len));
     exit(1);
   }
 }
@@ -490,16 +490,15 @@ public:
     const auto &name = syscall->getNameAsString().substr(9); // Remove "__do_sys_" prefix.
     if (Minimal) {
       printf("SYSCALL\t%s\n", name.c_str());
-    }
-    if (Final) {
-      printf("%s$auto(", name.c_str());
+    } else {
+      printf("%s(", name.c_str());
       for (const auto &param : syscall->parameters()) {
         const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
         const auto &name = param->getNameAsString();
         printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
         sep = ", ";
       }
-      puts(") (automatic)");
+      printf(") (automatic)\n");
       recordExtractor.print();
     }
 
@@ -690,7 +689,7 @@ private:
       if (item.file.back() != 'h') { // only extract from "*.h" files
         return;
       }
-      printf("include<%s>\n", item.file.c_str());
+      printf("include <%s>\n", item.file.c_str());
     }
 
     RecordExtractor recordExtractor(Result.SourceManager);
