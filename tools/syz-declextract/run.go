@@ -303,18 +303,21 @@ func readSyscallNames(kernelDir string) map[string][]string {
 	for _, arch := range targets.List[targets.Linux] {
 		filepath.Walk(filepath.Join(kernelDir, arch.KernelHeaderArch),
 			func(path string, info fs.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
 				if !strings.HasSuffix(path, ".tbl") {
 					return nil
 				}
-				fi, fErr := os.Lstat(path)
-				if fErr != nil {
+				fi, err := os.Lstat(path)
+				if err != nil {
 					tool.Fail(err)
 				}
 				if fi.Mode()&fs.ModeSymlink != 0 { // Some symlinks link to files outside of arch directory.
 					return nil
 				}
-				f, fErr := os.Open(path)
-				if fErr != nil {
+				f, err := os.Open(path)
+				if err != nil {
 					tool.Fail(err)
 				}
 				s := bufio.NewScanner(f)
