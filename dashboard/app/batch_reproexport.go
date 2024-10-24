@@ -6,6 +6,7 @@ package main
 import (
 	"net/http"
 
+	"cloud.google.com/go/batch/apiv1/batchpb"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 )
@@ -18,8 +19,11 @@ func handleBatchReproExport(w http.ResponseWriter, r *http.Request) {
 		if nsConfig.ReproExportPath == "" {
 			continue
 		}
+		serviceAccount := &batchpb.ServiceAccount{
+			Scopes: []string{"https://www.googleapis.com/auth/userinfo.email"},
+		}
 		if err := createScriptJob(ctx, "syzkaller", "export-repro",
-			exportReproScript(ns, nsConfig.ReproExportPath), exportTimeoutSeconds, nil); err != nil {
+			exportReproScript(ns, nsConfig.ReproExportPath), exportTimeoutSeconds, serviceAccount); err != nil {
 			log.Errorf(ctx, "createScriptJob: %s", err.Error())
 		}
 	}
