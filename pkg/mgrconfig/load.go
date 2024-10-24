@@ -198,6 +198,9 @@ func Complete(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	if err := cfg.completeFocusAreas(); err != nil {
+		return err
+	}
 	cfg.initTimeouts()
 	cfg.VMLess = cfg.Type == "none"
 	return nil
@@ -320,6 +323,41 @@ func (cfg *Config) completeBinaries() error {
 			return fmt.Errorf("bad config param strace_bin: can't find %v", cfg.StraceBin)
 		}
 		cfg.StraceBin = osutil.Abs(cfg.StraceBin)
+	}
+	return nil
+}
+
+func (cfg *Config) completeFocusAreas() error {
+	names := map[string]bool{}
+	seenEmptyFilter := false
+	for i, area := range cfg.Experimental.FocusAreas {
+		if area.Name != "" {
+			if names[area.Name] {
+				return fmt.Errorf("duplicate focus area name: %q", area.Name)
+			}
+			names[area.Name] = true
+		}
+		if area.Weight <= 0 {
+			return fmt.Errorf("focus area #%d: negative weight", i)
+		}
+		if area.Filter.Empty() {
+			if seenEmptyFilter {
+				return fmt.Errorf("there must be only one focus area with an empty filter")
+			}
+			seenEmptyFilter = true
+		}
+	}
+	if !cfg.CovFilter.Empty() {
+		if len(cfg.Experimental.FocusAreas) > 0 {
+			return fmt.Errorf("you cannot use both cov_filter and focus_areas")
+		}
+		cfg.Experimental.FocusAreas = []FocusArea{
+			{
+				Name:   "filtered",
+				Filter: cfg.CovFilter,
+				Weight: 1.0,
+			},
+		}
 	}
 	return nil
 }
