@@ -90,7 +90,6 @@ func main() {
 		http: &manager.HTTPServer{
 			Cfg:       newCfg,
 			StartTime: time.Now(),
-			Corpus:    new.corpus,
 			DiffStore: store,
 		},
 	}
@@ -232,7 +231,6 @@ type kernelContext struct {
 	ctx        context.Context
 	cfg        *mgrconfig.Config
 	reporter   *report.Reporter
-	corpus     *corpus.Corpus
 	fuzzer     atomic.Pointer[fuzzer.Fuzzer]
 	serv       rpcserver.Server
 	servStats  rpcserver.Stats
@@ -256,7 +254,6 @@ func setup(ctx context.Context, name string, cfg *mgrconfig.Config) *kernelConte
 		name:            name,
 		ctx:             ctx,
 		cfg:             cfg,
-		corpus:          corpus.NewCorpus(ctx),
 		crashes:         make(chan *report.Report, 128),
 		candidates:      make(chan []fuzzer.Candidate),
 		servStats:       rpcserver.NewNamedStats(name),
@@ -320,8 +317,9 @@ func (kc *kernelContext) MachineChecked(features flatrpc.Feature, syscalls map[*
 
 func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-		Corpus:   kc.corpus,
+	corpusObj := corpus.NewFocusedCorpus(kc.ctx, nil, kc.coverFilters.Areas)
+	fuzzerObj := fuzzer.NewFuzzer(kc.ctx, &fuzzer.Config{
+		Corpus:   corpusObj,
 		Coverage: kc.cfg.Cover,
 		// TODO: it may be unstable between different revisions though.
 		// For now it's only kept true because it seems to increase repro chances in local runs (???).
@@ -343,6 +341,7 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	if kc.http != nil {
 		kc.http.Fuzzer.Store(fuzzerObj)
 		kc.http.EnabledSyscalls.Store(syscalls)
+		kc.http.Corpus.Store(corpusObj)
 	}
 
 	filtered := manager.FilterCandidates(<-kc.candidates, syscalls, false).Candidates
@@ -376,7 +375,6 @@ func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) []uint64
 		log.Fatalf("failed to init coverage filter: %v", err)
 	}
 	kc.coverFilters = filters
-	kc.corpus.SetFocusAreas(filters.Areas)
 	log.Logf(0, "cover filter size: %d", len(filters.ExecutorFilter))
 	if kc.http != nil {
 		kc.http.Cover.Store(&manager.CoverageInfo{

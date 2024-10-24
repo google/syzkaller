@@ -49,11 +49,11 @@ type HTTPServer struct {
 	// To be set once.
 	Cfg        *mgrconfig.Config
 	StartTime  time.Time
-	Corpus     *corpus.Corpus
 	CrashStore *CrashStore
 	DiffStore  *DiffFuzzerStore
 
 	// Set dynamically.
+	Corpus          atomic.Pointer[corpus.Corpus]
 	Fuzzer          atomic.Pointer[fuzzer.Fuzzer]
 	Cover           atomic.Pointer[CoverageInfo]
 	ReproLoop       atomic.Pointer[ReproLoop]
@@ -172,10 +172,12 @@ func (serv *HTTPServer) httpExpertMode(w http.ResponseWriter, r *http.Request) {
 
 func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	var calls map[string]*corpus.CallCov
-	if obj := serv.EnabledSyscalls.Load(); obj != nil {
-		calls = serv.Corpus.CallCover()
+	syscallsObj := serv.EnabledSyscalls.Load()
+	corpusObj := serv.Corpus.Load()
+	if corpusObj != nil && syscallsObj != nil {
+		calls = corpusObj.CallCover()
 		// Add enabled, but not yet covered calls.
-		for call := range obj.(map[*prog.Syscall]bool) {
+		for call := range syscallsObj.(map[*prog.Syscall]bool) {
 			if calls[call.Name] == nil {
 				calls[call.Name] = new(corpus.CallCov)
 			}
@@ -321,11 +323,16 @@ func (serv *HTTPServer) httpCrash(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
 	data := UICorpus{
 		Call:     r.FormValue("call"),
 		RawCover: serv.Cfg.RawCover,
 	}
-	for _, inp := range serv.Corpus.Items() {
+	for _, inp := range corpus.Items() {
 		if data.Call != "" && data.Call != inp.StringCall() {
 			continue
 		}
@@ -416,6 +423,12 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		return
 	}
 
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+
 	rg, err := coverInfo.ReportGenerator.Get()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
@@ -431,7 +444,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
-		inp := serv.Corpus.Item(sig)
+		inp := corpus.Item(sig)
 		if inp == nil {
 			http.Error(w, "unknown input hash", http.StatusInternalServerError)
 			return
@@ -456,7 +469,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		}
 	} else {
 		call := r.FormValue("call")
-		for _, inp := range serv.Corpus.Items() {
+		for _, inp := range corpus.Items() {
 			if call != "" && call != inp.StringCall() {
 				continue
 			}
@@ -511,8 +524,13 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 }
 
 func (serv *HTTPServer) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
 	calls := make(map[int][]int)
-	for s := range serv.Corpus.Signal() {
+	for s := range corpus.Signal() {
 		id, errno := prog.DecodeFallbackSignal(uint64(s))
 		calls[id] = append(calls[id], errno)
 	}
@@ -548,6 +566,12 @@ func (serv *HTTPServer) httpFileCover(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+
 	callName := r.FormValue("call")
 	call := serv.Cfg.Target.SyscallMap[callName]
 	if call == nil {
@@ -555,11 +579,12 @@ func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var corpus []*prog.Prog
-	for _, inp := range serv.Corpus.Items() {
-		corpus = append(corpus, inp.Prog)
+	var progs []*prog.Prog
+	for _, inp := range corpus.Items() {
+		progs = append(progs, inp.Prog)
 	}
-	prios := serv.Cfg.Target.CalculatePriorities(corpus)
+
+	prios := serv.Cfg.Target.CalculatePriorities(progs)
 
 	data := &UIPrioData{Call: callName}
 	for i, p := range prios[call.ID] {
@@ -589,7 +614,12 @@ func (serv *HTTPServer) httpFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpInput(w http.ResponseWriter, r *http.Request) {
-	inp := serv.Corpus.Item(r.FormValue("sig"))
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+	inp := corpus.Item(r.FormValue("sig"))
 	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
@@ -599,7 +629,12 @@ func (serv *HTTPServer) httpInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
-	inp := serv.Corpus.Item(r.FormValue("sig"))
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+	inp := corpus.Item(r.FormValue("sig"))
 	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
