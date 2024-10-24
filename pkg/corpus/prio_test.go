@@ -51,8 +51,7 @@ func TestChooseProgram(t *testing.T) {
 
 func TestFocusAreas(t *testing.T) {
 	target := getTarget(t, targets.TestOS, targets.TestArch64)
-	corpus := NewCorpus(context.Background())
-	corpus.SetFocusAreas([]FocusArea{
+	corpus := NewFocusedCorpus(context.Background(), nil, []FocusArea{
 		{
 			CoverPCs: map[uint64]struct{}{
 				0: {},

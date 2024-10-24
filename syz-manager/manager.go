@@ -208,12 +208,10 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		log.Fatalf("%v", err)
 	}
 
-	corpusUpdates := make(chan corpus.NewItemEvent, 128)
 	mgr := &Manager{
 		cfg:                cfg,
 		mode:               mode,
 		vmPool:             vmPool,
-		corpus:             corpus.NewMonitoredCorpus(context.Background(), corpusUpdates),
 		corpusPreload:      make(chan []fuzzer.Candidate),
 		target:             cfg.Target,
 		sysTarget:          cfg.SysTarget,
@@ -235,7 +233,6 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	mgr.http = &manager.HTTPServer{
 		Cfg:        cfg,
 		StartTime:  time.Now(),
-		Corpus:     mgr.corpus,
 		CrashStore: mgr.crashStore,
 	}
 
@@ -246,7 +243,6 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		close(mgr.corpusPreload)
 	}
 	go mgr.http.Serve()
-	go mgr.corpusInputHandler(corpusUpdates)
 	go mgr.trackUsedFiles()
 
 	// Create RPC server for fuzzers.
@@ -1031,11 +1027,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	statSyscalls := stat.New("syscalls", "Number of enabled syscalls",
 		stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
-	corpus := mgr.loadCorpus(enabledSyscalls)
+	candidates := mgr.loadCorpus(enabledSyscalls)
 	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
 
 	if mgr.mode == ModeFuzzing {
+		corpusUpdates := make(chan corpus.NewItemEvent, 128)
+		mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
+			corpusUpdates, mgr.coverFilters.Areas)
+		mgr.http.Corpus.Store(mgr.corpus)
+
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 			Corpus:         mgr.corpus,
@@ -1059,10 +1060,11 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 				return !mgr.saturatedCalls[call]
 			},
 		}, rnd, mgr.target)
-		fuzzerObj.AddCandidates(corpus)
+		fuzzerObj.AddCandidates(candidates)
 		mgr.fuzzer.Store(fuzzerObj)
 		mgr.http.Fuzzer.Store(fuzzerObj)
 
+		go mgr.corpusInputHandler(corpusUpdates)
 		go mgr.corpusMinimization()
 		go mgr.fuzzerLoop(fuzzerObj)
 		if mgr.dash != nil {
@@ -1085,7 +1087,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		return source
 	} else if mgr.mode == ModeCorpusRun {
 		ctx := &corpusRunner{
-			candidates: corpus,
+			candidates: candidates,
 			rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 		return queue.DefaultOpts(ctx, opts)
@@ -1268,13 +1270,19 @@ func (mgr *Manager) dashboardReporter() {
 	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
 	for range time.NewTicker(time.Minute).C {
 		mgr.mu.Lock()
+		corpus := mgr.corpus
+		mgr.mu.Unlock()
+		if corpus == nil {
+			continue
+		}
+		mgr.mu.Lock()
 		req := &dashapi.ManagerStatsReq{
 			Name:              mgr.cfg.Name,
 			Addr:              webAddr,
 			UpTime:            time.Duration(mgr.statUptime.Val()) * time.Second,
-			Corpus:            uint64(mgr.corpus.StatProgs.Val()),
-			PCs:               uint64(mgr.corpus.StatCover.Val()),
-			Cover:             uint64(mgr.corpus.StatSignal.Val()),
+			Corpus:            uint64(corpus.StatProgs.Val()),
+			PCs:               uint64(corpus.StatCover.Val()),
+			Cover:             uint64(corpus.StatSignal.Val()),
 			CrashTypes:        uint64(mgr.statCrashTypes.Val()),
 			FuzzingTime:       time.Duration(mgr.statFuzzingTime.Val()) - lastFuzzingTime,
 			Crashes:           uint64(mgr.statCrashes.Val()) - lastCrashes,
@@ -1283,8 +1291,8 @@ func (mgr *Manager) dashboardReporter() {
 		}
 		if mgr.phase >= phaseTriagedCorpus && !triageInfoSent {
 			triageInfoSent = true
-			req.TriagedCoverage = uint64(mgr.corpus.StatSignal.Val())
-			req.TriagedPCs = uint64(mgr.corpus.StatCover.Val())
+			req.TriagedCoverage = uint64(corpus.StatSignal.Val())
+			req.TriagedPCs = uint64(corpus.StatCover.Val())
 		}
 		mgr.mu.Unlock()
 
@@ -1337,7 +1345,6 @@ func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 		ReportGenerator: mgr.reportGenerator,
 		CoverFilter:     filters.ExecutorFilter,
 	})
-	mgr.corpus.SetFocusAreas(filters.Areas)
 	var pcs []uint64
 	for pc := range filters.ExecutorFilter {
 		pcs = append(pcs, pc)
