@@ -23,6 +23,7 @@ var (
 	flagMake          = flag.String("make", "", "non-default make")
 	flagCompiler      = flag.String("compiler", "", "non-default compiler")
 	flagLinker        = flag.String("linker", "", "non-default linker")
+	flagCcache        = flag.String("ccache", "", "ccache executable")
 	flagKernelConfig  = flag.String("config", "", "kernel config file")
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")
 	flagKernelCmdline = flag.String("cmdline", "", "kernel cmdline file")
@@ -57,7 +58,7 @@ func main() {
 		Make:         *flagMake,
 		Compiler:     *flagCompiler,
 		Linker:       *flagLinker,
-		Ccache:       "",
+		Ccache:       *flagCcache,
 		UserspaceDir: *flagUserspace,
 		CmdlineFile:  *flagKernelCmdline,
 		SysctlFile:   *flagKernelSysctl,
