@@ -5,7 +5,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -16,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -26,24 +26,13 @@ import (
 )
 
 func main() {
-	const ( // Output Format.
-		Final   = "final"
-		Minimal = "minimal"
-	)
 	var (
 		binary    = flag.String("binary", "syz-declextract", "path to binary")
-		outFile   = flag.String("output", "out.txt", "output file")
+		outFile   = flag.String("output", "sys/linux/auto.txt", "output file")
 		sourceDir = flag.String("sourcedir", "", "kernel source directory")
 		buildDir  = flag.String("builddir", "", "kernel build directory (defaults to source directory)")
-		format    = flag.String("output_format", Final, "format for output [minimal, final]")
 	)
 	defer tool.Init()()
-
-	switch *format {
-	case Final, Minimal:
-	default:
-		tool.Failf("invalid -output_format flag value [minimal, final]")
-	}
 	if *sourceDir == "" {
 		tool.Failf("path to kernel source directory is required")
 	}
@@ -67,7 +56,7 @@ func main() {
 	outputs := make(chan output, len(cmds))
 	files := make(chan string, len(cmds))
 	for w := 0; w < runtime.NumCPU(); w++ {
-		go worker(outputs, files, *binary, compilationDatabase, *format)
+		go worker(outputs, files, *binary, compilationDatabase)
 	}
 
 	for _, cmd := range cmds {
@@ -85,34 +74,37 @@ func main() {
 	var nodes []ast.Node
 	syscallNames := readSyscallNames(filepath.Join(*sourceDir, "arch"))
 
-	var minimalOutput []string
+	var interfaces []Interface
 	eh := ast.LoggingHandler
 	for range cmds {
 		out := <-outputs
 		if out.err != nil {
 			tool.Failf("%v: %v", out.file, out.err)
 		}
-		if *format == Minimal {
-			minimalOutput = append(minimalOutput, getMinimalOutput(out.output, syscallNames)...)
-			continue
-		}
 		parse := ast.Parse(out.output, "", eh)
 		if parse == nil {
 			tool.Failf("%v: parsing error:\n%s", out.file, out.output)
 		}
-		appendNodes(&nodes, parse.Nodes, syscallNames, *sourceDir, *buildDir)
+		appendNodes(&nodes, &interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir)
 	}
 
-	var out []byte
-	if *format == Minimal {
-		slices.Sort(minimalOutput)
-		minimalOutput = slices.Compact(minimalOutput)
-		out = []byte(strings.Join(minimalOutput, "\n"))
-	} else {
-		out = makeOutput(nodes)
+	if err := osutil.WriteFile(*outFile, makeOutput(nodes)); err != nil {
+		tool.Fail(err)
 	}
 
-	if err := os.WriteFile(*outFile, out, 0666); err != nil {
+	sort.Slice(interfaces, func(i, j int) bool {
+		a, b := interfaces[i], interfaces[j]
+		if a.Type != b.Type {
+			return a.Type < b.Type
+		}
+		return a.Name < b.Name
+	})
+	interfaces = slices.Compact(interfaces)
+	data, err := json.MarshalIndent(interfaces, "", "\t")
+	if err != nil {
+		tool.Failf("failed to marshal interfaces: %v", err)
+	}
+	if err := osutil.WriteFile(*outFile+".json", data); err != nil {
 		tool.Fail(err)
 	}
 }
@@ -129,27 +121,12 @@ type output struct {
 	err    error
 }
 
-const sendmsg = "sendmsg"
-
-func getMinimalOutput(out []byte, syscallNames map[string][]string) []string {
-	var minimalOutput []string
-	for s := bufio.NewScanner(bytes.NewReader(out)); s.Scan(); {
-		line := s.Text()
-		if line == "" {
-			continue
-		}
-		const SYSCALL = "SYSCALL"
-		if !strings.HasPrefix(line, SYSCALL) {
-			minimalOutput = append(minimalOutput, line)
-			continue
-		}
-		oldName := line[len(SYSCALL)+1:]
-		for _, newName := range syscallNames[oldName] {
-			minimalOutput = append(minimalOutput, strings.Replace(line, oldName, newName, 1))
-		}
-	}
-	return minimalOutput
+type Interface struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
 }
+
+const sendmsg = "sendmsg"
 
 func makeOutput(nodes []ast.Node) []byte {
 	header := `
@@ -251,9 +228,9 @@ auto_union [
 	return ast.Format(ast.Parse(ast.Format(&ast.Description{Nodes: nodes}), "", eh))
 }
 
-func worker(outputs chan output, files chan string, binary, compilationDatabase, format string) {
+func worker(outputs chan output, files chan string, binary, compilationDatabase string) {
 	for file := range files {
-		out, err := exec.Command(binary, "-p", compilationDatabase, "--"+format, file).Output()
+		out, err := exec.Command(binary, "-p", compilationDatabase, file).Output()
 		var exitErr *exec.ExitError
 		if err != nil && errors.As(err, &exitErr) && len(exitErr.Stderr) != 0 {
 			err = fmt.Errorf("%s", exitErr.Stderr)
@@ -344,7 +321,7 @@ func isProhibited(syscall string) bool {
 	}
 }
 
-func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]string, sourceDir, buildDir string) {
+func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node, syscallNames map[string][]string, sourceDir, buildDir string) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 		case *ast.Call:
@@ -356,6 +333,24 @@ func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]
 				node.File.Value = file
 			}
 			*slice = append(*slice, node)
+		case *ast.Comment:
+			if !strings.HasPrefix(node.Text, "INTERFACE:") {
+				*slice = append(*slice, node)
+				continue
+			}
+			fields := strings.Fields(node.Text)
+			iface := Interface{
+				Type: fields[1],
+				Name: fields[2],
+			}
+			if iface.Type == "SYSCALL" {
+				for _, name := range syscallNames[iface.Name] {
+					iface.Name = name
+					*interfaces = append(*interfaces, iface)
+				}
+			} else {
+				*interfaces = append(*interfaces, iface)
+			}
 		default:
 			*slice = append(*slice, node)
 		}
