@@ -39,5 +39,5 @@ make -j`nproc` syz-declextract
 Download `run.go`, build it and run it
 ```
 go build run.go
-./run -compile_commands $KERNEL/compile_commands.json -binary $SYZ/bin/syz-declextract -output auto.txt -sourcedir $KERNEL
+./run -binary $SYZ/bin/syz-declextract -output auto.txt -sourcedir $KERNEL
 ```
