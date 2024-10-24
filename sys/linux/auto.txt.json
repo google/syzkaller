@@ -1,0 +1,3458 @@
+[
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_BLA_BACKBONE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_BLA_CLAIM"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_DAT_CACHE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_GATEWAYS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_HARDIF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_MCAST_FLAGS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_MESH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_NEIGHBORS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_ORIGINATORS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_ROUTING_ALGOS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_TRANSTABLE_GLOBAL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_TRANSTABLE_LOCAL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_GET_VLAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_SET_HARDIF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_SET_MESH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_SET_VLAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_TP_METER"
+	},
+	{
+		"type": "NETLINK",
+		"name": "BATADV_CMD_TP_METER_CANCEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "CGROUPSTATS_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "CIFS_GENL_CMD_SWN_NOTIFY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "CTRL_CMD_GETFAMILY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "CTRL_CMD_GETPOLICY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_CABLE_TEST_ACT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_CABLE_TEST_TDR_ACT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_CHANNELS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_CHANNELS_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_COALESCE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_COALESCE_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_DEBUG_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_DEBUG_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_EEE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_EEE_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_FEATURES_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_FEATURES_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_FEC_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_FEC_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_LINKINFO_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_LINKINFO_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_LINKMODES_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_LINKMODES_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_LINKSTATE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_MM_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_MM_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_MODULE_EEPROM_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_MODULE_FW_FLASH_ACT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_MODULE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_MODULE_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PAUSE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PAUSE_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PHC_VCLOCKS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PHY_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PLCA_GET_CFG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PLCA_GET_STATUS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PLCA_SET_CFG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PRIVFLAGS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PRIVFLAGS_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PSE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_PSE_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_RINGS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_RINGS_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_RSS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_STATS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_STRSET_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_TSINFO_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_TUNNEL_INFO_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_WOL_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ETHTOOL_MSG_WOL_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "GTP_CMD_DELPDP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "GTP_CMD_ECHOREQ"
+	},
+	{
+		"type": "NETLINK",
+		"name": "GTP_CMD_GETPDP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "GTP_CMD_NEWPDP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HANDSHAKE_CMD_ACCEPT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HANDSHAKE_CMD_DONE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HSR_C_GET_NODE_LIST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HSR_C_GET_NODE_STATUS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_DEL_RADIO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_FRAME"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_GET_RADIO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_NEW_RADIO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_REGISTER"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_REPORT_PMSR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "HWSIM_CMD_TX_INFO_FRAME"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_ADD_IFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_ASSOCIATE_REQ"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_ASSOCIATE_RESP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_DEL_IFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_DISASSOCIATE_REQ"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LIST_IFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LIST_PHY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_ADD_DEV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_ADD_DEVKEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_ADD_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_ADD_SECLEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_DEL_DEV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_DEL_DEVKEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_DEL_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_DEL_SECLEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_GETPARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_LIST_DEV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_LIST_DEVKEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_LIST_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_LIST_SECLEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_LLSEC_SETPARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_SCAN_REQ"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_SET_MACPARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IEEE802154_START_REQ"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ILA_CMD_ADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ILA_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ILA_CMD_FLUSH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "ILA_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IOAM6_CMD_ADD_NAMESPACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IOAM6_CMD_ADD_SCHEMA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IOAM6_CMD_DEL_NAMESPACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IOAM6_CMD_DEL_SCHEMA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IOAM6_CMD_NS_SET_SCHEMA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_DEL_DAEMON"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_DEL_DEST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_DEL_SERVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_FLUSH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_GET_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_GET_DAEMON"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_GET_DEST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_GET_INFO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_GET_SERVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_NEW_DAEMON"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_NEW_DEST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_NEW_SERVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_SET_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_SET_DEST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_SET_SERVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "IPVS_CMD_ZERO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_NOOP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_SESSION_CREATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_SESSION_DELETE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_SESSION_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_SESSION_MODIFY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_TUNNEL_CREATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_TUNNEL_DELETE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_TUNNEL_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "L2TP_CMD_TUNNEL_MODIFY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MAC802154_HWSIM_CMD_DEL_EDGE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MAC802154_HWSIM_CMD_DEL_RADIO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MAC802154_HWSIM_CMD_GET_RADIO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MAC802154_HWSIM_CMD_NEW_EDGE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MAC802154_HWSIM_CMD_NEW_RADIO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MAC802154_HWSIM_CMD_SET_EDGE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_ADD_RXSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_ADD_RXSC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_ADD_TXSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_DEL_RXSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_DEL_RXSC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_DEL_TXSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_GET_TXSC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_UPD_OFFLOAD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_UPD_RXSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_UPD_RXSC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "MACSEC_CMD_UPD_TXSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NBD_CMD_CONNECT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NBD_CMD_DISCONNECT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NBD_CMD_RECONFIGURE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NBD_CMD_STATUS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NCSI_CMD_CLEAR_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NCSI_CMD_PKG_INFO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NCSI_CMD_SEND_CMD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NCSI_CMD_SET_CHANNEL_MASK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NCSI_CMD_SET_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NCSI_CMD_SET_PACKAGE_MASK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NETDEV_CMD_BIND_RX"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NETDEV_CMD_DEV_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NETDEV_CMD_NAPI_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NETDEV_CMD_PAGE_POOL_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NETDEV_CMD_QSTATS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NETDEV_CMD_QUEUE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NET_DM_CMD_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NET_DM_CMD_CONFIG_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NET_DM_CMD_START"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NET_DM_CMD_STATS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NET_DM_CMD_STOP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_ACTIVATE_TARGET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_DEACTIVATE_TARGET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_DEP_LINK_DOWN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_DEP_LINK_UP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_DEV_DOWN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_DEV_UP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_DISABLE_SE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_ENABLE_SE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_FW_DOWNLOAD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_GET_DEVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_GET_SE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_GET_TARGET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_LLC_GET_PARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_LLC_SDREQ"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_LLC_SET_PARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_SE_IO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_START_POLL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_STOP_POLL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFC_CMD_VENDOR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFSD_CMD_LISTENER_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFSD_CMD_POOL_MODE_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFSD_CMD_THREADS_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NFSD_CMD_VERSION_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_ABORT_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_ADD_LINK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_ADD_LINK_STA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_ADD_NAN_FUNCTION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_ADD_TX_TS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_ASSOCIATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_AUTHENTICATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CANCEL_REMAIN_ON_CHANNEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CHANGE_NAN_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CHANNEL_SWITCH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_COLOR_CHANGE_REQUEST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CONNECT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CONTROL_PORT_FRAME"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CRIT_PROTOCOL_START"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_CRIT_PROTOCOL_STOP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEAUTHENTICATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_MPATH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_NAN_FUNCTION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_PMK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_PMKSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_STATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DEL_TX_TS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DISASSOCIATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_DISCONNECT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_EXTERNAL_AUTH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_FLUSH_PMKSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_FRAME"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_FRAME_WAIT_CANCEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_COALESCE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_FTM_RESPONDER_STATS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_MESH_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_MPATH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_MPP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_POWER_SAVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_PROTOCOL_FEATURES"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_REG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_STATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_SURVEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_WIPHY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_GET_WOWLAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_JOIN_IBSS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_JOIN_MESH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_JOIN_OCB"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_LEAVE_IBSS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_LEAVE_MESH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_LEAVE_OCB"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_MODIFY_LINK_STA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_NEW_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_NEW_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_NEW_MPATH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_NEW_STATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_NOTIFY_RADAR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_PEER_MEASUREMENT_START"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_PROBE_CLIENT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_PROBE_MESH_LINK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_RADAR_DETECT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_REGISTER_BEACONS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_REGISTER_FRAME"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_RELOAD_REGDB"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_REMAIN_ON_CHANNEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_REMOVE_LINK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_REMOVE_LINK_STA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_REQ_SET_REG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_BEACON"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_BSS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_CHANNEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_COALESCE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_CQM"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_FILS_AAD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_HW_TIMESTAMP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_MAC_ACL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_MCAST_RATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_MESH_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_MPATH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_MULTICAST_TO_UNICAST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_NOACK_MAP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_PMK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_PMKSA"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_POWER_SAVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_QOS_MAP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_REG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_REKEY_OFFLOAD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_SAR_SPECS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_STATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_TID_CONFIG"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_TID_TO_LINK_MAPPING"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_TX_BITRATE_MASK"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_WIPHY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_WIPHY_NETNS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_SET_WOWLAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_START_AP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_START_NAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_START_P2P_DEVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_START_SCHED_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_STOP_AP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_STOP_NAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_STOP_P2P_DEVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_STOP_SCHED_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_TDLS_CANCEL_CHANNEL_SWITCH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_TDLS_CHANNEL_SWITCH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_TDLS_MGMT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_TDLS_OPER"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_TRIGGER_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_UNEXPECTED_FRAME"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_UPDATE_CONNECT_PARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_UPDATE_FT_IES"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_UPDATE_OWE_INFO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL80211_CMD_VENDOR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_ABORT_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_ASSOCIATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_DEL_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_DEL_SEC_DEV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_DEL_SEC_DEVKEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_DEL_SEC_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_DEL_SEC_LEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_DISASSOCIATE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_GET_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_GET_SEC_DEV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_GET_SEC_DEVKEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_GET_SEC_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_GET_SEC_LEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_GET_WPAN_PHY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_LIST_ASSOCIATIONS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_NEW_INTERFACE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_NEW_SEC_DEV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_NEW_SEC_DEVKEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_NEW_SEC_KEY"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_NEW_SEC_LEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SEND_BEACONS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_ACKREQ_DEFAULT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_BACKOFF_EXPONENT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_CCA_ED_LEVEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_CCA_MODE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_CHANNEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_LBT_MODE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_MAX_ASSOCIATIONS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_MAX_CSMA_BACKOFFS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_MAX_FRAME_RETRIES"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_PAN_ID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_SEC_PARAMS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_SHORT_ADDR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_TX_POWER"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_SET_WPAN_PHY_NETNS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_STOP_BEACONS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NL802154_CMD_TRIGGER_SCAN"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CALIPSO_C_ADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CALIPSO_C_LIST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CALIPSO_C_LISTALL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CALIPSO_C_REMOVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CIPSOV4_C_ADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CIPSOV4_C_LIST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CIPSOV4_C_LISTALL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_CIPSOV4_C_REMOVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_ADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_ADDDEF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_LISTALL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_LISTDEF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_PROTOCOLS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_REMOVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_REMOVEDEF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_MGMT_C_VERSION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_ACCEPT"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_LIST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_STATICADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_STATICADDDEF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_STATICLIST"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_STATICLISTDEF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_STATICREMOVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "NLBL_UNLABEL_C_STATICREMOVEDEF"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_CT_LIMIT_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_CT_LIMIT_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_CT_LIMIT_CMD_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_DP_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_DP_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_DP_CMD_NEW"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_DP_CMD_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_FLOW_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_FLOW_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_FLOW_CMD_NEW"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_FLOW_CMD_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_METER_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_METER_CMD_FEATURES"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_METER_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_METER_CMD_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_PACKET_CMD_EXECUTE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_VPORT_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_VPORT_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_VPORT_CMD_NEW"
+	},
+	{
+		"type": "NETLINK",
+		"name": "OVS_VPORT_CMD_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SEG6_CMD_DUMPHMAC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SEG6_CMD_GET_TUNSRC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SEG6_CMD_SETHMAC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SEG6_CMD_SET_TUNSRC"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_ADD_UEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_DISABLE_HS_LIMITATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_DISABLE_SEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_DUMP_HS_LIMITATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_DUMP_SEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_DUMP_UEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_ENABLE_HS_LIMITATION"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_ENABLE_SEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_FLUSH_UEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_DEV_SMCD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_DEV_SMCR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_FBACK_STATS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_LGR_SMCD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_LGR_SMCR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_LINK_SMCR"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_STATS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_GET_SYS_INFO"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_NETLINK_REMOVE_UEID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_PNETID_ADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_PNETID_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_PNETID_FLUSH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "SMC_PNETID_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TASKSTATS_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TCP_METRICS_CMD_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TCP_METRICS_CMD_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "THERMAL_GENL_CMD_CDEV_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "THERMAL_GENL_CMD_TZ_GET_GOV"
+	},
+	{
+		"type": "NETLINK",
+		"name": "THERMAL_GENL_CMD_TZ_GET_ID"
+	},
+	{
+		"type": "NETLINK",
+		"name": "THERMAL_GENL_CMD_TZ_GET_TEMP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "THERMAL_GENL_CMD_TZ_GET_TRIP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_ADDR_LEGACY_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_BEARER_ADD"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_BEARER_DISABLE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_BEARER_ENABLE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_BEARER_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_BEARER_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_KEY_FLUSH"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_KEY_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_LINK_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_LINK_RESET_STATS"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_LINK_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_MEDIA_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_MEDIA_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_MON_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_MON_PEER_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_MON_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_NAME_TABLE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_NET_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_NET_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_NODE_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_PEER_REMOVE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_PUBL_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_SOCK_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "TIPC_NL_UDP_GET_REMOTEIP"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_DEV_ATTR_SET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_DEV_CONFIG_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_DEV_DEL"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_DEV_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_DEV_NEW"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_DEV_VSTATS_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "VDPA_CMD_MGMTDEV_GET"
+	},
+	{
+		"type": "NETLINK",
+		"name": "WG_CMD_GET_DEVICE"
+	},
+	{
+		"type": "NETLINK",
+		"name": "WG_CMD_SET_DEVICE"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "_llseek"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "_newselect"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "accept"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "accept4"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "access"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "acct"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "add_key"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "adjtimex"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "alarm"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "arch_prctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "arm_sync_file_range"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "bind"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "bpf"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "brk"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "cachestat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "capget"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "capset"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "chdir"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "chmod"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "chown"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "chown32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "chroot"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_adjtime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_adjtime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_getres"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_getres_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_gettime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_gettime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_nanosleep"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_nanosleep_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_settime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clock_settime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clone"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "clone3"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "close"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "close_range"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "connect"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "copy_file_range"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "creat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "delete_module"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "dup"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "dup2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "dup3"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "epoll_create"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "epoll_create1"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "epoll_ctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "epoll_pwait"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "epoll_pwait2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "epoll_wait"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "eventfd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "eventfd2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "execve"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "execveat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "exit"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "exit_group"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "faccessat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "faccessat2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fadvise64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fallocate"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fanotify_init"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fanotify_mark"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchdir"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchmod"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchmodat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchmodat2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchown"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchown32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fchownat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fcntl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fdatasync"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fgetxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "finit_module"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "flistxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "flock"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fremovexattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fsconfig"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fsetxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fsmount"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fsopen"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fspick"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fstat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fstatfs"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fstatfs64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "fsync"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ftruncate"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futex"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futex_requeue"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futex_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futex_wait"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futex_waitv"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futex_wake"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "futimesat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "get_mempolicy"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "get_robust_list"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "get_thread_area"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getcpu"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getcwd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getdents"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getdents64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getgroups"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getgroups32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getitimer"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getpeername"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getpgid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getpriority"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getrandom"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getresgid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getresgid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getresuid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getresuid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getrlimit"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getrusage"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getsid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getsockname"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getsockopt"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "gettimeofday"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "getxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "init_module"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "inotify_add_watch"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "inotify_init1"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "inotify_rm_watch"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_cancel"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_destroy"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_getevents"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_pgetevents"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_pgetevents_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_setup"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_submit"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_uring_enter"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_uring_register"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "io_uring_setup"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ioctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ioperm"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "iopl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ioprio_get"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ioprio_set"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "kcmp"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "kexec_load"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "keyctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "kill"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "landlock_add_rule"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "landlock_create_ruleset"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "landlock_restrict_self"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lchown"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lchown32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lgetxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "link"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "linkat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "listen"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "listmount"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "listxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "llistxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lremovexattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lseek"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lsetxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lsm_get_self_attr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lsm_list_modules"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lsm_set_self_attr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "lstat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "madvise"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "map_shadow_stack"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mbind"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "membarrier"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "memfd_create"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "memfd_secret"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "migrate_pages"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mincore"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mkdir"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mkdirat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mknod"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mknodat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mlock"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mlock2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mlockall"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mmap"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mmap2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "modify_ldt"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mount"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mount_setattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "move_mount"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "move_pages"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mprotect"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_getsetattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_notify"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_open"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_timedreceive"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_timedreceive_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_timedsend"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_timedsend_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mq_unlink"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mremap"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "mseal"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "msgctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "msgget"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "msgrcv"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "msgsnd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "msync"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "munlock"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "munmap"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "name_to_handle_at"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "nanosleep"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "newfstatat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "nice"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "oldfstat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "oldlstat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "oldolduname"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "oldstat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "olduname"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "open"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "open_by_handle_at"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "open_tree"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "openat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "openat2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "perf_event_open"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "personality"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pidfd_getfd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pidfd_open"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pidfd_send_signal"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pipe"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pipe2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pivot_root"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pkey_alloc"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pkey_free"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pkey_mprotect"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "poll"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ppoll"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ppoll_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "prctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pread64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "preadv"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "preadv2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "prlimit64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "process_madvise"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "process_mrelease"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "process_vm_readv"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "process_vm_writev"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pselect6"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pselect6_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ptrace"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pwrite64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pwritev"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "pwritev2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "quotactl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "quotactl_fd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "read"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "readahead"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "readdir"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "readlink"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "readlinkat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "readv"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "recv"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "recvfrom"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "recvmmsg"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "recvmmsg_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "recvmsg"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "remap_file_pages"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "removexattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rename"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "renameat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "renameat2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "request_key"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rmdir"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rseq"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigaction"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigpending"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigprocmask"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigqueueinfo"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigsuspend"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigtimedwait"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_sigtimedwait_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "rt_tgsigqueueinfo"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_get_priority_max"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_get_priority_min"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_getaffinity"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_getattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_getparam"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_getscheduler"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_rr_get_interval"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_rr_get_interval_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_setaffinity"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_setattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_setparam"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sched_setscheduler"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "seccomp"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "select"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "semctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "semget"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "semop"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "semtimedop"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "semtimedop_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "send"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sendfile"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sendfile64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sendmmsg"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sendmsg"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sendto"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "set_mempolicy"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "set_mempolicy_home_node"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "set_robust_list"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "set_thread_area"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "set_tid_address"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setdomainname"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setfsgid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setfsgid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setfsuid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setfsuid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setgid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setgid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setgroups"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setgroups32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sethostname"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setitimer"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setns"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setpgid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setpriority"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setregid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setregid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setresgid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setresgid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setresuid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setresuid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setreuid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setreuid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setrlimit"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setsockopt"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "settimeofday"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setuid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setuid32"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "setxattr"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "shmat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "shmctl"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "shmdt"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "shmget"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "shutdown"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sigaltstack"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "signal"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "signalfd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "signalfd4"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sigpending"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sigprocmask"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sigsuspend"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "socket"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "socketcall"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "socketpair"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "splice"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ssetmask"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "stat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "statfs"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "statfs64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "statmount"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "statx"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "stime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "swapoff"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "swapon"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "symlink"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "symlinkat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sync_file_range"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sync_file_range2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "syncfs"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sysfs"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "sysinfo"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "syslog"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "tee"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "tgkill"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "time"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_create"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_delete"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_getoverrun"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_gettime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_gettime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_settime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timer_settime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timerfd_create"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timerfd_gettime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timerfd_gettime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timerfd_settime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "timerfd_settime64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "times"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "tkill"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "truncate"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ugetrlimit"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "umask"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "umount"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "umount2"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "uname"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "unlink"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "unlinkat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "unshare"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "userfaultfd"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ustat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "utime"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "utimensat"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "utimensat_time64"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "utimes"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "vmsplice"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "wait4"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "waitid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "waitpid"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "write"
+	},
+	{
+		"type": "SYSCALL",
+		"name": "writev"
+	}
+]

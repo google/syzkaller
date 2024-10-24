@@ -42,12 +42,6 @@
 using namespace clang;
 using namespace clang::ast_matchers;
 
-llvm::cl::OptionCategory SyzDeclExtractOptionCategory("Syz-declextract options");
-llvm::cl::opt<bool> Final("final", llvm::cl::desc("Output descriptions following syzkaller syntax"),
-                          llvm::cl::cat(SyzDeclExtractOptionCategory));
-llvm::cl::opt<bool> Minimal("minimal", llvm::cl::desc("Output netlink commands and systemcall names only"),
-                            llvm::cl::cat(SyzDeclExtractOptionCategory));
-
 struct EnumData {
   std::string name;
   unsigned long long value;
@@ -74,6 +68,10 @@ struct StructMember {
   std::string name;
   unsigned int countedBy;
 };
+
+void emitInterface(const char *type, std::string_view name) {
+  printf("\n#INTERFACE: %s %s\n\n", type, std::string(name).c_str());
+}
 
 struct SyzRecordDecl {
   std::string name;
@@ -488,19 +486,16 @@ public:
 
     const char *sep = "";
     const auto &name = syscall->getNameAsString().substr(9); // Remove "__do_sys_" prefix.
-    if (Minimal) {
-      printf("SYSCALL\t%s\n", name.c_str());
-    } else {
-      printf("%s(", name.c_str());
-      for (const auto &param : syscall->parameters()) {
-        const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
-        const auto &name = param->getNameAsString();
-        printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
-        sep = ", ";
-      }
-      printf(") (automatic)\n");
-      recordExtractor.print();
+    emitInterface("SYSCALL", name);
+    printf("%s(", name.c_str());
+    for (const auto &param : syscall->parameters()) {
+      const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
+      const auto &name = param->getNameAsString();
+      printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
+      sep = ", ";
     }
+    printf(") (automatic)\n");
+    recordExtractor.print();
 
     return;
   }
@@ -808,17 +803,13 @@ private:
         } else {
           continue;
         }
-        if (Minimal) {
-          printf("NETLINK\t%s\n", ops.cmd.c_str());
-        }
-        if (Final) {
-          printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
-                 ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
-        }
+        emitInterface("NETLINK", ops.cmd);
+        printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
+               ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
         printedCmds = true;
       }
     }
-    if (!printedCmds || !Final) { // Do not print resources and types if they're not used in any cmds
+    if (!printedCmds) { // Do not print resources and types if they're not used in any cmds
       return;
     }
     std::string resourceName = "genl_" + name + "_family_id_auto";
@@ -831,15 +822,14 @@ private:
 
 public:
   virtual void run(const MatchFinder::MatchResult &Result) override {
-    if (Final) {
-      nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
-      netlink(Result);
-    }
+    nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
+    netlink(Result);
     genlFamily(Result);
   };
 };
 
 int main(int argc, const char **argv) {
+  llvm::cl::OptionCategory SyzDeclExtractOptionCategory("syz-declextract options");
   auto ExpectedParser = clang::tooling::CommonOptionsParser::create(argc, argv, SyzDeclExtractOptionCategory);
   if (!ExpectedParser) {
     llvm::errs() << ExpectedParser.takeError();
@@ -847,10 +837,6 @@ int main(int argc, const char **argv) {
   }
 
   clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
-  if (!Minimal) {
-    Final = true;
-  }
-
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
 
   NetlinkPolicyMatcher NetlinkPolicyMatcher;
