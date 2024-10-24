@@ -87,6 +87,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
           </div>
         {{end}}
 
+        <div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}">
+          <a href='/{{$.Namespace}}/graph/crashes'>
+            <span style="color:ForestGreen;">≡</span> Crashes</a>
+        </div>
+
         <div class="dropdown navigation_tab">
           <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
           <div class="dropdown-content">
@@ -98,8 +103,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
                 href='/{{$.Namespace}}/graph/lifetimes'>Bug&nbsp;Lifetimes</a>
             <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}"
                 href='/{{$.Namespace}}/graph/fuzzing'>Fuzzing</a>
-            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/crashes'>Crashes</a>
           </div>
         </div>
 
