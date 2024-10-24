@@ -11,19 +11,19 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
-func CreateCoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg) ([]uint64,
-	map[uint64]struct{}, error) {
+func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg) (map[uint64]struct{}, error) {
 	if covCfg.Empty() {
-		return nil, nil, nil
+		return nil, nil
 	}
 	rg, err := source.Get()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	pcs := make(map[uint64]struct{})
 	foreachSymbol := func(apply func(*backend.ObjectUnit)) {
@@ -32,7 +32,7 @@ func CreateCoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFi
 		}
 	}
 	if err := covFilterAddFilter(pcs, covCfg.Functions, foreachSymbol); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	foreachUnit := func(apply func(*backend.ObjectUnit)) {
 		for _, unit := range rg.Units {
@@ -40,23 +40,13 @@ func CreateCoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFi
 		}
 	}
 	if err := covFilterAddFilter(pcs, covCfg.Files, foreachUnit); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := covFilterAddRawPCs(pcs, covCfg.RawPCs); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	// Copy pcs into execPCs. This is used to filter coverage in the executor.
-	execPCs := make([]uint64, 0, len(pcs))
-	for pc := range pcs {
-		execPCs = append(execPCs, pc)
-	}
-	// PCs from CMPs are deleted to calculate `filtered coverage` statistics.
-	for _, sym := range rg.Symbols {
-		for _, pc := range sym.CMPs {
-			delete(pcs, pc)
-		}
-	}
-	return execPCs, pcs, nil
+	// Note that pcs may include both comparison and block/edge coverage callbacks.
+	return pcs, nil
 }
 
 func covFilterAddFilter(pcs map[uint64]struct{}, filters []string, foreach func(func(*backend.ObjectUnit))) error {
@@ -137,4 +127,44 @@ func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
 		regexps = append(regexps, r)
 	}
 	return regexps, nil
+}
+
+type CoverageFilters struct {
+	Areas          []corpus.FocusArea
+	ExecutorFilter map[uint64]struct{}
+}
+
+func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Config) (CoverageFilters, error) {
+	var ret CoverageFilters
+	needExecutorFilter := true
+	for _, area := range cfg.Experimental.FocusAreas {
+		pcs, err := CoverageFilter(source, area.Filter)
+		if err != nil {
+			return ret, err
+		}
+		// KCOV will point to the next instruction, so we need to adjust the map.
+		covPCs := make(map[uint64]struct{})
+		for pc := range pcs {
+			next := backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
+			covPCs[next] = struct{}{}
+		}
+		ret.Areas = append(ret.Areas, corpus.FocusArea{
+			Name:     area.Name,
+			CoverPCs: covPCs,
+			Weight:   area.Weight,
+		})
+		if area.Filter.Empty() {
+			// An empty cover filter indicates that the user is interested in all the coverage.
+			needExecutorFilter = false
+		}
+	}
+	if needExecutorFilter {
+		ret.ExecutorFilter = map[uint64]struct{}{}
+		for _, area := range ret.Areas {
+			for pc := range area.CoverPCs {
+				ret.ExecutorFilter[pc] = struct{}{}
+			}
+		}
+	}
+	return ret, nil
 }

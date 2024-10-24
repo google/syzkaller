@@ -24,7 +24,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -92,7 +91,7 @@ type Manager struct {
 	checkDone       atomic.Bool
 	reportGenerator *manager.ReportGeneratorWrapper
 	fresh           bool
-	coverFilter     map[uint64]struct{} // includes only coverage PCs
+	coverFilters    manager.CoverageFilters
 
 	dash *dashapi.Dashboard
 	// This is specifically separated from dash, so that we can keep dash = nil when
@@ -876,11 +875,10 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
-		if len(update.NewCover) != 0 && mgr.coverFilter != nil {
+		if len(update.NewCover) != 0 && mgr.coverFilters.ExecutorFilter != nil {
 			filtered := 0
 			for _, pc := range update.NewCover {
-				pc = backend.PreviousInstructionPC(mgr.cfg.SysTarget, mgr.cfg.Type, pc)
-				if _, ok := mgr.coverFilter[pc]; ok {
+				if _, ok := mgr.coverFilters.ExecutorFilter[pc]; ok {
 					filtered++
 				}
 			}
@@ -1329,17 +1327,22 @@ func (mgr *Manager) dashboardReproTasks() {
 
 func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	mgr.reportGenerator.Init(modules)
-	execFilter, filter, err := manager.CreateCoverageFilter(mgr.reportGenerator, mgr.cfg.CovFilter)
+	filters, err := manager.PrepareCoverageFilters(mgr.reportGenerator, mgr.cfg)
 	if err != nil {
 		log.Fatalf("failed to init coverage filter: %v", err)
 	}
-	mgr.coverFilter = filter
+	mgr.coverFilters = filters
 	mgr.http.Cover.Store(&manager.CoverageInfo{
 		Modules:         modules,
 		ReportGenerator: mgr.reportGenerator,
-		CoverFilter:     filter,
+		CoverFilter:     filters.ExecutorFilter,
 	})
-	return execFilter
+	mgr.corpus.SetFocusAreas(filters.Areas)
+	var pcs []uint64
+	for pc := range filters.ExecutorFilter {
+		pcs = append(pcs, pc)
+	}
+	return pcs
 }
 
 func publicWebAddr(addr string) string {
