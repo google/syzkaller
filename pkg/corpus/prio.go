@@ -6,22 +6,18 @@ package corpus
 import (
 	"math/rand"
 	"sort"
-	"sync"
 
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
 
 type ProgramsList struct {
-	mu       sync.RWMutex
 	progs    []*prog.Prog
 	sumPrios int64
 	accPrios []int64
 }
 
-func (pl *ProgramsList) ChooseProgram(r *rand.Rand) *prog.Prog {
-	pl.mu.RLock()
-	defer pl.mu.RUnlock()
+func (pl *ProgramsList) chooseProgram(r *rand.Rand) *prog.Prog {
 	if len(pl.progs) == 0 {
 		return nil
 	}
@@ -32,15 +28,7 @@ func (pl *ProgramsList) ChooseProgram(r *rand.Rand) *prog.Prog {
 	return pl.progs[idx]
 }
 
-func (pl *ProgramsList) Programs() []*prog.Prog {
-	pl.mu.RLock()
-	defer pl.mu.RUnlock()
-	return pl.progs
-}
-
 func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
-	pl.mu.Lock()
-	defer pl.mu.Unlock()
 	prio := int64(len(signal))
 	if prio == 0 {
 		prio = 1
@@ -50,10 +38,42 @@ func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
 	pl.progs = append(pl.progs, p)
 }
 
-func (pl *ProgramsList) replace(other *ProgramsList) {
-	pl.mu.Lock()
-	defer pl.mu.Unlock()
-	pl.sumPrios = other.sumPrios
-	pl.accPrios = other.accPrios
-	pl.progs = other.progs
+func (corpus *Corpus) ChooseProgram(r *rand.Rand) *prog.Prog {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	if len(corpus.progsMap) == 0 {
+		return nil
+	}
+	// We could have used an approach similar to chooseProgram(), but for small number
+	// of focus areas that is an overkill.
+	var randArea *focusAreaState
+	if len(corpus.focusAreas) > 0 {
+		sum := 0.0
+		nonEmpty := make([]*focusAreaState, 0, len(corpus.focusAreas))
+		for _, area := range corpus.focusAreas {
+			if len(area.progs) == 0 {
+				continue
+			}
+			sum += area.Weight
+			nonEmpty = append(nonEmpty, area)
+		}
+		val := r.Float64() * sum
+		currSum := 0.0
+		for _, area := range nonEmpty {
+			if val >= currSum {
+				randArea = area
+			}
+			currSum += area.Weight
+		}
+	}
+	if randArea != nil {
+		return randArea.chooseProgram(r)
+	}
+	return corpus.chooseProgram(r)
+}
+
+func (corpus *Corpus) Programs() []*prog.Prog {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	return corpus.progs
 }
