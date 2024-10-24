@@ -144,14 +144,9 @@ type Config struct {
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
-	// Use coverage filter. Supported types of filter:
-	// "files": support specifying kernel source files, support regular expression.
-	// eg. "files": ["^net/core/tcp.c$", "^net/sctp/", "tcp"].
-	// "functions": support specifying kernel functions, support regular expression.
-	// eg. "functions": ["^foo$", "^bar", "baz"].
-	// "pcs": specify raw PC table files name.
-	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
-	// eg. "0xffffffff81000000:0x10\n"
+
+	// CovFilter used to restrict the area of the kernel visible to syzkaller.
+	// DEPRECATED! Use the FocusAreas parameter instead.
 	CovFilter CovFilterCfg `json:"cover_filter,omitempty"`
 
 	// For each prog in the corpus, remember the raw array of PCs obtained from the kernel.
@@ -235,6 +230,34 @@ type Experimental struct {
 
 	// Use automatically (auto) generated or manually (manual) written descriptions or any (any) (default: manual)
 	DescriptionsMode string `json:"descriptions_mode"`
+
+	// FocusAreas configures what attention syzkaller should pay to the specific areas of the kernel.
+	// The probability of selecting a program from an area is at least `Weight / sum of weights`.
+	// If FocusAreas is non-empty, by default all kernel code not covered by any filter will be ignored.
+	// To focus fuzzing on some areas, but to consider the rest of the code as well, add a record
+	// with an empty Filter, but non-empty weight.
+	// E.g. "focus_areas": [ {"filter": {"files": ["^net"]}, "weight": 10.0}, {"weight": 1.0"} ].
+	FocusAreas []FocusArea `json:"focus_areas,omitempty"`
+}
+
+type FocusArea struct {
+	// Name allows to display detailed statistics for every focus area.
+	Name string `json:"name"`
+
+	// A coverage filter.
+	// Supported filter types:
+	// "files": support specifying kernel source files, support regular expression.
+	// eg. "files": ["^net/core/tcp.c$", "^net/sctp/", "tcp"].
+	// "functions": support specifying kernel functions, support regular expression.
+	// eg. "functions": ["^foo$", "^bar", "baz"].
+	// "pcs": specify raw PC table files name.
+	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
+	// eg. "0xffffffff81000000:0x10\n"
+	// If empty, it's assumed to match the whole kernel.
+	Filter CovFilterCfg `json:"filter,omitempty"`
+
+	// Weight is a positive number that determines how much focus should be put on this area.
+	Weight float64 `json:"weight"`
 }
 
 type Subsystem struct {
