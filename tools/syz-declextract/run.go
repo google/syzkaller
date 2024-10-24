@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -42,21 +43,29 @@ const ( // Output Format.
 )
 
 func main() {
-	compilationDatabase := flag.String("compile_commands", "compile_commands.json", "path to compilation database")
-	binary := flag.String("binary", "syz-declextract", "path to binary")
-	outFile := flag.String("output", "out.txt", "output file")
-	kernelDir := flag.String("kernel", "", "kernel directory")
-	format := flag.String("output_format", Final, "format for output [minimal, final]")
-	flag.Parse()
+	var (
+		compilationDatabase = flag.String("compile_commands", "compile_commands.json", "path to compilation database")
+		binary              = flag.String("binary", "syz-declextract", "path to binary")
+		outFile             = flag.String("output", "out.txt", "output file")
+		sourceDir           = flag.String("sourcedir", "", "kernel source directory")
+		buildDir            = flag.String("builddir", "", "kernel build directory (defaults to source directory)")
+		format              = flag.String("output_format", Final, "format for output [minimal, final]")
+	)
+	defer tool.Init()()
 
 	switch *format {
 	case Final, Minimal:
 	default:
 		tool.Failf("invalid -output_format flag value [minimal, final]")
 	}
-	if *kernelDir == "" {
-		tool.Failf("path to kernel directory is required")
+	if *sourceDir == "" {
+		tool.Failf("path to kernel source directory is required")
 	}
+	if *buildDir == "" {
+		*buildDir = *sourceDir
+	}
+	*sourceDir = filepath.Clean(osutil.Abs(*sourceDir))
+	*buildDir = filepath.Clean(osutil.Abs(*buildDir))
 
 	fileData, err := os.ReadFile(*compilationDatabase)
 	if err != nil {
@@ -87,7 +96,7 @@ func main() {
 	close(files)
 
 	var nodes []ast.Node
-	syscallNames := readSyscallNames(filepath.Join(*kernelDir, "arch"))
+	syscallNames := readSyscallNames(filepath.Join(*sourceDir, "arch"))
 
 	var minimalOutput []string
 	eh := ast.LoggingHandler
@@ -104,7 +113,7 @@ func main() {
 		if parse == nil {
 			tool.Failf("parsing error")
 		}
-		appendNodes(&nodes, parse.Nodes, syscallNames)
+		appendNodes(&nodes, parse.Nodes, syscallNames, *sourceDir, *buildDir)
 	}
 
 	var out []byte
@@ -350,13 +359,18 @@ func isProhibited(syscall string) bool {
 	}
 }
 
-func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]string) {
+func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]string, sourceDir, buildDir string) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 		case *ast.Call:
 			// Some syscalls have different names and entry points and thus need to be renamed.
 			// e.g. SYSCALL_DEFINE1(setuid16, old_uid_t, uid) is referred to in the .tbl file with setuid.
 			*slice = append(*slice, renameSyscall(node, syscallNames)...)
+		case *ast.Include:
+			if file, err := filepath.Rel(sourceDir, filepath.Join(buildDir, node.File.Value)); err == nil {
+				node.File.Value = file
+			}
+			*slice = append(*slice, node)
 		default:
 			*slice = append(*slice, node)
 		}

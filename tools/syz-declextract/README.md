@@ -1,7 +1,7 @@
 # syz-declextract
-## Linux Kernel (For testing purposes)
+## Linux Kernel (for testing purposes)
 ```
-export KERNEL=$PWD/linux-stable
+export KERNEL=$PWD/linux
 git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
 cd $KERNEL
 make CC=clang defconfig # Having clang as the compiler is optional but removes erros later on
@@ -39,5 +39,5 @@ make -j`nproc` syz-declextract
 Download `run.go`, build it and run it
 ```
 go build run.go
-./run -compile_commands $KERNEL/compile_commands.json -binary $SYZ/bin/syz-declextract -output auto.txt -kernel $KERNEL
+./run -compile_commands $KERNEL/compile_commands.json -binary $SYZ/bin/syz-declextract -output auto.txt -sourcedir $KERNEL
 ```
