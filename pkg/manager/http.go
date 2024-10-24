@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -48,14 +49,15 @@ type HTTPServer struct {
 	// To be set once.
 	Cfg        *mgrconfig.Config
 	StartTime  time.Time
-	Corpus     *corpus.Corpus
 	CrashStore *CrashStore
+	DiffStore  *DiffFuzzerStore
 
 	// Set dynamically.
+	Corpus          atomic.Pointer[corpus.Corpus]
 	Fuzzer          atomic.Pointer[fuzzer.Fuzzer]
 	Cover           atomic.Pointer[CoverageInfo]
 	ReproLoop       atomic.Pointer[ReproLoop]
-	Pool            atomic.Pointer[dispatcher.Pool[*vm.Instance]]
+	Pools           sync.Map     // string => dispatcher.Pool[*vm.Instance]
 	EnabledSyscalls atomic.Value // map[*prog.Syscall]bool
 
 	// Internal state.
@@ -76,13 +78,15 @@ func (serv *HTTPServer) Serve() {
 	handle("/syscalls", serv.httpSyscalls)
 	handle("/corpus", serv.httpCorpus)
 	handle("/corpus.db", serv.httpDownloadCorpus)
-	handle("/crash", serv.httpCrash)
+	if serv.CrashStore != nil {
+		handle("/crash", serv.httpCrash)
+		handle("/report", serv.httpReport)
+	}
 	handle("/cover", serv.httpCover)
 	handle("/subsystemcover", serv.httpSubsystemCover)
 	handle("/modulecover", serv.httpModuleCover)
 	handle("/prio", serv.httpPrio)
 	handle("/file", serv.httpFile)
-	handle("/report", serv.httpReport)
 	handle("/rawcover", serv.httpRawCover)
 	handle("/rawcoverfiles", serv.httpRawCoverFiles)
 	handle("/filterpcs", serv.httpFilterPCs)
@@ -124,11 +128,15 @@ func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 			Link:  stat.Link,
 		})
 	}
-
-	var err error
-	if data.Crashes, err = serv.collectCrashes(serv.Cfg.Workdir); err != nil {
-		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
-		return
+	if serv.CrashStore != nil {
+		var err error
+		if data.Crashes, err = serv.collectCrashes(serv.Cfg.Workdir); err != nil {
+			http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+	if serv.DiffStore != nil {
+		data.PatchedOnly, data.AffectsBoth, data.InProgress = serv.collectDiffCrashes()
 	}
 	executeTemplate(w, summaryTemplate, data)
 }
@@ -164,10 +172,12 @@ func (serv *HTTPServer) httpExpertMode(w http.ResponseWriter, r *http.Request) {
 
 func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	var calls map[string]*corpus.CallCov
-	if obj := serv.EnabledSyscalls.Load(); obj != nil {
-		calls = serv.Corpus.CallCover()
+	syscallsObj := serv.EnabledSyscalls.Load()
+	corpusObj := serv.Corpus.Load()
+	if corpusObj != nil && syscallsObj != nil {
+		calls = corpusObj.CallCover()
 		// Add enabled, but not yet covered calls.
-		for call := range obj.(map[*prog.Syscall]bool) {
+		for call := range syscallsObj.(map[*prog.Syscall]bool) {
 			if calls[call.Name] == nil {
 				calls[call.Name] = new(corpus.CallCov)
 			}
@@ -198,12 +208,15 @@ func (serv *HTTPServer) httpStats(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, pages.StatsTemplate, stat.RenderGraphs())
 }
 
+const DefaultPool = ""
+
 func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
-	pool := serv.Pool.Load()
-	if pool == nil {
-		http.Error(w, "no VM pool is present (yet)", http.StatusInternalServerError)
+	poolObj, ok := serv.Pools.Load(r.FormValue("pool"))
+	if !ok {
+		http.Error(w, "no such VM pool is known (yet)", http.StatusInternalServerError)
 		return
 	}
+	pool := poolObj.(*dispatcher.Pool[*vm.Instance])
 	data := &UIVMData{
 		Name: serv.Cfg.Name,
 	}
@@ -241,11 +254,12 @@ func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpVM(w http.ResponseWriter, r *http.Request) {
-	pool := serv.Pool.Load()
-	if pool == nil {
-		http.Error(w, "no VM pool is present (yet)", http.StatusInternalServerError)
+	poolObj, ok := serv.Pools.Load(r.FormValue("pool"))
+	if !ok {
+		http.Error(w, "no such VM pool is known (yet)", http.StatusInternalServerError)
 		return
 	}
+	pool := poolObj.(*dispatcher.Pool[*vm.Instance])
 
 	w.Header().Set("Content-Type", ctTextPlain)
 	id, err := strconv.Atoi(r.FormValue("id"))
@@ -309,11 +323,16 @@ func (serv *HTTPServer) httpCrash(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
 	data := UICorpus{
 		Call:     r.FormValue("call"),
 		RawCover: serv.Cfg.RawCover,
 	}
-	for _, inp := range serv.Corpus.Items() {
+	for _, inp := range corpus.Items() {
 		if data.Call != "" && data.Call != inp.StringCall() {
 			continue
 		}
@@ -404,6 +423,12 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		return
 	}
 
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+
 	rg, err := coverInfo.ReportGenerator.Get()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
@@ -419,7 +444,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
-		inp := serv.Corpus.Item(sig)
+		inp := corpus.Item(sig)
 		if inp == nil {
 			http.Error(w, "unknown input hash", http.StatusInternalServerError)
 			return
@@ -444,7 +469,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		}
 	} else {
 		call := r.FormValue("call")
-		for _, inp := range serv.Corpus.Items() {
+		for _, inp := range corpus.Items() {
 			if call != "" && call != inp.StringCall() {
 				continue
 			}
@@ -499,8 +524,13 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 }
 
 func (serv *HTTPServer) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
 	calls := make(map[int][]int)
-	for s := range serv.Corpus.Signal() {
+	for s := range corpus.Signal() {
 		id, errno := prog.DecodeFallbackSignal(uint64(s))
 		calls[id] = append(calls[id], errno)
 	}
@@ -536,6 +566,12 @@ func (serv *HTTPServer) httpFileCover(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+
 	callName := r.FormValue("call")
 	call := serv.Cfg.Target.SyscallMap[callName]
 	if call == nil {
@@ -543,11 +579,12 @@ func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var corpus []*prog.Prog
-	for _, inp := range serv.Corpus.Items() {
-		corpus = append(corpus, inp.Prog)
+	var progs []*prog.Prog
+	for _, inp := range corpus.Items() {
+		progs = append(progs, inp.Prog)
 	}
-	prios := serv.Cfg.Target.CalculatePriorities(corpus)
+
+	prios := serv.Cfg.Target.CalculatePriorities(progs)
 
 	data := &UIPrioData{Call: callName}
 	for i, p := range prios[call.ID] {
@@ -577,7 +614,12 @@ func (serv *HTTPServer) httpFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpInput(w http.ResponseWriter, r *http.Request) {
-	inp := serv.Corpus.Item(r.FormValue("sig"))
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+	inp := corpus.Item(r.FormValue("sig"))
 	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
@@ -587,7 +629,12 @@ func (serv *HTTPServer) httpInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
-	inp := serv.Corpus.Item(r.FormValue("sig"))
+	corpus := serv.Corpus.Load()
+	if corpus == nil {
+		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
+		return
+	}
+	inp := corpus.Item(r.FormValue("sig"))
 	if inp == nil {
 		http.Error(w, "can't find the input", http.StatusInternalServerError)
 		return
@@ -690,15 +737,61 @@ func (serv *HTTPServer) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 	serv.httpCoverCover(w, r, DoFilterPCs)
 }
 
-func (serv *HTTPServer) collectCrashes(workdir string) ([]*UICrashType, error) {
-	var repros map[string]bool
-	if reproLoop := serv.ReproLoop.Load(); reproLoop != nil {
-		repros = reproLoop.Reproducing()
+func (serv *HTTPServer) collectDiffCrashes() (patchedOnly, both, inProgress *UIDiffTable) {
+	for _, item := range serv.allDiffCrashes() {
+		if item.PatchedOnly() {
+			if patchedOnly == nil {
+				patchedOnly = &UIDiffTable{Title: "Patched-only"}
+			}
+			patchedOnly.List = append(patchedOnly.List, item)
+		} else if item.AffectsBoth() {
+			if both == nil {
+				both = &UIDiffTable{Title: "Affects both"}
+			}
+			both.List = append(both.List, item)
+		} else {
+			if inProgress == nil {
+				inProgress = &UIDiffTable{Title: "In Progress"}
+			}
+			inProgress.List = append(inProgress.List, item)
+		}
 	}
+	return
+}
+
+func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
+	repros := serv.nowReproducing()
+	var list []UIDiffBug
+	for _, bug := range serv.DiffStore.List() {
+		list = append(list, UIDiffBug{
+			DiffBug:     bug,
+			Reproducing: repros[bug.Title],
+		})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		first, second := list[i], list[j]
+		firstPatched, secondPatched := first.PatchedOnly(), second.PatchedOnly()
+		if firstPatched != secondPatched {
+			return firstPatched
+		}
+		return first.Title < second.Title
+	})
+	return list
+}
+
+func (serv *HTTPServer) nowReproducing() map[string]bool {
+	if reproLoop := serv.ReproLoop.Load(); reproLoop != nil {
+		return reproLoop.Reproducing()
+	}
+	return nil
+}
+
+func (serv *HTTPServer) collectCrashes(workdir string) ([]*UICrashType, error) {
 	list, err := serv.CrashStore.BugList()
 	if err != nil {
 		return nil, err
 	}
+	repros := serv.nowReproducing()
 	var ret []*UICrashType
 	for _, info := range list {
 		ret = append(ret, makeUICrashType(info, serv.StartTime, repros))
@@ -783,7 +876,15 @@ type UISummaryData struct {
 	Expert       bool
 	Stats        []UIStat
 	Crashes      []*UICrashType
+	PatchedOnly  *UIDiffTable
+	AffectsBoth  *UIDiffTable
+	InProgress   *UIDiffTable
 	Log          string
+}
+
+type UIDiffTable struct {
+	Title string
+	List  []UIDiffBug
 }
 
 type UIVMData struct {
@@ -818,6 +919,11 @@ type UICrashType struct {
 type UICrash struct {
 	*CrashInfo
 	Active bool
+}
+
+type UIDiffBug struct {
+	DiffBug
+	Reproducing bool
 }
 
 type UIStat struct {
@@ -876,6 +982,7 @@ var summaryTemplate = pages.Create(`
 	{{end}}
 </table>
 
+{{if .Crashes}}
 <table class="list_table">
 	<caption>Crashes:</caption>
 	<tr>
@@ -900,6 +1007,63 @@ var summaryTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
+{{end}}
+
+{{define "diff_crashes"}}
+<table class="list_table">
+	<caption>{{.Title}}:</caption>
+	<tr>
+		<th>Description</th>
+		<th>Base</th>
+		<th>Patched</th>
+	</tr>
+	{{range $bug := .List}}
+	<tr>
+		<td class="title">{{$bug.Title}}</td>
+		<td class="title">
+		{{if gt $bug.Base.Crashes 0}}
+			{{$bug.Base.Crashes}} crashes
+		{{else if $bug.Base.NotCrashed}}
+			Not affected
+		{{else}} ? {{end}}
+		{{if $bug.Base.Report}}
+			<a href="/file?name={{$bug.Base.Report}}">[report]</a>
+		{{end}}
+		</td>
+		<td class="title">
+		{{if gt $bug.Patched.Crashes 0}}
+			{{$bug.Patched.Crashes}} crashes
+		{{else}} ? {{end}}
+		{{if $bug.Patched.Report}}
+			<a href="/file?name={{$bug.Patched.Report}}">[report]</a>
+		{{end}}
+		{{if $bug.Patched.CrashLog}}
+			<a href="/file?name={{$bug.Patched.CrashLog}}">[crash log]</a>
+		{{end}}
+		{{if $bug.Patched.Repro}}
+			<a href="/file?name={{$bug.Patched.Repro}}">[syz repro]</a>
+		{{end}}
+		{{if $bug.Patched.ReproLog}}
+			<a href="/file?name={{$bug.Patched.ReproLog}}">[repro log]</a>
+		{{end}}
+		{{if $bug.Reproducing}}[reproducing]{{end}}
+		</td>
+	</tr>
+	{{end}}
+</table>
+{{end}}
+
+{{if .PatchedOnly}}
+{{template "diff_crashes" .PatchedOnly}}
+{{end}}
+
+{{if .AffectsBoth}}
+{{template "diff_crashes" .AffectsBoth}}
+{{end}}
+
+{{if .InProgress}}
+{{template "diff_crashes" .InProgress}}
+{{end}}
 
 <b>Log:</b>
 <br>

@@ -306,11 +306,11 @@ func (cs *CrashStore) BugList() ([]*BugInfo, error) {
 	return ret, nil
 }
 
-func (cs *CrashStore) titleToID(title string) string {
+func crashHash(title string) string {
 	sig := hash.Hash([]byte(title))
 	return sig.String()
 }
 
 func (cs *CrashStore) path(title string) string {
-	return filepath.Join(cs.BaseDir, "crashes", cs.titleToID(title))
+	return filepath.Join(cs.BaseDir, "crashes", crashHash(title))
 }

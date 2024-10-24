@@ -68,3 +68,12 @@ func CoverToPCs(cfg *mgrconfig.Config, cov []uint64) []uint64 {
 	}
 	return pcs
 }
+
+func PCsToCover(cfg *mgrconfig.Config, pcs map[uint64]struct{}) map[uint64]struct{} {
+	ret := make(map[uint64]struct{})
+	for pc := range pcs {
+		next := backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
+		ret[next] = struct{}{}
+	}
+	return ret
+}

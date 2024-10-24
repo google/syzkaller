@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 
@@ -457,5 +458,72 @@ func (do *defaultOpts) Next() *Request {
 	req.ExecOpts.ExecFlags |= do.opts.ExecFlags
 	req.ExecOpts.EnvFlags |= do.opts.EnvFlags
 	req.ExecOpts.SandboxArg = do.opts.SandboxArg
+	return req
+}
+
+// RandomQueue holds up to |size| elements.
+// Next() evicts a random one.
+// On Submit(), if the queue is full, a random element is replaced.
+type RandomQueue struct {
+	mu      sync.Mutex
+	queue   []*Request
+	maxSize int
+	rnd     *rand.Rand
+}
+
+func NewRandomQueue(size int, rnd *rand.Rand) *RandomQueue {
+	return &RandomQueue{
+		maxSize: size,
+		rnd:     rnd,
+	}
+}
+
+func (rq *RandomQueue) Next() *Request {
+	rq.mu.Lock()
+	defer rq.mu.Unlock()
+	if len(rq.queue) == 0 {
+		return nil
+	}
+	pos := rq.rnd.Intn(len(rq.queue))
+	item := rq.queue[pos]
+
+	last := len(rq.queue) - 1
+	rq.queue[pos] = rq.queue[last]
+	rq.queue[last] = nil
+	rq.queue = rq.queue[0 : len(rq.queue)-1]
+	return item
+}
+
+func (rq *RandomQueue) Submit(req *Request) {
+	rq.mu.Lock()
+	defer rq.mu.Unlock()
+	if len(rq.queue) < rq.maxSize {
+		rq.queue = append(rq.queue, req)
+	} else {
+		pos := rq.rnd.Intn(rq.maxSize + 1)
+		if pos < len(rq.queue) {
+			rq.queue[pos].Done(&Result{Status: ExecFailure})
+			rq.queue[pos] = req
+		}
+	}
+}
+
+type tee struct {
+	queue Executor
+	src   Source
+}
+
+func Tee(src Source, queue Executor) Source {
+	return &tee{src: src, queue: queue}
+}
+
+func (t *tee) Next() *Request {
+	req := t.src.Next()
+	if req == nil {
+		return nil
+	}
+	t.queue.Submit(&Request{
+		Prog: req.Prog.Clone(),
+	})
 	return req
 }

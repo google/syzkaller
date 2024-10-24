@@ -8,12 +8,18 @@ import (
 	"time"
 )
 
+const defaultGitRevision = "unknown"
+
 var (
-	GitRevision     = "unknown" // emitted by Makefile, may contain + at the end
-	GitRevisionBase string      // without +
-	gitRevisionDate string      // emitted by Makefile
-	GitRevisionDate time.Time   // parsed from gitRevisionDate
+	GitRevision     = defaultGitRevision // emitted by Makefile, may contain + at the end
+	GitRevisionBase string               // without +
+	gitRevisionDate string               // emitted by Makefile
+	GitRevisionDate time.Time            // parsed from gitRevisionDate
 )
+
+func GitRevisionKnown() bool {
+	return GitRevision != defaultGitRevision
+}
 
 func init() {
 	GitRevisionBase = strings.Replace(GitRevision, "+", "", -1)

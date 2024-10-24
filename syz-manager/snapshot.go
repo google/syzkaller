@@ -20,8 +20,8 @@ import (
 )
 
 func (mgr *Manager) snapshotInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
-	queue.StatNumFuzzing.Add(1)
-	defer queue.StatNumFuzzing.Add(-1)
+	mgr.servStats.StatNumFuzzing.Add(1)
+	defer mgr.servStats.StatNumFuzzing.Add(-1)
 
 	updInfo(func(info *dispatcher.Info) {
 		info.Status = "snapshot fuzzing"
@@ -48,7 +48,7 @@ func (mgr *Manager) snapshotLoop(ctx context.Context, inst *vm.Instance) error {
 	builder := flatbuffers.NewBuilder(0)
 	var envFlags flatrpc.ExecEnv
 	for first := true; ctx.Err() == nil; first = false {
-		queue.StatExecs.Add(1)
+		mgr.servStats.StatExecs.Add(1)
 		req := mgr.snapshotSource.Next(inst.Index())
 		if first {
 			envFlags = req.ExecOpts.EnvFlags

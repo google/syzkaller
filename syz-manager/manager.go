@@ -24,7 +24,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -81,6 +80,7 @@ type Manager struct {
 	crashStore      *manager.CrashStore
 	serv            rpcserver.Server
 	http            *manager.HTTPServer
+	servStats       rpcserver.Stats
 	corpus          *corpus.Corpus
 	corpusDB        *db.DB
 	corpusDBMu      sync.Mutex // for concurrent operations on corpusDB
@@ -91,7 +91,7 @@ type Manager struct {
 	checkDone       atomic.Bool
 	reportGenerator *manager.ReportGeneratorWrapper
 	fresh           bool
-	coverFilter     map[uint64]struct{} // includes only coverage PCs
+	coverFilters    manager.CoverageFilters
 
 	dash *dashapi.Dashboard
 	// This is specifically separated from dash, so that we can keep dash = nil when
@@ -150,7 +150,7 @@ const (
 )
 
 func main() {
-	if prog.GitRevision == "" {
+	if !prog.GitRevisionKnown() {
 		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
 	}
 	flag.Parse()
@@ -208,12 +208,10 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		log.Fatalf("%v", err)
 	}
 
-	corpusUpdates := make(chan corpus.NewItemEvent, 128)
 	mgr := &Manager{
 		cfg:                cfg,
 		mode:               mode,
 		vmPool:             vmPool,
-		corpus:             corpus.NewMonitoredCorpus(context.Background(), corpusUpdates),
 		corpusPreload:      make(chan []fuzzer.Candidate),
 		target:             cfg.Target,
 		sysTarget:          cfg.SysTarget,
@@ -235,7 +233,6 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	mgr.http = &manager.HTTPServer{
 		Cfg:        cfg,
 		StartTime:  time.Now(),
-		Corpus:     mgr.corpus,
 		CrashStore: mgr.crashStore,
 	}
 
@@ -246,11 +243,11 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		close(mgr.corpusPreload)
 	}
 	go mgr.http.Serve()
-	go mgr.corpusInputHandler(corpusUpdates)
 	go mgr.trackUsedFiles()
 
 	// Create RPC server for fuzzers.
-	mgr.serv, err = rpcserver.New(mgr.cfg, mgr, *flagDebug)
+	mgr.servStats = rpcserver.NewStats()
+	mgr.serv, err = rpcserver.New(mgr.cfg, mgr, mgr.servStats, *flagDebug)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -297,7 +294,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		return
 	}
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
-	mgr.http.Pool.Store(mgr.pool)
+	mgr.http.Pools.Store(manager.DefaultPool, mgr.pool)
 	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	mgr.http.ReproLoop.Store(mgr.reproLoop)
 
@@ -323,7 +320,7 @@ func (mgr *Manager) heartbeatLoop() {
 		if mgr.firstConnect.Load() == 0 {
 			continue
 		}
-		mgr.statFuzzingTime.Add(diff * queue.StatNumFuzzing.Val())
+		mgr.statFuzzingTime.Add(diff * mgr.servStats.StatNumFuzzing.Val())
 		buf := new(bytes.Buffer)
 		for _, stat := range stat.Collect(stat.Console) {
 			fmt.Fprintf(buf, "%v=%v ", stat.Name, stat.Value)
@@ -874,11 +871,10 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 
 func (mgr *Manager) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
-		if len(update.NewCover) != 0 && mgr.coverFilter != nil {
+		if len(update.NewCover) != 0 && mgr.coverFilters.ExecutorFilter != nil {
 			filtered := 0
 			for _, pc := range update.NewCover {
-				pc = backend.PreviousInstructionPC(mgr.cfg.SysTarget, mgr.cfg.Type, pc)
-				if _, ok := mgr.coverFilter[pc]; ok {
+				if _, ok := mgr.coverFilters.ExecutorFilter[pc]; ok {
 					filtered++
 				}
 			}
@@ -1031,11 +1027,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	statSyscalls := stat.New("syscalls", "Number of enabled syscalls",
 		stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
 	statSyscalls.Add(len(enabledSyscalls))
-	corpus := mgr.loadCorpus(enabledSyscalls)
+	candidates := mgr.loadCorpus(enabledSyscalls)
 	mgr.setPhaseLocked(phaseLoadedCorpus)
-	opts := mgr.defaultExecOpts()
+	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
 
 	if mgr.mode == ModeFuzzing {
+		corpusUpdates := make(chan corpus.NewItemEvent, 128)
+		mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
+			corpusUpdates, mgr.coverFilters.Areas)
+		mgr.http.Corpus.Store(mgr.corpus)
+
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 			Corpus:         mgr.corpus,
@@ -1059,10 +1060,11 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 				return !mgr.saturatedCalls[call]
 			},
 		}, rnd, mgr.target)
-		fuzzerObj.AddCandidates(corpus)
+		fuzzerObj.AddCandidates(candidates)
 		mgr.fuzzer.Store(fuzzerObj)
 		mgr.http.Fuzzer.Store(fuzzerObj)
 
+		go mgr.corpusInputHandler(corpusUpdates)
 		go mgr.corpusMinimization()
 		go mgr.fuzzerLoop(fuzzerObj)
 		if mgr.dash != nil {
@@ -1085,7 +1087,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		return source
 	} else if mgr.mode == ModeCorpusRun {
 		ctx := &corpusRunner{
-			candidates: corpus,
+			candidates: candidates,
 			rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 		return queue.DefaultOpts(ctx, opts)
@@ -1138,34 +1140,6 @@ func (cr *corpusRunner) Next() *queue.Request {
 	return &queue.Request{
 		Prog:      p,
 		Important: true,
-	}
-}
-
-func (mgr *Manager) defaultExecOpts() flatrpc.ExecOpts {
-	env := csource.FeaturesToFlags(mgr.enabledFeatures, nil)
-	if *flagDebug {
-		env |= flatrpc.ExecEnvDebug
-	}
-	if mgr.cfg.Experimental.ResetAccState {
-		env |= flatrpc.ExecEnvResetState
-	}
-	if mgr.cfg.Cover {
-		env |= flatrpc.ExecEnvSignal
-	}
-	sandbox, err := flatrpc.SandboxToFlags(mgr.cfg.Sandbox)
-	if err != nil {
-		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
-	}
-	env |= sandbox
-
-	exec := flatrpc.ExecFlagThreaded
-	if !mgr.cfg.RawCover {
-		exec |= flatrpc.ExecFlagDedupCover
-	}
-	return flatrpc.ExecOpts{
-		EnvFlags:   env,
-		ExecFlags:  exec,
-		SandboxArg: mgr.cfg.SandboxArg,
 	}
 }
 
@@ -1296,23 +1270,29 @@ func (mgr *Manager) dashboardReporter() {
 	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
 	for range time.NewTicker(time.Minute).C {
 		mgr.mu.Lock()
+		corpus := mgr.corpus
+		mgr.mu.Unlock()
+		if corpus == nil {
+			continue
+		}
+		mgr.mu.Lock()
 		req := &dashapi.ManagerStatsReq{
 			Name:              mgr.cfg.Name,
 			Addr:              webAddr,
 			UpTime:            time.Duration(mgr.statUptime.Val()) * time.Second,
-			Corpus:            uint64(mgr.corpus.StatProgs.Val()),
-			PCs:               uint64(mgr.corpus.StatCover.Val()),
-			Cover:             uint64(mgr.corpus.StatSignal.Val()),
+			Corpus:            uint64(corpus.StatProgs.Val()),
+			PCs:               uint64(corpus.StatCover.Val()),
+			Cover:             uint64(corpus.StatSignal.Val()),
 			CrashTypes:        uint64(mgr.statCrashTypes.Val()),
 			FuzzingTime:       time.Duration(mgr.statFuzzingTime.Val()) - lastFuzzingTime,
 			Crashes:           uint64(mgr.statCrashes.Val()) - lastCrashes,
 			SuppressedCrashes: uint64(mgr.statSuppressed.Val()) - lastSuppressedCrashes,
-			Execs:             uint64(queue.StatExecs.Val()) - lastExecs,
+			Execs:             uint64(mgr.servStats.StatExecs.Val()) - lastExecs,
 		}
 		if mgr.phase >= phaseTriagedCorpus && !triageInfoSent {
 			triageInfoSent = true
-			req.TriagedCoverage = uint64(mgr.corpus.StatSignal.Val())
-			req.TriagedPCs = uint64(mgr.corpus.StatCover.Val())
+			req.TriagedCoverage = uint64(corpus.StatSignal.Val())
+			req.TriagedPCs = uint64(corpus.StatCover.Val())
 		}
 		mgr.mu.Unlock()
 
@@ -1355,17 +1335,21 @@ func (mgr *Manager) dashboardReproTasks() {
 
 func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	mgr.reportGenerator.Init(modules)
-	execFilter, filter, err := manager.CreateCoverageFilter(mgr.reportGenerator, mgr.cfg.CovFilter)
+	filters, err := manager.PrepareCoverageFilters(mgr.reportGenerator, mgr.cfg, true)
 	if err != nil {
 		log.Fatalf("failed to init coverage filter: %v", err)
 	}
-	mgr.coverFilter = filter
+	mgr.coverFilters = filters
 	mgr.http.Cover.Store(&manager.CoverageInfo{
 		Modules:         modules,
 		ReportGenerator: mgr.reportGenerator,
-		CoverFilter:     filter,
+		CoverFilter:     filters.ExecutorFilter,
 	})
-	return execFilter
+	var pcs []uint64
+	for pc := range filters.ExecutorFilter {
+		pcs = append(pcs, pc)
+	}
+	return pcs
 }
 
 func publicWebAddr(addr string) string {
