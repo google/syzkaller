@@ -14,7 +14,7 @@ func (corpus *Corpus) Minimize(cover bool) {
 	defer corpus.mu.Unlock()
 
 	inputs := make([]signal.Context, 0, len(corpus.progs))
-	for _, inp := range corpus.progs {
+	for _, inp := range corpus.progsMap {
 		inputs = append(inputs, signal.Context{
 			Signal:  inp.Signal,
 			Context: inp,
@@ -37,12 +37,19 @@ func (corpus *Corpus) Minimize(cover bool) {
 		return len(first.Prog.Calls) < len(second.Prog.Calls)
 	})
 
-	corpus.progs = make(map[string]*Item)
-	programsList := &ProgramsList{}
+	corpus.progsMap = make(map[string]*Item)
+
+	// Overwrite the program lists.
+	corpus.ProgramsList = &ProgramsList{}
+	for _, area := range corpus.focusAreas {
+		area.ProgramsList = &ProgramsList{}
+	}
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(*Item)
-		corpus.progs[inp.Sig] = inp
-		programsList.saveProgram(inp.Prog, inp.Signal)
+		corpus.progsMap[inp.Sig] = inp
+		corpus.saveProgram(inp.Prog, inp.Signal)
+		for area := range inp.areas {
+			area.saveProgram(inp.Prog, inp.Signal)
+		}
 	}
-	corpus.ProgramsList.replace(programsList)
 }

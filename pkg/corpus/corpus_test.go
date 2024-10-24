@@ -22,7 +22,7 @@ func TestCorpusOperation(t *testing.T) {
 
 	// First program is saved.
 	rs := rand.NewSource(0)
-	inp1 := generateInput(target, rs, 5, 5)
+	inp1 := generateInput(target, rs, 5)
 	go corpus.Save(inp1)
 	event := <-ch
 	progData := inp1.Prog.Serialize()
@@ -30,9 +30,9 @@ func TestCorpusOperation(t *testing.T) {
 	assert.Equal(t, false, event.Exists)
 
 	// Second program is saved for every its call.
-	inp2 := generateInput(target, rs, 5, 5)
+	inp2 := generateInput(target, rs, 5)
 	progData = inp2.Prog.Serialize()
-	for i := 0; i < 5; i++ {
+	for i := 0; i < len(inp2.Prog.Calls); i++ {
 		inp2.Call = i
 		go corpus.Save(inp2)
 		event := <-ch
@@ -49,7 +49,6 @@ func TestCorpusOperation(t *testing.T) {
 
 	// Verify the total signal.
 	assert.Equal(t, corpus.StatSignal.Val(), 5)
-	assert.Equal(t, corpus.StatCover.Val(), 0)
 	assert.Equal(t, corpus.StatProgs.Val(), 2)
 
 	corpus.Minimize(true)
@@ -61,7 +60,7 @@ func TestCorpusCoverage(t *testing.T) {
 	corpus := NewMonitoredCorpus(context.Background(), ch)
 	rs := rand.NewSource(0)
 
-	inp := generateInput(target, rs, 5, 5)
+	inp := generateInput(target, rs, 5)
 	inp.Cover = []uint64{10, 11}
 	go corpus.Save(inp)
 	event := <-ch
@@ -91,7 +90,7 @@ func TestCorpusSaveConcurrency(t *testing.T) {
 			rs := rand.NewSource(0)
 			r := rand.New(rs)
 			for it := 0; it < iters; it++ {
-				inp := generateInput(target, rs, 10, it)
+				inp := generateInput(target, rs, it)
 				corpus.Save(inp)
 				corpus.ChooseProgram(r).Clone()
 			}
@@ -99,16 +98,21 @@ func TestCorpusSaveConcurrency(t *testing.T) {
 	}
 }
 
-func generateInput(target *prog.Target, rs rand.Source, ncalls, sizeSig int) NewInput {
-	p := target.Generate(rs, ncalls, target.DefaultChoiceTable())
+func generateInput(target *prog.Target, rs rand.Source, sizeSig int) NewInput {
+	return generateRangedInput(target, rs, 1, sizeSig)
+}
+
+func generateRangedInput(target *prog.Target, rs rand.Source, sigFrom, sigTo int) NewInput {
+	p := target.Generate(rs, 5, target.DefaultChoiceTable())
 	var raw []uint64
-	for i := 1; i <= sizeSig; i++ {
+	for i := sigFrom; i <= sigTo; i++ {
 		raw = append(raw, uint64(i))
 	}
 	return NewInput{
 		Prog:   p,
 		Call:   int(rs.Int63() % int64(len(p.Calls))),
 		Signal: signal.FromRaw(raw, 0),
+		Cover:  raw,
 	}
 }
 
