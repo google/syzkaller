@@ -7,7 +7,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"html"
 	"log"
 	"os"
 	"path"
@@ -313,8 +312,7 @@ func exportNamespace() error {
 				reproID := reproIDFromURL(cReproURL)
 				fmt.Printf("[%v](%v/%v)saving c-repro %v for bug %v\n",
 					i, iBug, len(bugs), reproID, bug.ID)
-				fullReproURL := *flagDashboard + html.UnescapeString(cReproURL)
-				cReproBody, err := cli.Text(fullReproURL)
+				cReproBody, err := cli.Text(cReproURL)
 				if err != nil {
 					return err
 				}
