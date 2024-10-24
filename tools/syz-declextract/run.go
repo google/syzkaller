@@ -15,12 +15,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/subsystem"
+	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -48,12 +49,14 @@ func main() {
 		tool.Fail(err)
 	}
 
+	extractor := subsystem.MakeExtractor(subsystem.GetList(targets.Linux))
+
 	var cmds []compileCommand
 	if err := json.Unmarshal(fileData, &cmds); err != nil {
 		tool.Fail(err)
 	}
 
-	outputs := make(chan output, len(cmds))
+	outputs := make(chan *output, len(cmds))
 	files := make(chan string, len(cmds))
 	for w := 0; w < runtime.NumCPU(); w++ {
 		go worker(outputs, files, *binary, compilationDatabase)
@@ -64,7 +67,7 @@ func main() {
 		// (assuming compile commands were generated with make CC=clang).
 		// They are probably a part of some host tool.
 		if !strings.HasSuffix(cmd.File, ".c") || strings.HasPrefix(cmd.Command, "gcc") {
-			outputs <- output{}
+			outputs <- nil
 			continue
 		}
 		files <- cmd.File
@@ -78,28 +81,36 @@ func main() {
 	eh := ast.LoggingHandler
 	for range cmds {
 		out := <-outputs
+		if out == nil {
+			continue
+		}
+		file, err := filepath.Rel(*sourceDir, out.file)
+		if err != nil {
+			tool.Fail(err)
+		}
 		if out.err != nil {
-			tool.Failf("%v: %v", out.file, out.err)
+			tool.Failf("%v: %v", file, out.err)
 		}
 		parse := ast.Parse(out.output, "", eh)
 		if parse == nil {
-			tool.Failf("%v: parsing error:\n%s", out.file, out.output)
+			tool.Failf("%v: parsing error:\n%s", file, out.output)
 		}
-		appendNodes(&nodes, &interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir)
+		appendNodes(&nodes, &interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir, file, extractor)
 	}
 
 	if err := osutil.WriteFile(*outFile, makeOutput(nodes)); err != nil {
 		tool.Fail(err)
 	}
 
-	sort.Slice(interfaces, func(i, j int) bool {
-		a, b := interfaces[i], interfaces[j]
-		if a.Type != b.Type {
-			return a.Type < b.Type
+	slices.SortFunc(interfaces, func(a, b Interface) int {
+		if x := strings.Compare(a.Type, b.Type); x != 0 {
+			return x
 		}
-		return a.Name < b.Name
+		return strings.Compare(a.Name, b.Name)
 	})
-	interfaces = slices.Compact(interfaces)
+	interfaces = slices.CompactFunc(interfaces, func(a, b Interface) bool {
+		return a.Type == b.Type && a.Name == b.Name
+	})
 	data, err := json.MarshalIndent(interfaces, "", "\t")
 	if err != nil {
 		tool.Failf("failed to marshal interfaces: %v", err)
@@ -122,8 +133,10 @@ type output struct {
 }
 
 type Interface struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type       string   `json:"type"`
+	Name       string   `json:"name"`
+	Files      []string `json:"files"`
+	Subsystems []string `json:"subsystems"`
 }
 
 const sendmsg = "sendmsg"
@@ -228,14 +241,14 @@ auto_union [
 	return ast.Format(ast.Parse(ast.Format(&ast.Description{Nodes: nodes}), "", eh))
 }
 
-func worker(outputs chan output, files chan string, binary, compilationDatabase string) {
+func worker(outputs chan *output, files chan string, binary, compilationDatabase string) {
 	for file := range files {
 		out, err := exec.Command(binary, "-p", compilationDatabase, file).Output()
 		var exitErr *exec.ExitError
 		if err != nil && errors.As(err, &exitErr) && len(exitErr.Stderr) != 0 {
 			err = fmt.Errorf("%s", exitErr.Stderr)
 		}
-		outputs <- output{file, out, err}
+		outputs <- &output{file, out, err}
 	}
 }
 
@@ -321,7 +334,8 @@ func isProhibited(syscall string) bool {
 	}
 }
 
-func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node, syscallNames map[string][]string, sourceDir, buildDir string) {
+func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node,
+	syscallNames map[string][]string, sourceDir, buildDir, file string, extractor *subsystem.Extractor) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 		case *ast.Call:
@@ -339,9 +353,21 @@ func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node, s
 				continue
 			}
 			fields := strings.Fields(node.Text)
+			files := []string{file}
+			var crashes []*subsystem.Crash
+			for _, file := range files {
+				crashes = append(crashes, &subsystem.Crash{GuiltyPath: file})
+			}
+			var subsystems []string
+			for _, s := range extractor.Extract(crashes) {
+				subsystems = append(subsystems, s.Name)
+			}
+			slices.Sort(subsystems)
 			iface := Interface{
-				Type: fields[1],
-				Name: fields[2],
+				Type:       fields[1],
+				Name:       fields[2],
+				Files:      files,
+				Subsystems: subsystems,
 			}
 			if iface.Type == "SYSCALL" {
 				for _, name := range syscallNames[iface.Name] {
