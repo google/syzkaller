@@ -50,6 +50,10 @@ func NewCorpus(ctx context.Context) *Corpus {
 }
 
 func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpus {
+	return NewFocusedCorpus(ctx, updates, nil)
+}
+
+func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []FocusArea) *Corpus {
 	corpus := &Corpus{
 		ctx:          ctx,
 		progsMap:     make(map[string]*Item),
@@ -62,6 +66,20 @@ func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpu
 		stat.LenOf(&corpus.signal, &corpus.mu))
 	corpus.StatCover = stat.New("coverage", "Source coverage in the corpus", stat.Console,
 		stat.Link("/cover"), stat.Prometheus("syz_corpus_cover"), stat.LenOf(&corpus.cover, &corpus.mu))
+	for _, area := range areas {
+		obj := &ProgramsList{}
+		if len(areas) > 1 && area.Name != "" {
+			// Only show extra statistics if there's more than one area.
+			stat.New("corpus ["+area.Name+"]",
+				fmt.Sprintf("Corpus programs of the focus area %q", area.Name),
+				stat.Console, stat.Graph("corpus"),
+				stat.LenOf(&obj.progs, &corpus.mu))
+		}
+		corpus.focusAreas = append(corpus.focusAreas, &focusAreaState{
+			FocusArea:    area,
+			ProgramsList: obj,
+		})
+	}
 	return corpus
 }
 
@@ -104,29 +122,6 @@ type NewItemEvent struct {
 	Exists   bool
 	ProgData []byte
 	NewCover []uint64
-}
-
-// SetFocusAreas can only be called once on an empty corpus.
-func (corpus *Corpus) SetFocusAreas(areas []FocusArea) {
-	corpus.mu.Lock()
-	defer corpus.mu.Unlock()
-	if len(corpus.progsMap) > 0 {
-		panic("SetFocusAreas() is called on a non-empty corpus")
-	}
-	for _, area := range areas {
-		obj := &ProgramsList{}
-		if len(areas) > 1 && area.Name != "" {
-			// Only show extra statistics if there's more than one area.
-			stat.New("corpus ["+area.Name+"]",
-				fmt.Sprintf("Corpus programs of the focus area %q", area.Name),
-				stat.Console, stat.Graph("corpus"),
-				stat.LenOf(&obj.progs, &corpus.mu))
-		}
-		corpus.focusAreas = append(corpus.focusAreas, &focusAreaState{
-			FocusArea:    area,
-			ProgramsList: obj,
-		})
-	}
 }
 
 func (corpus *Corpus) Save(inp NewInput) {
