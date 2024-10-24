@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -24,25 +25,11 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-const sendmsg = "sendmsg"
-
-type compileCommand struct {
-	Command   string
-	Directory string
-	File      string
-}
-
-type output struct {
-	stdout string
-	stderr string
-}
-
-const ( // Output Format.
-	Final   = "final"
-	Minimal = "minimal"
-)
-
 func main() {
+	const ( // Output Format.
+		Final   = "final"
+		Minimal = "minimal"
+	)
 	var (
 		binary    = flag.String("binary", "syz-declextract", "path to binary")
 		outFile   = flag.String("output", "out.txt", "output file")
@@ -102,16 +89,16 @@ func main() {
 	eh := ast.LoggingHandler
 	for range cmds {
 		out := <-outputs
-		if out.stderr != "" {
-			tool.Failf("%s", out.stderr)
+		if out.err != nil {
+			tool.Failf("%v: %v", out.file, out.err)
 		}
 		if *format == Minimal {
-			minimalOutput = append(minimalOutput, getMinimalOutput(out.stdout, syscallNames)...)
+			minimalOutput = append(minimalOutput, getMinimalOutput(out.output, syscallNames)...)
 			continue
 		}
-		parse := ast.Parse([]byte(out.stdout), "", eh)
+		parse := ast.Parse(out.output, "", eh)
 		if parse == nil {
-			tool.Failf("parsing error")
+			tool.Failf("%v: parsing error:\n%s", out.file, out.output)
 		}
 		appendNodes(&nodes, parse.Nodes, syscallNames, *sourceDir, *buildDir)
 	}
@@ -130,9 +117,24 @@ func main() {
 	}
 }
 
-func getMinimalOutput(out string, syscallNames map[string][]string) []string {
+type compileCommand struct {
+	Command   string
+	Directory string
+	File      string
+}
+
+type output struct {
+	file   string
+	output []byte
+	err    error
+}
+
+const sendmsg = "sendmsg"
+
+func getMinimalOutput(out []byte, syscallNames map[string][]string) []string {
 	var minimalOutput []string
-	for _, line := range strings.Split(out, "\n") {
+	for s := bufio.NewScanner(bytes.NewReader(out)); s.Scan(); {
+		line := s.Text()
 		if line == "" {
 			continue
 		}
@@ -142,14 +144,7 @@ func getMinimalOutput(out string, syscallNames map[string][]string) []string {
 			continue
 		}
 		oldName := line[len(SYSCALL)+1:]
-		if !shouldRenameSyscall(oldName) {
-			minimalOutput = append(minimalOutput, line)
-			continue
-		}
 		for _, newName := range syscallNames[oldName] {
-			if isProhibited(newName) {
-				continue
-			}
 			minimalOutput = append(minimalOutput, strings.Replace(line, oldName, newName, 1))
 		}
 	}
@@ -253,47 +248,34 @@ auto_union [
 
 	// New lines are added in the parsing step. This is why we need to Format (serialize the description),
 	// Parse, then Format again.
-	return ast.Format(ast.Parse(ast.Format(&ast.Description{nodes}), "", eh))
+	return ast.Format(ast.Parse(ast.Format(&ast.Description{Nodes: nodes}), "", eh))
 }
 
 func worker(outputs chan output, files chan string, binary, compilationDatabase, format string) {
 	for file := range files {
-		cmd := exec.Command(binary, "-p", compilationDatabase, file, fmt.Sprintf("--%s", format))
-		stdout, err := cmd.Output()
-		var stderr string
-		if err != nil {
-			var error *exec.ExitError
-			if errors.As(err, &error) {
-				if len(error.Stderr) != 0 {
-					stderr = fmt.Sprintf("%v: %v", file, string(error.Stderr))
-				} else {
-					stderr = fmt.Sprintf("%v: %v", file, error.String())
-				}
-			} else {
-				stderr = fmt.Sprintf("%v: %v", file, error)
-			}
+		out, err := exec.Command(binary, "-p", compilationDatabase, "--"+format, file).Output()
+		var exitErr *exec.ExitError
+		if err != nil && errors.As(err, &exitErr) && len(exitErr.Stderr) != 0 {
+			err = fmt.Errorf("%s", exitErr.Stderr)
 		}
-		outputs <- output{string(stdout), stderr}
+		outputs <- output{file, out, err}
 	}
 }
 
 func renameSyscall(syscall *ast.Call, rename map[string][]string) []ast.Node {
-	if !shouldRenameSyscall(syscall.CallName) {
-		return []ast.Node{syscall}
-	}
-	var renamed []ast.Node
-	toReplace := syscall.CallName
-	if rename[toReplace] == nil {
+	names := rename[syscall.CallName]
+	if len(names) == 0 {
 		// Syscall has no record in the tables for the architectures we support.
 		return nil
 	}
-
-	for _, name := range rename[toReplace] {
-		if isProhibited(name) {
-			continue
-		}
+	variant := strings.TrimPrefix(syscall.Name.Name, syscall.CallName)
+	if variant == "" {
+		variant = "$auto"
+	}
+	var renamed []ast.Node
+	for _, name := range names {
 		newCall := syscall.Clone().(*ast.Call)
-		newCall.Name.Name = name + "$auto"
+		newCall.Name.Name = name + variant
 		newCall.CallName = name // Not required	but avoids mistakenly treating CallName as the part before the $.
 		renamed = append(renamed, newCall)
 	}
@@ -302,7 +284,9 @@ func renameSyscall(syscall *ast.Call, rename map[string][]string) []ast.Node {
 }
 
 func readSyscallNames(kernelDir string) map[string][]string {
-	var rename = make(map[string][]string)
+	rename := map[string][]string{
+		"syz_genetlink_get_family_id": {"syz_genetlink_get_family_id"},
+	}
 	for _, arch := range targets.List[targets.Linux] {
 		filepath.Walk(filepath.Join(kernelDir, arch.KernelHeaderArch),
 			func(path string, info fs.FileInfo, err error) error {
@@ -326,14 +310,18 @@ func readSyscallNames(kernelDir string) map[string][]string {
 				s := bufio.NewScanner(f)
 				for s.Scan() {
 					fields := strings.Fields(s.Text())
-					if len(fields) < 4 || fields[0] == "#" || strings.HasPrefix(fields[2], "unused") || fields[3] == "-" ||
-						strings.HasPrefix(fields[3], "compat") || strings.HasPrefix(fields[3], "sys_ia32") ||
-						fields[3] == "sys_ni_syscall" {
-						// System calls prefixed with ia32 are ignored due to conflicting system calls for 64 bit and 32 bit.
+					if len(fields) < 4 {
 						continue
 					}
 					key := strings.TrimPrefix(fields[3], "sys_")
-					rename[key] = append(rename[key], fields[2])
+					val := fields[2]
+					if fields[0] == "#" || strings.HasPrefix(fields[2], "unused") || key == "-" ||
+						strings.HasPrefix(key, "compat") || strings.HasPrefix(key, "ia32") ||
+						key == "ni_syscall" || isProhibited(val) {
+						// System calls prefixed with ia32 are ignored due to conflicting system calls for 64 bit and 32 bit.
+						continue
+					}
+					rename[key] = append(rename[key], val)
 				}
 				return nil
 			})
@@ -345,15 +333,6 @@ func readSyscallNames(kernelDir string) map[string][]string {
 	}
 
 	return rename
-}
-
-func shouldRenameSyscall(syscall string) bool {
-	switch syscall {
-	case sendmsg, "syz_genetlink_get_family_id":
-		return false
-	default:
-		return true
-	}
 }
 
 func isProhibited(syscall string) bool {
@@ -385,21 +364,23 @@ func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]
 
 func getTypeOrder(a ast.Node) int {
 	switch a.(type) {
-	case *ast.Include:
+	case *ast.Comment:
 		return 0
-	case *ast.IntFlags:
+	case *ast.Include:
 		return 1
-	case *ast.Resource:
+	case *ast.IntFlags:
 		return 2
-	case *ast.TypeDef:
+	case *ast.Resource:
 		return 3
-	case *ast.Call:
+	case *ast.TypeDef:
 		return 4
-	case *ast.Struct:
+	case *ast.Call:
 		return 5
-	case *ast.NewLine:
+	case *ast.Struct:
 		return 6
+	case *ast.NewLine:
+		return 7
 	default:
-		return -1
+		panic(fmt.Sprintf("unhandled type %T", a))
 	}
 }
