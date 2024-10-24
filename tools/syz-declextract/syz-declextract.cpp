@@ -42,12 +42,6 @@
 using namespace clang;
 using namespace clang::ast_matchers;
 
-llvm::cl::OptionCategory SyzDeclExtractOptionCategory("Syz-declextract options");
-llvm::cl::opt<bool> Final("final", llvm::cl::desc("Output descriptions following syzkaller syntax"),
-                          llvm::cl::cat(SyzDeclExtractOptionCategory));
-llvm::cl::opt<bool> Minimal("minimal", llvm::cl::desc("Output netlink commands and systemcall names only"),
-                            llvm::cl::cat(SyzDeclExtractOptionCategory));
-
 struct EnumData {
   std::string name;
   unsigned long long value;
@@ -74,6 +68,10 @@ struct StructMember {
   std::string name;
   unsigned int countedBy;
 };
+
+void emitInterface(const char *type, std::string_view name) {
+  printf("\n#INTERFACE: %s %s\n\n", type, std::string(name).c_str());
+}
 
 struct SyzRecordDecl {
   std::string name;
@@ -223,18 +221,18 @@ const std::string intNCommonSubtype(const std::string &name, const IntType len) 
   return "int" + byteLen;
 }
 
-const std::string intNSubtype(const std::string &lowerCaseName, const IntType len) {
+const std::string intNSubtype(const std::string &name, const IntType len) {
   switch (len) {
   case INT_8:
-    return int8Subtype(lowerCaseName);
+    return int8Subtype(name);
   case INT_16:
-    return int16Subtype(lowerCaseName);
+    return int16Subtype(name);
   case INT_32:
-    return int32Subtype(lowerCaseName);
+    return int32Subtype(name);
   case INT_64:
-    return int64Subtype(lowerCaseName);
+    return int64Subtype(name);
   default:
-    fprintf(stderr, "Invalid int type\n");
+    fprintf(stderr, "invalid int type: %d\n", static_cast<int>(len));
     exit(1);
   }
 }
@@ -488,20 +486,16 @@ public:
 
     const char *sep = "";
     const auto &name = syscall->getNameAsString().substr(9); // Remove "__do_sys_" prefix.
-    if (Minimal) {
-      printf("SYSCALL\t%s\n", name.c_str());
+    emitInterface("SYSCALL", name);
+    printf("%s(", name.c_str());
+    for (const auto &param : syscall->parameters()) {
+      const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
+      const auto &name = param->getNameAsString();
+      printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
+      sep = ", ";
     }
-    if (Final) {
-      printf("%s$auto(", name.c_str());
-      for (const auto &param : syscall->parameters()) {
-        const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
-        const auto &name = param->getNameAsString();
-        printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
-        sep = ", ";
-      }
-      puts(") (automatic)");
-      recordExtractor.print();
-    }
+    printf(") (automatic)\n");
+    recordExtractor.print();
 
     return;
   }
@@ -690,7 +684,7 @@ private:
       if (item.file.back() != 'h') { // only extract from "*.h" files
         return;
       }
-      printf("include<%s>\n", item.file.c_str());
+      printf("include <%s>\n", item.file.c_str());
     }
 
     RecordExtractor recordExtractor(Result.SourceManager);
@@ -809,17 +803,13 @@ private:
         } else {
           continue;
         }
-        if (Minimal) {
-          printf("NETLINK\t%s\n", ops.cmd.c_str());
-        }
-        if (Final) {
-          printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
-                 ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
-        }
+        emitInterface("NETLINK", ops.cmd);
+        printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
+               ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
         printedCmds = true;
       }
     }
-    if (!printedCmds || !Final) { // Do not print resources and types if they're not used in any cmds
+    if (!printedCmds) { // Do not print resources and types if they're not used in any cmds
       return;
     }
     std::string resourceName = "genl_" + name + "_family_id_auto";
@@ -832,15 +822,14 @@ private:
 
 public:
   virtual void run(const MatchFinder::MatchResult &Result) override {
-    if (Final) {
-      nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
-      netlink(Result);
-    }
+    nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
+    netlink(Result);
     genlFamily(Result);
   };
 };
 
 int main(int argc, const char **argv) {
+  llvm::cl::OptionCategory SyzDeclExtractOptionCategory("syz-declextract options");
   auto ExpectedParser = clang::tooling::CommonOptionsParser::create(argc, argv, SyzDeclExtractOptionCategory);
   if (!ExpectedParser) {
     llvm::errs() << ExpectedParser.takeError();
@@ -848,10 +837,6 @@ int main(int argc, const char **argv) {
   }
 
   clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
-  if (!Minimal) {
-    Final = true;
-  }
-
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
 
   NetlinkPolicyMatcher NetlinkPolicyMatcher;

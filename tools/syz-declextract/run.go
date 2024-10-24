@@ -19,11 +19,106 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/subsystem"
+	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-const sendmsg = "sendmsg"
+func main() {
+	var (
+		binary    = flag.String("binary", "syz-declextract", "path to binary")
+		outFile   = flag.String("output", "sys/linux/auto.txt", "output file")
+		sourceDir = flag.String("sourcedir", "", "kernel source directory")
+		buildDir  = flag.String("builddir", "", "kernel build directory (defaults to source directory)")
+	)
+	defer tool.Init()()
+	if *sourceDir == "" {
+		tool.Failf("path to kernel source directory is required")
+	}
+	if *buildDir == "" {
+		*buildDir = *sourceDir
+	}
+	*sourceDir = filepath.Clean(osutil.Abs(*sourceDir))
+	*buildDir = filepath.Clean(osutil.Abs(*buildDir))
+
+	compilationDatabase := filepath.Join(*buildDir, "compile_commands.json")
+	fileData, err := os.ReadFile(compilationDatabase)
+	if err != nil {
+		tool.Fail(err)
+	}
+
+	extractor := subsystem.MakeExtractor(subsystem.GetList(targets.Linux))
+
+	var cmds []compileCommand
+	if err := json.Unmarshal(fileData, &cmds); err != nil {
+		tool.Fail(err)
+	}
+
+	outputs := make(chan *output, len(cmds))
+	files := make(chan string, len(cmds))
+	for w := 0; w < runtime.NumCPU(); w++ {
+		go worker(outputs, files, *binary, compilationDatabase)
+	}
+
+	for _, cmd := range cmds {
+		// Files compiled with gcc are not a part of the kernel
+		// (assuming compile commands were generated with make CC=clang).
+		// They are probably a part of some host tool.
+		if !strings.HasSuffix(cmd.File, ".c") || strings.HasPrefix(cmd.Command, "gcc") {
+			outputs <- nil
+			continue
+		}
+		files <- cmd.File
+	}
+	close(files)
+
+	var nodes []ast.Node
+	syscallNames := readSyscallNames(filepath.Join(*sourceDir, "arch"))
+
+	var interfaces []Interface
+	eh := ast.LoggingHandler
+	for range cmds {
+		out := <-outputs
+		if out == nil {
+			continue
+		}
+		file, err := filepath.Rel(*sourceDir, out.file)
+		if err != nil {
+			tool.Fail(err)
+		}
+		if out.err != nil {
+			tool.Failf("%v: %v", file, out.err)
+		}
+		parse := ast.Parse(out.output, "", eh)
+		if parse == nil {
+			tool.Failf("%v: parsing error:\n%s", file, out.output)
+		}
+		appendNodes(&nodes, &interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir, file, extractor)
+	}
+
+	if err := osutil.WriteFile(*outFile, makeOutput(nodes)); err != nil {
+		tool.Fail(err)
+	}
+
+	slices.SortFunc(interfaces, func(a, b Interface) int {
+		if x := strings.Compare(a.Type, b.Type); x != 0 {
+			return x
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	interfaces = slices.CompactFunc(interfaces, func(a, b Interface) bool {
+		return a.Type == b.Type && a.Name == b.Name
+	})
+	data, err := json.MarshalIndent(interfaces, "", "\t")
+	if err != nil {
+		tool.Failf("failed to marshal interfaces: %v", err)
+	}
+	if err := osutil.WriteFile(*outFile+".json", data); err != nil {
+		tool.Fail(err)
+	}
+}
 
 type compileCommand struct {
 	Command   string
@@ -32,122 +127,31 @@ type compileCommand struct {
 }
 
 type output struct {
-	stdout string
-	stderr string
+	file   string
+	output []byte
+	err    error
 }
 
-const ( // Output Format.
-	Final   = "final"
-	Minimal = "minimal"
-)
-
-func main() {
-	compilationDatabase := flag.String("compile_commands", "compile_commands.json", "path to compilation database")
-	binary := flag.String("binary", "syz-declextract", "path to binary")
-	outFile := flag.String("output", "out.txt", "output file")
-	kernelDir := flag.String("kernel", "", "kernel directory")
-	format := flag.String("output_format", Final, "format for output [minimal, final]")
-	flag.Parse()
-
-	switch *format {
-	case Final, Minimal:
-	default:
-		tool.Failf("invalid -output_format flag value [minimal, final]")
-	}
-	if *kernelDir == "" {
-		tool.Failf("path to kernel directory is required")
-	}
-
-	fileData, err := os.ReadFile(*compilationDatabase)
-	if err != nil {
-		tool.Fail(err)
-	}
-
-	var cmds []compileCommand
-	if err := json.Unmarshal(fileData, &cmds); err != nil {
-		tool.Fail(err)
-	}
-
-	outputs := make(chan output, len(cmds))
-	files := make(chan string, len(cmds))
-	for w := 0; w < runtime.NumCPU(); w++ {
-		go worker(outputs, files, *binary, *compilationDatabase, *format)
-	}
-
-	for _, cmd := range cmds {
-		// Files compiled with gcc are not a part of the kernel
-		// (assuming compile commands were generated with make CC=clang).
-		// They are probably a part of some host tool.
-		if !strings.HasSuffix(cmd.File, ".c") || strings.HasPrefix(cmd.Command, "gcc") {
-			outputs <- output{}
-			continue
-		}
-		files <- cmd.File
-	}
-	close(files)
-
-	var nodes []ast.Node
-	syscallNames := readSyscallNames(filepath.Join(*kernelDir, "arch"))
-
-	var minimalOutput []string
-	eh := ast.LoggingHandler
-	for range cmds {
-		out := <-outputs
-		if out.stderr != "" {
-			tool.Failf("%s", out.stderr)
-		}
-		if *format == Minimal {
-			minimalOutput = append(minimalOutput, getMinimalOutput(out.stdout, syscallNames)...)
-			continue
-		}
-		parse := ast.Parse([]byte(out.stdout), "", eh)
-		if parse == nil {
-			tool.Failf("parsing error")
-		}
-		appendNodes(&nodes, parse.Nodes, syscallNames)
-	}
-
-	var out []byte
-	if *format == Minimal {
-		slices.Sort(minimalOutput)
-		minimalOutput = slices.Compact(minimalOutput)
-		out = []byte(strings.Join(minimalOutput, "\n"))
-	} else {
-		out = makeOutput(nodes)
-	}
-
-	if err := os.WriteFile(*outFile, out, 0666); err != nil {
-		tool.Fail(err)
-	}
+type Interface struct {
+	Type       string   `json:"type"`
+	Name       string   `json:"name"`
+	Files      []string `json:"files"`
+	Subsystems []string `json:"subsystems"`
 }
 
-func getMinimalOutput(out string, syscallNames map[string][]string) []string {
-	var minimalOutput []string
-	for _, line := range strings.Split(out, "\n") {
-		if line == "" {
-			continue
-		}
-		const SYSCALL = "SYSCALL"
-		if !strings.HasPrefix(line, SYSCALL) {
-			minimalOutput = append(minimalOutput, line)
-			continue
-		}
-		oldName := line[len(SYSCALL)+1:]
-		if !shouldRenameSyscall(oldName) {
-			minimalOutput = append(minimalOutput, line)
-			continue
-		}
-		for _, newName := range syscallNames[oldName] {
-			if isProhibited(newName) {
-				continue
-			}
-			minimalOutput = append(minimalOutput, strings.Replace(line, oldName, newName, 1))
-		}
-	}
-	return minimalOutput
-}
+const sendmsg = "sendmsg"
 
 func makeOutput(nodes []ast.Node) []byte {
+	header := `
+# Code generated by syz-declextract. DO NOT EDIT.
+include <include/vdso/bits.h>
+include <include/linux/types.h>
+_ = __NR_mmap2
+`
+	eh := ast.LoggingHandler
+	desc := ast.Parse([]byte(header), "", eh)
+	nodes = append(nodes, desc.Nodes...)
+
 	slices.SortFunc(nodes, func(a, b ast.Node) int {
 		return strings.Compare(ast.SerializeNode(a), ast.SerializeNode(b))
 	})
@@ -170,7 +174,7 @@ func makeOutput(nodes []ast.Node) []byte {
 				continue
 			}
 			structs = append(structs, node)
-		case *ast.Include, *ast.TypeDef, *ast.Resource, *ast.IntFlags, *ast.NewLine:
+		case *ast.Include, *ast.TypeDef, *ast.Resource, *ast.IntFlags, *ast.NewLine, *ast.Comment:
 			continue
 		default:
 			_, typ, _ := node.Info()
@@ -194,13 +198,6 @@ func makeOutput(nodes []ast.Node) []byte {
 		return a.Name.Name == b.Name.Name
 	})
 
-	autoGeneratedNotice := "# Code generated by syz-declextract. DO NOT EDIT.\n"
-	commonKernelHeaders := "include <include/vdso/bits.h>\ninclude <include/linux/types.h>"
-	var netlinkNames []string
-	mmap2 := "_ = __NR_mmap2\n"
-	eh := ast.LoggingHandler
-	desc := ast.Parse([]byte(autoGeneratedNotice+commonKernelHeaders), "", eh)
-	desc.Nodes = append(desc.Nodes, nodes...)
 	usedNetlink := make(map[string]bool)
 	for _, node := range syscalls {
 		if node.CallName == sendmsg && len(node.Args[1].Type.Args) == 2 && len(node.Args[1].Type.Args[1].Args) > 1 {
@@ -213,11 +210,11 @@ func makeOutput(nodes []ast.Node) []byte {
 				continue
 			}
 		}
-		desc.Nodes = append(desc.Nodes, node)
+		nodes = append(nodes, node)
 	}
-	desc.Nodes = append(desc.Nodes, ast.Parse([]byte(mmap2), "", eh).Nodes...)
+	var netlinkNames []string
 	for _, node := range structs {
-		desc.Nodes = append(desc.Nodes, node)
+		nodes = append(nodes, node)
 		name := node.Name.Name
 		if !usedNetlink[name] && !strings.HasSuffix(name, "$auto_record") {
 			netlinkNames = append(netlinkNames, name)
@@ -237,51 +234,38 @@ auto_union [
 	if netlinkUnionParsed == nil {
 		tool.Failf("parsing error")
 	}
-	desc.Nodes = append(desc.Nodes, netlinkUnionParsed.Nodes...)
+	nodes = append(nodes, netlinkUnionParsed.Nodes...)
 
-	// New lines are added in the parsing step. This is why we need to Format (serialize the description), Parse, then
-	// Format again.
-	return ast.Format(ast.Parse(ast.Format(desc), "", eh))
+	// New lines are added in the parsing step. This is why we need to Format (serialize the description),
+	// Parse, then Format again.
+	return ast.Format(ast.Parse(ast.Format(&ast.Description{nodes}), "", eh))
 }
 
-func worker(outputs chan output, files chan string, binary, compilationDatabase, format string) {
+func worker(outputs chan *output, files chan string, binary, compilationDatabase string) {
 	for file := range files {
-		cmd := exec.Command(binary, "-p", compilationDatabase, file, fmt.Sprintf("--%s", format))
-		stdout, err := cmd.Output()
-		var stderr string
-		if err != nil {
-			var error *exec.ExitError
-			if errors.As(err, &error) {
-				if len(error.Stderr) != 0 {
-					stderr = fmt.Sprintf("%v: %v", file, string(error.Stderr))
-				} else {
-					stderr = fmt.Sprintf("%v: %v", file, error.String())
-				}
-			} else {
-				stderr = fmt.Sprintf("%v: %v", file, error)
-			}
+		out, err := exec.Command(binary, "-p", compilationDatabase, file).Output()
+		var exitErr *exec.ExitError
+		if err != nil && errors.As(err, &exitErr) && len(exitErr.Stderr) != 0 {
+			err = fmt.Errorf("%s", exitErr.Stderr)
 		}
-		outputs <- output{string(stdout), stderr}
+		outputs <- &output{file, out, err}
 	}
 }
 
 func renameSyscall(syscall *ast.Call, rename map[string][]string) []ast.Node {
-	if !shouldRenameSyscall(syscall.CallName) {
-		return []ast.Node{syscall}
-	}
-	var renamed []ast.Node
-	toReplace := syscall.CallName
-	if rename[toReplace] == nil {
+	names := rename[syscall.CallName]
+	if len(names) == 0 {
 		// Syscall has no record in the tables for the architectures we support.
 		return nil
 	}
-
-	for _, name := range rename[toReplace] {
-		if isProhibited(name) {
-			continue
-		}
+	variant := strings.TrimPrefix(syscall.Name.Name, syscall.CallName)
+	if variant == "" {
+		variant = "$auto"
+	}
+	var renamed []ast.Node
+	for _, name := range names {
 		newCall := syscall.Clone().(*ast.Call)
-		newCall.Name.Name = name + "$auto"
+		newCall.Name.Name = name + variant
 		newCall.CallName = name // Not required	but avoids mistakenly treating CallName as the part before the $.
 		renamed = append(renamed, newCall)
 	}
@@ -290,35 +274,44 @@ func renameSyscall(syscall *ast.Call, rename map[string][]string) []ast.Node {
 }
 
 func readSyscallNames(kernelDir string) map[string][]string {
-	var rename = make(map[string][]string)
+	rename := map[string][]string{
+		"syz_genetlink_get_family_id": {"syz_genetlink_get_family_id"},
+	}
 	for _, arch := range targets.List[targets.Linux] {
 		filepath.Walk(filepath.Join(kernelDir, arch.KernelHeaderArch),
 			func(path string, info fs.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
 				if !strings.HasSuffix(path, ".tbl") {
 					return nil
 				}
-				fi, fErr := os.Lstat(path)
-				if fErr != nil {
+				fi, err := os.Lstat(path)
+				if err != nil {
 					tool.Fail(err)
 				}
 				if fi.Mode()&fs.ModeSymlink != 0 { // Some symlinks link to files outside of arch directory.
 					return nil
 				}
-				f, fErr := os.Open(path)
-				if fErr != nil {
+				f, err := os.Open(path)
+				if err != nil {
 					tool.Fail(err)
 				}
 				s := bufio.NewScanner(f)
 				for s.Scan() {
 					fields := strings.Fields(s.Text())
-					if len(fields) < 4 || fields[0] == "#" || strings.HasPrefix(fields[2], "unused") || fields[3] == "-" ||
-						strings.HasPrefix(fields[3], "compat") || strings.HasPrefix(fields[3], "sys_ia32") ||
-						fields[3] == "sys_ni_syscall" {
-						// System calls prefixed with ia32 are ignored due to conflicting system calls for 64 bit and 32 bit.
+					if len(fields) < 4 {
 						continue
 					}
 					key := strings.TrimPrefix(fields[3], "sys_")
-					rename[key] = append(rename[key], fields[2])
+					val := fields[2]
+					if fields[0] == "#" || strings.HasPrefix(fields[2], "unused") || key == "-" ||
+						strings.HasPrefix(key, "compat") || strings.HasPrefix(key, "ia32") ||
+						key == "ni_syscall" || isProhibited(val) {
+						// System calls prefixed with ia32 are ignored due to conflicting system calls for 64 bit and 32 bit.
+						continue
+					}
+					rename[key] = append(rename[key], val)
 				}
 				return nil
 			})
@@ -332,15 +325,6 @@ func readSyscallNames(kernelDir string) map[string][]string {
 	return rename
 }
 
-func shouldRenameSyscall(syscall string) bool {
-	switch syscall {
-	case sendmsg, "syz_genetlink_get_family_id":
-		return false
-	default:
-		return true
-	}
-}
-
 func isProhibited(syscall string) bool {
 	switch syscall {
 	case "reboot", "utimesat": // `utimesat` is not defined for all arches.
@@ -350,13 +334,49 @@ func isProhibited(syscall string) bool {
 	}
 }
 
-func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]string) {
+func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node,
+	syscallNames map[string][]string, sourceDir, buildDir, file string, extractor *subsystem.Extractor) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 		case *ast.Call:
 			// Some syscalls have different names and entry points and thus need to be renamed.
 			// e.g. SYSCALL_DEFINE1(setuid16, old_uid_t, uid) is referred to in the .tbl file with setuid.
 			*slice = append(*slice, renameSyscall(node, syscallNames)...)
+		case *ast.Include:
+			if file, err := filepath.Rel(sourceDir, filepath.Join(buildDir, node.File.Value)); err == nil {
+				node.File.Value = file
+			}
+			*slice = append(*slice, node)
+		case *ast.Comment:
+			if !strings.HasPrefix(node.Text, "INTERFACE:") {
+				*slice = append(*slice, node)
+				continue
+			}
+			fields := strings.Fields(node.Text)
+			files := []string{file}
+			var crashes []*subsystem.Crash
+			for _, file := range files {
+				crashes = append(crashes, &subsystem.Crash{GuiltyPath: file})
+			}
+			var subsystems []string
+			for _, s := range extractor.Extract(crashes) {
+				subsystems = append(subsystems, s.Name)
+			}
+			slices.Sort(subsystems)
+			iface := Interface{
+				Type:       fields[1],
+				Name:       fields[2],
+				Files:      files,
+				Subsystems: subsystems,
+			}
+			if iface.Type == "SYSCALL" {
+				for _, name := range syscallNames[iface.Name] {
+					iface.Name = name
+					*interfaces = append(*interfaces, iface)
+				}
+			} else {
+				*interfaces = append(*interfaces, iface)
+			}
 		default:
 			*slice = append(*slice, node)
 		}
@@ -365,21 +385,23 @@ func appendNodes(slice *[]ast.Node, nodes []ast.Node, syscallNames map[string][]
 
 func getTypeOrder(a ast.Node) int {
 	switch a.(type) {
-	case *ast.Include:
+	case *ast.Comment:
 		return 0
-	case *ast.IntFlags:
+	case *ast.Include:
 		return 1
-	case *ast.Resource:
+	case *ast.IntFlags:
 		return 2
-	case *ast.TypeDef:
+	case *ast.Resource:
 		return 3
-	case *ast.Call:
+	case *ast.TypeDef:
 		return 4
-	case *ast.Struct:
+	case *ast.Call:
 		return 5
-	case *ast.NewLine:
+	case *ast.Struct:
 		return 6
+	case *ast.NewLine:
+		return 7
 	default:
-		return -1
+		panic(fmt.Sprintf("unhandled type %T", a))
 	}
 }
