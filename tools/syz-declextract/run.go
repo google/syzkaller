@@ -44,12 +44,11 @@ const ( // Output Format.
 
 func main() {
 	var (
-		compilationDatabase = flag.String("compile_commands", "compile_commands.json", "path to compilation database")
-		binary              = flag.String("binary", "syz-declextract", "path to binary")
-		outFile             = flag.String("output", "out.txt", "output file")
-		sourceDir           = flag.String("sourcedir", "", "kernel source directory")
-		buildDir            = flag.String("builddir", "", "kernel build directory (defaults to source directory)")
-		format              = flag.String("output_format", Final, "format for output [minimal, final]")
+		binary    = flag.String("binary", "syz-declextract", "path to binary")
+		outFile   = flag.String("output", "out.txt", "output file")
+		sourceDir = flag.String("sourcedir", "", "kernel source directory")
+		buildDir  = flag.String("builddir", "", "kernel build directory (defaults to source directory)")
+		format    = flag.String("output_format", Final, "format for output [minimal, final]")
 	)
 	defer tool.Init()()
 
@@ -67,7 +66,8 @@ func main() {
 	*sourceDir = filepath.Clean(osutil.Abs(*sourceDir))
 	*buildDir = filepath.Clean(osutil.Abs(*buildDir))
 
-	fileData, err := os.ReadFile(*compilationDatabase)
+	compilationDatabase := filepath.Join(*buildDir, "compile_commands.json")
+	fileData, err := os.ReadFile(compilationDatabase)
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -80,7 +80,7 @@ func main() {
 	outputs := make(chan output, len(cmds))
 	files := make(chan string, len(cmds))
 	for w := 0; w < runtime.NumCPU(); w++ {
-		go worker(outputs, files, *binary, *compilationDatabase, *format)
+		go worker(outputs, files, *binary, compilationDatabase, *format)
 	}
 
 	for _, cmd := range cmds {
