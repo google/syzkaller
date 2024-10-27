@@ -95,7 +95,7 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, nil); err != nil {
+	if err := runInTransaction(c, tx, nil); err != nil {
 		return false, err
 	}
 	log.Infof(c, "published bug to kcidb: %v:%v '%v'", bug.Namespace, bugKey.StringID(), bug.displayTitle())

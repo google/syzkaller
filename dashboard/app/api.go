@@ -361,7 +361,7 @@ func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *db.Key, com dashapi
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bool, error) {
@@ -662,7 +662,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixC
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
@@ -882,7 +882,11 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+	if err := runInTransaction(c, tx, &db.TransactionOptions{
+		XG: true,
+		// Very valuable transaction.
+		Attempts: 30,
+	}); err != nil {
 		return nil, fmt.Errorf("bug updating failed: %w", err)
 	}
 	if save {
@@ -1088,7 +1092,7 @@ func saveFailedReproLog(c context.Context, bug *Bug, build *Build, log []byte) e
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{
+	return runInTransaction(c, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	})
@@ -1249,7 +1253,7 @@ func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []by
 		}
 		return nil
 	}
-	return nil, db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 5})
+	return nil, runInTransaction(c, tx, nil)
 }
 
 func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
@@ -1492,8 +1496,9 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 			return nil
 		}
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
-		XG:       true,
+	if err := runInTransaction(c, tx, &db.TransactionOptions{
+		XG: true,
+		// Very valuable transaction.
 		Attempts: 30,
 	}); err != nil {
 		return nil, err

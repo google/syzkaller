@@ -49,7 +49,7 @@ func appendBuildAssets(c context.Context, ns, buildID string, assets []Asset) (*
 		log.Infof(c, "updated build: %#v", build)
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{}); err != nil {
+	if err := runInTransaction(c, tx, nil); err != nil {
 		return nil, err
 	}
 	return retBuild, nil
@@ -349,7 +349,7 @@ func (ad *buildAssetDeprecator) updateBuild(buildID string, urlsToDelete []strin
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(ad.c, tx, nil); err != nil {
+	if err := runInTransaction(ad.c, tx, nil); err != nil {
 		return fmt.Errorf("failed to update build: %w", err)
 	}
 	return nil
@@ -463,7 +463,7 @@ func (ad *crashAssetDeprecator) updateCrash(crashKey *db.Key, urlsToDelete []str
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(ad.c, tx, &db.TransactionOptions{Attempts: 10}); err != nil {
+	if err := runInTransaction(ad.c, tx, nil); err != nil {
 		return fmt.Errorf("failed to update crash: %w", err)
 	}
 	return nil

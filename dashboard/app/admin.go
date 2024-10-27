@@ -123,7 +123,7 @@ func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns st
 		fmt.Fprintf(w, "ReportingState: %v\n", len(state.Entries)-len(newState.Entries))
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
@@ -401,7 +401,7 @@ func updateBatch[T any](c context.Context, keys []*db.Key, transform func(key *d
 			_, err := db.PutMulti(c, batchKeys, items)
 			return err
 		}
-		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+		if err := runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
 		log.Warningf(c, "updated %v bugs", len(batchKeys))

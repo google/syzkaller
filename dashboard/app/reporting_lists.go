@@ -208,10 +208,7 @@ Please visit the new discussion thread.`
 		}
 		return nil
 	}
-	return reply, db.RunInTransaction(c, tx, &db.TransactionOptions{
-		XG:       true,
-		Attempts: 10,
-	})
+	return reply, runInTransaction(c, tx, &db.TransactionOptions{XG: true})
 }
 
 func findSubsystemReportByID(c context.Context, ID string) (*Subsystem,
@@ -534,7 +531,7 @@ func (sr *subsystemsRegistry) store(item *Subsystem) {
 
 func (sr *subsystemsRegistry) updatePoll(c context.Context, s *Subsystem, success bool) error {
 	key := subsystemKey(c, s)
-	return db.RunInTransaction(c, func(c context.Context) error {
+	return runInTransaction(c, func(c context.Context) error {
 		dbSubsystem := new(Subsystem)
 		err := db.Get(c, key, dbSubsystem)
 		if err == db.ErrNoSuchEntity {
@@ -593,7 +590,7 @@ func (srr *subsystemReportRegistry) store(ns, name string, item *SubsystemReport
 
 func storeSubsystemReport(c context.Context, s *Subsystem, report *SubsystemReport) error {
 	key := subsystemKey(c, s)
-	return db.RunInTransaction(c, func(c context.Context) error {
+	return runInTransaction(c, func(c context.Context) error {
 		// First close all previouly active per-subsystem reports.
 		var previous []*SubsystemReport
 		prevKeys, err := db.NewQuery("SubsystemReport").
