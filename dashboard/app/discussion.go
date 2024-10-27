@@ -87,18 +87,16 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 		}
 		return nil
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 15, XG: true})
-	if err != nil {
+	if err = runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
 	// Update individual bug statistics.
 	// We have to do it outside of the main transaction, as we might hit the "operating on
 	// too many entity groups in a single transaction." error.
 	for _, key := range d.BugKeys {
-		err := db.RunInTransaction(c, func(c context.Context) error {
+		if err := runInTransaction(c, func(c context.Context) error {
 			return mergeDiscussionSummary(c, key, d.Source, diff)
-		}, &db.TransactionOptions{Attempts: 15})
-		if err != nil {
+		}, nil); err != nil {
 			return fmt.Errorf("failed to put update summary for %s: %w", key, err)
 		}
 	}

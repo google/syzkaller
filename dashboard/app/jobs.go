@@ -79,7 +79,7 @@ func handleTestRequest(c context.Context, args *testReqArgs) error {
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, nil); err != nil {
+	if err := runInTransaction(c, tx, nil); err != nil {
 		// We've already stored the job, so just log the error.
 		log.Errorf(c, "failed to update bug: %v", err)
 	}
@@ -187,7 +187,7 @@ func addTestJob(c context.Context, args *testJobArgs) (*Job, *db.Key, error) {
 	if args.inTransaction {
 		err = tx(c)
 	} else {
-		err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
+		err = runInTransaction(c, tx, &db.TransactionOptions{XG: true})
 	}
 	if patchID != 0 && (deletePatch || err != nil) {
 		if err := db.Delete(c, db.NewKey(c, textPatch, "", patchID, nil)); err != nil {
@@ -296,7 +296,7 @@ func invalidateBisection(c context.Context, jobKey *db.Key, restart bool) error 
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
+	if err := runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return fmt.Errorf("update failed: %w", err)
 	}
 
@@ -402,7 +402,7 @@ func throttleJobGeneration(c context.Context, managers map[string]dashapi.Manage
 			}
 			return nil
 		}
-		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{}); err != nil {
+		if err := runInTransaction(c, tx, nil); err != nil {
 			return fmt.Errorf("failed to throttle: %w", err)
 		}
 	}
@@ -807,7 +807,7 @@ func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, c
 		jobKey, err = saveJob(c, job, bugKey)
 		return err
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
+	if err := runInTransaction(c, tx, &db.TransactionOptions{
 		// We're accessing two different kinds in addCrashReference.
 		XG: true,
 	}); err != nil {
@@ -873,7 +873,7 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, nil); err != nil {
+	if err := runInTransaction(c, tx, nil); err != nil {
 		return nil, false, err
 	}
 	if stale {
@@ -1023,7 +1023,7 @@ func resetJobs(c context.Context, req *dashapi.JobResetReq) error {
 			}
 			return nil
 		}
-		if err := db.RunInTransaction(c, tx, nil); err != nil {
+		if err := runInTransaction(c, tx, nil); err != nil {
 			return err
 		}
 	}
@@ -1122,8 +1122,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		log.Infof(c, "DONE JOB %v: reported=%v reporting=%v", jobID, job.Reported, job.Reporting)
 		return nil
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
-	if err != nil {
+	if err = runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
 	return postJob(c, jobKey, job)
@@ -1409,7 +1408,7 @@ func jobReported(c context.Context, jobID string) error {
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func handleExternalTestRequest(c context.Context, req *dashapi.TestPatchRequest) error {
@@ -1726,7 +1725,7 @@ func commitBackported(c context.Context, jobKey *db.Key, commit Commit) error {
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 5})
+	return runInTransaction(c, tx, nil)
 }
 
 type bugJobs struct {

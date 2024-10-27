@@ -874,9 +874,8 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 		ok, reply, err = incomingCommandTx(c, now, cmd, bugKey, dupKey)
 		return err
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{
+	err = runInTransaction(c, tx, &db.TransactionOptions{
 		XG: true,
-		// Default is 3 which fails sometimes.
 		// We don't want incoming bug updates to fail,
 		// because for e.g. email we won't have an external retry.
 		Attempts: 30,

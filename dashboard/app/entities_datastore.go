@@ -208,7 +208,7 @@ func updateSingleBug(c context.Context, bugKey *db.Key, transform func(*Bug) err
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
+	return runInTransaction(c, tx, nil)
 }
 
 func (bug *Bug) hasUserSubsystems() bool {
@@ -785,7 +785,7 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
+	return runInTransaction(c, tx, nil)
 }
 
 func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error) {
@@ -1166,4 +1166,18 @@ func (dl *dependencyLoader[T]) load(c context.Context) error {
 		}
 	}
 	return nil
+}
+
+type txFunc func(tc context.Context) error
+
+// runInTransaction is a wrapper around db.RunInTransaction,
+// with the common number of attempts.
+func runInTransaction(c context.Context, tx txFunc, opts *db.TransactionOptions) error {
+	if opts == nil {
+		opts = &db.TransactionOptions{}
+	}
+	if opts.Attempts == 0 {
+		opts.Attempts = 10
+	}
+	return db.RunInTransaction(c, tx, opts)
 }
