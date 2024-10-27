@@ -177,10 +177,8 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 			}
 			if module.Name == "" && len(result.CoverPoints[0]) == 0 {
 				err = fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y on linux)", module.Path)
-				if err != nil {
-					binC <- binResult{err: err}
-					return
-				}
+				binC <- binResult{err: err}
+				return
 			}
 			ranges, units, err := params.readTextRanges(module)
 			if err != nil {

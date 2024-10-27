@@ -107,6 +107,7 @@ issues:
     # This check gives false positives related to the standard log.Fatalf
     # (which is strange, standard log package should be supported).#
     - "SA5011: possible nil pointer dereference"
+    - "this check suggests that the pointer can be nil"
   exclude-rules:
     - path: (pkg/csource/generated.go|pkg/build/linux_generated.go)
       linters:
