@@ -1365,17 +1365,11 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 	// Older bugs don't have MergedTitles, so we need to check Title as well
 	// (reportCrash will set MergedTitles later).
 	for _, title := range titles {
-		_, err = db.NewQuery("Bug").
-			Filter("Namespace=", ns).
-			Filter("Title=", title).
-			Order("-Seq").
-			Limit(1).
-			GetAll(c, &bugs)
+		bug, err := highestSeqBug(c, ns, title)
 		if err != nil {
-			return nil, fmt.Errorf("failed to query bugs: %w", err)
+			return nil, err
 		}
-		if len(bugs) != 0 {
-			bug := bugs[0]
+		if bug != nil {
 			if active, err := isActiveBug(c, bug); err != nil {
 				return nil, err
 			} else if active {
@@ -1384,6 +1378,23 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 		}
 	}
 	return nil, nil
+}
+
+func highestSeqBug(c context.Context, ns, title string) (*Bug, error) {
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Title=", title).
+		Order("-Seq").
+		Limit(1).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the last bug report: %w", err)
+	}
+	if len(bugs) == 0 {
+		return nil, nil
+	}
+	return bugs[0], nil
 }
 
 func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error) {
@@ -1447,10 +1458,22 @@ func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error
 }
 
 func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
+	// Datastore limits the number of entities involved in a transaction to 25, so it's possible
+	// to iterate over them all only up to some point.
+	// To optimize the process, let's first obtain the maximum known seq for the title outside
+	// of the transaction and then iterate a bit more in case of conflicts.
+	startSeq := int64(0)
+	prevBug, err := highestSeqBug(c, ns, req.Title)
+	if err != nil {
+		return nil, err
+	} else if prevBug != nil {
+		startSeq = prevBug.Seq + 1
+	}
+
 	var bug *Bug
 	now := timeNow(c)
 	tx := func(c context.Context) error {
-		for seq := int64(0); ; seq++ {
+		for seq := startSeq; ; seq++ {
 			bug = new(Bug)
 			bugHash := bugKeyHash(c, ns, req.Title, seq)
 			bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
