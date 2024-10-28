@@ -358,6 +358,7 @@ func (cfg *Config) completeFocusAreas() error {
 				Weight: 1.0,
 			},
 		}
+		cfg.CovFilter = CovFilterCfg{}
 	}
 	return nil
 }
