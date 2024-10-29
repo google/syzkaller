@@ -1951,6 +1951,7 @@ var linuxOopses = append([]*oops{
 			compile(`WARNING: fbcon: Driver '(.*)' missed to adjust virtual screen size (\((?:\d+)x(?:\d+) vs\. (?:\d+)x(?:\d+)\))`),
 			compile(`WARNING: See https.* for mitigation options.`),
 			compile(`WARNING: kernel not compiled with CPU_SRSO`),
+			compile(`EXT4-[Ff][Ss](?: \(.*\))?:`), // printed in __ext4_msg
 		},
 		crash.Warning,
 	},
