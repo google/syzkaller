@@ -1,6 +1,8 @@
 # Tech talks
 
 _newer first_
+* [Head First Reporting of Linux Kernel CVEs: Practical Use of the Kernel Fuzzer](https://static.sched.com/hosted_files/sosscdjapan2024/7a/Head%20First%20Reporting%20of%20Linux%20Kernel%20CVEs%20-%20sosscj24.pdf) at [SOSS Community Day (Japan, 2024)](https://events.linuxfoundation.org/soss-community-day-japan/program/schedule/).
+* [Syzbot: 7 years of continuous kernel fuzzing](https://lpc.events/event/17/contributions/1521/attachments/1272/2698/LPC'23_%20Syzbot_%207%20years%20of%20continuous%20kernel%20fuzzing.pdf) at [Linux Plumbers 2023](https://lpc.events/event/17/contributions/1521/).
 * [Designing UAPI for Fuzz-ability](https://lpc.events/event/16/contributions/1309/attachments/988/1979/Designing%20subsystems%20for%20testability_fuzzing%20%28PDF%20version%29.pdf) at [Linux Plumbers 2022](https://lpc.events/event/16/contributions/1309/)
 * [Making syzbot reports more developer-friendly](https://lpc.events/event/16/contributions/1311/attachments/1013/1951/Making%20syzbot%20reports%20more%20developer-friendly.pdf) at [Linux Plumbers 2022](https://lpc.events/event/16/contributions/1311/)
 * [syzkaller: adventures in continuous coverage-guided kernel fuzzing](https://www.youtube.com/watch?v=YwX4UyXnhz0)
