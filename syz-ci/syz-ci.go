@@ -180,9 +180,9 @@ type ManagerConfig struct {
 	// and rename managers/foo to managers/ci-foo. Then this instance can be moved
 	// to another ci along with managers/ci-foo dir.
 	Name            string `json:"name"`
-	Disabled        string `json:"disabled"` // If not empty, don't build/start this manager.
-	DashboardClient string `json:"dashboard_client"`
-	DashboardKey    string `json:"dashboard_key"`
+	Disabled        string `json:"disabled"`         // If not empty, don't build/start this manager.
+	DashboardClient string `json:"dashboard_client"` // Optional.
+	DashboardKey    string `json:"dashboard_key"`    // Optional.
 	Repo            string `json:"repo"`
 	// Short name of the repo (e.g. "linux-next"), used only for reporting.
 	RepoAlias string `json:"repo_alias"`

@@ -154,11 +154,14 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 		repo:           repo,
 		mgrcfg:         mgrcfg,
 		managercfg:     mgrcfg.managercfg,
-		dash:           dash,
 		storage:        assetStorage,
 		debugStorage:   !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
 		stop:           stop,
 		debug:          debug,
+	}
+	// Leave the dashboard interface value as nil if it does not wrap a valid dashboard pointer.
+	if dash != nil {
+		mgr.dash = dash
 	}
 
 	os.RemoveAll(mgr.currentDir)
