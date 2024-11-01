@@ -8,7 +8,5 @@ config:
  # See the comment in x86_64.yml re these numbers.
  - RCU_CPU_STALL_TIMEOUT: 300
  - DEFAULT_HUNG_TASK_TIMEOUT: [420, -nonoise, -kmsan, -kcsan, -kmemleak]
- # 21000 is the max value for the config, so we don't multiply it.
- # TODO: `rcu: Allow up to five minutes expedited RCU CPU stall-warning timeouts` lets us set more than 21k,
- # but we first need to change the config generation tool to support multiple possible parameter values.
- - RCU_EXP_CPU_STALL_TIMEOUT: [21000, v5.19]
+ # A zero RCU_EXP_CPU_STALL_TIMEOUT value makes it equal to RCU_CPU_STALL_TIMEOUT.
+ - RCU_EXP_CPU_STALL_TIMEOUT: [0, v5.19]
