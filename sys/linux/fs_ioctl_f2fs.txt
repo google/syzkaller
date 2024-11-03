@@ -25,6 +25,11 @@ ioctl$F2FS_IOC_RESIZE_FS(fd fd, cmd const[F2FS_IOC_RESIZE_FS], arg ptr[in, int64
 ioctl$F2FS_IOC_GET_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_GET_COMPRESS_BLOCKS], arg ptr[out, int64])
 ioctl$F2FS_IOC_RELEASE_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_RELEASE_COMPRESS_BLOCKS], arg ptr[out, int64])
 ioctl$F2FS_IOC_RESERVE_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_RESERVE_COMPRESS_BLOCKS], arg ptr[out, int64])
+ioctl$F2FS_IOC_SEC_TRIM_FILE(fd fd, cmd const[F2FS_IOC_SEC_TRIM_FILE], arg ptr[in, f2fs_sectrim_range])
+ioctl$F2FS_IOC_GET_COMPRESS_OPTION(fd fd, cmd const[F2FS_IOC_GET_COMPRESS_OPTION], arg ptr[out, f2fs_comp_option])
+ioctl$F2FS_IOC_SET_COMPRESS_OPTION(fd fd, cmd const[F2FS_IOC_SET_COMPRESS_OPTION], arg ptr[in, f2fs_comp_option])
+ioctl$F2FS_IOC_DECOMPRESS_FILE(fd fd, cmd const[F2FS_IOC_DECOMPRESS_FILE], arg const[0])
+ioctl$F2FS_IOC_COMPRESS_FILE(fd fd, cmd const[F2FS_IOC_COMPRESS_FILE], arg const[0])
 
 # F2FS_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 # Fortunately, the value does not conflict with any other ioctl commands for now.
@@ -54,3 +59,16 @@ f2fs_flush_device {
 }
 
 f2fs_shutdown_flag = F2FS_GOING_DOWN_FULLSYNC, F2FS_GOING_DOWN_METASYNC, F2FS_GOING_DOWN_NOSYNC, F2FS_GOING_DOWN_METAFLUSH, F2FS_GOING_DOWN_NEED_FSCK
+
+f2fs_sectrim_range {
+	start	int64
+	len	int64
+	flags	flags[f2fs_sectrim_range_flag, int64]
+}
+
+f2fs_sectrim_range_flag = F2FS_TRIM_FILE_DISCARD, F2FS_TRIM_FILE_ZEROOUT, F2FS_TRIM_FILE_MASK
+
+f2fs_comp_option {
+	algorithm		int8
+	log_cluster_size	int8
+}
