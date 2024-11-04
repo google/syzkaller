@@ -43,11 +43,13 @@ func handleContext(fn contextHandler) http.Handler {
 		if err := fn(c, w, r); err != nil {
 			hdr := commonHeaderRaw(c, r)
 			data := &struct {
-				Header *uiHeader
-				Error  string
+				Header  *uiHeader
+				Error   string
+				TraceID string
 			}{
-				Header: hdr,
-				Error:  err.Error(),
+				Header:  hdr,
+				Error:   err.Error(),
+				TraceID: strings.Join(r.Header["X-Cloud-Trace-Context"], " "),
 			}
 			if err == ErrAccess {
 				if hdr.LoginLink != "" {
@@ -83,7 +85,7 @@ func logErrorPrepareStatus(c context.Context, err error) int {
 		logf = log.Warningf
 		status = clientError.HTTPStatus()
 	}
-	logf(c, "%v", err)
+	logf(c, "appengine error: %v", err)
 	return status
 }
 
