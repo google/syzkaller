@@ -625,7 +625,7 @@ All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
 During the period, 9 new issues were detected and 1 were fixed.
-In total, 10 issues are still open and 1 has been fixed so far.
+In total, 10 issues are still open and 1 has already been fixed.
 
 Some of the still happening issues:
 

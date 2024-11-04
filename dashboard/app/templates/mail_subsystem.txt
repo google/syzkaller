@@ -6,7 +6,7 @@ All related reports/information can be found at:
 
 During the period, {{.PeriodStats.Reported}} new issues were detected and {{.PeriodStats.Fixed}} were fixed.
 In total, {{.TotalStats.Reported}} issues are still open
-{{- if .TotalStats.Fixed}} and {{.TotalStats.Fixed}} ha{{if eq .TotalStats.Fixed 1}}s{{else}}ve{{end}} been fixed so far{{end}}.
+{{- if .TotalStats.Fixed}} and {{.TotalStats.Fixed}} ha{{if eq .TotalStats.Fixed 1}}s{{else}}ve{{end}} already been fixed{{end}}.
 {{- if eq .TotalStats.LowPrio 1}}
 There is also 1 low-priority issue.
 {{- end}}
