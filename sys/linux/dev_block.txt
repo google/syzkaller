@@ -42,6 +42,7 @@ ioctl$BLKPG(fd fd_block, cmd const[BLKPG], arg ptr[in, blkpg_ioctl_arg])
 ioctl$BLKRRPART(fd fd_block, cmd const[BLKRRPART], arg const[0])
 ioctl$BLKGETSIZE(fd fd_block, cmd const[BLKGETSIZE], arg ptr[out, intptr])
 ioctl$BLKGETSIZE64(fd fd_block, cmd const[BLKGETSIZE64], arg ptr[out, int64])
+ioctl$BLKGETDISKSEQ(fd fd_block, cmd const[BLKGETDISKSEQ], arg ptr[out, int64])
 
 ioctl$HDIO_GETGEO(fd fd_block, cmd const[HDIO_GETGEO], arg ptr[out, hd_geometry])
 

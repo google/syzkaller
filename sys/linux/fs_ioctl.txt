@@ -25,6 +25,8 @@ ioctl$FS_IOC_FSSETXATTR(fd fd, cmd const[FS_IOC_FSSETXATTR], arg ptr[in, fsxattr
 ioctl$FS_IOC_GETFSLABEL(fd fd, cmd const[FS_IOC_GETFSLABEL], arg ptr[out, array[const[0, int8], FSLABEL_MAX]])
 ioctl$FS_IOC_SETFSLABEL(fd fd, cmd const[FS_IOC_SETFSLABEL], arg ptr[in, array[int8, FSLABEL_MAX]])
 ioctl$FS_IOC_GETFSMAP(fd fd, cmd const[FS_IOC_GETFSMAP], arg ptr[in, fsmap_head])
+ioctl$FS_IOC_GETFSUUID(fd fd, cmd const[FS_IOC_GETFSUUID], arg ptr[out, fsuuid2])
+ioctl$FS_IOC_GETFSSYSFSPATH(fd fd, cmd const[FS_IOC_GETFSSYSFSPATH], arg ptr[out, fs_sysfs_path])
 
 space_resv {
 	l_type		const[0, int16]
@@ -76,12 +78,13 @@ fsxattr {
 }
 
 fiemap {
-	start	int64
-	len	int64
-	flags	flags[fiemap_flags, int32]
-	mapped	int32
-	count	len[extent, int32]
-	extent	array[fiemap_extent]
+	start		int64
+	len		int64
+	flags		flags[fiemap_flags, int32]
+	mapped		int32
+	count		len[extent, int32]
+	reserved	const[0, int32]
+	extent		array[fiemap_extent]
 }
 
 fiemap_extent {
@@ -116,3 +119,13 @@ fsmap {
 fs_flags = FS_SECRM_FL, FS_UNRM_FL, FS_COMPR_FL, FS_SYNC_FL, FS_IMMUTABLE_FL, FS_APPEND_FL, FS_NODUMP_FL, FS_NOATIME_FL, FS_DIRTY_FL, FS_COMPRBLK_FL, FS_NOCOMP_FL, FS_ENCRYPT_FL, FS_BTREE_FL, FS_INDEX_FL, FS_IMAGIC_FL, FS_JOURNAL_DATA_FL, FS_NOTAIL_FL, FS_DIRSYNC_FL, FS_TOPDIR_FL, FS_HUGE_FILE_FL, FS_EXTENT_FL, FS_VERITY_FL, FS_EA_INODE_FL, FS_EOFBLOCKS_FL, FS_NOCOW_FL, FS_DAX_FL, FS_INLINE_DATA_FL, FS_PROJINHERIT_FL, FS_CASEFOLD_FL, FS_RESERVED_FL
 
 define FSMAP_SIZE	sizeof(struct fsmap)
+
+fsuuid2 {
+	len	const[16, int8]
+	uuid	array[int8, 16]
+}
+
+fs_sysfs_path {
+	len	len[name, int8]
+	name	array[int8, 128]
+}
