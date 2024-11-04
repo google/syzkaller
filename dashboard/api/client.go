@@ -106,7 +106,8 @@ func (c *Client) Text(query string) ([]byte, error) {
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if res.StatusCode < 200 || res.StatusCode >= 300 || err != nil {
-		return nil, fmt.Errorf("api request %q failed: %v (%w)", queryURL, res.StatusCode, err)
+		return nil, fmt.Errorf("api request %q failed: status(%v) err(%w) body(%.1024s)",
+			queryURL, res.StatusCode, err, string(body))
 	}
 	return body, nil
 }
