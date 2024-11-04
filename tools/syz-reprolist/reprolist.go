@@ -23,6 +23,7 @@ var (
 	flagToken     = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
 		"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth print-access-token)")
 	flagParallel = flag.Int("j", 2, "number of parallel threads")
+	flagVerbose  = flag.Bool("v", false, "verbose output")
 )
 
 func main() {
@@ -61,8 +62,10 @@ func exportNamespace() error {
 					continue
 				}
 				reproID := reproIDFromURL(cReproURL)
-				fmt.Printf("[%v](%v/%v)saving c-repro %v for bug %v\n",
-					i, iBug, len(bugs), reproID, bug.ID)
+				if *flagVerbose {
+					fmt.Printf("[%v](%v/%v)saving c-repro %v for bug %v\n",
+						i, iBug, len(bugs), reproID, bug.ID)
+				}
 				cReproBody, err := cli.Text(cReproURL)
 				if err != nil {
 					return err
