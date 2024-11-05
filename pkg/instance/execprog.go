@@ -146,14 +146,26 @@ func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*Ru
 	return inst.runCommand(bin, duration, binExitConditions)
 }
 
-func (inst *ExecProgInstance) RunCProg(p *prog.Prog, duration time.Duration,
-	opts csource.Options) (*RunResult, error) {
-	src, err := csource.Write(p, opts)
+type ExecParams struct {
+	// Only one of these will be used, depending on the function.
+	CProg   *prog.Prog
+	SyzProg []byte
+
+	Opts     csource.Options
+	Duration time.Duration
+	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
+	// RunCProg() always runs with binExitConditions.
+	ExitConditions vm.ExitCondition
+}
+
+func (inst *ExecProgInstance) RunCProg(params ExecParams) (*RunResult, error) {
+	src, err := csource.Write(params.CProg, params.Opts)
 	if err != nil {
 		return nil, err
 	}
-	inst.Logf(2, "testing compiled C program (duration=%v, %+v): %s", duration, opts, p)
-	return inst.RunCProgRaw(src, p.Target, duration)
+	inst.Logf(2, "testing compiled C program (duration=%v, %+v): %s",
+		params.Duration, params.Opts, params.CProg)
+	return inst.RunCProgRaw(src, params.CProg.Target, params.Duration)
 }
 
 func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
@@ -178,14 +190,17 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 	return inst.runCommand(command, duration, exitCondition)
 }
 
-func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, duration time.Duration,
-	opts csource.Options, exitCondition vm.ExitCondition) (*RunResult, error) {
-	progFile, err := osutil.WriteTempFile(syzProg)
+func (inst *ExecProgInstance) RunSyzProg(params ExecParams) (*RunResult, error) {
+	progFile, err := osutil.WriteTempFile(params.SyzProg)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(progFile)
-	return inst.RunSyzProgFile(progFile, duration, opts, exitCondition)
+
+	if params.ExitConditions == 0 {
+		params.ExitConditions = SyzExitConditions
+	}
+	return inst.RunSyzProgFile(progFile, params.Duration, params.Opts, params.ExitConditions)
 }
 
 func (inst *ExecProgInstance) Close() {

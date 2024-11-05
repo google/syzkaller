@@ -388,7 +388,12 @@ func (inst *inst) testInstance() error {
 		return err
 	}
 	opts.Repeat = false
-	out, err := execProg.RunSyzProg(testProg, inst.cfg.Timeouts.NoOutputRunningTime, opts, vm.ExitNormal)
+	out, err := execProg.RunSyzProg(ExecParams{
+		SyzProg:        testProg,
+		Duration:       inst.cfg.Timeouts.NoOutputRunningTime,
+		Opts:           opts,
+		ExitConditions: vm.ExitNormal,
+	})
 	if err != nil {
 		return &TestError{Title: err.Error()}
 	}
@@ -420,8 +425,11 @@ func (inst *inst) testRepro() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		out, err = transformError(execProg.RunSyzProg(inst.reproSyz,
-			inst.cfg.Timeouts.NoOutputRunningTime, opts, SyzExitConditions))
+		out, err = transformError(execProg.RunSyzProg(ExecParams{
+			SyzProg:  inst.reproSyz,
+			Duration: inst.cfg.Timeouts.NoOutputRunningTime,
+			Opts:     opts,
+		}))
 		if err != nil {
 			return out, err
 		}

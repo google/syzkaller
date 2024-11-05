@@ -207,8 +207,13 @@ func (dc *diffContext) RunRepro(crash *manager.Crash) *manager.ReproResult {
 	dc.reproAttempts[crash.Title]++
 	dc.mu.Unlock()
 
-	res, stats, err := repro.Run(crash.Output, dc.new.cfg, dc.new.features,
-		dc.new.reporter, dc.new.pool, repro.Fast)
+	res, stats, err := repro.Run(context.Background(), crash.Output, repro.Environment{
+		Config:   dc.new.cfg,
+		Features: dc.new.features,
+		Reporter: dc.new.reporter,
+		Pool:     dc.new.pool,
+		Fast:     true,
+	})
 	if res != nil && res.Report != nil {
 		dc.mu.Lock()
 		dc.reproAttempts[res.Report.Title] = maxReproAttempts
@@ -474,8 +479,11 @@ func (rr *reproRunner) Run(r *repro.Result) {
 			if err != nil {
 				return
 			}
-			result, err = ret.RunSyzProg(r.Prog.Serialize(), max(r.Duration, time.Minute), opts,
-				instance.SyzExitConditions)
+			result, err = ret.RunSyzProg(instance.ExecParams{
+				SyzProg:  r.Prog.Serialize(),
+				Duration: max(r.Duration, time.Minute),
+				Opts:     opts,
+			})
 		})
 		crashed := result != nil && result.Report != nil
 		log.Logf(1, "attempt #%d to run %q on base: crashed=%v", i, ret.originalTitle, crashed)
