@@ -430,7 +430,12 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) RunRepro(crash *manager.Crash) *manager.ReproResult {
-	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.enabledFeatures, mgr.reporter, mgr.pool)
+	res, stats, err := repro.Run(context.Background(), crash.Output, repro.Environment{
+		Config:   mgr.cfg,
+		Features: mgr.enabledFeatures,
+		Reporter: mgr.reporter,
+		Pool:     mgr.pool,
+	})
 	ret := &manager.ReproResult{
 		Crash: crash,
 		Repro: res,

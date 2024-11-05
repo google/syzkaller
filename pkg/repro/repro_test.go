@@ -4,11 +4,11 @@
 package repro
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/csource"
@@ -19,7 +19,6 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm"
 )
 
 func initTest(t *testing.T) (*rand.Rand, int) {
@@ -113,17 +112,16 @@ type testExecInterface struct {
 	run func([]byte) (*instance.RunResult, error)
 }
 
-func (tei *testExecInterface) RunCProg(p *prog.Prog, duration time.Duration,
-	opts csource.Options) (*instance.RunResult, error) {
-	return tei.RunSyzProg(p.Serialize(), duration, opts, instance.SyzExitConditions)
-}
-
-func (tei *testExecInterface) RunSyzProg(syzProg []byte, duration time.Duration,
-	opts csource.Options, exitCondition vm.ExitCondition) (*instance.RunResult, error) {
+func (tei *testExecInterface) Run(_ context.Context, params instance.ExecParams,
+	_ instance.ExecutorLogger) (*instance.RunResult, error) {
+	syzProg := params.SyzProg
+	if params.CProg != nil {
+		syzProg = params.CProg.Serialize()
+	}
 	return tei.run(syzProg)
 }
 
-func prepareTestCtx(t *testing.T, log string, exec execInterface) *reproContext {
+func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
 	mgrConfig := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
@@ -140,11 +138,8 @@ func prepareTestCtx(t *testing.T, log string, exec execInterface) *reproContext 
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, err := prepareCtx([]byte(log), mgrConfig, flatrpc.AllFeatures, reporter, exec)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return ctx
+	return runInner(context.Background(), []byte(log), mgrConfig,
+		flatrpc.AllFeatures, reporter, false, exec)
 }
 
 const testReproLog = `
@@ -180,10 +175,9 @@ func testExecRunner(log []byte) (*instance.RunResult, error) {
 // Just a pkg/repro smoke test: check that we can extract a two-call reproducer.
 // No focus on error handling and minor corner cases.
 func TestPlainRepro(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog, &testExecInterface{
+	result, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 		run: testExecRunner,
 	})
-	result, _, err := ctx.run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +192,7 @@ alarm(0xa)
 // Ensure that the code just retries.
 func TestVMErrorResilience(t *testing.T) {
 	fail := false
-	ctx := prepareTestCtx(t, testReproLog, &testExecInterface{
+	result, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 		run: func(log []byte) (*instance.RunResult, error) {
 			fail = !fail
 			if fail {
@@ -207,7 +201,6 @@ func TestVMErrorResilience(t *testing.T) {
 			return testExecRunner(log)
 		},
 	})
-	result, _, err := ctx.run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +213,7 @@ alarm(0xa)
 
 func TestTooManyErrors(t *testing.T) {
 	counter := 0
-	ctx := prepareTestCtx(t, testReproLog, &testExecInterface{
+	_, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 		run: func(log []byte) (*instance.RunResult, error) {
 			counter++
 			if counter%4 != 0 {
@@ -229,7 +222,6 @@ func TestTooManyErrors(t *testing.T) {
 			return testExecRunner(log)
 		},
 	})
-	_, _, err := ctx.run()
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -254,10 +246,9 @@ func TestProgConcatenation(t *testing.T) {
 			execLog += "getpid()\n"
 		}
 	}
-	ctx := prepareTestCtx(t, execLog, &testExecInterface{
+	result, _, err := runTestRepro(t, execLog, &testExecInterface{
 		run: testExecRunner,
 	})
-	result, _, err := ctx.run()
 	if err != nil {
 		t.Fatal(err)
 	}
