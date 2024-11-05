@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -18,10 +19,10 @@ import (
 
 var (
 	flagDashboard = flag.String("dashboard", "https://syzkaller.appspot.com", "dashboard address")
-	flagOutputDir = flag.String("output", "repros", "output dir")
+	flagOutputDir = flag.String("output", "export", "output dir")
 	flagNamespace = flag.String("namespace", "upstream", "target namespace")
 	flagToken     = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
-		"usage example: ./tools/syz-reprolist -namespace upstream -token $(gcloud auth print-access-token)")
+		"usage example: ./tools/syz-bot-export -namespace upstream -token $(gcloud auth print-access-token)")
 	flagParallel = flag.Int("j", 2, "number of parallel threads")
 	flagVerbose  = flag.Bool("v", false, "verbose output")
 )
@@ -57,6 +58,13 @@ func exportNamespace() error {
 				if err != nil {
 					return err
 				}
+				if *flagVerbose {
+					fmt.Printf("[%v](%v/%v)saving bug %v\n",
+						i, iBug, len(bugs), bug.ID)
+				}
+				if err := saveBug(bug); err != nil {
+					return fmt.Errorf("saveBug(bugID=%s): %w", bug.ID, err)
+				}
 				cReproURL := bug.Crashes[0].CReproducerLink // export max 1 CRepro per bug
 				if cReproURL == "" {
 					continue
@@ -70,7 +78,7 @@ func exportNamespace() error {
 				if err != nil {
 					return err
 				}
-				if err := saveCRepro(reproID, cReproBody); err != nil {
+				if err := saveCRepro(bug.ID, reproID, cReproBody); err != nil {
 					return fmt.Errorf("saveRepro(bugID=%s, reproID=%s): %w", bug.ID, reproID, err)
 				}
 			}
@@ -92,8 +100,9 @@ func exportNamespace() error {
 	return g.Wait()
 }
 
-func saveCRepro(reproID string, reproData []byte) error {
-	reproPath := path.Join(*flagOutputDir, reproID+".c")
+// saceCRepro assumes the bug dir already exists.
+func saveCRepro(bugID, reproID string, reproData []byte) error {
+	reproPath := path.Join(*flagOutputDir, "bugs", bugID, reproID+".c")
 	if err := os.WriteFile(reproPath, reproData, 0666); err != nil {
 		return fmt.Errorf("os.WriteFile: %w", err)
 	}
@@ -110,4 +119,20 @@ func reproIDFromURL(url string) string {
 		log.Panicf("can't split %s in two parts by =", url)
 	}
 	return parts[1]
+}
+
+func saveBug(bug *api.Bug) error {
+	jsonBytes, err := json.Marshal(bug)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	bugDir := path.Join(*flagOutputDir, "bugs", bug.ID)
+	if err := os.MkdirAll(bugDir, 0755); err != nil {
+		return fmt.Errorf("os.MkdirAll(%s): %w", bugDir, err)
+	}
+	bugDetailsPath := path.Join(bugDir, "details.json")
+	if err := os.WriteFile(bugDetailsPath, jsonBytes, 0666); err != nil {
+		return fmt.Errorf("os.WriteFile: %w", err)
+	}
+	return nil
 }
