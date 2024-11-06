@@ -22,7 +22,7 @@ type FilesRecord struct {
 	Instrumented      int64
 	Covered           int64
 	LinesInstrumented []int64
-	LinesCovered      []int64
+	HitCounts         []int64
 }
 
 type FileSubsystems struct {
@@ -51,7 +51,7 @@ type Coverage struct {
 	Instrumented      int64
 	Covered           int64
 	LinesInstrumented []int64
-	LinesCovered      []int64
+	HitCounts         []int64
 }
 
 func SaveMergeResult(ctx context.Context, projectID string, covMap map[string]*Coverage,
@@ -113,10 +113,10 @@ func fileRecordMutation(session, filePath string, record *Coverage) *spanner.Mut
 		Instrumented:      record.Instrumented,
 		Covered:           record.Covered,
 		LinesInstrumented: record.LinesInstrumented,
-		LinesCovered:      record.LinesCovered,
+		HitCounts:         record.HitCounts,
 	})
 	if err != nil {
-		panic(fmt.Sprintf("failed to fileRecordMutation(): %s", err.Error()))
+		panic(fmt.Sprintf("failed to fileRecordMutation: %v", err))
 	}
 	return insert
 }

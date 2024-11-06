@@ -140,22 +140,26 @@ func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
 		if !lineStat.FileExists {
 			continue
 		}
-		var linesInstrumented, linesCovered []int64
-		for lineNum, lineHitCount := range lineStat.HitCounts {
-			linesInstrumented = append(linesInstrumented, int64(lineNum))
-			if lineHitCount > 0 {
-				linesCovered = append(linesCovered, int64(lineNum))
+
+		lines := maps.Keys(lineStat.HitCounts)
+		slices.Sort(lines)
+
+		var linesInstrumented, hitCounts []int64
+		var instrumented, covered int64
+		for _, line := range lines {
+			instrumented++
+			linesInstrumented = append(linesInstrumented, int64(line))
+			hitCount := lineStat.HitCounts[line]
+			hitCounts = append(hitCounts, int64(hitCount))
+			if hitCount > 0 {
+				covered++
 			}
 		}
-		slices.Sort(linesInstrumented)
-		slices.Sort(linesCovered)
-		instrumented := int64(len(linesInstrumented))
-		covered := int64(len(linesCovered))
 		res[fileName] = &coveragedb.Coverage{
 			Instrumented:      instrumented,
 			Covered:           covered,
 			LinesInstrumented: linesInstrumented,
-			LinesCovered:      linesCovered,
+			HitCounts:         hitCounts,
 		}
 		totalInstrumented += instrumented
 		totalCovered += covered
