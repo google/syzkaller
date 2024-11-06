@@ -92,13 +92,20 @@ func TestEvaluateConditionalFields(t *testing.T) {
 	}{
 		{
 			good: []string{
-				`test$conditional_struct(&AUTO={0x0, @void, @void})`,
-				`test$conditional_struct(&AUTO={0x4, @void, @value=0x123})`,
-				`test$conditional_struct(&AUTO={0x6, @value={AUTO}, @value=0x123})`,
+				`test$conditional_struct(&AUTO={0x0, @void, @void, @void})`,
+				`test$conditional_struct(&AUTO={0x2, @value={AUTO}, @void, @value=0x456})`,
+				`test$conditional_struct(&AUTO={0x4, @void, @value=0x123, @value=0x456})`,
+				`test$conditional_struct(&AUTO={0x6, @value={AUTO}, @value=0x123, @void})`,
 			},
 			bad: []string{
-				`test$conditional_struct(&AUTO={0x0, @void, @value=0x123})`,
-				`test$conditional_struct(&AUTO={0x0, @value={AUTO}, @value=0x123})`,
+				`test$conditional_struct(&AUTO={0x0, @void, @void, @value=0x123})`,
+				`test$conditional_struct(&AUTO={0x0, @value={AUTO}, @void, @value=0x123})`,
+				`test$conditional_struct(&AUTO={0x0, @void, @value=0x123, @void})`,
+				`test$conditional_struct(&AUTO={0x0, @void, @void, @value=0x123})`,
+				`test$conditional_struct(&AUTO={0x2, @value={AUTO}, @void, @void})`,
+				`test$conditional_struct(&AUTO={0x2, @value={AUTO}, @value=0x123, @void})`,
+				`test$conditional_struct(&AUTO={0x4, @void, @value=0x123, @void})`,
+				`test$conditional_struct(&AUTO={0x4, @void, @void, @value=0x123})`,
 			},
 		},
 		{
@@ -141,14 +148,14 @@ func TestConditionalMinimize(t *testing.T) {
 		output string
 	}{
 		{
-			input: `test$conditional_struct(&AUTO={0x6, @value={AUTO}, @value=0x123})`,
+			input: `test$conditional_struct(&AUTO={0x6, @value={AUTO}, @value=0x123, @void})`,
 			pred: func(p *Prog, _ int) bool {
 				return len(p.Calls) == 1 && p.Calls[0].Meta.Name == `test$conditional_struct`
 			},
 			output: `test$conditional_struct(0x0)`,
 		},
 		{
-			input: `test$conditional_struct(&(0x7f0000000040)={0x6, @value, @value=0x123})`,
+			input: `test$conditional_struct(&(0x7f0000000040)={0x6, @value, @value=0x123, @void})`,
 			pred: func(p *Prog, _ int) bool {
 				return bytes.Contains(p.Serialize(), []byte("0x123"))
 			},
@@ -236,7 +243,7 @@ func parseConditionalStructCall(t *testing.T, c *Call) (bool, bool) {
 	if !ok {
 		t.Fatalf("expected GroupArg: %v", va.Res)
 	}
-	if len(ga.Inner) != 3 {
+	if len(ga.Inner) != 4 {
 		t.Fatalf("wrong number of struct args %v", len(ga.Inner))
 	}
 	mask := ga.Inner[0].(*ConstArg).Val

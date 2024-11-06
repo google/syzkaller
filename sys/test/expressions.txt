@@ -14,6 +14,7 @@ conditional_struct {
 	mask	int32
 	f1	field1	(if[value[mask] & FIELD_FLAG1])
 	f2	int64	(if[value[mask] & FIELD_FLAG2])
+	f3	int32	(if[value[mask] == FIELD_FLAG1 || value[mask] == FIELD_FLAG2])
 } [packed]
 
 resource some_res[int32]

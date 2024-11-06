@@ -608,6 +608,7 @@ var binaryOperatorMap = map[ast.Operator]prog.BinaryOperator{
 	ast.OperatorCompareEq:  prog.OperatorCompareEq,
 	ast.OperatorCompareNeq: prog.OperatorCompareNeq,
 	ast.OperatorBinaryAnd:  prog.OperatorBinaryAnd,
+	ast.OperatorOr:         prog.OperatorOr,
 }
 
 func (comp *compiler) genExpression(t *ast.Type) prog.Expression {
