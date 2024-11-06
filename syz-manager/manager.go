@@ -429,6 +429,11 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) RunRepro(crash *manager.Crash) *manager.ReproResult {
+	if crash.Suppressed {
+		return &manager.ReproResult{
+			Crash: crash,
+		}
+	}
 	res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.enabledFeatures, mgr.reporter, mgr.pool)
 	ret := &manager.ReproResult{
 		Crash: crash,
