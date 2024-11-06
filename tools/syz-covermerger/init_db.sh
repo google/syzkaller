@@ -17,6 +17,8 @@ CREATE TABLE
     "filepath" text,
     "instrumented" bigint,
     "covered" bigint,
+    "linesinstrumented" bigint[],
+    "linescovered" bigint[],
   PRIMARY KEY
     (session, filepath) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \

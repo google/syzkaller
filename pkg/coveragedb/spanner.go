@@ -17,10 +17,12 @@ import (
 )
 
 type FilesRecord struct {
-	Session      string
-	FilePath     string
-	Instrumented int64
-	Covered      int64
+	Session           string
+	FilePath          string
+	Instrumented      int64
+	Covered           int64
+	LinesInstrumented []int64
+	LinesCovered      []int64
 }
 
 type FileSubsystems struct {
@@ -46,8 +48,10 @@ func NewClient(ctx context.Context, projectID string) (*spanner.Client, error) {
 }
 
 type Coverage struct {
-	Instrumented int64
-	Covered      int64
+	Instrumented      int64
+	Covered           int64
+	LinesInstrumented []int64
+	LinesCovered      []int64
 }
 
 func SaveMergeResult(ctx context.Context, projectID string, covMap map[string]*Coverage,
@@ -67,10 +71,11 @@ func SaveMergeResult(ctx context.Context, projectID string, covMap map[string]*C
 		mutations = append(mutations, fileRecordMutation(session, filePath, record))
 		subsystems := fileSubsystems(filePath, ssMatcher, ssCache)
 		mutations = append(mutations, fileSubsystemsMutation(template.Namespace, filePath, subsystems))
-		// 80k mutations is a DB limit. 4 fields * 2k records is apx 8k mutations
-		// let keep this value 10x lower to have a room for indexes
-		// indexes update are also counted
-		if len(mutations) > 2000 {
+		// There is a limit on the number of mutations per transaction (80k) imposed by the DB.
+		// This includes both explicit mutations of the fields (6 fields * 1k records = 6k mutations)
+		//   and implicit index mutations.
+		// We keep the number of records low enough for the number of explicit mutations * 10 does not exceed the limit.
+		if len(mutations) > 1000 {
 			if _, err = client.Apply(ctx, mutations); err != nil {
 				return fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
 			}
@@ -103,10 +108,12 @@ func historyMutation(session string, template *HistoryRecord, totalRows int64) *
 
 func fileRecordMutation(session, filePath string, record *Coverage) *spanner.Mutation {
 	insert, err := spanner.InsertOrUpdateStruct("files", &FilesRecord{
-		Session:      session,
-		FilePath:     filePath,
-		Instrumented: record.Instrumented,
-		Covered:      record.Covered,
+		Session:           session,
+		FilePath:          filePath,
+		Instrumented:      record.Instrumented,
+		Covered:           record.Covered,
+		LinesInstrumented: record.LinesInstrumented,
+		LinesCovered:      record.LinesCovered,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to fileRecordMutation(): %s", err.Error()))
