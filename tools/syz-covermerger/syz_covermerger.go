@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
+	"slices"
 	"sort"
 
 	"cloud.google.com/go/civil"
@@ -139,16 +140,22 @@ func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
 		if !lineStat.FileExists {
 			continue
 		}
-		var instrumented, covered int64
-		for _, lineHitCount := range lineStat.HitCounts {
-			instrumented++
+		var linesInstrumented, linesCovered []int64
+		for lineNum, lineHitCount := range lineStat.HitCounts {
+			linesInstrumented = append(linesInstrumented, int64(lineNum))
 			if lineHitCount > 0 {
-				covered++
+				linesCovered = append(linesCovered, int64(lineNum))
 			}
 		}
+		slices.Sort(linesInstrumented)
+		slices.Sort(linesCovered)
+		instrumented := int64(len(linesInstrumented))
+		covered := int64(len(linesCovered))
 		res[fileName] = &coveragedb.Coverage{
-			Instrumented: instrumented,
-			Covered:      covered,
+			Instrumented:      instrumented,
+			Covered:           covered,
+			LinesInstrumented: linesInstrumented,
+			LinesCovered:      linesCovered,
 		}
 		totalInstrumented += instrumented
 		totalCovered += covered
