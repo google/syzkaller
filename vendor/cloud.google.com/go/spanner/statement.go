@@ -17,6 +17,7 @@ limitations under the License.
 package spanner
 
 import (
+	"errors"
 	"fmt"
 
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
@@ -75,7 +76,7 @@ func errBindParam(k string, v interface{}, err error) error {
 		return nil
 	}
 	var se *Error
-	if !errorAs(err, &se) {
+	if !errors.As(err, &se) {
 		return spannerErrorf(codes.InvalidArgument, "failed to bind query parameter(name: %q, value: %v), error = <%v>", k, v, err)
 	}
 	se.decorate(fmt.Sprintf("failed to bind query parameter(name: %q, value: %v)", k, v))

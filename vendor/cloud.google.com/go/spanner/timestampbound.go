@@ -174,7 +174,7 @@ func ReadTimestamp(t time.Time) TimestampBound {
 func (tb TimestampBound) String() string {
 	switch tb.mode {
 	case strong:
-		return fmt.Sprintf("(strong)")
+		return "(strong)"
 	case exactStaleness:
 		return fmt.Sprintf("(exactStaleness: %s)", tb.d)
 	case maxStaleness:

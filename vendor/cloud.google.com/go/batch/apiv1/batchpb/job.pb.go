@@ -1963,7 +1963,10 @@ type AllocationPolicy_InstancePolicyOrTemplate_Policy struct {
 type AllocationPolicy_InstancePolicyOrTemplate_InstanceTemplate struct {
 	// Name of an instance template used to create VMs.
 	// Named the field as 'instance_template' instead of 'template' to avoid
-	// c++ keyword conflict.
+	// C++ keyword conflict.
+	//
+	// Batch only supports global instance templates.
+	// You can specify the global instance template as a full or partial URL.
 	InstanceTemplate string `protobuf:"bytes,2,opt,name=instance_template,json=instanceTemplate,proto3,oneof"`
 }
 

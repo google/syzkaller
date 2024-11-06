@@ -31,7 +31,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/internal/trace"
-	vkit "cloud.google.com/go/spanner/apiv1"
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
 	"cloud.google.com/go/spanner/internal"
 	"go.opencensus.io/stats"
@@ -91,7 +90,7 @@ type sessionHandle struct {
 	// access it directly.
 	session *session
 	// client is the RPC channel to Cloud Spanner. It is set only once during session acquisition.
-	client *vkit.Client
+	client spannerClient
 	// checkoutTime is the time the session was checked out of the pool.
 	checkoutTime time.Time
 	// lastUseTime is the time the session was last used after checked out of the pool.
@@ -151,7 +150,7 @@ func (sh *sessionHandle) getID() string {
 
 // getClient gets the Cloud Spanner RPC client associated with the session ID
 // in sessionHandle.
-func (sh *sessionHandle) getClient() *vkit.Client {
+func (sh *sessionHandle) getClient() spannerClient {
 	sh.mu.Lock()
 	defer sh.mu.Unlock()
 	if sh.session == nil {
@@ -227,7 +226,7 @@ func (sh *sessionHandle) updateLastUseTime() {
 type session struct {
 	// client is the RPC channel to Cloud Spanner. It is set only once during
 	// session's creation.
-	client *vkit.Client
+	client spannerClient
 	// id is the unique id of the session in Cloud Spanner. It is set only once
 	// during session's creation.
 	id string
@@ -294,7 +293,7 @@ func (s *session) String() string {
 
 // ping verifies if the session is still alive in Cloud Spanner.
 func (s *session) ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Start parent span that doesn't record.
@@ -603,7 +602,7 @@ type sessionPool struct {
 	// multiplexSessionClientCounter is the counter for the multiplexed session client.
 	multiplexSessionClientCounter int
 	// clientPool is a pool of Cloud Spanner grpc clients.
-	clientPool []*vkit.Client
+	clientPool []spannerClient
 	// multiplexedSession contains the multiplexed session
 	multiplexedSession *session
 	// mayGetSession is for broadcasting that session retrival/creation may
@@ -762,7 +761,6 @@ func newSessionPool(sc *sessionClient, config SessionPoolConfig) (*sessionPool, 
 			// wait for the session to be created
 			case <-pool.mayGetMultiplexedSession:
 			}
-			return
 		}()
 	}
 	pool.recordStat(context.Background(), MaxAllowedSessionsCount, int64(config.MaxOpened))
@@ -1084,14 +1082,14 @@ func (p *sessionPool) newSessionHandle(s *session) (sh *sessionHandle) {
 	return sh
 }
 
-func (p *sessionPool) getRoundRobinClient() *vkit.Client {
+func (p *sessionPool) getRoundRobinClient() spannerClient {
 	p.sc.mu.Lock()
 	defer func() {
 		p.multiplexSessionClientCounter++
 		p.sc.mu.Unlock()
 	}()
 	if len(p.clientPool) == 0 {
-		p.clientPool = make([]*vkit.Client, p.sc.connPool.Num())
+		p.clientPool = make([]spannerClient, p.sc.connPool.Num())
 		for i := 0; i < p.sc.connPool.Num(); i++ {
 			c, err := p.sc.nextClient()
 			if err != nil {

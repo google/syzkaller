@@ -504,6 +504,13 @@ func (m *SubjectAltNameMatcher) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Oid) > 0 {
+		i -= len(m.Oid)
+		copy(dAtA[i:], m.Oid)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Oid)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Matcher != nil {
 		if vtmsg, ok := interface{}(m.Matcher).(interface {
 			MarshalToSizedBufferVTStrict([]byte) (int, error)
@@ -1022,6 +1029,10 @@ func (m *SubjectAltNameMatcher) SizeVT() (n int) {
 		} else {
 			l = proto.Size(m.Matcher)
 		}
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Oid)
+	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)

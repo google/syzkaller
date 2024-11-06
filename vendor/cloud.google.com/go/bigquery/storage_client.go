@@ -95,7 +95,7 @@ func (c *readClient) close() error {
 }
 
 // sessionForTable establishes a new session to fetch from a table using the Storage API
-func (c *readClient) sessionForTable(ctx context.Context, table *Table, ordered bool) (*readSession, error) {
+func (c *readClient) sessionForTable(ctx context.Context, table *Table, rsProjectID string, ordered bool) (*readSession, error) {
 	tableID, err := table.Identifier(StorageAPIResourceID)
 	if err != nil {
 		return nil, err
@@ -111,6 +111,7 @@ func (c *readClient) sessionForTable(ctx context.Context, table *Table, ordered 
 		ctx:                   ctx,
 		table:                 table,
 		tableID:               tableID,
+		projectID:             rsProjectID,
 		settings:              settings,
 		readRowsFunc:          c.rawClient.ReadRows,
 		createReadSessionFunc: c.rawClient.CreateReadSession,
@@ -122,9 +123,10 @@ func (c *readClient) sessionForTable(ctx context.Context, table *Table, ordered 
 type readSession struct {
 	settings readClientSettings
 
-	ctx     context.Context
-	table   *Table
-	tableID string
+	ctx       context.Context
+	table     *Table
+	tableID   string
+	projectID string
 
 	bqSession *storagepb.ReadSession
 
@@ -141,7 +143,7 @@ func (rs *readSession) start() error {
 		preferredMinStreamCount = int32(rs.settings.maxWorkerCount)
 	}
 	createReadSessionRequest := &storagepb.CreateReadSessionRequest{
-		Parent: fmt.Sprintf("projects/%s", rs.table.ProjectID),
+		Parent: fmt.Sprintf("projects/%s", rs.projectID),
 		ReadSession: &storagepb.ReadSession{
 			Table:      rs.tableID,
 			DataFormat: storagepb.DataFormat_ARROW,

@@ -75,7 +75,6 @@ func createOpenTelemetryConfig(mp metric.MeterProvider, logger *log.Logger, sess
 
 	config.attributeMapWithoutMultiplexed = append(config.attributeMapWithoutMultiplexed, attributeMap...)
 	config.attributeMapWithoutMultiplexed = append(config.attributeMapWithoutMultiplexed, attributeKeyIsMultiplexed.String("false"))
-
 	setOpenTelemetryMetricProvider(config, mp, logger)
 	return config, nil
 }

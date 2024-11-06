@@ -1,5 +1,19 @@
 # Changes
 
+## [1.44.0](https://github.com/googleapis/google-cloud-go/compare/pubsub/v1.43.0...pubsub/v1.44.0) (2024-10-08)
+
+
+### Features
+
+* **pubsub:** Add ingestion Cloud Storage fields and Platform Logging fields to Topic ([7250d71](https://github.com/googleapis/google-cloud-go/commit/7250d714a638dcd5df3fbe0e91c5f1250c3f80f9))
+* **pubsub:** Add support for cloud storage ingestion topics ([#10959](https://github.com/googleapis/google-cloud-go/issues/10959)) ([1a11675](https://github.com/googleapis/google-cloud-go/commit/1a116759ce0d25fdcb5776bf73c52408ae1ec985))
+* **pubsub:** Return listing information for subscriptions created via Analytics Hub ([fdb4ea9](https://github.com/googleapis/google-cloud-go/commit/fdb4ea99189657880e5f0e0dce16bef1c3aa0d2f))
+
+
+### Documentation
+
+* **pubsub:** Update documentation for 31 day subscription message retention ([#10845](https://github.com/googleapis/google-cloud-go/issues/10845)) ([9b4b2fa](https://github.com/googleapis/google-cloud-go/commit/9b4b2fa87864906aeae3a8fda460466f951bc6c9))
+
 ## [1.43.0](https://github.com/googleapis/google-cloud-go/compare/pubsub/v1.42.0...pubsub/v1.43.0) (2024-09-09)
 
 

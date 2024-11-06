@@ -47,12 +47,12 @@ type storageArrowIterator struct {
 
 var _ ArrowIterator = &storageArrowIterator{}
 
-func newStorageRowIteratorFromTable(ctx context.Context, table *Table, ordered bool) (*RowIterator, error) {
+func newStorageRowIteratorFromTable(ctx context.Context, table *Table, rsProjectID string, ordered bool) (*RowIterator, error) {
 	md, err := table.Metadata(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rs, err := table.c.rc.sessionForTable(ctx, table, ordered)
+	rs, err := table.c.rc.sessionForTable(ctx, table, rsProjectID, ordered)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func newStorageRowIteratorFromJob(ctx context.Context, j *Job) (*RowIterator, er
 		return newStorageRowIteratorFromJob(ctx, lastJob)
 	}
 	ordered := query.HasOrderedResults(qcfg.Q)
-	return newStorageRowIteratorFromTable(ctx, qcfg.Dst, ordered)
+	return newStorageRowIteratorFromTable(ctx, qcfg.Dst, job.projectID, ordered)
 }
 
 func resolveLastChildSelectJob(ctx context.Context, job *Job) (*Job, error) {

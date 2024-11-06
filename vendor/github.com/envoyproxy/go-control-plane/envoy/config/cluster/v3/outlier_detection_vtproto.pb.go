@@ -51,6 +51,18 @@ func (m *OutlierDetection) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.AlwaysEjectOneHost != nil {
+		size, err := (*wrapperspb.BoolValue)(m.AlwaysEjectOneHost).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xca
+	}
 	if len(m.Monitors) > 0 {
 		for iNdEx := len(m.Monitors) - 1; iNdEx >= 0; iNdEx-- {
 			if vtmsg, ok := interface{}(m.Monitors[iNdEx]).(interface {
@@ -434,6 +446,10 @@ func (m *OutlierDetection) SizeVT() (n int) {
 			}
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.AlwaysEjectOneHost != nil {
+		l = (*wrapperspb.BoolValue)(m.AlwaysEjectOneHost).SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n

@@ -238,7 +238,7 @@ const (
 //	spanner.KeyRange{
 //		Start: spanner.Key{"Bob", "2015-01-01"},
 //		End:   spanner.Key{"Bob", "2015-12-31"},
-//		Kind:  ClosedClosed,
+//		Kind:  spanner.ClosedClosed,
 //	}
 //
 // Start and end keys can omit trailing key components. This affects the
@@ -254,7 +254,7 @@ const (
 //	spanner.KeyRange{
 //		Start: spanner.Key{"Bob", "2000-01-01"},
 //		End:   spanner.Key{"Bob"},
-//		Kind:  ClosedClosed,
+//		Kind:  spanner.ClosedClosed,
 //	}
 //
 // The next example retrieves all events for "Bob":
@@ -266,7 +266,7 @@ const (
 //	spanner.KeyRange{
 //		Start: spanner.Key{"Bob"},
 //		End:   spanner.Key{"Bob", "2000-01-01"},
-//		Kind:  ClosedOpen,
+//		Kind:  spanner.ClosedOpen,
 //	}
 //
 // Although we specified a Kind for this KeyRange, we didn't need to, because
@@ -307,7 +307,7 @@ const (
 //	spanner.KeyRange{
 //		Start: spanner.Key{100},
 //		End:   spanner.Key{1},
-//		Kind:  ClosedClosed,
+//		Kind:  spanner.ClosedClosed,
 //	}
 //
 // Note that 100 is passed as the start, and 1 is passed as the end, because

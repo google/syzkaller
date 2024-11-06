@@ -257,7 +257,12 @@ func fetchPage(ctx context.Context, src *rowSource, schema Schema, startIndex ui
 			return fetchTableResultPage(ctx, src, schema, startIndex, pageSize, pageToken)
 		}
 		// No rows, but no table or job reference.  Return an empty result set.
-		return &fetchPageResult{}, nil
+		if schema == nil {
+			schema = bqToSchema(src.cachedSchema)
+		}
+		return &fetchPageResult{
+			schema: schema,
+		}, nil
 	}
 	return result, nil
 }

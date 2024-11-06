@@ -37,7 +37,7 @@ EMULATOR_PID=$!
 
 # Stop the emulator & clean the environment variable
 function cleanup() {
-    kill -2 $EMULATOR_PID
+    kill -9 $EMULATOR_PID
     unset SPANNER_EMULATOR_HOST
     unset GCLOUD_TESTS_GOLANG_PROJECT_ID
     echo "Cleanup the emulator";

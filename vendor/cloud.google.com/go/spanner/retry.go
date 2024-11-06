@@ -18,6 +18,7 @@ package spanner
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -98,7 +99,7 @@ func runWithRetryOnAbortedOrFailedInlineBeginOrSessionNotFound(ctx context.Conte
 			// interface.
 			var retryErr error
 			var se *Error
-			if errorAs(err, &se) {
+			if errors.As(err, &se) {
 				// It is a (wrapped) Spanner error. Use that to check whether
 				// we should retry.
 				retryErr = se
@@ -136,7 +137,7 @@ func ExtractRetryDelay(err error) (time.Duration, bool) {
 	var se *Error
 	var s *status.Status
 	// Unwrap status error.
-	if errorAs(err, &se) {
+	if errors.As(err, &se) {
 		s = status.Convert(se.Unwrap())
 	} else {
 		s = status.Convert(err)

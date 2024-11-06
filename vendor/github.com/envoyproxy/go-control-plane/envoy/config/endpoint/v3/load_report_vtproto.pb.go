@@ -53,6 +53,51 @@ func (m *UpstreamLocalityStats) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ApplicationUtilization != nil {
+		size, err := m.ApplicationUtilization.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x72
+	}
+	if m.MemUtilization != nil {
+		size, err := m.MemUtilization.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.CpuUtilization != nil {
+		size, err := m.CpuUtilization.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.TotalFailConnections != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TotalFailConnections))
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.TotalNewConnections != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TotalNewConnections))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.TotalActiveConnections != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TotalActiveConnections))
+		i--
+		dAtA[i] = 0x48
+	}
 	if m.TotalIssuedRequests != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TotalIssuedRequests))
 		i--
@@ -275,6 +320,50 @@ func (m *EndpointLoadMetricStats) MarshalToSizedBufferVTStrict(dAtA []byte) (int
 	return len(dAtA) - i, nil
 }
 
+func (m *UnnamedEndpointLoadMetricStats) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnnamedEndpointLoadMetricStats) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *UnnamedEndpointLoadMetricStats) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.TotalMetricValue != 0 {
+		i -= 8
+		binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.TotalMetricValue))))
+		i--
+		dAtA[i] = 0x11
+	}
+	if m.NumRequestsFinishedWithMetric != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.NumRequestsFinishedWithMetric))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ClusterStats_DroppedRequests) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -449,6 +538,27 @@ func (m *UpstreamLocalityStats) SizeVT() (n int) {
 	if m.TotalIssuedRequests != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.TotalIssuedRequests))
 	}
+	if m.TotalActiveConnections != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TotalActiveConnections))
+	}
+	if m.TotalNewConnections != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TotalNewConnections))
+	}
+	if m.TotalFailConnections != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TotalFailConnections))
+	}
+	if m.CpuUtilization != nil {
+		l = m.CpuUtilization.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.MemUtilization != nil {
+		l = m.MemUtilization.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ApplicationUtilization != nil {
+		l = m.ApplicationUtilization.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -505,6 +615,22 @@ func (m *EndpointLoadMetricStats) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.NumRequestsFinishedWithMetric != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.NumRequestsFinishedWithMetric))
+	}
+	if m.TotalMetricValue != 0 {
+		n += 9
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UnnamedEndpointLoadMetricStats) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if m.NumRequestsFinishedWithMetric != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.NumRequestsFinishedWithMetric))
 	}

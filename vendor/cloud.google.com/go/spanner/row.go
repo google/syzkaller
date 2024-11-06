@@ -17,6 +17,7 @@ limitations under the License.
 package spanner
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -205,7 +206,7 @@ func errDecodeColumn(i int, err error) error {
 		return nil
 	}
 	var se *Error
-	if !errorAs(err, &se) {
+	if !errors.As(err, &se) {
 		return spannerErrorf(codes.InvalidArgument, "failed to decode column %v, error = <%v>", i, err)
 	}
 	se.decorate(fmt.Sprintf("failed to decode column %v", i))
@@ -417,10 +418,10 @@ func (r *Row) ToStructLenient(p interface{}) error {
 //	err := spanner.SelectAll(row, &singersByPtr, spanner.WithLenient())
 func SelectAll(rows rowIterator, destination interface{}, options ...DecodeOptions) error {
 	if rows == nil {
-		return fmt.Errorf("rows is nil")
+		return errors.New("rows is nil")
 	}
 	if destination == nil {
-		return fmt.Errorf("destination is nil")
+		return errors.New("destination is nil")
 	}
 	dstVal := reflect.ValueOf(destination)
 	if !dstVal.IsValid() || (dstVal.Kind() == reflect.Ptr && dstVal.IsNil()) {

@@ -1295,6 +1295,17 @@ func (m *Cluster) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.LrsReportEndpointMetrics) > 0 {
+		for iNdEx := len(m.LrsReportEndpointMetrics) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.LrsReportEndpointMetrics[iNdEx])
+			copy(dAtA[i:], m.LrsReportEndpointMetrics[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.LrsReportEndpointMetrics[iNdEx])))
+			i--
+			dAtA[i] = 0x3
+			i--
+			dAtA[i] = 0xca
+		}
+	}
 	if msg, ok := m.LbConfig.(*Cluster_RoundRobinLbConfig_); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -3224,6 +3235,12 @@ func (m *Cluster) SizeVT() (n int) {
 			l = proto.Size(m.TypedDnsResolverConfig)
 		}
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.LrsReportEndpointMetrics) > 0 {
+		for _, s := range m.LrsReportEndpointMetrics {
+			l = len(s)
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n

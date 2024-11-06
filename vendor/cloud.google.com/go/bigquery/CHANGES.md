@@ -3,6 +3,15 @@
 
 
 
+## [1.63.1](https://github.com/googleapis/google-cloud-go/compare/bigquery/v1.63.0...bigquery/v1.63.1) (2024-10-01)
+
+
+### Bug Fixes
+
+* **bigquery/storage:** Increase method timeout to 240s for BigQuery Metastore Partition Service API version v1alpha ([fdb4ea9](https://github.com/googleapis/google-cloud-go/commit/fdb4ea99189657880e5f0e0dce16bef1c3aa0d2f))
+* **bigquery:** Create read session with client or job projectID ([#10932](https://github.com/googleapis/google-cloud-go/issues/10932)) ([f98396e](https://github.com/googleapis/google-cloud-go/commit/f98396e074dff5261523b46a5c37d7888000f2cd))
+* **bigquery:** Missing schema for empty result set on stateless queries ([#10935](https://github.com/googleapis/google-cloud-go/issues/10935)) ([28a069a](https://github.com/googleapis/google-cloud-go/commit/28a069a4e30b3d6281fb2aa229aeb5cda3fff577))
+
 ## [1.63.0](https://github.com/googleapis/google-cloud-go/compare/bigquery/v1.62.0...bigquery/v1.63.0) (2024-09-18)
 
 

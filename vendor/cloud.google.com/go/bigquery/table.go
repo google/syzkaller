@@ -974,7 +974,7 @@ func (t *Table) Read(ctx context.Context) *RowIterator {
 
 func (t *Table) read(ctx context.Context, pf pageFetcher) *RowIterator {
 	if t.c.isStorageReadAvailable() {
-		it, err := newStorageRowIteratorFromTable(ctx, t, false)
+		it, err := newStorageRowIteratorFromTable(ctx, t, t.c.projectID, false)
 		if err == nil {
 			return it
 		}

@@ -697,6 +697,18 @@ func (m *HttpConnectionManager) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Http1SafeMaxConnectionDuration {
+		i--
+		if m.Http1SafeMaxConnectionDuration {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0xd0
+	}
 	if m.AppendLocalOverload {
 		i--
 		if m.AppendLocalOverload {
@@ -2990,6 +3002,9 @@ func (m *HttpConnectionManager) SizeVT() (n int) {
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.AppendLocalOverload {
+		n += 3
+	}
+	if m.Http1SafeMaxConnectionDuration {
 		n += 3
 	}
 	n += len(m.unknownFields)
