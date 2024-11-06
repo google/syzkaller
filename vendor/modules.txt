@@ -56,21 +56,21 @@ cloud.google.com/go/bigquery/internal
 cloud.google.com/go/bigquery/internal/query
 cloud.google.com/go/bigquery/storage/apiv1
 cloud.google.com/go/bigquery/storage/apiv1/storagepb
-# cloud.google.com/go/compute/metadata v0.5.0
-## explicit; go 1.20
+# cloud.google.com/go/compute/metadata v0.5.1
+## explicit; go 1.21
 cloud.google.com/go/compute/metadata
-# cloud.google.com/go/iam v1.2.0
+# cloud.google.com/go/iam v1.2.1
 ## explicit; go 1.21
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
-# cloud.google.com/go/logging v1.11.0
-## explicit; go 1.20
+# cloud.google.com/go/logging v1.12.0
+## explicit; go 1.21
 cloud.google.com/go/logging
 cloud.google.com/go/logging/apiv2
 cloud.google.com/go/logging/apiv2/loggingpb
 cloud.google.com/go/logging/internal
 cloud.google.com/go/logging/logadmin
-# cloud.google.com/go/longrunning v0.6.0
+# cloud.google.com/go/longrunning v0.6.1
 ## explicit; go 1.21
 cloud.google.com/go/longrunning
 cloud.google.com/go/longrunning/autogen

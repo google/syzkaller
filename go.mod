@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.116.0
 	cloud.google.com/go/batch v1.11.0
 	cloud.google.com/go/bigquery v1.63.0
-	cloud.google.com/go/logging v1.11.0
+	cloud.google.com/go/logging v1.12.0
 	cloud.google.com/go/profiler v0.4.1
 	cloud.google.com/go/pubsub v1.43.0
 	cloud.google.com/go/secretmanager v1.14.0
@@ -47,9 +47,9 @@ require (
 	cloud.google.com/go/ai v0.8.0 // indirect
 	cloud.google.com/go/auth v0.9.3 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
-	cloud.google.com/go/compute/metadata v0.5.0 // indirect
-	cloud.google.com/go/iam v1.2.0 // indirect
-	cloud.google.com/go/longrunning v0.6.0 // indirect
+	cloud.google.com/go/compute/metadata v0.5.1 // indirect
+	cloud.google.com/go/iam v1.2.1 // indirect
+	cloud.google.com/go/longrunning v0.6.1 // indirect
 	github.com/4meepo/tagalign v1.3.4 // indirect
 	github.com/Abirdcfly/dupword v0.1.1 // indirect
 	github.com/Antonboom/errname v0.1.13 // indirect
