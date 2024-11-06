@@ -6,6 +6,7 @@ package coveragedb
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"cloud.google.com/go/civil"
@@ -87,6 +88,64 @@ func SaveMergeResult(ctx context.Context, projectID string, covMap map[string]*C
 		return fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
 	}
 	return nil
+}
+
+type linesCoverage struct {
+	LinesInstrumented []int64
+	HitCounts         []int64
+}
+
+func linesCoverageStmt(ns, filepath, commit string, timePeriod TimePeriod) spanner.Statement {
+	return spanner.Statement{
+		SQL: `
+select
+	linesinstrumented,
+	hitcounts
+from merge_history
+	join files
+		on merge_history.session = files.session
+where
+	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5`,
+		Params: map[string]interface{}{
+			"p1": ns,
+			"p2": timePeriod.DateTo,
+			"p3": timePeriod.Days,
+			"p4": filepath,
+			"p5": commit,
+		},
+	}
+}
+
+func ReadLinesHitCount(ctx context.Context, ns, commit, file string, tp TimePeriod,
+) (map[int]int, error) {
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	client, err := NewClient(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("spanner.NewClient: %w", err)
+	}
+	defer client.Close()
+
+	stmt := linesCoverageStmt(ns, file, commit, tp)
+	iter := client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if err == iterator.Done {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("iter.Next: %w", err)
+	}
+	var r linesCoverage
+	if err = row.ToStruct(&r); err != nil {
+		return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+	}
+
+	res := map[int]int{}
+	for i, instrLine := range r.LinesInstrumented {
+		res[int(instrLine)] = int(r.HitCounts[i])
+	}
+	return res, nil
 }
 
 func historyMutation(session string, template *HistoryRecord, totalRows int64) *spanner.Mutation {
