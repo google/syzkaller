@@ -10,6 +10,9 @@ updates:
   directory: "/"
   schedule:
     interval: monthly
+  ignore:
+    # Mockery update requires manual changes in ./tools/mockery.sh.
+    - dependency-name: "mockery"
   open-pull-requests-limit: 5
   commit-message:
     prefix: "mod:"
