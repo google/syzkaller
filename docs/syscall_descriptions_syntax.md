@@ -543,7 +543,7 @@ whose condition is satisfied.
 
 ### Expression syntax
 
-Currently, only `==`, `!=` and `&` operators are supported. However, the
+Currently, only `==`, `!=`, `&` and `||` operators are supported. However, the
 functionality was designed in such a way that adding more operators is easy.
 Feel free to file a GitHub issue or write us an email in case it's needed.
 
@@ -565,6 +565,7 @@ struct {
   f3 sub_struct
   f4 int (if[value[f2] == 0x2]) # Reference a sibling field.
   f5 int (if[value[f3:f0] == 0x1]) # Reference a nested field.
+  f6 int (if[value[f3:f0] == 0x1 || value[f3:f0] == 0x2]) # Reference a nested field which either equals to 0x1 or 0x2.
 } [packed]
 
 call(a ptr[in, struct])

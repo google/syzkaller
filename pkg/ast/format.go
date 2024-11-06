@@ -273,6 +273,8 @@ func fmtExpressionRec(sb *strings.Builder, t *Type, parentPrio int) {
 		sb.WriteString("!=")
 	case OperatorBinaryAnd:
 		sb.WriteString("&")
+	case OperatorOr:
+		sb.WriteString("||")
 	default:
 		panic(fmt.Sprintf("unknown operator %q", be.Operator))
 	}

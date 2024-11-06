@@ -39,6 +39,7 @@ const (
 	tokBinAnd
 	tokCmpEq
 	tokCmpNeq
+	tokOr
 
 	tokEOF
 )
@@ -73,6 +74,7 @@ var tok2str = [...]string{
 	tokEOF:       "EOF",
 	tokCmpEq:     "==",
 	tokCmpNeq:    "!=",
+	tokOr:        "||",
 }
 
 func init() {
@@ -192,6 +194,8 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		tok = tokCmpEq
 	case s.tryConsume("!="):
 		tok = tokCmpNeq
+	case s.tryConsume("||"):
+		tok = tokOr
 	default:
 		tok = punctuation[s.ch]
 		if tok == tokIllegal {

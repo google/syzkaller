@@ -110,6 +110,7 @@ const (
 	OperatorCompareEq BinaryOperator = iota
 	OperatorCompareNeq
 	OperatorBinaryAnd
+	OperatorOr
 )
 
 type BinaryExpression struct {
