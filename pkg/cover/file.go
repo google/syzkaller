@@ -9,7 +9,7 @@ import (
 	"html"
 	"strings"
 
-	"cloud.google.com/go/civil"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/covermerger"
 )
 
@@ -40,14 +40,18 @@ func DefaultHTMLRenderConfig() *CoverageRenderConfig {
 	}
 }
 
-func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, filePath string,
-	proxy covermerger.FuncProxyURI,
-	fromDate, toDate civil.Date, renderConfig *CoverageRenderConfig) (string, error) {
-	fileContent, err := covermerger.GetFileVersion(filePath, repo, forCommit)
+func RendFileCoverage(repo, forCommit, filePath string, proxy covermerger.FuncProxyURI,
+	mr *covermerger.MergeResult, renderConfig *CoverageRenderConfig) (string, error) {
+	repoCommit := covermerger.RepoCommit{Repo: repo, Commit: forCommit}
+	files, err := covermerger.MakeWebGit(proxy).GetFileVersions(filePath, repoCommit)
 	if err != nil {
-		return "", fmt.Errorf("failed to GetFileVersion for file %s, commit %s from repo %s: %w",
-			filePath, forCommit, repo, err)
+		return "", fmt.Errorf("failed to GetFileVersions: %w", err)
 	}
+	return rendResult(files[repoCommit], mr, renderConfig), nil
+}
+
+func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePath string,
+	proxy covermerger.FuncProxyURI, tp coveragedb.TimePeriod) (*covermerger.MergeResult, error) {
 	config := &covermerger.Config{
 		Jobs: 1,
 		Base: covermerger.RepoCommit{
@@ -58,6 +62,7 @@ func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, file
 		StoreDetails:     true,
 	}
 
+	fromDate, toDate := tp.DatesFromTo()
 	dbReader := covermerger.MakeBQCSVReader()
 	if err := dbReader.InitNsRecords(c,
 		ns,
@@ -66,23 +71,22 @@ func RendFileCoverage(c context.Context, ns, repo, forCommit, sourceCommit, file
 		fromDate,
 		toDate,
 	); err != nil {
-		return "", fmt.Errorf("failed to dbReader.InitNsRecords: %w", err)
+		return nil, fmt.Errorf("failed to dbReader.InitNsRecords: %w", err)
 	}
 	defer dbReader.Close()
 	csvReader, err := dbReader.Reader()
 	if err != nil {
-		return "", fmt.Errorf("failed to dbReader.Reader: %w", err)
+		return nil, fmt.Errorf("failed to dbReader.Reader: %w", err)
 	}
 
 	mergeResult, err := covermerger.MergeCSVData(config, csvReader)
 	if err != nil {
-		return "", fmt.Errorf("error merging coverage: %w", err)
+		return nil, fmt.Errorf("error merging coverage: %w", err)
 	}
 	if _, exist := mergeResult[filePath]; !exist {
-		return "", fmt.Errorf("no merge result for file %s(fileSize %d)", filePath, len(fileContent))
+		return nil, fmt.Errorf("no merge result for file %s", filePath)
 	}
-
-	return rendResult(fileContent, mergeResult[filePath], renderConfig), nil
+	return mergeResult[filePath], nil
 }
 
 func rendResult(content string, coverage *covermerger.MergeResult, renderConfig *CoverageRenderConfig) string {

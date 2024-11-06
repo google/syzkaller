@@ -30,6 +30,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -51,9 +52,8 @@ var (
 		"modules JSON info obtained from /modules (optional)")
 	flagNsHeatmap        = flag.String("heatmap", "", "generate namespace heatmap")
 	flagNsHeatmapGroupBy = flag.String("group-by", "dir", "dir or subsystem")
-	flagDateFrom         = flag.String("from",
-		civil.DateOf(time.Now().Add(-14*24*time.Hour)).String(), "heatmap date from(optional)")
-	flagDateTo = flag.String("to",
+	flagPeriod           = flag.String("period", "day", "time period(day[default], month, quarter)")
+	flagDateTo           = flag.String("to",
 		civil.DateOf(time.Now()).String(), "heatmap date to(optional)")
 	flagProjectID = flag.String("project", "syzkaller", "spanner db project name")
 	flagForFile   = flag.String("for-file", "", "[optional]show file coverage")
@@ -70,33 +70,26 @@ var (
 		"there are missing coverage callbacks")
 )
 
-func parseDates() (civil.Date, civil.Date) {
-	dateFrom, errDateFrom := civil.ParseDate(*flagDateFrom)
-	if errDateFrom != nil {
-		tool.Failf("failed to parse date from: %v", errDateFrom.Error())
+func dayPeriods(tp coveragedb.TimePeriod) []coveragedb.TimePeriod {
+	var res []coveragedb.TimePeriod
+	for i := 0; i < tp.Days; i++ {
+		res = append(res, coveragedb.TimePeriod{DateTo: tp.DateTo.AddDays(-i), Days: 1, Type: coveragedb.DayPeriod})
 	}
-	dateTo, errDateTo := civil.ParseDate(*flagDateTo)
-	if errDateTo != nil {
-		tool.Failf("failed to parse date to: %v", errDateTo.Error())
-	}
-	return dateFrom, dateTo
-}
-
-func periodsFromDays(from, to civil.Date) []coveragedb.TimePeriod {
-	if to.Before(from) {
-		panic("toDay can't be less than fromDay")
-	}
-	res := []coveragedb.TimePeriod{{DateTo: from, Days: 1, Type: coveragedb.DayPeriod}}
-	for ; from.Before(to); from = from.AddDays(1) {
-		res = append(res, coveragedb.TimePeriod{DateTo: from, Days: 1, Type: coveragedb.DayPeriod})
-	}
+	slices.Reverse(res)
 	return res
 }
 
 func toolBuildNsHeatmap() {
 	buf := new(bytes.Buffer)
-	periods := periodsFromDays(parseDates())
-	var err error
+	dateTo, err := civil.ParseDate(*flagDateTo)
+	if err != nil {
+		tool.Fail(err)
+	}
+	tp, err := coveragedb.MakeTimePeriod(dateTo, *flagPeriod)
+	if err != nil {
+		tool.Fail(err)
+	}
+	periods := dayPeriods(tp)
 	switch *flagNsHeatmapGroupBy {
 	case "dir":
 		if err = cover.DoDirHeatMap(buf, *flagProjectID, *flagNsHeatmap, periods); err != nil {
@@ -115,19 +108,33 @@ func toolBuildNsHeatmap() {
 }
 
 func toolFileCover() {
-	dateFrom, dateTo := parseDates()
+	dateTo, err := civil.ParseDate(*flagDateTo)
+	if err != nil {
+		tool.Failf("failed to parse date from: %v", err)
+	}
+	tp, err := coveragedb.MakeTimePeriod(dateTo, *flagPeriod)
+	if err != nil {
+		tool.Fail(err)
+	}
 	config := cover.DefaultTextRenderConfig()
 	config.ShowLineSourceExplanation = *flagDebug
-	details, err := cover.RendFileCoverage(
-		context.Background(),
+	mr, err := cover.GetMergeResult(context.Background(),
 		*flagNamespace,
 		*flagRepo,
 		*flagCommit,
 		*flagSourceCommit,
 		*flagForFile,
+		nil, tp)
+	if err != nil {
+		tool.Fail(err)
+	}
+
+	details, err := cover.RendFileCoverage(
+		*flagRepo,
+		*flagCommit,
+		*flagForFile,
 		nil, // no proxy - get files directly from WebGits
-		dateFrom,
-		dateTo,
+		mr,
 		config,
 	)
 	if err != nil {

@@ -275,17 +275,19 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
-	dateFrom, dateTo := tp.DatesFromTo()
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
+	hitCounts, err := coveragedb.ReadLinesHitCount(c, hdr.Namespace, targetCommit, kernelFilePath, tp)
+	if err != nil {
+		return fmt.Errorf("coveragedb.ReadLinesHitCount: %w", err)
+	}
+
 	content, err := cover.RendFileCoverage(
-		c, hdr.Namespace, mainNsRepo,
-		targetCommit, "", // merge all commits to targetCommit
+		mainNsRepo,
+		targetCommit,
 		kernelFilePath,
 		makeProxyURIProvider(nsConfig.Coverage.WebGitURI),
-		dateFrom,
-		dateTo,
-		cover.DefaultHTMLRenderConfig(),
-	)
+		&covermerger.MergeResult{HitCounts: hitCounts},
+		cover.DefaultHTMLRenderConfig())
 	if err != nil {
 		return fmt.Errorf("cover.RendFileCoverage: %w", err)
 	}
