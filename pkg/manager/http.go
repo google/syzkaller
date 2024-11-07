@@ -110,12 +110,8 @@ func (serv *HTTPServer) Serve() {
 }
 
 func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
-	revision, link := revisionAndLink()
 	data := &UISummaryData{
-		Name:         serv.Cfg.Name,
-		Revision:     revision,
-		RevisionLink: link,
-		Expert:       serv.expertMode,
+		UIPageHeader: serv.pageHeader(r, "syzkaller"),
 		Log:          log.CachedLogOutput(),
 	}
 
@@ -142,20 +138,6 @@ func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 		data.PatchedOnly, data.AffectsBoth, data.InProgress = serv.collectDiffCrashes()
 	}
 	executeTemplate(w, summaryTemplate, data)
-}
-
-func revisionAndLink() (string, string) {
-	var revision string
-	var link string
-	if len(prog.GitRevisionBase) > 8 {
-		revision = prog.GitRevisionBase[:8]
-		link = vcs.LogLink(vcs.SyzkallerRepo, prog.GitRevisionBase)
-	} else {
-		revision = prog.GitRevisionBase
-		link = ""
-	}
-
-	return revision, link
 }
 
 func (serv *HTTPServer) httpConfig(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +169,7 @@ func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	data := &UISyscallsData{
-		Name: serv.Cfg.Name,
+		UIPageHeader: serv.pageHeader(r, "syscalls"),
 	}
 	for c, cc := range calls {
 		var syscallID *int
@@ -218,7 +200,7 @@ func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := &UIVMData{
-		Name: serv.Cfg.Name,
+		UIPageHeader: serv.pageHeader(r, "VMs"),
 	}
 	// TODO: we could also query vmLoop for VMs that are idle (waiting to start reproducing),
 	// and query the exact bug that is being reproduced by a VM.
@@ -317,8 +299,11 @@ func (serv *HTTPServer) httpCrash(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to read crash info", http.StatusInternalServerError)
 		return
 	}
-	crash := makeUICrashType(info, serv.StartTime, nil)
-	executeTemplate(w, crashTemplate, crash)
+	data := UICrashPage{
+		UIPageHeader: serv.pageHeader(r, info.Title),
+		UICrashType:  makeUICrashType(info, serv.StartTime, nil),
+	}
+	executeTemplate(w, crashTemplate, data)
 }
 
 func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
@@ -327,9 +312,10 @@ func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the corpus information is not yet available", http.StatusInternalServerError)
 		return
 	}
-	data := UICorpus{
-		Call:     r.FormValue("call"),
-		RawCover: serv.Cfg.RawCover,
+	data := UICorpusPage{
+		UIPageHeader: serv.pageHeader(r, "corpus"),
+		Call:         r.FormValue("call"),
+		RawCover:     serv.Cfg.RawCover,
 	}
 	for _, inp := range corpus.Items() {
 		if data.Call != "" && data.Call != inp.StringCall() {
@@ -533,7 +519,9 @@ func (serv *HTTPServer) httpCoverFallback(w http.ResponseWriter, r *http.Request
 		id, errno := prog.DecodeFallbackSignal(uint64(s))
 		calls[id] = append(calls[id], errno)
 	}
-	data := &UIFallbackCoverData{}
+	data := &UIFallbackCoverData{
+		UIPageHeader: serv.pageHeader(r, "fallback coverage"),
+	}
 	if obj := serv.EnabledSyscalls.Load(); obj != nil {
 		for call := range obj.(map[*prog.Syscall]bool) {
 			errnos := calls[call.ID]
@@ -585,7 +573,10 @@ func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
 
 	prios := serv.Cfg.Target.CalculatePriorities(progs)
 
-	data := &UIPrioData{Call: callName}
+	data := &UIPrioData{
+		UIPageHeader: serv.pageHeader(r, "syscall priorities"),
+		Call:         callName,
+	}
 	for i, p := range prios[call.ID] {
 		data.Prios = append(data.Prios, UIPrio{serv.Cfg.Target.Syscalls[i].Name, p})
 	}
@@ -647,13 +638,13 @@ func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 		}
 		return ret
 	}
-	data := []UIRawCallCover{}
+	var calls []UIRawCallCover
 	for pos, line := range strings.Split(string(inp.Prog.Serialize()), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		data = append(data, UIRawCallCover{
+		calls = append(calls, UIRawCallCover{
 			Sig:       r.FormValue("sig"),
 			Call:      line,
 			UpdateIDs: getIDs(pos),
@@ -661,11 +652,15 @@ func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 	}
 	extraIDs := getIDs(-1)
 	if len(extraIDs) > 0 {
-		data = append(data, UIRawCallCover{
+		calls = append(calls, UIRawCallCover{
 			Sig:       r.FormValue("sig"),
 			Call:      ".extra",
 			UpdateIDs: extraIDs,
 		})
+	}
+	data := UIRawCoverPage{
+		UIPageHeader: serv.pageHeader(r, "raw coverage"),
+		Calls:        calls,
 	}
 	executeTemplate(w, rawCoverTemplate, data)
 }
@@ -808,7 +803,7 @@ func (serv *HTTPServer) httpJobs(w http.ResponseWriter, r *http.Request) {
 	}
 	jobType := r.FormValue("type")
 	data := UIJobList{
-		Title: fmt.Sprintf("%s jobs", jobType),
+		UIPageHeader: serv.pageHeader(r, fmt.Sprintf("%s jobs", jobType)),
 	}
 	switch jobType {
 	case "triage":
@@ -862,16 +857,13 @@ func executeTemplate(w http.ResponseWriter, templ *template.Template, data inter
 }
 
 type UISummaryData struct {
-	Name         string
-	Revision     string
-	RevisionLink string
-	Expert       bool
-	Stats        []UIStat
-	Crashes      []UICrashType
-	PatchedOnly  *UIDiffTable
-	AffectsBoth  *UIDiffTable
-	InProgress   *UIDiffTable
-	Log          string
+	UIPageHeader
+	Stats       []UIStat
+	Crashes     []UICrashType
+	PatchedOnly *UIDiffTable
+	AffectsBoth *UIDiffTable
+	InProgress  *UIDiffTable
+	Log         string
 }
 
 type UIDiffTable struct {
@@ -880,8 +872,8 @@ type UIDiffTable struct {
 }
 
 type UIVMData struct {
-	Name string
-	VMs  []UIVMInfo
+	UIPageHeader
+	VMs []UIVMInfo
 }
 
 type UIVMInfo struct {
@@ -893,8 +885,13 @@ type UIVMInfo struct {
 }
 
 type UISyscallsData struct {
-	Name  string
+	UIPageHeader
 	Calls []UICallType
+}
+
+type UICrashPage struct {
+	UIPageHeader
+	UICrashType
 }
 
 type UICrashType struct {
@@ -932,7 +929,8 @@ type UICallType struct {
 	Cover  int
 }
 
-type UICorpus struct {
+type UICorpusPage struct {
+	UIPageHeader
 	Call     string
 	RawCover bool
 	Inputs   []UIInput
@@ -944,21 +942,42 @@ type UIInput struct {
 	Cover int
 }
 
-func createPage(title string, data any, body string) *template.Template {
+type UIPageHeader struct {
+	PageTitle       string
+	InstanceName    string
+	GitRevision     string
+	GitRevisionLink string
+	ExpertMode      bool
+}
+
+func (serv *HTTPServer) pageHeader(r *http.Request, title string) UIPageHeader {
+	revision, revisionLink := prog.GitRevisionBase, ""
+	if len(revision) > 8 {
+		revisionLink = vcs.LogLink(vcs.SyzkallerRepo, revision)
+		revision = revision[:8]
+	}
+	return UIPageHeader{
+		PageTitle:       title,
+		InstanceName:    serv.Cfg.Name,
+		GitRevision:     revision,
+		GitRevisionLink: revisionLink,
+		ExpertMode:      serv.expertMode,
+	}
+}
+
+func createPage(data any, body string) *template.Template {
 	templ := pages.Create(fmt.Sprintf(`
 <!doctype html>
 <html>
 <head>
-	<title>%v</title>
+	<title>{{.PageTitle}}</title>
 	{{HEAD}}
 </head>
 <body>
-
 %v
 </body></html>
-`, template.HTMLEscaper(title), body))
+`, body))
 	templTypes = append(templTypes, templType{
-		title: title,
 		templ: templ,
 		data:  data,
 	})
@@ -966,18 +985,17 @@ func createPage(title string, data any, body string) *template.Template {
 }
 
 type templType struct {
-	title string
 	templ *template.Template
 	data  any
 }
 
 var templTypes []templType
 
-var summaryTemplate = createPage("syzkaller", UISummaryData{}, `
-<b>{{.Name }} syzkaller</b>
+var summaryTemplate = createPage(UISummaryData{}, `
+<b>{{.InstanceName }} syzkaller</b>
 <a href='/config'>[config]</a>
-<a href='{{.RevisionLink}}'>{{.Revision}}</a>
-<a class="navigation_tab" href='expert_mode'>{{if .Expert}}disable{{else}}enable{{end}} expert mode</a>
+<a href='{{.GitRevisionLink}}'>{{.GitRevision}}</a>
+<a class="navigation_tab" href='expert_mode'>{{if .ExpertMode}}disable{{else}}enable{{end}} expert mode</a>
 <br>
 
 <table class="list_table">
@@ -1090,7 +1108,7 @@ var summaryTemplate = createPage("syzkaller", UISummaryData{}, `
 </script>
 `)
 
-var vmsTemplate = createPage("VMs", UIVMData{}, `
+var vmsTemplate = createPage(UIVMData{}, `
 <table class="list_table">
 	<caption>VM Info:</caption>
 	<tr>
@@ -1112,7 +1130,7 @@ var vmsTemplate = createPage("VMs", UIVMData{}, `
 </table>
 `)
 
-var syscallsTemplate = createPage("syscalls", UISyscallsData{}, `
+var syscallsTemplate = createPage(UISyscallsData{}, `
 <table class="list_table">
 	<caption>Per-syscall coverage:</caption>
 	<tr>
@@ -1132,7 +1150,7 @@ var syscallsTemplate = createPage("syscalls", UISyscallsData{}, `
 </table>
 `)
 
-var crashTemplate = createPage("crash", UICrashType{}, `
+var crashTemplate = createPage(UICrashPage{}, `
 <b>{{.Description}}</b>
 
 {{if .Triaged}}
@@ -1163,7 +1181,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 </table>
 `)
 
-var corpusTemplate = createPage("corpus", UICorpus{}, `
+var corpusTemplate = createPage(UICorpusPage{}, `
 <body>
 
 <table class="list_table">
@@ -1187,6 +1205,7 @@ var corpusTemplate = createPage("corpus", UICorpus{}, `
 `)
 
 type UIPrioData struct {
+	UIPageHeader
 	Call  string
 	Prios []UIPrio
 }
@@ -1196,7 +1215,7 @@ type UIPrio struct {
 	Prio int32
 }
 
-var prioTemplate = createPage("syscall priorities", UIPrioData{}, `
+var prioTemplate = createPage(UIPrioData{}, `
 <table class="list_table">
 	<caption>Priorities for {{$.Call}}:</caption>
 	<tr>
@@ -1213,6 +1232,7 @@ var prioTemplate = createPage("syscall priorities", UIPrioData{}, `
 `)
 
 type UIFallbackCoverData struct {
+	UIPageHeader
 	Calls []UIFallbackCall
 }
 
@@ -1222,7 +1242,7 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = createPage("coverage", UIFallbackCoverData{}, `
+var fallbackCoverTemplate = createPage(UIFallbackCoverData{}, `
 <table class="list_table">
 	<tr>
 		<th>Call</th>
@@ -1239,20 +1259,25 @@ var fallbackCoverTemplate = createPage("coverage", UIFallbackCoverData{}, `
 </table>
 `)
 
+type UIRawCoverPage struct {
+	UIPageHeader
+	Calls []UIRawCallCover
+}
+
 type UIRawCallCover struct {
 	Sig       string
 	Call      string
 	UpdateIDs []int
 }
 
-var rawCoverTemplate = createPage("raw coverage", []UIRawCallCover{}, `
+var rawCoverTemplate = createPage(UIRawCoverPage{}, `
 <table class="list_table">
 	<caption>Raw cover</caption>
 	<tr>
 		<th>Line</th>
 		<th>Links</th>
 	</tr>
-	{{range $line := .}}
+	{{range $line := .Calls}}
 	<tr>
 		<td>{{$line.Call}}</td>
 		<td>
@@ -1266,8 +1291,8 @@ var rawCoverTemplate = createPage("raw coverage", []UIRawCallCover{}, `
 `)
 
 type UIJobList struct {
-	Title string
-	Jobs  []UIJobInfo
+	UIPageHeader
+	Jobs []UIJobInfo
 }
 
 type UIJobInfo struct {
@@ -1277,9 +1302,9 @@ type UIJobInfo struct {
 	Execs int32
 }
 
-var jobListTemplate = createPage("job list", UIJobList{}, `
+var jobListTemplate = createPage(UIJobList{}, `
 <table class="list_table">
-	<caption>{{.Title}} ({{len .Jobs}}):</caption>
+	<caption>{{.PageTitle}} ({{len .Jobs}}):</caption>
 	<tr>
 		<th>Program</th>
 		<th>Calls</th>

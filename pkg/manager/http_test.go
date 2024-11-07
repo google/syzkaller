@@ -4,6 +4,7 @@
 package manager
 
 import (
+	"fmt"
 	"io"
 	"testing"
 
@@ -11,8 +12,8 @@ import (
 )
 
 func TestHttpTemplates(t *testing.T) {
-	for _, typ := range templTypes {
-		t.Run(typ.title, func(t *testing.T) {
+	for i, typ := range templTypes {
+		t.Run(fmt.Sprintf("%v_%T", i, typ.data), func(t *testing.T) {
 			data := testutil.RandValue(t, typ.data)
 			if err := typ.templ.Execute(io.Discard, data); err != nil {
 				t.Fatal(err)
