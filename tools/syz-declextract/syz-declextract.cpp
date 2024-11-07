@@ -43,12 +43,6 @@
 using namespace clang;
 using namespace clang::ast_matchers;
 
-struct EnumData {
-  std::string name;
-  unsigned long long value;
-  std::string file;
-};
-
 struct Param {
   std::string type;
   std::string name;
@@ -452,24 +446,60 @@ public:
   }
 };
 
-class EnumMatcher : public MatchFinder::MatchCallback {
-private:
-  std::vector<EnumData> EnumDetails;
-
-public:
-  std::vector<EnumData> getEnumData() { return EnumDetails; }
-  virtual void run(const MatchFinder::MatchResult &Result) override {
-    const auto *enumValue = Result.Nodes.getNodeAs<ConstantExpr>("enum_value");
-    if (!enumValue) {
-      return;
-    }
-    const auto &name = enumValue->getEnumConstantDecl()->getNameAsString();
-    const auto value = *enumValue->getAPValueResult().getInt().getRawData();
-    const auto &path = std::filesystem::relative(
-        Result.SourceManager->getFilename(enumValue->getEnumConstantDecl()->getSourceRange().getBegin()).str());
-    EnumDetails.push_back({std::move(name), value, std::move(path)});
-  }
+struct EnumData {
+  std::string name;
+  unsigned long long value;
+  std::string file;
 };
+
+// Extracts enum info from array variable designated initialization.
+// For example, for the following code:
+//
+//	enum Foo {
+//		FooA = 11,
+//		FooB = 42,
+//	};
+//
+//	struct Bar bars[] = {
+//		[FooA] = {...},
+//		[FooB] = {...},
+//	};
+//
+// it returns the following map:
+//	11: {"FooA", 11, file.c},
+//	42: {"FooB", 42, file.c},
+std::map<int, EnumData> extractDesignatedInitConsts(ASTContext &context, const VarDecl &arrayDecl) {
+  struct DesignatedInitMatcher : MatchFinder::MatchCallback {
+    std::vector<EnumData> Inits;
+
+    DesignatedInitMatcher(MatchFinder &Finder) {
+      Finder.addMatcher(
+          decl(forEachDescendant(designatedInitExpr(optionally(has(constantExpr(has(declRefExpr())).bind("init")))))),
+          this);
+    }
+
+    void run(const MatchFinder::MatchResult &Result) override {
+      const auto *init = Result.Nodes.getNodeAs<ConstantExpr>("init");
+      if (!init) {
+        return;
+      }
+      const auto &name = init->getEnumConstantDecl()->getNameAsString();
+      const auto value = *init->getAPValueResult().getInt().getRawData();
+      const auto &path = std::filesystem::relative(
+          Result.SourceManager->getFilename(init->getEnumConstantDecl()->getSourceRange().getBegin()).str());
+      Inits.push_back({std::move(name), value, std::move(path)});
+    }
+  };
+
+  MatchFinder finder;
+  DesignatedInitMatcher matcher(finder);
+  finder.match(arrayDecl, context);
+  std::map<int, EnumData> ordered;
+  for (auto &init : matcher.Inits) {
+    ordered[init.value] = init;
+  }
+  return ordered;
+}
 
 class SyscallMatcher : public MatchFinder::MatchCallback {
 public:
@@ -687,30 +717,14 @@ private:
       }
     }
 
-    EnumMatcher enumMatcher;
-    MatchFinder enumFinder;
-    enumFinder.addMatcher(
-        decl(forEachDescendant(designatedInitExpr(optionally(has(constantExpr(has(declRefExpr())).bind("enum_value"))))
-                                   .bind("designated_init"))),
-        &enumMatcher);
-    enumFinder.match(*netlinkDecl, *context); // get enum details from the current subtree (nla_policy[])
-
-    auto unorderedEnumData = enumMatcher.getEnumData();
-    if (unorderedEnumData.empty()) {
+    auto enumData = extractDesignatedInitConsts(*context, *netlinkDecl);
+    // TODO: generate an empty message for these or something.
+    if (enumData.empty()) {
       return;
     }
-
-    std::vector<EnumData> enumData(fields.size());
-    for (auto &data : unorderedEnumData) {
-      enumData.at(data.value) = std::move(data);
-    }
-
-    for (const auto &item : enumData) {
-      if (item.file.empty()) {
+    for (const auto &[_, item] : enumData) {
+      if (!endsWith(item.file, ".h")) {
         continue;
-      }
-      if (item.file.back() != 'h') { // only extract from "*.h" files
-        return;
       }
       printf("include <%s>\n", item.file.c_str());
     }
