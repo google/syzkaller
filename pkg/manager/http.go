@@ -72,8 +72,8 @@ func (serv *HTTPServer) Serve() {
 		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
 	}
 	handle("/", serv.httpSummary)
+	handle("/action", serv.httpAction)
 	handle("/config", serv.httpConfig)
-	handle("/expert_mode", serv.httpExpertMode)
 	handle("/stats", serv.httpStats)
 	handle("/vms", serv.httpVMs)
 	handle("/vm", serv.httpVM)
@@ -109,6 +109,14 @@ func (serv *HTTPServer) Serve() {
 	}
 }
 
+func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
+	switch r.FormValue("action") {
+	case "toggle-expert":
+		serv.expertMode = !serv.expertMode
+	}
+	http.Redirect(w, r, r.FormValue("url"), http.StatusFound)
+}
+
 func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
 		UIPageHeader: serv.pageHeader(r, "syzkaller"),
@@ -141,18 +149,29 @@ func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpConfig(w http.ResponseWriter, r *http.Request) {
-	data, err := json.MarshalIndent(serv.Cfg, "", "\t")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
-			http.StatusInternalServerError)
-		return
-	}
-	w.Write(data)
+	serv.jsonPage(w, r, "config", serv.Cfg)
 }
 
-func (serv *HTTPServer) httpExpertMode(w http.ResponseWriter, r *http.Request) {
-	serv.expertMode = !serv.expertMode
-	http.Redirect(w, r, "/", http.StatusFound)
+func (serv *HTTPServer) jsonPage(w http.ResponseWriter, r *http.Request, title string, data any) {
+	text, err := json.MarshalIndent(data, "", "\t")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err), http.StatusInternalServerError)
+		return
+	}
+	serv.textPage(w, r, title, text)
+}
+
+func (serv *HTTPServer) textPage(w http.ResponseWriter, r *http.Request, title string, text []byte) {
+	if r.FormValue("raw") != "" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Write(text)
+		return
+	}
+	data := &UITextPage{
+		UIPageHeader: serv.pageHeader(r, title),
+		Text:         text,
+	}
+	executeTemplate(w, textTemplate, data)
 }
 
 func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
@@ -592,15 +611,12 @@ func (serv *HTTPServer) httpFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)
 		return
 	}
-	file = filepath.Join(serv.Cfg.Workdir, file)
-	f, err := os.Open(file)
+	data, err := os.ReadFile(filepath.Join(serv.Cfg.Workdir, file))
 	if err != nil {
-		http.Error(w, "failed to open the file", http.StatusInternalServerError)
+		http.Error(w, "failed to read the file", http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.Copy(w, f)
+	serv.textPage(w, r, "file", data)
 }
 
 func (serv *HTTPServer) httpInput(w http.ResponseWriter, r *http.Request) {
@@ -666,20 +682,12 @@ func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) modulesInfo(w http.ResponseWriter, r *http.Request) {
-	var modules []*vminfo.KernelModule
-	if obj := serv.Cover.Load(); obj != nil {
-		modules = obj.Modules
-	} else {
+	cover := serv.Cover.Load()
+	if cover == nil {
 		http.Error(w, "info is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
-	jsonModules, err := json.MarshalIndent(modules, "", "\t")
-	if err != nil {
-		fmt.Fprintf(w, "unable to create JSON modules info: %v", err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonModules)
+	serv.jsonPage(w, r, "modules", cover.Modules)
 }
 
 var alphaNumRegExp = regexp.MustCompile(`^[a-zA-Z0-9]*$`)
@@ -943,8 +951,12 @@ type UIInput struct {
 }
 
 type UIPageHeader struct {
-	PageTitle       string
-	InstanceName    string
+	PageTitle string
+	// Relative page URL w/o GET parameters (e.g. "/stats").
+	URLPath string
+	// Relative page URL with GET parameters/fragment/etc (e.g. "/stats?foo=1#bar").
+	CurrentURL string
+	// syzkaller build git revision and link.
 	GitRevision     string
 	GitRevisionLink string
 	ExpertMode      bool
@@ -956,9 +968,14 @@ func (serv *HTTPServer) pageHeader(r *http.Request, title string) UIPageHeader {
 		revisionLink = vcs.LogLink(vcs.SyzkallerRepo, revision)
 		revision = revision[:8]
 	}
+	url := r.URL
+	url.Scheme = ""
+	url.Host = ""
+	url.User = nil
 	return UIPageHeader{
 		PageTitle:       title,
-		InstanceName:    serv.Cfg.Name,
+		URLPath:         r.URL.Path,
+		CurrentURL:      url.String(),
 		GitRevision:     revision,
 		GitRevisionLink: revisionLink,
 		ExpertMode:      serv.expertMode,
@@ -974,7 +991,50 @@ func createPage(data any, body string) *template.Template {
 	{{HEAD}}
 </head>
 <body>
-%v
+	<header id="topbar">
+		<table class="position_table">
+			<tr>
+				<td>
+					<h1><a href="/">syzkaller</a></h1>
+				</td>
+				<td>
+					<form action="/action" method="post">
+						<input type="hidden" name="url" value="{{.CurrentURL}}" />
+						<button type="submit" name="action" value="toggle-expert" class="action_button{{if .ExpertMode}}_selected{{end}}" title="Toggle expert mode">
+							🧠
+						</input>
+					</form>
+				</td>
+				<td class="search">
+					<a href="https://github.com/google/syzkaller/blob/master/docs/" target="_blank">docs</a> |
+					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
+					<a href="{{.GitRevisionLink}}" target="_blank">source {{.GitRevision}}</a>
+				</td>
+			</tr>
+		</table>
+		<div class="navigation">
+			<div class="navigation_tab{{if eq .URLPath "/stats"}}_selected{{end}}">
+				<a href='/stats'>📈 stats</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/cover"}}_selected{{end}}">
+				<a href='/cover'>📃 coverage</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/syscalls"}}_selected{{end}}">
+				<a href='/syscalls'>🤖 syscalls</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/corpus"}}_selected{{end}}">
+				<a href='/corpus'>🛒 corpus</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/vms"}}_selected{{end}}">
+				<a href='/vms'>💻 VMs</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/config"}}_selected{{end}}">
+				<a href='/config'>🔧 config</a>
+			</div>
+		</div>
+	</header>
+	<br>
+	%v
 </body></html>
 `, body))
 	templTypes = append(templTypes, templType{
@@ -992,14 +1052,7 @@ type templType struct {
 var templTypes []templType
 
 var summaryTemplate = createPage(UISummaryData{}, `
-<b>{{.InstanceName }} syzkaller</b>
-<a href='/config'>[config]</a>
-<a href='{{.GitRevisionLink}}'>{{.GitRevision}}</a>
-<a class="navigation_tab" href='expert_mode'>{{if .ExpertMode}}disable{{else}}enable{{end}} expert mode</a>
-<br>
-
 <table class="list_table">
-	<caption><a href='/stats'>Stats 📈</a></caption>
 	{{range $s := $.Stats}}
 	<tr>
 		<td class="stat_name" title="{{$s.Hint}}">{{$s.Name}}</td>
@@ -1318,4 +1371,13 @@ var jobListTemplate = createPage(UIJobList{}, `
 	</tr>
 	{{end}}
 </table>
+`)
+
+type UITextPage struct {
+	UIPageHeader
+	Text []byte
+}
+
+var textTemplate = createPage(UITextPage{}, `
+<pre>{{printf "%s" .Text}}</pre>
 `)
