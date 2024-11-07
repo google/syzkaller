@@ -93,8 +93,10 @@ func main() {
 			DiffStore: store,
 		},
 	}
-	diffCtx.http.Pools.Store(new.name, new.pool)
-	diffCtx.http.Pools.Store(base.name, base.pool)
+	diffCtx.http.Pools = map[string]*vm.Dispatcher{
+		new.name:  new.pool,
+		base.name: base.pool,
+	}
 	new.http = diffCtx.http
 
 	diffCtx.Loop(ctx)
@@ -114,7 +116,7 @@ type diffContext struct {
 
 func (dc *diffContext) Loop(ctx context.Context) {
 	reproLoop := manager.NewReproLoop(dc, dc.new.pool.Total()-dc.new.cfg.FuzzingVMs, false)
-	dc.http.ReproLoop.Store(reproLoop)
+	dc.http.ReproLoop = reproLoop
 	go func() {
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
@@ -235,7 +237,7 @@ type kernelContext struct {
 	serv       rpcserver.Server
 	servStats  rpcserver.Stats
 	crashes    chan *report.Report
-	pool       *dispatcher.Pool[*vm.Instance]
+	pool       *vm.Dispatcher
 	features   flatrpc.Feature
 	candidates chan []fuzzer.Candidate
 

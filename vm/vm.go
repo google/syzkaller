@@ -332,7 +332,9 @@ func (inst *Instance) Close() error {
 	return err
 }
 
-func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *dispatcher.Pool[*Instance] {
+type Dispatcher = dispatcher.Pool[*Instance]
+
+func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *Dispatcher {
 	return dispatcher.NewPool(pool.Count(), pool.Create, def)
 }
 

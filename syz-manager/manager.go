@@ -73,7 +73,7 @@ type Manager struct {
 	cfg             *mgrconfig.Config
 	mode            Mode
 	vmPool          *vm.Pool
-	pool            *dispatcher.Pool[*vm.Instance]
+	pool            *vm.Dispatcher
 	target          *prog.Target
 	sysTarget       *targets.Target
 	reporter        *report.Reporter
@@ -242,8 +242,6 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	} else {
 		close(mgr.corpusPreload)
 	}
-	go mgr.http.Serve()
-	go mgr.trackUsedFiles()
 
 	// Create RPC server for fuzzers.
 	mgr.servStats = rpcserver.NewStats()
@@ -294,11 +292,13 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 		return
 	}
 	mgr.pool = vm.NewDispatcher(mgr.vmPool, mgr.fuzzerInstance)
-	mgr.http.Pools.Store(manager.DefaultPool, mgr.pool)
+	mgr.http.Pool = mgr.pool
 	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
-	mgr.http.ReproLoop.Store(mgr.reproLoop)
+	mgr.http.ReproLoop = mgr.reproLoop
 
 	ctx := vm.ShutdownCtx()
+	go mgr.http.Serve()
+	go mgr.trackUsedFiles()
 	go mgr.processFuzzingResults(ctx)
 	mgr.pool.Loop(ctx)
 }

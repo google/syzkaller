@@ -25,8 +25,7 @@ const (
 	straceOutputLogSize = 2048 << 10
 )
 
-func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
-	pool *dispatcher.Pool[*vm.Instance]) *StraceResult {
+func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter, pool *vm.Dispatcher) *StraceResult {
 	if cfg.StraceBin == "" {
 		return straceFailed(fmt.Errorf("strace binary is not set in the config"))
 	}
