@@ -82,7 +82,7 @@ func main() {
 	close(files)
 
 	var nodes []ast.Node
-	syscallNames := readSyscallNames(filepath.Join(*sourceDir, "arch"))
+	syscallNames := readSyscallMap(*sourceDir)
 
 	var interfaces []Interface
 	eh := ast.LoggingHandler
@@ -167,7 +167,7 @@ func makeOutput(nodes []ast.Node) []byte {
 			syscalls = append(syscalls, node)
 		case *ast.Struct:
 			// Special case for unsued struct. TODO: handle unused structs.
-			if node.Name.Name == "utimbuf$auto_record" { // NOTE: Causes side effect when truncating nodes after the loop
+			if node.Name.Name == "old_utimbuf32$auto_record" {
 				continue
 			}
 			structs = append(structs, node)
@@ -281,65 +281,85 @@ func renameSyscall(syscall *ast.Call, rename map[string][]string) []ast.Node {
 	return renamed
 }
 
-func readSyscallNames(kernelDir string) map[string][]string {
-	rename := map[string][]string{
-		"syz_genetlink_get_family_id": {"syz_genetlink_get_family_id"},
+func readSyscallMap(sourceDir string) map[string][]string {
+	// Parse arch/*/*.tbl files that map functions defined with SYSCALL_DEFINE macros to actual syscall names.
+	// Lines in the files look as follows:
+	//	288      common  accept4                 sys_accept4
+	// Total mapping is many-to-many, so we give preference to x86 arch, then to 64-bit syscalls,
+	// and then just order arches by name to have deterministic result.
+	type desc struct {
+		fn      string
+		arch    string
+		is64bit bool
 	}
+	syscalls := make(map[string][]desc)
 	for _, arch := range targets.List[targets.Linux] {
-		filepath.Walk(filepath.Join(kernelDir, arch.KernelHeaderArch),
+		filepath.Walk(filepath.Join(sourceDir, "arch", arch.KernelHeaderArch),
 			func(path string, info fs.FileInfo, err error) error {
-				if err != nil {
+				if err != nil || !strings.HasSuffix(path, ".tbl") {
 					return err
-				}
-				if !strings.HasSuffix(path, ".tbl") {
-					return nil
-				}
-				fi, err := os.Lstat(path)
-				if err != nil {
-					tool.Fail(err)
-				}
-				if fi.Mode()&fs.ModeSymlink != 0 { // Some symlinks link to files outside of arch directory.
-					return nil
 				}
 				f, err := os.Open(path)
 				if err != nil {
 					tool.Fail(err)
 				}
-				s := bufio.NewScanner(f)
-				for s.Scan() {
+				defer f.Close()
+				for s := bufio.NewScanner(f); s.Scan(); {
 					fields := strings.Fields(s.Text())
-					if len(fields) < 4 {
+					if len(fields) < 4 || fields[0] == "#" {
 						continue
 					}
-					key := strings.TrimPrefix(fields[3], "sys_")
-					val := fields[2]
-					if fields[0] == "#" || strings.HasPrefix(fields[2], "unused") || key == "-" ||
-						strings.HasPrefix(key, "compat") || strings.HasPrefix(key, "ia32") ||
-						key == "ni_syscall" || isProhibited(val) {
-						// System calls prefixed with ia32 are ignored due to conflicting system calls for 64 bit and 32 bit.
+					group := fields[1]
+					syscall := fields[2]
+					fn := strings.TrimPrefix(fields[3], "sys_")
+					if strings.HasPrefix(syscall, "unused") || fn == "-" ||
+						// Powerpc spu group defines some syscalls (utimesat)
+						// that are not present on any of our arches.
+						group == "spu" ||
+						// llseek does not exist, it comes from:
+						//	arch/arm64/tools/syscall_64.tbl -> scripts/syscall.tbl
+						//	62  32      llseek                          sys_llseek
+						// So scripts/syscall.tbl is pulled for 64-bit arch, but the syscall
+						// is defined only for 32-bit arch in that file.
+						syscall == "llseek" ||
+						// Don't want to test it (see issue 5308).
+						syscall == "reboot" {
 						continue
 					}
-					rename[key] = append(rename[key], val)
+					syscalls[syscall] = append(syscalls[syscall], desc{
+						fn:      fn,
+						arch:    arch.VMArch,
+						is64bit: group == "common" || strings.Contains(group, "64"),
+					})
 				}
 				return nil
 			})
 	}
 
-	for k := range rename {
-		slices.Sort(rename[k])
-		rename[k] = slices.Compact(rename[k])
+	rename := map[string][]string{
+		"syz_genetlink_get_family_id": {"syz_genetlink_get_family_id"},
 	}
-
+	const mainArch = targets.AMD64
+	for syscall, descs := range syscalls {
+		slices.SortFunc(descs, func(a, b desc) int {
+			if (a.arch == mainArch) != (b.arch == mainArch) {
+				if a.arch == mainArch {
+					return -1
+				}
+				return 1
+			}
+			if a.is64bit != b.is64bit {
+				if a.is64bit {
+					return -1
+				}
+				return 1
+			}
+			return strings.Compare(a.arch, b.arch)
+		})
+		fn := descs[0].fn
+		rename[fn] = append(rename[fn], syscall)
+	}
 	return rename
-}
-
-func isProhibited(syscall string) bool {
-	switch syscall {
-	case "reboot", "utimesat": // `utimesat` is not defined for all arches.
-		return true
-	default:
-		return false
-	}
 }
 
 func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node,
