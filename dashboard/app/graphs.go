@@ -211,6 +211,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return err
 	}
 	ss := r.FormValue("subsystem")
+
 	periodType := r.FormValue("period")
 	if periodType == "" {
 		periodType = coveragedb.DayPeriod
@@ -219,7 +220,17 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return fmt.Errorf("only day and month are allowed, but received %s instead, %w",
 			periodType, ErrClientBadRequest)
 	}
-	periods, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(timeNow(c)), periodType)
+
+	periodCount := r.FormValue("period_count")
+	if periodCount == "" {
+		periodCount = "4"
+	}
+	nPeriods, err := strconv.Atoi(periodCount)
+	if err != nil || nPeriods > 12 || nPeriods < 1 {
+		return fmt.Errorf("periods_count is wrong, expected [1, 12]: %w", err)
+	}
+
+	periods, err := coveragedb.GenNPeriodsTill(nPeriods, civil.DateOf(timeNow(c)), periodType)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
