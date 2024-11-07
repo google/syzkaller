@@ -205,6 +205,13 @@ table td, table th {
 	display: inline-block;
 }
 
+.list_table .job_description {
+	max-width: 600pt;
+	word-break: break-all;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
 .list_table .icon {
 	font-size: 75%;
 }
