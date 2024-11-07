@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
@@ -81,9 +82,9 @@ func main() {
 	}
 	close(files)
 
-	var nodes []ast.Node
 	syscallNames := readSyscallMap(*sourceDir)
 
+	var nodes []ast.Node
 	var interfaces []Interface
 	eh := ast.LoggingHandler
 	for range cmds {
@@ -105,10 +106,15 @@ func main() {
 		appendNodes(&nodes, &interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir, file, extractor)
 	}
 
-	if err := osutil.WriteFile(*outFile, makeOutput(nodes)); err != nil {
+	// New lines are added in the parsing step. This is why we need to Format (serialize the description),
+	// Parse, then Format again.
+	desc := finishDescriptions(nodes)
+	output := ast.Format(ast.Parse(ast.Format(desc), "", ast.LoggingHandler))
+	if err := osutil.WriteFile(*outFile, output); err != nil {
 		tool.Fail(err)
 	}
 
+	checkDescriptionPresence(interfaces, *outFile)
 	slices.SortFunc(interfaces, func(a, b Interface) int {
 		if x := strings.Compare(a.Type, b.Type); x != 0 {
 			return x
@@ -140,15 +146,47 @@ type output struct {
 }
 
 type Interface struct {
-	Type       string   `json:"type"`
-	Name       string   `json:"name"`
-	Files      []string `json:"files"`
-	Subsystems []string `json:"subsystems"`
+	Type               string   `json:"type"`
+	Name               string   `json:"name"`
+	Files              []string `json:"files"`
+	Subsystems         []string `json:"subsystems"`
+	ManualDescriptions bool     `json:"has_manual_descriptions"`
+	AutoDescriptions   bool     `json:"has_auto_descriptions"`
+
+	identifyingConst string
+}
+
+func checkDescriptionPresence(interfaces []Interface, autoFile string) {
+	desc := ast.ParseGlob(filepath.Join("sys", targets.Linux, "*.txt"), nil)
+	if desc == nil {
+		tool.Failf("failed to parse descriptions")
+	}
+	consts := compiler.ExtractConsts(desc, targets.List[targets.Linux][targets.AMD64], nil)
+	auto := make(map[string]bool)
+	manual := make(map[string]bool)
+	for file, desc := range consts {
+		for _, c := range desc.Consts {
+			if file == autoFile {
+				auto[c.Name] = true
+			} else {
+				manual[c.Name] = true
+			}
+		}
+	}
+	for i := range interfaces {
+		iface := &interfaces[i]
+		if auto[iface.identifyingConst] {
+			iface.AutoDescriptions = true
+		}
+		if manual[iface.identifyingConst] {
+			iface.ManualDescriptions = true
+		}
+	}
 }
 
 const sendmsg = "sendmsg"
 
-func makeOutput(nodes []ast.Node) []byte {
+func finishDescriptions(nodes []ast.Node) *ast.Description {
 	slices.SortFunc(nodes, func(a, b ast.Node) int {
 		return strings.Compare(ast.SerializeNode(a), ast.SerializeNode(b))
 	})
@@ -243,10 +281,7 @@ include <include/linux/types.h>
 `
 	desc := ast.Parse([]byte(header), "", eh)
 	nodes = append(desc.Nodes, nodes...)
-
-	// New lines are added in the parsing step. This is why we need to Format (serialize the description),
-	// Parse, then Format again.
-	return ast.Format(ast.Parse(ast.Format(&ast.Description{Nodes: nodes}), "", eh))
+	return &ast.Description{Nodes: nodes}
 }
 
 func worker(outputs chan *output, files chan string, binary, compilationDatabase string) {
@@ -392,14 +427,16 @@ func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node,
 			}
 			slices.Sort(subsystems)
 			iface := Interface{
-				Type:       fields[1],
-				Name:       fields[2],
-				Files:      files,
-				Subsystems: subsystems,
+				Type:             fields[1],
+				Name:             fields[2],
+				Files:            files,
+				Subsystems:       subsystems,
+				identifyingConst: fields[3],
 			}
 			if iface.Type == "SYSCALL" {
 				for _, name := range syscallNames[iface.Name] {
 					iface.Name = name
+					iface.identifyingConst = "__NR_" + name
 					*interfaces = append(*interfaces, iface)
 				}
 			} else {

@@ -7,7 +7,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -17,7 +19,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -27,7 +31,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -37,7 +43,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -47,7 +55,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -57,7 +67,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -67,7 +79,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -77,7 +91,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -87,7 +103,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -97,7 +115,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -107,7 +127,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -117,7 +139,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -127,7 +151,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -137,7 +163,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -147,7 +175,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -157,7 +187,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -167,7 +199,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -177,7 +211,9 @@
 		],
 		"subsystems": [
 			"batman"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -187,7 +223,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -197,7 +235,9 @@
 		],
 		"subsystems": [
 			"cifs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -207,7 +247,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -217,7 +259,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -227,7 +271,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -237,7 +283,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -247,7 +295,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -257,7 +307,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -267,7 +319,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -277,7 +331,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -287,7 +343,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -297,7 +355,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -307,7 +367,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -317,7 +379,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -327,7 +391,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -337,7 +403,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -347,7 +415,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -357,7 +427,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -367,7 +439,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -377,7 +451,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -387,7 +463,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -397,7 +475,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -407,7 +487,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -417,7 +499,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -427,7 +511,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -437,7 +523,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -447,7 +535,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -457,7 +547,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -467,7 +559,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -477,7 +571,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -487,7 +583,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -497,7 +595,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -507,7 +607,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -517,7 +619,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -527,7 +631,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -537,7 +643,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -547,7 +655,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -557,7 +667,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -567,7 +679,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -577,7 +691,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -587,7 +703,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -597,7 +715,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -607,7 +727,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -617,7 +739,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -627,7 +751,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -637,7 +763,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -647,7 +775,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -657,7 +787,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -667,7 +799,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -677,7 +811,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -687,7 +823,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -697,7 +835,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -707,7 +847,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -717,7 +859,9 @@
 		],
 		"subsystems": [
 			"tls"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -727,7 +871,9 @@
 		],
 		"subsystems": [
 			"tls"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -737,7 +883,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -747,7 +895,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -757,7 +907,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -767,7 +919,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -777,7 +931,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -787,7 +943,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -797,7 +955,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -807,7 +967,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -817,7 +979,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -827,7 +991,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -837,7 +1003,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -847,7 +1015,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -857,7 +1027,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -867,7 +1039,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -877,7 +1051,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -887,7 +1063,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -897,7 +1075,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -907,7 +1087,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -917,7 +1099,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -927,7 +1111,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -937,7 +1123,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -947,7 +1135,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -957,7 +1147,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -967,7 +1159,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -977,7 +1171,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -987,7 +1183,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -997,7 +1195,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1007,7 +1207,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1017,7 +1219,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1027,7 +1231,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1037,7 +1243,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1047,7 +1255,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1057,7 +1267,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1067,7 +1279,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1077,7 +1291,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1087,7 +1303,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1097,7 +1315,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1107,7 +1327,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1117,7 +1339,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1127,7 +1351,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1137,7 +1363,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1147,7 +1375,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1157,7 +1387,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1167,7 +1399,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1177,7 +1411,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1187,7 +1423,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1197,7 +1435,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1207,7 +1447,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1217,7 +1459,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1227,7 +1471,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1237,7 +1483,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1247,7 +1495,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1257,7 +1507,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1267,7 +1519,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1277,7 +1531,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1287,7 +1543,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1297,7 +1555,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1307,7 +1567,9 @@
 		],
 		"subsystems": [
 			"lvs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1317,7 +1579,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1327,7 +1591,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1337,7 +1603,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1347,7 +1615,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1357,7 +1627,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1367,7 +1639,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1377,7 +1651,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1387,7 +1663,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1397,7 +1675,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1407,7 +1687,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1417,7 +1699,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1427,7 +1711,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1437,7 +1723,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1447,7 +1735,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1457,7 +1747,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1467,7 +1759,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1477,7 +1771,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1487,7 +1783,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1497,7 +1795,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1507,7 +1807,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1517,7 +1819,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1527,7 +1831,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1537,7 +1843,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1547,7 +1855,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1557,7 +1867,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1567,7 +1879,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1577,7 +1891,9 @@
 		],
 		"subsystems": [
 			"nbd"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1587,7 +1903,9 @@
 		],
 		"subsystems": [
 			"nbd"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1597,7 +1915,9 @@
 		],
 		"subsystems": [
 			"nbd"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1607,7 +1927,9 @@
 		],
 		"subsystems": [
 			"nbd"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1617,7 +1939,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1627,7 +1951,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1637,7 +1963,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1647,7 +1975,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1657,7 +1987,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1667,7 +1999,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1677,7 +2011,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1687,7 +2023,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1697,7 +2035,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1707,7 +2047,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1717,7 +2059,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1727,7 +2071,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1737,7 +2083,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1747,7 +2095,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1757,7 +2107,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1767,7 +2119,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1777,7 +2131,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1788,7 +2144,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1799,7 +2157,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1810,7 +2170,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1821,7 +2183,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1832,7 +2196,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1843,7 +2209,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1854,7 +2222,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1865,7 +2235,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1876,7 +2248,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1887,7 +2261,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1898,7 +2274,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1909,7 +2287,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1920,7 +2300,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1931,7 +2313,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1942,7 +2326,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1953,7 +2339,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1964,7 +2352,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1975,7 +2365,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1986,7 +2378,9 @@
 		"subsystems": [
 			"net",
 			"nfc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -1996,7 +2390,9 @@
 		],
 		"subsystems": [
 			"nfs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2006,7 +2402,9 @@
 		],
 		"subsystems": [
 			"nfs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2016,7 +2414,9 @@
 		],
 		"subsystems": [
 			"nfs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2026,7 +2426,9 @@
 		],
 		"subsystems": [
 			"nfs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2036,7 +2438,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2046,7 +2450,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2056,7 +2462,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2066,7 +2474,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2076,7 +2486,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2086,7 +2498,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2096,7 +2510,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2106,7 +2522,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2116,7 +2534,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2126,7 +2546,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2136,7 +2558,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2146,7 +2570,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2156,7 +2582,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2166,7 +2594,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2176,7 +2606,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2186,7 +2618,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2196,7 +2630,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2206,7 +2642,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2216,7 +2654,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2226,7 +2666,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2236,7 +2678,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2246,7 +2690,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2256,7 +2702,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2266,7 +2714,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2276,7 +2726,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2286,7 +2738,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2296,7 +2750,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2306,7 +2762,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2316,7 +2774,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2326,7 +2786,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2336,7 +2798,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2346,7 +2810,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2356,7 +2822,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2366,7 +2834,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2376,7 +2846,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2386,7 +2858,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2396,7 +2870,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2406,7 +2882,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2416,7 +2894,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2426,7 +2906,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2436,7 +2918,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2446,7 +2930,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2456,7 +2942,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2466,7 +2954,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2476,7 +2966,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2486,7 +2978,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2496,7 +2990,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2506,7 +3002,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2516,7 +3014,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2526,7 +3026,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2536,7 +3038,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2546,7 +3050,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2556,7 +3062,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2566,7 +3074,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2576,7 +3086,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2586,7 +3098,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2596,7 +3110,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2606,7 +3122,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2616,7 +3134,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2626,7 +3146,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2636,7 +3158,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2646,7 +3170,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2656,7 +3182,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2666,7 +3194,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2676,7 +3206,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2686,7 +3218,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2696,7 +3230,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2706,7 +3242,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2716,7 +3254,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2726,7 +3266,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2736,7 +3278,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2746,7 +3290,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2756,7 +3302,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2766,7 +3314,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2776,7 +3326,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2786,7 +3338,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2796,7 +3350,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2806,7 +3362,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2816,7 +3374,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2826,7 +3386,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2836,7 +3398,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2846,7 +3410,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2856,7 +3422,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2866,7 +3434,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2876,7 +3446,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2886,7 +3458,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2896,7 +3470,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2906,7 +3482,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2916,7 +3494,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2926,7 +3506,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2936,7 +3518,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2946,7 +3530,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2956,7 +3542,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2966,7 +3554,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2976,7 +3566,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2986,7 +3578,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -2996,7 +3590,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3006,7 +3602,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3016,7 +3614,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3026,7 +3626,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3036,7 +3638,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3046,7 +3650,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3056,7 +3662,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3066,7 +3674,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3076,7 +3686,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3086,7 +3698,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3096,7 +3710,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3106,7 +3722,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3116,7 +3734,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3126,7 +3746,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3136,7 +3758,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3146,7 +3770,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3156,7 +3782,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3166,7 +3794,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3176,7 +3806,9 @@
 		],
 		"subsystems": [
 			"wireless"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3186,7 +3818,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3196,7 +3830,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3206,7 +3842,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3216,7 +3854,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3226,7 +3866,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3236,7 +3878,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3246,7 +3890,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3256,7 +3902,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3266,7 +3914,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3276,7 +3926,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3286,7 +3938,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3296,7 +3950,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3306,7 +3962,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3316,7 +3974,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3326,7 +3986,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3336,7 +3998,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3346,7 +4010,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3356,7 +4022,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3366,7 +4034,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3376,7 +4046,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3386,7 +4058,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3396,7 +4070,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3406,7 +4082,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3416,7 +4094,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3426,7 +4106,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3436,7 +4118,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3446,7 +4130,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3456,7 +4142,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3466,7 +4154,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3476,7 +4166,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3486,7 +4178,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3496,7 +4190,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3506,7 +4202,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3516,7 +4214,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3526,7 +4226,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3536,7 +4238,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3546,7 +4250,9 @@
 		],
 		"subsystems": [
 			"wpan"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3557,7 +4263,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3568,7 +4276,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3579,7 +4289,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3590,7 +4302,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3601,7 +4315,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3612,7 +4328,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3623,7 +4341,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3634,7 +4354,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3645,7 +4367,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3656,7 +4380,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3667,7 +4393,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3678,7 +4406,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3689,7 +4419,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3700,7 +4432,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3711,7 +4445,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3722,7 +4458,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3733,7 +4471,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3744,7 +4484,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3755,7 +4497,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3766,7 +4510,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3777,7 +4523,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3788,7 +4536,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3799,7 +4549,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3810,7 +4562,9 @@
 		"subsystems": [
 			"lsm",
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3820,7 +4574,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3830,7 +4586,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3840,7 +4598,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3850,7 +4610,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3860,7 +4622,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3870,7 +4634,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3880,7 +4646,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3890,7 +4658,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3900,7 +4670,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3910,7 +4682,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3920,7 +4694,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3930,7 +4706,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3940,7 +4718,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3950,7 +4730,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3960,7 +4742,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3970,7 +4754,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3980,7 +4766,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -3990,7 +4778,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4000,7 +4790,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4010,7 +4802,9 @@
 		],
 		"subsystems": [
 			"openvswitch"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4020,7 +4814,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4030,7 +4826,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4040,7 +4838,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4050,7 +4850,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4061,7 +4863,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4072,7 +4876,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4083,7 +4889,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4094,7 +4902,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4105,7 +4915,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4116,7 +4928,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4127,7 +4941,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4138,7 +4954,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4149,7 +4967,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4160,7 +4980,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4171,7 +4993,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4182,7 +5006,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4193,7 +5019,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4204,7 +5032,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4215,7 +5045,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4226,7 +5058,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4237,7 +5071,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
 	},
 	{
 		"type": "NETLINK",
@@ -4248,7 +5084,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4259,7 +5097,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4270,7 +5110,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4281,7 +5123,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4292,7 +5136,9 @@
 		"subsystems": [
 			"net",
 			"s390"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4302,7 +5148,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4312,7 +5160,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4322,7 +5172,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4332,7 +5184,9 @@
 		],
 		"subsystems": [
 			"pm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4342,7 +5196,9 @@
 		],
 		"subsystems": [
 			"pm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4352,7 +5208,9 @@
 		],
 		"subsystems": [
 			"pm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4362,7 +5220,9 @@
 		],
 		"subsystems": [
 			"pm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4372,7 +5232,9 @@
 		],
 		"subsystems": [
 			"pm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4382,7 +5244,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4392,7 +5256,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4402,7 +5268,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4412,7 +5280,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4422,7 +5292,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4432,7 +5304,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4442,7 +5316,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4452,7 +5328,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4462,7 +5340,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4472,7 +5352,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4482,7 +5364,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4492,7 +5376,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4502,7 +5388,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4512,7 +5400,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4522,7 +5412,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4532,7 +5424,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4542,7 +5436,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4552,7 +5448,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4562,7 +5460,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4572,7 +5472,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4582,7 +5484,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4592,7 +5496,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4602,7 +5508,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4612,7 +5520,9 @@
 		],
 		"subsystems": [
 			"tipc"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4622,7 +5532,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4632,7 +5544,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4642,7 +5556,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4652,7 +5568,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4662,7 +5580,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4672,7 +5592,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4682,7 +5604,9 @@
 		],
 		"subsystems": [
 			"virt"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4692,7 +5616,9 @@
 		],
 		"subsystems": [
 			"wireguard"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -4702,7 +5628,9 @@
 		],
 		"subsystems": [
 			"wireguard"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4712,7 +5640,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4722,7 +5652,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4732,7 +5664,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4742,7 +5676,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4752,7 +5688,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4762,7 +5700,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4773,7 +5713,9 @@
 		"subsystems": [
 			"keyrings",
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4783,7 +5725,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4793,7 +5737,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4803,7 +5749,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4813,7 +5761,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4823,7 +5773,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4833,7 +5785,9 @@
 		],
 		"subsystems": [
 			"bpf"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4843,7 +5797,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4854,7 +5810,9 @@
 		"subsystems": [
 			"fs",
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4864,7 +5822,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4874,7 +5834,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4884,7 +5846,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4894,7 +5858,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4904,7 +5870,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4914,7 +5882,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4924,7 +5894,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4934,7 +5906,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4944,7 +5918,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4954,7 +5930,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4964,7 +5942,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4974,7 +5954,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4984,7 +5966,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -4994,7 +5978,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5004,7 +5990,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5014,7 +6002,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5024,7 +6014,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5034,7 +6026,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5044,7 +6038,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5054,7 +6050,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5064,7 +6062,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5074,7 +6074,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5084,7 +6086,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5094,7 +6098,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5104,7 +6110,9 @@
 		],
 		"subsystems": [
 			"modules"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5114,7 +6122,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5124,7 +6134,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5134,7 +6146,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5144,7 +6158,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5154,7 +6170,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5164,7 +6182,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5174,7 +6194,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5184,7 +6206,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5194,7 +6218,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5204,7 +6230,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5214,7 +6242,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5225,7 +6255,9 @@
 		"subsystems": [
 			"fs",
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5236,7 +6268,9 @@
 		"subsystems": [
 			"fs",
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5246,7 +6280,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5256,7 +6292,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5266,7 +6304,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5276,7 +6316,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5286,7 +6328,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5296,7 +6340,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5306,7 +6352,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5316,7 +6364,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5326,7 +6376,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5336,7 +6388,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5346,7 +6400,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5356,7 +6412,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5366,7 +6424,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5376,7 +6436,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5386,7 +6448,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5396,7 +6460,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5406,7 +6472,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5416,7 +6484,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5426,7 +6496,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5436,7 +6508,9 @@
 		],
 		"subsystems": [
 			"modules"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5446,7 +6520,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5456,7 +6532,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5466,7 +6544,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5476,7 +6556,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5486,7 +6568,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5496,7 +6580,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5506,7 +6592,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5516,7 +6604,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5526,7 +6616,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5536,7 +6628,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5546,7 +6640,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5556,7 +6652,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5566,7 +6664,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5576,7 +6676,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5586,7 +6688,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5596,7 +6700,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5606,7 +6712,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5616,7 +6724,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5626,7 +6736,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5636,7 +6748,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5646,7 +6760,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5656,7 +6772,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5666,7 +6784,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5676,7 +6796,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5686,7 +6808,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5696,7 +6820,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5706,7 +6832,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5716,7 +6844,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5726,7 +6856,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5736,7 +6868,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5746,7 +6880,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5756,7 +6892,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5766,7 +6904,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5776,7 +6916,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5786,7 +6928,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5796,7 +6940,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5806,7 +6952,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5816,7 +6964,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5826,7 +6976,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5836,7 +6988,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5846,7 +7000,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5856,7 +7012,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5866,7 +7024,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5876,7 +7036,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5886,7 +7048,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5896,7 +7060,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5906,7 +7072,9 @@
 		],
 		"subsystems": [
 			"modules"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5916,7 +7084,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5926,7 +7096,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5936,7 +7108,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5946,7 +7120,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5956,7 +7132,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5966,7 +7144,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5976,7 +7156,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5986,7 +7168,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -5996,7 +7180,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6006,7 +7192,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6016,7 +7204,9 @@
 		],
 		"subsystems": [
 			"io-uring"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6026,7 +7216,9 @@
 		],
 		"subsystems": [
 			"io-uring"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6036,7 +7228,9 @@
 		],
 		"subsystems": [
 			"io-uring"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6047,7 +7241,9 @@
 		"subsystems": [
 			"fs",
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6057,7 +7253,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6067,7 +7265,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6077,7 +7277,9 @@
 		],
 		"subsystems": [
 			"block"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6087,7 +7289,9 @@
 		],
 		"subsystems": [
 			"block"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6097,7 +7301,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6107,7 +7313,9 @@
 		],
 		"subsystems": [
 			"kexec"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6118,7 +7326,9 @@
 		"subsystems": [
 			"keyrings",
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6128,7 +7338,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6138,7 +7350,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6148,7 +7362,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6158,7 +7374,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6168,7 +7386,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6178,7 +7398,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6188,7 +7410,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6198,7 +7422,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6208,7 +7434,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6218,7 +7446,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6228,7 +7458,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6238,7 +7470,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6248,7 +7482,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6258,7 +7494,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6268,7 +7506,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6278,7 +7518,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6288,7 +7530,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6298,7 +7542,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6308,7 +7554,9 @@
 		],
 		"subsystems": [
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6318,7 +7566,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6328,7 +7578,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6338,7 +7590,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6348,7 +7602,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6358,7 +7614,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6368,7 +7626,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6378,7 +7638,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6388,7 +7650,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6398,7 +7662,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6408,7 +7674,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6418,7 +7686,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6428,7 +7698,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6438,7 +7710,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6448,7 +7722,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6458,7 +7734,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6468,7 +7746,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6478,7 +7758,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6488,7 +7770,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6498,7 +7782,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6508,7 +7794,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6518,7 +7806,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6528,7 +7818,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6538,7 +7830,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6548,7 +7842,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6558,7 +7854,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6568,7 +7866,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6578,7 +7878,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6588,7 +7890,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6598,7 +7902,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6608,7 +7914,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6618,7 +7926,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6628,7 +7938,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6638,7 +7950,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6648,7 +7962,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6658,7 +7974,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6668,7 +7986,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6678,7 +7998,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6688,7 +8010,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6698,7 +8022,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6708,7 +8034,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6718,7 +8046,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6728,7 +8058,9 @@
 		],
 		"subsystems": [
 			"nfs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6738,7 +8070,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6748,7 +8082,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6758,7 +8094,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6768,7 +8106,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6778,7 +8118,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6788,7 +8130,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6798,7 +8142,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6808,7 +8154,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6818,7 +8166,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6828,7 +8178,9 @@
 		],
 		"subsystems": [
 			"nfs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6838,7 +8190,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6848,7 +8202,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6858,7 +8214,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6868,7 +8226,9 @@
 		],
 		"subsystems": [
 			"perf"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6878,7 +8238,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6888,7 +8250,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6898,7 +8262,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6908,7 +8274,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6918,7 +8286,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6928,7 +8298,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6938,7 +8310,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6948,7 +8322,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6958,7 +8334,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6968,7 +8346,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6978,7 +8358,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6988,7 +8370,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -6998,7 +8382,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7008,7 +8394,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7018,7 +8406,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7028,7 +8418,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7038,7 +8430,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7048,7 +8442,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7058,7 +8454,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7068,7 +8466,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7078,7 +8478,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7088,7 +8490,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7098,7 +8502,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7108,7 +8514,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7118,7 +8526,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7128,7 +8538,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7138,7 +8550,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7148,7 +8562,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7158,7 +8574,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7168,7 +8586,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7178,7 +8598,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7189,7 +8611,9 @@
 		"subsystems": [
 			"fs",
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7199,7 +8623,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7209,7 +8635,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7219,7 +8647,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7229,7 +8659,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7239,7 +8671,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7249,7 +8683,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7259,7 +8695,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7269,7 +8707,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7279,7 +8719,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7289,7 +8731,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7299,7 +8743,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7309,7 +8755,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7319,7 +8767,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7329,7 +8779,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7340,7 +8792,9 @@
 		"subsystems": [
 			"keyrings",
 			"lsm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7350,7 +8804,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7360,7 +8816,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7370,7 +8828,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7380,7 +8840,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7390,7 +8852,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7400,7 +8864,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7410,7 +8876,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7420,7 +8888,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7430,7 +8900,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7440,7 +8912,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7450,7 +8924,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7460,7 +8936,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7470,7 +8948,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7480,7 +8960,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7490,7 +8972,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7500,7 +8984,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7510,7 +8996,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7520,7 +9008,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7530,7 +9020,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7540,7 +9032,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7550,7 +9044,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7560,7 +9056,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7570,7 +9068,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7580,7 +9080,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7590,7 +9092,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7600,7 +9104,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7610,7 +9116,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7620,7 +9128,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7630,7 +9140,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7640,7 +9152,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7650,7 +9164,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7660,7 +9176,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7670,7 +9188,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7680,7 +9200,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7690,7 +9212,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7700,7 +9224,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7710,7 +9236,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7720,7 +9248,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7730,7 +9260,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7740,7 +9272,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7750,7 +9284,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7760,7 +9296,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7770,7 +9308,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7780,7 +9320,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7790,7 +9332,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7800,7 +9344,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7810,7 +9356,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7820,7 +9368,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7830,7 +9380,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7840,7 +9392,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7850,7 +9404,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7860,7 +9416,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7870,7 +9428,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7880,7 +9440,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7890,7 +9452,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7900,7 +9464,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7910,7 +9476,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7920,7 +9488,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7930,7 +9500,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7940,7 +9512,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7950,7 +9524,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7960,7 +9536,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7970,7 +9548,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7980,7 +9560,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -7990,7 +9572,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8000,7 +9584,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8010,7 +9596,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8020,7 +9608,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8030,7 +9620,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8040,7 +9632,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8050,7 +9644,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8060,7 +9656,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8070,7 +9668,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8080,7 +9680,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8090,7 +9692,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8100,7 +9704,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8110,7 +9716,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8120,7 +9728,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8130,7 +9740,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8140,7 +9752,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8150,7 +9764,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8160,7 +9776,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8170,7 +9788,9 @@
 		],
 		"subsystems": [
 			"net"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8180,7 +9800,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8190,7 +9812,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8200,7 +9824,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8210,7 +9836,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8220,7 +9848,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8230,7 +9860,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8240,7 +9872,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8250,7 +9884,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8260,7 +9896,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8270,7 +9908,9 @@
 		],
 		"subsystems": [
 			"mm"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8280,7 +9920,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8290,7 +9932,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8300,7 +9944,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8310,7 +9956,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8320,7 +9968,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8330,7 +9980,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8340,7 +9992,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8350,7 +10004,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8360,7 +10016,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8370,7 +10028,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8380,7 +10040,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8390,7 +10052,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8400,7 +10064,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8410,7 +10076,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8420,7 +10088,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8430,7 +10100,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8440,7 +10112,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8450,7 +10124,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8460,7 +10136,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8470,7 +10148,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8480,7 +10160,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8490,7 +10172,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8500,7 +10184,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8510,7 +10196,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8520,7 +10208,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8530,7 +10220,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8540,7 +10232,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8550,7 +10244,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8560,7 +10256,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8570,7 +10268,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8580,7 +10280,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8590,7 +10292,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8600,7 +10304,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8610,7 +10316,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8620,7 +10328,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8630,7 +10340,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8640,7 +10352,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8650,7 +10364,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8660,7 +10376,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8670,7 +10388,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8680,7 +10400,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8690,7 +10412,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8700,7 +10424,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8710,7 +10436,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8720,7 +10448,9 @@
 		],
 		"subsystems": [
 			"kernel"
-		]
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8730,7 +10460,9 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "SYSCALL",
@@ -8740,6 +10472,8 @@
 		],
 		"subsystems": [
 			"fs"
-		]
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": true
 	}
 ]
