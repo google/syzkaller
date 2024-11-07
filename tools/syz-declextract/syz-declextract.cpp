@@ -863,6 +863,33 @@ private:
   }
 };
 
+class IouringMatcher : public MatchFinder::MatchCallback {
+public:
+  IouringMatcher(MatchFinder &Finder) {
+    Finder.addMatcher(
+        translationUnitDecl(forEachDescendant(
+            varDecl(hasType(constantArrayType(hasElementType(hasDeclaration(recordDecl(hasName("io_issue_def")))))),
+                    isDefinition())
+                .bind("io_issue_defs"))),
+        this);
+  }
+
+private:
+  void run(const MatchFinder::MatchResult &Result) override {
+    const auto *ioIssueDefs = Result.Nodes.getNodeAs<VarDecl>("io_issue_defs");
+    if (!ioIssueDefs) {
+      return;
+    }
+    auto elements = extractDesignatedInitConsts(*Result.Context, *ioIssueDefs);
+    // TODO: if .prep callback is set to io_eopnotsupp_prep, the operations is not really supported.
+    // TODO: use the .issue callback to find the root function of the interface,
+    // also the file where the callback is defined is better file than io_uring/opdef.c.
+    for (const auto &[_, op] : elements) {
+      emitInterface("IOURING", op.name, op.name);
+    }
+  }
+};
+
 int main(int argc, const char **argv) {
   llvm::cl::OptionCategory SyzDeclExtractOptionCategory("syz-declextract options");
   auto ExpectedParser = clang::tooling::CommonOptionsParser::create(argc, argv, SyzDeclExtractOptionCategory);
@@ -874,6 +901,7 @@ int main(int argc, const char **argv) {
   MatchFinder Finder;
   SyscallMatcher SyscallMatcher(Finder);
   NetlinkPolicyMatcher NetlinkPolicyMatcher(Finder);
+  IouringMatcher IouringMatcher(Finder);
 
   clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());

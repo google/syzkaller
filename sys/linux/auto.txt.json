@@ -1,5 +1,701 @@
 [
 	{
+		"type": "IOURING",
+		"name": "IORING_OP_ACCEPT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_ASYNC_CANCEL",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_BIND",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_CLOSE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_CONNECT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_EPOLL_CTL",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FADVISE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FALLOCATE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FGETXATTR",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FILES_UPDATE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FIXED_FD_INSTALL",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FSETXATTR",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FSYNC",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FTRUNCATE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FUTEX_WAIT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FUTEX_WAITV",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_FUTEX_WAKE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_GETXATTR",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_LINKAT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_LINK_TIMEOUT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_LISTEN",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_MADVISE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_MKDIRAT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_MSG_RING",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_NOP",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_OPENAT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_OPENAT2",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_POLL_ADD",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_POLL_REMOVE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_PROVIDE_BUFFERS",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_READ",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_READV",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_READ_FIXED",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_READ_MULTISHOT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_RECV",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_RECVMSG",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_REMOVE_BUFFERS",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_RENAMEAT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SEND",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SENDMSG",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SENDMSG_ZC",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SEND_ZC",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SETXATTR",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SHUTDOWN",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SOCKET",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SPLICE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_STATX",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SYMLINKAT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_SYNC_FILE_RANGE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_TEE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_TIMEOUT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_TIMEOUT_REMOVE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_UNLINKAT",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_URING_CMD",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_WAITID",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": false,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_WRITE",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_WRITEV",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
+		"type": "IOURING",
+		"name": "IORING_OP_WRITE_FIXED",
+		"files": [
+			"io_uring/opdef.c"
+		],
+		"subsystems": [
+			"io-uring"
+		],
+		"has_manual_descriptions": true,
+		"has_auto_descriptions": false
+	},
+	{
 		"type": "NETLINK",
 		"name": "BATADV_CMD_GET_BLA_BACKBONE",
 		"files": [
