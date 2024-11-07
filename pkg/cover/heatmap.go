@@ -9,7 +9,6 @@ import (
 	_ "embed"
 	"fmt"
 	"html/template"
-	"io"
 	"sort"
 	"strings"
 
@@ -220,32 +219,6 @@ type StyleBodyJS struct {
 	Style template.CSS
 	Body  template.HTML
 	JS    template.HTML
-}
-
-// nolint: dupl
-func DoDirHeatMap(w io.Writer, projectID, ns string, periods []coveragedb.TimePeriod) error {
-	style, body, js, err := DoHeatMapStyleBodyJS(context.Background(), projectID, ns, "", periods)
-	if err != nil {
-		return fmt.Errorf("failed to DoHeatMapStyleBodyJS() %w", err)
-	}
-	return heatmapTemplate.Execute(w, &StyleBodyJS{
-		Style: style,
-		Body:  body,
-		JS:    js,
-	})
-}
-
-// nolint: dupl
-func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, periods []coveragedb.TimePeriod) error {
-	style, body, js, err := DoSubsystemsHeatMapStyleBodyJS(context.Background(), projectID, ns, "", periods)
-	if err != nil {
-		return fmt.Errorf("failed to DoSubsystemsHeatMapStyleBodyJS() %w", err)
-	}
-	return heatmapTemplate.Execute(w, &StyleBodyJS{
-		Style: style,
-		Body:  body,
-		JS:    js,
-	})
 }
 
 func stylesBodyJSTemplate(templData *templateHeatmap,

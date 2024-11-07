@@ -30,7 +30,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,14 +49,11 @@ var (
 	flagConfig  = flag.String("config", "", "configuration file")
 	flagModules = flag.String("modules", "",
 		"modules JSON info obtained from /modules (optional)")
-	flagNsHeatmap        = flag.String("heatmap", "", "generate namespace heatmap")
-	flagNsHeatmapGroupBy = flag.String("group-by", "dir", "dir or subsystem")
-	flagPeriod           = flag.String("period", "day", "time period(day[default], month, quarter)")
-	flagDateTo           = flag.String("to",
+	flagPeriod = flag.String("period", "day", "time period(day[default], month, quarter)")
+	flagDateTo = flag.String("to",
 		civil.DateOf(time.Now()).String(), "heatmap date to(optional)")
-	flagProjectID = flag.String("project", "syzkaller", "spanner db project name")
-	flagForFile   = flag.String("for-file", "", "[optional]show file coverage")
-	flagRepo      = flag.String("repo", "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+	flagForFile = flag.String("for-file", "", "[optional]show file coverage")
+	flagRepo    = flag.String("repo", "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
 		"[optional] repo to be used by -for-file")
 	flagCommit       = flag.String("commit", "latest", "[optional] commit to be used by -for-file")
 	flagNamespace    = flag.String("namespace", "upstream", "[optional] used by -for-file")
@@ -69,43 +65,6 @@ var (
 	flagForce = flag.Bool("force", false, "[optional] create coverage report when "+
 		"there are missing coverage callbacks")
 )
-
-func dayPeriods(tp coveragedb.TimePeriod) []coveragedb.TimePeriod {
-	var res []coveragedb.TimePeriod
-	for i := 0; i < tp.Days; i++ {
-		res = append(res, coveragedb.TimePeriod{DateTo: tp.DateTo.AddDays(-i), Days: 1, Type: coveragedb.DayPeriod})
-	}
-	slices.Reverse(res)
-	return res
-}
-
-func toolBuildNsHeatmap() {
-	buf := new(bytes.Buffer)
-	dateTo, err := civil.ParseDate(*flagDateTo)
-	if err != nil {
-		tool.Fail(err)
-	}
-	tp, err := coveragedb.MakeTimePeriod(dateTo, *flagPeriod)
-	if err != nil {
-		tool.Fail(err)
-	}
-	periods := dayPeriods(tp)
-	switch *flagNsHeatmapGroupBy {
-	case "dir":
-		if err = cover.DoDirHeatMap(buf, *flagProjectID, *flagNsHeatmap, periods); err != nil {
-			tool.Fail(err)
-		}
-	case "subsystem":
-		if err = cover.DoSubsystemsHeatMap(buf, *flagProjectID, *flagNsHeatmap, periods); err != nil {
-			tool.Fail(err)
-		}
-	default:
-		tool.Failf("group by %s not supported", *flagNsHeatmapGroupBy)
-	}
-	if err = osutil.WriteFile(*flagNsHeatmap+".html", buf.Bytes()); err != nil {
-		tool.Fail(err)
-	}
-}
 
 func toolFileCover() {
 	dateTo, err := civil.ParseDate(*flagDateTo)
@@ -162,10 +121,6 @@ func main() {
 	defer tool.Init()()
 	if *flagForFile != "" {
 		toolFileCover()
-		return
-	}
-	if *flagNsHeatmap != "" {
-		toolBuildNsHeatmap()
 		return
 	}
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
