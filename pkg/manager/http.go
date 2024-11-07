@@ -218,7 +218,16 @@ func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpStats(w http.ResponseWriter, r *http.Request) {
-	executeTemplate(w, pages.StatsTemplate, stat.RenderGraphs())
+	html, err := pages.StatsHTML()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	data := &UITextPage{
+		UIPageHeader: serv.pageHeader(r, "stats"),
+		HTML:         html,
+	}
+	executeTemplate(w, textTemplate, data)
 }
 
 func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
@@ -1390,8 +1399,10 @@ var jobListTemplate = createPage(UIJobList{}, `
 type UITextPage struct {
 	UIPageHeader
 	Text []byte
+	HTML template.HTML
 }
 
 var textTemplate = createPage(UITextPage{}, `
+{{.HTML}}
 <pre>{{printf "%s" .Text}}</pre>
 `)
