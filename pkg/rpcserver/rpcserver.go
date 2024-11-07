@@ -101,6 +101,7 @@ type Stats struct {
 	StatExecs      *stat.Val
 	StatNumFuzzing *stat.Val
 	StatVMRestarts *stat.Val
+	StatModules    *stat.Val
 }
 
 func NewStats() Stats {
@@ -108,13 +109,10 @@ func NewStats() Stats {
 }
 
 func NewNamedStats(name string) Stats {
-	suffix := name
-	if suffix != "" {
-		suffix = " [" + suffix + "]"
-	}
-	vmsLink := "/vms"
+	suffix, linkSuffix := "", ""
 	if name != "" {
-		vmsLink += "?pool=" + url.QueryEscape(name)
+		suffix = " [" + name + "]"
+		linkSuffix = "?pool=" + url.QueryEscape(name)
 	}
 	return Stats{
 		StatExecs: stat.New("exec total"+suffix, "Total test program executions",
@@ -122,10 +120,12 @@ func NewNamedStats(name string) Stats {
 		),
 		StatNumFuzzing: stat.New("fuzzing VMs"+suffix,
 			"Number of VMs that are currently fuzzing", stat.Graph("fuzzing VMs"),
-			stat.Link(vmsLink),
+			stat.Link("/vms"+linkSuffix),
 		),
 		StatVMRestarts: stat.New("vm restarts"+suffix, "Total number of VM starts",
 			stat.Rate{}, stat.NoGraph),
+		StatModules: stat.New("modules"+suffix, "Number of loaded kernel modules",
+			stat.NoGraph, stat.Link("/modules"+linkSuffix)),
 	}
 }
 
@@ -306,6 +306,7 @@ func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 		return handshakeResult{}, errors.New("machine check failed")
 	}
 	serv.infoOnce.Do(func() {
+		serv.StatModules.Add(len(modules))
 		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
 		serv.coverFilter = serv.mgr.CoverageFilter(modules)
 		globs := make(map[string][]string)
