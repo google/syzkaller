@@ -1,32 +1,32 @@
 <!doctype html>
 <html>
 <head>
-	<title>{{.Name }} syzkaller</title>
-	{{template "syz-head"}}
-	<style>
-	.positive-delta {
-		color:darkgreen;
-	}
-	.negative-delta {
-		color:darkred;
-	}
-	</style>
+        <title>{{.Name }} syzkaller</title>
+        {{template "syz-head"}}
+        <style>
+        .positive-delta {
+                color:darkgreen;
+        }
+        .negative-delta {
+                color:darkred;
+        }
+        </style>
 </head>
 <body>
   <header id="topbar">
     <table class="position_table">
       <tbody>
-	<tr>
+        <tr>
           <td>
-	    <h1>
+            <h1>
               <a href="/">syz-testbed "{{.Name }}"</a></h1>
-	  </td>
+          </td>
         </tr>
       </tbody>
     </table>
     <table class="position_table">
       <tbody>
-	<td class="navigation">
+        <td class="navigation">
 Views:
 {{with $main := .}}
 {{range $view := .Views}}
@@ -40,7 +40,7 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 &nbsp;
 {{end}}
 {{end}}
-	</td>
+        </td>
       </tbody>
     </table>
   </header>

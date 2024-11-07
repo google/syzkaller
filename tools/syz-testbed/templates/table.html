@@ -25,7 +25,7 @@
 	{{range $c := .Table.ColumnHeaders}}
 		<th>
 		{{$url := ""}}
-                {{if $uiTable.ColumnURL}}{{$url = (call $uiTable.ColumnURL $c)}}{{end}}
+		{{if $uiTable.ColumnURL}}{{$url = (call $uiTable.ColumnURL $c)}}{{end}}
 			{{if $url}}<a href="{{$url}}">{{$c}}</a>
 			{{else}}
 			{{$c}}
@@ -41,7 +41,7 @@
 	<tr>
 		<td>
 		{{$url := ""}}
-                {{if $uiTable.RowURL}}{{$url = (call $uiTable.RowURL $r)}}{{end}}
+		{{if $uiTable.RowURL}}{{$url = (call $uiTable.RowURL $r)}}{{end}}
 			{{if $url}}<a href="{{$url}}">{{$r}}</a>
 			{{else}}
 			{{$r}}
@@ -52,7 +52,7 @@
 			<td>{{if $cell}}{{$cell}}{{end}}</td>
 			{{if $uiTable.Extra}}
 			<td>{{if $cell}}{{template "PrintExtra" $cell}}{{end}}</td>
-		        {{end}}
+			{{end}}
 		{{end}}
 	</tr>
 	{{end}}
