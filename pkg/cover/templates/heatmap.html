@@ -1,44 +1,23 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <style>
-    {{ .Style }}
-  </style>
-</head>
-<body>
-  {{ .Body }}
-</body>
-{{ .JS }}
-</html>
-
 {{ define "js" }}
 <script>
-  var togglers = document.getElementsByClassName("caret");
-  for (var i = 0; i < togglers.length; i++) {
-    togglers[i].addEventListener("click", function() {
-      this.classList.toggle("caret-down");
-      this.parentElement.parentElement.parentElement.querySelector(".nested").classList.toggle("active");
-    });
-  }
+  $(".caret").on("click", function() {
+    $(this).toggleClass("caret-down");
+    $(this).closest("li").find(".nested").first().toggleClass("active");
+  });
 
   function setContent(url, htmlContent) {
-    document.getElementById("file-content-prev").innerHTML = document.getElementById("file-content-curr").innerHTML;
-    document.getElementById("file-details-prev").innerHTML = document.getElementById("file-details-curr").innerHTML;
+    $("#file-content-prev").html($("#file-content-curr").html());
+    $("#file-details-prev").html($("#file-details-curr").html());
 
-    document.getElementById("file-content-curr").innerHTML = htmlContent;
-    details = url.split("?")[1].split("&")
-    document.getElementById("file-details-curr").innerHTML = "Source information:\n" + details.join("\n");
+    $("#file-content-curr").html(htmlContent);
+    details = url.split("?")[1].split("&");
+    $("#file-details-curr").html("Source information:\n" + details.join("\n"));
   }
 
-  function onShowFileContent(url){
-    var reqListener = function() {
-      setContent(url, this.responseText)
-    }
-    const req = new XMLHttpRequest();
-    req.addEventListener("load", reqListener);
-    req.open("GET", url);
-    req.send();
+  function onShowFileContent(url) {
+    $.get(url, function(response) {
+      setContent(url, response);
+    });
   }
 </script>
 {{ end }}
