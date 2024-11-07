@@ -5,6 +5,7 @@ package dispatcher
 
 import (
 	"context"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -137,9 +138,16 @@ func TestPoolStress(t *testing.T) {
 	)
 	done := make(chan bool)
 	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
 		mgr.Loop(ctx)
 		close(done)
+	}()
+	go func() {
+		for i := 0; i < 128; i++ {
+			mgr.TogglePause(i%2 == 0)
+			runtime.Gosched()
+		}
 	}()
 	for i := 0; i < 128; i++ {
 		go mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
@@ -188,6 +196,42 @@ func TestPoolNewDefault(t *testing.T) {
 		time.Sleep(time.Second / 10)
 	}
 	assert.Equal(t, int64(0), originalCount.Load())
+
+	cancel()
+	<-done
+}
+
+func TestPoolPause(t *testing.T) {
+	mgr := NewPool[*nilInstance](
+		10,
+		func(idx int) (*nilInstance, error) {
+			return &nilInstance{}, nil
+		},
+		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+			t.Fatal("must not be called")
+		},
+	)
+	mgr.ReserveForRun(10)
+	mgr.TogglePause(true)
+	done := make(chan bool)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		mgr.Loop(ctx)
+		close(done)
+	}()
+
+	run := make(chan bool, 1)
+	go mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+		run <- true
+	})
+	time.Sleep(10 * time.Millisecond)
+	if len(run) != 0 {
+		t.Fatalf("job run while paused")
+	}
+	mgr.TogglePause(false)
+	<-run
+
+	mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {})
 
 	cancel()
 	<-done

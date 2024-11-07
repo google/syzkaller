@@ -46,13 +46,14 @@ type CoverageInfo struct {
 
 type HTTPServer struct {
 	// To be set before calling Serve.
-	Cfg        *mgrconfig.Config
-	StartTime  time.Time
-	CrashStore *CrashStore
-	DiffStore  *DiffFuzzerStore
-	ReproLoop  *ReproLoop
-	Pool       *vm.Dispatcher
-	Pools      map[string]*vm.Dispatcher
+	Cfg         *mgrconfig.Config
+	StartTime   time.Time
+	CrashStore  *CrashStore
+	DiffStore   *DiffFuzzerStore
+	ReproLoop   *ReproLoop
+	Pool        *vm.Dispatcher
+	Pools       map[string]*vm.Dispatcher
+	TogglePause func(paused bool)
 
 	// Can be set dynamically after calling Serve.
 	Corpus          atomic.Pointer[corpus.Corpus]
@@ -62,6 +63,7 @@ type HTTPServer struct {
 
 	// Internal state.
 	expertMode bool
+	paused     bool
 }
 
 func (serv *HTTPServer) Serve() {
@@ -113,6 +115,13 @@ func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
 	switch r.FormValue("action") {
 	case "toggle-expert":
 		serv.expertMode = !serv.expertMode
+	case "pause-unpause":
+		if serv.TogglePause == nil {
+			http.Error(w, "pause is not implemented", http.StatusNotImplemented)
+			return
+		}
+		serv.paused = !serv.paused
+		serv.TogglePause(serv.paused)
 	}
 	http.Redirect(w, r, r.FormValue("url"), http.StatusFound)
 }
@@ -960,6 +969,7 @@ type UIPageHeader struct {
 	GitRevision     string
 	GitRevisionLink string
 	ExpertMode      bool
+	Paused          bool
 }
 
 func (serv *HTTPServer) pageHeader(r *http.Request, title string) UIPageHeader {
@@ -979,6 +989,7 @@ func (serv *HTTPServer) pageHeader(r *http.Request, title string) UIPageHeader {
 		GitRevision:     revision,
 		GitRevisionLink: revisionLink,
 		ExpertMode:      serv.expertMode,
+		Paused:          serv.paused,
 	}
 }
 
@@ -1002,6 +1013,9 @@ func createPage(data any, body string) *template.Template {
 						<input type="hidden" name="url" value="{{.CurrentURL}}" />
 						<button type="submit" name="action" value="toggle-expert" class="action_button{{if .ExpertMode}}_selected{{end}}" title="Toggle expert mode">
 							🧠
+						</input>
+						<button type="submit" name="action" value="pause-unpause" class="action_button{{if .Paused}}_selected{{end}}" title="Pause/unpause fuzzing">
+							{{if .Paused}}▶️{{else}}⏸️{{end}}
 						</input>
 					</form>
 				</td>
