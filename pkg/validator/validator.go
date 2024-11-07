@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/coveragedb"
@@ -51,9 +52,9 @@ var (
 	EmptyStr       = makeStrLenFunc("not empty", 0)
 	AlphaNumeric   = makeStrReFunc("not an alphanum", "^[a-zA-Z0-9]*$")
 	CommitHash     = makeCombinedStrFunc("not a hash", AlphaNumeric, makeStrLenFunc("len is not 40", 40))
-	KernelFilePath = makeStrReFunc("not a kernel file path", "^[./-_a-zA-Z0-9]*$")
-	NamespaceName  = makeStrReFunc("not a namespace name", "^[a-zA-Z0-9-_.]{4,32}$")
-	DashClientName = makeStrReFunc("not a dashboard client name", "^[a-zA-Z0-9-_.]{4,100}$")
+	KernelFilePath = makeStrReFunc("not a kernel file path", "^[./_a-zA-Z0-9-]*$")
+	NamespaceName  = makeStrReFunc("not a namespace name", "^[a-zA-Z0-9_.-]{4,32}$")
+	DashClientName = makeStrReFunc("not a dashboard client name", "^[a-zA-Z0-9_.-]{4,100}$")
 	DashClientKey  = makeStrReFunc("not a dashboard client key",
 		"^([a-zA-Z0-9]{16,128})|("+regexp.QuoteMeta(auth.OauthMagic)+".*)$")
 	TimePeriodType = makeStrReFunc(fmt.Sprintf("bad time period, use (%s|%s|%s)",
@@ -63,13 +64,17 @@ var (
 
 type strValidationFunc func(string, ...string) Result
 
+func looksDangerous(s string) bool {
+	return strings.Contains(s, "--")
+}
+
 func makeStrReFunc(errStr, reStr string) strValidationFunc {
 	matchRe := regexp.MustCompile(reStr)
 	return func(s string, objName ...string) Result {
 		if s == "" {
 			return Result{false, wrapError(errStr + ": can't be empty")}
 		}
-		if !matchRe.MatchString(s) {
+		if looksDangerous(s) || !matchRe.MatchString(s) {
 			return Result{false, wrapError(errStr, objName...)}
 		}
 		return ResultOk
