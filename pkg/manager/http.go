@@ -1328,14 +1328,6 @@ var jobListTemplate = pages.Create(`
 <head>
 	<title>{{.Title}}</title>
 	{{HEAD}}
-<style>
-table td {
-	max-width: 600pt;
-	word-break: break-all;
-	overflow-wrap: break-word;
-	white-space: normal;
-}
-</style>
 </head>
 <body>
 
@@ -1348,9 +1340,9 @@ table td {
 	</tr>
 	{{range $job := $.Jobs}}
 	<tr>
-		<td><a href='/jobs?id={{$job.ID}}'>{{$job.Short}}</a></td>
-		<td>{{$job.Calls}}</td>
-		<td>{{$job.Execs}}</td>
+		<td class="job_description"><a href='/jobs?id={{$job.ID}}'>{{$job.Short}}</a></td>
+		<td class="job_description">{{$job.Calls}}</td>
+		<td class="job_description">{{$job.Execs}}</td>
 	</tr>
 	{{end}}
 </table>
