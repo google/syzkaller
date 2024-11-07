@@ -74,7 +74,7 @@ type execInterface interface {
 var Fast = &struct{}{}
 
 func Run(crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature, reporter *report.Reporter,
-	pool *dispatcher.Pool[*vm.Instance], opts ...any) (*Result, *Stats, error) {
+	pool *vm.Dispatcher, opts ...any) (*Result, *Stats, error) {
 	exec := &poolWrapper{
 		cfg:      cfg,
 		reporter: reporter,
@@ -747,7 +747,7 @@ func (ctx *reproContext) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.L
 type poolWrapper struct {
 	cfg      *mgrconfig.Config
 	reporter *report.Reporter
-	pool     *dispatcher.Pool[*vm.Instance]
+	pool     *vm.Dispatcher
 	logf     func(level int, format string, args ...interface{})
 }
 

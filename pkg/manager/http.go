@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -46,18 +45,19 @@ type CoverageInfo struct {
 }
 
 type HTTPServer struct {
-	// To be set once.
+	// To be set before calling Serve.
 	Cfg        *mgrconfig.Config
 	StartTime  time.Time
 	CrashStore *CrashStore
 	DiffStore  *DiffFuzzerStore
+	ReproLoop  *ReproLoop
+	Pool       *vm.Dispatcher
+	Pools      map[string]*vm.Dispatcher
 
-	// Set dynamically.
+	// Can be set dynamically after calling Serve.
 	Corpus          atomic.Pointer[corpus.Corpus]
 	Fuzzer          atomic.Pointer[fuzzer.Fuzzer]
 	Cover           atomic.Pointer[CoverageInfo]
-	ReproLoop       atomic.Pointer[ReproLoop]
-	Pools           sync.Map     // string => dispatcher.Pool[*vm.Instance]
 	EnabledSyscalls atomic.Value // map[*prog.Syscall]bool
 
 	// Internal state.
@@ -65,6 +65,9 @@ type HTTPServer struct {
 }
 
 func (serv *HTTPServer) Serve() {
+	if serv.Pool != nil {
+		serv.Pools = map[string]*vm.Dispatcher{"": serv.Pool}
+	}
 	handle := func(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
 	}
@@ -208,15 +211,12 @@ func (serv *HTTPServer) httpStats(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, pages.StatsTemplate, stat.RenderGraphs())
 }
 
-const DefaultPool = ""
-
 func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
-	poolObj, ok := serv.Pools.Load(r.FormValue("pool"))
-	if !ok {
+	pool := serv.Pools[r.FormValue("pool")]
+	if pool == nil {
 		http.Error(w, "no such VM pool is known (yet)", http.StatusInternalServerError)
 		return
 	}
-	pool := poolObj.(*dispatcher.Pool[*vm.Instance])
 	data := &UIVMData{
 		Name: serv.Cfg.Name,
 	}
@@ -254,12 +254,11 @@ func (serv *HTTPServer) httpVMs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpVM(w http.ResponseWriter, r *http.Request) {
-	poolObj, ok := serv.Pools.Load(r.FormValue("pool"))
-	if !ok {
+	pool := serv.Pools[r.FormValue("pool")]
+	if pool == nil {
 		http.Error(w, "no such VM pool is known (yet)", http.StatusInternalServerError)
 		return
 	}
-	pool := poolObj.(*dispatcher.Pool[*vm.Instance])
 
 	w.Header().Set("Content-Type", ctTextPlain)
 	id, err := strconv.Atoi(r.FormValue("id"))
@@ -760,7 +759,7 @@ func (serv *HTTPServer) collectDiffCrashes() (patchedOnly, both, inProgress *UID
 }
 
 func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
-	repros := serv.nowReproducing()
+	repros := serv.ReproLoop.Reproducing()
 	var list []UIDiffBug
 	for _, bug := range serv.DiffStore.List() {
 		list = append(list, UIDiffBug{
@@ -779,19 +778,12 @@ func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
 	return list
 }
 
-func (serv *HTTPServer) nowReproducing() map[string]bool {
-	if reproLoop := serv.ReproLoop.Load(); reproLoop != nil {
-		return reproLoop.Reproducing()
-	}
-	return nil
-}
-
 func (serv *HTTPServer) collectCrashes(workdir string) ([]UICrashType, error) {
 	list, err := serv.CrashStore.BugList()
 	if err != nil {
 		return nil, err
 	}
-	repros := serv.nowReproducing()
+	repros := serv.ReproLoop.Reproducing()
 	var ret []UICrashType
 	for _, info := range list {
 		ret = append(ret, makeUICrashType(info, serv.StartTime, repros))
