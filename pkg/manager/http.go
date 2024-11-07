@@ -283,17 +283,17 @@ func (serv *HTTPServer) httpVM(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool) *UICrashType {
-	var crashes []*UICrash
+func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool) UICrashType {
+	var crashes []UICrash
 	for _, crash := range info.Crashes {
-		crashes = append(crashes, &UICrash{
-			CrashInfo: crash,
+		crashes = append(crashes, UICrash{
+			CrashInfo: *crash,
 			Active:    crash.Time.After(startTime),
 		})
 	}
 	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
 		info.ReproAttempts >= MaxReproAttempts)
-	return &UICrashType{
+	return UICrashType{
 		Description: info.Title,
 		LastTime:    info.LastTime,
 		Active:      info.LastTime.After(startTime),
@@ -336,7 +336,7 @@ func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		if data.Call != "" && data.Call != inp.StringCall() {
 			continue
 		}
-		data.Inputs = append(data.Inputs, &UIInput{
+		data.Inputs = append(data.Inputs, UIInput{
 			Sig:   inp.Sig,
 			Short: inp.Prog.String(),
 			Cover: len(inp.Cover),
@@ -786,13 +786,13 @@ func (serv *HTTPServer) nowReproducing() map[string]bool {
 	return nil
 }
 
-func (serv *HTTPServer) collectCrashes(workdir string) ([]*UICrashType, error) {
+func (serv *HTTPServer) collectCrashes(workdir string) ([]UICrashType, error) {
 	list, err := serv.CrashStore.BugList()
 	if err != nil {
 		return nil, err
 	}
 	repros := serv.nowReproducing()
-	var ret []*UICrashType
+	var ret []UICrashType
 	for _, info := range list {
 		ret = append(ret, makeUICrashType(info, serv.StartTime, repros))
 	}
@@ -875,7 +875,7 @@ type UISummaryData struct {
 	RevisionLink string
 	Expert       bool
 	Stats        []UIStat
-	Crashes      []*UICrashType
+	Crashes      []UICrashType
 	PatchedOnly  *UIDiffTable
 	AffectsBoth  *UIDiffTable
 	InProgress   *UIDiffTable
@@ -913,11 +913,11 @@ type UICrashType struct {
 	Count       int
 	Triaged     string
 	Strace      string
-	Crashes     []*UICrash
+	Crashes     []UICrash
 }
 
 type UICrash struct {
-	*CrashInfo
+	CrashInfo
 	Active bool
 }
 
@@ -943,7 +943,7 @@ type UICallType struct {
 type UICorpus struct {
 	Call     string
 	RawCover bool
-	Inputs   []*UIInput
+	Inputs   []UIInput
 }
 
 type UIInput struct {
@@ -952,8 +952,8 @@ type UIInput struct {
 	Cover int
 }
 
-func createPage(title, body string) *template.Template {
-	return pages.Create(fmt.Sprintf(`
+func createPage(title string, data any, body string) *template.Template {
+	templ := pages.Create(fmt.Sprintf(`
 <!doctype html>
 <html>
 <head>
@@ -965,9 +965,23 @@ func createPage(title, body string) *template.Template {
 %v
 </body></html>
 `, template.HTMLEscaper(title), body))
+	templTypes = append(templTypes, templType{
+		title: title,
+		templ: templ,
+		data:  data,
+	})
+	return templ
 }
 
-var summaryTemplate = createPage("syzkaller", `
+type templType struct {
+	title string
+	templ *template.Template
+	data  any
+}
+
+var templTypes []templType
+
+var summaryTemplate = createPage("syzkaller", UISummaryData{}, `
 <b>{{.Name }} syzkaller</b>
 <a href='/config'>[config]</a>
 <a href='{{.RevisionLink}}'>{{.Revision}}</a>
@@ -1084,7 +1098,7 @@ var summaryTemplate = createPage("syzkaller", `
 </script>
 `)
 
-var vmsTemplate = createPage("VMs", `
+var vmsTemplate = createPage("VMs", UIVMData{}, `
 <table class="list_table">
 	<caption>VM Info:</caption>
 	<tr>
@@ -1106,7 +1120,7 @@ var vmsTemplate = createPage("VMs", `
 </table>
 `)
 
-var syscallsTemplate = createPage("syscalls", `
+var syscallsTemplate = createPage("syscalls", UISyscallsData{}, `
 <table class="list_table">
 	<caption>Per-syscall coverage:</caption>
 	<tr>
@@ -1126,7 +1140,7 @@ var syscallsTemplate = createPage("syscalls", `
 </table>
 `)
 
-var crashTemplate = createPage("crash", `
+var crashTemplate = createPage("crash", UICrashType{}, `
 <b>{{.Description}}</b>
 
 {{if .Triaged}}
@@ -1157,7 +1171,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 </table>
 `)
 
-var corpusTemplate = createPage("corpus", `
+var corpusTemplate = createPage("corpus", UICorpus{}, `
 <body>
 
 <table class="list_table">
@@ -1190,7 +1204,7 @@ type UIPrio struct {
 	Prio int32
 }
 
-var prioTemplate = createPage("syscall priorities", `
+var prioTemplate = createPage("syscall priorities", UIPrioData{}, `
 <table class="list_table">
 	<caption>Priorities for {{$.Call}}:</caption>
 	<tr>
@@ -1216,7 +1230,7 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = createPage("coverage", `
+var fallbackCoverTemplate = createPage("coverage", UIFallbackCoverData{}, `
 <table class="list_table">
 	<tr>
 		<th>Call</th>
@@ -1239,7 +1253,7 @@ type UIRawCallCover struct {
 	UpdateIDs []int
 }
 
-var rawCoverTemplate = createPage("raw coverage", `
+var rawCoverTemplate = createPage("raw coverage", []UIRawCallCover{}, `
 <table class="list_table">
 	<caption>Raw cover</caption>
 	<tr>
@@ -1271,7 +1285,7 @@ type UIJobInfo struct {
 	Execs int32
 }
 
-var jobListTemplate = createPage("job list", `
+var jobListTemplate = createPage("job list", UIJobList{}, `
 <table class="list_table">
 	<caption>{{.Title}} ({{len .Jobs}}):</caption>
 	<tr>
