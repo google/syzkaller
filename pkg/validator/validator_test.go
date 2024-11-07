@@ -58,12 +58,13 @@ func TestIsDashboardClientKey(t *testing.T) {
 // nolint: dupl
 func TestIsKernelFilePath(t *testing.T) {
 	assert.True(t, validator.KernelFilePath("io_uring/advise.c").Ok)
-	assert.False(t, validator.KernelFilePath("io-uring/advise.c").Ok)
+	assert.True(t, validator.KernelFilePath("io-uring/advise.c").Ok)
+	assert.False(t, validator.KernelFilePath("io--uring/advise.c").Ok)
 	assert.False(t, validator.KernelFilePath("").Ok)
 
-	assert.Equal(t, "not a kernel file path", validator.KernelFilePath("io-uring").Err.Error())
+	assert.Equal(t, "not a kernel file path", validator.KernelFilePath("io--uring").Err.Error())
 	assert.Equal(t, "kernelPath: not a kernel file path",
-		validator.KernelFilePath("io-uring", "kernelPath").Err.Error())
+		validator.KernelFilePath("io--uring", "kernelPath").Err.Error())
 }
 
 var badResult = validator.Result{false, errors.New("sample error")}
