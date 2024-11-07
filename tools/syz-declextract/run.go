@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -55,6 +57,11 @@ func main() {
 	if err := json.Unmarshal(fileData, &cmds); err != nil {
 		tool.Fail(err)
 	}
+	// Shuffle the order detect any non-determinism caused by the order early.
+	// The result should be the same regardless.
+	rand.New(rand.NewSource(time.Now().UnixNano())).Shuffle(len(cmds), func(i, j int) {
+		cmds[i], cmds[j] = cmds[j], cmds[i]
+	})
 
 	outputs := make(chan *output, len(cmds))
 	files := make(chan string, len(cmds))
