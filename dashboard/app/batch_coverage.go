@@ -89,7 +89,7 @@ func batchCoverageScript(ns, repo, branch string, periods []coveragedb.TimePerio
 		clientName = defaultDashboardClientName
 	}
 	script := jobInitScript + "\n"
-	script += "git clone --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
+	script += "git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
 		"export CI=1\n" +
 		"./tools/syz-env \""
