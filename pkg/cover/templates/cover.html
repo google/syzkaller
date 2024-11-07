@@ -141,69 +141,69 @@
 </div>
 </body>
 <script>
-	(function() {
-		var toggler = document.getElementsByClassName("caret");
-		for (var i = 0; i < toggler.length; i++) {
-			toggler[i].addEventListener("click", function() {
-				this.parentElement.querySelector(".nested").classList.toggle("active");
-				this.classList.toggle("caret-down");
-			});
-		}
-		if (window.location.hash) {
-			var hash = decodeURIComponent(window.location.hash.substring(1)).split("/");
-			var path = "path";
-			for (var i = 0; i < hash.length; i++) {
-				path += "/" + hash[i];
-				var elem = document.getElementById(path);
-				if (elem)
-					elem.click();
-			}
-		}
-	})();
-	var visible;
-	var contentIdx;
-	var currentPC;
+  (function() {
+    var toggler = document.getElementsByClassName("caret");
+    for (var i = 0; i < toggler.length; i++) {
+      toggler[i].addEventListener("click", function() {
+        this.parentElement.querySelector(".nested").classList.toggle("active");
+        this.classList.toggle("caret-down");
+      });
+    }
+    if (window.location.hash) {
+      var hash = decodeURIComponent(window.location.hash.substring(1)).split("/");
+      var path = "path";
+      for (var i = 0; i < hash.length; i++) {
+        path += "/" + hash[i];
+        var elem = document.getElementById(path);
+        if (elem)
+          elem.click();
+      }
+    }
+  })();
+  var visible;
+  var contentIdx;
+  var currentPC;
         function onPercentClick(index) {
-		if (visible)
-			visible.style.display = 'none';
-		visible = document.getElementById("function_" + index);
-		visible.style.display = 'block';
-		document.getElementById("right_pane").scrollTo(0, 0);
-		toggleCloseBtn();
-	}
-	function onFileClick(index) {
-		if (visible)
-			visible.style.display = 'none';
-		visible = document.getElementById("contents_" + index);
-		visible.style.display = 'block';
-		contentIdx = index;
-		document.getElementById("right_pane").scrollTo(0, 0);
-		toggleCloseBtn();
-	}
-	function toggleCloseBtn(showBtn) {
-		let display = 'none';
-		if (showBtn)
-			display	= 'block';
-		document.getElementById("close-btn").style.display = display;
-	}
-	function onProgClick(index, span) {
-		if (visible)
-			visible.style.display = 'none';
-		visible = document.getElementById("prog_" + index);
-		visible.style.display = 'block';
-		document.getElementById("right_pane").scrollTo(0, 0);
-		currentPC = span;
-		toggleCloseBtn(true);
-	}
-	function onCloseClick() {
-		if (visible)
-			visible.style.display = 'none';
-		visible = document.getElementById("contents_" + contentIdx);
-		visible.style.display = 'block';
-		toggleCloseBtn();
-		currentPC.scrollIntoView();
-	}
-	</script>
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("function_" + index);
+    visible.style.display = 'block';
+    document.getElementById("right_pane").scrollTo(0, 0);
+    toggleCloseBtn();
+  }
+  function onFileClick(index) {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("contents_" + index);
+    visible.style.display = 'block';
+    contentIdx = index;
+    document.getElementById("right_pane").scrollTo(0, 0);
+    toggleCloseBtn();
+  }
+  function toggleCloseBtn(showBtn) {
+    let display = 'none';
+    if (showBtn)
+      display  = 'block';
+    document.getElementById("close-btn").style.display = display;
+  }
+  function onProgClick(index, span) {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("prog_" + index);
+    visible.style.display = 'block';
+    document.getElementById("right_pane").scrollTo(0, 0);
+    currentPC = span;
+    toggleCloseBtn(true);
+  }
+  function onCloseClick() {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("contents_" + contentIdx);
+    visible.style.display = 'block';
+    toggleCloseBtn();
+    currentPC.scrollIntoView();
+  }
+  </script>
 </html>
 
 {{define "dir"}}
