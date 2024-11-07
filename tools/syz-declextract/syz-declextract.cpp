@@ -70,8 +70,8 @@ struct StructMember {
   unsigned int countedBy;
 };
 
-void emitInterface(const char *type, std::string_view name) {
-  printf("\n#INTERFACE: %s %s\n\n", type, std::string(name).c_str());
+void emitInterface(const char *type, std::string_view name, std::string_view identifying_const) {
+  printf("\n#INTERFACE: %s %s %s\n\n", type, std::string(name).c_str(), std::string(identifying_const).c_str());
 }
 
 struct SyzRecordDecl {
@@ -492,7 +492,7 @@ private:
 
     const char *sep = "";
     const auto &name = syscall->getNameAsString().substr(9); // Remove "__do_sys_" prefix.
-    emitInterface("SYSCALL", name);
+    emitInterface("SYSCALL", name, "__NR_" + name);
     printf("%s(", name.c_str());
     for (const auto &param : syscall->parameters()) {
       const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
@@ -831,7 +831,7 @@ private:
         } else {
           continue;
         }
-        emitInterface("NETLINK", ops.cmd);
+        emitInterface("NETLINK", ops.cmd, ops.cmd);
         printf("sendmsg$auto_%s(fd sock_nl_generic, msg ptr[in, %s[%s, %s]], f flags[send_flags]) (automatic)\n",
                ops.cmd.c_str(), msghdr.c_str(), ops.cmd.c_str(), policyName);
         printedCmds = true;
