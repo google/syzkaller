@@ -952,14 +952,22 @@ type UIInput struct {
 	Cover int
 }
 
-var summaryTemplate = pages.Create(`
+func createPage(title, body string) *template.Template {
+	return pages.Create(fmt.Sprintf(`
 <!doctype html>
 <html>
 <head>
-	<title>{{.Name}} syzkaller</title>
+	<title>%v</title>
 	{{HEAD}}
 </head>
 <body>
+
+%v
+</body></html>
+`, template.HTMLEscaper(title), body))
+}
+
+var summaryTemplate = createPage("syzkaller", `
 <b>{{.Name }} syzkaller</b>
 <a href='/config'>[config]</a>
 <a href='{{.RevisionLink}}'>{{.Revision}}</a>
@@ -1074,18 +1082,9 @@ var summaryTemplate = pages.Create(`
 	var textarea = document.getElementById("log_textarea");
 	textarea.scrollTop = textarea.scrollHeight;
 </script>
-</body></html>
 `)
 
-var vmsTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>{{.Name }} syzkaller</title>
-	{{HEAD}}
-</head>
-<body>
-
+var vmsTemplate = createPage("VMs", `
 <table class="list_table">
 	<caption>VM Info:</caption>
 	<tr>
@@ -1105,18 +1104,9 @@ var vmsTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
-var syscallsTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>{{.Name }} syzkaller</title>
-	{{HEAD}}
-</head>
-<body>
-
+var syscallsTemplate = createPage("syscalls", `
 <table class="list_table">
 	<caption>Per-syscall coverage:</caption>
 	<tr>
@@ -1134,17 +1124,9 @@ var syscallsTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
-var crashTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>{{.Description}}</title>
-	{{HEAD}}
-</head>
-<body>
+var crashTemplate = createPage("crash", `
 <b>{{.Description}}</b>
 
 {{if .Triaged}}
@@ -1173,16 +1155,9 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
-var corpusTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>syzkaller corpus</title>
-	{{HEAD}}
-</head>
+var corpusTemplate = createPage("corpus", `
 <body>
 
 <table class="list_table">
@@ -1203,7 +1178,6 @@ var corpusTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
 type UIPrioData struct {
@@ -1216,14 +1190,7 @@ type UIPrio struct {
 	Prio int32
 }
 
-var prioTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>syzkaller priorities</title>
-	{{HEAD}}
-</head>
-<body>
+var prioTemplate = createPage("syscall priorities", `
 <table class="list_table">
 	<caption>Priorities for {{$.Call}}:</caption>
 	<tr>
@@ -1237,7 +1204,6 @@ var prioTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
 type UIFallbackCoverData struct {
@@ -1250,14 +1216,7 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>syzkaller coverage</title>
-	{{HEAD}}
-</head>
-<body>
+var fallbackCoverTemplate = createPage("coverage", `
 <table class="list_table">
 	<tr>
 		<th>Call</th>
@@ -1272,7 +1231,6 @@ var fallbackCoverTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
 type UIRawCallCover struct {
@@ -1281,15 +1239,7 @@ type UIRawCallCover struct {
 	UpdateIDs []int
 }
 
-var rawCoverTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>syzkaller raw cover</title>
-	{{HEAD}}
-</head>
-<body>
-
+var rawCoverTemplate = createPage("raw coverage", `
 <table class="list_table">
 	<caption>Raw cover</caption>
 	<tr>
@@ -1307,7 +1257,6 @@ var rawCoverTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
 
 type UIJobList struct {
@@ -1322,15 +1271,7 @@ type UIJobInfo struct {
 	Execs int32
 }
 
-var jobListTemplate = pages.Create(`
-<!doctype html>
-<html>
-<head>
-	<title>{{.Title}}</title>
-	{{HEAD}}
-</head>
-<body>
-
+var jobListTemplate = createPage("job list", `
 <table class="list_table">
 	<caption>{{.Title}} ({{len .Jobs}}):</caption>
 	<tr>
@@ -1346,5 +1287,4 @@ var jobListTemplate = pages.Create(`
 	</tr>
 	{{end}}
 </table>
-</body></html>
 `)
