@@ -295,6 +295,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	mgr.http.Pool = mgr.pool
 	mgr.reproLoop = manager.NewReproLoop(mgr, mgr.vmPool.Count()-mgr.cfg.FuzzingVMs, mgr.cfg.DashboardOnlyRepro)
 	mgr.http.ReproLoop = mgr.reproLoop
+	mgr.http.TogglePause = mgr.pool.TogglePause
 
 	ctx := vm.ShutdownCtx()
 	go mgr.http.Serve()

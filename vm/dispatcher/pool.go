@@ -34,8 +34,10 @@ type Pool[T Instance] struct {
 	jobs       chan Runner[T]
 
 	// The mutex serializes ReserveForRun() and SetDefault() calls.
-	mu        sync.Mutex
+	mu        *sync.Mutex
+	cv        *sync.Cond
 	instances []*poolInstance[T]
+	paused    bool
 }
 
 func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *Pool[T] {
@@ -48,12 +50,15 @@ func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *P
 		inst.reset(func() {})
 		instances[i] = inst
 	}
+	mu := new(sync.Mutex)
 	return &Pool[T]{
 		BootErrors: make(chan error, 16),
 		creator:    creator,
 		defaultJob: def,
 		instances:  instances,
 		jobs:       make(chan Runner[T]),
+		mu:         mu,
+		cv:         sync.NewCond(mu),
 	}
 }
 
@@ -62,11 +67,33 @@ func (p *Pool[T]) SetDefault(def Runner[T]) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.defaultJob = def
+	p.kickDefault()
+}
+
+func (p *Pool[T]) kickDefault() {
 	for _, inst := range p.instances {
-		if inst.reserved() {
-			continue
+		if !inst.reserved() {
+			inst.free(p.defaultJob)
 		}
-		inst.free(def)
+	}
+}
+
+func (p *Pool[T]) TogglePause(paused bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.paused = paused
+	if paused {
+		p.kickDefault()
+	} else {
+		p.cv.Broadcast()
+	}
+}
+
+func (p *Pool[T]) waitUnpaused() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for p.paused {
+		p.cv.Wait()
 	}
 }
 
@@ -86,6 +113,7 @@ func (p *Pool[T]) Loop(ctx context.Context) {
 }
 
 func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
+	p.waitUnpaused()
 	ctx, cancel := context.WithCancel(ctx)
 
 	log.Logf(2, "pool: booting instance %d", inst.idx)
