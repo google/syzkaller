@@ -5290,6 +5290,16 @@
 	},
 	{
 		"type": "SYSCALL",
+		"name": "fadvise64_64",
+		"files": [
+			"arch/x86/kernel/sys_ia32.c"
+		],
+		"subsystems": [
+			"kernel"
+		]
+	},
+	{
+		"type": "SYSCALL",
 		"name": "fallocate",
 		"files": [
 			"fs/open.c"
@@ -5362,10 +5372,10 @@
 		"type": "SYSCALL",
 		"name": "fchown",
 		"files": [
-			"kernel/uid16.c"
+			"fs/open.c"
 		],
 		"subsystems": [
-			"kernel"
+			"fs"
 		]
 	},
 	{
@@ -5556,6 +5566,16 @@
 		],
 		"subsystems": [
 			"fs"
+		]
+	},
+	{
+		"type": "SYSCALL",
+		"name": "ftruncate64",
+		"files": [
+			"arch/x86/kernel/sys_ia32.c"
+		],
+		"subsystems": [
+			"kernel"
 		]
 	},
 	{
@@ -7736,7 +7756,7 @@
 		"type": "SYSCALL",
 		"name": "setfsgid",
 		"files": [
-			"kernel/uid16.c"
+			"kernel/sys.c"
 		],
 		"subsystems": [
 			"kernel"
@@ -7776,7 +7796,7 @@
 		"type": "SYSCALL",
 		"name": "setgid",
 		"files": [
-			"kernel/uid16.c"
+			"kernel/sys.c"
 		],
 		"subsystems": [
 			"kernel"
@@ -7796,7 +7816,7 @@
 		"type": "SYSCALL",
 		"name": "setgroups",
 		"files": [
-			"kernel/uid16.c"
+			"kernel/groups.c"
 		],
 		"subsystems": [
 			"kernel"
@@ -7866,7 +7886,7 @@
 		"type": "SYSCALL",
 		"name": "setregid",
 		"files": [
-			"kernel/uid16.c"
+			"kernel/sys.c"
 		],
 		"subsystems": [
 			"kernel"
@@ -7906,7 +7926,7 @@
 		"type": "SYSCALL",
 		"name": "setresuid",
 		"files": [
-			"kernel/uid16.c"
+			"kernel/sys.c"
 		],
 		"subsystems": [
 			"kernel"
@@ -7926,7 +7946,7 @@
 		"type": "SYSCALL",
 		"name": "setreuid",
 		"files": [
-			"kernel/uid16.c"
+			"kernel/sys.c"
 		],
 		"subsystems": [
 			"kernel"
@@ -8510,6 +8530,16 @@
 		],
 		"subsystems": [
 			"fs"
+		]
+	},
+	{
+		"type": "SYSCALL",
+		"name": "truncate64",
+		"files": [
+			"arch/x86/kernel/sys_ia32.c"
+		],
+		"subsystems": [
+			"kernel"
 		]
 	},
 	{
