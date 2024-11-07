@@ -4,14 +4,11 @@
 package pages
 
 import (
-	"io"
 	"testing"
-
-	"github.com/google/syzkaller/pkg/stat"
 )
 
-func TestStatsTemplate(t *testing.T) {
-	if err := StatsTemplate.Execute(io.Discard, stat.RenderGraphs()); err != nil {
+func TestStatsHTML(t *testing.T) {
+	if _, err := StatsHTML(); err != nil {
 		t.Fatal(err)
 	}
 }
