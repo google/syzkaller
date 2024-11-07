@@ -2,6 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build ignore
+
 #include "clang/AST/APValue.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Attr.h"
@@ -471,6 +472,12 @@ public:
 };
 
 class SyscallMatcher : public MatchFinder::MatchCallback {
+public:
+  SyscallMatcher(MatchFinder &Finder) {
+    Finder.addMatcher(functionDecl(isExpandedFromMacro("SYSCALL_DEFINEx"), matchesName("__do_sys_.*")).bind("syscall"),
+                      this);
+  }
+
 private:
   const std::string swapIfReservedKeyword(const std::string &word) {
     if (word == "resource")
@@ -478,8 +485,7 @@ private:
     return word;
   }
 
-public:
-  void virtual run(const MatchFinder::MatchResult &Result) override {
+  void run(const MatchFinder::MatchResult &Result) override {
     ASTContext *context = Result.Context;
     const auto *syscall = Result.Nodes.getNodeAs<FunctionDecl>("syscall");
     RecordExtractor recordExtractor(Result.SourceManager);
@@ -496,13 +502,35 @@ public:
     }
     printf(") (automatic)\n");
     recordExtractor.print();
-
-    return;
   }
 };
 
 class NetlinkPolicyMatcher : public MatchFinder::MatchCallback {
+public:
+  NetlinkPolicyMatcher(MatchFinder &Finder) {
+    Finder.addMatcher(
+        translationUnitDecl(
+            hasDescendant(enumDecl(has(enumConstantDecl(hasName("__NLA_TYPE_MAX")))).bind("NLA_ENUM")),
+            forEachDescendant(
+                varDecl(hasType(constantArrayType(hasElementType(hasDeclaration(
+                                                      recordDecl(hasName("nla_policy")).bind("nla_policy"))))
+                                    .bind("nla_policy_array")),
+                        isDefinition())
+                    .bind("netlink"))),
+        this);
+    Finder.addMatcher(varDecl(hasType(recordDecl(hasName("genl_family")).bind("genl_family")),
+                              has(initListExpr().bind("genl_family_init")))
+                          .bind("genl_family_decl"),
+                      this);
+  }
+
 private:
+  void run(const MatchFinder::MatchResult &Result) override {
+    nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
+    netlink(Result);
+    genlFamily(Result);
+  }
+
   // u8ToNlaEnum stores the Enum values to string conversions. This is later used to transfer types from an unnamed
   // integer to a readable form. E.g. 1 -> NLA_U8
   // See: https://elixir.bootlin.com/linux/v6.10/source/include/net/netlink.h#L172
@@ -819,13 +847,6 @@ private:
     printf("syz_genetlink_get_family_id$auto_%s(name ptr[in, string[\"%s\"]], fd sock_nl_generic) %s (automatic)\n",
            name.c_str(), name.c_str(), resourceName.c_str());
   }
-
-public:
-  virtual void run(const MatchFinder::MatchResult &Result) override {
-    nlaEnum(Result); // NOTE: Must be executed first, as it generates maps that are used in the following methods.
-    netlink(Result);
-    genlFamily(Result);
-  };
 };
 
 int main(int argc, const char **argv) {
@@ -836,31 +857,11 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
+  MatchFinder Finder;
+  SyscallMatcher SyscallMatcher(Finder);
+  NetlinkPolicyMatcher NetlinkPolicyMatcher(Finder);
+
   clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
   clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
-
-  NetlinkPolicyMatcher NetlinkPolicyMatcher;
-  SyscallMatcher SyscallMatcher;
-  MatchFinder Finder;
-
-  Finder.addMatcher(functionDecl(isExpandedFromMacro("SYSCALL_DEFINEx"), matchesName("__do_sys_.*")).bind("syscall"),
-                    &SyscallMatcher);
-
-  Finder.addMatcher(
-      translationUnitDecl(
-          hasDescendant(enumDecl(has(enumConstantDecl(hasName("__NLA_TYPE_MAX")))).bind("NLA_ENUM")),
-          forEachDescendant(
-              varDecl(hasType(constantArrayType(
-                                  hasElementType(hasDeclaration(recordDecl(hasName("nla_policy")).bind("nla_policy"))))
-                                  .bind("nla_policy_array")),
-                      isDefinition())
-                  .bind("netlink"))),
-      &NetlinkPolicyMatcher);
-
-  Finder.addMatcher(varDecl(hasType(recordDecl(hasName("genl_family")).bind("genl_family")),
-                            has(initListExpr().bind("genl_family_init")))
-                        .bind("genl_family_decl"),
-                    &NetlinkPolicyMatcher);
-
   return Tool.run(clang::tooling::newFrontendActionFactory(&Finder).get());
 }
