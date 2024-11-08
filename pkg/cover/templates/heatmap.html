@@ -1,24 +1,12 @@
 {{ define "js" }}
 <script>
-  $(".caret").on("click", function() {
-    $(this).toggleClass("caret-down");
-    $(this).closest("li").find(".nested").first().toggleClass("active");
-  });
+    var domain = window.location.hostname;
+    var scriptUrl = 'https://' + domain + '/static/coverage.js';
 
-  function setContent(url, htmlContent) {
-    $("#file-content-prev").html($("#file-content-curr").html());
-    $("#file-details-prev").html($("#file-details-curr").html());
+    var script = document.createElement('script');
+    script.src = scriptUrl;
 
-    $("#file-content-curr").html(htmlContent);
-    details = url.split("?")[1].split("&");
-    $("#file-details-curr").html("Source information:\n" + details.join("\n"));
-  }
-
-  function onShowFileContent(url) {
-    $.get(url, function(response) {
-      setContent(url, response);
-    });
-  }
+    document.head.appendChild(script);
 </script>
 {{ end }}
 
