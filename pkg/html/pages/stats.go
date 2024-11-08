@@ -21,7 +21,7 @@ func StatsHTML() (template.HTML, error) {
 	return template.HTML(buf.String()), nil
 }
 
-var statsTemplate = Create(statsHtml)
+var statsTemplate = Create(statsHTML)
 
 //go:embed stats.html
-var statsHtml string
+var statsHTML string

@@ -113,10 +113,10 @@ func (serv *HTTPServer) Serve() {
 }
 
 func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
-	switch r.FormValue("action") {
-	case "toggle-expert":
+	switch r.FormValue("toggle") {
+	case "expert":
 		serv.expertMode = !serv.expertMode
-	case "pause-unpause":
+	case "pause":
 		if serv.TogglePause == nil {
 			http.Error(w, "pause is not implemented", http.StatusNotImplemented)
 			return
