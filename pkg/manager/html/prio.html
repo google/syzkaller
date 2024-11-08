@@ -1,0 +1,18 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<caption>Priorities for {{$.Call}}:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Prio', floatSort)" href="#">Prio</a></th>
+		<th><a onclick="return sortTable(this, 'Call', textSort)" href="#">Call</a></th>
+	</tr>
+	{{range $p := $.Prios}}
+	<tr>
+		<td>{{printf "%5v" $p.Prio}}</td>
+		<td><a href='/prio?call={{$p.Call}}'>{{$p.Call}}</a></td>
+	</tr>
+	{{end}}
+</table>

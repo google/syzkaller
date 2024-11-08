@@ -1,0 +1,19 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<tr>
+		<th>Call</th>
+		<th>Successful</th>
+		<th>Errnos</th>
+	</tr>
+	{{range $c := $.Calls}}
+	<tr>
+		<td>{{$c.Name}}</td>
+		<td>{{if $c.Successful}}{{$c.Successful}}{{end}}</td>
+		<td>{{range $e := $c.Errnos}}{{$e}}&nbsp;{{end}}</td>
+	</tr>
+	{{end}}
+</table>
