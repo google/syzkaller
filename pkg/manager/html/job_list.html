@@ -1,0 +1,20 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<caption>{{.PageTitle}} ({{len .Jobs}}):</caption>
+	<tr>
+		<th>Program</th>
+		<th>Calls</th>
+		<th>Execs</th>
+	</tr>
+	{{range $job := $.Jobs}}
+	<tr>
+		<td class="job_description"><a href='/jobs?id={{$job.ID}}'>{{$job.Short}}</a></td>
+		<td class="job_description">{{$job.Calls}}</td>
+		<td class="job_description">{{$job.Execs}}</td>
+	</tr>
+	{{end}}
+</table>

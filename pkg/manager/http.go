@@ -5,6 +5,7 @@ package manager
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -73,7 +74,7 @@ func (serv *HTTPServer) Serve() {
 	handle := func(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
 	}
-	handle("/", serv.httpSummary)
+	handle("/", serv.httpMain)
 	handle("/action", serv.httpAction)
 	handle("/config", serv.httpConfig)
 	handle("/stats", serv.httpStats)
@@ -126,7 +127,7 @@ func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, r.FormValue("url"), http.StatusFound)
 }
 
-func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
+func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
 		UIPageHeader: serv.pageHeader(r, "syzkaller"),
 		Log:          log.CachedLogOutput(),
@@ -154,7 +155,7 @@ func (serv *HTTPServer) httpSummary(w http.ResponseWriter, r *http.Request) {
 	if serv.DiffStore != nil {
 		data.PatchedOnly, data.AffectsBoth, data.InProgress = serv.collectDiffCrashes()
 	}
-	executeTemplate(w, summaryTemplate, data)
+	executeTemplate(w, mainTemplate, data)
 }
 
 func (serv *HTTPServer) httpConfig(w http.ResponseWriter, r *http.Request) {
@@ -1002,64 +1003,8 @@ func (serv *HTTPServer) pageHeader(r *http.Request, title string) UIPageHeader {
 	}
 }
 
-func createPage(data any, body string) *template.Template {
-	templ := pages.Create(fmt.Sprintf(`
-<!doctype html>
-<html>
-<head>
-	<title>{{.PageTitle}}</title>
-	{{HEAD}}
-</head>
-<body>
-	<header id="topbar">
-		<table class="position_table">
-			<tr>
-				<td>
-					<h1><a href="/">syzkaller</a></h1>
-				</td>
-				<td>
-					<form action="/action" method="post">
-						<input type="hidden" name="url" value="{{.CurrentURL}}" />
-						<button type="submit" name="action" value="toggle-expert" class="action_button{{if .ExpertMode}}_selected{{end}}" title="Toggle expert mode">
-							🧠
-						</input>
-						<button type="submit" name="action" value="pause-unpause" class="action_button{{if .Paused}}_selected{{end}}" title="Pause/unpause fuzzing">
-							{{if .Paused}}▶️{{else}}⏸️{{end}}
-						</input>
-					</form>
-				</td>
-				<td class="search">
-					<a href="https://github.com/google/syzkaller/blob/master/docs/" target="_blank">docs</a> |
-					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
-					<a href="{{.GitRevisionLink}}" target="_blank">source {{.GitRevision}}</a>
-				</td>
-			</tr>
-		</table>
-		<div class="navigation">
-			<div class="navigation_tab{{if eq .URLPath "/stats"}}_selected{{end}}">
-				<a href='/stats'>📈 stats</a>
-			</div>
-			<div class="navigation_tab{{if eq .URLPath "/cover"}}_selected{{end}}">
-				<a href='/cover'>📃 coverage</a>
-			</div>
-			<div class="navigation_tab{{if eq .URLPath "/syscalls"}}_selected{{end}}">
-				<a href='/syscalls'>🤖 syscalls</a>
-			</div>
-			<div class="navigation_tab{{if eq .URLPath "/corpus"}}_selected{{end}}">
-				<a href='/corpus'>🛒 corpus</a>
-			</div>
-			<div class="navigation_tab{{if eq .URLPath "/vms"}}_selected{{end}}">
-				<a href='/vms'>💻 VMs</a>
-			</div>
-			<div class="navigation_tab{{if eq .URLPath "/config"}}_selected{{end}}">
-				<a href='/config'>🔧 config</a>
-			</div>
-		</div>
-	</header>
-	<br>
-	%v
-</body></html>
-`, body))
+func createPage(name string, data any) *template.Template {
+	templ := pages.Create(fmt.Sprintf(string(mustReadHTML("common")), mustReadHTML(name)))
 	templTypes = append(templTypes, templType{
 		templ: templ,
 		data:  data,
@@ -1074,212 +1019,6 @@ type templType struct {
 
 var templTypes []templType
 
-var summaryTemplate = createPage(UISummaryData{}, `
-<table class="list_table">
-	{{range $s := $.Stats}}
-	<tr>
-		<td class="stat_name" title="{{$s.Hint}}">{{$s.Name}}</td>
-		<td class="stat_value">
-			{{if $s.Link}}
-				<a href="{{$s.Link}}">{{$s.Value}}</a>
-			{{else}}
-				{{$s.Value}}
-			{{end}}
-		</td>
-	</tr>
-	{{end}}
-</table>
-
-{{if .Crashes}}
-<table class="list_table">
-	<caption>Crashes:</caption>
-	<tr>
-		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
-		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
-		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
-		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
-	</tr>
-	{{range $c := $.Crashes}}
-	<tr>
-		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
-		<td class="stat {{if not $c.Active}}inactive{{end}}">{{$c.Count}}</td>
-		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
-		<td>
-			{{if $c.Triaged}}
-				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
-			{{end}}
-			{{if $c.Strace}}
-				<a href="/file?name={{$c.Strace}}">Strace</a>
-			{{end}}
-		</td>
-	</tr>
-	{{end}}
-</table>
-{{end}}
-
-{{define "diff_crashes"}}
-<table class="list_table">
-	<caption>{{.Title}}:</caption>
-	<tr>
-		<th>Description</th>
-		<th>Base</th>
-		<th>Patched</th>
-	</tr>
-	{{range $bug := .List}}
-	<tr>
-		<td class="title">{{$bug.Title}}</td>
-		<td class="title">
-		{{if gt $bug.Base.Crashes 0}}
-			{{$bug.Base.Crashes}} crashes
-		{{else if $bug.Base.NotCrashed}}
-			Not affected
-		{{else}} ? {{end}}
-		{{if $bug.Base.Report}}
-			<a href="/file?name={{$bug.Base.Report}}">[report]</a>
-		{{end}}
-		</td>
-		<td class="title">
-		{{if gt $bug.Patched.Crashes 0}}
-			{{$bug.Patched.Crashes}} crashes
-		{{else}} ? {{end}}
-		{{if $bug.Patched.Report}}
-			<a href="/file?name={{$bug.Patched.Report}}">[report]</a>
-		{{end}}
-		{{if $bug.Patched.CrashLog}}
-			<a href="/file?name={{$bug.Patched.CrashLog}}">[crash log]</a>
-		{{end}}
-		{{if $bug.Patched.Repro}}
-			<a href="/file?name={{$bug.Patched.Repro}}">[syz repro]</a>
-		{{end}}
-		{{if $bug.Patched.ReproLog}}
-			<a href="/file?name={{$bug.Patched.ReproLog}}">[repro log]</a>
-		{{end}}
-		{{if $bug.Reproducing}}[reproducing]{{end}}
-		</td>
-	</tr>
-	{{end}}
-</table>
-{{end}}
-
-{{if .PatchedOnly}}
-{{template "diff_crashes" .PatchedOnly}}
-{{end}}
-
-{{if .AffectsBoth}}
-{{template "diff_crashes" .AffectsBoth}}
-{{end}}
-
-{{if .InProgress}}
-{{template "diff_crashes" .InProgress}}
-{{end}}
-
-<b>Log:</b>
-<br>
-<textarea id="log_textarea" readonly rows="20" wrap=off>
-{{.Log}}
-</textarea>
-<script>
-	var textarea = document.getElementById("log_textarea");
-	textarea.scrollTop = textarea.scrollHeight;
-</script>
-`)
-
-var vmsTemplate = createPage(UIVMData{}, `
-<table class="list_table">
-	<caption>VM Info:</caption>
-	<tr>
-		<th><a onclick="return sortTable(this, 'Name', textSort)" href="#">Name</a></th>
-		<th><a onclick="return sortTable(this, 'State', textSort)" href="#">State</a></th>
-		<th><a onclick="return sortTable(this, 'Since', timeSort)" href="#">Since</a></th>
-		<th><a onclick="return sortTable(this, 'Machine Info', timeSort)" href="#">Machine Info</a></th>
-		<th><a onclick="return sortTable(this, 'Status', timeSort)" href="#">Status</a></th>
-	</tr>
-	{{range $vm := $.VMs}}
-	<tr>
-		<td>{{$vm.Name}}</td>
-		<td>{{$vm.State}}</td>
-		<td>{{formatDuration $vm.Since}}</td>
-		<td>{{optlink $vm.MachineInfo "info"}}</td>
-		<td>{{optlink $vm.DetailedStatus "status"}}</td>
-	</tr>
-	{{end}}
-</table>
-`)
-
-var syscallsTemplate = createPage(UISyscallsData{}, `
-<table class="list_table">
-	<caption>Per-syscall coverage:</caption>
-	<tr>
-		<th><a onclick="return sortTable(this, 'Syscall', textSort)" href="#">Syscall</a></th>
-		<th><a onclick="return sortTable(this, 'Inputs', numSort)" href="#">Inputs</a></th>
-		<th><a onclick="return sortTable(this, 'Coverage', numSort)" href="#">Coverage</a></th>
-		<th>Prio</th>
-	</tr>
-	{{range $c := $.Calls}}
-	<tr>
-		<td>{{$c.Name}}{{if $c.ID }} [{{$c.ID}}]{{end}}</td>
-		<td><a href='/corpus?call={{$c.Name}}'>{{$c.Inputs}}</a></td>
-		<td><a href='/cover?call={{$c.Name}}'>{{$c.Cover}}</a></td>
-		<td><a href='/prio?call={{$c.Name}}'>prio</a></td>
-	</tr>
-	{{end}}
-</table>
-`)
-
-var crashTemplate = createPage(UICrashPage{}, `
-<b>{{.Description}}</b>
-
-{{if .Triaged}}
-Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
-{{end}}
-
-<table class="list_table">
-	<tr>
-		<th>#</th>
-		<th>Log</th>
-		<th>Report</th>
-		<th>Time</th>
-		<th>Tag</th>
-	</tr>
-	{{range $c := $.Crashes}}
-	<tr>
-		<td>{{$c.Index}}</td>
-		<td><a href="/file?name={{$c.Log}}">log</a></td>
-		<td>
-			{{if $c.Report}}
-				<a href="/file?name={{$c.Report}}">report</a></td>
-			{{end}}
-		</td>
-		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.Time}}</td>
-		<td class="tag {{if not $c.Active}}inactive{{end}}" title="{{$c.Tag}}">{{formatTagHash $c.Tag}}</td>
-	</tr>
-	{{end}}
-</table>
-`)
-
-var corpusTemplate = createPage(UICorpusPage{}, `
-<body>
-
-<table class="list_table">
-	<caption>Corpus{{if $.Call}} for {{$.Call}}{{end}}:</caption>
-	<tr>
-		<th>Coverage</th>
-		<th>Program</th>
-	</tr>
-	{{range $inp := $.Inputs}}
-	<tr>
-		<td>
-			<a href='/cover?input={{$inp.Sig}}'>{{$inp.Cover}}</a>
-	{{if $.RawCover}}
-		/ <a href="/debuginput?sig={{$inp.Sig}}">[raw]</a>
-	{{end}}
-		</td>
-		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
-	</tr>
-	{{end}}
-</table>
-`)
-
 type UIPrioData struct {
 	UIPageHeader
 	Call  string
@@ -1290,22 +1029,6 @@ type UIPrio struct {
 	Call string
 	Prio int32
 }
-
-var prioTemplate = createPage(UIPrioData{}, `
-<table class="list_table">
-	<caption>Priorities for {{$.Call}}:</caption>
-	<tr>
-		<th><a onclick="return sortTable(this, 'Prio', floatSort)" href="#">Prio</a></th>
-		<th><a onclick="return sortTable(this, 'Call', textSort)" href="#">Call</a></th>
-	</tr>
-	{{range $p := $.Prios}}
-	<tr>
-		<td>{{printf "%5v" $p.Prio}}</td>
-		<td><a href='/prio?call={{$p.Call}}'>{{$p.Call}}</a></td>
-	</tr>
-	{{end}}
-</table>
-`)
 
 type UIFallbackCoverData struct {
 	UIPageHeader
@@ -1318,23 +1041,6 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = createPage(UIFallbackCoverData{}, `
-<table class="list_table">
-	<tr>
-		<th>Call</th>
-		<th>Successful</th>
-		<th>Errnos</th>
-	</tr>
-	{{range $c := $.Calls}}
-	<tr>
-		<td>{{$c.Name}}</td>
-		<td>{{if $c.Successful}}{{$c.Successful}}{{end}}</td>
-		<td>{{range $e := $c.Errnos}}{{$e}}&nbsp;{{end}}</td>
-	</tr>
-	{{end}}
-</table>
-`)
-
 type UIRawCoverPage struct {
 	UIPageHeader
 	Calls []UIRawCallCover
@@ -1345,26 +1051,6 @@ type UIRawCallCover struct {
 	Call      string
 	UpdateIDs []int
 }
-
-var rawCoverTemplate = createPage(UIRawCoverPage{}, `
-<table class="list_table">
-	<caption>Raw cover</caption>
-	<tr>
-		<th>Line</th>
-		<th>Links</th>
-	</tr>
-	{{range $line := .Calls}}
-	<tr>
-		<td>{{$line.Call}}</td>
-		<td>
-		{{range $id := $line.UpdateIDs}}
-		<a href="/rawcover?input={{$line.Sig}}&update_id={{$id}}">[{{$id}}]</a>
-		{{end}}
-</td>
-	</tr>
-	{{end}}
-</table>
-`)
 
 type UIJobList struct {
 	UIPageHeader
@@ -1378,31 +1064,32 @@ type UIJobInfo struct {
 	Execs int32
 }
 
-var jobListTemplate = createPage(UIJobList{}, `
-<table class="list_table">
-	<caption>{{.PageTitle}} ({{len .Jobs}}):</caption>
-	<tr>
-		<th>Program</th>
-		<th>Calls</th>
-		<th>Execs</th>
-	</tr>
-	{{range $job := $.Jobs}}
-	<tr>
-		<td class="job_description"><a href='/jobs?id={{$job.ID}}'>{{$job.Short}}</a></td>
-		<td class="job_description">{{$job.Calls}}</td>
-		<td class="job_description">{{$job.Execs}}</td>
-	</tr>
-	{{end}}
-</table>
-`)
-
 type UITextPage struct {
 	UIPageHeader
 	Text []byte
 	HTML template.HTML
 }
 
-var textTemplate = createPage(UITextPage{}, `
-{{.HTML}}
-<pre>{{printf "%s" .Text}}</pre>
-`)
+var (
+	mainTemplate          = createPage("main", UISummaryData{})
+	syscallsTemplate      = createPage("syscalls", UISyscallsData{})
+	vmsTemplate           = createPage("vms", UIVMData{})
+	crashTemplate         = createPage("crash", UICrashPage{})
+	corpusTemplate        = createPage("corpus", UICorpusPage{})
+	prioTemplate          = createPage("prio", UIPrioData{})
+	fallbackCoverTemplate = createPage("fallback_cover", UIFallbackCoverData{})
+	rawCoverTemplate      = createPage("raw_cover", UIRawCoverPage{})
+	jobListTemplate       = createPage("job_list", UIJobList{})
+	textTemplate          = createPage("text", UITextPage{})
+)
+
+//go:embed html/*.html
+var htmlFiles embed.FS
+
+func mustReadHTML(name string) []byte {
+	data, err := htmlFiles.ReadFile("html/" + name + ".html")
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
