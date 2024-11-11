@@ -28,7 +28,7 @@ require (
 	github.com/ulikunitz/xz v0.5.12
 	github.com/vektra/mockery/v2 v2.45.1
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.24.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
 	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.27.0
