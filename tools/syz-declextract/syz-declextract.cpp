@@ -704,12 +704,12 @@ private:
     if (!netlinkDecl) {
       return;
     }
-    std::vector<std::vector<Expr *>> fields;
 
     const auto *init = netlinkDecl->getInit();
     if (!init) {
       return;
     }
+    std::vector<std::vector<Expr *>> fields;
     for (const auto &policy : *llvm::dyn_cast<InitListExpr>(init)) {
       fields.push_back(std::vector<Expr *>());
       for (const auto &member : policy->children()) {
@@ -718,8 +718,10 @@ private:
     }
 
     auto enumData = extractDesignatedInitConsts(*context, *netlinkDecl);
-    // TODO: generate an empty message for these or something.
     if (enumData.empty()) {
+      // We need to emit at least some type for it.
+      // Ideally it should be void, but typedef to void currently does not work.
+      printf("type %s auto_todo\n", getPolicyName(Result, netlinkDecl)->c_str());
       return;
     }
     for (const auto &[_, item] : enumData) {
@@ -730,7 +732,7 @@ private:
     }
 
     RecordExtractor recordExtractor(Result.SourceManager);
-    printf("%s[\n", getPolicyName(Result, netlinkDecl)->c_str());
+    printf("%s [\n", getPolicyName(Result, netlinkDecl)->c_str());
     for (size_t i = 0; i < fields.size(); ++i) {
       // The array could have an implicitly initialized policy (i.e. empty) or an unnamed attribute
       if (fields[i].empty() || enumData[i].name.empty()) {
