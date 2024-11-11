@@ -13,7 +13,7 @@ import (
 
 const exportTimeoutSeconds = 60 * 60 * 6
 
-func handleBatchReproExport(w http.ResponseWriter, r *http.Request) {
+func handleBatchDBExport(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	for ns, nsConfig := range getConfig(ctx).Namespaces {
 		if nsConfig.ReproExportPath == "" {
@@ -23,19 +23,19 @@ func handleBatchReproExport(w http.ResponseWriter, r *http.Request) {
 			Scopes: []string{"https://www.googleapis.com/auth/userinfo.email"},
 		}
 		if err := createScriptJob(ctx, "syzkaller", "export-repro",
-			exportReproScript(ns, nsConfig.ReproExportPath), exportTimeoutSeconds, serviceAccount); err != nil {
+			exportDBScript(ns, nsConfig.ReproExportPath), exportTimeoutSeconds, serviceAccount); err != nil {
 			log.Errorf(ctx, "createScriptJob: %s", err.Error())
 		}
 	}
 }
 
-func exportReproScript(srcNamespace, archivePath string) string {
+func exportDBScript(srcNamespace, archivePath string) string {
 	return "\n" +
 		"git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
 		"cd syzkaller\n" +
 		"token=$(gcloud auth print-access-token)\n" +
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
-		"go run ./tools/syz-reprolist/... -namespace " + srcNamespace + " -output export -token $token -j 10 && " +
+		"go run ./tools/syz-db-export/... -namespace " + srcNamespace + " -output export -token $token -j 10 && " +
 		"tar -czf export.tar.gz ./export/ && " +
 		"gsutil -q -m cp export.tar.gz " + archivePath +
 		"\""

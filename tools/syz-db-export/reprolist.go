@@ -22,7 +22,7 @@ var (
 	flagOutputDir = flag.String("output", "export", "output dir")
 	flagNamespace = flag.String("namespace", "upstream", "target namespace")
 	flagToken     = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
-		"usage example: ./tools/syz-bot-export -namespace upstream -token $(gcloud auth print-access-token)")
+		"usage example: ./tools/syz-db-export -namespace upstream -token $(gcloud auth print-access-token)")
 	flagParallel = flag.Int("j", 2, "number of parallel threads")
 	flagVerbose  = flag.Bool("v", false, "verbose output")
 )
