@@ -26,5 +26,5 @@ cron:
 - url: /cron/batch_coverage?days=true&months=true&steps=10
   schedule: every 24 hours
 # Export reproducers every week.
-- url: /cron/batch_reproexport
+- url: /cron/batch_db_export
   schedule: every saturday 00:00
