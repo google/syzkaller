@@ -85,7 +85,7 @@ func main() {
 	syscallNames := readSyscallMap(*sourceDir)
 
 	var nodes []ast.Node
-	var interfaces []Interface
+	interfaces := make(map[string]Interface)
 	eh := ast.LoggingHandler
 	for range cmds {
 		out := <-outputs
@@ -103,7 +103,7 @@ func main() {
 		if parse == nil {
 			tool.Failf("%v: parsing error:\n%s", file, out.output)
 		}
-		appendNodes(&nodes, &interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir, file, extractor)
+		appendNodes(&nodes, interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir, file)
 	}
 
 	// New lines are added in the parsing step. This is why we need to Format (serialize the description),
@@ -114,17 +114,8 @@ func main() {
 		tool.Fail(err)
 	}
 
-	checkDescriptionPresence(interfaces, *outFile)
-	slices.SortFunc(interfaces, func(a, b Interface) int {
-		if x := strings.Compare(a.Type, b.Type); x != 0 {
-			return x
-		}
-		return strings.Compare(a.Name, b.Name)
-	})
-	interfaces = slices.CompactFunc(interfaces, func(a, b Interface) bool {
-		return a.Type == b.Type && a.Name == b.Name
-	})
-	data, err := json.MarshalIndent(interfaces, "", "\t")
+	ifaces := finishInterfaces(interfaces, extractor, *outFile)
+	data, err := json.MarshalIndent(ifaces, "", "\t")
 	if err != nil {
 		tool.Failf("failed to marshal interfaces: %v", err)
 	}
@@ -154,6 +145,44 @@ type Interface struct {
 	AutoDescriptions   bool     `json:"has_auto_descriptions"`
 
 	identifyingConst string
+}
+
+func (iface *Interface) ID() string {
+	return fmt.Sprintf("%v/%v", iface.Type, iface.Name)
+}
+
+func finishInterfaces(m map[string]Interface, extractor *subsystem.Extractor, autoFile string) []Interface {
+	var interfaces []Interface
+	for _, iface := range m {
+		slices.Sort(iface.Files)
+		iface.Files = slices.Compact(iface.Files)
+		var crashes []*subsystem.Crash
+		for _, file := range iface.Files {
+			crashes = append(crashes, &subsystem.Crash{GuiltyPath: file})
+		}
+		for _, s := range extractor.Extract(crashes) {
+			iface.Subsystems = append(iface.Subsystems, s.Name)
+		}
+		slices.Sort(iface.Subsystems)
+		interfaces = append(interfaces, iface)
+	}
+	slices.SortFunc(interfaces, func(a, b Interface) int {
+		return strings.Compare(a.ID(), b.ID())
+	})
+	checkDescriptionPresence(interfaces, autoFile)
+	return interfaces
+}
+
+func mergeInterface(interfaces map[string]Interface, iface Interface) {
+	prev, ok := interfaces[iface.ID()]
+	if ok {
+		if iface.identifyingConst != prev.identifyingConst {
+			tool.Failf("interface %v has different identifying consts: %v vs %v",
+				iface.ID(), iface.identifyingConst, prev.identifyingConst)
+		}
+		iface.Files = append(iface.Files, prev.Files...)
+	}
+	interfaces[iface.ID()] = iface
 }
 
 func checkDescriptionPresence(interfaces []Interface, autoFile string) {
@@ -397,8 +426,8 @@ func readSyscallMap(sourceDir string) map[string][]string {
 	return rename
 }
 
-func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node,
-	syscallNames map[string][]string, sourceDir, buildDir, file string, extractor *subsystem.Extractor) {
+func appendNodes(slice *[]ast.Node, interfaces map[string]Interface, nodes []ast.Node,
+	syscallNames map[string][]string, sourceDir, buildDir, file string) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 		case *ast.Call:
@@ -416,31 +445,20 @@ func appendNodes(slice *[]ast.Node, interfaces *[]Interface, nodes []ast.Node,
 				continue
 			}
 			fields := strings.Fields(node.Text)
-			files := []string{file}
-			var crashes []*subsystem.Crash
-			for _, file := range files {
-				crashes = append(crashes, &subsystem.Crash{GuiltyPath: file})
-			}
-			var subsystems []string
-			for _, s := range extractor.Extract(crashes) {
-				subsystems = append(subsystems, s.Name)
-			}
-			slices.Sort(subsystems)
 			iface := Interface{
 				Type:             fields[1],
 				Name:             fields[2],
-				Files:            files,
-				Subsystems:       subsystems,
+				Files:            []string{file},
 				identifyingConst: fields[3],
 			}
 			if iface.Type == "SYSCALL" {
 				for _, name := range syscallNames[iface.Name] {
 					iface.Name = name
 					iface.identifyingConst = "__NR_" + name
-					*interfaces = append(*interfaces, iface)
+					mergeInterface(interfaces, iface)
 				}
 			} else {
-				*interfaces = append(*interfaces, iface)
+				mergeInterface(interfaces, iface)
 			}
 		default:
 			*slice = append(*slice, node)
