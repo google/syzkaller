@@ -5574,7 +5574,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5587,7 +5587,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5600,7 +5600,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5613,7 +5613,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5626,7 +5626,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5639,7 +5639,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5652,7 +5652,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5665,7 +5665,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5678,7 +5678,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5691,7 +5691,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5704,7 +5704,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5717,7 +5717,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5730,7 +5730,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5743,7 +5743,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5756,7 +5756,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
@@ -5769,7 +5769,7 @@
 			"s390"
 		],
 		"has_manual_descriptions": false,
-		"has_auto_descriptions": false
+		"has_auto_descriptions": true
 	},
 	{
 		"type": "NETLINK",
