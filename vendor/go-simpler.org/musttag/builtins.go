@@ -3,131 +3,65 @@ package musttag
 // builtins is a set of functions supported out of the box.
 var builtins = []Func{
 	// https://pkg.go.dev/encoding/json
-	{
-		Name: "encoding/json.Marshal", Tag: "json", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/json.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "encoding/json.MarshalIndent", Tag: "json", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/json.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "encoding/json.Unmarshal", Tag: "json", ArgPos: 1,
-		ifaceWhitelist: []string{"encoding/json.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "(*encoding/json.Encoder).Encode", Tag: "json", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/json.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "(*encoding/json.Decoder).Decode", Tag: "json", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/json.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
+	{"encoding/json.Marshal", "json", 0, []string{"encoding/json.Marshaler", "encoding.TextMarshaler"}},
+	{"encoding/json.MarshalIndent", "json", 0, []string{"encoding/json.Marshaler", "encoding.TextMarshaler"}},
+	{"encoding/json.Unmarshal", "json", 1, []string{"encoding/json.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"(*encoding/json.Encoder).Encode", "json", 0, []string{"encoding/json.Marshaler", "encoding.TextMarshaler"}},
+	{"(*encoding/json.Decoder).Decode", "json", 0, []string{"encoding/json.Unmarshaler", "encoding.TextUnmarshaler"}},
 
 	// https://pkg.go.dev/encoding/xml
-	{
-		Name: "encoding/xml.Marshal", Tag: "xml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "encoding/xml.MarshalIndent", Tag: "xml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "encoding/xml.Unmarshal", Tag: "xml", ArgPos: 1,
-		ifaceWhitelist: []string{"encoding/xml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "(*encoding/xml.Encoder).Encode", Tag: "xml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "(*encoding/xml.Decoder).Decode", Tag: "xml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/xml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "(*encoding/xml.Encoder).EncodeElement", Tag: "xml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"},
-	},
-	{
-		Name: "(*encoding/xml.Decoder).DecodeElement", Tag: "xml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding/xml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
+	{"encoding/xml.Marshal", "xml", 0, []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"}},
+	{"encoding/xml.MarshalIndent", "xml", 0, []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"}},
+	{"encoding/xml.Unmarshal", "xml", 1, []string{"encoding/xml.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"(*encoding/xml.Encoder).Encode", "xml", 0, []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"}},
+	{"(*encoding/xml.Decoder).Decode", "xml", 0, []string{"encoding/xml.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"(*encoding/xml.Encoder).EncodeElement", "xml", 0, []string{"encoding/xml.Marshaler", "encoding.TextMarshaler"}},
+	{"(*encoding/xml.Decoder).DecodeElement", "xml", 0, []string{"encoding/xml.Unmarshaler", "encoding.TextUnmarshaler"}},
 
 	// https://pkg.go.dev/gopkg.in/yaml.v3
-	{
-		Name: "gopkg.in/yaml.v3.Marshal", Tag: "yaml", ArgPos: 0,
-		ifaceWhitelist: []string{"gopkg.in/yaml.v3.Marshaler"},
-	},
-	{
-		Name: "gopkg.in/yaml.v3.Unmarshal", Tag: "yaml", ArgPos: 1,
-		ifaceWhitelist: []string{"gopkg.in/yaml.v3.Unmarshaler"},
-	},
-	{
-		Name: "(*gopkg.in/yaml.v3.Encoder).Encode", Tag: "yaml", ArgPos: 0,
-		ifaceWhitelist: []string{"gopkg.in/yaml.v3.Marshaler"},
-	},
-	{
-		Name: "(*gopkg.in/yaml.v3.Decoder).Decode", Tag: "yaml", ArgPos: 0,
-		ifaceWhitelist: []string{"gopkg.in/yaml.v3.Unmarshaler"},
-	},
+	{"gopkg.in/yaml.v3.Marshal", "yaml", 0, []string{"gopkg.in/yaml.v3.Marshaler"}},
+	{"gopkg.in/yaml.v3.Unmarshal", "yaml", 1, []string{"gopkg.in/yaml.v3.Unmarshaler"}},
+	{"(*gopkg.in/yaml.v3.Encoder).Encode", "yaml", 0, []string{"gopkg.in/yaml.v3.Marshaler"}},
+	{"(*gopkg.in/yaml.v3.Decoder).Decode", "yaml", 0, []string{"gopkg.in/yaml.v3.Unmarshaler"}},
 
 	// https://pkg.go.dev/github.com/BurntSushi/toml
-	{
-		Name: "github.com/BurntSushi/toml.Unmarshal", Tag: "toml", ArgPos: 1,
-		ifaceWhitelist: []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "github.com/BurntSushi/toml.Decode", Tag: "toml", ArgPos: 1,
-		ifaceWhitelist: []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "github.com/BurntSushi/toml.DecodeFS", Tag: "toml", ArgPos: 2,
-		ifaceWhitelist: []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "github.com/BurntSushi/toml.DecodeFile", Tag: "toml", ArgPos: 1,
-		ifaceWhitelist: []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
-	{
-		Name: "(*github.com/BurntSushi/toml.Encoder).Encode", Tag: "toml", ArgPos: 0,
-		ifaceWhitelist: []string{"encoding.TextMarshaler"},
-	},
-	{
-		Name: "(*github.com/BurntSushi/toml.Decoder).Decode", Tag: "toml", ArgPos: 0,
-		ifaceWhitelist: []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"},
-	},
+	{"github.com/BurntSushi/toml.Unmarshal", "toml", 1, []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"github.com/BurntSushi/toml.Decode", "toml", 1, []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"github.com/BurntSushi/toml.DecodeFS", "toml", 2, []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"github.com/BurntSushi/toml.DecodeFile", "toml", 1, []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"}},
+	{"(*github.com/BurntSushi/toml.Encoder).Encode", "toml", 0, []string{"encoding.TextMarshaler"}},
+	{"(*github.com/BurntSushi/toml.Decoder).Decode", "toml", 0, []string{"github.com/BurntSushi/toml.Unmarshaler", "encoding.TextUnmarshaler"}},
 
 	// https://pkg.go.dev/github.com/mitchellh/mapstructure
-	{Name: "github.com/mitchellh/mapstructure.Decode", Tag: "mapstructure", ArgPos: 1},
-	{Name: "github.com/mitchellh/mapstructure.DecodeMetadata", Tag: "mapstructure", ArgPos: 1},
-	{Name: "github.com/mitchellh/mapstructure.WeakDecode", Tag: "mapstructure", ArgPos: 1},
-	{Name: "github.com/mitchellh/mapstructure.WeakDecodeMetadata", Tag: "mapstructure", ArgPos: 1},
+	{"github.com/mitchellh/mapstructure.Decode", "mapstructure", 1, nil},
+	{"github.com/mitchellh/mapstructure.DecodeMetadata", "mapstructure", 1, nil},
+	{"github.com/mitchellh/mapstructure.WeakDecode", "mapstructure", 1, nil},
+	{"github.com/mitchellh/mapstructure.WeakDecodeMetadata", "mapstructure", 1, nil},
 
 	// https://pkg.go.dev/github.com/jmoiron/sqlx
-	{Name: "github.com/jmoiron/sqlx.Get", Tag: "db", ArgPos: 1},
-	{Name: "github.com/jmoiron/sqlx.GetContext", Tag: "db", ArgPos: 2},
-	{Name: "github.com/jmoiron/sqlx.Select", Tag: "db", ArgPos: 1},
-	{Name: "github.com/jmoiron/sqlx.SelectContext", Tag: "db", ArgPos: 2},
-	{Name: "github.com/jmoiron/sqlx.StructScan", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.Conn).GetContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.Conn).SelectContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.DB).Get", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.DB).GetContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.DB).Select", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.DB).SelectContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.NamedStmt).Get", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.NamedStmt).GetContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.NamedStmt).Select", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.NamedStmt).SelectContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.Row).StructScan", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.Rows).StructScan", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.Stmt).Get", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.Stmt).GetContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.Stmt).Select", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.Stmt).SelectContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.Tx).Get", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.Tx).GetContext", Tag: "db", ArgPos: 1},
-	{Name: "(*github.com/jmoiron/sqlx.Tx).Select", Tag: "db", ArgPos: 0},
-	{Name: "(*github.com/jmoiron/sqlx.Tx).SelectContext", Tag: "db", ArgPos: 1},
+	{"github.com/jmoiron/sqlx.Get", "db", 1, []string{"database/sql.Scanner"}},
+	{"github.com/jmoiron/sqlx.GetContext", "db", 2, []string{"database/sql.Scanner"}},
+	{"github.com/jmoiron/sqlx.Select", "db", 1, []string{"database/sql.Scanner"}},
+	{"github.com/jmoiron/sqlx.SelectContext", "db", 2, []string{"database/sql.Scanner"}},
+	{"github.com/jmoiron/sqlx.StructScan", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Conn).GetContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Conn).SelectContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.DB).Get", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.DB).GetContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.DB).Select", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.DB).SelectContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.NamedStmt).Get", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.NamedStmt).GetContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.NamedStmt).Select", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.NamedStmt).SelectContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Row).StructScan", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Rows).StructScan", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Stmt).Get", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Stmt).GetContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Stmt).Select", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Stmt).SelectContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Tx).Get", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Tx).GetContext", "db", 1, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Tx).Select", "db", 0, []string{"database/sql.Scanner"}},
+	{"(*github.com/jmoiron/sqlx.Tx).SelectContext", "db", 1, []string{"database/sql.Scanner"}},
 }

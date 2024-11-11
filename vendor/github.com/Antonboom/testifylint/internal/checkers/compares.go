@@ -61,7 +61,9 @@ func (checker Compares) Check(pass *analysis.Pass, call *CallMeta) *analysis.Dia
 		return nil
 	}
 
-	if isPointer(pass, be.X) && isPointer(pass, be.Y) {
+	_, xp := isPointer(pass, be.X)
+	_, yp := isPointer(pass, be.Y)
+	if xp && yp {
 		switch proposedFn {
 		case "Equal":
 			proposedFn = "Same"
@@ -72,12 +74,11 @@ func (checker Compares) Check(pass *analysis.Pass, call *CallMeta) *analysis.Dia
 
 	a, b := be.X, be.Y
 	return newUseFunctionDiagnostic(checker.Name(), call, proposedFn,
-		newSuggestedFuncReplacement(call, proposedFn, analysis.TextEdit{
+		analysis.TextEdit{
 			Pos:     be.X.Pos(),
 			End:     be.Y.End(),
 			NewText: formatAsCallArgs(pass, a, b),
-		}),
-	)
+		})
 }
 
 var tokenToProposedFnInsteadOfTrue = map[token.Token]string{

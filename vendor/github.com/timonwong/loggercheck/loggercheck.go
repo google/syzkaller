@@ -54,7 +54,7 @@ func newLoggerCheck(opts ...Option) *loggercheck {
 	}
 
 	fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
-	fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (kitlog,klog,logr,zap)")
+	fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (kitlog,klog,logr,zap,slog)")
 	fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
 	fs.BoolVar(&l.noPrintfLike, "noprintflike", false, "require printf-like format specifier not present in args")
 

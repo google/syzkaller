@@ -3,7 +3,6 @@ package rule
 import (
 	"fmt"
 	"go/ast"
-	"go/types"
 	"sync"
 
 	"github.com/mgechev/revive/lint"
@@ -104,13 +103,6 @@ func (r *EnforceRepeatedArgTypeStyleRule) Apply(file *lint.File, arguments lint.
 
 	var failures []lint.Failure
 
-	err := file.Pkg.TypeCheck()
-	if err != nil {
-		// the file has other issues
-		return nil
-	}
-	typesInfo := file.Pkg.TypesInfo()
-
 	astFile := file.AST
 	ast.Inspect(astFile, func(n ast.Node) bool {
 		switch fn := n.(type) {
@@ -134,12 +126,14 @@ func (r *EnforceRepeatedArgTypeStyleRule) Apply(file *lint.File, arguments lint.
 				var prevType ast.Expr
 				if fn.Type.Params != nil {
 					for _, field := range fn.Type.Params.List {
-						if types.Identical(typesInfo.Types[field.Type].Type, typesInfo.Types[prevType].Type) {
+						prevTypeStr := gofmt(prevType)
+						currentTypeStr := gofmt(field.Type)
+						if currentTypeStr == prevTypeStr {
 							failures = append(failures, lint.Failure{
 								Confidence: 1,
-								Node:       field,
+								Node:       prevType,
 								Category:   "style",
-								Failure:    "repeated argument type can be omitted",
+								Failure:    fmt.Sprintf("repeated argument type %q can be omitted", prevTypeStr),
 							})
 						}
 						prevType = field.Type
@@ -166,12 +160,14 @@ func (r *EnforceRepeatedArgTypeStyleRule) Apply(file *lint.File, arguments lint.
 				var prevType ast.Expr
 				if fn.Type.Results != nil {
 					for _, field := range fn.Type.Results.List {
-						if field.Names != nil && types.Identical(typesInfo.Types[field.Type].Type, typesInfo.Types[prevType].Type) {
+						prevTypeStr := gofmt(prevType)
+						currentTypeStr := gofmt(field.Type)
+						if field.Names != nil && currentTypeStr == prevTypeStr {
 							failures = append(failures, lint.Failure{
 								Confidence: 1,
-								Node:       field,
+								Node:       prevType,
 								Category:   "style",
-								Failure:    "repeated return type can be omitted",
+								Failure:    fmt.Sprintf("repeated return type %q can be omitted", prevTypeStr),
 							})
 						}
 						prevType = field.Type

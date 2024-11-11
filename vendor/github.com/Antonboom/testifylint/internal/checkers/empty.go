@@ -53,24 +53,27 @@ func (checker Empty) checkEmpty(pass *analysis.Pass, call *CallMeta) *analysis.D
 	newUseEmptyDiagnostic := func(replaceStart, replaceEnd token.Pos, replaceWith ast.Expr) *analysis.Diagnostic {
 		const proposed = "Empty"
 		return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-			newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
+			analysis.TextEdit{
 				Pos:     replaceStart,
 				End:     replaceEnd,
 				NewText: analysisutil.NodeBytes(pass.Fset, replaceWith),
-			}),
-		)
+			})
 	}
 
 	if len(call.Args) == 0 {
 		return nil
 	}
-
 	a := call.Args[0]
+
 	switch call.Fn.NameFTrimmed {
-	case "Zero", "Empty":
-		lenArg, ok := isBuiltinLenCall(pass, a)
-		if ok {
+	case "Zero":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
 			return newUseEmptyDiagnostic(a.Pos(), a.End(), lenArg)
+		}
+
+	case "Empty":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
+			return newRemoveLenDiagnostic(pass, checker.Name(), call, a, lenArg)
 		}
 	}
 
@@ -120,24 +123,27 @@ func (checker Empty) checkNotEmpty(pass *analysis.Pass, call *CallMeta) *analysi
 	newUseNotEmptyDiagnostic := func(replaceStart, replaceEnd token.Pos, replaceWith ast.Expr) *analysis.Diagnostic {
 		const proposed = "NotEmpty"
 		return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-			newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
+			analysis.TextEdit{
 				Pos:     replaceStart,
 				End:     replaceEnd,
 				NewText: analysisutil.NodeBytes(pass.Fset, replaceWith),
-			}),
-		)
+			})
 	}
 
 	if len(call.Args) == 0 {
 		return nil
 	}
-
 	a := call.Args[0]
+
 	switch call.Fn.NameFTrimmed {
-	case "NotZero", "NotEmpty", "Positive":
-		lenArg, ok := isBuiltinLenCall(pass, a)
-		if ok {
+	case "NotZero", "Positive":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
 			return newUseNotEmptyDiagnostic(a.Pos(), a.End(), lenArg)
+		}
+
+	case "NotEmpty":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
+			return newRemoveLenDiagnostic(pass, checker.Name(), call, a, lenArg)
 		}
 	}
 

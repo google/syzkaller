@@ -87,7 +87,7 @@ func (checker ExpectedActual) Check(pass *analysis.Pass, call *CallMeta) *analys
 	first, second := call.Args[0], call.Args[1]
 
 	if checker.isWrongExpectedActualOrder(pass, first, second) {
-		return newDiagnostic(checker.Name(), call, "need to reverse actual and expected values", &analysis.SuggestedFix{
+		return newDiagnostic(checker.Name(), call, "need to reverse actual and expected values", analysis.SuggestedFix{
 			Message: "Reverse actual and expected values",
 			TextEdits: []analysis.TextEdit{
 				{

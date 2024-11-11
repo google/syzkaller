@@ -25,13 +25,14 @@ func NewAnalyzerWithConfig(config *types.Config) *analysis.Analyzer {
 // NewAnalyzer returns an Analyzer - the package interface with nogo
 func NewAnalyzer() *analysis.Analyzer {
 	config := &types.Config{
-		SuppressLen:     false,
-		SuppressNil:     false,
-		SuppressErr:     false,
-		SuppressCompare: false,
-		ForbidFocus:     false,
-		AllowHaveLen0:   false,
-		ForceExpectTo:   false,
+		SuppressLen:          false,
+		SuppressNil:          false,
+		SuppressErr:          false,
+		SuppressCompare:      false,
+		ForbidFocus:          false,
+		AllowHaveLen0:        false,
+		ForceExpectTo:        false,
+		ForceSucceedForFuncs: false,
 	}
 
 	a := NewAnalyzerWithConfig(config)
@@ -50,6 +51,7 @@ func NewAnalyzer() *analysis.Analyzer {
 	a.Flags.BoolVar(&ignored, "suppress-focus-container", true, "Suppress warning for ginkgo focus containers like FDescribe, FContext, FWhen or FIt. Deprecated and ignored: use --forbid-focus-container instead")
 	a.Flags.Var(&config.ForbidFocus, "forbid-focus-container", "trigger a warning for ginkgo focus containers like FDescribe, FContext, FWhen or FIt; default = false.")
 	a.Flags.Var(&config.ForbidSpecPollution, "forbid-spec-pollution", "trigger a warning for variable assignments in ginkgo containers like Describe, Context and When, instead of in BeforeEach(); default = false.")
+	a.Flags.Var(&config.ForceSucceedForFuncs, "force-succeed", "force using the Succeed matcher for error functions, and the HaveOccurred matcher for non-function error values")
 
 	return a
 }

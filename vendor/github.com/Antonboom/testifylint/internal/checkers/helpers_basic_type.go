@@ -1,10 +1,10 @@
 package checkers
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strconv"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -56,9 +56,29 @@ func isTypedIntNumber(e ast.Expr, v int, types ...string) bool {
 	return false
 }
 
-func isIntNumber(e ast.Expr, v int) bool {
+func isIntNumber(e ast.Expr, rhs int) bool {
+	lhs, ok := isIntBasicLit(e)
+	return ok && (lhs == rhs)
+}
+
+func isNegativeIntNumber(e ast.Expr) bool {
+	v, ok := isIntBasicLit(e)
+	return ok && v < 0
+}
+
+func isPositiveIntNumber(e ast.Expr) bool {
+	v, ok := isIntBasicLit(e)
+	return ok && v > 0
+}
+
+func isEmptyStringLit(e ast.Expr) bool {
 	bl, ok := e.(*ast.BasicLit)
-	return ok && bl.Kind == token.INT && bl.Value == fmt.Sprintf("%d", v)
+	return ok && bl.Kind == token.STRING && bl.Value == `""`
+}
+
+func isNotEmptyStringLit(e ast.Expr) bool {
+	bl, ok := e.(*ast.BasicLit)
+	return ok && bl.Kind == token.STRING && bl.Value != `""`
 }
 
 func isBasicLit(e ast.Expr) bool {
@@ -66,9 +86,27 @@ func isBasicLit(e ast.Expr) bool {
 	return ok
 }
 
-func isIntBasicLit(e ast.Expr) bool {
+func isIntBasicLit(e ast.Expr) (int, bool) {
+	if un, ok := e.(*ast.UnaryExpr); ok {
+		if un.Op == token.SUB {
+			v, ok := isIntBasicLit(un.X)
+			return -1 * v, ok
+		}
+	}
+
 	bl, ok := e.(*ast.BasicLit)
-	return ok && bl.Kind == token.INT
+	if !ok {
+		return 0, false
+	}
+	if bl.Kind != token.INT {
+		return 0, false
+	}
+
+	v, err := strconv.Atoi(bl.Value)
+	if err != nil {
+		return 0, false
+	}
+	return v, true
 }
 
 func isUntypedConst(pass *analysis.Pass, e ast.Expr) bool {
@@ -98,12 +136,37 @@ func isUnderlying(pass *analysis.Pass, e ast.Expr, flag types.BasicInfo) bool {
 	return ok && (bt.Info()&flag > 0)
 }
 
-func isPointer(pass *analysis.Pass, e ast.Expr) bool {
-	_, ok := pass.TypesInfo.TypeOf(e).(*types.Pointer)
-	return ok
+func isPointer(pass *analysis.Pass, e ast.Expr) (types.Type, bool) {
+	ptr, ok := pass.TypesInfo.TypeOf(e).(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	return ptr.Elem(), true
 }
 
-// untype returns v from type(v) expression or v itself if there is no type cast.
+// isByteArray returns true if expression is `[]byte` itself.
+func isByteArray(e ast.Expr) bool {
+	at, ok := e.(*ast.ArrayType)
+	return ok && isIdentWithName("byte", at.Elt)
+}
+
+// hasBytesType returns true if the expression is of `[]byte` type.
+func hasBytesType(pass *analysis.Pass, e ast.Expr) bool {
+	t := pass.TypesInfo.TypeOf(e)
+	if t == nil {
+		return false
+	}
+
+	sl, ok := t.(*types.Slice)
+	if !ok {
+		return false
+	}
+
+	el, ok := sl.Elem().(*types.Basic)
+	return ok && el.Kind() == types.Uint8
+}
+
+// untype returns v from type(v) expression or v itself if there is no type conversion.
 func untype(e ast.Expr) ast.Expr {
 	ce, ok := e.(*ast.CallExpr)
 	if !ok || len(ce.Args) != 1 {

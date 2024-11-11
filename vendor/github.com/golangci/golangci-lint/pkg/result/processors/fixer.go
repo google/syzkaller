@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golangci/golangci-lint/internal/robustio"
+	"github.com/golangci/golangci-lint/internal/go/robustio"
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
@@ -56,9 +56,8 @@ func (p Fixer) Process(issues []result.Issue) ([]result.Issue, error) {
 	}
 
 	for file, issuesToFix := range issuesToFixPerFile {
-		var err error
-		p.sw.TrackStage("all", func() {
-			err = p.fixIssuesInFile(file, issuesToFix)
+		err := p.sw.TrackStageErr("all", func() error {
+			return p.fixIssuesInFile(file, issuesToFix)
 		})
 		if err != nil {
 			p.log.Errorf("Failed to fix issues in file %s: %s", file, err)

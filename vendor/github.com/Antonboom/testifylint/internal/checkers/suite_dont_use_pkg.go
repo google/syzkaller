@@ -60,7 +60,7 @@ func (checker SuiteDontUsePkg) Check(pass *analysis.Pass, call *CallMeta) *analy
 	}
 
 	msg := fmt.Sprintf("use %s.%s", newSelector, call.Fn.Name)
-	return newDiagnostic(checker.Name(), call, msg, &analysis.SuggestedFix{
+	return newDiagnostic(checker.Name(), call, msg, analysis.SuggestedFix{
 		Message: fmt.Sprintf("Replace `%s` with `%s`", call.SelectorXStr, newSelector),
 		TextEdits: []analysis.TextEdit{
 			// Replace package function with suite method.

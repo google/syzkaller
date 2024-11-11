@@ -1,6 +1,6 @@
-.PHONY: all imports test lint
+.PHONY: all imports test lint build
 
-all: imports test lint
+all: imports test lint build
 
 imports:
 	goimports -w ./
@@ -14,3 +14,5 @@ test_coverage:
 lint:
 	golangci-lint run ./...
 
+build:
+	go build -ldflags "-s -w" -trimpath ./cmd/noctx/

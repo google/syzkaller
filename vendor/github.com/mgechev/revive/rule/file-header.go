@@ -22,16 +22,18 @@ var (
 func (r *FileHeaderRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.header == "" {
-		if len(arguments) < 1 {
-			return
-		}
+	if r.header != "" {
+		return // already configured
+	}
 
-		var ok bool
-		r.header, ok = arguments[0].(string)
-		if !ok {
-			panic(fmt.Sprintf("invalid argument for \"file-header\" rule: argument should be a string, got %T", arguments[0]))
-		}
+	if len(arguments) < 1 {
+		return
+	}
+
+	var ok bool
+	r.header, ok = arguments[0].(string)
+	if !ok {
+		panic(fmt.Sprintf("invalid argument for \"file-header\" rule: argument should be a string, got %T", arguments[0]))
 	}
 }
 

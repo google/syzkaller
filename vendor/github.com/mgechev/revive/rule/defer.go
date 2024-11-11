@@ -16,10 +16,12 @@ type DeferRule struct {
 
 func (r *DeferRule) configure(arguments lint.Arguments) {
 	r.Lock()
-	if r.allow == nil {
-		r.allow = r.allowFromArgs(arguments)
+	defer r.Unlock()
+	if r.allow != nil {
+		return // already configured
 	}
-	r.Unlock()
+
+	r.allow = r.allowFromArgs(arguments)
 }
 
 // Apply applies the rule to given file.
@@ -111,7 +113,7 @@ func (w lintDeferRule) Visit(node ast.Node) ast.Visitor {
 			// but it is very likely to be a misunderstanding of defer's behavior around arguments.
 			w.newFailure("recover must be called inside a deferred function, this is executing recover immediately", n, 1, "logic", "immediate-recover")
 		}
-
+		return nil // no need to analyze the arguments of the function call
 	case *ast.DeferStmt:
 		if isIdent(n.Call.Fun, "recover") {
 			// defer recover()

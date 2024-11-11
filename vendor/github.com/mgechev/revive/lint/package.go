@@ -33,6 +33,7 @@ var (
 	falseValue = 2
 	notSet     = 3
 
+	go121 = goversion.Must(goversion.NewVersion("1.21"))
 	go122 = goversion.Must(goversion.NewVersion("1.22"))
 )
 
@@ -165,17 +166,17 @@ func (p *Package) scanSortable() {
 
 	// bitfield for which methods exist on each type.
 	const (
-		Len = 1 << iota
-		Less
-		Swap
+		bfLen = 1 << iota
+		bfLess
+		bfSwap
 	)
-	nmap := map[string]int{"Len": Len, "Less": Less, "Swap": Swap}
+	nmap := map[string]int{"Len": bfLen, "Less": bfLess, "Swap": bfSwap}
 	has := make(map[string]int)
 	for _, f := range p.files {
 		ast.Walk(&walker{nmap, has}, f.AST)
 	}
 	for typ, ms := range has {
-		if ms == Len|Less|Swap {
+		if ms == bfLen|bfLess|bfSwap {
 			p.sortable[typ] = true
 		}
 	}
@@ -192,6 +193,11 @@ func (p *Package) lint(rules []Rule, config Config, failures chan Failure) {
 		})(file)
 	}
 	wg.Wait()
+}
+
+// IsAtLeastGo121 returns true if the Go version for this package is 1.21 or higher, false otherwise
+func (p *Package) IsAtLeastGo121() bool {
+	return p.goVersion.GreaterThanOrEqual(go121)
 }
 
 // IsAtLeastGo122 returns true if the Go version for this package is 1.22 or higher, false otherwise

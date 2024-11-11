@@ -82,7 +82,7 @@ func (c *caseOrderChecker) warnUnknownType(cause, concrete ast.Node) {
 	c.ctx.Warn(cause, "type is not defined %s", concrete)
 }
 
-func (c *caseOrderChecker) checkSwitch(s *ast.SwitchStmt) {
+func (c *caseOrderChecker) checkSwitch(_ *ast.SwitchStmt) {
 	// TODO(quasilyte): can handle expression cases that overlap.
 	// Cases that have narrower value range should go before wider ones.
 }

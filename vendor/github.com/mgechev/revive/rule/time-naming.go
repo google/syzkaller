@@ -90,6 +90,7 @@ func isNamedType(typ types.Type, importPath, name string) bool {
 	if !ok {
 		return false
 	}
-	tn := n.Obj()
-	return tn != nil && tn.Pkg() != nil && tn.Pkg().Path() == importPath && tn.Name() == name
+
+	typeName := n.Obj()
+	return typeName != nil && typeName.Pkg() != nil && typeName.Pkg().Path() == importPath && typeName.Name() == name
 }

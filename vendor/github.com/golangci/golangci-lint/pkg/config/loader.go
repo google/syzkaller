@@ -302,17 +302,6 @@ func (l *Loader) handleGoVersion() {
 
 	l.cfg.LintersSettings.Gocritic.Go = trimmedGoVersion
 
-	// staticcheck related linters.
-	if l.cfg.LintersSettings.Staticcheck.GoVersion == "" {
-		l.cfg.LintersSettings.Staticcheck.GoVersion = trimmedGoVersion
-	}
-	if l.cfg.LintersSettings.Gosimple.GoVersion == "" {
-		l.cfg.LintersSettings.Gosimple.GoVersion = trimmedGoVersion
-	}
-	if l.cfg.LintersSettings.Stylecheck.GoVersion == "" {
-		l.cfg.LintersSettings.Stylecheck.GoVersion = trimmedGoVersion
-	}
-
 	os.Setenv("GOSECGOVERSION", l.cfg.Run.Go)
 }
 
@@ -411,12 +400,6 @@ func (l *Loader) handleLinterOptionDeprecations() {
 	// Deprecated since v1.33.0.
 	if l.cfg.LintersSettings.Godot.CheckAll {
 		l.log.Warnf("The configuration option `linters.godot.check-all` is deprecated, please use `linters.godot.scope: all`.")
-	}
-
-	// Deprecated since v1.44.0.
-	if len(l.cfg.LintersSettings.Gomnd.Settings) > 0 {
-		l.log.Warnf("The configuration option `linters.gomnd.settings` is deprecated. Please use the options " +
-			"`linters.gomnd.checks`,`linters.gomnd.ignored-numbers`,`linters.gomnd.ignored-files`,`linters.gomnd.ignored-functions`.")
 	}
 
 	// Deprecated since v1.47.0

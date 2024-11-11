@@ -8,11 +8,11 @@ import (
 
 func newDefaultCheckedTypes() checkedTypes {
 	return checkedTypes{
-		ptrType:       {},
+		chanType:      {},
 		funcType:      {},
 		ifaceType:     {},
 		mapType:       {},
-		chanType:      {},
+		ptrType:       {},
 		uintptrType:   {},
 		unsafeptrType: {},
 	}

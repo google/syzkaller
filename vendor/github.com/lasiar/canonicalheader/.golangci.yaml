@@ -40,6 +40,9 @@ linters:
   fast: false
 
   enable:
+    # Globals and init() are no ok, because this linter use on golangci lint.
+    - gochecknoglobals
+    - gochecknoinits
     # Check for pass []any as any in variadic func(...any).
     # Rare case but saved me from debugging a few times.
     - asasalint
@@ -58,6 +61,12 @@ linters:
     # Check whether the function uses a non-inherited context.
     - contextcheck
 
+    # after go 1.22 don't need copy var at for range.
+    - copyloopvar
+
+    # Find duplicate words, rare.
+    - dupword
+
     # Check for two durations multiplied together.
     - durationcheck
 
@@ -72,6 +81,10 @@ linters:
 
     # Checks for pointers to enclosing loop variables.
     - exportloopref
+
+
+    # Imports order.
+    - gci
 
     # As you already know I'm a co-author. It would be strange to not use
     # one of my warmly loved projects.
@@ -104,8 +117,14 @@ linters:
     # Last week I caught a bug with it.
     - ineffassign
 
+    # range over int, work after go 1.22
+    - intrange
+
     # Fix all the misspells, amazing thing.
     - misspell
+
+    # Reports wrong mirror patterns of bytes/strings usage.
+    - mirror
 
     # Finds naked/bare returns and requires change them.
     - nakedret
@@ -120,6 +139,9 @@ linters:
     # Forces comment why another check is disabled.
     # Better not to have //nolint: at all ;)
     - nolintlint
+
+    # aiming at usages of fmt.Sprintf which have faster alternatives.
+    - perfsprint
 
     # Finds slices that could potentially be pre-allocated.
     # Small performance win + cleaner code.
@@ -144,6 +166,9 @@ linters:
     - rowserrcheck
     - sqlclosecheck
 
+    # Ensure consistent code style when using log/slog.
+    - sloglint
+
     # I have found that it's not the same as staticcheck binary :\
     - staticcheck
 
@@ -156,6 +181,7 @@ linters:
     # Test-related checks. All of them are good.
     - tenv
     - testableexamples
+    - testifylint
     - thelper
     - tparallel
 
@@ -185,9 +211,6 @@ linters:
     # (c) Bryan C. Mills / https://github.com/bcmills
     - cyclop
 
-    # Abandoned, replaced by `unused`.
-    - deadcode
-
     # Check declaration order of types, consts, vars and funcs.
     # I like it but I don't use it.
     - decorder
@@ -202,9 +225,6 @@ linters:
     # Tool for code clone detection.
     - dupl
 
-    # Find duplicate words, rare.
-    - dupword
-
     # I'm fine to check the error from json.Marshal ¯\_(ツ)_/¯
     - errchkjson
 
@@ -213,7 +233,6 @@ linters:
 
     # Forces to handle more cases. Cool but noisy.
     - exhaustive
-    - exhaustivestruct # Deprecated, replaced by check below.
     - exhaustruct
 
     # Forbids some identifiers. I don't have a case for it.
@@ -225,18 +244,11 @@ linters:
     # I might have long but a simple function.
     - funlen
 
-    # Imports order. I do this manually ¯\_(ツ)_/¯
-    - gci
-
     # I'm not a fan of ginkgo and gomega packages.
     - ginkgolinter
 
     # Checks that compiler directive comments (//go:) are valid. Rare.
     - gocheckcompilerdirectives
-
-    # Globals and init() are ok.
-    - gochecknoglobals
-    - gochecknoinits
 
     # Same as `cyclop` linter (see above)
     - gocognit
@@ -247,16 +259,13 @@ linters:
     - godox
 
     # Check the error handling expressions. Too noisy.
-    - goerr113
+    - err113
 
     # I don't use file headers.
     - goheader
 
-    # 1st Go linter, deprecated :( use `revive`.
-    - golint
-
     # Reports magic consts. Might be noisy but still good.
-    - gomnd
+    - mnd
 
     # Allowed/blocked packages to import. I prefer to do it manually.
     - gomodguard
@@ -266,9 +275,6 @@ linters:
 
     # Groupt declarations, I prefer manually.
     - grouper
-
-    # Deprecated.
-    - ifshort
 
     # Checks imports aliases, rare.
     - importas
@@ -291,9 +297,6 @@ linters:
     # Slice declarations with non-zero initial length. Not my case.
     - makezero
 
-    # Deprecated. Use govet `fieldalignment`.
-    - maligned
-
     # Enforce tags in un/marshaled structs. Cool but not my case.
     - musttag
 
@@ -305,9 +308,6 @@ linters:
 
     # Reports all named returns, not that bad.
     - nonamedreturns
-
-    # Deprecated. Replaced by `revive`.
-    - nosnakecase
 
     # Finds misuse of Sprintf with host:port in a URL. Cool but rare.
     - nosprintfhostport
@@ -335,6 +335,12 @@ linters:
     - wsl
 
 linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - localmodule
+
   revive:
     # Maximum number of open files at the same time.
     # See https://github.com/mgechev/revive#command-line-flags
@@ -378,7 +384,6 @@ linters-settings:
       - name: banned-characters
         severity: warning
         disabled: false
-        arguments: ["Ω", "Σ", "σ", "7"]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#bare-return
       - name: bare-return
         severity: warning
@@ -404,9 +409,6 @@ linters-settings:
       - name: comment-spacings
         severity: warning
         disabled: false
-        arguments:
-          - mypragma
-          - otherpragma
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-naming
       - name: confusing-naming
         severity: warning
@@ -444,8 +446,6 @@ linters-settings:
       - name: defer
         severity: warning
         disabled: false
-        arguments:
-          - ["call-chain", "loop"]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#dot-imports
       - name: dot-imports
         severity: warning
@@ -470,8 +470,6 @@ linters-settings:
       - name: enforce-map-style
         severity: warning
         disabled: false
-        arguments:
-          - "make"
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-naming
       - name: error-naming
         severity: warning
@@ -530,8 +528,6 @@ linters-settings:
       - name: indent-error-flow
         severity: warning
         disabled: false
-        arguments:
-          - "preserveScope"
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#import-alias-naming
       - name: import-alias-naming
         severity: warning
@@ -542,9 +538,6 @@ linters-settings:
       - name: imports-blacklist
         severity: warning
         disabled: false
-        arguments:
-          - "crypto/md5"
-          - "crypto/sha1"
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#import-shadowing
       - name: import-shadowing
         severity: warning
@@ -632,8 +625,6 @@ linters-settings:
       - name: superfluous-else
         severity: warning
         disabled: false
-        arguments:
-          - "preserveScope"
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-equal
       - name: time-equal
         severity: warning
@@ -646,10 +637,6 @@ linters-settings:
       - name: var-naming
         severity: warning
         disabled: false
-        arguments:
-          - ["ID"] # AllowList
-          - ["VM"] # DenyList
-          - - upperCaseConst: true
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-declaration
       - name: var-declaration
         severity: warning
@@ -670,9 +657,6 @@ linters-settings:
       - name: unhandled-error
         severity: warning
         disabled: false
-        arguments:
-          - "fmt.Printf"
-          - "myFunction"
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unnecessary-stmt
       - name: unnecessary-stmt
         severity: warning
@@ -691,8 +675,6 @@ linters-settings:
       - name: unused-receiver
         severity: warning
         disabled: false
-        arguments:
-          - allowRegex: "^_"
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#useless-break
       - name: useless-break
         severity: warning

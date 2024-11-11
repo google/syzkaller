@@ -21,6 +21,6 @@ func (n *Report) Message() string {
 
 func report(pass *analysis.Pass, reports []*Report) {
 	for _, report := range reports {
-		pass.Reportf(report.Pos(), report.Message())
+		pass.Reportf(report.Pos(), "%s", report.Message())
 	}
 }

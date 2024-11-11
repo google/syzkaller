@@ -46,13 +46,15 @@ type lintVarDeclarations struct {
 func (w *lintVarDeclarations) Visit(node ast.Node) ast.Visitor {
 	switch v := node.(type) {
 	case *ast.GenDecl:
-		if v.Tok != token.CONST && v.Tok != token.VAR {
+		isVarOrConstDeclaration := v.Tok == token.CONST || v.Tok == token.VAR
+		if !isVarOrConstDeclaration {
 			return nil
 		}
 		w.lastGen = v
 		return w
 	case *ast.ValueSpec:
-		if w.lastGen.Tok == token.CONST {
+		isConstDeclaration := w.lastGen.Tok == token.CONST
+		if isConstDeclaration {
 			return nil
 		}
 		if len(v.Names) > 1 || v.Type == nil || len(v.Values) == 0 {
@@ -64,14 +66,14 @@ func (w *lintVarDeclarations) Visit(node ast.Node) ast.Visitor {
 		if isIdent(v.Names[0], "_") {
 			return nil
 		}
-		// If the RHS is a zero value, suggest dropping it.
-		zero := false
+		// If the RHS is a isZero value, suggest dropping it.
+		isZero := false
 		if lit, ok := rhs.(*ast.BasicLit); ok {
-			zero = zeroLiteral[lit.Value]
+			isZero = zeroLiteral[lit.Value]
 		} else if isIdent(rhs, "nil") {
-			zero = true
+			isZero = true
 		}
-		if zero {
+		if isZero {
 			w.onFailure(lint.Failure{
 				Confidence: 0.9,
 				Node:       rhs,

@@ -68,7 +68,7 @@ func (checker SuiteBrokenParallel) Check(pass *analysis.Pass, insp *inspector.In
 			}
 
 			nextLine := pass.Fset.Position(ce.Pos()).Line + 1
-			d := newDiagnostic(checker.Name(), ce, report, &analysis.SuggestedFix{
+			d := newDiagnostic(checker.Name(), ce, report, analysis.SuggestedFix{
 				Message: fmt.Sprintf("Remove `%s` call", analysisutil.NodeString(pass.Fset, ce)),
 				TextEdits: []analysis.TextEdit{
 					{

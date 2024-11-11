@@ -91,17 +91,17 @@ func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) (_ any, 
 
 		call, ok := node.(*ast.CallExpr)
 		if !ok {
-			return // not a function call.
+			return
 		}
 
 		callee := typeutil.StaticCallee(pass.TypesInfo, call)
 		if callee == nil {
-			return // not a static call.
+			return
 		}
 
 		fn, ok := funcs[cutVendor(callee.FullName())]
 		if !ok {
-			return // unsupported function.
+			return
 		}
 
 		if len(call.Args) <= fn.ArgPos {
@@ -116,7 +116,7 @@ func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) (_ any, 
 
 		typ := pass.TypesInfo.TypeOf(arg)
 		if typ == nil {
-			return // no type info found.
+			return
 		}
 
 		checker := checker{
@@ -125,9 +125,8 @@ func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) (_ any, 
 			ifaceWhitelist: fn.ifaceWhitelist,
 			imports:        pass.Pkg.Imports(),
 		}
-
-		if valid := checker.checkType(typ, fn.Tag); valid {
-			return // nothing to report.
+		if checker.isValidType(typ, fn.Tag) {
+			return
 		}
 
 		pass.Reportf(arg.Pos(), "the given struct should be annotated with the `%s` tag", fn.Tag)
@@ -143,43 +142,32 @@ type checker struct {
 	imports        []*types.Package
 }
 
-func (c *checker) checkType(typ types.Type, tag string) bool {
+func (c *checker) isValidType(typ types.Type, tag string) bool {
 	if _, ok := c.seenTypes[typ.String()]; ok {
-		return true // already checked.
+		return true
 	}
 	c.seenTypes[typ.String()] = struct{}{}
 
 	styp, ok := c.parseStruct(typ)
 	if !ok {
-		return true // not a struct.
+		return true
 	}
 
-	return c.checkStruct(styp, tag)
+	return c.isValidStruct(styp, tag)
 }
 
-// recursively unwrap a type until we get to an underlying
-// raw struct type that should have its fields checked
-//
-//	SomeStruct -> struct{SomeStructField: ... }
-//	[]*SomeStruct -> struct{SomeStructField: ... }
-//	...
-//
-// exits early if it hits a type that implements a whitelisted interface
 func (c *checker) parseStruct(typ types.Type) (*types.Struct, bool) {
 	if implementsInterface(typ, c.ifaceWhitelist, c.imports) {
-		return nil, false // the type implements a Marshaler interface; see issue #64.
+		return nil, false
 	}
 
 	switch typ := typ.(type) {
 	case *types.Pointer:
 		return c.parseStruct(typ.Elem())
-
 	case *types.Array:
 		return c.parseStruct(typ.Elem())
-
 	case *types.Slice:
 		return c.parseStruct(typ.Elem())
-
 	case *types.Map:
 		return c.parseStruct(typ.Elem())
 
@@ -205,7 +193,7 @@ func (c *checker) parseStruct(typ types.Type) (*types.Struct, bool) {
 	}
 }
 
-func (c *checker) checkStruct(styp *types.Struct, tag string) (valid bool) {
+func (c *checker) isValidStruct(styp *types.Struct, tag string) bool {
 	for i := 0; i < styp.NumFields(); i++ {
 		field := styp.Field(i)
 		if !field.Exported() {
@@ -214,18 +202,18 @@ func (c *checker) checkStruct(styp *types.Struct, tag string) (valid bool) {
 
 		tagValue, ok := reflect.StructTag(styp.Tag(i)).Lookup(tag)
 		if !ok {
-			// tag is not required for embedded types; see issue #12.
+			// tag is not required for embedded types.
 			if !field.Embedded() {
 				return false
 			}
 		}
 
-		// Do not recurse into ignored fields.
+		// the field is explicitly ignored.
 		if tagValue == "-" {
 			continue
 		}
 
-		if valid := c.checkType(field.Type(), tag); !valid {
+		if !c.isValidType(field.Type(), tag) {
 			return false
 		}
 	}
@@ -254,25 +242,29 @@ func implementsInterface(typ types.Type, ifaces []string, imports []*types.Packa
 	}
 
 	for _, ifacePath := range ifaces {
-		// "encoding/json.Marshaler" -> "encoding/json" + "Marshaler"
+		// e.g. "encoding/json.Marshaler" -> "encoding/json" + "Marshaler".
 		idx := strings.LastIndex(ifacePath, ".")
 		if idx == -1 {
 			continue
 		}
+
 		pkgName, ifaceName := ifacePath[:idx], ifacePath[idx+1:]
 
 		scope, ok := findScope(pkgName)
 		if !ok {
 			continue
 		}
+
 		obj := scope.Lookup(ifaceName)
 		if obj == nil {
 			continue
 		}
+
 		iface, ok := obj.Type().Underlying().(*types.Interface)
 		if !ok {
 			continue
 		}
+
 		if types.Implements(typ, iface) || types.Implements(types.NewPointer(typ), iface) {
 			return true
 		}

@@ -188,7 +188,7 @@ func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, fa
 		enabledDisabledRulesMap[name] = existing
 	}
 
-	handleRules := func(filename, modifier string, isEnabled bool, line int, ruleNames []string) []DisabledInterval {
+	handleRules := func(_, modifier string, isEnabled bool, line int, ruleNames []string) []DisabledInterval {
 		var result []DisabledInterval
 		for _, name := range ruleNames {
 			if modifier == "line" {

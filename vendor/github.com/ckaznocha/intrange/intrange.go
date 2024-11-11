@@ -25,8 +25,9 @@ var (
 )
 
 const (
-	msg         = "for loop can be changed to use an integer range (Go 1.22+)"
-	msgLenRange = "for loop can be changed to `i := range %s`"
+	msg                = "for loop can be changed to use an integer range (Go 1.22+)"
+	msgLenRange        = "for loop can be changed to `%s := range %s`"
+	msgLenRangeNoIdent = "for loop can be changed to `range %s`"
 )
 
 func run(pass *analysis.Pass) (any, error) {
@@ -243,21 +244,26 @@ func checkForStmt(pass *analysis.Pass, forStmt *ast.ForStmt) {
 }
 
 func checkRangeStmt(pass *analysis.Pass, rangeStmt *ast.RangeStmt) {
-	if rangeStmt.Key == nil {
-		return
-	}
-
-	ident, ok := rangeStmt.Key.(*ast.Ident)
-	if !ok {
-		return
-	}
-
-	if ident.Name == "_" {
-		return
-	}
-
 	if rangeStmt.Value != nil {
 		return
+	}
+
+	startPos := rangeStmt.Range
+	usesKey := rangeStmt.Key != nil
+	identName := ""
+
+	if usesKey {
+		ident, ok := rangeStmt.Key.(*ast.Ident)
+		if !ok {
+			return
+		}
+
+		if ident.Name == "_" {
+			usesKey = false
+		}
+
+		identName = ident.Name
+		startPos = ident.Pos()
 	}
 
 	if rangeStmt.X == nil {
@@ -295,18 +301,40 @@ func checkRangeStmt(pass *analysis.Pass, rangeStmt *ast.RangeStmt) {
 		return
 	}
 
+	if usesKey {
+		pass.Report(analysis.Diagnostic{
+			Pos:     startPos,
+			End:     x.End(),
+			Message: fmt.Sprintf(msgLenRange, identName, arg.Name),
+			SuggestedFixes: []analysis.SuggestedFix{
+				{
+					Message: fmt.Sprintf("Replace `len(%s)` with `%s`", arg.Name, arg.Name),
+					TextEdits: []analysis.TextEdit{
+						{
+							Pos:     x.Pos(),
+							End:     x.End(),
+							NewText: []byte(arg.Name),
+						},
+					},
+				},
+			},
+		})
+
+		return
+	}
+
 	pass.Report(analysis.Diagnostic{
-		Pos:     ident.Pos(),
+		Pos:     startPos,
 		End:     x.End(),
-		Message: fmt.Sprintf(msgLenRange, arg.Name),
+		Message: fmt.Sprintf(msgLenRangeNoIdent, arg.Name),
 		SuggestedFixes: []analysis.SuggestedFix{
 			{
 				Message: fmt.Sprintf("Replace `len(%s)` with `%s`", arg.Name, arg.Name),
 				TextEdits: []analysis.TextEdit{
 					{
-						Pos:     x.Pos(),
+						Pos:     startPos,
 						End:     x.End(),
-						NewText: []byte(arg.Name),
+						NewText: []byte(fmt.Sprintf("range %s", arg.Name)),
 					},
 				},
 			},

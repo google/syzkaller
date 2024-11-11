@@ -52,10 +52,11 @@ linters:
 $ golangci-lint run
 
 # Only noctx execute
-golangci-lint run --disable-all -E noctx
+golangci-lint run --enable-only noctx
 ```
 
 ## Detection rules
+
 - Executing following functions
   - `net/http.Get`
   - `net/http.Head`
@@ -68,6 +69,7 @@ golangci-lint run --disable-all -E noctx
 - `http.Request` returned by `http.NewRequest` function and passes it to other function.
 
 ## How to fix
+
 - Send http request using `(*http.Client).Do(*http.Request)` method.
 - In Go 1.13 and later, use `http.NewRequestWithContext` function instead of using `http.NewRequest` function.
 - In Go 1.12 and earlier, call `(http.Request).WithContext(ctx)` after `http.NewRequest`.
@@ -107,7 +109,7 @@ func SendWithContext(ctx context.Context, body io.Reader) error {
     // Change NewRequest to NewRequestWithContext and pass context it
     req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://example.com", body)
     if err != nil {
-        return nil
+        return err
     }
     _, err = http.DefaultClient.Do(req)
     if err != nil {
@@ -168,6 +170,7 @@ func main() {
 ```
 
 ## Reference
+
 - [net/http - NewRequest](https://golang.org/pkg/net/http/#NewRequest)
 - [net/http - NewRequestWithContext](https://golang.org/pkg/net/http/#NewRequestWithContext)
 - [net/http - Request.WithContext](https://golang.org/pkg/net/http/#Request.WithContext)

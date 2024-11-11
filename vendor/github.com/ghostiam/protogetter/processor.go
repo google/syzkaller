@@ -218,7 +218,7 @@ func (c *processor) processInner(expr ast.Expr) {
 		c.write("*")
 		c.processInner(x.X)
 
-	case *ast.CompositeLit, *ast.TypeAssertExpr, *ast.ArrayType, *ast.FuncLit:
+	case *ast.CompositeLit, *ast.TypeAssertExpr, *ast.ArrayType, *ast.FuncLit, *ast.SliceExpr:
 		// Process the node as is.
 		c.write(formatNode(x))
 

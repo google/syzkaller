@@ -47,6 +47,9 @@ var defaultLintersSettings = LintersSettings{
 		Sections:      []string{"standard", "default"},
 		SkipGenerated: true,
 	},
+	GoChecksumType: GoChecksumTypeSettings{
+		DefaultSignifiesExhaustive: true,
+	},
 	Gocognit: GocognitSettings{
 		MinComplexity: 30,
 	},
@@ -216,6 +219,7 @@ type LintersSettings struct {
 	Gci             GciSettings
 	GinkgoLinter    GinkgoLinterSettings
 	Gocognit        GocognitSettings
+	GoChecksumType  GoChecksumTypeSettings
 	Goconst         GoConstSettings
 	Gocritic        GoCriticSettings
 	Gocyclo         GoCycloSettings
@@ -225,7 +229,6 @@ type LintersSettings struct {
 	Gofumpt         GofumptSettings
 	Goheader        GoHeaderSettings
 	Goimports       GoImportsSettings
-	Gomnd           GoMndSettings
 	GoModDirectives GoModDirectivesSettings
 	Gomodguard      GoModGuardSettings
 	Gosec           GoSecSettings
@@ -233,6 +236,7 @@ type LintersSettings struct {
 	Gosmopolitan    GosmopolitanSettings
 	Govet           GovetSettings
 	Grouper         GrouperSettings
+	Iface           IfaceSettings
 	ImportAs        ImportAsSettings
 	Inamedparam     INamedParamSettings
 	InterfaceBloat  InterfaceBloatSettings
@@ -483,6 +487,11 @@ type GinkgoLinterSettings struct {
 	ForceExpectTo              bool `mapstructure:"force-expect-to"`
 	ValidateAsyncIntervals     bool `mapstructure:"validate-async-intervals"`
 	ForbidSpecPollution        bool `mapstructure:"forbid-spec-pollution"`
+	ForceSucceedForFuncs       bool `mapstructure:"force-succeed"`
+}
+
+type GoChecksumTypeSettings struct {
+	DefaultSignifiesExhaustive bool `mapstructure:"default-signifies-exhaustive"`
 }
 
 type GocognitSettings struct {
@@ -558,14 +567,6 @@ type GoHeaderSettings struct {
 
 type GoImportsSettings struct {
 	LocalPrefixes string `mapstructure:"local-prefixes"`
-}
-
-// Deprecated: use MndSettings.
-type GoMndSettings struct {
-	MndSettings `mapstructure:",squash"`
-
-	// Deprecated: use root level settings instead.
-	Settings map[string]map[string]any
 }
 
 type GoModDirectivesSettings struct {
@@ -648,6 +649,11 @@ type GrouperSettings struct {
 	VarRequireGrouping        bool `mapstructure:"var-require-grouping"`
 }
 
+type IfaceSettings struct {
+	Enable   []string                  `mapstructure:"enable"`
+	Settings map[string]map[string]any `mapstructure:"settings"`
+}
+
 type ImportAsSettings struct {
 	Alias          []ImportAsAlias
 	NoUnaliased    bool `mapstructure:"no-unaliased"`
@@ -725,7 +731,8 @@ type NestifSettings struct {
 }
 
 type NilNilSettings struct {
-	CheckedTypes []string `mapstructure:"checked-types"`
+	DetectOpposite bool     `mapstructure:"detect-opposite"`
+	CheckedTypes   []string `mapstructure:"checked-types"`
 }
 
 type NlreturnSettings struct {

@@ -18,6 +18,7 @@ const (
 	name    = "Header"
 )
 
+//nolint:gochecknoglobals // struct is not big, can be skip.
 var Analyzer = &analysis.Analyzer{
 	Name:     "canonicalheader",
 	Doc:      "canonicalheader checks whether net/http.Header uses canonical header",

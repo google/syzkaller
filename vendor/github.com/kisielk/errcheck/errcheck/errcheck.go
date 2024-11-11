@@ -80,7 +80,7 @@ func (r *Result) Append(other Result) {
 	r.UncheckedErrors = append(r.UncheckedErrors, other.UncheckedErrors...)
 }
 
-// Returns the unique errors that have been accumulated. Duplicates may occur
+// Unique returns the unique errors that have been accumulated. Duplicates may occur
 // when a file containing an unchecked error belongs to > 1 package.
 //
 // The method receiver remains unmodified after the call to Unique.
@@ -338,7 +338,7 @@ func (v *visitor) selectorName(call *ast.CallExpr) string {
 // then just that function's fullName is returned.
 //
 // Otherwise, we walk through all the potentially embedded interfaces of the receiver
-// the collect a list of type-qualified function names that we will check.
+// to collect a list of type-qualified function names that we will check.
 func (v *visitor) namesForExcludeCheck(call *ast.CallExpr) []string {
 	sel, fn, ok := v.selectorAndFunc(call)
 	if !ok {
@@ -351,7 +351,7 @@ func (v *visitor) namesForExcludeCheck(call *ast.CallExpr) []string {
 	}
 
 	// This will be missing for functions without a receiver (like fmt.Printf),
-	// so just fall back to the the function's fullName in that case.
+	// so just fall back to the function's fullName in that case.
 	selection, ok := v.typesInfo.Selections[sel]
 	if !ok {
 		return []string{name}
@@ -420,9 +420,9 @@ func (v *visitor) ignoreCall(call *ast.CallExpr) bool {
 	//     2. x.y.f()
 	var id *ast.Ident
 	switch exp := call.Fun.(type) {
-	case (*ast.Ident):
+	case *ast.Ident:
 		id = exp
-	case (*ast.SelectorExpr):
+	case *ast.SelectorExpr:
 		id = exp.Sel
 	default:
 		// eg: *ast.SliceExpr, *ast.IndexExpr
@@ -586,26 +586,38 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 			for _, name := range vspec.Names {
 				lhs = append(lhs, ast.Expr(name))
 			}
-			v.checkAssignment(lhs, vspec.Values)
+			followed := v.checkAssignment(lhs, vspec.Values)
+			if !followed {
+				return nil
+			}
 		}
 
 	case *ast.AssignStmt:
-		v.checkAssignment(stmt.Lhs, stmt.Rhs)
+		followed := v.checkAssignment(stmt.Lhs, stmt.Rhs)
+		if !followed {
+			return nil
+		}
+
+	case *ast.TypeAssertExpr:
+		v.checkAssertExpr(stmt)
+		return nil
 
 	default:
 	}
 	return v
 }
 
-func (v *visitor) checkAssignment(lhs, rhs []ast.Expr) {
+// checkAssignment checks the assignment statement and returns a boolean value
+// indicating whether to continue checking the substructure in AssignStmt or not
+func (v *visitor) checkAssignment(lhs, rhs []ast.Expr) (followed bool) {
 	if len(rhs) == 1 {
 		// single value on rhs; check against lhs identifiers
 		if call, ok := rhs[0].(*ast.CallExpr); ok {
 			if !v.blank {
-				return
+				return true
 			}
 			if v.ignoreCall(call) {
-				return
+				return true
 			}
 			isError := v.errorsByArg(call)
 			for i := 0; i < len(lhs); i++ {
@@ -619,11 +631,11 @@ func (v *visitor) checkAssignment(lhs, rhs []ast.Expr) {
 			}
 		} else if assert, ok := rhs[0].(*ast.TypeAssertExpr); ok {
 			if !v.asserts {
-				return
+				return false
 			}
 			if assert.Type == nil {
 				// type switch
-				return
+				return false
 			}
 			if len(lhs) < 2 {
 				// assertion result not read
@@ -632,6 +644,7 @@ func (v *visitor) checkAssignment(lhs, rhs []ast.Expr) {
 				// assertion result ignored
 				v.addErrorAtPosition(id.NamePos, nil)
 			}
+			return false
 		}
 	} else {
 		// multiple value on rhs; in this case a call can't return
@@ -661,6 +674,19 @@ func (v *visitor) checkAssignment(lhs, rhs []ast.Expr) {
 			}
 		}
 	}
+
+	return true
+}
+
+func (v *visitor) checkAssertExpr(expr *ast.TypeAssertExpr) {
+	if !v.asserts {
+		return
+	}
+	if expr.Type == nil {
+		// type switch
+		return
+	}
+	v.addErrorAtPosition(expr.Pos(), nil)
 }
 
 func isErrorType(t types.Type) bool {
