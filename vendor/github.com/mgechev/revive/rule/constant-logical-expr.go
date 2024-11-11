@@ -41,8 +41,9 @@ func (w *lintConstantLogicalExpr) Visit(node ast.Node) ast.Visitor {
 			return w
 		}
 
-		if gofmt(n.X) != gofmt(n.Y) { // check if subexpressions are the same
-			return w
+		subExpressionsAreNotEqual := gofmt(n.X) != gofmt(n.Y)
+		if subExpressionsAreNotEqual {
+			return w // nothing to say
 		}
 
 		// Handles cases like: a <= a, a == a, a >= a

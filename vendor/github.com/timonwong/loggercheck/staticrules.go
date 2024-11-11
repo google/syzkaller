@@ -39,10 +39,38 @@ var (
 			"github.com/go-kit/log.WithSuffix",
 			"(github.com/go-kit/log.Logger).Log",
 		}),
+		mustNewStaticRuleSet("slog", []string{
+			"log/slog.Group",
+
+			"log/slog.With",
+
+			"log/slog.Debug",
+			"log/slog.Info",
+			"log/slog.Warn",
+			"log/slog.Error",
+
+			"log/slog.DebugContext",
+			"log/slog.InfoContext",
+			"log/slog.WarnContext",
+			"log/slog.ErrorContext",
+
+			"(*log/slog.Logger).With",
+
+			"(*log/slog.Logger).Debug",
+			"(*log/slog.Logger).Info",
+			"(*log/slog.Logger).Warn",
+			"(*log/slog.Logger).Error",
+
+			"(*log/slog.Logger).DebugContext",
+			"(*log/slog.Logger).InfoContext",
+			"(*log/slog.Logger).WarnContext",
+			"(*log/slog.Logger).ErrorContext",
+		}),
 	}
 	checkerByRulesetName = map[string]checkers.Checker{
 		// by default, checkers.General will be used.
-		"zap": checkers.Zap{},
+		"zap":  checkers.Zap{},
+		"slog": checkers.Slog{},
 	}
 )
 

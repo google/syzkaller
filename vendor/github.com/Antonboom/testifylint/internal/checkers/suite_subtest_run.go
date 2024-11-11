@@ -53,7 +53,7 @@ func (checker SuiteSubtestRun) Check(pass *analysis.Pass, insp *inspector.Inspec
 
 		if implementsTestifySuite(pass, tCallSel.X) && implementsTestingT(pass, tCall) {
 			msg := fmt.Sprintf("use %s.Run to run subtest", analysisutil.NodeString(pass.Fset, tCallSel.X))
-			diagnostics = append(diagnostics, *newDiagnostic(checker.Name(), ce, msg, nil))
+			diagnostics = append(diagnostics, *newDiagnostic(checker.Name(), ce, msg))
 		}
 	})
 	return diagnostics

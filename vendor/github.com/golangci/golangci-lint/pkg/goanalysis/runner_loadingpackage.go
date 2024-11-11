@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/scanner"
 	"go/types"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -152,10 +154,15 @@ func (lp *loadingPackage) loadFromSource(loadMode LoadMode) error {
 		return imp.Types, nil
 	}
 
-	// TODO(ldez) temporary workaround
-	rv, err := goutil.CleanRuntimeVersion()
-	if err != nil {
-		return err
+	var goVersion string
+	if pkg.Module != nil && pkg.Module.GoVersion != "" {
+		goVersion = "go" + strings.TrimPrefix(pkg.Module.GoVersion, "go")
+	} else {
+		var err error
+		goVersion, err = goutil.CleanRuntimeVersion()
+		if err != nil {
+			return err
+		}
 	}
 
 	tc := &types.Config{
@@ -163,7 +170,8 @@ func (lp *loadingPackage) loadFromSource(loadMode LoadMode) error {
 		Error: func(err error) {
 			pkg.Errors = append(pkg.Errors, lp.convertError(err)...)
 		},
-		GoVersion: rv, // TODO(ldez) temporary workaround
+		GoVersion: goVersion,
+		Sizes:     types.SizesFor(build.Default.Compiler, build.Default.GOARCH),
 	}
 
 	_ = types.NewChecker(tc, pkg.Fset, pkg.Types, pkg.TypesInfo).Files(pkg.Syntax)

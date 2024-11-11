@@ -19,9 +19,9 @@ var upperCaseConstRE = regexp.MustCompile(`^_?[A-Z][A-Z\d]*(_[A-Z\d]+)*$`)
 // VarNamingRule lints given else constructs.
 type VarNamingRule struct {
 	configured            bool
-	allowlist             []string
-	blocklist             []string
-	upperCaseConst        bool // if true - allows to use UPPER_SOME_NAMES for constants
+	allowList             []string
+	blockList             []string
+	allowUpperCaseConst   bool // if true - allows to use UPPER_SOME_NAMES for constants
 	skipPackageNameChecks bool
 	sync.Mutex
 }
@@ -35,11 +35,11 @@ func (r *VarNamingRule) configure(arguments lint.Arguments) {
 
 	r.configured = true
 	if len(arguments) >= 1 {
-		r.allowlist = getList(arguments[0], "allowlist")
+		r.allowList = getList(arguments[0], "allowlist")
 	}
 
 	if len(arguments) >= 2 {
-		r.blocklist = getList(arguments[1], "blocklist")
+		r.blockList = getList(arguments[1], "blocklist")
 	}
 
 	if len(arguments) >= 3 {
@@ -56,7 +56,7 @@ func (r *VarNamingRule) configure(arguments lint.Arguments) {
 		if !ok {
 			panic(fmt.Sprintf("Invalid third argument to the var-naming rule. Expecting a %s of type slice, of len==1, with map, but %T", "options", asSlice[0]))
 		}
-		r.upperCaseConst = fmt.Sprint(args["upperCaseConst"]) == "true"
+		r.allowUpperCaseConst = fmt.Sprint(args["upperCaseConst"]) == "true"
 		r.skipPackageNameChecks = fmt.Sprint(args["skipPackageNameChecks"]) == "true"
 	}
 }
@@ -79,7 +79,6 @@ func (r *VarNamingRule) applyPackageCheckRules(walker *lintNames) {
 			Category:   "naming",
 		})
 	}
-
 }
 
 // Apply applies the rule to given file.
@@ -93,12 +92,12 @@ func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.
 	walker := lintNames{
 		file:      file,
 		fileAst:   fileAst,
-		allowlist: r.allowlist,
-		blocklist: r.blocklist,
+		allowList: r.allowList,
+		blockList: r.blockList,
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
-		upperCaseConst: r.upperCaseConst,
+		upperCaseConst: r.allowUpperCaseConst,
 	}
 
 	if !r.skipPackageNameChecks {
@@ -151,7 +150,7 @@ func (w *lintNames) check(id *ast.Ident, thing string) {
 		return
 	}
 
-	should := lint.Name(id.Name, w.allowlist, w.blocklist)
+	should := lint.Name(id.Name, w.allowList, w.blockList)
 	if id.Name == should {
 		return
 	}
@@ -177,8 +176,8 @@ type lintNames struct {
 	file           *lint.File
 	fileAst        *ast.File
 	onFailure      func(lint.Failure)
-	allowlist      []string
-	blocklist      []string
+	allowList      []string
+	blockList      []string
 	upperCaseConst bool
 }
 
@@ -265,17 +264,17 @@ func (w *lintNames) Visit(n ast.Node) ast.Visitor {
 }
 
 func getList(arg any, argName string) []string {
-	temp, ok := arg.([]any)
+	args, ok := arg.([]any)
 	if !ok {
 		panic(fmt.Sprintf("Invalid argument to the var-naming rule. Expecting a %s of type slice with initialisms, got %T", argName, arg))
 	}
 	var list []string
-	for _, v := range temp {
-		if val, ok := v.(string); ok {
-			list = append(list, val)
-		} else {
+	for _, v := range args {
+		val, ok := v.(string)
+		if !ok {
 			panic(fmt.Sprintf("Invalid %s values of the var-naming rule. Expecting slice of strings but got element of type %T", val, arg))
 		}
+		list = append(list, val)
 	}
 	return list
 }

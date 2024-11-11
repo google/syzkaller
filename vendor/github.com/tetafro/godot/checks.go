@@ -230,6 +230,8 @@ func isSpecialBlock(comment string) bool {
 		strings.Contains(comment, "#define")) {
 		return true
 	}
+	// This should only be skipped in test files, but we don't have this
+	// information here, so - always skip
 	if strings.HasPrefix(comment, "// Output:") ||
 		strings.HasPrefix(comment, "// Unordered output:") {
 		return true

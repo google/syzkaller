@@ -15,7 +15,8 @@ const (
 	name = "nilnil"
 	doc  = "Checks that there is no simultaneous return of `nil` error and an invalid value."
 
-	reportMsg = "return both the `nil` error and invalid value: use a sentinel error instead"
+	nilNilReportMsg       = "return both a `nil` error and an invalid value: use a sentinel error instead"
+	notNilNotNilReportMsg = "return both a non-nil error and a valid value: use separate returns instead"
 )
 
 // New returns new nilnil analyzer.
@@ -28,18 +29,22 @@ func New() *analysis.Analyzer {
 		Run:      n.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
-	a.Flags.Var(&n.checkedTypes, "checked-types", "coma separated list")
+	a.Flags.Var(&n.checkedTypes, "checked-types", "comma separated list of return types to check")
+	a.Flags.BoolVar(&n.detectOpposite, "detect-opposite", false,
+		"in addition, detect opposite situation (simultaneous return of non-nil error and valid value)")
 
 	return a
 }
 
 type nilNil struct {
-	checkedTypes checkedTypes
+	checkedTypes   checkedTypes
+	detectOpposite bool
 }
 
 func newNilNil() *nilNil {
 	return &nilNil{
-		checkedTypes: newDefaultCheckedTypes(),
+		checkedTypes:   newDefaultCheckedTypes(),
+		detectOpposite: false,
 	}
 }
 
@@ -87,22 +92,22 @@ func (n *nilNil) run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			ok, zv := n.isDangerNilType(fRes1Type)
-			if !(ok && isErrorType(fRes2Type)) {
+			if !(ok && implementsError(fRes2Type)) {
 				return false
 			}
 
 			retVal, retErr := v.Results[0], v.Results[1]
 
-			var needWarn bool
-			switch zv {
-			case zeroValueNil:
-				needWarn = isNil(pass, retVal) && isNil(pass, retErr)
-			case zeroValueZero:
-				needWarn = isZero(retVal) && isNil(pass, retErr)
+			if ((zv == zeroValueNil) && isNil(pass, retVal) && isNil(pass, retErr)) ||
+				((zv == zeroValueZero) && isZero(retVal) && isNil(pass, retErr)) {
+				pass.Reportf(v.Pos(), nilNilReportMsg)
+				return false
 			}
 
-			if needWarn {
-				pass.Reportf(v.Pos(), reportMsg)
+			if n.detectOpposite && (((zv == zeroValueNil) && !isNil(pass, retVal) && !isNil(pass, retErr)) ||
+				((zv == zeroValueZero) && !isZero(retVal) && !isNil(pass, retErr))) {
+				pass.Reportf(v.Pos(), notNilNotNilReportMsg)
+				return false
 			}
 		}
 
@@ -152,7 +157,7 @@ func (n *nilNil) isDangerNilType(t types.Type) (bool, zeroValue) {
 
 var errorIface = types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
 
-func isErrorType(t types.Type) bool {
+func implementsError(t types.Type) bool {
 	_, ok := t.Underlying().(*types.Interface)
 	return ok && types.Implements(t, errorIface)
 }

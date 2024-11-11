@@ -185,9 +185,10 @@ func (lintUnconditionalRecursionRule) hasControlExit(node ast.Node) bool {
 				return false
 			}
 
-			fn := se.Sel.Name
-			pkg := id.Name
-			if exitFunctions[pkg] != nil && exitFunctions[pkg][fn] { // it's a call to an exit function
+			functionName := se.Sel.Name
+			pkgName := id.Name
+			isCallToExitFunction := exitFunctions[pkgName] != nil && exitFunctions[pkgName][functionName]
+			if isCallToExitFunction {
 				return true
 			}
 		}

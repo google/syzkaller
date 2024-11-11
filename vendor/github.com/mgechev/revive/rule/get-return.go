@@ -33,15 +33,25 @@ type lintReturnRule struct {
 	onFailure func(lint.Failure)
 }
 
+const getterPrefix = "GET"
+
+var lenGetterPrefix = len(getterPrefix)
+
 func isGetter(name string) bool {
-	if strings.HasPrefix(strings.ToUpper(name), "GET") {
-		if len(name) > 3 {
-			c := name[3]
-			return !(c >= 'a' && c <= 'z')
-		}
+	nameHasGetterPrefix := strings.HasPrefix(strings.ToUpper(name), getterPrefix)
+	if !nameHasGetterPrefix {
+		return false
 	}
 
-	return false
+	isJustGet := len(name) == lenGetterPrefix
+	if isJustGet {
+		return false
+	}
+
+	c := name[lenGetterPrefix]
+	lowerCaseAfterGetterPrefix := c >= 'a' && c <= 'z'
+
+	return !lowerCaseAfterGetterPrefix
 }
 
 func hasResults(rs *ast.FieldList) bool {

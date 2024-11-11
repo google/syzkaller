@@ -73,9 +73,10 @@ func (w lintDeepExit) Visit(node ast.Node) ast.Visitor {
 		return w
 	}
 
-	fn := fc.Sel.Name
 	pkg := id.Name
-	if w.exitFunctions[pkg] != nil && w.exitFunctions[pkg][fn] { // it's a call to an exit function
+	fn := fc.Sel.Name
+	isACallToExitFunction := w.exitFunctions[pkg] != nil && w.exitFunctions[pkg][fn]
+	if isACallToExitFunction {
 		w.onFailure(lint.Failure{
 			Confidence: 1,
 			Node:       ce,

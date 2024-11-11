@@ -87,7 +87,7 @@ func newErrorHandler(failOnErrorFlag string) (*parseErrorHandler, error) {
 	failOnErrorPredicates := map[string]func(error) bool{
 		"dsl":    func(err error) bool { var e *ruleguard.ImportError; return !errors.As(err, &e) },
 		"import": func(err error) bool { var e *ruleguard.ImportError; return errors.As(err, &e) },
-		"all":    func(err error) bool { return true },
+		"all":    func(_ error) bool { return true },
 	}
 	for _, k := range strings.Split(failOnErrorFlag, ",") {
 		if k == "" {

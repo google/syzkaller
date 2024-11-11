@@ -2,6 +2,7 @@ package rule
 
 import (
 	"fmt"
+
 	"github.com/mgechev/revive/internal/ifelse"
 	"github.com/mgechev/revive/lint"
 )
@@ -19,27 +20,27 @@ func (*SuperfluousElseRule) Name() string {
 	return "superfluous-else"
 }
 
-// CheckIfElse evaluates the rule against an ifelse.Chain.
-func (*SuperfluousElseRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
+// CheckIfElse evaluates the rule against an ifelse.Chain and returns a failure message if applicable.
+func (*SuperfluousElseRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) string {
 	if !chain.If.Deviates() {
 		// this rule only applies if the if-block deviates control flow
-		return
+		return ""
 	}
 
 	if chain.HasPriorNonDeviating {
 		// if we de-indent the "else" block then a previous branch
 		// might flow into it, affecting program behaviour
-		return
+		return ""
 	}
 
 	if chain.If.Returns() {
 		// avoid overlapping with indent-error-flow
-		return
+		return ""
 	}
 
 	if args.PreserveScope && !chain.AtBlockEnd && (chain.HasInitializer || chain.Else.HasDecls) {
 		// avoid increasing variable scope
-		return
+		return ""
 	}
 
 	return fmt.Sprintf("if block ends with %v, so drop this else and outdent its block", chain.If.LongString())

@@ -1,8 +1,6 @@
 package checkers
 
 import (
-	"fmt"
-	"go/ast"
 	"go/types"
 	"strconv"
 
@@ -60,7 +58,7 @@ func (checker Formatter) Check(pass *analysis.Pass, call *CallMeta) (result *ana
 }
 
 func (checker Formatter) checkNotFmtAssertion(pass *analysis.Pass, call *CallMeta) *analysis.Diagnostic {
-	msgAndArgsPos, ok := isPrintfLikeCall(pass, call, call.Fn.Signature)
+	msgAndArgsPos, ok := isPrintfLikeCall(pass, call)
 	if !ok {
 		return nil
 	}
@@ -71,21 +69,15 @@ func (checker Formatter) checkNotFmtAssertion(pass *analysis.Pass, call *CallMet
 		msgAndArgs := call.ArgsRaw[msgAndArgsPos]
 		if args, ok := isFmtSprintfCall(pass, msgAndArgs); ok {
 			if checker.requireFFuncs {
-				msg := fmt.Sprintf("remove unnecessary fmt.Sprintf and use %s.%s", call.SelectorXStr, fFunc)
-				return newDiagnostic(checker.Name(), call, msg,
-					newSuggestedFuncReplacement(call, fFunc, analysis.TextEdit{
-						Pos:     msgAndArgs.Pos(),
-						End:     msgAndArgs.End(),
-						NewText: formatAsCallArgs(pass, args...),
-					}),
-				)
+				return newRemoveFnAndUseDiagnostic(pass, checker.Name(), call, fFunc,
+					"fmt.Sprintf", msgAndArgs, args...)
 			}
 			return newRemoveSprintfDiagnostic(pass, checker.Name(), call, msgAndArgs, args)
 		}
 	}
 
 	if checker.requireFFuncs {
-		return newUseFunctionDiagnostic(checker.Name(), call, fFunc, newSuggestedFuncReplacement(call, fFunc))
+		return newUseFunctionDiagnostic(checker.Name(), call, fFunc)
 	}
 	return nil
 }
@@ -109,7 +101,7 @@ func (checker Formatter) checkFmtAssertion(pass *analysis.Pass, call *CallMeta) 
 		defer func() { pass.Report = report }()
 
 		pass.Report = func(d analysis.Diagnostic) {
-			result = newDiagnostic(checker.Name(), call, d.Message, nil)
+			result = newDiagnostic(checker.Name(), call, d.Message)
 		}
 
 		format, err := strconv.Unquote(analysisutil.NodeString(pass.Fset, msg))
@@ -121,19 +113,49 @@ func (checker Formatter) checkFmtAssertion(pass *analysis.Pass, call *CallMeta) 
 	return result
 }
 
-func isPrintfLikeCall(pass *analysis.Pass, call *CallMeta, sig *types.Signature) (int, bool) {
-	msgAndArgsPos := getMsgAndArgsPosition(sig)
+func isPrintfLikeCall(pass *analysis.Pass, call *CallMeta) (int, bool) {
+	msgAndArgsPos := getMsgAndArgsPosition(call.Fn.Signature)
 	if msgAndArgsPos < 0 {
 		return -1, false
 	}
 
-	fmtFn := analysisutil.ObjectOf(pass.Pkg, testify.AssertPkgPath, call.Fn.Name+"f")
-	if fmtFn == nil {
-		// NOTE(a.telyshev): No formatted analogue of assertion.
+	if !assertHasFormattedAnalogue(pass, call) {
 		return -1, false
 	}
 
 	return msgAndArgsPos, len(call.ArgsRaw) > msgAndArgsPos
+}
+
+func assertHasFormattedAnalogue(pass *analysis.Pass, call *CallMeta) bool {
+	if fn := analysisutil.ObjectOf(pass.Pkg, testify.AssertPkgPath, call.Fn.Name+"f"); fn != nil {
+		return true
+	}
+
+	if fn := analysisutil.ObjectOf(pass.Pkg, testify.RequirePkgPath, call.Fn.Name+"f"); fn != nil {
+		return true
+	}
+
+	recv := call.Fn.Signature.Recv()
+	if recv == nil {
+		return false
+	}
+
+	recvT := recv.Type()
+	if ptr, ok := recv.Type().(*types.Pointer); ok {
+		recvT = ptr.Elem()
+	}
+
+	suite, ok := recvT.(*types.Named)
+	if !ok {
+		return false
+	}
+	for i := 0; i < suite.NumMethods(); i++ {
+		if suite.Method(i).Name() == call.Fn.Name+"f" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func getMsgAndArgsPosition(sig *types.Signature) int {
@@ -161,27 +183,4 @@ func getMsgPosition(sig *types.Signature) int {
 		}
 	}
 	return -1
-}
-
-func isFmtSprintfCall(pass *analysis.Pass, expr ast.Expr) ([]ast.Expr, bool) {
-	ce, ok := expr.(*ast.CallExpr)
-	if !ok {
-		return nil, false
-	}
-
-	se, ok := ce.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return nil, false
-	}
-
-	sprintfObj := analysisutil.ObjectOf(pass.Pkg, "fmt", "Sprintf")
-	if sprintfObj == nil {
-		return nil, false
-	}
-
-	if !analysisutil.IsObj(pass.TypesInfo, se.Sel, sprintfObj) {
-		return nil, false
-	}
-
-	return ce.Args, true
 }

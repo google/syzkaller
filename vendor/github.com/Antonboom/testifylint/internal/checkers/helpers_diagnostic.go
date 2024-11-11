@@ -7,11 +7,32 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+func newRemoveFnAndUseDiagnostic(
+	pass *analysis.Pass,
+	checker string,
+	call *CallMeta,
+	proposedFn string,
+	removedFn string,
+	removedFnPos analysis.Range,
+	removedFnArgs ...ast.Expr,
+) *analysis.Diagnostic {
+	f := proposedFn
+	if call.Fn.IsFmt {
+		f += "f"
+	}
+	msg := fmt.Sprintf("remove unnecessary %s and use %s.%s", removedFn, call.SelectorXStr, f)
+
+	return newDiagnostic(checker, call, msg,
+		newSuggestedFuncRemoving(pass, removedFn, removedFnPos, removedFnArgs...),
+		newSuggestedFuncReplacement(call, proposedFn),
+	)
+}
+
 func newUseFunctionDiagnostic(
 	checker string,
 	call *CallMeta,
 	proposedFn string,
-	fix *analysis.SuggestedFix,
+	additionalEdits ...analysis.TextEdit,
 ) *analysis.Diagnostic {
 	f := proposedFn
 	if call.Fn.IsFmt {
@@ -19,33 +40,57 @@ func newUseFunctionDiagnostic(
 	}
 	msg := fmt.Sprintf("use %s.%s", call.SelectorXStr, f)
 
-	return newDiagnostic(checker, call, msg, fix)
+	return newDiagnostic(checker, call, msg,
+		newSuggestedFuncReplacement(call, proposedFn, additionalEdits...))
+}
+
+func newRemoveLenDiagnostic(
+	pass *analysis.Pass,
+	checker string,
+	call *CallMeta,
+	fnPos analysis.Range,
+	fnArg ast.Expr,
+) *analysis.Diagnostic {
+	return newRemoveFnDiagnostic(pass, checker, call, "len", fnPos, fnArg)
+}
+
+func newRemoveMustCompileDiagnostic(
+	pass *analysis.Pass,
+	checker string,
+	call *CallMeta,
+	fnPos analysis.Range,
+	fnArg ast.Expr,
+) *analysis.Diagnostic {
+	return newRemoveFnDiagnostic(pass, checker, call, "regexp.MustCompile", fnPos, fnArg)
 }
 
 func newRemoveSprintfDiagnostic(
 	pass *analysis.Pass,
 	checker string,
 	call *CallMeta,
-	sprintfPos analysis.Range,
-	sprintfArgs []ast.Expr,
+	fnPos analysis.Range,
+	fnArgs []ast.Expr,
 ) *analysis.Diagnostic {
-	return newDiagnostic(checker, call, "remove unnecessary fmt.Sprintf", &analysis.SuggestedFix{
-		Message: "Remove `fmt.Sprintf`",
-		TextEdits: []analysis.TextEdit{
-			{
-				Pos:     sprintfPos.Pos(),
-				End:     sprintfPos.End(),
-				NewText: formatAsCallArgs(pass, sprintfArgs...),
-			},
-		},
-	})
+	return newRemoveFnDiagnostic(pass, checker, call, "fmt.Sprintf", fnPos, fnArgs...)
+}
+
+func newRemoveFnDiagnostic(
+	pass *analysis.Pass,
+	checker string,
+	call *CallMeta,
+	fnName string,
+	fnPos analysis.Range,
+	fnArgs ...ast.Expr,
+) *analysis.Diagnostic {
+	return newDiagnostic(checker, call, "remove unnecessary "+fnName,
+		newSuggestedFuncRemoving(pass, fnName, fnPos, fnArgs...))
 }
 
 func newDiagnostic(
 	checker string,
 	rng analysis.Range,
 	msg string,
-	fix *analysis.SuggestedFix,
+	fixes ...analysis.SuggestedFix,
 ) *analysis.Diagnostic {
 	d := analysis.Diagnostic{
 		Pos:      rng.Pos(),
@@ -53,21 +98,39 @@ func newDiagnostic(
 		Category: checker,
 		Message:  checker + ": " + msg,
 	}
-	if fix != nil {
-		d.SuggestedFixes = []analysis.SuggestedFix{*fix}
+	if len(fixes) != 0 {
+		d.SuggestedFixes = fixes
 	}
 	return &d
+}
+
+func newSuggestedFuncRemoving(
+	pass *analysis.Pass,
+	fnName string,
+	fnPos analysis.Range,
+	fnArgs ...ast.Expr,
+) analysis.SuggestedFix {
+	return analysis.SuggestedFix{
+		Message: fmt.Sprintf("Remove `%s`", fnName),
+		TextEdits: []analysis.TextEdit{
+			{
+				Pos:     fnPos.Pos(),
+				End:     fnPos.End(),
+				NewText: formatAsCallArgs(pass, fnArgs...),
+			},
+		},
+	}
 }
 
 func newSuggestedFuncReplacement(
 	call *CallMeta,
 	proposedFn string,
 	additionalEdits ...analysis.TextEdit,
-) *analysis.SuggestedFix {
+) analysis.SuggestedFix {
 	if call.Fn.IsFmt {
 		proposedFn += "f"
 	}
-	return &analysis.SuggestedFix{
+	return analysis.SuggestedFix{
 		Message: fmt.Sprintf("Replace `%s` with `%s`", call.Fn.Name, proposedFn),
 		TextEdits: append([]analysis.TextEdit{
 			{

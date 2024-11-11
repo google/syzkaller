@@ -19,9 +19,13 @@ var (
 	skipTests      bool
 )
 
+const (
+	defaultMaxComplexity = 10
+)
+
 //nolint:gochecknoinits
 func init() {
-	flagSet.IntVar(&maxComplexity, "maxComplexity", 10, "max complexity the function can have")
+	flagSet.IntVar(&maxComplexity, "maxComplexity", defaultMaxComplexity, "max complexity the function can have")
 	flagSet.Float64Var(&packageAverage, "packageAverage", 0, "max average complexity in package")
 	flagSet.BoolVar(&skipTests, "skipTests", false, "should the linter execute on test files as well")
 }
@@ -29,7 +33,7 @@ func init() {
 func NewAnalyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:  "cyclop",
-		Doc:   "calculates cyclomatic complexity",
+		Doc:   "checks function and package cyclomatic complexity",
 		Run:   run,
 		Flags: flagSet,
 	}
@@ -40,9 +44,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	var pkgName string
 	var pkgPos token.Pos
 
-	for _, f := range pass.Files {
-		ast.Inspect(f, func(node ast.Node) bool {
-			f, ok := node.(*ast.FuncDecl)
+	for _, file := range pass.Files {
+		ast.Inspect(file, func(node ast.Node) bool {
+			funcDecl, ok := node.(*ast.FuncDecl)
 			if !ok {
 				if node == nil {
 					return true
@@ -55,15 +59,15 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return true
 			}
 
-			if skipTests && testFunc(f) {
+			if skipTests && testFunc(funcDecl) {
 				return true
 			}
 
 			count++
-			comp := complexity(f)
+			comp := complexity(funcDecl)
 			sum += float64(comp)
 			if comp > maxComplexity {
-				pass.Reportf(node.Pos(), "calculated cyclomatic complexity for function %s is %d, max is %d", f.Name.Name, comp, maxComplexity)
+				pass.Reportf(node.Pos(), "calculated cyclomatic complexity for function %s is %d, max is %d", funcDecl.Name.Name, comp, maxComplexity)
 			}
 
 			return true

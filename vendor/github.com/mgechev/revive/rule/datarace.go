@@ -80,7 +80,7 @@ func (w lintFunctionForDataRaces) Visit(node ast.Node) ast.Visitor {
 			return nil
 		}
 
-		getIds := func(exprs ...ast.Expr) []*ast.Ident {
+		getIDs := func(exprs ...ast.Expr) []*ast.Ident {
 			r := []*ast.Ident{}
 			for _, expr := range exprs {
 				if id, ok := expr.(*ast.Ident); ok {
@@ -90,7 +90,7 @@ func (w lintFunctionForDataRaces) Visit(node ast.Node) ast.Visitor {
 			return r
 		}
 
-		ids := getIds(n.Key, n.Value)
+		ids := getIDs(n.Key, n.Value)
 		for _, id := range ids {
 			w.rangeIDs[id.Obj] = struct{}{}
 		}

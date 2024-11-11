@@ -53,7 +53,7 @@ func (checker BlankImport) Check(pass *analysis.Pass, _ *inspector.Inspector) (d
 			}
 
 			msg := fmt.Sprintf("avoid blank import of %s as it does nothing", pkg)
-			diagnostics = append(diagnostics, *newDiagnostic(checker.Name(), imp, msg, nil))
+			diagnostics = append(diagnostics, *newDiagnostic(checker.Name(), imp, msg))
 		}
 	}
 	return diagnostics

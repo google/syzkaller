@@ -213,9 +213,9 @@ func isFormatter(typ types.Type) bool {
 		types.Identical(sig.Params().At(1).Type(), types.Typ[types.Rune])
 }
 
-// isTypeParam reports whether t is a type parameter.
+// isTypeParam reports whether t is a type parameter (or an alias of one).
 func isTypeParam(t types.Type) bool {
-	_, ok := t.(*types.TypeParam)
+	_, ok := types.Unalias(t).(*types.TypeParam)
 	return ok
 }
 
@@ -224,7 +224,7 @@ func isTypeParam(t types.Type) bool {
 // This function avoids allocating the concatenation of "pkg.Name",
 // which is important for the performance of syntax matching.
 func isNamedType(t types.Type, pkgPath string, names ...string) bool {
-	n, ok := t.(*types.Named)
+	n, ok := types.Unalias(t).(*types.Named)
 	if !ok {
 		return false
 	}

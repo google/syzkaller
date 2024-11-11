@@ -19,20 +19,24 @@ const defaultResultsLimit = 3
 func (r *FunctionResultsLimitRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.max == 0 {
-		if len(arguments) < 1 {
-			r.max = defaultResultsLimit
-			return
-		}
-		max, ok := arguments[0].(int64) // Alt. non panicking version
-		if !ok {
-			panic(fmt.Sprintf(`invalid value passed as return results number to the "function-result-limit" rule; need int64 but got %T`, arguments[0]))
-		}
-		if max < 0 {
-			panic(`the value passed as return results number to the "function-result-limit" rule cannot be negative`)
-		}
-		r.max = int(max)
+	if r.max != 0 {
+		return // already configured
 	}
+
+	if len(arguments) < 1 {
+		r.max = defaultResultsLimit
+		return
+	}
+
+	maxResults, ok := arguments[0].(int64) // Alt. non panicking version
+	if !ok {
+		panic(fmt.Sprintf(`invalid value passed as return results number to the "function-result-limit" rule; need int64 but got %T`, arguments[0]))
+	}
+	if maxResults < 0 {
+		panic(`the value passed as return results number to the "function-result-limit" rule cannot be negative`)
+	}
+
+	r.max = int(maxResults)
 }
 
 // Apply applies the rule to given file.
@@ -67,7 +71,8 @@ func (w lintFunctionResultsNum) Visit(n ast.Node) ast.Visitor {
 	node, ok := n.(*ast.FuncDecl)
 	if ok {
 		num := 0
-		if node.Type.Results != nil {
+		hasResults := node.Type.Results != nil
+		if hasResults {
 			num = node.Type.Results.NumFields()
 		}
 		if num > w.max {
@@ -76,8 +81,10 @@ func (w lintFunctionResultsNum) Visit(n ast.Node) ast.Visitor {
 				Failure:    fmt.Sprintf("maximum number of return results per function exceeded; max %d but got %d", w.max, num),
 				Node:       node.Type,
 			})
-			return w
 		}
+
+		return nil // skip visiting function's body
 	}
+
 	return w
 }

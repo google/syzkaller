@@ -17,7 +17,7 @@ type WalkHandler struct {
 
 // EnterFile is a default walkerEvents.EnterFile implementation
 // that reports every file as accepted candidate for checking.
-func (w *WalkHandler) EnterFile(f *ast.File) bool {
+func (w *WalkHandler) EnterFile(_ *ast.File) bool {
 	return true
 }
 

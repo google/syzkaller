@@ -2,6 +2,7 @@ package analysisutil
 
 import (
 	"go/ast"
+	"slices"
 	"strconv"
 )
 
@@ -17,11 +18,8 @@ func Imports(file *ast.File, pkgs ...string) bool {
 		if err != nil {
 			continue
 		}
-		// NOTE(a.telyshev): Don't use `slices.Contains` to keep the minimum module version 1.20.
-		for _, pkg := range pkgs { // Small O(n).
-			if pkg == path {
-				return true
-			}
+		if slices.Contains(pkgs, path) { // Small O(n).
+			return true
 		}
 	}
 	return false

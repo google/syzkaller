@@ -45,7 +45,6 @@ func (w *lintBoolLiteral) Visit(node ast.Node) ast.Visitor {
 		lexeme, ok := isExprABooleanLit(n.X)
 		if !ok {
 			lexeme, ok = isExprABooleanLit(n.Y)
-
 			if !ok {
 				return w
 			}

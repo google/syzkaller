@@ -6,11 +6,10 @@ import (
 	"go/printer"
 	"go/token"
 	"go/types"
+	"strings"
 	"unicode/utf8"
 
 	"golang.org/x/tools/go/analysis"
-
-	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 )
 
 const (
@@ -31,9 +30,7 @@ func extractValueFromStringArg(pass *analysis.Pass, arg ast.Expr) (value string,
 func renderNodeEllipsis(fset *token.FileSet, v interface{}) string {
 	const maxLen = 20
 
-	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
-
+	buf := &strings.Builder{}
 	_ = printer.Fprint(buf, fset, v)
 	s := buf.String()
 	if utf8.RuneCountInString(s) > maxLen {

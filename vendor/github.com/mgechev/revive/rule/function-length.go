@@ -20,12 +20,14 @@ type FunctionLength struct {
 func (r *FunctionLength) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if !r.configured {
-		maxStmt, maxLines := r.parseArguments(arguments)
-		r.maxStmt = int(maxStmt)
-		r.maxLines = int(maxLines)
-		r.configured = true
+	if r.configured {
+		return
 	}
+
+	r.configured = true
+	maxStmt, maxLines := r.parseArguments(arguments)
+	r.maxStmt = int(maxStmt)
+	r.maxLines = int(maxLines)
 }
 
 // Apply applies the rule to given file.
@@ -61,8 +63,9 @@ func (*FunctionLength) parseArguments(arguments lint.Arguments) (maxStmt, maxLin
 		return defaultFuncStmtsLimit, defaultFuncLinesLimit
 	}
 
-	if len(arguments) != 2 {
-		panic(fmt.Sprintf(`invalid configuration for "function-length" rule, expected 2 arguments but got %d`, len(arguments)))
+	const minArguments = 2
+	if len(arguments) != minArguments {
+		panic(fmt.Sprintf(`invalid configuration for "function-length" rule, expected %d arguments but got %d`, minArguments, len(arguments)))
 	}
 
 	maxStmt, maxStmtOk := arguments[0].(int64)
@@ -98,7 +101,8 @@ func (w lintFuncLength) Visit(n ast.Node) ast.Visitor {
 	}
 
 	body := node.Body
-	if body == nil || len(node.Body.List) == 0 {
+	emptyBody := body == nil || len(node.Body.List) == 0
+	if emptyBody {
 		return nil
 	}
 

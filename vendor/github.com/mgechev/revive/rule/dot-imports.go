@@ -59,16 +59,16 @@ func (r *DotImportsRule) configure(arguments lint.Arguments) {
 	}
 
 	if allowedPkgArg, ok := args["allowedPackages"]; ok {
-		if pkgs, ok := allowedPkgArg.([]any); ok {
-			for _, p := range pkgs {
-				if pkg, ok := p.(string); ok {
-					r.allowedPackages.add(pkg)
-				} else {
-					panic(fmt.Sprintf("Invalid argument to the dot-imports rule, string expected. Got '%v' (%T)", p, p))
-				}
-			}
-		} else {
+		pkgs, ok := allowedPkgArg.([]any)
+		if !ok {
 			panic(fmt.Sprintf("Invalid argument to the dot-imports rule, []string expected. Got '%v' (%T)", allowedPkgArg, allowedPkgArg))
+		}
+		for _, p := range pkgs {
+			pkg, ok := p.(string)
+			if !ok {
+				panic(fmt.Sprintf("Invalid argument to the dot-imports rule, string expected. Got '%v' (%T)", p, p))
+			}
+			r.allowedPackages.add(pkg)
 		}
 	}
 }
@@ -81,12 +81,13 @@ type lintImports struct {
 }
 
 func (w lintImports) Visit(_ ast.Node) ast.Visitor {
-	for _, is := range w.fileAst.Imports {
-		if is.Name != nil && is.Name.Name == "." && !w.allowPackages.isAllowedPackage(is.Path.Value) {
+	for _, importSpec := range w.fileAst.Imports {
+		isDotImport := importSpec.Name != nil && importSpec.Name.Name == "."
+		if isDotImport && !w.allowPackages.isAllowedPackage(importSpec.Path.Value) {
 			w.onFailure(lint.Failure{
 				Confidence: 1,
 				Failure:    "should not use dot imports",
-				Node:       is,
+				Node:       importSpec,
 				Category:   "imports",
 			})
 		}

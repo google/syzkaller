@@ -2078,18 +2078,21 @@ type Dataset struct {
 	// value can be from 48 to 168 hours (2 to 7 days). The default value is 168
 	// hours if this is not set.
 	MaxTimeTravelHours int64 `json:"maxTimeTravelHours,omitempty,string"`
-	// ResourceTags: Optional. The tags (/bigquery/docs/tags) attached to this
-	// dataset. Tag keys are globally unique. Tag key is expected to be in the
-	// namespaced format, for example "123456789012/environment" where 123456789012
-	// is the ID of the parent organization or project resource for this tag key.
-	// Tag value is expected to be the short name, for example "Production". See
-	// Tag definitions (/iam/docs/tags-access-control#definitions) for more
+	// ResourceTags: Optional. The tags
+	// (https://cloud.google.com/bigquery/docs/tags) attached to this dataset. Tag
+	// keys are globally unique. Tag key is expected to be in the namespaced
+	// format, for example "123456789012/environment" where 123456789012 is the ID
+	// of the parent organization or project resource for this tag key. Tag value
+	// is expected to be the short name, for example "Production". See Tag
+	// definitions
+	// (https://cloud.google.com/iam/docs/tags-access-control#definitions) for more
 	// details.
 	ResourceTags map[string]string `json:"resourceTags,omitempty"`
 	// Restrictions: Optional. Output only. Restriction config for all tables and
 	// dataset. If set, restrict certain accesses on the dataset and all its tables
 	// based on the config. See Data egress
-	// (/bigquery/docs/analytics-hub-introduction#data_egress) for more details.
+	// (https://cloud.google.com/bigquery/docs/analytics-hub-introduction#data_egress)
+	// for more details.
 	Restrictions *RestrictionConfig `json:"restrictions,omitempty"`
 	// SatisfiesPzi: Output only. Reserved for future use.
 	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
@@ -3829,8 +3832,8 @@ func (s HparamSearchSpaces) MarshalJSON() ([]byte, error) {
 }
 
 // HparamTuningTrial: Training info of a trial in hyperparameter tuning
-// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-// w) models.
+// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+// models.
 type HparamTuningTrial struct {
 	// EndTimeMs: Ending time of the trial.
 	EndTimeMs int64 `json:"endTimeMs,omitempty,string"`
@@ -3949,6 +3952,8 @@ type IndexUnusedReason struct {
 	// search function that cannot make use of the index has been selected.
 	//   "QUERY_CACHE_HIT" - Indicates that the query was cached, and thus the
 	// search index was not used.
+	//   "STALE_INDEX" - The index cannot be used in the search query because it is
+	// stale.
 	//   "INTERNAL_ERROR" - Indicates an internal error that causes the search
 	// index to be unused.
 	//   "OTHER_REASON" - Indicates that the reason search indexes cannot be used
@@ -4190,7 +4195,7 @@ type Job struct {
 	// Id: Output only. Opaque ID field of the job.
 	Id string `json:"id,omitempty"`
 	// JobCreationReason: Output only. The reason why a Job was created. Preview
-	// (/products/#product-launch-stages)
+	// (https://cloud.google.com/products/#product-launch-stages)
 	JobCreationReason *JobCreationReason `json:"jobCreationReason,omitempty"`
 	// JobReference: Optional. Reference describing the unique-per-user name of the
 	// job.
@@ -4894,7 +4899,7 @@ func (s JobConfigurationTableCopy) MarshalJSON() ([]byte, error) {
 // when used with `JOB_CREATION_OPTIONAL` Job creation mode. For `jobs.insert`
 // (https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/insert)
 // method calls it will always be `REQUESTED`. Preview
-// (/products/#product-launch-stages)
+// (https://cloud.google.com/products/#product-launch-stages)
 type JobCreationReason struct {
 	// Code: Output only. Specifies the high level reason why a Job was created.
 	//
@@ -5267,93 +5272,90 @@ type JobStatistics2 struct {
 	SparkStatistics *SparkStatistics `json:"sparkStatistics,omitempty"`
 	// StatementType: Output only. The type of query statement, if valid. Possible
 	// values: * `SELECT`: `SELECT`
-	// (/bigquery/docs/reference/standard-sql/query-syntax#select_list) statement.
-	// * `ASSERT`: `ASSERT`
-	// (/bigquery/docs/reference/standard-sql/debugging-statements#assert)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_list)
+	// statement. * `ASSERT`: `ASSERT`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/debugging-statements#assert)
 	// statement. * `INSERT`: `INSERT`
-	// (/bigquery/docs/reference/standard-sql/dml-syntax#insert_statement)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/dml-syntax#insert_statement)
 	// statement. * `UPDATE`: `UPDATE`
-	// (/bigquery/docs/reference/standard-sql/query-syntax#update_statement)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#update_statement)
 	// statement. * `DELETE`: `DELETE`
-	// (/bigquery/docs/reference/standard-sql/data-manipulation-language)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language)
 	// statement. * `MERGE`: `MERGE`
-	// (/bigquery/docs/reference/standard-sql/data-manipulation-language)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language)
 	// statement. * `CREATE_TABLE`: `CREATE TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_table_
-	// statement) statement, without `AS SELECT`. * `CREATE_TABLE_AS_SELECT`:
-	// `CREATE TABLE AS SELECT`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#query_stateme
-	// nt) statement. * `CREATE_VIEW`: `CREATE VIEW`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_view_s
-	// tatement) statement. * `CREATE_MODEL`: `CREATE MODEL`
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create#create_mod
-	// el_statement) statement. * `CREATE_MATERIALIZED_VIEW`: `CREATE MATERIALIZED
-	// VIEW`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_materi
-	// alized_view_statement) statement. * `CREATE_FUNCTION`: `CREATE FUNCTION`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_functi
-	// on_statement) statement. * `CREATE_TABLE_FUNCTION`: `CREATE TABLE FUNCTION`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_table_
-	// function_statement) statement. * `CREATE_PROCEDURE`: `CREATE PROCEDURE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_proced
-	// ure) statement. * `CREATE_ROW_ACCESS_POLICY`: `CREATE ROW ACCESS POLICY`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_row_ac
-	// cess_policy_statement) statement. * `CREATE_SCHEMA`: `CREATE SCHEMA`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_schema
-	// _statement) statement. * `CREATE_SNAPSHOT_TABLE`: `CREATE SNAPSHOT TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_snapsh
-	// ot_table_statement) statement. * `CREATE_SEARCH_INDEX`: `CREATE SEARCH
-	// INDEX`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_search
-	// _index_statement) statement. * `DROP_TABLE`: `DROP TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_table_st
-	// atement) statement. * `DROP_EXTERNAL_TABLE`: `DROP EXTERNAL TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_external
-	// _table_statement) statement. * `DROP_VIEW`: `DROP VIEW`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_view_sta
-	// tement) statement. * `DROP_MODEL`: `DROP MODEL`
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-drop-model)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_table_statement)
+	// statement, without `AS SELECT`. * `CREATE_TABLE_AS_SELECT`: `CREATE TABLE AS
+	// SELECT`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#query_statement)
+	// statement. * `CREATE_VIEW`: `CREATE VIEW`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_view_statement)
+	// statement. * `CREATE_MODEL`: `CREATE MODEL`
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create#create_model_statement)
+	// statement. * `CREATE_MATERIALIZED_VIEW`: `CREATE MATERIALIZED VIEW`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_materialized_view_statement)
+	// statement. * `CREATE_FUNCTION`: `CREATE FUNCTION`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_function_statement)
+	// statement. * `CREATE_TABLE_FUNCTION`: `CREATE TABLE FUNCTION`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_table_function_statement)
+	// statement. * `CREATE_PROCEDURE`: `CREATE PROCEDURE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_procedure)
+	// statement. * `CREATE_ROW_ACCESS_POLICY`: `CREATE ROW ACCESS POLICY`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_row_access_policy_statement)
+	// statement. * `CREATE_SCHEMA`: `CREATE SCHEMA`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_schema_statement)
+	// statement. * `CREATE_SNAPSHOT_TABLE`: `CREATE SNAPSHOT TABLE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_snapshot_table_statement)
+	// statement. * `CREATE_SEARCH_INDEX`: `CREATE SEARCH INDEX`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_search_index_statement)
+	// statement. * `DROP_TABLE`: `DROP TABLE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_table_statement)
+	// statement. * `DROP_EXTERNAL_TABLE`: `DROP EXTERNAL TABLE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_external_table_statement)
+	// statement. * `DROP_VIEW`: `DROP VIEW`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_view_statement)
+	// statement. * `DROP_MODEL`: `DROP MODEL`
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-drop-model)
 	// statement. * `DROP_MATERIALIZED_VIEW`: `DROP MATERIALIZED VIEW`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_material
-	// ized_view_statement) statement. * `DROP_FUNCTION` : `DROP FUNCTION`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_function
-	// _statement) statement. * `DROP_TABLE_FUNCTION` : `DROP TABLE FUNCTION`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_table_fu
-	// nction) statement. * `DROP_PROCEDURE`: `DROP PROCEDURE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_procedur
-	// e_statement) statement. * `DROP_SEARCH_INDEX`: `DROP SEARCH INDEX`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_search_i
-	// ndex) statement. * `DROP_SCHEMA`: `DROP SCHEMA`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_schema_s
-	// tatement) statement. * `DROP_SNAPSHOT_TABLE`: `DROP SNAPSHOT TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_snapshot
-	// _table_statement) statement. * `DROP_ROW_ACCESS_POLICY`: [`DROP ALL] ROW
-	// ACCESS POLICY|POLICIES`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#drop_row_acce
-	// ss_policy_statement) statement. * `ALTER_TABLE`: `ALTER TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#alter_table_s
-	// et_options_statement) statement. * `ALTER_VIEW`: `ALTER VIEW`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#alter_view_se
-	// t_options_statement) statement. * `ALTER_MATERIALIZED_VIEW`: `ALTER
-	// MATERIALIZED VIEW`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#alter_materia
-	// lized_view_set_options_statement) statement. * `ALTER_SCHEMA`: `ALTER
-	// SCHEMA`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#aalter_schema
-	// _set_options_statement) statement. * `SCRIPT`: `SCRIPT`
-	// (/bigquery/docs/reference/standard-sql/procedural-language). *
-	// `TRUNCATE_TABLE`: `TRUNCATE TABLE`
-	// (/bigquery/docs/reference/standard-sql/dml-syntax#truncate_table_statement)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_materialized_view_statement)
+	// statement. * `DROP_FUNCTION` : `DROP FUNCTION`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_function_statement)
+	// statement. * `DROP_TABLE_FUNCTION` : `DROP TABLE FUNCTION`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_table_function)
+	// statement. * `DROP_PROCEDURE`: `DROP PROCEDURE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_procedure_statement)
+	// statement. * `DROP_SEARCH_INDEX`: `DROP SEARCH INDEX`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_search_index)
+	// statement. * `DROP_SCHEMA`: `DROP SCHEMA`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_schema_statement)
+	// statement. * `DROP_SNAPSHOT_TABLE`: `DROP SNAPSHOT TABLE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_snapshot_table_statement)
+	// statement. * `DROP_ROW_ACCESS_POLICY`: [`DROP ALL] ROW ACCESS
+	// POLICY|POLICIES`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#drop_row_access_policy_statement)
+	// statement. * `ALTER_TABLE`: `ALTER TABLE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#alter_table_set_options_statement)
+	// statement. * `ALTER_VIEW`: `ALTER VIEW`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#alter_view_set_options_statement)
+	// statement. * `ALTER_MATERIALIZED_VIEW`: `ALTER MATERIALIZED VIEW`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#alter_materialized_view_set_options_statement)
+	// statement. * `ALTER_SCHEMA`: `ALTER SCHEMA`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#aalter_schema_set_options_statement)
+	// statement. * `SCRIPT`: `SCRIPT`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/procedural-language).
+	// * `TRUNCATE_TABLE`: `TRUNCATE TABLE`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/dml-syntax#truncate_table_statement)
 	// statement. * `CREATE_EXTERNAL_TABLE`: `CREATE EXTERNAL TABLE`
-	// (/bigquery/docs/reference/standard-sql/data-definition-language#create_extern
-	// al_table_statement) statement. * `EXPORT_DATA`: `EXPORT DATA`
-	// (/bigquery/docs/reference/standard-sql/other-statements#export_data_statement
-	// ) statement. * `EXPORT_MODEL`: `EXPORT MODEL`
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_external_table_statement)
+	// statement. * `EXPORT_DATA`: `EXPORT DATA`
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/other-statements#export_data_statement)
+	// statement. * `EXPORT_MODEL`: `EXPORT MODEL`
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model)
 	// statement. * `LOAD_DATA`: `LOAD DATA`
-	// (/bigquery/docs/reference/standard-sql/other-statements#load_data_statement)
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/other-statements#load_data_statement)
 	// statement. * `CALL`: `CALL`
-	// (/bigquery/docs/reference/standard-sql/procedural-language#call) statement.
+	// (https://cloud.google.com/bigquery/docs/reference/standard-sql/procedural-language#call)
+	// statement.
 	StatementType string `json:"statementType,omitempty"`
 	// Timeline: Output only. Describes a timeline of job execution.
 	Timeline []*QueryTimelineSample `json:"timeline,omitempty"`
@@ -6009,13 +6011,12 @@ func (s MetadataCacheStatistics) MarshalJSON() ([]byte, error) {
 // MlStatistics: Job statistics specific to a BigQuery ML training job.
 type MlStatistics struct {
 	// HparamTrials: Output only. Trials of a hyperparameter tuning job
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w) sorted by trial_id.
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+	// sorted by trial_id.
 	HparamTrials []*HparamTuningTrial `json:"hparamTrials,omitempty"`
 	// IterationResults: Results for all completed iterations. Empty for
 	// hyperparameter tuning jobs
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w).
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview).
 	IterationResults []*IterationResult `json:"iterationResults,omitempty"`
 	// MaxIterations: Output only. Maximum number of iterations specified as
 	// max_iterations in the 'CREATE MODEL' query. The actual number of iterations
@@ -6057,8 +6058,8 @@ type MlStatistics struct {
 	//   "TRAINING_TYPE_UNSPECIFIED" - Unspecified training type.
 	//   "SINGLE_TRAINING" - Single training with fixed parameter space.
 	//   "HPARAM_TUNING" - [Hyperparameter tuning
-	// training](/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tunin
-	// g-overview).
+	// training](https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bi
+	// gqueryml-syntax-hp-tuning-overview).
 	TrainingType string `json:"trainingType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "HparamTrials") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -6086,11 +6087,10 @@ type Model struct {
 	CreationTime int64 `json:"creationTime,omitempty,string"`
 	// DefaultTrialId: Output only. The default trial_id to use in TVFs when the
 	// trial_id is not passed in. For single-objective hyperparameter tuning
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w) models, this is the best trial ID. For multi-objective hyperparameter
-	// tuning
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w) models, this is the smallest trial ID among all Pareto optimal trials.
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+	// models, this is the best trial ID. For multi-objective hyperparameter tuning
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+	// models, this is the smallest trial ID among all Pareto optimal trials.
 	DefaultTrialId int64 `json:"defaultTrialId,omitempty,string"`
 	// Description: Optional. A user-friendly description of this model.
 	Description string `json:"description,omitempty"`
@@ -6117,8 +6117,8 @@ type Model struct {
 	// model.
 	HparamSearchSpaces *HparamSearchSpaces `json:"hparamSearchSpaces,omitempty"`
 	// HparamTrials: Output only. Trials of a hyperparameter tuning
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w) model sorted by trial_id.
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+	// model sorted by trial_id.
 	HparamTrials []*HparamTuningTrial `json:"hparamTrials,omitempty"`
 	// LabelColumns: Output only. Label columns that were used to train this model.
 	// The output of the model will have a "predicted_" prefix to these columns.
@@ -6169,11 +6169,11 @@ type Model struct {
 	// clause along with statistics useful for ML analytic functions.
 	ModelType string `json:"modelType,omitempty"`
 	// OptimalTrialIds: Output only. For single-objective hyperparameter tuning
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w) models, it only contains the best trial. For multi-objective
-	// hyperparameter tuning
-	// (/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overvie
-	// w) models, it contains all Pareto optimal trials sorted by trial_id.
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+	// models, it only contains the best trial. For multi-objective hyperparameter
+	// tuning
+	// (https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-hp-tuning-overview)
+	// models, it contains all Pareto optimal trials sorted by trial_id.
 	OptimalTrialIds googleapi.Int64s `json:"optimalTrialIds,omitempty"`
 	// RemoteModelInfo: Output only. Remote model info
 	RemoteModelInfo *RemoteModelInfo `json:"remoteModelInfo,omitempty"`
@@ -6256,9 +6256,9 @@ func (s ModelDefinitionModelOptions) MarshalJSON() ([]byte, error) {
 type ModelExtractOptions struct {
 	// TrialId: The 1-based ID of the trial to be exported from a hyperparameter
 	// tuning model. If not specified, the trial with id = Model
-	// (/bigquery/docs/reference/rest/v2/models#resource:-model).defaultTrialId is
-	// exported. This field is ignored for models not trained with hyperparameter
-	// tuning.
+	// (https://cloud.google.com/bigquery/docs/reference/rest/v2/models#resource:-model).defaultTrialId
+	// is exported. This field is ignored for models not trained with
+	// hyperparameter tuning.
 	TrialId int64 `json:"trialId,omitempty,string"`
 	// ForceSendFields is a list of field names (e.g. "TrialId") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -6900,7 +6900,7 @@ type QueryRequest struct {
 	FormatOptions *DataFormatOptions `json:"formatOptions,omitempty"`
 	// JobCreationMode: Optional. If not set, jobs are always required. If set, the
 	// query request will follow the behavior described JobCreationMode. Preview
-	// (/products/#product-launch-stages)
+	// (https://cloud.google.com/products/#product-launch-stages)
 	//
 	// Possible values:
 	//   "JOB_CREATION_MODE_UNSPECIFIED" - If unspecified JOB_CREATION_REQUIRED is
@@ -7029,7 +7029,8 @@ type QueryResponse struct {
 	JobComplete bool `json:"jobComplete,omitempty"`
 	// JobCreationReason: Optional. The reason why a Job was created. Only relevant
 	// when a job_reference is present in the response. If job_reference is not
-	// present it will always be unset. Preview (/products/#product-launch-stages)
+	// present it will always be unset. Preview
+	// (https://cloud.google.com/products/#product-launch-stages)
 	JobCreationReason *JobCreationReason `json:"jobCreationReason,omitempty"`
 	// JobReference: Reference to the Job that was created to run the query. This
 	// field will be present even if the original request timed out, in which case
@@ -7052,7 +7053,7 @@ type QueryResponse struct {
 	// (https://cloud.google.com/bigquery/docs/paging-results).
 	PageToken string `json:"pageToken,omitempty"`
 	// QueryId: Auto-generated ID for the query. Preview
-	// (/products/#product-launch-stages)
+	// (https://cloud.google.com/products/#product-launch-stages)
 	QueryId string `json:"queryId,omitempty"`
 	// Rows: An object with as many results as can be contained within the maximum
 	// permitted reply size. To get any additional rows, you can call
@@ -7419,8 +7420,8 @@ type RestrictionConfig struct {
 	// Possible values:
 	//   "RESTRICTION_TYPE_UNSPECIFIED" - Should never be used.
 	//   "RESTRICTED_DATA_EGRESS" - Restrict data egress. See [Data
-	// egress](/bigquery/docs/analytics-hub-introduction#data_egress) for more
-	// details.
+	// egress](https://cloud.google.com/bigquery/docs/analytics-hub-introduction#dat
+	// a_egress) for more details.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Type") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -8346,8 +8347,8 @@ type StorageDescriptor struct {
 	// maximum length is 128 characters.
 	InputFormat string `json:"inputFormat,omitempty"`
 	// LocationUri: Optional. The physical location of the table (e.g.
-	// 'gs://spark-dataproc-data/pangea-data/case_sensitive/' or
-	// 'gs://spark-dataproc-data/pangea-data/*'). The maximum length is 2056 bytes.
+	// `gs://spark-dataproc-data/pangea-data/case_sensitive/` or
+	// `gs://spark-dataproc-data/pangea-data/*`). The maximum length is 2056 bytes.
 	LocationUri string `json:"locationUri,omitempty"`
 	// OutputFormat: Optional. Specifies the fully qualified class name of the
 	// OutputFormat (e.g. "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"). The
@@ -8610,7 +8611,8 @@ type Table struct {
 	ResourceTags map[string]string `json:"resourceTags,omitempty"`
 	// Restrictions: Optional. Output only. Restriction config for table. If set,
 	// restrict certain accesses on the table based on the config. See Data egress
-	// (/bigquery/docs/analytics-hub-introduction#data_egress) for more details.
+	// (https://cloud.google.com/bigquery/docs/analytics-hub-introduction#data_egress)
+	// for more details.
 	Restrictions *RestrictionConfig `json:"restrictions,omitempty"`
 	// Schema: Optional. Describes the schema of this table.
 	Schema *TableSchema `json:"schema,omitempty"`
@@ -8640,8 +8642,8 @@ type Table struct {
 	// `MATERIALIZED_VIEW`: A precomputed view defined by a SQL query. *
 	// `SNAPSHOT`: An immutable BigQuery table that preserves the contents of a
 	// base table at a particular time. See additional information on table
-	// snapshots (/bigquery/docs/table-snapshots-intro). The default value is
-	// `TABLE`.
+	// snapshots (https://cloud.google.com/bigquery/docs/table-snapshots-intro).
+	// The default value is `TABLE`.
 	Type string `json:"type,omitempty"`
 	// View: Optional. The view definition.
 	View *ViewDefinition `json:"view,omitempty"`
@@ -9266,7 +9268,7 @@ type TableMetadataCacheUsage struct {
 	// TableReference: Metadata caching eligible table referenced in the query.
 	TableReference *TableReference `json:"tableReference,omitempty"`
 	// TableType: Table type
-	// (/bigquery/docs/reference/rest/v2/tables#Table.FIELDS.type).
+	// (https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#Table.FIELDS.type).
 	TableType string `json:"tableType,omitempty"`
 	// UnusedReason: Reason for not using metadata caching for the table.
 	//

@@ -19,27 +19,30 @@ type UnhandledErrorRule struct {
 
 func (r *UnhandledErrorRule) configure(arguments lint.Arguments) {
 	r.Lock()
-	if r.ignoreList == nil {
-		for _, arg := range arguments {
-			argStr, ok := arg.(string)
-			if !ok {
-				panic(fmt.Sprintf("Invalid argument to the unhandled-error rule. Expecting a string, got %T", arg))
-			}
+	defer r.Unlock()
 
-			argStr = strings.Trim(argStr, " ")
-			if argStr == "" {
-				panic("Invalid argument to the unhandled-error rule, expected regular expression must not be empty.")
-			}
-
-			exp, err := regexp.Compile(argStr)
-			if err != nil {
-				panic(fmt.Sprintf("Invalid argument to the unhandled-error rule: regexp %q does not compile: %v", argStr, err))
-			}
-
-			r.ignoreList = append(r.ignoreList, exp)
-		}
+	if r.ignoreList != nil {
+		return // already configured
 	}
-	r.Unlock()
+
+	for _, arg := range arguments {
+		argStr, ok := arg.(string)
+		if !ok {
+			panic(fmt.Sprintf("Invalid argument to the unhandled-error rule. Expecting a string, got %T", arg))
+		}
+
+		argStr = strings.Trim(argStr, " ")
+		if argStr == "" {
+			panic("Invalid argument to the unhandled-error rule, expected regular expression must not be empty.")
+		}
+
+		exp, err := regexp.Compile(argStr)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid argument to the unhandled-error rule: regexp %q does not compile: %v", argStr, err))
+		}
+
+		r.ignoreList = append(r.ignoreList, exp)
+	}
 }
 
 // Apply applies the rule to given file.
@@ -130,9 +133,9 @@ func (w *lintUnhandledErrors) funcName(call *ast.CallExpr) string {
 	}
 
 	name := fn.FullName()
-	name = strings.Replace(name, "(", "", -1)
-	name = strings.Replace(name, ")", "", -1)
-	name = strings.Replace(name, "*", "", -1)
+	name = strings.ReplaceAll(name, "(", "")
+	name = strings.ReplaceAll(name, ")", "")
+	name = strings.ReplaceAll(name, "*", "")
 
 	return name
 }

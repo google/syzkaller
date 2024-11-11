@@ -157,7 +157,7 @@ func (s *formatState) parsePrecision() bool {
 func parsePrintfVerb(format string) *formatState {
 	state := &formatState{
 		format: format,
-		flags:  make([]byte, 0, 5), //nolint:gomnd
+		flags:  make([]byte, 0, 5), //nolint:mnd
 		nbytes: 1,                  // There's guaranteed to be a percent sign.
 	}
 

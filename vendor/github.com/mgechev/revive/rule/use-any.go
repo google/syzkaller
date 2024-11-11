@@ -47,7 +47,7 @@ func (w lintUseAny) Visit(n ast.Node) ast.Visitor {
 		Node:       n,
 		Confidence: 1,
 		Category:   "naming",
-		Failure:    "since GO 1.18 'interface{}' can be replaced by 'any'",
+		Failure:    "since Go 1.18 'interface{}' can be replaced by 'any'",
 	})
 
 	return w

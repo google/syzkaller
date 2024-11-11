@@ -86,7 +86,8 @@ mysumtype.go:18:2: exhaustiveness check failed for sum type 'MySumType': missing
 ```
 
 Adding either a `default` clause or a clause to handle `*VariantB` will cause
-exhaustive checks to pass.
+exhaustive checks to pass. To prevent `default` clauses from automatically
+passing checks, set the `-default-signifies-exhasutive=false` flag.
 
 As a special case, if the type switch statement contains a `default` clause
 that always panics, then exhaustiveness checks are still performed.

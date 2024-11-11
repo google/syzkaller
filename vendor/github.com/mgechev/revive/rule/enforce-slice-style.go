@@ -69,7 +69,6 @@ func (r *EnforceSliceStyleRule) configure(arguments lint.Arguments) {
 
 	var err error
 	r.enforceSliceStyle, err = sliceStyleFromString(enforceSliceStyle)
-
 	if err != nil {
 		panic(fmt.Sprintf("Invalid argument to the enforce-slice-style rule: %v", err))
 	}
@@ -101,8 +100,8 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 				return true
 			}
 
-			if len(v.Elts) > 0 {
-				// not an empty slice
+			isNotEmptySlice := len(v.Elts) > 0
+			if isNotEmptySlice {
 				return true
 			}
 
@@ -132,8 +131,8 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 				return true
 			}
 
-			if len(v.Args) < 2 {
-				// skip invalid make declarations
+			isInvalidMakeDeclaration := len(v.Args) < 2
+			if isInvalidMakeDeclaration {
 				return true
 			}
 
@@ -148,8 +147,8 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 				return true
 			}
 
-			if arg.Value != "0" {
-				// skip slice with non-zero size
+			isSliceSizeNotZero := arg.Value != "0"
+			if isSliceSizeNotZero {
 				return true
 			}
 
@@ -160,8 +159,8 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 					return true
 				}
 
-				if arg.Value != "0" {
-					// skip non-zero capacity slice
+				isNonZeroCapacitySlice := arg.Value != "0"
+				if isNonZeroCapacitySlice {
 					return true
 				}
 			}

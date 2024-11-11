@@ -20,23 +20,27 @@ type StructTagRule struct {
 func (r *StructTagRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.userDefined == nil && len(arguments) > 0 {
-		checkNumberOfArguments(1, arguments, r.Name())
-		r.userDefined = make(map[string][]string, len(arguments))
-		for _, arg := range arguments {
-			item, ok := arg.(string)
-			if !ok {
-				panic(fmt.Sprintf("Invalid argument to the %s rule. Expecting a string, got %v (of type %T)", r.Name(), arg, arg))
-			}
-			parts := strings.Split(item, ",")
-			if len(parts) < 2 {
-				panic(fmt.Sprintf("Invalid argument to the %s rule. Expecting a string of the form key[,option]+, got %s", r.Name(), item))
-			}
-			key := strings.TrimSpace(parts[0])
-			for i := 1; i < len(parts); i++ {
-				option := strings.TrimSpace(parts[i])
-				r.userDefined[key] = append(r.userDefined[key], option)
-			}
+
+	mustConfigure := r.userDefined == nil && len(arguments) > 0
+	if !mustConfigure {
+		return
+	}
+
+	checkNumberOfArguments(1, arguments, r.Name())
+	r.userDefined = make(map[string][]string, len(arguments))
+	for _, arg := range arguments {
+		item, ok := arg.(string)
+		if !ok {
+			panic(fmt.Sprintf("Invalid argument to the %s rule. Expecting a string, got %v (of type %T)", r.Name(), arg, arg))
+		}
+		parts := strings.Split(item, ",")
+		if len(parts) < 2 {
+			panic(fmt.Sprintf("Invalid argument to the %s rule. Expecting a string of the form key[,option]+, got %s", r.Name(), item))
+		}
+		key := strings.TrimSpace(parts[0])
+		for i := 1; i < len(parts); i++ {
+			option := strings.TrimSpace(parts[i])
+			r.userDefined[key] = append(r.userDefined[key], option)
 		}
 	}
 }
@@ -75,11 +79,13 @@ type lintStructTagRule struct {
 func (w lintStructTagRule) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
 	case *ast.StructType:
-		if n.Fields == nil || n.Fields.NumFields() < 1 {
+		isEmptyStruct := n.Fields == nil || n.Fields.NumFields() < 1
+		if isEmptyStruct {
 			return nil // skip empty structs
 		}
-		w.usedTagNbr = map[int]bool{}     // init
-		w.usedTagName = map[string]bool{} // init
+
+		w.usedTagNbr = map[int]bool{}
+		w.usedTagName = map[string]bool{}
 		for _, f := range n.Fields.List {
 			if f.Tag != nil {
 				w.checkTaggedField(f)

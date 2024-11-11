@@ -209,12 +209,8 @@ func (pf *parsedFile) getAllComments(exclude []*regexp.Regexp) []comment {
 // special lines (e.g., tags or indented code examples), they are replaced
 // with `specialReplacer` to skip checks for them.
 // The result can be multiline.
-//
-//nolint:cyclop
 func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
-	if len(comment.List) == 1 &&
-		strings.HasPrefix(comment.List[0].Text, "/*") &&
-		isSpecialBlock(comment.List[0].Text) {
+	if len(comment.List) > 0 && isSpecialBlock(comment.List[0].Text) {
 		return ""
 	}
 

@@ -53,7 +53,8 @@ func (r *CommentsDensityRule) Apply(file *lint.File, arguments lint.Arguments) [
 			{
 				Node:       file.AST,
 				Confidence: 1,
-				Failure:    fmt.Sprintf("the file has a comment density of %2.f%% (%d comment lines for %d code lines) but expected a minimum of %d%%", density, commentsLines, statementsCount, r.minimumCommentsDensity),
+				Failure: fmt.Sprintf("the file has a comment density of %2.f%% (%d comment lines for %d code lines) but expected a minimum of %d%%",
+					density, commentsLines, statementsCount, r.minimumCommentsDensity),
 			},
 		}
 	}

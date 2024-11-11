@@ -72,5 +72,5 @@ func ImplementsError(t gotypes.Type) bool {
 }
 
 func ImplementsGomegaMatcher(t gotypes.Type) bool {
-	return gotypes.Implements(t, gomegaMatcherType)
+	return t != nil && gotypes.Implements(t, gomegaMatcherType)
 }

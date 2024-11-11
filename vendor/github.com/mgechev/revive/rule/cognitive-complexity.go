@@ -21,19 +21,21 @@ const defaultMaxCognitiveComplexity = 7
 func (r *CognitiveComplexityRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.maxComplexity == 0 {
-
-		if len(arguments) < 1 {
-			r.maxComplexity = defaultMaxCognitiveComplexity
-			return
-		}
-
-		complexity, ok := arguments[0].(int64)
-		if !ok {
-			panic(fmt.Sprintf("invalid argument type for cognitive-complexity, expected int64, got %T", arguments[0]))
-		}
-		r.maxComplexity = int(complexity)
+	if r.maxComplexity != 0 {
+		return // already configured
 	}
+
+	if len(arguments) < 1 {
+		r.maxComplexity = defaultMaxCognitiveComplexity
+		return
+	}
+
+	complexity, ok := arguments[0].(int64)
+	if !ok {
+		panic(fmt.Sprintf("invalid argument type for cognitive-complexity, expected int64, got %T", arguments[0]))
+	}
+
+	r.maxComplexity = int(complexity)
 }
 
 // Apply applies the rule to given file.

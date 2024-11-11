@@ -18,27 +18,27 @@ func (*IndentErrorFlowRule) Name() string {
 	return "indent-error-flow"
 }
 
-// CheckIfElse evaluates the rule against an ifelse.Chain.
-func (*IndentErrorFlowRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
+// CheckIfElse evaluates the rule against an ifelse.Chain and returns a failure message if applicable.
+func (*IndentErrorFlowRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) string {
 	if !chain.If.Deviates() {
 		// this rule only applies if the if-block deviates control flow
-		return
+		return ""
 	}
 
 	if chain.HasPriorNonDeviating {
 		// if we de-indent the "else" block then a previous branch
 		// might flow into it, affecting program behaviour
-		return
+		return ""
 	}
 
 	if !chain.If.Returns() {
 		// avoid overlapping with superfluous-else
-		return
+		return ""
 	}
 
 	if args.PreserveScope && !chain.AtBlockEnd && (chain.HasInitializer || chain.Else.HasDecls) {
 		// avoid increasing variable scope
-		return
+		return ""
 	}
 
 	return "if block ends with a return statement, so drop this else and outdent its block"
