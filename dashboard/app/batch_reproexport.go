@@ -35,8 +35,8 @@ func exportReproScript(srcNamespace, archivePath string) string {
 		"cd syzkaller\n" +
 		"token=$(gcloud auth print-access-token)\n" +
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
-		"go run ./tools/syz-reprolist/... -namespace " + srcNamespace + " -token $token -j 10 && " +
-		"tar -czf reproducers.tar.gz ./repros/ && " +
-		"gsutil -q -m cp reproducers.tar.gz " + archivePath +
+		"go run ./tools/syz-reprolist/... -namespace " + srcNamespace + " -output export -token $token -j 10 && " +
+		"tar -czf export.tar.gz ./export/ && " +
+		"gsutil -q -m cp export.tar.gz " + archivePath +
 		"\""
 }
