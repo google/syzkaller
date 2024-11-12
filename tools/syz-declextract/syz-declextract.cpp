@@ -110,9 +110,21 @@ struct SyzRecordDecl {
 // If expression refers to some identifier, returns the identifier name.
 // Otherwise returns an empty string.
 // For example, if the expression is `function_name`, returns "function_name" string.
-std::string getDeclName(const clang::Expr *expr) {
-  auto *decl = llvm::dyn_cast<DeclRefExpr>(expr->IgnoreCasts());
-  return decl ? decl->getDecl()->getNameAsString() : "";
+std::string getDeclName(ASTContext &context, const clang::Expr *expr) {
+  if (!expr) {
+    return "";
+  }
+  // The expression can be complex and include casts and e.g. InitListExpr,
+  // to remove all of these we match the first/any DeclRefExpr.
+  struct Matcher : MatchFinder::MatchCallback {
+    const DeclRefExpr *decl = nullptr;
+    void run(const MatchFinder::MatchResult &Result) override { decl = Result.Nodes.getNodeAs<DeclRefExpr>("decl"); }
+  };
+  MatchFinder finder;
+  Matcher matcher;
+  finder.addMatcher(stmt(forEachDescendant(declRefExpr().bind("decl"))), &matcher);
+  finder.match(*expr, context);
+  return matcher.decl ? matcher.decl->getDecl()->getNameAsString() : "";
 }
 
 bool endsWith(const std::string_view &str, const std::string_view end) {
@@ -825,9 +837,9 @@ private:
       if (opsName != "small_ops") {
         policyDecl = init->getInit(opsMember["policy"])->getAsBuiltinConstantDeclRef(*context);
       }
-      std::string func = getDeclName(init->getInit(opsMember["doit"]));
+      std::string func = getDeclName(*context, init->getInit(opsMember["doit"]));
       if (func.empty())
-        func = getDeclName(init->getInit(opsMember["dumpit"]));
+        func = getDeclName(*context, init->getInit(opsMember["dumpit"]));
       const Expr *flagsDecl = init->getInit(opsMember["flags"]);
       Expr::EvalResult flags;
       flagsDecl->EvaluateAsConstantExpr(flags, *context);
@@ -912,6 +924,7 @@ public:
 
 private:
   void run(const MatchFinder::MatchResult &Result) override {
+    ASTContext *context = Result.Context;
     const auto *ioIssueDefs = Result.Nodes.getNodeAs<VarDecl>("io_issue_defs");
     if (!ioIssueDefs) {
       return;
@@ -924,11 +937,11 @@ private:
     }
     for (const auto &[i, op] : elements) {
       const auto &init = llvm::dyn_cast<InitListExpr>(initList->getInit(i));
-      std::string prep = getDeclName(init->getInit(fields["prep"]));
+      std::string prep = getDeclName(*context, init->getInit(fields["prep"]));
       if (prep == "io_eopnotsupp_prep") {
         continue;
       }
-      std::string issue = getDeclName(init->getInit(fields["issue"]));
+      std::string issue = getDeclName(*context, init->getInit(fields["issue"]));
       emitInterface("IOURING", op.name, op.name, issue, AccessUser);
     }
   }
