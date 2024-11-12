@@ -22,7 +22,7 @@ func handleBatchDBExport(w http.ResponseWriter, r *http.Request) {
 		serviceAccount := &batchpb.ServiceAccount{
 			Scopes: []string{"https://www.googleapis.com/auth/userinfo.email"},
 		}
-		if err := createScriptJob(ctx, "syzkaller", "export-repro",
+		if err := createScriptJob(ctx, "syzkaller", "db-export",
 			exportDBScript(ns, nsConfig.ReproExportPath), exportTimeoutSeconds, serviceAccount); err != nil {
 			log.Errorf(ctx, "createScriptJob: %s", err.Error())
 		}
