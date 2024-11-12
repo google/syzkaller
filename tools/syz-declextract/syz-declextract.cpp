@@ -916,11 +916,19 @@ private:
       return;
     }
     auto elements = extractDesignatedInitConsts(*Result.Context, *ioIssueDefs);
-    // TODO: if .prep callback is set to io_eopnotsupp_prep, the operations is not really supported.
-    // TODO: use the .issue callback to find the root function of the interface,
-    // also the file where the callback is defined is better file than io_uring/opdef.c.
-    for (const auto &[_, op] : elements) {
-      emitInterface("IOURING", op.name, op.name);
+    const auto *initList = llvm::dyn_cast<InitListExpr>(ioIssueDefs->getInit());
+    std::map<std::string, unsigned> fields;
+    for (const auto &field : initList->getInit(0)->getType()->getAsRecordDecl()->fields()) {
+      fields[field->getNameAsString()] = field->getFieldIndex();
+    }
+    for (const auto &[i, op] : elements) {
+      const auto &init = llvm::dyn_cast<InitListExpr>(initList->getInit(i));
+      std::string prep = getDeclName(init->getInit(fields["prep"]));
+      if (prep == "io_eopnotsupp_prep") {
+        continue;
+      }
+      std::string issue = getDeclName(init->getInit(fields["issue"]));
+      emitInterface("IOURING", op.name, op.name, issue, AccessUser);
     }
   }
 };
