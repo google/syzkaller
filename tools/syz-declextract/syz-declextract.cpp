@@ -540,8 +540,9 @@ private:
     RecordExtractor recordExtractor(Result.SourceManager);
 
     const char *sep = "";
-    const auto &name = syscall->getNameAsString().substr(9); // Remove "__do_sys_" prefix.
-    emitInterface("SYSCALL", name, "__NR_" + name);
+    const auto func = syscall->getNameAsString();
+    const auto &name = func.substr(9); // Remove "__do_sys_" prefix.
+    emitInterface("SYSCALL", name, "__NR_" + name, func);
     printf("%s(", name.c_str());
     for (const auto &param : syscall->parameters()) {
       const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
