@@ -701,6 +701,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_bla_backbone_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -713,6 +715,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_bla_claim_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -725,6 +729,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_dat_cache_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -737,6 +743,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_gw_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -749,6 +757,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_get_hardif",
+		"access": "user",
 		"subsystems": [
 			"batman"
 		],
@@ -761,6 +771,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_mcast_flags_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -773,6 +785,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_get_mesh",
+		"access": "user",
 		"subsystems": [
 			"batman"
 		],
@@ -785,6 +799,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_hardif_neigh_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -797,6 +813,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_orig_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -809,6 +827,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_algo_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -821,6 +841,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_tt_global_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -833,6 +855,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_tt_local_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -845,6 +869,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_get_vlan",
+		"access": "user",
 		"subsystems": [
 			"batman"
 		],
@@ -857,6 +883,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_set_hardif",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -869,6 +897,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_set_mesh",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -881,6 +911,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_set_vlan",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -893,6 +925,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_tp_meter_start",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -905,6 +939,8 @@
 		"files": [
 			"net/batman-adv/netlink.c"
 		],
+		"func": "batadv_netlink_tp_meter_cancel",
+		"access": "ns_admin",
 		"subsystems": [
 			"batman"
 		],
@@ -917,6 +953,8 @@
 		"files": [
 			"kernel/taskstats.c"
 		],
+		"func": "cgroupstats_user_cmd",
+		"access": "user",
 		"subsystems": [
 			"kernel"
 		],
@@ -929,6 +967,8 @@
 		"files": [
 			"fs/smb/client/netlink.c"
 		],
+		"func": "cifs_swn_notify",
+		"access": "user",
 		"subsystems": [
 			"cifs"
 		],
@@ -941,6 +981,7 @@
 		"files": [
 			"net/netlink/genetlink.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -953,6 +994,7 @@
 		"files": [
 			"net/netlink/genetlink.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -965,6 +1007,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_act_cable_test",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -977,6 +1021,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_act_cable_test_tdr",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -989,6 +1035,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1001,6 +1049,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1013,6 +1063,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1025,6 +1077,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1037,6 +1091,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1049,6 +1105,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1061,6 +1119,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1073,6 +1133,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1085,6 +1147,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1097,6 +1161,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_set_features",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1109,6 +1175,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1121,6 +1189,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1133,6 +1203,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1145,6 +1217,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1157,6 +1231,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1169,6 +1245,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1181,6 +1259,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1193,6 +1273,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1205,6 +1287,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1217,6 +1301,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1229,6 +1315,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_act_module_fw_flash",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1241,6 +1329,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1253,6 +1343,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1265,6 +1357,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1277,6 +1371,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1289,6 +1385,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1301,6 +1399,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_phy_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1313,6 +1413,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1325,6 +1427,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1337,6 +1441,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1349,6 +1455,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1361,6 +1469,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1373,6 +1483,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1385,6 +1497,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1397,6 +1511,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1409,6 +1525,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1421,6 +1539,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1433,6 +1553,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1445,6 +1567,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1457,6 +1581,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1469,6 +1595,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_tunnel_info_doit",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1481,6 +1609,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1493,6 +1623,8 @@
 		"files": [
 			"net/ethtool/netlink.c"
 		],
+		"func": "ethnl_default_set_doit",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -1505,6 +1637,8 @@
 		"files": [
 			"drivers/net/gtp.c"
 		],
+		"func": "gtp_genl_del_pdp",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -1517,6 +1651,8 @@
 		"files": [
 			"drivers/net/gtp.c"
 		],
+		"func": "gtp_genl_send_echo_req",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -1529,6 +1665,8 @@
 		"files": [
 			"drivers/net/gtp.c"
 		],
+		"func": "gtp_genl_get_pdp",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -1541,6 +1679,8 @@
 		"files": [
 			"drivers/net/gtp.c"
 		],
+		"func": "gtp_genl_new_pdp",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -1553,6 +1693,7 @@
 		"files": [
 			"net/handshake/genl.c"
 		],
+		"access": "admin",
 		"subsystems": [
 			"tls"
 		],
@@ -1565,6 +1706,7 @@
 		"files": [
 			"net/handshake/genl.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"tls"
 		],
@@ -1577,6 +1719,8 @@
 		"files": [
 			"net/hsr/hsr_netlink.c"
 		],
+		"func": "hsr_get_node_list",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1589,6 +1733,8 @@
 		"files": [
 			"net/hsr/hsr_netlink.c"
 		],
+		"func": "hsr_get_node_status",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -1601,6 +1747,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_del_radio_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -1613,6 +1761,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_cloned_frame_received_nl",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -1625,6 +1775,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_get_radio_nl",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -1637,6 +1789,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_new_radio_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -1649,6 +1803,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_register_received_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -1661,6 +1817,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_pmsr_report_nl",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -1673,6 +1831,8 @@
 		"files": [
 			"drivers/net/wireless/virtual/mac80211_hwsim.c"
 		],
+		"func": "hwsim_tx_info_frame_received_nl",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -1685,6 +1845,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_add_iface",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1697,6 +1859,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_associate_req",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1709,6 +1873,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_associate_resp",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1721,6 +1887,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_del_iface",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1733,6 +1901,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_disassociate_req",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1745,6 +1915,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_list_iface",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -1757,6 +1929,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_list_phy",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -1769,6 +1943,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_add_dev",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1781,6 +1957,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_add_devkey",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1793,6 +1971,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_add_key",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1805,6 +1985,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_add_seclevel",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1817,6 +1999,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_del_dev",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1829,6 +2013,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_del_devkey",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1841,6 +2027,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_del_key",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1853,6 +2041,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_del_seclevel",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1865,6 +2055,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_getparams",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1877,6 +2069,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_dump_devs",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -1889,6 +2083,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_dump_devkeys",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -1901,6 +2097,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_dump_keys",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -1913,6 +2111,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_dump_seclevels",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -1925,6 +2125,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_llsec_setparams",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1937,6 +2139,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_scan_req",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1949,6 +2153,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_set_macparams",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1961,6 +2167,8 @@
 		"files": [
 			"net/ieee802154/netlink.c"
 		],
+		"func": "ieee802154_start_req",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -1973,6 +2181,8 @@
 		"files": [
 			"net/ipv6/ila/ila_main.c"
 		],
+		"func": "ila_xlat_nl_cmd_add_mapping",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -1985,6 +2195,8 @@
 		"files": [
 			"net/ipv6/ila/ila_main.c"
 		],
+		"func": "ila_xlat_nl_cmd_del_mapping",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -1997,6 +2209,8 @@
 		"files": [
 			"net/ipv6/ila/ila_main.c"
 		],
+		"func": "ila_xlat_nl_cmd_flush",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2009,6 +2223,8 @@
 		"files": [
 			"net/ipv6/ila/ila_main.c"
 		],
+		"func": "ila_xlat_nl_cmd_get_mapping",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2021,6 +2237,8 @@
 		"files": [
 			"net/ipv6/ioam6.c"
 		],
+		"func": "ioam6_genl_addns",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2033,6 +2251,8 @@
 		"files": [
 			"net/ipv6/ioam6.c"
 		],
+		"func": "ioam6_genl_addsc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2045,6 +2265,8 @@
 		"files": [
 			"net/ipv6/ioam6.c"
 		],
+		"func": "ioam6_genl_delns",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2057,6 +2279,8 @@
 		"files": [
 			"net/ipv6/ioam6.c"
 		],
+		"func": "ioam6_genl_delsc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2069,6 +2293,8 @@
 		"files": [
 			"net/ipv6/ioam6.c"
 		],
+		"func": "ioam6_genl_ns_set_schema",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2081,6 +2307,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_daemon",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2093,6 +2321,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2105,6 +2335,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2117,6 +2349,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2129,6 +2363,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_get_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2141,6 +2377,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_dump_daemons",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2153,6 +2391,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_dump_dests",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2165,6 +2405,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_get_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2177,6 +2419,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_get_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2189,6 +2433,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_daemon",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2201,6 +2447,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2213,6 +2461,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2225,6 +2475,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2237,6 +2489,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2249,6 +2503,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2261,6 +2517,8 @@
 		"files": [
 			"net/netfilter/ipvs/ip_vs_ctl.c"
 		],
+		"func": "ip_vs_genl_set_cmd",
+		"access": "admin",
 		"subsystems": [
 			"lvs"
 		],
@@ -2273,6 +2531,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_noop",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2285,6 +2545,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_session_create",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2297,6 +2559,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_session_delete",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2309,6 +2573,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_session_get",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2321,6 +2587,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_session_modify",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2333,6 +2601,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_tunnel_create",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2345,6 +2615,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_tunnel_delete",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2357,6 +2629,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_tunnel_get",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2369,6 +2643,8 @@
 		"files": [
 			"net/l2tp/l2tp_netlink.c"
 		],
+		"func": "l2tp_nl_cmd_tunnel_modify",
+		"access": "ns_admin",
 		"subsystems": [
 			"net"
 		],
@@ -2381,6 +2657,8 @@
 		"files": [
 			"drivers/net/ieee802154/mac802154_hwsim.c"
 		],
+		"func": "hwsim_del_edge_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -2393,6 +2671,8 @@
 		"files": [
 			"drivers/net/ieee802154/mac802154_hwsim.c"
 		],
+		"func": "hwsim_del_radio_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -2405,6 +2685,8 @@
 		"files": [
 			"drivers/net/ieee802154/mac802154_hwsim.c"
 		],
+		"func": "hwsim_get_radio_nl",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -2417,6 +2699,8 @@
 		"files": [
 			"drivers/net/ieee802154/mac802154_hwsim.c"
 		],
+		"func": "hwsim_new_edge_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -2429,6 +2713,8 @@
 		"files": [
 			"drivers/net/ieee802154/mac802154_hwsim.c"
 		],
+		"func": "hwsim_new_radio_nl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -2441,6 +2727,8 @@
 		"files": [
 			"drivers/net/ieee802154/mac802154_hwsim.c"
 		],
+		"func": "hwsim_set_edge_lqi",
+		"access": "ns_admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -2453,6 +2741,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_add_rxsa",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2465,6 +2755,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_add_rxsc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2477,6 +2769,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_add_txsa",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2489,6 +2783,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_del_rxsa",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2501,6 +2797,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_del_rxsc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2513,6 +2811,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_del_txsa",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2525,6 +2825,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_dump_txsc",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2537,6 +2839,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_upd_offload",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2549,6 +2853,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_upd_rxsa",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2561,6 +2867,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_upd_rxsc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2573,6 +2881,8 @@
 		"files": [
 			"drivers/net/macsec.c"
 		],
+		"func": "macsec_upd_txsa",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2585,6 +2895,8 @@
 		"files": [
 			"drivers/block/nbd.c"
 		],
+		"func": "nbd_genl_connect",
+		"access": "user",
 		"subsystems": [
 			"nbd"
 		],
@@ -2597,6 +2909,8 @@
 		"files": [
 			"drivers/block/nbd.c"
 		],
+		"func": "nbd_genl_disconnect",
+		"access": "user",
 		"subsystems": [
 			"nbd"
 		],
@@ -2609,6 +2923,8 @@
 		"files": [
 			"drivers/block/nbd.c"
 		],
+		"func": "nbd_genl_reconfigure",
+		"access": "user",
 		"subsystems": [
 			"nbd"
 		],
@@ -2621,6 +2937,8 @@
 		"files": [
 			"drivers/block/nbd.c"
 		],
+		"func": "nbd_genl_status",
+		"access": "user",
 		"subsystems": [
 			"nbd"
 		],
@@ -2633,6 +2951,8 @@
 		"files": [
 			"net/ncsi/ncsi-netlink.c"
 		],
+		"func": "ncsi_clear_interface_nl",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2645,6 +2965,8 @@
 		"files": [
 			"net/ncsi/ncsi-netlink.c"
 		],
+		"func": "ncsi_pkg_info_nl",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2657,6 +2979,8 @@
 		"files": [
 			"net/ncsi/ncsi-netlink.c"
 		],
+		"func": "ncsi_send_cmd_nl",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2669,6 +2993,8 @@
 		"files": [
 			"net/ncsi/ncsi-netlink.c"
 		],
+		"func": "ncsi_set_channel_mask_nl",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2681,6 +3007,8 @@
 		"files": [
 			"net/ncsi/ncsi-netlink.c"
 		],
+		"func": "ncsi_set_interface_nl",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2693,6 +3021,8 @@
 		"files": [
 			"net/ncsi/ncsi-netlink.c"
 		],
+		"func": "ncsi_set_package_mask_nl",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2705,6 +3035,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2717,6 +3048,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2729,6 +3061,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2741,6 +3074,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2753,6 +3087,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2765,6 +3100,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2777,6 +3113,8 @@
 		"files": [
 			"net/core/drop_monitor.c"
 		],
+		"func": "net_dm_cmd_config",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2789,6 +3127,8 @@
 		"files": [
 			"net/core/drop_monitor.c"
 		],
+		"func": "net_dm_cmd_config_get",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2801,6 +3141,8 @@
 		"files": [
 			"net/core/drop_monitor.c"
 		],
+		"func": "net_dm_cmd_trace",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2813,6 +3155,8 @@
 		"files": [
 			"net/core/drop_monitor.c"
 		],
+		"func": "net_dm_cmd_stats_get",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -2825,6 +3169,8 @@
 		"files": [
 			"net/core/drop_monitor.c"
 		],
+		"func": "net_dm_cmd_trace",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -2837,6 +3183,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_activate_target",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2850,6 +3198,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_deactivate_target",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2863,6 +3213,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_dep_link_down",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2876,6 +3228,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_dep_link_up",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2889,6 +3243,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_dev_down",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2902,6 +3258,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_dev_up",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2915,6 +3273,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_disable_se",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2928,6 +3288,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_enable_se",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2941,6 +3303,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_fw_download",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2954,6 +3318,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_get_device",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2967,6 +3333,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_dump_ses",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2980,6 +3348,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_dump_targets",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -2993,6 +3363,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_llc_get_params",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3006,6 +3378,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_llc_sdreq",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3019,6 +3393,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_llc_set_params",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3032,6 +3408,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_se_io",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3045,6 +3423,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_start_poll",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3058,6 +3438,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_stop_poll",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3071,6 +3453,8 @@
 		"files": [
 			"net/nfc/netlink.c"
 		],
+		"func": "nfc_genl_vendor_cmd",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"nfc"
@@ -3084,6 +3468,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"access": "admin",
 		"subsystems": [
 			"nfs"
 		],
@@ -3096,6 +3481,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"access": "admin",
 		"subsystems": [
 			"nfs"
 		],
@@ -3108,6 +3494,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"access": "admin",
 		"subsystems": [
 			"nfs"
 		],
@@ -3120,6 +3507,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"access": "admin",
 		"subsystems": [
 			"nfs"
 		],
@@ -3132,6 +3520,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_abort_scan",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3144,6 +3534,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_add_link",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3156,6 +3548,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_add_link_station",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3168,6 +3562,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_nan_add_func",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3180,6 +3576,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_add_tx_ts",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3192,6 +3590,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_associate",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3204,6 +3604,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_authenticate",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3216,6 +3618,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_cancel_remain_on_channel",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3228,6 +3632,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_nan_change_config",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3240,6 +3646,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_channel_switch",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3252,6 +3660,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_color_change",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3264,6 +3674,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_connect",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3276,6 +3688,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tx_control_port",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3288,6 +3702,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_crit_protocol_start",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3300,6 +3716,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_crit_protocol_stop",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3312,6 +3730,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_deauthenticate",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3324,6 +3744,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_interface",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3336,6 +3758,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_key",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3348,6 +3772,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_mpath",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3360,6 +3786,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_nan_del_func",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3372,6 +3800,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_pmk",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3384,6 +3814,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_pmksa",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3396,6 +3828,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_station",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3408,6 +3842,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_del_tx_ts",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3420,6 +3856,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_disassociate",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3432,6 +3870,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_disconnect",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3444,6 +3884,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_external_auth",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3456,6 +3898,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_flush_pmksa",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3468,6 +3912,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tx_mgmt",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3480,6 +3926,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tx_mgmt_cancel_wait",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3492,6 +3940,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_coalesce",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3504,6 +3954,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_ftm_responder_stats",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3516,6 +3968,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_interface",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3528,6 +3982,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_key",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3540,6 +3996,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_mesh_config",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3552,6 +4010,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_mpath",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3564,6 +4024,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_mpp",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3576,6 +4038,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_power_save",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3588,6 +4052,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_protocol_features",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3600,6 +4066,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_reg_do",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3612,6 +4080,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_dump_scan",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3624,6 +4094,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_station",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3636,6 +4108,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_dump_survey",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3648,6 +4122,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_wiphy",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3660,6 +4136,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_get_wowlan",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -3672,6 +4150,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_join_ibss",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3684,6 +4164,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_join_mesh",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3696,6 +4178,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_join_ocb",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3708,6 +4192,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_leave_ibss",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3720,6 +4206,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_leave_mesh",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3732,6 +4220,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_leave_ocb",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3744,6 +4234,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_modify_link_station",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3756,6 +4248,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_new_interface",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3768,6 +4262,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_new_key",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3780,6 +4276,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_new_mpath",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3792,6 +4290,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_new_station",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3804,6 +4304,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_notify_radar_detection",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3816,6 +4318,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_pmsr_start",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3828,6 +4332,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_probe_client",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3840,6 +4346,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_probe_mesh_link",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3852,6 +4360,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_start_radar_detection",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3864,6 +4374,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_register_beacons",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3876,6 +4388,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_register_mgmt",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3888,6 +4402,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_reload_regdb",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3900,6 +4416,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_remain_on_channel",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3912,6 +4430,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_remove_link",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3924,6 +4444,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_remove_link_station",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3936,6 +4458,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_req_set_reg",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3948,6 +4472,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_beacon",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3960,6 +4486,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_bss",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3972,6 +4500,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_channel",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3984,6 +4514,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_coalesce",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -3996,6 +4528,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_cqm",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4008,6 +4542,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_fils_aad",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4020,6 +4556,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_hw_timestamp",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4032,6 +4570,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_interface",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4044,6 +4584,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_key",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4056,6 +4598,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_mac_acl",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4068,6 +4612,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_mcast_rate",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4080,6 +4626,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_update_mesh_config",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4092,6 +4640,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_mpath",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4104,6 +4654,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_multicast_to_unicast",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4116,6 +4668,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_noack_map",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4128,6 +4682,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_pmk",
+		"access": "user",
 		"subsystems": [
 			"wireless"
 		],
@@ -4140,6 +4696,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_pmksa",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4152,6 +4710,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_power_save",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4164,6 +4724,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_qos_map",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4176,6 +4738,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_reg",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4188,6 +4752,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_rekey_data",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4200,6 +4766,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_sar_specs",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4212,6 +4780,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_station",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4224,6 +4794,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_tid_config",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4236,6 +4808,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_ttlm",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4248,6 +4822,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_tx_bitrate_mask",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4260,6 +4836,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_wiphy",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4272,6 +4850,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_wiphy_netns",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4284,6 +4864,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_set_wowlan",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4296,6 +4878,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_start_ap",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4308,6 +4892,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_start_nan",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4320,6 +4906,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_start_p2p_device",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4332,6 +4920,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_start_sched_scan",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4344,6 +4934,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_stop_ap",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4356,6 +4948,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_stop_nan",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4368,6 +4962,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_stop_p2p_device",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4380,6 +4976,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_stop_sched_scan",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4392,6 +4990,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tdls_cancel_channel_switch",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4404,6 +5004,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tdls_channel_switch",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4416,6 +5018,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tdls_mgmt",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4428,6 +5032,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_tdls_oper",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4440,6 +5046,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_trigger_scan",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4452,6 +5060,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_register_unexpected_frame",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4464,6 +5074,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_update_connect_params",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4476,6 +5088,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_update_ft_ies",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4488,6 +5102,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_update_owe_info",
+		"access": "admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4500,6 +5116,8 @@
 		"files": [
 			"net/wireless/nl80211.c"
 		],
+		"func": "nl80211_vendor_cmd",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireless"
 		],
@@ -4512,6 +5130,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_abort_scan",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4524,6 +5144,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_associate",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4536,6 +5158,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_del_interface",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4548,6 +5172,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_del_llsec_dev",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4560,6 +5186,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_del_llsec_devkey",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4572,6 +5200,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_del_llsec_key",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4584,6 +5214,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_del_llsec_seclevel",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4596,6 +5228,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_disassociate",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4608,6 +5242,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_get_interface",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -4620,6 +5256,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_dump_llsec_dev",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4632,6 +5270,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_dump_llsec_devkey",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4644,6 +5284,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_dump_llsec_key",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4656,6 +5298,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_dump_llsec_seclevel",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4668,6 +5312,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_get_wpan_phy",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -4680,6 +5326,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_list_associations",
+		"access": "user",
 		"subsystems": [
 			"wpan"
 		],
@@ -4692,6 +5340,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_new_interface",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4704,6 +5354,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_add_llsec_dev",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4716,6 +5368,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_add_llsec_devkey",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4728,6 +5382,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_add_llsec_key",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4740,6 +5396,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_add_llsec_seclevel",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4752,6 +5410,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_send_beacons",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4764,6 +5424,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_ackreq_default",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4776,6 +5438,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_backoff_exponent",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4788,6 +5452,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_cca_ed_level",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4800,6 +5466,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_cca_mode",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4812,6 +5480,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_channel",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4824,6 +5494,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_lbt_mode",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4836,6 +5508,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_max_associations",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4848,6 +5522,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_max_csma_backoffs",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4860,6 +5536,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_max_frame_retries",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4872,6 +5550,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_pan_id",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4884,6 +5564,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_llsec_params",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4896,6 +5578,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_short_addr",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4908,6 +5592,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_set_tx_power",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4920,6 +5606,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_wpan_phy_netns",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4932,6 +5620,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_stop_beacons",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4944,6 +5634,8 @@
 		"files": [
 			"net/ieee802154/nl802154.c"
 		],
+		"func": "nl802154_trigger_scan",
+		"access": "admin",
 		"subsystems": [
 			"wpan"
 		],
@@ -4956,6 +5648,8 @@
 		"files": [
 			"net/netlabel/netlabel_calipso.c"
 		],
+		"func": "netlbl_calipso_add",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -4969,6 +5663,8 @@
 		"files": [
 			"net/netlabel/netlabel_calipso.c"
 		],
+		"func": "netlbl_calipso_list",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -4982,6 +5678,8 @@
 		"files": [
 			"net/netlabel/netlabel_calipso.c"
 		],
+		"func": "netlbl_calipso_listall",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -4995,6 +5693,8 @@
 		"files": [
 			"net/netlabel/netlabel_calipso.c"
 		],
+		"func": "netlbl_calipso_remove",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5008,6 +5708,8 @@
 		"files": [
 			"net/netlabel/netlabel_cipso_v4.c"
 		],
+		"func": "netlbl_cipsov4_add",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5021,6 +5723,8 @@
 		"files": [
 			"net/netlabel/netlabel_cipso_v4.c"
 		],
+		"func": "netlbl_cipsov4_list",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5034,6 +5738,8 @@
 		"files": [
 			"net/netlabel/netlabel_cipso_v4.c"
 		],
+		"func": "netlbl_cipsov4_listall",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5047,6 +5753,8 @@
 		"files": [
 			"net/netlabel/netlabel_cipso_v4.c"
 		],
+		"func": "netlbl_cipsov4_remove",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5060,6 +5768,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_add",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5073,6 +5783,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_adddef",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5086,6 +5798,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_listall",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5099,6 +5813,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_listdef",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5112,6 +5828,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_protocols",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5125,6 +5843,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_remove",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5138,6 +5858,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_removedef",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5151,6 +5873,8 @@
 		"files": [
 			"net/netlabel/netlabel_mgmt.c"
 		],
+		"func": "netlbl_mgmt_version",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5164,6 +5888,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_accept",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5177,6 +5903,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_list",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5190,6 +5918,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_staticadd",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5203,6 +5933,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_staticadddef",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5216,6 +5948,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_staticlist",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5229,6 +5963,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_staticlistdef",
+		"access": "user",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5242,6 +5978,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_staticremove",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5255,6 +5993,8 @@
 		"files": [
 			"net/netlabel/netlabel_unlabeled.c"
 		],
+		"func": "netlbl_unlabel_staticremovedef",
+		"access": "admin",
 		"subsystems": [
 			"lsm",
 			"net"
@@ -5268,6 +6008,8 @@
 		"files": [
 			"net/openvswitch/conntrack.c"
 		],
+		"func": "ovs_ct_limit_cmd_del",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5280,6 +6022,8 @@
 		"files": [
 			"net/openvswitch/conntrack.c"
 		],
+		"func": "ovs_ct_limit_cmd_get",
+		"access": "user",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5292,6 +6036,8 @@
 		"files": [
 			"net/openvswitch/conntrack.c"
 		],
+		"func": "ovs_ct_limit_cmd_set",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5304,6 +6050,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_dp_cmd_del",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5316,6 +6064,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_dp_cmd_get",
+		"access": "user",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5328,6 +6078,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_dp_cmd_new",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5340,6 +6092,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_dp_cmd_set",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5352,6 +6106,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_flow_cmd_del",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5364,6 +6120,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_flow_cmd_get",
+		"access": "user",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5376,6 +6134,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_flow_cmd_new",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5388,6 +6148,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_flow_cmd_set",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5400,6 +6162,8 @@
 		"files": [
 			"net/openvswitch/meter.c"
 		],
+		"func": "ovs_meter_cmd_del",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5412,6 +6176,8 @@
 		"files": [
 			"net/openvswitch/meter.c"
 		],
+		"func": "ovs_meter_cmd_features",
+		"access": "user",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5424,6 +6190,8 @@
 		"files": [
 			"net/openvswitch/meter.c"
 		],
+		"func": "ovs_meter_cmd_get",
+		"access": "user",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5436,6 +6204,8 @@
 		"files": [
 			"net/openvswitch/meter.c"
 		],
+		"func": "ovs_meter_cmd_set",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5448,6 +6218,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_packet_cmd_execute",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5460,6 +6232,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_vport_cmd_del",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5472,6 +6246,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_vport_cmd_get",
+		"access": "user",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5484,6 +6260,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_vport_cmd_new",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5496,6 +6274,8 @@
 		"files": [
 			"net/openvswitch/datapath.c"
 		],
+		"func": "ovs_vport_cmd_set",
+		"access": "ns_admin",
 		"subsystems": [
 			"openvswitch"
 		],
@@ -5508,6 +6288,8 @@
 		"files": [
 			"net/ipv6/seg6.c"
 		],
+		"func": "seg6_genl_dumphmac",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -5520,6 +6302,8 @@
 		"files": [
 			"net/ipv6/seg6.c"
 		],
+		"func": "seg6_genl_get_tunsrc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -5532,6 +6316,8 @@
 		"files": [
 			"net/ipv6/seg6.c"
 		],
+		"func": "seg6_genl_sethmac",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -5544,6 +6330,8 @@
 		"files": [
 			"net/ipv6/seg6.c"
 		],
+		"func": "seg6_genl_set_tunsrc",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -5556,6 +6344,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_add_ueid",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5569,6 +6359,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_disable_hs_limitation",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5582,6 +6374,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_disable_seid",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5595,6 +6389,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_dump_hs_limitation",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5608,6 +6404,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_dump_seid",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5621,6 +6419,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_dump_ueid",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5634,6 +6434,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_enable_hs_limitation",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5647,6 +6449,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_enable_seid",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5660,6 +6464,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_flush_ueid",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5673,6 +6479,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smcd_nl_get_device",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5686,6 +6494,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smcr_nl_get_device",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5699,6 +6509,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_get_fback_stats",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5712,6 +6524,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smcd_nl_get_lgr",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5725,6 +6539,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smcr_nl_get_lgr",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5738,6 +6554,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smcr_nl_get_link",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5751,6 +6569,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_get_stats",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5764,6 +6584,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_get_sys_info",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5777,6 +6599,8 @@
 		"files": [
 			"net/smc/smc_netlink.c"
 		],
+		"func": "smc_nl_remove_ueid",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5790,6 +6614,8 @@
 		"files": [
 			"net/smc/smc_pnet.c"
 		],
+		"func": "smc_pnet_add",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5803,6 +6629,8 @@
 		"files": [
 			"net/smc/smc_pnet.c"
 		],
+		"func": "smc_pnet_del",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5816,6 +6644,8 @@
 		"files": [
 			"net/smc/smc_pnet.c"
 		],
+		"func": "smc_pnet_flush",
+		"access": "admin",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5829,6 +6659,8 @@
 		"files": [
 			"net/smc/smc_pnet.c"
 		],
+		"func": "smc_pnet_get",
+		"access": "user",
 		"subsystems": [
 			"net",
 			"s390"
@@ -5842,6 +6674,8 @@
 		"files": [
 			"kernel/taskstats.c"
 		],
+		"func": "taskstats_user_cmd",
+		"access": "admin",
 		"subsystems": [
 			"kernel"
 		],
@@ -5854,6 +6688,8 @@
 		"files": [
 			"net/ipv4/tcp_metrics.c"
 		],
+		"func": "tcp_metrics_nl_cmd_del",
+		"access": "admin",
 		"subsystems": [
 			"net"
 		],
@@ -5866,6 +6702,8 @@
 		"files": [
 			"net/ipv4/tcp_metrics.c"
 		],
+		"func": "tcp_metrics_nl_cmd_get",
+		"access": "user",
 		"subsystems": [
 			"net"
 		],
@@ -5878,6 +6716,8 @@
 		"files": [
 			"drivers/thermal/thermal_netlink.c"
 		],
+		"func": "thermal_genl_cmd_dumpit",
+		"access": "user",
 		"subsystems": [
 			"pm"
 		],
@@ -5890,6 +6730,8 @@
 		"files": [
 			"drivers/thermal/thermal_netlink.c"
 		],
+		"func": "thermal_genl_cmd_doit",
+		"access": "user",
 		"subsystems": [
 			"pm"
 		],
@@ -5902,6 +6744,8 @@
 		"files": [
 			"drivers/thermal/thermal_netlink.c"
 		],
+		"func": "thermal_genl_cmd_dumpit",
+		"access": "user",
 		"subsystems": [
 			"pm"
 		],
@@ -5914,6 +6758,8 @@
 		"files": [
 			"drivers/thermal/thermal_netlink.c"
 		],
+		"func": "thermal_genl_cmd_doit",
+		"access": "user",
 		"subsystems": [
 			"pm"
 		],
@@ -5926,6 +6772,8 @@
 		"files": [
 			"drivers/thermal/thermal_netlink.c"
 		],
+		"func": "thermal_genl_cmd_doit",
+		"access": "user",
 		"subsystems": [
 			"pm"
 		],
@@ -5938,6 +6786,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_net_addr_legacy_get",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -5950,6 +6800,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_bearer_add",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -5962,6 +6814,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_bearer_disable",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -5974,6 +6828,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_bearer_enable",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -5986,6 +6842,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_bearer_get",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -5998,6 +6856,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_bearer_set",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6010,6 +6870,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_flush_key",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6022,6 +6884,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_set_key",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6034,6 +6898,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_get_link",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6046,6 +6912,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_reset_link_stats",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6058,6 +6926,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_set_link",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6070,6 +6940,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_media_get",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6082,6 +6954,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_media_set",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6094,6 +6968,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_get_monitor",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6106,6 +6982,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_dump_monitor_peer",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6118,6 +6996,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_set_monitor",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6130,6 +7010,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_name_table_dump",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6142,6 +7024,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_net_dump",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6154,6 +7038,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_net_set",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6166,6 +7052,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_node_dump",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6178,6 +7066,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_peer_rm",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6190,6 +7080,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_publ_dump",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6202,6 +7094,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_nl_sk_dump",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6214,6 +7108,8 @@
 		"files": [
 			"net/tipc/netlink.c"
 		],
+		"func": "tipc_udp_nl_dump_remoteip",
+		"access": "user",
 		"subsystems": [
 			"tipc"
 		],
@@ -6226,6 +7122,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_dev_attr_set_doit",
+		"access": "admin",
 		"subsystems": [
 			"virt"
 		],
@@ -6238,6 +7136,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_dev_config_get_doit",
+		"access": "user",
 		"subsystems": [
 			"virt"
 		],
@@ -6250,6 +7150,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_dev_del_set_doit",
+		"access": "admin",
 		"subsystems": [
 			"virt"
 		],
@@ -6262,6 +7164,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_dev_get_doit",
+		"access": "user",
 		"subsystems": [
 			"virt"
 		],
@@ -6274,6 +7178,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_dev_add_set_doit",
+		"access": "admin",
 		"subsystems": [
 			"virt"
 		],
@@ -6286,6 +7192,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_dev_stats_get_doit",
+		"access": "admin",
 		"subsystems": [
 			"virt"
 		],
@@ -6298,6 +7206,8 @@
 		"files": [
 			"drivers/vdpa/vdpa.c"
 		],
+		"func": "vdpa_nl_cmd_mgmtdev_get_doit",
+		"access": "user",
 		"subsystems": [
 			"virt"
 		],
@@ -6310,6 +7220,8 @@
 		"files": [
 			"drivers/net/wireguard/netlink.c"
 		],
+		"func": "wg_get_device_dump",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireguard"
 		],
@@ -6322,6 +7234,8 @@
 		"files": [
 			"drivers/net/wireguard/netlink.c"
 		],
+		"func": "wg_set_device",
+		"access": "ns_admin",
 		"subsystems": [
 			"wireguard"
 		],

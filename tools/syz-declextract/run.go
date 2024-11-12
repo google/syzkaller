@@ -144,7 +144,9 @@ type Interface struct {
 	Type               string   `json:"type"`
 	Name               string   `json:"name"`
 	Files              []string `json:"files"`
-	Subsystems         []string `json:"subsystems"`
+	Func               string   `json:"func,omitempty"`
+	Access             string   `json:"access,omitempty"`
+	Subsystems         []string `json:"subsystems,omitempty"`
 	ManualDescriptions bool     `json:"has_manual_descriptions"`
 	AutoDescriptions   bool     `json:"has_auto_descriptions"`
 
@@ -415,11 +417,21 @@ func appendNodes(slice *[]ast.Node, interfaces map[string]Interface, nodes []ast
 				continue
 			}
 			fields := strings.Fields(node.Text)
+			if len(fields) != 6 {
+				tool.Failf("%q has wrong number of fields", node.Text)
+			}
+			for i := range fields {
+				if fields[i] == "-" {
+					fields[i] = ""
+				}
+			}
 			iface := Interface{
 				Type:             fields[1],
 				Name:             fields[2],
 				Files:            []string{file},
 				identifyingConst: fields[3],
+				Func:             fields[4],
+				Access:           fields[5],
 			}
 			if iface.Type == "SYSCALL" {
 				for _, name := range syscallNames[iface.Name] {
