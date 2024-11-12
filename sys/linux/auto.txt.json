@@ -1097,6 +1097,7 @@
 		"files": [
 			"net/netlink/genetlink.c"
 		],
+		"func": "ctrl_dumpfamily",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -1110,6 +1111,7 @@
 		"files": [
 			"net/netlink/genetlink.c"
 		],
+		"func": "ctrl_dumppolicy_done",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -1809,6 +1811,7 @@
 		"files": [
 			"net/handshake/genl.c"
 		],
+		"func": "handshake_nl_accept_doit",
 		"access": "admin",
 		"subsystems": [
 			"tls"
@@ -1822,6 +1825,7 @@
 		"files": [
 			"net/handshake/genl.c"
 		],
+		"func": "handshake_nl_done_doit",
 		"access": "user",
 		"subsystems": [
 			"tls"
@@ -3151,6 +3155,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"func": "netdev_nl_bind_rx_doit",
 		"access": "admin",
 		"subsystems": [
 			"net"
@@ -3164,6 +3169,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"func": "netdev_nl_dev_get_doit",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -3177,6 +3183,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"func": "netdev_nl_napi_get_dumpit",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -3190,6 +3197,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"func": "netdev_nl_page_pool_get_doit",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -3203,6 +3211,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"func": "netdev_nl_qstats_get_dumpit",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -3216,6 +3225,7 @@
 		"files": [
 			"net/core/netdev-genl-gen.c"
 		],
+		"func": "netdev_nl_queue_get_dumpit",
 		"access": "user",
 		"subsystems": [
 			"net"
@@ -3584,6 +3594,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"func": "nfsd_nl_listener_set_doit",
 		"access": "admin",
 		"subsystems": [
 			"nfs"
@@ -3597,6 +3608,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"func": "nfsd_nl_pool_mode_set_doit",
 		"access": "admin",
 		"subsystems": [
 			"nfs"
@@ -3610,6 +3622,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"func": "nfsd_nl_threads_set_doit",
 		"access": "admin",
 		"subsystems": [
 			"nfs"
@@ -3623,6 +3636,7 @@
 		"files": [
 			"fs/nfsd/netlink.c"
 		],
+		"func": "nfsd_nl_version_set_doit",
 		"access": "admin",
 		"subsystems": [
 			"nfs"
