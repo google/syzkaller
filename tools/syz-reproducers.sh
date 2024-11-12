@@ -23,7 +23,7 @@ tar -xzf "$target_dir/upstream.tar.gz" -C "$target_dir" && rm "$target_dir/upstr
 mkdir -p "$target_dir/bin"
 
 # Compile the programs and count the successfully built ones.
-built_count=$(find "$target_dir/repros" -name "*.c" -print0 | \
+built_count=$(find "$target_dir/export/bugs" -name "*.c" -print0 | \
   xargs -0 -P 128 -I {} sh -c '
     filename=$(basename {} .c)
     flags=""
@@ -38,7 +38,7 @@ built_count=$(find "$target_dir/repros" -name "*.c" -print0 | \
   ' | grep "1" | wc -l)
 
 # Count the number of .c files (reproducers).
-reproducer_count=$(find "$target_dir/repros" -name "*.c" -print0 | xargs -0 -n1 echo | wc -l)
+reproducer_count=$(find "$target_dir/export/bugs" -name "*.c" -print0 | xargs -0 -n1 echo | wc -l)
 
 echo "Downloaded $reproducer_count reproducers."
 echo "Successfully built $built_count programs."
