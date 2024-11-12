@@ -5279,6 +5279,9 @@ enum fuse_opcode {
 	FUSE_COPY_FILE_RANGE = 47,
 	FUSE_SETUPMAPPING = 48,
 	FUSE_REMOVEMAPPING = 49,
+	FUSE_SYNCFS = 50,
+	FUSE_TMPFILE = 51,
+	FUSE_STATX = 52,
 
 	// CUSE specific operations
 	CUSE_INIT = 4096,
@@ -5330,6 +5333,7 @@ struct syz_fuse_req_out {
 	struct fuse_out_header* direntplus;
 	struct fuse_out_header* create_open;
 	struct fuse_out_header* ioctl;
+	struct fuse_out_header* statx;
 };
 
 // Link the reponse to the request and send it to /dev/fuse.
@@ -5477,6 +5481,9 @@ static volatile long syz_fuse_handle_req(volatile long a0, // /dev/fuse fd.
 		break;
 	case FUSE_IOCTL:
 		out_hdr = req_out->ioctl;
+		break;
+	case FUSE_STATX:
+		out_hdr = req_out->statx;
 		break;
 	default:
 		debug("syz_fuse_handle_req: unknown FUSE opcode\n");
