@@ -12,6 +12,8 @@ resource fd_fuse[fd]
 openat$fuse(fd const[AT_FDCWD], file ptr[in, string["/dev/fuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
 openat$cuse(fd const[AT_FDCWD], file ptr[in, string["/dev/cuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
 ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
+ioctl$FUSE_DEV_IOC_BACKING_OPEN(fd fd_fuse, cmd const[FUSE_DEV_IOC_BACKING_OPEN], arg ptr[in, fuse_backing_map])
+ioctl$FUSE_DEV_IOC_BACKING_CLOSE(fd fd_fuse, cmd const[FUSE_DEV_IOC_BACKING_CLOSE], arg ptr[in, int32])
 
 type read_buffer array[int8, FUSE_MIN_READ_BUFFER]
 read$FUSE(fd fd_fuse, buf ptr[out, fuse_in[read_buffer]], len bytesize[buf])
@@ -34,12 +36,14 @@ write$FUSE_ENTRY(fd fd_fuse, arg ptr[in, fuse_out[fuse_entry_out]], len bytesize
 write$FUSE_CREATE_OPEN(fd fd_fuse, arg ptr[in, fuse_out[fuse_create_open_out]], len bytesize[arg])
 write$FUSE_DIRENT(fd fd_fuse, arg ptr[in, fuse_out[array[fuse_dirent]]], len bytesize[arg])
 write$FUSE_DIRENTPLUS(fd fd_fuse, arg ptr[in, fuse_out[array[fuse_direntplus]]], len bytesize[arg])
+write$FUSE_STATX(fd fd_fuse, arg ptr[in, fuse_out[fuse_statx_out]], len bytesize[arg])
 write$FUSE_NOTIFY_POLL(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_POLL, fuse_notify_poll_wakeup_out]], len bytesize[arg])
 write$FUSE_NOTIFY_INVAL_INODE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_INVAL_INODE, fuse_notify_inval_inode_out]], len bytesize[arg])
 write$FUSE_NOTIFY_INVAL_ENTRY(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_INVAL_ENTRY, fuse_notify_inval_entry_out]], len bytesize[arg])
 write$FUSE_NOTIFY_STORE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_STORE, fuse_notify_store_out]], len bytesize[arg])
 write$FUSE_NOTIFY_RETRIEVE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_RETRIEVE, fuse_notify_retrieve_out]], len bytesize[arg])
 write$FUSE_NOTIFY_DELETE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_DELETE, fuse_notify_delete_out]], len bytesize[arg])
+write$FUSE_NOTIFY_RESEND(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_RESEND, const[0, int32]]], len bytesize[arg])
 
 syz_mount_image$fuse(fs ptr[in, string["fuse"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fuse_options], chdir bool8, size const[0], img ptr[in, array[int8]]) fd_dir
 syz_fuse_handle_req(fd fd_fuse, buf ptr[in, read_buffer], len bytesize[buf], res ptr[in, syz_fuse_req_out])
@@ -93,10 +97,24 @@ fuse_init_out {
 	time_gran		int32
 	max_pages		const[0, int16]
 	map_alignment		const[0, int16]
-	unused			array[const[0, int32], 8]
+	flags2			flags[fuse_init_flags2, int32]
+	max_stack_depth		int32
+	unused			array[const[0, int32], 6]
 }
 
-fuse_init_flags = FUSE_ASYNC_READ, FUSE_POSIX_LOCKS, FUSE_FILE_OPS, FUSE_ATOMIC_O_TRUNC, FUSE_EXPORT_SUPPORT, FUSE_BIG_WRITES, FUSE_DONT_MASK, FUSE_SPLICE_WRITE, FUSE_SPLICE_MOVE, FUSE_SPLICE_READ, FUSE_FLOCK_LOCKS, FUSE_HAS_IOCTL_DIR, FUSE_AUTO_INVAL_DATA, FUSE_DO_READDIRPLUS, FUSE_READDIRPLUS_AUTO, FUSE_ASYNC_DIO, FUSE_WRITEBACK_CACHE, FUSE_NO_OPEN_SUPPORT, FUSE_PARALLEL_DIROPS, FUSE_HANDLE_KILLPRIV, FUSE_POSIX_ACL, FUSE_ABORT_ERROR, FUSE_MAX_PAGES, FUSE_CACHE_SYMLINKS, FUSE_NO_OPENDIR_SUPPORT, FUSE_EXPLICIT_INVAL_DATA
+fuse_init_flags = FUSE_ASYNC_READ, FUSE_POSIX_LOCKS, FUSE_FILE_OPS, FUSE_ATOMIC_O_TRUNC, FUSE_EXPORT_SUPPORT, FUSE_BIG_WRITES, FUSE_DONT_MASK, FUSE_SPLICE_WRITE, FUSE_SPLICE_MOVE, FUSE_SPLICE_READ, FUSE_FLOCK_LOCKS, FUSE_HAS_IOCTL_DIR, FUSE_AUTO_INVAL_DATA, FUSE_DO_READDIRPLUS, FUSE_READDIRPLUS_AUTO, FUSE_ASYNC_DIO, FUSE_WRITEBACK_CACHE, FUSE_NO_OPEN_SUPPORT, FUSE_PARALLEL_DIROPS, FUSE_HANDLE_KILLPRIV, FUSE_POSIX_ACL, FUSE_ABORT_ERROR, FUSE_MAX_PAGES, FUSE_CACHE_SYMLINKS, FUSE_NO_OPENDIR_SUPPORT, FUSE_EXPLICIT_INVAL_DATA, FUSE_MAP_ALIGNMENT, FUSE_SUBMOUNTS, FUSE_HANDLE_KILLPRIV_V2, FUSE_SETXATTR_EXT, FUSE_INIT_EXT, FUSE_INIT_RESERVED
+fuse_init_flags2 = FUSE_SECURITY_CTX_FLAG2, FUSE_HAS_INODE_DAX_FLAG2, FUSE_CREATE_SUPP_GROUP_FLAG2, FUSE_HAS_EXPIRE_ONLY_FLAG2, FUSE_DIRECT_IO_ALLOW_MMAP_FLAG2, FUSE_PASSTHROUGH_FLAG2, FUSE_NO_EXPORT_SUPPORT_FLAG2, FUSE_HAS_RESEND_FLAG2, FUSE_DIRECT_IO_RELAX_FLAG2, FUSE_ALLOW_IDMAP_FLAG2
+
+define FUSE_SECURITY_CTX_FLAG2	FUSE_SECURITY_CTX >> 32
+define FUSE_HAS_INODE_DAX_FLAG2	FUSE_HAS_INODE_DAX >> 32
+define FUSE_CREATE_SUPP_GROUP_FLAG2	FUSE_CREATE_SUPP_GROUP >> 32
+define FUSE_HAS_EXPIRE_ONLY_FLAG2	FUSE_HAS_EXPIRE_ONLY >> 32
+define FUSE_DIRECT_IO_ALLOW_MMAP_FLAG2	FUSE_DIRECT_IO_ALLOW_MMAP >> 32
+define FUSE_PASSTHROUGH_FLAG2	FUSE_PASSTHROUGH >> 32
+define FUSE_NO_EXPORT_SUPPORT_FLAG2	FUSE_NO_EXPORT_SUPPORT >> 32
+define FUSE_HAS_RESEND_FLAG2	FUSE_HAS_RESEND >> 32
+define FUSE_DIRECT_IO_RELAX_FLAG2	FUSE_DIRECT_IO_RELAX >> 32
+define FUSE_ALLOW_IDMAP_FLAG2	FUSE_ALLOW_IDMAP >> 32 
 
 fuse_lseek_out {
 	offset	int64
@@ -269,6 +287,48 @@ fuse_notify_retrieve_out {
 	padding		const[0, int32]
 } [packed]
 
+fuse_statx_out {
+	attr_valid	int64
+	attr_valid_nsec	int32
+	flags		const[0, int32]
+	spare		array[const[0, int64], 2]
+	stat		fuse_statx
+}
+
+fuse_statx {
+	mask		flags[fuse_statx_masx, int32]
+	blksize		int32
+	attributes	int64
+	nlink		int32
+	uid		uid
+	gid		gid
+	mode		flags[fuse_valid_type, int16]
+	__spare0	array[const[0, int16], 1]
+	ino		int64
+	size		int64
+	blocks		int64
+	attributes_mask	int64
+	atime		fuse_sx_time
+	btime		fuse_sx_time
+	ctime		fuse_sx_time
+	mtime		fuse_sx_time
+	rdev_major	int32
+	rdev_minor	int32
+	dev_major	int32
+	dev_minor	int32
+	__spare2	array[const[0, int64], 14]
+}
+
+fuse_statx_masx = STATX_TYPE, STATX_MODE, STATX_NLINK, STATX_UID, STATX_GID, STATX_ATIME, STATX_MTIME, STATX_CTIME, STATX_INO, STATX_SIZE, STATX_BLOCKS, STATX_BASIC_STATS, STATX_BTIME, STATX_MNT_ID, STATX_DIOALIGN, STATX_MNT_ID_UNIQUE, STATX_SUBVOL, STATX_WRITE_ATOMIC
+
+fuse_valid_type = S_IFLNK, S_IFREG, S_IFDIR, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK
+
+fuse_sx_time {
+	tv_sec		int64
+	tv_nsec		int32
+	__reserved	const[0, int32]
+}
+
 # Mount options.
 
 fuse_options {
@@ -311,4 +371,11 @@ syz_fuse_req_out {
 	direntplus	ptr[in, syz_fuse_out[array[fuse_direntplus]]]
 	create_open	ptr[in, syz_fuse_out[fuse_create_open_out]]
 	ioctl		ptr[in, syz_fuse_out[fuse_ioctl_out]]
+	statx		ptr[in, syz_fuse_out[fuse_statx_out]]
+}
+
+fuse_backing_map {
+	fd	fd_fuse
+	flags	const[0, int32]
+	padding	const[0, int64]
 }
