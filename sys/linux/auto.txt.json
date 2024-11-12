@@ -5,6 +5,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_accept",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -17,6 +19,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_async_cancel",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -29,6 +33,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_bind",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -41,6 +47,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_close",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -53,6 +61,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_connect",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -65,6 +75,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_epoll_ctl",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -77,6 +89,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_fadvise",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -89,6 +103,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_fallocate",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -101,6 +117,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_fgetxattr",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -113,6 +131,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_files_update",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -125,6 +145,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_install_fixed_fd",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -137,6 +159,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_fsetxattr",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -149,6 +173,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_fsync",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -161,6 +187,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_ftruncate",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -173,6 +201,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_futex_wait",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -185,6 +215,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_futexv_wait",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -197,6 +229,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_futex_wake",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -209,6 +243,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_getxattr",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -221,6 +257,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_linkat",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -233,6 +271,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_no_issue",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -245,6 +285,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_listen",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -257,6 +299,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_madvise",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -269,6 +313,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_mkdirat",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -281,6 +327,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_msg_ring",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -293,6 +341,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_nop",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -305,6 +355,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_openat",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -317,6 +369,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_openat2",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -329,6 +383,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_poll_add",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -341,6 +397,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_poll_remove",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -353,6 +411,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_provide_buffers",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -365,6 +425,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_read",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -377,6 +439,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_read",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -389,6 +453,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_read",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -401,6 +467,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_read_mshot",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -413,6 +481,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_recv",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -425,6 +495,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_recvmsg",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -437,6 +509,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_remove_buffers",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -449,6 +523,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_renameat",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -461,6 +537,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_send",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -473,6 +551,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_sendmsg",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -485,6 +565,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_sendmsg_zc",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -497,6 +579,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_send_zc",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -509,6 +593,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_setxattr",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -521,6 +607,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_shutdown",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -533,6 +621,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_socket",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -545,6 +635,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_splice",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -557,6 +649,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_statx",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -569,6 +663,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_symlinkat",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -581,6 +677,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_sync_file_range",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -593,6 +691,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_tee",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -605,6 +705,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_timeout",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -617,6 +719,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_timeout_remove",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -629,6 +733,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_unlinkat",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -641,6 +747,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_uring_cmd",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -653,6 +761,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_waitid",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -665,6 +775,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_write",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -677,6 +789,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_write",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -689,6 +803,8 @@
 		"files": [
 			"io_uring/opdef.c"
 		],
+		"func": "io_write",
+		"access": "user",
 		"subsystems": [
 			"io-uring"
 		],
@@ -7248,6 +7364,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_llseek",
 		"subsystems": [
 			"fs"
 		],
@@ -7260,6 +7377,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_select",
 		"subsystems": [
 			"fs"
 		],
@@ -7272,6 +7390,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_accept",
 		"subsystems": [
 			"net"
 		],
@@ -7284,6 +7403,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_accept4",
 		"subsystems": [
 			"net"
 		],
@@ -7296,6 +7416,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_access",
 		"subsystems": [
 			"fs"
 		],
@@ -7308,6 +7429,7 @@
 		"files": [
 			"kernel/acct.c"
 		],
+		"func": "__do_sys_acct",
 		"subsystems": [
 			"kernel"
 		],
@@ -7320,6 +7442,7 @@
 		"files": [
 			"security/keys/keyctl.c"
 		],
+		"func": "__do_sys_add_key",
 		"subsystems": [
 			"keyrings",
 			"lsm"
@@ -7333,6 +7456,7 @@
 		"files": [
 			"kernel/time/time.c"
 		],
+		"func": "__do_sys_adjtimex",
 		"subsystems": [
 			"kernel"
 		],
@@ -7345,6 +7469,7 @@
 		"files": [
 			"kernel/time/itimer.c"
 		],
+		"func": "__do_sys_alarm",
 		"subsystems": [
 			"kernel"
 		],
@@ -7357,6 +7482,7 @@
 		"files": [
 			"arch/x86/kernel/process_64.c"
 		],
+		"func": "__do_sys_arch_prctl",
 		"subsystems": [
 			"kernel"
 		],
@@ -7369,6 +7495,7 @@
 		"files": [
 			"fs/sync.c"
 		],
+		"func": "__do_sys_sync_file_range2",
 		"subsystems": [
 			"fs"
 		],
@@ -7381,6 +7508,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_bind",
 		"subsystems": [
 			"net"
 		],
@@ -7393,6 +7521,7 @@
 		"files": [
 			"kernel/bpf/syscall.c"
 		],
+		"func": "__do_sys_bpf",
 		"subsystems": [
 			"bpf"
 		],
@@ -7405,6 +7534,7 @@
 		"files": [
 			"mm/mmap.c"
 		],
+		"func": "__do_sys_brk",
 		"subsystems": [
 			"mm"
 		],
@@ -7417,6 +7547,7 @@
 		"files": [
 			"mm/filemap.c"
 		],
+		"func": "__do_sys_cachestat",
 		"subsystems": [
 			"fs",
 			"mm"
@@ -7430,6 +7561,7 @@
 		"files": [
 			"kernel/capability.c"
 		],
+		"func": "__do_sys_capget",
 		"subsystems": [
 			"lsm"
 		],
@@ -7442,6 +7574,7 @@
 		"files": [
 			"kernel/capability.c"
 		],
+		"func": "__do_sys_capset",
 		"subsystems": [
 			"lsm"
 		],
@@ -7454,6 +7587,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_chdir",
 		"subsystems": [
 			"fs"
 		],
@@ -7466,6 +7600,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_chmod",
 		"subsystems": [
 			"fs"
 		],
@@ -7478,6 +7613,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_chown",
 		"subsystems": [
 			"fs"
 		],
@@ -7490,6 +7626,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_chown",
 		"subsystems": [
 			"fs"
 		],
@@ -7502,6 +7639,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_chroot",
 		"subsystems": [
 			"fs"
 		],
@@ -7514,6 +7652,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_adjtime",
 		"subsystems": [
 			"kernel"
 		],
@@ -7526,6 +7665,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_adjtime",
 		"subsystems": [
 			"kernel"
 		],
@@ -7538,6 +7678,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_getres",
 		"subsystems": [
 			"kernel"
 		],
@@ -7550,6 +7691,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_getres",
 		"subsystems": [
 			"kernel"
 		],
@@ -7562,6 +7704,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_gettime",
 		"subsystems": [
 			"kernel"
 		],
@@ -7574,6 +7717,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_gettime",
 		"subsystems": [
 			"kernel"
 		],
@@ -7586,6 +7730,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_nanosleep",
 		"subsystems": [
 			"kernel"
 		],
@@ -7598,6 +7743,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_nanosleep",
 		"subsystems": [
 			"kernel"
 		],
@@ -7610,6 +7756,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_settime",
 		"subsystems": [
 			"kernel"
 		],
@@ -7622,6 +7769,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_clock_settime",
 		"subsystems": [
 			"kernel"
 		],
@@ -7634,6 +7782,7 @@
 		"files": [
 			"kernel/fork.c"
 		],
+		"func": "__do_sys_clone",
 		"subsystems": [
 			"kernel"
 		],
@@ -7646,6 +7795,7 @@
 		"files": [
 			"kernel/fork.c"
 		],
+		"func": "__do_sys_clone3",
 		"subsystems": [
 			"kernel"
 		],
@@ -7658,6 +7808,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_close",
 		"subsystems": [
 			"fs"
 		],
@@ -7670,6 +7821,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_close_range",
 		"subsystems": [
 			"fs"
 		],
@@ -7682,6 +7834,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_connect",
 		"subsystems": [
 			"net"
 		],
@@ -7694,6 +7847,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_copy_file_range",
 		"subsystems": [
 			"fs"
 		],
@@ -7706,6 +7860,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_creat",
 		"subsystems": [
 			"fs"
 		],
@@ -7718,6 +7873,7 @@
 		"files": [
 			"kernel/module/main.c"
 		],
+		"func": "__do_sys_delete_module",
 		"subsystems": [
 			"modules"
 		],
@@ -7730,6 +7886,7 @@
 		"files": [
 			"fs/file.c"
 		],
+		"func": "__do_sys_dup",
 		"subsystems": [
 			"fs"
 		],
@@ -7742,6 +7899,7 @@
 		"files": [
 			"fs/file.c"
 		],
+		"func": "__do_sys_dup2",
 		"subsystems": [
 			"fs"
 		],
@@ -7754,6 +7912,7 @@
 		"files": [
 			"fs/file.c"
 		],
+		"func": "__do_sys_dup3",
 		"subsystems": [
 			"fs"
 		],
@@ -7766,6 +7925,7 @@
 		"files": [
 			"fs/eventpoll.c"
 		],
+		"func": "__do_sys_epoll_create",
 		"subsystems": [
 			"fs"
 		],
@@ -7778,6 +7938,7 @@
 		"files": [
 			"fs/eventpoll.c"
 		],
+		"func": "__do_sys_epoll_create1",
 		"subsystems": [
 			"fs"
 		],
@@ -7790,6 +7951,7 @@
 		"files": [
 			"fs/eventpoll.c"
 		],
+		"func": "__do_sys_epoll_ctl",
 		"subsystems": [
 			"fs"
 		],
@@ -7802,6 +7964,7 @@
 		"files": [
 			"fs/eventpoll.c"
 		],
+		"func": "__do_sys_epoll_pwait",
 		"subsystems": [
 			"fs"
 		],
@@ -7814,6 +7977,7 @@
 		"files": [
 			"fs/eventpoll.c"
 		],
+		"func": "__do_sys_epoll_pwait2",
 		"subsystems": [
 			"fs"
 		],
@@ -7826,6 +7990,7 @@
 		"files": [
 			"fs/eventpoll.c"
 		],
+		"func": "__do_sys_epoll_wait",
 		"subsystems": [
 			"fs"
 		],
@@ -7838,6 +8003,7 @@
 		"files": [
 			"fs/eventfd.c"
 		],
+		"func": "__do_sys_eventfd",
 		"subsystems": [
 			"fs"
 		],
@@ -7850,6 +8016,7 @@
 		"files": [
 			"fs/eventfd.c"
 		],
+		"func": "__do_sys_eventfd2",
 		"subsystems": [
 			"fs"
 		],
@@ -7862,6 +8029,7 @@
 		"files": [
 			"fs/exec.c"
 		],
+		"func": "__do_sys_execve",
 		"subsystems": [
 			"fs",
 			"mm"
@@ -7875,6 +8043,7 @@
 		"files": [
 			"fs/exec.c"
 		],
+		"func": "__do_sys_execveat",
 		"subsystems": [
 			"fs",
 			"mm"
@@ -7888,6 +8057,7 @@
 		"files": [
 			"kernel/exit.c"
 		],
+		"func": "__do_sys_exit",
 		"subsystems": [
 			"kernel"
 		],
@@ -7900,6 +8070,7 @@
 		"files": [
 			"kernel/exit.c"
 		],
+		"func": "__do_sys_exit_group",
 		"subsystems": [
 			"kernel"
 		],
@@ -7912,6 +8083,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_faccessat",
 		"subsystems": [
 			"fs"
 		],
@@ -7924,6 +8096,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_faccessat2",
 		"subsystems": [
 			"fs"
 		],
@@ -7936,6 +8109,7 @@
 		"files": [
 			"mm/fadvise.c"
 		],
+		"func": "__do_sys_fadvise64",
 		"subsystems": [
 			"mm"
 		],
@@ -7948,6 +8122,7 @@
 		"files": [
 			"arch/x86/kernel/sys_ia32.c"
 		],
+		"func": "__do_sys_ia32_fadvise64_64",
 		"subsystems": [
 			"kernel"
 		],
@@ -7960,6 +8135,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fallocate",
 		"subsystems": [
 			"fs"
 		],
@@ -7972,6 +8148,7 @@
 		"files": [
 			"fs/notify/fanotify/fanotify_user.c"
 		],
+		"func": "__do_sys_fanotify_init",
 		"subsystems": [
 			"fs"
 		],
@@ -7984,6 +8161,7 @@
 		"files": [
 			"fs/notify/fanotify/fanotify_user.c"
 		],
+		"func": "__do_sys_fanotify_mark",
 		"subsystems": [
 			"fs"
 		],
@@ -7996,6 +8174,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchdir",
 		"subsystems": [
 			"fs"
 		],
@@ -8008,6 +8187,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchmod",
 		"subsystems": [
 			"fs"
 		],
@@ -8020,6 +8200,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchmodat",
 		"subsystems": [
 			"fs"
 		],
@@ -8032,6 +8213,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchmodat2",
 		"subsystems": [
 			"fs"
 		],
@@ -8044,6 +8226,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchown",
 		"subsystems": [
 			"fs"
 		],
@@ -8056,6 +8239,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchown",
 		"subsystems": [
 			"fs"
 		],
@@ -8068,6 +8252,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_fchownat",
 		"subsystems": [
 			"fs"
 		],
@@ -8080,6 +8265,7 @@
 		"files": [
 			"fs/fcntl.c"
 		],
+		"func": "__do_sys_fcntl",
 		"subsystems": [
 			"fs"
 		],
@@ -8092,6 +8278,7 @@
 		"files": [
 			"fs/sync.c"
 		],
+		"func": "__do_sys_fdatasync",
 		"subsystems": [
 			"fs"
 		],
@@ -8104,6 +8291,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_fgetxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -8116,6 +8304,7 @@
 		"files": [
 			"kernel/module/main.c"
 		],
+		"func": "__do_sys_finit_module",
 		"subsystems": [
 			"modules"
 		],
@@ -8128,6 +8317,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_flistxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -8140,6 +8330,7 @@
 		"files": [
 			"fs/locks.c"
 		],
+		"func": "__do_sys_flock",
 		"subsystems": [
 			"fs"
 		],
@@ -8152,6 +8343,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_fremovexattr",
 		"subsystems": [
 			"fs"
 		],
@@ -8164,6 +8356,7 @@
 		"files": [
 			"fs/fsopen.c"
 		],
+		"func": "__do_sys_fsconfig",
 		"subsystems": [
 			"fs"
 		],
@@ -8176,6 +8369,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_fsetxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -8188,6 +8382,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_fsmount",
 		"subsystems": [
 			"fs"
 		],
@@ -8200,6 +8395,7 @@
 		"files": [
 			"fs/fsopen.c"
 		],
+		"func": "__do_sys_fsopen",
 		"subsystems": [
 			"fs"
 		],
@@ -8212,6 +8408,7 @@
 		"files": [
 			"fs/fsopen.c"
 		],
+		"func": "__do_sys_fspick",
 		"subsystems": [
 			"fs"
 		],
@@ -8224,6 +8421,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_newfstat",
 		"subsystems": [
 			"fs"
 		],
@@ -8236,6 +8434,7 @@
 		"files": [
 			"fs/statfs.c"
 		],
+		"func": "__do_sys_fstatfs",
 		"subsystems": [
 			"fs"
 		],
@@ -8248,6 +8447,7 @@
 		"files": [
 			"fs/statfs.c"
 		],
+		"func": "__do_sys_fstatfs64",
 		"subsystems": [
 			"fs"
 		],
@@ -8260,6 +8460,7 @@
 		"files": [
 			"fs/sync.c"
 		],
+		"func": "__do_sys_fsync",
 		"subsystems": [
 			"fs"
 		],
@@ -8272,6 +8473,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_ftruncate",
 		"subsystems": [
 			"fs"
 		],
@@ -8284,6 +8486,7 @@
 		"files": [
 			"arch/x86/kernel/sys_ia32.c"
 		],
+		"func": "__do_sys_ia32_ftruncate64",
 		"subsystems": [
 			"kernel"
 		],
@@ -8296,6 +8499,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_futex",
 		"subsystems": [
 			"kernel"
 		],
@@ -8308,6 +8512,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_futex_requeue",
 		"subsystems": [
 			"kernel"
 		],
@@ -8320,6 +8525,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_futex",
 		"subsystems": [
 			"kernel"
 		],
@@ -8332,6 +8538,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_futex_wait",
 		"subsystems": [
 			"kernel"
 		],
@@ -8344,6 +8551,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_futex_waitv",
 		"subsystems": [
 			"kernel"
 		],
@@ -8356,6 +8564,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_futex_wake",
 		"subsystems": [
 			"kernel"
 		],
@@ -8368,6 +8577,7 @@
 		"files": [
 			"fs/utimes.c"
 		],
+		"func": "__do_sys_futimesat",
 		"subsystems": [
 			"fs"
 		],
@@ -8380,6 +8590,7 @@
 		"files": [
 			"mm/mempolicy.c"
 		],
+		"func": "__do_sys_get_mempolicy",
 		"subsystems": [
 			"mm"
 		],
@@ -8392,6 +8603,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_get_robust_list",
 		"subsystems": [
 			"kernel"
 		],
@@ -8404,6 +8616,7 @@
 		"files": [
 			"arch/x86/kernel/tls.c"
 		],
+		"func": "__do_sys_get_thread_area",
 		"subsystems": [
 			"kernel"
 		],
@@ -8416,6 +8629,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getcpu",
 		"subsystems": [
 			"kernel"
 		],
@@ -8428,6 +8642,7 @@
 		"files": [
 			"fs/d_path.c"
 		],
+		"func": "__do_sys_getcwd",
 		"subsystems": [
 			"fs"
 		],
@@ -8440,6 +8655,7 @@
 		"files": [
 			"fs/readdir.c"
 		],
+		"func": "__do_sys_getdents",
 		"subsystems": [
 			"fs"
 		],
@@ -8452,6 +8668,7 @@
 		"files": [
 			"fs/readdir.c"
 		],
+		"func": "__do_sys_getdents64",
 		"subsystems": [
 			"fs"
 		],
@@ -8464,6 +8681,7 @@
 		"files": [
 			"kernel/groups.c"
 		],
+		"func": "__do_sys_getgroups",
 		"subsystems": [
 			"kernel"
 		],
@@ -8476,6 +8694,7 @@
 		"files": [
 			"kernel/groups.c"
 		],
+		"func": "__do_sys_getgroups",
 		"subsystems": [
 			"kernel"
 		],
@@ -8488,6 +8707,7 @@
 		"files": [
 			"kernel/time/itimer.c"
 		],
+		"func": "__do_sys_getitimer",
 		"subsystems": [
 			"kernel"
 		],
@@ -8500,6 +8720,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_getpeername",
 		"subsystems": [
 			"net"
 		],
@@ -8512,6 +8733,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getpgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -8524,6 +8746,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getpriority",
 		"subsystems": [
 			"kernel"
 		],
@@ -8536,6 +8759,7 @@
 		"files": [
 			"drivers/char/random.c"
 		],
+		"func": "__do_sys_getrandom",
 		"subsystems": [
 			"kernel"
 		],
@@ -8548,6 +8772,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getresgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -8560,6 +8785,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getresgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -8572,6 +8798,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getresuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -8584,6 +8811,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getresuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -8596,6 +8824,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getrlimit",
 		"subsystems": [
 			"kernel"
 		],
@@ -8608,6 +8837,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getrusage",
 		"subsystems": [
 			"kernel"
 		],
@@ -8620,6 +8850,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getsid",
 		"subsystems": [
 			"kernel"
 		],
@@ -8632,6 +8863,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_getsockname",
 		"subsystems": [
 			"net"
 		],
@@ -8644,6 +8876,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_getsockopt",
 		"subsystems": [
 			"net"
 		],
@@ -8656,6 +8889,7 @@
 		"files": [
 			"kernel/time/time.c"
 		],
+		"func": "__do_sys_gettimeofday",
 		"subsystems": [
 			"kernel"
 		],
@@ -8668,6 +8902,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_getxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -8680,6 +8915,7 @@
 		"files": [
 			"kernel/module/main.c"
 		],
+		"func": "__do_sys_init_module",
 		"subsystems": [
 			"modules"
 		],
@@ -8692,6 +8928,7 @@
 		"files": [
 			"fs/notify/inotify/inotify_user.c"
 		],
+		"func": "__do_sys_inotify_add_watch",
 		"subsystems": [
 			"fs"
 		],
@@ -8704,6 +8941,7 @@
 		"files": [
 			"fs/notify/inotify/inotify_user.c"
 		],
+		"func": "__do_sys_inotify_init1",
 		"subsystems": [
 			"fs"
 		],
@@ -8716,6 +8954,7 @@
 		"files": [
 			"fs/notify/inotify/inotify_user.c"
 		],
+		"func": "__do_sys_inotify_rm_watch",
 		"subsystems": [
 			"fs"
 		],
@@ -8728,6 +8967,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_cancel",
 		"subsystems": [
 			"fs"
 		],
@@ -8740,6 +8980,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_destroy",
 		"subsystems": [
 			"fs"
 		],
@@ -8752,6 +8993,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_getevents",
 		"subsystems": [
 			"fs"
 		],
@@ -8764,6 +9006,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_pgetevents",
 		"subsystems": [
 			"fs"
 		],
@@ -8776,6 +9019,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_pgetevents",
 		"subsystems": [
 			"fs"
 		],
@@ -8788,6 +9032,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_setup",
 		"subsystems": [
 			"fs"
 		],
@@ -8800,6 +9045,7 @@
 		"files": [
 			"fs/aio.c"
 		],
+		"func": "__do_sys_io_submit",
 		"subsystems": [
 			"fs"
 		],
@@ -8812,6 +9058,7 @@
 		"files": [
 			"io_uring/io_uring.c"
 		],
+		"func": "__do_sys_io_uring_enter",
 		"subsystems": [
 			"io-uring"
 		],
@@ -8824,6 +9071,7 @@
 		"files": [
 			"io_uring/register.c"
 		],
+		"func": "__do_sys_io_uring_register",
 		"subsystems": [
 			"io-uring"
 		],
@@ -8836,6 +9084,7 @@
 		"files": [
 			"io_uring/io_uring.c"
 		],
+		"func": "__do_sys_io_uring_setup",
 		"subsystems": [
 			"io-uring"
 		],
@@ -8848,6 +9097,7 @@
 		"files": [
 			"fs/ioctl.c"
 		],
+		"func": "__do_sys_ioctl",
 		"subsystems": [
 			"fs",
 			"lsm"
@@ -8861,6 +9111,7 @@
 		"files": [
 			"arch/x86/kernel/ioport.c"
 		],
+		"func": "__do_sys_ioperm",
 		"subsystems": [
 			"kernel"
 		],
@@ -8873,6 +9124,7 @@
 		"files": [
 			"arch/x86/kernel/ioport.c"
 		],
+		"func": "__do_sys_iopl",
 		"subsystems": [
 			"kernel"
 		],
@@ -8885,6 +9137,7 @@
 		"files": [
 			"block/ioprio.c"
 		],
+		"func": "__do_sys_ioprio_get",
 		"subsystems": [
 			"block"
 		],
@@ -8897,6 +9150,7 @@
 		"files": [
 			"block/ioprio.c"
 		],
+		"func": "__do_sys_ioprio_set",
 		"subsystems": [
 			"block"
 		],
@@ -8909,6 +9163,7 @@
 		"files": [
 			"kernel/kcmp.c"
 		],
+		"func": "__do_sys_kcmp",
 		"subsystems": [
 			"kernel"
 		],
@@ -8921,6 +9176,7 @@
 		"files": [
 			"kernel/kexec.c"
 		],
+		"func": "__do_sys_kexec_load",
 		"subsystems": [
 			"kexec"
 		],
@@ -8933,6 +9189,7 @@
 		"files": [
 			"security/keys/keyctl.c"
 		],
+		"func": "__do_sys_keyctl",
 		"subsystems": [
 			"keyrings",
 			"lsm"
@@ -8946,6 +9203,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_kill",
 		"subsystems": [
 			"kernel"
 		],
@@ -8958,6 +9216,7 @@
 		"files": [
 			"security/landlock/syscalls.c"
 		],
+		"func": "__do_sys_landlock_add_rule",
 		"subsystems": [
 			"lsm"
 		],
@@ -8970,6 +9229,7 @@
 		"files": [
 			"security/landlock/syscalls.c"
 		],
+		"func": "__do_sys_landlock_create_ruleset",
 		"subsystems": [
 			"lsm"
 		],
@@ -8982,6 +9242,7 @@
 		"files": [
 			"security/landlock/syscalls.c"
 		],
+		"func": "__do_sys_landlock_restrict_self",
 		"subsystems": [
 			"lsm"
 		],
@@ -8994,6 +9255,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_lchown",
 		"subsystems": [
 			"fs"
 		],
@@ -9006,6 +9268,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_lchown",
 		"subsystems": [
 			"fs"
 		],
@@ -9018,6 +9281,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_lgetxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -9030,6 +9294,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_link",
 		"subsystems": [
 			"fs"
 		],
@@ -9042,6 +9307,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_linkat",
 		"subsystems": [
 			"fs"
 		],
@@ -9054,6 +9320,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_listen",
 		"subsystems": [
 			"net"
 		],
@@ -9066,6 +9333,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_listmount",
 		"subsystems": [
 			"fs"
 		],
@@ -9078,6 +9346,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_listxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -9090,6 +9359,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_llistxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -9102,6 +9372,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_lremovexattr",
 		"subsystems": [
 			"fs"
 		],
@@ -9114,6 +9385,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_lseek",
 		"subsystems": [
 			"fs"
 		],
@@ -9126,6 +9398,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_lsetxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -9138,6 +9411,7 @@
 		"files": [
 			"security/lsm_syscalls.c"
 		],
+		"func": "__do_sys_lsm_get_self_attr",
 		"subsystems": [
 			"lsm"
 		],
@@ -9150,6 +9424,7 @@
 		"files": [
 			"security/lsm_syscalls.c"
 		],
+		"func": "__do_sys_lsm_list_modules",
 		"subsystems": [
 			"lsm"
 		],
@@ -9162,6 +9437,7 @@
 		"files": [
 			"security/lsm_syscalls.c"
 		],
+		"func": "__do_sys_lsm_set_self_attr",
 		"subsystems": [
 			"lsm"
 		],
@@ -9174,6 +9450,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_newlstat",
 		"subsystems": [
 			"fs"
 		],
@@ -9186,6 +9463,7 @@
 		"files": [
 			"mm/madvise.c"
 		],
+		"func": "__do_sys_madvise",
 		"subsystems": [
 			"mm"
 		],
@@ -9198,6 +9476,7 @@
 		"files": [
 			"arch/x86/kernel/shstk.c"
 		],
+		"func": "__do_sys_map_shadow_stack",
 		"subsystems": [
 			"kernel"
 		],
@@ -9210,6 +9489,7 @@
 		"files": [
 			"mm/mempolicy.c"
 		],
+		"func": "__do_sys_mbind",
 		"subsystems": [
 			"mm"
 		],
@@ -9222,6 +9502,7 @@
 		"files": [
 			"kernel/sched/build_utility.c"
 		],
+		"func": "__do_sys_membarrier",
 		"subsystems": [
 			"kernel"
 		],
@@ -9234,6 +9515,7 @@
 		"files": [
 			"mm/memfd.c"
 		],
+		"func": "__do_sys_memfd_create",
 		"subsystems": [
 			"mm"
 		],
@@ -9246,6 +9528,7 @@
 		"files": [
 			"mm/secretmem.c"
 		],
+		"func": "__do_sys_memfd_secret",
 		"subsystems": [
 			"mm"
 		],
@@ -9258,6 +9541,7 @@
 		"files": [
 			"mm/mempolicy.c"
 		],
+		"func": "__do_sys_migrate_pages",
 		"subsystems": [
 			"mm"
 		],
@@ -9270,6 +9554,7 @@
 		"files": [
 			"mm/mincore.c"
 		],
+		"func": "__do_sys_mincore",
 		"subsystems": [
 			"mm"
 		],
@@ -9282,6 +9567,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_mkdir",
 		"subsystems": [
 			"fs"
 		],
@@ -9294,6 +9580,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_mkdirat",
 		"subsystems": [
 			"fs"
 		],
@@ -9306,6 +9593,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_mknod",
 		"subsystems": [
 			"fs"
 		],
@@ -9318,6 +9606,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_mknodat",
 		"subsystems": [
 			"fs"
 		],
@@ -9330,6 +9619,7 @@
 		"files": [
 			"mm/mlock.c"
 		],
+		"func": "__do_sys_mlock",
 		"subsystems": [
 			"mm"
 		],
@@ -9342,6 +9632,7 @@
 		"files": [
 			"mm/mlock.c"
 		],
+		"func": "__do_sys_mlock2",
 		"subsystems": [
 			"mm"
 		],
@@ -9354,6 +9645,7 @@
 		"files": [
 			"mm/mlock.c"
 		],
+		"func": "__do_sys_mlockall",
 		"subsystems": [
 			"mm"
 		],
@@ -9366,6 +9658,7 @@
 		"files": [
 			"arch/x86/kernel/sys_x86_64.c"
 		],
+		"func": "__do_sys_mmap",
 		"subsystems": [
 			"kernel"
 		],
@@ -9378,6 +9671,7 @@
 		"files": [
 			"mm/mmap.c"
 		],
+		"func": "__do_sys_mmap_pgoff",
 		"subsystems": [
 			"mm"
 		],
@@ -9390,6 +9684,7 @@
 		"files": [
 			"arch/x86/kernel/ldt.c"
 		],
+		"func": "__do_sys_modify_ldt",
 		"subsystems": [
 			"kernel"
 		],
@@ -9402,6 +9697,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_mount",
 		"subsystems": [
 			"fs"
 		],
@@ -9414,6 +9710,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_mount_setattr",
 		"subsystems": [
 			"fs"
 		],
@@ -9426,6 +9723,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_move_mount",
 		"subsystems": [
 			"fs"
 		],
@@ -9438,6 +9736,7 @@
 		"files": [
 			"mm/migrate.c"
 		],
+		"func": "__do_sys_move_pages",
 		"subsystems": [
 			"mm"
 		],
@@ -9450,6 +9749,7 @@
 		"files": [
 			"mm/mprotect.c"
 		],
+		"func": "__do_sys_mprotect",
 		"subsystems": [
 			"mm"
 		],
@@ -9462,6 +9762,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_getsetattr",
 		"subsystems": [
 			"kernel"
 		],
@@ -9474,6 +9775,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_notify",
 		"subsystems": [
 			"kernel"
 		],
@@ -9486,6 +9788,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_open",
 		"subsystems": [
 			"kernel"
 		],
@@ -9498,6 +9801,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_timedreceive",
 		"subsystems": [
 			"kernel"
 		],
@@ -9510,6 +9814,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_timedreceive",
 		"subsystems": [
 			"kernel"
 		],
@@ -9522,6 +9827,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_timedsend",
 		"subsystems": [
 			"kernel"
 		],
@@ -9534,6 +9840,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_timedsend",
 		"subsystems": [
 			"kernel"
 		],
@@ -9546,6 +9853,7 @@
 		"files": [
 			"ipc/mqueue.c"
 		],
+		"func": "__do_sys_mq_unlink",
 		"subsystems": [
 			"kernel"
 		],
@@ -9558,6 +9866,7 @@
 		"files": [
 			"mm/mremap.c"
 		],
+		"func": "__do_sys_mremap",
 		"subsystems": [
 			"mm"
 		],
@@ -9570,6 +9879,7 @@
 		"files": [
 			"mm/mseal.c"
 		],
+		"func": "__do_sys_mseal",
 		"subsystems": [
 			"mm"
 		],
@@ -9582,6 +9892,7 @@
 		"files": [
 			"ipc/msg.c"
 		],
+		"func": "__do_sys_msgctl",
 		"subsystems": [
 			"kernel"
 		],
@@ -9594,6 +9905,7 @@
 		"files": [
 			"ipc/msg.c"
 		],
+		"func": "__do_sys_msgget",
 		"subsystems": [
 			"kernel"
 		],
@@ -9606,6 +9918,7 @@
 		"files": [
 			"ipc/msg.c"
 		],
+		"func": "__do_sys_msgrcv",
 		"subsystems": [
 			"kernel"
 		],
@@ -9618,6 +9931,7 @@
 		"files": [
 			"ipc/msg.c"
 		],
+		"func": "__do_sys_msgsnd",
 		"subsystems": [
 			"kernel"
 		],
@@ -9630,6 +9944,7 @@
 		"files": [
 			"mm/msync.c"
 		],
+		"func": "__do_sys_msync",
 		"subsystems": [
 			"mm"
 		],
@@ -9642,6 +9957,7 @@
 		"files": [
 			"mm/mlock.c"
 		],
+		"func": "__do_sys_munlock",
 		"subsystems": [
 			"mm"
 		],
@@ -9654,6 +9970,7 @@
 		"files": [
 			"mm/mmap.c"
 		],
+		"func": "__do_sys_munmap",
 		"subsystems": [
 			"mm"
 		],
@@ -9666,6 +9983,7 @@
 		"files": [
 			"fs/fhandle.c"
 		],
+		"func": "__do_sys_name_to_handle_at",
 		"subsystems": [
 			"nfs"
 		],
@@ -9678,6 +9996,7 @@
 		"files": [
 			"kernel/time/hrtimer.c"
 		],
+		"func": "__do_sys_nanosleep",
 		"subsystems": [
 			"kernel"
 		],
@@ -9690,6 +10009,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_newfstatat",
 		"subsystems": [
 			"fs"
 		],
@@ -9702,6 +10022,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_nice",
 		"subsystems": [
 			"kernel"
 		],
@@ -9714,6 +10035,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_fstat",
 		"subsystems": [
 			"fs"
 		],
@@ -9726,6 +10048,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_lstat",
 		"subsystems": [
 			"fs"
 		],
@@ -9738,6 +10061,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_olduname",
 		"subsystems": [
 			"kernel"
 		],
@@ -9750,6 +10074,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_stat",
 		"subsystems": [
 			"fs"
 		],
@@ -9762,6 +10087,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_uname",
 		"subsystems": [
 			"kernel"
 		],
@@ -9774,6 +10100,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_open",
 		"subsystems": [
 			"fs"
 		],
@@ -9786,6 +10113,7 @@
 		"files": [
 			"fs/fhandle.c"
 		],
+		"func": "__do_sys_open_by_handle_at",
 		"subsystems": [
 			"nfs"
 		],
@@ -9798,6 +10126,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_open_tree",
 		"subsystems": [
 			"fs"
 		],
@@ -9810,6 +10139,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_openat",
 		"subsystems": [
 			"fs"
 		],
@@ -9822,6 +10152,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_openat2",
 		"subsystems": [
 			"fs"
 		],
@@ -9834,6 +10165,7 @@
 		"files": [
 			"kernel/events/core.c"
 		],
+		"func": "__do_sys_perf_event_open",
 		"subsystems": [
 			"perf"
 		],
@@ -9846,6 +10178,7 @@
 		"files": [
 			"kernel/exec_domain.c"
 		],
+		"func": "__do_sys_personality",
 		"subsystems": [
 			"kernel"
 		],
@@ -9858,6 +10191,7 @@
 		"files": [
 			"kernel/pid.c"
 		],
+		"func": "__do_sys_pidfd_getfd",
 		"subsystems": [
 			"kernel"
 		],
@@ -9870,6 +10204,7 @@
 		"files": [
 			"kernel/pid.c"
 		],
+		"func": "__do_sys_pidfd_open",
 		"subsystems": [
 			"kernel"
 		],
@@ -9882,6 +10217,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_pidfd_send_signal",
 		"subsystems": [
 			"kernel"
 		],
@@ -9894,6 +10230,7 @@
 		"files": [
 			"fs/pipe.c"
 		],
+		"func": "__do_sys_pipe",
 		"subsystems": [
 			"fs"
 		],
@@ -9906,6 +10243,7 @@
 		"files": [
 			"fs/pipe.c"
 		],
+		"func": "__do_sys_pipe2",
 		"subsystems": [
 			"fs"
 		],
@@ -9918,6 +10256,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_pivot_root",
 		"subsystems": [
 			"fs"
 		],
@@ -9930,6 +10269,7 @@
 		"files": [
 			"mm/mprotect.c"
 		],
+		"func": "__do_sys_pkey_alloc",
 		"subsystems": [
 			"mm"
 		],
@@ -9942,6 +10282,7 @@
 		"files": [
 			"mm/mprotect.c"
 		],
+		"func": "__do_sys_pkey_free",
 		"subsystems": [
 			"mm"
 		],
@@ -9954,6 +10295,7 @@
 		"files": [
 			"mm/mprotect.c"
 		],
+		"func": "__do_sys_pkey_mprotect",
 		"subsystems": [
 			"mm"
 		],
@@ -9966,6 +10308,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_poll",
 		"subsystems": [
 			"fs"
 		],
@@ -9978,6 +10321,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_ppoll",
 		"subsystems": [
 			"fs"
 		],
@@ -9990,6 +10334,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_ppoll",
 		"subsystems": [
 			"fs"
 		],
@@ -10002,6 +10347,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_prctl",
 		"subsystems": [
 			"kernel"
 		],
@@ -10014,6 +10360,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_pread64",
 		"subsystems": [
 			"fs"
 		],
@@ -10026,6 +10373,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_preadv",
 		"subsystems": [
 			"fs"
 		],
@@ -10038,6 +10386,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_preadv2",
 		"subsystems": [
 			"fs"
 		],
@@ -10050,6 +10399,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_prlimit64",
 		"subsystems": [
 			"kernel"
 		],
@@ -10062,6 +10412,7 @@
 		"files": [
 			"mm/madvise.c"
 		],
+		"func": "__do_sys_process_madvise",
 		"subsystems": [
 			"mm"
 		],
@@ -10074,6 +10425,7 @@
 		"files": [
 			"mm/oom_kill.c"
 		],
+		"func": "__do_sys_process_mrelease",
 		"subsystems": [
 			"mm"
 		],
@@ -10086,6 +10438,7 @@
 		"files": [
 			"mm/process_vm_access.c"
 		],
+		"func": "__do_sys_process_vm_readv",
 		"subsystems": [
 			"mm"
 		],
@@ -10098,6 +10451,7 @@
 		"files": [
 			"mm/process_vm_access.c"
 		],
+		"func": "__do_sys_process_vm_writev",
 		"subsystems": [
 			"mm"
 		],
@@ -10110,6 +10464,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_pselect6",
 		"subsystems": [
 			"fs"
 		],
@@ -10122,6 +10477,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_pselect6",
 		"subsystems": [
 			"fs"
 		],
@@ -10134,6 +10490,7 @@
 		"files": [
 			"kernel/ptrace.c"
 		],
+		"func": "__do_sys_ptrace",
 		"subsystems": [
 			"kernel"
 		],
@@ -10146,6 +10503,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_pwrite64",
 		"subsystems": [
 			"fs"
 		],
@@ -10158,6 +10516,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_pwritev",
 		"subsystems": [
 			"fs"
 		],
@@ -10170,6 +10529,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_pwritev2",
 		"subsystems": [
 			"fs"
 		],
@@ -10182,6 +10542,7 @@
 		"files": [
 			"fs/quota/quota.c"
 		],
+		"func": "__do_sys_quotactl",
 		"subsystems": [
 			"fs"
 		],
@@ -10194,6 +10555,7 @@
 		"files": [
 			"fs/quota/quota.c"
 		],
+		"func": "__do_sys_quotactl_fd",
 		"subsystems": [
 			"fs"
 		],
@@ -10206,6 +10568,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_read",
 		"subsystems": [
 			"fs"
 		],
@@ -10218,6 +10581,7 @@
 		"files": [
 			"mm/readahead.c"
 		],
+		"func": "__do_sys_readahead",
 		"subsystems": [
 			"fs",
 			"mm"
@@ -10231,6 +10595,7 @@
 		"files": [
 			"fs/readdir.c"
 		],
+		"func": "__do_sys_old_readdir",
 		"subsystems": [
 			"fs"
 		],
@@ -10243,6 +10608,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_readlink",
 		"subsystems": [
 			"fs"
 		],
@@ -10255,6 +10621,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_readlinkat",
 		"subsystems": [
 			"fs"
 		],
@@ -10267,6 +10634,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_readv",
 		"subsystems": [
 			"fs"
 		],
@@ -10279,6 +10647,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_recv",
 		"subsystems": [
 			"net"
 		],
@@ -10291,6 +10660,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_recvfrom",
 		"subsystems": [
 			"net"
 		],
@@ -10303,6 +10673,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_recvmmsg",
 		"subsystems": [
 			"net"
 		],
@@ -10315,6 +10686,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_recvmmsg",
 		"subsystems": [
 			"net"
 		],
@@ -10327,6 +10699,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_recvmsg",
 		"subsystems": [
 			"net"
 		],
@@ -10339,6 +10712,7 @@
 		"files": [
 			"mm/mmap.c"
 		],
+		"func": "__do_sys_remap_file_pages",
 		"subsystems": [
 			"mm"
 		],
@@ -10351,6 +10725,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_removexattr",
 		"subsystems": [
 			"fs"
 		],
@@ -10363,6 +10738,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_rename",
 		"subsystems": [
 			"fs"
 		],
@@ -10375,6 +10751,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_renameat",
 		"subsystems": [
 			"fs"
 		],
@@ -10387,6 +10764,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_renameat2",
 		"subsystems": [
 			"fs"
 		],
@@ -10399,6 +10777,7 @@
 		"files": [
 			"security/keys/keyctl.c"
 		],
+		"func": "__do_sys_request_key",
 		"subsystems": [
 			"keyrings",
 			"lsm"
@@ -10412,6 +10791,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_rmdir",
 		"subsystems": [
 			"fs"
 		],
@@ -10424,6 +10804,7 @@
 		"files": [
 			"kernel/rseq.c"
 		],
+		"func": "__do_sys_rseq",
 		"subsystems": [
 			"kernel"
 		],
@@ -10436,6 +10817,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigaction",
 		"subsystems": [
 			"kernel"
 		],
@@ -10448,6 +10830,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigpending",
 		"subsystems": [
 			"kernel"
 		],
@@ -10460,6 +10843,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigprocmask",
 		"subsystems": [
 			"kernel"
 		],
@@ -10472,6 +10856,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigqueueinfo",
 		"subsystems": [
 			"kernel"
 		],
@@ -10484,6 +10869,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigsuspend",
 		"subsystems": [
 			"kernel"
 		],
@@ -10496,6 +10882,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigtimedwait",
 		"subsystems": [
 			"kernel"
 		],
@@ -10508,6 +10895,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_sigtimedwait",
 		"subsystems": [
 			"kernel"
 		],
@@ -10520,6 +10908,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_rt_tgsigqueueinfo",
 		"subsystems": [
 			"kernel"
 		],
@@ -10532,6 +10921,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_get_priority_max",
 		"subsystems": [
 			"kernel"
 		],
@@ -10544,6 +10934,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_get_priority_min",
 		"subsystems": [
 			"kernel"
 		],
@@ -10556,6 +10947,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_getaffinity",
 		"subsystems": [
 			"kernel"
 		],
@@ -10568,6 +10960,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_getattr",
 		"subsystems": [
 			"kernel"
 		],
@@ -10580,6 +10973,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_getparam",
 		"subsystems": [
 			"kernel"
 		],
@@ -10592,6 +10986,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_getscheduler",
 		"subsystems": [
 			"kernel"
 		],
@@ -10604,6 +10999,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_rr_get_interval",
 		"subsystems": [
 			"kernel"
 		],
@@ -10616,6 +11012,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_rr_get_interval",
 		"subsystems": [
 			"kernel"
 		],
@@ -10628,6 +11025,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_setaffinity",
 		"subsystems": [
 			"kernel"
 		],
@@ -10640,6 +11038,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_setattr",
 		"subsystems": [
 			"kernel"
 		],
@@ -10652,6 +11051,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_setparam",
 		"subsystems": [
 			"kernel"
 		],
@@ -10664,6 +11064,7 @@
 		"files": [
 			"kernel/sched/build_policy.c"
 		],
+		"func": "__do_sys_sched_setscheduler",
 		"subsystems": [
 			"kernel"
 		],
@@ -10676,6 +11077,7 @@
 		"files": [
 			"kernel/seccomp.c"
 		],
+		"func": "__do_sys_seccomp",
 		"subsystems": [
 			"kernel"
 		],
@@ -10688,6 +11090,7 @@
 		"files": [
 			"fs/select.c"
 		],
+		"func": "__do_sys_select",
 		"subsystems": [
 			"fs"
 		],
@@ -10700,6 +11103,7 @@
 		"files": [
 			"ipc/sem.c"
 		],
+		"func": "__do_sys_semctl",
 		"subsystems": [
 			"kernel"
 		],
@@ -10712,6 +11116,7 @@
 		"files": [
 			"ipc/sem.c"
 		],
+		"func": "__do_sys_semget",
 		"subsystems": [
 			"kernel"
 		],
@@ -10724,6 +11129,7 @@
 		"files": [
 			"ipc/sem.c"
 		],
+		"func": "__do_sys_semop",
 		"subsystems": [
 			"kernel"
 		],
@@ -10736,6 +11142,7 @@
 		"files": [
 			"ipc/sem.c"
 		],
+		"func": "__do_sys_semtimedop",
 		"subsystems": [
 			"kernel"
 		],
@@ -10748,6 +11155,7 @@
 		"files": [
 			"ipc/sem.c"
 		],
+		"func": "__do_sys_semtimedop",
 		"subsystems": [
 			"kernel"
 		],
@@ -10760,6 +11168,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_send",
 		"subsystems": [
 			"net"
 		],
@@ -10772,6 +11181,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_sendfile64",
 		"subsystems": [
 			"fs"
 		],
@@ -10784,6 +11194,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_sendfile64",
 		"subsystems": [
 			"fs"
 		],
@@ -10796,6 +11207,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_sendmmsg",
 		"subsystems": [
 			"net"
 		],
@@ -10808,6 +11220,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_sendmsg",
 		"subsystems": [
 			"net"
 		],
@@ -10820,6 +11233,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_sendto",
 		"subsystems": [
 			"net"
 		],
@@ -10832,6 +11246,7 @@
 		"files": [
 			"mm/mempolicy.c"
 		],
+		"func": "__do_sys_set_mempolicy",
 		"subsystems": [
 			"mm"
 		],
@@ -10844,6 +11259,7 @@
 		"files": [
 			"mm/mempolicy.c"
 		],
+		"func": "__do_sys_set_mempolicy_home_node",
 		"subsystems": [
 			"mm"
 		],
@@ -10856,6 +11272,7 @@
 		"files": [
 			"kernel/futex/syscalls.c"
 		],
+		"func": "__do_sys_set_robust_list",
 		"subsystems": [
 			"kernel"
 		],
@@ -10868,6 +11285,7 @@
 		"files": [
 			"arch/x86/kernel/tls.c"
 		],
+		"func": "__do_sys_set_thread_area",
 		"subsystems": [
 			"kernel"
 		],
@@ -10880,6 +11298,7 @@
 		"files": [
 			"kernel/fork.c"
 		],
+		"func": "__do_sys_set_tid_address",
 		"subsystems": [
 			"kernel"
 		],
@@ -10892,6 +11311,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setdomainname",
 		"subsystems": [
 			"kernel"
 		],
@@ -10904,6 +11324,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setfsgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -10916,6 +11337,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setfsgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -10928,6 +11350,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setfsuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -10940,6 +11363,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setfsuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -10952,6 +11376,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -10964,6 +11389,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -10976,6 +11402,7 @@
 		"files": [
 			"kernel/groups.c"
 		],
+		"func": "__do_sys_setgroups",
 		"subsystems": [
 			"kernel"
 		],
@@ -10988,6 +11415,7 @@
 		"files": [
 			"kernel/groups.c"
 		],
+		"func": "__do_sys_setgroups",
 		"subsystems": [
 			"kernel"
 		],
@@ -11000,6 +11428,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_sethostname",
 		"subsystems": [
 			"kernel"
 		],
@@ -11012,6 +11441,7 @@
 		"files": [
 			"kernel/time/itimer.c"
 		],
+		"func": "__do_sys_setitimer",
 		"subsystems": [
 			"kernel"
 		],
@@ -11024,6 +11454,7 @@
 		"files": [
 			"kernel/nsproxy.c"
 		],
+		"func": "__do_sys_setns",
 		"subsystems": [
 			"kernel"
 		],
@@ -11036,6 +11467,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setpgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11048,6 +11480,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setpriority",
 		"subsystems": [
 			"kernel"
 		],
@@ -11060,6 +11493,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setregid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11072,6 +11506,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setregid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11084,6 +11519,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setresgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11096,6 +11532,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setresgid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11108,6 +11545,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setresuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11120,6 +11558,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setresuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11132,6 +11571,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setreuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11144,6 +11584,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setreuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11156,6 +11597,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setrlimit",
 		"subsystems": [
 			"kernel"
 		],
@@ -11168,6 +11610,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_setsockopt",
 		"subsystems": [
 			"net"
 		],
@@ -11180,6 +11623,7 @@
 		"files": [
 			"kernel/time/time.c"
 		],
+		"func": "__do_sys_settimeofday",
 		"subsystems": [
 			"kernel"
 		],
@@ -11192,6 +11636,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11204,6 +11649,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_setuid",
 		"subsystems": [
 			"kernel"
 		],
@@ -11216,6 +11662,7 @@
 		"files": [
 			"fs/xattr.c"
 		],
+		"func": "__do_sys_setxattr",
 		"subsystems": [
 			"fs"
 		],
@@ -11228,6 +11675,7 @@
 		"files": [
 			"ipc/shm.c"
 		],
+		"func": "__do_sys_shmat",
 		"subsystems": [
 			"kernel"
 		],
@@ -11240,6 +11688,7 @@
 		"files": [
 			"ipc/shm.c"
 		],
+		"func": "__do_sys_shmctl",
 		"subsystems": [
 			"kernel"
 		],
@@ -11252,6 +11701,7 @@
 		"files": [
 			"ipc/shm.c"
 		],
+		"func": "__do_sys_shmdt",
 		"subsystems": [
 			"kernel"
 		],
@@ -11264,6 +11714,7 @@
 		"files": [
 			"ipc/shm.c"
 		],
+		"func": "__do_sys_shmget",
 		"subsystems": [
 			"kernel"
 		],
@@ -11276,6 +11727,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_shutdown",
 		"subsystems": [
 			"net"
 		],
@@ -11288,6 +11740,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_sigaltstack",
 		"subsystems": [
 			"kernel"
 		],
@@ -11300,6 +11753,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_signal",
 		"subsystems": [
 			"kernel"
 		],
@@ -11312,6 +11766,7 @@
 		"files": [
 			"fs/signalfd.c"
 		],
+		"func": "__do_sys_signalfd",
 		"subsystems": [
 			"fs"
 		],
@@ -11324,6 +11779,7 @@
 		"files": [
 			"fs/signalfd.c"
 		],
+		"func": "__do_sys_signalfd4",
 		"subsystems": [
 			"fs"
 		],
@@ -11336,6 +11792,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_sigpending",
 		"subsystems": [
 			"kernel"
 		],
@@ -11348,6 +11805,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_sigprocmask",
 		"subsystems": [
 			"kernel"
 		],
@@ -11360,6 +11818,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_sigsuspend",
 		"subsystems": [
 			"kernel"
 		],
@@ -11372,6 +11831,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_socket",
 		"subsystems": [
 			"net"
 		],
@@ -11384,6 +11844,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_socketcall",
 		"subsystems": [
 			"net"
 		],
@@ -11396,6 +11857,7 @@
 		"files": [
 			"net/socket.c"
 		],
+		"func": "__do_sys_socketpair",
 		"subsystems": [
 			"net"
 		],
@@ -11408,6 +11870,7 @@
 		"files": [
 			"fs/splice.c"
 		],
+		"func": "__do_sys_splice",
 		"subsystems": [
 			"fs"
 		],
@@ -11420,6 +11883,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_ssetmask",
 		"subsystems": [
 			"kernel"
 		],
@@ -11432,6 +11896,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_newstat",
 		"subsystems": [
 			"fs"
 		],
@@ -11444,6 +11909,7 @@
 		"files": [
 			"fs/statfs.c"
 		],
+		"func": "__do_sys_statfs",
 		"subsystems": [
 			"fs"
 		],
@@ -11456,6 +11922,7 @@
 		"files": [
 			"fs/statfs.c"
 		],
+		"func": "__do_sys_statfs64",
 		"subsystems": [
 			"fs"
 		],
@@ -11468,6 +11935,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_statmount",
 		"subsystems": [
 			"fs"
 		],
@@ -11480,6 +11948,7 @@
 		"files": [
 			"fs/stat.c"
 		],
+		"func": "__do_sys_statx",
 		"subsystems": [
 			"fs"
 		],
@@ -11492,6 +11961,7 @@
 		"files": [
 			"kernel/time/time.c"
 		],
+		"func": "__do_sys_stime32",
 		"subsystems": [
 			"kernel"
 		],
@@ -11504,6 +11974,7 @@
 		"files": [
 			"mm/swapfile.c"
 		],
+		"func": "__do_sys_swapoff",
 		"subsystems": [
 			"mm"
 		],
@@ -11516,6 +11987,7 @@
 		"files": [
 			"mm/swapfile.c"
 		],
+		"func": "__do_sys_swapon",
 		"subsystems": [
 			"mm"
 		],
@@ -11528,6 +12000,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_symlink",
 		"subsystems": [
 			"fs"
 		],
@@ -11540,6 +12013,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_symlinkat",
 		"subsystems": [
 			"fs"
 		],
@@ -11552,6 +12026,7 @@
 		"files": [
 			"fs/sync.c"
 		],
+		"func": "__do_sys_sync_file_range",
 		"subsystems": [
 			"fs"
 		],
@@ -11564,6 +12039,7 @@
 		"files": [
 			"fs/sync.c"
 		],
+		"func": "__do_sys_sync_file_range2",
 		"subsystems": [
 			"fs"
 		],
@@ -11576,6 +12052,7 @@
 		"files": [
 			"fs/sync.c"
 		],
+		"func": "__do_sys_syncfs",
 		"subsystems": [
 			"fs"
 		],
@@ -11588,6 +12065,7 @@
 		"files": [
 			"fs/filesystems.c"
 		],
+		"func": "__do_sys_sysfs",
 		"subsystems": [
 			"fs"
 		],
@@ -11600,6 +12078,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_sysinfo",
 		"subsystems": [
 			"kernel"
 		],
@@ -11612,6 +12091,7 @@
 		"files": [
 			"kernel/printk/printk.c"
 		],
+		"func": "__do_sys_syslog",
 		"subsystems": [
 			"kernel"
 		],
@@ -11624,6 +12104,7 @@
 		"files": [
 			"fs/splice.c"
 		],
+		"func": "__do_sys_tee",
 		"subsystems": [
 			"fs"
 		],
@@ -11636,6 +12117,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_tgkill",
 		"subsystems": [
 			"kernel"
 		],
@@ -11648,6 +12130,7 @@
 		"files": [
 			"kernel/time/time.c"
 		],
+		"func": "__do_sys_time",
 		"subsystems": [
 			"kernel"
 		],
@@ -11660,6 +12143,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_create",
 		"subsystems": [
 			"kernel"
 		],
@@ -11672,6 +12156,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_delete",
 		"subsystems": [
 			"kernel"
 		],
@@ -11684,6 +12169,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_getoverrun",
 		"subsystems": [
 			"kernel"
 		],
@@ -11696,6 +12182,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_gettime",
 		"subsystems": [
 			"kernel"
 		],
@@ -11708,6 +12195,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_gettime",
 		"subsystems": [
 			"kernel"
 		],
@@ -11720,6 +12208,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_settime",
 		"subsystems": [
 			"kernel"
 		],
@@ -11732,6 +12221,7 @@
 		"files": [
 			"kernel/time/posix-timers.c"
 		],
+		"func": "__do_sys_timer_settime",
 		"subsystems": [
 			"kernel"
 		],
@@ -11744,6 +12234,7 @@
 		"files": [
 			"fs/timerfd.c"
 		],
+		"func": "__do_sys_timerfd_create",
 		"subsystems": [
 			"fs"
 		],
@@ -11756,6 +12247,7 @@
 		"files": [
 			"fs/timerfd.c"
 		],
+		"func": "__do_sys_timerfd_gettime",
 		"subsystems": [
 			"fs"
 		],
@@ -11768,6 +12260,7 @@
 		"files": [
 			"fs/timerfd.c"
 		],
+		"func": "__do_sys_timerfd_gettime",
 		"subsystems": [
 			"fs"
 		],
@@ -11780,6 +12273,7 @@
 		"files": [
 			"fs/timerfd.c"
 		],
+		"func": "__do_sys_timerfd_settime",
 		"subsystems": [
 			"fs"
 		],
@@ -11792,6 +12286,7 @@
 		"files": [
 			"fs/timerfd.c"
 		],
+		"func": "__do_sys_timerfd_settime",
 		"subsystems": [
 			"fs"
 		],
@@ -11804,6 +12299,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_times",
 		"subsystems": [
 			"kernel"
 		],
@@ -11816,6 +12312,7 @@
 		"files": [
 			"kernel/signal.c"
 		],
+		"func": "__do_sys_tkill",
 		"subsystems": [
 			"kernel"
 		],
@@ -11828,6 +12325,7 @@
 		"files": [
 			"fs/open.c"
 		],
+		"func": "__do_sys_truncate",
 		"subsystems": [
 			"fs"
 		],
@@ -11840,6 +12338,7 @@
 		"files": [
 			"arch/x86/kernel/sys_ia32.c"
 		],
+		"func": "__do_sys_ia32_truncate64",
 		"subsystems": [
 			"kernel"
 		],
@@ -11852,6 +12351,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_getrlimit",
 		"subsystems": [
 			"kernel"
 		],
@@ -11864,6 +12364,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_umask",
 		"subsystems": [
 			"kernel"
 		],
@@ -11876,6 +12377,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_oldumount",
 		"subsystems": [
 			"fs"
 		],
@@ -11888,6 +12390,7 @@
 		"files": [
 			"fs/namespace.c"
 		],
+		"func": "__do_sys_umount",
 		"subsystems": [
 			"fs"
 		],
@@ -11900,6 +12403,7 @@
 		"files": [
 			"kernel/sys.c"
 		],
+		"func": "__do_sys_newuname",
 		"subsystems": [
 			"kernel"
 		],
@@ -11912,6 +12416,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_unlink",
 		"subsystems": [
 			"fs"
 		],
@@ -11924,6 +12429,7 @@
 		"files": [
 			"fs/namei.c"
 		],
+		"func": "__do_sys_unlinkat",
 		"subsystems": [
 			"fs"
 		],
@@ -11936,6 +12442,7 @@
 		"files": [
 			"kernel/fork.c"
 		],
+		"func": "__do_sys_unshare",
 		"subsystems": [
 			"kernel"
 		],
@@ -11948,6 +12455,7 @@
 		"files": [
 			"fs/userfaultfd.c"
 		],
+		"func": "__do_sys_userfaultfd",
 		"subsystems": [
 			"fs"
 		],
@@ -11960,6 +12468,7 @@
 		"files": [
 			"fs/statfs.c"
 		],
+		"func": "__do_sys_ustat",
 		"subsystems": [
 			"fs"
 		],
@@ -11972,6 +12481,7 @@
 		"files": [
 			"fs/utimes.c"
 		],
+		"func": "__do_sys_utime",
 		"subsystems": [
 			"fs"
 		],
@@ -11984,6 +12494,7 @@
 		"files": [
 			"fs/utimes.c"
 		],
+		"func": "__do_sys_utimensat",
 		"subsystems": [
 			"fs"
 		],
@@ -11996,6 +12507,7 @@
 		"files": [
 			"fs/utimes.c"
 		],
+		"func": "__do_sys_utimensat",
 		"subsystems": [
 			"fs"
 		],
@@ -12008,6 +12520,7 @@
 		"files": [
 			"fs/utimes.c"
 		],
+		"func": "__do_sys_utimes",
 		"subsystems": [
 			"fs"
 		],
@@ -12020,6 +12533,7 @@
 		"files": [
 			"fs/splice.c"
 		],
+		"func": "__do_sys_vmsplice",
 		"subsystems": [
 			"fs"
 		],
@@ -12032,6 +12546,7 @@
 		"files": [
 			"kernel/exit.c"
 		],
+		"func": "__do_sys_wait4",
 		"subsystems": [
 			"kernel"
 		],
@@ -12044,6 +12559,7 @@
 		"files": [
 			"kernel/exit.c"
 		],
+		"func": "__do_sys_waitid",
 		"subsystems": [
 			"kernel"
 		],
@@ -12056,6 +12572,7 @@
 		"files": [
 			"kernel/exit.c"
 		],
+		"func": "__do_sys_waitpid",
 		"subsystems": [
 			"kernel"
 		],
@@ -12068,6 +12585,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_write",
 		"subsystems": [
 			"fs"
 		],
@@ -12080,6 +12598,7 @@
 		"files": [
 			"fs/read_write.c"
 		],
+		"func": "__do_sys_writev",
 		"subsystems": [
 			"fs"
 		],
