@@ -299,7 +299,9 @@ func removeUnused(desc *ast.Description) {
 
 func worker(outputs chan *output, files chan string, binary, compilationDatabase string) {
 	for file := range files {
-		out, err := exec.Command(binary, "-p", compilationDatabase, file).Output()
+		// Suppress warning since we may build the tool on a different clang
+		// version that produces more warnings.
+		out, err := exec.Command(binary, "-p", compilationDatabase, file, "--extra-arg=-w").Output()
 		var exitErr *exec.ExitError
 		if err != nil && errors.As(err, &exitErr) && len(exitErr.Stderr) != 0 {
 			err = fmt.Errorf("%s", exitErr.Stderr)
