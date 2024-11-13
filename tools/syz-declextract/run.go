@@ -51,22 +51,12 @@ func main() {
 	*buildDir = filepath.Clean(osutil.Abs(*buildDir))
 
 	compilationDatabase := filepath.Join(*buildDir, "compile_commands.json")
-	fileData, err := os.ReadFile(compilationDatabase)
+	cmds, err := loadCompileCommands(compilationDatabase)
 	if err != nil {
-		tool.Fail(err)
+		tool.Failf("failed to load compile commands: %v", err)
 	}
 
 	extractor := subsystem.MakeExtractor(subsystem.GetList(target.OS))
-
-	var cmds []compileCommand
-	if err := json.Unmarshal(fileData, &cmds); err != nil {
-		tool.Fail(err)
-	}
-	// Shuffle the order detect any non-determinism caused by the order early.
-	// The result should be the same regardless.
-	rand.New(rand.NewSource(time.Now().UnixNano())).Shuffle(len(cmds), func(i, j int) {
-		cmds[i], cmds[j] = cmds[j], cmds[i]
-	})
 
 	outputs := make(chan *output, len(cmds))
 	files := make(chan string, len(cmds))
@@ -75,10 +65,6 @@ func main() {
 	}
 
 	for _, cmd := range cmds {
-		if !cmd.isKernel() {
-			outputs <- nil
-			continue
-		}
 		files <- cmd.File
 	}
 	close(files)
@@ -131,16 +117,32 @@ type compileCommand struct {
 	File      string
 }
 
-// isKernel says if the command refers to a kernel object file
-// rather than some host tools, etc.
-func (cmd *compileCommand) isKernel() bool {
-	return strings.HasSuffix(cmd.File, ".c") &&
-		// Files compiled with gcc are not a part of the kernel
-		// (assuming compile commands were generated with make CC=clang).
-		// They are probably a part of some host tool.
-		!strings.HasPrefix(cmd.Command, "gcc") &&
-		// KBUILD should add this define all kernel files.
-		strings.Contains(cmd.Command, "-DKBUILD_BASENAME")
+func loadCompileCommands(file string) ([]compileCommand, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	var cmds []compileCommand
+	if err := json.Unmarshal(data, &cmds); err != nil {
+		return nil, err
+	}
+	// Remove commands that don't relate to the kernel build
+	// (probably some host tools, etc).
+	cmds = slices.DeleteFunc(cmds, func(cmd compileCommand) bool {
+		return !strings.HasSuffix(cmd.File, ".c") ||
+			// Files compiled with gcc are not a part of the kernel
+			// (assuming compile commands were generated with make CC=clang).
+			// They are probably a part of some host tool.
+			strings.HasPrefix(cmd.Command, "gcc") ||
+			// KBUILD should add this define all kernel files.
+			!strings.Contains(cmd.Command, "-DKBUILD_BASENAME")
+	})
+	// Shuffle the order to detect any non-determinism caused by the order early.
+	// The result should be the same regardless.
+	rand.New(rand.NewSource(time.Now().UnixNano())).Shuffle(len(cmds), func(i, j int) {
+		cmds[i], cmds[j] = cmds[j], cmds[i]
+	})
+	return cmds, nil
 }
 
 type output struct {
