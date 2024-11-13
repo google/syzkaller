@@ -64,6 +64,7 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		brokenTypedefs: make(map[string]bool),
 		structVarlen:   make(map[string]bool),
 		structTypes:    make(map[string]prog.Type),
+		structFiles:    make(map[*ast.Struct]map[string]ast.Pos),
 		builtinConsts: map[string]uint64{
 			"PTR_SIZE": target.PtrSize,
 		},
@@ -136,6 +137,7 @@ type compiler struct {
 
 	structVarlen  map[string]bool
 	structTypes   map[string]prog.Type
+	structFiles   map[*ast.Struct]map[string]ast.Pos
 	builtinConsts map[string]uint64
 	fileMeta      map[string]Meta
 }

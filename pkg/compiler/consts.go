@@ -48,12 +48,26 @@ func FabricateSyscallConsts(target *targets.Target, constInfo map[string]*ConstI
 	}
 }
 
+type constContext struct {
+	infos           map[string]*constInfo
+	instantionStack []map[string]ast.Pos
+}
+
 // extractConsts returns list of literal constants and other info required for const value extraction.
 func (comp *compiler) extractConsts() map[string]*ConstInfo {
-	infos := make(map[string]*constInfo)
+	ctx := &constContext{
+		infos: make(map[string]*constInfo),
+	}
+	extractIntConsts := ast.Recursive(func(n0 ast.Node) bool {
+		if n, ok := n0.(*ast.Int); ok {
+			comp.addConst(ctx, n.Pos, n.Ident)
+		}
+		return true
+	})
+	comp.desc.Walk(extractIntConsts)
 	for _, decl := range comp.desc.Nodes {
 		pos, _, _ := decl.Info()
-		info := getConstInfo(infos, pos)
+		info := ctx.getConstInfo(pos)
 		switch n := decl.(type) {
 		case *ast.Include:
 			info.includeArray = append(info.includeArray, n.File.Value)
@@ -72,39 +86,40 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 				comp.error(pos, "redefining builtin const %v", name)
 			}
 			info.defines[name] = v
-			comp.addConst(infos, pos, name)
+			comp.addConst(ctx, pos, name)
 		case *ast.Call:
 			if comp.target.HasCallNumber(n.CallName) {
-				comp.addConst(infos, pos, comp.target.SyscallPrefix+n.CallName)
+				comp.addConst(ctx, pos, comp.target.SyscallPrefix+n.CallName)
 			}
 			for _, attr := range n.Attrs {
 				if callAttrs[attr.Ident].Type == intAttr {
-					comp.addConst(infos, attr.Pos, attr.Args[0].Ident)
+					comp.addConst(ctx, attr.Pos, attr.Args[0].Ident)
 				}
 			}
 		case *ast.Struct:
+			// The instantionStack allows to add consts that are used in template structs
+			// to all files that use the template. Without this we would add these consts
+			// to only one random file, which would leads to flaky changes in const files.
+			ctx.instantionStack = append(ctx.instantionStack, comp.structFiles[n])
 			for _, attr := range n.Attrs {
 				attrDesc := structOrUnionAttrs(n)[attr.Ident]
 				if attrDesc.Type == intAttr {
-					comp.addConst(infos, attr.Pos, attr.Args[0].Ident)
+					comp.addConst(ctx, attr.Pos, attr.Args[0].Ident)
 				}
 			}
 			foreachFieldAttrConst(n, func(t *ast.Type) {
-				comp.addConst(infos, t.Pos, t.Ident)
+				comp.addConst(ctx, t.Pos, t.Ident)
 			})
+			extractIntConsts(n)
+			comp.extractTypeConsts(ctx, decl)
+			ctx.instantionStack = ctx.instantionStack[:len(ctx.instantionStack)-1]
 		}
 		switch decl.(type) {
-		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
-			comp.extractTypeConsts(infos, decl)
+		case *ast.Call, *ast.Resource, *ast.TypeDef:
+			comp.extractTypeConsts(ctx, decl)
 		}
 	}
-	comp.desc.Walk(ast.Recursive(func(n0 ast.Node) bool {
-		if n, ok := n0.(*ast.Int); ok {
-			comp.addConst(infos, n.Pos, n.Ident)
-		}
-		return true
-	}))
-	return convertConstInfo(infos, comp.fileMeta)
+	return convertConstInfo(ctx, comp.fileMeta)
 }
 
 func foreachFieldAttrConst(n *ast.Struct, cb func(*ast.Type)) {
@@ -132,16 +147,16 @@ func foreachFieldAttrConst(n *ast.Struct, cb func(*ast.Type)) {
 	}
 }
 
-func (comp *compiler) extractTypeConsts(infos map[string]*constInfo, n ast.Node) {
+func (comp *compiler) extractTypeConsts(ctx *constContext, n ast.Node) {
 	comp.foreachType(n, func(t *ast.Type, desc *typeDesc, args []*ast.Type, _ prog.IntTypeCommon) {
 		for i, arg := range args {
 			if desc.Args[i].Type.Kind&kindInt != 0 {
 				if arg.Ident != "" {
-					comp.addConst(infos, arg.Pos, arg.Ident)
+					comp.addConst(ctx, arg.Pos, arg.Ident)
 				}
 				for _, col := range arg.Colon {
 					if col.Ident != "" {
-						comp.addConst(infos, col.Pos, col.Ident)
+						comp.addConst(ctx, col.Pos, col.Ident)
 					}
 				}
 			}
@@ -149,7 +164,10 @@ func (comp *compiler) extractTypeConsts(infos map[string]*constInfo, n ast.Node)
 	})
 }
 
-func (comp *compiler) addConst(infos map[string]*constInfo, pos ast.Pos, name string) {
+func (comp *compiler) addConst(ctx *constContext, pos ast.Pos, name string) {
+	if name == "" {
+		return
+	}
 	if _, builtin := comp.builtinConsts[name]; builtin {
 		return
 	}
@@ -160,10 +178,11 @@ func (comp *compiler) addConst(infos map[string]*constInfo, pos ast.Pos, name st
 	if _, isFlag := comp.intFlags[name]; isFlag {
 		return
 	}
-	info := getConstInfo(infos, pos)
-	info.consts[name] = &Const{
-		Pos:  pos,
-		Name: name,
+	ctx.addConst(pos, name)
+	for _, instantions := range ctx.instantionStack {
+		for _, pos1 := range instantions {
+			ctx.addConst(pos1, name)
+		}
 	}
 }
 
@@ -174,29 +193,34 @@ type constInfo struct {
 	incdirArray  []string
 }
 
-func getConstInfo(infos map[string]*constInfo, pos ast.Pos) *constInfo {
-	info := infos[pos.File]
+func (ctx *constContext) addConst(pos ast.Pos, name string) {
+	info := ctx.getConstInfo(pos)
+	info.consts[name] = &Const{
+		Pos:  pos,
+		Name: name,
+	}
+}
+
+func (ctx *constContext) getConstInfo(pos ast.Pos) *constInfo {
+	info := ctx.infos[pos.File]
 	if info == nil {
 		info = &constInfo{
 			consts:  make(map[string]*Const),
 			defines: make(map[string]string),
 		}
-		infos[pos.File] = info
+		ctx.infos[pos.File] = info
 	}
 	return info
 }
 
-func convertConstInfo(infos map[string]*constInfo, metas map[string]Meta) map[string]*ConstInfo {
+func convertConstInfo(ctx *constContext, metas map[string]Meta) map[string]*ConstInfo {
 	res := make(map[string]*ConstInfo)
-	for file, info := range infos {
+	for file, info := range ctx.infos {
 		if file == ast.BuiltinFile {
 			continue
 		}
 		var allConsts []*Const
-		for name, val := range info.consts {
-			if name == "" {
-				continue
-			}
+		for _, val := range info.consts {
 			allConsts = append(allConsts, val)
 		}
 		sort.Slice(allConsts, func(i, j int) bool {

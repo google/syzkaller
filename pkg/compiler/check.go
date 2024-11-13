@@ -1209,8 +1209,9 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			return
 		}
 	} else {
-		if comp.structs[fullTypeName] == nil {
-			inst := typedef.Struct.Clone().(*ast.Struct)
+		inst := comp.structs[fullTypeName]
+		if inst == nil {
+			inst = typedef.Struct.Clone().(*ast.Struct)
 			inst.Name.Name = fullTypeName
 			if !comp.instantiate(inst, typedef.Args, args) {
 				return
@@ -1221,7 +1222,9 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			}
 			comp.desc.Nodes = append(comp.desc.Nodes, inst)
 			comp.structs[fullTypeName] = inst
+			comp.structFiles[inst] = make(map[string]ast.Pos)
 		}
+		comp.structFiles[inst][pos0.File] = pos0
 		*t = ast.Type{
 			Ident: fullTypeName,
 		}
