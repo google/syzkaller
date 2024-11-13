@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -102,11 +103,8 @@ func main() {
 	writeDescriptions(desc)
 
 	ifaces := finishInterfaces(interfaces, extractor)
-	data, err := json.MarshalIndent(ifaces, "", "\t")
-	if err != nil {
-		tool.Failf("failed to marshal interfaces: %v", err)
-	}
-	if err := osutil.WriteFile(autoFile+".json", data); err != nil {
+	ifacesData := serializeInterfaces(ifaces)
+	if err := osutil.WriteFile(autoFile+".info", ifacesData); err != nil {
 		tool.Fail(err)
 	}
 }
@@ -152,20 +150,37 @@ type output struct {
 }
 
 type Interface struct {
-	Type               string   `json:"type"`
-	Name               string   `json:"name"`
-	Files              []string `json:"files"`
-	Func               string   `json:"func,omitempty"`
-	Access             string   `json:"access,omitempty"`
-	Subsystems         []string `json:"subsystems,omitempty"`
-	ManualDescriptions bool     `json:"has_manual_descriptions"`
-	AutoDescriptions   bool     `json:"has_auto_descriptions"`
+	Type               string
+	Name               string
+	Files              []string
+	Func               string
+	Access             string
+	Subsystems         []string
+	ManualDescriptions bool
+	AutoDescriptions   bool
 
 	identifyingConst string
 }
 
 func (iface *Interface) ID() string {
 	return fmt.Sprintf("%v/%v", iface.Type, iface.Name)
+}
+
+func serializeInterfaces(ifaces []Interface) []byte {
+	w := new(bytes.Buffer)
+	for _, iface := range ifaces {
+		fmt.Fprintf(w, "%v\t%v\tfunc:%v\taccess:%v\tmanual_desc:%v\tauto_desc:%v",
+			iface.Type, iface.Name, iface.Func, iface.Access,
+			iface.ManualDescriptions, iface.AutoDescriptions)
+		for _, file := range iface.Files {
+			fmt.Fprintf(w, "\tfile:%v", file)
+		}
+		for _, subsys := range iface.Subsystems {
+			fmt.Fprintf(w, "\tsubsystem:%v", subsys)
+		}
+		fmt.Fprintf(w, "\n")
+	}
+	return w.Bytes()
 }
 
 func finishInterfaces(m map[string]Interface, extractor *subsystem.Extractor) []Interface {
@@ -181,6 +196,9 @@ func finishInterfaces(m map[string]Interface, extractor *subsystem.Extractor) []
 			iface.Subsystems = append(iface.Subsystems, s.Name)
 		}
 		slices.Sort(iface.Subsystems)
+		if iface.Access == "" {
+			iface.Access = "unknown"
+		}
 		interfaces = append(interfaces, iface)
 	}
 	slices.SortFunc(interfaces, func(a, b Interface) int {
