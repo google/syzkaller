@@ -226,7 +226,7 @@ IntType getIntType(const std::string &ctype, const bool isSyscallParam) {
   if (contains(ctype, "16") || contains(ctype, "short")) {
     return INT_16;
   }
-  if (contains(ctype, "8") || contains(ctype, "char")) {
+  if (contains(ctype, "8") || contains(ctype, "char") || ctype == "_Bool") {
     return INT_8;
   }
   if (contains(ctype, "32") || contains(ctype, "int")) {
