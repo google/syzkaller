@@ -75,10 +75,7 @@ func main() {
 	}
 
 	for _, cmd := range cmds {
-		// Files compiled with gcc are not a part of the kernel
-		// (assuming compile commands were generated with make CC=clang).
-		// They are probably a part of some host tool.
-		if !strings.HasSuffix(cmd.File, ".c") || strings.HasPrefix(cmd.Command, "gcc") {
+		if !cmd.isKernel() {
 			outputs <- nil
 			continue
 		}
@@ -132,6 +129,18 @@ type compileCommand struct {
 	Command   string
 	Directory string
 	File      string
+}
+
+// isKernel says if the command refers to a kernel object file
+// rather than some host tools, etc.
+func (cmd *compileCommand) isKernel() bool {
+	return strings.HasSuffix(cmd.File, ".c") &&
+		// Files compiled with gcc are not a part of the kernel
+		// (assuming compile commands were generated with make CC=clang).
+		// They are probably a part of some host tool.
+		!strings.HasPrefix(cmd.Command, "gcc") &&
+		// KBUILD should add this define all kernel files.
+		strings.Contains(cmd.Command, "-DKBUILD_BASENAME")
 }
 
 type output struct {
