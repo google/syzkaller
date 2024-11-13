@@ -886,8 +886,6 @@ private:
       }
     }
 
-    auto name = toIdentifier(
-        llvm::dyn_cast<StringLiteral>(genlFamilyInit->getInit(genlFamilyMember["name"]))->getString().str());
     const auto &globalPolicyName =
         genlFamilyInit->getInit(genlFamilyMember["policy"])->getAsBuiltinConstantDeclRef(*context);
 
@@ -896,7 +894,10 @@ private:
       familyPolicyName = *getPolicyName(Result, globalPolicyName);
     }
 
-    std::string msghdr = "msghdr_" + name + "_auto";
+    std::string familyName =
+        llvm::dyn_cast<StringLiteral>(genlFamilyInit->getInit(genlFamilyMember["name"]))->getString().str();
+    std::string identifierName = toIdentifier(familyName);
+    std::string msghdr = "msghdr_" + identifierName + "_auto";
     bool printedCmds = false;
     for (const auto &opsType : {"ops", "small_ops", "split_ops"}) {
       for (auto &ops : getOps(Result, opsType, genlFamilyInit)) {
@@ -917,12 +918,12 @@ private:
     if (!printedCmds) { // Do not print resources and types if they're not used in any cmds
       return;
     }
-    std::string resourceName = "genl_" + name + "_family_id_auto";
+    std::string resourceName = "genl_" + identifierName + "_family_id_auto";
     printf("resource %s[int16]\n", resourceName.c_str());
     printf("type %s[CMD, POLICY] msghdr_netlink[netlink_msg_t[%s, genlmsghdr_t[CMD], POLICY]]\n", msghdr.c_str(),
            resourceName.c_str());
     printf("syz_genetlink_get_family_id$auto_%s(name ptr[in, string[\"%s\"]], fd sock_nl_generic) %s (automatic)\n",
-           name.c_str(), name.c_str(), resourceName.c_str());
+           identifierName.c_str(), familyName.c_str(), resourceName.c_str());
   }
 };
 
