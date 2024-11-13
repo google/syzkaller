@@ -79,6 +79,17 @@ void emitInterface(const char *type, std::string_view name, std::string_view ide
          std::string(entry_func).c_str(), access);
 }
 
+std::string toIdentifier(std::string name) {
+  if (name == "resource" || name == "include" || name == "define" || name == "incdir" || name == "syscall" ||
+      name == "parent") {
+    return "_" + name;
+  }
+  std::replace(name.begin(), name.end(), '.', '_');
+  std::replace(name.begin(), name.end(), ' ', '_');
+  std::replace(name.begin(), name.end(), '-', '_');
+  return name;
+}
+
 struct SyzRecordDecl {
   std::string name;
   std::vector<StructMember> members;
@@ -540,12 +551,6 @@ public:
   }
 
 private:
-  const std::string swapIfReservedKeyword(const std::string &word) {
-    if (word == "resource")
-      return "rsrc";
-    return word;
-  }
-
   void run(const MatchFinder::MatchResult &Result) override {
     ASTContext *context = Result.Context;
     const auto *syscall = Result.Nodes.getNodeAs<FunctionDecl>("syscall");
@@ -559,7 +564,7 @@ private:
     for (const auto &param : syscall->parameters()) {
       const auto &type = recordExtractor.getFieldType(param->getType(), context, param->getNameAsString(), "", true);
       const auto &name = param->getNameAsString();
-      printf("%s%s %s", sep, swapIfReservedKeyword(name).c_str(), type.c_str());
+      printf("%s%s %s", sep, toIdentifier(name).c_str(), type.c_str());
       sep = ", ";
     }
     printf(") (automatic)\n");
@@ -796,14 +801,14 @@ private:
       return std::nullopt;
     }
     std::string filename =
-        std::filesystem::path(
-            Result.SourceManager->getFilename(decl->getCanonicalDecl()->getSourceRange().getBegin()).str())
-            .filename()
-            .stem()
-            .string();
-    std::replace(filename.begin(), filename.end(), '-', '_');
-    return decl->getNameAsString() + "$auto_" + filename; // filename is added to address ambiguity
-    // when multiple policies are named the same but have different definitions
+        toIdentifier(std::filesystem::path(
+                         Result.SourceManager->getFilename(decl->getCanonicalDecl()->getSourceRange().getBegin()).str())
+                         .filename()
+                         .stem()
+                         .string());
+    // Filename is added to address ambiguity when multiple policies
+    // are named the same but have different definitions.
+    return decl->getNameAsString() + "$auto_" + filename;
   }
 
   std::vector<NetlinkOps> getOps(const MatchFinder::MatchResult &Result, const std::string &opsName,
@@ -869,10 +874,8 @@ private:
       }
     }
 
-    auto name = llvm::dyn_cast<StringLiteral>(genlFamilyInit->getInit(genlFamilyMember["name"]))->getString().str();
-    std::replace(name.begin(), name.end(), '.', '_'); // Illegal character.
-    std::replace(name.begin(), name.end(), ' ', '_'); // Don't leave space in name.
-    std::replace(name.begin(), name.end(), '-', '_'); // Not allowed in names
+    auto name = toIdentifier(
+        llvm::dyn_cast<StringLiteral>(genlFamilyInit->getInit(genlFamilyMember["name"]))->getString().str());
     const auto &globalPolicyName =
         genlFamilyInit->getInit(genlFamilyMember["policy"])->getAsBuiltinConstantDeclRef(*context);
 
