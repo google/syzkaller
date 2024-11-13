@@ -370,7 +370,7 @@ public:
   std::string getFieldType(const QualType &fieldType, ASTContext *context, const std::string &fieldName,
                            const std::string &parent = "", bool isSyscallParam = false,
                            const std::string &fieldTypeName = "") {
-    const auto &field = fieldType.IgnoreParens().getDesugaredType(*context);
+    const auto &field = fieldType.IgnoreParens().getUnqualifiedType().getDesugaredType(*context);
     switch (fieldType.IgnoreParens()->getTypeClass()) {
     case clang::Type::Record: {
       std::string backupName;
