@@ -106,7 +106,7 @@ struct SyzRecordDecl {
     const char closeBracket = isUnion ? ']' : '}';
     printf("%s %c\n", name.c_str(), openBracket);
     for (const auto &member : members) {
-      printf("\t%s %s\n", member.name.c_str(), member.type.c_str());
+      printf("\t%s %s\n", toIdentifier(member.name).c_str(), member.type.c_str());
     }
     putchar(closeBracket);
     if (isUnion && isVarlen) {
