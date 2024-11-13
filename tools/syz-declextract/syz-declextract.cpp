@@ -150,14 +150,16 @@ bool beginsWith(const std::string_view &str, const std::string_view begin) {
 
 bool contains(const std::string_view &str, const std::string_view sub) { return str.find(sub) != std::string::npos; }
 
-const std::string int8Subtype(const std::string &name) { return "int8"; }
-const std::string int16Subtype(const std::string &name) {
+std::string int8Subtype(const std::string &name) { return "int8"; }
+
+std::string int16Subtype(const std::string &name) {
   if (contains(name, "port")) {
     return "sock_port";
   }
   return "int16";
 }
-const std::string int32Subtype(const std::string &name) {
+
+std::string int32Subtype(const std::string &name) {
   if (contains(name, "ipv4")) {
     return "ipv4_addr";
   }
@@ -184,15 +186,17 @@ const std::string int32Subtype(const std::string &name) {
   }
   return "int32";
 }
-const std::string stringSubtype(const std::string &name) {
+
+std::string stringSubtype(const std::string &name) {
   if (contains(name, "ifname") || endsWith(name, "dev_name")) {
     return "devname";
   }
   return "string";
 }
-const std::string int64Subtype(const std::string &name) { return "int64"; }
 
-const std::string makeArray(const std::string &type, const size_t min = 0, const size_t max = -1) {
+std::string int64Subtype(const std::string &name) { return "int64"; }
+
+std::string makeArray(const std::string &type, const size_t min = 0, const size_t max = -1) {
   if (max != size_t(-1)) {
     return "array[" + type + ", " + std::to_string(min) + ":" + std::to_string(max) + "]";
   }
@@ -205,7 +209,7 @@ const std::string makeArray(const std::string &type, const size_t min = 0, const
   return "array[" + type + "]";
 }
 
-const std::string makePtr(const std::string &dir, const std::string &type, bool isOpt = false) {
+std::string makePtr(const std::string &dir, const std::string &type, bool isOpt = false) {
   std::string ptr = "ptr[" + dir + ", " + type;
   if (isOpt) {
     return ptr + ", opt]";
@@ -213,11 +217,18 @@ const std::string makePtr(const std::string &dir, const std::string &type, bool 
   return ptr + "]";
 }
 
-const std::string makeConst(const std::string &type, const std::string &val = "0") {
-  if (type.empty()) {
+std::string makeConst(bool isSyscallArg, const std::string &type, const std::string &val) {
+  if (isSyscallArg) {
     return "const[" + val + "]";
   }
   return "const[" + val + ", " + type + "]";
+}
+
+std::string makeFlags(bool isSyscallArg, const std::string &type, const std::string &flags) {
+  if (isSyscallArg) {
+    return "flags[" + flags + "]";
+  }
+  return "flags[" + flags + ", " + type + "]";
 }
 
 enum IntType {
@@ -312,7 +323,7 @@ const std::string getSyzType(const std::string &ctype, std::string name, const b
 
   if (isBitField || type == "intptr" || isIntN(type)) {
     if (name.empty() || contains(name, "pad") || contains(name, "unused") || contains(name, "_reserved")) {
-      return makeConst(isSyscallParam ? "" : type);
+      return makeConst(isSyscallParam, type, "0");
     }
   }
 
@@ -412,7 +423,8 @@ public:
         flags.back() += sep + enumerator->getNameAsString();
         sep = ", ";
       }
-      return "flags[" + name + "]";
+      std::string baseType = "int" + std::to_string(context->getTypeInfo(field).Width);
+      return makeFlags(isSyscallParam, baseType, name);
     }
     case clang::Type::FunctionProto:
       return makePtr("in", autoTodo);
