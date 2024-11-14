@@ -227,7 +227,12 @@ std::string int32Subtype(const std::string &name, const bool isSyscallParam) {
 
 std::string int64Subtype(const std::string &name, const bool isSyscallParam) { return "int64"; }
 
-std::string intptrSubtype(const std::string &name, const bool isSyscallParam) { return "intptr"; }
+std::string intptrSubtype(const std::string &name, const bool isSyscallParam) {
+  if (name == "sigsetsize") {
+    return makeConst(isSyscallParam, "intptr", "8");
+  }
+  return "intptr";
+}
 
 std::string stringSubtype(const std::string &name, const char *defaultName = "string") {
   if (contains(name, "ifname") || endsWith(name, "dev_name")) {
