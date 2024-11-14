@@ -150,59 +150,6 @@ bool beginsWith(const std::string_view &str, const std::string_view begin) {
 
 bool contains(const std::string_view &str, const std::string_view sub) { return str.find(sub) != std::string::npos; }
 
-std::string int8Subtype(const std::string &name) { return "int8"; }
-
-std::string int16Subtype(const std::string &name) {
-  if (contains(name, "port")) {
-    return "sock_port";
-  }
-  return "int16";
-}
-
-std::string int32Subtype(const std::string &name) {
-  if (contains(name, "ipv4")) {
-    return "ipv4_addr";
-  }
-  if (endsWith(name, "_pid") || endsWith(name, "_tid") || endsWith(name, "_pgid") || endsWith(name, "_tgid") ||
-      name == "pid" || name == "tid" || name == "pgid" || name == "tgid") {
-    return "pid";
-  }
-  if (endsWith(name, "dfd") && !endsWith(name, "oldfd") && !endsWith(name, "pidfd")) {
-    return "fd_dir";
-  }
-  if (endsWith(name, "ns_fd")) {
-    return "fd_namespace";
-  }
-  if (endsWith(name, "_uid") || name == "uid" || name == "user" || name == "ruid" || name == "euid" || name == "suid") {
-    return "uid";
-  }
-  if (endsWith(name, "_gid") || name == "gid" || name == "group" || name == "rgid" || name == "egid" ||
-      name == "sgid") {
-    return "gid";
-  }
-  if (endsWith(name, "fd") || beginsWith(name, "fd_") || contains(name, "fildes") || name == "fdin" ||
-      name == "fdout") {
-    return "fd";
-  }
-  if (contains(name, "ifindex") || contains(name, "dev_index")) {
-    return "ifindex";
-  }
-  return "int32";
-}
-
-std::string stringSubtype(const std::string &name, const char *defaultName = "string") {
-  if (contains(name, "ifname") || endsWith(name, "dev_name")) {
-    return "devname";
-  }
-  if (contains(name, "filename") || contains(name, "pathname") || contains(name, "dir_name") || name == "oldname" ||
-      name == "newname" || name == "path") {
-    return "filename";
-  }
-  return defaultName;
-}
-
-std::string int64Subtype(const std::string &name) { return "int64"; }
-
 std::string makeArray(const std::string &type, const size_t min = 0, const size_t max = -1) {
   if (max != size_t(-1)) {
     return "array[" + type + ", " + std::to_string(min) + ":" + std::to_string(max) + "]";
@@ -238,6 +185,61 @@ std::string makeFlags(bool isSyscallArg, const std::string &type, const std::str
   return "flags[" + flags + ", " + type + "]";
 }
 
+std::string int8Subtype(const std::string &name, const bool isSyscallParam) { return "int8"; }
+
+std::string int16Subtype(const std::string &name, const bool isSyscallParam) {
+  if (contains(name, "port")) {
+    return "sock_port";
+  }
+  return "int16";
+}
+
+std::string int32Subtype(const std::string &name, const bool isSyscallParam) {
+  if (contains(name, "ipv4")) {
+    return "ipv4_addr";
+  }
+  if (endsWith(name, "_pid") || endsWith(name, "_tid") || endsWith(name, "_pgid") || endsWith(name, "_tgid") ||
+      name == "pid" || name == "tid" || name == "pgid" || name == "tgid") {
+    return "pid";
+  }
+  if (endsWith(name, "dfd") && !endsWith(name, "oldfd") && !endsWith(name, "pidfd")) {
+    return "fd_dir";
+  }
+  if (endsWith(name, "ns_fd")) {
+    return "fd_namespace";
+  }
+  if (endsWith(name, "_uid") || name == "uid" || name == "user" || name == "ruid" || name == "euid" || name == "suid") {
+    return "uid";
+  }
+  if (endsWith(name, "_gid") || name == "gid" || name == "group" || name == "rgid" || name == "egid" ||
+      name == "sgid") {
+    return "gid";
+  }
+  if (endsWith(name, "fd") || beginsWith(name, "fd_") || contains(name, "fildes") || name == "fdin" ||
+      name == "fdout") {
+    return "fd";
+  }
+  if (contains(name, "ifindex") || contains(name, "dev_index")) {
+    return "ifindex";
+  }
+  return "int32";
+}
+
+std::string int64Subtype(const std::string &name, const bool isSyscallParam) { return "int64"; }
+
+std::string intptrSubtype(const std::string &name, const bool isSyscallParam) { return "intptr"; }
+
+std::string stringSubtype(const std::string &name, const char *defaultName = "string") {
+  if (contains(name, "ifname") || endsWith(name, "dev_name")) {
+    return "devname";
+  }
+  if (contains(name, "filename") || contains(name, "pathname") || contains(name, "dir_name") || name == "oldname" ||
+      name == "newname" || name == "path") {
+    return "filename";
+  }
+  return defaultName;
+}
+
 enum IntType {
   INVALID_INT = 0,
   INT_8 = 1,
@@ -268,44 +270,43 @@ IntType getIntType(const std::string &ctype, const bool isSyscallParam) {
   exit(1);
 }
 
-const std::string intNCommonSubtype(const std::string &name, const IntType len) {
-  const auto &byteLen = std::to_string(len * 8);
-  if (endsWith(name, "enabled") || endsWith(name, "enable")) {
-    return "bool" + byteLen;
-  }
-  return "int" + byteLen;
-}
-
-const std::string intNSubtype(const std::string &name, const IntType len) {
+const std::string intNSubtype(const std::string &name, const IntType len, const bool isSyscallParam) {
   switch (len) {
   case INT_8:
-    return int8Subtype(name);
+    return int8Subtype(name, isSyscallParam);
   case INT_16:
-    return int16Subtype(name);
+    return int16Subtype(name, isSyscallParam);
   case INT_32:
-    return int32Subtype(name);
+    return int32Subtype(name, isSyscallParam);
   case INT_64:
-    return int64Subtype(name);
+    return int64Subtype(name, isSyscallParam);
+  case INT_PTR:
+    return intptrSubtype(name, isSyscallParam);
   default:
     fprintf(stderr, "invalid int type: %d\n", static_cast<int>(len));
     exit(1);
   }
 }
 
-bool isIntN(const std::string &syztype) {
-  return !syztype.compare(0, 3, "int") && std::all_of(syztype.begin() + 3, syztype.end(), ::isDigit);
+bool isIntN(const std::string &type) {
+  return (!type.compare(0, 3, "int") && std::all_of(type.begin() + 3, type.end(), ::isDigit)) || (type == "intptr");
 }
 
-const std::string intSubtype(const std::string &name, const IntType len) {
+const std::string intSubtype(const std::string &name, const IntType len, const bool isSyscallParam = false) {
   if (len == INVALID_INT) {
     fprintf(stderr, "Invalid int type\n");
     exit(1);
-  } else if (len == INT_PTR) {
-    return "intptr";
   }
 
-  const std::string &subType = intNSubtype(name, len);
-  return isIntN(subType) ? intNCommonSubtype(name, len) : subType;
+  const std::string subType = intNSubtype(name, len, isSyscallParam);
+  if (!isIntN(subType)) {
+    return subType;
+  }
+  if (endsWith(name, "enabled") || endsWith(name, "enable")) {
+    // Replace "int" with "bool".
+    return "bool" + subType.substr(3);
+  }
+  return subType;
 }
 
 const std::string getSyzType(const std::string &ctype, std::string name, const bool isSyscallParam,
@@ -325,10 +326,10 @@ const std::string getSyzType(const std::string &ctype, std::string name, const b
       type += ":" + std::to_string(bitFieldWidth);
     }
   } else {
-    type = intSubtype(name, len);
+    type = intSubtype(name, len, isSyscallParam);
   }
 
-  if (isBitField || type == "intptr" || isIntN(type)) {
+  if (isBitField || isIntN(type)) {
     if (name.empty() || contains(name, "pad") || contains(name, "unused") || contains(name, "_reserved")) {
       return makeConst(isSyscallParam, type, "0");
     }
