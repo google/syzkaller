@@ -103,6 +103,24 @@ func TestTransitivelyEnabledCallsLinux(t *testing.T) {
 	}
 }
 
+func TestTransitivelyEnabledAutoCalls(t *testing.T) {
+	t.Parallel()
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := make(map[*Syscall]bool)
+	for _, c := range target.Syscalls {
+		if c.Attrs.Automatic || c.Attrs.AutomaticHelper {
+			calls[c] = true
+		}
+	}
+	_, disabled := target.TransitivelyEnabledCalls(calls)
+	for c, reason := range disabled {
+		t.Errorf("disabled call %v: %v", c.Name, reason)
+	}
+}
+
 func TestGetInputResources(t *testing.T) {
 	expectedRequiredResources := map[string]bool{
 		"required_res1": false,
