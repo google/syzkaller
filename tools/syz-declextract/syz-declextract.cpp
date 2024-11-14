@@ -163,35 +163,42 @@ std::string int32Subtype(const std::string &name) {
   if (contains(name, "ipv4")) {
     return "ipv4_addr";
   }
-  if (endsWith(name, "_pid") || endsWith(name, "_tid") || name == "pid" || name == "tid") {
+  if (endsWith(name, "_pid") || endsWith(name, "_tid") || endsWith(name, "_pgid") || endsWith(name, "_tgid") ||
+      name == "pid" || name == "tid" || name == "pgid" || name == "tgid") {
     return "pid";
   }
-  if (endsWith(name, "dfd") && !endsWith(name, "oldfd")) {
+  if (endsWith(name, "dfd") && !endsWith(name, "oldfd") && !endsWith(name, "pidfd")) {
     return "fd_dir";
   }
-  if (endsWith(name, "_uid") || name == "uid") {
+  if (endsWith(name, "ns_fd")) {
+    return "fd_namespace";
+  }
+  if (endsWith(name, "_uid") || name == "uid" || name == "user" || name == "ruid" || name == "euid" || name == "suid") {
     return "uid";
   }
-  if (endsWith(name, "_gid") || name == "gid") {
+  if (endsWith(name, "_gid") || name == "gid" || name == "group" || name == "rgid" || name == "egid" ||
+      name == "sgid") {
     return "gid";
   }
-  if (endsWith(name, "fd") || beginsWith(name, "fd_")) {
-    if (endsWith(name, "ns_fd")) {
-      return "fd_namespace";
-    }
+  if (endsWith(name, "fd") || beginsWith(name, "fd_") || contains(name, "fildes") || name == "fdin" ||
+      name == "fdout") {
     return "fd";
   }
-  if (contains(name, "ifindex")) {
+  if (contains(name, "ifindex") || contains(name, "dev_index")) {
     return "ifindex";
   }
   return "int32";
 }
 
-std::string stringSubtype(const std::string &name) {
+std::string stringSubtype(const std::string &name, const char *defaultName = "string") {
   if (contains(name, "ifname") || endsWith(name, "dev_name")) {
     return "devname";
   }
-  return "string";
+  if (contains(name, "filename") || contains(name, "pathname") || contains(name, "dir_name") || name == "oldname" ||
+      name == "newname" || name == "path") {
+    return "filename";
+  }
+  return defaultName;
 }
 
 std::string int64Subtype(const std::string &name) { return "int64"; }
@@ -680,7 +687,7 @@ private:
       return "void";
     }
     if (type == "STRING") {
-      return "stringnoz";
+      return stringSubtype(name, "stringnoz");
     }
     if (type == "NUL_STRING") {
       return stringSubtype(name);
