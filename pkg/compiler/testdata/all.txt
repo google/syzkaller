@@ -373,3 +373,22 @@ union$conditional3 [
 ]
 
 conditional(a ptr[in, struct$conditional])
+
+# Struct recusrion via arrays.
+
+recursive_struct_call(a ptr[in, recursive_struct], b ptr[in, recursive_struct3])
+
+recursive_struct {
+	f0	array[recursive_struct]
+	f1	recursive_struct2
+	f2	array[recursive_struct2]
+} [packed]
+
+recursive_struct2 {
+	f0	int32
+	f1	array[recursive_struct]
+}
+
+recursive_struct3 {
+	f0	array[recursive_struct3]
+}

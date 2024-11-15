@@ -373,6 +373,19 @@ func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *Pointe
 	return MakeVmaPointerArg(typ, dir, page*r.target.PageSize, numPages*r.target.PageSize)
 }
 
+func (r *randGen) pruneRecursion(name string) (bool, func()) {
+	if r.recDepth[name] >= 2 {
+		return false, nil
+	}
+	r.recDepth[name]++
+	return true, func() {
+		r.recDepth[name]--
+		if r.recDepth[name] == 0 {
+			delete(r.recDepth, name)
+		}
+	}
+}
+
 func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*Call) {
 	if !r.inGenerateResource {
 		panic("inGenerateResource is not set")
@@ -711,24 +724,6 @@ func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial boo
 		return typ.DefaultArg(dir), nil
 	}
 
-	// Allow infinite recursion for optional pointers.
-	if pt, ok := typ.(*PtrType); ok && typ.Optional() {
-		switch pt.Elem.(type) {
-		case *StructType, *ArrayType, *UnionType:
-			name := pt.Elem.Name()
-			r.recDepth[name]++
-			defer func() {
-				r.recDepth[name]--
-				if r.recDepth[name] == 0 {
-					delete(r.recDepth, name)
-				}
-			}()
-			if r.recDepth[name] >= 3 {
-				return MakeSpecialPointerArg(typ, dir, 0), nil
-			}
-		}
-	}
-
 	if !ignoreSpecial && dir != DirOut {
 		switch typ.(type) {
 		case *StructType, *UnionType:
@@ -859,6 +854,15 @@ func (a *ProcType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Ca
 }
 
 func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	// Allow infinite recursion for arrays.
+	switch a.Elem.(type) {
+	case *StructType, *ArrayType, *UnionType:
+		ok, release := r.pruneRecursion(a.Elem.Name())
+		if !ok {
+			return MakeGroupArg(a, dir, nil), nil
+		}
+		defer release()
+	}
 	var count uint64
 	switch a.Kind {
 	case ArrayRandLen:
@@ -898,6 +902,17 @@ func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 }
 
 func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	// Allow infinite recursion for optional pointers.
+	if a.Optional() {
+		switch a.Elem.(type) {
+		case *StructType, *ArrayType, *UnionType:
+			ok, release := r.pruneRecursion(a.Elem.Name())
+			if !ok {
+				return MakeSpecialPointerArg(a, dir, 0), nil
+			}
+			defer release()
+		}
+	}
 	// The resource we are trying to generate may be in the pointer,
 	// so don't try to create an empty special pointer during resource generation.
 	if !r.inGenerateResource && r.oneOf(1000) {

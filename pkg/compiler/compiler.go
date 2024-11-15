@@ -65,6 +65,7 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		structVarlen:   make(map[string]bool),
 		structTypes:    make(map[string]prog.Type),
 		structFiles:    make(map[*ast.Struct]map[string]ast.Pos),
+		recursiveQuery: make(map[ast.Node]bool),
 		builtinConsts: map[string]uint64{
 			"PTR_SIZE": target.PtrSize,
 		},
@@ -135,11 +136,12 @@ type compiler struct {
 	usedTypedefs   map[string]bool
 	brokenTypedefs map[string]bool
 
-	structVarlen  map[string]bool
-	structTypes   map[string]prog.Type
-	structFiles   map[*ast.Struct]map[string]ast.Pos
-	builtinConsts map[string]uint64
-	fileMeta      map[string]Meta
+	structVarlen   map[string]bool
+	structTypes    map[string]prog.Type
+	structFiles    map[*ast.Struct]map[string]ast.Pos
+	builtinConsts  map[string]uint64
+	fileMeta       map[string]Meta
+	recursiveQuery map[ast.Node]bool
 }
 
 type warn struct {
