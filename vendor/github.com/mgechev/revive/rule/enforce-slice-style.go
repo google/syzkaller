@@ -14,6 +14,7 @@ const (
 	enforceSliceStyleTypeAny     enforceSliceStyleType = "any"
 	enforceSliceStyleTypeMake    enforceSliceStyleType = "make"
 	enforceSliceStyleTypeLiteral enforceSliceStyleType = "literal"
+	enforceSliceStyleTypeNil     enforceSliceStyleType = "nil"
 )
 
 func sliceStyleFromString(s string) (enforceSliceStyleType, error) {
@@ -24,6 +25,8 @@ func sliceStyleFromString(s string) (enforceSliceStyleType, error) {
 		return enforceSliceStyleTypeMake, nil
 	case string(enforceSliceStyleTypeLiteral):
 		return enforceSliceStyleTypeLiteral, nil
+	case string(enforceSliceStyleTypeNil):
+		return enforceSliceStyleTypeNil, nil
 	default:
 		return enforceSliceStyleTypeAny, fmt.Errorf(
 			"invalid slice style: %s (expecting one of %v)",
@@ -32,6 +35,7 @@ func sliceStyleFromString(s string) (enforceSliceStyleType, error) {
 				enforceSliceStyleTypeAny,
 				enforceSliceStyleTypeMake,
 				enforceSliceStyleTypeLiteral,
+				enforceSliceStyleTypeNil,
 			},
 		)
 	}
@@ -65,7 +69,6 @@ func (r *EnforceSliceStyleRule) configure(arguments lint.Arguments) {
 
 	var err error
 	r.enforceSliceStyle, err = sliceStyleFromString(enforceSliceStyle)
-
 	if err != nil {
 		panic(fmt.Sprintf("Invalid argument to the enforce-slice-style rule: %v", err))
 	}
@@ -86,7 +89,10 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 	ast.Inspect(astFile, func(n ast.Node) bool {
 		switch v := n.(type) {
 		case *ast.CompositeLit:
-			if r.enforceSliceStyle != enforceSliceStyleTypeMake {
+			switch r.enforceSliceStyle {
+			case enforceSliceStyleTypeMake, enforceSliceStyleTypeNil:
+				// continue
+			default:
 				return true
 			}
 
@@ -94,19 +100,27 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 				return true
 			}
 
-			if len(v.Elts) > 0 {
-				// not an empty slice
+			isNotEmptySlice := len(v.Elts) > 0
+			if isNotEmptySlice {
 				return true
 			}
 
+			var failureMessage string
+			if r.enforceSliceStyle == enforceSliceStyleTypeNil {
+				failureMessage = "use nil slice declaration (e.g. var args []type) instead of []type{}"
+			} else {
+				failureMessage = "use make([]type) instead of []type{} (or declare nil slice)"
+			}
 			failures = append(failures, lint.Failure{
 				Confidence: 1,
 				Node:       v,
 				Category:   "style",
-				Failure:    "use make([]type) instead of []type{} (or declare nil slice)",
+				Failure:    failureMessage,
 			})
 		case *ast.CallExpr:
-			if r.enforceSliceStyle != enforceSliceStyleTypeLiteral {
+			switch r.enforceSliceStyle {
+			case enforceSliceStyleTypeLiteral, enforceSliceStyleTypeNil:
+			default:
 				// skip any function calls, even if it's make([]type)
 				// we don't want to report it if literals are not enforced
 				return true
@@ -117,8 +131,8 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 				return true
 			}
 
-			if len(v.Args) < 2 {
-				// skip invalid make declarations
+			isInvalidMakeDeclaration := len(v.Args) < 2
+			if isInvalidMakeDeclaration {
 				return true
 			}
 
@@ -133,8 +147,8 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 				return true
 			}
 
-			if arg.Value != "0" {
-				// skip slice with non-zero size
+			isSliceSizeNotZero := arg.Value != "0"
+			if isSliceSizeNotZero {
 				return true
 			}
 
@@ -145,17 +159,23 @@ func (r *EnforceSliceStyleRule) Apply(file *lint.File, arguments lint.Arguments)
 					return true
 				}
 
-				if arg.Value != "0" {
-					// skip non-zero capacity slice
+				isNonZeroCapacitySlice := arg.Value != "0"
+				if isNonZeroCapacitySlice {
 					return true
 				}
 			}
 
+			var failureMessage string
+			if r.enforceSliceStyle == enforceSliceStyleTypeNil {
+				failureMessage = "use nil slice declaration (e.g. var args []type) instead of make([]type, 0)"
+			} else {
+				failureMessage = "use []type{} instead of make([]type, 0) (or declare nil slice)"
+			}
 			failures = append(failures, lint.Failure{
 				Confidence: 1,
 				Node:       v.Args[0],
 				Category:   "style",
-				Failure:    "use []type{} instead of make([]type, 0) (or declare nil slice)",
+				Failure:    failureMessage,
 			})
 		}
 		return true

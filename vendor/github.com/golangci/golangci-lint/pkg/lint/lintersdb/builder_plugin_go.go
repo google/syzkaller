@@ -43,14 +43,11 @@ func (b *PluginGoBuilder) Build(cfg *config.Config) ([]*linter.Config, error) {
 			continue
 		}
 
-		settings := settings
-
 		lc, err := b.loadConfig(cfg, name, &settings)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load custom analyzer %q: %s, %w", name, settings.Path, err)
-		} else {
-			linters = append(linters, lc)
 		}
+		linters = append(linters, lc)
 	}
 
 	return linters, nil
@@ -128,7 +125,7 @@ func (b *PluginGoBuilder) lookupAnalyzerPlugin(plug *plugin.Plugin) ([]*analysis
 	}
 
 	b.log.Warnf("plugin: 'AnalyzerPlugin' plugins are deprecated, please use the new plugin signature: " +
-		"https://golangci-lint.run/contributing/new-linters/#create-a-plugin")
+		"https://golangci-lint.run/plugins/go-plugins#create-a-plugin")
 
 	analyzerPlugin, ok := symbol.(AnalyzerPlugin)
 	if !ok {

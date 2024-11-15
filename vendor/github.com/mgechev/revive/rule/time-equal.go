@@ -50,26 +50,23 @@ func (l *lintTimeEqual) Visit(node ast.Node) ast.Visitor {
 		return l
 	}
 
-	xtyp := l.file.Pkg.TypeOf(expr.X)
-	ytyp := l.file.Pkg.TypeOf(expr.Y)
-
-	if !isNamedType(xtyp, "time", "Time") || !isNamedType(ytyp, "time", "Time") {
+	typeOfX := l.file.Pkg.TypeOf(expr.X)
+	typeOfY := l.file.Pkg.TypeOf(expr.Y)
+	bothAreOfTimeType := isNamedType(typeOfX, "time", "Time") && isNamedType(typeOfY, "time", "Time")
+	if !bothAreOfTimeType {
 		return l
 	}
 
-	var failure string
-	switch expr.Op {
-	case token.EQL:
-		failure = fmt.Sprintf("use %s.Equal(%s) instead of %q operator", gofmt(expr.X), gofmt(expr.Y), expr.Op)
-	case token.NEQ:
-		failure = fmt.Sprintf("use !%s.Equal(%s) instead of %q operator", gofmt(expr.X), gofmt(expr.Y), expr.Op)
+	negateStr := ""
+	if token.NEQ == expr.Op {
+		negateStr = "!"
 	}
 
 	l.onFailure(lint.Failure{
 		Category:   "time",
 		Confidence: 1,
 		Node:       node,
-		Failure:    failure,
+		Failure:    fmt.Sprintf("use %s%s.Equal(%s) instead of %q operator", negateStr, gofmt(expr.X), gofmt(expr.Y), expr.Op),
 	})
 
 	return l

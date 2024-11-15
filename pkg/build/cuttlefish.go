@@ -153,6 +153,9 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	if err := osutil.CopyFile(config, filepath.Join(params.OutputDir, "kernel.config")); err != nil {
 		return details, err
 	}
+	if err := copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
+		return details, err
+	}
 
 	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
@@ -162,9 +165,9 @@ func (c cuttlefish) build(params Params) (ImageDetails, error) {
 	return details, nil
 }
 
-func (c cuttlefish) clean(kernelDir, targetArch string) error {
-	if err := osutil.RemoveAll(filepath.Join(kernelDir, "out")); err != nil {
+func (c cuttlefish) clean(params Params) error {
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
 		return err
 	}
-	return osutil.RemoveAll(filepath.Join(kernelDir, "dist"))
+	return osutil.RemoveAll(filepath.Join(params.KernelDir, "dist"))
 }

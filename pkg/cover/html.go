@@ -393,7 +393,7 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 	return data, nil
 }
 
-func (rg *ReportGenerator) DoCSVFiles(w io.Writer, params HandlerParams) error {
+func (rg *ReportGenerator) DoFileCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
@@ -493,7 +493,7 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 	return d
 }
 
-func (rg *ReportGenerator) DoHTMLTable(w io.Writer, params HandlerParams) error {
+func (rg *ReportGenerator) DoSubsystemCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
@@ -589,7 +589,7 @@ var csvHeader = []string{
 	"Total PCs",
 }
 
-func (rg *ReportGenerator) DoCSV(w io.Writer, params HandlerParams) error {
+func (rg *ReportGenerator) DoFuncCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {

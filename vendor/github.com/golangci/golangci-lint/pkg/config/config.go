@@ -2,14 +2,13 @@ package config
 
 import (
 	"os"
-	"regexp"
 	"strings"
 
 	hcversion "github.com/hashicorp/go-version"
 	"github.com/ldez/gomoddirectives"
 )
 
-// Config encapsulates the config data specified in the golangci-lint yaml config file.
+// Config encapsulates the config data specified in the golangci-lint YAML config file.
 type Config struct {
 	cfgDir string // The directory containing the golangci-lint config file.
 
@@ -33,12 +32,12 @@ func (c *Config) GetConfigDir() string {
 
 func (c *Config) Validate() error {
 	validators := []func() error{
-		c.Issues.Validate,
-		c.Severity.Validate,
+		c.Run.Validate,
+		c.Output.Validate,
 		c.LintersSettings.Validate,
 		c.Linters.Validate,
-		c.Output.Validate,
-		c.Run.Validate,
+		c.Issues.Validate,
+		c.Severity.Validate,
 	}
 
 	for _, v := range validators {
@@ -76,10 +75,9 @@ func IsGoGreaterThanOrEqual(current, limit string) bool {
 }
 
 func detectGoVersion() string {
-	file, _ := gomoddirectives.GetModuleFile()
-
-	if file != nil && file.Go != nil && file.Go.Version != "" {
-		return file.Go.Version
+	goVersion := detectGoVersionFromGoMod()
+	if goVersion != "" {
+		return goVersion
 	}
 
 	v := os.Getenv("GOVERSION")
@@ -90,21 +88,25 @@ func detectGoVersion() string {
 	return "1.17"
 }
 
-// Trims the Go version to keep only M.m.
-// Since Go 1.21 the version inside the go.mod can be a patched version (ex: 1.21.0).
-// The version can also include information which we want to remove (ex: 1.21alpha1)
-// https://go.dev/doc/toolchain#versions
-// This a problem with staticcheck and gocritic.
-func trimGoVersion(v string) string {
-	if v == "" {
+// detectGoVersionFromGoMod tries to get Go version from go.mod.
+// It returns `toolchain` version if present,
+// else it returns `go` version if present,
+// else it returns empty.
+func detectGoVersionFromGoMod() string {
+	file, _ := gomoddirectives.GetModuleFile()
+	if file == nil {
 		return ""
 	}
 
-	exp := regexp.MustCompile(`(\d\.\d+)(?:\.\d+|[a-z]+\d)`)
-
-	if exp.MatchString(v) {
-		return exp.FindStringSubmatch(v)[1]
+	// The toolchain exists only if 'toolchain' version > 'go' version.
+	// If 'toolchain' version <= 'go' version, `go mod tidy` will remove 'toolchain' version from go.mod.
+	if file.Toolchain != nil && file.Toolchain.Name != "" {
+		return strings.TrimPrefix(file.Toolchain.Name, "go")
 	}
 
-	return v
+	if file.Go != nil && file.Go.Version != "" {
+		return file.Go.Version
+	}
+
+	return ""
 }

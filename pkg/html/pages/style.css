@@ -84,6 +84,21 @@ table td, table th {
 	padding-left: 20px;
 }
 
+.action_button, .action_button_selected {
+	border: 1px solid black;
+	align: left;
+	vertical-align: center;
+	text-align: center;
+	width: 30px;
+	height: 30px;
+	padding: 4px;
+	margin: 5px;
+}
+
+.action_button_selected {
+	border: 3px solid black;
+}
+
 .position_table .search {
 	text-align: right;
 }
@@ -203,6 +218,13 @@ table td, table th {
 
 .list_table .assets .no-break {
 	display: inline-block;
+}
+
+.list_table .job_description {
+	max-width: 600pt;
+	word-break: break-all;
+	overflow-wrap: break-word;
+	white-space: normal;
 }
 
 .list_table .icon {

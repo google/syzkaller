@@ -30,6 +30,7 @@ import (
 
 type Env interface {
 	BuildSyzkaller(string, string) (string, error)
+	CleanKernel(*BuildKernelConfig) error
 	BuildKernel(*BuildKernelConfig) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
 }
@@ -42,6 +43,7 @@ type env struct {
 }
 
 type BuildKernelConfig struct {
+	MakeBin      string
 	CompilerBin  string
 	LinkerBin    string
 	CcacheBin    string
@@ -134,19 +136,14 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	return buildLog, nil
 }
 
-func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
-	string, build.ImageDetails, error) {
-	if env.buildSem != nil {
-		env.buildSem.Wait()
-		defer env.buildSem.Signal()
-	}
-	imageDir := filepath.Join(env.cfg.Workdir, "image")
-	params := build.Params{
+func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
+	return build.Params{
 		TargetOS:     env.cfg.TargetOS,
 		TargetArch:   env.cfg.TargetVMArch,
 		VMType:       env.cfg.Type,
 		KernelDir:    env.cfg.KernelSrc,
-		OutputDir:    imageDir,
+		OutputDir:    filepath.Join(env.cfg.Workdir, "image"),
+		Make:         buildCfg.MakeBin,
 		Compiler:     buildCfg.CompilerBin,
 		Linker:       buildCfg.LinkerBin,
 		Ccache:       buildCfg.CcacheBin,
@@ -156,18 +153,36 @@ func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
 		Config:       buildCfg.KernelConfig,
 		BuildCPUs:    buildCfg.BuildCPUs,
 	}
+}
+
+func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
+	string, build.ImageDetails, error) {
+	if env.buildSem != nil {
+		env.buildSem.Wait()
+		defer env.buildSem.Signal()
+	}
+	params := env.buildParamsFromCfg(buildCfg)
 	details, err := build.Image(params)
 	if err != nil {
 		return "", details, err
 	}
-	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {
+	if err := SetConfigImage(env.cfg, params.OutputDir, true); err != nil {
 		return "", details, err
 	}
-	kernelConfigFile := filepath.Join(imageDir, "kernel.config")
+	kernelConfigFile := filepath.Join(params.OutputDir, "kernel.config")
 	if !osutil.IsExist(kernelConfigFile) {
 		kernelConfigFile = ""
 	}
 	return kernelConfigFile, details, nil
+}
+
+func (env *env) CleanKernel(buildCfg *BuildKernelConfig) error {
+	if env.buildSem != nil {
+		env.buildSem.Wait()
+		defer env.buildSem.Signal()
+	}
+	params := env.buildParamsFromCfg(buildCfg)
+	return build.Clean(params)
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {
@@ -257,6 +272,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM pool: %w", err)
 	}
+	defer vmPool.Close()
 	if n := vmPool.Count(); numVMs > n {
 		numVMs = n
 	}
@@ -372,7 +388,12 @@ func (inst *inst) testInstance() error {
 		return err
 	}
 	opts.Repeat = false
-	out, err := execProg.RunSyzProg(testProg, inst.cfg.Timeouts.NoOutputRunningTime, opts, vm.ExitNormal)
+	out, err := execProg.RunSyzProg(ExecParams{
+		SyzProg:        testProg,
+		Duration:       inst.cfg.Timeouts.NoOutputRunningTime,
+		Opts:           opts,
+		ExitConditions: vm.ExitNormal,
+	})
 	if err != nil {
 		return &TestError{Title: err.Error()}
 	}
@@ -404,8 +425,11 @@ func (inst *inst) testRepro() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		out, err = transformError(execProg.RunSyzProg(inst.reproSyz,
-			inst.cfg.Timeouts.NoOutputRunningTime, opts, SyzExitConditions))
+		out, err = transformError(execProg.RunSyzProg(ExecParams{
+			SyzProg:  inst.reproSyz,
+			Duration: inst.cfg.Timeouts.NoOutputRunningTime,
+			Opts:     opts,
+		}))
 		if err != nil {
 			return out, err
 		}
@@ -441,10 +465,10 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	return opts, nil
 }
 
-func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, repeat, threaded, collide bool,
-	procs, faultCall, faultNth int, optionalFlags bool, slowdown int, progFile string) string {
+func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
+	optionalFlags bool, slowdown int, progFile string) string {
 	repeatCount := 1
-	if repeat {
+	if opts.Repeat {
 		repeatCount = 0
 	}
 	osArg := ""
@@ -452,23 +476,21 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, r
 		osArg = " -os=" + OS
 	}
 	optionalArg := ""
-
-	if faultCall >= 0 {
+	if opts.Fault && opts.FaultCall >= 0 {
 		optionalArg = fmt.Sprintf(" -fault_call=%v -fault_nth=%v",
-			faultCall, faultNth)
+			opts.FaultCall, opts.FaultNth)
 	}
-
 	if optionalFlags {
 		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
-			{Name: "sandboxArg", Value: fmt.Sprint(sandboxArg)},
+			{Name: "sandboxArg", Value: fmt.Sprint(opts.SandboxArg)},
+			{Name: "type", Value: fmt.Sprint(vmType)},
 		})
 	}
-
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
 		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0%v %v",
-		execprog, executor, arch, osArg, sandbox,
-		procs, repeatCount, threaded, collide,
+		execprog, executor, arch, osArg, opts.Sandbox,
+		opts.Procs, repeatCount, opts.Threaded, opts.Collide,
 		optionalArg, progFile)
 }
 

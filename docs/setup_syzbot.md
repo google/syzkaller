@@ -247,7 +247,7 @@ func init() {
 }
 var prodConfig = &GlobalConfig{
         AccessLevel:         AccessPublic,
-        AuthDomain:          "@google.com",
+        AuthDomains:         []string{"@google.com"},
         CoverPath:           "https://storage.googleapis.com/syzkaller/cover/",
         Clients: map[string]string{
                 "$CI_HOSTNAME":     "$CI_KEY",

@@ -30,6 +30,11 @@ func (bo *BinaryExpression) Evaluate(finder ArgFinder) (uint64, bool) {
 		return 0, true
 	case OperatorBinaryAnd:
 		return left & right, true
+	case OperatorOr:
+		if left != 0 || right != 0 {
+			return 1, true
+		}
+		return 0, true
 	}
 	panic(fmt.Sprintf("unknown operator %q", bo.Operator))
 }
@@ -67,11 +72,14 @@ func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) 
 }
 
 func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, changed bool) {
-	if r.inPatchConditional {
-		return nil, false
+	if r.patchConditionalDepth > 1 {
+		// Some nested patchConditionalFields() calls are fine as we could trigger a resource
+		// constructor via generateArg(). But since nested createResource() calls are prohibited,
+		// patchConditionalFields() should never be nested more than 2 times.
+		panic("third nested patchConditionalFields call")
 	}
-	r.inPatchConditional = true
-	defer func() { r.inPatchConditional = false }()
+	r.patchConditionalDepth++
+	defer func() { r.patchConditionalDepth-- }()
 
 	var extraCalls []*Call
 	var anyPatched bool

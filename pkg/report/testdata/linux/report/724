@@ -1,0 +1,6 @@
+
+Decompressing Linux... Parsing ELF... Performing relocations... done.
+Booting the kernel (entry_offset: 0x0000000000000000).
+[    0.000000] Linux version 6.8.0 (dvyukov@dvyukov-glaptop2) (gcc (Debian 13.2.0-10) 13.2.0, GNU ld (GNU Binutils for Debian) 2.41.90.20240122) #1 SMP PREEMP4
+[    0.000000] Command line: console=ttyS0 oops=panic panic_on_warn=1 panic=86400 earlyprintk=serial net.ifnames=0 biosdevname=0 root=/dev/sda1
+[    0.000000] BIOS-provided physical RAM map:

@@ -43,12 +43,13 @@ func RunLocal(cfg *LocalConfig) error {
 	cfg.FilterSignal = true
 	cfg.RPC = ":0"
 	cfg.PrintMachineCheck = log.V(1)
+	cfg.Stats = NewStats()
 	ctx := &local{
 		cfg:       cfg,
 		setupDone: make(chan bool),
 	}
-	serv, err := newImpl(cfg.Context, &cfg.Config, ctx)
-	if err != nil {
+	serv := newImpl(cfg.Context, &cfg.Config, ctx)
+	if err := serv.Listen(); err != nil {
 		return err
 	}
 	defer serv.Close()
@@ -62,7 +63,7 @@ func RunLocal(cfg *LocalConfig) error {
 	defer serv.ShutdownInstance(id, true)
 
 	bin := cfg.Executor
-	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(serv.Port)}
+	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(serv.Port())}
 	if cfg.GDB {
 		bin = "gdb"
 		args = append([]string{
@@ -107,7 +108,7 @@ func RunLocal(cfg *LocalConfig) error {
 
 type local struct {
 	cfg       *LocalConfig
-	serv      *Server
+	serv      Server
 	setupDone chan bool
 }
 

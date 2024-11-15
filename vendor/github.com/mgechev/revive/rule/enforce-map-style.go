@@ -65,7 +65,6 @@ func (r *EnforceMapStyleRule) configure(arguments lint.Arguments) {
 
 	var err error
 	r.enforceMapStyle, err = mapStyleFromString(enforceMapStyle)
-
 	if err != nil {
 		panic(fmt.Sprintf("Invalid argument to the enforce-map-style rule: %v", err))
 	}
@@ -94,8 +93,8 @@ func (r *EnforceMapStyleRule) Apply(file *lint.File, arguments lint.Arguments) [
 				return true
 			}
 
-			if len(v.Elts) > 0 {
-				// not an empty map
+			isEmptyMap := len(v.Elts) > 0
+			if isEmptyMap {
 				return true
 			}
 

@@ -36,8 +36,9 @@ type Repo interface {
 	// SwitchCommit checkouts the specified commit without fetching.
 	SwitchCommit(commit string) (*Commit, error)
 
-	// HeadCommit returns info about the HEAD commit of the current branch of git repository.
-	HeadCommit() (*Commit, error)
+	// Commit returns info about the specified commit hash.
+	// The commit may be the special value HEAD for the current commit.
+	Commit(com string) (*Commit, error)
 
 	// GetCommitByTitle finds commit info by the title. If the commit is not found, nil is returned.
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
@@ -72,6 +73,9 @@ type Repo interface {
 
 	// CommitExists check for the commit presence in local checkout.
 	CommitExists(commit string) (bool, error)
+
+	// PushCommit is used to store commit in remote repo.
+	PushCommit(repo, commit string) error
 }
 
 // Bisecter may be optionally implemented by Repo.
@@ -113,6 +117,7 @@ type Commit struct {
 	Parents    []string
 	Date       time.Time
 	CommitDate time.Time
+	Patch      []byte
 }
 
 type RecipientType int
@@ -192,6 +197,9 @@ const (
 func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
 	case targets.Linux:
+		if vmType == targets.Starnix {
+			return newFuchsia(dir, opts), nil
+		}
 		return newLinux(dir, opts, vmType), nil
 	case targets.Fuchsia:
 		return newFuchsia(dir, opts), nil

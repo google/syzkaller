@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -41,6 +42,7 @@ type Runner struct {
 	nextRequestID int64
 	requests      map[int64]*queue.Request
 	executing     map[int64]bool
+	hanged        map[int64]bool
 	lastExec      *LastExecuting
 	updInfo       dispatcher.UpdateInfo
 	resultCh      chan error
@@ -342,10 +344,13 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 func (runner *Runner) handleExecutingMessage(msg *flatrpc.ExecutingMessage) error {
 	req := runner.requests[msg.Id]
 	if req == nil {
+		if runner.hanged[msg.Id] {
+			return nil
+		}
 		return fmt.Errorf("can't find executing request %v", msg.Id)
 	}
 	proc := int(msg.ProcId)
-	if proc < 0 || proc >= runner.procs {
+	if proc < 0 || proc >= prog.MaxPids {
 		return fmt.Errorf("got bad proc id %v", proc)
 	}
 	runner.stats.statExecs.Add(1)
@@ -371,6 +376,14 @@ func (runner *Runner) handleExecutingMessage(msg *flatrpc.ExecutingMessage) erro
 func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 	req := runner.requests[msg.Id]
 	if req == nil {
+		if runner.hanged[msg.Id] {
+			// Got result for a program that was previously reported hanged
+			// (probably execution was just extremely slow). Can't report result
+			// to pkg/fuzzer since it already handled completion of the request,
+			// but shouldn't report an error and crash the VM as well.
+			delete(runner.hanged, msg.Id)
+			return nil
+		}
 		return fmt.Errorf("can't find executed request %v", msg.Id)
 	}
 	delete(runner.requests, msg.Id)
@@ -409,6 +422,10 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 	if msg.Error != "" {
 		status = queue.ExecFailure
 		resErr = errors.New(msg.Error)
+	} else if msg.Hanged {
+		status = queue.Hanged
+		runner.lastExec.Hanged(int(msg.Id), int(msg.Proc), req.Prog.Serialize(), osutil.MonotonicNano())
+		runner.hanged[msg.Id] = true
 	}
 	req.Done(&queue.Result{
 		Executor: queue.ExecutorID{
@@ -507,7 +524,7 @@ func (runner *Runner) Stop() {
 	}
 }
 
-func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
+func (runner *Runner) Shutdown(crashed bool, extraExecs ...report.ExecutorInfo) []ExecRecord {
 	runner.mu.Lock()
 	runner.stopped = true
 	finished := runner.finished
@@ -517,6 +534,18 @@ func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
 		// Wait for the connection goroutine to finish and stop touching data.
 		<-finished
 	}
+	records := runner.lastExec.Collect()
+	for _, info := range extraExecs {
+		req := runner.requests[int64(info.ExecID)]
+		// If the request is in executing, it's also already in the records slice.
+		if req != nil && !runner.executing[int64(info.ExecID)] {
+			records = append(records, ExecRecord{
+				ID:   info.ExecID,
+				Proc: info.ProcID,
+				Prog: req.Prog.Serialize(),
+			})
+		}
+	}
 	for id, req := range runner.requests {
 		status := queue.Restarted
 		if crashed && runner.executing[id] {
@@ -524,7 +553,7 @@ func (runner *Runner) Shutdown(crashed bool) []ExecRecord {
 		}
 		req.Done(&queue.Result{Status: status})
 	}
-	return runner.lastExec.Collect()
+	return records
 }
 
 func (runner *Runner) MachineInfo() []byte {

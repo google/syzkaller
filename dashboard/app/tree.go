@@ -54,8 +54,7 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 		job, jobKey = ctx.job, ctx.jobKey
 		return nil
 	}
-	if err := db.RunInTransaction(cGlobal, tx,
-		&db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
+	if err := runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return nil, nil, err
 	}
 	return job, jobKey, nil
@@ -92,7 +91,7 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 		}
 		return nil
 	}
-	return db.RunInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true, Attempts: 10})
+	return runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true})
 }
 
 type pollTreeJobResult interface{}

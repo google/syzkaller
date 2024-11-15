@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Params is input arguments for the Image function.
+// Params is input arguments for the Image and Clean functions.
 type Params struct {
 	TargetOS     string
 	TargetArch   string
@@ -31,6 +31,7 @@ type Params struct {
 	KernelDir    string
 	OutputDir    string
 	Compiler     string
+	Make         string
 	Linker       string
 	Ccache       string
 	UserspaceDir string
@@ -46,6 +47,15 @@ type Params struct {
 type ImageDetails struct {
 	Signature  string
 	CompilerID string
+}
+
+func sanitize(params *Params) {
+	if params.Tracer == nil {
+		params.Tracer = &debugtracer.NullTracer{}
+	}
+	if params.BuildCPUs == 0 {
+		params.BuildCPUs = runtime.NumCPU()
+	}
 }
 
 // Image creates a disk image for the specified OS/ARCH/VM.
@@ -70,12 +80,7 @@ type ImageDetails struct {
 // the version of the compiler/toolchain that was used to build the kernel.
 // The CompilerID field is not guaranteed to be non-empty.
 func Image(params Params) (details ImageDetails, err error) {
-	if params.Tracer == nil {
-		params.Tracer = &debugtracer.NullTracer{}
-	}
-	if params.BuildCPUs == 0 {
-		params.BuildCPUs = runtime.NumCPU()
-	}
+	sanitize(&params)
 	var builder builder
 	builder, err = getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
@@ -112,12 +117,13 @@ func Image(params Params) (details ImageDetails, err error) {
 	return
 }
 
-func Clean(targetOS, targetArch, vmType, kernelDir string) error {
-	builder, err := getBuilder(targetOS, targetArch, vmType)
+func Clean(params Params) error {
+	sanitize(&params)
+	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
 		return err
 	}
-	return builder.clean(kernelDir, targetArch)
+	return builder.clean(params)
 }
 
 type KernelError struct {
@@ -131,9 +137,21 @@ func (err *KernelError) Error() string {
 	return string(err.Report)
 }
 
+type InfraError struct {
+	Title  string
+	Output []byte
+}
+
+func (e InfraError) Error() string {
+	if len(e.Output) > 0 {
+		return fmt.Sprintf("%s: %s", e.Title, e.Output)
+	}
+	return e.Title
+}
+
 type builder interface {
 	build(params Params) (ImageDetails, error)
-	clean(kernelDir, targetArch string) error
+	clean(params Params) error
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
@@ -144,6 +162,8 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 			return cuttlefish{}, nil
 		} else if vmType == "proxyapp:android" {
 			return android{}, nil
+		} else if vmType == targets.Starnix {
+			return starnix{}, nil
 		}
 	}
 	builders := map[string]builder{
@@ -207,6 +227,13 @@ func extractRootCause(err error, OS, kernelSrc string) error {
 	reason, file := extractCauseInner(verr.Output, kernelSrc)
 	if len(reason) == 0 {
 		return err
+	}
+	// Don't report upon SIGKILL for Linux builds.
+	if OS == targets.Linux && string(reason) == "Killed" && verr.ExitCode == 137 {
+		return &InfraError{
+			Title:  string(reason),
+			Output: verr.Output,
+		}
 	}
 	kernelErr := &KernelError{
 		Report:     reason,
@@ -313,6 +340,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)?.*(error|invalid|fatal|wrong)`)},
 	{pattern: regexp.MustCompile(`FAILED unresolved symbol`)},
 	{pattern: regexp.MustCompile(`No rule to make target`)},
+	{pattern: regexp.MustCompile(`^Killed$`)},
 	{weak: true, pattern: regexp.MustCompile(`: not found`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},

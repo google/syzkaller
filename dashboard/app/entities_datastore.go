@@ -208,7 +208,7 @@ func updateSingleBug(c context.Context, bugKey *db.Key, transform func(*Bug) err
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
+	return runInTransaction(c, tx, nil)
 }
 
 func (bug *Bug) hasUserSubsystems() bool {
@@ -785,7 +785,7 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
+	return runInTransaction(c, tx, nil)
 }
 
 func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error) {
@@ -841,7 +841,7 @@ func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
 }
 
 func loadBuilds(c context.Context, ns, manager string, typ BuildType) ([]*Build, error) {
-	const limit = 500
+	const limit = 1000
 	var builds []*Build
 	_, err := db.NewQuery("Build").
 		Filter("Namespace=", ns).
@@ -1117,4 +1117,67 @@ func mergeStringList(list, add []string) []string {
 // dateTime converts date in YYYYMMDD format back to Time.
 func dateTime(date int) time.Time {
 	return time.Date(date/10000, time.Month(date/100%100), date%100, 0, 0, 0, 0, time.UTC)
+}
+
+// dependencyLoader encapsulates the repetitive logic of mass loading referenced entities.
+type dependencyLoader[T any] struct {
+	keys      []*db.Key
+	callbacks []func(*T)
+}
+
+func (dl *dependencyLoader[T]) add(key *db.Key, upd func(*T)) {
+	dl.keys = append(dl.keys, key)
+	dl.callbacks = append(dl.callbacks, upd)
+}
+
+func (dl *dependencyLoader[T]) load(c context.Context) error {
+	type info struct {
+		key *db.Key
+		cbs []func(*T)
+	}
+	unique := map[string]*info{}
+	for i, key := range dl.keys {
+		str := key.String()
+		val := unique[str]
+		if val == nil {
+			val = &info{key: key}
+			unique[str] = val
+		}
+		val.cbs = append(val.cbs, dl.callbacks[i])
+	}
+	if len(unique) == 0 {
+		return nil
+	}
+
+	var keys []*db.Key
+	var infos []*info
+	for _, info := range unique {
+		keys = append(keys, info.key)
+		infos = append(infos, info)
+	}
+	objects := make([]*T, len(keys))
+	if badKey, err := getAllMulti(c, keys, objects); err != nil {
+		return fmt.Errorf("%v: %w", badKey, err)
+	}
+	for i := range keys {
+		info := infos[i]
+		for _, cb := range info.cbs {
+			cb(objects[i])
+		}
+	}
+	return nil
+}
+
+type txFunc func(tc context.Context) error
+
+// runInTransaction is a wrapper around db.RunInTransaction,
+// with the common number of attempts.
+func runInTransaction(c context.Context, tx txFunc, opts *db.TransactionOptions) error {
+	if opts == nil {
+		opts = &db.TransactionOptions{}
+	}
+	if opts.Attempts == 0 {
+		opts.Attempts = 10
+	}
+	return db.RunInTransaction(c, tx, opts)
 }

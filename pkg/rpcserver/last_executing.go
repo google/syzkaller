@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/prog"
 )
 
 // LastExecuting keeps the given number of last executed programs
@@ -17,6 +18,7 @@ import (
 type LastExecuting struct {
 	count     int
 	procs     []ExecRecord
+	hanged    []ExecRecord // hanged programs, kept forever
 	positions []int
 }
 
@@ -36,12 +38,12 @@ func MakeLastExecuting(procs, count int) *LastExecuting {
 }
 
 // Note execution of the 'prog' on 'proc' at time 'now'.
-func (last *LastExecuting) Note(id, proc int, prog []byte, now time.Duration) {
+func (last *LastExecuting) Note(id, proc int, progData []byte, now time.Duration) {
 	pos := &last.positions[proc]
 	last.procs[proc*last.count+*pos] = ExecRecord{
 		ID:   id,
 		Proc: proc,
-		Prog: prog,
+		Prog: progData,
 		Time: now,
 	}
 	*pos++
@@ -50,13 +52,26 @@ func (last *LastExecuting) Note(id, proc int, prog []byte, now time.Duration) {
 	}
 }
 
+// Note a hanged program.
+func (last *LastExecuting) Hanged(id, proc int, progData []byte, now time.Duration) {
+	last.hanged = append(last.hanged, ExecRecord{
+		ID: id,
+		// Use unique proc for these programs b/c pkg/repro will either use the program with matching ID,
+		// of take the last program from each proc, and we want the hanged programs to be included.
+		Proc: prog.MaxPids + len(last.hanged),
+		Prog: progData,
+		Time: now,
+	})
+}
+
 // Returns a sorted set of last executing programs.
 // The records are sorted by time in ascending order.
 // ExecRecord.Time is the difference in start executing time between this
 // program and the program that started executing last.
 func (last *LastExecuting) Collect() []ExecRecord {
-	procs := last.procs
+	procs := append(last.procs, last.hanged...)
 	last.procs = nil // The type must not be used after this.
+	last.hanged = nil
 	sort.Slice(procs, func(i, j int) bool {
 		return procs[i].Time < procs[j].Time
 	})

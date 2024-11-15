@@ -4,6 +4,7 @@
 package mgrconfig
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -197,6 +198,9 @@ func Complete(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	if err := cfg.completeFocusAreas(); err != nil {
+		return err
+	}
 	cfg.initTimeouts()
 	cfg.VMLess = cfg.Type == "none"
 	return nil
@@ -237,6 +241,11 @@ func (cfg *Config) completeServices() error {
 func (cfg *Config) initTimeouts() {
 	slowdown := 1
 	switch {
+	case cfg.Type == "qemu" && (runtime.GOARCH == cfg.SysTarget.Arch || runtime.GOARCH == cfg.SysTarget.VMArch):
+		// If TCG is enabled for QEMU, increase the slowdown.
+		if bytes.Contains(cfg.VM, []byte("-accel tcg")) {
+			slowdown = 10
+		}
 	case cfg.Type == "qemu" && runtime.GOARCH != cfg.SysTarget.Arch && runtime.GOARCH != cfg.SysTarget.VMArch:
 		// Assuming qemu emulation.
 		// Quick tests of mmap syscall on arm64 show ~9x slowdown.
@@ -260,8 +269,8 @@ func checkNonEmpty(fields ...string) error {
 	return nil
 }
 
-func (cfg *Config) HasCovFilter() bool {
-	return len(cfg.CovFilter.Functions)+len(cfg.CovFilter.Files)+len(cfg.CovFilter.RawPCs) != 0
+func (cov *CovFilterCfg) Empty() bool {
+	return len(cov.Functions)+len(cov.Files)+len(cov.RawPCs) == 0
 }
 
 func (cfg *Config) CompleteKernelDirs() {
@@ -318,6 +327,42 @@ func (cfg *Config) completeBinaries() error {
 	return nil
 }
 
+func (cfg *Config) completeFocusAreas() error {
+	names := map[string]bool{}
+	seenEmptyFilter := false
+	for i, area := range cfg.Experimental.FocusAreas {
+		if area.Name != "" {
+			if names[area.Name] {
+				return fmt.Errorf("duplicate focus area name: %q", area.Name)
+			}
+			names[area.Name] = true
+		}
+		if area.Weight <= 0 {
+			return fmt.Errorf("focus area #%d: negative weight", i)
+		}
+		if area.Filter.Empty() {
+			if seenEmptyFilter {
+				return fmt.Errorf("there must be only one focus area with an empty filter")
+			}
+			seenEmptyFilter = true
+		}
+	}
+	if !cfg.CovFilter.Empty() {
+		if len(cfg.Experimental.FocusAreas) > 0 {
+			return fmt.Errorf("you cannot use both cov_filter and focus_areas")
+		}
+		cfg.Experimental.FocusAreas = []FocusArea{
+			{
+				Name:   "filtered",
+				Filter: cfg.CovFilter,
+				Weight: 1.0,
+			},
+		}
+		cfg.CovFilter = CovFilterCfg{}
+	}
+	return nil
+}
+
 func splitTarget(target string) (string, string, string, error) {
 	if target == "" {
 		return "", "", "", fmt.Errorf("target is empty")
@@ -364,7 +409,8 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 	for call := range syscalls {
 		if target.Syscalls[call].Attrs.Disabled ||
 			descriptionsMode == ManualDescriptions && target.Syscalls[call].Attrs.Automatic ||
-			descriptionsMode == AutoDescriptions && !target.Syscalls[call].Attrs.Automatic {
+			descriptionsMode == AutoDescriptions &&
+				!target.Syscalls[call].Attrs.Automatic && !target.Syscalls[call].Attrs.AutomaticHelper {
 			delete(syscalls, call)
 		}
 	}

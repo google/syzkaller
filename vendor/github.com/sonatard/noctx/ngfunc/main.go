@@ -39,6 +39,7 @@ func ngCalledFuncs(pass *analysis.Pass, ngFuncs []*types.Func) []*Report {
 	if !ok {
 		panic(fmt.Sprintf("%T is not *buildssa.SSA", pass.ResultOf[buildssa.Analyzer]))
 	}
+
 	for _, sf := range ssa.SrcFuncs {
 		for _, b := range sf.Blocks {
 			for _, instr := range b.Instrs {

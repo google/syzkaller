@@ -908,13 +908,20 @@ func recvPrefix(recv *ast.FieldList) string {
 		}
 		expr = star.X
 	}
+
+	return identName(expr)
+}
+
+func identName(expr ast.Expr) string {
 	switch expr := expr.(type) {
 	case *ast.Ident:
 		return expr.Name + "."
 	case *ast.IndexExpr:
-		return expr.X.(*ast.Ident).Name + "."
+		return identName(expr.X)
+	case *ast.ParenExpr:
+		return identName(expr.X)
 	case *ast.IndexListExpr:
-		return expr.X.(*ast.Ident).Name + "."
+		return identName(expr.X)
 	default:
 		panic(fmt.Sprintf("unexpected receiver AST node: %T", expr))
 	}

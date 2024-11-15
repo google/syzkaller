@@ -418,8 +418,8 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	}
 	for _, req := range required {
 		if !req.ok {
-			job.resp.Error = []byte(req.name + " is empty")
-			jp.Errorf("%s", job.resp.Error)
+			job.resp.Error = []byte(req.name + " is invalid")
+			jp.Errorf("%s (job id=%q, type=%v)", job.resp.Error, job.req.ID, job.req.Type)
 			return job.resp
 		}
 	}
@@ -524,7 +524,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	res, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
-		var infraErr *bisect.InfraError
+		var infraErr *build.InfraError
 		if errors.As(err, &infraErr) {
 			resp.Flags |= dashapi.BisectResultInfraError
 		}
@@ -622,7 +622,17 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	resp.Build.KernelCommitTitle = kernelCommit.Title
 	resp.Build.KernelCommitDate = kernelCommit.CommitDate
 
-	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.Type, mgrcfg.KernelSrc); err != nil {
+	buildCfg := &instance.BuildKernelConfig{
+		CompilerBin:  mgr.mgrcfg.Compiler,
+		MakeBin:      mgr.mgrcfg.Make,
+		LinkerBin:    mgr.mgrcfg.Linker,
+		CcacheBin:    mgr.mgrcfg.Ccache,
+		UserspaceDir: mgr.mgrcfg.Userspace,
+		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
+		SysctlFile:   mgr.mgrcfg.KernelSysctl,
+		KernelConfig: req.KernelConfig,
+	}
+	if err := env.CleanKernel(buildCfg); err != nil {
 		return fmt.Errorf("kernel clean failed: %w", err)
 	}
 	if len(req.Patch) != 0 {
@@ -643,15 +653,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"), -1)
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, details, err := env.BuildKernel(&instance.BuildKernelConfig{
-		CompilerBin:  mgr.mgrcfg.Compiler,
-		LinkerBin:    mgr.mgrcfg.Linker,
-		CcacheBin:    mgr.mgrcfg.Ccache,
-		UserspaceDir: mgr.mgrcfg.Userspace,
-		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
-		SysctlFile:   mgr.mgrcfg.KernelSysctl,
-		KernelConfig: req.KernelConfig,
-	})
+	kernelConfig, details, err := env.BuildKernel(buildCfg)
 	resp.Build.CompilerID = details.CompilerID
 	if err != nil {
 		return err

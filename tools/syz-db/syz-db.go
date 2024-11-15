@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"golang.org/x/exp/maps"
 )
 
 func main() {
@@ -68,6 +69,16 @@ func main() {
 			usage()
 		}
 		merge(args[1], args[2:], target)
+	case "print":
+		if len(args) != 2 {
+			usage()
+		}
+		print(args[1])
+	case "rm":
+		if len(args) != 3 {
+			usage()
+		}
+		rm(args[1], args[2], target)
 	default:
 		usage()
 	}
@@ -91,6 +102,10 @@ offered:
     syz-db merge dst-corpus.db add-corpus.db* add-prog*
   running a deserialization benchmark and printing corpus stats:
     syz-db bench corpus.db
+  print corpus db:
+    syz-db print corpus.db
+  remove a syscall from db
+    syz-db rm corpus.db syscall_name
 `)
 	os.Exit(1)
 }
@@ -220,4 +235,44 @@ func bench(target *prog.Target, file string) {
 	sort.Ints(lens)
 	fmt.Printf("program size: min=%v avg=%v max=%v 10%%=%v 50%%=%v 90%%=%v\n",
 		lens[0], sum/n, lens[n-1], lens[n/10], lens[n/2], lens[n*9/10])
+}
+
+func print(file string) {
+	db, err := db.Open(file, false)
+	if err != nil {
+		tool.Failf("failed to open database: %v", err)
+	}
+	keys := maps.Keys(db.Records)
+	sort.Strings(keys)
+	for _, key := range keys {
+		rec := db.Records[key]
+		fmt.Printf("%v\n%v\n", key, string(rec.Val))
+	}
+}
+
+func rm(file, syscall string, target *prog.Target) {
+	db, err := db.Open(file, false)
+	if err != nil {
+		tool.Failf("failed to open database: %w", err)
+	}
+	for key, rec := range db.Records {
+		p, err := target.Deserialize(rec.Val, prog.NonStrict)
+		if err != nil {
+			tool.Failf("failed to deserialize: %w\n%s", err, rec.Val)
+		}
+		for i := len(p.Calls) - 1; i >= 0; i-- {
+			if strings.Contains(p.Calls[i].Meta.Name, syscall) {
+				p.RemoveCall(i)
+			}
+		}
+		data := p.Serialize()
+		if len(data) > 0 {
+			db.Save(key, data, rec.Seq)
+		} else {
+			delete(db.Records, key)
+		}
+	}
+	if err := db.Flush(); err != nil {
+		tool.Fail(err)
+	}
 }

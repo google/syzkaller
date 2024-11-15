@@ -6,9 +6,14 @@ import (
 	"fmt"
 	"go/token"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
+
+	goversion "github.com/hashicorp/go-version"
+	"golang.org/x/mod/modfile"
 )
 
 // ReadFile defines an abstraction for reading files.
@@ -49,24 +54,63 @@ func (l Linter) readFile(path string) (result []byte, err error) {
 }
 
 var (
-	genHdr = []byte("// Code generated ")
-	genFtr = []byte(" DO NOT EDIT.")
+	genHdr           = []byte("// Code generated ")
+	genFtr           = []byte(" DO NOT EDIT.")
+	defaultGoVersion = goversion.Must(goversion.NewVersion("1.0"))
 )
 
 // Lint lints a set of files with the specified rule.
 func (l *Linter) Lint(packages [][]string, ruleSet []Rule, config Config) (<-chan Failure, error) {
 	failures := make(chan Failure)
 
+	perModVersions := make(map[string]*goversion.Version)
+	perPkgVersions := make([]*goversion.Version, len(packages))
+	for n, files := range packages {
+		if len(files) == 0 {
+			continue
+		}
+		if config.GoVersion != nil {
+			perPkgVersions[n] = config.GoVersion
+			continue
+		}
+
+		dir, err := filepath.Abs(filepath.Dir(files[0]))
+		if err != nil {
+			return nil, err
+		}
+
+		alreadyKnownMod := false
+		for d, v := range perModVersions {
+			if strings.HasPrefix(dir, d) {
+				perPkgVersions[n] = v
+				alreadyKnownMod = true
+				break
+			}
+		}
+		if alreadyKnownMod {
+			continue
+		}
+
+		d, v, err := detectGoMod(dir)
+		if err != nil {
+			// No luck finding the go.mod file thus set the default Go version
+			v = defaultGoVersion
+			d = dir
+		}
+		perModVersions[d] = v
+		perPkgVersions[n] = v
+	}
+
 	var wg sync.WaitGroup
-	for _, pkg := range packages {
+	for n := range packages {
 		wg.Add(1)
-		go func(pkg []string) {
-			if err := l.lintPackage(pkg, ruleSet, config, failures); err != nil {
+		go func(pkg []string, gover *goversion.Version) {
+			if err := l.lintPackage(pkg, gover, ruleSet, config, failures); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 			defer wg.Done()
-		}(pkg)
+		}(packages[n], perPkgVersions[n])
 	}
 
 	go func() {
@@ -77,10 +121,15 @@ func (l *Linter) Lint(packages [][]string, ruleSet []Rule, config Config) (<-cha
 	return failures, nil
 }
 
-func (l *Linter) lintPackage(filenames []string, ruleSet []Rule, config Config, failures chan Failure) error {
+func (l *Linter) lintPackage(filenames []string, gover *goversion.Version, ruleSet []Rule, config Config, failures chan Failure) error {
+	if len(filenames) == 0 {
+		return nil
+	}
+
 	pkg := &Package{
-		fset:  token.NewFileSet(),
-		files: map[string]*File{},
+		fset:      token.NewFileSet(),
+		files:     map[string]*File{},
+		goVersion: gover,
 	}
 	for _, filename := range filenames {
 		content, err := l.readFile(filename)
@@ -106,6 +155,45 @@ func (l *Linter) lintPackage(filenames []string, ruleSet []Rule, config Config, 
 	pkg.lint(ruleSet, config, failures)
 
 	return nil
+}
+
+func detectGoMod(dir string) (rootDir string, ver *goversion.Version, err error) {
+	modFileName, err := retrieveModFile(dir)
+	if err != nil {
+		return "", nil, fmt.Errorf("%q doesn't seem to be part of a Go module", dir)
+	}
+
+	mod, err := os.ReadFile(modFileName)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read %q, got %v", modFileName, err)
+	}
+
+	modAst, err := modfile.ParseLax(modFileName, mod, nil)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to parse %q, got %v", modFileName, err)
+	}
+
+	ver, err = goversion.NewVersion(modAst.Go.Version)
+	return filepath.Dir(modFileName), ver, err
+}
+
+func retrieveModFile(dir string) (string, error) {
+	const lookingForFile = "go.mod"
+	for {
+		if dir == "." || dir == "/" {
+			return "", fmt.Errorf("did not found %q file", lookingForFile)
+		}
+
+		lookingForFilePath := filepath.Join(dir, lookingForFile)
+		info, err := os.Stat(lookingForFilePath)
+		if err != nil || info.IsDir() {
+			// lets check the parent dir
+			dir = filepath.Dir(dir)
+			continue
+		}
+
+		return lookingForFilePath, nil
+	}
 }
 
 // isGenerated reports whether the source file is generated code

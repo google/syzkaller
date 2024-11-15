@@ -26,7 +26,7 @@ func TestCaching(t *testing.T) {
 	}
 	prependTime = false
 	for _, test := range tests {
-		Logf(1, test.str)
+		Log(1, test.str)
 		out := CachedLogOutput()
 		if out != test.want {
 			t.Fatalf("wrote: %v\nwant: %v\ngot: %v", test.str, test.want, out)

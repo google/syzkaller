@@ -10,7 +10,7 @@ import (
 
 // ArgumentsLimitRule lints given else constructs.
 type ArgumentsLimitRule struct {
-	total int
+	max int
 	sync.Mutex
 }
 
@@ -19,18 +19,20 @@ const defaultArgumentsLimit = 8
 func (r *ArgumentsLimitRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.total == 0 {
-		if len(arguments) < 1 {
-			r.total = defaultArgumentsLimit
-			return
-		}
-
-		total, ok := arguments[0].(int64) // Alt. non panicking version
-		if !ok {
-			panic(`invalid value passed as argument number to the "argument-limit" rule`)
-		}
-		r.total = int(total)
+	if r.max != 0 {
+		return
 	}
+
+	if len(arguments) < 1 {
+		r.max = defaultArgumentsLimit
+		return
+	}
+
+	maxArguments, ok := arguments[0].(int64) // Alt. non panicking version
+	if !ok {
+		panic(`invalid value passed as argument number to the "argument-limit" rule`)
+	}
+	r.max = int(maxArguments)
 }
 
 // Apply applies the rule to given file.
@@ -43,7 +45,7 @@ func (r *ArgumentsLimitRule) Apply(file *lint.File, arguments lint.Arguments) []
 	}
 
 	walker := lintArgsNum{
-		total:     r.total,
+		max:       r.max,
 		onFailure: onFailure,
 	}
 
@@ -58,27 +60,30 @@ func (*ArgumentsLimitRule) Name() string {
 }
 
 type lintArgsNum struct {
-	total     int
+	max       int
 	onFailure func(lint.Failure)
 }
 
 func (w lintArgsNum) Visit(n ast.Node) ast.Visitor {
 	node, ok := n.(*ast.FuncDecl)
-	if ok {
-		num := 0
-		for _, l := range node.Type.Params.List {
-			for range l.Names {
-				num++
-			}
-		}
-		if num > w.total {
-			w.onFailure(lint.Failure{
-				Confidence: 1,
-				Failure:    fmt.Sprintf("maximum number of arguments per function exceeded; max %d but got %d", w.total, num),
-				Node:       node.Type,
-			})
-			return w
+	if !ok {
+		return w
+	}
+
+	num := 0
+	for _, l := range node.Type.Params.List {
+		for range l.Names {
+			num++
 		}
 	}
-	return w
+
+	if num > w.max {
+		w.onFailure(lint.Failure{
+			Confidence: 1,
+			Failure:    fmt.Sprintf("maximum number of arguments per function exceeded; max %d but got %d", w.max, num),
+			Node:       node.Type,
+		})
+	}
+
+	return nil // skip visiting the body of the function
 }

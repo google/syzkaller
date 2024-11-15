@@ -57,8 +57,15 @@ io_uring_register$IORING_UNREGISTER_RING_FDS(fd fd_io_uring, opcode const[IORING
 io_uring_register$IORING_REGISTER_PBUF_RING(fd fd_io_uring, opcode const[IORING_REGISTER_PBUF_RING], arg ptr[in, io_uring_buf_reg], nr_args const[1])
 io_uring_register$IORING_UNREGISTER_PBUF_RING(fd fd_io_uring, opcode const[IORING_UNREGISTER_PBUF_RING], arg ptr[in, io_uring_buf_reg], nr_args const[1])
 # IORING_REGISTER_PBUF_RING, IORING_UNREGISTER_PBUF_RING >= 5.19
+io_uring_register$IORING_REGISTER_SYNC_CANCEL(fd fd_io_uring, opcode const[IORING_REGISTER_SYNC_CANCEL], arg ptr[in, io_uring_sync_cancel_reg], nr_args const[1])
+io_uring_register$IORING_REGISTER_FILE_ALLOC_RANGE(fd fd_io_uring, opcode const[IORING_REGISTER_FILE_ALLOC_RANGE], arg ptr[in, io_uring_file_index_range], nr_args const[0])
+io_uring_register$IORING_REGISTER_PBUF_STATUS(fd fd_io_uring, opcode const[IORING_REGISTER_PBUF_STATUS], arg ptr[in, io_uring_buf_status], nr_args const[1])
+io_uring_register$IORING_REGISTER_NAPI(fd fd_io_uring, opcode const[IORING_REGISTER_NAPI], arg ptr[in, io_uring_napi], nr_args const[1])
+io_uring_register$IORING_UNREGISTER_NAPI(fd fd_io_uring, opcode const[IORING_UNREGISTER_NAPI], arg ptr[out, io_uring_napi], nr_args const[1])
+io_uring_register$IORING_REGISTER_CLOCK(fd fd_io_uring, opcode const[IORING_REGISTER_CLOCK], arg ptr[in, io_uring_clock_register], nr_args const[0])
+io_uring_register$IORING_REGISTER_CLONE_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_CLONE_BUFFERS], arg ptr[in, io_uring_clone_buffers], nr_args const[1])
 
-io_uring_register_opcodes = IORING_REGISTER_BUFFERS, IORING_UNREGISTER_BUFFERS, IORING_REGISTER_FILES, IORING_UNREGISTER_FILES, IORING_REGISTER_EVENTFD, IORING_UNREGISTER_EVENTFD, IORING_REGISTER_FILES_UPDATE, IORING_REGISTER_EVENTFD_ASYNC, IORING_REGISTER_PROBE, IORING_REGISTER_PERSONALITY, IORING_UNREGISTER_PERSONALITY, IORING_REGISTER_RESTRICTIONS, IORING_REGISTER_ENABLE_RINGS, IORING_REGISTER_FILES2, IORING_REGISTER_FILES_UPDATE2, IORING_REGISTER_BUFFERS2, IORING_REGISTER_BUFFERS_UPDATE, IORING_REGISTER_IOWQ_AFF, IORING_UNREGISTER_IOWQ_AFF, IORING_REGISTER_IOWQ_MAX_WORKERS, IORING_REGISTER_RING_FDS, IORING_UNREGISTER_RING_FDS, IORING_REGISTER_PBUF_RING, IORING_UNREGISTER_PBUF_RING, IORING_REGISTER_SYNC_CANCEL, IORING_REGISTER_FILE_ALLOC_RANGE
+io_uring_register_opcodes = IORING_REGISTER_BUFFERS, IORING_UNREGISTER_BUFFERS, IORING_REGISTER_FILES, IORING_UNREGISTER_FILES, IORING_REGISTER_EVENTFD, IORING_UNREGISTER_EVENTFD, IORING_REGISTER_FILES_UPDATE, IORING_REGISTER_EVENTFD_ASYNC, IORING_REGISTER_PROBE, IORING_REGISTER_PERSONALITY, IORING_UNREGISTER_PERSONALITY, IORING_REGISTER_RESTRICTIONS, IORING_REGISTER_ENABLE_RINGS, IORING_REGISTER_FILES2, IORING_REGISTER_FILES_UPDATE2, IORING_REGISTER_BUFFERS2, IORING_REGISTER_BUFFERS_UPDATE, IORING_REGISTER_IOWQ_AFF, IORING_UNREGISTER_IOWQ_AFF, IORING_REGISTER_IOWQ_MAX_WORKERS, IORING_REGISTER_RING_FDS, IORING_UNREGISTER_RING_FDS, IORING_REGISTER_PBUF_RING, IORING_UNREGISTER_PBUF_RING, IORING_REGISTER_SYNC_CANCEL, IORING_REGISTER_FILE_ALLOC_RANGE, IORING_REGISTER_PBUF_STATUS, IORING_REGISTER_NAPI, IORING_UNREGISTER_NAPI, IORING_REGISTER_CLOCK, IORING_REGISTER_CLONE_BUFFERS
 
 # The mmap'ed area for SQ and CQ rings are really the same -- the difference is
 # accounted for with the usage of offsets.
@@ -488,4 +495,51 @@ io_uring_sqe_tee_misc {
 	ioring_personality_id	ioring_personality_id[opt]
 	splice_fd_in		fd
 	pad_unused		array[const[0, int64], 2]
+}
+
+io_uring_sync_cancel_reg {
+	addr	int64
+	fd	fd
+	flags	flags[iouring_async_cancel_flags, int32]
+	timeout	kernel_timespec
+	opcode	int8
+	pad	array[const[0, int8], 7]
+	pad2	array[const[0, int64], 3]
+}
+
+kernel_timespec {
+	tv_sec	int64
+	tv_nsec	int64
+}
+
+iouring_async_cancel_flags = IORING_ASYNC_CANCEL_ALL, IORING_ASYNC_CANCEL_FD, IORING_ASYNC_CANCEL_ANY, IORING_ASYNC_CANCEL_FD_FIXED, IORING_ASYNC_CANCEL_USERDATA, IORING_ASYNC_CANCEL_OP
+
+io_uring_file_index_range {
+	off	int32
+	len	int32
+	resv	int64
+}
+
+io_uring_buf_status {
+	buf_group	int32	(in)
+	head		int32	(out)
+	resv		array[const[0, int32], 8]
+}
+
+io_uring_napi {
+	busy_poll_to		int32
+	prefer_busy_poll	int8
+	pad			array[const[0, int8], 3]
+	resv			const[0, int64]
+}
+
+io_uring_clock_register {
+	clockid	flags[clock_type, int32]
+	resv	array[const[0, int32], 3]
+}
+
+io_uring_clone_buffers {
+	src_fd	fd
+	flags	const[1, int32]
+	pad	array[const[0, int32], 6]
 }

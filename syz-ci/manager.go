@@ -256,6 +256,16 @@ loop:
 	log.Logf(0, "%v: stopped", mgr.name)
 }
 
+func (mgr *Manager) archiveCommit(commit string) {
+	if mgr.cfg.GitArchive == "" || mgr.mgrcfg.DisableGitArchive {
+		return
+	}
+	if err := mgr.repo.PushCommit(mgr.cfg.GitArchive, commit); err != nil {
+		mgr.Errorf("%v: failed to archive commit %s from repo %s: %s",
+			mgr.name, commit, mgr.mgrcfg.Repo, err.Error())
+	}
+}
+
 func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
 	rebuildAfter := buildRetryPeriod
@@ -277,7 +287,9 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 				if err := mgr.build(commit); err != nil {
 					log.Logf(0, "%v: %v", mgr.name, err)
 				} else {
-					log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
+					log.Logf(0, "%v: build successful", mgr.name)
+					mgr.archiveCommit(lastCommit)
+					log.Logf(0, "%v: [re]starting manager", mgr.name)
 					mgr.buildFailed = false
 					rebuildAfter = kernelRebuildPeriod
 					latestInfo = mgr.checkLatest()
@@ -358,6 +370,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		VMType:       mgr.managercfg.Type,
 		KernelDir:    mgr.kernelBuildDir,
 		OutputDir:    tmpDir,
+		Make:         mgr.mgrcfg.Make,
 		Compiler:     mgr.mgrcfg.Compiler,
 		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
@@ -384,6 +397,8 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		case errors.As(err, &verboseError):
 			rep.Report = []byte(verboseError.Title)
 			rep.Output = verboseError.Output
+		case errors.As(err, &build.InfraError{}):
+			return err
 		default:
 			rep.Report = []byte(err.Error())
 		}
@@ -426,6 +441,13 @@ func (mgr *Manager) restartManager() {
 	info, err := loadBuildInfo(mgr.currentDir)
 	if err != nil {
 		mgr.Errorf("failed to load build info: %v", err)
+		return
+	}
+	// HEAD might be pointing to a different commit now e.g. due to a recent failed kernel
+	// build attempt, so let's always reset it to the commit the current kernel was built at.
+	_, err = mgr.repo.CheckoutCommit(mgr.mgrcfg.Repo, info.KernelCommit)
+	if err != nil {
+		mgr.Errorf("failed to check out the last kernel commit %q: %v", info.KernelCommit, err)
 		return
 	}
 	buildTag, err := mgr.uploadBuild(info, mgr.currentDir)

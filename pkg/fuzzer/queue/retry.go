@@ -3,6 +3,10 @@
 
 package queue
 
+import (
+	"fmt"
+)
+
 type retryer struct {
 	pq   *PlainQueue
 	base Source
@@ -28,16 +32,22 @@ func (r *retryer) Next() *Request {
 }
 
 func (r *retryer) done(req *Request, res *Result) bool {
-	// The input was on a restarted VM.
-	if res.Status == Restarted {
+	switch res.Status {
+	case Success, ExecFailure, Hanged:
+		return true
+	case Restarted:
+		// The input was on a restarted VM.
 		r.pq.Submit(req)
 		return false
+	case Crashed:
+		// Retry important requests from crashed VMs once.
+		if req.Important && !req.onceCrashed {
+			req.onceCrashed = true
+			r.pq.Submit(req)
+			return false
+		}
+		return true
+	default:
+		panic(fmt.Sprintf("unhandled status %v", res.Status))
 	}
-	// Retry important requests from crashed VMs once.
-	if res.Status == Crashed && req.Important && !req.onceCrashed {
-		req.onceCrashed = true
-		r.pq.Submit(req)
-		return false
-	}
-	return true
 }

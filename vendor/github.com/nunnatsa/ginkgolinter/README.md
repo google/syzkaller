@@ -249,6 +249,28 @@ This will probably happen when using the old format:
    Eventually(aFunc, 500 * time.Millisecond /*timeout*/, 10 * time.Second /*polling*/).Should(Succeed())
    ```
 
+### Correct usage of the `Succeed()` matcher [Bug]
+The `Succeed()` matcher only accepts a single error value. this rule validates that. 
+
+For example:
+   ```go
+   Expect(42).To(Succeed())
+   ```
+
+But mostly, we want to avoid using this matcher with functions that return multiple values, even if their last 
+returned value is an error, because this is not supported:
+   ```go
+   Expect(os.Open("myFile.txt")).To(Succeed())
+   ```
+
+In async assertions (like `Eventually()`), the `Succeed()` matcher may also been used with functions that accept 
+a Gomega object as their first parameter, and returns nothing, e.g. this is a valid usage of `Eventually`
+  ```go
+  Eventually(func(g Gomega){
+	  g.Expect(true).To(BeTrue())
+  }).WithTimeout(10 * time.Millisecond).WithPolling(time.Millisecond).Should(Succeed())
+  ```
+
 ### Avoid Spec Pollution: Don't Initialize Variables in Container Nodes [BUG/STYLE]:
 ***Note***: Only applied when the `--forbid-spec-pollution=true` flag is set (disabled by default).
 
@@ -476,6 +498,30 @@ will be changed to:
 ```go
 Eventually(aFunc, time.Second*5, time.Second*polling)
 ```
+
+### Correct usage of the `Succeed()` and the `HaveOccurred()` matchers
+This rule enforces using the `Success()` matcher only for functions, and the `HaveOccurred()` matcher only for error
+values.
+
+For example:
+  ```go
+  Expect(err).To(Succeed())
+  ```
+will trigger a warning with a suggestion to replace the mather to
+  ```go
+  Expect(err).ToNot(HaveOccurred())
+  ```
+
+and vice versa:
+  ```go
+  Expect(myErrorFunc()).ToNot(HaveOccurred())
+  ```
+will trigger a warning with a suggestion to replace the mather to
+  ```go
+  Expect(myErrorFunc()).To(Succeed())
+  ```
+***This rule is disabled by default***. Use the `--force-succeed=true` command line flag to enable it.
+
 ## Suppress the linter
 ### Suppress warning from command line
 * Use the `--suppress-len-assertion=true` flag to suppress the wrong length and cap assertions warning

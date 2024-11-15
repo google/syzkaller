@@ -55,7 +55,7 @@ response type, the linter will warn you.
 Download `errchkjson` from the [releases](https://github.com/breml/errchkjson/releases) or get the latest version from source with:
 
 ```shell
-go get github.com/breml/errchkjson/cmd/errchkjson
+go install github.com/breml/errchkjson/cmd/errchkjson@latest
 ```
 
 ## Usage

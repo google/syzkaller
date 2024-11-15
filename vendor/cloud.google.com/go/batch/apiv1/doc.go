@@ -17,7 +17,7 @@
 // Package batch is an auto-generated package for the
 // Batch API.
 //
-// An API to manage the running of batch resources on Google Cloud Platform.
+// An API to manage the running of Batch resources on Google Cloud Platform.
 //
 // # General documentation
 //

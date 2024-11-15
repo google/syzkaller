@@ -357,6 +357,8 @@ struct$conditional {
 	f1	int64	(if[value[f0] == 1])
 	f2	struct$conditional2
 	f3	union$conditional3
+	f4	const[0, int64]
+	f5	int64	(if[value[f4] == 0])
 } [packed]
 
 struct$conditional2 {

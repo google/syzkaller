@@ -22,6 +22,7 @@ With `sloglint` you can enforce various rules for `log/slog` based on your prefe
 * Enforce using static log messages (optional)
 * Enforce using constants instead of raw keys (optional)
 * Enforce a single key naming convention (optional)
+* Enforce not using specific keys (optional)
 * Enforce putting arguments on separate lines (optional)
 
 ## 📦 Install
@@ -74,7 +75,7 @@ slog.Info("a user has logged in", "user_id", 42) // sloglint: key-value pairs sh
 ### No global
 
 Some projects prefer to pass loggers as explicit dependencies.
-The `no-global` option causes `sloglint` to report the usage of global loggers.
+The `no-global` option causes `sloglint` to report the use of global loggers.
 
 ```go
 slog.Info("a user has logged in", "user_id", 42) // sloglint: global logger should not be used
@@ -89,14 +90,10 @@ For them to work properly, you need to pass a context to all logger calls.
 The `context-only` option causes `sloglint` to report the use of methods without a context:
 
 ```go
-slog.Info("a user has logged in") // sloglint: methods without a context should not be used
+slog.Info("a user has logged in") // sloglint: InfoContext should be used instead
 ```
 
-This report can be fixed by using the equivalent method with the `Context` suffix:
-
-```go
-slog.InfoContext(ctx, "a user has logged in")
-```
+Possible values are `all` (report all contextless calls) and `scope` (report only if a context exists in the scope of the outermost function).
 
 ### Static messages
 
@@ -152,6 +149,18 @@ slog.Info("a user has logged in", "user-id", 42) // sloglint: keys should be wri
 ```
 
 Possible values are `snake`, `kebab`, `camel`, or `pascal`.
+
+### Forbidden keys
+
+To prevent accidental use of reserved log keys, you may want to forbid specific keys altogether.
+The `forbidden-keys` option causes `sloglint` to report the use of forbidden keys:
+
+```go
+slog.Info("a user has logged in", "reserved", 42) // sloglint: "reserved" key is forbidden and should not be used
+```
+
+For example, when using the standard `slog.JSONHandler` and `slog.TextHandler`,
+you may want to forbid the `time`, `level`, `msg`, and `source` keys, as these are used by the handlers.
 
 ### Arguments on separate lines
 

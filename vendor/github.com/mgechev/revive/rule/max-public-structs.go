@@ -19,20 +19,22 @@ const defaultMaxPublicStructs = 5
 func (r *MaxPublicStructsRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.max < 1 {
-		if len(arguments) < 1 {
-			r.max = defaultMaxPublicStructs
-			return
-		}
-
-		checkNumberOfArguments(1, arguments, r.Name())
-
-		max, ok := arguments[0].(int64) // Alt. non panicking version
-		if !ok {
-			panic(`invalid value passed as argument number to the "max-public-structs" rule`)
-		}
-		r.max = max
+	if r.max == 0 {
+		return // already configured
 	}
+
+	if len(arguments) < 1 {
+		r.max = defaultMaxPublicStructs
+		return
+	}
+
+	checkNumberOfArguments(1, arguments, r.Name())
+
+	maxStructs, ok := arguments[0].(int64) // Alt. non panicking version
+	if !ok {
+		panic(`invalid value passed as argument number to the "max-public-structs" rule`)
+	}
+	r.max = maxStructs
 }
 
 // Apply applies the rule to given file.

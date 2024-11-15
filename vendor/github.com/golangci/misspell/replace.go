@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"text/scanner"
 )
@@ -17,12 +18,9 @@ func max(x, y int) int {
 }
 
 func inArray(haystack []string, needle string) bool {
-	for _, word := range haystack {
-		if strings.EqualFold(needle, word) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(haystack, func(word string) bool {
+		return strings.EqualFold(needle, word)
+	})
 }
 
 var wordRegexp = regexp.MustCompile(`[a-zA-Z0-9']+`)
@@ -192,7 +190,7 @@ Loop:
 	return buf.String(), diffs
 }
 
-// Replace is corrects misspellings in input, returning corrected version along with a list of diffs.
+// Replace is correcting misspellings in input, returning corrected version along with a list of diffs.
 func (r *Replacer) Replace(input string) (string, []Diff) {
 	output := r.engine.Replace(input)
 	if input == output {

@@ -18,12 +18,18 @@ package spanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/googleapis/gax-go/v2/apierror"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+var (
+	// ErrRowNotFound row not found error
+	ErrRowNotFound = errors.New("row not found")
 )
 
 // Error is the structured error returned by Cloud Spanner client.

@@ -49,6 +49,8 @@ func newConfigCommand(log logutils.Log, info BuildInfo) *configCommand {
 		Args:              cobra.NoArgs,
 		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE:              c.executeVerify,
+		SilenceUsage:      true,
+		SilenceErrors:     true,
 	}
 
 	configCmd.AddCommand(
@@ -77,21 +79,15 @@ func newConfigCommand(log logutils.Log, info BuildInfo) *configCommand {
 	return c
 }
 
-func (c *configCommand) preRunE(cmd *cobra.Command, _ []string) error {
+func (c *configCommand) preRunE(cmd *cobra.Command, args []string) error {
 	// The command doesn't depend on the real configuration.
 	// It only needs to know the path of the configuration file.
 	cfg := config.NewDefault()
 
-	// Hack to hide deprecation messages related to `--skip-dirs-use-default`:
-	// Flags are not bound then the default values, defined only through flags, are not applied.
-	// In this command, file path and file information are the only requirements, i.e. it don't need flag values.
-	//
-	// TODO(ldez) add an option (check deprecation) to `Loader.Load()` but this require a dedicated PR.
-	cfg.Run.UseDefaultSkipDirs = true
+	loader := config.NewLoader(c.log.Child(logutils.DebugKeyConfigReader), c.viper, cmd.Flags(), c.opts, cfg, args)
 
-	loader := config.NewLoader(c.log.Child(logutils.DebugKeyConfigReader), c.viper, cmd.Flags(), c.opts, cfg)
-
-	if err := loader.Load(); err != nil {
+	err := loader.Load(config.LoadOptions{})
+	if err != nil {
 		return fmt.Errorf("can't load config: %w", err)
 	}
 

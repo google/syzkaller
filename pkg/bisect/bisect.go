@@ -27,6 +27,7 @@ type Config struct {
 	Fix             bool
 	DefaultCompiler string
 	CompilerType    string
+	Make            string
 	Linker          string
 	BinDir          string
 	Ccache          string
@@ -100,7 +101,8 @@ type env struct {
 	// can allows us to.
 	flaky bool
 	// A cache of already performed revision tests.
-	results map[string]*testResult
+	results  map[string]*testResult
+	buildCfg instance.BuildKernelConfig
 }
 
 const MaxNumTests = 20 // number of tests we do per commit
@@ -134,14 +136,6 @@ type Result struct {
 	Confidence float64
 }
 
-type InfraError struct {
-	Title string
-}
-
-func (e InfraError) Error() string {
-	return e.Title
-}
-
 // Run does the bisection and returns either the Result,
 // or, if the crash is not reproduced on the start commit, an error.
 func Run(cfg *Config) (*Result, error) {
@@ -158,7 +152,7 @@ func Run(cfg *Config) (*Result, error) {
 		return nil, err
 	}
 	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
-		return nil, &InfraError{Title: fmt.Sprintf("%v", err)}
+		return nil, &build.InfraError{Title: fmt.Sprintf("%v", err)}
 	}
 	return runImpl(cfg, repo, inst)
 }
@@ -180,8 +174,19 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		inst:       inst,
 		startTime:  time.Now(),
 		confidence: 1.0,
+		buildCfg: instance.BuildKernelConfig{
+			CompilerBin:  cfg.DefaultCompiler,
+			MakeBin:      cfg.Make,
+			LinkerBin:    cfg.Linker,
+			CcacheBin:    cfg.Ccache,
+			UserspaceDir: cfg.Kernel.Userspace,
+			CmdlineFile:  cfg.Kernel.Cmdline,
+			SysctlFile:   cfg.Kernel.Sysctl,
+			KernelConfig: cfg.Kernel.Config,
+			BuildCPUs:    cfg.BuildCPUs,
+		},
 	}
-	head, err := repo.HeadCommit()
+	head, err := repo.Commit(vcs.HEAD)
 	if err != nil {
 		return nil, err
 	}
@@ -191,33 +196,33 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	if err != nil {
 		hostname = "unnamed host"
 	}
-	env.log("%s starts bisection %s", hostname, env.startTime.String())
+	env.logf("%s starts bisection %s", hostname, env.startTime.String())
 	if cfg.Fix {
-		env.log("bisecting fixing commit since %v", cfg.Kernel.Commit)
+		env.logf("bisecting fixing commit since %v", cfg.Kernel.Commit)
 	} else {
-		env.log("bisecting cause commit starting from %v", cfg.Kernel.Commit)
+		env.logf("bisecting cause commit starting from %v", cfg.Kernel.Commit)
 	}
 	start := time.Now()
 	res, err := env.bisect()
 	if env.flaky {
-		env.log("reproducer is flaky (%.2f repro chance estimate)", env.reproChance)
+		env.logf("reproducer is flaky (%.2f repro chance estimate)", env.reproChance)
 	}
-	env.log("revisions tested: %v, total time: %v (build: %v, test: %v)",
+	env.logf("revisions tested: %v, total time: %v (build: %v, test: %v)",
 		env.numTests, time.Since(start), env.buildTime, env.testTime)
 	if err != nil {
-		env.log("error: %v", err)
+		env.logf("error: %v", err)
 		return nil, err
 	}
 	if len(res.Commits) == 0 {
 		if cfg.Fix {
-			env.log("crash still not fixed or there were kernel test errors")
+			env.logf("crash still not fixed or there were kernel test errors")
 		} else {
-			env.log("oldest tested release already had the bug or it had kernel test errors")
+			env.logf("oldest tested release already had the bug or it had kernel test errors")
 		}
 
-		env.log("commit msg: %v", res.Commit.Title)
+		env.logf("commit msg: %v", res.Commit.Title)
 		if res.Report != nil {
-			env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
+			env.logf("crash: %v\n%s", res.Report.Title, res.Report.Report)
 		}
 		return res, nil
 	}
@@ -226,18 +231,18 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		what = "good"
 	}
 	if len(res.Commits) > 1 {
-		env.log("bisection is inconclusive, the first %v commit could be any of:", what)
+		env.logf("bisection is inconclusive, the first %v commit could be any of:", what)
 		for _, com := range res.Commits {
-			env.log("%v", com.Hash)
+			env.logf("%v", com.Hash)
 		}
 		return res, nil
 	}
 	com := res.Commits[0]
-	env.log("first %v commit: %v %v", what, com.Hash, com.Title)
-	env.log("recipients (to): %q", com.Recipients.GetEmails(vcs.To))
-	env.log("recipients (cc): %q", com.Recipients.GetEmails(vcs.Cc))
+	env.logf("first %v commit: %v %v", what, com.Hash, com.Title)
+	env.logf("recipients (to): %q", com.Recipients.GetEmails(vcs.To))
+	env.logf("recipients (cc): %q", com.Recipients.GetEmails(vcs.Cc))
 	if res.Report != nil {
-		env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
+		env.logf("crash: %v\n%s", res.Report.Title, res.Report.Report)
 	}
 	return res, nil
 }
@@ -249,11 +254,10 @@ func (env *env) bisect() (*Result, error) {
 	}
 
 	cfg := env.cfg
-	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
-		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
+	if err := env.inst.CleanKernel(&env.buildCfg); err != nil {
 		return nil, fmt.Errorf("kernel clean failed: %w", err)
 	}
-	env.log("building syzkaller on %v", cfg.Syzkaller.Commit)
+	env.logf("building syzkaller on %v", cfg.Syzkaller.Commit)
 	if _, err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, err
 	}
@@ -267,7 +271,7 @@ func (env *env) bisect() (*Result, error) {
 		return nil, err
 	}
 
-	env.log("ensuring issue is reproducible on original commit %v\n", cfg.Kernel.Commit)
+	env.logf("ensuring issue is reproducible on original commit %v\n", cfg.Kernel.Commit)
 	env.commit = com
 	env.kernelConfig = cfg.Kernel.Config
 	testRes, err := env.test()
@@ -308,7 +312,7 @@ func (env *env) bisect() (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	env.log("accumulated error probability: %0.2f", 1.0-env.confidence)
+	env.logf("accumulated error probability: %0.2f", 1.0-env.confidence)
 	res := &Result{
 		Commits:    commits,
 		Config:     env.kernelConfig,
@@ -323,12 +327,12 @@ func (env *env) bisect() (*Result, error) {
 		res.Report = testRes.rep
 		isRelease, err := env.bisecter.IsRelease(com.Hash)
 		if err != nil {
-			env.log("failed to detect release: %v", err)
+			env.logf("failed to detect release: %v", err)
 		}
 		res.IsRelease = isRelease
 		noopChange, err := env.detectNoopChange(com)
 		if err != nil {
-			env.log("failed to detect noop change: %v", err)
+			env.logf("failed to detect noop change: %v", err)
 		}
 		res.NoopChange = noopChange
 	}
@@ -355,12 +359,12 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 		// reachable from cfg.Kernel.Branch.
 		// So let's try to force tag fetch and check if the commit is present in the
 		// repository.
-		env.log("fetch other tags and check if the commit is present")
+		env.logf("fetch other tags and check if the commit is present")
 		commit, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
 		if err != nil {
 			// Ignore the error because the command will fail if the commit is really not
 			// present in the tree.
-			env.log("fetch failed with %s", err)
+			env.logf("fetch failed with %s", err)
 		} else if commit != nil {
 			return commit.Hash, nil
 		}
@@ -387,7 +391,7 @@ func (env *env) identifyRewrittenCommit() (string, error) {
 		return cfg.Kernel.Commit, fmt.Errorf(
 			"commit %v not reachable in branch '%v'", cfg.Kernel.Commit, cfg.Kernel.Branch)
 	}
-	env.log("rewritten commit %v reidentified by title '%v'\n", commit.Hash, cfg.Kernel.CommitTitle)
+	env.logf("rewritten commit %v reidentified by title '%v'\n", commit.Hash, cfg.Kernel.CommitTitle)
 	return commit.Hash, nil
 }
 
@@ -418,7 +422,7 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		env.cfg.Kernel.BaselineConfig, env.reportTypes, env.cfg.Trace, predMinimize)
 	if err != nil {
 		if errors.Is(err, vcs.ErrBadKconfig) {
-			env.log("config minimization failed due to bad Kconfig %v\nproceeding with the original config", err)
+			env.logf("config minimization failed due to bad Kconfig %v\nproceeding with the original config", err)
 		} else {
 			return nil, err
 		}
@@ -435,7 +439,7 @@ func (env *env) detectNoopChange(com *vcs.Commit) (bool, error) {
 	parent := com.Parents[0]
 	parentRes := env.results[parent]
 	if parentRes == nil {
-		env.log("parent commit %v wasn't tested", parent)
+		env.logf("parent commit %v wasn't tested", parent)
 		// We could not test the parent commit if it is not based on the previous release
 		// (instead based on an older release, i.e. a very old non-rebased commit
 		// merged into the current release).
@@ -451,8 +455,8 @@ func (env *env) detectNoopChange(com *vcs.Commit) (bool, error) {
 		}
 		parentRes = &testResult{kernelSign: kernelSign}
 	}
-	env.log("culprit signature: %v", testRes.kernelSign)
-	env.log("parent  signature: %v", parentRes.kernelSign)
+	env.logf("culprit signature: %v", testRes.kernelSign)
+	env.logf("parent  signature: %v", parentRes.kernelSign)
 	return testRes.kernelSign == parentRes.kernelSign, nil
 }
 
@@ -475,17 +479,17 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 	var results []*testResult
 	startCommit := env.commit
 	if env.cfg.CrossTree {
-		env.log("determining the merge base between %v and %v",
+		env.logf("determining the merge base between %v and %v",
 			env.commit.Hash, env.head.Hash)
 		bases, err := env.repo.MergeBases(env.commit.Hash, env.head.Hash)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 		if len(bases) != 1 {
-			env.log("expected 1 merge base, got %d", len(bases))
+			env.logf("expected 1 merge base, got %d", len(bases))
 			return nil, nil, nil, fmt.Errorf("expected 1 merge base, got %d", len(bases))
 		}
-		env.log("%s/%s is a merge base, check if it has the bug", bases[0].Hash, bases[0].Title)
+		env.logf("%s/%s is a merge base, check if it has the bug", bases[0].Hash, bases[0].Title)
 		startCommit = bases[0]
 		if _, err := env.repo.SwitchCommit(startCommit.Hash); err != nil {
 			return nil, nil, nil, err
@@ -499,7 +503,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, er
 			return nil, startCommit, results, nil
 		}
 	}
-	env.log("testing current HEAD %v", env.head.Hash)
+	env.logf("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
 		return nil, nil, nil, err
 	}
@@ -524,12 +528,12 @@ func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, 
 		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
 	pickedTags := pickReleaseTags(tags)
-	env.log("picked %v out of %d release tags", pickedTags, len(tags))
+	env.logf("picked %v out of %d release tags", pickedTags, len(tags))
 
 	lastBad := env.commit
 	var results []*testResult
 	for _, tag := range pickedTags {
-		env.log("testing release %v", tag)
+		env.logf("testing release %v", tag)
 		com, err := env.repo.SwitchCommit(tag)
 		if err != nil {
 			return nil, nil, nil, err
@@ -558,7 +562,7 @@ func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult
 	if env.cfg.Fix && env.cfg.CrossTree && len(results) < 2 {
 		// For cross-tree bisections, it can be the case that the bug was introduced
 		// after the merge base, so there's no sense to continue the fix bisection.
-		env.log("reproducer does not crash the merge base, so there's no known bad commit")
+		env.logf("reproducer does not crash the merge base, so there's no known bad commit")
 		return &Result{Commit: good, Config: env.kernelConfig}, nil
 	}
 
@@ -567,14 +571,14 @@ func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult
 		// For cause bisection: Oldest tested release already had the bug. Giving up.
 		// For fix bisection:   Crash still not fixed on HEAD. Leaving Result.Commits empty causes
 		//                      syzbot to retry this bisection later.
-		env.log("crash still not fixed/happens on the oldest tested release")
+		env.logf("crash still not fixed/happens on the oldest tested release")
 		return &Result{Report: finalResult.rep, Commit: bad, Config: env.kernelConfig}, nil
 	}
 	if finalResult.verdict == vcs.BisectSkip {
 		if env.cfg.Fix {
 			// HEAD is moving target. Sometimes changes break syzkaller fuzzing.
 			// Leaving Result.Commits empty so syzbot retries this bisection again later.
-			env.log("HEAD had kernel build, boot or test errors")
+			env.logf("HEAD had kernel build, boot or test errors")
 			return &Result{Report: finalResult.rep, Commit: bad, Config: env.kernelConfig}, nil
 		}
 		// The oldest tested release usually doesn't change. Retrying would give us the same result,
@@ -598,7 +602,7 @@ type testResult struct {
 }
 
 func (env *env) build() (*vcs.Commit, string, error) {
-	current, err := env.repo.HeadCommit()
+	current, err := env.repo.Commit(vcs.HEAD)
 	if err != nil {
 		return nil, "", err
 	}
@@ -611,28 +615,20 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	if err != nil {
 		return current, "", err
 	}
-	env.log("testing commit %v %v", current.Hash, env.cfg.CompilerType)
+	env.logf("testing commit %v %v", current.Hash, env.cfg.CompilerType)
 	buildStart := time.Now()
-	mgr := env.cfg.Manager
-	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
+	buildCfg := env.buildCfg
+	buildCfg.CompilerBin = bisectEnv.Compiler
+	buildCfg.KernelConfig = bisectEnv.KernelConfig
+	if err := env.inst.CleanKernel(&buildCfg); err != nil {
 		return current, "", fmt.Errorf("kernel clean failed: %w", err)
 	}
-	kern := &env.cfg.Kernel
-	_, imageDetails, err := env.inst.BuildKernel(&instance.BuildKernelConfig{
-		CompilerBin:  bisectEnv.Compiler,
-		LinkerBin:    env.cfg.Linker,
-		CcacheBin:    env.cfg.Ccache,
-		UserspaceDir: kern.Userspace,
-		CmdlineFile:  kern.Cmdline,
-		SysctlFile:   kern.Sysctl,
-		KernelConfig: bisectEnv.KernelConfig,
-		BuildCPUs:    env.cfg.BuildCPUs,
-	})
+	_, imageDetails, err := env.inst.BuildKernel(&buildCfg)
 	if imageDetails.CompilerID != "" {
-		env.log("compiler: %v", imageDetails.CompilerID)
+		env.logf("compiler: %v", imageDetails.CompilerID)
 	}
 	if imageDetails.Signature != "" {
-		env.log("kernel signature: %v", imageDetails.Signature)
+		env.logf("kernel signature: %v", imageDetails.Signature)
 	}
 	env.buildTime += time.Since(buildStart)
 	return current, imageDetails.Signature, err
@@ -669,10 +665,10 @@ func (env *env) test() (*testResult, error) {
 			env.saveDebugFile(current.Hash, 0, kerr.Output)
 		} else {
 			errInfo += err.Error()
-			env.log("%v", err)
+			env.logf("%v", err)
 		}
 
-		env.log("%s", errInfo)
+		env.logf("%s", errInfo)
 		res.rep = &report.Report{Title: errInfo}
 		return res, nil
 	}
@@ -692,7 +688,7 @@ func (env *env) test() (*testResult, error) {
 	if err != nil {
 		problem := fmt.Sprintf("repro testing failure: %v", err)
 		env.log(problem)
-		return res, &InfraError{Title: problem}
+		return res, &build.InfraError{Title: problem}
 	}
 	bad, good, infra, rep, types := env.processResults(current, results)
 	res.verdict, err = env.bisectionDecision(len(results), bad, good, infra)
@@ -705,7 +701,7 @@ func (env *env) test() (*testResult, error) {
 	if res.verdict == vcs.BisectGood {
 		// The result could be a false negative.
 		res.confidence = 1.0 - math.Pow(1.0-env.reproChance, float64(good))
-		env.log("false negative chance: %.3f", 1.0-res.confidence)
+		env.logf("false negative chance: %.3f", 1.0-res.confidence)
 	}
 	if res.verdict == vcs.BisectSkip {
 		res.rep = &report.Report{
@@ -728,7 +724,7 @@ func (env *env) testPredicate() (vcs.BisectResult, error) {
 	if env.cfg.Fix {
 		// There's a chance we might test a revision that does not yet contain the bug.
 		// Perform extra checks (see #4117).
-		env.log("determine whether the revision contains the guilty commit")
+		env.logf("determine whether the revision contains the guilty commit")
 		hadBug, err := env.revisionHadBug()
 		if err == errUnknownBugPresence {
 			// Let's skip the revision just in case.
@@ -738,7 +734,7 @@ func (env *env) testPredicate() (vcs.BisectResult, error) {
 		}
 		if !hadBug {
 			// For result consistency, pretend that the kernel crashed.
-			env.log("the bug was not introduced yet; pretend that kernel crashed")
+			env.logf("the bug was not introduced yet; pretend that kernel crashed")
 			testRes1 = &testResult{verdict: vcs.BisectBad}
 		}
 	}
@@ -777,7 +773,7 @@ func (env *env) revisionHadBug() (bool, error) {
 			return false, err
 		}
 		if ok {
-			env.log("revision %s crashed and is reachable", hash)
+			env.logf("revision %s crashed and is reachable", hash)
 			return true, nil
 		}
 	}
@@ -786,7 +782,7 @@ func (env *env) revisionHadBug() (bool, error) {
 	// But let's first see how many extra test() runs we get without it.
 
 	// We'll likely change the revision below. Ensure we get back to the original one.
-	curr, err := env.repo.HeadCommit()
+	curr, err := env.repo.Commit(vcs.HEAD)
 	if err != nil {
 		return false, err
 	}
@@ -802,10 +798,10 @@ func (env *env) revisionHadBug() (bool, error) {
 	}
 	anyResult := false
 	for _, base := range bases {
-		env.log("checking the merge base %s", base.Hash)
+		env.logf("checking the merge base %s", base.Hash)
 		res := env.results[base.Hash]
 		if res == nil {
-			env.log("no existing result, test the revision")
+			env.logf("no existing result, test the revision")
 			env.repo.SwitchCommit(base.Hash)
 			res, err = env.test()
 			if err != nil {
@@ -851,9 +847,9 @@ func (env *env) bisectionDecision(total, bad, good, infra int) (vcs.BisectResult
 		// We have been unable to determine a verdict mostly because of infra errors.
 		// Abort the bisection.
 		return vcs.BisectSkip,
-			&InfraError{Title: "unable to determine the verdict because of infra errors"}
+			&build.InfraError{Title: "unable to determine the verdict because of infra errors"}
 	}
-	env.log("unable to determine the verdict: %d good runs (wanted %d), for bad wanted %d in total, got %d",
+	env.logf("unable to determine the verdict: %d good runs (wanted %d), for bad wanted %d in total, got %d",
 		good, wantGoodRuns, wantTotalRuns, good+bad)
 	return vcs.BisectSkip, nil
 }
@@ -908,10 +904,10 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 		unique[verdict] = true
 	}
 	if len(unique) == 1 {
-		env.log("all runs: %v", verdicts[0])
+		env.logf("all runs: %v", verdicts[0])
 	} else {
 		for i, verdict := range verdicts {
-			env.log("run #%v: %v", i, verdict)
+			env.logf("run #%v: %v", i, verdict)
 		}
 	}
 	var others bool
@@ -919,7 +915,7 @@ func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestRe
 	if rep != nil || others {
 		// TODO: set flaky=true or in some other way indicate that the bug
 		// triggers multiple different crashes?
-		env.log("representative crash: %v, types: %v", rep.Title, types)
+		env.logf("representative crash: %v, types: %v", rep.Title, types)
 	}
 	return
 }
@@ -1041,7 +1037,11 @@ func checkConfig(cfg *Config) error {
 	return nil
 }
 
-func (env *env) log(msg string, args ...interface{}) {
+func (env *env) log(msg string) {
+	env.logf("%v", msg)
+}
+
+func (env *env) logf(msg string, args ...interface{}) {
 	if false {
 		_ = fmt.Sprintf(msg, args...) // enable printf checker
 	}

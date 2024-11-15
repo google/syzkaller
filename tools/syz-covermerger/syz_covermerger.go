@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
+	"slices"
 	"sort"
 
 	"cloud.google.com/go/civil"
@@ -39,7 +40,7 @@ func makeProvider() covermerger.FileVersProvider {
 	case "git-clone":
 		return covermerger.MakeMonoRepo(*flagWorkdir)
 	case "web-git":
-		return covermerger.MakeWebGit()
+		return covermerger.MakeWebGit(nil)
 	default:
 		panic(fmt.Sprintf("unknown provider %v", *flagSrcProvider))
 	}
@@ -139,16 +140,26 @@ func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
 		if !lineStat.FileExists {
 			continue
 		}
+
+		lines := maps.Keys(lineStat.HitCounts)
+		slices.Sort(lines)
+
+		var linesInstrumented, hitCounts []int64
 		var instrumented, covered int64
-		for _, lineHitCount := range lineStat.HitCounts {
+		for _, line := range lines {
 			instrumented++
-			if lineHitCount > 0 {
+			linesInstrumented = append(linesInstrumented, int64(line))
+			hitCount := lineStat.HitCounts[line]
+			hitCounts = append(hitCounts, int64(hitCount))
+			if hitCount > 0 {
 				covered++
 			}
 		}
 		res[fileName] = &coveragedb.Coverage{
-			Instrumented: instrumented,
-			Covered:      covered,
+			Instrumented:      instrumented,
+			Covered:           covered,
+			LinesInstrumented: linesInstrumented,
+			HitCounts:         hitCounts,
 		}
 		totalInstrumented += instrumented
 		totalCovered += covered

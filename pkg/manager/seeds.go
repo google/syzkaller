@@ -35,15 +35,17 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		if info.CorpusDB == nil {
 			log.Fatalf("failed to open corpus database: %v", err)
 		}
-		log.Errorf("read %v inputs from corfpus and got error: %v", len(info.CorpusDB.Records), err)
+		log.Errorf("read %v inputs from corpus and got error: %v", len(info.CorpusDB.Records), err)
 	}
 	info.Fresh = len(info.CorpusDB.Records) == 0
 	corpusFlags := versionToFlags(info.CorpusDB.Version)
 	type Input struct {
 		IsSeed bool
 		Key    string
+		Path   string
 		Data   []byte
 		Prog   *prog.Prog
+		Err    error
 	}
 	procs := runtime.GOMAXPROCS(0)
 	inputs := make(chan *Input, procs)
@@ -54,7 +56,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		go func() {
 			defer wg.Done()
 			for inp := range inputs {
-				inp.Prog, _ = LoadProg(cfg.Target, inp.Data)
+				inp.Prog, inp.Err = ParseSeed(cfg.Target, inp.Data)
 				outputs <- inp
 			}
 		}()
@@ -70,7 +72,8 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 				Data: rec.Val,
 			}
 		}
-		seedDir := filepath.Join(cfg.Syzkaller, "sys", cfg.TargetOS, "test")
+		seedPath := filepath.Join("sys", cfg.TargetOS, "test")
+		seedDir := filepath.Join(cfg.Syzkaller, seedPath)
 		if osutil.IsExist(seedDir) {
 			seeds, err := os.ReadDir(seedDir)
 			if err != nil {
@@ -83,6 +86,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 				}
 				inputs <- &Input{
 					IsSeed: true,
+					Path:   filepath.Join(seedPath, seed.Name()),
 					Data:   data,
 				}
 			}
@@ -96,6 +100,7 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		if inp.Prog == nil {
 			if inp.IsSeed {
 				brokenSeeds++
+				log.Logf(0, "seed %s is broken: %s", inp.Path, inp.Err)
 			} else {
 				brokenCorpus = append(brokenCorpus, inp.Key)
 			}
@@ -173,13 +178,21 @@ func versionToFlags(version uint64) fuzzer.ProgFlags {
 	return corpusFlags
 }
 
-func LoadProg(target *prog.Target, data []byte) (*prog.Prog, error) {
-	p, err := target.Deserialize(data, prog.NonStrict)
+func ParseSeed(target *prog.Target, data []byte) (*prog.Prog, error) {
+	return parseProg(target, data, prog.NonStrict)
+}
+
+func ParseSeedStrict(target *prog.Target, data []byte) (*prog.Prog, error) {
+	return parseProg(target, data, prog.Strict)
+}
+
+func parseProg(target *prog.Target, data []byte, mode prog.DeserializeMode) (*prog.Prog, error) {
+	p, err := target.Deserialize(data, mode)
 	if err != nil {
 		return nil, err
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return nil, fmt.Errorf("longer than %d calls", prog.MaxCalls)
+		return nil, fmt.Errorf("longer than %d calls (%d)", prog.MaxCalls, len(p.Calls))
 	}
 	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
 	for _, call := range p.Calls {

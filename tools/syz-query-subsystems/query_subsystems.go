@@ -101,7 +101,7 @@ func determineCommitInfo(dir string) string {
 	if err != nil {
 		return fmt.Sprintf("failed to open repo: %v", err)
 	}
-	commit, err := repo.HeadCommit()
+	commit, err := repo.Commit(vcs.HEAD)
 	if err != nil {
 		return fmt.Sprintf("failed to get HEAD commit: %v", err)
 	}

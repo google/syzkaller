@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -30,6 +32,8 @@ import (
 
 type Config struct {
 	vminfo.Config
+	Stats
+
 	VMArch string
 	VMType string
 	RPC    string
@@ -48,6 +52,7 @@ type Config struct {
 	localModules  []*vminfo.KernelModule
 }
 
+//go:generate ../../tools/mockery.sh --name Manager --output ./mocks
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
@@ -55,9 +60,18 @@ type Manager interface {
 	CoverageFilter(modules []*vminfo.KernelModule) []uint64
 }
 
-type Server struct {
-	Port int
+type Server interface {
+	Listen() error
+	Close() error
+	Port() int
+	TriagedCorpus()
+	CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error
+	ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte)
+	StopFuzzing(id int)
+	DistributeSignalDelta(plus signal.Signal)
+}
 
+type server struct {
 	cfg       *Config
 	mgr       Manager
 	serv      *flatrpc.Serv
@@ -74,15 +88,48 @@ type Server struct {
 	canonicalModules *cover.Canonicalizer
 	coverFilter      []uint64
 
-	mu             sync.Mutex
-	runners        map[int]*Runner
-	execSource     *queue.Distributor
-	triagedCorpus  atomic.Bool
-	statVMRestarts *stat.Val
+	mu            sync.Mutex
+	runners       map[int]*Runner
+	execSource    *queue.Distributor
+	triagedCorpus atomic.Bool
+
+	Stats
 	*runnerStats
 }
 
-func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
+type Stats struct {
+	StatExecs      *stat.Val
+	StatNumFuzzing *stat.Val
+	StatVMRestarts *stat.Val
+	StatModules    *stat.Val
+}
+
+func NewStats() Stats {
+	return NewNamedStats("")
+}
+
+func NewNamedStats(name string) Stats {
+	suffix, linkSuffix := "", ""
+	if name != "" {
+		suffix = " [" + name + "]"
+		linkSuffix = "?pool=" + url.QueryEscape(name)
+	}
+	return Stats{
+		StatExecs: stat.New("exec total"+suffix, "Total test program executions",
+			stat.Console, stat.Rate{}, stat.Prometheus("syz_exec_total"+name),
+		),
+		StatNumFuzzing: stat.New("fuzzing VMs"+suffix,
+			"Number of VMs that are currently fuzzing", stat.Graph("fuzzing VMs"),
+			stat.Link("/vms"+linkSuffix),
+		),
+		StatVMRestarts: stat.New("vm restarts"+suffix, "Total number of VM starts",
+			stat.Rate{}, stat.NoGraph),
+		StatModules: stat.New("modules"+suffix, "Number of loaded kernel modules",
+			stat.NoGraph, stat.Link("/modules"+linkSuffix)),
+	}
+}
+
+func New(cfg *mgrconfig.Config, mgr Manager, stats Stats, debug bool) (Server, error) {
 	var pcBase uint64
 	if cfg.KernelObj != "" {
 		var err error
@@ -110,6 +157,7 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 			Sandbox:    sandbox,
 			SandboxArg: cfg.SandboxArg,
 		},
+		Stats:  stats,
 		VMArch: cfg.TargetVMArch,
 		RPC:    cfg.RPC,
 		VMLess: cfg.VMLess,
@@ -122,16 +170,16 @@ func New(cfg *mgrconfig.Config, mgr Manager, debug bool) (*Server, error) {
 		Slowdown:          cfg.Timeouts.Slowdown,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
-	}, mgr)
+	}, mgr), nil
 }
 
-func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
+func newImpl(ctx context.Context, cfg *Config, mgr Manager) *server {
+	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
+	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)
 	cfg.Procs = min(cfg.Procs, prog.MaxPids)
 	checker := vminfo.New(ctx, &cfg.Config)
 	baseSource := queue.DynamicSource(checker)
-	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
-	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)
-	serv := &Server{
+	return &server{
 		cfg:        cfg,
 		mgr:        mgr,
 		target:     cfg.Target,
@@ -142,8 +190,7 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 		baseSource: baseSource,
 		execSource: queue.Distribute(queue.Retry(baseSource)),
 
-		statVMRestarts: stat.New("vm restarts", "Total number of VM starts",
-			stat.Rate{}, stat.NoGraph),
+		Stats: cfg.Stats,
 		runnerStats: &runnerStats{
 			statExecRetries: stat.New("exec retries",
 				"Number of times a test program was restarted because the first run failed",
@@ -151,25 +198,31 @@ func newImpl(ctx context.Context, cfg *Config, mgr Manager) (*Server, error) {
 			statExecutorRestarts: stat.New("executor restarts",
 				"Number of times executor process was restarted", stat.Rate{}, stat.Graph("executor")),
 			statExecBufferTooSmall: queue.StatExecBufferTooSmall,
-			statExecs:              queue.StatExecs,
+			statExecs:              cfg.Stats.StatExecs,
 			statNoExecRequests:     queue.StatNoExecRequests,
 			statNoExecDuration:     queue.StatNoExecDuration,
 		},
 	}
-	s, err := flatrpc.ListenAndServe(cfg.RPC, serv.handleConn)
-	if err != nil {
-		return nil, err
-	}
-	serv.serv = s
-	serv.Port = s.Addr.Port
-	return serv, nil
 }
 
-func (serv *Server) Close() error {
+func (serv *server) Close() error {
 	return serv.serv.Close()
 }
 
-func (serv *Server) handleConn(conn *flatrpc.Conn) {
+func (serv *server) Listen() error {
+	s, err := flatrpc.ListenAndServe(serv.cfg.RPC, serv.handleConn)
+	if err != nil {
+		return err
+	}
+	serv.serv = s
+	return nil
+}
+
+func (serv *server) Port() int {
+	return serv.serv.Addr.Port
+}
+
+func (serv *server) handleConn(conn *flatrpc.Conn) {
 	connectReq, err := flatrpc.Recv[*flatrpc.ConnectRequestRaw](conn)
 	if err != nil {
 		log.Logf(1, "%s", err)
@@ -185,10 +238,10 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 			serv.StopFuzzing(id)
 			serv.ShutdownInstance(id, true)
 		}()
-	} else {
-		checkRevisions(connectReq, serv.cfg.Target)
+	} else if err := checkRevisions(connectReq, serv.cfg.Target); err != nil {
+		log.Fatal(err)
 	}
-	serv.statVMRestarts.Add(1)
+	serv.StatVMRestarts.Add(1)
 
 	serv.mu.Lock()
 	runner := serv.runners[id]
@@ -203,7 +256,7 @@ func (serv *Server) handleConn(conn *flatrpc.Conn) {
 	runner.resultCh <- err
 }
 
-func (serv *Server) handleRunnerConn(runner *Runner, conn *flatrpc.Conn) error {
+func (serv *server) handleRunnerConn(runner *Runner, conn *flatrpc.Conn) error {
 	opts := &handshakeConfig{
 		VMLess:   serv.cfg.VMLess,
 		Files:    serv.checker.RequiredFiles(),
@@ -235,7 +288,7 @@ func (serv *Server) handleRunnerConn(runner *Runner, conn *flatrpc.Conn) error {
 	return serv.connectionLoop(runner)
 }
 
-func (serv *Server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
+func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
 	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files)
 	if err != nil {
 		log.Logf(0, "parsing of machine info failed: %v", err)
@@ -253,6 +306,7 @@ func (serv *Server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 		return handshakeResult{}, errors.New("machine check failed")
 	}
 	serv.infoOnce.Do(func() {
+		serv.StatModules.Add(len(modules))
 		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
 		serv.coverFilter = serv.mgr.CoverageFilter(modules)
 		globs := make(map[string][]string)
@@ -280,7 +334,7 @@ func (serv *Server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 	}, nil
 }
 
-func (serv *Server) connectionLoop(runner *Runner) error {
+func (serv *server) connectionLoop(runner *Runner) error {
 	if serv.cfg.Cover {
 		maxSignal := serv.mgr.MaxSignal().ToRaw()
 		for len(maxSignal) != 0 {
@@ -295,27 +349,28 @@ func (serv *Server) connectionLoop(runner *Runner) error {
 		}
 	}
 
-	queue.StatNumFuzzing.Add(1)
-	defer queue.StatNumFuzzing.Add(-1)
+	serv.StatNumFuzzing.Add(1)
+	defer serv.StatNumFuzzing.Add(-1)
 
 	return runner.ConnectionLoop()
 }
 
-func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) {
+func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
 	if target.Arch != a.Arch {
-		log.Fatalf("mismatching manager/executor arches: %v vs %v", target.Arch, a.Arch)
+		return fmt.Errorf("mismatching manager/executor arches: %v vs %v", target.Arch, a.Arch)
 	}
 	if prog.GitRevision != a.GitRevision {
-		log.Fatalf("mismatching manager/executor git revisions: %v vs %v",
+		return fmt.Errorf("mismatching manager/executor git revisions: %v vs %v",
 			prog.GitRevision, a.GitRevision)
 	}
 	if target.Revision != a.SyzRevision {
-		log.Fatalf("mismatching manager/executor system call descriptions: %v vs %v",
+		return fmt.Errorf("mismatching manager/executor system call descriptions: %v vs %v",
 			target.Revision, a.SyzRevision)
 	}
+	return nil
 }
 
-func (serv *Server) runCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInfo []*flatrpc.FeatureInfo) error {
+func (serv *server) runCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInfo []*flatrpc.FeatureInfo) error {
 	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(checkFilesInfo, checkFeatureInfo)
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	// Note: need to print disbled syscalls before failing due to an error.
@@ -334,7 +389,7 @@ func (serv *Server) runCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInf
 	return nil
 }
 
-func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enabledCalls map[*prog.Syscall]bool,
+func (serv *server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enabledCalls map[*prog.Syscall]bool,
 	disabledCalls, transitivelyDisabled map[*prog.Syscall]string, features vminfo.Features) {
 	buf := new(bytes.Buffer)
 	if len(serv.cfg.Syscalls) != 0 || log.V(1) {
@@ -384,7 +439,7 @@ func (serv *Server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
 }
 
-func (serv *Server) CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error {
+func (serv *server) CreateInstance(id int, injectExec chan<- bool, updInfo dispatcher.UpdateInfo) chan error {
 	runner := &Runner{
 		id:            id,
 		source:        serv.execSource,
@@ -398,11 +453,13 @@ func (serv *Server) CreateInstance(id int, injectExec chan<- bool, updInfo dispa
 		infoc:         make(chan chan []byte),
 		requests:      make(map[int64]*queue.Request),
 		executing:     make(map[int64]bool),
-		lastExec:      MakeLastExecuting(serv.cfg.Procs, 6),
-		stats:         serv.runnerStats,
-		procs:         serv.cfg.Procs,
-		updInfo:       updInfo,
-		resultCh:      make(chan error, 1),
+		hanged:        make(map[int64]bool),
+		// Executor may report proc IDs that are larger than serv.cfg.Procs.
+		lastExec: MakeLastExecuting(prog.MaxPids, 6),
+		stats:    serv.runnerStats,
+		procs:    serv.cfg.Procs,
+		updInfo:  updInfo,
+		resultCh: make(chan error, 1),
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -415,7 +472,7 @@ func (serv *Server) CreateInstance(id int, injectExec chan<- bool, updInfo dispa
 
 // stopInstance prevents further request exchange requests.
 // To make RPCServer fully forget an instance, shutdownInstance() must be called.
-func (serv *Server) StopFuzzing(id int) {
+func (serv *server) StopFuzzing(id int) {
 	serv.mu.Lock()
 	runner := serv.runners[id]
 	serv.mu.Unlock()
@@ -427,22 +484,22 @@ func (serv *Server) StopFuzzing(id int) {
 	runner.Stop()
 }
 
-func (serv *Server) ShutdownInstance(id int, crashed bool) ([]ExecRecord, []byte) {
+func (serv *server) ShutdownInstance(id int, crashed bool, extraExecs ...report.ExecutorInfo) ([]ExecRecord, []byte) {
 	serv.mu.Lock()
 	runner := serv.runners[id]
 	delete(serv.runners, id)
 	serv.mu.Unlock()
-	return runner.Shutdown(crashed), runner.MachineInfo()
+	return runner.Shutdown(crashed, extraExecs...), runner.MachineInfo()
 }
 
-func (serv *Server) DistributeSignalDelta(plus signal.Signal) {
+func (serv *server) DistributeSignalDelta(plus signal.Signal) {
 	plusRaw := plus.ToRaw()
 	serv.foreachRunnerAsync(func(runner *Runner) {
 		runner.SendSignalUpdate(plusRaw)
 	})
 }
 
-func (serv *Server) TriagedCorpus() {
+func (serv *server) TriagedCorpus() {
 	serv.triagedCorpus.Store(true)
 	serv.foreachRunnerAsync(func(runner *Runner) {
 		runner.SendCorpusTriaged()
@@ -452,7 +509,7 @@ func (serv *Server) TriagedCorpus() {
 // foreachRunnerAsync runs callback fn for each connected runner asynchronously.
 // If a VM has hanged w/o reading out the socket, we want to avoid blocking
 // important goroutines on the send operations.
-func (serv *Server) foreachRunnerAsync(fn func(runner *Runner)) {
+func (serv *server) foreachRunnerAsync(fn func(runner *Runner)) {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 	for _, runner := range serv.runners {

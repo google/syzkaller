@@ -13,13 +13,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{template "header" .Header}}
 	{{$getName := .DisplayNamespace}}
 	{{range $group := .Groups}}
-        <b>{{$group.From.URL}} {{$group.From.Branch}} → {{$group.To.URL}} {{$group.To.Branch}}</b><br />
-        
+	<b>{{$group.From.URL}} {{$group.From.Branch}} → {{$group.To.URL}} {{$group.To.Branch}}</b><br />
+
 	<table class="list_table">
 		<tr>
 			<th>Commit</th>
 			{{range $ns := .Namespaces}}
-			<th>{{call $getName $ns}}</th>
+				<th>{{call $getName $ns}}</th>
 			{{end}}
 		</tr>
 		{{range $backport := $group.List}}
@@ -30,13 +30,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</td>
 			{{range $ns := $group.Namespaces}}
 			<td>
-			{{$bugs := index $backport.Bugs $ns}}
-				{{range $i, $bug := $bugs}}
+			{{$list := index $backport.Bugs $ns}}
+				{{range $i, $info := $list}}
 					{{if gt $i 0}}<br/>{{end}}
-					{{link $bug.Link $bug.Title}}
+					{{link $info.Bug.Link $info.Bug.Title}}
 				{{end}}
 			</td>
-                        {{end}}
+			{{end}}
 		</tr>
 		{{end}}
 	</table>

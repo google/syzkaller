@@ -23,19 +23,21 @@ const defaultLineLengthLimit = 80
 func (r *LineLengthLimitRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.max == 0 {
-		if len(arguments) < 1 {
-			r.max = defaultLineLengthLimit
-			return
-		}
-
-		max, ok := arguments[0].(int64) // Alt. non panicking version
-		if !ok || max < 0 {
-			panic(`invalid value passed as argument number to the "line-length-limit" rule`)
-		}
-
-		r.max = int(max)
+	if r.max != 0 {
+		return // already configured
 	}
+
+	if len(arguments) < 1 {
+		r.max = defaultLineLengthLimit
+		return
+	}
+
+	maxLength, ok := arguments[0].(int64) // Alt. non panicking version
+	if !ok || maxLength < 0 {
+		panic(`invalid value passed as argument number to the "line-length-limit" rule`)
+	}
+
+	r.max = int(maxLength)
 }
 
 // Apply applies the rule to given file.

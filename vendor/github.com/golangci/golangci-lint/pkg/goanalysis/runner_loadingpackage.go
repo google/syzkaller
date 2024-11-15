@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/scanner"
 	"go/types"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -16,6 +18,7 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/golangci/golangci-lint/pkg/goanalysis/load"
+	"github.com/golangci/golangci-lint/pkg/goutil"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
@@ -150,12 +153,27 @@ func (lp *loadingPackage) loadFromSource(loadMode LoadMode) error {
 		}
 		return imp.Types, nil
 	}
+
+	var goVersion string
+	if pkg.Module != nil && pkg.Module.GoVersion != "" {
+		goVersion = "go" + strings.TrimPrefix(pkg.Module.GoVersion, "go")
+	} else {
+		var err error
+		goVersion, err = goutil.CleanRuntimeVersion()
+		if err != nil {
+			return err
+		}
+	}
+
 	tc := &types.Config{
 		Importer: importerFunc(importer),
 		Error: func(err error) {
 			pkg.Errors = append(pkg.Errors, lp.convertError(err)...)
 		},
+		GoVersion: goVersion,
+		Sizes:     types.SizesFor(build.Default.Compiler, build.Default.GOARCH),
 	}
+
 	_ = types.NewChecker(tc, pkg.Fset, pkg.Types, pkg.TypesInfo).Files(pkg.Syntax)
 	// Don't handle error here: errors are adding by tc.Error function.
 
@@ -470,7 +488,7 @@ func sizeOfReflectValueTreeBytes(rv reflect.Value, visitedPtrs map[uintptr]struc
 		return sizeOfReflectValueTreeBytes(rv.Elem(), visitedPtrs)
 	case reflect.Struct:
 		ret := 0
-		for i := 0; i < rv.NumField(); i++ {
+		for i := range rv.NumField() {
 			ret += sizeOfReflectValueTreeBytes(rv.Field(i), visitedPtrs)
 		}
 		return ret

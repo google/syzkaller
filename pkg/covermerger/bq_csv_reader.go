@@ -34,7 +34,7 @@ func MakeBQCSVReader() *bqCSVReader {
 func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit string, from, to civil.Date) error {
 	if err := validator.AnyError("input validation failed",
 		validator.NamespaceName(ns),
-		validator.KernelFilePath(filePath),
+		validator.AnyOk(validator.EmptyStr(filePath), validator.KernelFilePath(filePath)),
 		validator.AnyOk(validator.EmptyStr(commit), validator.CommitHash(commit)),
 	); err != nil {
 		return err

@@ -26,7 +26,7 @@ RUN test "$(uname -m)" != x86_64 && exit 0 || \
 	  g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	  g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu
 
-RUN curl https://dl.google.com/go/go1.21.4.linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/').tar.gz | tar -C /usr/local -xz
+RUN curl https://dl.google.com/go/go1.22.7.linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/').tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:$PATH
 
 # The default clang-14 is too old, install the latest one.
@@ -46,6 +46,8 @@ RUN sudo update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar
 RUN sudo update-alternatives --install /usr/bin/llvm-objcopy llvm-objcopy /usr/bin/llvm-objcopy-15 100
 RUN sudo update-alternatives --install /usr/bin/llvm-objdump llvm-objdump /usr/bin/llvm-objdump-15 100
 RUN sudo update-alternatives --install /usr/bin/llvm-addr2line llvm-addr2line /usr/bin/llvm-addr2line-15 100
+RUN sudo update-alternatives --install /usr/bin/llvm-readelf llvm-readelf /usr/bin/llvm-readelf-15 100
+RUN sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-15 100
 
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
@@ -55,16 +57,27 @@ RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2
 RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/7.1.2/release/bazel-7.1.2-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
 
 # Install qemu from the backports.
-# The currently stable version (7.4) cannot properly run arm64-MTE kernels.
+# The currently stable version (7.2) cannot properly run arm64-MTE kernels.
 RUN add-apt-repository "deb http://deb.debian.org/debian bookworm-backports main"
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
 # This is required to run alien arch binaries in pkg/cover tests:
 	qemu-user
+
+# QEMU packages required to run x86/arm64 kernels - install them for both x86 and arm64.
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
+    qemu-utils qemu-system-misc qemu-system-x86 qemu-system-arm qemu-system-aarch64
+
+# Install QEMU packages for other arches on x86 machines only.
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
     DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
-    # These are required to run foreign arch kernels:
-    qemu-utils qemu-system-misc qemu-system-x86 qemu-system-arm qemu-system-aarch64  \
     qemu-system-s390x qemu-system-mips qemu-system-ppc
+
+# Install gcloud https://cloud.google.com/sdk/docs/install#deb.
+RUN apt-get install -y -q ca-certificates \
+    && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+RUN apt-get update && apt-get install -y google-cloud-cli
+RUN git config --system credential.'https://*.*.sourcemanager.dev'.helper gcloud.sh
 
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller

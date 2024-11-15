@@ -57,7 +57,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
 	for ns, nsConfig := range getConfig(context.Background()).Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
-		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed)) // nolint: goconst // remove it with goconst 1.7.0+
+		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
 		http.Handle("/"+ns+"/graph/bugs", handlerWrapper(handleKernelHealthGraph))
 		http.Handle("/"+ns+"/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
@@ -65,6 +65,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
 		if nsConfig.Coverage != nil {
+			http.Handle("/"+ns+"/graph/coverage/file", handlerWrapper(handleFileCoverage))
 			http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
 			http.Handle("/"+ns+"/graph/coverage_heatmap", handlerWrapper(handleCoverageHeatmap))
 			if nsConfig.Subsystems.Service != nil {
@@ -426,9 +427,14 @@ type uiBackportGroup struct {
 	List       []*uiBackport
 }
 
+type uiBackportBug struct {
+	Bug   *uiBug
+	Crash *uiCrash
+}
+
 type uiBackport struct {
 	Commit *uiCommit
-	Bugs   map[string][]*uiBug // namespace -> list of related bugs in it
+	Bugs   map[string][]uiBackportBug // namespace -> list of related bugs in it
 }
 
 type uiBackportsPage struct {
@@ -555,7 +561,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	return handleTerminalBugList(c, w, r, &TerminalBug{
 		Status:      BugStatusFixed,
-		Subpage:     "/fixed", // nolint: goconst // TODO: remove it once goconst 1.7.0+ landed
+		Subpage:     "/fixed",
 		ShowPatch:   true,
 		ShowPatched: true,
 	})
@@ -685,7 +691,8 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return err
 	}
-	backports, err := loadAllBackports(c)
+	json := r.FormValue("json") == "1"
+	backports, err := loadAllBackports(c, json)
 	if err != nil {
 		return err
 	}
@@ -695,10 +702,11 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		outgoing := stringInList(backport.FromNs, hdr.Namespace)
 		ui := &uiBackport{
 			Commit: backport.Commit,
-			Bugs:   map[string][]*uiBug{},
+			Bugs:   map[string][]uiBackportBug{},
 		}
 		incoming := false
-		for _, bug := range backport.Bugs {
+		for _, bugInfo := range backport.Bugs {
+			bug := bugInfo.bug
 			if accessLevel < bug.sanitizeAccess(c, accessLevel) {
 				continue
 			}
@@ -709,8 +717,10 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 			if bug.Namespace == hdr.Namespace {
 				incoming = true
 			}
-			ui.Bugs[bug.Namespace] = append(ui.Bugs[bug.Namespace],
-				createUIBug(c, bug, nil, nil))
+			ui.Bugs[bug.Namespace] = append(ui.Bugs[bug.Namespace], uiBackportBug{
+				Bug:   bugInfo.Bug,
+				Crash: bugInfo.Crash,
+			})
 		}
 		if len(ui.Bugs) == 0 {
 			continue
@@ -753,13 +763,24 @@ func handleBackports(c context.Context, w http.ResponseWriter, r *http.Request) 
 		return groups[i].From.String()+groups[i].To.String() <
 			groups[j].From.String()+groups[j].To.String()
 	})
-	return serveTemplate(w, "backports.html", &uiBackportsPage{
+	page := &uiBackportsPage{
 		Header: hdr,
 		Groups: groups,
 		DisplayNamespace: func(ns string) string {
 			return getNsConfig(c, ns).DisplayTitle
 		},
-	})
+	}
+	if json {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, page)
+	}
+	return serveTemplate(w, "backports.html", page)
+}
+
+type rawBackportBug struct {
+	Bug   *uiBug
+	Crash *uiCrash
+	bug   *Bug
 }
 
 type rawBackport struct {
@@ -767,17 +788,23 @@ type rawBackport struct {
 	From   *uiRepo
 	FromNs []string // namespaces that correspond to From
 	To     *uiRepo
-	Bugs   []*Bug
+	Bugs   []rawBackportBug
 }
 
-func loadAllBackports(c context.Context) ([]*rawBackport, error) {
-	bugs, jobs, _, err := relevantBackportJobs(c)
+func loadAllBackports(c context.Context, loadCrashes bool) ([]*rawBackport, error) {
+	list, err := relevantBackportJobs(c)
 	if err != nil {
 		return nil, err
 	}
+	if loadCrashes {
+		if err := fullBackportInfo(c, list); err != nil {
+			return nil, err
+		}
+	}
 	var ret []*rawBackport
 	perCommit := map[string]*rawBackport{}
-	for i, job := range jobs {
+	for _, info := range list {
+		job := info.job
 		jobCommit := job.Commits[0]
 		to := &uiRepo{URL: job.MergeBaseRepo, Branch: job.MergeBaseBranch}
 		from := &uiRepo{URL: job.KernelRepo, Branch: job.KernelBranch}
@@ -800,7 +827,14 @@ func loadAllBackports(c context.Context) ([]*rawBackport, error) {
 			ret = append(ret, backport)
 			perCommit[hash] = backport
 		}
-		backport.Bugs = append(backport.Bugs, bugs[i])
+		bug := rawBackportBug{
+			Bug: createUIBug(c, info.bug, nil, nil),
+			bug: info.bug,
+		}
+		if info.crashBuild != nil {
+			bug.Crash = makeUICrash(c, info.crash, info.crashBuild)
+		}
+		backport.Bugs = append(backport.Bugs, bug)
 	}
 	return ret, nil
 }
@@ -1418,7 +1452,7 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		},
 		Fixed: uiSubsystemStats{
 			Count: cached.NoSubsystem.Fixed,
-			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"), // nolint: goconst
+			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
 		},
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -1443,7 +1477,7 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 		},
 		Fixed: uiSubsystemStats{
 			Count: stats.Fixed,
-			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{ // nolint: goconst
+			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{
 				Label: SubsystemLabel,
 				Value: item.Name,
 			}.String()),

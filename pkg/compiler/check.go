@@ -650,8 +650,8 @@ func (comp *compiler) checkPathField(target, t *ast.Type, field *ast.Field) bool
 
 func (comp *compiler) checkExprLastField(target *ast.Type, field *ast.Field) {
 	_, desc := comp.derefPointers(field.Type)
-	if desc != typeInt && desc != typeFlags {
-		comp.error(target.Pos, "%v does not refer to an integer or a flag", field.Name.Name)
+	if desc != typeInt && desc != typeFlags && desc != typeConst {
+		comp.error(target.Pos, "%v does not refer to a constant, an integer, or a flag", field.Name.Name)
 	}
 }
 
@@ -782,7 +782,7 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 func (comp *compiler) checkUnused() {
 	for _, n := range comp.collectUnused() {
 		pos, typ, name := n.Info()
-		comp.error(pos, fmt.Sprintf("unused %v %v", typ, name))
+		comp.error(pos, "unused %v %v", typ, name)
 	}
 }
 
@@ -1209,8 +1209,9 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			return
 		}
 	} else {
-		if comp.structs[fullTypeName] == nil {
-			inst := typedef.Struct.Clone().(*ast.Struct)
+		inst := comp.structs[fullTypeName]
+		if inst == nil {
+			inst = typedef.Struct.Clone().(*ast.Struct)
 			inst.Name.Name = fullTypeName
 			if !comp.instantiate(inst, typedef.Args, args) {
 				return
@@ -1221,7 +1222,9 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			}
 			comp.desc.Nodes = append(comp.desc.Nodes, inst)
 			comp.structs[fullTypeName] = inst
+			comp.structFiles[inst] = make(map[string]ast.Pos)
 		}
+		comp.structFiles[inst][pos0.File] = pos0
 		*t = ast.Type{
 			Ident: fullTypeName,
 		}

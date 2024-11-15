@@ -39,7 +39,7 @@ func (e inexhaustiveError) Names() []string {
 
 // check does exhaustiveness checking for the given sum type definitions in the
 // given package. Every instance of inexhaustive case analysis is returned.
-func check(pkg *packages.Package, defs []sumTypeDef) []error {
+func check(pkg *packages.Package, defs []sumTypeDef, config Config) []error {
 	var errs []error
 	for _, astfile := range pkg.Syntax {
 		ast.Inspect(astfile, func(n ast.Node) bool {
@@ -47,7 +47,7 @@ func check(pkg *packages.Package, defs []sumTypeDef) []error {
 			if !ok {
 				return true
 			}
-			if err := checkSwitch(pkg, defs, swtch); err != nil {
+			if err := checkSwitch(pkg, defs, swtch, config); err != nil {
 				errs = append(errs, err)
 			}
 			return true
@@ -67,8 +67,9 @@ func checkSwitch(
 	pkg *packages.Package,
 	defs []sumTypeDef,
 	swtch *ast.TypeSwitchStmt,
+	config Config,
 ) error {
-	def, missing := missingVariantsInSwitch(pkg, defs, swtch)
+	def, missing := missingVariantsInSwitch(pkg, defs, swtch, config)
 	if len(missing) > 0 {
 		return inexhaustiveError{
 			Position: pkg.Fset.Position(swtch.Pos()),
@@ -87,6 +88,7 @@ func missingVariantsInSwitch(
 	pkg *packages.Package,
 	defs []sumTypeDef,
 	swtch *ast.TypeSwitchStmt,
+	config Config,
 ) (*sumTypeDef, []types.Object) {
 	asserted := findTypeAssertExpr(swtch)
 	ty := pkg.TypesInfo.TypeOf(asserted)
@@ -97,7 +99,7 @@ func missingVariantsInSwitch(
 		return nil, nil
 	}
 	variantExprs, hasDefault := switchVariants(swtch)
-	if hasDefault && !defaultClauseAlwaysPanics(swtch) {
+	if config.DefaultSignifiesExhaustive && hasDefault && !defaultClauseAlwaysPanics(swtch) {
 		// A catch-all case defeats all exhaustiveness checks.
 		return def, nil
 	}

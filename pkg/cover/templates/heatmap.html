@@ -1,26 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <style>
-    {{ .Style }}
-  </style>
-</head>
-<body>
-  {{ .Body }}
-</body>
-{{ .JS }}
-</html>
-
 {{ define "js" }}
 <script>
-  var togglers = document.getElementsByClassName("caret");
-  for (var i = 0; i < togglers.length; i++) {
-    togglers[i].addEventListener("click", function() {
-      this.classList.toggle("caret-down");
-      this.parentElement.parentElement.parentElement.querySelector(".nested").classList.toggle("active");
-    });
-  }
+    var domain = window.location.hostname;
+    var scriptUrl = 'https://' + domain + '/static/coverage.js';
+
+    var script = document.createElement('script');
+    script.src = scriptUrl;
+
+    document.head.appendChild(script);
 </script>
 {{ end }}
 
@@ -35,11 +21,16 @@
   }
   .date_column {
     display: inline-block;
-    width: 50px;
+    width: 35px;
+  }
+  .vertical_text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    align-content: center;
   }
   .instrumented_column {
     display: inline-block;
-    width: 70px;
+    width: 50px;
     text-align: right;
   }
   .tree_depth_0 {width: 0px;}
@@ -113,34 +104,49 @@
 {{ end }}
 
 {{ define "body" }}
-  <div>
-    <ul id="collapsible-list">
-      <li>
-        <div class="first_column bold">
-          date
-        </div>
-        {{ range $date := .Dates }}
-        <div class="date_column bold">
-          {{ $date }}
-        </div>
-        {{ end }}
-      </li>
-      <li>
-        <div class="first_column bold">
-          total covered
-        </div>
-        {{ range $cov := .Root.Coverage }}
-        <div class="date_column">
-          {{ $cov }}%
-        </div>
-        {{ end }}
-        <div class="instrumented_column">
-          of {{ approxInstr .Root.LastDayInstrumented }} blocks
-        </div>
-      </li>
+  <div style="white-space: nowrap">
+    <div style="display:inline-block">
+      <ul id="collapsible-list">
+        <li>
+          <div class="first_column bold">
+            date
+          </div>
+          {{ range $period := .Periods }}
+          <div class="date_column vertical_text bold">
+            {{ $period }}
+          </div>
+          {{ end }}
+          <div class="instrumented_column vertical_text">
+            {{ approxInstr .Root.LastDayInstrumented }} blocks
+          </div>
+        </li>
+        <li>
+          <div class="first_column bold">
+            total covered
+          </div>
+          {{ range $cov := .Root.Coverage }}
+          <div class="date_column">
+            {{ $cov }}%
+          </div>
+          {{ end }}
+          <div class="instrumented_column vertical_text">
+            of
+          </div>
+        </li>
+        <br>
+        {{template "dir" .Root}}
+      </ul>
+    </div>
+    <div style="display:inline-block; vertical-align: top">
+      <pre id="file-details-curr"></pre>
       <br>
-      {{template "dir" .Root}}
-    </ul>
+      <div id="file-content-curr"></div>
+    </div>
+    <div style="display:inline-block; vertical-align: top">
+      <pre id="file-details-prev"></pre>
+      <br>
+      <div id="file-content-prev"></div>
+    </div>
   </div>
 {{ end }}
 
@@ -158,7 +164,11 @@
         </div>
         {{ range $i, $cov := $child.Coverage }}
           <div class="date_column cover_percent">
-            {{$cov}}%
+            {{ if $child.IsDir }}
+              {{ $cov }}%
+            {{ else }}
+              <a href="javascript:onShowFileContent('/upstream{{ index $child.FileCoverageLink $i }}');">{{ $cov }}%</a>
+            {{ end }}
             <pre class="tooltiptext">{{ index $child.Tooltips $i }}</pre>
           </div>
         {{ end }}

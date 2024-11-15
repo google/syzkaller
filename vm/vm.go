@@ -332,12 +332,10 @@ func (inst *Instance) Close() error {
 	return err
 }
 
-func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *dispatcher.Pool[*Instance] {
-	return dispatcher.NewPool(pool.Count(),
-		func(idx int) (*Instance, error) {
-			return pool.Create(idx)
-		},
-		def)
+type Dispatcher = dispatcher.Pool[*Instance]
+
+func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *Dispatcher {
+	return dispatcher.NewPool(pool.Count(), pool.Create, def)
 }
 
 type monitor struct {

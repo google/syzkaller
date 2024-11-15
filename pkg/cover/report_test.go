@@ -389,16 +389,16 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		return nil, err
 	}
 	htmlTable := new(bytes.Buffer)
-	if err := rg.DoHTMLTable(htmlTable, params); err != nil {
+	if err := rg.DoSubsystemCover(htmlTable, params); err != nil {
 		return nil, err
 	}
 	_ = htmlTable
 	csv := new(bytes.Buffer)
-	if err := rg.DoCSV(csv, params); err != nil {
+	if err := rg.DoFuncCover(csv, params); err != nil {
 		return nil, err
 	}
 	csvFiles := new(bytes.Buffer)
-	if err := rg.DoCSVFiles(csvFiles, params); err != nil {
+	if err := rg.DoFileCover(csvFiles, params); err != nil {
 		return nil, err
 	}
 	_ = csvFiles

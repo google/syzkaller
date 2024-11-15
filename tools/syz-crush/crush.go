@@ -69,6 +69,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	defer vmPool.Close()
 
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {

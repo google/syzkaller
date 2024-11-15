@@ -20,7 +20,7 @@ linters-settings:
     min-complexity: 15
   goimports:
     local-prefixes: github.com/timonwong/loggercheck
-  gomnd:
+  mnd:
     # don't include the "operation" and "assign"
     checks:
       - argument
@@ -36,7 +36,7 @@ linters-settings:
       - strings.SplitN
       - strconv.ParseInt
   govet:
-    check-shadowing: true
+    shadow: true
   lll:
     line-length: 140
   misspell:
@@ -52,7 +52,7 @@ linters:
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
+    - copyloopvar
     - funlen
     - gochecknoinits
     - goconst
@@ -60,7 +60,7 @@ linters:
     - gocyclo
     - gofumpt
     - goimports
-    - gomnd
+    - mnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -85,10 +85,10 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
+        - mnd
+  exclude-dirs:
+    - testdata
 
 run:
   timeout: 5m
-  go: '1.17'
-  skip-dirs:
-    - testdata
+  go: '1.23'

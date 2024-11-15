@@ -20,7 +20,8 @@ func (l ByPosition) Less(i, j int) bool {
 }
 
 func LintFmtErrorfCalls(fset *token.FileSet, info types.Info, multipleWraps bool) []analysis.Diagnostic {
-	lints := []analysis.Diagnostic{}
+	var lints []analysis.Diagnostic
+
 	for expr, t := range info.Types {
 		// Search for error expressions that are the result of fmt.Errorf
 		// invocations.
@@ -159,7 +160,7 @@ func isFmtErrorfCallExpr(info types.Info, expr ast.Expr) (*ast.CallExpr, bool) {
 }
 
 func LintErrorComparisons(info *TypesInfoExt) []analysis.Diagnostic {
-	lints := []analysis.Diagnostic{}
+	var lints []analysis.Diagnostic
 
 	for expr := range info.TypesInfo.Types {
 		// Find == and != operations.
@@ -171,15 +172,15 @@ func LintErrorComparisons(info *TypesInfoExt) []analysis.Diagnostic {
 			continue
 		}
 		// Comparing errors with nil is okay.
-		if isNilComparison(binExpr) {
+		if isNil(binExpr.X) || isNil(binExpr.Y) {
 			continue
 		}
 		// Find comparisons of which one side is a of type error.
-		if !isErrorComparison(info.TypesInfo, binExpr) {
+		if !isErrorType(info.TypesInfo, binExpr.X) && !isErrorType(info.TypesInfo, binExpr.Y) {
 			continue
 		}
 		// Some errors that are returned from some functions are exempt.
-		if isAllowedErrorComparison(info, binExpr) {
+		if isAllowedErrorComparison(info, binExpr.X, binExpr.Y) {
 			continue
 		}
 		// Comparisons that happen in `func (type) Is(error) bool` are okay.
@@ -200,13 +201,29 @@ func LintErrorComparisons(info *TypesInfoExt) []analysis.Diagnostic {
 			continue
 		}
 		// Check whether the switch operates on an error type.
-		if switchStmt.Tag == nil {
+		if !isErrorType(info.TypesInfo, switchStmt.Tag) {
 			continue
 		}
-		tagType := info.TypesInfo.Types[switchStmt.Tag]
-		if tagType.Type.String() != "error" {
+
+		var problematicCaseClause *ast.CaseClause
+	outer:
+		for _, stmt := range switchStmt.Body.List {
+			caseClause := stmt.(*ast.CaseClause)
+			for _, caseExpr := range caseClause.List {
+				if isNil(caseExpr) {
+					continue
+				}
+				// Some errors that are returned from some functions are exempt.
+				if !isAllowedErrorComparison(info, switchStmt.Tag, caseExpr) {
+					problematicCaseClause = caseClause
+					break outer
+				}
+			}
+		}
+		if problematicCaseClause == nil {
 			continue
 		}
+		// Comparisons that happen in `func (type) Is(error) bool` are okay.
 		if isNodeInErrorIsFunc(info, switchStmt) {
 			continue
 		}
@@ -214,29 +231,22 @@ func LintErrorComparisons(info *TypesInfoExt) []analysis.Diagnostic {
 		if switchComparesNonNil(switchStmt) {
 			lints = append(lints, analysis.Diagnostic{
 				Message: "switch on an error will fail on wrapped errors. Use errors.Is to check for specific errors",
-				Pos:     switchStmt.Pos(),
+				Pos:     problematicCaseClause.Pos(),
 			})
 		}
-
 	}
 
 	return lints
 }
 
-func isNilComparison(binExpr *ast.BinaryExpr) bool {
-	if ident, ok := binExpr.X.(*ast.Ident); ok && ident.Name == "nil" {
-		return true
-	}
-	if ident, ok := binExpr.Y.(*ast.Ident); ok && ident.Name == "nil" {
-		return true
-	}
-	return false
+func isNil(ex ast.Expr) bool {
+	ident, ok := ex.(*ast.Ident)
+	return ok && ident.Name == "nil"
 }
 
-func isErrorComparison(info *types.Info, binExpr *ast.BinaryExpr) bool {
-	tx := info.Types[binExpr.X]
-	ty := info.Types[binExpr.Y]
-	return tx.Type.String() == "error" || ty.Type.String() == "error"
+func isErrorType(info *types.Info, ex ast.Expr) bool {
+	t := info.Types[ex].Type
+	return t != nil && t.String() == "error"
 }
 
 func isNodeInErrorIsFunc(info *TypesInfoExt, node ast.Node) bool {
@@ -289,7 +299,7 @@ func switchComparesNonNil(switchStmt *ast.SwitchStmt) bool {
 }
 
 func LintErrorTypeAssertions(fset *token.FileSet, info *TypesInfoExt) []analysis.Diagnostic {
-	lints := []analysis.Diagnostic{}
+	var lints []analysis.Diagnostic
 
 	for expr := range info.TypesInfo.Types {
 		// Find type assertions.

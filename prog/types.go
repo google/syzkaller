@@ -37,15 +37,16 @@ type Syscall struct {
 //
 // See docs/syscall_descriptions_syntax.md for description of individual attributes.
 type SyscallAttrs struct {
-	Disabled      bool
-	Timeout       uint64
-	ProgTimeout   uint64
-	IgnoreReturn  bool
-	BreaksReturns bool
-	NoGenerate    bool
-	NoMinimize    bool
-	RemoteCover   bool
-	Automatic     bool
+	Disabled        bool
+	Timeout         uint64
+	ProgTimeout     uint64
+	IgnoreReturn    bool
+	BreaksReturns   bool
+	NoGenerate      bool
+	NoMinimize      bool
+	RemoteCover     bool
+	Automatic       bool
+	AutomaticHelper bool
 }
 
 // MaxArgs is maximum number of syscall arguments.
@@ -109,6 +110,7 @@ const (
 	OperatorCompareEq BinaryOperator = iota
 	OperatorCompareNeq
 	OperatorBinaryAnd
+	OperatorOr
 )
 
 type BinaryExpression struct {
@@ -562,6 +564,8 @@ type ProcType struct {
 }
 
 const (
+	// Some aspects of the linux kernel configs also know about this const,
+	// e.g. they create that many devices of various types (usually these parameters are in CMDLINE).
 	MaxPids          = 32
 	procDefaultValue = 0xffffffffffffffff // special value denoting 0 for all procs
 )

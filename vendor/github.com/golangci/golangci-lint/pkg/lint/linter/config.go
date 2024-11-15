@@ -27,10 +27,19 @@ const (
 // LastLinter nolintlint must be last because it looks at the results of all the previous linters for unused nolint directives.
 const LastLinter = "nolintlint"
 
+type DeprecationLevel int
+
+const (
+	DeprecationNone DeprecationLevel = iota
+	DeprecationWarning
+	DeprecationError
+)
+
 type Deprecation struct {
 	Since       string
 	Message     string
 	Replacement string
+	Level       DeprecationLevel
 }
 
 type Config struct {
@@ -72,7 +81,7 @@ func (lc *Config) IsSlowLinter() bool {
 }
 
 func (lc *Config) WithLoadFiles() *Config {
-	lc.LoadMode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles
+	lc.LoadMode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedModule
 	return lc
 }
 
@@ -113,13 +122,22 @@ func (lc *Config) WithSince(version string) *Config {
 	return lc
 }
 
-func (lc *Config) Deprecated(message, version, replacement string) *Config {
+func (lc *Config) Deprecated(message, version, replacement string, level DeprecationLevel) *Config {
 	lc.Deprecation = &Deprecation{
 		Since:       version,
 		Message:     message,
 		Replacement: replacement,
+		Level:       level,
 	}
 	return lc
+}
+
+func (lc *Config) DeprecatedWarning(message, version, replacement string) *Config {
+	return lc.Deprecated(message, version, replacement, DeprecationWarning)
+}
+
+func (lc *Config) DeprecatedError(message, version, replacement string) *Config {
+	return lc.Deprecated(message, version, replacement, DeprecationError)
 }
 
 func (lc *Config) IsDeprecated() bool {

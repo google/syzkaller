@@ -22,18 +22,20 @@ const defaultMaxCyclomaticComplexity = 10
 func (r *CyclomaticRule) configure(arguments lint.Arguments) {
 	r.Lock()
 	defer r.Unlock()
-	if r.maxComplexity == 0 {
-		if len(arguments) < 1 {
-			r.maxComplexity = defaultMaxCyclomaticComplexity
-			return
-		}
-
-		complexity, ok := arguments[0].(int64) // Alt. non panicking version
-		if !ok {
-			panic(fmt.Sprintf("invalid argument for cyclomatic complexity; expected int but got %T", arguments[0]))
-		}
-		r.maxComplexity = int(complexity)
+	if r.maxComplexity != 0 {
+		return // already configured
 	}
+
+	if len(arguments) < 1 {
+		r.maxComplexity = defaultMaxCyclomaticComplexity
+		return
+	}
+
+	complexity, ok := arguments[0].(int64) // Alt. non panicking version
+	if !ok {
+		panic(fmt.Sprintf("invalid argument for cyclomatic complexity; expected int but got %T", arguments[0]))
+	}
+	r.maxComplexity = int(complexity)
 }
 
 // Apply applies the rule to given file.
@@ -70,31 +72,35 @@ type lintCyclomatic struct {
 func (w lintCyclomatic) Visit(_ ast.Node) ast.Visitor {
 	f := w.file
 	for _, decl := range f.AST.Decls {
-		if fn, ok := decl.(*ast.FuncDecl); ok {
-			c := complexity(fn)
-			if c > w.complexity {
-				w.onFailure(lint.Failure{
-					Confidence: 1,
-					Category:   "maintenance",
-					Failure: fmt.Sprintf("function %s has cyclomatic complexity %d (> max enabled %d)",
-						funcName(fn), c, w.complexity),
-					Node: fn,
-				})
-			}
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+
+		c := complexity(fn)
+		if c > w.complexity {
+			w.onFailure(lint.Failure{
+				Confidence: 1,
+				Category:   "maintenance",
+				Failure: fmt.Sprintf("function %s has cyclomatic complexity %d (> max enabled %d)",
+					funcName(fn), c, w.complexity),
+				Node: fn,
+			})
 		}
 	}
+
 	return nil
 }
 
 // funcName returns the name representation of a function or method:
 // "(Type).Name" for methods or simply "Name" for functions.
 func funcName(fn *ast.FuncDecl) string {
-	if fn.Recv != nil {
-		if fn.Recv.NumFields() > 0 {
-			typ := fn.Recv.List[0].Type
-			return fmt.Sprintf("(%s).%s", recvString(typ), fn.Name)
-		}
+	declarationHasReceiver := fn.Recv != nil && fn.Recv.NumFields() > 0
+	if declarationHasReceiver {
+		typ := fn.Recv.List[0].Type
+		return fmt.Sprintf("(%s).%s", recvString(typ), fn.Name)
 	}
+
 	return fn.Name.Name
 }
 

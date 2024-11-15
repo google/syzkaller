@@ -112,12 +112,12 @@ syz_execute_func(text ptr[in, text[target]]) (disabled)
 # Exclude /sys/power/state as reported in https://lkml.org/lkml/2021/5/27/653
 openat$sysfs(fd const[AT_FDCWD], dir ptr[in, glob["/sys/**/*:-/sys/power/state"]], flags flags[open_flags], mode flags[open_mode]) fd
 
-open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd (automatic_helper)
 # Just so that we have something that creates fd_dir resources.
-open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
-openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
+open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
+openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
 openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
-openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir
+openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir (automatic_helper)
 openat2(fd fd_dir[opt], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd
 creat(file ptr[in, filename], mode flags[open_mode]) fd
 close(fd fd)
@@ -131,7 +131,11 @@ pwrite64(fd fd, buf buffer[in], count len[buf], pos fileoff)
 writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
 pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off_low int32, off_high int32)
 pwritev2(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off_low int32, off_high int32, flags flags[rwf_flags])
-lseek(fd fd, offset fileoff, whence flags[seek_whence])
+# lseek can return negative offsets when the file has FMODE_UNSIGNED_OFFSET flag:
+# https://elixir.bootlin.com/linux/v6.11-rc7/source/fs/read_write.c#L56
+# It's unclear how it's then even possible to distinguish error from valid offset, but it's not our problem.
+# We just have to ignore return values of lseek.
+lseek(fd fd, offset fileoff, whence flags[seek_whence]) (ignore_return)
 copy_file_range(fd_in fd, off_in ptr[inout, fileoff[int64], opt], fd_out fd, off_out ptr[inout, fileoff[int64], opt], len intptr, flags flags[copy_file_range_flags])
 
 rwf_flags = RWF_DSYNC, RWF_HIPRI, RWF_SYNC, RWF_NOWAIT, RWF_APPEND
@@ -266,7 +270,7 @@ fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
 fcntl$setflags(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])
 fcntl$setstatus(fd fd, cmd const[F_SETFL], flags flags[fcntl_status])
 fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
-fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
+fcntl$getown(fd fd, cmd const[F_GETOWN]) pid (automatic_helper)
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 fcntl$getownex(fd fd, cmd const[F_GETOWN_EX], arg ptr[out, f_owner_ex])
 fcntl$setownex(fd fd, cmd const[F_SETOWN_EX], arg ptr[in, f_owner_ex])
@@ -365,9 +369,9 @@ futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 # Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
-syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
+syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid (automatic_helper)
 
-syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid
+syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid (automatic_helper)
 
 # We need these disabled definitions to simplify the presence and the NR checking.
 clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns, disabled)
@@ -391,17 +395,17 @@ resource pid[int32]: 0, -1
 resource uid[int32]: 0, -1, 0xee00, 0xee01
 resource gid[int32]: 0, -1, 0xee00, 0xee01
 
-getgid() gid
-getegid() gid
+getgid() gid (automatic_helper)
+getegid() gid (automatic_helper)
 setuid(uid uid)
 setgid(gid gid)
-getuid() uid
-geteuid() uid
+getuid() uid (automatic_helper)
+geteuid() uid (automatic_helper)
 setpgid(pid pid, pgid pid)
-getpgid(pid pid) pid
-getpgrp(pid pid) pid
-getpid() pid
-gettid() pid
+getpgid(pid pid) pid (automatic_helper)
+getpgrp(pid pid) pid (automatic_helper)
+getpid() pid (automatic_helper)
+gettid() pid (automatic_helper)
 setreuid(ruid uid, euid uid)
 setregid(rgid gid, egid gid)
 setresuid(ruid uid, euid uid, suid uid)
@@ -458,9 +462,9 @@ sysfs$3(option const[3])
 statfs(path ptr[in, filename], buf buffer[out])
 fstatfs(fd fd, buf buffer[out])
 
-uselib(lib ptr[in, filename])
-init_module(mod ptr[in, string], len len[mod], args ptr[in, string])
-finit_module(fd fd, args ptr[in, string], flags flags[finit_module_flags])
+uselib(lib ptr_binfmt_file)
+init_module(mod ptr[in, binfmt_elf64], len len[mod], args ptr[in, string])
+finit_module(fd fd_binfmt, args ptr[in, string], flags flags[finit_module_flags])
 delete_module(name ptr[in, string], flags flags[delete_module_flags])
 kexec_load(entry intptr, nr_segments len[segments], segments ptr[in, array[kexec_segment]], flags flags[kexec_load_flags])
 syslog(cmd flags[syslog_cmd], buf ptr[out, array[int8], opt], len len[buf])

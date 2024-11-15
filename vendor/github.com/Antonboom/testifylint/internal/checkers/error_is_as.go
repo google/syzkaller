@@ -6,8 +6,6 @@ import (
 	"go/types"
 
 	"golang.org/x/tools/go/analysis"
-
-	"github.com/Antonboom/testifylint/internal/analysisutil"
 )
 
 // ErrorIsAs detects situations like
@@ -69,12 +67,11 @@ func (checker ErrorIsAs) Check(pass *analysis.Pass, call *CallMeta) *analysis.Di
 		}
 		if proposed != "" {
 			return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-				newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
+				analysis.TextEdit{
 					Pos:     ce.Pos(),
 					End:     ce.End(),
 					NewText: formatAsCallArgs(pass, ce.Args[0], ce.Args[1]),
-				}),
-			)
+				})
 		}
 
 	case "False":
@@ -93,12 +90,11 @@ func (checker ErrorIsAs) Check(pass *analysis.Pass, call *CallMeta) *analysis.Di
 		if isErrorsIsCall(pass, ce) {
 			const proposed = "NotErrorIs"
 			return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-				newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
+				analysis.TextEdit{
 					Pos:     ce.Pos(),
 					End:     ce.End(),
 					NewText: formatAsCallArgs(pass, ce.Args[0], ce.Args[1]),
-				}),
-			)
+				})
 		}
 
 	case "ErrorAs":
@@ -129,38 +125,16 @@ func (checker ErrorIsAs) Check(pass *analysis.Pass, call *CallMeta) *analysis.Di
 
 		pt, ok := tv.Type.Underlying().(*types.Pointer)
 		if !ok {
-			return newDiagnostic(checker.Name(), call, defaultReport, nil)
+			return newDiagnostic(checker.Name(), call, defaultReport)
 		}
 		if pt.Elem() == errorType {
-			return newDiagnostic(checker.Name(), call, errorPtrReport, nil)
+			return newDiagnostic(checker.Name(), call, errorPtrReport)
 		}
 
 		_, isInterface := pt.Elem().Underlying().(*types.Interface)
 		if !isInterface && !types.Implements(pt.Elem(), errorIface) {
-			return newDiagnostic(checker.Name(), call, defaultReport, nil)
+			return newDiagnostic(checker.Name(), call, defaultReport)
 		}
 	}
 	return nil
-}
-
-func isErrorsIsCall(pass *analysis.Pass, ce *ast.CallExpr) bool {
-	return isErrorsPkgFnCall(pass, ce, "Is")
-}
-
-func isErrorsAsCall(pass *analysis.Pass, ce *ast.CallExpr) bool {
-	return isErrorsPkgFnCall(pass, ce, "As")
-}
-
-func isErrorsPkgFnCall(pass *analysis.Pass, ce *ast.CallExpr, fn string) bool {
-	se, ok := ce.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-
-	errorsIsObj := analysisutil.ObjectOf(pass.Pkg, "errors", fn)
-	if errorsIsObj == nil {
-		return false
-	}
-
-	return analysisutil.IsObj(pass.TypesInfo, se.Sel, errorsIsObj)
 }

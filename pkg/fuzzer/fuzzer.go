@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
@@ -85,13 +87,20 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 		triageQueue:          queue.DynamicOrder(),
 		smashQueue:           queue.Plain(),
 	}
+	// Alternate smash jobs with exec/fuzz to spread attention to the wider area.
+	skipQueue := 3
+	if fuzzer.Config.PatchTest {
+		// When we do patch fuzzing, we do not focus on finding and persisting
+		// new coverage that much, so it's reasonable to spend more time just
+		// mutating various corpus programs.
+		skipQueue = 2
+	}
 	// Sources are listed in the order, in which they will be polled.
 	ret.source = queue.Order(
 		ret.triageCandidateQueue,
 		ret.candidateQueue,
 		ret.triageQueue,
-		// Alternate smash jobs with exec/fuzz once in 3 times.
-		queue.Alternate(ret.smashQueue, 3),
+		queue.Alternate(ret.smashQueue, skipQueue),
 		queue.Callback(fuzzer.genFuzz),
 	)
 	return ret
@@ -122,13 +131,14 @@ func (fuzzer *Fuzzer) enqueue(executor queue.Executor, req *queue.Request, flags
 }
 
 func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags ProgFlags, attempt int) bool {
-	inTriage := flags&progInTriage > 0
+	// If we are already triaging this exact prog, this is flaky coverage.
+	// Hanged programs are harmful as they consume executor procs.
+	dontTriage := flags&progInTriage > 0 || res.Status == queue.Hanged
 	// Triage the program.
 	// We do it before unblocking the waiting threads because
 	// it may result it concurrent modification of req.Prog.
-	// If we are already triaging this exact prog, this is flaky coverage.
 	var triage map[int]*triageCall
-	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !inTriage {
+	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0 && res.Info != nil && !dontTriage {
 		for call, info := range res.Info.Calls {
 			fuzzer.triageProgCall(req.Prog, info, call, &triage)
 		}
@@ -168,7 +178,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		// In non-snapshot mode usually we are not sure which exactly input caused the crash,
 		// so give it one more chance. In snapshot mode we know for sure, so don't retry.
 		maxCandidateAttempts = 2
-		if fuzzer.Config.Snapshot {
+		if fuzzer.Config.Snapshot || res.Status == queue.Hanged {
 			maxCandidateAttempts = 0
 		}
 	}
@@ -195,6 +205,7 @@ type Config struct {
 	NoMutateCalls  map[int]bool
 	FetchRawCover  bool
 	NewInputFilter func(call string) bool
+	PatchTest      bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
@@ -411,5 +422,35 @@ func (fuzzer *Fuzzer) logCurrentStats() {
 func setFlags(execFlags flatrpc.ExecFlag) flatrpc.ExecOpts {
 	return flatrpc.ExecOpts{
 		ExecFlags: execFlags,
+	}
+}
+
+// TODO: This method belongs better to pkg/flatrpc, but we currently end up
+// having a cyclic dependency error.
+func DefaultExecOpts(cfg *mgrconfig.Config, features flatrpc.Feature, debug bool) flatrpc.ExecOpts {
+	env := csource.FeaturesToFlags(features, nil)
+	if debug {
+		env |= flatrpc.ExecEnvDebug
+	}
+	if cfg.Experimental.ResetAccState {
+		env |= flatrpc.ExecEnvResetState
+	}
+	if cfg.Cover {
+		env |= flatrpc.ExecEnvSignal
+	}
+	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse sandbox: %v", err))
+	}
+	env |= sandbox
+
+	exec := flatrpc.ExecFlagThreaded
+	if !cfg.RawCover {
+		exec |= flatrpc.ExecFlagDedupCover
+	}
+	return flatrpc.ExecOpts{
+		EnvFlags:   env,
+		ExecFlags:  exec,
+		SandboxArg: cfg.SandboxArg,
 	}
 }

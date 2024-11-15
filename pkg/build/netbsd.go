@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -86,9 +85,9 @@ func (ctx netbsd) build(params Params) (ImageDetails, error) {
 		filepath.Join(compileDir, "netbsd"))
 }
 
-func (ctx netbsd) clean(kernelDir, targetArch string) error {
-	_, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
-		"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "cleandir")
+func (ctx netbsd) clean(params Params) error {
+	_, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
+		"-U", "-j"+strconv.Itoa(params.BuildCPUs), "cleandir")
 	return err
 }
 
@@ -123,6 +122,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	if err != nil {
 		return fmt.Errorf("failed to create a VM Pool: %w", err)
 	}
+	defer pool.Close()
 	// Create a new reporter instance.
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {

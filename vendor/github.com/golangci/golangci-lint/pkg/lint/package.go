@@ -78,8 +78,10 @@ func (l *PackageLoader) loadPackages(ctx context.Context, loadMode packages.Load
 		// TODO: use fset, parsefile, overlay
 	}
 
-	args := l.buildArgs()
+	args := buildArgs(l.args)
+
 	l.debugf("Built loader args are %s", args)
+
 	pkgs, err := packages.Load(conf, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load with go/packages: %w", err)
@@ -103,7 +105,7 @@ func (l *PackageLoader) loadPackages(ctx context.Context, loadMode packages.Load
 	return l.filterTestMainPackages(pkgs), nil
 }
 
-func (l *PackageLoader) parseLoadedPackagesErrors(pkgs []*packages.Package) error {
+func (*PackageLoader) parseLoadedPackagesErrors(pkgs []*packages.Package) error {
 	for _, pkg := range pkgs {
 		var errs []packages.Error
 		for _, err := range pkg.Errors {
@@ -212,24 +214,6 @@ func (l *PackageLoader) prepareBuildContext() {
 	build.Default.BuildTags = l.cfg.Run.BuildTags
 }
 
-func (l *PackageLoader) buildArgs() []string {
-	if len(l.args) == 0 {
-		return []string{"./..."}
-	}
-
-	var retArgs []string
-	for _, arg := range l.args {
-		if strings.HasPrefix(arg, ".") || filepath.IsAbs(arg) {
-			retArgs = append(retArgs, arg)
-		} else {
-			// go/packages doesn't work well if we don't have the prefix ./ for local packages
-			retArgs = append(retArgs, fmt.Sprintf(".%c%s", filepath.Separator, arg))
-		}
-	}
-
-	return retArgs
-}
-
 func (l *PackageLoader) makeBuildFlags() []string {
 	var buildFlags []string
 
@@ -245,6 +229,24 @@ func (l *PackageLoader) makeBuildFlags() []string {
 	}
 
 	return buildFlags
+}
+
+func buildArgs(args []string) []string {
+	if len(args) == 0 {
+		return []string{"./..."}
+	}
+
+	var retArgs []string
+	for _, arg := range args {
+		if strings.HasPrefix(arg, ".") || filepath.IsAbs(arg) {
+			retArgs = append(retArgs, arg)
+		} else {
+			// go/packages doesn't work well if we don't have the prefix ./ for local packages
+			retArgs = append(retArgs, fmt.Sprintf(".%c%s", filepath.Separator, arg))
+		}
+	}
+
+	return retArgs
 }
 
 func findLoadMode(linters []*linter.Config) packages.LoadMode {

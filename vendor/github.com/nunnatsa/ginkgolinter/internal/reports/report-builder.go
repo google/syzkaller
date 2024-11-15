@@ -1,12 +1,12 @@
 package reports
 
 import (
-	"bytes"
 	"fmt"
 	"go/ast"
-	"go/printer"
 	"go/token"
 	"strings"
+
+	"github.com/nunnatsa/ginkgolinter/internal/formatter"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -18,17 +18,23 @@ type Builder struct {
 	issues     []string
 	fixOffer   string
 	suggestFix bool
+	formatter  *formatter.GoFmtFormatter
 }
 
-func NewBuilder(fset *token.FileSet, oldExpr ast.Expr) *Builder {
+func NewBuilder(oldExpr ast.Expr, expFormatter *formatter.GoFmtFormatter) *Builder {
 	b := &Builder{
 		pos:        oldExpr.Pos(),
 		end:        oldExpr.End(),
-		oldExpr:    goFmt(fset, oldExpr),
+		oldExpr:    expFormatter.Format(oldExpr),
 		suggestFix: false,
+		formatter:  expFormatter,
 	}
 
 	return b
+}
+
+func (b *Builder) OldExp() string {
+	return b.oldExpr
 }
 
 func (b *Builder) AddIssue(suggestFix bool, issue string, args ...any) {
@@ -42,9 +48,11 @@ func (b *Builder) AddIssue(suggestFix bool, issue string, args ...any) {
 	}
 }
 
-func (b *Builder) SetFixOffer(fset *token.FileSet, fixOffer ast.Expr) {
-	if offer := goFmt(fset, fixOffer); offer != b.oldExpr {
-		b.fixOffer = offer
+func (b *Builder) SetFixOffer(fixOffer ast.Expr) {
+	if b.suggestFix {
+		if offer := b.formatter.Format(fixOffer); offer != b.oldExpr {
+			b.fixOffer = offer
+		}
 	}
 }
 
@@ -76,10 +84,8 @@ func (b *Builder) Build() analysis.Diagnostic {
 	return diagnostic
 }
 
-func goFmt(fset *token.FileSet, x ast.Expr) string {
-	var b bytes.Buffer
-	_ = printer.Fprint(&b, fset, x)
-	return b.String()
+func (b *Builder) FormatExpr(expr ast.Expr) string {
+	return b.formatter.Format(expr)
 }
 
 func (b *Builder) getMessage() string {

@@ -35,6 +35,10 @@ func (env *testEnv) BuildSyzkaller(repo, commit string) (string, error) {
 	return "", nil
 }
 
+func (env *testEnv) CleanKernel(buildCfg *instance.BuildKernelConfig) error {
+	return nil
+}
+
 func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, build.ImageDetails, error) {
 	commit := env.headCommit()
 	configHash := hash.String(buildCfg.KernelConfig)
@@ -129,7 +133,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 }
 
 func (env *testEnv) headCommit() int {
-	com, err := env.r.HeadCommit()
+	com, err := env.r.Commit(vcs.HEAD)
 	if err != nil {
 		env.t.Fatal(err)
 	}
@@ -651,7 +655,7 @@ var bisectionTests = []BisectionTest{
 		startCommit:   905,
 		expectRep:     false,
 		expectErr:     true,
-		expectErrType: &InfraError{},
+		expectErrType: &build.InfraError{},
 		infraErrStart: 600,
 		infraErrEnd:   800,
 		introduced:    "602",

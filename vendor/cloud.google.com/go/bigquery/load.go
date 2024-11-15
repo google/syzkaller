@@ -105,6 +105,11 @@ type LoadConfig struct {
 
 	// MediaOptions stores options for customizing media upload.
 	MediaOptions []googleapi.MediaOption
+
+	// Controls the behavior of column naming during a load job.
+	// For more information, see:
+	// https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#columnnamecharactermap
+	ColumnNameCharacterMap ColumnNameCharacterMap
 }
 
 func (l *LoadConfig) toBQ() (*bq.JobConfiguration, io.Reader) {
@@ -124,6 +129,7 @@ func (l *LoadConfig) toBQ() (*bq.JobConfiguration, io.Reader) {
 			HivePartitioningOptions:            l.HivePartitioningOptions.toBQ(),
 			ReferenceFileSchemaUri:             l.ReferenceFileSchemaURI,
 			CreateSession:                      l.CreateSession,
+			ColumnNameCharacterMap:             string(l.ColumnNameCharacterMap),
 		},
 		JobTimeoutMs: l.JobTimeout.Milliseconds(),
 	}
@@ -153,6 +159,7 @@ func bqToLoadConfig(q *bq.JobConfiguration, c *Client) *LoadConfig {
 		HivePartitioningOptions:     bqToHivePartitioningOptions(q.Load.HivePartitioningOptions),
 		ReferenceFileSchemaURI:      q.Load.ReferenceFileSchemaUri,
 		CreateSession:               q.Load.CreateSession,
+		ColumnNameCharacterMap:      ColumnNameCharacterMap(q.Load.ColumnNameCharacterMap),
 	}
 	if q.JobTimeoutMs > 0 {
 		lc.JobTimeout = time.Duration(q.JobTimeoutMs) * time.Millisecond
@@ -237,4 +244,25 @@ var (
 
 	// StringTargetType indicates the preferred type is STRING when supported.
 	StringTargetType DecimalTargetType = "STRING"
+)
+
+// ColumnNameCharacterMap is used to specific column naming behavior for load jobs.
+type ColumnNameCharacterMap string
+
+var (
+
+	// UnspecifiedColumnNameCharacterMap is the unspecified default value.
+	UnspecifiedColumnNameCharacterMap ColumnNameCharacterMap = "COLUMN_NAME_CHARACTER_MAP_UNSPECIFIED"
+
+	// StrictColumnNameCharacterMap indicates support for flexible column names.
+	// Invalid column names will be rejected.
+	StrictColumnNameCharacterMap ColumnNameCharacterMap = "STRICT"
+
+	// V1ColumnNameCharacterMap indicates support for alphanumeric + underscore characters and names must start with a letter or underscore.
+	// Invalid column names will be normalized.
+	V1ColumnNameCharacterMap ColumnNameCharacterMap = "V1"
+
+	// V2ColumnNameCharacterMap indicates support for flexible column names.
+	// Invalid column names will be normalized.
+	V2ColumnNameCharacterMap ColumnNameCharacterMap = "V2"
 )

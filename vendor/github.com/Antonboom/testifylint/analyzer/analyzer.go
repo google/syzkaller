@@ -19,7 +19,7 @@ const (
 	url  = "https://github.com/antonboom/" + name
 )
 
-// New returns new instance of testifylint analyzer.
+// New returns a new instance of testifylint analyzer.
 func New() *analysis.Analyzer {
 	cfg := config.NewDefault()
 

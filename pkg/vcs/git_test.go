@@ -186,7 +186,7 @@ func TestGetCommitsByTitles(t *testing.T) {
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "abc")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	commitA, _ := repo.repo.HeadCommit()
+	commitA, _ := repo.repo.Commit(HEAD)
 	results, missing, err := repo.repo.GetCommitsByTitles([]string{"target"})
 	validateSuccess(commitA, results, missing, err)
 
@@ -222,7 +222,7 @@ func TestContains(t *testing.T) {
 	// We expect Contains to return true, if commit is in current checkout.
 	repo.Git("checkout", "-b", "branch-a")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	commitA, _ := repo.repo.HeadCommit()
+	commitA, _ := repo.repo.Commit(HEAD)
 	if contained, _ := repo.repo.Contains(commitA.Hash); !contained {
 		t.Fatalf("contains claims commit that should be present is not")
 	}
@@ -233,7 +233,7 @@ func TestContains(t *testing.T) {
 	// Commits must only be searched for from the checkedout HEAD.
 	repo.Git("checkout", "-b", "branch-b")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	commitB, _ := repo.repo.HeadCommit()
+	commitB, _ := repo.repo.Commit(HEAD)
 	repo.Git("checkout", "branch-a")
 	if contained, _ := repo.repo.Contains(commitB.Hash); contained {
 		t.Fatalf("contains found commit that is not in current branch")
@@ -316,6 +316,23 @@ func TestObject(t *testing.T) {
 	if diff := cmp.Diff(data, secondRev); diff != "" {
 		t.Fatal(diff)
 	}
+	com, err := repo.repo.Commit(commits[0])
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	patch := []byte(`diff --git a/object.txt b/object.txt
+index 103167d..fbf7a68 100644
+--- a/object.txt
++++ b/object.txt
+@@ -1 +1 @@
+-First revision
+\ No newline at end of file
++Second revision
+\ No newline at end of file
+`)
+	if diff := cmp.Diff(com.Patch, patch); diff != "" {
+		t.Fatal(diff)
+	}
 }
 
 func TestMergeBase(t *testing.T) {
@@ -325,12 +342,12 @@ func TestMergeBase(t *testing.T) {
 	// Create base branch.
 	repo.Git("checkout", "-b", "base")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	baseCommit, _ := repo.repo.HeadCommit()
+	baseCommit, _ := repo.repo.Commit(HEAD)
 
 	// Fork off another branch.
 	repo.Git("checkout", "-b", "fork")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	forkCommit, _ := repo.repo.HeadCommit()
+	forkCommit, _ := repo.repo.Commit(HEAD)
 
 	// Ensure that merge base points to the base commit.
 	mergeCommits, err := repo.repo.MergeBases(baseCommit.Hash, forkCommit.Hash)
@@ -343,11 +360,11 @@ func TestMergeBase(t *testing.T) {
 	// Let branches diverge.
 	repo.Git("checkout", "base")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "newBase")
-	newBaseCommit, _ := repo.repo.HeadCommit()
+	newBaseCommit, _ := repo.repo.Commit(HEAD)
 
 	repo.Git("checkout", "fork")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "newFork")
-	newForkCommit, _ := repo.repo.HeadCommit()
+	newForkCommit, _ := repo.repo.Commit(HEAD)
 
 	// The merge base should remain the same.
 	mergeCommits, err = repo.repo.MergeBases(newBaseCommit.Hash, newForkCommit.Hash)
@@ -363,7 +380,7 @@ func TestMergeBase(t *testing.T) {
 
 	// And advance the fork branch.
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	newNewForkCommit, _ := repo.repo.HeadCommit()
+	newNewForkCommit, _ := repo.repo.Commit(HEAD)
 
 	// The merge base should point to the last commit in `base`.
 	mergeCommits, err = repo.repo.MergeBases(newBaseCommit.Hash, newNewForkCommit.Hash)
@@ -387,7 +404,7 @@ func TestGitCustomRefs(t *testing.T) {
 	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "detached commit")
 	// Add a ref to prevent the commit from getting garbage collected.
 	remote.Git("update-ref", "refs/custom/test", "temp_branch")
-	refCommit, _ := remote.repo.HeadCommit()
+	refCommit, _ := remote.repo.Commit(HEAD)
 
 	// Remove the branch, let the commit stay only in refs.
 	remote.Git("checkout", "base_branch")
@@ -435,7 +452,7 @@ func TestGitFetchShortHash(t *testing.T) {
 	remote.Git("tag", "base_tag")
 	remote.Git("checkout", "-b", "temp_branch")
 	remote.Git("commit", "--no-edit", "--allow-empty", "-m", "detached commit")
-	refCommit, _ := remote.repo.HeadCommit()
+	refCommit, _ := remote.repo.Commit(HEAD)
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
@@ -444,4 +461,26 @@ func TestGitFetchShortHash(t *testing.T) {
 	// Fetch the commit from the custom ref.
 	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash[:12])
 	assert.NoError(t, err)
+}
+
+func TestParseGitDiff(t *testing.T) {
+	files := ParseGitDiff([]byte(`diff --git a/a.txt b/a.txt
+index 4c5fd91..8fe1e32 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1 @@
+-First file
++First file!
+diff --git a/b.txt b/b.txt
+new file mode 100644
+index 0000000..f8a9677
+--- /dev/null
++++ b/b.txt
+@@ -0,0 +1 @@
++Second file.
+diff --git a/c/c.txt b/c/c.txt
+new file mode 100644
+index 0000000..e69de29
+`))
+	assert.ElementsMatch(t, files, []string{"a.txt", "b.txt", "c/c.txt"})
 }

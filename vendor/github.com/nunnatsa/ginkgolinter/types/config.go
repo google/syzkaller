@@ -28,6 +28,7 @@ type Config struct {
 	ForceExpectTo          Boolean
 	ValidateAsyncIntervals Boolean
 	ForbidSpecPollution    Boolean
+	ForceSucceedForFuncs   Boolean
 }
 
 func (s *Config) AllTrue() bool {
@@ -47,6 +48,7 @@ func (s *Config) Clone() Config {
 		ForceExpectTo:          s.ForceExpectTo,
 		ValidateAsyncIntervals: s.ValidateAsyncIntervals,
 		ForbidSpecPollution:    s.ForbidSpecPollution,
+		ForceSucceedForFuncs:   s.ForceSucceedForFuncs,
 	}
 }
 

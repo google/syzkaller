@@ -5,6 +5,7 @@ package coveragedb
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"sort"
 
@@ -14,9 +15,28 @@ import (
 type TimePeriod struct {
 	DateTo civil.Date
 	Days   int
+	Type   string // DayPeriod, MonthPeriod, QuarterPeriod.
+}
+
+// DatesFromTo returns the closed range [fromDate, toDate].
+func (tp *TimePeriod) DatesFromTo() (civil.Date, civil.Date) {
+	return tp.DateTo.AddDays(-tp.Days + 1), tp.DateTo
+}
+
+func MakeTimePeriod(targetDate civil.Date, periodType string) (TimePeriod, error) {
+	pOps, err := PeriodOps(periodType)
+	if err != nil {
+		return TimePeriod{}, err
+	}
+	tp := TimePeriod{DateTo: targetDate, Days: pOps.pointedPeriodDays(targetDate), Type: periodType}
+	if !pOps.IsValidPeriod(tp) {
+		return TimePeriod{}, fmt.Errorf("date %s doesn't point the period(%s) end", targetDate.String(), periodType)
+	}
+	return tp, nil
 }
 
 const (
+	DayPeriod     = "day"
 	MonthPeriod   = "month"
 	QuarterPeriod = "quarter"
 )
@@ -25,6 +45,8 @@ var errUnknownTimePeriodType = errors.New("unknown time period type")
 
 func MinMaxDays(periodType string) (int, int, error) {
 	switch periodType {
+	case DayPeriod:
+		return 1, 1, nil
 	case MonthPeriod:
 		return 28, 31, nil
 	case QuarterPeriod:
@@ -36,6 +58,8 @@ func MinMaxDays(periodType string) (int, int, error) {
 
 func PeriodOps(periodType string) (periodOps, error) {
 	switch periodType {
+	case DayPeriod:
+		return &DayPeriodOps{}, nil
 	case MonthPeriod:
 		return &MonthPeriodOps{}, nil
 	case QuarterPeriod:
@@ -51,15 +75,19 @@ type periodOps interface {
 	pointedPeriodDays(d civil.Date) int
 }
 
-func GenNPeriodEndDatesTill(n int, d civil.Date, po periodOps) []civil.Date {
-	var res []civil.Date
+func GenNPeriodsTill(n int, d civil.Date, periodType string) ([]TimePeriod, error) {
+	pOps, err := PeriodOps(periodType)
+	if err != nil {
+		return nil, err
+	}
+	var res []TimePeriod
 	for i := 0; i < n; i++ {
-		d = po.lastPeriodDate(d)
-		res = append(res, d)
-		d = d.AddDays(-po.pointedPeriodDays(d))
+		d = pOps.lastPeriodDate(d)
+		res = append(res, TimePeriod{DateTo: d, Days: pOps.pointedPeriodDays(d), Type: periodType})
+		d = d.AddDays(-pOps.pointedPeriodDays(d))
 	}
 	slices.Reverse(res)
-	return res
+	return res, nil
 }
 
 type DayPeriodOps struct{}

@@ -57,74 +57,70 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</tr>
 		</table>
 		{{if not (eq .URLPath "/admin")}}
-      <div class="navigation">
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}'>
-            <span style="color:DeepPink;">🐞</span> Open [{{$.BugCounts.Open}}]</a>
-        </div>
+		<div class="navigation">
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}'><span style="color:DeepPink;">🐞</span> Open [{{$.BugCounts.Open}}]</a>
+			</div>
 
-        {{if .ShowSubsystems}}
-          <div class="navigation_tab{{if eq .URLPath (printf "/%v/subsystems" $.Namespace)}}_selected{{end}}">
-            <a href='/{{$.Namespace}}/subsystems'>
-              <span style="color:DeepPink;">≡</span> Subsystems</a>
-          </div>
-        {{end}}
+			{{if .ShowSubsystems}}
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/subsystems" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}/subsystems'><span style="color:DeepPink;">≡</span> Subsystems</a>
+			</div>
+			{{end}}
 
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}">
-          <a href='/{{$.Namespace}}/fixed'>
-            <span style="color:ForestGreen;">🐞</span> Fixed [{{$.BugCounts.Fixed}}]</a>
-        </div>
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}/fixed'><span style="color:ForestGreen;">🐞</span> Fixed [{{$.BugCounts.Fixed}}]</a>
+			</div>
 
-        <div class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
-          <a href='/{{$.Namespace}}/invalid'>
-            <span style="color:RoyalBlue;">🐞</span> Invalid [{{$.BugCounts.Invalid}}]</a>
-        </div>
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
+				<a href='/{{$.Namespace}}/invalid'><span style="color:RoyalBlue;">🐞</span> Invalid [{{$.BugCounts.Invalid}}]</a>
+			</div>
 
-        {{if gt .MissingBackports 0}}
-          <div class="navigation_tab{{if eq .URLPath (printf "/%v/backports" $.Namespace)}}_selected{{end}}">
-            <a href='/{{$.Namespace}}/backports'>
-              <span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]</a>
-          </div>
-        {{end}}
+			{{if gt .MissingBackports 0}}
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/backports" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}/backports'><span style="color:ForestGreen;">⬇</span> Missing Backports [{{$.MissingBackports}}]</a>
+			</div>
+			{{end}}
 
-        <div class="dropdown navigation_tab">
-          <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
-          <div class="dropdown-content">
-            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/bugs'>Kernel&nbsp;Health</a>
-            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/found-bugs'>Bugs/Month</a>
-            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/lifetimes'>Bug&nbsp;Lifetimes</a>
-            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/fuzzing'>Fuzzing</a>
-            <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}"
-                href='/{{$.Namespace}}/graph/crashes'>Crashes</a>
-          </div>
-        </div>
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}/graph/crashes'><span style="color:ForestGreen;">≡</span> Crashes</a>
+			</div>
 
-        {{if .ShowCoverageMenu}}
-          <div class="dropdown navigation_tab">
-            <button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
-            <div class="dropdown-content">
-              <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}"
-                  href="/{{$.Namespace}}/graph/coverage">Total</a>
-              <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_heatmap" $.Namespace)}}_selected{{end}}"
-                  href="/{{$.Namespace}}/graph/coverage_heatmap">Repo&nbsp;Heatmap</a>
-              {{ if .ShowSubsystems }}
-                <a  class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_subsystems_heatmap" $.Namespace)}}_selected{{end}}"
-                    href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap">Subsystems&nbsp;Heatmap</a>
-              {{ end }}
-            </div>
-          </div>
-        {{end}}
-        {{if .ContactEmail}}
-          <div class="navigation_tab navigation_right">
-            <a href='mailto:{{.ContactEmail}}'>
-              <span style="color:ForestGreen;">💬</span> Send us feedback</a>
-          </div>
-        {{end}}
-      </div>
+			<div class="dropdown navigation_tab">
+				<button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
+				<div class="dropdown-content">
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}"
+						href='/{{$.Namespace}}/graph/bugs'>Kernel&nbsp;Health</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/found-bugs" $.Namespace)}}_selected{{end}}"
+						href='/{{$.Namespace}}/graph/found-bugs'>Bugs/Month</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}"
+						href='/{{$.Namespace}}/graph/lifetimes'>Bug&nbsp;Lifetimes</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}"
+						href='/{{$.Namespace}}/graph/fuzzing'>Fuzzing</a>
+				</div>
+			</div>
+
+			{{if .ShowCoverageMenu}}
+			<div class="dropdown navigation_tab">
+				<button class="dropbtn"><span style="color:DarkOrange;">📈</span>Coverage</button>
+				<div class="dropdown-content">
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}"
+						href="/{{$.Namespace}}/graph/coverage?period=quarter">Total</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_heatmap" $.Namespace)}}_selected{{end}}"
+						href="/{{$.Namespace}}/graph/coverage_heatmap?period=month">Repo&nbsp;Heatmap</a>
+					{{if .ShowSubsystems}}
+						<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_subsystems_heatmap" $.Namespace)}}_selected{{end}}"
+							href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap?period=month">Subsystems&nbsp;Heatmap</a>
+					{{end}}
+				</div>
+			</div>
+			{{end}}
+			{{if .ContactEmail}}
+			<div class="navigation_tab navigation_right">
+				<a href='mailto:{{.ContactEmail}}'><span style="color:ForestGreen;">💬</span> Send us feedback</a>
+			</div>
+			{{end}}
+		</div>
 		{{end}}
 	</header>
 	<br>
@@ -365,7 +361,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if .FixCandidate}}
 				<b>Fix candidate bisection: failed</b>
 			{{else}}
-			        <b>Fix bisection: failed</b>
+				<b>Fix bisection: failed</b>
 			{{end}}
 		{{end}}
 		<b>({{link .ErrorLink "error log"}}{{if .LogLink}}, {{link .LogLink "bisect log"}}{{end}})</b><br>
@@ -376,7 +372,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if .FixCandidate}}
 				<b>Fix commit to backport</b>
 			{{else}}
-			        <b>Fix bisection: fixed by</b>
+				<b>Fix bisection: fixed by</b>
 			{{end}}
 		{{end}}
 		<b>({{link .LogLink "bisect log"}})</b> <span class="bad">{{print .Flags}}</span>:<br>
@@ -646,7 +642,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</td>
 			{{else}}
 			<td class="status-ok">Didn't crash</td>
-                        {{end}}
+			{{end}}
 		</tr>
 	{{end}}
 	</tbody>

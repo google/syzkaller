@@ -96,7 +96,7 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 	if _, err := git.git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
-	return git.HeadCommit()
+	return git.Commit(HEAD)
 }
 
 func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
@@ -127,7 +127,7 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 	if err := git.repair(); err != nil {
 		return nil, err
 	}
-	return git.HeadCommit()
+	return git.Commit(HEAD)
 }
 
 func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
@@ -176,7 +176,7 @@ func (git *git) SwitchCommit(commit string) (*Commit, error) {
 	if _, err := git.git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
-	return git.HeadCommit()
+	return git.Commit(HEAD)
 }
 
 func (git *git) clone(repo, branch string) error {
@@ -237,20 +237,30 @@ func (git *git) initRepo(reason error) error {
 }
 
 func (git *git) Contains(commit string) (bool, error) {
-	_, err := git.git("merge-base", "--is-ancestor", commit, "HEAD")
+	_, err := git.git("merge-base", "--is-ancestor", commit, HEAD)
 	return err == nil, nil
 }
 
-func (git *git) HeadCommit() (*Commit, error) {
-	return git.getCommit("HEAD")
-}
-
-func (git *git) getCommit(commit string) (*Commit, error) {
-	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b", "-n", "1", commit)
+func (git *git) Commit(com string) (*Commit, error) {
+	const patchSeparator = "---===syzkaller-patch-separator===---"
+	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b"+patchSeparator,
+		"-n", "1", "-p", "-U0", com)
 	if err != nil {
 		return nil, err
 	}
-	return gitParseCommit(output, nil, nil, git.ignoreCC)
+	pos := bytes.Index(output, []byte(patchSeparator))
+	if pos == -1 {
+		return nil, fmt.Errorf("git log output does not contain patch separator")
+	}
+	commit, err := gitParseCommit(output[:pos], nil, nil, git.ignoreCC)
+	if err != nil {
+		return nil, err
+	}
+	commit.Patch = output[pos+len(patchSeparator):]
+	for len(commit.Patch) != 0 && commit.Patch[0] == '\n' {
+		commit.Patch = commit.Patch[1:]
+	}
+	return commit, nil
 }
 
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
@@ -351,7 +361,7 @@ func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
 		m[canonical] = title
 	}
 	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
-	commits, err := git.fetchCommits(since, "HEAD", "", "", greps, true)
+	commits, err := git.fetchCommits(since, HEAD, "", "", greps, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -479,7 +489,7 @@ func splitEmail(email string) (user, domain string, err error) {
 func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,
 	error)) ([]*Commit, error) {
 	git.reset()
-	firstBad, err := git.getCommit(bad)
+	firstBad, err := git.Commit(bad)
 	if err != nil {
 		return nil, err
 	}
@@ -489,7 +499,7 @@ func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func()
 	}
 	defer git.reset()
 	dt.Log("# git bisect start %v %v\n%s", bad, good, output)
-	current, err := git.HeadCommit()
+	current, err := git.Commit(HEAD)
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +526,7 @@ func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func()
 			}
 			return nil, err
 		}
-		next, err := git.HeadCommit()
+		next, err := git.Commit(HEAD)
 		if err != nil {
 			return nil, err
 		}
@@ -544,7 +554,7 @@ func (git *git) bisectInconclusive(output []byte) ([]*Commit, error) {
 	//	7c3850adbcccc2c6c9e7ab23a7dcbc4926ee5b96 is the first bad commit
 	var commits []*Commit
 	for _, hash := range gitFullHashRe.FindAll(output, -1) {
-		com, err := git.getCommit(string(hash))
+		com, err := git.Commit(string(hash))
 		if err != nil {
 			return nil, err
 		}
@@ -611,7 +621,7 @@ func (git *git) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) 
 	}
 	ret := []*Commit{}
 	for _, hash := range strings.Fields(string(output)) {
-		commit, err := git.getCommit(hash)
+		commit, err := git.Commit(hash)
 		if err != nil {
 			return nil, err
 		}
@@ -634,4 +644,24 @@ func (git *git) CommitExists(commit string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (git *git) PushCommit(repo, commit string) error {
+	tagName := "tag-" + commit // assign tag to guarantee remote persistence
+	git.git("tag", tagName)    // ignore errors on re-tagging
+	if _, err := git.git("push", repo, "tag", tagName); err != nil {
+		return fmt.Errorf("git push %s tag %s: %w", repo, tagName, err)
+	}
+	return nil
+}
+
+var fileNameRe = regexp.MustCompile(`(?m)^diff.* b\/([^\s]+)`)
+
+// ParseGitDiff extracts the files modified in the git patch.
+func ParseGitDiff(patch []byte) []string {
+	var files []string
+	for _, match := range fileNameRe.FindAllStringSubmatch(string(patch), -1) {
+		files = append(files, match[1])
+	}
+	return files
 }

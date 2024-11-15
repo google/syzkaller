@@ -19,6 +19,7 @@ typedef enum {
 	SYZOS_API_SMC,
 	SYZOS_API_HVC,
 	SYZOS_API_IRQ_SETUP,
+	SYZOS_API_MEMWRITE,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -54,12 +55,21 @@ struct api_call_irq_setup {
 	uint32 nr_spis;
 };
 
+struct api_call_memwrite {
+	struct api_call_header header;
+	uint64 base_addr;
+	uint64 offset;
+	uint64 value;
+	uint64 len;
+};
+
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint32* insns, uint64 size);
 static void guest_handle_msr(uint64 reg, uint64 val);
 static void guest_handle_smc(struct api_call_smccc* cmd);
 static void guest_handle_hvc(struct api_call_smccc* cmd);
 static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
+static void guest_handle_memwrite(struct api_call_memwrite* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -69,9 +79,11 @@ typedef enum {
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
-GUEST_CODE static void guest_main(uint64 size)
+__attribute__((used))
+GUEST_CODE static void
+guest_main(uint64 size, uint64 cpu)
 {
-	uint64 addr = ARM64_ADDR_USER_CODE;
+	uint64 addr = ARM64_ADDR_USER_CODE + cpu * 0x1000;
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
@@ -105,6 +117,10 @@ GUEST_CODE static void guest_main(uint64 size)
 		}
 		case SYZOS_API_IRQ_SETUP: {
 			guest_handle_irq_setup((struct api_call_irq_setup*)cmd);
+			break;
+		}
+		case SYZOS_API_MEMWRITE: {
+			guest_handle_memwrite((struct api_call_memwrite*)cmd);
 			break;
 		}
 		}
@@ -141,6 +157,18 @@ GUEST_CODE static uint32 reg_to_msr(uint64 reg)
 	return MSR_REG_OPCODE | ((reg & 0xffff) << 5);
 }
 
+// Host sets TPIDR_EL1 to contain the virtual CPU id.
+GUEST_CODE static uint32 get_cpu_id()
+{
+	uint64 val = 0; // Suppress lint warning.
+	asm volatile("mrs %0, tpidr_el1"
+		     : "=r"(val));
+	return (uint32)val;
+}
+
+// Some ARM chips use 128-byte cache lines. Pick 256 to be on the safe side.
+#define MAX_CACHE_LINE_SIZE 256
+
 // Write value to a system register using an MSR instruction.
 // The word "MSR" here has nothing to do with the x86 MSR registers.
 __attribute__((noinline))
@@ -148,7 +176,9 @@ GUEST_CODE static void
 guest_handle_msr(uint64 reg, uint64 val)
 {
 	uint32 msr = reg_to_msr(reg);
-	uint32* insn = (uint32*)ARM64_ADDR_SCRATCH_CODE;
+	uint32 cpu_id = get_cpu_id();
+	// Make sure CPUs use different cache lines for scratch code.
+	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
 	insn[0] = msr;
 	insn[1] = 0xd65f03c0; // RET
 	// Put `val` into x0 and make a call to the generated MSR instruction.
@@ -432,10 +462,9 @@ GUEST_CODE void gicv3_cpu_init(uint32 cpu)
 #define VGICV3_MAX_SPI 1019
 
 // https://developer.arm.com/documentation/ihi0048/b/Programmers--Model/Distributor-register-descriptions/Interrupt-Set-Enable-Registers--GICD-ISENABLERn
-GUEST_CODE void gicv3_irq_enable(uint32 intid)
+GUEST_CODE static void gicv3_irq_enable(uint32 intid)
 {
-	// TODO(glider): support multiple CPUs. E.g. KVM selftests store CPU ID in TPIDR_EL1.
-	uint32 cpu = 0;
+	uint32 cpu = get_cpu_id();
 
 	writel(1 << (intid % 32), ARM64_ADDR_GICD_BASE + GICD_ISENABLER + (intid / 32) * 4);
 	if ((intid >= VGICV3_MIN_SPI) && (intid <= VGICV3_MAX_SPI))
@@ -465,6 +494,35 @@ GUEST_CODE static void guest_handle_irq_setup(struct api_call_irq_setup* cmd)
 	    :
 	    :
 	    : "x1");
+}
+
+GUEST_CODE static void guest_handle_memwrite(struct api_call_memwrite* cmd)
+{
+	uint64 dest = cmd->base_addr + cmd->offset;
+	switch (cmd->len) {
+	case 1: {
+		volatile uint8* p = (uint8*)dest;
+		*p = (uint8)cmd->value;
+		break;
+	}
+
+	case 2: {
+		volatile uint16* p = (uint16*)dest;
+		*p = (uint16)cmd->value;
+		break;
+	}
+	case 4: {
+		volatile uint32* p = (uint32*)dest;
+		*p = (uint32)cmd->value;
+		break;
+	}
+	case 8:
+	default: {
+		volatile uint64* p = (uint64*)dest;
+		*p = (uint64)cmd->value;
+		break;
+	}
+	}
 }
 
 // Registers saved by one_irq_handler() and received by guest_irq_handler().

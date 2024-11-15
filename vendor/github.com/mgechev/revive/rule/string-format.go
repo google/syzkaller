@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/mgechev/revive/lint"
 )
@@ -66,11 +67,13 @@ type lintStringFormatRule struct {
 
 type stringFormatSubrule struct {
 	parent       *lintStringFormatRule
-	scope        stringFormatSubruleScope
+	scopes       stringFormatSubruleScopes
 	regexp       *regexp.Regexp
 	negated      bool
 	errorMessage string
 }
+
+type stringFormatSubruleScopes []*stringFormatSubruleScope
 
 type stringFormatSubruleScope struct {
 	funcName string // Function name the rule is scoped to
@@ -90,10 +93,10 @@ var parseStringFormatScope = regexp.MustCompile(
 
 func (w *lintStringFormatRule) parseArguments(arguments lint.Arguments) {
 	for i, argument := range arguments {
-		scope, regex, negated, errorMessage := w.parseArgument(argument, i)
+		scopes, regex, negated, errorMessage := w.parseArgument(argument, i)
 		w.rules = append(w.rules, stringFormatSubrule{
 			parent:       w,
-			scope:        scope,
+			scopes:       scopes,
 			regexp:       regex,
 			negated:      negated,
 			errorMessage: errorMessage,
@@ -101,7 +104,7 @@ func (w *lintStringFormatRule) parseArguments(arguments lint.Arguments) {
 	}
 }
 
-func (w lintStringFormatRule) parseArgument(argument any, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, negated bool, errorMessage string) {
+func (w lintStringFormatRule) parseArgument(argument any, ruleNum int) (scopes stringFormatSubruleScopes, regex *regexp.Regexp, negated bool, errorMessage string) {
 	g, ok := argument.([]any) // Cast to generic slice first
 	if !ok {
 		w.configError("argument is not a slice", ruleNum, 0)
@@ -125,26 +128,39 @@ func (w lintStringFormatRule) parseArgument(argument any, ruleNum int) (scope st
 		w.configError("regex is too small (regexes should begin and end with '/')", ruleNum, 1)
 	}
 
-	// Parse rule scope
-	scope = stringFormatSubruleScope{}
-	matches := parseStringFormatScope.FindStringSubmatch(rule[0])
-	if matches == nil {
-		// The rule's scope didn't match the parsing regex at all, probably a configuration error
-		w.parseError("unable to parse rule scope", ruleNum, 0)
-	} else if len(matches) != 4 {
-		// The rule's scope matched the parsing regex, but an unexpected number of submatches was returned, probably a bug
-		w.parseError(fmt.Sprintf("unexpected number of submatches when parsing scope: %d, expected 4", len(matches)), ruleNum, 0)
-	}
-	scope.funcName = matches[1]
-	if len(matches[2]) > 0 {
-		var err error
-		scope.argument, err = strconv.Atoi(matches[2])
-		if err != nil {
-			w.parseError("unable to parse argument number in rule scope", ruleNum, 0)
+	// Parse rule scopes
+	rawScopes := strings.Split(rule[0], ",")
+
+	scopes = make([]*stringFormatSubruleScope, 0, len(rawScopes))
+	for scopeNum, rawScope := range rawScopes {
+		rawScope = strings.TrimSpace(rawScope)
+
+		if len(rawScope) == 0 {
+			w.parseScopeError("empty scope in rule scopes:", ruleNum, 0, scopeNum)
 		}
-	}
-	if len(matches[3]) > 0 {
-		scope.field = matches[3]
+
+		scope := stringFormatSubruleScope{}
+		matches := parseStringFormatScope.FindStringSubmatch(rawScope)
+		if matches == nil {
+			// The rule's scope didn't match the parsing regex at all, probably a configuration error
+			w.parseScopeError("unable to parse rule scope", ruleNum, 0, scopeNum)
+		} else if len(matches) != 4 {
+			// The rule's scope matched the parsing regex, but an unexpected number of submatches was returned, probably a bug
+			w.parseScopeError(fmt.Sprintf("unexpected number of submatches when parsing scope: %d, expected 4", len(matches)), ruleNum, 0, scopeNum)
+		}
+		scope.funcName = matches[1]
+		if len(matches[2]) > 0 {
+			var err error
+			scope.argument, err = strconv.Atoi(matches[2])
+			if err != nil {
+				w.parseScopeError("unable to parse argument number in rule scope", ruleNum, 0, scopeNum)
+			}
+		}
+		if len(matches[3]) > 0 {
+			scope.field = matches[3]
+		}
+
+		scopes = append(scopes, &scope)
 	}
 
 	// Strip / characters from the beginning and end of rule[1] before compiling
@@ -162,7 +178,7 @@ func (w lintStringFormatRule) parseArgument(argument any, ruleNum int) (scope st
 	if len(rule) == 3 {
 		errorMessage = rule[2]
 	}
-	return scope, regex, negated, errorMessage
+	return scopes, regex, negated, errorMessage
 }
 
 // Report an invalid config, this is specifically the user's fault
@@ -173,6 +189,11 @@ func (lintStringFormatRule) configError(msg string, ruleNum, option int) {
 // Report a general config parsing failure, this may be the user's fault, but it isn't known for certain
 func (lintStringFormatRule) parseError(msg string, ruleNum, option int) {
 	panic(fmt.Sprintf("failed to parse configuration for string-format: %s [argument %d, option %d]", msg, ruleNum, option))
+}
+
+// Report a general scope config parsing failure, this may be the user's fault, but it isn't known for certain
+func (lintStringFormatRule) parseScopeError(msg string, ruleNum, option, scopeNum int) {
+	panic(fmt.Sprintf("failed to parse configuration for string-format: %s [argument %d, option %d, scope index %d]", msg, ruleNum, option, scopeNum))
 }
 
 // #endregion
@@ -193,8 +214,10 @@ func (w lintStringFormatRule) Visit(node ast.Node) ast.Visitor {
 	}
 
 	for _, rule := range w.rules {
-		if rule.scope.funcName == callName {
-			rule.Apply(call)
+		for _, scope := range rule.scopes {
+			if scope.funcName == callName {
+				rule.apply(call, scope)
+			}
 		}
 	}
 
@@ -228,15 +251,15 @@ func (lintStringFormatRule) getCallName(call *ast.CallExpr) (callName string, ok
 
 // #region Linting logic
 
-// Apply a single format rule to a call expression (should be done after verifying the that the call expression matches the rule's scope)
-func (r *stringFormatSubrule) Apply(call *ast.CallExpr) {
-	if len(call.Args) <= r.scope.argument {
+// apply a single format rule to a call expression (should be done after verifying the that the call expression matches the rule's scope)
+func (r *stringFormatSubrule) apply(call *ast.CallExpr, scope *stringFormatSubruleScope) {
+	if len(call.Args) <= scope.argument {
 		return
 	}
 
-	arg := call.Args[r.scope.argument]
+	arg := call.Args[scope.argument]
 	var lit *ast.BasicLit
-	if len(r.scope.field) > 0 {
+	if len(scope.field) > 0 {
 		// Try finding the scope's Field, treating arg as a composite literal
 		composite, ok := arg.(*ast.CompositeLit)
 		if !ok {
@@ -248,7 +271,7 @@ func (r *stringFormatSubrule) Apply(call *ast.CallExpr) {
 				continue
 			}
 			key, ok := kv.Key.(*ast.Ident)
-			if !ok || key.Name != r.scope.field {
+			if !ok || key.Name != scope.field {
 				continue
 			}
 
@@ -268,39 +291,33 @@ func (r *stringFormatSubrule) Apply(call *ast.CallExpr) {
 	}
 	// Unquote the string literal before linting
 	unquoted := lit.Value[1 : len(lit.Value)-1]
-	r.lintMessage(unquoted, lit)
+	if r.stringIsOK(unquoted) {
+		return
+	}
+
+	r.generateFailure(lit)
 }
 
-func (r *stringFormatSubrule) lintMessage(s string, node ast.Node) {
+func (r *stringFormatSubrule) stringIsOK(s string) bool {
+	matches := r.regexp.MatchString(s)
 	if r.negated {
-		if !r.regexp.MatchString(s) {
-			return
-		}
-		// Fail if the string does match the user's regex
-		var failure string
-		if len(r.errorMessage) > 0 {
-			failure = r.errorMessage
-		} else {
-			failure = fmt.Sprintf("string literal matches user defined regex /%s/", r.regexp.String())
-		}
-		r.parent.onFailure(lint.Failure{
-			Confidence: 1,
-			Failure:    failure,
-			Node:       node,
-		})
-		return
+		return !matches
 	}
 
-	// Fail if the string does NOT match the user's regex
-	if r.regexp.MatchString(s) {
-		return
-	}
+	return matches
+}
+
+func (r *stringFormatSubrule) generateFailure(node ast.Node) {
 	var failure string
-	if len(r.errorMessage) > 0 {
+	switch {
+	case len(r.errorMessage) > 0:
 		failure = r.errorMessage
-	} else {
+	case r.negated:
+		failure = fmt.Sprintf("string literal matches user defined regex /%s/", r.regexp.String())
+	case !r.negated:
 		failure = fmt.Sprintf("string literal doesn't match user defined regex /%s/", r.regexp.String())
 	}
+
 	r.parent.onFailure(lint.Failure{
 		Confidence: 1,
 		Failure:    failure,

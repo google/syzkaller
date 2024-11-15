@@ -208,10 +208,7 @@ Please visit the new discussion thread.`
 		}
 		return nil
 	}
-	return reply, db.RunInTransaction(c, tx, &db.TransactionOptions{
-		XG:       true,
-		Attempts: 10,
-	})
+	return reply, runInTransaction(c, tx, &db.TransactionOptions{XG: true})
 }
 
 func findSubsystemReportByID(c context.Context, ID string) (*Subsystem,
@@ -534,7 +531,7 @@ func (sr *subsystemsRegistry) store(item *Subsystem) {
 
 func (sr *subsystemsRegistry) updatePoll(c context.Context, s *Subsystem, success bool) error {
 	key := subsystemKey(c, s)
-	return db.RunInTransaction(c, func(c context.Context) error {
+	return runInTransaction(c, func(c context.Context) error {
 		dbSubsystem := new(Subsystem)
 		err := db.Get(c, key, dbSubsystem)
 		if err == db.ErrNoSuchEntity {
@@ -564,19 +561,18 @@ func makeSubsystemReportRegistry(c context.Context) (*subsystemReportRegistry, e
 	if err != nil {
 		return nil, err
 	}
-	var subsystemKeys []*db.Key
-	for _, key := range reportKeys {
-		subsystemKeys = append(subsystemKeys, key.Parent())
-	}
-	subsystems := make([]*Subsystem, len(subsystemKeys))
-	if err := db.GetMulti(c, subsystemKeys, subsystems); err != nil {
-		return nil, fmt.Errorf("failed to query subsystems: %w", err)
-	}
 	ret := &subsystemReportRegistry{
 		entities: map[string]map[string][]*SubsystemReport{},
 	}
-	for i, item := range reports {
-		ret.store(subsystems[i].Namespace, subsystems[i].Name, item)
+	loader := &dependencyLoader[Subsystem]{}
+	for i, key := range reportKeys {
+		report := reports[i]
+		loader.add(key.Parent(), func(subsystem *Subsystem) {
+			ret.store(subsystem.Namespace, subsystem.Name, report)
+		})
+	}
+	if err := loader.load(c); err != nil {
+		return nil, err
 	}
 	return ret, nil
 }
@@ -594,7 +590,7 @@ func (srr *subsystemReportRegistry) store(ns, name string, item *SubsystemReport
 
 func storeSubsystemReport(c context.Context, s *Subsystem, report *SubsystemReport) error {
 	key := subsystemKey(c, s)
-	return db.RunInTransaction(c, func(c context.Context) error {
+	return runInTransaction(c, func(c context.Context) error {
 		// First close all previouly active per-subsystem reports.
 		var previous []*SubsystemReport
 		prevKeys, err := db.NewQuery("SubsystemReport").

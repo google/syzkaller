@@ -21,27 +21,27 @@ func (*EarlyReturnRule) Name() string {
 	return "early-return"
 }
 
-// CheckIfElse evaluates the rule against an ifelse.Chain.
-func (*EarlyReturnRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) (failMsg string) {
+// CheckIfElse evaluates the rule against an ifelse.Chain and returns a failure message if applicable.
+func (*EarlyReturnRule) CheckIfElse(chain ifelse.Chain, args ifelse.Args) string {
 	if !chain.Else.Deviates() {
 		// this rule only applies if the else-block deviates control flow
-		return
+		return ""
 	}
 
 	if chain.HasPriorNonDeviating && !chain.If.IsEmpty() {
 		// if we de-indent this block then a previous branch
 		// might flow into it, affecting program behaviour
-		return
+		return ""
 	}
 
 	if chain.If.Deviates() {
 		// avoid overlapping with superfluous-else
-		return
+		return ""
 	}
 
 	if args.PreserveScope && !chain.AtBlockEnd && (chain.HasInitializer || chain.If.HasDecls) {
 		// avoid increasing variable scope
-		return
+		return ""
 	}
 
 	if chain.If.IsEmpty() {

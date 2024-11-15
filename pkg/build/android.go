@@ -107,7 +107,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 	defer imageFile.Close()
 
-	if err := a.copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
+	if err := copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
 		return details, fmt.Errorf("failed copying module files: %w", err)
 	}
 
@@ -124,7 +124,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	return details, nil
 }
 
-func (a android) copyModuleFiles(srcDir, dstDir string) error {
+func copyModuleFiles(srcDir, dstDir string) error {
 	err := filepath.Walk(srcDir,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -179,11 +179,11 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 	return nil
 }
 
-func (a android) clean(kernelDir, targetArch string) error {
-	if err := osutil.RemoveAll(filepath.Join(kernelDir, "out")); err != nil {
+func (a android) clean(params Params) error {
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
 		return fmt.Errorf("failed to clean 'out' directory: %w", err)
 	}
-	if err := osutil.RemoveAll(filepath.Join(kernelDir, "dist")); err != nil {
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "dist")); err != nil {
 		return fmt.Errorf("failed to clean 'dist' directory: %w", err)
 	}
 	return nil

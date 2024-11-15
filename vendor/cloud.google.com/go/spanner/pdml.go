@@ -84,7 +84,7 @@ func (c *Client) partitionedUpdate(ctx context.Context, statement Statement, opt
 	// Execute the PDML and retry if the transaction is aborted.
 	executePdmlWithRetry := func(ctx context.Context) (int64, error) {
 		for {
-			count, err := executePdml(contextWithOutgoingMetadata(ctx, sh.getMetadata(), c.disableRouteToLeader), sh, req)
+			count, err := executePdml(contextWithOutgoingMetadata(ctx, sh.getMetadata(), c.disableRouteToLeader), sh, req, options)
 			if err == nil {
 				return count, nil
 			}
@@ -106,14 +106,15 @@ func (c *Client) partitionedUpdate(ctx context.Context, statement Statement, opt
 // 3. Execute the update statement on the PDML transaction
 //
 // Note that PDML transactions cannot be committed or rolled back.
-func executePdml(ctx context.Context, sh *sessionHandle, req *sppb.ExecuteSqlRequest) (count int64, err error) {
+func executePdml(ctx context.Context, sh *sessionHandle, req *sppb.ExecuteSqlRequest, options QueryOptions) (count int64, err error) {
 	var md metadata.MD
 	sh.updateLastUseTime()
 	// Begin transaction.
 	res, err := sh.getClient().BeginTransaction(ctx, &sppb.BeginTransactionRequest{
 		Session: sh.getID(),
 		Options: &sppb.TransactionOptions{
-			Mode: &sppb.TransactionOptions_PartitionedDml_{PartitionedDml: &sppb.TransactionOptions_PartitionedDml{}},
+			Mode:                        &sppb.TransactionOptions_PartitionedDml_{PartitionedDml: &sppb.TransactionOptions_PartitionedDml{}},
+			ExcludeTxnFromChangeStreams: options.ExcludeTxnFromChangeStreams,
 		},
 	})
 	if err != nil {

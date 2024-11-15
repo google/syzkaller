@@ -3,7 +3,6 @@ package checkers
 import (
 	"go/ast"
 	"go/token"
-	"go/types"
 
 	"golang.org/x/tools/go/analysis"
 
@@ -50,13 +49,11 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			}
 			survivingArg = newBoolCast(survivingArg)
 		}
-		return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-			newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
-				Pos:     replaceStart,
-				End:     replaceEnd,
-				NewText: analysisutil.NodeBytes(pass.Fset, survivingArg),
-			}),
-		)
+		return newUseFunctionDiagnostic(checker.Name(), call, proposed, analysis.TextEdit{
+			Pos:     replaceStart,
+			End:     replaceEnd,
+			NewText: analysisutil.NodeBytes(pass.Fset, survivingArg),
+		})
 	}
 
 	newUseTrueDiagnostic := func(survivingArg ast.Expr, replaceStart, replaceEnd token.Pos) *analysis.Diagnostic {
@@ -75,7 +72,7 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 			survivingArg = newBoolCast(survivingArg)
 		}
 		return newDiagnostic(checker.Name(), call, "need to simplify the assertion",
-			&analysis.SuggestedFix{
+			analysis.SuggestedFix{
 				Message: "Simplify the assertion",
 				TextEdits: []analysis.TextEdit{{
 					Pos:     replaceStart,
@@ -107,7 +104,7 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 		case xor(t1, t2):
 			survivingArg, _ := anyVal([]bool{t1, t2}, arg2, arg1)
 			if call.Fn.NameFTrimmed == "Exactly" && !isBuiltinBool(pass, survivingArg) {
-				// NOTE(a.telyshev): `Exactly` assumes no type casting.
+				// NOTE(a.telyshev): `Exactly` assumes no type conversion.
 				return nil
 			}
 			return newUseTrueDiagnostic(survivingArg, arg1.Pos(), arg2.End())
@@ -115,7 +112,7 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 		case xor(f1, f2):
 			survivingArg, _ := anyVal([]bool{f1, f2}, arg2, arg1)
 			if call.Fn.NameFTrimmed == "Exactly" && !isBuiltinBool(pass, survivingArg) {
-				// NOTE(a.telyshev): `Exactly` assumes no type casting.
+				// NOTE(a.telyshev): `Exactly` assumes no type conversion.
 				return nil
 			}
 			return newUseFalseDiagnostic(survivingArg, arg1.Pos(), arg2.End())
@@ -204,101 +201,10 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 	return nil
 }
 
-func isEmptyInterface(pass *analysis.Pass, expr ast.Expr) bool {
-	t, ok := pass.TypesInfo.Types[expr]
-	if !ok {
-		return false
-	}
-
-	iface, ok := t.Type.Underlying().(*types.Interface)
-	return ok && iface.NumMethods() == 0
-}
-
-func isBuiltinBool(pass *analysis.Pass, e ast.Expr) bool {
-	basicType, ok := pass.TypesInfo.TypeOf(e).(*types.Basic)
-	return ok && basicType.Kind() == types.Bool
-}
-
-func isBoolOverride(pass *analysis.Pass, e ast.Expr) bool {
-	namedType, ok := pass.TypesInfo.TypeOf(e).(*types.Named)
-	return ok && namedType.Obj().Name() == "bool"
-}
-
-var (
-	falseObj = types.Universe.Lookup("false")
-	trueObj  = types.Universe.Lookup("true")
-)
-
-func isUntypedTrue(pass *analysis.Pass, e ast.Expr) bool {
-	return analysisutil.IsObj(pass.TypesInfo, e, trueObj)
-}
-
-func isUntypedFalse(pass *analysis.Pass, e ast.Expr) bool {
-	return analysisutil.IsObj(pass.TypesInfo, e, falseObj)
-}
-
-func isComparisonWithTrue(pass *analysis.Pass, e ast.Expr, op token.Token) (ast.Expr, bool) {
-	return isComparisonWith(pass, e, isUntypedTrue, op)
-}
-
-func isComparisonWithFalse(pass *analysis.Pass, e ast.Expr, op token.Token) (ast.Expr, bool) {
-	return isComparisonWith(pass, e, isUntypedFalse, op)
-}
-
-type predicate func(pass *analysis.Pass, e ast.Expr) bool
-
-func isComparisonWith(pass *analysis.Pass, e ast.Expr, predicate predicate, op token.Token) (ast.Expr, bool) {
-	be, ok := e.(*ast.BinaryExpr)
-	if !ok {
-		return nil, false
-	}
-	if be.Op != op {
-		return nil, false
-	}
-
-	t1, t2 := predicate(pass, be.X), predicate(pass, be.Y)
-	if xor(t1, t2) {
-		if t1 {
-			return be.Y, true
-		}
-		return be.X, true
-	}
-	return nil, false
-}
-
 func isNegation(e ast.Expr) (ast.Expr, bool) {
 	ue, ok := e.(*ast.UnaryExpr)
 	if !ok {
 		return nil, false
 	}
 	return ue.X, ue.Op == token.NOT
-}
-
-func xor(a, b bool) bool {
-	return a != b
-}
-
-// anyVal returns the first value[i] for which bools[i] is true.
-func anyVal[T any](bools []bool, vals ...T) (T, bool) {
-	if len(bools) != len(vals) {
-		panic("inconsistent usage of valOr") //nolint:forbidigo // Does not depend on the code being analyzed.
-	}
-
-	for i, b := range bools {
-		if b {
-			return vals[i], true
-		}
-	}
-
-	var _default T
-	return _default, false
-}
-
-func anyCondSatisfaction(pass *analysis.Pass, p predicate, vals ...ast.Expr) bool {
-	for _, v := range vals {
-		if p(pass, v) {
-			return true
-		}
-	}
-	return false
 }

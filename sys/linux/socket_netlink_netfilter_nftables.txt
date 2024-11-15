@@ -19,7 +19,8 @@ include <net/xfrm.h>
 type msghdr_nf_tables[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, CMD, POLICY]]
 # TODO: we should obtain them from somewhere, probably from other netlink messages,
 # but we can't extract output netlink attributes.
-type nft_chain_id int32be
+# for now let's just manually limit it to 4 possible ids to allow lookups
+type nft_chain_id int32be[1:4]
 
 sendmsg$NFT_MSG_GETTABLE(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_tables[NFT_MSG_GETTABLE, nft_table_policy]], f flags[send_flags])
 sendmsg$NFT_MSG_GETCHAIN(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_tables[NFT_MSG_GETCHAIN, nft_chain_policy]], f flags[send_flags])
@@ -48,8 +49,10 @@ type nft_nlmsghdr[CMD] {
 	hdr		nfgenmsg_nft
 } [align[4]]
 
+families = NFPROTO_IPV4, NFPROTO_IPV6, NFPROTO_ARP, NFPROTO_NETDEV, NFPROTO_BRIDGE, NFPROTO_UNSPEC, NFPROTO_INET
+
 nfgenmsg_nft {
-	nfgen_family	const[0, int8]
+	nfgen_family	int8[families]
 	version		const[NFNETLINK_V0, int8]
 	res_id		const[NFNL_SUBSYS_NFTABLES, int16be]
 } [align[4]]
@@ -87,7 +90,7 @@ nft_table_policy [
 ] [varlen]
 
 nft_table_name = "syz0", "syz1"
-nft_table_flags = NFT_TABLE_F_DORMANT
+nft_table_flags = NFT_TABLE_F_DORMANT, NFT_TABLE_F_OWNER
 
 nft_chain_policy [
 	NFTA_CHAIN_TABLE	nlattr[NFTA_CHAIN_TABLE, string[nft_table_name]]
@@ -104,7 +107,7 @@ nft_chain_policy [
 
 nft_chain_name = "syz0", "syz1", "syz2"
 nft_chain_type = "filter", "nat", "route"
-nft_chain_flags = NFT_CHAIN_BASE, NFT_CHAIN_HW_OFFLOAD
+nft_chain_flags = NFT_CHAIN_BASE, NFT_CHAIN_HW_OFFLOAD, NFT_CHAIN_BINDING
 
 nft_hook_policy [
 	NFTA_HOOK_HOOKNUM	nlnetw[NFTA_HOOK_HOOKNUM, flags[nf_inet_hooks, int32be]]
@@ -124,7 +127,7 @@ nft_rule_policy [
 	NFTA_RULE_EXPRESSIONS	nlnest[NFTA_RULE_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_expr_policy]]]
 	NFTA_RULE_COMPAT	nlnest[NFTA_RULE_COMPAT, array[nft_rule_compat_policy]]
 	NFTA_RULE_POSITION	nlnetw[NFTA_RULE_POSITION, nft_handle]
-	NFTA_RULE_USERDATA	nlnetw[NFTA_RULE_USERDATA, array[int8]]
+	NFTA_RULE_USERDATA	nlnetw[NFTA_RULE_USERDATA, array[int8, 0:NFT_USERDATA_MAXLEN]]
 	NFTA_RULE_ID		nlnetw[NFTA_RULE_ID, nft_rule_id]
 	NFTA_RULE_POSITION_ID	nlnetw[NFTA_RULE_POSITION_ID, nft_rule_id]
 	NFTA_RULE_CHAIN_ID	nlnetw[NFTA_RULE_CHAIN_ID, nft_chain_id]
@@ -139,13 +142,13 @@ nft_rule_compat_policy [
 	NFTA_RULE_COMPAT_FLAGS		nlnetw[NFTA_RULE_COMPAT_FLAGS, flags[nft_rule_compat_flags, int32be]]
 ] [varlen]
 
-nft_rule_compat_flags = NFT_RULE_COMPAT_F_INV
+nft_rule_compat_flags = NFT_RULE_COMPAT_F_INV, NFT_RULE_COMPAT_F_UNUSED
 
 nft_set_policy [
 	NFTA_SET_TABLE		nlattr[NFTA_SET_TABLE, string[nft_table_name]]
 	NFTA_SET_NAME		nlattr[NFTA_SET_NAME, string[nft_set_name]]
 	NFTA_SET_FLAGS		nlnetw[NFTA_SET_FLAGS, flags[nft_set_flags, int32be]]
-	NFTA_SET_KEY_TYPE	nlnetw[NFTA_SET_KEY_TYPE, int32be[0:255]]
+	NFTA_SET_KEY_TYPE	nlnetw[NFTA_SET_KEY_TYPE, int32be[0:4]]
 	NFTA_SET_KEY_LEN	nlnetw[NFTA_SET_KEY_LEN, int32be[1:NFT_DATA_VALUE_MAXLEN]]
 	NFTA_SET_DATA_TYPE	nlnetw[NFTA_SET_DATA_TYPE, flags[nft_data_types, int32be]]
 	NFTA_SET_DATA_LEN	nlnetw[NFTA_SET_DATA_LEN, int32be[1:NFT_DATA_VALUE_MAXLEN]]
@@ -154,7 +157,7 @@ nft_set_policy [
 	NFTA_SET_ID		nlnetw[NFTA_SET_ID, nft_set_id]
 	NFTA_SET_TIMEOUT	nlnetw[NFTA_SET_TIMEOUT, int64be]
 	NFTA_SET_GC_INTERVAL	nlnetw[NFTA_SET_GC_INTERVAL, int32be]
-	NFTA_SET_USERDATA	nlnetw[NFTA_SET_USERDATA, array[int8]]
+	NFTA_SET_USERDATA	nlnetw[NFTA_SET_USERDATA, array[int8, 0:NFT_USERDATA_MAXLEN]]
 	NFTA_SET_OBJ_TYPE	nlnetw[NFTA_SET_OBJ_TYPE, flags[nft_obj_type, int32be]]
 	NFTA_SET_HANDLE		nlnetw[NFTA_SET_HANDLE, nft_handle]
 	NFTA_SET_EXPR		nlnest[NFTA_SET_EXPR, nft_expr_policy]
@@ -163,7 +166,7 @@ nft_set_policy [
 
 type nft_set_id int32be[0:3]
 nft_set_name = "syz0", "syz1", "syz2"
-nft_set_flags = NFT_SET_ANONYMOUS, NFT_SET_CONSTANT, NFT_SET_INTERVAL, NFT_SET_MAP, NFT_SET_TIMEOUT, NFT_SET_EVAL, NFT_SET_OBJECT
+nft_set_flags = NFT_SET_ANONYMOUS, NFT_SET_CONSTANT, NFT_SET_INTERVAL, NFT_SET_MAP, NFT_SET_TIMEOUT, NFT_SET_EVAL, NFT_SET_OBJECT, NFT_SET_CONCAT, NFT_SET_EXPR
 nft_data_types = NFT_DATA_VALUE, NFT_DATA_VERDICT
 nft_set_policies = NFT_SET_POL_PERFORMANCE, NFT_SET_POL_MEMORY
 
@@ -192,15 +195,14 @@ nft_set_elem_policy [
 	NFTA_SET_ELEM_FLAGS		nlnetw[NFTA_SET_ELEM_FLAGS, flags[nft_set_elem_flags, int32be]]
 	NFTA_SET_ELEM_TIMEOUT		nlnetw[NFTA_SET_ELEM_TIMEOUT, int64be]
 	NFTA_SET_ELEM_EXPIRATION	nlnetw[NFTA_SET_ELEM_EXPIRATION, int64be]
-	NFTA_SET_ELEM_USERDATA		nlnetw[NFTA_SET_ELEM_USERDATA, array[int8]]
-# TODO: is this used?
-	NFTA_SET_ELEM_EXPR		nlnest[NFTA_SET_ELEM_EXPR, void]
+	NFTA_SET_ELEM_USERDATA		nlnetw[NFTA_SET_ELEM_USERDATA, array[int8, 0:NFT_USERDATA_MAXLEN]]
+	NFTA_SET_ELEM_EXPR		nlnest[NFTA_SET_ELEM_EXPR, nft_expr_policy]
 	NFTA_SET_ELEM_OBJREF		nlattr[NFTA_SET_ELEM_OBJREF, string[nft_obj_name]]
 	NFTA_SET_ELEM_KEY_END		nlnest[NFTA_SET_ELEM_KEY_END, array[nft_data_policy]]
 	NFTA_SET_ELEM_EXPRESSIONS	nlnest[NFTA_SET_ELEM_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_expr_policy]]]
 ] [varlen]
 
-nft_set_elem_flags = NFT_SET_ELEM_INTERVAL_END
+nft_set_elem_flags = NFT_SET_ELEM_INTERVAL_END, NFT_SET_ELEM_CATCHALL
 
 nft_data_policy [
 	NFTA_DATA_VALUE		nlattr[NFTA_DATA_VALUE, array[int8]]
@@ -303,7 +305,7 @@ nft_synproxy_policy [
 	NFTA_SYNPROXY_FLAGS	nlnetw[NFTA_SYNPROXY_FLAGS, flags[nft_synproxy_flags, int32be]]
 ] [varlen]
 
-nft_synproxy_flags = NF_SYNPROXY_OPT_MSS, NF_SYNPROXY_OPT_WSCALE, NF_SYNPROXY_OPT_SACK_PERM, NF_SYNPROXY_OPT_TIMESTAMP
+nft_synproxy_flags = NF_SYNPROXY_OPT_MSS, NF_SYNPROXY_OPT_WSCALE, NF_SYNPROXY_OPT_SACK_PERM, NF_SYNPROXY_OPT_TIMESTAMP, NF_SYNPROXY_OPT_ECN
 
 nft_tunnel_key_policy [
 	NFTA_TUNNEL_KEY_IP	nlnest[NFTA_TUNNEL_KEY_IP, array[nft_tunnel_ip_policy]]
@@ -366,7 +368,7 @@ nft_flowtable_policy [
 ] [varlen]
 
 nft_flowtable_name = "syz0", "syz1", "syz2"
-nf_flowtable_flags = NF_FLOWTABLE_HW_OFFLOAD
+nf_flowtable_flags = NF_FLOWTABLE_HW_OFFLOAD, NF_FLOWTABLE_COUNTER
 
 nft_flowtable_hook_policy [
 	NFTA_FLOWTABLE_HOOK_NUM		nlnetw[NFTA_FLOWTABLE_HOOK_NUM, const[NF_NETDEV_INGRESS, int32be]]
@@ -374,7 +376,74 @@ nft_flowtable_hook_policy [
 	NFTA_FLOWTABLE_HOOK_DEVS	nlnest[NFTA_FLOWTABLE_HOOK_DEVS, array[nlattr[NFTA_DEVICE_NAME, devname]]]
 ] [varlen]
 
+nft_inner_flags = NFT_INNER_HDRSIZE, NFT_INNER_LL, NFT_INNER_NH, NFT_INNER_TH
+
+nft_inner_policy [
+	NFTA_INNER_NUM		nlnetw[NFTA_INNER_NUM, int32be[0]]
+	NFTA_INNER_FLAGS	nlnetw[NFTA_INNER_FLAGS, flags[nft_inner_flags, int32be]]
+	NFTA_INNER_HDRSIZE	nlnetw[NFTA_INNER_HDRSIZE, int32be[0:64]]
+	NFTA_INNER_TYPE		nlnetw[NFTA_INNER_TYPE, int32be[0:255]]
+	NFTA_INNER_EXPR		nlnest[NFTA_INNER_EXPR, nft_expr_policy_inner]
+] [varlen]
+
+nft_last_policy [
+	NFTA_LAST_SET	nlnetw[NFTA_LAST_SET, int32be]
+	NFTA_LAST_MSECS	nlnetw[NFTA_LAST_MSECS, int64be]
+] [varlen]
+
+nft_expr_policy_inner [
+	meta		nft_expr_policy_t["meta", nft_meta_policy]
+	immediate	nft_expr_policy_t["immediate", nft_immediate_policy]
+	payload		nft_expr_policy_t["payload", nft_payload_policy]
+] [varlen]
+
+nft_expr_policy_dynset [
+	inner		nft_expr_policy_t["inner", nft_inner_policy]
+	last		nft_expr_policy_t["last", nft_last_policy]
+	match		nft_expr_policy_t["match", nft_match_policy]
+	target		nft_expr_policy_t["target", nft_target_policy]
+	meta		nft_expr_policy_t["meta", nft_meta_policy]
+	reject		nft_expr_policy_t["reject", nft_reject_policy]
+	bitwise		nft_expr_policy_t["bitwise", nft_bitwise_policy]
+	byteorder	nft_expr_policy_t["byteorder", nft_byteorder_policy]
+	cmp		nft_expr_policy_t["cmp", nft_cmp_policy]
+	exthdr		nft_expr_policy_t["exthdr", nft_exthdr_policy]
+	immediate	nft_expr_policy_t["immediate", nft_immediate_policy]
+	lookup		nft_expr_policy_t["lookup", nft_lookup_policy]
+	payload		nft_expr_policy_t["payload", nft_payload_policy]
+	range		nft_expr_policy_t["range", nft_range_policy]
+	rt		nft_expr_policy_t["rt", nft_rt_policy]
+	connlimit	nft_expr_policy_t["connlimit", nft_connlimit_policy]
+	counter		nft_expr_policy_t["counter", nft_counter_policy]
+	ct		nft_expr_policy_t["ct", nft_ct_policy]
+	notrack		nft_expr_policy_t["notrack", void]
+	dup		nft_expr_policy_t["dup", nft_dup_netdev_policy]
+	fib		nft_expr_policy_t["fib", nft_fib_policy]
+	flow_offload	nft_expr_policy_t["flow_offload", nft_flow_offload_policy]
+	fwd		nft_expr_policy_t["fwd", nft_fwd_netdev_policy]
+	hash		nft_expr_policy_t["hash", nft_hash_policy]
+	limit		nft_expr_policy_t["limit", nft_limit_policy]
+	log		nft_expr_policy_t["log", nft_log_policy]
+	masq		nft_expr_policy_t["masq", nft_masq_policy]
+	nat		nft_expr_policy_t["nat", nft_nat_policy]
+	numgen		nft_expr_policy_t["numgen", nft_ng_policy]
+	objref		nft_expr_policy_t["objref", nft_objref_policy]
+	osf		nft_expr_policy_t["osf", nft_osf_policy]
+	queue		nft_expr_policy_t["queue", nft_queue_policy]
+	quota		nft_expr_policy_t["quota", nft_quota_policy]
+	redir		nft_expr_policy_t["redir", nft_redir_policy]
+	socket		nft_expr_policy_t["socket", nft_socket_policy]
+	synproxy	nft_expr_policy_t["synproxy", nft_synproxy_policy]
+	tproxy		nft_expr_policy_t["tproxy", nft_tproxy_policy]
+	tunnel		nft_expr_policy_t["tunnel", nft_tunnel_policy]
+	xfrm		nft_expr_policy_t["xfrm", nft_xfrm_policy]
+	dup_ipv4	nft_expr_policy_t["dup", nft_dup_ipv4_policy]
+	dup_ipv6	nft_expr_policy_t["dup", nft_dup_ipv6_policy]
+] [varlen]
+
 nft_expr_policy [
+	inner		nft_expr_policy_t["inner", nft_inner_policy]
+	last		nft_expr_policy_t["last", nft_last_policy]
 	match		nft_expr_policy_t["match", nft_match_policy]
 	target		nft_expr_policy_t["target", nft_target_policy]
 	meta		nft_expr_policy_t["meta", nft_meta_policy]
@@ -424,23 +493,24 @@ type nft_expr_policy_t[NAME, POLICY] {
 
 nft_registers = NFT_REG_VERDICT, NFT_REG_1, NFT_REG_2, NFT_REG_3, NFT_REG_4, NFT_REG32_00, NFT_REG32_01, NFT_REG32_02, NFT_REG32_03, NFT_REG32_04, NFT_REG32_05, NFT_REG32_06, NFT_REG32_07, NFT_REG32_08, NFT_REG32_09, NFT_REG32_10, NFT_REG32_11, NFT_REG32_12, NFT_REG32_13, NFT_REG32_14, NFT_REG32_15
 
+nft_matches = "limit", "addrtype", "bpf", "cgroup", "cluster", "comment", "connbytes", "connlabel", "connlimit", "connmark", "conntrack", "cpu", "dccp", "devgroup", "dscp", "tos", "ecn", "hashlimit", "helper", "ttl", "hl", "ipcomp", "iprange", "ipvs", "l2tp", "length", "mac", "mark", "multiport", "nfacct", "osf", "owner", "physdev", "pkttype", "policy", "quota", "rateest", "realm", "recent", "sctp", "set", "socket", "state", "statistic", "string", "tcpmss", "tcp", "udp", "udplite", "icmp", "icmp6", "time", "u32"
+nft_targets = "AUDIT", "CHECKSUM", "CLASSIFY", "CONNMARK", "CONNSECMARK", "CT", "DSCP", "TOS", "HL", "HMARK", "IDLETIMER", "LED", "LOG", "MARK", "MASQUERADE", "SNAT", "DNAT", "NETMAP", "NFLOG", "NFQUEUE", "RATEEST", "REDIRECT", "SECMARK", "SET", "TCPMSS", "TCPOPTSTRIP", "TEE", "TPROXY", "TRACE"
+
 nft_match_policy [
-# TODO: we need _all_ of x_tables matches, their revisions and info data here.
-	NFTA_MATCH_NAME	nlattr[NFTA_MATCH_NAME, string]
-	NFTA_MATCH_REV	nlnetw[NFTA_MATCH_REV, int32be]
+	NFTA_MATCH_NAME	nlattr[NFTA_MATCH_NAME, string[nft_matches]]
+	NFTA_MATCH_REV	nlnetw[NFTA_MATCH_REV, int32be[0:3]]
 	NFTA_MATCH_INFO	nlattr[NFTA_MATCH_INFO, array[int8]]
 ] [varlen]
 
 nft_target_policy [
-# TODO: we need _all_ of x_tables targets, their revisions and info data here.
-	NFTA_TARGET_NAME	nlattr[NFTA_TARGET_NAME, string]
-	NFTA_TARGET_REV		nlnetw[NFTA_TARGET_REV, int32be]
+	NFTA_TARGET_NAME	nlattr[NFTA_TARGET_NAME, string[nft_targets]]
+	NFTA_TARGET_REV		nlnetw[NFTA_TARGET_REV, int32be[0:3]]
 	NFTA_TARGET_INFO	nlattr[NFTA_TARGET_INFO, array[int8]]
 ] [varlen]
 
 nft_meta_policy [
 	NFTA_META_DREG	nlnetw[NFTA_META_DREG, flags[nft_registers, int32be]]
-	NFTA_META_KEY	nlnetw[NFTA_META_KEY, int32be[NFT_META_LEN:NFT_META_TIME_HOUR]]
+	NFTA_META_KEY	nlnetw[NFTA_META_KEY, int32be[NFT_META_LEN:NFT_META_BRI_BROUTE]]
 	NFTA_META_SREG	nlnetw[NFTA_META_SREG, flags[nft_registers, int32be]]
 ] [varlen]
 
@@ -488,14 +558,13 @@ nft_dynset_policy [
 	NFTA_DYNSET_SREG_KEY	nlnetw[NFTA_DYNSET_SREG_KEY, flags[nft_registers, int32be]]
 	NFTA_DYNSET_SREG_DATA	nlnetw[NFTA_DYNSET_SREG_DATA, flags[nft_registers, int32be]]
 	NFTA_DYNSET_TIMEOUT	nlnetw[NFTA_DYNSET_TIMEOUT, int64be]
-# TODO: we need whole nft_expr_policy here and in NFTA_DYNSET_EXPRESSIONS instead of just lookup, but it will lead to recursion.
 	NFTA_DYNSET_EXPR	nlnest[NFTA_DYNSET_EXPR, nft_expr_policy_t["lookup", nft_lookup_policy]]
 	NFTA_DYNSET_FLAGS	nlnetw[NFTA_DYNSET_FLAGS, flags[nft_dynset_flags, int32be]]
-	NFTA_DYNSET_EXPRESSIONS	nlnest[NFTA_DYNSET_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_lookup_policy]]]
+	NFTA_DYNSET_EXPRESSIONS	nlnest[NFTA_DYNSET_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_expr_policy_dynset]]]
 ] [varlen]
 
 nft_dynset_ops = NFT_DYNSET_OP_ADD, NFT_DYNSET_OP_UPDATE, NFT_DYNSET_OP_DELETE
-nft_dynset_flags = NFT_DYNSET_F_INV
+nft_dynset_flags = NFT_DYNSET_F_INV, NFT_DYNSET_F_EXPR
 
 nft_exthdr_policy [
 	NFTA_EXTHDR_DREG	nlnetw[NFTA_EXTHDR_DREG, flags[nft_registers, int32be]]
@@ -509,7 +578,7 @@ nft_exthdr_policy [
 
 nft_exthdr_type = IPOPT_SSRR, IPOPT_LSRR, IPOPT_RR, IPOPT_RA
 nft_exthdr_flags = NFT_EXTHDR_F_PRESENT
-nft_exthdr_op = NFT_EXTHDR_OP_IPV6, NFT_EXTHDR_OP_TCPOPT, NFT_EXTHDR_OP_IPV4
+nft_exthdr_op = NFT_EXTHDR_OP_IPV6, NFT_EXTHDR_OP_TCPOPT, NFT_EXTHDR_OP_IPV4, NFT_EXTHDR_OP_SCTP, NFT_EXTHDR_OP_DCCP
 
 nft_immediate_policy [
 	NFTA_IMMEDIATE_DREG	nlnetw[NFTA_IMMEDIATE_DREG, flags[nft_registers, int32be]]
@@ -531,15 +600,15 @@ nft_payload_policy [
 	NFTA_PAYLOAD_DREG		nlnetw[NFTA_PAYLOAD_DREG, flags[nft_registers, int32be]]
 	NFTA_PAYLOAD_BASE		nlnetw[NFTA_PAYLOAD_BASE, flags[nft_payload_bases, int32be]]
 # TODO: offset/len can only have very specific set of pariwise values (see nft_payload_offload_ll).
-	NFTA_PAYLOAD_OFFSET		nlnetw[NFTA_PAYLOAD_OFFSET, int32be]
-	NFTA_PAYLOAD_LEN		nlnetw[NFTA_PAYLOAD_LEN, int32be]
+	NFTA_PAYLOAD_OFFSET		nlnetw[NFTA_PAYLOAD_OFFSET, int32be[0:255]]
+	NFTA_PAYLOAD_LEN		nlnetw[NFTA_PAYLOAD_LEN, int32be[0:255]]
 	NFTA_PAYLOAD_CSUM_TYPE		nlnetw[NFTA_PAYLOAD_CSUM_TYPE, flags[nft_payload_csum_types, int32be]]
 	NFTA_PAYLOAD_CSUM_OFFSET	nlnetw[NFTA_PAYLOAD_CSUM_OFFSET, int32be]
 	NFTA_PAYLOAD_CSUM_FLAGS		nlnetw[NFTA_PAYLOAD_CSUM_FLAGS, flags[nft_payload_csum_flags, int32be]]
 ] [varlen]
 
-nft_payload_bases = NFT_PAYLOAD_LL_HEADER, NFT_PAYLOAD_NETWORK_HEADER, NFT_PAYLOAD_TRANSPORT_HEADER
-nft_payload_csum_types = NFT_PAYLOAD_CSUM_NONE, NFT_PAYLOAD_CSUM_INET
+nft_payload_bases = NFT_PAYLOAD_LL_HEADER, NFT_PAYLOAD_NETWORK_HEADER, NFT_PAYLOAD_TRANSPORT_HEADER, NFT_PAYLOAD_TUN_HEADER
+nft_payload_csum_types = NFT_PAYLOAD_CSUM_NONE, NFT_PAYLOAD_CSUM_INET, NFT_PAYLOAD_CSUM_SCTP
 nft_payload_csum_flags = NFT_PAYLOAD_L4CSUM_PSEUDOHDR
 
 nft_range_policy [
@@ -622,7 +691,7 @@ nft_masq_policy [
 	NFTA_MASQ_REG_PROTO_MAX	nlnetw[NFTA_MASQ_REG_PROTO_MAX, flags[nft_registers, int32be]]
 ] [varlen]
 
-nft_nat_flags = NF_NAT_RANGE_MAP_IPS, NF_NAT_RANGE_PROTO_SPECIFIED, NF_NAT_RANGE_PROTO_RANDOM, NF_NAT_RANGE_PERSISTENT, NF_NAT_RANGE_PROTO_RANDOM_FULLY, NF_NAT_RANGE_PROTO_OFFSET
+nft_nat_flags = NF_NAT_RANGE_MAP_IPS, NF_NAT_RANGE_PROTO_SPECIFIED, NF_NAT_RANGE_PROTO_RANDOM, NF_NAT_RANGE_PERSISTENT, NF_NAT_RANGE_PROTO_RANDOM_FULLY, NF_NAT_RANGE_PROTO_OFFSET, NF_NAT_RANGE_NETMAP
 
 nft_nat_policy [
 	NFTA_NAT_TYPE		nlnetw[NFTA_NAT_TYPE, flags[nft_nat_types, int32be]]
@@ -681,7 +750,7 @@ nft_socket_policy [
 	NFTA_SOCKET_LEVEL	nlattr[NFTA_SOCKET_LEVEL, int32be[0:255]]
 ] [varlen]
 
-nft_socket_keys = NFT_SOCKET_TRANSPARENT, NFT_SOCKET_MARK
+nft_socket_keys = NFT_SOCKET_TRANSPARENT, NFT_SOCKET_MARK, NFT_SOCKET_WILDCARD, NFT_SOCKET_CGROUPV2
 
 nft_tproxy_policy [
 	NFTA_TPROXY_FAMILY	nlnetw[NFTA_TPROXY_FAMILY, flags[nft_tproxy_family, int32be]]
@@ -689,7 +758,7 @@ nft_tproxy_policy [
 	NFTA_TPROXY_REG_PORT	nlnetw[NFTA_TPROXY_REG_PORT, flags[nft_registers, int32be]]
 ] [varlen]
 
-nft_tproxy_family = NFPROTO_IPV4, NFPROTO_IPV6, NFPROTO_INET
+nft_tproxy_family = NFPROTO_IPV4, NFPROTO_IPV6, NFPROTO_INET, NFPROTO_UNSPEC
 
 nft_tunnel_policy [
 	NFTA_TUNNEL_KEY		nlnetw[NFTA_TUNNEL_KEY, flags[nft_tunnel_keys, int32be]]

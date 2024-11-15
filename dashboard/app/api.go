@@ -274,16 +274,16 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 
 func pollBackportCommits(c context.Context, ns string, count int) ([]string, error) {
 	// Let's assume that there won't be too many pending backports.
-	bugs, jobs, _, err := relevantBackportJobs(c)
+	list, err := relevantBackportJobs(c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query backport: %w", err)
 	}
 	var backportTitles []string
-	for i, bug := range bugs {
-		if bug.Namespace != ns {
+	for _, info := range list {
+		if info.bug.Namespace != ns {
 			continue
 		}
-		backportTitles = append(backportTitles, jobs[i].Commits[0].Title)
+		backportTitles = append(backportTitles, info.job.Commits[0].Title)
 	}
 	randomizer := rand.New(rand.NewSource(timeNow(c).UnixNano()))
 	randomizer.Shuffle(len(backportTitles), func(i, j int) {
@@ -361,7 +361,7 @@ func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *db.Key, com dashapi
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bool, error) {
@@ -530,7 +530,7 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	if len(req.KernelCommit) > MaxStringLen {
 		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
 	}
-	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig, true)
+	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig)
 	if err != nil {
 		return nil, false, err
 	}
@@ -662,7 +662,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixC
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
@@ -882,7 +882,11 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+	if err := runInTransaction(c, tx, &db.TransactionOptions{
+		XG: true,
+		// Very valuable transaction.
+		Attempts: 30,
+	}); err != nil {
 		return nil, fmt.Errorf("bug updating failed: %w", err)
 	}
 	if save {
@@ -905,14 +909,10 @@ func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
 
 func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug *Bug) {
 	prio := int64(kernelRepoInfo(c, build).ReportingPriority) * 1e6
-	divReproPrio := int64(1)
-	if crash.ReproIsRevoked {
-		divReproPrio = 10
-	}
-	if crash.ReproC > 0 {
-		prio += 4e12 / divReproPrio
-	} else if crash.ReproSyz > 0 {
-		prio += 2e12 / divReproPrio
+	if crash.ReproC > 0 && !crash.ReproIsRevoked {
+		prio += 4e12
+	} else if crash.ReproSyz > 0 && !crash.ReproIsRevoked {
+		prio += 2e12
 	}
 	if crash.Title == bug.Title {
 		prio += 1e8 // prefer reporting crash that matches bug title
@@ -946,22 +946,22 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 		},
 	}
 	var err error
-	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
+	if crash.Log, err = putText(c, ns, textCrashLog, req.Log); err != nil {
 		return err
 	}
-	if crash.Report, err = putText(c, ns, textCrashReport, req.Report, false); err != nil {
+	if crash.Report, err = putText(c, ns, textCrashReport, req.Report); err != nil {
 		return err
 	}
-	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz, false); err != nil {
+	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz); err != nil {
 		return err
 	}
-	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
+	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC); err != nil {
 		return err
 	}
-	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, true); err != nil {
+	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo); err != nil {
 		return err
 	}
-	if crash.ReproLog, err = putText(c, ns, textReproLog, req.ReproLog, false); err != nil {
+	if crash.ReproLog, err = putText(c, ns, textReproLog, req.ReproLog); err != nil {
 		return err
 	}
 	crash.UpdateReportingPriority(c, build, bug)
@@ -1092,7 +1092,7 @@ func saveFailedReproLog(c context.Context, bug *Bug, build *Build, log []byte) e
 		}
 		return nil
 	}
-	return db.RunInTransaction(c, tx, &db.TransactionOptions{
+	return runInTransaction(c, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	})
@@ -1112,7 +1112,7 @@ func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) err
 		Manager: build.Manager,
 	}
 	var err error
-	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log, false); err != nil {
+	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log); err != nil {
 		return err
 	}
 	if len(deleteKeys) > 0 {
@@ -1253,7 +1253,7 @@ func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []by
 		}
 		return nil
 	}
-	return nil, db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 5})
+	return nil, runInTransaction(c, tx, nil)
 }
 
 func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
@@ -1369,17 +1369,11 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 	// Older bugs don't have MergedTitles, so we need to check Title as well
 	// (reportCrash will set MergedTitles later).
 	for _, title := range titles {
-		_, err = db.NewQuery("Bug").
-			Filter("Namespace=", ns).
-			Filter("Title=", title).
-			Order("-Seq").
-			Limit(1).
-			GetAll(c, &bugs)
+		bug, err := highestSeqBug(c, ns, title)
 		if err != nil {
-			return nil, fmt.Errorf("failed to query bugs: %w", err)
+			return nil, err
 		}
-		if len(bugs) != 0 {
-			bug := bugs[0]
+		if bug != nil {
 			if active, err := isActiveBug(c, bug); err != nil {
 				return nil, err
 			} else if active {
@@ -1388,6 +1382,23 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 		}
 	}
 	return nil, nil
+}
+
+func highestSeqBug(c context.Context, ns, title string) (*Bug, error) {
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Title=", title).
+		Order("-Seq").
+		Limit(1).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the last bug report: %w", err)
+	}
+	if len(bugs) == 0 {
+		return nil, nil
+	}
+	return bugs[0], nil
 }
 
 func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error) {
@@ -1451,10 +1462,22 @@ func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error
 }
 
 func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
+	// Datastore limits the number of entities involved in a transaction to 25, so it's possible
+	// to iterate over them all only up to some point.
+	// To optimize the process, let's first obtain the maximum known seq for the title outside
+	// of the transaction and then iterate a bit more in case of conflicts.
+	startSeq := int64(0)
+	prevBug, err := highestSeqBug(c, ns, req.Title)
+	if err != nil {
+		return nil, err
+	} else if prevBug != nil {
+		startSeq = prevBug.Seq + 1
+	}
+
 	var bug *Bug
 	now := timeNow(c)
 	tx := func(c context.Context) error {
-		for seq := int64(0); ; seq++ {
+		for seq := startSeq; ; seq++ {
 			bug = new(Bug)
 			bugHash := bugKeyHash(c, ns, req.Title, seq)
 			bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
@@ -1496,8 +1519,9 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 			return nil
 		}
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
-		XG:       true,
+	if err := runInTransaction(c, tx, &db.TransactionOptions{
+		XG: true,
+		// Very valuable transaction.
 		Attempts: 30,
 	}); err != nil {
 		return nil, err
@@ -1555,7 +1579,12 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 	return timeSince(c, bug.LastReproTime) >= reproStalePeriod
 }
 
-func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {
+var dedupTextFor = map[string]bool{
+	textKernelConfig: true,
+	textMachineInfo:  true,
+}
+
+func putText(c context.Context, ns, tag string, data []byte) (int64, error) {
 	if ns == "" {
 		return 0, fmt.Errorf("putting text outside of namespace")
 	}
@@ -1565,7 +1594,7 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 	const (
 		// Kernel crash log is capped at ~1MB, but vm.Diagnose can add more.
 		// These text files usually compress very well.
-		maxTextLen       = 10 << 20
+		maxTextLen       = 10 << 20   // 10 MB
 		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
 	)
 	if len(data) > maxTextLen {
@@ -1579,11 +1608,14 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 		if len(b.Bytes()) < maxCompressedLen {
 			break
 		}
-		data = data[:len(data)/10*9]
+		// For crash logs, it's better to preserve the end of the log - that is,
+		// where the panic message resides.
+		// Other types of data are not really assumed to be larger than 1MB compressed.
+		data = data[len(data)/10:]
 		b.Reset()
 	}
 	var key *db.Key
-	if dedup {
+	if dedupTextFor[tag] {
 		h := hash.Hash([]byte(ns), b.Bytes())
 		key = db.NewKey(c, tag, "", h.Truncate64(), nil)
 	} else {
@@ -1813,7 +1845,7 @@ func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.Log
 }
 
 func saveReproTask(c context.Context, ns, manager string, repro []byte) error {
-	log, err := putText(c, ns, textCrashLog, repro, false)
+	log, err := putText(c, ns, textCrashLog, repro)
 	if err != nil {
 		return err
 	}

@@ -26,6 +26,8 @@ type StandardSQLDataType struct {
 	// ArrayElementType indicates the type of an array's elements, when the
 	// TypeKind is ARRAY.
 	ArrayElementType *StandardSQLDataType
+	// The type of the range's elements, if TypeKind is RANGE.
+	RangeElementType *StandardSQLDataType
 	// StructType indicates the struct definition (fields), when the
 	// TypeKind is STRUCT.
 	StructType *StandardSQLStructType
@@ -60,6 +62,13 @@ func (ssdt *StandardSQLDataType) toBQ() (*bq.StandardSqlDataType, error) {
 		}
 		bqdt.StructType = dt
 	}
+	if ssdt.RangeElementType != nil {
+		dt, err := ssdt.RangeElementType.toBQ()
+		if err != nil {
+			return nil, err
+		}
+		bqdt.RangeElementType = dt
+	}
 	return bqdt, nil
 }
 
@@ -76,6 +85,14 @@ func (ssdt StandardSQLDataType) toBQParamType() *bq.QueryParameterType {
 			})
 		}
 		return &bq.QueryParameterType{Type: "STRUCT", StructTypes: fts}
+	}
+	if ssdt.RangeElementType != nil {
+		return &bq.QueryParameterType{
+			Type: string(RangeFieldType),
+			RangeElementType: &bq.QueryParameterType{
+				Type: ssdt.RangeElementType.TypeKind,
+			},
+		}
 	}
 	return &bq.QueryParameterType{Type: ssdt.TypeKind}
 }
@@ -101,6 +118,13 @@ func bqToStandardSQLDataType(bqdt *bq.StandardSqlDataType) (*StandardSQLDataType
 			return nil, err
 		}
 		ssdt.StructType = st
+	}
+	if bqdt.RangeElementType != nil {
+		st, err := bqToStandardSQLDataType(bqdt.RangeElementType)
+		if err != nil {
+			return nil, err
+		}
+		ssdt.RangeElementType = st
 	}
 	return ssdt, nil
 }

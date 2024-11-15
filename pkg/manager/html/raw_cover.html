@@ -1,0 +1,22 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<caption>Raw cover</caption>
+	<tr>
+		<th>Line</th>
+		<th>Links</th>
+	</tr>
+	{{range $line := .Calls}}
+	<tr>
+		<td>{{$line.Call}}</td>
+		<td>
+		{{range $id := $line.UpdateIDs}}
+		<a href="/rawcover?input={{$line.Sig}}&update_id={{$id}}">[{{$id}}]</a>
+		{{end}}
+</td>
+	</tr>
+	{{end}}
+</table>

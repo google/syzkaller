@@ -9,11 +9,9 @@ import (
 	_ "embed"
 	"fmt"
 	"html/template"
-	"io"
 	"sort"
 	"strings"
 
-	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
@@ -29,39 +27,47 @@ type templateHeatmapRow struct {
 	Depth               int
 	LastDayInstrumented int64
 	Tooltips            []string
+	FileCoverageLink    []string
 
 	builder      map[string]*templateHeatmapRow
-	instrumented map[civil.Date]int64
-	covered      map[civil.Date]int64
+	instrumented map[coveragedb.TimePeriod]int64
+	covered      map[coveragedb.TimePeriod]int64
+	filePath     string
 }
 
 type templateHeatmap struct {
-	Root  *templateHeatmapRow
-	Dates []string
+	Root    *templateHeatmapRow
+	Periods []string
 }
 
-func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, instrumented, covered int64, dateto civil.Date) {
-	thm.instrumented[dateto] += instrumented
-	thm.covered[dateto] += covered
+func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, filePath string, instrumented, covered int64,
+	timePeriod coveragedb.TimePeriod) {
+	thm.instrumented[timePeriod] += instrumented
+	thm.covered[timePeriod] += covered
 	if len(pathLeft) == 0 {
 		return
 	}
 	nextElement := pathLeft[0]
 	isDir := len(pathLeft) > 1
+	fp := ""
+	if !isDir {
+		fp = filePath
+	}
 	if _, ok := thm.builder[nextElement]; !ok {
 		thm.builder[nextElement] = &templateHeatmapRow{
 			Name:         nextElement,
 			Depth:        depth,
 			IsDir:        isDir,
+			filePath:     fp,
 			builder:      make(map[string]*templateHeatmapRow),
-			instrumented: make(map[civil.Date]int64),
-			covered:      make(map[civil.Date]int64),
+			instrumented: make(map[coveragedb.TimePeriod]int64),
+			covered:      make(map[coveragedb.TimePeriod]int64),
 		}
 	}
-	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], instrumented, covered, dateto)
+	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], filePath, instrumented, covered, timePeriod)
 }
 
-func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
+func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget) {
 	thm.Items = maps.Values(thm.builder)
 	sort.Slice(thm.Items, func(i, j int) bool {
 		if thm.Items[i].IsDir != thm.Items[j].IsDir {
@@ -69,67 +75,90 @@ func (thm *templateHeatmapRow) prepareDataFor(dates []civil.Date) {
 		}
 		return thm.Items[i].Name < thm.Items[j].Name
 	})
-	for _, d := range dates {
+	for _, pageColumn := range pageColumns {
 		var dateCoverage int64
-		if thm.instrumented[d] != 0 {
-			dateCoverage = 100 * thm.covered[d] / thm.instrumented[d]
+		tp := pageColumn.TimePeriod
+		if thm.instrumented[tp] != 0 {
+			dateCoverage = 100 * thm.covered[tp] / thm.instrumented[tp]
 		}
 		thm.Coverage = append(thm.Coverage, dateCoverage)
 		thm.Tooltips = append(thm.Tooltips, fmt.Sprintf("Instrumented:\t%d blocks\nCovered:\t%d blocks",
-			thm.instrumented[d], thm.covered[d]))
+			thm.instrumented[tp], thm.covered[tp]))
+		if !thm.IsDir {
+			thm.FileCoverageLink = append(thm.FileCoverageLink,
+				fmt.Sprintf("/graph/coverage/file?dateto=%s&period=%s&commit=%s&filepath=%s",
+					tp.DateTo.String(),
+					tp.Type,
+					pageColumn.Commit,
+					thm.filePath))
+		}
 	}
-	if len(dates) > 0 {
-		lastDate := dates[len(dates)-1]
+	if len(pageColumns) > 0 {
+		lastDate := pageColumns[len(pageColumns)-1].TimePeriod
 		thm.LastDayInstrumented = thm.instrumented[lastDate]
 	}
 	for _, item := range thm.builder {
-		item.prepareDataFor(dates)
+		item.prepareDataFor(pageColumns)
 	}
 }
 
 type fileCoverageWithDetails struct {
+	Subsystem    string
 	Filepath     string
 	Instrumented int64
 	Covered      int64
-	Dateto       civil.Date
+	TimePeriod   coveragedb.TimePeriod `spanner:"-"`
+	Commit       string
 	Subsystems   []string
+}
+
+type pageColumnTarget struct {
+	TimePeriod coveragedb.TimePeriod
+	Commit     string
 }
 
 func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatmap {
 	res := templateHeatmap{
 		Root: &templateHeatmapRow{
+			IsDir:        true,
 			builder:      map[string]*templateHeatmapRow{},
-			instrumented: map[civil.Date]int64{},
-			covered:      map[civil.Date]int64{},
+			instrumented: map[coveragedb.TimePeriod]int64{},
+			covered:      map[coveragedb.TimePeriod]int64{},
 		},
 	}
-	dates := map[civil.Date]struct{}{}
+	columns := map[pageColumnTarget]struct{}{}
 	for _, fc := range fCov {
+		var pathLeft []string
+		if fc.Subsystem != "" {
+			pathLeft = append(pathLeft, fc.Subsystem)
+		}
 		res.Root.addParts(
 			0,
-			strings.Split(fc.Filepath, "/"),
+			append(pathLeft, strings.Split(fc.Filepath, "/")...),
+			fc.Filepath,
 			fc.Instrumented,
 			fc.Covered,
-			fc.Dateto)
-		dates[fc.Dateto] = struct{}{}
+			fc.TimePeriod)
+		columns[pageColumnTarget{TimePeriod: fc.TimePeriod, Commit: fc.Commit}] = struct{}{}
 	}
-	sortedDates := maps.Keys(dates)
-	sort.Slice(sortedDates, func(i, j int) bool {
-		return sortedDates[i].Before(sortedDates[j])
+	targetDateAndCommits := maps.Keys(columns)
+	sort.Slice(targetDateAndCommits, func(i, j int) bool {
+		return targetDateAndCommits[i].TimePeriod.DateTo.Before(targetDateAndCommits[j].TimePeriod.DateTo)
 	})
-	for _, d := range sortedDates {
-		res.Dates = append(res.Dates, d.String())
+	for _, tdc := range targetDateAndCommits {
+		tp := tdc.TimePeriod
+		res.Periods = append(res.Periods, fmt.Sprintf("%s(%d)", tp.DateTo.String(), tp.Days))
 	}
 
-	res.Root.prepareDataFor(sortedDates)
+	res.Root.prepareDataFor(targetDateAndCommits)
 	return &res
 }
 
-func filesCoverageWithDetailsStmt(ns, subsystem string, fromDate, toDate civil.Date) spanner.Statement {
+func filesCoverageWithDetailsStmt(ns, subsystem string, timePeriod coveragedb.TimePeriod) spanner.Statement {
 	stmt := spanner.Statement{
 		SQL: `
 select
-  dateto,
+  commit,
   instrumented,
   covered,
   files.filepath,
@@ -140,11 +169,11 @@ from merge_history
   join file_subsystems
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
-  merge_history.namespace=$1 and dateto>=$2 and dateto<=$3`,
+  merge_history.namespace=$1 and dateto=$2 and duration=$3`,
 		Params: map[string]interface{}{
 			"p1": ns,
-			"p2": fromDate,
-			"p3": toDate,
+			"p2": timePeriod.DateTo,
+			"p3": timePeriod.Days,
 		},
 	}
 	if subsystem != "" {
@@ -154,7 +183,7 @@ where
 	return stmt
 }
 
-func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem string, fromDate, toDate civil.Date,
+func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem string, timePeriods []coveragedb.TimePeriod,
 ) ([]*fileCoverageWithDetails, error) {
 	client, err := coveragedb.NewClient(ctx, projectID)
 	if err != nil {
@@ -162,23 +191,26 @@ func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem stri
 	}
 	defer client.Close()
 
-	stmt := filesCoverageWithDetailsStmt(ns, subsystem, fromDate, toDate)
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
 	res := []*fileCoverageWithDetails{}
-	for {
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
+	for _, timePeriod := range timePeriods {
+		stmt := filesCoverageWithDetailsStmt(ns, subsystem, timePeriod)
+		iter := client.Single().Query(ctx, stmt)
+		defer iter.Stop()
+		for {
+			row, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return nil, fmt.Errorf("failed to iter.Next() spanner DB: %w", err)
+			}
+			var r fileCoverageWithDetails
+			if err = row.ToStruct(&r); err != nil {
+				return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+			}
+			r.TimePeriod = timePeriod
+			res = append(res, &r)
 		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to iter.Next() spanner DB: %w", err)
-		}
-		var r fileCoverageWithDetails
-		if err = row.ToStruct(&r); err != nil {
-			return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
-		}
-		res = append(res, &r)
 	}
 	return res, nil
 }
@@ -187,32 +219,6 @@ type StyleBodyJS struct {
 	Style template.CSS
 	Body  template.HTML
 	JS    template.HTML
-}
-
-// nolint: dupl
-func DoDirHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
-	style, body, js, err := DoHeatMapStyleBodyJS(context.Background(), projectID, ns, "", dateFrom, dateTo)
-	if err != nil {
-		return fmt.Errorf("failed to DoHeatMapStyleBodyJS() %w", err)
-	}
-	return heatmapTemplate.Execute(w, &StyleBodyJS{
-		Style: style,
-		Body:  body,
-		JS:    js,
-	})
-}
-
-// nolint: dupl
-func DoSubsystemsHeatMap(w io.Writer, projectID, ns string, dateFrom, dateTo civil.Date) error {
-	style, body, js, err := DoSubsystemsHeatMapStyleBodyJS(context.Background(), projectID, ns, "", dateFrom, dateTo)
-	if err != nil {
-		return fmt.Errorf("failed to DoSubsystemsHeatMapStyleBodyJS() %w", err)
-	}
-	return heatmapTemplate.Execute(w, &StyleBodyJS{
-		Style: style,
-		Body:  body,
-		JS:    js,
-	})
 }
 
 func stylesBodyJSTemplate(templData *templateHeatmap,
@@ -232,9 +238,9 @@ func stylesBodyJSTemplate(templData *templateHeatmap,
 		template.HTML(js.Bytes()), nil
 }
 
-func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
+func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, periods []coveragedb.TimePeriod,
 ) (template.CSS, template.HTML, template.HTML, error) {
-	covAndDates, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, dateFrom, dateTo)
+	covAndDates, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, periods)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to filesCoverageWithDetails: %w", err)
 	}
@@ -242,9 +248,9 @@ func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, 
 	return stylesBodyJSTemplate(templData)
 }
 
-func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
-) (template.CSS, template.HTML, template.HTML, error) {
-	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, dateFrom, dateTo)
+func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string,
+	periods []coveragedb.TimePeriod) (template.CSS, template.HTML, template.HTML, error) {
+	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, periods)
 	if err != nil {
 		panic(err)
 	}
@@ -252,10 +258,11 @@ func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsyste
 	for _, cwd := range covWithDetails {
 		for _, ssName := range cwd.Subsystems {
 			newRecord := fileCoverageWithDetails{
-				Filepath:     ssName + "/" + cwd.Filepath,
+				Filepath:     cwd.Filepath,
+				Subsystem:    ssName,
 				Instrumented: cwd.Instrumented,
 				Covered:      cwd.Covered,
-				Dateto:       cwd.Dateto,
+				TimePeriod:   cwd.TimePeriod,
 			}
 			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}

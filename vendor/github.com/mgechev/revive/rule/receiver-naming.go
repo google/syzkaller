@@ -3,16 +3,55 @@ package rule
 import (
 	"fmt"
 	"go/ast"
+	"sync"
 
 	"github.com/mgechev/revive/internal/typeparams"
 	"github.com/mgechev/revive/lint"
 )
 
 // ReceiverNamingRule lints given else constructs.
-type ReceiverNamingRule struct{}
+type ReceiverNamingRule struct {
+	receiverNameMaxLength int
+	sync.Mutex
+}
+
+const defaultReceiverNameMaxLength = -1 // thus will not check
+
+func (r *ReceiverNamingRule) configure(arguments lint.Arguments) {
+	r.Lock()
+	defer r.Unlock()
+	if r.receiverNameMaxLength != 0 {
+		return
+	}
+
+	r.receiverNameMaxLength = defaultReceiverNameMaxLength
+	if len(arguments) < 1 {
+		return
+	}
+
+	args, ok := arguments[0].(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("Unable to get arguments for rule %s. Expected object of key-value-pairs.", r.Name()))
+	}
+
+	for k, v := range args {
+		switch k {
+		case "maxLength":
+			value, ok := v.(int64)
+			if !ok {
+				panic(fmt.Sprintf("Invalid value %v for argument %s of rule %s, expected integer value got %T", v, k, r.Name(), v))
+			}
+			r.receiverNameMaxLength = int(value)
+		default:
+			panic(fmt.Sprintf("Unknown argument %s for %s rule.", k, r.Name()))
+		}
+	}
+}
 
 // Apply applies the rule to given file.
-func (*ReceiverNamingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (r *ReceiverNamingRule) Apply(file *lint.File, args lint.Arguments) []lint.Failure {
+	r.configure(args)
+
 	var failures []lint.Failure
 
 	fileAst := file.AST
@@ -20,7 +59,8 @@ func (*ReceiverNamingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failu
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
-		typeReceiver: map[string]string{},
+		typeReceiver:          map[string]string{},
+		receiverNameMaxLength: r.receiverNameMaxLength,
 	}
 
 	ast.Walk(walker, fileAst)
@@ -34,8 +74,9 @@ func (*ReceiverNamingRule) Name() string {
 }
 
 type lintReceiverName struct {
-	onFailure    func(lint.Failure)
-	typeReceiver map[string]string
+	onFailure             func(lint.Failure)
+	typeReceiver          map[string]string
+	receiverNameMaxLength int
 }
 
 func (w lintReceiverName) Visit(n ast.Node) ast.Visitor {
@@ -66,6 +107,17 @@ func (w lintReceiverName) Visit(n ast.Node) ast.Visitor {
 		})
 		return w
 	}
+
+	if w.receiverNameMaxLength > 0 && len([]rune(name)) > w.receiverNameMaxLength {
+		w.onFailure(lint.Failure{
+			Node:       n,
+			Confidence: 1,
+			Category:   "naming",
+			Failure:    fmt.Sprintf("receiver name %s is longer than %d characters", name, w.receiverNameMaxLength),
+		})
+		return w
+	}
+
 	recv := typeparams.ReceiverType(fn)
 	if prev, ok := w.typeReceiver[recv]; ok && prev != name {
 		w.onFailure(lint.Failure{

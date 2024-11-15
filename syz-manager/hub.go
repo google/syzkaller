@@ -39,20 +39,18 @@ func pickGetter(key string) keyGetter {
 	}
 }
 
-func (mgr *Manager) hubSyncLoop(keyGet keyGetter) {
+func (mgr *Manager) hubSyncLoop(keyGet keyGetter, enabledSyscalls map[*prog.Syscall]bool) {
 	hc := &HubConnector{
 		mgr:           mgr,
 		cfg:           mgr.cfg,
 		target:        mgr.target,
 		domain:        mgr.cfg.TargetOS + "/" + mgr.cfg.HubDomain,
-		enabledCalls:  mgr.targetEnabledSyscalls,
+		enabledCalls:  enabledSyscalls,
 		leak:          mgr.enabledFeatures&flatrpc.FeatureLeak != 0,
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.externalReproQueue,
 		keyGet:        keyGet,
 
-		statSendProgAdd:   stat.New("hub send prog add", "", stat.Graph("hub progs")),
-		statSendProgDel:   stat.New("hub send prog del", "", stat.Graph("hub progs")),
 		statRecvProg:      stat.New("hub recv prog", "", stat.Graph("hub progs")),
 		statRecvProgDrop:  stat.New("hub recv prog drop", "", stat.NoGraph),
 		statSendRepro:     stat.New("hub send repro", "", stat.Graph("hub repros")),
@@ -74,14 +72,11 @@ type HubConnector struct {
 	enabledCalls   map[*prog.Syscall]bool
 	leak           bool
 	fresh          bool
-	hubCorpus      map[string]bool
 	newRepros      [][]byte
 	hubReproQueue  chan *manager.Crash
 	needMoreRepros func() bool
 	keyGet         keyGetter
 
-	statSendProgAdd   *stat.Val
-	statSendProgDel   *stat.Val
 	statRecvProg      *stat.Val
 	statRecvProgDrop  *stat.Val
 	statSendRepro     *stat.Val
@@ -91,7 +86,8 @@ type HubConnector struct {
 
 // HubManagerView restricts interface between HubConnector and Manager.
 type HubManagerView interface {
-	getMinimizedCorpus() (corpus []*corpus.Item, repros [][]byte)
+	getMinimizedCorpus() []*corpus.Item
+	getNewRepros() [][]byte
 	addNewCandidates(candidates []fuzzer.Candidate)
 	needMoreCandidates() bool
 	hubIsUnreachable()
@@ -100,19 +96,28 @@ type HubManagerView interface {
 func (hc *HubConnector) loop() {
 	var hub *rpctype.RPCClient
 	var doneOnce bool
+	var connectTime time.Time
 	for query := 0; ; time.Sleep(10 * time.Minute) {
-		corpus, repros := hc.mgr.getMinimizedCorpus()
-		hc.newRepros = append(hc.newRepros, repros...)
 		if hub == nil {
+			var corpus []*corpus.Item
+			// If we are using fake coverage, don't send our corpus to the hub.
+			// It should be lower quality than coverage-guided corpus.
+			// However still send repros and accept new inputs.
+			if hc.cfg.Cover {
+				corpus = hc.mgr.getMinimizedCorpus()
+			}
 			var err error
 			if hub, err = hc.connect(corpus); err != nil {
 				log.Logf(0, "failed to connect to hub at %v: %v", hc.cfg.HubAddr, err)
 			} else {
 				log.Logf(0, "connected to hub at %v, corpus %v", hc.cfg.HubAddr, len(corpus))
+				connectTime = time.Now()
 			}
 		}
 		if hub != nil && hc.mgr.needMoreCandidates() {
-			if err := hc.sync(hub, corpus); err != nil {
+			repros := hc.mgr.getNewRepros()
+			hc.newRepros = append(hc.newRepros, repros...)
+			if err := hc.sync(hub); err != nil {
 				log.Logf(0, "hub sync failed: %v", err)
 				hub.Close()
 				hub = nil
@@ -124,6 +129,19 @@ func (hc *HubConnector) loop() {
 		const maxAttempts = 3
 		if hub == nil && query >= maxAttempts && !doneOnce {
 			hc.mgr.hubIsUnreachable()
+		}
+		// We used to send corpus updates (added/removed elements) to the hub in each sync.
+		// But that produced too much churn since hub algorithm is O(N^2) (distributing everything
+		// to everybody), and lots of new inputs are later removed (either we can't reproduce coverage
+		// after restart, or inputs removed during corpus minimization). So now we don't send new inputs
+		// in each sync, instead we aim at sending corpus once after initial triage. This solves
+		// the problem with non-reproducible/removed inputs. Typical instance life-time on syzbot is <24h,
+		// for such instances we send the corpus once. If an instance somehow lives for longer, then we
+		// re-connect and re-send once in a while (e.g. a local long-running instance).
+		if hub != nil && time.Since(connectTime) > 30*time.Hour {
+			log.Logf(0, "re-syncing with hub")
+			hub.Close()
+			hub = nil
 		}
 	}
 }
@@ -147,9 +165,7 @@ func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, erro
 	for call := range hc.enabledCalls {
 		a.Calls = append(a.Calls, call.Name)
 	}
-	hubCorpus := make(map[string]bool)
 	for _, inp := range corpus {
-		hubCorpus[inp.Sig] = true
 		a.Corpus = append(a.Corpus, inp.Prog.Serialize())
 	}
 	// Never send more than this, this is never healthy but happens episodically
@@ -170,12 +186,11 @@ func (hc *HubConnector) connect(corpus []*corpus.Item) (*rpctype.RPCClient, erro
 	if err != nil {
 		return nil, err
 	}
-	hc.hubCorpus = hubCorpus
 	hc.fresh = false
 	return hub, nil
 }
 
-func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus []*corpus.Item) error {
+func (hc *HubConnector) sync(hub *rpctype.RPCClient) error {
 	key, err := hc.keyGet()
 	if err != nil {
 		return err
@@ -184,22 +199,6 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus []*corpus.Item) erro
 		Client:  hc.cfg.HubClient,
 		Key:     key,
 		Manager: hc.cfg.Name,
-	}
-	sigs := make(map[string]bool)
-	for _, inp := range corpus {
-		sigs[inp.Sig] = true
-		if hc.hubCorpus[inp.Sig] {
-			continue
-		}
-		hc.hubCorpus[inp.Sig] = true
-		a.Add = append(a.Add, inp.Prog.Serialize())
-	}
-	for sig := range hc.hubCorpus {
-		if sigs[sig] {
-			continue
-		}
-		delete(hc.hubCorpus, sig)
-		a.Del = append(a.Del, sig)
 	}
 	if hc.needMoreRepros != nil {
 		a.NeedRepros = hc.needMoreRepros()
@@ -212,17 +211,14 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus []*corpus.Item) erro
 		}
 		minimized, smashed, progDropped := hc.processProgs(r.Inputs)
 		reproDropped := hc.processRepros(r.Repros)
-		hc.statSendProgAdd.Add(len(a.Add))
-		hc.statSendProgDel.Add(len(a.Del))
 		hc.statSendRepro.Add(len(a.Repros))
 		hc.statRecvProg.Add(len(r.Inputs) - progDropped)
 		hc.statRecvProgDrop.Add(progDropped)
 		hc.statRecvRepro.Add(len(r.Repros) - reproDropped)
 		hc.statRecvReproDrop.Add(reproDropped)
-		log.Logf(0, "hub sync: send: add %v, del %v, repros %v;"+
+		log.Logf(0, "hub sync: repros %v;"+
 			" recv: progs %v (min %v, smash %v), repros %v; more %v",
-			len(a.Add), len(a.Del), len(a.Repros),
-			len(r.Inputs)-progDropped, minimized, smashed,
+			len(a.Repros), len(r.Inputs)-progDropped, minimized, smashed,
 			len(r.Repros)-reproDropped, r.More)
 		a.Add = nil
 		a.Del = nil
@@ -317,7 +313,7 @@ func (hc *HubConnector) processRepros(repros [][]byte) int {
 }
 
 func (hc *HubConnector) parseProgram(data []byte) (*prog.Prog, error) {
-	p, err := manager.LoadProg(hc.target, data)
+	p, err := manager.ParseSeed(hc.target, data)
 	if err != nil {
 		return nil, err
 	}

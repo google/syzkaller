@@ -47,6 +47,7 @@ type Config struct {
 	// Currently either 'gcc' or 'clang'. Note that pkg/bisect requires
 	// explicit plumbing for every os/compiler combination.
 	CompilerType string `json:"compiler_type"`
+	Make         string `json:"make"`
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.
@@ -103,6 +104,7 @@ func main() {
 		Fix:             *flagFix,
 		DefaultCompiler: mycfg.Compiler,
 		CompilerType:    mycfg.CompilerType,
+		Make:            mycfg.Make,
 		Linker:          mycfg.Linker,
 		BinDir:          mycfg.BinDir,
 		Ccache:          mycfg.Ccache,

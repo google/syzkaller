@@ -25,10 +25,10 @@ import (
 
 	"cloud.google.com/go/internal/trace"
 	sppb "cloud.google.com/go/spanner/apiv1/spannerpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
 // BatchReadOnlyTransaction is a ReadOnlyTransaction that allows for exporting

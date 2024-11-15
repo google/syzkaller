@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
- - CMDLINE: [append, "smp.csd_lock_timeout=100000 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140 dummy_hcd.num=8"]
+ - CMDLINE: [append, "smp.csd_lock_timeout=100000 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140 dummy_hcd.num=32 max_loop=32 nbds_max=32"]
  # Deterministic hang/stall detection.
  # Without careful tuning the same hang/stall can be detected in multiple, radically-different ways.
  # For example, an infinite loop can be detected as CPU stall, RCU stall, hung task or workqueue stall.
@@ -30,8 +30,5 @@ config:
  - RCU_CPU_STALL_TIMEOUT: 100
  # The constraints repeat constraints on inclusion of debug.yml which enables hung task detection.
  - DEFAULT_HUNG_TASK_TIMEOUT: [140, -nonoise, -kmsan, -kcsan, -kmemleak]
- # By default it is set to a too small value, which causes tons of
- # `rcu_preempt detected expedited stalls on CPUs/tasks`.
- # TODO: `rcu: Allow up to five minutes expedited RCU CPU stall-warning timeouts` lets us set more than 21k,
- # but we first need to change the config generation tool to support multiple possible parameter values.
- - RCU_EXP_CPU_STALL_TIMEOUT: [21000, v5.19]
+ # A zero RCU_EXP_CPU_STALL_TIMEOUT value makes it equal to RCU_CPU_STALL_TIMEOUT.
+ - RCU_EXP_CPU_STALL_TIMEOUT: [0, v5.19]

@@ -39,6 +39,7 @@ const (
 	tokBinAnd
 	tokCmpEq
 	tokCmpNeq
+	tokOr
 
 	tokEOF
 )
@@ -73,6 +74,7 @@ var tok2str = [...]string{
 	tokEOF:       "EOF",
 	tokCmpEq:     "==",
 	tokCmpNeq:    "!=",
+	tokOr:        "||",
 }
 
 func init() {
@@ -192,10 +194,12 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		tok = tokCmpEq
 	case s.tryConsume("!="):
 		tok = tokCmpNeq
+	case s.tryConsume("||"):
+		tok = tokOr
 	default:
 		tok = punctuation[s.ch]
 		if tok == tokIllegal {
-			s.Error(pos, "illegal character %#U", s.ch)
+			s.Errorf(pos, "illegal character %#U", s.ch)
 		}
 		s.next()
 	}
@@ -212,7 +216,7 @@ func (s *scanner) scanStr(pos Pos) string {
 	}
 	for s.next(); s.ch != closing; s.next() {
 		if s.ch == 0 || s.ch == '\n' {
-			s.Error(pos, "string literal is not terminated")
+			s.Errorf(pos, "string literal is not terminated")
 			return ""
 		}
 	}
@@ -222,7 +226,7 @@ func (s *scanner) scanStr(pos Pos) string {
 			pos1 := pos
 			pos1.Col += i + 1
 			pos1.Off += i + 1
-			s.Error(pos1, "illegal character %#U in string literal", lit[i])
+			s.Errorf(pos1, "illegal character %#U in string literal", lit[i])
 			break
 		}
 	}
@@ -232,7 +236,7 @@ func (s *scanner) scanStr(pos Pos) string {
 	}
 	decoded, err := hex.DecodeString(lit)
 	if err != nil {
-		s.Error(pos, "bad hex string literal: %v", err)
+		s.Errorf(pos, "bad hex string literal: %v", err)
 	}
 	return string(decoded)
 }
@@ -258,7 +262,7 @@ func (s *scanner) scanInt(pos Pos) string {
 			return lit
 		}
 	}
-	s.Error(pos, fmt.Sprintf("bad integer %q", lit))
+	s.Errorf(pos, "bad integer %q", lit)
 	return "0"
 }
 
@@ -266,7 +270,7 @@ func (s *scanner) scanChar(pos Pos) string {
 	s.next()
 	s.next()
 	if s.ch != '\'' {
-		s.Error(pos, "char literal is not terminated")
+		s.Errorf(pos, "char literal is not terminated")
 		return "0"
 	}
 	s.next()
@@ -288,7 +292,7 @@ func (s *scanner) scanIdent(pos Pos) (tok token, lit string) {
 	return
 }
 
-func (s *scanner) Error(pos Pos, msg string, args ...interface{}) {
+func (s *scanner) Errorf(pos Pos, msg string, args ...interface{}) {
 	s.errors++
 	s.errorHandler(pos, fmt.Sprintf(msg, args...))
 }
@@ -320,7 +324,7 @@ func (s *scanner) next() {
 	s.ch = s.data[s.off]
 	s.col++
 	if s.ch == 0 {
-		s.Error(s.pos(), "illegal character \\x00")
+		s.Errorf(s.pos(), "illegal character \\x00")
 	}
 }
 

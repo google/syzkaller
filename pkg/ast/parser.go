@@ -180,7 +180,7 @@ func (p *parser) expect(tokens ...token) {
 	for _, tok := range tokens {
 		str = append(str, tok.String())
 	}
-	p.s.Error(p.pos, fmt.Sprintf("unexpected %v, expecting %v", p.tok, strings.Join(str, ", ")))
+	p.s.Errorf(p.pos, "unexpected %v, expecting %v", p.tok, strings.Join(str, ", "))
 	panic(errSkipLine)
 }
 
@@ -438,17 +438,18 @@ type operatorInfo struct {
 	prio int
 }
 
-const maxOperatorPrio = 1
+const maxOperatorPrio = 2
 
 // The highest priority is 0.
 var binaryOperators = map[token]operatorInfo{
-	tokCmpEq:  {op: OperatorCompareEq, prio: 0},
-	tokCmpNeq: {op: OperatorCompareNeq, prio: 0},
-	tokBinAnd: {op: OperatorBinaryAnd, prio: 1},
+	tokOr:     {op: OperatorOr, prio: 0},
+	tokCmpEq:  {op: OperatorCompareEq, prio: 1},
+	tokCmpNeq: {op: OperatorCompareNeq, prio: 1},
+	tokBinAnd: {op: OperatorBinaryAnd, prio: 2},
 }
 
 // Parse out a single Type object, which can either be a plain object or an expression.
-// For now, only expressions constructed via '(', ')', "==", "!=", '&' are supported.
+// For now, only expressions constructed via '(', ')', "==", "!=", '&', '||' are supported.
 func (p *parser) parseType() *Type {
 	return p.parseBinaryExpr(0)
 }

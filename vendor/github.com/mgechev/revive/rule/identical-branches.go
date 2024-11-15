@@ -39,9 +39,11 @@ func (w *lintIdenticalBranches) Visit(node ast.Node) ast.Visitor {
 		return w
 	}
 
-	if n.Else == nil {
+	noElseBranch := n.Else == nil
+	if noElseBranch {
 		return w
 	}
+
 	branches := []*ast.BlockStmt{n.Body}
 
 	elseBranch, ok := n.Else.(*ast.BlockStmt)
@@ -59,14 +61,15 @@ func (w *lintIdenticalBranches) Visit(node ast.Node) ast.Visitor {
 
 func (lintIdenticalBranches) identicalBranches(branches []*ast.BlockStmt) bool {
 	if len(branches) < 2 {
-		return false
+		return false // only one branch to compare thus we return
 	}
 
-	ref := gofmt(branches[0])
-	refSize := len(branches[0].List)
+	referenceBranch := gofmt(branches[0])
+	referenceBranchSize := len(branches[0].List)
 	for i := 1; i < len(branches); i++ {
-		currentSize := len(branches[i].List)
-		if currentSize != refSize || gofmt(branches[i]) != ref {
+		currentBranch := branches[i]
+		currentBranchSize := len(currentBranch.List)
+		if currentBranchSize != referenceBranchSize || gofmt(currentBranch) != referenceBranch {
 			return false
 		}
 	}

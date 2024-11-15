@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,6 +24,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 			want: &templateHeatmap{
 				Root: &templateHeatmapRow{
 					Items: []*templateHeatmapRow{},
+					IsDir: true,
 				},
 			},
 		},
@@ -33,7 +35,8 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 					Filepath:     "file1",
 					Instrumented: 1,
 					Covered:      1,
-					Dateto:       civil.Date{Year: 2024, Month: time.July, Day: 1},
+					TimePeriod:   makeTimePeriod(t, civil.Date{Year: 2024, Month: time.July, Day: 1}, coveragedb.DayPeriod),
+					Commit:       "commit1",
 				},
 			},
 			want: &templateHeatmap{
@@ -49,18 +52,20 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 							Tooltips: []string{
 								"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 							},
+							FileCoverageLink: []string{
+								"/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=file1"},
 						},
 					},
 					Name:                "",
 					Coverage:            []int64{100},
-					IsDir:               false,
+					IsDir:               true,
 					Depth:               0,
 					LastDayInstrumented: 1,
 					Tooltips: []string{
 						"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 					},
 				},
-				Dates: []string{"2024-07-01"},
+				Periods: []string{"2024-07-01(1)"},
 			},
 		},
 		{
@@ -70,13 +75,15 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 					Filepath:     "dir/file2",
 					Instrumented: 1,
 					Covered:      0,
-					Dateto:       civil.Date{Year: 2024, Month: time.July, Day: 2},
+					TimePeriod:   makeTimePeriod(t, civil.Date{Year: 2024, Month: time.July, Day: 2}, coveragedb.DayPeriod),
+					Commit:       "commit2",
 				},
 				{
 					Filepath:     "dir/file1",
 					Instrumented: 1,
 					Covered:      1,
-					Dateto:       civil.Date{Year: 2024, Month: time.July, Day: 1},
+					TimePeriod:   makeTimePeriod(t, civil.Date{Year: 2024, Month: time.July, Day: 1}, coveragedb.DayPeriod),
+					Commit:       "commit1",
 				},
 			},
 			want: &templateHeatmap{
@@ -95,6 +102,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
 									},
+									FileCoverageLink: []string{
+										"/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file1",
+										"/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file1"},
 								},
 								{
 									Items:               []*templateHeatmapRow{},
@@ -107,6 +117,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
 										"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 									},
+									FileCoverageLink: []string{
+										"/graph/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file2",
+										"/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file2"},
 								},
 							},
 							Name:                "dir",
@@ -127,8 +140,9 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 						"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 						"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 					},
+					IsDir: true,
 				},
-				Dates: []string{"2024-07-01", "2024-07-02"},
+				Periods: []string{"2024-07-01(1)", "2024-07-02(1)"},
 			},
 		},
 	}
@@ -138,4 +152,10 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 			assert.EqualExportedValues(t, test.want, got)
 		})
 	}
+}
+
+func makeTimePeriod(t *testing.T, targetDate civil.Date, periodType string) coveragedb.TimePeriod {
+	tp, err := coveragedb.MakeTimePeriod(targetDate, periodType)
+	assert.NoError(t, err)
+	return tp
 }

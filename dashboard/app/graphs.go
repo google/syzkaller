@@ -17,6 +17,8 @@ import (
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/validator"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -192,7 +194,7 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
-type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem string, dateFrom, dateTo civil.Date,
+type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem string, periods []coveragedb.TimePeriod,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -209,11 +211,32 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return err
 	}
 	ss := r.FormValue("subsystem")
-	dateFrom := civil.DateOf(time.Now().Add(-14 * 24 * time.Hour))
-	dateTo := civil.DateOf(time.Now())
+
+	periodType := r.FormValue("period")
+	if periodType == "" {
+		periodType = coveragedb.DayPeriod
+	}
+	if periodType != coveragedb.DayPeriod && periodType != coveragedb.MonthPeriod {
+		return fmt.Errorf("only day and month are allowed, but received %s instead, %w",
+			periodType, ErrClientBadRequest)
+	}
+
+	periodCount := r.FormValue("period_count")
+	if periodCount == "" {
+		periodCount = "4"
+	}
+	nPeriods, err := strconv.Atoi(periodCount)
+	if err != nil || nPeriods > 12 || nPeriods < 1 {
+		return fmt.Errorf("periods_count is wrong, expected [1, 12]: %w", err)
+	}
+
+	periods, err := coveragedb.GenNPeriodsTill(nPeriods, civil.DateOf(timeNow(c)), periodType)
+	if err != nil {
+		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
+	}
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, dateFrom, dateTo); err != nil {
+	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, periods); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
@@ -227,6 +250,61 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 			JS:    js,
 		},
 	})
+}
+
+func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
+	return func(filePath, commit string) string {
+		return fmt.Sprintf("%s/%s/%s", url, commit, filePath)
+	}
+}
+
+func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	nsConfig := getNsConfig(c, hdr.Namespace)
+	if nsConfig.Coverage == nil || nsConfig.Coverage.WebGitURI == "" {
+		return ErrClientNotFound
+	}
+	dateToStr := r.FormValue("dateto")
+	periodType := r.FormValue("period")
+	targetCommit := r.FormValue("commit")
+	kernelFilePath := r.FormValue("filepath")
+	if err := validator.AnyError("input validation failed",
+		validator.TimePeriodType(periodType, "period"),
+		validator.CommitHash(targetCommit, "commit"),
+		validator.KernelFilePath(kernelFilePath, "filepath"),
+	); err != nil {
+		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
+	}
+	targetDate, err := civil.ParseDate(dateToStr)
+	if err != nil {
+		return fmt.Errorf("civil.ParseDate(%s): %w", dateToStr, err)
+	}
+	tp, err := coveragedb.MakeTimePeriod(targetDate, periodType)
+	if err != nil {
+		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
+	}
+	mainNsRepo, _ := nsConfig.mainRepoBranch()
+	hitCounts, err := coveragedb.ReadLinesHitCount(c, hdr.Namespace, targetCommit, kernelFilePath, tp)
+	if err != nil {
+		return fmt.Errorf("coveragedb.ReadLinesHitCount: %w", err)
+	}
+
+	content, err := cover.RendFileCoverage(
+		mainNsRepo,
+		targetCommit,
+		kernelFilePath,
+		makeProxyURIProvider(nsConfig.Coverage.WebGitURI),
+		&covermerger.MergeResult{HitCounts: hitCounts},
+		cover.DefaultHTMLRenderConfig())
+	if err != nil {
+		return fmt.Errorf("cover.RendFileCoverage: %w", err)
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(content))
+	return nil
 }
 
 func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -245,15 +323,13 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
-	pOps, err := coveragedb.PeriodOps(periodType)
+	periodEndDates, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(timeNow(c)), periodType)
 	if err != nil {
 		return err
 	}
-	periodEndDates := coveragedb.GenNPeriodEndDatesTill(12, civil.DateOf(time.Now()), pOps)
-
 	cols := []uiGraphColumn{}
 	for _, periodEndDate := range periodEndDates {
-		date := periodEndDate.String()
+		date := periodEndDate.DateTo.String()
 		if _, ok := hist.covered[date]; !ok || hist.instrumented[date] == 0 {
 			cols = append(cols, uiGraphColumn{Hint: date, Vals: []uiGraphValue{{IsNull: true}}})
 		} else {

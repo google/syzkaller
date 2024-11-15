@@ -3,7 +3,6 @@ run:
 
 linters-settings:
   govet:
-    check-shadowing: true
     enable-all: true
     disable:
       - fieldalignment
@@ -47,7 +46,6 @@ linters:
     - nestif
     - gomnd
     - goerr113
-#    - wrapcheck
     - nlreturn
     - wsl
     - exhaustive
@@ -66,7 +64,7 @@ linters:
 
 issues:
   exclude-use-default: false
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
   exclude:
     - 'ST1000: at least one file in a package should have a package comment'

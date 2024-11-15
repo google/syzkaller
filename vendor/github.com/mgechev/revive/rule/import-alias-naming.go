@@ -68,7 +68,7 @@ func (r *ImportAliasNamingRule) Apply(file *lint.File, arguments lint.Arguments)
 		}
 
 		alias := is.Name
-		if alias == nil || alias.Name == "_" || alias.Name == "." { // "_" and "." are special types of import aiases and should be processed by another linter rule
+		if alias == nil || alias.Name == "_" || alias.Name == "." { // "_" and "." are special types of import aliases and should be processed by another linter rule
 			continue
 		}
 

@@ -113,12 +113,14 @@ ax25_devname [
 
 ax25_devname_rose {
 	name	stringnoz["rose"]
+# NEED: this does not support formatting numbers larger than 9.
 	id	proc['0', 1, int8]
 	z	const[0, int8]
 } [size[IFNAMSIZ]]
 
 ax25_devname_netrom {
 	name	stringnoz["nr"]
+# NEED: this does not support formatting numbers larger than 9.
 	id	proc['0', 1, int8]
 	z	const[0, int8]
 } [size[IFNAMSIZ]]

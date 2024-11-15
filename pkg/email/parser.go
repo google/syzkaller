@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -59,8 +60,8 @@ const (
 	cmdTest5
 )
 
-var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit" +
-	" (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
+var groupsLinkRe = regexp.MustCompile(`(?m)\nTo view this discussion (?:on the web )?visit` +
+	` (https://groups\.google\.com/.*?)\.(:?$|\n|\r)`)
 
 func prepareEmails(list []string) map[string]bool {
 	ret := make(map[string]bool)
@@ -153,6 +154,9 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	link := ""
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
 		link = bodyStr[match[2]:match[3]]
+		if unescaped, err := url.QueryUnescape(link); err == nil {
+			link = unescaped
+		}
 	}
 
 	author := CanonicalEmail(from[0].Address)

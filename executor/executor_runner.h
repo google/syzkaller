@@ -27,16 +27,62 @@ inline std::ostream& operator<<(std::ostream& ss, const rpc::ExecRequestRawT& re
 		  << "\n";
 }
 
+// ProcIDPool allows to reuse a set of unique proc IDs across a set of subprocesses.
+//
+// When a subprocess hangs, it's a bit unclear what to do (we don't have means to kill
+// the whole tree of its children, and waiting for all them will presumably hang as well).
+// Later there may appear a "task hung" report from the kernel, so we don't want to terminate
+// the VM immidiatly. But the "task hung" report may also not appear at all, so we can't
+// just wait for a hanged subprocesses forever.
+//
+// So in that case we kill/wait just the top subprocesses, and give it a new proc ID
+// (since some resources associated with the old proc ID may still be used by the old
+// unterminated test processes). However, we don't have infinite number of proc IDs,
+// so we recycle them in FIFO order. This is not ideal, but it looks like the best
+// practical solution.
+class ProcIDPool
+{
+public:
+	ProcIDPool(int num_procs)
+	{
+		// Theoretically we have 32 procs (prog.MaxPids), but there are some limitations in descriptions
+		// that make them work well only for up to 10 procs. For example, we form /dev/loopN
+		// device name using proc['0', 1, int8]. When these limitations are fixed,
+		// we can use all 32 here (prog.MaxPids)
+		constexpr int kNumGoodProcs = 10;
+		for (int i = 0; i < std::max(num_procs, kNumGoodProcs); i++)
+			ids_.push_back(i);
+	}
+
+	int Alloc(int old = -1)
+	{
+		if (old >= 0)
+			ids_.push_back(old);
+		if (ids_.empty())
+			fail("out of proc ids");
+		int id = ids_.front();
+		ids_.pop_front();
+		return id;
+	}
+
+private:
+	std::deque<int> ids_;
+
+	ProcIDPool(const ProcIDPool&) = delete;
+	ProcIDPool& operator=(const ProcIDPool&) = delete;
+};
+
 // Proc represents one subprocess that runs tests (re-execed syz-executor with 'exec' argument).
 // The object is persistent and re-starts subprocess when it crashes.
 class Proc
 {
 public:
-	Proc(Connection& conn, const char* bin, int id, int& restarting, const bool& corpus_triaged, int max_signal_fd, int cover_filter_fd,
+	Proc(Connection& conn, const char* bin, int id, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd, int cover_filter_fd,
 	     bool use_cover_edges, bool is_kernel_64_bit, uint32 slowdown, uint32 syscall_timeout_ms, uint32 program_timeout_ms)
 	    : conn_(conn),
 	      bin_(bin),
-	      id_(id),
+	      proc_id_pool_(proc_id_pool),
+	      id_(proc_id_pool.Alloc()),
 	      restarting_(restarting),
 	      corpus_triaged_(corpus_triaged),
 	      max_signal_fd_(max_signal_fd),
@@ -92,7 +138,7 @@ public:
 			// fork server is enabled, so we use quite large timeout. Child process can be slow
 			// due to global locks in namespaces and other things, so let's better wait than
 			// report false misleading crashes.
-			uint64 timeout = 2 * program_timeout_ms_;
+			uint64 timeout = 3 * program_timeout_ms_;
 #else
 			uint64 timeout = program_timeout_ms_;
 #endif
@@ -134,7 +180,8 @@ private:
 
 	Connection& conn_;
 	const char* const bin_;
-	const int id_;
+	ProcIDPool& proc_id_pool_;
+	int id_;
 	int& restarting_;
 	const bool& corpus_triaged_;
 	const int max_signal_fd_;
@@ -215,7 +262,15 @@ private:
 				while (ReadOutput())
 					;
 			}
-			HandleCompletion(status);
+			bool hanged = SYZ_EXECUTOR_USES_FORK_SERVER && state_ == State::Executing;
+			HandleCompletion(status, hanged);
+			if (hanged) {
+				// If the process has hanged, it may still be using per-proc resources,
+				// so allocate a fresh proc id.
+				int new_id = proc_id_pool_.Alloc(id_);
+				debug("proc %d: changing proc id to %d\n", id_, new_id);
+				id_ = new_id;
+			}
 		} else if (attempts_ > 3)
 			sleep_ms(100 * attempts_);
 		Start();
@@ -350,7 +405,7 @@ private:
 		}
 	}
 
-	void HandleCompletion(uint32 status)
+	void HandleCompletion(uint32 status, bool hanged = false)
 	{
 		if (!msg_)
 			fail("don't have executed msg");
@@ -370,7 +425,7 @@ private:
 			}
 		}
 		uint32 num_calls = read_input(&prog_data);
-		auto data = finish_output(resp_mem_, id_, msg_->id, num_calls, elapsed, freshness_++, status, output);
+		auto data = finish_output(resp_mem_, id_, msg_->id, num_calls, elapsed, freshness_++, status, hanged, output);
 		conn_.Send(data.data(), data.size());
 
 		resp_mem_->Reset();
@@ -458,12 +513,14 @@ public:
 	    : conn_(conn),
 	      vm_index_(vm_index)
 	{
-		size_t num_procs = Handshake();
+		int num_procs = Handshake();
+		proc_id_pool_.emplace(num_procs);
 		int max_signal_fd = max_signal_ ? max_signal_->FD() : -1;
 		int cover_filter_fd = cover_filter_ ? cover_filter_->FD() : -1;
-		for (size_t i = 0; i < num_procs; i++)
-			procs_.emplace_back(new Proc(conn, bin, i, restarting_, corpus_triaged_, max_signal_fd, cover_filter_fd,
-						     use_cover_edges_, is_kernel_64_bit_, slowdown_, syscall_timeout_ms_, program_timeout_ms_));
+		for (int i = 0; i < num_procs; i++)
+			procs_.emplace_back(new Proc(conn, bin, i, *proc_id_pool_, restarting_, corpus_triaged_,
+						     max_signal_fd, cover_filter_fd, use_cover_edges_, is_kernel_64_bit_, slowdown_,
+						     syscall_timeout_ms_, program_timeout_ms_));
 
 		for (;;)
 			Loop();
@@ -474,6 +531,7 @@ private:
 	const int vm_index_;
 	std::optional<CoverFilter> max_signal_;
 	std::optional<CoverFilter> cover_filter_;
+	std::optional<ProcIDPool> proc_id_pool_;
 	std::vector<std::unique_ptr<Proc>> procs_;
 	std::deque<rpc::ExecRequestRawT> requests_;
 	std::vector<std::string> leak_frames_;
@@ -545,7 +603,7 @@ private:
 			failmsg("bad restarting", "restarting=%d", restarting_);
 	}
 
-	size_t Handshake()
+	int Handshake()
 	{
 		rpc::ConnectRequestRawT conn_req;
 		conn_req.id = vm_index_;

@@ -461,6 +461,35 @@ For more options, visit https://groups.google.com/d/optout.`,
 				},
 			},
 		}},
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+Subject: new footer
+From: Bob <bob@example.com>
+To: syzbot <foo+4564456@bar.com>
+Content-Type: text/plain; charset="UTF-8"
+
+some title
+
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller-bugs" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller-bugs+unsubscribe@googlegroups.com.
+To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE%40google.com.`,
+		Email{
+			BugIDs:    []string{"4564456"},
+			MessageID: "<123>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Link:      "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
+			Subject:   "new footer",
+			Author:    "bob@example.com",
+			Cc:        []string{"bob@example.com"},
+			Body: `some title
+
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller-bugs" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller-bugs+unsubscribe@googlegroups.com.
+To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE%40google.com.`,
+			Patch: "",
+		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>

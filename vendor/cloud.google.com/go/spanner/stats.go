@@ -31,12 +31,14 @@ const statsPrefix = "cloud.google.com/go/spanner/"
 
 // Deprecated: OpenCensus project is deprecated. Use OpenTelemetry for capturing metrics.
 var (
-	tagKeyClientID   = tag.MustNewKey("client_id")
-	tagKeyDatabase   = tag.MustNewKey("database")
-	tagKeyInstance   = tag.MustNewKey("instance_id")
-	tagKeyLibVersion = tag.MustNewKey("library_version")
-	tagKeyType       = tag.MustNewKey("type")
-	tagCommonKeys    = []tag.Key{tagKeyClientID, tagKeyDatabase, tagKeyInstance, tagKeyLibVersion}
+	tagKeyClientID      = tag.MustNewKey("client_id")
+	tagKeyDatabase      = tag.MustNewKey("database")
+	tagKeyInstance      = tag.MustNewKey("instance_id")
+	tagKeyLibVersion    = tag.MustNewKey("library_version")
+	tagKeyType          = tag.MustNewKey("type")
+	tagKeyIsMultiplexed = tag.MustNewKey("is_multiplexed")
+
+	tagCommonKeys = []tag.Key{tagKeyClientID, tagKeyDatabase, tagKeyInstance, tagKeyLibVersion}
 
 	tagNumInUseSessions = tag.Tag{Key: tagKeyType, Value: "num_in_use_sessions"}
 	tagNumSessions      = tag.Tag{Key: tagKeyType, Value: "num_sessions"}

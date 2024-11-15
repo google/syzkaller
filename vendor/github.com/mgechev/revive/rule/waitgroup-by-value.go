@@ -51,7 +51,7 @@ func (w lintWaitGroupByValueRule) Visit(node ast.Node) ast.Visitor {
 		})
 	}
 
-	return nil
+	return nil // skip visiting function body
 }
 
 func (lintWaitGroupByValueRule) isWaitGroup(ft ast.Expr) bool {

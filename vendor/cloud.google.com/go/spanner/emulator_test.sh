@@ -44,4 +44,8 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-go test -v -timeout 10m ./... -run '^TestIntegration_' 2>&1 | tee -a sponge_log.log
+echo "Testing without GCPMultiEnpoint..." | tee -a sponge_log.log
+go test -count=1 -v -timeout 10m ./... -run '^TestIntegration_' 2>&1 | tee -a sponge_log.log
+
+echo "Testing with GCPMultiEnpoint..." | tee -a sponge_log.log
+GCLOUD_TESTS_GOLANG_USE_GRPC_GCP=true go test -count=1 -v -timeout 10m ./... -run '^TestIntegration_' 2>&1 | tee -a sponge_log.log

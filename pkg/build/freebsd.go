@@ -6,7 +6,6 @@ package build
 import (
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -119,9 +118,9 @@ sudo mdconfig -d -u ${md#md}
 	return ImageDetails{}, nil
 }
 
-func (ctx freebsd) clean(kernelDir, targetArch string) error {
-	objPrefix := filepath.Join(kernelDir, "obj")
-	_, err := ctx.make(kernelDir, objPrefix, runtime.NumCPU(), "cleanworld")
+func (ctx freebsd) clean(params Params) error {
+	objPrefix := filepath.Join(params.KernelDir, "obj")
+	_, err := ctx.make(params.KernelDir, objPrefix, params.BuildCPUs, "cleanworld")
 	return err
 }
 

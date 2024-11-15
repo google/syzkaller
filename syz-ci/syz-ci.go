@@ -144,6 +144,10 @@ type Config struct {
 	// Per-vm type JSON diffs that will be applied to every instace of the
 	// corresponding VM type.
 	PatchVMConfigs map[string]json.RawMessage `json:"patch_vm_configs"`
+	// Some commits don't live long.
+	// Push all commits used in kernel builds to this git repo URL.
+	// The archive is later used by coverage merger.
+	GitArchive string `json:"git_archive"`
 }
 
 type ManagerConfig struct {
@@ -187,6 +191,7 @@ type ManagerConfig struct {
 	// explicit plumbing for every os/compiler combination.
 	CompilerType string `json:"compiler_type"` // Defaults to "gcc"
 	Compiler     string `json:"compiler"`
+	Make         string `json:"make"`
 	Linker       string `json:"linker"`
 	Ccache       string `json:"ccache"`
 	Userspace    string `json:"userspace"`
@@ -210,6 +215,9 @@ type ManagerConfig struct {
 	BisectBackports []vcs.BackportCommit `json:"bisect_backports"`
 	// Base syz-manager config for the instance.
 	ManagerConfig json.RawMessage `json:"manager_config"`
+	// By default we want to archive git commits.
+	// This opt-out is needed for *BSD systems.
+	DisableGitArchive bool `json:"disable_git_archive"`
 	// If the kernel's commit is older than MaxKernelLagDays days,
 	// fuzzing won't be started on this instance.
 	// By default it's 30 days.
@@ -355,11 +363,13 @@ loop:
 			break loop
 		case <-time.After(sleepDuration):
 		}
-		log.Logf(0, "deprecating assets")
-		err := storage.DeprecateAssets()
+		log.Logf(1, "start asset deprecation")
+		stats, err := storage.DeprecateAssets()
 		if err != nil {
 			log.Errorf("asset deprecation failed: %v", err)
 		}
+		log.Logf(0, "asset deprecation: needed=%d, existing=%d, deleted=%d",
+			stats.Needed, stats.Existing, stats.Deleted)
 	}
 }
 

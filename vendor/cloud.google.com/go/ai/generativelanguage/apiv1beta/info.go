@@ -20,6 +20,30 @@
 
 package generativelanguage
 
+func (c *DiscussClient) SetGoogleClientInfo(keyval ...string) {
+	c.setGoogleClientInfo(keyval...)
+}
+
+func (c *FileClient) SetGoogleClientInfo(keyval ...string) {
+	c.setGoogleClientInfo(keyval...)
+}
+
 func (c *GenerativeClient) SetGoogleClientInfo(keyval ...string) {
+	c.setGoogleClientInfo(keyval...)
+}
+
+func (c *ModelClient) SetGoogleClientInfo(keyval ...string) {
+	c.setGoogleClientInfo(keyval...)
+}
+
+func (c *PermissionClient) SetGoogleClientInfo(keyval ...string) {
+	c.setGoogleClientInfo(keyval...)
+}
+
+func (c *RetrieverClient) SetGoogleClientInfo(keyval ...string) {
+	c.setGoogleClientInfo(keyval...)
+}
+
+func (c *TextClient) SetGoogleClientInfo(keyval ...string) {
 	c.setGoogleClientInfo(keyval...)
 }

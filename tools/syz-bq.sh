@@ -73,7 +73,7 @@ then
 fi
 echo The latest commit as of $to_date is $base_commit.
 
-from_date=$(date -d "$to_date - $duration days" +%Y-%m-%d)
+from_date=$(date -d "$to_date - $duration days + 1 day" +%Y-%m-%d)
 # every partition covers 1 day
 query=$(cat <<-END
 SELECT

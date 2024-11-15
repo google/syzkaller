@@ -61,6 +61,7 @@ type IamPolicyCallOptions struct {
 func defaultIamPolicyGRPCClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		internaloption.WithDefaultEndpoint("iam-meta-api.googleapis.com:443"),
+		internaloption.WithDefaultEndpointTemplate("iam-meta-api.UNIVERSE_DOMAIN:443"),
 		internaloption.WithDefaultMTLSEndpoint("iam-meta-api.mtls.googleapis.com:443"),
 		internaloption.WithDefaultAudience("https://iam-meta-api.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
@@ -382,6 +383,7 @@ func NewIamPolicyRESTClient(ctx context.Context, opts ...option.ClientOption) (*
 func defaultIamPolicyRESTClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		internaloption.WithDefaultEndpoint("https://iam-meta-api.googleapis.com"),
+		internaloption.WithDefaultEndpointTemplate("https://iam-meta-api.UNIVERSE_DOMAIN"),
 		internaloption.WithDefaultMTLSEndpoint("https://iam-meta-api.mtls.googleapis.com"),
 		internaloption.WithDefaultAudience("https://iam-meta-api.googleapis.com/"),
 		internaloption.WithDefaultScopes(DefaultAuthScopes()...),
