@@ -2,6 +2,9 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# This tool uses syz-db-export artifacts.
+# See https://github.com/google/syzkaller/tree/master/tools/syz-db-export documentation.
+
 # Check if the target directory is provided as a command line argument.
 if [ -z "$1" ]; then
   echo "Usage: $0 <target_directory>"
