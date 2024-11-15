@@ -308,7 +308,7 @@ func (comp *compiler) getArgsBase(t *ast.Type, isArg bool) (*typeDesc, []*ast.Ty
 	if desc == nil {
 		panic(fmt.Sprintf("no type desc for %#v", *t))
 	}
-	args, opt := removeOpt(t)
+	args, opt := removeOpt(t.Args)
 	com := genCommon(t.Ident, sizeUnassigned, opt != nil)
 	base := genIntCommon(com, 0, false)
 	if desc.NeedBase {
@@ -368,8 +368,7 @@ func (comp *compiler) foreachSubType(t *ast.Type, isArg bool,
 	}
 }
 
-func removeOpt(t *ast.Type) ([]*ast.Type, *ast.Type) {
-	args := t.Args
+func removeOpt(args []*ast.Type) ([]*ast.Type, *ast.Type) {
 	if last := len(args) - 1; last >= 0 && args[last].Ident == "opt" {
 		return args[:last], args[last]
 	}

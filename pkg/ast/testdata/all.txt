@@ -33,3 +33,5 @@ condFields {
 	f5	int16	(out, if[val[flags] == SOME_CONST || val[flags] == OTHER_CONST])
 	f6	int16	(out, if[val[flags] == SOME_CONST || val[flags] & OTHER_CONST])
 }
+
+resource some_resource[int32, opt]
