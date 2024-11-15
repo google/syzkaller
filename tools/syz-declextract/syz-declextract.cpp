@@ -57,7 +57,7 @@ struct NetlinkOps {
   std::string cmd;
   std::string func;
   const char *access;
-  std::optional<std::string> policy;
+  std::string policy;
 };
 
 struct NetlinkType {
@@ -118,10 +118,19 @@ struct SyzRecordDecl {
   }
 };
 
+std::string getDeclFilename(const SourceManager *SM, const Decl *decl) {
+  return toIdentifier(
+      std::filesystem::path(SM->getFilename(decl->getCanonicalDecl()->getSourceRange().getBegin()).str())
+          .filename()
+          .stem()
+          .string());
+}
+
 // If expression refers to some identifier, returns the identifier name.
 // Otherwise returns an empty string.
 // For example, if the expression is `function_name`, returns "function_name" string.
-std::string getDeclName(ASTContext &context, const clang::Expr *expr) {
+// If SM is passed, then it also appends per-file suffix.
+std::string getDeclName(ASTContext &context, const clang::Expr *expr, const SourceManager *SM = nullptr) {
   if (!expr) {
     return "";
   }
@@ -135,7 +144,14 @@ std::string getDeclName(ASTContext &context, const clang::Expr *expr) {
   Matcher matcher;
   finder.addMatcher(stmt(forEachDescendant(declRefExpr().bind("decl"))), &matcher);
   finder.match(*expr, context);
-  return matcher.decl ? matcher.decl->getDecl()->getNameAsString() : "";
+  if (!matcher.decl) {
+    return "";
+  }
+  std::string name = matcher.decl->getDecl()->getNameAsString();
+  if (SM) {
+    name += "$auto_" + getDeclFilename(SM, matcher.decl->getDecl());
+  }
+  return name;
 }
 
 bool endsWith(const std::string_view &str, const std::string_view end) {
@@ -680,7 +696,7 @@ private:
     if (type == "U64" || type == "S64" || type == "SINT" || type == "UINT" || type == "MSECS") {
       return intSubtype(name, INT_64);
     }
-    if (type == "BINARY") {
+    if (type == "BINARY" || type == "UNSPEC") {
       return nlaArraySubtype(name, type, len, typeOfLen);
     }
     if (type == "BE16") {
@@ -701,8 +717,11 @@ private:
     if (type == "BITFIELD32") { // TODO:Extract valued values from NLA_POLICY_BITFIELD32 macro.
       return "int32";
     }
-    if (type == "UNSPEC" || type == "NESTED" || type == "NESTED_ARRAY") {
-      return nlaArraySubtype(name, type, len, typeOfLen);
+    if (type == "NESTED") {
+      return makeArray(typeOfLen.empty() ? "nl_generic_attr" : typeOfLen);
+    }
+    if (type == "NESTED_ARRAY") {
+      return "array[nlnest[0, array[" + (typeOfLen.empty() ? "nl_generic_attr" : typeOfLen) + "]]]";
     }
     fprintf(stderr, "Unsupported netlink type %s\n", type.c_str());
     exit(1);
@@ -773,7 +792,7 @@ private:
     }
     std::vector<std::vector<Expr *>> fields;
     for (const auto &policy : *llvm::dyn_cast<InitListExpr>(init)) {
-      fields.push_back(std::vector<Expr *>());
+      fields.push_back({});
       for (const auto &member : policy->children()) {
         fields.back().push_back(llvm::dyn_cast<Expr>(member));
       }
@@ -783,7 +802,7 @@ private:
     if (enumData.empty()) {
       // We need to emit at least some type for it.
       // Ideally it should be void, but typedef to void currently does not work.
-      printf("type %s auto_todo\n", getPolicyName(Result, netlinkDecl)->c_str());
+      printf("type %s auto_todo\n", getPolicyName(Result, netlinkDecl).c_str());
       return;
     }
     for (const auto &[_, item] : enumData) {
@@ -794,7 +813,7 @@ private:
     }
 
     RecordExtractor recordExtractor(Result.SourceManager);
-    printf("%s [\n", getPolicyName(Result, netlinkDecl)->c_str());
+    printf("%s [\n", getPolicyName(Result, netlinkDecl).c_str());
     for (size_t i = 0; i < fields.size(); ++i) {
       // The array could have an implicitly initialized policy (i.e. empty) or an unnamed attribute
       if (fields[i].empty() || enumData[i].name.empty()) {
@@ -809,13 +828,18 @@ private:
       }
       auto [structDecl, len] = getNetlinkStruct(fields[i][2]->IgnoreCasts(), context);
       std::string netlinkStruct;
-      if (!structDecl) {
+      if (structDecl) {
+        netlinkStruct = recordExtractor.extractRecord(structDecl, context, enumData[i].name);
+      } else {
         fields[i][2]->EvaluateAsConstantExpr(evalResult, *context);
         len = evalResult.Val.getInt().getExtValue();
-      } else {
-        netlinkStruct = recordExtractor.extractRecord(structDecl, context, enumData[i].name);
       }
-      printf("\t%s nlattr[%s, %s]\n", enumData[i].name.c_str(), enumData[i].name.c_str(),
+      const char *nlattr = "nlattr";
+      if (nlaEnum == "NESTED" || nlaEnum == "NESTED_ARRAY") {
+        nlattr = "nlnest";
+        netlinkStruct = getDeclName(*context, fields[i][3], Result.SourceManager);
+      }
+      printf("\t%s %s[%s, %s]\n", enumData[i].name.c_str(), nlattr, enumData[i].name.c_str(),
              nlaToSyz(enumData[i].name, nlaEnum, len, netlinkStruct).c_str());
     }
     puts("] [varlen]");
@@ -824,19 +848,13 @@ private:
 
   std::map<std::string, unsigned> genlFamilyMember;
 
-  std::optional<std::string> getPolicyName(const MatchFinder::MatchResult &Result, const ValueDecl *decl) {
+  std::string getPolicyName(const MatchFinder::MatchResult &Result, const ValueDecl *decl) {
     if (!decl) {
-      return std::nullopt;
+      return "";
     }
-    std::string filename =
-        toIdentifier(std::filesystem::path(
-                         Result.SourceManager->getFilename(decl->getCanonicalDecl()->getSourceRange().getBegin()).str())
-                         .filename()
-                         .stem()
-                         .string());
     // Filename is added to address ambiguity when multiple policies
     // are named the same but have different definitions.
-    return decl->getNameAsString() + "$auto_" + filename;
+    return decl->getNameAsString() + "$auto_" + getDeclFilename(Result.SourceManager, decl);
   }
 
   std::vector<NetlinkOps> getOps(const MatchFinder::MatchResult &Result, const std::string &opsName,
@@ -907,7 +925,7 @@ private:
 
     std::string familyPolicyName;
     if (globalPolicyName) {
-      familyPolicyName = *getPolicyName(Result, globalPolicyName);
+      familyPolicyName = getPolicyName(Result, globalPolicyName);
     }
 
     std::string familyName =
@@ -918,8 +936,8 @@ private:
     for (const auto &opsType : {"ops", "small_ops", "split_ops"}) {
       for (auto &ops : getOps(Result, opsType, genlFamilyInit)) {
         const char *policyName;
-        if (ops.policy) {
-          policyName = ops.policy->c_str();
+        if (!ops.policy.empty()) {
+          policyName = ops.policy.c_str();
         } else if (globalPolicyName) {
           policyName = familyPolicyName.c_str();
         } else {
