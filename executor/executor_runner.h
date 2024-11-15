@@ -52,21 +52,31 @@ public:
 		constexpr int kNumGoodProcs = 10;
 		for (int i = 0; i < std::max(num_procs, kNumGoodProcs); i++)
 			ids_.push_back(i);
+		mask_ = 0;
 	}
 
 	int Alloc(int old = -1)
 	{
-		if (old >= 0)
+		if (old >= 0) {
+			mask_ &= ~(1UL << old);
 			ids_.push_back(old);
+		}
 		if (ids_.empty())
 			fail("out of proc ids");
 		int id = ids_.front();
 		ids_.pop_front();
+		mask_ |= 1UL << id;
 		return id;
+	}
+
+	uint64 Mask()
+	{
+		return mask_;
 	}
 
 private:
 	std::deque<int> ids_;
+	uint64 mask_;
 
 	ProcIDPool(const ProcIDPool&) = delete;
 	ProcIDPool& operator=(const ProcIDPool&) = delete;
@@ -103,6 +113,8 @@ public:
 	{
 		if (state_ != State::Started && state_ != State::Idle)
 			return false;
+		if (((~msg.avoid) & proc_id_pool_.Mask()) == 0)
+			msg.avoid = 0;
 		if (msg.avoid & (1ull << id_))
 			return false;
 		if (msg_)
