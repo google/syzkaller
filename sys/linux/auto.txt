@@ -1753,8 +1753,18 @@ clone_args$auto_record {
 	cgroup		int64
 }
 
+coalesce_irq_moderation_policy$auto_coalesce [
+	ETHTOOL_A_IRQ_MODERATION_USEC	nlattr[ETHTOOL_A_IRQ_MODERATION_USEC, int32]
+	ETHTOOL_A_IRQ_MODERATION_PKTS	nlattr[ETHTOOL_A_IRQ_MODERATION_PKTS, int32]
+	ETHTOOL_A_IRQ_MODERATION_COMPS	nlattr[ETHTOOL_A_IRQ_MODERATION_COMPS, int32]
+] [varlen]
+
+coalesce_profile_policy$auto_coalesce [
+	ETHTOOL_A_PROFILE_IRQ_MODERATION	nlnest[ETHTOOL_A_PROFILE_IRQ_MODERATION, array[coalesce_irq_moderation_policy$auto_coalesce]]
+] [varlen]
+
 ct_limit_policy$auto_conntrack [
-	OVS_CT_LIMIT_ATTR_ZONE_LIMIT	nlattr[OVS_CT_LIMIT_ATTR_ZONE_LIMIT, array[int8]]
+	OVS_CT_LIMIT_ATTR_ZONE_LIMIT	nlnest[OVS_CT_LIMIT_ATTR_ZONE_LIMIT, array[nl_generic_attr]]
 ] [varlen]
 
 ctrl_policy_family$auto_genetlink [
@@ -1784,7 +1794,7 @@ device_policy$auto_netlink [
 	WGDEVICE_A_FLAGS	nlattr[WGDEVICE_A_FLAGS, int32]
 	WGDEVICE_A_LISTEN_PORT	nlattr[WGDEVICE_A_LISTEN_PORT, sock_port]
 	WGDEVICE_A_FWMARK	nlattr[WGDEVICE_A_FWMARK, int32]
-	WGDEVICE_A_PEERS	nlattr[WGDEVICE_A_PEERS, array[int8]]
+	WGDEVICE_A_PEERS	nlnest[WGDEVICE_A_PEERS, array[nl_generic_attr]]
 ] [varlen]
 
 epoll_event$auto_record {
@@ -1793,20 +1803,20 @@ epoll_event$auto_record {
 } [packed]
 
 ethnl_cable_test_act_policy$auto_netlink [
-	ETHTOOL_A_CABLE_TEST_HEADER	nlattr[ETHTOOL_A_CABLE_TEST_HEADER, int32]
+	ETHTOOL_A_CABLE_TEST_HEADER	nlnest[ETHTOOL_A_CABLE_TEST_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 ] [varlen]
 
 ethnl_cable_test_tdr_act_policy$auto_netlink [
-	ETHTOOL_A_CABLE_TEST_TDR_HEADER	nlattr[ETHTOOL_A_CABLE_TEST_TDR_HEADER, int32]
-	ETHTOOL_A_CABLE_TEST_TDR_CFG	nlattr[ETHTOOL_A_CABLE_TEST_TDR_CFG, array[int8]]
+	ETHTOOL_A_CABLE_TEST_TDR_HEADER	nlnest[ETHTOOL_A_CABLE_TEST_TDR_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
+	ETHTOOL_A_CABLE_TEST_TDR_CFG	nlnest[ETHTOOL_A_CABLE_TEST_TDR_CFG, array[nl_generic_attr]]
 ] [varlen]
 
 ethnl_channels_get_policy$auto_netlink [
-	ETHTOOL_A_CHANNELS_HEADER	nlattr[ETHTOOL_A_CHANNELS_HEADER, array[int8, 3]]
+	ETHTOOL_A_CHANNELS_HEADER	nlnest[ETHTOOL_A_CHANNELS_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_channels_set_policy$auto_netlink [
-	ETHTOOL_A_CHANNELS_HEADER		nlattr[ETHTOOL_A_CHANNELS_HEADER, array[int8, 3]]
+	ETHTOOL_A_CHANNELS_HEADER		nlnest[ETHTOOL_A_CHANNELS_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_CHANNELS_RX_COUNT		nlattr[ETHTOOL_A_CHANNELS_RX_COUNT, int32]
 	ETHTOOL_A_CHANNELS_TX_COUNT		nlattr[ETHTOOL_A_CHANNELS_TX_COUNT, int32]
 	ETHTOOL_A_CHANNELS_OTHER_COUNT		nlattr[ETHTOOL_A_CHANNELS_OTHER_COUNT, int32]
@@ -1814,11 +1824,11 @@ ethnl_channels_set_policy$auto_netlink [
 ] [varlen]
 
 ethnl_coalesce_get_policy$auto_netlink [
-	ETHTOOL_A_COALESCE_HEADER	nlattr[ETHTOOL_A_COALESCE_HEADER, array[int8, 3]]
+	ETHTOOL_A_COALESCE_HEADER	nlnest[ETHTOOL_A_COALESCE_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_coalesce_set_policy$auto_netlink [
-	ETHTOOL_A_COALESCE_HEADER		nlattr[ETHTOOL_A_COALESCE_HEADER, array[int8, 3]]
+	ETHTOOL_A_COALESCE_HEADER		nlnest[ETHTOOL_A_COALESCE_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_COALESCE_RX_USECS		nlattr[ETHTOOL_A_COALESCE_RX_USECS, int32]
 	ETHTOOL_A_COALESCE_RX_MAX_FRAMES	nlattr[ETHTOOL_A_COALESCE_RX_MAX_FRAMES, int32]
 	ETHTOOL_A_COALESCE_RX_USECS_IRQ		nlattr[ETHTOOL_A_COALESCE_RX_USECS_IRQ, int32]
@@ -1846,69 +1856,88 @@ ethnl_coalesce_set_policy$auto_netlink [
 	ETHTOOL_A_COALESCE_TX_AGGR_MAX_BYTES	nlattr[ETHTOOL_A_COALESCE_TX_AGGR_MAX_BYTES, int32]
 	ETHTOOL_A_COALESCE_TX_AGGR_MAX_FRAMES	nlattr[ETHTOOL_A_COALESCE_TX_AGGR_MAX_FRAMES, int32]
 	ETHTOOL_A_COALESCE_TX_AGGR_TIME_USECS	nlattr[ETHTOOL_A_COALESCE_TX_AGGR_TIME_USECS, int32]
-	ETHTOOL_A_COALESCE_RX_PROFILE		nlattr[ETHTOOL_A_COALESCE_RX_PROFILE, int8]
-	ETHTOOL_A_COALESCE_TX_PROFILE		nlattr[ETHTOOL_A_COALESCE_TX_PROFILE, int8]
+	ETHTOOL_A_COALESCE_RX_PROFILE		nlnest[ETHTOOL_A_COALESCE_RX_PROFILE, array[coalesce_profile_policy$auto_coalesce]]
+	ETHTOOL_A_COALESCE_TX_PROFILE		nlnest[ETHTOOL_A_COALESCE_TX_PROFILE, array[coalesce_profile_policy$auto_coalesce]]
 ] [varlen]
 
 ethnl_debug_get_policy$auto_netlink [
-	ETHTOOL_A_DEBUG_HEADER	nlattr[ETHTOOL_A_DEBUG_HEADER, array[int8, 3]]
+	ETHTOOL_A_DEBUG_HEADER	nlnest[ETHTOOL_A_DEBUG_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_debug_set_policy$auto_netlink [
-	ETHTOOL_A_DEBUG_HEADER	nlattr[ETHTOOL_A_DEBUG_HEADER, array[int8, 3]]
-	ETHTOOL_A_DEBUG_MSGMASK	nlattr[ETHTOOL_A_DEBUG_MSGMASK, array[int8]]
+	ETHTOOL_A_DEBUG_HEADER	nlnest[ETHTOOL_A_DEBUG_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_DEBUG_MSGMASK	nlnest[ETHTOOL_A_DEBUG_MSGMASK, array[nl_generic_attr]]
 ] [varlen]
 
 ethnl_eee_get_policy$auto_netlink [
-	ETHTOOL_A_EEE_HEADER	nlattr[ETHTOOL_A_EEE_HEADER, array[int8, 3]]
+	ETHTOOL_A_EEE_HEADER	nlnest[ETHTOOL_A_EEE_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_eee_set_policy$auto_netlink [
-	ETHTOOL_A_EEE_HEADER		nlattr[ETHTOOL_A_EEE_HEADER, array[int8, 3]]
-	ETHTOOL_A_EEE_MODES_OURS	nlattr[ETHTOOL_A_EEE_MODES_OURS, array[int8]]
+	ETHTOOL_A_EEE_HEADER		nlnest[ETHTOOL_A_EEE_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_EEE_MODES_OURS	nlnest[ETHTOOL_A_EEE_MODES_OURS, array[nl_generic_attr]]
 	ETHTOOL_A_EEE_ENABLED		nlattr[ETHTOOL_A_EEE_ENABLED, bool8]
 	ETHTOOL_A_EEE_TX_LPI_ENABLED	nlattr[ETHTOOL_A_EEE_TX_LPI_ENABLED, bool8]
 	ETHTOOL_A_EEE_TX_LPI_TIMER	nlattr[ETHTOOL_A_EEE_TX_LPI_TIMER, int32]
 ] [varlen]
 
 ethnl_features_get_policy$auto_netlink [
-	ETHTOOL_A_FEATURES_HEADER	nlattr[ETHTOOL_A_FEATURES_HEADER, array[int8, 3]]
+	ETHTOOL_A_FEATURES_HEADER	nlnest[ETHTOOL_A_FEATURES_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_features_set_policy$auto_netlink [
-	ETHTOOL_A_FEATURES_HEADER	nlattr[ETHTOOL_A_FEATURES_HEADER, array[int8, 3]]
-	ETHTOOL_A_FEATURES_WANTED	nlattr[ETHTOOL_A_FEATURES_WANTED, array[int8]]
+	ETHTOOL_A_FEATURES_HEADER	nlnest[ETHTOOL_A_FEATURES_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_FEATURES_WANTED	nlnest[ETHTOOL_A_FEATURES_WANTED, array[nl_generic_attr]]
 ] [varlen]
 
 ethnl_fec_get_policy$auto_netlink [
-	ETHTOOL_A_FEC_HEADER	nlattr[ETHTOOL_A_FEC_HEADER, array[int8, 3]]
+	ETHTOOL_A_FEC_HEADER	nlnest[ETHTOOL_A_FEC_HEADER, array[ethnl_header_policy_stats$auto_netlink]]
 ] [varlen]
 
 ethnl_fec_set_policy$auto_netlink [
-	ETHTOOL_A_FEC_HEADER	nlattr[ETHTOOL_A_FEC_HEADER, array[int8, 3]]
-	ETHTOOL_A_FEC_MODES	nlattr[ETHTOOL_A_FEC_MODES, array[int8]]
+	ETHTOOL_A_FEC_HEADER	nlnest[ETHTOOL_A_FEC_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_FEC_MODES	nlnest[ETHTOOL_A_FEC_MODES, array[nl_generic_attr]]
 	ETHTOOL_A_FEC_AUTO	nlattr[ETHTOOL_A_FEC_AUTO, int8]
 ] [varlen]
 
+ethnl_header_policy$auto_netlink [
+	ETHTOOL_A_HEADER_DEV_INDEX	nlattr[ETHTOOL_A_HEADER_DEV_INDEX, ifindex]
+	ETHTOOL_A_HEADER_DEV_NAME	nlattr[ETHTOOL_A_HEADER_DEV_NAME, devname]
+	ETHTOOL_A_HEADER_FLAGS		nlattr[ETHTOOL_A_HEADER_FLAGS, int32]
+] [varlen]
+
+ethnl_header_policy_phy$auto_netlink [
+	ETHTOOL_A_HEADER_DEV_INDEX	nlattr[ETHTOOL_A_HEADER_DEV_INDEX, ifindex]
+	ETHTOOL_A_HEADER_DEV_NAME	nlattr[ETHTOOL_A_HEADER_DEV_NAME, devname]
+	ETHTOOL_A_HEADER_FLAGS		nlattr[ETHTOOL_A_HEADER_FLAGS, int32]
+	ETHTOOL_A_HEADER_PHY_INDEX	nlattr[ETHTOOL_A_HEADER_PHY_INDEX, int32]
+] [varlen]
+
+ethnl_header_policy_stats$auto_netlink [
+	ETHTOOL_A_HEADER_DEV_INDEX	nlattr[ETHTOOL_A_HEADER_DEV_INDEX, ifindex]
+	ETHTOOL_A_HEADER_DEV_NAME	nlattr[ETHTOOL_A_HEADER_DEV_NAME, devname]
+	ETHTOOL_A_HEADER_FLAGS		nlattr[ETHTOOL_A_HEADER_FLAGS, int32]
+] [varlen]
+
 ethnl_linkinfo_get_policy$auto_netlink [
-	ETHTOOL_A_LINKINFO_HEADER	nlattr[ETHTOOL_A_LINKINFO_HEADER, array[int8, 3]]
+	ETHTOOL_A_LINKINFO_HEADER	nlnest[ETHTOOL_A_LINKINFO_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_linkinfo_set_policy$auto_netlink [
-	ETHTOOL_A_LINKINFO_HEADER	nlattr[ETHTOOL_A_LINKINFO_HEADER, array[int8, 3]]
+	ETHTOOL_A_LINKINFO_HEADER	nlnest[ETHTOOL_A_LINKINFO_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_LINKINFO_PORT		nlattr[ETHTOOL_A_LINKINFO_PORT, int8]
 	ETHTOOL_A_LINKINFO_PHYADDR	nlattr[ETHTOOL_A_LINKINFO_PHYADDR, int8]
 	ETHTOOL_A_LINKINFO_TP_MDIX_CTRL	nlattr[ETHTOOL_A_LINKINFO_TP_MDIX_CTRL, int8]
 ] [varlen]
 
 ethnl_linkmodes_get_policy$auto_netlink [
-	ETHTOOL_A_LINKMODES_HEADER	nlattr[ETHTOOL_A_LINKMODES_HEADER, array[int8, 3]]
+	ETHTOOL_A_LINKMODES_HEADER	nlnest[ETHTOOL_A_LINKMODES_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_linkmodes_set_policy$auto_netlink [
-	ETHTOOL_A_LINKMODES_HEADER		nlattr[ETHTOOL_A_LINKMODES_HEADER, array[int8, 3]]
+	ETHTOOL_A_LINKMODES_HEADER		nlnest[ETHTOOL_A_LINKMODES_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_LINKMODES_AUTONEG		nlattr[ETHTOOL_A_LINKMODES_AUTONEG, int8]
-	ETHTOOL_A_LINKMODES_OURS		nlattr[ETHTOOL_A_LINKMODES_OURS, array[int8]]
+	ETHTOOL_A_LINKMODES_OURS		nlnest[ETHTOOL_A_LINKMODES_OURS, array[nl_generic_attr]]
 	ETHTOOL_A_LINKMODES_SPEED		nlattr[ETHTOOL_A_LINKMODES_SPEED, int32]
 	ETHTOOL_A_LINKMODES_DUPLEX		nlattr[ETHTOOL_A_LINKMODES_DUPLEX, int8]
 	ETHTOOL_A_LINKMODES_MASTER_SLAVE_CFG	nlattr[ETHTOOL_A_LINKMODES_MASTER_SLAVE_CFG, int8]
@@ -1916,15 +1945,15 @@ ethnl_linkmodes_set_policy$auto_netlink [
 ] [varlen]
 
 ethnl_linkstate_get_policy$auto_netlink [
-	ETHTOOL_A_LINKSTATE_HEADER	nlattr[ETHTOOL_A_LINKSTATE_HEADER, array[int8, 3]]
+	ETHTOOL_A_LINKSTATE_HEADER	nlnest[ETHTOOL_A_LINKSTATE_HEADER, array[ethnl_header_policy_stats$auto_netlink]]
 ] [varlen]
 
 ethnl_mm_get_policy$auto_netlink [
-	ETHTOOL_A_MM_HEADER	nlattr[ETHTOOL_A_MM_HEADER, array[int8, 3]]
+	ETHTOOL_A_MM_HEADER	nlnest[ETHTOOL_A_MM_HEADER, array[ethnl_header_policy_stats$auto_netlink]]
 ] [varlen]
 
 ethnl_mm_set_policy$auto_netlink [
-	ETHTOOL_A_MM_HEADER		nlattr[ETHTOOL_A_MM_HEADER, array[int8, 3]]
+	ETHTOOL_A_MM_HEADER		nlnest[ETHTOOL_A_MM_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_MM_PMAC_ENABLED	nlattr[ETHTOOL_A_MM_PMAC_ENABLED, bool8]
 	ETHTOOL_A_MM_TX_ENABLED		nlattr[ETHTOOL_A_MM_TX_ENABLED, bool8]
 	ETHTOOL_A_MM_TX_MIN_FRAG_SIZE	nlattr[ETHTOOL_A_MM_TX_MIN_FRAG_SIZE, int32]
@@ -1933,7 +1962,7 @@ ethnl_mm_set_policy$auto_netlink [
 ] [varlen]
 
 ethnl_module_eeprom_get_policy$auto_netlink [
-	ETHTOOL_A_MODULE_EEPROM_HEADER		nlattr[ETHTOOL_A_MODULE_EEPROM_HEADER, array[int8, 3]]
+	ETHTOOL_A_MODULE_EEPROM_HEADER		nlnest[ETHTOOL_A_MODULE_EEPROM_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_MODULE_EEPROM_OFFSET		nlattr[ETHTOOL_A_MODULE_EEPROM_OFFSET, int32]
 	ETHTOOL_A_MODULE_EEPROM_LENGTH		nlattr[ETHTOOL_A_MODULE_EEPROM_LENGTH, int32]
 	ETHTOOL_A_MODULE_EEPROM_PAGE		nlattr[ETHTOOL_A_MODULE_EEPROM_PAGE, int8]
@@ -1942,50 +1971,50 @@ ethnl_module_eeprom_get_policy$auto_netlink [
 ] [varlen]
 
 ethnl_module_fw_flash_act_policy$auto_netlink [
-	ETHTOOL_A_MODULE_FW_FLASH_HEADER	nlattr[ETHTOOL_A_MODULE_FW_FLASH_HEADER, array[int8, 3]]
+	ETHTOOL_A_MODULE_FW_FLASH_HEADER	nlnest[ETHTOOL_A_MODULE_FW_FLASH_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_MODULE_FW_FLASH_FILE_NAME	nlattr[ETHTOOL_A_MODULE_FW_FLASH_FILE_NAME, string]
 	ETHTOOL_A_MODULE_FW_FLASH_PASSWORD	nlattr[ETHTOOL_A_MODULE_FW_FLASH_PASSWORD, int32]
 ] [varlen]
 
 ethnl_module_get_policy$auto_netlink [
-	ETHTOOL_A_MODULE_HEADER	nlattr[ETHTOOL_A_MODULE_HEADER, array[int8, 3]]
+	ETHTOOL_A_MODULE_HEADER	nlnest[ETHTOOL_A_MODULE_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_module_set_policy$auto_netlink [
-	ETHTOOL_A_MODULE_HEADER			nlattr[ETHTOOL_A_MODULE_HEADER, array[int8, 3]]
+	ETHTOOL_A_MODULE_HEADER			nlnest[ETHTOOL_A_MODULE_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_MODULE_POWER_MODE_POLICY	nlattr[ETHTOOL_A_MODULE_POWER_MODE_POLICY, int8]
 ] [varlen]
 
 ethnl_pause_get_policy$auto_netlink [
-	ETHTOOL_A_PAUSE_HEADER		nlattr[ETHTOOL_A_PAUSE_HEADER, array[int8, 3]]
+	ETHTOOL_A_PAUSE_HEADER		nlnest[ETHTOOL_A_PAUSE_HEADER, array[ethnl_header_policy_stats$auto_netlink]]
 	ETHTOOL_A_PAUSE_STATS_SRC	nlattr[ETHTOOL_A_PAUSE_STATS_SRC, int32]
 ] [varlen]
 
 ethnl_pause_set_policy$auto_netlink [
-	ETHTOOL_A_PAUSE_HEADER	nlattr[ETHTOOL_A_PAUSE_HEADER, array[int8, 3]]
+	ETHTOOL_A_PAUSE_HEADER	nlnest[ETHTOOL_A_PAUSE_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_PAUSE_AUTONEG	nlattr[ETHTOOL_A_PAUSE_AUTONEG, int8]
 	ETHTOOL_A_PAUSE_RX	nlattr[ETHTOOL_A_PAUSE_RX, int8]
 	ETHTOOL_A_PAUSE_TX	nlattr[ETHTOOL_A_PAUSE_TX, int8]
 ] [varlen]
 
 ethnl_phc_vclocks_get_policy$auto_netlink [
-	ETHTOOL_A_PHC_VCLOCKS_HEADER	nlattr[ETHTOOL_A_PHC_VCLOCKS_HEADER, array[int8, 3]]
+	ETHTOOL_A_PHC_VCLOCKS_HEADER	nlnest[ETHTOOL_A_PHC_VCLOCKS_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_phy_get_policy$auto_netlink [
-	ETHTOOL_A_PHY_HEADER	nlattr[ETHTOOL_A_PHY_HEADER, array[int8, 3]]
+	ETHTOOL_A_PHY_HEADER	nlnest[ETHTOOL_A_PHY_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_plca_get_cfg_policy$auto_netlink [
-	ETHTOOL_A_PLCA_HEADER	nlattr[ETHTOOL_A_PLCA_HEADER, int32]
+	ETHTOOL_A_PLCA_HEADER	nlnest[ETHTOOL_A_PLCA_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 ] [varlen]
 
 ethnl_plca_get_status_policy$auto_netlink [
-	ETHTOOL_A_PLCA_HEADER	nlattr[ETHTOOL_A_PLCA_HEADER, int32]
+	ETHTOOL_A_PLCA_HEADER	nlnest[ETHTOOL_A_PLCA_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 ] [varlen]
 
 ethnl_plca_set_cfg_policy$auto_netlink [
-	ETHTOOL_A_PLCA_HEADER		nlattr[ETHTOOL_A_PLCA_HEADER, int32]
+	ETHTOOL_A_PLCA_HEADER		nlnest[ETHTOOL_A_PLCA_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 	ETHTOOL_A_PLCA_ENABLED		nlattr[ETHTOOL_A_PLCA_ENABLED, bool8]
 	ETHTOOL_A_PLCA_NODE_CNT		nlattr[ETHTOOL_A_PLCA_NODE_CNT, int32]
 	ETHTOOL_A_PLCA_NODE_ID		nlattr[ETHTOOL_A_PLCA_NODE_ID, int32]
@@ -1995,31 +2024,31 @@ ethnl_plca_set_cfg_policy$auto_netlink [
 ] [varlen]
 
 ethnl_privflags_get_policy$auto_netlink [
-	ETHTOOL_A_PRIVFLAGS_HEADER	nlattr[ETHTOOL_A_PRIVFLAGS_HEADER, array[int8, 3]]
+	ETHTOOL_A_PRIVFLAGS_HEADER	nlnest[ETHTOOL_A_PRIVFLAGS_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_privflags_set_policy$auto_netlink [
-	ETHTOOL_A_PRIVFLAGS_HEADER	nlattr[ETHTOOL_A_PRIVFLAGS_HEADER, array[int8, 3]]
-	ETHTOOL_A_PRIVFLAGS_FLAGS	nlattr[ETHTOOL_A_PRIVFLAGS_FLAGS, array[int8]]
+	ETHTOOL_A_PRIVFLAGS_HEADER	nlnest[ETHTOOL_A_PRIVFLAGS_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_PRIVFLAGS_FLAGS	nlnest[ETHTOOL_A_PRIVFLAGS_FLAGS, array[nl_generic_attr]]
 ] [varlen]
 
 ethnl_pse_get_policy$auto_netlink [
-	ETHTOOL_A_PSE_HEADER	nlattr[ETHTOOL_A_PSE_HEADER, int32]
+	ETHTOOL_A_PSE_HEADER	nlnest[ETHTOOL_A_PSE_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 ] [varlen]
 
 ethnl_pse_set_policy$auto_netlink [
-	ETHTOOL_A_PSE_HEADER			nlattr[ETHTOOL_A_PSE_HEADER, int32]
+	ETHTOOL_A_PSE_HEADER			nlnest[ETHTOOL_A_PSE_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 	ETHTOOL_A_PODL_PSE_ADMIN_CONTROL	nlattr[ETHTOOL_A_PODL_PSE_ADMIN_CONTROL, int32]
 	ETHTOOL_A_C33_PSE_ADMIN_CONTROL		nlattr[ETHTOOL_A_C33_PSE_ADMIN_CONTROL, int32]
 	ETHTOOL_A_C33_PSE_AVAIL_PW_LIMIT	nlattr[ETHTOOL_A_C33_PSE_AVAIL_PW_LIMIT, int32]
 ] [varlen]
 
 ethnl_rings_get_policy$auto_netlink [
-	ETHTOOL_A_RINGS_HEADER	nlattr[ETHTOOL_A_RINGS_HEADER, array[int8, 3]]
+	ETHTOOL_A_RINGS_HEADER	nlnest[ETHTOOL_A_RINGS_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_rings_set_policy$auto_netlink [
-	ETHTOOL_A_RINGS_HEADER		nlattr[ETHTOOL_A_RINGS_HEADER, array[int8, 3]]
+	ETHTOOL_A_RINGS_HEADER		nlnest[ETHTOOL_A_RINGS_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_RINGS_RX		nlattr[ETHTOOL_A_RINGS_RX, int32]
 	ETHTOOL_A_RINGS_RX_MINI		nlattr[ETHTOOL_A_RINGS_RX_MINI, int32]
 	ETHTOOL_A_RINGS_RX_JUMBO	nlattr[ETHTOOL_A_RINGS_RX_JUMBO, int32]
@@ -2033,38 +2062,38 @@ ethnl_rings_set_policy$auto_netlink [
 ] [varlen]
 
 ethnl_rss_get_policy$auto_netlink [
-	ETHTOOL_A_RSS_HEADER		nlattr[ETHTOOL_A_RSS_HEADER, array[int8, 3]]
+	ETHTOOL_A_RSS_HEADER		nlnest[ETHTOOL_A_RSS_HEADER, array[ethnl_header_policy$auto_netlink]]
 	ETHTOOL_A_RSS_CONTEXT		nlattr[ETHTOOL_A_RSS_CONTEXT, int32]
 	ETHTOOL_A_RSS_START_CONTEXT	nlattr[ETHTOOL_A_RSS_START_CONTEXT, int32]
 ] [varlen]
 
 ethnl_stats_get_policy$auto_netlink [
-	ETHTOOL_A_STATS_HEADER	nlattr[ETHTOOL_A_STATS_HEADER, array[int8, 3]]
-	ETHTOOL_A_STATS_GROUPS	nlattr[ETHTOOL_A_STATS_GROUPS, array[int8]]
+	ETHTOOL_A_STATS_HEADER	nlnest[ETHTOOL_A_STATS_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_STATS_GROUPS	nlnest[ETHTOOL_A_STATS_GROUPS, array[nl_generic_attr]]
 	ETHTOOL_A_STATS_SRC	nlattr[ETHTOOL_A_STATS_SRC, int32]
 ] [varlen]
 
 ethnl_strset_get_policy$auto_netlink [
-	ETHTOOL_A_STRSET_HEADER		nlattr[ETHTOOL_A_STRSET_HEADER, int32]
-	ETHTOOL_A_STRSET_STRINGSETS	nlattr[ETHTOOL_A_STRSET_STRINGSETS, array[int8]]
+	ETHTOOL_A_STRSET_HEADER		nlnest[ETHTOOL_A_STRSET_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
+	ETHTOOL_A_STRSET_STRINGSETS	nlnest[ETHTOOL_A_STRSET_STRINGSETS, array[nl_generic_attr]]
 	ETHTOOL_A_STRSET_COUNTS_ONLY	nlattr[ETHTOOL_A_STRSET_COUNTS_ONLY, void]
 ] [varlen]
 
 ethnl_tsinfo_get_policy$auto_netlink [
-	ETHTOOL_A_TSINFO_HEADER	nlattr[ETHTOOL_A_TSINFO_HEADER, array[int8, 3]]
+	ETHTOOL_A_TSINFO_HEADER	nlnest[ETHTOOL_A_TSINFO_HEADER, array[ethnl_header_policy_stats$auto_netlink]]
 ] [varlen]
 
 ethnl_tunnel_info_get_policy$auto_netlink [
-	ETHTOOL_A_TUNNEL_INFO_HEADER	nlattr[ETHTOOL_A_TUNNEL_INFO_HEADER, array[int8, 3]]
+	ETHTOOL_A_TUNNEL_INFO_HEADER	nlnest[ETHTOOL_A_TUNNEL_INFO_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_wol_get_policy$auto_netlink [
-	ETHTOOL_A_WOL_HEADER	nlattr[ETHTOOL_A_WOL_HEADER, array[int8, 3]]
+	ETHTOOL_A_WOL_HEADER	nlnest[ETHTOOL_A_WOL_HEADER, array[ethnl_header_policy$auto_netlink]]
 ] [varlen]
 
 ethnl_wol_set_policy$auto_netlink [
-	ETHTOOL_A_WOL_HEADER	nlattr[ETHTOOL_A_WOL_HEADER, array[int8, 3]]
-	ETHTOOL_A_WOL_MODES	nlattr[ETHTOOL_A_WOL_MODES, array[int8]]
+	ETHTOOL_A_WOL_HEADER	nlnest[ETHTOOL_A_WOL_HEADER, array[ethnl_header_policy$auto_netlink]]
+	ETHTOOL_A_WOL_MODES	nlnest[ETHTOOL_A_WOL_MODES, array[nl_generic_attr]]
 	ETHTOOL_A_WOL_SOPASS	nlattr[ETHTOOL_A_WOL_SOPASS, array[int8, 0:6]]
 ] [varlen]
 
@@ -2075,10 +2104,10 @@ file_handle$auto_record {
 }
 
 flow_policy$auto_datapath [
-	OVS_FLOW_ATTR_KEY		nlattr[OVS_FLOW_ATTR_KEY, array[int8]]
-	OVS_FLOW_ATTR_ACTIONS		nlattr[OVS_FLOW_ATTR_ACTIONS, array[int8]]
+	OVS_FLOW_ATTR_KEY		nlnest[OVS_FLOW_ATTR_KEY, array[nl_generic_attr]]
+	OVS_FLOW_ATTR_ACTIONS		nlnest[OVS_FLOW_ATTR_ACTIONS, array[nl_generic_attr]]
 	OVS_FLOW_ATTR_CLEAR		nlattr[OVS_FLOW_ATTR_CLEAR, void]
-	OVS_FLOW_ATTR_MASK		nlattr[OVS_FLOW_ATTR_MASK, array[int8]]
+	OVS_FLOW_ATTR_MASK		nlnest[OVS_FLOW_ATTR_MASK, array[nl_generic_attr]]
 	OVS_FLOW_ATTR_PROBE		nlattr[OVS_FLOW_ATTR_PROBE, void]
 	OVS_FLOW_ATTR_UFID		nlattr[OVS_FLOW_ATTR_UFID, int8]
 	OVS_FLOW_ATTR_UFID_FLAGS	nlattr[OVS_FLOW_ATTR_UFID_FLAGS, int32]
@@ -2120,6 +2149,21 @@ handshake_done_nl_policy$auto_genl [
 	HANDSHAKE_A_DONE_REMOTE_AUTH	nlattr[HANDSHAKE_A_DONE_REMOTE_AUTH, int32]
 ] [varlen]
 
+he_bss_color_policy$auto_nl80211 [
+	NL80211_HE_BSS_COLOR_ATTR_COLOR		nlattr[NL80211_HE_BSS_COLOR_ATTR_COLOR, int8]
+	NL80211_HE_BSS_COLOR_ATTR_DISABLED	nlattr[NL80211_HE_BSS_COLOR_ATTR_DISABLED, void]
+	NL80211_HE_BSS_COLOR_ATTR_PARTIAL	nlattr[NL80211_HE_BSS_COLOR_ATTR_PARTIAL, void]
+] [varlen]
+
+he_obss_pd_policy$auto_nl80211 [
+	NL80211_HE_OBSS_PD_ATTR_MIN_OFFSET		nlattr[NL80211_HE_OBSS_PD_ATTR_MIN_OFFSET, int8]
+	NL80211_HE_OBSS_PD_ATTR_MAX_OFFSET		nlattr[NL80211_HE_OBSS_PD_ATTR_MAX_OFFSET, int8]
+	NL80211_HE_OBSS_PD_ATTR_NON_SRG_MAX_OFFSET	nlattr[NL80211_HE_OBSS_PD_ATTR_NON_SRG_MAX_OFFSET, int8]
+	NL80211_HE_OBSS_PD_ATTR_BSS_COLOR_BITMAP	nlattr[NL80211_HE_OBSS_PD_ATTR_BSS_COLOR_BITMAP, array[int8]]
+	NL80211_HE_OBSS_PD_ATTR_PARTIAL_BSSID_BITMAP	nlattr[NL80211_HE_OBSS_PD_ATTR_PARTIAL_BSSID_BITMAP, array[int8]]
+	NL80211_HE_OBSS_PD_ATTR_SR_CTRL			nlattr[NL80211_HE_OBSS_PD_ATTR_SR_CTRL, int8]
+] [varlen]
+
 hsr_genl_policy$auto_hsr_netlink [
 	HSR_A_NODE_ADDR		nlattr[HSR_A_NODE_ADDR, array[int8, 6]]
 	HSR_A_IFINDEX		nlattr[HSR_A_IFINDEX, ifindex]
@@ -2128,6 +2172,42 @@ hsr_genl_policy$auto_hsr_netlink [
 	HSR_A_NODE_ADDR_B	nlattr[HSR_A_NODE_ADDR_B, array[int8, 6]]
 	HSR_A_IF1_SEQ		nlattr[HSR_A_IF1_SEQ, int16]
 	HSR_A_IF2_SEQ		nlattr[HSR_A_IF2_SEQ, int16]
+] [varlen]
+
+hwsim_ftm_capa_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_FTM_CAPA_ATTR_ASAP			nlattr[NL80211_PMSR_FTM_CAPA_ATTR_ASAP, void]
+	NL80211_PMSR_FTM_CAPA_ATTR_NON_ASAP		nlattr[NL80211_PMSR_FTM_CAPA_ATTR_NON_ASAP, void]
+	NL80211_PMSR_FTM_CAPA_ATTR_REQ_LCI		nlattr[NL80211_PMSR_FTM_CAPA_ATTR_REQ_LCI, void]
+	NL80211_PMSR_FTM_CAPA_ATTR_REQ_CIVICLOC		nlattr[NL80211_PMSR_FTM_CAPA_ATTR_REQ_CIVICLOC, void]
+	NL80211_PMSR_FTM_CAPA_ATTR_PREAMBLES		nlattr[NL80211_PMSR_FTM_CAPA_ATTR_PREAMBLES, int32]
+	NL80211_PMSR_FTM_CAPA_ATTR_BANDWIDTHS		nlattr[NL80211_PMSR_FTM_CAPA_ATTR_BANDWIDTHS, int32]
+	NL80211_PMSR_FTM_CAPA_ATTR_MAX_BURSTS_EXPONENT	nlattr[NL80211_PMSR_FTM_CAPA_ATTR_MAX_BURSTS_EXPONENT, int8]
+	NL80211_PMSR_FTM_CAPA_ATTR_MAX_FTMS_PER_BURST	nlattr[NL80211_PMSR_FTM_CAPA_ATTR_MAX_FTMS_PER_BURST, int8]
+	NL80211_PMSR_FTM_CAPA_ATTR_TRIGGER_BASED	nlattr[NL80211_PMSR_FTM_CAPA_ATTR_TRIGGER_BASED, void]
+	NL80211_PMSR_FTM_CAPA_ATTR_NON_TRIGGER_BASED	nlattr[NL80211_PMSR_FTM_CAPA_ATTR_NON_TRIGGER_BASED, void]
+] [varlen]
+
+hwsim_ftm_result_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_FTM_RESP_ATTR_FAIL_REASON		nlattr[NL80211_PMSR_FTM_RESP_ATTR_FAIL_REASON, int32]
+	NL80211_PMSR_FTM_RESP_ATTR_BURST_INDEX		nlattr[NL80211_PMSR_FTM_RESP_ATTR_BURST_INDEX, int16]
+	NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_ATTEMPTS	nlattr[NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_ATTEMPTS, int32]
+	NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_SUCCESSES	nlattr[NL80211_PMSR_FTM_RESP_ATTR_NUM_FTMR_SUCCESSES, int32]
+	NL80211_PMSR_FTM_RESP_ATTR_BUSY_RETRY_TIME	nlattr[NL80211_PMSR_FTM_RESP_ATTR_BUSY_RETRY_TIME, int8]
+	NL80211_PMSR_FTM_RESP_ATTR_NUM_BURSTS_EXP	nlattr[NL80211_PMSR_FTM_RESP_ATTR_NUM_BURSTS_EXP, int8]
+	NL80211_PMSR_FTM_RESP_ATTR_BURST_DURATION	nlattr[NL80211_PMSR_FTM_RESP_ATTR_BURST_DURATION, int8]
+	NL80211_PMSR_FTM_RESP_ATTR_FTMS_PER_BURST	nlattr[NL80211_PMSR_FTM_RESP_ATTR_FTMS_PER_BURST, int8]
+	NL80211_PMSR_FTM_RESP_ATTR_RSSI_AVG		nlattr[NL80211_PMSR_FTM_RESP_ATTR_RSSI_AVG, int32]
+	NL80211_PMSR_FTM_RESP_ATTR_RSSI_SPREAD		nlattr[NL80211_PMSR_FTM_RESP_ATTR_RSSI_SPREAD, int32]
+	NL80211_PMSR_FTM_RESP_ATTR_TX_RATE		nlnest[NL80211_PMSR_FTM_RESP_ATTR_TX_RATE, array[hwsim_rate_info_policy$auto_mac80211_hwsim]]
+	NL80211_PMSR_FTM_RESP_ATTR_RX_RATE		nlnest[NL80211_PMSR_FTM_RESP_ATTR_RX_RATE, array[hwsim_rate_info_policy$auto_mac80211_hwsim]]
+	NL80211_PMSR_FTM_RESP_ATTR_RTT_AVG		nlattr[NL80211_PMSR_FTM_RESP_ATTR_RTT_AVG, int64]
+	NL80211_PMSR_FTM_RESP_ATTR_RTT_VARIANCE		nlattr[NL80211_PMSR_FTM_RESP_ATTR_RTT_VARIANCE, int64]
+	NL80211_PMSR_FTM_RESP_ATTR_RTT_SPREAD		nlattr[NL80211_PMSR_FTM_RESP_ATTR_RTT_SPREAD, int64]
+	NL80211_PMSR_FTM_RESP_ATTR_DIST_AVG		nlattr[NL80211_PMSR_FTM_RESP_ATTR_DIST_AVG, int64]
+	NL80211_PMSR_FTM_RESP_ATTR_DIST_VARIANCE	nlattr[NL80211_PMSR_FTM_RESP_ATTR_DIST_VARIANCE, int64]
+	NL80211_PMSR_FTM_RESP_ATTR_DIST_SPREAD		nlattr[NL80211_PMSR_FTM_RESP_ATTR_DIST_SPREAD, int64]
+	NL80211_PMSR_FTM_RESP_ATTR_LCI			nlattr[NL80211_PMSR_FTM_RESP_ATTR_LCI, stringnoz]
+	NL80211_PMSR_FTM_RESP_ATTR_CIVICLOC		nlattr[NL80211_PMSR_FTM_RESP_ATTR_CIVICLOC, stringnoz]
 ] [varlen]
 
 hwsim_genl_policy$auto_mac80211_hwsim [
@@ -2155,15 +2235,61 @@ hwsim_genl_policy$auto_mac80211_hwsim [
 	HWSIM_ATTR_IFTYPE_SUPPORT		nlattr[HWSIM_ATTR_IFTYPE_SUPPORT, int32]
 	HWSIM_ATTR_CIPHER_SUPPORT		nlattr[HWSIM_ATTR_CIPHER_SUPPORT, array[int8]]
 	HWSIM_ATTR_MLO_SUPPORT			nlattr[HWSIM_ATTR_MLO_SUPPORT, void]
-	HWSIM_ATTR_PMSR_SUPPORT			nlattr[HWSIM_ATTR_PMSR_SUPPORT, array[int8, 5]]
-	HWSIM_ATTR_PMSR_RESULT			nlattr[HWSIM_ATTR_PMSR_RESULT, array[int8, 5]]
+	HWSIM_ATTR_PMSR_SUPPORT			nlnest[HWSIM_ATTR_PMSR_SUPPORT, array[hwsim_pmsr_capa_policy$auto_mac80211_hwsim]]
+	HWSIM_ATTR_PMSR_RESULT			nlnest[HWSIM_ATTR_PMSR_RESULT, array[hwsim_pmsr_peers_result_policy$auto_mac80211_hwsim]]
 	HWSIM_ATTR_MULTI_RADIO			nlattr[HWSIM_ATTR_MULTI_RADIO, void]
 ] [varlen]
 
 hwsim_genl_policy$auto_mac802154_hwsim [
 	MAC802154_HWSIM_ATTR_RADIO_ID		nlattr[MAC802154_HWSIM_ATTR_RADIO_ID, int32]
-	MAC802154_HWSIM_ATTR_RADIO_EDGE		nlattr[MAC802154_HWSIM_ATTR_RADIO_EDGE, array[int8]]
-	MAC802154_HWSIM_ATTR_RADIO_EDGES	nlattr[MAC802154_HWSIM_ATTR_RADIO_EDGES, array[int8]]
+	MAC802154_HWSIM_ATTR_RADIO_EDGE		nlnest[MAC802154_HWSIM_ATTR_RADIO_EDGE, array[nl_generic_attr]]
+	MAC802154_HWSIM_ATTR_RADIO_EDGES	nlnest[MAC802154_HWSIM_ATTR_RADIO_EDGES, array[nl_generic_attr]]
+] [varlen]
+
+hwsim_pmsr_capa_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_ATTR_MAX_PEERS		nlattr[NL80211_PMSR_ATTR_MAX_PEERS, int32]
+	NL80211_PMSR_ATTR_REPORT_AP_TSF		nlattr[NL80211_PMSR_ATTR_REPORT_AP_TSF, void]
+	NL80211_PMSR_ATTR_RANDOMIZE_MAC_ADDR	nlattr[NL80211_PMSR_ATTR_RANDOMIZE_MAC_ADDR, void]
+	NL80211_PMSR_ATTR_TYPE_CAPA		nlnest[NL80211_PMSR_ATTR_TYPE_CAPA, array[hwsim_pmsr_capa_type_policy$auto_mac80211_hwsim]]
+] [varlen]
+
+hwsim_pmsr_capa_type_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_TYPE_FTM	nlnest[NL80211_PMSR_TYPE_FTM, array[hwsim_ftm_capa_policy$auto_mac80211_hwsim]]
+] [varlen]
+
+hwsim_pmsr_peer_result_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_PEER_ATTR_ADDR	nlattr[NL80211_PMSR_PEER_ATTR_ADDR, array[int8]]
+	NL80211_PMSR_PEER_ATTR_RESP	nlnest[NL80211_PMSR_PEER_ATTR_RESP, array[hwsim_pmsr_resp_policy$auto_mac80211_hwsim]]
+] [varlen]
+
+hwsim_pmsr_peers_result_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_ATTR_PEERS	nlnest[NL80211_PMSR_ATTR_PEERS, array[nlnest[0, array[hwsim_pmsr_peer_result_policy$auto_mac80211_hwsim]]]]
+] [varlen]
+
+hwsim_pmsr_resp_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_RESP_ATTR_DATA		nlnest[NL80211_PMSR_RESP_ATTR_DATA, array[hwsim_pmsr_resp_type_policy$auto_mac80211_hwsim]]
+	NL80211_PMSR_RESP_ATTR_STATUS		nlattr[NL80211_PMSR_RESP_ATTR_STATUS, int32]
+	NL80211_PMSR_RESP_ATTR_HOST_TIME	nlattr[NL80211_PMSR_RESP_ATTR_HOST_TIME, int64]
+	NL80211_PMSR_RESP_ATTR_AP_TSF		nlattr[NL80211_PMSR_RESP_ATTR_AP_TSF, int64]
+	NL80211_PMSR_RESP_ATTR_FINAL		nlattr[NL80211_PMSR_RESP_ATTR_FINAL, void]
+] [varlen]
+
+hwsim_pmsr_resp_type_policy$auto_mac80211_hwsim [
+	NL80211_PMSR_TYPE_FTM	nlnest[NL80211_PMSR_TYPE_FTM, array[hwsim_ftm_result_policy$auto_mac80211_hwsim]]
+] [varlen]
+
+hwsim_rate_info_policy$auto_mac80211_hwsim [
+	HWSIM_RATE_INFO_ATTR_FLAGS		nlattr[HWSIM_RATE_INFO_ATTR_FLAGS, int8]
+	HWSIM_RATE_INFO_ATTR_MCS		nlattr[HWSIM_RATE_INFO_ATTR_MCS, int8]
+	HWSIM_RATE_INFO_ATTR_LEGACY		nlattr[HWSIM_RATE_INFO_ATTR_LEGACY, int16]
+	HWSIM_RATE_INFO_ATTR_NSS		nlattr[HWSIM_RATE_INFO_ATTR_NSS, int8]
+	HWSIM_RATE_INFO_ATTR_BW			nlattr[HWSIM_RATE_INFO_ATTR_BW, int8]
+	HWSIM_RATE_INFO_ATTR_HE_GI		nlattr[HWSIM_RATE_INFO_ATTR_HE_GI, int8]
+	HWSIM_RATE_INFO_ATTR_HE_DCM		nlattr[HWSIM_RATE_INFO_ATTR_HE_DCM, int8]
+	HWSIM_RATE_INFO_ATTR_HE_RU_ALLOC	nlattr[HWSIM_RATE_INFO_ATTR_HE_RU_ALLOC, int8]
+	HWSIM_RATE_INFO_ATTR_N_BOUNDED_CH	nlattr[HWSIM_RATE_INFO_ATTR_N_BOUNDED_CH, int8]
+	HWSIM_RATE_INFO_ATTR_EHT_GI		nlattr[HWSIM_RATE_INFO_ATTR_EHT_GI, int8]
+	HWSIM_RATE_INFO_ATTR_EHT_RU_ALLOC	nlattr[HWSIM_RATE_INFO_ATTR_EHT_RU_ALLOC, int8]
 ] [varlen]
 
 hwsim_tx_rate$auto_record {
@@ -2340,9 +2466,9 @@ iovec$auto_record {
 }
 
 ip_vs_cmd_policy$auto_ip_vs_ctl [
-	IPVS_CMD_ATTR_SERVICE		nlattr[IPVS_CMD_ATTR_SERVICE, array[int8]]
-	IPVS_CMD_ATTR_DEST		nlattr[IPVS_CMD_ATTR_DEST, array[int8]]
-	IPVS_CMD_ATTR_DAEMON		nlattr[IPVS_CMD_ATTR_DAEMON, array[int8]]
+	IPVS_CMD_ATTR_SERVICE		nlnest[IPVS_CMD_ATTR_SERVICE, array[nl_generic_attr]]
+	IPVS_CMD_ATTR_DEST		nlnest[IPVS_CMD_ATTR_DEST, array[nl_generic_attr]]
+	IPVS_CMD_ATTR_DAEMON		nlnest[IPVS_CMD_ATTR_DAEMON, array[nl_generic_attr]]
 	IPVS_CMD_ATTR_TIMEOUT_TCP	nlattr[IPVS_CMD_ATTR_TIMEOUT_TCP, int32]
 	IPVS_CMD_ATTR_TIMEOUT_TCP_FIN	nlattr[IPVS_CMD_ATTR_TIMEOUT_TCP_FIN, int32]
 	IPVS_CMD_ATTR_TIMEOUT_UDP	nlattr[IPVS_CMD_ATTR_TIMEOUT_UDP, int32]
@@ -2401,7 +2527,7 @@ l2tp_nl_policy$auto_l2tp_netlink [
 	L2TP_ATTR_UDP_DPORT		nlattr[L2TP_ATTR_UDP_DPORT, sock_port]
 	L2TP_ATTR_MTU			nlattr[L2TP_ATTR_MTU, int16]
 	L2TP_ATTR_MRU			nlattr[L2TP_ATTR_MRU, int16]
-	L2TP_ATTR_STATS			nlattr[L2TP_ATTR_STATS, array[int8]]
+	L2TP_ATTR_STATS			nlnest[L2TP_ATTR_STATS, array[nl_generic_attr]]
 	L2TP_ATTR_IP6_SADDR		nlattr[L2TP_ATTR_IP6_SADDR, in6_addr$auto_record]
 	L2TP_ATTR_IP6_DADDR		nlattr[L2TP_ATTR_IP6_DADDR, in6_addr$auto_record]
 ] [varlen]
@@ -2437,16 +2563,16 @@ lsm_ctx$auto_record {
 
 macsec_genl_policy$auto_macsec [
 	MACSEC_ATTR_IFINDEX	nlattr[MACSEC_ATTR_IFINDEX, ifindex]
-	MACSEC_ATTR_RXSC_CONFIG	nlattr[MACSEC_ATTR_RXSC_CONFIG, array[int8]]
-	MACSEC_ATTR_SA_CONFIG	nlattr[MACSEC_ATTR_SA_CONFIG, array[int8]]
-	MACSEC_ATTR_OFFLOAD	nlattr[MACSEC_ATTR_OFFLOAD, array[int8]]
+	MACSEC_ATTR_RXSC_CONFIG	nlnest[MACSEC_ATTR_RXSC_CONFIG, array[nl_generic_attr]]
+	MACSEC_ATTR_SA_CONFIG	nlnest[MACSEC_ATTR_SA_CONFIG, array[nl_generic_attr]]
+	MACSEC_ATTR_OFFLOAD	nlnest[MACSEC_ATTR_OFFLOAD, array[nl_generic_attr]]
 ] [varlen]
 
 meter_policy$auto_meter [
 	OVS_METER_ATTR_ID		nlattr[OVS_METER_ATTR_ID, int32]
 	OVS_METER_ATTR_KBPS		nlattr[OVS_METER_ATTR_KBPS, void]
 	OVS_METER_ATTR_STATS		nlattr[OVS_METER_ATTR_STATS, ovs_flow_stats$auto_record]
-	OVS_METER_ATTR_BANDS		nlattr[OVS_METER_ATTR_BANDS, array[int8]]
+	OVS_METER_ATTR_BANDS		nlnest[OVS_METER_ATTR_BANDS, array[nl_generic_attr]]
 	OVS_METER_ATTR_USED		nlattr[OVS_METER_ATTR_USED, int64]
 	OVS_METER_ATTR_CLEAR		nlattr[OVS_METER_ATTR_CLEAR, void]
 	OVS_METER_ATTR_MAX_METERS	nlattr[OVS_METER_ATTR_MAX_METERS, int32]
@@ -2509,15 +2635,15 @@ nbd_attr_policy$auto_nbd [
 	NBD_ATTR_TIMEOUT		nlattr[NBD_ATTR_TIMEOUT, int64]
 	NBD_ATTR_SERVER_FLAGS		nlattr[NBD_ATTR_SERVER_FLAGS, int64]
 	NBD_ATTR_CLIENT_FLAGS		nlattr[NBD_ATTR_CLIENT_FLAGS, int64]
-	NBD_ATTR_SOCKETS		nlattr[NBD_ATTR_SOCKETS, array[int8]]
+	NBD_ATTR_SOCKETS		nlnest[NBD_ATTR_SOCKETS, array[nl_generic_attr]]
 	NBD_ATTR_DEAD_CONN_TIMEOUT	nlattr[NBD_ATTR_DEAD_CONN_TIMEOUT, int64]
-	NBD_ATTR_DEVICE_LIST		nlattr[NBD_ATTR_DEVICE_LIST, array[int8]]
+	NBD_ATTR_DEVICE_LIST		nlnest[NBD_ATTR_DEVICE_LIST, array[nl_generic_attr]]
 	NBD_ATTR_BACKEND_IDENTIFIER	nlattr[NBD_ATTR_BACKEND_IDENTIFIER, stringnoz]
 ] [varlen]
 
 ncsi_genl_policy$auto_ncsi_netlink [
 	NCSI_ATTR_IFINDEX	nlattr[NCSI_ATTR_IFINDEX, ifindex]
-	NCSI_ATTR_PACKAGE_LIST	nlattr[NCSI_ATTR_PACKAGE_LIST, array[int8]]
+	NCSI_ATTR_PACKAGE_LIST	nlnest[NCSI_ATTR_PACKAGE_LIST, array[nl_generic_attr]]
 	NCSI_ATTR_PACKAGE_ID	nlattr[NCSI_ATTR_PACKAGE_ID, int32]
 	NCSI_ATTR_CHANNEL_ID	nlattr[NCSI_ATTR_CHANNEL_ID, int32]
 	NCSI_ATTR_DATA		nlattr[NCSI_ATTR_DATA, array[int8, 0:2048]]
@@ -2537,7 +2663,7 @@ net_dm_nl_policy$auto_drop_monitor [
 
 netdev_bind_rx_nl_policy$auto_netdev_genl_gen [
 	NETDEV_A_DMABUF_IFINDEX	nlattr[NETDEV_A_DMABUF_IFINDEX, ifindex]
-	NETDEV_A_DMABUF_QUEUES	nlattr[NETDEV_A_DMABUF_QUEUES, array[int8, 3]]
+	NETDEV_A_DMABUF_QUEUES	nlnest[NETDEV_A_DMABUF_QUEUES, array[netdev_queue_id_nl_policy$auto_netdev_genl_gen]]
 	NETDEV_A_DMABUF_FD	nlattr[NETDEV_A_DMABUF_FD, fd]
 ] [varlen]
 
@@ -2572,19 +2698,24 @@ netdev_queue_get_dump_nl_policy$auto_netdev_genl_gen [
 	NETDEV_A_QUEUE_IFINDEX	nlattr[NETDEV_A_QUEUE_IFINDEX, ifindex]
 ] [varlen]
 
+netdev_queue_id_nl_policy$auto_netdev_genl_gen [
+	NETDEV_A_QUEUE_ID	nlattr[NETDEV_A_QUEUE_ID, int32]
+	NETDEV_A_QUEUE_TYPE	nlattr[NETDEV_A_QUEUE_TYPE, int32]
+] [varlen]
+
 netlbl_cipsov4_genl_policy$auto_netlabel_cipso_v4 [
 	NLBL_CIPSOV4_A_DOI		nlattr[NLBL_CIPSOV4_A_DOI, int32]
 	NLBL_CIPSOV4_A_MTYPE		nlattr[NLBL_CIPSOV4_A_MTYPE, int32]
 	NLBL_CIPSOV4_A_TAG		nlattr[NLBL_CIPSOV4_A_TAG, int8]
-	NLBL_CIPSOV4_A_TAGLST		nlattr[NLBL_CIPSOV4_A_TAGLST, array[int8]]
+	NLBL_CIPSOV4_A_TAGLST		nlnest[NLBL_CIPSOV4_A_TAGLST, array[nl_generic_attr]]
 	NLBL_CIPSOV4_A_MLSLVLLOC	nlattr[NLBL_CIPSOV4_A_MLSLVLLOC, int32]
 	NLBL_CIPSOV4_A_MLSLVLREM	nlattr[NLBL_CIPSOV4_A_MLSLVLREM, int32]
-	NLBL_CIPSOV4_A_MLSLVL		nlattr[NLBL_CIPSOV4_A_MLSLVL, array[int8]]
-	NLBL_CIPSOV4_A_MLSLVLLST	nlattr[NLBL_CIPSOV4_A_MLSLVLLST, array[int8]]
+	NLBL_CIPSOV4_A_MLSLVL		nlnest[NLBL_CIPSOV4_A_MLSLVL, array[nl_generic_attr]]
+	NLBL_CIPSOV4_A_MLSLVLLST	nlnest[NLBL_CIPSOV4_A_MLSLVLLST, array[nl_generic_attr]]
 	NLBL_CIPSOV4_A_MLSCATLOC	nlattr[NLBL_CIPSOV4_A_MLSCATLOC, int32]
 	NLBL_CIPSOV4_A_MLSCATREM	nlattr[NLBL_CIPSOV4_A_MLSCATREM, int32]
-	NLBL_CIPSOV4_A_MLSCAT		nlattr[NLBL_CIPSOV4_A_MLSCAT, array[int8]]
-	NLBL_CIPSOV4_A_MLSCATLST	nlattr[NLBL_CIPSOV4_A_MLSCATLST, array[int8]]
+	NLBL_CIPSOV4_A_MLSCAT		nlnest[NLBL_CIPSOV4_A_MLSCAT, array[nl_generic_attr]]
+	NLBL_CIPSOV4_A_MLSCATLST	nlnest[NLBL_CIPSOV4_A_MLSCATLST, array[nl_generic_attr]]
 ] [varlen]
 
 netlbl_mgmt_genl_policy$auto_netlabel_mgmt [
@@ -2628,7 +2759,7 @@ nfc_genl_policy$auto_netlink [
 	NFC_ATTR_LLC_PARAM_LTO	nlattr[NFC_ATTR_LLC_PARAM_LTO, int8]
 	NFC_ATTR_LLC_PARAM_RW	nlattr[NFC_ATTR_LLC_PARAM_RW, int8]
 	NFC_ATTR_LLC_PARAM_MIUX	nlattr[NFC_ATTR_LLC_PARAM_MIUX, int16]
-	NFC_ATTR_LLC_SDP	nlattr[NFC_ATTR_LLC_SDP, array[int8]]
+	NFC_ATTR_LLC_SDP	nlnest[NFC_ATTR_LLC_SDP, array[nl_generic_attr]]
 	NFC_ATTR_FIRMWARE_NAME	nlattr[NFC_ATTR_FIRMWARE_NAME, stringnoz]
 	NFC_ATTR_SE_INDEX	nlattr[NFC_ATTR_SE_INDEX, int32]
 	NFC_ATTR_SE_APDU	nlattr[NFC_ATTR_SE_APDU, array[int8]]
@@ -2638,11 +2769,16 @@ nfc_genl_policy$auto_netlink [
 ] [varlen]
 
 nfsd_listener_set_nl_policy$auto_netlink [
-	NFSD_A_SERVER_SOCK_ADDR	nlattr[NFSD_A_SERVER_SOCK_ADDR, int16]
+	NFSD_A_SERVER_SOCK_ADDR	nlnest[NFSD_A_SERVER_SOCK_ADDR, array[nfsd_sock_nl_policy$auto_netlink]]
 ] [varlen]
 
 nfsd_pool_mode_set_nl_policy$auto_netlink [
 	NFSD_A_POOL_MODE_MODE	nlattr[NFSD_A_POOL_MODE_MODE, string]
+] [varlen]
+
+nfsd_sock_nl_policy$auto_netlink [
+	NFSD_A_SOCK_ADDR		nlattr[NFSD_A_SOCK_ADDR, array[int8]]
+	NFSD_A_SOCK_TRANSPORT_NAME	nlattr[NFSD_A_SOCK_TRANSPORT_NAME, string]
 ] [varlen]
 
 nfsd_threads_set_nl_policy$auto_netlink [
@@ -2652,14 +2788,75 @@ nfsd_threads_set_nl_policy$auto_netlink [
 	NFSD_A_SERVER_SCOPE	nlattr[NFSD_A_SERVER_SCOPE, string]
 ] [varlen]
 
+nfsd_version_nl_policy$auto_netlink [
+	NFSD_A_VERSION_MAJOR	nlattr[NFSD_A_VERSION_MAJOR, int32]
+	NFSD_A_VERSION_MINOR	nlattr[NFSD_A_VERSION_MINOR, int32]
+	NFSD_A_VERSION_ENABLED	nlattr[NFSD_A_VERSION_ENABLED, void]
+] [varlen]
+
 nfsd_version_set_nl_policy$auto_netlink [
-	NFSD_A_SERVER_PROTO_VERSION	nlattr[NFSD_A_SERVER_PROTO_VERSION, array[int8, 3]]
+	NFSD_A_SERVER_PROTO_VERSION	nlnest[NFSD_A_SERVER_PROTO_VERSION, array[nfsd_version_nl_policy$auto_netlink]]
 ] [varlen]
 
 nl80211_bss_select_rssi_adjust$auto_record {
 	band	int8
 	delta	int8
 } [packed]
+
+nl80211_fils_discovery_policy$auto_nl80211 [
+	NL80211_FILS_DISCOVERY_ATTR_INT_MIN	nlattr[NL80211_FILS_DISCOVERY_ATTR_INT_MIN, int32]
+	NL80211_FILS_DISCOVERY_ATTR_INT_MAX	nlattr[NL80211_FILS_DISCOVERY_ATTR_INT_MAX, int32]
+	NL80211_FILS_DISCOVERY_ATTR_TMPL	nlattr[NL80211_FILS_DISCOVERY_ATTR_TMPL, array[int8]]
+] [varlen]
+
+nl80211_ftm_responder_policy$auto_nl80211 [
+	NL80211_FTM_RESP_ATTR_ENABLED	nlattr[NL80211_FTM_RESP_ATTR_ENABLED, void]
+	NL80211_FTM_RESP_ATTR_LCI	nlattr[NL80211_FTM_RESP_ATTR_LCI, array[int8, 0:255]]
+	NL80211_FTM_RESP_ATTR_CIVICLOC	nlattr[NL80211_FTM_RESP_ATTR_CIVICLOC, array[int8, 0:255]]
+] [varlen]
+
+nl80211_mbssid_config_policy$auto_nl80211 [
+	NL80211_MBSSID_CONFIG_ATTR_MAX_INTERFACES		nlattr[NL80211_MBSSID_CONFIG_ATTR_MAX_INTERFACES, int8]
+	NL80211_MBSSID_CONFIG_ATTR_MAX_EMA_PROFILE_PERIODICITY	nlattr[NL80211_MBSSID_CONFIG_ATTR_MAX_EMA_PROFILE_PERIODICITY, int8]
+	NL80211_MBSSID_CONFIG_ATTR_INDEX			nlattr[NL80211_MBSSID_CONFIG_ATTR_INDEX, int8]
+	NL80211_MBSSID_CONFIG_ATTR_TX_IFINDEX			nlattr[NL80211_MBSSID_CONFIG_ATTR_TX_IFINDEX, ifindex]
+	NL80211_MBSSID_CONFIG_ATTR_EMA				nlattr[NL80211_MBSSID_CONFIG_ATTR_EMA, void]
+] [varlen]
+
+nl80211_pmsr_attr_policy$auto_nl80211 [
+	NL80211_PMSR_ATTR_PEERS	nlnest[NL80211_PMSR_ATTR_PEERS, array[nlnest[0, array[nl80211_pmsr_peer_attr_policy$auto_nl80211]]]]
+] [varlen]
+
+nl80211_pmsr_ftm_req_attr_policy$auto_nl80211 [
+	NL80211_PMSR_FTM_REQ_ATTR_ASAP			nlattr[NL80211_PMSR_FTM_REQ_ATTR_ASAP, void]
+	NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE		nlattr[NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE, int32]
+	NL80211_PMSR_FTM_REQ_ATTR_NUM_BURSTS_EXP	nlattr[NL80211_PMSR_FTM_REQ_ATTR_NUM_BURSTS_EXP, int8]
+	NL80211_PMSR_FTM_REQ_ATTR_BURST_PERIOD		nlattr[NL80211_PMSR_FTM_REQ_ATTR_BURST_PERIOD, int16]
+	NL80211_PMSR_FTM_REQ_ATTR_BURST_DURATION	nlattr[NL80211_PMSR_FTM_REQ_ATTR_BURST_DURATION, int8]
+	NL80211_PMSR_FTM_REQ_ATTR_FTMS_PER_BURST	nlattr[NL80211_PMSR_FTM_REQ_ATTR_FTMS_PER_BURST, int8]
+	NL80211_PMSR_FTM_REQ_ATTR_NUM_FTMR_RETRIES	nlattr[NL80211_PMSR_FTM_REQ_ATTR_NUM_FTMR_RETRIES, int8]
+	NL80211_PMSR_FTM_REQ_ATTR_REQUEST_LCI		nlattr[NL80211_PMSR_FTM_REQ_ATTR_REQUEST_LCI, void]
+	NL80211_PMSR_FTM_REQ_ATTR_REQUEST_CIVICLOC	nlattr[NL80211_PMSR_FTM_REQ_ATTR_REQUEST_CIVICLOC, void]
+	NL80211_PMSR_FTM_REQ_ATTR_TRIGGER_BASED		nlattr[NL80211_PMSR_FTM_REQ_ATTR_TRIGGER_BASED, void]
+	NL80211_PMSR_FTM_REQ_ATTR_NON_TRIGGER_BASED	nlattr[NL80211_PMSR_FTM_REQ_ATTR_NON_TRIGGER_BASED, void]
+	NL80211_PMSR_FTM_REQ_ATTR_LMR_FEEDBACK		nlattr[NL80211_PMSR_FTM_REQ_ATTR_LMR_FEEDBACK, void]
+	NL80211_PMSR_FTM_REQ_ATTR_BSS_COLOR		nlattr[NL80211_PMSR_FTM_REQ_ATTR_BSS_COLOR, int8]
+] [varlen]
+
+nl80211_pmsr_peer_attr_policy$auto_nl80211 [
+	NL80211_PMSR_PEER_ATTR_ADDR	nlattr[NL80211_PMSR_PEER_ATTR_ADDR, array[int8]]
+	NL80211_PMSR_PEER_ATTR_CHAN	nlnest[NL80211_PMSR_PEER_ATTR_CHAN, array[nl80211_policy$auto_nl80211]]
+	NL80211_PMSR_PEER_ATTR_REQ	nlnest[NL80211_PMSR_PEER_ATTR_REQ, array[nl80211_pmsr_req_attr_policy$auto_nl80211]]
+] [varlen]
+
+nl80211_pmsr_req_attr_policy$auto_nl80211 [
+	NL80211_PMSR_REQ_ATTR_DATA		nlnest[NL80211_PMSR_REQ_ATTR_DATA, array[nl80211_pmsr_req_data_policy$auto_nl80211]]
+	NL80211_PMSR_REQ_ATTR_GET_AP_TSF	nlattr[NL80211_PMSR_REQ_ATTR_GET_AP_TSF, void]
+] [varlen]
+
+nl80211_pmsr_req_data_policy$auto_nl80211 [
+	NL80211_PMSR_TYPE_FTM	nlnest[NL80211_PMSR_TYPE_FTM, array[nl80211_pmsr_ftm_req_attr_policy$auto_nl80211]]
+] [varlen]
 
 nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_WIPHY				nlattr[NL80211_ATTR_WIPHY, int32]
@@ -2678,7 +2875,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_BEACON_HEAD			nlattr[NL80211_ATTR_BEACON_HEAD, array[int8, 0:2304]]
 	NL80211_ATTR_BEACON_TAIL			nlattr[NL80211_ATTR_BEACON_TAIL, array[int8, 0:2304]]
 	NL80211_ATTR_STA_AID				nlattr[NL80211_ATTR_STA_AID, int16]
-	NL80211_ATTR_STA_FLAGS				nlattr[NL80211_ATTR_STA_FLAGS, array[int8]]
+	NL80211_ATTR_STA_FLAGS				nlnest[NL80211_ATTR_STA_FLAGS, array[nl_generic_attr]]
 	NL80211_ATTR_STA_LISTEN_INTERVAL		nlattr[NL80211_ATTR_STA_LISTEN_INTERVAL, int16]
 	NL80211_ATTR_STA_SUPPORTED_RATES		nlattr[NL80211_ATTR_STA_SUPPORTED_RATES, array[int8, 0:32]]
 	NL80211_ATTR_STA_VLAN				nlattr[NL80211_ATTR_STA_VLAN, int32]
@@ -2691,16 +2888,16 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_BSS_SHORT_SLOT_TIME		nlattr[NL80211_ATTR_BSS_SHORT_SLOT_TIME, int8]
 	NL80211_ATTR_HT_CAPABILITY			nlattr[NL80211_ATTR_HT_CAPABILITY, array[int8]]
 	NL80211_ATTR_REG_ALPHA2				nlattr[NL80211_ATTR_REG_ALPHA2, array[int8]]
-	NL80211_ATTR_REG_RULES				nlattr[NL80211_ATTR_REG_RULES, array[int8]]
-	NL80211_ATTR_MESH_CONFIG			nlattr[NL80211_ATTR_MESH_CONFIG, array[int8]]
+	NL80211_ATTR_REG_RULES				nlnest[NL80211_ATTR_REG_RULES, array[nl_generic_attr]]
+	NL80211_ATTR_MESH_CONFIG			nlnest[NL80211_ATTR_MESH_CONFIG, array[nl_generic_attr]]
 	NL80211_ATTR_BSS_BASIC_RATES			nlattr[NL80211_ATTR_BSS_BASIC_RATES, array[int8, 0:32]]
-	NL80211_ATTR_WIPHY_TXQ_PARAMS			nlattr[NL80211_ATTR_WIPHY_TXQ_PARAMS, array[int8]]
+	NL80211_ATTR_WIPHY_TXQ_PARAMS			nlnest[NL80211_ATTR_WIPHY_TXQ_PARAMS, array[nl_generic_attr]]
 	NL80211_ATTR_WIPHY_FREQ				nlattr[NL80211_ATTR_WIPHY_FREQ, int32]
 	NL80211_ATTR_WIPHY_CHANNEL_TYPE			nlattr[NL80211_ATTR_WIPHY_CHANNEL_TYPE, int32]
 	NL80211_ATTR_MGMT_SUBTYPE			nlattr[NL80211_ATTR_MGMT_SUBTYPE, int8]
 	NL80211_ATTR_IE					nlattr[NL80211_ATTR_IE, array[int8, 0:2304]]
-	NL80211_ATTR_SCAN_FREQUENCIES			nlattr[NL80211_ATTR_SCAN_FREQUENCIES, array[int8]]
-	NL80211_ATTR_SCAN_SSIDS				nlattr[NL80211_ATTR_SCAN_SSIDS, array[int8]]
+	NL80211_ATTR_SCAN_FREQUENCIES			nlnest[NL80211_ATTR_SCAN_FREQUENCIES, array[nl_generic_attr]]
+	NL80211_ATTR_SCAN_SSIDS				nlnest[NL80211_ATTR_SCAN_SSIDS, array[nl_generic_attr]]
 	NL80211_ATTR_FRAME				nlattr[NL80211_ATTR_FRAME, array[int8, 0:2304]]
 	NL80211_ATTR_SSID				nlattr[NL80211_ATTR_SSID, array[int8, 0:32]]
 	NL80211_ATTR_AUTH_TYPE				nlattr[NL80211_ATTR_AUTH_TYPE, int32]
@@ -2720,17 +2917,17 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_CIPHER_SUITE_GROUP			nlattr[NL80211_ATTR_CIPHER_SUITE_GROUP, int32]
 	NL80211_ATTR_WPA_VERSIONS			nlattr[NL80211_ATTR_WPA_VERSIONS, int32]
 	NL80211_ATTR_PREV_BSSID				nlattr[NL80211_ATTR_PREV_BSSID, array[int8]]
-	NL80211_ATTR_KEY				nlattr[NL80211_ATTR_KEY, array[int8]]
+	NL80211_ATTR_KEY				nlnest[NL80211_ATTR_KEY, array[nl_generic_attr]]
 	NL80211_ATTR_PID				nlattr[NL80211_ATTR_PID, pid]
 	NL80211_ATTR_4ADDR				nlattr[NL80211_ATTR_4ADDR, int8]
 	NL80211_ATTR_PMKID				nlattr[NL80211_ATTR_PMKID, array[int8]]
 	NL80211_ATTR_DURATION				nlattr[NL80211_ATTR_DURATION, int32]
 	NL80211_ATTR_COOKIE				nlattr[NL80211_ATTR_COOKIE, int64]
 	NL80211_ATTR_WIPHY_COVERAGE_CLASS		nlattr[NL80211_ATTR_WIPHY_COVERAGE_CLASS, int8]
-	NL80211_ATTR_TX_RATES				nlattr[NL80211_ATTR_TX_RATES, array[int8]]
+	NL80211_ATTR_TX_RATES				nlnest[NL80211_ATTR_TX_RATES, array[nl_generic_attr]]
 	NL80211_ATTR_FRAME_MATCH			nlattr[NL80211_ATTR_FRAME_MATCH, array[int8]]
 	NL80211_ATTR_PS_STATE				nlattr[NL80211_ATTR_PS_STATE, int32]
-	NL80211_ATTR_CQM				nlattr[NL80211_ATTR_CQM, array[int8]]
+	NL80211_ATTR_CQM				nlnest[NL80211_ATTR_CQM, array[nl_generic_attr]]
 	NL80211_ATTR_LOCAL_STATE_CHANGE			nlattr[NL80211_ATTR_LOCAL_STATE_CHANGE, void]
 	NL80211_ATTR_AP_ISOLATE				nlattr[NL80211_ATTR_AP_ISOLATE, int8]
 	NL80211_ATTR_WIPHY_TX_POWER_SETTING		nlattr[NL80211_ATTR_WIPHY_TX_POWER_SETTING, int32]
@@ -2743,19 +2940,19 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_MCAST_RATE				nlattr[NL80211_ATTR_MCAST_RATE, int32]
 	NL80211_ATTR_OFFCHANNEL_TX_OK			nlattr[NL80211_ATTR_OFFCHANNEL_TX_OK, void]
 	NL80211_ATTR_BSS_HT_OPMODE			nlattr[NL80211_ATTR_BSS_HT_OPMODE, int16]
-	NL80211_ATTR_KEY_DEFAULT_TYPES			nlattr[NL80211_ATTR_KEY_DEFAULT_TYPES, array[int8]]
+	NL80211_ATTR_KEY_DEFAULT_TYPES			nlnest[NL80211_ATTR_KEY_DEFAULT_TYPES, array[nl_generic_attr]]
 	NL80211_ATTR_SUPPORT_MESH_AUTH			nlattr[NL80211_ATTR_SUPPORT_MESH_AUTH, void]
 	NL80211_ATTR_STA_PLINK_STATE			nlattr[NL80211_ATTR_STA_PLINK_STATE, int8]
-	NL80211_ATTR_WOWLAN_TRIGGERS			nlattr[NL80211_ATTR_WOWLAN_TRIGGERS, array[int8]]
+	NL80211_ATTR_WOWLAN_TRIGGERS			nlnest[NL80211_ATTR_WOWLAN_TRIGGERS, array[nl_generic_attr]]
 	NL80211_ATTR_SCHED_SCAN_INTERVAL		nlattr[NL80211_ATTR_SCHED_SCAN_INTERVAL, int32]
-	NL80211_ATTR_REKEY_DATA				nlattr[NL80211_ATTR_REKEY_DATA, array[int8]]
-	NL80211_ATTR_SCAN_SUPP_RATES			nlattr[NL80211_ATTR_SCAN_SUPP_RATES, array[int8]]
+	NL80211_ATTR_REKEY_DATA				nlnest[NL80211_ATTR_REKEY_DATA, array[nl_generic_attr]]
+	NL80211_ATTR_SCAN_SUPP_RATES			nlnest[NL80211_ATTR_SCAN_SUPP_RATES, array[nl_generic_attr]]
 	NL80211_ATTR_HIDDEN_SSID			nlattr[NL80211_ATTR_HIDDEN_SSID, int32]
 	NL80211_ATTR_IE_PROBE_RESP			nlattr[NL80211_ATTR_IE_PROBE_RESP, array[int8, 0:2304]]
 	NL80211_ATTR_IE_ASSOC_RESP			nlattr[NL80211_ATTR_IE_ASSOC_RESP, array[int8, 0:2304]]
-	NL80211_ATTR_STA_WME				nlattr[NL80211_ATTR_STA_WME, int16]
+	NL80211_ATTR_STA_WME				nlnest[NL80211_ATTR_STA_WME, array[nl80211_sta_wme_policy$auto_nl80211]]
 	NL80211_ATTR_ROAM_SUPPORT			nlattr[NL80211_ATTR_ROAM_SUPPORT, void]
-	NL80211_ATTR_SCHED_SCAN_MATCH			nlattr[NL80211_ATTR_SCHED_SCAN_MATCH, array[int8]]
+	NL80211_ATTR_SCHED_SCAN_MATCH			nlnest[NL80211_ATTR_SCHED_SCAN_MATCH, array[nl_generic_attr]]
 	NL80211_ATTR_TX_NO_CCK_RATE			nlattr[NL80211_ATTR_TX_NO_CCK_RATE, void]
 	NL80211_ATTR_TDLS_ACTION			nlattr[NL80211_ATTR_TDLS_ACTION, int8]
 	NL80211_ATTR_TDLS_DIALOG_TOKEN			nlattr[NL80211_ATTR_TDLS_DIALOG_TOKEN, int8]
@@ -2782,7 +2979,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_P2P_OPPPS				nlattr[NL80211_ATTR_P2P_OPPPS, int8]
 	NL80211_ATTR_LOCAL_MESH_POWER_MODE		nlattr[NL80211_ATTR_LOCAL_MESH_POWER_MODE, int32]
 	NL80211_ATTR_ACL_POLICY				nlattr[NL80211_ATTR_ACL_POLICY, int32]
-	NL80211_ATTR_MAC_ADDRS				nlattr[NL80211_ATTR_MAC_ADDRS, array[int8]]
+	NL80211_ATTR_MAC_ADDRS				nlnest[NL80211_ATTR_MAC_ADDRS, array[nl_generic_attr]]
 	NL80211_ATTR_STA_CAPABILITY			nlattr[NL80211_ATTR_STA_CAPABILITY, int16]
 	NL80211_ATTR_STA_EXT_CAPABILITY			nlattr[NL80211_ATTR_STA_EXT_CAPABILITY, array[int8]]
 	NL80211_ATTR_SPLIT_WIPHY_DUMP			nlattr[NL80211_ATTR_SPLIT_WIPHY_DUMP, void]
@@ -2795,7 +2992,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_PEER_AID				nlattr[NL80211_ATTR_PEER_AID, int16]
 	NL80211_ATTR_CH_SWITCH_COUNT			nlattr[NL80211_ATTR_CH_SWITCH_COUNT, int32]
 	NL80211_ATTR_CH_SWITCH_BLOCK_TX			nlattr[NL80211_ATTR_CH_SWITCH_BLOCK_TX, void]
-	NL80211_ATTR_CSA_IES				nlattr[NL80211_ATTR_CSA_IES, array[int8]]
+	NL80211_ATTR_CSA_IES				nlnest[NL80211_ATTR_CSA_IES, array[nl_generic_attr]]
 	NL80211_ATTR_CNTDWN_OFFS_BEACON			nlattr[NL80211_ATTR_CNTDWN_OFFS_BEACON, array[int8]]
 	NL80211_ATTR_CNTDWN_OFFS_PRESP			nlattr[NL80211_ATTR_CNTDWN_OFFS_PRESP, array[int8]]
 	NL80211_ATTR_STA_SUPPORTED_CHANNELS		nlattr[NL80211_ATTR_STA_SUPPORTED_CHANNELS, array[int8]]
@@ -2825,7 +3022,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_SCHED_SCAN_DELAY			nlattr[NL80211_ATTR_SCHED_SCAN_DELAY, int32]
 	NL80211_ATTR_REG_INDOOR				nlattr[NL80211_ATTR_REG_INDOOR, void]
 	NL80211_ATTR_PBSS				nlattr[NL80211_ATTR_PBSS, void]
-	NL80211_ATTR_BSS_SELECT				nlattr[NL80211_ATTR_BSS_SELECT, array[int8]]
+	NL80211_ATTR_BSS_SELECT				nlnest[NL80211_ATTR_BSS_SELECT, array[nl_generic_attr]]
 	NL80211_ATTR_STA_SUPPORT_P2P_PS			nlattr[NL80211_ATTR_STA_SUPPORT_P2P_PS, int8]
 	NL80211_ATTR_MU_MIMO_GROUP_DATA			nlattr[NL80211_ATTR_MU_MIMO_GROUP_DATA, array[int8, 24]]
 	NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR		nlattr[NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR, array[int8]]
@@ -2834,7 +3031,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_MESH_PEER_AID			nlattr[NL80211_ATTR_MESH_PEER_AID, int16]
 	NL80211_ATTR_NAN_MASTER_PREF			nlattr[NL80211_ATTR_NAN_MASTER_PREF, int8]
 	NL80211_ATTR_BANDS				nlattr[NL80211_ATTR_BANDS, int32]
-	NL80211_ATTR_NAN_FUNC				nlattr[NL80211_ATTR_NAN_FUNC, array[int8]]
+	NL80211_ATTR_NAN_FUNC				nlnest[NL80211_ATTR_NAN_FUNC, array[nl_generic_attr]]
 	NL80211_ATTR_FILS_KEK				nlattr[NL80211_ATTR_FILS_KEK, array[int8, 0:64]]
 	NL80211_ATTR_FILS_NONCES			nlattr[NL80211_ATTR_FILS_NONCES, array[int8]]
 	NL80211_ATTR_MULTICAST_TO_UNICAST_ENABLED	nlattr[NL80211_ATTR_MULTICAST_TO_UNICAST_ENABLED, void]
@@ -2856,58 +3053,93 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_TXQ_MEMORY_LIMIT			nlattr[NL80211_ATTR_TXQ_MEMORY_LIMIT, int32]
 	NL80211_ATTR_TXQ_QUANTUM			nlattr[NL80211_ATTR_TXQ_QUANTUM, int32]
 	NL80211_ATTR_HE_CAPABILITY			nlattr[NL80211_ATTR_HE_CAPABILITY, array[int8, 0:54]]
-	NL80211_ATTR_FTM_RESPONDER			nlattr[NL80211_ATTR_FTM_RESPONDER, array[int8, 3]]
+	NL80211_ATTR_FTM_RESPONDER			nlnest[NL80211_ATTR_FTM_RESPONDER, array[nl80211_ftm_responder_policy$auto_nl80211]]
 	NL80211_ATTR_TIMEOUT				nlattr[NL80211_ATTR_TIMEOUT, int32]
-	NL80211_ATTR_PEER_MEASUREMENTS			nlattr[NL80211_ATTR_PEER_MEASUREMENTS, array[int8, 5]]
+	NL80211_ATTR_PEER_MEASUREMENTS			nlnest[NL80211_ATTR_PEER_MEASUREMENTS, array[nl80211_pmsr_attr_policy$auto_nl80211]]
 	NL80211_ATTR_AIRTIME_WEIGHT			nlattr[NL80211_ATTR_AIRTIME_WEIGHT, int16]
 	NL80211_ATTR_STA_TX_POWER_SETTING		nlattr[NL80211_ATTR_STA_TX_POWER_SETTING, int8]
 	NL80211_ATTR_STA_TX_POWER			nlattr[NL80211_ATTR_STA_TX_POWER, int16]
 	NL80211_ATTR_SAE_PASSWORD			nlattr[NL80211_ATTR_SAE_PASSWORD, array[int8, 0:128]]
 	NL80211_ATTR_TWT_RESPONDER			nlattr[NL80211_ATTR_TWT_RESPONDER, void]
-	NL80211_ATTR_HE_OBSS_PD				nlattr[NL80211_ATTR_HE_OBSS_PD, array[int8, 6]]
+	NL80211_ATTR_HE_OBSS_PD				nlnest[NL80211_ATTR_HE_OBSS_PD, array[he_obss_pd_policy$auto_nl80211]]
 	NL80211_ATTR_WIPHY_EDMG_CHANNELS		nlattr[NL80211_ATTR_WIPHY_EDMG_CHANNELS, int8]
 	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG		nlattr[NL80211_ATTR_WIPHY_EDMG_BW_CONFIG, int8]
 	NL80211_ATTR_VLAN_ID				nlattr[NL80211_ATTR_VLAN_ID, int16]
-	NL80211_ATTR_HE_BSS_COLOR			nlattr[NL80211_ATTR_HE_BSS_COLOR, array[int8, 3]]
-	NL80211_ATTR_TID_CONFIG				nlattr[NL80211_ATTR_TID_CONFIG, array[int8, 13]]
+	NL80211_ATTR_HE_BSS_COLOR			nlnest[NL80211_ATTR_HE_BSS_COLOR, array[he_bss_color_policy$auto_nl80211]]
+	NL80211_ATTR_TID_CONFIG				nlnest[NL80211_ATTR_TID_CONFIG, array[nlnest[0, array[nl80211_tid_config_attr_policy$auto_nl80211]]]]
 	NL80211_ATTR_CONTROL_PORT_NO_PREAUTH		nlattr[NL80211_ATTR_CONTROL_PORT_NO_PREAUTH, void]
 	NL80211_ATTR_PMK_LIFETIME			nlattr[NL80211_ATTR_PMK_LIFETIME, int32]
 	NL80211_ATTR_PMK_REAUTH_THRESHOLD		nlattr[NL80211_ATTR_PMK_REAUTH_THRESHOLD, int8]
 	NL80211_ATTR_RECEIVE_MULTICAST			nlattr[NL80211_ATTR_RECEIVE_MULTICAST, void]
 	NL80211_ATTR_WIPHY_FREQ_OFFSET			nlattr[NL80211_ATTR_WIPHY_FREQ_OFFSET, int32]
 	NL80211_ATTR_CENTER_FREQ1_OFFSET		nlattr[NL80211_ATTR_CENTER_FREQ1_OFFSET, int32]
-	NL80211_ATTR_SCAN_FREQ_KHZ			nlattr[NL80211_ATTR_SCAN_FREQ_KHZ, array[int8]]
+	NL80211_ATTR_SCAN_FREQ_KHZ			nlnest[NL80211_ATTR_SCAN_FREQ_KHZ, array[nl_generic_attr]]
 	NL80211_ATTR_HE_6GHZ_CAPABILITY			nlattr[NL80211_ATTR_HE_6GHZ_CAPABILITY, array[int8]]
-	NL80211_ATTR_FILS_DISCOVERY			nlattr[NL80211_ATTR_FILS_DISCOVERY, array[int8, 3]]
-	NL80211_ATTR_UNSOL_BCAST_PROBE_RESP		nlattr[NL80211_ATTR_UNSOL_BCAST_PROBE_RESP, int16]
+	NL80211_ATTR_FILS_DISCOVERY			nlnest[NL80211_ATTR_FILS_DISCOVERY, array[nl80211_fils_discovery_policy$auto_nl80211]]
+	NL80211_ATTR_UNSOL_BCAST_PROBE_RESP		nlnest[NL80211_ATTR_UNSOL_BCAST_PROBE_RESP, array[nl80211_unsol_bcast_probe_resp_policy$auto_nl80211]]
 	NL80211_ATTR_S1G_CAPABILITY			nlattr[NL80211_ATTR_S1G_CAPABILITY, array[int8]]
 	NL80211_ATTR_S1G_CAPABILITY_MASK		nlattr[NL80211_ATTR_S1G_CAPABILITY_MASK, array[int8]]
 	NL80211_ATTR_SAE_PWE				nlattr[NL80211_ATTR_SAE_PWE, int8]
-	NL80211_ATTR_SAR_SPEC				nlattr[NL80211_ATTR_SAR_SPEC, int16]
+	NL80211_ATTR_SAR_SPEC				nlnest[NL80211_ATTR_SAR_SPEC, array[sar_policy$auto_nl80211]]
 	NL80211_ATTR_DISABLE_HE				nlattr[NL80211_ATTR_DISABLE_HE, void]
 	NL80211_ATTR_OBSS_COLOR_BITMAP			nlattr[NL80211_ATTR_OBSS_COLOR_BITMAP, int64]
 	NL80211_ATTR_COLOR_CHANGE_COUNT			nlattr[NL80211_ATTR_COLOR_CHANGE_COUNT, int8]
 	NL80211_ATTR_COLOR_CHANGE_COLOR			nlattr[NL80211_ATTR_COLOR_CHANGE_COLOR, int8]
-	NL80211_ATTR_COLOR_CHANGE_ELEMS			nlattr[NL80211_ATTR_COLOR_CHANGE_ELEMS, array[int8, 332]]
-	NL80211_ATTR_MBSSID_CONFIG			nlattr[NL80211_ATTR_MBSSID_CONFIG, array[int8, 5]]
-	NL80211_ATTR_MBSSID_ELEMS			nlattr[NL80211_ATTR_MBSSID_ELEMS, array[int8]]
+	NL80211_ATTR_COLOR_CHANGE_ELEMS			nlnest[NL80211_ATTR_COLOR_CHANGE_ELEMS, array[nl80211_policy$auto_nl80211]]
+	NL80211_ATTR_MBSSID_CONFIG			nlnest[NL80211_ATTR_MBSSID_CONFIG, array[nl80211_mbssid_config_policy$auto_nl80211]]
+	NL80211_ATTR_MBSSID_ELEMS			nlnest[NL80211_ATTR_MBSSID_ELEMS, array[nl_generic_attr]]
 	NL80211_ATTR_RADAR_BACKGROUND			nlattr[NL80211_ATTR_RADAR_BACKGROUND, void]
 	NL80211_ATTR_AP_SETTINGS_FLAGS			nlattr[NL80211_ATTR_AP_SETTINGS_FLAGS, int32]
 	NL80211_ATTR_EHT_CAPABILITY			nlattr[NL80211_ATTR_EHT_CAPABILITY, array[int8]]
 	NL80211_ATTR_DISABLE_EHT			nlattr[NL80211_ATTR_DISABLE_EHT, void]
-	NL80211_ATTR_MLO_LINKS				nlattr[NL80211_ATTR_MLO_LINKS, array[int8, 332]]
+	NL80211_ATTR_MLO_LINKS				nlnest[NL80211_ATTR_MLO_LINKS, array[nlnest[0, array[nl80211_policy$auto_nl80211]]]]
 	NL80211_ATTR_MLO_LINK_ID			nlattr[NL80211_ATTR_MLO_LINK_ID, int8]
 	NL80211_ATTR_MLD_ADDR				nlattr[NL80211_ATTR_MLD_ADDR, array[int8]]
 	NL80211_ATTR_MLO_SUPPORT			nlattr[NL80211_ATTR_MLO_SUPPORT, void]
 	NL80211_ATTR_PUNCT_BITMAP			nlattr[NL80211_ATTR_PUNCT_BITMAP, int32]
 	NL80211_ATTR_MAX_HW_TIMESTAMP_PEERS		nlattr[NL80211_ATTR_MAX_HW_TIMESTAMP_PEERS, int16]
 	NL80211_ATTR_HW_TIMESTAMP_ENABLED		nlattr[NL80211_ATTR_HW_TIMESTAMP_ENABLED, void]
-	NL80211_ATTR_EMA_RNR_ELEMS			nlattr[NL80211_ATTR_EMA_RNR_ELEMS, array[int8]]
+	NL80211_ATTR_EMA_RNR_ELEMS			nlnest[NL80211_ATTR_EMA_RNR_ELEMS, array[nl_generic_attr]]
 	NL80211_ATTR_MLO_LINK_DISABLED			nlattr[NL80211_ATTR_MLO_LINK_DISABLED, void]
 	NL80211_ATTR_BSS_DUMP_INCLUDE_USE_DATA		nlattr[NL80211_ATTR_BSS_DUMP_INCLUDE_USE_DATA, void]
 	NL80211_ATTR_MLO_TTLM_DLINK			nlattr[NL80211_ATTR_MLO_TTLM_DLINK, array[int8]]
 	NL80211_ATTR_MLO_TTLM_ULINK			nlattr[NL80211_ATTR_MLO_TTLM_ULINK, array[int8]]
 	NL80211_ATTR_ASSOC_SPP_AMSDU			nlattr[NL80211_ATTR_ASSOC_SPP_AMSDU, void]
+] [varlen]
+
+nl80211_sta_wme_policy$auto_nl80211 [
+	NL80211_STA_WME_UAPSD_QUEUES	nlattr[NL80211_STA_WME_UAPSD_QUEUES, int8]
+	NL80211_STA_WME_MAX_SP		nlattr[NL80211_STA_WME_MAX_SP, int8]
+] [varlen]
+
+nl80211_tid_config_attr_policy$auto_nl80211 [
+	NL80211_TID_CONFIG_ATTR_VIF_SUPP	nlattr[NL80211_TID_CONFIG_ATTR_VIF_SUPP, int64]
+	NL80211_TID_CONFIG_ATTR_PEER_SUPP	nlattr[NL80211_TID_CONFIG_ATTR_PEER_SUPP, int64]
+	NL80211_TID_CONFIG_ATTR_OVERRIDE	nlattr[NL80211_TID_CONFIG_ATTR_OVERRIDE, void]
+	NL80211_TID_CONFIG_ATTR_TIDS		nlattr[NL80211_TID_CONFIG_ATTR_TIDS, int16]
+	NL80211_TID_CONFIG_ATTR_NOACK		nlattr[NL80211_TID_CONFIG_ATTR_NOACK, int8]
+	NL80211_TID_CONFIG_ATTR_RETRY_SHORT	nlattr[NL80211_TID_CONFIG_ATTR_RETRY_SHORT, int8]
+	NL80211_TID_CONFIG_ATTR_RETRY_LONG	nlattr[NL80211_TID_CONFIG_ATTR_RETRY_LONG, int8]
+	NL80211_TID_CONFIG_ATTR_AMPDU_CTRL	nlattr[NL80211_TID_CONFIG_ATTR_AMPDU_CTRL, int8]
+	NL80211_TID_CONFIG_ATTR_RTSCTS_CTRL	nlattr[NL80211_TID_CONFIG_ATTR_RTSCTS_CTRL, int8]
+	NL80211_TID_CONFIG_ATTR_AMSDU_CTRL	nlattr[NL80211_TID_CONFIG_ATTR_AMSDU_CTRL, int8]
+	NL80211_TID_CONFIG_ATTR_TX_RATE_TYPE	nlattr[NL80211_TID_CONFIG_ATTR_TX_RATE_TYPE, int8]
+	NL80211_TID_CONFIG_ATTR_TX_RATE		nlnest[NL80211_TID_CONFIG_ATTR_TX_RATE, array[nl80211_txattr_policy$auto_nl80211]]
+] [varlen]
+
+nl80211_txattr_policy$auto_nl80211 [
+	NL80211_TXRATE_LEGACY	nlattr[NL80211_TXRATE_LEGACY, array[int8, 0:32]]
+	NL80211_TXRATE_HT	nlattr[NL80211_TXRATE_HT, array[int8, 0:77]]
+	NL80211_TXRATE_VHT	nlattr[NL80211_TXRATE_VHT, array[int8]]
+	NL80211_TXRATE_GI	nlattr[NL80211_TXRATE_GI, int8]
+	NL80211_TXRATE_HE	nlattr[NL80211_TXRATE_HE, array[int8]]
+	NL80211_TXRATE_HE_GI	nlattr[NL80211_TXRATE_HE_GI, int8]
+	NL80211_TXRATE_HE_LTF	nlattr[NL80211_TXRATE_HE_LTF, int8]
+] [varlen]
+
+nl80211_unsol_bcast_probe_resp_policy$auto_nl80211 [
+	NL80211_UNSOL_BCAST_PROBE_RESP_ATTR_INT		nlattr[NL80211_UNSOL_BCAST_PROBE_RESP_ATTR_INT, int32]
+	NL80211_UNSOL_BCAST_PROBE_RESP_ATTR_TMPL	nlattr[NL80211_UNSOL_BCAST_PROBE_RESP_ATTR_TMPL, array[int8, 0:2304]]
 ] [varlen]
 
 nl802154_policy$auto_nl802154 [
@@ -2932,27 +3164,27 @@ nl802154_policy$auto_nl802154 [
 	NL802154_ATTR_LBT_MODE			nlattr[NL802154_ATTR_LBT_MODE, int8]
 	NL802154_ATTR_SUPPORTED_CHANNEL		nlattr[NL802154_ATTR_SUPPORTED_CHANNEL, int32]
 	NL802154_ATTR_EXTENDED_ADDR		nlattr[NL802154_ATTR_EXTENDED_ADDR, int64]
-	NL802154_ATTR_WPAN_PHY_CAPS		nlattr[NL802154_ATTR_WPAN_PHY_CAPS, array[int8]]
-	NL802154_ATTR_SUPPORTED_COMMANDS	nlattr[NL802154_ATTR_SUPPORTED_COMMANDS, array[int8]]
+	NL802154_ATTR_WPAN_PHY_CAPS		nlnest[NL802154_ATTR_WPAN_PHY_CAPS, array[nl_generic_attr]]
+	NL802154_ATTR_SUPPORTED_COMMANDS	nlnest[NL802154_ATTR_SUPPORTED_COMMANDS, array[nl_generic_attr]]
 	NL802154_ATTR_ACKREQ_DEFAULT		nlattr[NL802154_ATTR_ACKREQ_DEFAULT, int8]
 	NL802154_ATTR_PID			nlattr[NL802154_ATTR_PID, pid]
 	NL802154_ATTR_NETNS_FD			nlattr[NL802154_ATTR_NETNS_FD, fd_namespace]
-	NL802154_ATTR_COORDINATOR		nlattr[NL802154_ATTR_COORDINATOR, array[int8]]
+	NL802154_ATTR_COORDINATOR		nlnest[NL802154_ATTR_COORDINATOR, array[nl_generic_attr]]
 	NL802154_ATTR_SCAN_TYPE			nlattr[NL802154_ATTR_SCAN_TYPE, int8]
 	NL802154_ATTR_SCAN_CHANNELS		nlattr[NL802154_ATTR_SCAN_CHANNELS, int32]
 	NL802154_ATTR_SCAN_DURATION		nlattr[NL802154_ATTR_SCAN_DURATION, int8]
 	NL802154_ATTR_SCAN_DONE_REASON		nlattr[NL802154_ATTR_SCAN_DONE_REASON, int8]
 	NL802154_ATTR_BEACON_INTERVAL		nlattr[NL802154_ATTR_BEACON_INTERVAL, int8]
 	NL802154_ATTR_MAX_ASSOCIATIONS		nlattr[NL802154_ATTR_MAX_ASSOCIATIONS, int32]
-	NL802154_ATTR_PEER			nlattr[NL802154_ATTR_PEER, array[int8]]
+	NL802154_ATTR_PEER			nlnest[NL802154_ATTR_PEER, array[nl_generic_attr]]
 	NL802154_ATTR_SEC_ENABLED		nlattr[NL802154_ATTR_SEC_ENABLED, bool8]
 	NL802154_ATTR_SEC_OUT_LEVEL		nlattr[NL802154_ATTR_SEC_OUT_LEVEL, int32]
-	NL802154_ATTR_SEC_OUT_KEY_ID		nlattr[NL802154_ATTR_SEC_OUT_KEY_ID, array[int8]]
+	NL802154_ATTR_SEC_OUT_KEY_ID		nlnest[NL802154_ATTR_SEC_OUT_KEY_ID, array[nl_generic_attr]]
 	NL802154_ATTR_SEC_FRAME_COUNTER		nlattr[NL802154_ATTR_SEC_FRAME_COUNTER, int32]
-	NL802154_ATTR_SEC_LEVEL			nlattr[NL802154_ATTR_SEC_LEVEL, array[int8]]
-	NL802154_ATTR_SEC_DEVICE		nlattr[NL802154_ATTR_SEC_DEVICE, array[int8]]
-	NL802154_ATTR_SEC_DEVKEY		nlattr[NL802154_ATTR_SEC_DEVKEY, array[int8]]
-	NL802154_ATTR_SEC_KEY			nlattr[NL802154_ATTR_SEC_KEY, array[int8]]
+	NL802154_ATTR_SEC_LEVEL			nlnest[NL802154_ATTR_SEC_LEVEL, array[nl_generic_attr]]
+	NL802154_ATTR_SEC_DEVICE		nlnest[NL802154_ATTR_SEC_DEVICE, array[nl_generic_attr]]
+	NL802154_ATTR_SEC_DEVKEY		nlnest[NL802154_ATTR_SEC_DEVKEY, array[nl_generic_attr]]
+	NL802154_ATTR_SEC_KEY			nlnest[NL802154_ATTR_SEC_KEY, array[nl_generic_attr]]
 ] [varlen]
 
 old_linux_dirent$auto_record {
@@ -3002,8 +3234,8 @@ ovs_vport_stats$auto_record {
 
 packet_policy$auto_datapath [
 	OVS_PACKET_ATTR_PACKET	nlattr[OVS_PACKET_ATTR_PACKET, array[int8, 14]]
-	OVS_PACKET_ATTR_KEY	nlattr[OVS_PACKET_ATTR_KEY, array[int8]]
-	OVS_PACKET_ATTR_ACTIONS	nlattr[OVS_PACKET_ATTR_ACTIONS, array[int8]]
+	OVS_PACKET_ATTR_KEY	nlnest[OVS_PACKET_ATTR_KEY, array[nl_generic_attr]]
+	OVS_PACKET_ATTR_ACTIONS	nlnest[OVS_PACKET_ATTR_ACTIONS, array[nl_generic_attr]]
 	OVS_PACKET_ATTR_PROBE	nlattr[OVS_PACKET_ATTR_PROBE, void]
 	OVS_PACKET_ATTR_MRU	nlattr[OVS_PACKET_ATTR_MRU, int16]
 	OVS_PACKET_ATTR_HASH	nlattr[OVS_PACKET_ATTR_HASH, int64]
@@ -3151,6 +3383,16 @@ rusage$auto_record {
 	ru_nivcsw	intptr
 }
 
+sar_policy$auto_nl80211 [
+	NL80211_SAR_ATTR_TYPE	nlattr[NL80211_SAR_ATTR_TYPE, int32]
+	NL80211_SAR_ATTR_SPECS	nlnest[NL80211_SAR_ATTR_SPECS, array[nlnest[0, array[sar_specs_policy$auto_nl80211]]]]
+] [varlen]
+
+sar_specs_policy$auto_nl80211 [
+	NL80211_SAR_ATTR_SPECS_POWER		nlattr[NL80211_SAR_ATTR_SPECS_POWER, int32]
+	NL80211_SAR_ATTR_SPECS_RANGE_INDEX	nlattr[NL80211_SAR_ATTR_SPECS_RANGE_INDEX, int32]
+] [varlen]
+
 sched_attr$auto_record {
 	size		int32
 	sched_policy	int32
@@ -3175,7 +3417,7 @@ seg6_genl_policy$auto_seg6 [
 	SEG6_ATTR_SECRET	nlattr[SEG6_ATTR_SECRET, array[int8]]
 	SEG6_ATTR_SECRETLEN	nlattr[SEG6_ATTR_SECRETLEN, int8]
 	SEG6_ATTR_ALGID		nlattr[SEG6_ATTR_ALGID, int8]
-	SEG6_ATTR_HMACINFO	nlattr[SEG6_ATTR_HMACINFO, array[int8]]
+	SEG6_ATTR_HMACINFO	nlnest[SEG6_ATTR_HMACINFO, array[nl_generic_attr]]
 ] [varlen]
 
 sembuf$auto_record {
@@ -3438,10 +3680,10 @@ tcp_metrics_nl_policy$auto_tcp_metrics [
 ] [varlen]
 
 thermal_genl_policy$auto_thermal_netlink [
-	THERMAL_GENL_ATTR_TZ				nlattr[THERMAL_GENL_ATTR_TZ, array[int8]]
+	THERMAL_GENL_ATTR_TZ				nlnest[THERMAL_GENL_ATTR_TZ, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_TZ_ID				nlattr[THERMAL_GENL_ATTR_TZ_ID, int32]
 	THERMAL_GENL_ATTR_TZ_TEMP			nlattr[THERMAL_GENL_ATTR_TZ_TEMP, int32]
-	THERMAL_GENL_ATTR_TZ_TRIP			nlattr[THERMAL_GENL_ATTR_TZ_TRIP, array[int8]]
+	THERMAL_GENL_ATTR_TZ_TRIP			nlnest[THERMAL_GENL_ATTR_TZ_TRIP, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_TZ_TRIP_ID			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_ID, int32]
 	THERMAL_GENL_ATTR_TZ_TRIP_TYPE			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_TYPE, int32]
 	THERMAL_GENL_ATTR_TZ_TRIP_TEMP			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_TEMP, int32]
@@ -3449,14 +3691,14 @@ thermal_genl_policy$auto_thermal_netlink [
 	THERMAL_GENL_ATTR_TZ_MODE			nlattr[THERMAL_GENL_ATTR_TZ_MODE, int32]
 	THERMAL_GENL_ATTR_TZ_NAME			nlattr[THERMAL_GENL_ATTR_TZ_NAME, stringnoz]
 	THERMAL_GENL_ATTR_TZ_CDEV_WEIGHT		nlattr[THERMAL_GENL_ATTR_TZ_CDEV_WEIGHT, int32]
-	THERMAL_GENL_ATTR_TZ_GOV			nlattr[THERMAL_GENL_ATTR_TZ_GOV, array[int8]]
+	THERMAL_GENL_ATTR_TZ_GOV			nlnest[THERMAL_GENL_ATTR_TZ_GOV, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_TZ_GOV_NAME			nlattr[THERMAL_GENL_ATTR_TZ_GOV_NAME, stringnoz]
-	THERMAL_GENL_ATTR_CDEV				nlattr[THERMAL_GENL_ATTR_CDEV, array[int8]]
+	THERMAL_GENL_ATTR_CDEV				nlnest[THERMAL_GENL_ATTR_CDEV, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_CDEV_ID			nlattr[THERMAL_GENL_ATTR_CDEV_ID, int32]
 	THERMAL_GENL_ATTR_CDEV_CUR_STATE		nlattr[THERMAL_GENL_ATTR_CDEV_CUR_STATE, int32]
 	THERMAL_GENL_ATTR_CDEV_MAX_STATE		nlattr[THERMAL_GENL_ATTR_CDEV_MAX_STATE, int32]
 	THERMAL_GENL_ATTR_CDEV_NAME			nlattr[THERMAL_GENL_ATTR_CDEV_NAME, devname]
-	THERMAL_GENL_ATTR_CPU_CAPABILITY		nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY, array[int8]]
+	THERMAL_GENL_ATTR_CPU_CAPABILITY		nlnest[THERMAL_GENL_ATTR_CPU_CAPABILITY, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_CPU_CAPABILITY_ID		nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY_ID, int32]
 	THERMAL_GENL_ATTR_CPU_CAPABILITY_PERFORMANCE	nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY_PERFORMANCE, int32]
 	THERMAL_GENL_ATTR_CPU_CAPABILITY_EFFICIENCY	nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY_EFFICIENCY, int32]
@@ -3469,15 +3711,15 @@ timezone$auto_record {
 
 tipc_nl_policy$auto_netlink [
 	TIPC_NLA_UNSPEC		nlattr[TIPC_NLA_UNSPEC, array[int8]]
-	TIPC_NLA_BEARER		nlattr[TIPC_NLA_BEARER, array[int8]]
-	TIPC_NLA_SOCK		nlattr[TIPC_NLA_SOCK, array[int8]]
-	TIPC_NLA_PUBL		nlattr[TIPC_NLA_PUBL, array[int8]]
-	TIPC_NLA_LINK		nlattr[TIPC_NLA_LINK, array[int8]]
-	TIPC_NLA_MEDIA		nlattr[TIPC_NLA_MEDIA, array[int8]]
-	TIPC_NLA_NODE		nlattr[TIPC_NLA_NODE, array[int8]]
-	TIPC_NLA_NET		nlattr[TIPC_NLA_NET, array[int8]]
-	TIPC_NLA_NAME_TABLE	nlattr[TIPC_NLA_NAME_TABLE, array[int8]]
-	TIPC_NLA_MON		nlattr[TIPC_NLA_MON, array[int8]]
+	TIPC_NLA_BEARER		nlnest[TIPC_NLA_BEARER, array[nl_generic_attr]]
+	TIPC_NLA_SOCK		nlnest[TIPC_NLA_SOCK, array[nl_generic_attr]]
+	TIPC_NLA_PUBL		nlnest[TIPC_NLA_PUBL, array[nl_generic_attr]]
+	TIPC_NLA_LINK		nlnest[TIPC_NLA_LINK, array[nl_generic_attr]]
+	TIPC_NLA_MEDIA		nlnest[TIPC_NLA_MEDIA, array[nl_generic_attr]]
+	TIPC_NLA_NODE		nlnest[TIPC_NLA_NODE, array[nl_generic_attr]]
+	TIPC_NLA_NET		nlnest[TIPC_NLA_NET, array[nl_generic_attr]]
+	TIPC_NLA_NAME_TABLE	nlnest[TIPC_NLA_NAME_TABLE, array[nl_generic_attr]]
+	TIPC_NLA_MON		nlnest[TIPC_NLA_MON, array[nl_generic_attr]]
 ] [varlen]
 
 tms$auto_record {
@@ -3537,10 +3779,10 @@ vport_policy$auto_datapath [
 	OVS_VPORT_ATTR_PORT_NO		nlattr[OVS_VPORT_ATTR_PORT_NO, int32]
 	OVS_VPORT_ATTR_TYPE		nlattr[OVS_VPORT_ATTR_TYPE, int32]
 	OVS_VPORT_ATTR_NAME		nlattr[OVS_VPORT_ATTR_NAME, string]
-	OVS_VPORT_ATTR_OPTIONS		nlattr[OVS_VPORT_ATTR_OPTIONS, array[int8]]
+	OVS_VPORT_ATTR_OPTIONS		nlnest[OVS_VPORT_ATTR_OPTIONS, array[nl_generic_attr]]
 	OVS_VPORT_ATTR_UPCALL_PID	nlattr[OVS_VPORT_ATTR_UPCALL_PID, array[int8]]
 	OVS_VPORT_ATTR_STATS		nlattr[OVS_VPORT_ATTR_STATS, ovs_vport_stats$auto_record]
 	OVS_VPORT_ATTR_IFINDEX		nlattr[OVS_VPORT_ATTR_IFINDEX, ifindex]
 	OVS_VPORT_ATTR_NETNSID		nlattr[OVS_VPORT_ATTR_NETNSID, int32]
-	OVS_VPORT_ATTR_UPCALL_STATS	nlattr[OVS_VPORT_ATTR_UPCALL_STATS, array[int8]]
+	OVS_VPORT_ATTR_UPCALL_STATS	nlnest[OVS_VPORT_ATTR_UPCALL_STATS, array[nl_generic_attr]]
 ] [varlen]
