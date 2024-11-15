@@ -949,7 +949,7 @@ func (comp *compiler) checkStructRecursion(checked map[string]bool, n *ast.Struc
 			str += fmt.Sprintf("%v.%v -> ", elem.Struct, elem.Field)
 		}
 		str += name
-		comp.error(path[0].Pos, "recursive declaration: %v (mark some pointers as opt)", str)
+		comp.error(path[0].Pos, "recursive declaration: %v (mark some pointers as opt, or use variable-length arrays)", str)
 		checked[name] = true
 		return
 	}
@@ -974,6 +974,9 @@ func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []
 	_, args, base := comp.getArgsBase(t, isArg)
 	if desc == typePtr && base.IsOptional {
 		return // optional pointers prune recursion
+	}
+	if desc == typeArray && len(args) == 1 {
+		return // variable-length arrays prune recursion
 	}
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
@@ -1425,8 +1428,19 @@ func (comp *compiler) isVarlen(t *ast.Type) bool {
 }
 
 func (comp *compiler) isZeroSize(t *ast.Type) bool {
+	// We can recurse here for a struct that recursively contains itself in an array.
+	// In such case it's safe to say that it is zero size, because if all other fields are zero size,
+	// then the struct is indeed zero size (even if it contains several versions of itself transitively).
+	// If there are any other "normal" fields, then we will still correctly conclude that the whole struct
+	// is not zero size.
+	if comp.recursiveQuery[t] {
+		return true
+	}
+	comp.recursiveQuery[t] = true
 	desc, args, _ := comp.getArgsBase(t, false)
-	return desc.ZeroSize != nil && desc.ZeroSize(comp, t, args)
+	res := desc.ZeroSize != nil && desc.ZeroSize(comp, t, args)
+	delete(comp.recursiveQuery, t)
+	return res
 }
 
 func (comp *compiler) checkVarlen(n *ast.Struct) {

@@ -224,6 +224,7 @@ func (comp *compiler) layoutType(typ prog.Type, padded map[prog.Type]bool) {
 	if padded[typ] {
 		return
 	}
+	padded[typ] = true
 	switch t := typ.(type) {
 	case *prog.ArrayType:
 		comp.layoutType(t.Elem, padded)
@@ -244,7 +245,6 @@ func (comp *compiler) layoutType(typ prog.Type, padded map[prog.Type]bool) {
 	if !typ.Varlen() && typ.Size() == sizeUnassigned {
 		panic("size unassigned")
 	}
-	padded[typ] = true
 }
 
 func (comp *compiler) layoutArray(t *prog.ArrayType) {

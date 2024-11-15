@@ -16,7 +16,7 @@ foo$1(a0 r0, a1 r1, a2 r2)
 # Recursive structs/unions.
 
 sr1 {
-	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt)
+	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr2 {
@@ -25,12 +25,12 @@ sr2 {
 }
 
 sr3 {
-	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt)
+	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr4 {
 	f1	ptr[in, sr3]
-	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt)
+	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr5 [
@@ -51,26 +51,31 @@ type templ_sr[T] {
 }
 
 sr8 {
-	f	templ_sr[sr8]	### recursive declaration: sr8.f -> templ_sr[sr8].f -> sr8 (mark some pointers as opt)
+	f	templ_sr[sr8]	### recursive declaration: sr8.f -> templ_sr[sr8].f -> sr8 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr9 {
-	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt)
+	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt, or use variable-length arrays)
+}
+
+sr10 {
+	f0	array[sr10, 10]	### recursive declaration: sr10.f0 -> sr10 (mark some pointers as opt, or use variable-length arrays)
 }
 
 use_sr {
 	u2	u2
-		u3	u3
+	u3	u3
 	s3	s3
 	s4	s4
 	s6	s6
 	s8	s8
-	sr1 sr1
+	sr1	sr1
 	sr2	sr2
 	sr5	sr5
 	sr7	sr7
-	sr8 sr8
-	sr9 sr9
+	sr8	sr8
+	sr9	sr9
+	sr10	sr10
 	s400	s400
 	s401	s401
 	u400	u400
