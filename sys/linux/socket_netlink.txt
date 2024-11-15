@@ -120,12 +120,7 @@ define NETLINK_MAX_ATTRIBUTES	NL80211_ATTR_MAX
 nl_generic_attr [
 	generic	array[int8]
 	typed	nlattr_tt[int16:14[0:NETLINK_MAX_ATTRIBUTES], 0, 0, nl_generic_attr_data]
-	nested	nlattr_tt[int16:14[0:NETLINK_MAX_ATTRIBUTES], 0, 1, array[nl_generic_attr_nonested]]
-] [varlen]
-
-nl_generic_attr_nonested [
-	generic	array[int8]
-	typed	nlattr_tt[int16:14[0:NETLINK_MAX_ATTRIBUTES], 0, 0, nl_generic_attr_data]
+	nested	nlattr_tt[int16:14[0:NETLINK_MAX_ATTRIBUTES], 0, 1, array[nl_generic_attr]]
 ] [varlen]
 
 nl_generic_attr_data [
