@@ -701,7 +701,7 @@ private:
     if (type == "BITFIELD32") { // TODO:Extract valued values from NLA_POLICY_BITFIELD32 macro.
       return "int32";
     }
-    if (type == "UNSPEC" || type == "NESTED" || type == "NESTED_ARRAY" || type == "REJECT" || type == "TYPE_MAX") {
+    if (type == "UNSPEC" || type == "NESTED" || type == "NESTED_ARRAY") {
       return nlaArraySubtype(name, type, len, typeOfLen);
     }
     fprintf(stderr, "Unsupported netlink type %s\n", type.c_str());
@@ -804,6 +804,9 @@ private:
       Expr::EvalResult evalResult;
       fields[i][0]->EvaluateAsConstantExpr(evalResult, *context); // This contains the NLA Enum type
       const auto &nlaEnum = u8ToNlaEnum[evalResult.Val.getInt().getZExtValue()];
+      if (nlaEnum == "REJECT") {
+        continue;
+      }
       auto [structDecl, len] = getNetlinkStruct(fields[i][2]->IgnoreCasts(), context);
       std::string netlinkStruct;
       if (!structDecl) {
