@@ -321,9 +321,6 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 			avoid |= uint64(1 << id.Proc)
 		}
 	}
-	if avoid == (uint64(1)<<runner.procs)-1 {
-		avoid = 0
-	}
 	msg := &flatrpc.HostMessage{
 		Msg: &flatrpc.HostMessages{
 			Type: flatrpc.HostMessagesRawExecRequest,
