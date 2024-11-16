@@ -1648,7 +1648,7 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"(free|put|get|update|release)_page",
 						"free_unref", "^_*folio", "truncate_inode_pages",
-						"page_frag_free", "alloc", "vmap"},
+						"page_frag_free", "alloc", "vmap", "page_owner"},
 				},
 			},
 			{
