@@ -124,6 +124,19 @@ type NewItemEvent struct {
 	NewCover []uint64
 }
 
+func (corpus *Corpus) CovOnlySave(inp NewInput) {
+	newCover := corpus.cover.MergeDiff(inp.Cover)
+	if corpus.updates != nil {
+		select {
+		case <-corpus.ctx.Done():
+		case corpus.updates <- NewItemEvent{
+			Exists:   true, // we only saves the coverage
+			NewCover: newCover,
+		}:
+		}
+	}
+}
+
 func (corpus *Corpus) Save(inp NewInput) {
 	progData := inp.Prog.Serialize()
 	sig := hash.String(progData)

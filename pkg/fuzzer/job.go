@@ -502,24 +502,35 @@ type faultInjectionJob struct {
 }
 
 func (job *faultInjectionJob) run(fuzzer *Fuzzer) {
+	totalCover := cover.FromRaw([]uint64{})
 	for nth := 1; nth <= 100; nth++ {
 		fuzzer.Logf(2, "injecting fault into call %v, step %v",
 			job.call, nth)
 		newProg := job.p.Clone()
 		newProg.Calls[job.call].Props.FailNth = nth
 		result := fuzzer.execute(job.exec, &queue.Request{
-			Prog: newProg,
-			Stat: fuzzer.statExecFaultInject,
+			Prog:     newProg,
+			ExecOpts: setFlags(flatrpc.ExecFlagCollectCover),
+			Stat:     fuzzer.statExecFaultInject,
 		})
 		if result.Stop() {
 			return
 		}
 		info := result.Info
+		if info != nil && info.Extra != nil {
+			newCover := cover.FromRaw(info.Extra.Cover)
+			totalCover.Merge(newCover.Serialize())
+		}
 		if info != nil && len(info.Calls) > job.call &&
 			info.Calls[job.call].Flags&flatrpc.CallFlagFaultInjected == 0 {
 			break
 		}
 	}
+	input := corpus.NewInput{
+		Cover: totalCover.Serialize(),
+	}
+	fuzzer.Config.Corpus.CovOnlySave(input)
+
 }
 
 type hintsJob struct {
