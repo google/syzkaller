@@ -356,7 +356,6 @@ GUEST_CODE static void gicd_wait_for_rwp()
 	spin_while_readl(ARM64_ADDR_GICD_BASE + GICD_CTLR, GICD_CTLR_RWP);
 }
 
-#define SZ_64K 0x00010000
 GUEST_CODE static uint64 gicr_base_cpu(uint32 cpu)
 {
 	return ARM64_ADDR_GICR_BASE + cpu * SZ_64K * 2;
