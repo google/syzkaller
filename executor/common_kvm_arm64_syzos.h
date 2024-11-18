@@ -21,6 +21,7 @@ typedef enum {
 	SYZOS_API_HVC,
 	SYZOS_API_IRQ_SETUP,
 	SYZOS_API_MEMWRITE,
+	SYZOS_API_ITS_SETUP,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -37,6 +38,11 @@ struct api_call_uexit {
 struct api_call_2 {
 	struct api_call_header header;
 	uint64 args[2];
+};
+
+struct api_call_3 {
+	struct api_call_header header;
+	uint64 args[3];
 };
 
 struct api_call_code {
@@ -71,6 +77,7 @@ static void guest_handle_smc(struct api_call_smccc* cmd);
 static void guest_handle_hvc(struct api_call_smccc* cmd);
 static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
 static void guest_handle_memwrite(struct api_call_memwrite* cmd);
+static void guest_handle_its_setup(struct api_call_3* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -122,6 +129,10 @@ guest_main(uint64 size, uint64 cpu)
 		}
 		case SYZOS_API_MEMWRITE: {
 			guest_handle_memwrite((struct api_call_memwrite*)cmd);
+			break;
+		}
+		case SYZOS_API_ITS_SETUP: {
+			guest_handle_its_setup((struct api_call_3*)cmd);
 			break;
 		}
 		}
@@ -256,9 +267,14 @@ GUEST_CODE static void guest_handle_hvc(struct api_call_smccc* cmd)
 #define GICD_CTLR_RWP (1U << 31)
 
 // GICv3 Redistributor registers.
-#define GICR_CTLR_RWP (1UL << 3)
 #define GICR_CTLR GICD_CTLR
 #define GICR_WAKER 0x0014
+#define GICR_PROPBASER 0x0070
+#define GICR_PENDBASER 0x0078
+
+#define GICR_CTLR_ENABLE_LPIS (1UL << 0)
+#define GICR_CTLR_RWP (1UL << 3)
+
 #define GICR_IGROUPR0 GICD_IGROUPR
 #define GICR_ICENABLER0 GICD_ICENABLER
 #define GICR_ICACTIVER0 GICD_ICACTIVER
@@ -289,6 +305,13 @@ static GUEST_CODE __always_inline void __raw_writel(uint32 val, uint64 addr)
 		     : "rZ"(val), "r"(addr));
 }
 
+static GUEST_CODE __always_inline void __raw_writeq(uint64 val, uint64 addr)
+{
+	asm volatile("str %x0, [%1]"
+		     :
+		     : "rZ"(val), "r"(addr));
+}
+
 static GUEST_CODE __always_inline uint32 __raw_readl(uint64 addr)
 {
 	uint32 val;
@@ -297,8 +320,15 @@ static GUEST_CODE __always_inline uint32 __raw_readl(uint64 addr)
 		     : "r"(addr));
 	return val;
 }
-#define writel_relaxed(v, c) ((void)__raw_writel((uint32)cpu_to_le32(v), (c)))
-#define readl_relaxed(c) ({ uint32 __r = le32_to_cpu(( __le32)__raw_readl(c)); __r; })
+
+static GUEST_CODE __always_inline uint64 __raw_readq(uint64 addr)
+{
+	uint64 val;
+	asm volatile("ldr %x0, [%1]"
+		     : "=r"(val)
+		     : "r"(addr));
+	return val;
+}
 
 #define dmb() asm volatile("dmb sy" \
 			   :        \
@@ -307,6 +337,8 @@ static GUEST_CODE __always_inline uint32 __raw_readl(uint64 addr)
 
 #define writel(v, c) ({ dmb(); __raw_writel(v, c); })
 #define readl(c) ({ uint32 __v = __raw_readl(c); dmb(); __v; })
+#define writeq(v, c) ({ dmb(); __raw_writeq(v, c); })
+#define readq(c) ({ uint64 __v = __raw_readq(c); dmb(); __v; })
 
 // TODO(glider): may want to return extra data to the host.
 #define GUEST_ASSERT(val)                          \
@@ -525,6 +557,13 @@ GUEST_CODE static void guest_handle_memwrite(struct api_call_memwrite* cmd)
 	}
 }
 
+GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_events);
+
+GUEST_CODE static void guest_handle_its_setup(struct api_call_3* cmd)
+{
+	guest_prepare_its(cmd->args[0], cmd->args[1], cmd->args[2]);
+}
+
 // Registers saved by one_irq_handler() and received by guest_irq_handler().
 struct ex_regs {
 	uint64 regs[31];
@@ -707,3 +746,393 @@ GUEST_CODE static void guest_vector_table_fn()
 		IRQ_ENTRY_DUMMY);
 }
 // clang-format on
+
+// ITS setup below.
+#define GITS_CTLR 0x0000
+#define GITS_CBASER 0x0080
+#define GITS_CWRITER 0x0088
+#define GITS_CREADR 0x0090
+#define GITS_BASER 0x0100
+
+#define GITS_CTLR_ENABLE (1U << 0)
+
+#define GIC_BASER_InnerShareable 1ULL
+
+#define GIC_PAGE_SIZE_64K 2ULL
+#define GITS_BASER_PAGE_SIZE_SHIFT (8)
+#define __GITS_BASER_PSZ(sz) (GIC_PAGE_SIZE_##sz << GITS_BASER_PAGE_SIZE_SHIFT)
+#define GITS_BASER_PAGE_SIZE_64K __GITS_BASER_PSZ(64K)
+
+#define GIC_BASER_CACHE_RaWaWb 7ULL
+#define GITS_BASER_INNER_CACHEABILITY_SHIFT (59)
+#define GITS_BASER_RaWaWb GIC_BASER_CACHEABILITY(GITS_BASER, INNER, RaWaWb)
+
+#define GITS_CBASER_INNER_CACHEABILITY_SHIFT (59)
+#define GITS_CBASER_RaWaWb GIC_BASER_CACHEABILITY(GITS_CBASER, INNER, RaWaWb)
+
+#define GICR_PROPBASER_SHAREABILITY_SHIFT (10)
+#define GICR_PROPBASER_INNER_CACHEABILITY_SHIFT (7)
+#define GICR_PROPBASER_RaWaWb GIC_BASER_CACHEABILITY(GICR_PROPBASER, INNER, RaWaWb)
+#define GICR_PROPBASER_IDBITS_MASK (0x1f)
+
+#define GIC_BASER_CACHEABILITY(reg, inner_outer, type) \
+	(GIC_BASER_CACHE_##type << reg##_##inner_outer##_CACHEABILITY_SHIFT)
+
+#define GITS_BASER_SHAREABILITY_SHIFT (10)
+#define GITS_CBASER_SHAREABILITY_SHIFT (10)
+#define GIC_BASER_SHAREABILITY(reg, type) \
+	(GIC_BASER_##type << reg##_SHAREABILITY_SHIFT)
+#define GITS_BASER_InnerShareable \
+	GIC_BASER_SHAREABILITY(GITS_BASER, InnerShareable)
+
+#define GITS_CBASER_InnerShareable \
+	GIC_BASER_SHAREABILITY(GITS_CBASER, InnerShareable)
+
+#define GICR_PROPBASER_InnerShareable \
+	GIC_BASER_SHAREABILITY(GICR_PROPBASER, InnerShareable)
+
+#define GICR_PENDBASER_InnerShareable \
+	GIC_BASER_SHAREABILITY(GICR_PENDBASER, InnerShareable)
+
+#define GICR_PENDBASER_SHAREABILITY_SHIFT (10)
+#define GICR_PENDBASER_INNER_CACHEABILITY_SHIFT (7)
+#define GICR_PENDBASER_RaWaWb GIC_BASER_CACHEABILITY(GICR_PENDBASER, INNER, RaWaWb)
+
+#define GITS_BASER_TYPE_NONE 0
+#define GITS_BASER_TYPE_DEVICE 1
+#define GITS_BASER_TYPE_VCPU 2
+#define GITS_BASER_TYPE_RESERVED3 3
+#define GITS_BASER_TYPE_COLLECTION 4
+#define GITS_BASER_TYPE_RESERVED5 5
+#define GITS_BASER_TYPE_RESERVED6 6
+#define GITS_BASER_TYPE_RESERVED7 7
+
+#define GITS_BASER_TYPE_SHIFT (56)
+#define GITS_BASER_TYPE(r) (((r) >> GITS_BASER_TYPE_SHIFT) & 7)
+
+#define GITS_BASER_NR_REGS 8
+#define GITS_BASER_VALID (1ULL << 63)
+
+#define GITS_CBASER_VALID (1ULL << 63)
+
+GUEST_CODE static uint64 its_read_u64(unsigned long offset)
+{
+	return readq(ARM64_ADDR_GITS_BASE + offset);
+}
+
+GUEST_CODE static void its_write_u64(unsigned long offset, uint64 val)
+{
+	writeq(val, ARM64_ADDR_GITS_BASE + offset);
+}
+
+GUEST_CODE static uint32 its_read_u32(unsigned long offset)
+{
+	return readl(ARM64_ADDR_GITS_BASE + offset);
+}
+
+GUEST_CODE static void its_write_u32(unsigned long offset, uint32 val)
+{
+	writel(val, ARM64_ADDR_GITS_BASE + offset);
+}
+
+struct its_cmd_block {
+	// Kernel defines this struct as a union, but we don't need raw_cmd_le for now.
+	uint64 raw_cmd[4];
+};
+
+// Guest memcpy implementation is using volatile accesses to prevent the compiler from optimizing it
+// into a memcpy() call.
+__attribute__((noinline)) GUEST_CODE static void guest_memcpy(void* dst, void* src, size_t size)
+{
+	volatile char* pdst = (char*)dst;
+	volatile char* psrc = (char*)src;
+	for (size_t i = 0; i < size; i++)
+		pdst[i] = psrc[i];
+}
+
+// Send an ITS command by copying it to the command queue at the offset defined by GITS_CWRITER.
+// https://developer.arm.com/documentation/100336/0106/operation/interrupt-translation-service--its-/its-commands-and-errors.
+__attribute__((noinline)) GUEST_CODE static void its_send_cmd(uint64 cmdq_base, struct its_cmd_block* cmd)
+{
+	uint64 cwriter = its_read_u64(GITS_CWRITER);
+	struct its_cmd_block* dst = (struct its_cmd_block*)(cmdq_base + cwriter);
+	uint64 cbaser = its_read_u64(GITS_CBASER);
+	size_t cmdq_size = ((cbaser & 0xFF) + 1) * SZ_4K;
+	guest_memcpy(dst, cmd, sizeof(*cmd));
+	dmb();
+	uint64 next = (cwriter + sizeof(*cmd)) % cmdq_size;
+	its_write_u64(GITS_CWRITER, next);
+	// KVM synchronously processes the command after writing to GITS_CWRITER.
+	// Hardware ITS implementation would've required polling here.
+}
+
+GUEST_CODE static unsigned long its_find_baser(unsigned int type)
+{
+	for (int i = 0; i < GITS_BASER_NR_REGS; i++) {
+		uint64 baser;
+		unsigned long offset = GITS_BASER + (i * sizeof(baser));
+
+		baser = its_read_u64(offset);
+		if (GITS_BASER_TYPE(baser) == type)
+			return offset;
+	}
+
+	GUEST_ASSERT(0);
+	return -1;
+}
+
+GUEST_CODE static void its_install_table(unsigned int type, uint64 base, size_t size)
+{
+	unsigned long offset = its_find_baser(type);
+	uint64 baser = ((size / SZ_64K) - 1) |
+		       GITS_BASER_PAGE_SIZE_64K |
+		       GITS_BASER_InnerShareable |
+		       base |
+		       GITS_BASER_RaWaWb |
+		       GITS_BASER_VALID;
+
+	its_write_u64(offset, baser);
+}
+
+GUEST_CODE static void its_install_cmdq(uint64 base, size_t size)
+{
+	uint64 cbaser = ((size / SZ_4K) - 1) |
+			GITS_CBASER_InnerShareable |
+			base |
+			GITS_CBASER_RaWaWb |
+			GITS_CBASER_VALID;
+
+	its_write_u64(GITS_CBASER, cbaser);
+}
+
+GUEST_CODE static void its_init(uint64 coll_tbl,
+				uint64 device_tbl, uint64 cmdq)
+{
+	its_install_table(GITS_BASER_TYPE_COLLECTION, coll_tbl, SZ_64K);
+	its_install_table(GITS_BASER_TYPE_DEVICE, device_tbl, SZ_64K);
+	its_install_cmdq(cmdq, SZ_64K);
+
+	uint32 ctlr = its_read_u32(GITS_CTLR);
+	ctlr |= GITS_CTLR_ENABLE;
+	its_write_u32(GITS_CTLR, ctlr);
+}
+
+#define GIC_LPI_OFFSET 8192
+
+#define GITS_CMD_MAPD 0x08
+#define GITS_CMD_MAPC 0x09
+#define GITS_CMD_MAPTI 0x0a
+#define GITS_CMD_MAPI 0x0b
+#define GITS_CMD_MOVI 0x01
+#define GITS_CMD_DISCARD 0x0f
+#define GITS_CMD_INV 0x0c
+#define GITS_CMD_MOVALL 0x0e
+#define GITS_CMD_INVALL 0x0d
+#define GITS_CMD_INT 0x03
+#define GITS_CMD_CLEAR 0x04
+#define GITS_CMD_SYNC 0x05
+
+#define GENMASK_ULL(h, l)                   \
+	(((~0ULL) - (1ULL << (l)) + 1ULL) & \
+	 (~0ULL >> (63 - (h))))
+
+// Avoid inlining this function, because it may cause emitting constants into .rodata.
+__attribute__((noinline))
+GUEST_CODE static void
+its_mask_encode(uint64* raw_cmd, uint64 val, int h, int l)
+{
+	uint64 mask = GENMASK_ULL(h, l);
+	*raw_cmd &= ~mask;
+	*raw_cmd |= (val << l) & mask;
+}
+
+GUEST_CODE static void its_encode_cmd(struct its_cmd_block* cmd, uint8 cmd_nr)
+{
+	its_mask_encode(&cmd->raw_cmd[0], cmd_nr, 7, 0);
+}
+
+GUEST_CODE static void its_encode_devid(struct its_cmd_block* cmd, uint32 devid)
+{
+	its_mask_encode(&cmd->raw_cmd[0], devid, 63, 32);
+}
+
+GUEST_CODE static void its_encode_event_id(struct its_cmd_block* cmd, uint32 id)
+{
+	its_mask_encode(&cmd->raw_cmd[1], id, 31, 0);
+}
+
+GUEST_CODE static void its_encode_phys_id(struct its_cmd_block* cmd, uint32 phys_id)
+{
+	its_mask_encode(&cmd->raw_cmd[1], phys_id, 63, 32);
+}
+
+GUEST_CODE static void its_encode_size(struct its_cmd_block* cmd, uint8 size)
+{
+	its_mask_encode(&cmd->raw_cmd[1], size, 4, 0);
+}
+
+GUEST_CODE static void its_encode_itt(struct its_cmd_block* cmd, uint64 itt_addr)
+{
+	its_mask_encode(&cmd->raw_cmd[2], itt_addr >> 8, 51, 8);
+}
+
+GUEST_CODE static void its_encode_valid(struct its_cmd_block* cmd, int valid)
+{
+	its_mask_encode(&cmd->raw_cmd[2], !!valid, 63, 63);
+}
+
+GUEST_CODE static void its_encode_target(struct its_cmd_block* cmd, uint64 target_addr)
+{
+	its_mask_encode(&cmd->raw_cmd[2], target_addr >> 16, 51, 16);
+}
+
+GUEST_CODE static void its_encode_collection(struct its_cmd_block* cmd, uint16 col)
+{
+	its_mask_encode(&cmd->raw_cmd[2], col, 15, 0);
+}
+
+__attribute__((noinline)) GUEST_CODE void guest_memzero(void* ptr, size_t size)
+{
+	volatile char* p = (char*)ptr;
+	for (size_t i = 0; i < size; i++)
+		p[i] = 0;
+}
+
+GUEST_CODE void its_send_mapd_cmd(uint64 cmdq_base, uint32 device_id, uint64 itt_base,
+				  size_t num_idbits, bool valid)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, GITS_CMD_MAPD);
+	its_encode_devid(&cmd, device_id);
+	its_encode_size(&cmd, num_idbits - 1);
+	its_encode_itt(&cmd, itt_base);
+	its_encode_valid(&cmd, valid);
+
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+GUEST_CODE void its_send_mapc_cmd(uint64 cmdq_base, uint32 vcpu_id, uint32 collection_id, bool valid)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, GITS_CMD_MAPC);
+	its_encode_collection(&cmd, collection_id);
+	its_encode_target(&cmd, vcpu_id);
+	its_encode_valid(&cmd, valid);
+
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+GUEST_CODE static void its_send_mapti_cmd(uint64 cmdq_base, uint32 device_id,
+					  uint32 event_id, uint32 collection_id,
+					  uint32 intid)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, GITS_CMD_MAPTI);
+	its_encode_devid(&cmd, device_id);
+	its_encode_event_id(&cmd, event_id);
+	its_encode_phys_id(&cmd, intid);
+	its_encode_collection(&cmd, collection_id);
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+GUEST_CODE static void its_send_invall_cmd(uint64 cmdq_base, uint32 collection_id)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, GITS_CMD_INVALL);
+	its_encode_collection(&cmd, collection_id);
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+// We assume that the number of supported IDbits for the proproperties table is 16, so the size of the
+// table itself is 64K.
+// TODO(glider): it may be interesting to use a different size here.
+#define SYZOS_NUM_IDBITS 16
+
+__attribute__((noinline)) GUEST_CODE static void guest_setup_its_mappings(uint64 cmdq_base,
+									  uint64 itt_tables,
+									  uint32 nr_events,
+									  uint32 nr_devices,
+									  uint32 nr_cpus)
+{
+	if ((nr_events < 1) || (nr_devices < 1) || (nr_cpus < 1))
+		return;
+
+	// Event IDs start from 0 and map to LPI IDs starting from GIC_LPI_OFFSET.
+	uint32 coll_id, device_id, event_id, intid = GIC_LPI_OFFSET;
+	for (coll_id = 0; coll_id < nr_cpus; coll_id++) {
+		// If GITS_TYPER.PTA == 0, RDbase is just the CPU id.
+		its_send_mapc_cmd(cmdq_base, coll_id, coll_id, true);
+	}
+	// Round-robin the LPIs to all of the vCPUs in the VM.
+	coll_id = 0;
+	for (device_id = 0; device_id < nr_devices; device_id++) {
+		uint64 itt_base = itt_tables + (device_id * SZ_64K);
+		its_send_mapd_cmd(cmdq_base, device_id, itt_base, SYZOS_NUM_IDBITS, true);
+		for (event_id = 0; event_id < nr_events; event_id++) {
+			its_send_mapti_cmd(cmdq_base, device_id, event_id, coll_id, intid++);
+			coll_id = (coll_id + 1) % nr_cpus;
+		}
+	}
+}
+
+GUEST_CODE static void guest_invalidate_all_rdists(uint64 cmdq_base, int nr_cpus)
+{
+	for (int i = 0; i < nr_cpus; i++)
+		its_send_invall_cmd(cmdq_base, i);
+}
+
+// Set up GIRC_PROPBASER and GICR_PENDBASER.
+void gic_rdist_enable_lpis(uint64 cfg_table, size_t cfg_table_size,
+			   uint64 pend_table)
+{
+	uint64 rdist_base = gicr_base_cpu(get_cpu_id());
+	uint64 val = (cfg_table |
+		      GICR_PROPBASER_InnerShareable |
+		      GICR_PROPBASER_RaWaWb |
+		      ((SYZOS_NUM_IDBITS - 1) & GICR_PROPBASER_IDBITS_MASK));
+
+	writeq(val, rdist_base + GICR_PROPBASER);
+
+	val = (pend_table |
+	       GICR_PENDBASER_InnerShareable |
+	       GICR_PENDBASER_RaWaWb);
+	writeq(val, rdist_base + GICR_PENDBASER);
+
+	uint64 ctlr = readl(rdist_base + GICR_CTLR);
+	ctlr |= GICR_CTLR_ENABLE_LPIS;
+	writel(ctlr, rdist_base + GICR_CTLR);
+}
+
+#define LPI_PROP_DEFAULT_PRIO 0xa0
+#define LPI_PROP_GROUP1 (1 << 1)
+#define LPI_PROP_ENABLED (1 << 0)
+
+// TODO(glider) non-volatile access is compiled into:
+// 0000000000452154 <configure_lpis.constprop.0>:
+//   452154:       4f05e460        movi    v0.16b, #0xa3
+//   452158:       3d800000        str     q0, [x0]
+//   45215c:       d65f03c0        ret
+// , which for some reason hangs.
+__attribute__((noinline)) GUEST_CODE static void configure_lpis(uint64 prop_table, int nr_devices, int nr_events)
+{
+	int nr_lpis = nr_devices * nr_events;
+	volatile uint8* tbl = (uint8*)prop_table;
+	for (int i = 0; i < nr_lpis; i++) {
+		tbl[i] = LPI_PROP_DEFAULT_PRIO |
+			 LPI_PROP_GROUP1 |
+			 LPI_PROP_ENABLED;
+	}
+}
+
+GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_events)
+{
+	configure_lpis(ARM64_ADDR_ITS_PROP_TABLE, nr_devices, nr_events);
+	gic_rdist_enable_lpis(ARM64_ADDR_ITS_PROP_TABLE, SZ_64K, ARM64_ADDR_ITS_PEND_TABLES);
+	its_init(ARM64_ADDR_ITS_COLL_TABLE, ARM64_ADDR_ITS_DEVICE_TABLE, ARM64_ADDR_ITS_CMDQ_BASE);
+	guest_setup_its_mappings(ARM64_ADDR_ITS_CMDQ_BASE, ARM64_ADDR_ITS_ITT_TABLES, nr_events, nr_devices, nr_cpus);
+	guest_invalidate_all_rdists(ARM64_ADDR_ITS_CMDQ_BASE, nr_cpus);
+}
