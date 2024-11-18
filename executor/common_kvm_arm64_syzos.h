@@ -22,6 +22,7 @@ typedef enum {
 	SYZOS_API_IRQ_SETUP,
 	SYZOS_API_MEMWRITE,
 	SYZOS_API_ITS_SETUP,
+	SYZOS_API_ITS_SEND_CMD,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -70,6 +71,17 @@ struct api_call_memwrite {
 	uint64 len;
 };
 
+struct api_call_its_send_cmd {
+	struct api_call_header header;
+	uint8 type;
+	uint8 valid;
+	uint32 cpuid;
+	uint32 devid;
+	uint32 eventid;
+	uint32 intid;
+	uint32 cpuid2;
+};
+
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint32* insns, uint64 size);
 static void guest_handle_msr(uint64 reg, uint64 val);
@@ -78,6 +90,7 @@ static void guest_handle_hvc(struct api_call_smccc* cmd);
 static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
 static void guest_handle_memwrite(struct api_call_memwrite* cmd);
 static void guest_handle_its_setup(struct api_call_3* cmd);
+static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -133,6 +146,10 @@ guest_main(uint64 size, uint64 cpu)
 		}
 		case SYZOS_API_ITS_SETUP: {
 			guest_handle_its_setup((struct api_call_3*)cmd);
+			break;
+		}
+		case SYZOS_API_ITS_SEND_CMD: {
+			guest_handle_its_send_cmd((struct api_call_its_send_cmd*)cmd);
 			break;
 		}
 		}
@@ -986,6 +1003,12 @@ GUEST_CODE static void its_encode_target(struct its_cmd_block* cmd, uint64 targe
 	its_mask_encode(&cmd->raw_cmd[2], target_addr >> 16, 51, 16);
 }
 
+// RDbase2 encoded in the fourth double word of the command.
+GUEST_CODE static void its_encode_target2(struct its_cmd_block* cmd, uint64 target_addr)
+{
+	its_mask_encode(&cmd->raw_cmd[3], target_addr >> 16, 51, 16);
+}
+
 GUEST_CODE static void its_encode_collection(struct its_cmd_block* cmd, uint16 col)
 {
 	its_mask_encode(&cmd->raw_cmd[2], col, 15, 0);
@@ -1038,6 +1061,40 @@ GUEST_CODE static void its_send_mapti_cmd(uint64 cmdq_base, uint32 device_id,
 	its_send_cmd(cmdq_base, &cmd);
 }
 
+GUEST_CODE static void its_send_devid_eventid_icid_cmd(uint64 cmdq_base, uint8 cmd_nr, uint32 device_id,
+						       uint32 event_id, uint32 intid)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, cmd_nr);
+	its_encode_devid(&cmd, device_id);
+	its_encode_event_id(&cmd, event_id);
+	its_encode_phys_id(&cmd, intid);
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+GUEST_CODE static void its_send_devid_eventid_cmd(uint64 cmdq_base, uint8 cmd_nr, uint32 device_id,
+						  uint32 event_id)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, cmd_nr);
+	its_encode_devid(&cmd, device_id);
+	its_encode_event_id(&cmd, event_id);
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+GUEST_CODE void its_send_movall_cmd(uint64 cmdq_base, uint32 vcpu_id, uint32 vcpu_id2)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, GITS_CMD_MOVALL);
+	its_encode_target(&cmd, vcpu_id);
+	its_encode_target2(&cmd, vcpu_id2);
+
+	its_send_cmd(cmdq_base, &cmd);
+}
+
 GUEST_CODE static void its_send_invall_cmd(uint64 cmdq_base, uint32 collection_id)
 {
 	struct its_cmd_block cmd;
@@ -1051,6 +1108,62 @@ GUEST_CODE static void its_send_invall_cmd(uint64 cmdq_base, uint32 collection_i
 // table itself is 64K.
 // TODO(glider): it may be interesting to use a different size here.
 #define SYZOS_NUM_IDBITS 16
+
+GUEST_CODE static void its_send_sync_cmd(uint64 cmdq_base, uint32 vcpu_id)
+{
+	struct its_cmd_block cmd;
+	guest_memzero(&cmd, sizeof(cmd));
+	its_encode_cmd(&cmd, GITS_CMD_SYNC);
+	its_encode_target(&cmd, vcpu_id);
+	its_send_cmd(cmdq_base, &cmd);
+}
+
+GUEST_CODE static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd)
+{
+	switch (cmd->type) {
+	case GITS_CMD_MAPD: {
+		uint64 itt_base = ARM64_ADDR_ITS_ITT_TABLES + cmd->devid * SZ_64K;
+		its_send_mapd_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, itt_base, SYZOS_NUM_IDBITS, cmd->valid);
+		break;
+	}
+	case GITS_CMD_MAPC: {
+		its_send_mapc_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid, cmd->valid);
+		break;
+	}
+	case GITS_CMD_MAPTI: {
+		its_send_mapti_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, cmd->eventid, cmd->cpuid, cmd->intid);
+		break;
+	}
+	case GITS_CMD_MAPI:
+	case GITS_CMD_MOVI: {
+		its_send_devid_eventid_icid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->type, cmd->devid, cmd->eventid, cmd->intid);
+		break;
+	}
+	case GITS_CMD_MOVALL: {
+		its_send_movall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid2);
+		break;
+	}
+	case GITS_CMD_INVALL: {
+		its_send_invall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid);
+		break;
+	}
+	case GITS_CMD_INT:
+	case GITS_CMD_INV:
+	case GITS_CMD_DISCARD:
+	case GITS_CMD_CLEAR: {
+		its_send_devid_eventid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->type, cmd->devid, cmd->eventid);
+		break;
+	}
+	case GITS_CMD_SYNC: {
+		// This is different from INVALL, as SYNC accepts an RDbase.
+		its_send_sync_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid);
+		break;
+	}
+	default: {
+		break;
+	}
+	}
+}
 
 __attribute__((noinline)) GUEST_CODE static void guest_setup_its_mappings(uint64 cmdq_base,
 									  uint64 itt_tables,
