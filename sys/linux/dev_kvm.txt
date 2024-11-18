@@ -369,6 +369,12 @@ syzos_api_memwrite_generic {
 	len	flags[syzos_memwrite_len, int64]
 }
 
+syzos_api_its_setup {
+	nr_cpus		int64[0:4]
+	nr_devices	int64[0:4]
+	nr_ints		int64[0:1024]
+}
+
 # Definitions from include/linux/irqchip/arm-gic-v3.h
 define GICD_CTLR	0x0000
 define GICD_TYPER	0x0004
@@ -468,6 +474,7 @@ syzos_api_call [
 	hvc		syzos_api[4, syzos_api_smccc]
 	irq_setup	syzos_api[5, syzos_api_irq_setup]
 	memwrite	syzos_api[6, syzos_api_memwrite]
+	its_setup	syzos_api[7, syzos_api_its_setup]
 ] [varlen]
 
 kvm_text_ppc64 {
