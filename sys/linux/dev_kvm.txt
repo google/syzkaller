@@ -375,6 +375,33 @@ syzos_api_its_setup {
 	nr_ints		int64[0:1024]
 }
 
+# Definitions from <linux/irqchip/arm-gic-v3.h>
+
+define GITS_CMD_MAPD	0x08
+define GITS_CMD_MAPC	0x09
+define GITS_CMD_MAPTI	0x0a
+define GITS_CMD_MAPI	0x0b
+define GITS_CMD_MOVI	0x01
+define GITS_CMD_DISCARD	0x0f
+define GITS_CMD_INV	0x0c
+define GITS_CMD_MOVALL	0x0e
+define GITS_CMD_INVALL	0x0d
+define GITS_CMD_INT	0x03
+define GITS_CMD_CLEAR	0x04
+define GITS_CMD_SYNC	0x05
+
+gits_commands = GITS_CMD_MAPD, GITS_CMD_MAPC, GITS_CMD_MAPTI, GITS_CMD_MAPI, GITS_CMD_MOVI, GITS_CMD_DISCARD, GITS_CMD_INV, GITS_CMD_MOVALL, GITS_CMD_INVALL, GITS_CMD_INT, GITS_CMD_CLEAR, GITS_CMD_SYNC
+
+syzos_api_its_send_cmd {
+	type	flags[gits_commands, int8]
+	valid	int8[0:1]
+	cpuid	int32[0:4]
+	devid	int32[0:16]
+	eventid	int32
+	intid	int32
+	cpuid2	int32[0:4]
+} [packed]
+
 # Definitions from include/linux/irqchip/arm-gic-v3.h
 define GICD_CTLR	0x0000
 define GICD_TYPER	0x0004
@@ -475,6 +502,7 @@ syzos_api_call [
 	irq_setup	syzos_api[5, syzos_api_irq_setup]
 	memwrite	syzos_api[6, syzos_api_memwrite]
 	its_setup	syzos_api[7, syzos_api_its_setup]
+	its_send_cmd	syzos_api[8, syzos_api_its_send_cmd]
 ] [varlen]
 
 kvm_text_ppc64 {
