@@ -5,6 +5,7 @@
 
 #include "kvm.h"
 #include <linux/kvm.h>
+#include <stdbool.h>
 
 // Host will map the code in this section into the guest address space.
 #define GUEST_CODE __attribute__((section("guest")))
@@ -617,15 +618,20 @@ GUEST_CODE static void
 guest_irq_handler(struct ex_regs* regs)
 {
 	uint32 iar0, iar1, irq_num = 0;
+	bool is_group0 = false;
 	// Acknowledge the interrupt by reading the IAR.
+	// Depending on the particular interrupt's Group (0 or 1), its number will appear in either ICC_IAR0_EL1, or ICC_IAR1_EL1.
+	// The other register will contain a special interrupt number between 1020 and 1023.
+	// Numbers below 1020 are SGIs, PPIs and SPIs, numbers above 1023 are reserved interrupts and LPIs.
 	asm volatile("mrs %0, " ICC_IAR0_EL1
 		     : "=r"(iar0));
 	asm volatile("mrs %0, " ICC_IAR1_EL1
 		     : "=r"(iar1));
-	if (iar0 != 0x3ff) {
-		irq_num = iar0 & 0x3FF;
-	} else if (iar1 != 0x3ff) {
-		irq_num = iar1 & 0x3FF;
+	if ((iar0 < 1020) || (iar0 > 1023)) {
+		irq_num = iar0;
+		is_group0 = true;
+	} else if ((iar1 < 1020) || (iar1 > 1023)) {
+		irq_num = iar1;
 	} else {
 		return;
 	}
@@ -635,7 +641,7 @@ guest_irq_handler(struct ex_regs* regs)
 	guest_uexit(UEXIT_IRQ);
 
 	// Signal End of Interrupt (EOI) by writing back to the EOIR.
-	if (iar0 != 0x3ff) {
+	if (is_group0) {
 		asm volatile("msr " ICC_EOIR0_EL1 ", %0"
 			     :
 			     : "r"(irq_num));
