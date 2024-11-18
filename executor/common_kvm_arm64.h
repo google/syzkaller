@@ -212,7 +212,7 @@ struct kvm_syz_vm {
 // This page will be leaked, its address will be used as an opaque resource ID.
 static void* leaky_alloc_page()
 {
-	return mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	return mmap(NULL, KVM_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 }
 
 static long syz_kvm_setup_syzos_vm(volatile long a0)
