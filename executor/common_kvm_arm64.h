@@ -104,6 +104,12 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+
+	// Allocate memory for the ITS tables.
+	// TODO(glider): leak this memory for now, this shouldn't be a problem for the short-living executor process.
+	int its_size = SZ_64K * (4 + /*num_cpus*/ 4 + /*num_devices*/ 16);
+	void* its = mmap(NULL, its_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_ITS_TABLES, its_size, (uintptr_t)its);
 }
 #endif
 

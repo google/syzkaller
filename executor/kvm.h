@@ -76,12 +76,15 @@
 #define NEXT_INSN $0xbadc0de
 #define PREFIX_SIZE 0xba1d
 
+#define SZ_64K 0x00010000
+
 // GICv3 distributor address.
 #define ARM64_ADDR_GICD_BASE 0x08000000
 // GICv3 ITS address.
 #define ARM64_ADDR_GICI_BASE 0x08080000
 // GICv3 redistributor address.
 #define ARM64_ADDR_GICR_BASE 0x080a0000
+#define ARM64_ADDR_ITS_TABLES 0xc0000000
 // Write to this page to trigger a page fault and stop KVM_RUN.
 #define ARM64_ADDR_EXIT 0xdddd0000
 // Dedicated address within the exit page for the uexit command.
