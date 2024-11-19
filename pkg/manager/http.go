@@ -186,6 +186,7 @@ func (serv *HTTPServer) textPage(w http.ResponseWriter, r *http.Request, title s
 
 func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	var calls map[string]*corpus.CallCov
+	total := make(map[string]int)
 	syscallsObj := serv.EnabledSyscalls.Load()
 	corpusObj := serv.Corpus.Load()
 	if corpusObj != nil && syscallsObj != nil {
@@ -194,6 +195,17 @@ func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 		for call := range syscallsObj.(map[*prog.Syscall]bool) {
 			if calls[call.Name] == nil {
 				calls[call.Name] = new(corpus.CallCov)
+			}
+		}
+		// Count number of programs that include each call.
+		last := make(map[string]*prog.Prog)
+		for _, inp := range corpusObj.Items() {
+			for _, call := range inp.Prog.Calls {
+				name := call.Meta.Name
+				if last[name] != inp.Prog {
+					total[name]++
+				}
+				last[name] = inp.Prog
 			}
 		}
 	}
@@ -209,6 +221,7 @@ func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 			Name:   c,
 			ID:     syscallID,
 			Inputs: cc.Count,
+			Total:  total[c],
 			Cover:  len(cc.Cover),
 		})
 	}
@@ -953,6 +966,7 @@ type UICallType struct {
 	Name   string
 	ID     *int
 	Inputs int
+	Total  int
 	Cover  int
 }
 
