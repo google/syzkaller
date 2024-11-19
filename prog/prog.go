@@ -17,12 +17,14 @@ type Prog struct {
 	isUnsafe bool
 }
 
+const ExtraCallName = ".extra"
+
 func (p *Prog) CallName(call int) string {
 	if call >= len(p.Calls) || call < -1 {
 		panic(fmt.Sprintf("bad call index %v/%v", call, len(p.Calls)))
 	}
 	if call == -1 {
-		return ".extra"
+		return ExtraCallName
 	}
 	return p.Calls[call].Meta.Name
 }

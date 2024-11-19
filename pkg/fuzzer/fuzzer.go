@@ -50,7 +50,7 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		}
 	}
 	f := &Fuzzer{
-		Stats:  newStats(),
+		Stats:  newStats(target),
 		Config: cfg,
 		Cover:  newCover(),
 
@@ -170,6 +170,10 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 
 	if res.Info != nil {
 		fuzzer.statExecTime.Add(int(res.Info.Elapsed / 1e6))
+		for call, info := range res.Info.Calls {
+			fuzzer.handleCallInfo(req, info, call)
+		}
+		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
 	}
 
 	// Corpus candidates may have flaky coverage, so we give them a second chance.
@@ -228,6 +232,22 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 		errno:     info.Error,
 		newSignal: newMaxSignal,
 		signals:   [deflakeNeedRuns]signal.Signal{signal.FromRaw(info.Signal, prio)},
+	}
+}
+
+func (fuzzer *Fuzzer) handleCallInfo(req *queue.Request, info *flatrpc.CallInfo, call int) {
+	if info == nil || info.Flags&flatrpc.CallFlagCoverageOverflow == 0 {
+		return
+	}
+	syscallIdx := len(fuzzer.Syscalls) - 1
+	if call != -1 {
+		syscallIdx = req.Prog.Calls[call].Meta.ID
+	}
+	stat := &fuzzer.Syscalls[syscallIdx]
+	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectComps != 0 {
+		stat.CompsOverflows.Add(1)
+	} else {
+		stat.CoverOverflows.Add(1)
 	}
 }
 

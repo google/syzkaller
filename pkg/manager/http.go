@@ -187,6 +187,7 @@ func (serv *HTTPServer) textPage(w http.ResponseWriter, r *http.Request, title s
 func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	var calls map[string]*corpus.CallCov
 	total := make(map[string]int)
+	fuzzerObj := serv.Fuzzer.Load()
 	syscallsObj := serv.EnabledSyscalls.Load()
 	corpusObj := serv.Corpus.Load()
 	if corpusObj != nil && syscallsObj != nil {
@@ -217,12 +218,23 @@ func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 		if syscall, ok := serv.Cfg.Target.SyscallMap[c]; ok {
 			syscallID = &syscall.ID
 		}
+		coverOverflows, compsOverflows := 0, 0
+		if fuzzerObj != nil {
+			idx := len(serv.Cfg.Target.Syscalls)
+			if c != prog.ExtraCallName {
+				idx = serv.Cfg.Target.SyscallMap[c].ID
+			}
+			coverOverflows = int(fuzzerObj.Syscalls[idx].CoverOverflows.Load())
+			compsOverflows = int(fuzzerObj.Syscalls[idx].CompsOverflows.Load())
+		}
 		data.Calls = append(data.Calls, UICallType{
-			Name:   c,
-			ID:     syscallID,
-			Inputs: cc.Count,
-			Total:  total[c],
-			Cover:  len(cc.Cover),
+			Name:           c,
+			ID:             syscallID,
+			Inputs:         cc.Count,
+			Total:          total[c],
+			Cover:          len(cc.Cover),
+			CoverOverflows: coverOverflows,
+			CompsOverflows: compsOverflows,
 		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
@@ -702,7 +714,7 @@ func (serv *HTTPServer) httpDebugInput(w http.ResponseWriter, r *http.Request) {
 	if len(extraIDs) > 0 {
 		calls = append(calls, UIRawCallCover{
 			Sig:       r.FormValue("sig"),
-			Call:      ".extra",
+			Call:      prog.ExtraCallName,
 			UpdateIDs: extraIDs,
 		})
 	}
@@ -963,11 +975,13 @@ type UIStat struct {
 }
 
 type UICallType struct {
-	Name   string
-	ID     *int
-	Inputs int
-	Total  int
-	Cover  int
+	Name           string
+	ID             *int
+	Inputs         int
+	Total          int
+	Cover          int
+	CoverOverflows int
+	CompsOverflows int
 }
 
 type UICorpusPage struct {

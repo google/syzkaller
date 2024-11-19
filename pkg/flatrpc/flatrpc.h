@@ -649,23 +649,25 @@ enum class CallFlag : uint8_t {
   Finished = 2,
   Blocked = 4,
   FaultInjected = 8,
+  CoverageOverflow = 16,
   NONE = 0,
-  ANY = 15
+  ANY = 31
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(CallFlag, uint8_t)
 
-inline const CallFlag (&EnumValuesCallFlag())[4] {
+inline const CallFlag (&EnumValuesCallFlag())[5] {
   static const CallFlag values[] = {
     CallFlag::Executed,
     CallFlag::Finished,
     CallFlag::Blocked,
-    CallFlag::FaultInjected
+    CallFlag::FaultInjected,
+    CallFlag::CoverageOverflow
   };
   return values;
 }
 
 inline const char * const *EnumNamesCallFlag() {
-  static const char * const names[9] = {
+  static const char * const names[17] = {
     "Executed",
     "Finished",
     "",
@@ -674,13 +676,21 @@ inline const char * const *EnumNamesCallFlag() {
     "",
     "",
     "FaultInjected",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "CoverageOverflow",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameCallFlag(CallFlag e) {
-  if (flatbuffers::IsOutRange(e, CallFlag::Executed, CallFlag::FaultInjected)) return "";
+  if (flatbuffers::IsOutRange(e, CallFlag::Executed, CallFlag::CoverageOverflow)) return "";
   const size_t index = static_cast<size_t>(e) - static_cast<size_t>(CallFlag::Executed);
   return EnumNamesCallFlag()[index];
 }
