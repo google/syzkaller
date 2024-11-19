@@ -392,24 +392,27 @@ func (v ExecFlag) String() string {
 type CallFlag byte
 
 const (
-	CallFlagExecuted      CallFlag = 1
-	CallFlagFinished      CallFlag = 2
-	CallFlagBlocked       CallFlag = 4
-	CallFlagFaultInjected CallFlag = 8
+	CallFlagExecuted         CallFlag = 1
+	CallFlagFinished         CallFlag = 2
+	CallFlagBlocked          CallFlag = 4
+	CallFlagFaultInjected    CallFlag = 8
+	CallFlagCoverageOverflow CallFlag = 16
 )
 
 var EnumNamesCallFlag = map[CallFlag]string{
-	CallFlagExecuted:      "Executed",
-	CallFlagFinished:      "Finished",
-	CallFlagBlocked:       "Blocked",
-	CallFlagFaultInjected: "FaultInjected",
+	CallFlagExecuted:         "Executed",
+	CallFlagFinished:         "Finished",
+	CallFlagBlocked:          "Blocked",
+	CallFlagFaultInjected:    "FaultInjected",
+	CallFlagCoverageOverflow: "CoverageOverflow",
 }
 
 var EnumValuesCallFlag = map[string]CallFlag{
-	"Executed":      CallFlagExecuted,
-	"Finished":      CallFlagFinished,
-	"Blocked":       CallFlagBlocked,
-	"FaultInjected": CallFlagFaultInjected,
+	"Executed":         CallFlagExecuted,
+	"Finished":         CallFlagFinished,
+	"Blocked":          CallFlagBlocked,
+	"FaultInjected":    CallFlagFaultInjected,
+	"CoverageOverflow": CallFlagCoverageOverflow,
 }
 
 func (v CallFlag) String() string {

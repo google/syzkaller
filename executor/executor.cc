@@ -362,6 +362,8 @@ struct cover_t {
 	// offset (VM_MIN_KERNEL_ADDRESS for AMD64) and then truncates the result to
 	// uint32_t. We get this from the 'offset' member in ksancov_trace.
 	intptr_t pc_offset;
+	// The coverage buffer has overflowed and we have truncated coverage.
+	bool overflow;
 };
 
 struct thread_t {
@@ -1177,6 +1179,7 @@ uint32 write_comparisons(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 	kcov_comparison_t* cov_start = (kcov_comparison_t*)(cov->data + sizeof(uint64));
 	if ((char*)(cov_start + ncomps) > cov->data_end)
 		failmsg("too many comparisons", "ncomps=%llu", ncomps);
+	cov->overflow = ((char*)(cov_start + ncomps + 1) > cov->data_end);
 	rpc::ComparisonRaw* start = (rpc::ComparisonRaw*)cov_start;
 	rpc::ComparisonRaw* end = start;
 	// We will convert kcov_comparison_t to ComparisonRaw inplace.
@@ -1295,6 +1298,8 @@ void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bo
 	}
 
 	rpc::CallInfoRawBuilder builder(*output_builder);
+	if (cov->overflow)
+		flags |= rpc::CallFlag::CoverageOverflow;
 	builder.add_flags(flags);
 	builder.add_error(error);
 	if (signal_off)

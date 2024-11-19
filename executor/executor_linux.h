@@ -180,14 +180,22 @@ static void cover_reset(cover_t* cov)
 	cover_unprotect(cov);
 	*(uint64*)cov->data = 0;
 	cover_protect(cov);
+	cov->overflow = false;
+}
+
+template <typename cover_data_t>
+static void cover_collect_impl(cover_t* cov)
+{
+	cov->size = *(cover_data_t*)cov->data;
+	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
 }
 
 static void cover_collect(cover_t* cov)
 {
 	if (is_kernel_64_bit)
-		cov->size = *(uint64*)cov->data;
+		cover_collect_impl<uint64>(cov);
 	else
-		cov->size = *(uint32*)cov->data;
+		cover_collect_impl<uint32>(cov);
 }
 
 // One does not simply exit.

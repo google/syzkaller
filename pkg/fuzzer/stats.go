@@ -3,9 +3,17 @@
 
 package fuzzer
 
-import "github.com/google/syzkaller/pkg/stat"
+import (
+	"sync/atomic"
+
+	"github.com/google/syzkaller/pkg/stat"
+	"github.com/google/syzkaller/prog"
+)
 
 type Stats struct {
+	// Indexed by prog.Syscall.ID + the last element for extra/remote.
+	Syscalls []SyscallStats
+
 	statCandidates          *stat.Val
 	statNewInputs           *stat.Val
 	statJobs                *stat.Val
@@ -27,8 +35,16 @@ type Stats struct {
 	statExecCollide         *stat.Val
 }
 
-func newStats() Stats {
+type SyscallStats struct {
+	// Number of times coverage buffer for this syscall has overflowed.
+	CoverOverflows atomic.Uint64
+	// Number of times comparisons buffer for this syscall has overflowed.
+	CompsOverflows atomic.Uint64
+}
+
+func newStats(target *prog.Target) Stats {
 	return Stats{
+		Syscalls: make([]SyscallStats, len(target.Syscalls)+1),
 		statCandidates: stat.New("candidates", "Number of candidate programs in triage queue",
 			stat.Console, stat.Graph("corpus")),
 		statNewInputs: stat.New("new inputs", "Potential untriaged corpus candidates",
