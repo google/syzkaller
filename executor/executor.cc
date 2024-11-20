@@ -72,13 +72,13 @@ const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
 const int kExtraCoverFd = kCoverFd - 1;
 const int kMaxArgs = 9;
-const int kCoverSize = 256 << 10;
+const int kCoverSize = 512 << 10;
 const int kFailStatus = 67;
 
 // Two approaches of dealing with kcov memory.
-const int kCoverOptimizedCount = 12; // the number of kcov instances to be opened inside main()
+const int kCoverOptimizedCount = 8; // the max number of kcov instances
 const int kCoverOptimizedPreMmap = 3; // this many will be mmapped inside main(), others - when needed.
-const int kCoverDefaultCount = 6; // otherwise we only init kcov instances inside main()
+const int kCoverDefaultCount = 6; // the max number of kcov instances when delayed kcov mmap is not available
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
 // If such error happens 10+ times in a row, it will be detected as a bug by the runner process.
@@ -1129,6 +1129,8 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
 	fbb.StartVector(0, sizeof(uint64));
 	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
+	if ((char*)(cover_data + cov->size) > cov->data_end)
+		failmsg("too much cover", "cov=%u", cov->size);
 	uint32 nsig = 0;
 	cover_data_t prev_pc = 0;
 	bool prev_filter = true;
@@ -1468,11 +1470,8 @@ void execute_call(thread_t* th)
 	// Reset the flag before the first possible fail().
 	th->soft_fail_state = false;
 
-	if (flag_coverage) {
+	if (flag_coverage)
 		cover_collect(&th->cov);
-		if (th->cov.size >= kCoverSize)
-			failmsg("too much cover", "thr=%d, cov=%u", th->id, th->cov.size);
-	}
 	th->fault_injected = false;
 
 	if (th->call_props.fail_nth > 0)

@@ -147,7 +147,7 @@ constexpr size_t kOutputPopulate = 256 << 10;
 constexpr size_t kInputPopulate = 64 << 10;
 constexpr size_t kGlobalsPopulate = 4 << 10;
 constexpr size_t kDataPopulate = 8 << 10;
-constexpr size_t kCoveragePopulate = 32 << 10;
+constexpr size_t kCoveragePopulate = 64 << 10;
 constexpr size_t kThreadsPopulate = 2;
 
 static void SnapshotSetState(rpc::SnapshotState state)
