@@ -17,6 +17,11 @@ import (
 
 type starnix struct{}
 
+// The location of the default ffx build config (a Fuchsia implementation detail),
+// relative to the kernel build dir. Contains default relative paths of build
+// artifacts.
+const ffxBuildConfig = "ffx-config.json"
+
 // The name of the Fuchsia assembly override defined in `overrideRule`.
 const overrideName = "syzkaller_starnix"
 
@@ -54,10 +59,11 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 	if err := osutil.SandboxChown(localDir); err != nil {
 		return ImageDetails{}, err
 	}
+	buildDir := filepath.Join(params.KernelDir, "out/"+arch)
 	if _, err := runSandboxed(
 		time.Hour,
 		params.KernelDir,
-		"scripts/fx", "--dir", "out/"+arch,
+		"scripts/fx", "--dir", buildDir,
 		"set", product,
 		"--assembly-override", fmt.Sprintf("//products/workbench/*=//local:%s", overrideName),
 	); err != nil {
@@ -75,6 +81,8 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		30*time.Second,
 		params.KernelDir,
 		ffxBinary,
+		"--no-environment",
+		"-c", filepath.Join(buildDir, ffxBuildConfig),
 		"-c", "log.enabled=false,ffx.analytics.disabled=true,daemon.autostart=false",
 		"config", "get", "product.path",
 	)
@@ -86,6 +94,7 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		30*time.Second,
 		params.KernelDir,
 		ffxBinary,
+		"--no-environment",
 		"-c", "log.enabled=false,ffx.analytics.disabled=true,daemon.autostart=false",
 		"product", "get-image-path", productBundlePath,
 		"--slot", "a",
