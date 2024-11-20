@@ -263,6 +263,7 @@ func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsyste
 				Instrumented: cwd.Instrumented,
 				Covered:      cwd.Covered,
 				TimePeriod:   cwd.TimePeriod,
+				Commit:       cwd.Commit,
 			}
 			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}
