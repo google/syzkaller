@@ -13,7 +13,7 @@
 
 #define KVM_MAX_VCPU 4
 #define KVM_PAGE_SIZE (4 << 10)
-#define KVM_GUEST_MEM_SIZE (24 * KVM_PAGE_SIZE)
+#define KVM_GUEST_MEM_SIZE (1024 * KVM_PAGE_SIZE)
 
 #endif
 
@@ -101,15 +101,15 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
 
+	// Allocate memory for the ITS tables: 64K for the device table, collection table, command queue, property table,
+	// plus 64K * 4 CPUs for the pending tables, and 64K * 16 devices for the ITT tables.
+	int its_size = SZ_64K * (4 + 4 + 16);
+	next = alloc_guest_mem(&allocator, its_size);
+	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_ITS_TABLES, next.size, (uintptr_t)next.addr);
+
 	// Map the remaining pages at address 0.
 	next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
-
-	// Allocate memory for the ITS tables.
-	// TODO(glider): leak this memory for now, this shouldn't be a problem for the short-living executor process.
-	int its_size = SZ_64K * (4 + /*num_cpus*/ 4 + /*num_devices*/ 16);
-	void* its = mmap(NULL, its_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
-	vm_set_user_memory_region(vmfd, slot++, 0, ARM64_ADDR_ITS_TABLES, its_size, (uintptr_t)its);
 }
 #endif
 
@@ -214,23 +214,14 @@ struct kvm_syz_vm {
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
 
-// Allocate a page using a syscall, as we may not have malloc().
-// This page will be leaked, its address will be used as an opaque resource ID.
-static void* leaky_alloc_page()
-{
-	return mmap(NULL, KVM_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
-}
-
-static long syz_kvm_setup_syzos_vm(volatile long a0)
+static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 {
 	const int vmfd = a0;
-
-	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)leaky_alloc_page();
-	if ((long)ret == -1)
-		return -1;
+	void* host_mem = (void*)a1;
 
 	void* user_text_slot = NULL;
-	void* host_mem = mmap(NULL, KVM_GUEST_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)host_mem;
+	host_mem = (void*)((uint64)host_mem + KVM_PAGE_SIZE);
 	setup_vm(vmfd, host_mem, &user_text_slot);
 	ret->vmfd = vmfd;
 	ret->next_cpu_id = 0;

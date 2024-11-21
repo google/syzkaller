@@ -3,7 +3,7 @@
 #
 r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
-r2 = syz_kvm_setup_syzos_vm(r1)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
 # Emulate a uexit with the memwrite API command: write 0 at address ARM64_ADDR_UEXIT.
 #
 r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@memwrite={AUTO, AUTO, @generic={0xdddd0000, 0x100, 0x0, 0x8}}], AUTO}, 0x0, 0x0)

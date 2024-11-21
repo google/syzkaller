@@ -3,7 +3,7 @@
 #
 r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
-r2 = syz_kvm_setup_syzos_vm(r1)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
 #
 # KVM_SET_DEVICE_ATTR: group=KVM_ARM_VM_SMCCC_CTRL, attr=KVM_ARM_VM_SMCCC_FILTER
 # Filter: base=0xef000000, nr_functions=0x1000, action=KVM_SMCCC_FILTER_FWD_TO_USER

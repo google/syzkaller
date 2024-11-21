@@ -3,7 +3,7 @@
 #
 r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
-r2 = syz_kvm_setup_syzos_vm(r1)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
 #
 # 0x603000000013c600 is VBAR_EL1, it aligns the written value on 0x20.
 #
