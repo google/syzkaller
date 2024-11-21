@@ -3,7 +3,7 @@
 #
 r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
-r2 = syz_kvm_setup_syzos_vm(r1)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
 r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@irq_setup={AUTO, AUTO, {0x1, 0x20}}], AUTO}, 0x0, 0x0)
 r4 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@irq_setup={AUTO, AUTO, {0x1, 0x20}}], AUTO}, 0x0, 0x0)
 syz_kvm_vgic_v3_setup(r1, 0x2, 0x100)
