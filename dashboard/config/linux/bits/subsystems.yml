@@ -589,6 +589,7 @@ config:
  - DAMON_DBGFS: [v5.15, -v6.9]
  - DAMON_RECLAIM: [v5.17]
  - ZSWAP_DEFAULT_ON: [v5.7]
+ - SMB_SERVER: [v5.15]
 
  # For testing of core dumping functionality itself.
  - COREDUMP
