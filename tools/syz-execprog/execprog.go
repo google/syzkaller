@@ -52,6 +52,7 @@ var (
 	flagSandboxArg = flag.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
 	flagDebug      = flag.Bool("debug", false, "debug output from executor")
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
+	flagUnsafe     = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
 
 	// The in the stress mode resembles simple unguided fuzzer.
 	// This mode can be used as an intermediate step when porting syzkaller to a new OS,
@@ -364,10 +365,14 @@ func (ctx *Context) createStressProg() *prog.Prog {
 
 func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 	var progs []*prog.Prog
+	mode := prog.NonStrict
+	if *flagUnsafe {
+		mode = prog.NonStrictUnsafe
+	}
 	for _, fn := range files {
 		if corpus, err := db.Open(fn, false); err == nil {
 			for _, rec := range corpus.Records {
-				p, err := target.Deserialize(rec.Val, prog.NonStrict)
+				p, err := target.Deserialize(rec.Val, mode)
 				if err != nil {
 					continue
 				}
@@ -379,7 +384,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 		if err != nil {
 			log.Fatalf("failed to read log file: %v", err)
 		}
-		for _, entry := range target.ParseLog(data) {
+		for _, entry := range target.ParseLog(data, mode) {
 			progs = append(progs, entry.P)
 		}
 	}

@@ -18,7 +18,7 @@ func TestParseSingle(t *testing.T) {
 	const execLog = `getpid()
 gettid()	
 `
-	entries := target.ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLog), NonStrict)
 	if len(entries) != 1 {
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}
@@ -48,7 +48,7 @@ func TestParseMulti(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := target.ParseLog([]byte(execLogNew))
+	entries := target.ParseLog([]byte(execLogNew), NonStrict)
 	validateProgs(t, entries, len(execLogNew))
 	if entries[0].ID != -1 ||
 		entries[1].ID != 70 ||
@@ -65,7 +65,7 @@ func TestParseMultiLegacy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := target.ParseLog([]byte(execLogOld))
+	entries := target.ParseLog([]byte(execLogOld), NonStrict)
 	validateProgs(t, entries, len(execLogOld))
 	for _, ent := range entries {
 		assert.Equal(t, -1, ent.ID)
@@ -166,7 +166,7 @@ func TestParseFault(t *testing.T) {
 gettid()
 getpid()
 `
-	entries := target.ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLog), NonStrict)
 	if len(entries) != 1 {
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}

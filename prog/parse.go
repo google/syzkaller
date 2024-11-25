@@ -17,7 +17,7 @@ type LogEntry struct {
 	End   int // end offset in log
 }
 
-func (target *Target) ParseLog(data []byte) []*LogEntry {
+func (target *Target) ParseLog(data []byte, mode DeserializeMode) []*LogEntry {
 	var entries []*LogEntry
 	ent := &LogEntry{
 		ID: -1,
@@ -61,7 +61,7 @@ func (target *Target) ParseLog(data []byte) []*LogEntry {
 
 		tmp := append(cur, line...)
 
-		p, err := target.Deserialize(tmp, NonStrict)
+		p, err := target.Deserialize(tmp, mode)
 		if err != nil {
 			continue
 		}
