@@ -1169,8 +1169,9 @@ uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 		cover_size = std::unique(cover_data, end) - cover_data;
 	}
 	fbb.StartVector(cover_size, sizeof(uint64));
+	// Flatbuffer arrays are written backwards, so reverse the order on our side as well.
 	for (uint32 i = 0; i < cover_size; i++)
-		fbb.PushElement(uint64(cover_data[i] + cov->pc_offset));
+		fbb.PushElement(uint64(cover_data[cover_size - i - 1] + cov->pc_offset));
 	return fbb.EndVector(cover_size);
 }
 
