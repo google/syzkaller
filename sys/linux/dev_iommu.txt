@@ -255,7 +255,7 @@ iommufd_hwpt_set_dirty_tracking_flags = IOMMU_HWPT_DIRTY_TRACKING_ENABLE
 iommufd_hwpt_get_dirty_bitmap_flags = IOMMU_HWPT_GET_DIRTY_BITMAP_NO_CLEAR
 
 iommu_type = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU
-iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_TYPE1_NESTING_IOMMU, VFIO_UPDATE_VADDR
+iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_UPDATE_VADDR
 
 # This section requires CONFIG_IOMMUFD_TEST
 # It allows the kernel to provide a mock consumer of iommufd which allows greater coverage

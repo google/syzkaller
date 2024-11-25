@@ -43,6 +43,7 @@ include <include/uapi/linux/ncsi.h>
 include <include/uapi/linux/neighbour.h>
 include <include/uapi/linux/net_dropmon.h>
 include <include/uapi/linux/net_namespace.h>
+include <include/uapi/linux/net_shaper.h>
 include <include/uapi/linux/netconf.h>
 include <include/uapi/linux/netdev.h>
 include <include/uapi/linux/netfilter/ipset/ip_set.h>
@@ -130,6 +131,7 @@ resource genl_ila_family_id_auto[int16]
 resource genl_l2tp_family_id_auto[int16]
 resource genl_macsec_family_id_auto[int16]
 resource genl_nbd_family_id_auto[int16]
+resource genl_net_shaper_family_id_auto[int16]
 resource genl_netdev_family_id_auto[int16]
 resource genl_nfc_family_id_auto[int16]
 resource genl_nfsd_family_id_auto[int16]
@@ -173,6 +175,7 @@ type msghdr_ila_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_ila_family_i
 type msghdr_l2tp_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_l2tp_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_macsec_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_macsec_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_nbd_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nbd_family_id_auto, genlmsghdr_t[CMD], POLICY]]
+type msghdr_net_shaper_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_net_shaper_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_netdev_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_netdev_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_nfc_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nfc_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_nfsd_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nfsd_family_id_auto, genlmsghdr_t[CMD], POLICY]]
@@ -309,6 +312,7 @@ getsockname$auto(fd fd, usockaddr ptr[inout, sockaddr$auto_record], usockaddr_le
 getsockopt$auto(fd fd, level int32, optname int32, optval ptr[inout, string], optlen ptr[inout, int32]) (automatic)
 gettimeofday$auto(tv ptr[inout, __kernel_old_timeval$auto_record], tz ptr[inout, timezone$auto_record]) (automatic)
 getxattr$auto(pathname ptr[in, filename], name ptr[in, string], value ptr[inout, array[auto_todo]], size intptr) (automatic)
+getxattrat$auto(dfd fd_dir, pathname ptr[in, filename], at_flags int32, name ptr[in, string], uargs ptr[inout, xattr_args$auto_record], usize intptr) (automatic)
 init_module$auto(umod ptr[inout, array[auto_todo]], len intptr, uargs ptr[in, string]) (automatic)
 inotify_add_watch$auto(fd fd, pathname ptr[in, filename], mask int32) (automatic)
 inotify_init1$auto(flags int32) (automatic)
@@ -343,6 +347,7 @@ linkat$auto(olddfd fd_dir, oldname ptr[in, filename], newdfd fd_dir, newname ptr
 listen$auto(fd fd, backlog int32) (automatic)
 listmount$auto(req ptr[in, mnt_id_req$auto_record], mnt_ids ptr[inout, int64], nr_mnt_ids intptr, flags int32) (automatic)
 listxattr$auto(pathname ptr[in, filename], list ptr[inout, string], size intptr) (automatic)
+listxattrat$auto(dfd fd_dir, pathname ptr[in, filename], at_flags int32, list ptr[inout, string], size intptr) (automatic)
 llistxattr$auto(pathname ptr[in, filename], list ptr[inout, string], size intptr) (automatic)
 lremovexattr$auto(pathname ptr[in, filename], name ptr[in, string]) (automatic)
 lseek$auto(fd fd, offset intptr, whence int32) (automatic)
@@ -449,6 +454,7 @@ recvmmsg_time64$auto(fd fd, mmsg ptr[inout, mmsghdr$auto_record], vlen int32, fl
 recvmsg$auto(fd fd, msg ptr[inout, user_msghdr$auto_record], flags int32) (automatic)
 remap_file_pages$auto(start intptr, size intptr, prot intptr, pgoff intptr, flags intptr) (automatic)
 removexattr$auto(pathname ptr[in, filename], name ptr[in, string]) (automatic)
+removexattrat$auto(dfd fd_dir, pathname ptr[in, filename], at_flags int32, name ptr[in, string]) (automatic)
 rename$auto(oldname ptr[in, filename], newname ptr[in, filename]) (automatic)
 renameat$auto(olddfd fd_dir, oldname ptr[in, filename], newdfd fd_dir, newname ptr[in, filename]) (automatic)
 renameat2$auto(olddfd fd_dir, oldname ptr[in, filename], newdfd fd_dir, newname ptr[in, filename], flags int32) (automatic)
@@ -658,6 +664,7 @@ sendmsg$auto_NETDEV_CMD_BIND_RX(fd sock_nl_generic, msg ptr[in, msghdr_netdev_au
 sendmsg$auto_NETDEV_CMD_DEV_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_DEV_GET, netdev_dev_get_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
 sendmsg$auto_NETDEV_CMD_NAPI_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_NAPI_GET, netdev_napi_get_do_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
 sendmsg$auto_NETDEV_CMD_NAPI_GET0(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_NAPI_GET, netdev_napi_get_dump_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NETDEV_CMD_NAPI_SET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_NAPI_SET, netdev_napi_set_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
 sendmsg$auto_NETDEV_CMD_PAGE_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_PAGE_POOL_GET, netdev_page_pool_get_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
 sendmsg$auto_NETDEV_CMD_QSTATS_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_QSTATS_GET, netdev_qstats_get_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
 sendmsg$auto_NETDEV_CMD_QUEUE_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_QUEUE_GET, netdev_queue_get_do_nl_policy$auto_netdev_genl_gen]], f flags[send_flags]) (automatic)
@@ -667,6 +674,13 @@ sendmsg$auto_NET_DM_CMD_CONFIG_GET(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM
 sendmsg$auto_NET_DM_CMD_START(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_START, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags]) (automatic)
 sendmsg$auto_NET_DM_CMD_STATS_GET(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_STATS_GET, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags]) (automatic)
 sendmsg$auto_NET_DM_CMD_STOP(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_STOP, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_CAP_GET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_CAP_GET, net_shaper_cap_get_do_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_CAP_GET0(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_CAP_GET, net_shaper_cap_get_dump_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_DELETE(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_DELETE, net_shaper_delete_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_GET, net_shaper_get_do_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_GET0(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_GET, net_shaper_get_dump_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_GROUP(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_GROUP, net_shaper_group_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
+sendmsg$auto_NET_SHAPER_CMD_SET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_SET, net_shaper_set_nl_policy$auto_shaper_nl_gen]], f flags[send_flags]) (automatic)
 sendmsg$auto_NFC_CMD_ACTIVATE_TARGET(fd sock_nl_generic, msg ptr[in, msghdr_nfc_auto[NFC_CMD_ACTIVATE_TARGET, nfc_genl_policy$auto_netlink]], f flags[send_flags]) (automatic)
 sendmsg$auto_NFC_CMD_DEACTIVATE_TARGET(fd sock_nl_generic, msg ptr[in, msghdr_nfc_auto[NFC_CMD_DEACTIVATE_TARGET, nfc_genl_policy$auto_netlink]], f flags[send_flags]) (automatic)
 sendmsg$auto_NFC_CMD_DEP_LINK_DOWN(fd sock_nl_generic, msg ptr[in, msghdr_nfc_auto[NFC_CMD_DEP_LINK_DOWN, nfc_genl_policy$auto_netlink]], f flags[send_flags]) (automatic)
@@ -916,6 +930,10 @@ sendmsg$auto_TASKSTATS_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_TASKSTATS_
 sendmsg$auto_TCP_METRICS_CMD_DEL(fd sock_nl_generic, msg ptr[in, msghdr_tcp_metrics_auto[TCP_METRICS_CMD_DEL, tcp_metrics_nl_policy$auto_tcp_metrics]], f flags[send_flags]) (automatic)
 sendmsg$auto_TCP_METRICS_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_tcp_metrics_auto[TCP_METRICS_CMD_GET, tcp_metrics_nl_policy$auto_tcp_metrics]], f flags[send_flags]) (automatic)
 sendmsg$auto_THERMAL_GENL_CMD_CDEV_GET(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_CDEV_GET, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
+sendmsg$auto_THERMAL_GENL_CMD_THRESHOLD_ADD(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_THRESHOLD_ADD, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
+sendmsg$auto_THERMAL_GENL_CMD_THRESHOLD_DELETE(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_THRESHOLD_DELETE, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
+sendmsg$auto_THERMAL_GENL_CMD_THRESHOLD_FLUSH(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_THRESHOLD_FLUSH, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
+sendmsg$auto_THERMAL_GENL_CMD_THRESHOLD_GET(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_THRESHOLD_GET, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
 sendmsg$auto_THERMAL_GENL_CMD_TZ_GET_GOV(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_TZ_GET_GOV, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
 sendmsg$auto_THERMAL_GENL_CMD_TZ_GET_ID(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_TZ_GET_ID, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
 sendmsg$auto_THERMAL_GENL_CMD_TZ_GET_TEMP(fd sock_nl_generic, msg ptr[in, msghdr_thermal_auto[THERMAL_GENL_CMD_TZ_GET_TEMP, thermal_genl_policy$auto_thermal_netlink]], f flags[send_flags]) (automatic)
@@ -987,6 +1005,7 @@ settimeofday$auto(tv ptr[inout, __kernel_old_timeval$auto_record], tz ptr[inout,
 setuid$auto(uid uid) (automatic)
 setuid32$auto(uid uid) (automatic)
 setxattr$auto(pathname ptr[in, filename], name ptr[in, string], value ptr[in, array[auto_todo]], size intptr, flags int32) (automatic)
+setxattrat$auto(dfd fd_dir, pathname ptr[in, filename], at_flags int32, name ptr[in, string], uargs ptr[in, xattr_args$auto_record], usize intptr) (automatic)
 shmat$auto(shmid int32, shmaddr ptr[inout, string], shmflg int32) (automatic)
 shmctl$auto(shmid int32, cmd int32, buf ptr[inout, shmid_ds$auto_record]) (automatic)
 shmdt$auto(shmaddr ptr[inout, string]) (automatic)
@@ -1046,6 +1065,7 @@ syz_genetlink_get_family_id$auto_ila(name ptr[in, string["ila"]], fd sock_nl_gen
 syz_genetlink_get_family_id$auto_l2tp(name ptr[in, string["l2tp"]], fd sock_nl_generic) genl_l2tp_family_id_auto (automatic)
 syz_genetlink_get_family_id$auto_macsec(name ptr[in, string["macsec"]], fd sock_nl_generic) genl_macsec_family_id_auto (automatic)
 syz_genetlink_get_family_id$auto_nbd(name ptr[in, string["nbd"]], fd sock_nl_generic) genl_nbd_family_id_auto (automatic)
+syz_genetlink_get_family_id$auto_net_shaper(name ptr[in, string["net-shaper"]], fd sock_nl_generic) genl_net_shaper_family_id_auto (automatic)
 syz_genetlink_get_family_id$auto_netdev(name ptr[in, string["netdev"]], fd sock_nl_generic) genl_netdev_family_id_auto (automatic)
 syz_genetlink_get_family_id$auto_nfc(name ptr[in, string["nfc"]], fd sock_nl_generic) genl_nfc_family_id_auto (automatic)
 syz_genetlink_get_family_id$auto_nfsd(name ptr[in, string["nfsd"]], fd sock_nl_generic) genl_nfsd_family_id_auto (automatic)
@@ -2661,6 +2681,64 @@ net_dm_nl_policy$auto_drop_monitor [
 	NET_DM_ATTR_HW_DROPS	nlattr[NET_DM_ATTR_HW_DROPS, void]
 ] [varlen]
 
+net_shaper_cap_get_do_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_CAPS_IFINDEX	nlattr[NET_SHAPER_A_CAPS_IFINDEX, ifindex]
+	NET_SHAPER_A_CAPS_SCOPE		nlattr[NET_SHAPER_A_CAPS_SCOPE, int32]
+] [varlen]
+
+net_shaper_cap_get_dump_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_CAPS_IFINDEX	nlattr[NET_SHAPER_A_CAPS_IFINDEX, ifindex]
+] [varlen]
+
+net_shaper_delete_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+] [varlen]
+
+net_shaper_get_do_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+] [varlen]
+
+net_shaper_get_dump_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+] [varlen]
+
+net_shaper_group_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
+	NET_SHAPER_A_METRIC	nlattr[NET_SHAPER_A_METRIC, int32]
+	NET_SHAPER_A_BW_MIN	nlattr[NET_SHAPER_A_BW_MIN, int64]
+	NET_SHAPER_A_BW_MAX	nlattr[NET_SHAPER_A_BW_MAX, int64]
+	NET_SHAPER_A_BURST	nlattr[NET_SHAPER_A_BURST, int64]
+	NET_SHAPER_A_PRIORITY	nlattr[NET_SHAPER_A_PRIORITY, int32]
+	NET_SHAPER_A_WEIGHT	nlattr[NET_SHAPER_A_WEIGHT, int32]
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+	NET_SHAPER_A_PARENT	nlnest[NET_SHAPER_A_PARENT, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
+	NET_SHAPER_A_LEAVES	nlnest[NET_SHAPER_A_LEAVES, array[net_shaper_leaf_info_nl_policy$auto_shaper_nl_gen]]
+] [varlen]
+
+net_shaper_handle_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_HANDLE_SCOPE	nlattr[NET_SHAPER_A_HANDLE_SCOPE, int32]
+	NET_SHAPER_A_HANDLE_ID		nlattr[NET_SHAPER_A_HANDLE_ID, int32]
+] [varlen]
+
+net_shaper_leaf_info_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
+	NET_SHAPER_A_PRIORITY	nlattr[NET_SHAPER_A_PRIORITY, int32]
+	NET_SHAPER_A_WEIGHT	nlattr[NET_SHAPER_A_WEIGHT, int32]
+] [varlen]
+
+net_shaper_set_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
+	NET_SHAPER_A_METRIC	nlattr[NET_SHAPER_A_METRIC, int32]
+	NET_SHAPER_A_BW_MIN	nlattr[NET_SHAPER_A_BW_MIN, int64]
+	NET_SHAPER_A_BW_MAX	nlattr[NET_SHAPER_A_BW_MAX, int64]
+	NET_SHAPER_A_BURST	nlattr[NET_SHAPER_A_BURST, int64]
+	NET_SHAPER_A_PRIORITY	nlattr[NET_SHAPER_A_PRIORITY, int32]
+	NET_SHAPER_A_WEIGHT	nlattr[NET_SHAPER_A_WEIGHT, int32]
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+] [varlen]
+
 netdev_bind_rx_nl_policy$auto_netdev_genl_gen [
 	NETDEV_A_DMABUF_IFINDEX	nlattr[NETDEV_A_DMABUF_IFINDEX, ifindex]
 	NETDEV_A_DMABUF_QUEUES	nlnest[NETDEV_A_DMABUF_QUEUES, array[netdev_queue_id_nl_policy$auto_netdev_genl_gen]]
@@ -2677,6 +2755,13 @@ netdev_napi_get_do_nl_policy$auto_netdev_genl_gen [
 
 netdev_napi_get_dump_nl_policy$auto_netdev_genl_gen [
 	NETDEV_A_NAPI_IFINDEX	nlattr[NETDEV_A_NAPI_IFINDEX, ifindex]
+] [varlen]
+
+netdev_napi_set_nl_policy$auto_netdev_genl_gen [
+	NETDEV_A_NAPI_ID			nlattr[NETDEV_A_NAPI_ID, int32]
+	NETDEV_A_NAPI_DEFER_HARD_IRQS		nlattr[NETDEV_A_NAPI_DEFER_HARD_IRQS, int32]
+	NETDEV_A_NAPI_GRO_FLUSH_TIMEOUT		nlattr[NETDEV_A_NAPI_GRO_FLUSH_TIMEOUT, int64]
+	NETDEV_A_NAPI_IRQ_SUSPEND_TIMEOUT	nlattr[NETDEV_A_NAPI_IRQ_SUSPEND_TIMEOUT, int64]
 ] [varlen]
 
 netdev_page_pool_get_nl_policy$auto_netdev_genl_gen [
@@ -3105,6 +3190,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_MLO_TTLM_DLINK			nlattr[NL80211_ATTR_MLO_TTLM_DLINK, array[int8]]
 	NL80211_ATTR_MLO_TTLM_ULINK			nlattr[NL80211_ATTR_MLO_TTLM_ULINK, array[int8]]
 	NL80211_ATTR_ASSOC_SPP_AMSDU			nlattr[NL80211_ATTR_ASSOC_SPP_AMSDU, void]
+	NL80211_ATTR_VIF_RADIO_MASK			nlattr[NL80211_ATTR_VIF_RADIO_MASK, int32]
 ] [varlen]
 
 nl80211_sta_wme_policy$auto_nl80211 [
@@ -3299,7 +3385,7 @@ perf_event_attr$auto_record {
 	sample_max_stack		int16
 	__reserved_2			const[0, int16]
 	aux_sample_size			int32
-	__reserved_3			const[0, int32]
+	perf_event_attr_57		perf_event_attr_57$auto_record
 	sig_data			int64
 	config3				int64
 }
@@ -3327,6 +3413,18 @@ perf_event_attr_47$auto_record [
 	probe_offset	int64
 	config2		int64
 ]
+
+perf_event_attr_57$auto_record [
+	aux_action		int32
+	perf_event_attr_57_1	perf_event_attr_57_1$auto_record
+]
+
+perf_event_attr_57_1$auto_record {
+	aux_start_paused	int32:1
+	aux_pause		int32:1
+	aux_resume		int32:1
+	__reserved_3		const[0, int32:29]
+}
 
 pollfd$auto_record {
 	fd	fd
@@ -3606,7 +3704,13 @@ statmount$auto_record {
 	mnt_root		int32
 	mnt_point		int32
 	mnt_ns_id		int64
-	__spare2		array[int64, 49]
+	fs_subtype		int32
+	sb_source		int32
+	opt_num			int32
+	opt_array		int32
+	opt_sec_num		int32
+	opt_sec_array		int32
+	__spare2		array[int64, 46]
 	str			array[int8]
 }
 
@@ -3702,6 +3806,9 @@ thermal_genl_policy$auto_thermal_netlink [
 	THERMAL_GENL_ATTR_CPU_CAPABILITY_ID		nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY_ID, int32]
 	THERMAL_GENL_ATTR_CPU_CAPABILITY_PERFORMANCE	nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY_PERFORMANCE, int32]
 	THERMAL_GENL_ATTR_CPU_CAPABILITY_EFFICIENCY	nlattr[THERMAL_GENL_ATTR_CPU_CAPABILITY_EFFICIENCY, int32]
+	THERMAL_GENL_ATTR_THRESHOLD			nlnest[THERMAL_GENL_ATTR_THRESHOLD, array[nl_generic_attr]]
+	THERMAL_GENL_ATTR_THRESHOLD_TEMP		nlattr[THERMAL_GENL_ATTR_THRESHOLD_TEMP, int32]
+	THERMAL_GENL_ATTR_THRESHOLD_DIRECTION		nlattr[THERMAL_GENL_ATTR_THRESHOLD_DIRECTION, int32]
 ] [varlen]
 
 timezone$auto_record {
@@ -3786,3 +3893,9 @@ vport_policy$auto_datapath [
 	OVS_VPORT_ATTR_NETNSID		nlattr[OVS_VPORT_ATTR_NETNSID, int32]
 	OVS_VPORT_ATTR_UPCALL_STATS	nlnest[OVS_VPORT_ATTR_UPCALL_STATS, array[nl_generic_attr]]
 ] [varlen]
+
+xattr_args$auto_record {
+	value	int64
+	size	int32
+	flags	int32
+}
