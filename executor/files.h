@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
@@ -16,7 +17,30 @@
 static std::vector<std::string> Glob(const std::string& pattern)
 {
 	glob_t buf = {};
-	int res = glob(pattern.c_str(), GLOB_MARK | GLOB_NOSORT, nullptr, &buf);
+	buf.gl_opendir = reinterpret_cast<void* (*)(const char* name)>(opendir);
+	buf.gl_closedir = reinterpret_cast<void (*)(void* dirp)>(closedir);
+	// Use own readdir to ignore links. Links to files are not useful to us,
+	// we will discover the target file itself. Links to directories are harmful
+	// because they cause recursion, or lead outside of the target glob
+	// (e.g. /proc/self/{root,cwd}).
+	// However, we want to keep few links: /proc/self, /proc/thread-self,
+	// /sys/kernel/slab/kmalloc-64 (may be a link with slab merging).
+	// This is a hacky way to do it b/c e.g. "self" will be matched in all paths,
+	// not just /proc. A proper fix would require writing completly custom version of glob
+	// that would support recursion and would allow using/not using links on demand.
+	buf.gl_readdir = [](void* dir) -> dirent* {
+		for (;;) {
+			struct dirent* ent = readdir(static_cast<DIR*>(dir));
+			if (!ent || ent->d_type != DT_LNK ||
+			    !strcmp(ent->d_name, "self") ||
+			    !strcmp(ent->d_name, "thread-self") ||
+			    !strcmp(ent->d_name, "kmalloc-64"))
+				return ent;
+		}
+	},
+	buf.gl_stat = stat;
+	buf.gl_lstat = lstat;
+	int res = glob(pattern.c_str(), GLOB_MARK | GLOB_NOSORT | GLOB_ALTDIRFUNC, nullptr, &buf);
 	if (res != 0 && res != GLOB_NOMATCH)
 		failmsg("glob failed", "pattern='%s' res=%d", pattern.c_str(), res);
 	std::vector<std::string> files;
