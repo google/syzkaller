@@ -7,22 +7,8 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-type netbsd int
-
-func (netbsd) RequiredFiles() []string {
-	return nil
-}
-
-func (netbsd) checkFiles() []string {
-	return nil
-}
-
-func (netbsd) parseModules(files filesystem) ([]*KernelModule, error) {
-	return nil, nil
-}
-
-func (netbsd) machineInfos() []machineInfoFunc {
-	return nil
+type netbsd struct {
+	nopChecker
 }
 
 func (netbsd) syscallCheck(ctx *checkContext, call *prog.Syscall) string {

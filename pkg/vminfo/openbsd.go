@@ -7,22 +7,8 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-type openbsd int
-
-func (openbsd) RequiredFiles() []string {
-	return nil
-}
-
-func (openbsd) checkFiles() []string {
-	return nil
-}
-
-func (openbsd) parseModules(files filesystem) ([]*KernelModule, error) {
-	return nil, nil
-}
-
-func (openbsd) machineInfos() []machineInfoFunc {
-	return nil
+type openbsd struct {
+	nopChecker
 }
 
 func (openbsd) syscallCheck(ctx *checkContext, call *prog.Syscall) string {
