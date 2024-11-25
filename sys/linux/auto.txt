@@ -104,7 +104,7 @@ include <net/netlabel/netlabel_calipso.h>
 include <net/netlabel/netlabel_cipso_v4.h>
 include <net/netlabel/netlabel_mgmt.h>
 include <net/netlabel/netlabel_unlabeled.h>
-landlock_rule_type = LANDLOCK_RULE_PATH_BENEATH, LANDLOCK_RULE_NET_PORT
+auto_landlock_rule_type = LANDLOCK_RULE_PATH_BENEATH, LANDLOCK_RULE_NET_PORT
 resource genl_802_15_4_MAC_family_id_auto[int16]
 resource genl_HSR_family_id_auto[int16]
 resource genl_IOAM6_family_id_auto[int16]
@@ -336,7 +336,7 @@ kcmp$auto(pid1 int32, pid2 int32, type int32, idx1 intptr, idx2 intptr) (automat
 kexec_load$auto(entry intptr, nr_segments intptr, segments ptr[inout, kexec_segment$auto_record], flags intptr) (automatic)
 keyctl$auto(option int32, arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr) (automatic)
 kill$auto(pid pid, sig int32) (automatic)
-landlock_add_rule$auto(ruleset_fd fd, rule_type flags[landlock_rule_type], rule_attr ptr[in, array[auto_todo]], flags int32) (automatic)
+landlock_add_rule$auto(ruleset_fd fd, rule_type flags[auto_landlock_rule_type], rule_attr ptr[in, array[auto_todo]], flags int32) (automatic)
 landlock_create_ruleset$auto(attr ptr[in, landlock_ruleset_attr$auto_record], size intptr, flags int32) (automatic)
 landlock_restrict_self$auto(ruleset_fd fd, flags int32) (automatic)
 lchown$auto(filename ptr[in, filename], user uid, group gid) (automatic)

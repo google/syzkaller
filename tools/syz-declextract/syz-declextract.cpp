@@ -444,7 +444,7 @@ public:
                           isSyscallParam); // NOTE: The fieldType contains information we need, don't use field instead.
     case clang::Type::Enum: {
       const auto &enumDecl = llvm::dyn_cast<EnumType>(field)->getDecl();
-      auto name = enumDecl->getNameAsString();
+      auto name = "auto_" + enumDecl->getNameAsString();
       flags.push_back(name);
       includes.push_back(std::filesystem::relative(SM->getFilename(enumDecl->getSourceRange().getBegin()).str()));
       const char *sep = " = ";
