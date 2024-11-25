@@ -65,10 +65,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if _, err := exec.LookPath("vmrun"); err != nil {
 		return nil, fmt.Errorf("cannot find vmrun")
 	}
-	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
-		cfg.Count = 1
-	}
 	pool := &Pool{
 		cfg: cfg,
 		env: env,

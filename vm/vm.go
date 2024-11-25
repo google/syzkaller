@@ -20,6 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -48,6 +49,7 @@ type Pool struct {
 	workdir            string
 	template           string
 	timeouts           targets.Timeouts
+	count              int
 	activeCount        int32
 	snapshot           bool
 	hostFuzzer         bool
@@ -131,12 +133,18 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
+	count := impl.Count()
+	if debug && count > 1 {
+		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", count)
+		count = 1
+	}
 	return &Pool{
 		impl:       impl,
 		typ:        typ,
 		workdir:    env.Workdir,
 		template:   cfg.WorkdirTemplate,
 		timeouts:   cfg.Timeouts,
+		count:      count,
 		snapshot:   cfg.Snapshot,
 		hostFuzzer: cfg.SysTarget.HostFuzzer,
 		statOutputReceived: stat.New("vm output", "Bytes of VM console output received",
@@ -145,12 +153,12 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 }
 
 func (pool *Pool) Count() int {
-	return pool.impl.Count()
+	return pool.count
 }
 
 func (pool *Pool) Create(index int) (*Instance, error) {
-	if index < 0 || index >= pool.Count() {
-		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.Count())
+	if index < 0 || index >= pool.count {
+		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.count)
 	}
 	workdir, err := osutil.ProcessTempDir(pool.workdir)
 	if err != nil {
@@ -335,7 +343,7 @@ func (inst *Instance) Close() error {
 type Dispatcher = dispatcher.Pool[*Instance]
 
 func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *Dispatcher {
-	return dispatcher.NewPool(pool.Count(), pool.Create, def)
+	return dispatcher.NewPool(pool.count, pool.Create, def)
 }
 
 type monitor struct {

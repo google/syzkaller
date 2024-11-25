@@ -115,9 +115,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 			return nil, fmt.Errorf("invalid adb device id '%v'", device.Serial)
 		}
 	}
-	if env.Debug {
-		cfg.Devices = cfg.Devices[:1]
-	}
 	pool := &Pool{
 		cfg: cfg,
 		env: env,
