@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
@@ -37,21 +38,16 @@ var (
 
 func main() {
 	var (
-		binary    = flag.String("binary", "syz-declextract", "path to binary")
-		sourceDir = flag.String("sourcedir", "", "kernel source directory")
-		buildDir  = flag.String("builddir", "", "kernel build directory (defaults to source directory)")
+		flagConfig = flag.String("config", "", "manager config file")
+		flagBinary = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
 	)
 	defer tool.Init()()
-	if *sourceDir == "" {
-		tool.Failf("path to kernel source directory is required")
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
+	if err != nil {
+		tool.Failf("failed to load manager config: %v", err)
 	}
-	if *buildDir == "" {
-		*buildDir = *sourceDir
-	}
-	*sourceDir = filepath.Clean(osutil.Abs(*sourceDir))
-	*buildDir = filepath.Clean(osutil.Abs(*buildDir))
 
-	compilationDatabase := filepath.Join(*buildDir, "compile_commands.json")
+	compilationDatabase := filepath.Join(cfg.KernelObj, "compile_commands.json")
 	cmds, err := loadCompileCommands(compilationDatabase)
 	if err != nil {
 		tool.Failf("failed to load compile commands: %v", err)
@@ -62,7 +58,7 @@ func main() {
 	outputs := make(chan *output, len(cmds))
 	files := make(chan string, len(cmds))
 	for w := 0; w < runtime.NumCPU(); w++ {
-		go worker(outputs, files, *binary, compilationDatabase)
+		go worker(outputs, files, *flagBinary, compilationDatabase)
 	}
 
 	for _, cmd := range cmds {
@@ -70,7 +66,7 @@ func main() {
 	}
 	close(files)
 
-	syscallNames := readSyscallMap(*sourceDir)
+	syscallNames := readSyscallMap(cfg.KernelSrc)
 
 	var nodes []ast.Node
 	interfaces := make(map[string]Interface)
@@ -80,7 +76,7 @@ func main() {
 		if out == nil {
 			continue
 		}
-		file, err := filepath.Rel(*sourceDir, out.file)
+		file, err := filepath.Rel(cfg.KernelSrc, out.file)
 		if err != nil {
 			tool.Fail(err)
 		}
@@ -91,7 +87,7 @@ func main() {
 		if parse == nil {
 			tool.Failf("%v: parsing error:\n%s", file, out.output)
 		}
-		appendNodes(&nodes, interfaces, parse.Nodes, syscallNames, *sourceDir, *buildDir, file)
+		appendNodes(&nodes, interfaces, parse.Nodes, syscallNames, cfg.KernelSrc, cfg.KernelObj, file)
 	}
 
 	desc := finishDescriptions(nodes)
