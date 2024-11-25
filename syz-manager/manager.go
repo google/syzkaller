@@ -52,26 +52,13 @@ var (
 	flagConfig = flag.String("config", "", "configuration file")
 	flagDebug  = flag.Bool("debug", false, "dump all VM output to console")
 	flagBench  = flag.String("bench", "", "write execution statistics into this file periodically")
-
-	flagMode = flag.String("mode", "fuzzing", "mode of operation, one of:\n"+
-		" - fuzzing: the default continuous fuzzing mode\n"+
-		" - smoke-test: run smoke test for syzkaller+kernel\n"+
-		"	The test consists of booting VMs and running some simple test programs\n"+
-		"	to ensure that fuzzing can proceed in general. After completing the test\n"+
-		"	the process exits and the exit status indicates success/failure.\n"+
-		"	If the kernel oopses during testing, the report is saved to workdir/report.json.\n"+
-		" - corpus-triage: triage corpus and exit\n"+
-		"	This is useful mostly for benchmarking with testbed.\n"+
-		" - corpus-run: continuously run the corpus programs.\n"+
-		" - run-tests: run unit tests\n"+
-		"	Run sys/os/test/* tests in various modes and print results.\n")
-
-	flagTests = flag.String("tests", "", "prefix to match test file names (for -mode run-tests)")
+	flagMode   = flag.String("mode", ModeFuzzing.Name, modesDescription())
+	flagTests  = flag.String("tests", "", "prefix to match test file names (for -mode run-tests)")
 )
 
 type Manager struct {
 	cfg             *mgrconfig.Config
-	mode            Mode
+	mode            *Mode
 	vmPool          *vm.Pool
 	pool            *vm.Dispatcher
 	target          *prog.Target
@@ -123,16 +110,66 @@ type Manager struct {
 	Stats
 }
 
-type Mode int
+type Mode struct {
+	Name                  string
+	Description           string
+	UseDashboard          bool // the mode connects to dashboard/hub
+	LoadCorpus            bool // the mode needs to load the corpus
+	ExitAfterMachineCheck bool // exit with 0 status when machine check is done
+	// Exit with non-zero status and save the report to workdir/report.json if any kernel crash happens.
+	FailOnCrashes bool
+}
 
-// For description of modes see flagMode help.
-const (
-	ModeFuzzing Mode = iota
-	ModeSmokeTest
-	ModeCorpusTriage
-	ModeCorpusRun
-	ModeRunTests
+var (
+	ModeFuzzing = &Mode{
+		Name:         "fuzzing",
+		Description:  `the default continuous fuzzing mode`,
+		UseDashboard: true,
+		LoadCorpus:   true,
+	}
+	ModeSmokeTest = &Mode{
+		Name: "smoke-test",
+		Description: `run smoke test for syzkaller+kernel
+	The test consists of booting VMs and running some simple test programs
+	to ensure that fuzzing can proceed in general. After completing the test
+	the process exits and the exit status indicates success/failure.
+	If the kernel oopses during testing, the report is saved to workdir/report.json.`,
+		ExitAfterMachineCheck: true,
+		FailOnCrashes:         true,
+	}
+	ModeCorpusTriage = &Mode{
+		Name: "corpus-triage",
+		Description: `triage corpus and exit
+	This is useful mostly for benchmarking with testbed.`,
+		LoadCorpus: true,
+	}
+	ModeCorpusRun = &Mode{
+		Name:        "corpus-run",
+		Description: `continuously run the corpus programs`,
+		LoadCorpus:  true,
+	}
+	ModeRunTests = &Mode{
+		Name: "run-tests",
+		Description: `run unit tests
+	Run sys/os/test/* tests in various modes and print results.`,
+	}
+
+	modes = []*Mode{
+		ModeFuzzing,
+		ModeSmokeTest,
+		ModeCorpusTriage,
+		ModeCorpusRun,
+		ModeRunTests,
+	}
 )
+
+func modesDescription() string {
+	desc := "mode of operation, one of:\n"
+	for _, mode := range modes {
+		desc += fmt.Sprintf(" - %v: %v\n", mode.Name, mode.Description)
+	}
+	return desc
+}
 
 const (
 	// Just started, nothing done yet.
@@ -150,10 +187,10 @@ const (
 )
 
 func main() {
+	flag.Parse()
 	if !prog.GitRevisionKnown() {
 		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
 	}
-	flag.Parse()
 	log.EnableLogCaching(1000, 1<<20)
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
@@ -163,34 +200,25 @@ func main() {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
 	}
-	var mode Mode
-	switch *flagMode {
-	case "fuzzing":
-		mode = ModeFuzzing
-	case "smoke-test":
-		mode = ModeSmokeTest
-		cfg.DashboardClient = ""
-		cfg.HubClient = ""
-	case "corpus-triage":
-		mode = ModeCorpusTriage
-		cfg.DashboardClient = ""
-		cfg.HubClient = ""
-	case "corpus-run":
-		mode = ModeCorpusRun
-		cfg.HubClient = ""
-		cfg.DashboardClient = ""
-	case "run-tests":
-		mode = ModeRunTests
-		cfg.DashboardClient = ""
-		cfg.HubClient = ""
-	default:
+	var mode *Mode
+	for _, m := range modes {
+		if *flagMode == m.Name {
+			mode = m
+			break
+		}
+	}
+	if mode == nil {
 		flag.PrintDefaults()
 		log.Fatalf("unknown mode: %v", *flagMode)
+	}
+	if !mode.UseDashboard {
+		cfg.DashboardClient = ""
+		cfg.HubClient = ""
 	}
 	RunManager(mode, cfg)
 }
 
-func RunManager(mode Mode, cfg *mgrconfig.Config) {
+func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	var vmPool *vm.Pool
 	if !cfg.VMLess {
 		var err error
@@ -237,7 +265,7 @@ func RunManager(mode Mode, cfg *mgrconfig.Config) {
 	}
 
 	mgr.initStats()
-	if mode == ModeFuzzing || mode == ModeCorpusTriage || mode == ModeCorpusRun {
+	if mgr.mode.LoadCorpus {
 		go mgr.preloadCorpus()
 	} else {
 		close(mgr.corpusPreload)
@@ -630,7 +658,7 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	}
 	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Title, flags)
 
-	if mgr.mode == ModeSmokeTest {
+	if mgr.mode.FailOnCrashes {
 		data, err := json.Marshal(crash.Report)
 		if err != nil {
 			log.Fatalf("failed to serialize crash report: %v", err)
@@ -1015,8 +1043,8 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	if len(enabledSyscalls) == 0 {
 		log.Fatalf("all system calls are disabled")
 	}
-	if mgr.mode == ModeSmokeTest {
-		mgr.exit("smoke test")
+	if mgr.mode.ExitAfterMachineCheck {
+		mgr.exit("done")
 	}
 
 	mgr.mu.Lock()
@@ -1037,7 +1065,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
 
-	if mgr.mode == ModeFuzzing {
+	if mgr.mode == ModeFuzzing || mgr.mode == ModeCorpusTriage {
 		corpusUpdates := make(chan corpus.NewItemEvent, 128)
 		mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
 			corpusUpdates, mgr.coverFilters.Areas)
@@ -1120,7 +1148,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 		}()
 		return ctx
 	}
-	panic(fmt.Sprintf("unexpected mode %q", mgr.mode))
+	panic(fmt.Sprintf("unexpected mode %q", mgr.mode.Name))
 }
 
 type corpusRunner struct {
