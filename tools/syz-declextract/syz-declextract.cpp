@@ -20,6 +20,7 @@
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/TypeTraits.h"
+#include "clang/Frontend/CompilerInstance.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Sema/Ownership.h"
 #include "clang/Tooling/CommonOptionsParser.h"
@@ -30,15 +31,19 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <stdio.h>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+#include <sys/ioctl.h>
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -47,6 +52,14 @@ const char *const AccessUnknown = "-";
 const char *const AccessUser = "user";
 const char *const AccessNsAdmin = "ns_admin";
 const char *const AccessAdmin = "admin";
+
+// MacroDef/MacroMap hold information about macros defined in the file.
+struct MacroDef {
+  std::string_view val;    // value as written in the source
+  SourceRange sourceRange; // soruce range of the value
+};
+
+using MacroMap = std::unordered_map<std::string_view, MacroDef>;
 
 struct Param {
   std::string type;
@@ -152,6 +165,30 @@ std::string getDeclName(ASTContext &context, const clang::Expr *expr, const Sour
     name += "$auto_" + getDeclFilename(SM, matcher.decl->getDecl());
   }
   return name;
+}
+
+// Recursively finds first sizeof in the expression and return the type passed to sizeof.
+std::optional<QualType> getSizeofType(ASTContext *context, const Expr *e) {
+  struct Matcher : MatchFinder::MatchCallback {
+    const UnaryExprOrTypeTraitExpr *match = nullptr;
+    void run(const MatchFinder::MatchResult &Result) override {
+      match = Result.Nodes.getNodeAs<UnaryExprOrTypeTraitExpr>("sizeof");
+    }
+  };
+  MatchFinder finder;
+  Matcher matcher;
+  finder.addMatcher(stmt(forEachDescendant(unaryExprOrTypeTraitExpr(ofKind(UETT_SizeOf)).bind("sizeof"))), &matcher);
+  finder.match(*e, *context);
+  if (!matcher.match) {
+    return {};
+  }
+  return matcher.match->getArgumentType();
+}
+
+int64_t evaluate(ASTContext *context, const Expr *expr) {
+  Expr::EvalResult res;
+  expr->EvaluateAsConstantExpr(res, *context);
+  return res.Val.getInt().getExtValue();
 }
 
 bool endsWith(const std::string_view &str, const std::string_view end) {
@@ -430,8 +467,11 @@ public:
         fieldType = getFieldType(pointeeType, context, fieldName);
       }
       const auto &ptrDir = pointeeType.isConstQualified() ? "in" : "inout"; // TODO: Infer direction of non-const.
-      return makePtr(ptrDir, fieldType,
-                     parent + "$auto_record" == fieldType); // Checks if the direct parent is the same as the node.
+      // Produce opt pointer if the direct parent is the same as this node, or if the field name is next.
+      // Looking at the field name is a hack, but it's enough to avoid some recursion cases,
+      // e.g. for struct adf_user_cfg_section.
+      bool opt = (parent + "$auto_record" == fieldType) || (fieldName == "next");
+      return makePtr(ptrDir, fieldType, opt);
     }
     case clang::Type::Builtin:
       return getSyzType(field.getAsString(), fieldName, isSyscallParam);
@@ -510,7 +550,7 @@ public:
   void print() {
     puts("type auto_todo intptr");
     for (const auto &inc : includes) {
-      printf("include<%s>\n", inc.c_str());
+      printf("include <%s>\n", inc.c_str());
     }
     for (const auto &flag : flags) {
       puts(flag.c_str());
@@ -997,20 +1037,192 @@ private:
   }
 };
 
+// FileOpsMatcher locates definitions of file_operations variables/arrays,
+// and extracts open/read/ioctl/etc callbacks from these definitions.
+// It also tries to extract set of ioctl commands in a best effort way.
+class FileOpsMatcher : public MatchFinder::MatchCallback {
+public:
+  FileOpsMatcher(MatchFinder &Finder, const MacroMap &Macros) : Macros(Macros) {
+    // Match initialization of file_operations objects (both scalar and arrays).
+    Finder.addMatcher(initListExpr(hasType(recordDecl(hasName("file_operations")))).bind("fops"), this);
+  }
+
+private:
+  const MacroMap &Macros;
+  std::unique_ptr<RecordExtractor> recordExtractor;
+  std::vector<std::string> includes;
+  std::vector<std::string> defines;
+
+  void run(const MatchFinder::MatchResult &Result) override {
+    ASTContext *context = Result.Context;
+    const auto *fops = Result.Nodes.getNodeAs<InitListExpr>("fops");
+    if (fops->getNumInits() == 0 || isa<DesignatedInitExpr>(fops->getInit(0))) {
+      // Some code constructs produce init list with DesignatedInitExpr.
+      // Unclear why, but it won't be handled by the following code, and is not necessary to handle.
+      return;
+    }
+    std::map<std::string, int> fields;
+    for (const auto &field : fops->getType()->getAsRecordDecl()->fields()) {
+      fields[field->getNameAsString()] = field->getFieldIndex();
+    }
+    std::string open = getDeclName(*context, fops->getInit(fields["open"]));
+    std::string ioctl = getDeclName(*context, fops->getInit(fields["unlocked_ioctl"]));
+    std::string read = getDeclName(*context, fops->getInit(fields["read"]));
+    if (read.empty()) {
+      read = getDeclName(*context, fops->getInit(fields["read_iter"]));
+    }
+    std::string write = getDeclName(*context, fops->getInit(fields["write"]));
+    if (write.empty()) {
+      write = getDeclName(*context, fops->getInit(fields["write_iter"]));
+    }
+    std::string mmap = getDeclName(*context, fops->getInit(fields["mmap"]));
+    if (mmap.empty()) {
+      mmap = getDeclName(*context, fops->getInit(fields["get_unmapped_area"]));
+    }
+    printf(R"(#JSON: {"Fops":{"Open":"%s","Ioctl":"%s","Read":"%s","Write":"%s","Mmap":"%s","Cmds":[)", open.c_str(),
+           ioctl.c_str(), read.c_str(), write.c_str(), mmap.c_str());
+    if (!ioctl.empty()) {
+      extractIoctlCommands(context, ioctl);
+    }
+    printf("]}}\n");
+    if (recordExtractor) {
+      recordExtractor->print();
+      recordExtractor.reset();
+    }
+    for (const auto &include : includes) {
+      printf("include <%s>\n", include.c_str());
+    }
+    includes.clear();
+    for (const auto &def : defines) {
+      printf("define %s\n", def.c_str());
+    }
+    defines.clear();
+  }
+
+  void extractIoctlCommands(ASTContext *context, const std::string &ioctl) {
+    struct Matcher : MatchFinder::MatchCallback {
+      std::vector<std::string> cmds;
+      std::vector<int64_t> vals;
+      std::vector<std::optional<QualType>> types;
+      void run(const MatchFinder::MatchResult &Result) override {
+        ASTContext *context = Result.Context;
+        SourceManager &SM = context->getSourceManager();
+        const auto *cmd = Result.Nodes.getNodeAs<CaseStmt>("cmd")->getLHS();
+        auto range = Lexer::getAsCharRange(cmd->getSourceRange(), SM, context->getLangOpts());
+        std::string cmdStr = Lexer::getSourceText(range, SM, context->getLangOpts()).str();
+        cmds.push_back(cmdStr);
+        vals.push_back(evaluate(context, cmd));
+        types.push_back(getSizeofType(context, cmd));
+      }
+    };
+    Matcher matcher;
+    MatchFinder finder;
+    // If we see the ioctl function definition, match cases of switches (very best-effort for now).
+    finder.addMatcher(
+        functionDecl(hasName(ioctl), forEachDescendant(switchStmt(forEachSwitchCase(caseStmt().bind("cmd"))))),
+        &matcher);
+    finder.matchAST(*context);
+    bool comma = false;
+    for (size_t i = 0; i < matcher.cmds.size(); i++) {
+      emitIoctlCommand(context, matcher.cmds[i], matcher.vals[i], matcher.types[i], comma);
+    }
+  }
+
+  void emitIoctlCommand(ASTContext *context, const std::string &cmd, int64_t val, std::optional<QualType> type,
+                        bool &comma) {
+    auto macroDef = Macros.find(cmd);
+    if (macroDef == Macros.end()) {
+      return;
+    }
+    std::string include = std::filesystem::relative(
+        context->getSourceManager().getFilename(macroDef->second.sourceRange.getBegin()).str());
+    // Include only uapi headers. Some ioctl commands defined in internal headers, or even in .c files.
+    // They have high chances of breaking compilation during const extract.
+    // If it's not defined in uapi, emit define with concrete value.
+    // Note: the value may be wrong for other arches.
+    if (contains(include, "/uapi/") && endsWith(include, ".h")) {
+      includes.push_back(include);
+    } else {
+      defines.push_back(cmd + " " + std::to_string(val));
+    }
+    std::string arg = "ptr[in, array[int8]]";
+    const auto dir = _IOC_DIR(val);
+    if (dir == _IOC_NONE) {
+      arg = "const[0]";
+    } else if (type && (dir == _IOC_READ || dir == _IOC_WRITE)) {
+      if (!recordExtractor) {
+        recordExtractor.reset(new RecordExtractor(&context->getSourceManager()));
+      }
+      const auto &inner = recordExtractor->getFieldType(*type, context, cmd);
+      arg = makePtr(dir == _IOC_READ ? "in" : "inout", inner);
+    }
+    printf(R"(%s{"Name":"%s","Type":"%s"})", comma ? "," : "", cmd.c_str(), arg.c_str());
+    comma = true;
+  }
+};
+
+// PPCallbacksTracker records all macro definitions (name/value/source location) for other passes to use.
+class PPCallbacksTracker : public PPCallbacks {
+public:
+  PPCallbacksTracker(Preprocessor &PP, MacroMap &Macros) : SM(PP.getSourceManager()), Macros(Macros) {}
+
+private:
+  SourceManager &SM;
+  MacroMap &Macros;
+
+  void MacroDefined(const Token &MacroName, const MacroDirective *MD) override {
+    const char *nameBegin = SM.getCharacterData(MacroName.getLocation());
+    const char *nameEnd = SM.getCharacterData(MacroName.getEndLoc());
+    std::string_view name(nameBegin, nameEnd - nameBegin);
+    const char *valBegin = SM.getCharacterData(MD->getMacroInfo()->getDefinitionLoc());
+    const char *valEnd = SM.getCharacterData(MD->getMacroInfo()->getDefinitionEndLoc()) + 1;
+    // Definition includes the macro name, remove it.
+    valBegin += std::min<size_t>(name.size(), valEnd - valBegin);
+    while (valBegin < valEnd && isspace(*valBegin))
+      valBegin++;
+    while (valBegin < valEnd && isspace(*(valEnd - 1)))
+      valEnd--;
+    std::string_view val(valBegin, valEnd - valBegin);
+    Macros[name] = MacroDef{
+        val,
+        SourceRange(MD->getMacroInfo()->getDefinitionLoc(), MD->getMacroInfo()->getDefinitionEndLoc()),
+    };
+  }
+};
+
+class AttachPPHooks : public tooling::SourceFileCallbacks {
+public:
+  AttachPPHooks(MacroMap &Macros) : Macros(Macros) {}
+
+private:
+  MacroMap &Macros;
+  std::unique_ptr<PPCallbacksTracker> Tracker;
+
+  bool handleBeginSource(CompilerInstance &CI) override {
+    Preprocessor &PP = CI.getPreprocessor();
+    PP.addPPCallbacks(std::make_unique<PPCallbacksTracker>(PP, Macros));
+    return true;
+  }
+};
+
 int main(int argc, const char **argv) {
   llvm::cl::OptionCategory SyzDeclExtractOptionCategory("syz-declextract options");
-  auto ExpectedParser = clang::tooling::CommonOptionsParser::create(argc, argv, SyzDeclExtractOptionCategory);
+  auto ExpectedParser = tooling::CommonOptionsParser::create(argc, argv, SyzDeclExtractOptionCategory);
   if (!ExpectedParser) {
     llvm::errs() << ExpectedParser.takeError();
     return 1;
   }
 
+  MacroMap Macros;
+  AttachPPHooks Hooks(Macros);
+
   MatchFinder Finder;
   SyscallMatcher SyscallMatcher(Finder);
   NetlinkPolicyMatcher NetlinkPolicyMatcher(Finder);
   IouringMatcher IouringMatcher(Finder);
+  FileOpsMatcher FileOpsMatcher(Finder, Macros);
 
-  clang::tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
-  clang::tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
-  return Tool.run(clang::tooling::newFrontendActionFactory(&Finder).get());
+  tooling::CommonOptionsParser &OptionsParser = ExpectedParser.get();
+  tooling::ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
+  return Tool.run(tooling::newFrontendActionFactory(&Finder, &Hooks).get());
 }

@@ -17,7 +17,7 @@ make CC=clang -j`nproc` # kernel has to be built at least once for the script to
 LLVM=$PWD/llvm-project
 git clone https://github.com/llvm/llvm-project.git $LLVM
 cd $LLVM
-git checkout 0f231567719c99caa99164d8f91bad50883dab03 # In case of any breaking changes, this commit works
+git checkout 3a31427224d4fa49d7ef737b21f6027dc4928ecf # In case of any breaking changes, this commit works
 echo 'add_clang_executable(syz-declextract syz-declextract/syz-declextract.cpp)
 target_link_libraries(syz-declextract PRIVATE clangTooling)' >> $LLVM/clang/CMakeLists.txt
 ```
@@ -42,6 +42,12 @@ make -j`nproc` syz-declextract
 
 ## Running on the whole kernel
 ```
-go run tools/syz-declextract/run.go -binary=$LLVM_BUILD/bin/syz-declextract -sourcedir=$KERNEL
+go run tools/syz-declextract/run.go -binary=$LLVM_BUILD/bin/syz-declextract -config=manager.cfg
 syz-env make extract SOURCEDIR=$KERNEL
 ```
+
+The tool caches results of static kernel analysis in manager.workdir/declextract.cache,
+and results of the dynamic kernel probing in manager.workdir/interfaces.json.
+These can be examined for debugging purposes, and reused separately by passing
+-cache-extract and -cache-probe flags. Caching greatly saves time if only part
+of the system has changed. If only the Go tool has changed, then both caches can be reused.
