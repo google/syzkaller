@@ -71,10 +71,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("invalid config param memory_total_bytes: %v, want [%d,%d]",
 			minMemory, cfg.MemoryTotalBytes, hostTotalMemory)
 	}
-	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
-		cfg.Count = 1
-	}
 	if !osutil.IsExist(env.Image) {
 		return nil, fmt.Errorf("image file %q does not exist", env.Image)
 	}
