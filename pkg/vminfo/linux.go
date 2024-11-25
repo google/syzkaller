@@ -13,9 +13,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
-type linux int
+type linux struct {
+	vmType string
+}
 
 func (linux) RequiredFiles() []string {
 	return []string{
@@ -27,7 +31,7 @@ func (linux) RequiredFiles() []string {
 	}
 }
 
-func (linux) checkFiles() []string {
+func (linux) CheckFiles() []string {
 	return []string{
 		"/proc/version",
 		"/proc/filesystems",
@@ -42,7 +46,10 @@ func (linux) machineInfos() []machineInfoFunc {
 	}
 }
 
-func (linux) parseModules(files filesystem) ([]*KernelModule, error) {
+func (linux linux) parseModules(files filesystem) ([]*KernelModule, error) {
+	if linux.vmType == targets.GVisor || linux.vmType == targets.Starnix {
+		return nil, nil
+	}
 	var modules []*KernelModule
 	re := regexp.MustCompile(`(\w+) ([0-9]+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	modulesText, _ := files.ReadFile("/proc/modules")
