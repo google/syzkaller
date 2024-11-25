@@ -58,7 +58,7 @@ func FuzzDeserialize(data []byte) int {
 }
 
 func FuzzParseLog(data []byte) int {
-	if len(fuzzTarget.ParseLog(data)) != 0 {
+	if len(fuzzTarget.ParseLog(data, prog.NonStrict)) != 0 {
 		return 1
 	}
 	return 0

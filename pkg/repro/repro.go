@@ -92,7 +92,7 @@ var ErrEmptyCrashLog = errors.New("no programs")
 
 func runInner(ctx context.Context, crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature,
 	reporter *report.Reporter, fast bool, exec execInterface) (*Result, *Stats, error) {
-	entries := cfg.Target.ParseLog(crashLog)
+	entries := cfg.Target.ParseLog(crashLog, prog.NonStrict)
 	if len(entries) == 0 {
 		return nil, nil, fmt.Errorf("log (%d bytes) parse failed: %w", len(crashLog), ErrEmptyCrashLog)
 	}
