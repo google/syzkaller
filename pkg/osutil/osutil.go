@@ -333,10 +333,13 @@ func Abs(path string) string {
 	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
 		panic(fmt.Sprintf("wd changed: %q -> %q", wd, wd1))
 	}
-	if path == "" || filepath.IsAbs(path) {
+	if path == "" {
 		return path
 	}
-	return filepath.Join(wd, path)
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(wd, path)
+	}
+	return filepath.Clean(path)
 }
 
 // MonotonicNano returns monotonic time in nanoseconds from some unspecified point in time.
