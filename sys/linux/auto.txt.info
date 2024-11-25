@@ -226,6 +226,7 @@ NETLINK	NCSI_CMD_SET_PACKAGE_MASK	func:ncsi_set_package_mask_nl	access:admin	man
 NETLINK	NETDEV_CMD_BIND_RX	func:netdev_nl_bind_rx_doit	access:admin	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_DEV_GET	func:netdev_nl_dev_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_NAPI_GET	func:netdev_nl_napi_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_NAPI_SET	func:netdev_nl_napi_set_doit	access:admin	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_PAGE_POOL_GET	func:netdev_nl_page_pool_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_QSTATS_GET	func:netdev_nl_qstats_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_QUEUE_GET	func:netdev_nl_queue_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
@@ -234,6 +235,11 @@ NETLINK	NET_DM_CMD_CONFIG_GET	func:net_dm_cmd_config_get	access:user	manual_desc
 NETLINK	NET_DM_CMD_START	func:net_dm_cmd_trace	access:admin	manual_desc:true	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_STATS_GET	func:net_dm_cmd_stats_get	access:user	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_STOP	func:net_dm_cmd_trace	access:admin	manual_desc:true	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_CAP_GET	func:net_shaper_nl_cap_post_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_DELETE	func:net_shaper_nl_post_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_GET	func:net_shaper_nl_post_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_GROUP	func:net_shaper_nl_post_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_SET	func:net_shaper_nl_post_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NFC_CMD_ACTIVATE_TARGET	func:nfc_genl_activate_target	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
 NETLINK	NFC_CMD_DEACTIVATE_TARGET	func:nfc_genl_deactivate_target	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
 NETLINK	NFC_CMD_DEP_LINK_DOWN	func:nfc_genl_dep_link_down	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
@@ -483,6 +489,10 @@ NETLINK	TASKSTATS_CMD_GET	func:taskstats_user_cmd	access:admin	manual_desc:false
 NETLINK	TCP_METRICS_CMD_DEL	func:tcp_metrics_nl_cmd_del	access:admin	manual_desc:false	auto_desc:true	file:net/ipv4/tcp_metrics.c	subsystem:net
 NETLINK	TCP_METRICS_CMD_GET	func:tcp_metrics_nl_cmd_get	access:user	manual_desc:false	auto_desc:true	file:net/ipv4/tcp_metrics.c	subsystem:net
 NETLINK	THERMAL_GENL_CMD_CDEV_GET	func:thermal_genl_cmd_dumpit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
+NETLINK	THERMAL_GENL_CMD_THRESHOLD_ADD	func:thermal_genl_cmd_doit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
+NETLINK	THERMAL_GENL_CMD_THRESHOLD_DELETE	func:thermal_genl_cmd_doit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
+NETLINK	THERMAL_GENL_CMD_THRESHOLD_FLUSH	func:thermal_genl_cmd_doit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
+NETLINK	THERMAL_GENL_CMD_THRESHOLD_GET	func:thermal_genl_cmd_doit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
 NETLINK	THERMAL_GENL_CMD_TZ_GET_GOV	func:thermal_genl_cmd_doit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
 NETLINK	THERMAL_GENL_CMD_TZ_GET_ID	func:thermal_genl_cmd_dumpit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
 NETLINK	THERMAL_GENL_CMD_TZ_GET_TEMP	func:thermal_genl_cmd_doit	access:user	manual_desc:false	auto_desc:true	file:drivers/thermal/thermal_netlink.c	subsystem:pm
@@ -555,7 +565,7 @@ SYSCALL	clock_settime64	func:__do_sys_clock_settime	access:unknown	manual_desc:f
 SYSCALL	clone	func:__do_sys_clone	access:unknown	manual_desc:true	auto_desc:true	file:kernel/fork.c	subsystem:kernel
 SYSCALL	clone3	func:__do_sys_clone3	access:unknown	manual_desc:true	auto_desc:true	file:kernel/fork.c	subsystem:kernel
 SYSCALL	close	func:__do_sys_close	access:unknown	manual_desc:true	auto_desc:true	file:fs/open.c	subsystem:fs
-SYSCALL	close_range	func:__do_sys_close_range	access:unknown	manual_desc:true	auto_desc:true	file:fs/open.c	subsystem:fs
+SYSCALL	close_range	func:__do_sys_close_range	access:unknown	manual_desc:true	auto_desc:true	file:fs/file.c	subsystem:fs
 SYSCALL	connect	func:__do_sys_connect	access:unknown	manual_desc:true	auto_desc:true	file:net/socket.c	subsystem:net
 SYSCALL	copy_file_range	func:__do_sys_copy_file_range	access:unknown	manual_desc:true	auto_desc:true	file:fs/read_write.c	subsystem:fs
 SYSCALL	creat	func:__do_sys_creat	access:unknown	manual_desc:true	auto_desc:true	file:fs/open.c	subsystem:fs
@@ -639,6 +649,7 @@ SYSCALL	getsockname	func:__do_sys_getsockname	access:unknown	manual_desc:true	au
 SYSCALL	getsockopt	func:__do_sys_getsockopt	access:unknown	manual_desc:true	auto_desc:true	file:net/socket.c	subsystem:net
 SYSCALL	gettimeofday	func:__do_sys_gettimeofday	access:unknown	manual_desc:false	auto_desc:true	file:kernel/time/time.c	subsystem:kernel
 SYSCALL	getxattr	func:__do_sys_getxattr	access:unknown	manual_desc:true	auto_desc:true	file:fs/xattr.c	subsystem:fs
+SYSCALL	getxattrat	func:__do_sys_getxattrat	access:unknown	manual_desc:false	auto_desc:true	file:fs/xattr.c	subsystem:fs
 SYSCALL	init_module	func:__do_sys_init_module	access:unknown	manual_desc:true	auto_desc:true	file:kernel/module/main.c	subsystem:modules
 SYSCALL	inotify_add_watch	func:__do_sys_inotify_add_watch	access:unknown	manual_desc:true	auto_desc:true	file:fs/notify/inotify/inotify_user.c	subsystem:fs
 SYSCALL	inotify_init1	func:__do_sys_inotify_init1	access:unknown	manual_desc:true	auto_desc:true	file:fs/notify/inotify/inotify_user.c	subsystem:fs
@@ -673,6 +684,7 @@ SYSCALL	linkat	func:__do_sys_linkat	access:unknown	manual_desc:true	auto_desc:tr
 SYSCALL	listen	func:__do_sys_listen	access:unknown	manual_desc:true	auto_desc:true	file:net/socket.c	subsystem:net
 SYSCALL	listmount	func:__do_sys_listmount	access:unknown	manual_desc:false	auto_desc:true	file:fs/namespace.c	subsystem:fs
 SYSCALL	listxattr	func:__do_sys_listxattr	access:unknown	manual_desc:true	auto_desc:true	file:fs/xattr.c	subsystem:fs
+SYSCALL	listxattrat	func:__do_sys_listxattrat	access:unknown	manual_desc:false	auto_desc:true	file:fs/xattr.c	subsystem:fs
 SYSCALL	llistxattr	func:__do_sys_llistxattr	access:unknown	manual_desc:true	auto_desc:true	file:fs/xattr.c	subsystem:fs
 SYSCALL	lremovexattr	func:__do_sys_lremovexattr	access:unknown	manual_desc:true	auto_desc:true	file:fs/xattr.c	subsystem:fs
 SYSCALL	lseek	func:__do_sys_lseek	access:unknown	manual_desc:true	auto_desc:true	file:fs/read_write.c	subsystem:fs
@@ -779,6 +791,7 @@ SYSCALL	recvmmsg_time64	func:__do_sys_recvmmsg	access:unknown	manual_desc:false	
 SYSCALL	recvmsg	func:__do_sys_recvmsg	access:unknown	manual_desc:true	auto_desc:true	file:net/socket.c	subsystem:net
 SYSCALL	remap_file_pages	func:__do_sys_remap_file_pages	access:unknown	manual_desc:true	auto_desc:true	file:mm/mmap.c	subsystem:mm
 SYSCALL	removexattr	func:__do_sys_removexattr	access:unknown	manual_desc:true	auto_desc:true	file:fs/xattr.c	subsystem:fs
+SYSCALL	removexattrat	func:__do_sys_removexattrat	access:unknown	manual_desc:false	auto_desc:true	file:fs/xattr.c	subsystem:fs
 SYSCALL	rename	func:__do_sys_rename	access:unknown	manual_desc:true	auto_desc:true	file:fs/namei.c	subsystem:fs
 SYSCALL	renameat	func:__do_sys_renameat	access:unknown	manual_desc:true	auto_desc:true	file:fs/namei.c	subsystem:fs
 SYSCALL	renameat2	func:__do_sys_renameat2	access:unknown	manual_desc:true	auto_desc:true	file:fs/namei.c	subsystem:fs
@@ -851,6 +864,7 @@ SYSCALL	settimeofday	func:__do_sys_settimeofday	access:unknown	manual_desc:false
 SYSCALL	setuid	func:__do_sys_setuid	access:unknown	manual_desc:true	auto_desc:true	file:kernel/sys.c	subsystem:kernel
 SYSCALL	setuid32	func:__do_sys_setuid	access:unknown	manual_desc:false	auto_desc:true	file:kernel/sys.c	subsystem:kernel
 SYSCALL	setxattr	func:__do_sys_setxattr	access:unknown	manual_desc:true	auto_desc:true	file:fs/xattr.c	subsystem:fs
+SYSCALL	setxattrat	func:__do_sys_setxattrat	access:unknown	manual_desc:false	auto_desc:true	file:fs/xattr.c	subsystem:fs
 SYSCALL	shmat	func:__do_sys_shmat	access:unknown	manual_desc:true	auto_desc:true	file:ipc/shm.c	subsystem:kernel
 SYSCALL	shmctl	func:__do_sys_shmctl	access:unknown	manual_desc:true	auto_desc:true	file:ipc/shm.c	subsystem:kernel
 SYSCALL	shmdt	func:__do_sys_shmdt	access:unknown	manual_desc:true	auto_desc:true	file:ipc/shm.c	subsystem:kernel
