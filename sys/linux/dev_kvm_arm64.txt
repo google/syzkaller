@@ -5,6 +5,7 @@
 
 meta arches["arm64"]
 
+include <linux/irqchip/arm-gic-v3.h>
 include <linux/kvm.h>
 include <linux/arm-smccc.h>
 include <uapi/linux/psci.h>
@@ -128,6 +129,7 @@ syzos_api_memwrite [
 	generic		syzos_api_memwrite_generic
 	vgic_gicd	syzos_api_memwrite_vgic_gicd
 	vgic_gicr	syzos_api_memwrite_vgic_gicr
+	vgic_gits	syzos_api_memwrite_vgic_gits
 ]
 
 syzos_api_memwrite_generic {
@@ -251,6 +253,16 @@ kvm_vgic_gicd_regs = GICD_CTLR, GICD_TYPER, GICD_IIDR, GICD_TYPER2, GICD_STATUSR
 syzos_api_memwrite_vgic_gicd {
 	base	const[0x8000000, int64]
 	offset	flags[kvm_vgic_gicd_regs, int64]
+	value	int64
+	len	flags[syzos_memwrite_len, int64]
+}
+
+kvm_vgic_gits_regs = GITS_CTLR, GITS_IIDR, GITS_TYPER, GITS_MPIDR, GITS_CBASER, GITS_CWRITER, GITS_CREADR, GITS_BASER, GITS_IDREGS_BASE, GITS_PIDR0, GITS_PIDR1, GITS_PIDR2, GITS_PIDR4, GITS_CIDR0, GITS_CIDR1, GITS_CIDR2, GITS_CIDR3, GITS_TRANSLATER, GITS_SGIR
+
+# 0x08080000 is ARM64_ADDR_GITS_BASE from executor/kvm.h
+syzos_api_memwrite_vgic_gits {
+	base	const[0x8080000, int64]
+	offset	flags[kvm_vgic_gits_regs, int64]
 	value	int64
 	len	flags[syzos_memwrite_len, int64]
 }
