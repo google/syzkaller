@@ -48,15 +48,26 @@ type Config struct {
 	DebugTimeouts bool
 	Procs         int
 	Slowdown      int
-	pcBase        uint64
-	localModules  []*vminfo.KernelModule
+	// Extra globs that will be requested during machine checking,
+	// and will be passed to MachineChecked callback.
+	CheckGlobs   []string
+	pcBase       uint64
+	localModules []*vminfo.KernelModule
+}
+
+type RemoteConfig struct {
+	*mgrconfig.Config
+	Manager    Manager
+	Stats      Stats
+	CheckGlobs []string
+	Debug      bool
 }
 
 //go:generate ../../tools/mockery.sh --name Manager --output ./mocks
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
-	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
+	MachineChecked(info *flatrpc.InfoRequest, features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
 	CoverageFilter(modules []*vminfo.KernelModule) []uint64
 }
 
@@ -129,11 +140,11 @@ func NewNamedStats(name string) Stats {
 	}
 }
 
-func New(cfg *mgrconfig.Config, mgr Manager, stats Stats, debug bool) (Server, error) {
+func New(cfg *RemoteConfig) (Server, error) {
 	var pcBase uint64
 	if cfg.KernelObj != "" {
 		var err error
-		pcBase, err = cover.GetPCBase(cfg)
+		pcBase, err = cover.GetPCBase(cfg.Config)
 		if err != nil {
 			return nil, err
 		}
@@ -152,12 +163,12 @@ func New(cfg *mgrconfig.Config, mgr Manager, stats Stats, debug bool) (Server, e
 			VMType:     cfg.Type,
 			Features:   features,
 			Syscalls:   cfg.Syscalls,
-			Debug:      debug,
+			Debug:      cfg.Debug,
 			Cover:      cfg.Cover,
 			Sandbox:    sandbox,
 			SandboxArg: cfg.SandboxArg,
 		},
-		Stats:  stats,
+		Stats:  cfg.Stats,
 		VMArch: cfg.TargetVMArch,
 		RPC:    cfg.RPC,
 		VMLess: cfg.VMLess,
@@ -170,7 +181,8 @@ func New(cfg *mgrconfig.Config, mgr Manager, stats Stats, debug bool) (Server, e
 		Slowdown:          cfg.Timeouts.Slowdown,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
-	}, mgr), nil
+		CheckGlobs:        cfg.CheckGlobs,
+	}, cfg.Manager), nil
 }
 
 func newImpl(ctx context.Context, cfg *Config, mgr Manager) *server {
@@ -268,7 +280,7 @@ func (serv *server) handleRunnerConn(runner *Runner, conn *flatrpc.Conn) error {
 		opts.Features = serv.setupFeatures
 	} else {
 		opts.Files = append(opts.Files, serv.checker.CheckFiles()...)
-		opts.Globs = serv.target.RequiredGlobs()
+		opts.Globs = append(serv.target.RequiredGlobs(), serv.cfg.CheckGlobs...)
 		opts.Features = serv.cfg.Features
 	}
 
@@ -321,7 +333,7 @@ func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 		}
 		// Now execute check programs.
 		go func() {
-			if err := serv.runCheck(infoReq.Files, infoReq.Features); err != nil {
+			if err := serv.runCheck(infoReq); err != nil {
 				log.Fatalf("check failed: %v", err)
 			}
 		}()
@@ -370,20 +382,20 @@ func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
 	return nil
 }
 
-func (serv *server) runCheck(checkFilesInfo []*flatrpc.FileInfo, checkFeatureInfo []*flatrpc.FeatureInfo) error {
-	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(checkFilesInfo, checkFeatureInfo)
+func (serv *server) runCheck(info *flatrpc.InfoRequest) error {
+	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(info.Files, info.Features)
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
 	if serv.cfg.PrintMachineCheck {
-		serv.printMachineCheck(checkFilesInfo, enabledCalls, disabledCalls, transitivelyDisabled, features)
+		serv.printMachineCheck(info.Files, enabledCalls, disabledCalls, transitivelyDisabled, features)
 	}
 	if checkErr != nil {
 		return checkErr
 	}
 	enabledFeatures := features.Enabled()
 	serv.setupFeatures = features.NeedSetup()
-	newSource := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
+	newSource := serv.mgr.MachineChecked(info, enabledFeatures, enabledCalls)
 	serv.baseSource.Store(newSource)
 	serv.checkDone.Store(true)
 	return nil
