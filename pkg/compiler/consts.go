@@ -42,7 +42,7 @@ func FabricateSyscallConsts(target *targets.Target, constInfo map[string]*ConstI
 	for _, info := range constInfo {
 		for _, c := range info.Consts {
 			if strings.HasPrefix(c.Name, target.SyscallPrefix) {
-				cf.addConst(target.Arch, c.Name, 0, true)
+				cf.addConst(target.Arch, c.Name, 0, true, false)
 			}
 		}
 	}

@@ -137,6 +137,27 @@ func TestData(t *testing.T) {
 	}
 }
 
+func TestAutoConsts(t *testing.T) {
+	t.Parallel()
+	eh := func(pos ast.Pos, msg string) {
+		t.Errorf("%v: %v", pos, msg)
+	}
+	desc := ast.ParseGlob(filepath.Join("testdata", "auto*.txt"), eh)
+	if desc == nil {
+		t.Fatalf("parsing failed")
+	}
+	constFile := DeserializeConstFile(filepath.Join("testdata", "auto*.txt.const"), eh)
+	if constFile == nil {
+		t.Fatalf("const loading failed")
+	}
+	target := targets.List[targets.TestOS][targets.TestArch64]
+	consts := constFile.Arch(targets.TestArch64)
+	prog := Compile(desc, consts, target, eh)
+	if prog == nil {
+		t.Fatalf("compilation failed")
+	}
+}
+
 func TestFuzz(t *testing.T) {
 	t.Parallel()
 	for _, data := range []string{
