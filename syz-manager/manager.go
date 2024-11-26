@@ -30,6 +30,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/gce"
+	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -154,6 +155,20 @@ var (
 		Description: `run unit tests
 	Run sys/os/test/* tests in various modes and print results.`,
 	}
+	ModeIfaceProbe = &Mode{
+		Name: "iface-probe",
+		Description: `run dynamic part of kernel interface auto-extraction
+	When the probe is finished, manager writes the result to workdir/interfaces.json file and exits.`,
+		CheckConfig: func(cfg *mgrconfig.Config) error {
+			if cfg.Snapshot {
+				return fmt.Errorf("snapshot mode is not supported")
+			}
+			if cfg.Sandbox != "none" {
+				return fmt.Errorf("sandbox \"%v\" is not supported (only \"none\")", cfg.Sandbox)
+			}
+			return nil
+		},
+	}
 
 	modes = []*Mode{
 		ModeFuzzing,
@@ -161,6 +176,7 @@ var (
 		ModeCorpusTriage,
 		ModeCorpusRun,
 		ModeRunTests,
+		ModeIfaceProbe,
 	}
 )
 
@@ -284,6 +300,9 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		Manager: mgr,
 		Stats:   mgr.servStats,
 		Debug:   *flagDebug,
+	}
+	if mode == ModeIfaceProbe {
+		rpcCfg.CheckGlobs = ifaceprobe.Globs()
 	}
 	mgr.serv, err = rpcserver.New(rpcCfg)
 	if err != nil {
@@ -1164,6 +1183,17 @@ func (mgr *Manager) MachineChecked(info *flatrpc.InfoRequest, features flatrpc.F
 			mgr.exit("tests")
 		}()
 		return ctx
+	} else if mgr.mode == ModeIfaceProbe {
+		exec := queue.Plain()
+		go func() {
+			res, err := ifaceprobe.Run(vm.ShutdownCtx(), mgr.cfg, exec, info)
+			if err != nil {
+				log.Fatalf("interface probing failed: %v", err)
+			}
+			mgr.saveJSON("interfaces.json", res)
+			mgr.exit("interface probe")
+		}()
+		return exec
 	}
 	panic(fmt.Sprintf("unexpected mode %q", mgr.mode.Name))
 }
