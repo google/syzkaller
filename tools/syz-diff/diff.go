@@ -273,7 +273,12 @@ func setup(ctx context.Context, name string, cfg *mgrconfig.Config) *kernelConte
 		log.Fatalf("failed to create reporter for %q: %v", name, err)
 	}
 
-	kernelCtx.serv, err = rpcserver.New(cfg, kernelCtx, kernelCtx.servStats, *flagDebug)
+	kernelCtx.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
+		Config:  cfg,
+		Manager: kernelCtx,
+		Stats:   kernelCtx.servStats,
+		Debug:   *flagDebug,
+	})
 	if err != nil {
 		log.Fatalf("failed to create rpc server for %q: %v", name, err)
 	}
@@ -305,7 +310,8 @@ func (kc *kernelContext) BugFrames() (leaks, races []string) {
 	return nil, nil
 }
 
-func (kc *kernelContext) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
+func (kc *kernelContext) MachineChecked(_ *flatrpc.InfoRequestRawT, features flatrpc.Feature,
+	syscalls map[*prog.Syscall]bool) queue.Source {
 	if len(syscalls) == 0 {
 		log.Fatalf("all system calls are disabled")
 	}

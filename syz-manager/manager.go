@@ -118,6 +118,7 @@ type Mode struct {
 	ExitAfterMachineCheck bool // exit with 0 status when machine check is done
 	// Exit with non-zero status and save the report to workdir/report.json if any kernel crash happens.
 	FailOnCrashes bool
+	CheckConfig   func(cfg *mgrconfig.Config) error
 }
 
 var (
@@ -211,6 +212,11 @@ func main() {
 		flag.PrintDefaults()
 		log.Fatalf("unknown mode: %v", *flagMode)
 	}
+	if mode.CheckConfig != nil {
+		if err := mode.CheckConfig(cfg); err != nil {
+			log.Fatalf("%v mode: %v", mode.Name, err)
+		}
+	}
 	if !mode.UseDashboard {
 		cfg.DashboardClient = ""
 		cfg.HubClient = ""
@@ -273,7 +279,13 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 
 	// Create RPC server for fuzzers.
 	mgr.servStats = rpcserver.NewStats()
-	mgr.serv, err = rpcserver.New(mgr.cfg, mgr, mgr.servStats, *flagDebug)
+	rpcCfg := &rpcserver.RemoteConfig{
+		Config:  mgr.cfg,
+		Manager: mgr,
+		Stats:   mgr.servStats,
+		Debug:   *flagDebug,
+	}
+	mgr.serv, err = rpcserver.New(rpcCfg)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -659,13 +671,7 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Title, flags)
 
 	if mgr.mode.FailOnCrashes {
-		data, err := json.Marshal(crash.Report)
-		if err != nil {
-			log.Fatalf("failed to serialize crash report: %v", err)
-		}
-		if err := osutil.WriteFile(filepath.Join(mgr.cfg.Workdir, "report.json"), data); err != nil {
-			log.Fatal(err)
-		}
+		mgr.saveJSON("report.json", crash.Report)
 		log.Fatalf("kernel crashed in smoke testing mode, exiting")
 	}
 
@@ -717,6 +723,16 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		go mgr.emailCrash(crash)
 	}
 	return mgr.NeedRepro(crash)
+}
+
+func (mgr *Manager) saveJSON(filename string, object any) {
+	data, err := json.MarshalIndent(object, "", "\t")
+	if err != nil {
+		log.Fatalf("failed to serialize json data: %v", err)
+	}
+	if err := osutil.WriteFile(filepath.Join(mgr.cfg.Workdir, filename), data); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (mgr *Manager) needLocalRepro(crash *manager.Crash) bool {
@@ -1039,12 +1055,13 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 	return
 }
 
-func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) queue.Source {
+func (mgr *Manager) MachineChecked(info *flatrpc.InfoRequest, features flatrpc.Feature,
+	enabledSyscalls map[*prog.Syscall]bool) queue.Source {
 	if len(enabledSyscalls) == 0 {
 		log.Fatalf("all system calls are disabled")
 	}
 	if mgr.mode.ExitAfterMachineCheck {
-		mgr.exit("done")
+		mgr.exit(mgr.mode.Name)
 	}
 
 	mgr.mu.Lock()
