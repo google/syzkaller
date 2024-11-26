@@ -33,13 +33,14 @@ func TestExecutor(t *testing.T) {
 				t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
 			}
 			t.Parallel()
+			dir := t.TempDir()
 			target, err := prog.GetTarget(runtime.GOOS, sysTarget.Arch)
 			if err != nil {
 				t.Fatal(err)
 			}
 			bin := csource.BuildExecutor(t, target, "../..")
 			// qemu-user may allow us to run some cross-arch binaries.
-			if _, err := osutil.RunCmd(time.Minute, "", bin, "test"); err != nil {
+			if _, err := osutil.RunCmd(time.Minute, dir, bin, "test"); err != nil {
 				if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
 					t.Fatal(err)
 				}
