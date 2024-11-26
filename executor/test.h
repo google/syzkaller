@@ -5,6 +5,11 @@
 #include "test_linux.h"
 #endif
 
+#include <algorithm>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 static int test_copyin()
 {
 	static uint16 buf[3];
@@ -272,6 +277,90 @@ static int test_cover_filter()
 	return ret;
 }
 
+static bool test_one_glob(const char* pattern, std::vector<std::string> want)
+{
+	std::vector<std::string> got = Glob(pattern);
+	std::sort(want.begin(), want.end());
+	std::sort(got.begin(), got.end());
+	if (got == want)
+		return true;
+	printf("pattern '%s', want %zu files:\n", pattern, want.size());
+	for (const auto& f : want)
+		printf("\t'%s'\n", f.c_str());
+	printf("got %zu files:\n", got.size());
+	for (const auto& f : got)
+		printf("\t'%s'\n", f.c_str());
+	return false;
+}
+
+static void must_mkdir(const char* dir)
+{
+	if (mkdir(dir, 0700))
+		failmsg("mkdir failed", "dir=%s", dir);
+}
+
+static void must_creat(const char* file)
+{
+	int fd = open(file, O_CREAT | O_EXCL, 0700);
+	if (fd == -1)
+		failmsg("open failed", "file=%s", file);
+	close(fd);
+}
+
+static void must_link(const char* oldpath, const char* linkpath)
+{
+	if (link(oldpath, linkpath))
+		failmsg("link failed", "oldpath=%s linkpath=%s", oldpath, linkpath);
+}
+
+static void must_symlink(const char* oldpath, const char* linkpath)
+{
+	if (symlink(oldpath, linkpath))
+		failmsg("symlink failed", "oldpath=%s linkpath=%s", oldpath, linkpath);
+}
+
+static int test_glob()
+{
+	// Note: pkg/runtest.TestExecutor creates a temp dir for the test,
+	// so we create files in cwd and don't clean up.
+	if (!test_one_glob("glob/*", {}))
+		return 1;
+	must_mkdir("glob");
+	if (!test_one_glob("glob/*", {}))
+		return 1;
+	must_mkdir("glob/dir1");
+	must_creat("glob/file1");
+	must_mkdir("glob/dir2");
+	must_creat("glob/dir2/file21");
+	must_mkdir("glob/dir3");
+	must_creat("glob/dir3/file31");
+	must_link("glob/dir3/file31", "glob/dir3/file32");
+	must_symlink("file31", "glob/dir3/file33");
+	must_symlink("deadlink", "glob/dir3/file34");
+	must_symlink("../../glob", "glob/dir3/dir31");
+	must_mkdir("glob/dir4");
+	must_mkdir("glob/dir4/dir41");
+	must_creat("glob/dir4/dir41/file411");
+	must_symlink("dir4", "glob/dir5");
+	must_mkdir("glob/dir6");
+	must_mkdir("glob/dir6/dir61");
+	must_creat("glob/dir6/dir61/file611");
+	must_symlink("dir6/dir61", "glob/self");
+	// Directories are not includes + not recursive (yet).
+	if (!test_one_glob("glob/*", {
+					 "glob/file1",
+				     }))
+		return 1;
+	if (!test_one_glob("glob/*/*", {
+					   "glob/dir2/file21",
+					   "glob/dir3/file31",
+					   "glob/dir3/file32", // hard links are included
+					   "glob/self/file611", // symlinks via name "self" are included
+				       }))
+		return 1;
+	return 0;
+}
+
 static struct {
 	const char* name;
 	int (*f)();
@@ -283,6 +372,7 @@ static struct {
     {"test_kvm", test_kvm},
 #endif
     {"test_cover_filter", test_cover_filter},
+    {"test_glob", test_glob},
 };
 
 static int run_tests(const char* test)

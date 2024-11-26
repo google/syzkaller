@@ -51,6 +51,7 @@ static std::vector<std::string> Glob(const std::string& pattern)
 		files.push_back(file);
 	}
 	globfree(&buf);
+	debug("glob %s resolved to %zu files\n", pattern.c_str(), files.size());
 	return files;
 }
 
