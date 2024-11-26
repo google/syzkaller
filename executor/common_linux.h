@@ -3209,24 +3209,6 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	return 0;
 }
 #endif
-#if !GOARCH_arm64 && (SYZ_EXECUTOR || __NR_syz_kvm_vgic_v3_setup)
-static long syz_kvm_vgic_v3_setup(volatile long a0, volatile long a1, volatile long a2)
-{
-	return 0;
-}
-#endif
-#if !GOARCH_arm64 && (SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu)
-static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
-{
-	return 0;
-}
-#endif
-#if !GOARCH_arm64 && (SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm)
-static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
-{
-	return 0;
-}
-#endif
 #endif
 #endif
 
