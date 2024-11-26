@@ -61,6 +61,11 @@ func (*linux) prepareArch(arch *Arch) error {
 #define va_copy __builtin_va_copy
 #define __va_copy __builtin_va_copy
 `,
+		"asm/kvm.h": `
+struct kvm_debug_exit_arch {};
+struct kvm_guest_debug_arch {};
+struct kvm_sync_regs {};
+`,
 		"asm/a.out.h":    "",
 		"asm/prctl.h":    "",
 		"asm/mce.h":      "",
@@ -134,6 +139,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I.",
 		"-D__KERNEL__",
 		"-DKBUILD_MODNAME=\"-\"",
+		"-DKBUILD_MODFILE=\"-\"",
 		"-I" + sourceDir + "/arch/" + headerArch + "/include",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated/uapi",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated",
