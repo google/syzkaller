@@ -103,8 +103,7 @@ func (checker *Checker) Run(files []*flatrpc.FileInfo, featureInfos []*flatrpc.F
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	ctx := checker.checkContext
 	checker.checkContext = nil
-	ctx.start(files)
-	return ctx.wait(featureInfos)
+	return ctx.do(files, featureInfos)
 }
 
 // Implementation of the queue.Source interface.

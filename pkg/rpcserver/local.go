@@ -112,8 +112,7 @@ type local struct {
 	setupDone chan bool
 }
 
-func (ctx *local) MachineChecked(info *flatrpc.InfoRequest, features flatrpc.Feature,
-	syscalls map[*prog.Syscall]bool) queue.Source {
+func (ctx *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 	<-ctx.setupDone
 	ctx.serv.TriagedCorpus()
 	return ctx.cfg.MachineChecked(features, syscalls)

@@ -24,20 +24,25 @@ static std::vector<std::string> Glob(const std::string& pattern)
 	// because they cause recursion, or lead outside of the target glob
 	// (e.g. /proc/self/{root,cwd}).
 	// However, we want to keep few links: /proc/self, /proc/thread-self,
-	// /sys/kernel/slab/kmalloc-64 (may be a link with slab merging).
+	// /sys/kernel/slab/kmalloc-64 (may be a link with slab merging),
+	// and cgroup links created in the test dir.
 	// This is a hacky way to do it b/c e.g. "self" will be matched in all paths,
 	// not just /proc. A proper fix would require writing completly custom version of glob
 	// that would support recursion and would allow using/not using links on demand.
+
 	buf.gl_readdir = [](void* dir) -> dirent* {
 		for (;;) {
 			struct dirent* ent = readdir(static_cast<DIR*>(dir));
 			if (!ent || ent->d_type != DT_LNK ||
 			    !strcmp(ent->d_name, "self") ||
 			    !strcmp(ent->d_name, "thread-self") ||
-			    !strcmp(ent->d_name, "kmalloc-64"))
+			    !strcmp(ent->d_name, "kmalloc-64") ||
+			    !strcmp(ent->d_name, "cgroup") ||
+			    !strcmp(ent->d_name, "cgroup.cpu") ||
+			    !strcmp(ent->d_name, "cgroup.net"))
 				return ent;
 		}
-	},
+	};
 	buf.gl_stat = stat;
 	buf.gl_lstat = lstat;
 	int res = glob(pattern.c_str(), GLOB_MARK | GLOB_NOSORT | GLOB_ALTDIRFUNC, nullptr, &buf);
@@ -109,18 +114,6 @@ static std::vector<std::unique_ptr<rpc::FileInfoRawT>> ReadFiles(const std::vect
 		}
 		for (const auto& match : Glob(file))
 			results.push_back(ReadFile(match));
-	}
-	return results;
-}
-
-static std::vector<std::unique_ptr<rpc::GlobInfoRawT>> ReadGlobs(const std::vector<std::string>& patterns)
-{
-	std::vector<std::unique_ptr<rpc::GlobInfoRawT>> results;
-	for (const auto& pattern : patterns) {
-		auto info = std::make_unique<rpc::GlobInfoRawT>();
-		info->name = pattern;
-		info->files = Glob(pattern);
-		results.push_back(std::move(info));
 	}
 	return results;
 }

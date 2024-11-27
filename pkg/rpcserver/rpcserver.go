@@ -48,26 +48,22 @@ type Config struct {
 	DebugTimeouts bool
 	Procs         int
 	Slowdown      int
-	// Extra globs that will be requested during machine checking,
-	// and will be passed to MachineChecked callback.
-	CheckGlobs   []string
-	pcBase       uint64
-	localModules []*vminfo.KernelModule
+	pcBase        uint64
+	localModules  []*vminfo.KernelModule
 }
 
 type RemoteConfig struct {
 	*mgrconfig.Config
-	Manager    Manager
-	Stats      Stats
-	CheckGlobs []string
-	Debug      bool
+	Manager Manager
+	Stats   Stats
+	Debug   bool
 }
 
 //go:generate ../../tools/mockery.sh --name Manager --output ./mocks
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
-	MachineChecked(info *flatrpc.InfoRequest, features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
+	MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
 	CoverageFilter(modules []*vminfo.KernelModule) []uint64
 }
 
@@ -181,7 +177,6 @@ func New(cfg *RemoteConfig) (Server, error) {
 		Slowdown:          cfg.Timeouts.Slowdown,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
-		CheckGlobs:        cfg.CheckGlobs,
 	}, cfg.Manager), nil
 }
 
@@ -280,7 +275,6 @@ func (serv *server) handleRunnerConn(runner *Runner, conn *flatrpc.Conn) error {
 		opts.Features = serv.setupFeatures
 	} else {
 		opts.Files = append(opts.Files, serv.checker.CheckFiles()...)
-		opts.Globs = append(serv.target.RequiredGlobs(), serv.cfg.CheckGlobs...)
 		opts.Features = serv.cfg.Features
 	}
 
@@ -321,11 +315,6 @@ func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 		serv.StatModules.Add(len(modules))
 		serv.canonicalModules = cover.NewCanonicalizer(modules, serv.cfg.Cover)
 		serv.coverFilter = serv.mgr.CoverageFilter(modules)
-		globs := make(map[string][]string)
-		for _, glob := range infoReq.Globs {
-			globs[glob.Name] = glob.Files
-		}
-		serv.target.UpdateGlobs(globs)
 		// Flatbuffers don't do deep copy of byte slices,
 		// so clone manually since we pass it a goroutine.
 		for _, file := range infoReq.Files {
@@ -395,7 +384,7 @@ func (serv *server) runCheck(info *flatrpc.InfoRequest) error {
 	}
 	enabledFeatures := features.Enabled()
 	serv.setupFeatures = features.NeedSetup()
-	newSource := serv.mgr.MachineChecked(info, enabledFeatures, enabledCalls)
+	newSource := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
 	serv.baseSource.Store(newSource)
 	serv.checkDone.Store(true)
 	return nil

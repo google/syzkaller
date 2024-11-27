@@ -28,7 +28,6 @@ func TestConn(t *testing.T) {
 		RaceFrames: []string{"bar", "baz"},
 		Features:   FeatureCoverage | FeatureLeak,
 		Files:      []string{"file1"},
-		Globs:      []string{"glob1"},
 	}
 	executorMsg := &ExecutorMessage{
 		Msg: &ExecutorMessages{
@@ -102,7 +101,6 @@ func BenchmarkConn(b *testing.B) {
 		RaceFrames: []string{"bar", "baz"},
 		Features:   FeatureCoverage | FeatureLeak,
 		Files:      []string{"file1"},
-		Globs:      []string{"glob1"},
 	}
 
 	done := make(chan bool)

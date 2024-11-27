@@ -12,7 +12,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
@@ -38,71 +40,62 @@ type PCInfo struct {
 	File string
 }
 
-// Globs returns a list of glob's that should be requested from the target machine.
-// Result of querying these globs should be later passed to Run in info.
-func Globs() []string {
-	var globs []string
-	for _, path := range []string{"/dev", "/sys", "/proc"} {
-		// Our globs currently do not support recursion (#4906),
-		// so we append N "/*" parts manully. Some of the paths can be very deep, e.g. try:
-		// sudo find /sys -ls 2>/dev/null | sed "s#[^/]##g" | sort | uniq -c
-		for i := 1; i < 15; i++ {
-			globs = append(globs, path+strings.Repeat("/*", i))
-		}
-	}
-	return globs
-}
-
-// Run finishes dynamic analysis and returns dynamic info.
+// Run does dynamic analysis and returns dynamic info.
 // As it runs it will submit some test program requests to the exec queue.
-// Info is used to extract results of glob querying, see Globs function.
-func Run(ctx context.Context, cfg *mgrconfig.Config, exec queue.Executor, info *flatrpc.InfoRequest) (*Info, error) {
+func Run(ctx context.Context, cfg *mgrconfig.Config, features flatrpc.Feature, exec queue.Executor) (*Info, error) {
 	return (&prober{
-		ctx:  ctx,
-		cfg:  cfg,
-		exec: exec,
-		info: info,
+		ctx:      ctx,
+		cfg:      cfg,
+		features: features,
+		exec:     exec,
+		done:     make(chan *fileDesc, 100),
+		errc:     make(chan error, 1),
 	}).run()
 }
 
 type prober struct {
-	ctx  context.Context
-	cfg  *mgrconfig.Config
-	exec queue.Executor
-	info *flatrpc.InfoRequest
+	ctx      context.Context
+	cfg      *mgrconfig.Config
+	features flatrpc.Feature
+	exec     queue.Executor
+	wg       sync.WaitGroup
+	done     chan *fileDesc
+	errc     chan error
+}
+
+type fileDesc struct {
+	file    string
+	results []*queue.Result
 }
 
 func (pr *prober) run() (*Info, error) {
 	symb := symbolizer.NewSymbolizer(pr.cfg.SysTarget)
 	defer symb.Close()
 
-	files := extractFiles(pr.info)
-	var reqs [][]*queue.Request
-	for _, file := range extractFiles(pr.info) {
-		reqs1, err := pr.submitFile(file)
-		if err != nil {
-			return nil, err
-		}
-		reqs = append(reqs, reqs1)
+	for _, glob := range globList() {
+		pr.submitGlob(glob)
 	}
+
+	go func() {
+		pr.wg.Wait()
+		close(pr.done)
+	}()
 
 	info := &Info{}
 	dedup := make(map[uint64]bool)
 	kernelObj := filepath.Join(pr.cfg.KernelObj, pr.cfg.SysTarget.KernelObject)
 	sourceBase := filepath.Clean(pr.cfg.KernelSrc) + string(filepath.Separator)
-	for i, file := range files {
+	i := 0
+	for desc := range pr.done {
+		i++
 		if i%500 == 0 {
-			log.Logf(0, "processing file %v/%v", i, len(files))
+			log.Logf(0, "done file %v", i)
 		}
 		fi := FileInfo{
-			Name: file,
+			Name: desc.file,
 		}
 		fileDedup := make(map[uint64]bool)
-		for _, req := range reqs[i] {
-			res := req.Wait(pr.ctx)
-			if res.Status != queue.Success {
-				return nil, fmt.Errorf("failed to execute prog: %w (%v)", res.Err, res.Status)
-			}
+		for _, res := range desc.results {
 			cover := append(res.Info.Calls[0].Cover, res.Info.Calls[1].Cover...)
 			for _, pc := range cover {
 				if fileDedup[pc] {
@@ -133,13 +126,59 @@ func (pr *prober) run() (*Info, error) {
 		slices.Sort(fi.Cover)
 		info.Files = append(info.Files, fi)
 	}
+	slices.SortFunc(info.Files, func(a, b FileInfo) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	slices.SortFunc(info.PCs, func(a, b PCInfo) int {
 		return int(a.PC - b.PC)
 	})
-	return info, nil
+	select {
+	case err := <-pr.errc:
+		return nil, err
+	default:
+		return info, nil
+	}
 }
 
-func (pr *prober) submitFile(file string) ([]*queue.Request, error) {
+func (pr *prober) noteError(err error) {
+	select {
+	case pr.errc <- err:
+	default:
+	}
+}
+
+func (pr *prober) submitGlob(glob string) {
+	pr.wg.Add(1)
+	req := &queue.Request{
+		Type:        flatrpc.RequestTypeGlob,
+		GlobPattern: glob,
+		ExecOpts: flatrpc.ExecOpts{
+			EnvFlags: flatrpc.ExecEnvSandboxNone | csource.FeaturesToFlags(pr.features, nil),
+		},
+		Important: true,
+	}
+	req.OnDone(pr.onGlobDone)
+	pr.exec.Submit(req)
+}
+
+func (pr *prober) onGlobDone(req *queue.Request, res *queue.Result) bool {
+	defer pr.wg.Done()
+	if res.Status != queue.Success {
+		pr.noteError(fmt.Errorf("failed to execute glob: %w (%v)\n%s\n%s",
+			res.Err, res.Status, req.GlobPattern, res.Output))
+	}
+	files := res.GlobFiles()
+	log.Logf(0, "glob %v expanded to %v files", req.GlobPattern, len(files))
+	for _, file := range files {
+		if extractFileFilter(file) {
+			pr.submitFile(file)
+		}
+	}
+	return true
+}
+
+func (pr *prober) submitFile(file string) {
+	pr.wg.Add(1)
 	var fops = []struct {
 		mode string
 		call string
@@ -151,18 +190,22 @@ func (pr *prober) submitFile(file string) ([]*queue.Request, error) {
 		{mode: "O_RDONLY", call: "mmap(0x0, 0x1000, 0x1, 0x2, r0, 0)"},
 		{mode: "O_WRONLY", call: "mmap(0x0, 0x1000, 0x2, 0x2, r0, 0)"},
 	}
+	desc := &fileDesc{
+		file: file,
+	}
 	var reqs []*queue.Request
 	for _, desc := range fops {
 		text := fmt.Sprintf("r0 = openat(0x%x, &AUTO='%s', 0x%x, 0x0)\n%v",
 			pr.constVal("AT_FDCWD"), file, pr.constVal(desc.mode), desc.call)
 		p, err := pr.cfg.Target.Deserialize([]byte(text), prog.StrictUnsafe)
 		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize: %w\n%v", err, text)
+			panic(fmt.Sprintf("failed to deserialize: %v\n%v", err, text))
 		}
 		req := &queue.Request{
 			Prog: p,
 			ExecOpts: flatrpc.ExecOpts{
-				EnvFlags:  flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSignal,
+				EnvFlags: flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSignal |
+					csource.FeaturesToFlags(pr.features, nil),
 				ExecFlags: flatrpc.ExecFlagCollectCover,
 			},
 			Important: true,
@@ -170,7 +213,19 @@ func (pr *prober) submitFile(file string) ([]*queue.Request, error) {
 		reqs = append(reqs, req)
 		pr.exec.Submit(req)
 	}
-	return reqs, nil
+	go func() {
+		defer pr.wg.Done()
+		for _, req := range reqs {
+			res := req.Wait(pr.ctx)
+			if res.Status != queue.Success {
+				pr.noteError(fmt.Errorf("failed to execute prog: %w (%v)\n%s\n%s",
+					res.Err, res.Status, req.Prog.Serialize(), res.Output))
+				continue
+			}
+			desc.results = append(desc.results, res)
+		}
+		pr.done <- desc
+	}()
 }
 
 func (pr *prober) constVal(name string) uint64 {
@@ -181,23 +236,27 @@ func (pr *prober) constVal(name string) uint64 {
 	return val
 }
 
-func extractFiles(info *flatrpc.InfoRequestRawT) []string {
-	var files []string
-	dedup := make(map[string]bool)
-	for _, glob := range info.Globs {
-		for _, file := range glob.Files {
-			if dedup[file] || !extractFileFilter(file) {
-				continue
-			}
-			dedup[file] = true
-			files = append(files, file)
+// globList returns a list of glob's we are interested in.
+func globList() []string {
+	var globs []string
+	// /selinux is mounted by executor, we probably should mount it at the standard /sys/fs/selinux,
+	// but this is where it is now.
+	// Also query the test cwd, executor creates some links in there.
+	for _, path := range []string{"/dev", "/sys", "/proc", "/selinux", "."} {
+		// Our globs currently do not support recursion (#4906),
+		// so we append N "/*" parts manully. Some of the paths can be very deep, e.g. try:
+		// sudo find /sys -ls 2>/dev/null | sed "s#[^/]##g" | sort | uniq -c
+		for i := 1; i < 15; i++ {
+			globs = append(globs, path+strings.Repeat("/*", i))
 		}
 	}
-	return files
+	return globs
 }
 
 func extractFileFilter(file string) bool {
-	if strings.HasPrefix(file, "/dev/") {
+	if strings.HasPrefix(file, "/dev/") ||
+		strings.HasPrefix(file, "/selinux/") ||
+		strings.HasPrefix(file, "./") {
 		return true
 	}
 	if proc := "/proc/"; strings.HasPrefix(file, proc) {
@@ -234,5 +293,5 @@ func extractFileFilter(file string) bool {
 		}
 		return true
 	}
-	return false
+	panic(fmt.Sprintf("unhandled file %q", file))
 }

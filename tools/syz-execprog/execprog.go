@@ -53,6 +53,7 @@ var (
 	flagDebug      = flag.Bool("debug", false, "debug output from executor")
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
 	flagUnsafe     = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
+	flagGlob       = flag.String("glob", "", "run glob expansion request")
 
 	// The in the stress mode resembles simple unguided fuzzer.
 	// This mode can be used as an intermediate step when porting syzkaller to a new OS,
@@ -138,7 +139,7 @@ func main() {
 	}
 
 	progs := loadPrograms(target, flag.Args())
-	if !*flagStress && len(progs) == 0 {
+	if *flagGlob == "" && !*flagStress && len(progs) == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -147,6 +148,7 @@ func main() {
 		target:    target,
 		done:      done,
 		progs:     progs,
+		globs:     strings.Split(*flagGlob, ":"),
 		rs:        rand.NewSource(time.Now().UnixNano()),
 		coverFile: *flagCoverFile,
 		output:    *flagOutput,
@@ -191,6 +193,7 @@ type Context struct {
 	target      *prog.Target
 	done        func()
 	progs       []*prog.Prog
+	globs       []string
 	defaultOpts flatrpc.ExecOpts
 	choiceTable *prog.ChoiceTable
 	logMu       sync.Mutex
@@ -217,6 +220,18 @@ func (ctx *Context) machineChecked(features flatrpc.Feature, syscalls map[*prog.
 }
 
 func (ctx *Context) Next() *queue.Request {
+	if *flagGlob != "" {
+		idx := int(ctx.resultIndex.Add(1) - 1)
+		if idx >= len(ctx.globs) {
+			return nil
+		}
+		req := &queue.Request{
+			Type:        flatrpc.RequestTypeGlob,
+			GlobPattern: ctx.globs[idx],
+		}
+		req.OnDone(ctx.doneGlob)
+		return req
+	}
 	var p *prog.Prog
 	if ctx.stress {
 		p = ctx.createStressProg()
@@ -244,6 +259,25 @@ func (ctx *Context) Next() *queue.Request {
 	}
 	req.OnDone(ctx.Done)
 	return req
+}
+
+func (ctx *Context) doneGlob(req *queue.Request, res *queue.Result) bool {
+	if res.Status == queue.Success {
+		files := res.GlobFiles()
+		ctx.logMu.Lock()
+		fmt.Printf("glob %q expanded to %v files\n", req.GlobPattern, len(files))
+		for _, file := range files {
+			fmt.Printf("\t%q\n", file)
+		}
+		ctx.logMu.Unlock()
+	} else {
+		fmt.Printf("request failed: %v (%v)\n%s\n", res.Status, res.Err, res.Output)
+	}
+	completed := int(ctx.completed.Add(1))
+	if completed >= len(ctx.globs) {
+		ctx.done()
+	}
+	return true
 }
 
 func (ctx *Context) Done(req *queue.Request, res *queue.Result) bool {

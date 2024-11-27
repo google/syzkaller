@@ -705,9 +705,21 @@ static void loop(void)
 				last_executed = now;
 			}
 			// TODO: adjust timeout for progs with syz_usb_connect call.
-			if ((now - start < program_timeout_ms) &&
-			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
+			// If the max program timeout is exceeded, kill unconditionally.
+			if (now - start > program_timeout_ms)
+				goto kill_test;
+			// If the request type is not a normal test program (currently, glob expansion request),
+			// then wait for the full timeout (these requests don't update number of completed calls
+			// + they are more important and we don't want timing flakes).
+			if (request_type != rpc::RequestType::Program)
 				continue;
+			// Always wait at least the min timeout for each program.
+			if (now - start < min_timeout_ms)
+				continue;
+			// If it keeps completing syscalls, then don't kill it.
+			if (now - last_executed < inactive_timeout_ms)
+				continue;
+		kill_test:
 #else
 			if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
 				continue;

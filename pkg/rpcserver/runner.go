@@ -69,7 +69,6 @@ type handshakeConfig struct {
 	LeakFrames []string
 	RaceFrames []string
 	Files      []string
-	Globs      []string
 	Features   flatrpc.Feature
 
 	// Callback() is called in the middle of the handshake process.
@@ -102,7 +101,6 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error 
 		LeakFrames:       cfg.LeakFrames,
 		RaceFrames:       cfg.RaceFrames,
 		Files:            cfg.Files,
-		Globs:            cfg.Globs,
 		Features:         cfg.Features,
 	}
 	if err := flatrpc.Send(conn, connectReply); err != nil {
@@ -292,7 +290,8 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
 	var data []byte
-	if req.BinaryFile == "" {
+	switch req.Type {
+	case flatrpc.RequestTypeProgram:
 		progData, err := req.Prog.SerializeForExec()
 		if err != nil {
 			// It's bad if we systematically fail to serialize programs,
@@ -303,8 +302,7 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 			return nil
 		}
 		data = progData
-	} else {
-		flags |= flatrpc.RequestFlagIsBinary
+	case flatrpc.RequestTypeBinary:
 		fileData, err := os.ReadFile(req.BinaryFile)
 		if err != nil {
 			req.Done(&queue.Result{
@@ -314,6 +312,11 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 			return nil
 		}
 		data = fileData
+	case flatrpc.RequestTypeGlob:
+		data = append([]byte(req.GlobPattern), 0)
+		flags |= flatrpc.RequestFlagReturnOutput
+	default:
+		panic("unhandled request type")
 	}
 	var avoid uint64
 	for _, id := range req.Avoid {
@@ -326,8 +329,9 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 			Type: flatrpc.HostMessagesRawExecRequest,
 			Value: &flatrpc.ExecRequest{
 				Id:        id,
+				Type:      req.Type,
 				Avoid:     avoid,
-				ProgData:  data,
+				Data:      data,
 				Flags:     flags,
 				ExecOpts:  &opts,
 				AllSignal: allSignal,
@@ -361,7 +365,18 @@ func (runner *Runner) handleExecutingMessage(msg *flatrpc.ExecutingMessage) erro
 	} else {
 		runner.stats.statExecRetries.Add(1)
 	}
-	runner.lastExec.Note(int(msg.Id), proc, req.Prog.Serialize(), osutil.MonotonicNano())
+	var data []byte
+	switch req.Type {
+	case flatrpc.RequestTypeProgram:
+		data = req.Prog.Serialize()
+	case flatrpc.RequestTypeBinary:
+		data = []byte(fmt.Sprintf("executing binary %v\n", req.BinaryFile))
+	case flatrpc.RequestTypeGlob:
+		data = []byte(fmt.Sprintf("expanding glob: %v\n", req.GlobPattern))
+	default:
+		panic(fmt.Sprintf("unhandled request type %v", req.Type))
+	}
+	runner.lastExec.Note(int(msg.Id), proc, data, osutil.MonotonicNano())
 	select {
 	case runner.injectExec <- true:
 	default:
@@ -385,7 +400,7 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 	}
 	delete(runner.requests, msg.Id)
 	delete(runner.executing, msg.Id)
-	if msg.Info != nil {
+	if req.Type == flatrpc.RequestTypeProgram && msg.Info != nil {
 		for len(msg.Info.Calls) < len(req.Prog.Calls) {
 			msg.Info.Calls = append(msg.Info.Calls, &flatrpc.CallInfo{
 				Error: 999,

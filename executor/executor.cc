@@ -146,6 +146,7 @@ struct alignas(8) OutputData {
 	std::atomic<uint32> consumed;
 	std::atomic<uint32> completed;
 	std::atomic<uint32> num_calls;
+	std::atomic<flatbuffers::Offset<flatbuffers::Vector<uint8_t>>> result_offset;
 	struct {
 		// Call index in the test program (they may be out-of-order is some syscalls block).
 		int index;
@@ -159,6 +160,7 @@ struct alignas(8) OutputData {
 		consumed.store(0, std::memory_order_relaxed);
 		completed.store(0, std::memory_order_relaxed);
 		num_calls.store(0, std::memory_order_relaxed);
+		result_offset.store(0, std::memory_order_relaxed);
 	}
 };
 
@@ -280,6 +282,7 @@ static bool flag_threaded;
 static bool flag_comparisons;
 
 static uint64 request_id;
+static rpc::RequestType request_type;
 static uint64 all_call_signal;
 static bool all_extra_signal;
 
@@ -417,6 +420,7 @@ struct handshake_req {
 struct execute_req {
 	uint64 magic;
 	uint64 id;
+	rpc::RequestType type;
 	uint64 exec_flags;
 	uint64 all_call_signal;
 	bool all_extra_signal;
@@ -791,6 +795,7 @@ void receive_execute()
 void parse_execute(const execute_req& req)
 {
 	request_id = req.id;
+	request_type = req.type;
 	flag_collect_signal = req.exec_flags & (1 << 0);
 	flag_collect_cover = req.exec_flags & (1 << 1);
 	flag_dedup_cover = req.exec_flags & (1 << 2);
@@ -799,9 +804,9 @@ void parse_execute(const execute_req& req)
 	all_call_signal = req.all_call_signal;
 	all_extra_signal = req.all_extra_signal;
 
-	debug("[%llums] exec opts: procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d "
+	debug("[%llums] exec opts: reqid=%llu type=%llu procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d "
 	      " sandbox=%d/%d/%d/%d timeouts=%llu/%llu/%llu kernel_64_bit=%d\n",
-	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collect_cover,
+	      current_time_ms() - start_time_ms, request_id, (uint64)request_type, procid, flag_threaded, flag_collect_cover,
 	      flag_comparisons, flag_dedup_cover, flag_collect_signal, flag_sandbox_none, flag_sandbox_setuid,
 	      flag_sandbox_namespace, flag_sandbox_android, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
 	      is_kernel_64_bit);
@@ -837,9 +842,35 @@ void realloc_output_data()
 #endif
 }
 
+void execute_glob()
+{
+	const char* pattern = (const char*)input_data;
+	const auto& files = Glob(pattern);
+	size_t size = 0;
+	for (const auto& file : files)
+		size += file.size() + 1;
+	mmap_output(kMaxOutput);
+	ShmemBuilder fbb(output_data, kMaxOutput, true);
+	uint8_t* pos = nullptr;
+	auto off = fbb.CreateUninitializedVector(size, &pos);
+	for (const auto& file : files) {
+		memcpy(pos, file.c_str(), file.size() + 1);
+		pos += file.size() + 1;
+	}
+	output_data->consumed.store(fbb.GetSize(), std::memory_order_release);
+	output_data->result_offset.store(off, std::memory_order_release);
+}
+
 // execute_one executes program stored in input_data.
 void execute_one()
 {
+	if (request_type == rpc::RequestType::Glob) {
+		execute_glob();
+		return;
+	}
+	if (request_type != rpc::RequestType::Program)
+		failmsg("bad request type", "type=%llu", (uint64)request_type);
+
 	in_execute_one = true;
 #if GOOS_linux
 	char buf[64];
@@ -1382,8 +1413,9 @@ flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64
 	flatbuffers::Offset<flatbuffers::String> error_off = 0;
 	if (status == kFailStatus)
 		error_off = fbb.CreateString("process failed");
-	flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output_off = 0;
-	if (process_output)
+	// If the request wrote binary result (currently glob requests do this), use it instead of the output.
+	auto output_off = output->result_offset.load(std::memory_order_relaxed);
+	if (output_off.IsNull() && process_output)
 		output_off = fbb.CreateVector(*process_output);
 	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, proc_id, output_off, hanged, error_off, prog_info_off);
 	auto msg_off = rpc::CreateExecutorMessageRaw(fbb, rpc::ExecutorMessagesRaw::ExecResult,
