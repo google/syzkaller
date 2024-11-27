@@ -23,7 +23,7 @@ inline std::ostream& operator<<(std::ostream& ss, const rpc::ExecRequestRawT& re
 		  << " flags=0x" << std::hex << static_cast<uint64>(req.flags)
 		  << " env_flags=0x" << std::hex << static_cast<uint64>(req.exec_opts->env_flags())
 		  << " exec_flags=0x" << std::hex << static_cast<uint64>(req.exec_opts->exec_flags())
-		  << " prod_data=" << std::dec << req.prog_data.size()
+		  << " data_size=" << std::dec << req.data.size()
 		  << "\n";
 }
 
@@ -87,7 +87,7 @@ private:
 class Proc
 {
 public:
-	Proc(Connection& conn, const char* bin, int id, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd, int cover_filter_fd,
+	Proc(Connection& conn, const char* bin, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd, int cover_filter_fd,
 	     bool use_cover_edges, bool is_kernel_64_bit, uint32 slowdown, uint32 syscall_timeout_ms, uint32 program_timeout_ms)
 	    : conn_(conn),
 	      bin_(bin),
@@ -122,8 +122,10 @@ public:
 		if (wait_start_)
 			wait_end_ = current_time_ms();
 		// Restart every once in a while to not let too much state accumulate.
+		// Also request if request type differs as it affects program timeout.
 		constexpr uint64 kRestartEvery = 600;
 		if (state_ == State::Idle && ((corpus_triaged_ && restarting_ == 0 && freshness_ >= kRestartEvery) ||
+					      req_type_ != msg.type ||
 					      exec_env_ != msg.exec_opts->env_flags() || sandbox_arg_ != msg.exec_opts->sandbox_arg()))
 			Restart();
 		attempts_ = 0;
@@ -150,9 +152,9 @@ public:
 			// fork server is enabled, so we use quite large timeout. Child process can be slow
 			// due to global locks in namespaces and other things, so let's better wait than
 			// report false misleading crashes.
-			uint64 timeout = 3 * program_timeout_ms_;
+			uint64 timeout = 3 * ProgramTimeoutMs();
 #else
-			uint64 timeout = program_timeout_ms_;
+			uint64 timeout = ProgramTimeoutMs();
 #endif
 			// Sandbox setup can take significant time.
 			if (state_ == State::Handshaking)
@@ -211,6 +213,7 @@ private:
 	int req_pipe_ = -1;
 	int resp_pipe_ = -1;
 	int stdout_pipe_ = -1;
+	rpc::RequestType req_type_ = rpc::RequestType::Program;
 	rpc::ExecEnv exec_env_ = rpc::ExecEnv::NONE;
 	int64_t sandbox_arg_ = 0;
 	std::optional<rpc::ExecRequestRawT> msg_;
@@ -349,6 +352,7 @@ private:
 		debug("proc %d: handshaking to execute request %llu\n", id_, static_cast<uint64>(msg_->id));
 		ChangeState(State::Handshaking);
 		exec_start_ = current_time_ms();
+		req_type_ = msg_->type;
 		exec_env_ = msg_->exec_opts->env_flags() & ~rpc::ExecEnv::ResetState;
 		sandbox_arg_ = msg_->exec_opts->sandbox_arg();
 		handshake_req req = {
@@ -359,7 +363,7 @@ private:
 		    .pid = static_cast<uint64>(id_),
 		    .sandbox_arg = static_cast<uint64>(sandbox_arg_),
 		    .syscall_timeout_ms = syscall_timeout_ms_,
-		    .program_timeout_ms = program_timeout_ms_,
+		    .program_timeout_ms = ProgramTimeoutMs(),
 		    .slowdown_scale = slowdown_,
 		};
 		if (write(req_pipe_, &req, sizeof(req)) != sizeof(req)) {
@@ -401,10 +405,11 @@ private:
 			else
 				all_call_signal |= 1ull << call;
 		}
-		memcpy(req_shmem_.Mem(), msg_->prog_data.data(), std::min(msg_->prog_data.size(), kMaxInput));
+		memcpy(req_shmem_.Mem(), msg_->data.data(), std::min(msg_->data.size(), kMaxInput));
 		execute_req req{
 		    .magic = kInMagic,
 		    .id = static_cast<uint64>(msg_->id),
+		    .type = msg_->type,
 		    .exec_flags = static_cast<uint64>(msg_->exec_opts->exec_flags()),
 		    .all_call_signal = all_call_signal,
 		    .all_extra_signal = all_extra_signal,
@@ -425,7 +430,7 @@ private:
 		// Note: if the child process crashed during handshake and the request has ReturnError flag,
 		// we have not started executing the request yet.
 		uint64 elapsed = (current_time_ms() - exec_start_) * 1000 * 1000;
-		uint8* prog_data = msg_->prog_data.data();
+		uint8* prog_data = msg_->data.data();
 		input_data = prog_data;
 		std::vector<uint8_t>* output = nullptr;
 		if (IsSet(msg_->flags, rpc::RequestFlag::ReturnOutput)) {
@@ -436,7 +441,9 @@ private:
 				output_.insert(output_.end(), tmp, tmp + strlen(tmp));
 			}
 		}
-		uint32 num_calls = read_input(&prog_data);
+		uint32 num_calls = 0;
+		if (msg_->type == rpc::RequestType::Program)
+			num_calls = read_input(&prog_data);
 		auto data = finish_output(resp_mem_, id_, msg_->id, num_calls, elapsed, freshness_++, status, hanged, output);
 		conn_.Send(data.data(), data.size());
 
@@ -497,6 +504,7 @@ private:
 			return false;
 		}
 		if (flag_debug) {
+			const bool has_nl = output_.back() == '\n';
 			output_.resize(output_.size() + 1);
 			char* output = reinterpret_cast<char*>(output_.data()) + debug_output_pos_;
 			// During machine check we can execute some requests that legitimately fail.
@@ -508,11 +516,17 @@ private:
 				if (syzfail)
 					memcpy(syzfail, "NOTFAIL", strlen("NOTFAIL"));
 			}
-			debug("proc %d: got output: %s\n", id_, output);
+			debug("proc %d: got output: %s%s", id_, output, has_nl ? "" : "\n");
 			output_.resize(output_.size() - 1);
 			debug_output_pos_ = output_.size();
 		}
 		return true;
+	}
+
+	uint32 ProgramTimeoutMs() const
+	{
+		// Glob requests can expand to >10K files and can take a while to run.
+		return program_timeout_ms_ * (req_type_ == rpc::RequestType::Program ? 1 : 10);
 	}
 };
 
@@ -530,7 +544,7 @@ public:
 		int max_signal_fd = max_signal_ ? max_signal_->FD() : -1;
 		int cover_filter_fd = cover_filter_ ? cover_filter_->FD() : -1;
 		for (int i = 0; i < num_procs; i++)
-			procs_.emplace_back(new Proc(conn, bin, i, *proc_id_pool_, restarting_, corpus_triaged_,
+			procs_.emplace_back(new Proc(conn, bin, *proc_id_pool_, restarting_, corpus_triaged_,
 						     max_signal_fd, cover_filter_fd, use_cover_edges_, is_kernel_64_bit_, slowdown_,
 						     syscall_timeout_ms_, program_timeout_ms_));
 
@@ -644,7 +658,6 @@ private:
 
 		rpc::InfoRequestRawT info_req;
 		info_req.files = ReadFiles(conn_reply.files);
-		info_req.globs = ReadGlobs(conn_reply.globs);
 
 		// This does any one-time setup for the requested features on the machine.
 		// Note: this can be called multiple times and must be idempotent.
@@ -701,13 +714,14 @@ private:
 
 	void Handle(rpc::ExecRequestRawT& msg)
 	{
-		debug("recv exec request %llu: flags=0x%llx env=0x%llx exec=0x%llx size=%zu\n",
+		debug("recv exec request %llu: type=%llu flags=0x%llx env=0x%llx exec=0x%llx size=%zu\n",
 		      static_cast<uint64>(msg.id),
+		      static_cast<uint64>(msg.type),
 		      static_cast<uint64>(msg.flags),
 		      static_cast<uint64>(msg.exec_opts->env_flags()),
 		      static_cast<uint64>(msg.exec_opts->exec_flags()),
-		      msg.prog_data.size());
-		if (IsSet(msg.flags, rpc::RequestFlag::IsBinary)) {
+		      msg.data.size());
+		if (msg.type == rpc::RequestType::Binary) {
 			ExecuteBinary(msg);
 			return;
 		}
@@ -783,9 +797,9 @@ private:
 		int fd = open(file.c_str(), O_WRONLY | O_CLOEXEC | O_CREAT, 0755);
 		if (fd == -1)
 			return {"binary file creation failed", {}};
-		ssize_t wrote = write(fd, msg.prog_data.data(), msg.prog_data.size());
+		ssize_t wrote = write(fd, msg.data.data(), msg.data.size());
 		close(fd);
-		if (wrote != static_cast<ssize_t>(msg.prog_data.size()))
+		if (wrote != static_cast<ssize_t>(msg.data.size()))
 			return {"binary file write failed", {}};
 
 		int stdin_pipe[2];

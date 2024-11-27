@@ -57,14 +57,12 @@ table ConnectReplyRaw {
 	features		:Feature;
 	// Fuzzer reads these files inside of the VM and returns contents in InfoRequest.files.
 	files			:[string];
-	globs			:[string];
 }
 
 table InfoRequestRaw {
 	error			:string;
 	features		:[FeatureInfoRaw];
 	files			:[FileInfoRaw];
-	globs			:[GlobInfoRaw];
 }
 
 table InfoReplyRaw {
@@ -112,10 +110,16 @@ table ExecutorMessageRaw {
 	msg			:ExecutorMessagesRaw;
 }
 
+enum RequestType : uint64 {
+	// Normal test program request (data contains serialized prog.Prog).
+	Program,
+	// Binary test program (data contains compiled executable binary).
+	Binary,
+	// Request for file glob expansion (data contains the glob pattern).
+	Glob,
+}
+
 enum RequestFlag : uint64 (bit_flags) {
-	// If set, prog_data contains compiled executable binary
-	// that needs to be written to disk and executed.
-	IsBinary,
 	// If set, collect program output and return in output field.
 	ReturnOutput,
 	// If set, don't fail on program failures, instead return the error in error field.
@@ -163,9 +167,10 @@ struct ExecOptsRaw {
 // Request to execute a test program.
 table ExecRequestRaw {
 	id			:int64;
+	type			:RequestType;
 	// Bitmask of procs to avoid when executing this request, if possible.
 	avoid			:uint64;
-	prog_data		:[uint8];
+	data			:[uint8];
 	exec_opts		:ExecOptsRaw;
 	flags			:RequestFlag;
 	// Return all signal for these calls.

@@ -486,18 +486,49 @@ struct ExecutorMessagesRawUnion {
 bool VerifyExecutorMessagesRaw(flatbuffers::Verifier &verifier, const void *obj, ExecutorMessagesRaw type);
 bool VerifyExecutorMessagesRawVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<ExecutorMessagesRaw> *types);
 
+enum class RequestType : uint64_t {
+  Program = 0,
+  Binary = 1ULL,
+  Glob = 2ULL,
+  MIN = Program,
+  MAX = Glob
+};
+
+inline const RequestType (&EnumValuesRequestType())[3] {
+  static const RequestType values[] = {
+    RequestType::Program,
+    RequestType::Binary,
+    RequestType::Glob
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesRequestType() {
+  static const char * const names[4] = {
+    "Program",
+    "Binary",
+    "Glob",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameRequestType(RequestType e) {
+  if (flatbuffers::IsOutRange(e, RequestType::Program, RequestType::Glob)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesRequestType()[index];
+}
+
 enum class RequestFlag : uint64_t {
-  IsBinary = 1ULL,
-  ReturnOutput = 2ULL,
-  ReturnError = 4ULL,
+  ReturnOutput = 1ULL,
+  ReturnError = 2ULL,
   NONE = 0,
-  ANY = 7ULL
+  ANY = 3ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(RequestFlag, uint64_t)
 
-inline const RequestFlag (&EnumValuesRequestFlag())[3] {
+inline const RequestFlag (&EnumValuesRequestFlag())[2] {
   static const RequestFlag values[] = {
-    RequestFlag::IsBinary,
     RequestFlag::ReturnOutput,
     RequestFlag::ReturnError
   };
@@ -505,10 +536,8 @@ inline const RequestFlag (&EnumValuesRequestFlag())[3] {
 }
 
 inline const char * const *EnumNamesRequestFlag() {
-  static const char * const names[5] = {
-    "IsBinary",
+  static const char * const names[3] = {
     "ReturnOutput",
-    "",
     "ReturnError",
     nullptr
   };
@@ -516,8 +545,8 @@ inline const char * const *EnumNamesRequestFlag() {
 }
 
 inline const char *EnumNameRequestFlag(RequestFlag e) {
-  if (flatbuffers::IsOutRange(e, RequestFlag::IsBinary, RequestFlag::ReturnError)) return "";
-  const size_t index = static_cast<size_t>(e) - static_cast<size_t>(RequestFlag::IsBinary);
+  if (flatbuffers::IsOutRange(e, RequestFlag::ReturnOutput, RequestFlag::ReturnError)) return "";
+  const size_t index = static_cast<size_t>(e) - static_cast<size_t>(RequestFlag::ReturnOutput);
   return EnumNamesRequestFlag()[index];
 }
 
@@ -936,7 +965,6 @@ struct ConnectReplyRawT : public flatbuffers::NativeTable {
   std::vector<std::string> race_frames{};
   rpc::Feature features = static_cast<rpc::Feature>(0);
   std::vector<std::string> files{};
-  std::vector<std::string> globs{};
 };
 
 struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -954,8 +982,7 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LEAK_FRAMES = 20,
     VT_RACE_FRAMES = 22,
     VT_FEATURES = 24,
-    VT_FILES = 26,
-    VT_GLOBS = 28
+    VT_FILES = 26
   };
   bool debug() const {
     return GetField<uint8_t>(VT_DEBUG, 0) != 0;
@@ -993,9 +1020,6 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *files() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_FILES);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *globs() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_GLOBS);
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
@@ -1016,9 +1040,6 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfStrings(files()) &&
-           VerifyOffset(verifier, VT_GLOBS) &&
-           verifier.VerifyVector(globs()) &&
-           verifier.VerifyVectorOfStrings(globs()) &&
            verifier.EndTable();
   }
   ConnectReplyRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1066,9 +1087,6 @@ struct ConnectReplyRawBuilder {
   void add_files(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files) {
     fbb_.AddOffset(ConnectReplyRaw::VT_FILES, files);
   }
-  void add_globs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> globs) {
-    fbb_.AddOffset(ConnectReplyRaw::VT_GLOBS, globs);
-  }
   explicit ConnectReplyRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1093,11 +1111,9 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> race_frames = 0,
     rpc::Feature features = static_cast<rpc::Feature>(0),
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> globs = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> files = 0) {
   ConnectReplyRawBuilder builder_(_fbb);
   builder_.add_features(features);
-  builder_.add_globs(globs);
   builder_.add_files(files);
   builder_.add_race_frames(race_frames);
   builder_.add_leak_frames(leak_frames);
@@ -1125,12 +1141,10 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *race_frames = nullptr,
     rpc::Feature features = static_cast<rpc::Feature>(0),
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *files = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *globs = nullptr) {
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *files = nullptr) {
   auto leak_frames__ = leak_frames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*leak_frames) : 0;
   auto race_frames__ = race_frames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*race_frames) : 0;
   auto files__ = files ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*files) : 0;
-  auto globs__ = globs ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*globs) : 0;
   return rpc::CreateConnectReplyRaw(
       _fbb,
       debug,
@@ -1144,8 +1158,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
       leak_frames__,
       race_frames__,
       features,
-      files__,
-      globs__);
+      files__);
 }
 
 flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1155,7 +1168,6 @@ struct InfoRequestRawT : public flatbuffers::NativeTable {
   std::string error{};
   std::vector<std::unique_ptr<rpc::FeatureInfoRawT>> features{};
   std::vector<std::unique_ptr<rpc::FileInfoRawT>> files{};
-  std::vector<std::unique_ptr<rpc::GlobInfoRawT>> globs{};
   InfoRequestRawT() = default;
   InfoRequestRawT(const InfoRequestRawT &o);
   InfoRequestRawT(InfoRequestRawT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -1168,8 +1180,7 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ERROR = 4,
     VT_FEATURES = 6,
-    VT_FILES = 8,
-    VT_GLOBS = 10
+    VT_FILES = 8
   };
   const flatbuffers::String *error() const {
     return GetPointer<const flatbuffers::String *>(VT_ERROR);
@@ -1179,9 +1190,6 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>> *files() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>> *>(VT_FILES);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>> *globs() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>> *>(VT_GLOBS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1193,9 +1201,6 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfTables(files()) &&
-           VerifyOffset(verifier, VT_GLOBS) &&
-           verifier.VerifyVector(globs()) &&
-           verifier.VerifyVectorOfTables(globs()) &&
            verifier.EndTable();
   }
   InfoRequestRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1216,9 +1221,6 @@ struct InfoRequestRawBuilder {
   void add_files(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>>> files) {
     fbb_.AddOffset(InfoRequestRaw::VT_FILES, files);
   }
-  void add_globs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>>> globs) {
-    fbb_.AddOffset(InfoRequestRaw::VT_GLOBS, globs);
-  }
   explicit InfoRequestRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1234,10 +1236,8 @@ inline flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> error = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FeatureInfoRaw>>> features = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>>> files = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::GlobInfoRaw>>> globs = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<rpc::FileInfoRaw>>> files = 0) {
   InfoRequestRawBuilder builder_(_fbb);
-  builder_.add_globs(globs);
   builder_.add_files(files);
   builder_.add_features(features);
   builder_.add_error(error);
@@ -1248,18 +1248,15 @@ inline flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *error = nullptr,
     const std::vector<flatbuffers::Offset<rpc::FeatureInfoRaw>> *features = nullptr,
-    const std::vector<flatbuffers::Offset<rpc::FileInfoRaw>> *files = nullptr,
-    const std::vector<flatbuffers::Offset<rpc::GlobInfoRaw>> *globs = nullptr) {
+    const std::vector<flatbuffers::Offset<rpc::FileInfoRaw>> *files = nullptr) {
   auto error__ = error ? _fbb.CreateString(error) : 0;
   auto features__ = features ? _fbb.CreateVector<flatbuffers::Offset<rpc::FeatureInfoRaw>>(*features) : 0;
   auto files__ = files ? _fbb.CreateVector<flatbuffers::Offset<rpc::FileInfoRaw>>(*files) : 0;
-  auto globs__ = globs ? _fbb.CreateVector<flatbuffers::Offset<rpc::GlobInfoRaw>>(*globs) : 0;
   return rpc::CreateInfoRequestRaw(
       _fbb,
       error__,
       features__,
-      files__,
-      globs__);
+      files__);
 }
 
 flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1777,8 +1774,9 @@ flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(flatbuffers::Fl
 struct ExecRequestRawT : public flatbuffers::NativeTable {
   typedef ExecRequestRaw TableType;
   int64_t id = 0;
+  rpc::RequestType type = rpc::RequestType::Program;
   uint64_t avoid = 0;
-  std::vector<uint8_t> prog_data{};
+  std::vector<uint8_t> data{};
   std::unique_ptr<rpc::ExecOptsRaw> exec_opts{};
   rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0);
   std::vector<int32_t> all_signal{};
@@ -1793,20 +1791,24 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ExecRequestRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
-    VT_AVOID = 6,
-    VT_PROG_DATA = 8,
-    VT_EXEC_OPTS = 10,
-    VT_FLAGS = 12,
-    VT_ALL_SIGNAL = 14
+    VT_TYPE = 6,
+    VT_AVOID = 8,
+    VT_DATA = 10,
+    VT_EXEC_OPTS = 12,
+    VT_FLAGS = 14,
+    VT_ALL_SIGNAL = 16
   };
   int64_t id() const {
     return GetField<int64_t>(VT_ID, 0);
   }
+  rpc::RequestType type() const {
+    return static_cast<rpc::RequestType>(GetField<uint64_t>(VT_TYPE, 0));
+  }
   uint64_t avoid() const {
     return GetField<uint64_t>(VT_AVOID, 0);
   }
-  const flatbuffers::Vector<uint8_t> *prog_data() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_PROG_DATA);
+  const flatbuffers::Vector<uint8_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
   }
   const rpc::ExecOptsRaw *exec_opts() const {
     return GetStruct<const rpc::ExecOptsRaw *>(VT_EXEC_OPTS);
@@ -1820,9 +1822,10 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
+           VerifyField<uint64_t>(verifier, VT_TYPE, 8) &&
            VerifyField<uint64_t>(verifier, VT_AVOID, 8) &&
-           VerifyOffset(verifier, VT_PROG_DATA) &&
-           verifier.VerifyVector(prog_data()) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyVector(data()) &&
            VerifyField<rpc::ExecOptsRaw>(verifier, VT_EXEC_OPTS, 8) &&
            VerifyField<uint64_t>(verifier, VT_FLAGS, 8) &&
            VerifyOffset(verifier, VT_ALL_SIGNAL) &&
@@ -1841,11 +1844,14 @@ struct ExecRequestRawBuilder {
   void add_id(int64_t id) {
     fbb_.AddElement<int64_t>(ExecRequestRaw::VT_ID, id, 0);
   }
+  void add_type(rpc::RequestType type) {
+    fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_TYPE, static_cast<uint64_t>(type), 0);
+  }
   void add_avoid(uint64_t avoid) {
     fbb_.AddElement<uint64_t>(ExecRequestRaw::VT_AVOID, avoid, 0);
   }
-  void add_prog_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data) {
-    fbb_.AddOffset(ExecRequestRaw::VT_PROG_DATA, prog_data);
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
+    fbb_.AddOffset(ExecRequestRaw::VT_DATA, data);
   }
   void add_exec_opts(const rpc::ExecOptsRaw *exec_opts) {
     fbb_.AddStruct(ExecRequestRaw::VT_EXEC_OPTS, exec_opts);
@@ -1870,36 +1876,40 @@ struct ExecRequestRawBuilder {
 inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
+    rpc::RequestType type = rpc::RequestType::Program,
     uint64_t avoid = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> prog_data = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0,
     const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> all_signal = 0) {
   ExecRequestRawBuilder builder_(_fbb);
   builder_.add_flags(flags);
   builder_.add_avoid(avoid);
+  builder_.add_type(type);
   builder_.add_id(id);
   builder_.add_all_signal(all_signal);
   builder_.add_exec_opts(exec_opts);
-  builder_.add_prog_data(prog_data);
+  builder_.add_data(data);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int64_t id = 0,
+    rpc::RequestType type = rpc::RequestType::Program,
     uint64_t avoid = 0,
-    const std::vector<uint8_t> *prog_data = nullptr,
+    const std::vector<uint8_t> *data = nullptr,
     const rpc::ExecOptsRaw *exec_opts = nullptr,
     rpc::RequestFlag flags = static_cast<rpc::RequestFlag>(0),
     const std::vector<int32_t> *all_signal = nullptr) {
-  auto prog_data__ = prog_data ? _fbb.CreateVector<uint8_t>(*prog_data) : 0;
+  auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
   auto all_signal__ = all_signal ? _fbb.CreateVector<int32_t>(*all_signal) : 0;
   return rpc::CreateExecRequestRaw(
       _fbb,
       id,
+      type,
       avoid,
-      prog_data__,
+      data__,
       exec_opts,
       flags,
       all_signal__);
@@ -2942,7 +2952,6 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::r
   { auto _e = race_frames(); if (_e) { _o->race_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->race_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = features(); _o->features = _e; }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = _e->Get(_i)->str(); } } }
-  { auto _e = globs(); if (_e) { _o->globs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->globs[_i] = _e->Get(_i)->str(); } } }
 }
 
 inline flatbuffers::Offset<ConnectReplyRaw> ConnectReplyRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2965,7 +2974,6 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   auto _race_frames = _o->race_frames.size() ? _fbb.CreateVectorOfStrings(_o->race_frames) : 0;
   auto _features = _o->features;
   auto _files = _o->files.size() ? _fbb.CreateVectorOfStrings(_o->files) : 0;
-  auto _globs = _o->globs.size() ? _fbb.CreateVectorOfStrings(_o->globs) : 0;
   return rpc::CreateConnectReplyRaw(
       _fbb,
       _debug,
@@ -2979,8 +2987,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
       _leak_frames,
       _race_frames,
       _features,
-      _files,
-      _globs);
+      _files);
 }
 
 inline InfoRequestRawT::InfoRequestRawT(const InfoRequestRawT &o)
@@ -2989,15 +2996,12 @@ inline InfoRequestRawT::InfoRequestRawT(const InfoRequestRawT &o)
   for (const auto &features_ : o.features) { features.emplace_back((features_) ? new rpc::FeatureInfoRawT(*features_) : nullptr); }
   files.reserve(o.files.size());
   for (const auto &files_ : o.files) { files.emplace_back((files_) ? new rpc::FileInfoRawT(*files_) : nullptr); }
-  globs.reserve(o.globs.size());
-  for (const auto &globs_ : o.globs) { globs.emplace_back((globs_) ? new rpc::GlobInfoRawT(*globs_) : nullptr); }
 }
 
 inline InfoRequestRawT &InfoRequestRawT::operator=(InfoRequestRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(error, o.error);
   std::swap(features, o.features);
   std::swap(files, o.files);
-  std::swap(globs, o.globs);
   return *this;
 }
 
@@ -3013,7 +3017,6 @@ inline void InfoRequestRaw::UnPackTo(InfoRequestRawT *_o, const flatbuffers::res
   { auto _e = error(); if (_e) _o->error = _e->str(); }
   { auto _e = features(); if (_e) { _o->features.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->features[_i] = std::unique_ptr<rpc::FeatureInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = std::unique_ptr<rpc::FileInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = globs(); if (_e) { _o->globs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->globs[_i] = std::unique_ptr<rpc::GlobInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<InfoRequestRaw> InfoRequestRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -3027,13 +3030,11 @@ inline flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(flatbuffers::Fla
   auto _error = _o->error.empty() ? 0 : _fbb.CreateString(_o->error);
   auto _features = _o->features.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::FeatureInfoRaw>> (_o->features.size(), [](size_t i, _VectorArgs *__va) { return CreateFeatureInfoRaw(*__va->__fbb, __va->__o->features[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _files = _o->files.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::FileInfoRaw>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfoRaw(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va ) : 0;
-  auto _globs = _o->globs.size() ? _fbb.CreateVector<flatbuffers::Offset<rpc::GlobInfoRaw>> (_o->globs.size(), [](size_t i, _VectorArgs *__va) { return CreateGlobInfoRaw(*__va->__fbb, __va->__o->globs[i].get(), __va->__rehasher); }, &_va ) : 0;
   return rpc::CreateInfoRequestRaw(
       _fbb,
       _error,
       _features,
-      _files,
-      _globs);
+      _files);
 }
 
 inline InfoReplyRawT *InfoReplyRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -3218,8 +3219,9 @@ inline flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(flatbuff
 
 inline ExecRequestRawT::ExecRequestRawT(const ExecRequestRawT &o)
       : id(o.id),
+        type(o.type),
         avoid(o.avoid),
-        prog_data(o.prog_data),
+        data(o.data),
         exec_opts((o.exec_opts) ? new rpc::ExecOptsRaw(*o.exec_opts) : nullptr),
         flags(o.flags),
         all_signal(o.all_signal) {
@@ -3227,8 +3229,9 @@ inline ExecRequestRawT::ExecRequestRawT(const ExecRequestRawT &o)
 
 inline ExecRequestRawT &ExecRequestRawT::operator=(ExecRequestRawT o) FLATBUFFERS_NOEXCEPT {
   std::swap(id, o.id);
+  std::swap(type, o.type);
   std::swap(avoid, o.avoid);
-  std::swap(prog_data, o.prog_data);
+  std::swap(data, o.data);
   std::swap(exec_opts, o.exec_opts);
   std::swap(flags, o.flags);
   std::swap(all_signal, o.all_signal);
@@ -3245,8 +3248,9 @@ inline void ExecRequestRaw::UnPackTo(ExecRequestRawT *_o, const flatbuffers::res
   (void)_o;
   (void)_resolver;
   { auto _e = id(); _o->id = _e; }
+  { auto _e = type(); _o->type = _e; }
   { auto _e = avoid(); _o->avoid = _e; }
-  { auto _e = prog_data(); if (_e) { _o->prog_data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->prog_data.begin()); } }
+  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
   { auto _e = exec_opts(); if (_e) _o->exec_opts = std::unique_ptr<rpc::ExecOptsRaw>(new rpc::ExecOptsRaw(*_e)); }
   { auto _e = flags(); _o->flags = _e; }
   { auto _e = all_signal(); if (_e) { _o->all_signal.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->all_signal[_i] = _e->Get(_i); } } }
@@ -3261,16 +3265,18 @@ inline flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(flatbuffers::Fla
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ExecRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _o->id;
+  auto _type = _o->type;
   auto _avoid = _o->avoid;
-  auto _prog_data = _o->prog_data.size() ? _fbb.CreateVector(_o->prog_data) : 0;
+  auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
   auto _exec_opts = _o->exec_opts ? _o->exec_opts.get() : nullptr;
   auto _flags = _o->flags;
   auto _all_signal = _o->all_signal.size() ? _fbb.CreateVector(_o->all_signal) : 0;
   return rpc::CreateExecRequestRaw(
       _fbb,
       _id,
+      _type,
       _avoid,
-      _prog_data,
+      _data,
       _exec_opts,
       _flags,
       _all_signal);

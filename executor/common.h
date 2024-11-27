@@ -706,7 +706,7 @@ static void loop(void)
 			}
 			// TODO: adjust timeout for progs with syz_usb_connect call.
 			if ((now - start < program_timeout_ms) &&
-			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
+			    ((request_type != rpc::RequestType::Program) || (now - start < min_timeout_ms) || (now - last_executed < inactive_timeout_ms)))
 				continue;
 #else
 			if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)

@@ -245,6 +245,7 @@ static void SnapshotStart()
 	execute_req req = {
 	    .magic = kInMagic,
 	    .id = 0,
+	    .type = rpc::RequestType::Program,
 	    .exec_flags = static_cast<uint64>(msg->exec_flags()),
 	    .all_call_signal = msg->all_call_signal(),
 	    .all_extra_signal = msg->all_extra_signal(),
