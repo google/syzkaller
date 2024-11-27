@@ -310,8 +310,7 @@ func (kc *kernelContext) BugFrames() (leaks, races []string) {
 	return nil, nil
 }
 
-func (kc *kernelContext) MachineChecked(_ *flatrpc.InfoRequestRawT, features flatrpc.Feature,
-	syscalls map[*prog.Syscall]bool) queue.Source {
+func (kc *kernelContext) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 	if len(syscalls) == 0 {
 		log.Fatalf("all system calls are disabled")
 	}

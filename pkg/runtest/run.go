@@ -113,7 +113,7 @@ func (ctx *Context) Run(waitCtx context.Context) error {
 		if !verbose || ctx.Verbose {
 			ctx.log("%-38v: %v", req.name, result)
 		}
-		if req.Request != nil && req.Request.BinaryFile != "" {
+		if req.Request != nil && req.Type == flatrpc.RequestTypeBinary && req.BinaryFile != "" {
 			os.Remove(req.BinaryFile)
 		}
 	}
@@ -400,6 +400,7 @@ func (ctx *Context) createTest(req *runRequest) {
 			req.Request.Done(&queue.Result{})
 			return
 		}
+		req.Type = flatrpc.RequestTypeBinary
 		req.BinaryFile = bin
 		ctx.submit(req)
 	}()
@@ -493,7 +494,7 @@ func checkResult(req *runRequest) error {
 		return fmt.Errorf("non-successful result status (%v)", req.result.Status)
 	}
 	infos := []*flatrpc.ProgInfo{req.result.Info}
-	isC := req.BinaryFile != ""
+	isC := req.Type == flatrpc.RequestTypeBinary
 	if isC {
 		var err error
 		if infos, err = parseBinOutput(req); err != nil {

@@ -43,3 +43,10 @@ func TestPrioQueue(t *testing.T) {
 	assert.Equal(t, req4, pq.Next())
 	assert.Equal(t, req3, pq.Next())
 }
+
+func TestGlobFiles(t *testing.T) {
+	r := &Result{}
+	assert.Equal(t, r.GlobFiles(), []string(nil))
+	r.Output = []byte{'a', 'b', 0, 'c', 0}
+	assert.Equal(t, r.GlobFiles(), []string{"ab", "c"})
+}

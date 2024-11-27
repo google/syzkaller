@@ -57,7 +57,8 @@ func newCheckContext(ctx context.Context, cfg *Config, impl checker, executor qu
 	}
 }
 
-func (ctx *checkContext) start(fileInfos []*flatrpc.FileInfo) {
+func (ctx *checkContext) do(fileInfos []*flatrpc.FileInfo, featureInfos []*flatrpc.FeatureInfo) (
+	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	sysTarget := targets.Get(ctx.cfg.Target.OS, ctx.cfg.Target.Arch)
 	ctx.fs = createVirtualFilesystem(fileInfos)
 	for _, id := range ctx.cfg.Syscalls {
@@ -91,10 +92,37 @@ func (ctx *checkContext) start(fileInfos []*flatrpc.FileInfo) {
 		}()
 	}
 	ctx.startFeaturesCheck()
-}
 
-func (ctx *checkContext) wait(featureInfos []*flatrpc.FeatureInfo) (
-	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
+	var globReqs []*queue.Request
+	for _, glob := range ctx.target.RequiredGlobs() {
+		req := &queue.Request{
+			Type:        flatrpc.RequestTypeGlob,
+			GlobPattern: glob,
+			ExecOpts: flatrpc.ExecOpts{
+				EnvFlags:   ctx.cfg.Sandbox,
+				SandboxArg: ctx.cfg.SandboxArg,
+			},
+			Important: true,
+		}
+		ctx.executor.Submit(req)
+		globReqs = append(globReqs, req)
+	}
+
+	// Up to this point we submit all requests (start submitting goroutines),
+	// so that all requests execute in parallel. After this point we wait
+	// for request completion and handle results.
+
+	globs := make(map[string][]string)
+	for _, req := range globReqs {
+		res := req.Wait(ctx.ctx)
+		if res.Status != queue.Success {
+			return nil, nil, nil, fmt.Errorf("failed to execute glob: %w (%v)\n%s\n%s",
+				res.Err, res.Status, req.GlobPattern, res.Output)
+		}
+		globs[req.GlobPattern] = res.GlobFiles()
+	}
+	ctx.target.UpdateGlobs(globs)
+
 	enabled := make(map[*prog.Syscall]bool)
 	disabled := make(map[*prog.Syscall]string)
 	for i := 0; i < ctx.pendingSyscalls; i++ {
