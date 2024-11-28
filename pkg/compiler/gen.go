@@ -132,14 +132,23 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		ret = comp.genType(n.Ret, comp.ptrSize)
 	}
 	var attrs prog.SyscallAttrs
-	descAttrs := comp.parseIntAttrs(callAttrs, n, n.Attrs)
-	for desc, val := range descAttrs {
+	intAttrs, _, stringAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
+	for desc, val := range intAttrs {
 		fld := reflect.ValueOf(&attrs).Elem().FieldByName(desc.Name)
 		switch desc.Type {
 		case intAttr:
 			fld.SetUint(val)
 		case flagAttr:
 			fld.SetBool(val != 0)
+		default:
+			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
+		}
+	}
+	for desc, val := range stringAttrs {
+		fld := reflect.ValueOf(&attrs).Elem().FieldByName(desc.Name)
+		switch desc.Type {
+		case stringAttr:
+			fld.SetString(val)
 		default:
 			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
 		}
@@ -513,7 +522,7 @@ func (comp *compiler) genFieldDir(attrs map[*attrDesc]uint64) (prog.Dir, bool) {
 }
 
 func (comp *compiler) genField(f *ast.Field, argSize uint64, overlayDir prog.Dir) prog.Field {
-	intAttrs, exprAttrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
+	intAttrs, exprAttrs, _ := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
 	dir, hasDir := overlayDir, true
 	if overlayDir == prog.DirInOut {
 		dir, hasDir = comp.genFieldDir(intAttrs)
