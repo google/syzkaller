@@ -59,7 +59,7 @@ Syzkaller 是一种覆盖率导向的模糊测试器。有关覆盖率收集的�
 如果使用不同的内核架构或看到以前未见过的内核错误消息，则可能需要扩展此正则表达式集合。
 
 `logN` 文件包含原始的 `syzkaller` 日志，包括内核控制台输出以及崩溃前执行的程序。
-这些日志可以提供给 `syz-repro` 工具进行[崩溃定位和最小化](/docs/reproducing_crashes.md)，或者提供给 `syz-execprog` 工具进行[手动定位](/docs/executing_syzkaller_programs.md)。
+这些日志可以提供给 `syz-repro` 工具进行[崩溃定位和最小化](/docs/reproducing_crashes.md)，或者提供给 `syz-execprog` 工具进行[手动定位](/docs/reproducing_crashes.md)。
 `reportN` 文件包含经过处理和符号化的内核崩溃报告（例如，KASAN 报告）。
 我们通常只需要这一对文件（如 `log0` 和 `report0`）中的一个，因为它们可能描述相同的内核错误。然而，`syzkaller` 最多保存100对这样的文件，以防崩溃难以重现或者您只是想通过查看一组崩溃报告来推断一些相似之处或不同之处的情况。
 

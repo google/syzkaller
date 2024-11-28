@@ -71,15 +71,64 @@ $ cd syzkaller
 $ ./tools/syz-env make
 ```
 
-Build the kernel and boot the VM as described above.
+Build the kernel and boot the VM as described in the section above.
 
-Download and run the reproducer:
+Download the reproducer:
+```
+$ wget -O 'repro.syz' 'https://syzkaller.appspot.com/x/repro.syz?x=137beac0580000'
+```
+
+Copy the reproducer and the syzkaller binaries to the test machine:
 ```
 $ export SYZKALLER_PATH="~/syzkaller"
-$ wget -O 'repro.syz' 'https://syzkaller.appspot.com/x/repro.syz?x=137beac0580000'
 $ scp -P 10022 -o UserKnownHostsFile=/dev/null  -o StrictHostKeyChecking=no -o IdentitiesOnly=yes $SYZKALLER_PATH/bin/linux_amd64/* ./repro.syz root@127.0.0.1:/root/
+```
+
+Now you can use the `syz-execprog` tool to actually execute the program.
+
+```
 $ ssh -p 10022 -o UserKnownHostsFile=/dev/null  -o StrictHostKeyChecking=no -o IdentitiesOnly=yes root@127.0.0.1 './syz-execprog -enable=all -repeat=0 -procs=6 ./repro.syz'
 ```
+
+Several useful `syz-execprog` flags:
+```
+  -procs int
+    	number of parallel processes to execute programs (default 1)
+  -repeat int
+    	repeat execution that many times (0 for infinite loop) (default 1)
+  -sandbox string
+    	sandbox for fuzzing (none/setuid/namespace) (default "setuid")
+  -threaded
+    	use threaded mode in executor (default true)
+```
+
+If you pass `-threaded=0`, all syscalls will be executed in the same thread.
+`-threaded=1` forces execution of each syscall in a separate thread, so that
+execution can proceed over blocking syscalls.
+
+Before 2021, `syz-execprog` also supported the following flag:
+```
+  -collide
+    	collide syscalls to provoke data races (default true)
+```
+`-collide=1` forced second round of execution of syscalls when pairs of syscalls
+are executed concurrently.
+
+Starting from the revision
+[fd8caa54](https://github.com/google/syzkaller/commit/fd8caa5462e64f37cb9eebd75ffca1737dde447d),
+the behavior is controlled [directly in syzlang](/docs/program_syntax.md#async).
+If you are running older reproducers, you might still need to set the `-collide=1` flag.
+
+
+If you are replaying a reproducer program that contains a header along the
+following lines:
+```
+# {Threaded:true Repeat:true RepeatTimes:0 Procs:8 Slowdown:1 Sandbox:none Leak:false NetInjection:true NetDevices:true NetReset:true Cgroups:true BinfmtMisc:true CloseFDs:true KCSAN:false DevlinkPCI:false USB:true VhciInjection:true Wifi:true IEEE802154:true Sysctl:true UseTmpDir:true HandleSegv:true Repro:false Trace:false LegacyOptions:{Collide:false Fault:false FaultCall:0 FaultNth:0}}
+```
+then you need to adjust `syz-execprog` flags based on the values in the
+header. Namely, `Threaded`/`Procs`/`Sandbox` directly relate to
+`-threaded`/`-procs`/`-sandbox` flags. If `Repeat` is set to `true`, add
+`-repeat=0` flag to `syz-execprog`.
 
 ## Using ktest
 
