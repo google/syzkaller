@@ -17,6 +17,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	apt-transport-https curl gnupg python-is-python3 \
 	# Needed for building Cuttlefish images.
 	rsync libarchive-tools \
+	# These are various fsck-like commands needed for prog/fsck:
+	dosfstools e2fsprogs btrfs-progs util-linux f2fs-tools jfsutils \
+	util-linux dosfstools ocfs2-tools reiserfsprogs xfsprogs erofs-utils \
+	exfatprogs gfs2-utils \
 	# Needed for buiding gVisor.
 	crossbuild-essential-amd64 crossbuild-essential-arm64 libbpf-dev
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
