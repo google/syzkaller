@@ -208,10 +208,8 @@ static int test_csum_inet_acc()
 
 static int test_cover_filter()
 {
-	char* tmp = tempnam(nullptr, "syz-test-cover-filter");
 	CoverFilter filter;
 	CoverFilter child(filter.FD());
-	free(tmp);
 
 	std::vector<uint64> pcs = {
 	    100,
