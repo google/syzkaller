@@ -715,6 +715,16 @@ func initTarget(target *Target, OS, arch string) {
 	for i := range target.CFlags {
 		target.replaceSourceDir(&target.CFlags[i], sourceDir)
 	}
+
+	if cc := os.Getenv("SYZ_CC_" + OS + "_" + arch); cc != "" {
+		target.CCompiler = strings.Fields(cc)[0]
+		target.CFlags = append(target.CFlags, strings.Fields(cc)[1:]...)
+	}
+	if cxx := os.Getenv("SYZ_CXX_" + OS + "_" + arch); cxx != "" {
+		target.CxxCompiler = strings.Fields(cxx)[0]
+		target.CxxFlags = append(target.CxxFlags, strings.Fields(cxx)[1:]...)
+	}
+
 	if OS == Linux && arch == runtime.GOARCH {
 		// Don't use cross-compiler for native compilation, there are cases when this does not work:
 		// https://github.com/google/syzkaller/pull/619
