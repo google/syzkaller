@@ -497,6 +497,8 @@ type Asset struct {
 	Title       string
 	DownloadURL string
 	Type        AssetType
+	FsckLogURL  string
+	FsIsClean   bool
 }
 
 type AssetType string
@@ -802,6 +804,8 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 type NewAsset struct {
 	DownloadURL string
 	Type        AssetType
+	FsckLog     []byte
+	FsIsClean   bool
 }
 
 type AddBuildAssetsReq struct {

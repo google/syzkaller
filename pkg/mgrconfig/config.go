@@ -192,6 +192,13 @@ type Config struct {
 	// the output.
 	StraceBin string `json:"strace_bin"`
 
+	// Whether to run fsck commands on file system images found in new crash
+	// reproducers. The fsck logs get reported as assets in the dashboard.
+	// Note: you may need to install 3rd-party dependencies for this to work.
+	// fsck commands that can be run by syz-manager are specified in mount
+	// syscall descriptions - typically in sys/linux/filesystem.txt.
+	RunFsck bool `json:"run_fsck"`
+
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
 	Type string `json:"type"`
 	// VM-type-specific parameters.

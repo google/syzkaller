@@ -67,7 +67,8 @@ rest of the type-options are type-specific:
 	value range start, how many values per process, underlying type
 "compressed_image": zlib-compressed disk image
 	syscalls accepting compressed images must be marked with `no_generate`
-	and `no_minimize` call attributes.
+	and `no_minimize` call attributes. if the content of the decompressed image
+	can be checked by a `fsck`-like command, use the `fsck` syscall attribute
 "text": machine code of the specified type, type-options:
 	text type (x86_real, x86_16, x86_32, x86_64, arm64)
 "void": type with static size 0
@@ -101,6 +102,8 @@ Call attributes are:
 "breaks_returns": ignore return values of all subsequent calls in the program in fallback feedback (can't be trusted).
 "no_generate": do not try to generate this syscall, i.e. use only seed descriptions to produce it.
 "no_minimize": do not modify instances of this syscall when trying to minimize a crashing program.
+"fsck": the content of the compressed buffer argument for this syscall is a file system and the
+    string argument is a fsck-like command that will be called to verify the filesystem
 "remote_cover": wait longer to collect remote coverage for this call.
 ```
 

@@ -59,6 +59,8 @@ type Asset struct {
 	Type        dashapi.AssetType
 	DownloadURL string
 	CreateDate  time.Time
+	FsckLog     int64 // references to fsck logstext entity - 0 if fsck wasn't run
+	FsIsClean   bool  // undefined value if FsckLog is 0
 }
 
 type Build struct {
@@ -666,6 +668,7 @@ const (
 	textLog          = "Log"
 	textError        = "Error"
 	textReproLog     = "ReproLog"
+	textFsckLog      = "FsckLog"
 )
 
 const (

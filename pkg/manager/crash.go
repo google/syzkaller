@@ -148,7 +148,7 @@ func (cs *CrashStore) SaveRepro(res *ReproResult, progText, cProgText []byte) er
 		osutil.WriteFile(filepath.Join(dir, cReproFileName), cProgText)
 	}
 	var assetErr error
-	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader) {
+	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader, c *prog.Call) {
 		fileName := filepath.Join(dir, name+".gz")
 		if err := osutil.WriteGzipStream(fileName, r); err != nil {
 			assetErr = fmt.Errorf("failed to write crash asset: type %d, %w", typ, err)
