@@ -31,6 +31,7 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
+	"github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -921,7 +922,7 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 	}
 
 	ret := []dashapi.NewAsset{}
-	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader) {
+	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader, c *prog.Call) {
 		dashTyp, ok := map[prog.AssetType]dashapi.AssetType{
 			prog.MountInRepro: dashapi.MountInRepro,
 		}[typ]
@@ -932,6 +933,16 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 		if err != nil {
 			log.Logf(1, "processing of the asset %v (%v) failed: %v", name, typ, err)
 			return
+		}
+		// Report file systems that fail fsck with a separate tag.
+		if mgr.cfg.RunFsck && dashTyp == dashapi.MountInRepro && c.Meta.Attrs.Fsck != "" {
+			logs, isClean, err := image.Fsck(r, c.Meta.Attrs.Fsck)
+			if err != nil {
+				log.Logf(1, "fsck of the asset %v failed: %v", name, err)
+			} else {
+				asset.FsckLog = logs
+				asset.FsIsClean = isClean
+			}
 		}
 		ret = append(ret, asset)
 	})
