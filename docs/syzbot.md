@@ -300,28 +300,35 @@ reply with a `#syz fix: commit-title` so that syzbot can close the bug report.
 
 <div id="syzkaller-reproducers"/>
 
-## syzkaller reproducers
+## Running reproducers
+
+*Detailed instructions on running reproducers can be found [here](/docs/reproducing_crashes.md).*
 
 `syzbot` aims at providing stand-alone C reproducers for all reported bugs.
 However, sometimes it can't extract a reproducer at all, or can only extract a
 syzkaller reproducer. syzkaller reproducers are programs in a special syzkaller
 notation and they can be executed on the target system with a little bit more
-effort. See [this](/docs/executing_syzkaller_programs.md) for instructions.
+effort.
 
 A syskaller program can also give you an idea as to what syscalls with what
 arguments were executed (note that some calls can actually be executed in
 parallel).
 
-A syzkaller program can be converted to an almost equivalent C source using `syz-prog2c` utility. `syz-prog2c`
-has lots of flags in common with [syz-execprog](/docs/executing_syzkaller_programs.md),
-e.g. `-threaded` which controls if the syscalls are executed sequentially or in parallel.
+A syzkaller program can be converted to an almost equivalent C source using
+`syz-prog2c` utility. `syz-prog2c` has lots of flags in common with
+[syz-execprog](/docs/reproducing_crashes.md#from-execution-logs),
+e.g. `-threaded` which controls if the syscalls are executed sequentially or
+concurrently.
+
 An example invocation:
 
 ```
 syz-prog2c -prog repro.syz.txt -enable=all -threaded -repeat -procs=8 -sandbox=namespace -segv -tmpdir -waitrepeat
 ```
 
-However, note that if `syzbot` did not provide a C reproducer, it wasn't able to trigger the bug using the C program (though, it can be just because the bug is triggered by a subtle race condition).
+However, note that if `syzbot` did not provide a C reproducer, it wasn't able to
+trigger the bug using the C program (it might also be the case that the bug is
+triggered by a rare race condition).
 
 ## Downloadable assets
 
@@ -345,14 +352,23 @@ then the program needs to be built with `-m32` flag.
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
 
-Latest compiler used by syzbot is contained in `gcr.io/syzkaller/syzbot:gcc-10.2.1` docker image.
-For in-tree kernel build in current directory it can be used as follows:
+Sometimes it might be important to build the kernel using the exact same
+compiler that was used by syzbot. Normally that information is included in every
+email report, e.g.:
 
 ```
-docker pull gcr.io/syzkaller/syzbot:gcc-10.2.1
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+```
+
+The latest compilers used by syzbot are contained in the
+`gcr.io/syzkaller/syzbot` docker image. For in-tree kernel build in current
+directory it can be used as follows:
+
+```
+docker pull gcr.io/syzkaller/syzbot
 docker run -it --user $(id -u ${USER}):$(id -g ${USER}) \
 	--volume "$PWD:/syzkaller/pwd" --workdir /syzkaller/pwd \
-	gcr.io/syzkaller/syzbot:gcc-10.2.1
+	gcr.io/syzkaller/syzbot:latest
 make
 ```
 

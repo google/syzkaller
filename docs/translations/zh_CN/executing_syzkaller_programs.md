@@ -1,6 +1,6 @@
 > [!WARNING]
 >
-> **请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/executing_syzkaller_programs.md](/docs/executing_syzkaller_programs.md) 找到。**
+> **请注意，这是社区驱动的官方 syzkaller 文档翻译。当前文档的最新版本（英文版）可在 [docs/reproducing_crashes.md](/docs/reproducing_crashes.md) 找到。**
 
 # 运行 syzkaller 程序
 

@@ -63,7 +63,7 @@ This set may need to be extended if you are using a different kernel architectur
 
 `logN` files contain raw `syzkaller` logs and include kernel console output as well as programs executed before the crash.
 These logs can be fed to `syz-repro` tool for [crash location and minimization](reproducing_crashes.md),
-or to `syz-execprog` tool for [manual localization](executing_syzkaller_programs.md).
+or to `syz-execprog` tool for [manual localization](reproducing_crashes.md#from-execution-logs).
 `reportN` files contain post-processed and symbolized kernel crash reports (e.g. a KASAN report).
 Normally you need just 1 pair of these files (i.e. `log0` and `report0`), because they all presumably describe the same kernel bug.
 However, `syzkaller` saves up to 100 of them for the case when the crash is poorly reproducible, or if you just want to look at a set of crash reports to infer some similarities or differences.

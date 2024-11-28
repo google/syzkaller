@@ -93,7 +93,7 @@ $ ssh -p 10022 -o UserKnownHostsFile=/dev/null  -o StrictHostKeyChecking=no -o I
 In some time, you'll see the same bug report in the VM's serial output.
 
 The commands above execute the `./syz-execprog -enable=all -repeat=0 -procs=6 ./repro.syz`
-command inside the VM. For more details see [this document](/docs/executing_syzkaller_programs.md).
+command inside the VM. More details can be found in [this document](/docs/reproducing_crashes.md).
 
 #### Use the `tools/syz-crush` tool
 
