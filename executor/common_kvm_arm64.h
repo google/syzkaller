@@ -267,8 +267,14 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1, volatile long a
 	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a2;
 	uintptr_t opt_count = a3;
 
-	if (vm->next_cpu_id == KVM_MAX_VCPU)
+	if (!vm) {
+		errno = EINVAL;
 		return -1;
+	}
+	if (vm->next_cpu_id == KVM_MAX_VCPU) {
+		errno = ENOMEM;
+		return -1;
+	}
 	int cpu_id = vm->next_cpu_id;
 	int cpufd = ioctl(vm->vmfd, KVM_CREATE_VCPU, cpu_id);
 	if (cpufd == -1)
