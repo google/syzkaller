@@ -249,7 +249,7 @@ This will probably happen when using the old format:
    Eventually(aFunc, 500 * time.Millisecond /*timeout*/, 10 * time.Second /*polling*/).Should(Succeed())
    ```
 
-### Correct usage of the `Succeed()` matcher [Bug]
+### Prevent Wrong Actual Values with the Succeed() matcher [Bug]
 The `Succeed()` matcher only accepts a single error value. this rule validates that. 
 
 For example:
@@ -270,6 +270,8 @@ a Gomega object as their first parameter, and returns nothing, e.g. this is a va
 	  g.Expect(true).To(BeTrue())
   }).WithTimeout(10 * time.Millisecond).WithPolling(time.Millisecond).Should(Succeed())
   ```
+
+***Note***: This rule **does not** support auto-fix.
 
 ### Avoid Spec Pollution: Don't Initialize Variables in Container Nodes [BUG/STYLE]:
 ***Note***: Only applied when the `--forbid-spec-pollution=true` flag is set (disabled by default).
@@ -521,6 +523,8 @@ will trigger a warning with a suggestion to replace the mather to
   Expect(myErrorFunc()).To(Succeed())
   ```
 ***This rule is disabled by default***. Use the `--force-succeed=true` command line flag to enable it.
+
+***Note***: This rule **does** support auto-fix, when the `--fix` command line parameter is used.
 
 ## Suppress the linter
 ### Suppress warning from command line

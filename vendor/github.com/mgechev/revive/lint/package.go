@@ -189,7 +189,7 @@ func (p *Package) lint(rules []Rule, config Config, failures chan Failure) {
 		wg.Add(1)
 		go (func(file *File) {
 			file.lint(rules, config, failures)
-			defer wg.Done()
+			wg.Done()
 		})(file)
 	}
 	wg.Wait()

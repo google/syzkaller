@@ -109,7 +109,7 @@ func (l *Linter) Lint(packages [][]string, ruleSet []Rule, config Config) (<-cha
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			defer wg.Done()
+			wg.Done()
 		}(packages[n], perPkgVersions[n])
 	}
 
@@ -173,6 +173,10 @@ func detectGoMod(dir string) (rootDir string, ver *goversion.Version, err error)
 		return "", nil, fmt.Errorf("failed to parse %q, got %v", modFileName, err)
 	}
 
+	if modAst.Go == nil {
+		return "", nil, fmt.Errorf("%q does not specify a Go version", modFileName)
+	}
+
 	ver, err = goversion.NewVersion(modAst.Go.Version)
 	return filepath.Dir(modFileName), ver, err
 }
@@ -180,7 +184,9 @@ func detectGoMod(dir string) (rootDir string, ver *goversion.Version, err error)
 func retrieveModFile(dir string) (string, error) {
 	const lookingForFile = "go.mod"
 	for {
-		if dir == "." || dir == "/" {
+		// filepath.Dir returns 'C:\' on Windows, and '/' on Unix
+		isRootDir := (dir == filepath.VolumeName(dir)+string(filepath.Separator))
+		if dir == "." || isRootDir {
 			return "", fmt.Errorf("did not found %q file", lookingForFile)
 		}
 

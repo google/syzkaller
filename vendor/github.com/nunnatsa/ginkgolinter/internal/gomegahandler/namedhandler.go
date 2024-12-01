@@ -51,7 +51,7 @@ func (g nameHandler) isGomegaVar(x ast.Expr) bool {
 	return gomegainfo.IsGomegaVar(x, g.pass)
 }
 
-func (g nameHandler) GetActualExpr(assertionFunc *ast.SelectorExpr) *ast.CallExpr {
+func (g nameHandler) GetActualExpr(assertionFunc *ast.SelectorExpr, errMethodExists *bool) *ast.CallExpr {
 	actualExpr, ok := assertionFunc.X.(*ast.CallExpr)
 	if !ok {
 		return nil
@@ -69,7 +69,10 @@ func (g nameHandler) GetActualExpr(assertionFunc *ast.SelectorExpr) *ast.CallExp
 				return actualExpr
 			}
 		} else {
-			return g.GetActualExpr(fun)
+			if fun.Sel.Name == "Error" {
+				*errMethodExists = true
+			}
+			return g.GetActualExpr(fun, errMethodExists)
 		}
 	}
 	return nil

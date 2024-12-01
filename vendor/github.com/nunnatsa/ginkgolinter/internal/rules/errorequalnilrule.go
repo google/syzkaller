@@ -12,8 +12,15 @@ import (
 type ErrorEqualNilRule struct{}
 
 func (ErrorEqualNilRule) isApplied(gexp *expression.GomegaExpression, config types.Config) bool {
-	return !bool(config.SuppressErr) &&
-		gexp.ActualArgTypeIs(actual.ErrorTypeArgType) &&
+	if config.SuppressErr {
+		return false
+	}
+
+	if !gexp.IsAsync() && gexp.ActualArgTypeIs(actual.FuncSigArgType) {
+		return false
+	}
+
+	return gexp.ActualArgTypeIs(actual.ErrorTypeArgType) &&
 		gexp.MatcherTypeIs(matcher.BeNilMatcherType|matcher.EqualNilMatcherType)
 }
 

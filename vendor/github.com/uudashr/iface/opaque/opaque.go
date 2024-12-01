@@ -53,6 +53,11 @@ func (r *runner) run(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 
+		if funcDecl.Body == nil {
+			// skip functions without body
+			return
+		}
+
 		if funcDecl.Type.Results == nil {
 			// skip functions without return values
 			return
@@ -133,7 +138,7 @@ func (r *runner) run(pass *analysis.Pass) (interface{}, error) {
 						typ := pass.TypesInfo.TypeOf(res)
 						switch typ := typ.(type) {
 						case *types.Tuple:
-							for i := 0; i < typ.Len(); i++ {
+							for i := range typ.Len() {
 								v := typ.At(i)
 								vTyp := v.Type()
 								retStmtTypes[i][vTyp] = struct{}{}
