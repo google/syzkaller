@@ -11,18 +11,13 @@ import (
 // FunctionResultsLimitRule lints given else constructs.
 type FunctionResultsLimitRule struct {
 	max int
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 const defaultResultsLimit = 3
 
 func (r *FunctionResultsLimitRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.max != 0 {
-		return // already configured
-	}
-
 	if len(arguments) < 1 {
 		r.max = defaultResultsLimit
 		return
@@ -41,7 +36,7 @@ func (r *FunctionResultsLimitRule) configure(arguments lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *FunctionResultsLimitRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 

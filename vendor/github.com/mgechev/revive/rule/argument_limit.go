@@ -11,18 +11,13 @@ import (
 // ArgumentsLimitRule lints given else constructs.
 type ArgumentsLimitRule struct {
 	max int
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 const defaultArgumentsLimit = 8
 
 func (r *ArgumentsLimitRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.max != 0 {
-		return
-	}
-
 	if len(arguments) < 1 {
 		r.max = defaultArgumentsLimit
 		return
@@ -37,7 +32,7 @@ func (r *ArgumentsLimitRule) configure(arguments lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *ArgumentsLimitRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 	onFailure := func(failure lint.Failure) {

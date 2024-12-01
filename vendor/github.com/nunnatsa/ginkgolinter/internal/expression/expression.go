@@ -52,7 +52,9 @@ func New(origExpr *ast.CallExpr, pass *analysis.Pass, handler gomegahandler.Hand
 	exprClone := astcopy.CallExpr(origExpr)
 	selClone := exprClone.Fun.(*ast.SelectorExpr)
 
-	origActual := handler.GetActualExpr(origSel)
+	errMethodExists := false
+
+	origActual := handler.GetActualExpr(origSel, &errMethodExists)
 	if origActual == nil {
 		return nil, false
 	}
@@ -62,7 +64,7 @@ func New(origExpr *ast.CallExpr, pass *analysis.Pass, handler gomegahandler.Hand
 		return nil, false
 	}
 
-	actl, ok := actual.New(origExpr, exprClone, origActual, actualClone, pass, handler, timePkg)
+	actl, ok := actual.New(origExpr, exprClone, origActual, actualClone, pass, handler, timePkg, errMethodExists)
 	if !ok {
 		return nil, false
 	}

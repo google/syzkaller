@@ -2,6 +2,7 @@ package rule
 
 import (
 	"go/ast"
+	"go/token"
 	"strings"
 
 	"github.com/mgechev/revive/lint"
@@ -60,14 +61,14 @@ func (w lintModifiesValRecRule) Visit(node ast.Node) ast.Visitor {
 			return nil // skip, anonymous receiver
 		}
 
-		fselect := func(n ast.Node) bool {
+		receiverAssignmentFinder := func(n ast.Node) bool {
 			// look for assignments with the receiver in the right hand
-			asgmt, ok := n.(*ast.AssignStmt)
+			assignment, ok := n.(*ast.AssignStmt)
 			if !ok {
 				return false
 			}
 
-			for _, exp := range asgmt.Lhs {
+			for _, exp := range assignment.Lhs {
 				switch e := exp.(type) {
 				case *ast.IndexExpr: // receiver...[] = ...
 					continue
@@ -92,7 +93,15 @@ func (w lintModifiesValRecRule) Visit(node ast.Node) ast.Visitor {
 			return false
 		}
 
-		assignmentsToReceiver := pick(n.Body, fselect)
+		assignmentsToReceiver := pick(n.Body, receiverAssignmentFinder)
+		if len(assignmentsToReceiver) == 0 {
+			return nil // receiver is not modified
+		}
+
+		methodReturnsReceiver := len(w.findReturnReceiverStatements(receiverName, n.Body)) > 0
+		if methodReturnsReceiver {
+			return nil // modification seems legit (see issue #1066)
+		}
 
 		for _, assignment := range assignmentsToReceiver {
 			w.onFailure(lint.Failure{
@@ -126,4 +135,45 @@ func (lintModifiesValRecRule) getNameFromExpr(ie ast.Expr) string {
 	}
 
 	return ident.Name
+}
+
+func (w lintModifiesValRecRule) findReturnReceiverStatements(receiverName string, target ast.Node) []ast.Node {
+	finder := func(n ast.Node) bool {
+		// look for returns with the receiver as value
+		returnStatement, ok := n.(*ast.ReturnStmt)
+		if !ok {
+			return false
+		}
+
+		for _, exp := range returnStatement.Results {
+			switch e := exp.(type) {
+			case *ast.SelectorExpr: // receiver.field = ...
+				name := w.getNameFromExpr(e.X)
+				if name == "" || name != receiverName {
+					continue
+				}
+			case *ast.Ident: // receiver := ...
+				if e.Name != receiverName {
+					continue
+				}
+			case *ast.UnaryExpr:
+				if e.Op != token.AND {
+					continue
+				}
+				name := w.getNameFromExpr(e.X)
+				if name == "" || name != receiverName {
+					continue
+				}
+
+			default:
+				continue
+			}
+
+			return true
+		}
+
+		return false
+	}
+
+	return pick(target, finder)
 }

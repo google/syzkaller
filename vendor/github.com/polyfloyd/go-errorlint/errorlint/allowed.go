@@ -53,6 +53,7 @@ func setDefaultAllowedErrors() {
 		{Err: "io.EOF", Fun: "(*io.SectionReader).Read"},
 		{Err: "io.EOF", Fun: "(*io.SectionReader).ReadAt"},
 		{Err: "io.ErrClosedPipe", Fun: "(*io.PipeWriter).Write"},
+		{Err: "io.EOF", Fun: "io.ReadAtLeast"},
 		{Err: "io.ErrShortBuffer", Fun: "io.ReadAtLeast"},
 		{Err: "io.ErrUnexpectedEOF", Fun: "io.ReadAtLeast"},
 		{Err: "io.EOF", Fun: "io.ReadFull"},
@@ -84,6 +85,7 @@ func setDefaultAllowedErrors() {
 		{Err: "context.Canceled", Fun: "(context.Context).Err"},
 		// pkg/encoding/json
 		{Err: "io.EOF", Fun: "(*encoding/json.Decoder).Decode"},
+		{Err: "io.EOF", Fun: "(*encoding/json.Decoder).Token"},
 		// pkg/encoding/csv
 		{Err: "io.EOF", Fun: "(*encoding/csv.Reader).Read"},
 		// pkg/mime/multipart

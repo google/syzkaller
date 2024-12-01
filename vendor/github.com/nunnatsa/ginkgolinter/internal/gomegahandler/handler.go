@@ -18,7 +18,7 @@ type Handler interface {
 	// ReplaceFunction replaces the function with another one, for fix suggestions
 	ReplaceFunction(*ast.CallExpr, *ast.Ident)
 
-	GetActualExpr(assertionFunc *ast.SelectorExpr) *ast.CallExpr
+	GetActualExpr(assertionFunc *ast.SelectorExpr, errMethodExists *bool) *ast.CallExpr
 
 	GetActualExprClone(origFunc, funcClone *ast.SelectorExpr) *ast.CallExpr
 

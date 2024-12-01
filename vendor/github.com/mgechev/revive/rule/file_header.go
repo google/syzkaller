@@ -11,7 +11,8 @@ import (
 // FileHeaderRule lints given else constructs.
 type FileHeaderRule struct {
 	header string
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 var (
@@ -20,12 +21,6 @@ var (
 )
 
 func (r *FileHeaderRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.header != "" {
-		return // already configured
-	}
-
 	if len(arguments) < 1 {
 		return
 	}
@@ -39,7 +34,7 @@ func (r *FileHeaderRule) configure(arguments lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *FileHeaderRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	if r.header == "" {
 		return nil

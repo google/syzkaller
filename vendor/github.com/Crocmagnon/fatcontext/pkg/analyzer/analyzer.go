@@ -59,7 +59,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					{
 						Pos:     assignStmt.Pos(),
 						End:     assignStmt.End(),
-						NewText: []byte(suggested),
+						NewText: suggested,
 					},
 				},
 			})
@@ -215,10 +215,10 @@ func getRootIdent(pass *analysis.Pass, node ast.Node) *ast.Ident {
 }
 
 // render returns the pretty-print of the given node
-func render(fset *token.FileSet, x interface{}) (string, error) {
+func render(fset *token.FileSet, x interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, fset, x); err != nil {
-		return "", fmt.Errorf("printing node: %w", err)
+		return nil, fmt.Errorf("printing node: %w", err)
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }

@@ -36,12 +36,13 @@ type AddConstantRule struct {
 	allowList       allowList
 	ignoreFunctions []*regexp.Regexp
 	strLitLimit     int
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 // Apply applies the rule to given file.
 func (r *AddConstantRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 
@@ -201,9 +202,6 @@ func (w *lintAddConstantRule) isStructTag(n *ast.BasicLit) bool {
 }
 
 func (r *AddConstantRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-
 	if r.allowList == nil {
 		r.strLitLimit = defaultStrLitLimit
 		r.allowList = newAllowList()

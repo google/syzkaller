@@ -39,20 +39,12 @@ func mapStyleFromString(s string) (enforceMapStyleType, error) {
 
 // EnforceMapStyleRule implements a rule to enforce `make(map[type]type)` over `map[type]type{}`.
 type EnforceMapStyleRule struct {
-	configured      bool
 	enforceMapStyle enforceMapStyleType
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *EnforceMapStyleRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.configured {
-		return
-	}
-	r.configured = true
-
 	if len(arguments) < 1 {
 		r.enforceMapStyle = enforceMapStyleTypeAny
 		return
@@ -72,7 +64,7 @@ func (r *EnforceMapStyleRule) configure(arguments lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *EnforceMapStyleRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	if r.enforceMapStyle == enforceMapStyleTypeAny {
 		// this linter is not configured

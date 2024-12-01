@@ -11,22 +11,17 @@ import (
 // DeferRule lints unused params in functions.
 type DeferRule struct {
 	allow map[string]bool
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *DeferRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.allow != nil {
-		return // already configured
-	}
-
 	r.allow = r.allowFromArgs(arguments)
 }
 
 // Apply applies the rule to given file.
 func (r *DeferRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 	onFailure := func(failure lint.Failure) {

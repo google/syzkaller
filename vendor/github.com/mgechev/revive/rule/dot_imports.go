@@ -10,13 +10,14 @@ import (
 
 // DotImportsRule lints given else constructs.
 type DotImportsRule struct {
-	sync.Mutex
 	allowedPackages allowPackages
+
+	configureOnce sync.Once
 }
 
 // Apply applies the rule to given file.
 func (r *DotImportsRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 
@@ -41,13 +42,6 @@ func (*DotImportsRule) Name() string {
 }
 
 func (r *DotImportsRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.allowedPackages != nil {
-		return
-	}
-
 	r.allowedPackages = make(allowPackages)
 	if len(arguments) == 0 {
 		return

@@ -82,7 +82,7 @@ func LintFmtErrorfCalls(fset *token.FileSet, info types.Info, multipleWraps bool
 					argIndex++
 				}
 
-				if verb.format == "w" {
+				if verb.format == "w" || verb.format == "T" {
 					continue
 				}
 				if argIndex-1 >= len(args) {

@@ -12,16 +12,11 @@ import (
 // the comment symbol( // ) and the start of the comment text
 type CommentSpacingsRule struct {
 	allowList []string
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *CommentSpacingsRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.allowList != nil {
-		return // already configured
-	}
-
 	r.allowList = []string{}
 	for _, arg := range arguments {
 		allow, ok := arg.(string) // Alt. non panicking version
@@ -34,7 +29,7 @@ func (r *CommentSpacingsRule) configure(arguments lint.Arguments) {
 
 // Apply the rule.
 func (r *CommentSpacingsRule) Apply(file *lint.File, args lint.Arguments) []lint.Failure {
-	r.configure(args)
+	r.configureOnce.Do(func() { r.configure(args) })
 
 	var failures []lint.Failure
 

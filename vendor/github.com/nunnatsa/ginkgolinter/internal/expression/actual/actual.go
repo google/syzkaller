@@ -21,13 +21,13 @@ type Actual struct {
 	actualOffset int
 }
 
-func New(origExpr, cloneExpr *ast.CallExpr, orig *ast.CallExpr, clone *ast.CallExpr, pass *analysis.Pass, handler gomegahandler.Handler, timePkg string) (*Actual, bool) {
+func New(origExpr, cloneExpr *ast.CallExpr, orig *ast.CallExpr, clone *ast.CallExpr, pass *analysis.Pass, handler gomegahandler.Handler, timePkg string, errMethodExists bool) (*Actual, bool) {
 	funcName, ok := handler.GetActualFuncName(orig)
 	if !ok {
 		return nil, false
 	}
 
-	arg, actualOffset := getActualArgPayload(orig, clone, pass, funcName)
+	arg, actualOffset := getActualArgPayload(orig, clone, pass, funcName, errMethodExists)
 	if arg == nil {
 		return nil, false
 	}

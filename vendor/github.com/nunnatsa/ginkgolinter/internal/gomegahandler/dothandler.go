@@ -51,7 +51,7 @@ func (dotHandler) GetNewWrapperMatcher(name string, existing *ast.CallExpr) *ast
 	}
 }
 
-func (h dotHandler) GetActualExpr(assertionFunc *ast.SelectorExpr) *ast.CallExpr {
+func (h dotHandler) GetActualExpr(assertionFunc *ast.SelectorExpr, errMethodExists *bool) *ast.CallExpr {
 	actualExpr, ok := assertionFunc.X.(*ast.CallExpr)
 	if !ok {
 		return nil
@@ -66,7 +66,11 @@ func (h dotHandler) GetActualExpr(assertionFunc *ast.SelectorExpr) *ast.CallExpr
 				return actualExpr
 			}
 		} else {
-			return h.GetActualExpr(fun)
+			if fun.Sel.Name == "Error" {
+				*errMethodExists = true
+			}
+
+			return h.GetActualExpr(fun, errMethodExists)
 		}
 	}
 	return nil

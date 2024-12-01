@@ -15,17 +15,11 @@ import (
 // ErrorStringsRule lints given else constructs.
 type ErrorStringsRule struct {
 	errorFunctions map[string]map[string]struct{}
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *ErrorStringsRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.errorFunctions != nil {
-		return
-	}
-
 	r.errorFunctions = map[string]map[string]struct{}{
 		"fmt": {
 			"Errorf": {},
@@ -60,7 +54,7 @@ func (r *ErrorStringsRule) configure(arguments lint.Arguments) {
 func (r *ErrorStringsRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	fileAst := file.AST
 	walker := lintErrorStrings{

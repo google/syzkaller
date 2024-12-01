@@ -12,30 +12,29 @@ import (
 // ContextAsArgumentRule lints given else constructs.
 type ContextAsArgumentRule struct {
 	allowTypesLUT map[string]struct{}
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 // Apply applies the rule to given file.
 func (r *ContextAsArgumentRule) Apply(file *lint.File, args lint.Arguments) []lint.Failure {
-	r.Lock()
-	if r.allowTypesLUT == nil {
-		r.allowTypesLUT = getAllowTypesFromArguments(args)
-	}
-	r.Unlock()
+	r.configureOnce.Do(func() { r.configure(args) })
 
 	var failures []lint.Failure
-	r.Lock()
 	walker := lintContextArguments{
 		allowTypesLUT: r.allowTypesLUT,
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
 	}
-	r.Unlock()
 
 	ast.Walk(walker, file.AST)
 
 	return failures
+}
+
+func (r *ContextAsArgumentRule) configure(arguments lint.Arguments) {
+	r.allowTypesLUT = getAllowTypesFromArguments(arguments)
 }
 
 // Name returns the rule name.

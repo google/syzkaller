@@ -18,22 +18,15 @@ var upperCaseConstRE = regexp.MustCompile(`^_?[A-Z][A-Z\d]*(_[A-Z\d]+)*$`)
 
 // VarNamingRule lints given else constructs.
 type VarNamingRule struct {
-	configured            bool
 	allowList             []string
 	blockList             []string
 	allowUpperCaseConst   bool // if true - allows to use UPPER_SOME_NAMES for constants
 	skipPackageNameChecks bool
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *VarNamingRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.configured {
-		return
-	}
-
-	r.configured = true
 	if len(arguments) >= 1 {
 		r.allowList = getList(arguments[0], "allowlist")
 	}
@@ -83,7 +76,7 @@ func (r *VarNamingRule) applyPackageCheckRules(walker *lintNames) {
 
 // Apply applies the rule to given file.
 func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 

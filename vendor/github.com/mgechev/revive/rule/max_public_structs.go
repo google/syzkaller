@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"fmt"
 	"go/ast"
 	"strings"
 	"sync"
@@ -11,18 +12,13 @@ import (
 // MaxPublicStructsRule lints given else constructs.
 type MaxPublicStructsRule struct {
 	max int64
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 const defaultMaxPublicStructs = 5
 
 func (r *MaxPublicStructsRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.max == 0 {
-		return // already configured
-	}
-
 	if len(arguments) < 1 {
 		r.max = defaultMaxPublicStructs
 		return
@@ -39,9 +35,13 @@ func (r *MaxPublicStructsRule) configure(arguments lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *MaxPublicStructsRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
+
+	if r.max < 1 {
+		return failures
+	}
 
 	fileAst := file.AST
 
@@ -56,7 +56,7 @@ func (r *MaxPublicStructsRule) Apply(file *lint.File, arguments lint.Arguments) 
 
 	if walker.current > r.max {
 		walker.onFailure(lint.Failure{
-			Failure:    "you have exceeded the maximum number of public struct declarations",
+			Failure:    fmt.Sprintf("you have exceeded the maximum number (%d) of public struct declarations", r.max),
 			Confidence: 1,
 			Node:       fileAst,
 			Category:   "style",

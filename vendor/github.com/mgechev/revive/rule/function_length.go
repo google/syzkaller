@@ -11,20 +11,13 @@ import (
 
 // FunctionLength lint.
 type FunctionLength struct {
-	maxStmt    int
-	maxLines   int
-	configured bool
-	sync.Mutex
+	maxStmt  int
+	maxLines int
+
+	configureOnce sync.Once
 }
 
 func (r *FunctionLength) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if r.configured {
-		return
-	}
-
-	r.configured = true
 	maxStmt, maxLines := r.parseArguments(arguments)
 	r.maxStmt = int(maxStmt)
 	r.maxLines = int(maxLines)
@@ -32,7 +25,7 @@ func (r *FunctionLength) configure(arguments lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *FunctionLength) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 

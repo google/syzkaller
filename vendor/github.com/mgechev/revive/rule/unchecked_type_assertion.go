@@ -15,20 +15,15 @@ const (
 
 // UncheckedTypeAssertionRule lints missing or ignored `ok`-value in dynamic type casts.
 type UncheckedTypeAssertionRule struct {
-	sync.Mutex
 	acceptIgnoredAssertionResult bool
-	configured                   bool
+
+	configureOnce sync.Once
 }
 
-func (u *UncheckedTypeAssertionRule) configure(arguments lint.Arguments) {
-	u.Lock()
-	defer u.Unlock()
-
-	if len(arguments) == 0 || u.configured {
+func (r *UncheckedTypeAssertionRule) configure(arguments lint.Arguments) {
+	if len(arguments) == 0 {
 		return
 	}
-
-	u.configured = true
 
 	args, ok := arguments[0].(map[string]any)
 	if !ok {
@@ -38,7 +33,7 @@ func (u *UncheckedTypeAssertionRule) configure(arguments lint.Arguments) {
 	for k, v := range args {
 		switch k {
 		case "acceptIgnoredAssertionResult":
-			u.acceptIgnoredAssertionResult, ok = v.(bool)
+			r.acceptIgnoredAssertionResult, ok = v.(bool)
 			if !ok {
 				panic(fmt.Sprintf("Unable to parse argument '%s'. Expected boolean.", k))
 			}
@@ -49,8 +44,8 @@ func (u *UncheckedTypeAssertionRule) configure(arguments lint.Arguments) {
 }
 
 // Apply applies the rule to given file.
-func (u *UncheckedTypeAssertionRule) Apply(file *lint.File, args lint.Arguments) []lint.Failure {
-	u.configure(args)
+func (r *UncheckedTypeAssertionRule) Apply(file *lint.File, args lint.Arguments) []lint.Failure {
+	r.configureOnce.Do(func() { r.configure(args) })
 
 	var failures []lint.Failure
 
@@ -58,7 +53,7 @@ func (u *UncheckedTypeAssertionRule) Apply(file *lint.File, args lint.Arguments)
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
-		acceptIgnoredTypeAssertionResult: u.acceptIgnoredAssertionResult,
+		acceptIgnoredTypeAssertionResult: r.acceptIgnoredAssertionResult,
 	}
 
 	ast.Walk(walker, file.AST)

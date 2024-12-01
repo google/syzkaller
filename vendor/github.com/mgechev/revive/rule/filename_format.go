@@ -13,12 +13,13 @@ import (
 // FilenameFormatRule lints source filenames according to a set of regular expressions given as arguments
 type FilenameFormatRule struct {
 	format *regexp.Regexp
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 // Apply applies the rule to the given file.
 func (r *FilenameFormatRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	filename := filepath.Base(file.Name)
 	if r.format.MatchString(filename) {
@@ -55,13 +56,6 @@ func (*FilenameFormatRule) Name() string {
 var defaultFormat = regexp.MustCompile("^[_A-Za-z0-9][_A-Za-z0-9-]*.go$")
 
 func (r *FilenameFormatRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.format != nil {
-		return
-	}
-
 	argsCount := len(arguments)
 	if argsCount == 0 {
 		r.format = defaultFormat

@@ -48,7 +48,7 @@ func (checker EncodedCompare) Check(pass *analysis.Pass, call *CallMeta) *analys
 	switch {
 	case aIsExplicitJSON, bIsExplicitJSON, isJSONStyleExpr(pass, a), isJSONStyleExpr(pass, b):
 		proposed = "JSONEq"
-	case isYAMLStyleExpr(a), isYAMLStyleExpr(b):
+	case isYAMLStyleExpr(pass, a), isYAMLStyleExpr(pass, b):
 		proposed = "YAMLEq"
 	}
 

@@ -11,22 +11,14 @@ import (
 
 // UnusedReceiverRule lints unused params in functions.
 type UnusedReceiverRule struct {
-	configured bool
 	// regex to check if some name is valid for unused parameter, "^_$" by default
 	allowRegex *regexp.Regexp
 	failureMsg string
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *UnusedReceiverRule) configure(args lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.configured {
-		return
-	}
-	r.configured = true
-
 	// while by default args is an array, i think it's good to provide structures inside it by default, not arrays or primitives
 	// it's more compatible to JSON nature of configurations
 	var allowedRegexStr string
@@ -57,7 +49,7 @@ func (r *UnusedReceiverRule) configure(args lint.Arguments) {
 
 // Apply applies the rule to given file.
 func (r *UnusedReceiverRule) Apply(file *lint.File, args lint.Arguments) []lint.Failure {
-	r.configure(args)
+	r.configureOnce.Do(func() { r.configure(args) })
 	var failures []lint.Failure
 
 	onFailure := func(failure lint.Failure) {

@@ -11,14 +11,15 @@ import (
 // MaxControlNestingRule lints given else constructs.
 type MaxControlNestingRule struct {
 	max int64
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 const defaultMaxControlNesting = 5
 
 // Apply applies the rule to given file.
 func (r *MaxControlNestingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 
@@ -107,12 +108,6 @@ func (w *lintMaxControlNesting) walkControlledBlock(b ast.Node) {
 }
 
 func (r *MaxControlNestingRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	defer r.Unlock()
-	if !(r.max < 1) {
-		return // max already configured
-	}
-
 	if len(arguments) < 1 {
 		r.max = defaultMaxControlNesting
 		return

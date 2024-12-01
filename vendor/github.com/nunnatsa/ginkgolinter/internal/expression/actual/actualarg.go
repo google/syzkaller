@@ -28,6 +28,7 @@ const (
 	ErrFuncActualArgType
 	GomegaParamArgType
 	MultiRetsArgType
+	ErrorMethodArgType
 
 	ErrorTypeArgType
 
@@ -39,7 +40,7 @@ func (a ArgType) Is(val ArgType) bool {
 	return a&val != 0
 }
 
-func getActualArgPayload(origActualExpr, actualExprClone *ast.CallExpr, pass *analysis.Pass, actualMethodName string) (ArgPayload, int) {
+func getActualArgPayload(origActualExpr, actualExprClone *ast.CallExpr, pass *analysis.Pass, actualMethodName string, errMethodExists bool) (ArgPayload, int) {
 	origArgExpr, argExprClone, actualOffset, isGomegaExpr := getActualArg(origActualExpr, actualExprClone, actualMethodName, pass)
 	if !isGomegaExpr {
 		return nil, 0
@@ -47,7 +48,9 @@ func getActualArgPayload(origActualExpr, actualExprClone *ast.CallExpr, pass *an
 
 	var arg ArgPayload
 
-	if value.IsExprError(pass, origArgExpr) {
+	if errMethodExists {
+		arg = &ErrorMethodPayload{}
+	} else if value.IsExprError(pass, origArgExpr) {
 		arg = newErrPayload(origArgExpr, argExprClone, pass)
 	} else {
 		switch expr := origArgExpr.(type) {
@@ -56,18 +59,20 @@ func getActualArgPayload(origActualExpr, actualExprClone *ast.CallExpr, pass *an
 
 		case *ast.BinaryExpr:
 			arg = parseBinaryExpr(expr, argExprClone.(*ast.BinaryExpr), pass)
-
-		default:
-			t := pass.TypesInfo.TypeOf(origArgExpr)
-			if sig, ok := t.(*gotypes.Signature); ok {
-				arg = getAsyncFuncArg(sig)
-			}
 		}
 
 	}
 
 	if arg != nil {
 		return arg, actualOffset
+	}
+
+	t := pass.TypesInfo.TypeOf(origArgExpr)
+	if sig, ok := t.(*gotypes.Signature); ok {
+		arg = getAsyncFuncArg(sig)
+		if arg != nil {
+			return arg, actualOffset
+		}
 	}
 
 	return newRegularArgPayload(origArgExpr, argExprClone, pass), actualOffset
@@ -179,6 +184,12 @@ func newErrPayload(orig, clone ast.Expr, pass *analysis.Pass) *ErrPayload {
 
 func (*ErrPayload) ArgType() ArgType {
 	return ErrActualArgType | ErrorTypeArgType
+}
+
+type ErrorMethodPayload struct{}
+
+func (ErrorMethodPayload) ArgType() ArgType {
+	return ErrorMethodArgType | ErrorTypeArgType
 }
 
 func parseBinaryExpr(origActualExpr, argExprClone *ast.BinaryExpr, pass *analysis.Pass) ArgPayload {
