@@ -49,6 +49,7 @@ func ParserDisableFuncMocks(disable bool) func(*Parser) {
 		p.disableFuncMocks = disable
 	}
 }
+
 func NewParser(buildTags []string, opts ...func(*Parser)) *Parser {
 	var conf packages.Config
 	conf.Mode = packages.NeedTypes |
@@ -92,6 +93,9 @@ func (p *Parser) ParsePackages(ctx context.Context, packageNames []string) error
 		return err
 	}
 	for _, pkg := range packages {
+		if len(pkg.GoFiles) == 0 {
+			continue
+		}
 		for _, err := range pkg.Errors {
 			log.Err(err).Msg("encountered error when loading package")
 		}
@@ -234,7 +238,8 @@ func (p *Parser) packageInterfaces(
 	pkg *types.Package,
 	fileName string,
 	declaredInterfaces []string,
-	ifaces []*Interface) []*Interface {
+	ifaces []*Interface,
+) []*Interface {
 	scope := pkg.Scope()
 	for _, name := range declaredInterfaces {
 		obj := scope.Lookup(name)
