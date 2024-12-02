@@ -36,6 +36,17 @@ syz_genetlink_get_family_id$auto_foo_family(name ptr[in, string["foo family"]], 
 
 sendmsg$auto_NETLINK_FOO_CMD_FOO(fd sock_nl_generic, msg ptr[in, msghdr_foo_family$auto[NETLINK_FOO_CMD_FOO, foo_genl_policy_netlink$auto]], f flags[send_flags])
 sendmsg$auto_NETLINK_FOO_CMD_BAR(fd sock_nl_generic, msg ptr[in, msghdr_foo_family$auto[NETLINK_FOO_CMD_BAR, foo_genl_policy_netlink$auto]], f flags[send_flags])
+sendmsg$auto_NETLINK_FOO_CMD_BAR2(fd sock_nl_generic, msg ptr[in, msghdr_foo_family$auto[NETLINK_FOO_CMD_BAR, foo_dump_genl_policy_netlink$auto]], f flags[send_flags])
+
+foo_dump_genl_policy_netlink$auto [
+	NETLINK_FOO_ATTR1	nlattr[NETLINK_FOO_ATTR1, int32]
+] [varlen]
+
+resource genl_nopolicy_family_id$auto[int16]
+type msghdr_nopolicy$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nopolicy_family_id$auto, genlmsghdr_t[CMD], POLICY]]
+syz_genetlink_get_family_id$auto_nopolicy(name ptr[in, string["nopolicy"]], fd sock_nl_generic) genl_nopolicy_family_id$auto
+
+sendmsg$auto_NETLINK_NOPOLICY_CMD(fd sock_nl_generic, msg ptr[in, msghdr_nopolicy$auto[NETLINK_NOPOLICY_CMD, void]], f flags[send_flags])
 
 netlink_foo_struct1$auto {
 	a	int32
@@ -52,3 +63,4 @@ netlink_foo_struct2$auto {
 define NETLINK_BAR_CMD_FOO	0
 define NETLINK_FOO_NESTED_ATTR1	0
 define NETLINK_FOO_NESTED_ATTR2	1
+define NETLINK_NOPOLICY_CMD	0

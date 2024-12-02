@@ -76,6 +76,7 @@ NETLINK	BATADV_CMD_TP_METER	func:batadv_netlink_tp_meter_start	access:ns_admin	m
 NETLINK	BATADV_CMD_TP_METER_CANCEL	func:batadv_netlink_tp_meter_cancel	access:ns_admin	manual_desc:true	auto_desc:true	file:net/batman-adv/netlink.c	subsystem:batman
 NETLINK	CGROUPSTATS_CMD_GET	func:cgroupstats_user_cmd	access:user	manual_desc:false	auto_desc:true	file:kernel/taskstats.c	subsystem:kernel
 NETLINK	CIFS_GENL_CMD_SWN_NOTIFY	func:cifs_swn_notify	access:user	manual_desc:false	auto_desc:true	file:fs/smb/client/netlink.c	subsystem:cifs
+NETLINK	CTRL_CMD_GETFAMILY	func:ctrl_dumpfamily	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
 NETLINK	CTRL_CMD_GETFAMILY	func:ctrl_getfamily	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
 NETLINK	CTRL_CMD_GETPOLICY	func:ctrl_dumppolicy_start	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
 NETLINK	ETHTOOL_MSG_CABLE_TEST_ACT	func:ethnl_act_cable_test	access:ns_admin	manual_desc:false	auto_desc:true	file:net/ethtool/netlink.c	subsystem:net
@@ -170,6 +171,8 @@ NETLINK	IOAM6_CMD_ADD_NAMESPACE	func:ioam6_genl_addns	access:admin	manual_desc:f
 NETLINK	IOAM6_CMD_ADD_SCHEMA	func:ioam6_genl_addsc	access:admin	manual_desc:false	auto_desc:true	file:net/ipv6/ioam6.c	subsystem:net
 NETLINK	IOAM6_CMD_DEL_NAMESPACE	func:ioam6_genl_delns	access:admin	manual_desc:false	auto_desc:true	file:net/ipv6/ioam6.c	subsystem:net
 NETLINK	IOAM6_CMD_DEL_SCHEMA	func:ioam6_genl_delsc	access:admin	manual_desc:false	auto_desc:true	file:net/ipv6/ioam6.c	subsystem:net
+NETLINK	IOAM6_CMD_DUMP_NAMESPACES	func:ioam6_genl_dumpns	access:admin	manual_desc:false	auto_desc:true	file:net/ipv6/ioam6.c	subsystem:net
+NETLINK	IOAM6_CMD_DUMP_SCHEMAS	func:ioam6_genl_dumpsc	access:admin	manual_desc:false	auto_desc:true	file:net/ipv6/ioam6.c	subsystem:net
 NETLINK	IOAM6_CMD_NS_SET_SCHEMA	func:ioam6_genl_ns_set_schema	access:admin	manual_desc:false	auto_desc:true	file:net/ipv6/ioam6.c	subsystem:net
 NETLINK	IPVS_CMD_DEL_DAEMON	func:ip_vs_genl_set_daemon	access:admin	manual_desc:true	auto_desc:true	file:net/netfilter/ipvs/ip_vs_ctl.c	subsystem:lvs
 NETLINK	IPVS_CMD_DEL_DEST	func:ip_vs_genl_set_cmd	access:admin	manual_desc:true	auto_desc:true	file:net/netfilter/ipvs/ip_vs_ctl.c	subsystem:lvs
@@ -225,19 +228,25 @@ NETLINK	NCSI_CMD_SET_INTERFACE	func:ncsi_set_interface_nl	access:admin	manual_de
 NETLINK	NCSI_CMD_SET_PACKAGE_MASK	func:ncsi_set_package_mask_nl	access:admin	manual_desc:false	auto_desc:true	file:net/ncsi/ncsi-netlink.c	subsystem:net
 NETLINK	NETDEV_CMD_BIND_RX	func:netdev_nl_bind_rx_doit	access:admin	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_DEV_GET	func:netdev_nl_dev_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_DEV_GET	func:netdev_nl_dev_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_NAPI_GET	func:netdev_nl_napi_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_NAPI_GET	func:netdev_nl_napi_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_NAPI_SET	func:netdev_nl_napi_set_doit	access:admin	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_PAGE_POOL_GET	func:netdev_nl_page_pool_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_PAGE_POOL_GET	func:netdev_nl_page_pool_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_QSTATS_GET	func:netdev_nl_qstats_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_QUEUE_GET	func:netdev_nl_queue_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_QUEUE_GET	func:netdev_nl_queue_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NET_DM_CMD_CONFIG	func:net_dm_cmd_config	access:admin	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_CONFIG_GET	func:net_dm_cmd_config_get	access:user	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_START	func:net_dm_cmd_trace	access:admin	manual_desc:true	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_STATS_GET	func:net_dm_cmd_stats_get	access:user	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_STOP	func:net_dm_cmd_trace	access:admin	manual_desc:true	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_SHAPER_CMD_CAP_GET	func:net_shaper_nl_cap_pre_doit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_CAP_GET	func:net_shaper_nl_cap_pre_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NET_SHAPER_CMD_DELETE	func:net_shaper_nl_pre_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NET_SHAPER_CMD_GET	func:net_shaper_nl_pre_doit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_GET	func:net_shaper_nl_pre_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NET_SHAPER_CMD_GROUP	func:net_shaper_nl_pre_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NET_SHAPER_CMD_SET	func:net_shaper_nl_pre_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NFC_CMD_ACTIVATE_TARGET	func:nfc_genl_activate_target	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
@@ -259,9 +268,14 @@ NETLINK	NFC_CMD_SE_IO	func:nfc_genl_se_io	access:admin	manual_desc:true	auto_des
 NETLINK	NFC_CMD_START_POLL	func:nfc_genl_start_poll	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
 NETLINK	NFC_CMD_STOP_POLL	func:nfc_genl_stop_poll	access:admin	manual_desc:false	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
 NETLINK	NFC_CMD_VENDOR	func:nfc_genl_vendor_cmd	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
+NETLINK	NFSD_CMD_LISTENER_GET	func:nfsd_nl_listener_get_doit	access:user	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
 NETLINK	NFSD_CMD_LISTENER_SET	func:nfsd_nl_listener_set_doit	access:admin	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
+NETLINK	NFSD_CMD_POOL_MODE_GET	func:nfsd_nl_pool_mode_get_doit	access:user	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
 NETLINK	NFSD_CMD_POOL_MODE_SET	func:nfsd_nl_pool_mode_set_doit	access:admin	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
+NETLINK	NFSD_CMD_RPC_STATUS_GET	func:nfsd_nl_rpc_status_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
+NETLINK	NFSD_CMD_THREADS_GET	func:nfsd_nl_threads_get_doit	access:user	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
 NETLINK	NFSD_CMD_THREADS_SET	func:nfsd_nl_threads_set_doit	access:admin	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
+NETLINK	NFSD_CMD_VERSION_GET	func:nfsd_nl_version_get_doit	access:user	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
 NETLINK	NFSD_CMD_VERSION_SET	func:nfsd_nl_version_set_doit	access:admin	manual_desc:false	auto_desc:true	file:fs/nfsd/netlink.c	subsystem:nfs
 NETLINK	NL80211_CMD_ABORT_SCAN	func:nl80211_abort_scan	access:ns_admin	manual_desc:true	auto_desc:true	file:net/wireless/nl80211.c	subsystem:wireless
 NETLINK	NL80211_CMD_ADD_LINK	func:nl80211_add_link	access:ns_admin	manual_desc:false	auto_desc:true	file:net/wireless/nl80211.c	subsystem:wireless
@@ -459,6 +473,7 @@ NETLINK	OVS_VPORT_CMD_DEL	func:ovs_vport_cmd_del	access:ns_admin	manual_desc:fal
 NETLINK	OVS_VPORT_CMD_GET	func:ovs_vport_cmd_get	access:user	manual_desc:false	auto_desc:true	file:net/openvswitch/datapath.c	subsystem:openvswitch
 NETLINK	OVS_VPORT_CMD_NEW	func:ovs_vport_cmd_new	access:ns_admin	manual_desc:false	auto_desc:true	file:net/openvswitch/datapath.c	subsystem:openvswitch
 NETLINK	OVS_VPORT_CMD_SET	func:ovs_vport_cmd_set	access:ns_admin	manual_desc:false	auto_desc:true	file:net/openvswitch/datapath.c	subsystem:openvswitch
+NETLINK	PSAMPLE_CMD_GET_GROUP	func:psample_nl_cmd_get_group_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/psample/psample.c	subsystem:net
 NETLINK	SEG6_CMD_DUMPHMAC	func:seg6_genl_dumphmac	access:admin	manual_desc:true	auto_desc:true	file:net/ipv6/seg6.c	subsystem:net
 NETLINK	SEG6_CMD_GET_TUNSRC	func:seg6_genl_get_tunsrc	access:admin	manual_desc:true	auto_desc:true	file:net/ipv6/seg6.c	subsystem:net
 NETLINK	SEG6_CMD_SETHMAC	func:seg6_genl_sethmac	access:admin	manual_desc:true	auto_desc:true	file:net/ipv6/seg6.c	subsystem:net

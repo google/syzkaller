@@ -14,6 +14,10 @@
 		{
 			"name": "NETLINK_FOO_NESTED_ATTR2",
 			"value": "1"
+		},
+		{
+			"name": "NETLINK_NOPOLICY_CMD",
+			"value": "0"
 		}
 	],
 	"structs": [
@@ -127,12 +131,38 @@
 					"func": "bar_cmd",
 					"access": "ns_admin",
 					"policy": "foo_genl_policy_netlink"
+				},
+				{
+					"name": "NETLINK_FOO_CMD_BAR",
+					"func": "bar_cmd",
+					"access": "ns_admin",
+					"policy": "foo_dump_genl_policy_netlink"
+				}
+			],
+			"source_file": "netlink.c"
+		},
+		{
+			"name": "nopolicy",
+			"ops": [
+				{
+					"name": "NETLINK_NOPOLICY_CMD",
+					"func": "foo_cmd",
+					"access": "user"
 				}
 			],
 			"source_file": "netlink.c"
 		}
 	],
 	"netlink_policies": [
+		{
+			"name": "foo_dump_genl_policy_netlink",
+			"attrs": [
+				{
+					"name": "NETLINK_FOO_ATTR1",
+					"kind": "NLA_U32"
+				}
+			]
+		},
 		{
 			"name": "foo_genl_nested_policy_netlink",
 			"attrs": [

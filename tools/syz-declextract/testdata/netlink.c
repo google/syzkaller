@@ -28,6 +28,10 @@ const struct nla_policy foo_genl_policy[] = {
 	[NETLINK_FOO_ATTR7]	= { .len = sizeof(var) },
 };
 
+const struct nla_policy foo_dump_genl_policy[] = {
+	[NETLINK_FOO_ATTR1]	= { .type = NLA_U32 },
+};
+
 const struct nla_policy genl_policy_reject_all[] = {
 	{ .type = NLA_REJECT },
 	{ .type = NLA_REJECT },
@@ -47,7 +51,13 @@ static const struct genl_ops foo_ops[] = {
 	{
 		.cmd = NETLINK_FOO_CMD_BAR,
 		.flags = GENL_UNS_ADMIN_PERM,
+		.doit = bar_cmd,
+	},
+	{
+		.cmd = NETLINK_FOO_CMD_BAR,
+		.flags = GENL_UNS_ADMIN_PERM,
 		.dumpit = bar_cmd,
+		.policy = foo_dump_genl_policy,
 	},
 };
 
@@ -84,4 +94,21 @@ struct genl_family bar_family = {
 
 struct genl_family noops_family = {
 	.name = "NOOPS",
+};
+
+enum netlink_nopolicy_cmds {
+	NETLINK_NOPOLICY_CMD,
+};
+
+static const struct genl_ops nopolicy_ops[] = {
+	{
+		.cmd = NETLINK_NOPOLICY_CMD,
+		.doit = foo_cmd,
+	},
+};
+
+struct genl_family nopolicy_family = {
+	.name = "nopolicy",
+	.ops = nopolicy_ops,
+	.n_ops = ARRAY_SIZE(nopolicy_ops),
 };
