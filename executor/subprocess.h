@@ -56,9 +56,9 @@ public:
 		    "GLIBC_TUNABLES=glibc.pthread.rseq=0",
 		    nullptr};
 
-		if (posix_spawn(&pid_, argv[0], &actions, &attr,
-				const_cast<char**>(argv), const_cast<char**>(child_envp)))
-			fail("posix_spawn failed");
+		if (posix_spawnp(&pid_, argv[0], &actions, &attr,
+				 const_cast<char**>(argv), const_cast<char**>(child_envp)))
+			fail("posix_spawnp failed");
 
 		if (posix_spawn_file_actions_destroy(&actions))
 			fail("posix_spawn_file_actions_destroy failed");

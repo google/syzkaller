@@ -308,17 +308,31 @@ func (cfg *Config) completeBinaries() error {
 	}
 	cfg.ExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
 	cfg.ExecutorBin = targetBin("syz-executor", cfg.TargetArch)
-	// If the target already provides an executor binary, we don't need to copy it.
+
+	if cfg.ExecprogBinOnTarget != "" {
+		cfg.SysTarget.ExecprogBin = cfg.ExecprogBinOnTarget
+	}
+	if cfg.ExecutorBinOnTarget != "" {
+		cfg.SysTarget.ExecutorBin = cfg.ExecutorBinOnTarget
+	}
+	if cfg.StraceBinOnTarget && cfg.StraceBin == "" {
+		cfg.StraceBin = "strace"
+	}
+
+	// If the target already provides binaries, we don't need to copy them.
+	if cfg.SysTarget.ExecprogBin != "" {
+		cfg.ExecprogBin = ""
+	}
 	if cfg.SysTarget.ExecutorBin != "" {
 		cfg.ExecutorBin = ""
 	}
-	if !osutil.IsExist(cfg.ExecprogBin) {
+	if cfg.ExecprogBin != "" && !osutil.IsExist(cfg.ExecprogBin) {
 		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecprogBin)
 	}
 	if cfg.ExecutorBin != "" && !osutil.IsExist(cfg.ExecutorBin) {
 		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecutorBin)
 	}
-	if cfg.StraceBin != "" {
+	if !cfg.StraceBinOnTarget && cfg.StraceBin != "" {
 		if !osutil.IsExist(cfg.StraceBin) {
 			return fmt.Errorf("bad config param strace_bin: can't find %v", cfg.StraceBin)
 		}

@@ -82,10 +82,11 @@ type osCommon struct {
 	// Special mode for OSes that do not have support for building Go binaries.
 	// In this mode we run Go binaries on the host machine, only executor runs on target.
 	HostFuzzer bool
-	// How to run syz-executor directly.
-	// Some systems build syz-executor into their images.
-	// If this flag is not empty, syz-executor will not be copied to the machine, and will be run using
+	// How to run syz-execprog/executor directly.
+	// Some systems build syz-execprog/executor into their images.
+	// If this flag is not empty, syz-execprog/executor will not be copied to the machine, and will be run using
 	// this command instead.
+	ExecprogBin string
 	ExecutorBin string
 	// Extension of executable files (notably, .exe for windows).
 	ExeExtension string
