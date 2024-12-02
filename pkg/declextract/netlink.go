@@ -5,69 +5,28 @@ package declextract
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
-func (ctx *context) fabricateNetlinkPolicies() {
-	for _, pol := range ctx.NetlinkPolicies {
-		if len(pol.Attrs) == 0 {
-			continue
-		}
-		str := &Struct{
-			Name:     pol.Name + autoSuffix,
-			IsUnion:  true,
-			isVarlen: true,
-		}
-		for _, attr := range pol.Attrs {
-			str.Fields = append(str.Fields, &Field{
-				Name:    attr.Name,
-				syzType: ctx.nlattrType(attr),
-			})
-		}
-		ctx.Structs = append(ctx.Structs, str)
+func (ctx *context) serializeNetlink() {
+	// policyQueue helps to emit policies on their first use.
+	pq := &policyQueue{
+		policies: make(map[string]*NetlinkPolicy),
 	}
-	ctx.Structs = sortAndDedupSlice(ctx.Structs)
-}
-
-func (ctx *context) emitNetlinkTypes() {
+	for _, pol := range ctx.NetlinkPolicies {
+		pq.policies[pol.Name] = pol
+	}
 	for _, fam := range ctx.NetlinkFamilies {
 		if isEmptyFamily(fam) {
 			continue
 		}
 		id := stringIdentifier(fam.Name)
 		ctx.fmt("resource genl_%v_family_id%v[int16]\n", id, autoSuffix)
-	}
-	for _, fam := range ctx.NetlinkFamilies {
-		if isEmptyFamily(fam) {
-			continue
-		}
-		id := stringIdentifier(fam.Name)
 		ctx.fmt("type msghdr_%v%v[CMD, POLICY] msghdr_netlink[netlink_msg_t"+
 			"[genl_%v_family_id%v, genlmsghdr_t[CMD], POLICY]]\n", id, autoSuffix, id, autoSuffix)
-	}
-	for _, pol := range ctx.NetlinkPolicies {
-		if len(pol.Attrs) == 0 {
-			ctx.fmt("type %v auto_todo\n", pol.Name+autoSuffix)
-		}
-	}
-}
-
-func (ctx *context) emitNetlinkGetFamily() {
-	for _, fam := range ctx.NetlinkFamilies {
-		if isEmptyFamily(fam) {
-			continue
-		}
-		id := stringIdentifier(fam.Name)
 		ctx.fmt("syz_genetlink_get_family_id%v_%v(name ptr[in, string[\"%v\"]],"+
-			" fd sock_nl_generic) genl_%v_family_id%v\n", autoSuffix, id, fam.Name, id, autoSuffix)
-	}
-}
+			" fd sock_nl_generic) genl_%v_family_id%v\n\n", autoSuffix, id, fam.Name, id, autoSuffix)
 
-func (ctx *context) emitNetlinkSendmsgs() {
-	var syscalls []string
-	for _, fam := range ctx.NetlinkFamilies {
-		id := stringIdentifier(fam.Name)
 		dedup := make(map[string]bool)
 		for _, op := range fam.Ops {
 			// TODO: emit these as well, these are dump commands w/o input arguments.
@@ -80,9 +39,10 @@ func (ctx *context) emitNetlinkSendmsgs() {
 				continue
 			}
 			dedup[op.Name] = true
-			syscalls = append(syscalls, fmt.Sprintf("sendmsg%v_%v(fd sock_nl_generic,"+
+			ctx.fmt("sendmsg%v_%v(fd sock_nl_generic,"+
 				" msg ptr[in, msghdr_%v%v[%v, %v]], f flags[send_flags])\n",
-				autoSuffix, op.Name, id, autoSuffix, op.Name, op.Policy+autoSuffix))
+				autoSuffix, op.Name, id, autoSuffix, op.Name, op.Policy+autoSuffix)
+			pq.policyUsed(op.Policy)
 
 			ctx.noteInterface(&Interface{
 				Type:             IfaceNetlinkOp,
@@ -94,11 +54,37 @@ func (ctx *context) emitNetlinkSendmsgs() {
 				AutoDescriptions: true,
 			})
 		}
+
+		for len(pq.pending) != 0 {
+			pol := pq.pending[0]
+			pq.pending = pq.pending[1:]
+			ctx.serializeNetlinkPolicy(pol, pq)
+		}
 	}
-	sort.Strings(syscalls)
-	for _, call := range syscalls {
-		ctx.fmt("%s", call)
+}
+
+type policyQueue struct {
+	policies map[string]*NetlinkPolicy
+	pending  []*NetlinkPolicy
+}
+
+func (pq *policyQueue) policyUsed(name string) {
+	if pol := pq.policies[name]; pol != nil {
+		delete(pq.policies, name)
+		pq.pending = append(pq.pending, pol)
 	}
+}
+
+func (ctx *context) serializeNetlinkPolicy(pol *NetlinkPolicy, pq *policyQueue) {
+	if len(pol.Attrs) == 0 {
+		ctx.fmt("type %v auto_todo\n", pol.Name+autoSuffix)
+		return
+	}
+	ctx.fmt("%v [\n", pol.Name+autoSuffix)
+	for _, attr := range pol.Attrs {
+		ctx.fmt("%v %v\n", attr.Name, ctx.nlattrType(attr, pq))
+	}
+	ctx.fmt("] [varlen]\n")
 }
 
 func isEmptyFamily(fam *NetlinkFamily) bool {
@@ -110,7 +96,7 @@ func isEmptyFamily(fam *NetlinkFamily) bool {
 	return true
 }
 
-func (ctx *context) nlattrType(attr *NetlinkAttr) string {
+func (ctx *context) nlattrType(attr *NetlinkAttr, pq *policyQueue) string {
 	nlattr, typ := "nlattr", ""
 	switch attr.Kind {
 	case "NLA_BITFIELD32":
@@ -124,6 +110,7 @@ func (ctx *context) nlattrType(attr *NetlinkAttr) string {
 		nlattr = "nlnest"
 		policy := "nl_generic_attr"
 		if attr.NestedPolicy != "" {
+			pq.policyUsed(attr.NestedPolicy)
 			policy = attr.NestedPolicy + autoSuffix
 		}
 		typ = fmt.Sprintf("array[%v]", policy)

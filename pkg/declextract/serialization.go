@@ -14,8 +14,8 @@ func (ctx *context) serialize() {
 	ctx.fmt(header)
 	ctx.serializeIncludes()
 	ctx.serializeEnums()
-	ctx.emitNetlinkTypes()
 	ctx.serializeSyscalls()
+	ctx.serializeNetlink()
 	ctx.serializeStructs()
 	ctx.serializeDefines()
 }
@@ -47,28 +47,12 @@ func (ctx *context) serializeDefines() {
 }
 
 func (ctx *context) serializeSyscalls() {
-	printedGetFamily, printedSendmsg := false, false
 	for _, call := range ctx.Syscalls {
 		ctx.fmt("%v(", call.Func)
 		for i, arg := range call.Args {
 			ctx.fmt("%v%v %v", comma(i), arg.Name, arg.syzType)
 		}
 		ctx.fmt(")\n")
-
-		if call.Func == "syslog$auto" {
-			printedGetFamily = true
-			ctx.emitNetlinkGetFamily()
-		}
-		if call.Func == "sendmsg$auto" {
-			printedSendmsg = true
-			ctx.emitNetlinkSendmsgs()
-		}
-	}
-	if !printedGetFamily {
-		ctx.emitNetlinkGetFamily()
-	}
-	if !printedSendmsg {
-		ctx.emitNetlinkSendmsgs()
 	}
 	ctx.fmt("\n")
 }
@@ -101,9 +85,6 @@ func (ctx *context) serializeStructs() {
 		}
 		if str.Align != 0 {
 			attrs = append(attrs, fmt.Sprintf("align[%v]", str.Align))
-		}
-		if str.isVarlen {
-			attrs = append(attrs, "varlen")
 		}
 		if len(attrs) != 0 {
 			ctx.fmt(" [%v]", strings.Join(attrs, ", "))
