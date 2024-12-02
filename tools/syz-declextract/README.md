@@ -17,8 +17,8 @@ make CC=clang -j`nproc` # kernel has to be built at least once for the script to
 LLVM=$PWD/llvm-project
 git clone https://github.com/llvm/llvm-project.git $LLVM
 cd $LLVM
-git checkout 0f231567719c99caa99164d8f91bad50883dab03 # In case of any breaking changes, this commit works
-echo 'add_clang_executable(syz-declextract syz-declextract/syz-declextract.cpp)
+git checkout 3a31427224d4fa49d7ef737b21f6027dc4928ecf # In case of any breaking changes, this commit works
+echo 'add_clang_executable(syz-declextract syz-declextract/declextract.cpp)
 target_link_libraries(syz-declextract PRIVATE clangTooling)' >> $LLVM/clang/CMakeLists.txt
 ```
 
@@ -26,12 +26,12 @@ target_link_libraries(syz-declextract PRIVATE clangTooling)' >> $LLVM/clang/CMak
 ```
 mkdir $LLVM/clang/syz-declextract
 ```
-Download `syz-declextract.cpp` file and add it to `$LLVM/clang/syz-declextract` directory
+Copy `tools/syz-declextract/clangtool/*.{cpp,h}` files to `$LLVM/clang/syz-declextract/` directory.
 ```
 LLVM_BUILD=$PWD/syz
 mkdir $LLVM_BUILD && cd $LLVM_BUILD
-cmake -DLLVM_ENABLE_PROJECTS="clang" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
--DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ $LLVM/llvm
+cmake -DLLVM_ENABLE_PROJECTS="clang" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=On \
+-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -GNinja $LLVM/llvm
 make -j`nproc` syz-declextract
 ```
 
@@ -42,6 +42,6 @@ make -j`nproc` syz-declextract
 
 ## Running on the whole kernel
 ```
-go run tools/syz-declextract/run.go -binary=$LLVM_BUILD/bin/syz-declextract -sourcedir=$KERNEL
+go run tools/syz-declextract -binary=$LLVM_BUILD/bin/syz-declextract -config=manager.cfg
 syz-env make extract SOURCEDIR=$KERNEL
 ```

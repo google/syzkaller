@@ -1,0 +1,22 @@
+{
+	"includes": [
+		"include/uapi/io_uring.h"
+	],
+	"iouring_ops": [
+		{
+			"name": "IORING_OP_NOP",
+			"func": "io_nop",
+			"source_file": "io_uring.c"
+		},
+		{
+			"name": "IORING_OP_READV",
+			"func": "io_read",
+			"source_file": "io_uring.c"
+		},
+		{
+			"name": "IORING_OP_WRITEV",
+			"func": "io_write",
+			"source_file": "io_uring.c"
+		}
+	]
+}

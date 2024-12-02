@@ -2,12 +2,11 @@
 
 meta automatic
 
-include <include/vdso/bits.h>
-include <include/linux/types.h>
-include <drivers/net/ieee802154/mac802154_hwsim.h>
-include <drivers/net/wireless/virtual/mac80211_hwsim.h>
-include <include/linux/nl802154.h>
-include <include/net/nl802154.h>
+type auto_todo intptr
+
+include <vdso/bits.h>
+include <linux/types.h>
+include <net/netlink.h>
 include <include/uapi/linux/batman_adv.h>
 include <include/uapi/linux/caif/if_caif.h>
 include <include/uapi/linux/can/gw.h>
@@ -33,6 +32,7 @@ include <include/uapi/linux/if_macsec.h>
 include <include/uapi/linux/if_team.h>
 include <include/uapi/linux/if_tunnel.h>
 include <include/uapi/linux/ila.h>
+include <include/uapi/linux/io_uring.h>
 include <include/uapi/linux/ioam6_genl.h>
 include <include/uapi/linux/ip_vs.h>
 include <include/uapi/linux/l2tp.h>
@@ -66,6 +66,7 @@ include <include/uapi/linux/nl80211.h>
 include <include/uapi/linux/openvswitch.h>
 include <include/uapi/linux/pkt_cls.h>
 include <include/uapi/linux/pkt_sched.h>
+include <include/uapi/linux/psample.h>
 include <include/uapi/linux/rpl_iptunnel.h>
 include <include/uapi/linux/rtnetlink.h>
 include <include/uapi/linux/seg6_genl.h>
@@ -102,11 +103,9 @@ include <include/uapi/linux/wireguard.h>
 include <include/uapi/linux/wwan.h>
 include <include/uapi/linux/xfrm.h>
 include <include/uapi/rdma/rdma_netlink.h>
-include <net/netlabel/netlabel_calipso.h>
-include <net/netlabel/netlabel_cipso_v4.h>
-include <net/netlabel/netlabel_mgmt.h>
-include <net/netlabel/netlabel_unlabeled.h>
+
 auto_landlock_rule_type = LANDLOCK_RULE_PATH_BENEATH, LANDLOCK_RULE_NET_PORT
+
 resource genl_802_15_4_MAC_family_id_auto[int16]
 resource genl_HSR_family_id_auto[int16]
 resource genl_IOAM6_family_id_auto[int16]
@@ -150,7 +149,6 @@ resource genl_tcp_metrics_family_id_auto[int16]
 resource genl_thermal_family_id_auto[int16]
 resource genl_vdpa_family_id_auto[int16]
 resource genl_wireguard_family_id_auto[int16]
-type auto_todo intptr
 type msghdr_802_15_4_MAC_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_802_15_4_MAC_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_HSR_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_HSR_family_id_auto, genlmsghdr_t[CMD], POLICY]]
 type msghdr_IOAM6_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_IOAM6_family_id_auto, genlmsghdr_t[CMD], POLICY]]
@@ -665,22 +663,18 @@ sendmsg$auto_NCSI_CMD_SET_PACKAGE_MASK(fd sock_nl_generic, msg ptr[in, msghdr_NC
 sendmsg$auto_NETDEV_CMD_BIND_RX(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_BIND_RX, netdev_bind_rx_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_DEV_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_DEV_GET, netdev_dev_get_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_NAPI_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_NAPI_GET, netdev_napi_get_do_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
-sendmsg$auto_NETDEV_CMD_NAPI_GET0(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_NAPI_GET, netdev_napi_get_dump_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_NAPI_SET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_NAPI_SET, netdev_napi_set_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_PAGE_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_PAGE_POOL_GET, netdev_page_pool_get_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_QSTATS_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_QSTATS_GET, netdev_qstats_get_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_QUEUE_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_QUEUE_GET, netdev_queue_get_do_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
-sendmsg$auto_NETDEV_CMD_QUEUE_GET0(fd sock_nl_generic, msg ptr[in, msghdr_netdev_auto[NETDEV_CMD_QUEUE_GET, netdev_queue_get_dump_nl_policy$auto_netdev_genl_gen]], f flags[send_flags])
 sendmsg$auto_NET_DM_CMD_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_CONFIG, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags])
 sendmsg$auto_NET_DM_CMD_CONFIG_GET(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_CONFIG_GET, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags])
 sendmsg$auto_NET_DM_CMD_START(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_START, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags])
 sendmsg$auto_NET_DM_CMD_STATS_GET(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_STATS_GET, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags])
 sendmsg$auto_NET_DM_CMD_STOP(fd sock_nl_generic, msg ptr[in, msghdr_NET_DM_auto[NET_DM_CMD_STOP, net_dm_nl_policy$auto_drop_monitor]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_CAP_GET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_CAP_GET, net_shaper_cap_get_do_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
-sendmsg$auto_NET_SHAPER_CMD_CAP_GET0(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_CAP_GET, net_shaper_cap_get_dump_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_DELETE(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_DELETE, net_shaper_delete_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_GET, net_shaper_get_do_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
-sendmsg$auto_NET_SHAPER_CMD_GET0(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_GET, net_shaper_get_dump_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_GROUP(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_GROUP, net_shaper_group_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_SET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper_auto[NET_SHAPER_CMD_SET, net_shaper_set_nl_policy$auto_shaper_nl_gen]], f flags[send_flags])
 sendmsg$auto_NFC_CMD_ACTIVATE_TARGET(fd sock_nl_generic, msg ptr[in, msghdr_nfc_auto[NFC_CMD_ACTIVATE_TARGET, nfc_genl_policy$auto_netlink]], f flags[send_flags])
@@ -1133,6 +1127,10 @@ __kernel_fd_set$auto_record {
 	fds_bits	array[intptr, 16]
 }
 
+__kernel_fsid_t$auto_record {
+	val	array[int32, 2]
+}
+
 __kernel_itimerspec$auto_record {
 	it_interval	__kernel_timespec$auto_record
 	it_value	__kernel_timespec$auto_record
@@ -1366,11 +1364,11 @@ batadv_netlink_policy$auto_netlink [
 	BATADV_ATTR_HOP_PENALTY				nlattr[BATADV_ATTR_HOP_PENALTY, int8]
 	BATADV_ATTR_LOG_LEVEL				nlattr[BATADV_ATTR_LOG_LEVEL, int32]
 	BATADV_ATTR_MULTICAST_FORCEFLOOD_ENABLED	nlattr[BATADV_ATTR_MULTICAST_FORCEFLOOD_ENABLED, bool8]
+	BATADV_ATTR_MULTICAST_FANOUT			nlattr[BATADV_ATTR_MULTICAST_FANOUT, int32]
 	BATADV_ATTR_NETWORK_CODING_ENABLED		nlattr[BATADV_ATTR_NETWORK_CODING_ENABLED, bool8]
 	BATADV_ATTR_ORIG_INTERVAL			nlattr[BATADV_ATTR_ORIG_INTERVAL, int32]
 	BATADV_ATTR_ELP_INTERVAL			nlattr[BATADV_ATTR_ELP_INTERVAL, int32]
 	BATADV_ATTR_THROUGHPUT_OVERRIDE			nlattr[BATADV_ATTR_THROUGHPUT_OVERRIDE, int32]
-	BATADV_ATTR_MULTICAST_FANOUT			nlattr[BATADV_ATTR_MULTICAST_FANOUT, int32]
 ] [varlen]
 
 bpf_attr$auto_record [
@@ -1976,11 +1974,11 @@ ethnl_mm_get_policy$auto_netlink [
 
 ethnl_mm_set_policy$auto_netlink [
 	ETHTOOL_A_MM_HEADER		nlnest[ETHTOOL_A_MM_HEADER, array[ethnl_header_policy$auto_netlink]]
-	ETHTOOL_A_MM_PMAC_ENABLED	nlattr[ETHTOOL_A_MM_PMAC_ENABLED, bool8]
-	ETHTOOL_A_MM_TX_ENABLED		nlattr[ETHTOOL_A_MM_TX_ENABLED, bool8]
-	ETHTOOL_A_MM_TX_MIN_FRAG_SIZE	nlattr[ETHTOOL_A_MM_TX_MIN_FRAG_SIZE, int32]
 	ETHTOOL_A_MM_VERIFY_ENABLED	nlattr[ETHTOOL_A_MM_VERIFY_ENABLED, bool8]
 	ETHTOOL_A_MM_VERIFY_TIME	nlattr[ETHTOOL_A_MM_VERIFY_TIME, int32]
+	ETHTOOL_A_MM_TX_ENABLED		nlattr[ETHTOOL_A_MM_TX_ENABLED, bool8]
+	ETHTOOL_A_MM_PMAC_ENABLED	nlattr[ETHTOOL_A_MM_PMAC_ENABLED, bool8]
+	ETHTOOL_A_MM_TX_MIN_FRAG_SIZE	nlattr[ETHTOOL_A_MM_TX_MIN_FRAG_SIZE, int32]
 ] [varlen]
 
 ethnl_module_eeprom_get_policy$auto_netlink [
@@ -2038,8 +2036,8 @@ ethnl_plca_get_status_policy$auto_netlink [
 ethnl_plca_set_cfg_policy$auto_netlink [
 	ETHTOOL_A_PLCA_HEADER		nlnest[ETHTOOL_A_PLCA_HEADER, array[ethnl_header_policy_phy$auto_netlink]]
 	ETHTOOL_A_PLCA_ENABLED		nlattr[ETHTOOL_A_PLCA_ENABLED, bool8]
-	ETHTOOL_A_PLCA_NODE_CNT		nlattr[ETHTOOL_A_PLCA_NODE_CNT, int32]
 	ETHTOOL_A_PLCA_NODE_ID		nlattr[ETHTOOL_A_PLCA_NODE_ID, int32]
+	ETHTOOL_A_PLCA_NODE_CNT		nlattr[ETHTOOL_A_PLCA_NODE_CNT, int32]
 	ETHTOOL_A_PLCA_TO_TMR		nlattr[ETHTOOL_A_PLCA_TO_TMR, int32]
 	ETHTOOL_A_PLCA_BURST_CNT	nlattr[ETHTOOL_A_PLCA_BURST_CNT, int32]
 	ETHTOOL_A_PLCA_BURST_TMR	nlattr[ETHTOOL_A_PLCA_BURST_TMR, int32]
@@ -2127,9 +2125,9 @@ file_handle$auto_record {
 
 flow_policy$auto_datapath [
 	OVS_FLOW_ATTR_KEY		nlnest[OVS_FLOW_ATTR_KEY, array[nl_generic_attr]]
+	OVS_FLOW_ATTR_MASK		nlnest[OVS_FLOW_ATTR_MASK, array[nl_generic_attr]]
 	OVS_FLOW_ATTR_ACTIONS		nlnest[OVS_FLOW_ATTR_ACTIONS, array[nl_generic_attr]]
 	OVS_FLOW_ATTR_CLEAR		nlattr[OVS_FLOW_ATTR_CLEAR, void]
-	OVS_FLOW_ATTR_MASK		nlnest[OVS_FLOW_ATTR_MASK, array[nl_generic_attr]]
 	OVS_FLOW_ATTR_PROBE		nlattr[OVS_FLOW_ATTR_PROBE, void]
 	OVS_FLOW_ATTR_UFID		nlattr[OVS_FLOW_ATTR_UFID, int8]
 	OVS_FLOW_ATTR_UFID_FLAGS	nlattr[OVS_FLOW_ATTR_UFID_FLAGS, int32]
@@ -2188,10 +2186,10 @@ he_obss_pd_policy$auto_nl80211 [
 
 hsr_genl_policy$auto_hsr_netlink [
 	HSR_A_NODE_ADDR		nlattr[HSR_A_NODE_ADDR, array[int8, 6]]
+	HSR_A_NODE_ADDR_B	nlattr[HSR_A_NODE_ADDR_B, array[int8, 6]]
 	HSR_A_IFINDEX		nlattr[HSR_A_IFINDEX, ifindex]
 	HSR_A_IF1_AGE		nlattr[HSR_A_IF1_AGE, int32]
 	HSR_A_IF2_AGE		nlattr[HSR_A_IF2_AGE, int32]
-	HSR_A_NODE_ADDR_B	nlattr[HSR_A_NODE_ADDR_B, array[int8, 6]]
 	HSR_A_IF1_SEQ		nlattr[HSR_A_IF1_SEQ, int16]
 	HSR_A_IF2_SEQ		nlattr[HSR_A_IF2_SEQ, int16]
 ] [varlen]
@@ -2289,11 +2287,11 @@ hwsim_pmsr_peers_result_policy$auto_mac80211_hwsim [
 ] [varlen]
 
 hwsim_pmsr_resp_policy$auto_mac80211_hwsim [
-	NL80211_PMSR_RESP_ATTR_DATA		nlnest[NL80211_PMSR_RESP_ATTR_DATA, array[hwsim_pmsr_resp_type_policy$auto_mac80211_hwsim]]
 	NL80211_PMSR_RESP_ATTR_STATUS		nlattr[NL80211_PMSR_RESP_ATTR_STATUS, int32]
 	NL80211_PMSR_RESP_ATTR_HOST_TIME	nlattr[NL80211_PMSR_RESP_ATTR_HOST_TIME, int64]
 	NL80211_PMSR_RESP_ATTR_AP_TSF		nlattr[NL80211_PMSR_RESP_ATTR_AP_TSF, int64]
 	NL80211_PMSR_RESP_ATTR_FINAL		nlattr[NL80211_PMSR_RESP_ATTR_FINAL, void]
+	NL80211_PMSR_RESP_ATTR_DATA		nlnest[NL80211_PMSR_RESP_ATTR_DATA, array[hwsim_pmsr_resp_type_policy$auto_mac80211_hwsim]]
 ] [varlen]
 
 hwsim_pmsr_resp_type_policy$auto_mac80211_hwsim [
@@ -2322,11 +2320,19 @@ hwsim_tx_rate$auto_record {
 ieee802154_policy$auto_nl802154 [
 	IEEE802154_ATTR_DEV_NAME			nlattr[IEEE802154_ATTR_DEV_NAME, devname]
 	IEEE802154_ATTR_DEV_INDEX			nlattr[IEEE802154_ATTR_DEV_INDEX, ifindex]
+	IEEE802154_ATTR_PHY_NAME			nlattr[IEEE802154_ATTR_PHY_NAME, stringnoz]
 	IEEE802154_ATTR_STATUS				nlattr[IEEE802154_ATTR_STATUS, int8]
 	IEEE802154_ATTR_SHORT_ADDR			nlattr[IEEE802154_ATTR_SHORT_ADDR, int16]
 	IEEE802154_ATTR_HW_ADDR				nlattr[IEEE802154_ATTR_HW_ADDR, int64]
 	IEEE802154_ATTR_PAN_ID				nlattr[IEEE802154_ATTR_PAN_ID, int16]
 	IEEE802154_ATTR_CHANNEL				nlattr[IEEE802154_ATTR_CHANNEL, int8]
+	IEEE802154_ATTR_BCN_ORD				nlattr[IEEE802154_ATTR_BCN_ORD, int8]
+	IEEE802154_ATTR_SF_ORD				nlattr[IEEE802154_ATTR_SF_ORD, int8]
+	IEEE802154_ATTR_PAN_COORD			nlattr[IEEE802154_ATTR_PAN_COORD, int8]
+	IEEE802154_ATTR_BAT_EXT				nlattr[IEEE802154_ATTR_BAT_EXT, int8]
+	IEEE802154_ATTR_COORD_REALIGN			nlattr[IEEE802154_ATTR_COORD_REALIGN, int8]
+	IEEE802154_ATTR_PAGE				nlattr[IEEE802154_ATTR_PAGE, int8]
+	IEEE802154_ATTR_DEV_TYPE			nlattr[IEEE802154_ATTR_DEV_TYPE, int8]
 	IEEE802154_ATTR_COORD_SHORT_ADDR		nlattr[IEEE802154_ATTR_COORD_SHORT_ADDR, int16]
 	IEEE802154_ATTR_COORD_HW_ADDR			nlattr[IEEE802154_ATTR_COORD_HW_ADDR, int64]
 	IEEE802154_ATTR_COORD_PAN_ID			nlattr[IEEE802154_ATTR_COORD_PAN_ID, int16]
@@ -2342,15 +2348,7 @@ ieee802154_policy$auto_nl802154 [
 	IEEE802154_ATTR_CHANNELS			nlattr[IEEE802154_ATTR_CHANNELS, int32]
 	IEEE802154_ATTR_DURATION			nlattr[IEEE802154_ATTR_DURATION, int8]
 	IEEE802154_ATTR_ED_LIST				nlattr[IEEE802154_ATTR_ED_LIST, array[int8, 27]]
-	IEEE802154_ATTR_BCN_ORD				nlattr[IEEE802154_ATTR_BCN_ORD, int8]
-	IEEE802154_ATTR_SF_ORD				nlattr[IEEE802154_ATTR_SF_ORD, int8]
-	IEEE802154_ATTR_PAN_COORD			nlattr[IEEE802154_ATTR_PAN_COORD, int8]
-	IEEE802154_ATTR_BAT_EXT				nlattr[IEEE802154_ATTR_BAT_EXT, int8]
-	IEEE802154_ATTR_COORD_REALIGN			nlattr[IEEE802154_ATTR_COORD_REALIGN, int8]
-	IEEE802154_ATTR_PAGE				nlattr[IEEE802154_ATTR_PAGE, int8]
 	IEEE802154_ATTR_CHANNEL_PAGE_LIST		nlattr[IEEE802154_ATTR_CHANNEL_PAGE_LIST, array[int8, 128]]
-	IEEE802154_ATTR_PHY_NAME			nlattr[IEEE802154_ATTR_PHY_NAME, stringnoz]
-	IEEE802154_ATTR_DEV_TYPE			nlattr[IEEE802154_ATTR_DEV_TYPE, int8]
 	IEEE802154_ATTR_TXPOWER				nlattr[IEEE802154_ATTR_TXPOWER, int8]
 	IEEE802154_ATTR_LBT_ENABLED			nlattr[IEEE802154_ATTR_LBT_ENABLED, bool8]
 	IEEE802154_ATTR_CCA_MODE			nlattr[IEEE802154_ATTR_CCA_MODE, int8]
@@ -2527,15 +2525,12 @@ l2tp_nl_policy$auto_l2tp_netlink [
 	L2TP_ATTR_L2SPEC_TYPE		nlattr[L2TP_ATTR_L2SPEC_TYPE, int8]
 	L2TP_ATTR_L2SPEC_LEN		nlattr[L2TP_ATTR_L2SPEC_LEN, int8]
 	L2TP_ATTR_PROTO_VERSION		nlattr[L2TP_ATTR_PROTO_VERSION, int8]
-	L2TP_ATTR_IFNAME		nlattr[L2TP_ATTR_IFNAME, devname]
 	L2TP_ATTR_CONN_ID		nlattr[L2TP_ATTR_CONN_ID, int32]
 	L2TP_ATTR_PEER_CONN_ID		nlattr[L2TP_ATTR_PEER_CONN_ID, int32]
 	L2TP_ATTR_SESSION_ID		nlattr[L2TP_ATTR_SESSION_ID, int32]
 	L2TP_ATTR_PEER_SESSION_ID	nlattr[L2TP_ATTR_PEER_SESSION_ID, int32]
 	L2TP_ATTR_UDP_CSUM		nlattr[L2TP_ATTR_UDP_CSUM, int8]
 	L2TP_ATTR_VLAN_ID		nlattr[L2TP_ATTR_VLAN_ID, int16]
-	L2TP_ATTR_COOKIE		nlattr[L2TP_ATTR_COOKIE, int64]
-	L2TP_ATTR_PEER_COOKIE		nlattr[L2TP_ATTR_PEER_COOKIE, int64]
 	L2TP_ATTR_DEBUG			nlattr[L2TP_ATTR_DEBUG, int32]
 	L2TP_ATTR_RECV_SEQ		nlattr[L2TP_ATTR_RECV_SEQ, int8]
 	L2TP_ATTR_SEND_SEQ		nlattr[L2TP_ATTR_SEND_SEQ, int8]
@@ -2552,6 +2547,9 @@ l2tp_nl_policy$auto_l2tp_netlink [
 	L2TP_ATTR_STATS			nlnest[L2TP_ATTR_STATS, array[nl_generic_attr]]
 	L2TP_ATTR_IP6_SADDR		nlattr[L2TP_ATTR_IP6_SADDR, in6_addr$auto_record]
 	L2TP_ATTR_IP6_DADDR		nlattr[L2TP_ATTR_IP6_DADDR, in6_addr$auto_record]
+	L2TP_ATTR_IFNAME		nlattr[L2TP_ATTR_IFNAME, devname]
+	L2TP_ATTR_COOKIE		nlattr[L2TP_ATTR_COOKIE, int64]
+	L2TP_ATTR_PEER_COOKIE		nlattr[L2TP_ATTR_PEER_COOKIE, int64]
 ] [varlen]
 
 landlock_ruleset_attr$auto_record {
@@ -2688,25 +2686,19 @@ net_shaper_cap_get_do_nl_policy$auto_shaper_nl_gen [
 	NET_SHAPER_A_CAPS_SCOPE		nlattr[NET_SHAPER_A_CAPS_SCOPE, int32]
 ] [varlen]
 
-net_shaper_cap_get_dump_nl_policy$auto_shaper_nl_gen [
-	NET_SHAPER_A_CAPS_IFINDEX	nlattr[NET_SHAPER_A_CAPS_IFINDEX, ifindex]
-] [varlen]
-
 net_shaper_delete_nl_policy$auto_shaper_nl_gen [
-	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
 	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
 ] [varlen]
 
 net_shaper_get_do_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
 	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
-	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
-] [varlen]
-
-net_shaper_get_dump_nl_policy$auto_shaper_nl_gen [
-	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
 ] [varlen]
 
 net_shaper_group_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
+	NET_SHAPER_A_PARENT	nlnest[NET_SHAPER_A_PARENT, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
 	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
 	NET_SHAPER_A_METRIC	nlattr[NET_SHAPER_A_METRIC, int32]
 	NET_SHAPER_A_BW_MIN	nlattr[NET_SHAPER_A_BW_MIN, int64]
@@ -2714,8 +2706,6 @@ net_shaper_group_nl_policy$auto_shaper_nl_gen [
 	NET_SHAPER_A_BURST	nlattr[NET_SHAPER_A_BURST, int64]
 	NET_SHAPER_A_PRIORITY	nlattr[NET_SHAPER_A_PRIORITY, int32]
 	NET_SHAPER_A_WEIGHT	nlattr[NET_SHAPER_A_WEIGHT, int32]
-	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
-	NET_SHAPER_A_PARENT	nlnest[NET_SHAPER_A_PARENT, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
 	NET_SHAPER_A_LEAVES	nlnest[NET_SHAPER_A_LEAVES, array[net_shaper_leaf_info_nl_policy$auto_shaper_nl_gen]]
 ] [varlen]
 
@@ -2731,6 +2721,7 @@ net_shaper_leaf_info_nl_policy$auto_shaper_nl_gen [
 ] [varlen]
 
 net_shaper_set_nl_policy$auto_shaper_nl_gen [
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
 	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy$auto_shaper_nl_gen]]
 	NET_SHAPER_A_METRIC	nlattr[NET_SHAPER_A_METRIC, int32]
 	NET_SHAPER_A_BW_MIN	nlattr[NET_SHAPER_A_BW_MIN, int64]
@@ -2738,13 +2729,12 @@ net_shaper_set_nl_policy$auto_shaper_nl_gen [
 	NET_SHAPER_A_BURST	nlattr[NET_SHAPER_A_BURST, int64]
 	NET_SHAPER_A_PRIORITY	nlattr[NET_SHAPER_A_PRIORITY, int32]
 	NET_SHAPER_A_WEIGHT	nlattr[NET_SHAPER_A_WEIGHT, int32]
-	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
 ] [varlen]
 
 netdev_bind_rx_nl_policy$auto_netdev_genl_gen [
 	NETDEV_A_DMABUF_IFINDEX	nlattr[NETDEV_A_DMABUF_IFINDEX, ifindex]
-	NETDEV_A_DMABUF_QUEUES	nlnest[NETDEV_A_DMABUF_QUEUES, array[netdev_queue_id_nl_policy$auto_netdev_genl_gen]]
 	NETDEV_A_DMABUF_FD	nlattr[NETDEV_A_DMABUF_FD, fd]
+	NETDEV_A_DMABUF_QUEUES	nlnest[NETDEV_A_DMABUF_QUEUES, array[netdev_queue_id_nl_policy$auto_netdev_genl_gen]]
 ] [varlen]
 
 netdev_dev_get_nl_policy$auto_netdev_genl_gen [
@@ -2753,10 +2743,6 @@ netdev_dev_get_nl_policy$auto_netdev_genl_gen [
 
 netdev_napi_get_do_nl_policy$auto_netdev_genl_gen [
 	NETDEV_A_NAPI_ID	nlattr[NETDEV_A_NAPI_ID, int32]
-] [varlen]
-
-netdev_napi_get_dump_nl_policy$auto_netdev_genl_gen [
-	NETDEV_A_NAPI_IFINDEX	nlattr[NETDEV_A_NAPI_IFINDEX, ifindex]
 ] [varlen]
 
 netdev_napi_set_nl_policy$auto_netdev_genl_gen [
@@ -2776,13 +2762,9 @@ netdev_qstats_get_nl_policy$auto_netdev_genl_gen [
 ] [varlen]
 
 netdev_queue_get_do_nl_policy$auto_netdev_genl_gen [
-	NETDEV_A_QUEUE_ID	nlattr[NETDEV_A_QUEUE_ID, int32]
 	NETDEV_A_QUEUE_IFINDEX	nlattr[NETDEV_A_QUEUE_IFINDEX, ifindex]
 	NETDEV_A_QUEUE_TYPE	nlattr[NETDEV_A_QUEUE_TYPE, int32]
-] [varlen]
-
-netdev_queue_get_dump_nl_policy$auto_netdev_genl_gen [
-	NETDEV_A_QUEUE_IFINDEX	nlattr[NETDEV_A_QUEUE_IFINDEX, ifindex]
+	NETDEV_A_QUEUE_ID	nlattr[NETDEV_A_QUEUE_ID, int32]
 ] [varlen]
 
 netdev_queue_id_nl_policy$auto_netdev_genl_gen [
@@ -2948,15 +2930,33 @@ nl80211_pmsr_req_data_policy$auto_nl80211 [
 nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_WIPHY				nlattr[NL80211_ATTR_WIPHY, int32]
 	NL80211_ATTR_WIPHY_NAME				nlattr[NL80211_ATTR_WIPHY_NAME, string]
+	NL80211_ATTR_WIPHY_TXQ_PARAMS			nlnest[NL80211_ATTR_WIPHY_TXQ_PARAMS, array[nl_generic_attr]]
+	NL80211_ATTR_WIPHY_FREQ				nlattr[NL80211_ATTR_WIPHY_FREQ, int32]
+	NL80211_ATTR_WIPHY_CHANNEL_TYPE			nlattr[NL80211_ATTR_WIPHY_CHANNEL_TYPE, int32]
+	NL80211_ATTR_WIPHY_EDMG_CHANNELS		nlattr[NL80211_ATTR_WIPHY_EDMG_CHANNELS, int8]
+	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG		nlattr[NL80211_ATTR_WIPHY_EDMG_BW_CONFIG, int8]
+	NL80211_ATTR_CHANNEL_WIDTH			nlattr[NL80211_ATTR_CHANNEL_WIDTH, int32]
+	NL80211_ATTR_CENTER_FREQ1			nlattr[NL80211_ATTR_CENTER_FREQ1, int32]
+	NL80211_ATTR_CENTER_FREQ1_OFFSET		nlattr[NL80211_ATTR_CENTER_FREQ1_OFFSET, int32]
+	NL80211_ATTR_CENTER_FREQ2			nlattr[NL80211_ATTR_CENTER_FREQ2, int32]
+	NL80211_ATTR_WIPHY_RETRY_SHORT			nlattr[NL80211_ATTR_WIPHY_RETRY_SHORT, int8]
+	NL80211_ATTR_WIPHY_RETRY_LONG			nlattr[NL80211_ATTR_WIPHY_RETRY_LONG, int8]
+	NL80211_ATTR_WIPHY_FRAG_THRESHOLD		nlattr[NL80211_ATTR_WIPHY_FRAG_THRESHOLD, int32]
+	NL80211_ATTR_WIPHY_RTS_THRESHOLD		nlattr[NL80211_ATTR_WIPHY_RTS_THRESHOLD, int32]
+	NL80211_ATTR_WIPHY_COVERAGE_CLASS		nlattr[NL80211_ATTR_WIPHY_COVERAGE_CLASS, int8]
+	NL80211_ATTR_WIPHY_DYN_ACK			nlattr[NL80211_ATTR_WIPHY_DYN_ACK, void]
+	NL80211_ATTR_IFTYPE				nlattr[NL80211_ATTR_IFTYPE, int32]
 	NL80211_ATTR_IFINDEX				nlattr[NL80211_ATTR_IFINDEX, ifindex]
 	NL80211_ATTR_IFNAME				nlattr[NL80211_ATTR_IFNAME, devname]
-	NL80211_ATTR_IFTYPE				nlattr[NL80211_ATTR_IFTYPE, int32]
 	NL80211_ATTR_MAC				nlattr[NL80211_ATTR_MAC, array[int8]]
+	NL80211_ATTR_PREV_BSSID				nlattr[NL80211_ATTR_PREV_BSSID, array[int8]]
+	NL80211_ATTR_KEY				nlnest[NL80211_ATTR_KEY, array[nl_generic_attr]]
 	NL80211_ATTR_KEY_DATA				nlattr[NL80211_ATTR_KEY_DATA, array[int8, 0:32]]
 	NL80211_ATTR_KEY_IDX				nlattr[NL80211_ATTR_KEY_IDX, int8]
 	NL80211_ATTR_KEY_CIPHER				nlattr[NL80211_ATTR_KEY_CIPHER, int32]
-	NL80211_ATTR_KEY_SEQ				nlattr[NL80211_ATTR_KEY_SEQ, array[int8, 0:16]]
 	NL80211_ATTR_KEY_DEFAULT			nlattr[NL80211_ATTR_KEY_DEFAULT, void]
+	NL80211_ATTR_KEY_SEQ				nlattr[NL80211_ATTR_KEY_SEQ, array[int8, 0:16]]
+	NL80211_ATTR_KEY_TYPE				nlattr[NL80211_ATTR_KEY_TYPE, int32]
 	NL80211_ATTR_BEACON_INTERVAL			nlattr[NL80211_ATTR_BEACON_INTERVAL, int32]
 	NL80211_ATTR_DTIM_PERIOD			nlattr[NL80211_ATTR_DTIM_PERIOD, int32]
 	NL80211_ATTR_BEACON_HEAD			nlattr[NL80211_ATTR_BEACON_HEAD, array[int8, 0:2304]]
@@ -2965,53 +2965,49 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_STA_FLAGS				nlnest[NL80211_ATTR_STA_FLAGS, array[nl_generic_attr]]
 	NL80211_ATTR_STA_LISTEN_INTERVAL		nlattr[NL80211_ATTR_STA_LISTEN_INTERVAL, int16]
 	NL80211_ATTR_STA_SUPPORTED_RATES		nlattr[NL80211_ATTR_STA_SUPPORTED_RATES, array[int8, 0:32]]
+	NL80211_ATTR_STA_PLINK_ACTION			nlattr[NL80211_ATTR_STA_PLINK_ACTION, int8]
+	NL80211_ATTR_STA_TX_POWER_SETTING		nlattr[NL80211_ATTR_STA_TX_POWER_SETTING, int8]
+	NL80211_ATTR_STA_TX_POWER			nlattr[NL80211_ATTR_STA_TX_POWER, int16]
 	NL80211_ATTR_STA_VLAN				nlattr[NL80211_ATTR_STA_VLAN, int32]
 	NL80211_ATTR_MNTR_FLAGS				nlattr[NL80211_ATTR_MNTR_FLAGS, array[int8]]
 	NL80211_ATTR_MESH_ID				nlattr[NL80211_ATTR_MESH_ID, array[int8, 0:32]]
-	NL80211_ATTR_STA_PLINK_ACTION			nlattr[NL80211_ATTR_STA_PLINK_ACTION, int8]
 	NL80211_ATTR_MPATH_NEXT_HOP			nlattr[NL80211_ATTR_MPATH_NEXT_HOP, array[int8]]
+	NL80211_ATTR_REG_ALPHA2				nlattr[NL80211_ATTR_REG_ALPHA2, array[int8]]
+	NL80211_ATTR_REG_RULES				nlnest[NL80211_ATTR_REG_RULES, array[nl_generic_attr]]
 	NL80211_ATTR_BSS_CTS_PROT			nlattr[NL80211_ATTR_BSS_CTS_PROT, int8]
 	NL80211_ATTR_BSS_SHORT_PREAMBLE			nlattr[NL80211_ATTR_BSS_SHORT_PREAMBLE, int8]
 	NL80211_ATTR_BSS_SHORT_SLOT_TIME		nlattr[NL80211_ATTR_BSS_SHORT_SLOT_TIME, int8]
-	NL80211_ATTR_HT_CAPABILITY			nlattr[NL80211_ATTR_HT_CAPABILITY, array[int8]]
-	NL80211_ATTR_REG_ALPHA2				nlattr[NL80211_ATTR_REG_ALPHA2, array[int8]]
-	NL80211_ATTR_REG_RULES				nlnest[NL80211_ATTR_REG_RULES, array[nl_generic_attr]]
-	NL80211_ATTR_MESH_CONFIG			nlnest[NL80211_ATTR_MESH_CONFIG, array[nl_generic_attr]]
 	NL80211_ATTR_BSS_BASIC_RATES			nlattr[NL80211_ATTR_BSS_BASIC_RATES, array[int8, 0:32]]
-	NL80211_ATTR_WIPHY_TXQ_PARAMS			nlnest[NL80211_ATTR_WIPHY_TXQ_PARAMS, array[nl_generic_attr]]
-	NL80211_ATTR_WIPHY_FREQ				nlattr[NL80211_ATTR_WIPHY_FREQ, int32]
-	NL80211_ATTR_WIPHY_CHANNEL_TYPE			nlattr[NL80211_ATTR_WIPHY_CHANNEL_TYPE, int32]
+	NL80211_ATTR_BSS_HT_OPMODE			nlattr[NL80211_ATTR_BSS_HT_OPMODE, int16]
+	NL80211_ATTR_MESH_CONFIG			nlnest[NL80211_ATTR_MESH_CONFIG, array[nl_generic_attr]]
+	NL80211_ATTR_SUPPORT_MESH_AUTH			nlattr[NL80211_ATTR_SUPPORT_MESH_AUTH, void]
+	NL80211_ATTR_HT_CAPABILITY			nlattr[NL80211_ATTR_HT_CAPABILITY, array[int8]]
 	NL80211_ATTR_MGMT_SUBTYPE			nlattr[NL80211_ATTR_MGMT_SUBTYPE, int8]
 	NL80211_ATTR_IE					nlattr[NL80211_ATTR_IE, array[int8, 0:2304]]
 	NL80211_ATTR_SCAN_FREQUENCIES			nlnest[NL80211_ATTR_SCAN_FREQUENCIES, array[nl_generic_attr]]
 	NL80211_ATTR_SCAN_SSIDS				nlnest[NL80211_ATTR_SCAN_SSIDS, array[nl_generic_attr]]
-	NL80211_ATTR_FRAME				nlattr[NL80211_ATTR_FRAME, array[int8, 0:2304]]
 	NL80211_ATTR_SSID				nlattr[NL80211_ATTR_SSID, array[int8, 0:32]]
 	NL80211_ATTR_AUTH_TYPE				nlattr[NL80211_ATTR_AUTH_TYPE, int32]
 	NL80211_ATTR_REASON_CODE			nlattr[NL80211_ATTR_REASON_CODE, int16]
-	NL80211_ATTR_KEY_TYPE				nlattr[NL80211_ATTR_KEY_TYPE, int32]
 	NL80211_ATTR_FREQ_FIXED				nlattr[NL80211_ATTR_FREQ_FIXED, void]
-	NL80211_ATTR_WIPHY_RETRY_SHORT			nlattr[NL80211_ATTR_WIPHY_RETRY_SHORT, int8]
-	NL80211_ATTR_WIPHY_RETRY_LONG			nlattr[NL80211_ATTR_WIPHY_RETRY_LONG, int8]
-	NL80211_ATTR_WIPHY_FRAG_THRESHOLD		nlattr[NL80211_ATTR_WIPHY_FRAG_THRESHOLD, int32]
-	NL80211_ATTR_WIPHY_RTS_THRESHOLD		nlattr[NL80211_ATTR_WIPHY_RTS_THRESHOLD, int32]
 	NL80211_ATTR_TIMED_OUT				nlattr[NL80211_ATTR_TIMED_OUT, void]
 	NL80211_ATTR_USE_MFP				nlattr[NL80211_ATTR_USE_MFP, int32]
 	NL80211_ATTR_STA_FLAGS2				nlattr[NL80211_ATTR_STA_FLAGS2, array[int8]]
 	NL80211_ATTR_CONTROL_PORT			nlattr[NL80211_ATTR_CONTROL_PORT, void]
+	NL80211_ATTR_CONTROL_PORT_ETHERTYPE		nlattr[NL80211_ATTR_CONTROL_PORT_ETHERTYPE, sock_port]
+	NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT		nlattr[NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT, void]
+	NL80211_ATTR_CONTROL_PORT_OVER_NL80211		nlattr[NL80211_ATTR_CONTROL_PORT_OVER_NL80211, void]
 	NL80211_ATTR_PRIVACY				nlattr[NL80211_ATTR_PRIVACY, void]
 	NL80211_ATTR_STATUS_CODE			nlattr[NL80211_ATTR_STATUS_CODE, int16]
 	NL80211_ATTR_CIPHER_SUITE_GROUP			nlattr[NL80211_ATTR_CIPHER_SUITE_GROUP, int32]
 	NL80211_ATTR_WPA_VERSIONS			nlattr[NL80211_ATTR_WPA_VERSIONS, int32]
-	NL80211_ATTR_PREV_BSSID				nlattr[NL80211_ATTR_PREV_BSSID, array[int8]]
-	NL80211_ATTR_KEY				nlnest[NL80211_ATTR_KEY, array[nl_generic_attr]]
 	NL80211_ATTR_PID				nlattr[NL80211_ATTR_PID, pid]
 	NL80211_ATTR_4ADDR				nlattr[NL80211_ATTR_4ADDR, int8]
 	NL80211_ATTR_PMKID				nlattr[NL80211_ATTR_PMKID, array[int8]]
 	NL80211_ATTR_DURATION				nlattr[NL80211_ATTR_DURATION, int32]
 	NL80211_ATTR_COOKIE				nlattr[NL80211_ATTR_COOKIE, int64]
-	NL80211_ATTR_WIPHY_COVERAGE_CLASS		nlattr[NL80211_ATTR_WIPHY_COVERAGE_CLASS, int8]
 	NL80211_ATTR_TX_RATES				nlnest[NL80211_ATTR_TX_RATES, array[nl_generic_attr]]
+	NL80211_ATTR_FRAME				nlattr[NL80211_ATTR_FRAME, array[int8, 0:2304]]
 	NL80211_ATTR_FRAME_MATCH			nlattr[NL80211_ATTR_FRAME_MATCH, array[int8]]
 	NL80211_ATTR_PS_STATE				nlattr[NL80211_ATTR_PS_STATE, int32]
 	NL80211_ATTR_CQM				nlnest[NL80211_ATTR_CQM, array[nl_generic_attr]]
@@ -3020,25 +3016,24 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_WIPHY_TX_POWER_SETTING		nlattr[NL80211_ATTR_WIPHY_TX_POWER_SETTING, int32]
 	NL80211_ATTR_WIPHY_TX_POWER_LEVEL		nlattr[NL80211_ATTR_WIPHY_TX_POWER_LEVEL, int32]
 	NL80211_ATTR_FRAME_TYPE				nlattr[NL80211_ATTR_FRAME_TYPE, int16]
-	NL80211_ATTR_CONTROL_PORT_ETHERTYPE		nlattr[NL80211_ATTR_CONTROL_PORT_ETHERTYPE, sock_port]
-	NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT		nlattr[NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT, void]
 	NL80211_ATTR_WIPHY_ANTENNA_TX			nlattr[NL80211_ATTR_WIPHY_ANTENNA_TX, int32]
 	NL80211_ATTR_WIPHY_ANTENNA_RX			nlattr[NL80211_ATTR_WIPHY_ANTENNA_RX, int32]
 	NL80211_ATTR_MCAST_RATE				nlattr[NL80211_ATTR_MCAST_RATE, int32]
 	NL80211_ATTR_OFFCHANNEL_TX_OK			nlattr[NL80211_ATTR_OFFCHANNEL_TX_OK, void]
-	NL80211_ATTR_BSS_HT_OPMODE			nlattr[NL80211_ATTR_BSS_HT_OPMODE, int16]
 	NL80211_ATTR_KEY_DEFAULT_TYPES			nlnest[NL80211_ATTR_KEY_DEFAULT_TYPES, array[nl_generic_attr]]
-	NL80211_ATTR_SUPPORT_MESH_AUTH			nlattr[NL80211_ATTR_SUPPORT_MESH_AUTH, void]
-	NL80211_ATTR_STA_PLINK_STATE			nlattr[NL80211_ATTR_STA_PLINK_STATE, int8]
 	NL80211_ATTR_WOWLAN_TRIGGERS			nlnest[NL80211_ATTR_WOWLAN_TRIGGERS, array[nl_generic_attr]]
+	NL80211_ATTR_STA_PLINK_STATE			nlattr[NL80211_ATTR_STA_PLINK_STATE, int8]
+	NL80211_ATTR_MEASUREMENT_DURATION		nlattr[NL80211_ATTR_MEASUREMENT_DURATION, int16]
+	NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY	nlattr[NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY, void]
+	NL80211_ATTR_MESH_PEER_AID			nlattr[NL80211_ATTR_MESH_PEER_AID, int16]
 	NL80211_ATTR_SCHED_SCAN_INTERVAL		nlattr[NL80211_ATTR_SCHED_SCAN_INTERVAL, int32]
 	NL80211_ATTR_REKEY_DATA				nlnest[NL80211_ATTR_REKEY_DATA, array[nl_generic_attr]]
 	NL80211_ATTR_SCAN_SUPP_RATES			nlnest[NL80211_ATTR_SCAN_SUPP_RATES, array[nl_generic_attr]]
 	NL80211_ATTR_HIDDEN_SSID			nlattr[NL80211_ATTR_HIDDEN_SSID, int32]
 	NL80211_ATTR_IE_PROBE_RESP			nlattr[NL80211_ATTR_IE_PROBE_RESP, array[int8, 0:2304]]
 	NL80211_ATTR_IE_ASSOC_RESP			nlattr[NL80211_ATTR_IE_ASSOC_RESP, array[int8, 0:2304]]
-	NL80211_ATTR_STA_WME				nlnest[NL80211_ATTR_STA_WME, array[nl80211_sta_wme_policy$auto_nl80211]]
 	NL80211_ATTR_ROAM_SUPPORT			nlattr[NL80211_ATTR_ROAM_SUPPORT, void]
+	NL80211_ATTR_STA_WME				nlnest[NL80211_ATTR_STA_WME, array[nl80211_sta_wme_policy$auto_nl80211]]
 	NL80211_ATTR_SCHED_SCAN_MATCH			nlnest[NL80211_ATTR_SCHED_SCAN_MATCH, array[nl_generic_attr]]
 	NL80211_ATTR_TX_NO_CCK_RATE			nlattr[NL80211_ATTR_TX_NO_CCK_RATE, void]
 	NL80211_ATTR_TDLS_ACTION			nlattr[NL80211_ATTR_TDLS_ACTION, int8]
@@ -3046,6 +3041,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_TDLS_OPERATION			nlattr[NL80211_ATTR_TDLS_OPERATION, int8]
 	NL80211_ATTR_TDLS_SUPPORT			nlattr[NL80211_ATTR_TDLS_SUPPORT, void]
 	NL80211_ATTR_TDLS_EXTERNAL_SETUP		nlattr[NL80211_ATTR_TDLS_EXTERNAL_SETUP, void]
+	NL80211_ATTR_TDLS_INITIATOR			nlattr[NL80211_ATTR_TDLS_INITIATOR, void]
 	NL80211_ATTR_DONT_WAIT_FOR_ACK			nlattr[NL80211_ATTR_DONT_WAIT_FOR_ACK, void]
 	NL80211_ATTR_PROBE_RESP				nlattr[NL80211_ATTR_PROBE_RESP, array[int8, 0:2304]]
 	NL80211_ATTR_DFS_REGION				nlattr[NL80211_ATTR_DFS_REGION, int8]
@@ -3059,9 +3055,6 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_AUTH_DATA				nlattr[NL80211_ATTR_AUTH_DATA, array[int8]]
 	NL80211_ATTR_VHT_CAPABILITY			nlattr[NL80211_ATTR_VHT_CAPABILITY, array[int8]]
 	NL80211_ATTR_SCAN_FLAGS				nlattr[NL80211_ATTR_SCAN_FLAGS, int32]
-	NL80211_ATTR_CHANNEL_WIDTH			nlattr[NL80211_ATTR_CHANNEL_WIDTH, int32]
-	NL80211_ATTR_CENTER_FREQ1			nlattr[NL80211_ATTR_CENTER_FREQ1, int32]
-	NL80211_ATTR_CENTER_FREQ2			nlattr[NL80211_ATTR_CENTER_FREQ2, int32]
 	NL80211_ATTR_P2P_CTWINDOW			nlattr[NL80211_ATTR_P2P_CTWINDOW, int8]
 	NL80211_ATTR_P2P_OPPPS				nlattr[NL80211_ATTR_P2P_OPPPS, int8]
 	NL80211_ATTR_LOCAL_MESH_POWER_MODE		nlattr[NL80211_ATTR_LOCAL_MESH_POWER_MODE, int32]
@@ -3095,9 +3088,7 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_TDLS_PEER_CAPABILITY		nlattr[NL80211_ATTR_TDLS_PEER_CAPABILITY, int32]
 	NL80211_ATTR_SOCKET_OWNER			nlattr[NL80211_ATTR_SOCKET_OWNER, void]
 	NL80211_ATTR_CSA_C_OFFSETS_TX			nlattr[NL80211_ATTR_CSA_C_OFFSETS_TX, array[int8]]
-	NL80211_ATTR_TDLS_INITIATOR			nlattr[NL80211_ATTR_TDLS_INITIATOR, void]
 	NL80211_ATTR_USE_RRM				nlattr[NL80211_ATTR_USE_RRM, void]
-	NL80211_ATTR_WIPHY_DYN_ACK			nlattr[NL80211_ATTR_WIPHY_DYN_ACK, void]
 	NL80211_ATTR_TSID				nlattr[NL80211_ATTR_TSID, int8]
 	NL80211_ATTR_USER_PRIO				nlattr[NL80211_ATTR_USER_PRIO, int8]
 	NL80211_ATTR_ADMITTED_TIME			nlattr[NL80211_ATTR_ADMITTED_TIME, int16]
@@ -3113,9 +3104,6 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_STA_SUPPORT_P2P_PS			nlattr[NL80211_ATTR_STA_SUPPORT_P2P_PS, int8]
 	NL80211_ATTR_MU_MIMO_GROUP_DATA			nlattr[NL80211_ATTR_MU_MIMO_GROUP_DATA, array[int8, 24]]
 	NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR		nlattr[NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR, array[int8]]
-	NL80211_ATTR_MEASUREMENT_DURATION		nlattr[NL80211_ATTR_MEASUREMENT_DURATION, int16]
-	NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY	nlattr[NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY, void]
-	NL80211_ATTR_MESH_PEER_AID			nlattr[NL80211_ATTR_MESH_PEER_AID, int16]
 	NL80211_ATTR_NAN_MASTER_PREF			nlattr[NL80211_ATTR_NAN_MASTER_PREF, int8]
 	NL80211_ATTR_BANDS				nlattr[NL80211_ATTR_BANDS, int32]
 	NL80211_ATTR_NAN_FUNC				nlnest[NL80211_ATTR_NAN_FUNC, array[nl_generic_attr]]
@@ -3132,10 +3120,9 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_FILS_ERP_RRK			nlattr[NL80211_ATTR_FILS_ERP_RRK, array[int8, 0:64]]
 	NL80211_ATTR_FILS_CACHE_ID			nlattr[NL80211_ATTR_FILS_CACHE_ID, array[int8]]
 	NL80211_ATTR_PMK				nlattr[NL80211_ATTR_PMK, array[int8, 0:64]]
-	NL80211_ATTR_SCHED_SCAN_MULTI			nlattr[NL80211_ATTR_SCHED_SCAN_MULTI, void]
 	NL80211_ATTR_PMKR0_NAME				nlattr[NL80211_ATTR_PMKR0_NAME, array[int8]]
+	NL80211_ATTR_SCHED_SCAN_MULTI			nlattr[NL80211_ATTR_SCHED_SCAN_MULTI, void]
 	NL80211_ATTR_EXTERNAL_AUTH_SUPPORT		nlattr[NL80211_ATTR_EXTERNAL_AUTH_SUPPORT, void]
-	NL80211_ATTR_CONTROL_PORT_OVER_NL80211		nlattr[NL80211_ATTR_CONTROL_PORT_OVER_NL80211, void]
 	NL80211_ATTR_TXQ_LIMIT				nlattr[NL80211_ATTR_TXQ_LIMIT, int32]
 	NL80211_ATTR_TXQ_MEMORY_LIMIT			nlattr[NL80211_ATTR_TXQ_MEMORY_LIMIT, int32]
 	NL80211_ATTR_TXQ_QUANTUM			nlattr[NL80211_ATTR_TXQ_QUANTUM, int32]
@@ -3144,13 +3131,9 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_TIMEOUT				nlattr[NL80211_ATTR_TIMEOUT, int32]
 	NL80211_ATTR_PEER_MEASUREMENTS			nlnest[NL80211_ATTR_PEER_MEASUREMENTS, array[nl80211_pmsr_attr_policy$auto_nl80211]]
 	NL80211_ATTR_AIRTIME_WEIGHT			nlattr[NL80211_ATTR_AIRTIME_WEIGHT, int16]
-	NL80211_ATTR_STA_TX_POWER_SETTING		nlattr[NL80211_ATTR_STA_TX_POWER_SETTING, int8]
-	NL80211_ATTR_STA_TX_POWER			nlattr[NL80211_ATTR_STA_TX_POWER, int16]
 	NL80211_ATTR_SAE_PASSWORD			nlattr[NL80211_ATTR_SAE_PASSWORD, array[int8, 0:128]]
 	NL80211_ATTR_TWT_RESPONDER			nlattr[NL80211_ATTR_TWT_RESPONDER, void]
 	NL80211_ATTR_HE_OBSS_PD				nlnest[NL80211_ATTR_HE_OBSS_PD, array[he_obss_pd_policy$auto_nl80211]]
-	NL80211_ATTR_WIPHY_EDMG_CHANNELS		nlattr[NL80211_ATTR_WIPHY_EDMG_CHANNELS, int8]
-	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG		nlattr[NL80211_ATTR_WIPHY_EDMG_BW_CONFIG, int8]
 	NL80211_ATTR_VLAN_ID				nlattr[NL80211_ATTR_VLAN_ID, int16]
 	NL80211_ATTR_HE_BSS_COLOR			nlnest[NL80211_ATTR_HE_BSS_COLOR, array[he_bss_color_policy$auto_nl80211]]
 	NL80211_ATTR_TID_CONFIG				nlnest[NL80211_ATTR_TID_CONFIG, array[nlnest[0, array[nl80211_tid_config_attr_policy$auto_nl80211]]]]
@@ -3159,7 +3142,6 @@ nl80211_policy$auto_nl80211 [
 	NL80211_ATTR_PMK_REAUTH_THRESHOLD		nlattr[NL80211_ATTR_PMK_REAUTH_THRESHOLD, int8]
 	NL80211_ATTR_RECEIVE_MULTICAST			nlattr[NL80211_ATTR_RECEIVE_MULTICAST, void]
 	NL80211_ATTR_WIPHY_FREQ_OFFSET			nlattr[NL80211_ATTR_WIPHY_FREQ_OFFSET, int32]
-	NL80211_ATTR_CENTER_FREQ1_OFFSET		nlattr[NL80211_ATTR_CENTER_FREQ1_OFFSET, int32]
 	NL80211_ATTR_SCAN_FREQ_KHZ			nlnest[NL80211_ATTR_SCAN_FREQ_KHZ, array[nl_generic_attr]]
 	NL80211_ATTR_HE_6GHZ_CAPABILITY			nlattr[NL80211_ATTR_HE_6GHZ_CAPABILITY, array[int8]]
 	NL80211_ATTR_FILS_DISCOVERY			nlnest[NL80211_ATTR_FILS_DISCOVERY, array[nl80211_fils_discovery_policy$auto_nl80211]]
@@ -3234,24 +3216,24 @@ nl802154_policy$auto_nl802154 [
 	NL802154_ATTR_WPAN_PHY			nlattr[NL802154_ATTR_WPAN_PHY, int32]
 	NL802154_ATTR_WPAN_PHY_NAME		nlattr[NL802154_ATTR_WPAN_PHY_NAME, string]
 	NL802154_ATTR_IFINDEX			nlattr[NL802154_ATTR_IFINDEX, ifindex]
-	NL802154_ATTR_IFNAME			nlattr[NL802154_ATTR_IFNAME, devname]
 	NL802154_ATTR_IFTYPE			nlattr[NL802154_ATTR_IFTYPE, int32]
+	NL802154_ATTR_IFNAME			nlattr[NL802154_ATTR_IFNAME, devname]
 	NL802154_ATTR_WPAN_DEV			nlattr[NL802154_ATTR_WPAN_DEV, int64]
 	NL802154_ATTR_PAGE			nlattr[NL802154_ATTR_PAGE, int8]
 	NL802154_ATTR_CHANNEL			nlattr[NL802154_ATTR_CHANNEL, int8]
-	NL802154_ATTR_PAN_ID			nlattr[NL802154_ATTR_PAN_ID, int16]
-	NL802154_ATTR_SHORT_ADDR		nlattr[NL802154_ATTR_SHORT_ADDR, int16]
 	NL802154_ATTR_TX_POWER			nlattr[NL802154_ATTR_TX_POWER, int32]
 	NL802154_ATTR_CCA_MODE			nlattr[NL802154_ATTR_CCA_MODE, int32]
 	NL802154_ATTR_CCA_OPT			nlattr[NL802154_ATTR_CCA_OPT, int32]
 	NL802154_ATTR_CCA_ED_LEVEL		nlattr[NL802154_ATTR_CCA_ED_LEVEL, int32]
-	NL802154_ATTR_MAX_FRAME_RETRIES		nlattr[NL802154_ATTR_MAX_FRAME_RETRIES, int8]
-	NL802154_ATTR_MAX_BE			nlattr[NL802154_ATTR_MAX_BE, int8]
-	NL802154_ATTR_MIN_BE			nlattr[NL802154_ATTR_MIN_BE, int8]
-	NL802154_ATTR_MAX_CSMA_BACKOFFS		nlattr[NL802154_ATTR_MAX_CSMA_BACKOFFS, int8]
-	NL802154_ATTR_LBT_MODE			nlattr[NL802154_ATTR_LBT_MODE, int8]
 	NL802154_ATTR_SUPPORTED_CHANNEL		nlattr[NL802154_ATTR_SUPPORTED_CHANNEL, int32]
+	NL802154_ATTR_PAN_ID			nlattr[NL802154_ATTR_PAN_ID, int16]
 	NL802154_ATTR_EXTENDED_ADDR		nlattr[NL802154_ATTR_EXTENDED_ADDR, int64]
+	NL802154_ATTR_SHORT_ADDR		nlattr[NL802154_ATTR_SHORT_ADDR, int16]
+	NL802154_ATTR_MIN_BE			nlattr[NL802154_ATTR_MIN_BE, int8]
+	NL802154_ATTR_MAX_BE			nlattr[NL802154_ATTR_MAX_BE, int8]
+	NL802154_ATTR_MAX_CSMA_BACKOFFS		nlattr[NL802154_ATTR_MAX_CSMA_BACKOFFS, int8]
+	NL802154_ATTR_MAX_FRAME_RETRIES		nlattr[NL802154_ATTR_MAX_FRAME_RETRIES, int8]
+	NL802154_ATTR_LBT_MODE			nlattr[NL802154_ATTR_LBT_MODE, int8]
 	NL802154_ATTR_WPAN_PHY_CAPS		nlnest[NL802154_ATTR_WPAN_PHY_CAPS, array[nl_generic_attr]]
 	NL802154_ATTR_SUPPORTED_COMMANDS	nlnest[NL802154_ATTR_SUPPORTED_COMMANDS, array[nl_generic_attr]]
 	NL802154_ATTR_ACKREQ_DEFAULT		nlattr[NL802154_ATTR_ACKREQ_DEFAULT, int8]
@@ -3544,11 +3526,7 @@ sigaction$auto_record {
 	sa_handler	ptr[inout, ptr[in, auto_todo]]
 	sa_flags	intptr
 	sa_restorer	ptr[inout, ptr[in, auto_todo]]
-	sa_mask		sigaction_sa_mask$auto_record
-}
-
-sigaction_sa_mask$auto_record {
-	sig	intptr
+	sa_mask		sigset_t$auto_record
 }
 
 sigaltstack$auto_record {
@@ -3619,12 +3597,8 @@ sockaddr$auto_record {
 
 sockaddr_1$auto_record [
 	sa_data_min	array[int8, 14]
-	sockaddr_1_1	sockaddr_1_1$auto_record
-] [varlen]
-
-sockaddr_1_1$auto_record {
-	sa_data	array[int8]
-}
+	sockaddr_1_1	void
+]
 
 stat$auto_record {
 	st_dev		intptr
@@ -3655,7 +3629,7 @@ statfs$auto_record {
 	f_bavail	intptr
 	f_files		intptr
 	f_ffree		intptr
-	f_fsid		statfs_f_fsid$auto_record
+	f_fsid		__kernel_fsid_t$auto_record
 	f_namelen	intptr
 	f_frsize	intptr
 	f_flags		intptr
@@ -3670,19 +3644,11 @@ statfs64$auto_record {
 	f_bavail	int64
 	f_files		int64
 	f_ffree		int64
-	f_fsid		statfs64_f_fsid$auto_record
+	f_fsid		__kernel_fsid_t$auto_record
 	f_namelen	intptr
 	f_frsize	intptr
 	f_flags		intptr
 	f_spare		array[intptr, 4]
-}
-
-statfs64_f_fsid$auto_record {
-	val	array[int32, 2]
-}
-
-statfs_f_fsid$auto_record {
-	val	array[int32, 2]
 }
 
 statmount$auto_record {
@@ -3780,9 +3746,9 @@ taskstats_cmd_get_policy$auto_taskstats [
 
 tcp_metrics_nl_policy$auto_tcp_metrics [
 	TCP_METRICS_ATTR_ADDR_IPV4	nlattr[TCP_METRICS_ATTR_ADDR_IPV4, ipv4_addr]
-	TCP_METRICS_ATTR_ADDR_IPV6	nlattr[TCP_METRICS_ATTR_ADDR_IPV6, array[int8]]
+	TCP_METRICS_ATTR_ADDR_IPV6	nlattr[TCP_METRICS_ATTR_ADDR_IPV6, ipv6_addr]
 	TCP_METRICS_ATTR_SADDR_IPV4	nlattr[TCP_METRICS_ATTR_SADDR_IPV4, ipv4_addr]
-	TCP_METRICS_ATTR_SADDR_IPV6	nlattr[TCP_METRICS_ATTR_SADDR_IPV6, array[int8]]
+	TCP_METRICS_ATTR_SADDR_IPV6	nlattr[TCP_METRICS_ATTR_SADDR_IPV6, ipv6_addr]
 ] [varlen]
 
 thermal_genl_policy$auto_thermal_netlink [
@@ -3791,12 +3757,12 @@ thermal_genl_policy$auto_thermal_netlink [
 	THERMAL_GENL_ATTR_TZ_TEMP			nlattr[THERMAL_GENL_ATTR_TZ_TEMP, int32]
 	THERMAL_GENL_ATTR_TZ_TRIP			nlnest[THERMAL_GENL_ATTR_TZ_TRIP, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_TZ_TRIP_ID			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_ID, int32]
-	THERMAL_GENL_ATTR_TZ_TRIP_TYPE			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_TYPE, int32]
 	THERMAL_GENL_ATTR_TZ_TRIP_TEMP			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_TEMP, int32]
+	THERMAL_GENL_ATTR_TZ_TRIP_TYPE			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_TYPE, int32]
 	THERMAL_GENL_ATTR_TZ_TRIP_HYST			nlattr[THERMAL_GENL_ATTR_TZ_TRIP_HYST, int32]
 	THERMAL_GENL_ATTR_TZ_MODE			nlattr[THERMAL_GENL_ATTR_TZ_MODE, int32]
-	THERMAL_GENL_ATTR_TZ_NAME			nlattr[THERMAL_GENL_ATTR_TZ_NAME, stringnoz]
 	THERMAL_GENL_ATTR_TZ_CDEV_WEIGHT		nlattr[THERMAL_GENL_ATTR_TZ_CDEV_WEIGHT, int32]
+	THERMAL_GENL_ATTR_TZ_NAME			nlattr[THERMAL_GENL_ATTR_TZ_NAME, stringnoz]
 	THERMAL_GENL_ATTR_TZ_GOV			nlnest[THERMAL_GENL_ATTR_TZ_GOV, array[nl_generic_attr]]
 	THERMAL_GENL_ATTR_TZ_GOV_NAME			nlattr[THERMAL_GENL_ATTR_TZ_GOV_NAME, stringnoz]
 	THERMAL_GENL_ATTR_CDEV				nlnest[THERMAL_GENL_ATTR_CDEV, array[nl_generic_attr]]
@@ -3885,12 +3851,12 @@ vdpa_nl_policy$auto_vdpa [
 ] [varlen]
 
 vport_policy$auto_datapath [
+	OVS_VPORT_ATTR_NAME		nlattr[OVS_VPORT_ATTR_NAME, string]
+	OVS_VPORT_ATTR_STATS		nlattr[OVS_VPORT_ATTR_STATS, ovs_vport_stats$auto_record]
 	OVS_VPORT_ATTR_PORT_NO		nlattr[OVS_VPORT_ATTR_PORT_NO, int32]
 	OVS_VPORT_ATTR_TYPE		nlattr[OVS_VPORT_ATTR_TYPE, int32]
-	OVS_VPORT_ATTR_NAME		nlattr[OVS_VPORT_ATTR_NAME, string]
-	OVS_VPORT_ATTR_OPTIONS		nlnest[OVS_VPORT_ATTR_OPTIONS, array[nl_generic_attr]]
 	OVS_VPORT_ATTR_UPCALL_PID	nlattr[OVS_VPORT_ATTR_UPCALL_PID, array[int8]]
-	OVS_VPORT_ATTR_STATS		nlattr[OVS_VPORT_ATTR_STATS, ovs_vport_stats$auto_record]
+	OVS_VPORT_ATTR_OPTIONS		nlnest[OVS_VPORT_ATTR_OPTIONS, array[nl_generic_attr]]
 	OVS_VPORT_ATTR_IFINDEX		nlattr[OVS_VPORT_ATTR_IFINDEX, ifindex]
 	OVS_VPORT_ATTR_NETNSID		nlattr[OVS_VPORT_ATTR_NETNSID, int32]
 	OVS_VPORT_ATTR_UPCALL_STATS	nlnest[OVS_VPORT_ATTR_UPCALL_STATS, array[nl_generic_attr]]
@@ -3901,3 +3867,297 @@ xattr_args$auto_record {
 	size	int32
 	flags	int32
 }
+
+define HWSIM_ATTR_ADDR_RECEIVER	1
+define HWSIM_ATTR_ADDR_TRANSMITTER	2
+define HWSIM_ATTR_CHANNELS	9
+define HWSIM_ATTR_CIPHER_SUPPORT	24
+define HWSIM_ATTR_COOKIE	8
+define HWSIM_ATTR_DESTROY_RADIO_ON_CLOSE	16
+define HWSIM_ATTR_FLAGS	4
+define HWSIM_ATTR_FRAME	3
+define HWSIM_ATTR_FREQ	19
+define HWSIM_ATTR_IFTYPE_SUPPORT	23
+define HWSIM_ATTR_MLO_SUPPORT	25
+define HWSIM_ATTR_MULTI_RADIO	29
+define HWSIM_ATTR_NO_VIF	18
+define HWSIM_ATTR_PERM_ADDR	22
+define HWSIM_ATTR_PMSR_RESULT	28
+define HWSIM_ATTR_PMSR_SUPPORT	26
+define HWSIM_ATTR_RADIO_ID	10
+define HWSIM_ATTR_RADIO_NAME	17
+define HWSIM_ATTR_REG_CUSTOM_REG	12
+define HWSIM_ATTR_REG_HINT_ALPHA2	11
+define HWSIM_ATTR_REG_STRICT_REG	13
+define HWSIM_ATTR_RX_RATE	5
+define HWSIM_ATTR_SIGNAL	6
+define HWSIM_ATTR_SUPPORT_P2P_DEVICE	14
+define HWSIM_ATTR_TX_INFO	7
+define HWSIM_ATTR_TX_INFO_FLAGS	21
+define HWSIM_ATTR_USE_CHANCTX	15
+define HWSIM_CMD_DEL_RADIO	5
+define HWSIM_CMD_FRAME	2
+define HWSIM_CMD_GET_RADIO	6
+define HWSIM_CMD_NEW_RADIO	4
+define HWSIM_CMD_REGISTER	1
+define HWSIM_CMD_REPORT_PMSR	11
+define HWSIM_CMD_TX_INFO_FRAME	3
+define HWSIM_RATE_INFO_ATTR_BW	5
+define HWSIM_RATE_INFO_ATTR_EHT_GI	10
+define HWSIM_RATE_INFO_ATTR_EHT_RU_ALLOC	11
+define HWSIM_RATE_INFO_ATTR_FLAGS	1
+define HWSIM_RATE_INFO_ATTR_HE_DCM	7
+define HWSIM_RATE_INFO_ATTR_HE_GI	6
+define HWSIM_RATE_INFO_ATTR_HE_RU_ALLOC	8
+define HWSIM_RATE_INFO_ATTR_LEGACY	3
+define HWSIM_RATE_INFO_ATTR_MCS	2
+define HWSIM_RATE_INFO_ATTR_NSS	4
+define HWSIM_RATE_INFO_ATTR_N_BOUNDED_CH	9
+define IEEE802154_ADD_IFACE	33
+define IEEE802154_ASSOCIATE_REQ	1
+define IEEE802154_ASSOCIATE_RESP	19
+define IEEE802154_ATTR_BAT_EXT	26
+define IEEE802154_ATTR_BCN_ORD	23
+define IEEE802154_ATTR_CAPABILITY	17
+define IEEE802154_ATTR_CCA_ED_LEVEL	36
+define IEEE802154_ATTR_CCA_MODE	35
+define IEEE802154_ATTR_CHANNEL	7
+define IEEE802154_ATTR_CHANNELS	20
+define IEEE802154_ATTR_CHANNEL_PAGE_LIST	30
+define IEEE802154_ATTR_COORD_HW_ADDR	9
+define IEEE802154_ATTR_COORD_PAN_ID	10
+define IEEE802154_ATTR_COORD_REALIGN	27
+define IEEE802154_ATTR_COORD_SHORT_ADDR	8
+define IEEE802154_ATTR_CSMA_MAX_BE	39
+define IEEE802154_ATTR_CSMA_MIN_BE	38
+define IEEE802154_ATTR_CSMA_RETRIES	37
+define IEEE802154_ATTR_DEST_HW_ADDR	15
+define IEEE802154_ATTR_DEST_PAN_ID	16
+define IEEE802154_ATTR_DEST_SHORT_ADDR	14
+define IEEE802154_ATTR_DEV_INDEX	2
+define IEEE802154_ATTR_DEV_NAME	1
+define IEEE802154_ATTR_DEV_TYPE	32
+define IEEE802154_ATTR_DURATION	21
+define IEEE802154_ATTR_ED_LIST	22
+define IEEE802154_ATTR_FRAME_RETRIES	40
+define IEEE802154_ATTR_HW_ADDR	5
+define IEEE802154_ATTR_LBT_ENABLED	34
+define IEEE802154_ATTR_LLSEC_CMD_FRAME_ID	52
+define IEEE802154_ATTR_LLSEC_DEV_KEY_MODE	55
+define IEEE802154_ATTR_LLSEC_DEV_OVERRIDE	54
+define IEEE802154_ATTR_LLSEC_ENABLED	41
+define IEEE802154_ATTR_LLSEC_FRAME_COUNTER	47
+define IEEE802154_ATTR_LLSEC_FRAME_TYPE	51
+define IEEE802154_ATTR_LLSEC_KEY_BYTES	48
+define IEEE802154_ATTR_LLSEC_KEY_ID	46
+define IEEE802154_ATTR_LLSEC_KEY_MODE	43
+define IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED	45
+define IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT	44
+define IEEE802154_ATTR_LLSEC_KEY_USAGE_COMMANDS	50
+define IEEE802154_ATTR_LLSEC_KEY_USAGE_FRAME_TYPES	49
+define IEEE802154_ATTR_LLSEC_SECLEVEL	42
+define IEEE802154_ATTR_LLSEC_SECLEVELS	53
+define IEEE802154_ATTR_PAGE	29
+define IEEE802154_ATTR_PAN_COORD	25
+define IEEE802154_ATTR_PAN_ID	6
+define IEEE802154_ATTR_PHY_NAME	31
+define IEEE802154_ATTR_REASON	18
+define IEEE802154_ATTR_SCAN_TYPE	19
+define IEEE802154_ATTR_SF_ORD	24
+define IEEE802154_ATTR_SHORT_ADDR	4
+define IEEE802154_ATTR_SRC_HW_ADDR	12
+define IEEE802154_ATTR_SRC_PAN_ID	13
+define IEEE802154_ATTR_SRC_SHORT_ADDR	11
+define IEEE802154_ATTR_STATUS	3
+define IEEE802154_ATTR_TXPOWER	33
+define IEEE802154_DEL_IFACE	34
+define IEEE802154_DISASSOCIATE_REQ	3
+define IEEE802154_LIST_IFACE	31
+define IEEE802154_LIST_PHY	32
+define IEEE802154_LLSEC_ADD_DEV	42
+define IEEE802154_LLSEC_ADD_DEVKEY	45
+define IEEE802154_LLSEC_ADD_KEY	39
+define IEEE802154_LLSEC_ADD_SECLEVEL	48
+define IEEE802154_LLSEC_DEL_DEV	43
+define IEEE802154_LLSEC_DEL_DEVKEY	46
+define IEEE802154_LLSEC_DEL_KEY	40
+define IEEE802154_LLSEC_DEL_SECLEVEL	49
+define IEEE802154_LLSEC_GETPARAMS	36
+define IEEE802154_LLSEC_LIST_DEV	41
+define IEEE802154_LLSEC_LIST_DEVKEY	44
+define IEEE802154_LLSEC_LIST_KEY	38
+define IEEE802154_LLSEC_LIST_SECLEVEL	47
+define IEEE802154_LLSEC_SETPARAMS	37
+define IEEE802154_SCAN_REQ	9
+define IEEE802154_SET_MACPARAMS	35
+define IEEE802154_START_REQ	13
+define MAC802154_HWSIM_ATTR_RADIO_EDGE	2
+define MAC802154_HWSIM_ATTR_RADIO_EDGES	3
+define MAC802154_HWSIM_ATTR_RADIO_ID	1
+define MAC802154_HWSIM_CMD_DEL_EDGE	7
+define MAC802154_HWSIM_CMD_DEL_RADIO	4
+define MAC802154_HWSIM_CMD_GET_RADIO	1
+define MAC802154_HWSIM_CMD_NEW_EDGE	8
+define MAC802154_HWSIM_CMD_NEW_RADIO	3
+define MAC802154_HWSIM_CMD_SET_EDGE	6
+define MAC802154_HWSIM_EDGE_ATTR_ENDPOINT_ID	1
+define MAC802154_HWSIM_EDGE_ATTR_LQI	2
+define NL802154_ATTR_ACKREQ_DEFAULT	26
+define NL802154_ATTR_BEACON_INTERVAL	38
+define NL802154_ATTR_CCA_ED_LEVEL	14
+define NL802154_ATTR_CCA_MODE	12
+define NL802154_ATTR_CCA_OPT	13
+define NL802154_ATTR_CHANNEL	8
+define NL802154_ATTR_COORDINATOR	30
+define NL802154_ATTR_EXTENDED_ADDR	23
+define NL802154_ATTR_IFINDEX	3
+define NL802154_ATTR_IFNAME	4
+define NL802154_ATTR_IFTYPE	5
+define NL802154_ATTR_LBT_MODE	19
+define NL802154_ATTR_MAX_ASSOCIATIONS	39
+define NL802154_ATTR_MAX_BE	16
+define NL802154_ATTR_MAX_CSMA_BACKOFFS	18
+define NL802154_ATTR_MAX_FRAME_RETRIES	15
+define NL802154_ATTR_MIN_BE	17
+define NL802154_ATTR_NETNS_FD	29
+define NL802154_ATTR_PAGE	7
+define NL802154_ATTR_PAN_ID	9
+define NL802154_ATTR_PEER	40
+define NL802154_ATTR_PID	28
+define NL802154_ATTR_SCAN_CHANNELS	33
+define NL802154_ATTR_SCAN_DONE_REASON	37
+define NL802154_ATTR_SCAN_DURATION	36
+define NL802154_ATTR_SCAN_MEAN_PRF	35
+define NL802154_ATTR_SCAN_PREAMBLE_CODES	34
+define NL802154_ATTR_SCAN_TYPE	31
+define NL802154_ATTR_SEC_DEVICE	46
+define NL802154_ATTR_SEC_DEVKEY	47
+define NL802154_ATTR_SEC_ENABLED	41
+define NL802154_ATTR_SEC_FRAME_COUNTER	44
+define NL802154_ATTR_SEC_KEY	48
+define NL802154_ATTR_SEC_LEVEL	45
+define NL802154_ATTR_SEC_OUT_KEY_ID	43
+define NL802154_ATTR_SEC_OUT_LEVEL	42
+define NL802154_ATTR_SHORT_ADDR	10
+define NL802154_ATTR_SUPPORTED_CHANNEL	22
+define NL802154_ATTR_SUPPORTED_COMMANDS	25
+define NL802154_ATTR_TX_POWER	11
+define NL802154_ATTR_WPAN_DEV	6
+define NL802154_ATTR_WPAN_PHY	1
+define NL802154_ATTR_WPAN_PHY_CAPS	24
+define NL802154_ATTR_WPAN_PHY_NAME	2
+define NL802154_CMD_ABORT_SCAN	36
+define NL802154_CMD_ASSOCIATE	40
+define NL802154_CMD_DEL_INTERFACE	8
+define NL802154_CMD_DEL_SEC_DEV	27
+define NL802154_CMD_DEL_SEC_DEVKEY	30
+define NL802154_CMD_DEL_SEC_KEY	24
+define NL802154_CMD_DEL_SEC_LEVEL	33
+define NL802154_CMD_DISASSOCIATE	41
+define NL802154_CMD_GET_INTERFACE	5
+define NL802154_CMD_GET_SEC_DEV	25
+define NL802154_CMD_GET_SEC_DEVKEY	28
+define NL802154_CMD_GET_SEC_KEY	22
+define NL802154_CMD_GET_SEC_LEVEL	31
+define NL802154_CMD_GET_WPAN_PHY	1
+define NL802154_CMD_LIST_ASSOCIATIONS	43
+define NL802154_CMD_NEW_INTERFACE	7
+define NL802154_CMD_NEW_SEC_DEV	26
+define NL802154_CMD_NEW_SEC_DEVKEY	29
+define NL802154_CMD_NEW_SEC_KEY	23
+define NL802154_CMD_NEW_SEC_LEVEL	32
+define NL802154_CMD_SEND_BEACONS	38
+define NL802154_CMD_SET_ACKREQ_DEFAULT	19
+define NL802154_CMD_SET_BACKOFF_EXPONENT	16
+define NL802154_CMD_SET_CCA_ED_LEVEL	14
+define NL802154_CMD_SET_CCA_MODE	13
+define NL802154_CMD_SET_CHANNEL	9
+define NL802154_CMD_SET_LBT_MODE	18
+define NL802154_CMD_SET_MAX_ASSOCIATIONS	42
+define NL802154_CMD_SET_MAX_CSMA_BACKOFFS	17
+define NL802154_CMD_SET_MAX_FRAME_RETRIES	15
+define NL802154_CMD_SET_PAN_ID	10
+define NL802154_CMD_SET_SEC_PARAMS	21
+define NL802154_CMD_SET_SHORT_ADDR	11
+define NL802154_CMD_SET_TX_POWER	12
+define NL802154_CMD_SET_WPAN_PHY_NETNS	20
+define NL802154_CMD_STOP_BEACONS	39
+define NL802154_CMD_TRIGGER_SCAN	35
+define NL802154_DEVKEY_ATTR_EXTENDED_ADDR	2
+define NL802154_DEVKEY_ATTR_FRAME_COUNTER	1
+define NL802154_DEVKEY_ATTR_ID	3
+define NL802154_DEV_ADDR_ATTR_EXTENDED	4
+define NL802154_DEV_ADDR_ATTR_MODE	2
+define NL802154_DEV_ADDR_ATTR_PAN_ID	1
+define NL802154_DEV_ADDR_ATTR_SHORT	3
+define NL802154_DEV_ATTR_EXTENDED_ADDR	4
+define NL802154_DEV_ATTR_FRAME_COUNTER	1
+define NL802154_DEV_ATTR_KEY_MODE	6
+define NL802154_DEV_ATTR_PAN_ID	2
+define NL802154_DEV_ATTR_SECLEVEL_EXEMPT	5
+define NL802154_DEV_ATTR_SHORT_ADDR	3
+define NL802154_KEY_ATTR_BYTES	4
+define NL802154_KEY_ATTR_ID	1
+define NL802154_KEY_ATTR_USAGE_CMDS	3
+define NL802154_KEY_ATTR_USAGE_FRAMES	2
+define NL802154_KEY_ID_ATTR_IMPLICIT	3
+define NL802154_KEY_ID_ATTR_INDEX	2
+define NL802154_KEY_ID_ATTR_MODE	1
+define NL802154_KEY_ID_ATTR_SOURCE_EXTENDED	5
+define NL802154_KEY_ID_ATTR_SOURCE_SHORT	4
+define NL802154_SECLEVEL_ATTR_CMD_FRAME	3
+define NL802154_SECLEVEL_ATTR_DEV_OVERRIDE	4
+define NL802154_SECLEVEL_ATTR_FRAME	2
+define NL802154_SECLEVEL_ATTR_LEVELS	1
+define NLBL_CALIPSO_A_DOI	1
+define NLBL_CALIPSO_A_MTYPE	2
+define NLBL_CALIPSO_C_ADD	1
+define NLBL_CALIPSO_C_LIST	3
+define NLBL_CALIPSO_C_LISTALL	4
+define NLBL_CALIPSO_C_REMOVE	2
+define NLBL_CIPSOV4_A_DOI	1
+define NLBL_CIPSOV4_A_MLSCAT	11
+define NLBL_CIPSOV4_A_MLSCATLOC	9
+define NLBL_CIPSOV4_A_MLSCATLST	12
+define NLBL_CIPSOV4_A_MLSCATREM	10
+define NLBL_CIPSOV4_A_MLSLVL	7
+define NLBL_CIPSOV4_A_MLSLVLLOC	5
+define NLBL_CIPSOV4_A_MLSLVLLST	8
+define NLBL_CIPSOV4_A_MLSLVLREM	6
+define NLBL_CIPSOV4_A_MTYPE	2
+define NLBL_CIPSOV4_A_TAG	3
+define NLBL_CIPSOV4_A_TAGLST	4
+define NLBL_CIPSOV4_C_ADD	1
+define NLBL_CIPSOV4_C_LIST	3
+define NLBL_CIPSOV4_C_LISTALL	4
+define NLBL_CIPSOV4_C_REMOVE	2
+define NLBL_MGMT_A_CLPDOI	12
+define NLBL_MGMT_A_CV4DOI	4
+define NLBL_MGMT_A_DOMAIN	1
+define NLBL_MGMT_A_FAMILY	11
+define NLBL_MGMT_A_PROTOCOL	2
+define NLBL_MGMT_A_VERSION	3
+define NLBL_MGMT_C_ADD	1
+define NLBL_MGMT_C_ADDDEF	4
+define NLBL_MGMT_C_LISTALL	3
+define NLBL_MGMT_C_LISTDEF	6
+define NLBL_MGMT_C_PROTOCOLS	7
+define NLBL_MGMT_C_REMOVE	2
+define NLBL_MGMT_C_REMOVEDEF	5
+define NLBL_MGMT_C_VERSION	8
+define NLBL_UNLABEL_A_ACPTFLG	1
+define NLBL_UNLABEL_A_IFACE	6
+define NLBL_UNLABEL_A_IPV4ADDR	4
+define NLBL_UNLABEL_A_IPV4MASK	5
+define NLBL_UNLABEL_A_IPV6ADDR	2
+define NLBL_UNLABEL_A_IPV6MASK	3
+define NLBL_UNLABEL_A_SECCTX	7
+define NLBL_UNLABEL_C_ACCEPT	1
+define NLBL_UNLABEL_C_LIST	2
+define NLBL_UNLABEL_C_STATICADD	3
+define NLBL_UNLABEL_C_STATICADDDEF	6
+define NLBL_UNLABEL_C_STATICLIST	5
+define NLBL_UNLABEL_C_STATICLISTDEF	8
+define NLBL_UNLABEL_C_STATICREMOVE	4
+define NLBL_UNLABEL_C_STATICREMOVEDEF	7
+define QCA_WLAN_VENDOR_ATTR_MAX	8
