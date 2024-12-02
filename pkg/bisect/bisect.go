@@ -1014,12 +1014,24 @@ func mostFrequentReports(reports []*report.Report) (*report.Report, []crash.Type
 func (env *env) isTransientError(rep *report.Report) bool {
 	// If we're not chasing a SYZFATAL error, ignore them.
 	// Otherwise it indicates some transient problem of the tested kernel revision.
-	hadSyzFailure := false
-	for _, t := range env.reportTypes {
-		hadSyzFailure = hadSyzFailure || t == crash.SyzFailure
+	if rep.Type == crash.SyzFailure {
+		hadSyzFailure := false
+		for _, t := range env.reportTypes {
+			hadSyzFailure = hadSyzFailure || t == crash.SyzFailure
+		}
+		return len(env.reportTypes) > 0 && !hadSyzFailure
 	}
-	return rep.Type == crash.SyzFailure &&
-		len(env.reportTypes) > 0 && !hadSyzFailure
+	// Lost connection is a frequent source of flaky results.
+	// Ignore if it is was not in the canonical crash types set.
+	if rep.Type == crash.LostConnection {
+		hadLostConnection := false
+		for _, t := range env.reportTypes {
+			hadLostConnection = hadLostConnection || t == crash.LostConnection
+		}
+		return len(env.reportTypes) > 0 && !hadLostConnection
+	}
+	// All other errors are okay.
+	return false
 }
 
 func (env *env) saveDebugFile(hash string, idx int, data []byte) {
