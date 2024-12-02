@@ -492,10 +492,7 @@ void Extractor::matchNetlinkFamily() {
   });
 }
 
-std::string Extractor::policyName(const ValueDecl* Decl) {
-  // TODO: remove appending of $ sign here.
-  return Decl->getNameAsString() + "$auto_" + getDeclFileID(Decl);
-}
+std::string Extractor::policyName(const ValueDecl* Decl) { return Decl->getNameAsString() + "_" + getDeclFileID(Decl); }
 
 void Extractor::matchSyscall() {
   const auto* Func = getResult<FunctionDecl>("syscall");
