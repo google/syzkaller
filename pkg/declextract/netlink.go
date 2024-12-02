@@ -17,7 +17,9 @@ func (ctx *context) serializeNetlink() {
 		pq.policies[pol.Name] = pol
 	}
 	for _, fam := range ctx.NetlinkFamilies {
-		if isEmptyFamily(fam) {
+		if len(fam.Ops) == 0 {
+			// TODO: do something for these as well. These exist for a reason.
+			// Probably only send broadcast notifications (can bind and recvmsg).
 			continue
 		}
 		id := stringIdentifier(fam.Name)
@@ -27,22 +29,21 @@ func (ctx *context) serializeNetlink() {
 		ctx.fmt("syz_genetlink_get_family_id%v_%v(name ptr[in, string[\"%v\"]],"+
 			" fd sock_nl_generic) genl_%v_family_id%v\n\n", autoSuffix, id, fam.Name, id, autoSuffix)
 
-		dedup := make(map[string]bool)
+		dedup := make(map[string]int)
 		for _, op := range fam.Ops {
-			// TODO: emit these as well, these are dump commands w/o input arguments.
-			if op.Policy == "" {
-				continue
+			policy := voidType
+			if op.Policy != "" {
+				policy = op.Policy + autoSuffix
+				pq.policyUsed(op.Policy)
 			}
-			// TODO: emit all of these with unique names, these should be doit/dump variants.
-			// They may have different policies.
-			if dedup[op.Name] {
-				continue
+			suffix := ""
+			dedup[op.Name]++
+			if v := dedup[op.Name]; v != 1 {
+				suffix = fmt.Sprint(v)
 			}
-			dedup[op.Name] = true
-			ctx.fmt("sendmsg%v_%v(fd sock_nl_generic,"+
+			ctx.fmt("sendmsg%v_%v%v(fd sock_nl_generic,"+
 				" msg ptr[in, msghdr_%v%v[%v, %v]], f flags[send_flags])\n",
-				autoSuffix, op.Name, id, autoSuffix, op.Name, op.Policy+autoSuffix)
-			pq.policyUsed(op.Policy)
+				autoSuffix, op.Name, suffix, id, autoSuffix, op.Name, policy)
 
 			ctx.noteInterface(&Interface{
 				Type:             IfaceNetlinkOp,
@@ -87,15 +88,6 @@ func (ctx *context) serializeNetlinkPolicy(pol *NetlinkPolicy, pq *policyQueue) 
 	ctx.fmt("] [varlen]\n")
 }
 
-func isEmptyFamily(fam *NetlinkFamily) bool {
-	for _, op := range fam.Ops {
-		if op.Policy != "" {
-			return false
-		}
-	}
-	return true
-}
-
 func (ctx *context) nlattrType(attr *NetlinkAttr, pq *policyQueue) string {
 	nlattr, typ := "nlattr", ""
 	switch attr.Kind {
@@ -105,7 +97,7 @@ func (ctx *context) nlattrType(attr *NetlinkAttr, pq *policyQueue) string {
 	case "NLA_MSECS":
 		typ = "int64"
 	case "NLA_FLAG":
-		typ = "void"
+		typ = voidType
 	case "NLA_NESTED", "NLA_NESTED_ARRAY":
 		nlattr = "nlnest"
 		policy := "nl_generic_attr"
