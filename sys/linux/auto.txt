@@ -108,8 +108,8 @@ landlock_rule_type$auto = LANDLOCK_RULE_PATH_BENEATH, LANDLOCK_RULE_NET_PORT
 
 _llseek$auto(fd fd, offset_high intptr, offset_low intptr, result ptr[inout, int64], whence int32)
 _newselect$auto(n int32, inp ptr[inout, __kernel_fd_set$auto], outp ptr[inout, __kernel_fd_set$auto], exp ptr[inout, __kernel_fd_set$auto], tvp ptr[inout, __kernel_old_timeval$auto])
-accept$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr$auto], upeer_addrlen ptr[inout, int32])
-accept4$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr$auto], upeer_addrlen ptr[inout, int32], flags int32)
+accept$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr], upeer_addrlen ptr[inout, int32])
+accept4$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr], upeer_addrlen ptr[inout, int32], flags int32)
 access$auto(filename ptr[in, filename], mode int32)
 acct$auto(name ptr[in, string])
 add_key$auto(_type ptr[in, string], _description ptr[in, string], _payload ptr[in, array[auto_todo]], plen intptr, ringid int32)
@@ -117,7 +117,7 @@ adjtimex$auto(txc_p ptr[inout, __kernel_timex$auto])
 alarm$auto(seconds int32)
 arch_prctl$auto(option int32, arg2 intptr)
 arm_sync_file_range$auto(fd fd, flags int32, offset intptr, nbytes intptr)
-bind$auto(fd fd, umyaddr ptr[inout, sockaddr$auto], addrlen int32)
+bind$auto(fd fd, umyaddr ptr[inout, sockaddr], addrlen int32)
 bpf$auto(cmd int32, uattr ptr[inout, bpf_attr$auto], size int32)
 brk$auto(brk intptr)
 cachestat$auto(fd fd, cstat_range ptr[inout, cachestat_range$auto], cstat ptr[inout, cachestat$auto], flags int32)
@@ -142,7 +142,7 @@ clone$auto(clone_flags intptr, newsp intptr, parent_tidptr ptr[inout, int32], ch
 clone3$auto(uargs ptr[inout, clone_args$auto], size intptr)
 close$auto(fd fd)
 close_range$auto(fd fd, max_fd fd, flags int32)
-connect$auto(fd fd, uservaddr ptr[inout, sockaddr$auto], addrlen int32)
+connect$auto(fd fd, uservaddr ptr[inout, sockaddr], addrlen int32)
 copy_file_range$auto(fd_in fd, off_in ptr[inout, int64], fd_out fd, off_out ptr[inout, int64], len intptr, flags int32)
 creat$auto(pathname ptr[in, filename], mode int16)
 delete_module$auto(name_user ptr[in, string], flags int32)
@@ -210,7 +210,7 @@ getdents64$auto(fd fd, dirent ptr[inout, linux_dirent64$auto], count int32)
 getgroups$auto(gidsetsize int32, grouplist ptr[inout, int32])
 getgroups32$auto(gidsetsize int32, grouplist ptr[inout, int32])
 getitimer$auto(which int32, value ptr[inout, __kernel_old_itimerval$auto])
-getpeername$auto(fd fd, usockaddr ptr[inout, sockaddr$auto], usockaddr_len ptr[inout, int32])
+getpeername$auto(fd fd, usockaddr ptr[inout, sockaddr], usockaddr_len ptr[inout, int32])
 getpgid$auto(pid pid)
 getpriority$auto(which int32, who int32)
 getrandom$auto(ubuf ptr[inout, string], len intptr, flags int32)
@@ -221,7 +221,7 @@ getresuid32$auto(ruidp ptr[inout, int32], euidp ptr[inout, int32], suidp ptr[ino
 getrlimit$auto(_resource int32, rlim ptr[inout, rlimit$auto])
 getrusage$auto(who int32, ru ptr[inout, rusage$auto])
 getsid$auto(pid pid)
-getsockname$auto(fd fd, usockaddr ptr[inout, sockaddr$auto], usockaddr_len ptr[inout, int32])
+getsockname$auto(fd fd, usockaddr ptr[inout, sockaddr], usockaddr_len ptr[inout, int32])
 getsockopt$auto(fd fd, level int32, optname int32, optval ptr[inout, string], optlen ptr[inout, int32])
 gettimeofday$auto(tv ptr[inout, __kernel_old_timeval$auto], tz ptr[inout, timezone$auto])
 getxattr$auto(pathname ptr[in, filename], name ptr[in, string], value ptr[inout, array[auto_todo]], size intptr)
@@ -361,7 +361,7 @@ readlink$auto(path ptr[in, filename], buf ptr[inout, string], bufsiz int32)
 readlinkat$auto(dfd fd_dir, pathname ptr[in, filename], buf ptr[inout, string], bufsiz int32)
 readv$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr)
 recv$auto(fd fd, ubuf ptr[inout, array[auto_todo]], size intptr, flags int32)
-recvfrom$auto(fd fd, ubuf ptr[inout, array[auto_todo]], size intptr, flags int32, addr ptr[inout, sockaddr$auto], addr_len ptr[inout, int32])
+recvfrom$auto(fd fd, ubuf ptr[inout, array[auto_todo]], size intptr, flags int32, addr ptr[inout, sockaddr], addr_len ptr[inout, int32])
 recvmmsg$auto(fd fd, mmsg ptr[inout, mmsghdr$auto], vlen int32, flags int32, timeout ptr[inout, __kernel_timespec$auto])
 recvmmsg_time64$auto(fd fd, mmsg ptr[inout, mmsghdr$auto], vlen int32, flags int32, timeout ptr[inout, __kernel_timespec$auto])
 recvmsg$auto(fd fd, msg ptr[inout, user_msghdr$auto], flags int32)
@@ -406,7 +406,7 @@ sendfile$auto(out_fd fd, in_fd fd, offset ptr[inout, int64], count intptr)
 sendfile64$auto(out_fd fd, in_fd fd, offset ptr[inout, int64], count intptr)
 sendmmsg$auto(fd fd, mmsg ptr[inout, mmsghdr$auto], vlen int32, flags int32)
 sendmsg$auto(fd fd, msg ptr[inout, user_msghdr$auto], flags int32)
-sendto$auto(fd fd, buff ptr[inout, array[auto_todo]], len intptr, flags int32, addr ptr[inout, sockaddr$auto], addr_len int32)
+sendto$auto(fd fd, buff ptr[inout, array[auto_todo]], len intptr, flags int32, addr ptr[inout, sockaddr], addr_len int32)
 set_mempolicy$auto(mode int32, nmask ptr[in, intptr], maxnode intptr)
 set_mempolicy_home_node$auto(start intptr, len intptr, home_node intptr, flags intptr)
 set_robust_list$auto(head ptr[inout, robust_list_head$auto], len intptr)
@@ -608,8 +608,8 @@ sendmsg$auto_HSR_C_GET_NODE_STATUS(fd sock_nl_generic, msg ptr[in, msghdr_hsr$au
 sendmsg$auto_HSR_C_GET_NODE_LIST(fd sock_nl_generic, msg ptr[in, msghdr_hsr$auto[HSR_C_GET_NODE_LIST, hsr_genl_policy_hsr_netlink$auto]], f flags[send_flags])
 
 hsr_genl_policy_hsr_netlink$auto [
-	HSR_A_NODE_ADDR		nlattr[HSR_A_NODE_ADDR, array[int8, 6]]
-	HSR_A_NODE_ADDR_B	nlattr[HSR_A_NODE_ADDR_B, array[int8, 6]]
+	HSR_A_NODE_ADDR		nlattr[HSR_A_NODE_ADDR, mac_addr]
+	HSR_A_NODE_ADDR_B	nlattr[HSR_A_NODE_ADDR_B, mac_addr]
 	HSR_A_IFINDEX		nlattr[HSR_A_IFINDEX, ifindex]
 	HSR_A_IF1_AGE		nlattr[HSR_A_IF1_AGE, int32]
 	HSR_A_IF2_AGE		nlattr[HSR_A_IF2_AGE, int32]
@@ -939,11 +939,11 @@ sendmsg$auto_NLBL_UNLABEL_C_LIST(fd sock_nl_generic, msg ptr[in, msghdr_nlbl_unl
 
 netlbl_unlabel_genl_policy_netlabel_unlabeled$auto [
 	NLBL_UNLABEL_A_ACPTFLG	nlattr[NLBL_UNLABEL_A_ACPTFLG, int8]
-	NLBL_UNLABEL_A_IPV6ADDR	nlattr[NLBL_UNLABEL_A_IPV6ADDR, in6_addr$auto]
-	NLBL_UNLABEL_A_IPV6MASK	nlattr[NLBL_UNLABEL_A_IPV6MASK, in6_addr$auto]
-	NLBL_UNLABEL_A_IPV4ADDR	nlattr[NLBL_UNLABEL_A_IPV4ADDR, in_addr$auto]
-	NLBL_UNLABEL_A_IPV4MASK	nlattr[NLBL_UNLABEL_A_IPV4MASK, in_addr$auto]
-	NLBL_UNLABEL_A_IFACE	nlattr[NLBL_UNLABEL_A_IFACE, string]
+	NLBL_UNLABEL_A_IPV6ADDR	nlattr[NLBL_UNLABEL_A_IPV6ADDR, ipv6_addr]
+	NLBL_UNLABEL_A_IPV6MASK	nlattr[NLBL_UNLABEL_A_IPV6MASK, ipv6_addr]
+	NLBL_UNLABEL_A_IPV4ADDR	nlattr[NLBL_UNLABEL_A_IPV4ADDR, ipv4_addr]
+	NLBL_UNLABEL_A_IPV4MASK	nlattr[NLBL_UNLABEL_A_IPV4MASK, ipv4_addr]
+	NLBL_UNLABEL_A_IFACE	nlattr[NLBL_UNLABEL_A_IFACE, devname]
 	NLBL_UNLABEL_A_SECCTX	nlattr[NLBL_UNLABEL_A_SECCTX, array[int8]]
 ] [varlen]
 
@@ -957,7 +957,7 @@ sendmsg$auto_SEG6_CMD_SET_TUNSRC(fd sock_nl_generic, msg ptr[in, msghdr_seg6$aut
 sendmsg$auto_SEG6_CMD_GET_TUNSRC(fd sock_nl_generic, msg ptr[in, msghdr_seg6$auto[SEG6_CMD_GET_TUNSRC, seg6_genl_policy_seg6$auto]], f flags[send_flags])
 
 seg6_genl_policy_seg6$auto [
-	SEG6_ATTR_DST		nlattr[SEG6_ATTR_DST, in6_addr$auto]
+	SEG6_ATTR_DST		nlattr[SEG6_ATTR_DST, ipv6_addr]
 	SEG6_ATTR_DSTLEN	nlattr[SEG6_ATTR_DSTLEN, int32]
 	SEG6_ATTR_HMACKEYID	nlattr[SEG6_ATTR_HMACKEYID, int32]
 	SEG6_ATTR_SECRET	nlattr[SEG6_ATTR_SECRET, array[int8]]
@@ -1099,17 +1099,17 @@ batadv_netlink_policy_netlink$auto [
 	BATADV_ATTR_ALGO_NAME				nlattr[BATADV_ATTR_ALGO_NAME, stringnoz]
 	BATADV_ATTR_MESH_IFINDEX			nlattr[BATADV_ATTR_MESH_IFINDEX, ifindex]
 	BATADV_ATTR_MESH_IFNAME				nlattr[BATADV_ATTR_MESH_IFNAME, devname]
-	BATADV_ATTR_MESH_ADDRESS			nlattr[BATADV_ATTR_MESH_ADDRESS, array[int8, 6]]
+	BATADV_ATTR_MESH_ADDRESS			nlattr[BATADV_ATTR_MESH_ADDRESS, mac_addr]
 	BATADV_ATTR_HARD_IFINDEX			nlattr[BATADV_ATTR_HARD_IFINDEX, ifindex]
 	BATADV_ATTR_HARD_IFNAME				nlattr[BATADV_ATTR_HARD_IFNAME, devname]
-	BATADV_ATTR_HARD_ADDRESS			nlattr[BATADV_ATTR_HARD_ADDRESS, array[int8, 6]]
-	BATADV_ATTR_ORIG_ADDRESS			nlattr[BATADV_ATTR_ORIG_ADDRESS, array[int8, 6]]
+	BATADV_ATTR_HARD_ADDRESS			nlattr[BATADV_ATTR_HARD_ADDRESS, mac_addr]
+	BATADV_ATTR_ORIG_ADDRESS			nlattr[BATADV_ATTR_ORIG_ADDRESS, mac_addr]
 	BATADV_ATTR_TPMETER_RESULT			nlattr[BATADV_ATTR_TPMETER_RESULT, int8]
 	BATADV_ATTR_TPMETER_TEST_TIME			nlattr[BATADV_ATTR_TPMETER_TEST_TIME, int32]
 	BATADV_ATTR_TPMETER_BYTES			nlattr[BATADV_ATTR_TPMETER_BYTES, int64]
 	BATADV_ATTR_TPMETER_COOKIE			nlattr[BATADV_ATTR_TPMETER_COOKIE, int32]
 	BATADV_ATTR_ACTIVE				nlattr[BATADV_ATTR_ACTIVE, void]
-	BATADV_ATTR_TT_ADDRESS				nlattr[BATADV_ATTR_TT_ADDRESS, array[int8, 6]]
+	BATADV_ATTR_TT_ADDRESS				nlattr[BATADV_ATTR_TT_ADDRESS, mac_addr]
 	BATADV_ATTR_TT_TTVN				nlattr[BATADV_ATTR_TT_TTVN, int8]
 	BATADV_ATTR_TT_LAST_TTVN			nlattr[BATADV_ATTR_TT_LAST_TTVN, int8]
 	BATADV_ATTR_TT_CRC32				nlattr[BATADV_ATTR_TT_CRC32, int32]
@@ -1117,19 +1117,19 @@ batadv_netlink_policy_netlink$auto [
 	BATADV_ATTR_TT_FLAGS				nlattr[BATADV_ATTR_TT_FLAGS, int32]
 	BATADV_ATTR_FLAG_BEST				nlattr[BATADV_ATTR_FLAG_BEST, void]
 	BATADV_ATTR_LAST_SEEN_MSECS			nlattr[BATADV_ATTR_LAST_SEEN_MSECS, int32]
-	BATADV_ATTR_NEIGH_ADDRESS			nlattr[BATADV_ATTR_NEIGH_ADDRESS, array[int8, 6]]
+	BATADV_ATTR_NEIGH_ADDRESS			nlattr[BATADV_ATTR_NEIGH_ADDRESS, mac_addr]
 	BATADV_ATTR_TQ					nlattr[BATADV_ATTR_TQ, int8]
 	BATADV_ATTR_THROUGHPUT				nlattr[BATADV_ATTR_THROUGHPUT, int32]
 	BATADV_ATTR_BANDWIDTH_UP			nlattr[BATADV_ATTR_BANDWIDTH_UP, int32]
 	BATADV_ATTR_BANDWIDTH_DOWN			nlattr[BATADV_ATTR_BANDWIDTH_DOWN, int32]
-	BATADV_ATTR_ROUTER				nlattr[BATADV_ATTR_ROUTER, array[int8, 6]]
+	BATADV_ATTR_ROUTER				nlattr[BATADV_ATTR_ROUTER, mac_addr]
 	BATADV_ATTR_BLA_OWN				nlattr[BATADV_ATTR_BLA_OWN, void]
-	BATADV_ATTR_BLA_ADDRESS				nlattr[BATADV_ATTR_BLA_ADDRESS, array[int8, 6]]
+	BATADV_ATTR_BLA_ADDRESS				nlattr[BATADV_ATTR_BLA_ADDRESS, mac_addr]
 	BATADV_ATTR_BLA_VID				nlattr[BATADV_ATTR_BLA_VID, int16]
-	BATADV_ATTR_BLA_BACKBONE			nlattr[BATADV_ATTR_BLA_BACKBONE, array[int8, 6]]
+	BATADV_ATTR_BLA_BACKBONE			nlattr[BATADV_ATTR_BLA_BACKBONE, mac_addr]
 	BATADV_ATTR_BLA_CRC				nlattr[BATADV_ATTR_BLA_CRC, int16]
-	BATADV_ATTR_DAT_CACHE_IP4ADDRESS		nlattr[BATADV_ATTR_DAT_CACHE_IP4ADDRESS, int32]
-	BATADV_ATTR_DAT_CACHE_HWADDRESS			nlattr[BATADV_ATTR_DAT_CACHE_HWADDRESS, array[int8, 6]]
+	BATADV_ATTR_DAT_CACHE_IP4ADDRESS		nlattr[BATADV_ATTR_DAT_CACHE_IP4ADDRESS, ipv4_addr]
+	BATADV_ATTR_DAT_CACHE_HWADDRESS			nlattr[BATADV_ATTR_DAT_CACHE_HWADDRESS, mac_addr]
 	BATADV_ATTR_DAT_CACHE_VID			nlattr[BATADV_ATTR_DAT_CACHE_VID, int16]
 	BATADV_ATTR_MCAST_FLAGS				nlattr[BATADV_ATTR_MCAST_FLAGS, int32]
 	BATADV_ATTR_MCAST_FLAGS_PRIV			nlattr[BATADV_ATTR_MCAST_FLAGS_PRIV, int32]
@@ -1166,7 +1166,7 @@ cifs_genl_policy_netlink$auto [
 	CIFS_GENL_ATTR_SWN_REGISTRATION_ID	nlattr[CIFS_GENL_ATTR_SWN_REGISTRATION_ID, int32]
 	CIFS_GENL_ATTR_SWN_NET_NAME		nlattr[CIFS_GENL_ATTR_SWN_NET_NAME, stringnoz]
 	CIFS_GENL_ATTR_SWN_SHARE_NAME		nlattr[CIFS_GENL_ATTR_SWN_SHARE_NAME, stringnoz]
-	CIFS_GENL_ATTR_SWN_IP			nlattr[CIFS_GENL_ATTR_SWN_IP, __kernel_sockaddr_storage$auto]
+	CIFS_GENL_ATTR_SWN_IP			nlattr[CIFS_GENL_ATTR_SWN_IP, sockaddr_storage]
 	CIFS_GENL_ATTR_SWN_NET_NAME_NOTIFY	nlattr[CIFS_GENL_ATTR_SWN_NET_NAME_NOTIFY, void]
 	CIFS_GENL_ATTR_SWN_SHARE_NAME_NOTIFY	nlattr[CIFS_GENL_ATTR_SWN_SHARE_NAME_NOTIFY, void]
 	CIFS_GENL_ATTR_SWN_IP_NOTIFY		nlattr[CIFS_GENL_ATTR_SWN_IP_NOTIFY, void]
@@ -1547,14 +1547,14 @@ gtp_genl_policy_gtp$auto [
 	GTPA_LINK		nlattr[GTPA_LINK, int32]
 	GTPA_VERSION		nlattr[GTPA_VERSION, int32]
 	GTPA_TID		nlattr[GTPA_TID, int64]
-	GTPA_PEER_ADDRESS	nlattr[GTPA_PEER_ADDRESS, int32]
-	GTPA_MS_ADDRESS		nlattr[GTPA_MS_ADDRESS, int32]
+	GTPA_PEER_ADDRESS	nlattr[GTPA_PEER_ADDRESS, ipv4_addr]
+	GTPA_MS_ADDRESS		nlattr[GTPA_MS_ADDRESS, ipv4_addr]
 	GTPA_FLOW		nlattr[GTPA_FLOW, int16]
 	GTPA_NET_NS_FD		nlattr[GTPA_NET_NS_FD, fd_namespace]
 	GTPA_I_TEI		nlattr[GTPA_I_TEI, int32]
 	GTPA_O_TEI		nlattr[GTPA_O_TEI, int32]
-	GTPA_PEER_ADDR6		nlattr[GTPA_PEER_ADDR6, in6_addr$auto]
-	GTPA_MS_ADDR6		nlattr[GTPA_MS_ADDR6, in6_addr$auto]
+	GTPA_PEER_ADDR6		nlattr[GTPA_PEER_ADDR6, ipv6_addr]
+	GTPA_MS_ADDR6		nlattr[GTPA_MS_ADDR6, ipv6_addr]
 	GTPA_FAMILY		nlattr[GTPA_FAMILY, int8]
 ] [varlen]
 
@@ -1635,8 +1635,8 @@ l2tp_nl_policy_l2tp_netlink$auto [
 	L2TP_ATTR_MTU			nlattr[L2TP_ATTR_MTU, int16]
 	L2TP_ATTR_MRU			nlattr[L2TP_ATTR_MRU, int16]
 	L2TP_ATTR_STATS			nlnest[L2TP_ATTR_STATS, array[nl_generic_attr]]
-	L2TP_ATTR_IP6_SADDR		nlattr[L2TP_ATTR_IP6_SADDR, in6_addr$auto]
-	L2TP_ATTR_IP6_DADDR		nlattr[L2TP_ATTR_IP6_DADDR, in6_addr$auto]
+	L2TP_ATTR_IP6_SADDR		nlattr[L2TP_ATTR_IP6_SADDR, ipv6_addr]
+	L2TP_ATTR_IP6_DADDR		nlattr[L2TP_ATTR_IP6_DADDR, ipv6_addr]
 	L2TP_ATTR_IFNAME		nlattr[L2TP_ATTR_IFNAME, devname]
 	L2TP_ATTR_COOKIE		nlattr[L2TP_ATTR_COOKIE, int64]
 	L2TP_ATTR_PEER_COOKIE		nlattr[L2TP_ATTR_PEER_COOKIE, int64]
@@ -2588,9 +2588,9 @@ sendmsg$auto_TCP_METRICS_CMD_DEL(fd sock_nl_generic, msg ptr[in, msghdr_tcp_metr
 
 tcp_metrics_nl_policy_tcp_metrics$auto [
 	TCP_METRICS_ATTR_ADDR_IPV4	nlattr[TCP_METRICS_ATTR_ADDR_IPV4, ipv4_addr]
-	TCP_METRICS_ATTR_ADDR_IPV6	nlattr[TCP_METRICS_ATTR_ADDR_IPV6, ipv6_addr]
+	TCP_METRICS_ATTR_ADDR_IPV6	nlattr[TCP_METRICS_ATTR_ADDR_IPV6, array[int8]]
 	TCP_METRICS_ATTR_SADDR_IPV4	nlattr[TCP_METRICS_ATTR_SADDR_IPV4, ipv4_addr]
-	TCP_METRICS_ATTR_SADDR_IPV6	nlattr[TCP_METRICS_ATTR_SADDR_IPV6, ipv6_addr]
+	TCP_METRICS_ATTR_SADDR_IPV6	nlattr[TCP_METRICS_ATTR_SADDR_IPV6, array[int8]]
 ] [varlen]
 
 resource genl_thermal_family_id$auto[int16]
@@ -2702,20 +2702,6 @@ __kernel_old_itimerval$auto {
 __kernel_old_timeval$auto {
 	tv_sec	intptr
 	tv_usec	intptr
-}
-
-__kernel_sockaddr_storage$auto {
-	__kernel_sockaddr_storage_0	__kernel_sockaddr_storage_0$auto
-}
-
-__kernel_sockaddr_storage_0$auto [
-	__kernel_sockaddr_storage_0_0	__kernel_sockaddr_storage_0_0$auto
-	__align				ptr[inout, array[auto_todo]]
-]
-
-__kernel_sockaddr_storage_0_0$auto {
-	ss_family	int16
-	__data		array[int8, 126]
 }
 
 __kernel_timespec$auto {
@@ -3270,20 +3256,6 @@ hwsim_tx_rate$auto {
 	count	int8
 } [packed]
 
-in6_addr$auto {
-	in6_u	in6_addr_in6_u$auto
-}
-
-in6_addr_in6_u$auto [
-	u6_addr8	array[int8, 16]
-	u6_addr16	array[int16, 8]
-	u6_addr32	array[int32, 4]
-]
-
-in_addr$auto {
-	s_addr	int32
-}
-
 io_cqring_offsets$auto {
 	head		int32
 	tail		int32
@@ -3752,16 +3724,6 @@ sigset_t$auto {
 sigval$auto [
 	sival_int	int32
 	sival_ptr	ptr[inout, array[auto_todo]]
-]
-
-sockaddr$auto {
-	sa_family	int16
-	sockaddr_1	sockaddr_1$auto
-}
-
-sockaddr_1$auto [
-	sa_data_min	array[int8, 14]
-	sockaddr_1_1	void
 ]
 
 stat$auto {

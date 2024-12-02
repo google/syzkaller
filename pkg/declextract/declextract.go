@@ -238,7 +238,8 @@ func (ctx *context) specialInt2(field, typ string, needBase bool) string {
 
 func (ctx *context) specialInt4(field, typ string, needBase bool) string {
 	switch {
-	case strings.Contains(field, "ipv4"):
+	case strings.Contains(field, "ipv4") || strings.Contains(field, "ip4") ||
+		strings.HasSuffix(field, "address"):
 		return "ipv4_addr"
 	case strings.HasSuffix(field, "_pid") || strings.HasSuffix(field, "_tid") ||
 		strings.HasSuffix(field, "_pgid") || strings.HasSuffix(field, "_tgid") ||
@@ -314,8 +315,21 @@ func (ctx *context) fieldTypeBuffer(f *Field) string {
 	}
 	switch {
 	case !t.IsString:
+		if t.MinSize == 6 && t.MaxSize == 6 {
+			// There are lots of different names for mac addresses (see grep ETH_ALEN in uapi/*.h).
+			// If this has too many false positives, theoretically we can make the clang tool
+			// look for arrays with [ETH_ALEN] size. See implementation of isExpandedFromMacro
+			// matcher for inspiration, that would need to be checked against
+			// ConstantArrayType::getSizeExpr. But for now let's just do the simple thing.
+			return "mac_addr"
+		}
+		if t.MinSize == 16 && t.MaxSize == 16 &&
+			(strings.Contains(f.Name, "ipv6") || strings.Contains(f.Name, "ip6")) {
+			return "ipv6_addr"
+		}
 		return fmt.Sprintf("array[int8 %v]", bounds)
-	case strings.Contains(f.Name, "ifname") || strings.HasSuffix(f.Name, "dev_name"):
+	case strings.Contains(f.Name, "ifname") || strings.HasSuffix(f.Name, "dev_name") ||
+		strings.Contains(f.Name, "_iface"):
 		return "devname"
 	case strings.Contains(f.Name, "filename") || strings.Contains(f.Name, "pathname") ||
 		strings.Contains(f.Name, "dir_name") || f.Name == "oldname" ||
@@ -329,6 +343,18 @@ func (ctx *context) fieldTypeBuffer(f *Field) string {
 }
 
 func (ctx *context) fieldTypeStruct(f *Field) string {
+	// Few important structs for which we have lots of heuristics,
+	// and the static analysis will have hard time generating something of similar
+	switch f.Type.Struct {
+	case "in_addr":
+		return "ipv4_addr"
+	case "in6_addr":
+		return "ipv6_addr"
+	case "sockaddr":
+		return "sockaddr"
+	case "__kernel_sockaddr_storage":
+		return "sockaddr_storage"
+	}
 	f.Type.Struct += autoSuffix
 	if ctx.structs[f.Type.Struct].ByteSize == 0 {
 		return "void"
