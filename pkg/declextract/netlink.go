@@ -15,7 +15,7 @@ func (ctx *context) fabricateNetlinkPolicies() {
 			continue
 		}
 		str := &Struct{
-			Name:     pol.Name,
+			Name:     pol.Name + autoSuffix,
 			IsUnion:  true,
 			isVarlen: true,
 		}
@@ -36,19 +36,19 @@ func (ctx *context) emitNetlinkTypes() {
 			continue
 		}
 		id := stringIdentifier(fam.Name)
-		ctx.fmt("resource genl_%v_family_id_auto[int16]\n", id)
+		ctx.fmt("resource genl_%v_family_id%v[int16]\n", id, autoSuffix)
 	}
 	for _, fam := range ctx.NetlinkFamilies {
 		if isEmptyFamily(fam) {
 			continue
 		}
 		id := stringIdentifier(fam.Name)
-		ctx.fmt("type msghdr_%v_auto[CMD, POLICY] msghdr_netlink[netlink_msg_t"+
-			"[genl_%v_family_id_auto, genlmsghdr_t[CMD], POLICY]]\n", id, id)
+		ctx.fmt("type msghdr_%v%v[CMD, POLICY] msghdr_netlink[netlink_msg_t"+
+			"[genl_%v_family_id%v, genlmsghdr_t[CMD], POLICY]]\n", id, autoSuffix, id, autoSuffix)
 	}
 	for _, pol := range ctx.NetlinkPolicies {
 		if len(pol.Attrs) == 0 {
-			ctx.fmt("type %v auto_todo\n", pol.Name)
+			ctx.fmt("type %v auto_todo\n", pol.Name+autoSuffix)
 		}
 	}
 }
@@ -59,8 +59,8 @@ func (ctx *context) emitNetlinkGetFamily() {
 			continue
 		}
 		id := stringIdentifier(fam.Name)
-		ctx.fmt("syz_genetlink_get_family_id$auto_%v(name ptr[in, string[\"%v\"]],"+
-			" fd sock_nl_generic) genl_%v_family_id_auto\n", id, fam.Name, id)
+		ctx.fmt("syz_genetlink_get_family_id%v_%v(name ptr[in, string[\"%v\"]],"+
+			" fd sock_nl_generic) genl_%v_family_id%v\n", autoSuffix, id, fam.Name, id, autoSuffix)
 	}
 }
 
@@ -80,9 +80,9 @@ func (ctx *context) emitNetlinkSendmsgs() {
 				continue
 			}
 			dedup[op.Name] = true
-			syscalls = append(syscalls, fmt.Sprintf("sendmsg$auto_%v(fd sock_nl_generic,"+
-				" msg ptr[in, msghdr_%v_auto[%v, %v]], f flags[send_flags])\n",
-				op.Name, id, op.Name, op.Policy))
+			syscalls = append(syscalls, fmt.Sprintf("sendmsg%v_%v(fd sock_nl_generic,"+
+				" msg ptr[in, msghdr_%v%v[%v, %v]], f flags[send_flags])\n",
+				autoSuffix, op.Name, id, autoSuffix, op.Name, op.Policy+autoSuffix))
 
 			ctx.noteInterface(&Interface{
 				Type:             IfaceNetlinkOp,
@@ -124,7 +124,7 @@ func (ctx *context) nlattrType(attr *NetlinkAttr) string {
 		nlattr = "nlnest"
 		policy := "nl_generic_attr"
 		if attr.NestedPolicy != "" {
-			policy = attr.NestedPolicy
+			policy = attr.NestedPolicy + autoSuffix
 		}
 		typ = fmt.Sprintf("array[%v]", policy)
 		if attr.Kind == "NLA_NESTED_ARRAY" {
@@ -181,7 +181,7 @@ func (ctx *context) netlinkType(attr *NetlinkAttr) *Type {
 		case attr.Elem.Int != nil:
 			elemSize = attr.Elem.Int.ByteSize
 		case attr.Elem.Struct != "":
-			if str := ctx.structs[attr.Elem.Struct+"$auto_record"]; str != nil {
+			if str := ctx.structs[attr.Elem.Struct+autoSuffix]; str != nil {
 				elemSize = str.ByteSize
 			} else {
 				ctx.error("binary nlattr %v referenced non-existing struct %v",

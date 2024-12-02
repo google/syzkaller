@@ -8,78 +8,78 @@ include <vdso/bits.h>
 include <linux/types.h>
 include <net/netlink.h>
 
-auto_bitfield_enum = a, b, c
+bitfield_enum$auto = a, b, c
 
-types_syscall$auto(p ptr[inout, anon_struct$auto_record], y ptr[inout, void], b ptr[inout, bitfields$auto_record], pid pid, f int32, v ptr[inout, various$auto_record])
+types_syscall$auto(p ptr[inout, anon_struct$auto], y ptr[inout, void], b ptr[inout, bitfields$auto], pid pid, f int32, v ptr[inout, various$auto])
 
-anon_struct$auto_record {
-	a		anon_struct_a$auto_record
+anon_struct$auto {
+	a		anon_struct_a$auto
 	b		void
-	anon_struct_2	anon_struct_2$auto_record
-	anon_struct_3	anon_struct_3$auto_record
-	foo		anon_t$auto_record
+	anon_struct_2	anon_struct_2$auto
+	anon_struct_3	anon_struct_3$auto
+	foo		anon_t$auto
 	forward		ptr[inout, auto_todo]
-	array		array[anon_struct_array$auto_record, 4]
-	ptr		ptr[inout, anon_struct_ptr$auto_record]
-	ptr_array	array[ptr[inout, anon_struct_ptr_array$auto_record], 4]
+	array		array[anon_struct_array$auto, 4]
+	ptr		ptr[inout, anon_struct_ptr$auto]
+	ptr_array	array[ptr[inout, anon_struct_ptr_array$auto], 4]
 }
 
-anon_struct_2$auto_record {
+anon_struct_2$auto {
 	y	int32
 }
 
-anon_struct_3$auto_record [
+anon_struct_3$auto [
 	q	int32
 	w	intptr
 ]
 
-anon_struct_a$auto_record {
+anon_struct_a$auto {
 	x	int32
 }
 
-anon_struct_array$auto_record {
+anon_struct_array$auto {
 	a	int32
 	b	int32
 }
 
-anon_struct_ptr$auto_record {
+anon_struct_ptr$auto {
 	a	int32
 	b	int32
 }
 
-anon_struct_ptr_array$auto_record {
+anon_struct_ptr_array$auto {
 	a	int32
 	b	int32
 }
 
-anon_t$auto_record {
+anon_t$auto {
 	f	int32
 }
 
-bitfields$auto_record {
+bitfields$auto {
 	a		int32:1
 	bitfields_1	const[0, int32:2]
 	b		int32:3
 	d		intptr:2
 	pad		const[0, intptr:3]
-	e		flags[auto_bitfield_enum, int32:10]
+	e		flags[bitfield_enum$auto, int32:10]
 	l		len[p, int32:10]
 	p		ptr[inout, int32]
 } [align[32]]
 
-packed_t$auto_record {
+packed_t$auto {
 	x	int8
 	y	int32
 } [packed, align[32]]
 
-recursive$auto_record {
-	various	various$auto_record
+recursive$auto {
+	various	various$auto
 }
 
-various$auto_record {
-	recursive	ptr[inout, various$auto_record, opt]
-	next		ptr[inout, recursive$auto_record, opt]
-	packed		packed_t$auto_record
+various$auto {
+	recursive	ptr[inout, various$auto, opt]
+	next		ptr[inout, recursive$auto, opt]
+	packed		packed_t$auto
 }
 
 define a	0

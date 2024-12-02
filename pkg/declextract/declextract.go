@@ -67,9 +67,7 @@ func (ctx *context) processIncludes() {
 
 func (ctx *context) processEnums() {
 	for _, enum := range ctx.Enums {
-		// TODO: change for consistency:
-		// enum.Name += autoSuffix
-		enum.Name = "auto_" + enum.Name
+		enum.Name += autoSuffix
 	}
 }
 
@@ -110,9 +108,7 @@ func (ctx *context) processIouring() {
 
 func (ctx *context) processStructs() {
 	for _, str := range ctx.Structs {
-		// TODO: change for consistency:
-		// str.Name += autoSuffix
-		str.Name += "$auto_record"
+		str.Name += autoSuffix
 		ctx.structs[str.Name] = str
 	}
 	// syzlang does not support empty structs.
@@ -197,9 +193,7 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 		return unusedType
 	}
 	if t.Enum != "" {
-		// TODO: change for consistency:
-		// t.Enum += autoSuffix
-		t.Enum = "auto_" + t.Enum
+		t.Enum += autoSuffix
 		return fmt.Sprintf("flags[%v %v]", t.Enum, maybeBaseType(baseType, needBase))
 	}
 	if counts != nil {
@@ -289,7 +283,7 @@ func (ctx *context) fieldTypePtr(f, counts *Field, parent string) string {
 	// Use an opt pointer if the direct parent is the same as this node, or if the field name is next.
 	// Looking at the field name is a hack, but it's enough to avoid some recursion cases,
 	// e.g. for struct adf_user_cfg_section.
-	if f.Name == "next" || parent != "" && parent == t.Elem.Struct+"$auto_record" {
+	if f.Name == "next" || parent != "" && parent == t.Elem.Struct+autoSuffix {
 		opt = ", opt"
 	}
 	elem := &Field{
@@ -337,9 +331,7 @@ func (ctx *context) fieldTypeBuffer(f *Field) string {
 }
 
 func (ctx *context) fieldTypeStruct(f *Field) string {
-	// TODO: change for consistency:
-	// f.Type.Struct += autoSuffix
-	f.Type.Struct += "$auto_record"
+	f.Type.Struct += autoSuffix
 	if ctx.structs[f.Type.Struct].ByteSize == 0 {
 		return "void"
 	}
@@ -373,11 +365,10 @@ func fixIdentifier(name string) string {
 }
 
 func stringIdentifier(name string) string {
-	// TODO: make the identifier lower case.
 	for _, bad := range []string{" ", ".", "-"} {
 		name = strings.ReplaceAll(name, bad, "_")
 	}
-	return name
+	return strings.ToLower(name)
 }
 
 func maybeBaseType(baseType string, needBase bool) string {

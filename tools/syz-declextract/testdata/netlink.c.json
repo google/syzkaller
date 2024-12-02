@@ -104,7 +104,7 @@
 					"name": "NETLINK_BAR_CMD_FOO",
 					"func": "NETLINK_BAR_CMD_FOO",
 					"access": "user",
-					"policy": "foo_genl_policy$auto_netlink"
+					"policy": "foo_genl_policy_netlink"
 				}
 			],
 			"source_file": "netlink.c"
@@ -120,13 +120,13 @@
 					"name": "NETLINK_FOO_CMD_FOO",
 					"func": "foo_cmd",
 					"access": "admin",
-					"policy": "foo_genl_policy$auto_netlink"
+					"policy": "foo_genl_policy_netlink"
 				},
 				{
 					"name": "NETLINK_FOO_CMD_BAR",
 					"func": "bar_cmd",
 					"access": "ns_admin",
-					"policy": "foo_genl_policy$auto_netlink"
+					"policy": "foo_genl_policy_netlink"
 				}
 			],
 			"source_file": "netlink.c"
@@ -134,7 +134,7 @@
 	],
 	"netlink_policies": [
 		{
-			"name": "foo_genl_nested_policy$auto_netlink",
+			"name": "foo_genl_nested_policy_netlink",
 			"attrs": [
 				{
 					"name": "NETLINK_FOO_NESTED_ATTR1",
@@ -147,7 +147,7 @@
 			]
 		},
 		{
-			"name": "foo_genl_policy$auto_netlink",
+			"name": "foo_genl_policy_netlink",
 			"attrs": [
 				{
 					"name": "NETLINK_FOO_ATTR1",
@@ -165,7 +165,7 @@
 				{
 					"name": "NETLINK_FOO_ATTR4",
 					"kind": "NLA_NESTED",
-					"nested_policy": "foo_genl_nested_policy$auto_netlink"
+					"nested_policy": "foo_genl_nested_policy_netlink"
 				},
 				{
 					"name": "NETLINK_FOO_ATTR5",
@@ -191,7 +191,7 @@
 			]
 		},
 		{
-			"name": "genl_policy_reject_all$auto_netlink"
+			"name": "genl_policy_reject_all_netlink"
 		}
 	]
 }
