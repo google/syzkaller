@@ -80,9 +80,6 @@ type Struct struct {
 	IsPacked bool     `json:"is_packed,omitempty"`
 	Align    int      `json:"align,omitempty"`
 	Fields   []*Field `json:"fields,omitempty"`
-
-	// TODO: remove me.
-	isVarlen bool
 }
 
 type Enum struct {
