@@ -22,7 +22,6 @@ func Run(out *Output, syscallRename map[string][]string) ([]byte, []*Interface, 
 	ctx.processStructs()
 	ctx.processSyscalls()
 	ctx.processIouring()
-	ctx.fabricateNetlinkPolicies()
 
 	ctx.serialize()
 	ctx.finishInterfaces()
