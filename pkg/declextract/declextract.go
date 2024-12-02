@@ -357,7 +357,7 @@ func (ctx *context) fieldTypeStruct(f *Field) string {
 	}
 	f.Type.Struct += autoSuffix
 	if ctx.structs[f.Type.Struct].ByteSize == 0 {
-		return "void"
+		return voidType
 	}
 	return f.Type.Struct
 }
@@ -378,6 +378,7 @@ func (ctx *context) bounds(name string, min, max int) string {
 const (
 	autoSuffix = "$auto"
 	todoType   = "auto_todo"
+	voidType   = "void"
 )
 
 func fixIdentifier(name string) string {

@@ -623,8 +623,10 @@ syz_genetlink_get_family_id$auto_ioam6(name ptr[in, string["IOAM6"]], fd sock_nl
 
 sendmsg$auto_IOAM6_CMD_ADD_NAMESPACE(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_ADD_NAMESPACE, ioam6_genl_policy_addns_ioam6$auto]], f flags[send_flags])
 sendmsg$auto_IOAM6_CMD_DEL_NAMESPACE(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_DEL_NAMESPACE, ioam6_genl_policy_delns_ioam6$auto]], f flags[send_flags])
+sendmsg$auto_IOAM6_CMD_DUMP_NAMESPACES(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_DUMP_NAMESPACES, void]], f flags[send_flags])
 sendmsg$auto_IOAM6_CMD_ADD_SCHEMA(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_ADD_SCHEMA, ioam6_genl_policy_addsc_ioam6$auto]], f flags[send_flags])
 sendmsg$auto_IOAM6_CMD_DEL_SCHEMA(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_DEL_SCHEMA, ioam6_genl_policy_delsc_ioam6$auto]], f flags[send_flags])
+sendmsg$auto_IOAM6_CMD_DUMP_SCHEMAS(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_DUMP_SCHEMAS, void]], f flags[send_flags])
 sendmsg$auto_IOAM6_CMD_NS_SET_SCHEMA(fd sock_nl_generic, msg ptr[in, msghdr_ioam6$auto[IOAM6_CMD_NS_SET_SCHEMA, ioam6_genl_policy_ns_sc_ioam6$auto]], f flags[send_flags])
 
 ioam6_genl_policy_addns_ioam6$auto [
@@ -1692,14 +1694,20 @@ type msghdr_net_shaper$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_net_s
 syz_genetlink_get_family_id$auto_net_shaper(name ptr[in, string["net-shaper"]], fd sock_nl_generic) genl_net_shaper_family_id$auto
 
 sendmsg$auto_NET_SHAPER_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_GET, net_shaper_get_do_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
+sendmsg$auto_NET_SHAPER_CMD_GET2(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_GET, net_shaper_get_dump_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_SET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_SET, net_shaper_set_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_DELETE(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_DELETE, net_shaper_delete_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_GROUP(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_GROUP, net_shaper_group_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NET_SHAPER_CMD_CAP_GET(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_CAP_GET, net_shaper_cap_get_do_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
+sendmsg$auto_NET_SHAPER_CMD_CAP_GET2(fd sock_nl_generic, msg ptr[in, msghdr_net_shaper$auto[NET_SHAPER_CMD_CAP_GET, net_shaper_cap_get_dump_nl_policy_shaper_nl_gen$auto]], f flags[send_flags])
 
 net_shaper_get_do_nl_policy_shaper_nl_gen$auto [
 	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
 	NET_SHAPER_A_HANDLE	nlnest[NET_SHAPER_A_HANDLE, array[net_shaper_handle_nl_policy_shaper_nl_gen$auto]]
+] [varlen]
+
+net_shaper_get_dump_nl_policy_shaper_nl_gen$auto [
+	NET_SHAPER_A_IFINDEX	nlattr[NET_SHAPER_A_IFINDEX, ifindex]
 ] [varlen]
 
 net_shaper_set_nl_policy_shaper_nl_gen$auto [
@@ -1736,6 +1744,10 @@ net_shaper_cap_get_do_nl_policy_shaper_nl_gen$auto [
 	NET_SHAPER_A_CAPS_SCOPE		nlattr[NET_SHAPER_A_CAPS_SCOPE, int32]
 ] [varlen]
 
+net_shaper_cap_get_dump_nl_policy_shaper_nl_gen$auto [
+	NET_SHAPER_A_CAPS_IFINDEX	nlattr[NET_SHAPER_A_CAPS_IFINDEX, ifindex]
+] [varlen]
+
 net_shaper_handle_nl_policy_shaper_nl_gen$auto [
 	NET_SHAPER_A_HANDLE_SCOPE	nlattr[NET_SHAPER_A_HANDLE_SCOPE, int32]
 	NET_SHAPER_A_HANDLE_ID		nlattr[NET_SHAPER_A_HANDLE_ID, int32]
@@ -1752,9 +1764,13 @@ type msghdr_netdev$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_netdev_fa
 syz_genetlink_get_family_id$auto_netdev(name ptr[in, string["netdev"]], fd sock_nl_generic) genl_netdev_family_id$auto
 
 sendmsg$auto_NETDEV_CMD_DEV_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_DEV_GET, netdev_dev_get_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
+sendmsg$auto_NETDEV_CMD_DEV_GET2(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_DEV_GET, void]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_PAGE_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_PAGE_POOL_GET, netdev_page_pool_get_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
+sendmsg$auto_NETDEV_CMD_PAGE_POOL_GET2(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_PAGE_POOL_GET, void]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_QUEUE_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_QUEUE_GET, netdev_queue_get_do_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
+sendmsg$auto_NETDEV_CMD_QUEUE_GET2(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_QUEUE_GET, netdev_queue_get_dump_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_NAPI_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_NAPI_GET, netdev_napi_get_do_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
+sendmsg$auto_NETDEV_CMD_NAPI_GET2(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_NAPI_GET, netdev_napi_get_dump_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_QSTATS_GET(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_QSTATS_GET, netdev_qstats_get_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_BIND_RX(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_BIND_RX, netdev_bind_rx_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
 sendmsg$auto_NETDEV_CMD_NAPI_SET(fd sock_nl_generic, msg ptr[in, msghdr_netdev$auto[NETDEV_CMD_NAPI_SET, netdev_napi_set_nl_policy_netdev_genl_gen$auto]], f flags[send_flags])
@@ -1773,8 +1789,16 @@ netdev_queue_get_do_nl_policy_netdev_genl_gen$auto [
 	NETDEV_A_QUEUE_ID	nlattr[NETDEV_A_QUEUE_ID, int32]
 ] [varlen]
 
+netdev_queue_get_dump_nl_policy_netdev_genl_gen$auto [
+	NETDEV_A_QUEUE_IFINDEX	nlattr[NETDEV_A_QUEUE_IFINDEX, ifindex]
+] [varlen]
+
 netdev_napi_get_do_nl_policy_netdev_genl_gen$auto [
 	NETDEV_A_NAPI_ID	nlattr[NETDEV_A_NAPI_ID, int32]
+] [varlen]
+
+netdev_napi_get_dump_nl_policy_netdev_genl_gen$auto [
+	NETDEV_A_NAPI_IFINDEX	nlattr[NETDEV_A_NAPI_IFINDEX, ifindex]
 ] [varlen]
 
 netdev_qstats_get_nl_policy_netdev_genl_gen$auto [
@@ -1850,10 +1874,15 @@ resource genl_nfsd_family_id$auto[int16]
 type msghdr_nfsd$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nfsd_family_id$auto, genlmsghdr_t[CMD], POLICY]]
 syz_genetlink_get_family_id$auto_nfsd(name ptr[in, string["nfsd"]], fd sock_nl_generic) genl_nfsd_family_id$auto
 
+sendmsg$auto_NFSD_CMD_RPC_STATUS_GET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_RPC_STATUS_GET, void]], f flags[send_flags])
 sendmsg$auto_NFSD_CMD_THREADS_SET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_THREADS_SET, nfsd_threads_set_nl_policy_netlink$auto]], f flags[send_flags])
+sendmsg$auto_NFSD_CMD_THREADS_GET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_THREADS_GET, void]], f flags[send_flags])
 sendmsg$auto_NFSD_CMD_VERSION_SET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_VERSION_SET, nfsd_version_set_nl_policy_netlink$auto]], f flags[send_flags])
+sendmsg$auto_NFSD_CMD_VERSION_GET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_VERSION_GET, void]], f flags[send_flags])
 sendmsg$auto_NFSD_CMD_LISTENER_SET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_LISTENER_SET, nfsd_listener_set_nl_policy_netlink$auto]], f flags[send_flags])
+sendmsg$auto_NFSD_CMD_LISTENER_GET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_LISTENER_GET, void]], f flags[send_flags])
 sendmsg$auto_NFSD_CMD_POOL_MODE_SET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_POOL_MODE_SET, nfsd_pool_mode_set_nl_policy_netlink$auto]], f flags[send_flags])
+sendmsg$auto_NFSD_CMD_POOL_MODE_GET(fd sock_nl_generic, msg ptr[in, msghdr_nfsd$auto[NFSD_CMD_POOL_MODE_GET, void]], f flags[send_flags])
 
 nfsd_threads_set_nl_policy_netlink$auto [
 	NFSD_A_SERVER_THREADS	nlattr[NFSD_A_SERVER_THREADS, int32]
@@ -2462,6 +2491,7 @@ type msghdr_nlctrl$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nlctrl_fa
 syz_genetlink_get_family_id$auto_nlctrl(name ptr[in, string["nlctrl"]], fd sock_nl_generic) genl_nlctrl_family_id$auto
 
 sendmsg$auto_CTRL_CMD_GETFAMILY(fd sock_nl_generic, msg ptr[in, msghdr_nlctrl$auto[CTRL_CMD_GETFAMILY, ctrl_policy_family_genetlink$auto]], f flags[send_flags])
+sendmsg$auto_CTRL_CMD_GETFAMILY2(fd sock_nl_generic, msg ptr[in, msghdr_nlctrl$auto[CTRL_CMD_GETFAMILY, ctrl_policy_family_genetlink$auto]], f flags[send_flags])
 sendmsg$auto_CTRL_CMD_GETPOLICY(fd sock_nl_generic, msg ptr[in, msghdr_nlctrl$auto[CTRL_CMD_GETPOLICY, ctrl_policy_policy_genetlink$auto]], f flags[send_flags])
 
 ctrl_policy_family_genetlink$auto [
@@ -2579,6 +2609,11 @@ vport_policy_datapath$auto [
 	OVS_VPORT_ATTR_UPCALL_STATS	nlnest[OVS_VPORT_ATTR_UPCALL_STATS, array[nl_generic_attr]]
 ] [varlen]
 
+resource genl_psample_family_id$auto[int16]
+type msghdr_psample$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_psample_family_id$auto, genlmsghdr_t[CMD], POLICY]]
+syz_genetlink_get_family_id$auto_psample(name ptr[in, string["psample"]], fd sock_nl_generic) genl_psample_family_id$auto
+
+sendmsg$auto_PSAMPLE_CMD_GET_GROUP(fd sock_nl_generic, msg ptr[in, msghdr_psample$auto[PSAMPLE_CMD_GET_GROUP, void]], f flags[send_flags])
 resource genl_tcp_metrics_family_id$auto[int16]
 type msghdr_tcp_metrics$auto[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_tcp_metrics_family_id$auto, genlmsghdr_t[CMD], POLICY]]
 syz_genetlink_get_family_id$auto_tcp_metrics(name ptr[in, string["tcp_metrics"]], fd sock_nl_generic) genl_tcp_metrics_family_id$auto
