@@ -19,6 +19,7 @@ const (
 	AtomicSleep      = Type("ATOMIC_SLEEP")
 	KMSAN            = Type("KMSAN")
 	SyzFailure       = Type("SYZ_FAILURE")
+	LostConnection   = Type("LOST_CONNECTION")
 )
 
 func (t Type) String() string {

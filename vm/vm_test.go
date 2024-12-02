@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -115,6 +116,7 @@ var tests = []*Test{
 		},
 		Report: &report.Report{
 			Title: lostConnectionCrash,
+			Type:  crash.LostConnection,
 		},
 	},
 	{
@@ -135,6 +137,7 @@ var tests = []*Test{
 			Output: []byte(
 				"DIAGNOSE\n",
 			),
+			Type: crash.LostConnection,
 		},
 	},
 	{
@@ -150,6 +153,7 @@ var tests = []*Test{
 					"VM DIAGNOSIS:\n" +
 					"DIAGNOSE\n",
 			),
+			Type: crash.LostConnection,
 		},
 	},
 	{
@@ -237,6 +241,7 @@ var tests = []*Test{
 		},
 		Report: &report.Report{
 			Title: lostConnectionCrash,
+			Type:  crash.LostConnection,
 		},
 	},
 	{
@@ -416,6 +421,9 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	}
 	if test.Report.Output != nil && !bytes.Equal(test.Report.Output, rep.Output) {
 		t.Fatalf("want output:\n%s\n\ngot output:\n%s", test.Report.Output, rep.Output)
+	}
+	if test.Report.Type != rep.Type {
+		t.Fatalf("want type %q, got type %q", test.Report.Type, rep.Type)
 	}
 }
 
