@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/dispatcher"
@@ -498,10 +499,15 @@ func (mon *monitor) createReport(defaultError string) *report.Report {
 		if defaultError == "" {
 			return nil
 		}
+		typ := crash.UnknownType
+		if defaultError == lostConnectionCrash {
+			typ = crash.LostConnection
+		}
 		return &report.Report{
 			Title:      defaultError,
 			Output:     mon.output,
 			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
+			Type:       typ,
 		}
 	}
 	start := rep.StartPos - mon.beforeContext
