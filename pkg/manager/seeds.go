@@ -4,11 +4,15 @@
 package manager
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -94,13 +98,19 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 		close(inputs)
 	}()
 	brokenSeeds := 0
+	skippedSeeds := 0
 	var brokenCorpus []string
 	var candidates []fuzzer.Candidate
 	for inp := range outputs {
 		if inp.Prog == nil {
 			if inp.IsSeed {
-				brokenSeeds++
-				log.Logf(0, "seed %s is broken: %s", inp.Path, inp.Err)
+				if errors.Is(inp.Err, ErrSkippedTest) {
+					skippedSeeds++
+					log.Logf(2, "seed %s is skipped: %s", inp.Path, inp.Err)
+				} else {
+					brokenSeeds++
+					log.Logf(0, "seed %s is broken: %s", inp.Path, inp.Err)
+				}
 			} else {
 				brokenCorpus = append(brokenCorpus, inp.Key)
 			}
@@ -122,6 +132,9 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 	}
 	if len(brokenCorpus)+brokenSeeds != 0 {
 		log.Logf(0, "broken programs in the corpus: %v, broken seeds: %v", len(brokenCorpus), brokenSeeds)
+	}
+	if skippedSeeds != 0 {
+		log.Logf(0, "skipped %v seeds", skippedSeeds)
 	}
 	if !immutable {
 		// This needs to be done outside of the loop above to not race with corpusDB reads.
@@ -179,28 +192,96 @@ func versionToFlags(version uint64) fuzzer.ProgFlags {
 }
 
 func ParseSeed(target *prog.Target, data []byte) (*prog.Prog, error) {
-	return parseProg(target, data, prog.NonStrict)
+	p, _, err := parseProg(target, data, prog.NonStrict, nil)
+	return p, err
 }
 
-func ParseSeedStrict(target *prog.Target, data []byte) (*prog.Prog, error) {
-	return parseProg(target, data, prog.Strict)
+func ParseSeedWithRequirements(target *prog.Target, data []byte, reqs map[string]bool) (
+	*prog.Prog, map[string]bool, error) {
+	return parseProg(target, data, prog.Strict, reqs)
 }
 
-func parseProg(target *prog.Target, data []byte, mode prog.DeserializeMode) (*prog.Prog, error) {
+func parseRequires(data []byte) map[string]bool {
+	requires := make(map[string]bool)
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		const prefix = "# requires:"
+		line := s.Text()
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		for _, req := range strings.Fields(line[len(prefix):]) {
+			positive := true
+			if req[0] == '-' {
+				positive = false
+				req = req[1:]
+			}
+			requires[req] = positive
+		}
+	}
+	return requires
+}
+
+func checkArch(requires map[string]bool, arch string) bool {
+	for req, positive := range requires {
+		const prefix = "arch="
+		if strings.HasPrefix(req, prefix) &&
+			arch != req[len(prefix):] == positive {
+			return false
+		}
+	}
+	return true
+}
+
+func MatchRequirements(props, requires map[string]bool) bool {
+	for req, positive := range requires {
+		if positive {
+			if !props[req] {
+				return false
+			}
+			continue
+		}
+		matched := true
+		for _, req1 := range strings.Split(req, ",") {
+			if !props[req1] {
+				matched = false
+			}
+		}
+		if matched {
+			return false
+		}
+	}
+	return true
+}
+
+var ErrSkippedTest = errors.New("skipped test based on constraints")
+
+func parseProg(target *prog.Target, data []byte, mode prog.DeserializeMode, reqs map[string]bool) (
+	*prog.Prog, map[string]bool, error) {
+	properties := parseRequires(data)
+	// Need to check requirements early, as some programs may fail to deserialize
+	// on some arches due to missing syscalls. We also do not want to parse tests
+	// that are marked as 'manual'.
+	if !checkArch(properties, target.Arch) || !MatchRequirements(properties, reqs) {
+		var pairs []string
+		for k, v := range properties {
+			pairs = append(pairs, fmt.Sprintf("%s=%t", k, v))
+		}
+		return nil, properties, fmt.Errorf("%w: %s", ErrSkippedTest, strings.Join(pairs, ", "))
+	}
 	p, err := target.Deserialize(data, mode)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(p.Calls) > prog.MaxCalls {
-		return nil, fmt.Errorf("longer than %d calls (%d)", prog.MaxCalls, len(p.Calls))
+		return nil, nil, fmt.Errorf("longer than %d calls (%d)", prog.MaxCalls, len(p.Calls))
 	}
 	// For some yet unknown reasons, programs with fail_nth > 0 may sneak in. Ignore them.
 	for _, call := range p.Calls {
 		if call.Props.FailNth > 0 {
-			return nil, fmt.Errorf("input has fail_nth > 0")
+			return nil, nil, fmt.Errorf("input has fail_nth > 0")
 		}
 	}
-	return p, nil
+	return p, properties, nil
 }
 
 type FilteredCandidates struct {
