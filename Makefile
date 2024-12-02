@@ -262,7 +262,8 @@ format_go:
 format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h \
 		executor/android/android_seccomp.h \
-		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc tools/syz-declextract/syz-declextract.cpp
+		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc \
+		tools/syz-declextract/clangtool/*.cpp tools/syz-declextract/clangtool/*.h
 
 format_sys: bin/syz-fmt
 	bin/syz-fmt all

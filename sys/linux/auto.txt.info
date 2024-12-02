@@ -76,8 +76,8 @@ NETLINK	BATADV_CMD_TP_METER	func:batadv_netlink_tp_meter_start	access:ns_admin	m
 NETLINK	BATADV_CMD_TP_METER_CANCEL	func:batadv_netlink_tp_meter_cancel	access:ns_admin	manual_desc:true	auto_desc:true	file:net/batman-adv/netlink.c	subsystem:batman
 NETLINK	CGROUPSTATS_CMD_GET	func:cgroupstats_user_cmd	access:user	manual_desc:false	auto_desc:true	file:kernel/taskstats.c	subsystem:kernel
 NETLINK	CIFS_GENL_CMD_SWN_NOTIFY	func:cifs_swn_notify	access:user	manual_desc:false	auto_desc:true	file:fs/smb/client/netlink.c	subsystem:cifs
-NETLINK	CTRL_CMD_GETFAMILY	func:ctrl_dumpfamily	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
-NETLINK	CTRL_CMD_GETPOLICY	func:ctrl_dumppolicy_done	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
+NETLINK	CTRL_CMD_GETFAMILY	func:ctrl_getfamily	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
+NETLINK	CTRL_CMD_GETPOLICY	func:ctrl_dumppolicy_start	access:user	manual_desc:false	auto_desc:true	file:net/netlink/genetlink.c	subsystem:net
 NETLINK	ETHTOOL_MSG_CABLE_TEST_ACT	func:ethnl_act_cable_test	access:ns_admin	manual_desc:false	auto_desc:true	file:net/ethtool/netlink.c	subsystem:net
 NETLINK	ETHTOOL_MSG_CABLE_TEST_TDR_ACT	func:ethnl_act_cable_test_tdr	access:ns_admin	manual_desc:false	auto_desc:true	file:net/ethtool/netlink.c	subsystem:net
 NETLINK	ETHTOOL_MSG_CHANNELS_GET	func:ethnl_default_doit	access:user	manual_desc:true	auto_desc:true	file:net/ethtool/netlink.c	subsystem:net
@@ -225,21 +225,21 @@ NETLINK	NCSI_CMD_SET_INTERFACE	func:ncsi_set_interface_nl	access:admin	manual_de
 NETLINK	NCSI_CMD_SET_PACKAGE_MASK	func:ncsi_set_package_mask_nl	access:admin	manual_desc:false	auto_desc:true	file:net/ncsi/ncsi-netlink.c	subsystem:net
 NETLINK	NETDEV_CMD_BIND_RX	func:netdev_nl_bind_rx_doit	access:admin	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_DEV_GET	func:netdev_nl_dev_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
-NETLINK	NETDEV_CMD_NAPI_GET	func:netdev_nl_napi_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_NAPI_GET	func:netdev_nl_napi_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_NAPI_SET	func:netdev_nl_napi_set_doit	access:admin	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_PAGE_POOL_GET	func:netdev_nl_page_pool_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NETDEV_CMD_QSTATS_GET	func:netdev_nl_qstats_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
-NETLINK	NETDEV_CMD_QUEUE_GET	func:netdev_nl_queue_get_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
+NETLINK	NETDEV_CMD_QUEUE_GET	func:netdev_nl_queue_get_doit	access:user	manual_desc:false	auto_desc:true	file:net/core/netdev-genl-gen.c	subsystem:net
 NETLINK	NET_DM_CMD_CONFIG	func:net_dm_cmd_config	access:admin	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_CONFIG_GET	func:net_dm_cmd_config_get	access:user	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_START	func:net_dm_cmd_trace	access:admin	manual_desc:true	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_STATS_GET	func:net_dm_cmd_stats_get	access:user	manual_desc:false	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
 NETLINK	NET_DM_CMD_STOP	func:net_dm_cmd_trace	access:admin	manual_desc:true	auto_desc:true	file:net/core/drop_monitor.c	subsystem:net
-NETLINK	NET_SHAPER_CMD_CAP_GET	func:net_shaper_nl_cap_post_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
-NETLINK	NET_SHAPER_CMD_DELETE	func:net_shaper_nl_post_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
-NETLINK	NET_SHAPER_CMD_GET	func:net_shaper_nl_post_dumpit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
-NETLINK	NET_SHAPER_CMD_GROUP	func:net_shaper_nl_post_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
-NETLINK	NET_SHAPER_CMD_SET	func:net_shaper_nl_post_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_CAP_GET	func:net_shaper_nl_cap_pre_doit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_DELETE	func:net_shaper_nl_pre_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_GET	func:net_shaper_nl_pre_doit	access:user	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_GROUP	func:net_shaper_nl_pre_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
+NETLINK	NET_SHAPER_CMD_SET	func:net_shaper_nl_pre_doit	access:admin	manual_desc:false	auto_desc:true	file:net/shaper/shaper_nl_gen.c	subsystem:net
 NETLINK	NFC_CMD_ACTIVATE_TARGET	func:nfc_genl_activate_target	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
 NETLINK	NFC_CMD_DEACTIVATE_TARGET	func:nfc_genl_deactivate_target	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
 NETLINK	NFC_CMD_DEP_LINK_DOWN	func:nfc_genl_dep_link_down	access:admin	manual_desc:true	auto_desc:true	file:net/nfc/netlink.c	subsystem:net	subsystem:nfc
