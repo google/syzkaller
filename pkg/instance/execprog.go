@@ -50,9 +50,13 @@ const (
 
 func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *report.Reporter,
 	opt *OptionalConfig) (*ExecProgInstance, error) {
-	execprogBin, err := vmInst.Copy(mgrCfg.ExecprogBin)
-	if err != nil {
-		return nil, &TestError{Title: fmt.Sprintf("failed to copy syz-execprog to VM: %v", err)}
+	var err error
+	execprogBin := mgrCfg.SysTarget.ExecprogBin
+	if execprogBin == "" {
+		execprogBin, err = vmInst.Copy(mgrCfg.ExecprogBin)
+		if err != nil {
+			return nil, &TestError{Title: fmt.Sprintf("failed to copy syz-execprog to VM: %v", err)}
+		}
 	}
 	executorBin := mgrCfg.SysTarget.ExecutorBin
 	if executorBin == "" {
@@ -70,7 +74,7 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	}
 	if opt != nil {
 		ret.OptionalConfig = *opt
-		if ret.StraceBin != "" {
+		if !mgrCfg.StraceBinOnTarget && ret.StraceBin != "" {
 			var err error
 			ret.StraceBin, err = vmInst.Copy(ret.StraceBin)
 			if err != nil {
