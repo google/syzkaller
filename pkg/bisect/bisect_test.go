@@ -958,6 +958,34 @@ func TestMostFrequentReport(t *testing.T) {
 			report: "A",
 			other:  true,
 		},
+		{
+			name: "do not take lost connection",
+			reports: []*report.Report{
+				{Title: "A", Type: crash.LostConnection},
+				{Title: "B", Type: crash.Warning},
+				{Title: "C", Type: crash.LostConnection},
+				{Title: "D", Type: crash.Warning},
+				{Title: "E", Type: crash.LostConnection},
+				{Title: "F", Type: crash.Warning},
+			},
+			types:  []crash.Type{crash.Warning},
+			report: "B",
+			other:  true,
+		},
+		{
+			name: "only lost connection",
+			reports: []*report.Report{
+				{Title: "A", Type: crash.LostConnection},
+				{Title: "B", Type: crash.LostConnection},
+				{Title: "C", Type: crash.LostConnection},
+				{Title: "D", Type: crash.LostConnection},
+				{Title: "E", Type: crash.LostConnection},
+				{Title: "F", Type: crash.LostConnection},
+			},
+			types:  []crash.Type{crash.LostConnection},
+			report: "A",
+			other:  false,
+		},
 	}
 	for _, test := range tests {
 		test := test

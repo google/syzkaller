@@ -992,6 +992,11 @@ func mostFrequentReports(reports []*report.Report) (*report.Report, []crash.Type
 			// bisecting this kind of a bug.
 			continue
 		}
+		if info.t == crash.LostConnection && len(perType) > 1 {
+			// This crash type is much more often unrelated than not.
+			// Take it only if it's the only crash type.
+			continue
+		}
 		// Take further crash types until we have considered 2/3 of all crashes, but
 		// no more than 3.
 		needTaken := (crashes + 2) * 2 / 3
