@@ -117,17 +117,9 @@ func (ctx *context) nlattrType(attr *NetlinkAttr, pq *policyQueue) string {
 		if attr.Kind == "NLA_NESTED_ARRAY" {
 			typ = fmt.Sprintf("array[nlnest[0, %v]]", typ)
 		}
-	case "NLA_BINARY", "NLA_UNSPEC", "":
-		// TODO: also handle size 6 for MAC addresses.
-		if attr.Elem == nil && (attr.MaxSize == 16 || attr.MaxSize == 0) &&
-			strings.Contains(attr.Name, "IPV6") {
-			typ = "ipv6_addr"
-			break
-		}
-		fallthrough
 	default:
 		field := &Field{
-			Name: attr.Name,
+			Name: strings.ToLower(attr.Name),
 			Type: ctx.netlinkType(attr),
 		}
 		typ = ctx.fieldType(field, nil, "", true)
