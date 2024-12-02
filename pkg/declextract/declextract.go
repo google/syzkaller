@@ -9,13 +9,17 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/ifaceprobe"
 )
 
-func Run(out *Output, syscallRename map[string][]string) ([]byte, []*Interface, error) {
+func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string) ([]byte, []*Interface, error) {
 	ctx := &context{
 		Output:        out,
+		probe:         probe,
 		syscallRename: syscallRename,
 		structs:       make(map[string]*Struct),
+		uniqualizer:   make(map[string]int),
 	}
 	ctx.processIncludes()
 	ctx.processEnums()
@@ -30,8 +34,10 @@ func Run(out *Output, syscallRename map[string][]string) ([]byte, []*Interface, 
 
 type context struct {
 	*Output
+	probe         *ifaceprobe.Info
 	syscallRename map[string][]string // syscall function -> syscall names
 	structs       map[string]*Struct
+	uniqualizer   map[string]int
 	interfaces    []*Interface
 	descriptions  *bytes.Buffer
 	errs          []error
@@ -186,9 +192,9 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 	if f.BitWidth != 0 {
 		baseType += fmt.Sprintf(":%v", f.BitWidth)
 	}
-	unusedType := fmt.Sprintf("const[0 %v]", maybeBaseType(baseType, needBase))
-	if f.IsAnonymous {
-		return unusedType
+	constType := fmt.Sprintf("const[%v %v]", t.MinValue, maybeBaseType(baseType, needBase))
+	if f.IsAnonymous || t.IsConst {
+		return constType
 	}
 	if t.Enum != "" {
 		t.Enum += autoSuffix
@@ -223,7 +229,14 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 	}
 	if strings.Contains(f.Name, "pad") || strings.Contains(f.Name, "unused") ||
 		strings.Contains(f.Name, "_reserved") {
-		return unusedType
+		return constType
+	}
+	if t.MinValue != 0 || t.MaxValue != 0 {
+		minVal, maxVal := uint64(t.MinValue), uint64(t.MaxValue)
+		if minVal > maxVal {
+			minVal, maxVal = maxVal, minVal
+		}
+		return baseType + fmt.Sprintf("[%v:%v]", minVal, maxVal)
 	}
 	return baseType
 }
@@ -373,6 +386,15 @@ func (ctx *context) bounds(name string, min, max int) string {
 		return fmt.Sprintf(", %v", max)
 	}
 	return ""
+}
+
+func (ctx *context) uniqualize(typ, name string) string {
+	id := fmt.Sprintf("%v-%v", typ, name)
+	ctx.uniqualizer[id]++
+	if seq := ctx.uniqualizer[id]; seq != 1 {
+		return name + fmt.Sprint(seq)
+	}
+	return name
 }
 
 const (

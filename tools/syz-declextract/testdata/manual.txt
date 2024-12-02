@@ -21,6 +21,9 @@ use {
 	f3	nlattr[1, int32]
 	f4	nlnest[1, int32]
 	f5	nl_generic_attr
+	f6	flags[open_flags, int32]
+	f7	flags[mmap_prot, int32]
+	f8	flags[mmap_flags, int32]
 	
 }
 
@@ -47,4 +50,7 @@ type nlnest[ATTR, TYPE] nlattr[ATTR, TYPE]
 
 type nl_generic_attr int32
 
+open_flags = 1, 2
+mmap_prot = 1, 2
+mmap_flags = 1, 2
 send_flags = 1, 2
