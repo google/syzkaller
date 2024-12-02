@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -53,8 +54,17 @@ func TestDeclextract(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg.ToolBin = "this-is-not-supposed-to-run"
+		probeInfo := new(ifaceprobe.Info)
+		probeFile := filepath.Join(cfg.KernelSrc, filepath.Base(file)+".probe")
+		if osutil.IsExist(probeFile) {
+			var err error
+			probeInfo, err = readProbeResult(probeFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		autoFile := filepath.Join(cfg.KernelObj, filepath.Base(file)+".txt")
-		if err := run(autoFile, cfg); err != nil {
+		if err := run(autoFile, probeInfo, cfg); err != nil {
 			if *flagUpdate {
 				osutil.CopyFile(autoFile, file+".txt")
 				osutil.CopyFile(autoFile+".info", file+".info")
