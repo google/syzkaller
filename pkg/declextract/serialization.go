@@ -15,6 +15,7 @@ func (ctx *context) serialize() {
 	ctx.serializeIncludes()
 	ctx.serializeEnums()
 	ctx.serializeSyscalls()
+	ctx.serializeFileOps()
 	ctx.serializeNetlink()
 	ctx.serializeStructs()
 	ctx.serializeDefines()

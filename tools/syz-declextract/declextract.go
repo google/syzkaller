@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -13,11 +14,13 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/declextract"
+	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -35,13 +38,19 @@ func main() {
 		flagBinary       = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
 		flagCacheExtract = flag.Bool("cache-extract", false, "use cached extract results if present"+
 			" (cached in manager.workdir/declextract.cache)")
+		flagCacheProbe = flag.Bool("cache-probe", false, "use cached probe results if present"+
+			" (cached in manager.workdir/interfaces.json)")
 	)
 	defer tool.Init()()
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
-	if err := run(filepath.FromSlash("sys/linux/auto.txt"), &clangtool.Config{
+	probeInfo, err := probe(cfg, *flagConfig, *flagCacheProbe)
+	if err != nil {
+		tool.Failf("kernel probing failed: %v", err)
+	}
+	if err := run(filepath.FromSlash("sys/linux/auto.txt"), probeInfo, &clangtool.Config{
 		ToolBin:    *flagBinary,
 		KernelSrc:  cfg.KernelSrc,
 		KernelObj:  cfg.KernelObj,
@@ -52,7 +61,7 @@ func main() {
 	}
 }
 
-func run(autoFile string, cfg *clangtool.Config) error {
+func run(autoFile string, probeInfo *ifaceprobe.Info, cfg *clangtool.Config) error {
 	syscallRename, err := buildSyscallRenameMap(cfg.KernelSrc)
 	if err != nil {
 		return fmt.Errorf("failed to build syscall rename map: %w", err)
@@ -61,7 +70,7 @@ func run(autoFile string, cfg *clangtool.Config) error {
 	if err != nil {
 		return err
 	}
-	descriptions, interfaces, err := declextract.Run(out, syscallRename)
+	descriptions, interfaces, err := declextract.Run(out, probeInfo, syscallRename)
 	if err != nil {
 		return err
 	}
@@ -105,6 +114,36 @@ func run(autoFile string, cfg *clangtool.Config) error {
 	// We need re-parse them again b/c new lines are fixed up during parsing.
 	formatted := ast.Format(ast.Parse(ast.Format(desc), autoFile, nil))
 	return osutil.WriteFile(autoFile, formatted)
+}
+
+func probe(cfg *mgrconfig.Config, cfgFile string, cache bool) (*ifaceprobe.Info, error) {
+	cacheFile := filepath.Join(cfg.Workdir, "interfaces.json")
+	if cache {
+		info, err := readProbeResult(cacheFile)
+		if err == nil {
+			return info, nil
+		}
+	}
+	_, err := osutil.RunCmd(30*time.Minute, "", filepath.Join(cfg.Syzkaller, "bin", "syz-manager"),
+		"-config", cfgFile, "-mode", "iface-probe")
+	if err != nil {
+		return nil, err
+	}
+	return readProbeResult(cacheFile)
+}
+
+func readProbeResult(file string) (*ifaceprobe.Info, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	info := new(ifaceprobe.Info)
+	if err := dec.Decode(info); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal interfaces.json: %w", err)
+	}
+	return info, nil
 }
 
 func errorHandler() (func(pos ast.Pos, msg string), *bytes.Buffer) {
