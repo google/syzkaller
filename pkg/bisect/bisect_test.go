@@ -116,7 +116,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]inst
 		}
 		return ret, nil
 	}
-	ret = make([]instance.EnvTestResult, numVMs-1)
+	ret = make([]instance.EnvTestResult, 0, numVMs-1)
 	if env.test.injectSyzFailure {
 		ret = append(ret, instance.EnvTestResult{
 			Error: &instance.TestError{
