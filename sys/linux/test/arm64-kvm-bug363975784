@@ -1,0 +1,9 @@
+#
+# requires: arch=arm64 manual
+#
+r0 = openat$kvm(0xffffffffffffff9c, &(0x7f0000000080), 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, 0xae01, 0x0)
+ioctl$KVM_CREATE_VCPU(r1, 0xae41, 0x1)
+ioctl$KVM_CREATE_DEVICE(r1, 0xc00caee0, &(0x7f0000000040)={0x7, <r2=>0xffffffffffffffff, 0x0})
+ioctl$KVM_SET_DEVICE_ATTR(r2, 0x4018aee1, &(0x7f0000000280)=@attr_arm64={0x0, 0x0, 0x3, 0x0})
+ioctl$KVM_CREATE_VCPU(r1, 0xae41, 0x1) (async)

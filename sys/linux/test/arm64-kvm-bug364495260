@@ -1,0 +1,9 @@
+#
+# requires: arch=arm64 manual
+#
+r0 = openat$kvm(0xffffffffffffff9c, &(0x7f0000000180), 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, 0xae01, 0x0)
+r2 = ioctl$KVM_CREATE_VCPU(r1, 0xae41, 0x0)
+openat$kvm(0xffffffffffffff9c, 0x0, 0x0, 0x0)
+ioctl$KVM_ARM_VCPU_INIT(r2, 0x4020aeae, &(0x7f0000000140)={0x5, 0x8, ""}) (async, rerun: 32)
+ioctl$KVM_RUN(r2, 0xae80, 0x0)
