@@ -15,6 +15,7 @@ type Output struct {
 	Enums           []*Enum          `json:"enums,omitempty"`
 	Structs         []*Struct        `json:"structs,omitempty"`
 	Syscalls        []*Syscall       `json:"syscalls,omitempty"`
+	FileOps         []*FileOps       `json:"file_ops,omitempty"`
 	IouringOps      []*IouringOp     `json:"iouring_ops,omitempty"`
 	NetlinkFamilies []*NetlinkFamily `json:"netlink_families,omitempty"`
 	NetlinkPolicies []*NetlinkPolicy `json:"netlink_policies,omitempty"`
@@ -39,6 +40,25 @@ type Syscall struct {
 	Func       string   `json:"func,omitempty"`
 	Args       []*Field `json:"args,omitempty"`
 	SourceFile string   `json:"source_file,omitempty"`
+}
+
+// FileOps describes one file_operations variable.
+type FileOps struct {
+	Name string `json:"name,omitempty"`
+	// Names of callback functions.
+	Open       string      `json:"open,omitempty"`
+	Read       string      `json:"read,omitempty"`
+	Write      string      `json:"write,omitempty"`
+	Mmap       string      `json:"mmap,omitempty"`
+	Ioctl      string      `json:"ioctl,omitempty"`
+	IoctlCmds  []*IoctlCmd `json:"ioctl_cmds,omitempty"`
+	SourceFile string      `json:"source_file,omitempty"`
+}
+
+type IoctlCmd struct {
+	// Literal name of the command (e.g. KCOV_REMOTE_ENABLE).
+	Name string `json:"name,omitempty"`
+	Type *Type  `json:"type,omitempty"`
 }
 
 type IouringOp struct {
@@ -97,6 +117,9 @@ type Type struct {
 
 type IntType struct {
 	ByteSize int    `json:"byte_size,omitempty"`
+	MinValue int    `json:"min_value,omitempty"`
+	MaxValue int    `json:"max_value,omitempty"`
+	IsConst  bool   `json:"is_const,omitempty"`
 	Name     string `json:"name,omitempty"`
 	Base     string `json:"base,omitempty"`
 	Enum     string `json:"enum,omitempty"`
@@ -128,6 +151,7 @@ func (out *Output) Merge(other *Output) {
 	out.Enums = append(out.Enums, other.Enums...)
 	out.Structs = append(out.Structs, other.Structs...)
 	out.Syscalls = append(out.Syscalls, other.Syscalls...)
+	out.FileOps = append(out.FileOps, other.FileOps...)
 	out.IouringOps = append(out.IouringOps, other.IouringOps...)
 	out.NetlinkFamilies = append(out.NetlinkFamilies, other.NetlinkFamilies...)
 	out.NetlinkPolicies = append(out.NetlinkPolicies, other.NetlinkPolicies...)
@@ -139,6 +163,7 @@ func (out *Output) SortAndDedup() {
 	out.Enums = sortAndDedupSlice(out.Enums)
 	out.Structs = sortAndDedupSlice(out.Structs)
 	out.Syscalls = sortAndDedupSlice(out.Syscalls)
+	out.FileOps = sortAndDedupSlice(out.FileOps)
 	out.IouringOps = sortAndDedupSlice(out.IouringOps)
 	out.NetlinkFamilies = sortAndDedupSlice(out.NetlinkFamilies)
 	out.NetlinkPolicies = sortAndDedupSlice(out.NetlinkPolicies)
@@ -149,6 +174,9 @@ func (out *Output) SortAndDedup() {
 func (out *Output) SetSourceFile(file string) {
 	for _, call := range out.Syscalls {
 		call.SourceFile = file
+	}
+	for _, fops := range out.FileOps {
+		fops.SourceFile = file
 	}
 	for _, fam := range out.NetlinkFamilies {
 		fam.SourceFile = file

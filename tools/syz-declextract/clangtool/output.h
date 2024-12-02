@@ -36,6 +36,9 @@ struct FieldType {
 
 struct IntType {
   int ByteSize = 0;
+  int64_t MinValue = 0;
+  int64_t MaxValue = 0;
+  bool IsConst = false;
   std::string Name;
   std::string Base;
   std::string Enum;
@@ -88,6 +91,21 @@ struct Struct {
 struct Enum {
   std::string Name;
   std::vector<std::string> Values;
+};
+
+struct IoctlCmd {
+  std::string Name;
+  FieldType Type;
+};
+
+struct FileOps {
+  std::string Name;
+  std::string Open;
+  std::string Read;
+  std::string Write;
+  std::string Mmap;
+  std::string Ioctl;
+  std::vector<IoctlCmd> IoctlCmds;
 };
 
 struct Syscall {
@@ -173,6 +191,9 @@ inline void print(JSONPrinter& Printer, const FieldType& V) {
 inline void print(JSONPrinter& Printer, const IntType& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("byte_size", V.ByteSize);
+  Printer.Field("min_value", V.MinValue);
+  Printer.Field("max_value", V.MaxValue);
+  Printer.Field("is_const", V.IsConst);
   Printer.Field("name", V.Name);
   Printer.Field("base", V.Base);
   Printer.Field("enum", V.Enum, true);
@@ -197,6 +218,23 @@ inline void print(JSONPrinter& Printer, const BufferType& V) {
   Printer.Field("max_size", V.MaxSize);
   Printer.Field("is_string", V.IsString);
   Printer.Field("is_non_terminated", V.IsNonTerminated, true);
+}
+
+inline void print(JSONPrinter& Printer, const IoctlCmd& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name);
+  Printer.Field("type", V.Type, true);
+}
+
+inline void print(JSONPrinter& Printer, const FileOps& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name);
+  Printer.Field("open", V.Open);
+  Printer.Field("read", V.Read);
+  Printer.Field("write", V.Write);
+  Printer.Field("mmap", V.Mmap);
+  Printer.Field("ioctl", V.Ioctl);
+  Printer.Field("ioctl_cmds", V.IoctlCmds, true);
 }
 
 inline void print(JSONPrinter& Printer, const Syscall& V) {
@@ -261,6 +299,7 @@ public:
   void emit(Struct&& V) { Structs.push_back(std::move(V)); }
   void emit(Enum&& V) { Enums.push_back(std::move(V)); }
   void emit(Syscall&& V) { Syscalls.push_back(std::move(V)); }
+  void emit(FileOps&& V) { FileOps.push_back(std::move(V)); }
   void emit(IouringOp&& V) { IouringOps.push_back(std::move(V)); }
   void emit(NetlinkFamily&& V) { NetlinkFamilies.push_back(std::move(V)); }
   void emit(NetlinkPolicy&& V) { NetlinkPolicies.push_back(std::move(V)); }
@@ -272,6 +311,7 @@ public:
     Printer.Field("enums", Enums);
     Printer.Field("structs", Structs);
     Printer.Field("syscalls", Syscalls);
+    Printer.Field("file_ops", FileOps);
     Printer.Field("iouring_ops", IouringOps);
     Printer.Field("netlink_families", NetlinkFamilies);
     Printer.Field("netlink_policies", NetlinkPolicies, true);
@@ -284,6 +324,7 @@ private:
   std::vector<Enum> Enums;
   std::vector<Struct> Structs;
   std::vector<Syscall> Syscalls;
+  std::vector<FileOps> FileOps;
   std::vector<IouringOp> IouringOps;
   std::vector<NetlinkFamily> NetlinkFamilies;
   std::vector<NetlinkPolicy> NetlinkPolicies;
