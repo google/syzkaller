@@ -1,0 +1,2 @@
+SYSCALL	chmod	func:__do_sys_chmod	access:unknown	manual_desc:false	auto_desc:true	file:syscall.c	subsystem:kernel
+SYSCALL	open	func:__do_sys_open	access:unknown	manual_desc:false	auto_desc:true	file:syscall.c	subsystem:kernel
