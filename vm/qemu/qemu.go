@@ -162,8 +162,9 @@ var archConfigs = map[string]*archConfig{
 		},
 	},
 	"linux/arm": {
-		Qemu:                   "qemu-system-arm",
-		QemuArgs:               "-machine vexpress-a15 -cpu max -accel tcg,thread=multi",
+		Qemu: "qemu-system-arm",
+		// For some reason, new qemu-system-arm versions complain that "The only valid type is: cortex-a15".
+		QemuArgs:               "-machine vexpress-a15 -cpu cortex-a15 -accel tcg,thread=multi",
 		NetDev:                 "virtio-net-device",
 		RngDev:                 "virtio-rng-device",
 		UseNewQemuImageOptions: true,
