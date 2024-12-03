@@ -68,6 +68,33 @@ static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint6
 	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
 }
 
+#define ADRP_OPCODE 0x90000000
+#define ADRP_OPCODE_MASK 0x9f000000
+
+// Code loading SyzOS into guest memory does not handle data relocations (see
+// https://github.com/google/syzkaller/issues/5565), so SyzOS will crash soon after encountering an
+// ADRP instruction. Detect these instructions to catch regressions early.
+// The most common reason for using data relocaions is accessing global variables and constants.
+// Sometimes the compiler may choose to emit a read-only constant to zero-initialize a structure
+// or to generate a jump table for a switch statement.
+static void validate_guest_code(void* mem, size_t size)
+{
+	uint32* insns = (uint32*)mem;
+	for (size_t i = 0; i < size / 4; i++) {
+		if ((insns[i] & ADRP_OPCODE_MASK) == ADRP_OPCODE)
+			fail("ADRP instruction detected in SyzOS, exiting");
+	}
+}
+
+static void install_syzos_code(void* host_mem, size_t mem_size)
+{
+	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
+	if (size > mem_size)
+		fail("SyzOS size exceeds guest memory");
+	memcpy(host_mem, &__start_guest, size);
+	validate_guest_code(host_mem, size);
+}
+
 static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 {
 	// Guest physical memory layout (must be in sync with executor/kvm.h):
@@ -84,7 +111,7 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
-	memcpy(host_text.addr, &__start_guest, (char*)&__stop_guest - (char*)&__start_guest);
+	install_syzos_code(host_text.addr, host_text.size);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
