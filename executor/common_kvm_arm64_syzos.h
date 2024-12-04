@@ -1121,50 +1121,52 @@ GUEST_CODE static void its_send_sync_cmd(uint64 cmdq_base, uint32 vcpu_id)
 	its_send_cmd(cmdq_base, &cmd);
 }
 
+// This function is carefully written in a way that prevents jump table emission.
+// SyzOS cannot reference global constants, and compilers are very eager to generate a jump table
+// for a switch over GITS commands.
+// To work around that, we replace the switch statement with a series of if statements.
+// In addition, cmd->type is stored in a volatile variable, so that it is read on each if statement,
+// preventing the compiler from folding them together.
 GUEST_CODE static noinline void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd)
 {
-	switch (cmd->type) {
-	case GITS_CMD_MAPD: {
+	volatile uint8 type = cmd->type;
+	if (type == GITS_CMD_MAPD) {
 		uint64 itt_base = ARM64_ADDR_ITS_ITT_TABLES + cmd->devid * SZ_64K;
-		its_send_mapd_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, itt_base, SYZOS_NUM_IDBITS, cmd->valid);
-		break;
+		its_send_mapd_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, itt_base,
+				  SYZOS_NUM_IDBITS, cmd->valid);
+		return;
 	}
-	case GITS_CMD_MAPC: {
-		its_send_mapc_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid, cmd->valid);
-		break;
+	if (type == GITS_CMD_MAPC) {
+		its_send_mapc_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid,
+				  cmd->valid);
+		return;
 	}
-	case GITS_CMD_MAPTI: {
-		its_send_mapti_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, cmd->eventid, cmd->cpuid, cmd->intid);
-		break;
+	if (type == GITS_CMD_MAPTI) {
+		its_send_mapti_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->devid, cmd->eventid,
+				   cmd->cpuid, cmd->intid);
+		return;
 	}
-	case GITS_CMD_MAPI:
-	case GITS_CMD_MOVI: {
-		its_send_devid_eventid_icid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->type, cmd->devid, cmd->eventid, cmd->intid);
-		break;
+	if (type == GITS_CMD_MAPI || type == GITS_CMD_MOVI) {
+		its_send_devid_eventid_icid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, type,
+						cmd->devid, cmd->eventid, cmd->intid);
+		return;
 	}
-	case GITS_CMD_MOVALL: {
+	if (type == GITS_CMD_MOVALL) {
 		its_send_movall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid, cmd->cpuid2);
-		break;
+		return;
 	}
-	case GITS_CMD_INVALL: {
+	if (type == GITS_CMD_INVALL) {
 		its_send_invall_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid);
-		break;
+		return;
 	}
-	case GITS_CMD_INT:
-	case GITS_CMD_INV:
-	case GITS_CMD_DISCARD:
-	case GITS_CMD_CLEAR: {
-		its_send_devid_eventid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->type, cmd->devid, cmd->eventid);
-		break;
+	if (type == GITS_CMD_INT || type == GITS_CMD_INV || type == GITS_CMD_DISCARD || type == GITS_CMD_CLEAR) {
+		its_send_devid_eventid_cmd(ARM64_ADDR_ITS_CMDQ_BASE, type, cmd->devid,
+					   cmd->eventid);
+		return;
 	}
-	case GITS_CMD_SYNC: {
-		// This is different from INVALL, as SYNC accepts an RDbase.
+	if (type == GITS_CMD_SYNC) {
 		its_send_sync_cmd(ARM64_ADDR_ITS_CMDQ_BASE, cmd->cpuid);
-		break;
-	}
-	default: {
-		break;
-	}
+		return;
 	}
 }
 
