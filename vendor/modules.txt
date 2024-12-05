@@ -1100,8 +1100,8 @@ github.com/uudashr/iface/identical
 github.com/uudashr/iface/internal/directive
 github.com/uudashr/iface/opaque
 github.com/uudashr/iface/unused
-# github.com/vektra/mockery/v2 v2.45.1
-## explicit; go 1.22
+# github.com/vektra/mockery/v2 v2.50.0
+## explicit; go 1.23
 github.com/vektra/mockery/v2
 github.com/vektra/mockery/v2/cmd
 github.com/vektra/mockery/v2/pkg
