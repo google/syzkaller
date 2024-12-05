@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -23,6 +25,42 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+// Find the corresponding QEMU binary for the target arch, if needed.
+func qemuBinary(arch string) (string, error) {
+	qarch, ok := map[string]string{
+		"386":      "i386",
+		"amd64":    "x86_64",
+		"arm64":    "aarch64",
+		"arm":      "arm",
+		"mips64le": "mips64el",
+		"ppc64le":  "ppc64le",
+		"riscv64":  "riscv64",
+		"s390x":    "s390x",
+	}[arch]
+	if !ok {
+		return "", fmt.Errorf("unsupported architecture: %s", arch)
+	}
+
+	qemuBinary := "qemu-" + qarch
+	path, err := exec.LookPath(qemuBinary)
+	if err != nil {
+		return "", fmt.Errorf("qemu binary not found in PATH: %s", qemuBinary)
+	}
+
+	return filepath.Base(path), nil
+}
+
+// If the tests are running on CI, or if there is an assertion failure in the executor,
+// report a fatal error. Otherwise, assume cross-arch execution does not work, and skip
+// the test.
+func handleCrossArchError(t *testing.T, err error) {
+	if os.Getenv("CI") != "" || strings.Contains(err.Error(), "SYZFAIL:") {
+		t.Fatal(err)
+	} else {
+		t.Skipf("skipping, cross-arch execution failed: %v", err)
+	}
+}
 
 // TestExecutor runs all internal executor unit tests.
 // We do it here because we already build executor binary here.
@@ -41,15 +79,20 @@ func TestExecutor(t *testing.T) {
 				t.Fatal(err)
 			}
 			bin := csource.BuildExecutor(t, target, "../..")
-			// qemu-user may allow us to run some cross-arch binaries.
-			if _, err := osutil.RunCmd(time.Minute, dir, bin, "test"); err != nil {
-				if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
+			if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
+				// Execute the tests natively.
+				if _, err := osutil.RunCmd(time.Minute, dir, bin, "test"); err != nil {
 					t.Fatal(err)
 				}
-				if os.Getenv("CI") != "" || strings.Contains(err.Error(), "SYZFAIL:") {
-					t.Fatal(err)
-				} else {
-					t.Skipf("skipping, cross-arch binary failed: %v", err)
+			} else {
+				// Get QEMU binary for the target arch. This code might run inside Docker, so it cannot
+				// rely on binfmt_misc handlers provided by qemu-user.
+				qemu, err := qemuBinary(sysTarget.Arch)
+				if err != nil {
+					handleCrossArchError(t, err)
+				}
+				if _, err := osutil.RunCmd(time.Minute, dir, qemu, bin, "test"); err != nil {
+					handleCrossArchError(t, err)
 				}
 			}
 		})
