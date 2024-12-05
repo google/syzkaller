@@ -120,7 +120,10 @@ func linuxParseCoreKernel(files filesystem) (uint64, uint64, error) {
 	if err != nil {
 		return 0, 0, fmt.Errorf("address parsing error in /proc/kallsyms for _stext: %w", err)
 	}
-	re = regexp.MustCompile(`([a-fA-F0-9]+) [DT] _etext\n`)
+	// _etext symbol points to the _next_ section, so it has type of the next section.
+	// It can be at least T, D, or R in some cases:
+	// https://groups.google.com/g/syzkaller/c/LSx6YIK_Eeo
+	re = regexp.MustCompile(`([a-fA-F0-9]+) . _etext\n`)
 	m = re.FindSubmatch(_Text)
 	if m == nil {
 		return 0, 0, fmt.Errorf("failed to get _etext symbol")
