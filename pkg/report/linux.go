@@ -1332,6 +1332,8 @@ var linuxStackParams = &stackParams{
 		"rhashtable_lookup",
 		"extract_(user|iter)_to_sg",
 		"drop_nlink",
+		"^get_taint$",
+		"^put_device$",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
