@@ -319,6 +319,12 @@ static void must_symlink(const char* oldpath, const char* linkpath)
 
 static int test_glob()
 {
+#if GOARCH_arm
+	// When running a 32-bit ARM binary on a 64-bit system under QEMU, readdir() fails
+	// with EOVERFLOW, resulting in Glob() returning 0 files.
+	// Tracking QEMU bug: https://gitlab.com/qemu-project/qemu/-/issues/263.
+	return -1;
+#endif
 	// Note: pkg/runtest.TestExecutor creates a temp dir for the test,
 	// so we create files in cwd and don't clean up.
 	if (!test_one_glob("glob/*", {}))
