@@ -89,4 +89,10 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:    `82880283d7fcd0a1d20964a56d6d1a5cc0df0713`,
 		FixTitle:   `objtool: Fix truncated string warning`,
 	},
+	{
+		// Fixes `boot failed: WARNING in kvm_wait`.
+		GuiltyHash: `997acaf6b4b59c6a9c259740312a69ea549cc684`,
+		FixHash:    `f4e61f0c9add3b00bd5f2df3c814d688849b8707`,
+		FixTitle:   `x86/kvm: Fix broken irq restoration in kvm_wait`,
+	},
 }
