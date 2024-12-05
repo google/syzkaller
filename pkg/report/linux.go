@@ -1953,7 +1953,7 @@ var linuxOopses = append([]*oops{
 			compile(`WARNING: See https.* for mitigation options.`),
 			compile(`WARNING: kernel not compiled with CPU_SRSO`),
 			compile(`EXT4-[Ff][Ss](?: \(.*\))?:`), // printed in __ext4_msg
-			compile(`(?i)warning: .* uses deprecated v2 capabilities`),
+			compile(`(?i)warning: .* uses (deprecated v2 capabilities|wireless extensions)`),
 		},
 		crash.Warning,
 	},
