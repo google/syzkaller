@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,7 +45,11 @@ func TestExecutor(t *testing.T) {
 				if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
 					t.Fatal(err)
 				}
-				t.Skipf("skipping, cross-arch binary failed: %v", err)
+				if strings.Contains(err.Error(), "SYZFAIL:") {
+					t.Fatal(err)
+				} else {
+					t.Skipf("skipping, cross-arch binary failed: %v", err)
+				}
 			}
 		})
 	}
