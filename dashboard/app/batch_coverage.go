@@ -151,3 +151,17 @@ func nsDataAvailable(ctx context.Context, ns string) ([]coveragedb.TimePeriod, [
 	}
 	return periods, recordsCount, nil
 }
+
+func handleBatchCoverageClean(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	totalDeleted, err := coveragedb.DeleteGarbage(ctx)
+	if err != nil {
+		errMsg := fmt.Sprintf("failed to coveragedb.DeleteGarbage: %s", err.Error())
+		log.Errorf(ctx, "%s", errMsg)
+		w.Write([]byte(errMsg))
+		return
+	}
+	logMsg := fmt.Sprintf("successfully deleted %d rows\n", totalDeleted)
+	log.Infof(ctx, "%s", logMsg)
+	w.Write([]byte(logMsg))
+}
