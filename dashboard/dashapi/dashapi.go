@@ -695,7 +695,7 @@ type MergedCoverage struct {
 	Duration  int64
 	DateTo    civil.Date
 	TotalRows int64
-	FileData  map[string]*coveragedb.Coverage
+	FileData  coveragedb.ManagersCoverage
 }
 
 type SaveCoverageReq struct {
