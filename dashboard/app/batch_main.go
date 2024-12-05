@@ -18,6 +18,7 @@ import (
 func initBatchProcessors() {
 	http.HandleFunc("/cron/batch_coverage", handleBatchCoverage)
 	http.HandleFunc("/cron/batch_db_export", handleBatchDBExport)
+	http.HandleFunc("/cron/batch_coverage_clean", handleBatchCoverageClean)
 }
 
 // from https://cloud.google.com/batch/docs/samples/batch-create-script-job

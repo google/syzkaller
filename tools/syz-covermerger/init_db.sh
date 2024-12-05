@@ -23,6 +23,9 @@ CREATE TABLE
     (session, filepath) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
+echo "creating 'files' index"
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+ --ddl="CREATE INDEX files_session ON files (session);"
 
 echo "drop table 'merge_history' if exists"
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
@@ -43,6 +46,9 @@ CREATE TABLE
     (namespace, repo, duration, dateto) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
+ echo "creating 'merge_history' index"
+ gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+  --ddl="CREATE INDEX merge_history_session ON merge_history (session);"
 
 echo "drop table 'file_subsystems' if exists"
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
