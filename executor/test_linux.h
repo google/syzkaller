@@ -304,3 +304,19 @@ static int cpu_feature_enabled(uint32_t function, uint32_t eax_bits, uint32_t eb
 	return 0;
 }
 #endif
+
+#ifdef GOARCH_arm64
+static int test_syzos()
+{
+	int mem_size = SYZ_PAGE_SIZE * 4;
+	void* mem = mmap(0, mem_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (mem == MAP_FAILED) {
+		printf("mmap failed (%d)\n", errno);
+		return 1;
+	}
+	// Right now SyzOS testing just boils down to installing code into memory.
+	install_syzos_code(mem, mem_size);
+	munmap(mem, mem_size);
+	return 0;
+}
+#endif
