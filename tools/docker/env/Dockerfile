@@ -17,7 +17,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends
 	# These are needed to build Linux kernel:
 	flex bison bc libelf-dev libssl-dev \
 	# qemu-user is required to run alien arch binaries in pkg/cover tests.
-	qemu-user \
+	qemu-user qemu-user-binfmt \
 	# These are various fsck-like commands needed for prog/fsck:
 	dosfstools e2fsprogs btrfs-progs util-linux f2fs-tools jfsutils \
 	util-linux dosfstools ocfs2-tools reiserfsprogs xfsprogs erofs-utils \
