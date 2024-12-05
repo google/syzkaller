@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -45,7 +46,7 @@ func TestExecutor(t *testing.T) {
 				if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
 					t.Fatal(err)
 				}
-				if strings.Contains(err.Error(), "SYZFAIL:") {
+				if os.Getenv("CI") != "" || strings.Contains(err.Error(), "SYZFAIL:") {
 					t.Fatal(err)
 				} else {
 					t.Skipf("skipping, cross-arch binary failed: %v", err)
