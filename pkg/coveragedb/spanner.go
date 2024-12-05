@@ -26,6 +26,7 @@ type FilesRecord struct {
 	Covered           int64
 	LinesInstrumented []int64
 	HitCounts         []int64
+	Manager           string // "*" means "collected from all managers"
 }
 
 type FileSubsystems struct {
@@ -50,6 +51,11 @@ func NewClient(ctx context.Context, projectID string) (*spanner.Client, error) {
 	return spanner.NewClient(ctx, database)
 }
 
+type ManagersCoverage map[string]ManagerCoverage
+
+// ManagerCoverage is a file to coverage mapping.
+type ManagerCoverage map[string]*Coverage
+
 type Coverage struct {
 	Instrumented      int64
 	Covered           int64
@@ -57,7 +63,16 @@ type Coverage struct {
 	HitCounts         []int64
 }
 
-func SaveMergeResult(ctx context.Context, projectID string, covMap map[string]*Coverage,
+func (c *Coverage) AddLineHitCount(line, hitCount int) {
+	c.Instrumented++
+	c.LinesInstrumented = append(c.LinesInstrumented, int64(line))
+	c.HitCounts = append(c.HitCounts, int64(hitCount))
+	if hitCount > 0 {
+		c.Covered++
+	}
+}
+
+func SaveMergeResult(ctx context.Context, projectID string, manCovMap ManagersCoverage,
 	template *HistoryRecord, totalRows int64, sss []*subsystem.Subsystem) error {
 	client, err := NewClient(ctx, projectID)
 	if err != nil {
@@ -70,19 +85,22 @@ func SaveMergeResult(ctx context.Context, projectID string, covMap map[string]*C
 
 	session := uuid.New().String()
 	mutations := []*spanner.Mutation{}
-	for filePath, record := range covMap {
-		mutations = append(mutations, fileRecordMutation(session, filePath, record))
-		subsystems := fileSubsystems(filePath, ssMatcher, ssCache)
-		mutations = append(mutations, fileSubsystemsMutation(template.Namespace, filePath, subsystems))
-		// There is a limit on the number of mutations per transaction (80k) imposed by the DB.
-		// This includes both explicit mutations of the fields (6 fields * 1k records = 6k mutations)
-		//   and implicit index mutations.
-		// We keep the number of records low enough for the number of explicit mutations * 10 does not exceed the limit.
-		if len(mutations) > 1000 {
-			if _, err = client.Apply(ctx, mutations); err != nil {
-				return fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
+
+	for manager, covMap := range manCovMap {
+		for filePath, record := range covMap {
+			mutations = append(mutations, fileRecordMutation(session, manager, filePath, record))
+			subsystems := fileSubsystems(filePath, ssMatcher, ssCache)
+			mutations = append(mutations, fileSubsystemsMutation(template.Namespace, filePath, subsystems))
+			// There is a limit on the number of mutations per transaction (80k) imposed by the DB.
+			// This includes both explicit mutations of the fields (6 fields * 1k records = 6k mutations)
+			//   and implicit index mutations.
+			// We keep the number of records low enough for the number of explicit mutations * 10 does not exceed the limit.
+			if len(mutations) > 1000 {
+				if _, err = client.Apply(ctx, mutations); err != nil {
+					return fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
+				}
+				mutations = nil
 			}
-			mutations = nil
 		}
 	}
 	mutations = append(mutations, historyMutation(session, template, totalRows))
@@ -107,7 +125,7 @@ from merge_history
 	join files
 		on merge_history.session = files.session
 where
-	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5`,
+	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5 and manager='*'`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
@@ -167,7 +185,7 @@ func historyMutation(session string, template *HistoryRecord, totalRows int64) *
 	return historyInsert
 }
 
-func fileRecordMutation(session, filePath string, record *Coverage) *spanner.Mutation {
+func fileRecordMutation(session, manager, filePath string, record *Coverage) *spanner.Mutation {
 	insert, err := spanner.InsertOrUpdateStruct("files", &FilesRecord{
 		Session:           session,
 		FilePath:          filePath,
@@ -175,6 +193,7 @@ func fileRecordMutation(session, filePath string, record *Coverage) *spanner.Mut
 		Covered:           record.Covered,
 		LinesInstrumented: record.LinesInstrumented,
 		HitCounts:         record.HitCounts,
+		Manager:           manager,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to fileRecordMutation: %v", err))
