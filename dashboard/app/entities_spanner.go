@@ -44,8 +44,8 @@ func MergedCoverage(ctx context.Context, ns, periodType string) (*CoverageHistor
 select
   dateto as targetdate,
   duration as days,
-  cast(sum(instrumented) as INTEGER) as instrumented,
-  cast(sum(covered) as INTEGER) as covered
+  cast(sum(array_length(linesinstrumented, 1)) as INTEGER) as instrumented,
+  cast(sum(array_length(hitcounts, 1)) as INTEGER) as covered
 from merge_history join files
   on merge_history.session = files.session
 where namespace=$1 and duration>=$2 and duration<=$3

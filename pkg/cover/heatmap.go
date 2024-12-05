@@ -159,8 +159,8 @@ func filesCoverageWithDetailsStmt(ns, subsystem string, timePeriod coveragedb.Ti
 		SQL: `
 select
   commit,
-  instrumented,
-  covered,
+  array_length(linesinstrumented, 1) as instrumented,
+  array_length(hitcounts, 1) as covered,
   files.filepath,
   subsystems
 from merge_history
