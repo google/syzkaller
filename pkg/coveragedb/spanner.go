@@ -6,6 +6,7 @@ package coveragedb
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"sync/atomic"
 	"time"
@@ -260,8 +261,8 @@ func NsDataMerged(ctx context.Context, projectID, ns string) ([]TimePeriod, []in
 // Note that in case of an error during batch deletion, some files may be deleted but not counted in the total.
 //
 // Returns the number of orphaned file entries successfully deleted.
-func DeleteGarbage(ctx context.Context) (int64, error) {
-	batchSize := 10_000
+func DeleteGarbage(ctx context.Context, w io.Writer) (int64, error) {
+	batchSize := 1_000
 	client, err := NewClient(ctx, os.Getenv("GOOGLE_CLOUD_PROJECT"))
 	if err != nil {
 		return 0, fmt.Errorf("coveragedb.NewClient: %w", err)
@@ -277,6 +278,7 @@ func DeleteGarbage(ctx context.Context) (int64, error) {
 						WHERE merge_history.session = files.session
 					)`})
 	defer iter.Stop()
+	w.Write([]byte("reading session+filepath...\n"))
 
 	var totalDeleted atomic.Int64
 	eg, _ := errgroup.WithContext(ctx)
@@ -298,26 +300,31 @@ func DeleteGarbage(ctx context.Context) (int64, error) {
 		}
 		batch = append(batch, spanner.Key{r.Session, r.Filepath})
 		if len(batch) > batchSize {
-			goSpannerDelete(ctx, batch, eg, client, &totalDeleted)
+			goSpannerDelete(ctx, batch, eg, client, &totalDeleted, w)
 			batch = nil
 		}
 	}
-	goSpannerDelete(ctx, batch, eg, client, &totalDeleted)
+	goSpannerDelete(ctx, batch, eg, client, &totalDeleted, w)
+	w.Write([]byte("waiting all deletion...\n"))
 	if err = eg.Wait(); err != nil {
 		return 0, fmt.Errorf("spanner.Delete: %w", err)
 	}
+	w.Write([]byte("deleteions done\n"))
 	return totalDeleted.Load(), nil
 }
 
 func goSpannerDelete(ctx context.Context, batch []spanner.Key, eg *errgroup.Group, client *spanner.Client,
-	totalDeleted *atomic.Int64) {
+	totalDeleted *atomic.Int64, w io.Writer) {
 	ks := spanner.KeySetFromKeys(batch...)
 	ksSize := len(batch)
+	w.Write([]byte(fmt.Sprintf("deleting %d records\n", ksSize)))
 	eg.Go(func() error {
 		mutation := spanner.Delete("files", ks)
 		_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
 		if err == nil {
 			totalDeleted.Add(int64(ksSize))
+		} else {
+			w.Write([]byte(fmt.Sprintf("err deleting records: %v\n", err.Error())))
 		}
 		return err
 	})
