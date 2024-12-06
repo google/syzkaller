@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -42,12 +43,25 @@ func main() {
 		flagBinary       = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
 		flagCacheExtract = flag.Bool("cache-extract", false, "use cached extract results if present"+
 			" (cached in manager.workdir/declextract.cache)")
+		flagCacheProbe = flag.Bool("cache-probe", false, "use cached probe results if present"+
+			" (cached in manager.workdir/interfaces.json)")
 	)
 	defer tool.Init()()
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		tool.Failf("failed to load manager config: %v", err)
 	}
+
+	var probeInfo *ifaceprobe.Info
+	probeDone := make(chan error)
+	go func() {
+		var err error
+		probeInfo, err = probe(cfg, *flagConfig, *flagCacheProbe)
+		if err != nil {
+			tool.Failf("kernel probing failed: %v", err)
+		}
+		close(probeDone)
+	}()
 
 	compilationDatabase := filepath.Join(cfg.KernelObj, "compile_commands.json")
 	cmds, err := loadCompileCommands(compilationDatabase)
@@ -63,6 +77,8 @@ func main() {
 		extractor:           subsystem.MakeExtractor(subsystem.GetList(target.OS)),
 		syscallNameMap:      readSyscallMap(cfg.KernelSrc),
 		interfaces:          make(map[string]Interface),
+		fdNames:             make(map[string]int),
+		ioctlNames:          make(map[string]int),
 	}
 
 	outputs := make(chan *output, len(cmds))
@@ -96,6 +112,19 @@ func main() {
 	}
 	ctx.finishDescriptions()
 
+	<-probeDone
+	ctx.parseProbeInfo(probeInfo)
+
+	slices.SortFunc(ctx.fops, func(a, b *OutputFops) int {
+		return strings.Compare(a.String(), b.String())
+	})
+	ctx.fops = slices.CompactFunc(ctx.fops, func(a, b *OutputFops) bool {
+		return a.String() == b.String()
+	})
+	for _, fops := range ctx.fops {
+		ctx.createFops(fops)
+	}
+
 	desc := &ast.Description{
 		Nodes: ctx.nodes,
 	}
@@ -122,6 +151,237 @@ type context struct {
 	syscallNameMap      map[string][]string
 	interfaces          map[string]Interface
 	nodes               []ast.Node
+	fops                []*OutputFops
+	probeFuncToFiles    map[string]map[string]bool
+	fdNames             map[string]int
+	ioctlNames          map[string]int
+}
+
+// OutputTop represents json output of the clang tool.
+type OutputTop struct {
+	Fops *OutputFops
+}
+
+// OutputFops describes one file_operations variable.
+type OutputFops struct {
+	// Names of callback functions.
+	Open  string
+	Read  string
+	Write string
+	Mmap  string
+	Ioctl string
+	Cmds  []OutputIoctlCmd // set of ioctl commands
+}
+
+type OutputIoctlCmd struct {
+	Name string // literal name of the command (e.g. KCOV_REMOTE_ENABLE
+	Type string // inferred syzlang type (e.g. ptr[in, int32])
+}
+
+func (fops *OutputFops) String() string {
+	w := new(bytes.Buffer)
+	fmt.Fprintf(w, "fops:")
+	writefop := func(name, fn string) {
+		if fn != "" {
+			fmt.Fprintf(w, " %v:%v", name, fn)
+		}
+	}
+	writefop("open", fops.Open)
+	writefop("read", fops.Read)
+	writefop("write", fops.Write)
+	writefop("mmap", fops.Mmap)
+	writefop("ioctl", fops.Ioctl)
+	return w.String()
+}
+
+func probe(cfg *mgrconfig.Config, cfgFile string, cache bool) (*ifaceprobe.Info, error) {
+	if cache {
+		info, err := readProbeResult(cfg)
+		if err == nil {
+			return info, nil
+		}
+	}
+	_, err := osutil.RunCmd(30*time.Minute, "", filepath.Join(cfg.Syzkaller, "bin", "syz-manager"),
+		"-config", cfgFile, "-mode", "iface-probe")
+	if err != nil {
+		return nil, err
+	}
+	return readProbeResult(cfg)
+}
+
+func readProbeResult(cfg *mgrconfig.Config) (*ifaceprobe.Info, error) {
+	data, err := os.ReadFile(filepath.Join(cfg.Workdir, "interfaces.json"))
+	if err != nil {
+		return nil, err
+	}
+	info := new(ifaceprobe.Info)
+	if err := json.Unmarshal(data, info); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal interfaces.json: %w", err)
+	}
+	return info, nil
+}
+
+func (ctx *context) parseProbeInfo(info *ifaceprobe.Info) {
+	pcToFunc := make(map[uint64]string)
+	for _, pc := range info.PCs {
+		pcToFunc[pc.PC] = pc.Func
+	}
+	ctx.probeFuncToFiles = make(map[string]map[string]bool)
+	for _, file := range info.Files {
+		for _, pc := range file.Cover {
+			fn := pcToFunc[pc]
+			files := ctx.probeFuncToFiles[fn]
+			if files == nil {
+				files = make(map[string]bool)
+				ctx.probeFuncToFiles[fn] = files
+			}
+			files[file.Name] = true
+		}
+	}
+}
+
+func (ctx *context) createFops(fops *OutputFops) {
+	// TODO: also emit interface entry for the fops.
+	if fops.Read == "" && fops.Write == "" && fops.Mmap == "" && fops.Ioctl == "" {
+		return
+	}
+	name, files := ctx.mapFopsToFiles(fops)
+	if len(files) == 0 {
+		fmt.Printf("%v: %v is not mapped to any file\n", name, fops)
+		return
+	}
+	fmt.Printf("%v: %v mapped to %v\n", name, fops, files[:min(10, len(files))])
+
+	// Some fops are mapped to too many files, usually these have generic callbacks
+	// like simple_attr_read+simple_attr_write. Compiler restricts number of strings to 2000.
+	// TODO: emit multiple open calls to cover all files.
+	files = files[:min(len(files), 1000)]
+	w := new(bytes.Buffer)
+	fmt.Fprintf(w, "\n# %v\n", fops)
+	fmt.Fprintf(w, "resource fd_%v[fd]\n", name)
+	fileFlags := fmt.Sprintf("\"%s\"", files[0])
+	if len(files) > 1 {
+		fileFlags = fmt.Sprintf("%v_files", name)
+		fmt.Fprintf(w, "%v = ", fileFlags)
+		for i, file := range files {
+			if i != 0 {
+				fmt.Fprintf(w, ", ")
+			}
+			fmt.Fprintf(w, "\"%v\"", file)
+		}
+		fmt.Fprintf(w, "\n")
+	}
+	fmt.Fprintf(w, "openat$%v(fd const[AT_FDCWD], file ptr[in, string[%v]],"+
+		" flags flags[open_flags], mode const[0]) fd_%v (automatic)\n",
+		name, fileFlags, name)
+	if fops.Read != "" {
+		fmt.Fprintf(w, "read$%v(fd fd_%v, buf ptr[out, array[int8]],"+
+			" len bytesize[buf]) (automatic)\n", name, name)
+	}
+	if fops.Write != "" {
+		fmt.Fprintf(w, "write$%v(fd fd_%v, buf ptr[in, array[int8]],"+
+			" len bytesize[buf]) (automatic)\n", name, name)
+	}
+	if fops.Mmap != "" {
+		fmt.Fprintf(w, "mmap$%v(addr vma, len len[addr], prot flags[mmap_prot],"+
+			" flags flags[mmap_flags], fd fd_%v, offset fileoff) (automatic)\n", name, name)
+	}
+	if fops.Ioctl != "" {
+		if len(fops.Cmds) == 0 {
+			fmt.Fprintf(w, "ioctl$%v(fd fd_%v, cmd intptr,"+
+				" arg ptr[in, array[int8]]) (automatic)\n", name, name)
+		} else {
+			for _, cmd := range fops.Cmds {
+				suffix := ""
+				ctx.ioctlNames[cmd.Name]++
+				if ctx.ioctlNames[cmd.Name] != 1 {
+					suffix += fmt.Sprint(ctx.ioctlNames[cmd.Name])
+				}
+				fmt.Fprintf(w, "ioctl$auto_%v%v(fd fd_%v, cmd const[%v], arg %v) (automatic)\n",
+					cmd.Name, suffix, name, cmd.Name, cmd.Type)
+			}
+		}
+	}
+	fmt.Fprintf(w, "\n")
+
+	parsed := ast.Parse(w.Bytes(), "", nil)
+	if parsed == nil {
+		panic(fmt.Sprintf("parsing failed:\n%s", w.Bytes()))
+	}
+	ctx.nodes = append(ctx.nodes, parsed.Nodes...)
+	ctx.nodes = append(ctx.nodes, &ast.NewLine{})
+}
+
+func (ctx *context) mapFopsToFiles(fops *OutputFops) (string, []string) {
+	first := true
+	var files map[string]bool
+	var unique map[string]int
+	for _, fn := range []string{fops.Open, fops.Read, fops.Write, fops.Mmap, fops.Ioctl} {
+		if fn == "" {
+			continue
+		}
+		files1 := ctx.probeFuncToFiles[fn]
+		var unique1 map[string]int
+		if fn != "seq_read" && !strings.HasPrefix(fn, "generic_") &&
+			!strings.HasPrefix(fn, "simple_") {
+			unique1 = make(map[string]int)
+			for i, part := range strings.Split(fn, "_") {
+				switch part {
+				case "read", "write", "ioctl", "mmap", "open", "fops":
+					continue
+				}
+				unique1[part] = i
+			}
+			if unique == nil {
+				unique = unique1
+			} else {
+				for part := range unique {
+					if _, ok := unique1[part]; !ok {
+						delete(unique, part)
+					}
+				}
+			}
+		}
+		if first {
+			first = false
+			files = files1
+			continue
+		} else {
+			for file := range files {
+				if !files1[file] {
+					delete(files, file)
+				}
+			}
+		}
+	}
+	type namePart struct {
+		name string
+		idx  int
+	}
+	var parts []namePart
+	for part, idx := range unique {
+		parts = append(parts, namePart{part, idx})
+	}
+	slices.SortFunc(parts, func(a, b namePart) int {
+		return a.idx - b.idx
+	})
+	name := "auto"
+	for _, part := range parts {
+		name += "_" + part.name
+	}
+	if len(files) == 0 {
+		return name, nil
+	}
+	ctx.fdNames[name]++
+	if ctx.fdNames[name] != 1 || len(parts) == 0 {
+		name += fmt.Sprint(ctx.fdNames[name])
+	}
+	var sortedFiles []string
+	for file := range files {
+		sortedFiles = append(sortedFiles, file)
+	}
+	slices.Sort(sortedFiles)
+	return name, sortedFiles
 }
 
 type compileCommand struct {
@@ -500,6 +760,14 @@ func (ctx *context) appendNodes(nodes []ast.Node, file string) {
 					}
 				} else {
 					ctx.mergeInterface(iface)
+				}
+			case strings.HasPrefix(node.Text, "JSON:"):
+				top := new(OutputTop)
+				if err := json.Unmarshal([]byte(node.Text[5:]), top); err != nil {
+					tool.Failf("failed to unmarshal json %q: %v", node.Text, err)
+				}
+				if top.Fops != nil {
+					ctx.fops = append(ctx.fops, top.Fops)
 				}
 			default:
 				ctx.nodes = append(ctx.nodes, node)
