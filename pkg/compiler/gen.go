@@ -78,7 +78,7 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				comp.error(arg.Pos, "%v arg %v is larger than pointer size", n.Name.Name, arg.Name.Name)
 				continue
 			}
-			argID := fmt.Sprintf("%v|%v", getCallName(n), i)
+			argID := fmt.Sprintf("%v|%v", comp.getCallName(n), i)
 			if _, ok := argPos[argID]; !ok {
 				argSizes[i] = typ.Size()
 				argPos[argID] = arg.Pos
@@ -90,16 +90,18 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				continue
 			}
 		}
-		callArgSizes[getCallName(n)] = argSizes
+		callArgSizes[comp.getCallName(n)] = argSizes
 	}
 	return callArgSizes
 }
 
-func getCallName(n *ast.Call) string {
-	for _, attr := range n.Attrs {
-		if attr.Ident == "automatic" {
-			return n.Name.Name
-		}
+func (comp *compiler) getCallName(n *ast.Call) string {
+	// getCallName is used for checking that all variants of the same syscall have same argument sizes
+	// for matching arguments. Automatically-generated syscalls may violate that condition,
+	// so for them we use full syscall name. As the result manual and automatic variants
+	// of the same syscall are not checked against each other.
+	if comp.fileMeta(n.Pos).Automatic {
+		return n.Name.Name
 	}
 	return n.CallName
 }
@@ -109,7 +111,7 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
-			calls = append(calls, comp.genSyscall(n, callArgSizes[getCallName(n)]))
+			calls = append(calls, comp.genSyscall(n, callArgSizes[comp.getCallName(n)]))
 		}
 	}
 	// We assign SquashableElem here rather than during pointer type generation
@@ -132,6 +134,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		ret = comp.genType(n.Ret, comp.ptrSize)
 	}
 	var attrs prog.SyscallAttrs
+	attrs.Automatic = comp.fileMeta(n.Pos).Automatic
 	intAttrs, _, stringAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
 	for desc, val := range intAttrs {
 		fld := reflect.ValueOf(&attrs).Elem().FieldByName(desc.Name)

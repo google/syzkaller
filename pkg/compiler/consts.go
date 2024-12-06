@@ -119,7 +119,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 			comp.extractTypeConsts(ctx, decl)
 		}
 	}
-	return convertConstInfo(ctx, comp.fileMeta)
+	return convertConstInfo(ctx, comp.fileMetas)
 }
 
 func foreachFieldAttrConst(n *ast.Struct, cb func(*ast.Type)) {
