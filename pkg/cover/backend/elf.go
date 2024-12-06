@@ -223,8 +223,8 @@ func elfGetCompilerVersion(path string) string {
 	return string(data[:])
 }
 
-func elfReadTextSecRange(module *vminfo.KernelModule) (*SecRange, error) {
-	text, err := elfReadTextSec(module)
+func elfReadSecRange(module *vminfo.KernelModule, sec string) (*SecRange, error) {
+	text, err := elfReadSec(module, sec)
 	if err != nil {
 		return nil, err
 	}
@@ -235,13 +235,13 @@ func elfReadTextSecRange(module *vminfo.KernelModule) (*SecRange, error) {
 	return r, nil
 }
 
-func elfReadTextSec(module *vminfo.KernelModule) (*elf.Section, error) {
+func elfReadSec(module *vminfo.KernelModule, sec string) (*elf.Section, error) {
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	text := file.Section(".text")
+	text := file.Section(sec)
 	if text == nil {
 		return nil, fmt.Errorf("no .text section in the object file")
 	}
