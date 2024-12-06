@@ -991,3 +991,5 @@ test$produce_subtype_of_common() subtype_of_common
 
 test$consume_common(val common)
 test$consume_subtype_of_common(val subtype_of_common)
+
+test$fsck_attr() (fsck["fsck.test -n"])

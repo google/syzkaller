@@ -33,7 +33,7 @@ type Syscall struct {
 // pkg/compiler uses this structure to parse descriptions.
 // syz-sysgen uses this structure to generate code for executor.
 //
-// Only `bool`s and `uint64`s are currently supported.
+// Only `bool`s, `string`s and `uint64`s are currently supported.
 //
 // See docs/syscall_descriptions_syntax.md for description of individual attributes.
 type SyscallAttrs struct {
@@ -47,6 +47,7 @@ type SyscallAttrs struct {
 	RemoteCover     bool
 	Automatic       bool
 	AutomaticHelper bool
+	Fsck            string
 }
 
 // MaxArgs is maximum number of syscall arguments.

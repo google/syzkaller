@@ -46,9 +46,12 @@ func TestForEachAsset(t *testing.T) {
 			t.Fatalf("failed to deserialize %s: %s", file, err)
 		}
 		base := strings.TrimSuffix(file, ".in")
-		p.ForEachAsset(func(name string, typ AssetType, r io.Reader) {
+		p.ForEachAsset(func(name string, typ AssetType, r io.Reader, c *Call) {
 			if typ != MountInRepro {
 				t.Fatalf("unknown asset type %v", typ)
+			}
+			if !strings.HasPrefix(c.Meta.Name, "syz_mount_image$") {
+				t.Fatalf("unexpected syscall name %v", c.Meta.Name)
 			}
 			testResult, err := io.ReadAll(r)
 			if err != nil {

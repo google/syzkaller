@@ -140,6 +140,22 @@ func TestVmaType(t *testing.T) {
 	}
 }
 
+func TestFsckAttr(t *testing.T) {
+	target, err := GetTarget("test", "64")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	syscall := target.SyscallMap["test$fsck_attr"]
+	if syscall == nil {
+		t.Fatal("could not find test$fsck_attr in sys/test")
+	}
+
+	if syscall.Attrs.Fsck != "fsck.test -n" {
+		t.Fatalf("unexpected fsck command %s", syscall.Attrs.Fsck)
+	}
+}
+
 // TestCrossTarget ensures that a program serialized for one arch can be
 // deserialized for another arch. This happens when managers exchange
 // programs via hub.

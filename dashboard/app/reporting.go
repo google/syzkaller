@@ -549,7 +549,7 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	if !bugReporting.Reported.IsZero() {
 		typ = dashapi.ReportRepro
 	}
-	assetList := createAssetList(build, crash, true)
+	assetList := createAssetList(c, build, crash, true)
 	kernelRepo := kernelRepoInfo(c, build)
 	rep := &dashapi.BugReport{
 		Type:            typ,

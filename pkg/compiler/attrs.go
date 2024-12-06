@@ -18,6 +18,7 @@ const (
 	// This will facilitate const expressions in e.g. size[] or align[].
 	intAttr
 	exprAttr
+	stringAttr
 )
 
 type attrDesc struct {
@@ -80,6 +81,8 @@ func initCallAttrs() {
 		case reflect.Bool:
 		case reflect.Uint64:
 			desc.Type = intAttr
+		case reflect.String:
+			desc.Type = stringAttr
 		default:
 			panic("unsupported syscall attribute type")
 		}

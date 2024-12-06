@@ -383,7 +383,7 @@ const (
 	MountInRepro AssetType = iota
 )
 
-func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader)) {
+func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader, c *Call)) {
 	for id, c := range p.Calls {
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			a, ok := arg.(*DataArg)
@@ -395,7 +395,7 @@ func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader)) {
 			if len(data) == 0 {
 				return
 			}
-			cb(fmt.Sprintf("mount_%v", id), MountInRepro, bytes.NewReader(data))
+			cb(fmt.Sprintf("mount_%v", id), MountInRepro, bytes.NewReader(data), c)
 		})
 	}
 }

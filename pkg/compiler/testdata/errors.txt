@@ -507,3 +507,5 @@ conditional_fields_union2 [
 	u2	int32 ### either no fields have conditions or all except the last
 	u3	int32
 ]
+
+invalid_string_attr() (invalid["string"])	### unknown syscall invalid_string_attr attribute invalid

@@ -312,6 +312,8 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 				}
 			case reflect.Uint64:
 				val = attr.Uint()
+			case reflect.String:
+				continue
 			default:
 				panic("unsupported syscall attribute type")
 			}
