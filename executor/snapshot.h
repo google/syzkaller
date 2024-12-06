@@ -133,6 +133,14 @@ static void SnapshotSetup(char** argv, int argc)
 	    .slowdown_scale = static_cast<uint64>(msg->slowdown()),
 	};
 	parse_handshake(req);
+#if SYZ_HAVE_FEATURES
+	setup_sysctl();
+	setup_cgroups();
+#endif
+#if SYZ_HAVE_SETUP_EXT
+	// This can be defined in common_ext.h.
+	setup_ext();
+#endif
 	for (const auto& feat : features) {
 		if (!(msg->features() & feat.id))
 			continue;
