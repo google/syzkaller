@@ -113,8 +113,8 @@ func (ctx *Context) Run(waitCtx context.Context) error {
 		if !verbose || ctx.Verbose {
 			ctx.log("%-38v: %v", req.name, result)
 		}
-		if req.Request != nil && req.Request.BinaryFile != "" {
-			os.Remove(req.BinaryFile)
+		if req.Request != nil && req.Type == flatrpc.RequestTypeBinary && req.Data != "" {
+			os.Remove(req.Data)
 		}
 	}
 	ctx.log("ok: %v, broken: %v, skip: %v, fail: %v", ok, broken, skip, fail)
@@ -400,7 +400,8 @@ func (ctx *Context) createTest(req *runRequest) {
 			req.Request.Done(&queue.Result{})
 			return
 		}
-		req.BinaryFile = bin
+		req.Type = flatrpc.RequestTypeBinary
+		req.Data = bin
 		ctx.submit(req)
 	}()
 }
@@ -493,7 +494,7 @@ func checkResult(req *runRequest) error {
 		return fmt.Errorf("non-successful result status (%v)", req.result.Status)
 	}
 	infos := []*flatrpc.ProgInfo{req.result.Info}
-	isC := req.BinaryFile != ""
+	isC := req.Type == flatrpc.RequestTypeBinary
 	if isC {
 		var err error
 		if infos, err = parseBinOutput(req); err != nil {

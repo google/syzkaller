@@ -104,18 +104,23 @@ func createSuccessfulResults(source queue.Source, stop chan struct{}) {
 			// Currently we have 641 (when we failed to properly dedup syscall tests, it was 4349).
 			panic("too many test programs")
 		}
-		info := &flatrpc.ProgInfo{}
-		for range req.Prog.Calls {
-			info.Calls = append(info.Calls, &flatrpc.CallInfo{
-				Cover:  []uint64{1},
-				Signal: []uint64{1},
-				Comps:  []*flatrpc.Comparison{{Op1: 1, Op2: 2}},
-			})
-		}
-		req.Done(&queue.Result{
+		res := &queue.Result{
 			Status: queue.Success,
-			Info:   info,
-		})
+		}
+		switch req.Type {
+		case flatrpc.RequestTypeProgram:
+			res.Info = &flatrpc.ProgInfo{}
+			for range req.Prog.Calls {
+				res.Info.Calls = append(res.Info.Calls, &flatrpc.CallInfo{
+					Cover:  []uint64{1},
+					Signal: []uint64{1},
+					Comps:  []*flatrpc.Comparison{{Op1: 1, Op2: 2}},
+				})
+			}
+		case flatrpc.RequestTypeGlob:
+			res.Output = []byte("/some/file\n")
+		}
+		req.Done(res)
 	}
 }
 

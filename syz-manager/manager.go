@@ -301,9 +301,6 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		Stats:   mgr.servStats,
 		Debug:   *flagDebug,
 	}
-	if mode == ModeIfaceProbe {
-		rpcCfg.CheckGlobs = ifaceprobe.Globs()
-	}
 	mgr.serv, err = rpcserver.New(rpcCfg)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
@@ -1074,8 +1071,7 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 	return
 }
 
-func (mgr *Manager) MachineChecked(info *flatrpc.InfoRequest, features flatrpc.Feature,
-	enabledSyscalls map[*prog.Syscall]bool) queue.Source {
+func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map[*prog.Syscall]bool) queue.Source {
 	if len(enabledSyscalls) == 0 {
 		log.Fatalf("all system calls are disabled")
 	}
@@ -1186,7 +1182,7 @@ func (mgr *Manager) MachineChecked(info *flatrpc.InfoRequest, features flatrpc.F
 	} else if mgr.mode == ModeIfaceProbe {
 		exec := queue.Plain()
 		go func() {
-			res, err := ifaceprobe.Run(vm.ShutdownCtx(), mgr.cfg, exec, info)
+			res, err := ifaceprobe.Run(vm.ShutdownCtx(), mgr.cfg, features, exec)
 			if err != nil {
 				log.Fatalf("interface probing failed: %v", err)
 			}

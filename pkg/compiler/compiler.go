@@ -7,7 +7,6 @@ package compiler
 
 import (
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -140,7 +139,7 @@ type compiler struct {
 	structTypes    map[string]prog.Type
 	structFiles    map[*ast.Struct]map[string]ast.Pos
 	builtinConsts  map[string]uint64
-	fileMeta       map[string]Meta
+	fileMetas      map[string]Meta
 	recursiveQuery map[ast.Node]bool
 }
 
@@ -159,13 +158,9 @@ func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 }
 
 func (comp *compiler) filterArch() {
-	if comp.fileMeta == nil {
-		comp.fileMeta = comp.fileList()
-	}
 	comp.desc = comp.desc.Filter(func(n ast.Node) bool {
 		pos, typ, name := n.Info()
-		meta := comp.fileMeta[filepath.Base(pos.File)]
-		if meta.SupportsArch(comp.target.Arch) {
+		if comp.fileMeta(pos).SupportsArch(comp.target.Arch) {
 			return true
 		}
 		switch n.(type) {

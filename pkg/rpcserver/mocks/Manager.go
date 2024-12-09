@@ -72,17 +72,17 @@ func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	return r0
 }
 
-// MachineChecked provides a mock function with given fields: info, features, syscalls
-func (_m *Manager) MachineChecked(info *flatrpc.InfoRequestRawT, features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
-	ret := _m.Called(info, features, syscalls)
+// MachineChecked provides a mock function with given fields: features, syscalls
+func (_m *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
+	ret := _m.Called(features, syscalls)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MachineChecked")
 	}
 
 	var r0 queue.Source
-	if rf, ok := ret.Get(0).(func(*flatrpc.InfoRequestRawT, flatrpc.Feature, map[*prog.Syscall]bool) queue.Source); ok {
-		r0 = rf(info, features, syscalls)
+	if rf, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) queue.Source); ok {
+		r0 = rf(features, syscalls)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(queue.Source)

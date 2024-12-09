@@ -1,0 +1,56 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# This file contains manual descriptions that are required to compile auto-generated descriptions.
+
+resource fd[int32]
+resource sock_nl_generic[fd]
+resource pid[int32]
+
+type ifindex int32
+
+create$pid() pid (automatic_helper)
+create$sock_nl_generic() sock_nl_generic (automatic_helper)
+sendmsg$netlink(fd sock_nl_generic, data ptr[in, msghdr_netlink[netlink_msg_t[int32, genlmsghdr_t[1], int32]]], flags flags[send_flags])
+
+use(a ptr[in, use])
+use {
+	f0	pid
+	f1	ifindex
+	f2	auto_todo
+	f3	nlattr[1, int32]
+	f4	nlnest[1, int32]
+	f5	nl_generic_attr
+	f6	flags[open_flags, int32]
+	f7	flags[mmap_prot, int32]
+	f8	flags[mmap_flags, int32]
+	
+}
+
+type msghdr_netlink[MSG] {
+	vec	ptr[in, MSG]
+}
+
+type netlink_msg_t[TYPE, PAYLOAD, ATTRS] {
+	type	TYPE
+	payload	PAYLOAD
+	attrs	array[ATTRS]
+}
+
+type genlmsghdr_t[CMD] {
+	cmd		const[CMD, int8]
+}
+
+type nlattr[ATTR, TYPE] {
+	attr		const[ATTR, int32]
+	data		TYPE
+}
+
+type nlnest[ATTR, TYPE] nlattr[ATTR, TYPE]
+
+type nl_generic_attr int32
+
+open_flags = 1, 2
+mmap_prot = 1, 2
+mmap_flags = 1, 2
+send_flags = 1, 2

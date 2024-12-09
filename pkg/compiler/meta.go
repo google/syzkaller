@@ -11,11 +11,12 @@ import (
 )
 
 type Meta struct {
-	NoExtract bool
+	Automatic bool // automatically-generated descriptions
+	NoExtract bool // do not run syz-extract on the descriptions by default
 	Arches    map[string]bool
 }
 
-func (meta *Meta) SupportsArch(arch string) bool {
+func (meta Meta) SupportsArch(arch string) bool {
 	return len(meta.Arches) == 0 || meta.Arches[arch]
 }
 
@@ -25,6 +26,13 @@ func FileList(desc *ast.Description, OS string, eh ast.ErrorHandler) map[string]
 		return createCompiler(desc, target, eh).fileList()
 	}
 	return nil
+}
+
+func (comp *compiler) fileMeta(pos ast.Pos) Meta {
+	if comp.fileMetas == nil {
+		comp.fileMetas = comp.fileList()
+	}
+	return comp.fileMetas[filepath.Base(pos.File)]
 }
 
 func (comp *compiler) fileList() map[string]Meta {
@@ -44,6 +52,8 @@ func (comp *compiler) fileList() map[string]Meta {
 				break
 			}
 			switch n.Value.Ident {
+			case metaAutomatic.Names[0]:
+				meta.Automatic = true
 			case metaNoExtract.Names[0]:
 				meta.NoExtract = true
 			case metaArches.Names[0]:
@@ -55,15 +65,18 @@ func (comp *compiler) fileList() map[string]Meta {
 		}
 		files[file] = meta
 	}
-	if comp.errors != 0 {
-		return nil
-	}
 	return files
 }
 
 var metaTypes = map[string]*typeDesc{
+	metaAutomatic.Names[0]: metaAutomatic,
 	metaNoExtract.Names[0]: metaNoExtract,
 	metaArches.Names[0]:    metaArches,
+}
+
+var metaAutomatic = &typeDesc{
+	Names:     []string{"automatic"},
+	CantBeOpt: true,
 }
 
 var metaNoExtract = &typeDesc{

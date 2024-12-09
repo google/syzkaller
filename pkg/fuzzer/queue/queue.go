@@ -20,8 +20,14 @@ import (
 )
 
 type Request struct {
-	Prog     *prog.Prog
+	// Type of the request.
+	// RequestTypeProgram executes Prog, and is used by most requests (also the default zero value).
+	// RequestTypeBinary executes binary with file name stored in Data.
+	// RequestTypeGlob expands glob pattern stored in Data.
+	Type     flatrpc.RequestType
 	ExecOpts flatrpc.ExecOpts
+	Prog     *prog.Prog
+	Data     string
 
 	// If specified, the resulting signal for call SignalFilterCall
 	// will include subset of it even if it's not new.
@@ -35,9 +41,6 @@ type Request struct {
 
 	// This stat will be incremented on request completion.
 	Stat *stat.Val
-
-	// Options needed by runtest.
-	BinaryFile string // If set, it's executed instead of Prog.
 
 	// Important requests will be retried even from crashed VMs.
 	Important bool
@@ -123,20 +126,43 @@ func (r *Request) Validate() error {
 	if (collectComps) && (collectSignal || collectCover) {
 		return fmt.Errorf("hint collection is mutually exclusive with signal/coverage")
 	}
-	sandboxes := flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSandboxSetuid |
-		flatrpc.ExecEnvSandboxNamespace | flatrpc.ExecEnvSandboxAndroid
-	if r.BinaryFile == "" && r.ExecOpts.EnvFlags&sandboxes == 0 {
-		return fmt.Errorf("no sandboxes set")
+	switch r.Type {
+	case flatrpc.RequestTypeProgram:
+		if r.Prog == nil {
+			return fmt.Errorf("program is not set")
+		}
+		sandboxes := flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSandboxSetuid |
+			flatrpc.ExecEnvSandboxNamespace | flatrpc.ExecEnvSandboxAndroid
+		if r.ExecOpts.EnvFlags&sandboxes == 0 {
+			return fmt.Errorf("no sandboxes set")
+		}
+	case flatrpc.RequestTypeBinary:
+		if r.Data == "" {
+			return fmt.Errorf("binary file name is not set")
+		}
+	case flatrpc.RequestTypeGlob:
+		if r.Data == "" {
+			return fmt.Errorf("glob pattern is not set")
+		}
+	default:
+		return fmt.Errorf("unknown request type")
 	}
 	return nil
 }
 
 func (r *Request) hash() hash.Sig {
 	buf := new(bytes.Buffer)
+	if err := gob.NewEncoder(buf).Encode(r.Type); err != nil {
+		panic(err)
+	}
 	if err := gob.NewEncoder(buf).Encode(r.ExecOpts); err != nil {
 		panic(err)
 	}
-	return hash.Hash(r.Prog.Serialize(), buf.Bytes())
+	data := []byte(r.Data)
+	if r.Type == flatrpc.RequestTypeProgram {
+		data = r.Prog.Serialize()
+	}
+	return hash.Hash(data, buf.Bytes())
 }
 
 func (r *Request) initChannel() {
@@ -170,6 +196,21 @@ func (r *Result) Stop() bool {
 	default:
 		panic(fmt.Sprintf("unhandled status %v", r.Status))
 	}
+}
+
+// Globs returns result of RequestTypeGlob.
+func (r *Result) GlobFiles() []string {
+	var res []string
+	for out := r.Output; len(out) != 0; {
+		z := bytes.IndexByte(out, 0)
+		if z < 0 {
+			res = append(res, string(out))
+			break
+		}
+		res = append(res, string(out[:z]))
+		out = out[z+1:]
+	}
+	return res
 }
 
 type Status int
