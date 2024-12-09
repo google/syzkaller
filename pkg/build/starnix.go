@@ -59,11 +59,11 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 	if err := osutil.SandboxChown(localDir); err != nil {
 		return ImageDetails{}, err
 	}
-	buildDir := filepath.Join(params.KernelDir, "out/"+arch)
+	buildSubdir := "out/" + arch
 	if _, err := runSandboxed(
 		time.Hour,
 		params.KernelDir,
-		"scripts/fx", "--dir", buildDir,
+		"scripts/fx", "--dir", buildSubdir,
 		"set", product,
 		"--assembly-override", fmt.Sprintf("//products/workbench/*=//local:%s", overrideName),
 	); err != nil {
@@ -82,7 +82,7 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		params.KernelDir,
 		ffxBinary,
 		"--no-environment",
-		"-c", filepath.Join(buildDir, ffxBuildConfig),
+		"-c", filepath.Join(params.KernelDir, buildSubdir, ffxBuildConfig),
 		"-c", "log.enabled=false,ffx.analytics.disabled=true,daemon.autostart=false",
 		"config", "get", "product.path",
 	)
