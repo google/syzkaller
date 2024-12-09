@@ -195,6 +195,15 @@ static void setup_cpu_with_opts(int vmfd, int cpufd, const struct kvm_opt* opt, 
 	init.features[0] = features;
 	// Use the modified struct kvm_vcpu_init to initialize the virtual CPU.
 	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
+        // Make sure that PMUs are initialized if enabled
+        const uint32 pmu_bit = (1 << KVM_ARM_VCPU_PMU_V3);
+        if (opt_count == 1 && (features & pmu_bit)) {
+                struct kvm_device_attr attrs = {
+                    .group = KVM_ARM_VCPU_PMU_V3_CTRL,
+                    .attr = KVM_ARM_VCPU_PMU_V3_INIT
+                };
+                ioctl(cpufd, KVM_SET_DEVICE_ATTR, &attrs);
+        }
 }
 
 #endif
