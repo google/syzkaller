@@ -8,5 +8,11 @@ r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
 # 0x603000000013c600 is VBAR_EL1, it aligns the written value on 0x20.
 #
 r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@msr={AUTO, AUTO, {0x603000000013c600, 0xfefefee0}}], AUTO}, 0x0, 0x0)
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
+#
 ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r5, 0xffffffffffffffff)
 ioctl$KVM_GET_ONE_REG(r3, AUTO, &AUTO=@arm64_sys={0x603000000013c600, &AUTO})

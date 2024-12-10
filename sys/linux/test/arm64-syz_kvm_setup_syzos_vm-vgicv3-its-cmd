@@ -23,10 +23,17 @@ ioctl$KVM_SET_DEVICE_ATTR(r4, AUTO, &AUTO=@attr_arm64={0x0, 0x0, 0x4, &AUTO=0x08
 #
 ioctl$KVM_SET_DEVICE_ATTR(r4, AUTO, &AUTO=@attr_arm64={0x0, 0x4, 0x0, 0x0})
 #
+# Map struct kvm_run for the VCPU.
+#
+r5 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r6 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r5, 0x3, 0x1, r3, 0x0)
+#
 # This KVM_RUN will stop after receiving the LPI.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r6, 0xfffffffffffffffe)
 #
 # This KVM_RUN will stop after finishing the user program.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r6, 0xffffffffffffffff)
