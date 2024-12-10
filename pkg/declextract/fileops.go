@@ -30,34 +30,17 @@ func (ctx *context) createFops(fops *FileOps, files []string) {
 		ctx.fmt("resource %v[fd]\n", fdt)
 	}
 	suffix := autoSuffix + "_" + fops.Name
-	if len(files) == 1 {
-		ctx.fmt("openat%v(fd const[AT_FDCWD], file ptr[in, string[\"%s\"]],"+
-			" flags flags[open_flags], mode const[0]) %v\n", suffix, files[0], fdt)
-	} else {
-		// If there are too many files, split them into parts.
-		// First, compiler currently sets limit of 2000 values for string flags;
-		// second, it should provide additional prioritization signal for the fuzzer
-		// (if there are multiple openat calls, it should call them more often than a single call).
-		const partSize = 100
-		singlePart := len(files) <= partSize
-		for partID := 0; len(files) != 0; partID++ {
-			part := files[:min(100, len(files))]
-			files = files[len(part):]
-			partSuffix := ""
-			if !singlePart {
-				partSuffix = fmt.Sprint(partID)
-			}
-			fileFlags := fmt.Sprintf("%v_files%v", fops.Name, partSuffix)
-			ctx.fmt("%v = ", fileFlags)
-			for i, file := range part {
-				ctx.fmt("%v \"%v\"", comma(i), file)
-			}
-			ctx.fmt("\n")
-			ctx.fmt("openat%v%v(fd const[AT_FDCWD], file ptr[in, string[%v]],"+
-				" flags flags[open_flags], mode const[0]) %v\n",
-				suffix, partSuffix, fileFlags, fdt)
+	fileFlags := fmt.Sprintf("\"%s\"", files[0])
+	if len(files) > 1 {
+		fileFlags = fmt.Sprintf("%v_files", fops.Name)
+		ctx.fmt("%v = ", fileFlags)
+		for i, file := range files {
+			ctx.fmt("%v \"%v\"", comma(i), file)
 		}
+		ctx.fmt("\n")
 	}
+	ctx.fmt("openat%v(fd const[AT_FDCWD], file ptr[in, string[%v]], flags flags[open_flags], mode const[0]) %v\n",
+		suffix, fileFlags, fdt)
 	if fops.Read != "" {
 		ctx.fmt("read%v(fd %v, buf ptr[out, array[int8]], len bytesize[buf])\n", suffix, fdt)
 	}

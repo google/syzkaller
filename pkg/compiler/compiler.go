@@ -470,8 +470,8 @@ func recurFlattenFlags[F ast.Flags[V], V ast.FlagValue](comp *compiler, name str
 			values = append(values, flag)
 		}
 	}
-	if len(values) > 2000 {
-		return fmt.Errorf("%v has more than 2000 values", name)
+	if len(values) > 100000 {
+		return fmt.Errorf("%v has more than 100000 values %v", name, len(values))
 	}
 	flags.SetValues(values)
 	return nil
