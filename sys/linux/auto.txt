@@ -5670,9 +5670,9 @@ sendmsg$auto_TCP_METRICS_CMD_DEL(fd sock_nl_generic, msg ptr[in, msghdr_tcp_metr
 
 tcp_metrics_nl_policy_tcp_metrics$auto [
 	TCP_METRICS_ATTR_ADDR_IPV4	nlattr[TCP_METRICS_ATTR_ADDR_IPV4, ipv4_addr]
-	TCP_METRICS_ATTR_ADDR_IPV6	nlattr[TCP_METRICS_ATTR_ADDR_IPV6, array[int8]]
+	TCP_METRICS_ATTR_ADDR_IPV6	nlattr[TCP_METRICS_ATTR_ADDR_IPV6, ipv6_addr]
 	TCP_METRICS_ATTR_SADDR_IPV4	nlattr[TCP_METRICS_ATTR_SADDR_IPV4, ipv4_addr]
-	TCP_METRICS_ATTR_SADDR_IPV6	nlattr[TCP_METRICS_ATTR_SADDR_IPV6, array[int8]]
+	TCP_METRICS_ATTR_SADDR_IPV6	nlattr[TCP_METRICS_ATTR_SADDR_IPV6, ipv6_addr]
 ] [varlen]
 
 resource genl_thermal_family_id$auto[int16]
