@@ -361,3 +361,22 @@ static long syz_kvm_vgic_v3_setup(volatile long a0, volatile long a1, volatile l
 	return vgic_fd;
 }
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_uexit
+static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1)
+{
+	struct kvm_run* run = (struct kvm_run*)a0;
+	uint64 expect = a1;
+
+	if (!run || (run->exit_reason != KVM_EXIT_MMIO) || (run->mmio.phys_addr != ARM64_ADDR_UEXIT)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if ((((uint64*)(run->mmio.data))[0]) != expect) {
+		errno = EDOM;
+		return -1;
+	}
+	return 0;
+}
+#endif

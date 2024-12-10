@@ -563,10 +563,19 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info *flatrpc.Pro
 		if len(inf.Signal) < 2 && !calls[callName] && len(info.Extra.Signal) == 0 {
 			return fmt.Errorf("run %v: call %v: no signal", run, call)
 		}
-		// syz_btf_id_by_name is a pseudo-syscall that might not provide
-		// any coverage when invoked.
-		if len(inf.Cover) == 0 && callName != "syz_btf_id_by_name" {
-			return fmt.Errorf("run %v: call %v: no cover", run, call)
+		// Pseudo-syscalls that might not provide any coverage when invoked.
+		noCovSyscalls := []string{"syz_btf_id_by_name", "syz_kvm_assert_syzos_uexit"}
+		if len(inf.Cover) == 0 {
+			found := true
+			for _, s := range noCovSyscalls {
+				if callName == s {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("run %v: call %v: no cover", run, call)
+			}
 		}
 		calls[callName] = true
 	} else {
