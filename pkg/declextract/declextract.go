@@ -336,7 +336,7 @@ func (ctx *context) fieldTypeBuffer(f *Field) string {
 			// ConstantArrayType::getSizeExpr. But for now let's just do the simple thing.
 			return "mac_addr"
 		}
-		if t.MinSize == 16 && t.MaxSize == 16 &&
+		if (t.MaxSize == 0 || t.MaxSize == 16) &&
 			(strings.Contains(f.Name, "ipv6") || strings.Contains(f.Name, "ip6")) {
 			return "ipv6_addr"
 		}
