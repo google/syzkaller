@@ -174,24 +174,7 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 	if t.Enum != "" && counts != nil {
 		ctx.error("field %v is both enum %v and counts field %v", f.Name, t.Enum, counts.Name)
 	}
-	baseType := fmt.Sprintf("int%v", t.ByteSize*8)
-	// Note: we make all 8-byte syscall arguments intptr b/c for 64-bit arches it does not matter,
-	// but for 32-bit arches int64 as syscall argument won't work. IIUC the ABI is that these
-	// are split into 2 32-bit arguments.
-	intptr := t.ByteSize == 8 && (!needBase || strings.Contains(t.Base, "long") &&
-		!strings.Contains(t.Base, "long long"))
-	if intptr {
-		baseType = "intptr"
-	}
-	if t.isBigEndian && t.ByteSize != 1 {
-		baseType += "be"
-	}
-	if f.BitWidth == t.ByteSize*8 {
-		f.BitWidth = 0
-	}
-	if f.BitWidth != 0 {
-		baseType += fmt.Sprintf(":%v", f.BitWidth)
-	}
+	baseType, isIntptr := ctx.baseIntType(f, needBase)
 	constType := fmt.Sprintf("const[%v %v]", t.MinValue, maybeBaseType(baseType, needBase))
 	if f.IsAnonymous || t.IsConst {
 		return constType
@@ -213,7 +196,7 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 	case 4:
 		special = ctx.specialInt4(f.Name, t.Name, needBase)
 	case 8:
-		if intptr {
+		if isIntptr {
 			special = ctx.specialIntptr(f.Name, t.Name, needBase)
 		}
 	}
@@ -241,6 +224,29 @@ func (ctx *context) fieldTypeInt(f, counts *Field, needBase bool) string {
 	return baseType
 }
 
+func (ctx *context) baseIntType(f *Field, needBase bool) (string, bool) {
+	t := f.Type.Int
+	baseType := fmt.Sprintf("int%v", t.ByteSize*8)
+	// Note: we make all 8-byte syscall arguments intptr b/c for 64-bit arches it does not matter,
+	// but for 32-bit arches int64 as syscall argument won't work. IIUC the ABI is that these
+	// are split into 2 32-bit arguments.
+	isIntptr := t.ByteSize == 8 && (!needBase || strings.Contains(t.Base, "long") &&
+		!strings.Contains(t.Base, "long long"))
+	if isIntptr {
+		baseType = "intptr"
+	}
+	if t.isBigEndian && t.ByteSize != 1 {
+		baseType += "be"
+	}
+	if f.BitWidth == t.ByteSize*8 {
+		f.BitWidth = 0
+	}
+	if f.BitWidth != 0 {
+		baseType += fmt.Sprintf(":%v", f.BitWidth)
+	}
+	return baseType, isIntptr
+}
+
 func (ctx *context) specialInt2(field, typ string, needBase bool) string {
 	switch {
 	case strings.Contains(field, "port"):
@@ -249,6 +255,7 @@ func (ctx *context) specialInt2(field, typ string, needBase bool) string {
 	return ""
 }
 
+// nolint: gocyclo
 func (ctx *context) specialInt4(field, typ string, needBase bool) string {
 	switch {
 	case strings.Contains(field, "ipv4") || strings.Contains(field, "ip4") ||
