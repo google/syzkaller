@@ -11,6 +11,7 @@ import (
 )
 
 type Output struct {
+	Functions       []*Function      `json:"functions,omitempty"`
 	Includes        []string         `json:"includes,omitempty"`
 	Defines         []*Define        `json:"defines,omitempty"`
 	Enums           []*Enum          `json:"enums,omitempty"`
@@ -20,6 +21,17 @@ type Output struct {
 	IouringOps      []*IouringOp     `json:"iouring_ops,omitempty"`
 	NetlinkFamilies []*NetlinkFamily `json:"netlink_families,omitempty"`
 	NetlinkPolicies []*NetlinkPolicy `json:"netlink_policies,omitempty"`
+}
+
+type Function struct {
+	Name     string   `json:"name,omitempty"`
+	File     string   `json:"file,omitempty"`
+	IsStatic bool     `json:"is_static,omitempty"`
+	LOC      int      `json:"loc,omitempty"`
+	Calls    []string `json:"calls,omitempty"`
+
+	callers int
+	calls   []*Function
 }
 
 type Define struct {
@@ -147,6 +159,7 @@ type BufferType struct {
 }
 
 func (out *Output) Merge(other *Output) {
+	out.Functions = append(out.Functions, other.Functions...)
 	out.Includes = append(out.Includes, other.Includes...)
 	out.Defines = append(out.Defines, other.Defines...)
 	out.Enums = append(out.Enums, other.Enums...)
@@ -159,6 +172,7 @@ func (out *Output) Merge(other *Output) {
 }
 
 func (out *Output) SortAndDedup() {
+	out.Functions = sortAndDedupSlice(out.Functions)
 	out.Includes = sortAndDedupSlice(out.Includes)
 	out.Defines = sortAndDedupSlice(out.Defines)
 	out.Enums = sortAndDedupSlice(out.Enums)
@@ -173,6 +187,9 @@ func (out *Output) SortAndDedup() {
 // SetSoureFile attaches the source file to the entities that need it.
 // The clang tool could do it, but it looks easier to do it here.
 func (out *Output) SetSourceFile(file string, updatePath func(string) string) {
+	for _, fn := range out.Functions {
+		fn.File = updatePath(fn.File)
+	}
 	for i, inc := range out.Includes {
 		out.Includes[i] = updatePath(inc)
 	}

@@ -1,4 +1,34 @@
 {
+	"functions": [
+		{
+			"name": "io_eopnotsupp_prep",
+			"file": "io_uring.c"
+		},
+		{
+			"name": "io_nop",
+			"file": "io_uring.c"
+		},
+		{
+			"name": "io_nop_prep",
+			"file": "io_uring.c"
+		},
+		{
+			"name": "io_read",
+			"file": "io_uring.c"
+		},
+		{
+			"name": "io_readv_prep",
+			"file": "io_uring.c"
+		},
+		{
+			"name": "io_write",
+			"file": "io_uring.c"
+		},
+		{
+			"name": "io_writev_prep",
+			"file": "io_uring.c"
+		}
+	],
 	"includes": [
 		"include/uapi/io_uring.h"
 	],

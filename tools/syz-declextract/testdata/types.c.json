@@ -1,4 +1,11 @@
 {
+	"functions": [
+		{
+			"name": "__do_sys_types_syscall",
+			"file": "types.c",
+			"loc": 2
+		}
+	],
 	"defines": [
 		{
 			"name": "a",

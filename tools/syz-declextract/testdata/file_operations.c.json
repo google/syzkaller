@@ -1,4 +1,52 @@
 {
+	"functions": [
+		{
+			"name": "foo_ioctl",
+			"file": "file_operations.c",
+			"is_static": true,
+			"loc": 7
+		},
+		{
+			"name": "foo_mmap",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "foo_open",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "foo_read",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "foo_write",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "proc_ioctl",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "proc_open",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "proc_read",
+			"file": "file_operations.c",
+			"is_static": true
+		},
+		{
+			"name": "proc_write",
+			"file": "file_operations.c",
+			"is_static": true
+		}
+	],
 	"includes": [
 		"include/uapi/file_operations.h"
 	],

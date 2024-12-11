@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -19,8 +20,10 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string)
 		probe:         probe,
 		syscallRename: syscallRename,
 		structs:       make(map[string]*Struct),
+		funcs:         make(map[string]*Function),
 		uniqualizer:   make(map[string]int),
 	}
+	ctx.processFunctions()
 	ctx.processIncludes()
 	ctx.processEnums()
 	ctx.processStructs()
@@ -37,6 +40,7 @@ type context struct {
 	probe         *ifaceprobe.Info
 	syscallRename map[string][]string // syscall function -> syscall names
 	structs       map[string]*Struct
+	funcs         map[string]*Function
 	uniqualizer   map[string]int
 	interfaces    []*Interface
 	descriptions  *bytes.Buffer
@@ -45,6 +49,10 @@ type context struct {
 
 func (ctx *context) error(msg string, args ...any) {
 	ctx.errs = append(ctx.errs, fmt.Errorf(msg, args...))
+}
+
+func (ctx *context) warn(msg string, args ...any) {
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 }
 
 func (ctx *context) processIncludes() {

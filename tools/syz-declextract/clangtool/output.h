@@ -108,6 +108,14 @@ struct FileOps {
   std::vector<IoctlCmd> IoctlCmds;
 };
 
+struct Function {
+  std::string Name;
+  std::string File;
+  bool IsStatic = false;
+  int LOC = 0;
+  std::vector<std::string> Calls;
+};
+
 struct Syscall {
   std::string Func;
   std::vector<Field> Args;
@@ -237,6 +245,15 @@ inline void print(JSONPrinter& Printer, const FileOps& V) {
   Printer.Field("ioctl_cmds", V.IoctlCmds, true);
 }
 
+inline void print(JSONPrinter& Printer, const Function& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name);
+  Printer.Field("file", V.File);
+  Printer.Field("is_static", V.IsStatic);
+  Printer.Field("loc", V.LOC);
+  Printer.Field("calls", V.Calls, true);
+}
+
 inline void print(JSONPrinter& Printer, const Syscall& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("func", V.Func);
@@ -295,6 +312,7 @@ public:
       Includes.push_back(Inc.Filename);
   }
 
+  void emit(Function&& V) { Functions.push_back(std::move(V)); }
   void emit(Define&& V) { Defines.push_back(std::move(V)); }
   void emit(Struct&& V) { Structs.push_back(std::move(V)); }
   void emit(Enum&& V) { Enums.push_back(std::move(V)); }
@@ -306,6 +324,7 @@ public:
 
   void print() const {
     JSONPrinter Printer;
+    Printer.Field("functions", Functions);
     Printer.Field("includes", Includes);
     Printer.Field("defines", Defines);
     Printer.Field("enums", Enums);
@@ -318,6 +337,7 @@ public:
   }
 
 private:
+  std::vector<Function> Functions;
   std::vector<std::string> Includes;
   std::unordered_set<std::string> IncludesDedup;
   std::vector<Define> Defines;
