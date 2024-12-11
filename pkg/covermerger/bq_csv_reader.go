@@ -64,15 +64,15 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit st
 				compression = "GZIP")
 			AS (
 				SELECT
-					kernel_repo, kernel_branch, kernel_commit, file_path, sl, SUM(hit_count) as hit_count
+					kernel_repo, kernel_branch, kernel_commit, file_path, manager, sl, SUM(hit_count) as hit_count
 				FROM syzkaller.syzbot_coverage.`+"`%s`"+`
 				WHERE
 					TIMESTAMP_TRUNC(timestamp, DAY) >= "%s" AND
 					TIMESTAMP_TRUNC(timestamp, DAY) <= "%s" AND
 					version = 1 AND
 					starts_with(file_path, "%s") %s
-				GROUP BY file_path, kernel_commit, kernel_repo, kernel_branch, sl
-				ORDER BY file_path
+				GROUP BY file_path, manager, kernel_commit, kernel_repo, kernel_branch, sl
+				ORDER BY file_path, manager
 			);
 	`, gsURI, ns, from.String(), to.String(), filePath, selectCommit))
 	job, err := q.Run(ctx)

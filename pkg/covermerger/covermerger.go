@@ -24,6 +24,7 @@ const (
 	KeyFilePath     = "file_path"
 	KeyStartLine    = "sl"
 	KeyHitCount     = "hit_count"
+	KeyManager      = "manager"
 )
 
 type FileRecord struct {
@@ -31,6 +32,7 @@ type FileRecord struct {
 	RepoCommit
 	StartLine int
 	HitCount  int
+	Manager   string
 }
 
 type RepoCommit struct {
@@ -87,6 +89,8 @@ func makeRecord(fields, schema []string) (*FileRecord, error) {
 			record.StartLine, err = readIntField(key, val)
 		case KeyHitCount:
 			record.HitCount, err = readIntField(key, val)
+		case KeyManager:
+			record.Manager = val
 		}
 		if err != nil {
 			return nil, err
@@ -124,7 +128,9 @@ func isSchema(fields, schema []string) bool {
 	return true
 }
 
-func MergeCSVData(config *Config, reader io.Reader) (map[string]*MergeResult, error) {
+type FilesMergeResults map[string]*MergeResult
+
+func MergeCSVData(config *Config, reader io.Reader) (FilesMergeResults, error) {
 	var schema []string
 	csvReader := csv.NewReader(reader)
 	if fields, err := csvReader.Read(); err != nil {
@@ -172,10 +178,10 @@ type FileRecords struct {
 	records  []*FileRecord
 }
 
-func mergeChanData(c *Config, recordChan <-chan *FileRecord) (map[string]*MergeResult, error) {
+func mergeChanData(c *Config, recordChan <-chan *FileRecord) (FilesMergeResults, error) {
 	g, ctx := errgroup.WithContext(context.Background())
 	frecordChan := groupFileRecords(recordChan, ctx)
-	stat := make(map[string]*MergeResult)
+	stat := make(FilesMergeResults)
 	var mu sync.Mutex
 	for i := 0; i < c.Jobs; i++ {
 		g.Go(func() error {

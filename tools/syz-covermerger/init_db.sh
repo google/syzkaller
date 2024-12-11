@@ -19,6 +19,7 @@ CREATE TABLE
     "covered" bigint,
     "linesinstrumented" bigint[],
     "hitcounts" bigint[],
+    "manager" text,
   PRIMARY KEY
     (session, filepath) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \

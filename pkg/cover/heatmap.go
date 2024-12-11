@@ -169,7 +169,7 @@ from merge_history
   join file_subsystems
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
-  merge_history.namespace=$1 and dateto=$2 and duration=$3`,
+  merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager='*'`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": timePeriod.DateTo,

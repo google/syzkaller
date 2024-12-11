@@ -125,7 +125,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 				strings.NewReader(test.bqTable),
 			)
 			assert.Nil(t, err)
-			var expectedAggregation map[string]*MergeResult
+			var expectedAggregation FilesMergeResults
 			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &expectedAggregation))
 			assert.Equal(t, expectedAggregation, aggregation)
 		})

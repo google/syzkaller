@@ -114,10 +114,10 @@ func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error
 func printMergeResult(mergeResult map[string]*covermerger.MergeResult, totalOnly bool) {
 	coverage, totalInstrumentedLines, totalCoveredLines := mergeResultsToCoverage(mergeResult)
 	if !totalOnly {
-		keys := maps.Keys(coverage)
+		keys := maps.Keys(coverage[allManagers])
 		sort.Strings(keys)
 		for _, fileName := range keys {
-			printCoverage(fileName, coverage[fileName].Instrumented, coverage[fileName].Covered)
+			printCoverage(fileName, coverage[allManagers][fileName].Instrumented, coverage[allManagers][fileName].Covered)
 		}
 	}
 	printCoverage("total", totalInstrumentedLines, totalCoveredLines)
@@ -132,9 +132,13 @@ func printCoverage(target string, instrumented, covered int64) {
 		target, instrumented, covered, coverage*100)
 }
 
+const allManagers = "*"
+
+// Returns per manager merge result, total instrumented and total covered lines.
 func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
-) (map[string]*coveragedb.Coverage, int64, int64) {
-	res := make(map[string]*coveragedb.Coverage)
+) (coveragedb.ManagersCoverage, int64, int64) {
+	res := make(coveragedb.ManagersCoverage)
+	res[allManagers] = make(coveragedb.ManagerCoverage)
 	var totalInstrumented, totalCovered int64
 	for fileName, lineStat := range mergedCoverage {
 		if !lineStat.FileExists {
@@ -144,25 +148,25 @@ func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
 		lines := maps.Keys(lineStat.HitCounts)
 		slices.Sort(lines)
 
-		var linesInstrumented, hitCounts []int64
-		var instrumented, covered int64
 		for _, line := range lines {
-			instrumented++
-			linesInstrumented = append(linesInstrumented, int64(line))
-			hitCount := lineStat.HitCounts[line]
-			hitCounts = append(hitCounts, int64(hitCount))
-			if hitCount > 0 {
-				covered++
+			res[allManagers][fileName].AddLineHitCount(line, lineStat.HitCounts[line])
+			managerHitCounts := map[string]int{}
+			for _, lineDetail := range lineStat.LineDetails[line] {
+				manager := lineDetail.Manager
+				managerHitCounts[manager] += lineDetail.HitCount
+			}
+			for manager, managerHitCount := range managerHitCounts {
+				if _, ok := res[manager]; !ok {
+					res[manager] = make(coveragedb.ManagerCoverage)
+				}
+				if _, ok := res[manager][fileName]; !ok {
+					res[manager][fileName] = &coveragedb.Coverage{}
+				}
+				res[manager][fileName].AddLineHitCount(line, managerHitCount)
 			}
 		}
-		res[fileName] = &coveragedb.Coverage{
-			Instrumented:      instrumented,
-			Covered:           covered,
-			LinesInstrumented: linesInstrumented,
-			HitCounts:         hitCounts,
-		}
-		totalInstrumented += instrumented
-		totalCovered += covered
+		totalInstrumented += res[allManagers][fileName].Instrumented
+		totalCovered += res[allManagers][fileName].Covered
 	}
 	return res, totalInstrumented, totalCovered
 }
