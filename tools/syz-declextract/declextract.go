@@ -181,8 +181,8 @@ func errorHandler() (func(pos ast.Pos, msg string), *bytes.Buffer) {
 func serialize(interfaces []*declextract.Interface) []byte {
 	w := new(bytes.Buffer)
 	for _, iface := range interfaces {
-		fmt.Fprintf(w, "%v\t%v\tfunc:%v\taccess:%v\tmanual_desc:%v\tauto_desc:%v",
-			iface.Type, iface.Name, iface.Func, iface.Access,
+		fmt.Fprintf(w, "%v\t%v\tfunc:%v\tloc:%v\taccess:%v\tmanual_desc:%v\tauto_desc:%v",
+			iface.Type, iface.Name, iface.Func, iface.ReachableLOC, iface.Access,
 			iface.ManualDescriptions, iface.AutoDescriptions)
 		for _, file := range iface.Files {
 			fmt.Fprintf(w, "\tfile:%v", file)

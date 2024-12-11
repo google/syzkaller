@@ -1,0 +1,52 @@
+{
+	"functions": [
+		{
+			"name": "__do_sys_functions",
+			"file": "functions.c",
+			"loc": 2,
+			"calls": [
+				"func_baz"
+			]
+		},
+		{
+			"name": "atomic_load32",
+			"file": "include/types.h",
+			"is_static": true,
+			"loc": 1
+		},
+		{
+			"name": "atomic_load64",
+			"file": "include/types.h",
+			"loc": 1
+		},
+		{
+			"name": "func_bar",
+			"file": "functions.c",
+			"is_static": true,
+			"loc": 1,
+			"calls": [
+				"func_foo"
+			]
+		},
+		{
+			"name": "func_baz",
+			"file": "functions.c",
+			"loc": 5,
+			"calls": [
+				"func_foo",
+				"func_bar"
+			]
+		},
+		{
+			"name": "func_foo",
+			"file": "functions.c",
+			"is_static": true
+		}
+	],
+	"syscalls": [
+		{
+			"func": "__do_sys_functions",
+			"source_file": "functions.c"
+		}
+	]
+}

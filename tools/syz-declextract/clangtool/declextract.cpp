@@ -52,6 +52,8 @@ using MacroMap = std::unordered_map<std::string, MacroDef>;
 class Extractor : public MatchFinder, public tooling::SourceFileCallbacks {
 public:
   Extractor() {
+    match(&Extractor::matchFunctionDef, functionDecl(isDefinition()).bind("function"));
+
     match(&Extractor::matchSyscall,
           functionDecl(isExpandedFromMacro("SYSCALL_DEFINEx"), matchesName("__do_sys_.*")).bind("syscall"));
 
@@ -99,6 +101,7 @@ private:
   std::unordered_map<std::string, bool> StructDedup;
   std::unordered_map<std::string, int> FileOpsDedup;
 
+  void matchFunctionDef();
   void matchSyscall();
   void matchIouring();
   void matchNetlinkPolicy();
@@ -548,6 +551,40 @@ void Extractor::matchNetlinkFamily() {
 }
 
 std::string Extractor::policyName(const ValueDecl* Decl) { return Decl->getNameAsString() + "_" + getDeclFileID(Decl); }
+
+void Extractor::matchFunctionDef() {
+  const auto* Func = getResult<FunctionDecl>("function");
+  const auto Range = Func->getSourceRange();
+  const std::string& SourceFile =
+      std::filesystem::relative(SourceManager->getFilename(SourceManager->getExpansionLoc(Range.getBegin())).str());
+  const int LOC = std::max<int>(0, SourceManager->getExpansionLineNumber(Range.getEnd()) -
+                                       SourceManager->getExpansionLineNumber(Range.getBegin()) - 1);
+  std::vector<std::string> Callees;
+  std::unordered_set<std::string> CalleesDedup;
+  const auto& Calls = findAllMatches<CallExpr>(Func->getBody(), stmt(forEachDescendant(callExpr().bind("res"))));
+  for (auto* Call : Calls) {
+    if (auto* CalleeDecl = Call->getDirectCallee()) {
+      // Builtins are not interesting and won't have a body.
+      if (CalleeDecl->getBuiltinID() != Builtin::ID::NotBuiltin)
+        continue;
+      const std::string& Callee = CalleeDecl->getNameAsString();
+      // There are too many of these and they should only be called at runtime in broken builds.
+      if (Callee.rfind("__compiletime_assert", 0) == 0 || Callee == "____wrong_branch_error" ||
+          Callee == "__bad_size_call_parameter")
+        continue;
+      if (!CalleesDedup.insert(Callee).second)
+        continue;
+      Callees.push_back(Callee);
+    }
+  }
+  Output.emit(Function{
+      .Name = Func->getNameAsString(),
+      .File = SourceFile,
+      .IsStatic = Func->isStatic(),
+      .LOC = LOC,
+      .Calls = std::move(Callees),
+  });
+}
 
 void Extractor::matchSyscall() {
   const auto* Func = getResult<FunctionDecl>("syscall");

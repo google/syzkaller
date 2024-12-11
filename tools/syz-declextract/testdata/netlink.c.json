@@ -1,4 +1,42 @@
 {
+	"functions": [
+		{
+			"name": "atomic_load32",
+			"file": "include/types.h",
+			"is_static": true,
+			"loc": 1
+		},
+		{
+			"name": "atomic_load64",
+			"file": "include/types.h",
+			"loc": 1
+		},
+		{
+			"name": "bar_cmd",
+			"file": "netlink.c",
+			"is_static": true
+		},
+		{
+			"name": "bar_doit",
+			"file": "netlink.c",
+			"is_static": true
+		},
+		{
+			"name": "bar_post_doit",
+			"file": "netlink.c",
+			"is_static": true
+		},
+		{
+			"name": "bar_pre_doit",
+			"file": "netlink.c",
+			"is_static": true
+		},
+		{
+			"name": "foo_cmd",
+			"file": "netlink.c",
+			"is_static": true
+		}
+	],
 	"includes": [
 		"include/uapi/netlink_family.h"
 	],
