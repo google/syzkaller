@@ -491,7 +491,7 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	*Build, bool, error) {
 	newAssets := []Asset{}
 	for i, toAdd := range req.Assets {
-		newAsset, err := parseIncomingAsset(c, toAdd)
+		newAsset, err := parseIncomingAsset(c, toAdd, ns)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to parse asset #%d: %w", i, err)
 		}
@@ -783,7 +783,8 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 
 // nolint: gocyclo
 func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, error) {
-	assets, err := parseCrashAssets(c, req)
+	ns := build.Namespace
+	assets, err := parseCrashAssets(c, req, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -798,7 +799,6 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	}
 	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 
-	ns := build.Namespace
 	bug, err := findBugForCrash(c, ns, req.AltTitles)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find bug for the crash: %w", err)
@@ -895,10 +895,10 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	return bug, nil
 }
 
-func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
+func parseCrashAssets(c context.Context, req *dashapi.Crash, ns string) ([]Asset, error) {
 	assets := []Asset{}
 	for i, toAdd := range req.Assets {
-		newAsset, err := parseIncomingAsset(c, toAdd)
+		newAsset, err := parseIncomingAsset(c, toAdd, ns)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse asset #%d: %w", i, err)
 		}
@@ -1309,7 +1309,7 @@ func apiAddBuildAssets(c context.Context, ns string, r *http.Request, payload []
 	}
 	assets := []Asset{}
 	for i, toAdd := range req.Assets {
-		asset, err := parseIncomingAsset(c, toAdd)
+		asset, err := parseIncomingAsset(c, toAdd, ns)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse asset #%d: %w", i, err)
 		}
@@ -1322,7 +1322,7 @@ func apiAddBuildAssets(c context.Context, ns string, r *http.Request, payload []
 	return nil, nil
 }
 
-func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset) (Asset, error) {
+func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset, ns string) (Asset, error) {
 	typeInfo := asset.GetTypeDescription(newAsset.Type)
 	if typeInfo == nil {
 		return Asset{}, fmt.Errorf("unknown asset type")
@@ -1331,10 +1331,19 @@ func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset) (Asset, er
 	if err != nil {
 		return Asset{}, fmt.Errorf("invalid URL: %w", err)
 	}
+	fsckLog := int64(0)
+	if len(newAsset.FsckLog) > 0 {
+		fsckLog, err = putText(c, ns, textFsckLog, newAsset.FsckLog)
+		if err != nil {
+			return Asset{}, err
+		}
+	}
 	return Asset{
 		Type:        newAsset.Type,
 		DownloadURL: newAsset.DownloadURL,
 		CreateDate:  timeNow(c),
+		FsckLog:     fsckLog,
+		FsIsClean:   newAsset.FsIsClean,
 	}, nil
 }
 

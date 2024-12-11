@@ -209,7 +209,7 @@ func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
 	prevFieldHadIf := false
 	for fieldIdx, f := range n.Fields {
 		if n.IsUnion {
-			_, exprs := comp.parseAttrs(unionFieldAttrs, f, f.Attrs)
+			_, exprs, _ := comp.parseAttrs(unionFieldAttrs, f, f.Attrs)
 			if fieldIdx > 0 && fieldIdx+1 < len(n.Fields) &&
 				prevFieldHadIf && exprs[attrIf] == nil {
 				comp.error(f.Pos, "either no fields have conditions or all except the last")
@@ -220,7 +220,7 @@ func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
 			}
 			continue
 		}
-		attrs, _ := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
+		attrs, _, _ := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
 		dirCount := attrs[attrIn] + attrs[attrOut] + attrs[attrInOut]
 		if dirCount != 0 {
 			hasDirections = true
@@ -1458,7 +1458,7 @@ func (comp *compiler) checkVarlen(n *ast.Struct) {
 		}
 	}
 	for i, f := range n.Fields {
-		_, exprs := comp.parseAttrs(structOrUnionFieldAttrs(n), f, f.Attrs)
+		_, exprs, _ := comp.parseAttrs(structOrUnionFieldAttrs(n), f, f.Attrs)
 		if !n.IsUnion && i == len(n.Fields)-1 {
 			break
 		}

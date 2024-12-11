@@ -496,7 +496,7 @@ func queryLatestManagerAssets(c context.Context, ns string, assetType dashapi.As
 	return ret, nil
 }
 
-func createAssetList(build *Build, crash *Crash, forReport bool) []dashapi.Asset {
+func createAssetList(c context.Context, build *Build, crash *Crash, forReport bool) []dashapi.Asset {
 	var crashAssets []Asset
 	if crash != nil {
 		crashAssets = crash.Assets
@@ -507,11 +507,16 @@ func createAssetList(build *Build, crash *Crash, forReport bool) []dashapi.Asset
 		if typeDescr == nil || forReport && typeDescr.NoReporting {
 			continue
 		}
-		assetList = append(assetList, dashapi.Asset{
+		newAsset := dashapi.Asset{
 			Title:       typeDescr.GetTitle(targets.Get(build.OS, build.Arch)),
 			DownloadURL: reportAsset.DownloadURL,
 			Type:        reportAsset.Type,
-		})
+		}
+		if reportAsset.FsckLog != 0 {
+			newAsset.FsckLogURL = externalLink(c, textFsckLog, reportAsset.FsckLog)
+			newAsset.FsIsClean = reportAsset.FsIsClean
+		}
+		assetList = append(assetList, newAsset)
 	}
 	sort.SliceStable(assetList, func(i, j int) bool {
 		return asset.GetTypeDescription(assetList[i].Type).ReportingPrio <

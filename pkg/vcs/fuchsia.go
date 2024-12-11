@@ -59,7 +59,11 @@ func (ctx *fuchsia) initRepo() error {
 	}
 	cmd := "curl -s 'https://fuchsia.googlesource.com/fuchsia/+/main/scripts/bootstrap?format=TEXT' |" +
 		"base64 --decode | bash"
-	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
+	// TODO: Remove the second `jiri update` once the `prebuilt_versions` hook is fixed.
+	// Expect and ignore an error from the bootstrap script's invocation of `jiri update`.
+	_, _ = runSandboxed(tmpDir, "bash", "-c", cmd)
+	// Run `jiri update` a second time; it should succeed.
+	if _, err := runSandboxed(filepath.Join(tmpDir, "fuchsia"), "./.jiri_root/bin/jiri", "update"); err != nil {
 		return err
 	}
 	return osutil.Rename(filepath.Join(tmpDir, "fuchsia"), ctx.dir)
