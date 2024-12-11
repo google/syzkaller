@@ -9,9 +9,9 @@ resource fd_nci[fd]
 
 resource nfc_dev_id[int32]
 
-openat$nci(fd const[AT_FDCWD], file ptr[in, string["/dev/virtual_nci"]], flags const[O_RDWR], mode const[0]) fd_nci
+openat$nci(fd const[AT_FDCWD], file ptr[in, string["/dev/virtual_nci"]], flags const[O_RDWR], mode const[0]) fd_nci (automatic_helper)
 
-ioctl$IOCTL_GET_NCIDEV_IDX(fd fd_nci, cmd const[IOCTL_GET_NCIDEV_IDX], arg ptr[out, nfc_dev_id])
+ioctl$IOCTL_GET_NCIDEV_IDX(fd fd_nci, cmd const[IOCTL_GET_NCIDEV_IDX], arg ptr[out, nfc_dev_id]) (automatic_helper)
 read$nci(fd fd_nci, data ptr[out, array[int8]], len bytesize[data])
 write$nci(fd fd_nci, data ptr[in, nci_frame], len bytesize[data])
 
