@@ -26,7 +26,7 @@ gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 echo "creating 'files' index"
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
- --ddl="CREATE INDEX files_session ON files (session);"
+ --ddl="CREATE INDEX files_session_manager ON files (session, manager);"
 
 echo "drop table 'merge_history' if exists"
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
