@@ -14,6 +14,7 @@ include <uapi/linux/fcntl.h>
 
 define max_supported_streams	(MAX_SUPPORTED_CSGS * MAX_SUPPORTED_STREAMS_PER_GROUP)
 
+resource fd_kinstr[fd]
 resource gpu_heap_va[int64]
 resource kcpu_queue_id[int8]
 resource cs_queue_group_handle[int8]
@@ -39,13 +40,16 @@ ioctl$KBASE_IOCTL_CS_QUEUE_KICK(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_KI
 ioctl$KBASE_IOCTL_CS_QUEUE_REGISTER(fd fd_bifrost, cmd const[KBASE_IOCTL_CS_QUEUE_REGISTER], arg ptr[in, base_ioctl_cs_queue_register])
 ioctl$KBASE_IOCTL_VERSION_CHECK_RESERVED(fd fd_bifrost, cmd const[KBASE_IOCTL_VERSION_CHECK_RESERVED], arg ptr[inout, kbase_ioctl_version_check])
 ioctl$KBASE_IOCTL_BUFFER_LIVENESS_UPDATE(fd fd_bifrost, cmd const[KBASE_IOCTL_BUFFER_LIVENESS_UPDATE], arg ptr[in, kbase_ioctl_buffer_liveness_update])
-ioctl$KBASE_IOCTL_KINSTR_PRFCNT_SETUP(fd fd_bifrost, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_SETUP], arg ptr[inout, kbase_ioctl_kinstr_prfcnt_setup])
+ioctl$KBASE_IOCTL_KINSTR_PRFCNT_SETUP(fd fd_bifrost, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_SETUP], arg ptr[inout, kbase_ioctl_kinstr_prfcnt_setup]) fd_kinstr
 ioctl$KBASE_IOCTL_KINSTR_PRFCNT_ENUM_INFO(fd fd_bifrost, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_ENUM_INFO], arg ptr[inout, kbase_ioctl_kinstr_prfcnt_enum_info])
 ioctl$KBASE_IOCTL_SET_LIMITED_CORE_COUNT(fd fd_bifrost, cmd const[KBASE_IOCTL_SET_LIMITED_CORE_COUNT], arg ptr[in, kbase_ioctl_set_limited_core_count])
 ioctl$KBASE_IOCTL_CONTEXT_PRIORITY_CHECK(fd fd_bifrost, cmd const[KBASE_IOCTL_CONTEXT_PRIORITY_CHECK], arg ptr[inout, kbase_ioctl_context_priority_check])
 ioctl$KBASE_HWCNT_READER_GET_BUFFER_WITH_CYCLES(fd fd_hwcnt, cmd const[KBASE_HWCNT_READER_GET_BUFFER_WITH_CYCLES], arg ptr[out, kbase_hwcnt_reader_metadata_with_cycles])
 ioctl$KBASE_HWCNT_READER_PUT_BUFFER_WITH_CYCLES(fd fd_hwcnt, cmd const[KBASE_HWCNT_READER_PUT_BUFFER_WITH_CYCLES], arg ptr[in, kbase_hwcnt_reader_metadata_with_cycles])
 ioctl$KBASE_HWCNT_READER_GET_API_VERSION_WITH_FEATURES(fd fd_hwcnt, cmd const[KBASE_HWCNT_READER_GET_API_VERSION], arg ptr[out, kbase_hwcnt_reader_api_version])
+ioctl$KBASE_IOCTL_KINSTR_PRFCNT_CMD(fd fd_kinstr, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_CMD], arg ptr[in, prfcnt_control_cmd])
+ioctl$KBASE_IOCTL_KINSTR_PRFCNT_GET_SAMPLE(fd fd_kinstr, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_GET_SAMPLE], arg ptr[out, prfcnt_sample_access])
+ioctl$KBASE_IOCTL_KINSTR_PRFCNT_PUT_SAMPLE(fd fd_kinstr, cmd const[KBASE_IOCTL_KINSTR_PRFCNT_PUT_SAMPLE], arg ptr[in, prfcnt_sample_access])
 
 kbase_hwcnt_reader_metadata_cycles {
 	top		int64
@@ -331,6 +335,17 @@ kbase_ioctl_context_priority_check {
 	priority	flags[queue_group_priority, int8]
 }
 
+prfcnt_control_cmd {
+	cmd		flags[control_cmd, int16]
+	padding		array[const[0, int16], 3]
+	user_data	ptr64[out, array[int64]]
+}
+
+prfcnt_sample_access {
+	sequence		int64
+	sample_offset_bytes	int64
+}
+
 csf_csi_flags = BASE_CSF_TILER_OOM_EXCEPTION_FLAG
 user_offsets = LATEST_FLUSH
 prfcnt_request_enum_type = PRFCNT_ENUM_TYPE_BLOCK, PRFCNT_ENUM_TYPE_REQUEST, PRFCNT_ENUM_TYPE_SAMPLE_INFO
@@ -341,3 +356,5 @@ prfcnt_block_type = PRFCNT_BLOCK_TYPE_FE, PRFCNT_BLOCK_TYPE_TILER, PRFCNT_BLOCK_
 prfcnt_mode = PRFCNT_MODE_MANUAL, PRFCNT_MODE_PERIODIC, PRFCNT_MODE_RESERVED
 tiler_heap_chunk_sizes = 2048, 4096
 queue_group_priority = KBASE_QUEUE_GROUP_PRIORITY_REALTIME, KBASE_QUEUE_GROUP_PRIORITY_HIGH, KBASE_QUEUE_GROUP_PRIORITY_MEDIUM, KBASE_QUEUE_GROUP_PRIORITY_LOW, KBASE_QUEUE_GROUP_PRIORITY_COUNT
+# PRFCNT_CONTROL_CMD_RESERVED is no longer supported
+control_cmd = PRFCNT_CONTROL_CMD_START, PRFCNT_CONTROL_CMD_STOP, PRFCNT_CONTROL_CMD_SAMPLE_SYNC, PRFCNT_CONTROL_CMD_DISCARD
