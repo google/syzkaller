@@ -129,11 +129,10 @@ func testEachFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, fil
 				t.Fatal(err)
 			}
 			cfg := &clangtool.Config{
-				ToolBin:    *flagBin,
-				KernelSrc:  testdata,
-				KernelObj:  buildDir,
-				CacheDir:   buildDir,
-				ReuseCache: true,
+				ToolBin:   *flagBin,
+				KernelSrc: testdata,
+				KernelObj: buildDir,
+				CacheFile: filepath.Join(buildDir, filepath.Base(file)+".json"),
 			}
 			fn(t, cfg, file)
 		})
