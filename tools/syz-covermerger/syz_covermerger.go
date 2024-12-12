@@ -84,8 +84,11 @@ func main() {
 	}
 
 	coverage, _, _ := mergeResultsToCoverage(mergeResult)
+	managers := maps.Keys(coverage)
+	sort.Strings(managers)
+	fmt.Printf("merged signals for the following managers: %v\n", managers)
 	if *flagToDashAPI != "" {
-		if err := saveCoverage(*flagToDashAPI, *flagDashboardClientName, &dashapi.MergedCoverage{
+		if rowsCreated, err := saveCoverage(*flagToDashAPI, *flagDashboardClientName, &dashapi.MergedCoverage{
 			Namespace: *flagNamespace,
 			Repo:      *flagRepo,
 			Commit:    *flagCommit,
@@ -95,13 +98,15 @@ func main() {
 			FileData:  coverage,
 		}); err != nil {
 			log.Fatalf("failed to saveCoverage: %v", err)
+		} else {
+			fmt.Printf("created %d DB rows\n", rowsCreated)
 		}
 	}
 	printOnlyTotal := *flagToDashAPI != ""
 	printMergeResult(mergeResult, printOnlyTotal)
 }
 
-func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) error {
+func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) (int, error) {
 	dash, err := dashapi.New(clientName, dashboard, "")
 	if err != nil {
 		log.Fatalf("failed dashapi.New(): %v", err)

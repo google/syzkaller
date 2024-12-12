@@ -704,8 +704,14 @@ type SaveCoverageReq struct {
 	Coverage *MergedCoverage
 }
 
-func (dash *Dashboard) SaveCoverage(req *SaveCoverageReq) error {
-	return dash.Query("save_coverage", req, nil)
+// SaveCoverage returns amount of records created in db.
+func (dash *Dashboard) SaveCoverage(req *SaveCoverageReq) (int, error) {
+	resp := new(int)
+	if err := dash.Query("save_coverage", req, resp); err != nil {
+		return 0, err
+	} else {
+		return *resp, err
+	}
 }
 
 type TestPatchRequest struct {

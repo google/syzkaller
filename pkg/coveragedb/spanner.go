@@ -73,12 +73,13 @@ func (c *Coverage) AddLineHitCount(line, hitCount int) {
 }
 
 func SaveMergeResult(ctx context.Context, projectID string, manCovMap ManagersCoverage,
-	template *HistoryRecord, totalRows int64, sss []*subsystem.Subsystem) error {
+	template *HistoryRecord, totalRows int64, sss []*subsystem.Subsystem) (int, error) {
 	client, err := NewClient(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
+		return 0, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
 	}
 	defer client.Close()
+	var rowsCreated int
 
 	ssMatcher := subsystem.MakePathMatcher(sss)
 	ssCache := make(map[string][]string)
@@ -97,17 +98,18 @@ func SaveMergeResult(ctx context.Context, projectID string, manCovMap ManagersCo
 			// We keep the number of records low enough for the number of explicit mutations * 10 does not exceed the limit.
 			if len(mutations) > 1000 {
 				if _, err = client.Apply(ctx, mutations); err != nil {
-					return fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
+					return rowsCreated, fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
 				}
+				rowsCreated += len(mutations)
 				mutations = nil
 			}
 		}
 	}
 	mutations = append(mutations, historyMutation(session, template, totalRows))
 	if _, err = client.Apply(ctx, mutations); err != nil {
-		return fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
+		return rowsCreated, fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
 	}
-	return nil
+	return rowsCreated, nil
 }
 
 type linesCoverage struct {

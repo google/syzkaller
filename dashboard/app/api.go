@@ -1906,7 +1906,7 @@ func apiSaveCoverage(c context.Context, r *http.Request, payload []byte) (interf
 		sss = service.List()
 		log.Infof(c, "found %d subsystems for %s namespace", len(sss), coverage.Namespace)
 	}
-	err := coveragedb.SaveMergeResult(
+	rowsCreated, err := coveragedb.SaveMergeResult(
 		context.Background(),
 		appengine.AppID(context.Background()),
 		coverage.FileData,
@@ -1927,5 +1927,5 @@ func apiSaveCoverage(c context.Context, r *http.Request, payload []byte) (interf
 		log.Infof(c, "updated coverage for ns %s, date %s to %d rows",
 			coverage.Namespace, coverage.DateTo.String(), coverage.TotalRows)
 	}
-	return nil, err
+	return &rowsCreated, err
 }
