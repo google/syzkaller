@@ -30,12 +30,11 @@ type Info struct {
 }
 
 type FileInfo struct {
-	Name  string   // Full file name, e.g. /dev/null.
-	Cover []uint64 // Combined coverage for operations on the file.
+	Name  string // Full file name, e.g. /dev/null.
+	Cover []int  // Combined coverage for operations on the file.
 }
 
 type PCInfo struct {
-	PC   uint64
 	Func string
 	File string
 }
@@ -82,7 +81,7 @@ func (pr *prober) run() (*Info, error) {
 	}()
 
 	info := &Info{}
-	dedup := make(map[uint64]bool)
+	pcIndexes := make(map[uint64]int)
 	kernelObj := filepath.Join(pr.cfg.KernelObj, pr.cfg.SysTarget.KernelObject)
 	sourceBase := filepath.Clean(pr.cfg.KernelSrc) + string(filepath.Separator)
 	i := 0
@@ -102,25 +101,28 @@ func (pr *prober) run() (*Info, error) {
 					continue
 				}
 				fileDedup[pc] = true
-				fi.Cover = append(fi.Cover, pc)
-				if dedup[pc] {
-					continue
+				pcIndex, ok := pcIndexes[pc]
+				if !ok {
+					pcIndex = -1
+					frames, err := symb.Symbolize(kernelObj, pc)
+					if err != nil {
+						return nil, err
+					}
+					if len(frames) != 0 {
+						// Look only at the non-inline frame,
+						// callbacks we are looking for can't be inlined.
+						frame := frames[len(frames)-1]
+						pcIndex = len(info.PCs)
+						info.PCs = append(info.PCs, PCInfo{
+							Func: frame.Func,
+							File: strings.TrimPrefix(filepath.Clean(frame.File), sourceBase),
+						})
+					}
+					pcIndexes[pc] = pcIndex
 				}
-				dedup[pc] = true
-				frames, err := symb.Symbolize(kernelObj, pc)
-				if err != nil {
-					return nil, err
+				if pcIndex >= 0 {
+					fi.Cover = append(fi.Cover, pcIndex)
 				}
-				if len(frames) == 0 {
-					continue
-				}
-				// Look only at the non-inline frame, callbacks we are looking for can't be inlined.
-				frame := frames[len(frames)-1]
-				info.PCs = append(info.PCs, PCInfo{
-					PC:   pc,
-					Func: frame.Func,
-					File: strings.TrimPrefix(filepath.Clean(frame.File), sourceBase),
-				})
 			}
 		}
 		slices.Sort(fi.Cover)
@@ -128,9 +130,6 @@ func (pr *prober) run() (*Info, error) {
 	}
 	slices.SortFunc(info.Files, func(a, b FileInfo) int {
 		return strings.Compare(a.Name, b.Name)
-	})
-	slices.SortFunc(info.PCs, func(a, b PCInfo) int {
-		return int(a.PC - b.PC)
 	})
 	select {
 	case err := <-pr.errc:

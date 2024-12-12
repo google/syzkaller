@@ -89,10 +89,6 @@ func (ctx *context) mapFopsToFiles() map[*FileOps][]string {
 			uniqueFuncs[fn]++
 		}
 	}
-	pcToFunc := make(map[uint64]string)
-	for _, pc := range ctx.probe.PCs {
-		pcToFunc[pc.PC] = pc.Func
-	}
 	// matchedFuncs holds functions are present in any file_operations callbacks
 	// (lots of coverage is not related to any file_operations at all).
 	matchedFuncs := make(map[string]bool)
@@ -102,7 +98,7 @@ func (ctx *context) mapFopsToFiles() map[*FileOps][]string {
 		funcs := make(map[string]bool)
 		fileToFuncs[file.Name] = funcs
 		for _, pc := range file.Cover {
-			fn := pcToFunc[pc]
+			fn := ctx.probe.PCs[pc].Func
 			if len(funcToFops[fn]) != 0 {
 				funcs[fn] = true
 				matchedFuncs[fn] = true
