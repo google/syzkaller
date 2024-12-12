@@ -1106,6 +1106,7 @@ var linuxStackParams = &stackParams{
 		"__sanitizer",
 		"__asan",
 		"kasan",
+		"hwasan",
 		"__msan",
 		"kmsan",
 		"kcsan_setup_watchpoint",

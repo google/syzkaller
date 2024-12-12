@@ -1,0 +1,62 @@
+TITLE: BUG: unable to handle kernel paging request in vgic_mmio_write_invlpi
+ALT: bad-access in vgic_mmio_write_invlpi
+FRAME: vgic_mmio_write_invlpi
+EXECUTOR: proc=2, id=929
+
+[ 8455.020911][ T6560] Unable to handle kernel paging request at virtual address efff800000000137
+[ 8455.041432][ T6560] KASAN: probably user-memory-access in range [0x0000000000001370-0x000000000000137f]
+[ 8455.042000][ T6560] Mem abort info:
+[ 8455.042220][ T6560]   ESR = 0x0000000096000005
+[ 8455.042527][ T6560]   EC = 0x25: DABT (current EL), IL = 32 bits
+[ 8455.042883][ T6560]   SET = 0, FnV = 0
+[ 8455.043141][ T6560]   EA = 0, S1PTW = 0
+[ 8455.080400][ T6560]   FSC = 0x05: level 1 translation fault
+[ 8455.080840][ T6560] Data abort info:
+[ 8455.081076][ T6560]   ISV = 0, ISS = 0x00000005, ISS2 = 0x00000000
+[ 8455.081354][ T6560]   CM = 0, WnR = 0, TnD = 0, TagAccess = 0
+[ 8455.081663][ T6560]   GCS = 0, Overlay = 0, DirtyBit = 0, Xs = 0
+[ 8455.082173][ T6560] swapper pgtable: 4k pages, 52-bit VAs, pgdp=0000000044a53000
+[ 8455.082547][ T6560] [efff800000000137] pgd=1000000049992003, p4d=1000000049993003, pud=0000000000000000
+[ 8455.303122][ T6560] Internal error: Oops: 0000000096000005 [#1] PREEMPT SMP
+[ 8455.305207][ T6560] Modules linked in:
+[ 8455.306698][ T6560] CPU: 0 UID: 0 PID: 6560 Comm: syz.2.929 Not tainted 6.12.0-rc7-syzkaller-g5db899a34f75 #0
+[ 8455.308626][ T6560] Hardware name: linux,dummy-virt (DT)
+[ 8455.310043][ T6560] pstate: 80402009 (Nzcv daif +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[ 8455.311792][ T6560] pc : __hwasan_check_x0_67043363+0x4/0x30
+[ 8455.313109][ T6560] lr : vgic_get_irq+0x7c/0x3d4
+[ 8455.314373][ T6560] sp : ffff80008c597650
+[ 8455.315485][ T6560] x29: ffff80008c597660 x28: 00000000000000e0 x27: 0000000000000004
+[ 8455.317795][ T6560] x26: 0000000000000002 x25: ffff800083a7fe20 x24: 16f0000014accd90
+[ 8455.319792][ T6560] x23: 16f0000014acb9a0 x22: 0000000000000000 x21: a9ff80008c583000
+[ 8455.321835][ T6560] x20: 0000000000000001 x19: efff800000000000 x18: 0000000000000005
+[ 8455.323849][ T6560] x17: 0000000000000000 x16: 0000000000000137 x15: 0000000000000000
+[ 8455.325875][ T6560] x14: 0000000000000002 x13: 0000000000000003 x12: 70f000000a33ba80
+[ 8455.327868][ T6560] x11: 0000000000080000 x10: 0000000000001378 x9 : efff800000000000
+[ 8455.330016][ T6560] x8 : 0000000000000001 x7 : 0000000000000001 x6 : 0000000000000001
+[ 8455.332012][ T6560] x5 : ffff80008c597858 x4 : ffff8000800f2b38 x3 : ffff8000800f7a00
+[ 8455.334035][ T6560] x2 : 0000000000000001 x1 : 0000000000000001 x0 : 0000000000001378
+[ 8455.335982][ T6560] Call trace:
+[ 8455.336895][ T6560]  __hwasan_check_x0_67043363+0x4/0x30
+[ 8455.338277][ T6560]  vgic_mmio_write_invlpi+0xb0/0x174
+[ 8455.339739][ T6560]  dispatch_mmio_write+0x2a4/0x308
+[ 8455.340885][ T6560]  __kvm_io_bus_write+0x290/0x340
+[ 8455.342278][ T6560]  kvm_io_bus_write+0x100/0x1bc
+[ 8455.343660][ T6560]  io_mem_abort+0x4b8/0x7a0
+[ 8455.344892][ T6560]  kvm_handle_guest_abort+0xb4c/0x1c64
+[ 8455.346246][ T6560]  handle_exit+0x1a0/0x274
+[ 8455.347542][ T6560]  kvm_arch_vcpu_ioctl_run+0xbc0/0x15b0
+[ 8455.348765][ T6560]  kvm_vcpu_ioctl+0x660/0xf78
+[ 8455.350030][ T6560]  __arm64_sys_ioctl+0x108/0x184
+[ 8455.351322][ T6560]  invoke_syscall+0x78/0x1b8
+[ 8455.352636][ T6560]  el0_svc_common+0xe8/0x1b0
+[ 8455.353757][ T6560]  do_el0_svc+0x40/0x50
+[ 8455.355035][ T6560]  el0_svc+0x54/0x14c
+[ 8455.356330][ T6560]  el0t_64_sync_handler+0x84/0xfc
+[ 8455.357726][ T6560]  el0t_64_sync+0x190/0x194
+[ 8455.359495][ T6560] Code: a90efbfd d2800441 143a3ed3 9344dc10 (38706930) 
+[ 8455.361725][ T6560] ---[ end trace 0000000000000000 ]---
+[ 8455.363540][ T6560] Kernel panic - not syncing: Oops: Fatal exception
+[ 8455.366306][ T6560] Kernel Offset: disabled
+[ 8455.367426][ T6560] CPU features: 0x00,00000034,003f797c,437ffe1f
+[ 8455.368871][ T6560] Memory Limit: none
+[ 8455.370473][ T6560] Rebooting in 86400 seconds..
