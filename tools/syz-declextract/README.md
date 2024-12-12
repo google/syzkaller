@@ -46,8 +46,8 @@ go run tools/syz-declextract -binary=$LLVM_BUILD/bin/syz-declextract -config=man
 syz-env make extract SOURCEDIR=$KERNEL
 ```
 
-The tool caches results of static kernel analysis in manager.workdir/declextract.cache,
-and results of the dynamic kernel probing in manager.workdir/interfaces.json.
-These can be examined for debugging purposes, and reused separately by passing
--cache-extract and -cache-probe flags. Caching greatly saves time if only part
-of the system has changed. If only the Go tool has changed, then both caches can be reused.
+The tool caches results of static kernel analysis in manager.workdir/declextract.cache file,
+and results of the dynamic kernel probing in manager.workdir/interfaces.json file.
+These can be examined for debugging purposes, and will be reused in future runs if exist
+(greatly saves time). If the clang tool/kernel has changed, delete these cache files
+so that they are updated.

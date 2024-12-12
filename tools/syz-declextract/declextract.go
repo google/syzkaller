@@ -27,6 +27,7 @@ import (
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
+	"golang.org/x/sync/errgroup"
 )
 
 // The target we currently assume for extracted descriptions.
@@ -34,21 +35,18 @@ var target = targets.Get(targets.Linux, targets.AMD64)
 
 func main() {
 	var (
-		flagConfig     = flag.String("config", "", "manager config file")
-		flagBinary     = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
-		flagCacheProbe = flag.Bool("cache-probe", false, "use cached probe results if present"+
-			" (cached in manager.workdir/interfaces.json)")
+		flagConfig = flag.String("config", "", "manager config file")
+		flagBinary = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
 	)
 	defer tool.Init()()
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
-	probeInfo, err := probe(cfg, *flagConfig, *flagCacheProbe)
-	if err != nil {
-		tool.Failf("kernel probing failed: %v", err)
+	loadProbeInfo := func() (*ifaceprobe.Info, error) {
+		return probe(cfg, *flagConfig)
 	}
-	if err := run(filepath.FromSlash("sys/linux/auto.txt"), probeInfo, &clangtool.Config{
+	if err := run(filepath.FromSlash("sys/linux/auto.txt"), loadProbeInfo, &clangtool.Config{
 		ToolBin:   *flagBinary,
 		KernelSrc: cfg.KernelSrc,
 		KernelObj: cfg.KernelObj,
@@ -58,12 +56,8 @@ func main() {
 	}
 }
 
-func run(autoFile string, probeInfo *ifaceprobe.Info, cfg *clangtool.Config) error {
-	syscallRename, err := buildSyscallRenameMap(cfg.KernelSrc)
-	if err != nil {
-		return fmt.Errorf("failed to build syscall rename map: %w", err)
-	}
-	out, err := clangtool.Run(cfg)
+func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), cfg *clangtool.Config) error {
+	out, probeInfo, syscallRename, err := prepare(loadProbeInfo, cfg)
 	if err != nil {
 		return err
 	}
@@ -113,15 +107,47 @@ func run(autoFile string, probeInfo *ifaceprobe.Info, cfg *clangtool.Config) err
 	return osutil.WriteFile(autoFile, formatted)
 }
 
-func probe(cfg *mgrconfig.Config, cfgFile string, cache bool) (*ifaceprobe.Info, error) {
-	cacheFile := filepath.Join(cfg.Workdir, "interfaces.json")
-	if cache {
-		info, err := readProbeResult(cacheFile)
-		if err == nil {
-			return info, nil
+func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), cfg *clangtool.Config) (
+	*declextract.Output, *ifaceprobe.Info, map[string][]string, error) {
+	var eg errgroup.Group
+	var out *declextract.Output
+	eg.Go(func() error {
+		var err error
+		out, err = clangtool.Run(cfg)
+		if err != nil {
+			return err
 		}
+		return nil
+	})
+	var probeInfo *ifaceprobe.Info
+	eg.Go(func() error {
+		var err error
+		probeInfo, err = loadProbeInfo()
+		if err != nil {
+			return fmt.Errorf("kernel probing failed: %w", err)
+		}
+		return nil
+	})
+	var syscallRename map[string][]string
+	eg.Go(func() error {
+		var err error
+		syscallRename, err = buildSyscallRenameMap(cfg.KernelSrc)
+		if err != nil {
+			return fmt.Errorf("failed to build syscall rename map: %w", err)
+		}
+		return nil
+	})
+	err := eg.Wait()
+	return out, probeInfo, syscallRename, err
+}
+
+func probe(cfg *mgrconfig.Config, cfgFile string) (*ifaceprobe.Info, error) {
+	cacheFile := filepath.Join(cfg.Workdir, "interfaces.json")
+	info, err := readProbeResult(cacheFile)
+	if err == nil {
+		return info, nil
 	}
-	_, err := osutil.RunCmd(30*time.Minute, "", filepath.Join(cfg.Syzkaller, "bin", "syz-manager"),
+	_, err = osutil.RunCmd(30*time.Minute, "", filepath.Join(cfg.Syzkaller, "bin", "syz-manager"),
 		"-config", cfgFile, "-mode", "iface-probe")
 	if err != nil {
 		return nil, err
