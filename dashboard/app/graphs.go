@@ -333,9 +333,11 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 		if _, ok := hist.covered[date]; !ok || hist.instrumented[date] == 0 {
 			cols = append(cols, uiGraphColumn{Hint: date, Vals: []uiGraphValue{{IsNull: true}}})
 		} else {
+			val := float32(hist.covered[date]) / float32(hist.instrumented[date])
 			cols = append(cols, uiGraphColumn{
-				Vals: []uiGraphValue{{Val: float32(hist.covered[date]) / float32(hist.instrumented[date])}},
-				Hint: date,
+				Hint:       date,
+				Annotation: val,
+				Vals:       []uiGraphValue{{Val: val}},
 			})
 		}
 	}
