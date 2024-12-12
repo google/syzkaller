@@ -34,10 +34,8 @@ var target = targets.Get(targets.Linux, targets.AMD64)
 
 func main() {
 	var (
-		flagConfig       = flag.String("config", "", "manager config file")
-		flagBinary       = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
-		flagCacheExtract = flag.Bool("cache-extract", false, "use cached extract results if present"+
-			" (cached in manager.workdir/declextract.cache)")
+		flagConfig     = flag.String("config", "", "manager config file")
+		flagBinary     = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
 		flagCacheProbe = flag.Bool("cache-probe", false, "use cached probe results if present"+
 			" (cached in manager.workdir/interfaces.json)")
 	)
@@ -51,11 +49,10 @@ func main() {
 		tool.Failf("kernel probing failed: %v", err)
 	}
 	if err := run(filepath.FromSlash("sys/linux/auto.txt"), probeInfo, &clangtool.Config{
-		ToolBin:    *flagBinary,
-		KernelSrc:  cfg.KernelSrc,
-		KernelObj:  cfg.KernelObj,
-		CacheDir:   filepath.Join(cfg.Workdir, "declextract.cache"),
-		ReuseCache: *flagCacheExtract,
+		ToolBin:   *flagBinary,
+		KernelSrc: cfg.KernelSrc,
+		KernelObj: cfg.KernelObj,
+		CacheFile: filepath.Join(cfg.Workdir, "declextract.cache"),
 	}); err != nil {
 		tool.Fail(err)
 	}

@@ -22,17 +22,26 @@ import (
 )
 
 type Config struct {
-	ToolBin    string
-	KernelSrc  string
-	KernelObj  string
-	CacheDir   string
-	ReuseCache bool
+	ToolBin   string
+	KernelSrc string
+	KernelObj string
+	CacheFile string
 }
 
 // Run runs the clang tool on all files in the compilation database
 // in the kernel build dir and returns combined output for all files.
 // It always caches results, and optionally reuses previously cached results.
 func Run(cfg *Config) (*declextract.Output, error) {
+	if cfg.CacheFile != "" {
+		data, err := os.ReadFile(cfg.CacheFile)
+		if err == nil {
+			out, err := unmarshal(data)
+			if err == nil {
+				return out, nil
+			}
+		}
+	}
+
 	dbFile := filepath.Join(cfg.KernelObj, "compile_commands.json")
 	cmds, err := loadCompileCommands(dbFile)
 	if err != nil {
@@ -67,22 +76,22 @@ func Run(cfg *Config) (*declextract.Output, error) {
 		out.Merge(res.out)
 	}
 	out.SortAndDedup()
+	if cfg.CacheFile != "" {
+		osutil.MkdirAll(filepath.Dir(cfg.CacheFile))
+		data, err := json.MarshalIndent(out, "", "\t")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal output data: %w", err)
+		}
+		if err := osutil.WriteFile(cfg.CacheFile, data); err != nil {
+			return nil, err
+		}
+	}
 	return out, nil
 }
 
 func runTool(cfg *Config, dbFile, file string) (*declextract.Output, error) {
 	relFile := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(filepath.Clean(file),
 		cfg.KernelSrc), cfg.KernelObj), "/")
-	cacheFile := filepath.Join(cfg.CacheDir, relFile+".json")
-	if cfg.ReuseCache {
-		data, err := os.ReadFile(cacheFile)
-		if err == nil {
-			out, err := unmarshal(data)
-			if err == nil {
-				return out, nil
-			}
-		}
-	}
 	// Suppress warning since we may build the tool on a different clang
 	// version that produces more warnings.
 	data, err := exec.Command(cfg.ToolBin, "-p", dbFile, "--extra-arg=-w", file).Output()
@@ -98,14 +107,6 @@ func runTool(cfg *Config, dbFile, file string) (*declextract.Output, error) {
 		return nil, err
 	}
 	fixupFileNames(cfg, out, relFile)
-	normalized, err := json.MarshalIndent(out, "", "\t")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal output data: %w", err)
-	}
-	osutil.MkdirAll(filepath.Dir(cacheFile))
-	if err := osutil.WriteFile(cacheFile, normalized); err != nil {
-		return nil, err
-	}
 	return out, nil
 }
 
