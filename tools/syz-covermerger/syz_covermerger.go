@@ -144,6 +144,9 @@ func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
 		if !lineStat.FileExists {
 			continue
 		}
+		if _, ok := res[allManagers][fileName]; !ok {
+			res[allManagers][fileName] = &coveragedb.Coverage{}
+		}
 
 		lines := maps.Keys(lineStat.HitCounts)
 		slices.Sort(lines)
