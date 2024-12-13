@@ -59,7 +59,6 @@ func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePa
 			Commit: forCommit,
 		},
 		FileVersProvider: covermerger.MakeWebGit(proxy),
-		StoreDetails:     true,
 	}
 
 	fromDate, toDate := tp.DatesFromTo()

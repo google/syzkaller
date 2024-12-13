@@ -63,7 +63,7 @@ func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*Me
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
-	merger := makeFileLineCoverMerger(fvs, c.Base, c.StoreDetails)
+	merger := makeFileLineCoverMerger(fvs, c.Base)
 	for _, record := range records {
 		merger.Add(record)
 	}
@@ -113,7 +113,6 @@ type Config struct {
 	skipRepoClone    bool
 	Base             RepoCommit
 	FileVersProvider FileVersProvider
-	StoreDetails     bool
 }
 
 func isSchema(fields, schema []string) bool {

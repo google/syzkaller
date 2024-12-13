@@ -23,6 +23,7 @@ func TestAggregateStreamData(t *testing.T) {
 		simpleAggregation string
 		baseRepo          string
 		baseCommit        string
+		checkDetails      bool
 	}
 	tests := []Test{
 		{
@@ -42,11 +43,13 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_code.c,func1,2,
   "delete_code.c":
   {
     "HitCounts":{},
-		"FileExists": true
+		"FileExists": true,
+		"LineDetails":{}
   }
 }`,
-			baseRepo:   "git://repo",
-			baseCommit: "commit2",
+			baseRepo:     "git://repo",
+			baseCommit:   "commit2",
+			checkDetails: true,
 		},
 		{
 			name:    "file deleted",
@@ -59,8 +62,9 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_file.c,func1,2,
 		"FileExists": false
   }
 }`,
-			baseRepo:   "git://repo",
-			baseCommit: "commit2",
+			baseRepo:     "git://repo",
+			baseCommit:   "commit2",
+			checkDetails: true,
 		},
 		{
 			name:    "covered line changed",
@@ -72,11 +76,26 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,change_line.c,func1,3,
   "change_line.c":
   {
 		"HitCounts":{"3": 1},
-		"FileExists": true
+		"FileExists": true,
+		"LineDetails":
+		{
+			"3":
+			[
+				{
+					"FilePath":"change_line.c",
+					"Repo":"git://repo",
+					"Commit":"commit1",
+					"StartLine":3,
+					"HitCount":1,
+					"Manager":"ci-mock"
+				}
+			]
+		}
   }
 }`,
-			baseRepo:   "git://repo",
-			baseCommit: "commit2",
+			baseRepo:     "git://repo",
+			baseCommit:   "commit2",
+			checkDetails: true,
 		},
 		{
 			name:    "add line",
@@ -87,11 +106,26 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,add_line.c,func1,2,0,2
   "add_line.c":
   {
 		"HitCounts":{"2": 1},
-		"FileExists": true
+		"FileExists": true,
+		"LineDetails":
+		{
+			"2":
+			[
+				{
+					"FilePath":"add_line.c",
+					"Repo":"git://repo",
+					"Commit":"commit1",
+					"StartLine":2,
+					"HitCount":1,
+					"Manager":"ci-mock"
+				}
+			]
+		}
   }
 }`,
-			baseRepo:   "git://repo",
-			baseCommit: "commit2",
+			baseRepo:     "git://repo",
+			baseCommit:   "commit2",
+			checkDetails: true,
 		},
 		{
 			name:    "instrumented lines w/o coverage are reported",
@@ -103,11 +137,37 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
   "not_changed.c":
   {
 		"HitCounts":{"3": 0, "4": 0},
-		"FileExists": true
+		"FileExists": true,
+		"LineDetails":
+		{
+			"3":
+			[
+				{
+					"FilePath":"not_changed.c",
+					"Repo":"git://repo",
+					"Commit":"commit1",
+					"StartLine":3,
+					"HitCount":0,
+					"Manager":"ci-mock"
+				}
+			],
+			"4":
+			[
+				{
+					"FilePath":"not_changed.c",
+					"Repo":"git://repo",
+					"Commit":"commit2",
+					"StartLine":4,
+					"HitCount":0,
+					"Manager":"ci-mock"
+				}
+			]
+		}
   }
 }`,
-			baseRepo:   "git://repo",
-			baseCommit: "commit2",
+			baseRepo:     "git://repo",
+			baseCommit:   "commit2",
+			checkDetails: true,
 		},
 	}
 	for _, test := range tests {
@@ -124,11 +184,21 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 				},
 				strings.NewReader(test.bqTable),
 			)
+
 			assert.Nil(t, err)
 			var expectedAggregation FilesMergeResults
 			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &expectedAggregation))
+			if !test.checkDetails {
+				ignoreLineDetailsInTest(aggregation)
+			}
 			assert.Equal(t, expectedAggregation, aggregation)
 		})
+	}
+}
+
+func ignoreLineDetailsInTest(results FilesMergeResults) {
+	for _, mr := range results {
+		mr.LineDetails = nil
 	}
 }
 
