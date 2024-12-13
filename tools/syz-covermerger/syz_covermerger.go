@@ -56,7 +56,6 @@ func main() {
 			Commit: *flagCommit,
 		},
 		FileVersProvider: makeProvider(),
-		StoreDetails:     true,
 	}
 	var dateFrom, dateTo civil.Date
 	var err error

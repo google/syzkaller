@@ -5,8 +5,7 @@ package covermerger
 
 import "github.com/google/syzkaller/pkg/log"
 
-func makeFileLineCoverMerger(
-	fvs fileVersions, base RepoCommit, storeDetails bool) FileCoverageMerger {
+func makeFileLineCoverMerger(fvs fileVersions, base RepoCommit) FileCoverageMerger {
 	baseFile := ""
 	baseFileExists := false
 	for repoCommit, fv := range fvs {
@@ -21,15 +20,13 @@ func makeFileLineCoverMerger(
 	}
 	a := &FileLineCoverMerger{
 		MergeResult: &MergeResult{
-			HitCounts:  make(map[int]int),
-			FileExists: true,
+			HitCounts:   make(map[int]int),
+			FileExists:  true,
+			LineDetails: make(map[int][]*FileRecord),
 		},
 		baseFile:   baseFile,
 		matchers:   make(map[RepoCommit]*LineToLineMatcher),
 		lostFrames: map[RepoCommit]int64{},
-	}
-	if storeDetails {
-		a.MergeResult.LineDetails = make(map[int][]*FileRecord)
 	}
 	for repoBranch, fv := range fvs {
 		a.matchers[repoBranch] = makeLineToLineMatcher(fv, baseFile)
@@ -53,9 +50,7 @@ func (a *FileLineCoverMerger) Add(record *FileRecord) {
 	}
 	if targetLine := a.matchers[record.RepoCommit].SameLinePos(record.StartLine); targetLine != -1 {
 		a.HitCounts[targetLine] += record.HitCount
-		if a.LineDetails != nil {
-			a.LineDetails[targetLine] = append(a.LineDetails[targetLine], record)
-		}
+		a.LineDetails[targetLine] = append(a.LineDetails[targetLine], record)
 	}
 }
 
