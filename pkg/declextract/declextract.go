@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -14,16 +15,20 @@ import (
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 )
 
-func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string) ([]byte, []*Interface, error) {
+func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string, trace io.Writer) (
+	[]byte, []*Interface, error) {
 	ctx := &context{
 		Output:        out,
 		probe:         probe,
 		syscallRename: syscallRename,
 		structs:       make(map[string]*Struct),
 		funcs:         make(map[string]*Function),
+		facts:         make(map[string]*typingNode),
 		uniqualizer:   make(map[string]int),
+		debugTrace:    trace,
 	}
 	ctx.processFunctions()
+	ctx.processTypingFacts()
 	ctx.processIncludes()
 	ctx.processEnums()
 	ctx.processStructs()
@@ -41,9 +46,11 @@ type context struct {
 	syscallRename map[string][]string // syscall function -> syscall names
 	structs       map[string]*Struct
 	funcs         map[string]*Function
+	facts         map[string]*typingNode
 	uniqualizer   map[string]int
 	interfaces    []*Interface
 	descriptions  *bytes.Buffer
+	debugTrace    io.Writer
 	errs          []error
 }
 
@@ -53,6 +60,12 @@ func (ctx *context) error(msg string, args ...any) {
 
 func (ctx *context) warn(msg string, args ...any) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
+}
+
+func (ctx *context) trace(msg string, args ...any) {
+	if ctx.debugTrace != nil {
+		fmt.Fprintf(ctx.debugTrace, msg+"\n", args...)
+	}
 }
 
 func (ctx *context) processIncludes() {
@@ -88,6 +101,11 @@ func (ctx *context) processSyscalls() {
 	var syscalls []*Syscall
 	for _, call := range ctx.Syscalls {
 		ctx.processFields(call.Args, "", false)
+		call.returnType = ctx.inferReturnType(call.Func, call.SourceFile)
+		for i, arg := range call.Args {
+			typ := ctx.inferArgType(call.Func, call.SourceFile, i)
+			refineFieldType(arg, typ, false)
+		}
 		fn := strings.TrimPrefix(call.Func, "__do_sys_")
 		for _, name := range ctx.syscallRename[fn] {
 			ctx.noteInterface(&Interface{
@@ -129,6 +147,11 @@ func (ctx *context) processStructs() {
 	})
 	for _, str := range ctx.Structs {
 		ctx.processFields(str.Fields, str.Name, true)
+		name := strings.TrimSuffix(str.Name, autoSuffix)
+		for _, f := range str.Fields {
+			typ := ctx.inferFieldType(name, f.Name)
+			refineFieldType(f, typ, true)
+		}
 	}
 }
 

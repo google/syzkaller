@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -22,10 +23,11 @@ import (
 )
 
 type Config struct {
-	ToolBin   string
-	KernelSrc string
-	KernelObj string
-	CacheFile string
+	ToolBin    string
+	KernelSrc  string
+	KernelObj  string
+	CacheFile  string
+	DebugTrace io.Writer
 }
 
 // Run runs the clang tool on all files in the compilation database

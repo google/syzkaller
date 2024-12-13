@@ -108,12 +108,62 @@ struct FileOps {
   std::vector<IoctlCmd> IoctlCmds;
 };
 
+struct EntityReturn {
+  std::string Func;
+};
+
+struct EntityArgument {
+  std::string Func;
+  unsigned Arg;
+};
+
+struct EntityField {
+  std::string Struct;
+  std::string Field;
+};
+
+struct EntityLocal {
+  std::string Name;
+};
+
+struct EntityGlobalAddr {
+  std::string Name;
+};
+
+struct EntityResource {
+  std::string Type;
+  std::string SubType;
+};
+
+struct TypingEntity {
+  std::unique_ptr<EntityReturn> Return;
+  std::unique_ptr<EntityArgument> Argument;
+  std::unique_ptr<EntityField> Field;
+  std::unique_ptr<EntityLocal> Local;
+  std::unique_ptr<EntityGlobalAddr> GlobalAddr;
+  std::unique_ptr<EntityResource> Resource;
+
+  TypingEntity() = default;
+  TypingEntity(EntityReturn&& E) : Return(std::make_unique<EntityReturn>(std::move(E))) {}
+  TypingEntity(EntityArgument&& E) : Argument(std::make_unique<EntityArgument>(std::move(E))) {}
+  TypingEntity(EntityField&& E) : Field(std::make_unique<EntityField>(std::move(E))) {}
+  TypingEntity(EntityLocal&& E) : Local(std::make_unique<EntityLocal>(std::move(E))) {}
+  TypingEntity(EntityGlobalAddr&& E) : GlobalAddr(std::make_unique<EntityGlobalAddr>(std::move(E))) {}
+  TypingEntity(EntityResource&& E) : Resource(std::make_unique<EntityResource>(std::move(E))) {}
+};
+
+struct TypingFact {
+  TypingEntity Src;
+  TypingEntity Dst;
+};
+
 struct Function {
   std::string Name;
   std::string File;
   bool IsStatic = false;
   int LOC = 0;
   std::vector<std::string> Calls;
+  std::vector<TypingFact> Facts;
 };
 
 struct Syscall {
@@ -129,7 +179,7 @@ struct IouringOp {
 struct NetlinkOp {
   std::string Name;
   std::string Func;
-  const char* Access;
+  const char* Access = nullptr;
   std::string Policy;
 };
 
@@ -245,13 +295,69 @@ inline void print(JSONPrinter& Printer, const FileOps& V) {
   Printer.Field("ioctl_cmds", V.IoctlCmds, true);
 }
 
+inline void print(JSONPrinter& Printer, const EntityReturn& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("func", V.Func, true);
+}
+
+inline void print(JSONPrinter& Printer, const EntityArgument& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("func", V.Func);
+  Printer.Field("arg", V.Arg, true);
+}
+
+inline void print(JSONPrinter& Printer, const EntityField& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("struct", V.Struct);
+  Printer.Field("field", V.Field, true);
+}
+
+inline void print(JSONPrinter& Printer, const EntityLocal& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name, true);
+}
+
+inline void print(JSONPrinter& Printer, const EntityGlobalAddr& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name, true);
+}
+
+inline void print(JSONPrinter& Printer, const EntityResource& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("type", V.Type);
+  Printer.Field("subtype", V.SubType, true);
+}
+
+inline void print(JSONPrinter& Printer, const TypingEntity& V) {
+  JSONPrinter::Scope Scope(Printer);
+  if (V.Return)
+    Printer.Field("return", *V.Return, true);
+  else if (V.Argument)
+    Printer.Field("argument", *V.Argument, true);
+  else if (V.Field)
+    Printer.Field("field", *V.Field, true);
+  else if (V.Local)
+    Printer.Field("local", *V.Local, true);
+  else if (V.GlobalAddr)
+    Printer.Field("global_addr", *V.GlobalAddr, true);
+  else
+    Printer.Field("resource", *V.Resource, true);
+}
+
+inline void print(JSONPrinter& Printer, const TypingFact& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("src", V.Src);
+  Printer.Field("dst", V.Dst, true);
+}
+
 inline void print(JSONPrinter& Printer, const Function& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("name", V.Name);
   Printer.Field("file", V.File);
   Printer.Field("is_static", V.IsStatic);
   Printer.Field("loc", V.LOC);
-  Printer.Field("calls", V.Calls, true);
+  Printer.Field("calls", V.Calls);
+  Printer.Field("facts", V.Facts, true);
 }
 
 inline void print(JSONPrinter& Printer, const Syscall& V) {
