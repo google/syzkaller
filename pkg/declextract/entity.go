@@ -5,6 +5,7 @@ package declextract
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"slices"
 )
@@ -186,15 +187,20 @@ func (out *Output) SetSourceFile(file string) {
 	}
 }
 
-func sortAndDedupSlice[Slice ~[]E, E any](s Slice) Slice {
+func sortAndDedupSlice[Slice ~[]E, E comparable](s Slice) Slice {
+	dedup := make(map[[sha256.Size]byte]E)
+	text := make(map[E][]byte)
+	for _, e := range s {
+		t, _ := json.Marshal(e)
+		dedup[sha256.Sum256(t)] = e
+		text[e] = t
+	}
+	s = make([]E, 0, len(dedup))
+	for _, e := range dedup {
+		s = append(s, e)
+	}
 	slices.SortFunc(s, func(a, b E) int {
-		aa, _ := json.Marshal(a)
-		bb, _ := json.Marshal(b)
-		return bytes.Compare(aa, bb)
+		return bytes.Compare(text[a], text[b])
 	})
-	return slices.CompactFunc(s, func(a, b E) bool {
-		aa, _ := json.Marshal(a)
-		bb, _ := json.Marshal(b)
-		return bytes.Equal(aa, bb)
-	})
+	return s
 }
